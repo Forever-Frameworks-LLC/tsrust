@@ -148,3 +148,13 @@ fn every_http_member_is_reachable(){
   for entry in catalog[family].as_array().unwrap(){let name=entry["name"].as_str().unwrap();assert!(offered.iter().any(|label|label==name),"{family}.{name}: {offered:?}");}
  }
 }
+
+#[test]
+fn every_sqlite_member_is_reachable(){
+ let catalog:Value=serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
+ for(family,ty,member)in[("SqliteConnection","Connection","prepare"),("SqliteStatement","Statement","execute"),("SqliteTransaction","Transaction","commit"),("SqliteRow","Row","text")]{
+  let before=format!("import {{{ty}}} from 'std:sqlite';function inspect(x:{ty}):void{{x.");let text=format!("{before}{member};}}function main(){{}}");let mut session=Session::start(&[]);session.open("main.tsr",&text);session.settle();
+  let offered=session.completion("main.tsr",&text,before.len()).unwrap();
+  for entry in catalog[family].as_array().unwrap(){let name=entry["name"].as_str().unwrap();assert!(offered.iter().any(|label|label==name),"{family}.{name}: {offered:?}");}
+ }
+}

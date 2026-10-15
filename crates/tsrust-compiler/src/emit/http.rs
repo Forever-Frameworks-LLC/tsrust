@@ -8,7 +8,7 @@ impl Emitter<'_>{
   if let Type::Union(id)=ty {let members=&self.program.unions[id.index()].members;let absent=members.iter().position(|ty|*ty==Type::Undefined).unwrap();let present=1-absent;let payload=self.http_value(members[present],"value");return format!("match {value}{{Some(value)=>Union{}::V{present}({payload}),None=>Union{}::V{absent}(TsrUndefined)}}",id.index(),id.index());}
   value.into()
  }
- fn http_result(&self,ty:Type,call:&str)->String{
+ pub(super) fn http_result(&self,ty:Type,call:&str)->String{
   let Type::Union(id)=ty else{unreachable!()};let members=&self.program.unions[id.index()].members;
   let [ok,err]=crate::result_identity::variants(&self.program.records,members).unwrap();
   let tag=|record|members.iter().position(|ty|*ty==Type::Record(record)).unwrap();

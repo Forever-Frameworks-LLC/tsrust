@@ -53,6 +53,7 @@ impl Prepared {
   if runtime.contains("pub mod tsrust_native_threads {") || runtime.contains("pub use rayon;") { command.args(["--features", "threads"]); }
   if runtime.contains("pub mod tsrust_native_futures {") {command.args(["--features","async"]);}
   if runtime.contains("pub mod tsrust_native_http {"){command.args(["--features","http"]);}
+  if runtime.contains("pub mod tsrust_native_sqlite {"){command.args(["--features","sqlite"]);}
   if release {command.arg("--release");}
   Ok(Self{application,library:Some(profile.join("libtsrust_runtime.rlib")),command:Some(command),state:"miss",cache:Some(cache),opportunistic,dependencies:Some(profile.join("deps")),packed:Some(packed)})
  }

@@ -7,6 +7,7 @@ publish = false
 [workspace]
 
 [dependencies]
+rusqlite = { version = "=0.40.2", optional = true, features = ["bundled", "hooks", "extra_check"] }
 axum = { version = "=0.8.9", optional = true, default-features = false, features = ["http1", "http2", "tokio"] }
 tokio-rustls = { version = "=0.26.6", optional = true, default-features = false, features = ["aws_lc_rs", "tls12"] }
 reqwest = { version = "=0.13.5", optional = true, default-features = false, features = ["rustls", "stream", "http2"] }
@@ -23,3 +24,5 @@ default = []
 async = ["dep:tokio"]
 http = ["async", "dep:axum", "dep:reqwest", "dep:http-body-util", "dep:http-body", "dep:hyper-util", "dep:tokio-rustls"]
 threads = ["dep:rayon"]
+
+sqlite = ["dep:rusqlite"]

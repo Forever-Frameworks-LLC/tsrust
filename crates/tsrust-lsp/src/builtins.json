@@ -1,4 +1,332 @@
 {
+  "std:sqlite": [
+    {
+      "name": "open",
+      "signature": "open(path: string, busyTimeout?: int): Result<Connection, SqliteError>",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Nonempty filesystem path, created if absent, or :memory: for a private temporary database. No URI interpretation."
+        },
+        {
+          "label": "busyTimeout?: int",
+          "documentation": "Lock wait in milliseconds, default 5000; range 0..2147483647. Zero returns busy immediately."
+        }
+      ],
+      "documentation": "Opens a synchronous SQLite connection. Creates missing files; :memory: creates a private in-memory database. Foreign keys start enabled. busyTimeout defaults to 5000 ms; 0 disables waiting. Invalid path/range, filesystem and SQLite errors return SqliteError. Does not mutate arguments.\n\n```tsrust\nconst db = unwrap(open(':memory:'));\nunwrap(db.close());\n```\n\nOwnership: owns the connection; scope exit closes it. Blocking work must not run on an async executor worker.",
+      "examples": [
+        {
+          "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "Connection",
+      "signature": "type Connection",
+      "parameters": [],
+      "documentation": "Owned synchronous database handle. Use open(path), prepare(sql), begin() and close(). Scope exit closes it; live statements or transactions prevent explicit close.",
+      "examples": [
+        {
+          "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "Statement",
+      "signature": "type Statement",
+      "parameters": [],
+      "documentation": "Reusable prepared SQL statement. execute binds typed parameters; query returns owned rows. Borrows its connection or transaction until finalized or dropped.",
+      "examples": [
+        {
+          "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "Transaction",
+      "signature": "type Transaction",
+      "parameters": [],
+      "documentation": "Exclusive transaction handle from connection.begin(). commit or rollback consumes it. Leaving scope without a successful commit rolls back; release its statements before finishing.",
+      "examples": [
+        {
+          "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "Row",
+      "signature": "type Row",
+      "parameters": [],
+      "documentation": "Owned query row. int, number, text and blob read strict storage types by column name; isNull tests SQL NULL. Values remain valid after the connection closes.",
+      "examples": [
+        {
+          "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "SqliteError",
+      "signature": "type SqliteError",
+      "parameters": [],
+      "documentation": "SQLite operation failure with code and message. busy and locked mean contention; constraint means integrity failure; parameters, type and column identify binding/reading errors. transaction-ended means SQLite already rolled back; closed prevents reuse after failed rollback.",
+      "examples": [
+        {
+          "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    }
+  ],
+  "SqliteConnection": [
+    {
+      "name": "prepare",
+      "signature": "prepare(sql: string): Result<Statement, SqliteError>",
+      "parameters": [
+        {
+          "label": "sql: string",
+          "documentation": "One SQL statement with positional placeholders; no raw transaction control."
+        }
+      ],
+      "documentation": "Prepares exactly one SQL statement without executing it. sql is UTF-8 SQL; bind data with ?1, ?2 placeholders. Rejects syntax errors, multiple statements and SQL transaction/savepoint commands. Returns Result with SqliteError on failure; unwrap propagates the error to try/catch.\n\n```tsrust\nconst select = unwrap(db.prepare('SELECT name FROM people WHERE id = ?1'));\n```\n\nOwnership: the statement borrows this handle until finalized or its scope ends. It prevents closing the connection or finishing the transaction.",
+      "examples": [
+        {
+          "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "begin",
+      "signature": "begin(): Result<Transaction, SqliteError>",
+      "parameters": [],
+      "documentation": "Begins an IMMEDIATE transaction, acquiring the write reservation now. Lock contention returns busy/locked after the configured wait. Returns Result with SqliteError on failure; unwrap propagates the error to try/catch.\n\n```tsrust\nconst tx = unwrap(db.begin());\n// Prepare and execute statements through tx.\nunwrap(tx.commit());\n```\n\nOwnership: exclusively borrows the connection. Until finished, use the transaction instead of the connection. Dropping it or throwing before commit rolls it back.",
+      "examples": [
+        {
+          "source": "import { open } from 'std:sqlite';\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE accounts(balance INTEGER)'));\n    unwrap(create.execute());\n  }\n  try {\n    const transaction = unwrap(db.begin());\n    const insert = unwrap(transaction.prepare('INSERT INTO accounts VALUES (?1)'));\n    unwrap(insert.execute([100]));\n    throw 'Transfer failed'; // Leaving this scope rolls the transaction back.\n  } catch (error) {\n    if (typeof error === 'string') {\n      console.log(error);\n    } else {\n      console.log(error.message);\n    }\n  }\n  {\n    const count = unwrap(db.prepare('SELECT count(*) AS total FROM accounts'));\n    const rows = unwrap(count.query());\n    console.log(unwrap(rows[0].int('total'))); // 0\n  }\n  unwrap(db.close());\n}\n",
+          "output": "Transfer failed\n0\n"
+        }
+      ]
+    },
+    {
+      "name": "close",
+      "signature": "close(): Result<void, SqliteError>",
+      "parameters": [],
+      "documentation": "Closes the database connection immediately; successful completion returns no value. Returns Result with SqliteError on failure; unwrap propagates the error to try/catch.\n\n```tsrust\nunwrap(db.close()); // db is no longer usable\n```\n\nOwnership: consumes the connection. Cannot close while statements or a transaction borrow it; scope exit also closes automatically.",
+      "examples": [
+        {
+          "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    }
+  ],
+  "SqliteTransaction": [
+    {
+      "name": "prepare",
+      "signature": "prepare(sql: string): Result<Statement, SqliteError>",
+      "parameters": [
+        {
+          "label": "sql: string",
+          "documentation": "One statement executed inside this transaction."
+        }
+      ],
+      "documentation": "Prepares exactly one SQL statement without executing it. sql is UTF-8 SQL; bind data with ?1, ?2 placeholders. Rejects syntax errors, multiple statements and SQL transaction/savepoint commands. Returns Result with SqliteError on failure; unwrap propagates the error to try/catch.\n\n```tsrust\nconst select = unwrap(db.prepare('SELECT name FROM people WHERE id = ?1'));\n```\n\nOwnership: the statement borrows this handle until finalized or its scope ends. It prevents closing the connection or finishing the transaction.",
+      "examples": [
+        {
+          "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "commit",
+      "signature": "commit(): Result<void, SqliteError>",
+      "parameters": [],
+      "documentation": "Commits all changes in this transaction. Deferred constraint or lock failures return SqliteError and trigger rollback. If SQLite already aborted the transaction, returns transaction-ended. No arguments or success value.\n\n```tsrust\nunwrap(tx.commit());\n```\n\nOwnership: consumes the transaction and releases its exclusive connection borrow. All its statements must be released first.",
+      "examples": [
+        {
+          "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "rollback",
+      "signature": "rollback(): Result<void, SqliteError>",
+      "parameters": [],
+      "documentation": "Discards all changes in this transaction; succeeds if SQLite already rolled it back. Rollback failure returns SqliteError and prevents further connection operations except close. No arguments or success value.\n\n```tsrust\nunwrap(tx.rollback());\n```\n\nOwnership: consumes the transaction. All statements must be released first. Scope exit and errors also roll back automatically.",
+      "examples": [
+        {
+          "source": "import { open } from 'std:sqlite';\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE accounts(balance INTEGER)'));\n    unwrap(create.execute());\n  }\n  try {\n    const transaction = unwrap(db.begin());\n    const insert = unwrap(transaction.prepare('INSERT INTO accounts VALUES (?1)'));\n    unwrap(insert.execute([100]));\n    throw 'Transfer failed'; // Leaving this scope rolls the transaction back.\n  } catch (error) {\n    if (typeof error === 'string') {\n      console.log(error);\n    } else {\n      console.log(error.message);\n    }\n  }\n  {\n    const count = unwrap(db.prepare('SELECT count(*) AS total FROM accounts'));\n    const rows = unwrap(count.query());\n    console.log(unwrap(rows[0].int('total'))); // 0\n  }\n  unwrap(db.close());\n}\n",
+          "output": "Transfer failed\n0\n"
+        }
+      ]
+    }
+  ],
+  "SqliteStatement": [
+    {
+      "name": "execute",
+      "signature": "execute(parameters?: (int | number | string | null | Bytes)[]): Result<int, SqliteError>",
+      "parameters": [
+        {
+          "label": "parameters?: (int | number | string | null | Bytes)[]",
+          "documentation": "parameters is an optional array of int | number | string | null | Bytes; default []. Bindings follow SQLite parameter indexes (prefer ?1, ?2). Supply exactly the placeholder count on every call; prior values are never reused. int preserves signed 64-bit INTEGER; finite number binds REAL; string binds UTF-8 TEXT, Bytes binds BLOB and null binds SQL NULL. No string interpolation. Arrays and byte buffers are read, not consumed."
+        }
+      ],
+      "documentation": "Executes a prepared statement without result columns and returns affected rows (excluding trigger side effects). SELECT and RETURNING are rejected before execution; use query for read-only results. parameters is an optional array of int | number | string | null | Bytes; default []. Bindings follow SQLite parameter indexes (prefer ?1, ?2). Supply exactly the placeholder count on every call; prior values are never reused. int preserves signed 64-bit INTEGER; finite number binds REAL; string binds UTF-8 TEXT, Bytes binds BLOB and null binds SQL NULL. No string interpolation. Arrays and byte buffers are read, not consumed. Returns Result with SqliteError on failure; unwrap propagates the error to try/catch.\n\n```tsrust\nunwrap(insert.execute([1, 'Ada'])); // 1 inserted row\n```\n\nOwnership: mutates reusable statement state; borrows parameters only during this call.",
+      "examples": [
+        {
+          "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "query",
+      "signature": "query(parameters?: (int | number | string | null | Bytes)[]): Result<Row[], SqliteError>",
+      "parameters": [
+        {
+          "label": "parameters?: (int | number | string | null | Bytes)[]",
+          "documentation": "parameters is an optional array of int | number | string | null | Bytes; default []. Bindings follow SQLite parameter indexes (prefer ?1, ?2). Supply exactly the placeholder count on every call; prior values are never reused. int preserves signed 64-bit INTEGER; finite number binds REAL; string binds UTF-8 TEXT, Bytes binds BLOB and null binds SQL NULL. No string interpolation. Arrays and byte buffers are read, not consumed."
+        }
+      ],
+      "documentation": "Executes a read-only query and materializes all result rows in an owned array; no rows gives []. Use LIMIT for large queries. Rejects writes, duplicate column names (use AS aliases), invalid UTF-8 text and binding errors. parameters is an optional array of int | number | string | null | Bytes; default []. Bindings follow SQLite parameter indexes (prefer ?1, ?2). Supply exactly the placeholder count on every call; prior values are never reused. int preserves signed 64-bit INTEGER; finite number binds REAL; string binds UTF-8 TEXT, Bytes binds BLOB and null binds SQL NULL. No string interpolation. Arrays and byte buffers are read, not consumed. Returns Result with SqliteError on failure; unwrap propagates the error to try/catch.\n\n```tsrust\nconst rows = unwrap(select.query([1]));\n```\n\nOwnership: mutates reusable statement state. Rows own their values and survive statement/connection closure.",
+      "examples": [
+        {
+          "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "finalize",
+      "signature": "finalize(): Result<void, SqliteError>",
+      "parameters": [],
+      "documentation": "Releases the prepared statement immediately and reports any finalization error as SqliteError. No arguments or success value.\n\n```tsrust\nunwrap(insert.finalize());\n```\n\nOwnership: consumes the statement and releases its connection/transaction borrow. Scope exit finalizes automatically.",
+      "examples": [
+        {
+          "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    }
+  ],
+  "SqliteRow": [
+    {
+      "name": "int",
+      "signature": "int(column: string): Result<int, SqliteError>",
+      "parameters": [
+        {
+          "label": "column: string",
+          "documentation": "Exact result-column name; use SQL AS aliases for duplicate names."
+        }
+      ],
+      "documentation": "Reads a named column as int. Requires INTEGER; SQL NULL and other storage classes return type errors. No coercion; use isNull before reading nullable columns. Column names are exact and case-sensitive; missing names return column errors. Does not mutate the row. Text and blob results are independent owned copies. Returns Result with SqliteError on failure; unwrap propagates the error to try/catch.\n\n```tsrust\nconst value = unwrap(row.int('column'));\n```\n\nOwnership: borrows the row only during this call; returned values remain usable independently.",
+      "examples": [
+        {
+          "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "number",
+      "signature": "number(column: string): Result<number, SqliteError>",
+      "parameters": [
+        {
+          "label": "column: string",
+          "documentation": "Exact result-column name; use SQL AS aliases for duplicate names."
+        }
+      ],
+      "documentation": "Reads a named column as number. Requires finite REAL; SQL NULL and other storage classes return type errors. No coercion; use isNull before reading nullable columns. Column names are exact and case-sensitive; missing names return column errors. Does not mutate the row. Text and blob results are independent owned copies. Returns Result with SqliteError on failure; unwrap propagates the error to try/catch.\n\n```tsrust\nconst value = unwrap(row.number('column'));\n```\n\nOwnership: borrows the row only during this call; returned values remain usable independently.",
+      "examples": [
+        {
+          "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "text",
+      "signature": "text(column: string): Result<string, SqliteError>",
+      "parameters": [
+        {
+          "label": "column: string",
+          "documentation": "Exact result-column name; use SQL AS aliases for duplicate names."
+        }
+      ],
+      "documentation": "Reads a named column as string. Requires TEXT; SQL NULL and other storage classes return type errors. No coercion; use isNull before reading nullable columns. Column names are exact and case-sensitive; missing names return column errors. Does not mutate the row. Text and blob results are independent owned copies. Returns Result with SqliteError on failure; unwrap propagates the error to try/catch.\n\n```tsrust\nconst value = unwrap(row.text('column'));\n```\n\nOwnership: borrows the row only during this call; returned values remain usable independently.",
+      "examples": [
+        {
+          "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "blob",
+      "signature": "blob(column: string): Result<Bytes, SqliteError>",
+      "parameters": [
+        {
+          "label": "column: string",
+          "documentation": "Exact result-column name; use SQL AS aliases for duplicate names."
+        }
+      ],
+      "documentation": "Reads a named column as Bytes. Requires BLOB; SQL NULL and other storage classes return type errors. No coercion; use isNull before reading nullable columns. Column names are exact and case-sensitive; missing names return column errors. Does not mutate the row. Text and blob results are independent owned copies. Returns Result with SqliteError on failure; unwrap propagates the error to try/catch.\n\n```tsrust\nconst value = unwrap(row.blob('column'));\n```\n\nOwnership: borrows the row only during this call; returned values remain usable independently.",
+      "examples": [
+        {
+          "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "isNull",
+      "signature": "isNull(column: string): Result<boolean, SqliteError>",
+      "parameters": [
+        {
+          "label": "column: string",
+          "documentation": "Exact result-column name; use SQL AS aliases for duplicate names."
+        }
+      ],
+      "documentation": "Checks whether the named column is SQL NULL; returns true for NULL and false otherwise. Column names are exact and case-sensitive; missing names return column errors. Does not mutate the row. Text and blob results are independent owned copies. Returns Result with SqliteError on failure; unwrap propagates the error to try/catch.\n\n```tsrust\nconst value = unwrap(row.isNull('column'));\n```\n\nOwnership: borrows the row only during this call; returned values remain usable independently.",
+      "examples": [
+        {
+          "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    }
+  ],
+  "SqliteSqliteError": [
+    {
+      "name": "code",
+      "signature": "code: string",
+      "documentation": "Stable category for handling failures.\n\nOwnership: read from the owned error.",
+      "examples": [
+        {
+          "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "message",
+      "signature": "message: string",
+      "documentation": "Human-readable details; do not parse for control flow.\n\nOwnership: read from the owned error.",
+      "examples": [
+        {
+          "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    }
+  ],
   "std:futures": [
     {
       "name": "delay",

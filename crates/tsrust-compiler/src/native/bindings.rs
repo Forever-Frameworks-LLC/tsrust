@@ -69,6 +69,7 @@ impl NativeBinding {
     /// A byte observer reads any readable byte storage; a byte mutator writes any
     /// writable one. A stored function value keeps the declared parameter type.
     pub fn argument_alternatives(&self, position: usize) -> &'static [crate::native_signatures::NativeTypeId] {
+        if self.module=="std:sqlite" && self.name=="__prepare" && position==0 {return &[crate::native_signatures::NativeTypeId::SqliteTransaction];}
         use crate::native_signatures::NativeTypeId::{ByteView, ByteViewMut, BufferedReader, BufferedWriter};
         if self.module == "std:json" && position == 0 && matches!(self.name,"asString"|"get"|"at"|"kind"|"asBoolean"|"asInt"|"asNumber"|"stringify") {
             return &[crate::native_signatures::NativeTypeId::JsonView];
@@ -106,6 +107,20 @@ impl NativeBinding {
     }
 }
 pub const BINDINGS: &[NativeBinding] = &[
+    crate::stdlib::sqlite::OPEN,
+    crate::stdlib::sqlite::PREPARE,
+    crate::stdlib::sqlite::BEGIN,
+    crate::stdlib::sqlite::CLOSE,
+    crate::stdlib::sqlite::COMMIT,
+    crate::stdlib::sqlite::ROLLBACK,
+    crate::stdlib::sqlite::FINALIZE,
+    crate::stdlib::sqlite::EXECUTE,
+    crate::stdlib::sqlite::QUERY,
+    crate::stdlib::sqlite::INT,
+    crate::stdlib::sqlite::NUMBER,
+    crate::stdlib::sqlite::TEXT,
+    crate::stdlib::sqlite::BLOB,
+    crate::stdlib::sqlite::ISNULL,
     crate::stdlib::http::APP,
     crate::stdlib::http::CLIENT,
     crate::stdlib::http::REQUEST,
@@ -286,6 +301,11 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::bytes::bindings::VIEW,
     crate::stdlib::bytes::bindings::VIEW_MUT,
 ];
+/// Checked SQLite member metadata, shared with editor inference.
+pub fn sqlite_method(identity: crate::native_signatures::NativeTypeId, member: &str) -> Option<&'static NativeBinding> {
+    lookup("std:sqlite",crate::stdlib::sqlite::method(Some(identity),member)?).ok()
+}
+
 pub fn lookup(module: &str, name: &str) -> Result<&'static NativeBinding, String> {
     if !BINDINGS.iter().any(|binding| binding.module == module) {
         return Err(format!("Unknown standard-library module {module:?}."));

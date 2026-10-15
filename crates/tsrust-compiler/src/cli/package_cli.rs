@@ -98,7 +98,7 @@ pub(crate) fn run(command:&str,args:impl Iterator<Item=String>)->Result<u8,Strin
  let root_package=root_package(&metadata)?;
  for dependency in root_package["dependencies"].as_array().ok_or("Cargo dependencies missing")? {
   let name=dependency["name"].as_str().ok_or("Cargo dependency name missing")?;
-  if matches!(name,"rayon"|"serde"|"serde_json"|"tokio"|"axum"|"reqwest"|"http-body"|"http-body-util"|"hyper-util"|"tokio-rustls"){continue;}
+  if matches!(name,"rayon"|"serde"|"serde_json"|"tokio"|"axum"|"reqwest"|"http-body"|"http-body-util"|"hyper-util"|"rusqlite"|"libsqlite3-sys"|"tokio-rustls"){continue;}
   let version=resolved(&metadata,name)?.0;
   binding.dependencies.insert(name.into(),Dependency{version:format!("={version}"),features:dependency["features"].as_array().unwrap().iter().map(|feature|feature.as_str().unwrap().into()).collect(),default_features:dependency["uses_default_features"].as_bool().unwrap()});
  }

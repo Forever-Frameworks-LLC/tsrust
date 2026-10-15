@@ -20,3 +20,4 @@ pub(crate) mod result;
 pub(crate) mod futures;
 
 pub(crate) mod http;
+pub(crate) mod sqlite;

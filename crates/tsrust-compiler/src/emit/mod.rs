@@ -8,6 +8,7 @@ mod program_testing;
 mod threads;
 mod futures;
 mod http;
+mod sqlite;
 mod channels;
 mod rust_bridge;
 mod results;
@@ -2362,10 +2363,11 @@ impl Emitter<'_> {
             output.push_str(include_str!("../stdlib/schema/runtime/export_runtime.rs").trim_start_matches("//! Shared JSON Schema assembly. Generated visitors borrow plans and own output.\n"));
             output.push_str("\n}\n");
         }
+        if self.program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:sqlite")){output.push_str(crate::stdlib::sqlite::RUNTIME);}
         if self.program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:http")){output.push_str(crate::stdlib::http::RUNTIME);}
         let mut record_support_cache=scoped_record_support_emit::SupportCache::default();
         for (index, record) in self.program.records.iter().enumerate() {
-            if self.http_record(&mut output,index){continue;}
+            if self.http_record(&mut output,index) || self.sqlite_record(&mut output,index){continue;}
             if self.future_record(&mut output, index) { continue; }
             if self.thread_record(&mut output, index) { continue; }
             if record.native_type == Some(crate::native_signatures::NativeTypeId::TestRegistry) {
@@ -2648,6 +2650,9 @@ impl Emitter<'_> {
                 }else if binding.module=="std:testing-runtime" && matches!(binding.name,"beginSuite"|"beginFile"|"endSuite") {
                     let call=if binding.name=="beginSuite"{format!("tsrust_testing_begin_suite_result({})",arguments[0])}else if binding.name=="beginFile"{format!("tsrust_testing_begin_file_result({})",arguments[0])}else{"tsrust_testing_end_suite_result()".into()};
                     self.typed_runner_result(&call,closure.span,Some(index)).unwrap_or_else(||crate::native_emit::call(binding,arguments))
+                }else if binding.module=="std:sqlite" && binding.name=="open" {
+                    let timeout=arguments.get(1).map(|value|format!("Some({value})")).unwrap_or("None".into());
+                    self.http_result(closure.function.result,&format!("tsrust_native_sqlite::Connection::open(({}).as_ref(),{timeout})",arguments[0]))
                 }else if binding.module=="std:path" && binding.name=="relative" {
                     let call=crate::native_emit::call(binding,arguments);
                     self.typed_native_result(&call,closure.span,Some(index),"Error","path-relative").unwrap_or_else(||format!("{call}.unwrap_or_else(|message|panic!(\"path.relative: {{message}}\"))"))
@@ -8534,6 +8539,7 @@ impl Emitter<'_> {
                 CallTarget::JsonEncode => self.json_typed_encode(fun,expr,args),
                 CallTarget::JsonDecode => self.json_typed_decode(fun,expr,args),
                 CallTarget::NativeBinding(id) => {
+                    if let Some(call)=self.sqlite_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.http_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call) = self.future_native(fun, expr, id, args) { return call; }
                     if let Some(call) = self.thread_native(fun, expr, id, args) { return call; }

@@ -333,6 +333,13 @@ impl Analyzer {
                             }
                         }
                     }
+                    if matches!(value.target,Some(CallTarget::ResultUnwrap(_))) {
+                        if let Some((success,_))=args[0].ty.and_then(Type::union).and_then(|id|context.native_view_results.as_ref()?.get(&id).copied()) {
+                            pending.push(Task::Select(result.len(),Segment::Field("payload".into())));
+                            pending.push(Task::Narrow(result.len(),Type::Record(success)));
+                            pending.push(Task::Value(&args[0]));
+                        }
+                    }
                     if value.target==Some(CallTarget::JsonDecode) && let Some((variant,_))=value.ty.and_then(Type::union).and_then(|id|context.native_view_results.as_ref()?.get(&id).copied()) {
                         let mut loans=Self::native_view_source_loans(context,&args[0],ReturnedBorrow{source_parameter:0,access:BorrowAccess::ReadOnly,payload:crate::native_signatures::NativeTypeId::JsonRaw,slot:crate::native_return_borrows::ReturnSlot::ResultOk})?;
                         for loan in &mut loans {loan.whole=true;native_view_projections::result(loan,variant,None);}

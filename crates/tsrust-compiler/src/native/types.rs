@@ -56,6 +56,12 @@ static THREAD: Declaration = Declaration {
     independent_clone: false, collection_key: false, thread_transfer: false,
     fields: &[], capabilities: &[],
 };
+static SQLITECONNECTION:Declaration=Declaration{id:NativeTypeId::SqliteConnection,module:"std:sqlite",name:"Connection",type_parameters:&[],..THREAD};
+static SQLITESTATEMENT:Declaration=Declaration{id:NativeTypeId::SqliteStatement,module:"std:sqlite",name:"Statement",type_parameters:&[],representation:Representation::Borrowed(crate::native_return_borrows::BorrowAccess::ReadOnly),..THREAD};
+static SQLITETRANSACTION:Declaration=Declaration{id:NativeTypeId::SqliteTransaction,module:"std:sqlite",name:"Transaction",type_parameters:&[],representation:Representation::Borrowed(crate::native_return_borrows::BorrowAccess::Exclusive),..THREAD};
+static SQLITEROW:Declaration=Declaration{id:NativeTypeId::SqliteRow,module:"std:sqlite",name:"Row",type_parameters:&[],..THREAD};
+static SQLITEERROR:Declaration=Declaration{id:NativeTypeId::SqliteError,module:"std:sqlite",name:"SqliteError",type_parameters:&[],..SPAWN_ERROR};
+
 static HTTPAPP: Declaration = Declaration {id:NativeTypeId::HttpApp,module:"std:http",name:"App",type_parameters:&[],thread_transfer:true,..THREAD};
 static HTTPREQUEST: Declaration = Declaration {id:NativeTypeId::HttpRequest,module:"std:http",name:"Request",type_parameters:&[],thread_transfer:true,..THREAD};
 static HTTPRESPONSE: Declaration = Declaration {id:NativeTypeId::HttpResponse,module:"std:http",name:"Response",type_parameters:&[],thread_transfer:true,..THREAD};
@@ -347,7 +353,12 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
     match id {
         NativeTypeId::HttpTlsOptions => &HTTPTLSOPTIONS,
         NativeTypeId::HttpClientOptions => &HTTPCLIENTOPTIONS,
-        NativeTypeId::HttpApp => &HTTPAPP,
+        NativeTypeId::SqliteConnection => &SQLITECONNECTION,
+NativeTypeId::SqliteStatement => &SQLITESTATEMENT,
+NativeTypeId::SqliteTransaction => &SQLITETRANSACTION,
+NativeTypeId::SqliteRow => &SQLITEROW,
+NativeTypeId::SqliteError => &SQLITEERROR,
+NativeTypeId::HttpApp => &HTTPAPP,
         NativeTypeId::HttpRequest => &HTTPREQUEST,
         NativeTypeId::HttpResponse => &HTTPRESPONSE,
         NativeTypeId::HttpBody => &HTTPBODY,
@@ -411,7 +422,7 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
 /// Exact module/name lookup does not grant aliases a new declaration identity.
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
-    [&HTTPTLSOPTIONS,&HTTPCLIENTOPTIONS,&HTTPAPP,&HTTPREQUEST,&HTTPRESPONSE,&HTTPBODY,&HTTPCLIENT,&HTTPSERVER,&HTTPNEXT,&HTTPERROR,&JOB,&ASYNC_ERROR,&ASYNC_CHANNEL,&ASYNC_SENDER,&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
+    [&SQLITECONNECTION,&SQLITESTATEMENT,&SQLITETRANSACTION,&SQLITEROW,&SQLITEERROR,&HTTPTLSOPTIONS,&HTTPCLIENTOPTIONS,&HTTPAPP,&HTTPREQUEST,&HTTPRESPONSE,&HTTPBODY,&HTTPCLIENT,&HTTPSERVER,&HTTPNEXT,&HTTPERROR,&JOB,&ASYNC_ERROR,&ASYNC_CHANNEL,&ASYNC_SENDER,&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
 }
 
 #[cfg(test)]

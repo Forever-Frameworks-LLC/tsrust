@@ -24,6 +24,7 @@ pub(crate) fn export(root:&Path,rust:&str)->io::Result<()> {
   if rust.contains("mod tsrust_native_threads {") || rust.contains("mod tsr_rust") { manifest = manifest.replace("default = []", "default = [\"threads\"]"); }
   if rust.contains("mod tsrust_native_http {"){manifest=manifest.replace("default = []", "default = [\"http\"]").replace("default = [\"threads\"]", "default = [\"threads\", \"http\"]");}
   if rust.contains("mod tsrust_native_futures {") {manifest=manifest.replace("default = []", "default = [\"async\"]").replace("default = [\"threads\"]", "default = [\"threads\", \"async\"]");}
+  if rust.contains("mod tsrust_native_sqlite {"){manifest=manifest.replace("default = [", "default = [\"sqlite\", ");}
   manifest.push_str("\n[[bin]]\nname = \"program\"\npath = \"src/main.rs\"\n\n[profile.dev]\noverflow-checks = true\nincremental = false\n\n[profile.release]\noverflow-checks = true\nincremental = false\n");
   fs::write(root.join("Cargo.toml"),manifest)?;fs::write(root.join("Cargo.lock"),lock)?;
   if !dependencies {fs::write(root.join(".cargo/config.toml"),"[net]\noffline = true\n")?;}

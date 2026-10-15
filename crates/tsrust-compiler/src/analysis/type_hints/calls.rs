@@ -96,6 +96,9 @@ fn regular<'a>(analyzer:&Analyzer,context:&Context,expr:&'a Expr,work:&mut Vec<W
 }
 fn method<'a>(analyzer:&Analyzer,context:&Context,expr:&'a Expr,receiver:Option<Type>,work:&mut Vec<Work<'a>>,value:&mut Option<Type>){
     let ExprKind::Call(callee,_)=&expr.kind else{unreachable!()};
+    if let ExprKind::Field(_,member)=&callee.kind && let Some(Type::Record(id))=receiver && let Some(operation)=crate::stdlib::sqlite::method(analyzer.program.records[id].native_type,member){
+        let binding=crate::native_bindings::lookup("std:sqlite",operation).ok().unwrap();*value=Some(native_type(binding.result,&analyzer.program.records));return;
+    }
     if let ExprKind::Field(_,member)=&callee.kind && let Some(result)=http_result(analyzer,receiver,member,false){*value=Some(result);return;}
     let ExprKind::Call(callee,arguments)=&expr.kind else{unreachable!()};let ExprKind::Field(base,name)=&callee.kind else{unreachable!()};
     if let Some(Type::Record(id))=receiver && analyzer.program.records[id].native_element().is_some(){*value=analyzer.native_collection_method_hint(id,name,expr.span);return;}

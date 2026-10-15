@@ -1,0 +1,42 @@
+import { open, Row } from 'std:sqlite';
+
+type Person = {
+  id: int;
+  name: string;
+};
+
+function person(row: ReadOnly<Row>): Person {
+  return {
+    id: unwrap(row.int('id')), name: unwrap(row.text('name'))
+  };
+}
+
+function main(): void {
+  const db = unwrap(open(':memory:'));
+  {
+    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));
+    unwrap(create.execute());
+  }
+
+  {
+    const transaction = unwrap(db.begin());
+    {
+      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));
+      unwrap(insert.execute([1, 'Ada']));
+      unwrap(insert.execute([2, 'Grace']));
+    }
+
+    unwrap(transaction.commit());
+  }
+
+  {
+    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));
+    const rows = unwrap(select.query());
+    for (const row of rows) {
+      const value = person(row);
+      console.log(`${value.id}: ${value.name}`);
+    }
+  }
+
+  unwrap(db.close());
+}

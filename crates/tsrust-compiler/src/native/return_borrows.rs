@@ -398,7 +398,7 @@ mod tests {
         for binding in crate::native_bindings::BINDINGS {
             assert_eq!(binding.validate_returned_borrow(), Ok(()));
             if binding.contains_borrowed_signatures().unwrap() {
-                assert!(binding.returned_borrow.is_some());
+                assert_eq!(binding.returned_borrow.is_some(),binding.result.signature().contains_borrowed_native().unwrap());
                 let mut records=Vec::new();
                 crate::native_binding_types::prepare(&mut records,binding,crate::Span::default()).unwrap();
                 assert!(!records.is_empty());

@@ -1,0 +1,30 @@
+import { open } from 'std:sqlite';
+
+function main(): void {
+  const db = unwrap(open(':memory:'));
+  {
+    const create = unwrap(db.prepare('CREATE TABLE accounts(balance INTEGER)'));
+    unwrap(create.execute());
+  }
+
+  try {
+    const transaction = unwrap(db.begin());
+    const insert = unwrap(transaction.prepare('INSERT INTO accounts VALUES (?1)'));
+    unwrap(insert.execute([100]));
+    throw 'Transfer failed'; // Leaving this scope rolls the transaction back.
+  } catch (error) {
+    if (typeof error === 'string') {
+      console.log(error);
+    } else {
+      console.log(error.message);
+    }
+  }
+
+  {
+    const count = unwrap(db.prepare('SELECT count(*) AS total FROM accounts'));
+    const rows = unwrap(count.query());
+    console.log(unwrap(rows[0].int('total'))); // 0
+  }
+
+  unwrap(db.close());
+}

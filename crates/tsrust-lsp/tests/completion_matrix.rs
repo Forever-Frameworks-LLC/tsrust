@@ -11,6 +11,7 @@ use support::session::Session;
 /// `every_kind_and_std_module_has_a_row` fails otherwise.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Kind {
+    Sqlite,
     Http,
     Task,
     Job,
@@ -44,7 +45,8 @@ enum Kind {
     MemberPrefix,
 }
 
-const KINDS: [Kind; 31] = [
+const KINDS: [Kind; 32] = [
+    Kind::Sqlite,
     Kind::Http,
     Kind::Task,
     Kind::Job,
@@ -110,6 +112,7 @@ fn rows() -> Vec<Row> {
     let row = |kind, name, typed, includes, excludes| Row { kind, name, before: HEAD.into(), typed, after: TAIL, includes, excludes, silent: None, needs_check: false };
     let mut rows = vec![
         Row {kind:Kind::Task,name:"lazy task scheduling",before:"async function answer():Task<int>{return 42;}async function main():Task<void>{const task=answer();".into(),typed:"task.",after:";await task;}",includes:&["start","timeout"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+        Row {kind:Kind::Sqlite,name:"SQLite connection",before:"import {open} from 'std:sqlite';function main(){const db=unwrap(open(':memory:'));".into(),typed:"db.",after:";}",includes:&["prepare","begin","close"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
         Row {kind:Kind::Http,name:"HTTP app routes",before:"import {App} from 'std:http';function main(){const app=new App();".into(),typed:"app.",after:";}",includes:&["get","post","use","listen","fallback"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
         Row {kind:Kind::Job,name:"started job lifecycle",before:"async function answer():Task<int>{return 42;}async function main():Task<void>{const job=answer().start();".into(),typed:"job.",after:";await job;}",includes:&["cancel","timeout"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
         Row {kind:Kind::AsyncChannel,name:"async channel methods",before:"import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(2);".into(),typed:"queue.",after:"close();}",includes:&["sender","send","receive","close"],excludes:NOT_MEMBERS,silent:None,needs_check:true},

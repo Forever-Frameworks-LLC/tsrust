@@ -34,12 +34,11 @@ pub(crate) fn prepare(records: &mut Vec<Record>, binding: &NativeBinding, span: 
     binding.validate_returned_borrow().map_err(|error| Diagnostic::new(
         "native-return-borrow-contract", format!("Invalid native returned-borrow contract: {error:?}."), span,
     ))?;
-    // A returned borrow is published only with a validated contract: the analyzer
-    // attaches its source loans and the emitter keeps the real slice lifetime.
     let borrowed_shape = binding.contains_borrowed_signatures().map_err(|_| Diagnostic::new(
         "native-type-limit", "Native signature exceeds its borrowed-shape traversal limit.", span,
     ))?;
-    if borrowed_shape && binding.returned_borrow.is_none() {
+    // SQLite has a lifetime-aware input ABI; other input-only borrowed bindings remain gated.
+    if borrowed_shape && binding.returned_borrow.is_none() && binding.module!="std:sqlite" {
         return Err(Diagnostic::new("native-return-borrow", "A native result that borrows storage requires a returned-borrow contract.", span));
     }
     project_shapes(records, binding, span)
