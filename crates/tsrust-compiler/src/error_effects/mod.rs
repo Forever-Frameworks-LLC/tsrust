@@ -732,8 +732,8 @@ pub(crate) fn integer_operation(op:BinaryOp)->bool {
 /// unknown callable contract retains an opaque category instead.
 /// Native APIs need an explicit audited contract; unresolved APIs stay opaque.
 fn native_binding_effect(id:usize)->FailureSet {
-    if crate::native_bindings::BINDINGS[id].module=="std:futures" {return if crate::native_bindings::BINDINGS[id].name=="__channel" {FailureSet::runtime()}else{FailureSet::default()};}
     match crate::native_bindings::BINDINGS.get(id) {
+        Some(binding) if binding.module=="std:futures"=>if binding.name=="__channel"{FailureSet::runtime()}else{FailureSet::default()},
         // Reading the monotonic clock has no recoverable failure or callback.
         Some(binding) if binding.module=="std:time" && binding.name=="monotonicNow"=>FailureSet::default(),
         // Worker failures cross join as owned Result data, never caller throws.

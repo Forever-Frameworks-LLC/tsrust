@@ -147,8 +147,12 @@ impl SourceIndex {
             return entries;
         }
         let (base, arguments) = ty.find('<').map_or((ty, ""), |start| (&ty[..start], &ty[start..]));
-        if let Some(identity) = self.native_type_aliases.get(base) {
-            let declaration = tsrust_compiler::native_types::declaration(*identity);
+        let identity=self.native_type_aliases.get(base).copied().or_else(|| {
+            let (module,name)=base.strip_prefix("__tsrust_module_native#")?.rsplit_once('#')?;
+            tsrust_compiler::native_types::lookup(module,name).map(|declaration|declaration.id)
+        });
+        if let Some(identity) = identity {
+            let declaration = tsrust_compiler::native_types::declaration(identity);
             if declaration.module == "std:futures" {return builtins_for(&format!("{}{arguments}",match declaration.id {tsrust_compiler::native_signatures::NativeTypeId::AsyncChannel=>"AsyncChannel",tsrust_compiler::native_signatures::NativeTypeId::AsyncSender=>"AsyncSender",_=>declaration.name}));}
             if declaration.module == "std:threads" { return builtins_for(&format!("{}{arguments}", declaration.name)); }
         }

@@ -152,6 +152,8 @@ impl SourceIndex {
         } else {
             (format!("{}{receiver}", &self.source[..start]), start + receiver.len())
         };
+        // The statement probe already ends in a semicolon; avoid an invalid empty statement.
+        let rest=if statement && rest.trim_start().starts_with(';'){&rest[rest.find(';').unwrap()+1..]}else{rest};
         let terminated = rest.trim_start().starts_with([';', ')', ',', ']']);
         let mut tails = Vec::new();
         if statement {

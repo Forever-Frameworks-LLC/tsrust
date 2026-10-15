@@ -78,3 +78,13 @@ fn started_obligations_cover_exits_aggregates_and_collection_updates(){
   assert!(!output.status.success());assert!(String::from_utf8_lossy(&output.stderr).contains("unsettled-job"),"{body}: {}",String::from_utf8_lossy(&output.stderr));
  }
 }
+#[test]
+fn cached_runtime_links_after_application_changes(){
+ let directory=support::TempDirectory::new();
+ for value in [42,43]{
+  let source=support::format_round_trip(&format!("import {{yield}} from 'std:futures';async function main():Task<void>{{await yield();console.log({value});}}"));
+  let input=directory.source(&source);let binary=directory.0.join(format!("program-{value}"));
+  support::success(&support::run(support::cli().arg("build").arg(&input).arg("-o").arg(&binary).env("TSRUST_CACHE_DIR",directory.0.join("cache")),120));
+  let output=support::run(&mut std::process::Command::new(binary),30);support::success(&output);assert_eq!(String::from_utf8(output.stdout).unwrap(),format!("{value}\n"));
+ }
+}

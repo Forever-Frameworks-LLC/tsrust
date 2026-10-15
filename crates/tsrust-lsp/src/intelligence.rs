@@ -562,10 +562,10 @@ impl SourceIndex {
     }
     fn display_type(&self, ty: &str) -> String {
         let mut display = ty.to_owned();
-        // Global JSON calls can introduce native types without a source import
+        // Global JSON calls and task scheduling introduce native types without a source import
         // whose alias would otherwise supply their public display names.
         use tsrust_compiler::native_signatures::NativeTypeId;
-        for id in [NativeTypeId::JsonValue, NativeTypeId::JsonError, NativeTypeId::JsonLimits] {
+        for id in [NativeTypeId::JsonValue, NativeTypeId::JsonError, NativeTypeId::JsonLimits, NativeTypeId::Job, NativeTypeId::AsyncError] {
             display = display.replace(&tsrust_compiler::native_type_resolution::linked_name(id),
                 tsrust_compiler::native_types::declaration(id).name);
         }

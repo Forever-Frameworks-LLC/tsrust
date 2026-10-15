@@ -6,28 +6,30 @@
       "parameters": [
         {
           "label": "milliseconds: int",
-          "documentation": "Creates a lazy timer. Awaiting waits without blocking a worker thread. milliseconds is an integer from 0 through 31536000000; zero yields to the timer scheduler. Invalid values throw AsyncError code range when awaited. No receiver mutation."
+          "documentation": "Creates a lazy timer. Awaiting waits without blocking a worker thread. milliseconds is an integer from 0 through 31536000000; zero imposes no positive delay. Invalid values throw AsyncError code range when awaited. No receiver mutation."
         }
       ],
-      "documentation": "Creates a lazy timer. Awaiting waits without blocking a worker thread. milliseconds is an integer from 0 through 31536000000; zero yields to the timer scheduler. Invalid values throw AsyncError code range when awaited. No receiver mutation.\n\nExample: await delay(10); resumes after at least 10 ms.\n\nOwnership: uniquely owned task; await once or transfer it.",
+      "documentation": "Creates a lazy timer. Awaiting waits without blocking a worker thread. milliseconds is an integer from 0 through 31536000000; zero imposes no positive delay. Invalid values throw AsyncError code range when awaited. No receiver mutation.\n\n```tsrust\nawait delay(10); // waits at least 10 ms\n```\n\nOwnership: uniquely owned task; await once or transfer it.",
       "examples": [
         {
           "source": "import {delay} from 'std:futures'; async function main():Task<void>{await delay(1); console.log('ready');}",
           "output": "ready\n"
         }
-      ]
+      ],
+      "inferredSignature": "function delay(milliseconds: int): Task<void>"
     },
     {
       "name": "yield",
       "signature": "yield(): Task<void>",
       "parameters": [],
-      "documentation": "Gives the scheduler a chance to run other ready tasks when awaited. Resumes without a fixed delay; another task is not guaranteed to run first. Calling yield() alone does nothing until awaited. Usually unnecessary when already awaiting timers or channel operations. Takes no arguments and returns no value. No receiver mutation or ordinary failures.\n\nExample: await yield(); // resume after yielding to the scheduler\n\nOwnership: consumes the task once.",
+      "documentation": "Gives the scheduler a chance to run other ready tasks when awaited. Resumes without a fixed delay; another task is not guaranteed to run first. Acts on the task executing await; it cannot pause another job or choose which task runs next. Calling yield() alone does nothing until awaited. Usually unnecessary when already awaiting timers or channel operations. Takes no arguments and returns no value. No receiver mutation or ordinary failures.\n\n```tsrust\nawait yield(); // resume after yielding to the scheduler\n```\n\nOwnership: consumes the task once.",
       "examples": [
         {
           "source": "import {yield} from 'std:futures';async function main():Task<void>{await yield();console.log('ready');}",
           "output": "ready\n"
         }
-      ]
+      ],
+      "inferredSignature": "function yield(): Task<void>"
     },
     {
       "name": "race",
@@ -38,13 +40,14 @@
           "documentation": "Creates a lazy race over an owned array. Lazy inputs begin together when awaited; started jobs continue running. First completion, including failure, wins. Ready ties prefer input order. Cancels remaining work and waits for cleanup before returning. Empty input throws AsyncError code empty. Every input must have the same result type. Worker failures retain their typed cause. No input array mutation is visible after transfer."
         }
       ],
-      "documentation": "Creates a lazy race over an owned array. Lazy inputs begin together when awaited; started jobs continue running. First completion, including failure, wins. Ready ties prefer input order. Cancels remaining work and waits for cleanup before returning. Empty input throws AsyncError code empty. Every input must have the same result type. Mix tasks and jobs in an array literal at the call; stored arrays hold one input type. Worker failures retain their typed cause. No input array mutation is visible after transfer.\n\nExample: const result = await race([slow(), fast().start()]);\n\nOwnership: consumes the array and every input. Started-job settlement obligations remain active inside the returned task. Cancelling a parent drains its children.",
+      "documentation": "Creates a lazy race over an owned array. Lazy inputs begin together when awaited; started jobs continue running. First completion, including failure, wins. Ready ties prefer input order. Cancels remaining work and waits for cleanup before returning. Empty input throws AsyncError code empty. Every input must have the same result type. Mix tasks and jobs in an array literal at the call; stored arrays hold one input type. Worker failures retain their typed cause. No input array mutation is visible after transfer.\n\n```tsrust\nconst result = await race([slow(), fast().start()]);\n```\n\nOwnership: consumes the array and every input. Started-job settlement obligations remain active inside the returned task. Cancelling a parent drains its children.",
       "examples": [
         {
           "source": "import {race,allSettled} from 'std:futures';async function value(n:int):Task<int>{return n;}async function main():Task<void>{console.log(await race([value(1),value(2)]));const results=await allSettled([value(3),value(4).start()]);for(const result of results){console.log(unwrap(clone(result)));}}",
           "output": "1\n3\n4\n"
         }
-      ]
+      ],
+      "inferredSignature": "function race(inputs: (Task<T> | Job<T, E>)[]): Task<T>"
     },
     {
       "name": "allSettled",
@@ -55,19 +58,20 @@
           "documentation": "Creates a lazy group that waits for every outcome, including failures, in input order. Lazy inputs begin together when awaited; started jobs continue running. Empty input returns an empty array. All inputs need the same result type. A failure does not cancel siblings. Errors carry code and optional typed cause."
         }
       ],
-      "documentation": "Creates a lazy group that waits for every outcome, including failures, in input order. Lazy inputs begin together when awaited; started jobs continue running. Empty input returns an empty array. All inputs need the same result type. Mix tasks and jobs in an array literal at the call; stored arrays hold one input type. A failure does not cancel siblings. Errors carry code and optional typed cause.\n\nExample: const outcomes = await allSettled([first(), second().start()]);\n\nOwnership: consumes inputs and transfers any started-job obligations to the group. Parent cancellation cancels and drains children.",
+      "documentation": "Creates a lazy group that waits for every outcome, including failures, in input order. Lazy inputs begin together when awaited; started jobs continue running. Empty input returns an empty array. All inputs need the same result type. Mix tasks and jobs in an array literal at the call; stored arrays hold one input type. A failure does not cancel siblings. Errors carry code and optional typed cause.\n\n```tsrust\nconst outcomes = await allSettled([first(), second().start()]);\n```\n\nOwnership: consumes inputs and transfers any started-job obligations to the group. Parent cancellation cancels and drains children.",
       "examples": [
         {
           "source": "import {race,allSettled} from 'std:futures';async function value(n:int):Task<int>{return n;}async function main():Task<void>{console.log(await race([value(1),value(2)]));const results=await allSettled([value(3),value(4).start()]);for(const result of results){console.log(unwrap(clone(result)));}}",
           "output": "1\n3\n4\n"
         }
-      ]
+      ],
+      "inferredSignature": "function allSettled(inputs: (Task<T> | Job<T, E>)[]): Task<Result<T, AsyncError<E>>[]>"
     },
     {
       "name": "Job",
       "signature": "type Job<T, E>",
       "parameters": [],
-      "documentation": "An explicitly started asynchronous operation. await job consumes it and returns T, or throws AsyncError<E> after cleanup. Cannot be constructed directly, cloned or awaited twice. cancel requests cancellation; awaiting still accounts for completion.\n\nOwnership: must be awaited or transferred to an owner that settles it on every reachable exit.",
+      "documentation": "An explicitly started asynchronous operation. await job consumes it and returns T, or throws AsyncError<E> after cleanup. Cannot be constructed directly, cloned or awaited twice. cancel requests cancellation; awaiting still accounts for completion.\n\n```tsrust\nconst job = calculate().start();\nconst value = await job;\n```\n\nOwnership: must be awaited or transferred to an owner that settles it on every reachable exit.",
       "examples": [
         {
           "source": "import {delay} from 'std:futures';async function main():Task<void>{const job=delay(60000).start();job.cancel();try{await job;}catch(error){console.log(error.code);}try{await delay(60000).timeout(0);}catch(error){console.log(error.code);}try{await delay(60000).start().timeout(0);}catch(error){console.log(error.code);}}",
@@ -79,7 +83,7 @@
       "name": "AsyncError",
       "signature": "type AsyncError<E>",
       "parameters": [],
-      "documentation": "Async operation failure. code is worker, cancelled, panic, timeout, range, empty or closed. cause contains the original typed thrown value for worker failures, otherwise undefined. No constructor or mutation is required.\n\nOwnership: ordinary owned error data.",
+      "documentation": "Async operation failure. code is worker, cancelled, panic, timeout, range, empty or closed. cause contains the original typed thrown value for worker failures, otherwise undefined. No constructor or mutation is required.\n\n```tsrust\ntry { await job; } catch (error) { console.log(error.code); }\n```\n\nOwnership: ordinary owned error data.",
       "examples": [
         {
           "source": "import {delay} from 'std:futures';async function main():Task<void>{const job=delay(60000).start();job.cancel();try{await job;}catch(error){console.log(error.code);}try{await delay(60000).timeout(0);}catch(error){console.log(error.code);}try{await delay(60000).start().timeout(0);}catch(error){console.log(error.code);}}",
@@ -96,7 +100,7 @@
           "documentation": "Creates a bounded async channel. capacity is the maximum number of queued messages, 1..1000000; invalid capacity throws RangeError. A full channel makes send wait without blocking a worker. receive waits for a message. close rejects further sends while allowing queued messages to drain. Each message moves to one receiver."
         }
       ],
-      "documentation": "Creates a bounded async channel. capacity is the maximum number of queued messages, 1..1000000; invalid capacity throws RangeError. A full channel makes send wait without blocking a worker. receive waits for a message. close rejects further sends while allowing queued messages to drain. Each message moves to one receiver.\n\nExample: const queue = new Channel<int>(2); await queue.send(42); console.log(await queue.receive()); // 42\n\nOwnership: unique channel owner; sender() creates an owned sending endpoint. Messages must be owned transferable data without endpoints or jobs.",
+      "documentation": "Creates a bounded async channel. capacity is the maximum number of queued messages, 1..1000000; invalid capacity throws RangeError. A full channel makes send wait without blocking a worker. receive waits for a message. close rejects further sends while allowing queued messages to drain. Each message moves to one receiver.\n\n```tsrust\nconst queue = new Channel<int>(2); await queue.send(42); console.log(await queue.receive()); // 42\n```\n\nOwnership: unique channel owner; sender() creates an owned sending endpoint. Messages must be owned transferable data without endpoints or jobs.",
       "examples": [
         {
           "source": "import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(2);const sender=queue.sender();await sender.send(42);console.log(await queue.receive());queue.close();try{await queue.receive();}catch(error){console.log(error.code);}}",
@@ -108,7 +112,7 @@
       "name": "Sender",
       "signature": "type Sender<T>",
       "parameters": [],
-      "documentation": "Owned sending endpoint from Channel.sender(). send waits for queue capacity; a closed channel throws AsyncError code closed. Dropping an endpoint releases it.\n\nOwnership: may move into an async function; cannot be cloned implicitly.",
+      "documentation": "Owned sending endpoint from Channel.sender(). send waits for queue capacity; a closed channel throws AsyncError code closed. Dropping an endpoint releases it.\n\n```tsrust\nconst sender = queue.sender();\nawait sender.send(42);\n```\n\nOwnership: may move into an async function; cannot be cloned implicitly.",
       "examples": [
         {
           "source": "import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(2);const sender=queue.sender();await sender.send(42);console.log(await queue.receive());queue.close();try{await queue.receive();}catch(error){console.log(error.code);}}",
@@ -122,7 +126,7 @@
       "name": "start",
       "signature": "start(): Job<T, E>",
       "parameters": [],
-      "documentation": "Schedules this task on the async runtime and immediately returns its unique job handle. Takes no arguments. The task may execute before start returns. Inputs and completion must own transferable data; caller borrows cannot cross scheduling. Call inside an async function.\n\nExample: const job = calculate().start(); const result = await job;\n\nOwnership: consumes this task. The returned job must be settled; no implicit detach.",
+      "documentation": "Schedules this task on the async runtime and immediately returns its unique job handle. Takes no arguments. The task may execute before start returns. Inputs and completion must own transferable data; caller borrows cannot cross scheduling. Call inside an async function.\n\n```tsrust\nconst job = calculate().start(); const result = await job;\n```\n\nOwnership: consumes this task. The returned job must be settled; no implicit detach.",
       "examples": [
         {
           "source": "import {delay} from 'std:futures';async function main():Task<void>{const job=delay(60000).start();job.cancel();try{await job;}catch(error){console.log(error.code);}try{await delay(60000).timeout(0);}catch(error){console.log(error.code);}try{await delay(60000).start().timeout(0);}catch(error){console.log(error.code);}}",
@@ -139,7 +143,7 @@
           "documentation": "Wraps this operation in a lazy deadline. The timer begins when the wrapper is awaited. milliseconds is an integer from 0 through 31536000000. Invalid values throw AsyncError code range. Expiry cancels work and waits for owned resource cleanup, then throws code timeout; cleanup may exceed the duration. Completed work wins if ready when polled."
         }
       ],
-      "documentation": "Wraps this operation in a lazy deadline. The timer begins when the wrapper is awaited. milliseconds is an integer from 0 through 31536000000. Invalid values throw AsyncError code range. Expiry cancels work and waits for owned resource cleanup, then throws code timeout; cleanup may exceed the duration. Completed work wins if ready when polled.\n\nExample: const value = await calculate().timeout(1000);\n\nOwnership: consumes the receiver. Started-job obligations remain in the wrapper. Cancellation does not promise source finally execution.",
+      "documentation": "Wraps this operation in a lazy deadline. The timer begins when the wrapper is awaited. milliseconds is an integer from 0 through 31536000000. Invalid values throw AsyncError code range. Expiry cancels work and waits for owned resource cleanup, then throws code timeout; cleanup may exceed the duration. Completed work wins if ready when polled.\n\n```tsrust\nconst value = await calculate().timeout(1000);\n```\n\nOwnership: consumes the receiver. Started-job obligations remain in the wrapper. Cancellation does not promise source finally execution.",
       "examples": [
         {
           "source": "import {delay} from 'std:futures';async function main():Task<void>{const job=delay(60000).start();job.cancel();try{await job;}catch(error){console.log(error.code);}try{await delay(60000).timeout(0);}catch(error){console.log(error.code);}try{await delay(60000).start().timeout(0);}catch(error){console.log(error.code);}}",
@@ -153,7 +157,7 @@
       "name": "cancel",
       "signature": "cancel(): boolean",
       "parameters": [],
-      "documentation": "Requests cancellation of this job. Returns true only for the first request that wins before completion; repeated requests or completed work return false. Cancellation is observed at a scheduling point, so synchronous blocking code is not forcibly interrupted. No arguments or defaults.\n\nExample: job.cancel(); try { await job; } catch (error) { console.log(error.code); }\n\nOwnership: borrows the handle. A request alone does not settle it; await still waits for child cleanup.",
+      "documentation": "Requests cancellation of this job. Returns true only for the first request that wins before completion; repeated requests or completed work return false. Cancellation is observed at a scheduling point, so synchronous blocking code is not forcibly interrupted. No arguments or defaults.\n\n```tsrust\njob.cancel(); try { await job; } catch (error) { console.log(error.code); }\n```\n\nOwnership: borrows the handle. A request alone does not settle it; await still waits for child cleanup.",
       "examples": [
         {
           "source": "import {delay} from 'std:futures';async function main():Task<void>{const job=delay(60000).start();job.cancel();try{await job;}catch(error){console.log(error.code);}try{await delay(60000).timeout(0);}catch(error){console.log(error.code);}try{await delay(60000).start().timeout(0);}catch(error){console.log(error.code);}}",
@@ -170,7 +174,7 @@
           "documentation": "Wraps this operation in a lazy deadline. The timer begins when the wrapper is awaited. milliseconds is an integer from 0 through 31536000000. Invalid values throw AsyncError code range. Expiry cancels work and waits for owned resource cleanup, then throws code timeout; cleanup may exceed the duration. Completed work wins if ready when polled."
         }
       ],
-      "documentation": "Wraps this operation in a lazy deadline. The timer begins when the wrapper is awaited. milliseconds is an integer from 0 through 31536000000. Invalid values throw AsyncError code range. Expiry cancels work and waits for owned resource cleanup, then throws code timeout; cleanup may exceed the duration. Completed work wins if ready when polled.\n\nExample: const value = await calculate().timeout(1000);\n\nOwnership: consumes the receiver. Started-job obligations remain in the wrapper. Cancellation does not promise source finally execution.",
+      "documentation": "Wraps this operation in a lazy deadline. The timer begins when the wrapper is awaited. milliseconds is an integer from 0 through 31536000000. Invalid values throw AsyncError code range. Expiry cancels work and waits for owned resource cleanup, then throws code timeout; cleanup may exceed the duration. Completed work wins if ready when polled.\n\n```tsrust\nconst value = await calculate().timeout(1000);\n```\n\nOwnership: consumes the receiver. Started-job obligations remain in the wrapper. Cancellation does not promise source finally execution.",
       "examples": [
         {
           "source": "import {delay} from 'std:futures';async function main():Task<void>{const job=delay(60000).start();job.cancel();try{await job;}catch(error){console.log(error.code);}try{await delay(60000).timeout(0);}catch(error){console.log(error.code);}try{await delay(60000).start().timeout(0);}catch(error){console.log(error.code);}}",
@@ -184,7 +188,7 @@
       "name": "sender",
       "signature": "sender(): Sender<T>",
       "parameters": [],
-      "documentation": "Creates another owned sending endpoint for this channel. No arguments, defaults or receiver mutation.\n\nExample: const sender = queue.sender();\n\nOwnership: borrows the channel; the endpoint may move independently.",
+      "documentation": "Creates another owned sending endpoint for this channel. No arguments, defaults or receiver mutation.\n\n```tsrust\nconst sender = queue.sender();\n```\n\nOwnership: borrows the channel; the endpoint may move independently.",
       "examples": [
         {
           "source": "import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(2);const sender=queue.sender();await sender.send(42);console.log(await queue.receive());queue.close();try{await queue.receive();}catch(error){console.log(error.code);}}",
@@ -201,7 +205,7 @@
           "documentation": "Creates a lazy send. Awaiting waits for queue capacity without blocking a worker. Consumes one value; closed queues throw AsyncError code closed. A cancelled pending send releases its owned message."
         }
       ],
-      "documentation": "Creates a lazy send. Awaiting waits for queue capacity without blocking a worker. Consumes one value; closed queues throw AsyncError code closed. A cancelled pending send releases its owned message.\n\nExample: await queue.send(42);\n\nOwnership: task retains a read borrow of the endpoint until completion or disposal.",
+      "documentation": "Creates a lazy send. Awaiting waits for queue capacity without blocking a worker. Consumes one value; closed queues throw AsyncError code closed. A cancelled pending send releases its owned message.\n\n```tsrust\nawait queue.send(42);\n```\n\nOwnership: task retains a read borrow of the endpoint until completion or disposal.",
       "examples": [
         {
           "source": "import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(2);const sender=queue.sender();await sender.send(42);console.log(await queue.receive());queue.close();try{await queue.receive();}catch(error){console.log(error.code);}}",
@@ -213,7 +217,7 @@
       "name": "receive",
       "signature": "receive(): Task<T>",
       "parameters": [],
-      "documentation": "Creates a lazy receive. Awaiting waits for one queued message. After close, queued messages drain; an empty closed queue throws AsyncError code closed. No arguments or defaults. Cancelling a pending receive does not consume a message.\n\nExample: const value = await queue.receive();\n\nOwnership: task retains a read borrow of the channel.",
+      "documentation": "Creates a lazy receive. Awaiting waits for one queued message. After close, queued messages drain; an empty closed queue throws AsyncError code closed. No arguments or defaults. Cancelling a pending receive does not consume a message.\n\n```tsrust\nconst value = await queue.receive();\n```\n\nOwnership: task retains a read borrow of the channel.",
       "examples": [
         {
           "source": "import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(2);const sender=queue.sender();await sender.send(42);console.log(await queue.receive());queue.close();try{await queue.receive();}catch(error){console.log(error.code);}}",
@@ -225,7 +229,7 @@
       "name": "close",
       "signature": "close(): void",
       "parameters": [],
-      "documentation": "Closes this channel to new sends. Existing queued messages remain receivable; later receives on an empty channel throw closed. Wakes blocked senders. Repeated close is harmless.\n\nExample: queue.close();\n\nOwnership: mutably borrows the channel, so outstanding channel-operation loans must finish first.",
+      "documentation": "Closes this channel to new sends. Existing queued messages remain receivable; later receives on an empty channel throw closed. Wakes blocked senders. Repeated close is harmless.\n\n```tsrust\nqueue.close();\n```\n\nOwnership: mutably borrows the channel, so outstanding channel-operation loans must finish first.",
       "examples": [
         {
           "source": "import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(2);const sender=queue.sender();await sender.send(42);console.log(await queue.receive());queue.close();try{await queue.receive();}catch(error){console.log(error.code);}}",
@@ -244,7 +248,7 @@
           "documentation": "Creates a lazy send. Awaiting waits for queue capacity without blocking a worker. Consumes one value; closed queues throw AsyncError code closed. A cancelled pending send releases its owned message."
         }
       ],
-      "documentation": "Creates a lazy send. Awaiting waits for queue capacity without blocking a worker. Consumes one value; closed queues throw AsyncError code closed. A cancelled pending send releases its owned message.\n\nExample: await queue.send(42);\n\nOwnership: task retains a read borrow of the endpoint until completion or disposal.",
+      "documentation": "Creates a lazy send. Awaiting waits for queue capacity without blocking a worker. Consumes one value; closed queues throw AsyncError code closed. A cancelled pending send releases its owned message.\n\n```tsrust\nawait queue.send(42);\n```\n\nOwnership: task retains a read borrow of the endpoint until completion or disposal.",
       "examples": [
         {
           "source": "import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(2);const sender=queue.sender();await sender.send(42);console.log(await queue.receive());queue.close();try{await queue.receive();}catch(error){console.log(error.code);}}",
