@@ -163,3 +163,70 @@ fn owned_callbacks_cannot_snapshot_or_steal_module_storage() {
     assert!(!output.status.success());
     assert!(String::from_utf8_lossy(&output.stderr).contains("owned callback"));
 }
+
+#[test]
+fn module_scalar_can_issue_owned_closure_without_retaining_storage() {
+    let dir = support::TempDirectory::new();
+    fs::write(dir.0.join("state.tsr"), support::format_round_trip(r#"
+let count: int = 1;
+export function make(): () => int {
+  const id = count; count++;
+  return (): int => { return id; };
+}
+"#)).unwrap();
+    let file = dir.source(&support::format_round_trip(r#"
+import {strictEqual} from 'std:testing';
+import {make} from './state.tsr';
+function main(): void {
+  const a = make(); const b = make();
+  strictEqual(a(), 1); strictEqual(b(), 2); strictEqual(a(), 1);
+}
+"#));
+    support::success(&support::run(support::cli().arg("run").arg(file), 60));
+}
+
+#[test]
+fn module_closure_results_preserve_transitive_effects_and_initialization() {
+    let dir = support::TempDirectory::new();
+    fs::write(dir.0.join("state.tsr"), support::format_round_trip(r#"
+let next: int = 1;
+export function make(): () => int { return issue(); }
+function issue(): () => int { const id = next; next++; return (): int => { return id; }; }
+export function current(): int { return next; }
+"#)).unwrap();
+    fs::write(dir.0.join("left.tsr"), support::format_round_trip("import {make} from './state.tsr';export const first=make();")).unwrap();
+    fs::write(dir.0.join("right.tsr"), support::format_round_trip("import {make} from './state.tsr';export const second=make();")).unwrap();
+    let file = dir.source(&support::format_round_trip(r#"
+import {strictEqual} from 'std:testing';
+import {first} from './left.tsr'; import {second} from './right.tsr';
+import {make, current} from './state.tsr';
+function main(): void {
+  const third = make(); strictEqual(first(),1); strictEqual(second(),2);
+  strictEqual(third(),3); strictEqual(current(),4);
+  let local: int = 7;
+  function nested(): () => int { const copy = local; local++; return (): int => {return copy;}; }
+  const saved = nested(); const later = nested();
+  strictEqual(saved(),7); strictEqual(later(),8); strictEqual(local,9);
+}
+"#));
+    support::success(&support::run(support::cli().arg("run").arg(file), 60));
+}
+
+#[test]
+fn module_closure_results_do_not_allow_borrow_escape_or_early_reads() {
+    let dir = support::TempDirectory::new();
+    for (source, expected) in [
+        ("let count=1;function make():()=>int{return ():int=>{return count;};}function main(){const a=make();console.log(a());}", "closure-escape"),
+        ("function main(){let count=1;function unresolved():()=>int{count++;return unresolved();}}", "Recursive callable results"),
+        ("const first=make();let count=1;function make():()=>int{const id=count;return ():int=>{return id;};}function main(){console.log(first());}", "initial"),
+    ] {
+        let file = dir.source(&support::format_round_trip(source));
+        for command in ["check", "emit"] {
+            let output = support::run(support::cli().arg(command).arg(&file), 30);
+            assert!(!output.status.success());
+            let diagnostic = String::from_utf8_lossy(&output.stderr);
+            assert!(diagnostic.contains(expected), "{command}: {diagnostic}");
+            assert!(!diagnostic.contains("panicked"), "{diagnostic}");
+        }
+    }
+}
