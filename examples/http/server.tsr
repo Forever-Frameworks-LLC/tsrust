@@ -1,0 +1,13 @@
+import { App, Request, Response, text } from 'std:http';
+
+async function hello(input: Request): Task<Response> {
+  return text('Hello from Tsrust');
+}
+
+async function main(): Task<void> {
+  const app = new App();
+  app.get('/', hello);
+  const server = await app.listen('127.0.0.1:8080');
+  console.log('Listening at http://' + server.address());
+  await server.wait();
+}

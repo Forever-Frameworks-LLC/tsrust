@@ -84,6 +84,7 @@ mod tsrust_native_http {
     pub struct Server {address:String,stop:Arc<std::sync::Mutex<Option<tokio::sync::oneshot::Sender<()>>>>,job:Option<tasks::Job<(),()>>}
     impl Server {
         pub fn address(&self)->String{self.address.clone()}
+        pub async fn wait(mut self){if let Some(job)=self.job.take(){let _=job.join().await;}}
         pub async fn shutdown(mut self){self.signal();if let Some(job)=self.job.take(){let _=job.join().await;}}
         fn signal(&self){if let Some(stop)=self.stop.lock().unwrap().take(){let _=stop.send(());}}
     }

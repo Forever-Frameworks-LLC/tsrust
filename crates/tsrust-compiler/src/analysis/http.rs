@@ -9,7 +9,7 @@ impl Analyzer {
    let name=match(identity,member.as_str()){
     (Some(NativeTypeId::HttpApp),"get"|"post"|"put"|"patch"|"delete"|"head"|"options"|"route")=>"__route",
     (Some(NativeTypeId::HttpApp),"use")=>"__use",(Some(NativeTypeId::HttpApp),"fallback")=>"__fallback",(Some(NativeTypeId::HttpApp),"listen")=>"__listen",
-    (Some(NativeTypeId::HttpServer),"address")=>"__address",(Some(NativeTypeId::HttpServer),"shutdown")=>"__shutdown",
+    (Some(NativeTypeId::HttpServer),"wait")=>"__wait",(Some(NativeTypeId::HttpServer),"address")=>"__address",(Some(NativeTypeId::HttpServer),"shutdown")=>"__shutdown",
     (Some(NativeTypeId::HttpClient),"send")=>"__send",(Some(NativeTypeId::HttpNext),"run")=>"__next",
     (Some(NativeTypeId::HttpBody),"next")=>"__bodyNext",(Some(NativeTypeId::HttpBody),"text")=>"__bodyText",
     (Some(NativeTypeId::HttpRequest),"method")=>"__method",(Some(NativeTypeId::HttpRequest),"url")=>"__url",(Some(NativeTypeId::HttpRequest),"param")=>"__param",(Some(NativeTypeId::HttpResponse),"status")=>"__status",
@@ -18,7 +18,7 @@ impl Analyzer {
    };
    if name=="__route"&&member!="route" {args.insert(0,Expr::new(ExprKind::String(member.to_uppercase()),callee.span));}
    args.insert(0,(**base).clone());let args=std::mem::take(args);let span=expression.span;
-   if matches!(name,"__listen"|"__shutdown"|"__send"|"__next"|"__bodyNext"|"__bodyText"|"__requestText"|"__responseText"){
+   if matches!(name,"__listen"|"__wait"|"__shutdown"|"__send"|"__next"|"__bodyNext"|"__bodyText"|"__requestText"|"__responseText"){
     crate::stdlib::futures::lazy_module(expression,"std:http",name,args);
    }else{
     *expression=crate::stdlib::http::call(name,args,span);
@@ -30,7 +30,7 @@ impl Analyzer {
   let Some((id,binding))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|binding.module=="std:http")else{return Ok(None);};
   let span=expression.span;
   if !binding.accepts_arity(args.len()){return Err(Diagnostic::new("arity",format!("{} requires {} arguments including its receiver.",binding.name,binding.parameters.len()),span));}
-  if matches!(binding.name,"__listen"|"__shutdown"|"__send"|"__next"|"__bodyNext"|"__bodyText"|"__requestText"|"__responseText")&&!context.task_body{return Err(Diagnostic::new("async-context","HTTP I/O must run inside an async task.",span));}
+  if matches!(binding.name,"__listen"|"__wait"|"__shutdown"|"__send"|"__next"|"__bodyNext"|"__bodyText"|"__requestText"|"__responseText")&&!context.task_body{return Err(Diagnostic::new("async-context","HTTP I/O must run inside an async task.",span));}
   let mut active=loans.clone();
   for (arg,param) in args.iter_mut().zip(binding.parameters) {
    if param.ty==crate::native_bindings::NativeType::ObservedValue{

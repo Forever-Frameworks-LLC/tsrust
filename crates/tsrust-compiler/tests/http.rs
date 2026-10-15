@@ -41,3 +41,10 @@ fn http_runtime_cache_survives_application_changes(){
   let artifacts=std::fs::read_dir(cache.join("runtime/v2")).unwrap().filter_map(Result::ok).filter(|entry|entry.file_type().unwrap().is_dir()).count();assert_eq!(artifacts,1,"HTTP support must fit the bounded artifact cache");
  }
 }
+#[test]
+fn server_wait_cancellation_executes_and_standalone_example_checks(){
+ let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
+ let example=&catalog["HttpServer"].as_array().unwrap().iter().find(|entry|entry["name"]=="wait").unwrap()["examples"][0];
+ let directory=support::TempDirectory::new();let source=support::format_round_trip(example["source"].as_str().unwrap());let output=support::run(support::cli().arg("run").arg(directory.source(&source)),300);support::success(&output);assert_eq!(String::from_utf8_lossy(&output.stdout),example["output"].as_str().unwrap());
+ let output=support::run(support::cli().arg("check").arg(directory.source(include_str!("../../../examples/http/server.tsr"))),30);support::success(&output);
+}

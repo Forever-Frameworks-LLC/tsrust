@@ -14,7 +14,7 @@ if(process.version!=='v24.11.1') throw new Error('Node v24.11.1 is required.');
 const project=path.resolve(root,'../..');
 const tsc=path.join(project,'benchmarks/runtime/node_modules/typescript/bin/tsc');
 const scratch=fs.mkdtempSync(path.join(os.tmpdir(),'tsrust-http-'));
-const run=(command,args)=>execFileSync(command,args,{encoding:'utf8',timeout:120000});
+const run=(command,args)=>execFileSync(command,args,{encoding:'utf8',timeout:300000});
 try {
  const source=path.join(root,`${workload}.tsr`);
  const counterpart=path.join(root,`${workload}.ts`);

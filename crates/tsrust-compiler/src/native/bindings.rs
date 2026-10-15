@@ -118,6 +118,7 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::http::FALLBACK,
     crate::stdlib::http::LISTEN,
     crate::stdlib::http::SHUTDOWN,
+    crate::stdlib::http::WAIT,
     crate::stdlib::http::ADDRESS,
     crate::stdlib::http::NEXT,
     crate::stdlib::http::SEND,

@@ -40,6 +40,7 @@ impl Emitter<'_>{
     format!("{{let app={receiver};{route_args}let callback={};{registration}}}",values[index])
    },
    "__listen"=>format!("({receiver}).listen({}).await",values[1]),
+   "__wait"=>format!("{{({receiver}).wait().await;Ok::<_,tsrust_native_http::Error>(())}}"),
    "__shutdown"=>format!("{{({receiver}).shutdown().await;Ok::<_,tsrust_native_http::Error>(())}}"),
    "__next"=>format!("Ok::<_,tsrust_native_http::Error>(({receiver}).run({}).await)",values[1]),
    "__send"=>format!("({receiver}).send({}).await",values[1]),

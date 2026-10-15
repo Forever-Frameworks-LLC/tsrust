@@ -3,6 +3,11 @@
 `std:http` uses Axum for routing and Tokio for asynchronous I/O. Create an `App`,
 register named async handlers, then await `app.listen('127.0.0.1:3000')`.
 Listening consumes the app; registration cannot change while it serves.
+For a standalone service, await `server.wait()` to keep its scope alive; see
+[server](../../examples/http/server.tsr). Cancelling that waiting task requests
+shutdown and its async owner drains cleanup. Process termination is not a promise
+of graceful cleanup; use explicit shutdown or task cancellation when coordinating
+a controlled stop.
 
 See [loopback](../../examples/http/loopback.tsr) for middleware, route parameters,
 JSON, body streaming and shutdown; see [validated bodies](../../examples/http/validated-body.tsr)

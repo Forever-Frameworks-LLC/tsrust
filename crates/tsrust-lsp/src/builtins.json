@@ -10394,6 +10394,19 @@
         }
       ],
       "inferredSignature": "function shutdown(): Task<void>"
+    },
+    {
+      "name": "wait",
+      "signature": "wait(): Task<void>",
+      "parameters": [],
+      "documentation": "Creates a lazy task that waits for the running listener to finish. Await this at the end of a standalone service to keep its scope alive. No arguments, defaults or receiver reuse. Cancelling or disposing the waiting task requests server shutdown and drains cleanup through its async owner. Source finally is not promised on cancellation.\n\n```tsrust\nawait server.wait(); // serve until completion or cancellation\n```\n\nOwnership: consumes Server immediately; the returned task owns listener cleanup.",
+      "examples": [
+        {
+          "source": "import {App,Server} from 'std:http';async function keep(server:Server):Task<void>{await server.wait();}async function main():Task<void>{const app=new App();const server=await app.listen('127.0.0.1:0');const running=keep(server).start();running.cancel();try{await running;}catch(error){console.log(error.code);}}",
+          "output": "cancelled\n"
+        }
+      ],
+      "inferredSignature": "function wait(): Task<void>"
     }
   ],
   "HttpClient": [

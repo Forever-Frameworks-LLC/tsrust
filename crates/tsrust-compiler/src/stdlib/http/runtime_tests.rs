@@ -81,3 +81,12 @@ fn middleware_order_short_circuit_and_encoded_parameters(){
   server.shutdown().await;
  });
 }
+#[test]
+fn cancelling_server_wait_drains_its_listener(){
+ tsrust_native_futures::block_on(async{
+  let server=App::new().listen("127.0.0.1:0").await.unwrap();let address=server.address();
+  let job=tsrust_native_futures::start(async move{server.wait().await;Ok::<_,tsrust_native_futures::Failure<()>>(())});
+  job.cancel();assert!(matches!(job.join().await,Err(tsrust_native_futures::Failure::Cancelled)));
+  assert!(tokio::net::TcpListener::bind(address).await.is_ok(),"cancelled wait must finish listener cleanup");
+ });
+}
