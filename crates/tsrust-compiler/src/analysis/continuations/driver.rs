@@ -457,12 +457,12 @@ pub(super) fn check_sequence(analyzer: &mut Analyzer, context: &mut Context, exp
     result
 }
 
-fn step_sequence<'a>(_analyzer: &mut Analyzer, context: &mut Context, mut task: SequenceTask<'a>, completion: Option<Completion<'a>>) -> Step<'a> {
+fn step_sequence<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: SequenceTask<'a>, completion: Option<Completion<'a>>) -> Step<'a> {
     let ExprKind::Sequence(values) = &mut task.expression.kind else { unreachable!("sequence operands"); };
     if task.pending {
         let Completion::Expression(value, checked) = completion.expect("sequence operand completed") else { unreachable!("sequence operand result"); };
         values[task.index] = *value.into_child();
-        if let Some(boundary) = task.boundary.take() { Analyzer::finish_sequence_operand(context, &values[task.index], boundary, checked.is_ok()); }
+        if let Some(boundary) = task.boundary.take() { if checked.is_ok() {analyzer.discard_temporary_task_loans(context,&values[task.index]);} Analyzer::finish_sequence_operand(context, &values[task.index], boundary, checked.is_ok()); }
         let ty = match checked {
             Ok(ty) => ty,
             Err(error) => return Step::Complete(Completion::Sequence(task.expression, Err(error), task.snapshot)),
@@ -701,6 +701,7 @@ fn step_block<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: Bloc
                     *value = *expression;
                     let ty = result?;
                     analyzer.thread_discard(ty, value.span)?;
+                    analyzer.discard_temporary_task_loans(context,value);
                     if precise { context.storage_exits.record_discarded_sequence(value.span); }
                     if matches!(ty, Type::Closure(_)) && !analyzer.is_task_type(ty) && !matches!(value.kind, ExprKind::Call(..)) {
                         return Err(Diagnostic::new("unsupported", "Bind a closure before using it.", value.span));

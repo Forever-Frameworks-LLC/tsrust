@@ -24,6 +24,14 @@ impl Analyzer {
             }
         }
     }
+    pub(super) fn discard_temporary_task_loans(&self,context:&mut Context,value:&Expr) {
+        if !value.ty.is_some_and(|ty|self.is_task_type(ty)) || !matches!(value.kind,ExprKind::Call(..)|ExprKind::Match{..}) {return;}
+        let temporary=Place{binding:usize::MAX,fields:vec![format!("discard:{}",value.span.start)]};
+        self.attach_payload_capture_loans(context,value,temporary.clone(),true);
+        context.capture_loan_owners.discard(&temporary);
+        Self::restore_live_capture_loans(context);
+    }
+
     pub(super) fn resolve_completed_capture_invocation(&self, context: &mut Context, expression: &Expr, result: Type) {
         if self.expression_result_retains_captures(result) { return; }
         let ExprKind::Call(callee, _) = &expression.kind else { return; };

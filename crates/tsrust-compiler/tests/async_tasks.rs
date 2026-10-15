@@ -218,5 +218,5 @@ fn awaited_values_infer_generic_arguments_and_keep_record_and_native_view_loans(
 
 #[test]
 fn tasks_returning_multiple_input_borrows_name_their_lifetimes() {
-    support::execute("async function size(left:ReadOnly<string>,right:ReadOnly<string>):Task<int>{return left.length+right.length;}async function change(left:Mutable<int[]>,right:ReadOnly<int[]>):Task<void>{left.push(right.length);}async function main():Task<void>{let left='one';let right='two';console.log(await size(left,right));left='x';right='y';console.log(await size(left,right));const values=[1];const input=[2,3];await change(values,input);console.log(values.length);}","6\n2\n2\n",None);
+    support::execute("async function size(left:ReadOnly<string>,right:ReadOnly<string>):Task<int>{return left.length+right.length;}async function change(left:Mutable<int[]>,right:ReadOnly<int[]>):Task<void>{left.push(right.length);}async function main():Task<void>{let left='one';let right='two';size(left,right);console.log(await size(left,right));left='x';right='y';console.log(await size(left,right));const values=[1];const input=[2,3];await change(values,input);console.log(values.length);}","6\n2\n2\n",None);
 }

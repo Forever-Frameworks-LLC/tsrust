@@ -51,6 +51,6 @@ fn server_wait_cancellation_executes_and_standalone_example_checks(){
 
 #[test]
 fn consecutive_chunk_reads_release_the_receiver_borrow(){
- let source="import {App,Client,request,text} from 'std:http';import {length} from 'std:bytes';async function main():Task<void>{const body=text('abc').body();const first=await body.next();if(first===undefined){throw 'Missing chunk';}console.log(length(first));const second=await body.next();console.log(second===undefined);console.log(await text('done').text());const app=new App();const server=await app.listen('127.0.0.1:0');const client=new Client();console.log((await client.send(request('GET','http://'+server.address()+'/', ''))).status());await server.shutdown();}";
+ let source="import {App,Client,request,text} from 'std:http';import {length} from 'std:bytes';async function main():Task<void>{const body=text('abc').body();body.next();(body.next(),body.next());const first=await body.next();if(first===undefined){throw 'Missing chunk';}console.log(length(first));const second=await body.next();console.log(second===undefined);console.log(await text('done').text());const app=new App();const server=await app.listen('127.0.0.1:0');const client=new Client();console.log((await client.send(request('GET','http://'+server.address()+'/', ''))).status());await server.shutdown();}";
  let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&support::format_round_trip(source))),300);support::success(&output);assert_eq!(output.stdout,b"3\ntrue\ndone\n404\n");
 }
