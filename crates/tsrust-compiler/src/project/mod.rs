@@ -200,6 +200,8 @@ pub struct ModuleSource {
     pub declaration_source: String,
 }
 impl ModuleSource {
+    /// Checked Rust adapter spans refer to generated declarations, not Rust bytes.
+    pub fn checked_source(&self)->&str {if self.rust.is_some(){&self.declaration_source}else{&self.source.text}}
     pub fn exported_local<'a>(&'a self, name: &'a str) -> &'a str {
         if name == "default" { self.default_export.as_ref().map(|token|token.text.as_str()).unwrap_or(name) } else { name }
     }
@@ -652,6 +654,13 @@ fn load_graph(
         declarations,
         &mut cache,
     )?;
+    let mut package:Option<&rust::dependencies::Package>=None;
+    for (id,module) in &graph.modules {
+        if let Some(current)=module.rust.as_ref().and_then(|rust|rust.package.as_ref()) {
+            if package.is_some_and(|package|package.manifest!=current.manifest || package.lock!=current.lock){return Err(error(id,"rust-bindings","Binding modules in one program must share dependency versions, features and lockfile.",Span::default()));}
+            package=Some(current);
+        }
+    }
     Ok(graph)
 }
 fn visit(
@@ -671,8 +680,19 @@ fn visit(
             .map_err(|message| error(&id, "module-load", message, Span::default()))?
     };
     let source=SourceFile{id:id.clone(),text};
-    let mut module=if let Some(cache)=cache.as_deref_mut(){cache.parse(source)?}else{parse_module(source,declarations)?};
+    let mut module=if id.0.ends_with(".bindings.json") {
+        let (mut module,inputs)=rust::bindings(provider,source)?;
+        for input in inputs {
+            if graph.modules.contains_key(&input.id){return Err(error(&id,"rust-bindings","Binding inputs cannot also be imported directly.",Span::default()));}
+            let target=input.id.clone();
+            graph.order.push(target.clone());
+            graph.modules.insert(target.clone(),ModuleSource{source:input,rust:None,data:None,imports:vec![],exports:BTreeMap::new(),default_export:None,declaration_source:String::new()});
+            module.imports.push(ModuleImport{path:target.0.clone(),span:Span::default(),names:Span::default(),bindings:vec![],target:Some(target),native:None});
+        }
+        module
+    }else if let Some(cache)=cache.as_deref_mut(){cache.parse(source)?}else{parse_module(source,declarations)?};
     for import in &mut module.imports {
+        if import.target.is_some(){continue;}
         if import.path == "std:testing-runtime" && id.0 != "std:testing" {
             return Err(error(&id, "module-native", "Testing runtime bindings are private; import from std:testing.", import.span));
         }

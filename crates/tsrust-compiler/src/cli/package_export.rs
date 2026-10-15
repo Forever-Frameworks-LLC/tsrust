@@ -11,6 +11,7 @@ pub(crate) fn export(root:&Path,rust:&str)->io::Result<()> {
  // Only this call's newly created tree can be cleaned up on failure. Existing
  // directories and symlinks fail above, before any caller-owned files are touched.
  let result=(|| {
+  if dependencies {let packages=crate::rust_bindings::packages(rust).map_err(io::Error::other)?;crate::rust_bindings::overlay(root,&packages).map_err(io::Error::other)?;}
   if !dependencies {fs::create_dir(root.join("src"))?;fs::create_dir(root.join(".cargo"))?;}
   let (mut manifest,lock)=if dependencies {
    fs::remove_file(root.join("src/lib.rs"))?;

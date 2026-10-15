@@ -23,3 +23,22 @@ fn channel_capacity_hover_explains_buffering_and_backpressure(){
  let docs=entry["documentation"].as_str().unwrap();for phrase in ["unread messages","not bytes or workers","third send waits","trySend returns full"]{assert!(docs.contains(phrase),"{phrase}");}
  assert!(entry["parameters"][0]["documentation"].as_str().unwrap().contains("receive() removes a message"));
 }
+#[test]
+fn binding_manifest_exposes_owned_data_and_tracks_rust_edits(){
+ let entry=SourceId("/rust-bindings/main.tsr".into());
+ let source="import {Request,read} from './api.bindings.json';function main(){const request:Request={text:'hello'};const answer=read(request);console.log(answer.text);}";
+ let mut workspace=Workspace::default();workspace.open(entry.clone(),1,source.into());
+ workspace.open(SourceId("/rust-bindings/api.bindings.json".into()),1,r#"{"schemaVersion":1,"source":"./api.rs","dependencies":{}}"#.into());
+ workspace.open(SourceId("/rust-bindings/api.bindings.lock".into()),1,"version = 4".into());
+ let rust=SourceId("/rust-bindings/api.rs".into());
+ workspace.open(rust.clone(),1,"pub struct Request{pub text:String}\n/// Read the owned request.\npub fn read(value:Request)->Request{value}".into());
+ let mut session=tsrust_compiler::project::session::ProjectSession::default();
+ let checked=session.check(&workspace.snapshot(),&entry.0).unwrap();let index=ProjectIndex::checked(&checked);
+ let request=|needle:&str,method:&str|index.request(method,&json!({"position":{"line":0,"character":source.find(needle).unwrap()}}),"file:///rust-bindings/main.tsr").unwrap().unwrap();
+ let hover=request("read(request)","textDocument/hover").to_string();assert!(hover.contains("Owned<Request>")&&hover.contains("Read the owned request"),"{hover}");
+ let type_definition=request("Request={", "textDocument/definition");assert_eq!(type_definition["uri"],"file:///rust-bindings/api.rs");assert_eq!(type_definition["range"]["start"]["line"],0);
+ let definition=request("read(request)","textDocument/definition");assert_eq!(definition["uri"],"file:///rust-bindings/api.rs");assert_eq!(definition["range"]["start"]["line"],2);
+ let completion=index.request("textDocument/completion",&json!({"position":{"line":0,"character":source.find("answer.text").unwrap()+7}}),"file:///rust-bindings/main.tsr").unwrap().unwrap().to_string();assert!(completion.contains("text"),"{completion}");
+ workspace.open(rust,2,"pub struct Request{pub number:i64}pub fn read(value:Request)->Request{value}".into());
+ assert!(session.check(&workspace.snapshot(),&entry.0).is_err());
+}

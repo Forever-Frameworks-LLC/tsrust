@@ -405,7 +405,7 @@ fn run(
     }
 }
 fn auxiliary_uri(uri:&str)->bool {
-    tsrust_lsp::project_diagnostics::source_path_id(uri).is_ok_and(|id|std::path::Path::new(&id.0).extension().and_then(|value|value.to_str()).is_some_and(|extension|matches!(extension,"json"|"jsonc"|"rs")))
+    tsrust_lsp::project_diagnostics::source_path_id(uri).is_ok_and(|id|std::path::Path::new(&id.0).extension().and_then(|value|value.to_str()).is_some_and(|extension|matches!(extension,"json"|"jsonc"|"rs"|"lock")))
 }
 fn publish_project(
     connection: &Connection,

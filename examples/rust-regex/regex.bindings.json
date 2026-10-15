@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "source": "./regex.rs",
+  "dependencies": {
+    "regex": { "version": "=1.12.2" }
+  }
+}

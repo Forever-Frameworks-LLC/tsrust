@@ -1,5 +1,6 @@
 mod dev_cli;
 mod runtime_build;
+mod rust_bindings;
 mod package_export;
 mod native_dependency_bundle;
 #[cfg(unix)]
@@ -26,6 +27,7 @@ const USAGE: &str = "tsrust — native TypeScript-style programs
 
 Usage:
   tsrust <command> [input.tsr] [options]
+  tsrust bindings resolve <file.bindings.json> [--offline]
   tsrust new <name-or-path>
   tsrust dev [--release] [--verbose] [--color auto|always|never] [-- program-arguments]
   tsrust test [files/directories] [options]
@@ -33,6 +35,7 @@ Usage:
   tsrust check [files/directories] [--json]
 
 Commands:
+  bindings Resolve and vendor declared Rust dependencies
   dev      Watch, rebuild and restart a configured native program
   new      Create a project with source, tests and configuration
   check    Check files/directories recursively; defaults to the current directory
@@ -124,6 +127,7 @@ fn run() -> Result<u8, String> {
         return Ok(0);
     }
     if command == "--version" || command == "-V" { println!("tsrust {}", env!("CARGO_PKG_VERSION")); return Ok(0); }
+    if command=="bindings" {return rust_bindings::resolve(args);}
     if command=="dev" {return dev_cli::run(args);}
     if command=="new" {return new_cli::run(args);}
     let (arguments,project_root)=project_config::defaults(&command,args.collect())?;

@@ -136,3 +136,39 @@ restarts. Measure cold setup, repeated-job throughput, thread counts and allocat
 transfer; verify no hidden per-call pools or payload serialization. Pin Rayon when
 implementing the backend. Reference: Rayon [ThreadPoolBuilder](https://docs.rs/rayon/latest/rayon/struct.ThreadPoolBuilder.html)
 and [ThreadPool](https://docs.rs/rayon/latest/rayon/struct.ThreadPool.html).
+
+### Declared crate bindings and owned data
+
+Import a `*.bindings.json` file to select exact Cargo dependencies and a handwritten
+Rust adapter module. The adapter's public free functions, named public structs and
+enums form the explicit source API. Third-party types and functions are not imported
+automatically. See the [regex example](../examples/rust-regex/main.tsr).
+
+Run `tsrust bindings resolve path/to/api.bindings.json` after cloning or changing
+versions/features. Commit the adjacent `api.bindings.lock`. Resolution may access
+the registry and run Cargo's ordinary dependency machinery. Vendored inputs live
+in the binding directory's ignored `target/tsrust-native/bindings` cache. Ordinary
+check/emit operations only read project inputs; builds are offline and locked.
+Exports carry the vendored dependency sources and licenses. Dependencies are trusted
+build inputs, including their build scripts; local adapter code forbids unsafe code.
+
+The manifest accepts schemaVersion 1, a relative source path, and dependencies with
+exact version, optional features and defaultFeatures (true by default). Registry
+crates are supported; git/path dependencies and custom registries are not. Binding
+modules in one program must declare the same dependency configuration and lock.
+Share the same manifest when several source modules use one binding API.
+
+Public structs require concrete named public fields. Enums support unit, tuple and
+named variants. `State::Ready(T)` maps to `StateReady { value: T }`; multiple tuple
+payloads use item0, item1, etc. Named fields keep their names. The enum maps to a
+union of those records, so ordinary match expressions and ownership checks apply.
+String and primitive-buffer fields move without serialization or implicit cloning.
+Nested acyclic owned data and Result outputs are supported. Returned references,
+borrowed records, generic or recursive layouts, and vectors of records remain
+unsupported. Adapter structs with custom Drop implementations cannot be projected
+field by field. Keep resource-owning third-party objects private to the adapter.
+
+Curated standard-library APIs and explicit crate bindings serve different needs.
+A crate dependency does not create a std: module or guarantee compatibility with
+all of its APIs. Networking, server and database libraries can be wrapped with
+explicit lifecycle contracts; they are not all bundled into every compiler build.

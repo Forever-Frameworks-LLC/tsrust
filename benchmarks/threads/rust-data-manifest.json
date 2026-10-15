@@ -1,0 +1,11 @@
+{
+  "id": "rust-data-throughput",
+  "implementationAccepted": true,
+  "measurementStatus": "pending",
+  "source": "rust-data-throughput.tsr",
+  "counterpart": "rust-data-throughput.ts",
+  "rust": "rust-data-compute.rs",
+  "sourceSha256": "3d09beb1cdfcfb9206470031dbf95e3579cf9e0a1d32b7f3d158c79583e6c8c9",
+  "counterpartSha256": "936a0cd485cd5fa068d7e1398cb7ffc80c44b329a644b765a3dd6cf7825a3f90",
+  "rustSha256": "a3950599eb90a705dab18a7af36eec81c9efc54f13c40f33f38196d9c8b90420"
+}

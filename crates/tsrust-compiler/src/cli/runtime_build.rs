@@ -40,6 +40,7 @@ impl Prepared {
    return Ok(Self{application,library:Some(restored.join("libtsrust_runtime.rlib")),command:None,state:"hit",cache:Some(cache),opportunistic,dependencies:Some(restored),packed:Some(packed)});
   }
   let package=temporary.join("native-support");bundle::materialize(&package).map_err(|e|e.to_string())?;
+  crate::rust_bindings::overlay(&package,&crate::rust_bindings::packages(runtime)?)?;
   let manifest=package.join("Cargo.toml");let mut text=fs::read_to_string(&manifest).map_err(|e|e.to_string())?;
   text.push_str("\n[lib]\nname = \"tsrust_runtime\"\n[profile.dev]\noverflow-checks = true\n[profile.release]\noverflow-checks = true\n");
   fs::write(&manifest,text).map_err(|e|e.to_string())?;fs::write(package.join("src/lib.rs"),runtime).map_err(|e|e.to_string())?;

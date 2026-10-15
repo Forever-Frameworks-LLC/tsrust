@@ -1,25 +1,29 @@
 //! Restricted local Rust exports become ordinary checked source functions.
 use super::*;
 use syn::{spanned::Spanned, visit::Visit};
+#[path="rust_data.rs"] mod data;
+pub use data::{Data,Variant};
+#[path="rust_dependencies.rs"] pub mod dependencies;
 
 #[derive(Clone, Debug)]
-pub enum Type { Int, Number, Boolean, Void, String, Array(Box<Type>), Borrow(Box<Type>, bool), Context, Result(Box<Type>, Box<Type>) }
+pub enum Type { Int, Number, Boolean, Void, String, Array(Box<Type>), Borrow(Box<Type>, bool), Context, Named(String), Result(Box<Type>, Box<Type>) }
 impl Type {
     fn source(&self) -> String {
         match self {
             Self::Int=>"int".into(), Self::Number=>"number".into(), Self::Boolean=>"boolean".into(), Self::Void=>"void".into(), Self::String=>"string".into(), Self::Context=>"TaskContext".into(),
+            Self::Named(name)=>name.clone(),
             Self::Array(value)=>format!("{}[]",value.source()),
             Self::Borrow(value,mutable)=>format!("{}<{}>",if *mutable {"Mutable"}else{"ReadOnly"},value.source()),
             Self::Result(ok,err)=>format!("Result<{},{}>",ok.source(),err.source()),
         }
     }
-    fn seed(&self)->String {match self {Self::Int|Self::Number=>"0".into(),Self::Boolean=>"false".into(),Self::String=>"''".into(),Self::Array(_)=>"[]".into(),Self::Void=>"undefined".into(),Self::Result(ok,err)=>format!("Ok<{},{}>({})",ok.source(),err.source(),if matches!(ok.as_ref(),Self::Void){String::new()}else{ok.seed()}),_=>unreachable!()}}
-    fn owned(&self)->bool {matches!(self,Self::String|Self::Array(_))}
+    fn seed(&self)->String {match self {Self::Int|Self::Number=>"0".into(),Self::Boolean=>"false".into(),Self::String=>"''".into(),Self::Array(_)=>"[]".into(),Self::Named(name)=>format!("rustSeed{name}()"),Self::Void=>"undefined".into(),Self::Result(ok,err)=>format!("Ok<{},{}>({})",ok.source(),err.source(),if matches!(ok.as_ref(),Self::Void){String::new()}else{ok.seed()}),_=>unreachable!()}}
+    fn owned(&self)->bool {matches!(self,Self::String|Self::Array(_)|Self::Named(_))}
 }
 #[derive(Clone, Debug)]
 pub struct Export {pub name:String,pub parameters:Vec<Type>,pub result:Type,pub declaration:Span,pub native:Span}
 #[derive(Clone, Debug)]
-pub struct Module {pub exports:Vec<Export>,pub context:bool}
+pub struct Module {pub exports:Vec<Export>,pub context:bool,pub types:BTreeMap<String,Data>,pub source:SourceFile,pub package:Option<dependencies::Package>,pub locations:Vec<(Span,Span)>}
 fn range(text:&str,span:proc_macro2::Span)->Span {
     let offset=|position:proc_macro2::LineColumn|text.split_inclusive('\n').take(position.line.saturating_sub(1)).map(str::len).sum::<usize>()+position.column;
     Span::new(offset(span.start()).min(text.len()),offset(span.end()).min(text.len()))
@@ -44,7 +48,8 @@ fn shape(ty:&syn::Type, output:bool)->Result<Type,String> {
                     if segment.ident=="Result" && output && args.len()==2 && !args.iter().any(|arg|matches!(arg,Type::Result(..)|Type::Borrow(..)|Type::Context)) && !matches!(args[1],Type::Void){return Ok(Type::Result(Box::new(args[0].clone()),Box::new(args[1].clone())));}
                     Err("Supported buffers are Vec<i64|f64|bool>; output Result needs two owned payload types.".into())
                 },
-                _=>Err("Unsupported Rust boundary type. Use i64, f64, bool, String, primitive Vec/slices or an owned Result output.".into())
+                _ if matches!(segment.arguments,syn::PathArguments::None)=>Ok(Type::Named(segment.ident.to_string())),
+                _=>Err("Unsupported Rust boundary type. Declare a concrete public struct or enum in the binding module.".into())
             }
         },
         _=>Err("Rust boundary types cannot contain returned borrows, pointers, generics or traits.".into()),
@@ -78,7 +83,8 @@ pub(super) fn module(source:SourceFile)->Result<ModuleSource,ProjectDiagnostic>{
     let parsed=syn::parse_file(&source.text).map_err(|value|fail(value.span(),value.to_string()))?;
     if !parsed.attrs.is_empty(){return Err(fail(parsed.attrs[0].span(),"Rust module attributes are unsupported.".into()));}
     let mut policy=Policy{failure:None};policy.visit_file(&parsed);if let Some((span,message))=policy.failure{return Err(fail(span,message));}
-    let mut declarations=String::new();let mut exports=Vec::new();let mut context=false;
+    let types=data::collect(&parsed).map_err(|(span,message)|fail(span,message))?;
+    let mut declarations=data::declarations(&types,&parsed);let mut exports=Vec::new();let mut context=false;
     for item in &parsed.items {
         let syn::Item::Fn(function)=item else{continue};
         if !matches!(function.vis,syn::Visibility::Public(_)){continue;}
@@ -100,10 +106,8 @@ pub(super) fn module(source:SourceFile)->Result<ModuleSource,ProjectDiagnostic>{
             parameters.push(ty);
         }
         let result=match &sig.output{syn::ReturnType::Default=>Type::Void,syn::ReturnType::Type(_,ty)=>shape(ty,true).map_err(|message|fail(ty.span(),message))?};
-        let docs=function.attrs.iter().filter_map(|attr| {
-            if let syn::Meta::NameValue(value)=&attr.meta && value.path.is_ident("doc")
-                && let syn::Expr::Lit(value)=&value.value && let syn::Lit::Str(value)=&value.lit {Some(value.value().replace("*/","* /"))} else {None}
-        }).collect::<Vec<_>>().join("\n");
+        for ty in parameters.iter().chain(std::iter::once(&result)){data::validate(ty,&types,&mut BTreeSet::new()).map_err(|message|fail(sig.span(),message))?;}
+        let docs=documentation(&function.attrs);
         let start=declarations.len();
         declarations.push_str(&format!("/** {docs}\nLocal Rust export. Direct calls run on the caller. Owned inputs move; borrowed inputs remain borrowed. Rust panics are reported by worker joins. */\nexport function {name}({}):{}{{{consume}{} }}\n",labels.join(","),result.source(),if matches!(result,Type::Void){String::new()}else{format!("return {};",result.seed())}));
         let name_start=start+declarations[start..].rfind(&format!("function {name}")).unwrap()+9;
@@ -111,5 +115,47 @@ pub(super) fn module(source:SourceFile)->Result<ModuleSource,ProjectDiagnostic>{
     }
     if context{declarations.push_str("import {TaskContext} from 'std:threads';\n");}
     let mut module=super::parse_module(SourceFile{id:SourceId(format!("{}.tsr",source.id.0)),text:declarations},true)?;
-    module.source=source;module.rust=Some(Module{exports,context});Ok(module)
+    let mut locations=Vec::new();
+    let tokens=syntax::lex(&module.declaration_source).map_err(|error|source_error(&source.id,error))?;
+    let declaration=|name:&str|tokens.windows(3).find(|tokens|tokens[0].text=="type" && tokens[1].text==name && tokens[2].text=="=").map(|tokens|tokens[1].span);
+    for item in &parsed.items {
+        let records=match item {
+            syn::Item::Struct(item) if types.contains_key(&item.ident.to_string())=>vec![(item.ident.to_string(),item.ident.span(),Some(&item.fields))],
+            syn::Item::Enum(item) if types.contains_key(&item.ident.to_string())=> {
+                let mut records=vec![(item.ident.to_string(),item.ident.span(),None)];
+                records.extend(item.variants.iter().map(|variant|(format!("{}{}",item.ident,variant.ident),variant.ident.span(),Some(&variant.fields))));records
+            },_=>continue
+        };
+        for (name,native,fields) in records {
+            let Some(span)=declaration(&name) else{continue};locations.push((span,range(&source.text,native)));
+            if let Some(fields)=fields {
+                let end=tokens.iter().find(|token|token.span.start>=span.end && token.text=="}").map_or(module.declaration_source.len(),|token|token.span.start);
+                for (index,field) in fields.iter().enumerate() {
+                    let name=field.ident.as_ref().map(ToString::to_string).unwrap_or_else(||if fields.len()==1{"value".into()}else{format!("item{index}")});
+                    if let Some(token)=tokens.iter().find(|token|token.span.start>=span.end && token.span.end<=end && token.text==name){locations.push((token.span,range(&source.text,field.ident.as_ref().map_or(field.span(),|name|name.span()))));}
+                }
+            }
+        }
+    }
+    module.source=source.clone();module.rust=Some(Module{exports,context,types,source,package:None,locations});Ok(module)
+}
+
+pub(super) fn bindings(provider:&impl SourceProvider,source:SourceFile)->Result<(ModuleSource,Vec<SourceFile>),ProjectDiagnostic>{
+ let fail=|message|error(&source.id,"rust-bindings",message,Span::default());
+ let binding=dependencies::Bindings::parse(&source.text).map_err(fail)?;
+ let id=provider.resolve(Some(&source.id),&binding.source).map_err(fail)?;
+ let native=SourceFile{text:provider.read(&id).map_err(fail)?,id};
+ let lock_path=dependencies::Bindings::lock_path(Path::new(&source.id.0));
+ let lock_id=provider.resolve(Some(&source.id),&format!("./{}",lock_path.file_name().and_then(|name|name.to_str()).ok_or_else(||fail("Lock path must be UTF-8.".into()))?)).map_err(|_|fail(format!("Missing binding lock; run tsrust bindings resolve {}.",source.id.0)))?;
+ let lock=SourceFile{text:provider.read(&lock_id).map_err(fail)?,id:lock_id};
+ let mut module=module(native.clone())?;
+ module.rust.as_mut().unwrap().package=Some(binding.package(Path::new(&source.id.0),lock.text.clone()));
+ module.source=source;
+ Ok((module,vec![native,lock]))
+}
+
+fn documentation(attrs:&[syn::Attribute])->String {
+ attrs.iter().filter_map(|attr| {
+  if let syn::Meta::NameValue(value)=&attr.meta && value.path.is_ident("doc") && let syn::Expr::Lit(value)=&value.value && let syn::Lit::Str(value)=&value.lit {Some(value.value().replace("*/","* /"))}else{None}
+ }).collect::<Vec<_>>().join("\n")
 }

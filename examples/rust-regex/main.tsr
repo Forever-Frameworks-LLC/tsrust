@@ -1,0 +1,12 @@
+import { Search, SearchResultFound, SearchResultMissing, search } from './regex.bindings.json';
+
+function main() {
+  const request: Search = {
+    pattern: '[0-9]+', text: 'Order 314 ready'
+  };
+  const description = match (unwrap(search(request))) {
+    SearchResultFound(found) => `Found ${found.value.text} at byte ${found.value.start}`,
+    SearchResultMissing(_) => 'No match',
+  };
+  console.log(description);
+}

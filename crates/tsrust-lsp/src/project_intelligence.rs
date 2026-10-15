@@ -42,7 +42,7 @@ impl ProjectIndex {
         for id in &graph.order {
             let module = &graph.modules[id];
             let mut declaration = SourceIndex::with_entry_help(&module.declaration_source, false);
-            let mut index = SourceIndex::with_entry_help(if module.rust.is_some(){&module.declaration_source}else{&module.source.text}, id == &graph.entry);
+            let mut index = SourceIndex::with_entry_help(module.checked_source(), id == &graph.entry);
             if let Some(data) = &module.data {
                 let schema = data.schema();
                 declaration = SourceIndex::with_entry_help(&module.source.text, false);
@@ -176,9 +176,9 @@ impl ProjectIndex {
             let position=|text:&str,offset:usize| {
                 let prefix=&text[..offset];serde_json::json!({"line":prefix.bytes().filter(|&byte|byte==b'\n').count(),"character":prefix.rsplit('\n').next().unwrap_or("").encode_utf16().count()})
             };
-            for export in &rust.exports {
-                if value.pointer("/range/start")==Some(&position(&module.declaration_source,export.declaration.start)) {
-                    value["range"]=serde_json::json!({"start":position(&module.source.text,export.native.start),"end":position(&module.source.text,export.native.end)});return;
+            for (declaration,native) in rust.exports.iter().map(|export|(&export.declaration,&export.native)).chain(rust.locations.iter().map(|(declaration,native)|(declaration,native))) {
+                if value.pointer("/range/start")==Some(&position(&module.declaration_source,declaration.start)) {
+                    value["uri"]=serde_json::Value::String(file_uri(&rust.source.id).unwrap().to_string());value["range"]=serde_json::json!({"start":position(&rust.source.text,native.start),"end":position(&rust.source.text,native.end)});return;
                 }
             }
         }

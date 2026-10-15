@@ -1,0 +1,94 @@
+import { Channel, Sender, ThreadPool } from 'std:threads';
+import { monotonicNow } from 'std:time';
+
+import { Job, OutcomeComplete, OutcomeSkipped, calculate } from './rust-data-compute.rs';
+
+function runJob(seed: int): int {
+  const job: Job = {
+    seed: seed
+  };
+  return match (calculate(job)) {
+    OutcomeComplete(result) => result.value,
+    OutcomeSkipped(_) => 0
+  };
+}
+
+function sendResult(sender: Sender<int>, seed: int): void {
+  unwrap(sender.send(runJob(seed)));
+}
+
+function parallel(pool: ReadOnly<ThreadPool>, offset: int): int {
+  const results = new Channel<int>(2);
+  const a = results.sender();
+  const b = results.sender();
+  const c = results.sender();
+  const d = results.sender();
+  const seed1 = offset % 4 + 1;
+  const seed2 = (offset + 1) % 4 + 1;
+  const seed3 = (offset + 2) % 4 + 1;
+  const seed4 = (offset + 3) % 4 + 1;
+  const first = unwrap(pool.task((): void => sendResult(a, seed1)));
+  const second = unwrap(pool.task((): void => sendResult(b, seed2)));
+  const third = unwrap(pool.task((): void => sendResult(c, seed3)));
+  const fourth = unwrap(pool.task((): void => sendResult(d, seed4)));
+  let checksum = 0;
+  for (let index = 0; index < 4; index += 1) {
+    checksum += unwrap(results.receive());
+  }
+
+  unwrap(first.join());
+  unwrap(second.join());
+  unwrap(third.join());
+  unwrap(fourth.join());
+  return checksum;
+}
+
+function serial(offset: int): int {
+  let checksum = 0;
+  for (let seed = 1; seed <= 4; seed += 1) {
+    checksum += runJob((seed - 1 + offset) % 4 + 1);
+  }
+
+  return checksum;
+}
+
+function measure(pool: ReadOnly<ThreadPool>, workers: int): void {
+  for (let warmup = 0; warmup < 8; warmup += 1) {
+    parallel(pool, warmup);
+  }
+
+  for (let sample = 0; sample < 31; sample += 1) {
+    const start = monotonicNow();
+    const checksum = parallel(pool, sample);
+    const elapsed = monotonicNow() - start;
+    console.log(workers);
+    console.log(checksum);
+    console.log(elapsed);
+  }
+}
+
+function main() {
+  for (let warmup = 0; warmup < 8; warmup += 1) {
+    serial(warmup);
+  }
+
+  for (let sample = 0; sample < 31; sample += 1) {
+    const start = monotonicNow();
+    const checksum = serial(sample);
+    const elapsed = monotonicNow() - start;
+    console.log(0);
+    console.log(checksum);
+    console.log(elapsed);
+  }
+
+  const two = new ThreadPool({
+    workers: 2, capacity: 4
+  });
+  measure(two, 2);
+  unwrap(two.shutdown());
+  const four = new ThreadPool({
+    workers: 4, capacity: 4
+  });
+  measure(four, 4);
+  unwrap(four.shutdown());
+}

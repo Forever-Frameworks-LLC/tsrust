@@ -70,3 +70,68 @@ fn direct_rust_import_does_not_generate_a_worker_pool(){
  let emitted=support::run(support::cli().arg("emit").arg(&path),30);support::success(&emitted);assert!(!String::from_utf8_lossy(&emitted.stdout).contains("mod tsrust_native_threads"));
  let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);assert_eq!(output.stdout,b"42\n");
 }
+
+#[test]
+fn owned_structs_and_all_enum_variant_forms_move_without_cloning(){
+ let dir=support::TempDirectory::new();
+ std::fs::write(dir.0.join("data.rs"),r#"
+#[derive(Debug)]
+pub struct Buffer {pub label:String,pub values:Vec<i64>}
+pub enum Message {Empty, One(Buffer), Pair(i64,String), Named {count:i64,text:String}}
+pub fn identity(value:Buffer)->Buffer{value}
+pub fn pointer(value:&[i64])->i64{value.as_ptr() as i64}
+pub fn message(value:Message)->Message{value}
+pub fn checked(value:Buffer)->Result<Buffer,String>{Ok(value)}
+pub struct Envelope {pub buffer:Buffer,pub flags:Vec<bool>,pub numbers:Vec<f64>}
+pub fn envelope(value:Envelope)->Envelope{value}
+pub enum Empty {A,B{},C()}
+pub fn empty(value:Empty)->Empty{value}
+pub fn failure(value:Buffer)->Result<i64,Buffer>{Err(value)}
+"#).unwrap();
+ let source=r#"
+import {Buffer,MessageEmpty,MessageOne,MessagePair,MessageNamed,Envelope,EmptyA,EmptyB,EmptyC,envelope,empty,failure,identity,pointer,message,checked} from './data.rs';
+import {strictEqual} from 'std:testing';
+function main(){
+ const values:int[]=[];for(let i=0;i<20;i+=1){values.push(i);}
+ const address=pointer(values);const original:Buffer={label:'retained'.repeat(8),values:values};
+ const returned=unwrap(checked(identity(original)));strictEqual(pointer(returned.values),address);
+ const one:MessageOne={value:returned};
+ const observed=match(message(one)){MessageOne(result)=>pointer(result.value.values),MessageEmpty(_)=>0,MessagePair(_)=>0,MessageNamed(_)=>0};strictEqual(observed,address);
+ const pair:MessagePair={item0:7,item1:'pair'};
+ const pairText=match(message(pair)){MessagePair(result)=>result.item1,MessageEmpty(_)=>'',MessageOne(_)=>'',MessageNamed(_)=>''};strictEqual(pairText,'pair');
+ const named:MessageNamed={count:9,text:'named'};
+ const count=match(message(named)){MessageNamed(result)=>result.count,MessageEmpty(_)=>0,MessageOne(_)=>0,MessagePair(_)=>0};strictEqual(count,9);
+ const emptyMessage:MessageEmpty={};
+ const isEmpty=match(message(emptyMessage)){MessageEmpty(_)=>true,MessageOne(_)=>false,MessagePair(_)=>false,MessageNamed(_)=>false};strictEqual(isEmpty,true);
+ const wrapped:Envelope={buffer:{label:'nested',values:[1,2,3,4,5]},flags:[true,false],numbers:[1.5,2.5]};
+ const unwrapped=envelope(wrapped);strictEqual(unwrapped.numbers[0],1.5);strictEqual(unwrapped.flags[0],true);
+ match(failure(unwrapped.buffer)){Ok(_)=>{throw 'expected failure';},Err(value)=>strictEqual(value.label,'nested')}
+ const a:EmptyA={};const b:EmptyB={};const c:EmptyC={};
+ const first=match(empty(a)){EmptyA(_)=>1,EmptyB(_)=>2,EmptyC(_)=>3};strictEqual(first,1);
+ const second=match(empty(b)){EmptyA(_)=>1,EmptyB(_)=>2,EmptyC(_)=>3};strictEqual(second,2);
+ const third=match(empty(c)){EmptyA(_)=>1,EmptyB(_)=>2,EmptyC(_)=>3};strictEqual(third,3);
+}
+"#;
+ let path=dir.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(&path),90));
+ let path=dir.source("import {Buffer,identity} from './data.rs';function main(){const value:Buffer={label:'x',values:[1]};identity(value);console.log(value.label);}");
+ assert!(!support::run(support::cli().arg("check").arg(path),30).status.success());
+}
+#[test]
+fn data_boundaries_reject_private_recursive_and_borrowed_layouts(){
+ for rust in ["pub struct Data{value:i64}pub fn bad()->Data{todo!()}","pub struct Data{pub value:Data}pub fn bad()->Data{todo!()}","pub struct Data<T>{pub value:T}pub fn bad()->Data<i64>{todo!()}","pub struct Data{pub value:String}pub fn bad(value:&Data){}","pub enum Data{Value=1}pub fn bad()->Data{todo!()}","pub struct Data{pub value:String}impl Drop for Data{fn drop(&mut self){}}pub fn bad()->Data{todo!()}"] {
+  let dir=support::TempDirectory::new();std::fs::write(dir.0.join("data.rs"),rust).unwrap();let path=dir.source("import {bad} from './data.rs';function main(){}");
+  let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success(),"accepted {rust}");
+ }
+}
+#[test]
+fn declared_binding_packages_resolve_offline_track_inputs_and_fail_on_lock_drift(){
+ let dir=support::TempDirectory::new();let manifest=dir.0.join("api.bindings.json");
+ std::fs::write(&manifest,r#"{"schemaVersion":1,"source":"./api.rs","dependencies":{}}"#).unwrap();
+ std::fs::write(dir.0.join("api.rs"),"pub struct Reply{pub value:i64}pub fn reply()->Reply{Reply{value:42}}").unwrap();
+ let path=dir.source(&support::format_round_trip("import {reply} from './api.bindings.json';import {strictEqual} from 'std:testing';function main(){strictEqual(reply().value,42);}"));
+ assert!(!support::run(support::cli().arg("check").arg(&path),30).status.success());
+ support::success(&support::run(support::cli().args(["bindings","resolve"]).arg(&manifest).arg("--offline"),60));
+ support::success(&support::run(support::cli().arg("run").arg(&path),90));
+ let lock=dir.0.join("api.bindings.lock");std::fs::write(&lock,"version = 4\n").unwrap();
+ assert!(!support::run(support::cli().arg("run").arg(&path),90).status.success());
+}

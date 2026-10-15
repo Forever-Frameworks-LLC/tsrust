@@ -154,7 +154,8 @@ impl SourceIndex {
                 arguments,
             } => {
                 let base = if let Some(declaration) = declaration {
-                    let source = &graph.modules[&declaration.source].source.text;
+                    let module=&graph.modules[&declaration.source];
+                    let source=module.checked_source();
                     let uri = crate::project_diagnostics::file_uri(&declaration.source).ok()?;
                     let range = LineIndex::new(source)
                         .range(source, declaration.span)
@@ -247,7 +248,9 @@ impl SourceIndex {
                 for (use_site, target) in &facts.generic_nominals {
                     if use_site.source != declaration.source || use_site.span.start < header_start
                         || use_site.span.end > header_start + original.len() { continue; }
-                    let name = graph.modules[&target.source].source.text[target.span.start..target.span.end].to_owned();
+                    let module=&graph.modules[&target.source];
+                    let text=module.checked_source();
+                    let name = text[target.span.start..target.span.end].to_owned();
                     let ty = ProjectType::Named { name, declaration: Some(target.clone()), arguments: Vec::new() };
                     if let Some(spelling) = self.project_type_spelling(graph, current, &ty, dependencies) {
                         edits.push((use_site.span.start - header_start, use_site.span.end - header_start, self.display_type(&spelling)));
