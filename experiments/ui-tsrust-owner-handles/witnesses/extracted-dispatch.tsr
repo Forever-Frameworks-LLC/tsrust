@@ -1,0 +1,28 @@
+import { strictEqual } from 'std:testing';
+
+type Owner = {
+  value: int;
+  actions: ((owner: Mutable<Owner>, delta: int) => void)[];
+};
+
+function make(step: int): (owner: Mutable<Owner>, delta: int) => void {
+  return (owner: Mutable<Owner>, delta: int): void => {
+    owner.value = owner.value + step * delta;
+  };
+}
+
+function main(): void {
+  const owner: Owner = {
+    value: 0, actions: []
+  };
+  owner.actions.push(make(2));
+  owner.actions.push(make(3));
+  const first = owner.actions.remove(0);
+  first(owner, 1);
+  first(owner, 2);
+  strictEqual(owner.value, 6);
+  owner.actions.push(first);
+  const second = owner.actions.remove(0);
+  second(owner, 1);
+  strictEqual(owner.value, 9);
+}

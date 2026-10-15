@@ -1,0 +1,305 @@
+export type Domain = {
+  next: int;
+};
+
+export type Handle = {
+  owner: int;
+  instance: int;
+};
+
+export type Node = {
+  id: int;
+  parent: int;
+  key: string;
+  value: int;
+  live: boolean;
+};
+
+export type Registration = {
+  id: int;
+  run: (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int) => void;
+};
+
+export type Event = {
+  owner: int;
+  instance: int;
+  delta: int;
+};
+
+export type Owner = {
+  id: int;
+  next: int;
+  live: boolean;
+  delivering: boolean;
+  nodes: Node[];
+  order: int[];
+  retired: int[];
+  handlers: Registration[];
+  queue: Event[];
+};
+// Identity is unique only within this explicit allocator scope. No global state.
+export function create(domain: Mutable<Domain>): Owner {
+  if (domain.next >= 2147483647) {
+    throw 'owner identity exhausted';
+  }
+
+  const id = domain.next;
+  domain.next = domain.next + 1;
+  return {
+    id: id, next: 1, live: true, delivering: false, nodes: [], order: [], retired: [], handlers: [], queue: []
+  };
+}
+
+export function root(owner: ReadOnly<Owner>): Handle {
+  return {
+    owner: owner.id, instance: 0
+  };
+}
+
+function index(owner: ReadOnly<Owner>, handle: ReadOnly<Handle>): int {
+  if (!owner.live || owner.id !== handle.owner) {
+    return -1;
+  }
+
+  for (let i = 0; i < owner.nodes.length; i = i + 1) {
+    if (owner.nodes[i].id === handle.instance && owner.nodes[i].live) {
+      return i;
+    }
+  }
+
+  return -1;
+}
+
+export function valid(owner: ReadOnly<Owner>, handle: ReadOnly<Handle>): boolean {
+  if (handle.instance === 0) {
+    return owner.live && owner.id === handle.owner;
+  }
+
+  return index(owner, handle) >= 0;
+}
+
+export function mount(owner: Mutable<Owner>, parent: ReadOnly<Handle>, key: string, value: int, run: Owned<Function<void, [owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int]>>): Handle {
+  if (!valid(owner, parent) || key.length === 0) {
+    throw 'invalid parent or key';
+  }
+
+  for (let i = 0; i < owner.nodes.length; i = i + 1) {
+    if (owner.nodes[i].live && owner.nodes[i].parent === parent.instance && owner.nodes[i].key === key) {
+      throw 'duplicate key';
+    }
+  }
+
+  if (owner.next >= 2147483647) {
+    throw 'instance identity exhausted';
+  }
+
+  const id = owner.next;
+  owner.next = owner.next + 1;
+  owner.nodes.push({
+    id: id, parent: parent.instance, key: key, value: value, live: true
+  });
+  owner.order.push(id);
+  owner.handlers.push({
+    id: id, run: run
+  });
+  return {
+    owner: owner.id, instance: id
+  };
+}
+
+export function read(owner: ReadOnly<Owner>, handle: ReadOnly<Handle>): int | undefined {
+  const at = index(owner, handle);
+  if (at < 0) {
+    return undefined;
+  }
+
+  return owner.nodes[at].value;
+}
+
+export function add(owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): boolean {
+  const at = index(owner, handle);
+  if (at < 0) {
+    return false;
+  }
+
+  owner.nodes[at].value = owner.nodes[at].value + delta;
+  return true;
+}
+
+export function enqueue(owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): boolean {
+  if (index(owner, handle) < 0) {
+    return false;
+  }
+
+  owner.queue.push({
+    owner: handle.owner, instance: handle.instance, delta: delta
+  });
+  return true;
+}
+
+function retire(owner: Mutable<Owner>, id: int): void {
+  // Descendants retire first; physical removal waits for the callback to return.
+  for (let i = 0; i < owner.nodes.length; i = i + 1) {
+    if (owner.nodes[i].live && owner.nodes[i].parent === id) {
+      const child = owner.nodes[i].id;
+      retire(owner, child);
+    }
+  }
+
+  for (let i = 0; i < owner.nodes.length; i = i + 1) {
+    if (owner.nodes[i].id === id) {
+      owner.nodes[i].live = false;
+    }
+  }
+
+  for (let i = owner.order.length - 1; i >= 0; i = i - 1) {
+    if (owner.order[i] === id) {
+      owner.order.remove(i);
+    }
+  }
+
+  owner.retired.push(id);
+}
+
+function cleanup(owner: Mutable<Owner>): void {
+  while (owner.retired.length > 0) {
+    const id = owner.retired.remove(0);
+    for (let i = owner.handlers.length - 1; i >= 0; i = i - 1) {
+      if (owner.handlers[i].id === id) {
+        owner.handlers.remove(i);
+      }
+    }
+
+    for (let i = owner.nodes.length - 1; i >= 0; i = i - 1) {
+      if (owner.nodes[i].id === id) {
+        owner.nodes.remove(i);
+      }
+    }
+  }
+}
+
+export function remove(owner: Mutable<Owner>, handle: ReadOnly<Handle>): boolean {
+  if (owner.id !== handle.owner) {
+    return false;
+  }
+
+  if (!valid(owner, handle)) {
+    return true;
+  }
+
+  retire(owner, handle.instance);
+  if (handle.instance === 0) {
+    owner.live = false;
+  }
+
+  if (!owner.delivering) {
+    cleanup(owner);
+  }
+
+  return true;
+}
+
+export function drain(owner: Mutable<Owner>): string {
+  if (owner.delivering) {
+    return 'reentrant';
+  }
+
+  let result = '';
+  while (owner.queue.length > 0) {
+    const event = owner.queue.remove(0);
+    const handle: Handle = {
+      owner: event.owner, instance: event.instance
+    };
+    if (!valid(owner, handle)) {
+      result = result + 'stale;';
+      continue;
+    }
+
+    let at = -1;
+    for (let i = 0; i < owner.handlers.length; i = i + 1) {
+      if (owner.handlers[i].id === handle.instance) {
+        at = i;
+      }
+    }
+
+    if (at < 0) {
+      throw 'missing registration';
+    }
+
+    const registration = owner.handlers.remove(at);
+    owner.delivering = true;
+    registration.run(owner, handle, event.delta);
+    owner.delivering = false;
+    owner.handlers.push(registration);
+    cleanup(owner);
+    result = result + 'ok;';
+  }
+
+  return result;
+}
+
+export function values(owner: ReadOnly<Owner>, parent: ReadOnly<Handle>): string {
+  if (!valid(owner, parent)) {
+    return 'stale';
+  }
+
+  let result = '';
+  for (let i = 0; i < owner.order.length; i = i + 1) {
+    const handle: Handle = {
+      owner: owner.id, instance: owner.order[i]
+    };
+    const at = index(owner, handle);
+    if (at >= 0 && owner.nodes[at].parent === parent.instance) {
+      result = result + owner.nodes[at].key + ':' + owner.nodes[at].value + ';';
+    }
+  }
+
+  return result;
+}
+
+export function reorder(owner: Mutable<Owner>, parent: ReadOnly<Handle>, keys: ReadOnly<string[]>): boolean {
+  if (!valid(owner, parent)) {
+    return false;
+  }
+
+  const ids: int[] = [];
+  let count = 0;
+  for (let i = 0; i < owner.nodes.length; i = i + 1) {
+    if (owner.nodes[i].live && owner.nodes[i].parent === parent.instance) {
+      count = count + 1;
+    }
+  }
+
+  if (count !== keys.length) {
+    return false;
+  }
+
+  for (let k = 0; k < keys.length; k = k + 1) {
+    let found = -1;
+    for (let i = 0; i < owner.nodes.length; i = i + 1) {
+      if (owner.nodes[i].live && owner.nodes[i].parent === parent.instance && owner.nodes[i].key === keys[k]) {
+        found = owner.nodes[i].id;
+      }
+    }
+
+    if (found < 0 || ids.includes(found)) {
+      return false;
+    }
+
+    ids.push(found);
+  }
+
+  let position = 0;
+  for (let i = 0; i < owner.order.length; i = i + 1) {
+    const handle: Handle = {
+      owner: owner.id, instance: owner.order[i]
+    };
+    const at = index(owner, handle);
+    if (at >= 0 && owner.nodes[at].parent === parent.instance) {
+      owner.order[i] = ids[position];
+      position = position + 1;
+    }
+  }
+
+  return true;
+}

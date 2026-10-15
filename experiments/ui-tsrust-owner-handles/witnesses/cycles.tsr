@@ -1,0 +1,54 @@
+import { strictEqual } from 'std:testing';
+import { Domain, Owner, Handle, create, root, mount, add, read, enqueue, drain, remove, values, reorder, valid } from './owner.tsr';
+
+function increment(step: int): (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int) => void {
+  return (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void => {
+    add(owner, handle, delta * step);
+  };
+}
+
+function cycles(): void {
+  const domain: Domain = {
+    next: 1
+  };
+  const owner = create(domain);
+  const parent = root(owner);
+  for (let cycle = 0; cycle < 1000; cycle = cycle + 1) {
+    const item = mount(owner, parent, '2', 0, increment(1));
+    enqueue(owner, item, 1);
+    drain(owner);
+    strictEqual(read(owner, item), 1);
+    enqueue(owner, item, 9);
+    remove(owner, item);
+    strictEqual(drain(owner), 'stale;');
+    strictEqual(owner.nodes.length, 0);
+    strictEqual(owner.handlers.length, 0);
+    strictEqual(owner.queue.length, 0);
+    strictEqual(owner.retired.length, 0);
+  }
+
+  owner.next = 2147483647;
+  let exhausted = false;
+  try {
+    mount(owner, parent, 'overflow', 0, increment(1));
+  } catch (error) {
+    exhausted = true;
+  }
+
+  strictEqual(exhausted, true);
+  strictEqual(owner.nodes.length, 0);
+  domain.next = 2147483647;
+  exhausted = false;
+  try {
+    create(domain);
+  } catch (error) {
+    exhausted = true;
+  }
+
+  strictEqual(exhausted, true);
+  console.log('H16 1000 logical cleanup cycles and checked exhaustion: executed; resource drops unproven');
+}
+
+function main(): void {
+  cycles();
+}

@@ -1,0 +1,15 @@
+type Owner = {
+  value: int;
+  actions: ((owner: Mutable<Owner>, delta: int) => void)[];
+};
+
+function main(): void {
+  const owner: Owner = {
+    value: 0, actions: []
+  };
+  owner.actions.push((state: Mutable<Owner>, delta: int): void => {
+    state.value = state.value + delta;
+  });
+  // @tsrust ignore - Direct dispatch aliases the registry and mutable owner; strict emission must reject.
+  owner.actions[0](owner, 1);
+}

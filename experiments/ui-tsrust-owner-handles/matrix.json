@@ -1,0 +1,111 @@
+{
+  "blockers": {
+    "B1": {
+      "witness": "witnesses/domain-collision.tsr",
+      "kind": "library identity scope / contract decision",
+      "detail": "Independent Domain counters can issue the same owner and instance IDs; a handle reads the wrong owner across Domains. A single allocator scope works, but that narrower boundary needs review. No claim that new compiler support is necessary."
+    },
+    "B2": {
+      "witness": "witnesses/scope-exit.tsr",
+      "kind": "resource lifetime observation gap",
+      "detail": "Source assertions observe handles and registry membership, not destruction of state, closures or event payloads. No supported drop observer was established. No generated Rust instrumentation or invented destructor API."
+    }
+  },
+  "rows": [
+    {
+      "id": "H01",
+      "status": "executed",
+      "evidence": "Verified S14 compiler, checkout identity and isolated check/emit/rustc commands."
+    },
+    {
+      "id": "H02",
+      "status": "blocked",
+      "evidence": "Within one Domain, wrong-owner access/submission fails. Independent Domains collide: B1."
+    },
+    {
+      "id": "H03",
+      "status": "executed",
+      "evidence": "retained-registry and extracted-dispatch: distinct owned capture environments, repeated native calls."
+    },
+    {
+      "id": "H04",
+      "status": "executed",
+      "evidence": "Integer-only handles permit independent owner operations; no retained loan or state clone."
+    },
+    {
+      "id": "H05",
+      "status": "executed",
+      "evidence": "owners-lists.lists: stale submission/read and queued delivery; siblings unaffected."
+    },
+    {
+      "id": "H06",
+      "status": "executed",
+      "evidence": "owners-lists.lists: same key receives fresh identity; old queued delivery stale."
+    },
+    {
+      "id": "H07",
+      "status": "executed",
+      "evidence": "owners-lists.lists: edited values follow keys; invalid order and duplicate key reject."
+    },
+    {
+      "id": "H08",
+      "status": "executed",
+      "evidence": "owners-lists.queued: real callbacks observe FIFO values 1,3,6."
+    },
+    {
+      "id": "H09",
+      "status": "executed",
+      "evidence": "Recursive drain returns reentrant; direct-dispatch rejects overlapping mutable access."
+    },
+    {
+      "id": "H10",
+      "status": "blocked",
+      "evidence": "Self/sibling/ancestor invalidation executes; actual child-before-parent destruction unproven: B2."
+    },
+    {
+      "id": "H11",
+      "status": "executed",
+      "evidence": "callback-lists.duringCallback(11): removal then immediate surviving-list read."
+    },
+    {
+      "id": "H12",
+      "status": "executed",
+      "evidence": "callback-lists.duringCallback(12): removal then reorder survivors within callback."
+    },
+    {
+      "id": "H13",
+      "status": "executed",
+      "evidence": "callback-lists.duringCallback(13): same-key reinsertion, current read/order, old event stale, fresh event runs."
+    },
+    {
+      "id": "H14",
+      "status": "blocked",
+      "evidence": "Registrations become empty after disposal, but exact captured-resource destruction is unobserved: B2."
+    },
+    {
+      "id": "H15",
+      "status": "blocked",
+      "evidence": "scope-exit returns a handle without its owner; actual automatic destruction unobserved: B2."
+    },
+    {
+      "id": "H16",
+      "status": "blocked",
+      "evidence": "1000 logical cleanup cycles and checked identity exhaustion execute; resource baseline unproven: B2."
+    },
+    {
+      "id": "H17",
+      "status": "expected rejection",
+      "evidence": "Existing escaped-loan, overlapping-access, consumed-owner witnesses reject strictly; no ownership relaxation."
+    },
+    {
+      "id": "H18",
+      "status": "executed",
+      "evidence": "Token preservation, format idempotence, checked/emitted native assertions and mutation control."
+    },
+    {
+      "id": "H19",
+      "status": "blocked",
+      "evidence": "Actual native partial demo runs; blocker report exits 2; full contract is not accepted."
+    }
+  ]
+}

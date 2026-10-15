@@ -1,0 +1,68 @@
+import { strictEqual } from 'std:testing';
+import { Domain, Owner, Handle, create, root, mount, add, read, enqueue, drain, remove, values, reorder, valid } from './owner.tsr';
+
+function increment(step: int): (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int) => void {
+  return (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void => {
+    add(owner, handle, delta * step);
+  };
+}
+
+function removeAll(parent: Handle): (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int) => void {
+  return (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void => {
+    add(owner, handle, delta);
+    remove(owner, parent);
+    strictEqual(valid(owner, handle), false);
+    strictEqual(enqueue(owner, handle, 1), false);
+  };
+}
+
+function disposal(): void {
+  const domain: Domain = {
+    next: 1
+  };
+  const owner = create(domain);
+  const parent = root(owner);
+  const group = mount(owner, parent, 'group', 0, increment(1));
+  const action = mount(owner, group, 'action', 0, removeAll(clone(group)));
+  const sibling = mount(owner, group, 'sibling', 0, increment(1));
+  enqueue(owner, action, 1);
+  enqueue(owner, action, 1);
+  enqueue(owner, sibling, 1);
+  strictEqual(drain(owner), 'ok;stale;stale;');
+  strictEqual(owner.nodes.length, 0);
+  strictEqual(owner.handlers.length, 0);
+  strictEqual(valid(owner, parent), true);
+  remove(owner, parent);
+  console.log('H10 invalidation and empty registrations: executed; actual resource drop order unproven');
+}
+
+function removeSelfAndSibling(sibling: Handle): (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int) => void {
+  return (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void => {
+    add(owner, handle, delta);
+    remove(owner, sibling);
+    remove(owner, handle);
+    strictEqual(valid(owner, handle), false);
+    strictEqual(enqueue(owner, sibling, 1), false);
+  };
+}
+
+function selfRemoval(): void {
+  const domain: Domain = {
+    next: 1
+  };
+  const owner = create(domain);
+  const parent = root(owner);
+  const sibling = mount(owner, parent, 'sibling', 0, increment(1));
+  const action = mount(owner, parent, 'action', 0, removeSelfAndSibling(clone(sibling)));
+  enqueue(owner, action, 1);
+  enqueue(owner, sibling, 1);
+  enqueue(owner, action, 1);
+  strictEqual(drain(owner), 'ok;stale;stale;');
+  strictEqual(owner.nodes.length, 0);
+  strictEqual(owner.handlers.length, 0);
+}
+
+function main(): void {
+  disposal();
+  selfRemoval();
+}
