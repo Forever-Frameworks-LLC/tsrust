@@ -49,7 +49,10 @@
     {
       "id": "R08",
       "status": "executed",
-      "evidence": "Existing retained-registry, extracted-dispatch, owners-lists and callback-lists native assertions retained."
+      "evidence": "Existing retained-registry, extracted-dispatch, owners-lists and callback-lists native assertions retained. Factory self-replacement control passes; named-handler variant has separately reproduced compiler panic B4. Existing executed witnesses remain supported.",
+      "limitations": [
+        "B4"
+      ]
     },
     {
       "id": "R09",
@@ -125,10 +128,11 @@
     {
       "id": "R19",
       "status": "blocked",
-      "evidence": "Native demo executes supported witnesses then emits both matrices and exit 2; full adopted contract remains blocked.",
+      "evidence": "Native supported witnesses and factory control execute; exact B4 check/emit panic verified and reported separately; demo exits 2 with B1/B2/B4 open.",
       "blockers": [
         "B1",
-        "B2"
+        "B2",
+        "B4"
       ]
     }
   ],
@@ -183,7 +187,7 @@
     },
     "H13": {
       "status": "executed",
-      "evidence": "callback-lists.duringCallback(13): same-key reinsertion, current read/order, old event stale, fresh event runs."
+      "evidence": "callback-lists.duringCallback(13): same-key reinsertion, current read/order, old event stale, fresh event runs. Factory self-replacement control also executes; the named-handler variant is limited by B4."
     },
     "H14": {
       "status": "blocked",
@@ -207,7 +211,7 @@
     },
     "H19": {
       "status": "blocked",
-      "evidence": "Native partial demo and H/R matrices execute; B1/B2 retained, B3 explicitly adopted; exit 2."
+      "evidence": "Native partial demo and H/R matrices execute; B1/B2/B4 retained, B3 adopted; expected compiler panic verified separately from ownership rejections; exit 2."
     }
   }
 }

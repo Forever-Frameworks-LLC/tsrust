@@ -54,3 +54,18 @@ export function execute(source, dir) {
   verifyCompiler();
   return result.stdout;
 }
+
+// Known compiler panic, not an accepted ownership rejection; unexpected outcomes fail.
+export function checkNamedHandlerBlocker(source, dir) {
+  verifyCompiler();
+  for (const command of ['check', 'emit']) {
+    const args = command === 'emit' ? [command, source, '-o', path.join(dir, 'blocked.rs')] : [command, source];
+    const result = run(compiler, args, 101);
+    if (!/panicked at crates\/tsrust-compiler\/src\/analysis\/mod\.rs/.test(result.stderr) ||
+        !/index out of bounds: the len is 22 but the index is 22/.test(result.stderr)) {
+      throw new Error(`Unexpected ${command} failure: ${result.stderr}`);
+    }
+  }
+  verifyCompiler();
+  return 'B4: named-handler self-replacement panics during check and emit; factory control executes';
+}

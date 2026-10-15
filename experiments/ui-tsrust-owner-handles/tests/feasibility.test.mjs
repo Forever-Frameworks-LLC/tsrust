@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import {readFileSync, writeFileSync} from 'node:fs';
-import {root, compiler, run, temporary, formattedWitnesses, execute, verifyCompiler, tokens} from '../harness.mjs';
+import {root, compiler, run, temporary, formattedWitnesses, execute, verifyCompiler, tokens, checkNamedHandlerBlocker} from '../harness.mjs';
 
 test('H01: verified compiler; command failures and unsupported scanner input fail loudly', () => {
   verifyCompiler(); run(compiler, ['--version']); run('rustc', ['--version']);
@@ -87,4 +87,18 @@ test('R03-R05,R09: runtime boundary counterexample and real resource capture exe
   assert.equal(followup.contract, 'blocked');
   assert.equal(followup.rows.find(row=>row.id==='R09').status, 'blocked');
   assert.equal(followup.rows.find(row=>row.id==='R19').status, 'blocked');
+}));
+
+test('B4: exact named-handler compiler panic and native factory control stay distinct', () => temporary(dir => {
+  formattedWitnesses(dir, assert);
+  assert.equal(checkNamedHandlerBlocker(path.join(dir, 'named-self-replacement.tsr'), dir),
+    'B4: named-handler self-replacement panics during check and emit; factory control executes');
+  assert.equal(execute(path.join(dir, 'factory-self-replacement.tsr'), dir),
+    'PASS active self-replacement, stale queued event, unaffected FIFO, reentrant rejection, final root removal\n');
+  const matrix = JSON.parse(readFileSync(path.join(root, 'matrix.json'), 'utf8'));
+  const followup = JSON.parse(readFileSync(path.join(root, 'resource-matrix.json'), 'utf8'));
+  assert.equal(matrix.blockers.B4.kind, 'compiler analysis panic');
+  for (const row of matrix.rows) assert.deepEqual(followup.reconciliation[row.id], {status: row.status, evidence: row.evidence});
+  assert.ok(followup.rows.find(row=>row.id==='R08').limitations.includes('B4'));
+  assert.ok(followup.rows.find(row=>row.id==='R19').blockers.includes('B4'));
 }));

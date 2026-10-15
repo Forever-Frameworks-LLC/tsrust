@@ -19,6 +19,19 @@
         "H19"
       ],
       "status": "resolved by adopted contract"
+    },
+    "B4": {
+      "witness": "witnesses/named-self-replacement.tsr",
+      "control": "witnesses/factory-self-replacement.tsr",
+      "kind": "compiler analysis panic",
+      "status": "open",
+      "detail": "This exact formatted named-handler self-replacement program causes check and emit to exit 101 at analysis/mod.rs with index out of bounds (len 22,index 22). Factory control executes. Simpler named-handler probes passed; this is not a claim that all named handlers fail or a regression attributed to this UI patch.",
+      "dependentRows": [
+        "H13",
+        "H19",
+        "R08",
+        "R19"
+      ]
     }
   },
   "rows": [
@@ -85,7 +98,7 @@
     {
       "id": "H13",
       "status": "executed",
-      "evidence": "callback-lists.duringCallback(13): same-key reinsertion, current read/order, old event stale, fresh event runs."
+      "evidence": "callback-lists.duringCallback(13): same-key reinsertion, current read/order, old event stale, fresh event runs. Factory self-replacement control also executes; the named-handler variant is limited by B4."
     },
     {
       "id": "H14",
@@ -115,7 +128,7 @@
     {
       "id": "H19",
       "status": "blocked",
-      "evidence": "Native partial demo and H/R matrices execute; B1/B2 retained, B3 explicitly adopted; exit 2."
+      "evidence": "Native partial demo and H/R matrices execute; B1/B2/B4 retained, B3 adopted; expected compiler panic verified separately from ownership rejections; exit 2."
     }
   ]
 }
