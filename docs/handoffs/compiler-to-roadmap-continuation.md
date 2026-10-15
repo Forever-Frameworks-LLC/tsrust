@@ -37,15 +37,19 @@ execution and installed LSP resource hover/signature help pass independently.
 The user's rust-analyzer workspace extension remains disabled.
 
 Current SQL CLI SHA-256: `296f5d1ba4c6ac93a49925d7ba97870b2d36179e8dd9e1241dd47d74d984c19e`.
-Current SQL LSP SHA-256: `0baff0f427cd8ded84a895851b5880ba3bf6a0216cedb1afc2f54a012c2c26f4`.
+Current SQL LSP SHA-256: `8cf43bc480b94629114fccafdf0e9bbaebd072d9faeb0c5bd7065d541599a0b7`.
 Both consumers were refreshed again for numeric acceptance. The active editor
 server was stopped when inspected, then restarted through its status item.
 Both already-open numeric fixtures initially reported no workspace problems.
 Subsequent consumer inspection found repeated background-thread stack overflows
-in the active editor (SIGABRT at 19:20:25, 19:31:47 and 19:35:36). Focused LSP
-requests pass, but sustained real-workspace editor acceptance needs this repair
-before adding more types. Do not describe the active editor as healthy until
-that failure is reproduced and fixed.
+in the active editor (SIGABRT at 19:20:25, 19:31:47 and 19:35:36). The faulting stack identifies workspace scanning of nested HTTP calls, not the
+numeric fixture. A real-server regression reproduced the failure using the
+existing HTTP loopback example. The single analysis worker now has a named,
+bounded 8 MiB stack instead of the platform default. Four real-server fixture
+checks, five workspace-scan checks and six server lifecycle/version checks pass;
+installed-server fixture checks also pass. The editor was restarted and open
+documents again show no problems. This fixes the witnessed finite call nesting;
+it is not an unlimited-recursion guarantee. Resume the domain types below.
 Reuse `/private/tmp/tsrust-gate100-editor-target`, `CARGO_INCREMENTAL=0` and
 `CARGO_BUILD_JOBS=1`. The restart made the initial build cold; no separate target
 was introduced. Closed diagnostic records are byte-verified in

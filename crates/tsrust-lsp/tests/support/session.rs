@@ -145,6 +145,17 @@ impl Session {
         }
     }
 
+    /// Wait for a specific publication, including a closed workspace sentinel.
+    pub fn wait_for_diagnostics(&mut self,name:&str)->Value {
+        let uri=self.uri(name);let deadline=Instant::now()+Duration::from_secs(10);
+        loop {
+            let message=self.messages.recv_timeout(deadline.saturating_duration_since(Instant::now())).expect("server must publish diagnostics before the deadline");
+            if let Message::Notification(notification)=message {
+                if notification.method=="textDocument/publishDiagnostics" && notification.params["uri"]==uri {return notification.params["diagnostics"].clone();}
+            }
+        }
+    }
+
     /// Wait until the server has published diagnostics and stays quiet.
     pub fn settle(&mut self) {
         let mut quiet = Duration::from_millis(900);

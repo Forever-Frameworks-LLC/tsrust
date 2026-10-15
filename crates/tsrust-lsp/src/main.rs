@@ -98,7 +98,9 @@ fn run(
     let (completed, results) = bounded::<Checked>(1);
     // Analysis is synchronous. Dropping this thread's handle permits exit without
     // waiting for an obsolete check. Cooperative interruption is compiler task C3.
-    std::thread::spawn(move || {
+    // Debug compiler frames for nested native calls exceed the default worker
+    // stack. Keep one analysis worker with a bounded 8 MiB stack.
+    std::thread::Builder::new().name("tsrust-analysis".into()).stack_size(8*1024*1024).spawn(move || {
         let mut scan_cache=tsrust_lsp::workspace_scan::Cache::default();
         while let Ok(job) = work.recv() {
             let job = match job {
@@ -157,7 +159,7 @@ fn run(
                 break;
             }
         }
-    });
+    }).map_err(|error|format!("Cannot start analysis worker: {error}"))?;
     let mut documents = Documents::default();
     let mut projects = tsrust_lsp::project_session::ProjectSession::default();
     let mut scanner = tsrust_lsp::workspace_scan::Scanner::default();
