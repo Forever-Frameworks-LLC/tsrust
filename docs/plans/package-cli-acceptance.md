@@ -8,7 +8,7 @@ acceptance tests.
 
 ## Focused source checks
 
-- 94 compiler/CLI checks pass: 18 CLI/dev/publication unit checks, six package CLI
+- 95 compiler/CLI checks pass: 18 CLI/dev/publication unit checks, seven package CLI
   integrations, six Rust bridge integrations, five retained project-session checks,
   three offline package-export checks and 56 testing-library checks.
 - 188 editor checks pass across Rust bindings/hover, real-server completion matrix,

@@ -62,3 +62,9 @@ fn latest_add_repeat_add_caller_failure_and_unused_removal_keep_contracts(){
  let before=fs::read(&path).unwrap();fs::write(dir.0.join("main.tsr"),"import {answer} from './native.bindings.json';function main(){console.log(answer().toUpperCase());}").unwrap();assert!(!package(&dir.0,"update",&["unicode-ident"]).status.success());assert_eq!(fs::read(&path).unwrap(),before);
  fs::remove_file(dir.0.join("main.tsr")).unwrap();support::success(&package(&dir.0,"remove",&["unicode-ident"]));let value:serde_json::Value=serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();assert_eq!(value["dependencies"],serde_json::json!({}));
 }
+#[test]
+fn explicit_project_does_not_consult_an_unrelated_broken_current_project(){
+ let broken=support::TempDirectory::new();fs::write(broken.0.join("tsrust.config.json"),"{").unwrap();
+ let project=support::TempDirectory::new();fs::write(project.0.join("native.rs"),"pub fn answer()->i64{42}").unwrap();
+ let output=support::run(support::cli().args(["add","unicode-ident@1.0.26","--offline","--project"]).arg(&project.0).current_dir(&broken.0),180);support::success(&output);assert!(project.0.join("native.bindings.json").exists());
+}

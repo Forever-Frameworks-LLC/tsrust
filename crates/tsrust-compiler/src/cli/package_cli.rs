@@ -33,7 +33,8 @@ fn options(command:&str,args:impl Iterator<Item=String>)->Result<Options,String>
 pub(crate) fn run(command:&str,args:impl Iterator<Item=String>)->Result<u8,String>{
  let mut options=options(command,args)?;
  if let Some(source)=&mut options.source{if !source.starts_with("./") && !source.starts_with("../"){*source=format!("./{source}");}}
- let root=fs::canonicalize(options.root.clone().unwrap_or(crate::project_config::default_root()?)).map_err(|error|error.to_string())?;
+ let root=match options.root.clone(){Some(root)=>root,None=>crate::project_config::default_root()?};
+ let root=fs::canonicalize(root).map_err(|error|error.to_string())?;
  let path=select_manifest(&root,options.manifest.as_deref())?;
  if !path.starts_with(&root){return Err("Binding configuration must belong to the selected project.".into());}
  let lock_root=path.parent().unwrap().join("target/tsrust-packages");fs::create_dir_all(&lock_root).map_err(|error|error.to_string())?;
