@@ -27,7 +27,7 @@ fn package_changes_validate_tests_and_preserve_failed_or_preview_generations(){
 }
 #[test]
 fn reserved_dependencies_fail_without_creating_project_configuration(){
- let dir=support::TempDirectory::new();assert!(!package(&dir.0,"add",&["serde@1.0.229"]).status.success());assert!(!dir.0.join("native.bindings.json").exists());assert!(!dir.0.join("native.rs").exists());
+ let dir=support::TempDirectory::new();for dependency in ["serde@1.0.229","tokio@1.53.3"]{assert!(!package(&dir.0,"add",&[dependency]).status.success());}assert!(!dir.0.join("native.bindings.json").exists());assert!(!dir.0.join("native.rs").exists());
 }
 #[test]
 fn curated_regex_add_requires_no_json_and_real_bindings_execute_in_tests(){

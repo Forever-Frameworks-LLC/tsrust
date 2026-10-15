@@ -2,7 +2,7 @@ mod support;
 use tsrust_compiler::check;
 #[test]
 fn scheduled_timer_completes_and_cancellation_settles(){
-    execute("import {delay} from 'std:futures';async function work():Task<int>{await delay(1);return 42;}async function main():Task<void>{const job=work().start();console.log(await job);const cancelled=work().start();cancelled.cancel();try{await cancelled;}catch(error){console.log(error.code);}}","42\ncancelled\n",None);
+    execute("import {delay} from 'std:futures';async function work():Task<int>{await delay(1);return 42;}async function main():Task<void>{const job=work().start();console.log(await job);const cancelled=delay(60000).start();cancelled.cancel();try{await cancelled;}catch(error){console.log(error.code);}}","42\ncancelled\n",None);
 }
 #[test]
 fn started_jobs_cannot_be_abandoned_or_cloned(){
