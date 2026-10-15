@@ -21,7 +21,7 @@ fn binding_contract_keeps_arity_types_ownership_and_feature_selection_consistent
     let features = selected_features([("std:path", "basename"), ("std:path", "basename")]).unwrap();
     assert_eq!(features.into_iter().collect::<Vec<_>>(), vec!["path"]);
     assert!(
-        lookup("std:http", "basename")
+        lookup("std:missing", "basename")
             .unwrap_err()
             .contains("Unknown standard-library module")
     );
@@ -31,6 +31,8 @@ fn binding_contract_keeps_arity_types_ownership_and_feature_selection_consistent
             .contains("does not export")
     );
     assert!(selected_features([("std:path", "missing")]).is_err());
+    assert!(lookup("std:http", "text").is_ok());
+    assert!(lookup("std:http", "basename").unwrap_err().contains("does not export"));
 }
 
 #[test]

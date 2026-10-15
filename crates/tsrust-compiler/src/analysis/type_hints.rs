@@ -16,7 +16,7 @@ pub(super) enum Work<'a>{
     CoalesceLeft{right:&'a Expr,span:Span,undefined_only:bool},CoalesceRight{lhs:Type,payload:Option<Type>,span:Span},
     Logical{left:&'a Expr,right:&'a Expr,op:BinaryOp,span:Span},
     LogicalLeft{right:&'a Expr,op:BinaryOp,span:Span},LogicalRight{lhs:Type,selected:Vec<Type>,span:Span},
-    Unary(UnaryOp),LogicalAssignment,
+    Unary(UnaryOp),AwaitMethod(&'a Expr),LogicalAssignment,
     ArithmeticLeft{right:&'a Expr,op:BinaryOp},ArithmeticRight{left:Option<Type>,op:BinaryOp},
     Field{base:&'a Expr,name:&'a str,span:Span},Index{base:&'a Expr,index:&'a Expr,span:Span},
     ArrayNext{values:&'a [Expr],index:usize,first:Option<Type>,number:Option<Type>},
@@ -46,6 +46,7 @@ impl Analyzer{
                     ExprKind::Update{target,..}|ExprKind::Assign{target,..}|ExprKind::CompoundAssign{target,..}=>work.push(Work::Expression(target)),
                     ExprKind::Unary{op,value:child,..}=>match op{
                         UnaryOp::Await if matches!(&child.kind,ExprKind::Call(callee,_) if (matches!(callee.kind,ExprKind::Unary{op:UnaryOp::AwaitCallee,..}) || matches!(&callee.kind,ExprKind::Name(name) if name=="@native:std:result#unwrap")))=>work.push(Work::Expression(child)),
+                        UnaryOp::Await if matches!(&child.kind,ExprKind::Call(callee,_) if matches!(callee.kind,ExprKind::Field(..)))=>{let ExprKind::Call(callee,_)=&child.kind else{unreachable!()};let ExprKind::Field(base,_)=&callee.kind else{unreachable!()};work.push(Work::AwaitMethod(child));work.push(Work::Expression(base));},
                         UnaryOp::VariantIs(_)|UnaryOp::Not=>value=Some(Type::Boolean),
                         UnaryOp::Typeof=>value=Some(Type::String),UnaryOp::Void=>value=Some(Type::Undefined),
                         UnaryOp::BitNot=>value=Some(self.bitwise_or_power_type(context,child,None,None)),
@@ -69,6 +70,7 @@ impl Analyzer{
                     _=>value=self.type_hint_leaf(context,expr),
                 }
             },
+            Work::AwaitMethod(child)=>{let ExprKind::Call(callee,_)=&child.kind else{unreachable!()};let ExprKind::Field(_,member)=&callee.kind else{unreachable!()};if let Some(result)=calls::http_result(self,value,member,true){value=Some(result);}else{work.push(Work::Unary(UnaryOp::Await));work.push(Work::Expression(child));}},
             Work::Pattern(expr)=>match &expr.kind{
                 ExprKind::Field(base,_)|ExprKind::Index(base,_)=>{work.push(Work::PatternResult(expr));work.push(Work::Expression(base));},
                 _=>work.push(Work::Expression(expr)),

@@ -64,3 +64,15 @@ pub(crate) fn prepare(program:&mut crate::syntax::Program)->Result<(),crate::Dia
  include!("runtime.rs");
  include!("runtime_tests.rs");
 }
+
+pub(crate) fn method(identity:Option<NativeTypeId>,member:&str)->Option<&'static str>{Some(match(identity,member){
+    (Some(NativeTypeId::HttpApp),"get"|"post"|"put"|"patch"|"delete"|"head"|"options"|"route")=>"__route",
+    (Some(NativeTypeId::HttpApp),"use")=>"__use",(Some(NativeTypeId::HttpApp),"fallback")=>"__fallback",(Some(NativeTypeId::HttpApp),"listen")=>"__listen",
+    (Some(NativeTypeId::HttpServer),"wait")=>"__wait",(Some(NativeTypeId::HttpServer),"address")=>"__address",(Some(NativeTypeId::HttpServer),"shutdown")=>"__shutdown",
+    (Some(NativeTypeId::HttpClient),"send")=>"__send",(Some(NativeTypeId::HttpNext),"run")=>"__next",
+    (Some(NativeTypeId::HttpBody),"next")=>"__bodyNext",(Some(NativeTypeId::HttpBody),"text")=>"__bodyText",
+    (Some(NativeTypeId::HttpRequest),"method")=>"__method",(Some(NativeTypeId::HttpRequest),"url")=>"__url",(Some(NativeTypeId::HttpRequest),"param")=>"__param",(Some(NativeTypeId::HttpResponse),"status")=>"__status",
+    (Some(NativeTypeId::HttpRequest),"header")=>"__requestHeader",(Some(NativeTypeId::HttpRequest),"setHeader")=>"__requestSetHeader",(Some(NativeTypeId::HttpRequest),"body")=>"__requestBody",(Some(NativeTypeId::HttpRequest),"text")=>"__requestText",
+    (Some(NativeTypeId::HttpResponse),"header")=>"__responseHeader",(Some(NativeTypeId::HttpResponse),"setHeader")=>"__responseSetHeader",(Some(NativeTypeId::HttpResponse),"body")=>"__responseBody",(Some(NativeTypeId::HttpResponse),"text")=>"__responseText",_=>return None,
+   })}
+pub(crate) fn asynchronous(name:&str)->bool{matches!(name,"__listen"|"__wait"|"__shutdown"|"__send"|"__next"|"__bodyNext"|"__bodyText"|"__requestText"|"__responseText")}

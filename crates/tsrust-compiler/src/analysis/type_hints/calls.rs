@@ -8,7 +8,7 @@ pub(in crate::analysis) enum Frame<'a>{
     Start(&'a Expr),
     SchemaReceiver{expr:&'a Expr,kind:SchemaReceiver},
     SchemaBranch{expr:&'a Expr,branches:&'a [Expr],index:usize,first:Option<(usize,Type)>,same:bool},
-    Result(Flavor),Own,
+    Result(Flavor),Own,Unwrap,
     Receiver(&'a Expr),RecordField{expr:&'a Expr,receiver:Option<Type>},
     Callback{name:&'a str,span:Span},SetArgument(usize),
 }
@@ -55,6 +55,7 @@ pub(super) fn step<'a>(analyzer:&Analyzer,context:&Context,frame:Frame<'a>,work:
         },
         Frame::Result(flavor)=>*value=value.and_then(|ty|analyzer.call_hint_result(ty,flavor)),
         Frame::Own=>*value=value.map(Type::owning),
+        Frame::Unwrap=>*value=value.and_then(|ty|unwrapped(analyzer,ty)),
         Frame::Receiver(expr)=>{
             let receiver=*value;
             if matches!(receiver,Some(Type::Record(_))){let ExprKind::Call(callee,_)=&expr.kind else{unreachable!()};query(work,Frame::RecordField{expr,receiver},callee);}
@@ -78,6 +79,7 @@ fn regular<'a>(analyzer:&Analyzer,context:&Context,expr:&'a Expr,work:&mut Vec<W
         query(work,Frame::Result(Flavor::Wrapped),callee);return;
     }
     if let ExprKind::Name(name)=&callee.kind{
+        if name=="@native:std:result#unwrap" && arguments.len()==1 {query(work,Frame::Unwrap,&arguments[0]);return;}
         if let Some((_,binding))=crate::native_bindings::by_symbol(name){
             *value=if matches!(binding.module,"std:threads"|"std:result"|"std:futures") || binding.result==crate::native_bindings::NativeType::SharedCallback{None}else{Some(native_type(binding.result,&analyzer.program.records))};return;
         }
@@ -93,6 +95,8 @@ fn regular<'a>(analyzer:&Analyzer,context:&Context,expr:&'a Expr,work:&mut Vec<W
     query(work,Frame::Result(Flavor::General),callee);
 }
 fn method<'a>(analyzer:&Analyzer,context:&Context,expr:&'a Expr,receiver:Option<Type>,work:&mut Vec<Work<'a>>,value:&mut Option<Type>){
+    let ExprKind::Call(callee,_)=&expr.kind else{unreachable!()};
+    if let ExprKind::Field(_,member)=&callee.kind && let Some(result)=http_result(analyzer,receiver,member,false){*value=Some(result);return;}
     let ExprKind::Call(callee,arguments)=&expr.kind else{unreachable!()};let ExprKind::Field(base,name)=&callee.kind else{unreachable!()};
     if let Some(Type::Record(id))=receiver && analyzer.program.records[id].native_element().is_some(){*value=analyzer.native_collection_method_hint(id,name,expr.span);return;}
     if let Some(Type::Map(id))=receiver{
@@ -282,4 +286,11 @@ mod tests{
         }
         assert_eq!(analyzer.expression_type_hint(&context,&value),Some(Type::Record(id)));drop(value);
     }
+}
+
+pub(super) fn unwrapped(analyzer:&Analyzer,ty:Type)->Option<Type>{let Type::Union(id)=ty else{return None};let [ok,_]=crate::result_identity::variants(&analyzer.program.records,&analyzer.unions.members(id))?;Some(analyzer.program.records[ok].fields.first().and_then(|field|field.ty).unwrap_or(Type::Void))}
+pub(super) fn http_result(analyzer:&Analyzer,receiver:Option<Type>,member:&str,awaited:bool)->Option<Type>{
+ let Type::Record(id)=receiver? else{return None};let operation=crate::stdlib::http::method(analyzer.program.records[id].native_type,member)?;
+ if crate::stdlib::http::asynchronous(operation)!=awaited{return None;}
+ let binding=crate::native_bindings::lookup("std:http",operation).ok()?;let ty=native_type(binding.result,&analyzer.program.records);Some(unwrapped(analyzer,ty).unwrap_or(ty))
 }

@@ -174,7 +174,8 @@ impl Owners {
         self.array_shapes.leave_scope(first_binding);
         let previous = self.live();
         self.entries
-            .retain(|place, _| place.binding < first_binding);
+            // Lazy-operation results leave their lowering block before the caller binds them.
+            .retain(|place, _| place.binding < first_binding || (place.binding==usize::MAX && place.fields.first().is_some_and(|field|field.starts_with("future:"))));
         previous.difference(&self.live()).copied().collect()
     }
 
@@ -354,6 +355,15 @@ mod tests {
         left.join(&right);
         assert!(left.leave_scope(1).is_empty());
         assert_eq!(left.live(), BTreeSet::from([10]));
+    }
+
+    #[test]
+    fn lazy_result_keeps_its_borrow_across_the_lowering_block() {
+        let mut owners=Owners::default();let result=place(usize::MAX,&["future:42"]);
+        owners.attach(result.clone(),[10]);assert!(owners.leave_scope(1).is_empty());
+        owners.extend_from(&result,&place(0,&[]),true);
+        assert_eq!(owners.live(),BTreeSet::from([10]));
+        assert_eq!(owners.leave_scope(0),BTreeSet::from([10]));
     }
 
 }
