@@ -1811,7 +1811,7 @@ impl SourceIndex {
             && method >= 2
             && member_separator(self.text(method - 1))
             && self.text(method - 2) == "Array";
-        let set_constructor = (matches!(self.text(method), "Set" | "Map") || matches!(self.native_type_aliases.get(self.text(method)),Some(tsrust_compiler::native_signatures::NativeTypeId::Channel | tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap | tsrust_compiler::native_signatures::NativeTypeId::OrderedSet | tsrust_compiler::native_signatures::NativeTypeId::OrderedMap))) && method > 0 && self.text(method - 1) == "new";
+        let set_constructor = (matches!(self.text(method), "Set" | "Map") || matches!(self.native_type_aliases.get(self.text(method)),Some(tsrust_compiler::native_signatures::NativeTypeId::Channel | tsrust_compiler::native_signatures::NativeTypeId::AsyncChannel | tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap | tsrust_compiler::native_signatures::NativeTypeId::OrderedSet | tsrust_compiler::native_signatures::NativeTypeId::OrderedMap))) && method > 0 && self.text(method - 1) == "new";
         let result_constructor = matches!(self.text(method), "Ok" | "Err") && self.resolve_token(method).is_none();
         let json_decode = method >= 2 && self.text(method - 2) == "JSON" && self.resolve_token(method - 2).is_none() && matches!(self.text(method), "parse" | "tryParse");
         let native_generic=self.resolve_token(method).and_then(|symbol|self.native_origins.get(&symbol)).is_some_and(|&id|{
@@ -2019,7 +2019,7 @@ impl SourceIndex {
             let open = self.member_call_open(id + 1)?;
             return Some((self.text(id + 1).into(), self.pairs.get(open).copied().flatten()? + 1));
         }
-        if depth > 8 || self.text(id) != "new" || !(matches!(self.text(id + 1), "Set" | "Map") || matches!(self.native_type_aliases.get(self.text(id + 1)),Some(tsrust_compiler::native_signatures::NativeTypeId::Channel | tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap | tsrust_compiler::native_signatures::NativeTypeId::OrderedSet | tsrust_compiler::native_signatures::NativeTypeId::OrderedMap))) { return None; }
+        if depth > 8 || self.text(id) != "new" || !(matches!(self.text(id + 1), "Set" | "Map") || matches!(self.native_type_aliases.get(self.text(id + 1)),Some(tsrust_compiler::native_signatures::NativeTypeId::Channel | tsrust_compiler::native_signatures::NativeTypeId::AsyncChannel | tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap | tsrust_compiler::native_signatures::NativeTypeId::OrderedSet | tsrust_compiler::native_signatures::NativeTypeId::OrderedMap))) { return None; }
         let open = self.member_call_open(id + 1)?;
         let close = self.pairs.get(open).copied().flatten()?;
         let key = if self.text(id + 2) == "<" {
@@ -3718,9 +3718,10 @@ impl SourceIndex {
             let Some(callee) = self.call_callee(open) else {
                 continue;
             };
-            if callee > 0 && self.text(callee - 1) == "new" && self.native_type_aliases.get(self.text(callee)) == Some(&tsrust_compiler::native_signatures::NativeTypeId::Channel) {
+            if callee > 0 && self.text(callee - 1) == "new" && matches!(self.native_type_aliases.get(self.text(callee)), Some(tsrust_compiler::native_signatures::NativeTypeId::Channel | tsrust_compiler::native_signatures::NativeTypeId::AsyncChannel)) {
                 let ty = self.snippet(callee, open);
-                let entry = builtins_for("std:threads").into_iter().find(|entry| entry["name"] == "Channel").expect("documented Channel constructor");
+                let module = if self.native_type_aliases.get(self.text(callee)) == Some(&tsrust_compiler::native_signatures::NativeTypeId::AsyncChannel) { "std:futures" } else { "std:threads" };
+                let entry = builtins_for(module).into_iter().find(|entry| entry["name"] == "Channel").expect("documented Channel constructor");
                 return json!({"signatures":[{"label":format!("new {ty}(capacity: int): {ty}"),"documentation":{"kind":"markdown","value":entry["documentation"]},"parameters":entry["parameters"]}],"activeSignature":0,"activeParameter":0});
             }
             if callee > 0 && self.text(callee - 1) == "new" && self.native_type_aliases.get(self.text(callee)) == Some(&tsrust_compiler::native_signatures::NativeTypeId::ThreadPool) {
@@ -4355,6 +4356,11 @@ fn builtin_catalog() -> &'static Value {
 
 fn builtins_for(ty: &str) -> Vec<Value> {
     let ty = literal_scalar_family(ty).unwrap_or(ty);
+    if let Some(result)=ty.strip_prefix("Task<").and_then(|text|text.strip_suffix('>')) {
+        let mut entries=builtin_catalog()["TaskMethods"].as_array().cloned().unwrap_or_default();
+        for entry in &mut entries {if let Some(signature)=entry["signature"].as_str(){entry["signature"]=json!(builtin_type_substitution(signature,&[("T",result)]));}}
+        return entries;
+    }
     let set_key = ty.strip_prefix("Set<").and_then(|text| text.strip_suffix('>'));
     let ordered_map=ty.starts_with("OrderedMap<");
     let map_types = ty.strip_prefix("Map<").or_else(||ty.strip_prefix("OrderedMap<")).and_then(|text| text.strip_suffix('>')).and_then(|text| text.split_once(',')).map(|(key,value)|(key.trim(),value.trim()));
@@ -4373,9 +4379,9 @@ fn builtins_for(ty: &str) -> Vec<Value> {
     };
     let native_application = tsrust_compiler::type_syntax::parse(ty).ok().and_then(|annotation| {
         let tsrust_compiler::type_syntax::ValueAnnotationKind::Applied { name, arguments } = &annotation.kind else { return None; };
-        let declaration = tsrust_compiler::native_types::lookup("std:threads", &name.text)?;
+        let declaration = match name.text.as_str(){"AsyncChannel"=>tsrust_compiler::native_types::lookup("std:futures","Channel"),"AsyncSender"=>tsrust_compiler::native_types::lookup("std:futures","Sender"),_=>tsrust_compiler::native_types::lookup("std:threads", &name.text).or_else(||tsrust_compiler::native_types::lookup("std:futures", &name.text))}?;
         let parameters = declaration.type_parameters.iter().zip(arguments.iter()).map(|(parameter, argument)| (*parameter, ty[argument.span.start..argument.span.end].to_owned())).collect::<Vec<_>>();
-        Some((declaration.name, parameters))
+        Some((match name.text.as_str(){"AsyncChannel"=>"AsyncChannel","AsyncSender"=>"AsyncSender",_=>declaration.name}, parameters))
     });
     let family = native_application.as_ref().map_or(family, |(name, _)| *name);
     let data = builtin_catalog();

@@ -18,7 +18,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use support::session::Session;
 use tsrust_lsp::{project_diagnostics::source_id, workspace::Workspace};
 
-const PRELUDE: &str = "import {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n";
+const PRELUDE: &str = "import {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n";
 
 /// A receiver `x` of one type inside `probe`.
 struct Receiver {
@@ -28,6 +28,10 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
+    Receiver { ty: "Job<int, undefined>", parameter: "x: ReadOnly<Job<int, undefined>>" },
+    Receiver { ty: "AsyncError<string>", parameter: "x: ReadOnly<AsyncError<string>>" },
+    Receiver { ty: "AsyncChannel<int>", parameter: "x: ReadOnly<AsyncChannel<int>>" },
+    Receiver { ty: "AsyncSender<int>", parameter: "x: ReadOnly<AsyncSender<int>>" },
     Receiver { ty: "Task<int>", parameter: "x: Task<int>" },
     Receiver { ty: "Channel<int>", parameter: "x: ReadOnly<Channel<int>>" },
     Receiver { ty: "Sender<int>", parameter: "x: Sender<int>" },
@@ -141,7 +145,7 @@ fn candidates() -> BTreeSet<String> {
             }
         }
     }
-    for name in ["workers", "capacity", "queued", "running", "completed", "outstanding", "payload", "ok", "value", "error", "id", "name", "issues", "truncated", "code", "message", "path", "pathTruncated", "expected", "observed", "size", "length"] {
+    for name in ["workers", "capacity", "queued", "running", "completed", "outstanding", "payload", "cause", "ok", "value", "error", "id", "name", "issues", "truncated", "code", "message", "path", "pathTruncated", "expected", "observed", "size", "length"] {
         names.insert(name.to_owned());
     }
     names

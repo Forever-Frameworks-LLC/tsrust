@@ -106,6 +106,24 @@ impl NativeBinding {
     }
 }
 pub const BINDINGS: &[NativeBinding] = &[
+    crate::stdlib::futures::DELAY,
+    crate::stdlib::futures::YIELD,
+    crate::stdlib::futures::RACE,
+    crate::stdlib::futures::SETTLED,
+    crate::stdlib::futures::START,
+    crate::stdlib::futures::CANCEL,
+    crate::stdlib::futures::JOIN,
+    crate::stdlib::futures::TIMEOUT,
+    crate::stdlib::futures::SLEEP,
+    crate::stdlib::futures::YIELD_POLL,
+    crate::stdlib::futures::RACE_POLL,
+    crate::stdlib::futures::SETTLED_POLL,
+    crate::stdlib::futures::CHANNEL,
+    crate::stdlib::futures::SENDER,
+    crate::stdlib::futures::CLOSE,
+    crate::stdlib::futures::SEND,
+    crate::stdlib::futures::RECEIVE,
+
     crate::stdlib::threads::TASK_CANCELLED,
     crate::stdlib::threads::CHANNEL_CREATE,
     crate::stdlib::threads::CHANNEL_SENDER,

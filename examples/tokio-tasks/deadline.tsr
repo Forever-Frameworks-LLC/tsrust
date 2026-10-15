@@ -1,0 +1,14 @@
+import { delay } from 'std:futures';
+
+async function slow(): Task<int> {
+  await delay(60000);
+  return 42;
+}
+
+async function main(): Task<void> {
+  try {
+    console.log(await slow().timeout(1));
+  } catch (error) {
+    console.log(error.code); // timeout, after cleanup
+  }
+}

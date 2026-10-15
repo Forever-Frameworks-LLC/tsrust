@@ -1,0 +1,13 @@
+import { allSettled, delay } from 'std:futures';
+
+async function calculate(value: int): Task<int> {
+  await delay(1);
+  return value * 2;
+}
+
+async function main(): Task<void> {
+  const outcomes = await allSettled([calculate(3), calculate(5).start()]);
+  for (const outcome of outcomes) {
+    console.log(unwrap(clone(outcome)));
+  }
+}

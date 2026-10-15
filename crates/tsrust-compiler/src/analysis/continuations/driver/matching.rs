@@ -57,6 +57,9 @@ pub(super) fn resume_yield<'a>(analyzer: &mut Analyzer, context: &mut Context, m
     context.returning_closure = returning;
     let result = checked.and_then(|actual| {
         analyzer.require(actual, expected, arguments[0].span)?;
+        if id>=usize::MAX/2 {
+            analyzer.attach_payload_capture_loans(context,&arguments[0],crate::capture_loan_owners::Place{binding:usize::MAX,fields:vec![format!("future:{id}")]},true);
+        }
         context.match_values.last_mut().expect("match output context").1 = Some(actual);
         expr.target = Some(CallTarget::MatchYield(id));
         expr.ty = Some(Type::Void);

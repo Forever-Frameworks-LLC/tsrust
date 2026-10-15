@@ -62,7 +62,7 @@ when awaited or explicitly spawned. This does not promise JavaScript Promise
 eager execution, shared settlement or repeated awaiting. Use Task rather than
 Promise so the spelling signals that distinction.
 
-Await consumes the task once and yields T. Body throws propagate at the await
+Await consumes the task once and returns T. Body throws propagate at the await
 site through the existing checked error model; argument-evaluation errors still
 occur at the call site. Tasks cannot be cloned or implicitly shared. Ownership
 transfers and retained parameter borrows happen when constructing the task, with

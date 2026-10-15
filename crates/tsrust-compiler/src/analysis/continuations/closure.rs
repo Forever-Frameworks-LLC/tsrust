@@ -318,7 +318,7 @@ impl Analyzer {
                     && let Type::Closure(id) = binding.ty
                     && self.closures[id].borrowed
                     && self.borrows_local_storage(binding.ty)
-                    && !(self.task_sources.contains(&origin) && self.is_task_type(binding.ty) && outer.bindings[outer_id].parameter)
+                    && !(self.task_sources.contains(&origin) && self.is_task_type(binding.ty) && (outer.bindings[outer_id].parameter || origin>=usize::MAX/2))
                 {
                     return Err(Diagnostic::new(
                         "closure-escape",

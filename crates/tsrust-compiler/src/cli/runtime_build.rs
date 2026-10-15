@@ -51,6 +51,7 @@ impl Prepared {
   // those would change artifacts without changing the verified cache identity.
   for (name,_) in std::env::vars_os() {let key=name.to_string_lossy();if key.starts_with("CARGO_PROFILE_") || key.starts_with("CARGO_BUILD_") || key.starts_with("CARGO_TARGET_") || matches!(key.as_ref(),"RUSTFLAGS"|"CARGO_ENCODED_RUSTFLAGS"|"RUSTC"|"RUSTC_WRAPPER"|"RUSTC_WORKSPACE_WRAPPER") {command.env_remove(name);}}
   if runtime.contains("pub mod tsrust_native_threads {") || runtime.contains("pub use rayon;") { command.args(["--features", "threads"]); }
+  if runtime.contains("pub mod tsrust_native_futures {") {command.args(["--features","async"]);}
   if release {command.arg("--release");}
   Ok(Self{application,library:Some(profile.join("libtsrust_runtime.rlib")),command:Some(command),state:"miss",cache:Some(cache),opportunistic,dependencies:Some(profile.join("deps")),packed:Some(packed)})
  }

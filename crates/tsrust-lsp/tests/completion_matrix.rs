@@ -12,6 +12,9 @@ use support::session::Session;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Kind {
     Task,
+    Job,
+    AsyncChannel,
+    AsyncSender,
     Local,
     Keyword,
     ImportedValue,
@@ -40,8 +43,11 @@ enum Kind {
     MemberPrefix,
 }
 
-const KINDS: [Kind; 27] = [
+const KINDS: [Kind; 30] = [
     Kind::Task,
+    Kind::Job,
+    Kind::AsyncChannel,
+    Kind::AsyncSender,
     Kind::Local,
     Kind::Keyword,
     Kind::ImportedValue,
@@ -101,7 +107,11 @@ const TAIL: &str = "\n}\n";
 fn rows() -> Vec<Row> {
     let row = |kind, name, typed, includes, excludes| Row { kind, name, before: HEAD.into(), typed, after: TAIL, includes, excludes, silent: None, needs_check: false };
     let mut rows = vec![
-        Row {kind:Kind::Task,name:"lazy task has no lifecycle methods before S14",before:"async function answer():Task<int>{return 42;}async function main():Task<void>{const task=answer();".into(),typed:"task.",after:";await task;}",includes:&[],excludes:NOT_MEMBERS,silent:Some("Task is consumed with await; scheduling methods are not exposed by S13."),needs_check:true},
+        Row {kind:Kind::Task,name:"lazy task scheduling",before:"async function answer():Task<int>{return 42;}async function main():Task<void>{const task=answer();".into(),typed:"task.",after:";await task;}",includes:&["start","timeout"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+        Row {kind:Kind::Job,name:"started job lifecycle",before:"async function answer():Task<int>{return 42;}async function main():Task<void>{const job=answer().start();".into(),typed:"job.",after:"cancel();await job;}",includes:&["cancel","timeout"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+        Row {kind:Kind::AsyncChannel,name:"async channel methods",before:"import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(2);".into(),typed:"queue.",after:"close();}",includes:&["sender","send","receive","close"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+        Row {kind:Kind::AsyncSender,name:"async sender methods",before:"import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(2);const sender=queue.sender();await ".into(),typed:"sender.",after:"send(1);}",includes:&["send"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+        Row {kind:Kind::ImportNames,name:"future imports",before:"import { ".into(),typed:"yi",after:" } from 'std:futures';function main(){}",includes:&["yield"],excludes:&["yieldNow"],silent:None,needs_check:false},
         Row {kind:Kind::ImportedMember,name:"Rust binding struct",before:"import {reply} from './api.bindings.json';function main(){const response=reply();".into(),typed:"response.",after:"text.toUpperCase();}",includes:&["text","count"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
         Row {kind:Kind::ImportedMember,name:"Rust bridge result",before:"import {echo} from './compute.rs';function main(){const message=echo('hello');".into(),typed:"message.",after:"toUpperCase();}",includes:&["length","toUpperCase"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
         Row { kind: Kind::MatchOkBinding, name: "match expression payload", before: "type User={name:string;};function main(){const result:Result<User,string>=Ok({name:'Ada'});const count=match(result){Ok(user)=>".into(), typed: "user.", after: "name.length,Err(_)=>0,};}", includes: &["name"], excludes: NOT_MEMBERS, silent: None, needs_check: false },

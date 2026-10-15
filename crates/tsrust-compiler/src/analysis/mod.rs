@@ -10,6 +10,7 @@ mod discovery_work;
 mod schema;
 mod thread_transfer;
 mod threads;
+mod futures;
 mod channels;
 mod results;
 mod json_typed;
@@ -618,6 +619,8 @@ fn finish_analysis(mut checked: CheckedProgram) -> Result<CheckedProgram, Diagno
     checked.polymorphic_invocations.validate(&checked.closures, Span::default())?;
     definitely_assigned(&mut checked)?;
     threads::validate(&checked)?;
+    futures::validate(&checked)?;
+    if let Some(error)=checked.task_warnings().into_iter().find(|error|error.code=="unsettled-job"){return Err(error);}
     for (family, declaration, _) in checked.stored_contracts.populated() {
         if let Some(layout) = checked.stored_contracts.scoped_native_family(family) {
             let span = layout.alternatives.first().map(|alternative| checked.closures[alternative.origin].span).unwrap_or_default();
@@ -1505,6 +1508,7 @@ impl Analyzer {
             return Err(Diagnostic::new("module-state", "Module storage requires program ownership lowering.", statement.span));
         }
         crate::stdlib::threads::prepare(&mut program)?;
+        crate::stdlib::futures::prepare(&mut program)?;
         crate::stdlib::json::namespace::prepare(&mut program)?;
         crate::stdlib::schema::namespace::prepare(&mut program)?;
         if program.records.iter().any(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView))) {
@@ -1915,7 +1919,7 @@ impl Analyzer {
         expected: Option<Type>,
     ) -> Result<Type, Diagnostic> {
         let binding = &crate::native_bindings::BINDINGS[id];
-        if matches!(binding.module, "std:threads" | "std:result") { return Err(Diagnostic::new("thread-call", "Call thread operations and unwrap directly; polymorphic operation values are not supported.", span)); }
+        if matches!(binding.module, "std:threads" | "std:result" | "std:futures") { return Err(Diagnostic::new("thread-call", "Call thread operations and unwrap directly; polymorphic operation values are not supported.", span)); }
         let count = match expected {
             Some(Type::Callback(contract)) => self.callables.callbacks[contract].params.len(),
             Some(Type::Callable(contract)) => self.callables.results[contract].params.len(),
@@ -5058,7 +5062,7 @@ impl Analyzer {
                 Ok(Type::Closure(id))
             }
             ExprKind::Unary { op: UnaryOp::TaskCreate, value, .. } => {
-                if let ExprKind::Closure { id, .. } = value.kind { self.escaping.insert(id); self.task_sources.insert(id); }
+                if let ExprKind::Closure { id, .. } = value.kind { if crate::stdlib::futures::borrows_receiver(value) {self.escaping.remove(&id);}else{self.escaping.insert(id);} self.task_sources.insert(id); }
                 let actual = self.expression(context, value, Mode::Consume, loans, None)?;
                 let Type::Closure(origin) = actual else { unreachable!("task environment") };
                 self.task_origins.insert(origin);
@@ -5076,6 +5080,11 @@ impl Analyzer {
                 Ok(ty)
             }
             ExprKind::Unary { op: UnaryOp::Await, value, operator } => {
+                let job=self.expression_type_hint(context,value).and_then(|ty|self.job_parameters(ty)).is_some()
+                    || matches!(&value.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(base,name) if name=="start" && self.expression_type_hint(context,base).is_none_or(|ty|self.is_task_type(ty))) || matches!(&callee.kind,ExprKind::Name(name) if name=="@native:std:futures#__start"));
+                if job {let input=std::mem::replace(value,Box::new(Expr::new(ExprKind::Undefined,*operator)));*value=Box::new(crate::stdlib::futures::unwrap(crate::stdlib::futures::call("__join",vec![*input],expr.span)));}
+                if matches!(&value.kind,ExprKind::Call(callee,args) if matches!(&callee.kind,ExprKind::Name(name) if name=="@native:std:result#unwrap") && args.first().is_some_and(|arg|matches!(&arg.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if name=="@native:std:futures#__join")))) {return self.expression(context,value,Mode::Consume,loans,expected);}
+
                 if !matches!(value.kind, ExprKind::Call(ref callee, _) if matches!(callee.kind,ExprKind::Unary{op:UnaryOp::AwaitCallee,..})) {
                     let operand = std::mem::replace(value, Box::new(Expr::new(ExprKind::Undefined,*operator)));
                     let callee = Expr::new(ExprKind::Unary { op: UnaryOp::AwaitCallee, value: operand, operator:*operator },expr.span);
@@ -5218,7 +5227,7 @@ impl Analyzer {
             ExprKind::ArrayOf(_, _) => unreachable!("array constructors use the shared checker worklist"),
             ExprKind::SetConstructor(_, _) | ExprKind::MapConstructor(_, _) => unreachable!("collection constructors use the shared checker stack"),
             ExprKind::NativeConstructor(_, _) => {
-                if let Some(ty) = self.channel_constructor(context, expr, loans, expected)? { Ok(ty) } else { self.native_collection_constructor(expr,expected) }
+                if let Some(ty) = self.future_channel_constructor(context, expr, loans, expected)? { Ok(ty) } else if let Some(ty) = self.channel_constructor(context, expr, loans, expected)? { Ok(ty) } else { self.native_collection_constructor(expr,expected) }
             },
             ExprKind::Array(values) if values.iter().any(|value| matches!(value.kind, ExprKind::Unary { op: UnaryOp::Spread, .. })) => unreachable!("array spread constructors use the shared checker worklist"),
             ExprKind::Array(_) => unreachable!("dense array literals use the shared checker worklist"),
@@ -8846,6 +8855,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.heap_receiver(context, base).is_some())) { return self.heap_method_call(context, expr, loans, expected).map(CallDispatch::Ready); }
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.deque_receiver(context, base).is_some())) { return self.deque_method_call(context, expr, loans, expected).map(CallDispatch::Ready); }
         if let Some(ty) = self.result_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
+        if let Some(ty) = self.future_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.thread_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.schema_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if self.map_method_receiver(context, expr) || self.set_method_receiver(context, expr) {

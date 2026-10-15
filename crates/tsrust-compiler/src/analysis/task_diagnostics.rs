@@ -1,7 +1,7 @@
 //! Task abandonment follows owners through checked control flow, independently of suppression.
 use super::*;
 use std::collections::BTreeSet;
-type Tokens = BTreeSet<(usize, usize)>;
+type Tokens = BTreeSet<(usize, usize, bool)>;
 type Place = (usize, Vec<String>);
 type State = BTreeMap<Place, Tokens>;
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -17,10 +17,21 @@ impl CheckedProgram {
             _=>false,
         }
     }
-    fn task_paths(&self,root:Type)->Vec<Vec<String>> {
+    pub(crate) fn contains_started_job(&self,root:Type)->bool {
+        let mut pending=vec![root];let mut seen=HashSet::new();
+        while let Some(ty)=pending.pop(){if !seen.insert(ty){continue;}match ty {
+            Type::Record(id)=>{let record=&self.records[id];if record.native_type==Some(crate::native_signatures::NativeTypeId::Job){return true;}pending.extend(record.fields.iter().filter_map(|field|field.ty));if let Some(application)=&record.application{pending.extend(&application.resolved_arguments);}},
+            Type::Closure(id)=>pending.extend(self.closures[id].captures.iter().filter(|capture|capture.storage==Mode::Consume).map(|capture|self.closures[id].function.bindings[capture.inner].ty)),
+            Type::Array(element)=>pending.push(element.ty()),
+            Type::Union(id)|Type::BorrowedUnion(id)=>pending.extend(&self.unions[id.index()].members),
+            Type::StoredCallable(id)=>if let Some((_,_,origins))=self.stored_contracts.populated().find(|(family,_,_)|*family==id){pending.extend(origins.iter().copied().map(Type::Closure));},
+            _=>{}
+        }}false
+    }
+    fn task_paths(&self,root:Type)->Vec<(Vec<String>,bool)> {
         let mut found=Vec::new();let mut pending=vec![(root,Vec::new(),HashSet::new())];
         while let Some((ty,path,mut seen))=pending.pop(){
-            if self.task_type(ty){found.push(path);continue;}
+            if self.task_type(ty) || matches!(ty,Type::Record(id) if self.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Job)){found.push((path,self.contains_started_job(ty)));continue;}
             if !seen.insert(ty){continue;}
             match ty {
                 Type::Record(id)=>for field in &self.records[id].fields {if let Some(ty)=field.ty{let mut child=path.clone();child.push(field.name.text.clone());pending.push((ty,child,seen.clone()));}},
@@ -32,7 +43,7 @@ impl CheckedProgram {
         }found
     }
     pub(crate) fn task_warnings(&self)->Vec<Diagnostic> {
-        if self.task_origins.is_empty() && !self.callback_contracts.iter().any(|contract|contract.kind==CallbackKind::Task) {return Vec::new();}
+        if self.task_origins.is_empty() && !self.callback_contracts.iter().any(|contract|contract.kind==CallbackKind::Task) && !self.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Job)) {return Vec::new();}
         let mut tracker=Tracker{program:self,warnings:BTreeMap::new(),failures:Vec::new()};
         for function in &self.functions { if !function.template {tracker.function(function, &[]);} }
         for closure in &self.closures {if !closure.function.template && closure.forward.is_none() {tracker.function(&closure.function,&closure.captures);} }
@@ -50,8 +61,8 @@ fn place(value:&Expr)->Option<Place> {
 }
 impl Tracker<'_> {
     fn warn(&mut self,tokens:Tokens,at:Span) {
-        for(start,end)in tokens {
-            self.warnings.entry((start,end,at.start)).or_insert_with(||Diagnostic::new("unused-task","This lazy task can be discarded without running. Await it, return it, or transfer it to an owner that handles it.",at).related(Span::new(start,end),"Task responsibility begins here."));
+        for(start,end,started)in tokens {
+            self.warnings.entry((start,end,at.start)).or_insert_with(||Diagnostic::new(if started{"unsettled-job"}else{"unused-task"},if started{"Started work must be awaited or transferred to an owner that settles it. A cancellation request alone does not account for cleanup."}else{"This lazy task can be discarded without running. Await it, return it, or transfer it to an owner that handles it."},at).related(Span::new(start,end),"Task responsibility begins here."));
         }
     }
     fn take(state:&mut State,selected:&Place)->Tokens {
@@ -70,7 +81,7 @@ impl Tracker<'_> {
             ExprKind::Inject{value,..}|ExprKind::TypeAssertion{value,..}=>self.store(function,value,state,destination),
             ExprKind::Unary{value:inner,..} if !value.ty.is_some_and(|ty|self.program.task_type(ty))=>self.store(function,inner,state,destination),
             _=>{let tokens=self.value(function,value,state,true);let paths=value.ty.map(|ty|self.program.task_paths(ty)).unwrap_or_default();
-                if paths.is_empty(){state.entry(destination).or_default().extend(tokens);}else{for path in paths {let mut child=destination.clone();child.1.extend(path);state.entry(child).or_default().extend(tokens.iter().copied());}}}
+                if paths.is_empty(){state.entry(destination).or_default().extend(tokens);}else{for (path,_) in paths {let mut child=destination.clone();child.1.extend(path);state.entry(child).or_default().extend(tokens.iter().copied());}}}
 
         }
     }
@@ -85,7 +96,7 @@ impl Tracker<'_> {
         for(id,binding)in function.bindings.iter().enumerate() {
             if (binding.parameter && (binding.mode==Mode::Consume || self.program.task_type(binding.ty))) || captures.iter().any(|capture|capture.inner==id && capture.storage==Mode::Consume) {
                 let at=binding.declaration_span.or(binding.used).unwrap_or_default();
-                for path in self.program.task_paths(binding.ty){state.insert((id,path),Tokens::from([(at.start,at.end)]));}
+                for (path,started) in self.program.task_paths(binding.ty){state.insert((id,path),Tokens::from([(at.start,at.end,started)]));}
             }
         }
         for path in self.body(function,&function.body,state) {for(_,tokens)in path.state {self.warn(tokens,function.body.last().map_or(Span::default(),|stmt|stmt.span));}}
@@ -101,10 +112,10 @@ impl Tracker<'_> {
         match &value.kind {
             ExprKind::Unary{op:UnaryOp::Await,value:operand,..}=>{
                 let _=self.value(function,operand,state,true);
-                if value.ty.is_some_and(|ty|!self.program.task_paths(ty).is_empty()) {Tokens::from([(value.span.start,value.span.end)])}else{Tokens::new()}
+                if value.ty.is_some_and(|ty|!self.program.task_paths(ty).is_empty()) {Tokens::from([(value.span.start,value.span.end,value.ty.is_some_and(|ty|self.program.contains_started_job(ty)))])}else{Tokens::new()}
             },
             ExprKind::Unary{op:UnaryOp::TaskCreate,value:inner,..}=>{
-                let mut tokens=self.value(function,inner,state,true);tokens.insert((value.span.start,value.span.end));tokens
+                let mut tokens=self.value(function,inner,state,true);tokens.insert((value.span.start,value.span.end,value.ty.is_some_and(|ty|self.program.contains_started_job(ty))));tokens
             }
             ExprKind::Closure{..}=>{
                 let mut tokens=Tokens::new();
@@ -116,10 +127,22 @@ impl Tracker<'_> {
                     if matches!(method.as_str(),"pop"|"shift") {
                         let selected=state.keys().filter(|(root,path)|*root==owner.0 && path.starts_with(&owner.1) && path.len()>owner.1.len()).filter_map(|place|place.1[owner.1.len()].parse::<usize>().ok().map(|index|(index,place.clone())));
                         let selected=if method=="pop"{selected.max_by_key(|(index,_)|*index)}else{selected.min_by_key(|(index,_)|*index)};
-                        return selected.map_or_else(Tokens::new,|(_,selected)|Self::take(state,&selected));
+                        return selected.map_or_else(|| {
+                            if value.ty.is_some_and(|ty|self.program.contains_started_job(ty)) {Tokens::from([(value.span.start,value.span.end,true)])}else{Tokens::new()}
+                        },|(_,selected)|Self::take(state,&selected));
                     }
-                    if method=="push" {
+                    if method=="splice" && (base.ty.is_some_and(|ty|self.program.contains_started_job(ty)) || args.iter().any(|arg|arg.ty.is_some_and(|ty|self.program.contains_started_job(ty)))) {
+                        // shortcut: splice can discard or replace jobs, support only after tracking each removed owner.
+                        self.warn(Tokens::from([(value.span.start,value.span.end,true)]),value.span);
+                    }
+                    if matches!(method.as_str(),"push"|"unshift") {
+                        if method=="unshift" {
+                            let selected=state.keys().filter(|(root,path)|*root==owner.0 && path.starts_with(&owner.1) && path.get(owner.1.len()).is_some_and(|part|part.parse::<usize>().is_ok())).cloned().collect::<Vec<_>>();
+                            let moved=selected.into_iter().map(|key|{let tokens=state.remove(&key).unwrap();let mut next=key;let index=next.1[owner.1.len()].parse::<usize>().unwrap();next.1[owner.1.len()]=(index+args.len()).to_string();(next,tokens)}).collect::<Vec<_>>();
+                            state.extend(moved);
+                        }
                         let mut index=state.keys().filter(|(root,path)|*root==owner.0 && path.starts_with(&owner.1)).filter_map(|(_,path)|path.get(owner.1.len()).and_then(|part|part.parse::<usize>().ok())).max().map_or(0,|index|index+1);
+                        if method=="unshift" {index=0;}
                         for arg in args {let tokens=self.value(function,arg,state,true);let mut path=owner.1.clone();path.push(index.to_string());state.insert((owner.0,path),tokens);index+=1;}return Tokens::new();
                     }
                 }
@@ -129,6 +152,7 @@ impl Tracker<'_> {
                 for(index,arg)in args.iter().enumerate() {
                     let access=match value.target {
                         Some(CallTarget::Function(id))=>self.program.functions[id].bindings.get(index).map(|binding|binding.mode),
+                        Some(CallTarget::NativeBinding(id))=>crate::native_bindings::BINDINGS[id].parameters.get(index).map(|parameter|parameter.access),
                         _=>None,
                     };
                     let first_failure=self.failures.len();
@@ -138,7 +162,7 @@ impl Tracker<'_> {
                     tokens.extend(argument);
                 }
                 if awaited {return Tokens::new();}
-                if value.ty.is_some_and(|ty|!self.program.task_paths(ty).is_empty()) {if tokens.is_empty() || value.ty.is_some_and(|ty|self.program.task_type(ty)){tokens.insert((value.span.start,value.span.end));}tokens}else{Tokens::new()}
+                if value.ty.is_some_and(|ty|!self.program.task_paths(ty).is_empty()) {if tokens.is_empty() || value.ty.is_some_and(|ty|self.program.task_type(ty) || self.program.contains_started_job(ty)){tokens.insert((value.span.start,value.span.end,value.ty.is_some_and(|ty|self.program.contains_started_job(ty))));}tokens}else{Tokens::new()}
             }
             ExprKind::Assign{target,value,..}=>{self.replace(function,target,value,state);Tokens::new()}
             ExprKind::Conditional{predicate,consequent,alternate}=>{
@@ -154,7 +178,7 @@ impl Tracker<'_> {
             }
             ExprKind::Unary{value,..}|ExprKind::Inject{value,..}|ExprKind::Project{value,..}|ExprKind::TypeAssertion{value,..}=>self.value(function,value,state,consume),
             ExprKind::Binary{left,right,..}=>{let _=self.value(function,left,state,false);let _=self.value(function,right,state,false);Tokens::new()},
-            ExprKind::Match{body,..}=>{let mut result=State::new();for path in self.body(function,body,state.clone()){merge(&mut result,path.state);}*state=result;if value.ty.is_some_and(|ty|!self.program.task_paths(ty).is_empty()){Tokens::from([(value.span.start,value.span.end)])}else{Tokens::new()}},
+            ExprKind::Match{body,..}=>{let mut result=State::new();for path in self.body(function,body,state.clone()){merge(&mut result,path.state);}*state=result;if value.ty.is_some_and(|ty|!self.program.task_paths(ty).is_empty()){Tokens::from([(value.span.start,value.span.end,value.ty.is_some_and(|ty|self.program.contains_started_job(ty)))])}else{Tokens::new()}},
             _=>Tokens::new(),
         }
     }

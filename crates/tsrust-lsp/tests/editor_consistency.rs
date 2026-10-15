@@ -125,3 +125,17 @@ fn typing_a_project_document_produces_no_misleading_answer() {
         assert_eq!(after[counter], 0, "{counter}: {after}");
     }
 }
+#[test]
+fn every_async_lifecycle_member_is_reachable(){
+ let catalog:Value=serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
+ for(family,before,after)in[
+  ("TaskMethods","async function one():Task<int>{return 1;}async function main():Task<void>{const x=one();x.","timeout(10);}"),
+  ("Job","async function one():Task<int>{return 1;}async function main():Task<void>{const x=one().start();x.","cancel();await x;}"),
+  ("AsyncChannel","import {Channel} from 'std:futures';async function main():Task<void>{const x=new Channel<int>(1);x.","close();}"),
+  ("AsyncSender","import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(1);const x=queue.sender();await x.","send(1);}"),
+ ]{
+  let text=format!("{before}{after}");let mut session=Session::start(&[]);session.open("main.tsr",&text);session.settle();
+  let offered=session.completion("main.tsr",&text,before.len()).unwrap();
+  for entry in catalog[family].as_array().unwrap(){let name=entry["name"].as_str().unwrap();assert!(offered.iter().any(|label|label==name),"{family}.{name}: {offered:?}");}
+ }
+}

@@ -79,7 +79,7 @@ fn regular<'a>(analyzer:&Analyzer,context:&Context,expr:&'a Expr,work:&mut Vec<W
     }
     if let ExprKind::Name(name)=&callee.kind{
         if let Some((_,binding))=crate::native_bindings::by_symbol(name){
-            *value=if matches!(binding.module,"std:threads"|"std:result") || binding.result==crate::native_bindings::NativeType::SharedCallback{None}else{Some(native_type(binding.result,&analyzer.program.records))};return;
+            *value=if matches!(binding.module,"std:threads"|"std:result"|"std:futures") || binding.result==crate::native_bindings::NativeType::SharedCallback{None}else{Some(native_type(binding.result,&analyzer.program.records))};return;
         }
         if !context.names.contains_key(name) && !context.pending_names.contains(name) && !analyzer.function_names.contains_key(name)
             && let Some(member)=crate::syntax::global_number_member(name,true){*value=Some(if member.starts_with("parse"){Type::Number}else{Type::Boolean});return;}

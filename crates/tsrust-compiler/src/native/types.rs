@@ -56,6 +56,13 @@ static THREAD: Declaration = Declaration {
     independent_clone: false, collection_key: false, thread_transfer: false,
     fields: &[], capabilities: &[],
 };
+static JOB: Declaration = Declaration {id:NativeTypeId::Job,module:"std:futures",name:"Job",..THREAD};
+static ASYNC_ERROR: Declaration = Declaration {id:NativeTypeId::AsyncError,module:"std:futures",name:"AsyncError",independent_clone:true,type_parameters:&["E"],fields:&[
+    Field{name:"code",signature:Signature::String,optional:false},
+    Field{name:"cause",signature:Signature::Parameter(0),optional:true},
+],..SPAWN_ERROR};
+static ASYNC_CHANNEL: Declaration = Declaration {id:NativeTypeId::AsyncChannel,module:"std:futures",name:"Channel",..CHANNEL};
+static ASYNC_SENDER: Declaration = Declaration {id:NativeTypeId::AsyncSender,module:"std:futures",name:"Sender",..SENDER};
 static POOL: Declaration = Declaration { id: NativeTypeId::ThreadPool, name: "ThreadPool", type_parameters: &[], ..THREAD };
 static TASK_CONTEXT: Declaration = Declaration { id: NativeTypeId::TaskContext, name: "TaskContext", type_parameters: &[], ..THREAD };
 static CHANNEL: Declaration = Declaration { id: NativeTypeId::Channel, name: "Channel", type_parameters: &["T"], thread_transfer: true, ..THREAD };
@@ -322,6 +329,10 @@ static HEAP: Declaration = Declaration {
 /// Exhaustive identity lookup prevents missing declarations as IDs are added.
 pub fn declaration(id: NativeTypeId) -> &'static Declaration {
     match id {
+        NativeTypeId::Job => &JOB,
+        NativeTypeId::AsyncError => &ASYNC_ERROR,
+        NativeTypeId::AsyncChannel => &ASYNC_CHANNEL,
+        NativeTypeId::AsyncSender => &ASYNC_SENDER,
         NativeTypeId::Thread => &THREAD,
         NativeTypeId::ScopedThread => &SCOPED_THREAD,
         NativeTypeId::ThreadError => &THREAD_ERROR,
@@ -374,7 +385,7 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
 /// Exact module/name lookup does not grant aliases a new declaration identity.
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
-    [&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
+    [&JOB,&ASYNC_ERROR,&ASYNC_CHANNEL,&ASYNC_SENDER,&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
 }
 
 #[cfg(test)]

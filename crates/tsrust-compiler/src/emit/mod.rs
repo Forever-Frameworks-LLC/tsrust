@@ -6,6 +6,7 @@ mod coalesce_work;
 mod expression_work;
 mod program_testing;
 mod threads;
+mod futures;
 mod channels;
 mod rust_bridge;
 mod results;
@@ -2346,7 +2347,7 @@ impl Emitter<'_> {
         }
         let has_heap=self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::Heap | crate::native_signatures::NativeTypeId::OrderedSet | crate::native_signatures::NativeTypeId::OrderedMap)));
         if has_heap { output.push_str(include_str!("../stdlib/collections/ordered_runtime.rs")); output.push_str(include_str!("../stdlib/collections/ordered_key_runtime.rs")); }
-        if !self.program.task_origins.is_empty() || self.program.callback_contracts.iter().any(|contract|contract.kind==CallbackKind::Task) { output.push_str(include_str!("async_runtime.rs")); }
+        if !self.program.task_origins.is_empty() || self.program.callback_contracts.iter().any(|contract|contract.kind==CallbackKind::Task) { output.push_str(include_str!("async_runtime.rs")); output.push_str(crate::stdlib::futures::RUNTIME); }
         self.set_types(&mut output);
         self.map_types(&mut output);
         if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)) {
@@ -2362,6 +2363,7 @@ impl Emitter<'_> {
         }
         let mut record_support_cache=scoped_record_support_emit::SupportCache::default();
         for (index, record) in self.program.records.iter().enumerate() {
+            if self.future_record(&mut output, index) { continue; }
             if self.thread_record(&mut output, index) { continue; }
             if record.native_type == Some(crate::native_signatures::NativeTypeId::TestRegistry) {
                 let _ = writeln!(output, "type Record{index} = TsrTestRegistry;");
@@ -8529,6 +8531,7 @@ impl Emitter<'_> {
                 CallTarget::JsonEncode => self.json_typed_encode(fun,expr,args),
                 CallTarget::JsonDecode => self.json_typed_decode(fun,expr,args),
                 CallTarget::NativeBinding(id) => {
+                    if let Some(call) = self.future_native(fun, expr, id, args) { return call; }
                     if let Some(call) = self.thread_native(fun, expr, id, args) { return call; }
                     if let Some(call) = self.program_testing_native(fun, expr, id, args) { return call; }
                     if crate::native_bindings::BINDINGS[id].parameters.first().is_some_and(|p| p.ty == crate::native_bindings::NativeType::ObservedValue) {

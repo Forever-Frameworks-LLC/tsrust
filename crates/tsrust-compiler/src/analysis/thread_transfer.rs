@@ -55,7 +55,7 @@ fn require_transfer(root:Type,records:&[Record],members:&impl Fn(UnionId)->Vec<T
     let record=records.get(id).ok_or(ty)?;
     if let Some(native)=record.native_type {
      // Endpoint-bearing messages can retain their own queue and form an ownership cycle.
-     if !allow_endpoints && matches!(native,crate::native_signatures::NativeTypeId::Channel|crate::native_signatures::NativeTypeId::Sender) {return Err(ty);}
+     if !allow_endpoints && matches!(native,crate::native_signatures::NativeTypeId::Channel|crate::native_signatures::NativeTypeId::Sender|crate::native_signatures::NativeTypeId::AsyncChannel|crate::native_signatures::NativeTypeId::AsyncSender) {return Err(ty);}
      let declaration=crate::native_types::declaration(native);
      if declaration.borrow_access().is_some()||!declaration.thread_transfer{return Err(ty);}
     }

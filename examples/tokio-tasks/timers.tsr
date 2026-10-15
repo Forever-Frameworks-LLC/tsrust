@@ -1,0 +1,12 @@
+import { delay } from 'std:futures';
+
+async function answer(): Task<int> {
+  await delay(1);
+  return 42;
+}
+
+async function main(): Task<void> {
+  const job = answer().start();
+  const result = await job;
+  console.log(result);
+}

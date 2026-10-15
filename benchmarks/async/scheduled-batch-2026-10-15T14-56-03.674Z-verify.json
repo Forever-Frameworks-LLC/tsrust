@@ -1,0 +1,48 @@
+{
+  "kind": "async-scheduled-batch",
+  "verifiedOnly": true,
+  "timestamp": "2026-10-15T14:56:03.674Z",
+  "sourceCommit": "40454b01d019c257692a18c3a068431c2b4469f5",
+  "sourceTreeDirty": true,
+  "sourceSha256": "5fbaac3048dc3458b735d3794d3715cc2bc547ce10853dab75b5a6f5eab7eb1e",
+  "counterpartSha256": "d090e57906cf588c6b74d10b69fd28c178982a53612cd3eabe170ad50c8f5692",
+  "compilerSha256": "c3d43c8317ad4ddd994f871f02034f4f1dfe4447202fb1441eac914236ac4f15",
+  "harnessSha256": "1eb434c176d6a6d581b02466927ba5ab6646b04ad37b979cfc627f139489fb39",
+  "versions": {
+    "node": "v24.11.1",
+    "rust": "rustc 1.96.1 (31fca3adb 2026-06-26)",
+    "typescript": "Version 5.9.3"
+  },
+  "machine": {
+    "cpu": "Apple M3",
+    "logicalCpus": 8,
+    "availableParallelism": 8,
+    "platform": "darwin",
+    "release": "27.0.0"
+  },
+  "protocol": {
+    "processes": 1,
+    "warmups": 0,
+    "samples": 1,
+    "tasksPerBatch": 4096,
+    "durationUnit": "milliseconds"
+  },
+  "expected": 16777216,
+  "observations": [
+    {
+      "engine": "native",
+      "processIndex": 0,
+      "checksums": [
+        16777216
+      ]
+    },
+    {
+      "engine": "node-tsc",
+      "processIndex": 0,
+      "checksums": [
+        16777216
+      ]
+    }
+  ],
+  "execution": []
+}

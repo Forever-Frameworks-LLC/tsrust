@@ -16,3 +16,5 @@ pub(crate) mod schema;
 
 pub(crate) mod threads;
 pub(crate) mod result;
+
+pub(crate) mod futures;

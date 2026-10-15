@@ -55,6 +55,14 @@ pub fn cli() -> Command {
 pub fn rustc() -> Command {
     let mut command = Command::new("rustup");
     command.args(["run", tsrust_compiler::RUST_BACKEND_VERSION, "rustc"]);
+    // Generated async programs use the same pinned Tokio dependency as runtime witnesses.
+    let deps = std::env::current_exe().unwrap().parent().unwrap().to_path_buf();
+    let tokio = std::fs::read_dir(&deps).unwrap().filter_map(Result::ok)
+        .map(|entry| entry.path()).find(|path| path.file_name().unwrap().to_string_lossy().starts_with("libtokio-") && path.extension().is_some_and(|extension| extension == "rlib"));
+    if let Some(tokio) = tokio {
+        command.arg("-L").arg(format!("dependency={}", deps.display()));
+        command.arg("--extern").arg(format!("tokio={}", tokio.display()));
+    }
     command
 }
 

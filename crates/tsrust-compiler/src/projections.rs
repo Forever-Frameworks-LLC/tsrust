@@ -400,7 +400,7 @@ impl Analysis {
                             op: BinaryOp::Coalesce | BinaryOp::PatternDefault | BinaryOp::And | BinaryOp::Or | BinaryOp::Add,
                             ..
                         } | ExprKind::Unary {
-                            op: UnaryOp::CoalesceSelected | UnaryOp::NonNull,
+                            op: UnaryOp::CoalesceSelected | UnaryOp::NonNull | UnaryOp::Await,
                             ..
                         } | ExprKind::NativeConstructor(_, _) | ExprKind::Sequence(_) | ExprKind::TypeAssertion { .. } | ExprKind::CoalesceAssign { .. }
                             | ExprKind::Optional { .. }
@@ -419,7 +419,7 @@ impl Analysis {
                     {
                         // A schema adapter (parse/safeParse outcome) shares its span with the
                         // raw validation it wraps; only the adapter's public type is the result.
-                        let adapter = matches!(&expression.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Name(name) if name.starts_with("@schema:safeParseOutcome") || name.starts_with("@schema:parseResult")));
+                        let adapter = matches!(expression.kind,ExprKind::Unary{op:UnaryOp::Await,..}) || matches!(&expression.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Name(name) if name.starts_with("@schema:safeParseOutcome") || name.starts_with("@schema:parseResult")));
                         let span = (expression.span.start, expression.span.end);
                         if adapter { adapter_spans.insert(span); methods.insert(span, vec![ty]); }
                         else if !adapter_spans.contains(&span) {

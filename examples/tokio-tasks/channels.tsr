@@ -1,0 +1,22 @@
+import { Channel, Sender, allSettled } from 'std:futures';
+
+async function produce(sender: Sender<int>): Task<int> {
+  await sender.send(21);
+  return 0;
+}
+
+async function consume(queue: ReadOnly<Channel<int>>): Task<int> {
+  const value = await queue.receive();
+  console.log(value * 2);
+  return 0;
+}
+
+async function main(): Task<void> {
+  const queue = new Channel<int>(1);
+  const outcomes = await allSettled([produce(queue.sender()).start(), consume(queue)]);
+  for (const outcome of outcomes) {
+    unwrap(clone(outcome));
+  }
+
+  queue.close();
+}

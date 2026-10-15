@@ -65,7 +65,7 @@ impl Context<'_> {
                     .map(|(position, argument)| {
                         crate::analysis::resolve_value_type(
                             argument,
-                            position == 0 && self.templates.get(&name.text).is_some_and(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::Thread | crate::native_signatures::NativeTypeId::ScopedThread))),
+                            position == 0 && self.templates.get(&name.text).is_some_and(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::Thread | crate::native_signatures::NativeTypeId::ScopedThread | crate::native_signatures::NativeTypeId::Job))),
                             &self.names,
                             self.unions,
                         )

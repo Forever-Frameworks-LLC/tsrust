@@ -28,7 +28,15 @@ impl Analyzer {
         if self.expression_result_retains_captures(result) { return; }
         let ExprKind::Call(callee, _) = &expression.kind else { return; };
         let callee=if let ExprKind::Unary{op:UnaryOp::AwaitCallee,value,..}=&callee.kind {value.as_ref()}else{callee};
-        let Some((name, fields)) = Self::direct_fields(callee) else { return; };
+        let Some((name, fields)) = Self::direct_fields(callee) else {
+            if matches!(callee.kind,ExprKind::Match{..}) {
+                let temporary=Place{binding:usize::MAX,fields:vec![format!("await:{}",callee.span.start)]};
+                self.attach_payload_capture_loans(context,callee,temporary.clone(),true);
+                context.capture_loan_owners.discard(&temporary);
+                Self::restore_live_capture_loans(context);
+            }
+            return;
+        };
         let Some(binding) = Self::root_binding(callee).or_else(|| context.names.get(&name).copied()) else { return; };
         let ty = callee.ty.unwrap_or(context.bindings[binding].ty);
         if !matches!(ty, Type::Closure(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_) | Type::Callback(_) | Type::Callable(_)) { return; }
@@ -165,6 +173,19 @@ impl Analyzer {
                 continue;
             }
             match &value.kind {
+                ExprKind::Match{id,body}=>{
+                    if *id>=usize::MAX/2 {
+                        let source=Place{binding:usize::MAX,fields:vec![format!("future:{id}")]};
+                        context.capture_loan_owners.extend_from(&source,&destination,consume);
+                        continue;
+                    }
+                    for expression in crate::error_effects::body_expressions(body) {
+                        if let ExprKind::Call(callee,arguments)=&expression.kind
+                            && matches!(&callee.kind,ExprKind::Name(name) if name=="@match:yield") {
+                            for argument in arguments {pending.push((argument,destination.clone(),consume));}
+                        }
+                    }
+                }
                 ExprKind::Array(values) => {
                     context.capture_loan_owners.record_array_shape(destination.clone(), values.len());
                     for (index, value) in values.iter().enumerate() {

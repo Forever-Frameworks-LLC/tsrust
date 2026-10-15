@@ -149,6 +149,7 @@ impl SourceIndex {
         let (base, arguments) = ty.find('<').map_or((ty, ""), |start| (&ty[..start], &ty[start..]));
         if let Some(identity) = self.native_type_aliases.get(base) {
             let declaration = tsrust_compiler::native_types::declaration(*identity);
+            if declaration.module == "std:futures" {return builtins_for(&format!("{}{arguments}",match declaration.id {tsrust_compiler::native_signatures::NativeTypeId::AsyncChannel=>"AsyncChannel",tsrust_compiler::native_signatures::NativeTypeId::AsyncSender=>"AsyncSender",_=>declaration.name}));}
             if declaration.module == "std:threads" { return builtins_for(&format!("{}{arguments}", declaration.name)); }
         }
         if ty == "@namespace:std:schema#s" { return builtins_for("schemaBuilder"); }

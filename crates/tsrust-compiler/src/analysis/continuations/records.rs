@@ -40,7 +40,8 @@ impl Analyzer {
     ) -> Result<RecordFrame, Diagnostic> {
         let module_literal = self
             .module_literal_scope
-            .is_some_and(|scope| scope.start <= span.start && span.end <= scope.end);
+            .is_some_and(|scope| scope.start <= span.start && span.end <= scope.end)
+            || (!fields.is_empty() && fields.iter().all(|(name,_)|name.text.starts_with("future#task")));
         if expected.is_none() && (self.builtin_literals || module_literal) {
             return Ok(RecordFrame::Inferred {
                 module_literal,

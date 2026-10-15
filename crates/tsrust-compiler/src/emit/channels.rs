@@ -4,7 +4,7 @@ use crate::native_signatures::NativeTypeId;
 impl Emitter<'_> {
     pub(super) fn channel_constructor_expression(&self, fun: &CheckedFunction, expr: &Expr, mode: Mode) -> Option<String> {
         let Some(Type::Record(record)) = expr.ty else { return None; };
-        if self.program.records[record].native_type != Some(NativeTypeId::Channel) { return None; }
+        if !matches!(self.program.records[record].native_type,Some(NativeTypeId::Channel|NativeTypeId::AsyncChannel)) { return None; }
         let ExprKind::NativeConstructor(args, _) = &expr.kind else { return None; };
         let capacity = self.expr(fun, &args[0], Mode::Read);
         let failed = self.runtime_failure_exit("RangeError", "range", "Channel capacity must be 1..1000000.", expr.span).unwrap_or_else(|| "panic!(\"Channel capacity must be 1..1000000.\")".into());

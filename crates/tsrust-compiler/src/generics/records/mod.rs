@@ -244,7 +244,7 @@ impl Context<'_> {
                         ));
                     }
                     for (position, argument) in arguments.iter().enumerate().rev() {
-                        if position == 0 && matches!(template.native_type, Some(crate::native_signatures::NativeTypeId::Thread | crate::native_signatures::NativeTypeId::ScopedThread))
+                        if position == 0 && matches!(template.native_type, Some(crate::native_signatures::NativeTypeId::Thread | crate::native_signatures::NativeTypeId::ScopedThread | crate::native_signatures::NativeTypeId::Job))
                             && matches!(&argument.kind, Kind::Named(name) if name.text == "void") { continue; }
                         pending.push(argument);
                     }

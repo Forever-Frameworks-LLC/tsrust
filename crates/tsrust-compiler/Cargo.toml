@@ -27,3 +27,6 @@ libc = "=0.2.183"
 [build-dependencies]
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = { version = "=1.0.151", features = ["raw_value"] }
+
+[dev-dependencies]
+tokio = { version = "=1.53.3", features = ["rt-multi-thread", "time", "sync", "macros"] }
