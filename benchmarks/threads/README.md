@@ -83,3 +83,11 @@ its checked signature, and retains the independent BigInt oracle. This measures
 ordinary scalar bridge calls and pool dispatch; heap-buffer transfer is separately
 verified by native pointer-identity assertions. `rust-bridge-manifest.json` tracks
 acceptance and `rust-bridge-registration.test.mjs` guards exact inputs and protocol.
+
+Accepted bridge record: `rust-bridge-throughput-2026-10-15T01-48-44-424Z.json` in
+SQLite. All 93 samples per engine/variant retain checksum 4791373295. Native
+serial/two/four-worker medians are 3.282708/1.717542/0.960291 ms (1.91x/3.42x
+speedups); Node-after-tsc medians are 26.895666/14.003791/7.701292 ms
+(1.92x/3.49x). The equivalent earlier source-only native recurrence medians were
+3.511500/1.735416/1.052875 ms. This comparison shows no material slowdown but does
+not isolate per-call overhead or establish application-wide speedup.

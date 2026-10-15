@@ -1,7 +1,7 @@
 import { Channel, Sender, ThreadPool } from 'std:threads';
 import { monotonicNow } from 'std:time';
 
-import { calculate } from './compute.rs';
+import { calculate } from './rust-bridge-compute.rs';
 
 function sendResult(sender: Sender<int>, seed: int): void {
   unwrap(sender.send(calculate(seed)));

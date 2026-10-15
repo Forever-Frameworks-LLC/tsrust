@@ -25,3 +25,6 @@ __pycache__/
 
 # Generated native build caches of test runs
 /crates/*/target/
+
+# Closed thread measurements are imported into SQLite.
+/benchmarks/threads/*-20??-??-??T*.json

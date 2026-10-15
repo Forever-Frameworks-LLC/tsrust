@@ -25,7 +25,7 @@ try{
  const node=fs.readFileSync(path.join(here,`${workload}.ts`),'utf8');
  const probe=source=>verify?source.replace(/for\s*\(let warmup\s*=\s*0;\s*warmup\s*<\s*8;/g,'for(let warmup=0;warmup<0;').replace(/sample\s*<\s*31/g,'sample<1'):source;
  const rust=bridge?fs.readFileSync(path.join(here,'rust-bridge-compute.rs'),'utf8'):null;
- if(rust)fs.writeFileSync(path.join(build,'compute.rs'),rust);
+ if(rust)fs.writeFileSync(path.join(build,'rust-bridge-compute.rs'),rust);
  const input=path.join(build,'native.tsr');fs.writeFileSync(input,probe(native));
  const ts=path.join(build,'node.ts');fs.writeFileSync(ts,probe(node));
  run(compiler,['format',input,'--write']);const once=fs.readFileSync(input);run(compiler,['format',input,'--write']);if(!once.equals(fs.readFileSync(input)))throw new Error('Formatting is not idempotent');

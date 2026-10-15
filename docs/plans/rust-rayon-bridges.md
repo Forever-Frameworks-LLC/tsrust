@@ -1,6 +1,6 @@
 # Local Rust and Rayon bridges
 
-Focused implementation acceptance passed; matched timing is pending.
+Implementation acceptance and first matched measurements are complete at `0cdd58bd`. The final benchmark import-path migration has passed verification; its timing record is pending.
 
 Compiler acceptance covers 137 tests across project resolution/linking, retained
 sessions, checked expression facts, existing workers/channels and offline exports.
@@ -22,7 +22,7 @@ Offline package export builds the readable Rust/Rayon example in debug and relea
 with an empty Cargo home after deleting its original sources and relocating the
 package. Whole-project formatting preserves tokens and is idempotent. The matched
 untimed Rust/native versus Node-after-tsc workload returns checksum 4791373295.
-Original attempts and affected repairs will be retained in SQLite under
+Original attempts and affected repairs are retained in SQLite under
 `tsrust-rust-bridge-*.log`; these checks are not timing claims.
 
 Import safe public free functions directly from a relative `.rs` file or an
@@ -66,3 +66,43 @@ Acceptance scope: native transfer pointer identity, borrowed/mutable calls, type
 Result errors, nested Rayon scheduling, cancellation/panic disposal, ownership and
 unsupported-signature rejection, source edit invalidation, editor protocols, dev
 watching, offline package export, formatted examples, and matched throughput.
+
+
+## Measurement and cleanup evidence
+
+SQLite record `benchmarks/threads/rust-bridge-throughput-2026-10-15T01-48-44-424Z.json`
+retains three processes, eight warmups and 31 samples per variant/process (93 samples
+per engine/variant), exact compiler/source/Rust/harness hashes and source checkpoint
+`0cdd58bd`. The tree was clean during measurement. Every checksum is 4791373295.
+On Apple M3, native serial/two/four-worker medians are
+3.282708/1.717542/0.960291 ms, giving 1.91x/3.42x parallel speedups. Node-after-tsc
+medians are 26.895666/14.003791/7.701292 ms, giving 1.92x/3.49x speedups.
+
+The earlier equivalent source-only recurrence workload measured
+3.511500/1.735416/1.052875 ms natively. The bridge workload shows no material
+slowdown against that signal. The different source implementation and run conditions
+do not isolate a per-call overhead number or prove general application speedup.
+No optimization is justified by these results. This scalar workload does not measure
+buffer transport; native heap-pointer assertions verify buffer transfer separately.
+
+The optimized readable example returns `55` and `cancelled`. macOS `leaks --atExit`
+reports zero leaks / zero leaked bytes for its dedicated worker, selected Rayon pool
+and owned input cleanup. Source/backend error disposal is additionally checked by
+exact Rust guard-drop counts. These checks do not prove arbitrary user-written
+native code cannot leak or deadlock. Cold pool setup is unchanged and was not
+remeasured; this bridge does not introduce a new scheduler or automatic pool.
+
+Completed compiler/LSP regressions from the channel milestone remain retained.
+This bridge pass runs affected project, native, editor and dev checks rather than
+repeating unrelated complete suites. Other native platforms were not executed.
+
+
+Final editor auditing found two hand-built unit-test ModuleSource initializers that
+needed `rust: None`; 56 affected compiler unit tests now pass. The checked-in
+benchmark import now names its actual local Rust file, matching ordinary workspace
+checks as well as harness relocation. The installed CLI checks this workload and
+runs the readable example successfully. The extension and release CLI/LSP consumers
+are refreshed and hash-verified; the primary VS Code window was reloaded and reports
+No Problems with Tsrust checking enabled. Native worker errors also retain the original
+Rust Err payload through `unwrap`, pool completion and join; five guard drops prove
+normal/error/panic/cancellation cleanup in the focused witness.

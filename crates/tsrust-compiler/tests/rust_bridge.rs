@@ -41,10 +41,12 @@ function main(){
  const pool=new ThreadPool({workers:2,capacity:2});
  const first=unwrap(pool.task(():int=>nested(returned)));const second=unwrap(pool.task(():int=>width()));
  strictEqual(unwrap(first.join()),222);strictEqual(unwrap(second.join()),2);
+ const typed=unwrap(pool.task(():int=>unwrap(checked(-1))));
+ match(typed.join()){Ok(_)=>{throw 'accepted worker error';},Err(error)=>{strictEqual(error.code,'worker');if(error.error!==undefined){strictEqual(error.error,'negative');}else{throw 'lost native payload';}}}
  const failed=unwrap(pool.task(():void=>panics()));match(failed.join()){Ok(_)=>{throw 'accepted panic';},Err(error)=>strictEqual(error.code,'panic')}
  const listener=unwrap(pool.task((task):void=>listen(task)));while(!ready()){}
  listener.cancel();match(listener.join()){Ok(_)=>{throw 'accepted cancellation';},Err(error)=>strictEqual(error.code,'cancelled')}
- strictEqual(drops(),4);unwrap(pool.shutdown());strictEqual(pool.stats().outstanding,0);
+ strictEqual(drops(),5);unwrap(pool.shutdown());strictEqual(pool.stats().outstanding,0);
 }
 "#;
  let path=dir.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),90));
