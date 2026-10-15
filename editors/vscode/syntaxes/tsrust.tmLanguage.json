@@ -202,8 +202,12 @@
       ]
     },
     {
+      "name": "keyword.control.async.tsrust",
+      "match": "\\basync\\b"
+    },
+    {
       "name": "storage.type.tsrust",
-      "match": "\\b(?:async|type|interface|enum|function|const|let|new)\\b"
+      "match": "\\b(?:type|interface|enum|function|const|let|new)\\b"
     },
     {
       "name": "storage.modifier.tsrust",
