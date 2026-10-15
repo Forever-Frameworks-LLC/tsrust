@@ -40,10 +40,25 @@ source declaration identity. The real regex registered test guards this behavior
 
 Closed original logs and the managed-export acceptance script are retained byte-for-
 byte in benchmarks/records.sqlite under tsrust-packages-* paths. Failed attempts are
-preserved alongside their repairs. Release consumer refresh, installed hover checks
-and a representative untimed Rust-data workload check remain pending at this source
-checkpoint. Full unrelated regressions and fresh performance measurements are not
-claimed by these focused checks.
+preserved alongside their repairs. SQLite quick_check passes. Verified loose records
+were removed, along with 336,768,944 bytes of retired test/export executables.
+
+Release CLI and LSP consumers are rebuilt from accepted source commit 09ce2118 and
+installed atomically. CLI SHA-256 is
+`def11b4ab44a5e994b94e9254cb0b41ee895c6794715841534bf5d957a1d2f9a`;
+LSP SHA-256 is
+`89a517b5e6b681d39c92bc70a0ab4025180b40e9e5af041b62a88d5078a37b73`.
+The global LSP and configured VS Code server match. After reloading VS Code, the
+actual Search hover displays indented multiline fields without empty comments;
+the editor reports no problems.
+
+Installed CLI package/feature inspection and an exact-version dry run pass offline.
+The preview runs both regex tests and preserves configuration bytes. Native execution
+prints `Found 314 at byte 6`. Representative Rust-data native/Node serial, two-worker
+and four-worker verification retains checksum 4791373295. Its original record is
+`threads/rust-data-throughput-2026-10-15T04-02-58-933Z-verify.json` in SQLite,
+recorded against clean source ab7c36b4. This is an untimed correctness check.
+Full unrelated regressions and fresh performance measurements are not claimed.
 
 ## Boundaries
 
