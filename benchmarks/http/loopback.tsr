@@ -4,7 +4,7 @@ async function handle(input: Request): Task<Response> {
   return text('42');
 }
 
-async function batch(client: Client, url: string): Task<int> {
+async function batch(client: ReadOnly<Client>, url: ReadOnly<string>): Task<int> {
   let sum = 0;
   for (let index = 0; index < 128; index++) {
     const response = await client.send(request('GET', url, ''));
