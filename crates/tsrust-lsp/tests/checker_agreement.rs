@@ -18,7 +18,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use support::session::Session;
 use tsrust_lsp::{project_diagnostics::source_id, workspace::Workspace};
 
-const PRELUDE: &str = "import {TrackedResource} from 'std:testing';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n";
+const PRELUDE: &str = "import {Pool as SqlPool,Transaction as SqlTransaction,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n";
 
 /// A receiver `x` of one type inside `probe`.
 struct Receiver {
@@ -99,8 +99,15 @@ const EXCEPTIONS: &[Exception] = &[];
 /// A name no type declares.
 const ABSENT: &str = "zzqqabsent";
 
+fn prelude(parameter: &str) -> String {
+    // Only the resource row needs the bundled testing implementation in every probe.
+    let testing = if parameter.contains("TrackedResource") { "import {TrackedResource} from 'std:testing';\n" } else { "" };
+    format!("{testing}{PRELUDE}")
+}
+
 fn diagnostic(body: &str, parameter: &str) -> Option<(String, String)> {
-    let source = format!("{PRELUDE}function probe({parameter}) {{\n  {body}\n}}\nfunction main() {{}}\n");
+    let prelude = prelude(parameter);
+    let source = format!("{prelude}function probe({parameter}) {{\n  {body}\n}}\nfunction main() {{}}\n");
     let entry = source_id("file:///tsrust-agreement/main.tsr").unwrap();
     let mut workspace = Workspace::default();
     workspace.open(entry.clone(), 1, source);
@@ -184,13 +191,15 @@ fn completion_offers_the_fields_the_checker_accepts_and_no_method_it_rejects() {
         if only.as_ref().is_some_and(|only| only != receiver.ty) {
             continue;
         }
+        eprintln!("agreement receiver: {}", receiver.ty);
         assert!(diagnostic("", receiver.parameter).is_none(), "{}: the probe program must check", receiver.ty);
         let (field_form, call_form) = ("console.log(x.NAME);", "x.NAME();");
         let absent_field = answer(field_form, ABSENT, receiver.parameter);
         let absent_call = answer(call_form, ABSENT, receiver.parameter);
         assert!(absent_field.is_some() && absent_call.is_some(), "{}: an absent member must be rejected", receiver.ty);
         let fields = candidates.iter().filter(|name| answer(field_form, name, receiver.parameter) != absent_field).cloned().collect::<BTreeSet<_>>();
-        let before = format!("{PRELUDE}function probe({}) {{\n  x.", receiver.parameter);
+        let prelude = prelude(receiver.parameter);
+        let before = format!("{prelude}function probe({}) {{\n  x.", receiver.parameter);
         let text = format!("{before}\n}}\nfunction main() {{}}\n");
         let mut session = Session::start(&[]);
         session.open("main.tsr", &text);

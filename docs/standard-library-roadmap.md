@@ -44,8 +44,10 @@ rejection does not satisfy this dependency.
 
 Current checked resource/UI implementation and remaining acceptance are recorded in
 [the continuation mapping](../experiments/ui-tsrust-owner-handles/CHECKED-RESOURCES.md).
-The automatic child-before-parent destruction defect is repaired and native witnesses
-pass; final full editor acceptance and consumer refresh remain pending.
+The automatic child-before-parent destruction defect is repaired. Compiler/native
+witnesses, full required editor suites and installed consumers pass on macOS arm64.
+The narrow synchronous contract is accepted; async/worker UI readiness remains
+separate. Continue the [data-type inventory and gaps](data-type-coverage.md).
 
 Required compiler acceptance:
 

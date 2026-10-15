@@ -40,12 +40,24 @@ fn main() {
     // Discover declaration identities independently of catalog coverage. Reject
     // unfamiliar enum syntax rather than silently ignoring a new native type.
     let types=include_str!("../src/native/signatures.rs").split("pub enum NativeTypeId {").nth(1).unwrap().split('}').next().unwrap();
-    for line in types.lines().map(str::trim).filter(|line|!line.is_empty()) {
-        let name=line.strip_suffix(',').expect("review changed NativeTypeId syntax");
+    let mut names=rows.values().filter_map(|row|row["name"].as_str()).map(str::to_owned).collect::<BTreeSet<_>>();
+    names.extend(rows.values().filter_map(|row|row["group"].as_str()).map(str::to_owned));
+    for name in types.split(',').map(str::trim).filter(|name|!name.is_empty()) {
         assert!(name.chars().all(|c|c.is_ascii_alphanumeric()),"review native identity syntax");
-        let declarations=modules.iter().filter_map(|module|native_types::lookup(module,name)).collect::<Vec<_>>();
+        names.insert(name.to_owned());
+        let mut declarations=BTreeMap::new();
+        for module in &modules {for candidate in &names {
+            if let Some(declaration)=native_types::lookup(module,candidate) && format!("{:?}",declaration.id)==name {
+                declarations.insert((declaration.module,declaration.name),declaration);
+            }
+        }}
+        if name=="TestRegistry" {
+            assert!(declarations.is_empty(),"review newly importable test registry");
+            rows.insert("std:testing-runtime::TestRegistry".into(),json!({"identity":"std:testing-runtime::TestRegistry","group":"std:testing-runtime","name":name,"private":true,"review":"internal non-importable registry; declaration metadata is not exposed by lookup"}));
+            continue;
+        }
         assert_eq!(declarations.len(),1,"missing or ambiguous declaration: {name}");
-        let declaration=declarations[0];
+        let declaration=*declarations.values().next().unwrap();
         let key=format!("{}::{}",declaration.module,declaration.name);
         let row=rows.entry(key.clone()).or_insert_with(||json!({"identity":key,"group":declaration.module,"name":declaration.name,"review":"pending"}));
         row["declaration"]=json!({"representation":format!("{:?}",declaration.representation),"independentClone":declaration.independent_clone,"threadTransfer":declaration.thread_transfer,"typeParameters":declaration.type_parameters,"fields":declaration.fields.iter().map(|field|json!({"name":field.name,"type":format!("{:?}",field.signature),"optional":field.optional})).collect::<Vec<_>>()});

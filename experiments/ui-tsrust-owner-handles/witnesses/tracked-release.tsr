@@ -129,8 +129,13 @@ function queuedRelease(): void {
     const key = resourceId(payload);
     accepted(enqueueResource(owner, item, 1, payload));
     strictEqual(releaseCount(key), 0);
-    strictEqual(drain(owner), 'ok;');
+    const secondPayload = trackedResource();
+    const secondKey = resourceId(secondPayload);
+    accepted(enqueueResource(owner, item, 2, secondPayload));
+    strictEqual(drain(owner), 'ok;ok;');
     strictEqual(releaseCount(key), 1);
+    strictEqual(releaseCount(secondKey), 1);
+    ok(releaseOrder(key) < releaseOrder(secondKey));
     const stale = trackedResource();
     const staleKey = resourceId(stale);
     accepted(enqueueResource(owner, item, 1, stale));
@@ -274,7 +279,7 @@ function component(owner: Mutable<Owner>, parent: ReadOnly<Handle>, key: string,
 function treeRelease(): void {
   const baseline = liveCount();
   const domain = runtime();
-  for (let mode = 0; mode < 2; mode = mode + 1) {
+  for (let mode = 0; mode < 3; mode = mode + 1) {
     const ids: int[] = [];
     {
       const owner = domain();
@@ -288,6 +293,22 @@ function treeRelease(): void {
       enqueue(owner, child, 0);
       enqueue(owner, grandchild, 0);
       strictEqual(drain(owner), 'ok;ok;ok;');
+      if (mode === 2) {
+        remove(owner, child);
+        strictEqual(releaseCount(ids[0]), 0);
+        strictEqual(releaseCount(ids[1]), 0);
+        strictEqual(releaseCount(ids[6]), 0);
+        strictEqual(releaseCount(ids[7]), 0);
+        for (let i = 2; i < 6; i = i + 1) {
+          strictEqual(releaseCount(ids[i]), 1);
+        }
+
+        remove(owner, parent);
+        for (let i = 0; i < ids.length; i = i + 1) {
+          strictEqual(releaseCount(ids[i]), 1);
+        }
+      }
+
       if (mode === 1) {
         enqueue(owner, grandchild, 99);
         strictEqual(drain(owner), 'ok;');

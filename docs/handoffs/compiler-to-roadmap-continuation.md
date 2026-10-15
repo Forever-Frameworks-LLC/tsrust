@@ -1,50 +1,52 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
 
-## Current UI lifetime continuation — 2026-10-15
+## Current acceptance and continuation — 2026-10-15
 
-The owner disabled the workspace rust-analyzer extension and authorized continued
-implementation without another go-ahead. The restart cleared the shared temporary
-Cargo target; it was rebuilt with incremental compilation disabled and one worker.
-
-The demonstrated automatic UI destruction bug is repaired. Registrations now group
-resource state and a callback slot in descending creation order; dispatch extracts
-only the callback and restores it before deferred cleanup. Native witnesses prove
-state/capture/payload release, depth-three descendant-before-ancestor destruction,
-active/root/ancestor/sibling retirement, same-key replacement, queue rejection and
-stale discard, automatic owner drop, independent owners and 1,000 balanced cycles.
-See [the current checked-resource mapping](../../experiments/ui-tsrust-owner-handles/CHECKED-RESOURCES.md).
+The checked `std:testing` resource facility and synchronous UI lifetime contract
+are accepted on macOS arm64. Compiler source is `3c23f7b8`; the UI representation
+repair is `5540a836`. See [the current L01–L26 mapping](../../experiments/ui-tsrust-owner-handles/CHECKED-RESOURCES.md)
+and `release-matrix.json::checkedContinuation`. Historical external projected Drop
+rejection remains intentional. Do not restore a separate public testing-resources
+module or treat synchronous success as async/worker UI readiness.
 
 Passed: 7 resource compiler tests, 56 testing-library tests, 4 callback-error tests,
-and the native-effect contract unit test. Existing UI suites passed 12/13 initially;
-the remaining assertion assumed an obsolete emitted record number, was repaired,
-and passed its affected rerun. The final native demo exits 0. Historical matrices
-remain attributed to their external-bridge investigation; the current mapping
-supersedes that blocker only for the narrow checked std:testing resource route.
-The projected external Drop rejection remains unchanged.
+the native-effect unit test, all existing UI feasibility/identity checks, and final
+native demo exit 0. Added subtree-removal/FIFO-payload coverage passes its affected
+formatted native rerun. Final editor suites pass: checker_agreement 2,
+completion_matrix 3 and editor_consistency 9. The initial agreement run imported
+all bundled testing code into every unrelated probe; its original log/sample are
+retained. Scoping that import to the resource row preserves every receiver and
+member check; the repaired full agreement suite passes in 234.55 seconds.
 
-**Still running/pending:** final full checker_agreement, completion_matrix and
-editor_consistency; public API consumer refresh; final resource gate acceptance.
-The agreement suite enumerates checker answers for every catalog member/receiver;
-a process sample confirms active compiler work, with an 8 MiB sampled footprint.
-Do not restart passed compiler/UI checks. The editor run is recorded as
-`/private/tmp/tsrust-resource-editor-resume.log` while active. Closed records are
-byte-verified in `benchmarks/records.sqlite` under `tsrust-resource-ui-*`,
-`tsrust-resource-compiler-final.log`, `tsrust-resource-effects-final.log` and
-`tsrust-resource-demo-final.*`; original failures remain preserved.
+Installed CLI `~/.cargo/bin/tsrust` and both installed/configured LSP consumers were
+atomically refreshed. VS Code's Tsrust server was restarted; the already-open
+resource example and workspace Problems panel report no problems. Installed CLI
+execution and installed LSP resource hover/signature help pass independently.
+The user's rust-analyzer workspace extension remains disabled.
 
-Current CLI candidate hash is
-`3155aef0f9ffa39eee8535848aa4d4fa43a6cc2d988449f9764a6a0554ef6dce`.
-Cargo's development dependency feature graph changed binary bytes from the initial
-UI probe build without changing compiler source; the pin guard caught that change
-and the final demo passed after provenance review. Installed consumers are still
-at the previous accepted API. The standalone VS Code rust-analyzer binary can be
-used for bounded later inventory without re-enabling the workspace extension.
+CLI SHA-256: `3155aef0f9ffa39eee8535848aa4d4fa43a6cc2d988449f9764a6a0554ef6dce`.
+LSP SHA-256: `739aa17c55276b6fe70d9b894dd98812afe601a8f95adb48173d9727a846daa1`.
+Reuse `/private/tmp/tsrust-gate100-editor-target`, `CARGO_INCREMENTAL=0` and
+`CARGO_BUILD_JOBS=1`. The restart made the initial build cold; no separate target
+was introduced. Closed diagnostic records are byte-verified in
+`benchmarks/records.sqlite` under `tsrust-resource-*`, including original failures,
+repairs and interrupted runs. Reuse accepted S18 SQL evidence; SQL/task lifecycle
+code did not change in the resource section.
 
-The next data-type section has uncommitted discovery only: `docs/data-type-coverage.md`
-and a pinned TypeScript language-service inventory. No data-type implementation or
-S19–S21 implementation is accepted by this UI checkpoint. Preserve the priority
-order below and the owner's six unrelated untracked plan files.
+Continue the [data-type coverage inventory](../data-type-coverage.md), then S19–S21,
+without another go-ahead. Discovery now includes pinned TypeScript 5.9.3 and a
+bounded standalone rust-analyzer 0.3.3081 run; the latter shuts down after probing
+and does not re-enable the editor extension. The Tsrust inventory handles native
+aliases and explicitly identifies the internal non-importable TestRegistry.
+Required domain/width gaps remain implementation work, not accepted coverage.
+A concrete existing defect is SQL REAL narrowing: finite f64 values can round to
+f32 without a precision error. Repair it with checked conversions and rerun the
+explicit three-driver runner when the SQL section is complete.
+
+One writer/build owner remains in this tree. Preserve the owner's six unrelated
+untracked UI plan files. The UI review chat may review readiness read-only until
+an explicit write/build window is coordinated.
 
 ## Restart checkpoint — 2026-10-15, resource observer implementation
 

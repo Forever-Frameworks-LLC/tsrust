@@ -831,5 +831,147 @@
         "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
       }
     }
+  },
+  "checkedContinuation": {
+    "status": "accepted synchronous lifetime contract",
+    "facility": "std:testing.TrackedResource",
+    "compilerSha256": "3155aef0f9ffa39eee8535848aa4d4fa43a6cc2d988449f9764a6a0554ef6dce",
+    "compilerSourceCheckpoint": "3c23f7b8",
+    "uiImplementationCheckpoint": "5540a836",
+    "platform": "macOS arm64",
+    "asyncWorkerReadiness": "unproved; required future direction",
+    "mapping": "CHECKED-RESOURCES.md",
+    "rows": [
+      {
+        "id": "L01",
+        "status": "executed",
+        "evidence": "Compiler resource source 3c23f7b8; UI implementation 5540a836; one writer and verified candidate/consumer hashes."
+      },
+      {
+        "id": "L02",
+        "status": "analysis/emission only",
+        "evidence": "Serialized owner authority and thread affinity documented; async/worker readiness remains separate and unproved."
+      },
+      {
+        "id": "L03",
+        "status": "executed",
+        "evidence": "std:testing owns real native allocation; Drop releases storage before recording integer identity."
+      },
+      {
+        "id": "L04",
+        "status": "executed",
+        "evidence": "Compiler tracked_resources storage/capture/return fixture passes."
+      },
+      {
+        "id": "L05",
+        "status": "executed",
+        "evidence": "Consuming close, automatic drop, duplicate logical cleanup and use-after-transfer rejection pass."
+      },
+      {
+        "id": "L06",
+        "status": "executed",
+        "evidence": "Process-lifetime integer audit does not retain resources; audit-handle teardown does not apply because no audit-handle API exists."
+      },
+      {
+        "id": "L07",
+        "status": "executed",
+        "evidence": "Premature/missing/duplicate/wrong-ID release and reversed-order controls fail; positive controls pass."
+      },
+      {
+        "id": "L08",
+        "status": "executed",
+        "evidence": "groupedRelease and component exercise owned resource state and checked replacement."
+      },
+      {
+        "id": "L09",
+        "status": "executed",
+        "evidence": "Factory callbacks retain resources through repeated delivery; named-handler regression remains passing."
+      },
+      {
+        "id": "L10",
+        "status": "executed",
+        "evidence": "retained and treeRelease cover explicit leaf/subtree/root cleanup and duplicate removal."
+      },
+      {
+        "id": "L11",
+        "status": "executed",
+        "evidence": "activeRelease verifies access retirement and live captures/state/payload until callback return or throw."
+      },
+      {
+        "id": "L12",
+        "status": "executed",
+        "evidence": "Active grandchild root removal and nested mounting preserve descendant-first release."
+      },
+      {
+        "id": "L13",
+        "status": "executed",
+        "evidence": "independentRelease covers sibling removal and repeated/overlapping retirements with active state preserved."
+      },
+      {
+        "id": "L14",
+        "status": "executed",
+        "evidence": "treeRelease checks every state/capture dependency in a depth-three tree with reordered siblings."
+      },
+      {
+        "id": "L15",
+        "status": "executed",
+        "evidence": "replacementRelease covers same-key active replacement, stale queued work and fresh resources."
+      },
+      {
+        "id": "L16",
+        "status": "executed",
+        "evidence": "queuedRelease and activeRelease check payload lifetime through FIFO delivery and throwing callback."
+      },
+      {
+        "id": "L17",
+        "status": "executed",
+        "evidence": "queuedRelease and independentRelease check stale discard and returned original payload on rejected/foreign enqueue; queue-clear API absent."
+      },
+      {
+        "id": "L18",
+        "status": "executed",
+        "evidence": "groupedRelease, treeRelease and queuedRelease observe automatic owner-drop state/capture/payload release."
+      },
+      {
+        "id": "L19",
+        "status": "executed",
+        "evidence": "independentRelease preserves a live independent owner while escaped handles and allocator survive dead owners."
+      },
+      {
+        "id": "L20",
+        "status": "executed",
+        "evidence": "activeRelease runs 1000 native cycles and returns to the independent resource baseline after every cycle."
+      },
+      {
+        "id": "L21",
+        "status": "executed",
+        "evidence": "Existing feasibility/identity suites pass; obsolete generated record-number assertion repaired and affected test passes."
+      },
+      {
+        "id": "L22",
+        "status": "executed",
+        "evidence": "Whole-project token-preserving/idempotent formatting and formatted native execution pass."
+      },
+      {
+        "id": "L23",
+        "status": "expected rejection",
+        "evidence": "External projected Drop still rejects; plain-data control and native calibration pass through the project runner."
+      },
+      {
+        "id": "L24",
+        "status": "executed",
+        "evidence": "CHECKED-RESOURCES.md maps all L rows and distinguishes current checked evidence from historical H/R/I matrices."
+      },
+      {
+        "id": "L25",
+        "status": "executed",
+        "evidence": "Native demo exits 0 for checked synchronous contract; unexpected errors still fail and worker readiness remains unproved."
+      },
+      {
+        "id": "L26",
+        "status": "executed",
+        "evidence": "Source checkpoints and canonical SQLite evidence retained; installed CLI/LSP refreshed and open editor reports no problems."
+      }
+    ]
   }
 }

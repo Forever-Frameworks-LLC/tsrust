@@ -5,7 +5,9 @@ This continuation supersedes the external-bridge blocker for the narrow
 rejects `Drop`, deliberately. The historical L/H/R/I matrices retain their original
 source identities and observations; the current L-row mapping below records the
 new route. Compiler acceptance passes 7 resource, 56 testing-library and 4 callback-error tests.
-Final editor acceptance and consumer refresh remain pending.
+Full required editor acceptance passes (agreement 2, completion matrix 3,
+consistency 9). Installed CLI/LSP consumers are refreshed; the restarted editor
+reports no problems. The synchronous lifetime contract is accepted on macOS arm64.
 
 ## Representation and behavior
 
@@ -42,7 +44,7 @@ No source counter or owner-retaining audit stands in for native destruction.
 | L21 | Existing feasibility/identity suites: 12 tests passed initially; one emitted-record-number assertion required updating after the additional native types. The affected test then passed. Original failure retained. |
 | L22 | Whole-project formatter, token preservation/idempotence and formatted native harness execution. |
 | L23 | Intentional external Drop rejection and accepted plain-data bridge remain separate from this compiler-owned opaque resource. |
-| L24–L26 | Current mapping and compiler/UI evidence are in progress. Historical matrices and SQLite evidence remain attributed; no worker readiness or measurement claim. |
+| L24–L26 | Current mapping, compiler/UI/editor evidence and installed consumers pass. Historical matrices and SQLite evidence remain attributed; no worker readiness or measurement claim. |
 
 The candidate CLI pin is built from `3c23f7b8`, with no compiler source changes in
 this continuation. Tests and UI source change independently. The harness preserves
@@ -53,8 +55,8 @@ library paths are not required to survive restart.
 ## Executed evidence
 
 Current records use `tsrust-resource-ui-*`, `tsrust-resource-compiler-final.log`
-and `tsrust-resource-demo-final.*` in the canonical analytics SQLite store once
-closed and verified. The full native demo exits 0 and separately reports the
+and `tsrust-resource-demo-final.*`, `tsrust-resource-editor-scoped.log` and `tsrust-resource-consumers.log` in the canonical analytics SQLite store after
+byte verification. The full native demo exits 0 and separately reports the
 historical external Drop rejection. Native calibration and the plain-data bridge
 control pass through the supported project runner.
 

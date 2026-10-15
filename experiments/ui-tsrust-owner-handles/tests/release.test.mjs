@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import path from 'node:path';
-import {root, temporary, verifyCompiler, pin, formattedWitnesses, execute} from '../harness.mjs';
+import {root, temporary, verifyCompiler, pin, candidatePin, formattedWitnesses, execute} from '../harness.mjs';
 import {prepareRelease, boundaryEvidence, nativeCalibration} from '../release.mjs';
 
 test('L03-L07: actual native Drop calibration, wrong-expectation controls and transfer rejection', () => temporary(dir => {
@@ -38,3 +38,14 @@ test('checked std:testing resources: state, captures, payloads and automatic tre
   formattedWitnesses(dir, assert);
   assert.equal(execute(path.join(dir, 'tracked-release.tsr'), dir), 'UI retained resources released\n');
 }));
+
+test('current checked lifetime mapping covers every historical obligation', () => {
+  verifyCompiler();
+  const matrix = JSON.parse(readFileSync(path.join(root, 'release-matrix.json'), 'utf8'));
+  const current = matrix.checkedContinuation;
+  assert.equal(current.status, 'accepted synchronous lifetime contract');
+  assert.equal(current.compilerSha256, candidatePin);
+  assert.deepEqual(current.rows.map(row => row.id), matrix.rows.map(row => row.id));
+  assert.equal(current.asyncWorkerReadiness, 'unproved; required future direction');
+  for (const row of current.rows) assert.ok(row.evidence.length);
+});
