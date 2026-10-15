@@ -21,13 +21,41 @@ PostgreSQL and MySQL run against isolated Docker containers bound only to loopba
 
 Run affected compiler metadata, native emission, async ownership, SQLite compatibility, editor agreement/completion/consistency, and exported offline native build checks. Preserve evidence in SQLite. Database tests default to skipped after acceptance; rerun explicitly whenever SQL runtime, SQLx dependencies, task lifecycle, SQL ownership lowering or native SQL emission changes.
 
-## Active acceptance
+## Acceptance evidence
 
-Implementation is not accepted yet. Direct runtime contracts passed on PostgreSQL 18, MySQL 8.4 and SQLite. Generated-program cancellation and cleanup checks remain in progress.
+Implementation checkpoint: `1b4a1639`; nested cleanup repair: `1eeaac6e`. The final repeat Docker acceptance passed after the cleanup repair, including all three drivers and readable examples; all temporary containers were removed. Release CLI and LSP consumers are refreshed. The installed CLI checks both readable examples; the final LSP bytes match the server that passed the completion matrix. VS Code reports no workspace problems.
 
-Completed affected checks: 123 native-view regressions, 24 async task regressions, 3 SQL editor tests, 4 SQLite editor tests, the 3-test completion matrix and 8 editor consistency tests. SQLite's new prepared-batch workload passed an untimed native/Node checksum comparison; this is not a throughput measurement.
+- PostgreSQL 18, MySQL 8.4 and SQLite passed the generated-program contract: exact scalar binding (including mixed floating-point and maximum 64-bit integers), duplicate/missing/wrong columns, commit, explicit/drop/exception rollback, cancellation during database work, timeout rollback, acquisition timeout recovery and rows outliving their pool.
+- All three direct runtime contracts passed, including PostgreSQL SMALLINT, INTEGER and REAL widths. Statement validation and connection-range tests passed too.
+- Ordinary SQL acceptance: three tests passed, one database test ignored. These check examples/formatting, exact integer emission and rejected ownership violations, including a pending commit/rollback retaining its pool borrow.
+- Existing behavior: 123 native-view regressions, 24 async task regressions, 12 Tokio integration tests and ten futures runtime tests passed. The tenth reproduces cancelling a drain after it has collected nested cleanup; the repaired drain retains that work until settlement.
+- S17 compatibility: five native integration tests, five SQLite runtime tests and four SQLite editor tests passed.
+- Editor: three SQL tests, two checker-agreement tests, the three-test completion matrix and eight consistency tests passed. The completion matrix also passed against the installed release server, and VS Code workspace diagnostics cleared after restart.
+- The exported SQL package built offline with an empty Cargo home and printed `1: Ada` and `2: Grace`.
+- Default Cargo runs passed five database-free checks and skipped the two database suites.
+- Whole-project formatting changed zero files and zero fingerprints at the implementation checkpoint.
 
-Driver coverage is opt-in (`#[ignore]`), independent of ordinary compiler and editor checks. SQL runtime, SQLx dependency, task lifecycle, ownership lowering and SQL emission changes require explicitly rerunning all three drivers. Unrelated changes do not require Docker.
+Closed evidence is stored in `benchmarks/records.sqlite`. The first import byte-restored 56 logs and four benchmark records, preserved all 55132 pre-existing record bindings and passed SQLite integrity/foreign-key checks. Log record names start with `tsrust-s18-`; failures are retained alongside repairs.
 
-SQLx 0.9.0 requires one compatible SQLite native library. The shared dependency is now rusqlite 0.39.0 / libsqlite3-sys 0.37.0 / SQLite 3.51.3, replacing rusqlite 0.40.2 / SQLite 3.53.2. S17 compatibility checks must pass before acceptance; historical measurements remain unchanged.
+## Benchmark status
 
+Native and Node-after-tsc prepared-batch checksums match on PostgreSQL, MySQL and SQLite: 16256 for 128 inserted rows. The existing synchronous SQLite workload also passes after the shared dependency change. These are untimed verification runs, not throughput measurements. Full timing remains a separate feature-family milestone.
+
+Exact records:
+
+- `benchmarks/async-sql/prepared-sqlite-2026-10-15T21-29-26.683Z-verify.json`
+- `benchmarks/async-sql/prepared-postgres-2026-10-15T21-37-39.264Z-verify.json`
+- `benchmarks/async-sql/prepared-mysql-2026-10-15T21-39-17.920Z-verify.json`
+- `benchmarks/sqlite/prepared-2026-10-15T21-38-55.987Z-verify.json`
+
+## Default test policy and limits
+
+Driver coverage is opt-in (`#[ignore]`), independent of ordinary compiler and editor checks. SQL runtime, SQLx dependency, task lifecycle, ownership lowering and SQL emission changes require explicitly rerunning all three drivers with `node tools/check-async-sql.mjs --docker`. Unrelated changes do not require Docker.
+
+SQLx 0.9.0 requires one compatible SQLite native library. The shared dependency is now rusqlite 0.39.0 / libsqlite3-sys 0.37.0 / SQLite 3.51.3, replacing rusqlite 0.40.2 / SQLite 3.53.2. Historical S17 measurements remain unchanged.
+
+Scope is bounded pools, prepared parameter binding, owned scalar rows and transactions. A transaction returned through `begin().timeout(...)` is conservatively rejected because that adapter does not transport its returned native borrow; await begin directly and configure acquisition timeout. Migration orchestration, streaming and compile-time database schema checking remain deferred. Cancellation preserves cleanup but may wait for an in-flight database statement; it is not an immediate server-side query abort. A cancelled or disconnected commit has an indeterminate server outcome.
+
+Tested images: PostgreSQL `sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336`; MySQL `sha256:24989179f58856db763f418010c1169fecc944e3ec1ea7e921572d83eb070f70`.
+
+Final evidence includes `tsrust-s18-cleanup-docker-acceptance.log`, `tsrust-s18-final-futures-runtime.log`, `tsrust-s18-final-default-policy.log`, `tsrust-s18-installed-editor-matrix.log`, `tsrust-s18-final-consumer-refresh.log` and `tsrust-s18-final-evidence.json` in SQLite.
