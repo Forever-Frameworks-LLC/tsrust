@@ -1,6 +1,51 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
 
+## Current UI lifetime continuation — 2026-10-15
+
+The owner disabled the workspace rust-analyzer extension and authorized continued
+implementation without another go-ahead. The restart cleared the shared temporary
+Cargo target; it was rebuilt with incremental compilation disabled and one worker.
+
+The demonstrated automatic UI destruction bug is repaired. Registrations now group
+resource state and a callback slot in descending creation order; dispatch extracts
+only the callback and restores it before deferred cleanup. Native witnesses prove
+state/capture/payload release, depth-three descendant-before-ancestor destruction,
+active/root/ancestor/sibling retirement, same-key replacement, queue rejection and
+stale discard, automatic owner drop, independent owners and 1,000 balanced cycles.
+See [the current checked-resource mapping](../../experiments/ui-tsrust-owner-handles/CHECKED-RESOURCES.md).
+
+Passed: 7 resource compiler tests, 56 testing-library tests, 4 callback-error tests,
+and the native-effect contract unit test. Existing UI suites passed 12/13 initially;
+the remaining assertion assumed an obsolete emitted record number, was repaired,
+and passed its affected rerun. The final native demo exits 0. Historical matrices
+remain attributed to their external-bridge investigation; the current mapping
+supersedes that blocker only for the narrow checked std:testing resource route.
+The projected external Drop rejection remains unchanged.
+
+**Still running/pending:** final full checker_agreement, completion_matrix and
+editor_consistency; public API consumer refresh; final resource gate acceptance.
+The agreement suite enumerates checker answers for every catalog member/receiver;
+a process sample confirms active compiler work, with an 8 MiB sampled footprint.
+Do not restart passed compiler/UI checks. The editor run is recorded as
+`/private/tmp/tsrust-resource-editor-resume.log` while active. Closed records are
+byte-verified in `benchmarks/records.sqlite` under `tsrust-resource-ui-*`,
+`tsrust-resource-compiler-final.log`, `tsrust-resource-effects-final.log` and
+`tsrust-resource-demo-final.*`; original failures remain preserved.
+
+Current CLI candidate hash is
+`3155aef0f9ffa39eee8535848aa4d4fa43a6cc2d988449f9764a6a0554ef6dce`.
+Cargo's development dependency feature graph changed binary bytes from the initial
+UI probe build without changing compiler source; the pin guard caught that change
+and the final demo passed after provenance review. Installed consumers are still
+at the previous accepted API. The standalone VS Code rust-analyzer binary can be
+used for bounded later inventory without re-enabling the workspace extension.
+
+The next data-type section has uncommitted discovery only: `docs/data-type-coverage.md`
+and a pinned TypeScript language-service inventory. No data-type implementation or
+S19–S21 implementation is accepted by this UI checkpoint. Preserve the priority
+order below and the owner's six unrelated untracked plan files.
+
 ## Restart checkpoint — 2026-10-15, resource observer implementation
 
 The owner requested a restart-safe stopping point during resource acceptance.

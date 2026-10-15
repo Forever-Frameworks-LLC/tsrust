@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import path from 'node:path';
-import {root, temporary, verifyCompiler, pin} from '../harness.mjs';
+import {root, temporary, verifyCompiler, pin, formattedWitnesses, execute} from '../harness.mjs';
 import {prepareRelease, boundaryEvidence, nativeCalibration} from '../release.mjs';
 
 test('L03-L07: actual native Drop calibration, wrong-expectation controls and transfer rejection', () => temporary(dir => {
@@ -33,3 +33,8 @@ test('L01-L26: complete scoped proof dispositions and historical reconciliation'
   assert.equal(matrix.rows.find(row => row.id === 'L11').status, 'blocked');
   assert.equal(matrix.observerCalibration, 'native-only; checked Tsrust boundary blocked');
 });
+
+test('checked std:testing resources: state, captures, payloads and automatic tree release', () => temporary(dir => {
+  formattedWitnesses(dir, assert);
+  assert.equal(execute(path.join(dir, 'tracked-release.tsr'), dir), 'UI retained resources released\n');
+}));

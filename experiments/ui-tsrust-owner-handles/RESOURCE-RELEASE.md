@@ -1,5 +1,9 @@
 # B2 resource-release investigation
 
+Current checked continuation: [std:testing resource acceptance](CHECKED-RESOURCES.md).
+The report below preserves the earlier external-bridge investigation and its
+original blocked result; it does not describe the new compiler-owned resource path.
+
 ## Result and boundary
 
 The native observer candidate can be calibrated independently, but the current checked external Rust bridge deliberately rejects its resource type. B2 remains open. No resource-bearing UI state, capture or event claim is inferred from native-only execution. The current owner is unchanged.

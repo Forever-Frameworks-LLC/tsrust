@@ -18,8 +18,8 @@ test('I03-I09,I11-I12: owned allocator, all foreign operations and recreation ex
   const checked=run(compiler,['check',file]).stdout;
   assert.match(checked,/runtime[^\n]*: mutate, owned escape\n\s+domain: storage consume, access mutate/);
   const emitted=readFileSync(path.join(dir,'witness.rs'),'utf8');
-  // Domain is Record0 and Handle is Record1 in this fixed witness module.
-  const fields=emitted.match(/struct Record1 \{([^}]*)\}/)?.[1].trim();
+  // The std:testing resource and Result types precede Domain and Handle in this fixed witness module.
+  const fields=emitted.match(/struct Record3 \{([^}]*)\}/)?.[1].trim();
   assert.equal(fields,'field0: i64, field1: i64, field2: i64');
 }));
 

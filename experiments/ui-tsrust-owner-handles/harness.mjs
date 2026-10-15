@@ -6,11 +6,13 @@ import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 export const root = path.dirname(fileURLToPath(import.meta.url));
 export const compiler = process.env.TSRUST || '/Users/seancotter/.cargo/bin/tsrust';
+// Historical matrix identity; original evidence remains immutable.
 export const pin = '12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89';
+export const candidatePin = '3155aef0f9ffa39eee8535848aa4d4fa43a6cc2d988449f9764a6a0554ef6dce';
 export const sha = file => createHash('sha256').update(readFileSync(file)).digest('hex');
-export function verifyCompiler() { if (sha(compiler) !== pin) throw new Error('Compiler identity changed: verify provenance before changing the pin'); }
+export function verifyCompiler() { if (sha(compiler) !== candidatePin) throw new Error('Compiler identity changed: verify provenance before changing the pin'); }
 export function run(command, args, expected = 0) {
-  const result = spawnSync(command, args, {cwd: root, encoding: 'utf8', timeout: 30000,
+  const result = spawnSync(command, args, {cwd: root, encoding: 'utf8', timeout: command === compiler && args[0] === 'run' ? 120000 : 30000,
     maxBuffer: 16 * 1024 * 1024, env: {...process.env, CARGO_INCREMENTAL: '0'}});
   const record = {command, args, status: result.status, signal: result.signal, error: result.error?.message,
     stdout: result.stdout, stderr: result.stderr};

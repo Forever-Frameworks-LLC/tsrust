@@ -46,3 +46,19 @@ instance identity. This test facility provides no scheduler, executor dispatch,
 concurrent identity allocator or permission to share mutable owner access. UI
 readiness additionally requires the B2 state/capture/payload matrix, callback-safe
 release, automatic owner destruction and descendant-before-ancestor order.
+
+## UI owner candidate
+
+The UI experiment groups each component's resource state and retained callback in
+one registration. Registrations remain in descending creation order: without
+reparenting, every descendant is newer than its ancestors. Display reordering and
+FIFO delivery do not change this destruction order. Dispatch extracts only the
+callback slot, leaving state available through the owner. It restores the callback
+before processing deferred retirement, including when the callback throws.
+
+Resource queue entries own accepted payloads until delivery finishes, stale delivery
+is discarded, or the owner is destroyed. Rejected enqueue returns the original
+resource in `Err`; rejection does not destroy or clone it. Queue payload destruction
+has no tree-order guarantee. These are synchronous candidate contracts exercised by
+`experiments/ui-tsrust-owner-handles/witnesses/tracked-release.tsr`; final UI matrix
+acceptance remains pending.

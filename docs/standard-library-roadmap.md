@@ -42,6 +42,11 @@ before committing to a general public opaque adapter API. A source-side cleanup
 counter, manually released integer registry, patched emitted Rust, or relaxed Drop
 rejection does not satisfy this dependency.
 
+Current checked resource/UI implementation and remaining acceptance are recorded in
+[the continuation mapping](../experiments/ui-tsrust-owner-handles/CHECKED-RESOURCES.md).
+The automatic child-before-parent destruction defect is repaired and native witnesses
+pass; final full editor acceptance and consumer refresh remain pending.
+
 Required compiler acceptance:
 
 - Preserve ownership and actual destruction through construction, move, record/array

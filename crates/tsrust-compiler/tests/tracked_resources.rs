@@ -12,6 +12,7 @@ fn tracked_resource_observer_negative_controls(){
   "const r=trackedResource();const key=resourceId(r);strictEqual(releaseCount(key),1);",
   "const r=trackedResource();const key=resourceId(r);closeResource(r);strictEqual(releaseCount(key),0);",
   "const r=trackedResource();const key=resourceId(r);closeResource(r);strictEqual(releaseCount(key),2);",
+  "const a=trackedResource();const b=trackedResource();closeResource(a);strictEqual(releaseCount(resourceId(b)),1);",
   "const a=trackedResource();const b=trackedResource();const x=resourceId(a);const y=resourceId(b);closeResource(a);closeResource(b);ok(releaseOrder(y)<releaseOrder(x));",
  ] {
   let directory=support::TempDirectory::new();
@@ -78,4 +79,14 @@ fn resources_reject_started_task_transport_and_private_runtime_imports(){
   let directory=support::TempDirectory::new();let path=directory.source(source);
   for command in ["check","emit"]{let output=support::run(support::cli().arg(command).arg(&path),30);assert!(!output.status.success());assert!(String::from_utf8_lossy(&output.stderr).contains(&format!("error[{code}]")));}
  }
+}
+
+#[test]
+fn ui_component_state_capture_and_queue_release() {
+ let directory=support::TempDirectory::new();
+ let owner=support::format_round_trip(include_str!("../../../experiments/ui-tsrust-owner-handles/witnesses/owner.tsr"));
+ std::fs::write(directory.0.join("owner.tsr"),owner).unwrap();
+ let source=support::format_round_trip(include_str!("../../../experiments/ui-tsrust-owner-handles/witnesses/tracked-release.tsr"));
+ let output=support::run(support::cli().arg("run").arg(directory.source(&source)),90);
+ support::success(&output);assert_eq!(output.stdout,b"UI retained resources released\n");
 }

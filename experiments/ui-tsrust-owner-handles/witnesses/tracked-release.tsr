@@ -1,5 +1,5 @@
 import { strictEqual, ok, TrackedResource, trackedResource, resourceId, releaseCount, releaseOrder, liveCount } from 'std:testing';
-import { Owner, Handle, runtime, root, mount, remove, enqueue, drain } from './owner.tsr';
+import { Owner, Handle, runtime, root, mount, remove, enqueue, drain, setResource, stateResourceId, enqueueResource, reorder } from './owner.tsr';
 
 function retained(resource: Owned<TrackedResource>): (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int) => void {
   return (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void => {
@@ -15,6 +15,7 @@ function main() {
   const domain = runtime();
   {
     const owner = domain();
+    const ownerRoot = root(owner);
     const parent = root(owner);
     const resource = trackedResource();
     const key = resourceId(resource);
@@ -32,6 +33,7 @@ function main() {
   let childKey = 0;
   {
     const owner = domain();
+    const ownerRoot = root(owner);
     const rootHandle = root(owner);
     const parentResource = trackedResource();
     parentKey = resourceId(parentResource);
@@ -47,5 +49,335 @@ function main() {
   strictEqual(releaseCount(childKey), 1);
   ok(releaseOrder(childKey) < releaseOrder(parentKey), 'automatic child release must precede parent');
   strictEqual(liveCount(), baseline);
+  groupedRelease();
+  queuedRelease();
+  activeRelease();
+  replacementRelease();
+  treeRelease();
+  independentRelease();
   console.log('UI retained resources released');
+}
+
+function passive(resource: Owned<TrackedResource>): (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int) => void {
+  return (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void => {
+    strictEqual(releaseCount(resourceId(resource)), 0);
+    const state = stateResourceId(owner, handle);
+    ok(state !== undefined);
+    if (delta === 99) {
+      const ownerRoot = root(owner);
+      remove(owner, ownerRoot);
+      strictEqual(releaseCount(resourceId(resource)), 0);
+      if (state !== undefined) {
+        strictEqual(releaseCount(state), 0);
+      }
+    }
+  };
+}
+
+function groupedRelease(): void {
+  const baseline = liveCount();
+  const domain = runtime();
+  let parentCapture = 0;
+  let parentState = 0;
+  let childCapture = 0;
+  let childState = 0;
+  {
+    const owner = domain();
+    const ownerRoot = root(owner);
+    const capture = trackedResource();
+    parentCapture = resourceId(capture);
+    const parent = mount(owner, ownerRoot, 'parent', 0, passive(capture));
+    const state = trackedResource();
+    parentState = resourceId(state);
+    accepted(setResource(owner, parent, state));
+    const childResource = trackedResource();
+    childCapture = resourceId(childResource);
+    const child = mount(owner, parent, 'child', 0, passive(childResource));
+    const oldState = trackedResource();
+    const oldKey = resourceId(oldState);
+    accepted(setResource(owner, child, oldState));
+    const replacement = trackedResource();
+    childState = resourceId(replacement);
+    accepted(setResource(owner, child, replacement));
+    strictEqual(releaseCount(oldKey), 1);
+    enqueue(owner, parent, 1);
+    enqueue(owner, child, 1);
+    strictEqual(drain(owner), 'ok;ok;');
+    reorder(owner, parent, ['child']);
+  }
+
+  strictEqual(releaseCount(parentCapture), 1);
+  strictEqual(releaseCount(parentState), 1);
+  strictEqual(releaseCount(childCapture), 1);
+  strictEqual(releaseCount(childState), 1);
+  ok(releaseOrder(childCapture) < releaseOrder(parentCapture));
+  ok(releaseOrder(childState) < releaseOrder(parentCapture));
+  ok(releaseOrder(childCapture) < releaseOrder(parentState));
+  ok(releaseOrder(childState) < releaseOrder(parentState));
+  strictEqual(liveCount(), baseline);
+}
+
+function queuedRelease(): void {
+  const baseline = liveCount();
+  const domain = runtime();
+  let abandonedKey = 0;
+  {
+    const owner = domain();
+    const ownerRoot = root(owner);
+    const item = mount(owner, ownerRoot, 'item', 0, (o: Mutable<Owner>, h: ReadOnly<Handle>, delta: int): void => {});
+    const payload = trackedResource();
+    const key = resourceId(payload);
+    accepted(enqueueResource(owner, item, 1, payload));
+    strictEqual(releaseCount(key), 0);
+    strictEqual(drain(owner), 'ok;');
+    strictEqual(releaseCount(key), 1);
+    const stale = trackedResource();
+    const staleKey = resourceId(stale);
+    accepted(enqueueResource(owner, item, 1, stale));
+    remove(owner, item);
+    strictEqual(releaseCount(staleKey), 0);
+    strictEqual(drain(owner), 'stale;');
+    strictEqual(releaseCount(staleKey), 1);
+    const rejected = trackedResource();
+    const rejectedKey = resourceId(rejected);
+    {
+      const result = enqueueResource(owner, item, 1, rejected);
+      strictEqual(releaseCount(rejectedKey), 0);
+      match (result) {
+        Ok(_) => {
+          ok(false);
+        },
+        Err(returned) => {
+          strictEqual(resourceId(returned), rejectedKey);
+        }
+      }
+    }
+
+    strictEqual(releaseCount(rejectedKey), 1);
+    const rejectedState = trackedResource();
+    const rejectedStateKey = resourceId(rejectedState);
+    {
+      const result = setResource(owner, item, rejectedState);
+      strictEqual(releaseCount(rejectedStateKey), 0);
+      match (result) {
+        Ok(_) => {
+          ok(false);
+        },
+        Err(returned) => {
+          strictEqual(resourceId(returned), rejectedStateKey);
+        }
+      }
+    }
+
+    strictEqual(releaseCount(rejectedStateKey), 1);
+    const replacement = mount(owner, ownerRoot, 'item', 0, (o: Mutable<Owner>, h: ReadOnly<Handle>, delta: int): void => {});
+    const abandoned = trackedResource();
+    abandonedKey = resourceId(abandoned);
+    accepted(enqueueResource(owner, replacement, 1, abandoned));
+  }
+
+  strictEqual(releaseCount(abandonedKey), 1);
+  strictEqual(liveCount(), baseline);
+}
+
+function activeRelease(): void {
+  const baseline = liveCount();
+  const domain = runtime();
+  for (let cycle = 0; cycle < 1000; cycle = cycle + 1) {
+    const owner = domain();
+    const ownerRoot = root(owner);
+    const payload = trackedResource();
+    const payloadKey = resourceId(payload);
+    const resource = trackedResource();
+    const key = resourceId(resource);
+    const item = mount(owner, ownerRoot, 'active', 0, (o: Mutable<Owner>, h: ReadOnly<Handle>, delta: int): void => {
+      strictEqual(releaseCount(resourceId(resource)), 0); const state = stateResourceId(o, h); ok(state !== undefined); const childCapture = trackedResource(); const child = mount(o, h, 'nested', 0, retained(childCapture)); accepted(setResource(o, child, trackedResource())); const ownerRoot = root(o); remove(o, ownerRoot); strictEqual(stateResourceId(o, h), undefined); strictEqual(releaseCount(resourceId(resource)), 0); if (state !== undefined) {
+        strictEqual(releaseCount(state), 0);
+      }
+
+      strictEqual(releaseCount(payloadKey), 0); o.next = 42; throw 'retired callback';
+    });
+    const state = trackedResource();
+    const stateKey = resourceId(state);
+    accepted(setResource(owner, item, state));
+    accepted(enqueueResource(owner, item, 1, payload));
+    let caught = false;
+    try {
+      drain(owner);
+    } catch {
+      caught = true;
+    }
+
+    ok(caught);
+    strictEqual(owner.next, 42, 'callback reached its deliberate throw after all assertions');
+    strictEqual(releaseCount(key), 1);
+    strictEqual(releaseCount(stateKey), 1);
+    strictEqual(releaseCount(payloadKey), 1);
+    strictEqual(liveCount(), baseline);
+  }
+}
+
+function accepted(result: Owned<Result<void, TrackedResource>>): void {
+  match (result) {
+    Ok(_) => {},
+    Err(_) => {
+      ok(false, 'valid resource transfer rejected');
+    }
+  }
+}
+
+function replacing(resource: Owned<TrackedResource>): (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int) => void {
+  return (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void => {
+    const key = resourceId(resource);
+    const parent = root(owner);
+    remove(owner, handle);
+    const fresh = mount(owner, parent, 'same', 0, retained(trackedResource()));
+    accepted(setResource(owner, fresh, trackedResource()));
+    strictEqual(releaseCount(key), 0);
+    strictEqual(drain(owner), 'reentrant');
+  };
+}
+
+function replacementRelease(): void {
+  const baseline = liveCount();
+  const domain = runtime();
+  {
+    const owner = domain();
+    const parent = root(owner);
+    const old = trackedResource();
+    const oldKey = resourceId(old);
+    const item = mount(owner, parent, 'same', 0, replacing(old));
+    accepted(setResource(owner, item, trackedResource()));
+    const sibling = mount(owner, parent, 'sibling', 0, retained(trackedResource()));
+    accepted(setResource(owner, sibling, trackedResource()));
+    ok(reorder(owner, parent, ['sibling', 'same']));
+    enqueue(owner, item, 1);
+    enqueue(owner, item, 1);
+    strictEqual(drain(owner), 'ok;stale;');
+    strictEqual(releaseCount(oldKey), 1);
+    ok(reorder(owner, parent, ['same', 'sibling']));
+  }
+
+  strictEqual(liveCount(), baseline);
+}
+
+function component(owner: Mutable<Owner>, parent: ReadOnly<Handle>, key: string, ids: Mutable<int[]>): Handle {
+  const capture = trackedResource();
+  ids.push(resourceId(capture));
+  const handle = mount(owner, parent, key, 0, passive(capture));
+  const state = trackedResource();
+  ids.push(resourceId(state));
+  accepted(setResource(owner, handle, state));
+  return handle;
+}
+
+function treeRelease(): void {
+  const baseline = liveCount();
+  const domain = runtime();
+  for (let mode = 0; mode < 2; mode = mode + 1) {
+    const ids: int[] = [];
+    {
+      const owner = domain();
+      const ownerRoot = root(owner);
+      const parent = component(owner, ownerRoot, 'parent', ids);
+      const child = component(owner, parent, 'child', ids);
+      const grandchild = component(owner, child, 'grandchild', ids);
+      component(owner, parent, 'sibling', ids);
+      ok(reorder(owner, parent, ['sibling', 'child']));
+      enqueue(owner, parent, 0);
+      enqueue(owner, child, 0);
+      enqueue(owner, grandchild, 0);
+      strictEqual(drain(owner), 'ok;ok;ok;');
+      if (mode === 1) {
+        enqueue(owner, grandchild, 99);
+        strictEqual(drain(owner), 'ok;');
+        for (let i = 0; i < ids.length; i = i + 1) {
+          strictEqual(releaseCount(ids[i]), 1);
+        }
+      }
+    }
+
+    for (let i = 0; i < ids.length; i = i + 1) {
+      strictEqual(releaseCount(ids[i]), 1);
+    }
+
+    for (let captureOrState = 0; captureOrState < 2; captureOrState = captureOrState + 1) {
+      for (let ancestorPart = 0; ancestorPart < 2; ancestorPart = ancestorPart + 1) {
+        ok(releaseOrder(ids[4 + captureOrState]) < releaseOrder(ids[2 + ancestorPart]));
+        ok(releaseOrder(ids[2 + captureOrState]) < releaseOrder(ids[ancestorPart]));
+        ok(releaseOrder(ids[6 + captureOrState]) < releaseOrder(ids[ancestorPart]));
+      }
+    }
+
+    strictEqual(liveCount(), baseline);
+  }
+}
+
+function retireSibling(resource: Owned<TrackedResource>, sibling: Owned<Handle>, siblingKey: int): (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int) => void {
+  return (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void => {
+    remove(owner, sibling);
+    remove(owner, sibling);
+    ok(stateResourceId(owner, handle) !== undefined);
+    strictEqual(releaseCount(siblingKey), 0);
+    strictEqual(releaseCount(resourceId(resource)), 0);
+    const ownerRoot = root(owner);
+    remove(owner, ownerRoot);
+    remove(owner, handle);
+    strictEqual(releaseCount(resourceId(resource)), 0);
+  };
+}
+
+function independentRelease(): void {
+  const baseline = liveCount();
+  const domain = runtime();
+  {
+    const survivor = domain();
+    const survivorRoot = root(survivor);
+    const survivorIds: int[] = [];
+    const survivorHandle = component(survivor, survivorRoot, 'live', survivorIds);
+    const deadIds: int[] = [];
+    const escaped: Handle[] = [];
+    {
+      const owner = domain();
+      const ownerRoot = root(owner);
+      const sibling = component(owner, ownerRoot, 'sibling', deadIds);
+      const capture = trackedResource();
+      deadIds.push(resourceId(capture));
+      const active = mount(owner, ownerRoot, 'active', 0, retireSibling(capture, sibling, deadIds[0]));
+      const state = trackedResource();
+      deadIds.push(resourceId(state));
+      accepted(setResource(owner, active, state));
+      enqueue(owner, active, 0);
+      strictEqual(drain(owner), 'ok;');
+      escaped.push(active);
+    }
+
+    for (let i = 0; i < deadIds.length; i = i + 1) {
+      strictEqual(releaseCount(deadIds[i]), 1);
+    }
+
+    for (let i = 0; i < survivorIds.length; i = i + 1) {
+      strictEqual(releaseCount(survivorIds[i]), 0);
+    }
+
+    ok(stateResourceId(survivor, survivorHandle) !== undefined);
+    strictEqual(stateResourceId(survivor, escaped[0]), undefined);
+    const foreignPayload = trackedResource();
+    const foreignKey = resourceId(foreignPayload);
+    const rejected = enqueueResource(survivor, escaped[0], 1, foreignPayload);
+    strictEqual(releaseCount(foreignKey), 0);
+    strictEqual(survivor.queue.length, 0);
+    match (rejected) {
+      Ok(_) => {
+        ok(false);
+      },
+      Err(returned) => {
+        strictEqual(resourceId(returned), foreignKey);
+      }
+    }
+
+    strictEqual(releaseCount(foreignKey), 1);
+  }
+
+  strictEqual(liveCount(), baseline);
 }

@@ -1,3 +1,5 @@
+import { TrackedResource, resourceId } from 'std:testing';
+
 type Domain = {
   runtime: int;
   next: int;
@@ -19,7 +21,8 @@ export type Node = {
 
 export type Registration = {
   id: int;
-  run: (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int) => void;
+  run: Function<void, [owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int]>[];
+  state: TrackedResource[];
 };
 
 export type Event = {
@@ -27,6 +30,7 @@ export type Event = {
   owner: int;
   instance: int;
   delta: int;
+  payload: TrackedResource[];
 };
 
 export type Owner = {
@@ -120,8 +124,9 @@ export function mount(owner: Mutable<Owner>, parent: ReadOnly<Handle>, key: stri
     id: id, parent: parent.instance, key: key, value: value, live: true
   });
   owner.order.push(id);
-  owner.handlers.push({
-    id: id, run: run
+  // No reparenting: newer component IDs always precede their ancestors at destruction.
+  owner.handlers.unshift({
+    id: id, run: [run], state: []
   });
   return {
     runtime: owner.runtime, owner: owner.id, instance: id
@@ -153,7 +158,7 @@ export function enqueue(owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: 
   }
 
   owner.queue.push({
-    runtime: handle.runtime, owner: handle.owner, instance: handle.instance, delta: delta
+    runtime: handle.runtime, owner: handle.owner, instance: handle.instance, delta: delta, payload: []
   });
   return true;
 }
@@ -247,12 +252,24 @@ export function drain(owner: Mutable<Owner>): string {
       throw 'missing registration';
     }
 
-    const registration = owner.handlers.remove(at);
+    const callback = owner.handlers[at].run.remove(0);
     owner.delivering = true;
-    registration.run(owner, handle, event.delta);
-    owner.delivering = false;
-    owner.handlers.push(registration);
-    cleanup(owner);
+    try {
+      callback(owner, handle, event.delta);
+    } finally {
+      // Mounting can shift indices; retired entries remain until this safe point.
+      let restored = -1;
+      for (let i = 0; i < owner.handlers.length; i = i + 1) {
+        if (owner.handlers[i].id === handle.instance) {
+          restored = i;
+        }
+      }
+
+      owner.handlers[restored].run.push(callback);
+      owner.delivering = false;
+      cleanup(owner);
+    }
+
     result = result + 'ok;';
   }
 
@@ -323,4 +340,51 @@ export function reorder(owner: Mutable<Owner>, parent: ReadOnly<Handle>, keys: R
   }
 
   return true;
+}
+
+
+// Test-only resource state shares the component lifetime with retained callbacks.
+export function setResource(owner: Mutable<Owner>, handle: ReadOnly<Handle>, resource: Owned<TrackedResource>): Result<void, TrackedResource> {
+  if (index(owner, handle) < 0) {
+    return Err(resource);
+  }
+
+  for (let i = 0; i < owner.handlers.length; i = i + 1) {
+    if (owner.handlers[i].id === handle.instance) {
+      if (owner.handlers[i].state.length > 0) {
+        owner.handlers[i].state.remove(0);
+      }
+
+      owner.handlers[i].state.push(resource);
+      return Ok();
+    }
+  }
+
+  return Err(resource);
+}
+
+export function stateResourceId(owner: ReadOnly<Owner>, handle: ReadOnly<Handle>): int | undefined {
+  if (index(owner, handle) < 0) {
+    return undefined;
+  }
+
+  for (let i = 0; i < owner.handlers.length; i = i + 1) {
+    if (owner.handlers[i].id === handle.instance && owner.handlers[i].state.length > 0) {
+      return resourceId(owner.handlers[i].state[0]);
+    }
+  }
+
+  return undefined;
+}
+
+// A rejected enqueue returns its input; accepted payloads belong to their queue entry.
+export function enqueueResource(owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int, payload: Owned<TrackedResource>): Result<void, TrackedResource> {
+  if (index(owner, handle) < 0) {
+    return Err(payload);
+  }
+
+  owner.queue.push({
+    runtime: handle.runtime, owner: handle.owner, instance: handle.instance, delta: delta, payload: [payload]
+  });
+  return Ok();
 }

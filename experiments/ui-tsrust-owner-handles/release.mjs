@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import {readFileSync, writeFileSync, copyFileSync} from 'node:fs';
-import {root, compiler, verifyCompiler, temporary, run, tokens, sha} from './harness.mjs';
+import {root, compiler, verifyCompiler, temporary, run, tokens, formattedWitnesses, execute} from './harness.mjs';
 
 export const releaseDiagnostic = 'Boundary data cannot implement Drop; keep resource owners private to the Rust adapter.';
 export function prepareRelease(dir) {
@@ -27,16 +27,11 @@ export function boundaryEvidence(dir) {
     assert.doesNotMatch(result.stderr, /panicked|stack overflow/);
   }
   const source = path.join(dir, 'control.tsr');
-  const emitted = path.join(dir, 'control.rs'), binary = path.join(dir, 'control');
-  const native = JSON.parse(readFileSync(path.join(root, 'release-native-provenance.json'), 'utf8'));
-  const verifyLibraries = () => { for (const [file, digest] of Object.entries(native.libraries)) assert.equal(sha(file), digest, file); };
-  verifyLibraries();
+  const emitted = path.join(dir, 'control.rs');
   run(compiler, ['check', source]);
   run(compiler, ['emit', source, '-o', emitted]);
-  run('rustc', ['--edition=2024', '--crate-name', 'ui_release_control', emitted,
-    '--extern', `rayon=${native.rayon}`, '-L', `dependency=${native.dependency_directory}`, '-o', binary]);
-  assert.equal(run(binary, []).stdout, '');
-  verifyLibraries();
+  // Rebuild through the supported project path; historical dependency binaries are disposable.
+  assert.equal(run(compiler, ['run', source]).stdout, '');
   verifyCompiler();
 }
 export function nativeCalibration(dir) {
@@ -56,6 +51,10 @@ export function nativeCalibration(dir) {
 }
 export function releaseDemo() {
   temporary(dir => { prepareRelease(dir); nativeCalibration(dir); boundaryEvidence(dir); });
-  return {observer: 'native-only calibration passed', checkedResourceBoundary: 'blocked', diagnostic: releaseDiagnostic,
-    synchronousB2: 'open', asyncWorkers: 'intended; transport, cancellation and cleanup completion unproved'};
+  temporary(dir => {
+    formattedWitnesses(dir, assert);
+    assert.equal(execute(path.join(dir, 'tracked-release.tsr'), dir), 'UI retained resources released\n');
+  });
+  return {observer: 'checked std:testing resource witness passed', checkedResourceBoundary: 'compiler-owned opaque resource', externalProjectedDrop: releaseDiagnostic,
+    synchronousB2: 'checked synchronous witness passed', asyncWorkers: 'unproved; transport, cancellation and cleanup completion remain required'};
 }
