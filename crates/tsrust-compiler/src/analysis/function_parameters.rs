@@ -112,6 +112,9 @@ impl Analyzer {
             // The annotation transfers ownership even when never invoked.
             context.bindings[binding].mode = Mode::Consume;
         }
+        if matches!(self.program.functions[index].parameter_access[position], Some((Mode::Consume, _))) && !body_ty.is_copy() {
+            context.task_owned_inputs.get_or_insert_with(Default::default).insert(binding);
+        }
         if matches!(self.program.functions[index].parameter_access[position],Some((Mode::Read,_))) && !body_ty.is_copy() {
             context.readonly_parameters.insert(binding);
         }

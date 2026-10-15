@@ -361,7 +361,10 @@ impl Parser<'_> {
             return self.labeled_statement(machine);
         }
         let span = self.peek().span;
-        if self.is("function") {
+        if self.is("async") {
+            self.take();
+            self.local_function(machine)
+        } else if self.is("function") {
             self.local_function(machine)
         } else if self.match_statement_header() {
             let mut holder = self.pattern_holder();

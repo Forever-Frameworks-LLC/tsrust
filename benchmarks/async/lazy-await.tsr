@@ -1,0 +1,29 @@
+import { monotonicNow } from 'std:time';
+
+async function step(value: int): Task<int> {
+  return value * 2 + 1;
+}
+
+async function batch(): Task<int> {
+  let checksum = 0;
+  for (let value = 0; value < 4096; value++) {
+    const task = step(value);
+    checksum += await task;
+  }
+
+  return checksum;
+}
+
+async function main(): Task<void> {
+  for (let warmup = 0; warmup < 8; warmup++) {
+    await batch();
+  }
+
+  for (let sample = 0; sample < 31; sample++) {
+    const start = monotonicNow();
+    const checksum = await batch();
+    const elapsed = monotonicNow() - start;
+    console.log(checksum);
+    console.log(elapsed);
+  }
+}

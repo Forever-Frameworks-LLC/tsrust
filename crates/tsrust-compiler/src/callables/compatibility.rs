@@ -73,7 +73,7 @@ impl<'a> Contracts<'a> {
                 }
                 Type::Closure(id) => {
                     let closure = &self.closures[id];
-                    if !self.effects_only && (closure.borrowed || !closure.program_captures.is_empty()) {
+                    if !self.effects_only && self.signatures.get(contract.structural).kind!=Some(crate::syntax::CallbackKind::Task) && (closure.borrowed || !closure.program_captures.is_empty()) {
                         return Err(Diagnostic::new(
                             "closure-escape",
                             "A callable result cannot retain borrowed capture storage.",
@@ -164,6 +164,7 @@ impl<'a> Contracts<'a> {
                     let actual = &self.callbacks[self.storage.declaration(family).expect("checked stored family")];
                     let compatible = match actual.kind {
                         crate::syntax::CallbackKind::Owned => matches!(contract.kind,crate::syntax::CallbackKind::ProgramReusable|crate::syntax::CallbackKind::Program|crate::syntax::CallbackKind::Reusable|crate::syntax::CallbackKind::Owned),
+                        crate::syntax::CallbackKind::Task => contract.kind==crate::syntax::CallbackKind::Task,
                         crate::syntax::CallbackKind::OwnedOnce => matches!(contract.kind,crate::syntax::CallbackKind::Once|crate::syntax::CallbackKind::OwnedOnce),
                         _ => false,
                     };

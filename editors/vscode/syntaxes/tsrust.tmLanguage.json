@@ -62,7 +62,7 @@
     },
     {
       "name": "keyword.control.tsrust",
-      "match": "\\b(?:if|else|while|do|for|of|in|return|break|continue|switch|match|case|default|try|catch|finally|throw)\\b"
+      "match": "\\b(?:await|if|else|while|do|for|of|in|return|break|continue|switch|match|case|default|try|catch|finally|throw)\\b"
     },
     {
       "name": "meta.binding.tsrust",
@@ -203,7 +203,7 @@
     },
     {
       "name": "storage.type.tsrust",
-      "match": "\\b(?:type|interface|enum|function|const|let|new)\\b"
+      "match": "\\b(?:async|type|interface|enum|function|const|let|new)\\b"
     },
     {
       "name": "storage.modifier.tsrust",
@@ -211,7 +211,7 @@
     },
     {
       "name": "support.type.builtin.tsrust",
-      "match": "\\b(?:Function|Mutable|ReadOnly|Once|Owned|Set|Map|Result)\\b(?=\\s*<)"
+      "match": "\\b(?:Task|Function|Mutable|ReadOnly|Once|Owned|Set|Map|Result)\\b(?=\\s*<)"
     },
     {
       "match": "(:\\s*)(void)\\b(?=\\s*(?:[,;)}]|=>|\\{))",
@@ -278,7 +278,7 @@
         },
         {
           "name": "support.type.builtin.tsrust",
-          "match": "\\b(?:Function|Mutable|ReadOnly|Once|Owned|Set|Map|Result)\\b"
+          "match": "\\b(?:Task|Function|Mutable|ReadOnly|Once|Owned|Set|Map|Result)\\b"
         },
         {
           "include": "#record"

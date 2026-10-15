@@ -96,6 +96,10 @@ impl Analyzer {
         // wrappers introduce a private alias to avoid parameter-name shadowing.
         context.names = outer.names.iter().map(|(name, slot)| (name.clone(), visible.binary_search(slot).expect("visible name"))).collect();
         context.caller_error_origins = outer.caller_error_origins.clone();
+        if self.task_sources.contains(&origin) {
+            context.task_owned_inputs=Some(Box::new(visible.iter().enumerate().filter(|(_,root)|!outer.bindings[**root].ty.is_copy() && !outer.readonly_parameters.contains(root) && !outer.mutable_parameters.contains(root)
+                && !self.program.module_owner_bindings.iter().any(|declaration|outer.source_bindings.get(&declaration.start)==Some(root))).map(|(slot,_)|slot).collect()));
+        }
         context.inferred_body_result = inferred_result;
         if self.discovering_results {
             context.pending_names = outer.pending_names.clone();
@@ -299,6 +303,10 @@ impl Analyzer {
                     } else {
                         Mode::Copy
                     }
+                } else if escapes && self.task_sources.contains(&origin) && outer.readonly_parameters.contains(&outer_id) {
+                    Mode::Read
+                } else if escapes && self.task_sources.contains(&origin) && outer.mutable_parameters.contains(&outer_id) {
+                    Mode::Mutate
                 } else if escapes {
                     Mode::Consume
                 } else {
@@ -309,6 +317,7 @@ impl Analyzer {
                     && let Type::Closure(id) = binding.ty
                     && self.closures[id].borrowed
                     && self.borrows_local_storage(binding.ty)
+                    && !(self.task_sources.contains(&origin) && self.is_task_type(binding.ty) && outer.bindings[outer_id].parameter)
                 {
                     return Err(Diagnostic::new(
                         "closure-escape",

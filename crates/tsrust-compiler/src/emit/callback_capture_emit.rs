@@ -85,7 +85,7 @@ impl Emitter<'_> {
         };
         let trait_name = if matches!(contract.kind, crate::syntax::CallbackKind::Program | crate::syntax::CallbackKind::ProgramReusable) { "ProgramCallback" } else if matches!(contract.kind, CallbackKind::Read | CallbackKind::SharedRead) {
             "ReadCallback"
-        } else if contract.kind.is_once() {
+        } else if contract.kind==crate::syntax::CallbackKind::Task { "TaskCallback" } else if contract.kind.is_once() {
             "OnceCallback"
         } else {
             "Callback"

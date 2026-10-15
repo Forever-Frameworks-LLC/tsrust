@@ -28,6 +28,7 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
+    Receiver { ty: "Task<int>", parameter: "x: Task<int>" },
     Receiver { ty: "Channel<int>", parameter: "x: ReadOnly<Channel<int>>" },
     Receiver { ty: "Sender<int>", parameter: "x: Sender<int>" },
     Receiver { ty: "TaskContext", parameter: "x: ReadOnly<TaskContext>" },

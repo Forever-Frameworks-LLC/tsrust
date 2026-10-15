@@ -104,6 +104,7 @@ pub fn discover_test_inputs(paths: &[std::path::PathBuf]) -> Result<Vec<std::pat
 }
 pub fn discover_test_inputs_optional(paths:&[std::path::PathBuf])->Result<Vec<std::path::PathBuf>,String>{crate::stdlib::testing::discovery::select_optional(paths)}
 impl CheckedInput {
+    pub fn warnings(&self) -> Vec<InputDiagnostic> { match self {Self::Single(value)=>value.warnings().into_iter().map(InputDiagnostic::Single).collect(),Self::Project(value)=>value.warnings().into_iter().map(InputDiagnostic::Project).collect()} }
     pub fn emit_rust(&self) -> String {
         match self {
             Self::Single(analysis) => analysis.emit_rust(),
@@ -136,6 +137,7 @@ impl CheckedInput {
     }
 }
 impl InputDiagnostic {
+    pub fn is_warning(&self) -> bool {match self{Self::Single(value)=>value.is_warning(),Self::Project(value)=>value.code=="unused-task"}}
     pub fn render(&self, path: &str, source: &str, color: bool) -> String {
         self.render_with_provider(path,source,color,&FileSourceProvider)
     }
@@ -182,7 +184,8 @@ impl InputDiagnostic {
                     .collect::<Vec<_>>()
                     .join(",");
                 format!(
-                    "{{\"code\":{},\"message\":{},\"location\":{},\"related\":[{related}]}}",
+                    "{{{}\"code\":{},\"message\":{},\"location\":{},\"related\":[{related}]}}",
+                    if diagnostic.code=="unused-task" {"\"severity\":\"warning\","}else{""},
                     json_string(diagnostic.code),
                     json_string(&diagnostic.message),
                     location_json(&diagnostic.location)

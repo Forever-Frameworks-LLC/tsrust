@@ -6,6 +6,7 @@ impl Analyzer {
     pub(super) fn resolve_completed_capture_invocation(&self, context: &mut Context, expression: &Expr, result: Type) {
         if self.expression_result_retains_captures(result) { return; }
         let ExprKind::Call(callee, _) = &expression.kind else { return; };
+        let callee=if let ExprKind::Unary{op:UnaryOp::AwaitCallee,value,..}=&callee.kind {value.as_ref()}else{callee};
         let Some((name, fields)) = Self::direct_fields(callee) else { return; };
         let Some(binding) = Self::root_binding(callee).or_else(|| context.names.get(&name).copied()) else { return; };
         let ty = callee.ty.unwrap_or(context.bindings[binding].ty);
@@ -13,6 +14,8 @@ impl Analyzer {
         let source = Place { binding, fields };
         let moved = context.capture_loan_owners.loans_under(&source);
         context.capture_loan_owners.resolve_consumption(&source, Self::capture_payload_site(callee), &moved);
+        if self.is_task_type(ty) {context.capture_loan_owners.discard(&source);}
+        Self::restore_live_capture_loans(context);
     }
 
     #[inline(never)]
@@ -153,6 +156,18 @@ impl Analyzer {
                     pending.push((base, destination, false));
                 }
                 ExprKind::Call(callee, _) => {
+                    if value.ty.is_some_and(|ty|self.is_task_type(ty)) {
+                        let ids=context.capture_loans.iter().filter(|(_,_,span)|*span==value.span).map(|loan|context.capture_loan_ids.intern(*loan)).collect::<Vec<_>>();
+                        context.capture_loan_owners.attach(destination.clone(),ids);
+                        if let ExprKind::Call(_,arguments)=&value.kind {
+                            for (position,argument) in arguments.iter().enumerate() {
+                                if matches!(value.target,Some(CallTarget::Function(index)) if self.checked[index].as_ref().is_some_and(|function|function.bindings.get(position).is_some_and(|binding|binding.mode==Mode::Consume))) {
+                                    pending.push((argument,destination.clone(),true));
+                                }
+                            }
+                        }
+                    }
+
                     if let ExprKind::Field(base, method) = &callee.kind
                         && matches!(base.ty, Some(Type::Array(_)))
                         && matches!(method.as_str(), "pop" | "shift" | "splice")
@@ -222,6 +237,7 @@ impl Analyzer {
                     op:
                         UnaryOp::CallableStore
                         | UnaryOp::RecordCarrier
+                        | UnaryOp::AwaitCallee | UnaryOp::TaskCreate
                         | UnaryOp::CallableOnce
                         | UnaryOp::CoalesceSelected
                         | UnaryOp::OptionalSelected

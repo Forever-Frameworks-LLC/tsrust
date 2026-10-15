@@ -18,6 +18,7 @@ fn callback_ownership(kind: CallbackKind) -> CallableOwnership {
         CallbackKind::Once => CallableOwnership::Once,
         CallbackKind::Owned => CallableOwnership::Owned,
         CallbackKind::OwnedOnce => CallableOwnership::OwnedOnce,
+        CallbackKind::Task => CallableOwnership::Task,
         CallbackKind::SharedRead => CallableOwnership::SharedRead,
     }
 }
@@ -38,6 +39,7 @@ fn convert(root: Work<'_>) -> ValueAnnotation {
                         Some(CallbackKind::ProgramReusable) => CallableOwnership::ProgramReusable,
                         Some(CallbackKind::Program) => CallableOwnership::Program,
                         Some(CallbackKind::OwnedOnce) => CallableOwnership::OwnedOnce,
+        Some(CallbackKind::Task) => CallableOwnership::Task,
                         Some(CallbackKind::Owned) => CallableOwnership::Owned,
                         Some(CallbackKind::SharedRead) => CallableOwnership::SharedRead,
                         _ => CallableOwnership::Default,

@@ -11,6 +11,7 @@ use support::session::Session;
 /// `every_kind_and_std_module_has_a_row` fails otherwise.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Kind {
+    Task,
     Local,
     Keyword,
     ImportedValue,
@@ -39,7 +40,8 @@ enum Kind {
     MemberPrefix,
 }
 
-const KINDS: [Kind; 26] = [
+const KINDS: [Kind; 27] = [
+    Kind::Task,
     Kind::Local,
     Kind::Keyword,
     Kind::ImportedValue,
@@ -99,6 +101,7 @@ const TAIL: &str = "\n}\n";
 fn rows() -> Vec<Row> {
     let row = |kind, name, typed, includes, excludes| Row { kind, name, before: HEAD.into(), typed, after: TAIL, includes, excludes, silent: None, needs_check: false };
     let mut rows = vec![
+        Row {kind:Kind::Task,name:"lazy task has no lifecycle methods before S14",before:"async function answer():Task<int>{return 42;}async function main():Task<void>{const task=answer();".into(),typed:"task.",after:";await task;}",includes:&[],excludes:NOT_MEMBERS,silent:Some("Task is consumed with await; scheduling methods are not exposed by S13."),needs_check:true},
         Row {kind:Kind::ImportedMember,name:"Rust binding struct",before:"import {reply} from './api.bindings.json';function main(){const response=reply();".into(),typed:"response.",after:"text.toUpperCase();}",includes:&["text","count"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
         Row {kind:Kind::ImportedMember,name:"Rust bridge result",before:"import {echo} from './compute.rs';function main(){const message=echo('hello');".into(),typed:"message.",after:"toUpperCase();}",includes:&["length","toUpperCase"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
         Row { kind: Kind::MatchOkBinding, name: "match expression payload", before: "type User={name:string;};function main(){const result:Result<User,string>=Ok({name:'Ada'});const count=match(result){Ok(user)=>".into(), typed: "user.", after: "name.length,Err(_)=>0,};}", includes: &["name"], excludes: NOT_MEMBERS, silent: None, needs_check: false },

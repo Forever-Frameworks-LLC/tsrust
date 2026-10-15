@@ -19,7 +19,7 @@ fn convert(root: Work<'_>) -> Converted {
             Work::Result(annotation) => {
                 // Borrowed result wrappers remain named and retain the existing
                 // resolver rejection; bare results still infer invocation mode.
-                if matches!(&ungroup(annotation).kind, Kind::Callable { ownership: CallableOwnership::Default | CallableOwnership::Owned | CallableOwnership::OwnedOnce | CallableOwnership::SharedRead, .. }) {
+                if matches!(&ungroup(annotation).kind, Kind::Callable { ownership: CallableOwnership::Task | CallableOwnership::Default | CallableOwnership::Owned | CallableOwnership::OwnedOnce | CallableOwnership::SharedRead, .. }) {
                     let kind = match &ungroup(annotation).kind {
                         Kind::Callable { ownership: CallableOwnership::Default, .. } => None,
                         _ => ownership(annotation),

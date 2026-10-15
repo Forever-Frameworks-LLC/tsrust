@@ -811,6 +811,7 @@ fn type_name(
                 parameters
                     .zip(type_name(program, closure.function.result, names))
                     .map(|(parameters, result)| {
+                        if program.task_origins.contains(&id) { return format!("Task<{result}>"); }
                         let wrapper = (closure.invocation == crate::Mode::Consume).then_some("Once");
                         crate::type_syntax::function_type_text(wrapper, &parameters, &result)
                     })
@@ -830,6 +831,7 @@ fn type_name(
                 CallbackKind::Once => Some("Once"),
                 CallbackKind::Program | CallbackKind::Owned | CallbackKind::SharedRead => None,
                 CallbackKind::OwnedOnce => Some("Once"),
+                CallbackKind::Task => Some("Task"),
             };
             let parameters = contract
                 .params

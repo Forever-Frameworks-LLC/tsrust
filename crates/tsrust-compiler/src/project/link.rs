@@ -53,6 +53,7 @@ pub struct ProjectAnalysis {
     segments: Vec<(SourceId, usize, usize)>,
 }
 impl ProjectAnalysis {
+    pub fn warnings(&self) -> Vec<ProjectDiagnostic> { self.analysis.warnings().into_iter().map(|warning|diagnostic(&self.graph,&self.segments,warning)).collect() }
     pub fn emit_rust(&self) -> String {
         self.emit_rust_with_native_features().0
     }

@@ -26,6 +26,7 @@ pub(crate) fn ownership(annotation: &ValueAnnotation) -> Option<CallbackKind> {
         CallableOwnership::Once => CallbackKind::Once,
         CallableOwnership::Owned => CallbackKind::Owned,
         CallableOwnership::OwnedOnce => CallbackKind::OwnedOnce,
+        CallableOwnership::Task => CallbackKind::Task,
         CallableOwnership::SharedRead => CallbackKind::SharedRead,
     })
 }

@@ -154,7 +154,7 @@ fn step<'a>(r: &mut Resolver<'_>, work: Work<'a>, pending: &mut Vec<Work<'a>>, v
         }
         Work::StructuredResult(value) => {
             if let Kind::Callable { ownership, parameters, result } = &ungroup(value).kind
-                && matches!(ownership, CallableOwnership::Default | CallableOwnership::Owned | CallableOwnership::OwnedOnce | CallableOwnership::SharedRead) {
+                && matches!(ownership, CallableOwnership::Task | CallableOwnership::Default | CallableOwnership::Owned | CallableOwnership::OwnedOnce | CallableOwnership::SharedRead) {
                 let kind = if *ownership == CallableOwnership::Default { None } else { callback_kind(value) };
                 let params = Parameters::Structured(parameters);
                 pending.extend([Work::FinishCallable(params, value.span, kind, false), Work::StructuredResult(result), Work::Parameters(parameter_state(params, true))]);

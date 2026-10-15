@@ -60,7 +60,7 @@ impl Analyzer {
                             Mode::Mutate => CallbackKind::Reusable,
                             Mode::Read | Mode::Copy => CallbackKind::Read,
                         }
-                    } else if closure.invocation == Mode::Consume { CallbackKind::OwnedOnce } else { CallbackKind::Owned }))
+                    } else if self.task_origins.contains(&id) { CallbackKind::Task } else if closure.invocation == Mode::Consume { CallbackKind::OwnedOnce } else { CallbackKind::Owned }))
             }
             _ => None,
         };
@@ -73,6 +73,7 @@ impl Analyzer {
                     CallbackKind::Program => crate::type_syntax::CallableOwnership::Program,
                     CallbackKind::Owned => CallableOwnership::Owned,
                 CallbackKind::OwnedOnce => CallableOwnership::OwnedOnce,
+        CallbackKind::Task => CallableOwnership::Task,
                 CallbackKind::SharedRead => CallableOwnership::SharedRead,
             };
             let parameters = parameters.iter().enumerate().map(|(index, parameter)| (StructuredParameter {

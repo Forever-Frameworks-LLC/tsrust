@@ -14,7 +14,7 @@ impl StorageContract {
         signatures
             .get(signature)
             .kind
-            .filter(|kind| matches!(kind, CallbackKind::Owned | CallbackKind::OwnedOnce))
+            .filter(|kind| matches!(kind, CallbackKind::Owned | CallbackKind::OwnedOnce | CallbackKind::Task))
             .map(|_| Self::Owned(signature))
     }
 
@@ -81,7 +81,7 @@ impl StorageContract {
         let signature=match self {Self::Owned(signature)|Self::ScopedOwned(signature,_)|Self::RecursiveScopedOwned(signature,_,_)=>signature,_=>return Mode::Read};
         match signatures.get(*signature).kind {
             Some(CallbackKind::Owned | CallbackKind::Program) => Mode::Mutate,
-            Some(CallbackKind::OwnedOnce) => Mode::Consume,
+            Some(CallbackKind::OwnedOnce | CallbackKind::Task) => Mode::Consume,
             _ => unreachable!("checked owned storage contract"),
         }
     }

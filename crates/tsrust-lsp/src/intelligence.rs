@@ -3469,6 +3469,9 @@ impl SourceIndex {
             "return",
             "break",
             "continue",
+            "async",
+            "await",
+            "Task",
             "Function",
             "Mutable",
             "ReadOnly",
@@ -3881,6 +3884,7 @@ fn remap_imported_type(
                         | "void"
                         | "null"
                         | "undefined"
+                        | "Task"
                         | "Function"
                         | "Mutable"
                         | "ReadOnly"

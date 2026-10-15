@@ -24,7 +24,7 @@ Two focused tests pass. SQLite evidence: `tsrust-async-backend-b0c021e3.log` and
 `tsrust-async-format-b0c021e3.log`. These are handwritten backend controls, not
 source async support, generated-future acceptance or performance measurements.
 
-## Remaining implementation and acceptance
+## Implementation and acceptance checklist
 
 1. Settle the task-result spelling and execution contract before publishing the
    syntax. Familiar Promise spelling must not silently imply JavaScript's eager
@@ -51,9 +51,9 @@ source async support, generated-future acceptance or performance measurements.
    review performance and refresh installed consumers. Do not claim backend
    feasibility as S13 acceptance.
 
-## Proposed source contract for review
+## Settled source contract
 
-Recommend `async function work(...): Task<T>` with a uniquely owned, lazy result.
+Use `async function work(...): Task<T>` with a uniquely owned, lazy result.
 Calling the function evaluates arguments and constructs the task; its body starts
 when awaited or explicitly spawned. This does not promise JavaScript Promise
 eager execution, shared settlement or repeated awaiting. Use Task rather than

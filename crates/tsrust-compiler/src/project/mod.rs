@@ -431,33 +431,40 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
             if tokens.get(i+1).is_some_and(|next|next.text=="default") {
                 let marker=tokens[i+1].span;
                 if exports.contains_key("default") {return Err(error(id,"module-duplicate","A module can have only one default export.",marker));}
-                let next=&tokens[i+2];
+                let asynchronous=tokens[i+2].text=="async";
+                let declaration=i+2+usize::from(asynchronous);
+                let name_index=declaration+1;
+                let next=&tokens[declaration];
                 let name;
                 if next.text=="function" {
-                    if tokens[i+3].kind==TokenKind::Name {
-                        name=tokens[i+3].clone();
-                        for byte in &mut bytes[token.span.start..next.span.start] {if !matches!(*byte,b'\n'|b'\r'){*byte=b' ';}}
-                    } else if matches!(tokens[i+3].text.as_str(),"("|"<") {
+                    if tokens[name_index].kind==TokenKind::Name {
+                        name=tokens[name_index].clone();
+                        for byte in &mut bytes[token.span.start..if asynchronous {tokens[i+2].span.start}else{next.span.start}] {if !matches!(*byte,b'\n'|b'\r'){*byte=b' ';}}
+                    } else if matches!(tokens[name_index].text.as_str(),"("|"<") {
                         let mut serial=0;
                         let local=loop {let candidate=format!("__d{serial}");if !tokens.iter().any(|token|token.text==candidate){break candidate;}serial+=1;};
-                        let replacement=format!("function {local}");
+                        let replacement=format!("{}function {local}",if asynchronous{"async "}else{""});
                         let start=token.span.start;let end=next.span.end;
                         // Reuse the removed export prefix without shifting parameter/body spans.
                         bytes[start..end].fill(b' ');bytes[start..start+replacement.len()].copy_from_slice(replacement.as_bytes());
-                        name=syntax::Token {kind:TokenKind::Name,text:local,span:Span::new(start+9,start+replacement.len())};
+                        name=syntax::Token {kind:TokenKind::Name,text:local,span:Span::new(start+if asynchronous{15}else{9},start+replacement.len())};
                     } else {return Err(error(id,"module-export","Expected a default function declaration.",next.span));}
-                    i+=2;
+                    i=declaration;
                 } else if next.kind==TokenKind::Name && tokens.get(i+3).is_some_and(|end|end.text==";") {
                     name=next.clone();
-                    for byte in &mut bytes[token.span.start..tokens[i+3].span.end] {if !matches!(*byte,b'\n'|b'\r'){*byte=b' ';}}
+                    for byte in &mut bytes[token.span.start..tokens[name_index].span.end] {if !matches!(*byte,b'\n'|b'\r'){*byte=b' ';}}
                     i+=3;
                 } else {return Err(error(id,"module-export","Default exports require a function declaration or a local declaration name.",next.span));}
                 exports.insert("default".into(),name.span);default_export=Some(name);
                 i+=1;continue;
             }
-            if tokens[i + 1].kind != TokenKind::Name
-                || !matches!(tokens[i + 1].text.as_str(), "function" | "type" | "enum" | "interface" | "const" | "let")
-                || tokens[i + 2].kind != TokenKind::Name
+            let declaration = if tokens.get(i+1).is_some_and(|token|token.text=="async") {
+                if tokens.get(i+2).is_none_or(|token|token.text!="function") {return Err(error(id,"module-export","export async requires a function declaration.",token.span));}
+                i+2
+            } else {i+1};
+            if tokens[declaration].kind != TokenKind::Name
+                || !matches!(tokens[declaration].text.as_str(), "function" | "type" | "enum" | "interface" | "const" | "let")
+                || tokens.get(declaration+1).is_none_or(|token|token.kind!=TokenKind::Name)
             {
                 return Err(error(
                     id,
@@ -466,7 +473,7 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
                     token.span,
                 ));
             }
-            let name = &tokens[i + 2];
+            let name = &tokens[declaration+1];
             if exports.insert(name.text.clone(), name.span).is_some() {
                 return Err(error(
                     id,

@@ -12,7 +12,7 @@ impl Analyzer {
         let parameter_names = closure.parameters.iter()
             .map(|&slot| closure.function.bindings[slot].name.clone()).collect();
         let result = closure.function.result;
-        let kind = if closure.invocation == Mode::Consume { CallbackKind::OwnedOnce } else { CallbackKind::Owned };
+        let kind = if self.is_task_type(actual) { CallbackKind::Task } else if closure.invocation == Mode::Consume { CallbackKind::OwnedOnce } else { CallbackKind::Owned };
         let structural = self.callable_resolver().intern_callable_shape(&params, result, Some(kind));
         let contract = CallbackContract { structural, parameter_names, params, result, kind };
         let declaration = self.callables.callbacks.len();

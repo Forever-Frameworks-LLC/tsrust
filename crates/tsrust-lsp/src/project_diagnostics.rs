@@ -137,7 +137,7 @@ pub fn convert_all<'a>(
             .or_default()
             .push(Diagnostic {
                 range: primary.range,
-                severity: Some(DiagnosticSeverity::ERROR),
+                severity: Some(if error.code=="unused-task" {DiagnosticSeverity::WARNING}else{DiagnosticSeverity::ERROR}),
                 code: Some(NumberOrString::String(error.code.into())),
                 source: Some("tsrust".into()),
                 message: error.message.clone(),

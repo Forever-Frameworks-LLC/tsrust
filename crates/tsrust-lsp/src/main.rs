@@ -125,7 +125,7 @@ fn run(
                                 })
                         }
                     };
-                    let errors = result.err().unwrap_or_default();
+                    let errors = match result {Ok(analysis)=>analysis.warnings(),Err(errors)=>errors};
                     let error = errors.first();
                     let actions = error
                         .map(|error| {

@@ -18,6 +18,7 @@ pub struct ValueAnnotation {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CallableOwnership {
+    Task,
     /// Immediate registration callback with invocation-time program access.
     ProgramReusable,
     /// Internal test-registration contract; never parsed from user source.
@@ -91,6 +92,7 @@ pub enum ValueAnnotationKind {
 /// Canonical spelling of a function type. `wrapper` is ReadOnly, Mutable or
 /// Once; parameters are already rendered as `name: Type`.
 pub fn function_type_text(wrapper: Option<&str>, parameters: &[String], result: &str) -> String {
+    if wrapper == Some("Task") { return format!("Task<{result}>"); }
     let function = if parameters.is_empty() {
         format!("Function<{result}>")
     } else {
@@ -566,7 +568,7 @@ impl<'a> AnnotationParser<'a> {
     /// `Function<...>` or an access wrapper applied with `<`.
     fn signature_start(&self) -> bool {
         self.peek().kind == TokenKind::Name
-            && matches!(self.peek().text.as_str(), "Function" | "Mutable" | "ReadOnly" | "Once" | "Owned")
+            && matches!(self.peek().text.as_str(), "Task" | "Function" | "Mutable" | "ReadOnly" | "Once" | "Owned")
             && self.symbol(1, "<")
     }
 
@@ -695,7 +697,7 @@ impl<'a> AnnotationParser<'a> {
             Work::FunctionResult { name, depth } => {
                 let result = Box::new(self.values.pop().expect("function result type"));
                 let frame = FunctionFrame { name, result, parameters: Vec::new(), depth: depth + 1 };
-                if self.is(",") {
+                if self.is(",") && frame.name.text != "Task" {
                     self.take();
                     if !self.is("[") {
                         return Err(self.error("Function arguments are written as a list, such as Function<int, [string, int]>."));
@@ -817,7 +819,7 @@ impl<'a> AnnotationParser<'a> {
         }
         let name = self.take();
         self.expect("<")?;
-        if name.text == "Function" {
+        if matches!(name.text.as_str(), "Function" | "Task") {
             self.request(Work::FunctionResult { name, depth }, depth + 1);
         } else if self.signature_start() {
             self.work.push(Work::WrapperSignature { name, depth });
@@ -867,7 +869,7 @@ impl<'a> AnnotationParser<'a> {
         }
         let end = self.expect(">")?.span.end;
         let value = ValueAnnotation {
-            kind: ValueAnnotationKind::Callable { ownership: CallableOwnership::Default, parameters: frame.parameters, result: frame.result },
+            kind: ValueAnnotationKind::Callable { ownership: if frame.name.text == "Task" { CallableOwnership::Task } else { CallableOwnership::Default }, parameters: frame.parameters, result: frame.result },
             span: Span::new(frame.name.span.start, end),
         };
         self.validate_nesting(&value)?;

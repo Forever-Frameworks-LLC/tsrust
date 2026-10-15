@@ -307,7 +307,9 @@ impl ProjectAnalysis {
                 if closure.function.template {
                     return None;
                 }
-                let ownership = if closure.invocation == Mode::Consume {
+                let ownership = if self.analysis.program.task_origins.contains(&id) {
+                    crate::type_syntax::CallableOwnership::Task
+                } else if closure.invocation == Mode::Consume {
                     crate::type_syntax::CallableOwnership::Once
                 } else {
                     crate::type_syntax::CallableOwnership::Default
@@ -354,6 +356,7 @@ impl ProjectAnalysis {
                     CallbackKind::Owned => crate::type_syntax::CallableOwnership::Owned,
                     CallbackKind::SharedRead => crate::type_syntax::CallableOwnership::SharedRead,
                     CallbackKind::OwnedOnce => crate::type_syntax::CallableOwnership::OwnedOnce,
+                    CallbackKind::Task => crate::type_syntax::CallableOwnership::Task,
                 };
                 return Some(ProjectType::Callable {
                     ownership,

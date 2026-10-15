@@ -165,7 +165,7 @@ impl Emitter<'_> {
                                 | crate::syntax::CallbackKind::SharedRead
                         ) {
                             "ReadCallback"
-                        } else if contract.kind.is_once() {
+                        } else if contract.kind==crate::syntax::CallbackKind::Task { "TaskCallback" } else if contract.kind.is_once() {
                             "OnceCallback"
                         } else {
                             "Callback"
@@ -241,10 +241,19 @@ impl Emitter<'_> {
         } else {
             format!(" where {}", replacements.join(", "))
         };
+        let mut result=self.native_view_signature_type(fun.result,None,&native_lifetimes);
+        let mut params=params;
+        let mut generics=generics;
+        if self.program.task_type(fun.result) && result.contains("'_") && plan.parameters.iter().any(|&id|matches!(fun.bindings[id].mode,Mode::Read|Mode::Mutate)) {
+            result=result.replace("'_","'task");
+            params=params.split(": &").enumerate().map(|(index,part)| if index==0 {part.to_owned()} else if part.starts_with("'") {format!(": &{part}")} else {format!(": &'task {part}")}).collect();
+
+            generics=if generics.is_empty(){"<'task>".into()}else{format!("<'task,{}",&generics[1..])};
+        }
         NativeSignature {
             receiver:None,
             storage_lifetimes:plan.parameters.iter().filter_map(|&root|native_lifetimes.storage(root).map(|name|(root,name.to_owned()))).collect(),
-            result:self.native_view_signature_type(fun.result,None,&native_lifetimes),
+            result,
             params,
             generics,
             replacement_where,

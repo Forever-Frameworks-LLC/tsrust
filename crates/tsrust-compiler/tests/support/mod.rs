@@ -150,10 +150,19 @@ pub fn execute(source: &str, expected: &str, contracts: Option<&[(&str, Mode)]>)
     let path = directory.source(source);
     let checked = run(cli().arg("check").arg(&path).arg("--json"), 10);
     success(&checked);
-    assert_eq!(
-        String::from_utf8(checked.stdout).unwrap(),
-        format!("{}\n", analysis.to_json())
-    );
+    let warnings = analysis.warnings();
+    if warnings.is_empty() {
+        assert_eq!(String::from_utf8(checked.stdout).unwrap(), format!("{}\n", analysis.to_json()));
+    } else {
+        let actual: serde_json::Value = serde_json::from_slice(&checked.stdout).unwrap();
+        assert_eq!(actual["ok"], true);
+        let actual = actual["diagnostics"].as_array().unwrap();
+        assert_eq!(actual.len(), warnings.len());
+        for warning in warnings {
+            let expected: serde_json::Value = serde_json::from_str(&warning.to_json(source)).unwrap();
+            assert!(actual.contains(&expected), "missing warning {expected}");
+        }
+    }
     assert!(checked.stderr.is_empty());
     let emitted = run(cli().arg("emit").arg(&path), 10);
     success(&emitted);

@@ -36,6 +36,7 @@ impl SourceIndex {
             } => {
                 use tsrust_compiler::type_syntax::CallableOwnership;
                 let prefix = match ownership {
+                    CallableOwnership::Task => Some("Task"),
                     CallableOwnership::Default => None,
                     CallableOwnership::Read => Some("ReadOnly"),
                     CallableOwnership::ProgramReusable | CallableOwnership::Reusable => Some("Mutable"),

@@ -854,6 +854,16 @@ fn every_catalog_entry_has_a_current_compiler_witness() {
                 continue;
             }
             if family == "globals" {
+                if method == "Task" {
+                    let examples = entry["examples"].as_array().expect("Task examples");
+                    assert!(!examples.is_empty());
+                    for example in examples {
+                        let source = tsrust_compiler::format(example["source"].as_str().unwrap()).unwrap();
+                        assert_eq!(tsrust_compiler::format(&source).unwrap(), source);
+                        checked_std_example(&source);
+                    }
+                    continue;
+                }
                 if matches!(method, "Result" | "Ok" | "Err") {
                     let examples = entry["examples"].as_array().expect("Result examples");
                     assert!(!examples.is_empty(), "{method} needs a witness example");

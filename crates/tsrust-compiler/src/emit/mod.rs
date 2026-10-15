@@ -616,6 +616,8 @@ impl Emitter<'_> {
                 };
                 let trait_name = if matches!(contract.kind, crate::syntax::CallbackKind::Program | crate::syntax::CallbackKind::ProgramReusable) { "ProgramCallback" } else if matches!(contract.kind, crate::syntax::CallbackKind::Read | crate::syntax::CallbackKind::SharedRead) {
                     "ReadCallback"
+                } else if contract.kind==CallbackKind::Task {
+                    "TaskCallback"
                 } else if contract.kind.is_once() {
                     "OnceCallback"
                 } else {
@@ -1835,6 +1837,7 @@ impl Emitter<'_> {
 
     #[inline(never)]
     fn registered_callback_call(&self,call:String,id:usize,span:crate::Span)->String {
+        let call=if self.program.callback_contracts[id].kind==CallbackKind::Task {format!("({}).await",call.replace("OnceCallback::","TaskCallback::"))}else{call};
         let registered=self.result_callbacks.borrow().get(&id).cloned();
         if let Some((name,contract))=registered {
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
@@ -2010,6 +2013,7 @@ impl Emitter<'_> {
         let mut emitted=std::collections::HashSet::new();
         for (id,(destination_name,destination)) in contracts {
             let checked=&self.program.callback_contracts[*id];
+            if (checked.kind==CallbackKind::Task)!=self.program.task_origins.contains(&index){continue;}
             if checked.result!=closure.function.result || checked.params.len()!=params.len() || !checked.params.iter().zip(params).all(|(expected,actual)|expected.ty==actual.ty && expected.mode==actual.mode && expected.rest==actual.rest) {continue;}
             let result=format!("Result<{},{}>",self.native_type(checked.result),destination_name);
             if result==native_result || !emitted.insert(result.clone()) {continue;}
@@ -2030,7 +2034,7 @@ impl Emitter<'_> {
                 ("ReadCallback","invoke_read","&self",closure.invocation==Mode::Read),
                 ("Callback","invoke","&mut self",closure.invocation!=Mode::Consume),
             ] {
-                if !allowed {continue;}
+                if !allowed || self.program.task_origins.contains(&index) && trait_name!="OnceCallback" {continue;}
                 let body=convert(format!("self.call({forwarded})"));
                 let counted=if self.counted_calls {
                     let body=convert(format!("self.call_with_count(count, {forwarded})"));
@@ -2064,6 +2068,8 @@ impl Emitter<'_> {
 
     #[inline(never)]
     fn registered_storage_call(&self,call:String,family:usize,span:crate::Span)->String {
+        let task=self.program.stored_contracts.declaration(family).is_some_and(|id|self.program.callback_contracts[id].kind==CallbackKind::Task);
+        let call=if task {format!("({call}).await")}else{call};
         let result_layout=self.result_storage.borrow().get(&family).cloned();
         if let Some((source_name,source))=result_layout {
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
@@ -2075,6 +2081,7 @@ impl Emitter<'_> {
 
     #[inline(never)]
     fn stored_origin_result(&self,family:usize,origin:usize,call:String)->String {
+        let call=if self.program.task_origins.contains(&origin){format!("({call}).await")}else{call};
         let destination=self.result_storage.borrow().get(&family).cloned();
         let Some((destination_name,destination))=destination else {return call;};
         let source=&self.program.error_effects.closure_errors[origin];
@@ -2093,6 +2100,7 @@ impl Emitter<'_> {
 
     #[inline(never)]
     fn registered_closure_call(&self,call:String,origin:usize,span:crate::Span)->String {
+        let call=if self.program.task_origins.contains(&origin){format!("({call}).await")}else{call};
         let result_layout=self.result_closures.borrow().get(&origin).cloned();
         if let Some(source_name)=result_layout {
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
@@ -2332,6 +2340,7 @@ impl Emitter<'_> {
         }
         let has_heap=self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::Heap | crate::native_signatures::NativeTypeId::OrderedSet | crate::native_signatures::NativeTypeId::OrderedMap)));
         if has_heap { output.push_str(include_str!("../stdlib/collections/ordered_runtime.rs")); output.push_str(include_str!("../stdlib/collections/ordered_key_runtime.rs")); }
+        if !self.program.task_origins.is_empty() { output.push_str(include_str!("async_runtime.rs")); }
         self.set_types(&mut output);
         self.map_types(&mut output);
         if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)) {
@@ -2472,6 +2481,7 @@ impl Emitter<'_> {
             }
         }
         for (index, closure) in self.program.closures.iter().enumerate() {
+            let task_output_start=output.len();
             if closure.function.template {
                 continue;
             }
@@ -2639,7 +2649,8 @@ impl Emitter<'_> {
                 let _=writeln!(output,"        {call}");
             } else if let Some(ClosureForward::Once(inner))=closure.forward {
                 let arguments = tuple(closure.parameters.iter().map(|id| format!("value{id}")));
-                let call=self.closure_result_forward(format!("OnceCallback::invoke_once(value0, {arguments})"),inner,index);
+                let call=if self.program.task_origins.contains(&inner){format!("TaskCallback::invoke_once(value0, {arguments}).await")}else{format!("OnceCallback::invoke_once(value0, {arguments})")};
+                let call=self.closure_result_forward(call,inner,index);
                 let _=writeln!(output,"        {call}");
             } else {
                 if let Some(error_name)=&result_layout {
@@ -2725,7 +2736,7 @@ impl Emitter<'_> {
                 self.callback_result_adapters(&mut output,index,&params,&arguments,&forwarded,&impl_lifetimes,&lifetime,&native_result);
                 continue;
             }
-            if self.callback_traits {
+            if self.callback_traits || self.program.task_origins.contains(&index) {
                 let result = native_result.clone();
                 let counted_method = if self.counted_calls { format!("    fn invoke_once_with_count(mut self, args: {arguments}, count: usize) -> {result} {{ self.call_with_count(count, {forwarded}) }}\n") } else { String::new() };
                 let _ = writeln!(
@@ -2733,7 +2744,7 @@ impl Emitter<'_> {
                     "impl{impl_lifetimes} OnceCallback<{arguments}, {result}> for Closure{index}{lifetime}{forwarded_trait_where} {{\n    fn invoke_once(mut self, args: {arguments}) -> {result} {{ self.call({forwarded}) }}\n{counted_method}}}\n"
                 );
             }
-            if self.callback_traits && closure.invocation == Mode::Read {
+            if self.callback_traits && !self.program.task_origins.contains(&index) && closure.invocation == Mode::Read {
                 let result = native_result.clone();
                 let counted_method = if self.counted_calls { format!("    fn invoke_read_with_count(&self, args: {arguments}, count: usize) -> {result} {{ self.call_with_count(count, {forwarded}) }}\n") } else { String::new() };
                 let _ = writeln!(
@@ -2741,7 +2752,7 @@ impl Emitter<'_> {
                     "impl{impl_lifetimes} ReadCallback<{arguments}, {result}> for Closure{index}{lifetime}{forwarded_trait_where} {{\n    fn invoke_read(&self, args: {arguments}) -> {result} {{ self.call({forwarded}) }}\n{counted_method}}}\n"
                 );
             }
-            if self.callback_traits && closure.invocation != Mode::Consume {
+            if self.callback_traits && !self.program.task_origins.contains(&index) && closure.invocation != Mode::Consume {
                 let result = native_result.clone();
                 let counted_method = if self.counted_calls { format!("    fn invoke_with_count(&mut self, args: {arguments}, count: usize) -> {result} {{ self.call_with_count(count, {forwarded}) }}\n") } else { String::new() };
                 let _ = writeln!(
@@ -2749,7 +2760,12 @@ impl Emitter<'_> {
                     "impl{impl_lifetimes} Callback<{arguments}, {result}> for Closure{index}{lifetime}{forwarded_trait_where} {{\n    fn invoke(&mut self, args: {arguments}) -> {result} {{ self.call({forwarded}) }}\n{counted_method}}}\n"
                 );
             }
-            self.callback_result_adapters(&mut output,index,&params,&arguments,&forwarded,&impl_lifetimes,&lifetime,&native_result);
+            self.callback_result_adapters(&mut output,index,&params,&arguments,&forwarded,&impl_lifetimes,&lifetime,&native_result);            if self.program.task_origins.contains(&index) {
+                let text=output.split_off(task_output_start).replace("fn call", "async fn call").replace("OnceCallback<", "TaskCallback<").replace("fn invoke_once", "async fn invoke_once");
+                // Direct adapters have the same zero-argument task contract.
+                let text=text.replace(&format!("self.call({forwarded})"), &format!("self.call({forwarded}).await")).replace(&format!("self.call_with_count(count, {forwarded})"), &format!("self.call_with_count(count, {forwarded}).await"));
+                output.push_str(&text);
+            }
         }
         let declared_families = crate::callable_layout::declared_storage_families(self.program,|record,position|self.scoped_record_native_field(record,position,self.program.records[record].fields[position].ty.expect("checked field")));
         if self.program.stored_contracts.families().any(|(_, declaration, _)| self.program.callback_contracts[declaration].kind == crate::syntax::CallbackKind::SharedRead) {
@@ -2782,6 +2798,7 @@ impl Emitter<'_> {
             .filter(|(id, _, origins)| !origins.is_empty() || declared_families.contains(id))
             .filter(|(id, _, _)| !uninhabited_view_families.contains(id))
         {
+            let task_family_start=output.len();
             let contract = &self.program.callback_contracts[declaration];
             if self.program.stored_contracts.is_borrowed(id) {self.emit_borrowed_family(&mut output,id,declaration,origins);continue;}
             if let Some(layout)=self.program.stored_contracts.scoped_native_family(id) {
@@ -2838,6 +2855,10 @@ impl Emitter<'_> {
                 };
                 self.callback_family_result_adapters(&mut output, id, contract, &format!("StoredCallable{id}"), &lifetime_parameters(&lifetimes), &arguments, &forwarded, &native_result, &traits);
             }
+            if contract.kind==CallbackKind::Task {
+                let text=output.split_off(task_family_start).replace("fn call", "async fn call").replace("OnceCallback<","TaskCallback<").replace("fn invoke_once","async fn invoke_once").replace("self.call() }","self.call().await }").replace("self.call()}","self.call().await}");
+                output.push_str(&text);
+            }
         }
         for (plan_id, plan) in self.fixed.plans.iter().enumerate() {
             let index = plan.function;
@@ -2858,6 +2879,8 @@ impl Emitter<'_> {
             };
             let native_result=match &result_target {Some((_,error))=>format!("Result<{},{}>",view_result,error),None=>view_result};
             let _ = writeln!(output,"fn {name}{generics}({params}) -> {native_result}{replacement_where} {{");
+            let async_entry=fun.body.iter().any(|stmt|matches!(stmt.kind,StmtKind::Expr(Expr{kind:ExprKind::Unary{op:UnaryOp::Await,..},..})));
+            if async_entry {output.push_str("tsrust_async_block_on(async move {\n");}
             if name == "main" {
                 output.push_str(self.entry_setup);
             }
@@ -2875,6 +2898,7 @@ impl Emitter<'_> {
                 self.parameter_initialization(&mut output, fun);
                 self.initialized_function_body(&mut output, fun, 1);
             }
+            if async_entry {output.push_str("})\n");}
             output.push_str("}\n\n");
         }
         self.active_plan.set(None);
@@ -4025,7 +4049,7 @@ impl Emitter<'_> {
                     root = last;
                     assertion = None;
                 }
-                ExprKind::Unary { op: UnaryOp::NonNull, value, operator } => {
+            ExprKind::Unary { op: UnaryOp::NonNull, value, operator } => {
                     assertion = Some(*operator);
                     root = value;
                 }
@@ -7498,7 +7522,7 @@ impl Emitter<'_> {
                 match mode{Mode::Read=>format!("&({code})"),Mode::Mutate=>format!("&mut ({code})"),_=>code}
             }
             ExprKind::Unary {
-                op: UnaryOp::CallableOnce,
+                op: UnaryOp::CallableOnce | UnaryOp::TaskCreate,
                 value,
                 ..
             } => {
@@ -7514,10 +7538,14 @@ impl Emitter<'_> {
                 }
             }
             ExprKind::Unary {
-                op: UnaryOp::RestPack | UnaryOp::CoalesceSelected | UnaryOp::OptionalSelected,
+                op: UnaryOp::AwaitCallee | UnaryOp::RestPack | UnaryOp::CoalesceSelected | UnaryOp::OptionalSelected,
                 value,
                 ..
             } => self.expr(fun, value, mode),
+                ExprKind::Unary { op: UnaryOp::Await, value, .. } => {
+                let code=self.expr(fun,value,mode);
+                code
+            }
             ExprKind::Unary { op: UnaryOp::NonNull, value, operator } => self.non_null_projection(fun,expr,value,*operator,mode),
             ExprKind::Binary { op, left, right, .. } if matches!(op, BinaryOp::And | BinaryOp::Or)
                 && !(left.ty == Some(Type::Boolean) && right.ty == Some(Type::Boolean)) =>
@@ -8022,6 +8050,7 @@ impl Emitter<'_> {
         let number = value.ty == Some(Type::Number);
         let value = render(value, Mode::Copy, false);
         match op {
+            UnaryOp::Await | UnaryOp::AwaitCallee | UnaryOp::TaskCreate => unreachable!("task lowering emitted separately"),
             UnaryOp::VariantIs(_) => unreachable!("variant test emitted separately"),
             UnaryOp::PatternSelection=>unreachable!("pattern selection lowered before emission"),
             UnaryOp::Spread => unreachable!("source spread must be lowered by checked call planning"),

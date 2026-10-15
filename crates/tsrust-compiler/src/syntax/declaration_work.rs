@@ -116,7 +116,8 @@ impl Parser<'_> {
                 self.parameter_finish(frame, CallableParameter { rest, name, ty, access, initializer }, machine)?;
             }
             Work::NamedFunction => {
-                let name = self.name()?;
+                let mut name = self.name()?;
+                if self.i >= 3 && self.tokens[self.i-3].text == "async" { name.text = format!("async#{}", name.text); }
                 let type_parameters = self.type_parameters()?;
                 self.expect("(")?;
                 // Pattern declarations of an enclosing parameter list stay
@@ -177,6 +178,7 @@ impl Parser<'_> {
                 self.parameter_patterns = outer_patterns;
                 function.body.append(&mut machine.body());
                 function.scope_span.end = self.tokens[self.i - 1].span.end;
+                self.finish_async_function(&mut function)?;
                 machine.functions.push(*function);
             }
             Work::LocalFunction(start) => {

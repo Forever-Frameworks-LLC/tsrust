@@ -1,0 +1,9 @@
+async function greeting(name: string): Task<string> {
+  return `Hello, ${name}`;
+}
+
+async function main(): Task<void> {
+  const message = greeting('Ada');
+  console.log('Task created; greeting has not run yet.');
+  console.log(await message);
+}

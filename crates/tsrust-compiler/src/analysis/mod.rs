@@ -1,4 +1,5 @@
 mod escape_work;
+mod task_diagnostics;
 mod continuations;
 use continuations::CallDispatch;
 mod value_type_resolution;
@@ -337,6 +338,7 @@ pub struct CheckedProgram {
     pub records: Vec<Record>,
     pub unions: Vec<crate::unions::UnionType>,
     pub functions: Vec<CheckedFunction>,
+    pub task_origins: HashSet<usize>,
     pub closures: Vec<CheckedClosure>,
     pub callback_contracts: Vec<CallbackContract>,
     pub(crate) absent_callback_payloads: HashSet<usize>,
@@ -446,6 +448,7 @@ type CallbackMetadata = (Option<Mode>, bool, Option<CallbackKind>);
 
 #[derive(Clone)]
 struct Context {
+    task_owned_inputs: Option<Box<HashSet<usize>>>,
     block_result_type: Type,
     match_values: Vec<(usize, Option<Type>)>,
     match_loans: Vec<Loans>,
@@ -530,6 +533,7 @@ impl Context {
             native_view_declaration_depths: HashMap::new(),
             native_view_environments: None,
             native_shadowed_bindings: None,
+            task_owned_inputs: None,
             native_view_results: None,
             native_view_function_returns: None,
             storage_exits: Default::default(), native_returns: None, native_mutations: None,
@@ -802,6 +806,8 @@ struct Analyzer {
     observing_values: bool,
     recursive_callbacks: HashSet<usize>,
     depth: usize,
+    task_sources: HashSet<usize>,
+    task_origins: HashSet<usize>,
     closures: Vec<CheckedClosure>,
     closure_types: HashMap<ClosureKey, usize>,
     once_returns: HashMap<usize, usize>,
@@ -1381,6 +1387,9 @@ fn remap_function_closures(
                 if let Some(ty) = &mut expr.ty {
                     remap_closure_type(ty, ids)?;
                 }
+                if let Some(CallTarget::ConditionalClosure(origin))=&mut expr.target {
+                    *origin=ids.get(*origin).copied().flatten().ok_or_else(||Diagnostic::new("callable-layout","Conditional invocation lost its checked environment during compaction.",expr.span))?;
+                }
                 // Constructors require their concrete payload identity. A call
                 // with an unretained origin stays unresolved instead of using
                 // another environment's error contract.
@@ -1477,6 +1486,16 @@ fn remap_function_closures(
 }
 
 impl Analyzer {
+    fn is_task_type(&self, ty: Type) -> bool {
+        match ty {
+            Type::Closure(id) => self.task_origins.contains(&id),
+            Type::Callable(id) => self.callables.shapes.get(self.callables.results[id].structural).kind==Some(CallbackKind::Task),
+            Type::Callback(id) => self.callables.callbacks[id].kind == CallbackKind::Task,
+            Type::StoredCallable(id) | Type::BorrowedCallable(id) => self.callables.storage.declaration(id).is_some_and(|id| self.callables.callbacks[id].kind == CallbackKind::Task),
+            _ => false,
+        }
+    }
+
     fn new(mut program: Program) -> Result<Self, Diagnostic> {
         // Never silently drop preserved initializers while module ownership
         // lowering is under construction.
@@ -1637,6 +1656,8 @@ impl Analyzer {
             observing_values: false,
             recursive_callbacks: HashSet::new(),
             depth: 0,
+            task_sources: HashSet::new(),
+            task_origins: HashSet::new(),
             closures: Vec::new(),
             closure_types: HashMap::new(),
             once_returns: HashMap::new(),
@@ -2395,6 +2416,7 @@ impl Analyzer {
             invocation: Mode::Consume,
         };
         self.closures.push(wrapper);
+        if self.task_origins.contains(&origin) {self.task_origins.insert(id);}
         self.once_returns.insert(origin, id);
         if !self.discovering_results {
             self.validated_closures.insert(id);
@@ -2476,6 +2498,9 @@ impl Analyzer {
     }
 
     fn require(&self, actual: Type, expected: Option<Type>, span: Span) -> Result<(), Diagnostic> {
+        let expected_task=expected.is_some_and(|ty| match ty {Type::Callable(id)=>self.callables.shapes.get(self.callables.results[id].structural).kind==Some(CallbackKind::Task),_=>self.is_task_type(ty)});
+        if expected_task && !self.is_task_type(actual) && !matches!(actual,Type::Callable(id) if self.callables.shapes.get(self.callables.results[id].structural).kind==Some(CallbackKind::Task)) {return Err(Diagnostic::new("task-type","Task<T> requires an async function result; an ordinary callback is not a task.",span));}
+        if self.is_task_type(actual) && expected.is_some_and(|ty|matches!(ty,Type::Callable(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_))) && !expected_task {return Err(Diagnostic::new("task-type","A Task<T> cannot become an ordinary callback; consume it with await.",span));}
         if let Some(expected) = expected
             && self.scoped_native_storage_contract(actual, expected, span)? { return Ok(()); }
         if expected.is_some_and(|expected| self.scoped_map_contract(actual, expected)) { return Ok(()); }
@@ -2677,6 +2702,7 @@ impl Analyzer {
             self.polymorphic_invocations = self.polymorphic_invocations.remap(&ids, Span::default())?;
             self.callables.storage.remap_origins(&ids)?;
             self.unions.remap_closure_origins(&ids);
+            self.task_origins=self.task_origins.into_iter().filter_map(|origin|ids.get(origin).copied().flatten()).collect();
             self.closures = self
                 .closures
                 .into_iter()
@@ -2805,6 +2831,7 @@ impl Analyzer {
                 .collect(),
             unions: self.unions.snapshot(),
             records: self.program.records,
+            task_origins: self.task_origins,
             closures: self.closures,
             callback_contracts: self.callables.callbacks,
             absent_callback_payloads: self.absent_callback_payloads.values().copied().collect(),
@@ -3072,6 +3099,7 @@ impl Analyzer {
             escapes: true,
             invocation: Mode::Read,
         });
+        if self.callables.shapes.get(self.callables.results[contract].structural).kind==Some(CallbackKind::Task){self.task_origins.insert(id);self.closures[id].invocation=Mode::Consume;}
         self.result_shapes.insert(contract, id);
         self.pending_shapes.insert(id);
         Type::Closure(id)
@@ -5026,6 +5054,32 @@ impl Analyzer {
                 if !self.discovering_results {self.validated_closures.insert(id);}
                 Ok(Type::Closure(id))
             }
+            ExprKind::Unary { op: UnaryOp::TaskCreate, value, .. } => {
+                if let ExprKind::Closure { id, .. } = value.kind { self.escaping.insert(id); self.task_sources.insert(id); }
+                let actual = self.expression(context, value, Mode::Consume, loans, None)?;
+                let Type::Closure(origin) = actual else { unreachable!("task environment") };
+                self.task_origins.insert(origin);
+                let origin = self.once_return(origin, context, expr.span);
+                self.task_origins.insert(origin);
+                Ok(Type::Closure(origin))
+            }
+            ExprKind::Unary { op: UnaryOp::AwaitCallee, value, operator } => {
+                let hint=self.expression_type_hint(context,value);
+                let permission=context.returning_closure; context.returning_closure=true;
+                let checked=self.expression(context,value,Mode::Consume,loans,hint);
+                context.returning_closure=permission;
+                let ty=checked?;
+                if !self.is_task_type(ty) { return Err(Diagnostic::new("await-task", "await consumes a Task<T>; ordinary values and worker handles are not tasks.", *operator)); }
+                Ok(ty)
+            }
+            ExprKind::Unary { op: UnaryOp::Await, value, operator } => {
+                if !matches!(value.kind, ExprKind::Call(ref callee, _) if matches!(callee.kind,ExprKind::Unary{op:UnaryOp::AwaitCallee,..})) {
+                    let operand = std::mem::replace(value, Box::new(Expr::new(ExprKind::Undefined,*operator)));
+                    let callee = Expr::new(ExprKind::Unary { op: UnaryOp::AwaitCallee, value: operand, operator:*operator },expr.span);
+                    *value = Box::new(Expr::new(ExprKind::Call(Box::new(callee),Vec::new()),expr.span));
+                }
+                self.expression(context,value,Mode::Consume,loans,None)
+            }
             ExprKind::Unary {
                 op: UnaryOp::CallableOnce,
                 value,
@@ -5169,7 +5223,7 @@ impl Analyzer {
             // Synthesized wrappers and other unary forms keep their
             // temporaries out of this recursively retained dispatcher.
             ExprKind::Unary {
-                op: UnaryOp::CallableStore
+                op: UnaryOp::TaskCreate | UnaryOp::Await | UnaryOp::AwaitCallee | UnaryOp::CallableStore
                     | UnaryOp::RecordCarrier
                     | UnaryOp::CallableRestAdapter
                     | UnaryOp::CallableOnce
@@ -8730,6 +8784,11 @@ self.names_materialized_type(element.with_depth(0).ty())
         expected: Option<Type>,
         receiver_prepared: bool,
     ) -> Result<CallDispatch, Diagnostic> {
+        if let ExprKind::Call(callee,_) = &expr.kind
+            && !matches!(callee.kind,ExprKind::Unary{op:UnaryOp::AwaitCallee,..})
+            && self.expression_type_hint(context,callee).is_some_and(|ty|self.is_task_type(ty)) {
+            return Err(Diagnostic::new("task-call","A Task<T> is lazy and single use; consume it with await, not a function call.",callee.span));
+        }
         // A direct nongeneric declaration needs no builtin or conditional state.
         let declared = matches!(&expr.kind, ExprKind::Call(callee, args)
             if matches!(&callee.kind, ExprKind::Name(name)
@@ -9387,6 +9446,13 @@ self.names_materialized_type(element.with_depth(0).ty())
                         };
                         *argument = *value;
                     }
+                }
+            }
+        }
+        if self.is_task_type(result) {
+            for (argument,parameter) in args.iter().zip(&self.checked[index].as_ref().map(|function|function.bindings[..function.parameter_count].to_vec()).unwrap_or_default()) {
+                if matches!(parameter.mode,Mode::Read|Mode::Mutate) && !parameter.ty.is_copy() {
+                    for root in Self::loan_roots(argument,parameter.mode) { context.capture_loans.push((root,parameter.mode,span)); }
                 }
             }
         }
@@ -10154,7 +10220,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             .ok_or_else(|| Diagnostic::new("name", format!("Unknown value {name:?}."), span))?;
         let callback_argument = matches!(expected, Some(Type::Callback(_)));
         let observation =
-            self.observing_values && mode == Mode::Read && !context.is_capture(index);
+            self.observing_values && mode == Mode::Read && (!context.is_capture(index) || self.is_task_type(context.bindings[index].ty));
         if let Some(kind) = context.bindings[index].callback_kind {
             if !kind.is_owned()
                 && context.returning_closure && !callback_argument

@@ -1,0 +1,20 @@
+async function append(values: Mutable<int[]>): Task<void> {
+  values.push(2);
+}
+
+async function lookup(): Task<string> {
+  throw 'Record missing';
+}
+
+async function main(): Task<void> {
+  const values = [1];
+  const update = append(values);
+  await update;
+  console.log(values.length);
+
+  try {
+    console.log(await lookup());
+  } catch (error) {
+    console.log(error);
+  }
+}

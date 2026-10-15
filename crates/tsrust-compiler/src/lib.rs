@@ -158,6 +158,7 @@ pub struct GenericRecordInfo {
 }
 
 impl Analysis {
+    pub fn warnings(&self) -> Vec<Diagnostic> { self.program.task_warnings() }
     /// Materialized record applications in deterministic native record order.
     /// This is declaration provenance, not inferred expression or flow metadata.
     /// Nested applications are resolved nominal names, not reparsable source text;
@@ -262,7 +263,7 @@ pub fn check(source: &str) -> Result<Analysis, Diagnostic> {
 /// Semantic replay discards invalid statements without exposing an executable tree.
 pub fn diagnostics(source: &str) -> Vec<Diagnostic> {
     match check(source) {
-        Ok(_) => Vec::new(),
+        Ok(analysis) => analysis.warnings(),
         Err(error) => diagnostic_error(source,error),
     }
 }

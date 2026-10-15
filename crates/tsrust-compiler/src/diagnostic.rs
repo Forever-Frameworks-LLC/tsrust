@@ -31,6 +31,7 @@ pub struct Diagnostic {
 }
 
 impl Diagnostic {
+    pub fn is_warning(&self) -> bool { self.code == "unused-task" }
     pub fn new(code: &'static str, message: impl Into<String>, span: Span) -> Self {
         Self {
             code,
@@ -74,7 +75,8 @@ impl Diagnostic {
             .collect::<Vec<_>>()
             .join(",");
         format!(
-            "{{\"code\":{},\"message\":{},\"location\":{},\"related\":[{}]}}",
+            "{{{}\"code\":{},\"message\":{},\"location\":{},\"related\":[{}]}}",
+            if self.is_warning(){"\"severity\":\"warning\","}else{""},
             json_string(self.code),
             json_string(&self.message),
             location_json(source, self.span),
@@ -97,10 +99,10 @@ impl Diagnostic {
         };
         let mut output = format!(
             "{}: {}\n",
-            paint(&format!("error[{}]", self.code), "1;31"),
+            paint(&format!("{}[{}]", if self.is_warning(){"warning"}else{"error"}, self.code), if self.is_warning(){"1;33"}else{"1;31"}),
             self.message
         );
-        let primary = (self.span, "Invalid use here.".to_owned());
+        let primary = (self.span, if self.is_warning(){"Task can be abandoned here."}else{"Invalid use here."}.to_owned());
         for (index, (span, label)) in std::iter::once(&primary)
             .chain(self.related.iter())
             .enumerate()

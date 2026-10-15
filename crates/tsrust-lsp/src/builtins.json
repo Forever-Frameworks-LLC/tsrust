@@ -3856,6 +3856,20 @@
     ]
   },
   {
+    "name": "Task",
+    "signature": "type Task<T>",
+    "parameters": [
+      "T"
+    ],
+    "documentation": "A lazy, uniquely owned asynchronous operation that produces T. Call an async function to create a task; its body starts when awaited. Arguments evaluate immediately, and owned arguments transfer immediately. T is the result type; use void when no value is returned. await task consumes it once and yields T. Body errors propagate at await through try/catch; argument and default-value errors occur at construction. Task has no methods. Use await to run it; scheduling, timers and cancellation APIs are not available.\n\n```tsrust\nasync function answer(): Task<int> { return 42; }\nasync function main(): Task<void> {\n  const task = answer();\n  console.log(await task); // 42\n}\n```\n\nAn unstarted task can be disposed without running its body; unused paths produce warnings. Normal completion and errors execute source finally blocks. Disposing an unstarted or suspended future releases owned resources, but does not promise source finally execution.\n\nOwnership: tasks cannot be cloned or awaited twice. Retained ReadOnly or Mutable argument loans stay active until task completion or disposal. Local awaiting does not require thread transfer capability.",
+    "examples": [
+      {
+        "source": "async function answer(): Task<int> { return 42; } async function main(): Task<void> { const task = answer(); console.log(await task); }",
+        "output": "42\n"
+      }
+    ]
+  },
+  {
     "name": "Function",
     "signature": "type Function<Result, [Arguments]>",
     "parameters": [
@@ -3880,7 +3894,7 @@
     "parameters": [
       "T"
     ],
-    "documentation": "Lends something for the duration of a call and allows it to be changed.\n\n`T` is one type. Around a function type, `Mutable<Function<...>>` borrows a callback that may change the values it captured; the caller keeps the callback and can pass it again afterwards. Around an argument inside a `Function` argument list, `Mutable<T>` means the function changes the caller's string, array or record in place.\n\n```tsrust\nlet calls = 0;\nconst count: Mutable<Function<int>> = (): int => { calls += 1; return calls; };\nconsole.log(count(), count()); // prints \"1 2\"\n```\n\n```tsrust\nconst values = [1];\nconst grow: ReadOnly<Function<int, [Mutable<int[]>]>> = (list: int[]): int => { list.push(2); return list.length; };\nconsole.log(grow(values), values.join(\",\")); // prints \"2 1,2\"\n```\n\nA borrowed callback cannot be returned, stored in a record or array, or captured by a returned function; that is a `callback-escape` error. Passing the same value as two `Mutable` arguments of one call is a `conflicting-access` error. `Mutable` around a scalar such as `int`, or around a data type outside a `Function` argument list, is a `callback-access` error. Wrappers do not nest: `ReadOnly<Mutable<T>>` is rejected.\n\nOwnership: nothing is copied or moved. The caller remains the owner, and the loan ends when the call returns.",
+    "documentation": "Lends something for the duration of a call and allows it to be changed.\n\n`T` is one type. Around a function type, `Mutable<Function<...>>` borrows a callback that may change the values it captured; the caller keeps the callback and can pass it again afterwards. Around an argument inside a `Function` argument list, `Mutable<T>` means the function changes the caller's string, array or record in place.\n\n```tsrust\nlet calls = 0;\nconst count: Mutable<Function<int>> = (): int => { calls += 1; return calls; };\nconsole.log(count(), count()); // prints \"1 2\"\n```\n\n```tsrust\nconst values = [1];\nconst grow: ReadOnly<Function<int, [Mutable<int[]>]>> = (list: int[]): int => { list.push(2); return list.length; };\nconsole.log(grow(values), values.join(\",\")); // prints \"2 1,2\"\n```\n\nA borrowed callback cannot be returned, stored in a record or array, or captured by a returned function; that is a `callback-escape` error. Passing the same value as two `Mutable` arguments of one call is a `conflicting-access` error. `Mutable` around a scalar such as `int`, or around a data type outside a `Function` argument list, is a `callback-access` error. Wrappers do not nest: `ReadOnly<Mutable<T>>` is rejected.\n\nOwnership: nothing is copied or moved. The caller remains the owner. A synchronous loan ends when the call returns; an async argument loan stays active until its Task completes or is disposed.",
     "examples": [
       {
         "source": "let calls = 0;\nconst count: Mutable<Function<int>> = (): int => { calls += 1; return calls; };\nconsole.log(count(), count());",
@@ -3898,7 +3912,7 @@
     "parameters": [
       "T"
     ],
-    "documentation": "Lends something for the duration of a call without allowing it to be changed.\n\n`T` is one type. Around a function type, `ReadOnly<Function<...>>` borrows a callback that only reads the values it captured; it can be called any number of times and the caller keeps it. Around an argument inside a `Function` argument list, `ReadOnly<T>` means the function reads the caller's string, array or record and leaves it unchanged.\n\n```tsrust\nconst text = \"abc\";\nconst size: ReadOnly<Function<int>> = (): int => { return text.length; };\nconsole.log(size(), size(), text); // prints \"3 3 abc\"\n```\n\n```tsrust\nconst measure: ReadOnly<Function<int, [ReadOnly<string>]>> = (text: string): int => { return text.length; };\nconst word = \"four\";\nconsole.log(measure(word), word); // prints \"4 four\"\n```\n\nA callback that changes or consumes a captured value does not fit `ReadOnly<Function<...>>` and is a `callback-access` error. A borrowed callback cannot be returned or stored (`callback-escape`). `ReadOnly` around a scalar such as `int`, or around a data type outside a `Function` argument list, is a `callback-access` error.\n\nThis describes borrowing for one call. It is not TypeScript's `Readonly<T>`, which makes object properties read-only.\n\nOwnership: nothing is copied or moved. The caller remains the owner and can keep using the value after the call.",
+    "documentation": "Lends something for the duration of a call without allowing it to be changed.\n\n`T` is one type. Around a function type, `ReadOnly<Function<...>>` borrows a callback that only reads the values it captured; it can be called any number of times and the caller keeps it. Around an argument inside a `Function` argument list, `ReadOnly<T>` means the function reads the caller's string, array or record and leaves it unchanged.\n\n```tsrust\nconst text = \"abc\";\nconst size: ReadOnly<Function<int>> = (): int => { return text.length; };\nconsole.log(size(), size(), text); // prints \"3 3 abc\"\n```\n\n```tsrust\nconst measure: ReadOnly<Function<int, [ReadOnly<string>]>> = (text: string): int => { return text.length; };\nconst word = \"four\";\nconsole.log(measure(word), word); // prints \"4 four\"\n```\n\nA callback that changes or consumes a captured value does not fit `ReadOnly<Function<...>>` and is a `callback-access` error. A borrowed callback cannot be returned or stored (`callback-escape`). `ReadOnly` around a scalar such as `int`, or around a data type outside a `Function` argument list, is a `callback-access` error.\n\nThis describes borrowing for one call. It is not TypeScript's `Readonly<T>`, which makes object properties read-only.\n\nOwnership: nothing is copied or moved. The caller remains the owner. An async argument loan stays active until its Task completes or is disposed.",
     "examples": [
       {
         "source": "const text = \"abc\";\nconst size: ReadOnly<Function<int>> = (): int => { return text.length; };\nconsole.log(size(), size(), text);",

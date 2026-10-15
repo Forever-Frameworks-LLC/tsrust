@@ -42,6 +42,7 @@ pub(super) enum PreparedInvocation { Deferred(super::super::deferred_generic_cal
 impl Analyzer {
     pub(in crate::analysis) fn prepare_builtin_call_work(&mut self, context: &mut Context, expr: &mut Expr, loans: &Loans, expected: Option<Type>) -> Result<CallDispatch, Diagnostic> {
         let ExprKind::Call(callee, _) = &expr.kind else { unreachable!("call dispatch") };
+        if !matches!(callee.kind,ExprKind::Unary{op:UnaryOp::AwaitCallee,..}) && self.expression_type_hint(context,callee).is_some_and(|ty|self.is_task_type(ty)) { return Err(Diagnostic::new("task-call", "A Task<T> is lazy and single use; consume it with await, not a function call.",callee.span)); }
         let stored_field = matches!(callee.kind, ExprKind::Field(_, _) | ExprKind::Index(_, _))
             && self.expression_type_hint(context, callee).is_some_and(|ty| matches!(ty, Type::StoredCallable(_) | Type::BorrowedCallable(_)));
         if stored_field {
@@ -62,7 +63,7 @@ impl Analyzer {
             ExprKind::Selected { .. } | ExprKind::CoalesceAssign { .. } | ExprKind::SpreadValue(_)
                 | ExprKind::Call(_, _) | ExprKind::Sequence(_) | ExprKind::Closure { .. } | ExprKind::Conditional { .. }
                 | ExprKind::Binary { op: BinaryOp::Coalesce | BinaryOp::PatternDefault, .. }
-                | ExprKind::Unary { op: UnaryOp::RestPack | UnaryOp::CoalesceSelected | UnaryOp::OptionalSelected | UnaryOp::NonNull, .. }) {
+                | ExprKind::Unary { op: UnaryOp::AwaitCallee | UnaryOp::RestPack | UnaryOp::CoalesceSelected | UnaryOp::OptionalSelected | UnaryOp::NonNull, .. }) {
             return Ok(CallDispatch::Conditional { publish_type: true });
         }
         if let Some(request) = self.transform_request(context, expr, expected, false) { return Ok(CallDispatch::Transform(request)); }
@@ -80,7 +81,7 @@ impl Analyzer {
             let right = self.callback_value_hint(context, alternate)?;
             left.is_none() || right.is_none() || left != right
         } else { false };
-        let checked_callee = matches!(callee.kind, ExprKind::Closure { .. } | ExprKind::Call(_, _)) || distinct_conditional;
+        let checked_callee = matches!(callee.kind, ExprKind::Closure { .. } | ExprKind::Call(_, _) | ExprKind::Unary{op:UnaryOp::AwaitCallee,..}) || distinct_conditional;
         if matches!(callee.kind, ExprKind::Closure { .. }) { self.contextual_expression_callee(context, callee, args)?; }
         Ok(CalleeFrame { capture_boundary, checked_callee })
     }

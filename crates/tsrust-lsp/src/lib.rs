@@ -68,7 +68,7 @@ pub fn diagnostics(source: &str, uri: &str) -> Result<Vec<Diagnostic>, String> {
                 .collect::<Result<Vec<_>, String>>()?;
             Ok(Diagnostic {
                 range: index.range(source, error.span)?,
-                severity: Some(DiagnosticSeverity::ERROR),
+                severity: Some(if error.code=="unused-task" {DiagnosticSeverity::WARNING}else{DiagnosticSeverity::ERROR}),
                 code: Some(NumberOrString::String(error.code.into())),
                 source: Some("tsrust".into()),
                 message: error.message,

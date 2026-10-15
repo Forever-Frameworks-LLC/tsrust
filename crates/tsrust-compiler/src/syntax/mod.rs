@@ -11,6 +11,7 @@ mod scheduler;
 mod statement_work;
 pub(crate) mod diagnostic_directives;
 mod named_function_syntax;
+mod async_syntax;
 mod annotation_conversion;
 mod annotation_storage;
 mod tree_storage;
@@ -885,6 +886,9 @@ pub fn string_html_target(name: &str) -> Option<CallTarget> {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UnaryOp {
+    Await,
+    AwaitCallee,
+    TaskCreate,
     /// Checked tag test for one alternative of a closed union.
     VariantIs(Type),
     /// Internal default-pattern selection; missing positions produce undefined.
@@ -1625,6 +1629,7 @@ pub struct RecordField {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum CallbackKind {
+    Task,
     /// Immediate registration callback with invocation-time program access.
     ProgramReusable,
     /// Registry-owned environment with invocation-time program access.
@@ -1655,10 +1660,10 @@ impl CallbackKind {
     }
 
     pub fn is_owned(self) -> bool {
-        matches!(self, Self::Owned | Self::OwnedOnce | Self::SharedRead | Self::Program)
+        matches!(self, Self::Owned | Self::OwnedOnce | Self::Task | Self::SharedRead | Self::Program)
     }
     pub fn is_once(self) -> bool {
-        matches!(self, Self::Once | Self::OwnedOnce)
+        matches!(self, Self::Once | Self::OwnedOnce | Self::Task)
     }
 }
 
@@ -1844,6 +1849,8 @@ impl<'a> Parser<'a> {
     }
 
     fn with_policy(source: &'a str, imported: crate::type_aliases::Aliases, records: crate::type_aliases::ImportedRecords, policy: NestingPolicy) -> Result<Self, Diagnostic> {
+        let tokens = lex_with(source, policy)?;
+        let has_await = tokens.iter().any(|token| token.text == "await");
         Ok(Self {
             source,
             diagnostics: None,
@@ -1852,7 +1859,8 @@ impl<'a> Parser<'a> {
             parenthesis_closers: Default::default(),
             typed_arrow_clear: None,
             validated_switches: Default::default(),
-            tokens: lex_with(source, policy)?,
+            tokens,
+            has_await,
             i: 0,
             depth: 0,
             next_closure: 0,
@@ -1918,6 +1926,7 @@ struct Parser<'a> {
     unresolved_local_function: Option<Token>,
     source: &'a str,
     tokens: Vec<Token>,
+    has_await: bool,
     i: usize,
     depth: usize,
     next_closure: usize,
@@ -2055,7 +2064,7 @@ impl Parser<'_> {
             }
             if matches!(
                 name.text.as_str(),
-                "int" | "number" | "boolean" | "string" | "null" | "undefined" | "void" | "Function" | "Mutable" | "ReadOnly" | "Once" | "Owned" | "Set" | "Map" | "Array"
+                "int" | "number" | "boolean" | "string" | "null" | "undefined" | "void" | "Task" | "Function" | "Mutable" | "ReadOnly" | "Once" | "Owned" | "Set" | "Map" | "Array"
             ) {
                 return Err(Diagnostic::new(
                     "duplicate",
@@ -2086,7 +2095,7 @@ impl Parser<'_> {
                 name.span,
             ));
         }
-        if matches!(name.text.as_str(), "Function" | "Mutable" | "ReadOnly" | "Once" | "Owned") {
+        if matches!(name.text.as_str(), "Task" | "Function" | "Mutable" | "ReadOnly" | "Once" | "Owned") {
             return Err(Diagnostic::new(
                 "duplicate",
                 format!("Type name {:?} is reserved for built-in function and access types.", name.text),
@@ -2332,7 +2341,7 @@ impl Parser<'_> {
                         name.span,
                     ));
                 }
-                if matches!(name.text.as_str(), "Function" | "Mutable" | "ReadOnly" | "Once" | "Owned") {
+                if matches!(name.text.as_str(), "Task" | "Function" | "Mutable" | "ReadOnly" | "Once" | "Owned") {
                     return Err(Diagnostic::new(
                         "duplicate",
                         format!("Type name {:?} is reserved for built-in function and access types.", name.text),
@@ -2372,6 +2381,19 @@ impl Parser<'_> {
                     interface_bases.push((record.name.clone(), bases));
                 }
                 program.records.push(record);
+            } else if self.accept("async") {
+                self.expect("function")?;
+                let mut function=self.named_function()?;
+                if function.name.text=="main" {
+                    if !function.params.is_empty() { return Err(Diagnostic::new("async-main", "async main takes no arguments.",function.name.span)); }
+                    function.name.text="async#entry".into();
+                    let span=function.scope_span;
+                    let call=Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name(function.name.text.clone()),span)),Vec::new()),span);
+                    let value=Expr::new(ExprKind::Unary{op:UnaryOp::Await,value:Box::new(call),operator:function.name.span},span);
+                    let mut entry=function.clone(); entry.name.text="main".into(); entry.result=None;
+                    entry.body=vec![Stmt{labels:Vec::new(),control_target:None,span,kind:StmtKind::Expr(value)}];
+                    program.functions.push(function); program.functions.push(entry);
+                } else {program.functions.push(function);}
             } else if self.accept("function") {
                 program.functions.push(self.named_function()?);
             } else if !test_entry && matches!(self.peek().text.as_str(), "let" | "const") {
@@ -2922,7 +2944,7 @@ impl Parser<'_> {
 
     fn unary_operators(&mut self) -> Result<Vec<Token>, Diagnostic> {
         let mut operators = Vec::new();
-        while self.is("!")
+        while self.is("await") || self.is("!")
             || self.is("typeof")
             || self.is("void")
             || self.is("~")
@@ -2962,7 +2984,7 @@ impl Parser<'_> {
                     }
                 } else {
                     ExprKind::Unary {
-                        op: if token.text == "typeof" {
+                        op: if token.text == "await" { UnaryOp::Await } else if token.text == "typeof" {
                             UnaryOp::Typeof
                         } else if token.text == "void" {
                             UnaryOp::Void
