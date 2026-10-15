@@ -18,7 +18,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use support::session::Session;
 use tsrust_lsp::{project_diagnostics::source_id, workspace::Workspace};
 
-const PRELUDE: &str = "import {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n";
+const PRELUDE: &str = "import {App,Client,Request,Response,Body,Server,Next,HttpError} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n";
 
 /// A receiver `x` of one type inside `probe`.
 struct Receiver {
@@ -28,6 +28,15 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
+    Receiver {ty:"App",parameter:"x: App"},
+    Receiver {ty:"Client",parameter:"x: Client"},
+    Receiver {ty:"Request",parameter:"x: Request"},
+    Receiver {ty:"Response",parameter:"x: Response"},
+    Receiver {ty:"Body",parameter:"x: Body"},
+    Receiver {ty:"Server",parameter:"x: Server"},
+    Receiver {ty:"Next",parameter:"x: Next"},
+    Receiver {ty:"HttpError",parameter:"x: HttpError"},
+
     Receiver { ty: "Job<int, undefined>", parameter: "x: ReadOnly<Job<int, undefined>>" },
     Receiver { ty: "AsyncError<string>", parameter: "x: ReadOnly<AsyncError<string>>" },
     Receiver { ty: "AsyncChannel<int>", parameter: "x: ReadOnly<AsyncChannel<int>>" },

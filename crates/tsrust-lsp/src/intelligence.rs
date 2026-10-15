@@ -2015,7 +2015,7 @@ impl SourceIndex {
     // Recognize only complete simple expressions; do not infer binary expressions
     // from their first operand. Primitive calls preserve this rule.
     fn set_constructor_type(&self, id: usize, offset: usize, depth: usize) -> Option<(String, usize)> {
-        if self.text(id) == "new" && self.native_type_aliases.get(self.text(id + 1)) == Some(&tsrust_compiler::native_signatures::NativeTypeId::ThreadPool) {
+        if self.text(id) == "new" && matches!(self.native_type_aliases.get(self.text(id + 1)),Some(tsrust_compiler::native_signatures::NativeTypeId::ThreadPool | tsrust_compiler::native_signatures::NativeTypeId::HttpApp | tsrust_compiler::native_signatures::NativeTypeId::HttpClient)) {
             let open = self.member_call_open(id + 1)?;
             return Some((self.text(id + 1).into(), self.pairs.get(open).copied().flatten()? + 1));
         }
@@ -3723,6 +3723,11 @@ impl SourceIndex {
                 let module = if self.native_type_aliases.get(self.text(callee)) == Some(&tsrust_compiler::native_signatures::NativeTypeId::AsyncChannel) { "std:futures" } else { "std:threads" };
                 let entry = builtins_for(module).into_iter().find(|entry| entry["name"] == "Channel").expect("documented Channel constructor");
                 return json!({"signatures":[{"label":format!("new {ty}(capacity: int): {ty}"),"documentation":{"kind":"markdown","value":entry["documentation"]},"parameters":entry["parameters"]}],"activeSignature":0,"activeParameter":0});
+            }
+            if callee>0 && self.text(callee-1)=="new" && self.native_type_aliases.get(self.text(callee)).is_some_and(|id|matches!(id,tsrust_compiler::native_signatures::NativeTypeId::HttpApp|tsrust_compiler::native_signatures::NativeTypeId::HttpClient)){
+                let name=tsrust_compiler::native_types::declaration(self.native_type_aliases[self.text(callee)]).name;
+                let entry=builtins_for("std:http").into_iter().find(|entry|entry["name"]==name).expect("documented HTTP constructor");
+                return json!({"signatures":[{"label":entry["signature"],"documentation":{"kind":"markdown","value":entry["documentation"]},"parameters":[]}],"activeSignature":0});
             }
             if callee > 0 && self.text(callee - 1) == "new" && self.native_type_aliases.get(self.text(callee)) == Some(&tsrust_compiler::native_signatures::NativeTypeId::ThreadPool) {
                 let entry = builtins_for("std:threads").into_iter().find(|entry| entry["name"] == "ThreadPool").expect("documented ThreadPool constructor");

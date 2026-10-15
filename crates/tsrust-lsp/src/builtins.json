@@ -9724,5 +9724,744 @@
       }
     ]
   }
-]
+],
+  "std:http": [
+    {
+      "name": "App",
+      "signature": "new App(): App",
+      "parameters": [],
+      "documentation": "Creates an empty Axum-backed router. No arguments. Register routes and middleware before listen consumes the app. Default missing-route and wrong-method responses are 404 and 405. No listener starts at construction.\n\n```tsrust\nconst app = new App();\n```\n\nOwnership: unique, nonclonable router.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function new App(): App"
+    },
+    {
+      "name": "Client",
+      "signature": "new Client(): Client",
+      "parameters": [],
+      "documentation": "Creates a reusable HTTP/HTTPS client with connection pooling, certificate verification and a 30-second request/body deadline. No arguments. Redirects, proxies, automatic decompression and cookies are disabled. Construction failure throws HttpError code client.\n\n```tsrust\nconst client = new Client();\n```\n\nOwnership: unique client; send borrows it until its task completes or is disposed.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const client=new Client();console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function new Client(): Client"
+    },
+    {
+      "name": "text",
+      "signature": "text(value: string, status: int = 200): Response",
+      "parameters": [
+        {
+          "label": "value: string",
+          "documentation": "UTF-8 plain text; sets text/plain; charset=utf-8"
+        },
+        {
+          "label": "status: int = 200",
+          "documentation": "HTTP status, 200..599; defaults to 200."
+        }
+      ],
+      "documentation": "Creates an owned response from UTF-8 plain text; sets text/plain; charset=utf-8. Status defaults to 200; values outside 200..599 throw HttpError code status. Does not send a response or mutate a receiver.\n\n```tsrust\nconst response = text('hello'); // status 200\n```\n\nOwnership: response body transfers to the server or a consuming body operation.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const response=text('hello');console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function text(value: string, status: int = 200): Response"
+    },
+    {
+      "name": "html",
+      "signature": "html(value: string, status: int = 200): Response",
+      "parameters": [
+        {
+          "label": "value: string",
+          "documentation": "explicit trusted HTML; sets text/html; charset=utf-8. Content is not escaped; use text for untrusted plain text"
+        },
+        {
+          "label": "status: int = 200",
+          "documentation": "HTTP status, 200..599; defaults to 200."
+        }
+      ],
+      "documentation": "Creates an owned response from explicit trusted HTML; sets text/html; charset=utf-8. Content is not escaped; use text for untrusted plain text. Status defaults to 200; values outside 200..599 throw HttpError code status. Does not send a response or mutate a receiver.\n\n```tsrust\nconst response = html('hello'); // status 200\n```\n\nOwnership: response body transfers to the server or a consuming body operation.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const response=html('hello');console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function html(value: string, status: int = 200): Response"
+    },
+    {
+      "name": "json",
+      "signature": "json<T>(value: T, status: int = 200): Response",
+      "parameters": [
+        {
+          "label": "value: T",
+          "documentation": "a checked JSON-serializable value; sets application/json. Uses the existing JSON.stringify rules and serializes only the supplied value"
+        },
+        {
+          "label": "status: int = 200",
+          "documentation": "HTTP status, 200..599; defaults to 200."
+        }
+      ],
+      "documentation": "Creates an owned response from a checked JSON-serializable value; sets application/json. Uses the existing JSON.stringify rules and serializes only the supplied value. Status defaults to 200; values outside 200..599 throw HttpError code status. Does not send a response or mutate a receiver.\n\n```tsrust\nconst response = json(42); // status 200\n```\n\nOwnership: response body transfers to the server or a consuming body operation.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const response=json(42);console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function json<T>(value: T, status: int = 200): Response"
+    },
+    {
+      "name": "request",
+      "signature": "request(method: string, url: string, text: string): Request",
+      "parameters": [
+        {
+          "label": "method: string",
+          "documentation": "Valid HTTP method token."
+        },
+        {
+          "label": "url: string",
+          "documentation": "Absolute HTTP/HTTPS URL when sent; credentials are rejected."
+        },
+        {
+          "label": "text: string",
+          "documentation": "Owned UTF-8 request body; use an empty string for no data."
+        }
+      ],
+      "documentation": "Creates an unsent request. Invalid method or URI throws HttpError code method or url. Does not infer Content-Type, send data or mutate a receiver. Client.send validates the scheme and credentials.\n\n```tsrust\nconst input = request(\"GET\", \"http://127.0.0.1:3000/\", \"\");\n```\n\nOwnership: moves the text body into a unique request.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const input=request(\"GET\",\"http://127.0.0.1:3000/\",\"\");console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function request(method: string, url: string, text: string): Request"
+    },
+    {
+      "name": "stream",
+      "signature": "stream(body: Body, status: int = 200): Response",
+      "parameters": [
+        {
+          "label": "body: Body",
+          "documentation": "Owned streaming body; retains its remaining byte limit."
+        },
+        {
+          "label": "status: int = 200",
+          "documentation": "HTTP status 200..599; defaults to 200."
+        }
+      ],
+      "documentation": "Creates a streaming response without collecting its body. Transport applies backpressure; disconnect disposes pending body work. Exceeding the cumulative body limit fails the stream rather than silently truncating it. Invalid status throws HttpError code status.\n\n```tsrust\nconst response = stream(input.body());\n```\n\nOwnership: consumes the body exactly once.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const input=request(\"POST\",\"http://localhost/\",\"hello\");const response=stream(input.body());console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function stream(body: Body, status: int = 200): Response"
+    },
+    {
+      "name": "Request",
+      "signature": "type Request",
+      "parameters": [],
+      "documentation": "An owned HTTP request. method(), url(), param(name) and header(name) inspect metadata. setHeader changes metadata. text() and body() consume the request; a body can be read once. Body reads enforce a cumulative 1048576-byte limit. Each handler receives a distinct request.\n\nOwnership: unique, nonclonable capability; consuming operations transfer ownership.\n\n```tsrust\nimport {Request} from 'std:http';function inspect(value:Request):void{}function main(){console.log('ok');}\n```\nExpected output: ok.",
+      "examples": [
+        {
+          "source": "import {Request} from 'std:http';function inspect(value:Request):void{}function main(){console.log('ok');}",
+          "output": "ok\n"
+        }
+      ]
+    },
+    {
+      "name": "Response",
+      "signature": "type Response",
+      "parameters": [],
+      "documentation": "An owned HTTP response. status() and header(name) inspect metadata; setHeader changes metadata before transmission. text() or body() consumes the response. Client responses retain HTTP error statuses as data. Dropping the body releases its transport resources.\n\nOwnership: unique, nonclonable capability; consuming operations transfer ownership.\n\n```tsrust\nimport {Response} from 'std:http';function inspect(value:Response):void{}function main(){console.log('ok');}\n```\nExpected output: ok.",
+      "examples": [
+        {
+          "source": "import {Response} from 'std:http';function inspect(value:Response):void{}function main(){console.log('ok');}",
+          "output": "ok\n"
+        }
+      ]
+    },
+    {
+      "name": "Body",
+      "signature": "type Body",
+      "parameters": [],
+      "documentation": "A single-owner HTTP byte stream. Await next() for Bytes or undefined at end; await text() to consume strict UTF-8. Reads apply backpressure and enforce a cumulative 1048576-byte limit. Dropping an unread body releases its resources.\n\nOwnership: unique, nonclonable capability; consuming operations transfer ownership.\n\n```tsrust\nimport {Body} from 'std:http';function inspect(value:Body):void{}function main(){console.log('ok');}\n```\nExpected output: ok.",
+      "examples": [
+        {
+          "source": "import {Body} from 'std:http';function inspect(value:Body):void{}function main(){console.log('ok');}",
+          "output": "ok\n"
+        }
+      ]
+    },
+    {
+      "name": "Server",
+      "signature": "type Server",
+      "parameters": [],
+      "documentation": "An owned running HTTP listener. address() returns its IP and port. Await shutdown() to stop accepting and drain requests, with five seconds before cancelling remaining I/O. Dropping the handle requests cleanup; its async owner drains completion.\n\nOwnership: unique, nonclonable capability; consuming operations transfer ownership.\n\n```tsrust\nimport {Server} from 'std:http';function inspect(value:Server):void{}function main(){console.log('ok');}\n```\nExpected output: ok.",
+      "examples": [
+        {
+          "source": "import {Server} from 'std:http';function inspect(value:Server):void{}function main(){console.log('ok');}",
+          "output": "ok\n"
+        }
+      ]
+    },
+    {
+      "name": "Next",
+      "signature": "type Next",
+      "parameters": [],
+      "documentation": "An owned middleware continuation. Await run(request) to invoke the remaining middleware and handler once. It consumes both the continuation and request. Returning without running it short-circuits the chain.\n\nOwnership: unique, nonclonable capability; consuming operations transfer ownership.\n\n```tsrust\nimport {Next} from 'std:http';function inspect(value:Next):void{}function main(){console.log('ok');}\n```\nExpected output: ok.",
+      "examples": [
+        {
+          "source": "import {Next} from 'std:http';function inspect(value:Next):void{}function main(){console.log('ok');}",
+          "output": "ok\n"
+        }
+      ]
+    },
+    {
+      "name": "HttpError",
+      "signature": "type HttpError = { code: string; message: string; }",
+      "parameters": [],
+      "documentation": "A checked HTTP failure with code and message strings. Codes describe invalid method, route, address, status, header, URL, body, encoding, limit, listener, client, request or timeout. Catch at the failing operation; an uncaught handler failure becomes a generic 500 without exposing this message.\n\nOwnership: ordinary owned error data.\n\n```tsrust\nimport {HttpError} from 'std:http';function inspect(value:HttpError):void{}function main(){console.log('ok');}\n```\nExpected output: ok.",
+      "examples": [
+        {
+          "source": "import {HttpError} from 'std:http';function inspect(value:HttpError):void{}function main(){console.log('ok');}",
+          "output": "ok\n"
+        }
+      ]
+    }
+  ],
+  "HttpApp": [
+    {
+      "name": "get",
+      "signature": "get(path: string, handler: (request: Request) => Task<Response>): void",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Absolute route path; literals and :name segments only."
+        },
+        {
+          "label": "handler: (request: Request) => Task<Response>",
+          "documentation": "Named async function or a noncapturing callback returning Task<Response>."
+        }
+      ],
+      "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response. Captured handler state is not supported in this slice.\n\n```tsrust\napp.get(\"/\", handle);\n```\n\nOwnership: mutates the app; each invocation receives its own owned Request.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();app.get(\"/\", handle);console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function get(path: string, handler: (request: Request) => Task<Response>): void"
+    },
+    {
+      "name": "post",
+      "signature": "post(path: string, handler: (request: Request) => Task<Response>): void",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Absolute route path; literals and :name segments only."
+        },
+        {
+          "label": "handler: (request: Request) => Task<Response>",
+          "documentation": "Named async function or a noncapturing callback returning Task<Response>."
+        }
+      ],
+      "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response. Captured handler state is not supported in this slice.\n\n```tsrust\napp.post(\"/\", handle);\n```\n\nOwnership: mutates the app; each invocation receives its own owned Request.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();app.post(\"/\", handle);console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function post(path: string, handler: (request: Request) => Task<Response>): void"
+    },
+    {
+      "name": "put",
+      "signature": "put(path: string, handler: (request: Request) => Task<Response>): void",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Absolute route path; literals and :name segments only."
+        },
+        {
+          "label": "handler: (request: Request) => Task<Response>",
+          "documentation": "Named async function or a noncapturing callback returning Task<Response>."
+        }
+      ],
+      "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response. Captured handler state is not supported in this slice.\n\n```tsrust\napp.put(\"/\", handle);\n```\n\nOwnership: mutates the app; each invocation receives its own owned Request.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();app.put(\"/\", handle);console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function put(path: string, handler: (request: Request) => Task<Response>): void"
+    },
+    {
+      "name": "patch",
+      "signature": "patch(path: string, handler: (request: Request) => Task<Response>): void",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Absolute route path; literals and :name segments only."
+        },
+        {
+          "label": "handler: (request: Request) => Task<Response>",
+          "documentation": "Named async function or a noncapturing callback returning Task<Response>."
+        }
+      ],
+      "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response. Captured handler state is not supported in this slice.\n\n```tsrust\napp.patch(\"/\", handle);\n```\n\nOwnership: mutates the app; each invocation receives its own owned Request.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();app.patch(\"/\", handle);console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function patch(path: string, handler: (request: Request) => Task<Response>): void"
+    },
+    {
+      "name": "delete",
+      "signature": "delete(path: string, handler: (request: Request) => Task<Response>): void",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Absolute route path; literals and :name segments only."
+        },
+        {
+          "label": "handler: (request: Request) => Task<Response>",
+          "documentation": "Named async function or a noncapturing callback returning Task<Response>."
+        }
+      ],
+      "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response. Captured handler state is not supported in this slice.\n\n```tsrust\napp.delete(\"/\", handle);\n```\n\nOwnership: mutates the app; each invocation receives its own owned Request.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();app.delete(\"/\", handle);console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function delete(path: string, handler: (request: Request) => Task<Response>): void"
+    },
+    {
+      "name": "head",
+      "signature": "head(path: string, handler: (request: Request) => Task<Response>): void",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Absolute route path; literals and :name segments only."
+        },
+        {
+          "label": "handler: (request: Request) => Task<Response>",
+          "documentation": "Named async function or a noncapturing callback returning Task<Response>."
+        }
+      ],
+      "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response. Captured handler state is not supported in this slice.\n\n```tsrust\napp.head(\"/\", handle);\n```\n\nOwnership: mutates the app; each invocation receives its own owned Request.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();app.head(\"/\", handle);console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function head(path: string, handler: (request: Request) => Task<Response>): void"
+    },
+    {
+      "name": "options",
+      "signature": "options(path: string, handler: (request: Request) => Task<Response>): void",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Absolute route path; literals and :name segments only."
+        },
+        {
+          "label": "handler: (request: Request) => Task<Response>",
+          "documentation": "Named async function or a noncapturing callback returning Task<Response>."
+        }
+      ],
+      "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response. Captured handler state is not supported in this slice.\n\n```tsrust\napp.options(\"/\", handle);\n```\n\nOwnership: mutates the app; each invocation receives its own owned Request.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();app.options(\"/\", handle);console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function options(path: string, handler: (request: Request) => Task<Response>): void"
+    },
+    {
+      "name": "route",
+      "signature": "route(method: string, path: string, handler: (request: Request) => Task<Response>): void",
+      "parameters": [
+        {
+          "label": "method: string",
+          "documentation": "One of GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS."
+        },
+        {
+          "label": "path: string",
+          "documentation": "Absolute route path; literals and :name segments only."
+        },
+        {
+          "label": "handler: (request: Request) => Task<Response>",
+          "documentation": "Named async function or a noncapturing callback returning Task<Response>."
+        }
+      ],
+      "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response. Captured handler state is not supported in this slice.\n\n```tsrust\napp.route(\"GET\", \"/\", handle);\n```\n\nOwnership: mutates the app; each invocation receives its own owned Request.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();app.route(\"GET\", \"/\", handle);console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function route(method: string, path: string, handler: (request: Request) => Task<Response>): void"
+    },
+    {
+      "name": "use",
+      "signature": "use(middleware: (request: Request, next: Next) => Task<Response>): void",
+      "parameters": [
+        {
+          "label": "middleware: (request: Request, next: Next) => Task<Response>",
+          "documentation": "Noncapturing callback or named async function."
+        }
+      ],
+      "documentation": "Registers global middleware in entry order and reverse response order, including 404 and 405 responses. Registration order relative to routes does not omit routes. Middleware may return early; Next.run consumes its downstream capability at most once.\n\n```tsrust\napp.use(checkRequest);\n```\n\nOwnership: mutates the app; request and Next transfer into each invocation.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();app.use((input:Request,next:Next):Task<Response>=>next.run(input));console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function use(middleware: (request: Request, next: Next) => Task<Response>): void"
+    },
+    {
+      "name": "fallback",
+      "signature": "fallback(handler: (request: Request) => Task<Response>): void",
+      "parameters": [
+        {
+          "label": "handler: (request: Request) => Task<Response>",
+          "documentation": "Noncapturing callback or named async function."
+        }
+      ],
+      "documentation": "Replaces the missing-route handler. Global middleware still runs. Does not replace 405 responses. Defaults to a plain 404 response when no fallback is registered.\n\n```tsrust\napp.fallback(handle);\n```\n\nOwnership: mutates the app and retains the handler.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();app.fallback(handle);console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function fallback(handler: (request: Request) => Task<Response>): void"
+    },
+    {
+      "name": "listen",
+      "signature": "listen(address: string): Task<Server>",
+      "parameters": [
+        {
+          "label": "address: string",
+          "documentation": "IP address and port, such as 127.0.0.1:3000; port 0 chooses a free port."
+        }
+      ],
+      "documentation": "Creates a lazy listener task. Awaiting binds the address, freezes registration and returns a running server. Invalid address or bind failure throws HttpError code address or listen. Supports HTTP/1.1 and cleartext HTTP/2, with at most 128 active connections. No TLS listener or implicit public bind. Body readers default to a cumulative 1048576-byte limit.\n\n```tsrust\nconst server = await app.listen(\"127.0.0.1:0\");\n```\n\nOwnership: consumes the app immediately; dropping Server requests cleanup, which its async owner drains.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();const server=await app.listen(\"127.0.0.1:0\");await server.shutdown();console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function listen(address: string): Task<Server>"
+    }
+  ],
+  "HttpRequest": [
+    {
+      "name": "header",
+      "signature": "header(name: string): string | undefined",
+      "parameters": [
+        {
+          "label": "name: string",
+          "documentation": "HTTP header name."
+        }
+      ],
+      "documentation": "Reads the first matching header, case-insensitively. Missing headers return undefined; invalid names or non-text values throw HttpError code header.\n\n```tsrust\ninput.header(\"x-demo\");\n```\n\nOwnership: borrows this request.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const input=request(\"POST\",\"http://localhost/\",\"hello\");input.header(\"x-demo\");console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function header(name: string): string | undefined"
+    },
+    {
+      "name": "setHeader",
+      "signature": "setHeader(name: string, value: string): void",
+      "parameters": [
+        {
+          "label": "name: string",
+          "documentation": "HTTP header name."
+        },
+        {
+          "label": "value: string",
+          "documentation": "Header value without CR/LF or invalid bytes."
+        }
+      ],
+      "documentation": "Sets/replaces a header. Invalid names or values throw HttpError code header. Framing headers Content-Length, Transfer-Encoding, Connection and Upgrade are managed by transport and rejected.\n\n```tsrust\ninput.setHeader(\"x-demo\", \"yes\");\n```\n\nOwnership: mutates this request.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const input=request(\"POST\",\"http://localhost/\",\"hello\");input.setHeader(\"x-demo\", \"yes\");console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function setHeader(name: string, value: string): void"
+    },
+    {
+      "name": "body",
+      "signature": "body(): Body",
+      "parameters": [],
+      "documentation": "Transfers the unread body into a streaming reader. No arguments. Reading is lazy; this call performs no I/O. The cumulative read limit is 1048576 bytes.\n\n```tsrust\nconst body = input.body();\n```\n\nOwnership: consumes the request; body cannot be read twice.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const input=request(\"POST\",\"http://localhost/\",\"hello\");const body=input.body();console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function body(): Body"
+    },
+    {
+      "name": "text",
+      "signature": "text(): Task<string>",
+      "parameters": [],
+      "documentation": "Creates a lazy task that collects the body and returns strict UTF-8 text. No arguments. Body, encoding or cumulative 1048576-byte limit failures throw HttpError codes body, encoding or limit. Suspension does not block a worker.\n\n```tsrust\nconst value = await input.text(); // \"hello\"\n```\n\nOwnership: consumes the request immediately; disposing its task releases the body.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const input=request(\"POST\",\"http://localhost/\",\"hello\");const value=await input.text();console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function text(): Task<string>"
+    },
+    {
+      "name": "method",
+      "signature": "method(): string",
+      "parameters": [],
+      "documentation": "Returns the HTTP method token. No arguments or mutation.\n\n```tsrust\nconst value = input.method();\n```\n\nOwnership: borrows the request.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const input=request(\"POST\",\"http://localhost/\",\"hello\");const value=input.method();console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function method(): string"
+    },
+    {
+      "name": "url",
+      "signature": "url(): string",
+      "parameters": [],
+      "documentation": "Returns the request URI, including its query. Incoming requests normally use a path rather than an absolute URL. No arguments or mutation.\n\n```tsrust\nconst value = input.url();\n```\n\nOwnership: borrows the request.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const input=request(\"POST\",\"http://localhost/\",\"hello\");const value=input.url();console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function url(): string"
+    },
+    {
+      "name": "param",
+      "signature": "param(name: string): string | undefined",
+      "parameters": [
+        {
+          "label": "name: string",
+          "documentation": "Registered :name route parameter."
+        }
+      ],
+      "documentation": "Returns a decoded route parameter or undefined. Values stay strings; no integer conversion or Unicode normalization. No receiver mutation. Malformed UTF-8 parameters reject the request before the handler.\n\n```tsrust\nconst id = input.param(\"id\");\n```\n\nOwnership: borrows the request and returns independent text.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const input=request(\"POST\",\"http://localhost/\",\"hello\");const id=input.param(\"id\");console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function param(name: string): string | undefined"
+    }
+  ],
+  "HttpResponse": [
+    {
+      "name": "header",
+      "signature": "header(name: string): string | undefined",
+      "parameters": [
+        {
+          "label": "name: string",
+          "documentation": "HTTP header name."
+        }
+      ],
+      "documentation": "Reads the first matching header, case-insensitively. Missing headers return undefined; invalid names or non-text values throw HttpError code header.\n\n```tsrust\nresponse.header(\"x-demo\");\n```\n\nOwnership: borrows this response.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const response=text(\"hello\");response.header(\"x-demo\");console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function header(name: string): string | undefined"
+    },
+    {
+      "name": "setHeader",
+      "signature": "setHeader(name: string, value: string): void",
+      "parameters": [
+        {
+          "label": "name: string",
+          "documentation": "HTTP header name."
+        },
+        {
+          "label": "value: string",
+          "documentation": "Header value without CR/LF or invalid bytes."
+        }
+      ],
+      "documentation": "Sets/replaces a header. Invalid names or values throw HttpError code header. Framing headers Content-Length, Transfer-Encoding, Connection and Upgrade are managed by transport and rejected.\n\n```tsrust\nresponse.setHeader(\"x-demo\", \"yes\");\n```\n\nOwnership: mutates this response.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const response=text(\"hello\");response.setHeader(\"x-demo\", \"yes\");console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function setHeader(name: string, value: string): void"
+    },
+    {
+      "name": "body",
+      "signature": "body(): Body",
+      "parameters": [],
+      "documentation": "Transfers the unread body into a streaming reader. No arguments. Reading is lazy; this call performs no I/O. The cumulative read limit is 1048576 bytes.\n\n```tsrust\nconst body = response.body();\n```\n\nOwnership: consumes the response; body cannot be read twice.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const response=text(\"hello\");const body=response.body();console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function body(): Body"
+    },
+    {
+      "name": "text",
+      "signature": "text(): Task<string>",
+      "parameters": [],
+      "documentation": "Creates a lazy task that collects the body and returns strict UTF-8 text. No arguments. Body, encoding or cumulative 1048576-byte limit failures throw HttpError codes body, encoding or limit. Suspension does not block a worker.\n\n```tsrust\nconst value = await response.text(); // \"hello\"\n```\n\nOwnership: consumes the response immediately; disposing its task releases the body.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const response=text(\"hello\");const value=await response.text();console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function text(): Task<string>"
+    },
+    {
+      "name": "status",
+      "signature": "status(): int",
+      "parameters": [],
+      "documentation": "Returns the HTTP response status. No arguments or mutation.\n\n```tsrust\nconst value = response.status();\n```\n\nOwnership: borrows the response.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const response=text(\"hello\");const value=response.status();console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function status(): int"
+    }
+  ],
+  "HttpServer": [
+    {
+      "name": "address",
+      "signature": "address(): string",
+      "parameters": [],
+      "documentation": "Returns the actual bound IP address and port, including the assigned port when listen used port 0. No arguments or mutation.\n\n```tsrust\nconst address = server.address();\n```\n\nOwnership: borrows the server.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();const server=await app.listen(\"127.0.0.1:0\");const address=server.address();await server.shutdown();console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function address(): string"
+    },
+    {
+      "name": "shutdown",
+      "signature": "shutdown(): Task<void>",
+      "parameters": [],
+      "documentation": "Creates a lazy shutdown task. Awaiting stops acceptance, permits up to five seconds for active connections to finish, then cancels stalled connections and drains nested request tasks. No arguments. Cleanup may take longer if synchronous application work does not suspend.\n\n```tsrust\nawait server.shutdown();\n```\n\nOwnership: consumes the server; its listener and requests cannot detach.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();const server=await app.listen(\"127.0.0.1:0\");await server.shutdown();console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function shutdown(): Task<void>"
+    }
+  ],
+  "HttpClient": [
+    {
+      "name": "send",
+      "signature": "send(input: Request): Task<Response>",
+      "parameters": [
+        {
+          "label": "input: Request",
+          "documentation": "Owned request with an absolute HTTP/HTTPS URL and no embedded credentials."
+        }
+      ],
+      "documentation": "Creates a lazy HTTP request task. Awaiting returns response headers and an unread streaming body. HTTP 4xx/5xx are responses, not exceptions. URL, transport and 30-second deadline failures throw HttpError codes url, request or timeout. No redirects, implicit proxies, cookies or decompression. Use response.text() or body() to read once.\n\n```tsrust\nconst response = await client.send(request(\"GET\", url, \"\"));\n```\n\nOwnership: consumes the request and borrows the reusable client until completion/disposal.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();const server=await app.listen(\"127.0.0.1:0\");const client=new Client();const response=await client.send(request(\"GET\",\"http://\"+server.address()+\"/\",\"\"));await server.shutdown();console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function send(input: Request): Task<Response>"
+    }
+  ],
+  "HttpBody": [
+    {
+      "name": "next",
+      "signature": "next(): Task<Bytes | undefined>",
+      "parameters": [],
+      "documentation": "Creates a lazy read of the next data frame. Returns owned bytes, or undefined at end. No arguments. Frame boundaries are transport-dependent; trailers are skipped. Cumulative reads above 1048576 bytes throw HttpError code limit; transport failures throw body. No background read-ahead is added.\n\n```tsrust\nconst chunk = await body.next();\n```\n\nOwnership: mutably borrows the body until completion/disposal; concurrent reads are rejected.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const response=text(\"hello\");const body=response.body();const chunk=await body.next();console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function next(): Task<Bytes | undefined>"
+    },
+    {
+      "name": "text",
+      "signature": "text(): Task<string>",
+      "parameters": [],
+      "documentation": "Collects remaining body data as strict UTF-8 text when awaited. No arguments. The remaining cumulative byte budget still applies. Throws HttpError code body, encoding or limit.\n\n```tsrust\nconst value = await body.text(); // \"hello\"\n```\n\nOwnership: consumes the body; previously read frames are not replayed.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const response=text(\"hello\");const body=response.body();const value=await body.text();console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function text(): Task<string>"
+    }
+  ],
+  "HttpNext": [
+    {
+      "name": "run",
+      "signature": "run(input: Request): Task<Response>",
+      "parameters": [
+        {
+          "label": "input: Request",
+          "documentation": "Owned request forwarded downstream."
+        }
+      ],
+      "documentation": "Creates a lazy call to remaining middleware and the selected handler. Awaiting returns the downstream response for header changes. Does not restart earlier middleware. No receiver reuse, cloning or second invocation is permitted.\n\n```tsrust\nconst response = await next.run(input);\n```\n\nOwnership: consumes Next and the request immediately, enforcing at-most-once delegation.",
+      "examples": [
+        {
+          "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();app.use((input:Request,next:Next):Task<Response>=>next.run(input));const server=await app.listen(\"127.0.0.1:0\");const client=new Client();const response=await client.send(request(\"GET\",\"http://\"+server.address()+\"/\",\"\"));await server.shutdown();console.log('ok');}",
+          "output": "ok\n"
+        }
+      ],
+      "inferredSignature": "function run(input: Request): Task<Response>"
+    }
+  ]
 }

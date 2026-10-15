@@ -52,6 +52,7 @@ pub fn separate(source:&str)->Units {
             runtime.push_str("pub ");runtime.push_str(&module);
         }
     };
+    extract("tsrust_native_http",crate::stdlib::http::RUNTIME.to_owned());
     extract("tsrust_native_futures", crate::stdlib::futures::RUNTIME.to_owned());
     extract("tsrust_native_threads", crate::stdlib::threads::RUNTIME.to_owned());
     // Match complete variants; no feature is added merely because another is used.

@@ -15,7 +15,7 @@ impl Analyzer {
         if record.native_type!=Some(NativeTypeId::Job){return None;}
         let values=&record.application.as_ref()?.resolved_arguments;Some((values[0],values[1]))
     }
-    fn future_shape(&mut self,ty:Type,span:Span)->Result<(Type,Type),Diagnostic>{
+    pub(super) fn future_shape(&mut self,ty:Type,span:Span)->Result<(Type,Type),Diagnostic>{
         if let Some(shape)=self.job_parameters(ty){return Ok(shape);}
         if let Type::Record(id)=ty && self.program.records[id].native_type.is_none() {
             let fields=self.program.records[id].fields.iter().map(|field|field.ty.unwrap()).collect::<Vec<_>>();
@@ -42,7 +42,7 @@ impl Analyzer {
         let error=failures.catch_type(&self.unions,runtime,span)?.unwrap_or(Type::Undefined);
         Ok((output,error))
     }
-    fn future_start_transfer(&self,root:Type,span:Span)->Result<(),Diagnostic>{
+    pub(super) fn future_start_transfer(&self,root:Type,span:Span)->Result<(),Diagnostic>{
         let mut pending=vec![root];let mut seen=HashSet::new();
         while let Some(ty)=pending.pop(){if !seen.insert(ty){continue;}
             match ty {

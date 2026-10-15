@@ -80,6 +80,10 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
                     expression.kind=ExprKind::Name(format!("@json:typed{name}"));return Ok(());
                 }
             }
+            if matches!(&expression.kind,ExprKind::Name(name) if name=="@http:jsonEncode") {
+                required.insert("stringify",expression.span);throwing.insert("stringify");
+                expression.kind=ExprKind::Name("@json:stringify".into());return Ok(());
+            }
             if namespace_shadowed {return Ok(());}
             let ExprKind::Field(base, member) = &expression.kind else { return Ok(()); };
             if !matches!(&base.kind, ExprKind::Name(name) if name == "JSON")

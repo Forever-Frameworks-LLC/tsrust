@@ -834,7 +834,7 @@ fn every_catalog_entry_has_a_current_compiler_witness() {
             }
             // Matcher and native collection families provide complete-program
             // examples with their required imports and receiver construction.
-            if family.starts_with("Schema") || matches!(family.as_str(), "schemaBuilder" | "ValidationContext" | "Expectation" | "NegatedExpectation" | "Deque" | "Heap" | "OrderedSet" | "OrderedMap" | "JSON" | "Channel" | "Sender" | "TaskContext" | "Thread" | "ScopedThread" | "ThreadPool" | "TaskMethods" | "Job" | "AsyncChannel" | "AsyncSender") {
+            if family.starts_with("Schema") || family.starts_with("Http") || matches!(family.as_str(), "schemaBuilder" | "ValidationContext" | "Expectation" | "NegatedExpectation" | "Deque" | "Heap" | "OrderedSet" | "OrderedMap" | "JSON" | "Channel" | "Sender" | "TaskContext" | "Thread" | "ScopedThread" | "ThreadPool" | "TaskMethods" | "Job" | "AsyncChannel" | "AsyncSender") {
                 let examples = entry["examples"].as_array().unwrap();
                 assert!(!examples.is_empty(), "{family}.{method} needs a witness example");
                 for example in examples {

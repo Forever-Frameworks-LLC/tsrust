@@ -3,20 +3,20 @@ mod tsrust_native_futures {
     use tokio::{sync::{Notify, oneshot, mpsc}, task::AbortHandle};
     tokio::task_local! { static SCOPE: Arc<Scope>; }
     #[derive(Default)]
-    struct Scope {
+    pub(crate) struct Scope {
         children: Mutex<std::collections::BTreeMap<usize,Arc<Control>>>,
         groups: Mutex<std::collections::BTreeMap<usize,Arc<Scope>>>,
         parent: std::sync::Weak<Scope>,
     }
     impl Scope {
-        fn group()->Arc<Self> {
+        pub(crate) fn group()->Arc<Self> {
             SCOPE.with(|parent| {
                 let scope=Arc::new(Self{parent:Arc::downgrade(parent),..Self::default()});
                 parent.groups.lock().unwrap().insert(Arc::as_ptr(&scope) as usize,scope.clone());
                 scope
             })
         }
-        async fn drain(&self, cancel_all:bool) {
+        pub(crate) async fn drain(&self, cancel_all:bool) {
             let mut children = std::mem::take(&mut *self.children.lock().unwrap());
             let mut groups=std::mem::take(&mut *self.groups.lock().unwrap()).into_values().collect::<Vec<_>>();
             while let Some(group)=groups.pop(){
@@ -32,7 +32,7 @@ mod tsrust_native_futures {
             if let Some(parent)=self.parent.upgrade(){parent.groups.lock().unwrap().remove(&(self as *const Self as usize));}
         }
     }
-    struct Control { abort: AbortHandle, state: AtomicU8, done: Notify, finished: std::sync::atomic::AtomicBool, handle_alive: std::sync::atomic::AtomicBool, owner:Mutex<std::sync::Weak<Scope>> }
+    struct Control { abort: AbortHandle, shutdown: Mutex<Option<Box<dyn FnOnce()+Send>>>, state: AtomicU8, done: Notify, finished: std::sync::atomic::AtomicBool, handle_alive: std::sync::atomic::AtomicBool, owner:Mutex<std::sync::Weak<Scope>> }
     impl Control {
         fn register(self:&Arc<Self>,scope:&Arc<Scope>){
             let mut owner=self.owner.lock().unwrap();
@@ -45,7 +45,7 @@ mod tsrust_native_futures {
             if let Some(owner)=self.owner.lock().unwrap().upgrade(){owner.children.lock().unwrap().remove(&(Arc::as_ptr(self) as usize));}
         }
         fn cancel(&self) -> bool {
-            if self.state.compare_exchange(0, 1, Ordering::AcqRel, Ordering::Acquire).is_ok() { self.abort.abort(); true } else { false }
+            if self.state.compare_exchange(0, 1, Ordering::AcqRel, Ordering::Acquire).is_ok() { if let Some(shutdown)=self.shutdown.lock().unwrap().take(){shutdown();}else{self.abort.abort();} true } else { false }
         }
         async fn wait(&self) {
             loop { let ready=self.done.notified(); if self.finished.load(Ordering::Acquire) {return;} ready.await; }
@@ -60,6 +60,10 @@ mod tsrust_native_futures {
     }
     impl<T,E> Drop for Job<T,E> { fn drop(&mut self) {self.control.handle_alive.store(false,Ordering::Release);if !self.settled{self.control.cancel();let _=SCOPE.try_with(|scope|self.control.register(scope));}} }
     pub fn start<F,T,E>(future:F)->Job<T,E> where F:Future<Output=Result<T,Failure<E>>>+Send+'static,T:Send+'static,E:Send+'static {
+        start_with_shutdown(future,None)
+    }
+    pub(crate) async fn in_scope<F:Future>(scope:Arc<Scope>,future:F)->F::Output {SCOPE.scope(scope,future).await}
+    pub(crate) fn start_with_shutdown<F,T,E>(future:F,shutdown:Option<Box<dyn FnOnce()+Send>>)->Job<T,E> where F:Future<Output=Result<T,Failure<E>>>+Send+'static,T:Send+'static,E:Send+'static {
         let scope=Arc::new(Scope{parent:SCOPE.with(Arc::downgrade),..Scope::default()});
         let (gate,ready)=oneshot::channel::<Arc<Control>>();
         let child_scope=scope.clone();
@@ -68,7 +72,7 @@ mod tsrust_native_futures {
             let result=future.await;
             if control.state.compare_exchange(0,2,Ordering::AcqRel,Ordering::Acquire).is_ok() {result} else {Err(Failure::Cancelled)}
         }));
-        let control=Arc::new(Control{abort:worker.abort_handle(),state:AtomicU8::new(0),done:Notify::new(),finished:std::sync::atomic::AtomicBool::new(false),handle_alive:std::sync::atomic::AtomicBool::new(true),owner:Mutex::new(std::sync::Weak::new())});
+        let control=Arc::new(Control{abort:worker.abort_handle(),shutdown:Mutex::new(shutdown),state:AtomicU8::new(0),done:Notify::new(),finished:std::sync::atomic::AtomicBool::new(false),handle_alive:std::sync::atomic::AtomicBool::new(true),owner:Mutex::new(std::sync::Weak::new())});
         SCOPE.with(|parent|control.register(parent));
         let (send,result)=oneshot::channel();let completion=control.clone();
         tokio::spawn(async move {
@@ -84,7 +88,7 @@ mod tsrust_native_futures {
         Job{result:Some(result),control,settled:false}
     }
     pub fn block_on<F:Future>(future:F)->F::Output {
-        let runtime=tokio::runtime::Builder::new_multi_thread().enable_time().build().expect("create async runtime");
+        let runtime=tokio::runtime::Builder::new_multi_thread().enable_all().build().expect("create async runtime");
         runtime.block_on(async {
             let scope=Arc::new(Scope::default());
             let result=SCOPE.scope(scope.clone(),future).await;

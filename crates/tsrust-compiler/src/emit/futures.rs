@@ -22,14 +22,14 @@ impl Emitter<'_>{
             let arms=self.program.unions[source.index()].members.iter().enumerate().map(|(tag,ty)|format!("Union{}::V{tag}(payload)=>{}",source.index(),self.future_inject(*ty,destination,"payload"))).collect::<Vec<_>>().join(",");format!("match {value}{{{arms}}}")
         }else{let tag=members.iter().position(|ty|*ty==source).expect("checked future error alternative");format!("Union{}::V{tag}({value})",target.index())}
     }
-    fn future_error_type(&self,ty:Type,span:Span)->Type{
+    pub(super) fn future_error_type(&self,ty:Type,span:Span)->Type{
         if let Type::Record(id)=ty && self.program.records[id].native_type==Some(NativeTypeId::Job){return self.program.records[id].application.as_ref().unwrap().resolved_arguments[1];}
         let contract=match ty {Type::Closure(id)=>self.program.error_effects.closure_errors[id].clone(),Type::Callback(id)=>self.program.error_effects.callback_errors.get(&id).cloned().unwrap_or_default(),Type::StoredCallable(id)=>self.program.error_effects.storage_errors.get(&id).cloned().unwrap_or_default(),_=>return Type::Undefined};
         let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError").map(Type::Record);
         let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(),&self.program.records);
         contract.catch_type(&unions,runtime,span).expect("checked future errors").unwrap_or(Type::Undefined)
     }
-    fn future_poll(&self,ty:Type,value:&str,error:Type,span:Span)->String{
+    pub(super) fn future_poll(&self,ty:Type,value:&str,error:Type,span:Span)->String{
         if let Type::StoredCallable(id)=ty && self.program.stored_contracts.origins(id).is_some_and(|origins|origins.is_empty()){return format!("match {value}{{}}");}
         if let Type::Union(id)=ty {
             let arms=self.program.unions[id.index()].members.iter().enumerate().map(|(tag,ty)|format!("Union{}::V{tag}(task)=>{}",id.index(),self.future_poll(*ty,"task",error,span))).collect::<Vec<_>>().join(",");return format!("match {value}{{{arms}}}");

@@ -64,3 +64,15 @@ fn async_package_builds_offline_after_relocation(){
   let output=support::run(&mut std::process::Command::new(target.join(if release{"release/program"}else{"debug/program"})),30);support::success(&output);assert_eq!(output.stdout,b"42\n");
  }
 }
+#[test]
+fn http_package_builds_offline_after_relocation(){
+ let dir=support::TempDirectory::new();let input=dir.source(&support::format_round_trip(include_str!("../../../examples/http/loopback.tsr")));
+ let package=dir.0.join("package");support::success(&support::run(support::cli().arg("emit").arg(&input).arg("--package").arg("-o").arg(&package),60));
+ std::fs::remove_file(input).unwrap();let relocated=dir.0.join("relocated");std::fs::rename(package,&relocated).unwrap();
+ let target=dir.0.join("native-target");
+ for release in [false,true]{
+  let mut command=std::process::Command::new("rustup");command.args(["run",tsrust_compiler::RUST_BACKEND_VERSION,"cargo","build","--offline","--locked"]).current_dir(&relocated).env("CARGO_HOME",dir.0.join("empty-cargo-home")).env("CARGO_INCREMENTAL","0").env("CARGO_TARGET_DIR",&target);
+  if release{command.arg("--release");}support::success(&support::run(&mut command,300));
+  let output=support::run(&mut std::process::Command::new(target.join(if release{"release/program"}else{"debug/program"})),30);support::success(&output);assert_eq!(output.stdout,b"200\n{\"id\":\"42\",\"message\":\"Hello\"}\nhello\n");
+ }
+}

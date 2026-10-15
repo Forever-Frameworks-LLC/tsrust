@@ -33,7 +33,7 @@ impl Prepared {
  }
  fn with_dependencies(application:PathBuf,runtime:&str,backend:&str,root:&Path,temporary:&Path,release:bool,opportunistic:bool)->Result<Self,String> {
   use crate::native_dependency_bundle as bundle;
-  let cache=NativeCache::new(&root.join("runtime"),&[b"runtime-dependencies-abi-1",bundle::IDENTITY.as_bytes(),backend.as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),if release{b"release"}else{b"debug"},runtime.as_bytes()]);
+  let cache=NativeCache::new(&root.join("runtime"),&[b"runtime-dependencies-abi-2",bundle::IDENTITY.as_bytes(),backend.as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),if release{b"release"}else{b"debug"},runtime.as_bytes()]);
   let packed=temporary.join("runtime-artifacts");let restored=temporary.join("dependencies");
   let copied=if opportunistic{cache.try_copy_to(&packed)}else{cache.copy_to(&packed)};
   if copied && bundle::unpack(&packed,&restored).is_ok() {
@@ -52,6 +52,7 @@ impl Prepared {
   for (name,_) in std::env::vars_os() {let key=name.to_string_lossy();if key.starts_with("CARGO_PROFILE_") || key.starts_with("CARGO_BUILD_") || key.starts_with("CARGO_TARGET_") || matches!(key.as_ref(),"RUSTFLAGS"|"CARGO_ENCODED_RUSTFLAGS"|"RUSTC"|"RUSTC_WRAPPER"|"RUSTC_WORKSPACE_WRAPPER") {command.env_remove(name);}}
   if runtime.contains("pub mod tsrust_native_threads {") || runtime.contains("pub use rayon;") { command.args(["--features", "threads"]); }
   if runtime.contains("pub mod tsrust_native_futures {") {command.args(["--features","async"]);}
+  if runtime.contains("pub mod tsrust_native_http {"){command.args(["--features","http"]);}
   if release {command.arg("--release");}
   Ok(Self{application,library:Some(profile.join("libtsrust_runtime.rlib")),command:Some(command),state:"miss",cache:Some(cache),opportunistic,dependencies:Some(profile.join("deps")),packed:Some(packed)})
  }

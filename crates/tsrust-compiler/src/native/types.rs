@@ -56,6 +56,15 @@ static THREAD: Declaration = Declaration {
     independent_clone: false, collection_key: false, thread_transfer: false,
     fields: &[], capabilities: &[],
 };
+static HTTPAPP: Declaration = Declaration {id:NativeTypeId::HttpApp,module:"std:http",name:"App",type_parameters:&[],thread_transfer:true,..THREAD};
+static HTTPREQUEST: Declaration = Declaration {id:NativeTypeId::HttpRequest,module:"std:http",name:"Request",type_parameters:&[],thread_transfer:true,..THREAD};
+static HTTPRESPONSE: Declaration = Declaration {id:NativeTypeId::HttpResponse,module:"std:http",name:"Response",type_parameters:&[],thread_transfer:true,..THREAD};
+static HTTPBODY: Declaration = Declaration {id:NativeTypeId::HttpBody,module:"std:http",name:"Body",type_parameters:&[],thread_transfer:true,..THREAD};
+static HTTPCLIENT: Declaration = Declaration {id:NativeTypeId::HttpClient,module:"std:http",name:"Client",type_parameters:&[],thread_transfer:true,..THREAD};
+static HTTPSERVER: Declaration = Declaration {id:NativeTypeId::HttpServer,module:"std:http",name:"Server",type_parameters:&[],thread_transfer:true,..THREAD};
+static HTTPNEXT: Declaration = Declaration {id:NativeTypeId::HttpNext,module:"std:http",name:"Next",type_parameters:&[],thread_transfer:true,..THREAD};
+static HTTPERROR:Declaration=Declaration{id:NativeTypeId::HttpError,module:"std:http",name:"HttpError",..SPAWN_ERROR};
+
 static JOB: Declaration = Declaration {id:NativeTypeId::Job,module:"std:futures",name:"Job",..THREAD};
 static ASYNC_ERROR: Declaration = Declaration {id:NativeTypeId::AsyncError,module:"std:futures",name:"AsyncError",independent_clone:true,type_parameters:&["E"],fields:&[
     Field{name:"code",signature:Signature::String,optional:false},
@@ -329,6 +338,14 @@ static HEAP: Declaration = Declaration {
 /// Exhaustive identity lookup prevents missing declarations as IDs are added.
 pub fn declaration(id: NativeTypeId) -> &'static Declaration {
     match id {
+        NativeTypeId::HttpApp => &HTTPAPP,
+        NativeTypeId::HttpRequest => &HTTPREQUEST,
+        NativeTypeId::HttpResponse => &HTTPRESPONSE,
+        NativeTypeId::HttpBody => &HTTPBODY,
+        NativeTypeId::HttpClient => &HTTPCLIENT,
+        NativeTypeId::HttpServer => &HTTPSERVER,
+        NativeTypeId::HttpNext => &HTTPNEXT,
+        NativeTypeId::HttpError => &HTTPERROR,
         NativeTypeId::Job => &JOB,
         NativeTypeId::AsyncError => &ASYNC_ERROR,
         NativeTypeId::AsyncChannel => &ASYNC_CHANNEL,
@@ -385,7 +402,7 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
 /// Exact module/name lookup does not grant aliases a new declaration identity.
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
-    [&JOB,&ASYNC_ERROR,&ASYNC_CHANNEL,&ASYNC_SENDER,&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
+    [&HTTPAPP,&HTTPREQUEST,&HTTPRESPONSE,&HTTPBODY,&HTTPCLIENT,&HTTPSERVER,&HTTPNEXT,&HTTPERROR,&JOB,&ASYNC_ERROR,&ASYNC_CHANNEL,&ASYNC_SENDER,&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
 }
 
 #[cfg(test)]

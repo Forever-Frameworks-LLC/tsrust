@@ -139,3 +139,12 @@ fn every_async_lifecycle_member_is_reachable(){
   for entry in catalog[family].as_array().unwrap(){let name=entry["name"].as_str().unwrap();assert!(offered.iter().any(|label|label==name),"{family}.{name}: {offered:?}");}
  }
 }
+#[test]
+fn every_http_member_is_reachable(){
+ let catalog:Value=serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
+ for(family,ty,member)in[("HttpApp","App","get"),("HttpClient","Client","send"),("HttpRequest","Request","method"),("HttpResponse","Response","status"),("HttpBody","Body","next"),("HttpNext","Next","run"),("HttpServer","Server","address")]{
+  let before=format!("import {{{ty}}} from 'std:http';function inspect(x:{ty}):void{{x.");let text=format!("{before}{member};}}function main(){{}}");let mut session=Session::start(&[]);session.open("main.tsr",&text);session.settle();
+  let offered=session.completion("main.tsr",&text,before.len()).unwrap();
+  for entry in catalog[family].as_array().unwrap(){let name=entry["name"].as_str().unwrap();assert!(offered.iter().any(|label|label==name),"{family}.{name}: {offered:?}");}
+ }
+}

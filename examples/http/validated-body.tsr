@@ -1,0 +1,29 @@
+import { App, Client, Request, Response, request, text, json } from 'std:http';
+import { s } from 'std:schema';
+
+async function createItem(input: Request): Task<Response> {
+  const schema = s.object({
+    name: s.string().min(1), count: s.int().min(1)
+  });
+  const parsed = schema.safeParseJson(await input.text());
+  if (!parsed.success) {
+    return text('Expected a name and a positive count', 400);
+  }
+
+  const item = parsed.data;
+  return json(item, 201);
+}
+
+async function main(): Task<void> {
+  const app = new App();
+  app.post('/items', createItem);
+  const server = await app.listen('127.0.0.1:0');
+  const client = new Client();
+  const url = 'http://' + server.address() + '/items';
+  const created = await client.send(request('POST', url, '{"name":"Pencil","count":2}'));
+  console.log(created.status());
+  console.log(await created.text());
+  const rejected = await client.send(request('POST', url, '{"name":"","count":0}'));
+  console.log(rejected.status());
+  await server.shutdown();
+}

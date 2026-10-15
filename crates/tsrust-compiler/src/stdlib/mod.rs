@@ -18,3 +18,5 @@ pub(crate) mod threads;
 pub(crate) mod result;
 
 pub(crate) mod futures;
+
+pub(crate) mod http;

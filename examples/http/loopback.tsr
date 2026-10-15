@@ -1,0 +1,46 @@
+import { App, Client, Request, Response, Next, request, text, json, stream } from 'std:http';
+
+async function identify(input: Request, next: Next): Task<Response> {
+  input.setHeader('x-request-id', 'demo');
+  const response = await next.run(input);
+  response.setHeader('x-server', 'tsrust');
+  return response;
+}
+
+type Greeting = {
+  id: string | undefined;
+  message: string;
+};
+
+async function greet(input: Request): Task<Response> {
+  const id = input.param('id');
+  const result: Greeting = {
+    id: id, message: 'Hello'
+  };
+  return json(result);
+}
+
+async function echo(input: Request): Task<Response> {
+  return stream(input.body(), 201);
+}
+
+async function missing(input: Request): Task<Response> {
+  return text('No route for ' + input.url(), 404);
+}
+
+async function main(): Task<void> {
+  const app = new App();
+  app.use(identify);
+  app.get('/hello/:id', greet);
+  app.post('/echo', echo);
+  app.fallback(missing);
+  const server = await app.listen('127.0.0.1:0');
+  const client = new Client();
+  const base = 'http://' + server.address();
+  const response = await client.send(request('GET', base + '/hello/42', ''));
+  console.log(response.status());
+  console.log(await response.text());
+  const echoed = await client.send(request('POST', base + '/echo', 'hello'));
+  console.log(await echoed.text());
+  await server.shutdown();
+}

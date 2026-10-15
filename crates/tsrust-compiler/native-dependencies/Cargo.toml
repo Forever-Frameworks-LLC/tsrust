@@ -7,7 +7,12 @@ publish = false
 [workspace]
 
 [dependencies]
-tokio = { version = "=1.53.3", optional = true, features = ["rt-multi-thread", "time", "sync"] }
+axum = { version = "=0.8.9", optional = true, default-features = false, features = ["http1", "http2", "tokio"] }
+reqwest = { version = "=0.13.5", optional = true, default-features = false, features = ["rustls", "stream", "http2"] }
+http-body = { version = "=1.1.0", optional = true }
+http-body-util = { version = "=0.1.5", optional = true }
+hyper-util = { version = "=0.1.21", optional = true, features = ["server-auto", "tokio", "service"] }
+tokio = { version = "=1.53.3", optional = true, features = ["rt-multi-thread", "time", "sync", "net"] }
 rayon = { version = "=1.11.0", optional = true }
 serde = "=1.0.229"
 serde_json = { version = "=1.0.151", features = ["raw_value"] }
@@ -15,4 +20,5 @@ serde_json = { version = "=1.0.151", features = ["raw_value"] }
 [features]
 default = []
 async = ["dep:tokio"]
+http = ["async", "dep:axum", "dep:reqwest", "dep:http-body-util", "dep:http-body", "dep:hyper-util"]
 threads = ["dep:rayon"]

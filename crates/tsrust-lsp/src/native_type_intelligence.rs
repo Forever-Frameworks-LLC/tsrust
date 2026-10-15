@@ -153,6 +153,7 @@ impl SourceIndex {
         });
         if let Some(identity) = identity {
             let declaration = tsrust_compiler::native_types::declaration(identity);
+            if declaration.module == "std:http" {return builtins_for(&format!("Http{}",declaration.name));}
             if declaration.module == "std:futures" {return builtins_for(&format!("{}{arguments}",match declaration.id {tsrust_compiler::native_signatures::NativeTypeId::AsyncChannel=>"AsyncChannel",tsrust_compiler::native_signatures::NativeTypeId::AsyncSender=>"AsyncSender",_=>declaration.name}));}
             if declaration.module == "std:threads" { return builtins_for(&format!("{}{arguments}", declaration.name)); }
         }

@@ -1,4 +1,3 @@
-use tsrust_native_futures::*;
 use std::sync::{Arc, atomic::{AtomicUsize,Ordering}};
 struct DropCount(Arc<AtomicUsize>);
 impl Drop for DropCount{fn drop(&mut self){self.0.fetch_add(1,Ordering::SeqCst);}}
