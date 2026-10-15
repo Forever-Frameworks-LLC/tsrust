@@ -1,0 +1,20 @@
+{
+  "app/health/route.tsr": [
+    {
+      "method": "GET",
+      "path": "/"
+    }
+  ],
+  "app/items/route.tsr": [
+    {
+      "method": "POST",
+      "path": "/"
+    }
+  ],
+  "app/items/[id]/route.tsr": [
+    {
+      "method": "POST",
+      "path": "/"
+    }
+  ]
+}
