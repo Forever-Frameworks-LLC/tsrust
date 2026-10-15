@@ -203,5 +203,10 @@
       "status": "blocked",
       "evidence": "Native demo exits2 for B2 only. B1 enforced, B3 adopted, B4 repaired; original collision/B4 programs execute separately from Git."
     }
+  },
+  "resource_release_followup": {
+    "matrix": "release-matrix.json",
+    "report": "RESOURCE-RELEASE.md",
+    "result": "B2 remains open: native observer calibrated independently; checked external Drop resource rejected; existing logical/identity rows unchanged."
   }
 }

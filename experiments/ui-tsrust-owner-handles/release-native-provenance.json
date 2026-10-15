@@ -1,0 +1,14 @@
+{
+  "purpose": "Read-only existing release Rayon linkage for unmodified emitted plain-data control; no Cargo build",
+  "rayon": "/private/tmp/tsrust-gate100-editor-target/release/deps/librayon-39e0f17fdba48a0d.rlib",
+  "dependency_directory": "/private/tmp/tsrust-gate100-editor-target/release/deps",
+  "libraries": {
+    "/private/tmp/tsrust-gate100-editor-target/release/deps/libcrossbeam_channel-5fbbd885f42d4889.rlib": "5ba1911c241ffbb8f0c3b445defab3a763313c0136a823f7ad11f26925bb3c3c",
+    "/private/tmp/tsrust-gate100-editor-target/release/deps/libcrossbeam_deque-ddeec28720a660b7.rlib": "f96d92de52405a6ebd1f545b06acaf4a630e35c2200b62298d2bdd09a775bc49",
+    "/private/tmp/tsrust-gate100-editor-target/release/deps/libcrossbeam_epoch-c8d96c9da2eac17a.rlib": "18bd18d2931187bf2a1d100d97e40be07da49ef3576bdb0f83db4c10f3914aa6",
+    "/private/tmp/tsrust-gate100-editor-target/release/deps/libcrossbeam_utils-1ee9a8646d6bc762.rlib": "8e52fe3506693cd43902be674ff852454a4623be097dd2493f0ab5fce0e7416f",
+    "/private/tmp/tsrust-gate100-editor-target/release/deps/libeither-3afa276ecd2c4ab3.rlib": "33ae28bf30634fba3a441f52c86b5c970b26467f1ce9d993de750af9c584f5e4",
+    "/private/tmp/tsrust-gate100-editor-target/release/deps/librayon-39e0f17fdba48a0d.rlib": "bf0d33780340d7995a9ac9e1555bf3fe2d6b5d12b1af2425b45b6ac2f0f7e97d",
+    "/private/tmp/tsrust-gate100-editor-target/release/deps/librayon_core-8f46622f773cf99a.rlib": "77883ace095d25075d5c3a3d3aecd89f74db77fa92658cc266b4c08982180421"
+  }
+}

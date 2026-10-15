@@ -91,5 +91,15 @@
       "before": "8432e8da93bf38da826d91872f4282c53a3070cf9393a1f2cd0dba82c3cf97f6",
       "after": "4fb9ebba80dbbaebfe7821a70d4763f77f77acbea9573cb23d4b322452166f72"
     }
-  ]
+  ],
+  "resource_release_followup": {
+    "baseline": "49704b4f46050e420238148fe9804d9f9483e151",
+    "assignment_sha256": "4bade7af1d0ee611c9bfd5d8f85521d003b4881c8f896854501623a3acd68943",
+    "window": "S18 worker explicitly granted direct rustc calibration, focused UI suite/demo and worktree formatting with unchanged installed compiler12f06962; no Cargo/shared-target writes.",
+    "dependency_decision": "Compiler worker recommends evidence-backed blocker handoff; no shared opaque-resource bridge approved during S18.",
+    "native_linkage": "release-native-provenance.json",
+    "evidence": "task-local evidence.sqlite resource-release/",
+    "node": "v24.11.1",
+    "limits": "Synchronous UI resources blocked; async/worker design direction preserved, readiness unproved."
+  }
 }

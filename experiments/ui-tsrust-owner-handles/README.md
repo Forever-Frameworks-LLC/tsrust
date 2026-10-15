@@ -4,6 +4,11 @@ Identity-enforcement investigation is complete. **B1 is enforced through the
 supported source API; full lifetime feasibility remains blocked by B2.** B3 immediate
 retirement is adopted; B4 is repaired. This is an experiment, not a production UI runtime.
 
+The B2 follow-up has a native-only calibrated observer and a reproducible checked
+resource-bridge blocker. See [resource-release report](RESOURCE-RELEASE.md) and
+[L01–L26 matrix](release-matrix.json). Async and worker support remain intended;
+this result does not establish transport, cancellation or cleanup completion.
+
 See [identity mechanism, scope and handoff](IDENTITY.md), [I01–I20](identity-matrix.json),
 [lifetime contract](CONTRACT.md), [H matrix](matrix.json), [R matrix and reconciliation](resource-matrix.json)
 and [tool provenance](provenance.json).
@@ -46,3 +51,8 @@ Closed evidence is integrated and byte-verified in canonical `benchmarks/records
 under `runtime/diagnostics/ui-identity-enforcement/21bea858236c648248562f16a4b7c36ced952bea/`.
 `UI_EVIDENCE_LOG` records bounded subprocess results for later import. No resource observer, renderer, HTTP/UI integration,
 production API or next milestone is included. No performance claim is made.
+
+Resource-release checks read existing pinned Rayon libraries from the shared target;
+see `release-native-provenance.json`. No Cargo build runs. Reserve an S18 quiet window
+before native tests. New B2 evidence stays in task-local `evidence.sqlite`; it has not
+been merged or imported into main analytics.

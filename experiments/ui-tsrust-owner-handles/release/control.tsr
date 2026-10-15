@@ -1,0 +1,7 @@
+import { plain, consume } from './plain.rs';
+import { strictEqual } from 'std:testing';
+
+function main() {
+  const value = plain();
+  strictEqual(consume(value), 7);
+}

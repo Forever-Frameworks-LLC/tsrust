@@ -9,7 +9,7 @@
     "B2": {
       "witness": "witnesses/scope-exit.tsr",
       "kind": "resource lifetime observation gap",
-      "detail": "Source assertions observe handles and registry membership, not destruction of state, closures or event payloads. No supported drop observer was established. No generated Rust instrumentation or invented destructor API. resource-capture.tsr executes a real retained File capture; testing hooks and file API inspection still establish no exact-once ordered source observer."
+      "detail": "Source assertions observe handles and registry membership, not destruction of state, closures or event payloads. No supported drop observer was established. No generated Rust instrumentation or invented destructor API. resource-capture.tsr executes a real retained File capture; testing hooks and file API inspection still establish no exact-once ordered source observer. Follow-up L23 reproduces intentional external Drop bridge rejection with a passing plain-data control. Native observer calibration does not discharge UI resource paths; see RESOURCE-RELEASE.md."
     },
     "B3": {
       "witness": "witnesses/disposal.tsr",
@@ -131,5 +131,10 @@
       "status": "blocked",
       "evidence": "Native demo exits2 for B2 only. B1 enforced, B3 adopted, B4 repaired; original collision/B4 programs execute separately from Git."
     }
-  ]
+  ],
+  "resource_release_followup": {
+    "matrix": "release-matrix.json",
+    "report": "RESOURCE-RELEASE.md",
+    "result": "B2 remains open: native observer calibrated independently; checked external Drop resource rejected; existing logical/identity rows unchanged."
+  }
 }
