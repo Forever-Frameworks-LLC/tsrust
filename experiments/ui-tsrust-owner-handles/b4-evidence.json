@@ -1,0 +1,82 @@
+{
+  "database": "evidence.sqlite",
+  "verified_byte_exact": true,
+  "integrity_check": "ok",
+  "records": [
+    {
+      "path": "ui-b4-before.json",
+      "sha256": "4e22ad8503abe6aedb1428285a0454aab867a649933ff8087975a1f0d2fde5e0",
+      "bytes": 1343
+    },
+    {
+      "path": "ui-b4-candidate-sources.json",
+      "sha256": "2543eda780271c100c32f3e947c0481560c71de29dfd56162569136b5eb79713",
+      "bytes": 176377
+    },
+    {
+      "path": "ui-b4-compiler.log",
+      "sha256": "c0e982e1359cea2eb211ad6cf71a03d12785ba516b47d5e3e2297b63061fd296",
+      "bytes": 4122
+    },
+    {
+      "path": "ui-b4-demo-subprocess.jsonl",
+      "sha256": "ff7a5a1feb6d7a1371caccc231a795dae5bf5fa0927d85bce69e0124ebd3a3e5",
+      "bytes": 2389357
+    },
+    {
+      "path": "ui-b4-demo.log",
+      "sha256": "025564048b20964723cdb75a22287f09da962c82c7ea1a2d9fac5468eff16bce",
+      "bytes": 15050
+    },
+    {
+      "path": "ui-b4-minimal-regression.json",
+      "sha256": "774f20ffbca29a82cc6bb61f731f1ca0e993b6a241534bd0a0b901f05193deef",
+      "bytes": 1363
+    },
+    {
+      "path": "ui-b4-minimize.json",
+      "sha256": "63f8443d7f1b3f73b75f54b7502953f9e1efd20085bf556795e53b9f7c5c1445",
+      "bytes": 2600
+    },
+    {
+      "path": "ui-b4-reduced.json",
+      "sha256": "f95085535e1d043eb826ad42f707770718dd6c9fe00679e1f58d758d57cd1f22",
+      "bytes": 3644
+    },
+    {
+      "path": "ui-b4-subprocess.jsonl",
+      "sha256": "009f0b6ce5f0087db135bb0627907e425aed5532d87955bde54065e9e6c5567e",
+      "bytes": 3005158
+    },
+    {
+      "path": "ui-b4-ui-tests.log",
+      "sha256": "f0aae14680a0d9bc6a7968d9eff8980b2d984647c4ef8822a151248eb1d63aa5",
+      "bytes": 4783
+    },
+    {
+      "path": "ui-b4-editor.log",
+      "sha256": "757957c532ee7d741c7fd85e3337fedd6281f473625ce0d51e1e180baad29557",
+      "bytes": 2236
+    },
+    {
+      "path": "ui-b4-format.json",
+      "sha256": "285dd7123cb7b5c5001b99ae7344185dc8592f29c7ffc86464e9c9592028b311",
+      "bytes": 432
+    },
+    {
+      "path": "ui-b4-format.mjs",
+      "sha256": "4d9d6a9a70f47c428e1f157fbb5d73fa18bedbed36a8124e1d95a93b58005ed3",
+      "bytes": 1488
+    },
+    {
+      "path": "ui-b4-resolver.mjs",
+      "sha256": "b1d6e28d2bab9fa472de3221e78643206ae7510e170831d7c94da52376a78940",
+      "bytes": 436
+    },
+    {
+      "path": "ui-b4-final-checks.json",
+      "sha256": "9648bdb574f208f914e5f6c234a61f3f5a713b6f34f134986f4f1be346602b2c",
+      "bytes": 1705
+    }
+  ]
+}

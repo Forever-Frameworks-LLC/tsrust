@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 export const root = path.dirname(fileURLToPath(import.meta.url));
 export const compiler = process.env.TSRUST || '/Users/seancotter/.cargo/bin/tsrust';
-export const pin = '57fd08aad9358fa367434bb5f5f036885b0148a7c0994939addea8f230aceca3';
+export const pin = '2d8051bdbcea1145bd5c25fbc28160a23e9c0eb22838266a8a204ac105e83b33';
 export const sha = file => createHash('sha256').update(readFileSync(file)).digest('hex');
 export function verifyCompiler() { if (sha(compiler) !== pin) throw new Error('Compiler identity changed: verify provenance before changing the pin'); }
 export function run(command, args, expected = 0) {
@@ -53,19 +53,4 @@ export function execute(source, dir) {
   const result = run(binary, []);
   verifyCompiler();
   return result.stdout;
-}
-
-// Known compiler panic, not an accepted ownership rejection; unexpected outcomes fail.
-export function checkNamedHandlerBlocker(source, dir) {
-  verifyCompiler();
-  for (const command of ['check', 'emit']) {
-    const args = command === 'emit' ? [command, source, '-o', path.join(dir, 'blocked.rs')] : [command, source];
-    const result = run(compiler, args, 101);
-    if (!/panicked at crates\/tsrust-compiler\/src\/analysis\/mod\.rs/.test(result.stderr) ||
-        !/index out of bounds: the len is 22 but the index is 22/.test(result.stderr)) {
-      throw new Error(`Unexpected ${command} failure: ${result.stderr}`);
-    }
-  }
-  verifyCompiler();
-  return 'B4: named-handler self-replacement panics during check and emit; factory control executes';
 }

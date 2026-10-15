@@ -43,12 +43,12 @@ A separately assigned test-only native resource observer could expose an owned t
 
 Before using it for UI acceptance, calibrate no release while live, one event on explicit and automatic destruction, no second event on duplicate cleanup, and failure under deliberately wrong expected counts/order. Then place resources separately in actual state, captures and queued payloads; test callback-safe release, nested child-before-parent order, successful/stale delivery, owner scope exit and 1,000-cycle balance. Validate that audit handles do not extend resource lifetime. Keep those future native/compiler/editor changes separately owned and reviewed; this task implements none of them.
 
-B2 is an observation gap, not a demonstrated leak or proof that a general destruction language feature is needed. Full feasibility remains blocked by B1, B2 and the compiler integration limitation B4.
+B2 is an observation gap, not a demonstrated leak or proof that a general destruction language feature is needed. Full feasibility remains blocked by B1 and B2. B4 is resolved by the bounded compiler repair.
 
-## B4: named-handler self-replacement compiler limitation
+## B4: named-handler compiler defect repaired
 
-`named-self-replacement.tsr` preserves the formatted review reproducer. On the pinned S15 compiler, both strict check and emit exit 101 with an analysis/mod.rs index-out-of-bounds panic (length 22, index 22). It replaces its active component using a named handler inside a retained callback. `factory-self-replacement.tsr` preserves the passing control using a closure factory; native assertions verify fresh identity, stale queued work, unaffected FIFO, recursive-drain rejection and final root removal.
+The historical S15 and pre-repair TLS compilers panic during strict check and emit of `named-self-replacement.tsr`. Original diagnostics remain in SQLite. The defect was missing access-summary coordinates for a callable synthesized during record discovery, not an ownership rejection or a runtime failure.
 
-This is a compiler defect observed at integration, not an accepted ownership rejection or a runtime failure. Simpler named-handler programs passed during review, so the limitation is tied to this reproducer rather than all named functions. No regression origin is established. H13/R08 retain their executed fixture results with B4 explicitly qualifying the supported forms; H19/R19 remain blocked reports. B3's adopted semantics are unchanged.
+The repair admits those coordinates when the specialization is created, using the existing recursive inference lattice. Both original named and factory witnesses now check, emit and execute their unchanged assertions. H13/R08 no longer carry the B4 limitation. The harness requires successful native execution and fails on any panic, rejection, timeout or signal. See [repair acceptance and provenance](B4-REPAIR.md).
 
-The harness verifies the exact panic for both commands and fails on success, a different diagnostic, timeout or signal. A future compiler fix requires deliberate provenance review and conversion of this reproducer to a successful native test. Do not normalize arbitrary panics as expected results. Compiler repair is separately scoped; no compiler files are modified here. The reproducer has no suppression directive: an internal compiler panic is not a suppressible source diagnostic.
+B1/B2 remain open; B3's adopted semantics are unchanged. Compiler repair establishes no resource destruction proof or runtime identity enforcement.

@@ -24,8 +24,8 @@
       "witness": "witnesses/named-self-replacement.tsr",
       "control": "witnesses/factory-self-replacement.tsr",
       "kind": "compiler analysis panic",
-      "status": "open",
-      "detail": "This exact formatted named-handler self-replacement program causes check and emit to exit 101 at analysis/mod.rs with index out of bounds (len 22,index 22). Factory control executes. Simpler named-handler probes passed; this is not a claim that all named handlers fail or a regression attributed to this UI patch.",
+      "status": "resolved by compiler repair",
+      "detail": "Historical check/emit index panic preserved in SQLite. prepare_specialization now admits access-summary coordinates when synthesizing the callable. Original named and factory sources check, emit and execute unchanged; see B4-REPAIR.md.",
       "dependentRows": [
         "H13",
         "H19",
@@ -38,7 +38,7 @@
     {
       "id": "H01",
       "status": "executed",
-      "evidence": "Verified S15 release compiler (57fd08aa...), source af0cbba8; checkout 24e8d38e; S15 timing complete; isolated commands."
+      "evidence": "Verified B4 candidate on baseline 7510b254; TLS explicitly released shared build window; provenance.json and B4-REPAIR.md."
     },
     {
       "id": "H02",
@@ -98,7 +98,7 @@
     {
       "id": "H13",
       "status": "executed",
-      "evidence": "callback-lists.duringCallback(13): same-key reinsertion, current read/order, old event stale, fresh event runs. Factory self-replacement control also executes; the named-handler variant is limited by B4."
+      "evidence": "callback-lists.duringCallback(13): same-key reinsertion, current read/order, old event stale, fresh event runs. Named and factory self-replacement controls both execute; B4 resolved."
     },
     {
       "id": "H14",
@@ -128,7 +128,7 @@
     {
       "id": "H19",
       "status": "blocked",
-      "evidence": "Native partial demo and H/R matrices execute; B1/B2/B4 retained, B3 adopted; expected compiler panic verified separately from ownership rejections; exit 2."
+      "evidence": "Native partial demo and H/R matrices execute; B1/B2 remain open, B3 adopted, B4 repaired; exit 2."
     }
   ]
 }

@@ -8,7 +8,7 @@
     {
       "id": "R01",
       "status": "executed",
-      "evidence": "Verified compiler and committed S15 completion; provenance.json and isolated command records."
+      "evidence": "Verified B4 candidate on baseline 7510b254; TLS explicitly released shared build window; provenance.json and B4-REPAIR.md."
     },
     {
       "id": "R02",
@@ -49,10 +49,8 @@
     {
       "id": "R08",
       "status": "executed",
-      "evidence": "Existing retained-registry, extracted-dispatch, owners-lists and callback-lists native assertions retained. Factory self-replacement control passes; named-handler variant has separately reproduced compiler panic B4. Existing executed witnesses remain supported.",
-      "limitations": [
-        "B4"
-      ]
+      "evidence": "Existing retained-registry, extracted-dispatch, owners-lists and callback-lists assertions retained. Named and factory self-replacement both check, emit and execute; B4 repaired.",
+      "limitations": []
     },
     {
       "id": "R09",
@@ -113,7 +111,7 @@
     {
       "id": "R16",
       "status": "expected rejection",
-      "evidence": "Strict escaped-loan/overlap/consumed-owner checks and emission rerun under verified S15 without suppressions."
+      "evidence": "Strict escaped-loan/overlap/consumed-owner checks and emission rerun under verified B4 candidate without suppressions."
     },
     {
       "id": "R17",
@@ -128,18 +126,17 @@
     {
       "id": "R19",
       "status": "blocked",
-      "evidence": "Native supported witnesses and factory control execute; exact B4 check/emit panic verified and reported separately; demo exits 2 with B1/B2/B4 open.",
+      "evidence": "Native supported witnesses, named and factory controls execute; demo exits 2 solely for B1/B2. B3 adopted; B4 resolved.",
       "blockers": [
         "B1",
-        "B2",
-        "B4"
+        "B2"
       ]
     }
   ],
   "reconciliation": {
     "H01": {
       "status": "executed",
-      "evidence": "Verified S15 release compiler (57fd08aa...), source af0cbba8; checkout 24e8d38e; S15 timing complete; isolated commands."
+      "evidence": "Verified B4 candidate on baseline 7510b254; TLS explicitly released shared build window; provenance.json and B4-REPAIR.md."
     },
     "H02": {
       "status": "blocked",
@@ -187,7 +184,7 @@
     },
     "H13": {
       "status": "executed",
-      "evidence": "callback-lists.duringCallback(13): same-key reinsertion, current read/order, old event stale, fresh event runs. Factory self-replacement control also executes; the named-handler variant is limited by B4."
+      "evidence": "callback-lists.duringCallback(13): same-key reinsertion, current read/order, old event stale, fresh event runs. Named and factory self-replacement controls both execute; B4 resolved."
     },
     "H14": {
       "status": "blocked",
@@ -211,7 +208,7 @@
     },
     "H19": {
       "status": "blocked",
-      "evidence": "Native partial demo and H/R matrices execute; B1/B2/B4 retained, B3 adopted; expected compiler panic verified separately from ownership rejections; exit 2."
+      "evidence": "Native partial demo and H/R matrices execute; B1/B2 remain open, B3 adopted, B4 repaired; exit 2."
     }
   }
 }

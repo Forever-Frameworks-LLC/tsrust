@@ -1,19 +1,19 @@
 # Tsrust owner/handle feasibility
 
-Lifetime-contract follow-up complete; the adopted owner/handle contract remains **blocked by B1/B2/B4**. B3 is resolved by explicit adoption of immediate state-access retirement. See [contract decisions and observation limits](CONTRACT.md), [R01–R19 matrix](resource-matrix.json), and [tool provenance](provenance.json). Ordinary Tsrust can express considerably more of the lifecycle model than the earlier counter witness established. This directory is experimental source and evidence, not a production runtime or public API.
+Lifetime-contract follow-up complete; the adopted owner/handle contract remains **blocked by B1/B2**. B3 is resolved by explicit adoption of immediate state-access retirement. See [contract decisions and observation limits](CONTRACT.md), [R01–R19 matrix](resource-matrix.json), and [tool provenance](provenance.json). Ordinary Tsrust can express considerably more of the lifecycle model than the earlier counter witness established. This directory is experimental source and evidence, not a production runtime or public API.
 
-Original baseline: `5ff76855b9f2445a6c6b9bd26a369686b8dd16ec`. Follow-up baseline: `24e8d38e0b8dd0d3713c4064a7e430e6f75b3ceb`, containing the merged prototype and completed S15 acceptance. The task brief was supplied from `docs/plans/ui-tsrust-owner-handles-first-task.md` in main; it is not part of that baseline. The follow-up uses the verified S15 release after its completed timing window; no HTTP integration is introduced.
+Original baseline: `5ff76855b9f2445a6c6b9bd26a369686b8dd16ec`. Follow-up baseline: `24e8d38e0b8dd0d3713c4064a7e430e6f75b3ceb`, containing the merged prototype and completed S15 acceptance. The task brief was supplied from `docs/plans/ui-tsrust-owner-handles-first-task.md` in main; it is not part of that baseline. The original follow-up used the verified S15 release. The B4 repair now uses the explicitly pinned candidate described in [B4-REPAIR.md](B4-REPAIR.md); no HTTP integration is introduced.
 
 ## Commands and outcomes
 
 ```sh
-node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs
-node experiments/ui-tsrust-owner-handles/cli.mjs demo
+TSRUST=<verified-candidate> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs
+TSRUST=<verified-candidate> node experiments/ui-tsrust-owner-handles/cli.mjs demo
 ```
 
 The focused suite validates native source witnesses, strict rejection controls, formatting and the H01–H19 and R01–R19 matrices. A passing suite means the investigation is reproducible; it does not make blocked rows supported. The demo executes the real Tsrust programs, then prints the blocker matrix and exits **2** deliberately. Exit 1 indicates usage, tool or unexpected validation failure. There is no Rust owner implementation or canned successful demo transcript behind the CLI.
 
-Tools: installed Node, rustc and the verified S15 release compiler from `af0cbba8`, SHA-256 `57fd08aad9358fa367434bb5f5f036885b0148a7c0994939addea8f230aceca3`. The hash is checked before and after native execution. A changed compiler requires provenance review, not a silent pin update. Check/emit use the module path; native code is compiled directly with rustc in disposable directories. No Cargo, downloads, package installation, compiler build, consumer replacement or shared build output is involved. `UI_EVIDENCE_LOG` optionally retains exact subprocess records for SQLite import.
+Tools: Node, rustc and the B4 candidate identified in `provenance.json`. Pass its path through `TSRUST`; the installed compiler is deliberately unchanged and fails the new pin. The hash is checked before and after native execution. A changed compiler requires provenance review. Check/emit use the module path; native code compiles directly with rustc in disposable directories. `UI_EVIDENCE_LOG` retains subprocess records for SQLite import. The bounded compiler build and validation are documented in B4-REPAIR.md.
 
 ## Tested representation
 
@@ -74,7 +74,7 @@ Recommendation: separately scope enforceable runtime identity and a test-only re
 
 ## Isolation, evidence and limits
 
-Only `experiments/ui-tsrust-owner-handles/` is owned. The prior prototype and its rejection fixtures are read-only references. No main analytics writes, root manifest/lock changes, compiler/LSP/editor modifications, renderer, JSX, HTTP, loader, signal graph or DI work occurred.
+The original feasibility assignment owned only `experiments/ui-tsrust-owner-handles/`. The separately authorized B4 repair also owns the minimal analysis change and focused compiler/LSP tests listed in B4-REPAIR.md. The prior prototype and its rejection fixtures are read-only references. No main analytics writes, root manifest/lock changes, unrelated compiler/LSP/editor modifications, renderer, JSX, HTTP, loader, signal graph or DI work occurred.
 
 Whole-project formatting is required before the source checkpoint. The existing formatter's TypeScript dependency may be resolved read-only from main, with the exact helper and dependency identities recorded. This does not add a dependency to the prototype. The small Node token checker intentionally supports only the lexical subset used by these witnesses and rejects unsupported input; it is not a new application parser.
 
@@ -82,4 +82,4 @@ Closed records live in ignored `evidence.sqlite`, using `benchmarks/storage/stor
 
 Callbacks in the executed slice complete normally. Exception/panic recovery, cancellation, multithreading, untrusted internal-field mutation, cross-Domain transport, rendering and performance are not accepted. Physical allocation counts and drop order remain unmeasured. Do not call the blocked contract production-ready or merge without review. Stop after this task.
 
-The review follow-up preserves **B4**, an exact named-handler self-replacement compiler panic, plus its successful closure-factory control. Both focused checks and the demo verify the panic signature separately from valid ownership rejection controls. See CONTRACT.md. H13/R08 remain executed for their stated witnesses, with the named-handler limitation explicit; this does not establish that every named handler fails. No compiler repair is included.
+The review follow-up preserved B4's exact failure and factory control. The bounded repair now requires successful check, emit and native execution for both witnesses. Historical failure evidence remains intact; B1/B2 still prevent full lifetime acceptance. See [B4 repair](B4-REPAIR.md).

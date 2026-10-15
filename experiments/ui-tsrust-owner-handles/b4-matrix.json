@@ -1,0 +1,86 @@
+{
+  "repair": "accepted bounded B4 repair",
+  "baseline": "7510b2542929c094338ce13edbc95692db8ae387",
+  "rows": [
+    {
+      "id": "C01",
+      "status": "executed",
+      "evidence": "Original check/emit exit101 on installed TLS baseline; consumers and reserved window recorded in ui-b4-before.json; candidate provenance recorded."
+    },
+    {
+      "id": "C02",
+      "status": "analysis/emission only",
+      "evidence": "B4-REPAIR.md traces specialization producer, early discovery lookup and monotonic inference; no fallback at consumer."
+    },
+    {
+      "id": "C03",
+      "status": "executed",
+      "evidence": "Original named witness strict project check succeeds in compiler target and UI harness."
+    },
+    {
+      "id": "C04",
+      "status": "executed",
+      "evidence": "Original named source emits unchanged Rust, compiles and executes all assertions and expected trace."
+    },
+    {
+      "id": "C05",
+      "status": "executed",
+      "evidence": "Factory control checks/emits/executes identical expected trace."
+    },
+    {
+      "id": "C06",
+      "status": "executed",
+      "evidence": "Reduced test check/emit panic on baseline (len20/index20), pass on candidate; original retained."
+    },
+    {
+      "id": "C07",
+      "status": "executed",
+      "evidence": "Named inside retained callback, outside callback, repeated registrations and declaration-after-callers native variant; passing add/read/remove discovery controls recorded."
+    },
+    {
+      "id": "C08",
+      "status": "executed",
+      "evidence": "Callable capture, owned-closure-argument and recursive-callable-result tests preserve read/mutate/consume, captures and fixed-point convergence; 36 existing tests pass."
+    },
+    {
+      "id": "C09",
+      "status": "expected rejection",
+      "evidence": "Strict check/emit reject escaped-loan, overlap, direct-dispatch and consumed-owner with expected codes, no panic."
+    },
+    {
+      "id": "C10",
+      "status": "executed",
+      "evidence": "38 focused compiler tests pass. Broader unrelated compiler milestone and benchmarks excluded for bounded admission repair."
+    },
+    {
+      "id": "C11",
+      "status": "executed",
+      "evidence": "13 LSP tests passed: checker_agreement 2, completion_matrix 3, editor_consistency 7, named_handler_specialization 1. Real-server tests used the Cargo-built candidate; no override or row filters."
+    },
+    {
+      "id": "C12",
+      "status": "executed",
+      "evidence": "1338 sources token-preserved; whole-project format twice unchanged; formatted native assertions and deliberate wrong-value failure pass."
+    },
+    {
+      "id": "C13",
+      "status": "executed",
+      "evidence": "Expected-panic helper removed; named and factory require native success. Unexpected status/signal/timeout fails."
+    },
+    {
+      "id": "C14",
+      "status": "executed",
+      "evidence": "B4 resolved; H13/R08 updated; H/R reconciliation tested; B1/B2 open and B3 adopted; historical provenance retained."
+    },
+    {
+      "id": "C15",
+      "status": "executed",
+      "evidence": "Focused UI suite: 6 passed, 0 failed/skipped; demo exit2 solely for B1/B2, both named and factory native traces pass."
+    },
+    {
+      "id": "C16",
+      "status": "executed",
+      "evidence": "Owned-file diff only; candidate/compiler source and all installed consumer hashes unchanged; isolated SQLite restoration/integrity verified. Commit identified in final handoff record. No merge, TLS edits, consumer replacement or main SQLite write."
+    }
+  ]
+}
