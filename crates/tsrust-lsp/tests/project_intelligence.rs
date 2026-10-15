@@ -3101,3 +3101,24 @@ fn unused_testing_import_keeps_public_hover_without_runtime_owner() {
         assert!(result.to_string().contains(expected),"{result}");
     }
 }
+
+#[test]
+fn module_scalar_factory_return_keeps_checked_callable_help() {
+    let entry = tsrust_compiler::format("import {make} from './state.tsr';function main(){const a=make();const b=make();console.log(a());console.log(b());}").unwrap();
+    let dependency = tsrust_compiler::format("let count:int=1;export function make():()=>int{const id=count;count++;return ():int=>{return id;};}").unwrap();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.clone());
+    workspace.open(source_id("file:///tsrust-intelligence/state.tsr").unwrap(), 1, dependency);
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::checked(&checked);
+    for needle in ["a()", "b()", "make();"] {
+        let hover = ask(&index, &entry, needle, "textDocument/hover");
+        assert!(hover.to_string().contains("int"), "{hover}");
+        assert!(!hover.to_string().contains("__tsrust_"), "{hover}");
+    }
+    let offset = entry.rfind("a()").unwrap() + 2;
+    let prefix = &entry[..offset];
+    let help = index.request("textDocument/signatureHelp", &json!({"position":{"line":prefix.bytes().filter(|byte| *byte == b'\n').count(),"character":prefix.rsplit('\n').next().unwrap().encode_utf16().count()}}), uri).unwrap().unwrap();
+    assert!(help.to_string().contains("int"), "{help}");
+}

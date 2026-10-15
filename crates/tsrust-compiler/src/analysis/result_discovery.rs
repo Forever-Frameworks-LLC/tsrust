@@ -21,18 +21,31 @@ impl Analyzer {
             let mut pending = VecDeque::new();
             let mut queued = HashSet::new();
             let mut frontier = 0;
+            let mut waiting_for_captures = Vec::new();
             loop {
                 // Discovery can instantiate new source functions. Admit each
                 // once without rescanning every unresolved body after a result.
+                // Capturing declarations need their defining context before result discovery.
+                // Body scheduling retries once module/lexical storage is prepared.
                 while frontier < self.program.functions.len() {
                     if self.callable_result_type(self.signatures[frontier].result)
                         && !self.known_results.contains_key(&frontier)
                     {
-                        pending.push_back(frontier);
-                        queued.insert(frontier);
+                        if self.named_captures.needs_context(frontier) && !self.named_captures.ready(frontier) {
+                            waiting_for_captures.push(frontier);
+                        } else {
+                            pending.push_back(frontier);
+                            queued.insert(frontier);
+                        }
                     }
                     frontier += 1;
                 }
+                // Discovering one factory can prepare another factory's captures.
+                waiting_for_captures.retain(|&index| {
+                    if !self.named_captures.ready(index) { return true; }
+                    if queued.insert(index) { pending.push_back(index); }
+                    false
+                });
                 let Some(index) = pending.pop_front() else { break; };
                 queued.remove(&index);
                 if self.known_results.contains_key(&index) { continue; }
@@ -61,6 +74,7 @@ impl Analyzer {
             if self.callable_result_type(signature.result)
                 && !self.known_results.contains_key(&index)
                 && !self.templates.contains_key(&index)
+                && (!self.named_captures.needs_context(index) || self.named_captures.ready(index))
             {
                 let mut error = Diagnostic::new(
                     "unsupported",
