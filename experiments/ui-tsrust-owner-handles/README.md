@@ -54,5 +54,5 @@ production API or next milestone is included. No performance claim is made.
 
 Resource-release checks read existing pinned Rayon libraries from the shared target;
 see `release-native-provenance.json`. No Cargo build runs. Reserve an S18 quiet window
-before native tests. New B2 evidence stays in task-local `evidence.sqlite`; it has not
-been merged or imported into main analytics.
+before native tests. The original B2 handoff kept evidence in task-local SQLite. See
+[merge review](RESOURCE-RELEASE-REVIEW.md) for review and integration status.
