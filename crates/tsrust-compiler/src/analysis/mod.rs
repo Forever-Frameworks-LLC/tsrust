@@ -3504,6 +3504,16 @@ impl Analyzer {
             ));
         }
         let id = self.program.functions.len();
+        // Discovery can call a specialization before its body is checked.
+        // Admit its lattice coordinates alongside the new function, as for generics.
+        if let Some(modes) = &mut self.assumed_modes
+            && modes.len() <= id
+        {
+            debug_assert_eq!(modes.len(), id);
+            modes.push(signature.params.iter()
+                .map(|ty| if ty.is_copy() { Mode::Copy } else { Mode::Read })
+                .collect());
+        }
         self.program.functions.push(self.templates[&index].clone());
         self.signatures.push(signature);
         self.checked.push(None);
