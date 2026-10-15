@@ -702,7 +702,7 @@ fn step_block<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: Bloc
                     let ty = result?;
                     analyzer.thread_discard(ty, value.span)?;
                     if precise { context.storage_exits.record_discarded_sequence(value.span); }
-                    if matches!(ty, Type::Closure(_)) && !matches!(value.kind, ExprKind::Call(..)) {
+                    if matches!(ty, Type::Closure(_)) && !analyzer.is_task_type(ty) && !matches!(value.kind, ExprKind::Call(..)) {
                         return Err(Diagnostic::new("unsupported", "Bind a closure before using it.", value.span));
                     }
                     Analyzer::finish_discarded_array_removal(context, value, removal);

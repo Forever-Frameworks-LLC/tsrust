@@ -99,7 +99,10 @@ impl Tracker<'_> {
         if let ExprKind::Unary{op:UnaryOp::Void|UnaryOp::Typeof,value,..}=&value.kind {let _=self.value(function,value,state,false);return Tokens::new();}
         if let Some(selected)=place(value) {return if consume {Self::take(state,&selected)}else{Tokens::new()};}
         match &value.kind {
-            ExprKind::Unary{op:UnaryOp::Await,value,..}=>{let _=self.value(function,value,state,true);Tokens::new()},
+            ExprKind::Unary{op:UnaryOp::Await,value:operand,..}=>{
+                let _=self.value(function,operand,state,true);
+                if value.ty.is_some_and(|ty|!self.program.task_paths(ty).is_empty()) {Tokens::from([(value.span.start,value.span.end)])}else{Tokens::new()}
+            },
             ExprKind::Unary{op:UnaryOp::TaskCreate,value:inner,..}=>{
                 let mut tokens=self.value(function,inner,state,true);tokens.insert((value.span.start,value.span.end));tokens
             }
@@ -143,12 +146,15 @@ impl Tracker<'_> {
                 let mut other=state.clone();let mut tokens=self.value(function,consequent,state,consume);tokens.extend(self.value(function,alternate,&mut other,consume));merge(state,other);tokens
             }
             ExprKind::Record(fields)=>{let mut tokens=Tokens::new();for(_,value)in fields {tokens.extend(self.value(function,value,state,consume));}tokens},
-            ExprKind::Array(values)|ExprKind::Template(values)|ExprKind::Sequence(values)=>{
+            ExprKind::Sequence(values)=>{
+                let mut result=Tokens::new();for(index,value)in values.iter().enumerate(){let tokens=self.value(function,value,state,consume);if index+1==values.len(){result=tokens;}else{self.warn(tokens,value.span);}}result
+            }
+            ExprKind::Array(values)|ExprKind::Template(values)=>{
                 let mut tokens=Tokens::new();for value in values {tokens.extend(self.value(function,value,state,consume));}tokens
             }
             ExprKind::Unary{value,..}|ExprKind::Inject{value,..}|ExprKind::Project{value,..}|ExprKind::TypeAssertion{value,..}=>self.value(function,value,state,consume),
             ExprKind::Binary{left,right,..}=>{let _=self.value(function,left,state,false);let _=self.value(function,right,state,false);Tokens::new()},
-            ExprKind::Match{body,..}=>{let mut result=State::new();for path in self.body(function,body,state.clone()){merge(&mut result,path.state);}*state=result;Tokens::new()},
+            ExprKind::Match{body,..}=>{let mut result=State::new();for path in self.body(function,body,state.clone()){merge(&mut result,path.state);}*state=result;if value.ty.is_some_and(|ty|!self.program.task_paths(ty).is_empty()){Tokens::from([(value.span.start,value.span.end)])}else{Tokens::new()}},
             _=>Tokens::new(),
         }
     }

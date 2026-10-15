@@ -168,3 +168,26 @@ fn throwing_later_argument_can_discard_an_earlier_task_temporary() {
     let source="async function one():Task<int>{return 1;}function risky():int{throw 'failure';}async function consume(task:Task<int>,value:int):Task<int>{return (await task)+value;}async function main():Task<void>{await consume(one(),risky());}";
     assert!(!check(&support::format_round_trip(source)).unwrap().warnings().is_empty());
 }
+
+#[test]
+fn task_returned_by_await_keeps_its_own_responsibility() {
+    let prefix="async function one():Task<int>{return 1;}async function outer():Task<Task<int>>{return one();}";
+    for body in ["const inner=await outer();", "await outer();"] {
+        let source=format!("{prefix}async function main():Task<void>{{{body}}}");
+        assert!(!check(&support::format_round_trip(&source)).unwrap().warnings().is_empty());
+    }
+    let source=format!("{prefix}async function main():Task<void>{{const inner=await outer();await inner;}}");
+    assert!(check(&support::format_round_trip(&source)).unwrap().warnings().is_empty());
+}
+
+#[test]
+fn task_match_results_and_discarded_sequence_operands_keep_responsibility() {
+    let prefix="async function one():Task<int>{return 1;}";
+    for body in ["const task=match(true){true=>one(),false=>one()};", "await (one(),one());"] {
+        let source=format!("{prefix}async function main():Task<void>{{{body}}}");
+        assert!(!check(&support::format_round_trip(&source)).unwrap().warnings().is_empty());
+    }
+    let source=format!("{prefix}async function main():Task<void>{{const task=match(true){{true=>one(),false=>one()}};await task;}}");
+    assert!(check(&support::format_round_trip(&source)).unwrap().warnings().is_empty());
+    support::execute(&format!("{prefix}async function main():Task<void>{{const task=match(true){{true=>one(),false=>one()}};console.log(await task);}}"),"1\n",None);
+}

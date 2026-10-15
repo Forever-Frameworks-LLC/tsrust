@@ -38,8 +38,9 @@ sequential construction/await workload, not a scheduling or I/O benchmark.
 Validation counts, immutable SQLite record names and installed consumer hashes
 are recorded below after the final gates.
 
-Focused acceptance: 18 compiler tests pass, including the generated suspension /
-drop witness and later-argument failure responsibility. Three async LSP tests,
+Focused acceptance: 20 compiler tests pass, including the generated suspension /
+drop witness, later-argument failure responsibility, tasks returned by await,
+value-producing task matches and discarded sequence operands. Three async LSP tests,
 the completion matrix, checker agreement and editor consistency pass. Compiler
 library regression: 1224 passed, five ignored. Callable / exception integration:
 172 tests passed across the 14 existing affected targets. Extension compilation,
@@ -48,7 +49,8 @@ executable discovery tests and real TextMate tokenization pass.
 SQLite records include `tsrust-s13-acceptance-final.log`,
 `tsrust-s13-family.log`, `tsrust-s13-family-repair.log`,
 `tsrust-s13-editor-2.log`, `tsrust-s13-editor-4.log`,
-`tsrust-s13-editor-final.log`, `tsrust-s13-extension.log` and
+`tsrust-s13-editor-final.log`, `tsrust-s13-responsibility-checks.log`,
+`tsrust-s13-editor-responsibility.log`, `tsrust-s13-extension.log` and
 `tsrust-s13-examples.log`. Failed attempts are preserved alongside repairs.
 
 Initial matched measurement (before the source checkpoint): 93 samples per engine,

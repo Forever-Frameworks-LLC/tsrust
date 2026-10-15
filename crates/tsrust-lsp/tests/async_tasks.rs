@@ -12,6 +12,8 @@ fn task_hover_and_await_result_use_checked_project_types(){
 fn unused_task_is_warning_and_invalid_await_is_error(){
  let source="async function answer():Task<int>{return 42;}async function main():Task<void>{const task=answer();}";
  let diagnostics=tsrust_lsp::diagnostics(source,"file:///async.tsr").unwrap();assert!(diagnostics.iter().any(|d|d.severity==Some(lsp_types::DiagnosticSeverity::WARNING)),"{diagnostics:?}");
+ let nested="async function one():Task<int>{return 1;}async function outer():Task<Task<int>>{return one();}async function main():Task<void>{await outer();}";
+ let diagnostics=tsrust_lsp::diagnostics(nested,"file:///async.tsr").unwrap();assert!(diagnostics.iter().any(|d|d.severity==Some(lsp_types::DiagnosticSeverity::WARNING)),"{diagnostics:?}");
  let invalid="function main(){await 1;}";let diagnostics=tsrust_lsp::diagnostics(invalid,"file:///async.tsr").unwrap();assert!(diagnostics.iter().any(|d|d.severity==Some(lsp_types::DiagnosticSeverity::ERROR)));
 }
 #[test]
