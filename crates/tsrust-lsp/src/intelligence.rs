@@ -2528,7 +2528,8 @@ impl SourceIndex {
                 if receiver == "string" || literal_scalar_family(receiver) == Some("string") {
                     return "string".into();
                 }
-                if !receiver.is_empty() {
+                // An unknown indexed receiver is not an array literal.
+                if !receiver.is_empty() || self.operand_start(n) != Some(open) {
                     return String::new();
                 }
             }

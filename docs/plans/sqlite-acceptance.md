@@ -28,8 +28,24 @@ rejections and an existing byte-view/resize rejection cover the latter change.
 
 ## Validation
 
-Current logs are retained under `tsrust-s17-*` until imported and byte-verified in
-`benchmarks/records.sqlite`. Earlier failed checks are retained with their repairs.
+Closed logs are imported and byte-restored from `benchmarks/records.sqlite` under
+`tsrust-s17-*`; only active checks retain loose logs. Earlier failed checks remain
+alongside their repairs. Source checkpoint: `91e6b937`. B4's reviewed callable
+specialization repair is integrated at `e33af7db`; its separate evidence is under
+`runtime/diagnostics/ui-b4-repair/4beded639e8735186a4f97df3c0f8d209bd9afa0/`.
+
+Completed before final consumer refresh: 5 SQLite runtime checks; 221 native
+regression checks (220 initially passed, the affected returned-borrow guard and
+all 9 contract checks passed after repair); 46 error-effect checks; 91 affected
+compiler integration checks; and one relocated offline export check covering
+both debug and release. Groups overlap and are not a unique combined test count.
+
+The editor repair prevents an unknown indexed receiver such as `rows[0]` from
+being mistaken for an array literal. Inferred SQLite handles are checked through
+the project path and exact member labels, including a typing-speed matrix row.
+The workspace panic reported while opening empty/comment-only files came from
+B4 callable access summaries during workspace checking, not empty-file parsing.
+The combined fixture checks those files alongside the repaired named handler.
 
 - Runtime: commit/drop/explicit rollback/unwind, deferred-constraint commit failure,
   SQLite automatic rollback, exact data conversion, malformed UTF-8, binding count,

@@ -18,7 +18,7 @@ function main(): void {
 
 `open(path, busyTimeout?)` creates a missing database file or opens an existing one. `:memory:` creates a private in-memory database. Paths are literal filesystem paths, not SQLite URIs. Empty paths and embedded NUL are errors. Foreign keys start enabled. Lock waits default to 5000 milliseconds; pass 0 to fail immediately. The allowed range is 0 through 2147483647.
 
-Prepare exactly one statement. `execute(parameters?)` returns affected rows and rejects statements with result columns before executing. `query(parameters?)` accepts only read-only statements with result columns and returns all rows in an owned array. Use SQL LIMIT to bound large results. Duplicate column names require aliases. Both methods reuse the prepared statement; all parameters must be supplied on every call. Prefer `?1`, `?2`, and so on. Bind user data instead of interpolating it into SQL.
+Prepare exactly one statement. `execute(parameters?)` returns SQLite’s change count (affected rows for INSERT, UPDATE and DELETE; other statements can retain the previous write’s count) and rejects statements with result columns before executing. `query(parameters?)` accepts only read-only statements with result columns and returns all rows in an owned array. Use SQL LIMIT to bound large results. Duplicate column names require aliases. Both methods reuse the prepared statement; all parameters must be supplied on every call. Prefer `?1`, `?2`, and so on. Bind user data instead of interpolating it into SQL.
 
 | Parameter | SQLite storage | Row reader |
 | --- | --- | --- |

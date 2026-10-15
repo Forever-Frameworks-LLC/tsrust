@@ -56,7 +56,7 @@ impl SourceIndex {
     }
 
     /// First token of the postfix expression that ends at token `end`.
-    fn operand_start(&self, end: usize) -> Option<usize> {
+    pub(super) fn operand_start(&self, end: usize) -> Option<usize> {
         let mut at = end;
         loop {
             let text = self.text(at);
