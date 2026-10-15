@@ -1,0 +1,24 @@
+import { strictEqual } from 'std:testing';
+import { Domain, Owner, Handle, create, root, mount, add, read } from './owner.tsr';
+
+function increment(owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void {
+  add(owner, handle, delta);
+}
+
+function main(): void {
+  const left: Domain = {
+    next: 1
+  };
+  const right: Domain = {
+    next: 1
+  };
+  const a = create(left);
+  const b = create(right);
+  const ar = root(a);
+  const br = root(b);
+  const handle = mount(a, ar, 'same', 1, increment);
+  mount(b, br, 'same', 9, increment);
+  // This successful assertion demonstrates the scope limitation, not a safe cross-domain API.
+  strictEqual(read(b, handle), 9);
+  console.log('BLOCKED: handles from independent allocator scopes collide');
+}

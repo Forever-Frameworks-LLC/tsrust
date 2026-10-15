@@ -1,0 +1,23 @@
+import { strictEqual } from 'std:testing';
+import { Domain, Owner, Handle, create, root, mount, add, read, enqueue, drain } from './owner.tsr';
+
+function handler(step: int): (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int) => void {
+  return (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void => {
+    add(owner, handle, delta * step);
+  };
+}
+
+function main(): void {
+  const domain: Domain = {
+    next: 1
+  };
+  const owner = create(domain);
+  const parent = root(owner);
+  const first = mount(owner, parent, '1', 0, handler(2));
+  const second = mount(owner, parent, '2', 0, handler(3));
+  strictEqual(enqueue(owner, first, 1), true);
+  strictEqual(enqueue(owner, second, 1), true);
+  strictEqual(drain(owner), 'ok;ok;');
+  strictEqual(read(owner, first), 2);
+  strictEqual(read(owner, second), 3);
+}

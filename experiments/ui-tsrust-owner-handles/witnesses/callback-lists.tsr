@@ -1,0 +1,69 @@
+import { strictEqual } from 'std:testing';
+import { Domain, Owner, Handle, create, root, mount, add, read, enqueue, drain, remove, values, reorder, valid } from './owner.tsr';
+
+function increment(step: int): (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int) => void {
+  return (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void => {
+    add(owner, handle, delta * step);
+  };
+}
+
+function changeList(parent: Handle, old: Handle, mode: int): (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int) => void {
+  return (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void => {
+    remove(owner, old);
+    strictEqual(values(owner, parent), '1:10;4:40;');
+    if (mode === 12) {
+      strictEqual(reorder(owner, parent, ['4', '1']), true);
+      strictEqual(values(owner, parent), '4:40;1:10;');
+    }
+
+    if (mode === 13) {
+      const fresh = mount(owner, parent, '2', 99, increment(1));
+      strictEqual(values(owner, parent), '1:10;4:40;2:99;');
+      strictEqual(reorder(owner, parent, ['2', '4', '1']), true);
+      strictEqual(values(owner, parent), '2:99;4:40;1:10;');
+      let duplicate = false;
+      try {
+        mount(owner, parent, '2', 7, increment(1));
+      } catch {
+        duplicate = true;
+      }
+
+      strictEqual(duplicate, true);
+      strictEqual(enqueue(owner, old, 50), false);
+      enqueue(owner, fresh, 1);
+    }
+  };
+}
+
+function duringCallback(mode: int): void {
+  const domain: Domain = {
+    next: 1
+  };
+  const owner = create(domain);
+  const parent = root(owner);
+  const list = mount(owner, parent, 'list', 0, increment(1));
+  mount(owner, list, '1', 10, increment(1));
+  const two = mount(owner, list, '2', 20, increment(1));
+  mount(owner, list, '4', 40, increment(1));
+  const action = mount(owner, parent, 'action', 0, changeList(clone(list), clone(two), mode));
+  enqueue(owner, action, 1);
+  enqueue(owner, two, 50);
+  if (mode === 13) {
+    strictEqual(drain(owner), 'ok;stale;ok;');
+    strictEqual(values(owner, list), '2:100;4:40;1:10;');
+  } else if (mode === 12) {
+    strictEqual(drain(owner), 'ok;stale;');
+    strictEqual(values(owner, list), '4:40;1:10;');
+  } else {
+    strictEqual(drain(owner), 'ok;stale;');
+    strictEqual(values(owner, list), '1:10;4:40;');
+  }
+
+  console.log('H' + mode + ' callback removal regression: executed');
+}
+
+function main(): void {
+  duringCallback(11);
+  duringCallback(12);
+  duringCallback(13);
+}

@@ -1,0 +1,108 @@
+import { strictEqual } from 'std:testing';
+import { Domain, Owner, Handle, create, root, mount, add, read, enqueue, drain, remove, values, reorder, valid } from './owner.tsr';
+
+function increment(step: int): (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int) => void {
+  return (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void => {
+    add(owner, handle, delta * step);
+  };
+}
+
+function owners(): void {
+  const domain: Domain = {
+    next: 1
+  };
+  const a = create(domain);
+  const b = create(domain);
+  const ar = root(a);
+  const br = root(b);
+  const x = mount(a, ar, 'same', 0, increment(2));
+  const y = mount(b, br, 'same', 0, increment(3));
+  strictEqual(read(b, x), undefined);
+  strictEqual(add(b, x, 99), false);
+  strictEqual(enqueue(b, x, 99), false);
+  strictEqual(remove(b, x), false);
+  enqueue(a, x, 1);
+  enqueue(a, x, 2);
+  enqueue(b, y, 1);
+  strictEqual(drain(a), 'ok;ok;');
+  strictEqual(drain(b), 'ok;');
+  strictEqual(read(a, x), 6);
+  strictEqual(read(b, y), 3);
+  add(a, x, 4);
+  strictEqual(read(a, x), 10);
+  console.log('H02-H04 scoped owners, retained registry and non-owning handles: executed');
+}
+
+function lists(): void {
+  const domain: Domain = {
+    next: 1
+  };
+  const owner = create(domain);
+  const parent = root(owner);
+  const one = mount(owner, parent, '1', 10, increment(1));
+  const two = mount(owner, parent, '2', 20, increment(1));
+  const four = mount(owner, parent, '4', 40, increment(1));
+  enqueue(owner, two, 3);
+  drain(owner);
+  strictEqual(reorder(owner, parent, ['4', '2', '1']), true);
+  strictEqual(values(owner, parent), '4:40;2:23;1:10;');
+  strictEqual(reorder(owner, parent, ['4', '4', '1']), false);
+  strictEqual(reorder(owner, parent, ['4', '1']), false);
+  let duplicate = false;
+  try {
+    mount(owner, parent, '2', 99, increment(1));
+  } catch (error) {
+    duplicate = true;
+  }
+
+  strictEqual(duplicate, true);
+  strictEqual(values(owner, parent), '4:40;2:23;1:10;');
+  enqueue(owner, two, 90);
+  remove(owner, two);
+  strictEqual(enqueue(owner, two, 1), false);
+  strictEqual(read(owner, two), undefined);
+  const fresh = mount(owner, parent, '2', 0, increment(1));
+  strictEqual(fresh.instance !== two.instance, true);
+  enqueue(owner, fresh, 1);
+  strictEqual(drain(owner), 'stale;ok;');
+  strictEqual(read(owner, fresh), 1);
+  strictEqual(read(owner, one), 10);
+  strictEqual(read(owner, four), 40);
+  remove(owner, parent);
+  remove(owner, parent);
+  strictEqual(owner.nodes.length, 0);
+  strictEqual(owner.handlers.length, 0);
+  console.log('H05-H07 queued stale events, fresh identities and keyed lists: executed');
+}
+
+function queued(): void {
+  const domain: Domain = {
+    next: 1
+  };
+  const owner = create(domain);
+  const parent = root(owner);
+  const action = mount(owner, parent, 'counter', 0, (state: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void => {
+    add(state, handle, delta); strictEqual(drain(state), 'reentrant'); if (delta === 1) {
+      strictEqual(read(state, handle), 1); enqueue(state, handle, 3);
+    }
+
+    if (delta === 2) {
+      strictEqual(read(state, handle), 3);
+    }
+
+    if (delta === 3) {
+      strictEqual(read(state, handle), 6);
+    }
+  });
+  enqueue(owner, action, 1);
+  enqueue(owner, action, 2);
+  strictEqual(drain(owner), 'ok;ok;ok;');
+  strictEqual(read(owner, action), 6);
+  console.log('H08-H09 FIFO and recursive drain rejection: executed');
+}
+
+function main(): void {
+  owners();
+  lists();
+  queued();
+}

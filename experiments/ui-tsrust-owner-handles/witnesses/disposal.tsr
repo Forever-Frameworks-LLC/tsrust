@@ -1,0 +1,94 @@
+import { strictEqual } from 'std:testing';
+import { Domain, Owner, Handle, create, root, mount, add, read, enqueue, drain, remove, values, reorder, valid } from './owner.tsr';
+
+function increment(step: int): (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int) => void {
+  return (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void => {
+    add(owner, handle, delta * step);
+  };
+}
+
+function removeAll(parent: Handle): (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int) => void {
+  return (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void => {
+    strictEqual(add(owner, handle, delta), true);
+    strictEqual(read(owner, handle), delta);
+    remove(owner, parent);
+    strictEqual(valid(owner, handle), false);
+    strictEqual(read(owner, handle), undefined);
+    strictEqual(add(owner, handle, 100), false);
+    strictEqual(enqueue(owner, handle, 1), false);
+  };
+}
+
+function disposal(): void {
+  const domain: Domain = {
+    next: 1
+  };
+  const owner = create(domain);
+  const parent = root(owner);
+  const group = mount(owner, parent, 'group', 0, increment(1));
+  const action = mount(owner, group, 'action', 0, removeAll(clone(group)));
+  const sibling = mount(owner, group, 'sibling', 0, increment(1));
+  enqueue(owner, action, 1);
+  enqueue(owner, action, 1);
+  enqueue(owner, sibling, 1);
+  strictEqual(drain(owner), 'ok;stale;stale;');
+  strictEqual(owner.nodes.length, 0);
+  strictEqual(owner.handlers.length, 0);
+  strictEqual(valid(owner, parent), true);
+  remove(owner, parent);
+}
+
+function removeSelfAndSibling(sibling: Handle): (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int) => void {
+  return (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void => {
+    strictEqual(add(owner, handle, delta), true);
+    strictEqual(read(owner, handle), delta);
+    remove(owner, sibling);
+    strictEqual(add(owner, handle, 1), true);
+    strictEqual(read(owner, handle), delta + 1);
+    remove(owner, handle);
+    strictEqual(valid(owner, handle), false);
+    strictEqual(read(owner, handle), undefined);
+    strictEqual(add(owner, handle, 100), false);
+    strictEqual(enqueue(owner, sibling, 1), false);
+  };
+}
+
+function selfRemoval(): void {
+  const domain: Domain = {
+    next: 1
+  };
+  const owner = create(domain);
+  const parent = root(owner);
+  const sibling = mount(owner, parent, 'sibling', 0, increment(1));
+  const action = mount(owner, parent, 'action', 0, removeSelfAndSibling(clone(sibling)));
+  enqueue(owner, action, 1);
+  enqueue(owner, sibling, 1);
+  enqueue(owner, action, 1);
+  strictEqual(drain(owner), 'ok;stale;stale;');
+  strictEqual(owner.nodes.length, 0);
+  strictEqual(owner.handlers.length, 0);
+}
+
+function rootRemoval(): void {
+  const domain: Domain = {
+    next: 1
+  };
+  const owner = create(domain);
+  const parent = root(owner);
+  const action = mount(owner, parent, 'action', 0, removeAll(clone(parent)));
+  const sibling = mount(owner, parent, 'sibling', 0, increment(1));
+  enqueue(owner, action, 1);
+  enqueue(owner, action, 1);
+  enqueue(owner, sibling, 1);
+  strictEqual(drain(owner), 'ok;stale;stale;');
+  strictEqual(valid(owner, parent), false);
+  strictEqual(owner.nodes.length, 0);
+  strictEqual(owner.handlers.length, 0);
+}
+
+function main(): void {
+  disposal();
+  selfRemoval();
+  rootRemoval();
+  console.log('H10 self/ancestor/root removal ends active state access; sibling-only removal preserves it: executed; contract blocked by B2/B3');
+}

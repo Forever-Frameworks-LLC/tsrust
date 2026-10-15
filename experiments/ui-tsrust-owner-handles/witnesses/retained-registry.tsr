@@ -1,0 +1,25 @@
+import { strictEqual } from 'std:testing';
+
+type State = {
+  value: int;
+};
+
+function make(state: State): () => int {
+  return (): int => {
+    state.value = state.value + 1;
+    return state.value;
+  };
+}
+
+function main(): void {
+  const actions: (() => int)[] = [];
+  actions.push(make({
+    value: 0
+  }));
+  actions.push(make({
+    value: 10
+  }));
+  strictEqual(actions[0](), 1);
+  strictEqual(actions[1](), 11);
+  strictEqual(actions[0](), 2);
+}
