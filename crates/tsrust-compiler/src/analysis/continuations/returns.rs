@@ -22,6 +22,10 @@ impl Analyzer {
     pub(super) fn finish_return(&mut self, context: &mut Context, value: &mut Option<Expr>, frame: ReturnFrame, mut actual: Type) -> Result<(), Diagnostic> {
         let ReturnFrame { result_type, span, .. } = frame;
         context.returning_closure = false;
+        // shortcut: borrowed child tasks need result lifetime lowering before they can escape an async body.
+        if context.task_body && self.is_task_type(actual) && self.borrows_local_storage(actual) {
+            return Err(Diagnostic::new("task-result-borrow", "A task cannot return another task that retains borrowed data. Await the child and return its value instead.", span));
+        }
         let facts = self.aggregate_callable_facts(actual);
         // An absent nullable record holds no callback instance to escape.
         let absent_record = self.nullable_scoped_record_declaration(actual).is_some()

@@ -4,6 +4,9 @@ S13 depends on accepted S06 and S07. It remains separate from S14's Tokio runtim
 and from the proposed desktop integration. The older async vision document is
 research context, not an approved scheduling or cancellation contract.
 
+Current source implementation and acceptance: [lazy async tasks](async-tasks-acceptance.md).
+The backend controls below remain historical feasibility evidence.
+
 ## Backend evidence
 
 `tests/native_async_backend.rs` compiles bounded, dependency-free Rust controls

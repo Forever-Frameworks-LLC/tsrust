@@ -38,10 +38,13 @@ sequential construction/await workload, not a scheduling or I/O benchmark.
 Validation counts, immutable SQLite record names and installed consumer hashes
 are recorded below after the final gates.
 
-Focused acceptance: 22 compiler tests pass, including the generated suspension /
+Focused acceptance: 23 compiler tests pass, including the generated suspension /
 drop witness, later-argument failure responsibility, tasks returned by await,
 value-producing task matches, discarded sequence operands, literal preservation
-and Task-only parameter contracts. Three async LSP tests,
+Task-only parameter contracts and generic awaited values. The borrowed-data
+fixture verifies record/view loans through generic task transfers. Returning a
+child task retaining borrowed data is rejected at source; return its awaited
+value instead. Nested owned task results remain supported. Three async LSP tests,
 the completion matrix, checker agreement and editor consistency pass. Compiler
 library regression: 1224 passed, five ignored. Callable / exception integration:
 172 tests passed across the 14 existing affected targets. Extension compilation,
@@ -62,3 +65,12 @@ in every sample. Records:
 `benchmarks/async/lazy-await-2026-10-15T12-03-08.985Z.json`.
 This workload has no comparable prior async measurement; it is not evidence about
 Tokio, multicore throughput or suspended I/O latency.
+
+Complete family regressions: 4074 compiler tests passed (seven ignored),
+including the added generic-transfer witness; 693 LSP tests passed after the
+Task catalog registration repair. Original failures and affected repairs remain
+in SQLite. Remaining compiler integration evidence:
+`tsrust-s13-compiler-remaining.log` (319 targets, 2637 passed, two ignored).
+Final affected checks: `tsrust-s13-final-generic-checks.log`,
+`tsrust-s13-final-editor-generics.log`, `tsrust-s13-final-callback-checks.log`.
+These focused repairs do not restart the completed full-family regression.

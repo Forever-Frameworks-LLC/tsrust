@@ -32,6 +32,8 @@ ReadOnly and Mutable arguments retain their loans while the task owns them. The
 owner cannot be changed, transferred or disposed while a conflicting loan remains.
 After completion, the loan is released. Local awaiting does not require Send;
 thread boundaries keep their separate transfer checks.
+A task cannot return a child task that retains borrowed data. Await that child
+and return its value instead; nested tasks containing only owned data are supported.
 
 S13 provides native futures and a local entry driver. Tokio scheduling, asynchronous
 I/O, timers, started jobs and cancellation APIs belong to S14. No start, cancel,

@@ -2262,15 +2262,17 @@ impl Emitter<'_> {
             }
             Some(ClosureForward::Abstract(contract)) => {
                 let kind=self.program.callback_contracts[contract].kind;
-                let (method,receiver)=if matches!(kind,CallbackKind::Read | CallbackKind::SharedRead){("ReadCallback::invoke_read_with_count","&self.capture0")}else if kind.is_once(){("OnceCallback::invoke_once_with_count","self.capture0")}else{("Callback::invoke_with_count","&mut self.capture0")};
+                let task_method=if kind==CallbackKind::Task{format!("TaskCallback::<(),{}>::invoke_once_with_count",self.callback_result_type(contract,self.program.callback_contracts[contract].result))}else{String::new()};
+                let (method,receiver)=if kind==CallbackKind::Task{(task_method.as_str(),"self.capture0")}else if matches!(kind,CallbackKind::Read | CallbackKind::SharedRead){("ReadCallback::invoke_read_with_count","&self.capture0")}else if kind.is_once(){("OnceCallback::invoke_once_with_count","self.capture0")}else{("Callback::invoke_with_count","&mut self.capture0")};
                 let arguments=tuple(closure.parameters.iter().map(|id|format!("value{id}")));
                 let outer=self.program.closures.iter().position(|candidate|std::ptr::eq(candidate,closure)).expect("saved abstract forwarder");
-                let call=self.abstract_result_forward(format!("{method}({receiver},{arguments},supplied_count)"),contract,outer);
+                let call=format!("{method}({receiver},{arguments},supplied_count){}",if kind==CallbackKind::Task{".await"}else{""});
+                let call=self.abstract_result_forward(call,contract,outer);
                 let _=writeln!(output,"        {call}");
             }
             Some(ClosureForward::Once(inner)) => {
                 let arguments = tuple(closure.parameters.iter().map(|id| format!("value{id}")));
-                let call=format!("OnceCallback::invoke_once_with_count(self.capture0, {arguments}, supplied_count)");
+                let call=if self.program.task_origins.contains(&inner){format!("{{ let {}task=self.capture0; task.call_with_count(supplied_count).await }}",if self.program.closures[inner].invocation==Mode::Mutate{"mut "}else{""})}else{format!("OnceCallback::invoke_once_with_count(self.capture0, {arguments}, supplied_count)")};
                 let outer=self.program.closures.iter().position(|candidate|std::ptr::eq(candidate,closure)).expect("saved Once adapter");
                 let call=self.closure_result_forward(call,inner,outer);
                 let _=writeln!(output,"        {call}");
@@ -2648,13 +2650,15 @@ impl Emitter<'_> {
                 let _ = writeln!(output, "        {call}");
             } else if let Some(ClosureForward::Abstract(contract))=closure.forward {
                 let kind=self.program.callback_contracts[contract].kind;
-                let method=if matches!(kind,CallbackKind::Read | CallbackKind::SharedRead){"ReadCallback::invoke_read"}else if kind.is_once(){"OnceCallback::invoke_once"}else{"Callback::invoke"};
+                let task_method=if kind==CallbackKind::Task{format!("TaskCallback::<(),{}>::invoke_once",self.callback_result_type(contract,self.program.callback_contracts[contract].result))}else{String::new()};
+                let method=if kind==CallbackKind::Task{task_method.as_str()}else if matches!(kind,CallbackKind::Read | CallbackKind::SharedRead){"ReadCallback::invoke_read"}else if kind.is_once(){"OnceCallback::invoke_once"}else{"Callback::invoke"};
                 let arguments=tuple(closure.parameters.iter().map(|id|format!("value{id}")));
-                let call=self.abstract_result_forward(format!("{method}(value0,{arguments})"),contract,index);
+                let call=format!("{method}(value0,{arguments}){}",if kind==CallbackKind::Task{".await"}else{""});
+                let call=self.abstract_result_forward(call,contract,index);
                 let _=writeln!(output,"        {call}");
             } else if let Some(ClosureForward::Once(inner))=closure.forward {
                 let arguments = tuple(closure.parameters.iter().map(|id| format!("value{id}")));
-                let call=if self.program.task_origins.contains(&inner){format!("TaskCallback::invoke_once(value0, {arguments}).await")}else{format!("OnceCallback::invoke_once(value0, {arguments})")};
+                let call=if self.program.task_origins.contains(&inner){format!("{{ let {}task=value0; task.call().await }}",if self.program.closures[inner].invocation==Mode::Mutate{"mut "}else{""})}else{format!("OnceCallback::invoke_once(value0, {arguments})")};
                 let call=self.closure_result_forward(call,inner,index);
                 let _=writeln!(output,"        {call}");
             } else {

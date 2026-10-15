@@ -144,6 +144,8 @@ fn inferred_task_arrays_transfer_through_pop_and_push() {
 
 #[test]
 fn nested_task_cannot_return_a_loan_of_its_parent_owned_input() {
+    let borrowed="async function size(text:ReadOnly<string>):Task<int>{return text.length;}async function invalid(text:ReadOnly<string>):Task<Task<int>>{return size(text);}function main(){}";
+    assert!(check(&support::format_round_trip(borrowed)).is_err());
     let source="async function size(text:ReadOnly<string>):Task<int>{return text.length;}async function invalid(text:string):Task<Task<int>>{return size(text);}function main(){}";
     assert!(check(&support::format_round_trip(source)).is_err());
     support::execute("async function one():Task<int>{return 1;}async function outer():Task<Task<int>>{return one();}async function main():Task<void>{const inner=await outer();console.log(await inner);}","1\n",None);
@@ -200,4 +202,16 @@ fn async_emission_preserves_strings_that_look_like_generated_methods() {
 #[test]
 fn task_parameter_contract_compiles_without_a_concrete_async_declaration() {
     support::execute("function accept(task:Task<int>):void{}function main(){}","",None);
+}
+
+#[test]
+fn awaited_values_infer_generic_arguments_and_keep_record_and_native_view_loans() {
+    let directory=support::TempDirectory::new();
+    let source=support::format_round_trip(include_str!("fixtures/async-tasks/borrowed-data.tsr"));
+    let output=support::run(support::cli().arg("run").arg(directory.source(&source)),60);support::success(&output);assert!(output.stdout.is_empty());
+    for point in ["strictEqual(await userTask, 3);"] {
+        let invalid=source.replace(point,&format!("take(user); {point}"));
+        let output=support::run(support::cli().arg("check").arg(directory.source(&support::format_round_trip(&invalid))),30);
+        assert!(!output.status.success(),"A task transfer must retain its caller loan: {point}");
+    }
 }

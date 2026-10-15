@@ -3,6 +3,27 @@ use super::*;
 use crate::capture_loan_owners::Place;
 
 impl Analyzer {
+    /// Task inputs survive argument-temporary cleanup when responsibility is returned.
+    pub(super) fn retain_task_call_loans(&self,context:&mut Context,index:usize,args:&[Expr],span:Span) {
+        let mut calls=vec![(index,args,span)];
+        while let Some((index,args,span))=calls.pop() {
+            let Some(function)=self.checked[index].as_ref() else {continue;};
+            for (argument,parameter) in args.iter().zip(function.bindings.iter().take(function.parameter_count)) {
+                if matches!(parameter.mode,Mode::Read|Mode::Mutate) && !parameter.ty.is_copy() {
+                    for root in Self::loan_roots(argument,parameter.mode) {let loan=(root,parameter.mode,span);if !context.capture_loans.contains(&loan){context.capture_loans.push(loan);}}
+                } else if parameter.mode==Mode::Consume && argument.ty.is_some_and(|ty|self.is_task_type(ty)) {
+                    let mut values=vec![argument];
+                    while let Some(value)=values.pop() {match &value.kind {
+                        ExprKind::Call(_,args)=>if let Some(CallTarget::Function(index))=value.target {calls.push((index,args,value.span));},
+                        ExprKind::Unary{value,..}|ExprKind::TypeAssertion{value,..}|ExprKind::Project{value,..}|ExprKind::Inject{value,..}=>values.push(value),
+                        ExprKind::Conditional{consequent,alternate,..}=>values.extend([consequent.as_ref(),alternate.as_ref()]),
+                        ExprKind::Sequence(values0)=>values.extend(values0.last()),
+                        _=>{}
+                    }}
+                }
+            }
+        }
+    }
     pub(super) fn resolve_completed_capture_invocation(&self, context: &mut Context, expression: &Expr, result: Type) {
         if self.expression_result_retains_captures(result) { return; }
         let ExprKind::Call(callee, _) = &expression.kind else { return; };
@@ -157,6 +178,7 @@ impl Analyzer {
                 }
                 ExprKind::Call(callee, _) => {
                     if value.ty.is_some_and(|ty|self.is_task_type(ty)) {
+                        if let ExprKind::Unary{op:UnaryOp::AwaitCallee,value:task,..}=&callee.kind {pending.push((task,destination.clone(),true));}
                         let ids=context.capture_loans.iter().filter(|(_,_,span)|*span==value.span).map(|loan|context.capture_loan_ids.intern(*loan)).collect::<Vec<_>>();
                         context.capture_loan_owners.attach(destination.clone(),ids);
                         if let ExprKind::Call(_,arguments)=&value.kind {
@@ -237,7 +259,7 @@ impl Analyzer {
                     op:
                         UnaryOp::CallableStore
                         | UnaryOp::RecordCarrier
-                        | UnaryOp::AwaitCallee | UnaryOp::TaskCreate
+                        | UnaryOp::Await | UnaryOp::AwaitCallee | UnaryOp::TaskCreate
                         | UnaryOp::CallableOnce
                         | UnaryOp::CoalesceSelected
                         | UnaryOp::OptionalSelected

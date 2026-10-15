@@ -54,13 +54,13 @@ impl Analyzer {
                 let bindings = closure.parameters.iter().map(|id| &closure.function.bindings[*id]).collect::<Vec<_>>();
                 Some((bindings.iter().map(|binding| ArgumentContract::from(*binding)).collect(),
                     bindings.iter().map(|binding| binding.name.clone()).collect(), closure.function.result,
-                    if closure.borrowed {
+                    if self.task_origins.contains(&id) { CallbackKind::Task } else if closure.borrowed {
                         match closure.invocation {
                             Mode::Consume => CallbackKind::Once,
                             Mode::Mutate => CallbackKind::Reusable,
                             Mode::Read | Mode::Copy => CallbackKind::Read,
                         }
-                    } else if self.task_origins.contains(&id) { CallbackKind::Task } else if closure.invocation == Mode::Consume { CallbackKind::OwnedOnce } else { CallbackKind::Owned }))
+                    } else if closure.invocation == Mode::Consume { CallbackKind::OwnedOnce } else { CallbackKind::Owned }))
             }
             _ => None,
         };

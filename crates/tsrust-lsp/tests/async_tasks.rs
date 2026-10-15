@@ -3,7 +3,7 @@ use tsrust_compiler::project::SourceId;
 use tsrust_lsp::{workspace::Workspace,project_intelligence::ProjectIndex};
 #[test]
 fn task_hover_and_await_result_use_checked_project_types(){
- let entry=SourceId("/async/main.tsr".into());let source="async function answer():Task<int>{return 42;}async function main():Task<void>{const task=answer();const result=await task;console.log(result);}";
+ let entry=SourceId("/async/main.tsr".into());let source="function identity<T>(value:T):T{return value;}async function answer():Task<int>{return 42;}async function main():Task<void>{const task=identity(answer());const result=identity(await task);console.log(result);}";
  let mut workspace=Workspace::default();workspace.open(entry.clone(),1,source.into());
  let checked=workspace.snapshot().check(&entry).unwrap();let index=ProjectIndex::checked(&checked);
  for(needle,expected)in [("task=","Task<int>"),("result=","int"),("answer()","Task<int>"),("main()","Task<void>")]{let hover=index.request("textDocument/hover",&json!({"position":{"line":0,"character":source.find(needle).unwrap()}}),"file:///async/main.tsr").unwrap().unwrap().to_string();assert!(hover.contains(expected),"{hover}");}

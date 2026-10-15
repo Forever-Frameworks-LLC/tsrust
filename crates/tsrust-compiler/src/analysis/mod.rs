@@ -448,6 +448,7 @@ type CallbackMetadata = (Option<Mode>, bool, Option<CallbackKind>);
 
 #[derive(Clone)]
 struct Context {
+    task_body: bool,
     task_owned_inputs: Option<Box<HashSet<usize>>>,
     block_result_type: Type,
     match_values: Vec<(usize, Option<Type>)>,
@@ -534,6 +535,7 @@ impl Context {
             native_view_environments: None,
             native_shadowed_bindings: None,
             task_owned_inputs: None,
+            task_body: false,
             native_view_results: None,
             native_view_function_returns: None,
             storage_exits: Default::default(), native_returns: None, native_mutations: None,
@@ -2339,6 +2341,7 @@ impl Analyzer {
             escapes: true,
             invocation,
         });
+        if self.callables.callbacks[contract].kind==CallbackKind::Task {self.task_origins.insert(id);}
         self.abstract_returns.insert(contract, id);
         id
     }
@@ -9449,13 +9452,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 }
             }
         }
-        if self.is_task_type(result) {
-            for (argument,parameter) in args.iter().zip(&self.checked[index].as_ref().map(|function|function.bindings[..function.parameter_count].to_vec()).unwrap_or_default()) {
-                if matches!(parameter.mode,Mode::Read|Mode::Mutate) && !parameter.ty.is_copy() {
-                    for root in Self::loan_roots(argument,parameter.mode) { context.capture_loans.push((root,parameter.mode,span)); }
-                }
-            }
-        }
+        if self.is_task_type(result) { self.retain_task_call_loans(context,index,args,span); }
         self.release_record_call_captures(context,index,args);
         self.retain_record_parameter_borrows(context,index,args)?;
         self.retain_caller_error_origins(context, index, args);

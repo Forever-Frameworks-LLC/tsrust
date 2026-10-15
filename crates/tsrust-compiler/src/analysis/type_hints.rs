@@ -45,6 +45,7 @@ impl Analyzer{
                     ExprKind::LogicalAssign{target,..}=>{work.push(Work::LogicalAssignment);work.push(Work::Expression(target));},
                     ExprKind::Update{target,..}|ExprKind::Assign{target,..}|ExprKind::CompoundAssign{target,..}=>work.push(Work::Expression(target)),
                     ExprKind::Unary{op,value:child,..}=>match op{
+                        UnaryOp::Await if matches!(&child.kind,ExprKind::Call(callee,_) if matches!(callee.kind,ExprKind::Unary{op:UnaryOp::AwaitCallee,..}))=>work.push(Work::Expression(child)),
                         UnaryOp::VariantIs(_)|UnaryOp::Not=>value=Some(Type::Boolean),
                         UnaryOp::Typeof=>value=Some(Type::String),UnaryOp::Void=>value=Some(Type::Undefined),
                         UnaryOp::BitNot=>value=Some(self.bitwise_or_power_type(context,child,None,None)),
@@ -154,6 +155,7 @@ impl Analyzer{
                 if let Some(rhs)=value{selected.push(rhs.owning());value=self.join_logical_hints(lhs,selected,span);}
             },
             Work::Unary(op)=>value=value.and_then(|ty|match op{
+                UnaryOp::Await=>self.is_task_type(ty).then(||self.checked_generic_callable_shape(ty).map(|(_,result)|result)).flatten(),
                 UnaryOp::NonNull=>self.unions.payload(ty.owning()).or_else(||(!matches!(ty,Type::Null|Type::Undefined|Type::Void)&&ty.union().is_none()).then_some(ty)),
                 UnaryOp::OptionalBoundary=>self.unions.payload(ty).or(Some(ty)),
                 UnaryOp::Positive if !matches!(ty,Type::Int|Type::Number)=>Some(Type::Number),

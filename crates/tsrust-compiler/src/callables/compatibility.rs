@@ -97,7 +97,7 @@ impl<'a> Contracts<'a> {
             let signature = match actual {
                 Type::Closure(id) => {
                     let closure = &self.closures[id];
-                    let closure = if !self.effects_only && contract.kind.is_owned() && contract.kind != crate::syntax::CallbackKind::Program {
+                    let closure = if !self.effects_only && contract.kind.is_owned() && !matches!(contract.kind, crate::syntax::CallbackKind::Program | crate::syntax::CallbackKind::Task) {
                         if contract.kind == crate::syntax::CallbackKind::SharedRead {
                             crate::callable_storage::StorageContract::checked_shared(self.signatures, contract.structural)
                         } else if crate::native_view_callable_storage::carried_slots(closure).is_some() {

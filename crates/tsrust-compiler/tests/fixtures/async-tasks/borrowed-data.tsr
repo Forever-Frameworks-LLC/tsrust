@@ -1,0 +1,59 @@
+import { ByteView, fromArray, view, length } from 'std:bytes';
+import { strictEqual } from 'std:testing';
+
+type User = {
+  name: string;
+};
+
+async function size(user: ReadOnly<User>): Task<int> {
+  return user.name.length;
+}
+
+function take(user: Owned<User>): void {}
+
+async function count(part: ByteView): Task<int> {
+  return length(part);
+}
+
+async function one(): Task<int> {
+  return 1;
+}
+
+async function outer(): Task<Task<int>> {
+  return one();
+}
+
+function identity<T>(value: T): T {
+  return value;
+}
+
+async function failed(): Task<int> {
+  throw 'failure';
+}
+
+async function recover(): Task<int> {
+  const task = identity(failed());
+  try {
+    return await task;
+  } catch (error) {
+    return 7;
+  }
+}
+
+async function main(): Task<void> {
+  const user: User = {
+    name: 'Ada'
+  };
+  const userTask = identity(size(user));
+  strictEqual(await userTask, 3);
+  const owner = unwrap(fromArray([1, 2, 3]));
+  const part = unwrap(view(owner, 0, 2));
+  const countTask = count(part);
+  strictEqual(await countTask, 2);
+  const values = [await one(), await one()];
+  strictEqual(values.length, 2);
+  const inner = identity(await outer());
+  strictEqual(await inner, 1);
+  strictEqual(await recover(), 7);
+  take(user);
+}

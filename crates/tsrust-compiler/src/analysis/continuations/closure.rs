@@ -97,6 +97,7 @@ impl Analyzer {
         context.names = outer.names.iter().map(|(name, slot)| (name.clone(), visible.binary_search(slot).expect("visible name"))).collect();
         context.caller_error_origins = outer.caller_error_origins.clone();
         if self.task_sources.contains(&origin) {
+            context.task_body = true;
             context.task_owned_inputs=Some(Box::new(visible.iter().enumerate().filter(|(_,root)|!outer.bindings[**root].ty.is_copy() && !outer.readonly_parameters.contains(root) && !outer.mutable_parameters.contains(root)
                 && !self.program.module_owner_bindings.iter().any(|declaration|outer.source_bindings.get(&declaration.start)==Some(root))).map(|(slot,_)|slot).collect()));
         }
