@@ -1,32 +1,29 @@
 # Modules, native standard library and async roadmap
 
 Current continuation: [compiler foundations through S12–S21](handoffs/compiler-to-roadmap-continuation.md).
-Current owner priority (2026-10-15): finish the active S18 work at a safe checkpoint, then prioritize
-[checked resource lifetimes for UI](#owner-priority-compiler-dependency-checked-resource-lifetimes-for-ui).
-UI implementation pauses until that dependency is ready; older priority statements below are historical.
-S01–S11 are accepted within their documented boundaries. The owner's 2026-10-14
-priority is a bounded practical-performance review, then product feature work.
-Extreme-nesting optimizations and exhaustive architecture audits are deferred
-unless representative workloads demonstrate a practical problem. S12 owned
-spawn/join and lifecycle checking is the next concrete feature slice. Older
-mandatory nesting/optimization gates below are historical; use the current
-continuation for priorities and preserved acceptance evidence.
+Current owner priority (2026-10-15): S18 core acceptance is complete. Next deliver
+[checked resource lifetimes for UI](#owner-priority-compiler-dependency-checked-resource-lifetimes-for-ui),
+then [required data-type coverage](#owner-priority-required-data-type-coverage), then
+continue S19, S20 and S21 without waiting for another instruction. UI implementation
+is paused on the resource dependency; coordinate its resumption when that dependency
+is accepted. Read the current continuation first; older next-step statements below
+are historical and do not override this order.
 
 Owner-prioritized [diagnostic suppression directives](plans/diagnostic-suppression-plan.md)
 are accepted and installed for `check` and LSP reporting. Strict compilation stays
-unchanged. Continue the remaining S10 work.
+unchanged. S10 is accepted; follow the current priority order above.
 
 
-Status: S01–S03 module loading/checking/native CLI accepted with focused evidence; S04 project editing is accepted at gate 185; S05 primitive native bindings/build is accepted on macOS with focused evidence; S06 type foundations are accepted at gate 186; S07 is accepted on macOS after gates 187–190 native bytes, views and file resources; S08 collections is accepted on macOS; S09 synchronous host foundations are accepted on macOS; S10 JSON is accepted; S11 schemas are accepted on macOS and S12–S21 remain pending. Project-wide multiple-error diagnostics is accepted on macOS; see the [diagnostics acceptance](plans/project-diagnostics-plan.md). User-approved direction: bundled standard library, Rust package backends, Tokio-backed explicit async/await and native threads. No custom goroutine scheduler. This file is the progress ledger and compiler/editor handoff contract. See [module loader acceptance](milestones/modules-01-project-loader.md) and [module checking acceptance](milestones/modules-02-project-linking.md).
+Status: S01–S03 module loading/checking/native CLI accepted with focused evidence; S04 project editing is accepted at gate 185; S05 primitive native bindings/build is accepted on macOS with focused evidence; S06 type foundations are accepted at gate 186; S07 is accepted on macOS after gates 187–190 native bytes, views and file resources; S08 collections is accepted on macOS; S09 synchronous host foundations are accepted on macOS; S10 JSON is accepted; S11 schemas and S12–S18 capabilities are accepted within the documented boundaries below; S19–S21 remain open. Project-wide multiple-error diagnostics is accepted on macOS; see the [diagnostics acceptance](plans/project-diagnostics-plan.md). User-approved direction: bundled standard library, Rust package backends, Tokio-backed explicit async/await and native threads. No custom goroutine scheduler. This file is the progress ledger and compiler/editor handoff contract. See [module loader acceptance](milestones/modules-01-project-loader.md) and [module checking acceptance](milestones/modules-02-project-linking.md).
 
 [Researched Node and ecosystem coverage inventory](standard-library-coverage.md) maps every pinned Node API family, representative Node/Rust packages, application witnesses and supplemental H-series gates. Its per-export inventory and popularity measurements remain explicit follow-up requirements before broad parity or ranking claims.
 
 ## Owner-priority compiler dependency: checked resource lifetimes for UI
 
-Priority recorded2026-10-15 after review of the B2 investigation. UI implementation
+Priority recorded 2026-10-15 after review of the B2 investigation. UI implementation
 is paused until the compiler dependency below is accepted and available to validate.
-Schedule this as the next compiler priority at a coordinated safe checkpoint with
-active S18 work; do not race its shared native-type, ownership or emission edits.
+S18 is now accepted; this is the next compiler priority. Coordinate exclusive
+checkout and build ownership before shared native-type, ownership or emission edits.
 This entry records priority and acceptance, not completion or permission to interrupt
 an active validation run.
 
@@ -72,6 +69,37 @@ may reveal an owner representation/finalization dependency. Concurrent runtime i
 allocation, late async completion rejection, cancellation and thread-affine cleanup
 remain explicit follow-up obligations; synchronous success is not worker readiness.
 
+## Owner priority: required data-type coverage
+
+After the resource dependency, complete a bounded coverage pass for the data types
+needed by UI, Rust adapters, SQL and the remaining service roadmap. Start from current
+compiler declarations, built-in metadata, guides and accepted fixtures; do not repeat
+accepted implementation or infer support from a backend crate alone.
+
+Maintain one matrix mapping required types to source syntax, representation, operations,
+conversion rules, ownership/transport, compiler/native/editor coverage and executable
+witnesses. Cover primitives and numeric ranges/precision; strings/Unicode; bytes/views;
+null/optional values; records, arrays, tuples and collections; unions/variants/results;
+JSON and schema values; callbacks; owned resources, tasks and jobs. Explicitly assess
+SQL/Rust boundary requirements for integer widths/signedness, exact decimal values,
+date/time/time zones/durations, UUIDs, JSON, binary data and nullable columns.
+
+Implement missing types or mappings needed by concrete UI and S19–S21 examples, with
+lossless conversions or explicit checked errors. Reuse existing representations where
+they preserve behavior. Do not silently round, truncate, stringify or clone to claim
+coverage. Record genuinely unsupported or deferred types with the affected use case
+and a safe documented alternative; no universal Rust-crate or database-type claim.
+Complete compiler/runtime/editor support and focused acceptance for each coherent
+section. This priority is a practical coverage gate, not an exhaustive type-system
+redesign. Accepted scalar SQL checks remain valid; new mappings need their own driver
+witnesses.
+
+Once both priorities are accepted, continue the existing S19 cache plan, S20 queues
+and S21 integrated service acceptance in order. Do not stop at a design checkpoint or
+wait for a new “go ahead.” Preserve scoped limitations and evidence, and ask only for
+material unresolved decisions or external blockers. Full regressions and measurements
+belong at the meaningful family milestones defined by the development workflow.
+
 ## Product contract
 
 Ship supported capabilities with the Tsrust toolchain. Users import std: modules without maintaining Cargo dependencies. Keep stable Tsrust APIs independent of backend crates. Link only selected features; a console-only program must not acquire database, HTTP or async runtime dependencies. Rust crates are implementation dependencies, not arbitrary source-level Rust interoperability.
@@ -108,7 +136,7 @@ Shared compiler integration points: parser/type representation, symbol resolutio
 
 ## Sequenced gates and progress ledger
 
-S01–S10 are accepted within their documented platform and feature boundaries; S11 is accepted on macOS and S12–S21 are pending. A gate closes only with its listed focused evidence plus the common acceptance requirements below. Implementation acceptance and performance/checkpoint acceptance are separate fields.
+S01–S18 have accepted capabilities within their documented platform and feature boundaries. S19–S21 remain open. A gate closes only with its listed focused evidence plus the common acceptance requirements below. Implementation acceptance and performance/checkpoint acceptance are separate fields.
 
 | Gate | Depends on | Concrete deliverable and exit evidence | State |
 |---|---|---|---|
@@ -124,7 +152,7 @@ S01–S10 are accepted within their documented platform and feature boundaries; 
 | S09: synchronous host | S07 | Path/fs/env/time foundations, file read/write and buffered streams, size limits, monotonic clock; filesystem sandbox fixtures and cleanup | accepted on macOS: 3,207 compiler and 532 LSP tests pass; nine matched measurements and allocation profiles, final installed checks and editor restart pass; see [host acceptance](milestones/s09-host-measurements.md) |
 | S10: JSON | S07, S08 | Typed decoding/encoding and explicit JsonValue, correct number/Unicode/property rules, malformed/depth/size errors, JSONC/JSONL, bounded file streaming and allocation baseline; see JSON contract | accepted: see [S10 acceptance](milestones/s10-json-acceptance.md); full compiler/LSP regressions, matched measurements, optimization review, installed consumers and cleanup complete within documented scope |
 | S11: schemas | S06, S10 | Typed reusable schema API, structured issue paths, safeParse, object/union/optional/refinement/transformation coverage and fused JSON validation; see schema contract | accepted on macOS: inferred reusable schemas, collections/recursion, pipelines, throwing parse, fused validation and scoped Draft 2020-12 export; compiler 3,727 and LSP 645 pass after cleanup; all 31 matched workloads measured separately; consumers refreshed; see [acceptance and handoff](handoffs/2026-10-13-s11-acceptance.md) and [schema plan](plans/schema-plan.md) |
-| S12: native threads | S07 | Spawn/join with explicit transferred captures, Send-like restrictions, panic/failure conversion, bounded channels; multicore witness and compile-time invalid sharing tests | owned spawn/join/detach plus opt-in scoped cleanup and typed Result propagation implemented; [scoped acceptance](plans/scoped-worker-acceptance.md); bounded channels, multicore measurements and configurable default pools/Rust integration remain open |
+| S12: native threads | S07 | Spawn/join with explicit transferred captures, Send-like restrictions, panic/failure conversion, bounded channels; multicore witness and compile-time invalid sharing tests | accepted within documented scope: dedicated spawn with default cleanup, owned ThreadPool, explicit cancellation, bounded channels and Rust/Rayon bridges; see [pools](plans/worker-pool-cancellation.md), [channels](plans/bounded-worker-channels.md), [bridges](plans/rust-rayon-bridges.md) and [package CLI](plans/package-cli-acceptance.md); external owned resources are the priority dependency above |
 | S13: async compiler | S06, S07 | async functions/await/task result types, async main selection, suspend-safe captures/loans/drop, correct control flow and diagnostics; generated native futures execute | accepted; lazy single-use tasks, suspend-safe ownership, native execution and editor agreement pass; see [async acceptance](plans/async-tasks-acceptance.md) |
 | S14: Tokio tasks | S12, S13 | Runtime bootstrap, explicit .start()/task groups, timers, bounded async channels, cancellation/timeouts and shutdown; blocking work separated; no leaked tasks/resources | accepted; owned scheduling, timers, groups, bounded channels and cancellation cleanup pass compiler/runtime/editor acceptance; see [Tokio acceptance](plans/tokio-tasks-acceptance.md) |
 | S15: HTTP | S10, S11, S14 | Client/server request/response, typed validated bodies, limits, streaming/backpressure, disconnect and graceful shutdown; loopback integration and cancellation tests | accepted; Axum-backed HTTP, ownership/cleanup, editor and matched measurements; see [HTTP acceptance](plans/http-acceptance.md) |

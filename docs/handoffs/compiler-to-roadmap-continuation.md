@@ -1,4 +1,76 @@
-# Current continuation: practical performance and product features
+# Compiler continuation: UI resource lifetimes, data types, then S19–S21
+
+
+## Current handoff — 2026-10-15, after S18 acceptance
+
+This section supersedes all historical “next”, “pending”, consumer-version and build-window
+statements below. Follow the [current roadmap priorities](../standard-library-roadmap.md).
+
+1. Finish checked resource lifetimes for UI, including a real destructor and independent
+   non-retaining release audit. Read the roadmap acceptance contract and the B2
+   `experiments/ui-tsrust-owner-handles/RESOURCE-RELEASE.md`, `release-matrix.json` and
+   `RESOURCE-RELEASE-REVIEW.md`. Preserve Drop rejection for projected external records.
+   Coordinate readiness with “Review UI vision and roadmap”; compiler acceptance alone
+   does not close the UI matrix or establish worker readiness.
+2. Complete the roadmap's required data-type coverage pass. Map existing support first,
+   then implement practical gaps for UI, Rust/SQL boundaries and S19–S21. Include exact
+   numerics, dates/times, UUID, JSON, binary and nullable values in the boundary inventory.
+   Require explicit conversion/ownership contracts and compiler/native/editor witnesses.
+   Record unsupported cases honestly; do not expand into an unlimited type-system audit.
+3. Continue S19 caches, S20 queues and S21 integrated acceptance autonomously after the
+   priority work. The owner explicitly authorized continuation, not another planning stop.
+
+### Completed work: reuse evidence, do not restart
+
+S12 workers/pools/channels/bridges and package management, S13 async checking, S14 Tokio,
+S15 HTTP, S16 TLS, S17 SQLite and S18 async SQL have accepted implementations within
+linked scope. The roadmap rows and individual acceptance documents define limitations.
+No global pool remains: use owned `ThreadPool`; `spawn` stays dedicated.
+
+S18 checkpoints: `1b4a1639` implementation, `1eeaac6e` nested cleanup repair,
+`cf3aa83c` acceptance documentation. See [SQL acceptance](../plans/async-sql-acceptance.md)
+and [guide](../guides/async-sql.md) for exact checks and limits. PostgreSQL, MySQL and
+SQLite passed separately, including cancellation, rollback, acquisition recovery,
+owned rows and readable examples. A cancelled drain now retains nested cleanup until
+settlement. Preserve this regression and SQL pool/transaction loan behavior.
+
+Compiler/editor focused suites, offline export, installed consumers and untimed
+native/Node checksum parity passed. Full regression and timed benchmark matrices were
+not rerun for S18. Do not relabel untimed evidence as measurements. Original logs,
+failures, repairs and benchmark records are byte-verified in `benchmarks/records.sqlite`;
+closed loose copies and temporary Docker containers were removed.
+
+Database suites are ignored by default. Run `node tools/check-async-sql.mjs --docker`
+when SQL runtime/dependencies, task lifecycle, SQL borrowing or SQL emission changes;
+unrelated documentation or source changes do not require rerunning them. The script
+provisions and removes its own three-driver acceptance resources. Cancellation can
+wait for in-flight queries; a cancelled/disconnected commit has indeterminate outcome.
+Migration orchestration, streaming and compile-time database schema checking remain
+deferred. The shared SQLite dependency is now SQLite 3.51.3 via rusqlite 0.39.0 for
+SQLx compatibility; synchronous SQLite correctness passed after that change.
+
+### Current consumers and exclusive workspace
+
+Installed CLI `~/.cargo/bin/tsrust` and LSP `~/.cargo/bin/tsrust-lsp`, plus the configured
+`target/editor/debug/tsrust-lsp`, were refreshed from `1eeaac6e`. The final LSP bytes
+passed the installed completion matrix; the active VS Code workspace showed no problems.
+Do not rebuild/restart them merely to resume this handoff. Refresh after new accepted API
+changes. Reuse `/private/tmp/tsrust-gate100-editor-target`, `CARGO_INCREMENTAL=0`,
+`CARGO_BUILD_JOBS=1`, with Node v24.11.1 first on PATH. Inspect current status and confirm
+exclusive checkout/build ownership before edits; historical UI validation windows
+below are no longer current reservations.
+
+Preserve all unrelated owner UI plans, including the six currently untracked files:
+`ui-b4-compiler-repair-first-task.md`, `ui-identity-enforcement-first-task.md`,
+`ui-lifetime-contracts-resource-observation-first-task.md`, `ui-resource-release-first-task.md`,
+`ui-state-lifecycle-first-task.md` and `ui-tsrust-owner-handles-first-task.md` in `docs/plans`.
+Follow AGENTS.md and the development workflow for whole-project formatting, focused
+acceptance, source checkpoints, evidence import and cleanup. No archives or snapshots.
+
+## Historical continuation and acceptance notes
+
+The following dated notes preserve decisions and evidence. Their old scheduling,
+consumer hashes and unfinished-work statements are superseded by the current handoff.
 
 ## Owner priority, updated 2026-10-14
 
