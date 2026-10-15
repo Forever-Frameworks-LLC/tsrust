@@ -1,0 +1,233 @@
+{
+  "investigation": "complete",
+  "identity": "enforced within documented source API",
+  "full_lifetime_contract": "blocked by B2",
+  "rows": [
+    {
+      "id": "I01",
+      "status": "executed",
+      "witness": "provenance.json",
+      "evidence": "Baseline b255009e contains B4; coordinated compiler dependency66dd80d8 merged separately as d6e747f1. Stable candidate hash pinned, window explicitly reserved; consumers unchanged.",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs"
+      ]
+    },
+    {
+      "id": "I02",
+      "status": "executed",
+      "witness": "tests/feasibility.test.mjs",
+      "evidence": "Original domain-collision/runtime-boundary source and owner retrieved from Git b255009e; native assertions reproduce historical aliases including teardown/recreation.",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs"
+      ]
+    },
+    {
+      "id": "I03",
+      "status": "executed",
+      "witness": "witnesses/owner.tsr",
+      "evidence": "One primary candidate: private monotonic module runtime counter and private closure-owned Domain. Required existing-language compiler defect repaired with coordination; no alternate/native primitive.",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs"
+      ]
+    },
+    {
+      "id": "I04",
+      "status": "executed",
+      "witness": "witnesses/identity.tsr",
+      "evidence": "Two same-runtime owners and a separate runtime work with equal keys and colliding local owner/instance IDs.",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs"
+      ]
+    },
+    {
+      "id": "I05",
+      "status": "executed",
+      "witness": "witnesses/identity.tsr",
+      "evidence": "Wrong-owner and cross-runtime valid/read/add/remove reject in both directions with local values unchanged.",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs"
+      ]
+    },
+    {
+      "id": "I06",
+      "status": "executed",
+      "witness": "witnesses/identity.tsr",
+      "evidence": "Foreign root and component parents reject mount/values/reorder/remove; root and stale-removal shortcuts preserve identity checks; local controls succeed.",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs"
+      ]
+    },
+    {
+      "id": "I07",
+      "status": "executed",
+      "witness": "witnesses/identity.tsr",
+      "evidence": "Foreign enqueue leaves queue/registration counts and values unchanged; native local callbacks, FIFO/stale delivery and stored runtime identity verified.",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs"
+      ]
+    },
+    {
+      "id": "I08",
+      "status": "executed",
+      "witness": "witnesses/named-self-replacement.tsr",
+      "evidence": "Fresh same-key identity, stale queued delivery, unaffected siblings and reordering execute in identity/owners-lists/callback-lists and named/factory replacement cases.",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs"
+      ]
+    },
+    {
+      "id": "I09",
+      "status": "executed",
+      "witness": "witnesses/identity.tsr",
+      "evidence": "Escaped handle cannot address repeated replacement runtimes from the same callsite; recreated same-runtime owners also reject retired root/item handles. Logical proof only.",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs"
+      ]
+    },
+    {
+      "id": "I10",
+      "status": "executed",
+      "witness": "witnesses/identity-exhaustion.tsr",
+      "evidence": "All three exact allocation algorithms use ceiling3 in a disposable copy; last valid 2 and repeated failures preserve live state and queues. Source guards precede counter updates; cycles also tests normal instance ceiling.",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs"
+      ]
+    },
+    {
+      "id": "I11",
+      "status": "executed",
+      "witness": "tests/identity.test.mjs",
+      "evidence": "Checked allocator owns only local Domain; emitted Handle has three scalar i64 fields. Handle escape/clone and independent mutations execute. No resource destruction claim.",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs"
+      ]
+    },
+    {
+      "id": "I12",
+      "status": "executed",
+      "witness": "tests/identity.test.mjs",
+      "evidence": "All construction paths audited; private create/Domain imports, allocator cloning and owner cloning reject; allocator move/use-after-transfer checks plus positive move/handle-copy and canonical/diamond imports execute.",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs"
+      ]
+    },
+    {
+      "id": "I13",
+      "status": "executed",
+      "witness": "tests/feasibility.test.mjs",
+      "evidence": "Existing retained captures, dispatch, retirement/list edits, duplicate keys, reentrancy and 1,000 logical cycles retain native assertions.",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs"
+      ]
+    },
+    {
+      "id": "I14",
+      "status": "executed",
+      "witness": "tests/feasibility.test.mjs",
+      "evidence": "Strict ownership negatives check/emit; current and Git-original B4 named/factory controls execute. Approved compiler fixture caller migration retains reordered-declaration coverage.",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs"
+      ]
+    },
+    {
+      "id": "I15",
+      "status": "executed",
+      "witness": "tests/feasibility.test.mjs",
+      "evidence": "Wrong expected successful value fails natively with AssertionError. Negative construction cases require specific diagnostics and positive native controls.",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs"
+      ]
+    },
+    {
+      "id": "I16",
+      "status": "executed",
+      "witness": "tests/identity.test.mjs",
+      "evidence": "Whole-project format and repeat pass; focused harness asserts token preservation/idempotence, then executes formatted source. Outside-owned files unchanged apart from approved compiler test call site.",
+      "commands": [
+        "TSRUST=<verified> node tools/format-project.mjs"
+      ]
+    },
+    {
+      "id": "I17",
+      "status": "not applicable with reason",
+      "witness": "IDENTITY-DEPENDENCY.md",
+      "evidence": "The initial missing behavior was repaired under explicit compiler-agent confirmation and merged independently. Existing facilities now enforce B1; no remaining identity primitive blocker or alternative candidate.",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs"
+      ]
+    },
+    {
+      "id": "I18",
+      "status": "executed",
+      "witness": "resource-matrix.json",
+      "evidence": "H01-H19 and R01-R19 all reconciled. B1 resolves within documented boundary; B2 remains open, B3 adopted, B4 resolved. Historical sources and pins retained.",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs"
+      ]
+    },
+    {
+      "id": "I19",
+      "status": "executed",
+      "witness": "cli.mjs",
+      "evidence": "Complete focused tests pass without skips. Demo runs native cases and reports identity separately; exit 2 for B2, usage/unexpected failures exit 1.",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ]
+    },
+    {
+      "id": "I20",
+      "status": "executed",
+      "witness": "IDENTITY.md",
+      "evidence": "Isolated UI commit and restorable local SQLite; coordinated dependency already merged separately. No UI merge, consumer refresh, main evidence import, resource observer or next milestone.",
+      "commands": [
+        "git status --short",
+        "python3 benchmarks/storage/store.py verify experiments/ui-tsrust-owner-handles/evidence.sqlite"
+      ]
+    }
+  ],
+  "reconciliation": {
+    "H": [
+      "H01",
+      "H02",
+      "H03",
+      "H04",
+      "H05",
+      "H06",
+      "H07",
+      "H08",
+      "H09",
+      "H10",
+      "H11",
+      "H12",
+      "H13",
+      "H14",
+      "H15",
+      "H16",
+      "H17",
+      "H18",
+      "H19"
+    ],
+    "R": [
+      "R01",
+      "R02",
+      "R03",
+      "R04",
+      "R05",
+      "R06",
+      "R07",
+      "R08",
+      "R09",
+      "R10",
+      "R11",
+      "R12",
+      "R13",
+      "R14",
+      "R15",
+      "R16",
+      "R17",
+      "R18",
+      "R19"
+    ]
+  }
+}

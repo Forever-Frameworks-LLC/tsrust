@@ -1,0 +1,127 @@
+import { strictEqual } from 'std:testing';
+import { Owner, Handle, runtime, root, mount, valid, read, add, enqueue, drain, remove, values, reorder } from './owner.tsr';
+import { runtime as alternate } from '././owner.tsr';
+
+function increment(owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void {
+  add(owner, handle, delta);
+}
+
+function rejectForeign(owner: Mutable<Owner>, local: ReadOnly<Handle>, foreign: ReadOnly<Handle>, foreignRoot: ReadOnly<Handle>): void {
+  const parent = root(owner);
+  const before = values(owner, parent);
+  const next = owner.next;
+  const count = owner.nodes.length;
+  const queue = owner.queue.length;
+  const handlers = owner.handlers.length;
+  strictEqual(valid(owner, foreign), false);
+  strictEqual(read(owner, foreign), undefined);
+  strictEqual(add(owner, foreign, 999), false);
+  strictEqual(enqueue(owner, foreign, 999), false);
+  strictEqual(remove(owner, foreign), false);
+  strictEqual(valid(owner, foreignRoot), false);
+  strictEqual(read(owner, foreignRoot), undefined);
+  strictEqual(add(owner, foreignRoot, 999), false);
+  strictEqual(enqueue(owner, foreignRoot, 999), false);
+  strictEqual(remove(owner, foreignRoot), false);
+  strictEqual(values(owner, foreignRoot), 'stale');
+  strictEqual(values(owner, foreign), 'stale');
+  strictEqual(reorder(owner, foreignRoot, ['same']), false);
+  strictEqual(reorder(owner, foreign, []), false);
+  let rejected = false;
+  try {
+    mount(owner, foreignRoot, 'wrong-root', 99, increment);
+  } catch (error) {
+    rejected = true;
+  }
+
+  strictEqual(rejected, true);
+  rejected = false;
+  try {
+    mount(owner, foreign, 'wrong-parent', 99, increment);
+  } catch (error) {
+    rejected = true;
+  }
+
+  strictEqual(rejected, true);
+  strictEqual(owner.next, next);
+  strictEqual(owner.nodes.length, count);
+  strictEqual(owner.queue.length, queue);
+  strictEqual(owner.handlers.length, handlers);
+  strictEqual(values(owner, parent), before);
+  strictEqual(valid(owner, local), true);
+  strictEqual(reorder(owner, parent, ['same']), true);
+}
+
+function orphan(): Handle {
+  const allocate = runtime();
+  const owner = allocate();
+  const parent = root(owner);
+  return mount(owner, parent, 'same', 73, increment);
+}
+
+function main(): void {
+  const left = runtime();
+  const right = alternate();
+  const a = left();
+  const b = left();
+  const c = right();
+  strictEqual(a.runtime, b.runtime);
+  strictEqual(a.runtime !== c.runtime, true);
+  strictEqual(a.id, c.id);
+  strictEqual(a.id !== b.id, true);
+  const ar = root(a);
+  const br = root(b);
+  const cr = root(c);
+  const ah = mount(a, ar, 'same', 1, increment);
+  const bh = mount(b, br, 'same', 10, increment);
+  const ch = mount(c, cr, 'same', 100, increment);
+  strictEqual(ah.instance, ch.instance);
+  rejectForeign(a, ah, bh, br);
+  rejectForeign(b, bh, ah, ar);
+  rejectForeign(a, ah, ch, cr);
+  rejectForeign(c, ch, ah, ar);
+  const copied = clone(ah);
+  strictEqual(add(a, copied, 1), true);
+  strictEqual(enqueue(a, copied, 2), true);
+  strictEqual(a.queue[0].runtime, a.runtime);
+  strictEqual(enqueue(a, ah, 3), true);
+  strictEqual(drain(a), 'ok;ok;');
+  strictEqual(read(a, ah), 7);
+  strictEqual(read(b, bh), 10);
+  strictEqual(read(c, ch), 100);
+  strictEqual(enqueue(a, ah, 900), true);
+  strictEqual(remove(a, ah), true);
+  strictEqual(remove(a, ah), true);
+  const fresh = mount(a, ar, 'same', 20, increment);
+  strictEqual(fresh.instance !== ah.instance, true);
+  strictEqual(enqueue(a, fresh, 1), true);
+  strictEqual(drain(a), 'stale;ok;');
+  strictEqual(read(a, fresh), 21);
+  strictEqual(remove(a, ar), true);
+  strictEqual(remove(a, ar), true);
+  strictEqual(remove(a, cr), false);
+  const newer = left();
+  const nr = root(newer);
+  const nh = mount(newer, nr, 'same', 30, increment);
+  strictEqual(valid(newer, fresh), false);
+  strictEqual(valid(newer, ar), false);
+  strictEqual(read(newer, nh), 30);
+  for (let i = 0; i < 3; i++) {
+    const escaped = orphan();
+    const replacement = runtime();
+    const next = replacement();
+    const parent = root(next);
+    const h = mount(next, parent, 'same', 42, increment);
+    strictEqual(next.id, escaped.owner);
+    strictEqual(h.instance, escaped.instance);
+    strictEqual(next.runtime !== escaped.runtime, true);
+    strictEqual(valid(next, escaped), false);
+    strictEqual(read(next, escaped), undefined);
+    strictEqual(add(next, escaped, 99), false);
+    strictEqual(enqueue(next, escaped, 99), false);
+    strictEqual(remove(next, escaped), false);
+    strictEqual(read(next, h), 42);
+  }
+
+  console.log('PASS identity: independent runtimes, all foreign paths, copied handles, FIFO, retirement and recreation');
+}

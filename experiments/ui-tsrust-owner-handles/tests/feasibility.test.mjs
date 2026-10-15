@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import {readFileSync, writeFileSync} from 'node:fs';
-import {root, compiler, run, temporary, formattedWitnesses, execute, verifyCompiler, tokens} from '../harness.mjs';
+import {root, compiler, run, temporary, formattedWitnesses, execute, verifyCompiler, tokens, historicalWitnesses} from '../harness.mjs';
 
 test('H01: verified compiler; command failures and unsupported scanner input fail loudly', () => {
   verifyCompiler(); run(compiler, ['--version']); run('rustc', ['--version']);
@@ -29,7 +29,6 @@ test('H02-H13,H16,H18: formatted source model executes natively; scopes and drop
     '',
   ].join('\n'));
   console.log(output.trim());
-  assert.equal(execute(path.join(dir, 'domain-collision.tsr'), dir), 'BLOCKED: handles from independent allocator scopes collide\n');
   assert.equal(execute(path.join(dir, 'scope-exit.tsr'), dir), 'BLOCKED: exact state/capture destruction is not observable in these witnesses\n');
   const source = readFileSync(path.join(dir, 'owners-lists.tsr'), 'utf8');
   const mutation = source.replace('strictEqual(read(a, x), 6)', 'strictEqual(read(a, x), 99)');
@@ -70,9 +69,8 @@ test('H01-H19: every row is dispositioned; incomplete contract is explicitly blo
   console.log(JSON.stringify({contract: 'blocked', rows: matrix.rows}, null, 2));
 });
 
-test('R03-R05,R09: runtime boundary counterexample and real resource capture execute; follow-up matrix is complete', () => temporary(dir => {
+test('R09: real resource capture executes; follow-up matrix is complete', () => temporary(dir => {
   formattedWitnesses(dir, assert);
-  assert.equal(execute(path.join(dir, 'runtime-boundary.tsr'), dir), 'B1: hiding the allocator in a retained closure does not prevent cross-runtime handle aliasing\n');
   assert.equal(execute(path.join(dir, 'resource-capture.tsr'), dir), 'B2: real File capture runs and leaves the registry; exact release count and order remain unobserved\n');
   const followup = JSON.parse(readFileSync(path.join(root, 'resource-matrix.json'), 'utf8'));
   assert.deepEqual(followup.rows.map(row => row.id), Array.from({length:19}, (_,i)=>`R${String(i+1).padStart(2,'0')}`));
@@ -100,5 +98,14 @@ test('B4: repaired named-handler and factory control execute natively', () => te
   assert.equal(matrix.blockers.B4.status, 'resolved by compiler repair');
   for (const row of matrix.rows) assert.deepEqual(followup.reconciliation[row.id], {status: row.status, evidence: row.evidence});
   assert.deepEqual(followup.rows.find(row=>row.id==='R08').limitations, []);
-  assert.deepEqual(followup.rows.find(row=>row.id==='R19').blockers, ['B1', 'B2']);
+  assert.deepEqual(followup.rows.find(row=>row.id==='R19').blockers, ['B2']);
+}));
+
+test('I02,I14: original collision and B4 sources execute against their original module from Git', () => temporary(dir => {
+  historicalWitnesses(dir, assert);
+  assert.equal(execute(path.join(dir, 'domain-collision.tsr'), dir), 'BLOCKED: handles from independent allocator scopes collide\n');
+  assert.equal(execute(path.join(dir, 'runtime-boundary.tsr'), dir), 'B1: hiding the allocator in a retained closure does not prevent cross-runtime handle aliasing\n');
+  for (const file of ['named-self-replacement.tsr','factory-self-replacement.tsr']) {
+    assert.equal(execute(path.join(dir,file),dir), 'PASS active self-replacement, stale queued event, unaffected FIFO, reentrant rejection, final root removal\n');
+  }
 }));

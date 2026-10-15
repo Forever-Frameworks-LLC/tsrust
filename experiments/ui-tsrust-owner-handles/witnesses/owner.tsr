@@ -1,8 +1,10 @@
-export type Domain = {
+type Domain = {
+  runtime: int;
   next: int;
 };
 
 export type Handle = {
+  runtime: int;
   owner: int;
   instance: int;
 };
@@ -21,12 +23,14 @@ export type Registration = {
 };
 
 export type Event = {
+  runtime: int;
   owner: int;
   instance: int;
   delta: int;
 };
 
 export type Owner = {
+  runtime: int;
   id: int;
   next: int;
   live: boolean;
@@ -37,8 +41,25 @@ export type Owner = {
   handlers: Registration[];
   queue: Event[];
 };
-// Identity is unique only within this explicit allocator scope. No global state.
-export function create(domain: Mutable<Domain>): Owner {
+// Program-owned scalar; never reset or retained by an allocator closure.
+let nextRuntime: int = 1;
+
+export function runtime(): () => Owner {
+  if (nextRuntime >= 2147483647) {
+    throw 'runtime identity exhausted';
+  }
+
+  const id = nextRuntime;
+  nextRuntime = nextRuntime + 1;
+  const domain: Domain = {
+    runtime: id, next: 1
+  };
+  return (): Owner => {
+    return create(domain);
+  };
+}
+
+function create(domain: Mutable<Domain>): Owner {
   if (domain.next >= 2147483647) {
     throw 'owner identity exhausted';
   }
@@ -46,18 +67,18 @@ export function create(domain: Mutable<Domain>): Owner {
   const id = domain.next;
   domain.next = domain.next + 1;
   return {
-    id: id, next: 1, live: true, delivering: false, nodes: [], order: [], retired: [], handlers: [], queue: []
+    runtime: domain.runtime, id: id, next: 1, live: true, delivering: false, nodes: [], order: [], retired: [], handlers: [], queue: []
   };
 }
 
 export function root(owner: ReadOnly<Owner>): Handle {
   return {
-    owner: owner.id, instance: 0
+    runtime: owner.runtime, owner: owner.id, instance: 0
   };
 }
 
 function index(owner: ReadOnly<Owner>, handle: ReadOnly<Handle>): int {
-  if (!owner.live || owner.id !== handle.owner) {
+  if (!owner.live || owner.runtime !== handle.runtime || owner.id !== handle.owner) {
     return -1;
   }
 
@@ -72,7 +93,7 @@ function index(owner: ReadOnly<Owner>, handle: ReadOnly<Handle>): int {
 
 export function valid(owner: ReadOnly<Owner>, handle: ReadOnly<Handle>): boolean {
   if (handle.instance === 0) {
-    return owner.live && owner.id === handle.owner;
+    return owner.live && owner.runtime === handle.runtime && owner.id === handle.owner;
   }
 
   return index(owner, handle) >= 0;
@@ -103,7 +124,7 @@ export function mount(owner: Mutable<Owner>, parent: ReadOnly<Handle>, key: stri
     id: id, run: run
   });
   return {
-    owner: owner.id, instance: id
+    runtime: owner.runtime, owner: owner.id, instance: id
   };
 }
 
@@ -132,7 +153,7 @@ export function enqueue(owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: 
   }
 
   owner.queue.push({
-    owner: handle.owner, instance: handle.instance, delta: delta
+    runtime: handle.runtime, owner: handle.owner, instance: handle.instance, delta: delta
   });
   return true;
 }
@@ -179,7 +200,7 @@ function cleanup(owner: Mutable<Owner>): void {
 }
 
 export function remove(owner: Mutable<Owner>, handle: ReadOnly<Handle>): boolean {
-  if (owner.id !== handle.owner) {
+  if (owner.runtime !== handle.runtime || owner.id !== handle.owner) {
     return false;
   }
 
@@ -208,7 +229,7 @@ export function drain(owner: Mutable<Owner>): string {
   while (owner.queue.length > 0) {
     const event = owner.queue.remove(0);
     const handle: Handle = {
-      owner: event.owner, instance: event.instance
+      runtime: event.runtime, owner: event.owner, instance: event.instance
     };
     if (!valid(owner, handle)) {
       result = result + 'stale;';
@@ -246,7 +267,7 @@ export function values(owner: ReadOnly<Owner>, parent: ReadOnly<Handle>): string
   let result = '';
   for (let i = 0; i < owner.order.length; i = i + 1) {
     const handle: Handle = {
-      owner: owner.id, instance: owner.order[i]
+      runtime: owner.runtime, owner: owner.id, instance: owner.order[i]
     };
     const at = index(owner, handle);
     if (at >= 0 && owner.nodes[at].parent === parent.instance) {
@@ -292,7 +313,7 @@ export function reorder(owner: Mutable<Owner>, parent: ReadOnly<Handle>, keys: R
   let position = 0;
   for (let i = 0; i < owner.order.length; i = i + 1) {
     const handle: Handle = {
-      owner: owner.id, instance: owner.order[i]
+      runtime: owner.runtime, owner: owner.id, instance: owner.order[i]
     };
     const at = index(owner, handle);
     if (at >= 0 && owner.nodes[at].parent === parent.instance) {

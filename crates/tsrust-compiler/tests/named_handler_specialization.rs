@@ -17,7 +17,7 @@ fn named_handler_discovery_admits_access_summary_before_reorder_call() {
     // Reduced B4: the failure occurs during discovery, without event delivery.
     let source = r#"
 import {strictEqual} from 'std:testing';
-import {Domain,Owner,Handle,create,root,mount,add,reorder} from './owner.tsr';
+import {Owner,Handle,runtime,root,mount,add,reorder} from './owner.tsr';
 function increment(owner:Mutable<Owner>,handle:ReadOnly<Handle>,delta:int):void {add(owner,handle,delta);}
 function make(parent:Handle):(owner:Mutable<Owner>,handle:ReadOnly<Handle>,delta:int)=>void {
  return (owner:Mutable<Owner>,handle:ReadOnly<Handle>,delta:int):void=>{
@@ -25,7 +25,7 @@ function make(parent:Handle):(owner:Mutable<Owner>,handle:ReadOnly<Handle>,delta
   strictEqual(reorder(owner,parent,['new','sibling']),true);
  };
 }
-function main():void {const domain:Domain={next:1};const owner=create(domain);const parent=root(owner);mount(owner,parent,'action',0,make(clone(parent)));mount(owner,parent,'sibling',7,increment);}
+function main():void {const allocate=runtime();const owner=allocate();const parent=root(owner);mount(owner,parent,'action',0,make(clone(parent)));mount(owner,parent,'sibling',7,increment);}
 "#;
     let directory = project(source);
     for command in ["check", "emit"] {

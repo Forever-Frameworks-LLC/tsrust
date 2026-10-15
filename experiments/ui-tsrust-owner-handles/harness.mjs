@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 export const root = path.dirname(fileURLToPath(import.meta.url));
 export const compiler = process.env.TSRUST || '/Users/seancotter/.cargo/bin/tsrust';
-export const pin = '2d8051bdbcea1145bd5c25fbc28160a23e9c0eb22838266a8a204ac105e83b33';
+export const pin = '4814e910b8c1524f45a5bfb75af5e19e0ac64a0a71a74f35924104ca48312da4';
 export const sha = file => createHash('sha256').update(readFileSync(file)).digest('hex');
 export function verifyCompiler() { if (sha(compiler) !== pin) throw new Error('Compiler identity changed: verify provenance before changing the pin'); }
 export function run(command, args, expected = 0) {
@@ -53,4 +53,23 @@ export function execute(source, dir) {
   const result = run(binary, []);
   verifyCompiler();
   return result.stdout;
+}
+
+export const historicalCommit = 'b255009e366357858ab964e486353dd2e5ff5bb9';
+export function historicalWitnesses(dir, assert) {
+  for (const name of ['owner.tsr', 'domain-collision.tsr', 'runtime-boundary.tsr', 'named-self-replacement.tsr', 'factory-self-replacement.tsr']) {
+    const source = run('git', ['show', `${historicalCommit}:experiments/ui-tsrust-owner-handles/witnesses/${name}`]).stdout;
+    const file = path.join(dir, name); writeFileSync(file, source);
+    const formatted = run(compiler, ['format', file]).stdout;
+    assert.deepEqual(tokens(formatted), tokens(source)); writeFileSync(file, formatted);
+    assert.equal(run(compiler, ['format', file]).stdout, formatted);
+  }
+}
+
+export function reducedIdentityLimit(dir) {
+  const file = path.join(dir, 'owner.tsr');
+  const source = readFileSync(file, 'utf8');
+  if ((source.match(/2147483647/g) || []).length !== 3) throw new Error('Identity limit seam changed');
+  // Only the ceiling changes; allocation and failure paths are the production candidate's.
+  writeFileSync(file, source.replaceAll('2147483647', '3'));
 }
