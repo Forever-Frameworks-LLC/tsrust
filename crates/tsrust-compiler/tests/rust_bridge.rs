@@ -91,6 +91,7 @@ pub fn failure(value:Buffer)->Result<i64,Buffer>{Err(value)}
  let source=r#"
 import {Buffer,MessageEmpty,MessageOne,MessagePair,MessageNamed,Envelope,EmptyA,EmptyB,EmptyC,envelope,empty,failure,identity,pointer,message,checked} from './data.rs';
 import {strictEqual} from 'std:testing';
+import {ThreadPool,spawn} from 'std:threads';
 function main(){
  const values:int[]=[];for(let i=0;i<20;i+=1){values.push(i);}
  const address=pointer(values);const original:Buffer={label:'retained'.repeat(8),values:values};
@@ -110,6 +111,12 @@ function main(){
  const first=match(empty(a)){EmptyA(_)=>1,EmptyB(_)=>2,EmptyC(_)=>3};strictEqual(first,1);
  const second=match(empty(b)){EmptyA(_)=>1,EmptyB(_)=>2,EmptyC(_)=>3};strictEqual(second,2);
  const third=match(empty(c)){EmptyA(_)=>1,EmptyB(_)=>2,EmptyC(_)=>3};strictEqual(third,3);
+ const workerValues:int[]=[];for(let i=0;i<20;i+=1){workerValues.push(i);}
+ const workerAddress=pointer(workerValues);const payload:Buffer={label:'worker',values:workerValues};
+ const pool=new ThreadPool({workers:2,capacity:1});
+ const pooled=unwrap(pool.task(():Buffer=>identity(payload)));const pooledResult=unwrap(pooled.join());strictEqual(pointer(pooledResult.values),workerAddress);
+ const dedicated=unwrap(spawn(():Buffer=>identity(pooledResult)));const dedicatedResult=unwrap(dedicated.join());strictEqual(pointer(dedicatedResult.values),workerAddress);
+ unwrap(pool.shutdown());strictEqual(pool.stats().outstanding,0);
 }
 "#;
  let path=dir.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(&path),90));

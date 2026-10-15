@@ -1,6 +1,7 @@
 mod dev_cli;
 mod runtime_build;
 mod rust_bindings;
+mod rust_binding_packages;
 mod package_export;
 mod native_dependency_bundle;
 #[cfg(unix)]

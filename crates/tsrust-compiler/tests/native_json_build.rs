@@ -1,4 +1,5 @@
 mod support;
+#[path = "../src/cli/rust_binding_packages.rs"] mod rust_binding_packages;
 #[path = "../src/cli/native_dependency_bundle.rs"] mod native_dependency_bundle;
 #[path = "../src/cli/runtime_build.rs"] mod runtime_build;
 fn backend_command() -> std::process::Command { support::rustc() }

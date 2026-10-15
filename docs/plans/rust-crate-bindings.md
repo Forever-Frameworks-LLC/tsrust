@@ -7,9 +7,9 @@ inputs only. Signatures are not duplicated in a separate binding language.
 
 ## Accepted checks
 
-- 99 affected compiler/CLI checks: 57 project-filter unit checks, 15 CLI/dev checks,
+- 102 affected compiler/CLI checks: 57 project-filter unit checks, 15 CLI/dev checks,
   16 project integration checks, six Rust bridge checks, two dependency-bundle
-  checks and three offline package-export checks. The dependency parser's stricter
+  checks, three shared runtime-build checks and three offline package-export checks. The dependency parser's stricter
   exact-version validation has a supplemental focused unit check.
 - 196 affected editor checks across checker agreement, completion matrix,
   consistency, project intelligence, incomplete source, sessions and Rust bindings.
@@ -18,7 +18,7 @@ inputs only. Signatures are not duplicated in a separate binding language.
   locations, that row passes all four real-server typing modes. Imported function
   results expose record fields without requiring a separate type import.
 - Four VS Code extension tests and extension compilation pass.
-- Struct and enum round trips preserve heap-buffer addresses. Nested records,
+- Struct and enum round trips preserve heap-buffer addresses, including pool-task and dedicated-thread returns. Nested records,
   primitive buffers, Result error records, unit/tuple/named variants, three distinct
   empty variants and move rejection pass. Custom Drop, borrowed records, private
   fields, recursive data and generic layouts fail closed. Existing worker panic,
