@@ -24,15 +24,27 @@ Source finally is preserved during ordinary return/throw, but is not promised
 when cancellation drops a suspended future. CPU work without suspension remains
 cooperative; cancellation and deadlines may take longer while it runs.
 
-Focused source acceptance: 23 existing async tests and 11 Tokio tests pass after
-the empty-array final-effect validation repair. Runtime: eight tests pass. Catalog
-examples execute natively after formatting/idempotence checks. Readable examples
+Final correctness acceptance: 4,095 compiler tests pass, with seven pre-existing
+ignored tests; 691 editor tests pass. These totals combine the complete runs
+with focused repaired targets, without counting reruns twice. Compiler coverage
+includes 1,232 library tests (eight Tokio runtime witnesses), 18 CLI unit tests,
+23 S13 source tests, 12 S14 source tests, 333 other integration targets and the
+new offline async export witness added during the run. Original failures remain
+in SQLite alongside their passing repairs.
+
+The milestone caught and repaired optional Tokio dependency filtering in package
+management, cached native runtime linking, final inferred error contracts and
+editor completion/catalog coverage. All seven package-management scenarios pass,
+including transactional preservation on failure and concurrent feature changes.
+Offline relocated async exports build and execute in debug and release profiles.
+Cancellation tests use a long-lived task instead of racing a one-millisecond timer.
+
+Editor agreement, typing-speed completion and consistency pass for Task, Job,
+AsyncError and asynchronous Channel/Sender. All catalog examples execute natively.
+The active VS Code server was restarted; six stale diagnostics cleared. Its Task
+hover now describes start, timeout, scheduling and ownership. Readable examples
 are in examples/tokio-tasks. Public yield() naming and Task hover wording use
 “returns” for values and explain scheduling separately.
-
-Editor agreement passes for Task, Job, AsyncError and async Channel/Sender.
-Typing-speed completion, editor consistency, complete family regressions,
-measurement and consumer refresh remain pending at this implementation checkpoint.
 
 Matched scheduled-batch verification passes for native and Node after tsc with
 checksum 16777216. Its workload measures task scheduling overhead, not CPU speedup.
@@ -41,4 +53,42 @@ process when measured. Verification is untimed and uses one sample.
 
 Evidence is stored byte-exact in benchmarks/records.sqlite. Closed initial logs
 use the tsrust-s14- prefix; failed attempts are retained alongside repaired runs.
-Final milestone counts, measurements and installed consumers will follow below.
+Source repairs are checkpointed in b36ae1d8, d482b1f5 and 6fce2b90.
+
+## Matched measurements and consumer refresh
+
+Final release compiler source: 6fce2b90. Both workloads passed all checksum
+observations with the original three-process, eight-warmup, 31-sample protocol
+(93 samples per engine). Only acceptance documentation was uncommitted during
+measurement; the records retain that dirty-tree flag.
+
+- Lazy await: native median 0.009625 ms, Node-after-tsc 0.132084 ms per batch.
+  The S13 native baseline was 0.009208 ms: +4.5%, or 0.000417 ms. Individual
+  process medians overlap the prior range; this small signal does not justify
+  a compiler optimization or establish a reliable regression from one run.
+- Scheduled batch: native median 11.258250 ms, Node-after-tsc 0.750916 ms for
+  4,096 tiny jobs in groups of four. Native is about 15 times slower here.
+  Tokio worker scheduling and owned cleanup have substantial overhead for this
+  tiny-workload case; Node microtasks do not provide the same worker parallelism.
+  This is a scheduling-cost result, not a multicore throughput claim. Worker
+  overlap is established separately by the runtime barrier test.
+
+Exact records: `benchmarks/async/lazy-await-2026-10-15T15-40-05.409Z.json` and
+`benchmarks/async/scheduled-batch-2026-10-15T15-40-27.350Z.json` in SQLite.
+No speculative scheduling optimization was added to this acceptance pass.
+
+Release CLI and both installed server paths were atomically refreshed. The active
+VS Code server was restarted again after the final build and reports no problems.
+The CLI SHA256 is cae21ac7d026d98f879656cc0776cb5080a46a681251ec7e3e9160bbc0b20c6d;
+the server SHA256 is d82aea9c659bf0532d85064f57c0aa1a30373613f3fd9d40265084e32de852f1.
+
+Closed evidence was imported and byte-verified in SQLite. Obsolete intermediates
+and test executables were pruned from the single Cargo target while retaining
+CLI/server consumers: target size fell from about 24 GB to 162 MB; 90 GiB disk
+space remains free. Future Cargo builds will be cold. Active editor-managed
+workspace caches were left intact.
+
+Storage validation: SQLite integrity and foreign keys pass; all 33,218 existing
+blob hashes and lengths pass. The standard storage verifier rejects 758 historical
+absolute record paths; these predate S14 and were not rewritten. New S14 records
+use relative paths. Legacy path migration remains separate from runtime acceptance.

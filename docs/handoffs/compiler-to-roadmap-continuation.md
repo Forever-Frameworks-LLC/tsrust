@@ -189,3 +189,17 @@ execution. Returning a child task retaining borrowed data is currently rejected
 with an actionable source diagnostic; await it and return its value instead.
 Nested owned tasks remain supported. Preserve these boundaries and the existing
 thread ownership/cancellation rules when integrating Tokio.
+
+## S14 Tokio completion — 2026-10-15
+
+S14 adds owned scheduling with `Task.start()`, required Job settlement, cancellation,
+deadlines, delay/yield, race/allSettled and bounded asynchronous channels. Compiler,
+runtime and editor acceptance passes; see [Tokio acceptance](../plans/tokio-tasks-acceptance.md)
+and [usage guide](../guides/tokio-tasks.md). The active editor was restarted with
+current Task documentation and no open-document diagnostics.
+
+Keep `await yield()` as settled. No external pause/resume or priority API was
+requested. Cancellation remains cooperative; dropping suspended futures releases
+resources without promising source finally execution. Dedicated threads, pools
+and Rust/Rayon bridges remain separate. S15 HTTP is the next roadmap dependency;
+networking and a blocking-work adapter were not added in S14.
