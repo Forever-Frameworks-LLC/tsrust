@@ -31,7 +31,18 @@ inputs only. Signatures are not duplicated in a separate binding language.
 - The new matched Rust-data recurrence workload passes the independent BigInt
   checksum oracle (4791373295) in native and Node-after-tsc execution. Its timing
   protocol remains three processes, eight warmups and 31 samples per variant.
-  Timing and installed-consumer refresh are pending at this source checkpoint.
+  Clean-source timing at 84dcc1fd has 93 observations per engine/variant. Native
+  serial/two/four-worker medians are 3.524667/1.802792/0.969375 ms (1.96x/3.64x
+  multicore speedup). Node-after-tsc medians are 29.624292/14.873708/8.558667 ms
+  (1.99x/3.46x). Native is 8.40x/8.25x/8.83x faster for the respective variants.
+  Compared with the earlier scalar-only bridge record, native medians rise
+  7.60%/6.74%/3.82% and Node medians rise 9.36%/3.67%/12.24%. The workload now
+  includes data mappings and the runs occur at different times; this comparison
+  does not isolate a compiler regression or prove measurement noise.
+- Release CLI and both installed/configured LSP consumers are built from 84dcc1fd,
+  atomically replaced and hash-verified. The rebuilt VS Code extension is installed.
+  After Developer: Reload Window, the open regex example and native data workload
+  have no workspace problems. The installed CLI executes the regex example.
 
 Closed command logs and benchmark records are imported byte-for-byte into
 benchmarks/records.sqlite under tsrust-rust-bindings-* and benchmarks/threads/
@@ -53,3 +64,11 @@ users should not need to hand-edit generated Cargo files. Curated packages shoul
 supply intentional public adapters, with custom adapters available for other crates.
 Migrating existing stdlib implementations to the shared binding machinery is a
 separate change, especially where opaque resources require lifecycle contracts.
+
+## Final evidence retention
+
+SQLite retains the untimed verification and clean-source timing records plus 49
+byte-verified diagnostic/source records, including the real-library acceptance
+script. Loose copies are removed. Sixteen retired test executables and two exported
+native binaries are pruned (533 MiB); the shared Cargo dependency cache, installed
+consumers and current regex vendor closure remain available.
