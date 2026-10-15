@@ -84,10 +84,16 @@ ordinary scalar bridge calls and pool dispatch; heap-buffer transfer is separate
 verified by native pointer-identity assertions. `rust-bridge-manifest.json` tracks
 acceptance and `rust-bridge-registration.test.mjs` guards exact inputs and protocol.
 
-Accepted bridge record: `rust-bridge-throughput-2026-10-15T01-48-44-424Z.json` in
+First bridge record: `rust-bridge-throughput-2026-10-15T01-48-44-424Z.json` in
 SQLite. All 93 samples per engine/variant retain checksum 4791373295. Native
 serial/two/four-worker medians are 3.282708/1.717542/0.960291 ms (1.91x/3.42x
 speedups); Node-after-tsc medians are 26.895666/14.003791/7.701292 ms
 (1.92x/3.49x). The equivalent earlier source-only native recurrence medians were
 3.511500/1.735416/1.052875 ms. This comparison shows no material slowdown but does
 not isolate per-call overhead or establish application-wide speedup.
+
+Final on-disk-import record: `rust-bridge-throughput-2026-10-15T01-57-34-626Z.json`,
+checkpoint `f4cad710`, clean tree and 93 samples per engine/variant. Native medians
+are 3.275833/1.688917/0.933666 ms (1.94x/3.51x); Node-after-tsc medians are
+27.089291/14.347333/7.625417 ms (1.89x/3.55x). All checksums remain 4791373295.
+Earlier measurements remain immutable and were not merged into this run.

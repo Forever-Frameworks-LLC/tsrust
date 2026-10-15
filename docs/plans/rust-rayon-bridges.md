@@ -1,6 +1,6 @@
 # Local Rust and Rayon bridges
 
-Implementation acceptance and first matched measurements are complete at `0cdd58bd`. The final benchmark import-path migration has passed verification; its timing record is pending.
+Implementation acceptance is complete at `0cdd58bd`, with final fixture and benchmark migration at `f4cad710`. Final-source measurements and installed consumers are accepted.
 
 Compiler acceptance covers 137 tests across project resolution/linking, retained
 sessions, checked expression facts, existing workers/channels and offline exports.
@@ -70,7 +70,7 @@ watching, offline package export, formatted examples, and matched throughput.
 
 ## Measurement and cleanup evidence
 
-SQLite record `benchmarks/threads/rust-bridge-throughput-2026-10-15T01-48-44-424Z.json`
+The first SQLite record `benchmarks/threads/rust-bridge-throughput-2026-10-15T01-48-44-424Z.json`
 retains three processes, eight warmups and 31 samples per variant/process (93 samples
 per engine/variant), exact compiler/source/Rust/harness hashes and source checkpoint
 `0cdd58bd`. The tree was clean during measurement. Every checksum is 4791373295.
@@ -106,3 +106,31 @@ are refreshed and hash-verified; the primary VS Code window was reloaded and rep
 No Problems with Tsrust checking enabled. Native worker errors also retain the original
 Rust Err payload through `unwrap`, pool completion and join; five guard drops prove
 normal/error/panic/cancellation cleanup in the focused witness.
+
+
+Final-source record:
+`benchmarks/threads/rust-bridge-throughput-2026-10-15T01-57-34-626Z.json`, checkpoint
+`f4cad710`, clean tree, unchanged 3-process/8-warmup/31-sample protocol, 93 samples
+per engine/variant and checksum 4791373295 throughout. Native medians are
+3.275833/1.688917/0.933666 ms for serial/two/four workers (1.94x/3.51x speedups).
+Node-after-tsc medians are 27.089291/14.347333/7.625417 ms (1.89x/3.55x).
+This final run verifies the migrated on-disk import path with the installed release
+compiler. Both earlier records remain immutable; samples were not merged. The final
+untimed record is `rust-bridge-throughput-2026-10-15T01-54-56-746Z-verify.json`.
+
+The pre-migration untimed record was initially included in a source checkpoint;
+it is now removed from the working tree and byte-verified in SQLite. Timestamped
+thread records are ignored to prevent that recurrence. Source fixtures, manifests
+and registrations remain versioned. Release consumers are built from `0cdd58bd`;
+the later migration changes only tests, a fixture import path, the harness and
+evidence. Current installed CLI checks and real editor diagnostics verify that
+migration without changing the bridge implementation.
+
+
+Final retention: all four exact benchmark records and 30 diagnostic logs are
+imported and byte-verified in SQLite; `PRAGMA quick_check` passes. Removed 21 retired
+test executables (744 MiB), the standalone leak-check executable and disposable
+native execution caches. Retained installed consumers, shared Cargo dependencies
+and the owner's Rust Analyzer target. Some future tests will relink retired harnesses.
+The final real-editor inspection shows the Rust/Rayon example open, Tsrust checking
+enabled and no workspace problems. Benchmark registration guards pass on final hashes.

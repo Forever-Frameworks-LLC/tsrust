@@ -1,14 +1,14 @@
 {
   "id": "rust-bridge-throughput",
   "implementationAccepted": true,
-  "measurementStatus": "pending",
+  "measurementStatus": "measured",
   "source": "rust-bridge-throughput.tsr",
   "sourceSha256": "537d7aa063888eb2cd414768d9429935f63b4a757eb2dd6822b707ed384f7e3f",
   "counterpart": "rust-bridge-throughput.ts",
   "counterpartSha256": "f854422fc590e30d85eeb68f99ec7287c15a11f89cfcd5950c4fb3622fabaa29",
   "rust": "rust-bridge-compute.rs",
   "rustSha256": "62c1a0c2a4b50b56772b7cfa1851a836060135f658a2dab8531d1028625eaa1a",
-  "sourceCommit": "0cdd58bd",
-  "verificationRecord": "benchmarks/threads/rust-bridge-throughput-2026-10-15T01-40-05-578Z-verify.json",
-  "measurementRecord": "benchmarks/threads/rust-bridge-throughput-2026-10-15T01-48-44-424Z.json"
+  "sourceCommit": "f4cad710",
+  "verificationRecord": "benchmarks/threads/rust-bridge-throughput-2026-10-15T01-54-56-746Z-verify.json",
+  "measurementRecord": "benchmarks/threads/rust-bridge-throughput-2026-10-15T01-57-34-626Z.json"
 }
