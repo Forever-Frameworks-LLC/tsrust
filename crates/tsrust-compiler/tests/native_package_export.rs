@@ -79,7 +79,7 @@ fn http_package_builds_offline_after_relocation(){
 #[test]
 fn https_package_builds_offline_after_relocation(){
  let cert=serde_json::to_string(include_str!("fixtures/tls/server.pem")).unwrap();let key=serde_json::to_string(include_str!("fixtures/tls/server.key")).unwrap();let ca=serde_json::to_string(include_str!("fixtures/tls/ca.pem")).unwrap();
- let source=format!("import {{App,Client,request}} from 'std:http';import {{strictEqual}} from 'std:testing';async function main():Task<void>{{const app=new App();const server=await app.listen('127.0.0.1:0',{{cert:{cert},key:{key}}});const client=new Client({{ca:{ca}});const response=await client.send(request('GET','https://'+server.address()+'/', ''));strictEqual(response.status(),404);await server.shutdown();}}");
+ let source=format!("import {{App,Client,request}} from 'std:http';import {{strictEqual}} from 'std:testing';async function main():Task<void>{{const app=new App();const server=await app.listen('127.0.0.1:0',{{cert:{cert},key:{key}}});const client=new Client({{ca:{ca}}});const response=await client.send(request('GET','https://'+server.address()+'/', ''));strictEqual(response.status(),404);await server.shutdown();}}");
  let dir=support::TempDirectory::new();let input=dir.source(&support::format_round_trip(&source));let package=dir.0.join("package");
  support::success(&support::run(support::cli().arg("emit").arg(&input).arg("--package").arg("-o").arg(&package),60));
  std::fs::remove_file(input).unwrap();let relocated=dir.0.join("relocated");std::fs::rename(package,&relocated).unwrap();let target=dir.0.join("native-target");
