@@ -1,67 +1,95 @@
 {
   "baseline": "b255009e366357858ab964e486353dd2e5ff5bb9",
-  "compiler_source": "66dd80d87c0af9a009981c3ed72a6d310a2463f0",
+  "compiler_source": "bea68611514760a9d3f6a13d1d73f289f3023447",
   "compiler_dependency_merge": "d6e747f109aacfbc476869967db2213f26f372c5",
-  "compiler_path": "/private/tmp/tsrust-gate100-editor-target/debug/tsrust",
+  "compiler_path": "/Users/seancotter/.cargo/bin/tsrust",
   "compiler_version": "tsrust 0.1.0",
-  "compiler_sha256": "4814e910b8c1524f45a5bfb75af5e19e0ac64a0a71a74f35924104ca48312da4",
-  "build_environment": "CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR=/private/tmp/tsrust-gate100-editor-target; offline",
-  "build_window": "Compiler worker01a13b09-2434-7d62-b2bf-a6daf47246ac explicitly released target after SQLite timing, then authorized narrow dependency repair; no other builds/measurements during validation.",
-  "assignment_sha256": "5649acc9f5f23cebb9dda9fcef146ed0dead6033664b56be6e294608cb1295e7",
-  "scope_override": "User authorized compiler coordination/repair/merge upon confirmation; agent confirmed module result discovery and necessary B4 regression caller migration. UI merge remains withheld.",
-  "node": "v24.11.1",
-  "rustc": "rustc 1.96.1 (31fca3adb 2026-06-26)",
+  "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+  "build_environment": "CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR=/private/tmp/tsrust-gate100-editor-target; offline; release; Node v24.11.1",
+  "build_window": "Compiler worker confirmed idle until explicit post-review integration handback. User authorized merge and consumer refresh.",
   "historical_source": "b255009e366357858ab964e486353dd2e5ff5bb9",
   "prior_provenance": {
-    "baseline": "7510b2542929c094338ce13edbc95692db8ae387",
-    "compiler_source": "baseline plus analysis/mod.rs specialization admission repair; exact source hashes retained in isolated SQLite",
-    "compiler_source_fingerprint_sha256": "69b896677f2625a0b35bc9e26b3f058ce58aabfb0993ef897cc40a645fbdf07a",
-    "analysis_sha256": "efb172027416b196c4b64ff210cfcd64815ef9c8db1a65f586583c964ebf6c33",
+    "baseline": "b255009e366357858ab964e486353dd2e5ff5bb9",
+    "compiler_source": "66dd80d87c0af9a009981c3ed72a6d310a2463f0",
+    "compiler_dependency_merge": "d6e747f109aacfbc476869967db2213f26f372c5",
     "compiler_path": "/private/tmp/tsrust-gate100-editor-target/debug/tsrust",
     "compiler_version": "tsrust 0.1.0",
-    "compiler_sha256": "2d8051bdbcea1145bd5c25fbc28160a23e9c0eb22838266a8a204ac105e83b33",
-    "prior_provenance": {
-      "baseline": "24e8d38e0b8dd0d3713c4064a7e430e6f75b3ceb",
-      "compiler_source": "af0cbba8",
-      "compiler_version": "tsrust 0.1.0",
-      "compiler_sha256": "57fd08aad9358fa367434bb5f5f036885b0148a7c0994939addea8f230aceca3",
-      "prior_compiler_source": "6fce2b90",
-      "prior_compiler_sha256": "cae21ac7d026d98f879656cc0776cb5080a46a681251ec7e3e9160bbc0b20c6d",
-      "verification": "Committed docs/plans/http-acceptance.md records completed measurements and release consumers. SHA checked before probes; no S15 measurement remains active under this recorded status.",
-      "s15_status_sha256": "b1be5e3a0bd535c9d6f789d5dc5c6e3843ebd65411d22e8b181d6d5323f80ad0",
-      "assignment_sha256": "21de3bd4832e70ec5865d38886b161cd3d821fcbe33cad84a69acf0fcf12a968",
-      "node": "v26.3.0",
-      "rustc": "rustc 1.96.1 (31fca3adb 2026-06-26)",
-      "historical_source": "8ec68bf097e7a3f2da207b59394d259da7caee70",
-      "historical_evidence": "Main SQLite runtime/diagnostics/ui-tsrust-owner-handles/8ec68bf097e7a3f2da207b59394d259da7caee70/ (read-only reference); new evidence stays local."
-    },
-    "build_window": "TLS agent explicitly released shared target; no further builds/consumer changes; CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 Node24 first",
-    "build_environment": "CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR=/private/tmp/tsrust-gate100-editor-target; offline; Node v24.11.1 first on PATH",
+    "compiler_sha256": "4814e910b8c1524f45a5bfb75af5e19e0ac64a0a71a74f35924104ca48312da4",
+    "build_environment": "CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR=/private/tmp/tsrust-gate100-editor-target; offline",
+    "build_window": "Compiler worker01a13b09-2434-7d62-b2bf-a6daf47246ac explicitly released target after SQLite timing, then authorized narrow dependency repair; no other builds/measurements during validation.",
+    "assignment_sha256": "5649acc9f5f23cebb9dda9fcef146ed0dead6033664b56be6e294608cb1295e7",
+    "scope_override": "User authorized compiler coordination/repair/merge upon confirmation; agent confirmed module result discovery and necessary B4 regression caller migration. UI merge remains withheld.",
     "node": "v24.11.1",
     "rustc": "rustc 1.96.1 (31fca3adb 2026-06-26)",
+    "historical_source": "b255009e366357858ab964e486353dd2e5ff5bb9",
+    "prior_provenance": {
+      "baseline": "7510b2542929c094338ce13edbc95692db8ae387",
+      "compiler_source": "baseline plus analysis/mod.rs specialization admission repair; exact source hashes retained in isolated SQLite",
+      "compiler_source_fingerprint_sha256": "69b896677f2625a0b35bc9e26b3f058ce58aabfb0993ef897cc40a645fbdf07a",
+      "analysis_sha256": "efb172027416b196c4b64ff210cfcd64815ef9c8db1a65f586583c964ebf6c33",
+      "compiler_path": "/private/tmp/tsrust-gate100-editor-target/debug/tsrust",
+      "compiler_version": "tsrust 0.1.0",
+      "compiler_sha256": "2d8051bdbcea1145bd5c25fbc28160a23e9c0eb22838266a8a204ac105e83b33",
+      "prior_provenance": {
+        "baseline": "24e8d38e0b8dd0d3713c4064a7e430e6f75b3ceb",
+        "compiler_source": "af0cbba8",
+        "compiler_version": "tsrust 0.1.0",
+        "compiler_sha256": "57fd08aad9358fa367434bb5f5f036885b0148a7c0994939addea8f230aceca3",
+        "prior_compiler_source": "6fce2b90",
+        "prior_compiler_sha256": "cae21ac7d026d98f879656cc0776cb5080a46a681251ec7e3e9160bbc0b20c6d",
+        "verification": "Committed docs/plans/http-acceptance.md records completed measurements and release consumers. SHA checked before probes; no S15 measurement remains active under this recorded status.",
+        "s15_status_sha256": "b1be5e3a0bd535c9d6f789d5dc5c6e3843ebd65411d22e8b181d6d5323f80ad0",
+        "assignment_sha256": "21de3bd4832e70ec5865d38886b161cd3d821fcbe33cad84a69acf0fcf12a968",
+        "node": "v26.3.0",
+        "rustc": "rustc 1.96.1 (31fca3adb 2026-06-26)",
+        "historical_source": "8ec68bf097e7a3f2da207b59394d259da7caee70",
+        "historical_evidence": "Main SQLite runtime/diagnostics/ui-tsrust-owner-handles/8ec68bf097e7a3f2da207b59394d259da7caee70/ (read-only reference); new evidence stays local."
+      },
+      "build_window": "TLS agent explicitly released shared target; no further builds/consumer changes; CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 Node24 first",
+      "build_environment": "CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR=/private/tmp/tsrust-gate100-editor-target; offline; Node v24.11.1 first on PATH",
+      "node": "v24.11.1",
+      "rustc": "rustc 1.96.1 (31fca3adb 2026-06-26)",
+      "consumers_before": {
+        "/Users/seancotter/.cargo/bin/tsrust": "55ec4cfacb511e09817808bbf6d38ae04b9e2dde0d4a123923ecaea549458671",
+        "/Users/seancotter/.cargo/bin/tsrust-lsp": "a9724233c86308376e0952cfd7b72f6d20f0449082220315a5e69c4cc2072a4d",
+        "/Users/seancotter/Desktop/dev/learning/tsrust/target/editor/debug/tsrust-lsp": "a9724233c86308376e0952cfd7b72f6d20f0449082220315a5e69c4cc2072a4d"
+      }
+    },
     "consumers_before": {
-      "/Users/seancotter/.cargo/bin/tsrust": "55ec4cfacb511e09817808bbf6d38ae04b9e2dde0d4a123923ecaea549458671",
-      "/Users/seancotter/.cargo/bin/tsrust-lsp": "a9724233c86308376e0952cfd7b72f6d20f0449082220315a5e69c4cc2072a4d",
-      "/Users/seancotter/Desktop/dev/learning/tsrust/target/editor/debug/tsrust-lsp": "a9724233c86308376e0952cfd7b72f6d20f0449082220315a5e69c4cc2072a4d"
+      "/Users/seancotter/.cargo/bin/tsrust": "3551e7be8a852c9222782327e4036ad91f2311784654a94f74890bc31195db96",
+      "/Users/seancotter/.cargo/bin/tsrust-lsp": "8432e8da93bf38da826d91872f4282c53a3070cf9393a1f2cd0dba82c3cf97f6",
+      "/Users/seancotter/Desktop/dev/learning/tsrust/target/editor/debug/tsrust-lsp": "8432e8da93bf38da826d91872f4282c53a3070cf9393a1f2cd0dba82c3cf97f6"
+    },
+    "consumers_after": {
+      "/Users/seancotter/.cargo/bin/tsrust": "3551e7be8a852c9222782327e4036ad91f2311784654a94f74890bc31195db96",
+      "/Users/seancotter/.cargo/bin/tsrust-lsp": "8432e8da93bf38da826d91872f4282c53a3070cf9393a1f2cd0dba82c3cf97f6",
+      "/Users/seancotter/Desktop/dev/learning/tsrust/target/editor/debug/tsrust-lsp": "8432e8da93bf38da826d91872f4282c53a3070cf9393a1f2cd0dba82c3cf97f6"
+    },
+    "validation": {
+      "focused_tests": 13,
+      "failures": 0,
+      "skips": 0,
+      "demo_exit": 2,
+      "compiler_caller_tests": 2,
+      "editor_caller_tests": 1,
+      "formatted_project_sources": 1341
     }
   },
-  "consumers_before": {
-    "/Users/seancotter/.cargo/bin/tsrust": "3551e7be8a852c9222782327e4036ad91f2311784654a94f74890bc31195db96",
-    "/Users/seancotter/.cargo/bin/tsrust-lsp": "8432e8da93bf38da826d91872f4282c53a3070cf9393a1f2cd0dba82c3cf97f6",
-    "/Users/seancotter/Desktop/dev/learning/tsrust/target/editor/debug/tsrust-lsp": "8432e8da93bf38da826d91872f4282c53a3070cf9393a1f2cd0dba82c3cf97f6"
-  },
-  "consumers_after": {
-    "/Users/seancotter/.cargo/bin/tsrust": "3551e7be8a852c9222782327e4036ad91f2311784654a94f74890bc31195db96",
-    "/Users/seancotter/.cargo/bin/tsrust-lsp": "8432e8da93bf38da826d91872f4282c53a3070cf9393a1f2cd0dba82c3cf97f6",
-    "/Users/seancotter/Desktop/dev/learning/tsrust/target/editor/debug/tsrust-lsp": "8432e8da93bf38da826d91872f4282c53a3070cf9393a1f2cd0dba82c3cf97f6"
-  },
-  "validation": {
-    "focused_tests": 13,
-    "failures": 0,
-    "skips": 0,
-    "demo_exit": 2,
-    "compiler_caller_tests": 2,
-    "editor_caller_tests": 1,
-    "formatted_project_sources": 1341
-  }
+  "consumers": [
+    {
+      "path": "/Users/seancotter/.cargo/bin/tsrust",
+      "before": "3551e7be8a852c9222782327e4036ad91f2311784654a94f74890bc31195db96",
+      "after": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89"
+    },
+    {
+      "path": "/Users/seancotter/.cargo/bin/tsrust-lsp",
+      "before": "8432e8da93bf38da826d91872f4282c53a3070cf9393a1f2cd0dba82c3cf97f6",
+      "after": "4fb9ebba80dbbaebfe7821a70d4763f77f77acbea9573cb23d4b322452166f72"
+    },
+    {
+      "path": "/Users/seancotter/Desktop/dev/learning/tsrust/target/editor/debug/tsrust-lsp",
+      "before": "8432e8da93bf38da826d91872f4282c53a3070cf9393a1f2cd0dba82c3cf97f6",
+      "after": "4fb9ebba80dbbaebfe7821a70d4763f77f77acbea9573cb23d4b322452166f72"
+    }
+  ]
 }

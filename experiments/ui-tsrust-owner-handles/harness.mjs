@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 export const root = path.dirname(fileURLToPath(import.meta.url));
 export const compiler = process.env.TSRUST || '/Users/seancotter/.cargo/bin/tsrust';
-export const pin = '4814e910b8c1524f45a5bfb75af5e19e0ac64a0a71a74f35924104ca48312da4';
+export const pin = '12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89';
 export const sha = file => createHash('sha256').update(readFileSync(file)).digest('hex');
 export function verifyCompiler() { if (sha(compiler) !== pin) throw new Error('Compiler identity changed: verify provenance before changing the pin'); }
 export function run(command, args, expected = 0) {

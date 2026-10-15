@@ -9,8 +9,8 @@ See [identity mechanism, scope and handoff](IDENTITY.md), [I01–I20](identity-m
 and [tool provenance](provenance.json).
 
 ```sh
-TSRUST=/private/tmp/tsrust-gate100-editor-target/debug/tsrust node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs
-TSRUST=/private/tmp/tsrust-gate100-editor-target/debug/tsrust node experiments/ui-tsrust-owner-handles/cli.mjs demo
+TSRUST=/Users/seancotter/.cargo/bin/tsrust node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs
+TSRUST=/Users/seancotter/.cargo/bin/tsrust node experiments/ui-tsrust-owner-handles/cli.mjs demo
 ```
 
 The suite requires the exact compiler hash in provenance.json. Demo runs formatted,
@@ -39,11 +39,10 @@ no calibrated release observer.
 Original unsafe allocator witnesses and original B4 named/factory programs are read
 from Git b255009e and executed against their original module. Current equivalents
 also execute. No historical counterexample is rewritten as a success. The coordinated
-[compiler dependency](IDENTITY-DEPENDENCY.md) was separately merged; UI candidate and
-evidence await review. The compiler worker approved the necessary B4 fixture caller
-migration. Installed consumers remain unchanged.
+[compiler dependency](IDENTITY-DEPENDENCY.md) was separately merged; UI candidate passed review and was merged as bea68611. The compiler worker approved the necessary B4 fixture caller
+migration. Installed CLI and LSP consumers were refreshed from the merged commit.
 
-Closed records live in ignored `evidence.sqlite` and are byte-verified before loose
-copies are removed. `UI_EVIDENCE_LOG` records bounded subprocess results for import.
-Main SQLite is untouched. No resource observer, renderer, HTTP/UI integration,
+Closed evidence is integrated and byte-verified in canonical `benchmarks/records.sqlite`
+under `runtime/diagnostics/ui-identity-enforcement/21bea858236c648248562f16a4b7c36ced952bea/`.
+`UI_EVIDENCE_LOG` records bounded subprocess results for later import. No resource observer, renderer, HTTP/UI integration,
 production API or next milestone is included. No performance claim is made.
