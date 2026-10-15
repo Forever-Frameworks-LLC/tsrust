@@ -1,0 +1,39 @@
+import { strictEqual } from 'std:testing';
+import { open, read as readFile, File } from 'std:fs';
+import { Domain, Owner, Handle, create, root, mount, add, enqueue, drain, remove } from './owner.tsr';
+
+function captured(file: File): (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int) => void {
+  return (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void => {
+    match (readFile(file, 1)) {
+      Ok(bytes) => {
+        add(owner, handle, delta);
+      },
+      Err(error) => {
+        throw error.message;
+      }
+    }
+  };
+}
+
+function main(): void {
+  const domain: Domain = {
+    next: 1
+  };
+  const owner = create(domain);
+  const parent = root(owner);
+  match (open('witnesses/owner.tsr')) {
+    Ok(file) => {
+      const item = mount(owner, parent, 'file', 0, captured(file));
+      enqueue(owner, item, 1);
+      enqueue(owner, item, 2);
+      strictEqual(drain(owner), 'ok;ok;');
+      remove(owner, item);
+      strictEqual(owner.handlers.length, 0);
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+
+  console.log('B2: real File capture runs and leaves the registry; exact release count and order remain unobserved');
+}

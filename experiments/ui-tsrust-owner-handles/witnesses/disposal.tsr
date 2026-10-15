@@ -50,6 +50,7 @@ function removeSelfAndSibling(sibling: Handle): (owner: Mutable<Owner>, handle: 
     strictEqual(read(owner, handle), undefined);
     strictEqual(add(owner, handle, 100), false);
     strictEqual(enqueue(owner, sibling, 1), false);
+    strictEqual(enqueue(owner, handle, 1), false);
   };
 }
 
@@ -90,5 +91,5 @@ function main(): void {
   disposal();
   selfRemoval();
   rootRemoval();
-  console.log('H10 self/ancestor/root removal ends active state access; sibling-only removal preserves it: executed; contract blocked by B2/B3');
+  console.log('H10 self/ancestor/root removal ends active state access; sibling-only removal preserves it: executed; B3 adopted; resource contract blocked by B2');
 }

@@ -3,20 +3,34 @@
     "B1": {
       "witness": "witnesses/domain-collision.tsr",
       "kind": "library identity scope / contract decision",
-      "detail": "Independent Domain counters can issue the same owner and instance IDs; a handle reads the wrong owner across Domains. A single allocator scope works, but that narrower boundary needs review. No claim that new compiler support is necessary."
+      "detail": "Independent Domain counters can issue the same owner and instance IDs; a handle reads the wrong owner across Domains. A single allocator scope works, but that narrower boundary needs review. No claim that new compiler support is necessary. runtime-boundary.tsr hides the allocator in an owned closure but still reproduces cross-runtime read/mutate/enqueue/remove/reorder and teardown/recreation aliasing."
     },
     "B2": {
       "witness": "witnesses/scope-exit.tsr",
       "kind": "resource lifetime observation gap",
-      "detail": "Source assertions observe handles and registry membership, not destruction of state, closures or event payloads. No supported drop observer was established. No generated Rust instrumentation or invented destructor API."
+      "detail": "Source assertions observe handles and registry membership, not destruction of state, closures or event payloads. No supported drop observer was established. No generated Rust instrumentation or invented destructor API. resource-capture.tsr executes a real retained File capture; testing hooks and file API inspection still establish no exact-once ordered source observer."
     },
     "B3": {
       "witness": "witnesses/disposal.tsr",
       "kind": "active callback state access / narrower contract",
-      "detail": "After self, ancestor or root retirement, the active callback can continue executing but read returns undefined and add returns false. Sibling-only removal preserves active access. Unlike the Rust reference, no separate current-state loan survives retirement. This is an explicit blocker to H10 parity, not a proven compiler limitation.",
+      "detail": "User-dispatched lifetime plan adopts immediate retirement of handle-mediated state access. Self/ancestor/root and sibling-only regressions execute. Original surviving-loan semantics were not implemented; H10 remains blocked on B2.",
       "dependentRows": [
         "H10",
         "H19"
+      ],
+      "status": "resolved by adopted contract"
+    },
+    "B4": {
+      "witness": "witnesses/named-self-replacement.tsr",
+      "control": "witnesses/factory-self-replacement.tsr",
+      "kind": "compiler analysis panic",
+      "status": "open",
+      "detail": "This exact formatted named-handler self-replacement program causes check and emit to exit 101 at analysis/mod.rs with index out of bounds (len 22,index 22). Factory control executes. Simpler named-handler probes passed; this is not a claim that all named handlers fail or a regression attributed to this UI patch.",
+      "dependentRows": [
+        "H13",
+        "H19",
+        "R08",
+        "R19"
       ]
     }
   },
@@ -24,7 +38,7 @@
     {
       "id": "H01",
       "status": "executed",
-      "evidence": "Verified S14 compiler, checkout identity and isolated check/emit/rustc commands."
+      "evidence": "Verified S15 release compiler (57fd08aa...), source af0cbba8; checkout 24e8d38e; S15 timing complete; isolated commands."
     },
     {
       "id": "H02",
@@ -69,7 +83,7 @@
     {
       "id": "H10",
       "status": "blocked",
-      "evidence": "Self/sibling/ancestor/root invalidation executes; child-before-parent destruction unproven: B2. Active state access ends at retirement instead of surviving through callback completion: B3; disposal.tsr asserts both stale access and the sibling-only control."
+      "evidence": "B3 resolved by adopted immediate-loss contract and self/ancestor/root/sibling regressions. Exact child-before-parent resource destruction remains unproven: B2."
     },
     {
       "id": "H11",
@@ -84,7 +98,7 @@
     {
       "id": "H13",
       "status": "executed",
-      "evidence": "callback-lists.duringCallback(13): same-key reinsertion, current read/order, old event stale, fresh event runs."
+      "evidence": "callback-lists.duringCallback(13): same-key reinsertion, current read/order, old event stale, fresh event runs. Factory self-replacement control also executes; the named-handler variant is limited by B4."
     },
     {
       "id": "H14",
@@ -114,7 +128,7 @@
     {
       "id": "H19",
       "status": "blocked",
-      "evidence": "Actual native partial demo runs; blocker report includes B1/B2/B3 and exits 2; full contract is not accepted."
+      "evidence": "Native partial demo and H/R matrices execute; B1/B2/B4 retained, B3 adopted; expected compiler panic verified separately from ownership rejections; exit 2."
     }
   ]
 }

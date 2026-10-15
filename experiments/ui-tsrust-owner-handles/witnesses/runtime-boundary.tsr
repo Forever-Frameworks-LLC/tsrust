@@ -1,0 +1,53 @@
+import { strictEqual } from 'std:testing';
+import { Domain, Owner, Handle, create, root, mount, add, read, enqueue, remove, reorder } from './owner.tsr';
+
+function allocator(domain: Domain): () => Owner {
+  return (): Owner => {
+    return create(domain);
+  };
+}
+
+function runtime(): () => Owner {
+  return allocator({
+    next: 1
+  });
+}
+
+function increment(owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void {
+  add(owner, handle, delta);
+}
+
+function orphan(): Handle {
+  const allocate = runtime();
+  const owner = allocate();
+  const parent = root(owner);
+  return mount(owner, parent, 'same', 0, increment);
+}
+
+function main(): void {
+  const left = runtime();
+  const right = runtime();
+  const a = left();
+  const another = left();
+  strictEqual(a.id, 1);
+  strictEqual(another.id, 2);
+  const b = right();
+  const ar = root(a);
+  const br = root(b);
+  const h = mount(a, ar, 'same', 1, increment);
+  mount(b, br, 'same', 9, increment);
+  strictEqual(read(b, h), 9);
+  strictEqual(add(b, h, 1), true);
+  strictEqual(read(b, h), 10);
+  strictEqual(enqueue(b, h, 1), true);
+  strictEqual(reorder(b, ar, ['same']), true);
+  strictEqual(remove(b, h), true);
+  strictEqual(read(a, h), 1);
+  const escaped = orphan();
+  const recreated = runtime();
+  const replacement = recreated();
+  const rr = root(replacement);
+  mount(replacement, rr, 'same', 42, increment);
+  strictEqual(read(replacement, escaped), 42);
+  console.log('B1: hiding the allocator in a retained closure does not prevent cross-runtime handle aliasing');
+}

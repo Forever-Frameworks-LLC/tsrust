@@ -1,0 +1,46 @@
+import { strictEqual } from 'std:testing';
+import { Domain, Owner, Handle, create, root, mount, add, read, enqueue, drain, remove, values, reorder } from './owner.tsr';
+
+function increment(owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void {
+  add(owner, handle, delta);
+}
+
+function replace(parent: Handle): (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int) => void {
+  return (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void => {
+    strictEqual(remove(owner, handle), true);
+    strictEqual(read(owner, handle), undefined);
+    const fresh = mount(owner, parent, 'active', 10, increment);
+    strictEqual(fresh.instance === handle.instance, false);
+    strictEqual(enqueue(owner, handle, 5), false);
+    strictEqual(enqueue(owner, fresh, 2), true);
+    strictEqual(drain(owner), 'reentrant');
+    strictEqual(values(owner, parent), 'sibling:7;active:10;');
+    strictEqual(reorder(owner, parent, ['active', 'sibling']), true);
+  };
+}
+
+function main(): void {
+  const d: Domain = {
+    next: 1
+  };
+  const o = create(d);
+  const r = root(o);
+  const a = mount(o, r, 'active', 0, replace(clone(r)));
+  const b = mount(o, r, 'sibling', 7, increment);
+  enqueue(o, a, 1);
+  enqueue(o, a, 5);
+  enqueue(o, b, 3);
+  strictEqual(drain(o), 'ok;stale;ok;ok;');
+  strictEqual(read(o, a), undefined);
+  strictEqual(read(o, b), 10);
+  strictEqual(values(o, r), 'active:12;sibling:10;');
+  strictEqual(o.handlers.length, 2);
+  strictEqual(o.nodes.length, 2);
+  strictEqual(o.retired.length, 0);
+  remove(o, r);
+  remove(o, r);
+  strictEqual(enqueue(o, b, 1), false);
+  strictEqual(o.handlers.length, 0);
+  strictEqual(o.nodes.length, 0);
+  console.log('PASS active self-replacement, stale queued event, unaffected FIFO, reentrant rejection, final root removal');
+}
