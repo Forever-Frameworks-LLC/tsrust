@@ -76,3 +76,16 @@ fn http_package_builds_offline_after_relocation(){
   let output=support::run(&mut std::process::Command::new(target.join(if release{"release/program"}else{"debug/program"})),30);support::success(&output);assert_eq!(output.stdout,b"200\n{\"id\":\"42\",\"message\":\"Hello\"}\nhello\n");
  }
 }
+#[test]
+fn https_package_builds_offline_after_relocation(){
+ let cert=serde_json::to_string(include_str!("fixtures/tls/server.pem")).unwrap();let key=serde_json::to_string(include_str!("fixtures/tls/server.key")).unwrap();let ca=serde_json::to_string(include_str!("fixtures/tls/ca.pem")).unwrap();
+ let source=format!("import {{App,Client,request}} from 'std:http';import {{strictEqual}} from 'std:testing';async function main():Task<void>{{const app=new App();const server=await app.listen('127.0.0.1:0',{{cert:{cert},key:{key}}});const client=new Client({{ca:{ca}});const response=await client.send(request('GET','https://'+server.address()+'/', ''));strictEqual(response.status(),404);await server.shutdown();}}");
+ let dir=support::TempDirectory::new();let input=dir.source(&support::format_round_trip(&source));let package=dir.0.join("package");
+ support::success(&support::run(support::cli().arg("emit").arg(&input).arg("--package").arg("-o").arg(&package),60));
+ std::fs::remove_file(input).unwrap();let relocated=dir.0.join("relocated");std::fs::rename(package,&relocated).unwrap();let target=dir.0.join("native-target");
+ for release in [false,true]{
+  let mut command=std::process::Command::new("rustup");command.args(["run",tsrust_compiler::RUST_BACKEND_VERSION,"cargo","build","--offline","--locked"]).current_dir(&relocated).env("CARGO_HOME",dir.0.join("empty-cargo-home")).env("CARGO_INCREMENTAL","0").env("CARGO_BUILD_JOBS","1").env("CARGO_TARGET_DIR",&target);
+  if release{command.arg("--release");}support::success(&support::run(&mut command,300));
+  support::success(&support::run(&mut std::process::Command::new(target.join(if release{"release/program"}else{"debug/program"})),30));
+ }
+}

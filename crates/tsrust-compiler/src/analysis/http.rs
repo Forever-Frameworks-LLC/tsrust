@@ -11,6 +11,11 @@ impl Analyzer {
    args.insert(0,(**base).clone());let args=std::mem::take(args);let span=expression.span;
    if crate::stdlib::http::asynchronous(name){
     crate::stdlib::futures::lazy_module(expression,"std:http",name,args);
+    // Preserve the options context when lazy lowering evaluates arguments into locals.
+    if name=="__listen" && let ExprKind::Match{body,..}=&mut expression.kind && let Some(crate::syntax::Stmt{kind:crate::syntax::StmtKind::Let{annotation,..},..})=body.get_mut(2){
+     let options=self.schema_native_dependency(NativeTypeId::HttpTlsOptions,span)?;
+     *annotation=Some(self.checked_value_annotation(Type::Record(options),span)?);
+    }
    }else{
     *expression=crate::stdlib::http::call(name,args,span);
     if matches!(name,"__route"|"__requestHeader"|"__requestSetHeader"|"__responseHeader"|"__responseSetHeader"){*expression=crate::stdlib::futures::unwrap(expression.clone());}

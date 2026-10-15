@@ -9741,16 +9741,21 @@
     },
     {
       "name": "Client",
-      "signature": "new Client(): Client",
-      "parameters": [],
-      "documentation": "Creates a reusable HTTP/HTTPS client with connection pooling, certificate verification and a 30-second request/body deadline. No arguments. Redirects, proxies, automatic decompression and cookies are disabled. Construction failure throws HttpError code client.\n\n```tsrust\nconst client = new Client();\n```\n\nOwnership: unique client; send borrows it until its task completes or is disposed.",
+      "signature": "new Client(options?: ClientOptions): Client",
+      "parameters": [
+        {
+          "label": "options?: ClientOptions",
+          "documentation": "Omit for default public CA roots. Supply { ca: pem } to trust only that nonempty PEM certificate bundle. Hostname, chain and validity checks remain enabled."
+        }
+      ],
+      "documentation": "Creates a reusable HTTP/HTTPS client with connection pooling and a 30-second request/body deadline. With no options, trusts default public CA roots. Optional { ca: string } supplies a nonempty PEM CA bundle that replaces those roots for this client only. Certificate chain, validity and URL hostname checks remain enabled. Invalid PEM throws HttpError code tls; construction failure throws code client. Redirects, proxies, automatic decompression and cookies are disabled.\n\n```tsrust\nconst client = new Client(); // public HTTPS\nconst privateClient = new Client({ ca: caPem }); // private CA only\n```\n\nOwnership: borrows options during construction; retains independent trust settings. send borrows the client until its task completes or is disposed.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const client=new Client();console.log('ok');}",
           "output": "ok\n"
         }
       ],
-      "inferredSignature": "function new Client(): Client"
+      "inferredSignature": "function new Client(options?: ClientOptions): Client"
     },
     {
       "name": "text",
@@ -9937,6 +9942,41 @@
           "output": "ok\n"
         }
       ]
+    },
+    {
+      "name": "TlsOptions",
+      "signature": "type TlsOptions = { cert: string; key: string }",
+      "documentation": "HTTPS listener credentials. Both PEM strings are required: cert is the certificate chain, leaf first; key is its matching unencrypted private key. Invalid or mismatched credentials throw HttpError code tls when listen is awaited. No client certificate authentication. The listener keeps independent settings after startup.\n\nOwnership: owned record; listen consumes it when creating the task.\n\n```tsrust\nimport {TlsOptions} from 'std:http';function main(){const options:TlsOptions={cert:\"PEM\",key:\"PEM\"};console.log(options.cert);}\n```\nExpected output: PEM.",
+      "examples": [
+        {
+          "source": "import {TlsOptions} from 'std:http';function main(){const options:TlsOptions={cert:\"PEM\",key:\"PEM\"};console.log(options.cert);}",
+          "output": "PEM\n"
+        }
+      ],
+      "fields": {
+        "cert": {
+          "documentation": "PEM certificate chain, leaf first. Required with key; app.listen validates it before binding. Example: { cert: certificatePem, key: privateKeyPem }. Ownership: moved into the listener task; reading does not mutate it."
+        },
+        "key": {
+          "documentation": "Matching unencrypted PEM private key. Required with cert; invalid or mismatched keys throw HttpError code tls. Example: { cert: certificatePem, key: privateKeyPem }. Ownership: moved into the listener task; reading does not mutate it."
+        }
+      }
+    },
+    {
+      "name": "ClientOptions",
+      "signature": "type ClientOptions = { ca: string }",
+      "documentation": "Private trust settings for new Client(options). ca is a required, nonempty PEM CA bundle. It replaces default public roots for this client only; chain, hostname and validity checks remain enabled. Omit constructor options to use default public roots. Invalid PEM throws HttpError code tls.\n\nOwnership: reusable owned record; construction borrows its strings.\n\n```tsrust\nimport {ClientOptions} from 'std:http';function main(){const options:ClientOptions={ca:\"PEM\"};console.log(options.ca);}\n```\nExpected output: PEM.",
+      "examples": [
+        {
+          "source": "import {ClientOptions} from 'std:http';function main(){const options:ClientOptions={ca:\"PEM\"};console.log(options.ca);}",
+          "output": "PEM\n"
+        }
+      ],
+      "fields": {
+        "ca": {
+          "documentation": "Nonempty PEM CA bundle used instead of default public roots. Invalid PEM throws HttpError code tls. Example: new Client({ ca: caPem }) trusts only caPem. Ownership: borrowed during construction; reading does not mutate it."
+        }
+      }
     }
   ],
   "HttpApp": [
@@ -10158,21 +10198,25 @@
     },
     {
       "name": "listen",
-      "signature": "listen(address: string): Task<Server>",
+      "signature": "listen(address: string, tls?: TlsOptions): Task<Server>",
       "parameters": [
         {
           "label": "address: string",
           "documentation": "IP address and port, such as 127.0.0.1:3000; port 0 chooses a free port."
+        },
+        {
+          "label": "tls?: TlsOptions",
+          "documentation": "Omit for cleartext HTTP. Supply { cert, key } PEM strings for HTTPS: certificate chain leaf first, matching unencrypted private key. Invalid configuration throws HttpError code tls before binding."
         }
       ],
-      "documentation": "Creates a lazy listener task. Awaiting binds the address, freezes registration and returns a running server. Invalid address or bind failure throws HttpError code address or listen. Supports HTTP/1.1 and cleartext HTTP/2, with at most 128 active connections. No TLS listener or implicit public bind. Body readers default to a cumulative 1048576-byte limit.\n\n```tsrust\nconst server = await app.listen(\"127.0.0.1:0\");\n```\n\nOwnership: consumes the app immediately; dropping Server requests cleanup, which its async owner drains.",
+      "documentation": "Creates a lazy listener task. Awaiting binds the address, freezes registration and returns a running server. Omit tls for cleartext HTTP; supply { cert, key } for HTTPS with HTTP/1.1 and HTTP/2 negotiation. cert is a nonempty PEM certificate chain, leaf first. key is its matching unencrypted PKCS#1, PKCS#8 or SEC1 PEM private key. Invalid configuration throws HttpError code tls before binding; invalid address or bind failure throws code address or listen. Clients verify trust, hostname and certificate validity. At most 128 active connections, including handshakes; a TLS handshake has a five-second deadline and shutdown interrupts it. Body readers have a cumulative 1048576-byte limit.\n\n```tsrust\nconst server = await app.listen(\"127.0.0.1:0\", { cert: certificatePem, key: privateKeyPem });\n```\n\nOwnership: consumes app and TLS options immediately. The running server retains independent TLS settings. Dropping Server requests cleanup, which its async owner drains.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();const server=await app.listen(\"127.0.0.1:0\");await server.shutdown();console.log('ok');}",
           "output": "ok\n"
         }
       ],
-      "inferredSignature": "function listen(address: string): Task<Server>"
+      "inferredSignature": "function listen(address: string, tls?: TlsOptions): Task<Server>"
     }
   ],
   "HttpRequest": [

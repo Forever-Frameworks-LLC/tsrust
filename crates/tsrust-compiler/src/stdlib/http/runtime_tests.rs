@@ -90,3 +90,69 @@ fn cancelling_server_wait_drains_its_listener(){
   assert!(tokio::net::TcpListener::bind(address).await.is_ok(),"cancelled wait must finish listener cleanup");
  });
 }
+
+const TLS_CA:&str=include_str!("../../../tests/fixtures/tls/ca.pem");
+const TLS_CERT:&str=include_str!("../../../tests/fixtures/tls/server.pem");
+const TLS_KEY:&str=include_str!("../../../tests/fixtures/tls/server.key");
+#[test]
+fn tls_verifies_trust_hostname_and_validity(){
+ tsrust_native_futures::block_on(async{
+  for (cert,accepted) in [(TLS_CERT,true),(include_str!("../../../tests/fixtures/tls/wrong-host.pem"),false),(include_str!("../../../tests/fixtures/tls/expired.pem"),false),(include_str!("../../../tests/fixtures/tls/future.pem"),false)]{
+   let calls=std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));let observed=calls.clone();
+   let mut app=App::new();app.route("POST","/echo",move|request|{let calls=observed.clone();async move{calls.fetch_add(1,std::sync::atomic::Ordering::SeqCst);Response::stream(request.body(),201).unwrap()}}).unwrap();
+   let server=app.listen_tls("127.0.0.1:0",cert,TLS_KEY).await.unwrap();let address=server.address();let url=format!("https://{address}/echo");
+   let untrusted=Client::new().unwrap().send(Request::new("POST",&url,"hidden".into()).unwrap()).await;
+   assert!(untrusted.is_err(),"default roots must not trust our private CA");
+   let client=Client::with_ca(TLS_CA).unwrap();
+   for _ in 0..3{
+    let response=client.send(Request::new("POST",&url,"héllo".into()).unwrap()).await;
+    if accepted{let response=response.unwrap();assert_eq!(response.status(),201);assert_eq!(response.text_body().await.unwrap(),"héllo");}else{assert!(response.is_err(),"invalid certificate accepted");}
+   }
+   assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst),if accepted{3}else{0});
+   server.shutdown().await;assert!(tokio::net::TcpListener::bind(address).await.is_ok());
+  }
+ });
+}
+#[test]
+fn tls_rejects_bad_configuration_and_drains_stalled_handshakes(){
+ tsrust_native_futures::block_on(async{
+  for (cert,key) in [("",TLS_KEY),("not PEM",TLS_KEY),(TLS_CERT,"bad key"),(TLS_CERT,include_str!("../../../tests/fixtures/tls/mismatch.key"))]{
+   let result=App::new().listen_tls("127.0.0.1:0",cert,key).await;assert!(matches!(result,Err(Error{code:"tls",..})));
+  }
+  assert!(Client::with_ca("").is_err());assert!(Client::with_ca("not PEM").is_err());assert!(Client::with_ca("-----BEGIN CERTIFICATE-----\nYWJj\n-----END CERTIFICATE-----").is_err());
+  let server=App::new().listen_tls("127.0.0.1:0",TLS_CERT,TLS_KEY).await.unwrap();let address=server.address();
+  let mut sockets=Vec::new();for _ in 0..16{sockets.push(tokio::net::TcpStream::connect(&address).await.unwrap());}
+  tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+  tokio::time::timeout(std::time::Duration::from_secs(2),server.shutdown()).await.expect("shutdown must interrupt TLS handshakes");
+  assert!(tokio::net::TcpListener::bind(&address).await.is_ok());
+  use tokio::io::AsyncReadExt;
+  for mut socket in sockets{let mut byte=[0];let read=tokio::time::timeout(std::time::Duration::from_secs(1),socket.read(&mut byte)).await.unwrap();assert!(matches!(read,Ok(0)|Err(_)));}
+ });
+}
+#[test]
+fn tls_negotiates_http_versions_and_cancellation_drains_children(){
+ use std::sync::{Arc,atomic::{AtomicUsize,Ordering}};
+ struct Guard(Arc<AtomicUsize>);impl Drop for Guard{fn drop(&mut self){self.0.fetch_add(1,Ordering::SeqCst);}}
+ let drops=Arc::new(AtomicUsize::new(0));let observed=drops.clone();
+ tsrust_native_futures::block_on(async move{
+  let started=Arc::new(tokio::sync::Notify::new());let signal=started.clone();
+  let mut app=App::new();app.route("GET","/",|_|async{Response::text("ok".into(),200).unwrap()}).unwrap();
+  app.route("GET","/pending",move |_|{let guard=Guard(observed.clone());let signal=signal.clone();async move{
+   let _child=tsrust_native_futures::start(async move{let _guard=guard;signal.notify_one();std::future::pending::<()>().await;Ok::<_,tsrust_native_futures::Failure<()>>(())});
+   std::future::pending::<Response>().await
+  }}).unwrap();
+  let server=app.listen_tls("127.0.0.1:0",TLS_CERT,TLS_KEY).await.unwrap();let address=server.address();let url=format!("https://{address}");
+  for http1 in [true,false]{
+   let builder=reqwest::Client::builder().no_proxy().tls_certs_only([reqwest::Certificate::from_pem(TLS_CA.as_bytes()).unwrap()]);
+   let client=if http1{builder.http1_only()}else{builder.http2_prior_knowledge()}.build().unwrap();
+   let response=client.get(&url).send().await.unwrap();assert_eq!(response.version(),if http1{reqwest::Version::HTTP_11}else{reqwest::Version::HTTP_2});assert_eq!(response.text().await.unwrap(),"ok");
+  }
+  let job=tsrust_native_futures::start(async move{let client=Client::with_ca(TLS_CA).unwrap();let _=client.send(Request::new("GET",&format!("{url}/pending"),String::new()).unwrap()).await;Ok::<_,tsrust_native_futures::Failure<()>>(())});
+  tokio::time::timeout(std::time::Duration::from_secs(2),started.notified()).await.unwrap();
+  job.cancel();assert!(matches!(job.join().await,Err(tsrust_native_futures::Failure::Cancelled)));
+  let wait=tsrust_native_futures::start(async move{server.wait().await;Ok::<_,tsrust_native_futures::Failure<()>>(())});
+  wait.cancel();assert!(matches!(wait.join().await,Err(tsrust_native_futures::Failure::Cancelled)));
+  assert!(tokio::net::TcpListener::bind(address).await.is_ok());
+ });
+ assert_eq!(drops.load(Ordering::SeqCst),1);
+}

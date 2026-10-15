@@ -8,6 +8,7 @@ publish = false
 
 [dependencies]
 axum = { version = "=0.8.9", optional = true, default-features = false, features = ["http1", "http2", "tokio"] }
+tokio-rustls = { version = "=0.26.6", optional = true, default-features = false, features = ["aws_lc_rs", "tls12"] }
 reqwest = { version = "=0.13.5", optional = true, default-features = false, features = ["rustls", "stream", "http2"] }
 http-body = { version = "=1.1.0", optional = true }
 http-body-util = { version = "=0.1.5", optional = true }
@@ -20,5 +21,5 @@ serde_json = { version = "=1.0.151", features = ["raw_value"] }
 [features]
 default = []
 async = ["dep:tokio"]
-http = ["async", "dep:axum", "dep:reqwest", "dep:http-body-util", "dep:http-body", "dep:hyper-util"]
+http = ["async", "dep:axum", "dep:reqwest", "dep:http-body-util", "dep:http-body", "dep:hyper-util", "dep:tokio-rustls"]
 threads = ["dep:rayon"]

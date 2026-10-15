@@ -1,0 +1,27 @@
+import { App, Client, Request, Response, request, text } from 'std:http';
+import { readFile } from 'std:fs';
+import { toUtf8 } from 'std:bytes';
+
+function pem(name: string): string {
+  return unwrap(toUtf8(unwrap(readFile('crates/tsrust-compiler/tests/fixtures/tls/' + name))));
+}
+
+async function greet(input: Request): Task<Response> {
+  return text('Hello over HTTPS');
+}
+
+// Run from the repository root. These public test credentials are not for deployment.
+async function main(): Task<void> {
+  const app = new App();
+  app.get('/', greet);
+  const server = await app.listen('127.0.0.1:0', {
+    cert: pem('server.pem'), key: pem('server.key')
+  });
+  const client = new Client({
+    ca: pem('ca.pem')
+  });
+  const response = await client.send(request('GET', 'https://' + server.address() + '/', ''));
+  console.log(response.status());
+  console.log(await response.text());
+  await server.shutdown();
+}

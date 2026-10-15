@@ -209,6 +209,8 @@ impl SourceIndex {
         name
     }
     pub(super) fn import_native_type(&mut self, declaration: &tsrust_compiler::native_types::Declaration, local: &str, span: Span) {
+        if declaration.id == tsrust_compiler::native_signatures::NativeTypeId::HttpApp { self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::HttpTlsOptions); }
+        if declaration.id == tsrust_compiler::native_signatures::NativeTypeId::HttpClient { self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::HttpClientOptions); }
         if declaration.id == tsrust_compiler::native_signatures::NativeTypeId::ThreadPool { self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::ThreadPoolOptions); }
         let Some(catalog) = builtins_for(declaration.module).into_iter().find(|entry| entry["name"] == declaration.name) else { return; };
         self.native_type_aliases.insert(local.into(), declaration.id);

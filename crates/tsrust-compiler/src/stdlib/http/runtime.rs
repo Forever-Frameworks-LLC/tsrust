@@ -2,6 +2,7 @@ mod tsrust_native_http {
     use std::{collections::{BTreeMap,BTreeSet},future::{Future},pin::Pin,sync::Arc,task::Poll,time::Duration};
     use axum::{body::Body,http::{self,HeaderName,HeaderValue,Method,StatusCode},response::Response as WireResponse};
     use http_body_util::BodyExt;
+    use tokio_rustls::{TlsAcceptor,rustls::{self,pki_types::{CertificateDer,PrivateKeyDer,pem::PemObject}}};
     use super::tsrust_native_futures as tasks;
     type Pending = Pin<Box<dyn Future<Output=Response>+Send>>;
     type Handler = Arc<dyn Fn(Request)->Pending+Send+Sync>;
@@ -39,7 +40,15 @@ mod tsrust_native_http {
         }
         pub fn use_middleware<F,Fut>(&mut self,handler:F) where F:Fn(Request,Next)->Fut+Send+Sync+'static,Fut:Future<Output=Response>+Send+'static {self.middleware.push(Arc::new(move|request,next|Box::pin(handler(request,next))));}
         pub fn fallback<F,Fut>(&mut self,handler:F) where F:Fn(Request)->Fut+Send+Sync+'static,Fut:Future<Output=Response>+Send+'static {self.fallback=Arc::new(move|request|Box::pin(handler(request)));}
-        pub async fn listen(self,address:&str)->Result<Server,Error> {
+        pub async fn listen(self,address:&str)->Result<Server,Error> {self.listen_with_tls(address,None).await}
+        pub async fn listen_tls(self,address:&str,cert:&str,key:&str)->Result<Server,Error> {
+            let certificates=certificates(cert)?;
+            let key=PrivateKeyDer::from_pem_slice(key.as_bytes()).map_err(|_|error("tls","Invalid PEM private key"))?;
+            let mut config=rustls::ServerConfig::builder().with_no_client_auth().with_single_cert(certificates,key).map_err(|_|error("tls","Invalid certificate chain or mismatched private key"))?;
+            config.alpn_protocols=vec![b"h2".to_vec(),b"http/1.1".to_vec()];
+            self.listen_with_tls(address,Some(TlsAcceptor::from(Arc::new(config)))).await
+        }
+        async fn listen_with_tls(self,address:&str,tls:Option<TlsAcceptor>)->Result<Server,Error> {
             let address:std::net::SocketAddr=address.parse().map_err(|_|error("address","Use an IP address and port"))?;
             let listener=tokio::net::TcpListener::bind(address).await.map_err(|_|error("listen","Cannot bind HTTP listener"))?;
             let address=listener.local_addr().map_err(|_|error("listen","Cannot read listener address"))?.to_string();
@@ -54,7 +63,7 @@ mod tsrust_native_http {
             let method_scope=scope.clone();
             router=router.method_not_allowed_fallback(move|request|dispatch(request,Arc::new(|_|Box::pin(async{fixed(405,"Method Not Allowed")})),middleware.clone(),method_scope.clone()));
             let (stop,stopped)=tokio::sync::oneshot::channel();let stop=Arc::new(std::sync::Mutex::new(Some(stop)));let cancel=stop.clone();
-            let job=tasks::start_with_shutdown(async move{run(listener,router,stopped,scope).await;Ok::<_,tasks::Failure<()>>(())},Some(Box::new(move||{if let Some(stop)=cancel.lock().unwrap().take(){let _=stop.send(());}})));
+            let job=tasks::start_with_shutdown(async move{run(listener,router,stopped,scope,tls).await;Ok::<_,tasks::Failure<()>>(())},Some(Box::new(move||{if let Some(stop)=cancel.lock().unwrap().take(){let _=stop.send(());}})));
             Ok(Server{address,stop,job:Some(job)})
         }
     }
@@ -89,7 +98,7 @@ mod tsrust_native_http {
         fn signal(&self){if let Some(stop)=self.stop.lock().unwrap().take(){let _=stop.send(());}}
     }
     impl Drop for Server{fn drop(&mut self){self.signal();}}
-    async fn run(listener:tokio::net::TcpListener,router:axum::Router,mut stopped:tokio::sync::oneshot::Receiver<()>,scope:Arc<tasks::Scope>){
+    async fn run(listener:tokio::net::TcpListener,router:axum::Router,mut stopped:tokio::sync::oneshot::Receiver<()>,scope:Arc<tasks::Scope>,tls:Option<TlsAcceptor>){
         let mut connections=tokio::task::JoinSet::new();
         let (shutdown,_)=tokio::sync::watch::channel(false);
         loop {
@@ -101,9 +110,14 @@ mod tsrust_native_http {
                 Poll::Pending
             }).await;
             match event {Event::Stop=>break,Event::Finished=>{},Event::Accepted(Err(_))=>break,Event::Accepted(Ok((stream,_)))=>{
-                let service=hyper_util::service::TowerToHyperService::new(router.clone());
-                let mut shutdown=shutdown.subscribe();
-                connections.spawn(async move{let io=hyper_util::rt::TokioIo::new(stream);let builder=hyper_util::server::conn::auto::Builder::new(hyper_util::rt::TokioExecutor::new());let connection=builder.serve_connection(io,service);tokio::pin!(connection);let changed=shutdown.changed();tokio::pin!(changed);let mut draining=false;let _=std::future::poll_fn(|cx|{if !draining && changed.as_mut().poll(cx).is_ready(){connection.as_mut().graceful_shutdown();draining=true;}connection.as_mut().poll(cx)}).await;});
+                let router=router.clone();let tls=tls.clone();let mut shutdown=shutdown.subscribe();
+                connections.spawn(async move{
+                    if let Some(tls)=tls {
+                        let handshake=tokio::time::timeout(Duration::from_secs(5),tls.accept(stream));tokio::pin!(handshake);
+                        let accepted={let changed=shutdown.changed();tokio::pin!(changed);std::future::poll_fn(|cx|{if changed.as_mut().poll(cx).is_ready(){return Poll::Ready(None);}handshake.as_mut().poll(cx).map(Some)}).await};
+                        if let Some(Ok(Ok(stream)))=accepted{serve_connection(stream,router,shutdown).await;}
+                    }else{serve_connection(stream,router,shutdown).await;}
+                });
             }}
         }
         drop(listener);
@@ -112,6 +126,16 @@ mod tsrust_native_http {
         // Bound graceful shutdown, including clients stalled while sending or receiving.
         connections.abort_all();while connections.join_next().await.is_some(){}
         scope.drain(true).await;
+    }
+    fn certificates(pem:&str)->Result<Vec<CertificateDer<'static>>,Error>{
+        let certificates=CertificateDer::pem_slice_iter(pem.as_bytes()).collect::<Result<Vec<_>,_>>().map_err(|_|error("tls","Invalid PEM certificate chain"))?;
+        if certificates.is_empty(){return Err(error("tls","Certificate chain cannot be empty"));}Ok(certificates)
+    }
+    async fn serve_connection<I>(stream:I,router:axum::Router,mut shutdown:tokio::sync::watch::Receiver<bool>) where I:tokio::io::AsyncRead+tokio::io::AsyncWrite+Unpin+Send+'static {
+        let service=hyper_util::service::TowerToHyperService::new(router);
+        let io=hyper_util::rt::TokioIo::new(stream);let builder=hyper_util::server::conn::auto::Builder::new(hyper_util::rt::TokioExecutor::new());let connection=builder.serve_connection(io,service);tokio::pin!(connection);
+        let changed=shutdown.changed();tokio::pin!(changed);let mut draining=false;
+        let _=std::future::poll_fn(|cx|{if !draining && changed.as_mut().poll(cx).is_ready(){connection.as_mut().graceful_shutdown();draining=true;}connection.as_mut().poll(cx)}).await;
     }
     impl Request {
         pub fn new(method:&str,url:&str,body:String)->Result<Self,Error>{let method=Method::from_bytes(method.as_bytes()).map_err(|_|error("method","Invalid HTTP method"))?;let inner=http::Request::builder().method(method).uri(url).body(Body::from(body)).map_err(|_|error("url","Invalid request URL"))?;Ok(Self{inner,params:BTreeMap::new(),limit:1048576})}
@@ -152,7 +176,17 @@ mod tsrust_native_http {
         pub async fn text(mut self)->Result<String,Error>{let mut bytes=Vec::new();while let Some(frame)=self.frame().await{if let Ok(chunk)=frame?.into_data(){bytes.extend_from_slice(&chunk);}}String::from_utf8(bytes).map_err(|_|error("encoding","Body is not UTF-8"))}
     }
     impl Client {
-        pub fn new()->Result<Self,Error>{reqwest::Client::builder().redirect(reqwest::redirect::Policy::none()).no_proxy().timeout(Duration::from_secs(30)).build().map(Self).map_err(|_|error("client","Cannot create HTTP client"))}
+        pub fn new()->Result<Self,Error>{Self::build(None)}
+        pub fn with_ca(ca:&str)->Result<Self,Error>{
+            let mut validated=rustls::RootCertStore::empty();
+            let roots=certificates(ca)?.into_iter().map(|cert|{validated.add(cert.clone()).map_err(|_|error("tls","Invalid CA certificate"))?;reqwest::Certificate::from_der(cert.as_ref()).map_err(|_|error("tls","Invalid CA certificate"))}).collect::<Result<Vec<_>,_>>()?;
+            Self::build(Some(roots))
+        }
+        fn build(roots:Option<Vec<reqwest::Certificate>>)->Result<Self,Error>{
+            let mut builder=reqwest::Client::builder().redirect(reqwest::redirect::Policy::none()).no_proxy().timeout(Duration::from_secs(30));
+            if let Some(roots)=roots{builder=builder.tls_certs_only(roots);}
+            builder.build().map(Self).map_err(|_|error("client","Cannot create HTTP client"))
+        }
         pub async fn send(&self,request:Request)->Result<Response,Error>{
             let (parts,body)=request.inner.into_parts();let url=reqwest::Url::parse(&parts.uri.to_string()).map_err(|_|error("url","Use an absolute HTTP or HTTPS URL"))?;
             if !matches!(url.scheme(),"http"|"https")||!url.username().is_empty()||url.password().is_some(){return Err(error("url","HTTP URLs cannot contain credentials"));}

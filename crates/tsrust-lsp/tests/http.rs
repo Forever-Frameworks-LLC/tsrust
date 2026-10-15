@@ -16,3 +16,10 @@ fn aliased_http_members_complete(){
  let source="import {Request as Incoming} from 'std:http';function inspect(input:Incoming):void{input.;}function main(){}";
  let result=request(source,"input.","textDocument/completion").to_string();assert!(result.contains("setHeader")&&result.contains("param")&&result.contains("text"),"{result}");
 }
+#[test]
+fn tls_options_and_certificate_checks_are_documented(){
+ let source="import {App,Client,TlsOptions} from 'std:http';async function main():Task<void>{const app=new App();const client=new Client({ca:'pem'});const tls:TlsOptions={cert:'pem',key:'pem'};const server=await app.listen('127.0.0.1:0',tls);await server.shutdown();}";
+ let client=request(source,"new Client(","textDocument/signatureHelp");assert!(client["signatures"][0]["parameters"][0]["label"].as_str().unwrap().contains("ClientOptions"));
+ let listen=request(source,"app.listen","textDocument/hover").to_string();assert!(listen.contains("TlsOptions")&&listen.contains("handshake")&&listen.contains("hostname"),"{listen}");
+ let completion=request("import {TlsOptions} from 'std:http';function inspect(tls:TlsOptions):void{tls.;}","tls.","textDocument/completion").to_string();assert!(completion.contains("cert")&&completion.contains("key"),"{completion}");
+}

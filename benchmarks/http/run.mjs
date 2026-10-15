@@ -7,14 +7,14 @@ import { fileURLToPath } from 'node:url';
 const root=path.dirname(fileURLToPath(import.meta.url));
 const compiler=process.env.TSRUST;
 if(!compiler) throw new Error('Set TSRUST to the verified compiler.');
-if(process.argv.slice(2).some(arg=>!['--verify'].includes(arg))) throw new Error('Unknown option.');
+if(process.argv.slice(2).some(arg=>!['--verify','--tls'].includes(arg))) throw new Error('Unknown option.');
 const verify=process.argv.includes('--verify');
-const workload='loopback';
+const workload=process.argv.includes('--tls')?'https':'loopback';
 if(process.version!=='v24.11.1') throw new Error('Node v24.11.1 is required.');
 const project=path.resolve(root,'../..');
 const tsc=path.join(project,'benchmarks/runtime/node_modules/typescript/bin/tsc');
 const scratch=fs.mkdtempSync(path.join(os.tmpdir(),'tsrust-http-'));
-const run=(command,args)=>execFileSync(command,args,{encoding:'utf8',timeout:300000});
+const run=(command,args)=>execFileSync(command,args,{encoding:'utf8',timeout:300000,cwd:project});
 try {
  const source=path.join(root,`${workload}.tsr`);
  const counterpart=path.join(root,`${workload}.ts`);
@@ -36,6 +36,7 @@ try {
  }
  const hash=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
  const record={kind:`http-${workload}`,verifiedOnly:verify,timestamp:new Date().toISOString(),sourceCommit:run('git',['rev-parse','HEAD']).trim(),sourceTreeDirty:run('git',['status','--porcelain']).trim().length>0,sourceSha256:hash(source),counterpartSha256:hash(path.join(root,`${workload}.ts`)),compilerSha256:hash(compiler),harnessSha256:hash(fileURLToPath(import.meta.url)),versions:{node:process.version,rust:run('rustup',['run','1.96.1','rustc','--version']).trim(),typescript:run(process.execPath,[tsc,'--version']).trim()},machine:{cpu:os.cpus()[0].model,logicalCpus:os.cpus().length,availableParallelism:os.availableParallelism(),platform:os.platform(),release:os.release()},protocol:{processes:verify?1:3,warmups:verify?0:8,samples:verify?1:31,requestsPerBatch:128,durationUnit:'milliseconds'},expected,observations,execution};
+ if(workload==='https')record.fixtureSha256=Object.fromEntries(['ca.pem','server.pem','server.key'].map(name=>[name,hash(path.join(project,'crates/tsrust-compiler/tests/fixtures/tls',name))]));
  const output=path.join(root,`${workload}-${record.timestamp.replaceAll(':','-')}${verify?'-verify':''}.json`);
  fs.writeFileSync(output,JSON.stringify(record,null,2)+'\n',{flag:'wx'});console.log(output);
 } finally {fs.rmSync(scratch,{recursive:true,force:true});}

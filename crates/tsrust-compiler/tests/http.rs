@@ -54,3 +54,23 @@ fn consecutive_chunk_reads_release_the_receiver_borrow(){
  let source="import {App,Client,request,text} from 'std:http';import {length} from 'std:bytes';async function main():Task<void>{const body=text('abc').body();body.next();(body.next(),body.next());const first=await body.next();if(first===undefined){throw 'Missing chunk';}console.log(length(first));const second=await body.next();console.log(second===undefined);console.log(await text('done').text());const app=new App();const server=await app.listen('127.0.0.1:0');const client=new Client();console.log((await client.send(request('GET','http://'+server.address()+'/', ''))).status());await server.shutdown();}";
  let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&support::format_round_trip(source))),300);support::success(&output);assert_eq!(output.stdout,b"3\ntrue\ndone\n404\n");
 }
+#[test]
+fn https_example_executes_with_verified_private_ca(){
+ let directory=support::TempDirectory::new();let source=support::format_round_trip(include_str!("../../../examples/http/https.tsr"));
+ let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+ let output=support::run(support::cli().arg("run").arg(directory.source(&source)).current_dir(root),300);support::success(&output);assert_eq!(output.stdout,b"200\nHello over HTTPS\n");
+}
+#[test]
+fn tls_options_preserve_checked_types_and_loans(){
+ for source in [
+ "import {Client} from 'std:http';function main(){new Client({ca:3});}",
+ "import {App} from 'std:http';async function main():Task<void>{const app=new App();await app.listen('127.0.0.1:0',{cert:'pem'});}",
+ "import {App,TlsOptions} from 'std:http';async function main():Task<void>{const app=new App();const tls:TlsOptions={cert:'pem',key:'key'};const pending=app.listen('127.0.0.1:0',tls);tls.key='changed';await pending;}",
+ ]{let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("check").arg(directory.source(source)),30);assert!(!output.status.success(),"accepted {source}");let error=String::from_utf8_lossy(&output.stderr);assert!(!error.contains("error[syntax]")&&!error.contains("error[import]"),"{error}");}
+}
+
+#[test]
+fn tls_configuration_errors_are_typed(){
+ let source="import {App,Client,TlsOptions} from 'std:http';import {strictEqual} from 'std:testing';async function main():Task<void>{const tls:TlsOptions={key:'bad key',cert:'bad cert'};let failed=false;try{const app=new App();await app.listen('127.0.0.1:0',tls);}catch(error){strictEqual(error.code,'tls');failed=true;}strictEqual(failed,true);failed=false;try{new Client({ca:''});}catch(error){strictEqual(error.code,'tls');failed=true;}strictEqual(failed,true);}";
+ let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&support::format_round_trip(source))),300);support::success(&output);
+}

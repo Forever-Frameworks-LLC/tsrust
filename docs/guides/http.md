@@ -61,3 +61,35 @@ TLS listener configuration and certificate fixtures belong to S16. This slice
 has no WebSocket/SSE protocol, producer-stream API, request dependency container,
 authentication policy, file router or UI renderer. Fixed resource limits are
 intentional; no configuration API is implied.
+
+## HTTPS
+
+Use the same listener and client APIs. `app.listen(address, { cert, key })` enables
+TLS; omitting the second argument keeps cleartext HTTP. The certificate string is
+a PEM chain, leaf first. The private key must match and be unencrypted PEM
+(PKCS#1, PKCS#8 or SEC1). Invalid credentials throw `HttpError` with code `tls`
+before the socket binds. TLS negotiates HTTP/1.1 or HTTP/2.
+
+`new Client()` verifies public HTTPS certificates using default trust roots.
+`new Client({ ca: pem })` trusts only the supplied nonempty PEM CA bundle for that
+client. Hostname, certificate chain and validity checks remain mandatory. A failed
+handshake makes `send` throw `HttpError` code `request`; configuration errors do not
+include certificate or private-key contents in messages.
+
+```tsrust
+const server = await app.listen('127.0.0.1:8443', {
+  cert: certificatePem, key: privateKeyPem
+});
+const client = new Client({ ca: privateCaPem });
+```
+
+Creating the listener task consumes the app and TLS options immediately; awaiting
+it starts the server. Dropping an unawaited task releases those owned settings. Client construction borrows options
+only during construction. Handshakes count against the 128-connection limit and
+have a five-second deadline. Shutdown interrupts incomplete handshakes and drains
+established connections using the existing five-second shutdown budget.
+
+Run `tsrust run examples/http/https.tsr` from the repository root for a complete
+local example. Its checked-in credentials are public test fixtures, never deployment
+credentials. This slice does not add mutual TLS, certificate reload, ACME, or an
+option to disable verification.
