@@ -242,3 +242,33 @@ The B4 repair agent has the exclusive validation window for
 TLS has no remaining builds, timings or consumer refreshes. Preserve the active
 shared target until B4 finishes. The UI briefs remain owner work. S17 SQLite is
 the next standard-library roadmap item; no work on it started in this pass.
+
+
+## S17 SQLite and B4 workspace repair — 2026-10-15
+
+S17 is accepted at `91e6b937`, with indexed editor completion repaired at
+`b255009e`. B4 is merged at `e33af7db`; its missing callable access-summary entry
+caused the workspace panic visible even when an empty/comment-only file was open.
+The full workspace now checks without panic or errors. The remaining `unused-task`
+warning on an awaited greeting is a pre-existing false positive, verified with the
+old installed compiler; do not describe it as intentionally discarded work.
+
+See [SQLite acceptance](../plans/sqlite-acceptance.md) for exact checks, consumer
+hashes and measurement provenance. New examples are `examples/sqlite/people.tsr`
+and `examples/sqlite/rollback.tsr`. Compiler ownership rejects closing a borrowed
+connection, committing with live transaction statements, handle cloning and reuse.
+Runtime checks cover scope/error rollback, failed commit, SQLite automatic rollback,
+strict data conversion and lock cleanup. Borrow provenance through `unwrap` is fixed
+for existing byte views too.
+
+All affected compiler/runtime/export checks and 18 editor checks pass. Installed
+CLI and LSP binaries are refreshed; the active VS Code server was restarted and
+current SQLite hover verified. Matched prepared transactions measure 0.031084 ms
+native versus 0.105708 ms Node per 128 rows; versions differ, this is an in-memory
+whole-stack baseline. SQLite retains exact evidence and all 186 timing samples.
+
+UI identity feasibility now has a separate managed worktree and the quiet
+check/emit/rustc/format window. It uses the verified `b255009e` release CLI; any
+compiler dependency requires a minimized witness and coordinated ownership first.
+Preserve the five untracked owner UI plan files. S18 async SQL remains pending;
+this pass adds no ORM, database pool, migrations or async SQLite adapter.
