@@ -203,3 +203,22 @@ requested. Cancellation remains cooperative; dropping suspended futures releases
 resources without promising source finally execution. Dedicated threads, pools
 and Rust/Rayon bridges remain separate. S15 HTTP is the next roadmap dependency;
 networking and a blocking-work adapter were not added in S14.
+
+
+## S15 HTTP completion — 2026-10-15
+
+S15 is accepted: Axum routes/middleware, owned request/response/body/continuation/
+server, reusable Reqwest clients, validated bodies, demand-driven forwarding,
+disconnect and bounded graceful shutdown. See [acceptance](../plans/http-acceptance.md)
+and [guide](../guides/http.md). Source af0cbba8 includes the final async disposal
+repair; release CLI and both LSP paths are refreshed and VS Code restarted.
+
+Consolidated acceptance: 4,111 compiler tests and 700 editor tests pass, seven
+existing compiler tests ignored. HTTP measures 5.39 ms native versus 7.99 ms Node
+per 128 sequential loopback requests. Async review repaired owned receivers,
+retained loans, temporary disposal and multi-input task lifetimes; it removed one
+body-chunk copy without redesigning scheduling. Exact evidence remains in SQLite.
+
+S16 TLS listener configuration and certificate fixtures are next. Shared handler
+state/providers, producer streams, WebSocket/SSE and UI runtime integration remain
+separate. Preserve explicit ownership, cooperative cancellation and cleanup limits.
