@@ -107,6 +107,22 @@ impl NativeBinding {
     }
 }
 pub const BINDINGS: &[NativeBinding] = &[
+    crate::stdlib::sql::CONNECT,
+    crate::stdlib::sql::CONNECT_POLL,
+    crate::stdlib::sql::BEGIN,
+    crate::stdlib::sql::CLOSE,
+    crate::stdlib::sql::EXECUTE,
+    crate::stdlib::sql::QUERY,
+    crate::stdlib::sql::TXEXECUTE,
+    crate::stdlib::sql::TXQUERY,
+    crate::stdlib::sql::COMMIT,
+    crate::stdlib::sql::ROLLBACK,
+    crate::stdlib::sql::INT,
+    crate::stdlib::sql::NUMBER,
+    crate::stdlib::sql::BOOLEAN,
+    crate::stdlib::sql::TEXT,
+    crate::stdlib::sql::BLOB,
+    crate::stdlib::sql::ISNULL,
     crate::stdlib::sqlite::OPEN,
     crate::stdlib::sqlite::PREPARE,
     crate::stdlib::sqlite::BEGIN,
@@ -340,3 +356,8 @@ pub fn by_symbol(symbol: &str) -> Option<(usize, &'static NativeBinding)> {
         .enumerate()
         .find(|(_, binding)| binding.module == module && binding.name == name)
 }
+
+pub fn sql_method(identity: crate::native_signatures::NativeTypeId, member: &str) -> Option<&'static NativeBinding> {
+ lookup("std:sql",crate::stdlib::sql::method(Some(identity),member)?).ok()
+}
+pub fn sql_asynchronous(name:&str)->bool{crate::stdlib::sql::asynchronous(name)}

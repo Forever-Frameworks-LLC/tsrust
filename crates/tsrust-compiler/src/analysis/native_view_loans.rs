@@ -259,6 +259,9 @@ impl Analyzer {
                 continue;
             }
             match &value.kind {
+                ExprKind::Match{id,..} if *id>=usize::MAX/2 => {
+                    if let Some(loans)=context.native_task_constructions.as_ref().and_then(|values|values.get(id)) {result.extend(loans.iter().cloned());}
+                }
                 ExprKind::Closure {..} => {
                     if let Some(Type::Closure(origin))=value.ty
                         && let Some(captures)=context.native_view_environments.as_ref().and_then(|environments|environments.get(&origin)) {
@@ -391,6 +394,9 @@ impl Analyzer {
                     pending.push(Task::Select(result.len(), Segment::Element));
                     pending.push(Task::Value(value));
                 }
+                ExprKind::Unary {op:UnaryOp::TaskCreate|UnaryOp::CallableOnce,value:payload,..}=>{
+                    pending.push(Task::Wrapped(payload,Segment::Field("capture0".into())));
+                }
                 ExprKind::Unary {op:UnaryOp::CallableStore,value:payload,..}=>{
                     if let Some(Type::Closure(origin))=payload.ty {
                         pending.push(Task::Wrapped(payload,Segment::CallableAlternative(origin)));
@@ -399,7 +405,7 @@ impl Analyzer {
                     }
                 }
                 ExprKind::Unary {
-                    op: UnaryOp::NonNull | UnaryOp::RestPack | UnaryOp::RecordCarrier,
+                    op: UnaryOp::NonNull | UnaryOp::RestPack | UnaryOp::RecordCarrier | UnaryOp::Await | UnaryOp::AwaitCallee,
                     value,
                     ..
                 } => pending.push(Task::Value(value)),

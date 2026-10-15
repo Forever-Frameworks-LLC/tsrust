@@ -1888,6 +1888,12 @@ impl SourceIndex {
         Some(format!("{schema}<{element}[]>"))
     }
     fn primitive_method_type(&self, method: &str, receiver: String) -> String {
+        if let Some(binding)=self.native_type_aliases.get(&receiver).and_then(|id|tsrust_compiler::native_bindings::sql_method(*id,method)) {
+            let signature=binding.result.signature();
+            let ty=if tsrust_compiler::native_bindings::sql_asynchronous(binding.name){if let tsrust_compiler::native_signatures::Signature::Result(ok,_)=signature{*ok}else{signature}}else{signature};
+            let rendered=ty.render(|id|self.native_type_aliases.iter().find(|(_,known)|**known==id).map(|(name,_)|name.clone().into())).map(|text|text.into_owned()).unwrap_or_default();
+            return if tsrust_compiler::native_bindings::sql_asynchronous(binding.name){format!("Task<{rendered}>")}else{rendered};
+        }
         if let Some(binding)=self.native_type_aliases.get(&receiver).and_then(|id|tsrust_compiler::native_bindings::sqlite_method(*id,method)) {
             return binding.result.signature().render(|id|self.native_type_aliases.iter().find(|(_,known)|**known==id).map(|(name,_)|name.clone().into())).map(|text|text.into_owned()).unwrap_or_default();
         }
@@ -1963,6 +1969,7 @@ impl SourceIndex {
         }
     }
     fn primitive_method_accepts_arguments(&self, method: &str, receiver: &str) -> bool {
+        if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::sql_method(*id,method).is_some()){return true;}
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::sqlite_method(*id,method).is_some()){return true;}
         let receiver = literal_scalar_family(receiver).unwrap_or(receiver);
         if receiver=="@namespace:std:schema#s" && matches!(method,"string"|"boolean"|"int"|"number"|"null"|"literal"|"enum"|"union"|"discriminatedUnion") {return true;}
@@ -2734,7 +2741,10 @@ impl SourceIndex {
                     .collect::<Vec<_>>()
             })
             .unwrap_or_default();
-        let result = signature_name(binding.result.signature());
+        let result = if binding.module=="std:sql" && tsrust_compiler::native_bindings::sql_asynchronous(binding.name) {
+            let tsrust_compiler::native_signatures::Signature::Result(output,_)=binding.result.signature()else{unreachable!("SQL task result")};
+            format!("Task<{}>",signature_name(*output))
+        }else{signature_name(binding.result.signature())};
         let signature = self.display_type(&format!("function {local}({}): {result}", parameters.join(", ")));
         let signature=if let Some(inferred)=catalog["inferredSignature"].as_str(){
             parameters=catalog["parameters"].as_array().unwrap().iter().map(|parameter|parameter["label"].as_str().unwrap().to_owned()).collect();

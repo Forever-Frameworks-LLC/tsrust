@@ -113,3 +113,19 @@ fn race_failure_drains_started_loser_and_cancelled_send_releases_message(){
         queue.close();drop(queue.receive::<()>().await);assert_eq!(drops.load(Ordering::SeqCst),3);
     });
 }
+
+#[test]
+fn resource_cleanup_finishes_before_cancelled_job_join(){
+ use std::sync::{Arc,atomic::{AtomicBool,Ordering}};
+ let released=Arc::new(AtomicBool::new(false));let observed=released.clone();
+ block_on(async move{
+  let (ready,started)=tokio::sync::oneshot::channel();
+  let worker=start(async move{
+   cleanup(async move{tokio::time::sleep(std::time::Duration::from_millis(20)).await;released.store(true,Ordering::Release);});
+   ready.send(()).unwrap();
+   delay::<()>(60000).await
+  });
+  started.await.unwrap();worker.cancel();let _=worker.join().await;
+  assert!(observed.load(Ordering::Acquire));
+ });
+}

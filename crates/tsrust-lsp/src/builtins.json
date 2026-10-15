@@ -1,4 +1,333 @@
 {
+  "std:sql": [
+    {
+      "name": "connect",
+      "signature": "connect(url: string, maxConnections?: int, acquireTimeout?: int): Task<Pool>",
+      "parameters": [
+        {
+          "label": "url: string",
+          "documentation": "postgres://, postgresql://, mysql:// or sqlite: connection URL. Treat passwords as secrets; prefer environment variables."
+        },
+        {
+          "label": "maxConnections?: int",
+          "documentation": "Maximum open connections: 1..1024, default 5. Use 1 for a private in-memory SQLite database."
+        },
+        {
+          "label": "acquireTimeout?: int",
+          "documentation": "Maximum pool acquisition wait in milliseconds: 1..31536000000, default 30000. This is not a query execution timeout."
+        }
+      ],
+      "documentation": "Creates a bounded PostgreSQL, MySQL or SQLite connection pool when awaited. URL selects the driver. maxConnections defaults to 5 (1..1024); acquireTimeout defaults to 30000 ms (1..31536000000). Invalid options, connection, authentication and acquisition failures throw SqlError at await. PostgreSQL placeholders are $1, $2; MySQL and SQLite use ?. Call connect directly; use an async wrapper when a callable value is needed. No database connection is needed for compilation or editor analysis.\n\n```tsrust\nconst db = await connect('sqlite::memory:', 1);\nawait db.close();\n```\n\nOwnership: returns an owned pool. Scope exit closes it; close consumes it. Keep one pool alive for a database's shared work.",
+      "examples": [
+        {
+          "source": "import { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "Pool",
+      "signature": "type Pool",
+      "parameters": [],
+      "documentation": "Owned bounded SQL connection pool. query and execute use bound parameters. begin creates a scoped transaction. close waits for pool shutdown. Operations are lazy Tasks and errors throw at await.",
+      "examples": [
+        {
+          "source": "import { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "Transaction",
+      "signature": "type Transaction",
+      "parameters": [],
+      "documentation": "Scoped SQL transaction. query and execute borrow it exclusively; commit and rollback consume it. Dropping it without commit schedules rollback. DDL is excluded within transactions because some drivers commit it implicitly.",
+      "examples": [
+        {
+          "source": "import { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "Row",
+      "signature": "type Row",
+      "parameters": [],
+      "documentation": "Owned SQL result row. Named accessors return strict Result values; missing columns, null or wrong types return SqlError. Rows remain valid after the pool closes. Cast driver-specific SQL types explicitly.",
+      "examples": [
+        {
+          "source": "import { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "SqlError",
+      "signature": "type SqlError",
+      "parameters": [],
+      "documentation": "SQL failure with code and message. Async operations throw this value at await; row accessors return it in Result. Database errors include SQLSTATE when available.",
+      "examples": [
+        {
+          "source": "import { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    }
+  ],
+  "SqlPool": [
+    {
+      "name": "query",
+      "signature": "query(sql: string, parameters?: (int | number | boolean | string | null | Bytes)[]): Task<Row[]>",
+      "parameters": [
+        {
+          "label": "sql: string",
+          "documentation": "One SQL statement. Bind values rather than interpolating input. Use aliases for duplicate column names. Transaction/session control SQL is unsupported."
+        },
+        {
+          "label": "parameters?: (int | number | boolean | string | null | Bytes)[]",
+          "documentation": "Positional values, default []. int is signed 64-bit; number must be finite; Bytes binds a blob. Use driver-compatible column types and explicit SQL casts where needed."
+        }
+      ],
+      "documentation": "Returns all result rows as owned values. All rows are materialized; there is no streaming cursor. Uses one prepared SQL statement and positional parameter binding. Missing/extra parameters and database failures throw SqlError at await. SQL text remains driver-specific. No string escaping or identifier sanitization is performed. \n\n```tsrust\nconst rows = await db.query('SELECT id, name FROM people');\n```\n\nSQL may perform writes using a returning clause.\n\nOwnership: borrows the pool for reading until the operation finishes or is dropped. Arguments evaluate when the Task is created. Owned SQL text and parameter arrays move into it; use clone when reuse is needed.",
+      "examples": [
+        {
+          "source": "import { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "execute",
+      "signature": "execute(sql: string, parameters?: (int | number | boolean | string | null | Bytes)[]): Task<int>",
+      "parameters": [
+        {
+          "label": "sql: string",
+          "documentation": "One SQL statement. Bind values rather than interpolating input. Use aliases for duplicate column names. Transaction/session control SQL is unsupported."
+        },
+        {
+          "label": "parameters?: (int | number | boolean | string | null | Bytes)[]",
+          "documentation": "Positional values, default []. int is signed 64-bit; number must be finite; Bytes binds a blob. Use driver-compatible column types and explicit SQL casts where needed."
+        }
+      ],
+      "documentation": "Returns the affected row count; returned result columns are discarded. Uses one prepared SQL statement and positional parameter binding. Missing/extra parameters and database failures throw SqlError at await. SQL text remains driver-specific. No string escaping or identifier sanitization is performed. \n\n```tsrust\nconst removed = await db.execute('DELETE FROM people WHERE id = ?', [1]); // 1 if found\n```\n\nOwnership: borrows the pool for reading until the operation finishes or is dropped. Arguments evaluate when the Task is created. Owned SQL text and parameter arrays move into it; use clone when reuse is needed.",
+      "examples": [
+        {
+          "source": "import { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "begin",
+      "signature": "begin(): Task<Transaction>",
+      "parameters": [],
+      "documentation": "Begins a transaction when awaited. Takes no arguments. Waits for a pool connection, subject to acquireTimeout; failures throw SqlError.\n\n```tsrust\nconst transaction = await db.begin();\nawait transaction.rollback();\n```\n\nOwnership: transaction keeps a pool borrow until committed, rolled back or dropped. Its connection remains checked out during that time.",
+      "examples": [
+        {
+          "source": "import { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "close",
+      "signature": "close(): Task<void>",
+      "parameters": [],
+      "documentation": "Closes the pool when awaited and waits for connections to finish cleanup. Takes no arguments. Returns no value.\n\n```tsrust\nawait db.close();\n```\n\nOwnership: consumes the pool immediately when creating the Task. Live operation or transaction borrows prevent close; dropping the Task still triggers pool cleanup.",
+      "examples": [
+        {
+          "source": "import { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    }
+  ],
+  "SqlTransaction": [
+    {
+      "name": "query",
+      "signature": "query(sql: string, parameters?: (int | number | boolean | string | null | Bytes)[]): Task<Row[]>",
+      "parameters": [
+        {
+          "label": "sql: string",
+          "documentation": "One SQL statement. Bind values rather than interpolating input. Use aliases for duplicate column names. Transaction/session control SQL is unsupported."
+        },
+        {
+          "label": "parameters?: (int | number | boolean | string | null | Bytes)[]",
+          "documentation": "Positional values, default []. int is signed 64-bit; number must be finite; Bytes binds a blob. Use driver-compatible column types and explicit SQL casts where needed."
+        }
+      ],
+      "documentation": "Returns all result rows as owned values. All rows are materialized; there is no streaming cursor. Uses one prepared SQL statement and positional parameter binding. Missing/extra parameters and database failures throw SqlError at await. SQL text remains driver-specific. No string escaping or identifier sanitization is performed. Transaction DDL and raw transaction/session commands are rejected. \n\n```tsrust\nconst rows = await transaction.query('SELECT id, name FROM people');\n```\n\nA database/parameter failure or cancellation schedules rollback and makes the transaction inactive. Cleanup may wait for an in-flight statement.\n\nSQL may perform writes using a returning clause.\n\nOwnership: borrows the transaction exclusively until the operation finishes or is dropped. Arguments evaluate when the Task is created. Owned SQL text and parameter arrays move into it; use clone when reuse is needed.",
+      "examples": [
+        {
+          "source": "import { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "execute",
+      "signature": "execute(sql: string, parameters?: (int | number | boolean | string | null | Bytes)[]): Task<int>",
+      "parameters": [
+        {
+          "label": "sql: string",
+          "documentation": "One SQL statement. Bind values rather than interpolating input. Use aliases for duplicate column names. Transaction/session control SQL is unsupported."
+        },
+        {
+          "label": "parameters?: (int | number | boolean | string | null | Bytes)[]",
+          "documentation": "Positional values, default []. int is signed 64-bit; number must be finite; Bytes binds a blob. Use driver-compatible column types and explicit SQL casts where needed."
+        }
+      ],
+      "documentation": "Returns the affected row count; returned result columns are discarded. Uses one prepared SQL statement and positional parameter binding. Missing/extra parameters and database failures throw SqlError at await. SQL text remains driver-specific. No string escaping or identifier sanitization is performed. Transaction DDL and raw transaction/session commands are rejected. \n\n```tsrust\nconst removed = await transaction.execute('DELETE FROM people WHERE id = ?', [1]); // 1 if found\n```\n\nA database/parameter failure or cancellation schedules rollback and makes the transaction inactive. Cleanup may wait for an in-flight statement.\n\nOwnership: borrows the transaction exclusively until the operation finishes or is dropped. Arguments evaluate when the Task is created. Owned SQL text and parameter arrays move into it; use clone when reuse is needed.",
+      "examples": [
+        {
+          "source": "import { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "commit",
+      "signature": "commit(): Task<void>",
+      "parameters": [],
+      "documentation": "Commits changes. Takes no arguments; returns no value. Database failures throw SqlError at await. A cancelled or disconnected commit may have reached the server: do not retry a non-idempotent transaction blindly.\n\n```tsrust\nawait transaction.commit();\n```\n\nOwnership: consumes the transaction. Dropping an unfinished transaction schedules rollback; the pool connection is not reused before cleanup.",
+      "examples": [
+        {
+          "source": "import { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "rollback",
+      "signature": "rollback(): Task<void>",
+      "parameters": [],
+      "documentation": "Discards changes. Takes no arguments; returns no value. Database failures throw SqlError at await.\n\n```tsrust\nawait transaction.rollback();\n```\n\nOwnership: consumes the transaction. Dropping an unfinished transaction schedules rollback; the pool connection is not reused before cleanup.",
+      "examples": [
+        {
+          "source": "import { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    }
+  ],
+  "SqlRow": [
+    {
+      "name": "int",
+      "signature": "int(column: string): Result<int, SqlError>",
+      "parameters": [
+        {
+          "label": "column: string",
+          "documentation": "Exact column name or SQL alias. Duplicate result names are rejected by query."
+        }
+      ],
+      "documentation": "Reads an integer column as a signed 64-bit value. column is the exact result-column name. Missing columns or incompatible values return SqlError; NULL is accepted only by isNull. Does not mutate the row.\n\n```tsrust\nconst id = unwrap(row.int('id')); // 1\n```\n\nOwnership: borrows the row only for this call; returned values are owned.",
+      "examples": [
+        {
+          "source": "import { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "number",
+      "signature": "number(column: string): Result<number, SqlError>",
+      "parameters": [
+        {
+          "label": "column: string",
+          "documentation": "Exact column name or SQL alias. Duplicate result names are rejected by query."
+        }
+      ],
+      "documentation": "Reads a floating-point column; non-finite values fail. column is the exact result-column name. Missing columns or incompatible values return SqlError; NULL is accepted only by isNull. Does not mutate the row.\n\n```tsrust\nconst price = unwrap(row.number('price')); // 1.25\n```\n\nOwnership: borrows the row only for this call; returned values are owned.",
+      "examples": [
+        {
+          "source": "import { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "boolean",
+      "signature": "boolean(column: string): Result<boolean, SqlError>",
+      "parameters": [
+        {
+          "label": "column: string",
+          "documentation": "Exact column name or SQL alias. Duplicate result names are rejected by query."
+        }
+      ],
+      "documentation": "Reads a Boolean column. PostgreSQL BOOLEAN is supported. SQLite and MySQL integer-backed flags use int(). column is the exact result-column name. Missing columns or incompatible values return SqlError; NULL is accepted only by isNull. Does not mutate the row.\n\n```tsrust\nconst enabled = unwrap(row.boolean('enabled')); // true (PostgreSQL BOOLEAN)\n```\n\nOwnership: borrows the row only for this call; returned values are owned.",
+      "examples": [
+        {
+          "source": "import { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "text",
+      "signature": "text(column: string): Result<string, SqlError>",
+      "parameters": [
+        {
+          "label": "column: string",
+          "documentation": "Exact column name or SQL alias. Duplicate result names are rejected by query."
+        }
+      ],
+      "documentation": "Copies a text column. column is the exact result-column name. Missing columns or incompatible values return SqlError; NULL is accepted only by isNull. Does not mutate the row.\n\n```tsrust\nconst name = unwrap(row.text('name')); // 'Ada'\n```\n\nOwnership: borrows the row only for this call; returned values are owned.",
+      "examples": [
+        {
+          "source": "import { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "blob",
+      "signature": "blob(column: string): Result<Bytes, SqlError>",
+      "parameters": [
+        {
+          "label": "column: string",
+          "documentation": "Exact column name or SQL alias. Duplicate result names are rejected by query."
+        }
+      ],
+      "documentation": "Copies a binary column. column is the exact result-column name. Missing columns or incompatible values return SqlError; NULL is accepted only by isNull. Does not mutate the row.\n\n```tsrust\nconst bytes = unwrap(row.blob('payload')); // owned Bytes\n```\n\nOwnership: borrows the row only for this call; returned values are owned.",
+      "examples": [
+        {
+          "source": "import { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    },
+    {
+      "name": "isNull",
+      "signature": "isNull(column: string): Result<boolean, SqlError>",
+      "parameters": [
+        {
+          "label": "column: string",
+          "documentation": "Exact column name or SQL alias. Duplicate result names are rejected by query."
+        }
+      ],
+      "documentation": "Reports whether the column is SQL NULL. column is the exact result-column name. Missing columns or incompatible values return SqlError; NULL is accepted only by isNull. Does not mutate the row.\n\n```tsrust\nconst absent = unwrap(row.isNull('optional')); // true for SQL NULL\n```\n\nOwnership: borrows the row only for this call; returned values are owned.",
+      "examples": [
+        {
+          "source": "import { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n",
+          "output": "1: Ada\n2: Grace\n"
+        }
+      ]
+    }
+  ],
+  "SqlSqlError": [
+    {
+      "name": "code",
+      "signature": "code: string",
+      "documentation": "Stable failure category such as database, acquire-timeout, closed, column, type, range or sql. Ownership: reads the error.",
+      "examples": []
+    },
+    {
+      "name": "message",
+      "signature": "message: string",
+      "documentation": "Failure detail. Database errors include SQLSTATE when available. Ownership: reads the error.",
+      "examples": []
+    }
+  ],
   "std:sqlite": [
     {
       "name": "open",

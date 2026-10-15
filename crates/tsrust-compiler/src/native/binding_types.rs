@@ -38,7 +38,7 @@ pub(crate) fn prepare(records: &mut Vec<Record>, binding: &NativeBinding, span: 
         "native-type-limit", "Native signature exceeds its borrowed-shape traversal limit.", span,
     ))?;
     // SQLite has a lifetime-aware input ABI; other input-only borrowed bindings remain gated.
-    if borrowed_shape && binding.returned_borrow.is_none() && binding.module!="std:sqlite" {
+    if borrowed_shape && binding.returned_borrow.is_none() && !matches!(binding.module,"std:sqlite"|"std:sql") {
         return Err(Diagnostic::new("native-return-borrow", "A native result that borrows storage requires a returned-borrow contract.", span));
     }
     project_shapes(records, binding, span)

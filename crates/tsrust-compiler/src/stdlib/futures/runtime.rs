@@ -5,6 +5,7 @@ mod tsrust_native_futures {
     #[derive(Default)]
     pub(crate) struct Scope {
         children: Mutex<std::collections::BTreeMap<usize,Arc<Control>>>,
+        cleanup: Mutex<Vec<Arc<Cleanup>>>,
         groups: Mutex<std::collections::BTreeMap<usize,Arc<Scope>>>,
         parent: std::sync::Weak<Scope>,
     }
@@ -18,9 +19,11 @@ mod tsrust_native_futures {
         }
         pub(crate) async fn drain(&self, cancel_all:bool) {
             let mut children = std::mem::take(&mut *self.children.lock().unwrap());
+            let mut cleanup=self.cleanup.lock().unwrap().clone();
             let mut groups=std::mem::take(&mut *self.groups.lock().unwrap()).into_values().collect::<Vec<_>>();
             while let Some(group)=groups.pop(){
                 children.extend(std::mem::take(&mut *group.children.lock().unwrap()));
+                cleanup.extend(group.cleanup.lock().unwrap().iter().cloned());
                 groups.extend(std::mem::take(&mut *group.groups.lock().unwrap()).into_values());
             }
             let parent=self.parent.upgrade();
@@ -29,8 +32,22 @@ mod tsrust_native_futures {
                 if !cancel_all && child.handle_alive.load(Ordering::Acquire) && let Some(parent)=&parent {child.register(parent);}else{child.cancel();abandoned.push(child);}
             }
             for child in abandoned {child.wait().await;}
+            cleanup.extend(self.cleanup.lock().unwrap().iter().cloned());
+            for release in cleanup {release.wait().await;}
+            self.cleanup.lock().unwrap().retain(|release|!release.finished.load(Ordering::Acquire));
             if let Some(parent)=self.parent.upgrade(){parent.groups.lock().unwrap().remove(&(self as *const Self as usize));}
         }
+    }
+    struct Cleanup {finished:std::sync::atomic::AtomicBool,done:Notify}
+    impl Cleanup {async fn wait(&self){loop{let ready=self.done.notified();if self.finished.load(Ordering::Acquire){return;}ready.await;}}}
+    struct CleanupDone(Arc<Cleanup>);
+    impl Drop for CleanupDone {fn drop(&mut self){self.0.finished.store(true,Ordering::Release);self.0.done.notify_waiters();}}
+    /// Keep cleanup registered even if an enclosing drain is itself cancelled.
+    pub(crate) fn cleanup(future:impl Future<Output=()>+Send+'static){
+        let Ok(runtime)=tokio::runtime::Handle::try_current()else{return;};
+        let release=Arc::new(Cleanup{finished:std::sync::atomic::AtomicBool::new(false),done:Notify::new()});
+        let _=SCOPE.try_with(|scope|{let mut pending=scope.cleanup.lock().unwrap();pending.retain(|release|!release.finished.load(Ordering::Acquire));pending.push(release.clone());});
+        runtime.spawn(async move{let _done=CleanupDone(release);future.await;});
     }
     struct Control { abort: AbortHandle, shutdown: Mutex<Option<Box<dyn FnOnce()+Send>>>, state: AtomicU8, done: Notify, finished: std::sync::atomic::AtomicBool, handle_alive: std::sync::atomic::AtomicBool, owner:Mutex<std::sync::Weak<Scope>> }
     impl Control {

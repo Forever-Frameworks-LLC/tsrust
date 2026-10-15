@@ -304,6 +304,9 @@ impl Analyzer {
                     } else {
                         Mode::Copy
                     }
+                } else if self.task_sources.contains(&origin) && binding.name.starts_with("future#") {
+                    // Evaluated intrinsic arguments must survive their construction scope.
+                    Mode::Consume
                 } else if escapes && self.task_sources.contains(&origin) && outer.readonly_parameters.contains(&outer_id) {
                     Mode::Read
                 } else if escapes && self.task_sources.contains(&origin) && outer.mutable_parameters.contains(&outer_id) {

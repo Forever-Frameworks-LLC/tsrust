@@ -28,3 +28,6 @@ __pycache__/
 
 # Closed thread measurements are imported into SQLite.
 /benchmarks/threads/*-20??-??-??T*.json
+
+/benchmarks/async-sql/node_modules/
+/benchmarks/async-sql/*-20??-??-??T*.json

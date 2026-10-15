@@ -58,6 +58,8 @@ pub(super) fn resume_yield<'a>(analyzer: &mut Analyzer, context: &mut Context, m
     let result = checked.and_then(|actual| {
         analyzer.require(actual, expected, arguments[0].span)?;
         if id>=usize::MAX/2 {
+            let loans=Analyzer::native_view_value_loans(context,&arguments[0])?;
+            if !loans.is_empty(){context.native_task_constructions.get_or_insert_with(Default::default).insert(id,loans);}
             analyzer.attach_payload_capture_loans(context,&arguments[0],crate::capture_loan_owners::Place{binding:usize::MAX,fields:vec![format!("future:{id}")]},true);
         }
         context.match_values.last_mut().expect("match output context").1 = Some(actual);

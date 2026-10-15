@@ -153,6 +153,7 @@ impl SourceIndex {
         });
         if let Some(identity) = identity {
             let declaration = tsrust_compiler::native_types::declaration(identity);
+            if declaration.module == "std:sql" {return builtins_for(&format!("Sql{}",declaration.name));}
             if declaration.module == "std:sqlite" {return builtins_for(&format!("Sqlite{}",declaration.name));}
             if declaration.module == "std:http" {return builtins_for(&format!("Http{}",declaration.name));}
             if declaration.module == "std:futures" {return builtins_for(&format!("{}{arguments}",match declaration.id {tsrust_compiler::native_signatures::NativeTypeId::AsyncChannel=>"AsyncChannel",tsrust_compiler::native_signatures::NativeTypeId::AsyncSender=>"AsyncSender",_=>declaration.name}));}
@@ -244,9 +245,9 @@ impl SourceIndex {
                 parameters: Vec::new(), owner: Some(local.into()),
             });
         }
-        if declaration.module=="std:sqlite" {
+        if matches!(declaration.module,"std:sqlite"|"std:sql") {
             let mut identities=Vec::new();
-            for binding in tsrust_compiler::native_bindings::BINDINGS.iter().filter(|binding|binding.module=="std:sqlite") {
+            for binding in tsrust_compiler::native_bindings::BINDINGS.iter().filter(|binding|binding.module==declaration.module) {
                 for ty in binding.parameters.iter().map(|parameter|parameter.ty).chain(std::iter::once(binding.result)) {
                     let _=ty.signature().render(|id|{identities.push(id);Some(tsrust_compiler::native_types::declaration(id).name.into())});
                 }

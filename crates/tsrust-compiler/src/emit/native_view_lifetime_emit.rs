@@ -103,6 +103,14 @@ impl Emitter<'_> {
             && matches!(function.result, Type::Record(record) if self.native_views.recursive(record) || (self.program.records[record].native_element().is_some() && self.native_views.contains(function.result)))
     }
     pub(super) fn native_view_closure_signature(&self,closure:&crate::analysis::CheckedClosure,method:Option<usize>,function:&CheckedFunction,parameters:&[usize])->Option<native_function_signature_emit::NativeSignature> {
+        // A zero-argument task adapter owns the same environment as its inner task.
+        if method.is_none() && parameters.is_empty()
+            && let Some(ClosureForward::Once(inner)) = closure.forward
+            && self.program.task_origins.contains(&inner)
+        {
+            let inner = &self.program.closures[inner];
+            return self.native_view_closure_signature(inner, None, &inner.function, &inner.parameters);
+        }
         if function.native_returns.is_none() && !self.native_views.contains(function.result) && !parameters.iter().any(|&id|self.native_views.contains(function.bindings[id].input_ty.unwrap_or(function.bindings[id].ty)) || self.record_parameter_layout(function,id).is_some()) {return None;}
         let (lifetimes,_)=self.capture_layout(closure);
         let mut next=0;

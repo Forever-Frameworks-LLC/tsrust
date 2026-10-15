@@ -18,7 +18,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use support::session::Session;
 use tsrust_lsp::{project_diagnostics::source_id, workspace::Workspace};
 
-const PRELUDE: &str = "import {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n";
+const PRELUDE: &str = "import {Pool as SqlPool,Transaction as SqlTransaction,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n";
 
 /// A receiver `x` of one type inside `probe`.
 struct Receiver {
@@ -28,6 +28,11 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
+Receiver {ty:"SqlPool",parameter:"x: SqlPool"},
+Receiver {ty:"SqlTransaction",parameter:"x: SqlTransaction"},
+Receiver {ty:"SqlRow",parameter:"x: SqlRow"},
+Receiver {ty:"SqlError",parameter:"x: SqlError"},
+
 Receiver {ty:"Connection",parameter:"x: Connection"},
 Receiver {ty:"Statement",parameter:"x: Statement"},
 Receiver {ty:"Transaction",parameter:"x: Transaction"},

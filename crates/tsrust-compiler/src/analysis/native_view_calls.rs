@@ -80,10 +80,13 @@ impl Analyzer {
     }
     pub(super) fn remember_native_closure_returns(&self,context:&mut Context,origin:usize,method:Option<usize>,span:Span)->Result<(),Diagnostic> {
         if !self.native_borrow_types {return Ok(());}
+        let key_origin=origin;
+        let mut origin=origin;
+        while method.is_none() && let Some(ClosureForward::Once(inner))=self.closures[origin].forward {origin=inner;}
         let closure=&self.closures[origin];
         let (function,key)=match method {
             Some(method)=>{let checked=&closure.methods[method];(&checked.function,Target::Method(origin,method))},
-            None=>(&closure.function,Target::Closure(origin)),
+            None=>(&closure.function,Target::Closure(key_origin)),
         };
         let Some(origins)=&function.native_returns else {
             if let Some(summaries)=context.native_view_function_returns.as_mut() {summaries.remove(&key);}

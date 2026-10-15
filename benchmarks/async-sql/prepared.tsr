@@ -1,0 +1,33 @@
+import { connect, Pool } from 'std:sql';
+import { monotonicNow } from 'std:time';
+
+async function batch(db: ReadOnly<Pool>): Task<int> {
+  const tx = await db.begin();
+  await tx.execute('DELETE FROM tsrust_s18_bench');
+  for (let index = 0; index < 128; index++) {
+    await tx.execute('INSERT INTO tsrust_s18_bench VALUES (?, ?)', [index, index * 2]);
+  }
+
+  await tx.commit();
+  const rows = await db.query('SELECT CAST(SUM(value) AS BIGINT) AS total FROM tsrust_s18_bench');
+  return unwrap(rows[0].int('total'));
+}
+
+async function main(): Task<void> {
+  const db = await connect('sqlite::memory:', 1);
+  await db.execute('CREATE TABLE tsrust_s18_bench(id BIGINT PRIMARY KEY, value BIGINT NOT NULL)');
+  for (let warmup = 0; warmup < 8; warmup++) {
+    await batch(db);
+  }
+
+  for (let sample = 0; sample < 31; sample++) {
+    const start = monotonicNow();
+    const checksum = await batch(db);
+    const elapsed = monotonicNow() - start;
+    console.log(checksum);
+    console.log(elapsed);
+  }
+
+  await db.execute('DROP TABLE tsrust_s18_bench');
+  await db.close();
+}

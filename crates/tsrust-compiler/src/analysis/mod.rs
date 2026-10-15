@@ -13,6 +13,7 @@ mod threads;
 mod futures;
 mod http;
 mod sqlite;
+mod sql;
 mod channels;
 mod results;
 mod json_typed;
@@ -465,6 +466,7 @@ struct Context {
     /// Lexical depth at which a local holding native views was declared.
     native_view_declaration_depths: HashMap<usize, usize>,
     native_view_environments: Option<Box<HashMap<usize,Vec<(usize,usize)>>>>,
+    native_task_constructions: Option<Box<HashMap<usize,Vec<native_view_loans::Loan>>>>,
     native_shadowed_bindings: Option<Box<Vec<usize>>>,
     native_view_results: Option<Box<HashMap<UnionId,(usize,Option<usize>)>>>,
     native_view_function_returns: Option<Box<HashMap<native_view_calls::Target,Vec<native_view_calls::Returned>>>>,
@@ -536,6 +538,7 @@ impl Context {
             native_view_calls: false,
             native_view_declaration_depths: HashMap::new(),
             native_view_environments: None,
+            native_task_constructions: None,
             native_shadowed_bindings: None,
             task_owned_inputs: None,
             task_body: false,
@@ -1512,6 +1515,7 @@ impl Analyzer {
         crate::stdlib::threads::prepare(&mut program)?;
         crate::stdlib::http::prepare(&mut program)?;
         crate::stdlib::sqlite::prepare(&mut program)?;
+        crate::stdlib::sql::prepare(&mut program)?;
         crate::stdlib::futures::prepare(&mut program)?;
         crate::stdlib::json::namespace::prepare(&mut program)?;
         crate::stdlib::schema::namespace::prepare(&mut program)?;
@@ -1923,6 +1927,7 @@ impl Analyzer {
         expected: Option<Type>,
     ) -> Result<Type, Diagnostic> {
         let binding = &crate::native_bindings::BINDINGS[id];
+        if binding.module=="std:sql" {return Err(Diagnostic::new("sql-call","Call SQL operations directly; wrap connect in an async function when a callable value is needed.",span));}
         if matches!(binding.module, "std:threads" | "std:result" | "std:futures") { return Err(Diagnostic::new("thread-call", "Call thread operations and unwrap directly; polymorphic operation values are not supported.", span)); }
         let count = match expected {
             Some(Type::Callback(contract)) => self.callables.callbacks[contract].params.len(),
@@ -8873,6 +8878,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.heap_receiver(context, base).is_some())) { return self.heap_method_call(context, expr, loans, expected).map(CallDispatch::Ready); }
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.deque_receiver(context, base).is_some())) { return self.deque_method_call(context, expr, loans, expected).map(CallDispatch::Ready); }
         if let Some(ty) = self.result_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
+        if let Some(ty) = self.sql_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.sqlite_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.http_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.future_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }

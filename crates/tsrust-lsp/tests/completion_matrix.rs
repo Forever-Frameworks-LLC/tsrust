@@ -12,6 +12,7 @@ use support::session::Session;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Kind {
     Sqlite,
+    Sql,
     Http,
     Task,
     Job,
@@ -45,8 +46,9 @@ enum Kind {
     MemberPrefix,
 }
 
-const KINDS: [Kind; 32] = [
+const KINDS: [Kind; 33] = [
     Kind::Sqlite,
+    Kind::Sql,
     Kind::Http,
     Kind::Task,
     Kind::Job,
@@ -112,6 +114,8 @@ fn rows() -> Vec<Row> {
     let row = |kind, name, typed, includes, excludes| Row { kind, name, before: HEAD.into(), typed, after: TAIL, includes, excludes, silent: None, needs_check: false };
     let mut rows = vec![
         Row {kind:Kind::Task,name:"lazy task scheduling",before:"async function answer():Task<int>{return 42;}async function main():Task<void>{const task=answer();".into(),typed:"task.",after:";await task;}",includes:&["start","timeout"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+        Row {kind:Kind::Sql,name:"SQL pool",before:"import {connect} from 'std:sql';async function main():Task<void>{const db=await connect('sqlite::memory:',1);".into(),typed:"db.",after:";}",includes:&["query","execute","begin","close"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+        Row {kind:Kind::Sql,name:"SQL indexed row",before:"import {connect} from 'std:sql';async function main():Task<void>{const db=await connect('sqlite::memory:',1);const rows=await db.query('SELECT 1 AS id');".into(),typed:"rows[0].",after:";}",includes:&["int","number","text","blob","isNull"],excludes:&["push","map","length"],silent:None,needs_check:true},
         Row {kind:Kind::Sqlite,name:"SQLite connection",before:"import {open} from 'std:sqlite';function main(){const db=unwrap(open(':memory:'));".into(),typed:"db.",after:";}",includes:&["prepare","begin","close"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
         Row {kind:Kind::Sqlite,name:"SQLite indexed row",before:"import {open} from 'std:sqlite';function main(){const db=unwrap(open(':memory:'));const statement=unwrap(db.prepare('SELECT 1 AS id'));const rows=unwrap(statement.query());".into(),typed:"rows[0].",after:";}",includes:&["int","number","text","blob","isNull"],excludes:&["push","map","length"],silent:None,needs_check:true},
         Row {kind:Kind::Http,name:"HTTP app routes",before:"import {App} from 'std:http';function main(){const app=new App();".into(),typed:"app.",after:";}",includes:&["get","post","use","listen","fallback"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
