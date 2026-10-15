@@ -11,7 +11,7 @@ fn loopback_routes_middleware_bodies_and_shutdown(){
   let response=client.send(Request::new("GET",&format!("http://{address}/items/42"),String::new()).unwrap()).await.unwrap();assert_eq!(response.status(),200);assert_eq!(response.header("x-after").unwrap().as_deref(),Some("yes"));assert_eq!(response.text_body().await.unwrap(),"42");
   let response=client.send(Request::new("POST",&format!("http://{address}/echo"),"héllo".into()).unwrap()).await.unwrap();assert_eq!(response.status(),201);assert_eq!(response.text_body().await.unwrap(),"héllo");
   for (method,path,status) in [("GET","/missing",404),("POST","/items/42",405)]{let response=client.send(Request::new(method,&format!("http://{address}{path}"),String::new()).unwrap()).await.unwrap();assert_eq!(response.status(),status);assert_eq!(response.header("x-after").unwrap().as_deref(),Some("yes"));}
-  server.shutdown().await;assert!(tokio::net::TcpStream::connect(address).await.is_err());
+  server.shutdown().await;assert!(tokio::net::TcpListener::bind(address).await.is_ok(),"shutdown must release the listening socket");
  });
 }
 #[test]
@@ -21,6 +21,7 @@ fn validation_and_streaming_limits_do_not_silently_truncate(){
   for (method,path) in [("HEAD","/x/:id"),("POST","/x/:other"),("GET","/x/:id/:id"),("GET","/bad//path"),("GET","/x/*all")]{assert!(app.route(method,path,|_|async{failed()}).is_err());}
   assert!(Response::text("bad".into(),199).is_err());let mut request=Request::new("POST","http://localhost/","body".into()).unwrap();assert!(request.set_header("x-test","bad\r\nInjected: true").is_err());assert!(request.set_header("content-length","100").is_err());
   assert_eq!(request.method(),"POST");assert_eq!(request.url(),"http://localhost/");assert_eq!(request.text().await.unwrap(),"body");
+  let mut body=Request::new("POST","http://localhost/","abc".into()).unwrap().body();assert_eq!(body.next().await.unwrap(),Some(b"abc".to_vec()));assert_eq!(body.next().await.unwrap(),None);
   let request=Request::new("POST","http://localhost/","x".repeat(1048577)).unwrap();assert_eq!(request.text().await.unwrap_err().code,"limit");
   let request=Request::new("POST","http://localhost/","x".repeat(1048577)).unwrap();let response=Response::stream(request.body(),200).unwrap();assert!(response.text_body().await.is_err());
  });
@@ -54,7 +55,7 @@ fn disconnect_and_shutdown_release_inflight_request_children(){
    tokio::time::timeout(std::time::Duration::from_secs(2),started.notified()).await.unwrap();
    if disconnect{drop(socket);tokio::time::timeout(std::time::Duration::from_secs(2),async{while observed.load(Ordering::SeqCst)==0{tokio::task::yield_now().await;}}).await.unwrap();server.shutdown().await;}
    else{tokio::time::timeout(std::time::Duration::from_secs(7),server.shutdown()).await.unwrap();drop(socket);}
-   assert!(tokio::net::TcpStream::connect(address).await.is_err());
+   assert!(tokio::net::TcpListener::bind(address).await.is_ok(),"shutdown must release the listening socket");
   });
   assert_eq!(drops.load(Ordering::SeqCst),1);
  }

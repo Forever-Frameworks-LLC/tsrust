@@ -7,6 +7,8 @@ fn loopback_routes_middleware_streaming_and_cleanup_execute(){
 #[test]
 fn body_and_next_are_single_owner_capabilities(){
  for source in [
+ "import {Body} from 'std:http';async function read(body:Body):Task<void>{const pending=body.next();const other=body.text();await pending;await other;}function main(){}",
+ "import {App,Request,Response,text} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();const pending=app.listen('127.0.0.1:0');app.get('/',handle);const server=await pending;await server.shutdown();}",
  "import {Request} from 'std:http';async function read(request:Request):Task<void>{await request.text();await request.text();}function main(){}",
  "import {Request,Next,Response} from 'std:http';async function middleware(request:Request,next:Next):Task<Response>{const first=await next.run(request);return await next.run(request);}function main(){}",
  "import {Request} from 'std:http';function bad(request:Request):void{const other=clone(request);}function main(){}",
