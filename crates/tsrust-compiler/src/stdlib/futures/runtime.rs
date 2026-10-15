@@ -23,7 +23,8 @@ mod tsrust_native_futures {
             let mut groups=std::mem::take(&mut *self.groups.lock().unwrap()).into_values().collect::<Vec<_>>();
             while let Some(group)=groups.pop(){
                 children.extend(std::mem::take(&mut *group.children.lock().unwrap()));
-                cleanup.extend(group.cleanup.lock().unwrap().iter().cloned());
+                // Retain descendant cleanup if this drain is cancelled before settlement.
+                self.cleanup.lock().unwrap().extend(group.cleanup.lock().unwrap().iter().cloned());
                 groups.extend(std::mem::take(&mut *group.groups.lock().unwrap()).into_values());
             }
             let parent=self.parent.upgrade();

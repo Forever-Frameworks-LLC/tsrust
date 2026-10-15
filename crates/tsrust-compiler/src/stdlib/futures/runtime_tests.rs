@@ -129,3 +129,22 @@ fn resource_cleanup_finishes_before_cancelled_job_join(){
   assert!(observed.load(Ordering::Acquire));
  });
 }
+
+#[test]
+fn cancelled_nested_drain_retains_cleanup(){
+ use tsrust_native_futures::*;
+ block_on(async {
+  let outer=Scope::group();
+  let (release,released)=tokio::sync::oneshot::channel::<()>();
+  in_scope(outer.clone(),async {
+   let inner=Scope::group();
+   in_scope(inner,async {cleanup(async move {released.await.unwrap();});}).await;
+  }).await;
+  let mut first=Box::pin(outer.drain(false));
+  std::future::poll_fn(|cx| {assert!(std::future::Future::poll(first.as_mut(),cx).is_pending());std::task::Poll::Ready(())}).await;
+  drop(first);
+  let mut second=Box::pin(outer.drain(false));
+  std::future::poll_fn(|cx| {assert!(std::future::Future::poll(second.as_mut(),cx).is_pending(),"nested cleanup was forgotten");std::task::Poll::Ready(())}).await;
+  release.send(()).unwrap();second.await;
+ });
+}
