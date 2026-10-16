@@ -14,3 +14,11 @@ fn router_shared_state_and_cookie_help(){
  let completion=session.completion("main.tsr",source,source.find("c.set").unwrap()+2).unwrap();
  for member in ["env","res","get","set"]{assert!(completion.iter().any(|value|value==member),"{member}: {completion:?}");}
 }
+
+#[test]
+fn producer_stream_help_matches_owned_channel_contract(){
+ let source="import {streamChannel} from 'std:http';import {Channel} from 'std:futures';import {Bytes} from 'std:bytes';function main(){const chunks=new Channel<Bytes>(1);streamChannel(chunks);}";
+ let mut session=support::session::Session::start(&[]);session.open("main.tsr",source);session.settle();
+ let hover=session.hover("main.tsr",source,source.rfind("streamChannel(").unwrap()+1).unwrap_or_default();
+ assert!(hover.contains("Channel<Bytes>")&&hover.contains("closed"),"{hover}");
+}

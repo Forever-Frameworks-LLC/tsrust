@@ -85,3 +85,15 @@ fn sql_and_https_features_share_one_generated_program_without_provider_ambiguity
  let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
  let output=support::run(support::cli().arg("run").arg(directory.source(&support::format_round_trip(&source))).current_dir(root),600);support::success(&output);assert_eq!(output.stdout,b"200\nHello over HTTPS\n");
 }
+
+#[test]
+fn producer_stream_executes_and_rejects_wrong_payload_or_reuse(){
+ let directory=support::TempDirectory::new();
+ let source=support::format_round_trip(include_str!("../../../examples/http/producer-stream.tsr"));
+ support::success(&support::run(support::cli().arg("run").arg(directory.source(&source)),300));
+ for source in [
+  "import {Channel} from 'std:futures';import {Bytes,fromUtf8} from 'std:bytes';async function main():Task<void>{const chunks=new Channel<Bytes>(1);await chunks.send(fromUtf8('invalid'));}",
+  "import {streamChannel} from 'std:http';import {Channel} from 'std:futures';function main(){const chunks=new Channel<int>(1);streamChannel(chunks);}",
+  "import {streamChannel} from 'std:http';import {Channel} from 'std:futures';import {Bytes} from 'std:bytes';function main(){const chunks=new Channel<Bytes>(1);streamChannel(chunks);chunks.close();}",
+ ]{let output=support::run(support::cli().arg("check").arg(directory.source(&support::format_round_trip(source))),30);assert!(!output.status.success());assert!(!String::from_utf8_lossy(&output.stderr).contains("error[import]"));}
+}

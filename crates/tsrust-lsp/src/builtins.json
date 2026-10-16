@@ -10954,8 +10954,30 @@
         "output": ""
       }
     ]
-  }
-],
+  },
+    {
+      "name": "streamChannel",
+      "signature": "streamChannel(channel: Channel<Bytes>, status: int = 200): Response",
+      "parameters": [
+        {
+          "label": "channel: Channel<Bytes>",
+          "documentation": "Owned bounded std:futures channel carrying owned byte chunks."
+        },
+        {
+          "label": "status: int = 200",
+          "documentation": "HTTP status 200..599; defaults to 200. Invalid status throws code status."
+        }
+      ],
+      "documentation": "Creates a response from application-produced byte chunks without collecting the body. Sends suspend when the channel's item capacity is full; transport polls chunks on demand. Channel capacity bounds queued chunks, not their total byte size. Keep individual chunks bounded in application code.\n\nDropping all external senders ends the body after queued chunks drain. Dropping the response, including transport disconnect, closes the receiver and pending sends fail with code closed. Invalid status throws code status and disposes the channel. The bridge does not start or detach a producer task: its owner must keep it alive until consumption finishes. A task started inside a request is still canceled when that request scope ends. Producer failure is not encoded as a stream error; the application must choose its own error protocol. No Content-Type is added. Reading the returned body with text()/next() retains the ordinary 1 MiB read limit.\n\n```tsrust\nconst producer = produce(chunks.sender()).start();\ntry {\n  const response = streamChannel(chunks);\n  await response.text();\n} finally {\n  await producer;\n}\n```\n\nOwnership: consumes the channel exactly once; each byte chunk transfers to the body. Existing sender handles remain usable until the receiver closes.",
+      "examples": [
+        {
+          "source": "import { streamChannel } from 'std:http';\nimport { Channel, Sender } from 'std:futures';\nimport { Bytes, fromUtf8 } from 'std:bytes';\nimport { strictEqual } from 'std:testing';\n\nasync function produce(sender: Sender<Bytes>): Task<void> {\n  await sender.send(unwrap(fromUtf8('hello ')));\n  await sender.send(unwrap(fromUtf8('world')));\n}\n\nasync function main(): Task<void> {\n  const chunks = new Channel<Bytes>(1);\n  const producer = produce(chunks.sender()).start();\n  try {\n    const response = streamChannel(chunks);\n    strictEqual(await response.text(), 'hello world');\n  } finally {\n    await producer;\n  }\n}\n",
+          "output": ""
+        }
+      ],
+      "inferredSignature": "function streamChannel(channel: Channel<Bytes>, status: int = 200): Response"
+    }
+  ],
   "HttpApp": [
     {
       "name": "get",

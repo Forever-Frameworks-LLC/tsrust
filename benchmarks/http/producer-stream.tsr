@@ -1,0 +1,43 @@
+import { streamChannel } from 'std:http';
+import { Channel, Sender } from 'std:futures';
+import { Bytes, fromUtf8 } from 'std:bytes';
+import { monotonicNow } from 'std:time';
+async function produce(sender: Sender<Bytes>): Task<void> {
+  for (let index = 0; index < 6; index++) {
+    await sender.send(unwrap(fromUtf8('abcdefg')));
+  }
+}
+
+async function batch(): Task<int> {
+  let sum = 0;
+  for (let index = 0; index < 128; index++) {
+    const chunks = new Channel<Bytes>(1);
+    const job = produce(chunks.sender()).start();
+    try {
+      const response = streamChannel(chunks);
+      const body = await response.text();
+      if (body !== 'abcdefgabcdefgabcdefgabcdefgabcdefgabcdefg') {
+        throw 'Unexpected body';
+      }
+
+      sum += body.length;
+    } finally {
+      await job;
+    }
+  }
+
+  return sum;
+}
+
+async function main(): Task<void> {
+  for (let warmup = 0; warmup < 8; warmup++) {
+    await batch();
+  }
+
+  for (let sample = 0; sample < 31; sample++) {
+    const start = monotonicNow();
+    const sum = await batch();
+    console.log(sum);
+    console.log(monotonicNow() - start);
+  }
+}

@@ -22,6 +22,13 @@ mod tsrust_native_http {
     pub struct Request {inner:http::Request<ExclusiveBody>,params:BTreeMap<String,String>,limit:usize}
     pub struct Response {inner:http::Response<ExclusiveBody>}
     pub struct Stream {body:Body,remaining:usize}
+    struct ChannelBody<T,F> {receiver:tokio::sync::mpsc::Receiver<T>,bytes:F}
+    impl<T:Send+'static,F:Fn(T)->Vec<u8>+Send+Unpin+'static> axum::body::HttpBody for ChannelBody<T,F> {
+        type Data=axum::body::Bytes;type Error=Error;
+        fn poll_frame(mut self:Pin<&mut Self>,cx:&mut std::task::Context<'_>)->Poll<Option<Result<http_body::Frame<Self::Data>,Error>>>{
+            self.receiver.poll_recv(cx).map(|item|item.map(|item|Ok(http_body::Frame::data((self.bytes)(item).into()))))
+        }
+    }
     pub struct Client(reqwest::Client);
     pub struct Next {middleware:Arc<Vec<Middleware>>,index:usize,handler:Handler}
     impl Next {
@@ -335,6 +342,11 @@ mod tsrust_native_http {
         pub fn text(text:String,status:i64)->Result<Self,Error>{Self::content(text,status,"text/plain; charset=utf-8")}
         pub fn content(text:String,status:i64,content_type:&str)->Result<Self,Error>{let status=status_code(status)?;Ok(Self{inner:http::Response::builder().status(status).header("content-type",content_type).body(ExclusiveBody::new(Body::from(text))).map_err(|_|error("header","Invalid content type"))?})}
         pub fn stream(body:Stream,status:i64)->Result<Self,Error>{Ok(Self{inner:http::Response::builder().status(status_code(status)?).body(ExclusiveBody::new(Body::new(body))).unwrap()})}
+        pub fn stream_channel<T:Send+'static,F:Fn(T)->Vec<u8>+Send+Unpin+'static>(channel:tasks::Channel<T>,status:i64,bytes:F)->Result<Self,Error>{
+            let status=status_code(status)?;
+            let body=ChannelBody{receiver:channel.into_receiver(),bytes};
+            Ok(Self{inner:http::Response::builder().status(status).body(ExclusiveBody::new(Body::new(body))).unwrap()})
+        }
         pub fn status(&self)->i64{self.inner.status().as_u16() as i64}
         pub fn header(&self,name:&str)->Result<Option<String>,Error>{header(self.inner.headers(),name)}
         pub fn set_header(&mut self,name:&str,value:&str)->Result<(),Error>{set_header(self.inner.headers_mut(),name,value)}

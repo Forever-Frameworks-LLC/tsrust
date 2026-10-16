@@ -1,6 +1,17 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
 
+## Current continuation — producer stream bridge, 2026-10-16
+
+`std:http.streamChannel(Channel<Bytes>, status = 200)` now transfers bounded
+application-produced chunks into a response. Focused runtime, compiler, editor,
+formatting and untimed native/Node verification pass; evidence is in SQLite under
+`tsrust-producer-*` and the HTTP producer record. This bridge preserves producer
+scope: it does not detach request children. Callback-owned producer lifetimes and
+SQL cursors remain the next streaming work. See `docs/plans/http-acceptance.md` for
+bounds and unsupported cases. Reuse accepted S21 and SQL evidence; no full-family
+regression/performance run was added.
+
 ## Current acceptance and continuation — 2026-10-16
 
 Checkpoint `c82daa25` adds typed Router application/request state, cookie helpers

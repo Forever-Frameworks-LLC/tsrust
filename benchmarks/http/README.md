@@ -52,3 +52,10 @@ untimed correctness batch. Source identities are pinned in context-manifest.json
 The v3 state workload passes matched untimed verification; its exact record is in
 SQLite. Timing remains unmeasured. Earlier v2 records retain their original
 closure-only semantics and are not v3 performance baselines.
+
+`--producer` selects bounded application production and body collection. Each of
+128 bodies contains six seven-byte chunks through a capacity-one channel; the
+independent checksum is 128 * 6 * 7 = 5376. Node uses a highWaterMark-one object
+stream and validates the same complete body. This is in-process streaming, not
+network throughput or a claim of identical scheduler costs. The usual timing
+protocol is registered; run `--producer --verify` for one untimed batch.

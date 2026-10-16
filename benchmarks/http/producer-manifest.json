@@ -1,0 +1,18 @@
+{
+  "id": "producer-stream",
+  "semanticEpoch": "producer-stream-v1",
+  "expected": 5376,
+  "protocol": {
+    "processes": 3,
+    "warmups": 8,
+    "samples": 31,
+    "iterations": 128,
+    "chunks": 6,
+    "chunkBytes": 7,
+    "capacity": 1
+  },
+  "sources": {
+    "tsr": "bcfca63a8aa26119d85d197f3a0d3cdb4227d7cc00f46175416bc590b656e3d6",
+    "ts": "f719fd804c9bf63218051b9b027a491e7b38230c729d8ad44ab883fdd81f547c"
+  }
+}

@@ -7,10 +7,10 @@ import { fileURLToPath } from 'node:url';
 const root=path.dirname(fileURLToPath(import.meta.url));
 const compiler=process.env.TSRUST;
 if(!compiler) throw new Error('Set TSRUST to the verified compiler.');
-if(process.argv.slice(2).some(arg=>!['--verify','--tls','--state','--service','--context'].includes(arg))) throw new Error('Unknown option.');
+if(process.argv.slice(2).some(arg=>!['--verify','--tls','--state','--service','--context','--producer'].includes(arg))) throw new Error('Unknown option.');
 const verify=process.argv.includes('--verify');
-if(['--tls','--state','--service','--context'].filter(flag=>process.argv.includes(flag)).length>1) throw new Error('Choose one workload.');
-const workload=process.argv.includes('--context')?'context-middleware':process.argv.includes('--service')?'service-boundary':process.argv.includes('--state')?'retained-state':process.argv.includes('--tls')?'https':'loopback';
+if(['--tls','--state','--service','--context','--producer'].filter(flag=>process.argv.includes(flag)).length>1) throw new Error('Choose one workload.');
+const workload=process.argv.includes('--producer')?'producer-stream':process.argv.includes('--context')?'context-middleware':process.argv.includes('--service')?'service-boundary':process.argv.includes('--state')?'retained-state':process.argv.includes('--tls')?'https':'loopback';
 if(process.version!=='v24.11.1') throw new Error('Node v24.11.1 is required.');
 const project=path.resolve(root,'../..');
 const tsc=path.join(project,'benchmarks/runtime/node_modules/typescript/bin/tsc');
@@ -21,6 +21,7 @@ try {
  const counterpart=path.join(root,`${workload}.ts`);
  if(workload==='retained-state'){const {assertStateSource}=await import('./state-contract.mjs');const manifest=JSON.parse(fs.readFileSync(path.join(root,'state-manifest.json'),'utf8'));assertStateSource(fs.readFileSync(source,'utf8'),manifest,'native');assertStateSource(fs.readFileSync(counterpart,'utf8'),manifest,'typescript');}
  if(workload==='context-middleware'){const manifest=JSON.parse(fs.readFileSync(path.join(root,'context-manifest.json'),'utf8'));for(const [extension,file] of [['tsr',source],['ts',counterpart]]){if(crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')!==manifest.sources[extension])throw new Error('Context workload source identity changed');}if(manifest.expected!==128*42)throw new Error('Context oracle changed');}
+ if(workload==='producer-stream'){const manifest=JSON.parse(fs.readFileSync(path.join(root,'producer-manifest.json'),'utf8'));for(const [extension,file] of [['tsr',source],['ts',counterpart]]){if(crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')!==manifest.sources[extension])throw new Error('Producer workload source identity changed');}if(manifest.expected!==128*6*7)throw new Error('Producer oracle changed');}
  if(workload==='service-boundary'){const manifest=JSON.parse(fs.readFileSync(path.join(root,'service-manifest.json'),'utf8'));for(const [extension,file] of [['tsr',source],['ts',counterpart]]){if(crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')!==manifest.sources[extension])throw new Error('Service workload source identity changed');}if(manifest.expected!==128*(32+7+2+1))throw new Error('Service oracle changed');}
  const probe=text=>verify?text.replace(/warmup < 8/g,'warmup < 0').replace(/sample < 31/g,'sample < 1'):text;
  const input=path.join(scratch,'native.tsr');
@@ -43,6 +44,7 @@ try {
  if(workload==='https')record.fixtureSha256=Object.fromEntries(['ca.pem','server.pem','server.key'].map(name=>[name,hash(path.join(project,'crates/tsrust-compiler/tests/fixtures/tls',name))]));
  if(workload==='service-boundary'){record.schemaVersion=1;record.measurementScope='execution-only';record.semanticEpoch='service-boundary-v1';record.manifest={workloads:[{id:workload,sourceSha256:hash(source),counterpartSha256:hash(counterpart),iterations:128,operationsPerIteration:1}]};record.sources=[{id:workload,tsrSha256:hash(source),tsSha256:hash(counterpart)}];for(const item of execution)item.workload=workload;record.oracleInputs={sha256Input:'a'.repeat(64),form:'a=one+two&a=%C3%A9',decodedUtf8Lengths:[7,2],digestLength:32,successIncrement:1,batch:128};}
  if(workload==='context-middleware'){record.semanticEpoch=JSON.parse(fs.readFileSync(path.join(root,'context-manifest.json'),'utf8')).semanticEpoch;record.oracleInputs={body:'42',headers:{'x-before':'entry','x-after':'exit'},batch:128};}
+ if(workload==='producer-stream'){record.semanticEpoch='producer-stream-v1';record.measurementScope='in-process bounded producer and body collection';record.oracleInputs={chunks:6,chunk:'abcdefg',capacity:1,batch:128};record.protocol.bodiesPerBatch=128;delete record.protocol.requestsPerBatch;}
  const output=path.join(root,`${workload}-${record.timestamp.replaceAll(':','-')}${verify?'-verify':''}.json`);
  fs.writeFileSync(output,JSON.stringify(record,null,2)+'\n',{flag:'wx'});console.log(output);
 } finally {fs.rmSync(scratch,{recursive:true,force:true});}

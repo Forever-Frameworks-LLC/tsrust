@@ -313,3 +313,29 @@ fn router_metadata_is_shareable_without_sharing_body_access(){
   assert_eq!(response.text_body().await.unwrap(),"ok");server.shutdown().await;
  });
 }
+
+#[test]
+fn producer_channel_backpressure_end_and_disposal(){
+ tsrust_native_futures::block_on(async{
+  let channel=tsrust_native_futures::Channel::new(1).unwrap();
+  let sender=channel.sender();
+  assert!(sender.send::<()>(b"first".to_vec()).await.is_ok());
+  let mut body=Response::stream_channel(channel,200,|bytes|bytes).unwrap().body();
+  {let send=sender.send::<()>(b"second".to_vec());tokio::pin!(send);
+  assert!(std::future::poll_fn(|cx|std::task::Poll::Ready(matches!(std::future::Future::poll(send.as_mut(),cx),std::task::Poll::Pending))).await,"full channel must suspend the producer");
+  assert_eq!(body.next().await.unwrap(),Some(b"first".to_vec()));
+  assert!(send.await.is_ok());}drop(sender);
+  assert_eq!(body.next().await.unwrap(),Some(b"second".to_vec()));
+  assert_eq!(body.next().await.unwrap(),None,"the bridge must release the channel's internal sender");
+  let channel=tsrust_native_futures::Channel::new(1).unwrap();let sender=channel.sender();
+  let response=Response::stream_channel(channel,200,|bytes:Vec<u8>|bytes).unwrap();
+  assert!(sender.send::<()>(vec![1]).await.is_ok());
+  let blocked=sender.send::<()>(vec![2]);tokio::pin!(blocked);
+  assert!(std::future::poll_fn(|cx|std::task::Poll::Ready(matches!(std::future::Future::poll(blocked.as_mut(),cx),std::task::Poll::Pending))).await);
+  drop(response);
+  assert!(matches!(blocked.await,Err(tsrust_native_futures::Failure::Closed)));
+  let channel=tsrust_native_futures::Channel::new(1).unwrap();let sender=channel.sender();
+  assert!(Response::stream_channel(channel,199,|bytes:Vec<u8>|bytes).is_err());
+  assert!(matches!(sender.send::<()>(vec![1]).await,Err(tsrust_native_futures::Failure::Closed)));
+ });
+}

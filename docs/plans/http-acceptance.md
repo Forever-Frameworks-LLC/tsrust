@@ -117,3 +117,34 @@ compared byte-for-byte. Closed loose records were removed after verification.
 Obsolete outputs in the shared Cargo target were pruned from roughly 21 GB to
 269 MB, retaining current release consumers. Disk space is 80 GiB free. The next
 Cargo build will be cold; active editor-managed workspace caches remain intact.
+
+## Application-produced bodies — focused acceptance, 2026-10-16
+
+`streamChannel(channel, status = 200)` transfers a `std:futures` `Channel<Bytes>`
+into a response. The existing bounded channel supplies backpressure; the bridge
+starts no task. All external senders dropping ends the stream after queued chunks
+are drained. Response disposal closes the receiver and wakes pending sends with
+`closed`. Capacity bounds items, not bytes: applications must bound chunk size.
+The normal response `text()`/`next()` read limit remains 1 MiB.
+
+Producer tasks retain their existing owners. In particular, a request-scoped job
+cannot outlive its handler merely because a streaming response was returned.
+Application-owned producers can feed responses, and caller-owned producers can
+feed directly consumed responses. Callback-owned streaming production is not yet
+supported. Producer errors require an application protocol; sender disposal alone
+signals EOF. No error frames, SSE protocol, or detached task semantics are implied.
+
+The executable example is `examples/http/producer-stream.tsr`. Matched bounded
+production/collection support is `benchmarks/http/producer-stream.{tsr,ts}`;
+`node benchmarks/http/run.mjs --producer --verify` performs untimed verification.
+This workload measures in-process production and collection, not network throughput.
+
+Focused native backpressure/EOF/disposal checks, formatted source execution,
+wrong-payload/use-after-transfer rejections, live hover and four-mode import
+completion pass. The compiler now rejects mismatched async channel send payloads
+before Rust generation. The example joins its producer in `finally`, preserving
+cleanup on read/assertion failure. Native and Node pass one untimed 128-body batch.
+Original failures and repaired checks are retained in SQLite as `tsrust-producer-*`;
+the matched record is `benchmarks/http/producer-stream-2026-10-16T16-33-24.653Z-verify.json`.
+No SQL/task-lifecycle behavior changed; accepted three-driver evidence is reused.
+No full regression or timing pass was run.

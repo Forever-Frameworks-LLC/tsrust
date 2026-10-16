@@ -155,6 +155,7 @@ mod tsrust_native_futures {
     impl<T> Channel<T> {
         pub fn new(capacity:i64)->Result<Self,()> {if !(1..=1000000).contains(&capacity){return Err(());}let(sender,receiver)=mpsc::channel(capacity as usize);Ok(Self{sender,receiver:tokio::sync::Mutex::new(receiver)})}
         pub fn sender(&self)->Sender<T>{Sender(self.sender.clone())}
+        pub fn into_receiver(self)->mpsc::Receiver<T>{self.receiver.into_inner()}
         pub async fn send<E>(&self,value:T)->Result<(),Failure<E>>{self.sender.send(value).await.map_err(|_|Failure::Closed)}
         pub async fn receive<E>(&self)->Result<T,Failure<E>>{self.receiver.lock().await.recv().await.ok_or(Failure::Closed)}
         pub fn close(&mut self){self.receiver.get_mut().close();}

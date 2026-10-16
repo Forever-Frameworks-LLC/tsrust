@@ -1,0 +1,20 @@
+import { streamChannel } from 'std:http';
+import { Channel, Sender } from 'std:futures';
+import { Bytes, fromUtf8 } from 'std:bytes';
+import { strictEqual } from 'std:testing';
+
+async function produce(sender: Sender<Bytes>): Task<void> {
+  await sender.send(unwrap(fromUtf8('hello ')));
+  await sender.send(unwrap(fromUtf8('world')));
+}
+
+async function main(): Task<void> {
+  const chunks = new Channel<Bytes>(1);
+  const producer = produce(chunks.sender()).start();
+  try {
+    const response = streamChannel(chunks);
+    strictEqual(await response.text(), 'hello world');
+  } finally {
+    await producer;
+  }
+}

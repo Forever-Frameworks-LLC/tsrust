@@ -123,7 +123,7 @@ impl Analyzer {
                 if !matches!(self.program.records[record].native_type,Some(NativeTypeId::AsyncChannel|NativeTypeId::AsyncSender)){return Err(Diagnostic::new("channel-receiver","Expected an async channel endpoint.",span));}
                 let payload=self.program.records[record].application.as_ref().unwrap().resolved_arguments[0];
                 if binding.name=="__sender"{self.thread_application(NativeTypeId::AsyncSender,&[payload],span)?}else if binding.name=="__close"{Type::Void}else{
-                    if binding.name=="__send"{let mut active=loans.clone();for root in Self::loan_roots(&args[0],access){active.entry(root).or_default().push((access,args[0].span));}self.expression(context,&mut args[1],Mode::Consume,&active,Some(payload))?;}
+                    if binding.name=="__send"{let mut active=loans.clone();for root in Self::loan_roots(&args[0],access){active.entry(root).or_default().push((access,args[0].span));}let actual=self.expression(context,&mut args[1],Mode::Consume,&active,Some(payload))?;self.require(actual,Some(payload),args[1].span)?;}
                     let failure=self.thread_application(NativeTypeId::AsyncError,&[Type::Undefined],span)?;self.thread_result(if binding.name=="__receive"{payload}else{Type::Void},failure,span)?
                 }
             },

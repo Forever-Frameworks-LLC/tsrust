@@ -56,6 +56,7 @@ impl Emitter<'_>{
    "__request"=>format!("tsrust_native_http::Request::new({})",values.join(",")),
    "__text"=>format!("tsrust_native_http::Response::text({})",values.join(",")),
    "__html"|"__json"=>format!("tsrust_native_http::Response::content({}, {}, {:?})",values[0],values[1],if binding.name=="__html"{"text/html; charset=utf-8"}else{"application/json"}),
+   "__streamChannel"=>format!("tsrust_native_http::Response::stream_channel({}, {}, |chunk|chunk.bytes)",values[0],values[1]),
    "__stream"=>format!("tsrust_native_http::Response::stream({})",values.join(",")),
    "__routerRoute"|"__routerUse"|"__routerUsePath"=>{
     let Type::Record(router)=args[0].ty.unwrap()else{unreachable!()};let state=self.native_type(self.program.records[router].application.as_ref().unwrap().resolved_arguments[0]);

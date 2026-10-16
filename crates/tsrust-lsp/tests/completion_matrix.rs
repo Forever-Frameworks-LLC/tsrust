@@ -249,6 +249,17 @@ fn rows() -> Vec<Row> {
     });
     rows.push(Row {
         kind: Kind::ImportNames,
+        name: "HTTP producer stream import",
+        before: "import { ".into(),
+        typed: "streamC",
+        after: " } from 'std:http';\nfunction main() {}\n",
+        includes: &["streamChannel"],
+        excludes: &[],
+        silent: None,
+        needs_check: false,
+    });
+    rows.push(Row {
+        kind: Kind::ImportNames,
         name: "import names of a std module",
         before: "import { ".into(),
         typed: "stric",
