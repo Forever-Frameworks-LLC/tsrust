@@ -201,3 +201,31 @@ fn service_limits_forms_multipart_and_deadline_disposal(){
   let response=client.send(Request::new("GET",&url,String::new()).unwrap()).await.unwrap();assert_eq!(response.status(),429);assert_eq!(response.header("retry-after").unwrap().as_deref(),Some("1"));server.shutdown().await;
  });
 }
+
+#[test]
+fn hono_context_middleware_unwinds_and_retains_closures_until_shutdown(){
+ use std::sync::{Arc,Mutex,atomic::{AtomicUsize,Ordering}};
+ struct Guard(Arc<AtomicUsize>);impl Drop for Guard{fn drop(&mut self){self.0.fetch_add(1,Ordering::SeqCst);}}
+ let drops=Arc::new(AtomicUsize::new(0));let observed=drops.clone();
+ tsrust_native_futures::block_on(async move{
+  let trace=Arc::new(Mutex::new(Vec::new()));let mut app=Hono::new();
+  for name in ["outer","inner"]{let trace=trace.clone();app.use_middleware(move|c,next|{let trace=trace.clone();Box::pin(async move{
+   trace.lock().unwrap().push(format!("{name}:before"));
+   c.header("x-entry",name).unwrap();next.run(c).await;c.header("x-exit",name).unwrap();
+   trace.lock().unwrap().push(format!("{name}:after"));None
+  })});}
+  let guard=Guard(observed.clone());let handler_trace=trace.clone();
+  app.route("GET","/early",move|c|{let _keep=&guard;let trace=handler_trace.clone();Box::pin(async move{trace.lock().unwrap().push("handler".into());Some(c.text("hello".into(),None).unwrap())})}).unwrap();
+  app.use_middleware(|c,_|Box::pin(async move{Some(c.text("blocked".into(),Some(403)).unwrap())}));
+  app.route("GET","/late",|_|Box::pin(async{panic!("short circuit must skip handler")})).unwrap();
+  let server=app.listen("127.0.0.1:0").await.unwrap();let client=Client::new().unwrap();
+  for (path,status,body) in [("early",200,"hello"),("late",403,"blocked")]{
+   trace.lock().unwrap().clear();let response=client.send(Request::new("GET",&format!("http://{}/{path}",server.address()),String::new()).unwrap()).await.unwrap();
+   assert_eq!(response.status(),status);assert_eq!(response.header("x-exit").unwrap().as_deref(),Some("outer"));assert_eq!(response.text_body().await.unwrap(),body);
+   let expected=if path=="early"{vec!["outer:before","inner:before","handler","inner:after","outer:after"]}else{vec!["outer:before","inner:before","inner:after","outer:after"]};
+   assert_eq!(*trace.lock().unwrap(),expected);assert_eq!(observed.load(Ordering::SeqCst),0);
+  }
+  server.shutdown().await;
+ });
+ assert_eq!(drops.load(Ordering::SeqCst),1);
+}

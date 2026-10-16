@@ -40,3 +40,12 @@ The clock boundary floors a pre-epoch instant to -1000 milliseconds. Native inpu
 retains nine fractional digits; Node Date input has three. Both lie in the same
 second, so the independent expected floor is equal without claiming nanosecond
 Date precision in Node.
+
+`--context` selects the Hono-style context and middleware workload. It retains
+configuration, sets a header before delegation and another after awaiting the
+handler, and checks both headers and the `42` response body on every request.
+The Node counterpart uses an independent explicit context/continuation over Node
+HTTP; it is not a measurement of the Hono npm package. Both sides use the existing
+3-process, 8-warmup, 31-sample, 128-request protocol. `--verify --context` is one
+untimed correctness batch. Source identities are pinned in context-manifest.json.
+Implementation and measurement acceptance remain pending until their records exist.

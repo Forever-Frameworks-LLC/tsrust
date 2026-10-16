@@ -1,0 +1,15 @@
+{
+  "id": "context-middleware",
+  "semanticEpoch": "context-middleware-v1",
+  "expected": 5376,
+  "protocol": {
+    "processes": 3,
+    "warmups": 8,
+    "samples": 31,
+    "iterations": 128
+  },
+  "sources": {
+    "tsr": "94a52ca8a66d6c6ec0c2b1a39527f75c29cb7fd048247e13dc30c8434153a31c",
+    "ts": "dd7f1822d6f5b45a5bf8e83d84d9d26cdabcaf617eab161ff10a68fdd48961b6"
+  }
+}

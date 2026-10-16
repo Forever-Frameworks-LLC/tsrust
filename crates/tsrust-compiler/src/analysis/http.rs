@@ -4,21 +4,32 @@ use crate::native_signatures::NativeTypeId;
 impl Analyzer {
  pub(super) fn http_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{
   let ExprKind::Call(callee,args)=&mut expression.kind else{return Ok(None);};
+  if matches!(self.expression_type_hint(context,callee),Some(Type::Record(id)) if self.program.records[id].native_type==Some(NativeTypeId::HttpContextNext)) {
+   Self::arity(args.len(),0,expression.span)?;
+   let contexts=context.names.iter().filter(|(_,id)|matches!(context.bindings[**id].ty,Type::Record(id) if self.program.records[id].native_type==Some(NativeTypeId::HttpContext))).map(|(name,_)|name.clone()).collect::<Vec<_>>();
+   let [name]=contexts.as_slice() else{return Err(Diagnostic::new("http-context","next() requires one visible request Context.",expression.span));};
+   let inputs=vec![Expr::new(ExprKind::Name(name.clone()),expression.span),(**callee).clone()];
+   crate::stdlib::futures::lazy_module(expression,"std:http","__contextNext",inputs);
+   return self.expression(context,expression,Mode::Consume,loans,expected).map(Some);
+  }
   if let ExprKind::Field(base,member)=&callee.kind {
    let identity=self.expression_type_hint(context,base).and_then(|ty|if let Type::Record(id)=ty{self.program.records[id].native_type}else{None});
-   let Some(name)=crate::stdlib::http::method(identity,member)else{return Ok(None);};
-   if name=="__route"&&member!="route" {args.insert(0,Expr::new(ExprKind::String(member.to_uppercase()),callee.span));}
-   args.insert(0,(**base).clone());let args=std::mem::take(args);let span=expression.span;
+   let Some(mut name)=crate::stdlib::http::method(identity,member)else{return Ok(None);};
+   let mut receiver=(**base).clone();
+   if name=="__requestText" && let ExprKind::Field(context_base,field)=&base.kind && field=="req" && matches!(self.expression_type_hint(context,context_base),Some(Type::Record(id)) if self.program.records[id].native_type==Some(NativeTypeId::HttpContext)) {name="__contextRequestText";receiver=(**context_base).clone();}
+   if matches!(name,"__route"|"__honoRoute")&&member!="route" {args.insert(0,Expr::new(ExprKind::String(member.to_uppercase()),callee.span));}
+   if name=="__contextJson" && !args.is_empty(){let value=args.remove(0);args.insert(0,Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name("@http:jsonEncode".into()),expression.span)),vec![value]),expression.span));}
+   args.insert(0,receiver);let args=std::mem::take(args);let span=expression.span;
    if crate::stdlib::http::asynchronous(name){
     crate::stdlib::futures::lazy_module(expression,"std:http",name,args);
     // Preserve the options context when lazy lowering evaluates arguments into locals.
-    if name=="__listen" && let ExprKind::Match{body,..}=&mut expression.kind && let Some(crate::syntax::Stmt{kind:crate::syntax::StmtKind::Let{annotation,..},..})=body.get_mut(2){
+    if matches!(name,"__listen"|"__honoListen") && let ExprKind::Match{body,..}=&mut expression.kind && let Some(crate::syntax::Stmt{kind:crate::syntax::StmtKind::Let{annotation,..},..})=body.get_mut(2){
      let options=self.schema_native_dependency(NativeTypeId::HttpTlsOptions,span)?;
      *annotation=Some(self.checked_value_annotation(Type::Record(options),span)?);
     }
    }else{
     *expression=crate::stdlib::http::call(name,args,span);
-    if matches!(name,"__configure"|"__route"|"__requestHeader"|"__requestSetHeader"|"__responseHeader"|"__responseSetHeader"){*expression=crate::stdlib::futures::unwrap(expression.clone());}
+    if matches!(name,"__honoConfigure"|"__honoRoute"|"__contextText"|"__contextHtml"|"__contextJson"|"__contextHeader"|"__contextStatus"|"__configure"|"__route"|"__requestHeader"|"__requestSetHeader"|"__responseHeader"|"__responseSetHeader"){*expression=crate::stdlib::futures::unwrap(expression.clone());}
    }
    return self.expression(context,expression,Mode::Consume,loans,expected).map(Some);
   }
@@ -30,8 +41,9 @@ impl Analyzer {
   let mut active=loans.clone();
   for (arg,param) in args.iter_mut().zip(binding.parameters) {
    if param.ty==crate::native_bindings::NativeType::ObservedValue{
-    let request=Type::Record(self.schema_native_dependency(NativeTypeId::HttpRequest,span)?);let next=Type::Record(self.schema_native_dependency(NativeTypeId::HttpNext,span)?);
-    let parameters=if binding.name=="__use"{vec![request,next]}else{vec![request]};
+    let hono=binding.name.starts_with("__hono");let middleware=matches!(binding.name,"__use"|"__honoUse");
+    let request=Type::Record(self.schema_native_dependency(if hono{NativeTypeId::HttpContext}else{NativeTypeId::HttpRequest},span)?);let next=Type::Record(self.schema_native_dependency(if hono{NativeTypeId::HttpContextNext}else{NativeTypeId::HttpNext},span)?);
+    let parameters=if middleware{vec![request,next]}else{vec![request]};
     if matches!(arg.kind,ExprKind::Name(_)){
      let callee=arg.clone();let mut params=Vec::new();let mut inputs=Vec::new();
      for (index,ty) in parameters.iter().enumerate(){let name=format!("http#argument{index}");let token=crate::syntax::Token{kind:crate::syntax::TokenKind::Symbol,text:name.clone(),span};
@@ -43,6 +55,7 @@ impl Analyzer {
     if let ExprKind::Closure{id,params,..}=&mut arg.kind{
      self.escaping.insert(*id);
      self.http_handler_origins.insert(*id);
+     if hono && let Some(param)=params.first_mut(){param.access=Some(crate::syntax::Token{kind:crate::syntax::TokenKind::Name,text:"mutate".into(),span});}
      for (param,ty) in params.iter_mut().zip(&parameters){if matches!(param.ty,crate::syntax::ParameterAnnotation::Inferred(_)){param.ty=crate::syntax::ParameterAnnotation::Named(Box::new(self.checked_value_annotation(*ty,span)?));}}
     }
     let actual=self.expression(context,arg,Mode::Consume,&active,None)?;
@@ -54,10 +67,11 @@ impl Analyzer {
     if !closure.captures.is_empty() && !matches!(closure.invocation,Mode::Read|Mode::Copy){return Err(Diagnostic::new("http-state","Concurrent HTTP handlers cannot mutate or consume retained state.",span));}
     for capture in &closure.captures {self.http_shared_data(closure.function.bindings[capture.inner].ty,span)?;}
     let result=closure.function.result;
+    if hono && matches!(result,Type::Record(id) if self.program.records[id].native_type==Some(NativeTypeId::HttpResponse)){continue;}
     if !self.is_task_type(result){return Err(Diagnostic::new("http-handler","HTTP handlers return Task<Response>; use a named async function.",span));}
-    self.http_task_transfer(result,span)?;
+    self.http_task_transfer(result,span,hono)?;
     let(output,error)=self.future_shape(result,span)?;
-    if !matches!(output,Type::Record(id) if self.program.records[id].native_type==Some(NativeTypeId::HttpResponse)){return Err(Diagnostic::new("http-handler","HTTP handlers must return Task<Response>.",span));}
+    if !(matches!(output,Type::Record(id) if self.program.records[id].native_type==Some(NativeTypeId::HttpResponse)) || hono && middleware && output==Type::Void){return Err(Diagnostic::new("http-handler","HTTP handlers must return Task<Response>.",span));}
     self.future_start_transfer(error,span)?;
    }else{
     let ty=native_type(param.ty,&self.program.records);self.expression(context,arg,param.access,&active,Some(ty))?;
@@ -68,7 +82,7 @@ impl Analyzer {
  }
  // The emitted request future owns an Arc of the callback before borrowing its state.
  // This permits read-only retained loans, never caller loans or exclusive access.
- fn http_task_transfer(&self,root:Type,span:Span)->Result<(),Diagnostic>{
+ fn http_task_transfer(&self,root:Type,span:Span,hono:bool)->Result<(),Diagnostic>{
   let mut pending=vec![root];let mut seen=HashSet::new();
   while let Some(ty)=pending.pop(){if !seen.insert(ty){continue;}
    if let Type::Closure(id)=ty && self.is_task_type(ty){
@@ -77,6 +91,7 @@ impl Analyzer {
     for capture in &closure.captures {
      let ty=closure.function.bindings[capture.inner].ty;
      match capture.storage {
+      Mode::Read|Mode::Mutate if hono && matches!(ty,Type::Record(id) if self.program.records[id].native_type==Some(NativeTypeId::HttpContext))=>{},
       Mode::Read=>self.http_shared_data(ty,span)?,
       Mode::Consume=>pending.push(ty),
       Mode::Copy if ty.is_copy()=>{},

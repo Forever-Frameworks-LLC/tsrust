@@ -33,12 +33,29 @@ impl Emitter<'_>{
   let call=match binding.name{
    "listen" if binding.module=="std:signals"=>"tsrust_native_signals::listen()".into(),
    "__receive" if binding.module=="std:signals"=>format!("({receiver}).receive().await"),
+   "__hono"=>"tsrust_native_http::Hono::new()".into(),
    "__app"=>"tsrust_native_http::App::new()".into(),"__client"=>if args.is_empty(){"tsrust_native_http::Client::new()".into()}else{format!("{{let options={receiver};tsrust_native_http::Client::with_ca(options.field0.as_ref())}}")},
-   "__configure"=>format!("{{let app={receiver};let options={};app.configure([options.field0,options.field1,options.field2,options.field3,options.field4,options.field5,options.field6])}}",values[1]),
+   "__configure"|"__honoConfigure"=>format!("{{let app={receiver};let options={};app.configure([options.field0,options.field1,options.field2,options.field3,options.field4,options.field5,options.field6])}}",values[1]),
    "__request"=>format!("tsrust_native_http::Request::new({})",values.join(",")),
    "__text"=>format!("tsrust_native_http::Response::text({})",values.join(",")),
    "__html"|"__json"=>format!("tsrust_native_http::Response::content({}, {}, {:?})",values[0],values[1],if binding.name=="__html"{"text/html; charset=utf-8"}else{"application/json"}),
    "__stream"=>format!("tsrust_native_http::Response::stream({})",values.join(",")),
+   "__honoRoute"|"__honoUse"=>{
+    let index=args.len()-1;let Type::Closure(origin)=args[index].ty.unwrap()else{unreachable!()};let closure=&self.program.closures[origin];let result=closure.function.result;
+    let middleware=binding.name=="__honoUse";
+    let inputs=if middleware{"context,next"}else{"context"};
+    let is_task=matches!(result,Type::Closure(id) if self.program.task_origins.contains(&id));
+    let body=if is_task{
+     let error=self.future_error_type(result,expr.span);let poll=self.future_poll(result,"task",error,expr.span);
+     let output=self.program.closures[if let Type::Closure(id)=result{id}else{unreachable!()}].function.result;
+     let success=if output==Type::Void{"None"}else{"Some(response)"};
+     let unwrap=if self.result_closures.borrow().contains_key(&origin){"let task=match task{Ok(task)=>task,Err(_)=>return Some(tsrust_native_http::failed())};"}else{""};
+     format!("let task=callback.call({inputs});{unwrap}match {poll}{{Ok(response)=>{success},Err(_)=>Some(tsrust_native_http::failed())}}")
+    }else if self.result_closures.borrow().contains_key(&origin){format!("Some(match callback.call({inputs}){{Ok(response)=>response,Err(_)=>tsrust_native_http::failed()}})")}else{format!("Some(callback.call({inputs}))")};
+    let callback=format!("move|{inputs}|{{let callback=std::sync::Arc::clone(&callback);Box::pin(async move{{{body}}})}}");
+    let registration=if middleware{format!("app.use_middleware({callback})")}else{format!("app.route({}, {}, {callback})",values[1],values[2])};
+    format!("{{let app={receiver};let callback=std::sync::Arc::new({});{registration}}}",values[index])
+   },
    "__route"|"__use"|"__fallback"=>{
     let index=args.len()-1;let Type::Closure(origin)=args[index].ty.unwrap()else{unreachable!()};let closure=&self.program.closures[origin];let result=closure.function.result;
     let error=self.future_error_type(result,expr.span);let poll=self.future_poll(result,"task",error,expr.span);
@@ -50,9 +67,14 @@ impl Emitter<'_>{
     let route_args=if binding.name=="__route"{format!("let method={};let path={};",values[1],values[2])}else{String::new()};
     format!("{{let app={receiver};{route_args}let callback=std::sync::Arc::new({});{registration}}}",values[index])
    },
-   "__listen"=>if args.len()==2{format!("({receiver}).listen({}).await",values[1])}else{format!("{{let app={receiver};let address={};let tls={};app.listen_tls(address,tls.field0.as_ref(),tls.field1.as_ref()).await}}",values[1],values[2])},
+   "__listen"|"__honoListen"=>if args.len()==2{format!("({receiver}).listen({}).await",values[1])}else{format!("{{let app={receiver};let address={};let tls={};app.listen_tls(address,tls.field0.as_ref(),tls.field1.as_ref()).await}}",values[1],values[2])},
    "__wait"=>format!("{{({receiver}).wait().await;Ok::<_,tsrust_native_http::Error>(())}}"),
    "__shutdown"=>format!("{{({receiver}).shutdown().await;Ok::<_,tsrust_native_http::Error>(())}}"),
+   "__contextRequestText"=>format!("({receiver}).request_text().await"),
+   "__contextNext"=>format!("{{({}).run({receiver}).await;Ok::<_,tsrust_native_http::Error>(())}}",values[1]),
+   "__contextHeader"=>format!("({receiver}).header({}, {})",values[1],values[2]),
+   "__contextStatus"=>format!("({receiver}).status({})",values[1]),
+   "__contextText"|"__contextHtml"|"__contextJson"=>format!("({receiver}).content({}, {}, {:?})",values[1],values.get(2).map(|value|format!("Some({value})")).unwrap_or_else(||"None".into()),match binding.name{"__contextHtml"=>"text/html; charset=utf-8","__contextJson"=>"application/json",_=>"text/plain; charset=utf-8"}),
    "__next"=>format!("Ok::<_,tsrust_native_http::Error>(({receiver}).run({}).await)",values[1]),
    "__send"=>format!("({receiver}).send({}).await",values[1]),
    "__form"|"__multipart"=>format!("({receiver}).{}().await",binding.name.trim_start_matches('_')),
@@ -69,7 +91,7 @@ impl Emitter<'_>{
   let result=expr.ty.unwrap();Some(if matches!(binding.result,crate::native_bindings::NativeType::Structured(crate::native_signatures::Signature::Result(..))){self.http_result(result,&call)}else{self.http_value(result,&call)})
  }
  pub(super) fn http_record(&self,output:&mut String,id:usize)->bool{
-  let name=match self.program.records[id].native_type{Some(NativeTypeId::HttpApp)=>"App",Some(NativeTypeId::HttpClient)=>"Client",Some(NativeTypeId::HttpRequest)=>"Request",Some(NativeTypeId::HttpResponse)=>"Response",Some(NativeTypeId::HttpServer)=>"Server",Some(NativeTypeId::HttpBody)=>"Stream",Some(NativeTypeId::HttpNext)=>"Next",_=>return false};
+  let name=match self.program.records[id].native_type{Some(NativeTypeId::HttpHono)=>"Hono",Some(NativeTypeId::HttpContext)=>"Context",Some(NativeTypeId::HttpContextNext)=>"ContextNext",Some(NativeTypeId::HttpApp)=>"App",Some(NativeTypeId::HttpClient)=>"Client",Some(NativeTypeId::HttpRequest)=>"Request",Some(NativeTypeId::HttpResponse)=>"Response",Some(NativeTypeId::HttpServer)=>"Server",Some(NativeTypeId::HttpBody)=>"Stream",Some(NativeTypeId::HttpNext)=>"Next",_=>return false};
   writeln!(output,"type Record{id}=tsrust_native_http::{name};").unwrap();true
  }
 }

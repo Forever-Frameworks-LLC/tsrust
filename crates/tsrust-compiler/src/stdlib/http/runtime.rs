@@ -22,6 +22,72 @@ mod tsrust_native_http {
             if let Some(middleware)=self.middleware.get(self.index).cloned(){self.index+=1;middleware(request,self)}else{(self.handler)(request)}
         }
     }
+    type ContextPending<'a> = Pin<Box<dyn Future<Output=Option<Response>>+Send+'a>>;
+    type ContextHandler = Arc<dyn for<'a> Fn(&'a mut Context)->ContextPending<'a>+Send+Sync>;
+    type ContextMiddleware = Arc<dyn for<'a> Fn(&'a mut Context,ContextNext)->ContextPending<'a>+Send+Sync>;
+
+    // One exclusive context is reborrowed down the middleware stack. No mutex or
+    // shared request handle can let a detached task outlive this request.
+    pub struct Context {
+        pub field0:Request,
+        response:Option<Response>,
+        headers:http::HeaderMap,
+        status:StatusCode,
+        body_used:bool,
+    }
+    impl Context {
+        fn new(request:Request)->Self{Self{field0:request,response:None,headers:http::HeaderMap::new(),status:StatusCode::OK,body_used:false}}
+        pub fn header(&mut self,name:&str,value:&str)->Result<(),Error>{
+            set_header(&mut self.headers,name,value)?;
+            if let Some(response)=&mut self.response{set_header(response.inner.headers_mut(),name,value)?;}
+            Ok(())
+        }
+        pub fn status(&mut self,status:i64)->Result<(),Error>{self.status=status_code(status)?;Ok(())}
+        pub fn content(&self,body:String,status:Option<i64>,content_type:&str)->Result<Response,Error>{
+            let mut response=Response::content(body,status.unwrap_or(self.status.as_u16() as i64),content_type)?;
+            for name in self.headers.keys(){response.inner.headers_mut().remove(name);for value in self.headers.get_all(name){response.inner.headers_mut().append(name,value.clone());}}
+            Ok(response)
+        }
+        pub fn text(&self,body:String,status:Option<i64>)->Result<Response,Error>{self.content(body,status,"text/plain; charset=utf-8")}
+        fn take_request_body(&mut self)->Result<Request,Error>{
+            if self.body_used{return Err(error("body","Request body has already been consumed"));}
+            self.body_used=true;
+            let body=std::mem::replace(self.field0.inner.body_mut(),Body::empty());
+            let mut request=Request::new(&self.field0.method(),&self.field0.url(),String::new())?;
+            *request.inner.body_mut()=body;*request.inner.headers_mut()=self.field0.inner.headers().clone();request.limit=self.field0.limit;
+            Ok(request)
+        }
+        pub async fn request_text(&mut self)->Result<String,Error>{self.take_request_body()?.text().await}
+        pub async fn request_form(&mut self)->Result<Vec<FormField>,Error>{self.take_request_body()?.form().await}
+        pub async fn request_multipart(&mut self)->Result<Vec<MultipartPart>,Error>{self.take_request_body()?.multipart().await}
+        fn finish(self)->Response{self.response.unwrap_or_else(failed)}
+    }
+    pub struct ContextNext {middleware:Arc<Vec<ContextMiddleware>>,index:usize,handler:ContextHandler}
+    impl ContextNext {
+        pub fn run<'a>(mut self,context:&'a mut Context)->Pin<Box<dyn Future<Output=()>+Send+'a>>{
+            Box::pin(async move {
+                let response=if let Some(middleware)=self.middleware.get(self.index).cloned(){self.index+=1;middleware(context,self).await}else{(self.handler)(context).await};
+                if let Some(response)=response{context.response=Some(response);}
+            })
+        }
+    }
+    pub struct Hono {app:App,middleware:Vec<ContextMiddleware>}
+    impl Hono {
+        pub fn new()->Self{Self{app:App::new(),middleware:Vec::new()}}
+        pub fn configure(&mut self,values:[i64;7])->Result<(),Error>{self.app.configure(values)}
+        pub fn use_middleware<F>(&mut self,middleware:F) where F:for<'a> Fn(&'a mut Context,ContextNext)->ContextPending<'a>+Send+Sync+'static{self.middleware.push(Arc::new(middleware));}
+        pub fn route<F>(&mut self,method:&str,path:&str,handler:F)->Result<(),Error> where F:for<'a> Fn(&'a mut Context)->ContextPending<'a>+Send+Sync+'static{
+            let handler:ContextHandler=Arc::new(handler);let middleware=Arc::new(self.middleware.clone());
+            self.app.route(method,path,move|request|{let next=ContextNext{middleware:middleware.clone(),index:0,handler:handler.clone()};async move{let mut context=Context::new(request);next.run(&mut context).await;context.finish()}})
+        }
+        fn finalize(mut self)->App{
+            let middleware=Arc::new(self.middleware);
+            self.app.fallback(move|request|{let next=ContextNext{middleware:middleware.clone(),index:0,handler:Arc::new(|_|Box::pin(async{Some(fixed(404,"Not Found"))}))};async move{let mut context=Context::new(request);next.run(&mut context).await;context.finish()}});
+            self.app
+        }
+        pub async fn listen(self,address:&str)->Result<Server,Error>{self.finalize().listen(address).await}
+        pub async fn listen_tls(self,address:&str,cert:&str,key:&str)->Result<Server,Error>{self.finalize().listen_tls(address,cert,key).await}
+    }
     #[derive(Clone,Copy)]
     struct Limits {body:usize,connections:usize,requests:usize,request_ms:u64,shutdown_ms:u64,handshake_ms:u64,rate:u64}
     impl Default for Limits {fn default()->Self{Self{body:1048576,connections:128,requests:128,request_ms:30000,shutdown_ms:5000,handshake_ms:5000,rate:0}}}

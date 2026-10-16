@@ -42,7 +42,7 @@ pub(crate) fn lazy_module(expression:&mut crate::syntax::Expr,module:&str,name:&
     let mut body=Vec::new();let mut inputs=Vec::new();
     if matches!(name,"__race"|"__allSettled") && matches!(args.as_slice(),[Expr{kind:ExprKind::Array(values),..}] if values.is_empty()){args.clear();}
     for (index,mut value) in args.into_iter().enumerate(){
-        if index==0 && ((module=="std:signals" && name=="__receive") || (module=="std:futures" && matches!(name,"__send"|"__receive")) || (module=="std:http" && matches!(name,"__send"|"__bodyNext")) || (module=="std:sql" && matches!(name,"__migrate"|"__begin"|"__query"|"__execute"|"__txquery"|"__txexecute"))) && stable_receiver(&value) {inputs.push(value);continue;}
+        if index==0 && ((module=="std:signals" && name=="__receive") || (module=="std:futures" && matches!(name,"__send"|"__receive")) || (module=="std:http" && matches!(name,"__contextRequestText"|"__contextNext"|"__send"|"__bodyNext")) || (module=="std:sql" && matches!(name,"__migrate"|"__begin"|"__query"|"__execute"|"__txquery"|"__txexecute"))) && stable_receiver(&value) {inputs.push(value);continue;}
         if index==0 && matches!(name,"__race"|"__allSettled") && let ExprKind::Array(items)=&mut value.kind {
             if !items.is_empty() && !items.iter().any(|item|matches!(item.kind,ExprKind::Unary{op:UnaryOp::Spread,..})) {
                 value.kind=ExprKind::Record(std::mem::take(items).into_iter().enumerate().map(|(index,value)|(Token{kind:TokenKind::Name,text:format!("future#task{index}"),span:value.span},value)).collect());
@@ -93,7 +93,7 @@ pub(crate) fn borrows_receiver(value:&crate::syntax::Expr)->bool {
     let ExprKind::Call(_,arguments)=&value.kind else{return false;};
     let Some(crate::syntax::Expr{kind:ExprKind::Call(callee,inputs),..})=arguments.first()else{return false;};
     !matches!(inputs.first().map(|value|&value.kind),Some(ExprKind::Name(name)) if name.starts_with("future#"))
-        && matches!(&callee.kind,ExprKind::Name(name) if matches!(name.as_str(),"@native:std:signals#__receive"|"@native:std:futures#__send"|"@native:std:futures#__receive"|"@native:std:http#__send"|"@native:std:http#__bodyNext"|"@native:std:sql#__migrate"|"@native:std:sql#__begin"|"@native:std:sql#__query"|"@native:std:sql#__execute"|"@native:std:sql#__txquery"|"@native:std:sql#__txexecute"))
+        && matches!(&callee.kind,ExprKind::Name(name) if matches!(name.as_str(),"@native:std:signals#__receive"|"@native:std:futures#__send"|"@native:std:futures#__receive"|"@native:std:http#__send"|"@native:std:http#__contextRequestText"|"@native:std:http#__contextNext"|"@native:std:http#__bodyNext"|"@native:std:sql#__migrate"|"@native:std:sql#__begin"|"@native:std:sql#__query"|"@native:std:sql#__execute"|"@native:std:sql#__txquery"|"@native:std:sql#__txexecute"))
 }
 
 fn stable_receiver(mut value:&crate::syntax::Expr)->bool{

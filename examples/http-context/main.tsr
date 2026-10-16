@@ -1,0 +1,60 @@
+import { Hono, Context, ContextNext, Response, Client, request } from 'std:http';
+import { strictEqual } from 'std:testing';
+
+type Configuration = {
+  greeting: string;
+};
+
+async function outer(c: Mutable<Context>, next: ContextNext): Task<void> {
+  c.header('x-entry', 'outer');
+  await next();
+  c.header('x-exit', 'outer');
+}
+
+async function inner(c: Mutable<Context>, next: ContextNext): Task<void> {
+  strictEqual(c.req.header('x-client'), 'checked');
+  await next();
+  c.header('x-exit', 'inner');
+}
+
+function greet(config: ReadOnly<Configuration>, c: Mutable<Context>): Response {
+  c.status(201);
+  return c.text(clone(config.greeting));
+}
+
+async function blocked(c: Mutable<Context>, next: ContextNext): Task<Response> {
+  return c.text('blocked', 403);
+}
+
+function routes(config: Owned<Configuration>): Hono {
+  const app = new Hono();
+  app.use(outer);
+  app.use(inner);
+  app.get('/hello', (c) => greet(config, c));
+  app.use(blocked);
+  app.get('/blocked', (c) => c.text('must not run'));
+  return app;
+}
+
+async function main(): Task<void> {
+  const app = routes({
+    greeting: 'Hello from context'
+  });
+  const server = await app.listen('127.0.0.1:0');
+  const client = new Client();
+  const base = 'http://' + server.address();
+  const input = request('GET', base + '/hello', '');
+  input.setHeader('x-client', 'checked');
+  const response = await client.send(input);
+  strictEqual(response.status(), 201);
+  strictEqual(response.header('x-entry'), 'outer');
+  strictEqual(response.header('x-exit'), 'outer');
+  strictEqual(await response.text(), 'Hello from context');
+  const denied = request('GET', base + '/blocked', '');
+  denied.setHeader('x-client', 'checked');
+  const rejection = await client.send(denied);
+  strictEqual(rejection.status(), 403);
+  strictEqual(rejection.header('x-exit'), 'outer');
+  strictEqual(await rejection.text(), 'blocked');
+  await server.shutdown();
+}

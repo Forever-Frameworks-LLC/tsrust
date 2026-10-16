@@ -1,0 +1,67 @@
+import { Hono, Context, ContextNext, Client, Response, text, request } from 'std:http';
+import { monotonicNow } from 'std:time';
+
+type Config = {
+  body: string;
+};
+async function handle(config: ReadOnly<Config>, c: Mutable<Context>): Task<Response> {
+  return c.text(clone(config.body));
+}
+
+async function headers(c: Mutable<Context>, next: ContextNext): Task<void> {
+  c.header('x-before', 'entry');
+  await next();
+  c.header('x-after', 'exit');
+}
+
+function routes(config: Owned<Config>): Hono {
+  const app = new Hono();
+  app.use(headers);
+  app.get('/', (c) => handle(config, c));
+  return app;
+}
+
+async function batch(client: ReadOnly<Client>, url: ReadOnly<string>): Task<int> {
+  let sum = 0;
+  for (let index = 0; index < 128; index++) {
+    const response = await client.send(request('GET', url, ''));
+    if (response.status() !== 200) {
+      throw 'Unexpected status';
+    }
+
+    if (response.header('x-before') !== 'entry' || response.header('x-after') !== 'exit') {
+      throw 'Middleware header mismatch';
+    }
+
+    const body = await response.text();
+    if (body !== '42') {
+      throw 'Unexpected body';
+    }
+
+    sum += 42;
+  }
+
+  return sum;
+}
+
+async function main(): Task<void> {
+  const config: Config = {
+    body: '42'
+  };
+  const app = routes(config);
+  const server = await app.listen('127.0.0.1:0');
+  const client = new Client();
+  const url = 'http://' + server.address() + '/';
+  for (let warmup = 0; warmup < 8; warmup++) {
+    await batch(client, url);
+  }
+
+  for (let sample = 0; sample < 31; sample++) {
+    const start = monotonicNow();
+    const sum = await batch(client, url);
+    console.log(sum);
+    console.log(monotonicNow() - start);
+  }
+
+  await server.shutdown();
+}

@@ -10513,6 +10513,50 @@
   }
 ],
   "std:http": [
+{
+  "name": "Hono",
+  "signature": "new Hono(): Hono",
+  "parameters": [],
+  "documentation": "Creates an Axum-backed router with Hono-style request contexts. No arguments. Register middleware before the routes it wraps. listen consumes the router and returns the existing Server lifecycle handle. A handler returns Response or Task<Response>; middleware can return Task<void> after awaiting next().\n\n```tsrust\nconst app = new Hono();\napp.get('/', c => c.text('Hello'));\n```\n\nThe response body is Hello with status 200. Ownership: the router retains owned handler closures; each request exclusively borrows its own Context.",
+  "examples": [
+    {
+      "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+      "output": "ok\n"
+    }
+  ],
+  "inferredSignature": "function new Hono(): Hono"
+},
+{
+  "name": "Context",
+  "signature": "Context",
+  "parameters": [],
+  "documentation": "A request-local context supplied by Hono. req exposes the incoming request. header changes outgoing headers before or after downstream middleware; text, html and json construct responses. Context has no public constructor or clone operation.\n\n```tsrust\nfunction hello(c: Mutable<Context>): Response { return c.text('Hello'); }\n```\n\nReturns a UTF-8 response with status 200. Ownership: handlers exclusively borrow Context for the invocation; it cannot be retained in detached work.",
+  "examples": [
+    {
+      "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+      "output": "ok\n"
+    }
+  ],
+  "inferredSignature": "function Context",
+  "fields": {
+    "req": {
+      "documentation": "Incoming request for this context. Read headers and route parameters through c.req. The request remains owned by the context; it cannot be moved out of a mutable context loan."
+    }
+  }
+},
+{
+  "name": "ContextNext",
+  "signature": "next(): Task<void>",
+  "parameters": [],
+  "documentation": "A single-use downstream continuation supplied to Hono middleware. Calling next() creates a lazy task that exclusively borrows the visible Context. Await it before accessing Context again. Downstream source failures become a 500 response so outer middleware can finish. Returning a Response without calling next() short-circuits downstream work.\n\n```tsrust\nawait next();\nc.header('x-finished', 'yes');\n```\n\nOwnership: consumes the continuation; cannot be cloned or called twice.",
+  "examples": [
+    {
+      "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+      "output": "ok\n"
+    }
+  ],
+  "inferredSignature": "function next(): Task<void>"
+},
     {
       "name": "App",
       "signature": "new App(): App",
@@ -13231,4 +13275,354 @@
       "documentation": "Global arrival limit per fixed one-second window: 0 disables; otherwise 1..1000000. Default 0. Excess returns 429, and window boundaries can admit twice this count.\n\n```tsrust\noptions.requestsPerSecond; // 100 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed."
     }
   ]
+,
+"HttpHono": [
+  {
+    "name": "get",
+    "signature": "get(path: string, handler: (c: Mutable<Context>) => Task<Response>): void",
+    "parameters": [
+      {
+        "label": "path: string",
+        "documentation": "Absolute route path; literals and :name segments only."
+      },
+      {
+        "label": "handler: (c: Mutable<Context>) => Task<Response>",
+        "documentation": "Named async function or a noncapturing callback returning Task<Response>."
+      }
+    ],
+    "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response.\n\n```tsrust\napp.get(\"/\", handle);\n```\n\nConcurrent requests may borrow retained state read-only across await. The handler must own its captures and cannot mutate or consume them. Supported state includes owned configuration and concurrent SQL pools, HTTP clients or async senders. Caller loans, program state, callbacks, local caches and request/body resources cannot be retained. Shutdown drains requests before releasing handlers.\n\nOwnership: mutates the app; each invocation receives its own owned Request.\n\nHono handlers receive a mutable Context loan. Synchronous handlers may return Response directly. Middleware applies only if registered before this route.",
+    "examples": [
+      {
+        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "output": "ok\n"
+      }
+    ],
+    "inferredSignature": "function get(path: string, handler: (c: Mutable<Context>) => Task<Response>): void"
+  },
+  {
+    "name": "post",
+    "signature": "post(path: string, handler: (c: Mutable<Context>) => Task<Response>): void",
+    "parameters": [
+      {
+        "label": "path: string",
+        "documentation": "Absolute route path; literals and :name segments only."
+      },
+      {
+        "label": "handler: (c: Mutable<Context>) => Task<Response>",
+        "documentation": "Named async function or a noncapturing callback returning Task<Response>."
+      }
+    ],
+    "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response.\n\n```tsrust\napp.post(\"/\", handle);\n```\n\nConcurrent requests may borrow retained state read-only across await. The handler must own its captures and cannot mutate or consume them. Supported state includes owned configuration and concurrent SQL pools, HTTP clients or async senders. Caller loans, program state, callbacks, local caches and request/body resources cannot be retained. Shutdown drains requests before releasing handlers.\n\nOwnership: mutates the app; each invocation receives its own owned Request.\n\nHono handlers receive a mutable Context loan. Synchronous handlers may return Response directly. Middleware applies only if registered before this route.",
+    "examples": [
+      {
+        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "output": "ok\n"
+      }
+    ],
+    "inferredSignature": "function post(path: string, handler: (c: Mutable<Context>) => Task<Response>): void"
+  },
+  {
+    "name": "put",
+    "signature": "put(path: string, handler: (c: Mutable<Context>) => Task<Response>): void",
+    "parameters": [
+      {
+        "label": "path: string",
+        "documentation": "Absolute route path; literals and :name segments only."
+      },
+      {
+        "label": "handler: (c: Mutable<Context>) => Task<Response>",
+        "documentation": "Named async function or a noncapturing callback returning Task<Response>."
+      }
+    ],
+    "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response.\n\n```tsrust\napp.put(\"/\", handle);\n```\n\nConcurrent requests may borrow retained state read-only across await. The handler must own its captures and cannot mutate or consume them. Supported state includes owned configuration and concurrent SQL pools, HTTP clients or async senders. Caller loans, program state, callbacks, local caches and request/body resources cannot be retained. Shutdown drains requests before releasing handlers.\n\nOwnership: mutates the app; each invocation receives its own owned Request.\n\nHono handlers receive a mutable Context loan. Synchronous handlers may return Response directly. Middleware applies only if registered before this route.",
+    "examples": [
+      {
+        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "output": "ok\n"
+      }
+    ],
+    "inferredSignature": "function put(path: string, handler: (c: Mutable<Context>) => Task<Response>): void"
+  },
+  {
+    "name": "patch",
+    "signature": "patch(path: string, handler: (c: Mutable<Context>) => Task<Response>): void",
+    "parameters": [
+      {
+        "label": "path: string",
+        "documentation": "Absolute route path; literals and :name segments only."
+      },
+      {
+        "label": "handler: (c: Mutable<Context>) => Task<Response>",
+        "documentation": "Named async function or a noncapturing callback returning Task<Response>."
+      }
+    ],
+    "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response.\n\n```tsrust\napp.patch(\"/\", handle);\n```\n\nConcurrent requests may borrow retained state read-only across await. The handler must own its captures and cannot mutate or consume them. Supported state includes owned configuration and concurrent SQL pools, HTTP clients or async senders. Caller loans, program state, callbacks, local caches and request/body resources cannot be retained. Shutdown drains requests before releasing handlers.\n\nOwnership: mutates the app; each invocation receives its own owned Request.\n\nHono handlers receive a mutable Context loan. Synchronous handlers may return Response directly. Middleware applies only if registered before this route.",
+    "examples": [
+      {
+        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "output": "ok\n"
+      }
+    ],
+    "inferredSignature": "function patch(path: string, handler: (c: Mutable<Context>) => Task<Response>): void"
+  },
+  {
+    "name": "delete",
+    "signature": "delete(path: string, handler: (c: Mutable<Context>) => Task<Response>): void",
+    "parameters": [
+      {
+        "label": "path: string",
+        "documentation": "Absolute route path; literals and :name segments only."
+      },
+      {
+        "label": "handler: (c: Mutable<Context>) => Task<Response>",
+        "documentation": "Named async function or a noncapturing callback returning Task<Response>."
+      }
+    ],
+    "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response.\n\n```tsrust\napp.delete(\"/\", handle);\n```\n\nConcurrent requests may borrow retained state read-only across await. The handler must own its captures and cannot mutate or consume them. Supported state includes owned configuration and concurrent SQL pools, HTTP clients or async senders. Caller loans, program state, callbacks, local caches and request/body resources cannot be retained. Shutdown drains requests before releasing handlers.\n\nOwnership: mutates the app; each invocation receives its own owned Request.\n\nHono handlers receive a mutable Context loan. Synchronous handlers may return Response directly. Middleware applies only if registered before this route.",
+    "examples": [
+      {
+        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "output": "ok\n"
+      }
+    ],
+    "inferredSignature": "function delete(path: string, handler: (c: Mutable<Context>) => Task<Response>): void"
+  },
+  {
+    "name": "head",
+    "signature": "head(path: string, handler: (c: Mutable<Context>) => Task<Response>): void",
+    "parameters": [
+      {
+        "label": "path: string",
+        "documentation": "Absolute route path; literals and :name segments only."
+      },
+      {
+        "label": "handler: (c: Mutable<Context>) => Task<Response>",
+        "documentation": "Named async function or a noncapturing callback returning Task<Response>."
+      }
+    ],
+    "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response.\n\n```tsrust\napp.head(\"/\", handle);\n```\n\nConcurrent requests may borrow retained state read-only across await. The handler must own its captures and cannot mutate or consume them. Supported state includes owned configuration and concurrent SQL pools, HTTP clients or async senders. Caller loans, program state, callbacks, local caches and request/body resources cannot be retained. Shutdown drains requests before releasing handlers.\n\nOwnership: mutates the app; each invocation receives its own owned Request.\n\nHono handlers receive a mutable Context loan. Synchronous handlers may return Response directly. Middleware applies only if registered before this route.",
+    "examples": [
+      {
+        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "output": "ok\n"
+      }
+    ],
+    "inferredSignature": "function head(path: string, handler: (c: Mutable<Context>) => Task<Response>): void"
+  },
+  {
+    "name": "options",
+    "signature": "options(path: string, handler: (c: Mutable<Context>) => Task<Response>): void",
+    "parameters": [
+      {
+        "label": "path: string",
+        "documentation": "Absolute route path; literals and :name segments only."
+      },
+      {
+        "label": "handler: (c: Mutable<Context>) => Task<Response>",
+        "documentation": "Named async function or a noncapturing callback returning Task<Response>."
+      }
+    ],
+    "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response.\n\n```tsrust\napp.options(\"/\", handle);\n```\n\nConcurrent requests may borrow retained state read-only across await. The handler must own its captures and cannot mutate or consume them. Supported state includes owned configuration and concurrent SQL pools, HTTP clients or async senders. Caller loans, program state, callbacks, local caches and request/body resources cannot be retained. Shutdown drains requests before releasing handlers.\n\nOwnership: mutates the app; each invocation receives its own owned Request.\n\nHono handlers receive a mutable Context loan. Synchronous handlers may return Response directly. Middleware applies only if registered before this route.",
+    "examples": [
+      {
+        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "output": "ok\n"
+      }
+    ],
+    "inferredSignature": "function options(path: string, handler: (c: Mutable<Context>) => Task<Response>): void"
+  },
+  {
+    "name": "route",
+    "signature": "route(method: string, path: string, handler: (c: Mutable<Context>) => Task<Response>): void",
+    "parameters": [
+      {
+        "label": "method: string",
+        "documentation": "One of GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS."
+      },
+      {
+        "label": "path: string",
+        "documentation": "Absolute route path; literals and :name segments only."
+      },
+      {
+        "label": "handler: (c: Mutable<Context>) => Task<Response>",
+        "documentation": "Named async function or a noncapturing callback returning Task<Response>."
+      }
+    ],
+    "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response.\n\n```tsrust\napp.route(\"GET\", \"/\", handle);\n```\n\nConcurrent requests may borrow retained state read-only across await. The handler must own its captures and cannot mutate or consume them. Supported state includes owned configuration and concurrent SQL pools, HTTP clients or async senders. Caller loans, program state, callbacks, local caches and request/body resources cannot be retained. Shutdown drains requests before releasing handlers.\n\nOwnership: mutates the app; each invocation receives its own owned Request.\n\nHono handlers receive a mutable Context loan. Synchronous handlers may return Response directly. Middleware applies only if registered before this route.",
+    "examples": [
+      {
+        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "output": "ok\n"
+      }
+    ],
+    "inferredSignature": "function route(method: string, path: string, handler: (c: Mutable<Context>) => Task<Response>): void"
+  },
+  {
+    "name": "use",
+    "signature": "use(middleware: (c: Mutable<Context>, next: ContextNext) => Task<void>): void",
+    "parameters": [
+      {
+        "label": "middleware: (c: Mutable<Context>, next: ContextNext) => Task<void>",
+        "documentation": "Named async function or owned callback with read-only retained state."
+      }
+    ],
+    "documentation": "Registers middleware around subsequently registered routes. Entry follows registration order; code after await next() runs in reverse order. A middleware may instead return a Response to stop downstream work. Middleware registered after a terminal route does not run for that route. Missing routes run all middleware before the default 404.\n\n```tsrust\napp.use(addHeaders);\napp.get('/', c => c.text('ok'));\n```\n\naddHeaders wraps this route. Ownership: the router owns its captures; each invocation receives an exclusive context loan and one consumed continuation. Retained captures must satisfy the same immutable or supported concurrent-state rules as App.",
+    "examples": [
+      {
+        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "output": "ok\n"
+      }
+    ],
+    "inferredSignature": "function use(middleware: (c: Mutable<Context>, next: ContextNext) => Task<void>): void"
+  },
+  {
+    "name": "listen",
+    "signature": "listen(address: string, tls?: TlsOptions): Task<Server>",
+    "parameters": [
+      {
+        "label": "address: string",
+        "documentation": "IP address and port, such as 127.0.0.1:3000; port 0 chooses a free port."
+      },
+      {
+        "label": "tls?: TlsOptions",
+        "documentation": "Omit for cleartext HTTP. Supply { cert, key } PEM strings for HTTPS: certificate chain leaf first, matching unencrypted private key. Invalid configuration throws HttpError code tls before binding."
+      }
+    ],
+    "documentation": "Creates a lazy listener task. Awaiting binds the address, freezes registration and returns a running server. Omit tls for cleartext HTTP; supply { cert, key } for HTTPS with HTTP/1.1 and HTTP/2 negotiation. cert is a nonempty PEM certificate chain, leaf first. key is its matching unencrypted PKCS#1, PKCS#8 or SEC1 PEM private key. Invalid configuration throws HttpError code tls before binding; invalid address or bind failure throws code address or listen. Clients verify trust, hostname and certificate validity. At most 128 active connections, including handshakes; a TLS handshake has a five-second deadline and shutdown interrupts it. Body readers have a cumulative 1048576-byte limit.\n\n```tsrust\nconst server = await app.listen(\"127.0.0.1:0\", { cert: certificatePem, key: privateKeyPem });\n```\n\nOwnership: consumes app and TLS options immediately. The running server retains independent TLS settings. Dropping Server requests cleanup, which its async owner drains.",
+    "examples": [
+      {
+        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "output": "ok\n"
+      }
+    ],
+    "inferredSignature": "function listen(address: string, tls?: TlsOptions): Task<Server>"
+  },
+  {
+    "name": "configure",
+    "signature": "configure(options: ReadOnly<ServerOptions>): void",
+    "parameters": [
+      {
+        "label": "options: ReadOnly<ServerOptions>",
+        "documentation": "Complete body, connection, handler, time and global request-rate limits; all fields required."
+      }
+    ],
+    "documentation": "Sets listener limits before listen consumes this app. All seven integer fields are required. bodyLimit is 1..67108864 bytes (default 1048576); maxConnections and maxRequests are 1..65536 (default 128 each). requestTimeoutMs is 1..3600000 (default 30000); shutdownTimeoutMs and handshakeTimeoutMs use the same range (default 5000). requestsPerSecond is 0..1000000 (default 0, disabled). Invalid fields throw HttpError code options without changing configuration.\n\nConnections beyond capacity remain in the OS backlog. Concurrent handler overload returns 503. A global fixed one-second window counts arrivals and returns 429 with Retry-After: 1 when exhausted; it is not a per-user or distributed limiter. At most twice the configured rate can cross a window boundary. Handler deadlines return 504 and request cooperative cancellation; response streaming after handler completion is outside this deadline. TLS handshakes and shutdown draining have independent limits. Content-Length exceeding bodyLimit returns 413; streaming reads reject once their cumulative byte budget is exhausted.\n\n```tsrust\napp.configure({ bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100 });\n```\n\nOwnership: mutates app configuration and only borrows options.",
+    "inferredSignature": "function configure(options: ReadOnly<ServerOptions>): void",
+    "examples": [
+      {
+        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "output": "ok\n"
+      }
+    ]
+  }
+],
+"HttpContext": [
+  {
+    "name": "text",
+    "signature": "text(value: string, status?: int): Response",
+    "parameters": [
+      {
+        "label": "value: string",
+        "documentation": "Response body; JSON values are checked for serialization."
+      },
+      {
+        "label": "status?: int",
+        "documentation": "Optional HTTP status, 200 through 599; defaults to the context status."
+      }
+    ],
+    "documentation": "Constructs a plain text response using pending context headers. Optional status is 200 through 599; otherwise uses c.status(), initially 200. Invalid status throws HttpError. Does not consume or finalize the context; return this response from the handler. \n\n```tsrust\nreturn c.text('ok');\n```\n\nReturns status 200 unless previously changed. Ownership: borrows the context; owns the response body.",
+    "examples": [
+      {
+        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "output": "ok\n"
+      }
+    ],
+    "inferredSignature": "function text(value: string, status?: int): Response"
+  },
+  {
+    "name": "html",
+    "signature": "html(value: string, status?: int): Response",
+    "parameters": [
+      {
+        "label": "value: string",
+        "documentation": "Response body; JSON values are checked for serialization."
+      },
+      {
+        "label": "status?: int",
+        "documentation": "Optional HTTP status, 200 through 599; defaults to the context status."
+      }
+    ],
+    "documentation": "Constructs a HTML response using pending context headers. Optional status is 200 through 599; otherwise uses c.status(), initially 200. Invalid status throws HttpError. Does not consume or finalize the context; return this response from the handler. \n\n```tsrust\nreturn c.html('ok');\n```\n\nReturns status 200 unless previously changed. Ownership: borrows the context; owns the response body.",
+    "examples": [
+      {
+        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "output": "ok\n"
+      }
+    ],
+    "inferredSignature": "function html(value: string, status?: int): Response"
+  },
+  {
+    "name": "json",
+    "signature": "json(value: T, status?: int): Response",
+    "parameters": [
+      {
+        "label": "value: T",
+        "documentation": "Response body; JSON values are checked for serialization."
+      },
+      {
+        "label": "status?: int",
+        "documentation": "Optional HTTP status, 200 through 599; defaults to the context status."
+      }
+    ],
+    "documentation": "Constructs a JSON response using pending context headers. Optional status is 200 through 599; otherwise uses c.status(), initially 200. Invalid status throws HttpError. Does not consume or finalize the context; return this response from the handler. JSON serialization rejects unsupported or nonfinite values. \n\n```tsrust\nreturn c.json({ message: 'ok' });\n```\n\nReturns status 200 unless previously changed. Ownership: borrows the context; owns the response body.",
+    "examples": [
+      {
+        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "output": "ok\n"
+      }
+    ],
+    "inferredSignature": "function json(value: T, status?: int): Response"
+  },
+  {
+    "name": "header",
+    "signature": "header(name: string, value: string): void",
+    "parameters": [
+      {
+        "label": "name: string",
+        "documentation": "HTTP header name, case-insensitive."
+      },
+      {
+        "label": "value: string",
+        "documentation": "Valid HTTP header text; line breaks are rejected."
+      }
+    ],
+    "documentation": "Sets an outgoing header, replacing previous values for that name. Applies to responses constructed later and to the downstream response after await next(). Invalid names, invalid values and transport-managed framing headers throw HttpError without changing headers.\n\n```tsrust\nc.header('x-trace', 'example');\n```\n\nThe outgoing x-trace header is example. Ownership: exclusively borrows Context; copies header text.",
+    "examples": [
+      {
+        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "output": "ok\n"
+      }
+    ],
+    "inferredSignature": "function header(name: string, value: string): void"
+  },
+  {
+    "name": "status",
+    "signature": "status(code: int): void",
+    "parameters": [
+      {
+        "label": "code: int",
+        "documentation": "HTTP response status, 200 through 599."
+      }
+    ],
+    "documentation": "Sets the default status for subsequent response helpers. Accepts 200 through 599; an invalid code throws HttpError. Does not rewrite an already-created response.\n\n```tsrust\nc.status(201);\nreturn c.text('created');\n```\n\nReturns status 201. Ownership: exclusively borrows Context.",
+    "examples": [
+      {
+        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "output": "ok\n"
+      }
+    ],
+    "inferredSignature": "function status(code: int): void"
+  }
+],
+"HttpContextNext": []
 }
