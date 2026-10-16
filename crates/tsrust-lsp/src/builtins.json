@@ -10763,7 +10763,7 @@
           "documentation": "Named async function or a noncapturing callback returning Task<Response>."
         }
       ],
-      "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response. Captured handler state is not supported in this slice.\n\n```tsrust\napp.get(\"/\", handle);\n```\n\nOwnership: mutates the app; each invocation receives its own owned Request.",
+      "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response.\n\n```tsrust\napp.get(\"/\", handle);\n```\n\nConcurrent requests may borrow retained state read-only across await. The handler must own its captures and cannot mutate or consume them. Supported state includes owned configuration and concurrent SQL pools, HTTP clients or async senders. Caller loans, program state, callbacks, local caches and request/body resources cannot be retained. Shutdown drains requests before releasing handlers.\n\nOwnership: mutates the app; each invocation receives its own owned Request.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();app.get(\"/\", handle);console.log('ok');}",
@@ -10785,7 +10785,7 @@
           "documentation": "Named async function or a noncapturing callback returning Task<Response>."
         }
       ],
-      "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response. Captured handler state is not supported in this slice.\n\n```tsrust\napp.post(\"/\", handle);\n```\n\nOwnership: mutates the app; each invocation receives its own owned Request.",
+      "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response.\n\n```tsrust\napp.post(\"/\", handle);\n```\n\nConcurrent requests may borrow retained state read-only across await. The handler must own its captures and cannot mutate or consume them. Supported state includes owned configuration and concurrent SQL pools, HTTP clients or async senders. Caller loans, program state, callbacks, local caches and request/body resources cannot be retained. Shutdown drains requests before releasing handlers.\n\nOwnership: mutates the app; each invocation receives its own owned Request.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();app.post(\"/\", handle);console.log('ok');}",
@@ -10807,7 +10807,7 @@
           "documentation": "Named async function or a noncapturing callback returning Task<Response>."
         }
       ],
-      "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response. Captured handler state is not supported in this slice.\n\n```tsrust\napp.put(\"/\", handle);\n```\n\nOwnership: mutates the app; each invocation receives its own owned Request.",
+      "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response.\n\n```tsrust\napp.put(\"/\", handle);\n```\n\nConcurrent requests may borrow retained state read-only across await. The handler must own its captures and cannot mutate or consume them. Supported state includes owned configuration and concurrent SQL pools, HTTP clients or async senders. Caller loans, program state, callbacks, local caches and request/body resources cannot be retained. Shutdown drains requests before releasing handlers.\n\nOwnership: mutates the app; each invocation receives its own owned Request.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();app.put(\"/\", handle);console.log('ok');}",
@@ -10829,7 +10829,7 @@
           "documentation": "Named async function or a noncapturing callback returning Task<Response>."
         }
       ],
-      "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response. Captured handler state is not supported in this slice.\n\n```tsrust\napp.patch(\"/\", handle);\n```\n\nOwnership: mutates the app; each invocation receives its own owned Request.",
+      "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response.\n\n```tsrust\napp.patch(\"/\", handle);\n```\n\nConcurrent requests may borrow retained state read-only across await. The handler must own its captures and cannot mutate or consume them. Supported state includes owned configuration and concurrent SQL pools, HTTP clients or async senders. Caller loans, program state, callbacks, local caches and request/body resources cannot be retained. Shutdown drains requests before releasing handlers.\n\nOwnership: mutates the app; each invocation receives its own owned Request.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();app.patch(\"/\", handle);console.log('ok');}",
@@ -10851,7 +10851,7 @@
           "documentation": "Named async function or a noncapturing callback returning Task<Response>."
         }
       ],
-      "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response. Captured handler state is not supported in this slice.\n\n```tsrust\napp.delete(\"/\", handle);\n```\n\nOwnership: mutates the app; each invocation receives its own owned Request.",
+      "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response.\n\n```tsrust\napp.delete(\"/\", handle);\n```\n\nConcurrent requests may borrow retained state read-only across await. The handler must own its captures and cannot mutate or consume them. Supported state includes owned configuration and concurrent SQL pools, HTTP clients or async senders. Caller loans, program state, callbacks, local caches and request/body resources cannot be retained. Shutdown drains requests before releasing handlers.\n\nOwnership: mutates the app; each invocation receives its own owned Request.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();app.delete(\"/\", handle);console.log('ok');}",
@@ -10873,7 +10873,7 @@
           "documentation": "Named async function or a noncapturing callback returning Task<Response>."
         }
       ],
-      "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response. Captured handler state is not supported in this slice.\n\n```tsrust\napp.head(\"/\", handle);\n```\n\nOwnership: mutates the app; each invocation receives its own owned Request.",
+      "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response.\n\n```tsrust\napp.head(\"/\", handle);\n```\n\nConcurrent requests may borrow retained state read-only across await. The handler must own its captures and cannot mutate or consume them. Supported state includes owned configuration and concurrent SQL pools, HTTP clients or async senders. Caller loans, program state, callbacks, local caches and request/body resources cannot be retained. Shutdown drains requests before releasing handlers.\n\nOwnership: mutates the app; each invocation receives its own owned Request.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();app.head(\"/\", handle);console.log('ok');}",
@@ -10895,7 +10895,7 @@
           "documentation": "Named async function or a noncapturing callback returning Task<Response>."
         }
       ],
-      "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response. Captured handler state is not supported in this slice.\n\n```tsrust\napp.options(\"/\", handle);\n```\n\nOwnership: mutates the app; each invocation receives its own owned Request.",
+      "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response.\n\n```tsrust\napp.options(\"/\", handle);\n```\n\nConcurrent requests may borrow retained state read-only across await. The handler must own its captures and cannot mutate or consume them. Supported state includes owned configuration and concurrent SQL pools, HTTP clients or async senders. Caller loans, program state, callbacks, local caches and request/body resources cannot be retained. Shutdown drains requests before releasing handlers.\n\nOwnership: mutates the app; each invocation receives its own owned Request.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();app.options(\"/\", handle);console.log('ok');}",
@@ -10921,7 +10921,7 @@
           "documentation": "Named async function or a noncapturing callback returning Task<Response>."
         }
       ],
-      "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response. Captured handler state is not supported in this slice.\n\n```tsrust\napp.route(\"GET\", \"/\", handle);\n```\n\nOwnership: mutates the app; each invocation receives its own owned Request.",
+      "documentation": "Registers a route before listening. Literal paths outrank parameter paths. Parameters remain strings. Duplicate method/path ownership, conflicting parameter names, malformed paths and catch-alls throw HttpError code route. GET also reserves HEAD. Handler failures produce a generic 500; catch errors in the handler for an application-defined response.\n\n```tsrust\napp.route(\"GET\", \"/\", handle);\n```\n\nConcurrent requests may borrow retained state read-only across await. The handler must own its captures and cannot mutate or consume them. Supported state includes owned configuration and concurrent SQL pools, HTTP clients or async senders. Caller loans, program state, callbacks, local caches and request/body resources cannot be retained. Shutdown drains requests before releasing handlers.\n\nOwnership: mutates the app; each invocation receives its own owned Request.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();app.route(\"GET\", \"/\", handle);console.log('ok');}",
@@ -10936,10 +10936,10 @@
       "parameters": [
         {
           "label": "middleware: (request: Request, next: Next) => Task<Response>",
-          "documentation": "Noncapturing callback or named async function."
+          "documentation": "Named async function or owned callback with read-only retained state."
         }
       ],
-      "documentation": "Registers global middleware in entry order and reverse response order, including 404 and 405 responses. Registration order relative to routes does not omit routes. Middleware may return early; Next.run consumes its downstream capability at most once.\n\n```tsrust\napp.use(checkRequest);\n```\n\nOwnership: mutates the app; request and Next transfer into each invocation.",
+      "documentation": "Registers global middleware in entry order and reverse response order, including 404 and 405 responses. Registration order relative to routes does not omit routes. Middleware may return early; Next.run consumes its downstream capability at most once.\n\n```tsrust\napp.use(checkRequest);\n```\n\nConcurrent requests may borrow retained state read-only across await. The handler must own its captures and cannot mutate or consume them. Supported state includes owned configuration and concurrent SQL pools, HTTP clients or async senders. Caller loans, program state, callbacks, local caches and request/body resources cannot be retained. Shutdown drains requests before releasing handlers.\n\nOwnership: mutates the app; request and Next transfer into each invocation.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();app.use((input:Request,next:Next):Task<Response>=>next.run(input));console.log('ok');}",
@@ -10954,10 +10954,10 @@
       "parameters": [
         {
           "label": "handler: (request: Request) => Task<Response>",
-          "documentation": "Noncapturing callback or named async function."
+          "documentation": "Named async function or owned callback with read-only retained state."
         }
       ],
-      "documentation": "Replaces the missing-route handler. Global middleware still runs. Does not replace 405 responses. Defaults to a plain 404 response when no fallback is registered.\n\n```tsrust\napp.fallback(handle);\n```\n\nOwnership: mutates the app and retains the handler.",
+      "documentation": "Replaces the missing-route handler. Global middleware still runs. Does not replace 405 responses. Defaults to a plain 404 response when no fallback is registered.\n\n```tsrust\napp.fallback(handle);\n```\n\nConcurrent requests may borrow retained state read-only across await. The handler must own its captures and cannot mutate or consume them. Supported state includes owned configuration and concurrent SQL pools, HTTP clients or async senders. Caller loans, program state, callbacks, local caches and request/body resources cannot be retained. Shutdown drains requests before releasing handlers.\n\nOwnership: mutates the app and retains the handler.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const app=new App();app.fallback(handle);console.log('ok');}",

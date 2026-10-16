@@ -34,10 +34,10 @@ impl Emitter<'_>{
     let names=if binding.name=="__use"{vec!["request","next"]}else{vec!["request"]};
     let inputs=names.iter().zip(&closure.parameters).map(|(name,id)|match closure.function.bindings[*id].mode{Mode::Read=>format!("&{name}"),Mode::Mutate=>format!("&mut {name}"),_=>name.to_string()}).collect::<Vec<_>>().join(",");
     let unwrap=if self.result_closures.borrow().contains_key(&origin){"let task=match task{Ok(task)=>task,Err(_)=>return tsrust_native_http::failed()};"}else{""};
-    let callback=format!("move|{}|{{let task=callback.call({inputs});async move{{{unwrap}match {poll}{{Ok(response)=>response,Err(_)=>tsrust_native_http::failed()}}}}}}",names.iter().map(|name|format!("mut {name}")).collect::<Vec<_>>().join(","));
+    let callback=format!("move|{}|{{let callback=std::sync::Arc::clone(&callback);async move{{let task=callback.call({inputs});{unwrap}match {poll}{{Ok(response)=>response,Err(_)=>tsrust_native_http::failed()}}}}}}",names.iter().map(|name|format!("mut {name}")).collect::<Vec<_>>().join(","));
     let registration=if binding.name=="__route"{format!("app.route(method,path,{callback})")}else{format!("app.{}({callback})",if binding.name=="__use"{"use_middleware"}else{"fallback"})};
     let route_args=if binding.name=="__route"{format!("let method={};let path={};",values[1],values[2])}else{String::new()};
-    format!("{{let app={receiver};{route_args}let callback={};{registration}}}",values[index])
+    format!("{{let app={receiver};{route_args}let callback=std::sync::Arc::new({});{registration}}}",values[index])
    },
    "__listen"=>if args.len()==2{format!("({receiver}).listen({}).await",values[1])}else{format!("{{let app={receiver};let address={};let tls={};app.listen_tls(address,tls.field0.as_ref(),tls.field1.as_ref()).await}}",values[1],values[2])},
    "__wait"=>format!("{{({receiver}).wait().await;Ok::<_,tsrust_native_http::Error>(())}}"),

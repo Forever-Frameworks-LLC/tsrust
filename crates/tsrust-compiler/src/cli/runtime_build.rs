@@ -1,6 +1,14 @@
 //! Shared runtime build preparation; callers own subprocess supervision.
 use std::{fs,path::{Path,PathBuf},process::Command};
 use tsrust_compiler::{native_cache::NativeCache,native_runtime};
+fn artifact_override(key:&str)->bool {
+ key.starts_with("CARGO_PROFILE_") || (key.starts_with("CARGO_BUILD_") && key!="CARGO_BUILD_JOBS") || key.starts_with("CARGO_TARGET_") || matches!(key,"RUSTFLAGS"|"CARGO_ENCODED_RUSTFLAGS"|"RUSTC"|"RUSTC_WRAPPER"|"RUSTC_WORKSPACE_WRAPPER")
+}
+#[test]
+fn runtime_build_preserves_scheduling_limits_but_rejects_artifact_overrides(){
+ assert!(!artifact_override("CARGO_BUILD_JOBS"));
+ for key in ["CARGO_BUILD_RUSTFLAGS","CARGO_BUILD_TARGET","CARGO_PROFILE_DEV_OPT_LEVEL","CARGO_TARGET_AARCH64_APPLE_DARWIN_RUSTFLAGS","RUSTFLAGS","RUSTC_WRAPPER"] {assert!(artifact_override(key),"{key}");}
+}
 pub(crate) struct Prepared {
  pub application:PathBuf,
  pub library:Option<PathBuf>,
@@ -49,7 +57,8 @@ impl Prepared {
    .arg("--config").arg(package.join(".cargo/config.toml")).arg("--target-dir").arg(&target).env("CARGO_INCREMENTAL","0").env("CARGO_HOME",temporary.join("cargo-home"));
   // Compiler-owned support must not inherit user Cargo profiles or wrappers:
   // those would change artifacts without changing the verified cache identity.
-  for (name,_) in std::env::vars_os() {let key=name.to_string_lossy();if key.starts_with("CARGO_PROFILE_") || key.starts_with("CARGO_BUILD_") || key.starts_with("CARGO_TARGET_") || matches!(key.as_ref(),"RUSTFLAGS"|"CARGO_ENCODED_RUSTFLAGS"|"RUSTC"|"RUSTC_WRAPPER"|"RUSTC_WORKSPACE_WRAPPER") {command.env_remove(name);}}
+  // The job limit only controls scheduling, so retain the caller's memory bound.
+  for (name,_) in std::env::vars_os() {if artifact_override(&name.to_string_lossy()) {command.env_remove(name);}}
   if runtime.contains("pub mod tsrust_native_threads {") || runtime.contains("pub use rayon;") { command.args(["--features", "threads"]); }
   if runtime.contains("pub mod tsrust_native_futures {") {command.args(["--features","async"]);}
   if runtime.contains("pub mod tsrust_native_http {"){command.args(["--features","http"]);}

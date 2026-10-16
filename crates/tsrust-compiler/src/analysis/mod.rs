@@ -453,6 +453,7 @@ type CallbackMetadata = (Option<Mode>, bool, Option<CallbackKind>);
 
 #[derive(Clone)]
 struct Context {
+    http_retained_state: bool,
     task_body: bool,
     task_owned_inputs: Option<Box<HashSet<usize>>>,
     block_result_type: Type,
@@ -546,6 +547,7 @@ impl Context {
             native_task_constructions: None,
             native_shadowed_bindings: None,
             task_owned_inputs: None,
+            http_retained_state: false,
             task_body: false,
             native_view_results: None,
             native_view_function_returns: None,
@@ -840,6 +842,7 @@ struct Analyzer {
     record_parameter_replacements: HashMap<usize,Vec<(usize,Vec<String>,Type)>>,
     scoped_records: crate::scoped_record_layout::Registry,
     escaping: HashSet<usize>,
+    http_handler_origins: HashSet<usize>,
     discovering_results: bool,
     discovering_function: Option<usize>,
     result_dependents: HashMap<usize, HashSet<usize>>,
@@ -1700,6 +1703,7 @@ impl Analyzer {
             record_parameter_replacements: HashMap::new(),
             scoped_records: Default::default(),
             escaping,
+            http_handler_origins: HashSet::new(),
             discovering_results: false,
             discovering_function: None,
             result_dependents: HashMap::new(),

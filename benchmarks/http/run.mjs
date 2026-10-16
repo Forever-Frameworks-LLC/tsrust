@@ -7,9 +7,10 @@ import { fileURLToPath } from 'node:url';
 const root=path.dirname(fileURLToPath(import.meta.url));
 const compiler=process.env.TSRUST;
 if(!compiler) throw new Error('Set TSRUST to the verified compiler.');
-if(process.argv.slice(2).some(arg=>!['--verify','--tls'].includes(arg))) throw new Error('Unknown option.');
+if(process.argv.slice(2).some(arg=>!['--verify','--tls','--state'].includes(arg))) throw new Error('Unknown option.');
 const verify=process.argv.includes('--verify');
-const workload=process.argv.includes('--tls')?'https':'loopback';
+if(process.argv.includes('--tls')&&process.argv.includes('--state')) throw new Error('Choose one workload.');
+const workload=process.argv.includes('--state')?'retained-state':process.argv.includes('--tls')?'https':'loopback';
 if(process.version!=='v24.11.1') throw new Error('Node v24.11.1 is required.');
 const project=path.resolve(root,'../..');
 const tsc=path.join(project,'benchmarks/runtime/node_modules/typescript/bin/tsc');
@@ -18,6 +19,7 @@ const run=(command,args)=>execFileSync(command,args,{encoding:'utf8',timeout:300
 try {
  const source=path.join(root,`${workload}.tsr`);
  const counterpart=path.join(root,`${workload}.ts`);
+ if(workload==='retained-state'){const {assertStateSource}=await import('./state-contract.mjs');const manifest=JSON.parse(fs.readFileSync(path.join(root,'state-manifest.json'),'utf8'));assertStateSource(fs.readFileSync(source,'utf8'),manifest,'native');assertStateSource(fs.readFileSync(counterpart,'utf8'),manifest,'typescript');}
  const probe=text=>verify?text.replace(/warmup < 8/g,'warmup < 0').replace(/sample < 31/g,'sample < 1'):text;
  const input=path.join(scratch,'native.tsr');
  fs.writeFileSync(input,probe(fs.readFileSync(source,'utf8')));

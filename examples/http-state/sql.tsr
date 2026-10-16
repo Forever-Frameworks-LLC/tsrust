@@ -1,0 +1,40 @@
+import { App, Client, Request, Response, request, text } from 'std:http';
+import { allSettled } from 'std:futures';
+import { Pool, connect } from 'std:sql';
+import { strictEqual } from 'std:testing';
+
+
+async function greet(pool: ReadOnly<Pool>, input: Request): Task<Response> {
+  const rows = await pool.query('SELECT 42 AS value');
+  return text(unwrap(rows[0].int('value')).toString());
+}
+
+function routes(pool: Owned<Pool>): App {
+  const app = new App();
+  app.get('/greet', (input: Request) => greet(pool, input));
+  return app;
+}
+
+async function read(base: string): Task<string> {
+  const client = new Client();
+  const response = await client.send(request('GET', base + '/greet', ''));
+  strictEqual(response.status(), 200);
+  return await response.text();
+}
+
+async function main(): Task<void> {
+  const pool = await connect('sqlite::memory:', 2);
+  const app = routes(pool);
+  const server = await app.listen('127.0.0.1:0');
+  const base = 'http://' + server.address();
+  const replies = await allSettled([read(clone(base)).start(), read(base).start()]);
+  while (replies.length > 0) {
+    const reply = replies.pop();
+    if (reply !== undefined) {
+      strictEqual(unwrap(reply), '42');
+    }
+  }
+
+  await server.shutdown();
+  console.log('HTTP retained SQL pool accepted');
+}

@@ -91,6 +91,7 @@ impl Analyzer {
         visible.sort_unstable();
         visible.dedup();
         let mut context = capture_context::project(outer, &visible);
+        context.http_retained_state = self.http_handler_origins.contains(&origin);
         capture_context::retain_module_references(&mut context, &self.program.module_owner_bindings);
         // Preserve lexical aliases as well as binding declaration names. Adapter
         // wrappers introduce a private alias to avoid parameter-name shadowing.

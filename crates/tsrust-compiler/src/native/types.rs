@@ -80,7 +80,7 @@ static HTTPBODY: Declaration = Declaration {id:NativeTypeId::HttpBody,module:"st
 static HTTPCLIENT: Declaration = Declaration {id:NativeTypeId::HttpClient,module:"std:http",name:"Client",type_parameters:&[],thread_transfer:true,..THREAD};
 static HTTPSERVER: Declaration = Declaration {id:NativeTypeId::HttpServer,module:"std:http",name:"Server",type_parameters:&[],thread_transfer:true,..THREAD};
 static HTTPNEXT: Declaration = Declaration {id:NativeTypeId::HttpNext,module:"std:http",name:"Next",type_parameters:&[],thread_transfer:true,..THREAD};
-static HTTPERROR:Declaration=Declaration{id:NativeTypeId::HttpError,module:"std:http",name:"HttpError",..SPAWN_ERROR};
+static HTTPERROR:Declaration=Declaration{id:NativeTypeId::HttpError,module:"std:http",name:"HttpError",independent_clone:true,..SPAWN_ERROR};
 
 static HTTPTLSOPTIONS: Declaration = Declaration {id:NativeTypeId::HttpTlsOptions,module:"std:http",name:"TlsOptions",fields:&[
  Field{name:"cert",signature:Signature::String,optional:false},Field{name:"key",signature:Signature::String,optional:false},

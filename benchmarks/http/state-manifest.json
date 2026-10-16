@@ -1,0 +1,10 @@
+{
+  "id": "http-retained-state",
+  "implementationAccepted": true,
+  "measurementStatus": "unmeasured",
+  "requestsPerBatch": 128,
+  "source": "retained-state.tsr",
+  "counterpart": "retained-state.ts",
+  "sourceSha256": "08e1d0e6242db9609722fde9439f0d078c402c0b5192b8c1f22e0348f7eebc25",
+  "counterpartSha256": "7db54f71812a5d591df191a4ec803cb7d0200d5939ef6c3eab2d1ebe46846c20"
+}

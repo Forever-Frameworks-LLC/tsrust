@@ -3,14 +3,25 @@
 
 ## Current acceptance and continuation — 2026-10-16
 
+S21 retained read-only HTTP state now passes focused acceptance: owned configuration
+and SQL pools, routes/middleware/fallback, suspension and exact-once destruction,
+compiler/editor agreement, all three SQL drivers, and matched untimed HTTP state
+checks. CLI and both editor consumers are refreshed; the active editor reports no
+problems after restart. Native support builds now preserve `CARGO_BUILD_JOBS` to
+respect the caller's memory limit. Exact logs and workload records are in SQLite
+under `tsrust-http-state-*` and `benchmarks/http/retained-state-*-verify.json`.
+Continue shared cache integration, then migrations/recovery and remaining S21
+requirements in `docs/plans/service-readiness-plan.md`. Full S21 acceptance and
+its timing milestone remain open. Do not repeat accepted S19/S20 regressions.
+
 Exact decimals now pass focused macOS acceptance: `std:decimal.parseDecimal`,
 exact bounded arithmetic, checked conversions, explicit cloning and worker
 transport, editor agreement/help, 13 native catalog examples, offline package
 export and matched untimed money checks. See `docs/data-type-coverage.md`.
 Installed CLI/LSP consumers are refreshed; open decimal examples report no
 problems after the active server restart. SQLite holds `tsrust-decimal-*` evidence.
-Current CLI SHA-256: `d303118627f623d19e0c84bf0037de28edf12dc3638132854a17c7952ad8edbb`.
-Current LSP SHA-256: `d718478ca6618be3bdd746e823c0b3790e75b6af8f109c031e2f0a2e540f4ed6`.
+Current CLI SHA-256: `0d75ff6b75f4f0c0798fc89f1b6fe58ac5b69a50ea976071b4f5927c0e3575f0`.
+Current LSP SHA-256: `57012d4e5f0f37877d8c640a099f40d012286e394dd07f4cd9bb577d5549d592`.
 The `std:date` calendar section now passes focused acceptance: validated Date,
 parseDate/formatDate, date-fns-style immutable arithmetic, bounded formatting,
 editor agreement, 15 catalog examples, offline export and matched untimed date-fns

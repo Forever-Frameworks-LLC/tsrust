@@ -2769,6 +2769,12 @@ impl Emitter<'_> {
                 self.callback_result_adapters(&mut output,index,&params,&arguments,&forwarded,&impl_lifetimes,&lifetime,&native_result);
                 continue;
             }
+            // HTTP retains this receiver while polling its borrowed task. The
+            // ordinary callback traits cannot express a result borrowing self.
+            if let Type::Closure(result)=closure.function.result
+                && self.program.task_origins.contains(&result)
+                && self.program.closures[result].borrowed
+                && closure.captures.iter().any(|capture|capture.storage==Mode::Consume) {continue;}
             if self.callback_traits || self.program.task_origins.contains(&index) {
                 let result = native_result.clone();
                 let task_trait=if asynchronous.is_empty(){"OnceCallback"}else{"TaskCallback"};

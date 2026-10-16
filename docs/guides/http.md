@@ -17,8 +17,10 @@ Handlers take an owned `Request` and return `Task<Response>`. Middleware takes
 `Request` and `Next`. It can return early or await `next.run(request)` once, then
 change response headers. Middleware runs in registration order and unwinds in
 reverse order, including missing routes and wrong methods. All `use` calls apply
-to every route regardless of registration order. Captured handler state is
-currently rejected; no hidden shared mutable state is introduced.
+to every route regardless of registration order. Handlers may own read-only retained configuration and supported concurrent
+pools/clients/senders. Each request retains that owner across await. Mutable or
+consuming captures, caller loans, program state, local caches and request resources
+are rejected. See [retained state](../../examples/http-state/README.md).
 
 `get`, `post`, `put`, `patch`, `delete`, `head`, `options` and `route` register
 literal paths with optional `:name` segments. Literal paths outrank parameters.

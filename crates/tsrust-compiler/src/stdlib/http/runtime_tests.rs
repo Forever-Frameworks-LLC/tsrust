@@ -156,3 +156,24 @@ fn tls_negotiates_http_versions_and_cancellation_drains_children(){
  });
  assert_eq!(drops.load(Ordering::SeqCst),1);
 }
+
+#[test]
+fn retained_callback_state_outlives_requests_and_drops_once_after_shutdown(){
+ use std::sync::{Arc,atomic::{AtomicUsize,Ordering}};
+ struct State{drops:Arc<AtomicUsize>,entered:Arc<tokio::sync::Notify>,pending:bool}
+ impl State{async fn call(&self,_request:Request)->Response{self.entered.notify_one();if self.pending{std::future::pending::<()>().await;}Response::text("retained".into(),200).unwrap()}}
+ impl Drop for State{fn drop(&mut self){self.drops.fetch_add(1,Ordering::SeqCst);}}
+ for pending in [false,true]{
+  let drops=Arc::new(AtomicUsize::new(0));let observed=drops.clone();
+  tsrust_native_futures::block_on(async move{
+   let entered=Arc::new(tokio::sync::Notify::new());let callback=Arc::new(State{drops:observed.clone(),entered:entered.clone(),pending});
+   let mut app=App::new();app.route("GET","/",move|request|{let callback=Arc::clone(&callback);async move{callback.call(request).await}}).unwrap();
+   let server=app.listen("127.0.0.1:0").await.unwrap();let url=format!("http://{}/",server.address());
+   let job=tsrust_native_futures::start(async move{let response=Client::new().unwrap().send(Request::new("GET",&url,String::new()).unwrap()).await;Ok::<_,tsrust_native_futures::Failure<()>>(response.is_ok())});
+   tokio::time::timeout(std::time::Duration::from_secs(2),entered.notified()).await.unwrap();assert_eq!(observed.load(Ordering::SeqCst),0);
+   if pending{job.cancel();assert!(matches!(job.join().await,Err(tsrust_native_futures::Failure::Cancelled)));}else{assert!(matches!(job.join().await,Ok(true)));}
+   assert_eq!(observed.load(Ordering::SeqCst),0);server.shutdown().await;
+  });
+  assert_eq!(drops.load(Ordering::SeqCst),1);
+ }
+}
