@@ -9,8 +9,8 @@ transport, editor agreement/help, 13 native catalog examples, offline package
 export and matched untimed money checks. See `docs/data-type-coverage.md`.
 Installed CLI/LSP consumers are refreshed; open decimal examples report no
 problems after the active server restart. SQLite holds `tsrust-decimal-*` evidence.
-Current CLI SHA-256: `239ceefd775f07ad0da4667539f86c52aa8bad33c94b9c29c34259d4bed6152c`.
-Current LSP SHA-256: `8a1bc3e304eb3dee785b6204c20080307dadfa78c6287d1122238813e0da7ad5`.
+Current CLI SHA-256: `b225cbf412bea13c30d9a12db36e8d16a452666b180281ac3a23f92b5f721de6`.
+Current LSP SHA-256: `9b54b6f54f9a13511ecdfc52f01d50f64a65f8776dc869d38c9898170fca6b61`.
 The `std:date` calendar section now passes focused acceptance: validated Date,
 parseDate/formatDate, date-fns-style immutable arithmetic, bounded formatting,
 editor agreement, 15 catalog examples, offline export and matched untimed date-fns
@@ -42,9 +42,12 @@ cache API and the restarted active editor has no problems. The serialized loadin
 integration now passes focused cancellation, closed-client, independent drop and
 Node counterpart checks. Cache matrix/agreement gaps and two native emission
 defects are repaired; see the current section in `docs/plans/cache-plan.md`.
-General bounded loading/shutdown and the S19 family milestone remain open. Finish S19 concurrent
-loading/stampede policy and its family milestone, then continue S20 queues and S21
-service acceptance now. No new permission checkpoint is needed. The owner prefers date-fns: use small
+Bounded loading/shutdown now passes with pre-registered clients, explicit completion,
+closed-reply handling and a group deadline. Owned Task capture metadata and deferred
+exception assignment are repaired with focused ownership/drop witnesses. S19
+implementation acceptance is complete within its serialized-loading limits.
+Continue S20 queues now, then run one shared S19/S20 owned-coordination regression
+and performance milestone before S21 service acceptance. No new permission checkpoint is needed. The owner prefers date-fns: use small
 named immutable functions and familiar arithmetic/formatting names, while keeping
 checked ranges, precision and explicit DST ambiguity handling. The bounded Rust/SQL
 boundary witnesses are accepted; proceed without another go-ahead.

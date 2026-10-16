@@ -11,12 +11,16 @@ impl Index {
         let mut index=Self::default();
         for function in program.functions.iter().chain(program.closures.iter().flat_map(|closure|std::iter::once(&closure.function).chain(closure.methods.iter().map(|method|&method.function)))) {
             let mut slots=HashSet::new();
+            let mut deferred=HashSet::new();
+            let mut has_exception_region=false;
             let mut partial=HashSet::new();
             let mut boundaries=HashMap::<usize,usize>::new();
             let mut pending=function.body.iter().map(|statement|(statement,None)).collect::<Vec<_>>();
             while let Some((statement,cleanup))=pending.pop() {
                 match &statement.kind {
+                    StmtKind::Let{value,binding:Some(slot),..} if value.is_deferred()=>{deferred.insert(*slot);},
                     StmtKind::Try(region)=>{
+                        has_exception_region=true;
                         let guarded=region.finally.as_ref().map(|_|statement.span.end).or(cleanup);
                         pending.extend(region.body.iter().map(|statement|(statement,guarded)));
                         if let Some(handler)=&region.catch {pending.extend(handler.body.iter().map(|statement|(statement,guarded)));}
@@ -41,11 +45,14 @@ impl Index {
                 }
             }
             if !partial.is_empty(){index.1.insert(function as *const CheckedFunction as usize,partial);}
-            if slots.is_empty(){continue;}
+            if slots.is_empty() && (!has_exception_region || deferred.is_empty()){continue;}
             let expressions=crate::error_effects::checked_expressions(function);
             slots.retain(|root|expressions.iter().any(|value|value.span.start>=boundaries[root]
                 && (value.binding==Some(*root) || matches!(value.kind,ExprKind::Closure{..})
                     && value.closure_origin().or_else(||match value.ty {Some(crate::syntax::Type::Closure(id))=>Some(id),_=>None}).is_some_and(|id|program.closures[id].captures.iter().any(|capture|capture.outer==*root)))));
+            // Rust cannot recover definite assignment through the completion enum.
+            // Reuse initialized slots; source checking still proves every read.
+            if has_exception_region {slots.extend(deferred);}
             if !slots.is_empty(){index.0.insert(function as *const CheckedFunction as usize,slots);}
         }
         index

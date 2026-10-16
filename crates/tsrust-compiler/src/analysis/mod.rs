@@ -5097,8 +5097,13 @@ impl Analyzer {
                 let Type::Closure(origin) = actual else { unreachable!("task environment") };
                 // A task owns its environment even when its body only reads it.
                 self.closures[origin].invocation=Mode::Consume;
-                let owned=self.closures[origin].captures.iter().filter(|capture|capture.storage==Mode::Consume).map(|capture|capture.inner).collect::<Vec<_>>();
-                for id in owned {self.closures[origin].function.bindings[id].mode=Mode::Consume;}
+                let owned=self.closures[origin].captures.iter().filter(|capture|capture.storage==Mode::Consume).map(|capture|(capture.inner,capture.access)).collect::<Vec<_>>();
+                for (id,access) in owned {
+                    let binding=&mut self.closures[origin].function.bindings[id];
+                    binding.mode=Mode::Consume;
+                    binding.capture_reference=false;
+                    binding.mutable|=access==Mode::Mutate;
+                }
                 self.task_origins.insert(origin);
                 let origin = self.once_return(origin, context, expr.span);
                 self.task_origins.insert(origin);

@@ -886,7 +886,7 @@ impl Emitter<'_> {
                 (Mode::Mutate, Mode::Mutate) => "&mut *",
                 _ => "",
             }};
-            let mutable = if (binding.mutable || (capture.storage == Mode::Consume && capture.access == Mode::Mutate) || self.finally_moves.partial_root(&checked.function,slot)) && (!binding.capture_reference || capture.storage == Mode::Consume) {
+            let mutable = if (binding.mutable || self.finally_moves.partial_root(&checked.function,slot)) && !binding.capture_reference {
                 "mut "
             } else {
                 ""
@@ -2614,7 +2614,7 @@ impl Emitter<'_> {
                     (Mode::Mutate, Mode::Mutate) => "&mut *",
                     _ => "",
                 }};
-                let mutable = if (binding.mutable || (capture.storage == Mode::Consume && capture.access == Mode::Mutate) || self.finally_moves.partial_root(&closure.function,capture.inner)) && (!binding.capture_reference || capture.storage == Mode::Consume) {
+                let mutable = if (binding.mutable || self.finally_moves.partial_root(&closure.function,capture.inner)) && !binding.capture_reference {
                     "mut "
                 } else {
                     ""
@@ -6846,6 +6846,7 @@ impl Emitter<'_> {
         if self.restored_capture(fun,index) {
             return match mode {
                 Mode::Consume=>format!("value{index}.take().expect(\"initialized capture\")"),
+                Mode::Copy if b.ty.is_copy()=>format!("*value{index}.as_ref().expect(\"initialized capture\")"),
                 Mode::Read|Mode::Copy=>format!("value{index}.as_ref().expect(\"initialized capture\")"),
                 Mode::Mutate=>format!("value{index}.as_mut().expect(\"initialized capture\")"),
             };

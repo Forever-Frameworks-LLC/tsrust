@@ -5,6 +5,7 @@ import { strictEqual } from 'std:testing';
 type Request = {
   client: int;
   key: string;
+  done: boolean;
 };
 
 type Reply = {
@@ -21,11 +22,61 @@ async function load(key: string): Task<Result<string, string>> {
   return Ok('loaded:' + key);
 }
 
-async function serve(requests: Channel<Request>, first: Sender<Reply>, second: Sender<Reply>): Task<int> {
+async function deliver(sender: ReadOnly<Sender<Reply>>, reply: Reply): Task<void> {
+  try {
+    await sender.send(reply);
+  } catch (error) {
+    if (error.code !== 'closed') {
+      throw error;
+    }
+  }
+}
+
+async function receiveRequest(requests: ReadOnly<Channel<Request>>): Task<Request | undefined> {
+  try {
+    return await requests.receive();
+  } catch (error) {
+    if (error.code !== 'closed') {
+      throw error;
+    }
+
+    return undefined;
+  }
+}
+
+async function serve(requests: Channel<Request>, replies: Sender<Reply>[]): Task<int> {
   const cache = new LruCache<string, string>(2);
   let loads = 0;
-  for (let count = 0; count < 6; count++) {
-    const request = await requests.receive();
+  const finished = new Set<int>();
+  if (replies.length === 0) {
+    requests.close();
+  }
+
+  let receiving = true;
+  while (receiving) {
+    const request = await receiveRequest(requests);
+    if (request === undefined) {
+      receiving = false;
+      break;
+    }
+
+    if (request.client < 0 || request.client >= replies.length) {
+      throw 'invalid cache client';
+    }
+
+    if (finished.has(request.client)) {
+      throw 'cache client already finished';
+    }
+
+    if (request.done) {
+      finished.add(request.client);
+      if (finished.size === replies.length) {
+        requests.close();
+      }
+
+      continue;
+    }
+
     let value = '';
     let found = false;
     {
@@ -52,70 +103,57 @@ async function serve(requests: Channel<Request>, first: Sender<Reply>, second: S
     const reply: Reply = {
       value, loads
     };
-    if (request.client === 0) {
-      await first.send(reply);
-    } else {
-      await second.send(reply);
-    }
+    await deliver(replies[request.client], reply);
   }
 
-  requests.close();
   cache.clear();
   return loads;
 }
 
 async function client(id: int, requests: Sender<Request>, replies: Channel<Reply>): Task<int> {
   const request: Request = {
-    client: id, key: 'shared'
+    client: id, key: 'shared', done: false
   };
   await requests.send(request);
   const first = await replies.receive();
   strictEqual(first.value, 'loaded:shared');
   const again: Request = {
-    client: id, key: 'shared'
+    client: id, key: 'shared', done: false
   };
   await requests.send(again);
   const second = await replies.receive();
   strictEqual(second.value, 'loaded:shared');
   const failure: Request = {
-    client: id, key: 'failure'
+    client: id, key: 'failure', done: false
   };
   await requests.send(failure);
   const failed = await replies.receive();
   strictEqual(failed.value, 'failed');
+  const done: Request = {
+    client: id, key: '', done: true
+  };
+  await requests.send(done);
   replies.close();
   return 0;
 }
 
-async function replyToClosedClient(reply: Sender<string>): Task<int> {
-  const cache = new LruCache<int, string>(1);
-  unwrap(cache.set(1, 'loaded'));
-  let value = '';
-  {
-    const cached = cache.get(1);
-    if (cached !== undefined) {
-      value = clone(cached);
-    }
-  }
-
-  let closed = false;
-  try {
-    await reply.send(value);
-  } catch (error) {
-    strictEqual(error.code, 'closed');
-    closed = true;
-  }
-
-  strictEqual(closed, true);
-  cache.clear();
-  return 1;
-}
-
 async function checkClientDeparture(): Task<void> {
-  const replies = new Channel<string>(1);
+  const replies = new Channel<Reply>(1);
   const sender = replies.sender();
   replies.close();
-  strictEqual(await replyToClosedClient(sender).start(), 1);
+  const requests = new Channel<Request>(2);
+  const request: Request = {
+    client: 0, key: 'abandoned', done: false
+  };
+  const done: Request = {
+    client: 0, key: '', done: true
+  };
+  await requests.send(request);
+  await requests.send(done);
+  strictEqual(await serve(requests, [sender]).start().timeout(5000), 1);
+  const empty = new Channel<Request>(1);
+  const nobody: Sender<Reply>[] = [];
+  strictEqual(await serve(empty, nobody).start().timeout(5000), 0);
 }
 
 async function blockedLoader(ready: Sender<int>): Task<void> {
@@ -151,14 +189,27 @@ async function main(): Task<void> {
   const requests = new Channel<Request>(2);
   const first = new Channel<Reply>(1);
   const second = new Channel<Reply>(1);
+  const afterClose = requests.sender();
   const firstRequests = requests.sender();
   const secondRequests = requests.sender();
   const firstReplies = first.sender();
   const secondReplies = second.sender();
-  const outcomes = await allSettled([serve(requests, firstReplies, secondReplies).start(), client(0, firstRequests, first).start(), client(1, secondRequests, second).start()]);
+  const outcomes = await allSettled([serve(requests, [firstReplies, secondReplies]).start(), client(0, firstRequests, first).start(), client(1, secondRequests, second).start()]).timeout(5000);
   strictEqual(unwrap(clone(outcomes[0])), 3);
   strictEqual(unwrap(clone(outcomes[1])), 0);
   strictEqual(unwrap(clone(outcomes[2])), 0);
+  const late: Request = {
+    client: 0, key: 'late', done: false
+  };
+  let closed = false;
+  try {
+    await afterClose.send(late);
+  } catch (error) {
+    strictEqual(error.code, 'closed');
+    closed = true;
+  }
+
+  strictEqual(closed, true);
   await checkCancellation();
   await checkClientDeparture();
   console.log('serialized cache loading accepted');

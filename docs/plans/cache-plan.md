@@ -1,9 +1,9 @@
 # Local caches: S19
 
 S19's local owned cache depends on accepted S08/S09. Concurrent loading,
-stampede prevention and task coordination remain dependent on S14. The local public API now passes focused acceptance; see
-[local acceptance](../milestones/s19-local-cache-acceptance.md). Concurrent loading,
-stampede policy and family measurements remain pending. The backend checkpoint
+stampede prevention and task coordination remain dependent on S14. The local public API and bounded serialized loading now pass focused acceptance; see
+[local acceptance](../milestones/s19-local-cache-acceptance.md). The bounded loading contract below covers stampede policy and shutdown; family
+regressions and measurements remain pending. The backend checkpoint
 sections below retain historical evidence; their earlier next steps are superseded.
 
 ## Owned LRU storage
@@ -212,3 +212,39 @@ S19 remains open: generalize the bounded loading/shutdown contract beyond this
 fixed-client witness, then complete the cache family regressions and scalar LRU
 measurements. No timing has been performed for the new cache workloads. Continue
 S20 and S21 afterward without another permission checkpoint.
+
+## Bounded loading and shutdown acceptance
+
+The current source worker accepts an owned array of pre-registered reply senders,
+with any number of requests per client. Every client sends a completion message.
+After all clients finish, the worker closes the bounded request channel, drains
+to its closed result, clears the cache and returns. Empty client sets close
+immediately. Closed reply channels discard replies without stopping the worker;
+invalid client indices and requests after completion fail explicitly. A group
+deadline bounds clients that never finish. No endpoint travels in a message.
+
+This closes the scoped S19 loading policy: loads are serialized across keys,
+successful same-key requests reuse a retained result, failures retry, replies
+clone explicitly, and cancellation drops owned state before settlement. Parallel
+per-key loads, dynamic endpoint registration, shared promises and external caches
+remain unsupported. The cache itself is still local and non-transferable.
+
+Native acceptance covers two clients, six reads, completion, rejection after
+close, an abandoned reply receiver, an empty client set and cancellation. Compiled
+TypeScript matches reuse, retries, completion and post-close rejection. Two
+borrowed-task regressions and the independent allocation/drop witness pass.
+
+The generalized witness exposed stale capture-reference metadata when a read-only
+closure became an owned Task. Analysis now records the owned representation and
+mutation need; the earlier emitter workaround is removed. Deferred assignment
+across exception transport uses the existing initialized-slot representation.
+Synchronous resource and awaited receive fixtures pass, with exact disposal and
+continued rejection of uninitialized reads. These are representation repairs,
+not changes to cancellation or SQL transaction lifecycle contracts.
+
+Exact `tsrust-cache-drain-*` evidence is retained in SQLite. CLI/LSP consumers are
+refreshed and the restarted editor reports no workspace problems. The broad
+regression and performance milestone is batched with S20 bounded queues as one
+owned-coordination family, before S21 dependencies. This avoids successive full
+passes after closely related packages. S19 implementation acceptance is complete
+within these limits; its family measurement status remains pending.
