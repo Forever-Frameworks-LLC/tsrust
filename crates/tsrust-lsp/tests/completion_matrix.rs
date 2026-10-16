@@ -11,6 +11,8 @@ use support::session::Session;
 /// `every_kind_and_std_module_has_a_row` fails otherwise.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Kind {
+    Crypto,
+    Signals,
     Cache,
     Temporal,
     Date,
@@ -53,7 +55,9 @@ enum Kind {
     MemberPrefix,
 }
 
-const KINDS: [Kind; 40] = [
+const KINDS: [Kind; 42] = [
+    Kind::Crypto,
+    Kind::Signals,
     Kind::Cache,
     Kind::Temporal,
     Kind::Date,
@@ -127,12 +131,14 @@ const TAIL: &str = "\n}\n";
 fn rows() -> Vec<Row> {
     let row = |kind, name, typed, includes, excludes| Row { kind, name, before: HEAD.into(), typed, after: TAIL, includes, excludes, silent: None, needs_check: false };
     let mut rows = vec![
- Row {kind:Kind::Temporal,name:"temporal imports",before:"import { ".into(),typed:"",after:" } from 'std:date';function main(){}",includes:&["parseTime","formatTime","compareTimes","parseISO","formatISO","now","fromUnixMilliseconds","toUnixMilliseconds","fromUnixSeconds","toUnixSeconds","compareInstants","durationFromNanoseconds","durationFromMilliseconds","durationFromSeconds","durationToNanoseconds","durationToMilliseconds","addDurations","subtractDurations","addDuration","difference","parseTimeZone","fixedOffset","zoneName","offsetSeconds","localDate","localTime","resolveDateTime"],excludes:&["setHours"],silent:None,needs_check:false},
+ Row {kind:Kind::Temporal,name:"temporal imports",before:"import { ".into(),typed:"",after:" } from 'std:date';function main(){}",includes:&["parseTime","formatTime","compareTimes","parseISO","formatISO","now","startOfSecond","fromUnixMilliseconds","toUnixMilliseconds","fromUnixSeconds","toUnixSeconds","compareInstants","durationFromNanoseconds","durationFromMilliseconds","durationFromSeconds","durationToNanoseconds","durationToMilliseconds","addDurations","subtractDurations","addDuration","difference","parseTimeZone","fixedOffset","zoneName","offsetSeconds","localDate","localTime","resolveDateTime"],excludes:&["setHours"],silent:None,needs_check:false},
  Row {kind:Kind::Date,name:"calendar imports",before:"import { ".into(),typed:"",after:" } from 'std:date';function main(){}",includes:&["parseDate","formatDate","format","addDays","addMonths","differenceInCalendarDays","compareAsc","isLeapYear","getYear","getMonth","getDate","startOfMonth","endOfMonth"],excludes:&["parse","round"],silent:None,needs_check:false},
  Row {kind:Kind::Cache,name:"cache imports",before:"import { ".into(),typed:"",after:" } from 'std:cache';function main(){}",includes:&["LruCache","CacheEntry","CacheInsertError"],excludes:&["__create"],silent:None,needs_check:false},
  Row {kind:Kind::Cache,name:"cache methods",before:"import {LruCache} from 'std:cache';function probe(cache:LruCache<int,string>){".into(),typed:"cache.",after:"clear();}function main(){}",includes:&["get","peek","set","remove","size","clear"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
  Row {kind:Kind::Cache,name:"cache entry",before:"import {CacheEntry} from 'std:cache';function probe(entry:ReadOnly<CacheEntry<int,string>>){".into(),typed:"entry.",after:"key;}function main(){}",includes:&["key","value"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
  Row {kind:Kind::Cache,name:"cache insertion error",before:"import {CacheInsertError} from 'std:cache';function probe(error:ReadOnly<CacheInsertError<int,string>>){".into(),typed:"error.",after:"code;}function main(){}",includes:&["code","key","value"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+ Row {kind:Kind::Crypto,name:"crypto imports",before:"import { ".into(),typed:"",after:" } from 'std:crypto';function main(){}",includes:&["randomBytes","sha256","timingSafeEqual"],excludes:&["md5"],silent:None,needs_check:false},
+ Row {kind:Kind::Signals,name:"signal imports",before:"import { ".into(),typed:"",after:" } from 'std:signals';function main(){}",includes:&["listen","receive","SignalListener"],excludes:&["kill"],silent:None,needs_check:false},
  Row {kind:Kind::Uuid,name:"uuid imports",before:"import { ".into(),typed:"",after:" } from 'std:uuid';function main(){}",includes:&["parseUuid","formatUuid","fromBytes","toBytes","compare","version","randomUuid"],excludes:&["parse","round"],silent:None,needs_check:false},
  Row {kind:Kind::Decimal,name:"decimal imports",before:"import { ".into(),typed:"",after:" } from 'std:decimal';function main(){}",includes:&["parseDecimal","fromInt","format","formatFixed","add","subtract","multiply","divideExact","compare","toInt","toNumber"],excludes:&["parse","round"],silent:None,needs_check:false},
  Row {kind:Kind::Date,name:"calendar error",before:"import {DateError} from 'std:date';function probe(error:ReadOnly<DateError>){".into(),typed:"error.",after:"code;}function main(){}",includes:&["code","message"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
@@ -153,7 +159,7 @@ fn rows() -> Vec<Row> {
         Row {kind:Kind::Sql,name:"SQL indexed row",before:"import {connect} from 'std:sql';async function main():Task<void>{const db=await connect('sqlite::memory:',1);const rows=await db.query('SELECT 1 AS id');".into(),typed:"rows[0].",after:";}",includes:&["int","number","text","blob","isNull"],excludes:&["push","map","length"],silent:None,needs_check:true},
         Row {kind:Kind::Sqlite,name:"SQLite connection",before:"import {open} from 'std:sqlite';function main(){const db=unwrap(open(':memory:'));".into(),typed:"db.",after:";}",includes:&["prepare","begin","close"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
         Row {kind:Kind::Sqlite,name:"SQLite indexed row",before:"import {open} from 'std:sqlite';function main(){const db=unwrap(open(':memory:'));const statement=unwrap(db.prepare('SELECT 1 AS id'));const rows=unwrap(statement.query());".into(),typed:"rows[0].",after:";}",includes:&["int","number","text","blob","isNull"],excludes:&["push","map","length"],silent:None,needs_check:true},
-        Row {kind:Kind::Http,name:"HTTP app routes",before:"import {App} from 'std:http';function main(){const app=new App();".into(),typed:"app.",after:";}",includes:&["get","post","use","listen","fallback"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+        Row {kind:Kind::Http,name:"HTTP app routes",before:"import {App} from 'std:http';function main(){const app=new App();".into(),typed:"app.",after:";}",includes:&["get","post","use","listen","fallback","configure"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
         Row {kind:Kind::Job,name:"started job lifecycle",before:"async function answer():Task<int>{return 42;}async function main():Task<void>{const job=answer().start();".into(),typed:"job.",after:";await job;}",includes:&["cancel","timeout"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
         Row {kind:Kind::AsyncChannel,name:"async channel methods",before:"import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(2);".into(),typed:"queue.",after:"close();}",includes:&["sender","send","receive","close"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
         Row {kind:Kind::AsyncSender,name:"async sender methods",before:"import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(2);const sender=queue.sender();await ".into(),typed:"sender.",after:"send(1);}",includes:&["send"],excludes:NOT_MEMBERS,silent:None,needs_check:true},

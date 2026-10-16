@@ -1,0 +1,40 @@
+import { parseISO, startOfSecond, toUnixMilliseconds, formatISO } from 'std:date';
+import { strictEqual } from 'std:testing';
+import { App, request } from 'std:http';
+import { sha256, timingSafeEqual, randomBytes } from 'std:crypto';
+import { fromUtf8, length } from 'std:bytes';
+import { isToken, newToken, tokenHash, matchesToken, sessionCookie, setSessionCookie } from './security.tsr';
+
+export async function verifyContracts(): Task<void> {
+  const beforeEpoch = unwrap(parseISO('1969-12-31T23:59:59.999999999Z'));
+  strictEqual(unwrap(toUnixMilliseconds(startOfSecond(beforeEpoch))), -1000);
+  strictEqual(formatISO(beforeEpoch), '1969-12-31T23:59:59.999999999Z');
+  strictEqual(formatISO(startOfSecond(startOfSecond(beforeEpoch))), '1969-12-31T23:59:59Z');
+
+  strictEqual(length(unwrap(randomBytes(32))), 32);
+  strictEqual(length(sha256(unwrap(fromUtf8('abc')))), 32);
+  strictEqual(timingSafeEqual(unwrap(fromUtf8('abc')), unwrap(fromUtf8('abc'))), true);
+  strictEqual(timingSafeEqual(unwrap(fromUtf8('abc')), unwrap(fromUtf8('ab'))), false);
+  const token = newToken();
+  strictEqual(isToken(token), true);
+  const digest = tokenHash(token);
+  strictEqual(matchesToken(token, digest), true);
+  strictEqual(matchesToken('invalid', digest), false);
+  strictEqual(sessionCookie('a=b; ' + setSessionCookie(clone(token))), clone(token));
+  strictEqual(sessionCookie('__Host-session=' + token + '; __Host-session=' + token), undefined);
+  const app = new App();
+  app.configure({
+    bodyLimit: 1024, maxConnections: 4, maxRequests: 4, requestTimeoutMs: 1000, shutdownTimeoutMs: 1000, handshakeTimeoutMs: 1000, requestsPerSecond: 0
+  });
+  const input = request('POST', 'http://localhost/', 'a=one+two&a=%C3%A9');
+  input.setHeader('content-type', 'application/x-www-form-urlencoded');
+  const fields = await input.form();
+  strictEqual(fields.length, 2);
+  strictEqual(fields[0].value, 'one two');
+  strictEqual(fields[1].value, 'é');
+  console.log('Service contracts accepted');
+}
+
+async function main(): Task<void> {
+  await verifyContracts();
+}

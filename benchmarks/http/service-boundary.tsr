@@ -1,0 +1,59 @@
+import { parseISO, startOfSecond, toUnixMilliseconds } from 'std:date';
+import { request } from 'std:http';
+import { sha256, timingSafeEqual } from 'std:crypto';
+import { fromUtf8, length } from 'std:bytes';
+import { monotonicNow } from 'std:time';
+
+type Log = {
+  operation: string;
+  status: int;
+  bytes: int;
+};
+
+async function batch(): Task<int> {
+  let sum = 0;
+  const timestamp = unwrap(parseISO('1969-12-31T23:59:59.999999999Z'));
+  const expected = sha256(unwrap(fromUtf8('a'.repeat(64))));
+  for (let index = 0; index < 128; index++) {
+    if (unwrap(toUnixMilliseconds(startOfSecond(timestamp))) !== -1000) {
+      throw 'Clock rounding mismatch';
+    }
+
+    const digest = sha256(unwrap(fromUtf8('a'.repeat(64))));
+    if (!timingSafeEqual(digest, expected)) {
+      throw 'Token mismatch';
+    }
+
+    const input = request('POST', 'http://localhost/notes', 'a=one+two&a=%C3%A9');
+    input.setHeader('content-type', 'application/x-www-form-urlencoded');
+    const fields = await input.form();
+    if (fields.length !== 2 || fields[0].value !== 'one two' || fields[1].value !== 'é') {
+      throw 'Form mismatch';
+    }
+
+    const event: Log = {
+      operation: 'notes.write', status: 200, bytes: 9
+    };
+    const log = JSON.stringify(event);
+    if (log !== '{"operation":"notes.write","status":200,"bytes":9}') {
+      throw 'Log mismatch';
+    }
+
+    sum += length(digest) + length(unwrap(fromUtf8(fields[0].value))) + length(unwrap(fromUtf8(fields[1].value))) + 1;
+  }
+
+  return sum;
+}
+
+async function main(): Task<void> {
+  for (let warmup = 0; warmup < 8; warmup++) {
+    await batch();
+  }
+
+  for (let sample = 0; sample < 31; sample++) {
+    const start = monotonicNow();
+    const sum = await batch();
+    console.log(sum);
+    console.log(monotonicNow() - start);
+  }
+}

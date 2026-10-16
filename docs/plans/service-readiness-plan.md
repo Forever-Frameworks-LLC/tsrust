@@ -192,3 +192,59 @@ removed 11 obsolete executable paths (1,003,916,064 logical bytes), the failed
 fixture's scratch database, and both runs' disposable database containers. Current
 consumers and reusable dependency libraries remain. Continue observability next;
 S21's full service and measurement acceptance remain open.
+
+## Remaining service implementation — acceptance pending
+
+The remaining sections are now implemented together rather than validated as
+individual package gates. `App.configure(ServerOptions)` controls request bytes,
+connection and handler counts, handler/handshake/drain deadlines and a global
+fixed-window request rate. Form and multipart collection retain order and reject
+malformed/oversized input; binary uploads remain bytes. `std:crypto` uses pinned
+getrandom, sha2 and subtle dependencies for OS randomness, SHA-256 and equal-length
+constant-time comparison. `std:signals` registers Unix SIGINT/SIGTERM before
+readiness and preserves checked exclusive receive loans.
+
+`examples/service` integrates HTTPS, persistent notes, hashed one-hour sessions,
+revocation, bounded session count, cookies, exact-origin CORS, an embedded static
+allowlist, bounded telemetry and graceful signal shutdown. The observability
+witness includes an owned child task and independent correlation assertions.
+`examples/service/acceptance.tsr` combines source contracts, observability and the
+service into one native compilation. `tools/check-service.mjs --linux` is the
+actual offline container runner, not evidence that it has passed.
+
+The service boundary workload adds matched TypeScript/native hashing, form decode
+and structured output with an independent checksum. Existing HTTP/TLS, retained
+state, shared-cache and migration workload evidence is retained. New timing is
+not yet measured. S19/S20 and three-driver SQL acceptance are not being rerun.
+
+Compiler checks are used during implementation. Targeted acceptance is batched
+only after the complete sections, following the owner's 2026-10-16 correction.
+Do not reinterpret these implementation notes as accepted runtime/editor/Linux
+behavior; append actual outcomes after the consolidated run.
+
+### Local integrated acceptance
+
+The combined executable now passes on macOS: source security contracts, owned-child
+correlation, TLS authentication, hashed-session revocation, database persistence
+across restart, form/multipart validation, exact-origin CORS, body limits, static
+allowlisting, redaction and SIGINT/SIGTERM shutdown. Targeted runtime witnesses pass
+for crypto known answers and HTTP overload/deadline disposal with an independent
+Drop counter. The new compiler ownership/arity cases pass. Focused editor help
+passes after correcting public HTTP factory return types from backend Result to
+the actual unwrapped Request/Response type.
+
+Integration found that exact millisecond conversion correctly rejects a fresh
+nanosecond-resolution `now()`. `startOfSecond` now makes service expiry rounding
+explicit; pre-epoch flooring, idempotence and preservation of the original instant
+are checked in the combined executable. Exact conversion remains unchanged.
+The service's expiry can be less than one second shorter than a full hour.
+
+The original adapter array error, mistaken Content-Length witness and HTTPS client
+write failure are retained alongside repairs. The oversized-header witness now
+uses Expect: 100-continue, so an early 413 is observed without racing a rejected
+payload write. Existing awaited-allSettled `unused-task` diagnostics remain a
+known false positive; this is not intentionally abandoned work.
+
+Linux/offline toolchain distribution, remaining focused editor agreement and the
+new untimed matched workload still require their consolidated results. No new
+performance measurement or full regression pass is claimed.

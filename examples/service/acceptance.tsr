@@ -1,0 +1,9 @@
+import { verifyContracts } from './contracts.tsr';
+import { verifyObservability } from '../service-observability/main.tsr';
+import { runService } from './main.tsr';
+
+async function main(): Task<void> {
+  await verifyContracts();
+  await verifyObservability();
+  await runService();
+}

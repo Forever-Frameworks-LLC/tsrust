@@ -140,6 +140,7 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::sqlite::BLOB,
     crate::stdlib::sqlite::ISNULL,
     crate::stdlib::http::APP,
+    crate::stdlib::http::CONFIGURE,
     crate::stdlib::http::CLIENT,
     crate::stdlib::http::REQUEST,
     crate::stdlib::http::TEXT,
@@ -160,6 +161,8 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::http::REQUESTHEADER,
     crate::stdlib::http::REQUESTSETHEADER,
     crate::stdlib::http::REQUESTBODY,
+    crate::stdlib::http::FORM,
+    crate::stdlib::http::MULTIPART,
     crate::stdlib::http::REQUESTTEXT,
     crate::stdlib::http::RESPONSEHEADER,
     crate::stdlib::http::RESPONSESETHEADER,
@@ -273,6 +276,7 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::date::PARSE_ISO,
     crate::stdlib::date::FORMAT_ISO,
     crate::stdlib::date::NOW,
+    crate::stdlib::date::START_OF_SECOND,
     crate::stdlib::date::FROM_UNIX_MILLISECONDS,
     crate::stdlib::date::TO_UNIX_MILLISECONDS,
     crate::stdlib::date::FROM_UNIX_SECONDS,
@@ -307,6 +311,12 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::date::GET_DATE,
     crate::stdlib::date::START_OF_MONTH,
     crate::stdlib::date::END_OF_MONTH,
+    crate::stdlib::signals::LISTEN,
+    crate::stdlib::signals::RECEIVE,
+    crate::stdlib::signals::POLL,
+    crate::stdlib::crypto::RANDOM_BYTES,
+    crate::stdlib::crypto::SHA256,
+    crate::stdlib::crypto::TIMING_SAFE_EQUAL,
     crate::stdlib::uuid::PARSE_UUID,
     crate::stdlib::uuid::FORMAT_UUID,
     crate::stdlib::uuid::FROM_BYTES,
@@ -433,3 +443,6 @@ pub fn sql_method(identity: crate::native_signatures::NativeTypeId, member: &str
  lookup("std:sql",crate::stdlib::sql::method(Some(identity),member)?).ok()
 }
 pub fn sql_asynchronous(name:&str)->bool{crate::stdlib::sql::asynchronous(name)}
+
+/// Public HTTP factories unwrap their checked backend Result during lowering.
+pub fn http_unwrapped(name:&str)->bool{crate::stdlib::http::public_unwrapped(name)}

@@ -18,15 +18,15 @@ impl Analyzer {
     }
    }else{
     *expression=crate::stdlib::http::call(name,args,span);
-    if matches!(name,"__route"|"__requestHeader"|"__requestSetHeader"|"__responseHeader"|"__responseSetHeader"){*expression=crate::stdlib::futures::unwrap(expression.clone());}
+    if matches!(name,"__configure"|"__route"|"__requestHeader"|"__requestSetHeader"|"__responseHeader"|"__responseSetHeader"){*expression=crate::stdlib::futures::unwrap(expression.clone());}
    }
    return self.expression(context,expression,Mode::Consume,loans,expected).map(Some);
   }
   let ExprKind::Name(name)=&callee.kind else{return Ok(None);};
-  let Some((id,binding))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|binding.module=="std:http")else{return Ok(None);};
+  let Some((id,binding))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|matches!(binding.module,"std:http"|"std:signals"))else{return Ok(None);};
   let span=expression.span;
   if !binding.accepts_arity(args.len()){return Err(Diagnostic::new("arity",format!("{} requires {} arguments including its receiver.",binding.name,binding.parameters.len()),span));}
-  if crate::stdlib::http::asynchronous(binding.name)&&!context.task_body{return Err(Diagnostic::new("async-context","HTTP I/O must run inside an async task.",span));}
+  if (crate::stdlib::http::asynchronous(binding.name)||binding.name=="__receive")&&!context.task_body{return Err(Diagnostic::new("async-context","HTTP I/O must run inside an async task.",span));}
   let mut active=loans.clone();
   for (arg,param) in args.iter_mut().zip(binding.parameters) {
    if param.ty==crate::native_bindings::NativeType::ObservedValue{

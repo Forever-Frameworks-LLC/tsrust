@@ -91,3 +91,6 @@ pub fn resolve_date_time(date:&Date,time:&Time,zone:&TimeZone,disambiguation:&st
         }
     }
 }
+
+/// Explicitly floor within the UTC second, including instants before the epoch.
+pub fn start_of_second(value:&Instant)->Instant{Instant(value.0.with_nanosecond(0).expect("zero nanoseconds are valid"))}

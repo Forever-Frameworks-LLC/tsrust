@@ -22,11 +22,28 @@ mod tsrust_native_http {
             if let Some(middleware)=self.middleware.get(self.index).cloned(){self.index+=1;middleware(request,self)}else{(self.handler)(request)}
         }
     }
-    pub struct App {routes:Vec<(Method,String,Handler)>,identities:BTreeMap<String,String>,methods:BTreeSet<(String,String)>,middleware:Vec<Middleware>,fallback:Handler}
+    #[derive(Clone,Copy)]
+    struct Limits {body:usize,connections:usize,requests:usize,request_ms:u64,shutdown_ms:u64,handshake_ms:u64,rate:u64}
+    impl Default for Limits {fn default()->Self{Self{body:1048576,connections:128,requests:128,request_ms:30000,shutdown_ms:5000,handshake_ms:5000,rate:0}}}
+    struct Admission {permits:Arc<tokio::sync::Semaphore>,window:std::sync::Mutex<(std::time::Instant,u64)>}
+    impl Admission {
+        fn admit(&self,rate:u64)->bool{
+            if rate==0{return true;}
+            let Ok(mut window)=self.window.lock()else{return false;};
+            if window.0.elapsed()>=Duration::from_secs(1){*window=(std::time::Instant::now(),0);}
+            if window.1>=rate{return false;}window.1+=1;true
+        }
+    }
+    pub struct App {limits:Limits,routes:Vec<(Method,String,Handler)>,identities:BTreeMap<String,String>,methods:BTreeSet<(String,String)>,middleware:Vec<Middleware>,fallback:Handler}
     fn fixed(status:u16,text:&'static str)->Response {Response{inner:http::Response::builder().status(status).body(Body::from(text)).unwrap()}}
     pub fn failed()->Response{fixed(500,"Internal Server Error")}
     impl App {
-        pub fn new()->Self{Self{routes:Vec::new(),identities:BTreeMap::new(),methods:BTreeSet::new(),middleware:Vec::new(),fallback:Arc::new(|_|Box::pin(async{fixed(404,"Not Found")}))}}
+        pub fn new()->Self{Self{limits:Limits::default(),routes:Vec::new(),identities:BTreeMap::new(),methods:BTreeSet::new(),middleware:Vec::new(),fallback:Arc::new(|_|Box::pin(async{fixed(404,"Not Found")}))}}
+        pub fn configure(&mut self,values:[i64;7])->Result<(),Error>{
+            let [body,connections,requests,request_ms,shutdown_ms,handshake_ms,rate]=values;
+            if !(0..=1000000).contains(&rate)||!(1..=67108864).contains(&body)||!(1..=65536).contains(&connections)||!(1..=65536).contains(&requests)||[request_ms,shutdown_ms,handshake_ms].iter().any(|value|!(1..=3600000).contains(value)){return Err(error("options","Invalid HTTP server limits"));}
+            self.limits=Limits{body:body as usize,connections:connections as usize,requests:requests as usize,request_ms:request_ms as u64,shutdown_ms:shutdown_ms as u64,handshake_ms:handshake_ms as u64,rate:rate as u64};Ok(())
+        }
         pub fn route<F,Fut>(&mut self,method:&str,path:&str,handler:F)->Result<(),Error> where F:Fn(Request)->Fut+Send+Sync+'static,Fut:Future<Output=Response>+Send+'static {
             let method=Method::from_bytes(method.as_bytes()).map_err(|_|error("method","Invalid HTTP method"))?;
             if !matches!(method,Method::GET|Method::HEAD|Method::POST|Method::PUT|Method::PATCH|Method::DELETE|Method::OPTIONS){return Err(error("method","Unsupported HTTP method"));}
@@ -53,18 +70,19 @@ mod tsrust_native_http {
             let address:std::net::SocketAddr=address.parse().map_err(|_|error("address","Use an IP address and port"))?;
             let listener=tokio::net::TcpListener::bind(address).await.map_err(|_|error("listen","Cannot bind HTTP listener"))?;
             let address=listener.local_addr().map_err(|_|error("listen","Cannot read listener address"))?.to_string();
+            let limits=self.limits;let permits=Arc::new(Admission{permits:Arc::new(tokio::sync::Semaphore::new(limits.requests)),window:std::sync::Mutex::new((std::time::Instant::now(),0))});
             let scope=tasks::Scope::group();let middleware=Arc::new(self.middleware);let mut router=axum::Router::new();
             for (method,path,handler) in self.routes {
-                let middleware=middleware.clone();let scope=scope.clone();
+                let middleware=middleware.clone();let scope=scope.clone();let permits=permits.clone();
                 let filter=axum::routing::MethodFilter::try_from(method).map_err(|_|error("method","Unsupported HTTP method"))?;
-                router=router.route(&path,axum::routing::on(filter,move|request|dispatch(request,handler.clone(),middleware.clone(),scope.clone())));
+                router=router.route(&path,axum::routing::on(filter,move|request|dispatch(request,handler.clone(),middleware.clone(),scope.clone(),limits,permits.clone())));
             }
-            let fallback=self.fallback;let missing_middleware=middleware.clone();let missing_scope=scope.clone();
-            router=router.fallback(move|request|dispatch(request,fallback.clone(),missing_middleware.clone(),missing_scope.clone()));
+            let missing_permits=permits.clone();let fallback=self.fallback;let missing_middleware=middleware.clone();let missing_scope=scope.clone();
+            router=router.fallback(move|request|dispatch(request,fallback.clone(),missing_middleware.clone(),missing_scope.clone(),limits,missing_permits.clone()));
             let method_scope=scope.clone();
-            router=router.method_not_allowed_fallback(move|request|dispatch(request,Arc::new(|_|Box::pin(async{fixed(405,"Method Not Allowed")})),middleware.clone(),method_scope.clone()));
+            router=router.method_not_allowed_fallback(move|request|dispatch(request,Arc::new(|_|Box::pin(async{fixed(405,"Method Not Allowed")})),middleware.clone(),method_scope.clone(),limits,permits.clone()));
             let (stop,stopped)=tokio::sync::oneshot::channel();let stop=Arc::new(std::sync::Mutex::new(Some(stop)));let cancel=stop.clone();
-            let job=tasks::start_with_shutdown(async move{run(listener,router,stopped,scope,tls).await;Ok::<_,tasks::Failure<()>>(())},Some(Box::new(move||{if let Some(stop)=cancel.lock().unwrap().take(){let _=stop.send(());}})));
+            let job=tasks::start_with_shutdown(async move{run(listener,router,stopped,scope,tls,limits).await;Ok::<_,tasks::Failure<()>>(())},Some(Box::new(move||{if let Some(stop)=cancel.lock().unwrap().take(){let _=stop.send(());}})));
             Ok(Server{address,stop,job:Some(job)})
         }
     }
@@ -81,14 +99,17 @@ mod tsrust_native_http {
             }else{output.push_str(part);identity.push_str(part);}
         }Ok((output,identity))
     }
-    async fn dispatch(request:http::Request<Body>,handler:Handler,middleware:Arc<Vec<Middleware>>,scope:Arc<tasks::Scope>)->WireResponse {
+    async fn dispatch(request:http::Request<Body>,handler:Handler,middleware:Arc<Vec<Middleware>>,scope:Arc<tasks::Scope>,limits:Limits,permits:Arc<Admission>)->WireResponse {
         use axum::extract::FromRequestParts;
+        if !permits.admit(limits.rate){let mut response=fixed(429,"Too Many Requests");let _=response.set_header("retry-after","1");return response.inner;}
+        let Ok(permit)=permits.permits.clone().try_acquire_owned()else{return fixed(503,"Service Unavailable").inner;};
+        if request.headers().get(http::header::CONTENT_LENGTH).and_then(|value|value.to_str().ok()).and_then(|value|value.parse::<u64>().ok()).is_some_and(|size|size>limits.body as u64){return fixed(413,"Payload Too Large").inner;}
         let (mut parts,body)=request.into_parts();
         let params=match axum::extract::RawPathParams::from_request_parts(&mut parts,&()).await {Ok(params)=>params.iter().map(|(key,value)|(key.to_owned(),value.to_owned())).collect(),Err(axum::extract::rejection::RawPathParamsRejection::MissingPathParams(_))=>BTreeMap::new(),Err(_)=>return fixed(400,"Invalid path parameters").inner};
-        let request=Request{inner:http::Request::from_parts(parts,body),params,limit:1048576};
+        let request=Request{inner:http::Request::from_parts(parts,body),params,limit:limits.body};
         tasks::in_scope(scope,async move {
-            let job=tasks::start(async move{Ok::<_,tasks::Failure<()>>(Next{middleware,index:0,handler}.run(request).await)});
-            match job.join().await{Ok(response)=>response.inner,Err(_)=>failed().inner}
+            let job=tasks::start(async move{let _permit=permit;Ok::<_,tasks::Failure<()>>(Next{middleware,index:0,handler}.run(request).await)});
+            match tokio::time::timeout(Duration::from_millis(limits.request_ms),job.join()).await{Ok(Ok(response))=>response.inner,Ok(Err(_))=>failed().inner,Err(_)=>fixed(504,"Gateway Timeout").inner}
         }).await
     }
     pub struct Server {address:String,stop:Arc<std::sync::Mutex<Option<tokio::sync::oneshot::Sender<()>>>>,job:Option<tasks::Job<(),()>>}
@@ -99,7 +120,7 @@ mod tsrust_native_http {
         fn signal(&self){if let Some(stop)=self.stop.lock().unwrap().take(){let _=stop.send(());}}
     }
     impl Drop for Server{fn drop(&mut self){self.signal();}}
-    async fn run(listener:tokio::net::TcpListener,router:axum::Router,mut stopped:tokio::sync::oneshot::Receiver<()>,scope:Arc<tasks::Scope>,tls:Option<TlsAcceptor>){
+    async fn run(listener:tokio::net::TcpListener,router:axum::Router,mut stopped:tokio::sync::oneshot::Receiver<()>,scope:Arc<tasks::Scope>,tls:Option<TlsAcceptor>,limits:Limits){
         let mut connections=tokio::task::JoinSet::new();
         let (shutdown,_)=tokio::sync::watch::channel(false);
         loop {
@@ -107,14 +128,14 @@ mod tsrust_native_http {
             let event=std::future::poll_fn(|cx|{
                 if Pin::new(&mut stopped).poll(cx).is_ready(){return Poll::Ready(Event::Stop);}
                 if matches!(connections.poll_join_next(cx),Poll::Ready(Some(_))){return Poll::Ready(Event::Finished);}
-                if connections.len()<128{if let Poll::Ready(value)=listener.poll_accept(cx){return Poll::Ready(Event::Accepted(value));}}
+                if connections.len()<limits.connections{if let Poll::Ready(value)=listener.poll_accept(cx){return Poll::Ready(Event::Accepted(value));}}
                 Poll::Pending
             }).await;
             match event {Event::Stop=>break,Event::Finished=>{},Event::Accepted(Err(_))=>break,Event::Accepted(Ok((stream,_)))=>{
                 let router=router.clone();let tls=tls.clone();let mut shutdown=shutdown.subscribe();
                 connections.spawn(async move{
                     if let Some(tls)=tls {
-                        let handshake=tokio::time::timeout(Duration::from_secs(5),tls.accept(stream));tokio::pin!(handshake);
+                        let handshake=tokio::time::timeout(Duration::from_millis(limits.handshake_ms),tls.accept(stream));tokio::pin!(handshake);
                         let accepted={let changed=shutdown.changed();tokio::pin!(changed);std::future::poll_fn(|cx|{if changed.as_mut().poll(cx).is_ready(){return Poll::Ready(None);}handshake.as_mut().poll(cx).map(Some)}).await};
                         if let Some(Ok(Ok(stream)))=accepted{serve_connection(stream,router,shutdown).await;}
                     }else{serve_connection(stream,router,shutdown).await;}
@@ -123,7 +144,7 @@ mod tsrust_native_http {
         }
         drop(listener);
         let _=shutdown.send(true);
-        let _=tokio::time::timeout(Duration::from_secs(5),async{while connections.join_next().await.is_some(){}}).await;
+        let _=tokio::time::timeout(Duration::from_millis(limits.shutdown_ms),async{while connections.join_next().await.is_some(){}}).await;
         // Bound graceful shutdown, including clients stalled while sending or receiving.
         connections.abort_all();while connections.join_next().await.is_some(){}
         scope.drain(true).await;
@@ -138,7 +159,42 @@ mod tsrust_native_http {
         let changed=shutdown.changed();tokio::pin!(changed);let mut draining=false;
         let _=std::future::poll_fn(|cx|{if !draining && changed.as_mut().poll(cx).is_ready(){connection.as_mut().graceful_shutdown();draining=true;}connection.as_mut().poll(cx)}).await;
     }
+    pub struct FormField {pub name:String,pub value:String}
+    pub struct MultipartPart {pub name:String,pub file_name:Option<String>,pub content_type:Option<String>,pub data:Vec<u8>}
+    fn form_component(text:&str)->Result<String,Error>{
+        let mut bytes=Vec::with_capacity(text.len());let mut input=text.bytes();
+        while let Some(byte)=input.next(){match byte{b'+'=>bytes.push(b' '),b'%'=>{
+            let hex=|value:u8|(value as char).to_digit(16).map(|value|value as u8);
+            let high=input.next().and_then(hex).ok_or_else(||error("form","Malformed percent escape"))?;
+            let low=input.next().and_then(hex).ok_or_else(||error("form","Malformed percent escape"))?;bytes.push(high*16+low);
+        },byte=>bytes.push(byte)}}
+        String::from_utf8(bytes).map_err(|_|error("encoding","Form field is not UTF-8"))
+    }
     impl Request {
+        pub async fn form(self)->Result<Vec<FormField>,Error>{
+            if self.header("content-type")?.as_deref().is_none_or(|value|!value.split(';').next().unwrap_or("").trim().eq_ignore_ascii_case("application/x-www-form-urlencoded")){return Err(error("content-type","Expected application/x-www-form-urlencoded"));}
+            let text=self.text().await?;let mut fields=Vec::new();
+            for part in text.split('&').filter(|part|!part.is_empty()){
+                if fields.len()==128{return Err(error("limit","Form exceeds 128 fields"));}
+                let (name,value)=part.split_once('=').unwrap_or((part,""));fields.push(FormField{name:form_component(name)?,value:form_component(value)?});
+            }Ok(fields)
+        }
+        pub async fn multipart(self)->Result<Vec<MultipartPart>,Error>{
+            use axum::extract::FromRequest;
+            let limit=self.limit;let (parts,body)=self.inner.into_parts();
+            let mut request=http::Request::from_parts(parts,Body::new(Stream{body,remaining:limit}));
+            request.extensions_mut().insert(axum::extract::DefaultBodyLimit::disable());
+            let mut multipart=axum::extract::Multipart::from_request(request,&()).await.map_err(|_|error("multipart","Invalid multipart content type or boundary"))?;
+            let mut output=Vec::new();
+            while let Some(field)=multipart.next_field().await.map_err(|_|error("multipart","Malformed or oversized multipart body"))?{
+                if output.len()==128{return Err(error("limit","Multipart exceeds 128 parts"));}
+                let name=field.name().ok_or_else(||error("multipart","Multipart part requires a name"))?.to_owned();
+                let file_name=field.file_name().map(str::to_owned);let content_type=field.content_type().map(str::to_owned);
+                let data=field.bytes().await.map_err(|_|error("multipart","Malformed or oversized multipart body"))?.to_vec();
+                output.push(MultipartPart{name,file_name,content_type,data});
+            }Ok(output)
+        }
+
         pub fn new(method:&str,url:&str,body:String)->Result<Self,Error>{let method=Method::from_bytes(method.as_bytes()).map_err(|_|error("method","Invalid HTTP method"))?;let inner=http::Request::builder().method(method).uri(url).body(Body::from(body)).map_err(|_|error("url","Invalid request URL"))?;Ok(Self{inner,params:BTreeMap::new(),limit:1048576})}
         pub fn method(&self)->String{self.inner.method().to_string()}
         pub fn url(&self)->String{self.inner.uri().to_string()}
@@ -165,14 +221,14 @@ mod tsrust_native_http {
         type Data=axum::body::Bytes;type Error=Error;
         fn poll_frame(mut self:Pin<&mut Self>,cx:&mut std::task::Context<'_>)->Poll<Option<Result<http_body::Frame<Self::Data>,Error>>>{
             match Pin::new(&mut self.body).poll_frame(cx){
-                Poll::Ready(Some(Ok(frame)))=>{if let Some(data)=frame.data_ref(){if data.len()>self.remaining{self.body=Body::empty();return Poll::Ready(Some(Err(error("limit","Body exceeds 1048576 bytes"))));}self.remaining-=data.len();}Poll::Ready(Some(Ok(frame)))},
+                Poll::Ready(Some(Ok(frame)))=>{if let Some(data)=frame.data_ref(){if data.len()>self.remaining{self.body=Body::empty();return Poll::Ready(Some(Err(error("limit","Body exceeds configured byte limit"))));}self.remaining-=data.len();}Poll::Ready(Some(Ok(frame)))},
                 Poll::Ready(Some(Err(_)))=>Poll::Ready(Some(Err(error("body","Body read failed")))),other=>other.map(|value|value.map(|value|value.map_err(|_|error("body","Body read failed")))),
             }
         }
     }
     impl Stream {
         pub async fn next(&mut self)->Result<Option<Vec<u8>>,Error>{
-            while let Some(frame)=self.body.frame().await {let frame=frame.map_err(|_|error("body","Body read failed"))?;if let Ok(data)=frame.into_data(){if data.len()>self.remaining{self.body=Body::empty();return Err(error("limit","Body exceeds 1048576 bytes"));}self.remaining-=data.len();return Ok(Some(data.to_vec()));}}Ok(None)
+            while let Some(frame)=self.body.frame().await {let frame=frame.map_err(|_|error("body","Body read failed"))?;if let Ok(data)=frame.into_data(){if data.len()>self.remaining{self.body=Body::empty();return Err(error("limit","Body exceeds configured byte limit"));}self.remaining-=data.len();return Ok(Some(data.to_vec()));}}Ok(None)
         }
         pub async fn text(mut self)->Result<String,Error>{let mut bytes=Vec::new();while let Some(frame)=self.frame().await{if let Ok(chunk)=frame?.into_data(){bytes.extend_from_slice(&chunk);}}String::from_utf8(bytes).map_err(|_|error("encoding","Body is not UTF-8"))}
     }

@@ -1,0 +1,95 @@
+import { App, Request, TlsOptions } from 'std:http';
+import { connect, Pool } from 'std:sql';
+import { Bytes } from 'std:bytes';
+import { get } from 'std:env';
+import { readFile } from 'std:fs';
+import { toUtf8 } from 'std:bytes';
+import { SignalListener, listen, receive } from 'std:signals';
+import { Channel, Sender, allSettled } from 'std:futures';
+import { Event, Metrics, emptyMetrics, collect, stopTelemetry } from '../service-observability/telemetry.tsr';
+import { isToken, tokenHash } from './security.tsr';
+import { handle } from './handlers.tsr';
+
+type Ready = {
+  kind: string;
+  address: string;
+};
+
+function required(name: string): string {
+  const value = unwrap(get(name));
+  if (value === undefined || value === '') {
+    throw 'Missing required service configuration';
+  }
+
+  return value;
+}
+
+function routes(pool: Owned<Pool>, admin: Owned<Bytes>, origin: string, telemetry: Owned<Sender<Event>>): App {
+  const app = new App();
+  app.configure({
+    bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100
+  });
+  app.fallback((input: Request) => handle(pool, admin, clone(origin), telemetry, input));
+  return app;
+}
+
+async function serve(app: Owned<App>, signals: Owned<SignalListener>, control: Owned<Sender<Event>>, address: string, tls: TlsOptions): Task<Metrics> {
+  try {
+    const server = await app.listen(address, tls);
+    const ready: Ready = {
+      kind: 'ready', address: server.address()
+    };
+    console.log(JSON.stringify(ready));
+    try {
+      await receive(signals);
+    } finally {
+      await server.shutdown();
+    }
+  } finally {
+    await stopTelemetry(control);
+  }
+
+  return emptyMetrics();
+}
+
+export async function runService(): Task<void> {
+  const signals = unwrap(listen());
+  const admin = required('SERVICE_ADMIN_TOKEN');
+  if (!isToken(admin)) {
+    throw 'SERVICE_ADMIN_TOKEN must contain 64 lowercase hexadecimal characters';
+  }
+
+  const origin = required('SERVICE_ORIGIN');
+  if (!origin.startsWith('https://') || origin.slice(8) === '' || origin.slice(8).includes('/') || origin.includes('?') || origin.includes('#') || origin.includes('@') || origin.includes(' ') || origin.includes('\r') || origin.includes('\n')) {
+    throw 'SERVICE_ORIGIN must be an HTTPS origin without a trailing slash';
+  }
+
+  const cert = unwrap(toUtf8(unwrap(readFile(required('SERVICE_CERT')))));
+  const key = unwrap(toUtf8(unwrap(readFile(required('SERVICE_KEY')))));
+  const pool = await connect(required('DATABASE_URL'), 4, 3000);
+  await pool.migrate('examples/service/migrations');
+  await pool.query('SELECT id, body FROM service_notes WHERE id = 1');
+  await pool.query('SELECT digest, expires FROM service_sessions LIMIT 0');
+  const events = new Channel<Event>(128);
+  const control = events.sender();
+  const requests = events.sender();
+  const app = routes(pool, tokenHash(admin), origin, requests);
+  const tls: TlsOptions = {
+    cert, key
+  };
+  const service = serve(app, signals, control, required('SERVICE_ADDRESS'), tls);
+  const outcomes = await allSettled([collect(events).start(), service.start()]);
+  while (outcomes.length > 0) {
+    const outcome = outcomes.pop();
+    if (outcome !== undefined) {
+      const metrics = unwrap(outcome);
+      if (metrics.started > 0) {
+        console.log(JSON.stringify(metrics));
+      }
+    }
+  }
+}
+
+async function main(): Task<void> {
+  await runService();
+}

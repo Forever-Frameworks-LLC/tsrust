@@ -1523,6 +1523,7 @@ impl Analyzer {
         crate::stdlib::cache::prepare(&mut program)?;
         crate::stdlib::threads::prepare(&mut program)?;
         crate::stdlib::http::prepare(&mut program)?;
+        crate::stdlib::signals::prepare(&mut program)?;
         crate::stdlib::sqlite::prepare(&mut program)?;
         crate::stdlib::sql::prepare(&mut program)?;
         crate::stdlib::futures::prepare(&mut program)?;
@@ -1942,6 +1943,7 @@ impl Analyzer {
         expected: Option<Type>,
     ) -> Result<Type, Diagnostic> {
         let binding = &crate::native_bindings::BINDINGS[id];
+        if binding.module=="std:signals" {return Err(Diagnostic::new("signal-call","Call signal operations directly; use an async wrapper for callable values.",span));}
         if binding.module=="std:sql" {return Err(Diagnostic::new("sql-call","Call SQL operations directly; wrap connect in an async function when a callable value is needed.",span));}
         if matches!(binding.module, "std:threads" | "std:result" | "std:futures") { return Err(Diagnostic::new("thread-call", "Call thread operations and unwrap directly; polymorphic operation values are not supported.", span)); }
         let count = match expected {

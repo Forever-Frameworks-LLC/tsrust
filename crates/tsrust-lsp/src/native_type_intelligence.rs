@@ -211,7 +211,7 @@ impl SourceIndex {
         name
     }
     pub(super) fn import_native_type(&mut self, declaration: &tsrust_compiler::native_types::Declaration, local: &str, span: Span) {
-        if declaration.id == tsrust_compiler::native_signatures::NativeTypeId::HttpApp { self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::HttpTlsOptions); }
+        if declaration.id == tsrust_compiler::native_signatures::NativeTypeId::HttpApp { self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::HttpTlsOptions); self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::HttpServerOptions); }
         if declaration.id == tsrust_compiler::native_signatures::NativeTypeId::HttpClient { self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::HttpClientOptions); }
         if declaration.id == tsrust_compiler::native_signatures::NativeTypeId::ThreadPool { self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::ThreadPoolOptions); }
         let catalog_module = if declaration.module == "std:testing-runtime" { "std:testing" } else { declaration.module };

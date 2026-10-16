@@ -1,0 +1,138 @@
+import { App, Client, Request, Response, request, text } from 'std:http';
+import { Channel, Sender, allSettled, delay } from 'std:futures';
+import { formatUuid, parseUuid } from 'std:uuid';
+import { monotonicNow } from 'std:time';
+import { strictEqual } from 'std:testing';
+import { Trace, Event, Metrics, newTrace, emitEvent, collect, stopTelemetry, emptyMetrics } from './telemetry';
+
+type Loaded = {
+  trace: Trace;
+  body: string;
+  elapsedMs: number;
+};
+
+async function loadNote(trace: Owned<Trace>, fail: boolean): Task<Loaded> {
+  const start = monotonicNow();
+  await delay(1);
+  if (fail) {
+    throw 'DATABASE_PASSWORD=must-not-leak';
+  }
+
+  return {
+    trace, body: 'ready', elapsedMs: monotonicNow() - start
+  };
+}
+
+async function handle(sender: ReadOnly<Sender<Event>>, input: Request, fail: boolean): Task<Response> {
+  const trace = newTrace();
+  const start = monotonicNow();
+  await emitEvent(sender, trace, 'request-start', 'service.handle', 0, 0);
+  let response = text('unavailable', 503);
+  try {
+    const job = loadNote(clone(trace), fail).start();
+    const loaded = await job;
+    await emitEvent(sender, loaded.trace, 'task-end', 'service.loadNote', 200, loaded.elapsedMs);
+    response = text(loaded.body);
+    await emitEvent(sender, trace, 'request-end', 'service.handle', 200, monotonicNow() - start);
+  } catch {
+    await emitEvent(sender, trace, 'request-failed', 'service.loadNote', 503, monotonicNow() - start);
+  }
+
+  response.setHeader('x-request-id', formatUuid(trace.requestId));
+  return response;
+}
+
+function routes(ok: Owned<Sender<Event>>, failed: Owned<Sender<Event>>): App {
+  const app = new App();
+  app.post('/ok', (input: Request) => handle(ok, input, false));
+  app.post('/fail', (input: Request) => handle(failed, input, true));
+  return app;
+}
+
+async function read(url: string, status: int): Task<string> {
+  const client = new Client();
+  const input = request('POST', url, 'secret-body');
+  input.setHeader('authorization', 'Bearer secret-token');
+  input.setHeader('cookie', 'session=secret-cookie');
+  input.setHeader('x-request-id', 'secret-client-id');
+  const response = await client.send(input);
+  strictEqual(response.status(), status);
+  const id = response.header('x-request-id');
+  if (id === undefined) {
+    throw 'Missing request id';
+  }
+
+  const canonical = formatUuid(unwrap(parseUuid(id)));
+  strictEqual(canonical, id);
+  const body = await response.text();
+  if (status === 200) {
+    strictEqual(body, 'ready');
+  } else {
+    strictEqual(body, 'unavailable');
+  }
+
+  return canonical;
+}
+
+async function exercise(control: Owned<Sender<Event>>, ok: Owned<Sender<Event>>, failed: Owned<Sender<Event>>): Task<Metrics> {
+  try {
+    const app = routes(ok, failed);
+    const server = await app.listen('127.0.0.1:0');
+    try {
+      const base = 'http://' + server.address();
+      const first = base + '/ok?secret-query';
+      const second = base + '/ok?secret-query';
+      const third = base + '/fail?secret-query';
+      const outcomes = await allSettled([read(first, 200).start(), read(second, 200).start(), read(third, 503).start()]);
+      const ids: string[] = [];
+      while (outcomes.length > 0) {
+        const outcome = outcomes.pop();
+        if (outcome !== undefined) {
+          ids.push(unwrap(outcome));
+        }
+      }
+
+      strictEqual(ids.length, 3);
+      strictEqual(ids[0] === ids[1], false);
+      strictEqual(ids[1] === ids[2], false);
+      strictEqual(ids[0] === ids[2], false);
+    } finally {
+      await server.shutdown();
+    }
+  } finally {
+    await stopTelemetry(control);
+  }
+
+  return emptyMetrics();
+}
+
+export async function verifyObservability(): Task<void> {
+  const queue = new Channel<Event>(4);
+  const control = queue.sender();
+  const ok = queue.sender();
+  const failed = queue.sender();
+  const outcomes = await allSettled([collect(queue).start(), exercise(control, ok, failed).start()]).timeout(5000);
+  const total = emptyMetrics();
+  while (outcomes.length > 0) {
+    const outcome = outcomes.pop();
+    if (outcome !== undefined) {
+      const metrics = unwrap(outcome);
+      total.started += metrics.started;
+      total.completed += metrics.completed;
+      total.failed += metrics.failed;
+      total.tasks += metrics.tasks;
+      total.incomplete += metrics.incomplete;
+    }
+  }
+
+  strictEqual(total.started, 3);
+  strictEqual(total.completed, 2);
+  strictEqual(total.failed, 1);
+  strictEqual(total.tasks, 2);
+  strictEqual(total.incomplete, 0);
+  console.log(JSON.stringify(total));
+}
+
+async function main(): Task<void> {
+  await verifyObservability();
+}

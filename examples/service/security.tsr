@@ -1,0 +1,64 @@
+import { Bytes, fromUtf8, length, at } from 'std:bytes';
+import { randomBytes, sha256, timingSafeEqual } from 'std:crypto';
+
+export function isToken(value: string): boolean {
+  if (value.length !== 64) {
+    return false;
+  }
+
+  for (let i = 0; i < value.length; i++) {
+    if (!'0123456789abcdef'.includes(value.charAt(i))) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function tokenHash(value: string): Bytes {
+  return sha256(unwrap(fromUtf8(value)));
+}
+
+export function newToken(): string {
+  const bytes = unwrap(randomBytes(32));
+  let token = '';
+  for (let i = 0; i < length(bytes); i++) {
+    token += unwrap(at(bytes, i)).toString(16).padStart(2, '0');
+  }
+
+  return token;
+}
+
+export function matchesToken(value: string, expected: ReadOnly<Bytes>): boolean {
+  if (!isToken(value)) {
+    return false;
+  }
+
+  const digest = tokenHash(value);
+  return timingSafeEqual(digest, expected);
+}
+
+// A single fixed cookie name avoids ambiguous duplicate-cookie precedence.
+export function sessionCookie(header: string): string | undefined {
+  let result: string | undefined = undefined;
+  for (const pair of header.split(';')) {
+    const parts = pair.trim().split('=');
+    if (parts[0] === '__Host-session') {
+      if (result !== undefined || parts.length !== 2 || !isToken(parts[1])) {
+        return undefined;
+      }
+
+      result = clone(parts[1]);
+    }
+  }
+
+  return result;
+}
+
+export function setSessionCookie(token: string): string {
+  if (!isToken(token)) {
+    throw 'Invalid session token';
+  }
+
+  return '__Host-session=' + token + '; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=3600';
+}

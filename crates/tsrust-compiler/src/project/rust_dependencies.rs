@@ -10,7 +10,7 @@ pub struct Dependency {pub version:String,#[serde(default)]pub features:Vec<Stri
 fn enabled()->bool{true}
 // Runtime-owned pins cannot be redeclared or replaced by a binding package.
 pub fn reserved(name:&str)->bool {
- ["uuid","getrandom","chrono-tz","chrono","bigdecimal","sqlx","rusqlite","axum","tokio-rustls","reqwest","http-body","http-body-util","hyper-util","tokio","rayon","serde","serde_json","libsqlite3-sys","tsrust_runtime"].contains(&name)
+ ["sha2","subtle","uuid","getrandom","chrono-tz","chrono","bigdecimal","sqlx","rusqlite","axum","tokio-rustls","reqwest","http-body","http-body-util","hyper-util","tokio","rayon","serde","serde_json","libsqlite3-sys","tsrust_runtime"].contains(&name)
 }
 #[derive(Clone,Debug,Deserialize,Serialize)]
 pub struct Package {pub manifest:String,pub lock:String,pub vendor:PathBuf,pub crates:Vec<String>}

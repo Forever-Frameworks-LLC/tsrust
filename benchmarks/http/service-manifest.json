@@ -1,0 +1,15 @@
+{
+  "id": "service-boundary",
+  "semanticEpoch": "service-boundary-v1",
+  "expected": 5376,
+  "protocol": {
+    "processes": 3,
+    "warmups": 8,
+    "samples": 31,
+    "iterations": 128
+  },
+  "sources": {
+    "tsr": "f5f064deda5599b7b43ed10b6df7c5b8839e50a9cda206932929ea675d62babc",
+    "ts": "64662d6e480cdc9129e9da8b35dc5a533d744d96b527043299c92594863c734c"
+  }
+}

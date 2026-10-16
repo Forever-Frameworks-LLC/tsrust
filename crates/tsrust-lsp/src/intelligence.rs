@@ -2741,9 +2741,12 @@ impl SourceIndex {
                     .collect::<Vec<_>>()
             })
             .unwrap_or_default();
-        let result = if binding.module=="std:sql" && tsrust_compiler::native_bindings::sql_asynchronous(binding.name) {
+        let result = if (binding.module=="std:sql" && tsrust_compiler::native_bindings::sql_asynchronous(binding.name)) || (binding.module=="std:signals" && binding.name=="receive") {
             let tsrust_compiler::native_signatures::Signature::Result(output,_)=binding.result.signature()else{unreachable!("SQL task result")};
             format!("Task<{}>",signature_name(*output))
+        }else if binding.module=="std:http" && tsrust_compiler::native_bindings::http_unwrapped(binding.name){
+            let tsrust_compiler::native_signatures::Signature::Result(output,_)=binding.result.signature()else{unreachable!("HTTP factory result")};
+            signature_name(*output)
         }else{signature_name(binding.result.signature())};
         let signature = self.display_type(&format!("function {local}({}): {result}", parameters.join(", ")));
         let signature=if let Some(inferred)=catalog["inferredSignature"].as_str(){

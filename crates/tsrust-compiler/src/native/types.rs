@@ -86,6 +86,21 @@ static HTTPERROR:Declaration=Declaration{id:NativeTypeId::HttpError,module:"std:
 static HTTPTLSOPTIONS: Declaration = Declaration {id:NativeTypeId::HttpTlsOptions,module:"std:http",name:"TlsOptions",fields:&[
  Field{name:"cert",signature:Signature::String,optional:false},Field{name:"key",signature:Signature::String,optional:false},
 ],..SPAWN_ERROR};
+static HTTPFORMFIELD: Declaration = Declaration {id:NativeTypeId::HttpFormField,module:"std:http",name:"FormField",fields:&[
+ Field{name:"name",signature:Signature::String,optional:false},Field{name:"value",signature:Signature::String,optional:false},
+],..SPAWN_ERROR};
+static HTTPMULTIPARTPART: Declaration = Declaration {id:NativeTypeId::HttpMultipartPart,module:"std:http",name:"MultipartPart",fields:&[
+ Field{name:"name",signature:Signature::String,optional:false},Field{name:"fileName",signature:Signature::String,optional:true},Field{name:"contentType",signature:Signature::String,optional:true},Field{name:"data",signature:Signature::Named(NativeTypeId::Bytes),optional:false},
+],..SPAWN_ERROR};
+static HTTPSERVEROPTIONS: Declaration = Declaration {id:NativeTypeId::HttpServerOptions,module:"std:http",name:"ServerOptions",fields:&[
+ Field{name:"bodyLimit",signature:Signature::Int,optional:false},
+ Field{name:"maxConnections",signature:Signature::Int,optional:false},
+ Field{name:"maxRequests",signature:Signature::Int,optional:false},
+ Field{name:"requestTimeoutMs",signature:Signature::Int,optional:false},
+ Field{name:"shutdownTimeoutMs",signature:Signature::Int,optional:false},
+ Field{name:"handshakeTimeoutMs",signature:Signature::Int,optional:false},
+ Field{name:"requestsPerSecond",signature:Signature::Int,optional:false},
+],..SPAWN_ERROR};
 static HTTPCLIENTOPTIONS: Declaration = Declaration {id:NativeTypeId::HttpClientOptions,module:"std:http",name:"ClientOptions",fields:&[
  Field{name:"ca",signature:Signature::String,optional:false},
 ],..SPAWN_ERROR};
@@ -258,6 +273,9 @@ static TIMEZONE: Declaration = Declaration {id:NativeTypeId::TimeZone,module:"st
 static CALENDAR_DATE: Declaration = Declaration {id:NativeTypeId::CalendarDate,module:"std:date",name:"Date",..BYTES};
 static DATE_ERROR: Declaration = Declaration {id:NativeTypeId::DateError,module:"std:date",name:"DateError",..ENV_ERROR};
 static UUID: Declaration = Declaration {id:NativeTypeId::Uuid,module:"std:uuid",name:"Uuid",..BYTES};
+static SIGNAL_LISTENER: Declaration = Declaration {id:NativeTypeId::SignalListener,module:"std:signals",name:"SignalListener",type_parameters:&[],thread_transfer:true,..THREAD};
+static SIGNAL_ERROR: Declaration = Declaration {id:NativeTypeId::SignalError,module:"std:signals",name:"SignalError",..ENV_ERROR};
+static CRYPTO_ERROR: Declaration = Declaration {id:NativeTypeId::CryptoError,module:"std:crypto",name:"CryptoError",..ENV_ERROR};
 static UUID_ERROR: Declaration = Declaration {id:NativeTypeId::UuidError,module:"std:uuid",name:"UuidError",..ENV_ERROR};
 static DECIMAL: Declaration = Declaration {id:NativeTypeId::Decimal,module:"std:decimal",name:"Decimal",..BYTES};
 static DECIMAL_ERROR: Declaration = Declaration {id:NativeTypeId::DecimalError,module:"std:decimal",name:"DecimalError",..ENV_ERROR};
@@ -379,6 +397,9 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
         NativeTypeId::LruCache => &LRU_CACHE, NativeTypeId::SharedLruCache => &SHARED_LRU_CACHE, NativeTypeId::CacheEntry => &CACHE_ENTRY, NativeTypeId::CacheInsertError => &CACHE_INSERT_ERROR,
         NativeTypeId::HttpTlsOptions => &HTTPTLSOPTIONS,
         NativeTypeId::HttpClientOptions => &HTTPCLIENTOPTIONS,
+        NativeTypeId::HttpFormField => &HTTPFORMFIELD,
+        NativeTypeId::HttpMultipartPart => &HTTPMULTIPARTPART,
+        NativeTypeId::HttpServerOptions => &HTTPSERVEROPTIONS,
         NativeTypeId::SqlPool => &SQLPOOL,
 NativeTypeId::SqlTransaction => &SQLTRANSACTION,
 NativeTypeId::SqlRow => &SQLROW,
@@ -438,6 +459,9 @@ NativeTypeId::HttpApp => &HTTPAPP,
         NativeTypeId::CalendarDate => &CALENDAR_DATE,
         NativeTypeId::DateError => &DATE_ERROR,
         NativeTypeId::Uuid => &UUID,
+        NativeTypeId::SignalListener => &SIGNAL_LISTENER,
+        NativeTypeId::SignalError => &SIGNAL_ERROR,
+        NativeTypeId::CryptoError => &CRYPTO_ERROR,
         NativeTypeId::UuidError => &UUID_ERROR,
         NativeTypeId::Decimal => &DECIMAL,
         NativeTypeId::DecimalError => &DECIMAL_ERROR,
@@ -464,7 +488,7 @@ NativeTypeId::HttpApp => &HTTPAPP,
 /// Exact module/name lookup does not grant aliases a new declaration identity.
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
-    [&LRU_CACHE,&SHARED_LRU_CACHE,&CACHE_ENTRY,&CACHE_INSERT_ERROR,&UUID,&UUID_ERROR,&TIMEOFDAY,&UTCINSTANT,&TIMEDURATION,&TIMEZONE,&CALENDAR_DATE,&DATE_ERROR,&DECIMAL,&DECIMAL_ERROR,&NUMERIC_ERROR,&TRACKED_RESOURCE,&SQLPOOL,&SQLTRANSACTION,&SQLROW,&SQLERROR,&SQLITECONNECTION,&SQLITESTATEMENT,&SQLITETRANSACTION,&SQLITEROW,&SQLITEERROR,&HTTPTLSOPTIONS,&HTTPCLIENTOPTIONS,&HTTPAPP,&HTTPREQUEST,&HTTPRESPONSE,&HTTPBODY,&HTTPCLIENT,&HTTPSERVER,&HTTPNEXT,&HTTPERROR,&JOB,&ASYNC_ERROR,&ASYNC_CHANNEL,&ASYNC_SENDER,&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
+    [&SIGNAL_LISTENER,&SIGNAL_ERROR,&CRYPTO_ERROR,&LRU_CACHE,&SHARED_LRU_CACHE,&CACHE_ENTRY,&CACHE_INSERT_ERROR,&UUID,&UUID_ERROR,&TIMEOFDAY,&UTCINSTANT,&TIMEDURATION,&TIMEZONE,&CALENDAR_DATE,&DATE_ERROR,&DECIMAL,&DECIMAL_ERROR,&NUMERIC_ERROR,&TRACKED_RESOURCE,&SQLPOOL,&SQLTRANSACTION,&SQLROW,&SQLERROR,&SQLITECONNECTION,&SQLITESTATEMENT,&SQLITETRANSACTION,&SQLITEROW,&SQLITEERROR,&HTTPTLSOPTIONS,&HTTPFORMFIELD,&HTTPMULTIPARTPART,&HTTPSERVEROPTIONS,&HTTPCLIENTOPTIONS,&HTTPAPP,&HTTPREQUEST,&HTTPRESPONSE,&HTTPBODY,&HTTPCLIENT,&HTTPSERVER,&HTTPNEXT,&HTTPERROR,&JOB,&ASYNC_ERROR,&ASYNC_CHANNEL,&ASYNC_SENDER,&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
 }
 
 #[cfg(test)]

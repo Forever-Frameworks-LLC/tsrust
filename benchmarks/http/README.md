@@ -24,3 +24,19 @@ Both implementations trust only the fixture CA and reuse connections. The Node T
 counterpart uses `node:http2` with a persistent session and an explicit private CA, matching
 the native client/server HTTP/2 negotiation.
 Certificate files are read before timing. Run from the repository root.
+
+`--service` measures 128 in-process authenticated form boundaries: SHA-256,
+equal-length token comparison, explicit UTC second flooring, duplicate-preserving URL-form decoding and fixed
+structured JSON output. Expected checksum is 128 × (32 + 7 + 2 + 1) = 5376.
+Node uses its crypto primitives, Request and URLSearchParams after TypeScript
+compilation. Native uses checked bytes, HTTP forms and JSON. Both use valid UTF-8;
+Node's permissive malformed-percent behavior is not claimed as parity. This is
+not network, database, session lookup or distributed-service throughput. Those
+boundaries retain their existing matched workloads and integrated acceptance.
+`--verify` builds debug and runs one untimed batch. Measurement retains the
+three-process, eight-warmup, 31-sample release protocol; timing remains deferred.
+
+The clock boundary floors a pre-epoch instant to -1000 milliseconds. Native input
+retains nine fractional digits; Node Date input has three. Both lie in the same
+second, so the independent expected floor is equal without claiming nanosecond
+Date precision in Node.

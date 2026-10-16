@@ -177,3 +177,27 @@ fn retained_callback_state_outlives_requests_and_drops_once_after_shutdown(){
   assert_eq!(drops.load(Ordering::SeqCst),1);
  }
 }
+
+#[test]
+fn service_limits_forms_multipart_and_deadline_disposal(){
+ use std::sync::{Arc,atomic::{AtomicUsize,Ordering}};
+ struct Guard(Arc<AtomicUsize>);impl Drop for Guard{fn drop(&mut self){self.0.fetch_add(1,Ordering::SeqCst);}}
+ tsrust_native_futures::block_on(async{
+  let mut form=Request::new("POST","http://localhost/","a=one+two&a=%C3%A9&empty=".into()).unwrap();form.set_header("content-type","application/x-www-form-urlencoded").unwrap();
+  let fields=form.form().await.unwrap();assert_eq!(fields.len(),3);assert_eq!(fields[0].value,"one two");assert_eq!(fields[1].name,"a");assert_eq!(fields[1].value,"é");assert_eq!(fields[2].value,"");
+  for input in ["a=%","a=%GG","a=%FF"]{let mut request=Request::new("POST","http://localhost/",input.into()).unwrap();request.set_header("content-type","application/x-www-form-urlencoded").unwrap();assert!(request.form().await.is_err());}
+  let mut upload=Request::new("POST","http://localhost/","--x\r\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\r\nContent-Type: application/octet-stream\r\n\r\nabc\r\n--x--\r\n".into()).unwrap();upload.set_header("content-type","multipart/form-data; boundary=x").unwrap();
+  let parts=upload.multipart().await.unwrap();assert_eq!(parts[0].name,"attachment");assert_eq!(parts[0].content_type.as_deref(),Some("application/octet-stream"));assert_eq!(parts[0].data,b"abc");assert_eq!(parts[0].file_name.as_deref(),Some("../untrusted"));
+  let drops=Arc::new(AtomicUsize::new(0));let seen=drops.clone();let entered=Arc::new(tokio::sync::Notify::new());let ready=entered.clone();
+  let mut app=App::new();assert!(app.configure([0,1,1,10,10,10,0]).is_err());app.configure([8,8,1,100,100,100,0]).unwrap();
+  app.route("GET","/slow",move |_|{let guard=Guard(seen.clone());let ready=ready.clone();async move{let _guard=guard;ready.notify_one();std::future::pending::<Response>().await}}).unwrap();
+  let server=app.listen("127.0.0.1:0").await.unwrap();let base=format!("http://{}",server.address());let client=Client::new().unwrap();
+  let url=format!("{base}/slow");let pending=tsrust_native_futures::start(async move{Ok::<_,tsrust_native_futures::Failure<()>>(Client::new().unwrap().send(Request::new("GET",&url,String::new()).unwrap()).await.unwrap().status())});
+  entered.notified().await;
+  let overloaded=client.send(Request::new("GET",&format!("{base}/slow"),String::new()).unwrap()).await.unwrap();assert_eq!(overloaded.status(),503);
+  assert_eq!(pending.join().await.ok(),Some(504));server.shutdown().await;assert_eq!(drops.load(Ordering::SeqCst),1);
+  let mut app=App::new();app.configure([8,8,2,1000,100,100,1]).unwrap();let server=app.listen("127.0.0.1:0").await.unwrap();let url=format!("http://{}/",server.address());
+  assert_eq!(reqwest::Client::new().post(&url).body("123456789").send().await.unwrap().status().as_u16(),413);
+  let response=client.send(Request::new("GET",&url,String::new()).unwrap()).await.unwrap();assert_eq!(response.status(),429);assert_eq!(response.header("retry-after").unwrap().as_deref(),Some("1"));server.shutdown().await;
+ });
+}

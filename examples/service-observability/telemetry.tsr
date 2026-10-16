@@ -1,0 +1,111 @@
+import { Channel, Sender } from 'std:futures';
+import { Uuid, randomUuid, parseUuid, formatUuid } from 'std:uuid';
+
+export type Operation = 'service.request';
+
+export type Phase = 'request-start' | 'task-end' | 'request-end' | 'request-failed' | 'stop';
+
+export type Site = 'service.handle' | 'service.loadNote';
+
+export type Trace = {
+  requestId: Uuid;
+  operation: Operation;
+};
+
+export type Event = {
+  trace: Trace;
+  phase: Phase;
+  site: Site;
+  status: int;
+  elapsedMs: number;
+};
+
+export type Metrics = {
+  started: int;
+  completed: int;
+  failed: int;
+  tasks: int;
+  incomplete: int;
+};
+
+type LogLine = {
+  kind: string;
+  requestId: string;
+  operation: Operation;
+  phase: Phase;
+  site: Site;
+  status: int;
+  elapsedMs: number;
+};
+
+export function newTrace(): Trace {
+  return {
+    requestId: unwrap(randomUuid()), operation: 'service.request'
+  };
+}
+
+// Only these fields cross the logging boundary. Headers, bodies, URLs and raw errors never enter it.
+export function formatEvent(event: ReadOnly<Event>): string {
+  if (event.status < 0 || event.status > 599 || event.elapsedMs < 0) {
+    throw 'Invalid telemetry event';
+  }
+
+  const line: LogLine = {
+    kind: 'event', requestId: formatUuid(event.trace.requestId), operation: clone(event.trace.operation), phase: clone(event.phase), site: clone(event.site), status: event.status, elapsedMs: event.elapsedMs
+  };
+  return JSON.stringify(line, 1024);
+}
+
+export async function emitEvent(sender: ReadOnly<Sender<Event>>, trace: ReadOnly<Trace>, phase: Phase, site: Site, status: int, elapsedMs: number): Task<void> {
+  const event: Event = {
+    trace: clone(trace), phase, site, status, elapsedMs
+  };
+  await sender.send(event);
+}
+
+export async function stopTelemetry(sender: ReadOnly<Sender<Event>>): Task<void> {
+  const trace: Trace = {
+    requestId: unwrap(parseUuid('00000000-0000-0000-0000-000000000000')), operation: 'service.request'
+  };
+  await emitEvent(sender, trace, 'stop', 'service.handle', 0, 0);
+}
+
+export function emptyMetrics(): Metrics {
+  return {
+    started: 0, completed: 0, failed: 0, tasks: 0, incomplete: 0
+  };
+}
+
+export async function collect(queue: Owned<Channel<Event>>): Task<Metrics> {
+  const metrics = emptyMetrics();
+  let running = true;
+  while (running) {
+    const event = await queue.receive();
+    if (event.phase === 'stop') {
+      running = false;
+      break;
+    }
+
+    const line = formatEvent(event);
+    console.log(line);
+    if (event.phase === 'request-start') {
+      metrics.started += 1;
+    }
+
+    if (event.phase === 'request-end') {
+      metrics.completed += 1;
+    }
+
+    if (event.phase === 'request-failed') {
+      metrics.failed += 1;
+    }
+
+    if (event.phase === 'task-end') {
+      metrics.tasks += 1;
+    }
+  }
+
+  queue.close();
+  metrics.incomplete = metrics.started - metrics.completed - metrics.failed;
+  return metrics;
+}

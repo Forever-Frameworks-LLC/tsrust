@@ -4,6 +4,14 @@ use crate::native_signatures::NativeTypeId;
 impl Emitter<'_>{
  fn http_value(&self,ty:Type,value:&str)->String{
   if let Type::Record(id)=ty && self.program.records[id].native_type==Some(NativeTypeId::Bytes){return format!("Record{}{{bytes:{value}}}",self.native_record_declaration(id));}
+  if let Type::Array(ArrayElement::Record(id,0))=ty && matches!(self.program.records[id].native_type,Some(NativeTypeId::HttpFormField|NativeTypeId::HttpMultipartPart)) {
+   let item=self.http_value(Type::Record(id),"item");let values=format!("({value}).into_iter().map(|item|{item}).collect::<Vec<_>>()");
+   return if self.small_record(id){format!("Array::Heap({values})")}else{values};
+  }
+  if let Type::Record(id)=ty && matches!(self.program.records[id].native_type,Some(NativeTypeId::HttpFormField|NativeTypeId::HttpMultipartPart)){
+   let record=&self.program.records[id];let fields=record.fields.iter().enumerate().map(|(index,field)|format!("field{index}:{}",self.http_value(field.ty.unwrap(),&format!("value.{}",["name",if record.native_type==Some(NativeTypeId::HttpFormField){"value"}else{"file_name"},"content_type","data"][index])))).collect::<Vec<_>>().join(",");
+   return format!("{{let value={value};Record{}{{{fields}{}}}}}",self.native_record_declaration(id),self.schema_record_order(id));
+  }
   if ty==Type::String{return format!("String::Owned({value})");}
   if let Type::Union(id)=ty {let members=&self.program.unions[id.index()].members;let absent=members.iter().position(|ty|*ty==Type::Undefined).unwrap();let present=1-absent;let payload=self.http_value(members[present],"value");return format!("match {value}{{Some(value)=>Union{}::V{present}({payload}),None=>Union{}::V{absent}(TsrUndefined)}}",id.index(),id.index());}
   value.into()
@@ -19,11 +27,14 @@ impl Emitter<'_>{
   format!("match {call}{{Ok(value)=>Union{}::V{}({}),Err(error)=>Union{}::V{}({})}}",id.index(),tag(ok),record(ok,fields),id.index(),tag(err),record(err,format!("field0:{failed},")))
  }
  pub(super) fn http_native(&self,fun:&CheckedFunction,expr:&Expr,id:usize,args:&[Expr])->Option<String>{
-  let binding=&crate::native_bindings::BINDINGS[id];if binding.module!="std:http"{return None;}self.native_bindings.borrow_mut().insert(id);
+  let binding=&crate::native_bindings::BINDINGS[id];if !matches!(binding.module,"std:http"|"std:signals"){return None;}self.native_bindings.borrow_mut().insert(id);
   let values=args.iter().zip(binding.parameters).map(|(arg,param)|{let value=self.expr(fun,arg,param.access);if arg.ty==Some(Type::String){if param.access==Mode::Consume{format!("({value}).as_ref().to_owned()")}else{format!("({value}).as_ref()")}}else{value}}).collect::<Vec<_>>();
   let receiver=values.first().cloned().unwrap_or_default();
   let call=match binding.name{
+   "listen" if binding.module=="std:signals"=>"tsrust_native_signals::listen()".into(),
+   "__receive" if binding.module=="std:signals"=>format!("({receiver}).receive().await"),
    "__app"=>"tsrust_native_http::App::new()".into(),"__client"=>if args.is_empty(){"tsrust_native_http::Client::new()".into()}else{format!("{{let options={receiver};tsrust_native_http::Client::with_ca(options.field0.as_ref())}}")},
+   "__configure"=>format!("{{let app={receiver};let options={};app.configure([options.field0,options.field1,options.field2,options.field3,options.field4,options.field5,options.field6])}}",values[1]),
    "__request"=>format!("tsrust_native_http::Request::new({})",values.join(",")),
    "__text"=>format!("tsrust_native_http::Response::text({})",values.join(",")),
    "__html"|"__json"=>format!("tsrust_native_http::Response::content({}, {}, {:?})",values[0],values[1],if binding.name=="__html"{"text/html; charset=utf-8"}else{"application/json"}),
@@ -44,6 +55,7 @@ impl Emitter<'_>{
    "__shutdown"=>format!("{{({receiver}).shutdown().await;Ok::<_,tsrust_native_http::Error>(())}}"),
    "__next"=>format!("Ok::<_,tsrust_native_http::Error>(({receiver}).run({}).await)",values[1]),
    "__send"=>format!("({receiver}).send({}).await",values[1]),
+   "__form"|"__multipart"=>format!("({receiver}).{}().await",binding.name.trim_start_matches('_')),
    "__bodyNext"=>format!("({receiver}).next().await"),
    "__bodyText"|"__requestText"=>format!("({receiver}).text().await"),
    "__responseText"=>format!("({receiver}).text_body().await"),
