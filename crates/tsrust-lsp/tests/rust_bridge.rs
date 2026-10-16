@@ -57,3 +57,12 @@ fn managed_embedded_lock_changes_recheck_through_the_manifest(){
  let config=|version:&str|serde_json::json!({"schemaVersion":1,"source":"./api.rs","dependencies":{},"lockfile":version}).to_string();workspace.open(manifest.clone(),1,config("version = 4"));
  let mut session=tsrust_compiler::project::session::ProjectSession::default();session.check(&workspace.snapshot(),&entry.0).unwrap();workspace.open(manifest,2,config("version = 4\n# updated"));session.check(&workspace.snapshot(),&entry.0).unwrap();assert!(session.stats().parsed>0);
 }
+#[test]
+fn checked_width_adapter_help_preserves_borrow_and_error_contract(){
+ let entry=SourceId("/rust-width/main.tsr".into());let dependency=SourceId("/rust-width/adapter.rs".into());
+ let source="import {incrementWide} from './adapter.rs';function main(){const result=incrementWide('18446744073709551614',64);}";
+ let mut workspace=Workspace::default();workspace.open(entry.clone(),1,source.into());workspace.open(dependency,1,include_str!("../../../examples/rust-data-boundaries/adapter.rs").into());
+ let checked=workspace.snapshot().check(&entry).unwrap();let index=ProjectIndex::checked(&checked);
+ let answer=index.request("textDocument/hover",&json!({"position":{"line":0,"character":source.rfind("incrementWide").unwrap()}}),"file:///rust-width/main.tsr").unwrap().unwrap().to_string();
+ for expected in ["ReadOnly<string>","Result<string, string>","width"]{assert!(answer.contains(expected),"{answer}");}
+}

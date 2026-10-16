@@ -1,0 +1,81 @@
+import { signed, unsigned, float32, incrementWide, bytes, incrementOptional, OptionalIntAbsent, OptionalIntPresent, Pair, pair } from './adapter.rs';
+import { strictEqual } from 'std:testing';
+import { fromArray, at, length } from 'std:bytes';
+
+function main() {
+  strictEqual(unwrap(signed(-128, 8)), -128);
+  strictEqual(unwrap(unsigned(4294967295, 32)), 4294967295);
+  match (signed(128, 8)) {
+    Ok(_) => {
+      throw 'rounded signed';
+    },
+    Err(error) => strictEqual(error, 'Range')
+  }
+
+  match (unsigned(-1, 64)) {
+    Ok(_) => {
+      throw 'negative unsigned';
+    },
+    Err(error) => strictEqual(error, 'Range')
+  }
+
+  strictEqual(unwrap(float32(1.5)), 1.5);
+  match (float32(0.1)) {
+    Ok(_) => {
+      throw 'rounded float';
+    },
+    Err(error) => strictEqual(error, 'Precision')
+  }
+
+  strictEqual(unwrap(incrementWide('18446744073709551614', 64)), '18446744073709551615');
+  strictEqual(unwrap(incrementWide('340282366920938463463374607431768211454', 128)), '340282366920938463463374607431768211455');
+  match (incrementWide('340282366920938463463374607431768211455', 128)) {
+    Ok(_) => {
+      throw 'wrapped';
+    },
+    Err(error) => strictEqual(error, 'Range')
+  }
+
+  match (incrementWide(' 1', 64)) {
+    Ok(_) => {
+      throw 'accepted whitespace';
+    },
+    Err(error) => strictEqual(error, 'Syntax')
+  }
+
+  const binary = unwrap(fromArray([0, 127, 255]));
+  const copied: int[] = [];
+  for (let i = 0; i < length(binary); i += 1) {
+    copied.push(unwrap(at(binary, i)));
+  }
+
+  const restored = unwrap(fromArray(unwrap(bytes(copied))));
+  strictEqual(unwrap(at(restored, 2)), 255);
+  match (bytes([256])) {
+    Ok(_) => {
+      throw 'truncated byte';
+    },
+    Err(error) => strictEqual(error, 'Range')
+  }
+
+  const absent: OptionalIntAbsent = {};
+  const missing = unwrap(incrementOptional(absent));
+  strictEqual(match (missing) {
+    OptionalIntAbsent(_) => true,
+    OptionalIntPresent(_) => false
+  }, true);
+  const present: OptionalIntPresent = {
+    value: 41
+  };
+  const result = unwrap(incrementOptional(present));
+  strictEqual(match (result) {
+    OptionalIntAbsent(_) => 0,
+    OptionalIntPresent(value) => value.value
+  }, 42);
+  const input: Pair = {
+    count: 42, label: 'owned'
+  };
+  const returned = pair(input);
+  strictEqual(returned.count, 42);
+  strictEqual(returned.label, 'owned');
+}

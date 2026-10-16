@@ -258,3 +258,16 @@ documentation examples, runtime entropy/byte boundaries, Uuid/UuidError editor
 agreement, completion and help. The native and Node workloads match checksum
 33,664. Installed CLI/LSP and restarted VS Code pass. Evidence uses `tsrust-uuid-*`
 in SQLite. Timing remains unmeasured; Rust/SQL adapters remain separate work.
+
+## Explicit Rust boundary adapters
+
+`examples/rust-data-boundaries` passes native source/compiler and editor acceptance.
+It demonstrates checked i8/i16/i32 and u8/u16/u32 conversions in widened storage,
+exact f32 conversion, checked real Rust u64/u128 arithmetic using validated decimal
+text, explicit Vec<u8> copies, concrete Option enum mapping and owned tuple/record
+transport. Direct unsupported widths, Vec<u8>, Option and tuple signatures reject.
+Full i128 and direct opaque domain projection remain unsupported. Text-backed u128
+is not a source numeric type and does not fit every value into bounded Decimal.
+See the example README for ownership, errors and limitations. Existing Rust bridge
+performance protocols remain unchanged; no copied-buffer performance claim is made.
+Evidence uses `tsrust-rust-boundaries-*` in SQLite. No compiler runtime changed.

@@ -24,7 +24,9 @@ matched millisecond workload pass. Current installed consumers include this sect
 UUID focused acceptance also passes: strict canonical text, independent exact bytes,
 fallible entropy, ownership/worker transport, nine native documentation examples,
 offline export and matched untimed workload. Installed consumers include UUID.
-Practical Rust/SQL boundary witnesses and selected domain inventories are next. The owner prefers date-fns: use small
+Explicit checked Rust width/byte/Option/tuple adapters now pass native/compiler
+and editor acceptance. Direct unsupported signatures still reject. SQL domain
+witnesses and selected domain inventories are next. The owner prefers date-fns: use small
 named immutable functions and familiar arithmetic/formatting names, while keeping
 checked ranges, precision and explicit DST ambiguity handling. Continue
 Rust/SQL boundary witnesses, then S19–S21 without another go-ahead.
