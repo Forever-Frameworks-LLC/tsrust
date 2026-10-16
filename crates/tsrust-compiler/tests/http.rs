@@ -24,9 +24,11 @@ fn validated_json_body_executes(){
 fn http_catalog_examples_check_and_execute(){
  let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
  let directory=support::TempDirectory::new();
+ let mut verified=std::collections::HashSet::new();
  for(family,entries)in catalog.as_object().unwrap(){if family!="std:http"&&!family.starts_with("Http"){continue;}
   for entry in entries.as_array().unwrap(){for example in entry["examples"].as_array().unwrap(){
    let source=support::format_round_trip(example["source"].as_str().unwrap());
+   if !verified.insert((source.clone(),example["output"].as_str().unwrap().to_owned())){continue;}
    let path=directory.source(&source);let output=support::run(support::cli().arg("run").arg(path).env("TSRUST_CACHE_DIR",directory.0.join("cache")),300);support::success(&output);assert_eq!(String::from_utf8_lossy(&output.stdout),example["output"].as_str().unwrap(),"{family}.{}",entry["name"]);
   }}
  }

@@ -286,5 +286,9 @@ including TLS, limits, cancellation, shutdown and independent destruction.
 Five source ownership/type rejections and focused editor help pass. The rewritten
 service passes integrated macOS HTTPS/session/persistence/form/multipart/CORS/
 redaction/SIGINT/SIGTERM acceptance. Original failures and repairs remain in SQLite.
-The matched v3 state workload and Linux/offline rerun are pending; no full compiler
-regression or new timing is claimed.
+The v3 native/Node state workload passes untimed verification. The rewritten
+service and relocated compiler/editor package also pass offline Linux aarch64
+acceptance at 7a35c8b3. Installed CLI/LSP consumers are refreshed, and the restarted
+active editor reports no problems. Rust-analyzer remains disabled. Scoped S21
+implementation acceptance is complete; the full-family/performance checkpoint
+remains pending. No full compiler regression or new timing is claimed.

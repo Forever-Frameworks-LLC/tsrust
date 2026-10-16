@@ -10,9 +10,11 @@ exclusive context borrowing, middleware entry and reverse unwind, response heade
 changes after `await next()`, short-circuiting, and registration order. No
 framework authentication or session policy is included.
 
-The current implementation is in progress, not a Hono compatibility claim.
-Request-local typed variables, cookies, body helper
-coverage and error-handler integration remain required before this section closes.
+Focused Router acceptance covers typed variables, cookie helpers, body helpers
+and generic error responses before middleware unwinds. See
+[application/request state](../http-state/router.tsr) and the
+[HTTP guide](../../docs/guides/http.md) for supported behavior and explicit limits.
+This is a scoped Hono-style API, not a claim of full package compatibility.
 Context callbacks currently use `Mutable<Context>` and `ContextNext` annotations
 when written as named functions; inline parameter types are inferred. `next()`
 consumes its continuation and borrows the sole visible context until completion.

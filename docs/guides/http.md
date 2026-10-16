@@ -10,13 +10,17 @@ router, `wait` keeps it serving, and `shutdown` drains cleanup.
 import { Router } from 'std:http';
 
 type State = { greeting: string; };
-const app = new Router<State>({ greeting: 'Hello' });
-app.use(async (c, next) => {
-  c.header('x-before', 'entry');
-  await next();
-  c.header('x-after', 'exit');
-});
-app.get('/', c => c.text(clone(c.env.greeting)));
+async function main(): Task<void> {
+  const app = new Router<State>({ greeting: 'Hello' });
+  app.use(async (c, next) => {
+    c.header('x-before', 'entry');
+    await next();
+    c.header('x-after', 'exit');
+  });
+  app.get('/', c => c.text(clone(c.env.greeting)));
+  const server = await app.listen('127.0.0.1:3000');
+  await server.wait();
+}
 ```
 
 Matching callbacks run in registration order and unwind in reverse order around

@@ -9,9 +9,12 @@ body ownership remains exclusive while request/response metadata can be shared
 across suspension. All 16 affected HTTP runtime checks, five ownership rejection
 witnesses, focused editor checks and integrated macOS service acceptance pass.
 Old App retained-state examples are preserved; the new example is
-`examples/http-state/router.tsr`. Current v3 matched workload verification,
-Linux/offline service rerun, consumer refresh and final cleanup remain pending.
-No full regressions or new timing were run. Original failures and intermediate
+`examples/http-state/router.tsr`. The v3 native/Node workload passes untimed verification. The revised service
+and relocated compiler/editor package pass offline Linux aarch64 acceptance.
+Installed CLI and both LSP consumers are refreshed; the active editor reports no
+workspace problems with checking enabled. Rust-analyzer remains disabled.
+Implementation acceptance is complete for this scoped Router/service section.
+The S21 performance/full-family checkpoint remains separate and unrun. Original failures and intermediate
 checks are retained byte-for-byte in SQLite under `tsrust-router-*`.
 
 The public router is named `Router`, not `Hono`; Hono is only the API reference.

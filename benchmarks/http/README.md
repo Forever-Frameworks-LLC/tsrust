@@ -42,10 +42,13 @@ second, so the independent expected floor is equal without claiming nanosecond
 Date precision in Node.
 
 `--context` selects the Hono-style context and middleware workload. It retains
-configuration, sets a header before delegation and another after awaiting the
-handler, and checks both headers and the `42` response body on every request.
+configuration in Router application state, copies its body into a typed request
+variable, reads that variable in the handler, and sets headers before and after
+delegation. Every request checks both headers and the `42` response body.
 The Node counterpart uses an independent explicit context/continuation over Node
 HTTP; it is not a measurement of the Hono npm package. Both sides use the existing
 3-process, 8-warmup, 31-sample, 128-request protocol. `--verify --context` is one
 untimed correctness batch. Source identities are pinned in context-manifest.json.
-Implementation and measurement acceptance remain pending until their records exist.
+The v3 state workload passes matched untimed verification; its exact record is in
+SQLite. Timing remains unmeasured. Earlier v2 records retain their original
+closure-only semantics and are not v3 performance baselines.

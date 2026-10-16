@@ -14,6 +14,16 @@ See [current data-type coverage](data-type-coverage.md) and the
 
 # Modules, native standard library and async roadmap
 
+Current S21 implementation status (2026-10-16): the scoped Router-over-Axum API,
+typed application/request state, cookie helpers and declarative service routes
+pass targeted compiler/native/editor acceptance. The revised integrated service
+passes on macOS and offline Linux aarch64, including toolchain relocation and
+both shutdown signals. Authentication remains application policy. Installed
+consumers are refreshed. Full-family regressions and new performance measurements
+remain a separate pending checkpoint; no unmeasured workload is described as timed.
+See [service readiness](plans/service-readiness-plan.md) for exact boundaries.
+
+
 Current continuation: [compiler foundations through S12–S21](handoffs/compiler-to-roadmap-continuation.md).
 Current owner priority (2026-10-15): S18 core acceptance is complete. Next deliver
 [checked resource lifetimes for UI](#owner-priority-compiler-dependency-checked-resource-lifetimes-for-ui),
