@@ -1,10 +1,13 @@
 {
   "id": "calendar-billing",
   "implementationAccepted": true,
-  "measurementStatus": "unmeasured",
+  "measurementStatus": "measured",
   "iterationsPerBatch": 256,
   "source": "calendar-billing.tsr",
   "counterpart": "calendar-billing.ts",
   "sourceSha256": "45ce3fb10612a284d9ce4ea99325906bcca533060172d99f252541ef3b9787e8",
-  "counterpartSha256": "6af86b81e5d8808b2ab38afb999a2f3b3dc3619831cfedc6c6306c38f9141327"
+  "counterpartSha256": "6af86b81e5d8808b2ab38afb999a2f3b3dc3619831cfedc6c6306c38f9141327",
+  "measurementStore": "../records.sqlite",
+  "measurementRecord": "benchmarks/calendar/calendar-billing-2026-10-16T03-19-53-991Z.json",
+  "measurementSha256": "6cb7c9234396072603bc7c46d1c7ea7838a046dc435e84cb44560bdf496c212e"
 }

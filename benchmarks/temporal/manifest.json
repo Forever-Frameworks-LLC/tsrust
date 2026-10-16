@@ -1,10 +1,13 @@
 {
   "id": "temporal-instants",
   "implementationAccepted": true,
-  "measurementStatus": "unmeasured",
+  "measurementStatus": "measured",
   "iterationsPerBatch": 256,
   "source": "temporal-instants.tsr",
   "counterpart": "temporal-instants.ts",
   "sourceSha256": "62dacbb888a9daf5ff36bbf1379ea3170a2fb7c46c6b8d9995b0426ab5590708",
-  "counterpartSha256": "7626dbf23724674ab0906fbd679ccac4ebc94626bf819f2b4fde2291a44a1421"
+  "counterpartSha256": "7626dbf23724674ab0906fbd679ccac4ebc94626bf819f2b4fde2291a44a1421",
+  "measurementStore": "../records.sqlite",
+  "measurementRecord": "benchmarks/temporal/temporal-instants-2026-10-16T03-19-55-708Z.json",
+  "measurementSha256": "a9900c56f2158e1d3a55f9ed0027096aef86a66a7c638bffe356b8368e41713f"
 }

@@ -30,21 +30,22 @@ witnesses now pass all three drivers, including exact decimal, date/time, UUID,
 JSON and nullable storage. Pinned Rust/date-fns/Decimal.js declaration inventories
 are recorded. Full data-type family regressions and targeted integration repairs
 now pass; see `docs/data-type-coverage.md` for retained original failures and final
-evidence. Do not repeat the full pass. Measure the five accumulated matched workloads,
-then continue S19–S21. No new permission checkpoint is needed. The owner prefers date-fns: use small
+evidence. The five accumulated workloads are measured at `b911a378`: 930 samples
+with checksum agreement, exact records and derived summaries in SQLite. Native
+medians are lower in these scoped first baselines. Do not repeat this full pass.
+Continue S19 caches, S20 queues and S21 service acceptance now. No new permission checkpoint is needed. The owner prefers date-fns: use small
 named immutable functions and familiar arithmetic/formatting names, while keeping
-checked ranges, precision and explicit DST ambiguity handling. Continue
-Rust/SQL boundary witnesses, then S19–S21 without another go-ahead.
+checked ranges, precision and explicit DST ambiguity handling. The bounded Rust/SQL
+boundary witnesses are accepted; proceed without another go-ahead.
 
 The first data-type section, `std:numeric` (`4760e58d`), now passes focused compiler/runtime,
 editor and matched-workload acceptance. It preserves original int/number union
 inputs and rejects loss for toInt/toNumber/toFloat32, validates signed/unsigned
 8/16/32/64-bit ranges within int storage, and parses strict exact decimal integers.
 Full u64 above i64::MAX and 128-bit values remain explicitly unsupported. See
-`docs/data-type-coverage.md`; workload timing remains unmeasured. SQL REAL precision repair also passes explicit three-driver acceptance, including
-precision/underflow rejection and unchanged automatic rollback. Continue
-decimal/calendar/time-zone/duration/UUID and
-remaining boundary work before S19–S21. No new go-ahead is required.
+`docs/data-type-coverage.md` for measured workload scope. SQL REAL precision repair
+also passes explicit three-driver acceptance, including precision/underflow
+rejection and unchanged automatic rollback. S19 is next; no new go-ahead is required.
 
 
 The checked `std:testing` resource facility and synchronous UI lifetime contract
@@ -95,7 +96,8 @@ without another go-ahead. Discovery now includes pinned TypeScript 5.9.3 and a
 bounded standalone rust-analyzer 0.3.3081 run; the latter shuts down after probing
 and does not re-enable the editor extension. The Tsrust inventory handles native
 aliases and explicitly identifies the internal non-importable TestRegistry.
-Required domain/width gaps remain implementation work, not accepted coverage.
+The bounded domain/width coverage is accepted; unsupported wider source types
+remain explicitly documented.
 SQL REAL narrowing is now checked: finite values that round or underflow reject
 with precision. All three drivers passed with retained/resumed evidence; no need
 to repeat this suite until subsequent SQL or task-lifecycle changes require it.

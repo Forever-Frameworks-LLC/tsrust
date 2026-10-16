@@ -104,8 +104,7 @@ numeric expressions retain their language semantics: converting an already
 rounded `number` cannot recover its original integer. Use the exact helpers at
 boundaries before any widening or arithmetic that may round.
 
-The matched conversion workload is registered in `benchmarks/numeric` and remains
-unmeasured. SQL REAL narrowing passes explicit three-driver acceptance.
+The matched conversion workload is registered in `benchmarks/numeric` and is measured below. SQL REAL narrowing passes explicit three-driver acceptance.
 
 Acceptance: native fixture and seven executable catalog examples pass; backend
 edge-case tests cover syntax, fraction, range, precision, negative zero and width
@@ -169,7 +168,7 @@ forging/implicit JSON, locked offline export and all 13 catalog examples. Public
 parsing is named `parseDecimal`, consistently with `std:numeric.parseInt`; the old
 `parse` name is not exported. Decimal and DecimalError checker agreement, decimal
 completion rows, hover and signature help pass. The matched native/TypeScript
-workload produces the independent checksum 65,247,616; timing remains unmeasured.
+workload produces the independent checksum 65,247,616; timing is recorded in the family measurements below.
 Whole-project formatting preserves tokens and a second pass changes zero files.
 Evidence is retained under `tsrust-decimal-*` in the canonical SQLite store.
 
@@ -194,7 +193,7 @@ with default features disabled and only std enabled. Calendar operations do not
 consult the system zone or clock. Time of day, UTC instants, durations and IANA
 zones remain the next section. Rust/SQL domain mappings remain separate work.
 The readable billing example and matched date-fns workload live in
-`examples/calendar-dates` and `benchmarks/calendar`; timing is unmeasured.
+`examples/calendar-dates` and `benchmarks/calendar`; timing is recorded below.
 
 Calendar compiler/native acceptance on macOS covers the billing example, explicit
 clone/record/array/nullability/worker ownership, rejected forged/implicit JSON
@@ -203,7 +202,7 @@ fixture used unsupported inline record syntax and an incorrect spawn form; its
 original failure is retained and the repaired fixture passes. Date/DateError
 agreement, three completion checks and focused hover/signature help pass. The
 native and date-fns workload both produce the independent checksum 40,064.
-Timing remains unmeasured. Evidence uses `tsrust-calendar-*` in SQLite.
+Family timing is recorded below. Evidence uses `tsrust-calendar-*` in SQLite.
 
 ## Instants, clock times, durations and zones
 
@@ -233,7 +232,7 @@ Focused temporal acceptance passes on macOS: four compiler/export checks,
 31 batched native documentation examples, two calendar/temporal runtime checks,
 four receiver-agreement selections, completion and hover/signature checks. The
 prior calendar billing example still passes. Native and date-fns millisecond
-workloads match checksum 32,640; timing remains unmeasured. Installed CLI/LSP and
+workloads match checksum 32,640; timing is recorded in the family measurements below. Installed CLI/LSP and
 the active VS Code workspace pass after refresh. Evidence uses `tsrust-temporal-*`
 in SQLite; IANA provenance remains developer evidence, separate from API help.
 
@@ -251,13 +250,13 @@ returns Entropy without producing an identifier; v4 collisions remain possible.
 The readable identifier example covers byte mutation isolation, nullable records,
 arrays, cloning and worker transport. The Node reference uses strict hexadecimal
 validation and built-in Buffer operations; random generation is outside the
-matched round-trip workload. Timing remains unmeasured.
+matched round-trip workload. Family timing is recorded below.
 
 Focused UUID acceptance passes on macOS: four compiler/export checks, nine native
 documentation examples, runtime entropy/byte boundaries, Uuid/UuidError editor
 agreement, completion and help. The native and Node workloads match checksum
 33,664. Installed CLI/LSP and restarted VS Code pass. Evidence uses `tsrust-uuid-*`
-in SQLite. Timing remains unmeasured; Rust/SQL adapters remain separate work.
+in SQLite. Family timing and explicit Rust/SQL adapter acceptance are recorded below.
 
 ## Explicit Rust boundary adapters
 
@@ -308,8 +307,8 @@ are retained with repaired checks; no compiler semantics were relaxed. Evidence
 uses `tsrust-sql-domains-*` in SQLite. Containers are removed and Docker stopped.
 
 The bounded data-type implementation section and family regressions are complete.
-Numeric/decimal/calendar/temporal/UUID measurements remain the next milestone step
-before S19. Unsupported cases remain listed above; none are accepted through
+Numeric/decimal/calendar/temporal/UUID measurements are also accepted below.
+Continue S19 caches, then S20 queues and S21 service acceptance. Unsupported cases remain listed above; none are accepted through
 implicit rounding, cloning or native domain projection.
 
 ## Data-family regression acceptance
@@ -342,3 +341,34 @@ doctests). Nested offline builds can replace shared-target dependency artifacts;
 a separate Cargo doctest invocation refreshes those dependencies. Installed CLI and
 both LSP paths are hash-verified; the restarted editor reports no problems. Timing
 acceptance remains separate from these correctness results.
+
+
+## Data-family measurements (2026-10-15)
+
+Source checkpoint `b911a378` passes the five existing matched workloads with their
+original protocol: three processes, eight warmups and 31 samples per process per
+engine. All 930 observed checksums match the independent workload oracles. Times
+below are median milliseconds per batch, not individual operation latency.
+
+| Workload | Iterations per batch | Native ms | Node-after-tsc ms | Native / Node |
+| --- | ---: | ---: | ---: | ---: |
+| numeric | 2048 | 0.005875 | 0.123708 | 0.047 |
+| decimal | 256 | 0.065791 | 0.286750 | 0.229 |
+| calendar | 256 | 0.056042 | 0.585042 | 0.096 |
+| temporal | 256 | 0.044250 | 0.844500 | 0.052 |
+| uuid | 256 | 0.031583 | 0.260625 | 0.121 |
+
+These are first measured baselines: no earlier matching measured source/counterpart
+records exist. Native medians are lower in all five scoped workloads, so there is
+no measured regression requiring an optimization detour. Results do not establish
+universal library parity or application throughput. Temporal timing covers the
+shared millisecond subset, not nanosecond or DST parity; UUID timing excludes random
+generation. Numeric and decimal workloads retain their checked conversion and
+precision rules. Existing Node, TypeScript and backend pins remain recorded in each
+original run.
+
+SQLite retains the five original records, all samples, ten derived summaries and
+source/compiler/machine identities. `tsrust-data-family-measurement-review.json`
+records comparison scope; `tsrust-data-family-index.py` preserves the exact indexing
+procedure. Each workload manifest names its immutable SQLite record and SHA-256.
+Byte restoration, hashes and database integrity pass; closed loose copies are removed.
