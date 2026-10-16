@@ -30,7 +30,7 @@ Paths under `tests` refer to `crates/tsrust-compiler/tests`; native paths refer 
 completion/agreement/consistency suites. The table reuses existing acceptance; it
 does not claim every listed suite was rerun during this inventory.
 
-## Required domain and boundary gaps
+## Initial domain and boundary gaps
 
 | Need | Existing coverage | Required practical completion |
 | --- | --- | --- |
@@ -146,3 +146,29 @@ parameter help passes. Original failure and resumed evidence are retained as
 `tsrust-sql-precision-*`. The first failure was a test attempting a second rollback
 after automatic rollback; runtime lifecycle behavior was preserved. The runner
 removed its containers, and Docker was stopped after confirming none remained.
+
+## Exact decimals
+
+`std:decimal` uses pinned [BigDecimal 0.4.11](https://docs.rs/bigdecimal/0.4.11/bigdecimal/)
+for validated opaque values, with at most 38 significant digits, 38 integer digits
+and 28 fractional places after normalization. `parseDecimal` accepts bounded plain decimal
+text; exponent syntax and display-scale preservation are intentionally unsupported.
+`formatFixed` pads exactly or returns Precision. Division verifies the inverse
+before accepting a quotient; nonterminating division never silently rounds.
+`toNumber` compares the exact binary64 value against the original decimal.
+
+Examples: `examples/decimal/money.tsr`. JSON/SQL require explicit validated text
+serialization; direct native domain mappings remain unsupported. Values are owned,
+explicitly clonable and transferable, and expose no writable coefficient fields.
+The matched [Decimal.js](https://mikemcl.github.io/decimal.js/) workload lives in
+`benchmarks/decimal`; its correctness and timing status are recorded separately.
+
+Focused decimal acceptance on macOS arm64 covers exact arithmetic and conversion
+failures, explicit cloning, records/arrays/nullability, worker transfer, rejected
+forging/implicit JSON, locked offline export and all 13 catalog examples. Public
+parsing is named `parseDecimal`, consistently with `std:numeric.parseInt`; the old
+`parse` name is not exported. Decimal and DecimalError checker agreement, decimal
+completion rows, hover and signature help pass. The matched native/TypeScript
+workload produces the independent checksum 65,247,616; timing remains unmeasured.
+Whole-project formatting preserves tokens and a second pass changes zero files.
+Evidence is retained under `tsrust-decimal-*` in the canonical SQLite store.

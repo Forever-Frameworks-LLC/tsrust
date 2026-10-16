@@ -1,3 +1,12 @@
+<!-- Current continuation takes precedence over historical scheduling below. -->
+
+Exact decimal focused acceptance is complete on macOS: `std:decimal.parseDecimal`,
+checked arithmetic/conversions, editor/examples, offline export and untimed matched
+money workload. Calendar, time zones, durations, UUIDs and remaining boundaries
+still precede S19–S21. Date/time API design follows the owner's date-fns preference.
+See [current data-type coverage](data-type-coverage.md) and the
+[current handoff](handoffs/compiler-to-roadmap-continuation.md).
+
 # Modules, native standard library and async roadmap
 
 Current continuation: [compiler foundations through S12–S21](handoffs/compiler-to-roadmap-continuation.md).

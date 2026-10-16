@@ -190,3 +190,13 @@ fn sql_parameter_help_explains_precision_and_driver_limits(){
  let signature=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsr")},"position":{"line":0,"character":offset}}));
  let help=signature.to_string();assert!(help.contains("precision loss")&&help.contains("Server-side implicit casts can still round"),"{signature}");
 }
+
+#[test]
+fn decimal_help_describes_exact_arithmetic(){
+ let text="import {parseDecimal,divideExact,formatFixed,toNumber,fromInt} from 'std:decimal';function main(){const value=unwrap(parseDecimal('1'));divideExact(value,fromInt(3));formatFixed(value,2);toNumber(value);}";
+ let mut session=Session::start(&[]);session.open("main.tsr",text);session.settle();
+ for (call,expected) in [("parseDecimal('1')","38 significant"),("divideExact(value","DivideByZero"),("formatFixed(value","Never rounds"),("toNumber(value","binary64")]{
+ let offset=text.rfind(call).unwrap();assert!(session.hover("main.tsr",text,offset+1).unwrap_or_default().contains(expected),"{call}");
+ let help=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsr")},"position":{"line":0,"character":offset+call.find('(').unwrap()+1}}));assert!(!help["signatures"].as_array().unwrap().is_empty(),"{help}");
+ }
+}

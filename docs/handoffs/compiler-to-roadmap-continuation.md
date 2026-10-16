@@ -3,6 +3,19 @@
 
 ## Current acceptance and continuation — 2026-10-15
 
+Exact decimals now pass focused macOS acceptance: `std:decimal.parseDecimal`,
+exact bounded arithmetic, checked conversions, explicit cloning and worker
+transport, editor agreement/help, 13 native catalog examples, offline package
+export and matched untimed money checks. See `docs/data-type-coverage.md`.
+Installed CLI/LSP consumers are refreshed; open decimal examples report no
+problems after the active server restart. SQLite holds `tsrust-decimal-*` evidence.
+Current CLI SHA-256: `8a1d0c64f362d465be60c37552bb44adb5b887e4ba973b7cef391a8b3efa0022`.
+Current LSP SHA-256: `6265b44cda0933bc93fe521751104b9a6f18407e61bab4f1ecbb1b516638d1d0`.
+Calendar/time-zone/duration types are next. The owner prefers date-fns: use small
+named immutable functions and familiar arithmetic/formatting names, while keeping
+checked ranges, precision and explicit DST ambiguity handling. Continue UUID,
+Rust/SQL boundary witnesses, then S19–S21 without another go-ahead.
+
 The first data-type section, `std:numeric` (`4760e58d`), now passes focused compiler/runtime,
 editor and matched-workload acceptance. It preserves original int/number union
 inputs and rejects loss for toInt/toNumber/toFloat32, validates signed/unsigned

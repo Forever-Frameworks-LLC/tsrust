@@ -45,13 +45,14 @@ pub fn separate(source:&str)->Units {
 
     if source.contains("use rayon as tsr_rayon;") {application=application.replace("use rayon as tsr_rayon;","use tsrust_runtime::rayon as tsr_rayon;");runtime.push_str("pub use rayon;\n");}
     let json=[true,false].into_iter().map(json_module_with_writer).find(|module|source.contains(module));
-    let dependencies=source.contains(crate::stdlib::sql::RUNTIME) || source.contains(crate::stdlib::sqlite::RUNTIME) || json.as_ref().is_some_and(|module|source.contains(module)) || source.contains(crate::stdlib::futures::RUNTIME) || source.contains(crate::stdlib::threads::RUNTIME) || source.contains("mod tsr_rust");
+    let dependencies=source.contains(crate::stdlib::decimal::RUNTIME) || source.contains(crate::stdlib::sql::RUNTIME) || source.contains(crate::stdlib::sqlite::RUNTIME) || json.as_ref().is_some_and(|module|source.contains(module)) || source.contains(crate::stdlib::futures::RUNTIME) || source.contains(crate::stdlib::threads::RUNTIME) || source.contains("mod tsr_rust");
     let mut extract=|name:&str,module:String| {
         if application.contains(&module) {
             application=application.replace(&module,&format!("use tsrust_runtime::{name};\n"));
             runtime.push_str("pub ");runtime.push_str(&module);
         }
     };
+    extract("tsrust_native_decimal",crate::stdlib::decimal::RUNTIME.to_owned());
     extract("tsrust_native_sql",crate::stdlib::sql::RUNTIME.to_owned());
     extract("tsrust_native_sqlite",crate::stdlib::sqlite::RUNTIME.to_owned());
     extract("tsrust_native_http",crate::stdlib::http::RUNTIME.to_owned());

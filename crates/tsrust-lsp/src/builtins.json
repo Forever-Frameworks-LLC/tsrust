@@ -11400,4 +11400,242 @@
     ]
   }
 ]
+,
+ "std:decimal": [
+  {
+    "name": "parseDecimal",
+    "signature": "parseDecimal(text: string): Result<Decimal, DecimalError>",
+    "parameters": [
+      {
+        "label": "text: string",
+        "documentation": "Complete plain decimal text, at most 128 bytes. No whitespace or exponent syntax."
+      }
+    ],
+    "documentation": "Validates a complete plain decimal string and returns its exact value. Accepts optional + or -, decimal digits and an optional dot followed by digits. Leading/trailing zeroes are accepted and normalized; negative zero becomes zero. Whitespace, exponents, separators and missing digits return Syntax. Input is limited to 128 UTF-8 bytes; excess length or value bounds return Range. Values allow at most 38 significant digits, 38 integer digits and 28 fractional places after removing trailing zeroes.  All arguments are required. No receiver or input is mutated.\n\n```tsrust\nimport {parseDecimal,fromInt,format,formatFixed,add,subtract,multiply,divideExact,compare,toInt,toNumber} from \"std:decimal\"; function main(){const value=unwrap(parseDecimal(\"19.990\")); console.log(format(value));}\n```\n\nExpected output: 19.99. Ownership: inputs are borrowed or scalar copies; returned values own independent storage. Clone Decimal explicitly when retaining another owner.",
+    "examples": [
+      {
+        "source": "import {parseDecimal,fromInt,format,formatFixed,add,subtract,multiply,divideExact,compare,toInt,toNumber} from \"std:decimal\"; function main(){const value=unwrap(parseDecimal(\"19.990\")); console.log(format(value));}",
+        "output": "19.99\n"
+      }
+    ]
+  },
+  {
+    "name": "fromInt",
+    "signature": "fromInt(value: int): Decimal",
+    "parameters": [
+      {
+        "label": "value: int",
+        "documentation": "Exact signed 64-bit value; never widened through number."
+      }
+    ],
+    "documentation": "Constructs an exact decimal from a signed 64-bit int. Every int fits; this operation has no conversion error. Values allow at most 38 significant digits, 38 integer digits and 28 fractional places after removing trailing zeroes.  All arguments are required. No receiver or input is mutated.\n\n```tsrust\nimport {parseDecimal,fromInt,format,formatFixed,add,subtract,multiply,divideExact,compare,toInt,toNumber} from \"std:decimal\"; function main(){console.log(format(fromInt(42)));}\n```\n\nExpected output: 42. Ownership: inputs are borrowed or scalar copies; returned values own independent storage. Clone Decimal explicitly when retaining another owner.",
+    "examples": [
+      {
+        "source": "import {parseDecimal,fromInt,format,formatFixed,add,subtract,multiply,divideExact,compare,toInt,toNumber} from \"std:decimal\"; function main(){console.log(format(fromInt(42)));}",
+        "output": "42\n"
+      }
+    ]
+  },
+  {
+    "name": "format",
+    "signature": "format(value: ReadOnly<Decimal>): string",
+    "parameters": [
+      {
+        "label": "value: ReadOnly<Decimal>",
+        "documentation": "Decimal value to format; borrowed and unchanged."
+      }
+    ],
+    "documentation": "Returns canonical plain decimal text without exponent notation or unnecessary trailing zeroes. Zero formats as 0. Formatting preserves the exact value but does not preserve the input spelling or scale. All arguments are required. No receiver or input is mutated.\n\n```tsrust\nimport {parseDecimal,fromInt,format,formatFixed,add,subtract,multiply,divideExact,compare,toInt,toNumber} from \"std:decimal\"; function main(){console.log(format(unwrap(parseDecimal(\"1.2300\"))));}\n```\n\nExpected output: 1.23. Ownership: inputs are borrowed or scalar copies; returned values own independent storage. Clone Decimal explicitly when retaining another owner.",
+    "examples": [
+      {
+        "source": "import {parseDecimal,fromInt,format,formatFixed,add,subtract,multiply,divideExact,compare,toInt,toNumber} from \"std:decimal\"; function main(){console.log(format(unwrap(parseDecimal(\"1.2300\"))));}",
+        "output": "1.23\n"
+      }
+    ]
+  },
+  {
+    "name": "formatFixed",
+    "signature": "formatFixed(value: ReadOnly<Decimal>, scale: int): Result<string, DecimalError>",
+    "parameters": [
+      {
+        "label": "value: ReadOnly<Decimal>",
+        "documentation": "Decimal to format without rounding."
+      },
+      {
+        "label": "scale: int",
+        "documentation": "Required fractional places, 0..28; no default."
+      }
+    ],
+    "documentation": "Returns plain decimal text with exactly scale fractional places, padding zeroes when needed. scale must be 0..28; otherwise returns Scale. If removing places would change the value, returns Precision. Never rounds money silently. All arguments are required. No receiver or input is mutated.\n\n```tsrust\nimport {parseDecimal,fromInt,format,formatFixed,add,subtract,multiply,divideExact,compare,toInt,toNumber} from \"std:decimal\"; function main(){console.log(unwrap(formatFixed(unwrap(parseDecimal(\"1.2\")),2)));}\n```\n\nExpected output: 1.20. Ownership: inputs are borrowed or scalar copies; returned values own independent storage. Clone Decimal explicitly when retaining another owner.",
+    "examples": [
+      {
+        "source": "import {parseDecimal,fromInt,format,formatFixed,add,subtract,multiply,divideExact,compare,toInt,toNumber} from \"std:decimal\"; function main(){console.log(unwrap(formatFixed(unwrap(parseDecimal(\"1.2\")),2)));}",
+        "output": "1.20\n"
+      }
+    ]
+  },
+  {
+    "name": "add",
+    "signature": "add(left: ReadOnly<Decimal>, right: ReadOnly<Decimal>): Result<Decimal, DecimalError>",
+    "parameters": [
+      {
+        "label": "left: ReadOnly<Decimal>",
+        "documentation": "Left operand, borrowed."
+      },
+      {
+        "label": "right: ReadOnly<Decimal>",
+        "documentation": "Right operand, borrowed."
+      }
+    ],
+    "documentation": "Returns the exact sum. Returns Range when the normalized result exceeds decimal bounds; neither operand changes. Values allow at most 38 significant digits, 38 integer digits and 28 fractional places after removing trailing zeroes.  All arguments are required. No receiver or input is mutated.\n\n```tsrust\nimport {parseDecimal,fromInt,format,formatFixed,add,subtract,multiply,divideExact,compare,toInt,toNumber} from \"std:decimal\"; function main(){console.log(format(unwrap(add(unwrap(parseDecimal(\"0.1\")),unwrap(parseDecimal(\"0.2\"))))));}\n```\n\nExpected output: 0.3. Ownership: inputs are borrowed or scalar copies; returned values own independent storage. Clone Decimal explicitly when retaining another owner.",
+    "examples": [
+      {
+        "source": "import {parseDecimal,fromInt,format,formatFixed,add,subtract,multiply,divideExact,compare,toInt,toNumber} from \"std:decimal\"; function main(){console.log(format(unwrap(add(unwrap(parseDecimal(\"0.1\")),unwrap(parseDecimal(\"0.2\"))))));}",
+        "output": "0.3\n"
+      }
+    ]
+  },
+  {
+    "name": "subtract",
+    "signature": "subtract(left: ReadOnly<Decimal>, right: ReadOnly<Decimal>): Result<Decimal, DecimalError>",
+    "parameters": [
+      {
+        "label": "left: ReadOnly<Decimal>",
+        "documentation": "Left operand, borrowed."
+      },
+      {
+        "label": "right: ReadOnly<Decimal>",
+        "documentation": "Value subtracted from left, borrowed."
+      }
+    ],
+    "documentation": "Returns left minus right exactly. Returns Range when the normalized result exceeds decimal bounds; neither operand changes. Values allow at most 38 significant digits, 38 integer digits and 28 fractional places after removing trailing zeroes.  All arguments are required. No receiver or input is mutated.\n\n```tsrust\nimport {parseDecimal,fromInt,format,formatFixed,add,subtract,multiply,divideExact,compare,toInt,toNumber} from \"std:decimal\"; function main(){console.log(format(unwrap(subtract(unwrap(parseDecimal(\"1.2\")),unwrap(parseDecimal(\"0.3\"))))));}\n```\n\nExpected output: 0.9. Ownership: inputs are borrowed or scalar copies; returned values own independent storage. Clone Decimal explicitly when retaining another owner.",
+    "examples": [
+      {
+        "source": "import {parseDecimal,fromInt,format,formatFixed,add,subtract,multiply,divideExact,compare,toInt,toNumber} from \"std:decimal\"; function main(){console.log(format(unwrap(subtract(unwrap(parseDecimal(\"1.2\")),unwrap(parseDecimal(\"0.3\"))))));}",
+        "output": "0.9\n"
+      }
+    ]
+  },
+  {
+    "name": "multiply",
+    "signature": "multiply(left: ReadOnly<Decimal>, right: ReadOnly<Decimal>): Result<Decimal, DecimalError>",
+    "parameters": [
+      {
+        "label": "left: ReadOnly<Decimal>",
+        "documentation": "First factor, borrowed."
+      },
+      {
+        "label": "right: ReadOnly<Decimal>",
+        "documentation": "Second factor, borrowed."
+      }
+    ],
+    "documentation": "Returns the exact product. Returns Range when the normalized result exceeds decimal bounds, including fractional precision; never rounds to fit. Values allow at most 38 significant digits, 38 integer digits and 28 fractional places after removing trailing zeroes.  All arguments are required. No receiver or input is mutated.\n\n```tsrust\nimport {parseDecimal,fromInt,format,formatFixed,add,subtract,multiply,divideExact,compare,toInt,toNumber} from \"std:decimal\"; function main(){console.log(unwrap(formatFixed(unwrap(multiply(unwrap(parseDecimal(\"19.99\")),fromInt(3))),2)));}\n```\n\nExpected output: 59.97. Ownership: inputs are borrowed or scalar copies; returned values own independent storage. Clone Decimal explicitly when retaining another owner.",
+    "examples": [
+      {
+        "source": "import {parseDecimal,fromInt,format,formatFixed,add,subtract,multiply,divideExact,compare,toInt,toNumber} from \"std:decimal\"; function main(){console.log(unwrap(formatFixed(unwrap(multiply(unwrap(parseDecimal(\"19.99\")),fromInt(3))),2)));}",
+        "output": "59.97\n"
+      }
+    ]
+  },
+  {
+    "name": "divideExact",
+    "signature": "divideExact(left: ReadOnly<Decimal>, right: ReadOnly<Decimal>): Result<Decimal, DecimalError>",
+    "parameters": [
+      {
+        "label": "left: ReadOnly<Decimal>",
+        "documentation": "Dividend, borrowed."
+      },
+      {
+        "label": "right: ReadOnly<Decimal>",
+        "documentation": "Nonzero divisor, borrowed."
+      }
+    ],
+    "documentation": "Returns an exact terminating decimal quotient within the decimal bounds. Zero divisor returns DivideByZero. Inexact division, including 1/3, returns Precision. An exact quotient outside the bounds returns Range. No rounding or implicit scale policy is applied. Values allow at most 38 significant digits, 38 integer digits and 28 fractional places after removing trailing zeroes.  All arguments are required. No receiver or input is mutated.\n\n```tsrust\nimport {parseDecimal,fromInt,format,formatFixed,add,subtract,multiply,divideExact,compare,toInt,toNumber} from \"std:decimal\"; function main(){console.log(format(unwrap(divideExact(fromInt(1),fromInt(8)))));}\n```\n\nExpected output: 0.125. Ownership: inputs are borrowed or scalar copies; returned values own independent storage. Clone Decimal explicitly when retaining another owner.",
+    "examples": [
+      {
+        "source": "import {parseDecimal,fromInt,format,formatFixed,add,subtract,multiply,divideExact,compare,toInt,toNumber} from \"std:decimal\"; function main(){console.log(format(unwrap(divideExact(fromInt(1),fromInt(8)))));}",
+        "output": "0.125\n"
+      }
+    ]
+  },
+  {
+    "name": "compare",
+    "signature": "compare(left: ReadOnly<Decimal>, right: ReadOnly<Decimal>): int",
+    "parameters": [
+      {
+        "label": "left: ReadOnly<Decimal>",
+        "documentation": "Left value, borrowed."
+      },
+      {
+        "label": "right: ReadOnly<Decimal>",
+        "documentation": "Right value, borrowed."
+      }
+    ],
+    "documentation": "Compares exact decimal values and returns -1 when left is smaller, 0 when equal, or 1 when larger. Input spelling and trailing zeroes do not affect equality. Use this function for value ordering; decimal objects are not collection keys. All arguments are required. No receiver or input is mutated.\n\n```tsrust\nimport {parseDecimal,fromInt,format,formatFixed,add,subtract,multiply,divideExact,compare,toInt,toNumber} from \"std:decimal\"; function main(){console.log(compare(unwrap(parseDecimal(\"1.0\")),fromInt(1)));}\n```\n\nExpected output: 0. Ownership: inputs are borrowed or scalar copies; returned values own independent storage. Clone Decimal explicitly when retaining another owner.",
+    "examples": [
+      {
+        "source": "import {parseDecimal,fromInt,format,formatFixed,add,subtract,multiply,divideExact,compare,toInt,toNumber} from \"std:decimal\"; function main(){console.log(compare(unwrap(parseDecimal(\"1.0\")),fromInt(1)));}",
+        "output": "0\n"
+      }
+    ]
+  },
+  {
+    "name": "toInt",
+    "signature": "toInt(value: ReadOnly<Decimal>): Result<int, DecimalError>",
+    "parameters": [
+      {
+        "label": "value: ReadOnly<Decimal>",
+        "documentation": "Whole decimal within signed 64-bit range."
+      }
+    ],
+    "documentation": "Converts a whole decimal to signed 64-bit int exactly. A nonzero fractional part returns Precision; a whole value outside the int range returns Range. No truncation or rounding occurs. All arguments are required. No receiver or input is mutated.\n\n```tsrust\nimport {parseDecimal,fromInt,format,formatFixed,add,subtract,multiply,divideExact,compare,toInt,toNumber} from \"std:decimal\"; function main(){console.log(unwrap(toInt(unwrap(parseDecimal(\"9223372036854775807\")))));}\n```\n\nExpected output: 9223372036854775807. Ownership: inputs are borrowed or scalar copies; returned values own independent storage. Clone Decimal explicitly when retaining another owner.",
+    "examples": [
+      {
+        "source": "import {parseDecimal,fromInt,format,formatFixed,add,subtract,multiply,divideExact,compare,toInt,toNumber} from \"std:decimal\"; function main(){console.log(unwrap(toInt(unwrap(parseDecimal(\"9223372036854775807\")))));}",
+        "output": "9223372036854775807\n"
+      }
+    ]
+  },
+  {
+    "name": "toNumber",
+    "signature": "toNumber(value: ReadOnly<Decimal>): Result<number, DecimalError>",
+    "parameters": [
+      {
+        "label": "value: ReadOnly<Decimal>",
+        "documentation": "Decimal that must retain its exact mathematical value in binary64."
+      }
+    ],
+    "documentation": "Converts only values exactly representable as finite binary64 number. Returns Precision for values such as 0.1 or 9007199254740993. Returns Range if no finite result is available. Use decimal text for exact serialization when this conversion fails. All arguments are required. No receiver or input is mutated.\n\n```tsrust\nimport {parseDecimal,fromInt,format,formatFixed,add,subtract,multiply,divideExact,compare,toInt,toNumber} from \"std:decimal\"; function main(){console.log(unwrap(toNumber(unwrap(parseDecimal(\"1.25\")))));}\n```\n\nExpected output: 1.25. Ownership: inputs are borrowed or scalar copies; returned values own independent storage. Clone Decimal explicitly when retaining another owner.",
+    "examples": [
+      {
+        "source": "import {parseDecimal,fromInt,format,formatFixed,add,subtract,multiply,divideExact,compare,toInt,toNumber} from \"std:decimal\"; function main(){console.log(unwrap(toNumber(unwrap(parseDecimal(\"1.25\")))));}",
+        "output": "1.25\n"
+      }
+    ]
+  },
+  {
+    "name": "Decimal",
+    "signature": "type Decimal",
+    "parameters": [],
+    "documentation": "Opaque exact decimal value. Values allow at most 38 significant digits, 38 integer digits and 28 fractional places after removing trailing zeroes. Parse text or use fromInt; direct object construction, field access, implicit JSON/SQL conversion and collection keys are unsupported. Use format for explicit text serialization and parseDecimal to validate incoming text. Values can live in records, arrays and nullable unions, and can cross worker boundaries. Explicit clone owns independent storage.\n\n```tsrust\nimport {Decimal} from \"std:decimal\"; function main(){}\n```\n\nExpected output: none. Ownership: owned value; ordinary scope cleanup releases storage.",
+    "examples": [
+      {
+        "source": "import {Decimal} from \"std:decimal\"; function main(){}",
+        "output": ""
+      }
+    ]
+  },
+  {
+    "name": "DecimalError",
+    "signature": "type DecimalError",
+    "parameters": [],
+    "documentation": "Owned conversion/arithmetic error with code and message strings. Codes are Syntax, Range, Scale, Precision and DivideByZero. Operations return this error as Result data; inspecting it does not mutate it.\n\n```tsrust\nimport {DecimalError} from \"std:decimal\"; function main(){}\n```\n\nExpected output: none. Ownership: owned value; ordinary scope cleanup releases storage.",
+    "examples": [
+      {
+        "source": "import {DecimalError} from \"std:decimal\"; function main(){}",
+        "output": ""
+      }
+    ]
+  }
+]
 }

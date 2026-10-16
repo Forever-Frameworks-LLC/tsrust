@@ -9,6 +9,7 @@ pub(crate) fn source(module: &str) -> Option<&'static str> {
 }
 
 pub(crate) mod numeric;
+pub(crate) mod decimal;
 pub(crate) mod env;
 pub(crate) mod time;
 

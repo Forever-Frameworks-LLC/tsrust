@@ -1,0 +1,85 @@
+import { parseDecimal, fromInt, formatFixed, multiply, divideExact, add, subtract, compare, format, toInt, toNumber, Decimal, DecimalError } from 'std:decimal';
+import { spawn } from 'std:threads';
+import { strictEqual, ok } from 'std:testing';
+
+function rejected(value: Result<Decimal, DecimalError>, code: string) {
+  match (value) {
+    Ok(_) => {
+      throw 'expected rejection';
+    },
+    Err(error) => {
+      strictEqual(error.code, code);
+    }
+  }
+}
+
+type Invoice = {
+  amount: Decimal;
+  refund: Decimal | null;
+};
+
+function showOptional(value: ReadOnly<Decimal | null>): string {
+  if (value === null) {
+    return 'none';
+  }
+
+  return format(value);
+}
+
+function main() {
+  const price = unwrap(parseDecimal('19.99'));
+  const quantity = fromInt(3);
+  const total = unwrap(multiply(price, quantity));
+  console.log(unwrap(formatFixed(total, 2)));
+  const discount = unwrap(parseDecimal('0.10'));
+  const paid = unwrap(subtract(total, discount));
+  strictEqual(format(paid), '59.87');
+  const copied = clone(paid);
+  strictEqual(compare(paid, copied), 0);
+  strictEqual(format(unwrap(add(unwrap(parseDecimal('0.1')), unwrap(parseDecimal('0.2'))))), '0.3');
+  strictEqual(format(unwrap(divideExact(fromInt(1), fromInt(8)))), '0.125');
+  rejected(divideExact(fromInt(1), fromInt(3)), 'Precision');
+  rejected(divideExact(fromInt(1), fromInt(0)), 'DivideByZero');
+  rejected(parseDecimal('1e2'), 'Syntax');
+  rejected(parseDecimal('999999999999999999999999999999999999999'), 'Range');
+  const maximum = unwrap(parseDecimal('9223372036854775807'));
+  strictEqual(unwrap(toInt(maximum)), 9223372036854775807);
+  match (toNumber(maximum)) {
+    Ok(_) => {
+      throw 'lost integer precision';
+    },
+    Err(error) => {
+      strictEqual(error.code, 'Precision');
+    }
+  }
+
+  strictEqual(unwrap(toNumber(unwrap(parseDecimal('1.25')))), 1.25);
+  match (toNumber(discount)) {
+    Ok(_) => {
+      throw 'lost decimal precision';
+    },
+    Err(error) => {
+      strictEqual(error.code, 'Precision');
+    }
+  }
+
+  match (formatFixed(unwrap(parseDecimal('1.001')), 2)) {
+    Ok(_) => {
+      throw 'rounded money';
+    },
+    Err(error) => {
+      strictEqual(error.code, 'Precision');
+    }
+  }
+
+  const amounts = [clone(price), clone(paid)];
+  ok(compare(amounts[0], amounts[1]) < 0);
+  const invoice: Invoice = {
+    amount: clone(total), refund: null
+  };
+  strictEqual(showOptional(invoice.refund), 'none');
+  const workerValue = clone(invoice.amount);
+  const worker = unwrap(spawn((): string => format(workerValue)));
+  strictEqual(unwrap(worker.join()), '59.97');
+  console.log('decimal boundaries exact');
+}

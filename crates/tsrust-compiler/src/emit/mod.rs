@@ -2432,6 +2432,7 @@ impl Emitter<'_> {
                 let _=writeln!(output,"struct Record{index} {{ handle: tsrust_native_files::buffered_fs::{backend} }}");
                 continue;
             }
+            if record.native_type == Some(crate::native_signatures::NativeTypeId::Decimal) { let _=writeln!(output,"type Record{index} = tsrust_native_decimal::Decimal;");continue;}
             if record.native_type == Some(crate::native_signatures::NativeTypeId::TrackedResource) {
                 let _ = writeln!(output, "type Record{index} = TsrTrackedResource;");
                 continue;
@@ -3063,9 +3064,11 @@ impl Emitter<'_> {
                 output.push_str(include_str!("../stdlib/testing/runtime/registration.rs"));
             }
         }
+        if self.program.records.iter().any(|r|r.native_type==Some(crate::native_signatures::NativeTypeId::Decimal)){output.push_str(crate::stdlib::decimal::RUNTIME);}
         if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:numeric"){output.push_str(&format!("mod tsrust_numeric {{ {} }}",crate::stdlib::numeric::emit::RUNTIME));}
         for &id in self.native_bindings.borrow().iter() {
             let binding = &crate::native_bindings::BINDINGS[id];
+            if binding.module == "std:decimal" {output.push_str(&crate::stdlib::decimal::emit::bridge(self.program,binding));}
             if binding.module == "std:numeric" { output.push_str(&crate::stdlib::numeric::emit::bridge(self.program,binding)); }
             if binding.module == "std:env" { output.push_str(&crate::stdlib::env::emit::bridge(self.program,binding)); }
             if binding.module == "std:time" { output.push_str(crate::stdlib::time::RUNTIME); }

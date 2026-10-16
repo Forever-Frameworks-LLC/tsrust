@@ -28,7 +28,7 @@ try{
  const probe=source=>verify?source.replace(/for\s*\(let warmup\s*=\s*0;\s*warmup\s*<\s*8;/,'for(let warmup=0;warmup<0;').replace(/sample\s*<\s*31/,'sample<1'):source;
  const input=path.join(build,'native.tsr');fs.writeFileSync(input,probe(native));
  const ts=path.join(build,'node.ts');fs.writeFileSync(ts,probe(node));
- run(compiler,['format',input]);const once=fs.readFileSync(input);run(compiler,['format',input]);if(!once.equals(fs.readFileSync(input)))throw new Error('Formatting is not idempotent');
+ run(compiler,['format',input,'--write']);const once=fs.readFileSync(input);run(compiler,['format',input,'--write']);if(!once.equals(fs.readFileSync(input)))throw new Error('Formatting is not idempotent');
  const rust=run(compiler,['emit',input]);fs.writeFileSync(path.join(build,'native.rs'),rust+'\n');
  const binary=path.join(build,'native');
  run('rustup',['run','1.96.1','rustc','--edition=2024','-Copt-level=3',path.join(build,'native.rs'),'-o',binary]);

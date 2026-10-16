@@ -1,0 +1,10 @@
+{
+  "id": "decimal-money",
+  "implementationAccepted": true,
+  "measurementStatus": "unmeasured",
+  "iterationsPerBatch": 256,
+  "source": "decimal-money.tsr",
+  "counterpart": "decimal-money.ts",
+  "sourceSha256": "f29d0e70d9701c0eadfb34ba35427bf3bd3e18fee98fee435fbd25cfa90982a5",
+  "counterpartSha256": "eeee82144c2a966812a0858741860b094bf9accc4a664d20ae720b8a5e811a6c"
+}
