@@ -1,10 +1,11 @@
 {
   "id": "cache-lru",
   "implementationAccepted": true,
-  "measurementStatus": "unmeasured",
+  "measurementStatus": "measured",
   "iterationsPerBatch": 256,
   "source": "cache-lru.tsr",
   "counterpart": "cache-lru.ts",
   "sourceSha256": "07420ee8878325d3ad381186c7317e30858be17f2f2997e39f564ef15164ba1d",
-  "counterpartSha256": "8a575f2d272c86b6d5fc7ac741d0c3d4fce912fc870d3c7b35860f0536f07fb8"
+  "counterpartSha256": "8a575f2d272c86b6d5fc7ac741d0c3d4fce912fc870d3c7b35860f0536f07fb8",
+  "measurementCheckpoint": "6164c22a"
 }

@@ -29,8 +29,7 @@ without changing task settlement or transport policy. A negative guard preserves
 validation of an actual thrown undefined.
 
 Raw `tsrust-work-queue-*` acceptance and the workload verification record are
-retained in SQLite, including initial failures and focused repairs. No timing has
-been performed. Run the combined S19/S20 owned-coordination regression/performance
-milestone before S21 service dependencies.
+retained in SQLite, including initial failures and focused repairs. The [combined S19/S20 milestone](../milestones/s19-s20-owned-coordination.md)
+now passes complete regressions and measurements. Continue S21 service dependencies.
 Durable/distributed delivery, retry scheduling and acknowledgement protocols are
 outside this bounded in-memory scope.

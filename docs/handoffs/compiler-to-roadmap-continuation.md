@@ -50,8 +50,12 @@ S20 bounded work queues now pass focused native/compiler/editor acceptance, incl
 backpressure, exact cancelled-message destruction and close/drain. Mixed task groups
 exposed repaired empty-failure and record-origin compaction defects; see
 `docs/plans/work-queue-plan.md`. Installed consumers are refreshed and the active
-editor reports no problems after restart. Run one shared S19/S20 owned-coordination
-regression and performance milestone now, then continue S21 service acceptance. No new permission checkpoint is needed. The owner prefers date-fns: use small
+editor reports no problems after restart. The combined S19/S20 owned-coordination
+milestone now passes: 4,194 compiler and 731 editor tests, separate doctest drivers,
+and 372 measured cache/queue samples. All 18 sandbox socket failures passed exact
+unsandboxed reruns; do not repeat the full suites. See
+`docs/milestones/s19-s20-owned-coordination.md`. Continue S21 implementation now
+using `docs/plans/service-readiness-plan.md`. No new permission checkpoint is needed. The owner prefers date-fns: use small
 named immutable functions and familiar arithmetic/formatting names, while keeping
 checked ranges, precision and explicit DST ambiguity handling. The bounded Rust/SQL
 boundary witnesses are accepted; proceed without another go-ahead.
