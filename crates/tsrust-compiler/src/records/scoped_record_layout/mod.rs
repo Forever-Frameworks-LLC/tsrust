@@ -14,6 +14,25 @@ pub(crate) struct Registry {
 }
 
 impl Registry {
+    pub(crate) fn remap_closure_origins(&mut self, records:&mut [Record], origins:&[Option<usize>]) {
+        let remap=|ty:&mut Type| {
+            if let Type::Closure(origin)=ty && let Some(Some(mapped))=origins.get(*origin) {*origin=*mapped;}
+        };
+        // Unused symbolic records keep their discovery identities, like unions.
+        // Every retained concrete field follows the compacted closure table.
+        for record in records {
+            for field in &mut record.fields {if let Some(ty)=&mut field.ty {remap(ty);}}
+            if let Some(application)=&mut record.application {for ty in &mut application.resolved_arguments {remap(ty);}}
+            if let Some(map)=&mut record.map_definition {remap(&mut map.key);remap(&mut map.value);}
+        }
+        for cache in [&mut self.instances,&mut self.recursive_instances] {
+            *cache=std::mem::take(cache).into_iter().filter_map(|((base,mut types),id)| {
+                for ty in &mut types {if let Type::Closure(origin)=ty {*origin=origins.get(*origin).copied().flatten()?;}}
+                Some(((base,types),id))
+            }).collect();
+        }
+    }
+
     pub(crate) fn declaration(&self, id: usize) -> usize {
         self.bases.get(&id).copied().unwrap_or(id)
     }
@@ -113,4 +132,20 @@ mod recursive_tests {
         assert_eq!(records[specialized].fields[2].ty, Some(Type::Record(2)));
         assert_eq!(records.len(), 5);
     }
+}
+
+#[cfg(test)]
+mod origin_remap_tests {
+ use super::*;
+ #[test]
+ fn concrete_record_fields_and_interning_follow_compacted_origins(){
+  let mut records=vec![crate::cloneability::tests::record(&[Type::Closure(7)])];
+  let mut registry=Registry::default();
+  let instance=registry.materialize(0,vec![Type::Closure(9)],&mut records);
+  let mut origins=vec![None;10];origins[7]=Some(2);origins[9]=Some(3);
+  registry.remap_closure_origins(&mut records,&origins);
+  assert_eq!(records[0].fields[0].ty,Some(Type::Closure(2)));
+  assert_eq!(records[instance].fields[0].ty,Some(Type::Closure(3)));
+  assert_eq!(registry.materialize(0,vec![Type::Closure(3)],&mut records),instance);
+ }
 }

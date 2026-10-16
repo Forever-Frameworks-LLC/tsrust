@@ -148,3 +148,33 @@ fn cancelled_nested_drain_retains_cleanup(){
   release.send(()).unwrap();second.await;
  });
 }
+
+#[test]
+fn bounded_queue_pending_sends_preserve_identity_and_drop_only_the_cancelled_owner(){
+ use std::{future::Future,task::Poll};
+ block_on(async {
+  struct Payload{bytes:Box<[u8]>,drops:Arc<AtomicUsize>}
+  impl Drop for Payload{fn drop(&mut self){self.drops.fetch_add(1,Ordering::SeqCst);}}
+  let drops=Arc::new(AtomicUsize::new(0));
+  let mut queue=Channel::new(1).unwrap();
+  let first=Payload{bytes:vec![1,2,3].into_boxed_slice(),drops:drops.clone()};
+  let identity=first.bytes.as_ptr();
+  assert!(queue.send::<()>(first).await.is_ok());
+  let sender=queue.sender();
+  let mut blocked=Box::pin(sender.send::<()>(Payload{bytes:vec![4].into_boxed_slice(),drops:drops.clone()}));
+  assert!(std::future::poll_fn(|cx|Poll::Ready(matches!(blocked.as_mut().poll(cx),Poll::Pending))).await);
+  assert_eq!(drops.load(Ordering::SeqCst),0);
+  drop(blocked);
+  assert_eq!(drops.load(Ordering::SeqCst),1);
+  queue.close();
+  let received=queue.receive::<()>().await.unwrap_or_else(|_|panic!("queued owner lost"));
+  assert_eq!(received.bytes.as_ptr(),identity);
+  assert_eq!(&*received.bytes,&[1,2,3]);
+  drop(received);
+  assert_eq!(drops.load(Ordering::SeqCst),2);
+  assert!(matches!(queue.receive::<()>().await,Err(Failure::Closed)));
+  let rejected=Payload{bytes:vec![5].into_boxed_slice(),drops:drops.clone()};
+  assert!(matches!(sender.send::<()>(rejected).await,Err(Failure::Closed)));
+  assert_eq!(drops.load(Ordering::SeqCst),3);
+ });
+}

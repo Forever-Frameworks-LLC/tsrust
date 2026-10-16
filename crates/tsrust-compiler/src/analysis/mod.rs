@@ -2729,6 +2729,7 @@ impl Analyzer {
             self.polymorphic_invocations = self.polymorphic_invocations.remap(&ids, Span::default())?;
             self.callables.storage.remap_origins(&ids)?;
             self.unions.remap_closure_origins(&ids);
+            self.scoped_records.remap_closure_origins(&mut self.program.records,&ids);
             self.task_origins=self.task_origins.into_iter().filter_map(|origin|ids.get(origin).copied().flatten()).collect();
             self.closures = self
                 .closures

@@ -9,8 +9,8 @@ transport, editor agreement/help, 13 native catalog examples, offline package
 export and matched untimed money checks. See `docs/data-type-coverage.md`.
 Installed CLI/LSP consumers are refreshed; open decimal examples report no
 problems after the active server restart. SQLite holds `tsrust-decimal-*` evidence.
-Current CLI SHA-256: `b225cbf412bea13c30d9a12db36e8d16a452666b180281ac3a23f92b5f721de6`.
-Current LSP SHA-256: `9b54b6f54f9a13511ecdfc52f01d50f64a65f8776dc869d38c9898170fca6b61`.
+Current CLI SHA-256: `d303118627f623d19e0c84bf0037de28edf12dc3638132854a17c7952ad8edbb`.
+Current LSP SHA-256: `d718478ca6618be3bdd746e823c0b3790e75b6af8f109c031e2f0a2e540f4ed6`.
 The `std:date` calendar section now passes focused acceptance: validated Date,
 parseDate/formatDate, date-fns-style immutable arithmetic, bounded formatting,
 editor agreement, 15 catalog examples, offline export and matched untimed date-fns
@@ -46,8 +46,12 @@ Bounded loading/shutdown now passes with pre-registered clients, explicit comple
 closed-reply handling and a group deadline. Owned Task capture metadata and deferred
 exception assignment are repaired with focused ownership/drop witnesses. S19
 implementation acceptance is complete within its serialized-loading limits.
-Continue S20 queues now, then run one shared S19/S20 owned-coordination regression
-and performance milestone before S21 service acceptance. No new permission checkpoint is needed. The owner prefers date-fns: use small
+S20 bounded work queues now pass focused native/compiler/editor acceptance, including
+backpressure, exact cancelled-message destruction and close/drain. Mixed task groups
+exposed repaired empty-failure and record-origin compaction defects; see
+`docs/plans/work-queue-plan.md`. Installed consumers are refreshed and the active
+editor reports no problems after restart. Run one shared S19/S20 owned-coordination
+regression and performance milestone now, then continue S21 service acceptance. No new permission checkpoint is needed. The owner prefers date-fns: use small
 named immutable functions and familiar arithmetic/formatting names, while keeping
 checked ranges, precision and explicit DST ambiguity handling. The bounded Rust/SQL
 boundary witnesses are accepted; proceed without another go-ahead.

@@ -1,0 +1,94 @@
+import { Channel, Sender, allSettled, yield } from 'std:futures';
+import { strictEqual } from 'std:testing';
+
+type Work = {
+  id: int;
+  payload: string;
+  stop: boolean;
+};
+
+async function produce(sender: Sender<Work>): Task<int> {
+  for (let id = 1; id <= 64; id++) {
+    const work: Work = {
+      id, payload: 'job-' + id.toString(), stop: false
+    };
+    await sender.send(work);
+  }
+
+  for (let worker = 0; worker < 2; worker++) {
+    const stop: Work = {
+      id: 0, payload: '', stop: true
+    };
+    await sender.send(stop);
+  }
+
+  return 0;
+}
+
+async function consume(queue: ReadOnly<Channel<Work>>): Task<int> {
+  let total = 0;
+  let working = true;
+  while (working) {
+    const work = await queue.receive();
+    if (work.stop) {
+      working = false;
+      break;
+    }
+
+    strictEqual(work.payload, 'job-' + work.id.toString());
+    total += work.id;
+    await yield();
+  }
+
+  return total;
+}
+
+async function checkCloseAndDrain(): Task<void> {
+  const queue = new Channel<Work>(2);
+  const first: Work = {
+    id: 1, payload: 'first', stop: false
+  };
+  const second: Work = {
+    id: 2, payload: 'second', stop: false
+  };
+  await queue.send(first);
+  await queue.send(second);
+  queue.close();
+  strictEqual((await queue.receive()).id, 1);
+  strictEqual((await queue.receive()).id, 2);
+  let drained = false;
+  try {
+    await queue.receive();
+  } catch (error) {
+    strictEqual(error.code, 'closed');
+    drained = true;
+  }
+
+  strictEqual(drained, true);
+  const rejected: Work = {
+    id: 3, payload: 'disposed on failed send', stop: false
+  };
+  let closed = false;
+  try {
+    await queue.send(rejected);
+  } catch (error) {
+    strictEqual(error.code, 'closed');
+    closed = true;
+  }
+
+  strictEqual(closed, true);
+}
+
+async function main(): Task<void> {
+  const queue = new Channel<Work>(2);
+  const results = await allSettled([produce(queue.sender()).start(), consume(queue), consume(queue)]).timeout(5000);
+  let total = 0;
+  for (const result of results) {
+    total += unwrap(clone(result));
+  }
+
+  strictEqual(total, 2080);
+  queue.close();
+  await checkCloseAndDrain();
+  console.log('bounded work queue accepted');
+}

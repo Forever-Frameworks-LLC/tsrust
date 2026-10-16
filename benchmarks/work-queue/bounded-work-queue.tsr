@@ -1,0 +1,71 @@
+import { monotonicNow } from 'std:time';
+import { Channel, Sender, allSettled, yield } from 'std:futures';
+import { strictEqual } from 'std:testing';
+
+type Work = {
+  id: int;
+  payload: string;
+  stop: boolean;
+};
+
+async function produce(sender: Sender<Work>): Task<int> {
+  for (let id = 1; id <= 64; id++) {
+    const work: Work = {
+      id, payload: 'job-' + id.toString(), stop: false
+    };
+    await sender.send(work);
+  }
+
+  for (let worker = 0; worker < 2; worker++) {
+    const stop: Work = {
+      id: 0, payload: '', stop: true
+    };
+    await sender.send(stop);
+  }
+
+  return 0;
+}
+
+async function consume(queue: ReadOnly<Channel<Work>>): Task<int> {
+  let total = 0;
+  let working = true;
+  while (working) {
+    const work = await queue.receive();
+    if (work.stop) {
+      working = false;
+      break;
+    }
+
+    strictEqual(work.payload, 'job-' + work.id.toString());
+    total += work.id;
+    await yield();
+  }
+
+  return total;
+}
+
+async function batch(): Task<int> {
+  const queue = new Channel<Work>(2);
+  const results = await allSettled([produce(queue.sender()).start(), consume(queue), consume(queue)]);
+  let total = 0;
+  for (const result of results) {
+    total += unwrap(clone(result));
+  }
+
+  queue.close();
+  return total;
+}
+
+async function main(): Task<void> {
+  for (let warmup = 0; warmup < 8; warmup++) {
+    await batch();
+  }
+
+  for (let sample = 0; sample < 31; sample++) {
+    const start = monotonicNow();
+    const checksum = await batch();
+    const elapsed = monotonicNow() - start;
+    console.log(checksum);
+    console.log(elapsed);
+  }
+}

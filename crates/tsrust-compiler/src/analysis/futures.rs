@@ -166,7 +166,9 @@ pub(super) fn validate(program:&CheckedProgram)->Result<(),Diagnostic>{
                     Type::Record(id)=>{if program.records[id].native_type!=Some(NativeTypeId::Job){pending.extend(program.records[id].fields.iter().filter_map(|field|field.ty));}continue;},
                     _=>continue,
                 };
-                let actual=failures.catch_type(&unions,runtime,expression.span)?.unwrap_or(Type::Undefined);
+                // An empty failure set needs no payload conversion. A thrown
+                // undefined remains Some(Undefined) and must still be checked.
+                let Some(actual)=failures.catch_type(&unions,runtime,expression.span)? else{continue;};
                 let members=if let Type::Union(id)=actual{program.unions[id.index()].members.clone()}else{vec![actual]};
                 if actual!=expected && !matches!(expected,Type::Union(id) if members.iter().all(|ty|program.unions[id.index()].members.contains(ty))){
                     return Err(Diagnostic::new("future-errors","Task error inference changed after checking; use a task with a resolved completion contract.",expression.span));
@@ -174,4 +176,20 @@ pub(super) fn validate(program:&CheckedProgram)->Result<(),Diagnostic>{
             }
         }
     }Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+ use super::*;
+ #[test]
+ fn empty_failure_set_is_not_a_thrown_undefined_payload(){
+  let source="async function fail():Task<int>{throw 'original';}async function main():Task<void>{await fail().start();}";
+  let mut program=crate::check(source).unwrap().program;
+  let affected=program.error_effects.closure_errors.iter().enumerate().filter(|(_,error)|error.explicit.contains(&Type::String)).map(|(id,_)|id).collect::<Vec<_>>();
+  assert!(!affected.is_empty());
+  for &id in &affected {program.error_effects.closure_errors[id]=crate::error_effects::FailureSet::default();}
+  assert!(validate(&program).is_ok());
+  for id in affected {program.error_effects.closure_errors[id].explicit.push(Type::Undefined);}
+  assert_eq!(validate(&program).unwrap_err().code,"future-errors");
+ }
 }

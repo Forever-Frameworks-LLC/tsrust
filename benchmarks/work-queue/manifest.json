@@ -1,0 +1,12 @@
+{
+  "id": "bounded-work-queue",
+  "implementationAccepted": true,
+  "measurementStatus": "unmeasured",
+  "jobsPerBatch": 64,
+  "workerCount": 2,
+  "capacity": 2,
+  "source": "bounded-work-queue.tsr",
+  "counterpart": "bounded-work-queue.ts",
+  "sourceSha256": "0660d1864b2069d1cfa56fe836053b6620da8ad8e83de9d391fdd2739db75d96",
+  "counterpartSha256": "5e49dfdcbe9ccec095871c030668b373528564ae0ec206efa37fdd73479872c4"
+}
