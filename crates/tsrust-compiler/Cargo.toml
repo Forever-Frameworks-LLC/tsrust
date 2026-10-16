@@ -29,6 +29,8 @@ serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = { version = "=1.0.151", features = ["raw_value"] }
 
 [dev-dependencies]
+uuid = { version = "=1.28.0", default-features = false, features = ["std"] }
+getrandom = { version = "=0.4.3" }
 chrono-tz = { version = "=0.10.4", default-features = false, features = ["std"] }
 chrono = { version = "=0.4.45", default-features = false, features = ["std"] }
 bigdecimal = "=0.4.11"

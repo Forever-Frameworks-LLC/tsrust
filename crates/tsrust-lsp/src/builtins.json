@@ -12448,5 +12448,147 @@
       }
     ]
   }
+],
+"std:uuid": [
+  {
+    "name": "parseUuid",
+    "signature": "parseUuid(text: string): Result<Uuid, UuidError>",
+    "parameters": [
+      {
+        "label": "text: string",
+        "documentation": "Complete 36-character hyphenated hexadecimal identifier."
+      }
+    ],
+    "documentation": "Parses exactly 36 ASCII characters in 8-4-4-4-12 hexadecimal groups. Uppercase and lowercase hex are accepted. Syntax rejects whitespace, prefixes, braces, missing hyphens and malformed digits. All 128-bit patterns are accepted, including nil, maximum and non-v4 identifiers; parsing does not promise a generated identifier or a recognized version. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {parseUuid,formatUuid} from \"std:uuid\";function main(){console.log(formatUuid(unwrap(parseUuid(\"67E55044-10B1-426F-9247-BB680E5FE0C8\"))));}\n```\n\nExpected output: 67e55044-10b1-426f-9247-bb680e5fe0c8. Ownership: inputs are borrowed; returned UUIDs and byte buffers own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {parseUuid,formatUuid} from \"std:uuid\";function main(){console.log(formatUuid(unwrap(parseUuid(\"67E55044-10B1-426F-9247-BB680E5FE0C8\"))));}",
+        "output": "67e55044-10b1-426f-9247-bb680e5fe0c8\n"
+      }
+    ]
+  },
+  {
+    "name": "formatUuid",
+    "signature": "formatUuid(value: Uuid): string",
+    "parameters": [
+      {
+        "label": "value: Uuid",
+        "documentation": "Borrowed UUID to inspect or convert."
+      }
+    ],
+    "documentation": "Returns canonical lowercase hyphenated UUID text, preserving all 128 bits in standard byte order. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {parseUuid,formatUuid} from \"std:uuid\";function main(){console.log(formatUuid(unwrap(parseUuid(\"67e55044-10b1-426f-9247-bb680e5fe0c8\"))));}\n```\n\nExpected output: 67e55044-10b1-426f-9247-bb680e5fe0c8. Ownership: inputs are borrowed; returned UUIDs and byte buffers own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {parseUuid,formatUuid} from \"std:uuid\";function main(){console.log(formatUuid(unwrap(parseUuid(\"67e55044-10b1-426f-9247-bb680e5fe0c8\"))));}",
+        "output": "67e55044-10b1-426f-9247-bb680e5fe0c8\n"
+      }
+    ]
+  },
+  {
+    "name": "fromBytes",
+    "signature": "fromBytes(bytes: Bytes): Result<Uuid, UuidError>",
+    "parameters": [
+      {
+        "label": "bytes: Bytes",
+        "documentation": "Borrowed owned Bytes buffer; exactly 16 bytes in standard network order."
+      }
+    ],
+    "documentation": "Validates an owned Bytes buffer contains exactly 16 bytes and returns an independent UUID in standard network byte order. Length rejects any other size. The input is borrowed and unchanged; later byte mutations cannot change the UUID. Byte views require an explicit owned copy first. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {parseUuid,toBytes,fromBytes,formatUuid} from \"std:uuid\";function main(){const value=unwrap(parseUuid(\"67e55044-10b1-426f-9247-bb680e5fe0c8\"));console.log(formatUuid(unwrap(fromBytes(toBytes(value)))));}\n```\n\nExpected output: 67e55044-10b1-426f-9247-bb680e5fe0c8. Ownership: inputs are borrowed; returned UUIDs and byte buffers own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {parseUuid,toBytes,fromBytes,formatUuid} from \"std:uuid\";function main(){const value=unwrap(parseUuid(\"67e55044-10b1-426f-9247-bb680e5fe0c8\"));console.log(formatUuid(unwrap(fromBytes(toBytes(value)))));}",
+        "output": "67e55044-10b1-426f-9247-bb680e5fe0c8\n"
+      }
+    ]
+  },
+  {
+    "name": "toBytes",
+    "signature": "toBytes(value: Uuid): Bytes",
+    "parameters": [
+      {
+        "label": "value: Uuid",
+        "documentation": "Borrowed UUID to inspect or convert."
+      }
+    ],
+    "documentation": "Returns a new owned Bytes buffer containing the exact 16 UUID bytes in standard network byte order. Mutating the result does not change the UUID. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {parseUuid,toBytes} from \"std:uuid\";import {length} from \"std:bytes\";function main(){console.log(length(toBytes(unwrap(parseUuid(\"67e55044-10b1-426f-9247-bb680e5fe0c8\")))));}\n```\n\nExpected output: 16. Ownership: inputs are borrowed; returned UUIDs and byte buffers own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {parseUuid,toBytes} from \"std:uuid\";import {length} from \"std:bytes\";function main(){console.log(length(toBytes(unwrap(parseUuid(\"67e55044-10b1-426f-9247-bb680e5fe0c8\")))));}",
+        "output": "16\n"
+      }
+    ]
+  },
+  {
+    "name": "compare",
+    "signature": "compare(left: Uuid, right: Uuid): int",
+    "parameters": [
+      {
+        "label": "left: Uuid",
+        "documentation": "Borrowed left UUID."
+      },
+      {
+        "label": "right: Uuid",
+        "documentation": "Borrowed right UUID."
+      }
+    ],
+    "documentation": "Returns -1, 0 or 1 when left precedes, equals or follows right in unsigned byte order. This compares identifiers; it does not promise chronological ordering for arbitrary UUID versions. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {parseUuid,compare} from \"std:uuid\";function main(){const value=unwrap(parseUuid(\"67e55044-10b1-426f-9247-bb680e5fe0c8\"));console.log(compare(value,value));}\n```\n\nExpected output: 0. Ownership: inputs are borrowed; returned UUIDs and byte buffers own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {parseUuid,compare} from \"std:uuid\";function main(){const value=unwrap(parseUuid(\"67e55044-10b1-426f-9247-bb680e5fe0c8\"));console.log(compare(value,value));}",
+        "output": "0\n"
+      }
+    ]
+  },
+  {
+    "name": "version",
+    "signature": "version(value: Uuid): int",
+    "parameters": [
+      {
+        "label": "value: Uuid",
+        "documentation": "Borrowed UUID to inspect or convert."
+      }
+    ],
+    "documentation": "Returns the raw four-bit version field as an int in 0..15. A parsed identifier may have a reserved or unrecognized version; this field alone does not validate its variant. randomUuid returns version 4. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {parseUuid,version} from \"std:uuid\";function main(){console.log(version(unwrap(parseUuid(\"67e55044-10b1-426f-9247-bb680e5fe0c8\"))));}\n```\n\nExpected output: 4. Ownership: inputs are borrowed; returned UUIDs and byte buffers own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {parseUuid,version} from \"std:uuid\";function main(){console.log(version(unwrap(parseUuid(\"67e55044-10b1-426f-9247-bb680e5fe0c8\"))));}",
+        "output": "4\n"
+      }
+    ]
+  },
+  {
+    "name": "randomUuid",
+    "signature": "randomUuid(): Result<Uuid, UuidError>",
+    "parameters": [],
+    "documentation": "Creates an owned version-4 UUID using operating-system randomness with standard version and variant bits. Returns Entropy if the random source fails, including a partial fill; no identifier is returned on failure. Takes no arguments. Collisions are possible; uniqueness is not guaranteed. The operating-system random source may block during early boot. Inputs are not mutated.\n\n```tsrust\nimport {randomUuid,version} from \"std:uuid\";function main(){console.log(version(unwrap(randomUuid())));}\n```\n\nExpected output: 4. Ownership: inputs are borrowed; returned UUIDs and byte buffers own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {randomUuid,version} from \"std:uuid\";function main(){console.log(version(unwrap(randomUuid())));}",
+        "output": "4\n"
+      }
+    ]
+  },
+  {
+    "name": "Uuid",
+    "signature": "Uuid",
+    "documentation": "Opaque exact 128-bit UUID. Use parseUuid, fromBytes or randomUuid. Direct object construction, field access, implicit JSON/SQL conversion and collection keys are unsupported. Use explicit text or byte conversion for boundaries. Records, arrays, nullable values and owned worker transfer are supported.\n\n```tsrust\nimport {Uuid} from \"std:uuid\";function main(){}\n```\n\nExpected output: none. Ownership: owned value with ordinary scope cleanup.",
+    "examples": [
+      {
+        "source": "import {Uuid} from \"std:uuid\";function main(){}",
+        "output": ""
+      }
+    ]
+  },
+  {
+    "name": "UuidError",
+    "signature": "UuidError",
+    "documentation": "Owned UUID error with code and message strings. Syntax means malformed text, Length means a byte buffer is not exactly 16 bytes, and Entropy means operating-system randomness failed. Errors are Result data.\n\n```tsrust\nimport {UuidError} from \"std:uuid\";function main(){}\n```\n\nExpected output: none. Ownership: owned value with ordinary scope cleanup.",
+    "examples": [
+      {
+        "source": "import {UuidError} from \"std:uuid\";function main(){}",
+        "output": ""
+      }
+    ]
+  }
 ]
 }

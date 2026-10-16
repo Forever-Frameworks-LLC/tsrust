@@ -1,0 +1,10 @@
+{
+  "id": "uuid-roundtrip",
+  "implementationAccepted": true,
+  "measurementStatus": "unmeasured",
+  "iterationsPerBatch": 256,
+  "source": "uuid-roundtrip.tsr",
+  "counterpart": "uuid-roundtrip.ts",
+  "sourceSha256": "5669e044f4832ad938e4f8a920287d15ccedebbb3c06807dcee9788761a2cc9e",
+  "counterpartSha256": "f54c6031fbaffe1d79af83ee758051f087f95b60d9954ac108754961b45e408a"
+}

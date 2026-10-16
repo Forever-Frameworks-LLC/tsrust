@@ -26,3 +26,5 @@ pub(crate) mod sqlite;
 pub(crate) mod sql;
 
 pub(crate) mod date;
+
+pub(crate) mod uuid;

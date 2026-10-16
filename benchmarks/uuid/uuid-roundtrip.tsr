@@ -1,0 +1,31 @@
+import { parseUuid, formatUuid, toBytes, fromBytes, version } from 'std:uuid';
+import { at, set } from 'std:bytes';
+import { monotonicNow } from 'std:time';
+
+function batch(): int {
+  let checksum = 0;
+  for (let i = 0; i < 256; i += 1) {
+    const id = unwrap(parseUuid('67e55044-10b1-426f-9247-bb680e5fe0c8'));
+    const bytes = toBytes(id);
+    unwrap(set(bytes, 15, i));
+    const changed = unwrap(fromBytes(bytes));
+    const restored = unwrap(parseUuid(formatUuid(changed)));
+    checksum += version(restored) + unwrap(at(toBytes(restored), 15));
+  }
+
+  return checksum;
+}
+
+function main() {
+  for (let warmup = 0; warmup < 8; warmup += 1) {
+    batch();
+  }
+
+  for (let sample = 0; sample < 31; sample += 1) {
+    const start = monotonicNow();
+    const checksum = batch();
+    const elapsed = monotonicNow() - start;
+    console.log(checksum);
+    console.log(elapsed);
+  }
+}

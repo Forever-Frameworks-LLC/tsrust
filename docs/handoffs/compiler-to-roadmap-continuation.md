@@ -9,8 +9,8 @@ transport, editor agreement/help, 13 native catalog examples, offline package
 export and matched untimed money checks. See `docs/data-type-coverage.md`.
 Installed CLI/LSP consumers are refreshed; open decimal examples report no
 problems after the active server restart. SQLite holds `tsrust-decimal-*` evidence.
-Current CLI SHA-256: `b6c43ceeda52a916c2881c67504bcd2b80847d30ca6019ddf526b019c9a2a773`.
-Current LSP SHA-256: `522919b34320e69d59ec46e3de4ce0219fb1114be238f31263992679e9008e39`.
+Current CLI SHA-256: `293b417c9a79dc28f56b7c408eaafad427f6f819b677754583436149b03a1adb`.
+Current LSP SHA-256: `ceffdbed8d2aaa1ed0d83378d076229b44ac2b8c10b5ab9c3d099b2d58d07d4a`.
 The `std:date` calendar section now passes focused acceptance: validated Date,
 parseDate/formatDate, date-fns-style immutable arithmetic, bounded formatting,
 editor agreement, 15 catalog examples, offline export and matched untimed date-fns
@@ -21,9 +21,12 @@ exact nanoseconds, checked epoch conversion, explicit DST gaps/folds and named/f
 zones. Chrono-TZ 0.10.4 pins IANA 2025b; later zone-rule changes are not included.
 Four compiler/export checks, 31 native docs examples, runtime/editor checks and
 matched millisecond workload pass. Current installed consumers include this section.
-UUID and practical Rust/SQL boundary witnesses are next. The owner prefers date-fns: use small
+UUID focused acceptance also passes: strict canonical text, independent exact bytes,
+fallible entropy, ownership/worker transport, nine native documentation examples,
+offline export and matched untimed workload. Installed consumers include UUID.
+Practical Rust/SQL boundary witnesses and selected domain inventories are next. The owner prefers date-fns: use small
 named immutable functions and familiar arithmetic/formatting names, while keeping
-checked ranges, precision and explicit DST ambiguity handling. Continue UUID,
+checked ranges, precision and explicit DST ambiguity handling. Continue
 Rust/SQL boundary witnesses, then S19–S21 without another go-ahead.
 
 The first data-type section, `std:numeric` (`4760e58d`), now passes focused compiler/runtime,

@@ -2433,6 +2433,7 @@ impl Emitter<'_> {
                 continue;
             }
             if let Some(name)=record.native_type.and_then(crate::stdlib::date::runtime_type) {let _=writeln!(output,"type Record{index} = tsrust_native_date::{name};");continue;}
+            if record.native_type == Some(crate::native_signatures::NativeTypeId::Uuid) { let _=writeln!(output,"type Record{index} = tsrust_native_uuid::Uuid;");continue;}
             if record.native_type == Some(crate::native_signatures::NativeTypeId::Decimal) { let _=writeln!(output,"type Record{index} = tsrust_native_decimal::Decimal;");continue;}
             if record.native_type == Some(crate::native_signatures::NativeTypeId::TrackedResource) {
                 let _ = writeln!(output, "type Record{index} = TsrTrackedResource;");
@@ -3066,11 +3067,13 @@ impl Emitter<'_> {
             }
         }
         if self.program.records.iter().any(|r|r.native_type.and_then(crate::stdlib::date::runtime_type).is_some()){output.push_str(crate::stdlib::date::RUNTIME);}
+        if self.program.records.iter().any(|r|r.native_type==Some(crate::native_signatures::NativeTypeId::Uuid)){output.push_str(crate::stdlib::uuid::RUNTIME);}
         if self.program.records.iter().any(|r|r.native_type==Some(crate::native_signatures::NativeTypeId::Decimal)){output.push_str(crate::stdlib::decimal::RUNTIME);}
         if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:numeric"){output.push_str(&format!("mod tsrust_numeric {{ {} }}",crate::stdlib::numeric::emit::RUNTIME));}
         for &id in self.native_bindings.borrow().iter() {
             let binding = &crate::native_bindings::BINDINGS[id];
             if binding.module == "std:date" {output.push_str(&crate::stdlib::date::emit::bridge(self.program,binding));}
+            if binding.module == "std:uuid" {output.push_str(&crate::stdlib::uuid::emit::bridge(self.program,binding));}
             if binding.module == "std:decimal" {output.push_str(&crate::stdlib::decimal::emit::bridge(self.program,binding));}
             if binding.module == "std:numeric" { output.push_str(&crate::stdlib::numeric::emit::bridge(self.program,binding)); }
             if binding.module == "std:env" { output.push_str(&crate::stdlib::env::emit::bridge(self.program,binding)); }

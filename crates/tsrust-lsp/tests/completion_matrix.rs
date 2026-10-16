@@ -13,6 +13,7 @@ use support::session::Session;
 enum Kind {
     Temporal,
     Date,
+    Uuid,
     Decimal,
     Numeric,
     TrackedResource,
@@ -51,9 +52,10 @@ enum Kind {
     MemberPrefix,
 }
 
-const KINDS: [Kind; 38] = [
+const KINDS: [Kind; 39] = [
     Kind::Temporal,
     Kind::Date,
+    Kind::Uuid,
     Kind::Decimal,
     Kind::Numeric,
     Kind::TrackedResource,
@@ -125,6 +127,7 @@ fn rows() -> Vec<Row> {
     let mut rows = vec![
  Row {kind:Kind::Temporal,name:"temporal imports",before:"import { ".into(),typed:"",after:" } from 'std:date';function main(){}",includes:&["parseTime","formatTime","compareTimes","parseISO","formatISO","now","fromUnixMilliseconds","toUnixMilliseconds","fromUnixSeconds","toUnixSeconds","compareInstants","durationFromNanoseconds","durationFromMilliseconds","durationFromSeconds","durationToNanoseconds","durationToMilliseconds","addDurations","subtractDurations","addDuration","difference","parseTimeZone","fixedOffset","zoneName","offsetSeconds","localDate","localTime","resolveDateTime"],excludes:&["setHours"],silent:None,needs_check:false},
  Row {kind:Kind::Date,name:"calendar imports",before:"import { ".into(),typed:"",after:" } from 'std:date';function main(){}",includes:&["parseDate","formatDate","format","addDays","addMonths","differenceInCalendarDays","compareAsc","isLeapYear","getYear","getMonth","getDate","startOfMonth","endOfMonth"],excludes:&["parse","round"],silent:None,needs_check:false},
+ Row {kind:Kind::Uuid,name:"uuid imports",before:"import { ".into(),typed:"",after:" } from 'std:uuid';function main(){}",includes:&["parseUuid","formatUuid","fromBytes","toBytes","compare","version","randomUuid"],excludes:&["parse","round"],silent:None,needs_check:false},
  Row {kind:Kind::Decimal,name:"decimal imports",before:"import { ".into(),typed:"",after:" } from 'std:decimal';function main(){}",includes:&["parseDecimal","fromInt","format","formatFixed","add","subtract","multiply","divideExact","compare","toInt","toNumber"],excludes:&["parse","round"],silent:None,needs_check:false},
  Row {kind:Kind::Date,name:"calendar error",before:"import {DateError} from 'std:date';function probe(error:ReadOnly<DateError>){".into(),typed:"error.",after:"code;}function main(){}",includes:&["code","message"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
  Row {kind:Kind::Temporal,name:"temporal Time opaque",before:"import {Time} from 'std:date';function probe(value:ReadOnly<Time>){".into(),typed:"value.",after:";}function main(){}",includes:&[],excludes:NOT_MEMBERS,silent:Some("Opaque temporal operations use named module functions."),needs_check:true},
@@ -132,6 +135,8 @@ fn rows() -> Vec<Row> {
  Row {kind:Kind::Temporal,name:"temporal Duration opaque",before:"import {Duration} from 'std:date';function probe(value:ReadOnly<Duration>){".into(),typed:"value.",after:";}function main(){}",includes:&[],excludes:NOT_MEMBERS,silent:Some("Opaque temporal operations use named module functions."),needs_check:true},
  Row {kind:Kind::Temporal,name:"temporal TimeZone opaque",before:"import {TimeZone} from 'std:date';function probe(value:ReadOnly<TimeZone>){".into(),typed:"value.",after:";}function main(){}",includes:&[],excludes:NOT_MEMBERS,silent:Some("Opaque temporal operations use named module functions."),needs_check:true},
  Row {kind:Kind::Date,name:"calendar opaque",before:"import {Date} from 'std:date';function probe(value:ReadOnly<Date>){".into(),typed:"value.",after:";}function main(){}",includes:&[],excludes:NOT_MEMBERS,silent:Some("Opaque calendar operations use named module functions."),needs_check:true},
+ Row {kind:Kind::Uuid,name:"uuid error",before:"import {UuidError} from 'std:uuid';function probe(error:ReadOnly<UuidError>){".into(),typed:"error.",after:"code;}function main(){}",includes:&["code","message"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+ Row {kind:Kind::Uuid,name:"uuid opaque",before:"import {Uuid} from 'std:uuid';function probe(value:ReadOnly<Uuid>){".into(),typed:"value.",after:";}function main(){}",includes:&[],excludes:NOT_MEMBERS,silent:Some("Opaque UUID operations use named module functions."),needs_check:true},
  Row {kind:Kind::Decimal,name:"decimal error",before:"import {DecimalError} from 'std:decimal';function probe(error:ReadOnly<DecimalError>){".into(),typed:"error.",after:"code;}function main(){}",includes:&["code","message"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
  Row {kind:Kind::Decimal,name:"decimal opaque",before:"import {Decimal} from 'std:decimal';function probe(value:ReadOnly<Decimal>){".into(),typed:"value.",after:";}function main(){}",includes:&[],excludes:NOT_MEMBERS,silent:Some("Opaque decimal operations use named module functions."),needs_check:true},
         Row {kind:Kind::Numeric,name:"numeric exact module",before:"import { ".into(),typed:"",after:" } from 'std:numeric';function main(){}",includes:&["toInt","toNumber","toFloat32","checkSigned","checkUnsigned","parseInt"],excludes:&["parse","round"],silent:None,needs_check:false},

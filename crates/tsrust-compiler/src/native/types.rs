@@ -249,6 +249,8 @@ static TIMEDURATION: Declaration = Declaration {id:NativeTypeId::TimeDuration,mo
 static TIMEZONE: Declaration = Declaration {id:NativeTypeId::TimeZone,module:"std:date",name:"TimeZone",..BYTES};
 static CALENDAR_DATE: Declaration = Declaration {id:NativeTypeId::CalendarDate,module:"std:date",name:"Date",..BYTES};
 static DATE_ERROR: Declaration = Declaration {id:NativeTypeId::DateError,module:"std:date",name:"DateError",..ENV_ERROR};
+static UUID: Declaration = Declaration {id:NativeTypeId::Uuid,module:"std:uuid",name:"Uuid",..BYTES};
+static UUID_ERROR: Declaration = Declaration {id:NativeTypeId::UuidError,module:"std:uuid",name:"UuidError",..ENV_ERROR};
 static DECIMAL: Declaration = Declaration {id:NativeTypeId::Decimal,module:"std:decimal",name:"Decimal",..BYTES};
 static DECIMAL_ERROR: Declaration = Declaration {id:NativeTypeId::DecimalError,module:"std:decimal",name:"DecimalError",..ENV_ERROR};
 static NUMERIC_ERROR: Declaration = Declaration {id:NativeTypeId::NumericError,module:"std:numeric",name:"NumericError",..ENV_ERROR};
@@ -426,6 +428,8 @@ NativeTypeId::HttpApp => &HTTPAPP,
         NativeTypeId::TimeZone => &TIMEZONE,
         NativeTypeId::CalendarDate => &CALENDAR_DATE,
         NativeTypeId::DateError => &DATE_ERROR,
+        NativeTypeId::Uuid => &UUID,
+        NativeTypeId::UuidError => &UUID_ERROR,
         NativeTypeId::Decimal => &DECIMAL,
         NativeTypeId::DecimalError => &DECIMAL_ERROR,
         NativeTypeId::JsonValue => &JSON_VALUE,
@@ -451,7 +455,7 @@ NativeTypeId::HttpApp => &HTTPAPP,
 /// Exact module/name lookup does not grant aliases a new declaration identity.
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
-    [&TIMEOFDAY,&UTCINSTANT,&TIMEDURATION,&TIMEZONE,&CALENDAR_DATE,&DATE_ERROR,&DECIMAL,&DECIMAL_ERROR,&NUMERIC_ERROR,&TRACKED_RESOURCE,&SQLPOOL,&SQLTRANSACTION,&SQLROW,&SQLERROR,&SQLITECONNECTION,&SQLITESTATEMENT,&SQLITETRANSACTION,&SQLITEROW,&SQLITEERROR,&HTTPTLSOPTIONS,&HTTPCLIENTOPTIONS,&HTTPAPP,&HTTPREQUEST,&HTTPRESPONSE,&HTTPBODY,&HTTPCLIENT,&HTTPSERVER,&HTTPNEXT,&HTTPERROR,&JOB,&ASYNC_ERROR,&ASYNC_CHANNEL,&ASYNC_SENDER,&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
+    [&UUID,&UUID_ERROR,&TIMEOFDAY,&UTCINSTANT,&TIMEDURATION,&TIMEZONE,&CALENDAR_DATE,&DATE_ERROR,&DECIMAL,&DECIMAL_ERROR,&NUMERIC_ERROR,&TRACKED_RESOURCE,&SQLPOOL,&SQLTRANSACTION,&SQLROW,&SQLERROR,&SQLITECONNECTION,&SQLITESTATEMENT,&SQLITETRANSACTION,&SQLITEROW,&SQLITEERROR,&HTTPTLSOPTIONS,&HTTPCLIENTOPTIONS,&HTTPAPP,&HTTPREQUEST,&HTTPRESPONSE,&HTTPBODY,&HTTPCLIENT,&HTTPSERVER,&HTTPNEXT,&HTTPERROR,&JOB,&ASYNC_ERROR,&ASYNC_CHANNEL,&ASYNC_SENDER,&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
 }
 
 #[cfg(test)]

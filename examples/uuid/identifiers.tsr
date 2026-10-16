@@ -1,0 +1,56 @@
+import { Uuid, UuidError, parseUuid, formatUuid, toBytes, fromBytes, compare, version, randomUuid } from 'std:uuid';
+import { alloc, at, set, length } from 'std:bytes';
+import { strictEqual } from 'std:testing';
+import { spawn } from 'std:threads';
+
+type Entity = {
+  id: Uuid;
+  parent: Uuid | null;
+};
+
+function optionalId(value: ReadOnly<Uuid> | null): string {
+  if (value === null) {
+    return 'none';
+  }
+
+  return formatUuid(value);
+}
+
+function reject(value: Result<Uuid, UuidError>, code: string) {
+  match (value) {
+    Ok(_) => {
+      throw 'expected UUID rejection';
+    },
+    Err(error) => {
+      strictEqual(error.code, code);
+    }
+  }
+}
+
+function main() {
+  const id = unwrap(parseUuid('67E55044-10B1-426F-9247-BB680E5FE0C8'));
+  strictEqual(formatUuid(id), '67e55044-10b1-426f-9247-bb680e5fe0c8');
+  strictEqual(version(id), 4);
+  const bytes = toBytes(id);
+  strictEqual(length(bytes), 16);
+  strictEqual(unwrap(at(bytes, 0)), 103);
+  const restored = unwrap(fromBytes(bytes));
+  strictEqual(compare(id, restored), 0);
+  unwrap(set(bytes, 0, 0));
+  strictEqual(formatUuid(restored), '67e55044-10b1-426f-9247-bb680e5fe0c8');
+  reject(parseUuid('67e5504410b1426f9247bb680e5fe0c8'), 'Syntax');
+  reject(fromBytes(unwrap(alloc(15, 0))), 'Length');
+  const fresh = unwrap(randomUuid());
+  strictEqual(version(fresh), 4);
+  strictEqual(compare(fresh, unwrap(parseUuid(formatUuid(fresh)))), 0);
+  const entity: Entity = {
+    id: clone(id), parent: null
+  };
+  strictEqual(optionalId(entity.parent), 'none');
+  const ids = [clone(id), clone(fresh)];
+  strictEqual(version(ids[1]), 4);
+  const owned = clone(entity.id);
+  const worker = unwrap(spawn((): string => formatUuid(owned)));
+  strictEqual(unwrap(worker.join()), formatUuid(id));
+  console.log(formatUuid(id));
+}

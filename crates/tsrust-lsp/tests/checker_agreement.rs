@@ -34,6 +34,8 @@ Receiver {ty:"Duration",parameter:"x: ReadOnly<Duration>"},
 Receiver {ty:"TimeZone",parameter:"x: ReadOnly<TimeZone>"},
 Receiver {ty:"Date",parameter:"x: ReadOnly<Date>"},
 Receiver {ty:"DateError",parameter:"x: ReadOnly<DateError>"},
+Receiver {ty:"Uuid",parameter:"x: ReadOnly<Uuid>"},
+Receiver {ty:"UuidError",parameter:"x: ReadOnly<UuidError>"},
 Receiver {ty:"Decimal",parameter:"x: ReadOnly<Decimal>"},
 Receiver {ty:"DecimalError",parameter:"x: ReadOnly<DecimalError>"},
 Receiver {ty:"NumericError",parameter:"x: ReadOnly<NumericError>"},
@@ -113,8 +115,9 @@ fn prelude(parameter: &str) -> String {
     let testing = if parameter.contains("TrackedResource") { "import {TrackedResource} from 'std:testing';\n" } else { "" };
     let numeric=if parameter.contains("NumericError"){ "import {NumericError} from 'std:numeric';\n" }else{""};
     let date=if ["Date","Time","Instant","Duration"].iter().any(|name|parameter.contains(name)){ "import {Date,DateError,Time,Instant,Duration,TimeZone} from 'std:date';\n" }else{""};
+    let uuid=if parameter.contains("Uuid"){ "import {Uuid,UuidError} from 'std:uuid';\n" }else{""};
     let decimal=if parameter.contains("Decimal"){ "import {Decimal,DecimalError} from 'std:decimal';\n" }else{""};
-    format!("{date}{decimal}{numeric}{testing}{PRELUDE}")
+    format!("{uuid}{date}{decimal}{numeric}{testing}{PRELUDE}")
 }
 
 fn diagnostic(body: &str, parameter: &str) -> Option<(String, String)> {

@@ -236,3 +236,25 @@ prior calendar billing example still passes. Native and date-fns millisecond
 workloads match checksum 32,640; timing remains unmeasured. Installed CLI/LSP and
 the active VS Code workspace pass after refresh. Evidence uses `tsrust-temporal-*`
 in SQLite; IANA provenance remains developer evidence, separate from API help.
+
+## UUIDs
+
+`std:uuid` provides opaque exact 128-bit Uuid values, strict `parseUuid`, canonical
+`formatUuid`, independent 16-byte conversions, byte-order comparison, raw version
+inspection and fallible version-4 generation. All bit patterns can be parsed;
+parsing does not assert a recognized UUID version or variant. Standard network
+byte order is explicit. Implicit JSON/SQL conversion and UUID collection keys are
+unsupported; use checked text/bytes at those boundaries.
+
+The backend pins uuid 1.28.0 and existing getrandom 0.4.3. OS entropy failure
+returns Entropy without producing an identifier; v4 collisions remain possible.
+The readable identifier example covers byte mutation isolation, nullable records,
+arrays, cloning and worker transport. The Node reference uses strict hexadecimal
+validation and built-in Buffer operations; random generation is outside the
+matched round-trip workload. Timing remains unmeasured.
+
+Focused UUID acceptance passes on macOS: four compiler/export checks, nine native
+documentation examples, runtime entropy/byte boundaries, Uuid/UuidError editor
+agreement, completion and help. The native and Node workloads match checksum
+33,664. Installed CLI/LSP and restarted VS Code pass. Evidence uses `tsrust-uuid-*`
+in SQLite. Timing remains unmeasured; Rust/SQL adapters remain separate work.

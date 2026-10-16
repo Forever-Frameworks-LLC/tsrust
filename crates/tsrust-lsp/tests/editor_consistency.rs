@@ -220,3 +220,13 @@ fn temporal_help_explains_dst_and_exact_units(){
  let help=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsr")},"position":{"line":0,"character":offset+call.find('(').unwrap()+1}}));assert!(!help["signatures"].as_array().unwrap().is_empty(),"{help}");
  }
 }
+
+#[test]
+fn uuid_help_explains_exact_bytes_and_entropy_errors(){
+ let text="import {parseUuid,toBytes,fromBytes,randomUuid} from 'std:uuid';function main(){const id=unwrap(parseUuid('67e55044-10b1-426f-9247-bb680e5fe0c8'));const bytes=toBytes(id);fromBytes(bytes);randomUuid();}";
+ let mut session=Session::start(&[]);session.open("main.tsr",text);session.settle();
+ for (call,expected) in [("parseUuid('67","36 ASCII"),("toBytes(id)","16 UUID bytes"),("fromBytes(bytes)","Length"),("randomUuid()","Entropy")]{
+ let offset=text.rfind(call).unwrap();assert!(session.hover("main.tsr",text,offset+1).unwrap_or_default().contains(expected),"{call}");
+ let help=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsr")},"position":{"line":0,"character":offset+call.find('(').unwrap()+1}}));assert!(!help["signatures"].as_array().unwrap().is_empty(),"{help}");
+ }
+}
