@@ -300,3 +300,16 @@ fn router_cookie_encoding_validation_and_after_next_headers(){
   assert_eq!(response.text().await.unwrap(),"ok");server.shutdown().await;
  });
 }
+
+#[test]
+fn router_metadata_is_shareable_without_sharing_body_access(){
+ fn shareable<T:Send+Sync>(){}shareable::<Request>();shareable::<Response>();shareable::<Context<String>>();
+ async fn observe(context:&Context<String>){tokio::task::yield_now().await;assert_eq!(context.field1.as_str(),"shared");assert_eq!(context.field0.method(),"GET");}
+ tsrust_native_futures::block_on(async{
+  let mut app=Router::with_state("shared".to_owned());
+  app.route("GET","/",|c|Box::pin(async move{observe(c).await;Some(c.text("ok".into(),None).unwrap())})).unwrap();
+  let server=app.listen("127.0.0.1:0").await.unwrap();let client=Client::new().unwrap();
+  let response=client.send(Request::new("GET",&format!("http://{}/",server.address()),String::new()).unwrap()).await.unwrap();
+  assert_eq!(response.text_body().await.unwrap(),"ok");server.shutdown().await;
+ });
+}

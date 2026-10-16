@@ -10548,10 +10548,10 @@
         "documentation": "Incoming request for this context. Read headers and route parameters through c.req. The request remains owned by the context; it cannot be moved out of a mutable context loan."
       },
       "env": {
-        "documentation": "Read-only application state owned by Router. The same state serves all requests. Borrow fields for supported concurrent operations, or explicitly clone independently cloneable data. Moving or mutating state is rejected."
+        "documentation": "Read-only application state owned by Router. The same state serves all requests. Borrow fields for supported concurrent operations, or explicitly clone independently cloneable data. Moving or mutating state is rejected.\n\n```tsrust\nconst greeting = clone(c.env.greeting);\n```\n\nReturns independent text when State declares greeting: string. The shared state itself stays owned by Router."
       },
       "res": {
-        "documentation": "Read-only current response. After await next(), inspect c.res.status() or c.res.header(name). Before downstream returns a response, status is 404. Use c.header to change response headers. The response and body cannot be moved out of Context."
+        "documentation": "Read-only current response. After await next(), inspect c.res.status() or c.res.header(name). Before downstream returns a response, status is 404. Use c.header to change response headers. The response and body cannot be moved out of Context.\n\n```tsrust\nawait next();\nconsole.log(c.res.status());\n```\n\nPrints 200 when the downstream handler returns c.text(\"ok\"). Reading does not consume the response."
       }
     }
   },
@@ -10855,7 +10855,13 @@
         "documentation": "Cookie name using HTTP token characters."
       }
     ],
-    "documentation": "Reads the first valid cookie with this name, or undefined. Decodes UTF-8 percent escapes; plus stays plus. Malformed escapes remain literal. Invalid cookie entries are skipped. Duplicate names use the first valid value; applications requiring stricter policy must validate the raw Cookie header.\n\n```tsrust\nconst theme = getCookie(c, \"theme\");\n```\n\nCookie theme=dark returns dark. Does not mutate Context. Ownership: borrows Context and returns independent owned text."
+    "documentation": "Reads the first valid cookie with this name, or undefined. Decodes UTF-8 percent escapes; plus stays plus. Malformed escapes remain literal. Invalid cookie entries are skipped. Duplicate names use the first valid value; applications requiring stricter policy must validate the raw Cookie header.\n\n```tsrust\nconst theme = getCookie(c, \"theme\");\n```\n\nCookie theme=dark returns dark. Does not mutate Context. Ownership: borrows Context and returns independent owned text.",
+    "examples": [
+      {
+        "source": "import { Router, Client, request, getCookie, setCookie, deleteCookie } from 'std:http';\nimport { strictEqual } from 'std:testing';\n\ntype Application = {\n  greeting: string;\n};\n\ntype Variables = {\n  requestId: string;\n};\n\nfunction routes(): Router<Application, Variables> {\n  const app = new Router<Application, Variables>({\n    greeting: 'Hello '\n  });\n  app.use('/hello', async (c, next) => {\n    c.set('requestId', 'one request');\n    setCookie(c, 'theme', 'dark', {\n      httpOnly: true, sameSite: 'Lax'\n    });\n    await next();\n    strictEqual(c.res.status(), 200);\n    deleteCookie(c, 'old');\n  });\n  app.get('/hello', (c) => {\n    strictEqual(getCookie(c, 'theme'), undefined);\n    const id = c.get('requestId');\n    if (id === undefined) {\n      return c.text('missing', 500);\n    }\n\n    const body = clone(c.env.greeting) + clone(id);\n    return c.text(body);\n  });\n  app.get('/isolated', (c) => {\n    strictEqual(c.get('requestId'), undefined);\n    return c.text('isolated');\n  });\n  return app;\n}\n\nasync function main(): Task<void> {\n  const app = routes();\n  const server = await app.listen('127.0.0.1:0');\n  const client = new Client();\n  const base = 'http://' + server.address();\n  const greeting = await client.send(request('GET', base + '/hello', ''));\n  strictEqual(await greeting.text(), 'Hello one request');\n  const isolated = await client.send(request('GET', base + '/isolated', ''));\n  strictEqual(await isolated.text(), 'isolated');\n  await server.shutdown();\n}\n",
+        "output": ""
+      }
+    ]
   },
   {
     "name": "setCookie",
@@ -10879,7 +10885,13 @@
         "documentation": "Path defaults to /. Other attributes are omitted unless supplied."
       }
     ],
-    "documentation": "Appends a separate Set-Cookie response header before or after next(). Path defaults to /; maxAge is integer seconds from 0 through 34560000. Invalid names, paths, domains, ages or sameSite throw HttpError code cookie. __Secure- requires secure; __Host- also requires Path=/ without domain. Partitioned requires secure.\n\n```tsrust\nsetCookie(c, \"theme\", \"dark\", {httpOnly: true, sameSite: \"Lax\"});\n```\n\nAdds theme=dark; Path=/; HttpOnly; SameSite=Lax. Signing, Expires and Priority are unsupported. Ownership: exclusively borrows Context; copies supplied text into response headers."
+    "documentation": "Appends a separate Set-Cookie response header before or after next(). Path defaults to /; maxAge is integer seconds from 0 through 34560000. Invalid names, paths, domains, ages or sameSite throw HttpError code cookie. __Secure- requires secure; __Host- also requires Path=/ without domain. Partitioned requires secure.\n\n```tsrust\nsetCookie(c, \"theme\", \"dark\", {httpOnly: true, sameSite: \"Lax\"});\n```\n\nAdds theme=dark; Path=/; HttpOnly; SameSite=Lax. Signing, Expires and Priority are unsupported. Ownership: exclusively borrows Context; copies supplied text into response headers.",
+    "examples": [
+      {
+        "source": "import { Router, Client, request, getCookie, setCookie, deleteCookie } from 'std:http';\nimport { strictEqual } from 'std:testing';\n\ntype Application = {\n  greeting: string;\n};\n\ntype Variables = {\n  requestId: string;\n};\n\nfunction routes(): Router<Application, Variables> {\n  const app = new Router<Application, Variables>({\n    greeting: 'Hello '\n  });\n  app.use('/hello', async (c, next) => {\n    c.set('requestId', 'one request');\n    setCookie(c, 'theme', 'dark', {\n      httpOnly: true, sameSite: 'Lax'\n    });\n    await next();\n    strictEqual(c.res.status(), 200);\n    deleteCookie(c, 'old');\n  });\n  app.get('/hello', (c) => {\n    strictEqual(getCookie(c, 'theme'), undefined);\n    const id = c.get('requestId');\n    if (id === undefined) {\n      return c.text('missing', 500);\n    }\n\n    const body = clone(c.env.greeting) + clone(id);\n    return c.text(body);\n  });\n  app.get('/isolated', (c) => {\n    strictEqual(c.get('requestId'), undefined);\n    return c.text('isolated');\n  });\n  return app;\n}\n\nasync function main(): Task<void> {\n  const app = routes();\n  const server = await app.listen('127.0.0.1:0');\n  const client = new Client();\n  const base = 'http://' + server.address();\n  const greeting = await client.send(request('GET', base + '/hello', ''));\n  strictEqual(await greeting.text(), 'Hello one request');\n  const isolated = await client.send(request('GET', base + '/isolated', ''));\n  strictEqual(await isolated.text(), 'isolated');\n  await server.shutdown();\n}\n",
+        "output": ""
+      }
+    ]
   },
   {
     "name": "deleteCookie",
@@ -10899,7 +10911,13 @@
         "documentation": "Match the original path/domain and required security attributes. maxAge is overridden to zero."
       }
     ],
-    "documentation": "Appends an empty cookie with Max-Age=0. Uses setCookie validation and Path=/ by default. Match the original path and domain to remove the browser cookie. Does not alter incoming request cookies.\n\n```tsrust\ndeleteCookie(c, \"theme\");\n```\n\nAdds theme=; Path=/; Max-Age=0. Ownership: exclusively borrows Context."
+    "documentation": "Appends an empty cookie with Max-Age=0. Uses setCookie validation and Path=/ by default. Match the original path and domain to remove the browser cookie. Does not alter incoming request cookies.\n\n```tsrust\ndeleteCookie(c, \"theme\");\n```\n\nAdds theme=; Path=/; Max-Age=0. Ownership: exclusively borrows Context.",
+    "examples": [
+      {
+        "source": "import { Router, Client, request, getCookie, setCookie, deleteCookie } from 'std:http';\nimport { strictEqual } from 'std:testing';\n\ntype Application = {\n  greeting: string;\n};\n\ntype Variables = {\n  requestId: string;\n};\n\nfunction routes(): Router<Application, Variables> {\n  const app = new Router<Application, Variables>({\n    greeting: 'Hello '\n  });\n  app.use('/hello', async (c, next) => {\n    c.set('requestId', 'one request');\n    setCookie(c, 'theme', 'dark', {\n      httpOnly: true, sameSite: 'Lax'\n    });\n    await next();\n    strictEqual(c.res.status(), 200);\n    deleteCookie(c, 'old');\n  });\n  app.get('/hello', (c) => {\n    strictEqual(getCookie(c, 'theme'), undefined);\n    const id = c.get('requestId');\n    if (id === undefined) {\n      return c.text('missing', 500);\n    }\n\n    const body = clone(c.env.greeting) + clone(id);\n    return c.text(body);\n  });\n  app.get('/isolated', (c) => {\n    strictEqual(c.get('requestId'), undefined);\n    return c.text('isolated');\n  });\n  return app;\n}\n\nasync function main(): Task<void> {\n  const app = routes();\n  const server = await app.listen('127.0.0.1:0');\n  const client = new Client();\n  const base = 'http://' + server.address();\n  const greeting = await client.send(request('GET', base + '/hello', ''));\n  strictEqual(await greeting.text(), 'Hello one request');\n  const isolated = await client.send(request('GET', base + '/isolated', ''));\n  strictEqual(await isolated.text(), 'isolated');\n  await server.shutdown();\n}\n",
+        "output": ""
+      }
+    ]
   },
   {
     "name": "CookieOptions",
@@ -10909,27 +10927,33 @@
     "documentation": "Cookie response attributes. path defaults to /; domain is omitted. maxAge is 0..34560000 integer seconds. secure, httpOnly and partitioned default false. sameSite accepts Strict, Lax or None, including lowercase. SameSite=None requires secure for browser acceptance. Expires, Priority and signed cookies are unsupported.\n\n```tsrust\nconst options: CookieOptions = {secure: true, httpOnly: true, sameSite: \"Strict\"};\n```\n\nOwnership: an ordinary owned record; helper calls borrow it.",
     "fields": {
       "path": {
-        "documentation": "Absolute ASCII cookie path, default /. Semicolons and control characters reject."
+        "documentation": "Absolute ASCII cookie path, default /. Semicolons and control characters reject.\n\nExample: `{ path: '/account' }`. Helpers borrow options; values are copied into the outgoing header."
       },
       "domain": {
-        "documentation": "Optional ASCII cookie domain using letters, digits, dots and hyphens. Omitted for a host-only cookie."
+        "documentation": "Optional ASCII cookie domain using letters, digits, dots and hyphens. Omitted for a host-only cookie.\n\nExample: `{ domain: 'example.com' }`. Helpers borrow options; values are copied into the outgoing header."
       },
       "maxAge": {
-        "documentation": "Lifetime in integer seconds, 0 through 34560000. Zero requests deletion. Omitted for a session cookie."
+        "documentation": "Lifetime in integer seconds, 0 through 34560000. Zero requests deletion. Omitted for a session cookie.\n\nExample: `{ maxAge: 3600 }`. Helpers borrow options; values are copied into the outgoing header."
       },
       "secure": {
-        "documentation": "Only send over HTTPS when true; defaults false. Required by __Secure- and __Host- prefixes."
+        "documentation": "Only send over HTTPS when true; defaults false. Required by __Secure- and __Host- prefixes.\n\nExample: `{ secure: true }`. Helpers borrow options; values are copied into the outgoing header."
       },
       "httpOnly": {
-        "documentation": "Hide the cookie from browser script when true; defaults false."
+        "documentation": "Hide the cookie from browser script when true; defaults false.\n\nExample: `{ httpOnly: true }`. Helpers borrow options; values are copied into the outgoing header."
       },
       "sameSite": {
-        "documentation": "Strict, Lax or None, including lowercase. Omitted by default. None requires secure for browser acceptance."
+        "documentation": "Strict, Lax or None, including lowercase. Omitted by default. None requires secure for browser acceptance.\n\nExample: `{ sameSite: 'Strict' }`. Helpers borrow options; values are copied into the outgoing header."
       },
       "partitioned": {
-        "documentation": "Request partitioned browser storage when true; requires secure. Defaults false."
+        "documentation": "Request partitioned browser storage when true; requires secure. Defaults false.\n\nExample: `{ partitioned: true }` with `secure: true`. Helpers borrow options; values are copied into the outgoing header."
       }
-    }
+    },
+    "examples": [
+      {
+        "source": "import { Router, Client, request, getCookie, setCookie, deleteCookie } from 'std:http';\nimport { strictEqual } from 'std:testing';\n\ntype Application = {\n  greeting: string;\n};\n\ntype Variables = {\n  requestId: string;\n};\n\nfunction routes(): Router<Application, Variables> {\n  const app = new Router<Application, Variables>({\n    greeting: 'Hello '\n  });\n  app.use('/hello', async (c, next) => {\n    c.set('requestId', 'one request');\n    setCookie(c, 'theme', 'dark', {\n      httpOnly: true, sameSite: 'Lax'\n    });\n    await next();\n    strictEqual(c.res.status(), 200);\n    deleteCookie(c, 'old');\n  });\n  app.get('/hello', (c) => {\n    strictEqual(getCookie(c, 'theme'), undefined);\n    const id = c.get('requestId');\n    if (id === undefined) {\n      return c.text('missing', 500);\n    }\n\n    const body = clone(c.env.greeting) + clone(id);\n    return c.text(body);\n  });\n  app.get('/isolated', (c) => {\n    strictEqual(c.get('requestId'), undefined);\n    return c.text('isolated');\n  });\n  return app;\n}\n\nasync function main(): Task<void> {\n  const app = routes();\n  const server = await app.listen('127.0.0.1:0');\n  const client = new Client();\n  const base = 'http://' + server.address();\n  const greeting = await client.send(request('GET', base + '/hello', ''));\n  strictEqual(await greeting.text(), 'Hello one request');\n  const isolated = await client.send(request('GET', base + '/isolated', ''));\n  strictEqual(await isolated.text(), 'isolated');\n  await server.shutdown();\n}\n",
+        "output": ""
+      }
+    ]
   }
 ],
   "HttpApp": [
@@ -13742,7 +13766,13 @@
       }
     ],
     "documentation": "Stores a typed value for this request only. Keys must be declared string literals; unknown keys and wrong value types reject. Values must be owned immutable data or supported concurrent handles; borrowed views, local resources and task handles are unsupported.\n\n```tsrust\nc.set(\"requestId\", \"abc\");\n```\n\nLater middleware in the same request can read abc. New requests start empty. Ownership: consumes the value and mutates Context; replacement and request completion release stored values.",
-    "inferredSignature": "function set(key: keyof Variables, value: Variables[key]): void"
+    "inferredSignature": "function set(key: keyof Variables, value: Variables[key]): void",
+    "examples": [
+      {
+        "source": "import { Router, Client, request, getCookie, setCookie, deleteCookie } from 'std:http';\nimport { strictEqual } from 'std:testing';\n\ntype Application = {\n  greeting: string;\n};\n\ntype Variables = {\n  requestId: string;\n};\n\nfunction routes(): Router<Application, Variables> {\n  const app = new Router<Application, Variables>({\n    greeting: 'Hello '\n  });\n  app.use('/hello', async (c, next) => {\n    c.set('requestId', 'one request');\n    setCookie(c, 'theme', 'dark', {\n      httpOnly: true, sameSite: 'Lax'\n    });\n    await next();\n    strictEqual(c.res.status(), 200);\n    deleteCookie(c, 'old');\n  });\n  app.get('/hello', (c) => {\n    strictEqual(getCookie(c, 'theme'), undefined);\n    const id = c.get('requestId');\n    if (id === undefined) {\n      return c.text('missing', 500);\n    }\n\n    const body = clone(c.env.greeting) + clone(id);\n    return c.text(body);\n  });\n  app.get('/isolated', (c) => {\n    strictEqual(c.get('requestId'), undefined);\n    return c.text('isolated');\n  });\n  return app;\n}\n\nasync function main(): Task<void> {\n  const app = routes();\n  const server = await app.listen('127.0.0.1:0');\n  const client = new Client();\n  const base = 'http://' + server.address();\n  const greeting = await client.send(request('GET', base + '/hello', ''));\n  strictEqual(await greeting.text(), 'Hello one request');\n  const isolated = await client.send(request('GET', base + '/isolated', ''));\n  strictEqual(await isolated.text(), 'isolated');\n  await server.shutdown();\n}\n",
+        "output": ""
+      }
+    ]
   },
   {
     "name": "get",
@@ -13754,7 +13784,13 @@
       }
     ],
     "documentation": "Reads a request-local value, or undefined when this request has not set it. Keys and value types are checked against Variables. No non-null assertion is required for a normal read.\n\n```tsrust\nconst id = c.get(\"requestId\");\nif (id !== undefined) { console.log(id); }\n```\n\nReading does not mutate the context. Ownership: scalar results copy; other values borrow Context for the containing scope. Clone independently cloneable values explicitly when ownership is needed; Context mutation is rejected while a returned loan remains live.",
-    "inferredSignature": "function get(key: keyof Variables): Variables[key] | undefined"
+    "inferredSignature": "function get(key: keyof Variables): Variables[key] | undefined",
+    "examples": [
+      {
+        "source": "import { Router, Client, request, getCookie, setCookie, deleteCookie } from 'std:http';\nimport { strictEqual } from 'std:testing';\n\ntype Application = {\n  greeting: string;\n};\n\ntype Variables = {\n  requestId: string;\n};\n\nfunction routes(): Router<Application, Variables> {\n  const app = new Router<Application, Variables>({\n    greeting: 'Hello '\n  });\n  app.use('/hello', async (c, next) => {\n    c.set('requestId', 'one request');\n    setCookie(c, 'theme', 'dark', {\n      httpOnly: true, sameSite: 'Lax'\n    });\n    await next();\n    strictEqual(c.res.status(), 200);\n    deleteCookie(c, 'old');\n  });\n  app.get('/hello', (c) => {\n    strictEqual(getCookie(c, 'theme'), undefined);\n    const id = c.get('requestId');\n    if (id === undefined) {\n      return c.text('missing', 500);\n    }\n\n    const body = clone(c.env.greeting) + clone(id);\n    return c.text(body);\n  });\n  app.get('/isolated', (c) => {\n    strictEqual(c.get('requestId'), undefined);\n    return c.text('isolated');\n  });\n  return app;\n}\n\nasync function main(): Task<void> {\n  const app = routes();\n  const server = await app.listen('127.0.0.1:0');\n  const client = new Client();\n  const base = 'http://' + server.address();\n  const greeting = await client.send(request('GET', base + '/hello', ''));\n  strictEqual(await greeting.text(), 'Hello one request');\n  const isolated = await client.send(request('GET', base + '/isolated', ''));\n  strictEqual(await isolated.text(), 'isolated');\n  await server.shutdown();\n}\n",
+        "output": ""
+      }
+    ]
   }
 ],
 "HttpContextNext": []

@@ -35,7 +35,7 @@ fn async_arrow_contracts_reject_invalid_await_and_results(){
 #[test]
 fn router_state_cookie_and_request_isolation_execute(){
  let directory=support::TempDirectory::new();
- let source=support::format_round_trip(include_str!("../../../examples/http-state/main.tsr"));
+ let source=support::format_round_trip(include_str!("../../../examples/http-state/router.tsr"));
  support::success(&support::run(support::cli().arg("run").arg(directory.source(&source)),300));
 }
 

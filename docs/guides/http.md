@@ -1,5 +1,64 @@
 # HTTP
 
+## Router and request context
+
+Use `Router` for the Hono-style API over Axum. `App` below retains the older
+owned-request interface. The server lifecycle is shared: `listen` consumes the
+router, `wait` keeps it serving, and `shutdown` drains cleanup.
+
+```tsrust
+import { Router } from 'std:http';
+
+type State = { greeting: string; };
+const app = new Router<State>({ greeting: 'Hello' });
+app.use(async (c, next) => {
+  c.header('x-before', 'entry');
+  await next();
+  c.header('x-after', 'exit');
+});
+app.get('/', c => c.text(clone(c.env.greeting)));
+```
+
+Matching callbacks run in registration order and unwind in reverse order around
+`await next()`. Route registration accepts multiple callbacks. A returned response
+short-circuits downstream work. Literal paths, `:name` segments and terminal `/*`
+scopes are supported; `*` matches every path. GET also handles HEAD. Unmatched
+paths and methods return 404. Optional/regex segments, nested router mounting,
+route groups and automatic typed route parameters are not supported.
+
+`c.req` exposes request headers, parameters, method and URL. `await c.req.text()`,
+`form()` and `multipart()` consume the body once while preserving metadata;
+repeated body reads throw. The context's body cannot be moved into detached work.
+`c.text`, `html` and `json` create responses to return; `c.header` changes response
+headers before or after downstream work. `c.res` is read-only: after `await next()`
+it exposes the current response status and headers. Before a response returns,
+its status is 404. Unhandled handler errors become a generic 500 before middleware
+unwinds. There is no custom onError callback or response-body replacement API yet.
+
+`Router<State, Variables>` owns application state once. `c.env` exposes it read-only;
+use supported concurrent handles for pool/cache/channel operations. `Variables`
+is a record declaring literal keys for `c.set` and `c.get`. A new request starts
+empty. Setting consumes a value and releases any replaced value. Getting returns
+undefined when absent; scalar values copy and other values borrow Context for the
+containing scope. End that scope before mutating Context. Arbitrary string keys,
+caller loans, local resources and detached context work are rejected.
+
+`getCookie(c, name)` returns the first valid matching cookie, percent-decoded with
+literal plus signs. Malformed escapes remain literal. `setCookie(c, name, value,
+options?)` appends a separate Set-Cookie header, with Path=/ by default and encoded
+UTF-8 values. Options include domain, maxAge (0..34560000 seconds), secure, httpOnly,
+sameSite and partitioned. `deleteCookie` writes an empty value with Max-Age=0;
+match the original path/domain. Invalid attributes throw. Secure/Host cookie
+prefix constraints and Partitioned's Secure requirement are checked. Expires,
+Priority and signed-cookie helpers are unsupported. Authentication, session expiry
+and duplicate-cookie policy belong to application code.
+
+See [context middleware](../../examples/http-context/main.tsr),
+[application/request state](../../examples/http-state/router.tsr) and
+[service routes](../../examples/service/main.tsr) for executable examples.
+
+## Legacy App and shared transport
+
 `std:http` uses Axum for routing and Tokio for asynchronous I/O. Create an `App`,
 register named async handlers, then await `app.listen('127.0.0.1:3000')`.
 Listening consumes the app; registration cannot change while it serves.

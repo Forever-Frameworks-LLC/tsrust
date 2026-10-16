@@ -11,6 +11,9 @@ any previous value. Getting returns undefined when unset; non-scalar values are
 read-only loans. Explicit cloning produces independent data where supported.
 Unknown keys, wrong types, caller loans, local resources and task handles reject.
 
-`main.tsr` checks shared configuration, middleware-to-handler state and isolation
+`router.tsr` checks shared configuration, middleware-to-handler state and isolation
 between requests. It also exercises cookie helpers and response status after next(). It contains no authentication policy. This section is still
 under implementation and has not completed its targeted acceptance batch.
+
+`main.tsr` retains the accepted App closure-capture example, including concurrent
+requests and retained state. `sql.tsr` retains the opt-in SQL pool witness.

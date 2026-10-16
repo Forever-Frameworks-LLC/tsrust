@@ -1,0 +1,52 @@
+import { Router, Client, request, getCookie, setCookie, deleteCookie } from 'std:http';
+import { strictEqual } from 'std:testing';
+
+type Application = {
+  greeting: string;
+};
+
+type Variables = {
+  requestId: string;
+};
+
+function routes(): Router<Application, Variables> {
+  const app = new Router<Application, Variables>({
+    greeting: 'Hello '
+  });
+  app.use('/hello', async (c, next) => {
+    c.set('requestId', 'one request');
+    setCookie(c, 'theme', 'dark', {
+      httpOnly: true, sameSite: 'Lax'
+    });
+    await next();
+    strictEqual(c.res.status(), 200);
+    deleteCookie(c, 'old');
+  });
+  app.get('/hello', (c) => {
+    strictEqual(getCookie(c, 'theme'), undefined);
+    const id = c.get('requestId');
+    if (id === undefined) {
+      return c.text('missing', 500);
+    }
+
+    const body = clone(c.env.greeting) + clone(id);
+    return c.text(body);
+  });
+  app.get('/isolated', (c) => {
+    strictEqual(c.get('requestId'), undefined);
+    return c.text('isolated');
+  });
+  return app;
+}
+
+async function main(): Task<void> {
+  const app = routes();
+  const server = await app.listen('127.0.0.1:0');
+  const client = new Client();
+  const base = 'http://' + server.address();
+  const greeting = await client.send(request('GET', base + '/hello', ''));
+  strictEqual(await greeting.text(), 'Hello one request');
+  const isolated = await client.send(request('GET', base + '/isolated', ''));
+  strictEqual(await isolated.text(), 'isolated');
+  await server.shutdown();
+}

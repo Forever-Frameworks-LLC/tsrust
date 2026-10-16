@@ -3,6 +3,17 @@
 
 ## Current acceptance and continuation — 2026-10-16
 
+Checkpoint `c82daa25` adds typed Router application/request state, cookie helpers
+and the service route rewrite. The native metadata/body boundary is repaired:
+body ownership remains exclusive while request/response metadata can be shared
+across suspension. All 16 affected HTTP runtime checks, five ownership rejection
+witnesses, focused editor checks and integrated macOS service acceptance pass.
+Old App retained-state examples are preserved; the new example is
+`examples/http-state/router.tsr`. Current v3 matched workload verification,
+Linux/offline service rerun, consumer refresh and final cleanup remain pending.
+No full regressions or new timing were run. Original failures and intermediate
+checks are retained byte-for-byte in SQLite under `tsrust-router-*`.
+
 The public router is named `Router`, not `Hono`; Hono is only the API reference.
 The existing server lifecycle is accepted. Ordered/scoped middleware, multiple
 callbacks, inline async arrows and conditional short-circuits now execute in the
@@ -10,14 +21,11 @@ focused native example. The matched untimed workload passes. Original evidence
 is in SQLite under `tsrust-hono-*`; the Unicode runtime witness was corrected to
 observe Unicode through a response body instead of an ASCII-only header accessor,
 and that affected witness now passes its repaired rerun. No full regressions or
-new timing were run. Continue typed request/application state, cookie helpers and
-error handling, then replace the manual dispatch in `examples/service` with the
-Router API. Keep application authentication policy out of the framework.
+new timing were run. The typed state, cookie and service rewrite continuation is described above. Keep application authentication policy out of the framework.
 Installed CLI and both editor servers now include Router/async arrows; the active
 editor reports no Tsrust errors. The cookie-loop TextMate bug is repaired and
 visually verified after reload. Rust-analyzer was restored to disabled for this
-workspace. Context form/multipart bridges are drafted but await the next body-helper
-acceptance batch.
+workspace. Context form/multipart bridges pass integrated macOS service acceptance.
 
 Owner correction supersedes the authentication wording below: implement a
 Hono-style public HTTP API over the existing Axum backend. Prioritize request

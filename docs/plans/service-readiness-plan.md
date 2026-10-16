@@ -269,3 +269,22 @@ known false positive; this is not intentionally abandoned work.
 Linux/offline toolchain distribution, remaining focused editor agreement and the
 new untimed matched workload still require their consolidated results. No new
 performance measurement or full regression pass is claimed.
+
+### Router state and service rewrite
+
+The public constructor is Router. Typed `Router<State, Variables>` owns shared
+application state exposed read-only as `c.env`; request-local `c.set/get` enforce
+literal record keys, value types and borrowing. Cookie get/set/delete helpers
+handle encoding and response headers, while session policy remains application
+code. The service now declares routes and middleware directly; its manual
+method/path dispatcher and cookie serializer are removed. The accepted App
+retained-state witnesses remain unchanged.
+
+The native Context metadata boundary now supports shared borrows across await
+without sharing body access. Sixteen affected HTTP runtime witnesses pass,
+including TLS, limits, cancellation, shutdown and independent destruction.
+Five source ownership/type rejections and focused editor help pass. The rewritten
+service passes integrated macOS HTTPS/session/persistence/form/multipart/CORS/
+redaction/SIGINT/SIGTERM acceptance. Original failures and repairs remain in SQLite.
+The matched v3 state workload and Linux/offline rerun are pending; no full compiler
+regression or new timing is claimed.
