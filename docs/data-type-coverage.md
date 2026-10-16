@@ -271,3 +271,43 @@ is not a source numeric type and does not fit every value into bounded Decimal.
 See the example README for ownership, errors and limitations. Existing Rust bridge
 performance protocols remain unchanged; no copied-buffer performance claim is made.
 Evidence uses `tsrust-rust-boundaries-*` in SQLite. No compiler runtime changed.
+
+## Selected domain reference inventory
+
+`node tools/rust-type-inventory.mjs --domains` probes pinned BigDecimal 0.4.11,
+Chrono 0.4.45 and UUID 1.28.0 with the same bounded standalone analyzer. Seven
+receiver types expose 269 method declarations and three call signatures.
+`node tools/domain-reference-inventory.mjs` reads pinned TypeScript declarations:
+525 date-fns 4.1.0 exports and 106 Decimal.js 10.6.0 export/instance declarations.
+These counts include types and aliases; they are not distinct implemented functions.
+Named counterparts remain partial because precision, errors, overloads and ownership
+differ. Other members are deferred unless a concrete application needs them.
+Generated chrono-tz declarations are excluded from the analyzer inventory because
+build scripts remain disabled; its public zone operations and pinned IANA data
+are covered by the accepted temporal native witnesses. No complete parity is claimed.
+The original and classified records use `tsrust-data-types-domains-*` in SQLite.
+
+## Explicit SQL domain mappings
+
+`examples/sql-domain-values` supplies checked application encodings for the shared
+PostgreSQL/MySQL date range, exact DECIMAL(38,18), microsecond time/UTC timestamps,
+UUID text/bytes, named zones, integer nanosecond durations, JSON and SQL null.
+SQLite uses exact TEXT/BLOB representations. Typed driver columns use explicit SQL
+casts at the scalar Any-driver boundary; direct opaque binding/decoding remains
+unsupported. See its README for precision/range rejection and unsupported cases.
+Existing S18 lifecycle acceptance remains intact; new mapping acceptance invokes the
+explicit three-driver runner. No SQL runtime or task cleanup rules changed.
+
+Focused SQL-domain acceptance passes on macOS: all three source variants check
+without database access; SQLite, PostgreSQL and MySQL execute exact domain
+round-trips and early rejection witnesses. The existing S18 backend and generated
+transaction/cancellation/cleanup suite also passes through the explicit runner.
+Editor helper signatures agree with the checker. Initial fixture failures (an
+owned-string alias, unused catch payload contract and consumed parameter strings)
+are retained with repaired checks; no compiler semantics were relaxed. Evidence
+uses `tsrust-sql-domains-*` in SQLite. Containers are removed and Docker stopped.
+
+The bounded data-type implementation section is complete. Full compiler/LSP
+regressions and numeric/decimal/calendar/temporal/UUID measurements now form the
+next feature-family milestone before S19. Unsupported cases remain listed above;
+none are accepted through implicit rounding, cloning or native domain projection.

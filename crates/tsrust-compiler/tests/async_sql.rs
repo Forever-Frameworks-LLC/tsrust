@@ -123,3 +123,38 @@ fn mixed_sql_parameters_preserve_full_width_integers_without_a_database(){
  let dir=support::TempDirectory::new();let output=support::run(support::cli().arg("emit").arg(dir.source(&support::format_round_trip(source))),30);support::success(&output);
  let rust=String::from_utf8(output.stdout).unwrap();assert!(rust.contains("9223372036854775807i64"));assert!(rust.contains("1.25f64"));
 }
+
+fn domain_example(driver:&str,url:&str)->String{
+ let mut source=include_str!("../../../examples/sql-domain-values/sqlite.tsr").replace("'sqlite::memory:'",&serde_json::to_string(url).unwrap());
+ if driver=="postgres"{
+  source=source.replace("amount TEXT,day TEXT,clock TEXT,stamp TEXT,zone TEXT,duration BIGINT,id BLOB,payload TEXT,optional TEXT","amount NUMERIC(38,18),day DATE,clock TIME(6),stamp TIMESTAMP(6),zone TEXT,duration BIGINT,id UUID,payload JSONB,optional TEXT")
+   .replace("VALUES (?,?,?,?,?,?,?,?,?)","VALUES (CAST($1 AS TEXT)::NUMERIC(38,18),CAST($2 AS TEXT)::DATE,CAST($3 AS TEXT)::TIME(6),CAST($4 AS TEXT)::TIMESTAMP(6),$5,$6,CAST($7 AS TEXT)::UUID,CAST($8 AS TEXT)::JSONB,$9)")
+   .replace("const id = toBytes(","const id = formatUuid(")
+   .replace("SELECT amount,day,clock,stamp,zone,duration,id,payload,optional FROM domains","SELECT amount::TEXT AS amount,day::TEXT AS day,clock::TEXT AS clock,stamp::TEXT AS stamp,zone,duration,id::TEXT AS id,payload::TEXT AS payload,optional FROM domains")
+   .replace("fromBytes(unwrap(rows[0].blob('id')))","parseUuid(unwrap(rows[0].text('id')))");
+ }else if driver=="mysql"{
+  source=source.replace("amount TEXT,day TEXT,clock TEXT,stamp TEXT,zone TEXT,duration BIGINT,id BLOB,payload TEXT,optional TEXT","amount DECIMAL(38,18),day DATE,clock TIME(6),stamp DATETIME(6),zone VARCHAR(128),duration BIGINT,id BINARY(16),payload JSON,optional TEXT")
+   .replace("SELECT amount,day,clock,stamp,zone,duration,id,payload,optional FROM domains","SELECT CAST(amount AS CHAR) AS amount,CAST(day AS CHAR) AS day,CAST(clock AS CHAR) AS clock,CAST(stamp AS CHAR) AS stamp,zone,duration,id,CAST(payload AS CHAR) AS payload,optional FROM domains");
+ }
+ source
+}
+#[test]
+fn sql_domain_examples_check_without_a_database(){
+ for driver in ["sqlite","postgres","mysql"]{
+  let dir=support::TempDirectory::new();std::fs::write(dir.0.join("encoding.tsr"),include_str!("../../../examples/sql-domain-values/encoding.tsr")).unwrap();
+  let source=support::format_round_trip(&domain_example(driver,"sqlite::memory:"));
+  support::success(&support::run(support::cli().arg("check").arg(dir.source(&source)),30));
+ }
+}
+#[test]
+#[ignore = "opt-in domain SQL acceptance: node tools/check-async-sql.mjs --docker"]
+fn all_sqlx_drivers_preserve_explicit_domain_encodings(){
+ let postgres=std::env::var("TSRUST_TEST_POSTGRES_URL").expect("PostgreSQL URL");let mysql=std::env::var("TSRUST_TEST_MYSQL_URL").expect("MySQL URL");
+ let resume=std::env::var("TSRUST_TEST_SQL_RESUME").unwrap_or_default();
+ for (driver,url) in [("sqlite","sqlite::memory:"),("postgres",postgres.as_str()),("mysql",mysql.as_str())]{
+  if (resume=="postgres"&&driver=="sqlite")||(resume=="mysql"&&driver!="mysql"){continue;}
+  let dir=support::TempDirectory::new();std::fs::write(dir.0.join("encoding.tsr"),include_str!("../../../examples/sql-domain-values/encoding.tsr")).unwrap();
+  let source=support::format_round_trip(&domain_example(driver,url));
+  let result=support::run(support::cli().arg("run").arg(dir.source(&source)),600);support::success(&result);eprintln!("Passed {driver} exact domain encodings");
+ }
+}

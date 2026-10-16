@@ -1,0 +1,71 @@
+import { connect } from 'std:sql';
+import { parseDecimal, format as decimalFormat } from 'std:decimal';
+import { parseDate, parseTime, parseISO, formatISO, parseTimeZone, zoneName, durationFromNanoseconds, durationToNanoseconds } from 'std:date';
+import { parseUuid, toBytes, fromBytes, formatUuid } from 'std:uuid';
+import { parse as parseJson, stringify as stringifyJson } from 'std:json';
+import { strictEqual } from 'std:testing';
+import { decimal38, dateText, timeText, utcText } from './encoding.tsr';
+async function main(): Task<void> {
+  const amount = decimal38(unwrap(parseDecimal('12345678901234567890.123456789012345678')));
+  const day = dateText(unwrap(parseDate('2024-02-29')));
+  const time = timeText(unwrap(parseTime('12:34:56.123456')));
+  const stamp = utcText(unwrap(parseISO('2024-02-29T12:34:56.123456Z')));
+  const zone = zoneName(unwrap(parseTimeZone('America/New_York')));
+  const duration = durationToNanoseconds(durationFromNanoseconds(-123456789));
+  const id = toBytes(unwrap(parseUuid('67e55044-10b1-426f-9247-bb680e5fe0c8')));
+  const json = unwrap(stringifyJson(unwrap(parseJson('{"count":42,"optional":null}'))));
+  const db = await connect('sqlite::memory:', 1);
+  await db.execute('CREATE TABLE domains(amount TEXT,day TEXT,clock TEXT,stamp TEXT,zone TEXT,duration BIGINT,id BLOB,payload TEXT,optional TEXT)');
+  await db.execute('INSERT INTO domains VALUES (?,?,?,?,?,?,?,?,?)', [clone(amount), clone(day), clone(time), stamp, clone(zone), duration, id, clone(json), null]);
+  const rows = await db.query('SELECT amount,day,clock,stamp,zone,duration,id,payload,optional FROM domains');
+  await db.close();
+  strictEqual(decimalFormat(unwrap(parseDecimal(unwrap(rows[0].text('amount'))))), amount);
+  strictEqual(dateText(unwrap(parseDate(unwrap(rows[0].text('day'))))), day);
+  strictEqual(timeText(unwrap(parseTime(unwrap(rows[0].text('clock'))))), time);
+  strictEqual(formatISO(unwrap(parseISO(unwrap(rows[0].text('stamp')).replace(' ', 'T') + 'Z'))), '2024-02-29T12:34:56.123456Z');
+  strictEqual(zoneName(unwrap(parseTimeZone(unwrap(rows[0].text('zone'))))), zone);
+  strictEqual(durationToNanoseconds(durationFromNanoseconds(unwrap(rows[0].int('duration')))), duration);
+  strictEqual(formatUuid(unwrap(fromBytes(unwrap(rows[0].blob('id'))))), '67e55044-10b1-426f-9247-bb680e5fe0c8');
+  strictEqual(unwrap(stringifyJson(unwrap(parseJson(unwrap(rows[0].text('payload')))))), json);
+  strictEqual(unwrap(rows[0].isNull('optional')), true);
+  let rejected = false;
+  try {
+    timeText(unwrap(parseTime('12:34:56.123456789')));
+  } catch {
+    rejected = true;
+  }
+
+  strictEqual(rejected, true);
+  rejected = false;
+  try {
+    utcText(unwrap(parseISO('2024-02-29T12:34:56.000000001Z')));
+  } catch {
+    rejected = true;
+  }
+
+  strictEqual(rejected, true);
+  rejected = false;
+  try {
+    decimal38(unwrap(parseDecimal('0.0000000000000000001')));
+  } catch {
+    rejected = true;
+  }
+
+  strictEqual(rejected, true);
+  rejected = false;
+  try {
+    decimal38(unwrap(parseDecimal('100000000000000000000')));
+  } catch {
+    rejected = true;
+  }
+
+  strictEqual(rejected, true);
+  rejected = false;
+  try {
+    dateText(unwrap(parseDate('0999-12-31')));
+  } catch {
+    rejected = true;
+  }
+
+  strictEqual(rejected, true);
+}

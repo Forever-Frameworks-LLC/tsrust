@@ -26,7 +26,10 @@ fallible entropy, ownership/worker transport, nine native documentation examples
 offline export and matched untimed workload. Installed consumers include UUID.
 Explicit checked Rust width/byte/Option/tuple adapters now pass native/compiler
 and editor acceptance. Direct unsupported signatures still reject. SQL domain
-witnesses and selected domain inventories are next. The owner prefers date-fns: use small
+witnesses now pass all three drivers, including exact decimal, date/time, UUID,
+JSON and nullable storage. Pinned Rust/date-fns/Decimal.js declaration inventories
+are recorded. Finish full data-type family regressions and five matched workloads,
+then continue S19–S21. No new permission checkpoint is needed. The owner prefers date-fns: use small
 named immutable functions and familiar arithmetic/formatting names, while keeping
 checked ranges, precision and explicit DST ambiguity handling. Continue
 Rust/SQL boundary witnesses, then S19–S21 without another go-ahead.

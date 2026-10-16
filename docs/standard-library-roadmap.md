@@ -6,7 +6,9 @@ money workload. Calendar dates also pass focused compiler/native/editor, offline
 export and untimed date-fns acceptance. Time of day, UTC instants, IANA/fixed zones
 and exact durations also pass focused acceptance, including explicit DST and
 precision failures. Exact UUID text/bytes and fallible random generation now pass
-focused native/editor/export acceptance. Remaining Rust/SQL boundaries still precede S19–S21. Date/time API design follows the owner's date-fns preference.
+focused native/editor/export acceptance. Explicit Rust adapters and all three SQL
+domain mappings pass focused acceptance. Complete data-type family regressions
+and accumulated measurements, then continue S19–S21. Date/time API design follows the owner's date-fns preference.
 See [current data-type coverage](data-type-coverage.md) and the
 [current handoff](handoffs/compiler-to-roadmap-continuation.md).
 

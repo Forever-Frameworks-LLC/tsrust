@@ -1,0 +1,35 @@
+import { Decimal, formatFixed } from 'std:decimal';
+import { Date, Time, Instant, formatDate, formatTime, getYear, localDate, localTime, fixedOffset } from 'std:date';
+// Exact NUMERIC/DECIMAL(38,18); no server rounding is permitted.
+export function decimal38(value: ReadOnly<Decimal>): string {
+  const text = unwrap(formatFixed(value, 18));
+  const digits = text.split('.')[0].length - (text.startsWith('-') ? 1 : 0);
+  if (digits > 20) {
+    throw 'SQL decimal integer range';
+  }
+
+  return text;
+}
+// Shared PostgreSQL/MySQL subset. SQLite text can represent a wider date range.
+export function dateText(value: ReadOnly<Date>): string {
+  if (getYear(value) < 1000) {
+    throw 'SQL date year below 1000';
+  }
+
+  return formatDate(value);
+}
+
+export function timeText(value: ReadOnly<Time>): string {
+  const text = formatTime(value);
+  const parts = text.split('.');
+  if (parts.length > 1 && parts[1].length > 6) {
+    throw 'SQL sub-microsecond precision';
+  }
+
+  return text;
+}
+// DATETIME is an explicitly UTC application column, not a zone-bearing SQL type.
+export function utcText(value: ReadOnly<Instant>): string {
+  const utc = unwrap(fixedOffset(0));
+  return dateText(unwrap(localDate(value, utc))) + ' ' + timeText(unwrap(localTime(value, utc)));
+}
