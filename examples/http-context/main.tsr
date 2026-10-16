@@ -1,4 +1,4 @@
-import { Hono, Context, ContextNext, Response, Client, request } from 'std:http';
+import { Router, Context, ContextNext, Response, Client, request } from 'std:http';
 import { strictEqual } from 'std:testing';
 
 type Configuration = {
@@ -26,8 +26,8 @@ async function blocked(c: Mutable<Context>, next: ContextNext): Task<Response> {
   return c.text('blocked', 403);
 }
 
-function routes(config: Owned<Configuration>): Hono {
-  const app = new Hono();
+function routes(config: Owned<Configuration>): Router {
+  const app = new Router();
   app.use(outer);
   app.use('/hello', inner);
   app.use('/ordered/*', async (c, next) => {

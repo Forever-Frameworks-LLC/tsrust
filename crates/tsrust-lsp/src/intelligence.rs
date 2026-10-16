@@ -2026,7 +2026,7 @@ impl SourceIndex {
     // Recognize only complete simple expressions; do not infer binary expressions
     // from their first operand. Primitive calls preserve this rule.
     fn set_constructor_type(&self, id: usize, offset: usize, depth: usize) -> Option<(String, usize)> {
-        if self.text(id) == "new" && matches!(self.native_type_aliases.get(self.text(id + 1)),Some(tsrust_compiler::native_signatures::NativeTypeId::ThreadPool | tsrust_compiler::native_signatures::NativeTypeId::HttpHono | tsrust_compiler::native_signatures::NativeTypeId::HttpApp | tsrust_compiler::native_signatures::NativeTypeId::HttpClient)) {
+        if self.text(id) == "new" && matches!(self.native_type_aliases.get(self.text(id + 1)),Some(tsrust_compiler::native_signatures::NativeTypeId::ThreadPool | tsrust_compiler::native_signatures::NativeTypeId::HttpRouter | tsrust_compiler::native_signatures::NativeTypeId::HttpApp | tsrust_compiler::native_signatures::NativeTypeId::HttpClient)) {
             let open = self.member_call_open(id + 1)?;
             return Some((self.text(id + 1).into(), self.pairs.get(open).copied().flatten()? + 1));
         }
@@ -3744,7 +3744,7 @@ impl SourceIndex {
                 let entry = builtins_for(module).into_iter().find(|entry| entry["name"] == if cache {cache_name}else{"Channel"}).expect("documented cache/channel constructor");
                 return json!({"signatures":[{"label":format!("new {ty}(capacity: int): {ty}"),"documentation":{"kind":"markdown","value":entry["documentation"]},"parameters":entry["parameters"]}],"activeSignature":0,"activeParameter":0});
             }
-            if callee>0 && self.text(callee-1)=="new" && self.native_type_aliases.get(self.text(callee)).is_some_and(|id|matches!(id,tsrust_compiler::native_signatures::NativeTypeId::HttpHono|tsrust_compiler::native_signatures::NativeTypeId::HttpApp|tsrust_compiler::native_signatures::NativeTypeId::HttpClient)){
+            if callee>0 && self.text(callee-1)=="new" && self.native_type_aliases.get(self.text(callee)).is_some_and(|id|matches!(id,tsrust_compiler::native_signatures::NativeTypeId::HttpRouter|tsrust_compiler::native_signatures::NativeTypeId::HttpApp|tsrust_compiler::native_signatures::NativeTypeId::HttpClient)){
                 let name=tsrust_compiler::native_types::declaration(self.native_type_aliases[self.text(callee)]).name;
                 let entry=builtins_for("std:http").into_iter().find(|entry|entry["name"]==name).expect("documented HTTP constructor");
                 let label=entry["signature"].as_str().unwrap().replace(&format!("new {name}("),&format!("new {}(",self.text(callee))).replace(&format!(": {name}"),&format!(": {}",self.text(callee)));

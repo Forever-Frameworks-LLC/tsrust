@@ -154,5 +154,21 @@ test('real TextMate tokenization covers lexer syntax and multiline state', async
     if (text === 'last') assert.ok(!scopeAt(result, line, text).includes('meta.embedded.line.tsrust'));
     if (text === '5') assert.ok(!scopeAt(result, line, text).includes('string.template.tsrust'));
   }
+  let loopState;
+  for (const [line, word, scope] of [
+    ["for (const pair of header.split(';')) {", "';'", 'string.quoted.single.tsrust'],
+    ["  const parts = pair.trim().split('=');", 'const', 'storage.type.tsrust'],
+    ['  return undefined;', 'return', 'keyword.control.tsrust'],
+    ['}', '}', 'source.tsrust'],
+    ['export function setSessionCookie(token: string): string {', 'export', 'keyword.control.export.tsrust'],
+    ["  return '__Host-session=' + token;", 'return', 'keyword.control.tsrust'],
+  ]) {
+    const result = grammar.tokenizeLine(line, loopState);
+    loopState = result.ruleStack;
+    const offset = line.indexOf(word);
+    const scopes = result.tokens.find(token => token.startIndex <= offset && token.endIndex > offset)?.scopes ?? [];
+    assert.ok(scopes.includes(scope), `${line}: ${scopes}`);
+    if (word !== "';'") assert.ok(!scopes.includes('string.quoted.single.tsrust'), line);
+  }
   registry.dispose();
 });

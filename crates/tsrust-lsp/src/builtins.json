@@ -10514,26 +10514,26 @@
 ],
   "std:http": [
 {
-  "name": "Hono",
-  "signature": "new Hono(): Hono",
+  "name": "Router",
+  "signature": "new Router(): Router",
   "parameters": [],
-  "documentation": "Creates an Axum-backed router with Hono-style request contexts. No arguments. Register middleware before the routes it wraps. listen consumes the router and returns the existing Server lifecycle handle. A handler returns Response or Task<Response>; middleware can return Task<void> after awaiting next().\n\n```tsrust\nconst app = new Hono();\napp.get('/', c => c.text('Hello'));\n```\n\nThe response body is Hello with status 200. Ownership: the router retains owned handler closures; each request exclusively borrows its own Context.",
+  "documentation": "Creates an Axum-backed router with Router-style request contexts. No arguments. Register middleware before the routes it wraps. listen consumes the router and returns the existing Server lifecycle handle. A handler returns Response or Task<Response>; middleware can return Task<void> after awaiting next().\n\n```tsrust\nconst app = new Router();\napp.get('/', c => c.text('Hello'));\n```\n\nThe response body is Hello with status 200. Ownership: the router retains owned handler closures; each request exclusively borrows its own Context.",
   "examples": [
     {
-      "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+      "source": "import {Router} from 'std:http';function main(){const app=new Router();console.log('ok');}",
       "output": "ok\n"
     }
   ],
-  "inferredSignature": "function new Hono(): Hono"
+  "inferredSignature": "function new Router(): Router"
 },
 {
   "name": "Context",
   "signature": "Context",
   "parameters": [],
-  "documentation": "A request-local context supplied by Hono. req exposes the incoming request. header changes outgoing headers before or after downstream middleware; text, html and json construct responses. Context has no public constructor or clone operation.\n\n```tsrust\nfunction hello(c: Mutable<Context>): Response { return c.text('Hello'); }\n```\n\nReturns a UTF-8 response with status 200. Ownership: handlers exclusively borrow Context for the invocation; it cannot be retained in detached work.",
+  "documentation": "A request-local context supplied by Router. req exposes the incoming request. header changes outgoing headers before or after downstream middleware; text, html and json construct responses. Context has no public constructor or clone operation.\n\n```tsrust\nfunction hello(c: Mutable<Context>): Response { return c.text('Hello'); }\n```\n\nReturns a UTF-8 response with status 200. Ownership: handlers exclusively borrow Context for the invocation; it cannot be retained in detached work.",
   "examples": [
     {
-      "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+      "source": "import {Router} from 'std:http';function main(){const app=new Router();console.log('ok');}",
       "output": "ok\n"
     }
   ],
@@ -10548,10 +10548,10 @@
   "name": "ContextNext",
   "signature": "next(): Task<void>",
   "parameters": [],
-  "documentation": "A single-use downstream continuation supplied to Hono middleware. Calling next() creates a lazy task that exclusively borrows the visible Context. Await it before accessing Context again. Downstream source failures become a 500 response so outer middleware can finish. Returning a Response without calling next() short-circuits downstream work.\n\n```tsrust\nawait next();\nc.header('x-finished', 'yes');\n```\n\nOwnership: consumes the continuation; cannot be cloned or called twice.",
+  "documentation": "A single-use downstream continuation supplied to Router middleware. Calling next() creates a lazy task that exclusively borrows the visible Context. Await it before accessing Context again. Downstream source failures become a 500 response so outer middleware can finish. Returning a Response without calling next() short-circuits downstream work.\n\n```tsrust\nawait next();\nc.header('x-finished', 'yes');\n```\n\nOwnership: consumes the continuation; cannot be cloned or called twice.",
   "examples": [
     {
-      "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+      "source": "import {Router} from 'std:http';function main(){const app=new Router();console.log('ok');}",
       "output": "ok\n"
     }
   ],
@@ -13276,7 +13276,7 @@
     }
   ]
 ,
-"HttpHono": [
+"HttpRouter": [
   {
     "name": "get",
     "signature": "get(path: string, ...handlers: (c: Mutable<Context>, next: ContextNext) => Response | Task<Response | void>): void",
@@ -13293,7 +13293,7 @@
     "documentation": "Registers callbacks in source order. Matching middleware runs before next() in registration order and after await next() in reverse order. Returning a Response stops downstream execution; await next() continues through matching callbacks, including later matching routes. Literal routes do not outrank earlier parameter routes. Unmatched requests return 404. Invalid paths throw HttpError code route. GET also handles HEAD with an empty response body.\n\n```tsrust\napp.get(\"/hello\", async (c, next) => { await next(); c.header(\"x-after\", \"yes\"); }, (c) => c.text(\"Hello\"));\n```\n\nCallbacks may omit unused parameters. Call next() at most once; its pending task holds the exclusive context loan until awaited or disposed. Retained state must be owned and reusable read-only; shutdown releases callbacks after draining requests. Authentication and authorization remain application code.\n\nOwnership: registration mutates the app and consumes callback captures. Each invocation borrows its own mutable Context.",
     "examples": [
       {
-        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "source": "import {Router} from 'std:http';function main(){const app=new Router();console.log('ok');}",
         "output": "ok\n"
       }
     ],
@@ -13315,7 +13315,7 @@
     "documentation": "Registers callbacks in source order. Matching middleware runs before next() in registration order and after await next() in reverse order. Returning a Response stops downstream execution; await next() continues through matching callbacks, including later matching routes. Literal routes do not outrank earlier parameter routes. Unmatched requests return 404. Invalid paths throw HttpError code route. GET also handles HEAD with an empty response body.\n\n```tsrust\napp.get(\"/hello\", async (c, next) => { await next(); c.header(\"x-after\", \"yes\"); }, (c) => c.text(\"Hello\"));\n```\n\nCallbacks may omit unused parameters. Call next() at most once; its pending task holds the exclusive context loan until awaited or disposed. Retained state must be owned and reusable read-only; shutdown releases callbacks after draining requests. Authentication and authorization remain application code.\n\nOwnership: registration mutates the app and consumes callback captures. Each invocation borrows its own mutable Context.",
     "examples": [
       {
-        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "source": "import {Router} from 'std:http';function main(){const app=new Router();console.log('ok');}",
         "output": "ok\n"
       }
     ],
@@ -13337,7 +13337,7 @@
     "documentation": "Registers callbacks in source order. Matching middleware runs before next() in registration order and after await next() in reverse order. Returning a Response stops downstream execution; await next() continues through matching callbacks, including later matching routes. Literal routes do not outrank earlier parameter routes. Unmatched requests return 404. Invalid paths throw HttpError code route. GET also handles HEAD with an empty response body.\n\n```tsrust\napp.get(\"/hello\", async (c, next) => { await next(); c.header(\"x-after\", \"yes\"); }, (c) => c.text(\"Hello\"));\n```\n\nCallbacks may omit unused parameters. Call next() at most once; its pending task holds the exclusive context loan until awaited or disposed. Retained state must be owned and reusable read-only; shutdown releases callbacks after draining requests. Authentication and authorization remain application code.\n\nOwnership: registration mutates the app and consumes callback captures. Each invocation borrows its own mutable Context.",
     "examples": [
       {
-        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "source": "import {Router} from 'std:http';function main(){const app=new Router();console.log('ok');}",
         "output": "ok\n"
       }
     ],
@@ -13359,7 +13359,7 @@
     "documentation": "Registers callbacks in source order. Matching middleware runs before next() in registration order and after await next() in reverse order. Returning a Response stops downstream execution; await next() continues through matching callbacks, including later matching routes. Literal routes do not outrank earlier parameter routes. Unmatched requests return 404. Invalid paths throw HttpError code route. GET also handles HEAD with an empty response body.\n\n```tsrust\napp.get(\"/hello\", async (c, next) => { await next(); c.header(\"x-after\", \"yes\"); }, (c) => c.text(\"Hello\"));\n```\n\nCallbacks may omit unused parameters. Call next() at most once; its pending task holds the exclusive context loan until awaited or disposed. Retained state must be owned and reusable read-only; shutdown releases callbacks after draining requests. Authentication and authorization remain application code.\n\nOwnership: registration mutates the app and consumes callback captures. Each invocation borrows its own mutable Context.",
     "examples": [
       {
-        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "source": "import {Router} from 'std:http';function main(){const app=new Router();console.log('ok');}",
         "output": "ok\n"
       }
     ],
@@ -13381,7 +13381,7 @@
     "documentation": "Registers callbacks in source order. Matching middleware runs before next() in registration order and after await next() in reverse order. Returning a Response stops downstream execution; await next() continues through matching callbacks, including later matching routes. Literal routes do not outrank earlier parameter routes. Unmatched requests return 404. Invalid paths throw HttpError code route. GET also handles HEAD with an empty response body.\n\n```tsrust\napp.get(\"/hello\", async (c, next) => { await next(); c.header(\"x-after\", \"yes\"); }, (c) => c.text(\"Hello\"));\n```\n\nCallbacks may omit unused parameters. Call next() at most once; its pending task holds the exclusive context loan until awaited or disposed. Retained state must be owned and reusable read-only; shutdown releases callbacks after draining requests. Authentication and authorization remain application code.\n\nOwnership: registration mutates the app and consumes callback captures. Each invocation borrows its own mutable Context.",
     "examples": [
       {
-        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "source": "import {Router} from 'std:http';function main(){const app=new Router();console.log('ok');}",
         "output": "ok\n"
       }
     ],
@@ -13403,7 +13403,7 @@
     "documentation": "Registers callbacks in source order. Matching middleware runs before next() in registration order and after await next() in reverse order. Returning a Response stops downstream execution; await next() continues through matching callbacks, including later matching routes. Literal routes do not outrank earlier parameter routes. Unmatched requests return 404. Invalid paths throw HttpError code route. GET also handles HEAD with an empty response body.\n\n```tsrust\napp.get(\"/hello\", async (c, next) => { await next(); c.header(\"x-after\", \"yes\"); }, (c) => c.text(\"Hello\"));\n```\n\nCallbacks may omit unused parameters. Call next() at most once; its pending task holds the exclusive context loan until awaited or disposed. Retained state must be owned and reusable read-only; shutdown releases callbacks after draining requests. Authentication and authorization remain application code.\n\nOwnership: registration mutates the app and consumes callback captures. Each invocation borrows its own mutable Context.",
     "examples": [
       {
-        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "source": "import {Router} from 'std:http';function main(){const app=new Router();console.log('ok');}",
         "output": "ok\n"
       }
     ],
@@ -13425,7 +13425,7 @@
     "documentation": "Registers callbacks in source order. Matching middleware runs before next() in registration order and after await next() in reverse order. Returning a Response stops downstream execution; await next() continues through matching callbacks, including later matching routes. Literal routes do not outrank earlier parameter routes. Unmatched requests return 404. Invalid paths throw HttpError code route. GET also handles HEAD with an empty response body.\n\n```tsrust\napp.get(\"/hello\", async (c, next) => { await next(); c.header(\"x-after\", \"yes\"); }, (c) => c.text(\"Hello\"));\n```\n\nCallbacks may omit unused parameters. Call next() at most once; its pending task holds the exclusive context loan until awaited or disposed. Retained state must be owned and reusable read-only; shutdown releases callbacks after draining requests. Authentication and authorization remain application code.\n\nOwnership: registration mutates the app and consumes callback captures. Each invocation borrows its own mutable Context.",
     "examples": [
       {
-        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "source": "import {Router} from 'std:http';function main(){const app=new Router();console.log('ok');}",
         "output": "ok\n"
       }
     ],
@@ -13451,7 +13451,7 @@
     "documentation": "Registers callbacks in source order. Matching middleware runs before next() in registration order and after await next() in reverse order. Returning a Response stops downstream execution; await next() continues through matching callbacks, including later matching routes. Literal routes do not outrank earlier parameter routes. Unmatched requests return 404. Invalid paths throw HttpError code route. GET also handles HEAD with an empty response body.\n\n```tsrust\napp.get(\"/hello\", async (c, next) => { await next(); c.header(\"x-after\", \"yes\"); }, (c) => c.text(\"Hello\"));\n```\n\nCallbacks may omit unused parameters. Call next() at most once; its pending task holds the exclusive context loan until awaited or disposed. Retained state must be owned and reusable read-only; shutdown releases callbacks after draining requests. Authentication and authorization remain application code.\n\nOwnership: registration mutates the app and consumes callback captures. Each invocation borrows its own mutable Context.",
     "examples": [
       {
-        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "source": "import {Router} from 'std:http';function main(){const app=new Router();console.log('ok');}",
         "output": "ok\n"
       }
     ],
@@ -13473,7 +13473,7 @@
     "documentation": "Registers callbacks in source order. Matching middleware runs before next() in registration order and after await next() in reverse order. Returning a Response stops downstream execution; await next() continues through matching callbacks, including later matching routes. Literal routes do not outrank earlier parameter routes. Unmatched requests return 404. Invalid paths throw HttpError code route. GET also handles HEAD with an empty response body.\n\n```tsrust\napp.get(\"/hello\", async (c, next) => { await next(); c.header(\"x-after\", \"yes\"); }, (c) => c.text(\"Hello\"));\n```\n\nCallbacks may omit unused parameters. Call next() at most once; its pending task holds the exclusive context loan until awaited or disposed. Retained state must be owned and reusable read-only; shutdown releases callbacks after draining requests. Authentication and authorization remain application code.\n\nOwnership: registration mutates the app and consumes callback captures. Each invocation borrows its own mutable Context.",
     "examples": [
       {
-        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "source": "import {Router} from 'std:http';function main(){const app=new Router();console.log('ok');}",
         "output": "ok\n"
       }
     ],
@@ -13495,7 +13495,7 @@
     "documentation": "Creates a lazy listener task. Awaiting binds the address, freezes registration and returns a running server. Omit tls for cleartext HTTP; supply { cert, key } for HTTPS with HTTP/1.1 and HTTP/2 negotiation. cert is a nonempty PEM certificate chain, leaf first. key is its matching unencrypted PKCS#1, PKCS#8 or SEC1 PEM private key. Invalid configuration throws HttpError code tls before binding; invalid address or bind failure throws code address or listen. Clients verify trust, hostname and certificate validity. At most 128 active connections, including handshakes; a TLS handshake has a five-second deadline and shutdown interrupts it. Body readers have a cumulative 1048576-byte limit.\n\n```tsrust\nconst server = await app.listen(\"127.0.0.1:0\", { cert: certificatePem, key: privateKeyPem });\n```\n\nOwnership: consumes app and TLS options immediately. The running server retains independent TLS settings. Dropping Server requests cleanup, which its async owner drains.",
     "examples": [
       {
-        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "source": "import {Router} from 'std:http';function main(){const app=new Router();console.log('ok');}",
         "output": "ok\n"
       }
     ],
@@ -13514,7 +13514,7 @@
     "inferredSignature": "function configure(options: ReadOnly<ServerOptions>): void",
     "examples": [
       {
-        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "source": "import {Router} from 'std:http';function main(){const app=new Router();console.log('ok');}",
         "output": "ok\n"
       }
     ]
@@ -13537,7 +13537,7 @@
     "documentation": "Constructs a plain text response using pending context headers. Optional status is 200 through 599; otherwise uses c.status(), initially 200. Invalid status throws HttpError. Does not consume or finalize the context; return this response from the handler. \n\n```tsrust\nreturn c.text('ok');\n```\n\nReturns status 200 unless previously changed. Ownership: borrows the context; owns the response body.",
     "examples": [
       {
-        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "source": "import {Router} from 'std:http';function main(){const app=new Router();console.log('ok');}",
         "output": "ok\n"
       }
     ],
@@ -13559,7 +13559,7 @@
     "documentation": "Constructs a HTML response using pending context headers. Optional status is 200 through 599; otherwise uses c.status(), initially 200. Invalid status throws HttpError. Does not consume or finalize the context; return this response from the handler. \n\n```tsrust\nreturn c.html('ok');\n```\n\nReturns status 200 unless previously changed. Ownership: borrows the context; owns the response body.",
     "examples": [
       {
-        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "source": "import {Router} from 'std:http';function main(){const app=new Router();console.log('ok');}",
         "output": "ok\n"
       }
     ],
@@ -13581,7 +13581,7 @@
     "documentation": "Constructs a JSON response using pending context headers. Optional status is 200 through 599; otherwise uses c.status(), initially 200. Invalid status throws HttpError. Does not consume or finalize the context; return this response from the handler. JSON serialization rejects unsupported or nonfinite values. \n\n```tsrust\nreturn c.json({ message: 'ok' });\n```\n\nReturns status 200 unless previously changed. Ownership: borrows the context; owns the response body.",
     "examples": [
       {
-        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "source": "import {Router} from 'std:http';function main(){const app=new Router();console.log('ok');}",
         "output": "ok\n"
       }
     ],
@@ -13603,7 +13603,7 @@
     "documentation": "Sets an outgoing header, replacing previous values for that name. Applies to responses constructed later and to the downstream response after await next(). Invalid names, invalid values and transport-managed framing headers throw HttpError without changing headers.\n\n```tsrust\nc.header('x-trace', 'example');\n```\n\nThe outgoing x-trace header is example. Ownership: exclusively borrows Context; copies header text.",
     "examples": [
       {
-        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "source": "import {Router} from 'std:http';function main(){const app=new Router();console.log('ok');}",
         "output": "ok\n"
       }
     ],
@@ -13621,7 +13621,7 @@
     "documentation": "Sets the default status for subsequent response helpers. Accepts 200 through 599; an invalid code throws HttpError. Does not rewrite an already-created response.\n\n```tsrust\nc.status(201);\nreturn c.text('created');\n```\n\nReturns status 201. Ownership: exclusively borrows Context.",
     "examples": [
       {
-        "source": "import {Hono} from 'std:http';function main(){const app=new Hono();console.log('ok');}",
+        "source": "import {Router} from 'std:http';function main(){const app=new Router();console.log('ok');}",
         "output": "ok\n"
       }
     ],

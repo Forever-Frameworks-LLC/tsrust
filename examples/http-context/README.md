@@ -1,7 +1,7 @@
 # Hono-style HTTP context
 
 This section implements request contexts and ordered middleware over the existing
-Axum transport. `Hono` uses the same `listen`, `Server.address`, `Server.wait`
+Axum transport. `Router` uses the same `listen`, `Server.address`, `Server.wait`
 and `Server.shutdown` lifecycle as `App`. The older explicit Request/Response
 adapter remains available; it is not the Hono compatibility contract.
 

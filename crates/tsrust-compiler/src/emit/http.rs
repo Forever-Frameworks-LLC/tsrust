@@ -33,16 +33,16 @@ impl Emitter<'_>{
   let call=match binding.name{
    "listen" if binding.module=="std:signals"=>"tsrust_native_signals::listen()".into(),
    "__receive" if binding.module=="std:signals"=>format!("({receiver}).receive().await"),
-   "__hono"=>"tsrust_native_http::Hono::new()".into(),
+   "__router"=>"tsrust_native_http::Router::new()".into(),
    "__app"=>"tsrust_native_http::App::new()".into(),"__client"=>if args.is_empty(){"tsrust_native_http::Client::new()".into()}else{format!("{{let options={receiver};tsrust_native_http::Client::with_ca(options.field0.as_ref())}}")},
-   "__configure"|"__honoConfigure"=>format!("{{let app={receiver};let options={};app.configure([options.field0,options.field1,options.field2,options.field3,options.field4,options.field5,options.field6])}}",values[1]),
+   "__configure"|"__routerConfigure"=>format!("{{let app={receiver};let options={};app.configure([options.field0,options.field1,options.field2,options.field3,options.field4,options.field5,options.field6])}}",values[1]),
    "__request"=>format!("tsrust_native_http::Request::new({})",values.join(",")),
    "__text"=>format!("tsrust_native_http::Response::text({})",values.join(",")),
    "__html"|"__json"=>format!("tsrust_native_http::Response::content({}, {}, {:?})",values[0],values[1],if binding.name=="__html"{"text/html; charset=utf-8"}else{"application/json"}),
    "__stream"=>format!("tsrust_native_http::Response::stream({})",values.join(",")),
-   "__honoRoute"|"__honoUse"|"__honoUsePath"=>{
-    let start=match binding.name{"__honoRoute"=>3,"__honoUsePath"=>2,_=>1};
-    let route_args=match binding.name{"__honoRoute"=>format!("let method={};let path={};",values[1],values[2]),"__honoUsePath"=>format!("let path={};",values[1]),_=>"let path=\"*\";".into()};
+   "__routerRoute"|"__routerUse"|"__routerUsePath"=>{
+    let start=match binding.name{"__routerRoute"=>3,"__routerUsePath"=>2,_=>1};
+    let route_args=match binding.name{"__routerRoute"=>format!("let method={};let path={};",values[1],values[2]),"__routerUsePath"=>format!("let path={};",values[1]),_=>"let path=\"*\";".into()};
     let mut callbacks=String::new();let mut names=Vec::new();
     for index in start..args.len(){let Type::Closure(origin)=args[index].ty.unwrap()else{unreachable!()};let closure=&self.program.closures[origin];let result=closure.function.result;
     let inputs=match closure.parameters.len(){0=>"",1=>"context",_=>"context,next"};
@@ -62,7 +62,7 @@ impl Emitter<'_>{
     names.push(format!("handler{index}"));
     }
     let handlers=names.join(",");
-    let registration=if binding.name=="__honoRoute"{format!("app.route_many(method,path,vec![{handlers}])")}else if binding.name=="__honoUsePath"{format!("app.use_many(path,vec![{handlers}])")}else{format!("app.use_many(path,vec![{handlers}]).expect(\"the global pattern is valid\")")};
+    let registration=if binding.name=="__routerRoute"{format!("app.route_many(method,path,vec![{handlers}])")}else if binding.name=="__routerUsePath"{format!("app.use_many(path,vec![{handlers}])")}else{format!("app.use_many(path,vec![{handlers}]).expect(\"the global pattern is valid\")")};
     format!("{{let app={receiver};{route_args}{callbacks}{registration}}}")
    },
    "__route"|"__use"|"__fallback"=>{
@@ -76,9 +76,11 @@ impl Emitter<'_>{
     let route_args=if binding.name=="__route"{format!("let method={};let path={};",values[1],values[2])}else{String::new()};
     format!("{{let app={receiver};{route_args}let callback=std::sync::Arc::new({});{registration}}}",values[index])
    },
-   "__listen"|"__honoListen"=>if args.len()==2{format!("({receiver}).listen({}).await",values[1])}else{format!("{{let app={receiver};let address={};let tls={};app.listen_tls(address,tls.field0.as_ref(),tls.field1.as_ref()).await}}",values[1],values[2])},
+   "__listen"|"__routerListen"=>if args.len()==2{format!("({receiver}).listen({}).await",values[1])}else{format!("{{let app={receiver};let address={};let tls={};app.listen_tls(address,tls.field0.as_ref(),tls.field1.as_ref()).await}}",values[1],values[2])},
    "__wait"=>format!("{{({receiver}).wait().await;Ok::<_,tsrust_native_http::Error>(())}}"),
    "__shutdown"=>format!("{{({receiver}).shutdown().await;Ok::<_,tsrust_native_http::Error>(())}}"),
+   "__contextRequestForm"=>format!("({receiver}).request_form().await"),
+   "__contextRequestMultipart"=>format!("({receiver}).request_multipart().await"),
    "__contextRequestText"=>format!("({receiver}).request_text().await"),
    "__contextNext"=>format!("{{({}).run({receiver}).await;Ok::<_,tsrust_native_http::Error>(())}}",values[1]),
    "__contextHeader"=>format!("({receiver}).header({}, {})",values[1],values[2]),
@@ -100,7 +102,7 @@ impl Emitter<'_>{
   let result=expr.ty.unwrap();Some(if matches!(binding.result,crate::native_bindings::NativeType::Structured(crate::native_signatures::Signature::Result(..))){self.http_result(result,&call)}else{self.http_value(result,&call)})
  }
  pub(super) fn http_record(&self,output:&mut String,id:usize)->bool{
-  let name=match self.program.records[id].native_type{Some(NativeTypeId::HttpHono)=>"Hono",Some(NativeTypeId::HttpContext)=>"Context",Some(NativeTypeId::HttpContextNext)=>"ContextNext",Some(NativeTypeId::HttpApp)=>"App",Some(NativeTypeId::HttpClient)=>"Client",Some(NativeTypeId::HttpRequest)=>"Request",Some(NativeTypeId::HttpResponse)=>"Response",Some(NativeTypeId::HttpServer)=>"Server",Some(NativeTypeId::HttpBody)=>"Stream",Some(NativeTypeId::HttpNext)=>"Next",_=>return false};
+  let name=match self.program.records[id].native_type{Some(NativeTypeId::HttpRouter)=>"Router",Some(NativeTypeId::HttpContext)=>"Context",Some(NativeTypeId::HttpContextNext)=>"ContextNext",Some(NativeTypeId::HttpApp)=>"App",Some(NativeTypeId::HttpClient)=>"Client",Some(NativeTypeId::HttpRequest)=>"Request",Some(NativeTypeId::HttpResponse)=>"Response",Some(NativeTypeId::HttpServer)=>"Server",Some(NativeTypeId::HttpBody)=>"Stream",Some(NativeTypeId::HttpNext)=>"Next",_=>return false};
   writeln!(output,"type Record{id}=tsrust_native_http::{name};").unwrap();true
  }
 }

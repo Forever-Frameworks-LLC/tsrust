@@ -208,7 +208,7 @@ fn hono_context_middleware_unwinds_and_retains_closures_until_shutdown(){
  struct Guard(Arc<AtomicUsize>);impl Drop for Guard{fn drop(&mut self){self.0.fetch_add(1,Ordering::SeqCst);}}
  let drops=Arc::new(AtomicUsize::new(0));let observed=drops.clone();
  tsrust_native_futures::block_on(async move{
-  let trace=Arc::new(Mutex::new(Vec::new()));let mut app=Hono::new();
+  let trace=Arc::new(Mutex::new(Vec::new()));let mut app=Router::new();
   for name in ["outer","inner"]{let trace=trace.clone();app.use_middleware(move|c,next|{let trace=trace.clone();Box::pin(async move{
    trace.lock().unwrap().push(format!("{name}:before"));
    c.header("x-entry",name).unwrap();next.run(c).await;c.header("x-exit",name).unwrap();
@@ -234,7 +234,7 @@ fn hono_context_middleware_unwinds_and_retains_closures_until_shutdown(){
 fn hono_scoped_routes_keep_registration_order_and_method_boundaries(){
  use std::sync::Arc;
  tsrust_native_futures::block_on(async{
-  let mut app=Hono::new();
+  let mut app=Router::new();
   app.use_many("/items/*",vec![Arc::new(|c,next|Box::pin(async move{c.header("x-scope","items").unwrap();next.run(c).await;None}))]).unwrap();
   app.route_many("GET","/items/:name",vec![
    Arc::new(|c,next|Box::pin(async move{let name=c.field0.param("name").unwrap();c.header("x-name",if name.is_ascii(){&name}else{"non-ascii"}).unwrap();next.run(c).await;c.header("x-unwind","yes").unwrap();None})),

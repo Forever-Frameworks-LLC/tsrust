@@ -16,37 +16,37 @@ impl Analyzer {
    let identity=self.expression_type_hint(context,base).and_then(|ty|if let Type::Record(id)=ty{self.program.records[id].native_type}else{None});
    let Some(mut name)=crate::stdlib::http::method(identity,member)else{return Ok(None);};
    let mut receiver=(**base).clone();
-   if name=="__honoUse" && args.first().is_some_and(|arg|matches!(arg.kind,ExprKind::String(_)) || self.expression_type_hint(context,arg)==Some(Type::String)){name="__honoUsePath";}
-   if name=="__requestText" && let ExprKind::Field(context_base,field)=&base.kind && field=="req" && matches!(self.expression_type_hint(context,context_base),Some(Type::Record(id)) if self.program.records[id].native_type==Some(NativeTypeId::HttpContext)) {name="__contextRequestText";receiver=(**context_base).clone();}
-   if matches!(name,"__route"|"__honoRoute")&&member!="route" {args.insert(0,Expr::new(ExprKind::String(member.to_uppercase()),callee.span));}
+   if name=="__routerUse" && args.first().is_some_and(|arg|matches!(arg.kind,ExprKind::String(_)) || self.expression_type_hint(context,arg)==Some(Type::String)){name="__routerUsePath";}
+   if matches!(name,"__requestText"|"__form"|"__multipart") && let ExprKind::Field(context_base,field)=&base.kind && field=="req" && matches!(self.expression_type_hint(context,context_base),Some(Type::Record(id)) if self.program.records[id].native_type==Some(NativeTypeId::HttpContext)) {name=match name{"__form"=>"__contextRequestForm","__multipart"=>"__contextRequestMultipart",_=>"__contextRequestText"};receiver=(**context_base).clone();}
+   if matches!(name,"__route"|"__routerRoute")&&member!="route" {args.insert(0,Expr::new(ExprKind::String(member.to_uppercase()),callee.span));}
    if name=="__contextJson" && !args.is_empty(){let value=args.remove(0);args.insert(0,Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name("@http:jsonEncode".into()),expression.span)),vec![value]),expression.span));}
    args.insert(0,receiver);let args=std::mem::take(args);let span=expression.span;
    if crate::stdlib::http::asynchronous(name){
     crate::stdlib::futures::lazy_module(expression,"std:http",name,args);
     // Preserve the options context when lazy lowering evaluates arguments into locals.
-    if matches!(name,"__listen"|"__honoListen") && let ExprKind::Match{body,..}=&mut expression.kind && let Some(crate::syntax::Stmt{kind:crate::syntax::StmtKind::Let{annotation,..},..})=body.get_mut(2){
+    if matches!(name,"__listen"|"__routerListen") && let ExprKind::Match{body,..}=&mut expression.kind && let Some(crate::syntax::Stmt{kind:crate::syntax::StmtKind::Let{annotation,..},..})=body.get_mut(2){
      let options=self.schema_native_dependency(NativeTypeId::HttpTlsOptions,span)?;
      *annotation=Some(self.checked_value_annotation(Type::Record(options),span)?);
     }
    }else{
     *expression=crate::stdlib::http::call(name,args,span);
-    if matches!(name,"__honoConfigure"|"__honoRoute"|"__honoUsePath"|"__contextText"|"__contextHtml"|"__contextJson"|"__contextHeader"|"__contextStatus"|"__configure"|"__route"|"__requestHeader"|"__requestSetHeader"|"__responseHeader"|"__responseSetHeader"){*expression=crate::stdlib::futures::unwrap(expression.clone());}
+    if matches!(name,"__routerConfigure"|"__routerRoute"|"__routerUsePath"|"__contextText"|"__contextHtml"|"__contextJson"|"__contextHeader"|"__contextStatus"|"__configure"|"__route"|"__requestHeader"|"__requestSetHeader"|"__responseHeader"|"__responseSetHeader"){*expression=crate::stdlib::futures::unwrap(expression.clone());}
    }
    return self.expression(context,expression,Mode::Consume,loans,expected).map(Some);
   }
   let ExprKind::Name(name)=&callee.kind else{return Ok(None);};
   let Some((id,binding))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|matches!(binding.module,"std:http"|"std:signals"))else{return Ok(None);};
   let span=expression.span;
-  if !binding.accepts_arity(args.len()) || matches!(binding.name,"__honoRoute"|"__honoUse"|"__honoUsePath") && args.len()<binding.parameters.len(){return Err(Diagnostic::new("arity",format!("{} requires {} arguments including its receiver.",binding.name,binding.parameters.len()),span));}
+  if !binding.accepts_arity(args.len()) || matches!(binding.name,"__routerRoute"|"__routerUse"|"__routerUsePath") && args.len()<binding.parameters.len(){return Err(Diagnostic::new("arity",format!("{} requires {} arguments including its receiver.",binding.name,binding.parameters.len()),span));}
   if (crate::stdlib::http::asynchronous(binding.name)||binding.name=="__receive")&&!context.task_body{return Err(Diagnostic::new("async-context","HTTP I/O must run inside an async task.",span));}
   let mut active=loans.clone();
   for (index,arg) in args.iter_mut().enumerate() {
    let param=&binding.parameters[index.min(binding.parameters.len()-1)];
    if param.ty==crate::native_bindings::NativeType::ObservedValue{
-    let hono=binding.name.starts_with("__hono");
+    let hono=binding.name.starts_with("__router");
     let count=if hono{match &arg.kind{ExprKind::Closure{params,..}=>params.len(),ExprKind::Name(name)=>self.function_names.get(name).map(|&id|self.signatures[id].params.len()).unwrap_or(1),_=>1}}else if binding.name=="__use"{2}else{1};
-    if count>2{return Err(Diagnostic::new("http-handler","Hono callbacks take Context and an optional next callback.",span));}
-    let middleware=count==2 || matches!(binding.name,"__honoUse"|"__honoUsePath");
+    if count>2{return Err(Diagnostic::new("http-handler","Router callbacks take Context and an optional next callback.",span));}
+    let middleware=count==2 || matches!(binding.name,"__routerUse"|"__routerUsePath");
     let request=Type::Record(self.schema_native_dependency(if hono{NativeTypeId::HttpContext}else{NativeTypeId::HttpRequest},span)?);let next=Type::Record(self.schema_native_dependency(if hono{NativeTypeId::HttpContextNext}else{NativeTypeId::HttpNext},span)?);
     let parameters=[request,next][..count].to_vec();
     if matches!(arg.kind,ExprKind::Name(_)){
@@ -77,7 +77,7 @@ impl Analyzer {
     self.http_task_transfer(result,span,hono)?;
     let(output,error)=self.future_shape(result,span)?;
     let outputs=if let Type::Union(id)=output{self.unions.members(id)}else{vec![output]};
-    if !outputs.into_iter().all(|output|matches!(output,Type::Record(id) if self.program.records[id].native_type==Some(NativeTypeId::HttpResponse)) || hono && middleware && matches!(output,Type::Void|Type::Undefined)){return Err(Diagnostic::new("http-handler","HTTP handlers return Response or Task<Response>; Hono middleware may also return no response after next().",span));}
+    if !outputs.into_iter().all(|output|matches!(output,Type::Record(id) if self.program.records[id].native_type==Some(NativeTypeId::HttpResponse)) || hono && middleware && matches!(output,Type::Void|Type::Undefined)){return Err(Diagnostic::new("http-handler","HTTP handlers return Response or Task<Response>; Router middleware may also return no response after next().",span));}
     self.future_start_transfer(error,span)?;
    }else{
     let ty=native_type(param.ty,&self.program.records);self.expression(context,arg,param.access,&active,Some(ty))?;

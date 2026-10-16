@@ -70,7 +70,7 @@ mod tsrust_native_http {
             let (normalized,_)=route_path(base)?;let mut router=matchit::Router::new();
             router.insert(normalized.clone(),()).map_err(|_|error("route","Invalid route pattern"))?;
             if wildcard{
-                router.insert(format!("{normalized}/{{*__hono_tail}}"),()).map_err(|_|error("route","Invalid wildcard route"))?;
+                router.insert(format!("{normalized}/{{*__router_tail}}"),()).map_err(|_|error("route","Invalid wildcard route"))?;
                 router.insert(format!("{normalized}/"),()).map_err(|_|error("route","Invalid wildcard route"))?;
             }
             Ok(Self{router:Some(router)})
@@ -78,7 +78,7 @@ mod tsrust_native_http {
         fn captures(&self,path:&str)->Result<Option<BTreeMap<String,String>>,Error>{
             let Some(router)=&self.router else{return Ok(Some(BTreeMap::new()));};
             let Ok(matched)=router.at(path)else{return Ok(None);};let mut params=BTreeMap::new();
-            for (name,value) in matched.params.iter().filter(|(name,_)|*name!="__hono_tail"){
+            for (name,value) in matched.params.iter().filter(|(name,_)|*name!="__router_tail"){
                 params.insert(name.to_owned(),decode_component(value,false).map_err(|_|error("route","Invalid UTF-8 route parameter"))?);
             }
             Ok(Some(params))
@@ -104,8 +104,8 @@ mod tsrust_native_http {
             })
         }
     }
-    pub struct Hono {app:App,layers:Vec<ContextLayer>}
-    impl Hono {
+    pub struct Router {app:App,layers:Vec<ContextLayer>}
+    impl Router {
         pub fn new()->Self{Self{app:App::new(),layers:Vec::new()}}
         pub fn configure(&mut self,values:[i64;7])->Result<(),Error>{self.app.configure(values)}
         pub fn use_middleware<F>(&mut self,middleware:F) where F:for<'a> Fn(&'a mut Context,ContextNext)->ContextPending<'a>+Send+Sync+'static{self.use_many("*",vec![Arc::new(middleware)]).expect("the global pattern is valid");}

@@ -3,6 +3,22 @@
 
 ## Current acceptance and continuation — 2026-10-16
 
+The public router is named `Router`, not `Hono`; Hono is only the API reference.
+The existing server lifecycle is accepted. Ordered/scoped middleware, multiple
+callbacks, inline async arrows and conditional short-circuits now execute in the
+focused native example. The matched untimed workload passes. Original evidence
+is in SQLite under `tsrust-hono-*`; the Unicode runtime witness was corrected to
+observe Unicode through a response body instead of an ASCII-only header accessor,
+and that affected witness now passes its repaired rerun. No full regressions or
+new timing were run. Continue typed request/application state, cookie helpers and
+error handling, then replace the manual dispatch in `examples/service` with the
+Router API. Keep application authentication policy out of the framework.
+Installed CLI and both editor servers now include Router/async arrows; the active
+editor reports no Tsrust errors. The cookie-loop TextMate bug is repaired and
+visually verified after reload. Rust-analyzer was restored to disabled for this
+workspace. Context form/multipart bridges are drafted but await the next body-helper
+acceptance batch.
+
 Owner correction supersedes the authentication wording below: implement a
 Hono-style public HTTP API over the existing Axum backend. Prioritize request
 context, routing/middleware, request and response headers, cookie helpers, checked

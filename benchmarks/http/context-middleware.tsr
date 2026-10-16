@@ -1,4 +1,4 @@
-import { Hono, Context, ContextNext, Client, Response, text, request } from 'std:http';
+import { Router, Context, ContextNext, Client, Response, text, request } from 'std:http';
 import { monotonicNow } from 'std:time';
 
 type Config = {
@@ -14,8 +14,8 @@ async function headers(c: Mutable<Context>, next: ContextNext): Task<void> {
   c.header('x-after', 'exit');
 }
 
-function routes(config: Owned<Config>): Hono {
-  const app = new Hono();
+function routes(config: Owned<Config>): Router {
+  const app = new Router();
   app.use('/', headers);
   app.get('/', async (c, next) => {
     await next();
