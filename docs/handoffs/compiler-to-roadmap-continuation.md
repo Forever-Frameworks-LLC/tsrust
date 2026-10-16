@@ -16,6 +16,12 @@ deduplication, stale-worker fencing and recovery. Native execution and independe
 persisted-state inspection pass, as does the matched 128-job native/Node workload.
 See `docs/plans/durable-jobs-acceptance.md` and `tsrust-durable-jobs-*` evidence.
 This example supports SQLite only; external effects still need their own idempotency.
+Source checkpoint: `dd85a30d`. Installed CLI and both editor servers are refreshed;
+the active job example has no workspace problems with checking enabled.
+Rust-analyzer remains disabled. Consumer hashes and cleanup proof are retained
+under `tsrust-sql-jobs-*` in SQLite. Cleanup reclaimed 37.78 GiB of obsolete
+workspace, cross-target, test and native outputs while preserving all five current
+consumers. Reuse the single shared target; deleted caches are intentionally cold.
 
 The concrete cursor/job follow-ups are implemented. Keep remaining scope practical:
 callback-owned streaming producer lifetimes, Redis/brokers, WebSocket/SSE and broader

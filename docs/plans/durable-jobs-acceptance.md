@@ -33,5 +33,7 @@ failed states for both poison and abandoned jobs, and exactly one receipt effect
 Evidence is retained under `tsrust-durable-jobs-*`. The matched native/Node
 workload also passes one untimed batch: 128 jobs and 128 committed effects, recorded
 in `jobs-sqlite-2026-10-16T17-13-42.637Z-verify.json`. Cursor editor checks cover the
-unchanged SQL methods; installed-consumer refresh remains to be recorded. Reuse the cursor section's SQL runtime evidence because this
+unchanged SQL methods. Installed CLI and both editor servers are atomically
+refreshed and hash-verified. The restarted active editor shows the job example
+with checking enabled and no workspace problems. Rust-analyzer remains disabled. Reuse the cursor section's SQL runtime evidence because this
 example introduces no runtime changes.
