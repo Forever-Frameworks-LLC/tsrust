@@ -204,3 +204,35 @@ original failure is retained and the repaired fixture passes. Date/DateError
 agreement, three completion checks and focused hover/signature help pass. The
 native and date-fns workload both produce the independent checksum 40,064.
 Timing remains unmeasured. Evidence uses `tsrust-calendar-*` in SQLite.
+
+## Instants, clock times, durations and zones
+
+`std:date` adds separate Time, Instant, Duration and TimeZone values. ISO instants
+require an explicit offset and preserve nanoseconds; calendar Date remains a
+zone-free date. Time rejects leap seconds and 24:00. Instant UTC years are
+0001..9999. Epoch conversion rejects fractional loss. Durations store signed
+64-bit nanoseconds (about ±292 years); overflow and inexact millisecond extraction
+return errors. Calendar months/days remain distinct from elapsed durations.
+
+Named zones use pinned Chrono-TZ 0.10.4 and its IANA 2025b database. Newer zone-rule
+changes are not included until an explicit backend/database upgrade is accepted.
+Fixed offsets use signed seconds east of
+UTC, strictly within ±86400. `resolveDateTime` requires reject/earlier/later;
+repeated local times are explicit and gaps reject under every policy. No process
+local zone or silent daylight-saving adjustment is inferred. Wall-clock `now`
+can jump and is separate from monotonic elapsed time. Unknown ISO -00:00 offsets,
+leap seconds, free-form date parsing and locale formatting remain unsupported.
+
+The appointment example covers a New York fold, gap and nanosecond conversion
+rejection. Native witnesses also cover Lord Howe's half-hour fold and Apia's
+skipped date. The date-fns workload in `benchmarks/temporal` uses millisecond inputs
+only; it does not establish nanosecond or DST-policy parity. Measurements remain
+pending the data-type family milestone. Rust/SQL domain mappings remain separate.
+
+Focused temporal acceptance passes on macOS: four compiler/export checks,
+31 batched native documentation examples, two calendar/temporal runtime checks,
+four receiver-agreement selections, completion and hover/signature checks. The
+prior calendar billing example still passes. Native and date-fns millisecond
+workloads match checksum 32,640; timing remains unmeasured. Installed CLI/LSP and
+the active VS Code workspace pass after refresh. Evidence uses `tsrust-temporal-*`
+in SQLite; IANA provenance remains developer evidence, separate from API help.

@@ -1,0 +1,55 @@
+import { Date, Time, Instant, TimeZone, Duration, DateError, parseDate, parseTime, parseISO, formatISO, formatTime, formatDate, parseTimeZone, resolveDateTime, localDate, localTime, offsetSeconds, difference, durationToNanoseconds, durationFromNanoseconds, durationFromMilliseconds, durationToMilliseconds, addDuration, toUnixMilliseconds, fromUnixMilliseconds } from 'std:date';
+import { strictEqual } from 'std:testing';
+import { spawn } from 'std:threads';
+
+function rejected(value: Result<Instant, DateError>, code: string) {
+  match (value) {
+    Ok(_) => {
+      throw 'expected rejected local time';
+    },
+    Err(error) => {
+      strictEqual(error.code, code);
+    }
+  }
+}
+
+type Appointment = {
+  at: Instant;
+  zone: TimeZone;
+  duration: Duration;
+};
+
+function main() {
+  const zone = unwrap(parseTimeZone('America/New_York'));
+  const date = unwrap(parseDate('2024-11-03'));
+  const time = unwrap(parseTime('01:30:00'));
+  rejected(resolveDateTime(date, time, zone, 'reject'), 'AmbiguousTime');
+  const early = unwrap(resolveDateTime(date, time, zone, 'earlier'));
+  const late = unwrap(resolveDateTime(date, time, zone, 'later'));
+  strictEqual(formatISO(early), '2024-11-03T05:30:00Z');
+  strictEqual(formatISO(late), '2024-11-03T06:30:00Z');
+  strictEqual(durationToNanoseconds(unwrap(difference(late, early))), 3600000000000);
+  strictEqual(formatDate(unwrap(localDate(early, zone))), '2024-11-03');
+  strictEqual(formatTime(unwrap(localTime(early, zone))), '01:30:00');
+  strictEqual(offsetSeconds(early, zone), -14400);
+  rejected(resolveDateTime(unwrap(parseDate('2024-03-10')), unwrap(parseTime('02:30:00')), zone, 'later'), 'NonexistentTime');
+  const precise = unwrap(parseISO('2024-01-01T00:00:00.123456789Z'));
+  match (toUnixMilliseconds(precise)) {
+    Ok(_) => {
+      throw 'lost nanoseconds';
+    },
+    Err(error) => {
+      strictEqual(error.code, 'Precision');
+    }
+  }
+
+  strictEqual(formatISO(unwrap(fromUnixMilliseconds(-1))), '1969-12-31T23:59:59.999Z');
+  strictEqual(unwrap(durationToMilliseconds(unwrap(durationFromMilliseconds(-5)))), -5);
+  const appointment: Appointment = {
+    at: clone(early), zone: clone(zone), duration: durationFromNanoseconds(1)
+  };
+  const owned = clone(appointment);
+  const worker = unwrap(spawn((): string => formatISO(unwrap(addDuration(owned.at, owned.duration)))));
+  strictEqual(unwrap(worker.join()), '2024-11-03T05:30:00.000000001Z');
+  console.log(formatISO(late));
+}

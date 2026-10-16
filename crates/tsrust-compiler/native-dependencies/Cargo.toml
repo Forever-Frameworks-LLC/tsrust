@@ -7,6 +7,7 @@ publish = false
 [workspace]
 
 [dependencies]
+chrono-tz = { version = "=0.10.4", default-features = false, features = ["std"], optional = true }
 chrono = { version = "=0.4.45", default-features = false, features = ["std"], optional = true }
 bigdecimal = { version = "=0.4.11", optional = true }
 sqlx = { version = "=0.9.0", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "mysql", "sqlite", "any"], optional = true }
@@ -34,4 +35,4 @@ sql = ["async", "dep:sqlx"]
 
 decimal = ["dep:bigdecimal"]
 
-calendar = ["dep:chrono"]
+calendar = ["dep:chrono", "dep:chrono-tz"]

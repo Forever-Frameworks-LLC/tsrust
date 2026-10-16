@@ -1,4 +1,3 @@
-mod tsrust_native_date {
     use chrono::{Datelike,NaiveDate,Months,TimeDelta};
     type Error=(&'static str,&'static str);
     const RANGE:Error=("Range","Date must be valid and within years 0001 through 9999");
@@ -48,4 +47,3 @@ mod tsrust_native_date {
         }
         Ok(output)
     }
-}

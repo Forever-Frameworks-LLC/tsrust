@@ -3,8 +3,9 @@
 Exact decimal focused acceptance is complete on macOS: `std:decimal.parseDecimal`,
 checked arithmetic/conversions, editor/examples, offline export and untimed matched
 money workload. Calendar dates also pass focused compiler/native/editor, offline
-export and untimed date-fns acceptance. Time of day, instants, time zones, durations,
-UUIDs and remaining boundaries still precede S19–S21. Date/time API design follows the owner's date-fns preference.
+export and untimed date-fns acceptance. Time of day, UTC instants, IANA/fixed zones
+and exact durations also pass focused acceptance, including explicit DST and
+precision failures. UUIDs and remaining boundaries still precede S19–S21. Date/time API design follows the owner's date-fns preference.
 See [current data-type coverage](data-type-coverage.md) and the
 [current handoff](handoffs/compiler-to-roadmap-continuation.md).
 

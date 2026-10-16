@@ -11894,10 +11894,556 @@
   {
     "name": "DateError",
     "signature": "DateError",
-    "documentation": "Owned date conversion error with code and message. Codes are Syntax for text layout, Range for invalid or out-of-range dates/arithmetic, and Format for unsupported formatting patterns. Errors are returned as Result data.\n\n```tsrust\nimport {DateError} from \"std:date\"; function main(){}\n```\n\nExpected output: none. Ownership: owned value; scope cleanup releases storage.",
+    "documentation": "Owned date conversion error with code and message. Codes are Syntax for text layout, Range for invalid or out-of-range values, Format for unsupported patterns, Precision for lossy conversion, Zone for unknown zone names, Disambiguation for invalid policies, AmbiguousTime for repeated local time and NonexistentTime for gaps. Errors are returned as Result data.\n\n```tsrust\nimport {DateError} from \"std:date\"; function main(){}\n```\n\nExpected output: none. Ownership: owned value; scope cleanup releases storage.",
     "examples": [
       {
         "source": "import {DateError} from \"std:date\"; function main(){}",
+        "output": ""
+      }
+    ]
+  },
+  {
+    "name": "parseTime",
+    "signature": "parseTime(text: string): Result<Time, DateError>",
+    "parameters": [
+      {
+        "label": "text: string",
+        "documentation": "Complete timestamp or time text in the strict layout described above."
+      }
+    ],
+    "documentation": "Parses exactly HH:mm:ss with an optional dot and 1..9 fractional digits. Hours are 00..23, minutes/seconds 00..59. Syntax rejects alternate layouts and whitespace; Range rejects invalid clock fields. Leap seconds, 24:00 and offsets are unsupported. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {formatTime,parseTime} from \"std:date\"; function main(){console.log(formatTime(unwrap(parseTime('12:30:00.123456789'))));}\n```\n\nExpected output: 12:30:00.123456789. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {formatTime,parseTime} from \"std:date\"; function main(){console.log(formatTime(unwrap(parseTime('12:30:00.123456789'))));}",
+        "output": "12:30:00.123456789\n"
+      }
+    ]
+  },
+  {
+    "name": "formatTime",
+    "signature": "formatTime(value: Time): string",
+    "parameters": [
+      {
+        "label": "value: Time",
+        "documentation": "Value to inspect or convert; units and bounds are described above."
+      }
+    ],
+    "documentation": "Returns padded HH:mm:ss and, when nonzero, up to nine fractional digits without trailing zeroes. No date or zone is attached. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {formatTime,parseTime} from \"std:date\"; function main(){const time=unwrap(parseTime(\"01:30:00\"));console.log(formatTime(time));}\n```\n\nExpected output: 01:30:00. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {formatTime,parseTime} from \"std:date\"; function main(){const time=unwrap(parseTime(\"01:30:00\"));console.log(formatTime(time));}",
+        "output": "01:30:00\n"
+      }
+    ]
+  },
+  {
+    "name": "compareTimes",
+    "signature": "compareTimes(left: Time, right: Time): int",
+    "parameters": [
+      {
+        "label": "left: Time",
+        "documentation": "Left operand; borrowed and unchanged."
+      },
+      {
+        "label": "right: Time",
+        "documentation": "Right operand; borrowed and unchanged."
+      }
+    ],
+    "documentation": "Returns -1, 0 or 1 for earlier, equal or later time of day, including nanoseconds. This orders clock fields without a date or zone. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {compareTimes,parseTime} from \"std:date\"; function main(){const time=unwrap(parseTime(\"01:30:00\"));console.log(compareTimes(time,unwrap(parseTime('02:00:00'))));}\n```\n\nExpected output: -1. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {compareTimes,parseTime} from \"std:date\"; function main(){const time=unwrap(parseTime(\"01:30:00\"));console.log(compareTimes(time,unwrap(parseTime('02:00:00'))));}",
+        "output": "-1\n"
+      }
+    ]
+  },
+  {
+    "name": "parseISO",
+    "signature": "parseISO(text: string): Result<Instant, DateError>",
+    "parameters": [
+      {
+        "label": "text: string",
+        "documentation": "Complete timestamp or time text in the strict layout described above."
+      }
+    ],
+    "documentation": "Parses a complete YYYY-MM-DDTHH:mm:ss timestamp with optional 1..9 fractional digits and mandatory Z or ±HH:mm offset. Returns the exact UTC instant. Both input and UTC years must be 0001..9999. Syntax rejects missing offsets, lowercase separators, whitespace, unknown -00:00 offsets and alternate layouts; invalid fields or year bounds return Range or Syntax. Leap seconds and excess fractional precision are unsupported. The input offset is not retained. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {formatISO,parseISO} from \"std:date\"; function main(){console.log(formatISO(unwrap(parseISO('2024-01-01T01:00:00.123456789+01:00'))));}\n```\n\nExpected output: 2024-01-01T00:00:00.123456789Z. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {formatISO,parseISO} from \"std:date\"; function main(){console.log(formatISO(unwrap(parseISO('2024-01-01T01:00:00.123456789+01:00'))));}",
+        "output": "2024-01-01T00:00:00.123456789Z\n"
+      }
+    ]
+  },
+  {
+    "name": "formatISO",
+    "signature": "formatISO(value: Instant): string",
+    "parameters": [
+      {
+        "label": "value: Instant",
+        "documentation": "Value to inspect or convert; units and bounds are described above."
+      }
+    ],
+    "documentation": "Returns a UTC ISO timestamp ending in Z. Fractional seconds use zero, three, six or nine digits as needed to preserve every nanosecond. Original offset and spelling are not retained. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {formatISO,parseISO} from \"std:date\"; function main(){const instant=unwrap(parseISO(\"2024-11-03T05:30:00Z\"));console.log(formatISO(instant));}\n```\n\nExpected output: 2024-11-03T05:30:00Z. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {formatISO,parseISO} from \"std:date\"; function main(){const instant=unwrap(parseISO(\"2024-11-03T05:30:00Z\"));console.log(formatISO(instant));}",
+        "output": "2024-11-03T05:30:00Z\n"
+      }
+    ]
+  },
+  {
+    "name": "now",
+    "signature": "now(): Result<Instant, DateError>",
+    "parameters": [],
+    "documentation": "Reads the system wall clock and returns a UTC instant within years 0001..9999, or Range. The clock can jump forward or backward. Use std:time.monotonicNow for elapsed measurements. Takes no arguments. Inputs are not mutated.\n\n```tsrust\nimport {now,compareInstants} from \"std:date\";function main(){const instant=unwrap(now());console.log(compareInstants(instant,instant));}\n```\n\nExpected output: 0. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {now,compareInstants} from \"std:date\";function main(){const instant=unwrap(now());console.log(compareInstants(instant,instant));}",
+        "output": "0\n"
+      }
+    ]
+  },
+  {
+    "name": "fromUnixMilliseconds",
+    "signature": "fromUnixMilliseconds(value: int): Result<Instant, DateError>",
+    "parameters": [
+      {
+        "label": "value: int",
+        "documentation": "Value to inspect or convert; units and bounds are described above."
+      }
+    ],
+    "documentation": "Converts a signed int count of milliseconds since 1970-01-01T00:00:00Z to an exact instant. Negative counts precede the epoch. Range rejects instants outside years 0001..9999. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {formatISO,fromUnixMilliseconds} from \"std:date\"; function main(){console.log(formatISO(unwrap(fromUnixMilliseconds(-1))));}\n```\n\nExpected output: 1969-12-31T23:59:59.999Z. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {formatISO,fromUnixMilliseconds} from \"std:date\"; function main(){console.log(formatISO(unwrap(fromUnixMilliseconds(-1))));}",
+        "output": "1969-12-31T23:59:59.999Z\n"
+      }
+    ]
+  },
+  {
+    "name": "toUnixMilliseconds",
+    "signature": "toUnixMilliseconds(value: Instant): Result<int, DateError>",
+    "parameters": [
+      {
+        "label": "value: Instant",
+        "documentation": "Value to inspect or convert; units and bounds are described above."
+      }
+    ],
+    "documentation": "Returns signed epoch milliseconds only when the instant has no sub-millisecond remainder. Precision rejects loss, including before the epoch. Never truncates or rounds. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {fromUnixMilliseconds,toUnixMilliseconds} from \"std:date\"; function main(){console.log(unwrap(toUnixMilliseconds(unwrap(fromUnixMilliseconds(-1)))));}\n```\n\nExpected output: -1. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {fromUnixMilliseconds,toUnixMilliseconds} from \"std:date\"; function main(){console.log(unwrap(toUnixMilliseconds(unwrap(fromUnixMilliseconds(-1)))));}",
+        "output": "-1\n"
+      }
+    ]
+  },
+  {
+    "name": "fromUnixSeconds",
+    "signature": "fromUnixSeconds(value: int): Result<Instant, DateError>",
+    "parameters": [
+      {
+        "label": "value: int",
+        "documentation": "Value to inspect or convert; units and bounds are described above."
+      }
+    ],
+    "documentation": "Converts a signed int count of seconds since the Unix epoch to an exact whole-second instant. Negative counts precede the epoch. Range rejects years outside 0001..9999. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {formatISO,fromUnixSeconds} from \"std:date\"; function main(){console.log(formatISO(unwrap(fromUnixSeconds(0))));}\n```\n\nExpected output: 1970-01-01T00:00:00Z. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {formatISO,fromUnixSeconds} from \"std:date\"; function main(){console.log(formatISO(unwrap(fromUnixSeconds(0))));}",
+        "output": "1970-01-01T00:00:00Z\n"
+      }
+    ]
+  },
+  {
+    "name": "toUnixSeconds",
+    "signature": "toUnixSeconds(value: Instant): Result<int, DateError>",
+    "parameters": [
+      {
+        "label": "value: Instant",
+        "documentation": "Value to inspect or convert; units and bounds are described above."
+      }
+    ],
+    "documentation": "Returns signed epoch seconds only for a whole-second instant. Precision rejects any fractional seconds. Never truncates or rounds. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {fromUnixSeconds,toUnixSeconds} from \"std:date\"; function main(){console.log(unwrap(toUnixSeconds(unwrap(fromUnixSeconds(-1)))));}\n```\n\nExpected output: -1. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {fromUnixSeconds,toUnixSeconds} from \"std:date\"; function main(){console.log(unwrap(toUnixSeconds(unwrap(fromUnixSeconds(-1)))));}",
+        "output": "-1\n"
+      }
+    ]
+  },
+  {
+    "name": "compareInstants",
+    "signature": "compareInstants(left: Instant, right: Instant): int",
+    "parameters": [
+      {
+        "label": "left: Instant",
+        "documentation": "Left operand; borrowed and unchanged."
+      },
+      {
+        "label": "right: Instant",
+        "documentation": "Right operand; borrowed and unchanged."
+      }
+    ],
+    "documentation": "Returns -1, 0 or 1 for an earlier, equal or later UTC instant, comparing all nanoseconds. Presentation zones do not affect equality. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {compareInstants,parseISO} from \"std:date\"; function main(){const instant=unwrap(parseISO(\"2024-11-03T05:30:00Z\"));console.log(compareInstants(instant,instant));}\n```\n\nExpected output: 0. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {compareInstants,parseISO} from \"std:date\"; function main(){const instant=unwrap(parseISO(\"2024-11-03T05:30:00Z\"));console.log(compareInstants(instant,instant));}",
+        "output": "0\n"
+      }
+    ]
+  },
+  {
+    "name": "durationFromNanoseconds",
+    "signature": "durationFromNanoseconds(value: int): Duration",
+    "parameters": [
+      {
+        "label": "value: int",
+        "documentation": "Value to inspect or convert; units and bounds are described above."
+      }
+    ],
+    "documentation": "Constructs an exact signed elapsed duration from any int nanosecond count. Storage is signed 64-bit nanoseconds, approximately ±292 years. No conversion can fail. A duration has no calendar months, days or time zone. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {durationFromNanoseconds,durationToNanoseconds} from \"std:date\"; function main(){console.log(durationToNanoseconds(durationFromNanoseconds(-1)));}\n```\n\nExpected output: -1. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {durationFromNanoseconds,durationToNanoseconds} from \"std:date\"; function main(){console.log(durationToNanoseconds(durationFromNanoseconds(-1)));}",
+        "output": "-1\n"
+      }
+    ]
+  },
+  {
+    "name": "durationFromMilliseconds",
+    "signature": "durationFromMilliseconds(value: int): Result<Duration, DateError>",
+    "parameters": [
+      {
+        "label": "value: int",
+        "documentation": "Value to inspect or convert; units and bounds are described above."
+      }
+    ],
+    "documentation": "Converts signed integer milliseconds to elapsed nanoseconds with checked multiplication. Range rejects counts whose nanosecond representation exceeds signed 64-bit storage. Negative and zero values are allowed. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {durationFromMilliseconds,durationToNanoseconds} from \"std:date\"; function main(){console.log(durationToNanoseconds(unwrap(durationFromMilliseconds(-1))));}\n```\n\nExpected output: -1000000. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {durationFromMilliseconds,durationToNanoseconds} from \"std:date\"; function main(){console.log(durationToNanoseconds(unwrap(durationFromMilliseconds(-1))));}",
+        "output": "-1000000\n"
+      }
+    ]
+  },
+  {
+    "name": "durationFromSeconds",
+    "signature": "durationFromSeconds(value: int): Result<Duration, DateError>",
+    "parameters": [
+      {
+        "label": "value: int",
+        "documentation": "Value to inspect or convert; units and bounds are described above."
+      }
+    ],
+    "documentation": "Converts signed integer seconds to elapsed nanoseconds with checked multiplication. Range rejects counts whose nanosecond representation exceeds signed 64-bit storage. Negative and zero values are allowed. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {durationFromSeconds,durationToNanoseconds} from \"std:date\"; function main(){console.log(durationToNanoseconds(unwrap(durationFromSeconds(1))));}\n```\n\nExpected output: 1000000000. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {durationFromSeconds,durationToNanoseconds} from \"std:date\"; function main(){console.log(durationToNanoseconds(unwrap(durationFromSeconds(1))));}",
+        "output": "1000000000\n"
+      }
+    ]
+  },
+  {
+    "name": "durationToNanoseconds",
+    "signature": "durationToNanoseconds(value: Duration): int",
+    "parameters": [
+      {
+        "label": "value: Duration",
+        "documentation": "Value to inspect or convert; units and bounds are described above."
+      }
+    ],
+    "documentation": "Returns the exact signed int nanosecond count of an elapsed duration. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {durationFromMilliseconds,durationToNanoseconds} from \"std:date\"; function main(){const duration=unwrap(durationFromMilliseconds(1));console.log(durationToNanoseconds(duration));}\n```\n\nExpected output: 1000000. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {durationFromMilliseconds,durationToNanoseconds} from \"std:date\"; function main(){const duration=unwrap(durationFromMilliseconds(1));console.log(durationToNanoseconds(duration));}",
+        "output": "1000000\n"
+      }
+    ]
+  },
+  {
+    "name": "durationToMilliseconds",
+    "signature": "durationToMilliseconds(value: Duration): Result<int, DateError>",
+    "parameters": [
+      {
+        "label": "value: Duration",
+        "documentation": "Value to inspect or convert; units and bounds are described above."
+      }
+    ],
+    "documentation": "Returns signed milliseconds only when the duration is exactly divisible by one million nanoseconds. Precision rejects a remainder, including for negative durations. Never truncates or rounds. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {durationFromMilliseconds,durationToMilliseconds} from \"std:date\"; function main(){const duration=unwrap(durationFromMilliseconds(1));console.log(unwrap(durationToMilliseconds(duration)));}\n```\n\nExpected output: 1. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {durationFromMilliseconds,durationToMilliseconds} from \"std:date\"; function main(){const duration=unwrap(durationFromMilliseconds(1));console.log(unwrap(durationToMilliseconds(duration)));}",
+        "output": "1\n"
+      }
+    ]
+  },
+  {
+    "name": "addDurations",
+    "signature": "addDurations(left: Duration, right: Duration): Result<Duration, DateError>",
+    "parameters": [
+      {
+        "label": "left: Duration",
+        "documentation": "Left operand; borrowed and unchanged."
+      },
+      {
+        "label": "right: Duration",
+        "documentation": "Right operand; borrowed and unchanged."
+      }
+    ],
+    "documentation": "Returns the exact sum of two signed elapsed durations. Range rejects signed 64-bit nanosecond overflow. Calendar months and DST do not participate. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {addDurations,durationFromMilliseconds,durationToNanoseconds} from \"std:date\"; function main(){const duration=unwrap(durationFromMilliseconds(1));console.log(durationToNanoseconds(unwrap(addDurations(duration,duration))));}\n```\n\nExpected output: 2000000. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {addDurations,durationFromMilliseconds,durationToNanoseconds} from \"std:date\"; function main(){const duration=unwrap(durationFromMilliseconds(1));console.log(durationToNanoseconds(unwrap(addDurations(duration,duration))));}",
+        "output": "2000000\n"
+      }
+    ]
+  },
+  {
+    "name": "subtractDurations",
+    "signature": "subtractDurations(left: Duration, right: Duration): Result<Duration, DateError>",
+    "parameters": [
+      {
+        "label": "left: Duration",
+        "documentation": "Left operand; borrowed and unchanged."
+      },
+      {
+        "label": "right: Duration",
+        "documentation": "Right operand; borrowed and unchanged."
+      }
+    ],
+    "documentation": "Returns left minus right as an exact signed elapsed duration. Range rejects signed 64-bit nanosecond overflow. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {durationFromMilliseconds,durationToNanoseconds,subtractDurations} from \"std:date\"; function main(){const duration=unwrap(durationFromMilliseconds(1));console.log(durationToNanoseconds(unwrap(subtractDurations(duration,duration))));}\n```\n\nExpected output: 0. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {durationFromMilliseconds,durationToNanoseconds,subtractDurations} from \"std:date\"; function main(){const duration=unwrap(durationFromMilliseconds(1));console.log(durationToNanoseconds(unwrap(subtractDurations(duration,duration))));}",
+        "output": "0\n"
+      }
+    ]
+  },
+  {
+    "name": "addDuration",
+    "signature": "addDuration(value: Instant, amount: Duration): Result<Instant, DateError>",
+    "parameters": [
+      {
+        "label": "value: Instant",
+        "documentation": "Value to inspect or convert; units and bounds are described above."
+      },
+      {
+        "label": "amount: Duration",
+        "documentation": "Signed elapsed duration to add."
+      }
+    ],
+    "documentation": "Returns a new UTC instant shifted by an exact signed elapsed duration. Negative values subtract. Range rejects results outside years 0001..9999. This does not add calendar days or preserve local wall time across DST. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {addDuration,durationFromMilliseconds,formatISO,parseISO} from \"std:date\"; function main(){const instant=unwrap(parseISO(\"2024-11-03T05:30:00Z\"));const duration=unwrap(durationFromMilliseconds(1));console.log(formatISO(unwrap(addDuration(instant,duration))));}\n```\n\nExpected output: 2024-11-03T05:30:00.001Z. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {addDuration,durationFromMilliseconds,formatISO,parseISO} from \"std:date\"; function main(){const instant=unwrap(parseISO(\"2024-11-03T05:30:00Z\"));const duration=unwrap(durationFromMilliseconds(1));console.log(formatISO(unwrap(addDuration(instant,duration))));}",
+        "output": "2024-11-03T05:30:00.001Z\n"
+      }
+    ]
+  },
+  {
+    "name": "difference",
+    "signature": "difference(later: Instant, earlier: Instant): Result<Duration, DateError>",
+    "parameters": [
+      {
+        "label": "later: Instant",
+        "documentation": "Later operand; subtracts earlier, regardless of chronological order."
+      },
+      {
+        "label": "earlier: Instant",
+        "documentation": "Operand subtracted from later."
+      }
+    ],
+    "documentation": "Returns later minus earlier as a signed elapsed duration, preserving nanoseconds. Range rejects differences outside signed 64-bit nanoseconds, approximately ±292 years. Use differenceInCalendarDays for date-only day counts. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {difference,durationToNanoseconds,parseISO} from \"std:date\"; function main(){const instant=unwrap(parseISO(\"2024-11-03T05:30:00Z\"));console.log(durationToNanoseconds(unwrap(difference(instant,instant))));}\n```\n\nExpected output: 0. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {difference,durationToNanoseconds,parseISO} from \"std:date\"; function main(){const instant=unwrap(parseISO(\"2024-11-03T05:30:00Z\"));console.log(durationToNanoseconds(unwrap(difference(instant,instant))));}",
+        "output": "0\n"
+      }
+    ]
+  },
+  {
+    "name": "parseTimeZone",
+    "signature": "parseTimeZone(name: string): Result<TimeZone, DateError>",
+    "parameters": [
+      {
+        "label": "name: string",
+        "documentation": "Case-sensitive IANA zone identifier, at most 128 UTF-8 bytes."
+      }
+    ],
+    "documentation": "Validates a case-sensitive IANA time zone name of at most 128 UTF-8 bytes. Unknown names and excess length return Zone. Named zones apply historical and daylight-saving offsets. Use fixedOffset for a constant offset; no system-local zone is inferred. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {parseTimeZone,zoneName} from \"std:date\"; function main(){console.log(zoneName(unwrap(parseTimeZone('America/New_York'))));}\n```\n\nExpected output: America/New_York. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {parseTimeZone,zoneName} from \"std:date\"; function main(){console.log(zoneName(unwrap(parseTimeZone('America/New_York'))));}",
+        "output": "America/New_York\n"
+      }
+    ]
+  },
+  {
+    "name": "fixedOffset",
+    "signature": "fixedOffset(seconds: int): Result<TimeZone, DateError>",
+    "parameters": [
+      {
+        "label": "seconds: int",
+        "documentation": "Signed seconds east of UTC, strictly within ±86400."
+      }
+    ],
+    "documentation": "Constructs a constant offset from UTC in signed seconds, strictly between -86400 and 86400. Positive values are east of UTC; negative values are west. Range rejects other values. No daylight-saving transitions occur. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {fixedOffset,zoneName} from \"std:date\"; function main(){console.log(zoneName(unwrap(fixedOffset(19800))));}\n```\n\nExpected output: +05:30. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {fixedOffset,zoneName} from \"std:date\"; function main(){console.log(zoneName(unwrap(fixedOffset(19800))));}",
+        "output": "+05:30\n"
+      }
+    ]
+  },
+  {
+    "name": "zoneName",
+    "signature": "zoneName(zone: TimeZone): string",
+    "parameters": [
+      {
+        "label": "zone: TimeZone",
+        "documentation": "Explicit named or fixed-offset time zone."
+      }
+    ],
+    "documentation": "Returns the IANA identifier for a named zone or a signed offset for a fixed zone, such as +05:30 or +00:00. Fixed offsets with second precision retain those seconds. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {parseTimeZone,zoneName} from \"std:date\"; function main(){const zone=unwrap(parseTimeZone(\"America/New_York\"));console.log(zoneName(zone));}\n```\n\nExpected output: America/New_York. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {parseTimeZone,zoneName} from \"std:date\"; function main(){const zone=unwrap(parseTimeZone(\"America/New_York\"));console.log(zoneName(zone));}",
+        "output": "America/New_York\n"
+      }
+    ]
+  },
+  {
+    "name": "offsetSeconds",
+    "signature": "offsetSeconds(value: Instant, zone: TimeZone): int",
+    "parameters": [
+      {
+        "label": "value: Instant",
+        "documentation": "Value to inspect or convert; units and bounds are described above."
+      },
+      {
+        "label": "zone: TimeZone",
+        "documentation": "Explicit named or fixed-offset time zone."
+      }
+    ],
+    "documentation": "Returns the signed offset east of UTC at value in zone, including historical or daylight-saving changes. The result is seconds, not minutes. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {offsetSeconds,parseISO,parseTimeZone} from \"std:date\"; function main(){const instant=unwrap(parseISO(\"2024-11-03T05:30:00Z\"));const zone=unwrap(parseTimeZone(\"America/New_York\"));console.log(offsetSeconds(instant,zone));}\n```\n\nExpected output: -14400. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {offsetSeconds,parseISO,parseTimeZone} from \"std:date\"; function main(){const instant=unwrap(parseISO(\"2024-11-03T05:30:00Z\"));const zone=unwrap(parseTimeZone(\"America/New_York\"));console.log(offsetSeconds(instant,zone));}",
+        "output": "-14400\n"
+      }
+    ]
+  },
+  {
+    "name": "localDate",
+    "signature": "localDate(value: Instant, zone: TimeZone): Result<Date, DateError>",
+    "parameters": [
+      {
+        "label": "value: Instant",
+        "documentation": "Value to inspect or convert; units and bounds are described above."
+      },
+      {
+        "label": "zone: TimeZone",
+        "documentation": "Explicit named or fixed-offset time zone."
+      }
+    ],
+    "documentation": "Returns the calendar date observed at a UTC instant in zone. Range rejects a local date outside years 0001..9999, including near UTC boundary years. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {formatDate,localDate,parseISO,parseTimeZone} from \"std:date\"; function main(){const instant=unwrap(parseISO(\"2024-11-03T05:30:00Z\"));const zone=unwrap(parseTimeZone(\"America/New_York\"));console.log(formatDate(unwrap(localDate(instant,zone))));}\n```\n\nExpected output: 2024-11-03. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {formatDate,localDate,parseISO,parseTimeZone} from \"std:date\"; function main(){const instant=unwrap(parseISO(\"2024-11-03T05:30:00Z\"));const zone=unwrap(parseTimeZone(\"America/New_York\"));console.log(formatDate(unwrap(localDate(instant,zone))));}",
+        "output": "2024-11-03\n"
+      }
+    ]
+  },
+  {
+    "name": "localTime",
+    "signature": "localTime(value: Instant, zone: TimeZone): Result<Time, DateError>",
+    "parameters": [
+      {
+        "label": "value: Instant",
+        "documentation": "Value to inspect or convert; units and bounds are described above."
+      },
+      {
+        "label": "zone: TimeZone",
+        "documentation": "Explicit named or fixed-offset time zone."
+      }
+    ],
+    "documentation": "Returns the local time of day observed at a UTC instant in zone, preserving nanoseconds. Range rejects internal date-time overflow. No calendar date is retained in the result. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {formatTime,localTime,parseISO,parseTimeZone} from \"std:date\"; function main(){const instant=unwrap(parseISO(\"2024-11-03T05:30:00Z\"));const zone=unwrap(parseTimeZone(\"America/New_York\"));console.log(formatTime(unwrap(localTime(instant,zone))));}\n```\n\nExpected output: 01:30:00. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {formatTime,localTime,parseISO,parseTimeZone} from \"std:date\"; function main(){const instant=unwrap(parseISO(\"2024-11-03T05:30:00Z\"));const zone=unwrap(parseTimeZone(\"America/New_York\"));console.log(formatTime(unwrap(localTime(instant,zone))));}",
+        "output": "01:30:00\n"
+      }
+    ]
+  },
+  {
+    "name": "resolveDateTime",
+    "signature": "resolveDateTime(date: Date, time: Time, zone: TimeZone, disambiguation: string): Result<Instant, DateError>",
+    "parameters": [
+      {
+        "label": "date: Date",
+        "documentation": "Validated Gregorian calendar date."
+      },
+      {
+        "label": "time: Time",
+        "documentation": "Validated time of day with nanosecond precision."
+      },
+      {
+        "label": "zone: TimeZone",
+        "documentation": "Explicit named or fixed-offset time zone."
+      },
+      {
+        "label": "disambiguation: string",
+        "documentation": "Required policy: reject, earlier or later. Gaps always reject."
+      }
+    ],
+    "documentation": "Combines a calendar date, time of day and zone into a UTC instant. All arguments are required. disambiguation must be reject, earlier or later; otherwise returns Disambiguation. A repeated local time returns AmbiguousTime for reject, or selects the chronologically earlier/later instant explicitly. A gap always returns NonexistentTime for every policy. Range rejects UTC years outside 0001..9999. No silent DST adjustment is performed. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {formatISO,parseDate,parseTime,parseTimeZone,resolveDateTime} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-11-03\"));const time=unwrap(parseTime(\"01:30:00\"));const zone=unwrap(parseTimeZone(\"America/New_York\"));console.log(formatISO(unwrap(resolveDateTime(date,time,zone,'later'))));}\n```\n\nExpected output: 2024-11-03T06:30:00Z. Ownership: object and string inputs are borrowed; returned objects own independent values. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {formatISO,parseDate,parseTime,parseTimeZone,resolveDateTime} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-11-03\"));const time=unwrap(parseTime(\"01:30:00\"));const zone=unwrap(parseTimeZone(\"America/New_York\"));console.log(formatISO(unwrap(resolveDateTime(date,time,zone,'later'))));}",
+        "output": "2024-11-03T06:30:00Z\n"
+      }
+    ]
+  },
+  {
+    "name": "Time",
+    "signature": "Time",
+    "documentation": "Opaque time of day with nanosecond precision and no date or zone. Create with parseTime. Leap seconds and 24:00 are unsupported. Direct object construction, field access, implicit JSON/SQL conversion and collection keys are unsupported. Arrays, records, nullable values and owned worker transfer are supported.\n\n```tsrust\nimport {Time} from \"std:date\";function main(){}\n```\n\nExpected output: none. Ownership: owned value with ordinary scope cleanup; clone explicitly for an independent owner.",
+    "examples": [
+      {
+        "source": "import {Time} from \"std:date\";function main(){}",
+        "output": ""
+      }
+    ]
+  },
+  {
+    "name": "Instant",
+    "signature": "Instant",
+    "documentation": "Opaque exact UTC instant within years 0001..9999, preserving nanoseconds. Create with parseISO, epoch constructors or now. Input offsets are not retained. Direct object construction, field access, implicit JSON/SQL conversion and collection keys are unsupported. Arrays, records, nullable values and owned worker transfer are supported.\n\n```tsrust\nimport {Instant} from \"std:date\";function main(){}\n```\n\nExpected output: none. Ownership: owned value with ordinary scope cleanup; clone explicitly for an independent owner.",
+    "examples": [
+      {
+        "source": "import {Instant} from \"std:date\";function main(){}",
+        "output": ""
+      }
+    ]
+  },
+  {
+    "name": "Duration",
+    "signature": "Duration",
+    "documentation": "Opaque signed elapsed duration stored as signed 64-bit nanoseconds, approximately ±292 years. Create with explicit unit constructors. Calendar months and date periods are separate operations. Direct object construction, field access, implicit JSON/SQL conversion and collection keys are unsupported. Arrays, records, nullable values and owned worker transfer are supported.\n\n```tsrust\nimport {Duration} from \"std:date\";function main(){}\n```\n\nExpected output: none. Ownership: owned value with ordinary scope cleanup; clone explicitly for an independent owner.",
+    "examples": [
+      {
+        "source": "import {Duration} from \"std:date\";function main(){}",
+        "output": ""
+      }
+    ]
+  },
+  {
+    "name": "TimeZone",
+    "signature": "TimeZone",
+    "documentation": "Opaque named IANA zone or fixed UTC offset. Create with parseTimeZone or fixedOffset. A named zone has date-dependent offsets; no system-local zone is inferred. Direct object construction, field access, implicit JSON/SQL conversion and collection keys are unsupported. Arrays, records, nullable values and owned worker transfer are supported.\n\n```tsrust\nimport {TimeZone} from \"std:date\";function main(){}\n```\n\nExpected output: none. Ownership: owned value with ordinary scope cleanup; clone explicitly for an independent owner.",
+    "examples": [
+      {
+        "source": "import {TimeZone} from \"std:date\";function main(){}",
         "output": ""
       }
     ]

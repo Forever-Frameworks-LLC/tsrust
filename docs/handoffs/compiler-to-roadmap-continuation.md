@@ -9,14 +9,19 @@ transport, editor agreement/help, 13 native catalog examples, offline package
 export and matched untimed money checks. See `docs/data-type-coverage.md`.
 Installed CLI/LSP consumers are refreshed; open decimal examples report no
 problems after the active server restart. SQLite holds `tsrust-decimal-*` evidence.
-Current CLI SHA-256: `8e3f5574edbaaf12405c9354f0e337defcfbc9cdb3c7a67bee53c06040e72ff4`.
-Current LSP SHA-256: `f725874000046aa726ef94d86eb87cbcb440fd3fd782b85abfc8002fe9e164f1`.
+Current CLI SHA-256: `b6c43ceeda52a916c2881c67504bcd2b80847d30ca6019ddf526b019c9a2a773`.
+Current LSP SHA-256: `522919b34320e69d59ec46e3de4ce0219fb1114be238f31263992679e9008e39`.
 The `std:date` calendar section now passes focused acceptance: validated Date,
 parseDate/formatDate, date-fns-style immutable arithmetic, bounded formatting,
 editor agreement, 15 catalog examples, offline export and matched untimed date-fns
 workload. The original fixture failure and repaired pass remain in SQLite under
 `tsrust-calendar-*`. Installed consumers are refreshed; VS Code shows no problems.
-Time of day, instants, time-zone and duration types are next. The owner prefers date-fns: use small
+Temporal values also pass focused acceptance: Time, Instant, Duration and TimeZone,
+exact nanoseconds, checked epoch conversion, explicit DST gaps/folds and named/fixed
+zones. Chrono-TZ 0.10.4 pins IANA 2025b; later zone-rule changes are not included.
+Four compiler/export checks, 31 native docs examples, runtime/editor checks and
+matched millisecond workload pass. Current installed consumers include this section.
+UUID and practical Rust/SQL boundary witnesses are next. The owner prefers date-fns: use small
 named immutable functions and familiar arithmetic/formatting names, while keeping
 checked ranges, precision and explicit DST ambiguity handling. Continue UUID,
 Rust/SQL boundary witnesses, then S19–S21 without another go-ahead.

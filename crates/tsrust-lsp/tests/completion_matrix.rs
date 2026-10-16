@@ -11,6 +11,7 @@ use support::session::Session;
 /// `every_kind_and_std_module_has_a_row` fails otherwise.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Kind {
+    Temporal,
     Date,
     Decimal,
     Numeric,
@@ -50,7 +51,8 @@ enum Kind {
     MemberPrefix,
 }
 
-const KINDS: [Kind; 37] = [
+const KINDS: [Kind; 38] = [
+    Kind::Temporal,
     Kind::Date,
     Kind::Decimal,
     Kind::Numeric,
@@ -121,9 +123,14 @@ const TAIL: &str = "\n}\n";
 fn rows() -> Vec<Row> {
     let row = |kind, name, typed, includes, excludes| Row { kind, name, before: HEAD.into(), typed, after: TAIL, includes, excludes, silent: None, needs_check: false };
     let mut rows = vec![
+ Row {kind:Kind::Temporal,name:"temporal imports",before:"import { ".into(),typed:"",after:" } from 'std:date';function main(){}",includes:&["parseTime","formatTime","compareTimes","parseISO","formatISO","now","fromUnixMilliseconds","toUnixMilliseconds","fromUnixSeconds","toUnixSeconds","compareInstants","durationFromNanoseconds","durationFromMilliseconds","durationFromSeconds","durationToNanoseconds","durationToMilliseconds","addDurations","subtractDurations","addDuration","difference","parseTimeZone","fixedOffset","zoneName","offsetSeconds","localDate","localTime","resolveDateTime"],excludes:&["setHours"],silent:None,needs_check:false},
  Row {kind:Kind::Date,name:"calendar imports",before:"import { ".into(),typed:"",after:" } from 'std:date';function main(){}",includes:&["parseDate","formatDate","format","addDays","addMonths","differenceInCalendarDays","compareAsc","isLeapYear","getYear","getMonth","getDate","startOfMonth","endOfMonth"],excludes:&["parse","round"],silent:None,needs_check:false},
  Row {kind:Kind::Decimal,name:"decimal imports",before:"import { ".into(),typed:"",after:" } from 'std:decimal';function main(){}",includes:&["parseDecimal","fromInt","format","formatFixed","add","subtract","multiply","divideExact","compare","toInt","toNumber"],excludes:&["parse","round"],silent:None,needs_check:false},
  Row {kind:Kind::Date,name:"calendar error",before:"import {DateError} from 'std:date';function probe(error:ReadOnly<DateError>){".into(),typed:"error.",after:"code;}function main(){}",includes:&["code","message"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+ Row {kind:Kind::Temporal,name:"temporal Time opaque",before:"import {Time} from 'std:date';function probe(value:ReadOnly<Time>){".into(),typed:"value.",after:";}function main(){}",includes:&[],excludes:NOT_MEMBERS,silent:Some("Opaque temporal operations use named module functions."),needs_check:true},
+ Row {kind:Kind::Temporal,name:"temporal Instant opaque",before:"import {Instant} from 'std:date';function probe(value:ReadOnly<Instant>){".into(),typed:"value.",after:";}function main(){}",includes:&[],excludes:NOT_MEMBERS,silent:Some("Opaque temporal operations use named module functions."),needs_check:true},
+ Row {kind:Kind::Temporal,name:"temporal Duration opaque",before:"import {Duration} from 'std:date';function probe(value:ReadOnly<Duration>){".into(),typed:"value.",after:";}function main(){}",includes:&[],excludes:NOT_MEMBERS,silent:Some("Opaque temporal operations use named module functions."),needs_check:true},
+ Row {kind:Kind::Temporal,name:"temporal TimeZone opaque",before:"import {TimeZone} from 'std:date';function probe(value:ReadOnly<TimeZone>){".into(),typed:"value.",after:";}function main(){}",includes:&[],excludes:NOT_MEMBERS,silent:Some("Opaque temporal operations use named module functions."),needs_check:true},
  Row {kind:Kind::Date,name:"calendar opaque",before:"import {Date} from 'std:date';function probe(value:ReadOnly<Date>){".into(),typed:"value.",after:";}function main(){}",includes:&[],excludes:NOT_MEMBERS,silent:Some("Opaque calendar operations use named module functions."),needs_check:true},
  Row {kind:Kind::Decimal,name:"decimal error",before:"import {DecimalError} from 'std:decimal';function probe(error:ReadOnly<DecimalError>){".into(),typed:"error.",after:"code;}function main(){}",includes:&["code","message"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
  Row {kind:Kind::Decimal,name:"decimal opaque",before:"import {Decimal} from 'std:decimal';function probe(value:ReadOnly<Decimal>){".into(),typed:"value.",after:";}function main(){}",includes:&[],excludes:NOT_MEMBERS,silent:Some("Opaque decimal operations use named module functions."),needs_check:true},

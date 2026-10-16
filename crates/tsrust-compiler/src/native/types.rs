@@ -243,6 +243,10 @@ static ENV_ERROR: Declaration = Declaration {
         Field { name: "message", signature: Signature::String, optional: false },
     ], ..FS_ERROR
 };
+static TIMEOFDAY: Declaration = Declaration {id:NativeTypeId::TimeOfDay,module:"std:date",name:"Time",..BYTES};
+static UTCINSTANT: Declaration = Declaration {id:NativeTypeId::UtcInstant,module:"std:date",name:"Instant",..BYTES};
+static TIMEDURATION: Declaration = Declaration {id:NativeTypeId::TimeDuration,module:"std:date",name:"Duration",..BYTES};
+static TIMEZONE: Declaration = Declaration {id:NativeTypeId::TimeZone,module:"std:date",name:"TimeZone",..BYTES};
 static CALENDAR_DATE: Declaration = Declaration {id:NativeTypeId::CalendarDate,module:"std:date",name:"Date",..BYTES};
 static DATE_ERROR: Declaration = Declaration {id:NativeTypeId::DateError,module:"std:date",name:"DateError",..ENV_ERROR};
 static DECIMAL: Declaration = Declaration {id:NativeTypeId::Decimal,module:"std:decimal",name:"Decimal",..BYTES};
@@ -416,6 +420,10 @@ NativeTypeId::HttpApp => &HTTPAPP,
         NativeTypeId::FsError => &FS_ERROR,
         NativeTypeId::EnvError => &ENV_ERROR,
         NativeTypeId::NumericError => &NUMERIC_ERROR,
+        NativeTypeId::TimeOfDay => &TIMEOFDAY,
+        NativeTypeId::UtcInstant => &UTCINSTANT,
+        NativeTypeId::TimeDuration => &TIMEDURATION,
+        NativeTypeId::TimeZone => &TIMEZONE,
         NativeTypeId::CalendarDate => &CALENDAR_DATE,
         NativeTypeId::DateError => &DATE_ERROR,
         NativeTypeId::Decimal => &DECIMAL,
@@ -443,7 +451,7 @@ NativeTypeId::HttpApp => &HTTPAPP,
 /// Exact module/name lookup does not grant aliases a new declaration identity.
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
-    [&CALENDAR_DATE,&DATE_ERROR,&DECIMAL,&DECIMAL_ERROR,&NUMERIC_ERROR,&TRACKED_RESOURCE,&SQLPOOL,&SQLTRANSACTION,&SQLROW,&SQLERROR,&SQLITECONNECTION,&SQLITESTATEMENT,&SQLITETRANSACTION,&SQLITEROW,&SQLITEERROR,&HTTPTLSOPTIONS,&HTTPCLIENTOPTIONS,&HTTPAPP,&HTTPREQUEST,&HTTPRESPONSE,&HTTPBODY,&HTTPCLIENT,&HTTPSERVER,&HTTPNEXT,&HTTPERROR,&JOB,&ASYNC_ERROR,&ASYNC_CHANNEL,&ASYNC_SENDER,&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
+    [&TIMEOFDAY,&UTCINSTANT,&TIMEDURATION,&TIMEZONE,&CALENDAR_DATE,&DATE_ERROR,&DECIMAL,&DECIMAL_ERROR,&NUMERIC_ERROR,&TRACKED_RESOURCE,&SQLPOOL,&SQLTRANSACTION,&SQLROW,&SQLERROR,&SQLITECONNECTION,&SQLITESTATEMENT,&SQLITETRANSACTION,&SQLITEROW,&SQLITEERROR,&HTTPTLSOPTIONS,&HTTPCLIENTOPTIONS,&HTTPAPP,&HTTPREQUEST,&HTTPRESPONSE,&HTTPBODY,&HTTPCLIENT,&HTTPSERVER,&HTTPNEXT,&HTTPERROR,&JOB,&ASYNC_ERROR,&ASYNC_CHANNEL,&ASYNC_SENDER,&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
 }
 
 #[cfg(test)]

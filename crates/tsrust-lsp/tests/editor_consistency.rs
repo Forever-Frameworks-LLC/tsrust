@@ -210,3 +210,13 @@ fn calendar_help_describes_date_fns_style_arithmetic(){
  let help=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsr")},"position":{"line":0,"character":offset+call.find('(').unwrap()+1}}));assert!(!help["signatures"].as_array().unwrap().is_empty(),"{help}");
  }
 }
+
+#[test]
+fn temporal_help_explains_dst_and_exact_units(){
+ let text="import {parseISO,toUnixMilliseconds,resolveDateTime,parseDate,parseTime,parseTimeZone,durationFromMilliseconds} from 'std:date';function main(){const value=unwrap(parseISO('2024-01-01T00:00:00Z'));toUnixMilliseconds(value);durationFromMilliseconds(1);resolveDateTime(unwrap(parseDate('2024-11-03')),unwrap(parseTime('01:30:00')),unwrap(parseTimeZone('America/New_York')),'reject');}";
+ let mut session=Session::start(&[]);session.open("main.tsr",text);session.settle();
+ for (call,expected) in [("parseISO('2024","mandatory"),("toUnixMilliseconds(value","Precision"),("durationFromMilliseconds(1)","nanoseconds"),("resolveDateTime(unwrap","NonexistentTime")]{
+ let offset=text.rfind(call).unwrap();assert!(session.hover("main.tsr",text,offset+1).unwrap_or_default().contains(expected),"{call}");
+ let help=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsr")},"position":{"line":0,"character":offset+call.find('(').unwrap()+1}}));assert!(!help["signatures"].as_array().unwrap().is_empty(),"{help}");
+ }
+}

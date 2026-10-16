@@ -28,6 +28,10 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
+Receiver {ty:"Time",parameter:"x: ReadOnly<Time>"},
+Receiver {ty:"Instant",parameter:"x: ReadOnly<Instant>"},
+Receiver {ty:"Duration",parameter:"x: ReadOnly<Duration>"},
+Receiver {ty:"TimeZone",parameter:"x: ReadOnly<TimeZone>"},
 Receiver {ty:"Date",parameter:"x: ReadOnly<Date>"},
 Receiver {ty:"DateError",parameter:"x: ReadOnly<DateError>"},
 Receiver {ty:"Decimal",parameter:"x: ReadOnly<Decimal>"},
@@ -108,7 +112,7 @@ fn prelude(parameter: &str) -> String {
     // Only the resource row needs the bundled testing implementation in every probe.
     let testing = if parameter.contains("TrackedResource") { "import {TrackedResource} from 'std:testing';\n" } else { "" };
     let numeric=if parameter.contains("NumericError"){ "import {NumericError} from 'std:numeric';\n" }else{""};
-    let date=if parameter.contains("Date"){ "import {Date,DateError} from 'std:date';\n" }else{""};
+    let date=if ["Date","Time","Instant","Duration"].iter().any(|name|parameter.contains(name)){ "import {Date,DateError,Time,Instant,Duration,TimeZone} from 'std:date';\n" }else{""};
     let decimal=if parameter.contains("Decimal"){ "import {Decimal,DecimalError} from 'std:decimal';\n" }else{""};
     format!("{date}{decimal}{numeric}{testing}{PRELUDE}")
 }
