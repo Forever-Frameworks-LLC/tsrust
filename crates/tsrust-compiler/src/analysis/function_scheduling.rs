@@ -265,6 +265,9 @@ impl Analyzer {
     }
 
     pub(super) fn complete_named_parameters(&mut self, index: usize, context: &mut Context, body: &[Stmt]) -> Type {
+        if self.program.local_declarations.is_empty() && self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::LruCache)) {
+            context.cache_last_uses=cache::last_uses(body).map(std::rc::Rc::new);
+        }
         for (position, access) in self.program.functions[index].parameter_access.iter().enumerate() {
             if matches!(access, Some((Mode::Read, _))) && !context.bindings[position].ty.is_copy() {
                 context.readonly_parameters.insert(position);

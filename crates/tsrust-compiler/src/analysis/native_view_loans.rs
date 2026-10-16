@@ -88,7 +88,9 @@ impl Analyzer {
                 continue;
             }
             for loan in binding.native_view_loans.as_deref().into_iter().flatten() {
-                if loan.retained
+                let finished_cache_read=context.cache_read_owners.contains(&(loan.root,loan.owner_fields.clone()))
+                    && context.cache_last_uses.as_ref().is_some_and(|uses|uses.get(&binding.name).is_none_or(|end|*end<=span.start));
+                if loan.retained && !finished_cache_read
                     && loan.root == root
                     && native_view_places::overlaps(&loan.owner_fields, fields)
                     && native_view_projections::possible(context, holder, loan)
@@ -351,6 +353,12 @@ impl Analyzer {
                     if value.target==Some(CallTarget::JsonStringView) {
                         result.extend(Self::native_view_source_loans(context,&args[0],ReturnedBorrow{source_parameter:0,access:BorrowAccess::ReadOnly,payload:crate::native_signatures::NativeTypeId::StringView,slot:crate::native_return_borrows::ReturnSlot::Direct})?);
                     }
+                    if let Some(CallTarget::NativeBinding(id))=value.target
+                        && crate::native_bindings::BINDINGS[id].module=="std:cache"
+                        && matches!(crate::native_bindings::BINDINGS[id].name,"__get"|"__peek")
+                        && matches!(value.ty,Some(Type::BorrowedUnion(_))) {
+                        result.extend(Self::native_storage_source_loans(context,&args[0],BorrowAccess::Exclusive)?);
+                    }
                     if let Some(CallTarget::NativeBinding(id)) = value.target
                         && let Some(contract) = crate::native_bindings::BINDINGS[id].returned_borrow
                     {
@@ -475,6 +483,9 @@ impl Analyzer {
         source: &Expr,
         contract: ReturnedBorrow,
     ) -> Result<Vec<Loan>, Diagnostic> {
+        Self::native_storage_source_loans(context,source,contract.access)
+    }
+    pub(super) fn native_storage_source_loans(context:&Context,source:&Expr,access:BorrowAccess)->Result<Vec<Loan>,Diagnostic>{
         let places = native_view_places::sources(context, source)?;
         let mut result = Self::native_view_value_loans(context, source)?;
         for loan in &mut result {
@@ -489,7 +500,7 @@ impl Analyzer {
                 root: place.root,
                 owner_fields: place.fields,
                 source: LifetimeSource::Storage,
-                access: contract.access,
+                access,
                 creation: source.span,
                 retained: true,
                 path: Vec::new(),

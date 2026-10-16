@@ -1,0 +1,32 @@
+import { LruCache } from 'std:cache';
+import { monotonicNow } from 'std:time';
+
+function batch(): int {
+  let checksum = 0;
+  const cache = new LruCache<int, int>(16);
+  for (let i = 0; i < 256; i += 1) {
+    unwrap(cache.set(i, i * 3));
+    const found = cache.get(i);
+    if (found !== undefined) {
+      checksum += found;
+    }
+  }
+
+  checksum += cache.size();
+  cache.clear();
+  return checksum;
+}
+
+function main() {
+  for (let warmup = 0; warmup < 8; warmup += 1) {
+    batch();
+  }
+
+  for (let sample = 0; sample < 31; sample += 1) {
+    const start = monotonicNow();
+    const checksum = batch();
+    const elapsed = monotonicNow() - start;
+    console.log(checksum);
+    console.log(elapsed);
+  }
+}

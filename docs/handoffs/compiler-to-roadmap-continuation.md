@@ -1,7 +1,7 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
 
-## Current acceptance and continuation — 2026-10-15
+## Current acceptance and continuation — 2026-10-16
 
 Exact decimals now pass focused macOS acceptance: `std:decimal.parseDecimal`,
 exact bounded arithmetic, checked conversions, explicit cloning and worker
@@ -9,8 +9,8 @@ transport, editor agreement/help, 13 native catalog examples, offline package
 export and matched untimed money checks. See `docs/data-type-coverage.md`.
 Installed CLI/LSP consumers are refreshed; open decimal examples report no
 problems after the active server restart. SQLite holds `tsrust-decimal-*` evidence.
-Current CLI SHA-256: `a8135a2ee71318ad7533bacf4bec35063c68f1cdda45c442047fad2a3d832df9`.
-Current LSP SHA-256: `837554af3dbeb649b08bf86a8ae2563a52212ddb08b47e5f6f80f5eb98382ccd`.
+Current CLI SHA-256: `75995737136d9a24fc76a3e54a4e54ae21855bd0fdf726da703d416fd86e28dd`.
+Current LSP SHA-256: `5aa65b77b42d91ad427111a8ae153647b775ae38623a8a456bf0c67e3d88512d`.
 The `std:date` calendar section now passes focused acceptance: validated Date,
 parseDate/formatDate, date-fns-style immutable arithmetic, bounded formatting,
 editor agreement, 15 catalog examples, offline export and matched untimed date-fns
@@ -33,7 +33,14 @@ now pass; see `docs/data-type-coverage.md` for retained original failures and fi
 evidence. The five accumulated workloads are measured at `b911a378`: 930 samples
 with checksum agreement, exact records and derived summaries in SQLite. Native
 medians are lower in these scoped first baselines. Do not repeat this full pass.
-Continue S19 caches, S20 queues and S21 service acceptance now. No new permission checkpoint is needed. The owner prefers date-fns: use small
+The local `std:cache` API now passes focused compiler/runtime/editor acceptance.
+Normal reads handle undefined without `!`; ownership, resource destruction and
+checked TTL/capacity errors pass. See `docs/milestones/s19-local-cache-acceptance.md`
+for the conservative lifetime boundaries and exact evidence. Matched LRU
+verification passes; timing is not yet performed. Installed consumers include the
+cache API and the restarted active editor has no problems. Finish S19 concurrent
+loading/stampede policy and its family milestone, then continue S20 queues and S21
+service acceptance now. No new permission checkpoint is needed. The owner prefers date-fns: use small
 named immutable functions and familiar arithmetic/formatting names, while keeping
 checked ranges, precision and explicit DST ambiguity handling. The bounded Rust/SQL
 boundary witnesses are accepted; proceed without another go-ahead.

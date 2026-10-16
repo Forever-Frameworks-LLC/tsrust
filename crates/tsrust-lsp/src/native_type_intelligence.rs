@@ -157,7 +157,7 @@ impl SourceIndex {
             if declaration.module == "std:sqlite" {return builtins_for(&format!("Sqlite{}",declaration.name));}
             if declaration.module == "std:http" {return builtins_for(&format!("Http{}",declaration.name));}
             if declaration.module == "std:futures" {return builtins_for(&format!("{}{arguments}",match declaration.id {tsrust_compiler::native_signatures::NativeTypeId::AsyncChannel=>"AsyncChannel",tsrust_compiler::native_signatures::NativeTypeId::AsyncSender=>"AsyncSender",_=>declaration.name}));}
-            if declaration.module == "std:threads" { return builtins_for(&format!("{}{arguments}", declaration.name)); }
+            if matches!(declaration.module,"std:threads"|"std:cache") { return builtins_for(&format!("{}{arguments}", declaration.name)); }
         }
         if ty == "@namespace:std:schema#s" { return builtins_for("schemaBuilder"); }
         if ty=="__tsrust_json_string_read" {return builtins_for("string").into_iter().filter(|entry|matches!(entry["name"].as_str(),Some("length"|"startsWith"|"endsWith"|"includes"|"indexOf"|"lastIndexOf"))).collect();}

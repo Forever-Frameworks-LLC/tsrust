@@ -56,6 +56,13 @@ static THREAD: Declaration = Declaration {
     independent_clone: false, collection_key: false, thread_transfer: false,
     fields: &[], capabilities: &[],
 };
+static LRU_CACHE: Declaration = Declaration {id:NativeTypeId::LruCache,module:"std:cache",name:"LruCache",type_parameters:&["K","V"],..THREAD};
+static CACHE_ENTRY: Declaration = Declaration {id:NativeTypeId::CacheEntry,module:"std:cache",name:"CacheEntry",type_parameters:&["K","V"],fields:&[
+ Field{name:"key",signature:Signature::Parameter(0),optional:false},Field{name:"value",signature:Signature::Parameter(1),optional:false},
+],..SPAWN_ERROR};
+static CACHE_INSERT_ERROR: Declaration = Declaration {id:NativeTypeId::CacheInsertError,name:"CacheInsertError",fields:&[
+ Field{name:"code",signature:Signature::String,optional:false},Field{name:"key",signature:Signature::Parameter(0),optional:false},Field{name:"value",signature:Signature::Parameter(1),optional:false},
+],..CACHE_ENTRY};
 static SQLPOOL:Declaration=Declaration{id:NativeTypeId::SqlPool,module:"std:sql",name:"Pool",type_parameters:&[],thread_transfer:true,..THREAD};
 static SQLTRANSACTION:Declaration=Declaration{representation:Representation::Borrowed(crate::native_return_borrows::BorrowAccess::ReadOnly),id:NativeTypeId::SqlTransaction,module:"std:sql",name:"Transaction",type_parameters:&[],thread_transfer:true,..THREAD};
 static SQLROW:Declaration=Declaration{id:NativeTypeId::SqlRow,module:"std:sql",name:"Row",type_parameters:&[],thread_transfer:true,..THREAD};
@@ -368,6 +375,7 @@ static HEAP: Declaration = Declaration {
 /// Exhaustive identity lookup prevents missing declarations as IDs are added.
 pub fn declaration(id: NativeTypeId) -> &'static Declaration {
     match id {
+        NativeTypeId::LruCache => &LRU_CACHE, NativeTypeId::CacheEntry => &CACHE_ENTRY, NativeTypeId::CacheInsertError => &CACHE_INSERT_ERROR,
         NativeTypeId::HttpTlsOptions => &HTTPTLSOPTIONS,
         NativeTypeId::HttpClientOptions => &HTTPCLIENTOPTIONS,
         NativeTypeId::SqlPool => &SQLPOOL,
@@ -455,7 +463,7 @@ NativeTypeId::HttpApp => &HTTPAPP,
 /// Exact module/name lookup does not grant aliases a new declaration identity.
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
-    [&UUID,&UUID_ERROR,&TIMEOFDAY,&UTCINSTANT,&TIMEDURATION,&TIMEZONE,&CALENDAR_DATE,&DATE_ERROR,&DECIMAL,&DECIMAL_ERROR,&NUMERIC_ERROR,&TRACKED_RESOURCE,&SQLPOOL,&SQLTRANSACTION,&SQLROW,&SQLERROR,&SQLITECONNECTION,&SQLITESTATEMENT,&SQLITETRANSACTION,&SQLITEROW,&SQLITEERROR,&HTTPTLSOPTIONS,&HTTPCLIENTOPTIONS,&HTTPAPP,&HTTPREQUEST,&HTTPRESPONSE,&HTTPBODY,&HTTPCLIENT,&HTTPSERVER,&HTTPNEXT,&HTTPERROR,&JOB,&ASYNC_ERROR,&ASYNC_CHANNEL,&ASYNC_SENDER,&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
+    [&LRU_CACHE,&CACHE_ENTRY,&CACHE_INSERT_ERROR,&UUID,&UUID_ERROR,&TIMEOFDAY,&UTCINSTANT,&TIMEDURATION,&TIMEZONE,&CALENDAR_DATE,&DATE_ERROR,&DECIMAL,&DECIMAL_ERROR,&NUMERIC_ERROR,&TRACKED_RESOURCE,&SQLPOOL,&SQLTRANSACTION,&SQLROW,&SQLERROR,&SQLITECONNECTION,&SQLITESTATEMENT,&SQLITETRANSACTION,&SQLITEROW,&SQLITEERROR,&HTTPTLSOPTIONS,&HTTPCLIENTOPTIONS,&HTTPAPP,&HTTPREQUEST,&HTTPRESPONSE,&HTTPBODY,&HTTPCLIENT,&HTTPSERVER,&HTTPNEXT,&HTTPERROR,&JOB,&ASYNC_ERROR,&ASYNC_CHANNEL,&ASYNC_SENDER,&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
 }
 
 #[cfg(test)]

@@ -107,6 +107,7 @@ impl NativeBinding {
     }
 }
 pub const BINDINGS: &[NativeBinding] = &[
+    crate::stdlib::cache::CREATE, crate::stdlib::cache::GET, crate::stdlib::cache::PEEK, crate::stdlib::cache::SET, crate::stdlib::cache::REMOVE, crate::stdlib::cache::SIZE, crate::stdlib::cache::CLEAR,
     crate::stdlib::sql::CONNECT,
     crate::stdlib::sql::CONNECT_POLL,
     crate::stdlib::sql::BEGIN,

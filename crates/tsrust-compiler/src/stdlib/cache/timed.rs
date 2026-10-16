@@ -11,6 +11,7 @@ pub struct Timed<K,V,P,C> {storage:Lru<K,V,P>,clock:C}
 impl<K,V,P:KeyPolicy<K>,C:FnMut()->Instant> Timed<K,V,P,C> {
  pub fn new(storage:Lru<K,V,P>,clock:C)->Self{Self{storage,clock}}
  fn expire(&mut self){let now=(self.clock)();drop(self.storage.expire(now));}
+ pub fn clear(&mut self){self.storage.clear();}
  pub fn len(&mut self)->usize{self.expire();self.storage.len()}
  pub fn get(&mut self,key:&K)->Option<&V>{self.expire();self.storage.get(key)}
  pub fn peek(&mut self,key:&K)->Option<&V>{self.expire();self.storage.peek(key)}

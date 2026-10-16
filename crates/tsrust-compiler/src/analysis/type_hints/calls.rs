@@ -101,6 +101,12 @@ fn method<'a>(analyzer:&Analyzer,context:&Context,expr:&'a Expr,receiver:Option<
     }
     if let ExprKind::Field(_,member)=&callee.kind && let Some(result)=http_result(analyzer,receiver,member,false){*value=Some(result);return;}
     let ExprKind::Call(callee,arguments)=&expr.kind else{unreachable!()};let ExprKind::Field(base,name)=&callee.kind else{unreachable!()};
+    if let Some(Type::Record(id))=receiver && analyzer.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::LruCache){
+        *value=match name.as_str() {
+            "get"|"peek"=>analyzer.unions.intern([analyzer.program.records[id].application.as_ref().expect("applied cache").resolved_arguments[1],Type::Undefined],expr.span).ok().map(|ty|if ty.is_copy(){ty}else{Type::BorrowedUnion(ty.union().unwrap())}),
+            "size"=>Some(Type::Int),"clear"=>Some(Type::Void),_=>None,
+        };return;
+    }
     if let Some(Type::Record(id))=receiver && analyzer.program.records[id].native_element().is_some(){*value=analyzer.native_collection_method_hint(id,name,expr.span);return;}
     if let Some(Type::Map(id))=receiver{
         *value=analyzer.map_method_type(id,name,expr.span).ok().and_then(|result|{

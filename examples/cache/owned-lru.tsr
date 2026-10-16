@@ -1,0 +1,104 @@
+import { LruCache } from 'std:cache';
+import { strictEqual, trackedResource, TrackedResource, releaseCount, resourceId } from 'std:testing';
+
+function main() {
+  const cache = new LruCache<string, string>(2);
+  strictEqual(unwrap(cache.set('a', 'one')) === undefined, true);
+  unwrap(cache.set('b', 'two'));
+  const read = cache.get('a');
+  if (read !== undefined) {
+    strictEqual(read, 'one');
+  } else {
+    throw 'missing a';
+  }
+
+  const evicted = unwrap(cache.set('c', 'three'))!;
+  strictEqual(evicted.key, 'b');
+  strictEqual(evicted.value, 'two');
+  const peeked = cache.peek('a');
+  if (peeked !== undefined) {
+    strictEqual(peeked, 'one');
+  } else {
+    throw 'missing a';
+  }
+
+  const replaced = unwrap(cache.set('a', 'updated'))!;
+  strictEqual(replaced.value, 'one');
+  const updated = cache.get('a');
+  if (updated !== undefined) {
+    const saved = clone(updated);
+    cache.clear();
+    strictEqual(saved, 'updated');
+  } else {
+    throw 'missing a';
+  }
+
+  strictEqual(cache.size(), 0);
+  match (cache.set('bad', 'original', 0)) {
+    Ok(_) => {
+      throw 'invalid TTL accepted';
+    },
+    Err(error) => {
+      strictEqual(error.code, 'ttl');
+      strictEqual(error.key, 'bad');
+      strictEqual(error.value, 'original');
+    }
+  }
+
+  strictEqual(cache.size(), 0);
+  const resources = new LruCache<int, TrackedResource>(1);
+  const first = trackedResource();
+  const firstId = resourceId(first);
+  unwrap(resources.set(1, first));
+  const second = trackedResource();
+  const secondId = resourceId(second);
+  {
+    const old = unwrap(resources.set(2, second))!;
+    strictEqual(resourceId(old.value), firstId);
+    strictEqual(releaseCount(firstId), 0);
+  }
+
+  strictEqual(releaseCount(firstId), 1);
+  strictEqual(releaseCount(secondId), 0);
+  const rejected = trackedResource();
+  const rejectedId = resourceId(rejected);
+  {
+    match (resources.set(3, rejected, -1)) {
+      Ok(_) => {
+        throw 'invalid TTL accepted';
+      },
+      Err(error) => {
+        strictEqual(resourceId(error.value), rejectedId);
+        strictEqual(releaseCount(rejectedId), 0);
+      }
+    }
+  }
+
+  strictEqual(releaseCount(rejectedId), 1);
+  const retained = resources.get(2);
+  if (retained !== undefined) {
+    strictEqual(resourceId(retained), secondId);
+  } else {
+    throw 'failed insert changed cache';
+  }
+
+  resources.clear();
+  strictEqual(releaseCount(secondId), 1);
+  const nullable = new LruCache<int, string | null>(1);
+  unwrap(nullable.set(1, null));
+  const nullValue = nullable.get(1);
+  strictEqual(nullValue === null, true);
+  nullable.clear();
+  const numbers = new LruCache<number, int>(2);
+  unwrap(numbers.set(NaN, 4));
+  const hit = numbers.get(NaN);
+  if (hit !== undefined) {
+    strictEqual(hit, 4);
+  } else {
+    throw 'missing NaN';
+  }
+
+  unwrap(numbers.set(-0, 8));
+  strictEqual(numbers.remove(0)!.value, 8);
+  console.log('cache ownership accepted');
+}

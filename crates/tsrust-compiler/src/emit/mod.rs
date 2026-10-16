@@ -11,6 +11,7 @@ mod http;
 mod sqlite;
 mod sql;
 mod channels;
+#[path="../stdlib/cache/emit.rs"] mod cache;
 mod rust_bridge;
 mod results;
 mod schema;
@@ -217,7 +218,7 @@ pub(crate) fn needs_exception_transport(program:&CheckedProgram)->bool {
         std::iter::once(&closure.function).chain(closure.methods.iter().map(|method|&method.function))))
         .filter(|function|!function.template)
         .any(|function|crate::analysis::has_exception_syntax(&function.body)
-            || crate::error_effects::checked_expressions(function).iter().any(|expression|matches!(expression.target,Some(CallTarget::ResultUnwrap(_)))))
+            || crate::error_effects::checked_expressions(function).iter().any(|expression|(matches!(expression.target,Some(CallTarget::ResultUnwrap(_))) || matches!(expression.target,Some(CallTarget::NativeBinding(id)) if crate::native_bindings::BINDINGS[id].module=="std:cache" && crate::native_bindings::BINDINGS[id].name=="__create"))))
 }
 
 pub(crate) fn validate_exception_program(program:&CheckedProgram)->Result<(),crate::Diagnostic> {
@@ -2303,6 +2304,9 @@ impl Emitter<'_> {
         for (tag,ty) in payloads.into_iter().enumerate() {
             let report=if Some(ty)==runtime {
                 "tsr_console_write(true,&std::format!(\"Uncaught {}: {} ({}:{}..{})\\n\",payload.field0.as_ref(),payload.field2.as_ref(),payload.field3.as_ref(),payload.field4,payload.field5));".to_owned()
+            } else if matches!(ty,Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::CacheInsertError)) {
+                // Rejected inputs may contain opaque resources; report the stable code without inspecting them.
+                "tsr_console_write(true,&std::format!(\"Uncaught CacheInsertError: {}\\n\",payload.field0.as_ref()));".to_owned()
             } else {
                 let value=self.console_value("payload",ty,"0",false);
                 format!("let text=tsr_console_format(&[{value}]);tsr_console_write(true,&std::format!(\"Uncaught {{text}}\\n\"));")
@@ -2371,6 +2375,7 @@ impl Emitter<'_> {
         for (index, record) in self.program.records.iter().enumerate() {
             if self.sql_record(&mut output,index) || self.http_record(&mut output,index) || self.sqlite_record(&mut output,index){continue;}
             if self.future_record(&mut output, index) { continue; }
+            if self.cache_record(&mut output,index) {continue;}
             if self.thread_record(&mut output, index) { continue; }
             if record.native_type == Some(crate::native_signatures::NativeTypeId::TestRegistry) {
                 let _ = writeln!(output, "type Record{index} = TsrTestRegistry;");
@@ -3023,6 +3028,7 @@ impl Emitter<'_> {
         {
             output.push_str(crate::runtime::STRINGS);
         }
+        if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::LruCache)){output.push_str(&crate::stdlib::cache::runtime());}
         if self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].module == "std:threads")
             || self.program.records.iter().any(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::Thread | crate::native_signatures::NativeTypeId::ScopedThread | crate::native_signatures::NativeTypeId::ThreadPool | crate::native_signatures::NativeTypeId::Channel | crate::native_signatures::NativeTypeId::Sender | crate::native_signatures::NativeTypeId::TaskContext))) {
             output.push_str(crate::stdlib::threads::RUNTIME);
@@ -7316,6 +7322,7 @@ impl Emitter<'_> {
 
     #[inline(never)]
     fn native_collection_constructor_expression(&self,fun:&CheckedFunction,expr:&Expr,mode:Mode)->String {
+        if let Some(code) = self.cache_constructor_expression(fun,expr,mode) {return code;}
         if let Some(code) = self.channel_constructor_expression(fun, expr, mode) { return code; }
         if let Some(Type::Map(_))=expr.ty {
             let native=self.native_type(expr.ty.unwrap());let code=format!("<{native}>::new()");
@@ -8563,6 +8570,7 @@ impl Emitter<'_> {
                     if let Some(call)=self.sqlite_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.http_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call) = self.future_native(fun, expr, id, args) { return call; }
+                    if let Some(call)=self.cache_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call) = self.thread_native(fun, expr, id, args) { return call; }
                     if let Some(call) = self.program_testing_native(fun, expr, id, args) { return call; }
                     if crate::native_bindings::BINDINGS[id].parameters.first().is_some_and(|p| p.ty == crate::native_bindings::NativeType::ObservedValue) {

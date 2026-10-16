@@ -12606,5 +12606,228 @@
       }
     ]
   }
-]
+],
+  "std:cache": [
+    {
+      "name": "LruCache",
+      "kind": "constructor",
+      "signature": "new LruCache<K, V>(capacity: int): LruCache<K, V>",
+      "documentation": "Creates an empty local least-recently-used cache. capacity is a positive int item limit; zero or negative capacity raises RangeError. There is no default TTL or background cleanup. This bounds entries, not payload bytes. Keys use one string, int, number, boolean or enum type; NaN keys compare equal and negative zero normalizes to positive zero. Object and mixed-union keys are unsupported. Values must own their storage; borrowed views, callbacks and task handles cannot be retained.\n\n```tsrust\nimport {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));console.log(cache.size());}\n```\n\nExpected output: 1.\n\nOwnership: The cache is uniquely owned and cannot be cloned or transferred to a worker. Non-copy values borrow read-only storage and retain an exclusive cache-owner loan until last use; no further cache operation or owner transfer is allowed during that loan. Copy scalars are independent snapshots. Last-use release applies to acyclic local bodies; loops, deferred callbacks, named capture plans and exception regions retain the lexical boundary, so use an inner block there. Use explicit clone(value) when supported, or remove to transfer ownership.",
+      "examples": [
+        {
+          "source": "import {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));console.log(cache.size());}",
+          "output": "1\n"
+        }
+      ],
+      "parameters": [
+        {
+          "label": "capacity: int",
+          "documentation": "Positive maximum number of retained entries; invalid values raise RangeError."
+        }
+      ]
+    },
+    {
+      "name": "CacheEntry",
+      "kind": "type",
+      "signature": "CacheEntry<K, V>",
+      "documentation": "An owned result record. CacheEntry contains key/value; CacheInsertError additionally contains code and preserves rejected inputs. Generic arguments match the cache key and value types.\n\n```tsrust\nimport {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));console.log(cache.remove(\"a\")!.value);}\n```\n\nExpected output: one.\n\nOwnership: The record owns its fields. No implicit sharing or cloning occurs.",
+      "examples": [
+        {
+          "source": "import {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));console.log(cache.remove(\"a\")!.value);}",
+          "output": "one\n"
+        }
+      ],
+      "parameters": []
+    },
+    {
+      "name": "CacheInsertError",
+      "kind": "type",
+      "signature": "CacheInsertError<K, V>",
+      "documentation": "An owned result record. CacheEntry contains key/value; CacheInsertError additionally contains code and preserves rejected inputs. Generic arguments match the cache key and value types.\n\n```tsrust\nimport {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));console.log(cache.remove(\"a\")!.value);}\n```\n\nExpected output: one.\n\nOwnership: The record owns its fields. No implicit sharing or cloning occurs.",
+      "examples": [
+        {
+          "source": "import {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));console.log(cache.remove(\"a\")!.value);}",
+          "output": "one\n"
+        }
+      ],
+      "parameters": []
+    }
+  ],
+  "LruCache": [
+    {
+      "name": "get",
+      "kind": "method",
+      "signature": "get(key: ReadOnly<K>): ReadOnly<V> | undefined",
+      "documentation": "Purges expired entries, looks up key, and makes a found entry most recent. Missing or expired keys return undefined. Reads never extend the insertion TTL. Requires exactly one key of the declared type.\n\n```tsrust\nimport {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));const value=cache.get(\"a\");if(value!==undefined){console.log(value);}else{console.log(\"missing\");}}\n```\n\nExpected output: one.\n\nOwnership: The cache is uniquely owned and cannot be cloned or transferred to a worker. Non-copy values borrow read-only storage and retain an exclusive cache-owner loan until last use; no further cache operation or owner transfer is allowed during that loan. Copy scalars are independent snapshots. Last-use release applies to acyclic local bodies; loops, deferred callbacks, named capture plans and exception regions retain the lexical boundary, so use an inner block there. Use explicit clone(value) when supported, or remove to transfer ownership.",
+      "examples": [
+        {
+          "source": "import {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));const value=cache.get(\"a\");if(value!==undefined){console.log(value);}else{console.log(\"missing\");}}",
+          "output": "one\n"
+        }
+      ],
+      "parameters": [
+        {
+          "label": "key: ReadOnly<K>",
+          "documentation": "Key to look up without consuming it."
+        }
+      ]
+    },
+    {
+      "name": "peek",
+      "kind": "method",
+      "signature": "peek(key: ReadOnly<K>): ReadOnly<V> | undefined",
+      "documentation": "Purges expired entries and looks up key without changing recency. Missing or expired keys return undefined. Reads never extend TTL. Requires exactly one key of the declared type.\n\n```tsrust\nimport {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));const value=cache.peek(\"a\");if(value!==undefined){console.log(value);}else{console.log(\"missing\");}}\n```\n\nExpected output: one.\n\nOwnership: The cache is uniquely owned and cannot be cloned or transferred to a worker. Non-copy values borrow read-only storage and retain an exclusive cache-owner loan until last use; no further cache operation or owner transfer is allowed during that loan. Copy scalars are independent snapshots. Last-use release applies to acyclic local bodies; loops, deferred callbacks, named capture plans and exception regions retain the lexical boundary, so use an inner block there. Use explicit clone(value) when supported, or remove to transfer ownership.",
+      "examples": [
+        {
+          "source": "import {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));const value=cache.peek(\"a\");if(value!==undefined){console.log(value);}else{console.log(\"missing\");}}",
+          "output": "one\n"
+        }
+      ],
+      "parameters": [
+        {
+          "label": "key: ReadOnly<K>",
+          "documentation": "Key to look up without consuming it."
+        }
+      ]
+    },
+    {
+      "name": "set",
+      "kind": "method",
+      "signature": "set(key: K, value: V, ttlMs?: int): Result<CacheEntry<K, V> | undefined, CacheInsertError<K, V>>",
+      "documentation": "Inserts an owned entry as most recent. ttlMs, when supplied, must be a positive int number of monotonic milliseconds from insertion. Omission removes any previous deadline. Ok returns the replaced entry or the live least-recent entry evicted at capacity; otherwise undefined. Expired entries are disposed before capacity eviction. Err.code is \"ttl\" for a nonpositive TTL or \"deadline\" for clock overflow and returns the original key/value. Validation occurs before cleanup, replacement or eviction, so failure leaves the cache unchanged.\n\n```tsrust\nimport {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));const old=unwrap(cache.set(\"a\",\"two\"));console.log(old!.value);}\n```\n\nExpected output: one.\n\nOwnership: key and value move into the cache or returned error. Displaced entries transfer to the caller. Ignoring the result disposes its owners. The cache requires exclusive access.",
+      "examples": [
+        {
+          "source": "import {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));const old=unwrap(cache.set(\"a\",\"two\"));console.log(old!.value);}",
+          "output": "one\n"
+        }
+      ],
+      "parameters": [
+        {
+          "label": "key: K",
+          "documentation": "Owned key to store."
+        },
+        {
+          "label": "value: V",
+          "documentation": "Owned value to store."
+        },
+        {
+          "label": "ttlMs?: int",
+          "documentation": "Positive milliseconds until expiration; omission means no expiration."
+        }
+      ]
+    },
+    {
+      "name": "remove",
+      "kind": "method",
+      "signature": "remove(key: ReadOnly<K>): CacheEntry<K, V> | undefined",
+      "documentation": "Purges expired entries and removes the live entry for key. Returns its key/value record or undefined when absent. Does not clone either field. Requires exactly one key.\n\n```tsrust\nimport {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));console.log(cache.remove(\"a\")!.value);}\n```\n\nExpected output: one.\n\nOwnership: The returned entry owns both fields. The cache requires exclusive access; expired entries are disposed.",
+      "examples": [
+        {
+          "source": "import {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));console.log(cache.remove(\"a\")!.value);}",
+          "output": "one\n"
+        }
+      ],
+      "parameters": [
+        {
+          "label": "key: ReadOnly<K>",
+          "documentation": "Key to remove without consuming the lookup key."
+        }
+      ]
+    },
+    {
+      "name": "size",
+      "kind": "method",
+      "signature": "size(): int",
+      "documentation": "Purges expired entries and returns the live entry count as int. Takes no arguments. Cleanup can dispose resources, so size is a mutating method.\n\n```tsrust\nimport {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));console.log(cache.size());}\n```\n\nExpected output: 1.\n\nOwnership: Requires exclusive cache access; expired entries are disposed.",
+      "examples": [
+        {
+          "source": "import {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));console.log(cache.size());}",
+          "output": "1\n"
+        }
+      ],
+      "parameters": []
+    },
+    {
+      "name": "clear",
+      "kind": "method",
+      "signature": "clear(): void",
+      "documentation": "Disposes every retained entry and its deadline metadata. Takes no arguments and returns void. Clearing an empty cache has no effect.\n\n```tsrust\nimport {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));cache.clear();console.log(cache.size());}\n```\n\nExpected output: 0.\n\nOwnership: Requires exclusive cache access. Retained values are released exactly once; scope exit also releases all remaining entries.",
+      "examples": [
+        {
+          "source": "import {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));cache.clear();console.log(cache.size());}",
+          "output": "0\n"
+        }
+      ],
+      "parameters": []
+    }
+  ],
+  "CacheEntry": [
+    {
+      "name": "key",
+      "kind": "property",
+      "signature": "key: K",
+      "documentation": "Owned key returned by the cache operation. This property takes no arguments; reading it does not modify the record.\n\n```tsrust\nimport {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));const removed=cache.remove(\"a\");if(removed!==undefined){console.log(removed.key);}}\n```\n\nExpected output: a.\n\nOwnership: The returned record owns its key/value. Reading borrows non-copy fields; consuming transfers them.",
+      "examples": [
+        {
+          "source": "import {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));const removed=cache.remove(\"a\");if(removed!==undefined){console.log(removed.key);}}",
+          "output": "a\n"
+        }
+      ],
+      "parameters": []
+    },
+    {
+      "name": "value",
+      "kind": "property",
+      "signature": "value: V",
+      "documentation": "Owned value returned by the cache operation. This property takes no arguments; reading it does not modify the record.\n\n```tsrust\nimport {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));const removed=cache.remove(\"a\");if(removed!==undefined){console.log(removed.value);}}\n```\n\nExpected output: one.\n\nOwnership: The returned record owns its key/value. Reading borrows non-copy fields; consuming transfers them.",
+      "examples": [
+        {
+          "source": "import {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));const removed=cache.remove(\"a\");if(removed!==undefined){console.log(removed.value);}}",
+          "output": "one\n"
+        }
+      ],
+      "parameters": []
+    }
+  ],
+  "CacheInsertError": [
+    {
+      "name": "code",
+      "kind": "property",
+      "signature": "code: string",
+      "documentation": "Stable failure code: \"ttl\" or \"deadline\". This property takes no arguments; reading it does not modify the record.\n\n```tsrust\nimport {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));match(cache.set(\"bad\",\"original\",0)){Ok(_)=>{console.log(\"unexpected success\");},Err(error)=>{console.log(error.code);}}}\n```\n\nExpected output: ttl.\n\nOwnership: The returned record owns its key/value. Reading borrows non-copy fields; consuming transfers them.",
+      "examples": [
+        {
+          "source": "import {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));match(cache.set(\"bad\",\"original\",0)){Ok(_)=>{console.log(\"unexpected success\");},Err(error)=>{console.log(error.code);}}}",
+          "output": "ttl\n"
+        }
+      ],
+      "parameters": []
+    },
+    {
+      "name": "key",
+      "kind": "property",
+      "signature": "key: K",
+      "documentation": "Owned key returned by the cache operation. This property takes no arguments; reading it does not modify the record.\n\n```tsrust\nimport {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));match(cache.set(\"bad\",\"original\",0)){Ok(_)=>{console.log(\"unexpected success\");},Err(error)=>{console.log(error.key);}}}\n```\n\nExpected output: bad.\n\nOwnership: The returned record owns its key/value. Reading borrows non-copy fields; consuming transfers them.",
+      "examples": [
+        {
+          "source": "import {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));match(cache.set(\"bad\",\"original\",0)){Ok(_)=>{console.log(\"unexpected success\");},Err(error)=>{console.log(error.key);}}}",
+          "output": "bad\n"
+        }
+      ],
+      "parameters": []
+    },
+    {
+      "name": "value",
+      "kind": "property",
+      "signature": "value: V",
+      "documentation": "Owned value returned by the cache operation. This property takes no arguments; reading it does not modify the record.\n\n```tsrust\nimport {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));match(cache.set(\"bad\",\"original\",0)){Ok(_)=>{console.log(\"unexpected success\");},Err(error)=>{console.log(error.value);}}}\n```\n\nExpected output: original.\n\nOwnership: The returned record owns its key/value. Reading borrows non-copy fields; consuming transfers them.",
+      "examples": [
+        {
+          "source": "import {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));match(cache.set(\"bad\",\"original\",0)){Ok(_)=>{console.log(\"unexpected success\");},Err(error)=>{console.log(error.value);}}}",
+          "output": "original\n"
+        }
+      ],
+      "parameters": []
+    }
+  ]
 }

@@ -1,8 +1,10 @@
 # Local caches: S19
 
 S19's local owned cache depends on accepted S08/S09. Concurrent loading,
-stampede prevention and task coordination remain dependent on S14. No public
-cache API is accepted yet.
+stampede prevention and task coordination remain dependent on S14. The local public API now passes focused acceptance; see
+[local acceptance](../milestones/s19-local-cache-acceptance.md). Concurrent loading,
+stampede policy and family measurements remain pending. The backend checkpoint
+sections below retain historical evidence; their earlier next steps are superseded.
 
 ## Owned LRU storage
 
@@ -160,3 +162,19 @@ ownership tests and matched workloads. Backend evidence alone cannot close S19.
 ## Owner decision (2026-10-12)
 
 Approved: get/peek borrow stored values; explicit clone creates an owned copy when supported. Expiration cleanup occurs during cache operations. Further operations are rejected while an outstanding borrowed result is still used.
+
+## Public integration acceptance
+
+The source integration now covers constructor and operation metadata, native type
+identity, owned eviction/error records, exclusive owner loans for read-only
+lookups, editor signatures/examples and a matched scalar LRU workload. Focused source acceptance passes; the complete S19 family remains open.
+The initial public key surface deliberately accepts one scalar or enum type;
+mixed-union and object keys are diagnosed rather than emitted with incompatible
+Rust query types. Concurrent loading and stampede prevention remain outstanding.
+
+The first last-use proof is deliberately limited to acyclic local function bodies.
+Branches preserve exclusive loans until every later reference is past. Aliases
+carry their own retained loans. Loops, deferred callbacks, named capture plans and
+exception regions keep the existing lexical boundary; use an inner block to end
+a read before another cache operation there. This avoids claiming general
+nonlexical lifetime inference or weakening existing cleanup/borrow checks.

@@ -1,5 +1,6 @@
 //! Bundled standard-library modules: checked Tsrust surfaces and native backends.
 pub mod path;
+pub(crate) mod cache;
 pub(crate) mod bytes;
 pub(crate) mod os;
 pub(crate) mod testing;

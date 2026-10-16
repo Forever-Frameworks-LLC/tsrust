@@ -80,7 +80,7 @@ impl Analyzer {
                     sources.push(source);
                 } else {
                     if matches!(kind, LifetimeSource::Storage) && (matches!(binding.ty, Type::Map(_) | Type::Array(_))
-                        || matches!(binding.ty, Type::Record(id) if self.program.records[id].native_element().is_some()))
+                        || matches!(binding.ty, Type::Record(id) if (self.program.records[id].native_element().is_some() || self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::LruCache))))
                         && !binding.capture_reference
                         && binding.borrowed_place.is_none() && binding.borrowed_element.is_none()
                     {

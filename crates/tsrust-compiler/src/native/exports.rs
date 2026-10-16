@@ -31,7 +31,7 @@ impl Export {
 /// Resolve a native export without pretending a type declaration is callable.
 /// Source-name aliases belong to the importing module, never to this registry.
 pub fn lookup(module: &str, name: &str) -> Result<Export, String> {
-    if matches!(module, "std:schema" | "std:threads" | "std:futures") && name.starts_with("__") { return Err(format!("Standard-library module {module:?} does not export {name:?}.")); }
+    if matches!(module, "std:schema" | "std:threads" | "std:futures" | "std:cache") && name.starts_with("__") { return Err(format!("Standard-library module {module:?} does not export {name:?}.")); }
     if module == "std:schema" && name == "s" { return Ok(Export::Namespace(Namespace::Schema)); }
     if let Some(item) = native_types::lookup(module, name) { return Ok(Export::Type(item)); }
     if native_bindings::BINDINGS.iter().any(|item| item.module == module && item.name == name) {

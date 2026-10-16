@@ -15,6 +15,7 @@ mod http;
 mod sqlite;
 mod sql;
 mod channels;
+#[path="../stdlib/cache/check.rs"] mod cache;
 mod results;
 mod json_typed;
 mod record_union_fields;
@@ -463,6 +464,8 @@ struct Context {
     /// and their capture loans until the scope ends.
     control_stored: HashSet<usize>,
     native_view_calls: bool,
+    cache_last_uses: Option<std::rc::Rc<HashMap<String,usize>>>,
+    cache_read_owners: HashSet<(usize,Vec<String>)>,
     /// Lexical depth at which a local holding native views was declared.
     native_view_declaration_depths: HashMap<usize, usize>,
     native_view_environments: Option<Box<HashMap<usize,Vec<(usize,usize)>>>>,
@@ -536,6 +539,8 @@ impl Context {
             control_stored: HashSet::new(),
             native_recursive_shapes: None,
             native_view_calls: false,
+            cache_last_uses: None,
+            cache_read_owners: HashSet::new(),
             native_view_declaration_depths: HashMap::new(),
             native_view_environments: None,
             native_task_constructions: None,
@@ -1512,6 +1517,7 @@ impl Analyzer {
         if let Some(statement) = program.module_bindings.first() {
             return Err(Diagnostic::new("module-state", "Module storage requires program ownership lowering.", statement.span));
         }
+        crate::stdlib::cache::prepare(&mut program)?;
         crate::stdlib::threads::prepare(&mut program)?;
         crate::stdlib::http::prepare(&mut program)?;
         crate::stdlib::sqlite::prepare(&mut program)?;
@@ -1583,6 +1589,11 @@ impl Analyzer {
             &mut fields,
             &mut callables,
         )?;
+        for record in &program.records {
+            if record.native_type==Some(crate::native_signatures::NativeTypeId::LruCache) && let Some(application)=&record.application {
+                crate::stdlib::cache::validate_payload(application.resolved_arguments[1],&program.records,|id|unions.members(id),record.name.span)?;
+            }
+        }
         generic_functions.seed_checked(&program, &record_names, &unions)?;
         for (index, fun) in program.functions.iter().enumerate() {
             if [
@@ -1633,7 +1644,7 @@ impl Analyzer {
             .collect();
         let named_captures = named_capture_context::Contexts::new(&program, &function_names);
         let threads_enabled = program.records.iter().any(|record| record.native_type == Some(crate::native_signatures::NativeTypeId::Thread));
-        let native_borrow_types = program.records.iter().any(|record| record.native_type.is_some_and(|id| crate::native_types::declaration(id).borrow_access().is_some()));
+        let native_borrow_types = program.records.iter().any(|record| record.native_type.is_some_and(|id| id==crate::native_signatures::NativeTypeId::LruCache || crate::native_types::declaration(id).borrow_access().is_some()));
         let mut analyzer = Self {
             schema_choices: Default::default(),
             schema_pipelines: Default::default(),
@@ -5250,7 +5261,7 @@ impl Analyzer {
             ExprKind::ArrayOf(_, _) => unreachable!("array constructors use the shared checker worklist"),
             ExprKind::SetConstructor(_, _) | ExprKind::MapConstructor(_, _) => unreachable!("collection constructors use the shared checker stack"),
             ExprKind::NativeConstructor(_, _) => {
-                if let Some(ty) = self.future_channel_constructor(context, expr, loans, expected)? { Ok(ty) } else if let Some(ty) = self.channel_constructor(context, expr, loans, expected)? { Ok(ty) } else { self.native_collection_constructor(expr,expected) }
+                if let Some(ty) = self.cache_constructor(context, expr, loans, expected)? { Ok(ty) } else if let Some(ty) = self.future_channel_constructor(context, expr, loans, expected)? { Ok(ty) } else if let Some(ty) = self.channel_constructor(context, expr, loans, expected)? { Ok(ty) } else { self.native_collection_constructor(expr,expected) }
             },
             ExprKind::Array(values) if values.iter().any(|value| matches!(value.kind, ExprKind::Unary { op: UnaryOp::Spread, .. })) => unreachable!("array spread constructors use the shared checker worklist"),
             ExprKind::Array(_) => unreachable!("dense array literals use the shared checker worklist"),
@@ -8882,6 +8893,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         if let Some(ty) = self.sqlite_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.http_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.future_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
+        if let Some(ty) = self.cache_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.thread_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.schema_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if self.map_method_receiver(context, expr) || self.set_method_receiver(context, expr) {
