@@ -1,6 +1,6 @@
 {
   "id": "context-middleware",
-  "semanticEpoch": "context-middleware-v2",
+  "semanticEpoch": "context-middleware-v3",
   "expected": 5376,
   "protocol": {
     "processes": 3,
@@ -9,7 +9,7 @@
     "iterations": 128
   },
   "sources": {
-    "tsr": "f9d2776ece58c7d97a6d2f42794bab2b0985166e959e2fa5a9d1bd14a255ea81",
-    "ts": "94870e3ef6e6dfd9ab69131b76d53b9ae02be3a6d283ef7e779fcf77f0dd95a7"
+    "tsr": "0bbb8c90b44deaed5e360201138dc1a68303d3977e48310fa897508844235c97",
+    "ts": "f3b64199f46179616bd285334b69963f78a95782cdf5278150c2cb8efc7c1fc8"
   }
 }

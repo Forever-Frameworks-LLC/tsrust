@@ -48,7 +48,7 @@ The following are concrete gaps, not accepted service capabilities:
 
 The combined S19/S20 regression and measurement milestone, retained handler state,
 shared cache and migration recovery are accepted. Continue observability and bounded
-HTTP contracts, maintained-library authentication and integrated deployment acceptance.
+HTTP contracts, application-owned authentication policy and integrated deployment acceptance.
 Each section includes native ownership/failure witnesses, compiler/editor agreement,
 readable executable examples and relevant untimed benchmark support before checks.
 The final witness must combine these sections in an authenticated persistent service,

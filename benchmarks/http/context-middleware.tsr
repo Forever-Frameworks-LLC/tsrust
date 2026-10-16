@@ -4,22 +4,33 @@ import { monotonicNow } from 'std:time';
 type Config = {
   body: string;
 };
-async function handle(config: ReadOnly<Config>, c: Mutable<Context>): Task<Response> {
-  return c.text(clone(config.body));
+
+type Variables = {
+  body: string;
+};
+async function handle(c: Mutable<Context<Config, Variables>>): Task<Response> {
+  const body = c.get('body');
+  if (body === undefined) {
+    throw 'Missing request variable';
+  }
+
+  return c.text(clone(body));
 }
 
-async function headers(c: Mutable<Context>, next: ContextNext): Task<void> {
+async function headers(c: Mutable<Context<Config, Variables>>, next: ContextNext<Config>): Task<void> {
   c.header('x-before', 'entry');
+  const body = clone(c.env.body);
+  c.set('body', body);
   await next();
   c.header('x-after', 'exit');
 }
 
-function routes(config: Owned<Config>): Router {
-  const app = new Router();
+function routes(config: Owned<Config>): Router<Config, Variables> {
+  const app = new Router<Config, Variables>(config);
   app.use('/', headers);
   app.get('/', async (c, next) => {
     await next();
-  }, (c) => handle(config, c));
+  }, (c) => handle(c));
   return app;
 }
 

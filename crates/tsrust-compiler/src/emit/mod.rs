@@ -7352,6 +7352,7 @@ impl Emitter<'_> {
 
     #[inline(never)]
     fn native_collection_constructor_expression(&self,fun:&CheckedFunction,expr:&Expr,mode:Mode)->String {
+        if let Some(code) = self.http_constructor_expression(fun,expr,mode) {return code;}
         if let Some(code) = self.cache_constructor_expression(fun,expr,mode) {return code;}
         if let Some(code) = self.channel_constructor_expression(fun, expr, mode) { return code; }
         if let Some(Type::Map(_))=expr.ty {

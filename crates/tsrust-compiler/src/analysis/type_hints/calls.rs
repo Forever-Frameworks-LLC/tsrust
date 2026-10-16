@@ -81,7 +81,7 @@ fn regular<'a>(analyzer:&Analyzer,context:&Context,expr:&'a Expr,work:&mut Vec<W
     if let ExprKind::Name(name)=&callee.kind{
         if name=="@native:std:result#unwrap" && arguments.len()==1 {query(work,Frame::Unwrap,&arguments[0]);return;}
         if let Some((_,binding))=crate::native_bindings::by_symbol(name){
-            *value=if matches!(binding.module,"std:threads"|"std:result"|"std:futures") || binding.result==crate::native_bindings::NativeType::SharedCallback{None}else{Some(native_type(binding.result,&analyzer.program.records))};return;
+            *value=if matches!(binding.module,"std:threads"|"std:result"|"std:futures") || matches!(binding.result,crate::native_bindings::NativeType::SharedCallback|crate::native_bindings::NativeType::ObservedValue){None}else{Some(native_type(binding.result,&analyzer.program.records))};return;
         }
         if !context.names.contains_key(name) && !context.pending_names.contains(name) && !analyzer.function_names.contains_key(name)
             && let Some(member)=crate::syntax::global_number_member(name,true){*value=Some(if member.starts_with("parse"){Type::Number}else{Type::Boolean});return;}
@@ -101,6 +101,9 @@ fn method<'a>(analyzer:&Analyzer,context:&Context,expr:&'a Expr,receiver:Option<
     }
     if let ExprKind::Field(_,member)=&callee.kind && let Some(result)=http_result(analyzer,receiver,member,false){*value=Some(result);return;}
     let ExprKind::Call(callee,arguments)=&expr.kind else{unreachable!()};let ExprKind::Field(base,name)=&callee.kind else{unreachable!()};
+    if let Some(Type::Record(id))=receiver && analyzer.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::HttpContext) && name=="get" {
+        *value=(||{let ExprKind::String(key)=&arguments.first()?.kind else{return None;};let Type::Record(variables)=analyzer.program.records[id].application.as_ref()?.resolved_arguments[1]else{return None;};let ty=analyzer.program.records[variables].fields.iter().find(|field|field.name.text==*key)?.ty?;analyzer.unions.intern([ty,Type::Undefined],expr.span).ok().map(|ty|if ty.is_copy(){ty}else{Type::BorrowedUnion(ty.union().unwrap())})})();return;
+    }
     if let Some(Type::Record(id))=receiver && crate::stdlib::cache::is_cache(analyzer.program.records[id].native_type){
         *value=match name.as_str() {
             "share"=>Some(Type::Record(id)),
@@ -305,5 +308,5 @@ pub(super) fn http_result(analyzer:&Analyzer,receiver:Option<Type>,member:&str,a
  if let Some(operation)=crate::stdlib::sql::method(identity,member){if crate::stdlib::sql::asynchronous(operation)!=awaited{return None;}let binding=crate::native_bindings::lookup("std:sql",operation).ok()?;let ty=native_type(binding.result,&analyzer.program.records);return Some(if awaited{unwrapped(analyzer,ty).unwrap_or(ty)}else{ty});}
  let operation=crate::stdlib::http::method(identity,member)?;
  if crate::stdlib::http::asynchronous(operation)!=awaited{return None;}
- let binding=crate::native_bindings::lookup("std:http",operation).ok()?;let ty=native_type(binding.result,&analyzer.program.records);Some(unwrapped(analyzer,ty).unwrap_or(ty))
+ let binding=crate::native_bindings::lookup("std:http",operation).ok()?;if binding.result==crate::native_bindings::NativeType::ObservedValue{return None;}let ty=native_type(binding.result,&analyzer.program.records);Some(unwrapped(analyzer,ty).unwrap_or(ty))
 }

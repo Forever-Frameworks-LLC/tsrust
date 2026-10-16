@@ -1,4 +1,4 @@
-import { App, Request, TlsOptions } from 'std:http';
+import { Router, TlsOptions } from 'std:http';
 import { connect, Pool } from 'std:sql';
 import { Bytes } from 'std:bytes';
 import { get } from 'std:env';
@@ -8,7 +8,7 @@ import { SignalListener, listen, receive } from 'std:signals';
 import { Channel, Sender, allSettled } from 'std:futures';
 import { Event, Metrics, emptyMetrics, collect, stopTelemetry } from '../service-observability/telemetry.tsr';
 import { isToken, tokenHash } from './security.tsr';
-import { handle } from './handlers.tsr';
+import { Application, Variables, observe, originPolicy, preflight, login, requireSession, logout, readNotes, saveNotes, upload } from './handlers.tsr';
 
 type Ready = {
   kind: string;
@@ -24,16 +24,29 @@ function required(name: string): string {
   return value;
 }
 
-function routes(pool: Owned<Pool>, admin: Owned<Bytes>, origin: string, telemetry: Owned<Sender<Event>>): App {
-  const app = new App();
+function routes(pool: Owned<Pool>, admin: Owned<Bytes>, origin: string, telemetry: Owned<Sender<Event>>): Router<Application, Variables> {
+  const app = new Router<Application, Variables>({
+    pool, admin, origin, telemetry
+  });
   app.configure({
     bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100
   });
-  app.fallback((input: Request) => handle(pool, admin, clone(origin), telemetry, input));
+  app.use(observe, originPolicy);
+  app.options('*', preflight);
+  app.get('/', (c) => {
+    c.header('content-security-policy', "default-src 'none'; frame-ancestors 'none'");
+    return c.html('<!doctype html><html lang="en"><meta charset="utf-8"><title>Notes service</title><h1>Notes service</h1><p>Use the authenticated notes API.</p></html>');
+  });
+  app.get('/health', (c) => c.text('ready'));
+  app.post('/session', login);
+  app.delete('/session', requireSession, logout);
+  app.get('/notes', requireSession, readNotes);
+  app.post('/notes', requireSession, saveNotes);
+  app.post('/upload', requireSession, upload);
   return app;
 }
 
-async function serve(app: Owned<App>, signals: Owned<SignalListener>, control: Owned<Sender<Event>>, address: string, tls: TlsOptions): Task<Metrics> {
+async function serve(app: Owned<Router<Application, Variables>>, signals: Owned<SignalListener>, control: Owned<Sender<Event>>, address: string, tls: TlsOptions): Task<Metrics> {
   try {
     const server = await app.listen(address, tls);
     const ready: Ready = {

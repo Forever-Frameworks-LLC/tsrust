@@ -75,9 +75,9 @@ static SQLITEROW:Declaration=Declaration{id:NativeTypeId::SqliteRow,module:"std:
 static SQLITEERROR:Declaration=Declaration{id:NativeTypeId::SqliteError,module:"std:sqlite",name:"SqliteError",type_parameters:&[],..SPAWN_ERROR};
 
 static HTTPAPP: Declaration = Declaration {id:NativeTypeId::HttpApp,module:"std:http",name:"App",type_parameters:&[],thread_transfer:true,..THREAD};
-static HTTPROUTER: Declaration = Declaration {id:NativeTypeId::HttpRouter,name:"Router",..HTTPAPP};
-static HTTPCONTEXT: Declaration = Declaration {id:NativeTypeId::HttpContext,name:"Context",fields:&[Field{name:"req",signature:Signature::Named(NativeTypeId::HttpRequest),optional:false}],..HTTPAPP};
-static HTTPCONTEXTNEXT: Declaration = Declaration {id:NativeTypeId::HttpContextNext,name:"ContextNext",..HTTPAPP};
+static HTTPROUTER: Declaration = Declaration {id:NativeTypeId::HttpRouter,name:"Router",type_parameters:&["State","Variables"],..HTTPAPP};
+static HTTPCONTEXT: Declaration = Declaration {id:NativeTypeId::HttpContext,name:"Context",type_parameters:&["State","Variables"],fields:&[Field{name:"req",signature:Signature::Named(NativeTypeId::HttpRequest),optional:false},Field{name:"env",signature:Signature::Parameter(0),optional:false},Field{name:"res",signature:Signature::Named(NativeTypeId::HttpResponse),optional:false}],..HTTPAPP};
+static HTTPCONTEXTNEXT: Declaration = Declaration {id:NativeTypeId::HttpContextNext,name:"ContextNext",type_parameters:&["State"],..HTTPAPP};
 static HTTPREQUEST: Declaration = Declaration {id:NativeTypeId::HttpRequest,module:"std:http",name:"Request",type_parameters:&[],thread_transfer:true,..THREAD};
 static HTTPRESPONSE: Declaration = Declaration {id:NativeTypeId::HttpResponse,module:"std:http",name:"Response",type_parameters:&[],thread_transfer:true,..THREAD};
 static HTTPBODY: Declaration = Declaration {id:NativeTypeId::HttpBody,module:"std:http",name:"Body",type_parameters:&[],thread_transfer:true,..THREAD};
@@ -94,6 +94,9 @@ static HTTPFORMFIELD: Declaration = Declaration {id:NativeTypeId::HttpFormField,
 ],..SPAWN_ERROR};
 static HTTPMULTIPARTPART: Declaration = Declaration {id:NativeTypeId::HttpMultipartPart,module:"std:http",name:"MultipartPart",fields:&[
  Field{name:"name",signature:Signature::String,optional:false},Field{name:"fileName",signature:Signature::String,optional:true},Field{name:"contentType",signature:Signature::String,optional:true},Field{name:"data",signature:Signature::Named(NativeTypeId::Bytes),optional:false},
+],..SPAWN_ERROR};
+static HTTPCOOKIEOPTIONS: Declaration = Declaration {id:NativeTypeId::HttpCookieOptions,module:"std:http",name:"CookieOptions",fields:&[
+ Field{name:"path",signature:Signature::String,optional:true},Field{name:"domain",signature:Signature::String,optional:true},Field{name:"maxAge",signature:Signature::Int,optional:true},Field{name:"secure",signature:Signature::Boolean,optional:true},Field{name:"httpOnly",signature:Signature::Boolean,optional:true},Field{name:"sameSite",signature:Signature::String,optional:true},Field{name:"partitioned",signature:Signature::Boolean,optional:true},
 ],..SPAWN_ERROR};
 static HTTPSERVEROPTIONS: Declaration = Declaration {id:NativeTypeId::HttpServerOptions,module:"std:http",name:"ServerOptions",fields:&[
  Field{name:"bodyLimit",signature:Signature::Int,optional:false},
@@ -402,6 +405,7 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
         NativeTypeId::HttpClientOptions => &HTTPCLIENTOPTIONS,
         NativeTypeId::HttpFormField => &HTTPFORMFIELD,
         NativeTypeId::HttpMultipartPart => &HTTPMULTIPARTPART,
+        NativeTypeId::HttpCookieOptions => &HTTPCOOKIEOPTIONS,
         NativeTypeId::HttpServerOptions => &HTTPSERVEROPTIONS,
         NativeTypeId::SqlPool => &SQLPOOL,
 NativeTypeId::SqlTransaction => &SQLTRANSACTION,
@@ -492,7 +496,7 @@ NativeTypeId::HttpApp => &HTTPAPP,
 /// Exact module/name lookup does not grant aliases a new declaration identity.
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
-    [&SIGNAL_LISTENER,&SIGNAL_ERROR,&CRYPTO_ERROR,&LRU_CACHE,&SHARED_LRU_CACHE,&CACHE_ENTRY,&CACHE_INSERT_ERROR,&UUID,&UUID_ERROR,&TIMEOFDAY,&UTCINSTANT,&TIMEDURATION,&TIMEZONE,&CALENDAR_DATE,&DATE_ERROR,&DECIMAL,&DECIMAL_ERROR,&NUMERIC_ERROR,&TRACKED_RESOURCE,&SQLPOOL,&SQLTRANSACTION,&SQLROW,&SQLERROR,&SQLITECONNECTION,&SQLITESTATEMENT,&SQLITETRANSACTION,&SQLITEROW,&SQLITEERROR,&HTTPTLSOPTIONS,&HTTPFORMFIELD,&HTTPMULTIPARTPART,&HTTPSERVEROPTIONS,&HTTPCLIENTOPTIONS,&HTTPROUTER,&HTTPCONTEXT,&HTTPCONTEXTNEXT,&HTTPAPP,&HTTPREQUEST,&HTTPRESPONSE,&HTTPBODY,&HTTPCLIENT,&HTTPSERVER,&HTTPNEXT,&HTTPERROR,&JOB,&ASYNC_ERROR,&ASYNC_CHANNEL,&ASYNC_SENDER,&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
+    [&SIGNAL_LISTENER,&SIGNAL_ERROR,&CRYPTO_ERROR,&LRU_CACHE,&SHARED_LRU_CACHE,&CACHE_ENTRY,&CACHE_INSERT_ERROR,&UUID,&UUID_ERROR,&TIMEOFDAY,&UTCINSTANT,&TIMEDURATION,&TIMEZONE,&CALENDAR_DATE,&DATE_ERROR,&DECIMAL,&DECIMAL_ERROR,&NUMERIC_ERROR,&TRACKED_RESOURCE,&SQLPOOL,&SQLTRANSACTION,&SQLROW,&SQLERROR,&SQLITECONNECTION,&SQLITESTATEMENT,&SQLITETRANSACTION,&SQLITEROW,&SQLITEERROR,&HTTPTLSOPTIONS,&HTTPFORMFIELD,&HTTPMULTIPARTPART,&HTTPCOOKIEOPTIONS,&HTTPSERVEROPTIONS,&HTTPCLIENTOPTIONS,&HTTPROUTER,&HTTPCONTEXT,&HTTPCONTEXTNEXT,&HTTPAPP,&HTTPREQUEST,&HTTPRESPONSE,&HTTPBODY,&HTTPCLIENT,&HTTPSERVER,&HTTPNEXT,&HTTPERROR,&JOB,&ASYNC_ERROR,&ASYNC_CHANNEL,&ASYNC_SENDER,&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
 }
 
 #[cfg(test)]

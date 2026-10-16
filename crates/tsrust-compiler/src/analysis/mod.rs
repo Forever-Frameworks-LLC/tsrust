@@ -5273,7 +5273,7 @@ impl Analyzer {
             ExprKind::ArrayOf(_, _) => unreachable!("array constructors use the shared checker worklist"),
             ExprKind::SetConstructor(_, _) | ExprKind::MapConstructor(_, _) => unreachable!("collection constructors use the shared checker stack"),
             ExprKind::NativeConstructor(_, _) => {
-                if let Some(ty) = self.cache_constructor(context, expr, loans, expected)? { Ok(ty) } else if let Some(ty) = self.future_channel_constructor(context, expr, loans, expected)? { Ok(ty) } else if let Some(ty) = self.channel_constructor(context, expr, loans, expected)? { Ok(ty) } else { self.native_collection_constructor(expr,expected) }
+                if let Some(ty) = self.http_constructor(context, expr, loans, expected)? { Ok(ty) } else if let Some(ty) = self.cache_constructor(context, expr, loans, expected)? { Ok(ty) } else if let Some(ty) = self.future_channel_constructor(context, expr, loans, expected)? { Ok(ty) } else if let Some(ty) = self.channel_constructor(context, expr, loans, expected)? { Ok(ty) } else { self.native_collection_constructor(expr,expected) }
             },
             ExprKind::Array(values) if values.iter().any(|value| matches!(value.kind, ExprKind::Unary { op: UnaryOp::Spread, .. })) => unreachable!("array spread constructors use the shared checker worklist"),
             ExprKind::Array(_) => unreachable!("dense array literals use the shared checker worklist"),

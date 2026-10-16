@@ -359,6 +359,12 @@ impl Analyzer {
                         && matches!(value.ty,Some(Type::BorrowedUnion(_))) {
                         result.extend(Self::native_storage_source_loans(context,&args[0],BorrowAccess::Exclusive)?);
                     }
+                    if let Some(CallTarget::NativeBinding(id))=value.target
+                        && crate::native_bindings::BINDINGS[id].module=="std:http"
+                        && crate::native_bindings::BINDINGS[id].name=="__contextGet"
+                        && matches!(value.ty,Some(Type::BorrowedUnion(_))) {
+                        result.extend(Self::native_storage_source_loans(context,&args[0],BorrowAccess::ReadOnly)?);
+                    }
                     if let Some(CallTarget::NativeBinding(id)) = value.target
                         && let Some(contract) = crate::native_bindings::BINDINGS[id].returned_borrow
                     {

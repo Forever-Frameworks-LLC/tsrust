@@ -23,22 +23,27 @@ mod tsrust_native_http {
         }
     }
     type ContextPending<'a> = Pin<Box<dyn Future<Output=Option<Response>>+Send+'a>>;
-    pub type ContextMiddleware = Arc<dyn for<'a> Fn(&'a mut Context,ContextNext)->ContextPending<'a>+Send+Sync>;
+    pub type ContextMiddleware<S=()> = Arc<dyn for<'a> Fn(&'a mut Context<S>,ContextNext)->ContextPending<'a>+Send+Sync>;
 
     // One exclusive context is reborrowed down the middleware stack. No mutex or
     // shared request handle can let a detached task outlive this request.
-    pub struct Context {
+    pub struct Context<S=()> {
         pub field0:Request,
-        response:Option<Response>,
+        pub field1:Arc<S>,
+        variables:BTreeMap<String,Box<dyn std::any::Any+Send+Sync>>,
+        pub field2:Response,
+        finalized:bool,
         headers:http::HeaderMap,
         status:StatusCode,
         body_used:bool,
     }
-    impl Context {
-        fn new(request:Request)->Self{Self{field0:request,response:None,headers:http::HeaderMap::new(),status:StatusCode::OK,body_used:false}}
+    impl<S:Send+Sync+'static> Context<S> {
+        fn new(request:Request,state:Arc<S>)->Self{Self{field0:request,field1:state,variables:BTreeMap::new(),field2:Response::text("Not Found".into(),404).unwrap(),finalized:false,headers:http::HeaderMap::new(),status:StatusCode::OK,body_used:false}}
+        pub fn set<T:Send+Sync+'static>(&mut self,key:&str,value:T){self.variables.insert(key.to_owned(),Box::new(value));}
+        pub fn get<T:Send+Sync+'static>(&self,key:&str)->Option<&T>{self.variables.get(key).map(|value|value.downcast_ref::<T>().expect("checked request variable type"))}
         pub fn header(&mut self,name:&str,value:&str)->Result<(),Error>{
             set_header(&mut self.headers,name,value)?;
-            if let Some(response)=&mut self.response{set_header(response.inner.headers_mut(),name,value)?;}
+            set_header(self.field2.inner.headers_mut(),name,value)?;
             Ok(())
         }
         pub fn status(&mut self,status:i64)->Result<(),Error>{self.status=status_code(status)?;Ok(())}
@@ -59,7 +64,7 @@ mod tsrust_native_http {
         pub async fn request_text(&mut self)->Result<String,Error>{self.take_request_body()?.text().await}
         pub async fn request_form(&mut self)->Result<Vec<FormField>,Error>{self.take_request_body()?.form().await}
         pub async fn request_multipart(&mut self)->Result<Vec<MultipartPart>,Error>{self.take_request_body()?.multipart().await}
-        fn finish(self)->Response{self.response.unwrap_or_else(failed)}
+        fn finish(self)->Response{if self.finalized{self.field2}else{failed()}}
     }
     #[derive(Clone)]
     struct ContextPattern {router:Option<matchit::Router<()>>}
@@ -84,48 +89,50 @@ mod tsrust_native_http {
             Ok(Some(params))
         }
     }
-    struct ContextLayer {method:Option<Method>,pattern:ContextPattern,callback:ContextMiddleware}
-    pub struct ContextNext {layers:Arc<Vec<ContextLayer>>,index:usize}
+    struct ContextLayer<S> {method:Option<Method>,pattern:ContextPattern,callback:ContextMiddleware<S>}
+    pub struct ContextNext {layers:Arc<dyn std::any::Any+Send+Sync>,index:usize}
     impl ContextNext {
-        pub fn run<'a>(mut self,context:&'a mut Context)->Pin<Box<dyn Future<Output=()>+Send+'a>>{
+        pub fn run<'a,S:Send+Sync+'static>(mut self,context:&'a mut Context<S>)->Pin<Box<dyn Future<Output=()>+Send+'a>>{
             Box::pin(async move {
-                while let Some(layer)=self.layers.get(self.index){
+                let layers=self.layers.clone().downcast::<Vec<ContextLayer<S>>>().unwrap_or_else(|_|unreachable!("checked router state"));
+                while let Some(layer)=layers.get(self.index){
                     self.index+=1;
                     if layer.method.as_ref().is_some_and(|method|method!=context.field0.inner.method() && !(method==Method::GET && context.field0.inner.method()==Method::HEAD)){continue;}
                     let params=match layer.pattern.captures(context.field0.inner.uri().path()){
-                        Ok(Some(params))=>params,Ok(None)=>continue,Err(_)=>{context.response=Some(context.text("Bad Request".into(),Some(400)).unwrap());return;}
+                        Ok(Some(params))=>params,Ok(None)=>continue,Err(_)=>{context.field2=context.text("Bad Request".into(),Some(400)).unwrap();context.finalized=true;return;}
                     };
                     context.field0.params=params;
                     let callback=layer.callback.clone();
-                    if let Some(response)=callback(context,self).await{context.response=Some(response);}
+                    if let Some(response)=callback(context,self).await{context.field2=response;context.finalized=true;}
                     return;
                 }
-                context.response=Some(context.text("Not Found".into(),Some(404)).unwrap());
+                context.field2=context.text("Not Found".into(),Some(404)).unwrap();context.finalized=true;
             })
         }
     }
-    pub struct Router {app:App,layers:Vec<ContextLayer>}
-    impl Router {
-        pub fn new()->Self{Self{app:App::new(),layers:Vec::new()}}
+    pub struct Router<S=()> {app:App,layers:Vec<ContextLayer<S>>,state:Arc<S>}
+    impl Router<()> {pub fn new()->Self{Self::with_state(())}}
+    impl<S:Send+Sync+'static> Router<S> {
+        pub fn with_state(state:S)->Self{Self{app:App::new(),layers:Vec::new(),state:Arc::new(state)}}
         pub fn configure(&mut self,values:[i64;7])->Result<(),Error>{self.app.configure(values)}
-        pub fn use_middleware<F>(&mut self,middleware:F) where F:for<'a> Fn(&'a mut Context,ContextNext)->ContextPending<'a>+Send+Sync+'static{self.use_many("*",vec![Arc::new(middleware)]).expect("the global pattern is valid");}
-        pub fn use_many(&mut self,path:&str,callbacks:Vec<ContextMiddleware>)->Result<(),Error>{
+        pub fn use_middleware<F>(&mut self,middleware:F) where F:for<'a> Fn(&'a mut Context<S>,ContextNext)->ContextPending<'a>+Send+Sync+'static{self.use_many("*",vec![Arc::new(middleware)]).expect("the global pattern is valid");}
+        pub fn use_many(&mut self,path:&str,callbacks:Vec<ContextMiddleware<S>>)->Result<(),Error>{
             let pattern=ContextPattern::new(path)?;
             self.layers.extend(callbacks.into_iter().map(|callback|ContextLayer{method:None,pattern:pattern.clone(),callback}));Ok(())
         }
-        pub fn route<F>(&mut self,method:&str,path:&str,handler:F)->Result<(),Error> where F:for<'a> Fn(&'a mut Context)->ContextPending<'a>+Send+Sync+'static{
+        pub fn route<F>(&mut self,method:&str,path:&str,handler:F)->Result<(),Error> where F:for<'a> Fn(&'a mut Context<S>)->ContextPending<'a>+Send+Sync+'static{
             self.route_many(method,path,vec![Arc::new(move|context,_|handler(context))])
         }
-        pub fn route_many(&mut self,method:&str,path:&str,callbacks:Vec<ContextMiddleware>)->Result<(),Error>{
+        pub fn route_many(&mut self,method:&str,path:&str,callbacks:Vec<ContextMiddleware<S>>)->Result<(),Error>{
             let method=Method::from_bytes(method.as_bytes()).map_err(|_|error("method","Invalid HTTP method"))?;
             if !matches!(method,Method::GET|Method::HEAD|Method::POST|Method::PUT|Method::PATCH|Method::DELETE|Method::OPTIONS){return Err(error("method","Unsupported HTTP method"));}
             let pattern=ContextPattern::new(path)?;
             self.layers.extend(callbacks.into_iter().map(|callback|ContextLayer{method:Some(method.clone()),pattern:pattern.clone(),callback}));Ok(())
         }
         fn finalize(mut self)->App{
-            let layers=Arc::new(self.layers);
-            self.app.fallback(move|request|{let next=ContextNext{layers:layers.clone(),index:0};async move{
-                let head=request.inner.method()==Method::HEAD;let mut context=Context::new(request);next.run(&mut context).await;
+            let layers=Arc::new(self.layers);let state=self.state;
+            self.app.fallback(move|request|{let next=ContextNext{layers:layers.clone(),index:0};let state=state.clone();async move{
+                let head=request.inner.method()==Method::HEAD;let mut context=Context::new(request,state);next.run(&mut context).await;
                 let mut response=context.finish();if head{*response.inner.body_mut()=Body::empty();}response
             }});
             self.app
@@ -363,4 +370,44 @@ mod tsrust_native_http {
             let mut response=http::Response::builder().status(result.status());*response.headers_mut().unwrap()=result.headers().clone();Ok(Response{inner:response.body(Body::from_stream(result.bytes_stream())).unwrap()})
         }
     }
+    #[derive(Default)]
+    pub struct CookieOptions {pub path:Option<String>,pub domain:Option<String>,pub max_age:Option<i64>,pub secure:Option<bool>,pub http_only:Option<bool>,pub same_site:Option<String>,pub partitioned:Option<bool>}
+    fn cookie_name(name:&str)->bool{!name.is_empty()&&name.bytes().all(|byte|byte.is_ascii_alphanumeric()||b"!#$%&'*+-.^_`|~".contains(&byte))}
+    fn cookie_value(value:&str)->bool{value.bytes().all(|byte|matches!(byte,0x21|0x23..=0x2b|0x2d..=0x3a|0x3c..=0x5b|0x5d..=0x7e))}
+    impl<S:Send+Sync+'static> Context<S> {
+        pub fn cookie(&self,name:&str)->Option<String>{
+            if !cookie_name(name){return None;}
+            for header in self.field0.inner.headers().get_all(http::header::COOKIE){
+                let Ok(header)=header.to_str()else{continue;};
+                for pair in header.split(';'){
+                    let Some((key,value))=pair.split_once('=')else{continue;};let key=key.trim();let mut value=value.trim();
+                    if key!=name||!cookie_name(key){continue;}
+                    if value.len()>=2&&value.starts_with('"')&&value.ends_with('"'){value=&value[1..value.len()-1];}
+                    if !cookie_value(value){continue;}
+                    return Some(decode_component(value,false).unwrap_or_else(|_|value.to_owned()));
+                }
+            }None
+        }
+        pub fn set_cookie(&mut self,name:&str,value:&str,options:CookieOptions)->Result<(),Error>{
+            if !cookie_name(name){return Err(error("cookie","Invalid cookie name"));}
+            let path=options.path.as_deref().unwrap_or("/");let secure=options.secure.unwrap_or(false);let http_only=options.http_only.unwrap_or(false);
+            if !path.starts_with('/')||path.bytes().any(|byte|!(0x20..=0x7e).contains(&byte)||byte==b';'){return Err(error("cookie","Invalid cookie path"));}
+            if options.domain.as_ref().is_some_and(|domain|domain.is_empty()||!domain.bytes().all(|byte|byte.is_ascii_alphanumeric()||matches!(byte,b'.'|b'-'))){return Err(error("cookie","Invalid cookie domain"));}
+            if options.max_age.is_some_and(|age|!(0..=34560000).contains(&age)){return Err(error("cookie","Cookie maxAge must be between 0 and 34560000 seconds"));}
+            if name.starts_with("__Secure-")&&!secure || name.starts_with("__Host-")&&(!secure||path!="/"||options.domain.is_some()){return Err(error("cookie","Cookie prefix requires Secure and host-only Path=/ where applicable"));}
+            let same_site=match options.same_site.as_deref(){None=>None,Some("Strict"|"strict")=>Some("Strict"),Some("Lax"|"lax")=>Some("Lax"),Some("None"|"none")=>Some("None"),_=>return Err(error("cookie","sameSite must be Strict, Lax or None"))};
+            if options.partitioned.unwrap_or(false)&&!secure{return Err(error("cookie","Partitioned cookies require Secure"));}
+            let mut encoded=String::new();for byte in value.bytes(){if byte.is_ascii_alphanumeric()||b"-_.!~*'()".contains(&byte){encoded.push(char::from(byte));}else{use std::fmt::Write;write!(encoded,"%{byte:02X}").unwrap();}}
+            let mut text=format!("{name}={encoded}; Path={path}");
+            if let Some(domain)=options.domain{text.push_str("; Domain=");text.push_str(&domain);}
+            if let Some(age)=options.max_age{text.push_str("; Max-Age=");text.push_str(&age.to_string());}
+            if secure{text.push_str("; Secure");}if http_only{text.push_str("; HttpOnly");}
+            if let Some(site)=same_site{text.push_str("; SameSite=");text.push_str(site);}
+            if options.partitioned.unwrap_or(false){text.push_str("; Partitioned");}
+            let header=HeaderValue::from_str(&text).map_err(|_|error("cookie","Invalid cookie header"))?;
+            self.headers.append(http::header::SET_COOKIE,header.clone());self.field2.inner.headers_mut().append(http::header::SET_COOKIE,header);Ok(())
+        }
+        pub fn delete_cookie(&mut self,name:&str,mut options:CookieOptions)->Result<(),Error>{options.max_age=Some(0);self.set_cookie(name,"",options)}
+    }
+
 }

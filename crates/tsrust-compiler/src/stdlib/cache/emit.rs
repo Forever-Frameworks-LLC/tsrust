@@ -18,7 +18,7 @@ impl Emitter<'_>{
   let code=format!("match tsr_cache_new({capacity}){{Ok(cache)=>{constructed},Err(_)=>{{{failed}}}}}");
   Some(Self::access_wrapped(expr,mode,code))
  }
- fn cache_optional(&self,ty:Type,element:Type,selected:&str)->String{
+ pub(super) fn cache_optional(&self,ty:Type,element:Type,selected:&str)->String{
   if ty==Type::Undefined{return format!("{{let _={selected};TsrUndefined}}");}
   let id=ty.union().expect("optional cache result");let borrowed=matches!(ty,Type::BorrowedUnion(_));
   let absent=self.program.unions[id.index()].members.iter().position(|ty|*ty==Type::Undefined).unwrap();

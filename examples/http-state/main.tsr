@@ -1,62 +1,52 @@
-import { App, Client, Request, Response, Next, request, text } from 'std:http';
-import { allSettled, delay } from 'std:futures';
+import { Router, Client, request, getCookie, setCookie, deleteCookie } from 'std:http';
 import { strictEqual } from 'std:testing';
 
-type Config = {
+type Application = {
   greeting: string;
 };
 
-async function greet(config: ReadOnly<Config>, input: Request): Task<Response> {
-  await delay(1);
-  return text(clone(config.greeting));
-}
+type Variables = {
+  requestId: string;
+};
 
-async function identify(config: ReadOnly<Config>, input: Request, next: Next): Task<Response> {
-  const response = await next.run(input);
-  response.setHeader('x-greeting', config.greeting);
-  return response;
-}
+function routes(): Router<Application, Variables> {
+  const app = new Router<Application, Variables>({
+    greeting: 'Hello '
+  });
+  app.use('/hello', async (c, next) => {
+    c.set('requestId', 'one request');
+    setCookie(c, 'theme', 'dark', {
+      httpOnly: true, sameSite: 'Lax'
+    });
+    await next();
+    strictEqual(c.res.status(), 200);
+    deleteCookie(c, 'old');
+  });
+  app.get('/hello', (c) => {
+    strictEqual(getCookie(c, 'theme'), undefined);
+    const id = c.get('requestId');
+    if (id === undefined) {
+      return c.text('missing', 500);
+    }
 
-async function missing(config: ReadOnly<Config>, input: Request): Task<Response> {
-  await delay(1);
-  return text(clone(config.greeting), 404);
-}
-
-function routes(config: Owned<Config>): App {
-  const middlewareConfig = clone(config);
-  const fallbackConfig = clone(config);
-  const app = new App();
-  app.use((input: Request, next: Next) => identify(middlewareConfig, input, next));
-  app.fallback((input: Request) => missing(fallbackConfig, input));
-  app.get('/greet', (input: Request) => greet(config, input));
+    const body = clone(c.env.greeting) + clone(id);
+    return c.text(body);
+  });
+  app.get('/isolated', (c) => {
+    strictEqual(c.get('requestId'), undefined);
+    return c.text('isolated');
+  });
   return app;
 }
 
-async function read(base: string, path: string, status: int): Task<string> {
-  const client = new Client();
-  const response = await client.send(request('GET', base + path, ''));
-  strictEqual(response.status(), status);
-  strictEqual(response.header('x-greeting'), 'Shared, checked state');
-  return await response.text();
-}
-
 async function main(): Task<void> {
-  const config: Config = {
-    greeting: 'Shared, checked state'
-  };
-  const app = routes(config);
+  const app = routes();
   const server = await app.listen('127.0.0.1:0');
+  const client = new Client();
   const base = 'http://' + server.address();
-  const secondBase = clone(base);
-  const thirdBase = clone(base);
-  const replies = await allSettled([read(base, '/greet', 200).start(), read(secondBase, '/greet', 200).start(), read(thirdBase, '/missing', 404).start()]);
-  while (replies.length > 0) {
-    const reply = replies.pop();
-    if (reply !== undefined) {
-      strictEqual(unwrap(reply), 'Shared, checked state');
-    }
-  }
-
+  const greeting = await client.send(request('GET', base + '/hello', ''));
+  strictEqual(await greeting.text(), 'Hello one request');
+  const isolated = await client.send(request('GET', base + '/isolated', ''));
+  strictEqual(await isolated.text(), 'isolated');
   await server.shutdown();
-  console.log('HTTP retained state accepted');
 }

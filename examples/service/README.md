@@ -5,6 +5,12 @@ migrations, bounded HTTPS handlers, structured redacted events, opaque sessions,
 forms, binary multipart uploads and graceful Unix signal shutdown. It is an
 executable contract witness, not a general authentication framework.
 
+Routes are declared together in `main.tsr` using `Router<Application, Variables>`.
+Global middleware handles response headers, request events and origin checks.
+Protected routes compose `requireSession` before their handler. Shared state lives
+in `c.env`; the validated session digest lives only in request-local `c.set/get`.
+Session lifetime, token checks and duplicate-cookie rejection are application policy.
+
 Set `DATABASE_URL=sqlite:/absolute/path/service.db?mode=rwc`, `SERVICE_ADDRESS`,
 `SERVICE_ORIGIN` (an exact HTTPS origin without a trailing slash), `SERVICE_CERT`
 and `SERVICE_KEY` (PEM files). Generate `SERVICE_ADMIN_TOKEN` as 32 random bytes
@@ -49,8 +55,8 @@ and raw database errors never cross the logging boundary. Fixed-cardinality coun
 report started/completed/failed/tasks/incomplete on shutdown. Hard cancellation can
 leave an incomplete trace; source `finally` is not promised for dropped futures.
 The separate observability witness returns a trace through an owned child task to
-verify parent/child correlation. SQL errors are reported as a fixed source site
-and 503, without exposing SQL or credentials. Logs are not a general tracing SDK.
+verify parent/child correlation. Unhandled handler errors become a generic 500 response, with only the fixed
+source site and status recorded; SQL and credentials remain private. Logs are not a general tracing SDK.
 
 `std:signals.listen()` registers SIGINT/SIGTERM before readiness. A signal stops
 accepting connections, drains/cancels handlers, releases retained pools and flushes

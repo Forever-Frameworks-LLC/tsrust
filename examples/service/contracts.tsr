@@ -3,7 +3,7 @@ import { strictEqual } from 'std:testing';
 import { App, request } from 'std:http';
 import { sha256, timingSafeEqual, randomBytes } from 'std:crypto';
 import { fromUtf8, length } from 'std:bytes';
-import { isToken, newToken, tokenHash, matchesToken, sessionCookie, setSessionCookie } from './security.tsr';
+import { isToken, newToken, tokenHash, matchesToken, sessionCookie } from './security.tsr';
 
 export async function verifyContracts(): Task<void> {
   const beforeEpoch = unwrap(parseISO('1969-12-31T23:59:59.999999999Z'));
@@ -20,7 +20,7 @@ export async function verifyContracts(): Task<void> {
   const digest = tokenHash(token);
   strictEqual(matchesToken(token, digest), true);
   strictEqual(matchesToken('invalid', digest), false);
-  strictEqual(sessionCookie('a=b; ' + setSessionCookie(clone(token))), clone(token));
+  strictEqual(sessionCookie('a=b; __Host-session=' + token), clone(token));
   strictEqual(sessionCookie('__Host-session=' + token + '; __Host-session=' + token), undefined);
   const app = new App();
   app.configure({

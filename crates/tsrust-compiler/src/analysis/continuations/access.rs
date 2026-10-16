@@ -22,6 +22,9 @@ impl Analyzer {
         loans: &Loans,
         span: Span,
     ) -> Result<FieldDispatch, Diagnostic> {
+        if matches!(name,"env"|"res") && matches!(self.expression_type_hint(context,base),Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::HttpContext)) && matches!(mode,Mode::Mutate|Mode::Consume){
+            return Err(Diagnostic::new("http-state","Context env and res are read-only; borrow state and use context response methods.",span));
+        }
         if matches!(&base.kind, ExprKind::Name(namespace) if NumericConstant::lookup(namespace, name).is_some())
         {
             return Self::numeric_constant_access(mode, span).map(FieldDispatch::Ready);

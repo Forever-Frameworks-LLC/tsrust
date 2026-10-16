@@ -155,7 +155,16 @@ impl SourceIndex {
             let declaration = tsrust_compiler::native_types::declaration(identity);
             if declaration.module == "std:sql" {return builtins_for(&format!("Sql{}",declaration.name));}
             if declaration.module == "std:sqlite" {return builtins_for(&format!("Sqlite{}",declaration.name));}
-            if declaration.module == "std:http" {return builtins_for(&format!("Http{}",declaration.name));}
+            if declaration.module == "std:http" {
+                let mut entries=builtins_for(&format!("Http{}",declaration.name));
+                let values=tsrust_compiler::type_syntax::parse(ty).ok().and_then(|annotation|if let tsrust_compiler::type_syntax::ValueAnnotationKind::Applied{arguments,..}=annotation.into_kind(){Some(arguments.into_iter().map(|argument|ty[argument.span.start..argument.span.end].to_owned()).collect::<Vec<_>>())}else{None}).unwrap_or_default();
+                let substitutions=declaration.type_parameters.iter().enumerate().map(|(index,name)|(*name,values.get(index).map(String::as_str).unwrap_or("null"))).collect::<Vec<_>>();
+                for entry in &mut entries{
+                    for key in ["signature","inferredSignature"]{if let Some(text)=entry[key].as_str(){entry[key]=json!(builtin_type_substitution(text,&substitutions));}}
+                    if let Some(parameters)=entry["parameters"].as_array_mut(){for parameter in parameters{if let Some(label)=parameter["label"].as_str(){parameter["label"]=json!(builtin_type_substitution(label,&substitutions));}}}
+                }
+                return entries;
+            }
             if declaration.module == "std:futures" {return builtins_for(&format!("{}{arguments}",match declaration.id {tsrust_compiler::native_signatures::NativeTypeId::AsyncChannel=>"AsyncChannel",tsrust_compiler::native_signatures::NativeTypeId::AsyncSender=>"AsyncSender",_=>declaration.name}));}
             if matches!(declaration.module,"std:threads"|"std:cache") { return builtins_for(&format!("{}{arguments}", declaration.name)); }
         }

@@ -54,11 +54,3 @@ export function sessionCookie(header: string): string | undefined {
 
   return result;
 }
-
-export function setSessionCookie(token: string): string {
-  if (!isToken(token)) {
-    throw 'Invalid session token';
-  }
-
-  return '__Host-session=' + token + '; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=3600';
-}

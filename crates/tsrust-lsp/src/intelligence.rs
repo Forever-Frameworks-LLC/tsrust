@@ -2028,7 +2028,8 @@ impl SourceIndex {
     fn set_constructor_type(&self, id: usize, offset: usize, depth: usize) -> Option<(String, usize)> {
         if self.text(id) == "new" && matches!(self.native_type_aliases.get(self.text(id + 1)),Some(tsrust_compiler::native_signatures::NativeTypeId::ThreadPool | tsrust_compiler::native_signatures::NativeTypeId::HttpRouter | tsrust_compiler::native_signatures::NativeTypeId::HttpApp | tsrust_compiler::native_signatures::NativeTypeId::HttpClient)) {
             let open = self.member_call_open(id + 1)?;
-            return Some((self.text(id + 1).into(), self.pairs.get(open).copied().flatten()? + 1));
+            let ty = if self.text(id + 2) == "<" { self.snippet(id + 1, open) } else { self.text(id + 1).into() };
+            return Some((ty, self.pairs.get(open).copied().flatten()? + 1));
         }
         if depth > 8 || self.text(id) != "new" || !(matches!(self.text(id + 1), "Set" | "Map") || matches!(self.native_type_aliases.get(self.text(id + 1)),Some(tsrust_compiler::native_signatures::NativeTypeId::LruCache | tsrust_compiler::native_signatures::NativeTypeId::SharedLruCache | tsrust_compiler::native_signatures::NativeTypeId::Channel | tsrust_compiler::native_signatures::NativeTypeId::AsyncChannel | tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap | tsrust_compiler::native_signatures::NativeTypeId::OrderedSet | tsrust_compiler::native_signatures::NativeTypeId::OrderedMap))) { return None; }
         let open = self.member_call_open(id + 1)?;
@@ -3327,6 +3328,7 @@ impl SourceIndex {
             }
         }
         if (matches!(self.text(token), "flat" | "flatMap")
+            || (self.text(token)=="get" && self.native_type_aliases.get(receiver.split('<').next().unwrap_or(&receiver))==Some(&tsrust_compiler::native_signatures::NativeTypeId::HttpContext))
             || (receiver=="@namespace:std:schema#s" && matches!(self.text(token),"union"|"discriminatedUnion"|"recursive"))
             || (receiver == "Array" && matches!(self.text(token),"of"|"from"))
             || (receiver == "Map" && self.text(token)=="groupBy"))

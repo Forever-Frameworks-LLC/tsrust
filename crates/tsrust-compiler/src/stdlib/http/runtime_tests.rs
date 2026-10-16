@@ -252,3 +252,51 @@ fn hono_scoped_routes_keep_registration_order_and_method_boundaries(){
   server.shutdown().await;
  });
 }
+
+#[test]
+fn router_application_state_and_request_variables_have_distinct_lifetimes(){
+ use std::sync::{Arc,atomic::{AtomicUsize,Ordering}};
+ struct Guard(Arc<AtomicUsize>);impl Drop for Guard{fn drop(&mut self){self.0.fetch_add(1,Ordering::SeqCst);}}
+ let application=Arc::new(AtomicUsize::new(0));let variables=Arc::new(AtomicUsize::new(0));
+ tsrust_native_futures::block_on(async{
+  let mut router=Router::with_state((Guard(application.clone()),variables.clone()));
+  router.use_middleware(|c,next|Box::pin(async move{
+   assert!(c.get::<Guard>("resource").is_none());
+   c.set("resource",Guard(c.field1.1.clone()));c.set("resource",Guard(c.field1.1.clone()));
+   next.run(c).await;None
+  }));
+  router.route("GET","/",|c|Box::pin(async move{assert!(c.get::<Guard>("resource").is_some());Some(c.text("ok".into(),None).unwrap())})).unwrap();
+  let server=router.listen("127.0.0.1:0").await.unwrap();let client=Client::new().unwrap();
+  for _ in 0..2{let response=client.send(Request::new("GET",&format!("http://{}/",server.address()),String::new()).unwrap()).await.unwrap();assert_eq!(response.text_body().await.unwrap(),"ok");}
+  assert_eq!(application.load(Ordering::SeqCst),0);server.shutdown().await;
+ });
+ assert_eq!(application.load(Ordering::SeqCst),1);assert_eq!(variables.load(Ordering::SeqCst),4);
+}
+
+#[test]
+fn router_cookie_encoding_validation_and_after_next_headers(){
+ tsrust_native_futures::block_on(async{
+  let mut app=Router::new();
+  app.use_middleware(|c,next|Box::pin(async move{
+   assert_eq!(c.cookie("theme").as_deref(),Some("hé+"));
+   assert_eq!(c.cookie("raw").as_deref(),Some("%FF"));
+   assert_eq!(c.cookie("missing"),None);
+   assert_eq!(c.field2.status(),404);
+   assert!(c.set_cookie("__Host-session","x",CookieOptions::default()).is_err());
+   assert!(c.set_cookie("x","x",CookieOptions{max_age:Some(-1),..Default::default()}).is_err());
+   assert!(c.set_cookie("x","x",CookieOptions{path:Some("/;bad".into()),..Default::default()}).is_err());
+   c.set_cookie("before","hé+",CookieOptions::default()).unwrap();
+   next.run(c).await;
+   assert_eq!(c.field2.status(),201);
+   c.delete_cookie("__Host-session",CookieOptions{secure:Some(true),http_only:Some(true),same_site:Some("Strict".into()),..Default::default()}).unwrap();
+   None
+  }));
+  app.route("GET","/",|c|Box::pin(async move{Some(c.text("ok".into(),Some(201)).unwrap())})).unwrap();
+  let server=app.listen("127.0.0.1:0").await.unwrap();
+  // Read wire headers independently: separate Set-Cookie headers must survive.
+  let client=reqwest::Client::new();let response=client.get(format!("http://{}/",server.address())).header("cookie","theme=h%C3%A9+; theme=second; raw=%FF").send().await.unwrap();
+  let cookies=response.headers().get_all("set-cookie").iter().map(|v|v.to_str().unwrap()).collect::<Vec<_>>();
+  assert_eq!(cookies,["before=h%C3%A9%2B; Path=/","__Host-session=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict"]);
+  assert_eq!(response.text().await.unwrap(),"ok");server.shutdown().await;
+ });
+}

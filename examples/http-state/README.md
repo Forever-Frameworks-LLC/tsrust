@@ -1,19 +1,16 @@
-# Retained HTTP state
+# Application and request state
 
-`main.tsr` moves configuration into a route callback. Concurrent requests borrow
-that retained owner read-only, including across suspension. The response explicitly
-clones its string; registering the handler does not clone the configuration. Separate middleware and
-fallback handlers receive explicit configuration clones and follow the same retained
-read-only contract.
-Shutdown drains request tasks before the server releases its handlers. Request inputs
-are prepared before starting jobs, so preparation cannot abandon earlier started work.
+`Router<State, Variables>` owns application state once. Handlers borrow it through
+`c.env`. Use this for configuration and supported concurrent pools, clients,
+shared caches and senders. Application state cannot be moved or mutated through
+Context; concurrent handles expose their existing checked operations.
 
-Handlers must own retained values and remain callable through read-only access.
-Caller loans, program state, callback-valued state, mutable captures and consuming
-captures are rejected. Plain owned configuration, immutable value types and supported
-concurrent SQL pools, HTTP clients and async senders may be retained. Local LRU
-caches and request/response/body resources cannot be shared this way. A captured
-pool belongs to the handler; explicit close inside a repeatable handler is rejected.
+The `Variables` record declares literal keys for `c.set` and `c.get`. Each request
+starts empty. Setting consumes a correctly typed value, replacing and releasing
+any previous value. Getting returns undefined when unset; non-scalar values are
+read-only loans. Explicit cloning produces independent data where supported.
+Unknown keys, wrong types, caller loans, local resources and task handles reject.
 
-This section establishes read-only handler state. It does not yet establish S21
-migration recovery, a shared mutable cache, authentication or deployment acceptance.
+`main.tsr` checks shared configuration, middleware-to-handler state and isolation
+between requests. It also exercises cookie helpers and response status after next(). It contains no authentication policy. This section is still
+under implementation and has not completed its targeted acceptance batch.

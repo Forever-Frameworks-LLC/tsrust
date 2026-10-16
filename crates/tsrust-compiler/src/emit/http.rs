@@ -2,6 +2,23 @@
 use super::*;
 use crate::native_signatures::NativeTypeId;
 impl Emitter<'_>{
+ pub(super) fn http_constructor_expression(&self,fun:&CheckedFunction,expr:&Expr,mode:Mode)->Option<String>{
+  let Some(Type::Record(record))=expr.ty else{return None;};
+  if self.program.records[record].native_type!=Some(NativeTypeId::HttpRouter){return None;}
+  let ExprKind::NativeConstructor(args,_)=&expr.kind else{return None;};
+  let state=args.first().map(|value|self.expr(fun,value,Mode::Consume)).unwrap_or_else(||"TsrNull".into());
+  Some(Self::access_wrapped(expr,mode,format!("tsrust_native_http::Router::with_state({state})")))
+ }
+ fn http_cookie_options(&self,ty:Type)->String{
+  let Type::Record(record)=ty else{unreachable!()};let names=["path","domain","max_age","secure","http_only","same_site","partitioned"];
+  let fields=self.program.records[record].fields.iter().enumerate().map(|(field,item)|{
+   let Type::Union(id)=item.ty.unwrap()else{unreachable!()};
+   let arms=self.program.unions[id.index()].members.iter().enumerate().map(|(tag,ty)|{
+    let value: String=if *ty==Type::Undefined{"None".into()}else if *ty==Type::String{"Some(value.as_ref().to_owned())".into()}else{"Some(*value)".into()};
+    format!("Union{}::V{tag}(value)=>{value}",id.index())
+   }).collect::<Vec<_>>().join(",");format!("{}:match &options.field{field}{{{arms}}}",names[field])
+  }).collect::<Vec<_>>().join(",");format!("tsrust_native_http::CookieOptions{{{fields}}}")
+ }
  fn http_value(&self,ty:Type,value:&str)->String{
   if let Type::Record(id)=ty && self.program.records[id].native_type==Some(NativeTypeId::Bytes){return format!("Record{}{{bytes:{value}}}",self.native_record_declaration(id));}
   if let Type::Array(ArrayElement::Record(id,0))=ty && matches!(self.program.records[id].native_type,Some(NativeTypeId::HttpFormField|NativeTypeId::HttpMultipartPart)) {
@@ -41,6 +58,7 @@ impl Emitter<'_>{
    "__html"|"__json"=>format!("tsrust_native_http::Response::content({}, {}, {:?})",values[0],values[1],if binding.name=="__html"{"text/html; charset=utf-8"}else{"application/json"}),
    "__stream"=>format!("tsrust_native_http::Response::stream({})",values.join(",")),
    "__routerRoute"|"__routerUse"|"__routerUsePath"=>{
+    let Type::Record(router)=args[0].ty.unwrap()else{unreachable!()};let state=self.native_type(self.program.records[router].application.as_ref().unwrap().resolved_arguments[0]);
     let start=match binding.name{"__routerRoute"=>3,"__routerUsePath"=>2,_=>1};
     let route_args=match binding.name{"__routerRoute"=>format!("let method={};let path={};",values[1],values[2]),"__routerUsePath"=>format!("let path={};",values[1]),_=>"let path=\"*\";".into()};
     let mut callbacks=String::new();let mut names=Vec::new();
@@ -58,7 +76,7 @@ impl Emitter<'_>{
      format!("let task=callback.call({inputs});{unwrap}match {poll}{{Ok(response)=>{success},Err(_)=>Some(tsrust_native_http::failed())}}")
     }else if self.result_closures.borrow().contains_key(&origin){format!("Some(match callback.call({inputs}){{Ok(response)=>response,Err(_)=>tsrust_native_http::failed()}})")}else{format!("Some(callback.call({inputs}))")};
     let callback=format!("move|context,next|{{let callback=std::sync::Arc::clone(&callback);Box::pin(async move{{{body}}})}}");
-    callbacks.push_str(&format!("let handler{index}:tsrust_native_http::ContextMiddleware={{let callback=std::sync::Arc::new({});std::sync::Arc::new({callback})}};",values[index]));
+    callbacks.push_str(&format!("let handler{index}:tsrust_native_http::ContextMiddleware<{state}>={{let callback=std::sync::Arc::new({});std::sync::Arc::new({callback})}};",values[index]));
     names.push(format!("handler{index}"));
     }
     let handlers=names.join(",");
@@ -83,6 +101,20 @@ impl Emitter<'_>{
    "__contextRequestMultipart"=>format!("({receiver}).request_multipart().await"),
    "__contextRequestText"=>format!("({receiver}).request_text().await"),
    "__contextNext"=>format!("{{({}).run({receiver}).await;Ok::<_,tsrust_native_http::Error>(())}}",values[1]),
+   "getCookie"=>format!("({receiver}).cookie({})",values[1]),
+   "__setCookie"|"__deleteCookie"=>{
+    let index=if binding.name=="__setCookie"{3}else{2};
+    let options=if let Some(value)=args.get(index){format!("let options={};let cookie_options={};",values[index],self.http_cookie_options(value.ty.unwrap()))}else{"let cookie_options=tsrust_native_http::CookieOptions::default();".into()};
+    let value=if index==3{format!("let value={};",values[2])}else{String::new()};
+    let call=if index==3{"context.set_cookie(name,value,cookie_options)"}else{"context.delete_cookie(name,cookie_options)"};
+    format!("{{let context={receiver};let name={};{value}{options}{call}}}",values[1])
+   },
+   "__contextSet"=>format!("({receiver}).set({}, {})",values[1],self.expr(fun,&args[2],Mode::Consume)),
+   "__contextGet"=>{
+    let Type::Record(record)=args[0].ty.unwrap()else{unreachable!()};let Type::Record(variables)=self.program.records[record].application.as_ref().unwrap().resolved_arguments[1]else{unreachable!()};
+    let ExprKind::String(key)=&args[1].kind else{unreachable!()};let value=self.program.records[variables].fields.iter().find(|field|field.name.text==*key).unwrap().ty.unwrap();
+    return Some(self.cache_optional(expr.ty.unwrap(),value,&format!("({receiver}).get::<{}>({}){}",self.native_type(value),values[1],if value.is_copy(){".copied()"}else{""})));
+   },
    "__contextHeader"=>format!("({receiver}).header({}, {})",values[1],values[2]),
    "__contextStatus"=>format!("({receiver}).status({})",values[1]),
    "__contextText"|"__contextHtml"|"__contextJson"=>format!("({receiver}).content({}, {}, {:?})",values[1],values.get(2).map(|value|format!("Some({value})")).unwrap_or_else(||"None".into()),match binding.name{"__contextHtml"=>"text/html; charset=utf-8","__contextJson"=>"application/json",_=>"text/plain; charset=utf-8"}),
@@ -103,6 +135,7 @@ impl Emitter<'_>{
  }
  pub(super) fn http_record(&self,output:&mut String,id:usize)->bool{
   let name=match self.program.records[id].native_type{Some(NativeTypeId::HttpRouter)=>"Router",Some(NativeTypeId::HttpContext)=>"Context",Some(NativeTypeId::HttpContextNext)=>"ContextNext",Some(NativeTypeId::HttpApp)=>"App",Some(NativeTypeId::HttpClient)=>"Client",Some(NativeTypeId::HttpRequest)=>"Request",Some(NativeTypeId::HttpResponse)=>"Response",Some(NativeTypeId::HttpServer)=>"Server",Some(NativeTypeId::HttpBody)=>"Stream",Some(NativeTypeId::HttpNext)=>"Next",_=>return false};
-  writeln!(output,"type Record{id}=tsrust_native_http::{name};").unwrap();true
+  let arguments=if matches!(self.program.records[id].native_type,Some(NativeTypeId::HttpRouter|NativeTypeId::HttpContext)){format!("<{}>",self.native_type(self.program.records[id].application.as_ref().unwrap().resolved_arguments[0]))}else{String::new()};
+  writeln!(output,"type Record{id}=tsrust_native_http::{name}{arguments};").unwrap();true
  }
 }

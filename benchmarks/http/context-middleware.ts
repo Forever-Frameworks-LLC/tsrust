@@ -13,10 +13,11 @@ async function batch(url: string): Promise<number> {
 async function main(): Promise<void> {
   const config: Readonly<{body:string}> = {body:'42'};
   const server = http.createServer(async (_request: any, response: any) => {
-    const context = { headers: new Map<string,string>(), body: '' };
-    async function handle(): Promise<void> { context.body = config.body; }
+    const context = { env: config, variables: new Map<string,string>(), headers: new Map<string,string>(), body: '' };
+    async function handle(): Promise<void> { const body = context.variables.get('body'); if (body === undefined) throw new Error('Missing request variable'); context.body = body; }
     async function next(): Promise<void> { await handle(); }
     context.headers.set('x-before', 'entry');
+    context.variables.set('body', context.env.body);
     await next();
     context.headers.set('x-after', 'exit');
     response.setHeader('content-type', 'text/plain; charset=utf-8');

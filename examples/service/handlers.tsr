@@ -1,4 +1,4 @@
-import { Request, Response, FormField, MultipartPart, text, html, json } from 'std:http';
+import { Context, ContextNext, Response, FormField, MultipartPart, setCookie, deleteCookie } from 'std:http';
 import { Pool } from 'std:sql';
 import { Bytes, length, fromUtf8 } from 'std:bytes';
 import { now, startOfSecond, toUnixMilliseconds } from 'std:date';
@@ -6,7 +6,18 @@ import { Sender } from 'std:futures';
 import { monotonicNow } from 'std:time';
 import { formatUuid } from 'std:uuid';
 import { Event, newTrace, emitEvent } from '../service-observability/telemetry.tsr';
-import { isToken, matchesToken, tokenHash, newToken, sessionCookie, setSessionCookie } from './security.tsr';
+import { matchesToken, tokenHash, newToken, sessionCookie } from './security.tsr';
+
+export type Application = {
+  pool: Pool;
+  admin: Bytes;
+  origin: string;
+  telemetry: Sender<Event>;
+};
+
+export type Variables = {
+  digest: Bytes;
+};
 
 type NotePayload = {
   body: string;
@@ -16,151 +27,157 @@ type UploadPayload = {
   bytes: int;
 };
 
-async function respond(pool: ReadOnly<Pool>, admin: ReadOnly<Bytes>, origin: string, input: Request): Task<Response> {
-  const path = input.url();
-  const method = input.method();
-  const suppliedOrigin = input.header('origin');
-  // Browsers must send the exact configured origin for every state-changing request.
-  if (suppliedOrigin !== undefined && suppliedOrigin !== origin) {
-    return text('Forbidden', 403);
+function currentTimestamp(): int {
+  return unwrap(toUnixMilliseconds(startOfSecond(unwrap(now()))));
+}
+
+export async function observe(c: Mutable<Context<Application, Variables>>, next: ContextNext<Application>): Task<void> {
+  const trace = newTrace();
+  const started = monotonicNow();
+  c.header('x-request-id', formatUuid(trace.requestId));
+  const origin = clone(c.env.origin);
+  c.header('access-control-allow-origin', origin);
+  c.header('access-control-allow-credentials', 'true');
+  c.header('vary', 'Origin');
+  c.header('cache-control', 'no-store');
+  c.header('x-content-type-options', 'nosniff');
+  await emitEvent(c.env.telemetry, trace, 'request-start', 'service.handle', 0, 0);
+  await next();
+  if (c.res.status() >= 500) {
+    await emitEvent(c.env.telemetry, trace, 'request-failed', 'service.handle', c.res.status(), monotonicNow() - started);
+  } else {
+    await emitEvent(c.env.telemetry, trace, 'request-end', 'service.handle', c.res.status(), monotonicNow() - started);
+  }
+}
+
+export async function originPolicy(c: Mutable<Context<Application, Variables>>, next: ContextNext<Application>): Task<Response | undefined> {
+  const origin = c.req.header('origin');
+  if (origin !== undefined && origin !== c.env.origin) {
+    return c.text('Forbidden', 403);
   }
 
-  if (method === 'OPTIONS') {
-    if (suppliedOrigin === undefined) {
-      return text('Forbidden', 403);
-    }
+  await next();
+  return undefined;
+}
 
-    const response = text('', 204);
-    response.setHeader('access-control-allow-methods', 'GET, POST, DELETE, OPTIONS');
-    response.setHeader('access-control-allow-headers', 'authorization, content-type');
-    return response;
+export function preflight(c: Mutable<Context<Application, Variables>>): Response {
+  if (c.req.header('origin') === undefined) {
+    return c.text('Forbidden', 403);
   }
 
-  if (method === 'GET' && path === '/') {
-    const response = html('<!doctype html><html lang="en"><meta charset="utf-8"><title>Notes service</title><h1>Notes service</h1><p>Use the authenticated notes API.</p></html>');
-    response.setHeader('content-security-policy', "default-src 'none'; frame-ancestors 'none'");
-    return response;
+  c.header('access-control-allow-methods', 'GET, POST, DELETE, OPTIONS');
+  c.header('access-control-allow-headers', 'authorization, content-type');
+  return c.text('', 204);
+}
+
+export async function login(c: Mutable<Context<Application, Variables>>): Task<Response> {
+  const timestamp = currentTimestamp();
+  const authorization = c.req.header('authorization');
+  if (authorization === undefined || !authorization.startsWith('Bearer ')) {
+    return c.text('Unauthorized', 401);
   }
 
-  if (method === 'GET' && path === '/health') {
-    return text('ready');
+  if (!matchesToken(authorization.slice(7), c.env.admin)) {
+    return c.text('Unauthorized', 401);
   }
 
-  const timestamp = unwrap(toUnixMilliseconds(startOfSecond(unwrap(now()))));
-  if (method === 'POST' && path === '/session') {
-    const authorization = input.header('authorization');
-    if (authorization === undefined || !authorization.startsWith('Bearer ')) {
-      return text('Unauthorized', 401);
-    }
-
-    if (!matchesToken(authorization.slice(7), admin)) {
-      return text('Unauthorized', 401);
-    }
-
-    const token = newToken();
-    const digest = tokenHash(token);
-    await pool.execute('DELETE FROM service_sessions WHERE expires <= ?', [timestamp]);
+  const token = newToken();
+  const digest = tokenHash(token);
+  await c.env.pool.execute('DELETE FROM service_sessions WHERE expires <= ?', [timestamp]);
     // Cap durable session cardinality atomically; expired rows never authorize requests.
-    const added = await pool.execute('INSERT INTO service_sessions(digest, expires) SELECT ?, ? WHERE (SELECT COUNT(*) FROM service_sessions) < 1024', [digest, timestamp + 3600000]);
-    if (added !== 1) {
-      return text('Session capacity reached', 503);
-    }
-
-    const response = text('authenticated', 201);
-    response.setHeader('set-cookie', setSessionCookie(token));
-    return response;
+    const added = await c.env.pool.execute('INSERT INTO service_sessions(digest, expires) SELECT ?, ? WHERE (SELECT COUNT(*) FROM service_sessions) < 1024', [digest, timestamp + 3600000]);
+  if (added !== 1) {
+    return c.text('Session capacity reached', 503);
   }
 
-  const cookie = input.header('cookie');
+  setCookie(c, '__Host-session', token, {
+    secure: true, httpOnly: true, sameSite: 'Strict', maxAge: 3600
+  });
+  return c.text('authenticated', 201);
+}
+
+export async function requireSession(c: Mutable<Context<Application, Variables>>, next: ContextNext<Application>): Task<Response | undefined> {
+  const cookie = c.req.header('cookie');
   if (cookie === undefined) {
-    return text('Unauthorized', 401);
+    return c.text('Unauthorized', 401);
   }
-
+  // Application policy rejects ambiguous duplicate session cookies.
   const token = sessionCookie(cookie);
   if (token === undefined) {
-    return text('Unauthorized', 401);
+    return c.text('Unauthorized', 401);
   }
 
   const digest = tokenHash(token);
-  const sessions = await pool.query('SELECT expires FROM service_sessions WHERE digest = ? AND expires > ?', [clone(digest), timestamp]);
+  const sessions = await c.env.pool.query('SELECT expires FROM service_sessions WHERE digest = ? AND expires > ?', [clone(digest), currentTimestamp()]);
   if (sessions.length !== 1) {
-    return text('Unauthorized', 401);
+    return c.text('Unauthorized', 401);
   }
 
-  if ((method === 'POST' || method === 'DELETE') && suppliedOrigin === undefined) {
-    return text('Forbidden', 403);
+  const method = c.req.method();
+  if ((method === 'POST' || method === 'DELETE') && c.req.header('origin') === undefined) {
+    return c.text('Forbidden', 403);
   }
 
-  if (method === 'DELETE' && path === '/session') {
-    await pool.execute('DELETE FROM service_sessions WHERE digest = ?', [digest]);
-    const response = text('', 204);
-    response.setHeader('set-cookie', '__Host-session=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0');
-    return response;
-  }
-
-  if (method === 'GET' && path === '/notes') {
-    const rows = await pool.query('SELECT body FROM service_notes WHERE id = 1');
-    const body = unwrap(rows[0].text('body'));
-    const payload: NotePayload = {
-      body
-    };
-    return json(payload);
-  }
-
-  if (method === 'POST' && path === '/notes') {
-    let fields: FormField[] = [];
-    try {
-      fields = await input.form();
-    } catch {
-      return text('Invalid form', 400);
-    }
-
-    if (fields.length !== 1 || fields[0].name !== 'body' || length(unwrap(fromUtf8(fields[0].value))) > 4096) {
-      return text('Expected one body field, at most 4096 bytes', 400);
-    }
-
-    await pool.execute('UPDATE service_notes SET body = ? WHERE id = 1', [clone(fields[0].value)]);
-    return text('saved');
-  }
-
-  if (method === 'POST' && path === '/upload') {
-    let parts: MultipartPart[] = [];
-    try {
-      parts = await input.multipart();
-    } catch {
-      return text('Invalid multipart body', 400);
-    }
-
-    if (parts.length !== 1 || parts[0].name !== 'attachment') {
-      return text('Expected one attachment', 400);
-    }
-    // File names are metadata only; never turn client input into a filesystem path.
-    const payload: UploadPayload = {
-      bytes: length(parts[0].data)
-    };
-    return json(payload);
-  }
-
-  return text('Not Found', 404);
+  c.set('digest', digest);
+  await next();
+  return undefined;
 }
 
-export async function handle(pool: ReadOnly<Pool>, admin: ReadOnly<Bytes>, origin: string, telemetry: ReadOnly<Sender<Event>>, input: Request): Task<Response> {
-  const trace = newTrace();
-  const started = monotonicNow();
-  await emitEvent(telemetry, trace, 'request-start', 'service.handle', 0, 0);
-  let response = text('Unavailable', 503);
-  try {
-    response = await respond(pool, admin, clone(origin), input);
-    await emitEvent(telemetry, trace, 'request-end', 'service.handle', response.status(), monotonicNow() - started);
-  } catch {
-    await emitEvent(telemetry, trace, 'request-failed', 'service.handle', 503, monotonicNow() - started);
+export async function logout(c: Mutable<Context<Application, Variables>>): Task<Response> {
+  {
+    const digest = c.get('digest');
+    if (digest === undefined) {
+      return c.text('Unauthorized', 401);
+    }
+
+    await c.env.pool.execute('DELETE FROM service_sessions WHERE digest = ?', [clone(digest)]);
   }
 
-  response.setHeader('x-request-id', formatUuid(trace.requestId));
-  response.setHeader('access-control-allow-origin', origin);
-  response.setHeader('access-control-allow-credentials', 'true');
-  response.setHeader('vary', 'Origin');
-  response.setHeader('cache-control', 'no-store');
-  response.setHeader('x-content-type-options', 'nosniff');
-  return response;
+  deleteCookie(c, '__Host-session', {
+    secure: true, httpOnly: true, sameSite: 'Strict'
+  });
+  return c.text('', 204);
+}
+
+export async function readNotes(c: Mutable<Context<Application, Variables>>): Task<Response> {
+  const rows = await c.env.pool.query('SELECT body FROM service_notes WHERE id = 1');
+  const body = unwrap(rows[0].text('body'));
+  const payload: NotePayload = {
+    body
+  };
+  return c.json(payload);
+}
+
+export async function saveNotes(c: Mutable<Context<Application, Variables>>): Task<Response> {
+  let fields: FormField[] = [];
+  try {
+    fields = await c.req.form();
+  } catch {
+    return c.text('Invalid form', 400);
+  }
+
+  if (fields.length !== 1 || fields[0].name !== 'body' || length(unwrap(fromUtf8(fields[0].value))) > 4096) {
+    return c.text('Expected one body field, at most 4096 bytes', 400);
+  }
+
+  await c.env.pool.execute('UPDATE service_notes SET body = ? WHERE id = 1', [clone(fields[0].value)]);
+  return c.text('saved');
+}
+
+export async function upload(c: Mutable<Context<Application, Variables>>): Task<Response> {
+  let parts: MultipartPart[] = [];
+  try {
+    parts = await c.req.multipart();
+  } catch {
+    return c.text('Invalid multipart body', 400);
+  }
+
+  if (parts.length !== 1 || parts[0].name !== 'attachment') {
+    return c.text('Expected one attachment', 400);
+  }
+    // File names are metadata only; never turn client input into a filesystem path.
+    const payload: UploadPayload = {
+    bytes: length(parts[0].data)
+  };
+  return c.json(payload);
 }

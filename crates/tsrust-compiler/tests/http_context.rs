@@ -31,3 +31,24 @@ fn async_arrow_contracts_reject_invalid_await_and_results(){
   assert!(!output.status.success(),"accepted {source}");
  }
 }
+
+#[test]
+fn router_state_cookie_and_request_isolation_execute(){
+ let directory=support::TempDirectory::new();
+ let source=support::format_round_trip(include_str!("../../../examples/http-state/main.tsr"));
+ support::success(&support::run(support::cli().arg("run").arg(directory.source(&source)),300));
+}
+
+#[test]
+fn router_state_and_variable_ownership_reject(){
+ for source in [
+  "import {Router} from 'std:http';type State={name:string;};function main(){const app=new Router<State>({name:'x'});app.get('/',c=>{c.env.name='changed';return c.text('bad');});}",
+  "import {Router} from 'std:http';type Variables={name:string;};function main(){const app=new Router<null,Variables>();app.get('/',c=>{c.set('unknown','x');return c.text('bad');});}",
+  "import {Router} from 'std:http';type Variables={name:string;};function main(){const app=new Router<null,Variables>();app.get('/',c=>{c.set('name',1);return c.text('bad');});}",
+  "import {Router} from 'std:http';type Variables={name:string;};function main(){const app=new Router<null,Variables>();app.get('/',c=>{c.set('name','one');const name=c.get('name');c.set('name','two');console.log(name);return c.text('bad');});}",
+  "import {Router} from 'std:http';function main(){const app=new Router();app.get('/',c=>{return c.res;});}",
+ ]{
+  let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("check").arg(directory.source(&support::format_round_trip(source))),30);
+  assert!(!output.status.success(),"accepted {source}");let error=String::from_utf8_lossy(&output.stderr);assert!(!error.contains("panicked")&&!error.contains("error[import]")&&!error.contains("error[syntax]"),"{error}");
+ }
+}
