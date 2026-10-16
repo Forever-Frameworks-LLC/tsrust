@@ -28,6 +28,9 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
+Receiver {ty:"LruCache<int,string>",parameter:"x: LruCache<int,string>"},
+Receiver {ty:"CacheEntry<int,string>",parameter:"x: ReadOnly<CacheEntry<int,string>>"},
+Receiver {ty:"CacheInsertError<int,string>",parameter:"x: ReadOnly<CacheInsertError<int,string>>"},
 Receiver {ty:"Time",parameter:"x: ReadOnly<Time>"},
 Receiver {ty:"Instant",parameter:"x: ReadOnly<Instant>"},
 Receiver {ty:"Duration",parameter:"x: ReadOnly<Duration>"},
@@ -117,7 +120,8 @@ fn prelude(parameter: &str) -> String {
     let date=if ["Date","Time","Instant","Duration"].iter().any(|name|parameter.contains(name)){ "import {Date,DateError,Time,Instant,Duration,TimeZone} from 'std:date';\n" }else{""};
     let uuid=if parameter.contains("Uuid"){ "import {Uuid,UuidError} from 'std:uuid';\n" }else{""};
     let decimal=if parameter.contains("Decimal"){ "import {Decimal,DecimalError} from 'std:decimal';\n" }else{""};
-    format!("{uuid}{date}{decimal}{numeric}{testing}{PRELUDE}")
+    let cache=if parameter.contains("Cache"){ "import {LruCache,CacheEntry,CacheInsertError} from 'std:cache';\n" }else{""};
+    format!("{cache}{uuid}{date}{decimal}{numeric}{testing}{PRELUDE}")
 }
 
 fn diagnostic(body: &str, parameter: &str) -> Option<(String, String)> {

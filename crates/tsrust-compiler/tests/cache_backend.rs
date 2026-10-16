@@ -166,3 +166,24 @@ fn churn_matches_independent_recency_model(){
   for key in 0..23 {assert_eq!(cache.peek(&Key(key)).copied(),model.iter().find(|(candidate,_)|*candidate==key).map(|(_,value)|*value));}
  }
 }
+
+#[test]
+fn dropping_pending_loader_releases_retained_cache_owners_once(){
+ use std::{future::Future,sync::{Arc,atomic::{AtomicUsize,Ordering}},task::{Context,Poll,Wake,Waker}};
+ struct Value(Arc<AtomicUsize>);
+ impl Drop for Value{fn drop(&mut self){self.0.fetch_add(1,Ordering::SeqCst);}}
+ struct Noop;
+ impl Wake for Noop{fn wake(self:Arc<Self>){}}
+ let dropped=Arc::new(AtomicUsize::new(0));let observed=dropped.clone();
+ let mut loader=Box::pin(async move {
+  let mut cache=Lru::new(NonZeroUsize::new(1).unwrap());
+  cache.insert(1,Value(observed));
+  std::future::pending::<()>().await;
+  drop(cache);
+ });
+ let waker=Waker::from(Arc::new(Noop));let mut context=Context::from_waker(&waker);
+ assert!(matches!(loader.as_mut().poll(&mut context),Poll::Pending));
+ assert_eq!(dropped.load(Ordering::SeqCst),0);
+ drop(loader);
+ assert_eq!(dropped.load(Ordering::SeqCst),1);
+}

@@ -12630,7 +12630,7 @@
       "name": "CacheEntry",
       "kind": "type",
       "signature": "CacheEntry<K, V>",
-      "documentation": "An owned result record. CacheEntry contains key/value; CacheInsertError additionally contains code and preserves rejected inputs. Generic arguments match the cache key and value types.\n\n```tsrust\nimport {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));console.log(cache.remove(\"a\")!.value);}\n```\n\nExpected output: one.\n\nOwnership: The record owns its fields. No implicit sharing or cloning occurs.",
+      "documentation": "An owned result record. CacheEntry contains key/value; CacheInsertError additionally contains code and preserves rejected inputs. Generic arguments match the cache key and value types.\n\n```tsrust\nimport {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));console.log(cache.remove(\"a\")!.value);}\n```\n\nExpected output: one.\n\nOwnership: The record owns its fields. Explicit clone is available only when every field supports independent cloning. Resource fields cannot be cloned. No implicit sharing or cloning occurs.",
       "examples": [
         {
           "source": "import {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));console.log(cache.remove(\"a\")!.value);}",
@@ -12643,7 +12643,7 @@
       "name": "CacheInsertError",
       "kind": "type",
       "signature": "CacheInsertError<K, V>",
-      "documentation": "An owned result record. CacheEntry contains key/value; CacheInsertError additionally contains code and preserves rejected inputs. Generic arguments match the cache key and value types.\n\n```tsrust\nimport {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));console.log(cache.remove(\"a\")!.value);}\n```\n\nExpected output: one.\n\nOwnership: The record owns its fields. No implicit sharing or cloning occurs.",
+      "documentation": "An owned result record. CacheEntry contains key/value; CacheInsertError additionally contains code and preserves rejected inputs. Generic arguments match the cache key and value types.\n\n```tsrust\nimport {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));console.log(cache.remove(\"a\")!.value);}\n```\n\nExpected output: one.\n\nOwnership: The record owns its fields. Explicit clone is available only when every field supports independent cloning. Resource fields cannot be cloned. No implicit sharing or cloning occurs.",
       "examples": [
         {
           "source": "import {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));console.log(cache.remove(\"a\")!.value);}",
@@ -12772,8 +12772,7 @@
           "source": "import {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));const removed=cache.remove(\"a\");if(removed!==undefined){console.log(removed.key);}}",
           "output": "a\n"
         }
-      ],
-      "parameters": []
+      ]
     },
     {
       "name": "value",
@@ -12785,8 +12784,7 @@
           "source": "import {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));const removed=cache.remove(\"a\");if(removed!==undefined){console.log(removed.value);}}",
           "output": "one\n"
         }
-      ],
-      "parameters": []
+      ]
     }
   ],
   "CacheInsertError": [
@@ -12800,8 +12798,7 @@
           "source": "import {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));match(cache.set(\"bad\",\"original\",0)){Ok(_)=>{console.log(\"unexpected success\");},Err(error)=>{console.log(error.code);}}}",
           "output": "ttl\n"
         }
-      ],
-      "parameters": []
+      ]
     },
     {
       "name": "key",
@@ -12813,8 +12810,7 @@
           "source": "import {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));match(cache.set(\"bad\",\"original\",0)){Ok(_)=>{console.log(\"unexpected success\");},Err(error)=>{console.log(error.key);}}}",
           "output": "bad\n"
         }
-      ],
-      "parameters": []
+      ]
     },
     {
       "name": "value",
@@ -12826,8 +12822,7 @@
           "source": "import {LruCache} from \"std:cache\";function main(){const cache=new LruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));match(cache.set(\"bad\",\"original\",0)){Ok(_)=>{console.log(\"unexpected success\");},Err(error)=>{console.log(error.value);}}}",
           "output": "original\n"
         }
-      ],
-      "parameters": []
+      ]
     }
   ]
 }

@@ -1,0 +1,165 @@
+import { LruCache } from 'std:cache';
+import { Channel, Sender, delay, allSettled } from 'std:futures';
+import { strictEqual } from 'std:testing';
+
+type Request = {
+  client: int;
+  key: string;
+};
+
+type Reply = {
+  value: string;
+  loads: int;
+};
+
+async function load(key: string): Task<Result<string, string>> {
+  await delay(1);
+  if (key === 'failure') {
+    return Err('loader failed');
+  }
+
+  return Ok('loaded:' + key);
+}
+
+async function serve(requests: Channel<Request>, first: Sender<Reply>, second: Sender<Reply>): Task<int> {
+  const cache = new LruCache<string, string>(2);
+  let loads = 0;
+  for (let count = 0; count < 6; count++) {
+    const request = await requests.receive();
+    let value = '';
+    let found = false;
+    {
+      const cached = cache.get(request.key);
+      if (cached !== undefined) {
+        value = clone(cached);
+        found = true;
+      }
+    }
+
+    if (!found) {
+      loads++;
+      match (await load(clone(request.key))) {
+        Ok(loaded) => {
+          value = loaded;
+          unwrap(cache.set(clone(request.key), clone(value)));
+        },
+        Err(error) => {
+          value = 'failed';
+        }
+      }
+    }
+
+    const reply: Reply = {
+      value, loads
+    };
+    if (request.client === 0) {
+      await first.send(reply);
+    } else {
+      await second.send(reply);
+    }
+  }
+
+  requests.close();
+  cache.clear();
+  return loads;
+}
+
+async function client(id: int, requests: Sender<Request>, replies: Channel<Reply>): Task<int> {
+  const request: Request = {
+    client: id, key: 'shared'
+  };
+  await requests.send(request);
+  const first = await replies.receive();
+  strictEqual(first.value, 'loaded:shared');
+  const again: Request = {
+    client: id, key: 'shared'
+  };
+  await requests.send(again);
+  const second = await replies.receive();
+  strictEqual(second.value, 'loaded:shared');
+  const failure: Request = {
+    client: id, key: 'failure'
+  };
+  await requests.send(failure);
+  const failed = await replies.receive();
+  strictEqual(failed.value, 'failed');
+  replies.close();
+  return 0;
+}
+
+async function replyToClosedClient(reply: Sender<string>): Task<int> {
+  const cache = new LruCache<int, string>(1);
+  unwrap(cache.set(1, 'loaded'));
+  let value = '';
+  {
+    const cached = cache.get(1);
+    if (cached !== undefined) {
+      value = clone(cached);
+    }
+  }
+
+  let closed = false;
+  try {
+    await reply.send(value);
+  } catch (error) {
+    strictEqual(error.code, 'closed');
+    closed = true;
+  }
+
+  strictEqual(closed, true);
+  cache.clear();
+  return 1;
+}
+
+async function checkClientDeparture(): Task<void> {
+  const replies = new Channel<string>(1);
+  const sender = replies.sender();
+  replies.close();
+  strictEqual(await replyToClosedClient(sender).start(), 1);
+}
+
+async function blockedLoader(ready: Sender<int>): Task<void> {
+  const cache = new LruCache<int, string>(1);
+  unwrap(cache.set(1, 'retained until cancellation'));
+  await ready.send(1);
+  await delay(60000);
+  cache.clear();
+}
+
+async function checkCancellation(): Task<void> {
+  const ready = new Channel<int>(1);
+  const job = blockedLoader(ready.sender()).start();
+  try {
+    strictEqual(await ready.receive(), 1);
+  } finally {
+    job.cancel();
+    const outcomes = await allSettled([job]);
+    match (clone(outcomes[0])) {
+      Ok(_) => {
+        throw 'cancelled loader completed';
+      },
+      Err(error) => {
+        strictEqual(error.code, 'cancelled');
+      }
+    }
+  }
+
+  ready.close();
+}
+
+async function main(): Task<void> {
+  const requests = new Channel<Request>(2);
+  const first = new Channel<Reply>(1);
+  const second = new Channel<Reply>(1);
+  const firstRequests = requests.sender();
+  const secondRequests = requests.sender();
+  const firstReplies = first.sender();
+  const secondReplies = second.sender();
+  const outcomes = await allSettled([serve(requests, firstReplies, secondReplies).start(), client(0, firstRequests, first).start(), client(1, secondRequests, second).start()]);
+  strictEqual(unwrap(clone(outcomes[0])), 3);
+  strictEqual(unwrap(clone(outcomes[1])), 0);
+  strictEqual(unwrap(clone(outcomes[2])), 0);
+  await checkCancellation();
+  await checkClientDeparture();
+  console.log('serialized cache loading accepted');
+}

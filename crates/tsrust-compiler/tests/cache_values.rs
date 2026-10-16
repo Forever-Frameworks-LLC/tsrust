@@ -66,3 +66,15 @@ fn cache_last_use_keeps_aliases_and_loop_backedges_live(){
   let result=check(&source);assert!(!result.status.success(),"accepted {tail}");let error=String::from_utf8_lossy(&result.stderr);assert!(error.contains("error[native-view-conflict]"),"{tail}: {error}");
  }
 }
+
+#[test]
+fn cache_serializes_owned_loads_and_retries_failures(){
+ let dir=support::TempDirectory::new();let source=support::format_round_trip(include_str!("../../../examples/cache/serialized-loading.tsr"));
+ let result=support::run(support::cli().arg("run").arg(dir.source(&source)),180);support::success(&result);assert_eq!(result.stdout,b"serialized cache loading accepted\n");
+}
+
+#[test]
+fn cache_entry_cloning_checks_its_owned_payload(){
+ let source="import {LruCache} from 'std:cache';import {trackedResource,TrackedResource} from 'std:testing';function main(){const cache=new LruCache<int,TrackedResource>(1);unwrap(cache.set(1,trackedResource()));const entry=cache.remove(1)!;const copy=clone(entry);}";
+ assert!(!check(source).status.success(),"cloned a non-clone resource through CacheEntry");
+}

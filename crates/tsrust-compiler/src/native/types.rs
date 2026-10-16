@@ -57,7 +57,7 @@ static THREAD: Declaration = Declaration {
     fields: &[], capabilities: &[],
 };
 static LRU_CACHE: Declaration = Declaration {id:NativeTypeId::LruCache,module:"std:cache",name:"LruCache",type_parameters:&["K","V"],..THREAD};
-static CACHE_ENTRY: Declaration = Declaration {id:NativeTypeId::CacheEntry,module:"std:cache",name:"CacheEntry",type_parameters:&["K","V"],fields:&[
+static CACHE_ENTRY: Declaration = Declaration {id:NativeTypeId::CacheEntry,module:"std:cache",name:"CacheEntry",independent_clone:true,type_parameters:&["K","V"],fields:&[
  Field{name:"key",signature:Signature::Parameter(0),optional:false},Field{name:"value",signature:Signature::Parameter(1),optional:false},
 ],..SPAWN_ERROR};
 static CACHE_INSERT_ERROR: Declaration = Declaration {id:NativeTypeId::CacheInsertError,name:"CacheInsertError",fields:&[

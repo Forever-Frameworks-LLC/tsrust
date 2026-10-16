@@ -9,8 +9,8 @@ transport, editor agreement/help, 13 native catalog examples, offline package
 export and matched untimed money checks. See `docs/data-type-coverage.md`.
 Installed CLI/LSP consumers are refreshed; open decimal examples report no
 problems after the active server restart. SQLite holds `tsrust-decimal-*` evidence.
-Current CLI SHA-256: `75995737136d9a24fc76a3e54a4e54ae21855bd0fdf726da703d416fd86e28dd`.
-Current LSP SHA-256: `5aa65b77b42d91ad427111a8ae153647b775ae38623a8a456bf0c67e3d88512d`.
+Current CLI SHA-256: `239ceefd775f07ad0da4667539f86c52aa8bad33c94b9c29c34259d4bed6152c`.
+Current LSP SHA-256: `8a1bc3e304eb3dee785b6204c20080307dadfa78c6287d1122238813e0da7ad5`.
 The `std:date` calendar section now passes focused acceptance: validated Date,
 parseDate/formatDate, date-fns-style immutable arithmetic, bounded formatting,
 editor agreement, 15 catalog examples, offline export and matched untimed date-fns
@@ -38,7 +38,11 @@ Normal reads handle undefined without `!`; ownership, resource destruction and
 checked TTL/capacity errors pass. See `docs/milestones/s19-local-cache-acceptance.md`
 for the conservative lifetime boundaries and exact evidence. Matched LRU
 verification passes; timing is not yet performed. Installed consumers include the
-cache API and the restarted active editor has no problems. Finish S19 concurrent
+cache API and the restarted active editor has no problems. The serialized loading
+integration now passes focused cancellation, closed-client, independent drop and
+Node counterpart checks. Cache matrix/agreement gaps and two native emission
+defects are repaired; see the current section in `docs/plans/cache-plan.md`.
+General bounded loading/shutdown and the S19 family milestone remain open. Finish S19 concurrent
 loading/stampede policy and its family milestone, then continue S20 queues and S21
 service acceptance now. No new permission checkpoint is needed. The owner prefers date-fns: use small
 named immutable functions and familiar arithmetic/formatting names, while keeping

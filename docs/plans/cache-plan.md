@@ -178,3 +178,37 @@ carry their own retained loans. Loops, deferred callbacks, named capture plans a
 exception regions keep the existing lexical boundary; use an inner block to end
 a read before another cache operation there. This avoids claiming general
 nonlexical lifetime inference or weakening existing cleanup/borrow checks.
+
+## Serialized loading integration acceptance
+
+The source witness `examples/cache/serialized-loading.tsr` uses one cache-owning
+async worker and bounded request and per-client reply channels. It serializes
+loads, explicitly clones reply strings, caches successful loads and retries
+failures. This is a bounded fixed-client composition, not a generic shared-cache
+API. Different keys wait behind each other. Endpoint-bearing channel messages
+remain prohibited.
+
+The witness verifies four successful reads with one load, two uncached failures,
+cancellation after a readiness signal with settlement in finally, and a closed
+reply receiver. An independent backend counter verifies exactly one drop of a
+cached owner when its suspended future is dropped. No source finally guarantee
+is added for cancellation. The compiled TypeScript counterpart matches successful
+reuse and retry counts only; it makes no cancellation or ownership parity claim.
+
+Integration repairs mutable emission for owned closure captures and permits
+explicit cloning of CacheEntry/CacheInsertError only when their fields support
+independent cloning. Resource payload cloning still rejects. Cache catalog fields
+now complete as properties rather than methods. All three cache receiver types
+pass checker agreement; four completion rows pass all four timing/error modes.
+
+SQLite holds 25 exact `tsrust-cache-loading-*` records, including original failures,
+focused repairs, native/Node verification, formatting, installed hashes and the
+acceptance summary. Whole-project formatting changed one new file, then zero;
+installed CLI/LSP consumers are refreshed and the restarted editor reports no
+workspace problems. Previous compiler/resource and database evidence is reused.
+No SQL or task-lifecycle runtime behavior changed; no three-driver rerun was needed.
+
+S19 remains open: generalize the bounded loading/shutdown contract beyond this
+fixed-client witness, then complete the cache family regressions and scalar LRU
+measurements. No timing has been performed for the new cache workloads. Continue
+S20 and S21 afterward without another permission checkpoint.

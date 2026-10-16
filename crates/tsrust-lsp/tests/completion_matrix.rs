@@ -11,6 +11,7 @@ use support::session::Session;
 /// `every_kind_and_std_module_has_a_row` fails otherwise.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Kind {
+    Cache,
     Temporal,
     Date,
     Uuid,
@@ -52,7 +53,8 @@ enum Kind {
     MemberPrefix,
 }
 
-const KINDS: [Kind; 39] = [
+const KINDS: [Kind; 40] = [
+    Kind::Cache,
     Kind::Temporal,
     Kind::Date,
     Kind::Uuid,
@@ -127,6 +129,10 @@ fn rows() -> Vec<Row> {
     let mut rows = vec![
  Row {kind:Kind::Temporal,name:"temporal imports",before:"import { ".into(),typed:"",after:" } from 'std:date';function main(){}",includes:&["parseTime","formatTime","compareTimes","parseISO","formatISO","now","fromUnixMilliseconds","toUnixMilliseconds","fromUnixSeconds","toUnixSeconds","compareInstants","durationFromNanoseconds","durationFromMilliseconds","durationFromSeconds","durationToNanoseconds","durationToMilliseconds","addDurations","subtractDurations","addDuration","difference","parseTimeZone","fixedOffset","zoneName","offsetSeconds","localDate","localTime","resolveDateTime"],excludes:&["setHours"],silent:None,needs_check:false},
  Row {kind:Kind::Date,name:"calendar imports",before:"import { ".into(),typed:"",after:" } from 'std:date';function main(){}",includes:&["parseDate","formatDate","format","addDays","addMonths","differenceInCalendarDays","compareAsc","isLeapYear","getYear","getMonth","getDate","startOfMonth","endOfMonth"],excludes:&["parse","round"],silent:None,needs_check:false},
+ Row {kind:Kind::Cache,name:"cache imports",before:"import { ".into(),typed:"",after:" } from 'std:cache';function main(){}",includes:&["LruCache","CacheEntry","CacheInsertError"],excludes:&["__create"],silent:None,needs_check:false},
+ Row {kind:Kind::Cache,name:"cache methods",before:"import {LruCache} from 'std:cache';function probe(cache:LruCache<int,string>){".into(),typed:"cache.",after:"clear();}function main(){}",includes:&["get","peek","set","remove","size","clear"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+ Row {kind:Kind::Cache,name:"cache entry",before:"import {CacheEntry} from 'std:cache';function probe(entry:ReadOnly<CacheEntry<int,string>>){".into(),typed:"entry.",after:"key;}function main(){}",includes:&["key","value"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+ Row {kind:Kind::Cache,name:"cache insertion error",before:"import {CacheInsertError} from 'std:cache';function probe(error:ReadOnly<CacheInsertError<int,string>>){".into(),typed:"error.",after:"code;}function main(){}",includes:&["code","key","value"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
  Row {kind:Kind::Uuid,name:"uuid imports",before:"import { ".into(),typed:"",after:" } from 'std:uuid';function main(){}",includes:&["parseUuid","formatUuid","fromBytes","toBytes","compare","version","randomUuid"],excludes:&["parse","round"],silent:None,needs_check:false},
  Row {kind:Kind::Decimal,name:"decimal imports",before:"import { ".into(),typed:"",after:" } from 'std:decimal';function main(){}",includes:&["parseDecimal","fromInt","format","formatFixed","add","subtract","multiply","divideExact","compare","toInt","toNumber"],excludes:&["parse","round"],silent:None,needs_check:false},
  Row {kind:Kind::Date,name:"calendar error",before:"import {DateError} from 'std:date';function probe(error:ReadOnly<DateError>){".into(),typed:"error.",after:"code;}function main(){}",includes:&["code","message"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
