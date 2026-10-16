@@ -53,3 +53,60 @@ fn sql_drivers_bind_scalars_and_release_transactions(){
   });
  }
 }
+
+#[test]
+fn migration_sources_reject_ambiguous_or_unsupported_files(){
+ let directory=std::env::temp_dir().join(format!("tsrust-migration-source-{}",std::process::id()));std::fs::create_dir_all(&directory).unwrap();
+ for (name,sql) in [("bad.sql","SELECT 1"),("0_bad.sql","SELECT 1"),("1_bad.up.sql","SELECT 1"),("1_bad.sql",""),("1_bad.sql","-- no-transaction\nSELECT 1")]{
+  let path=directory.join(name);std::fs::write(&path,sql).unwrap();assert_eq!(tsrust_native_sql::load_migrations(&directory).unwrap_err().code,"migration-source");std::fs::remove_file(path).unwrap();
+ }
+ std::fs::write(directory.join("1_one.sql"),"SELECT 1").unwrap();std::fs::write(directory.join("01_duplicate.sql"),"SELECT 2").unwrap();assert!(tsrust_native_sql::load_migrations(&directory).is_err());std::fs::remove_file(directory.join("01_duplicate.sql")).unwrap();
+ std::fs::write(directory.join("README.md"),"not SQL").unwrap();let migrator=tsrust_native_sql::load_migrations(&directory).unwrap();assert_eq!(migrator.migrations.len(),1);assert_eq!(migrator.migrations[0].version,1);std::fs::remove_dir_all(directory).unwrap();
+}
+
+#[test]
+#[ignore="opt-in SQL migration recovery; use tools/check-async-sql.mjs --docker"]
+fn sql_migrations_detect_history_drift_and_recover_for_all_drivers(){
+ use tsrust_native_sql::Pool;
+ let postgres=std::env::var("TSRUST_TEST_POSTGRES_URL").unwrap();let mysql=std::env::var("TSRUST_TEST_MYSQL_URL").unwrap();
+ let directory=std::env::temp_dir().join(format!("tsrust-migrations-{}",std::process::id()));std::fs::create_dir_all(&directory).unwrap();
+ let sqlite=directory.join("database.sqlite");let sqlite_url=format!("sqlite:{}?mode=rwc",sqlite.display());
+ for(driver,url)in [("sqlite",sqlite_url.as_str()),("postgres",postgres.as_str()),("mysql",mysql.as_str())]{
+ tsrust_native_futures::block_on(async{
+  let sources=directory.join(driver);std::fs::create_dir_all(&sources).unwrap();let source=sources.to_str().unwrap();
+  if driver=="sqlite"{
+   for ephemeral in ["sqlite::memory:","sqlite:%3Amemory%3A","sqlite:","sqlite:shared?mode=memory"]{
+    let memory=Pool::connect(ephemeral,Some(1),Some(5000)).await.unwrap();assert_eq!(memory.migrate(source).await.unwrap_err().code,"migration-source");assert_eq!(memory.query("SELECT 1 AS value",&[]).await.unwrap()[0].int("value").unwrap(),1);memory.close().await.unwrap();
+   }
+  }
+  let pool=Pool::connect(url,Some(1),Some(5000)).await.unwrap();
+  pool.execute("DROP TABLE IF EXISTS _sqlx_migrations",&[]).await.unwrap();pool.execute("DROP TABLE IF EXISTS migration_notes",&[]).await.unwrap();pool.execute("DROP TABLE IF EXISTS migration_partial",&[]).await.unwrap();
+  let first="CREATE TABLE migration_notes(id BIGINT PRIMARY KEY, body VARCHAR(50)); INSERT INTO migration_notes VALUES (1, 'ready');";
+  std::fs::write(sources.join("1_notes.sql"),first).unwrap();pool.migrate(source).await.unwrap();pool.migrate(source).await.unwrap();
+  assert_eq!(pool.query("SELECT id, body FROM migration_notes",&[]).await.unwrap()[0].text("body").unwrap(),"ready");
+  std::fs::write(sources.join("1_notes.sql"),format!("{first}\n")).unwrap();assert_eq!(pool.migrate(source).await.unwrap_err().code,"migration-drift");
+  std::fs::remove_file(sources.join("1_notes.sql")).unwrap();assert_eq!(pool.migrate(source).await.unwrap_err().code,"migration-drift");std::fs::write(sources.join("1_notes.sql"),first).unwrap();
+  let broken="CREATE TABLE migration_partial(id BIGINT); INSERT INTO migration_missing_table VALUES (1);";std::fs::write(sources.join("2_partial.sql"),broken).unwrap();assert_eq!(pool.migrate(source).await.unwrap_err().code,"migration-failed");
+  if driver=="mysql"{
+   assert_eq!(pool.migrate(source).await.unwrap_err().code,"migration-dirty");
+   assert!(pool.query("SELECT id FROM migration_partial",&[]).await.is_ok());
+   // The disposable fixture's operator restores the exact pre-migration schema before clearing its dirty row.
+   pool.execute("DROP TABLE migration_partial",&[]).await.unwrap();pool.execute("DELETE FROM _sqlx_migrations WHERE version = 2 AND success = false",&[]).await.unwrap();
+  }else{assert!(pool.query("SELECT id FROM migration_partial",&[]).await.is_err());}
+  std::fs::write(sources.join("2_partial.sql"),"CREATE TABLE migration_partial(id BIGINT);").unwrap();pool.migrate(source).await.unwrap();
+  // History validation alone cannot detect out-of-band schema edits; a startup shape query must fail closed.
+  pool.execute("ALTER TABLE migration_notes DROP COLUMN body",&[]).await.unwrap();pool.migrate(source).await.unwrap();assert!(pool.query("SELECT id, body FROM migration_notes",&[]).await.is_err());
+  pool.execute("ALTER TABLE migration_notes ADD COLUMN body VARCHAR(50)",&[]).await.unwrap();pool.migrate(source).await.unwrap();assert!(pool.query("SELECT id, body FROM migration_notes",&[]).await.is_ok());
+  pool.execute("INSERT INTO migration_partial VALUES (1)",&[]).await.unwrap();
+  let blocker=Pool::connect(url,Some(1),Some(5000)).await.unwrap();let mut transaction=blocker.begin().await.unwrap();transaction.execute("UPDATE migration_partial SET id = 2",&[]).await.unwrap();
+  std::fs::write(sources.join("3_wait.sql"),"UPDATE migration_partial SET id = id + 2;").unwrap();
+  assert!(tokio::time::timeout(std::time::Duration::from_millis(100),pool.migrate(source)).await.is_err(),"{driver} migration must block on the held write lock");
+  transaction.rollback().await.unwrap();blocker.close().await.unwrap();
+  let observer=Pool::connect(url,Some(1),Some(5000)).await.unwrap();
+  tokio::time::timeout(std::time::Duration::from_secs(5),observer.migrate(source)).await.expect("an independent pool must acquire the released migration lock").unwrap();observer.close().await.unwrap();
+  pool.migrate(source).await.unwrap();assert_eq!(pool.query("SELECT id FROM migration_partial",&[]).await.unwrap()[0].int("id").unwrap(),3);
+  pool.execute("DROP TABLE migration_notes",&[]).await.unwrap();pool.execute("DROP TABLE migration_partial",&[]).await.unwrap();pool.execute("DROP TABLE _sqlx_migrations",&[]).await.unwrap();pool.close().await.unwrap();
+  eprintln!("{driver}: migration repeat, drift, failure, explicit recovery and schema check passed");
+ });}
+ std::fs::remove_dir_all(directory).unwrap();
+}

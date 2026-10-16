@@ -8,7 +8,9 @@ function command(program,args,options={}) {
  if(result.error||result.status!==0)throw new Error(`${program} failed: ${result.error??result.stderr??result.status}`);
  return result.stdout?.trim();
 }
+const migrationRuntimeOnly=process.argv.includes('--migration-runtime-only');
 const resume=process.argv.find(value=>value.startsWith('--resume-from='))?.slice('--resume-from='.length);
+if(migrationRuntimeOnly && resume)throw new Error('Migration runtime-only checks run all three drivers; do not combine with resume.');
 if(resume && !['postgres','mysql'].includes(resume))throw new Error('Resume must name postgres or mysql; retain prior passing evidence.');
 const suffix=randomUUID().slice(0,8),containers=[];
 function cleanup(){for(const name of containers.splice(0))spawnSync('docker',['rm','-f','-v',name],{stdio:'ignore'});}
@@ -27,8 +29,12 @@ try {
   const address=command('docker',['port',name,`${port}/tcp`]);
   env[driver==='postgres'?'TSRUST_TEST_POSTGRES_URL':'TSRUST_TEST_MYSQL_URL']=`${driver}://tsrust:tsrust-local-test@${address}/tsrust`;
  }
+ if(migrationRuntimeOnly)command('cargo',['test','-p','tsrust-compiler','--lib','sql_migrations_detect_history_drift_and_recover_for_all_drivers','--','--ignored','--nocapture'],{env,stdio:'inherit'});
+ else {
  if(!resume)command('cargo',['test','-p','tsrust-compiler','--lib','stdlib::sql::tests','--','--ignored','--nocapture'],{env,stdio:'inherit'});
  command('cargo',['test','-p','tsrust-compiler','--test','async_sql','--','--ignored','--nocapture'],{env,stdio:'inherit'});
  command('cargo',['test','-p','tsrust-compiler','--test','http','sql_and_https_features_share_one_generated_program_without_provider_ambiguity','--','--ignored','--nocapture'],{env,stdio:'inherit'});
  command('cargo',['test','-p','tsrust-compiler','--test','http_state','retained_sql_pool_serves_concurrent_requests_for_all_drivers','--','--ignored','--nocapture'],{env,stdio:'inherit'});
+ command('cargo',['test','-p','tsrust-compiler','--test','sql_migrations','--','--ignored','--nocapture'],{env,stdio:'inherit'});
+ }
 }finally{cleanup();}

@@ -3,14 +3,26 @@
 
 ## Current acceptance and continuation — 2026-10-16
 
+SQL migrations and recovery now pass focused acceptance. `Pool.migrate` keeps its
+checked pool borrow, validates versioned files and history, and closes failed or
+cancelled migration connections through tracked cleanup. All three drivers pass
+failure/recovery and independent lock-release observation; ephemeral SQLite inputs
+reject before migration. The full explicit SQL runner, relocated offline package,
+editor checks and matched untimed history workload pass. Exact failures, repairs,
+consumer hashes and cleanup proof are in SQLite under `tsrust-migrations-*`.
+Installed consumers are refreshed; the restarted active editor reports no problems.
+Continue S21 observability and scoped HTTP/security/authentication, then actual
+Linux/offline/signal and integrated service acceptance. Do not repeat completed
+SQL or S19/S20 suites without a relevant change. See
+`docs/plans/service-readiness-plan.md` for contracts and remaining work.
+
 Shared cache integration now passes focused native/compiler/editor acceptance:
 `SharedLruCache`, explicit `share`, owned `getCloned`/`peekCloned`, unchanged local
 cache loans, retained HTTP access and independent destruction. Constructor catches
 now receive their missing failure checkpoint. Matched scalar checks pass untimed
 in both engines. CLI/LSP consumers are refreshed and the restarted editor reports
 no problems. Exact original failures and repaired passes are in SQLite under
-`tsrust-shared-cache-*`. Continue SQL migrations and recovery next, then remaining
-S21 observability, HTTP/security/authentication and actual Linux/offline/signal
+`tsrust-shared-cache-*`. Continue remaining S21 observability, HTTP/security/authentication and actual Linux/offline/signal
 acceptance. Do not repeat completed S19/S20 regressions or timing.
 
 S21 retained read-only HTTP state now passes focused acceptance: owned configuration
@@ -20,7 +32,7 @@ checks. CLI and both editor consumers are refreshed; the active editor reports n
 problems after restart. Native support builds now preserve `CARGO_BUILD_JOBS` to
 respect the caller's memory limit. Exact logs and workload records are in SQLite
 under `tsrust-http-state-*` and `benchmarks/http/retained-state-*-verify.json`.
-Continue migrations/recovery and remaining S21
+Continue remaining S21
 requirements in `docs/plans/service-readiness-plan.md`. Full S21 acceptance and
 its timing milestone remain open. Do not repeat accepted S19/S20 regressions.
 
@@ -30,8 +42,8 @@ transport, editor agreement/help, 13 native catalog examples, offline package
 export and matched untimed money checks. See `docs/data-type-coverage.md`.
 Installed CLI/LSP consumers are refreshed; open decimal examples report no
 problems after the active server restart. SQLite holds `tsrust-decimal-*` evidence.
-Current CLI SHA-256: `5ea8a7176cf0fc6e766d64e4a7661914281e36c5db094620aa03095f155ff4c0`.
-Current LSP SHA-256: `11a6bd4c61acabf23332c69f6394d94519c4e640b9b25e11fada5cce49dcc053`.
+Current CLI SHA-256: `e1678a081b74795801123e9da220e818bff42a1a0358ef2c2632fbb97f0fa7d7`.
+Current LSP SHA-256: `49b5cb23b43f9169af491876e522563bbd6fa123486e93b2576e8fdc891c0ca1`.
 The `std:date` calendar section now passes focused acceptance: validated Date,
 parseDate/formatDate, date-fns-style immutable arithmetic, bounded formatting,
 editor agreement, 15 catalog examples, offline export and matched untimed date-fns

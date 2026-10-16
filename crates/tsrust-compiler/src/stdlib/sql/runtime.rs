@@ -63,7 +63,7 @@ mod tsrust_native_sql {
         if !allowed{return Err(error("sql","Use begin, commit and rollback for transactions; session control SQL is unsupported"));}
         Ok(())
     }
-    pub struct Pool { inner:AnyPool }
+    pub struct Pool { inner:AnyPool, sqlite:bool }
     pub struct Transaction<'a> { inner:Option<sqlx::Transaction<'static,Any>>, owner:std::marker::PhantomData<&'a Pool> }
     pub struct Row { inner:AnyRow }
     fn rows(values:Vec<AnyRow>)->Result<Vec<Row>,Error>{
@@ -77,7 +77,23 @@ mod tsrust_native_sql {
             if !["postgres://","postgresql://","mysql://","sqlite:"].iter().any(|prefix|url.starts_with(prefix)){return Err(error("url","Expected a postgres, mysql or sqlite URL"));}
             sqlx::any::install_default_drivers();
             let inner=AnyPoolOptions::new().max_connections(max as u32).acquire_timeout(Duration::from_millis(timeout as u64)).connect(url).await.map_err(database)?;
-            Ok(Self{inner})
+            Ok(Self{inner,sqlite:url.starts_with("sqlite:")})
+        }
+        pub async fn migrate(&self,directory:&str)->Result<(),Error>{
+            let directory=std::path::PathBuf::from(directory);
+            let migrator=tokio::task::spawn_blocking(move||load_migrations(&directory)).await.map_err(|e|error("migration-source",e.to_string()))??;
+            let mut connection=self.inner.acquire().await.map_err(database)?;
+            if self.sqlite {
+                // Inspect the actual database: SQLite URI filenames can conceal memory/temporary modes.
+                let file=sqlx::query_scalar::<Any,String>("SELECT file FROM pragma_database_list WHERE name = 'main'").fetch_one(&mut *connection).await.map_err(database)?;
+                if file.is_empty(){return Err(error("migration-source","Migrations require file-backed SQLite; memory and temporary databases are unsupported"));}
+            }
+            let mut guard=MigrationConnection(Some(connection));
+            let result=migrator.run(&mut **guard.0.as_mut().unwrap()).await.map_err(migration_error);
+            if result.is_ok(){drop(guard.0.take());}else{guard.close().await;}
+            // Errors and cancellation must never return a possibly locked connection to the pool.
+            drop(guard);
+            result
         }
         pub async fn begin(&self)->Result<Transaction<'_>,Error>{Ok(Transaction{inner:Some(self.inner.begin().await.map_err(database)?),owner:std::marker::PhantomData})}
         pub async fn close(self)->Result<(),Error>{self.inner.close().await;Ok(())}
@@ -90,6 +106,44 @@ mod tsrust_native_sql {
             validate_statement(sql,false)?;let mut connection=self.inner.acquire().await.map_err(database)?;let args=arguments(&mut connection,sql,parameters).await?;
             rows(sqlx::query_with(sqlx::AssertSqlSafe(sql),args).fetch_all(&mut *connection).await.map_err(database)?)
         }
+    }
+    struct MigrationConnection(Option<sqlx::pool::PoolConnection<Any>>);
+    impl MigrationConnection {
+        async fn close(&mut self){
+            if let Some(connection)=self.0.take(){
+                let (done,wait)=tokio::sync::oneshot::channel();
+                super::tsrust_native_futures::cleanup(async move{let _=connection.close().await;let _=done.send(());});
+                let _=wait.await;
+            }
+        }
+    }
+    impl Drop for MigrationConnection {
+        fn drop(&mut self){if let Some(connection)=self.0.take(){super::tsrust_native_futures::cleanup(async move{let _=connection.close().await;});}}
+    }
+    fn migration_error(failure:sqlx::migrate::MigrateError)->Error{
+        use sqlx::migrate::MigrateError::*;
+        let code=match &failure{Dirty(_)=>"migration-dirty",VersionMissing(_)|VersionMismatch(_)=>"migration-drift",Source(_)=>"migration-source",_=>"migration-failed"};
+        error(code,failure.to_string())
+    }
+    pub(super) fn load_migrations(directory:&std::path::Path)->Result<sqlx::migrate::Migrator,Error>{
+        use sqlx::migrate::{Migration,MigrationType,Migrator};
+        let source=|e:std::io::Error|error("migration-source",e.to_string());
+        let mut migrations=Vec::new();let mut versions=std::collections::HashSet::new();
+        for entry in std::fs::read_dir(directory).map_err(source)?{
+            let entry=entry.map_err(source)?;let path=entry.path();
+            if path.extension().is_none_or(|extension|extension!="sql"){continue;}
+            let name=entry.file_name();let name=name.to_str().ok_or_else(||error("migration-source","Migration filenames must be UTF-8"))?;
+            let invalid=||error("migration-source",format!("Expected unique positive VERSION_description.sql: {name}"));
+            let (version,description)=name.strip_suffix(".sql").and_then(|name|name.split_once('_')).ok_or_else(invalid)?;
+            if version.is_empty()||!version.bytes().all(|b|b.is_ascii_digit())||description.is_empty()||description.ends_with(".up")||description.ends_with(".down"){return Err(invalid());}
+            let version=version.parse::<i64>().map_err(|_|invalid())?;
+            if version<=0||!versions.insert(version){return Err(invalid());}
+            let sql=std::fs::read_to_string(path).map_err(source)?;
+            if sql.trim().is_empty()||sql.starts_with("-- no-transaction"){return Err(error("migration-source","Empty and no-transaction migrations are unsupported"));}
+            migrations.push(Migration::new(version,description.replace('_'," ").into(),MigrationType::Simple,sqlx::AssertSqlSafe(sql).into_sql_str(),false));
+        }
+        migrations.sort();
+        Ok(Migrator{migrations:migrations.into(),..Migrator::DEFAULT})
     }
     struct RollbackOnCancel<'a> {inner:&'a mut Option<sqlx::Transaction<'static,Any>>,armed:bool}
     impl Drop for RollbackOnCancel<'_> {fn drop(&mut self){if self.armed{rollback_on_drop(self.inner);}}}

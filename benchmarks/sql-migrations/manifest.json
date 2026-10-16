@@ -1,0 +1,11 @@
+{
+  "id": "sql-migration-history",
+  "measurementStatus": "unmeasured",
+  "hashes": {
+    "benchmarks/sql-migrations/history.tsr": "978828b5feb59a946fa2a5a3f587ba5cd6ed51fa8b6d9ac3d938c402802b0f31",
+    "benchmarks/sql-migrations/history.ts": "d508e6a5de6b6a86660b760dc54364f56fbce838bf6cc08d8fdde53fed8e083e",
+    "examples/sql-migrations/migrations/1_create_notes.sql": "dc4e5e904e3425a64e9f55302992b1b7330ff3dffb2a4ccde5b3ac86329d3ad5",
+    "examples/sql-migrations/migrations/2_seed_notes.sql": "55fee736e488f11c73a92ecd8a08dad57cb25224df9395b157b9490e39711754"
+  },
+  "implementationAccepted": true
+}

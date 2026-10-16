@@ -1,0 +1,1 @@
+CREATE TABLE service_notes(id BIGINT PRIMARY KEY, body VARCHAR(200) NOT NULL);

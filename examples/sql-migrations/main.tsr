@@ -1,0 +1,20 @@
+import { connect } from 'std:sql';
+import { get } from 'std:env';
+import { strictEqual } from 'std:testing';
+
+async function main(): Task<void> {
+  const url = unwrap(get('DATABASE_URL'));
+  if (url === undefined) {
+    throw 'Set DATABASE_URL to a disposable persistent database';
+  }
+
+  const pool = await connect(url, 1);
+  await pool.migrate('examples/sql-migrations/migrations');
+  await pool.migrate('examples/sql-migrations/migrations');
+  const rows = await pool.query('SELECT id, body FROM service_notes ORDER BY id');
+  strictEqual(rows.length, 1);
+  strictEqual(unwrap(rows[0].int('id')), 1);
+  strictEqual(unwrap(rows[0].text('body')), 'ready');
+  await pool.close();
+  console.log('SQL migrations accepted');
+}

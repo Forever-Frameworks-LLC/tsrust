@@ -15,8 +15,8 @@ The following are concrete gaps, not accepted service capabilities:
   deliberately non-transferable. Shared cache integration now has focused acceptance below.
 - HTTP body, connection and shutdown limits are fixed. There are no scoped form,
   multipart, cookie, CORS, rate-limit or static-serving helpers.
-- SQL has no versioned migration orchestration or drift detection. Transactions
-  deliberately reject DDL; migration recovery must respect each driver's behavior.
+- SQL migration implementation and recovery are described below. Transactions
+  continue to reject DDL; driver-specific recovery remains explicit.
 - Console/JSON, environment access, UUIDs and exact dates exist, but there is no
   structured redaction/correlation/metrics integration or authentication primitive.
 - Server.wait and shutdown exist, but no source signal API completes deployment
@@ -25,9 +25,9 @@ The following are concrete gaps, not accepted service capabilities:
 
 ## Implementation order
 
-The combined S19/S20 regression and measurement milestone is accepted. Implement
-retained handler state; migration recovery; observability and bounded HTTP
-contracts; maintained-library authentication; and integrated deployment acceptance.
+The combined S19/S20 regression and measurement milestone, retained handler state,
+shared cache and migration recovery are accepted. Continue observability and bounded
+HTTP contracts, maintained-library authentication and integrated deployment acceptance.
 Each section includes native ownership/failure witnesses, compiler/editor agreement,
 readable executable examples and relevant untimed benchmark support before checks.
 The final witness must combine these sections in an authenticated persistent service,
@@ -131,7 +131,64 @@ Original failures and repaired focused passes are retained under
 `tsrust-shared-cache-*` in SQLite. The matched scalar workload passes checksum 97,936
 in both engines with one untimed batch. Its timing remains pending at the S21 family
 milestone. This compares serialized native operations with a single-threaded Node
-Map LRU; it does not measure parallel throughput. Continue migration recovery next.
+Map LRU; it does not measure parallel throughput. Migration recovery acceptance follows below.
 
 Shared-cache CLI/LSP consumers are atomically refreshed and hash-verified; installed
 CLI checks pass and the restarted active editor reports no problems.
+
+## SQL migrations and recovery
+
+`Pool.migrate(directory)` is a lazy Task that borrows its pool. It loads trusted
+UTF-8 files named `VERSION_description.sql`, rejects duplicate/nonpositive/overflowing
+versions and unsupported reversible/no-transaction files, then uses the existing
+SQLx backend's migration ledger and checksums. Files are deployment inputs, not
+implicitly embedded assets. No ordinary transaction DDL/session-control permission
+was widened. Examples and recovery instructions are in `examples/sql-migrations`.
+
+PostgreSQL and MySQL use advisory migration locks; SQLite uses per-migration
+transactions. Deploy with one migration owner before request serving. On success
+the unlocked connection returns to its pool. Errors close the connection through
+tracked cleanup and await that close. Cancellation registers the same cleanup even
+when its enclosing operation is dropped. An independent second pool must acquire
+the migration lock after cancellation; the witness also verifies that cancelled
+DML is not applied twice. Source loading happens before acquiring a connection.
+
+SQLite migration acceptance requires an actual backing file, checked through its
+own database metadata. Parsing a URL alone is insufficient: encoded filenames and
+SQLite URI parameters can conceal an ephemeral database. Rejection leaves the
+existing pool usable for ordinary queries. This also avoids a
+SQLx URL-rendering panic exposed by the initial attempt; the original failure is
+retained rather than counted as acceptance.
+
+Changed/missing applied SQL reports history drift. Out-of-band schema changes are
+separate: startup queries verify required columns, and the witness deliberately
+removes a column to prove this check fails. No whole-schema/index/constraint
+comparison is claimed. PostgreSQL/SQLite roll back the failed migration, while
+MySQL DDL can persist partially with a dirty ledger. The fixture restores its exact
+pre-migration schema before an operator-style ledger reconciliation and retry;
+there is no automatic repair, skip, downgrade or database backup facility.
+
+The matched workload performs 32 already-applied SQLite history checks per batch.
+Native uses the complete migration path; Node-after-tsc uses a bounded fixture
+history/checksum implementation. Initial DDL is outside timing. Untimed checks use
+a debug native build; the later S21 timing milestone retains three release-mode
+processes, eight warmups and 31 samples. This is not concurrent deployment or
+cross-driver migration throughput evidence.
+
+Focused migration acceptance passes: source validation, compiler ownership/arity
+checks and two editor checks; the explicit SQL runner's seven tests, including all
+three drivers, SQL/TLS coexistence, retained HTTP pools and the relocated package
+built offline with an empty Cargo home; and the final migration-only witness for
+independent lock release and ephemeral SQLite rejection. A runtime-only runner
+option preserves earlier evidence when strengthening migration witnesses. Database
+suites remain ignored by default. The original receiver-transfer error, SQLx URL
+panic and incorrect MySQL DML expectation are retained alongside their repairs.
+
+Exact records are byte-verified in SQLite under `tsrust-migrations-*`. Both engines
+return checksum 1 for the untimed history workload; no migration timing is claimed.
+Installed CLI and both LSP consumers are atomically refreshed and hash-verified.
+The active editor restart settled with checking enabled and no problems. Cleanup
+removed 11 obsolete executable paths (1,003,916,064 logical bytes), the failed
+fixture's scratch database, and both runs' disposable database containers. Current
+consumers and reusable dependency libraries remain. Continue observability next;
+S21's full service and measurement acceptance remain open.

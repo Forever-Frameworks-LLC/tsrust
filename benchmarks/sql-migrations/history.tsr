@@ -1,0 +1,33 @@
+import { connect, Pool } from 'std:sql';
+import { get } from 'std:env';
+import { monotonicNow } from 'std:time';
+async function batch(pool: ReadOnly<Pool>): Task<int> {
+  for (let index = 0; index < 32; index++) {
+    await pool.migrate('examples/sql-migrations/migrations');
+  }
+
+  const rows = await pool.query('SELECT id FROM service_notes');
+  return unwrap(rows[0].int('id'));
+}
+
+async function main(): Task<void> {
+  const url = unwrap(get('DATABASE_URL'));
+  if (url === undefined) {
+    throw 'DATABASE_URL required';
+  }
+
+  const pool = await connect(url, 1);
+  await pool.migrate('examples/sql-migrations/migrations');
+  for (let warmup = 0; warmup < 8; warmup++) {
+    await batch(pool);
+  }
+
+  for (let sample = 0; sample < 31; sample++) {
+    const start = monotonicNow();
+    const checksum = await batch(pool);
+    console.log(checksum);
+    console.log(monotonicNow() - start);
+  }
+
+  await pool.close();
+}

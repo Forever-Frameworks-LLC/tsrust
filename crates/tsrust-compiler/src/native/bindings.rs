@@ -112,6 +112,7 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::sql::CONNECT_POLL,
     crate::stdlib::sql::BEGIN,
     crate::stdlib::sql::CLOSE,
+    crate::stdlib::sql::MIGRATE,
     crate::stdlib::sql::EXECUTE,
     crate::stdlib::sql::QUERY,
     crate::stdlib::sql::TXEXECUTE,
