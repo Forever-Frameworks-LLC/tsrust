@@ -44,7 +44,8 @@ mod tsrust_native_http {
         pub async fn listen_tls(self,address:&str,cert:&str,key:&str)->Result<Server,Error> {
             let certificates=certificates(cert)?;
             let key=PrivateKeyDer::from_pem_slice(key.as_bytes()).map_err(|_|error("tls","Invalid PEM private key"))?;
-            let mut config=rustls::ServerConfig::builder().with_no_client_auth().with_single_cert(certificates,key).map_err(|_|error("tls","Invalid certificate chain or mismatched private key"))?;
+            // SQL can also enable ring; choose HTTP crypto without changing process defaults.
+            let mut config=rustls::ServerConfig::builder_with_provider(Arc::new(rustls::crypto::aws_lc_rs::default_provider())).with_safe_default_protocol_versions().map_err(|_|error("tls","Invalid TLS protocol configuration"))?.with_no_client_auth().with_single_cert(certificates,key).map_err(|_|error("tls","Invalid certificate chain or mismatched private key"))?;
             config.alpn_protocols=vec![b"h2".to_vec(),b"http/1.1".to_vec()];
             self.listen_with_tls(address,Some(TlsAcceptor::from(Arc::new(config)))).await
         }

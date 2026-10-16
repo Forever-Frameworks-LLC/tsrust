@@ -103,6 +103,15 @@ and toolchain identities, protocols and sample counts. Markdown reports are opti
 exports. Do not retime unaffected workloads for presentation or replay history
 solely because a new feature landed.
 
+At a full milestone, run tests and doctest drivers in separate Cargo invocations:
+`RUST_TEST_THREADS=1 cargo test --workspace --lib --bins --tests --no-fail-fast`,
+then `cargo test --workspace --doc`. Relocated offline package witnesses rebuild
+vendored dependencies in the shared target; the second invocation refreshes the
+workspace dependency artifacts before rustdoc uses them. Keep the existing single
+build job and disabled incremental compilation. This does not trigger a full pass
+for individual packages or repairs; retain completed evidence and rerun affected
+checks only.
+
 ## Analytics purpose and storage
 
 At completed feature-family milestones, use correctness checks and matched performance measurements to review the completed foundation before optimization or further dependencies. Routine checkpoint timing should compare generated native execution against Node after TypeScript compilation. The broader runtime matrix remains available for optional comparison; preserve its existing measurements as context. A universal runtime win is not an acceptance requirement.

@@ -1,7 +1,7 @@
 //! Cargo-backed package changes publish one validated, atomic configuration generation.
 use std::{collections::BTreeMap,fs,io::Write,path::{Path,PathBuf}};
 use serde_json::Value;
-use tsrust_compiler::project::{SourceId,rust::dependencies::{Bindings,Dependency}};
+use tsrust_compiler::project::{SourceId,rust::dependencies::{Bindings,Dependency,reserved}};
 use crate::package_validation::{Candidate,normalize,read_optional};
 #[derive(Default)]
 struct Options {root:Option<PathBuf>,manifest:Option<PathBuf>,source:Option<String>,name:Option<String>,version:Option<String>,features:Option<Vec<String>>,enable:Vec<String>,disable:Vec<String>,defaults:Option<bool>,offline:bool,preview:bool}
@@ -98,7 +98,7 @@ pub(crate) fn run(command:&str,args:impl Iterator<Item=String>)->Result<u8,Strin
  let root_package=root_package(&metadata)?;
  for dependency in root_package["dependencies"].as_array().ok_or("Cargo dependencies missing")? {
   let name=dependency["name"].as_str().ok_or("Cargo dependency name missing")?;
-  if matches!(name,"rayon"|"serde"|"serde_json"|"tokio"|"axum"|"reqwest"|"http-body"|"http-body-util"|"hyper-util"|"sqlx"|"rusqlite"|"libsqlite3-sys"|"tokio-rustls"){continue;}
+  if reserved(name){continue;}
   let version=resolved(&metadata,name)?.0;
   binding.dependencies.insert(name.into(),Dependency{version:format!("={version}"),features:dependency["features"].as_array().unwrap().iter().map(|feature|feature.as_str().unwrap().into()).collect(),default_features:dependency["uses_default_features"].as_bool().unwrap()});
  }

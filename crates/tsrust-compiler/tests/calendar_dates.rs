@@ -8,10 +8,14 @@ fn calendar_dates_preserve_month_end_rules_and_explicit_ownership(){
 #[test]
 fn calendar_documentation_examples(){
  let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
- for entry in catalog["std:date"].as_array().unwrap(){for example in entry["examples"].as_array().unwrap(){
- let directory=support::TempDirectory::new();let source=support::format_round_trip(example["source"].as_str().unwrap());
- let output=support::run(support::cli().arg("run").arg(directory.source(&source)),180);support::success(&output);assert_eq!(output.stdout,example["output"].as_str().unwrap().as_bytes(),"{}",entry["name"]);
+ let mut imports=std::collections::BTreeSet::new();let mut functions=String::new();let mut calls=String::new();let mut expected=String::new();let mut count=0;
+ let selected:[&str;15]=["parseDate","formatDate","format","addDays","addMonths","differenceInCalendarDays","compareAsc","isLeapYear","getYear","getMonth","getDate","startOfMonth","endOfMonth","Date","DateError"];
+ for entry in catalog["std:date"].as_array().unwrap().iter().filter(|entry|selected.contains(&entry["name"].as_str().unwrap())){for example in entry["examples"].as_array().unwrap(){
+  let source=example["source"].as_str().unwrap();let (prefix,body)=source.split_once("function main()").unwrap();let start=prefix.find('{').unwrap();let end=prefix.find('}').unwrap();for name in prefix[start+1..end].split(','){imports.insert(name.trim().to_owned());}
+  functions.push_str(&format!("// {}\nfunction example{count}(){body}\n",entry["name"].as_str().unwrap()));calls.push_str(&format!("example{count}();"));expected.push_str(example["output"].as_str().unwrap());count+=1;
  }}
+ assert_eq!(count,15);let source=format!("import {{{}}} from 'std:date';{functions}function main(){{{calls}}}",imports.into_iter().collect::<Vec<_>>().join(","));
+ let directory=support::TempDirectory::new();let source=support::format_round_trip(&source);let output=support::run(support::cli().arg("run").arg(directory.source(&source)),180);support::success(&output);assert_eq!(output.stdout,expected.as_bytes());
 }
 #[test]
 fn calendar_storage_cannot_be_forged_or_implicitly_serialized(){

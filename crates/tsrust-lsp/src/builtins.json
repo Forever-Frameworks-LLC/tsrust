@@ -29,7 +29,7 @@
       "name": "Pool",
       "signature": "type Pool",
       "parameters": [],
-      "documentation": "Owned bounded SQL connection pool. query and execute use bound parameters. begin creates a scoped transaction. close waits for pool shutdown. Operations are lazy Tasks and errors throw at await.",
+      "documentation": "Owned bounded SQL connection pool. query and execute use bound parameters. begin creates a scoped transaction. close waits for pool shutdown. Operations are lazy Tasks and errors throw at await.\n\n```tsrust\nimport { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n\n// 1: Ada\n// 2: Grace\n```\n\nOwnership: The pool owns its connections. Operations borrow it; close consumes it.",
       "examples": [
         {
           "source": "import { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n",
@@ -41,7 +41,7 @@
       "name": "Transaction",
       "signature": "type Transaction",
       "parameters": [],
-      "documentation": "Scoped SQL transaction. query and execute borrow it exclusively; commit and rollback consume it. Dropping it without commit schedules rollback. DDL is excluded within transactions because some drivers commit it implicitly.",
+      "documentation": "Scoped SQL transaction. query and execute borrow it exclusively; commit and rollback consume it. Dropping it without commit schedules rollback. DDL is excluded within transactions because some drivers commit it implicitly.\n\n```tsrust\nimport { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n\n// 1: Ada\n// 2: Grace\n```\n\nOwnership: The transaction retains a pool borrow. Commit and rollback consume the transaction.",
       "examples": [
         {
           "source": "import { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n",
@@ -53,7 +53,7 @@
       "name": "Row",
       "signature": "type Row",
       "parameters": [],
-      "documentation": "Owned SQL result row. Named accessors return strict Result values; missing columns, null or wrong types return SqlError. Rows remain valid after the pool closes. Cast driver-specific SQL types explicitly.",
+      "documentation": "Owned SQL result row. Named accessors return strict Result values; missing columns, null or wrong types return SqlError. Rows remain valid after the pool closes. Cast driver-specific SQL types explicitly.\n\n```tsrust\nimport { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n\n// 1: Ada\n// 2: Grace\n```\n\nOwnership: The row owns its values independently of the pool; accessors borrow the row.",
       "examples": [
         {
           "source": "import { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n",
@@ -65,11 +65,11 @@
       "name": "SqlError",
       "signature": "type SqlError",
       "parameters": [],
-      "documentation": "SQL failure with code and message. Async operations throw this value at await; row accessors return it in Result. Database errors include SQLSTATE when available.",
+      "documentation": "SQL failure with code and message. Async operations throw this value at await; row accessors return it in Result. Database errors include SQLSTATE when available.\n\n```tsrust\nimport { SqlError } from \"std:sql\";\nfunction main() {\n  const error: SqlError = { code: \"column\", message: \"Missing column\" };\n  console.log(error.code);\n  console.log(error.message);\n}\n\n// column\n// Missing column\n```\n\nOwnership: The error owns its strings. Inspect them by borrowing; clone a string to retain an independent copy.",
       "examples": [
         {
-          "source": "import { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n",
-          "output": "1: Ada\n2: Grace\n"
+          "source": "import { SqlError } from \"std:sql\";\nfunction main() {\n  const error: SqlError = { code: \"column\", message: \"Missing column\" };\n  console.log(error.code);\n  console.log(error.message);\n}\n",
+          "output": "column\nMissing column\n"
         }
       ]
     }
@@ -318,14 +318,24 @@
     {
       "name": "code",
       "signature": "code: string",
-      "documentation": "Stable failure category such as database, acquire-timeout, closed, column, type, range or sql. Ownership: reads the error.",
-      "examples": []
+      "documentation": "Identifies the failure category as a string, such as column, type, range, precision, closed or acquire-timeout. Read this property to choose recovery behavior. Reading takes no arguments, does not mutate the error and does not throw.\n\n```tsrust\nimport { SqlError } from \"std:sql\";\nfunction main() {\n  const error: SqlError = { code: \"column\", message: \"Missing column\" };\n  console.log(error.code);\n  console.log(error.message);\n}\n// column\n// Missing column\n```\n\nOwnership: reading borrows the error and its string; clone the string to retain an independent value.",
+      "examples": [
+        {
+          "source": "import { SqlError } from \"std:sql\";\nfunction main() {\n  const error: SqlError = { code: \"column\", message: \"Missing column\" };\n  console.log(error.code);\n  console.log(error.message);\n}\n",
+          "output": "column\nMissing column\n"
+        }
+      ]
     },
     {
       "name": "message",
       "signature": "message: string",
-      "documentation": "Failure detail. Database errors include SQLSTATE when available. Ownership: reads the error.",
-      "examples": []
+      "documentation": "Describes the failure as a string. Database failures include SQLSTATE when available; exact detail depends on the driver and failure. Use code for category checks. Reading takes no arguments, does not mutate the error and does not throw.\n\n```tsrust\nimport { SqlError } from \"std:sql\";\nfunction main() {\n  const error: SqlError = { code: \"column\", message: \"Missing column\" };\n  console.log(error.code);\n  console.log(error.message);\n}\n// column\n// Missing column\n```\n\nOwnership: reading borrows the error and its string; clone the string to retain an independent value.",
+      "examples": [
+        {
+          "source": "import { SqlError } from \"std:sql\";\nfunction main() {\n  const error: SqlError = { code: \"column\", message: \"Missing column\" };\n  console.log(error.code);\n  console.log(error.message);\n}\n",
+          "output": "column\nMissing column\n"
+        }
+      ]
     }
   ],
   "std:sqlite": [
@@ -354,7 +364,7 @@
       "name": "Connection",
       "signature": "type Connection",
       "parameters": [],
-      "documentation": "Owned synchronous database handle. Use open(path), prepare(sql), begin() and close(). Scope exit closes it; live statements or transactions prevent explicit close.",
+      "documentation": "Owned synchronous database handle. Use open(path), prepare(sql), begin() and close(). Scope exit closes it; live statements or transactions prevent explicit close.\n\n```tsrust\nimport { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n\n// 1: Ada\n// 2: Grace\n```\n\nOwnership: The connection is uniquely owned. Statements and transactions retain borrows; close consumes the connection.",
       "examples": [
         {
           "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
@@ -366,7 +376,7 @@
       "name": "Statement",
       "signature": "type Statement",
       "parameters": [],
-      "documentation": "Reusable prepared SQL statement. execute binds typed parameters; query returns owned rows. Borrows its connection or transaction until finalized or dropped.",
+      "documentation": "Reusable prepared SQL statement. execute binds typed parameters; query returns owned rows. Borrows its connection or transaction until finalized or dropped.\n\n```tsrust\nimport { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n\n// 1: Ada\n// 2: Grace\n```\n\nOwnership: The statement borrows its connection or transaction; finalize consumes the statement.",
       "examples": [
         {
           "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
@@ -378,7 +388,7 @@
       "name": "Transaction",
       "signature": "type Transaction",
       "parameters": [],
-      "documentation": "Exclusive transaction handle from connection.begin(). commit or rollback consumes it. Leaving scope without a successful commit rolls back; release its statements before finishing.",
+      "documentation": "Exclusive transaction handle from connection.begin(). commit or rollback consumes it. Leaving scope without a successful commit rolls back; release its statements before finishing.\n\n```tsrust\nimport { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n\n// 1: Ada\n// 2: Grace\n```\n\nOwnership: The transaction exclusively borrows its connection; commit and rollback consume the transaction.",
       "examples": [
         {
           "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
@@ -390,7 +400,7 @@
       "name": "Row",
       "signature": "type Row",
       "parameters": [],
-      "documentation": "Owned query row. int, number, text and blob read strict storage types by column name; isNull tests SQL NULL. Values remain valid after the connection closes.",
+      "documentation": "Owned query row. int, number, text and blob read strict storage types by column name; isNull tests SQL NULL. Values remain valid after the connection closes.\n\n```tsrust\nimport { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n\n// 1: Ada\n// 2: Grace\n```\n\nOwnership: The row owns its values independently of the connection; accessors borrow the row.",
       "examples": [
         {
           "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
@@ -402,11 +412,11 @@
       "name": "SqliteError",
       "signature": "type SqliteError",
       "parameters": [],
-      "documentation": "SQLite operation failure with code and message. busy and locked mean contention; constraint means integrity failure; parameters, type and column identify binding/reading errors. transaction-ended means SQLite already rolled back; closed prevents reuse after failed rollback.",
+      "documentation": "SQLite operation failure with code and message. busy and locked mean contention; constraint means integrity failure; parameters, type and column identify binding/reading errors. transaction-ended means SQLite already rolled back; closed prevents reuse after failed rollback.\n\n```tsrust\nimport { SqliteError } from \"std:sqlite\";\nfunction main() {\n  const error: SqliteError = { code: \"column\", message: \"Missing column\" };\n  console.log(error.code);\n  console.log(error.message);\n}\n\n// column\n// Missing column\n```\n\nOwnership: The error owns its strings. Inspect them by borrowing; clone a string to retain an independent copy.",
       "examples": [
         {
-          "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
-          "output": "1: Ada\n2: Grace\n"
+          "source": "import { SqliteError } from \"std:sqlite\";\nfunction main() {\n  const error: SqliteError = { code: \"column\", message: \"Missing column\" };\n  console.log(error.code);\n  console.log(error.message);\n}\n",
+          "output": "column\nMissing column\n"
         }
       ]
     }
@@ -636,22 +646,22 @@
     {
       "name": "code",
       "signature": "code: string",
-      "documentation": "Stable category for handling failures.\n\nOwnership: read from the owned error.",
+      "documentation": "Stable category for handling failures.\n\n```tsrust\nimport { SqliteError } from \"std:sqlite\";\nfunction main() {\n  const error: SqliteError = { code: \"column\", message: \"Missing column\" };\n  console.log(error.code);\n  console.log(error.message);\n}\n\n// column\n// Missing column\n```\n\nOwnership: read from the owned error.",
       "examples": [
         {
-          "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
-          "output": "1: Ada\n2: Grace\n"
+          "source": "import { SqliteError } from \"std:sqlite\";\nfunction main() {\n  const error: SqliteError = { code: \"column\", message: \"Missing column\" };\n  console.log(error.code);\n  console.log(error.message);\n}\n",
+          "output": "column\nMissing column\n"
         }
       ]
     },
     {
       "name": "message",
       "signature": "message: string",
-      "documentation": "Human-readable details; do not parse for control flow.\n\nOwnership: read from the owned error.",
+      "documentation": "Human-readable details; do not parse for control flow.\n\n```tsrust\nimport { SqliteError } from \"std:sqlite\";\nfunction main() {\n  const error: SqliteError = { code: \"column\", message: \"Missing column\" };\n  console.log(error.code);\n  console.log(error.message);\n}\n\n// column\n// Missing column\n```\n\nOwnership: read from the owned error.",
       "examples": [
         {
-          "source": "import { open, Row } from 'std:sqlite';\n\ntype Person = { id: int; name: string; };\n\nfunction person(row: ReadOnly<Row>): Person {\n  return { id: unwrap(row.int('id')), name: unwrap(row.text('name')) };\n}\n\nfunction main(): void {\n  const db = unwrap(open(':memory:'));\n  {\n    const create = unwrap(db.prepare('CREATE TABLE people(id INTEGER PRIMARY KEY, name TEXT NOT NULL)'));\n    unwrap(create.execute());\n  }\n  {\n    const transaction = unwrap(db.begin());\n    {\n      const insert = unwrap(transaction.prepare('INSERT INTO people(id, name) VALUES (?1, ?2)'));\n      unwrap(insert.execute([1, 'Ada']));\n      unwrap(insert.execute([2, 'Grace']));\n    }\n    unwrap(transaction.commit());\n  }\n  {\n    const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));\n    const rows = unwrap(select.query());\n    for (const row of rows) {\n      const value = person(row);\n      console.log(`${value.id}: ${value.name}`);\n    }\n  }\n  unwrap(db.close());\n}\n",
-          "output": "1: Ada\n2: Grace\n"
+          "source": "import { SqliteError } from \"std:sqlite\";\nfunction main() {\n  const error: SqliteError = { code: \"column\", message: \"Missing column\" };\n  console.log(error.code);\n  console.log(error.message);\n}\n",
+          "output": "column\nMissing column\n"
         }
       ]
     }
@@ -5732,7 +5742,13 @@
     {
       "name": "TrackedResource",
       "signature": "type TrackedResource",
-      "documentation": "An opaque, uniquely owned synthetic native resource for testing destruction. Construct with trackedResource(); inspect its identity with resourceId(resource); consume it with closeResource(resource). It exposes no fields or receiver methods. Scope exit and replacement destroy native storage automatically. releaseCount and releaseOrder observe destruction without retaining the resource. Cloning, field projection, worker transfer and started-task transport are rejected. Direct local async ownership is supported. This instrument does not represent asynchronous backend cleanup.\n\nOwnership: moves transfer the resource; ReadOnly inspection borrows it. Its identity is a copied integer, not a resource handle."
+      "documentation": "An opaque, uniquely owned synthetic native resource for testing destruction. Construct with trackedResource(); inspect its identity with resourceId(resource); consume it with closeResource(resource). It exposes no fields or receiver methods. Scope exit and replacement destroy native storage automatically. releaseCount and releaseOrder observe destruction without retaining the resource. Cloning, field projection, worker transfer and started-task transport are rejected. Direct local async ownership is supported. This instrument does not represent asynchronous backend cleanup.\n\n```tsrust\nimport { trackedResource, resourceId, closeResource, releaseCount } from \"std:testing\";\nfunction main() {\n  const resource = trackedResource();\n  const id = resourceId(resource);\n  closeResource(resource);\n  console.log(releaseCount(id));\n}\n// 1\n```\n\nOwnership: moves transfer the resource; ReadOnly inspection borrows it. Its identity is a copied integer, not a resource handle.",
+      "examples": [
+        {
+          "source": "import { trackedResource, resourceId, closeResource, releaseCount } from \"std:testing\";\nfunction main() {\n  const resource = trackedResource();\n  const id = resourceId(resource);\n  closeResource(resource);\n  console.log(releaseCount(id));\n}\n",
+          "output": "1\n"
+        }
+      ]
     },
     {
       "name": "trackedResource",

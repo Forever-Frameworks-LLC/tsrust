@@ -9,8 +9,8 @@ transport, editor agreement/help, 13 native catalog examples, offline package
 export and matched untimed money checks. See `docs/data-type-coverage.md`.
 Installed CLI/LSP consumers are refreshed; open decimal examples report no
 problems after the active server restart. SQLite holds `tsrust-decimal-*` evidence.
-Current CLI SHA-256: `293b417c9a79dc28f56b7c408eaafad427f6f819b677754583436149b03a1adb`.
-Current LSP SHA-256: `ceffdbed8d2aaa1ed0d83378d076229b44ac2b8c10b5ab9c3d099b2d58d07d4a`.
+Current CLI SHA-256: `a8135a2ee71318ad7533bacf4bec35063c68f1cdda45c442047fad2a3d832df9`.
+Current LSP SHA-256: `837554af3dbeb649b08bf86a8ae2563a52212ddb08b47e5f6f80f5eb98382ccd`.
 The `std:date` calendar section now passes focused acceptance: validated Date,
 parseDate/formatDate, date-fns-style immutable arithmetic, bounded formatting,
 editor agreement, 15 catalog examples, offline export and matched untimed date-fns
@@ -28,7 +28,9 @@ Explicit checked Rust width/byte/Option/tuple adapters now pass native/compiler
 and editor acceptance. Direct unsupported signatures still reject. SQL domain
 witnesses now pass all three drivers, including exact decimal, date/time, UUID,
 JSON and nullable storage. Pinned Rust/date-fns/Decimal.js declaration inventories
-are recorded. Finish full data-type family regressions and five matched workloads,
+are recorded. Full data-type family regressions and targeted integration repairs
+now pass; see `docs/data-type-coverage.md` for retained original failures and final
+evidence. Do not repeat the full pass. Measure the five accumulated matched workloads,
 then continue S19–S21. No new permission checkpoint is needed. The owner prefers date-fns: use small
 named immutable functions and familiar arithmetic/formatting names, while keeping
 checked ranges, precision and explicit DST ambiguity handling. Continue

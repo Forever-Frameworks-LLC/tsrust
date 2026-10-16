@@ -307,7 +307,38 @@ owned-string alias, unused catch payload contract and consumed parameter strings
 are retained with repaired checks; no compiler semantics were relaxed. Evidence
 uses `tsrust-sql-domains-*` in SQLite. Containers are removed and Docker stopped.
 
-The bounded data-type implementation section is complete. Full compiler/LSP
-regressions and numeric/decimal/calendar/temporal/UUID measurements now form the
-next feature-family milestone before S19. Unsupported cases remain listed above;
-none are accepted through implicit rounding, cloning or native domain projection.
+The bounded data-type implementation section and family regressions are complete.
+Numeric/decimal/calendar/temporal/UUID measurements remain the next milestone step
+before S19. Unsupported cases remain listed above; none are accepted through
+implicit rounding, cloning or native domain projection.
+
+## Data-family regression acceptance
+
+The original consolidated pass recorded 4,151 compiler passes and 721 editor
+passes. Its 24 compiler and three editor failures are resolved by targeted reruns,
+without restarting passed groups. Original failures and repaired evidence remain
+under `tsrust-data-family-*` and `tsrust-data-repair-*` in SQLite.
+
+Repairs explicitly select the HTTP TLS provider when SQL enables another provider,
+keep empty record-rest results distinct from opaque native resources, reject
+native-resource rest projection, and protect bundled dependency pins during
+package management. Nine HTTP runtime checks, ten HTTP source checks, the combined
+SQL/HTTPS witness, seven package-management checks, 24 record-rest checks and both
+HTTP/HTTPS relocated offline debug/release packages pass. Existing PostgreSQL,
+MySQL and SQLite domain/lifecycle acceptance is reused; no SQL runtime or task
+cleanup rule changed.
+
+The catalog now checks SQL families and documents SQL/SQLite type/error examples
+and the resource observer consistently. Corrected catalog witnesses, resumed native
+examples, public export checks and the new record-rest editor witness pass. Identical
+complete catalog programs execute once per source/output pair; interrupted runs can
+resume standalone programs while retaining the final fragment batch. SQL execution
+remains opt-in. Calendar and decimal documentation examples retain all 28 original
+assertions while compiling as two programs. New error/resource examples also pass
+formatted native execution, and installed-server hover exposes their documentation.
+
+Both doctest drivers compile successfully (neither currently contains runnable
+doctests). Nested offline builds can replace shared-target dependency artifacts;
+a separate Cargo doctest invocation refreshes those dependencies. Installed CLI and
+both LSP paths are hash-verified; the restarted editor reports no problems. Timing
+acceptance remains separate from these correctness results.

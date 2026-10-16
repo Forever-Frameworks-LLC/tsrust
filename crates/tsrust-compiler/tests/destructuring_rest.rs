@@ -133,3 +133,16 @@ fn object_spread_copies_nested_spread_results_once(){
  let source=r#"import {strictEqual} from "std:testing";type Row={x:int;};function main(){const row:Row={x:1};const result={...{...row},y:2};strictEqual(result.x,1);strictEqual(result.y,2);}"#;
  let directory=support::TempDirectory::new();let path=directory.source(source);let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);assert!(output.stdout.is_empty());
 }
+
+#[test]
+fn record_rest_cannot_project_opaque_native_values(){
+ for (import,value) in [
+  ("import {trackedResource} from 'std:testing';","trackedResource()"),
+  ("import {parseUuid} from 'std:uuid';","unwrap(parseUuid('67e55044-10b1-426f-9247-bb680e5fe0c8'))"),
+  ("import {parseDecimal} from 'std:decimal';","unwrap(parseDecimal('1'))"),
+  ("import {parseDate} from 'std:date';","unwrap(parseDate('2024-02-29'))"),
+ ]{
+  let directory=support::TempDirectory::new();let source=format!("{import}function main(){{const value={value};const {{...rest}}=value;}}");
+  let result=support::run(support::cli().arg("check").arg(directory.source(&source)),30);assert!(!result.status.success());assert!(String::from_utf8_lossy(&result.stderr).contains("native-capability"),"{}",String::from_utf8_lossy(&result.stderr));
+ }
+}

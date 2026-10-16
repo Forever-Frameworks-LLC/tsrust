@@ -17,7 +17,7 @@ impl Analyzer {
         false
     }
     #[inline(never)]
-    fn spread_record_shape(&mut self,fields:Vec<RecordField>,span:Span)->usize{
+    pub(super) fn spread_record_shape(&mut self,fields:Vec<RecordField>,span:Span)->usize{
         if let Some(id)=self.program.records.iter().position(|record|record.native_type.is_none()&&!record.is_tuple()&&record.enum_definition.is_none() && record.set_definition.is_none() && record.map_definition.is_none()&&record.fields.len()==fields.len()&&record.fields.iter().zip(&fields).all(|(a,b)|a.name.text==b.name.text&&a.ty==b.ty)){return id;}
         let id=self.program.records.len();
         self.fields.push(fields.iter().map(|field|(field.name.text.clone(),field.ty.expect("checked spread field"))).collect());

@@ -7,8 +7,8 @@ export and untimed date-fns acceptance. Time of day, UTC instants, IANA/fixed zo
 and exact durations also pass focused acceptance, including explicit DST and
 precision failures. Exact UUID text/bytes and fallible random generation now pass
 focused native/editor/export acceptance. Explicit Rust adapters and all three SQL
-domain mappings pass focused acceptance. Complete data-type family regressions
-and accumulated measurements, then continue S19–S21. Date/time API design follows the owner's date-fns preference.
+domain mappings pass focused acceptance. Data-type family regressions and targeted
+integration repairs pass. Finish accumulated measurements, then continue S19–S21. Date/time API design follows the owner's date-fns preference.
 See [current data-type coverage](data-type-coverage.md) and the
 [current handoff](handoffs/compiler-to-roadmap-continuation.md).
 

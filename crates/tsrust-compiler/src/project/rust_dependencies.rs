@@ -8,6 +8,10 @@ pub struct Bindings {pub schema_version:u32,pub source:String,pub dependencies:B
 #[serde(deny_unknown_fields,rename_all="camelCase")]
 pub struct Dependency {pub version:String,#[serde(default)]pub features:Vec<String>,#[serde(default="enabled")]pub default_features:bool}
 fn enabled()->bool{true}
+// Runtime-owned pins cannot be redeclared or replaced by a binding package.
+pub fn reserved(name:&str)->bool {
+ ["uuid","getrandom","chrono-tz","chrono","bigdecimal","sqlx","rusqlite","axum","tokio-rustls","reqwest","http-body","http-body-util","hyper-util","tokio","rayon","serde","serde_json","libsqlite3-sys","tsrust_runtime"].contains(&name)
+}
 #[derive(Clone,Debug,Deserialize,Serialize)]
 pub struct Package {pub manifest:String,pub lock:String,pub vendor:PathBuf,pub crates:Vec<String>}
 impl Bindings {
@@ -16,7 +20,7 @@ impl Bindings {
   if value.schema_version!=1 || !value.source.ends_with(".rs"){return Err("Bindings require schemaVersion 1 and a relative .rs source.".into());}
   if Path::new(&value.source).is_absolute(){return Err("Binding source must be relative.".into());}
   for (name,dependency) in &value.dependencies {
-   if name.is_empty() || !name.bytes().all(|byte|byte.is_ascii_alphanumeric() || b"_-".contains(&byte)) || syn::parse_str::<syn::Ident>(&name.replace('-',"_")).is_err() || matches!(name.as_str(),"rayon"|"serde"|"serde_json"|"tokio"|"axum"|"reqwest"|"http-body"|"http-body-util"|"hyper-util"|"sqlx"|"rusqlite"|"libsqlite3-sys"|"tokio-rustls"|"tsrust_runtime") {return Err(format!("Invalid or reserved dependency name {name}."));}
+   if name.is_empty() || !name.bytes().all(|byte|byte.is_ascii_alphanumeric() || b"_-".contains(&byte)) || syn::parse_str::<syn::Ident>(&name.replace('-',"_")).is_err() || reserved(name) {return Err(format!("Invalid or reserved dependency name {name}."));}
    if !dependency.version.starts_with('=') || dependency.version.len()<2 || !dependency.version[1..].bytes().all(|byte|byte.is_ascii_alphanumeric() || b".-+".contains(&byte)) || {let core=dependency.version[1..].split(['-','+']).next().unwrap();let parts=core.split('.').collect::<Vec<_>>();parts.len()!=3 || parts.iter().any(|part|part.is_empty() || !part.bytes().all(|byte|byte.is_ascii_digit()))}{return Err(format!("Dependency {name} requires an exact version, such as =1.2.3."));}
    if dependency.features.iter().any(|feature|feature.is_empty() || !feature.bytes().all(|byte|byte.is_ascii_alphanumeric() || b"_-/".contains(&byte))){return Err(format!("Invalid feature for {name}."));}
   }Ok(value)
@@ -34,6 +38,11 @@ impl Bindings {
 pub const MARKER:&str="// tsrust-binding-package ";
 #[cfg(test)]mod tests {
  use super::*;
+ #[test]fn every_bundled_dependency_pin_is_reserved(){
+  let manifest=include_str!("../../native-dependencies/Cargo.toml");let section=manifest.split_once("[dependencies]\n").unwrap().1.split_once("\n[features]").unwrap().0;
+  for line in section.lines().filter(|line|!line.trim().is_empty()) {let name=line.split_once('=').unwrap().0.trim();assert!(reserved(name),"unprotected runtime dependency {name}");}
+ }
+
  #[test]fn binding_dependencies_are_explicit_exact_and_closed(){
   let value=Bindings::parse(r#"{"schemaVersion":1,"source":"./adapter.rs","dependencies":{"regex":{"version":"=1.12.2","features":["unicode"],"defaultFeatures":false}}}"#).unwrap();
   assert!(value.manifest().contains("regex = { version = \"=1.12.2\", features = [\"unicode\"], default-features = false }"));

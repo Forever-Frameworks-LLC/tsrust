@@ -2075,10 +2075,10 @@ fn testing_public_exports_exclude_private_runtime_bridges() {
     let graph=tsrust_compiler::project::load_project_headers(&workspace.snapshot(),&root.0).unwrap();
     let completion=ask(&ProjectIndex::new(&graph),source," }","textDocument/completion");
     let names=completion.as_array().unwrap().iter().filter_map(|item|item["label"].as_str()).collect::<std::collections::BTreeSet<_>>();
-    for name in ["ok","strictEqual","notStrictEqual","fail","expect","Expectation","NegatedExpectation","test","it","runTests","describe","suite","beforeAll","afterAll","beforeEach","afterEach","before","after"] {
+    for name in ["ok","strictEqual","notStrictEqual","fail","expect","Expectation","NegatedExpectation","test","it","runTests","describe","suite","beforeAll","afterAll","beforeEach","afterEach","before","after","TrackedResource","trackedResource","resourceId","closeResource","releaseCount","releaseOrder","liveCount"] {
         assert!(names.contains(name),"missing {name}: {completion}");
     }
-    for binding in tsrust_compiler::native_bindings::BINDINGS.iter().filter(|binding|binding.module=="std:testing-runtime" && binding.name!="runTests") {
+    for binding in tsrust_compiler::native_bindings::BINDINGS.iter().filter(|binding|binding.module=="std:testing-runtime" && !matches!(binding.name,"runTests"|"trackedResource"|"resourceId"|"closeResource"|"releaseCount"|"releaseOrder"|"liveCount")) {
         assert!(!names.contains(binding.name),"private {} offered: {completion}",binding.name);
     }
     workspace.change(&root,2,"import { checkAssertion } from 'std:testing-runtime';".into());

@@ -74,3 +74,12 @@ fn tls_configuration_errors_are_typed(){
  let source="import {App,Client,TlsOptions} from 'std:http';import {strictEqual} from 'std:testing';async function main():Task<void>{const tls:TlsOptions={key:'bad key',cert:'bad cert'};let failed=false;try{const app=new App();await app.listen('127.0.0.1:0',tls);}catch(error){strictEqual(error.code,'tls');failed=true;}strictEqual(failed,true);failed=false;try{new Client({ca:''});}catch(error){strictEqual(error.code,'tls');failed=true;}strictEqual(failed,true);}";
  let directory=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(directory.source(&support::format_round_trip(source))),300);support::success(&output);
 }
+#[test]
+#[ignore = "opt-in SQL/TLS integration: node tools/check-async-sql.mjs --docker"]
+fn sql_and_https_features_share_one_generated_program_without_provider_ambiguity(){
+ let directory=support::TempDirectory::new();
+ let source=format!("import {{connect}} from 'std:sql';import {{strictEqual}} from 'std:testing';{}",include_str!("../../../examples/http/https.tsr").replace("async function main(): Task<void> {","async function main(): Task<void> {const db=await connect('sqlite::memory:',1);const rows=await db.query('SELECT 42 AS value');strictEqual(unwrap(rows[0].int('value')),42);await db.close();"));
+ assert!(source.contains("await db.query('SELECT 42 AS value')"),"HTTPS example entry point changed");
+ let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+ let output=support::run(support::cli().arg("run").arg(directory.source(&support::format_round_trip(&source))).current_dir(root),600);support::success(&output);assert_eq!(output.stdout,b"200\nHello over HTTPS\n");
+}

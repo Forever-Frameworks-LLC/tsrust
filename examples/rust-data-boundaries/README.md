@@ -25,7 +25,10 @@ are not additional built-ins or implicit conversions:
 Failures are Result errors. No unchecked truncation, hidden ownership copy or
 relaxation of external Drop rejection is used. Domain Date/Decimal/UUID objects
 are not directly projected into arbitrary Rust crates; use their validated
-serialization APIs and a concrete, pinned crate wrapper for a particular need.
+serialization APIs and explicit application adapters. Bundled backend crate names
+are reserved: binding packages cannot redeclare BigDecimal, Chrono, chrono-tz, UUID
+or getrandom with conflicting pins/features. Direct access through such a binding
+package needs separately accepted dependency-alias support.
 
 This is boundary correctness acceptance, not a new performance workload or a
 claim that copied byte adapters are as fast as the existing i64 buffer bridge.

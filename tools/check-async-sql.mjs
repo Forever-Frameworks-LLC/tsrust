@@ -29,4 +29,5 @@ try {
  }
  if(!resume)command('cargo',['test','-p','tsrust-compiler','--lib','stdlib::sql::tests','--','--ignored','--nocapture'],{env,stdio:'inherit'});
  command('cargo',['test','-p','tsrust-compiler','--test','async_sql','--','--ignored','--nocapture'],{env,stdio:'inherit'});
+ command('cargo',['test','-p','tsrust-compiler','--test','http','sql_and_https_features_share_one_generated_program_without_provider_ambiguity','--','--ignored','--nocapture'],{env,stdio:'inherit'});
 }finally{cleanup();}

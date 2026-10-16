@@ -27,7 +27,7 @@ fn package_changes_validate_tests_and_preserve_failed_or_preview_generations(){
 }
 #[test]
 fn reserved_dependencies_fail_without_creating_project_configuration(){
- let dir=support::TempDirectory::new();for dependency in ["serde@1.0.229","tokio@1.53.3","rusqlite@0.40.2","libsqlite3-sys@0.38.2"]{assert!(!package(&dir.0,"add",&[dependency]).status.success());}assert!(!dir.0.join("native.bindings.json").exists());assert!(!dir.0.join("native.rs").exists());
+ let dir=support::TempDirectory::new();for dependency in ["serde@1.0.229","tokio@1.53.3","rusqlite@0.40.2","libsqlite3-sys@0.38.2","bigdecimal@0.4.11","chrono@0.4.45","chrono-tz@0.10.4","uuid@1.28.0","getrandom@0.4.3"]{assert!(!package(&dir.0,"add",&[dependency]).status.success());}assert!(!dir.0.join("native.bindings.json").exists());assert!(!dir.0.join("native.rs").exists());
 }
 #[test]
 fn curated_regex_add_requires_no_json_and_real_bindings_execute_in_tests(){

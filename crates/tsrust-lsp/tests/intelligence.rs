@@ -834,7 +834,7 @@ fn every_catalog_entry_has_a_current_compiler_witness() {
             }
             // Matcher and native collection families provide complete-program
             // examples with their required imports and receiver construction.
-            if family.starts_with("Schema") || family.starts_with("Http") || matches!(family.as_str(), "schemaBuilder" | "ValidationContext" | "Expectation" | "NegatedExpectation" | "Deque" | "Heap" | "OrderedSet" | "OrderedMap" | "JSON" | "Channel" | "Sender" | "TaskContext" | "Thread" | "ScopedThread" | "ThreadPool" | "TaskMethods" | "Job" | "AsyncChannel" | "AsyncSender") {
+            if family.starts_with("Schema") || family.starts_with("Http") || family.starts_with("Sql") || matches!(family.as_str(), "schemaBuilder" | "ValidationContext" | "Expectation" | "NegatedExpectation" | "Deque" | "Heap" | "OrderedSet" | "OrderedMap" | "JSON" | "Channel" | "Sender" | "TaskContext" | "Thread" | "ScopedThread" | "ThreadPool" | "TaskMethods" | "Job" | "AsyncChannel" | "AsyncSender") {
                 let examples = entry["examples"].as_array().unwrap();
                 assert!(!examples.is_empty(), "{family}.{method} needs a witness example");
                 for example in examples {
@@ -1724,6 +1724,9 @@ fn documented_builtin_examples_match_native_output() {
     std::fs::create_dir(&directory.0).unwrap();
     std::fs::write(directory.0.join("input.bin"), [0, 65, 255, 66]).unwrap();
     let catalog: Value = serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
+    let resume = std::env::var("TSRUST_CATALOG_RESUME_FROM").ok();
+    if let Some(family)=&resume {assert!(catalog.get(family).is_some(),"Unknown catalog resume family {family}");}
+    let mut executed=std::collections::BTreeSet::new();
     let mut source = CatalogExampleSource::default();
     let mut expected = String::new();
     let mut expected_stderr = String::new();
@@ -1743,6 +1746,12 @@ fn documented_builtin_examples_match_native_output() {
                     || matches!(family.as_str(), "Expectation" | "NegatedExpectation")
                     || snippet.contains("function main(")
                 {
+                    // SQL execution remains opt-in through the three-driver runner.
+                    if matches!(family.as_str(),"SqlPool"|"SqlTransaction"|"SqlRow"|"std:sql") {continue;}
+                    // Earlier standalone programs passed before an interrupted run;
+                    // fragments still accumulate below because their batch runs last.
+                    if resume.as_ref().is_some_and(|start|family<start) {continue;}
+                    if !executed.insert((snippet,example["output"].as_str().unwrap())) {continue;}
                     let analysis = checked_std_example(snippet);
                     let dir = &directory.0;
                     let prefix = if family.starts_with("std:") { "std".to_owned() } else { family.to_lowercase() };
