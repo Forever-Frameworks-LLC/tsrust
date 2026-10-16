@@ -9,9 +9,14 @@ transport, editor agreement/help, 13 native catalog examples, offline package
 export and matched untimed money checks. See `docs/data-type-coverage.md`.
 Installed CLI/LSP consumers are refreshed; open decimal examples report no
 problems after the active server restart. SQLite holds `tsrust-decimal-*` evidence.
-Current CLI SHA-256: `8a1d0c64f362d465be60c37552bb44adb5b887e4ba973b7cef391a8b3efa0022`.
-Current LSP SHA-256: `6265b44cda0933bc93fe521751104b9a6f18407e61bab4f1ecbb1b516638d1d0`.
-Calendar/time-zone/duration types are next. The owner prefers date-fns: use small
+Current CLI SHA-256: `8e3f5574edbaaf12405c9354f0e337defcfbc9cdb3c7a67bee53c06040e72ff4`.
+Current LSP SHA-256: `f725874000046aa726ef94d86eb87cbcb440fd3fd782b85abfc8002fe9e164f1`.
+The `std:date` calendar section now passes focused acceptance: validated Date,
+parseDate/formatDate, date-fns-style immutable arithmetic, bounded formatting,
+editor agreement, 15 catalog examples, offline export and matched untimed date-fns
+workload. The original fixture failure and repaired pass remain in SQLite under
+`tsrust-calendar-*`. Installed consumers are refreshed; VS Code shows no problems.
+Time of day, instants, time-zone and duration types are next. The owner prefers date-fns: use small
 named immutable functions and familiar arithmetic/formatting names, while keeping
 checked ranges, precision and explicit DST ambiguity handling. Continue UUID,
 Rust/SQL boundary witnesses, then S19–S21 without another go-ahead.
@@ -49,8 +54,8 @@ resource example and workspace Problems panel report no problems. Installed CLI
 execution and installed LSP resource hover/signature help pass independently.
 The user's rust-analyzer workspace extension remains disabled.
 
-Current SQL CLI SHA-256: `296f5d1ba4c6ac93a49925d7ba97870b2d36179e8dd9e1241dd47d74d984c19e`.
-Current SQL LSP SHA-256: `8cf43bc480b94629114fccafdf0e9bbaebd072d9faeb0c5bd7065d541599a0b7`.
+Prior SQL CLI SHA-256: `296f5d1ba4c6ac93a49925d7ba97870b2d36179e8dd9e1241dd47d74d984c19e`.
+Prior SQL LSP SHA-256: `8cf43bc480b94629114fccafdf0e9bbaebd072d9faeb0c5bd7065d541599a0b7`.
 Both consumers were refreshed again for numeric acceptance. The active editor
 server was stopped when inspected, then restarted through its status item.
 Both already-open numeric fixtures initially reported no workspace problems.

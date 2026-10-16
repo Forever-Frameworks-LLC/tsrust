@@ -1,0 +1,65 @@
+import { Date, DateError, parseDate, formatDate, format, addDays, addMonths, differenceInCalendarDays, compareAsc, isLeapYear, getYear, getMonth, getDate, startOfMonth, endOfMonth } from 'std:date';
+import { strictEqual } from 'std:testing';
+import { spawn } from 'std:threads';
+
+type Schedule = {
+  date: Date | null;
+};
+
+function reject(value: Result<Date, DateError>) {
+  match (value) {
+    Ok(_) => {
+      throw 'expected invalid date';
+    },
+    Err(error) => {
+      strictEqual(error.code, 'Range');
+    }
+  }
+}
+
+function showOptional(value: ReadOnly<Date> | null): string {
+  if (value === null) {
+    return 'none';
+  }
+
+  return formatDate(value);
+}
+
+function main() {
+  const billing = unwrap(parseDate('2024-01-31'));
+  const due = unwrap(addMonths(billing, 1));
+  strictEqual(formatDate(billing), '2024-01-31');
+  strictEqual(formatDate(due), '2024-02-29');
+  strictEqual(unwrap(format(due, 'EEEE, MMMM d, yyyy')), 'Thursday, February 29, 2024');
+  strictEqual(formatDate(unwrap(addDays(due, 1))), '2024-03-01');
+  strictEqual(differenceInCalendarDays(due, billing), 29);
+  strictEqual(compareAsc(billing, due), -1);
+  strictEqual(isLeapYear(due), true);
+  strictEqual(getYear(due), 2024);
+  strictEqual(getMonth(due), 1);
+  strictEqual(getDate(due), 29);
+  strictEqual(formatDate(startOfMonth(due)), '2024-02-01');
+  strictEqual(formatDate(endOfMonth(due)), '2024-02-29');
+  reject(parseDate('2023-02-29'));
+  reject(addDays(unwrap(parseDate('9999-12-31')), 1));
+  match (format(due, 'YYYY-MM-DD')) {
+    Ok(_) => {
+      throw 'unsupported pattern';
+    },
+    Err(error) => {
+      strictEqual(error.code, 'Format');
+    }
+  }
+
+  const dates = [clone(billing), clone(due)];
+  strictEqual(formatDate(dates[0]), '2024-01-31');
+  const record: Schedule = {
+    date: clone(due)
+  };
+  strictEqual(showOptional(record.date), '2024-02-29');
+  strictEqual(showOptional(null), 'none');
+  const owned = clone(due);
+  const worker = unwrap(spawn((): string => formatDate(owned)));
+  strictEqual(unwrap(worker.join()), '2024-02-29');
+  console.log(unwrap(format(due, 'yyyy-MM-dd')));
+}

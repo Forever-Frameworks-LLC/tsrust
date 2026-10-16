@@ -11637,5 +11637,270 @@
       }
     ]
   }
+],
+  "std:date": [
+  {
+    "name": "parseDate",
+    "signature": "parseDate(text: string): Result<Date, DateError>",
+    "parameters": [
+      {
+        "label": "text: string",
+        "documentation": "Complete YYYY-MM-DD text; exactly ten ASCII bytes."
+      }
+    ],
+    "documentation": "Validates a complete YYYY-MM-DD Gregorian calendar date in years 0001..9999. Exactly four year digits and two month/day digits are required. Syntax rejects alternate layouts, whitespace and timestamps; Range rejects invalid days and out-of-range years. No rollover, local time or time zone is inferred. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {parseDate,formatDate,format,addDays,addMonths,differenceInCalendarDays,compareAsc,isLeapYear,getYear,getMonth,getDate,startOfMonth,endOfMonth} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-02-29\"));console.log(formatDate(unwrap(parseDate('2024-02-29'))));}\n```\n\nExpected output: 2024-02-29. Ownership: date and string inputs are borrowed; returned Date values own independent storage. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {parseDate,formatDate,format,addDays,addMonths,differenceInCalendarDays,compareAsc,isLeapYear,getYear,getMonth,getDate,startOfMonth,endOfMonth} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-02-29\"));console.log(formatDate(unwrap(parseDate('2024-02-29'))));}",
+        "output": "2024-02-29\n"
+      }
+    ]
+  },
+  {
+    "name": "formatDate",
+    "signature": "formatDate(value: Date): string",
+    "parameters": [
+      {
+        "label": "value: Date",
+        "documentation": "Validated calendar date; borrowed and unchanged."
+      }
+    ],
+    "documentation": "Returns exactly YYYY-MM-DD with zero-padded Gregorian year, month and day. The value has no time of day or time zone. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {parseDate,formatDate,format,addDays,addMonths,differenceInCalendarDays,compareAsc,isLeapYear,getYear,getMonth,getDate,startOfMonth,endOfMonth} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-02-29\"));console.log(formatDate(date));}\n```\n\nExpected output: 2024-02-29. Ownership: date and string inputs are borrowed; returned Date values own independent storage. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {parseDate,formatDate,format,addDays,addMonths,differenceInCalendarDays,compareAsc,isLeapYear,getYear,getMonth,getDate,startOfMonth,endOfMonth} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-02-29\"));console.log(formatDate(date));}",
+        "output": "2024-02-29\n"
+      }
+    ]
+  },
+  {
+    "name": "format",
+    "signature": "format(value: Date, pattern: string): Result<string, DateError>",
+    "parameters": [
+      {
+        "label": "value: Date",
+        "documentation": "Validated calendar date; borrowed and unchanged."
+      },
+      {
+        "label": "pattern: string",
+        "documentation": "Formatting pattern of at most 256 UTF-8 bytes; supported tokens and quoting are listed above."
+      }
+    ],
+    "documentation": "Formats a calendar date using yyyy, yy, MMMM, MMM, MM, M, dd, d, EEEE and EEE tokens. Month and weekday names are English. Quote literal letters with single quotes; doubled single quotes emit one quote. Other characters are literal. Format rejects unknown alphabetic tokens, unclosed quotes and patterns over 256 UTF-8 bytes. In particular YYYY and DD are not supported. No locale, time or zone tokens are available. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {parseDate,formatDate,format,addDays,addMonths,differenceInCalendarDays,compareAsc,isLeapYear,getYear,getMonth,getDate,startOfMonth,endOfMonth} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-02-29\"));console.log(unwrap(format(date,'EEEE, MMMM d, yyyy')));}\n```\n\nExpected output: Thursday, February 29, 2024. Ownership: date and string inputs are borrowed; returned Date values own independent storage. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {parseDate,formatDate,format,addDays,addMonths,differenceInCalendarDays,compareAsc,isLeapYear,getYear,getMonth,getDate,startOfMonth,endOfMonth} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-02-29\"));console.log(unwrap(format(date,'EEEE, MMMM d, yyyy')));}",
+        "output": "Thursday, February 29, 2024\n"
+      }
+    ]
+  },
+  {
+    "name": "addDays",
+    "signature": "addDays(value: Date, amount: int): Result<Date, DateError>",
+    "parameters": [
+      {
+        "label": "value: Date",
+        "documentation": "Validated calendar date; borrowed and unchanged."
+      },
+      {
+        "label": "amount: int",
+        "documentation": "Signed integer count; negative values subtract, zero retains the date."
+      }
+    ],
+    "documentation": "Returns a new date shifted by amount calendar days. amount is a signed 64-bit integer; negative values subtract days and zero returns an independent equal value. Range rejects arithmetic overflow or a result outside years 0001..9999. Calendar days do not represent elapsed 24-hour periods. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {parseDate,formatDate,format,addDays,addMonths,differenceInCalendarDays,compareAsc,isLeapYear,getYear,getMonth,getDate,startOfMonth,endOfMonth} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-02-29\"));console.log(formatDate(unwrap(addDays(date,1))));}\n```\n\nExpected output: 2024-03-01. Ownership: date and string inputs are borrowed; returned Date values own independent storage. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {parseDate,formatDate,format,addDays,addMonths,differenceInCalendarDays,compareAsc,isLeapYear,getYear,getMonth,getDate,startOfMonth,endOfMonth} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-02-29\"));console.log(formatDate(unwrap(addDays(date,1))));}",
+        "output": "2024-03-01\n"
+      }
+    ]
+  },
+  {
+    "name": "addMonths",
+    "signature": "addMonths(value: Date, amount: int): Result<Date, DateError>",
+    "parameters": [
+      {
+        "label": "value: Date",
+        "documentation": "Validated calendar date; borrowed and unchanged."
+      },
+      {
+        "label": "amount: int",
+        "documentation": "Signed integer count; negative values subtract, zero retains the date."
+      }
+    ],
+    "documentation": "Returns a new date shifted by amount calendar months. amount is a signed 64-bit integer; negative values subtract months. When the original day does not exist in the target month, clamps to its last day: January 31 plus one month becomes February 28 or 29. Range rejects overflow or a result outside years 0001..9999. This calendar rule does not preserve elapsed duration. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {parseDate,formatDate,format,addDays,addMonths,differenceInCalendarDays,compareAsc,isLeapYear,getYear,getMonth,getDate,startOfMonth,endOfMonth} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-02-29\"));console.log(formatDate(unwrap(addMonths(date,12))));}\n```\n\nExpected output: 2025-02-28. Ownership: date and string inputs are borrowed; returned Date values own independent storage. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {parseDate,formatDate,format,addDays,addMonths,differenceInCalendarDays,compareAsc,isLeapYear,getYear,getMonth,getDate,startOfMonth,endOfMonth} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-02-29\"));console.log(formatDate(unwrap(addMonths(date,12))));}",
+        "output": "2025-02-28\n"
+      }
+    ]
+  },
+  {
+    "name": "differenceInCalendarDays",
+    "signature": "differenceInCalendarDays(later: Date, earlier: Date): int",
+    "parameters": [
+      {
+        "label": "later: Date",
+        "documentation": "Date from which earlier is subtracted."
+      },
+      {
+        "label": "earlier: Date",
+        "documentation": "Date subtracted from later."
+      }
+    ],
+    "documentation": "Returns the signed whole Gregorian day count later minus earlier. Equal dates return zero. Calendar dates have no time zone, so DST does not change this count. The supported year range always fits int. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {parseDate,formatDate,format,addDays,addMonths,differenceInCalendarDays,compareAsc,isLeapYear,getYear,getMonth,getDate,startOfMonth,endOfMonth} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-02-29\"));console.log(differenceInCalendarDays(date,unwrap(parseDate('2024-02-28'))));}\n```\n\nExpected output: 1. Ownership: date and string inputs are borrowed; returned Date values own independent storage. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {parseDate,formatDate,format,addDays,addMonths,differenceInCalendarDays,compareAsc,isLeapYear,getYear,getMonth,getDate,startOfMonth,endOfMonth} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-02-29\"));console.log(differenceInCalendarDays(date,unwrap(parseDate('2024-02-28'))));}",
+        "output": "1\n"
+      }
+    ]
+  },
+  {
+    "name": "compareAsc",
+    "signature": "compareAsc(left: Date, right: Date): int",
+    "parameters": [
+      {
+        "label": "left: Date",
+        "documentation": "Left date to compare."
+      },
+      {
+        "label": "right: Date",
+        "documentation": "Right date to compare."
+      }
+    ],
+    "documentation": "Compares dates chronologically: returns -1 when left is earlier, 0 when equal and 1 when later. Both values are validated Gregorian dates. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {parseDate,formatDate,format,addDays,addMonths,differenceInCalendarDays,compareAsc,isLeapYear,getYear,getMonth,getDate,startOfMonth,endOfMonth} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-02-29\"));console.log(compareAsc(date,unwrap(parseDate('2024-03-01'))));}\n```\n\nExpected output: -1. Ownership: date and string inputs are borrowed; returned Date values own independent storage. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {parseDate,formatDate,format,addDays,addMonths,differenceInCalendarDays,compareAsc,isLeapYear,getYear,getMonth,getDate,startOfMonth,endOfMonth} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-02-29\"));console.log(compareAsc(date,unwrap(parseDate('2024-03-01'))));}",
+        "output": "-1\n"
+      }
+    ]
+  },
+  {
+    "name": "isLeapYear",
+    "signature": "isLeapYear(value: Date): boolean",
+    "parameters": [
+      {
+        "label": "value: Date",
+        "documentation": "Validated calendar date; borrowed and unchanged."
+      }
+    ],
+    "documentation": "Returns true when the year of value has February 29 under Gregorian leap-year rules. Century years are leap years only when divisible by 400. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {parseDate,formatDate,format,addDays,addMonths,differenceInCalendarDays,compareAsc,isLeapYear,getYear,getMonth,getDate,startOfMonth,endOfMonth} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-02-29\"));console.log(isLeapYear(date));}\n```\n\nExpected output: true. Ownership: date and string inputs are borrowed; returned Date values own independent storage. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {parseDate,formatDate,format,addDays,addMonths,differenceInCalendarDays,compareAsc,isLeapYear,getYear,getMonth,getDate,startOfMonth,endOfMonth} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-02-29\"));console.log(isLeapYear(date));}",
+        "output": "true\n"
+      }
+    ]
+  },
+  {
+    "name": "getYear",
+    "signature": "getYear(value: Date): int",
+    "parameters": [
+      {
+        "label": "value: Date",
+        "documentation": "Validated calendar date; borrowed and unchanged."
+      }
+    ],
+    "documentation": "Returns the Gregorian year of value, an int in 1..9999. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {parseDate,formatDate,format,addDays,addMonths,differenceInCalendarDays,compareAsc,isLeapYear,getYear,getMonth,getDate,startOfMonth,endOfMonth} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-02-29\"));console.log(getYear(date));}\n```\n\nExpected output: 2024. Ownership: date and string inputs are borrowed; returned Date values own independent storage. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {parseDate,formatDate,format,addDays,addMonths,differenceInCalendarDays,compareAsc,isLeapYear,getYear,getMonth,getDate,startOfMonth,endOfMonth} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-02-29\"));console.log(getYear(date));}",
+        "output": "2024\n"
+      }
+    ]
+  },
+  {
+    "name": "getMonth",
+    "signature": "getMonth(value: Date): int",
+    "parameters": [
+      {
+        "label": "value: Date",
+        "documentation": "Validated calendar date; borrowed and unchanged."
+      }
+    ],
+    "documentation": "Returns the zero-based calendar month, an int in 0..11: January is 0 and December is 11. This follows the date-fns getMonth convention; parsed date text uses month numbers 01..12. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {parseDate,formatDate,format,addDays,addMonths,differenceInCalendarDays,compareAsc,isLeapYear,getYear,getMonth,getDate,startOfMonth,endOfMonth} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-02-29\"));console.log(getMonth(date));}\n```\n\nExpected output: 1. Ownership: date and string inputs are borrowed; returned Date values own independent storage. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {parseDate,formatDate,format,addDays,addMonths,differenceInCalendarDays,compareAsc,isLeapYear,getYear,getMonth,getDate,startOfMonth,endOfMonth} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-02-29\"));console.log(getMonth(date));}",
+        "output": "1\n"
+      }
+    ]
+  },
+  {
+    "name": "getDate",
+    "signature": "getDate(value: Date): int",
+    "parameters": [
+      {
+        "label": "value: Date",
+        "documentation": "Validated calendar date; borrowed and unchanged."
+      }
+    ],
+    "documentation": "Returns the day of the month as int in 1..31. The day is always valid for the stored month and year. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {parseDate,formatDate,format,addDays,addMonths,differenceInCalendarDays,compareAsc,isLeapYear,getYear,getMonth,getDate,startOfMonth,endOfMonth} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-02-29\"));console.log(getDate(date));}\n```\n\nExpected output: 29. Ownership: date and string inputs are borrowed; returned Date values own independent storage. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {parseDate,formatDate,format,addDays,addMonths,differenceInCalendarDays,compareAsc,isLeapYear,getYear,getMonth,getDate,startOfMonth,endOfMonth} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-02-29\"));console.log(getDate(date));}",
+        "output": "29\n"
+      }
+    ]
+  },
+  {
+    "name": "startOfMonth",
+    "signature": "startOfMonth(value: Date): Date",
+    "parameters": [
+      {
+        "label": "value: Date",
+        "documentation": "Validated calendar date; borrowed and unchanged."
+      }
+    ],
+    "documentation": "Returns a new calendar date for the first day of the same year and month. No time of day or zone is attached; value is unchanged. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {parseDate,formatDate,format,addDays,addMonths,differenceInCalendarDays,compareAsc,isLeapYear,getYear,getMonth,getDate,startOfMonth,endOfMonth} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-02-29\"));console.log(formatDate(startOfMonth(date)));}\n```\n\nExpected output: 2024-02-01. Ownership: date and string inputs are borrowed; returned Date values own independent storage. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {parseDate,formatDate,format,addDays,addMonths,differenceInCalendarDays,compareAsc,isLeapYear,getYear,getMonth,getDate,startOfMonth,endOfMonth} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-02-29\"));console.log(formatDate(startOfMonth(date)));}",
+        "output": "2024-02-01\n"
+      }
+    ]
+  },
+  {
+    "name": "endOfMonth",
+    "signature": "endOfMonth(value: Date): Date",
+    "parameters": [
+      {
+        "label": "value: Date",
+        "documentation": "Validated calendar date; borrowed and unchanged."
+      }
+    ],
+    "documentation": "Returns a new calendar date for the last valid day of the same year and month. Leap years are respected. No time of day or zone is attached; value is unchanged. All arguments are required. Inputs are not mutated.\n\n```tsrust\nimport {parseDate,formatDate,format,addDays,addMonths,differenceInCalendarDays,compareAsc,isLeapYear,getYear,getMonth,getDate,startOfMonth,endOfMonth} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-02-29\"));console.log(formatDate(endOfMonth(date)));}\n```\n\nExpected output: 2024-02-29. Ownership: date and string inputs are borrowed; returned Date values own independent storage. Clone explicitly to retain another owner.",
+    "examples": [
+      {
+        "source": "import {parseDate,formatDate,format,addDays,addMonths,differenceInCalendarDays,compareAsc,isLeapYear,getYear,getMonth,getDate,startOfMonth,endOfMonth} from \"std:date\"; function main(){const date=unwrap(parseDate(\"2024-02-29\"));console.log(formatDate(endOfMonth(date)));}",
+        "output": "2024-02-29\n"
+      }
+    ]
+  },
+  {
+    "name": "Date",
+    "signature": "Date",
+    "documentation": "Opaque Gregorian calendar date in years 0001..9999, with no time of day or time zone. Create with parseDate. Arithmetic returns independent values; direct construction, field access, implicit JSON/SQL conversion and collection keys are unsupported. Use formatDate and parseDate for validated text boundaries. Records, arrays, nullable unions and owned worker transfer are supported.\n\n```tsrust\nimport {Date} from \"std:date\"; function main(){}\n```\n\nExpected output: none. Ownership: owned value; scope cleanup releases storage.",
+    "examples": [
+      {
+        "source": "import {Date} from \"std:date\"; function main(){}",
+        "output": ""
+      }
+    ]
+  },
+  {
+    "name": "DateError",
+    "signature": "DateError",
+    "documentation": "Owned date conversion error with code and message. Codes are Syntax for text layout, Range for invalid or out-of-range dates/arithmetic, and Format for unsupported formatting patterns. Errors are returned as Result data.\n\n```tsrust\nimport {DateError} from \"std:date\"; function main(){}\n```\n\nExpected output: none. Ownership: owned value; scope cleanup releases storage.",
+    "examples": [
+      {
+        "source": "import {DateError} from \"std:date\"; function main(){}",
+        "output": ""
+      }
+    ]
+  }
 ]
 }

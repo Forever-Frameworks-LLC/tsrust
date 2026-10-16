@@ -28,6 +28,8 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
+Receiver {ty:"Date",parameter:"x: ReadOnly<Date>"},
+Receiver {ty:"DateError",parameter:"x: ReadOnly<DateError>"},
 Receiver {ty:"Decimal",parameter:"x: ReadOnly<Decimal>"},
 Receiver {ty:"DecimalError",parameter:"x: ReadOnly<DecimalError>"},
 Receiver {ty:"NumericError",parameter:"x: ReadOnly<NumericError>"},
@@ -106,8 +108,9 @@ fn prelude(parameter: &str) -> String {
     // Only the resource row needs the bundled testing implementation in every probe.
     let testing = if parameter.contains("TrackedResource") { "import {TrackedResource} from 'std:testing';\n" } else { "" };
     let numeric=if parameter.contains("NumericError"){ "import {NumericError} from 'std:numeric';\n" }else{""};
+    let date=if parameter.contains("Date"){ "import {Date,DateError} from 'std:date';\n" }else{""};
     let decimal=if parameter.contains("Decimal"){ "import {Decimal,DecimalError} from 'std:decimal';\n" }else{""};
-    format!("{decimal}{numeric}{testing}{PRELUDE}")
+    format!("{date}{decimal}{numeric}{testing}{PRELUDE}")
 }
 
 fn diagnostic(body: &str, parameter: &str) -> Option<(String, String)> {

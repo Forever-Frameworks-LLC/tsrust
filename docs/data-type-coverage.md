@@ -172,3 +172,35 @@ completion rows, hover and signature help pass. The matched native/TypeScript
 workload produces the independent checksum 65,247,616; timing remains unmeasured.
 Whole-project formatting preserves tokens and a second pass changes zero files.
 Evidence is retained under `tsrust-decimal-*` in the canonical SQLite store.
+
+## Calendar dates
+
+The owner prefers date-fns. `std:date` uses named immutable functions with familiar
+`addDays`, `addMonths`, `differenceInCalendarDays`, `compareAsc`, `format` and
+accessor names. `Date` is a validated Gregorian calendar date, separate from an
+instant or time zone. `parseDate` requires YYYY-MM-DD within years 0001..9999;
+`formatDate` emits that canonical form. There is no invalid-date sentinel.
+
+`addMonths` clamps to the target month end, matching the
+[date-fns 4.1.0 rule](https://github.com/date-fns/date-fns/blob/v4.1.0/src/addMonths/index.ts).
+`getMonth` is zero-based, matching date-fns. Negative arithmetic counts subtract;
+overflow and out-of-range results return errors. `format` supports documented
+numeric date and English month/weekday tokens plus quoted literals. Unsupported
+tokens return Format; locale, time, zone and arbitrary parsing patterns are not
+claimed. No full date-fns compatibility is implied.
+
+The maintained backend is [Chrono 0.4.45](https://docs.rs/chrono/0.4.45/chrono/),
+with default features disabled and only std enabled. Calendar operations do not
+consult the system zone or clock. Time of day, UTC instants, durations and IANA
+zones remain the next section. Rust/SQL domain mappings remain separate work.
+The readable billing example and matched date-fns workload live in
+`examples/calendar-dates` and `benchmarks/calendar`; timing is unmeasured.
+
+Calendar compiler/native acceptance on macOS covers the billing example, explicit
+clone/record/array/nullability/worker ownership, rejected forged/implicit JSON
+values, 15 executable documentation examples and locked offline export. The first
+fixture used unsupported inline record syntax and an incorrect spawn form; its
+original failure is retained and the repaired fixture passes. Date/DateError
+agreement, three completion checks and focused hover/signature help pass. The
+native and date-fns workload both produce the independent checksum 40,064.
+Timing remains unmeasured. Evidence uses `tsrust-calendar-*` in SQLite.

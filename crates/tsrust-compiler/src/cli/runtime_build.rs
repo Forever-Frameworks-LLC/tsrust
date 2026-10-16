@@ -53,6 +53,7 @@ impl Prepared {
   if runtime.contains("pub mod tsrust_native_threads {") || runtime.contains("pub use rayon;") { command.args(["--features", "threads"]); }
   if runtime.contains("pub mod tsrust_native_futures {") {command.args(["--features","async"]);}
   if runtime.contains("pub mod tsrust_native_http {"){command.args(["--features","http"]);}
+  if runtime.contains("pub mod tsrust_native_date {"){command.args(["--features","calendar"]);}
   if runtime.contains("pub mod tsrust_native_decimal {"){command.args(["--features","decimal"]);}
   if runtime.contains("pub mod tsrust_native_sql {"){command.args(["--features","sql"]);}
   if runtime.contains("pub mod tsrust_native_sqlite {"){command.args(["--features","sqlite"]);}

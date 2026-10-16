@@ -33,3 +33,4 @@ __pycache__/
 /benchmarks/async-sql/*-20??-??-??T*.json
 
 /benchmarks/decimal/node_modules/
+/benchmarks/calendar/node_modules/

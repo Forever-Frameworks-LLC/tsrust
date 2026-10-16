@@ -1,0 +1,29 @@
+import { parseDate, formatDate, addMonths, addDays, differenceInCalendarDays } from 'std:date';
+import { monotonicNow } from 'std:time';
+
+function batch(): int {
+  const base = unwrap(parseDate('2024-01-31'));
+  let checksum = 0;
+  for (let i = 0; i < 256; i += 1) {
+    const due = unwrap(addMonths(base, 1));
+    const shifted = unwrap(addDays(due, i));
+    const restored = unwrap(parseDate(formatDate(shifted)));
+    checksum += differenceInCalendarDays(restored, base);
+  }
+
+  return checksum;
+}
+
+function main() {
+  for (let warmup = 0; warmup < 8; warmup += 1) {
+    batch();
+  }
+
+  for (let sample = 0; sample < 31; sample += 1) {
+    const start = monotonicNow();
+    const checksum = batch();
+    const elapsed = monotonicNow() - start;
+    console.log(checksum);
+    console.log(elapsed);
+  }
+}

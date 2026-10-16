@@ -200,3 +200,13 @@ fn decimal_help_describes_exact_arithmetic(){
  let help=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsr")},"position":{"line":0,"character":offset+call.find('(').unwrap()+1}}));assert!(!help["signatures"].as_array().unwrap().is_empty(),"{help}");
  }
 }
+
+#[test]
+fn calendar_help_describes_date_fns_style_arithmetic(){
+ let text="import {parseDate,addMonths,format,getMonth} from 'std:date';function main(){const date=unwrap(parseDate('2024-01-31'));addMonths(date,1);format(date,'yyyy-MM-dd');getMonth(date);}";
+ let mut session=Session::start(&[]);session.open("main.tsr",text);session.settle();
+ for (call,expected) in [("parseDate('2024","0001..9999"),("addMonths(date","clamps"),("format(date","yyyy"),("getMonth(date","zero-based")]{
+ let offset=text.rfind(call).unwrap();assert!(session.hover("main.tsr",text,offset+1).unwrap_or_default().contains(expected),"{call}");
+ let help=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsr")},"position":{"line":0,"character":offset+call.find('(').unwrap()+1}}));assert!(!help["signatures"].as_array().unwrap().is_empty(),"{help}");
+ }
+}
