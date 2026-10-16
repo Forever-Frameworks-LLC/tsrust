@@ -3,6 +3,17 @@
 
 ## Current acceptance and continuation — 2026-10-16
 
+Owner correction supersedes the authentication wording below: implement a
+Hono-style public HTTP API over the existing Axum backend. Prioritize request
+context, routing/middleware, request and response headers, cookie helpers, checked
+request-local state and safe shared application state. Authentication, sessions,
+user models and authorization policy belong to application code. The existing
+service authentication example is an application witness, not a framework API or
+a substitute for these primitives. See `docs/http-and-hono.md` and the current
+scope in `docs/plans/service-readiness-plan.md`. Preserve accepted ownership,
+cancellation and cleanup rules. Finish this API section before further deployment
+verification; reuse completed evidence and batch targeted checks.
+
 SQL migrations and recovery now pass focused acceptance. `Pool.migrate` keeps its
 checked pool borrow, validates versioned files and history, and closes failed or
 cancelled migration connections through tracked cleanup. All three drivers pass

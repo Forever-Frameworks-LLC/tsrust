@@ -188,6 +188,12 @@ S17 can proceed before async once S07/S10 land. S08/S09 and thread research can 
 
 ## Practical service readiness and coverage methodology
 
+Current owner direction: expose a Hono-style HTTP API backed by Axum, including
+context, headers, cookie helpers, checked request-local state and safe shared
+application state. Authentication and session policy remain application code;
+the authenticated witness below does not authorize a framework authentication
+library. Complete these HTTP primitives before further deployment verification.
+
 S21 must close on an authenticated, deployable service acceptance witness, not a
 minimal demo. Defer the separately polished MVP/demo application until after this
 acceptance. Executable service witnesses remain required throughout implementation.

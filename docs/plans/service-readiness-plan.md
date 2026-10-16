@@ -1,5 +1,26 @@
 # Practical service readiness: S21
 
+## Current owner direction — 2026-10-16
+
+The public API must mimic Hono, with Axum underneath. The framework provides
+routing and middleware, a per-request context (`c.req`, response helpers,
+headers and typed `c.set`/`c.get`), cookie get/set/delete helpers, and checked
+access to shared application state. Request-local state and application-lifetime
+state are distinct. Native ownership and transport rules remain enforced;
+unsupported Hono behavior must be documented instead of silently approximated.
+
+Authentication policy belongs to the application. Do not add framework login,
+session, user or authorization abstractions. Existing authentication in the
+service witness is application code and does not satisfy the missing HTTP API.
+This direction supersedes references below to implementing authentication as a
+library capability. Implement the coherent Hono-style section across compiler,
+Axum runtime, editor, examples and benchmark support before targeted validation.
+
+API references: [Context](https://hono.dev/docs/api/context),
+[Request](https://hono.dev/docs/api/request),
+[Middleware](https://hono.dev/docs/guides/middleware) and
+[Cookie helpers](https://hono.dev/docs/helpers/cookie).
+
 ## Inventory at the S19/S20 checkpoint
 
 S15/S16 already provide Axum routes and middleware, owned request/response/body

@@ -37,7 +37,7 @@ async function stop(signal){
 try{
  if(linux){
   const registry=path.join(process.env.CARGO_HOME||path.join(os.homedir(),'.cargo'),'registry');
-  const mounts=['--volume',`${root}:/source:ro`,'--volume',`${scratch}:/work`,'--volume',`${target}:/target`];
+  const mounts=['--env','RUSTUP_TOOLCHAIN=1.96.1','--volume',`${root}:/source:ro`,'--volume',`${scratch}:/work`,'--volume',`${target}:/target`];
   run('docker',['run','--rm','--network','none',...mounts,'--volume',`${registry}:/cargo/registry:ro`,'--workdir','/source','--env','CARGO_HOME=/cargo','--env','CARGO_TARGET_DIR=/target','--env','CARGO_INCREMENTAL=0','rust:1.96.1-slim-bookworm','cargo','build','--offline','--locked','--jobs','1','--target','aarch64-unknown-linux-gnu','--bin','tsrust','--bin','tsrust-lsp']);
   const linuxBin='/target/aarch64-unknown-linux-gnu/debug';
   run('docker',['run','--rm','--network','none',...mounts,'--workdir','/source','--env','CARGO_HOME=/work/empty-compiler-home','rust:1.96.1-slim-bookworm',`${linuxBin}/tsrust`,'emit','examples/service/acceptance.tsr','--package','-o','/work/package']);
