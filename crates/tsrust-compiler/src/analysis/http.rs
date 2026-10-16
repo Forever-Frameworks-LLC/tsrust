@@ -99,7 +99,7 @@ impl Analyzer {
      let record=&self.program.records[id];
      if let Some(native)=record.native_type {
       let declaration=crate::native_types::declaration(native);
-      let shared=matches!(native,NativeTypeId::SqlPool|NativeTypeId::HttpClient|NativeTypeId::AsyncSender|NativeTypeId::Bytes|NativeTypeId::JsonValue|NativeTypeId::Decimal|NativeTypeId::CalendarDate|NativeTypeId::TimeOfDay|NativeTypeId::UtcInstant|NativeTypeId::TimeDuration|NativeTypeId::TimeZone|NativeTypeId::Uuid)
+      let shared=matches!(native,NativeTypeId::SharedLruCache|NativeTypeId::SqlPool|NativeTypeId::HttpClient|NativeTypeId::AsyncSender|NativeTypeId::Bytes|NativeTypeId::JsonValue|NativeTypeId::Decimal|NativeTypeId::CalendarDate|NativeTypeId::TimeOfDay|NativeTypeId::UtcInstant|NativeTypeId::TimeDuration|NativeTypeId::TimeZone|NativeTypeId::Uuid)
        || (declaration.representation==crate::native_types::Representation::Record && declaration.thread_transfer);
       if !shared{return Err(Diagnostic::new("http-state","HTTP retained state requires immutable owned data or a supported concurrent pool/client/sender; local caches, borrowed views and request resources cannot be shared.",span));}
      }

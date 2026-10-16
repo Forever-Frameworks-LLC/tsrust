@@ -1,0 +1,12 @@
+{
+  "id": "shared-lru",
+  "implementationAccepted": true,
+  "measurementStatus": "unmeasured",
+  "iterationsPerBatch": 256,
+  "source": "shared-lru.tsr",
+  "counterpart": "shared-lru.ts",
+  "sourceSha256": "27eb8141b833dc2f89d402e8208836751091ce795ccecfce70a17ce4b6b78d65",
+  "counterpartSha256": "8a575f2d272c86b6d5fc7ac741d0c3d4fce912fc870d3c7b35860f0536f07fb8",
+  "shared": true,
+  "notes": "Serialized native operations versus a single-threaded Node Map LRU; scalar owned reads, not parallel throughput."
+}

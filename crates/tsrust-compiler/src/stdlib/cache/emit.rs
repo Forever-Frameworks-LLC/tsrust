@@ -1,20 +1,21 @@
-//! Emit owned entries and read-only views without cloning payloads.
+//! Emit local read-only loans and explicitly cloned shared results.
 use super::*;
 use crate::native_signatures::NativeTypeId;
 impl Emitter<'_>{
  pub(super) fn cache_record(&self,output:&mut String,id:usize)->bool{
   let record=&self.program.records[id];
-  if record.native_type!=Some(NativeTypeId::LruCache){return false;}
+  if !crate::stdlib::cache::is_cache(record.native_type){return false;}
   let types=&record.application.as_ref().expect("applied cache").resolved_arguments;
-  let _=writeln!(output,"type Record{id}=TsrLocalCache<{},{}>;",self.native_type(types[0]),self.native_type(types[1]));true
+  let _=writeln!(output,"type Record{id}={}<{},{}>;",if record.native_type==Some(NativeTypeId::SharedLruCache){"TsrSharedCache"}else{"TsrLocalCache"},self.native_type(types[0]),self.native_type(types[1]));true
  }
  pub(super) fn cache_constructor_expression(&self,fun:&CheckedFunction,expr:&Expr,mode:Mode)->Option<String>{
   let Some(Type::Record(record))=expr.ty else{return None;};
-  if self.program.records[record].native_type!=Some(NativeTypeId::LruCache){return None;}
+  if !crate::stdlib::cache::is_cache(self.program.records[record].native_type){return None;}
   let ExprKind::NativeConstructor(args,_)=&expr.kind else{return None;};
   let capacity=self.expr(fun,&args[0],Mode::Read);
   let failed=self.runtime_failure_exit("RangeError","range","Cache capacity must be a positive int.",expr.span).unwrap_or_else(||"panic!(\"Cache capacity must be a positive int.\")".into());
-  let code=format!("match tsr_cache_new({capacity}){{Ok(cache)=>cache,Err(_)=>{{{failed}}}}}");
+  let constructed=if self.program.records[record].native_type==Some(NativeTypeId::SharedLruCache){"std::sync::Arc::new(std::sync::Mutex::new(cache))"}else{"cache"};
+  let code=format!("match tsr_cache_new({capacity}){{Ok(cache)=>{constructed},Err(_)=>{{{failed}}}}}");
   Some(Self::access_wrapped(expr,mode,code))
  }
  fn cache_optional(&self,ty:Type,element:Type,selected:&str)->String{
@@ -31,23 +32,29 @@ impl Emitter<'_>{
  }
  pub(super) fn cache_native(&self,fun:&CheckedFunction,expr:&Expr,id:usize,args:&[Expr])->Option<String>{
   let binding=&crate::native_bindings::BINDINGS[id];if binding.module!="std:cache"{return None;}
-  let receiver=self.expr(fun,&args[0],Mode::Mutate);
+  let shared=binding.name.starts_with("__shared_");let operation=crate::stdlib::cache::operation_name(binding.name);
+  let receiver=self.expr(fun,&args[0],if shared{Mode::Read}else{Mode::Mutate});
+  if operation=="share"{return Some(format!("std::sync::Arc::clone({receiver})"));}
   let Type::Record(record)=args[0].ty.unwrap() else{unreachable!()};
   let types=&self.program.records[record].application.as_ref().unwrap().resolved_arguments;
-  let key=args.get(1).map(|arg|self.expr(fun,arg,if binding.name=="__set"{Mode::Consume}else{Mode::Read})).unwrap_or_default();
-  let key=if binding.name!="__set"&&types[0].is_copy(){format!("&({key})")}else{key};
-  let code=match binding.name{
-   "__size"=>"cache.len() as i64".into(),"__clear"=>"cache.clear()".into(),
-   "__get"|"__peek"=>{
-    let selected=format!("cache.{}({key}){}",binding.name.trim_start_matches("__"),if types[1].is_copy(){".copied()"}else{""});
+  let key=args.get(1).map(|arg|self.expr(fun,arg,if operation=="set"{Mode::Consume}else{Mode::Read})).unwrap_or_default();
+  let key=if operation!="set"&&types[0].is_copy(){format!("&({key})")}else{key};
+  // Evaluate arguments before locking: their calls may access the same shared cache.
+  let mut preparation=String::new();
+  let key=if shared && args.len()>1{preparation.push_str(&format!("let prepared_key={key};"));"prepared_key".into()}else{key};
+  let code=match operation{
+   "size"=>"cache.len() as i64".into(),"clear"=>"cache.clear()".into(),
+   "get"|"peek"|"getCloned"|"peekCloned"=>{
+    let selected=format!("cache.{}({key}){}",operation.trim_end_matches("Cloned"),if shared{".cloned()"}else if types[1].is_copy(){".copied()"}else{""});
     self.cache_optional(expr.ty.unwrap(),types[1],&selected)
    },
-   "__remove"=>{
+   "remove"=>{
     let ty=expr.ty.unwrap();let entry=self.program.unions[ty.union().unwrap().index()].members.iter().copied().find(|ty|*ty!=Type::Undefined).unwrap();
     self.cache_optional(ty,entry,&format!("cache.remove({key}).map(|(key,value)|{})",self.cache_entry(entry)))
    },
-   "__set"=>{
+   "set"=>{
     let value=self.expr(fun,&args[2],Mode::Consume);let ttl=args.get(3).map(|arg|format!("Some({})",self.expr(fun,arg,Mode::Read))).unwrap_or_else(||"None".into());
+    let (value,ttl)=if shared{preparation.push_str(&format!("let prepared_value={value};let prepared_ttl={ttl};"));("prepared_value".to_string(),"prepared_ttl".to_string())}else{(value,ttl)};
     let union=expr.ty.unwrap().union().unwrap();let mut ok=String::new();let mut err=String::new();
     for (tag,member) in self.program.unions[union.index()].members.iter().enumerate(){
      let Type::Record(record)=*member else{unreachable!()};let declaration=&self.program.records[record];let payload=declaration.fields[0].ty.unwrap();
@@ -65,6 +72,6 @@ impl Emitter<'_>{
     format!("match tsr_cache_set(cache,{key},{value},{ttl}){{Ok(displaced)=>{ok},Err((code,key,value))=>{err}}}")
    },_=>unreachable!("checked cache operation"),
   };
-  Some(format!("{{let cache={receiver};{code}}}"))
+  Some(if shared{format!(r#"{{let receiver={receiver};{preparation}let mut guard=receiver.lock().expect("Shared cache lock poisoned");let cache=&mut *guard;{code}}}"#)}else{format!("{{let cache={receiver};{code}}}")})
  }
 }

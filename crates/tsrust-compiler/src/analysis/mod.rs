@@ -1593,7 +1593,7 @@ impl Analyzer {
             &mut callables,
         )?;
         for record in &program.records {
-            if record.native_type==Some(crate::native_signatures::NativeTypeId::LruCache) && let Some(application)=&record.application {
+            if crate::stdlib::cache::is_cache(record.native_type) && let Some(application)=&record.application {
                 crate::stdlib::cache::validate_payload(application.resolved_arguments[1],&program.records,|id|unions.members(id),record.name.span)?;
             }
         }

@@ -313,7 +313,7 @@ impl Context<'_> {
             ));
         }
         let template = self.templates[name].clone();
-        if template.native_type==Some(crate::native_signatures::NativeTypeId::LruCache)
+        if crate::stdlib::cache::is_cache(template.native_type)
             && !matches!(types.first(),Some(Type::Int|Type::Number|Type::Boolean|Type::String|Type::Enum(_, _))) {
             return Err(Diagnostic::new("cache-key","Cache keys require one numeric, boolean, string or enum type; object keys and mixed unions are unsupported.",span));
         }

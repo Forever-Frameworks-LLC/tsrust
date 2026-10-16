@@ -1811,7 +1811,7 @@ impl SourceIndex {
             && method >= 2
             && member_separator(self.text(method - 1))
             && self.text(method - 2) == "Array";
-        let set_constructor = (matches!(self.text(method), "Set" | "Map") || matches!(self.native_type_aliases.get(self.text(method)),Some(tsrust_compiler::native_signatures::NativeTypeId::LruCache | tsrust_compiler::native_signatures::NativeTypeId::Channel | tsrust_compiler::native_signatures::NativeTypeId::AsyncChannel | tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap | tsrust_compiler::native_signatures::NativeTypeId::OrderedSet | tsrust_compiler::native_signatures::NativeTypeId::OrderedMap))) && method > 0 && self.text(method - 1) == "new";
+        let set_constructor = (matches!(self.text(method), "Set" | "Map") || matches!(self.native_type_aliases.get(self.text(method)),Some(tsrust_compiler::native_signatures::NativeTypeId::LruCache | tsrust_compiler::native_signatures::NativeTypeId::SharedLruCache | tsrust_compiler::native_signatures::NativeTypeId::Channel | tsrust_compiler::native_signatures::NativeTypeId::AsyncChannel | tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap | tsrust_compiler::native_signatures::NativeTypeId::OrderedSet | tsrust_compiler::native_signatures::NativeTypeId::OrderedMap))) && method > 0 && self.text(method - 1) == "new";
         let result_constructor = matches!(self.text(method), "Ok" | "Err") && self.resolve_token(method).is_none();
         let json_decode = method >= 2 && self.text(method - 2) == "JSON" && self.resolve_token(method - 2).is_none() && matches!(self.text(method), "parse" | "tryParse");
         let native_generic=self.resolve_token(method).and_then(|symbol|self.native_origins.get(&symbol)).is_some_and(|&id|{
@@ -2030,7 +2030,7 @@ impl SourceIndex {
             let open = self.member_call_open(id + 1)?;
             return Some((self.text(id + 1).into(), self.pairs.get(open).copied().flatten()? + 1));
         }
-        if depth > 8 || self.text(id) != "new" || !(matches!(self.text(id + 1), "Set" | "Map") || matches!(self.native_type_aliases.get(self.text(id + 1)),Some(tsrust_compiler::native_signatures::NativeTypeId::LruCache | tsrust_compiler::native_signatures::NativeTypeId::Channel | tsrust_compiler::native_signatures::NativeTypeId::AsyncChannel | tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap | tsrust_compiler::native_signatures::NativeTypeId::OrderedSet | tsrust_compiler::native_signatures::NativeTypeId::OrderedMap))) { return None; }
+        if depth > 8 || self.text(id) != "new" || !(matches!(self.text(id + 1), "Set" | "Map") || matches!(self.native_type_aliases.get(self.text(id + 1)),Some(tsrust_compiler::native_signatures::NativeTypeId::LruCache | tsrust_compiler::native_signatures::NativeTypeId::SharedLruCache | tsrust_compiler::native_signatures::NativeTypeId::Channel | tsrust_compiler::native_signatures::NativeTypeId::AsyncChannel | tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap | tsrust_compiler::native_signatures::NativeTypeId::OrderedSet | tsrust_compiler::native_signatures::NativeTypeId::OrderedMap))) { return None; }
         let open = self.member_call_open(id + 1)?;
         let close = self.pairs.get(open).copied().flatten()?;
         let key = if self.text(id + 2) == "<" {
@@ -3733,11 +3733,12 @@ impl SourceIndex {
             let Some(callee) = self.call_callee(open) else {
                 continue;
             };
-            if callee > 0 && self.text(callee - 1) == "new" && matches!(self.native_type_aliases.get(self.text(callee)), Some(tsrust_compiler::native_signatures::NativeTypeId::LruCache | tsrust_compiler::native_signatures::NativeTypeId::Channel | tsrust_compiler::native_signatures::NativeTypeId::AsyncChannel)) {
+            if callee > 0 && self.text(callee - 1) == "new" && matches!(self.native_type_aliases.get(self.text(callee)), Some(tsrust_compiler::native_signatures::NativeTypeId::LruCache | tsrust_compiler::native_signatures::NativeTypeId::SharedLruCache | tsrust_compiler::native_signatures::NativeTypeId::Channel | tsrust_compiler::native_signatures::NativeTypeId::AsyncChannel)) {
                 let ty = self.snippet(callee, open);
-                let cache=self.native_type_aliases.get(self.text(callee))==Some(&tsrust_compiler::native_signatures::NativeTypeId::LruCache);
+                let cache=matches!(self.native_type_aliases.get(self.text(callee)),Some(tsrust_compiler::native_signatures::NativeTypeId::LruCache|tsrust_compiler::native_signatures::NativeTypeId::SharedLruCache));
+                let cache_name=if self.native_type_aliases.get(self.text(callee))==Some(&tsrust_compiler::native_signatures::NativeTypeId::SharedLruCache){"SharedLruCache"}else{"LruCache"};
                 let module = if cache {"std:cache"} else if self.native_type_aliases.get(self.text(callee)) == Some(&tsrust_compiler::native_signatures::NativeTypeId::AsyncChannel) { "std:futures" } else { "std:threads" };
-                let entry = builtins_for(module).into_iter().find(|entry| entry["name"] == if cache {"LruCache"}else{"Channel"}).expect("documented cache/channel constructor");
+                let entry = builtins_for(module).into_iter().find(|entry| entry["name"] == if cache {cache_name}else{"Channel"}).expect("documented cache/channel constructor");
                 return json!({"signatures":[{"label":format!("new {ty}(capacity: int): {ty}"),"documentation":{"kind":"markdown","value":entry["documentation"]},"parameters":entry["parameters"]}],"activeSignature":0,"activeParameter":0});
             }
             if callee>0 && self.text(callee-1)=="new" && self.native_type_aliases.get(self.text(callee)).is_some_and(|id|matches!(id,tsrust_compiler::native_signatures::NativeTypeId::HttpApp|tsrust_compiler::native_signatures::NativeTypeId::HttpClient)){

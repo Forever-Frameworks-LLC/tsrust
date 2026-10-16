@@ -78,3 +78,20 @@ only while delivering a reply. A closed reply channel discards that reply and le
 the worker continue. Clients must still finish or the coordinator must cancel the
 group. Dynamic endpoint registration, parallel per-key loads, shared promises and
 external/distributed caches are outside this contract.
+
+`shared-http.tsr` uses `SharedLruCache<K,V>` for concurrent handlers. `share()`
+explicitly returns another owning handle to the same entries. `getCloned()` and
+`peekCloned()` return independent owned values or undefined; they cannot lend a
+value after releasing the internal lock. Local `LruCache` keeps its borrowed reads.
+Shared methods accept read access to the handle while synchronizing changes to
+entries; `ReadOnly<SharedLruCache<K,V>>` does not freeze its contents.
+Shared values must be transferable, independently clonable data. Resource handles,
+channel endpoints, tasks and callbacks are rejected. Sharing never implicitly
+clones the cache or copies its entries.
+
+Each operation serializes through a short synchronous lock; no user callback or
+await runs while it is held. Individual get/set calls are atomic, but their
+composition is not a transaction or single-flight loader. Large values may make
+explicit copying expensive. Capacity counts entries, not bytes. TTL remains
+operation-driven. A poisoned internal lock fails closed; this API does not repair
+state after a native panic. Final-handle destruction releases retained entries.

@@ -1,4 +1,4 @@
-//! Owned local caches with operation-driven expiration.
+//! Local and explicitly shared caches with operation-driven expiration.
 use crate::native_bindings::{NativeBackend,NativeBinding,NativeParameter,NativeType};
 use crate::Mode;
 const RECEIVER:NativeParameter=NativeParameter{name:"cache",ty:NativeType::ObservedValue,access:Mode::Mutate,optional:false,rest:false};
@@ -13,9 +13,20 @@ pub(crate) const REMOVE:NativeBinding=operation("__remove",&[RECEIVER,KEY]);
 pub(crate) const SIZE:NativeBinding=operation("__size",&[RECEIVER]);
 pub(crate) const CLEAR:NativeBinding=operation("__clear",&[RECEIVER]);
 pub(crate) const SET:NativeBinding=operation("__set",&[RECEIVER,NativeParameter{access:Mode::Consume,..KEY},NativeParameter{name:"value",access:Mode::Consume,..RECEIVER},NativeParameter{name:"ttlMs",ty:NativeType::Int,access:Mode::Read,optional:true,..RECEIVER}]);
+const SHARED_RECEIVER:NativeParameter=NativeParameter{access:Mode::Read,..RECEIVER};
+pub(crate) const SHARED_CREATE:NativeBinding=operation("__shared_create",&[NativeParameter{name:"capacity",ty:NativeType::Int,access:Mode::Read,..RECEIVER}]);
+pub(crate) const SHARED_GET:NativeBinding=operation("__shared_getCloned",&[SHARED_RECEIVER,KEY]);
+pub(crate) const SHARED_PEEK:NativeBinding=operation("__shared_peekCloned",&[SHARED_RECEIVER,KEY]);
+pub(crate) const SHARED_REMOVE:NativeBinding=operation("__shared_remove",&[SHARED_RECEIVER,KEY]);
+pub(crate) const SHARED_SIZE:NativeBinding=operation("__shared_size",&[SHARED_RECEIVER]);
+pub(crate) const SHARED_CLEAR:NativeBinding=operation("__shared_clear",&[SHARED_RECEIVER]);
+pub(crate) const SHARE:NativeBinding=operation("__shared_share",&[SHARED_RECEIVER]);
+pub(crate) const SHARED_SET:NativeBinding=operation("__shared_set",&[SHARED_RECEIVER,NativeParameter{access:Mode::Consume,..KEY},NativeParameter{name:"value",access:Mode::Consume,..RECEIVER},NativeParameter{name:"ttlMs",ty:NativeType::Int,access:Mode::Read,optional:true,..RECEIVER}]);
+pub(crate) fn is_cache(native:Option<crate::native_signatures::NativeTypeId>)->bool{matches!(native,Some(crate::native_signatures::NativeTypeId::LruCache|crate::native_signatures::NativeTypeId::SharedLruCache))}
+pub(crate) fn operation_name(name:&str)->&str{name.strip_prefix("__shared_").or_else(||name.strip_prefix("__")).unwrap_or(name)}
 pub(crate) fn prepare(program:&mut crate::syntax::Program)->Result<(),crate::Diagnostic>{
  use crate::native_signatures::NativeTypeId;
- if program.records.iter().any(|record|record.native_type==Some(NativeTypeId::LruCache)){
+ if program.records.iter().any(|record|is_cache(record.native_type)){
   for id in [NativeTypeId::CacheEntry,NativeTypeId::CacheInsertError]{crate::native_type_resolution::intern(&mut program.records,id,crate::Span::default())?;}
  }
  Ok(())

@@ -82,7 +82,7 @@ impl Emitter<'_> {
     }
 
     pub(super) fn set_types(&self, output: &mut String) {
-        if !self.program.records.iter().any(|record| record.set_definition.is_some() || record.map_definition.is_some() || record.native_type==Some(crate::native_signatures::NativeTypeId::LruCache)) { return; }
+        if !self.program.records.iter().any(|record| record.set_definition.is_some() || record.map_definition.is_some() || crate::stdlib::cache::is_cache(record.native_type)) { return; }
         output.push_str(runtime::SET_RUNTIME);
         let mut unions = std::collections::BTreeSet::new();
         for (id, record) in self.program.records.iter().enumerate() {

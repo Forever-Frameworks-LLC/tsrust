@@ -3,6 +3,16 @@
 
 ## Current acceptance and continuation — 2026-10-16
 
+Shared cache integration now passes focused native/compiler/editor acceptance:
+`SharedLruCache`, explicit `share`, owned `getCloned`/`peekCloned`, unchanged local
+cache loans, retained HTTP access and independent destruction. Constructor catches
+now receive their missing failure checkpoint. Matched scalar checks pass untimed
+in both engines. CLI/LSP consumers are refreshed and the restarted editor reports
+no problems. Exact original failures and repaired passes are in SQLite under
+`tsrust-shared-cache-*`. Continue SQL migrations and recovery next, then remaining
+S21 observability, HTTP/security/authentication and actual Linux/offline/signal
+acceptance. Do not repeat completed S19/S20 regressions or timing.
+
 S21 retained read-only HTTP state now passes focused acceptance: owned configuration
 and SQL pools, routes/middleware/fallback, suspension and exact-once destruction,
 compiler/editor agreement, all three SQL drivers, and matched untimed HTTP state
@@ -10,7 +20,7 @@ checks. CLI and both editor consumers are refreshed; the active editor reports n
 problems after restart. Native support builds now preserve `CARGO_BUILD_JOBS` to
 respect the caller's memory limit. Exact logs and workload records are in SQLite
 under `tsrust-http-state-*` and `benchmarks/http/retained-state-*-verify.json`.
-Continue shared cache integration, then migrations/recovery and remaining S21
+Continue migrations/recovery and remaining S21
 requirements in `docs/plans/service-readiness-plan.md`. Full S21 acceptance and
 its timing milestone remain open. Do not repeat accepted S19/S20 regressions.
 
@@ -20,8 +30,8 @@ transport, editor agreement/help, 13 native catalog examples, offline package
 export and matched untimed money checks. See `docs/data-type-coverage.md`.
 Installed CLI/LSP consumers are refreshed; open decimal examples report no
 problems after the active server restart. SQLite holds `tsrust-decimal-*` evidence.
-Current CLI SHA-256: `0d75ff6b75f4f0c0798fc89f1b6fe58ac5b69a50ea976071b4f5927c0e3575f0`.
-Current LSP SHA-256: `57012d4e5f0f37877d8c640a099f40d012286e394dd07f4cd9bb577d5549d592`.
+Current CLI SHA-256: `5ea8a7176cf0fc6e766d64e4a7661914281e36c5db094620aa03095f155ff4c0`.
+Current LSP SHA-256: `11a6bd4c61acabf23332c69f6394d94519c4e640b9b25e11fada5cce49dcc053`.
 The `std:date` calendar section now passes focused acceptance: validated Date,
 parseDate/formatDate, date-fns-style immutable arithmetic, bounded formatting,
 editor agreement, 15 catalog examples, offline export and matched untimed date-fns

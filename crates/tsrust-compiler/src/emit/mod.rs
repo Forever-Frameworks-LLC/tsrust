@@ -3034,7 +3034,7 @@ impl Emitter<'_> {
         {
             output.push_str(crate::runtime::STRINGS);
         }
-        if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::LruCache)){output.push_str(&crate::stdlib::cache::runtime());}
+        if self.program.records.iter().any(|record|crate::stdlib::cache::is_cache(record.native_type)){output.push_str(&crate::stdlib::cache::runtime());}
         if self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].module == "std:threads")
             || self.program.records.iter().any(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::Thread | crate::native_signatures::NativeTypeId::ScopedThread | crate::native_signatures::NativeTypeId::ThreadPool | crate::native_signatures::NativeTypeId::Channel | crate::native_signatures::NativeTypeId::Sender | crate::native_signatures::NativeTypeId::TaskContext))) {
             output.push_str(crate::stdlib::threads::RUNTIME);

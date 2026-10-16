@@ -741,7 +741,7 @@ fn native_binding_effect(id:usize)->FailureSet {
         // Reading the monotonic clock has no recoverable failure or callback.
         Some(binding) if binding.module=="std:time" && binding.name=="monotonicNow"=>FailureSet::default(),
         // Worker failures cross join as owned Result data, never caller throws.
-        Some(binding) if binding.module=="std:cache"=>if binding.name=="__create"{FailureSet::runtime()}else{FailureSet::default()},
+        Some(binding) if binding.module=="std:cache"=>if matches!(binding.name,"__create"|"__shared_create"){FailureSet::runtime()}else{FailureSet::default()},
         Some(binding) if binding.module=="std:threads" && binding.name=="__channelCreate"=>FailureSet::runtime(),
         Some(binding) if binding.module=="std:threads" && (binding.name.starts_with("__channel") || binding.name.starts_with("__sender"))=>FailureSet::default(),
         Some(binding) if binding.module=="std:threads" && matches!(binding.name,"spawn"|"spawnScoped"|"join"|"detach"|"cancel"|"cancellationRequested"|"__poolCreate"|"__ownedPoolTask"|"__ownedPoolStats"|"__ownedPoolShutdown"|"__taskCancelled")=>FailureSet::default(),

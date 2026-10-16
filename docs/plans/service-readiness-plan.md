@@ -12,7 +12,7 @@ Reuse their accepted ownership, cancellation and cleanup evidence.
 The following are concrete gaps, not accepted service capabilities:
 
 - Retained read-only HTTP state passes focused acceptance below. SQL pools remain unique owners retained by handlers; local caches remain
-  deliberately non-transferable. Shared mutable cache integration is still open.
+  deliberately non-transferable. Shared cache integration now has focused acceptance below.
 - HTTP body, connection and shutdown limits are fixed. There are no scoped form,
   multipart, cookie, CORS, rate-limit or static-serving helpers.
 - SQL has no versioned migration orchestration or drift detection. Transactions
@@ -97,5 +97,41 @@ The untimed retained-state workload passes with checksum 5,376 in both engines.
 SQLite; no timing claim is made. Installed CLI and both LSP consumers were replaced
 atomically and hash-verified. The active VS Code server was restarted; workspace
 diagnostics report no problems. The installed CLI checks both new examples.
-This read-only state section is accepted; shared cache and the remaining S21
-requirements are still open. Continue implementation without a permission checkpoint.
+This read-only state section is accepted. Shared cache acceptance follows below;
+remaining S21 requirements are open. Continue implementation without a permission checkpoint.
+
+## Shared cache integration
+
+`std:cache.SharedLruCache<K,V>` explicitly shares one bounded LRU/TTL cache through
+`share()`. `getCloned` and `peekCloned` return independent owned values or undefined;
+`set` and `remove` preserve the existing owned-entry and rejected-input contracts.
+Local `LruCache` borrowing and resource support are unchanged. Shared values require
+transferable, independently clonable data, so opaque resources, endpoints, callbacks
+and tasks cannot be retained. A handle is not independently clonable. Final-handle
+destruction disposes its entries, while returned copies remain independently owned.
+
+A synchronous mutex serializes individual operations. Arguments are evaluated before
+locking, including expressions that access the same cache. No user callback or await
+runs under the lock. Read access permits synchronized resource methods; it does not
+freeze shared entries. Separate reads/writes are not a transaction, atomic update,
+or single-flight loader. Capacity counts entries, not bytes, and expiry remains
+operation-driven. A poisoned lock fails closed instead of repairing unknown state.
+
+Focused compiler/native acceptance passes: 12 backend checks, nine local/cache
+integration checks including all 22 catalog examples, and three shared-cache checks.
+The shared example proves nested-copy independence, explicit sharing, concurrent
+writes, retained HTTP route/fallback access, invalid TTL input recovery and checked
+constructor catches. Native Drop observation proves final-handle and independent-copy
+release. Five editor checks cover both local behavior and aliased shared methods,
+completion, hover and parameter help. Constructor failure witnesses exposed a missing
+exception checkpoint that previously left catch bodies unchecked; native constructors
+now record their own failure point without entering ordinary call dispatch.
+
+Original failures and repaired focused passes are retained under
+`tsrust-shared-cache-*` in SQLite. The matched scalar workload passes checksum 97,936
+in both engines with one untimed batch. Its timing remains pending at the S21 family
+milestone. This compares serialized native operations with a single-threaded Node
+Map LRU; it does not measure parallel throughput. Continue migration recovery next.
+
+Shared-cache CLI/LSP consumers are atomically refreshed and hash-verified; installed
+CLI checks pass and the restarted active editor reports no problems.

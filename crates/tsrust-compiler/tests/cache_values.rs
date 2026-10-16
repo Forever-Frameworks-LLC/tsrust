@@ -24,10 +24,10 @@ fn cache_rejects_unsupported_keys_clone_and_readonly_mutation(){
 fn cache_documentation_examples_execute_together(){
  let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
  let mut functions=String::new();let mut calls=String::new();let mut expected=String::new();let mut count=0;
- for family in ["std:cache","LruCache","CacheEntry","CacheInsertError"] {for entry in catalog[family].as_array().unwrap(){for example in entry["examples"].as_array().unwrap(){
+ for family in ["std:cache","LruCache","SharedLruCache","CacheEntry","CacheInsertError"] {for entry in catalog[family].as_array().unwrap(){for example in entry["examples"].as_array().unwrap(){
   let (_,body)=example["source"].as_str().unwrap().split_once("function main()").unwrap();functions.push_str(&format!("function example{count}(){body}"));calls.push_str(&format!("example{count}();"));expected.push_str(example["output"].as_str().unwrap());count+=1;
  }}}
- assert_eq!(count,14);let source=support::format_round_trip(&format!("import {{LruCache}} from 'std:cache';{functions}function main(){{{calls}}}"));let dir=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(dir.source(&source)),180);support::success(&output);assert_eq!(output.stdout,expected.as_bytes());
+ assert_eq!(count,22);let source=support::format_round_trip(&format!("import {{LruCache,SharedLruCache}} from 'std:cache';{functions}function main(){{{calls}}}"));let dir=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(dir.source(&source)),180);support::success(&output);assert_eq!(output.stdout,expected.as_bytes());
 }
 
 #[test]

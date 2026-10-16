@@ -187,3 +187,13 @@ fn dropping_pending_loader_releases_retained_cache_owners_once(){
  drop(loader);
  assert_eq!(dropped.load(Ordering::SeqCst),1);
 }
+
+#[test]
+fn shared_handles_keep_entries_alive_until_last_owner_and_return_independent_copies(){
+ use std::sync::{Arc,Mutex,atomic::{AtomicUsize,Ordering}};
+ #[derive(Clone)]struct Value(Arc<AtomicUsize>);impl Drop for Value{fn drop(&mut self){self.0.fetch_add(1,Ordering::SeqCst);}}
+ let drops=Arc::new(AtomicUsize::new(0));let mut cache=timed::Timed::new(lru::Lru::new(std::num::NonZeroUsize::new(1).unwrap()),std::time::Instant::now);
+ assert!(cache.insert(1,Value(drops.clone()),None).is_ok());let cache=Arc::new(Mutex::new(cache));let other=Arc::clone(&cache);
+ let copy=std::thread::spawn(move||other.lock().unwrap().get(&1).cloned().unwrap()).join().unwrap();assert_eq!(drops.load(Ordering::SeqCst),0);
+ drop(cache);assert_eq!(drops.load(Ordering::SeqCst),1);drop(copy);assert_eq!(drops.load(Ordering::SeqCst),2);
+}

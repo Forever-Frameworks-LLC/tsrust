@@ -1,3 +1,4 @@
+type TsrSharedCache<K,V> = std::sync::Arc<std::sync::Mutex<TsrLocalCache<K,V>>>;
 type TsrLocalCache<K,V> = tsr_cache::timed::Timed<K,V,TsrCacheKeys,fn()->std::time::Instant>;
 fn tsr_cache_new<K:TsrSetKey,V>(capacity:i64)->Result<TsrLocalCache<K,V>,()>{
  let capacity=usize::try_from(capacity).ok().and_then(std::num::NonZeroUsize::new).ok_or(())?;

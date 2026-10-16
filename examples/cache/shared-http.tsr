@@ -1,0 +1,143 @@
+import { LruCache, SharedLruCache } from 'std:cache';
+import { App, Client, Request, Response, request, text } from 'std:http';
+import { allSettled, delay } from 'std:futures';
+import { strictEqual } from 'std:testing';
+
+type Value = {
+  message: string;
+  numbers: int[];
+};
+
+function selectedKey(cache: ReadOnly<SharedLruCache<string, Value>>): string {
+  strictEqual(cache.size(), 1);
+  return 'a';
+}
+
+function initialValue(cache: ReadOnly<SharedLruCache<string, Value>>): Value {
+  strictEqual(cache.size(), 0);
+  return {
+    message: 'original', numbers: [1, 2]
+  };
+}
+
+async function populate(cache: Owned<SharedLruCache<int, int>>, offset: int): Task<int> {
+  let sum = 0;
+  for (let index = 0; index < 32; index++) {
+    const key = offset + index;
+    unwrap(cache.set(key, key));
+    sum += key;
+    await delay(1);
+  }
+
+  return sum;
+}
+
+async function reply(cache: ReadOnly<SharedLruCache<string, string>>, input: Request): Task<Response> {
+  await delay(1);
+  const value = cache.getCloned('greeting');
+  if (value !== undefined) {
+    return text(value);
+  }
+
+  return text('missing', 404);
+}
+
+function routes(cache: Owned<SharedLruCache<string, string>>): App {
+  const fallback = cache.share();
+  const app = new App();
+  app.get('/cached', (input: Request) => reply(cache, input));
+  app.fallback((input: Request) => reply(fallback, input));
+  return app;
+}
+
+async function read(url: string): Task<string> {
+  const client = new Client();
+  const response = await client.send(request('GET', url, ''));
+  strictEqual(response.status(), 200);
+  return await response.text();
+}
+
+async function main(): Task<void> {
+  const values = new SharedLruCache<string, Value>(2);
+  unwrap(values.set('a', initialValue(values)));
+  const copy = values.getCloned(selectedKey(values));
+  if (copy !== undefined) {
+    copy.message = 'changed';
+    copy.numbers.push(3);
+  }
+
+  const independent = values.peekCloned('a');
+  if (independent !== undefined) {
+    strictEqual(independent.message, 'original');
+    strictEqual(independent.numbers.length, 2);
+  } else {
+    throw 'missing cached value';
+  }
+
+  const other = values.share();
+  other.clear();
+  strictEqual(values.size(), 0);
+  if (copy !== undefined) {
+    strictEqual(copy.message, 'changed');
+  }
+
+  match (values.set('rejected', {
+    message: 'returned', numbers: [3]
+  }, 0)) {
+    Ok(_) => {
+      throw 'invalid TTL accepted';
+    },
+    Err(error) => {
+      strictEqual(error.code, 'ttl');
+      strictEqual(error.value.message, 'returned');
+    }
+  }
+
+  strictEqual(values.size(), 0);
+  let invalidCapacity = false;
+  try {
+    const invalid = new SharedLruCache<int, int>(0);
+  } catch (error) {
+    invalidCapacity = true;
+  }
+
+  strictEqual(invalidCapacity, true);
+  let localInvalid = false;
+  try {
+    const invalid = new LruCache<int, int>(0);
+  } catch (error) {
+    localInvalid = true;
+  }
+
+  strictEqual(localInvalid, true);
+
+  const counters = new SharedLruCache<int, int>(64);
+  const first = counters.share();
+  const second = counters.share();
+  const results = await allSettled([populate(first, 0).start(), populate(second, 32).start()]);
+  let total = 0;
+  for (const result of results) {
+    total += unwrap(clone(result));
+  }
+
+  strictEqual(total, 2016);
+  strictEqual(counters.size(), 64);
+
+  const cache = new SharedLruCache<string, string>(2);
+  unwrap(cache.set('greeting', 'shared cache'));
+  const retained = cache.share();
+  const app = routes(retained);
+  const server = await app.listen('127.0.0.1:0');
+  const base = 'http://' + server.address();
+  const routeUrl = base + '/cached';
+  const fallbackUrl = base + '/fallback';
+  const replies = await allSettled([read(routeUrl).start(), read(fallbackUrl).start()]);
+  for (const result of replies) {
+    strictEqual(unwrap(clone(result)), 'shared cache');
+  }
+
+  await server.shutdown();
+  strictEqual(cache.size(), 1);
+  cache.clear();
+  console.log('shared HTTP cache accepted');
+}

@@ -12651,6 +12651,24 @@
         }
       ],
       "parameters": []
+    },
+    {
+      "name": "SharedLruCache",
+      "kind": "constructor",
+      "signature": "new SharedLruCache<K, V>(capacity: int): SharedLruCache<K, V>",
+      "documentation": "Creates a shared LRU cache bounded by entry count. Capacity is a positive int; zero or negative capacity throws RangeError. Keys use one numeric, boolean, string or enum type. Values must be transferable owned data supporting independent cloning; resources, endpoints, tasks and callbacks are rejected. There is no byte-size bound or background expiration. Concurrent operations serialize; individual calls are atomic, but a get followed by set is not a transaction or single-flight loader. Methods accept read access to the handle while synchronizing entry changes; ReadOnly does not freeze shared entries.\n\n```tsrust\nimport {SharedLruCache} from \"std:cache\";function main(){const cache=new SharedLruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));console.log(cache.size());}\n```\n\nExpected output: 1.\n\nOwnership: Handles share one bounded cache only through explicit share(). Operations serialize internally and release the lock before returning; no borrowed value or lock crosses suspension. The final handle releases remaining entries. Independent clone(cache) is rejected.",
+      "examples": [
+        {
+          "source": "import {SharedLruCache} from \"std:cache\";function main(){const cache=new SharedLruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));console.log(cache.size());}",
+          "output": "1\n"
+        }
+      ],
+      "parameters": [
+        {
+          "label": "capacity: int",
+          "documentation": "Maximum number of entries; must be positive."
+        }
+      ]
     }
   ],
   "LruCache": [
@@ -12823,6 +12841,127 @@
           "output": "original\n"
         }
       ]
+    }
+  ],
+  "SharedLruCache": [
+    {
+      "name": "getCloned",
+      "kind": "method",
+      "signature": "getCloned(key: ReadOnly<K>): V | undefined",
+      "documentation": "Purges expired entries, looks up the key, and makes a found entry most recent. Missing or expired keys return undefined. A hit returns an independent owned copy, including nested data. Reading never extends the insertion TTL. Takes one key of the declared type. The returned value remains valid after another operation or handle destruction.\n\n```tsrust\nimport {SharedLruCache} from \"std:cache\";function main(){const cache=new SharedLruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));const value=cache.getCloned(\"a\");cache.clear();if(value!==undefined){console.log(value);}}\n```\n\nExpected output: one.\n\nOwnership: Handles share one bounded cache only through explicit share(). Operations serialize internally and release the lock before returning; no borrowed value or lock crosses suspension. The final handle releases remaining entries. Independent clone(cache) is rejected.",
+      "examples": [
+        {
+          "source": "import {SharedLruCache} from \"std:cache\";function main(){const cache=new SharedLruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));const value=cache.getCloned(\"a\");cache.clear();if(value!==undefined){console.log(value);}}",
+          "output": "one\n"
+        }
+      ],
+      "parameters": [
+        {
+          "label": "key: ReadOnly<K>",
+          "documentation": "Key to inspect without consuming it."
+        }
+      ]
+    },
+    {
+      "name": "peekCloned",
+      "kind": "method",
+      "signature": "peekCloned(key: ReadOnly<K>): V | undefined",
+      "documentation": "Purges expired entries, looks up the key, and preserves recency. Missing or expired keys return undefined. A hit returns an independent owned copy, including nested data. Reading never extends the insertion TTL. Takes one key of the declared type. The returned value remains valid after another operation or handle destruction.\n\n```tsrust\nimport {SharedLruCache} from \"std:cache\";function main(){const cache=new SharedLruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));const value=cache.peekCloned(\"a\");cache.clear();if(value!==undefined){console.log(value);}}\n```\n\nExpected output: one.\n\nOwnership: Handles share one bounded cache only through explicit share(). Operations serialize internally and release the lock before returning; no borrowed value or lock crosses suspension. The final handle releases remaining entries. Independent clone(cache) is rejected.",
+      "examples": [
+        {
+          "source": "import {SharedLruCache} from \"std:cache\";function main(){const cache=new SharedLruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));const value=cache.peekCloned(\"a\");cache.clear();if(value!==undefined){console.log(value);}}",
+          "output": "one\n"
+        }
+      ],
+      "parameters": [
+        {
+          "label": "key: ReadOnly<K>",
+          "documentation": "Key to inspect without consuming it."
+        }
+      ]
+    },
+    {
+      "name": "set",
+      "kind": "method",
+      "signature": "set(key: K, value: V, ttlMs?: int): Result<CacheEntry<K, V> | undefined, CacheInsertError<K, V>>",
+      "documentation": "Moves a key and value into the shared cache and makes them most recent. Purges expired entries first. Replacing a live key or exceeding capacity returns the displaced owned entry; otherwise returns undefined inside Ok. Optional ttlMs is a positive int measured in monotonic milliseconds from insertion; omission means no expiry. Zero, negative or unrepresentable deadlines return Err with code, key and value intact. TTL expiry is observed by operations, not a background task. A successful write changes the cache for all shared handles.\n\n```tsrust\nimport {SharedLruCache} from \"std:cache\";function main(){const cache=new SharedLruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));const other=cache.share();unwrap(other.set(\"b\",\"two\",1000));console.log(cache.size());}\n```\n\nExpected output: 2.\n\nOwnership: Handles share one bounded cache only through explicit share(). Operations serialize internally and release the lock before returning; no borrowed value or lock crosses suspension. The final handle releases remaining entries. Independent clone(cache) is rejected.",
+      "examples": [
+        {
+          "source": "import {SharedLruCache} from \"std:cache\";function main(){const cache=new SharedLruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));const other=cache.share();unwrap(other.set(\"b\",\"two\",1000));console.log(cache.size());}",
+          "output": "2\n"
+        }
+      ],
+      "parameters": [
+        {
+          "label": "key: K",
+          "documentation": "Owned key to insert."
+        },
+        {
+          "label": "value: V",
+          "documentation": "Owned independently clonable, transferable value to retain."
+        },
+        {
+          "label": "ttlMs?: int",
+          "documentation": "Positive lifetime in milliseconds; omitted entries do not expire."
+        }
+      ]
+    },
+    {
+      "name": "remove",
+      "kind": "method",
+      "signature": "remove(key: ReadOnly<K>): CacheEntry<K, V> | undefined",
+      "documentation": "Purges expired entries and removes the matching live entry. Takes one key without consuming it. Returns its owned key and value without cloning, or undefined when missing or expired. Other handles immediately observe the removal.\n\n```tsrust\nimport {SharedLruCache} from \"std:cache\";function main(){const cache=new SharedLruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));const removed=cache.remove(\"a\");if(removed!==undefined){console.log(removed.value);}}\n```\n\nExpected output: one.\n\nOwnership: Handles share one bounded cache only through explicit share(). Operations serialize internally and release the lock before returning; no borrowed value or lock crosses suspension. The final handle releases remaining entries. Independent clone(cache) is rejected.",
+      "examples": [
+        {
+          "source": "import {SharedLruCache} from \"std:cache\";function main(){const cache=new SharedLruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));const removed=cache.remove(\"a\");if(removed!==undefined){console.log(removed.value);}}",
+          "output": "one\n"
+        }
+      ],
+      "parameters": [
+        {
+          "label": "key: ReadOnly<K>",
+          "documentation": "Key to remove without consuming the argument."
+        }
+      ]
+    },
+    {
+      "name": "size",
+      "kind": "method",
+      "signature": "size(): int",
+      "documentation": "Purges expired entries and returns the live entry count as int. Takes no arguments. The count is a snapshot; another handle can change it immediately afterward.\n\n```tsrust\nimport {SharedLruCache} from \"std:cache\";function main(){const cache=new SharedLruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));console.log(cache.size());}\n```\n\nExpected output: 1.\n\nOwnership: Handles share one bounded cache only through explicit share(). Operations serialize internally and release the lock before returning; no borrowed value or lock crosses suspension. The final handle releases remaining entries. Independent clone(cache) is rejected.",
+      "examples": [
+        {
+          "source": "import {SharedLruCache} from \"std:cache\";function main(){const cache=new SharedLruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));console.log(cache.size());}",
+          "output": "1\n"
+        }
+      ],
+      "parameters": []
+    },
+    {
+      "name": "clear",
+      "kind": "method",
+      "signature": "clear(): void",
+      "documentation": "Removes and releases all retained entries and deadlines for every shared handle. Takes no arguments and returns void. Clearing an empty cache has no effect; owned copies returned by getCloned remain valid.\n\n```tsrust\nimport {SharedLruCache} from \"std:cache\";function main(){const cache=new SharedLruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));cache.clear();console.log(cache.size());}\n```\n\nExpected output: 0.\n\nOwnership: Handles share one bounded cache only through explicit share(). Operations serialize internally and release the lock before returning; no borrowed value or lock crosses suspension. The final handle releases remaining entries. Independent clone(cache) is rejected.",
+      "examples": [
+        {
+          "source": "import {SharedLruCache} from \"std:cache\";function main(){const cache=new SharedLruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));cache.clear();console.log(cache.size());}",
+          "output": "0\n"
+        }
+      ],
+      "parameters": []
+    },
+    {
+      "name": "share",
+      "kind": "method",
+      "signature": "share(): SharedLruCache<K, V>",
+      "documentation": "Returns another owning handle to the same entries, capacity and deadlines. Takes no arguments and does not copy entries. Mutations through either handle are visible through the other. The handle can be transferred to a task or retained HTTP callback. Sharing does not turn separate get/set calls into an atomic read-modify-write operation.\n\n```tsrust\nimport {SharedLruCache} from \"std:cache\";function main(){const cache=new SharedLruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));const other=cache.share();other.clear();console.log(cache.size());}\n```\n\nExpected output: 0.\n\nOwnership: Handles share one bounded cache only through explicit share(). Operations serialize internally and release the lock before returning; no borrowed value or lock crosses suspension. The final handle releases remaining entries. Independent clone(cache) is rejected.",
+      "examples": [
+        {
+          "source": "import {SharedLruCache} from \"std:cache\";function main(){const cache=new SharedLruCache<string,string>(2);unwrap(cache.set(\"a\",\"one\"));const other=cache.share();other.clear();console.log(cache.size());}",
+          "output": "0\n"
+        }
+      ],
+      "parameters": []
     }
   ]
 }
