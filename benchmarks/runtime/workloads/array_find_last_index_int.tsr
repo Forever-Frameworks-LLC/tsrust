@@ -53,7 +53,9 @@ function workload(n: int, seed: int): int[][] {
     }
 
     const answer: int = values.findLastIndex((value: int, index: int, source: int[]): boolean => {
-      trace = (trace * 131 + index + visits + i + source.length) % 1000000007; visits = visits + 1; return (value % 3 !== 0) && (all || index === left || index === right);
+      trace = (trace * 131 + index + visits + i + source.length) % 1000000007;
+      visits = visits + 1;
+      return (value % 3 !== 0) && (all || index === left || index === right);
     });
     output.push([answer + 1, trace, visits]);
     i = i + 1;

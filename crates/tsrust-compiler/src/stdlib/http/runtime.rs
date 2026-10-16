@@ -23,8 +23,7 @@ mod tsrust_native_http {
         }
     }
     type ContextPending<'a> = Pin<Box<dyn Future<Output=Option<Response>>+Send+'a>>;
-    type ContextHandler = Arc<dyn for<'a> Fn(&'a mut Context)->ContextPending<'a>+Send+Sync>;
-    type ContextMiddleware = Arc<dyn for<'a> Fn(&'a mut Context,ContextNext)->ContextPending<'a>+Send+Sync>;
+    pub type ContextMiddleware = Arc<dyn for<'a> Fn(&'a mut Context,ContextNext)->ContextPending<'a>+Send+Sync>;
 
     // One exclusive context is reborrowed down the middleware stack. No mutex or
     // shared request handle can let a detached task outlive this request.
@@ -62,27 +61,73 @@ mod tsrust_native_http {
         pub async fn request_multipart(&mut self)->Result<Vec<MultipartPart>,Error>{self.take_request_body()?.multipart().await}
         fn finish(self)->Response{self.response.unwrap_or_else(failed)}
     }
-    pub struct ContextNext {middleware:Arc<Vec<ContextMiddleware>>,index:usize,handler:ContextHandler}
+    #[derive(Clone)]
+    struct ContextPattern {router:Option<matchit::Router<()>>}
+    impl ContextPattern {
+        fn new(path:&str)->Result<Self,Error>{
+            if matches!(path,"*"|"/*"){return Ok(Self{router:None});}
+            let wildcard=path.ends_with("/*");let base=if wildcard{&path[..path.len()-2]}else{path};
+            let (normalized,_)=route_path(base)?;let mut router=matchit::Router::new();
+            router.insert(normalized.clone(),()).map_err(|_|error("route","Invalid route pattern"))?;
+            if wildcard{
+                router.insert(format!("{normalized}/{{*__hono_tail}}"),()).map_err(|_|error("route","Invalid wildcard route"))?;
+                router.insert(format!("{normalized}/"),()).map_err(|_|error("route","Invalid wildcard route"))?;
+            }
+            Ok(Self{router:Some(router)})
+        }
+        fn captures(&self,path:&str)->Result<Option<BTreeMap<String,String>>,Error>{
+            let Some(router)=&self.router else{return Ok(Some(BTreeMap::new()));};
+            let Ok(matched)=router.at(path)else{return Ok(None);};let mut params=BTreeMap::new();
+            for (name,value) in matched.params.iter().filter(|(name,_)|*name!="__hono_tail"){
+                params.insert(name.to_owned(),decode_component(value,false).map_err(|_|error("route","Invalid UTF-8 route parameter"))?);
+            }
+            Ok(Some(params))
+        }
+    }
+    struct ContextLayer {method:Option<Method>,pattern:ContextPattern,callback:ContextMiddleware}
+    pub struct ContextNext {layers:Arc<Vec<ContextLayer>>,index:usize}
     impl ContextNext {
         pub fn run<'a>(mut self,context:&'a mut Context)->Pin<Box<dyn Future<Output=()>+Send+'a>>{
             Box::pin(async move {
-                let response=if let Some(middleware)=self.middleware.get(self.index).cloned(){self.index+=1;middleware(context,self).await}else{(self.handler)(context).await};
-                if let Some(response)=response{context.response=Some(response);}
+                while let Some(layer)=self.layers.get(self.index){
+                    self.index+=1;
+                    if layer.method.as_ref().is_some_and(|method|method!=context.field0.inner.method() && !(method==Method::GET && context.field0.inner.method()==Method::HEAD)){continue;}
+                    let params=match layer.pattern.captures(context.field0.inner.uri().path()){
+                        Ok(Some(params))=>params,Ok(None)=>continue,Err(_)=>{context.response=Some(context.text("Bad Request".into(),Some(400)).unwrap());return;}
+                    };
+                    context.field0.params=params;
+                    let callback=layer.callback.clone();
+                    if let Some(response)=callback(context,self).await{context.response=Some(response);}
+                    return;
+                }
+                context.response=Some(context.text("Not Found".into(),Some(404)).unwrap());
             })
         }
     }
-    pub struct Hono {app:App,middleware:Vec<ContextMiddleware>}
+    pub struct Hono {app:App,layers:Vec<ContextLayer>}
     impl Hono {
-        pub fn new()->Self{Self{app:App::new(),middleware:Vec::new()}}
+        pub fn new()->Self{Self{app:App::new(),layers:Vec::new()}}
         pub fn configure(&mut self,values:[i64;7])->Result<(),Error>{self.app.configure(values)}
-        pub fn use_middleware<F>(&mut self,middleware:F) where F:for<'a> Fn(&'a mut Context,ContextNext)->ContextPending<'a>+Send+Sync+'static{self.middleware.push(Arc::new(middleware));}
+        pub fn use_middleware<F>(&mut self,middleware:F) where F:for<'a> Fn(&'a mut Context,ContextNext)->ContextPending<'a>+Send+Sync+'static{self.use_many("*",vec![Arc::new(middleware)]).expect("the global pattern is valid");}
+        pub fn use_many(&mut self,path:&str,callbacks:Vec<ContextMiddleware>)->Result<(),Error>{
+            let pattern=ContextPattern::new(path)?;
+            self.layers.extend(callbacks.into_iter().map(|callback|ContextLayer{method:None,pattern:pattern.clone(),callback}));Ok(())
+        }
         pub fn route<F>(&mut self,method:&str,path:&str,handler:F)->Result<(),Error> where F:for<'a> Fn(&'a mut Context)->ContextPending<'a>+Send+Sync+'static{
-            let handler:ContextHandler=Arc::new(handler);let middleware=Arc::new(self.middleware.clone());
-            self.app.route(method,path,move|request|{let next=ContextNext{middleware:middleware.clone(),index:0,handler:handler.clone()};async move{let mut context=Context::new(request);next.run(&mut context).await;context.finish()}})
+            self.route_many(method,path,vec![Arc::new(move|context,_|handler(context))])
+        }
+        pub fn route_many(&mut self,method:&str,path:&str,callbacks:Vec<ContextMiddleware>)->Result<(),Error>{
+            let method=Method::from_bytes(method.as_bytes()).map_err(|_|error("method","Invalid HTTP method"))?;
+            if !matches!(method,Method::GET|Method::HEAD|Method::POST|Method::PUT|Method::PATCH|Method::DELETE|Method::OPTIONS){return Err(error("method","Unsupported HTTP method"));}
+            let pattern=ContextPattern::new(path)?;
+            self.layers.extend(callbacks.into_iter().map(|callback|ContextLayer{method:Some(method.clone()),pattern:pattern.clone(),callback}));Ok(())
         }
         fn finalize(mut self)->App{
-            let middleware=Arc::new(self.middleware);
-            self.app.fallback(move|request|{let next=ContextNext{middleware:middleware.clone(),index:0,handler:Arc::new(|_|Box::pin(async{Some(fixed(404,"Not Found"))}))};async move{let mut context=Context::new(request);next.run(&mut context).await;context.finish()}});
+            let layers=Arc::new(self.layers);
+            self.app.fallback(move|request|{let next=ContextNext{layers:layers.clone(),index:0};async move{
+                let head=request.inner.method()==Method::HEAD;let mut context=Context::new(request);next.run(&mut context).await;
+                let mut response=context.finish();if head{*response.inner.body_mut()=Body::empty();}response
+            }});
             self.app
         }
         pub async fn listen(self,address:&str)->Result<Server,Error>{self.finalize().listen(address).await}
@@ -227,9 +272,10 @@ mod tsrust_native_http {
     }
     pub struct FormField {pub name:String,pub value:String}
     pub struct MultipartPart {pub name:String,pub file_name:Option<String>,pub content_type:Option<String>,pub data:Vec<u8>}
-    fn form_component(text:&str)->Result<String,Error>{
+    fn form_component(text:&str)->Result<String,Error>{decode_component(text,true)}
+    fn decode_component(text:&str,plus:bool)->Result<String,Error>{
         let mut bytes=Vec::with_capacity(text.len());let mut input=text.bytes();
-        while let Some(byte)=input.next(){match byte{b'+'=>bytes.push(b' '),b'%'=>{
+        while let Some(byte)=input.next(){match byte{b'+' if plus=>bytes.push(b' '),b'%'=>{
             let hex=|value:u8|(value as char).to_digit(16).map(|value|value as u8);
             let high=input.next().and_then(hex).ok_or_else(||error("form","Malformed percent escape"))?;
             let low=input.next().and_then(hex).ok_or_else(||error("form","Malformed percent escape"))?;bytes.push(high*16+low);

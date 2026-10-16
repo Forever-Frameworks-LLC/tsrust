@@ -196,11 +196,23 @@ function activeRelease(): void {
     const resource = trackedResource();
     const key = resourceId(resource);
     const item = mount(owner, ownerRoot, 'active', 0, (o: Mutable<Owner>, h: ReadOnly<Handle>, delta: int): void => {
-      strictEqual(releaseCount(resourceId(resource)), 0); const state = stateResourceId(o, h); ok(state !== undefined); const childCapture = trackedResource(); const child = mount(o, h, 'nested', 0, retained(childCapture)); accepted(setResource(o, child, trackedResource())); const ownerRoot = root(o); remove(o, ownerRoot); strictEqual(stateResourceId(o, h), undefined); strictEqual(releaseCount(resourceId(resource)), 0); if (state !== undefined) {
+      strictEqual(releaseCount(resourceId(resource)), 0);
+      const state = stateResourceId(o, h);
+      ok(state !== undefined);
+      const childCapture = trackedResource();
+      const child = mount(o, h, 'nested', 0, retained(childCapture));
+      accepted(setResource(o, child, trackedResource()));
+      const ownerRoot = root(o);
+      remove(o, ownerRoot);
+      strictEqual(stateResourceId(o, h), undefined);
+      strictEqual(releaseCount(resourceId(resource)), 0);
+      if (state !== undefined) {
         strictEqual(releaseCount(state), 0);
       }
 
-      strictEqual(releaseCount(payloadKey), 0); o.next = 42; throw 'retired callback';
+      strictEqual(releaseCount(payloadKey), 0);
+      o.next = 42;
+      throw 'retired callback';
     });
     const state = trackedResource();
     const stateKey = resourceId(state);

@@ -16,7 +16,8 @@ function workload(n: int, seed: int): int {
 
     const selected = base.slice(0, count);
     selected.forEach((value: boolean[], index: int, source: boolean[][]): void => {
-      let weight = 0; for (const item of value) {
+      let weight = 0;
+      for (const item of value) {
         if (item) {
           weight = weight + 7;
         } else {
@@ -24,7 +25,8 @@ function workload(n: int, seed: int): int {
         }
       }
 
-      trace = (trace * 131 + weight + index + source.length + i) % 1000000007; visits = visits + 1;
+      trace = (trace * 131 + weight + index + source.length + i) % 1000000007;
+      visits = visits + 1;
     });
     i = i + 1;
   }

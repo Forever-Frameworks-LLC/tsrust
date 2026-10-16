@@ -16,7 +16,10 @@ function workload(n: int, seed: int): int {
 
     const selected = base.slice(0, count);
     selected.forEach((value: int, index: int, source: int[]): () => string => {
-      trace = (trace * 131 + value + index + source.length + i) % 1000000007; visits = visits + 1; const text = "allocated".repeat(value % 3 + 1); return (): string => {
+      trace = (trace * 131 + value + index + source.length + i) % 1000000007;
+      visits = visits + 1;
+      const text = "allocated".repeat(value % 3 + 1);
+      return (): string => {
         return text;
       };
     });

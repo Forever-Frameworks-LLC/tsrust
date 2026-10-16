@@ -10,7 +10,8 @@ function retain(action: Function<int, [step: int]>): (step: int) => int {
 
 function makeCounter(counter: Counter): (step: int) => int {
   return retain((step: int): int => {
-    counter.value = counter.value + step; return counter.value;
+    counter.value = counter.value + step;
+    return counter.value;
   });
 }
 

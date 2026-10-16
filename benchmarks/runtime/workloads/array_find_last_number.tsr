@@ -21,7 +21,10 @@ function workload(n: int, seed: int): number[] {
     let trace = 0;
     let sourceVisits = 0;
     const selected = values.findLast((value: number, index: int, source: number[]): boolean => {
-      visits = visits + 1; trace = trace * 10 + index + 1; sourceVisits = sourceVisits + source.length; return source.length === count && (value === source[index] || Number.isNaN(value)) && (mode === 1 && index === 0 || mode === 2 && index % 2 === 0 || mode === 3 && index >= 1 || mode === 4);
+      visits = visits + 1;
+      trace = trace * 10 + index + 1;
+      sourceVisits = sourceVisits + source.length;
+      return source.length === count && (value === source[index] || Number.isNaN(value)) && (mode === 1 && index === 0 || mode === 2 && index % 2 === 0 || mode === 3 && index >= 1 || mode === 4);
     });
     if (selected === undefined) {
       output.push(0.0);

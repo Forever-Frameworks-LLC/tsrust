@@ -21,7 +21,10 @@ function workload(n: int, seed: int): string[] {
     let trace = 0;
     let sourceVisits = 0;
     const selected = values.find((value: undefined, index: int, source: undefined[]): boolean => {
-      visits = visits + 1; trace = trace * 10 + index + 1; sourceVisits = sourceVisits + source.length; return source.length === count && value === source[index] && (mode === 1 && index === 0 || mode === 2 && index % 2 === 0 || mode === 3 && index >= 1 || mode === 4);
+      visits = visits + 1;
+      trace = trace * 10 + index + 1;
+      sourceVisits = sourceVisits + source.length;
+      return source.length === count && value === source[index] && (mode === 1 && index === 0 || mode === 2 && index % 2 === 0 || mode === 3 && index >= 1 || mode === 4);
     });
     output.push(typeof selected);
     output.push("undefined");

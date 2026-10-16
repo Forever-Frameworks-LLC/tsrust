@@ -27,7 +27,10 @@ function workload(n: int, seed: int): Row {
 
     const values = base.slice(0, count);
     const selected: Row = values.reduceRight((a: Row, v: int, index: int, source: int[]): Row => {
-      trace = (trace * 131 + index + source.length + i) % 1000000007; visits = visits + 1; a.rows.push([v, index]); return {
+      trace = (trace * 131 + index + source.length + i) % 1000000007;
+      visits = visits + 1;
+      a.rows.push([v, index]);
+      return {
         total: (a.total * 17 + v + index) % 1000003, text: a.text.replace("initial", "owned"), rows: a.rows, trace: trace, visits: visits
       };
     }, {

@@ -2,7 +2,7 @@
 
 ## Current owner direction — 2026-10-16
 
-The public API must mimic Hono, with Axum underneath. The framework provides
+The public API must mimic Hono, with Axum underneath. The owner accepts the existing server.listen, server.wait and server.shutdown lifecycle; preserve it. Middleware registration order, closure ownership and before/after-next execution are the compatibility priority. The framework provides
 routing and middleware, a per-request context (`c.req`, response helpers,
 headers and typed `c.set`/`c.get`), cookie get/set/delete helpers, and checked
 access to shared application state. Request-local state and application-lifetime

@@ -144,6 +144,7 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::http::HONOCONFIGURE,
     crate::stdlib::http::HONOROUTE,
     crate::stdlib::http::HONOUSE,
+    crate::stdlib::http::HONOUSEPATH,
     crate::stdlib::http::HONOLISTEN,
     crate::stdlib::http::CONTEXTTEXT,
     crate::stdlib::http::CONTEXTNEXT,

@@ -41,13 +41,17 @@ function workload(n: int, seed: int): Row {
     };
     if (mode === 3) {
       selected = values.reduce((a: Row, v: Row, index: int, source: Row[]): Row => {
-        trace = (trace * 131 + index + source.length + i) % 1000000007; visits = visits + 1; return {
+        trace = (trace * 131 + index + source.length + i) % 1000000007;
+        visits = visits + 1;
+        return {
           total: (a.total * 17 + v.total + index) % 1000003, text: clone(v.text), rows: clone(v.rows), trace: trace, visits: visits
         };
       });
     } else {
       selected = values.reduce((a: Row, v: Row, index: int, source: Row[]): Row => {
-        trace = (trace * 131 + index + source.length + i) % 1000000007; visits = visits + 1; return {
+        trace = (trace * 131 + index + source.length + i) % 1000000007;
+        visits = visits + 1;
+        return {
           total: (a.total * 17 + v.total + index) % 1000003, text: clone(v.text), rows: clone(v.rows), trace: trace, visits: visits
         };
       }, clone(last));

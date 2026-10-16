@@ -21,7 +21,8 @@ function main() {
   console.log(deep.flat(99).join(","));
   const values: int[] = [2, 4];
   const mapped = values.flatMap((value: int, index: int, source: int[]): int[] => {
-    trace.push(index + 10); return [value, source.length];
+    trace.push(index + 10);
+    return [value, source.length];
   });
   console.log(trace.join(","));
   console.log(mapped.join(","));

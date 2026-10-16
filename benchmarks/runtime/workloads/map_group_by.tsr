@@ -6,7 +6,8 @@ function workload(n: int, seed: int, input: string): string[][] {
     const source: int[] = [k, k + 1, k + 2, k + 3];
     let visits = 0;
     const groups = Map.groupBy(source, (value: int, index: int): int => {
-      visits += index + 1; return value % 2;
+      visits += index + 1;
+      return value % 2;
     });
     source.push(k + 4);
     let first = "";

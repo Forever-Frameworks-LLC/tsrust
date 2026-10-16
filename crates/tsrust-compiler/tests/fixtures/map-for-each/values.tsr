@@ -45,7 +45,8 @@ function advanced(): void {
   strictEqual(caught, 1);
   let defaults = 0;
   values.forEach((value: int, key: string, source: Map<string, int>, extra: int = 7) => {
-    defaults += value + key.length + source.size + extra; return String(value);
+    defaults += value + key.length + source.size + extra;
+    return String(value);
   });
   strictEqual(defaults, 25);
   let extras = 0;
@@ -124,7 +125,8 @@ function main() {
   let count = 0;
   try {
     values.forEach((value, key) => {
-      count += 1; if (key === "a") {
+      count += 1;
+      if (key === "a") {
         throw "stopped";
       }
     });

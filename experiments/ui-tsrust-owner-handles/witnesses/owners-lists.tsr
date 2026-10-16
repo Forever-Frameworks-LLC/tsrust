@@ -76,8 +76,11 @@ function queued(): void {
   const owner = domain();
   const parent = root(owner);
   const action = mount(owner, parent, 'counter', 0, (state: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void => {
-    add(state, handle, delta); strictEqual(drain(state), 'reentrant'); if (delta === 1) {
-      strictEqual(read(state, handle), 1); enqueue(state, handle, 3);
+    add(state, handle, delta);
+    strictEqual(drain(state), 'reentrant');
+    if (delta === 1) {
+      strictEqual(read(state, handle), 1);
+      enqueue(state, handle, 3);
     }
 
     if (delta === 2) {

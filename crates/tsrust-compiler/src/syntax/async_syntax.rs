@@ -1,6 +1,27 @@
 //! Async declarations reuse concrete environment ownership, with a distinct task contract.
 use super::*;
 impl Parser<'_> {
+    pub(super) fn finish_arrow_expression(&mut self,id:usize,header:Box<(Vec<CallableParameter>,ResultAnnotation)>,mut body:Vec<Stmt>,span:Span,asynchronous:bool)->Result<Expr,Diagnostic>{
+        if !asynchronous{return Ok(Self::closure_expression(id,header,body,span));}
+        let (params,result)=*header;
+        let result=match &result {
+            ResultAnnotation::Inferred(at)=>ResultAnnotation::Inferred(*at),
+            ResultAnnotation::Callable{kind:Some(CallbackKind::Task),params,result,..} if params.is_empty()=>(**result).clone(),
+            _=>return Err(Diagnostic::new("async-result","An async arrow declares Task<T>; its body returns T.",span)),
+        };
+        let task_span=Span::new(body.first().map_or(span.end,|statement|statement.span.start),span.end);
+        let mut captures=Vec::new();
+        for parameter in &params{
+            let value=Expr::new(ExprKind::Name(parameter.name.text.clone()),parameter.name.span);
+            captures.push(Stmt{labels:Vec::new(),control_target:None,span:parameter.name.span,kind:StmtKind::Expr(Expr::new(ExprKind::Unary{op:UnaryOp::Void,value:Box::new(value),operator:parameter.name.span},parameter.name.span))});
+        }
+        captures.append(&mut body);
+        let task_id=self.next_closure;self.next_closure+=1;
+        let closure=Expr::new(ExprKind::Closure{id:task_id,params:Vec::new(),result,body:captures},task_span);
+        let task=Expr::new(ExprKind::Unary{op:UnaryOp::TaskCreate,value:Box::new(closure),operator:span},task_span);
+        Ok(Self::closure_expression(id,Box::new((params,ResultAnnotation::Inferred(span))),Self::returned(Box::new(task)),span))
+    }
+
     pub(super) fn finish_async_function(&mut self, function: &mut Function) -> Result<(), Diagnostic> {
         let asynchronous = function.name.text.starts_with("async#");
         if asynchronous { function.name.text = function.name.text[6..].into(); }

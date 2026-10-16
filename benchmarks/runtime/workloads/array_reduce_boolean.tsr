@@ -19,11 +19,15 @@ function workload(n: int, seed: int): boolean {
     let selected: boolean = false;
     if (mode === 3) {
       selected = values.reduce((a: boolean, v: boolean, index: int, source: boolean[]): boolean => {
-        trace = (trace * 131 + index + source.length + i) % 1000000007; visits = visits + 1; return (a !== v) !== ((index % 2) === 0);
+        trace = (trace * 131 + index + source.length + i) % 1000000007;
+        visits = visits + 1;
+        return (a !== v) !== ((index % 2) === 0);
       });
     } else {
       selected = values.reduce((a: boolean, v: boolean, index: int, source: boolean[]): boolean => {
-        trace = (trace * 131 + index + source.length + i) % 1000000007; visits = visits + 1; return (a !== v) !== ((index % 2) === 0);
+        trace = (trace * 131 + index + source.length + i) % 1000000007;
+        visits = visits + 1;
+        return (a !== v) !== ((index % 2) === 0);
       }, last);
     }
 

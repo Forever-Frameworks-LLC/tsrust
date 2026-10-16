@@ -5,7 +5,8 @@ function identity(action: Function<int>): () => int {
 function counter(): () => int {
   let count = 0;
   return identity((): int => {
-    count = count + 1; return count;
+    count = count + 1;
+    return count;
   });
 }
 

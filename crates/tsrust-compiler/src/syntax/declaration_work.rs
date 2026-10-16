@@ -204,9 +204,9 @@ impl Parser<'_> {
                 machine.values.push(reference);
                 machine.work.push(Work::Postfix { optional: false });
             }
-            Work::ClosureParameters { start, outer_patterns } => {
+            Work::ClosureParameters { start, outer_patterns, asynchronous } => {
                 let params = machine.parameters.pop().expect("completed parameter list");
-                self.closure_body(start, outer_patterns, params, machine)?;
+                self.closure_body(start, outer_patterns, params, asynchronous, machine)?;
             }
             Work::FunctionParameters { start, outer_patterns } => {
                 let params = machine.parameters.pop().expect("completed parameter list");
@@ -221,7 +221,7 @@ impl Parser<'_> {
                 let id = self.next_closure;
                 self.next_closure += 1;
                 let patterns = std::mem::take(&mut self.parameter_patterns);
-                machine.request(Work::ClosureBlock(Box::new(ClosureFrame { id, start, header: Box::new((params, result)), patterns, outer_patterns })), Work::Block);
+                machine.request(Work::ClosureBlock(Box::new(ClosureFrame { asynchronous:false, id, start, header: Box::new((params, result)), patterns, outer_patterns })), Work::Block);
             }
             Work::ClosureBlock(frame) => {
                 let frame = *frame;
@@ -229,7 +229,7 @@ impl Parser<'_> {
                 let mut body = machine.body();
                 Self::open_with_patterns(frame.patterns, &mut body);
                 let span = Span::new(frame.start.start, self.tokens[self.i - 1].span.end);
-                machine.values.push(Self::closure_expression(frame.id, frame.header, body, span));
+                machine.values.push(self.finish_arrow_expression(frame.id, frame.header, body, span, frame.asynchronous)?);
                 machine.work.push(Work::Postfix { optional: false });
             }
             Work::ClosureValue { frame, outer } => {
@@ -240,7 +240,7 @@ impl Parser<'_> {
                 body.append(&mut Self::returned(Box::new(value)));
                 Self::open_with_patterns(frame.patterns, &mut body);
                 let span = Span::new(frame.start.start, self.tokens[self.i - 1].span.end);
-                machine.values.push(Self::closure_expression(frame.id, frame.header, body, span));
+                machine.values.push(self.finish_arrow_expression(frame.id, frame.header, body, span, frame.asynchronous)?);
                 machine.work.push(Work::Postfix { optional: false });
             }
             _ => unreachable!("declaration work"),

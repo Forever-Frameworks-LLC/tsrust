@@ -38,6 +38,7 @@ chrono = { version = "=0.4.45", default-features = false, features = ["std"] }
 bigdecimal = "=0.4.11"
 sqlx = { version = "=0.9.0", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "mysql", "sqlite", "any", "migrate"] }
 rusqlite = { version = "=0.39.0", features = ["bundled", "hooks", "extra_check"] }
+matchit = { version = "=0.8.4" }
 axum = { version = "=0.8.9", default-features = false, features = ["http1", "http2", "tokio", "multipart"] }
 tokio-rustls = { version = "=0.26.6", default-features = false, features = ["aws_lc_rs", "tls12"] }
 reqwest = { version = "=0.13.5", default-features = false, features = ["rustls", "stream", "http2"] }

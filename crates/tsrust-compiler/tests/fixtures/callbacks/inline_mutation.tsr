@@ -19,7 +19,8 @@ function use(state: State) {
   });
   console.log(state.on);
   twice((): boolean => {
-    state.on = true; return state.on;
+    state.on = true;
+    return state.on;
   });
   console.log(state.on);
 }

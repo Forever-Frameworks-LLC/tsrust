@@ -4,7 +4,8 @@ beforeAll((): void => {
   setCount(7);
 });
 test("reads setup state", (): void => {
-  strictEqual(count, 7); setCount(8);
+  strictEqual(count, 7);
+  setCount(8);
 });
 test("reads earlier test state", (): void => {
   strictEqual(count, 8);

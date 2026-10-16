@@ -17,7 +17,10 @@ function workload(n: int, seed: int): int[][] {
 
     const values = base.slice(0, count);
     const selected: int[] = values.reduceRight((a: int[], v: int, index: int, source: int[]): int[] => {
-      trace = (trace * 131 + index + source.length + i) % 1000000007; visits = visits + 1; a.push(v + index); return a;
+      trace = (trace * 131 + index + source.length + i) % 1000000007;
+      visits = visits + 1;
+      a.push(v + index);
+      return a;
     }, []);
     output.push(selected);
     i = i + 1;

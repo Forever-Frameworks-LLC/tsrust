@@ -64,7 +64,8 @@ function main() {
   strictEqual(apply((function seven(): int {
     return 7;
   })(), (value: int): int => {
-    const next = value + 1; return next;
+    const next = value + 1;
+    return next;
   }), 8);
   // Patterns of an outer parameter list stay with that list.
   const pick = function ([a, b]: int[], g: Function<int, [ReadOnly<int[]>]> = function ([c]: int[]): int {
@@ -76,7 +77,8 @@ function main() {
   const nested = ([a]: int[], h: int = ((): int => {
     const inner = function ([x]: int[]): int {
       return x;
-    }; return inner([4]);
+    };
+    return inner([4]);
   })()): int => a + h;
   strictEqual(nested([1]), 5);
 }

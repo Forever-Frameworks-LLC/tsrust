@@ -246,6 +246,7 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
     let mut output = String::new();
     let mut depth: usize = 0;
     let mut parentheses: usize = 0;
+    let mut block_parentheses = Vec::new();
     let mut import = false;
     let mut offset = 0;
     for (i, token) in real.iter().enumerate() {
@@ -257,6 +258,7 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
         }
         if symbol && token.text == "}" && !pattern[i] {
             depth = depth.saturating_sub(1);
+            block_parentheses.pop();
             if switch_depths.last().is_some_and(|body| depth < *body) {
                 switch_depths.pop();
             }
@@ -281,7 +283,7 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
             } else if import && prev != ";" {
                 existing_newlines > 0 && (prev == "{" || prev == "," || current == "}")
             } else {
-                (previous_symbol && (prev == "{" || (prev == ";" && parentheses == 0)))
+                (previous_symbol && (prev == "{" || (prev == ";" && parentheses == block_parentheses.last().copied().unwrap_or(0))))
                     || (symbol && current == "}" && prev != "{")
                     || (previous_symbol
                         && prev == "}"
@@ -331,7 +333,7 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
                         && !match_headers[i]
                         // A call or grouped callee; an operator or keyword keeps its space.
                         && (!previous_symbol || matches!(prev, ")" | "]" | ">" | "?.") || (prev == "!" && ends_operand(i - 1)) || unary_sign)
-                        && !matches!(prev, "if" | "while" | "for" | "switch" | "catch" | "return" | "typeof" | "of" | "in" | "else" | "const" | "let" | "function" | "as" | "satisfies"))
+                        && !matches!(prev, "if" | "while" | "for" | "switch" | "catch" | "return" | "typeof" | "of" | "in" | "else" | "const" | "let" | "function" | "async" | "as" | "satisfies"))
                     || (symbol && current == "[" && ((previous.kind == TokenKind::Name && !matches!(prev, "const" | "let" | "of" | "return" | "as" | "satisfies")) || (previous_symbol && (matches!(prev, "]" | ")" | ">" | ">>" | ">>>") || (prev == "!" && ends_operand(i - 1))))))
                     || (symbol && current == "}" && prev == "{")
                     || previous.kind == TokenKind::TemplateHead
@@ -350,6 +352,7 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
         if symbol {
             match token.text.as_str() {
                 "{" if !pattern[i] => {
+                    block_parentheses.push(parentheses);
                     depth += 1;
                     if switch_open[i] {
                         switch_depths.push(depth);

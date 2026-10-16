@@ -6,7 +6,9 @@ function workload(n: int, seed: int): int[][] {
   let i = 0;
   while (i < n) {
     const selected: int[] = values.map((value: int, index: int, source: int[]): int => {
-      trace = (trace * 131 + visits + i + seed) % 1000000007; visits = visits + 1; return value + i + index + source.length;
+      trace = (trace * 131 + visits + i + seed) % 1000000007;
+      visits = visits + 1;
+      return value + i + index + source.length;
     });
     output.push(selected);
     i = i + 1;

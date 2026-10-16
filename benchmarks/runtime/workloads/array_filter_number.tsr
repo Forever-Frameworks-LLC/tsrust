@@ -6,7 +6,9 @@ function workload(n: int, seed: int): number[][] {
   let i = 0;
   while (i < n) {
     const selected: number[] = values.filter((value: number): boolean => {
-      trace = (trace * 131 + visits + i + seed) % 1000000007; visits = visits + 1; return value <= Number((i + seed) % 5);
+      trace = (trace * 131 + visits + i + seed) % 1000000007;
+      visits = visits + 1;
+      return value <= Number((i + seed) % 5);
     });
     output.push(selected);
     i = i + 1;

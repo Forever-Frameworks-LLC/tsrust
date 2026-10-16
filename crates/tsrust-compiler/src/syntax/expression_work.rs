@@ -242,6 +242,14 @@ impl Parser<'_> {
 
     fn primary(&mut self, machine: &mut Machine) -> Result<(), Diagnostic> {
         self.typed_arrow_without_parentheses()?;
+        if self.is("async") {
+            let position=self.i;let keyword=self.take();
+            let follows=self.closure_header() || self.peek().kind==TokenKind::Name && self.tokens.get(self.i+1).is_some_and(|token|token.text=="=>");
+            if follows && !self.source[keyword.span.end..self.peek().span.start].contains(['\n','\r','\u{2028}','\u{2029}']) {
+                return self.closure_primary(machine,Some(keyword.span));
+            }
+            self.i=position;
+        }
         if self.match_statement_header() {
             let mut holder = self.pattern_holder();
             holder.text = holder.text.replace("pattern#", "match#");
@@ -271,7 +279,7 @@ impl Parser<'_> {
         } else if self.is("function") {
             self.function_primary(machine)?;
         } else if self.is("(") || (self.peek().kind == TokenKind::Name && self.tokens.get(self.i + 1).is_some_and(|token| token.text == "=>")) {
-            self.closure_primary(machine)?;
+            self.closure_primary(machine,None)?;
         } else if self.peek().kind == TokenKind::Name && self.peek().text == "new" {
             let start = self.take();
             self.constructor(start, machine)?;
@@ -386,12 +394,13 @@ impl Parser<'_> {
     }
 
     /// Arrow function parameters, then its result annotation and body.
-    fn closure_primary(&mut self, machine: &mut Machine) -> Result<(), Diagnostic> {
+    fn closure_primary(&mut self, machine: &mut Machine, asynchronous: Option<Span>) -> Result<(), Diagnostic> {
         let outer_patterns = std::mem::take(&mut self.parameter_patterns);
-        let start = self.peek().span;
+        let start = asynchronous.unwrap_or(self.peek().span);
+        let asynchronous=asynchronous.is_some();
         if self.accept("(") {
             machine.request(
-                Work::ClosureParameters { start, outer_patterns },
+                Work::ClosureParameters { start, outer_patterns, asynchronous },
                 Work::Parameters(Box::new(scheduler::ParametersFrame { params: Vec::new(), declared: false })),
             );
             return Ok(());
@@ -404,16 +413,16 @@ impl Parser<'_> {
             access: None,
             initializer: ParameterInitializer::Required,
         }];
-        self.closure_body(start, outer_patterns, params, machine)
+        self.closure_body(start, outer_patterns, params, asynchronous, machine)
     }
 
-    pub(super) fn closure_body(&mut self, start: Span, outer_patterns: Vec<Stmt>, params: Vec<CallableParameter>, machine: &mut Machine) -> Result<(), Diagnostic> {
+    pub(super) fn closure_body(&mut self, start: Span, outer_patterns: Vec<Stmt>, params: Vec<CallableParameter>, asynchronous: bool, machine: &mut Machine) -> Result<(), Diagnostic> {
         let result = if self.accept(":") { self.result_annotation()? } else { ResultAnnotation::Inferred(start) };
         self.expect("=>")?;
         let id = self.next_closure;
         self.next_closure += 1;
         let patterns = std::mem::take(&mut self.parameter_patterns);
-        let frame = Box::new(ClosureFrame { id, start, header: Box::new((params, result)), patterns, outer_patterns });
+        let frame = Box::new(ClosureFrame { asynchronous, id, start, header: Box::new((params, result)), patterns, outer_patterns });
         if self.is("{") {
             machine.request(Work::ClosureBlock(frame), Work::Block);
         } else {

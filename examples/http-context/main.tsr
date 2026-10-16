@@ -29,7 +29,31 @@ async function blocked(c: Mutable<Context>, next: ContextNext): Task<Response> {
 function routes(config: Owned<Configuration>): Hono {
   const app = new Hono();
   app.use(outer);
-  app.use(inner);
+  app.use('/hello', inner);
+  app.use('/ordered/*', async (c, next) => {
+    c.header('x-scope', 'matched');
+    await next();
+    c.header('x-unwind', 'outer');
+  });
+  app.get('/ordered/:name', async (c, next) => {
+    const name = c.req.param('name')!;
+    c.header('x-parameter', name);
+    await next();
+    c.header('x-unwind', 'inner');
+  }, async (c) => c.text('first match'));
+  app.get('/ordered/literal', (c) => c.text('must not outrank earlier parameter'));
+  app.get('/conditional', async (c, next): Task<Response | undefined> => {
+    if (c.req.header('x-stop') === 'yes') {
+      return c.text('early', 409);
+    }
+
+    await next();
+    return undefined;
+  }, (c) => c.text('continued'));
+  app.post('/echo', async (c) => {
+    const body = await c.req.text();
+    return c.text(body);
+  });
   app.get('/hello', (c) => greet(config, c));
   app.use(blocked);
   app.get('/blocked', (c) => c.text('must not run'));
@@ -56,5 +80,19 @@ async function main(): Task<void> {
   strictEqual(rejection.status(), 403);
   strictEqual(rejection.header('x-exit'), 'outer');
   strictEqual(await rejection.text(), 'blocked');
+  const ordered = await client.send(request('GET', base + '/ordered/literal', ''));
+  strictEqual(ordered.header('x-scope'), 'matched');
+  strictEqual(ordered.header('x-parameter'), 'literal');
+  strictEqual(ordered.header('x-unwind'), 'outer');
+  strictEqual(await ordered.text(), 'first match');
+  const continued = await client.send(request('GET', base + '/conditional', ''));
+  strictEqual(await continued.text(), 'continued');
+  const stop = request('GET', base + '/conditional', '');
+  stop.setHeader('x-stop', 'yes');
+  const early = await client.send(stop);
+  strictEqual(early.status(), 409);
+  strictEqual(await early.text(), 'early');
+  const echoed = await client.send(request('POST', base + '/echo', 'owned body'));
+  strictEqual(await echoed.text(), 'owned body');
   await server.shutdown();
 }

@@ -492,9 +492,11 @@ function workload(n: int, seed: int, input: string): int[][] {
       value: base + 70, calls: 0
     };
     const consumedCarrier = base % 2 === 0 ? (() => {
-      consumedLeft.calls = borrowedValues.length; return consumedLeft;
+      consumedLeft.calls = borrowedValues.length;
+      return consumedLeft;
     }) : (() => {
-      consumedRight.calls = borrowedValues.length; return consumedRight;
+      consumedRight.calls = borrowedValues.length;
+      return consumedRight;
     });
     const consumedRecord = consumeScoped(consumedCarrier);
     const consumedResult = consumedRecord.value + consumedRecord.calls;

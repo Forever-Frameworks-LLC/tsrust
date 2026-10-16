@@ -16,8 +16,10 @@ async function headers(c: Mutable<Context>, next: ContextNext): Task<void> {
 
 function routes(config: Owned<Config>): Hono {
   const app = new Hono();
-  app.use(headers);
-  app.get('/', (c) => handle(config, c));
+  app.use('/', headers);
+  app.get('/', async (c, next) => {
+    await next();
+  }, (c) => handle(config, c));
   return app;
 }
 

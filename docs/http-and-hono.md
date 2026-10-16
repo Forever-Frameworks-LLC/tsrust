@@ -231,3 +231,21 @@ Alternatively:
 import { Hono } from "hono";
 could remain available as a compatibility package layered over the same primitives.
 Research both approaches.
+
+
+## Current ordered middleware boundary
+
+The native Hono adapter keeps the accepted `listen`, `wait` and `shutdown`
+lifecycle. Callbacks run in source registration order, including overlapping
+literal and parameter routes. `use(path, ...callbacks)` accepts literal paths,
+`:name` segments and terminal `/*`; global middleware may omit its path.
+Method registrations accept multiple callbacks. Async arrows use the same checked
+Task ownership as named async functions. `await next()` unwinds in reverse order;
+returning a response stops downstream execution. A continuation is consumed once
+and holds an exclusive context loan while pending.
+
+Regex paths, optional path segments, route groups and arbitrary wildcard positions
+are not supported in this section. Named path values are decoded as UTF-8;
+malformed encoded values produce 400. Request-local variables, cookie helpers and
+application error-handler integration remain in progress. Authentication, sessions
+and authorization policy remain application responsibilities.

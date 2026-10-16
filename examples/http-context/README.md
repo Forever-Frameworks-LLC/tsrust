@@ -11,7 +11,7 @@ changes after `await next()`, short-circuiting, and registration order. No
 framework authentication or session policy is included.
 
 The current implementation is in progress, not a Hono compatibility claim.
-Request-local typed variables, cookies, path-scoped middleware, body helper
+Request-local typed variables, cookies, body helper
 coverage and error-handler integration remain required before this section closes.
 Context callbacks currently use `Mutable<Context>` and `ContextNext` annotations
 when written as named functions; inline parameter types are inferred. `next()`
@@ -21,3 +21,5 @@ The compiler must reject a second invocation or context mutation during that loa
 Reference contracts: [Hono middleware](https://hono.dev/docs/guides/middleware)
 and [Hono Context](https://hono.dev/docs/api/context). Registration and unwind
 order are executable assertions, not timing evidence.
+
+The ordered middleware witness also covers scoped paths, multiple callbacks per route, inline async arrows, conditional responses, parameter-route registration order and request-body reads. Server lifecycle methods remain unchanged.

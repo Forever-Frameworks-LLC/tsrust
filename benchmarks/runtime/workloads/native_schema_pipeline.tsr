@@ -4,7 +4,8 @@ function workload(n: int, seed: int, input: string): int {
   const schema = s.int({
     message: 'At least three values required'
   }).min(3).coerce((values: int[]): int => {
-    values.push(7); return values.length;
+    values.push(7);
+    return values.length;
   }).refine(value => value < 10).transform(value => value + 1);
   const retry = s.union([s.array(s.int()).refine(values => values.length > 3).transform(values => 0), s.array(s.int()).transform(values => values.length)]);
   let checksum = seed;

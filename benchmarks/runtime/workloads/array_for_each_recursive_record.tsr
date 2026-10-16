@@ -36,7 +36,8 @@ function workload(n: int, seed: int, input: string): int {
 
     const selected = base.slice(0, count);
     selected.forEach((value: ForEachNode, index: int, source: ForEachNode[]): void => {
-      trace = (trace * 131 + nodeWeight(value, input) + index + source.length + i) % 1000000007; visits = visits + 1;
+      trace = (trace * 131 + nodeWeight(value, input) + index + source.length + i) % 1000000007;
+      visits = visits + 1;
     });
     i = i + 1;
   }

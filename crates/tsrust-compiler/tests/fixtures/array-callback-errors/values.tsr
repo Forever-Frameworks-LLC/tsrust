@@ -322,7 +322,8 @@ function checkFallibleSuccess(): void {
   }).join(","), "2,3");
   let calls = 0;
   strictEqual(values.some((v: int): boolean => {
-    calls += 1; if (v === 3) {
+    calls += 1;
+    if (v === 3) {
       throw "unreached";
     }
 

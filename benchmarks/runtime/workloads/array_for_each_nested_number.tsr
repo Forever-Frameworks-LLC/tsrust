@@ -16,11 +16,13 @@ function workload(n: int, seed: int): number {
 
     const selected = base.slice(0, count);
     selected.forEach((value: number[], index: int, source: number[][]): void => {
-      let weight: number = 0.0; for (const item of value) {
+      let weight: number = 0.0;
+      for (const item of value) {
         weight = weight + item;
       }
 
-      trace = (trace * 131.0 + weight + Number(index) / 4.0 + Number(source.length) / 4.0 + Number(i) / 4.0) % 1000003.0; visits = visits + 1;
+      trace = (trace * 131.0 + weight + Number(index) / 4.0 + Number(source.length) / 4.0 + Number(i) / 4.0) % 1000003.0;
+      visits = visits + 1;
     });
     i = i + 1;
   }

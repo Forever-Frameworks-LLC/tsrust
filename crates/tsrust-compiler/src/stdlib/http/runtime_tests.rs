@@ -229,3 +229,26 @@ fn hono_context_middleware_unwinds_and_retains_closures_until_shutdown(){
  });
  assert_eq!(drops.load(Ordering::SeqCst),1);
 }
+
+#[test]
+fn hono_scoped_routes_keep_registration_order_and_method_boundaries(){
+ use std::sync::Arc;
+ tsrust_native_futures::block_on(async{
+  let mut app=Hono::new();
+  app.use_many("/items/*",vec![Arc::new(|c,next|Box::pin(async move{c.header("x-scope","items").unwrap();next.run(c).await;None}))]).unwrap();
+  app.route_many("GET","/items/:name",vec![
+   Arc::new(|c,next|Box::pin(async move{let name=c.field0.param("name").unwrap();c.header("x-name",if name.is_ascii(){&name}else{"non-ascii"}).unwrap();next.run(c).await;c.header("x-unwind","yes").unwrap();None})),
+   Arc::new(|c,_|Box::pin(async move{Some(c.text(if c.field0.param("name").is_some_and(|name|!name.is_ascii()){c.field0.param("name").unwrap()}else{"first".into()},None).unwrap())})),
+  ]).unwrap();
+  app.route("GET","/items/literal",|_|Box::pin(async{panic!("literal route cannot outrank registration order")})).unwrap();
+  app.route("GET","/other",|c|Box::pin(async move{Some(c.text("other".into(),None).unwrap())})).unwrap();
+  let server=app.listen("127.0.0.1:0").await.unwrap();let client=Client::new().unwrap();let base=format!("http://{}",server.address());
+  for (method,path,status,body,scope) in [("GET","/items/literal",200,"first",true),("GET","/items/a+b",200,"first",true),("GET","/items/%C3%A9",200,"é",true),("HEAD","/items/literal",200,"",true),("POST","/items/literal",404,"Not Found",true),("GET","/other",200,"other",false),("GET","/missing",404,"Not Found",false)]{
+   let response=client.send(Request::new(method,&format!("{base}{path}"),String::new()).unwrap()).await.unwrap();
+   assert_eq!(response.status(),status,"{method} {path}");assert_eq!(response.header("x-scope").unwrap().is_some(),scope);
+   if method=="GET" && status==200 && scope{assert_eq!(response.header("x-name").unwrap().as_deref(),Some(if path.ends_with("%C3%A9"){"non-ascii"}else{path.rsplit('/').next().unwrap()}));}
+   assert_eq!(response.text_body().await.unwrap(),body);
+  }
+  server.shutdown().await;
+ });
+}

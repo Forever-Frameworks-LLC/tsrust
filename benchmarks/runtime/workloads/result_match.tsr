@@ -41,7 +41,8 @@ function counter(start: int): Result<Function<int>, int> {
 
   let value = start;
   return Ok((): int => {
-    value += 1; return value;
+    value += 1;
+    return value;
   });
 }
 

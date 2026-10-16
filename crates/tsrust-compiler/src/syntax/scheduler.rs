@@ -55,6 +55,7 @@ pub(super) struct PatternElement {
 }
 
 pub(super) struct ClosureFrame {
+    pub(super) asynchronous: bool,
     pub(super) id: usize,
     pub(super) start: Span,
     pub(super) header: Box<(Vec<CallableParameter>, ResultAnnotation)>,
@@ -241,7 +242,7 @@ pub(super) enum Work {
     NamedFunctionBody { function: Box<Function>, outer_patterns: Vec<Stmt> },
     LocalFunction(usize),
     NamedFunctionExpression { outer: Vec<Stmt> },
-    ClosureParameters { start: Span, outer_patterns: Vec<Stmt> },
+    ClosureParameters { start: Span, outer_patterns: Vec<Stmt>, asynchronous: bool },
     FunctionParameters { start: Span, outer_patterns: Vec<Stmt> },
     ClosureBlock(Box<ClosureFrame>),
     ClosureValue { frame: Box<ClosureFrame>, outer: Vec<Stmt> },

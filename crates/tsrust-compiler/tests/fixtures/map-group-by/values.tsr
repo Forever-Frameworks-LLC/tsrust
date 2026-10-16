@@ -13,7 +13,8 @@ function main() {
   const values: int[] = [4, 1, 6, 3, 8];
   let visits = 0;
   const groups = Map.groupBy(values, (value: int, index: int): int => {
-    visits += 1; return (value + index) % 2;
+    visits += 1;
+    return (value + index) % 2;
   });
   strictEqual(visits, 5);
   strictEqual(values.join(","), "4,1,6,3,8");
@@ -73,7 +74,8 @@ function main() {
         throw "stop";
       }
 
-      seen += 1; return value % 2;
+      seen += 1;
+      return value % 2;
     });
   } catch (error) {
     if (typeof error === "string") {

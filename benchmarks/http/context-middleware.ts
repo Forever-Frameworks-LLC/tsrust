@@ -14,7 +14,8 @@ async function main(): Promise<void> {
   const config: Readonly<{body:string}> = {body:'42'};
   const server = http.createServer(async (_request: any, response: any) => {
     const context = { headers: new Map<string,string>(), body: '' };
-    async function next(): Promise<void> { context.body = config.body; }
+    async function handle(): Promise<void> { context.body = config.body; }
+    async function next(): Promise<void> { await handle(); }
     context.headers.set('x-before', 'entry');
     await next();
     context.headers.set('x-after', 'exit');

@@ -14,13 +14,17 @@ function main() {
   strictEqual(total, 6);
   let order = "";
   values.forEach((value, key, source) => {
-    strictEqual(value, key); strictEqual(source.has(value), true); strictEqual(source.size, 3); order = order + String(value);
+    strictEqual(value, key);
+    strictEqual(source.has(value), true);
+    strictEqual(source.size, 3);
+    order = order + String(value);
   });
   strictEqual(order, "312");
   const names = new Set<string>([String("one"), String("two")]);
   let text = "";
   names.forEach((value, key) => {
-    strictEqual(value, key); text = text + value;
+    strictEqual(value, key);
+    text = text + value;
   });
   strictEqual(text, "onetwo");
   names.clear();
@@ -35,7 +39,8 @@ function main() {
   let visited = "";
   try {
     values.forEach((value) => {
-      visited = visited + String(value); if (value === 1) {
+      visited = visited + String(value);
+      if (value === 1) {
         throw "stop";
       }
     });

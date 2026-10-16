@@ -28,7 +28,7 @@ impl Emitter<'_>{
  }
  pub(super) fn http_native(&self,fun:&CheckedFunction,expr:&Expr,id:usize,args:&[Expr])->Option<String>{
   let binding=&crate::native_bindings::BINDINGS[id];if !matches!(binding.module,"std:http"|"std:signals"){return None;}self.native_bindings.borrow_mut().insert(id);
-  let values=args.iter().zip(binding.parameters).map(|(arg,param)|{let value=self.expr(fun,arg,param.access);if arg.ty==Some(Type::String){if param.access==Mode::Consume{format!("({value}).as_ref().to_owned()")}else{format!("({value}).as_ref()")}}else{value}}).collect::<Vec<_>>();
+  let values=args.iter().enumerate().map(|(index,arg)|{let param=&binding.parameters[index.min(binding.parameters.len()-1)];let value=self.expr(fun,arg,param.access);if arg.ty==Some(Type::String){if param.access==Mode::Consume{format!("({value}).as_ref().to_owned()")}else{format!("({value}).as_ref()")}}else{value}}).collect::<Vec<_>>();
   let receiver=values.first().cloned().unwrap_or_default();
   let call=match binding.name{
    "listen" if binding.module=="std:signals"=>"tsrust_native_signals::listen()".into(),
@@ -40,21 +40,30 @@ impl Emitter<'_>{
    "__text"=>format!("tsrust_native_http::Response::text({})",values.join(",")),
    "__html"|"__json"=>format!("tsrust_native_http::Response::content({}, {}, {:?})",values[0],values[1],if binding.name=="__html"{"text/html; charset=utf-8"}else{"application/json"}),
    "__stream"=>format!("tsrust_native_http::Response::stream({})",values.join(",")),
-   "__honoRoute"|"__honoUse"=>{
-    let index=args.len()-1;let Type::Closure(origin)=args[index].ty.unwrap()else{unreachable!()};let closure=&self.program.closures[origin];let result=closure.function.result;
-    let middleware=binding.name=="__honoUse";
-    let inputs=if middleware{"context,next"}else{"context"};
+   "__honoRoute"|"__honoUse"|"__honoUsePath"=>{
+    let start=match binding.name{"__honoRoute"=>3,"__honoUsePath"=>2,_=>1};
+    let route_args=match binding.name{"__honoRoute"=>format!("let method={};let path={};",values[1],values[2]),"__honoUsePath"=>format!("let path={};",values[1]),_=>"let path=\"*\";".into()};
+    let mut callbacks=String::new();let mut names=Vec::new();
+    for index in start..args.len(){let Type::Closure(origin)=args[index].ty.unwrap()else{unreachable!()};let closure=&self.program.closures[origin];let result=closure.function.result;
+    let inputs=match closure.parameters.len(){0=>"",1=>"context",_=>"context,next"};
     let is_task=matches!(result,Type::Closure(id) if self.program.task_origins.contains(&id));
     let body=if is_task{
      let error=self.future_error_type(result,expr.span);let poll=self.future_poll(result,"task",error,expr.span);
      let output=self.program.closures[if let Type::Closure(id)=result{id}else{unreachable!()}].function.result;
-     let success=if output==Type::Void{"None"}else{"Some(response)"};
+     let success=if matches!(output,Type::Void|Type::Undefined){"None".into()}else if let Type::Union(id)=output{
+      let arms=self.program.unions[id.index()].members.iter().enumerate().map(|(tag,ty)|format!("Union{}::V{tag}(value)=>{}",id.index(),if matches!(ty,Type::Void|Type::Undefined){"None"}else{"Some(value)"})).collect::<Vec<_>>().join(",");
+      format!("match response{{{arms}}}")
+     }else{"Some(response)".into()};
      let unwrap=if self.result_closures.borrow().contains_key(&origin){"let task=match task{Ok(task)=>task,Err(_)=>return Some(tsrust_native_http::failed())};"}else{""};
      format!("let task=callback.call({inputs});{unwrap}match {poll}{{Ok(response)=>{success},Err(_)=>Some(tsrust_native_http::failed())}}")
     }else if self.result_closures.borrow().contains_key(&origin){format!("Some(match callback.call({inputs}){{Ok(response)=>response,Err(_)=>tsrust_native_http::failed()}})")}else{format!("Some(callback.call({inputs}))")};
-    let callback=format!("move|{inputs}|{{let callback=std::sync::Arc::clone(&callback);Box::pin(async move{{{body}}})}}");
-    let registration=if middleware{format!("app.use_middleware({callback})")}else{format!("app.route({}, {}, {callback})",values[1],values[2])};
-    format!("{{let app={receiver};let callback=std::sync::Arc::new({});{registration}}}",values[index])
+    let callback=format!("move|context,next|{{let callback=std::sync::Arc::clone(&callback);Box::pin(async move{{{body}}})}}");
+    callbacks.push_str(&format!("let handler{index}:tsrust_native_http::ContextMiddleware={{let callback=std::sync::Arc::new({});std::sync::Arc::new({callback})}};",values[index]));
+    names.push(format!("handler{index}"));
+    }
+    let handlers=names.join(",");
+    let registration=if binding.name=="__honoRoute"{format!("app.route_many(method,path,vec![{handlers}])")}else if binding.name=="__honoUsePath"{format!("app.use_many(path,vec![{handlers}])")}else{format!("app.use_many(path,vec![{handlers}]).expect(\"the global pattern is valid\")")};
+    format!("{{let app={receiver};{route_args}{callbacks}{registration}}}")
    },
    "__route"|"__use"|"__fallback"=>{
     let index=args.len()-1;let Type::Closure(origin)=args[index].ty.unwrap()else{unreachable!()};let closure=&self.program.closures[origin];let result=closure.function.result;
