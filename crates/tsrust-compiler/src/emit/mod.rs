@@ -2600,6 +2600,18 @@ impl Emitter<'_> {
                 Some(error)=>format!("Result<{},{}>",signature.result,error),
                 None=>signature.result.clone(),
             });
+            // A task returned by a callback borrows its argument, not the
+            // implicit &self lifetime chosen by Rust method elision.
+            let task_argument_loan = signature.is_none()
+                && self.program.task_type(closure.function.result)
+                && native_result.contains("'_")
+                && closure.parameters.iter().any(|&id| matches!(closure.function.bindings[id].mode,Mode::Read|Mode::Mutate));
+            let (receiver,parameters,call_generics,native_result) = if task_argument_loan {
+                let parameters=parameters.replace(": &", ": &'task ");
+                let call_generics=if call_generics.is_empty(){"<'task>".into()}else{format!("<'task,{}",&call_generics[1..])};
+                let receiver=if closure.captures.iter().any(|capture|capture.storage==Mode::Consume){receiver.replace('&',"&'task ")}else{receiver};
+                (receiver,parameters,call_generics,native_result.replace("'_","'task"))
+            } else {(receiver,parameters,call_generics,native_result)};
             let _ = writeln!(
                 output,
                 "    {asynchronous}fn call{call_generics}({receiver}{parameters}) -> {}{replacement_where} {{",
@@ -2743,6 +2755,13 @@ impl Emitter<'_> {
             } else {
                 (arguments, native_result)
             };
+            let arguments=if task_argument_loan {
+                // The returned task retains the intersection of input loans.
+                let mut arguments=arguments;
+                for position in 0..params.len(){arguments=arguments.replace(&format!("'p{position} "),"'task ");}
+                lifetimes.retain(|name|!name.starts_with("'p"));
+                lifetimes.push("'task".into());arguments
+            }else{arguments};
             let impl_lifetimes = {
                 let mut declarations = lifetimes.clone();
                 declarations.extend(generic_bounds);

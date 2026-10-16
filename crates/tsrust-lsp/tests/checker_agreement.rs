@@ -198,6 +198,7 @@ fn candidates() -> BTreeSet<String> {
     let mut names = BTreeSet::new();
     for entries in catalog.as_object().unwrap().values() {
         for entry in entries.as_array().into_iter().flatten() {
+            if let Some(fields) = entry["fields"].as_object() { names.extend(fields.keys().cloned()); }
             if let Some(name) = entry["name"].as_str().filter(|name| name.chars().all(|ch| ch.is_ascii_alphanumeric() || ch == '_')) {
                 names.insert(name.to_owned());
             }
