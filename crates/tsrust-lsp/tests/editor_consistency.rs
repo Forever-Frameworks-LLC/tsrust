@@ -239,3 +239,14 @@ fn uuid_help_explains_exact_bytes_and_entropy_errors(){
  let help=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsr")},"position":{"line":0,"character":offset+call.find('(').unwrap()+1}}));assert!(!help["signatures"].as_array().unwrap().is_empty(),"{help}");
  }
 }
+
+#[test]
+fn sql_cursor_members_have_live_hover_and_completion(){
+    let source="import {Cursor} from 'std:sql';function inspect(cursor:Mutable<Cursor>){cursor.next();}function main(){}";
+    let mut session=Session::start(&[]);session.open("main.tsr",source);session.settle();
+    let offset=source.find("cursor.next").unwrap()+"cursor.".len();
+    let members=session.completion("main.tsr",source,offset).unwrap();
+    for member in ["next","close"]{assert!(members.iter().any(|value|value==member),"{members:?}");}
+    let hover=session.hover("main.tsr",source,offset+1).unwrap_or_default();
+    assert!(hover.contains("Task<Row | undefined>")&&hover.contains("exclusively borrows"),"{hover}");
+}

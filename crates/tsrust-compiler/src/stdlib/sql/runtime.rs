@@ -66,9 +66,21 @@ mod tsrust_native_sql {
     pub struct Pool { inner:AnyPool, sqlite:bool }
     pub struct Transaction<'a> { inner:Option<sqlx::Transaction<'static,Any>>, owner:std::marker::PhantomData<&'a Pool> }
     pub struct Row { inner:AnyRow }
+    pub struct Cursor<'a> {inner:Option<std::pin::Pin<Box<dyn futures_core::Stream<Item=Result<AnyRow,sqlx::Error>>+Send+'a>>>}
+    impl Cursor<'_> {
+        pub async fn next(&mut self)->Result<Option<Row>,Error>{
+            let Some(stream)=&mut self.inner else{return Ok(None)};
+            let result=match std::future::poll_fn(|cx|stream.as_mut().poll_next(cx)).await{Some(Ok(row))=>checked_row(row).map(Some),Some(Err(error))=>Err(database(error)),None=>Ok(None)};
+            if !matches!(result,Ok(Some(_))){self.inner=None;}
+            result
+        }
+        pub fn close(self){}
+    }
+    fn checked_row(inner:AnyRow)->Result<Row,Error>{
+        let mut names=std::collections::HashSet::new();for column in inner.columns(){if !names.insert(column.name()){return Err(error("column","Duplicate column names; use SQL aliases"));}}Ok(Row{inner})
+    }
     fn rows(values:Vec<AnyRow>)->Result<Vec<Row>,Error>{
-        for row in &values{let mut names=std::collections::HashSet::new();for column in row.columns(){if !names.insert(column.name()){return Err(error("column","Duplicate column names; use SQL aliases"));}}}
-        Ok(values.into_iter().map(|inner|Row{inner}).collect())
+        values.into_iter().map(checked_row).collect()
     }
     impl Pool {
         pub async fn connect(url:&str,max:Option<i64>,timeout:Option<i64>)->Result<Self,Error>{
@@ -101,6 +113,15 @@ mod tsrust_native_sql {
             validate_statement(sql,false)?;let mut connection=self.inner.acquire().await.map_err(database)?;let args=arguments(&mut connection,sql,parameters).await?;
             let result=sqlx::query_with(sqlx::AssertSqlSafe(sql),args).execute(&mut *connection).await.map_err(database)?;
             i64::try_from(result.rows_affected()).map_err(|_|error("range","Affected row count exceeds int"))
+        }
+        pub async fn cursor(&self,sql:&str,parameters:&[Parameter])->Result<Cursor<'_>,Error>{
+            validate_statement(sql,false)?;
+            let mut connection=self.inner.acquire().await.map_err(database)?;
+            let args=arguments(&mut connection,sql,parameters).await?;
+            drop(connection);
+            // The owned SQL and arguments survive the call; only the pool is borrowed.
+            let stream=sqlx::query_with(sqlx::AssertSqlSafe(sql.to_owned()),args).fetch(&self.inner);
+            Ok(Cursor{inner:Some(stream)})
         }
         pub async fn query(&self,sql:&str,parameters:&[Parameter])->Result<Vec<Row>,Error>{
             validate_statement(sql,false)?;let mut connection=self.inner.acquire().await.map_err(database)?;let args=arguments(&mut connection,sql,parameters).await?;

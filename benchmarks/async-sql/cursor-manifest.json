@@ -1,0 +1,17 @@
+{
+  "id": "sql-cursor",
+  "semanticEpoch": "sql-cursor-v1",
+  "driver": "sqlite",
+  "expected": 16256,
+  "protocol": {
+    "processes": 3,
+    "warmups": 8,
+    "samples": 31,
+    "rows": 128,
+    "valueMultiplier": 2
+  },
+  "sources": {
+    "tsr": "227ce25038d4a87f225e34aff3c095115049a70d1bd698653e042aebe1b559af",
+    "ts": "a3980729b8ed847681d7d9e318257f9b24eccdd00af7c3180f3e572a76024b34"
+  }
+}

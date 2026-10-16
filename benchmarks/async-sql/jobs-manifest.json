@@ -1,0 +1,17 @@
+{
+  "id": "sql-jobs",
+  "semanticEpoch": "sql-jobs-v1",
+  "driver": "sqlite",
+  "expected": 128,
+  "protocol": {
+    "processes": 3,
+    "warmups": 8,
+    "samples": 31,
+    "jobs": 128
+  },
+  "sources": {
+    "tsr": "60d2ef83b8f40962443888b995917cd7ac882620e2f051cd8485cca024f384e9",
+    "ts": "067faf9a04225faa4bef4d964ddeedfce9f9613594e39b5735410799cb0ff9f2"
+  },
+  "helperSha256": "13ea014dbcb259557d59075056672d422cdc90c26f689dfed6922f5ec30fc4ad"
+}

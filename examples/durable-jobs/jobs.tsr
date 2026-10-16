@@ -1,0 +1,51 @@
+import { Pool } from 'std:sql';
+
+export type Job = {
+  id: string;
+  body: string;
+  attempt: int;
+  generation: int;
+};
+
+export async function initialize(db: ReadOnly<Pool>): Task<void> {
+  await db.execute('CREATE TABLE IF NOT EXISTS jobs(id TEXT PRIMARY KEY, body TEXT NOT NULL, state TEXT NOT NULL, available BIGINT NOT NULL, lease_until BIGINT NOT NULL, attempts BIGINT NOT NULL, generation BIGINT NOT NULL)');
+  await db.execute('CREATE TABLE IF NOT EXISTS effects(job_id TEXT PRIMARY KEY, body TEXT NOT NULL)');
+}
+
+export async function enqueue(db: ReadOnly<Pool>, id: string, body: string, now: int): Task<boolean> {
+  await db.execute('INSERT INTO jobs VALUES (?, ?, \'pending\', ?, 0, 0, 0) ON CONFLICT(id) DO NOTHING', [clone(id), clone(body), now]);
+  const rows = await db.query('SELECT body FROM jobs WHERE id = ?', [clone(id)]);
+  return unwrap(rows[0].text('body')) === body;
+}
+
+export async function claim(db: ReadOnly<Pool>, now: int): Task<Job | undefined> {
+  // Expired final attempts become terminal instead of being retried forever.
+  await db.execute('UPDATE jobs SET state = \'failed\' WHERE state = \'running\' AND lease_until <= ? AND attempts >= 3', [now]);
+  const rows = await db.query('UPDATE jobs SET state = \'running\', attempts = attempts + 1, generation = generation + 1, lease_until = ? WHERE id = (SELECT id FROM jobs WHERE attempts < 3 AND ((state = \'pending\' AND available <= ?) OR (state = \'running\' AND lease_until <= ?)) ORDER BY available, id LIMIT 1) RETURNING id, body, attempts, generation', [now + 30000, now, now]);
+  if (rows.length === 0) {
+    return undefined;
+  }
+
+  return {
+    id: unwrap(rows[0].text('id')), body: unwrap(rows[0].text('body')), attempt: unwrap(rows[0].int('attempts')), generation: unwrap(rows[0].int('generation'))
+  };
+}
+
+export async function retry(db: ReadOnly<Pool>, job: ReadOnly<Job>, now: int): Task<boolean> {
+  const changed = await db.execute('UPDATE jobs SET state = CASE WHEN attempts >= 3 THEN \'failed\' ELSE \'pending\' END, available = ?, lease_until = 0 WHERE id = ? AND generation = ? AND state = \'running\' AND lease_until > ?', [now + 1000 * job.attempt, clone(job.id), job.generation, now]);
+  return changed === 1;
+}
+
+// This example's effect and acknowledgement share one SQLite transaction.
+export async function acknowledge(db: ReadOnly<Pool>, job: ReadOnly<Job>, now: int): Task<boolean> {
+  const tx = await db.begin();
+  const changed = await tx.execute('UPDATE jobs SET state = \'done\', lease_until = 0 WHERE id = ? AND generation = ? AND state = \'running\' AND lease_until > ?', [clone(job.id), job.generation, now]);
+  if (changed === 0) {
+    await tx.rollback();
+    return false;
+  }
+
+  await tx.execute('INSERT INTO effects VALUES (?, ?) ON CONFLICT(job_id) DO NOTHING', [clone(job.id), clone(job.body)]);
+  await tx.commit();
+  return true;
+}

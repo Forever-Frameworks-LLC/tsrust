@@ -1,0 +1,44 @@
+import { connect, Pool } from 'std:sql';
+import { monotonicNow } from 'std:time';
+import { initialize, enqueue, claim, acknowledge } from '../../examples/durable-jobs/jobs.tsr';
+
+async function batch(db: ReadOnly<Pool>): Task<int> {
+  for (let id = 0; id < 128; id++) {
+    if (!(await enqueue(db, `${id}`, 'body', 0))) {
+      throw 'Conflicting job';
+    }
+
+    const job = await claim(db, 0);
+    if (job === undefined) {
+      throw 'Missing job';
+    }
+
+    if (!(await acknowledge(db, job, 1))) {
+      throw 'Lost lease';
+    }
+  }
+
+  const rows = await db.query('SELECT COUNT(*) AS total FROM effects');
+  return unwrap(rows[0].int('total'));
+}
+
+async function main(): Task<void> {
+  const db = await connect('sqlite::memory:', 1);
+  await initialize(db);
+  for (let warmup = 0; warmup < 8; warmup++) {
+    await db.execute('DELETE FROM jobs');
+    await db.execute('DELETE FROM effects');
+    await batch(db);
+  }
+
+  for (let sample = 0; sample < 31; sample++) {
+    await db.execute('DELETE FROM jobs');
+    await db.execute('DELETE FROM effects');
+    const start = monotonicNow();
+    const checksum = await batch(db);
+    console.log(checksum);
+    console.log(monotonicNow() - start);
+  }
+
+  await db.close();
+}

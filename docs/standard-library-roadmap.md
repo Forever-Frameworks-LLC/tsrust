@@ -242,9 +242,13 @@ or Rust-crate compatibility.
 
 After S21, order non-UI follow-up as follows, promoting only concrete service needs:
 
-1. Remaining database cursor and application-produced streaming/backpressure.
-2. Durable jobs with acknowledgement, retries, idempotency, recovery and explicit
-   delivery guarantees.
+1. Database cursor streaming and bounded application-produced response channels
+   now pass focused acceptance. Callback-owned producer lifetimes remain a separate
+   concrete-workload follow-up; see the current handoff.
+2. Application-level SQLite durable jobs now cover acknowledgement, retries,
+   idempotency, recovery and explicit delivery guarantees. The owner selected an
+   example using existing SQL pools, not a new standard library. See
+   [acceptance](plans/durable-jobs-acceptance.md).
 3. External cache/Redis and WebSocket/SSE as application demand requires.
 4. Broader host/subprocess/filesystem-watch/compression/URL-form utilities, curated
    bindings and source debugging.

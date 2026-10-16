@@ -110,3 +110,35 @@ fn sql_migrations_detect_history_drift_and_recover_for_all_drivers(){
  });}
  std::fs::remove_dir_all(directory).unwrap();
 }
+
+#[test]
+#[ignore="opt-in cursor driver acceptance: node tools/check-async-sql.mjs --docker"]
+fn sql_cursors_stream_release_and_report_errors_for_all_drivers(){
+ use tsrust_native_sql::{Pool,Parameter};
+ let postgres=std::env::var("TSRUST_TEST_POSTGRES_URL").expect("PostgreSQL test URL required");
+ let mysql=std::env::var("TSRUST_TEST_MYSQL_URL").expect("MySQL test URL required");
+ for (driver,url) in [("sqlite","sqlite::memory:"),("postgres",postgres.as_str()),("mysql",mysql.as_str())]{
+  tsrust_native_futures::block_on(async {
+   let pool=Pool::connect(url,Some(1),Some(1000)).await.unwrap();
+   let cast=if driver=="mysql"{"SIGNED"}else{"BIGINT"};
+   let marker=if driver=="postgres"{"$1"}else{"?"};
+   let sql=format!("SELECT CAST({marker} AS {cast}) AS value UNION ALL SELECT CAST(2 AS {cast}) AS value");
+   {let mut cursor=pool.cursor(&sql,&[Parameter::Integer(1)]).await.unwrap();
+    let first=cursor.next().await.unwrap().unwrap();assert_eq!(first.int("value").unwrap(),1);
+    let second=cursor.next().await.unwrap().unwrap();assert_eq!(second.int("value").unwrap(),2);
+    assert!(cursor.next().await.unwrap().is_none());assert!(cursor.next().await.unwrap().is_none());
+    assert_eq!(pool.query("SELECT 1 AS healthy",&[]).await.unwrap().len(),1,"EOF releases the only connection");
+    cursor.close();assert_eq!(first.int("value").unwrap(),1,"rows own their data");
+   }
+   {let mut cursor=pool.cursor(&sql,&[Parameter::Integer(1)]).await.unwrap();cursor.next().await.unwrap();cursor.close();}
+   assert_eq!(pool.query("SELECT 1 AS healthy",&[]).await.unwrap().len(),1,"early close releases the connection");
+   {let mut cursor=pool.cursor("SELECT 1 AS duplicate, 2 AS duplicate",&[]).await.unwrap();assert_eq!(cursor.next().await.err().unwrap().code,"column");assert!(cursor.next().await.unwrap().is_none());}
+   assert!(pool.cursor(&sql,&[]).await.is_err(),"parameter count remains checked");
+   let slow=match driver{"postgres"=>"SELECT 1 AS value FROM pg_sleep(0.05)","mysql"=>"SELECT SLEEP(0.05) AS value",_=>"WITH RECURSIVE counter(value) AS (SELECT 1 UNION ALL SELECT value+1 FROM counter WHERE value<2000000) SELECT COUNT(*) AS value FROM counter"};
+   {let mut cursor=pool.cursor(slow,&[]).await.unwrap();assert!(tokio::time::timeout(std::time::Duration::from_millis(1),cursor.next()).await.is_err());cursor.close();}
+   assert_eq!(pool.query("SELECT 1 AS healthy",&[]).await.unwrap().len(),1,"cancel then close releases the stream");
+
+   pool.close().await.unwrap();
+  });
+ }
+}

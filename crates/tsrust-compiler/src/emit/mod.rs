@@ -7022,7 +7022,7 @@ impl Emitter<'_> {
                     | ExprKind::Conditional { .. }
                     | ExprKind::Inject { .. }
                     | ExprKind::Binary { op: BinaryOp::And | BinaryOp::Or | BinaryOp::Coalesce, .. }
-                    | ExprKind::Unary { op: UnaryOp::NonNull, .. }
+                    | ExprKind::Unary { op: UnaryOp::NonNull | UnaryOp::Await | UnaryOp::AwaitCallee, .. }
             )
             && !expr.binding.is_some_and(|i| {
                 fun.bindings[i].parameter

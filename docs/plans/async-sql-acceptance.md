@@ -59,3 +59,37 @@ Scope is bounded pools, prepared parameter binding, owned scalar rows and transa
 Tested images: PostgreSQL `sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336`; MySQL `sha256:24989179f58856db763f418010c1169fecc944e3ec1ea7e921572d83eb070f70`.
 
 Final evidence includes `tsrust-s18-cleanup-docker-acceptance.log`, `tsrust-s18-final-futures-runtime.log`, `tsrust-s18-final-default-policy.log`, `tsrust-s18-installed-editor-matrix.log`, `tsrust-s18-final-consumer-refresh.log` and `tsrust-s18-final-evidence.json` in SQLite.
+
+## Pool cursor streaming — focused acceptance
+
+`Pool.cursor(sql, parameters?)` returns a pool-borrowing Cursor. `next()` yields
+one owned Row or undefined; `close()` consumes it. EOF, terminal errors and
+close/drop release the result stream. One pending next task exclusively borrows
+the cursor. Returned rows remain independent. Dropping a pending read task does
+not itself dispose the cursor; close/drop it when abandoning the query.
+
+SQLx owns the SQL and bound values. Metadata preparation and result streaming
+can acquire different connections from the same pool. This is client-side row
+streaming with driver buffering, not a named server cursor or transaction snapshot.
+Transaction cursors, fetch-size controls and scroll/reposition operations are
+unsupported. SQL can include writes with RETURNING; cursor disposal is not a
+rollback boundary. Existing exact parameter conversions and column checks remain active.
+
+Cursor runtime checks pass PostgreSQL, MySQL and SQLite: EOF releases the pool
+connection while the cursor remains live; explicit close, terminal errors and
+cancelled reads followed by close permit independent pool use. Owned rows survive
+cursor disposal. Generated three-driver ownership/cleanup programs, the cursor
+example, SQL/HTTPS coexistence, retained HTTP pools and offline migration execution
+also pass. Exact-domain checks passed in the initial run and were reused.
+
+The initial generated optional-row comparison failed because an await wrapper
+converted an already borrowed union into a second view. The emitter now preserves
+the child's view. The repaired runner resumes with
+`--resume-from=sqlite --reuse-domain-evidence`; it skips the already accepted runtime
+and domain groups. Original failures remain retained alongside repaired evidence
+under `tsrust-cursor-*` in SQLite. Three focused editor catalog checks, live
+hover/completion and all four typing modes pass. The matched SQLite cursor workload
+passes untimed native/Node verification with 128 ordered rows and checksum 16,256.
+It also executes a cursor returned through an async helper, preserving its pool loan.
+The record is `cursor-sqlite-2026-10-16T17-12-53.193Z-verify.json`. No timing or
+full-family regression run is claimed.

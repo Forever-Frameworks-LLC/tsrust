@@ -1,6 +1,30 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
 
+## Current continuation — SQL cursors and application jobs, 2026-10-16
+
+Checked `Pool.cursor`, `Cursor.next` and `Cursor.close` now pass focused runtime,
+generated execution, ownership, editor and untimed native/Node acceptance. The
+explicit SQL runner passes all three drivers and downstream SQL/HTTP/migration
+checks; accepted runtime and exact-domain evidence was reused on repair. The await
+emitter no longer applies a second borrowed-union conversion. See
+`docs/plans/async-sql-acceptance.md` and SQLite evidence under `tsrust-cursor-*`.
+
+The owner selected application-level durable jobs using existing SQL pools, not
+`std:jobs`. `examples/durable-jobs` implements SQLite claims, leases, bounded retry,
+deduplication, stale-worker fencing and recovery. Native execution and independent
+persisted-state inspection pass, as does the matched 128-job native/Node workload.
+See `docs/plans/durable-jobs-acceptance.md` and `tsrust-durable-jobs-*` evidence.
+This example supports SQLite only; external effects still need their own idempotency.
+
+The concrete cursor/job follow-ups are implemented. Keep remaining scope practical:
+callback-owned streaming producer lifetimes, Redis/brokers, WebSocket/SSE and broader
+host utilities need concrete application requirements before promotion. The S21
+full-family/performance checkpoint remains separate and unrun under the owner's
+current targeted-verification direction. Do not repeat accepted SQL/S18 or S19/S20
+work. Preserve Router naming and application-owned authentication policy.
+
+
 ## Current continuation — producer stream bridge, 2026-10-16
 
 `std:http.streamChannel(Channel<Bytes>, status = 200)` now transfers bounded

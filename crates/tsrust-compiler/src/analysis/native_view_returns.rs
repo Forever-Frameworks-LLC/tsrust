@@ -11,6 +11,22 @@ fn untracked(span: Span) -> Diagnostic {
 }
 
 impl Analyzer {
+    pub(super) fn remember_native_call_borrow(&self, context:&mut Context, args:&[Expr], binding:&crate::native_bindings::NativeBinding, result:Type)->Result<(),Diagnostic>{
+            if let Some(contract) = binding.returned_borrow {
+                Self::native_view_source_loans(context, &args[contract.source_parameter], contract)?;
+                context.native_view_calls = true;
+            }
+            if binding.returned_borrow.is_some_and(|contract| matches!(contract.slot, crate::native_return_borrows::ReturnSlot::ResultOk | crate::native_return_borrows::ReturnSlot::ResultOkOptional)) {
+                let (union,variants) = self.result_variant_records(result).expect("validated native Result borrow");
+                let contract = binding.returned_borrow.expect("validated native Result borrow");
+                let optional_payload = (contract.slot == crate::native_return_borrows::ReturnSlot::ResultOkOptional).then(|| {
+                    self.program.records.iter().position(|record| record.native_type == Some(contract.payload)).expect("prepared optional native view")
+                });
+                context.native_view_results.get_or_insert_with(Default::default).insert(union,(variants[0],optional_payload));
+            }
+        Ok(())
+    }
+
     pub(super) fn record_native_return(
         &self,
         context: &mut Context,

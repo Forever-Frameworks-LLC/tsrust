@@ -72,6 +72,19 @@
           "output": "column\nMissing column\n"
         }
       ]
+    },
+    {
+      "name": "Cursor",
+      "signature": "type Cursor",
+      "inferredSignature": "type Cursor",
+      "parameters": [],
+      "documentation": "An owned row cursor borrowing its Pool. Obtain it with await db.cursor(sql, parameters); await cursor.next() yields one owned Row or undefined at EOF. Close or drop it to release its pending result stream. This is client-side row streaming, not a named server cursor or a transaction snapshot.\n\n```tsrust\nconst cursor = await db.cursor('SELECT 1 AS value');\nconst row = await cursor.next(); // Row with value 1\ncursor.close();\n```\n\nOwnership: cannot clone or outlive its pool. Each pending next() exclusively borrows the cursor.",
+      "examples": [
+        {
+          "source": "import { connect } from 'std:sql';\nimport { strictEqual } from 'std:testing';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  {\n    const cursor = await db.cursor('SELECT 1 AS value UNION ALL SELECT 2 AS value');\n    let total = 0;\n    while (true) {\n      const row = await cursor.next();\n      if (row === undefined) { break; }\n      total += unwrap(row.int('value'));\n    }\n    strictEqual(total, 3);\n    strictEqual(await cursor.next() === undefined, true);\n    cursor.close();\n  }\n  await db.close();\n}\n",
+          "output": ""
+        }
+      ]
     }
   ],
   "SqlPool": [
@@ -88,7 +101,7 @@
           "documentation": "Positional values, default []. int is signed 64-bit; number must be finite; Bytes binds a blob. When driver metadata requests binary32 REAL, narrowing rejects precision loss with precision and overflow with range. Server-side implicit casts can still round; use std:numeric.toFloat32 before binding to a binary32 column when metadata does not expose its width. Use driver-compatible column types and explicit SQL casts where needed."
         }
       ],
-      "documentation": "Returns all result rows as owned values. All rows are materialized; there is no streaming cursor. Uses one prepared SQL statement and positional parameter binding. Missing/extra parameters and database failures throw SqlError at await. SQL text remains driver-specific. No string escaping or identifier sanitization is performed. \n\n```tsrust\nconst rows = await db.query('SELECT id, name FROM people');\n```\n\nSQL may perform writes using a returning clause.\n\nOwnership: borrows the pool for reading until the operation finishes or is dropped. Arguments evaluate when the Task is created. Owned SQL text and parameter arrays move into it; use clone when reuse is needed.",
+      "documentation": "Returns all result rows as owned values. All rows are materialized; use Pool.cursor() for row-at-a-time consumption. Uses one prepared SQL statement and positional parameter binding. Missing/extra parameters and database failures throw SqlError at await. SQL text remains driver-specific. No string escaping or identifier sanitization is performed. \n\n```tsrust\nconst rows = await db.query('SELECT id, name FROM people');\n```\n\nSQL may perform writes using a returning clause.\n\nOwnership: borrows the pool for reading until the operation finishes or is dropped. Arguments evaluate when the Task is created. Owned SQL text and parameter arrays move into it; use clone when reuse is needed.",
       "examples": [
         {
           "source": "import { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n",
@@ -157,6 +170,28 @@
           "output": "1: Ada\n2: Grace\n"
         }
       ]
+    },
+    {
+      "name": "cursor",
+      "signature": "cursor(sql: string, parameters?: (int | number | boolean | string | null | Bytes)[]): Task<Cursor>",
+      "inferredSignature": "function cursor(sql: string, parameters?: (int | number | boolean | string | null | Bytes)[]): Task<Cursor>",
+      "parameters": [
+        {
+          "label": "sql: string",
+          "documentation": "One SQL statement. Bind values rather than interpolating input. Use aliases for duplicate column names. Transaction/session control SQL is unsupported."
+        },
+        {
+          "label": "parameters?: (int | number | boolean | string | null | Bytes)[]",
+          "documentation": "Positional values, default []. int is signed 64-bit; number must be finite; Bytes binds a blob. When driver metadata requests binary32 REAL, narrowing rejects precision loss with precision and overflow with range. Server-side implicit casts can still round; use std:numeric.toFloat32 before binding to a binary32 column when metadata does not expose its width. Use driver-compatible column types and explicit SQL casts where needed."
+        }
+      ],
+      "documentation": "Opens a cursor without collecting all result rows. Uses the same prepared parameter checks and driver-specific SQL as query(). Parameters default to []. Creation validates SQL and parameter metadata; next() starts the result stream and acquires its connection. Metadata preparation and streaming may use different connections from the same pool. No transaction snapshot or server cursor is implied.\n\nRows are yielded in database result order. Use ORDER BY when order matters. Database/parameter errors throw SqlError; errors during execution can appear at next(). Driver buffering remains in effect; application code retains only rows it chooses to keep. SQL may perform writes with RETURNING; closing or dropping a cursor does not roll them back. Session commands and multiple statements remain rejected. Transaction.cursor is unsupported.\n\n```tsrust\nconst cursor = await db.cursor('SELECT 1 AS value');\nconst row = await cursor.next(); // one Row\ncursor.close();\n```\n\nOwnership: the returned cursor borrows the pool until close/drop. SQL text and parameter values are retained as owned query data; no caller parameter loan escapes.",
+      "examples": [
+        {
+          "source": "import { connect } from 'std:sql';\nimport { strictEqual } from 'std:testing';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  {\n    const cursor = await db.cursor('SELECT 1 AS value UNION ALL SELECT 2 AS value');\n    let total = 0;\n    while (true) {\n      const row = await cursor.next();\n      if (row === undefined) { break; }\n      total += unwrap(row.int('value'));\n    }\n    strictEqual(total, 3);\n    strictEqual(await cursor.next() === undefined, true);\n    cursor.close();\n  }\n  await db.close();\n}\n",
+          "output": ""
+        }
+      ]
     }
   ],
   "SqlTransaction": [
@@ -173,7 +208,7 @@
           "documentation": "Positional values, default []. int is signed 64-bit; number must be finite; Bytes binds a blob. When driver metadata requests binary32 REAL, narrowing rejects precision loss with precision and overflow with range. Server-side implicit casts can still round; use std:numeric.toFloat32 before binding to a binary32 column when metadata does not expose its width. Use driver-compatible column types and explicit SQL casts where needed."
         }
       ],
-      "documentation": "Returns all result rows as owned values. All rows are materialized; there is no streaming cursor. Uses one prepared SQL statement and positional parameter binding. Missing/extra parameters and database failures throw SqlError at await. SQL text remains driver-specific. No string escaping or identifier sanitization is performed. Transaction DDL and raw transaction/session commands are rejected. \n\n```tsrust\nconst rows = await transaction.query('SELECT id, name FROM people');\n```\n\nA database/parameter failure or cancellation schedules rollback and makes the transaction inactive. Cleanup may wait for an in-flight statement.\n\nSQL may perform writes using a returning clause.\n\nOwnership: borrows the transaction exclusively until the operation finishes or is dropped. Arguments evaluate when the Task is created. Owned SQL text and parameter arrays move into it; use clone when reuse is needed.",
+      "documentation": "Returns all result rows as owned values. All rows are materialized; transaction streaming cursors are unsupported. Uses one prepared SQL statement and positional parameter binding. Missing/extra parameters and database failures throw SqlError at await. SQL text remains driver-specific. No string escaping or identifier sanitization is performed. Transaction DDL and raw transaction/session commands are rejected. \n\n```tsrust\nconst rows = await transaction.query('SELECT id, name FROM people');\n```\n\nA database/parameter failure or cancellation schedules rollback and makes the transaction inactive. Cleanup may wait for an in-flight statement.\n\nSQL may perform writes using a returning clause.\n\nOwnership: borrows the transaction exclusively until the operation finishes or is dropped. Arguments evaluate when the Task is created. Owned SQL text and parameter arrays move into it; use clone when reuse is needed.",
       "examples": [
         {
           "source": "import { connect } from 'std:sql';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  await db.execute('CREATE TABLE people(id BIGINT PRIMARY KEY, name TEXT NOT NULL)');\n  {\n    const transaction = await db.begin();\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [1, 'Ada']);\n    await transaction.execute('INSERT INTO people(id, name) VALUES (?, ?)', [2, 'Grace']);\n    await transaction.commit();\n  }\n  const rows = await db.query('SELECT id, name FROM people ORDER BY id');\n  await db.close();\n  for (const row of rows) {\n    console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);\n  }\n}\n",
@@ -13815,5 +13850,33 @@
     ]
   }
 ],
-"HttpContextNext": []
+"HttpContextNext": [],
+  "SqlCursor": [
+  {
+    "name": "next",
+    "signature": "next(): Task<Row | undefined>",
+    "inferredSignature": "function next(): Task<Row | undefined>",
+    "parameters": [],
+    "documentation": "Reads the next owned row, or undefined at end of results. Takes no arguments. The lazy task does not advance the cursor until awaited. Rows remain valid after the cursor closes. EOF releases the connection; further next() calls return undefined. Database failures and duplicate result-column names throw SqlError, release the stream and leave the cursor at EOF. Alias duplicate columns explicitly. Canceling a pending next task does not consume the cursor; close or drop it to abandon the query.\n\n```tsrust\nconst row = await cursor.next();\nif (row !== undefined) { console.log(unwrap(row.int('value'))); } // 1\n```\n\nOwnership: exclusively borrows the cursor until the task completes or is dropped; returns an independently owned row.",
+    "examples": [
+      {
+        "source": "import { connect } from 'std:sql';\nimport { strictEqual } from 'std:testing';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  {\n    const cursor = await db.cursor('SELECT 1 AS value UNION ALL SELECT 2 AS value');\n    let total = 0;\n    while (true) {\n      const row = await cursor.next();\n      if (row === undefined) { break; }\n      total += unwrap(row.int('value'));\n    }\n    strictEqual(total, 3);\n    strictEqual(await cursor.next() === undefined, true);\n    cursor.close();\n  }\n  await db.close();\n}\n",
+        "output": ""
+      }
+    ]
+  },
+  {
+    "name": "close",
+    "signature": "close(): void",
+    "inferredSignature": "function close(): void",
+    "parameters": [],
+    "documentation": "Disposes a cursor without reading remaining rows. Takes no arguments, returns no value and consumes the cursor. Connection cleanup follows the database driver; pool operations can reuse it once cleanup finishes. Calling close after EOF is allowed; calling any method on the consumed cursor is rejected. Dropping the cursor performs the same cleanup.\n\n```tsrust\nconst cursor = await db.cursor('SELECT 1 AS value');\ncursor.close(); // abandon before reading\n```\n\nOwnership: consumes the cursor and releases its pool loan. A pending next() loan must finish or be dropped first.",
+    "examples": [
+      {
+        "source": "import { connect } from 'std:sql';\nimport { strictEqual } from 'std:testing';\n\nasync function main(): Task<void> {\n  const db = await connect('sqlite::memory:', 1);\n  {\n    const cursor = await db.cursor('SELECT 1 AS value UNION ALL SELECT 2 AS value');\n    let total = 0;\n    while (true) {\n      const row = await cursor.next();\n      if (row === undefined) { break; }\n      total += unwrap(row.int('value'));\n    }\n    strictEqual(total, 3);\n    strictEqual(await cursor.next() === undefined, true);\n    cursor.close();\n  }\n  await db.close();\n}\n",
+        "output": ""
+      }
+    ]
+  }
+]
 }

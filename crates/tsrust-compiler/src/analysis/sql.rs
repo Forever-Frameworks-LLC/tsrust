@@ -17,12 +17,13 @@ impl Analyzer {
  return self.expression(context,expression,Mode::Consume,loans,expected).map(Some);
  }
  if let ExprKind::Name(name)=&callee.kind && let Some((_,binding))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|binding.module=="std:sql") && crate::stdlib::sql::asynchronous(binding.name) && !context.task_body{return Err(Diagnostic::new("async-context","SQL I/O must run inside an async task.",expression.span));}
- if let ExprKind::Name(name)=&callee.kind && let Some((id,binding))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|binding.module=="std:sql" && matches!(binding.name,"__query"|"__execute"|"__txquery"|"__txexecute")) {
+ if let ExprKind::Name(name)=&callee.kind && let Some((id,binding))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|binding.module=="std:sql" && matches!(binding.name,"__cursor"|"__query"|"__execute"|"__txquery"|"__txexecute")) {
   if !binding.accepts_arity(args.len()){return Err(Diagnostic::new("arity","SQL query and execute require SQL text and optional parameters.",expression.span));}
   let mut active=loans.clone();
   for (index,(argument,parameter)) in args.iter_mut().zip(binding.parameters).enumerate(){
    let expected=if index==2{None}else{Some(native_type(parameter.ty,&self.program.records))};
    let actual=self.expression(context,argument,parameter.access,&active,expected)?;
+   if index!=2{self.require(actual,expected,argument.span)?;}
    if index==2 {
     let Type::Array(element)=actual else{return Err(Diagnostic::new("sql-parameters","SQL parameters must be an array of int, number, boolean, string, null or Bytes.",argument.span));};
     let members=if let Type::Union(id)=element.ty(){self.unions.members(id)}else{vec![element.ty()]};
@@ -30,7 +31,7 @@ impl Analyzer {
    }
    for root in Self::loan_roots(argument,parameter.access){active.entry(root).or_default().push((parameter.access,argument.span));}
   }
-  let result=native_type(binding.result,&self.program.records);self.require(result,expected,expression.span)?;expression.ty=Some(result);expression.target=Some(CallTarget::NativeBinding(id));return Ok(Some(result));
+  let result=native_type(binding.result,&self.program.records);self.remember_native_call_borrow(context,args,binding,result)?;self.require(result,expected,expression.span)?;expression.ty=Some(result);expression.target=Some(CallTarget::NativeBinding(id));return Ok(Some(result));
  }
  Ok(None)
  }

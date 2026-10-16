@@ -1,0 +1,59 @@
+import { connect, Pool, Cursor } from 'std:sql';
+import { monotonicNow } from 'std:time';
+async function openCursor(db: ReadOnly<Pool>): Task<Cursor> {
+  return await db.cursor('SELECT value FROM tsrust_cursor_bench ORDER BY id');
+}
+
+async function batch(db: ReadOnly<Pool>): Task<int> {
+  const cursor = await openCursor(db);
+  let sum = 0;
+  let count = 0;
+  while (true) {
+    const row = await cursor.next();
+    if (row === undefined) {
+      break;
+    }
+
+    const value = unwrap(row.int('value'));
+    if (value !== count * 2) {
+      throw 'Unexpected row';
+    }
+
+    sum += value;
+    count++;
+  }
+
+  cursor.close();
+  if (count !== 128) {
+    throw 'Unexpected row count';
+  }
+
+  return sum;
+}
+
+async function main(): Task<void> {
+  const db = await connect('sqlite::memory:', 1);
+  await db.execute('CREATE TABLE tsrust_cursor_bench(id BIGINT PRIMARY KEY, value BIGINT NOT NULL)');
+  {
+    const tx = await db.begin();
+    for (let index = 0; index < 128; index++) {
+      await tx.execute('INSERT INTO tsrust_cursor_bench VALUES (?, ?)', [index, index * 2]);
+    }
+
+    await tx.commit();
+  }
+
+  for (let warmup = 0; warmup < 8; warmup++) {
+    await batch(db);
+  }
+
+  for (let sample = 0; sample < 31; sample++) {
+    const start = monotonicNow();
+    const checksum = await batch(db);
+    console.log(checksum);
+    console.log(monotonicNow() - start);
+  }
+
+  await db.execute('DROP TABLE tsrust_cursor_bench');
+  await db.close();
+}

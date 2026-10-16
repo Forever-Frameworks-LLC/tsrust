@@ -3,6 +3,11 @@ mod support;
 #[test]
 fn sql_ownership_and_async_errors_are_checked_without_a_database() {
     for body in [
+        "const cursor=await db.cursor('SELECT 1');await db.close();await cursor.next();",
+        "const cursor=await db.cursor('SELECT 1');const pending=cursor.next();cursor.close();await pending;",
+        "const cursor=await db.cursor('SELECT 1');cursor.close();await cursor.next();",
+        "const cursor=await db.cursor('SELECT 1');const pending=cursor.next();await cursor.next();await pending;",
+        "await db.cursor(42);",
         "const tx=await db.begin();await db.close();await tx.rollback();",
         "const tx=await db.begin();const pending=tx.query('SELECT 1');await tx.commit();await pending;",
         "const pending=db.query('SELECT 1');await db.close();await pending;",
@@ -25,7 +30,7 @@ fn sql_ownership_and_async_errors_are_checked_without_a_database() {
 
 #[test]
 fn sql_examples_check_and_format_without_a_database(){
-    for source in [include_str!("../../../examples/async-sql/real-boundary.tsr"),include_str!("../../../examples/async-sql/people.tsr"),include_str!("../../../examples/async-sql/rollback.tsr")]{
+    for source in [include_str!("../../../examples/async-sql/cursor.tsr"),include_str!("../../../examples/async-sql/real-boundary.tsr"),include_str!("../../../examples/async-sql/people.tsr"),include_str!("../../../examples/async-sql/rollback.tsr")]{
         let source=support::format_round_trip(source);let dir=support::TempDirectory::new();
         support::success(&support::run(support::cli().arg("check").arg(dir.source(&source)),30));
     }
@@ -39,11 +44,12 @@ fn all_sqlx_drivers_execute_with_rollback_and_cleanup(){
     let sqlite_dir=support::TempDirectory::new();
     let sqlite_url=format!("sqlite://{}?mode=rwc",sqlite_dir.0.join("acceptance.sqlite").display());
     let resume=std::env::var("TSRUST_TEST_SQL_RESUME").unwrap_or_default();
-    assert!(matches!(resume.as_str(),""|"postgres"|"mysql"),"unknown SQL resume driver");
+    assert!(matches!(resume.as_str(),""|"sqlite"|"postgres"|"mysql"),"unknown SQL resume driver");
     for (driver,url) in [("sqlite",sqlite_url.as_str()),("postgres",postgres.as_str()),("mysql",mysql.as_str())]{
         if (resume=="postgres" && driver=="sqlite") || (resume=="mysql" && driver!="mysql"){eprintln!("Reusing previously passed {driver} evidence");continue;}
 
         eprintln!("Checking {driver}: bindings, rollback, cancellation, timeout and cleanup");
+        let cursor_integer=if driver=="mysql"{"SIGNED"}else{"BIGINT"};
         let bind=if driver=="postgres"{"$1, $2"}else{"?, ?"};
         let slow_sql=match driver {"postgres"=>"SELECT 1 AS marker FROM pg_sleep(0.25)","mysql"=>"SELECT SLEEP(0.25) AS marker",_=>"WITH RECURSIVE counter(value) AS (SELECT 1 UNION ALL SELECT value+1 FROM counter WHERE value<2000000) SELECT COUNT(*) AS marker FROM counter"};
         let blob_type=if driver=="postgres"{"BYTEA"}else{"BLOB"};
@@ -72,6 +78,15 @@ async function cancelledWrite(url:string,ready:Sender<int>):Task<void>{{
 }}
 async function main():Task<void>{{
  const db=await connect({url},1,2000);
+ {{
+  const cursor=await db.cursor('SELECT CAST(1 AS {cursor_integer}) AS value UNION ALL SELECT CAST(2 AS {cursor_integer}) AS value');
+  let total=0;
+  while(true){{const row=await cursor.next();if(row===undefined){{break;}}total+=unwrap(row.int('value'));}}
+  strictEqual(total,3);strictEqual(await cursor.next()===undefined,true);cursor.close();
+ }}
+ {{const early=await db.cursor('SELECT CAST(1 AS {cursor_integer}) AS value UNION ALL SELECT CAST(2 AS {cursor_integer}) AS value');await early.next();early.close();}}
+ strictEqual((await db.query('SELECT CAST(3 AS {cursor_integer}) AS value')).length,1);
+
  {real_check}
  await db.execute('DROP TABLE IF EXISTS tsrust_s18_values');
  await db.execute('CREATE TABLE tsrust_s18_values(i BIGINT,r DOUBLE PRECISION,t VARCHAR(100),b {blob_type},n VARCHAR(100),flag {flag_type})');
@@ -114,7 +129,7 @@ async function main():Task<void>{{
         assert!(output.status.success(),"{driver}: {}",String::from_utf8_lossy(&output.stderr));
         eprintln!("Passed {driver}");
     }
-    for (source,expected) in [(include_str!("../../../examples/async-sql/real-boundary.tsr"),"1.25\nPrecision\n"),(include_str!("../../../examples/async-sql/people.tsr"),"1: Ada\n2: Grace\n"),(include_str!("../../../examples/async-sql/rollback.tsr"),"Transfer rolled back\n0\n")]{let dir=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(dir.source(&support::format_round_trip(source))),600);support::success(&output);assert_eq!(output.stdout,expected.as_bytes());}
+    for (source,expected) in [(include_str!("../../../examples/async-sql/cursor.tsr"),""),(include_str!("../../../examples/async-sql/real-boundary.tsr"),"1.25\nPrecision\n"),(include_str!("../../../examples/async-sql/people.tsr"),"1: Ada\n2: Grace\n"),(include_str!("../../../examples/async-sql/rollback.tsr"),"Transfer rolled back\n0\n")]{let dir=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(dir.source(&support::format_round_trip(source))),600);support::success(&output);assert_eq!(output.stdout,expected.as_bytes());}
 }
 
 #[test]

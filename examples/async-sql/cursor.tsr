@@ -1,0 +1,24 @@
+import { connect } from 'std:sql';
+import { strictEqual } from 'std:testing';
+
+async function main(): Task<void> {
+  const db = await connect('sqlite::memory:', 1);
+  {
+    const cursor = await db.cursor('SELECT 1 AS value UNION ALL SELECT 2 AS value');
+    let total = 0;
+    while (true) {
+      const row = await cursor.next();
+      if (row === undefined) {
+        break;
+      }
+
+      total += unwrap(row.int('value'));
+    }
+
+    strictEqual(total, 3);
+    strictEqual(await cursor.next() === undefined, true);
+    cursor.close();
+  }
+
+  await db.close();
+}
