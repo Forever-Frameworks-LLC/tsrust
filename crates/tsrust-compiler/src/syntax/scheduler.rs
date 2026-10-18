@@ -170,6 +170,10 @@ pub(super) struct ParameterHead {
 }
 
 pub(super) enum Work {
+    JsxAttributes(Box<super::jsx::Frame>),
+    JsxAttribute(Box<super::jsx::Frame>, Box<Token>),
+    JsxChildren(Box<super::jsx::Frame>),
+    JsxChild(Box<super::jsx::Frame>, bool),
     // Blocks and bodies. Each completes with one entry on `bodies`. `outer`
     // holds the declarations that were pending for the enclosing statement
     // list; they return to `Parser::pending` when the body completes.
@@ -378,6 +382,7 @@ impl Parser<'_> {
 
     fn step(&mut self, task: Work, machine: &mut Machine) -> Result<(), Diagnostic> {
         match task {
+            Work::JsxAttributes(_) | Work::JsxAttribute(..) | Work::JsxChildren(_) | Work::JsxChild(..) => self.jsx_step(task, machine),
             Work::Block
             | Work::BlockNext { .. }
             | Work::BlockAfter { .. }

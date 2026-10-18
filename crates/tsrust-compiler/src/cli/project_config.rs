@@ -36,8 +36,8 @@ pub(crate) fn parse(root:&Path,text:&str)->Result<Project,String> {
     let build=object(config.get("build").ok_or("Missing build configuration")?,"build",&["entry","output"])?;
     let entry=relative(build.get("entry"),"build.entry")?;
     let output=relative(build.get("output"),"build.output")?;
-    if entry.extension().is_none_or(|extension|extension!="tsr") {return Err("build.entry must name a .tsr file".into());}
-    if output==entry || output.extension().is_some_and(|extension|extension=="tsr") || output==Path::new(FILE) {
+    if entry.extension().is_none_or(|extension|extension!="tsr" && extension!="tsrx") {return Err("build.entry must name a .tsr or .tsrx file".into());}
+    if output==entry || output.extension().is_some_and(|extension|extension=="tsr" || extension=="tsrx") || output==Path::new(FILE) {
         return Err("build.output must not name a source or configuration file".into());
     }
     Ok(Project {root:root.to_owned(),entry:root.join(entry),output:root.join(output)})

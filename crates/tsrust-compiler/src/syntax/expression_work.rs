@@ -241,6 +241,7 @@ impl Parser<'_> {
     }
 
     fn primary(&mut self, machine: &mut Machine) -> Result<(), Diagnostic> {
+        if self.peek().kind == TokenKind::JsxOpen { return self.jsx_start(machine); }
         self.typed_arrow_without_parentheses()?;
         if self.is("async") {
             let position=self.i;let keyword=self.take();

@@ -9,7 +9,7 @@ fn walk(root:&Path,visit:&mut impl FnMut(&Path,&fs::Metadata)->io::Result<()>)->
    let entry=entry?;let kind=entry.file_type()?;let path=entry.path();
    if kind.is_symlink(){continue;}
    if kind.is_dir() && !matches!(entry.file_name().to_str(),Some(".git"|"node_modules"|"target")) {walk(&path,visit)?;}
-   else if kind.is_file() && (path.extension().is_some_and(|ext|matches!(ext.to_str(),Some("tsr"|"rs"|"json"|"jsonc"|"lock")))) {visit(&path,&entry.metadata()?)?;}
+   else if kind.is_file() && (path.extension().is_some_and(|ext|matches!(ext.to_str(),Some("tsr"|"tsrx"|"rs"|"json"|"jsonc"|"lock")))) {visit(&path,&entry.metadata()?)?;}
   }
  }
  Ok(())

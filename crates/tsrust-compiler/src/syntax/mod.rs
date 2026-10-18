@@ -1,5 +1,6 @@
 mod declaration_work;
 mod expression_work;
+pub(crate) mod jsx;
 mod nesting_policy;
 #[cfg(test)]
 mod nesting_tests;
@@ -23,6 +24,10 @@ pub(crate) use nesting_policy::NestingPolicy;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TokenKind {
+    JsxOpen,
+    JsxClose,
+    JsxEnd,
+    JsxText,
     Name,
     String,
     TemplateHead,
@@ -52,7 +57,10 @@ pub(crate) fn lex_with(source: &str, policy: NestingPolicy) -> Result<Vec<Token>
     let mut i = 0;
     // Only interpolating templates need a frame; nested braces belong to its expression.
     let mut templates: Vec<(usize, usize)> = Vec::new();
+    let mut jsx_modes = Vec::new();
     while i < bytes.len() {
+        if !(source[i..].starts_with('}') && templates.last().is_some_and(|(_, braces)| *braces == 0))
+            && jsx::lex_step(source, &mut i, &mut tokens, &mut jsx_modes, policy)? { continue; }
         let start = i;
         let c = source[i..]
             .chars()

@@ -11,7 +11,7 @@ let disposed = false;
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   disposed = false;
   const output = vscode.window.createOutputChannel('Tsrust');
-  const sourceWatcher = vscode.workspace.createFileSystemWatcher('**/*.tsr');
+  const sourceWatcher = vscode.workspace.createFileSystemWatcher('**/*.{tsr,tsrx}');
   const dataWatcher = vscode.workspace.createFileSystemWatcher('**/*.{json,jsonc,rs,lock}');
   context.subscriptions.push(sourceWatcher, dataWatcher);
   const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
@@ -32,7 +32,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const activeFile = async (uri?: vscode.Uri): Promise<vscode.TextDocument> => {
     if (!vscode.workspace.isTrusted) throw new Error('Trust this workspace before running Tsrust commands.');
     const document = uri ? await vscode.workspace.openTextDocument(uri) : vscode.window.activeTextEditor?.document;
-    if (!document || document.languageId !== 'tsrust' || document.uri.scheme !== 'file') throw new Error('Open a saved .tsr file first.');
+    if (!document || document.languageId !== 'tsrust' || document.uri.scheme !== 'file') throw new Error('Open a saved .tsr or .tsrx file first.');
     if (document.isDirty && !await document.save()) throw new Error('Save was cancelled; the file was not run.');
     return document;
   };

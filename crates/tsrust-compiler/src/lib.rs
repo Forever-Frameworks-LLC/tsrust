@@ -61,6 +61,7 @@ pub(crate) use native::emit as native_emit;
 pub use stdlib::path::runtime as native_path;
 pub use stdlib::path::relative as native_path_relative;
 pub use formatting::format;
+pub use syntax::jsx::attribute_context as jsx_attribute_context;
 mod projections;
 pub use projections::{CheckedTypeFacts, LocalFunctionInfo, GenericCallInfo, GenericParameterCallInfo, GenericParameterInfo, MethodResultInfo, ProjectionInfo};
 pub mod project;

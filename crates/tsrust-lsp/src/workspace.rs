@@ -355,4 +355,18 @@ mod scan_input_tests {
         let stable=workspace.snapshot();stable.absorb(&new);
         assert!(workspace.current(&stable));
     }
+    #[test]
+    fn tsrx_unsaved_components_check_and_invalidate() {
+        let mut workspace=Workspace::default();
+        let entry=SourceId("/tsrust-jsx-editor/main.tsrx".into());
+        let component=SourceId("/tsrust-jsx-editor/label.tsrx".into());
+        workspace.open(component.clone(),1,"export interface Props {children:string[];} export function Label(props:Props):string{return props.children.join(\"\");}".into());
+        workspace.open(entry.clone(),1,"import {Label} from './label'; function main(){console.log(<Label>hello</Label>);}".into());
+        let snapshot=workspace.snapshot();snapshot.check(&entry).unwrap();
+        assert!(workspace.register(entry.clone(),&snapshot));
+        workspace.change(&component,2,"export function Label(props:int):int{return props;}".into());
+        assert!(!workspace.current(&snapshot));
+        assert!(workspace.snapshot().check(&entry).is_err());
+    }
+
 }

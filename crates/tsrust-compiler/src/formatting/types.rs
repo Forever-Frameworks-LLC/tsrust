@@ -101,6 +101,27 @@ pub(super) fn contains(spans: &[Span], at: usize) -> bool {
 /// Comparisons and shifts outside parsed type spans retain exact operator tokens.
 pub(super) fn normalized_tokens(source: &str) -> Result<Vec<Token>, crate::Diagnostic> {
     let mut tokens = crate::syntax::lex(source)?;
+    // Preserve JSX islands byte-for-byte until their dedicated layout rules land.
+    // Surrounding declarations still use the ordinary formatter.
+    let mut at=0;
+    while at<tokens.len() {
+        if tokens[at].kind != TokenKind::JsxOpen { at+=1; continue; }
+        let start=tokens[at].span.start;
+        let mut depth=0usize; let mut closing=false; let mut end=at;
+        for (index,token) in tokens.iter().enumerate().skip(at) {
+            match token.kind {
+                TokenKind::JsxOpen => {depth+=1; closing=false;}
+                TokenKind::JsxClose => closing=true,
+                TokenKind::JsxEnd if closing || token.text=="/>" => { depth-=1; closing=false; },
+                _=>{},
+            }
+            if depth==0 {end=index;break;}
+        }
+        if end==at { return Err(crate::Diagnostic::new("syntax","Unterminated JSX element.",tokens[at].span)); }
+        let span=Span::new(start,tokens[end].span.end);
+        tokens.splice(at..=end,[Token{text:source[span.start..span.end].into(),span,kind:TokenKind::String}]);
+        at+=1;
+    }
     let spans = generic_spans(&tokens);
     let mut index = 0;
     while index < tokens.len() {

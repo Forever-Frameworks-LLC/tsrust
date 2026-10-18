@@ -67,7 +67,8 @@ pub fn candidates(importer:&Path,specifier:&str,aliases:Option<&Aliases>)->Resul
  };
  if path.extension().is_some() {return Ok(vec![path]);}
  let mut source=path.as_os_str().to_os_string();source.push(".tsr");
- Ok(vec![PathBuf::from(source),path.join("index.tsr")])
+ let mut ui=path.as_os_str().to_os_string();ui.push(".tsrx");
+ Ok(vec![PathBuf::from(source),PathBuf::from(ui),path.join("index.tsr"),path.join("index.tsrx")])
 }
 
 #[cfg(test)]
@@ -85,7 +86,7 @@ mod tests {
  #[test]
  fn source_candidates_prefer_files_and_preserve_explicit_formats() {
   let base=Path::new("/project/src/main.tsr");
-  assert_eq!(candidates(base,"./components",None).unwrap(),vec![PathBuf::from("/project/src/./components.tsr"),PathBuf::from("/project/src/./components/index.tsr")]);
+  assert_eq!(candidates(base,"./components",None).unwrap(),vec![PathBuf::from("/project/src/./components.tsr"),PathBuf::from("/project/src/./components.tsrx"),PathBuf::from("/project/src/./components/index.tsr"),PathBuf::from("/project/src/./components/index.tsrx")]);
   assert_eq!(candidates(base,"./data.jsonc",None).unwrap(),vec![PathBuf::from("/project/src/./data.jsonc")]);
   assert_eq!(candidates(base,"./component.tsr",None).unwrap(),vec![PathBuf::from("/project/src/./component.tsr")]);
   assert!(candidates(base,"@/components",None).unwrap_err().contains("No path alias"));

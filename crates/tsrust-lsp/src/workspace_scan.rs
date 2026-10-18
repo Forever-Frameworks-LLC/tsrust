@@ -88,7 +88,7 @@ impl Cache {
         .map(|path|SourceId(path.to_string_lossy().into_owned())).collect::<BTreeSet<_>>();
     for id in job.input.open_sources() {
         let path=PathBuf::from(&id.0);
-        if path.extension().is_some_and(|extension|extension=="tsr") && roots.iter().any(|root|path.starts_with(root)) {files.insert(id);}
+        if path.extension().is_some_and(|extension|extension=="tsr" || extension=="tsrx") && roots.iter().any(|root|path.starts_with(root)) {files.insert(id);}
     }
     self.entries.retain(|id,_|files.contains(id));
     let mut errors=Vec::new();

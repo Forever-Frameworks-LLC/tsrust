@@ -399,7 +399,7 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
             let span = tokens[i].span;
             if crate::stdlib::source(&path).is_none() && !path.starts_with("std:")
                 && (path.is_empty() || path.starts_with('/')
-                    || Path::new(&path).extension().is_some_and(|extension|!matches!(extension.to_str(), Some("tsr" | "rs" | "json" | "jsonc")))
+                    || Path::new(&path).extension().is_some_and(|extension|!matches!(extension.to_str(), Some("tsr" | "tsrx" | "rs" | "json" | "jsonc")))
                     || path.contains(['\\', '\0', '\n', '\r']))
             {
                 return Err(error(

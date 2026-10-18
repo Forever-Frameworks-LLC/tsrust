@@ -3153,6 +3153,10 @@ impl SourceIndex {
         if !name(self.text(token)) {
             return Ok(Value::Null);
         }
+        if method=="textDocument/hover" && let Some((_,fields,_))=self.jsx_props(self.tokens[token].span.end)
+            && let Some((field,ty))=fields.iter().find(|(field,_)|field==self.text(token)) {
+            return Ok(json!({"contents":{"kind":"markdown","value":format!("```tsrust\n{field}: {}\n```",self.display_type(ty))},"range":self.range(self.tokens[token].span)}));
+        }
         if let Some((_,definition))=self.checked_control_labels.iter().find(|(span,_)|*span==self.tokens[token].span){
             let declaration=*definition;
             return match method {
@@ -3443,7 +3447,7 @@ impl SourceIndex {
             crate::counters::count(&crate::counters::NON_MEMBER_AFTER_SEPARATOR, "scope names requested after a member separator");
             return json!([]);
         }
-        if let Some(items) = self.match_arm_completion(offset, prefix_start).or_else(|| self.record_literal_completion(offset, prefix_start)) {
+        if let Some(items) = self.jsx_attribute_completion(offset, prefix_start).or_else(|| self.match_arm_completion(offset, prefix_start)).or_else(|| self.record_literal_completion(offset, prefix_start)) {
             return items;
         }
         let mut items = vec![];
@@ -3706,6 +3710,11 @@ impl SourceIndex {
         }
     }
     fn signature_help(&self, offset: usize) -> Value {
+        if let Some((component,_,_))=self.jsx_props(offset) {
+            let symbol=&self.symbols[component];
+            return json!({"signatures":[{"label":symbol.signature,"parameters":symbol.parameters.iter().map(|p|json!({"label":p})).collect::<Vec<_>>()}],"activeSignature":0,"activeParameter":0});
+        }
+
         // The nearest unmatched call parenthesis owns commas; skip nested calls,
         // literals and indexing so they do not advance the outer parameter.
         let mut stack: Vec<(usize, usize)> = vec![];

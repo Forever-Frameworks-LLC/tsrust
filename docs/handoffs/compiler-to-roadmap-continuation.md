@@ -1,5 +1,16 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
+## JSX compiler integration — 2026-10-18
+
+Named JSX components now lower into ordinary checked calls with props records and
+ordered children arrays. `.tsrx` discovery, configured CLI execution, import
+resolution, dev watching and editor attribute help are integrated. Focused native,
+editor and matched TypeScript witnesses pass; see [JSX integration](../plans/jsx-integration.md).
+The formatter preserves JSX islands verbatim. This is syntax acceptance, not paired
+rendering or counter acceptance. Continue checked renderer bindings, generated
+static output and the paired interactive counter without another go-ahead.
+
+
 ## GPU-first UI foundation — 2026-10-18
 
 The owner selected Winit + Taffy + Vello. `crates/tsrust-ui` now provides a bounded

@@ -3,6 +3,9 @@
   "scopeName": "source.tsrust",
   "patterns": [
     {
+      "include": "#jsx"
+    },
+    {
       "name": "comment.line.double-slash.tsrust",
       "begin": "//",
       "end": "$"
@@ -558,6 +561,50 @@
         },
         {
           "include": "$self"
+        }
+      ]
+    },
+    "jsx": {
+      "begin": "(<)([A-Z][A-Za-z0-9_]*)\\b",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.tag.begin.tsrust"
+        },
+        "2": {
+          "name": "entity.name.function.tsrust"
+        }
+      },
+      "end": "(/>)|(</)(\\2)(>)",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.tag.end.tsrust"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#jsx"
+        },
+        {
+          "begin": "\\{",
+          "end": "\\}",
+          "patterns": [
+            {
+              "include": "$self"
+            }
+          ]
+        },
+        {
+          "begin": "\"",
+          "end": "\"",
+          "name": "string.quoted.double.tsrust"
+        },
+        {
+          "match": "\\b[A-Za-z_][A-Za-z0-9_]*(?=\\s*=)",
+          "name": "entity.other.attribute-name.tsrust"
+        },
+        {
+          "match": ">",
+          "name": "punctuation.definition.tag.end.tsrust"
         }
       ]
     }

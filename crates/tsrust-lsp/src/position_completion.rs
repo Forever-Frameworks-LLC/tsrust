@@ -3,6 +3,25 @@
 use super::*;
 
 impl SourceIndex {
+    pub(super) fn jsx_props(&self, offset: usize) -> Option<(usize, Vec<(String,String)>, Vec<String>)> {
+        let (span,written)=tsrust_compiler::jsx_attribute_context(&self.source,offset)?;
+        let component=self.resolve_name(&self.source[span.start..span.end],span.start)?;
+        let parameter=self.symbols[component].parameters.first()?;
+        let (_,ty)=parameter.split_once(':')?;
+        let ty=self.written_type(ty.trim());
+        let mut fields=self.symbols.iter().filter(|s|s.owner.as_deref()==Some(ty.as_str())).map(|s|(s.name.clone(),s.ty.clone())).collect::<Vec<_>>();
+        if fields.is_empty(){fields=self.common_record_fields(&ty,true).into_iter().collect();}
+        Some((component,fields,written))
+    }
+    pub(super) fn jsx_attribute_completion(&self, offset: usize, prefix_start: usize) -> Option<Value> {
+        let (_,fields,written)=self.jsx_props(offset)?;
+        let prefix=&self.source[prefix_start..offset];
+        let replace=self.range(Span::new(prefix_start,offset));
+        Some(json!(fields.into_iter().filter(|(name,_)|name!="children" && name.starts_with(prefix) && !written.contains(name)).map(|(name,ty)|{
+            json!({"label":name,"kind":5,"detail":format!("{name}: {}",self.display_type(&ty)),"textEdit":{"range":replace,"newText":format!("{name}=")}})
+        }).collect::<Vec<_>>()))
+    }
+
     /// Module paths inside the string after `from`. Standard modules come
     /// from the compiler's binding and type tables; project modules are the
     /// source files beside the document.
@@ -193,7 +212,7 @@ fn sibling_modules(uri: &str) -> Vec<String> {
                 if depth < 3 {
                     pending.push((entry_path, format!("{prefix}{name}/"), depth + 1));
                 }
-            } else if (name.ends_with(".tsr") || name.ends_with(".rs") || name.ends_with(".bindings.json")) && entry_path != path {
+            } else if (name.ends_with(".tsr") || name.ends_with(".tsrx") || name.ends_with(".rs") || name.ends_with(".bindings.json")) && entry_path != path {
                 found.push(format!("{prefix}{name}"));
             }
         }
