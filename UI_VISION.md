@@ -9,7 +9,7 @@ Pre-start review: [updated feasibility and unresolved-contract review](docs/plan
 - Develop the shared API through paired web and desktop prototypes from the beginning. Neither target is merely a later port.
 - Keep authoring familiar: JSX, `className`, token-based utilities and composable components. This does not promise React, arbitrary TypeScript, npm or full Tailwind compatibility.
 - Aim for consistent component appearance and behavior while preserving platform shortcuts, text input, accessibility and OS dialogs. Pixel identity is not required for every font rasterizer or display.
-- Custom-drawn desktop controls are the leading approach for consistency. Native windows and OS services remain appropriate; no desktop WebView dependency. Renderer selection is still open.
+- Custom-drawn desktop controls are the leading approach for consistency. Native windows and OS services remain appropriate; no desktop WebView dependency. The owner selected a GPU-first Winit + Taffy + Vello native foundation on 2026-10-18. This selects the rendering direction; generated paired UI acceptance remains open.
 - Follow a paired counter with an editable list: add, select, edit, validate and remove items without requiring networking or a database.
 - Prioritize core APIs and target interfaces. Embedded hardware is not required for initial acceptance. Headless software rendering can test constrained-display behavior but does not prove MCU timing, memory, drivers or `no_std` support.
 - Reuse the existing compiler's language, types, ownership and module contracts. A separate UI crate or driver may be useful; a separate language implementation is not the intended direction.

@@ -1,13 +1,26 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
+## GPU-first UI foundation — 2026-10-18
+
+The owner selected Winit + Taffy + Vello. `crates/tsrust-ui` now provides a bounded
+owned static tree with shared utility meanings, HTML escaping, native text/layout,
+GPU window rendering and AccessKit semantics. Native API checks, three focused
+checks and a bounded real window presentation/close pass. See its README for exact
+limits. The Rust-constructed example does not count as generated Tsrust UI.
+Continue `.tsrx` parser/checker/lowering, project/CLI/editor integration, then the
+paired generated static fixture. Preserve the static/interactive distinction and
+accepted lifetime evidence. Renderer selection is resolved; JS/WASM selection is
+still unnecessary for this noninteractive slice.
+
+
 ## Named HTTP query helpers — 2026-10-18
 
 `c.req.query(name)` and `c.req.queries(name)` return owned optional text/arrays
 without consuming the request body. Scope and Hono differences are explicit in
 [acceptance](../plans/http-query-acceptance.md). Continue remaining ordinary HTTP
 helpers/composition and the paired static `.tsrx` UI slice. The UI review remains
-read-only; this thread remains the sole writer/build owner. Native renderer choice
-is pending an owner response; static output does not require choosing JS/WASM yet.
+read-only; this thread remains the sole writer/build owner. The owner selected GPU-first Winit + Taffy + Vello on 2026-10-18. Continue the
+paired static slice; static output does not require choosing JS/WASM yet.
 
 
 ## Process arguments — 2026-10-18
