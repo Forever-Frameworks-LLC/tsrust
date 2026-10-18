@@ -1,5 +1,26 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
+## Standalone UI project and installed editor — accepted 2026-10-18
+
+Created `/Users/seancotter/Desktop/dev/learning/tsrust-counter` with `tsrust new`.
+The generated config retains `src/main.tsr` and `target/tsrust-counter`; the source
+now uses the accepted paired counter, with a rendering test and local editor
+settings selecting installed executables. Opened this directory as a separate
+VS Code root. The installed LSP passes real protocol checks for clean `.tsrx`
+diagnostics, Signal get/set completion, setter hover, an invalid setter argument,
+and diagnostic clearing after correction. The editor has one idle server for this
+root. Whole compiler-fixture workspace scanning had delayed open-file diagnostics;
+the speculative scan opt-out was discarded, not shipped.
+
+The standalone test exposed the same typed-record formatting borrow defect in the
+`std:testing` callback adapter. The shared adapter now borrows the error payload.
+The focused throwing-record regression and actual standalone screen test pass.
+Installed compiler refreshed. Existing UI, browser and native acceptance is reused;
+no full regression, SQL or timing suites rerun. Closed original failures and repaired
+checks are verified in SQLite under `tsrust-state-*`. Continue the unfinished UI
+scope listed below; this small project is not a full UI-framework readiness claim.
+
+
 ## Direct UI state bindings and captures — accepted 2026-10-18
 
 `Signal` is used directly in JSX and callback bodies. The compiler creates

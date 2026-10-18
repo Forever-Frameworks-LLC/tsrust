@@ -765,3 +765,21 @@ test('numeric',():void=>{inspect(3.0);});test('string',():void=>{inspect('3');})
     let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(path),60);assert!(!output.status.success());let stdout=String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("PASS numeric"),"{stdout}");assert!(stdout.contains("FAIL string: AssertionError:"),"{stdout}");assert!(stdout.contains("FAIL undefined: AssertionError:"),"{stdout}");assert!(stdout.contains("PASS later"),"{stdout}");
 }
+
+#[test]
+fn runner_formats_typed_record_errors_without_moving_payloads() {
+    let directory = support::TempDirectory::new();
+    let path = directory.source(r#"
+import { test } from 'std:testing';
+interface Failure { message: string; }
+test('typed failure', (): void => {
+  const failure: Failure = { message: 'record error preserved' };
+  throw failure;
+});
+"#);
+    let output = support::run(support::cli().arg("test").arg(path), 60);
+    assert!(!output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("typed failure"), "{stdout}");
+    assert!(stdout.contains("record error preserved"), "{stdout}");
+}

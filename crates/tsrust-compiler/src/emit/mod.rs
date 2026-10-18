@@ -1242,7 +1242,7 @@ impl Emitter<'_> {
                 };
                 arms.push_str(&format!("{}::V{tag}(payload)=>{text},",exception_emit::constructor_path(&name)));
             }
-            if arms.is_empty(){format!("{invocation}.map_err(|error|match error{{}})")}else{format!("{invocation}.map_err(|error|match error{{{arms}}})")}
+            if arms.is_empty(){format!("{invocation}.map_err(|error|match error{{}})")}else{format!("{invocation}.map_err(|error|match &error{{{arms}}})")}
         }else{format!("{{let result:()={invocation};Ok(result)}}")};
         let helper=if hook{"tsrust_testing_register_hook_result"}else{"tsrust_testing_register_test_result"};
         let call=format!("{{let registered_name={};let mut registered_callback={};{helper}({},registered_name,Box::new(move |program,registry|{result}))}}",arguments[0],arguments[1],arguments[2]);
