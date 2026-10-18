@@ -1,0 +1,7 @@
+import { args } from "std:env";
+import { stringify, fromArray, fromString } from "std:json";
+
+function main() {
+  const values = unwrap(args());
+  console.log(unwrap(stringify(unwrap(fromArray(values.map((value) => fromString(clone(value))))))));
+}

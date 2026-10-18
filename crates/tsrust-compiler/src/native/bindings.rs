@@ -369,6 +369,7 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::numeric::CHECK_UNSIGNED,
     crate::stdlib::numeric::PARSE_INT,
     crate::stdlib::env::bindings::GET,
+    crate::stdlib::env::bindings::ARGS,
     crate::stdlib::time::MONOTONIC_NOW,
     crate::stdlib::fs::bindings::BUFFER_READER,
     crate::stdlib::fs::bindings::BUFFER_WRITER,

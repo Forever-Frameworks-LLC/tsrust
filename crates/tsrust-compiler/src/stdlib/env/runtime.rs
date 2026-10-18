@@ -12,3 +12,8 @@ pub(crate) fn get(name:&str)->Result<Option<std::string::String>,EnvError> {
         Err(std::env::VarError::NotUnicode(_))=>Err(EnvError::NotUnicode),
     }
 }
+
+/// Program arguments exclude the executable name and retain exact Unicode values.
+pub(crate) fn args()->Result<Vec<std::string::String>,EnvError> {
+    std::env::args_os().skip(1).map(|value|value.into_string().map_err(|_|EnvError::NotUnicode)).collect()
+}

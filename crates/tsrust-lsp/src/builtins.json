@@ -7837,7 +7837,7 @@
     "name": "EnvError",
     "signature": "type EnvError = { code: string; message: string }",
     "parameters": [],
-    "documentation": "Describes an environment lookup failure. code is InvalidName for an empty name or a name containing = or NUL, or NotUnicode when a value cannot be represented as Unicode. message explains the failure without including the environment value. Missing variables are successful lookups, not errors. Fields are ordinary strings.\n\n```tsrust\nimport {EnvError} from \"std:env\"; function describe(error:ReadOnly<EnvError>):string{return error.code + \": \" + error.message;} function main(){}\n```\n\nExpected output: none. Ownership: an owned record; explicit clone creates independent storage.",
+    "documentation": "Describes an environment or process-argument failure. code is InvalidName for an empty name or a name containing = or NUL, or NotUnicode when a value or process argument cannot be represented as Unicode. message explains the failure without including the environment value or argument. Missing variables are successful lookups, not errors. Fields are ordinary strings.\n\n```tsrust\nimport {EnvError} from \"std:env\"; function describe(error:ReadOnly<EnvError>):string{return error.code + \": \" + error.message;} function main(){}\n```\n\nExpected output: none. Ownership: an owned record; explicit clone creates independent storage.",
     "examples": [
       {
         "source": "import {EnvError} from \"std:env\"; function describe(error:ReadOnly<EnvError>):string{return error.code + \": \" + error.message;} function main(){}",
@@ -7851,7 +7851,7 @@
     "parameters": [
       {
         "label": "name: ReadOnly<string>",
-        "documentation": "Required nonempty variable name. Must not contain = or NUL. Uses the executable host\u2019s case-sensitivity rules."
+        "documentation": "Required nonempty variable name. Must not contain = or NUL. Uses the executable host’s case-sensitivity rules."
       }
     ],
     "documentation": "Reads a variable from the running process environment. Returns Ok(value) with an independent UTF-8 string when present, Ok(undefined) when missing, or Err(EnvError). An empty value returns Ok(\"\"). Empty names and names containing = or NUL fail with InvalidName. Non-Unicode values fail with NotUnicode; no lossy replacement occurs. Lookup uses host name matching rules and does not mutate the environment. Values are read at execution time.\n\n```tsrust\nimport {get} from \"std:env\"; function main(){match(get(\"A=B\")){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code);}}}\n```\n\nExpected output: InvalidName. Ownership: borrows name without consuming it; successful strings own their storage.",
@@ -7859,6 +7859,18 @@
       {
         "source": "import {get} from \"std:env\"; function main(){match(get(\"A=B\")){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code);}}}",
         "output": "InvalidName\n"
+      }
+    ]
+  },
+  {
+    "name": "args",
+    "signature": "args(): Result<string[], EnvError>",
+    "parameters": [],
+    "documentation": "Reads the program arguments, excluding the executable name. Takes no arguments. Returns Ok with a new owned array of strings in their original order; no arguments returns an empty array. Empty strings, spaces, Unicode and option-like strings are preserved. This function does not parse flags or mutate process arguments. If any argument is not valid Unicode, returns Err with code NotUnicode, without lossy replacement or a partial array; the error does not expose the argument.\n\nUse `tsrust run main.tsr -- first \"two words\"` to forward arguments. Unlike Node process.argv, this result contains neither a runtime path nor a script path.\n\n```tsrust\nimport {args} from \"std:env\"; function main(){const values=unwrap(args());console.log(values.length);}\n```\n\nExpected output when launched without arguments: 0. Ownership: every call returns independent owned strings and an owned array; mutations do not affect later calls.",
+    "examples": [
+      {
+        "source": "import {args} from \"std:env\"; function main(){const values=unwrap(args());console.log(values.length);}",
+        "output": "0\n"
       }
     ]
   }

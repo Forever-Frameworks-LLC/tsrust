@@ -2,7 +2,7 @@
 use super::*;
 pub(super) fn native_observer(symbol: &str) -> bool {
     crate::native_bindings::by_symbol(symbol).is_some_and(|(_, binding)| {
-        binding.module == "std:env" && binding.name == "get"
+        binding.module == "std:env" && matches!(binding.name, "get" | "args")
             || binding.module == "std:path"
             && matches!(binding.name, "basename" | "dirname" | "extname" | "isAbsolute" | "normalize" | "join" | "relative")
             || binding.module == "std:os"

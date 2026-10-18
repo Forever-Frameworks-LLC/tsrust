@@ -1924,7 +1924,7 @@ fn environment_lookup_editor_contract() {
  let help=ask(&index,entry,"'HOME'","textDocument/signatureHelp");assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),1,"{help}");
  let importing="import { } from 'std:env';";let mut workspace=Workspace::default();workspace.open(uri.clone(),1,importing.into());
  let graph=tsrust_compiler::project::load_project_headers(&workspace.snapshot(),&uri.0).unwrap();let completion=ask(&ProjectIndex::new(&graph),importing," }","textDocument/completion");
- for name in ["get","EnvError"] {assert!(completion.as_array().unwrap().iter().any(|item|item["label"]==name),"{completion}");}
+ for name in ["get","args","EnvError"] {assert!(completion.as_array().unwrap().iter().any(|item|item["label"]==name),"{completion}");}
 }
 
 #[test]
@@ -3121,4 +3121,13 @@ fn module_scalar_factory_return_keeps_checked_callable_help() {
     let prefix = &entry[..offset];
     let help = index.request("textDocument/signatureHelp", &json!({"position":{"line":prefix.bytes().filter(|byte| *byte == b'\n').count(),"character":prefix.rsplit('\n').next().unwrap().encode_utf16().count()}}), uri).unwrap().unwrap();
     assert!(help.to_string().contains("int"), "{help}");
+}
+
+#[test]
+fn process_arguments_editor_contract() {
+ let entry="import {args} from 'std:env';function main(){const values=unwrap(args());console.log(values.length);}";
+ let uri=source_id("file:///tsrust-intelligence/main.tsr").unwrap();let mut workspace=Workspace::default();workspace.open(uri.clone(),1,entry.into());
+ let checked=workspace.snapshot().check(&uri).unwrap();let index=ProjectIndex::checked(&checked);
+ let hover=ask(&index,entry,"args()","textDocument/hover");let docs=hover["contents"]["value"].as_str().unwrap();
+ for text in ["string[]","NotUnicode","executable name","Ownership:"]{assert!(docs.contains(text),"{hover}");}
 }

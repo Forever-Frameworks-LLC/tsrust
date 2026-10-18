@@ -42,9 +42,10 @@ separation are pending are stale.
 A concrete usability gap is `run` argument forwarding. This section adds
 `tsrust run [entry.tsr] [compiler options] -- [program arguments]`, preserving
 configured project-root execution and literal argument boundaries. The separator
-must precede application flags. This does not supply a language process-argument
-API: `std:env` currently exposes environment lookup. Process arguments need a
-checked Unicode/error contract in a subsequent host API section.
+must precede application flags. `std:env.args()` now supplies owned process arguments excluding the executable
+name, with a checked `NotUnicode` error instead of lossy conversion. The CLI
+forwarding path accepts Unicode arguments; direct native callers can exercise
+the checked non-Unicode error. See [acceptance](process-arguments-acceptance.md).
 
 Further CLI review should cover command-specific help, actionable backend setup
 errors, external-import dev watching and target/config discoverability. These are

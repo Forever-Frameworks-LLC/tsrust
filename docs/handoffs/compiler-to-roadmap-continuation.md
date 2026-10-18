@@ -1,5 +1,14 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
+## Process arguments — 2026-10-18
+
+`std:env.args()` now exposes owned arguments with checked Unicode errors. Native,
+editor, executable documentation and untimed native/Node witnesses pass. See
+[acceptance](../plans/process-arguments-acceptance.md). Continue ordinary HTTP query
+and response helpers, composition/error hooks, then the open UI milestones.
+Generic inheritance and CLI argument acceptance do not establish framework parity.
+
+
 ## Generic interface inheritance — 2026-10-18
 
 Explicit generic interface bases now support local/imported definitions, aliases,

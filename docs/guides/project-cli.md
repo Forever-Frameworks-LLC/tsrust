@@ -94,3 +94,19 @@ separator are passed directly to the executable, without shell interpretation.
 Flags such as `--help` and `--release` after the separator belong to the program;
 compiler options belong before it. Empty arguments, spaces and Unicode are
 preserved. This does not add a language API for reading process arguments.
+
+Read forwarded arguments with `std:env.args()`:
+
+```typescript
+import { args } from "std:env";
+function main() {
+  const values = unwrap(args());
+  console.log(values.length);
+}
+```
+
+`tsrust run main.tsr -- first "two words"` prints `2`. The array excludes the
+executable path. Each call returns independent strings. Native executables reject
+non-Unicode arguments with `EnvError` code `NotUnicode`; no lossy replacement or
+partial result is returned. The CLI's own command-line parser currently expects
+Unicode input. Flag interpretation belongs to application code.
