@@ -1,5 +1,15 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
+## Owner correction — language and framework readiness, 2026-10-18
+
+Continue basic language completeness, CLI usability, Hono-style API coverage and
+UI implementation. These requirements are not conditional on selecting another
+service workload. Accepted S21 sections do not establish overall readiness.
+See [the current source-backed inventory](../plans/language-framework-readiness.md)
+for concrete gaps and implementation order. Reuse accepted evidence; batch targeted
+verification by complete section. Preserve Router naming and application-owned auth.
+
+
 
 ## Current continuation — SQL cursors and application jobs, 2026-10-16
 
@@ -24,8 +34,8 @@ workspace, cross-target, test and native outputs while preserving all five curre
 consumers. Reuse the single shared target; deleted caches are intentionally cold.
 
 The concrete cursor/job follow-ups are implemented. Keep remaining scope practical:
-callback-owned streaming producer lifetimes, Redis/brokers, WebSocket/SSE and broader
-host utilities need concrete application requirements before promotion. The S21
+The owner correction above supersedes the earlier conditional scope for streaming,
+HTTP/UI and language work. Redis/brokers remain demand-driven. The S21
 full-family/performance checkpoint remains separate and unrun under the owner's
 current targeted-verification direction. Do not repeat accepted SQL/S18 or S19/S20
 work. Preserve Router naming and application-owned authentication policy.

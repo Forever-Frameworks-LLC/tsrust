@@ -138,3 +138,22 @@ fn dev_is_quiet_by_default_and_reuses_native_builds_across_sessions() {
   }
  }
 }
+
+#[test]
+fn run_forwards_program_options_after_separator_with_explicit_and_configured_inputs() {
+    let dir=support::TempDirectory::new();
+    let source=support::format_round_trip(r#"function main(){console.log("ran program");}"#);
+    fs::write(dir.0.join("main.tsr"),source).unwrap();
+    fs::write(dir.0.join("tsrust.config.json"),r#"{"schemaVersion":1,"name":"arguments","build":{"entry":"main.tsr","output":"target/app"}}"#).unwrap();
+    fs::create_dir(dir.0.join("nested")).unwrap();
+    for explicit in [false,true] {
+        let mut command=support::cli();command.current_dir(dir.0.join("nested")).arg("run");
+        if explicit {command.arg("../main.tsr");}
+        command.args(["--","--help","--release","--color=invalid","","two words","λ","--"]);
+        let output=support::run(&mut command,60);support::success(&output);
+        assert_eq!(String::from_utf8(output.stdout).unwrap(),"ran program\n");
+    }
+    let output=support::run(support::cli().current_dir(&dir.0).args(["run","main.tsr","--unknown"]),10);
+    assert!(!output.status.success());
+    assert!(String::from_utf8(output.stderr).unwrap().contains("Unknown or repeated option"));
+}

@@ -38,6 +38,7 @@ Usage:
   tsrust bindings resolve <file.bindings.json> [--offline]
   tsrust new <name-or-path>
   tsrust dev [--release] [--verbose] [--color auto|always|never] [-- program-arguments]
+  tsrust run [input.tsr] [--release] [-- program-arguments]
   tsrust test [files/directories] [options]
   tsrust format [files/directories] [--check | --write]
   tsrust check [files/directories] [--json]
@@ -130,6 +131,32 @@ impl Drop for TempDirectory {
     }
 }
 
+/// Separate program flags before config discovery and compiler option parsing.
+fn split_program_arguments(command:&str,mut arguments:Vec<String>)->(Vec<String>,Vec<String>) {
+    if command=="run" && let Some(index)=arguments.iter().position(|arg|arg=="--") {
+        let program=arguments.split_off(index+1);
+        arguments.pop();
+        (arguments,program)
+    } else {(arguments,Vec::new())}
+}
+
+#[cfg(test)]
+mod argument_tests {
+    use super::*;
+    #[test]
+    fn run_arguments_preserve_order_empty_values_and_option_spelling() {
+        let input=["main.tsr","--release","--","--help","","two words","--color=invalid","--","λ"];
+        let (compiler,program)=split_program_arguments("run",input.map(str::to_owned).to_vec());
+        assert_eq!(compiler,["main.tsr","--release"]);
+        let mut child=Command::new("program");child.args(&program);
+        assert_eq!(child.get_args().collect::<Vec<_>>(),input[3..].iter().map(std::ffi::OsStr::new).collect::<Vec<_>>());
+        let (compiler,program)=split_program_arguments("run",vec!["--".into()]);
+        assert!(compiler.is_empty() && program.is_empty());
+        let (compiler,program)=split_program_arguments("build",vec!["--".into(),"--help".into()]);
+        assert_eq!(compiler,["--","--help"]);assert!(program.is_empty());
+    }
+}
+
 fn run() -> Result<u8, String> {
     let mut args = env::args().skip(1);
     let Some(command) = args.next() else {
@@ -144,7 +171,8 @@ fn run() -> Result<u8, String> {
     if command=="bindings" {return rust_bindings::resolve(args);}
     if command=="dev" {return dev_cli::run(args);}
     if command=="new" {return new_cli::run(args);}
-    let (arguments,project_root)=project_config::defaults(&command,args.collect())?;
+    let (arguments,program_arguments)=split_program_arguments(&command,args.collect());
+    let (arguments,project_root)=project_config::defaults(&command,arguments)?;
     let mut args=arguments.into_iter();
     if !["check", "format", "emit", "build", "run", "test"].contains(&command.as_str()) {
         return Err(format!("Unknown command: {command}. Run `tsrust --help` for usage."));
@@ -385,6 +413,7 @@ fn run() -> Result<u8, String> {
     }
     if command == "run" || command == "test" {
         let mut executable_command=Command::new(&executable);
+        executable_command.args(&program_arguments);
         if command == "test" && std::env::var_os("TSRUST_TEST_REPORTER").is_none() { executable_command.env("TSRUST_TEST_REPORTER", "pretty"); }
         if let Some(root)=&project_root {executable_command.current_dir(root);}
         let status = executable_command

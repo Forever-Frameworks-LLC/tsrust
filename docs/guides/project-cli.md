@@ -22,6 +22,7 @@ tsrust check
 tsrust format --check
 tsrust test
 tsrust run
+tsrust run -- --port 3000
 tsrust build
 ```
 
@@ -84,5 +85,12 @@ trigger reconciliation of source contents; idle polls do not scan the source tre
 Unchanged file contents remain cached. Native setup/runtime failures print a message
 and fall back to metadata polling. Set `TSRUST_DEV_WATCH=poll` to force that fallback.
 macOS uses one descriptor per watched file/directory, so descriptor exhaustion also
-falls back visibly. Checking still starts afresh for each build; retained compiler
-state and separate runtime compilation remain required performance work.
+falls back visibly. The dev-loop milestone includes retained frontend state and separate native runtime
+compilation; see [its acceptance and remaining limits](../plans/dev-loop-performance-plan.md).
+
+`run` accepts program arguments after `--`, with either a configured entry or an
+explicit source: `tsrust run src/main.tsr -- --port 3000`. Arguments after the
+separator are passed directly to the executable, without shell interpretation.
+Flags such as `--help` and `--release` after the separator belong to the program;
+compiler options belong before it. Empty arguments, spaces and Unicode are
+preserved. This does not add a language API for reading process arguments.

@@ -1,5 +1,11 @@
 # Tsrust owner/handle feasibility
 
+Current status: the [checked resource continuation](CHECKED-RESOURCES.md) supersedes
+this README's historical B2 blocker and demo exit status. Synchronous independent
+release observation is accepted; async/worker UI lifetimes and generated rendering
+remain open. The historical details below retain their original scope and provenance.
+
+
 Identity-enforcement investigation is complete. **B1 is enforced through the
 supported source API; full lifetime feasibility remains blocked by B2.** B3 immediate
 retirement is adopted; B4 is repaired. This is an experiment, not a production UI runtime.

@@ -4,7 +4,7 @@
 
 ## Workstream scope
 
-**Status:** Unresolved design/research. The grouping and phase below are proposed planning aids, not approved language semantics.
+**Status:** Partial native implementation. `Router` over Axum, ordered middleware, typed context and cookie helpers have focused acceptance. Hono parity and UI integration remain active requirements. See [the current readiness inventory](plans/language-framework-readiness.md). The historical vision below is not an implementation ledger.
 
 **Proposed phase:** Backend proof.
 
@@ -246,6 +246,6 @@ and holds an exclusive context loan while pending.
 
 Regex paths, optional path segments, route groups and arbitrary wildcard positions
 are not supported in this section. Named path values are decoded as UTF-8;
-malformed encoded values produce 400. Request-local variables, cookie helpers and
-application error-handler integration remain in progress. Authentication, sessions
+malformed encoded values produce 400. Typed request-local variables and cookie helpers are implemented. Application
+error-handler integration remains open. Authentication, sessions
 and authorization policy remain application responsibilities.
