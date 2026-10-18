@@ -6,10 +6,10 @@ Parley text shaping, Vello GPU rendering and AccessKit accessibility. Native
 resources belong to the event loop. Closing or suspending the window releases its
 surface, renderer and adapter. There is no global window registry or worker API.
 
-This is a renderer foundation, not generated Tsrust UI acceptance. The example
-constructs the tree in Rust. `.tsrx` parsing/checking/lowering, CLI integration,
-editor support, interactive state, events and generated paired output remain open.
-Do not count the Rust example as a compiled Tsrust component.
+The Rust example remains a renderer witness. Separately, `examples/ui-static` now
+constructs the same tree through checked `.tsrx` and `std:ui`: generated semantic
+HTML and a generated native GPU window pass focused acceptance. Interactive state,
+events and browser execution remain open. See the current compiler handoff.
 
 ## Current contract
 
@@ -57,5 +57,5 @@ real GPU window witness pass. The tests cover escaping, invalid shape/utilities,
 depth, Unicode/multiline labels, disabled semantics and scaled accessibility bounds.
 Original WGPU API mismatches and repaired results are retained in SQLite under
 `tsrust-ui-*`. Existing locked package versions were retained. No SQL, complete
-compiler/LSP regressions or performance timing was rerun. Generated `.tsrx`, paired
-browser/native visual acceptance and interactive accessibility are not yet verified.
+compiler/LSP regressions or performance timing was rerun. Generated static `.tsrx` HTML and native presentation are verified separately.
+Paired browser/native visual comparison and interactive accessibility remain open.

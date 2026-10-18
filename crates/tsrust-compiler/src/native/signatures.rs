@@ -4,6 +4,8 @@
 /// not publish source exports: module loading must resolve registered declarations.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum NativeTypeId {
+    UiNode,
+    UiError,
     LruCache, SharedLruCache, CacheEntry, CacheInsertError,
  SqlPool, SqlTransaction, SqlCursor, SqlRow, SqlError,
     SqliteConnection, SqliteStatement, SqliteTransaction, SqliteRow, SqliteError,

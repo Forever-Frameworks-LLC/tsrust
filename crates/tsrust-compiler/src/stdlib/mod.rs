@@ -5,8 +5,12 @@ pub(crate) mod bytes;
 pub(crate) mod os;
 pub(crate) mod testing;
 pub(crate) mod fs;
+pub(crate) mod ui;
 pub(crate) fn source(module: &str) -> Option<&'static str> {
-    match module { "std:testing" => Some(testing::SOURCE), _ => None }
+    match module {
+        "std:ui" => Some(ui::SOURCE),
+        "std:testing" => Some(testing::SOURCE), _ => None,
+    }
 }
 
 pub(crate) mod numeric;

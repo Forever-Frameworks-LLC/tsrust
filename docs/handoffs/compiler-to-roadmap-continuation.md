@@ -1,5 +1,23 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
+## Generated static UI and counter continuation — 2026-10-18
+
+`std:ui` now connects checked `.tsrx` components to the shared owned renderer.
+`Text`, `View`, disabled `Button`, `document` and `run` have public documentation.
+HTML-only output excludes native GPU dependencies. Native exports use the existing
+pinned renderer dependencies. The shared screen passes generated semantic HTML
+checks and an actual bounded GPU presentation/close. This does not claim pixel,
+screen-reader or interactive acceptance. Node ownership/private-runtime checks and
+JSX highlighting checks pass; editor hover acceptance is recorded with this section.
+
+The owner selected WebAssembly for the paired interactive counter, not as a
+permanent browser-backend commitment. The Wasm target and digest-verified matching
+wasm-bindgen tool are prepared. Continue component-owned state, retained checked
+handlers, weak handles, targeted bindings, pointer/keyboard input, disabled behavior
+and cleanup on both targets. The static renderer and syntax evidence should be
+reused. No SQL or full regression rerun is required for this section.
+
+
 ## JSX compiler integration — 2026-10-18
 
 Named JSX components now lower into ordinary checked calls with props records and

@@ -14,6 +14,7 @@ test('real TextMate tokenization covers lexer syntax and multiline state', async
   });
   const grammar = await registry.loadGrammar('source.tsrust');
   const cases = [
+    ['const node = <View className="p-4"><Text>{count}</Text></View>; const next = 1;', [['View','entity.name.function'],['className','entity.other.attribute-name'],['"p-4"','string.quoted.double'],['next','source.tsrust']]],
     ['async function answer(): Task<int> { return await work(); }', [['async','keyword.control.async'],['function','storage.type'],['Task','support.type.builtin'],['await','keyword.control']]],
     ['match (result) { Ok(value) => {} Err(error) => {} }', [['match', 'keyword.control'], ['Ok', 'support.function'], ['Err', 'support.function']]],
     ['const result: Result<int, string> = Ok<int, string>(5);', [['Result', 'support.type.builtin'], ['Ok', 'support.function']]],

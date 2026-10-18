@@ -700,6 +700,12 @@ fn visit(
     }else if let Some(cache)=cache.as_deref_mut(){cache.parse(source)?}else{parse_module(source,declarations)?};
     for import in &mut module.imports {
         if import.target.is_some(){continue;}
+        if import.path == "std:ui-runtime" && id.0 != "std:ui" {
+            return Err(error(&id, "module-native",
+                "UI runtime bindings are private; import from std:ui.",
+                import.span,
+            ));
+        }
         if import.path == "std:testing-runtime" && id.0 != "std:testing" {
             return Err(error(&id, "module-native", "Testing runtime bindings are private; import from std:testing.", import.span));
         }

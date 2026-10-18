@@ -1,0 +1,20 @@
+// Checks generated semantic output. Native GPU presentation is a separate witness.
+import fs from 'node:fs';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+import {createHash} from 'node:crypto';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
+assert(process.env.TSRUST,'Set TSRUST to the candidate compiler');
+const result=spawnSync(process.env.TSRUST,['run',path.join(root,'examples/ui-static/web.tsr')],{encoding:'utf8',timeout:120000});
+assert.equal(result.status,0,result.stderr||String(result.error));
+assert(result.stdout.startsWith('<!doctype html>'));
+assert(result.stdout.includes('<title>Tsrust UI</title>'));
+assert(result.stdout.includes('One checked component.\nUnicode: café · العربية · 🦀'));
+assert.equal((result.stdout.match(/<button\b/g)||[]).length,1);
+assert(/<button\b[^>]*\bdisabled[^>]*>Static preview<\/button>/.test(result.stdout));
+assert.equal((result.stdout.match(/<span\b/g)||[]).length,2);
+assert(!result.stdout.includes('<script'));
+console.log(JSON.stringify({case:'generated-static-html',status:'pass',timed:false}));
+for(const source of ['examples/ui-static/screen.tsrx','examples/ui-static/web.tsr','examples/ui-static/native.tsr'])console.log(JSON.stringify({source,sha256:createHash('sha256').update(fs.readFileSync(path.join(root,source))).digest('hex')}));

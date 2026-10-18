@@ -2,7 +2,7 @@
 
 Status: product direction refined with the owner on 2026-10-11; framework implementation has not started. `.tsrx` is the proposed JSX-bearing Tsrust extension. API examples are design sketches, not currently compilable programs.
 
-Pre-start review: [updated feasibility and unresolved-contract review](docs/plans/ui-feasibility-review.md#follow-up-review-after-app-directory-and-loader-decisions) identifies unresolved state ownership, browser execution, text/input and security boundaries. The first assignment is now only nonexecuting route-manifest tooling, not scaffolding or proof of UI feasibility. Defer the Axum-backed runtime until the relevant async/task/HTTP capabilities are accepted; synchronous UI lifetime/input experiments need not wait for async. Review recommendations remain distinct from owner-approved decisions; no implementation is started by these documents.
+Pre-start review: [updated feasibility and unresolved-contract review](docs/plans/ui-feasibility-review.md#follow-up-review-after-app-directory-and-loader-decisions) identifies unresolved state ownership, browser execution, text/input and security boundaries. The first assignment is now only nonexecuting route-manifest tooling, not scaffolding or proof of UI feasibility. Defer the Axum-backed runtime until the relevant async/task/HTTP capabilities are accepted; synchronous UI lifetime/input experiments need not wait for async. Review recommendations remain distinct from owner-approved decisions; these documents alone do not establish implementation acceptance. Current implementation status is recorded below.
 
 ## Agreed direction and open decisions
 
@@ -52,7 +52,8 @@ Current development includes:
 * Accepted native binding/build foundations, Result, bytes/resources, collections and synchronous host APIs within their recorded platform scope.
 * In-progress S10 JSON; type-safe immutable JSON/JSONC imports and aliases have focused compiler/native/editor and installed-consumer evidence, while JSON family acceptance remains open.
 * Async/await has not yet been implemented.
-* JSX, UI state, reactive scheduling, UI lowering and rendering have no accepted implementation yet.
+* Named-component JSX and `.tsrx` tooling are accepted. Generated static `std:ui` trees now produce semantic HTML and native GPU output. Interactive state, reactive scheduling and paired input acceptance remain in progress.
+* The owner selected WebAssembly for the paired counter on 2026-10-18. This bounded choice reuses checked Rust handlers; it is not a permanent browser-backend commitment.
 Use the [standard-library roadmap](docs/standard-library-roadmap.md), latest acceptance records and actual source rather than historical progress paragraphs to establish current support. Existing closure support is not proof of a shared reactive-state contract.
 Do not assume JSX, closures, generics, reactive state, complex module resolution, or other language features are working until you verify their implementations.
 The TypeScript-to-Rust compiler is the foundation of this project. The UI framework must be designed to work with its architecture, not require a completely separate language implementation.

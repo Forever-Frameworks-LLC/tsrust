@@ -13926,5 +13926,70 @@
       }
     ]
   }
-]
+],
+  "std:ui": [
+    {
+      "name": "Text",
+      "signature": "Text(props: TextProps): Node",
+      "parameters": [
+        {
+          "label": "props: TextProps",
+          "documentation": "children is an ordered string array. className defaults to empty; only supported utilities are accepted."
+        }
+      ],
+      "documentation": "Creates a text node by joining children without a separator. Empty strings are valid. Unknown/conflicting utilities throw a readable string. It does not mutate existing nodes. JSX example: <Text>Hello</Text> produces the label Hello. Text is escaped when rendered into HTML. Ownership: consumes props and returns a uniquely owned subtree; nodes cannot be cloned or transferred to workers."
+    },
+    {
+      "name": "View",
+      "signature": "View(props: ViewProps): Node",
+      "parameters": [
+        {
+          "label": "props: ViewProps",
+          "documentation": "children is an ordered Node array. className defaults to empty."
+        }
+      ],
+      "documentation": "Creates a container with children in their supplied order. Empty child arrays are valid. Unknown/conflicting utilities or a tree deeper than 128 nodes throw a readable string. JSX example: <View><Text>Hello</Text></View> produces one container with one text child. Ownership: consumes child nodes, including on failure, and returns a uniquely owned subtree."
+    },
+    {
+      "name": "Button",
+      "signature": "Button(props: ButtonProps): Node",
+      "parameters": [
+        {
+          "label": "props: ButtonProps",
+          "documentation": "children is an ordered string array; disabled must be true in this static slice. className defaults to empty."
+        }
+      ],
+      "documentation": "Creates a disabled button by joining its text children without a separator. JSX example: <Button disabled>Save</Button> produces a disabled button labelled Save. Native and HTML output expose disabled semantics. Passing disabled: false throws because this slice has no event handlers. Unknown/conflicting utilities also throw. Ownership: consumes props and returns an owned subtree."
+    },
+    {
+      "name": "document",
+      "signature": "document(node: ReadOnly<Node>, title: string): string",
+      "parameters": [
+        {
+          "label": "node: ReadOnly<Node>",
+          "documentation": "Tree to render, borrowed without modification."
+        },
+        {
+          "label": "title: string",
+          "documentation": "Document title; HTML metacharacters are escaped."
+        }
+      ],
+      "documentation": "Produces a complete semantic HTML document with the shared utility styles. Escapes text and title, preserving Unicode. Does not launch a browser, execute handlers or mutate nodes. Example: document(<Text>Hello</Text>, \"Demo\") returns HTML containing an escaped title and a span labelled Hello. Ownership: borrows the tree and title; returns an independent owned string."
+    },
+    {
+      "name": "run",
+      "signature": "run(node: Node, title: string): Result<void, UiError>",
+      "parameters": [
+        {
+          "label": "node: Node",
+          "documentation": "Owned tree displayed until window closure; consumed even if startup fails."
+        },
+        {
+          "label": "title: string",
+          "documentation": "Native window title, borrowed during setup."
+        }
+      ],
+      "documentation": "Opens a GPU-rendered native window and waits for closure on the main thread. Returns Ok after window resources are released, or Err with code UiError and a readable message if initialization or rendering fails. Resize and DPI changes update layout. No CPU fallback is selected. Example: unwrap(run(<Text>Hello</Text>, \"Demo\")) displays Hello until the window closes. Requires a graphical desktop and supported GPU. Ownership: consumes the subtree; renderer resources belong to the event loop and release on exit."
+    }
+  ]
 }

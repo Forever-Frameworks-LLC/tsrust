@@ -1,0 +1,7 @@
+import { document } from 'std:ui';
+import { Screen } from './screen';
+
+function main() {
+  const screen = Screen();
+  console.log(document(screen, 'Tsrust UI'));
+}

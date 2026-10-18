@@ -29,6 +29,15 @@ rayon = { version = "=1.11.0", optional = true }
 serde = "=1.0.229"
 serde_json = { version = "=1.0.151", features = ["raw_value"] }
 
+winit = { version = "=0.30.13", optional = true }
+vello = { version = "=0.11.0", optional = true }
+taffy = { version = "=0.15.0", optional = true }
+parley = { version = "=0.12.0", optional = true }
+pollster = { version = "=0.4.0", optional = true }
+
+accesskit = { version = "=0.25.1", optional = true }
+accesskit_winit = { version = "=0.34.0", optional = true }
+
 [features]
 default = []
 async = ["dep:tokio"]
@@ -48,3 +57,6 @@ uuid = ["dep:uuid", "dep:getrandom"]
 crypto = ["dep:sha2", "dep:subtle", "dep:getrandom"]
 
 signals = ["async"]
+
+ui-native = ["dep:winit", "dep:vello", "dep:taffy", "dep:parley", "dep:pollster", "dep:accesskit", "dep:accesskit_winit"]
+ui-acceptance = ["ui-native"]

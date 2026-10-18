@@ -2437,7 +2437,11 @@ impl Emitter<'_> {
                 let _=writeln!(output,"struct Record{index} {{ handle: tsrust_native_files::buffered_fs::{backend} }}");
                 continue;
             }
-            if let Some(name)=record.native_type.and_then(crate::stdlib::date::runtime_type) {let _=writeln!(output,"type Record{index} = tsrust_native_date::{name};");continue;}
+            if let Some(name)=record.native_type.and_then(crate::stdlib::date::runtime_type) {let _=writeln!(output,"type Record{index} = tsrust_native_date::{name};");
+                continue;
+            }
+            if record.native_type == Some(crate::native_signatures::NativeTypeId::UiNode) {
+                let _ = writeln!(output, "type Record{index} = tsrust_native_ui::Node;");continue;}
             if record.native_type == Some(crate::native_signatures::NativeTypeId::SignalListener) { let _=writeln!(output,"type Record{index} = tsrust_native_signals::Listener;");continue;}
             if record.native_type == Some(crate::native_signatures::NativeTypeId::Uuid) { let _=writeln!(output,"type Record{index} = tsrust_native_uuid::Uuid;");continue;}
             if record.native_type == Some(crate::native_signatures::NativeTypeId::Decimal) { let _=writeln!(output,"type Record{index} = tsrust_native_decimal::Decimal;");continue;}
@@ -3105,13 +3109,17 @@ impl Emitter<'_> {
         if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:numeric"){output.push_str(&format!("mod tsrust_numeric {{ {} }}",crate::stdlib::numeric::emit::RUNTIME));}
         if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:crypto"){output.push_str(crate::stdlib::crypto::RUNTIME);}
         if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:env"){output.push_str(&format!("mod tsrust_native_env {{ {} }}",include_str!("../stdlib/env/runtime.rs")));}
+        if self.program.records.iter().any(|r|r.native_type==Some(crate::native_signatures::NativeTypeId::UiNode)){output.push_str(&crate::stdlib::ui::runtime(self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:ui-runtime" && crate::native_bindings::BINDINGS[id].name=="run")));}
         for &id in self.native_bindings.borrow().iter() {
             let binding = &crate::native_bindings::BINDINGS[id];
             if binding.module == "std:date" {output.push_str(&crate::stdlib::date::emit::bridge(self.program,binding));}
             if binding.module == "std:crypto" {output.push_str(&crate::stdlib::crypto::emit::bridge(self.program,binding));}
             if binding.module == "std:uuid" {output.push_str(&crate::stdlib::uuid::emit::bridge(self.program,binding));}
             if binding.module == "std:decimal" {output.push_str(&crate::stdlib::decimal::emit::bridge(self.program,binding));}
-            if binding.module == "std:numeric" { output.push_str(&crate::stdlib::numeric::emit::bridge(self.program,binding)); }
+            if binding.module == "std:numeric" { output.push_str(&crate::stdlib::numeric::emit::bridge(self.program, binding));
+            }
+            if binding.module == "std:ui-runtime" {
+                output.push_str(&crate::stdlib::ui::emit::bridge(self.program,binding)); }
             if binding.module == "std:env" { output.push_str(&crate::stdlib::env::emit::bridge(self.program,binding)); }
             if binding.module == "std:time" { output.push_str(crate::stdlib::time::RUNTIME); }
             if binding.module == "std:os" {
