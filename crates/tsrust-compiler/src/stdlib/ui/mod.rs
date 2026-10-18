@@ -9,7 +9,7 @@ use crate::{
     native_signatures::{NativeTypeId, Signature},
 };
 const SIGNAL:Signature=Signature::Named(NativeTypeId::UiSignal);
-const HANDLE:Signature=Signature::Named(NativeTypeId::UiSignalHandle);
+const HANDLE:Signature=Signature::Named(NativeTypeId::UiSignal);
 pub(crate) const TEXT_CHILDREN:Signature=Signature::Array(&Signature::Union(&[Signature::String,HANDLE]));
 const NODE: Signature = Signature::Named(NativeTypeId::UiNode);
 const ERROR: Signature = Signature::Named(NativeTypeId::UiError);
@@ -87,7 +87,8 @@ pub(crate) const RUN: NativeBinding = NativeBinding {
 
 pub(crate) const SIGNAL_NEW:NativeBinding=NativeBinding{name:"signal",parameters:&[parameter("initial",NativeType::Int,Mode::Read)],result:NativeType::Structured(&SIGNAL),backend:NativeBackend::Bundled{symbol:"tsrust_ui_signal"},..TEXT};
 pub(crate) const HANDLE_NEW:NativeBinding=NativeBinding{name:"handle",parameters:&[parameter("signal",NativeType::Structured(&SIGNAL),Mode::Read)],result:NativeType::Structured(&HANDLE),backend:NativeBackend::Bundled{symbol:"tsrust_ui_handle"},..TEXT};
-pub(crate) const ADD:NativeBinding=NativeBinding{name:"add",parameters:&[parameter("handle",NativeType::Structured(&HANDLE),Mode::Read),parameter("delta",NativeType::Int,Mode::Read)],result:NativeType::Boolean,backend:NativeBackend::Bundled{symbol:"tsrust_ui_add"},..TEXT};
+pub(crate) const GET:NativeBinding=NativeBinding{name:"get",parameters:&[parameter("state",NativeType::Structured(&SIGNAL),Mode::Read)],result:NativeType::Structured(&Signature::Result(&Signature::Int,&ERROR)),backend:NativeBackend::Bundled{symbol:"tsrust_ui_get"},..TEXT};
+pub(crate) const SET:NativeBinding=NativeBinding{name:"set",parameters:&[parameter("state",NativeType::Structured(&SIGNAL),Mode::Read),parameter("value",NativeType::Int,Mode::Read)],result:NativeType::Structured(&Signature::Result(&Signature::Void,&ERROR)),backend:NativeBackend::Bundled{symbol:"tsrust_ui_set"},..TEXT};
 
 pub(crate) const OWN_STATE:NativeBinding=NativeBinding{name:"ownState",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("state",NativeType::Structured(&SIGNAL),Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_own_state"},..TEXT};
 pub(crate) const PRESS_BUTTON:NativeBinding=NativeBinding{name:"button",parameters:&[parameter("text",NativeType::String,Mode::Read),parameter("className",NativeType::String,Mode::Read),parameter("disabled",NativeType::Boolean,Mode::Read),parameter("onPress",NativeType::OwnedVoidCallback,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_press_button"},..TEXT};
@@ -158,5 +159,12 @@ pub(crate) fn omit_unused(
     program.functions.retain(|function| {
         !facades.contains(&function.name.text) || seen.contains(&function.name.text)
     });
+    Ok(())
+}
+
+pub(crate) fn prepare(program:&mut crate::syntax::Program)->Result<(),crate::Diagnostic> {
+    if program.records.iter().any(|record|record.native_type==Some(NativeTypeId::UiSignal)) {
+        for binding in [&GET,&SET] {crate::native_binding_types::prepare(&mut program.records,binding,crate::Span::default())?;}
+    }
     Ok(())
 }

@@ -250,3 +250,17 @@ fn sql_cursor_members_have_live_hover_and_completion(){
     let hover=session.hover("main.tsr",source,offset+1).unwrap_or_default();
     assert!(hover.contains("Task<Row | undefined>")&&hover.contains("exclusively borrows"),"{hover}");
 }
+
+#[test]
+fn ui_state_members_are_reachable_without_lifetime_helpers() {
+    let before="import {signal} from 'std:ui';function main(){const count=signal(0);count.";
+    let text=format!("{before}set(count.get()+1);}}");
+    let mut session=Session::start(&[]);session.open("main.tsr",&text);session.settle();
+    let offered=session.completion("main.tsr",&text,before.len()).unwrap();
+    assert_eq!(offered.into_iter().collect::<BTreeSet<_>>(),BTreeSet::from(["get".into(),"set".into()]));
+    for (needle,expected) in [("set(count","Replaces"),("get()","Reads")] {
+        assert!(session.hover("main.tsr",&text,text.find(needle).unwrap()).unwrap().contains(expected));
+    }
+    let counters=session.request("tsrust/counters",Value::Null);
+    for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"] {assert_eq!(counters[key],0,"{counters}");}
+}

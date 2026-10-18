@@ -11,6 +11,7 @@ use support::session::Session;
 /// `every_kind_and_std_module_has_a_row` fails otherwise.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Kind {
+    Ui,
     Crypto,
     Signals,
     Cache,
@@ -55,7 +56,8 @@ enum Kind {
     MemberPrefix,
 }
 
-const KINDS: [Kind; 42] = [
+const KINDS: [Kind; 43] = [
+    Kind::Ui,
     Kind::Crypto,
     Kind::Signals,
     Kind::Cache,
@@ -138,6 +140,8 @@ fn rows() -> Vec<Row> {
  Row {kind:Kind::Cache,name:"cache entry",before:"import {CacheEntry} from 'std:cache';function probe(entry:ReadOnly<CacheEntry<int,string>>){".into(),typed:"entry.",after:"key;}function main(){}",includes:&["key","value"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
  Row {kind:Kind::Cache,name:"cache insertion error",before:"import {CacheInsertError} from 'std:cache';function probe(error:ReadOnly<CacheInsertError<int,string>>){".into(),typed:"error.",after:"code;}function main(){}",includes:&["code","key","value"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
  Row {kind:Kind::Crypto,name:"crypto imports",before:"import { ".into(),typed:"",after:" } from 'std:crypto';function main(){}",includes:&["randomBytes","sha256","timingSafeEqual"],excludes:&["md5"],silent:None,needs_check:false},
+ Row {kind:Kind::Ui,name:"UI state",before:"import {signal} from 'std:ui';function main(){const count=signal(0);".into(),typed:"count.",after:";}",includes:&["get","set"],excludes:&["add","handle","clone"],silent:None,needs_check:true},
+ Row {kind:Kind::Ui,name:"UI imports",before:"import { ".into(),typed:"",after:" } from 'std:ui';function main(){}",includes:&["signal","Text","Button"],excludes:&["add","handle","SignalHandle","ownState","SignalText"],silent:None,needs_check:false},
  Row {kind:Kind::Signals,name:"signal imports",before:"import { ".into(),typed:"",after:" } from 'std:signals';function main(){}",includes:&["listen","receive","SignalListener"],excludes:&["kill"],silent:None,needs_check:false},
  Row {kind:Kind::Uuid,name:"uuid imports",before:"import { ".into(),typed:"",after:" } from 'std:uuid';function main(){}",includes:&["parseUuid","formatUuid","fromBytes","toBytes","compare","version","randomUuid"],excludes:&["parse","round"],silent:None,needs_check:false},
  Row {kind:Kind::Decimal,name:"decimal imports",before:"import { ".into(),typed:"",after:" } from 'std:decimal';function main(){}",includes:&["parseDecimal","fromInt","format","formatFixed","add","subtract","multiply","divideExact","compare","toInt","toNumber"],excludes:&["parse","round"],silent:None,needs_check:false},

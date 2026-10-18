@@ -1,5 +1,36 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
+## Direct UI state bindings and captures — accepted 2026-10-18
+
+`Signal` is used directly in JSX and callback bodies. The compiler creates
+non-retaining bindings at use and closure creation; the returned component tree
+retains its single state owner. Public `add`, `handle`, `SignalHandle`, `SignalText`
+and `ownState` are absent. State exposes `get()` and `set(value)`; the `.tsrx`
+application handler calculates the increment. Disposed access throws `UiError`.
+Checked integer overflow occurs before mutation and preserves the previous value.
+The formatter preserves conventional parenthesized multiline JSX returns.
+
+Focused acceptance passes: compiler UI witnesses, generated nested callbacks and
+overflow preservation, repeated bindings, branch/loop captures, parameter shadowing,
+private API rejection, nine runtime witnesses (including independent destruction),
+JSX layout/idempotence, editor hover, UI completion at all four typing modes,
+Signal checker agreement and editor consistency. The generated Wasm counter passes
+real Chromium pointer/keyboard, independent-state, disabled, stable-node, targeted
+text, disposal and late-click checks against the updated TypeScript oracle.
+Generated native GPU presentation and bounded close also pass. Native OS input
+injection and screen-reader sessions remain unverified. Wasm is 231,840 bytes plus
+15,601 bytes of JavaScript glue, uncompressed; this is not timing evidence.
+
+Original failures and repaired checks are retained in SQLite under `tsrust-state-*`.
+The native callback error adapter repair borrows typed error payloads while
+formatting them; the generated-button witness prevents recurrence. Earlier static,
+SQL and full-family evidence is reused. No broad regression or performance run was
+triggered. State remains integer-only; constructor aliases, state factories, state
+creation inside anonymous callbacks, general reactive props, dynamic trees,
+text input/IME and async UI remain open. Named local functions retain ordinary
+checked capture rules; automatic non-retaining capture currently applies to arrows.
+
+
 ## Paired interactive counter — 2026-10-18
 
 The owner selected the bounded Wasm browser backend. The generated counter now

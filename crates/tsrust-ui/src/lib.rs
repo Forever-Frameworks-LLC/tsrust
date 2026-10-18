@@ -6,7 +6,7 @@ mod native;
 #[cfg(all(target_arch="wasm32",feature="ui-web"))]
 pub mod browser;
 mod state;
-pub use state::{Signal, SignalHandle};
+pub use state::Signal;
 mod style;
 mod web;
 #[cfg(feature = "native")]
@@ -23,7 +23,7 @@ pub enum Kind {
     Button,
 }
 
-pub enum TextPart { Literal(String), Signal(SignalHandle) }
+pub enum TextPart { Literal(String), Signal(Signal) }
 
 pub struct Node {
     depth: usize,
@@ -52,7 +52,7 @@ impl Node {
         }}
         Ok(text)
     }
-    pub fn bound_text(handle:SignalHandle,class_name:String)->Result<Self,String> {Self::text(vec![TextPart::Signal(handle)],class_name)}
+    pub fn bound_text(handle:Signal,class_name:String)->Result<Self,String> {Self::text(vec![TextPart::Signal(handle)],class_name)}
     pub fn button(text: String, class_name: String, disabled: bool, press: impl FnMut()->Result<(),String>+'static) -> Result<Self,String> {
         let mut node=Self::new(if disabled {Kind::DisabledButton}else{Kind::Button},class_name,text,vec![])?;
         node.press=Some(Box::new(press));Ok(node)
@@ -172,16 +172,16 @@ mod interaction_tests {
     fn text_mixes_literals_and_multiple_reactive_children() {
         let first=Signal::new(2);let second=Signal::new(5);let action=first.handle();
         let mut node=Node::text(vec![TextPart::Literal("Count: ".into()),TextPart::Signal(first.handle()),TextPart::Literal(" / ".into()),TextPart::Signal(second.handle())],String::new()).unwrap();
-        assert_eq!(node.text,"Count: 2 / 5");assert!(action.add(-3));assert_eq!(node.refresh().unwrap(),1);assert_eq!(node.text,"Count: -1 / 5");
+        assert_eq!(node.text,"Count: 2 / 5");action.set(action.get().unwrap() - 3).unwrap();assert_eq!(node.refresh().unwrap(),1);assert_eq!(node.text,"Count: -1 / 5");
         assert_eq!(node.refresh().unwrap(),0);drop(first);assert!(node.refresh().is_err());
     }
     #[test]
     fn counter_dispatch_updates_only_affected_binding_and_releases_state() {
-        fn counter()->(Node,SignalHandle) {
+        fn counter()->(Node,Signal) {
             let state=Signal::new(0);let observer=state.handle();let action=state.handle();let disabled=state.handle();
             let text=Node::bound_text(state.handle(),String::new()).unwrap();
-            let button=Node::button("Increment".into(),String::new(),false,move ||{assert!(action.add(1));Ok(())}).unwrap();
-            let disabled=Node::button("Disabled".into(),String::new(),true,move ||{assert!(disabled.add(100));Ok(())}).unwrap();
+            let button=Node::button("Increment".into(),String::new(),false,move ||{action.set(action.get()? + 1)?;Ok(())}).unwrap();
+            let disabled=Node::button("Disabled".into(),String::new(),true,move ||{disabled.set(disabled.get()? + 100)?;Ok(())}).unwrap();
             (Node::new(Kind::View,String::new(),String::new(),vec![text,button,disabled]).unwrap().own_state(state).unwrap(),observer)
         }
         let (first,a)=counter();let (second,b)=counter();
@@ -193,6 +193,6 @@ mod interaction_tests {
         assert!(root.activate(8).unwrap());assert_eq!(root.refresh().unwrap(),1);
         assert_eq!(b.value(),Some(1));
         assert!(!root.activate(999).unwrap());
-        drop(root);assert_eq!(a.value(),None);assert_eq!(b.value(),None);assert!(!a.add(1));
+        drop(root);assert_eq!(a.value(),None);assert_eq!(b.value(),None);assert!(a.set(1).is_err());
     }
 }

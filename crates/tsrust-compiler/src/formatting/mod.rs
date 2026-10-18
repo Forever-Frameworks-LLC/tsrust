@@ -276,7 +276,9 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
             let existing_newlines = gap.bytes().filter(|&byte| byte == b'\n').count();
             let exception_handler = previous_symbol && prev == "}" && matches!(current,"catch"|"finally");
             let type_continuation = previous_symbol && prev == "}" && matches!(current, "as" | "satisfies");
-            let newline = if empty_pair || pattern[i - 1] {
+            let jsx_open=prev=="(" && token.kind==TokenKind::String && current.starts_with('<') && current.contains('\n');
+            let jsx_close=current==")" && previous.kind==TokenKind::String && prev.starts_with('<') && prev.contains('\n');
+            let newline = if jsx_open || jsx_close {true} else if empty_pair || pattern[i - 1] {
                 false
             } else if label_colon[i - 1] || interface_field_comma[i - 1] || match_commas[i - 1] {
                 true
@@ -309,7 +311,7 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
                 output.push_str(&"\n".repeat(count));
                 // Inside a switch body, everything except a label sits one level deeper.
                 let clauses = switch_depths.iter().filter(|body| depth >= **body).count();
-                output.push_str(&"  ".repeat(depth + clauses.saturating_sub(usize::from(label_start[i]))));
+                output.push_str(&"  ".repeat(depth + usize::from(jsx_open) + clauses.saturating_sub(usize::from(label_start[i]))));
             } else {
                 let postfix_assertion = symbol && current == "!" && ends_operand(i - 1);
                 // Signs after postfix operators are binary; signs after prefixes

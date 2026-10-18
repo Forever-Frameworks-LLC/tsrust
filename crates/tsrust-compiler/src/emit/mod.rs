@@ -1270,7 +1270,7 @@ impl Emitter<'_> {
                 };
                 arms.push_str(&format!("{}::V{tag}(payload)=>{text},",exception_emit::constructor_path(&name)));
             }
-            if arms.is_empty(){format!("{invocation}.map_err(|error|match error{{}})")}else{format!("{invocation}.map_err(|error|match error{{{arms}}})")}
+            if arms.is_empty(){format!("{invocation}.map_err(|error|match error{{}})")}else{format!("{invocation}.map_err(|error|match &error{{{arms}}})")}
         }else{format!("{{let result:()={invocation};Ok(result)}}")};
         format!("{{let label={};let class_name={};let disabled={};let mut registered_callback={};tsrust_ui_press_button(label,class_name,disabled,move ||{result})}}",arguments[0],arguments[1],arguments[2],arguments[3])
     }
@@ -2465,7 +2465,7 @@ impl Emitter<'_> {
             if let Some(name)=record.native_type.and_then(crate::stdlib::date::runtime_type) {let _=writeln!(output,"type Record{index} = tsrust_native_date::{name};");
                 continue;
             }
-            if let Some(name)=match record.native_type {Some(crate::native_signatures::NativeTypeId::UiSignal)=>Some("Signal"),Some(crate::native_signatures::NativeTypeId::UiSignalHandle)=>Some("SignalHandle"),_=>None} {let _=writeln!(output,"type Record{index} = tsrust_native_ui::{name};");continue;}
+            if let Some(name)=match record.native_type {Some(crate::native_signatures::NativeTypeId::UiSignal)=>Some("Signal"),_=>None} {let _=writeln!(output,"type Record{index} = tsrust_native_ui::{name};");continue;}
             if record.native_type == Some(crate::native_signatures::NativeTypeId::UiNode) {
                 let _ = writeln!(output, "type Record{index} = tsrust_native_ui::Node;");continue;}
             if record.native_type == Some(crate::native_signatures::NativeTypeId::SignalListener) { let _=writeln!(output,"type Record{index} = tsrust_native_signals::Listener;");continue;}

@@ -701,7 +701,7 @@ mod interactive_accessibility_tests {
     fn enabled_buttons_offer_focus_and_click_with_updated_bound_labels() {
         let state=crate::Signal::new(0);let action=state.handle();
         let label=Node::bound_text(state.handle(),String::new()).unwrap();
-        let button=Node::button("Add".into(),String::new(),false,move||{action.add(1);Ok(())}).unwrap();
+        let button=Node::button("Add".into(),String::new(),false,move||{action.set(action.get()? + 1)?;Ok(())}).unwrap();
         let mut root=Node::new(Kind::View,String::new(),String::new(),vec![label,button]).unwrap().own_state(state).unwrap();
         let mut painter=Painter::new();
         let (_,before)=painter.scene(&root,400.,1.).unwrap();

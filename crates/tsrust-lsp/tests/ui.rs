@@ -14,9 +14,9 @@ fn ui_component_and_document_help_use_checked_project_types() {
 
 #[test]
 fn counter_state_help_explains_checked_updates_and_ownership() {
-    let source="import {signal,handle,add} from 'std:ui';function main(){const owner=signal(0);const action=handle(owner);add(action,1);}";
+    let source="import {signal} from 'std:ui';function main(){const owner=signal(0);owner.set(owner.get() + 1);}";
     let mut session=support::session::Session::start(&[]);session.open("main.tsr",source);session.settle();
-    for (needle,expected) in [("signal(0)","owned"),("handle(owner)","non-retaining"),("add(action","overflow")] {
+    for (needle,expected) in [("signal(0)","independent"),("set(owner","Replaces"),("get()","Reads")] {
         let hover=session.hover("main.tsr",source,source.find(needle).unwrap()).unwrap_or_default();assert!(hover.contains(expected),"{hover}");
     }
 }

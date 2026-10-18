@@ -83,3 +83,11 @@ function main(){console.log(<Label>paired syntax</Label>);}
     let output=support::run(support::cli().arg("run").current_dir(&dir.0),45);
     support::success(&output);assert_eq!(output.stdout,b"paired syntax\n");
 }
+
+#[test]
+fn parenthesized_multiline_jsx_keeps_return_layout() {
+    let source=include_str!("../../../examples/ui-counter/screen.tsrx");
+    let formatted=support::format_round_trip(source);
+    assert!(formatted.contains("return (\n    <View"));
+    assert!(formatted.contains("\n  );"));
+}

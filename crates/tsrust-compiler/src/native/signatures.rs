@@ -4,7 +4,7 @@
 /// not publish source exports: module loading must resolve registered declarations.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum NativeTypeId {
-    UiSignal, UiSignalHandle,
+    UiSignal,
     UiNode,
     UiError,
     LruCache, SharedLruCache, CacheEntry, CacheInsertError,

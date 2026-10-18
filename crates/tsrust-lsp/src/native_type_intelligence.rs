@@ -153,6 +153,7 @@ impl SourceIndex {
         });
         if let Some(identity) = identity {
             let declaration = tsrust_compiler::native_types::declaration(identity);
+            if declaration.module == "std:ui-runtime" {return builtins_for(&format!("Ui{}",declaration.name));}
             if declaration.module == "std:sql" {return builtins_for(&format!("Sql{}",declaration.name));}
             if declaration.module == "std:sqlite" {return builtins_for(&format!("Sqlite{}",declaration.name));}
             if declaration.module == "std:http" {

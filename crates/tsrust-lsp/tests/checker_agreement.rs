@@ -18,7 +18,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use support::session::Session;
 use tsrust_lsp::{project_diagnostics::source_id, workspace::Workspace};
 
-const PRELUDE: &str = "import {CryptoError} from 'std:crypto';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n";
+const PRELUDE: &str = "import {Signal} from 'std:ui';\nimport {CryptoError} from 'std:crypto';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n";
 
 /// A receiver `x` of one type inside `probe`.
 struct Receiver {
@@ -28,6 +28,7 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
+Receiver {ty:"Signal",parameter:"x: ReadOnly<Signal>"},
 Receiver {ty:"InheritedItem",parameter:"x: ReadOnly<InheritedItem>"},
 Receiver {ty:"CryptoError",parameter:"x: ReadOnly<CryptoError>"},
 Receiver {ty:"SignalError",parameter:"x: ReadOnly<SignalError>"},

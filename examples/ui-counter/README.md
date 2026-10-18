@@ -2,10 +2,12 @@
 
 Two calls to `Counter` create independent state owners. Returning a component transfers its local signal owners into the returned tree
 automatically, through ordinary checked moves. No `ownState` call is needed;
-text bindings and handlers hold weak handles. Ordinary `Text` accepts mixed literal
-and reactive children, such as `<Text>Count: {label}</Text>`; there is no separate
-reactive text component. `add` rejects overflow and disposed
-state. Components execute once; handlers update only changed bound text. Native
+text bindings and handlers receive non-retaining references internally.
+Use `count` directly in both JSX and callbacks; no public `handle` or `SignalHandle` exists. Ordinary `Text` accepts mixed literal
+and reactive children, such as `<Text>Count: {count}</Text>`; there is no separate
+reactive text component. State exposes `get()` and `set(value)`; arithmetic belongs
+to the application handler. Checked integer overflow leaves the old value intact.
+Reading or writing disposed state throws `UiError`. Components execute once; handlers update only changed bound text. Native
 layout and paint are currently rebuilt for a redraw, not incrementally patched.
 
 Run native with `tsrust run examples/ui-counter/main.tsr`. Both buttons use pointer
@@ -41,6 +43,6 @@ contract and commands, not an assertion that pending checks have passed.
 The first component-state form is a direct `const state = signal(initial)` declaration
 inside a function returning a UI node. State factories, aliases of the signal
 constructor and state creation inside anonymous callbacks are not yet component
-ownership forms. Explicitly moving an owner before returning is rejected by the
-ordinary ownership checker. This is construction-time ownership, not a hook-order
+ownership forms. State references cannot transfer the component owner. Cloning state and
+returning state in place of a UI node are rejected. This is construction-time ownership, not a hook-order
 or rerender convention.

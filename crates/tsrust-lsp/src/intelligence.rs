@@ -1899,6 +1899,11 @@ impl SourceIndex {
             let rendered=ty.render(|id|self.native_type_aliases.iter().find(|(_,known)|**known==id).map(|(name,_)|name.clone().into())).map(|text|text.into_owned()).unwrap_or_default();
             return if tsrust_compiler::native_bindings::sql_asynchronous(binding.name){format!("Task<{rendered}>")}else{rendered};
         }
+        if let Some(binding)=self.native_type_aliases.get(&receiver).and_then(|id|tsrust_compiler::native_bindings::ui_method(*id,method)) {
+            if let tsrust_compiler::native_signatures::Signature::Result(value,_) = binding.result.signature() {
+                return value.render(|_|None).map(|text|text.into_owned()).unwrap_or_default();
+            }
+        }
         if let Some(binding)=self.native_type_aliases.get(&receiver).and_then(|id|tsrust_compiler::native_bindings::sqlite_method(*id,method)) {
             return binding.result.signature().render(|id|self.native_type_aliases.iter().find(|(_,known)|**known==id).map(|(name,_)|name.clone().into())).map(|text|text.into_owned()).unwrap_or_default();
         }
@@ -1975,6 +1980,7 @@ impl SourceIndex {
     }
     fn primitive_method_accepts_arguments(&self, method: &str, receiver: &str) -> bool {
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::sql_method(*id,method).is_some()){return true;}
+        if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::ui_method(*id,method).is_some()){return true;}
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::sqlite_method(*id,method).is_some()){return true;}
         let receiver = literal_scalar_family(receiver).unwrap_or(receiver);
         if receiver=="@namespace:std:schema#s" && matches!(method,"string"|"boolean"|"int"|"number"|"null"|"literal"|"enum"|"union"|"discriminatedUnion") {return true;}

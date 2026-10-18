@@ -340,7 +340,7 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::date::GET_DATE,
     crate::stdlib::date::START_OF_MONTH,
     crate::stdlib::date::END_OF_MONTH,
-    crate::stdlib::ui::SIGNAL_NEW,crate::stdlib::ui::HANDLE_NEW,crate::stdlib::ui::ADD,crate::stdlib::ui::OWN_STATE,crate::stdlib::ui::PRESS_BUTTON,
+    crate::stdlib::ui::SIGNAL_NEW,crate::stdlib::ui::HANDLE_NEW,crate::stdlib::ui::GET,crate::stdlib::ui::SET,crate::stdlib::ui::OWN_STATE,crate::stdlib::ui::PRESS_BUTTON,
     crate::stdlib::ui::TEXT,
     crate::stdlib::ui::VIEW,
     crate::stdlib::ui::BUTTON,
@@ -482,3 +482,9 @@ pub fn sql_asynchronous(name:&str)->bool{crate::stdlib::sql::asynchronous(name)}
 
 /// Public HTTP factories unwrap their checked backend Result during lowering.
 pub fn http_unwrapped(name:&str)->bool{crate::stdlib::http::public_unwrapped(name)}
+
+/// State method signatures shared by checking and editor inference.
+pub fn ui_method(identity: crate::native_signatures::NativeTypeId, member: &str) -> Option<&'static NativeBinding> {
+    if identity!=crate::native_signatures::NativeTypeId::UiSignal || !matches!(member,"get"|"set") {return None;}
+    lookup("std:ui-runtime",member).ok()
+}

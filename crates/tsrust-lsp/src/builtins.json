@@ -13928,125 +13928,113 @@
   }
 ],
   "std:ui": [
-  {
-    "name": "Text",
-    "signature": "Text(props: TextProps): Node",
-    "parameters": [
-      {
-        "label": "props: TextProps",
-        "documentation": "children is an ordered array of strings or SignalHandle values. className defaults to empty."
-      }
-    ],
-    "documentation": "Creates text from literal and reactive children in their supplied order. Strings are joined without a separator; signal handles display signed integers and update after handlers. Example: <Text>Count: {handle(count)}</Text> shows Count: 0 for a zero-valued signal. Only changed bound text is updated; the component is not rerun. Empty children are valid. Invalid utilities or a disposed signal throw a readable error. Ownership: consumes props and weak handles; handles do not keep component state alive."
-  },
-  {
-    "name": "View",
-    "signature": "View(props: ViewProps): Node",
-    "parameters": [
-      {
-        "label": "props: ViewProps",
-        "documentation": "children is an ordered Node array. className defaults to empty."
-      }
-    ],
-    "documentation": "Creates a container with children in their supplied order. Empty child arrays are valid. Unknown/conflicting utilities or a tree deeper than 128 nodes throw a readable string. JSX example: <View><Text>Hello</Text></View> produces one container with one text child. Ownership: consumes child nodes, including on failure, and returns a uniquely owned subtree."
-  },
-  {
-    "name": "Button",
-    "signature": "Button(props: ButtonProps): Node",
-    "parameters": [
-      {
-        "label": "props: ButtonProps",
-        "documentation": "children is an ordered string array. disabled defaults to false; enabled buttons require an owned onPress callback. className defaults to empty."
-      }
-    ],
-    "documentation": "Creates a semantic button with a retained synchronous onPress handler. Pointer click, Enter and Space activate enabled buttons. Disabled buttons never invoke their handler. Unknown/conflicting utilities and enabled buttons without a handler throw. Handler failures stop native execution and return UiError; browser failures retire the tree and remain available through its mount error. Example: <Button onPress={() => { add(counter, 1); }}>Increment</Button>. Ownership: consumes props and the handler environment; captures are released with the subtree."
-  },
-  {
-    "name": "document",
-    "signature": "document(node: ReadOnly<Node>, title: string): string",
-    "parameters": [
-      {
-        "label": "node: ReadOnly<Node>",
-        "documentation": "Tree to render, borrowed without modification."
-      },
-      {
-        "label": "title: string",
-        "documentation": "Document title; HTML metacharacters are escaped."
-      }
-    ],
-    "documentation": "Produces a complete semantic HTML document with the shared utility styles. Escapes text and title, preserving Unicode. Does not launch a browser, execute handlers or mutate nodes. Example: document(<Text>Hello</Text>, \"Demo\") returns HTML containing an escaped title and a span labelled Hello. Ownership: borrows the tree and title; returns an independent owned string."
-  },
-  {
-    "name": "run",
-    "signature": "run(node: Node, title: string): Result<void, UiError>",
-    "parameters": [
-      {
-        "label": "node: Node",
-        "documentation": "Owned tree displayed until window closure; consumed even if startup fails."
-      },
-      {
-        "label": "title: string",
-        "documentation": "Native window title, borrowed during setup."
-      }
-    ],
-    "documentation": "Opens a GPU-rendered native window and waits for closure on the main thread. Returns Ok after window resources are released, or Err with code UiError and a readable message if initialization or rendering fails. Resize and DPI changes update layout. No CPU fallback is selected. Example: unwrap(run(<Text>Hello</Text>, \"Demo\")) displays Hello until the window closes. Requires a graphical desktop and supported GPU. Ownership: consumes the subtree; renderer resources belong to the event loop and release on exit."
-  },
-  {
-    "name": "signal",
-    "signature": "signal(initial: int): Signal",
-    "documentation": "Creates uniquely owned signed 64-bit integer state for a component. initial has no default and accepts the full int range. Example: const count = signal(0); starts at zero. Returning the component subtree automatically transfers its local signal owners into that subtree. No attachment call is required. Use const declarations. Ownership: compiler-checked moves retain state until the subtree is disposed; failures release state and escaped handles become inactive.",
-    "parameters": [
-      {
-        "label": "initial: int",
-        "documentation": "Initial signed 64-bit value."
-      }
-    ]
-  },
-  {
-    "name": "handle",
-    "signature": "handle(state: ReadOnly<Signal>): SignalHandle",
-    "documentation": "Creates a non-retaining handle for a binding or handler. Does not mutate the value. Example: const action = handle(count); can be captured by an owned button handler. Multiple handles reference the same state. Ownership: borrows the owner; the returned handle never extends its lifetime.",
-    "parameters": [
-      {
-        "label": "state: ReadOnly<Signal>",
-        "documentation": "Live component state owner."
-      }
-    ]
-  },
-  {
-    "name": "add",
-    "signature": "add(state: ReadOnly<SignalHandle>, delta: int): boolean",
-    "documentation": "Adds delta with checked signed 64-bit arithmetic. Returns true after an update; false for disposed state or overflow, leaving the value unchanged. delta has no default and can be negative or zero. Example: add(action, 1) increments by one. Bindings update after the active handler returns. Ownership: borrows the weak handle and does not retain its owner.",
-    "parameters": [
-      {
-        "label": "state: ReadOnly<SignalHandle>",
-        "documentation": "Weak state handle."
-      },
-      {
-        "label": "delta: int",
-        "documentation": "Signed change, checked for overflow."
-      }
-    ]
-  },
-  {
-    "name": "Node",
-    "signature": "type Node",
-    "documentation": "An owned UI subtree produced by components. Moving it transfers children and retained handlers. A component return retains its local signal owners automatically. Nodes cannot be constructed as records, cloned or sent to workers. Example: const node = <Text>Hello</Text>; owns one text node."
-  },
-  {
-    "name": "Signal",
-    "signature": "type Signal",
-    "documentation": "Component-owned signed 64-bit integer state, created with signal(initial). Use handle(state) to create weak references for Text children or handlers. Returning a component retains its state automatically; disposal invalidates its handles. Example: const count = signal(0); creates independent zero-valued state. Owners cannot be cloned or sent to workers."
-  },
-  {
-    "name": "SignalHandle",
-    "signature": "type SignalHandle",
-    "documentation": "A weak reference to component integer state. Text consumes it as a reactive child; add(handle, delta) borrows it for a checked update. It never extends state lifetime. Updates after disposal return false. Example: const action = handle(count); can be captured by an owned button handler. Handles cannot be sent to workers."
-  },
-  {
-    "name": "UiError",
-    "signature": "type UiError",
-    "documentation": "A UI failure with string code and message fields. run returns Err for renderer or handler failures and releases its owned subtree. Example: const result = run(node, \"Demo\"); returns Result<void, UiError>. Errors own their message; no renderer resource is retained."
-  }
-]
+    {
+      "name": "Text",
+      "signature": "Text(props: TextProps): Node",
+      "parameters": [
+        {
+          "label": "props: TextProps",
+          "documentation": "children is an ordered array of strings or Signal values. className defaults to empty."
+        }
+      ],
+      "documentation": "Creates text from literal and reactive children in their supplied order. Strings are joined without a separator; signals display signed integers and update after handlers. Example: <Text>Count: {count}</Text> shows Count: 0 for a zero-valued signal. Only changed bound text is updated; the component is not rerun. Empty children are valid. Invalid utilities or a disposed signal throw a readable error. Ownership: consumes props; state bindings do not keep component state alive."
+    },
+    {
+      "name": "View",
+      "signature": "View(props: ViewProps): Node",
+      "parameters": [
+        {
+          "label": "props: ViewProps",
+          "documentation": "children is an ordered Node array. className defaults to empty."
+        }
+      ],
+      "documentation": "Creates a container with children in their supplied order. Empty child arrays are valid. Unknown/conflicting utilities or a tree deeper than 128 nodes throw a readable string. JSX example: <View><Text>Hello</Text></View> produces one container with one text child. Ownership: consumes child nodes, including on failure, and returns a uniquely owned subtree."
+    },
+    {
+      "name": "Button",
+      "signature": "Button(props: ButtonProps): Node",
+      "parameters": [
+        {
+          "label": "props: ButtonProps",
+          "documentation": "children is an ordered string array. disabled defaults to false; enabled buttons require an owned onPress callback. className defaults to empty."
+        }
+      ],
+      "documentation": "Creates a semantic button with a retained synchronous onPress handler. Pointer click, Enter and Space activate enabled buttons. Disabled buttons never invoke their handler. Unknown/conflicting utilities and enabled buttons without a handler throw. Handler failures stop native execution and return UiError; browser failures retire the tree and remain available through its mount error. Example: <Button onPress={() => { count.set(count.get() + 1); }}>Increment</Button>. Ownership: consumes props and the handler environment; captures are released with the subtree."
+    },
+    {
+      "name": "document",
+      "signature": "document(node: ReadOnly<Node>, title: string): string",
+      "parameters": [
+        {
+          "label": "node: ReadOnly<Node>",
+          "documentation": "Tree to render, borrowed without modification."
+        },
+        {
+          "label": "title: string",
+          "documentation": "Document title; HTML metacharacters are escaped."
+        }
+      ],
+      "documentation": "Produces a complete semantic HTML document with the shared utility styles. Escapes text and title, preserving Unicode. Does not launch a browser, execute handlers or mutate nodes. Example: document(<Text>Hello</Text>, \"Demo\") returns HTML containing an escaped title and a span labelled Hello. Ownership: borrows the tree and title; returns an independent owned string."
+    },
+    {
+      "name": "run",
+      "signature": "run(node: Node, title: string): Result<void, UiError>",
+      "parameters": [
+        {
+          "label": "node: Node",
+          "documentation": "Owned tree displayed until window closure; consumed even if startup fails."
+        },
+        {
+          "label": "title: string",
+          "documentation": "Native window title, borrowed during setup."
+        }
+      ],
+      "documentation": "Opens a GPU-rendered native window and waits for closure on the main thread. Returns Ok after window resources are released, or Err with code UiError and a readable message if initialization or rendering fails. Resize and DPI changes update layout. No CPU fallback is selected. Example: unwrap(run(<Text>Hello</Text>, \"Demo\")) displays Hello until the window closes. Requires a graphical desktop and supported GPU. Ownership: consumes the subtree; renderer resources belong to the event loop and release on exit."
+    },
+    {
+      "name": "signal",
+      "signature": "signal(initial: int): Signal",
+      "documentation": "Creates independent signed 64-bit integer state. initial has no default and accepts the full int range. Declare it with const inside a component. Use the variable directly in Text children and callbacks: const count = signal(0); <Text>Count: {count}</Text> initially displays Count: 0. count.set(count.get() + 1) updates the shared value. Constructor aliases and creation inside anonymous callbacks are not supported. Ownership: returning the component tree retains its state automatically; bindings and callback captures never extend its lifetime.",
+      "parameters": [
+        {
+          "label": "initial: int",
+          "documentation": "Initial signed 64-bit value."
+        }
+      ]
+    },
+    {
+      "name": "Node",
+      "signature": "type Node",
+      "documentation": "An owned UI subtree produced by components. Moving it transfers children and retained handlers. A component return retains its local signal owners automatically. Nodes cannot be constructed as records, cloned or sent to workers. Example: const node = <Text>Hello</Text>; owns one text node."
+    },
+    {
+      "name": "Signal",
+      "signature": "type Signal",
+      "documentation": "Signed 64-bit component state created with signal(initial). Reference it directly in Text children and callback bodies; both observe the same value. Example: const count = signal(0); creates independent zero-valued state. Ownership: the returned component tree retains the owner, while bindings and captures are non-retaining. Disposal makes escaped references inactive. Signals cannot be cloned or sent to workers."
+    },
+    {
+      "name": "UiError",
+      "signature": "type UiError",
+      "documentation": "A UI failure with string code and message fields. run returns Err for renderer or handler failures and releases its owned subtree. Example: const result = run(node, \"Demo\"); returns Result<void, UiError>. Errors own their message; no renderer resource is retained."
+    }
+  ],
+  "UiSignal": [
+    {
+      "name": "get",
+      "signature": "get(): int",
+      "parameters": [],
+      "documentation": "Reads the current signed 64-bit integer value. Takes no arguments and does not change state. Example: const count = signal(0); count.get(); returns 0. Throws UiError if its component has been disposed. Ownership: borrows state without extending its lifetime."
+    },
+    {
+      "name": "set",
+      "signature": "set(value: int): void",
+      "parameters": [
+        {
+          "label": "value: int",
+          "documentation": "New signed 64-bit integer value; required, with no default."
+        }
+      ],
+      "documentation": "Replaces the current state value. Returns void; Text bindings refresh after the active handler returns. Accepts the full int range. Example: count.set(count.get() + 1); increments a live counter using application arithmetic. Checked integer overflow occurs before set and leaves state unchanged. Throws UiError if its component has been disposed. Ownership: borrows state without extending its lifetime."
+    }
+  ]
 }

@@ -78,19 +78,22 @@ pub(crate) fn body(
     annotation_visit: &mut impl FnMut(&mut ValueAnnotation) -> Result<(), Diagnostic>,
     expression_visit: &mut impl FnMut(&mut Expr) -> Result<(), Diagnostic>,
 ) -> Result<(), Diagnostic> {
-    walk(body, &mut [], None, annotation_visit, expression_visit)
+    walk(body, &mut [], None, annotation_visit, &mut |value| { expression_visit(value)?; Ok(true) })
 }
 pub(crate) fn function_body(
     function: &mut Function,
     annotation_visit: &mut impl FnMut(&mut ValueAnnotation) -> Result<(), Diagnostic>,
     expression_visit: &mut impl FnMut(&mut Expr) -> Result<(), Diagnostic>,
 ) -> Result<(), Diagnostic> {
-    walk(&mut function.body, &mut function.parameter_initializers, None, annotation_visit, expression_visit)
+    walk(&mut function.body, &mut function.parameter_initializers, None, annotation_visit, &mut |value| { expression_visit(value)?; Ok(true) })
 }
 pub(crate) fn expression(
     value:&mut Expr,
     visit:&mut impl FnMut(&mut Expr)->Result<(),Diagnostic>,
 )->Result<(),Diagnostic> {
+    walk(&mut [],&mut [],Some(value),&mut |_|Ok(()),&mut |value| { visit(value)?; Ok(true) })
+}
+pub(crate) fn expression_pruned(value:&mut Expr,visit:&mut impl FnMut(&mut Expr)->Result<bool,Diagnostic>)->Result<(),Diagnostic> {
     walk(&mut [],&mut [],Some(value),&mut |_|Ok(()),visit)
 }
 fn walk(
@@ -98,7 +101,7 @@ fn walk(
     initializers: &mut [ParameterInitializer],
     expression: Option<&mut Expr>,
     annotation_visit: &mut impl FnMut(&mut ValueAnnotation) -> Result<(), Diagnostic>,
-    expression_visit: &mut impl FnMut(&mut Expr) -> Result<(), Diagnostic>,
+    expression_visit: &mut impl FnMut(&mut Expr) -> Result<bool, Diagnostic>,
 ) -> Result<(), Diagnostic> {
     enum Work<'a> {
         Statement(&'a mut Stmt),
@@ -167,7 +170,7 @@ fn walk(
                 StmtKind::Break | StmtKind::Continue | StmtKind::Return(None) => {}
             },
             Work::Expression(expression) => {
-                expression_visit(expression)?;
+                if !expression_visit(expression)? { continue; }
                 match &mut expression.kind {
                     ExprKind::Match { body, .. } => work.extend(body.iter_mut().map(Work::Statement)),
                     ExprKind::SpreadCall(plan) => work.extend(plan.expressions_mut().map(Work::Expression)),
