@@ -1,8 +1,8 @@
 # Universal UI vision
 
-Status: product direction refined with the owner on 2026-10-11; framework implementation has not started. `.tsrx` is the proposed JSX-bearing Tsrust extension. API examples are design sketches, not currently compilable programs.
+Status: product direction refined with the owner on 2026-10-11; the checked `.tsrx` component and paired interactive counter foundation is implemented. The current compiler handoff records accepted behavior. Broader API examples below remain design sketches unless covered by that acceptance.
 
-Pre-start review: [updated feasibility and unresolved-contract review](docs/plans/ui-feasibility-review.md#follow-up-review-after-app-directory-and-loader-decisions) identifies unresolved state ownership, browser execution, text/input and security boundaries. The first assignment is now only nonexecuting route-manifest tooling, not scaffolding or proof of UI feasibility. Defer the Axum-backed runtime until the relevant async/task/HTTP capabilities are accepted; synchronous UI lifetime/input experiments need not wait for async. Review recommendations remain distinct from owner-approved decisions; these documents alone do not establish implementation acceptance. Current implementation status is recorded below.
+The [feasibility review](docs/plans/ui-feasibility-review.md#follow-up-review-after-app-directory-and-loader-decisions) preserves the original research and unresolved contracts. Its historical first-task sequencing is superseded by the current compiler handoff. State ownership and bounded browser/native counters now have focused acceptance; text input, dynamic trees, routing and navigation remain unfinished. Review recommendations remain distinct from owner-approved decisions.
 
 ## Agreed direction and open decisions
 

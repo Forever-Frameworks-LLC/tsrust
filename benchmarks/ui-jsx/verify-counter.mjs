@@ -7,14 +7,17 @@ import assert from 'node:assert/strict';
 import {spawn,spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
-const [site]=process.argv.slice(2);
+const [site, mode]=process.argv.slice(2);
 assert(site,'Pass the built counter site');
+assert(mode===undefined || mode==='--presentation-only','Unknown counter verification mode');
 const profile=fs.mkdtempSync(path.join(os.tmpdir(),'tsrust-counter-browser-'));
 const here=path.dirname(fileURLToPath(import.meta.url));
+if(mode!=='--presentation-only') {
 const reference=spawnSync(process.execPath,[path.join(here,'../runtime/node_modules/typescript/bin/tsc'),'--target','es2022','--lib','es2022','--skipLibCheck','--outDir',profile,path.join(here,'counter-reference.ts')],{encoding:'utf8',timeout:30000});
 assert.equal(reference.status,0,reference.stderr||reference.stdout);
 const oracle=spawnSync(process.execPath,[path.join(profile,'counter-reference.js')],{encoding:'utf8',timeout:30000});
 assert.equal(oracle.status,0,oracle.stderr);
+}
 const server=http.createServer((request,response)=>{
   const name=request.url==='/'?'index.html':request.url.slice(1);
   if (!['index.html','app.js','app_bg.wasm'].includes(name)) {response.writeHead(404).end();return;}
@@ -42,6 +45,20 @@ try {
   for(let i=0;i<100;i++){if(await evaluate('Boolean(window.ui)'))break;await new Promise(r=>setTimeout(r,100));}
   if(!await evaluate('Boolean(window.ui)'))console.log(JSON.stringify({navigation,requests,page:await evaluate('({url:location.href,ready:document.readyState,html:document.documentElement.outerHTML,resources:performance.getEntriesByType("resource").map(r=>({name:r.name,duration:r.duration}))})')}));
   assert(await evaluate('Boolean(window.ui)'),'Wasm entry did not mount: '+JSON.stringify(errors));
+  const presentation=[];
+  for (const width of [640,800,480,640]) {
+    await call('Emulation.setDeviceMetricsOverride',{width,height:480,deviceScaleFactor:1,mobile:false});
+    const styles=await evaluate('[...document.querySelectorAll("button")].map(e=>{const s=getComputedStyle(e);const r=e.getBoundingClientRect();return {align:s.textAlign,radius:s.borderRadius,fontSize:s.fontSize,height:r.height,width:r.width}})');
+    assert(styles.every(s=>s.align==='center'),'Button labels must be centered');
+    assert.equal(styles[0].radius,'8px');
+    if(presentation.length) assert.deepEqual(styles.map(s=>[s.fontSize,s.height]),presentation[0].styles.map(s=>[s.fontSize,s.height]));
+    presentation.push({width,styles});
+  }
+  console.log(JSON.stringify({case:'counter-browser-presentation',presentation,timed:false}));
+  for(const name of ['app.js','app_bg.wasm']) console.log(JSON.stringify({artifact:name,sha256:createHash('sha256').update(fs.readFileSync(path.join(site,name))).digest('hex')}));
+  console.log(JSON.stringify({verifier:'verify-counter.mjs',sha256:createHash('sha256').update(fs.readFileSync(fileURLToPath(import.meta.url))).digest('hex')}));
+  if(mode==='--presentation-only') {assert.deepEqual(errors,[]); await evaluate('window.ui.dispose()'); process.exitCode=0;}
+  else {
   const initialRequests=requests;
   const counts=()=>evaluate('[...document.querySelectorAll("span")].slice(1).map(n=>n.textContent.replace(/^Count: /,""))');
   assert.deepEqual(await counts(),['0','0']);
@@ -62,6 +79,7 @@ try {
   assert.deepEqual(errors,[]);assert.equal(requests,initialRequests,'Local interaction must not issue requests');
   for(const source of ['counter-reference.ts','../../examples/ui-counter/screen.tsrx','../../examples/ui-counter/main.tsr'])console.log(JSON.stringify({source,sha256:createHash('sha256').update(fs.readFileSync(path.join(here,source))).digest('hex')}));
   console.log(JSON.stringify({case:'paired-counter-browser-input',status:'pass',observed:['0,0','1,0','1,1','1,2'],checks:['pointer','disabled','Tab','Enter','Space','stable nodes','targeted text','dispose','late click'],timed:false}));
+  }
 } catch(error) { console.error(error);throw error; } finally {
   clearTimeout(timeout);if(socket)socket.close();browser.kill('SIGTERM');
   await Promise.race([new Promise(resolve=>browser.once('exit',resolve)),new Promise(resolve=>setTimeout(()=>{browser.kill('SIGKILL');resolve();},2000))]);

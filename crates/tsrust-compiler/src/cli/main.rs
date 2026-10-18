@@ -36,7 +36,7 @@ Usage:
   tsrust packages [--project directory]
   tsrust remove <crate> [--dry-run]
   tsrust bindings resolve <file.bindings.json> [--offline]
-  tsrust new <name-or-path>
+  tsrust new <name-or-path> [--ui]
   tsrust dev [--release] [--verbose] [--color auto|always|never] [-- program-arguments]
   tsrust run [input.tsr] [--release] [-- program-arguments]
   tsrust test [files/directories] [options]
@@ -324,11 +324,11 @@ fn run() -> Result<u8, String> {
             .0
             .join(format!("program{}", env::consts::EXE_SUFFIX))
     };
+    let run_project = if command == "run" { project_config::discover()? } else { None };
     let cache_root = match env::var_os("TSRUST_CACHE_DIR") {
         Some(path) => PathBuf::from(path),
-        None if command == "run" || command == "test" => directory.0.join("cache"),
-        None => env::current_dir()
-            .map_err(|error| error.to_string())?
+        None if command == "test" || (command == "run" && run_project.is_none()) => directory.0.join("cache"),
+        None => run_project.map(|project| project.root).unwrap_or(env::current_dir().map_err(|error| error.to_string())?)
             .join("target/tsrust-native"),
     };
     let mut graph_identity = Vec::new();
@@ -350,7 +350,7 @@ fn run() -> Result<u8, String> {
     let cache = tsrust_compiler::native_cache::NativeCache::new(
         &cache_root,
         &[
-            b"native-cache-abi-3",
+            b"native-cache-abi-4-ui-dev-profile",
             native_dependency_bundle::IDENTITY.as_bytes(),
             backend_identity.as_bytes(),
             env!("CARGO_PKG_VERSION").as_bytes(),

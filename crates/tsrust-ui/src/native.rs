@@ -1,6 +1,6 @@
 //! The event loop owns the surface, renderer and window. No global window registry.
 use crate::{Kind, Node, style::Utility};
-use parley::{FontContext, FontWeight, Layout, LayoutContext, PositionedLayoutItem, StyleProperty};
+use parley::{Alignment, AlignmentOptions, FontContext, FontWeight, Layout, LayoutContext, PositionedLayoutItem, StyleProperty};
 use std::sync::{Arc, Mutex};
 use taffy::prelude::*;
 use vello::kurbo::{Affine, RoundedRect};
@@ -31,6 +31,11 @@ impl Default for TextStyle {
         }
     }
 }
+fn layout_text(text: &mut Layout<()>, width: f32, button: bool) {
+    text.break_all_lines(Some(width.max(0.)));
+    if button { text.align(Alignment::Center, AlignmentOptions::default()); }
+}
+
 struct Item {
     role: Kind,
     label: String,
@@ -141,9 +146,13 @@ impl Painter {
         node: &Node,
         width: f32,
         scale: f64,
+        focus: Option<u64>,
     ) -> Result<(Scene, accesskit::TreeUpdate), String> {
         self.tree.clear();
         let mut root = self.node(node, TextStyle::default())?;
+        let mut root_style = self.tree.style(root.id).map_err(|e| e.to_string())?.clone();
+        root_style.size.width = length(width);
+        self.tree.set_style(root.id, root_style).map_err(|e| e.to_string())?;
         self.tree
             .compute_layout_with_measure(
                 root.id,
@@ -176,7 +185,7 @@ impl Painter {
             )
             .map_err(|e| e.to_string())?;
         let mut scene = Scene::new();
-        self.paint(&mut root, &mut scene, 0., 0., scale)?;
+        self.paint(&mut root, &mut scene, 0., 0., scale, focus, &mut 1)?;
         let mut nodes = Vec::new();
         let mut next = 1;
         self.accessible(&root, &mut nodes, &mut next, 0., 0., scale)?;
@@ -241,12 +250,16 @@ impl Painter {
         parent_x: f64,
         parent_y: f64,
         scale: f64,
+        focus: Option<u64>,
+        next: &mut u64,
     ) -> Result<(), String> {
         let layout = self.tree.layout(item.id).map_err(|e| e.to_string())?;
         let (x, y) = (
             parent_x + layout.location.x as f64,
             parent_y + layout.location.y as f64,
         );
+        let id = *next;
+        *next += 1;
         let transform = Affine::scale(scale);
         if item.disabled {
             scene.push_layer(
@@ -279,9 +292,8 @@ impl Painter {
             );
         }
         if let Some(text) = &mut item.text {
-            text.break_all_lines(Some(
-                (layout.size.width - layout.padding.left - layout.padding.right).max(0.),
-            ));
+            layout_text(text, layout.size.width - layout.padding.left - layout.padding.right,
+                matches!(item.role, Kind::Button | Kind::DisabledButton));
             let [r, g, b] = item.color;
             let color = Color::from_rgba8(r, g, b, (alpha * 255.) as u8);
             for line in text.lines() {
@@ -318,7 +330,11 @@ impl Painter {
             }
         }
         for child in &mut item.children {
-            self.paint(child, scene, x, y, scale)?;
+            self.paint(child, scene, x, y, scale, focus, next)?;
+        }
+        if focus == Some(id) && item.role == Kind::Button {
+            scene.stroke(&vello::kurbo::Stroke::new(2.), transform, Color::from_rgb8(23,32,51), None,
+                &RoundedRect::new(x, y, x + layout.size.width as f64, y + layout.size.height as f64, item.radius));
         }
         if item.disabled {
             scene.pop_layer();
@@ -370,6 +386,8 @@ struct App {
     key_pressed: Option<u64>,
     close_after_frame: bool,
     presented: bool,
+    #[cfg(feature = "acceptance")]
+    resize_step: usize,
     deadline: Option<std::time::Instant>,
     node: Node,
     title: String,
@@ -430,6 +448,7 @@ impl App {
             &self.node,
             (size.width as f64 / window.scale_factor()) as f32,
             window.scale_factor(),
+            None,
         )?;
         if let Some((_, root)) = snapshot.nodes.iter_mut().find(|(id, _)| id.0 == 0) {
             root.set_label(self.title.clone());
@@ -467,16 +486,13 @@ impl App {
                 .resize_surface(&mut active.surface, size.width, size.height);
         }
         let scale = active.window.scale_factor();
-        let (mut scene, mut snapshot) =
+        let (scene, mut snapshot) =
             self.painter
-                .scene(&self.node, (size.width as f64 / scale) as f32, scale)?;
+                .scene(&self.node, (size.width as f64 / scale) as f32, scale, self.focus)?;
         if let Some((_, root)) = snapshot.nodes.iter_mut().find(|(id, _)| id.0 == 0) {
             root.set_label(self.title.clone());
         }
         snapshot.focus=accesskit::NodeId(self.focus.unwrap_or(0));
-        if let Some(bounds)=self.focus.and_then(|focus|snapshot.nodes.iter().find(|(id,_)|id.0==focus)).and_then(|(_,node)|node.bounds()) {
-            scene.stroke(&vello::kurbo::Stroke::new(2.),Affine::IDENTITY,Color::from_rgb8(23,32,51),None,&vello::kurbo::Rect::new(bounds.x0,bounds.y0,bounds.x1,bounds.y1));
-        }
         *active.snapshot.lock().unwrap() = snapshot.clone();
         active.accessibility.update_if_active(|| snapshot);
         let device = &self.context.devices[active.surface.dev_id];
@@ -591,6 +607,16 @@ impl ApplicationHandler<accesskit::ActionRequest> for App {
             }
             WindowEvent::RedrawRequested => match self.draw() {
                 Ok(true) if self.close_after_frame => {
+                    #[cfg(feature = "acceptance")]
+                    if self.resize_step < 3 {
+                        let widths = [800., 480., 640.];
+                        if let Some(active) = &self.active {
+                            let _ = active.window.request_inner_size(LogicalSize::new(widths[self.resize_step], 480.));
+                            active.window.request_redraw();
+                        }
+                        self.resize_step += 1;
+                        return;
+                    }
                     self.presented = true;
                     self.active = None;
                     event_loop.exit();
@@ -598,8 +624,14 @@ impl ApplicationHandler<accesskit::ActionRequest> for App {
                 Err(error) => self.fail(event_loop, error),
                 _ => {}
             },
-            WindowEvent::Resized(_)
-            | WindowEvent::ScaleFactorChanged { .. }
+            WindowEvent::Resized(_) => {
+                match self.draw() {
+                    Err(error) => self.fail(event_loop, error),
+                    Ok(false) => if let Some(active) = &self.active { active.window.request_redraw(); },
+                    Ok(true) => {},
+                }
+            }
+            WindowEvent::ScaleFactorChanged { .. }
             | WindowEvent::Occluded(false) => {
                 if let Some(active) = &self.active {
                     active.window.request_redraw();
@@ -623,6 +655,8 @@ fn run_window(node: Node, title: String, close_after_frame: bool) -> Result<(), 
         proxy: event_loop.create_proxy(), pointer:(0.,0.),pressed:None,focus:None,shift:false,key_pressed:None,
         close_after_frame,
         presented: false,
+        #[cfg(feature = "acceptance")]
+        resize_step: 0,
         deadline: close_after_frame
             .then(|| std::time::Instant::now() + std::time::Duration::from_secs(20)),
         node,
@@ -666,8 +700,8 @@ mod tests {
         )
         .unwrap();
         let mut painter = Painter::new();
-        let (_, one) = painter.scene(&root, 400., 1.).unwrap();
-        let (_, two) = painter.scene(&root, 400., 2.).unwrap();
+        let (_, one) = painter.scene(&root, 400., 1., None).unwrap();
+        let (_, two) = painter.scene(&root, 400., 2., None).unwrap();
         assert_eq!(one.nodes.len(), 4);
         assert_eq!(two.nodes.len(), 4);
         let text = one
@@ -704,11 +738,11 @@ mod interactive_accessibility_tests {
         let button=Node::button("Add".into(),String::new(),false,move||{action.set(action.get()? + 1)?;Ok(())}).unwrap();
         let mut root=Node::new(Kind::View,String::new(),String::new(),vec![label,button]).unwrap().own_state(state).unwrap();
         let mut painter=Painter::new();
-        let (_,before)=painter.scene(&root,400.,1.).unwrap();
+        let (_,before)=painter.scene(&root,400.,1.,None).unwrap();
         let button=&before.nodes.iter().find(|(_,node)|node.role()==accesskit::Role::Button).unwrap().1;
         assert!(button.supports_action(accesskit::Action::Focus));assert!(button.supports_action(accesskit::Action::Click));
         assert!(root.activate(3).unwrap());assert_eq!(root.refresh().unwrap(),1);
-        let (_,after)=painter.scene(&root,400.,1.).unwrap();
+        let (_,after)=painter.scene(&root,400.,1.,None).unwrap();
         assert_eq!(after.nodes.iter().find(|(_,node)|node.role()==accesskit::Role::Label).unwrap().1.label(),Some("1"));
     }
 }
@@ -728,5 +762,45 @@ mod keyboard_tests {
         assert_eq!(keyboard(&mut focus,&mut pressed,&ids,false,&space,ElementState::Released,false),Some(8));
         keyboard(&mut focus,&mut pressed,&ids,true,&tab,ElementState::Pressed,false);assert_eq!(focus,Some(4));
         focus=Some(5);assert_eq!(keyboard(&mut focus,&mut pressed,&ids,false,&enter,ElementState::Pressed,false),None);
+    }
+}
+
+#[cfg(test)]
+mod presentation_tests {
+    use super::*;
+    #[test]
+    fn button_labels_center_each_line_and_resize_without_changing_font_metrics() {
+        let node=Node::button("Increment\nAgain".into(),"rounded".into(),false,||Ok(())).unwrap();
+        let mut painter=Painter::new();
+        let mut item=painter.node(&node,TextStyle::default()).unwrap();
+        let text=item.text.as_mut().unwrap();
+        let mut height=None;
+        for width in [400.,720.,240.,400.] {
+            layout_text(text,width,true);
+            if let Some(previous)=height { assert_eq!(text.height(),previous); }
+            height=Some(text.height());
+            for line in text.lines() {
+                let metrics=line.metrics();
+                assert!((metrics.offset * 2. + metrics.advance - width).abs()<0.1, "{metrics:?}");
+            }
+        }
+        layout_text(text,400.,false);
+        assert_eq!(text.lines().next().unwrap().metrics().offset,0.);
+    }
+    #[test]
+    fn repeated_window_widths_preserve_text_height_padding_and_scaled_bounds() {
+        let root=Node::new(Kind::View,"p-4 gap-4".into(),String::new(),vec![
+            Node::new(Kind::Text,"text-xl".into(),"Count: 0".into(),vec![]).unwrap(),
+            Node::button("Increment".into(),"rounded".into(),false,||Ok(())).unwrap(),
+        ]).unwrap();
+        let mut painter=Painter::new();let mut previous=None;
+        for width in [640.,800.,480.,640.] {
+            let (_,snapshot)=painter.scene(&root,width,2.,Some(3)).unwrap();
+            let bounds=snapshot.nodes.iter().find(|(id,_)|id.0==3).unwrap().1.bounds().unwrap();
+            assert_eq!(bounds.x0,32.);
+            assert_eq!(bounds.width(),(width as f64-32.)*2.);
+            if let Some((y,height))=previous {assert_eq!((bounds.y0,bounds.height()),(y,height));}
+            previous=Some((bounds.y0,bounds.height()));
+        }
     }
 }

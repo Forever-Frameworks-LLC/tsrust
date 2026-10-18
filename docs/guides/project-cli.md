@@ -110,3 +110,18 @@ executable path. Each call returns independent strings. Native executables rejec
 non-Unicode arguments with `EnvError` code `NotUnicode`; no lossy replacement or
 partial result is returned. The CLI's own command-line parser currently expects
 Unicode input. Flag interpretation belongs to application code.
+
+## UI project entry
+
+`tsrust new counter --ui` generates `app/page.tsrx`, exporting `Page`, and an
+explicit `src/main.tsr` bootstrap that imports and mounts it. `build.entry` continues
+to identify that executable file in `tsrust.config.json`; the component name is not
+an implicit executable entrypoint. This is the first root-page convention from
+UI_VISION.md. Nested discovery, layouts, loaders and navigation are pending.
+
+The native UI development runtime uses optimized renderer dependencies without
+Cargo dependency debug symbols. Application arithmetic remains checked in dev and
+release. The first native support compilation can be expensive; subsequent edits
+reuse the exact runtime artifact when the runtime/toolchain/profile are unchanged.
+`tsrust dev --verbose` reports frontend work, runtime cache status and native build
+time so a cache miss can be distinguished from application checking.

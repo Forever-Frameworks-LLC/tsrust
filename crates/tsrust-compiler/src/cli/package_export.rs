@@ -36,7 +36,8 @@ pub(crate) fn export(root:&Path,rust:&str)->io::Result<()> {
   if rust.contains("mod tsrust_native_decimal {"){manifest=manifest.replace("default = [", "default = [\"decimal\", ");}
   if rust.contains("mod tsrust_native_sql {"){manifest=manifest.replace("default = [", "default = [\"sql\", ");}
   if rust.contains("mod tsrust_native_sqlite {"){manifest=manifest.replace("default = [", "default = [\"sqlite\", ");}
-  manifest.push_str("\n[[bin]]\nname = \"program\"\npath = \"src/main.rs\"\n\n[profile.dev]\noverflow-checks = true\nincremental = false\n\n[profile.release]\noverflow-checks = true\nincremental = false\n");
+  manifest.push_str("\n[[bin]]\nname = \"program\"\npath = \"src/main.rs\"\n");
+  manifest.push_str(crate::runtime_build::profiles(rust.contains("mod tsrust_native_ui {") && rust.contains("use vello::")));
   fs::write(root.join("Cargo.toml"),manifest)?;fs::write(root.join("Cargo.lock"),lock)?;
   if !dependencies {fs::write(root.join(".cargo/config.toml"),"[net]\noffline = true\n")?;}
   fs::write(root.join("src/main.rs"),rust)?;

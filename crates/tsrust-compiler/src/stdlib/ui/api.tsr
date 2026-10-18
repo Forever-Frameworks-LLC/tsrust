@@ -48,7 +48,7 @@ export function View(props: ViewProps): Node {
     }
   }
 }
-/** Creates a semantic button. Enabled buttons require a retained onPress handler. Disabled buttons never invoke it. */
+/** Creates a semantic button with centered text. The rounded utility also rounds its native focus outline. Enabled buttons require a retained onPress handler. Disabled buttons never invoke it. */
 export function Button(props: ButtonProps): Node {
   const handler = props.onPress;
   if (handler !== undefined) {

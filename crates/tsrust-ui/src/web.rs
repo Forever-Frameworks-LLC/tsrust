@@ -40,7 +40,7 @@ pub(crate) fn document(root: &Node, title: &str) -> String {
         "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>",
     );
     escape(title, &mut out);
-    out.push_str("</title><style>body{margin:0;font-family:system-ui,sans-serif;color:#172033;background:#fff}.ui{box-sizing:border-box;font:inherit}div.ui{display:flex;flex-direction:column}span.ui{display:block;white-space:pre-wrap}button.ui{appearance:none;border:0;border-radius:0;background:transparent;color:inherit;text-align:start;padding:8px 16px;white-space:pre-wrap}button.ui:disabled{opacity:.6}");
+    out.push_str("</title><style>body{margin:0;font-family:system-ui,sans-serif;color:#172033;background:#fff}.ui{box-sizing:border-box;font:inherit}div.ui{display:flex;flex-direction:column}span.ui{display:block;white-space:pre-wrap}button.ui{appearance:none;border:0;border-radius:0;background:transparent;color:inherit;text-align:center;padding:8px 16px;white-space:pre-wrap}button.ui:disabled{opacity:.6}");
     let mut tokens = std::collections::BTreeSet::new();
     fn collect<'a>(node: &'a Node, tokens: &mut std::collections::BTreeSet<&'a str>) {
         tokens.extend(node.class_name.split_whitespace());

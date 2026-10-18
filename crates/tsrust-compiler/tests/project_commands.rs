@@ -157,3 +157,21 @@ fn run_forwards_program_options_after_separator_with_explicit_and_configured_inp
     assert!(!output.status.success());
     assert!(String::from_utf8(output.stderr).unwrap().contains("Unknown or repeated option"));
 }
+
+#[test]
+fn new_ui_scaffolds_an_explicit_bootstrap_and_root_page() {
+    let dir=support::TempDirectory::new();
+    support::success(&support::run(support::cli().current_dir(&dir.0).args(["new","counter","--ui"]),20));
+    let root=dir.0.join("counter");
+    for name in ["src/main.tsr","app/page.tsrx","tests/page.test.tsr"] {
+        let source=fs::read_to_string(root.join(name)).unwrap();
+        assert_eq!(source,support::format_round_trip(&source));
+    }
+    assert!(!root.join("src/greeting.tsr").exists());
+    support::success(&support::run(support::cli().current_dir(&root).args(["check","--json"]),20));
+    support::success(&support::run(support::cli().current_dir(&root).args(["format","--check"]),20));
+    support::success(&support::run(support::cli().current_dir(&root).arg("test"),60));
+    let original=fs::read(root.join("app/page.tsrx")).unwrap();
+    assert!(!support::run(support::cli().current_dir(&dir.0).args(["new","counter","--ui"]),20).status.success());
+    assert_eq!(fs::read(root.join("app/page.tsrx")).unwrap(),original);
+}

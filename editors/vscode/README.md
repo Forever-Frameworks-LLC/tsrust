@@ -89,3 +89,9 @@ Use the play button on a .tsr editor or **Tsrust: Run File** to save and execute
 Transferred strings, arrays and records can offer **Clone before transferring (copies data; may allocate)** via Cmd+.; the earlier transfer is edited only if the complete document then passes checking.
 
 For isolated CLI distribution acceptance, build the compiler with `CARGO_TARGET_DIR=target/editor cargo build --offline --locked -p tsrust-compiler`, then run `python3 editors/vscode/scripts/check-cli-distribution.py`. This copies only the CLI to a temporary directory, verifies check/emit with an empty PATH and builds/runs a two-file std:path project from an unrelated directory containing spaces. It requires the installed pinned Rust backend, cleans up its temporary project/cache and saves evidence under target/editor. It does not change a global installation. The separate check-offline-build.py verifies network-denied bundled builds on macOS.
+
+UI projects can start with `tsrust new counter --ui`. The generated
+`app/page.tsrx` exports the root `Page`; `src/main.tsr` visibly imports and mounts it.
+`build.entry` in `tsrust.config.json` identifies the executable bootstrap. Open the
+project directory as the workspace root for diagnostics, JSX attribute completion,
+component navigation and state-method help. Nested routing conventions are pending.

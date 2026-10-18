@@ -1,5 +1,46 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
+## Current owner direction: complete UI application workflow — 2026-10-18
+
+The owner stopped local tuning in favor of a researched, coherent UI system.
+Follow [the application-system contract](../plans/ui-application-system.md),
+UI_VISION.md sections 6/18/19 and the existing ownership decisions. Themes,
+configurable editable component source, immutable bundled offline installation,
+compatibility/lock records, shared styles and LSP are one implementation section.
+They are missing product requirements, not optional later polish. Keep Caveman
+updates concise and Ponytail's minimum complete solution; no repeated planning
+approval is needed. Do not reopen the selected GPU or bounded Wasm decisions.
+
+The working source includes renderer/scaffold/cache changes, but this section is
+not fully accepted: the new real-browser presentation check fails because
+`button.ui` overrides `rounded` through CSS specificity. Preserve that failure and
+fix style resolution as part of the theme/component contract. No theme JSON,
+component catalog, `ui add` command or source-version lock exists yet. `new --ui`
+currently generates only an explicit bootstrap and root page; it is not the final
+source-owned component workflow.
+
+Passed focused evidence: 11 native/runtime tests after the root-width repair;
+TextMate multiline JSX coloring; two new/scaffold checks; four UI editor checks and
+standalone protocol diagnostics/completion; seven native cache checks plus the
+repaired standalone-run cleanup case; two runtime cache checks. The actual native
+window becomes visible and accepts 800/480/640-width resize operations. Screenshot
+capture is unavailable, so do not claim pixel inspection. The first optimized
+support compilation took 255.7 seconds. A later unchanged dev build took 115 ms,
+and a real page edit took 3.586 seconds with runtime reuse. These are diagnostic
+samples, not controlled benchmarks. The original artifact was 305,877,497 bytes;
+the interim 512 MiB runtime cache admits it. The final cache policy remains part of
+the researched contract rather than another arbitrary limit increase.
+
+The standalone project now uses `app/page.tsrx`; its owner-added Decrement handler
+and styling were preserved during checks. One earlier diagnostic run reports
+sourceRestored=false because the owner edited the page concurrently; the checker
+did not overwrite those edits. The final warm check restores its own edit exactly.
+Retain original failures and repairs in canonical SQLite under `tsrust-ui-*`.
+Reuse accepted lifetime/input/SQL evidence. No full regression or timing matrix was
+started. Continue with the whole application workflow, then real editable controls
+and routing; do not substitute more counter micro-optimizations.
+
+
 ## Standalone UI project and installed editor — accepted 2026-10-18
 
 Created `/Users/seancotter/Desktop/dev/learning/tsrust-counter` with `tsrust new`.

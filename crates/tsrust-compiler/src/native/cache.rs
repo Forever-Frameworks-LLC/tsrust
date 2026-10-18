@@ -14,6 +14,7 @@ fn checksum(bytes: &[u8]) -> [u8; 8] {
 pub struct NativeCache {
     directory: PathBuf,
     identity: Vec<u8>,
+    budget: u64,
 }
 impl NativeCache {
     pub fn new(root: &Path, fields: &[&[u8]]) -> Self {
@@ -27,7 +28,14 @@ impl NativeCache {
         Self {
             directory: root.join("v2").join(format!("{:016x}", hash.finish())),
             identity,
+            budget: 256 * 1024 * 1024,
         }
+    }
+    /// GPU runtime dependency metadata exceeds the application cache's budget.
+    pub fn runtime(root: &Path, fields: &[&[u8]]) -> Self {
+        let mut cache = Self::new(root, fields);
+        cache.budget = 512 * 1024 * 1024;
+        cache
     }
     pub fn lookup(&self) -> Option<PathBuf> {
         let executable = self
@@ -73,7 +81,7 @@ impl NativeCache {
         }
         entries.sort();let mut count=entries.len();
         for (_,_,path,size) in entries {
-            if count<=32 && total<=256*1024*1024 {break;}
+            if count<=32 && total<=self.budget {break;}
             std::fs::remove_dir_all(path)?;count-=1;total=total.saturating_sub(size);
         }
         Ok(())
@@ -92,7 +100,7 @@ impl NativeCache {
         // legacy per-artifact lock inodes, which must never be removed under them.
         let _lock=self.lock(wait)?;
         self.prune()?;
-        if std::fs::metadata(executable)?.len().saturating_add(self.identity.len() as u64+8)>256*1024*1024{return Ok(());}
+        if std::fs::metadata(executable)?.len().saturating_add(self.identity.len() as u64+8)>self.budget{return Ok(());}
         if self.lookup().is_some(){let _=std::fs::write(self.directory.join("used"),[]);return Ok(());}
         let stamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)

@@ -171,5 +171,14 @@ test('real TextMate tokenization covers lexer syntax and multiline state', async
     assert.ok(scopes.includes(scope), `${line}: ${scopes}`);
     if (word !== "';'") assert.ok(!scopes.includes('string.quoted.single.tsrust'), line);
   }
+  let jsxState;
+  for (const line of ['return (', '  <View>', '    <View><Text>Count</Text><Button onPress={() => { count.set(1); }}>Add</Button></View>', '  </View>', ');']) {
+    const result = grammar.tokenizeLine(line, jsxState);
+    jsxState = result.ruleStack;
+    for (const match of line.matchAll(/<\/?(View|Text|Button)\b/g)) {
+      const offset = match.index + match[0].indexOf(match[1]);
+      assert.ok(result.tokens.find(t => t.startIndex <= offset && t.endIndex > offset)?.scopes.includes('entity.name.function.tsrust'), line);
+    }
+  }
   registry.dispose();
 });

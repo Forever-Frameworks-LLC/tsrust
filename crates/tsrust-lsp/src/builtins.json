@@ -13959,7 +13959,7 @@
           "documentation": "children is an ordered string array. disabled defaults to false; enabled buttons require an owned onPress callback. className defaults to empty."
         }
       ],
-      "documentation": "Creates a semantic button with a retained synchronous onPress handler. Pointer click, Enter and Space activate enabled buttons. Disabled buttons never invoke their handler. Unknown/conflicting utilities and enabled buttons without a handler throw. Handler failures stop native execution and return UiError; browser failures retire the tree and remain available through its mount error. Example: <Button onPress={() => { count.set(count.get() + 1); }}>Increment</Button>. Ownership: consumes props and the handler environment; captures are released with the subtree."
+      "documentation": "Creates a semantic button with a retained synchronous onPress handler. Text is centered within its padding. The rounded utility shapes both the button and its native focus outline. Pointer click, Enter and Space activate enabled buttons. Disabled buttons never invoke their handler. Unknown/conflicting utilities and enabled buttons without a handler throw. Handler failures stop native execution and return UiError; browser failures retire the tree and remain available through its mount error. Example: <Button onPress={() => { count.set(count.get() + 1); }}>Increment</Button>. Ownership: consumes props and the handler environment; captures are released with the subtree."
     },
     {
       "name": "document",

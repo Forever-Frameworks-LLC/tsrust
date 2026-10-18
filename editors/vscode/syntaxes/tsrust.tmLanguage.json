@@ -576,7 +576,16 @@
       },
       "end": "(/>)|(</)(\\2)(>)",
       "endCaptures": {
-        "0": {
+        "1": {
+          "name": "punctuation.definition.tag.end.tsrust"
+        },
+        "2": {
+          "name": "punctuation.definition.tag.begin.tsrust"
+        },
+        "3": {
+          "name": "entity.name.function.tsrust"
+        },
+        "4": {
           "name": "punctuation.definition.tag.end.tsrust"
         }
       },
@@ -620,7 +629,16 @@
       },
       "end": "(/>)|(</)(\\2)(>)",
       "endCaptures": {
-        "0": {
+        "1": {
+          "name": "punctuation.definition.tag.end.tsrust"
+        },
+        "2": {
+          "name": "punctuation.definition.tag.begin.tsrust"
+        },
+        "3": {
+          "name": "entity.name.function.tsrust"
+        },
+        "4": {
           "name": "punctuation.definition.tag.end.tsrust"
         }
       },

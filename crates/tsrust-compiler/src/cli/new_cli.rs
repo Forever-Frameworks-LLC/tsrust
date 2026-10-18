@@ -3,8 +3,10 @@ use super::project_config::{FILE,valid_name};
 
 pub fn run(args:impl Iterator<Item=String>)->Result<u8,String> {
     let args=args.collect::<Vec<_>>();
-    if args.len()!=1 || args[0].starts_with('-') {return Err("Usage: tsrust new <name-or-path>".into());}
-    let root=PathBuf::from(&args[0]);
+    let ui=args.iter().filter(|arg|arg.as_str()=="--ui").count()==1;
+    let paths=args.iter().filter(|arg|!arg.starts_with('-')).collect::<Vec<_>>();
+    if paths.len()!=1 || args.len()!=1+usize::from(ui) {return Err("Usage: tsrust new <name-or-path> [--ui]".into());}
+    let root=PathBuf::from(paths[0]);
     let name=root.file_name().and_then(|value|value.to_str()).filter(|name|valid_name(name))
         .ok_or("Project name must start with a letter and contain only ASCII letters, digits, '_' or '-' (maximum 100 characters)")?;
     // Exclusive creation protects existing files, directories and symlinks.
@@ -15,12 +17,34 @@ pub fn run(args:impl Iterator<Item=String>)->Result<u8,String> {
     fs::write(root.join(FILE),format!("{}\n",serde_json::to_string_pretty(&config).unwrap())).map_err(|e|e.to_string())?;
     let greeting=format!("export function greeting():string{{return \"Hello from {name}!\";}}");
     let test=format!("import {{greeting}} from '../src/greeting.tsr';import {{test,strictEqual}} from 'std:testing';test('greets by project name',():void=>{{strictEqual(greeting(),\"Hello from {name}!\");}});");
-    for (path,source) in [("src/main.tsr","import {greeting} from './greeting.tsr';function main(){console.log(greeting());}"),("src/greeting.tsr",greeting.as_str()),("tests/greeting.test.tsr",test.as_str())] {
+    let sources=if ui {
+        fs::create_dir(root.join("app")).map_err(|e|e.to_string())?;
+        vec![("src/main.tsr", UI_MAIN), ("app/page.tsrx", UI_PAGE), ("tests/page.test.tsr", UI_TEST)]
+    } else { vec![("src/main.tsr","import {greeting} from './greeting.tsr';function main(){console.log(greeting());}"),("src/greeting.tsr",greeting.as_str()),("tests/greeting.test.tsr",test.as_str())] };
+    for (path,source) in sources {
         let formatted=tsrust_compiler::format(source).map_err(|error|format!("Cannot format scaffold: {}",error.message))?;
         fs::write(root.join(path),formatted).map_err(|e|e.to_string())?;
     }
     fs::write(root.join(".gitignore"),"/target/\n").map_err(|e|e.to_string())?;
     fs::write(root.join("README.md"),format!("# {name}\n\nRun `tsrust dev` to rebuild and restart on source changes.\n\n- `tsrust run`: run once.\n- `tsrust build`: build the configured binary.\n- `tsrust check`: check project sources.\n- `tsrust test`: run project tests.\n- `tsrust format`: format project sources.\n\nThe nearest `{FILE}` defines the project root, entry and output.\nA `main` entrypoint is optional; this template includes one to print a greeting.\n")).map_err(|e|e.to_string())?;
+    if ui {
+        fs::write(root.join("README.md"), format!("# {name}\n\nRun `tsrust dev` to open the native UI and restart after edits.\n\n`tsrust.config.json` declares `src/main.tsr` as the executable entry. That visible bootstrap mounts `Page` from `app/page.tsrx`, the root screen convention. Put application state and handlers in components, or import them from ordinary source modules.\n\n`tsrust check`, `tsrust test` and `tsrust format --check` validate this project. `tsrust build` writes the configured executable.\n\nThis scaffold implements one root page. Nested route discovery, layouts, loaders, navigation, input editing and async UI remain unfinished; naming another file does not wire it into this explicit bootstrap.\n")).map_err(|e|e.to_string())?;
+    }
     println!("Created {}.\nRun `tsrust dev` from that directory.",root.display());
     Ok(0)
 }
+
+const UI_MAIN: &str = "import { run } from 'std:ui';import { Page } from '../app/page';function main(){unwrap(run(Page(), 'Tsrust UI'));}";
+const UI_PAGE: &str = r#"import { View, Text, Button, signal, Node } from 'std:ui';
+export function Page(): Node {
+  const count = signal(0);
+  const increment = () => { count.set(count.get() + 1); };
+  return (
+    <View className="gap-4 p-4 bg-background">
+      <Text className="text-xl font-bold">Count: {count}</Text>
+      <Button onPress={increment} className="bg-primary text-primary-foreground rounded">Increment</Button>
+    </View>
+  );
+}
+"#;
+const UI_TEST: &str = "import { Page } from '../app/page';import { document } from 'std:ui';import { test, strictEqual } from 'std:testing';test('renders root page', (): void => {const html = document(Page(), 'UI');strictEqual(html.includes('Count: 0'), true);});";

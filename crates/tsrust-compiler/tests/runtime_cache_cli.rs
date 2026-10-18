@@ -15,3 +15,16 @@ fn application_edits_reuse_runtime_but_optimization_changes_do_not() {
  }
  assert_eq!(fs::read_dir(cache.join("runtime/v2")).unwrap().filter(|entry|entry.as_ref().unwrap().path().is_dir()).count(),2,"one runtime per optimization profile");
 }
+
+#[test]
+fn repeated_project_runs_reuse_default_persistent_cache() {
+ let dir=support::TempDirectory::new();
+ support::success(&support::run(support::cli().current_dir(&dir.0).args(["new","counter"]),20));
+ let root=dir.0.join("counter");
+ for expected in ["cache=miss", "cache=hit"] {
+  let output=support::run(support::cli().current_dir(&root).arg("run").env_remove("TSRUST_CACHE_DIR").env("TSRUST_BUILD_TIMINGS","1"),60);
+  support::success(&output);
+  assert!(String::from_utf8_lossy(&output.stderr).contains(expected),"{}",String::from_utf8_lossy(&output.stderr));
+  assert_eq!(output.stdout,b"Hello from counter!\n");
+ }
+}

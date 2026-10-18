@@ -62,3 +62,8 @@ compiler/LSP regressions or performance timing was rerun. Generated static `.tsr
 Browser pointer/keyboard/disposal and native keyboard/AccessKit action witnesses
 pass for the counter. Pixel comparison, OS input automation and screen-reader
 sessions remain unverified.
+
+Buttons center text within their padding on both renderers. The native focus
+outline follows the button's rounded geometry. Native layout uses the current
+logical viewport width; resizing repaints from that size during the resize event,
+without changing font sizes or accumulated scale factors.

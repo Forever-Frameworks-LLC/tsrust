@@ -22,6 +22,8 @@ The compiler, acceptance tests, and handwritten-witness checks are all Rust. Car
 
 ```sh
 tsrust new hello
+# Native UI project with app/page.tsrx:
+# tsrust new counter --ui
 cd hello
 tsrust dev
 ```

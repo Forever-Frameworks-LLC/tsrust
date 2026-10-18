@@ -31,7 +31,7 @@ impl Prepared {
   let Some(runtime)=units.runtime else{return Ok(Self{application,library:None,command:None,state:"none",cache:None,opportunistic,dependencies:None,packed:None});};
   if units.dependencies {return Self::with_dependencies(application,&runtime,backend,root,temporary,release,opportunistic);}
   let library=temporary.join("libtsrust_runtime.rlib");
-  let cache=NativeCache::new(&root.join("runtime"),&[b"runtime-rlib-abi-1",backend.as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),if release{b"release"}else{b"debug"},b"edition=2024;overflow-checks=on;crate=tsrust_runtime",runtime.as_bytes()]);
+  let cache=NativeCache::runtime(&root.join("runtime"),&[b"runtime-rlib-abi-1",backend.as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),if release{b"release"}else{b"debug"},b"edition=2024;overflow-checks=on;crate=tsrust_runtime",runtime.as_bytes()]);
   let reused=if opportunistic{cache.try_copy_to(&library)}else{cache.copy_to(&library)};
   let command=if reused {None}else{
    let input=temporary.join("runtime.rs");fs::write(&input,runtime).map_err(|e|e.to_string())?;
@@ -41,7 +41,7 @@ impl Prepared {
  }
  fn with_dependencies(application:PathBuf,runtime:&str,backend:&str,root:&Path,temporary:&Path,release:bool,opportunistic:bool)->Result<Self,String> {
   use crate::native_dependency_bundle as bundle;
-  let cache=NativeCache::new(&root.join("runtime"),&[b"runtime-dependencies-abi-2",bundle::IDENTITY.as_bytes(),backend.as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),if release{b"release"}else{b"debug"},runtime.as_bytes()]);
+  let cache=NativeCache::runtime(&root.join("runtime"),&[b"runtime-dependencies-abi-3-ui-profile",bundle::IDENTITY.as_bytes(),backend.as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),if release{b"release"}else{b"debug"},runtime.as_bytes()]);
   let packed=temporary.join("runtime-artifacts");let restored=temporary.join("dependencies");
   let copied=if opportunistic{cache.try_copy_to(&packed)}else{cache.copy_to(&packed)};
   if copied && bundle::unpack(&packed,&restored).is_ok() {
@@ -50,7 +50,8 @@ impl Prepared {
   let package=temporary.join("native-support");bundle::materialize(&package).map_err(|e|e.to_string())?;
   crate::rust_binding_packages::overlay(&package,&crate::rust_binding_packages::packages(runtime)?)?;
   let manifest=package.join("Cargo.toml");let mut text=fs::read_to_string(&manifest).map_err(|e|e.to_string())?;
-  text.push_str("\n[lib]\nname = \"tsrust_runtime\"\n[profile.dev]\noverflow-checks = true\n[profile.release]\noverflow-checks = true\n");
+  text.push_str("\n[lib]\nname = \"tsrust_runtime\"\n");
+  text.push_str(profiles(runtime.contains("pub mod tsrust_native_ui {") && runtime.contains("use vello::")));
   fs::write(&manifest,text).map_err(|e|e.to_string())?;fs::write(package.join("src/lib.rs"),runtime).map_err(|e|e.to_string())?;
   let target=temporary.join("native-target");let profile=target.join(if release{"release"}else{"debug"});
   let mut command=crate::backend_cargo_command();command.current_dir(&package).args(["build","--offline","--locked","--lib","--manifest-path"]).arg(&manifest)
@@ -79,4 +80,10 @@ impl Prepared {
    if crate::native_dependency_bundle::pack(library,dependencies,packed).is_err(){return;}packed
   }else{library};let _=if self.opportunistic{cache.try_publish(artifact)}else{cache.publish(artifact)};}}
  pub fn link(&self,command:&mut Command) {if let Some(dependencies)=&self.dependencies {command.arg("-L").arg(format!("dependency={}",dependencies.display()));}if let Some(library)=&self.library {command.arg("--extern").arg(format!("tsrust_runtime={}",library.display()));}}
+}
+
+/// UI rendering must remain responsive in development; omit bulky dependency debug symbols.
+pub(crate) fn profiles(native_ui: bool) -> &'static str {
+ if native_ui {"\n[profile.dev]\noverflow-checks = true\nincremental = false\ndebug = false\nopt-level = 1\n[profile.dev.package.\"*\"]\nopt-level = 2\ndebug = false\n[profile.release]\noverflow-checks = true\nincremental = false\n"}
+ else {"\n[profile.dev]\noverflow-checks = true\nincremental = false\n[profile.release]\noverflow-checks = true\nincremental = false\n"}
 }

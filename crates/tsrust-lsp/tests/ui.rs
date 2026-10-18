@@ -20,3 +20,15 @@ fn counter_state_help_explains_checked_updates_and_ownership() {
         let hover=session.hover("main.tsr",source,source.find(needle).unwrap()).unwrap_or_default();assert!(hover.contains(expected),"{hover}");
     }
 }
+
+#[test]
+fn root_page_import_supports_navigation_and_button_behavior_help() {
+    let page="import {Button,Node} from 'std:ui';export function Page():Node{return <Button disabled>Ready</Button>;}";
+    let main="import {Page} from '../app/page';import {run} from 'std:ui';function main(){unwrap(run(Page(),'UI'));}";
+    let mut session=support::session::Session::start(&[("app/page.tsrx",page),("src/main.tsr",main)]);
+    session.open("app/page.tsrx",page);session.open("src/main.tsr",main);session.settle();
+    let help=session.hover("app/page.tsrx",page,page.find("Button disabled").unwrap()).unwrap_or_default();
+    assert!(help.contains("centered") && help.contains("focus outline"),"{help}");
+    let help=session.hover("src/main.tsr",main,main.find("Page(),'UI'").unwrap()).unwrap_or_default();
+    assert!(help.contains("Node"),"{help}");
+}
