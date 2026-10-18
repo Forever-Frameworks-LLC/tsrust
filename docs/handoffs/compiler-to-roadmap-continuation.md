@@ -1,5 +1,20 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
+## Generic interface inheritance — 2026-10-18
+
+Explicit generic interface bases now support local/imported definitions, aliases,
+multiple/chained bases, optional and nested fields. Wrong arity, cycles, duplicate
+fields and unknown unused arguments reject; nominal ownership is unchanged.
+Compiler-derived editor fields include project and incomplete-member recovery.
+Focused acceptance: six interface tests, six retained-project-session tests,
+three interface editor tests, agreement for InheritedItem, its four-mode completion
+row, and 17 editor consistency checks. The unchanged interface oracle passes eight
+native/Node untimed cases; no timing or SQL rerun. See
+[acceptance](../plans/generic-interface-inheritance-acceptance.md).
+Continue CLI usability, ordinary HTTP APIs and UI foundations under the owner's
+readiness correction below; this closes only generic interface inheritance.
+
+
 ## Owner correction — language and framework readiness, 2026-10-18
 
 Continue basic language completeness, CLI usability, Hono-style API coverage and

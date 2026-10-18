@@ -1,5 +1,7 @@
 type int=number;
-interface Named { name: string; }
+interface NamedValue<T> { name: T; }
+interface Named extends NamedValue<string> {}
+
 interface Positioned { x: int; y?: int }
 interface Player extends Named, Positioned { score: int, }
 function describe(player: Player): string { return player.name + ":" + String(player.x + (player.y ?? 0)) + ":" + String(player.score); }

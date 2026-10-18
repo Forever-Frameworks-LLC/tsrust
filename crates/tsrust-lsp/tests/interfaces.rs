@@ -41,3 +41,30 @@ fn interfaces_have_symbols_fields_and_inherited_members() {
         assert!(items.as_array().unwrap().iter().any(|item| item["label"] == field), "{field}: {items}");
     }
 }
+
+#[test]
+fn generic_inherited_members_use_substituted_compiler_types() {
+    let source="interface Box<T>{value:T;} interface Item extends Box<string>{count:int;} function main(){const item:Item={value:\"ok\",count:2};console.log(item.value);}";
+    assert!(tsrust_compiler::check(source).is_ok());
+    let index=SourceIndex::new(source);
+    let hover=index.request("textDocument/hover",&json!({"position":position(source,source.find("value);").unwrap())}),"file:///generic.tsr").unwrap();
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("value: string"),"{hover}");
+    let typed=source.replace("console.log(item.value);}","item.");
+    let items=SourceIndex::new(&typed).request("textDocument/completion",&json!({"position":position(&typed,typed.len())}),"file:///generic.tsr").unwrap();
+    for field in ["value","count"] {assert!(items.as_array().unwrap().iter().any(|item|item["label"]==field),"{items}");}
+}
+
+#[test]
+fn imported_generic_inheritance_has_project_member_types() {
+    use tsrust_lsp::{project_diagnostics::source_id,project_intelligence::ProjectIndex,workspace::Workspace};
+    let uri="file:///generic-inheritance/main.tsr";
+    let source="import {Base as Imported} from './base.tsr'; interface Item extends Imported<string>{count:int;} function main(){const item:Item={value:\"ok\",count:2};console.log(item.value);}";
+    let mut workspace=Workspace::default();
+    workspace.open(source_id("file:///generic-inheritance/base.tsr").unwrap(),1,"export interface Base<T>{value:T;}".into());
+    let entry=source_id(uri).unwrap();workspace.open(entry.clone(),1,source.into());
+    let checked=workspace.snapshot().check(&entry).unwrap();let index=ProjectIndex::checked(&checked);
+    let hover=index.request("textDocument/hover",&json!({"position":position(source,source.find("value);").unwrap())}),uri).unwrap().unwrap();
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("value: string"),"{hover}");
+    let completion=index.request("textDocument/completion",&json!({"position":position(source,source.find("value);").unwrap())}),uri).unwrap().unwrap();
+    for name in ["value","count"]{assert!(completion.as_array().unwrap().iter().any(|item|item["label"]==name),"{completion}");}
+}

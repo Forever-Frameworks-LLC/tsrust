@@ -177,6 +177,7 @@ fn rows() -> Vec<Row> {
         row(Kind::ImportedValue, "imported function prefix", "sca", &["scale"], &[]),
         row(Kind::ImportedMember, "member of an imported function's result", "start.", &["x", "y"], NOT_MEMBERS),
         row(Kind::ImportedMember, "member through a new local", "const moved = scale(start, 2);\n  moved.", &["x", "y"], NOT_MEMBERS),
+        Row { kind: Kind::RecordField, name: "generic inherited field", before: "interface Base<T>{value:T;} interface Item extends Base<string>{count:int;} function main(){const item:Item={value:\"ok\",count:1};".into(), typed: "item.", after: "value;}", includes: &["value","count"], excludes: &["function","const"], silent: None, needs_check: true },
         row(Kind::RecordField, "record field", "item.", &["id", "name"], NOT_MEMBERS),
         row(Kind::ArrayMember, "array member", "values.", &["length", "map", "push"], NOT_MEMBERS),
         row(Kind::ArrayMember, "new array local", "const fresh = [1, 2];\n  fresh.", &["length", "map"], NOT_MEMBERS),

@@ -19,7 +19,7 @@ Current compiler probes establish these remaining gaps:
 
 | Construct | Observed result | Follow-up |
 | --- | --- | --- |
-| `interface Named extends Box<int>` | Explicit unsupported diagnostic | Support generic base substitution with inherited field ownership and editor agreement |
+| `interface Named extends Box<int>` | Implemented after the baseline probe; focused acceptance passes | See [generic inheritance acceptance](generic-interface-inheritance-acceptance.md) |
 | Interface method signature `name(): string` | Explicit unsupported diagnostic | Evaluate lowering to existing callable fields; define receiver behavior before claiming methods |
 | Class declaration | Generic `Expected ";"` diagnostic | Improve unsupported-syntax diagnostics; classes are not silently provided by native constructors |
 | `keyof Item` | Generic `Expected ";"` diagnostic | Inventory type operators needed by framework authors before a bounded implementation |

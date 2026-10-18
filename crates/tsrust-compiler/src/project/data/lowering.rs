@@ -97,7 +97,7 @@ pub(crate) fn program(value: &Value, identity: &str) -> Result<crate::syntax::Pr
     let span = value.span;
     Ok(Program {
         diagnostic_first: None, diagnostic_skips: Default::default(), diagnostic_contracts: Default::default(), unresolved_local_function: None,
-        local_declarations: vec![], local_capture_plans: vec![], type_argument_checks: vec![], call_type_arguments: vec![],
+        local_declarations: vec![], local_capture_plans: vec![], interface_argument_checks: vec![], type_argument_checks: vec![], call_type_arguments: vec![],
         module_bindings: vec![],
         module_owner_bindings: vec![],
         records: lowered.records, type_aliases: Default::default(), unresolved_bases: vec![],

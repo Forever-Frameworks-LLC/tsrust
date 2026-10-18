@@ -408,12 +408,17 @@ impl SourceIndex {
                 symbol.docs = source.docs.clone();
             }
         }
-        for (owner,name,original_span,ty) in &facts.rest_record_fields {
+        for (owner,name,original_span,ty,optional) in &facts.record_fields {
             let mut span=*original_span;
             if let Some((start,added,original_end))=inserted {
                 if span.end<=start {}else if span.start>=start+added && span.end<=original_end+added{span.start-=added;span.end-=added;}else{continue;}
             }
-            self.symbols.push(Symbol{name:name.clone(),kind:8,span,extent:span,scope:0,ty:ty.clone(),signature:format!("{name}: {ty}"),docs:String::new(),parameters:Vec::new(),owner:Some(owner.clone())});
+            let signature=format!("{name}{}: {ty}",if *optional{"?"}else{""});
+            if let Some(symbol)=self.symbols.iter_mut().find(|symbol|symbol.kind==8 && symbol.owner.as_deref()==Some(owner.as_str()) && symbol.name==*name){
+                symbol.ty=ty.clone();symbol.signature=signature;
+            }else{
+                self.symbols.push(Symbol{name:name.clone(),kind:8,span,extent:span,scope:0,ty:ty.clone(),signature,docs:String::new(),parameters:Vec::new(),owner:Some(owner.clone())});
+            }
         }
         let mut optional = std::collections::BTreeMap::<(usize, usize), Option<String>>::new();
         let mut parameter_types =

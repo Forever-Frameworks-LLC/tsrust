@@ -1,0 +1,23 @@
+interface Box<T> {
+  value: T;
+  optional?: T;
+}
+
+interface Label {
+  label: string;
+}
+
+interface Nested<U> extends Box<U[]>, Label {
+  count: int;
+}
+
+interface Concrete extends Nested<int> {
+  enabled: boolean;
+}
+
+function main() {
+  const item: Concrete = {
+    value: [4, 5], label: "ready", count: 3, enabled: true
+  };
+  console.log(item.value[0] + item.value[1], item.label, item.count);
+}

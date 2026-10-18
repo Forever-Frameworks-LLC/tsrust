@@ -233,6 +233,21 @@ impl SourceIndex {
         facts: &ProjectCheckedTypeFacts,
         dependencies: &std::collections::BTreeMap<SourceId, SourceIndex>,
     ) {
+        for (owner,name,location,ty,optional) in &facts.record_fields {
+            let Some(owner)=self.project_type_spelling(graph,current,owner,dependencies) else{continue;};
+            let Some(ty)=self.project_type_spelling(graph,current,ty,dependencies) else{continue;};
+            let signature=format!("{name}{}: {}",if *optional{"?"}else{""},self.display_type(&ty));
+            if let Some(symbol)=self.symbols.iter_mut().find(|symbol|symbol.kind==8 && symbol.owner.as_deref()==Some(owner.as_str()) && symbol.name==*name){symbol.ty=ty;symbol.signature=signature;}
+            else {
+                let span=if location.source==*current{location.span}else{Span::new(0,0)};
+                let id=self.symbols.len();
+                self.symbols.push(Symbol{name:name.clone(),kind:8,span,extent:span,scope:0,ty,signature,docs:String::new(),parameters:Vec::new(),owner:Some(owner)});
+                if location.source!=*current && let Ok(uri)=crate::project_diagnostics::file_uri(&location.source){
+                    let source=graph.modules[&location.source].checked_source();
+                    if let Ok(range)=LineIndex::new(source).range(source,location.span){self.foreign_definitions.insert(id,json!({"uri":uri,"range":range}));}
+                }
+            }
+        }
         for (ty,base) in &facts.enum_scalars {if let Some(name)=self.project_type_spelling(graph,current,ty,dependencies){self.enum_scalar_types.insert(name,base.clone());}}
         self.apply_project_generic_facts(graph, current, &facts.generic_calls, &facts.generic_parameter_calls, dependencies);
         for (location, declaration) in facts.generic_values.iter().filter(|(location, _)| location.source == *current) {
@@ -470,6 +485,7 @@ impl SourceIndex {
         // declarations are unchanged. Do not expose invented probe expressions.
         let mut preceding=tsrust_compiler::project::ProjectCheckedTypeFacts::default();
         let before=|fact:&&tsrust_compiler::project::ProjectExpressionTypeInfo|fact.location.source==*id && fact.location.span.end<=start;
+        preceding.record_fields=facts.record_fields.iter().filter(|(_,_,location,_,_)|location.source!=*id || location.span.end<=start).cloned().collect();
         preceding.module_values=facts.module_values.iter().filter(before).cloned().collect();
         preceding.method_results=facts.method_results.iter().filter(before).cloned().collect();
         preceding.parameter_types=facts.parameter_types.iter().filter(before).cloned().collect();

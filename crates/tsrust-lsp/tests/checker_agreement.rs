@@ -28,6 +28,7 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
+Receiver {ty:"InheritedItem",parameter:"x: ReadOnly<InheritedItem>"},
 Receiver {ty:"CryptoError",parameter:"x: ReadOnly<CryptoError>"},
 Receiver {ty:"SignalError",parameter:"x: ReadOnly<SignalError>"},
 Receiver {ty:"SignalListener",parameter:"x: ReadOnly<SignalListener>"},
@@ -131,7 +132,8 @@ fn prelude(parameter: &str) -> String {
     let uuid=if parameter.contains("Uuid"){ "import {Uuid,UuidError} from 'std:uuid';\n" }else{""};
     let decimal=if parameter.contains("Decimal"){ "import {Decimal,DecimalError} from 'std:decimal';\n" }else{""};
     let cache=if parameter.contains("Cache"){ "import {LruCache,CacheEntry,CacheInsertError} from 'std:cache';\n" }else{""};
-    format!("{cache}{uuid}{date}{decimal}{numeric}{testing}{PRELUDE}")
+    let inherited=if parameter.contains("InheritedItem"){ "interface Parent<T>{value:T;} interface InheritedItem extends Parent<string>{count:int;}\n" }else{""};
+    format!("{inherited}{cache}{uuid}{date}{decimal}{numeric}{testing}{PRELUDE}")
 }
 
 fn diagnostic(body: &str, parameter: &str) -> Option<(String, String)> {

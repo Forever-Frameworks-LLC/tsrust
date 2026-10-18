@@ -87,3 +87,16 @@ fn cached_cli_preserves_single_file_semantics_and_entry_changes() {
  assert_eq!(check_input_cached(&path,&source,&mut session).ok().unwrap().emit_rust(),check_input(&path,&source).ok().unwrap().emit_rust());
  assert_eq!(session.stats().retained,0);assert_eq!(session.stats().headers_retained,0);
 }
+
+#[test]
+fn imported_generic_interface_edits_invalidate_inherited_fields() {
+ let dir=support::TempDirectory::new();let root=&dir.0;
+ write(root,"dep.tsr","export interface Base<T>{value:T;}");
+ write(root,"main.tsr","import {Base} from './dep.tsr';interface Item extends Base<int>{} function main(){const item:Item={value:7};console.log(item.value);}");
+ let path=root.join("main.tsr");let entry=path.to_str().unwrap();let mut session=ProjectSession::default();
+ assert!(session.check(&FileSourceProvider,entry).is_ok());compare(&mut session,entry);
+ write(root,"dep.tsr","export interface Base<T>{value:T[];}");compare(&mut session,entry);
+ assert!(session.check(&FileSourceProvider,entry).is_err());
+ write(root,"dep.tsr","export interface Base<T>{value:T;}");compare(&mut session,entry);
+ assert!(session.check(&FileSourceProvider,entry).is_ok());
+}

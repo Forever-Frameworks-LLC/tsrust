@@ -133,6 +133,7 @@ fn defaults(program:&mut crate::syntax::Program)->Result<(),crate::Diagnostic>{
  for record in &mut program.records{for field in &mut record.fields{visit(&mut field.annotation)?;}}
  for function in &mut program.functions{crate::source_walk::function_annotations(function,&mut visit)?;crate::source_walk::function_body(function,&mut visit,&mut |_|Ok(()))?;}
  for annotation in &mut program.type_argument_checks{visit(annotation)?;}
+ for (_,annotation) in &mut program.interface_argument_checks{visit(annotation)?;}
  for (_,arguments) in &mut program.call_type_arguments{for argument in arguments{visit(argument)?;}}
  crate::source_walk::body(&mut program.module_bindings,&mut visit,&mut |_|Ok(()))
 }

@@ -1767,6 +1767,7 @@ pub struct Program {
     pub(crate) unresolved_local_function: Option<Token>,
     pub(crate) local_declarations: Vec<crate::local_functions::Declaration>,
     pub(crate) local_capture_plans: Vec<crate::local_capture_plan::Plan>,
+    pub interface_argument_checks: Vec<(Vec<crate::type_syntax::TypeName>, crate::type_syntax::ValueAnnotation)>,
     pub type_argument_checks: Vec<crate::type_syntax::ValueAnnotation>,
     pub call_type_arguments: Vec<(Span, Vec<crate::type_syntax::ValueAnnotation>)>,
     pub records: Vec<Record>,
@@ -2086,7 +2087,7 @@ impl Parser<'_> {
     /// `interface Name<T> extends Base { field: Type; }` after the keyword.
     /// Fields end with `;` or `,`; the last separator is optional.
     #[inline(never)]
-    fn interface_declaration(&mut self) -> Result<(Record, Vec<Token>), Diagnostic> {
+    fn interface_declaration(&mut self) -> Result<(Record, Vec<(Token, Vec<crate::type_syntax::ValueAnnotation>)>), Diagnostic> {
         let name = self.name()?;
         if self.aliases.contains_key(&name.text) {
             return Err(Diagnostic::new(
@@ -2107,14 +2108,8 @@ impl Parser<'_> {
         if self.accept("extends") {
             loop {
                 let base = self.name()?;
-                if self.is("<") {
-                    return Err(Diagnostic::new(
-                        "unsupported",
-                        "An interface cannot extend a generic type with arguments. Declare the fields in this interface.",
-                        base.span,
-                    ));
-                }
-                bases.push(base);
+                let arguments=if self.is("<"){self.explicit_call_arguments()?}else{Vec::new()};
+                bases.push((base,arguments));
                 if !self.accept(",") {
                     break;
                 }
@@ -2161,13 +2156,13 @@ impl Parser<'_> {
     /// Puts the fields of each `extends` base in front of an interface's own
     /// fields, bases in written order. Bases may be declared later.
     #[inline(never)]
-    fn inherit_interface_fields(records: &mut [Record], mut pending: Vec<(Token, Vec<Token>)>, imported: &crate::type_aliases::ImportedRecords) -> Result<Vec<Token>, Diagnostic> {
+    fn inherit_interface_fields(records: &mut [Record], mut pending: Vec<(Token, Vec<(Token, Vec<crate::type_syntax::ValueAnnotation>)>)>, imported: &crate::type_aliases::ImportedRecords, checks: &mut Vec<(Vec<crate::type_syntax::TypeName>,crate::type_syntax::ValueAnnotation)>) -> Result<Vec<Token>, Diagnostic> {
         let mut unresolved = Vec::new();
         while !pending.is_empty() {
             let waiting = pending.iter().map(|(name, _)| name.text.clone()).collect::<Vec<_>>();
             let ready = pending
                 .iter()
-                .position(|(_, bases)| bases.iter().all(|base| !waiting.contains(&base.text)));
+                .position(|(_, bases)| bases.iter().all(|(base,_)| !waiting.contains(&base.text)));
             let Some(ready) = ready else {
                 let (name, _) = &pending[0];
                 return Err(Diagnostic::new(
@@ -2177,34 +2172,27 @@ impl Parser<'_> {
                 ));
             };
             let (name, bases) = pending.remove(ready);
+            let parameters=records.iter().find(|record|record.name.span==name.span).unwrap().type_parameters.clone();
             let mut inherited: Vec<RecordField> = Vec::new();
-            for base in &bases {
-                if let Some(fields) = imported.get(&base.text) {
-                    // Spans of another file mean nothing here; use the base name.
-                    inherited.extend(fields.iter().cloned().map(|mut field| {
-                        field.name.span = base.span;
-                        crate::type_aliases::respan(&mut field.annotation, base.span);
-                        field
-                    }));
-                    continue;
+            for (base,arguments) in &bases {
+                checks.extend(arguments.iter().cloned().map(|argument|(parameters.clone(),argument)));
+                let (parameters,fields,external)=if let Some((parameters,fields))=imported.get(&base.text) {
+                    (parameters,fields,true)
+                }else if let Some(found)=records.iter().find(|record|record.name.text==base.text && record.enum_definition.is_none() && record.map_definition.is_none() && record.set_definition.is_none()) {
+                    (&found.type_parameters,&found.fields,false)
+                }else{unresolved.push(base.clone());continue;};
+                if parameters.len()!=arguments.len(){
+                    return Err(Diagnostic::new("type-arguments",format!("Interface base {:?} requires {} type arguments, got {}.",base.text,parameters.len(),arguments.len()),base.span));
                 }
-                let Some(found) = records.iter().find(|record| {
-                    record.name.text == base.text
-                        && record.enum_definition.is_none()
-                        && record.map_definition.is_none()
-                        && record.set_definition.is_none()
-                }) else {
-                    unresolved.push(base.clone());
-                    continue;
-                };
-                if !found.type_parameters.is_empty() {
-                    return Err(Diagnostic::new(
-                        "unsupported",
-                        "An interface cannot extend a generic type. Declare the fields in this interface.",
-                        base.span,
-                    ));
+                let bindings=parameters.iter().zip(arguments).map(|(parameter,argument)|(parameter.text.clone(),argument.clone())).collect();
+                for mut field in fields.iter().cloned(){
+                    if external {
+                        field.name.span=base.span;
+                        crate::type_aliases::respan(&mut field.annotation,base.span);
+                    }
+                    crate::type_substitution::apply(&mut field.annotation,&bindings)?;
+                    inherited.push(field);
                 }
-                inherited.extend(found.fields.iter().cloned());
             }
             let record = records
                 .iter_mut()
@@ -2300,6 +2288,7 @@ impl Parser<'_> {
             unresolved_local_function: None,
             local_declarations: Vec::new(),
             local_capture_plans: Vec::new(),
+            interface_argument_checks: Vec::new(),
             type_argument_checks: Vec::new(),
             type_aliases: Default::default(),
             unresolved_bases: Vec::new(),
@@ -2310,7 +2299,7 @@ impl Parser<'_> {
             module_owner_bindings: Vec::new(),
         };
         self.collect_type_aliases()?;
-        let mut interface_bases: Vec<(Token, Vec<Token>)> = Vec::new();
+        let mut interface_bases = Vec::new();
         while self.peek().kind != TokenKind::End {
             if self.accept("enum") {
                 program.records.push(self.enum_declaration(&program.records)?);
@@ -2431,7 +2420,7 @@ impl Parser<'_> {
         }
         program.unresolved_local_function = self.unresolved_local_function;
         program.call_type_arguments = self.call_type_arguments;
-        program.unresolved_bases = Self::inherit_interface_fields(&mut program.records, interface_bases, &self.imported_records)?;
+        program.unresolved_bases = Self::inherit_interface_fields(&mut program.records, interface_bases, &self.imported_records, &mut program.interface_argument_checks)?;
         program.type_aliases = self
             .local_aliases
             .iter()

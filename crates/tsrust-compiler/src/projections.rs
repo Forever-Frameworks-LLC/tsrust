@@ -90,8 +90,8 @@ pub struct CheckedTypeFacts {
     /// These do not authorize ordinary access or establish flow narrowing.
     pub optional_receivers: Vec<ProjectionInfo>,
     pub method_results: Vec<MethodResultInfo>,
-    /// Checked fields of synthesized rest records: owner, name, source span, type.
-    pub rest_record_fields: Vec<(String, String, Span, String)>,
+    /// Checked non-native record fields: owner, name, source span, type, optional.
+    pub record_fields: Vec<(String, String, Span, String, bool)>,
     pub generic_calls: Vec<GenericCallInfo>,
     pub generic_parameter_calls: Vec<GenericParameterCallInfo>,
 }
@@ -681,12 +681,12 @@ impl Analysis {
             spellings.sort(); spellings.dedup();
             parameter_results.extend(spellings.into_iter().map(|ty| ProjectionInfo { span: Span::new(start, end), ty }));
         }
-        let mut rest_record_fields=Vec::new();
-        for (id,record) in program.records.iter().enumerate().filter(|(_,record)|record.name.text.starts_with("rest#record")) {
+        let mut record_fields=Vec::new();
+        for (id,record) in program.records.iter().enumerate().filter(|(_,record)|record.native_type.is_none() && record.type_parameters.is_empty()) {
             let Some(owner)=type_name(program,Type::Record(id),&mut names) else{continue;};
             for field in &record.fields {
                 if let Some(ty)=field.ty.and_then(|ty|type_name(program,ty,&mut names)) {
-                    rest_record_fields.push((owner.clone(),field.name.text.clone(),field.name.span,ty));
+                    record_fields.push((owner.clone(),field.name.text.clone(),field.name.span,ty,field.optional));
                 }
             }
         }
@@ -695,7 +695,7 @@ impl Analysis {
             enum_scalars,
             json_string_receivers,
             generic_values,
-            rest_record_fields,
+            record_fields,
             identities,
             parameter_types: parameter_results,
             optional_receivers,

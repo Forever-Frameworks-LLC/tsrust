@@ -185,3 +185,24 @@ Research:
 * associated types
 * generic specialization
 Do not automatically add advanced type-system features unless they solve concrete application problems.
+
+## Generic interface inheritance
+
+An interface can extend a generic record or interface with explicit arguments:
+
+```typescript
+interface Box<T> { value: T; }
+interface NamedBox<U> extends Box<U> { name: string; }
+interface StringBox extends NamedBox<string> { length: int; }
+```
+
+Inherited fields use the supplied types, including nested arrays, optional fields
+and callable annotations. Bases may be declared later or imported under an alias;
+private field types retain their defining module identity. Multiple bases are
+expanded in written order before local fields. Duplicate fields and inheritance
+cycles reject, including cycles through generic bases. Every base requires exactly
+its declared number of type arguments.
+
+Inheritance composes fields; it does not introduce implicit base conversions,
+virtual methods, shared ownership or clones. Derived values remain nominal.
+Interface method declarations and generic parameter defaults remain unsupported.

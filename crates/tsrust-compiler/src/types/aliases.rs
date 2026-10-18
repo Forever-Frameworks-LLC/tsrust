@@ -147,4 +147,4 @@ pub(crate) fn respan(annotation: &mut ValueAnnotation, span: crate::Span) {
 
 /// Fields of record types that a module imports, under their local names,
 /// with every type name already in linked form.
-pub(crate) type ImportedRecords = HashMap<String, Vec<crate::syntax::RecordField>>;
+pub(crate) type ImportedRecords = HashMap<String, (Vec<crate::type_syntax::TypeName>, Vec<crate::syntax::RecordField>)>;

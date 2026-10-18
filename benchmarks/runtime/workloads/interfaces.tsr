@@ -1,6 +1,8 @@
-interface Named {
-  name: string;
+interface NamedValue<T> {
+  name: T;
 }
+
+interface Named extends NamedValue<string> {}
 
 interface Positioned {
   x: int;

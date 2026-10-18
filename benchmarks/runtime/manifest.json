@@ -19551,10 +19551,10 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": true,
       "measured": false,
-      "notes": "Gate 166: three interfaces, one extending two others with an optional inherited field; literals with and without that field read through a function. Five observed cells per scenario. Verified untimed; unmeasured, language milestone pending.",
+      "notes": "Generic inheritance continuation: four interfaces, with Named extending NamedValue<string> and Player extending two bases with an optional inherited field; literals with and without that field read through a function. Five observed cells per scenario. Verified untimed; unmeasured, language milestone pending.",
       "specification": "Declare interfaces with extends and an optional inherited field, build values of the derived and base types, and retain five cells.",
-      "sourceSha256": "8117b9af40e4fefe2582d41a8036b01ecc5ea457fa3eba3bd94a895ae90f63f3",
-      "counterpartSha256": "83097a2152ce50c5574830d2ac98a776d1d5534d7c912e8ffd9411e69feedd2d"
+      "sourceSha256": "189465ca2dac37372e66fd3a04eb92ba869e0acb92adc6f7504d234d0ac9195b",
+      "counterpartSha256": "26cd7e054eb897e203c14fca9431710611cf471d8826ef5458e90054f1d32d83"
     },
     {
       "id": "string_concatenation",

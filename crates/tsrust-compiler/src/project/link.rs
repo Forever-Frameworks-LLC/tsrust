@@ -338,18 +338,17 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         module_aliases.insert(id.clone(), exported);
         let mut record_fields = crate::type_aliases::ImportedRecords::new();
         for record in &program.records {
-            if record.type_parameters.is_empty()
-                && record.enum_definition.is_none()
+            if record.enum_definition.is_none()
                 && record.map_definition.is_none()
                 && record.set_definition.is_none()
             {
                 let mut fields = record.fields.clone();
                 for field in &mut fields {
                     crate::type_aliases::link_names(&mut field.annotation, &|name| {
-                        visible.get(name).cloned().unwrap_or_else(|| symbol(module, name))
+                        if record.type_parameters.iter().any(|parameter|parameter.text==name){name.to_owned()}else{visible.get(name).cloned().unwrap_or_else(|| symbol(module, name))}
                     });
                 }
-                record_fields.insert(record.name.text.clone(), fields);
+                record_fields.insert(record.name.text.clone(), (record.type_parameters.clone(),fields));
             }
         }
         module_records.insert(id.clone(), record_fields);
@@ -363,6 +362,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         unresolved_local_function: None,
         local_declarations: Vec::new(),
         local_capture_plans: Vec::new(),
+        interface_argument_checks: vec![],
         type_argument_checks: vec![],
         call_type_arguments: vec![],
         records: vec![],
@@ -426,6 +426,11 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
                 visitor.token_span(&mut field.name);
                 visitor.value_annotation(&mut field.annotation);
             }
+        }
+        for (parameters,argument) in &mut program.interface_argument_checks {
+            visitor.type_parameters=parameters.iter().map(|parameter|parameter.text.clone()).collect();
+            for parameter in parameters {visitor.span(&mut parameter.span);}
+            visitor.value_annotation(argument);
         }
         for (span, arguments) in &mut program.call_type_arguments {
             visitor.type_parameters = program.functions.iter().filter(|function| {
@@ -516,6 +521,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         linked.local_declarations.extend(program.local_declarations);
         linked.local_capture_plans.extend(program.local_capture_plans);
         linked.call_type_arguments.extend(program.call_type_arguments);
+        linked.interface_argument_checks.extend(program.interface_argument_checks);
         linked.module_bindings.extend(program.module_bindings);
         linked.records.extend(program.records);
         linked.functions.extend(program.functions);

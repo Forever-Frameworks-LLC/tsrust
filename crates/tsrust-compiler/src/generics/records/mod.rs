@@ -109,6 +109,9 @@ pub(crate) fn specialize_in(
             context.validate_template(&field.annotation, &template.type_parameters)?;
         }
     }
+    for (parameters,argument) in &program.interface_argument_checks {
+        context.validate_template(argument,parameters)?;
+    }
     unions.register_named_types(&context.records);
     let initial = context.records.len();
     for index in 0..initial {

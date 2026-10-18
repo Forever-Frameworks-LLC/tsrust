@@ -94,6 +94,7 @@ pub struct ProjectExpressionTypeInfo {
 /// receiver facts describe successful hops; they do not authorize ordinary access.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ProjectCheckedTypeFacts {
+    pub record_fields: Vec<(ProjectType, String, SourceLocation, ProjectType, bool)>,
     /// Program-owned declarations, with source identity preserved across imports.
     pub module_values: Vec<ProjectExpressionTypeInfo>,
     /// Enum identities retain their declaration across import aliases.
@@ -211,7 +212,17 @@ impl ProjectAnalysis {
                 if !self.analysis.program.module_owner_bindings.contains(&span) { return None; }
                 Some(ProjectExpressionTypeInfo { location: self.source_location(span)?, ty: self.project_type(binding.ty, &names)? })
             }).collect();
+        let mut record_fields=Vec::new();
+        for (id,record) in self.analysis.program.records.iter().enumerate().filter(|(_,record)|record.native_type.is_none() && record.type_parameters.is_empty()) {
+            let Some(owner)=self.project_type(Type::Record(id),&names) else{continue;};
+            for field in &record.fields {
+                if let (Some(location),Some(ty))=(self.source_location(field.name.span),field.ty.and_then(|ty|self.project_type(ty,&names))) {
+                    record_fields.push((owner.clone(),field.name.text.clone(),location,ty,field.optional));
+                }
+            }
+        }
         ProjectCheckedTypeFacts {
+            record_fields,
             module_values,
             enum_scalars,
             json_string_receivers: facts.json_string_receivers.iter().filter_map(|span|self.source_location(*span)).collect(),

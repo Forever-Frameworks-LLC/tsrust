@@ -25,7 +25,7 @@ fn program_text(result: Result<Program, Diagnostic>) -> String {
                 program.functions,
                 program.module_bindings,
                 program.call_type_arguments,
-                program.type_argument_checks,
+                (&program.type_argument_checks,&program.interface_argument_checks),
                 program.unresolved_bases,
                 program.unresolved_local_function,
                 aliases
