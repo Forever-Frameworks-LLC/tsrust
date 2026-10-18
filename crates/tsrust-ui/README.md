@@ -1,4 +1,4 @@
-# Static UI renderer foundation
+# UI renderer foundation
 
 The owner selected GPU-first Winit, Taffy and Vello on 2026-10-18. This crate
 implements a small owned semantic tree, semantic HTML output, native flex layout,
@@ -8,8 +8,8 @@ surface, renderer and adapter. There is no global window registry or worker API.
 
 The Rust example remains a renderer witness. Separately, `examples/ui-static` now
 constructs the same tree through checked `.tsrx` and `std:ui`: generated semantic
-HTML and a generated native GPU window pass focused acceptance. Interactive state,
-events and browser execution remain open. See the current compiler handoff.
+HTML and a generated native GPU window pass focused acceptance. The paired counter adds integer state, retained synchronous handlers and a bounded
+Wasm DOM backend. See the current compiler handoff for focused evidence and limits.
 
 ## Current contract
 
@@ -27,8 +27,9 @@ events and browser execution remain open. See the current compiler handoff.
   Pixel-identical fonts across platforms are not promised. Editing/IME is absent.
 - Native rendering uses the GPU without a silent CPU fallback. Surface loss or
   validation failure returns an error. Zero-size and occluded frames are skipped.
-- The static scene has no executable callbacks, request authority or asynchronous
-  state. Existing checked owner/handle contracts remain the future state boundary.
+- Interactive nodes retain synchronous handlers; weak handles never retain state.
+  Components own their integer state until disposal. Async UI and workers remain
+  unsupported; ordinary Text supports literal and bound children.
 
 ## Development commands
 
@@ -58,4 +59,6 @@ depth, Unicode/multiline labels, disabled semantics and scaled accessibility bou
 Original WGPU API mismatches and repaired results are retained in SQLite under
 `tsrust-ui-*`. Existing locked package versions were retained. No SQL, complete
 compiler/LSP regressions or performance timing was rerun. Generated static `.tsrx` HTML and native presentation are verified separately.
-Paired browser/native visual comparison and interactive accessibility remain open.
+Browser pointer/keyboard/disposal and native keyboard/AccessKit action witnesses
+pass for the counter. Pixel comparison, OS input automation and screen-reader
+sessions remain unverified.

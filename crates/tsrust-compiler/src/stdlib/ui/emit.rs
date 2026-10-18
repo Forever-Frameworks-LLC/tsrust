@@ -11,12 +11,28 @@ pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> Strin
         .position(|r| r.native_type == Some(NativeTypeId::UiNode))
         .unwrap();
     let NativeBackend::Bundled { symbol } = binding.backend;
+    let record=|kind|program.records.iter().position(|r|r.native_type==Some(kind)).unwrap();
+    match binding.name {
+        "signal"=>{let state=record(NativeTypeId::UiSignal);return format!("fn {symbol}(initial:i64)->Record{state}{{tsrust_native_ui::Signal::new(initial)}}\n");},
+        "handle"=>{let state=record(NativeTypeId::UiSignal);let handle=record(NativeTypeId::UiSignalHandle);return format!("fn {symbol}(state:&Record{state})->Record{handle}{{state.handle()}}\n");},
+        "add"=>{let handle=record(NativeTypeId::UiSignalHandle);return format!("fn {symbol}(handle:&Record{handle},delta:i64)->bool{{handle.add(delta)}}\n");},
+        _=>{}
+    }
     let (parameters,call)=match binding.name {
-        "text"|"disabledButton" => {
-            let kind=if binding.name=="text"{"Text"}else{"DisabledButton"};
+        "disabledButton" => {
+            let kind="DisabledButton";
             ("text:&String,class_name:&String".into(),format!("tsrust_native_ui::Node::new(tsrust_native_ui::Kind::{kind},class_name.as_ref().to_owned(),text.as_ref().to_owned(),Vec::new())"))
         }
         "view" => (format!("mut children:RecordArray{node},class_name:&String"),"{let mut nodes=Vec::with_capacity(children.len());while let Some(child)=children.pop(){nodes.push(child);}nodes.reverse();tsrust_native_ui::Node::new(tsrust_native_ui::Kind::View,class_name.as_ref().to_owned(),std::string::String::new(),nodes)}".into()),
+        "text" => {
+            let array=crate::native_binding_types::resolve(&program.records,&super::TEXT_CHILDREN).unwrap();
+            let Type::Array(element)=array else{unreachable!()};let Type::Union(union)=element.ty() else{unreachable!()};
+            let members=&program.unions[union.index()].members;
+            let literal=members.iter().position(|ty|*ty==Type::String).unwrap();let handle=members.iter().position(|ty|*ty==Type::Record(record(NativeTypeId::UiSignalHandle))).unwrap();
+            (format!("mut children:{},class_name:&String",crate::emit::ty(array)),format!("{{let mut parts=Vec::with_capacity(children.len());while let Some(child)=children.pop(){{parts.push(match child{{Union{}::V{literal}(text)=>tsrust_native_ui::TextPart::Literal(text.as_ref().to_owned()),Union{}::V{handle}(handle)=>tsrust_native_ui::TextPart::Signal(handle)}});}}parts.reverse();tsrust_native_ui::Node::text(parts,class_name.as_ref().to_owned())}}",union.index(),union.index()))
+        },
+        "ownState" => (format!("node:Record{node},state:Record{}",record(NativeTypeId::UiSignal)),"node.own_state(state)".into()),
+        "button" => ("text:&String,class_name:&String,disabled:bool,handler:impl FnMut()->Result<(),std::string::String>+'static".into(),"tsrust_native_ui::Node::button(text.as_ref().to_owned(),class_name.as_ref().to_owned(),disabled,handler)".into()),
         "document" => return format!("fn {symbol}(node:&Record{node},title:&String)->String{{String::Owned(tsrust_native_ui::document(node,title.as_ref()))}}\n"),
         "run" => (format!("node:Record{node},title:&String"),"tsrust_native_ui::run(node,title.as_ref().to_owned())".into()),
         _=>unreachable!(),

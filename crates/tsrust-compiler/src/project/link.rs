@@ -547,6 +547,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         linked.functions.push(entry);
     }
     if let Some(names) = globals.get(&SourceId("std:ui".into())) {
+        crate::stdlib::ui::retain_state(&mut linked,names).map_err(|value|diagnostic(&graph,&segments,value))?;
         crate::stdlib::ui::omit_unused(&mut linked, names)
             .map_err(|value| diagnostic(&graph, &segments, value))?;
     }

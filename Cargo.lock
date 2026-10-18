@@ -4304,10 +4304,13 @@ version = "0.1.0"
 dependencies = [
  "accesskit",
  "accesskit_winit",
+ "js-sys",
  "parley",
  "pollster",
  "taffy",
  "vello",
+ "wasm-bindgen",
+ "web-sys",
  "winit",
 ]
 

@@ -4228,6 +4228,7 @@ dependencies = [
  "http-body",
  "http-body-util",
  "hyper-util",
+ "js-sys",
  "matchit",
  "parley",
  "pollster",
@@ -4244,6 +4245,8 @@ dependencies = [
  "tokio-rustls",
  "uuid",
  "vello",
+ "wasm-bindgen",
+ "web-sys",
  "winit",
 ]
 

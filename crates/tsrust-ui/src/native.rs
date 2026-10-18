@@ -10,7 +10,8 @@ use vello::{AaConfig, RenderParams, Renderer, RendererOptions, Scene};
 use winit::{
     application::ApplicationHandler,
     dpi::LogicalSize,
-    event::WindowEvent,
+    event::{WindowEvent, ElementState, MouseButton},
+    keyboard::{Key, NamedKey},
     event_loop::{ActiveEventLoop, EventLoop},
     window::{Window, WindowId},
 };
@@ -60,7 +61,7 @@ impl Painter {
             ..Style::default()
         };
         let (mut background, mut radius) = (None, 0.);
-        if node.kind == Kind::DisabledButton {
+        if matches!(node.kind,Kind::DisabledButton|Kind::Button) {
             style.padding = Rect {
                 left: length(16.),
                 right: length(16.),
@@ -211,14 +212,13 @@ impl Painter {
         let mut node = accesskit::Node::new(match item.role {
             Kind::View => accesskit::Role::GenericContainer,
             Kind::Text => accesskit::Role::Label,
-            Kind::DisabledButton => accesskit::Role::Button,
+            Kind::DisabledButton | Kind::Button => accesskit::Role::Button,
         });
         if !item.label.is_empty() {
             node.set_label(item.label.clone());
         }
-        if item.disabled {
-            node.set_disabled();
-        }
+        if item.disabled { node.set_disabled(); }
+        else if item.role==Kind::Button {node.add_action(accesskit::Action::Click);node.add_action(accesskit::Action::Focus);}
         node.set_bounds(accesskit::Rect::new(
             x * scale,
             y * scale,
@@ -334,8 +334,9 @@ impl accesskit::ActivationHandler for InitialTree {
     }
 }
 struct NoActions;
-impl accesskit::ActionHandler for NoActions {
-    fn do_action(&mut self, _: accesskit::ActionRequest) {}
+struct Actions(winit::event_loop::EventLoopProxy<accesskit::ActionRequest>);
+impl accesskit::ActionHandler for Actions {
+    fn do_action(&mut self, action: accesskit::ActionRequest) { let _=self.0.send_event(action); }
 }
 impl accesskit::DeactivationHandler for NoActions {
     fn deactivate_accessibility(&mut self) {}
@@ -347,7 +348,26 @@ struct Active {
     renderer: Renderer,
     window: Arc<Window>,
 }
+fn keyboard(focus:&mut Option<u64>,pressed:&mut Option<u64>,ids:&[u64],shift:bool,key:&Key,state:ElementState,repeat:bool)->Option<u64> {
+    if repeat {return None;}
+    if state==ElementState::Pressed && *key==Key::Named(NamedKey::Tab) {
+        *pressed=None;
+        if !ids.is_empty(){let current=ids.iter().position(|id|Some(*id)==*focus);let next=match current {Some(i) if shift=>(i+ids.len()-1)%ids.len(),Some(i)=>(i+1)%ids.len(),None if shift=>ids.len()-1,None=>0};*focus=Some(ids[next]);}
+    } else if *key==Key::Named(NamedKey::Enter) && state==ElementState::Pressed {
+        return focus.filter(|id|ids.contains(id));
+    } else if *key==Key::Named(NamedKey::Space) {
+        if state==ElementState::Pressed {*pressed=*focus;}
+        else if let Some(id)=pressed.take(){if *focus==Some(id) && ids.contains(&id){return Some(id);}}
+    }
+    None
+}
 struct App {
+    proxy: winit::event_loop::EventLoopProxy<accesskit::ActionRequest>,
+    pointer: (f64,f64),
+    pressed: Option<u64>,
+    focus: Option<u64>,
+    shift: bool,
+    key_pressed: Option<u64>,
     close_after_frame: bool,
     presented: bool,
     deadline: Option<std::time::Instant>,
@@ -359,6 +379,21 @@ struct App {
     error: Option<String>,
 }
 impl App {
+    fn buttons(&self)->Vec<(u64,accesskit::Rect)> {
+        self.active.as_ref().map(|active|active.snapshot.lock().unwrap().nodes.iter()
+            .filter(|(_,n)|n.role()==accesskit::Role::Button && !n.is_disabled())
+            .filter_map(|(id,n)|n.bounds().map(|bounds|(id.0,bounds))).collect()).unwrap_or_default()
+    }
+    fn hit(&self)->Option<u64> {
+        self.buttons().into_iter().find(|(_,r)|self.pointer.0>=r.x0 && self.pointer.0<r.x1 && self.pointer.1>=r.y0 && self.pointer.1<r.y1).map(|(id,_)|id)
+    }
+    fn activate(&mut self,id:u64,event_loop:&ActiveEventLoop) {
+        match self.node.activate(id).and_then(|_|self.node.refresh()) {
+            Ok(_)=>if let Some(active)=&self.active {active.window.request_redraw();},
+            Err(error)=>self.fail(event_loop,error),
+        }
+    }
+
     fn fail(&mut self, event_loop: &ActiveEventLoop, error: impl ToString) {
         self.error = Some(error.to_string());
         self.active = None;
@@ -404,7 +439,7 @@ impl App {
             event_loop,
             &window,
             InitialTree(snapshot.clone()),
-            NoActions,
+            Actions(self.proxy.clone()),
             NoActions,
         );
         window.set_visible(true);
@@ -432,11 +467,15 @@ impl App {
                 .resize_surface(&mut active.surface, size.width, size.height);
         }
         let scale = active.window.scale_factor();
-        let (scene, mut snapshot) =
+        let (mut scene, mut snapshot) =
             self.painter
                 .scene(&self.node, (size.width as f64 / scale) as f32, scale)?;
         if let Some((_, root)) = snapshot.nodes.iter_mut().find(|(id, _)| id.0 == 0) {
             root.set_label(self.title.clone());
+        }
+        snapshot.focus=accesskit::NodeId(self.focus.unwrap_or(0));
+        if let Some(bounds)=self.focus.and_then(|focus|snapshot.nodes.iter().find(|(id,_)|id.0==focus)).and_then(|(_,node)|node.bounds()) {
+            scene.stroke(&vello::kurbo::Stroke::new(2.),Affine::IDENTITY,Color::from_rgb8(23,32,51),None,&vello::kurbo::Rect::new(bounds.x0,bounds.y0,bounds.x1,bounds.y1));
         }
         *active.snapshot.lock().unwrap() = snapshot.clone();
         active.accessibility.update_if_active(|| snapshot);
@@ -487,7 +526,17 @@ impl App {
         Ok(true)
     }
 }
-impl ApplicationHandler for App {
+impl ApplicationHandler<accesskit::ActionRequest> for App {
+    fn user_event(&mut self,event_loop:&ActiveEventLoop,request:accesskit::ActionRequest) {
+        if request.target_tree!=accesskit::TreeId::ROOT {return;}
+        if !self.buttons().iter().any(|(id,_)|*id==request.target_node.0) {return;}
+        match request.action {
+            accesskit::Action::Click=>self.activate(request.target_node.0,event_loop),
+            accesskit::Action::Focus=>{self.focus=Some(request.target_node.0);if let Some(active)=&self.active {active.window.request_redraw();}},
+            _=>{}
+        }
+    }
+
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
         if let Some(deadline) = self.deadline {
             if std::time::Instant::now() >= deadline {
@@ -523,6 +572,19 @@ impl ApplicationHandler for App {
             active.accessibility.process_event(&active.window, &event);
         }
         match event {
+            WindowEvent::CursorMoved{position,..}=>self.pointer=(position.x,position.y),
+            WindowEvent::ModifiersChanged(modifiers)=>self.shift=modifiers.state().shift_key(),
+            WindowEvent::Focused(false)=>{self.pressed=None;self.key_pressed=None;self.focus=None;},
+            WindowEvent::MouseInput{state,button:MouseButton::Left,..}=>{
+                if state==ElementState::Pressed {self.pressed=self.hit();self.focus=self.pressed;}
+                else if let Some(id)=self.pressed.take() {if self.hit()==Some(id){self.activate(id,event_loop);}}
+                if let Some(active)=&self.active {active.window.request_redraw();}
+            },
+            WindowEvent::KeyboardInput{event,..}=>{
+                let ids=self.buttons().into_iter().map(|(id,_)|id).collect::<Vec<_>>();
+                if let Some(id)=keyboard(&mut self.focus,&mut self.key_pressed,&ids,self.shift,&event.logical_key,event.state,event.repeat){self.activate(id,event_loop);}
+                if let Some(active)=&self.active {active.window.request_redraw();}
+            },
             WindowEvent::CloseRequested => {
                 self.active = None;
                 event_loop.exit();
@@ -556,8 +618,9 @@ pub fn verify_window(node: Node, title: String) -> Result<(), String> {
     run_window(node, title, true)
 }
 fn run_window(node: Node, title: String, close_after_frame: bool) -> Result<(), String> {
-    let event_loop = EventLoop::new().map_err(|e| e.to_string())?;
+    let event_loop = EventLoop::<accesskit::ActionRequest>::with_user_event().build().map_err(|e| e.to_string())?;
     let mut app = App {
+        proxy: event_loop.create_proxy(), pointer:(0.,0.),pressed:None,focus:None,shift:false,key_pressed:None,
         close_after_frame,
         presented: false,
         deadline: close_after_frame
@@ -628,5 +691,42 @@ mod tests {
                 assert_eq!(b.y0, a.y0 * 2.);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod interactive_accessibility_tests {
+    use super::*;
+    #[test]
+    fn enabled_buttons_offer_focus_and_click_with_updated_bound_labels() {
+        let state=crate::Signal::new(0);let action=state.handle();
+        let label=Node::bound_text(state.handle(),String::new()).unwrap();
+        let button=Node::button("Add".into(),String::new(),false,move||{action.add(1);Ok(())}).unwrap();
+        let mut root=Node::new(Kind::View,String::new(),String::new(),vec![label,button]).unwrap().own_state(state).unwrap();
+        let mut painter=Painter::new();
+        let (_,before)=painter.scene(&root,400.,1.).unwrap();
+        let button=&before.nodes.iter().find(|(_,node)|node.role()==accesskit::Role::Button).unwrap().1;
+        assert!(button.supports_action(accesskit::Action::Focus));assert!(button.supports_action(accesskit::Action::Click));
+        assert!(root.activate(3).unwrap());assert_eq!(root.refresh().unwrap(),1);
+        let (_,after)=painter.scene(&root,400.,1.).unwrap();
+        assert_eq!(after.nodes.iter().find(|(_,node)|node.role()==accesskit::Role::Label).unwrap().1.label(),Some("1"));
+    }
+}
+
+#[cfg(test)]
+mod keyboard_tests {
+    use super::*;
+    #[test]
+    fn focus_order_disabled_exclusion_space_release_and_repeat() {
+        let mut focus=None;let mut pressed=None;let ids=[4,8];
+        let tab=Key::Named(NamedKey::Tab);let enter=Key::Named(NamedKey::Enter);let space=Key::Named(NamedKey::Space);
+        assert_eq!(keyboard(&mut focus,&mut pressed,&ids,false,&tab,ElementState::Pressed,false),None);assert_eq!(focus,Some(4));
+        assert_eq!(keyboard(&mut focus,&mut pressed,&ids,false,&enter,ElementState::Pressed,false),Some(4));
+        assert_eq!(keyboard(&mut focus,&mut pressed,&ids,false,&enter,ElementState::Pressed,true),None);
+        keyboard(&mut focus,&mut pressed,&ids,false,&tab,ElementState::Pressed,false);assert_eq!(focus,Some(8));
+        assert_eq!(keyboard(&mut focus,&mut pressed,&ids,false,&space,ElementState::Pressed,false),None);
+        assert_eq!(keyboard(&mut focus,&mut pressed,&ids,false,&space,ElementState::Released,false),Some(8));
+        keyboard(&mut focus,&mut pressed,&ids,true,&tab,ElementState::Pressed,false);assert_eq!(focus,Some(4));
+        focus=Some(5);assert_eq!(keyboard(&mut focus,&mut pressed,&ids,false,&enter,ElementState::Pressed,false),None);
     }
 }

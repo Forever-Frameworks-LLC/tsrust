@@ -1,5 +1,34 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
+## Paired interactive counter — 2026-10-18
+
+The owner selected the bounded Wasm browser backend. The generated counter now
+passes real Chromium pointer, disabled-button, Tab, Enter and Space checks, two
+independent instances, stable node identity, targeted text updates, explicit mount
+disposal and late-click rejection. Generated native GPU presentation/close passes;
+shared state, native keyboard/action dispatch, AccessKit actions and independent
+capture destruction have focused Rust witnesses. Native OS input automation and
+screen-reader sessions were not performed. These limits are not visual parity claims.
+
+The owner rejected separate reactive components and manual state attachment.
+Ordinary `Text` now accepts mixed literal/SignalHandle children. Public `SignalText`
+and `ownState` are absent. Returning a component subtree automatically transfers
+its direct local signal owners through ordinary checked moves. Multiple owners and
+branch returns are covered; premature moves and rebindable owners reject. Constructor
+aliases/anonymous callback state are explicitly rejected. Broader state factories,
+reactive properties, text input/IME, dynamic trees and async UI remain open.
+
+See `examples/ui-counter/README.md` and `tools/build-ui-web.mjs`. The Wasm artifact
+is 217,823 bytes plus 15,601 bytes of JavaScript glue, uncompressed. These are
+artifact sizes, not timing measurements. The typed independent counter oracle,
+source hashes and original repair logs are retained in SQLite under
+`tsrust-counter-*`. Compiler UI tests (4), runtime witnesses (8 plus independent
+capture-drop witness) and focused editor help pass. Reuse static/JSX and SQL evidence.
+The browser harness fixes concern target selection, Chromium key text and profile
+cleanup; their original failures remain recorded. No full compiler/LSP, SQL or
+performance matrix was rerun.
+
+
 ## Generated static UI and counter continuation — 2026-10-18
 
 `std:ui` now connects checked `.tsrx` components to the shared owned renderer.

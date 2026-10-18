@@ -16,6 +16,7 @@ fn element(node: &Node, out: &mut String) {
     let tag = match node.kind {
         Kind::View => "div",
         Kind::Text => "span",
+        Kind::Button => "button",
         Kind::DisabledButton => "button",
     };
     out.push('<');

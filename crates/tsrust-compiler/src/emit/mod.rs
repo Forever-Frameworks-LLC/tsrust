@@ -1249,6 +1249,31 @@ impl Emitter<'_> {
         self.typed_runner_result(&call,span,closure)
     }
 
+    fn ui_press_adapter(&self,arguments:&[String],callback:Type,span:crate::Span)->String {
+        let registered=match callback {
+            Type::Callback(id)=>self.result_callbacks.borrow().get(&id).cloned(),
+            Type::StoredCallable(id)=>self.result_storage.borrow().get(&id).cloned(),
+            Type::Closure(id)=>self.result_closures.borrow().get(&id).cloned().map(|name|(name,self.program.error_effects.closure_errors[id].clone())),
+            _=>None,
+        };
+        let invocation="Callback::invoke(&mut registered_callback,())";
+        let result=if let Some((name,contract))=registered {
+            let invocation=format!("{{let result:Result<(),{name}>={invocation};result}}");
+            let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
+            let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
+            let payloads=contract.native_payloads(&unions,runtime,span).expect("checked runner callback contract");
+            let mut arms=String::new();
+            for (tag,ty) in payloads.into_iter().enumerate() {
+                let text=if Some(ty)==runtime {"std::format!(\"{}: {}\",payload.field0.as_ref(),payload.field2.as_ref())".to_owned()}else{
+                    let value=self.console_value("payload",ty,"0",false);
+                    format!("tsr_console_format(&[{value}])")
+                };
+                arms.push_str(&format!("{}::V{tag}(payload)=>{text},",exception_emit::constructor_path(&name)));
+            }
+            if arms.is_empty(){format!("{invocation}.map_err(|error|match error{{}})")}else{format!("{invocation}.map_err(|error|match error{{{arms}}})")}
+        }else{format!("{{let result:()={invocation};Ok(result)}}")};
+        format!("{{let label={};let class_name={};let disabled={};let mut registered_callback={};tsrust_ui_press_button(label,class_name,disabled,move ||{result})}}",arguments[0],arguments[1],arguments[2],arguments[3])
+    }
     #[inline(never)]
     fn runtime_error_value(&self,record:usize,name:&str,code:&str,message:&str,span:crate::Span)->String {
         let location=self.source_segments.iter().find(|(_,base,len)|span.start>=*base && span.end>=span.start && span.end<=base+len);
@@ -2440,6 +2465,7 @@ impl Emitter<'_> {
             if let Some(name)=record.native_type.and_then(crate::stdlib::date::runtime_type) {let _=writeln!(output,"type Record{index} = tsrust_native_date::{name};");
                 continue;
             }
+            if let Some(name)=match record.native_type {Some(crate::native_signatures::NativeTypeId::UiSignal)=>Some("Signal"),Some(crate::native_signatures::NativeTypeId::UiSignalHandle)=>Some("SignalHandle"),_=>None} {let _=writeln!(output,"type Record{index} = tsrust_native_ui::{name};");continue;}
             if record.native_type == Some(crate::native_signatures::NativeTypeId::UiNode) {
                 let _ = writeln!(output, "type Record{index} = tsrust_native_ui::Node;");continue;}
             if record.native_type == Some(crate::native_signatures::NativeTypeId::SignalListener) { let _=writeln!(output,"type Record{index} = tsrust_native_signals::Listener;");continue;}
@@ -8681,6 +8707,7 @@ impl Emitter<'_> {
                         let call=if binding.name=="beginSuite"{format!("tsrust_testing_begin_suite_result({})",arguments[0])}else if binding.name=="beginFile"{format!("tsrust_testing_begin_file_result({})",arguments[0])}else{"tsrust_testing_end_suite_result()".into()};
                         if let Some(call)=self.typed_runner_result(&call,expr.span,None){return call;}
                     }
+                    if binding.module=="std:ui-runtime" && binding.name=="button" { return self.ui_press_adapter(&arguments,args[3].ty.expect("UI handler"),expr.span); }
                     if binding.module=="std:path" && binding.name=="relative" {
                         let call=crate::native_emit::call(binding,arguments);
                         self.typed_native_result(&call,expr.span,None,"Error","path-relative").unwrap_or_else(||format!("{call}.unwrap_or_else(|message|panic!(\"path.relative: {{message}}\"))"))

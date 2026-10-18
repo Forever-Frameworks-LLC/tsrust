@@ -1,12 +1,14 @@
-import { Node as NativeNode, UiError as NativeUiError, text, view, disabledButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
+import { Signal as NativeSignal, SignalHandle as NativeSignalHandle, signal as nativeSignal, handle as nativeHandle, add as nativeAdd, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, disabledButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
 
 /** An owned UI subtree. Moving a Node transfers all descendants. Nodes cannot be cloned or sent to workers. */
 export type Node = NativeNode;
 /** A renderer or node-construction failure with a readable message. */
 export type UiError = NativeUiError;
 
+export type TextChild = string | SignalHandle;
+
 export interface TextProps {
-  children: string[];
+  children: TextChild[];
   className?: string;
 }
 
@@ -18,12 +20,13 @@ export interface ViewProps {
 export interface ButtonProps {
   children: string[];
   className?: string;
-  disabled: boolean;
+  disabled?: boolean;
+  onPress?: Owned<Function<void>>;
 }
 
 /** Creates a text node by joining text children without a separator. className defaults to empty. Unknown or conflicting utilities throw a message. Owns its text. */
 export function Text(props: TextProps): Node {
-  const result = text(props.children.join(''), props.className ?? '');
+  const result = text(props.children, props.className ?? '');
   match (result) {
     Ok(value) => {
       return value;
@@ -45,22 +48,20 @@ export function View(props: ViewProps): Node {
     }
   }
 }
-/** Creates a disabled semantic button with text children. disabled must be true in the static slice. Unknown/conflicting utilities throw a message. Owns its label. */
+/** Creates a semantic button. Enabled buttons require a retained onPress handler. Disabled buttons never invoke it. */
 export function Button(props: ButtonProps): Node {
-  if (!props.disabled) {
-    throw 'Interactive buttons require the interactive UI runtime';
+  const handler = props.onPress;
+  if (handler !== undefined) {
+    return unwrap(nativeButton(props.children.join(''), props.className ?? '', props.disabled ?? false, handler));
   }
 
-  const result = disabledButton(props.children.join(''), props.className ?? '');
-  match (result) {
-    Ok(value) => {
-      return value;
-    },
-    Err(error) => {
-      throw error.message;
-    }
+  if (!(props.disabled ?? false)) {
+    throw 'Enabled Button requires onPress';
   }
+
+  return unwrap(disabledButton(props.children.join(''), props.className ?? ''));
 }
+
 /** Produces a complete escaped HTML document with shared utility styles. Borrows the tree and title; returns an owned string. Does not execute callbacks or mutate nodes. */
 export function document(node: ReadOnly<Node>, title: string): string {
   return nativeDocument(node, title);
@@ -68,4 +69,25 @@ export function document(node: ReadOnly<Node>, title: string): string {
 /** Opens a GPU-rendered native window on the main thread and waits for closure. Returns Ok after cleanup or Err with a renderer error. Consumes the tree; title is borrowed. */
 export function run(node: Node, title: string): Result<void, UiError> {
   return nativeRun(node, title);
+}
+
+/** Component-owned integer state. Returning its UI subtree transfers this owner automatically. */
+export type Signal = NativeSignal;
+/** A non-retaining reference to integer state. */
+export type SignalHandle = NativeSignalHandle;
+
+export function signal(initial: int): Signal {
+  return nativeSignal(initial);
+}
+
+export function handle(state: ReadOnly<Signal>): SignalHandle {
+  return nativeHandle(state);
+}
+
+export function add(state: ReadOnly<SignalHandle>, delta: int): boolean {
+  return nativeAdd(state, delta);
+}
+
+function retainComponentState(node: Node, state: Signal): Node {
+  return unwrap(nativeOwnState(node, state));
 }

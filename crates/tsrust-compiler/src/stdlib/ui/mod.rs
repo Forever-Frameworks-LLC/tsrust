@@ -1,11 +1,16 @@
 //! Checked UI factories share one owned renderer representation across targets.
 pub(crate) mod emit;
+mod components;
+pub(crate) use components::retain_state;
 pub(crate) const SOURCE: &str = include_str!("api.tsr");
 use crate::{
     Mode,
     native_bindings::{NativeBackend, NativeBinding, NativeParameter, NativeType},
     native_signatures::{NativeTypeId, Signature},
 };
+const SIGNAL:Signature=Signature::Named(NativeTypeId::UiSignal);
+const HANDLE:Signature=Signature::Named(NativeTypeId::UiSignalHandle);
+pub(crate) const TEXT_CHILDREN:Signature=Signature::Array(&Signature::Union(&[Signature::String,HANDLE]));
 const NODE: Signature = Signature::Named(NativeTypeId::UiNode);
 const ERROR: Signature = Signature::Named(NativeTypeId::UiError);
 const fn parameter(name: &'static str, ty: NativeType, access: Mode) -> NativeParameter {
@@ -21,7 +26,7 @@ pub(crate) const TEXT: NativeBinding = NativeBinding {
     module: "std:ui-runtime",
     name: "text",
     parameters: &[
-        parameter("text", NativeType::String, Mode::Read),
+        parameter("children", NativeType::Structured(&TEXT_CHILDREN), Mode::Consume),
         parameter("className", NativeType::String, Mode::Read),
     ],
     result: NativeType::Structured(&Signature::Result(&NODE, &ERROR)),
@@ -48,6 +53,7 @@ pub(crate) const VIEW: NativeBinding = NativeBinding {
 };
 pub(crate) const BUTTON: NativeBinding = NativeBinding {
     name: "disabledButton",
+    parameters:&[parameter("text",NativeType::String,Mode::Read),parameter("className",NativeType::String,Mode::Read)],
     backend: NativeBackend::Bundled {
         symbol: "tsrust_ui_button",
     },
@@ -79,6 +85,13 @@ pub(crate) const RUN: NativeBinding = NativeBinding {
     ..TEXT
 };
 
+pub(crate) const SIGNAL_NEW:NativeBinding=NativeBinding{name:"signal",parameters:&[parameter("initial",NativeType::Int,Mode::Read)],result:NativeType::Structured(&SIGNAL),backend:NativeBackend::Bundled{symbol:"tsrust_ui_signal"},..TEXT};
+pub(crate) const HANDLE_NEW:NativeBinding=NativeBinding{name:"handle",parameters:&[parameter("signal",NativeType::Structured(&SIGNAL),Mode::Read)],result:NativeType::Structured(&HANDLE),backend:NativeBackend::Bundled{symbol:"tsrust_ui_handle"},..TEXT};
+pub(crate) const ADD:NativeBinding=NativeBinding{name:"add",parameters:&[parameter("handle",NativeType::Structured(&HANDLE),Mode::Read),parameter("delta",NativeType::Int,Mode::Read)],result:NativeType::Boolean,backend:NativeBackend::Bundled{symbol:"tsrust_ui_add"},..TEXT};
+
+pub(crate) const OWN_STATE:NativeBinding=NativeBinding{name:"ownState",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("state",NativeType::Structured(&SIGNAL),Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_own_state"},..TEXT};
+pub(crate) const PRESS_BUTTON:NativeBinding=NativeBinding{name:"button",parameters:&[parameter("text",NativeType::String,Mode::Read),parameter("className",NativeType::String,Mode::Read),parameter("disabled",NativeType::Boolean,Mode::Read),parameter("onPress",NativeType::OwnedVoidCallback,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_press_button"},..TEXT};
+
 pub(crate) fn runtime(with_native: bool) -> String {
     let native =
         include_str!("../../../../tsrust-ui/src/native.rs").replace("use crate::{", "use super::{");
@@ -88,14 +101,16 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("crate::style::", "super::style::");
     let body=include_str!("../../../../tsrust-ui/src/lib.rs")
         .replace("#[cfg(feature = \"native\")]\nmod native;",if with_native {"__UI_NATIVE__"} else {""})
-        .replace("__UI_NATIVE__",&format!("mod native {{\n{native}\n}}"))
-        .replace("#[cfg(feature = \"native\")]\npub use native::run;",if with_native {"#[cfg(not(feature = \"ui-acceptance\"))] pub use native::run;\n#[cfg(feature = \"ui-acceptance\")] pub use native::verify_window as run;"}else{""})
+        .replace("__UI_NATIVE__",&format!("#[cfg(not(target_arch=\"wasm32\"))] mod native {{\n{native}\n}}"))
+        .replace("#[cfg(feature = \"native\")]\npub use native::run;",if with_native {"#[cfg(all(not(target_arch=\"wasm32\"),not(feature = \"ui-acceptance\")))] pub use native::run;\n#[cfg(feature = \"ui-acceptance\")] pub use native::verify_window as run;"}else{""})
         .replace("#[cfg(feature = \"acceptance\")]\n#[doc(hidden)]\npub use native::verify_window;",if with_native {"#[cfg(feature = \"ui-acceptance\")] pub use native::verify_window;"}else{""})
+        .replace("pub mod browser;",&format!("pub mod browser {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/browser.rs").replace("use crate::{", "use super::{")))
+        .replace("mod state;", &format!("mod state {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/state.rs")))
         .replace("mod style;",&format!("mod style {{\n{style}\n}}"))
         .replace("mod web;",&format!("mod web {{\n{web}\n}}"))
 
         .replace("feature = \"acceptance\"","feature = \"ui-acceptance\"");
-    format!("mod tsrust_native_ui {{\n{body}\n}}\n")
+    format!("mod tsrust_native_ui {{\n{body}\n#[cfg(all(target_arch=\"wasm32\",feature=\"ui-web\"))] pub use browser::run;\n}}\n")
 }
 
 /// Unused trusted UI facades must not pull a native event loop into an HTML build.
