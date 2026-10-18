@@ -1,0 +1,14 @@
+import { Router, Client, request } from "std:http";
+
+async function main(): Task<void> {
+  const app = new Router();
+  app.get("/search", (c) => {
+    const tags = c.req.queries("tag");
+    return c.text(tags === undefined ? "No tags" : tags.join(", "));
+  });
+  const server = await app.listen("127.0.0.1:0");
+  const client = new Client();
+  const response = await client.send(request("GET", "http://" + server.address() + "/search?tag=one+two&tag=three", ""));
+  console.log(await response.text());
+  await server.shutdown();
+}

@@ -303,6 +303,18 @@ mod tsrust_native_http {
         },byte=>bytes.push(byte)}}
         String::from_utf8(bytes).map_err(|_|error("encoding","Form field is not UTF-8"))
     }
+    // Preserve undecodable escape runs rather than replacing bytes with U+FFFD.
+    fn query_component(text:&str)->String{
+        let text=text.replace('+'," ");
+        if let Ok(decoded)=decode_component(&text,false){return decoded;}
+        let bytes=text.as_bytes();let mut output=String::new();let mut cursor=0;
+        while cursor<bytes.len(){
+            let start=cursor;
+            while cursor+2<bytes.len() && bytes[cursor]==b'%' && bytes[cursor+1].is_ascii_hexdigit() && bytes[cursor+2].is_ascii_hexdigit(){cursor+=3;}
+            if cursor>start{let run=&text[start..cursor];output.push_str(&decode_component(run,false).unwrap_or_else(|_|run.to_owned()));}
+            else{let ch=text[cursor..].chars().next().unwrap();output.push(ch);cursor+=ch.len_utf8();}
+        }output
+    }
     impl Request {
         pub async fn form(self)->Result<Vec<FormField>,Error>{
             if self.header("content-type")?.as_deref().is_none_or(|value|!value.split(';').next().unwrap_or("").trim().eq_ignore_ascii_case("application/x-www-form-urlencoded")){return Err(error("content-type","Expected application/x-www-form-urlencoded"));}
@@ -332,6 +344,14 @@ mod tsrust_native_http {
         pub fn method(&self)->String{self.inner.method().to_string()}
         pub fn url(&self)->String{self.inner.uri().to_string()}
         pub fn param(&self,name:&str)->Option<String>{self.params.get(name).cloned()}
+        fn query_values<'a>(&'a self,name:&'a str)->impl Iterator<Item=String>+'a{
+            self.inner.uri().query().into_iter().flat_map(|query|query.split('&')).filter_map(move|part|{
+                let (key,value)=part.split_once('=').unwrap_or((part,""));
+                (!key.is_empty() && query_component(key)==name).then(||query_component(value))
+            })
+        }
+        pub fn query(&self,name:&str)->Option<String>{self.query_values(name).next()}
+        pub fn queries(&self,name:&str)->Option<Vec<String>>{let values:Vec<_>=self.query_values(name).collect();(!values.is_empty()).then_some(values)}
         pub fn header(&self,name:&str)->Result<Option<String>,Error>{header(self.inner.headers(),name)}
         pub fn set_header(&mut self,name:&str,value:&str)->Result<(),Error>{set_header(self.inner.headers_mut(),name,value)}
         pub fn body(self)->Stream{Stream{body:self.inner.into_body().into_body(),remaining:self.limit}}

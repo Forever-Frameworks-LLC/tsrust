@@ -62,7 +62,7 @@ The public native name remains `Router`; the accepted server lifecycle stays.
 | Area | Current support | Missing or divergent surface |
 | --- | --- | --- |
 | Routing | Method routes, ordered/scoped middleware, multiple callbacks, parameters | Route grouping/base paths, `all`/`on`, optional/regex patterns; current `route(method,path,...)` differs from Hono subrouter mounting |
-| Request | Header/parameter lookup, text, form and multipart bodies | Query helpers, direct typed JSON body workflow, complete header/parameter collection access |
+| Request | Header/parameter lookup, named query/queries lookup, text, form and multipart bodies | No-argument query collections, direct typed JSON body workflow, complete header/parameter collection access |
 | Context | Text/HTML/JSON, status/header changes, typed application and request state | Redirect/body helpers, custom not-found and application error hooks |
 | Testing | Network/runtime fixtures | Convenient in-process Router request dispatch |
 | Streaming | Owned inbound bodies and bounded response channels | Response-owned producer callbacks, SSE, WebSocket handling |

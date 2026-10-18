@@ -29,6 +29,7 @@ impl Emitter<'_>{
    let record=&self.program.records[id];let fields=record.fields.iter().enumerate().map(|(index,field)|format!("field{index}:{}",self.http_value(field.ty.unwrap(),&format!("value.{}",["name",if record.native_type==Some(NativeTypeId::HttpFormField){"value"}else{"file_name"},"content_type","data"][index])))).collect::<Vec<_>>().join(",");
    return format!("{{let value={value};Record{}{{{fields}{}}}}}",self.native_record_declaration(id),self.schema_record_order(id));
   }
+  if ty==Type::Array(ArrayElement::String(0)){return format!("Array::Heap(({value}).into_iter().map(String::Owned).collect())");}
   if ty==Type::String{return format!("String::Owned({value})");}
   if let Type::Union(id)=ty {let members=&self.program.unions[id.index()].members;let absent=members.iter().position(|ty|*ty==Type::Undefined).unwrap();let present=1-absent;let payload=self.http_value(members[present],"value");return format!("match {value}{{Some(value)=>Union{}::V{present}({payload}),None=>Union{}::V{absent}(TsrUndefined)}}",id.index(),id.index());}
   value.into()
@@ -128,7 +129,7 @@ impl Emitter<'_>{
    "__requestHeader"|"__responseHeader"=>format!("({receiver}).header({})",values[1]),
    "__requestSetHeader"|"__responseSetHeader"=>format!("({receiver}).set_header({}, {})",values[1],values[2]),
    "__requestBody"|"__responseBody"=>format!("({receiver}).body()"),
-   "__param"=>format!("({receiver}).param({})",values[1]),
+   "__param"|"__query"|"__queries"=>format!("({receiver}).{}({})",binding.name.trim_start_matches("__"),values[1]),
    "__address"|"__method"|"__url"|"__status"=>format!("({receiver}).{}()",binding.name.trim_start_matches('_')),
    _=>unreachable!("prepared HTTP operation"),
   };

@@ -26,10 +26,10 @@ fn http_catalog_examples_check_and_execute(){
  let directory=support::TempDirectory::new();
  let mut verified=std::collections::HashSet::new();
  for(family,entries)in catalog.as_object().unwrap(){if family!="std:http"&&!family.starts_with("Http"){continue;}
-  for entry in entries.as_array().unwrap(){for example in entry["examples"].as_array().unwrap(){
+  for entry in entries.as_array().unwrap(){if std::env::var("TSRUST_HTTP_CATALOG_PREFIX").is_ok_and(|prefix|!entry["name"].as_str().unwrap().starts_with(&prefix)){continue;}for example in entry["examples"].as_array().unwrap(){
    let source=support::format_round_trip(example["source"].as_str().unwrap());
    if !verified.insert((source.clone(),example["output"].as_str().unwrap().to_owned())){continue;}
-   let path=directory.source(&source);let output=support::run(support::cli().arg("run").arg(path).env("TSRUST_CACHE_DIR",directory.0.join("cache")),300);support::success(&output);assert_eq!(String::from_utf8_lossy(&output.stdout),example["output"].as_str().unwrap(),"{family}.{}",entry["name"]);
+   let path=directory.source(&source);let output=support::run(support::cli().arg("run").arg(path).env("TSRUST_CACHE_DIR",std::env::var_os("TSRUST_CACHE_DIR").map(std::path::PathBuf::from).unwrap_or_else(||directory.0.join("cache"))),300);support::success(&output);assert_eq!(String::from_utf8_lossy(&output.stdout),example["output"].as_str().unwrap(),"{family}.{}",entry["name"]);
   }}
  }
 }
@@ -96,4 +96,29 @@ fn producer_stream_executes_and_rejects_wrong_payload_or_reuse(){
   "import {streamChannel} from 'std:http';import {Channel} from 'std:futures';function main(){const chunks=new Channel<int>(1);streamChannel(chunks);}",
   "import {streamChannel} from 'std:http';import {Channel} from 'std:futures';import {Bytes} from 'std:bytes';function main(){const chunks=new Channel<Bytes>(1);streamChannel(chunks);chunks.close();}",
  ]{let output=support::run(support::cli().arg("check").arg(directory.source(&support::format_round_trip(source))),30);assert!(!output.status.success());assert!(!String::from_utf8_lossy(&output.stderr).contains("error[import]"));}
+}
+
+#[test]
+fn query_helpers_preserve_values_and_body_ownership(){
+ let source=r#"import {request} from 'std:http';import {strictEqual} from 'std:testing';async function main():Task<void>{
+ const input=request('POST','http://localhost/?tag=a+b&tag=c&bare&empty=&utf=%C3%A9&bad=%FF%20ok%2G&eq=a=b&%61=first&a=second&plus=%2B&=ignored','body');
+ const tags=input.queries('tag');if(tags===undefined){throw 'missing tags';}strictEqual(tags.join(','),'a b,c');tags[0]='changed';
+ const first=input.query('tag');if(first===undefined){throw 'missing tag';}strictEqual(first,'a b');
+ const bare=input.query('bare');if(bare===undefined){throw 'missing bare';}strictEqual(bare,'');
+ const utf=input.query('utf');if(utf===undefined){throw 'missing utf';}strictEqual(utf,'é');
+ const bad=input.query('bad');if(bad===undefined){throw 'missing bad';}strictEqual(bad,'%FF%20ok%2G');
+ const encoded=input.query('a');if(encoded===undefined){throw 'missing encoded key';}strictEqual(encoded,'first');
+ const plus=input.query('plus');if(plus===undefined){throw 'missing plus';}strictEqual(plus,'+');
+ strictEqual(input.query('')===undefined,true);strictEqual(input.query('Tag')===undefined,true);
+ strictEqual(input.query('missing')===undefined,true);strictEqual(input.queries('missing')===undefined,true);
+ strictEqual(await input.text(),'body');}"#;
+ let directory=support::TempDirectory::new();support::success(&support::run(support::cli().arg("run").arg(directory.source(&support::format_round_trip(source))),300));
+
+ for call in ["input.query()","input.queries(1)"]{let source=format!("import {{request}} from 'std:http';function main(){{const input=request('GET','http://localhost/','');{call};}}");assert!(!support::run(support::cli().arg("check").arg(directory.source(&source)),30).status.success());}
+}
+
+#[test]
+fn query_router_example(){
+ let directory=support::TempDirectory::new();
+ let output=support::run(support::cli().arg("run").arg(directory.source(&support::format_round_trip(include_str!("../../../examples/http/query.tsr")))),300);support::success(&output);assert_eq!(output.stdout,b"one two, three\n");
 }

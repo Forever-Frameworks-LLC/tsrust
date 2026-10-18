@@ -1,5 +1,15 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
+## Named HTTP query helpers — 2026-10-18
+
+`c.req.query(name)` and `c.req.queries(name)` return owned optional text/arrays
+without consuming the request body. Scope and Hono differences are explicit in
+[acceptance](../plans/http-query-acceptance.md). Continue remaining ordinary HTTP
+helpers/composition and the paired static `.tsrx` UI slice. The UI review remains
+read-only; this thread remains the sole writer/build owner. Native renderer choice
+is pending an owner response; static output does not require choosing JS/WASM yet.
+
+
 ## Process arguments — 2026-10-18
 
 `std:env.args()` now exposes owned arguments with checked Unicode errors. Native,

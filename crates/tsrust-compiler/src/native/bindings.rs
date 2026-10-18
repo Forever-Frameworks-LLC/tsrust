@@ -197,6 +197,8 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::http::METHOD,
     crate::stdlib::http::URL,
     crate::stdlib::http::PARAM,
+    crate::stdlib::http::QUERY,
+    crate::stdlib::http::QUERIES,
     crate::stdlib::http::STATUS,
     crate::stdlib::http::PUBLIC_TEXT,
     crate::stdlib::http::PUBLIC_HTML,

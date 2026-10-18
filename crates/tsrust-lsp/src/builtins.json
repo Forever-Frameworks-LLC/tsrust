@@ -11413,6 +11413,42 @@
       "parameters": [],
       "documentation": "Collects the request body when awaited. No arguments. Requires multipart/form-data with a valid boundary. Uses the maintained multipart parser, retaining binary bytes, field order and duplicate names. Each part requires a name; fileName and contentType may be undefined. At most 128 parts and the configured total request byte limit, including multipart framing. File names are untrusted metadata, never filesystem paths. Nested multipart and streaming upload-to-disk are unsupported by this collecting helper. Returns an owned MultipartPart[]; malformed content, encoding and size failures throw HttpError.\n\n```tsrust\nconst fields = await input.multipart();\n```\n\nOwnership: consumes the request; returned fields own their data. The body cannot be read again.",
       "inferredSignature": "function multipart(): Task<MultipartPart[]>"
+    },
+    {
+      "name": "query",
+      "signature": "query(name: string): string | undefined",
+      "parameters": [
+        {
+          "label": "name: string",
+          "documentation": "Decoded query name. Empty names never match."
+        }
+      ],
+      "documentation": "Returns the first value for a decoded, case-sensitive query name, or undefined when absent. Bare keys and empty values return empty strings. Decodes + as space and valid percent-encoded UTF-8 once. Undecodable consecutive escape runs remain literal; no replacement characters or numeric conversion. Empty names are ignored. The name argument is required. No receiver mutation or body consumption.\n\n```tsrust\nimport {request} from \"std:http\";function main(){const input=request(\"GET\",\"http://localhost/?tag=a+b&tag=c\",\"\");const value=input.query(\"tag\");if(value!==undefined){console.log(value);}}\n```\n\nExpected output: a b.\n\nOwnership: borrows the request and returns independent owned text.",
+      "examples": [
+        {
+          "source": "import {request} from \"std:http\";function main(){const input=request(\"GET\",\"http://localhost/?tag=a+b&tag=c\",\"\");const value=input.query(\"tag\");if(value!==undefined){console.log(value);}}",
+          "output": "a b\n"
+        }
+      ],
+      "inferredSignature": "function query(name: string): string | undefined"
+    },
+    {
+      "name": "queries",
+      "signature": "queries(name: string): string[] | undefined",
+      "parameters": [
+        {
+          "label": "name: string",
+          "documentation": "Decoded query name. Empty names never match."
+        }
+      ],
+      "documentation": "Returns every value for a decoded, case-sensitive query name in wire order, or undefined when absent. Bare keys and empty values return empty strings. Decodes + as space and valid percent-encoded UTF-8 once. Undecodable consecutive escape runs remain literal; no replacement characters or numeric conversion. Empty names are ignored. The name argument is required. No receiver mutation or body consumption.\n\n```tsrust\nimport {request} from \"std:http\";function main(){const input=request(\"GET\",\"http://localhost/?tag=a+b&tag=c\",\"\");const values=input.queries(\"tag\");if(values!==undefined){console.log(values.join(\",\"));}}\n```\n\nExpected output: a b,c.\n\nOwnership: borrows the request and returns independent owned text and array storage.",
+      "examples": [
+        {
+          "source": "import {request} from \"std:http\";function main(){const input=request(\"GET\",\"http://localhost/?tag=a+b&tag=c\",\"\");const values=input.queries(\"tag\");if(values!==undefined){console.log(values.join(\",\"));}}",
+          "output": "a b,c\n"
+        }
+      ],
+      "inferredSignature": "function queries(name: string): string[] | undefined"
     }
   ],
   "HttpResponse": [

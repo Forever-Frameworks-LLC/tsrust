@@ -1,0 +1,20 @@
+import { request } from "std:http";
+
+function main() {
+  const input = request("GET", "http://localhost/?tag=one+two&tag=%C3%A9&bare&empty=&eq=a=b", "");
+  const values = input.queries("tag");
+  if (values !== undefined) {
+    console.log(values.join("|"));
+  }
+
+  console.log(input.query("missing") === undefined);
+  const bare = input.query("bare");
+  if (bare !== undefined) {
+    console.log(bare.length);
+  }
+
+  const eq = input.query("eq");
+  if (eq !== undefined) {
+    console.log(eq);
+  }
+}

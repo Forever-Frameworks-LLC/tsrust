@@ -3131,3 +3131,12 @@ fn process_arguments_editor_contract() {
  let hover=ask(&index,entry,"args()","textDocument/hover");let docs=hover["contents"]["value"].as_str().unwrap();
  for text in ["string[]","NotUnicode","executable name","Ownership:"]{assert!(docs.contains(text),"{hover}");}
 }
+
+#[test]
+fn http_query_editor_contract(){
+ let entry="import {request} from 'std:http';function main(){const input=request('GET','http://localhost/','');const result=input.queries('tag');}";
+ let uri=source_id("file:///tsrust-intelligence/main.tsr").unwrap();let mut workspace=Workspace::default();workspace.open(uri.clone(),1,entry.into());
+ let checked=workspace.snapshot().check(&uri).unwrap();let index=ProjectIndex::checked(&checked);
+ let hover=ask(&index,entry,"queries('tag'","textDocument/hover");let docs=hover["contents"]["value"].as_str().unwrap();for text in ["string[]","undefined","wire order","Ownership:"]{assert!(docs.contains(text),"{hover}");}
+ let help=ask(&index,entry,"'tag'","textDocument/signatureHelp");assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),1,"{help}");
+}
