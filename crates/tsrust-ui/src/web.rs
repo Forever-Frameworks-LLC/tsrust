@@ -23,6 +23,7 @@ fn element(node:&Node,out:&mut String,theme:&crate::theme::Theme,mode:&str) {
  for (key,value) in [("role",&node.semantics.role),("aria-label",&node.semantics.label),("id",&node.semantics.id),("data-slot",&node.semantics.slot),("data-size",&node.semantics.size),("for",&node.semantics.html_for),("aria-describedby",&node.semantics.described_by),("aria-invalid",&node.semantics.invalid)] {
   if !value.is_empty(){out.push(' ');out.push_str(key);out.push_str("=\"");escape(value,out);out.push('"');}
  }
+ if let Some(index)=node.semantics.tab_index{out.push_str(&format!(" tabindex=\"{index}\""));}
  if node.kind==Kind::View{out.push_str(" data-tsrust-view");}
  if node.kind==Kind::Text{out.push_str(" data-tsrust-text");}
  if node.semantics.role=="separator"{out.push_str(if node.semantics.orientation=="vertical"{" aria-orientation=\"vertical\" data-orientation=\"vertical\" data-vertical"}else{" aria-orientation=\"horizontal\" data-orientation=\"horizontal\" data-horizontal"});}

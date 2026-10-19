@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import {spawn,spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
-const [site]=process.argv.slice(2);assert(site,'Pass the built ui-application site');
+const [site,scenario]=process.argv.slice(2);assert(site,'Pass the built ui-application site');
 const here=path.dirname(fileURLToPath(import.meta.url));
 const profile=fs.mkdtempSync(path.join(os.tmpdir(),'tsrust-application-browser-'));
 let browser,socket,timer,server;
@@ -25,6 +25,9 @@ try {
  async function evaluate(expression){const result=await call('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});assert(!result.exceptionDetails,JSON.stringify(result.exceptionDetails));return result.result.value;}
  timer=setTimeout(()=>browser.kill('SIGKILL'),45000);await call('Runtime.enable');await call('Page.enable');await call('Page.navigate',{url:`http://127.0.0.1:${server.address().port}/`});
  for(let i=0;i<100&&!await evaluate('Boolean(window.ui)');i++)await new Promise(resolve=>setTimeout(resolve,100));assert(await evaluate('Boolean(window.ui)'),JSON.stringify(errors));
+ if(scenario==='docs') {
+  const {observeDocs}=await import('./docs-observer.mjs');await observeDocs({evaluate,call,errors,site});
+ } else {
  const observed=[];
  async function snapshot(index){const value=await evaluate(`({count:document.querySelector('#count')?.textContent??null,draft:document.querySelector('#draft')?.value??null,mode:document.querySelector('#mode').textContent,source:!!document.querySelector('#source'),background:getComputedStyle(document.querySelector('#application')).backgroundColor})`);observed.push(value);const wanted={...expected.steps[index]};if(wanted.source){wanted.count=null;wanted.draft=null;}assert.deepEqual(value,wanted);assert.equal(await evaluate(`getComputedStyle(document.querySelector('#nested')).backgroundColor`),expected.nested);}
  await snapshot(0);
@@ -38,6 +41,7 @@ try {
  assert.deepEqual(await evaluate('window.ui.mounts.map(mount=>mount.error())'),[null]);await evaluate('window.ui.dispose()');assert.equal(await evaluate('document.querySelectorAll("[data-tsrust-node]").length'),0);assert.deepEqual(errors,[]);
  for(const file of ['application-reference.ts','../../examples/ui-application-state/src/app/page.tsrx','../../examples/ui-application-state/src/main.tsr','../../examples/ui-application-state/tsrust.config.json'])console.log(JSON.stringify({source:file,sha256:createHash('sha256').update(fs.readFileSync(path.join(here,file))).digest('hex')}));
  console.log(JSON.stringify({case:'browser-application',status:'pass',observed,checks:['live modes','independent theme scope','retained field DOM/focus','hidden state preservation','hidden accessibility','responsive header','readonly source','disposal'],engines:['wasm','node-tsc'],timed:false}));
+ }
 } finally {
  clearTimeout(timer);socket?.close();
  if(browser){const exited=new Promise(resolve=>browser.once('exit',resolve));browser.kill('SIGTERM');await Promise.race([exited,new Promise(resolve=>setTimeout(()=>{browser.kill('SIGKILL');resolve();},2000))]);}

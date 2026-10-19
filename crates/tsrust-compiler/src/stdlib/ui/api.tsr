@@ -47,6 +47,8 @@ export interface TextProps extends SemanticProps {
 }
 
 export interface ViewProps extends SemanticProps {
+  /** 0 participates in source-order keyboard focus; -1 allows pointer/accessibility focus only. Omission is not focusable. Positive values are rejected. Name scroll regions with role=region and aria-label. */
+  tabIndex?: int;
   /** Removes this subtree from layout, paint, interaction and accessibility while retaining its state. JSX state conditions refresh after handlers. Defaults to false. */
   hidden?: boolean | ReactiveBoolean;
   /** Marks a native custom-header drag surface. Interactive descendants, including disabled controls and labels, exclude dragging. Browser hosts keep control of their own window. */
@@ -187,7 +189,7 @@ export function Text(props: TextProps): Node {
 }
 /** Creates a container, preserving child order. className defaults to empty. Unknown utilities or depth over 128 throw a message. Consumes its children. */
 export function View(props: ViewProps): Node {
-  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']), props.htmlFor ?? '', props.windowDragRegion ?? false);
+  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']), props.htmlFor ?? '', props.windowDragRegion ?? false, props.tabIndex);
   const result = view(props.children ?? [], props.className ?? '');
   match (result) {
     Ok(value) => {
@@ -374,15 +376,16 @@ interface SemanticConfig {
   invalid: string;
   htmlFor: string;
   windowDragRegion: boolean;
+  tabIndex?: int;
 }
 
-function semanticConfig(tag: string, role: string, label: string, id: string, hidden: boolean, slot: string, size: string, orientation: string, describedBy: string = '', invalid: string = '', htmlFor: string = '', windowDragRegion: boolean = false): string {
-  if (tag === '' && role === '' && label === '' && id === '' && !hidden && slot === '' && size === '' && orientation === '' && describedBy === '' && invalid === '' && htmlFor === '' && !windowDragRegion) {
+function semanticConfig(tag: string, role: string, label: string, id: string, hidden: boolean, slot: string, size: string, orientation: string, describedBy: string = '', invalid: string = '', htmlFor: string = '', windowDragRegion: boolean = false, tabIndex?: int): string {
+  if (tag === '' && role === '' && label === '' && id === '' && !hidden && slot === '' && size === '' && orientation === '' && describedBy === '' && invalid === '' && htmlFor === '' && !windowDragRegion && tabIndex === undefined) {
     return '';
   }
 
   const config: SemanticConfig = {
-    tag, role, label, id, hidden, slot, size, orientation, describedBy, invalid, htmlFor, windowDragRegion
+    tag, role, label, id, hidden, slot, size, orientation, describedBy, invalid, htmlFor, windowDragRegion, tabIndex
   };
   return JSON.stringify(config);
 }

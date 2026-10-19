@@ -2,10 +2,11 @@
 use super::{Theme, Utility};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Length { Pixels(f32), Percent(f32), Auto, None, Fit }
+pub enum Length { Pixels(f32), Percent(f32), Auto, None, Fit, Viewport(u8) }
 impl Length {
     pub(super) fn css(self) -> String { match self {
         Self::Pixels(value) => format!("{value}px"), Self::Percent(value) => format!("{}%",value*100.),
+        Self::Viewport(axis)=>if axis==0{"100vw".into()}else{"100vh".into()},
         Self::Auto => "auto".into(), Self::None => "none".into(), Self::Fit=>"fit-content".into(),
     }}
 }
@@ -21,7 +22,7 @@ pub(super) fn tokens()->Vec<String> {
         for size in SPACING {values.push(format!("{prefix}-{size}"));}
     }
     for prefix in ["w","h","min-w","min-h","max-w","max-h","size"] {
-        for size in SPACING.iter().copied().chain(["auto","full","1/2","1/3","2/3","1/4","3/4"]) {
+        for size in SPACING.iter().copied().chain(["auto","full","screen","1/2","1/3","2/3","1/4","3/4"]) {
             if prefix.starts_with("max-") && size=="auto" {continue;}
             values.push(format!("{prefix}-{size}"));
         }
@@ -54,6 +55,7 @@ pub(super) fn resolve(token:&str,theme:&Theme)->Option<Vec<Utility>> {
     }
     for (prefix,axes) in [("min-w-",&[2][..]),("min-h-",&[3][..]),("max-w-",&[4][..]),("max-h-",&[5][..]),("size-",&[0,1][..]),("w-",&[0][..]),("h-",&[1][..])] {
         if let Some(size)=token.strip_prefix(prefix){
+            if size=="screen"{return Some(axes.iter().map(|&axis|Utility::Dimension(axis,Length::Viewport(axis%2))).collect());}
             let value=match size {"auto"=>Length::Auto,"none"=>Length::None,"fit"=>Length::Fit,"full"=>Length::Percent(1.),"1/2"=>Length::Percent(0.5),"1/3"=>Length::Percent(1./3.),"2/3"=>Length::Percent(2./3.),"1/4"=>Length::Percent(0.25),"3/4"=>Length::Percent(0.75),_=>Length::Pixels(spacing(size,theme))};
             return Some(axes.iter().map(|&axis|Utility::Dimension(axis,value)).collect());
         }
@@ -66,7 +68,7 @@ pub(super) fn resolve(token:&str,theme:&Theme)->Option<Vec<Utility>> {
 
 pub(super) fn theme_keys(token:&str)->Vec<&'static str> {
     for prefix in ["gap-x-","gap-y-","gap-","min-w-","min-h-","max-w-","max-h-","size-","w-","h-","px-","py-","pt-","pr-","pb-","pl-","p-"] {
-        if let Some(size)=token.strip_prefix(prefix) {return match size {"1"|"2"=>vec!["sm"],"3"=>vec!["sm","md"],"6"=>vec!["lg"],"0"|"px"|"auto"|"none"|"fit"|"full"|"1/2"|"1/3"|"2/3"|"1/4"|"3/4"=>vec![],_=>vec!["md"]};}
+        if let Some(size)=token.strip_prefix(prefix) {return match size {"1"|"2"=>vec!["sm"],"3"=>vec!["sm","md"],"6"=>vec!["lg"],"0"|"px"|"auto"|"none"|"fit"|"full"|"screen"|"1/2"|"1/3"|"2/3"|"1/4"|"3/4"=>vec![],_=>vec!["md"]};}
     }
     vec![]
 }

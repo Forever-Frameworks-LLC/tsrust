@@ -87,7 +87,7 @@ impl Node {
     pub(crate) fn window_drag_at(&self,contains:impl Fn(u64)->bool)->bool {
         fn visit(node:&Node,inherited:bool,blocked:bool,contains:&impl Fn(u64)->bool)->Option<bool> {
             if node.collapsed{return None;}
-            let blocked=blocked||matches!(node.kind,Kind::Button|Kind::DisabledButton|Kind::Input|Kind::Textarea)||node.tag()=="label";
+            let blocked=blocked||node.semantics.tab_index.is_some()||matches!(node.kind,Kind::Button|Kind::DisabledButton|Kind::Input|Kind::Textarea)||node.tag()=="label";
             let drag=(inherited||node.semantics.window_drag_region)&&!blocked;
             for child in node.children.iter().rev(){if let Some(hit)=visit(child,drag,blocked,contains){return Some(hit);}}
             if node.branch.is_none()&&contains(node.identity.get()){Some(drag)}else{None}
@@ -111,7 +111,7 @@ impl Node {
     pub(crate) fn phrasing(&self)->bool {
         self.visible_root().is_none_or(|node|matches!(node.tag(),"span"|"code"|"kbd")
             && matches!(node.semantics.role.as_str(),""|"none"|"presentation")
-            && !matches!(node.kind,Kind::Button|Kind::DisabledButton)
+            && node.semantics.tab_index.is_none() && !matches!(node.kind,Kind::Button|Kind::DisabledButton)
             && node.children.iter().all(Self::phrasing))
     }
     pub(crate) fn validate_structure(&self)->Result<(),String> {

@@ -4,7 +4,7 @@ use std::{cell::RefCell,rc::Rc};
 use wasm_bindgen::{prelude::*,JsCast};
 use web_sys::{Element,Event};
 
-struct State { node:Option<Node>, elements:std::collections::BTreeMap<u64,Element>, error:Option<String>, composing:std::collections::BTreeMap<u64,String>, root:Element, style:Element, scope:String }
+struct State { node:Option<Node>, elements:std::collections::BTreeMap<u64,Element>, error:Option<String>, composing:std::collections::BTreeMap<u64,String>, scrolls:std::collections::BTreeMap<u64,(i32,i32)>, root:Element, style:Element, scope:String }
 struct Listener { element:Element, event:&'static str, callback:Closure<dyn FnMut(Event)> }
 impl Drop for Listener {
     fn drop(&mut self) { let _=self.element.remove_event_listener_with_callback_and_bool(self.event,self.callback.as_ref().unchecked_ref(),true); }
@@ -18,7 +18,7 @@ pub struct Mount {
 impl Mount {
     pub fn dispose(&mut self) {
         self.listeners.clear();
-        let mut state=self.state.borrow_mut();state.node.take();state.composing.clear();state.elements.clear();state.root.remove();state.style.remove();
+        let mut state=self.state.borrow_mut();state.node.take();state.composing.clear();state.elements.clear();state.scrolls.clear();state.root.remove();state.style.remove();
     }
     pub fn error(&self)->Option<String> {self.state.borrow().error.clone()}
 }
@@ -42,6 +42,7 @@ fn sync_element(node:&Node,document:&web_sys::Document,all:&mut std::collections
     for (key,value) in [("role",&node.semantics.role),("aria-label",&node.semantics.label),("id",&node.semantics.id),("data-slot",&node.semantics.slot),("data-size",&node.semantics.size),("for",&node.semantics.html_for),("aria-describedby",&node.semantics.described_by),("aria-invalid",&node.semantics.invalid)] {
         if !value.is_empty(){element.set_attribute(key,value)?;}
     }
+    if let Some(index)=node.semantics.tab_index{element.set_attribute("tabindex",&index.to_string())?;}
     if node.kind==Kind::View{element.set_attribute("data-tsrust-view","")?;}
     if node.kind==Kind::Text{element.set_attribute("data-tsrust-text","")?;}
     if node.semantics.role=="separator"{let orientation=if node.semantics.orientation=="vertical"{"vertical"}else{"horizontal"};element.set_attribute("aria-orientation",orientation)?;element.set_attribute("data-orientation",orientation)?;element.set_attribute(if orientation=="vertical"{"data-vertical"}else{"data-horizontal"},"")?;}
@@ -98,14 +99,19 @@ fn value_property(element:&Element,value:&str)->Result<(),JsValue> {
 fn update(state:&mut State,document:&web_sys::Document)->Result<(),JsValue> {
     let node=state.node.as_ref().expect("live mount");
     fn collect(node:&Node,live:&mut std::collections::BTreeSet<u64>){if let Some(node)=node.visible_root(){live.insert(node.identity.get());for child in node.visible_children(){collect(child,live);}}}
+    fn collect_owned(node:&Node,owned:&mut std::collections::BTreeSet<u64>){owned.insert(node.identity.get());for child in &node.children{collect_owned(child,owned);}}
     let mut live=std::collections::BTreeSet::new();collect(node,&mut live);
-    // Remove retired siblings first: moving a retained input can reset focus and IME.
-    state.elements.retain(|id,element|{if live.contains(id){true}else{element.remove();false}});
+    let mut owned=std::collections::BTreeSet::new();collect_owned(node,&mut owned);
+    for (id,element) in &state.elements {if element.is_connected(){state.scrolls.insert(*id,(element.scroll_left(),element.scroll_top()));}}
+    // Detach hidden panes but retain their elements/offsets until their model is removed.
+    state.elements.retain(|id,element|{if !live.contains(id){element.remove();}owned.contains(id)});
+    state.scrolls.retain(|id,_|owned.contains(id));
     state.composing.retain(|id,_|live.contains(id));
     let default=super::theme::Theme::default();let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((&default,"light"));
     state.root.set_attribute("style",&format!("{}color:var(--ui-foreground);background:var(--ui-background);font-size:var(--ui-text-base);min-height:100vh",theme.variables(mode)))?;
     let mut roots=Vec::new();if let Some(root)=node.visible_root(){roots.push(sync_element(root,document,&mut state.elements,&mut state.composing,theme,mode)?);}
     order_children(&state.root,&roots)?;
+    for (id,(x,y)) in &state.scrolls {if let Some(element)=state.elements.get(id).filter(|element|element.is_connected()){element.set_scroll_left(*x);element.set_scroll_top(*y);}}
     let css=super::web::stylesheet(node,&state.scope);if state.style.text_content().as_deref()!=Some(&css){state.style.set_text_content(Some(&css));}
     Ok(())
 }
@@ -118,7 +124,7 @@ pub fn mount(mut node:Node,title:&str)->Result<Mount,JsValue> {
     let scope=format!("[data-tsrust-mount=\"{id}\"]");
     let style=document.create_element("style")?;
     let root=document.create_element("div")?;root.set_attribute("data-tsrust-mount",&id.to_string())?;let default=super::theme::Theme::default();let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((&default,"light"));root.set_attribute("style",&format!("{}color:var(--ui-foreground);background:var(--ui-background);font-size:var(--ui-text-base);min-height:100vh",theme.variables(mode)))?;
-    let mut state=State{node:Some(node),elements:Default::default(),error:None,composing:Default::default(),root:root.clone(),style:style.clone(),scope};
+    let mut state=State{node:Some(node),elements:Default::default(),error:None,composing:Default::default(),scrolls:Default::default(),root:root.clone(),style:style.clone(),scope};
     update(&mut state,&document)?;
     let state=Rc::new(RefCell::new(state));let mut mount=Mount{listeners:vec![],state:state.clone()};
     for event in ["click","input","compositionstart","compositionend"] {

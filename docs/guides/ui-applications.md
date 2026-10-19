@@ -653,3 +653,36 @@ is needed. Package exports and the bounded web builder include recorded notices.
 Keep `attributions/` with distributed source and carry the applicable notices
 with packaged applications. UI attribution collection covers installed component
 sources; vendored Rust dependencies retain their own notices under `vendor/`.
+
+### Scrollable panes and viewport sizing
+
+`overflow-auto` creates a bounded scroll container on both targets. Constrain its
+height/width, and set `min-h-0` or `min-w-0` when a flex child must shrink. Utilities
+such as `h-screen`, `w-screen` and `max-h-screen` use the logical native window or
+browser viewport. Percentage heights still need a definite parent height.
+
+```tsrx
+<View role="region" aria-label="Article" tabIndex={0}
+  className="h-screen overflow-auto p-4">
+  <Text>Article content</Text>
+</View>
+```
+
+A container is not a Tab stop by default. `tabIndex={0}` adds a source-order stop;
+`tabIndex={-1}` permits pointer/accessibility focus without a sequential stop.
+Positive values and values below -1 reject at construction. Use a named region
+for a pane users need to reach by keyboard. It has no activation callback.
+
+Wheel/trackpad input first scrolls the innermost pane under the pointer, then
+passes unused deltas to scrollable ancestors and the window. Keyboard PageUp,
+PageDown, Home, End and arrows target the focused pane or its nearest scrollable
+ancestor. Space scrolls an explicitly focused pane; buttons and text fields keep
+their normal behavior. Tab reveals the next control through nested clips.
+`overflow-hidden` clips and supports focus reveal, but does not consume wheel
+input. Rounded clipping, pointer targeting, editor positions and accessibility
+bounds use the same offsets. Hiding a pane with `hidden` retains its scroll
+position; removing its subtree retires that state.
+
+The runnable documentation foundation now lives in `docs/`, with editable controls
+installed by the normal offline CLI. It is an initial shared shell; routing,
+Markdown, full-text search and complete component reference pages remain pending.

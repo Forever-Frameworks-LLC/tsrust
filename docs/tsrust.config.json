@@ -1,0 +1,73 @@
+{
+  "build": {
+    "entry": "src/main.tsr",
+    "output": "target/tsrust-docs"
+  },
+  "name": "tsrust-docs",
+  "schemaVersion": 1,
+  "ui": {
+    "components": "src/components/ui",
+    "lock": "ui-components.lock.json",
+    "target": {
+      "embedded": false,
+      "native": true,
+      "web": true
+    },
+    "theme": {
+      "dark": {
+        "accent": "#3f3f46",
+        "accentForeground": "@foreground",
+        "background": "#09090b",
+        "border": "#3f3f46",
+        "card": "#18181b",
+        "cardForeground": "@foreground",
+        "destructive": "#b91c1c",
+        "destructiveForeground": "#ffffff",
+        "foreground": "#fafafa",
+        "input": "@border",
+        "muted": "#27272a",
+        "mutedForeground": "#a1a1aa",
+        "primary": "#fafafa",
+        "primaryForeground": "#18181b",
+        "ring": "#a1a1aa",
+        "secondary": "#27272a",
+        "secondaryForeground": "@foreground"
+      },
+      "light": {
+        "accent": "#e4e4e7",
+        "accentForeground": "@foreground",
+        "background": "#fafafa",
+        "border": "#d4d4d8",
+        "card": "#ffffff",
+        "cardForeground": "@foreground",
+        "destructive": "#b91c1c",
+        "destructiveForeground": "#ffffff",
+        "foreground": "#18181b",
+        "input": "@border",
+        "muted": "#f4f4f5",
+        "mutedForeground": "#52525b",
+        "primary": "#18181b",
+        "primaryForeground": "#fafafa",
+        "ring": "#71717a",
+        "secondary": "#f4f4f5",
+        "secondaryForeground": "@foreground"
+      },
+      "radius": {
+        "lg": 12,
+        "md": 8,
+        "sm": 4,
+        "xl": 12
+      },
+      "schemaVersion": 1,
+      "spacing": {
+        "lg": 24,
+        "md": 16,
+        "sm": 8
+      },
+      "typography": {
+        "base": 16,
+        "xl": 24
+      }
+    }
+  }
+}

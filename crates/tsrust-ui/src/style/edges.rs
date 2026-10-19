@@ -1,13 +1,14 @@
 //! Edge properties expand before merging, so source order remains property order.
 use super::{Theme,Utility};
 pub(super) fn tokens()->Vec<String> {
- let mut out=vec!["overflow-hidden".into(),"overflow-visible".into()];
+ let mut out=vec!["overflow-hidden".into(),"overflow-visible".into(),"overflow-auto".into()];
  for corner in ["","t-","r-","b-","l-","tl-","tr-","br-","bl-"] {for size in ["none","sm","lg","xl"] {out.push(format!("rounded-{corner}{size}"));}if !corner.is_empty(){out.push(format!("rounded-{}",corner.trim_end_matches('-')));}}
  for edge in ["","t","r","b","l"] {let base=if edge.is_empty(){"border".to_owned()}else{format!("border-{edge}")};out.extend([base.clone(),format!("{base}-0"),format!("{base}-2")]);}out
 }
 pub(super) fn resolve(token:&str,theme:&Theme)->Option<Vec<Utility>> {
- if token=="overflow-hidden"{return Some(vec![Utility::Overflow(true)]);}
- if token=="overflow-visible"{return Some(vec![Utility::Overflow(false)]);}
+ if token=="overflow-hidden"{return Some(vec![Utility::Overflow(1)]);}
+ if token=="overflow-auto"{return Some(vec![Utility::Overflow(2)]);}
+ if token=="overflow-visible"{return Some(vec![Utility::Overflow(0)]);}
  if token=="rounded" || token.starts_with("rounded-") {
   let rest=token.strip_prefix("rounded-").unwrap_or("");
   let (corners,size)=if rest.is_empty(){(&[0,1,2,3][..],"")}else{

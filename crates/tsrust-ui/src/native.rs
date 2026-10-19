@@ -10,6 +10,8 @@ mod geometry;
 mod editing;
 #[path = "native_viewport.rs"]
 mod viewport;
+#[path = "native_scrolling.rs"]
+mod scrolling;
 use vello::peniko::{Color, Fill};
 use vello::util::{RenderContext, RenderSurface};
 use vello::{AaConfig, RenderParams, Renderer, RendererOptions, Scene};
@@ -69,7 +71,7 @@ struct Item {
     background: Option<super::theme::ResolvedColor>,
     radius: [f64;4],
     border: [f64;4],
-    overflow:bool,
+    overflow:u8,
     border_color: super::theme::ResolvedColor,
     ring: super::theme::ResolvedColor,
     align: u8,
@@ -82,6 +84,12 @@ struct Item {
 struct Painter {
     viewport:viewport::Viewport,
     viewport_width:f32,
+    scrolls:std::collections::BTreeMap<u64,scrolling::Region>,
+    scroll_chains:std::collections::BTreeMap<u64,Vec<u64>>,
+    scroll_order:Vec<u64>,
+    control_order:Vec<u64>,
+    tab_excluded:std::collections::BTreeSet<u64>,
+    reveal_target:Option<u64>,
     cursors:std::collections::BTreeMap<u64,u8>,
     hit_regions:std::collections::BTreeMap<u64,Vec<vello::kurbo::BezPath>>,
     clip_stack:Vec<vello::kurbo::BezPath>,
@@ -102,7 +110,7 @@ impl Painter {
         let mut tree=TaffyTree::new();tree.disable_rounding();
         Self {
             viewport:Default::default(),
-            viewport_width:0.,cursors:Default::default(),hit_regions:Default::default(),clip_stack:Vec::new(),hover: Default::default(), pressed_nodes:Default::default(), focus: None,
+            viewport_width:0.,scrolls:Default::default(),scroll_chains:Default::default(),scroll_order:Vec::new(),control_order:Vec::new(),tab_excluded:Default::default(),reveal_target:None,cursors:Default::default(),hit_regions:Default::default(),clip_stack:Vec::new(),hover: Default::default(), pressed_nodes:Default::default(), focus: None,
             fonts: FontContext::new(),
             layouts: LayoutContext::new(),
             tree,editors:Default::default(),live_editors:Default::default(),label_targets:Default::default(),
@@ -114,6 +122,8 @@ impl Painter {
     }
     fn themed_node<'a>(&mut self, node: &'a Node, mut inherited: TextStyle, theme:&super::theme::Theme, mode:&str, ancestors:&mut Vec<&'a Node>,variables:&std::collections::BTreeMap<String,f32>) -> Result<Item, String> {
         let id=node.identity.get();
+        if node.enabled_control() {self.control_order.push(id);}
+        if node.semantics.tab_index==Some(-1){self.tab_excluded.insert(id);}
         let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));
         if node.theme.is_some() {inherited.size=theme.typography.base as f32;inherited.color=theme.color(mode,"foreground")?;}
 
@@ -131,7 +141,7 @@ impl Painter {
         let (mut background, mut radius) = (node.theme.as_ref().map(|_|theme.color(mode,"background").unwrap()), [0.;4]);
         if matches!(node.kind,Kind::Button|Kind::DisabledButton){inherited.align=1;style.flex_direction=FlexDirection::Row;style.align_items=AlignItems::CENTER;style.justify_content=JustifyContent::CENTER;}
         let (mut border,mut border_color,mut ring)=([0.;4],theme.color(mode,"border")?,theme.color(mode,"ring")?);
-        let mut overflow=false;let mut opacity=if node.is_disabled(){0.6}else{1.};let mut suppress_outline=false;let mut placeholder_color=None;
+        let mut overflow=0;let mut opacity=if node.is_disabled(){0.6}else{1.};let mut suppress_outline=false;let mut placeholder_color=None;
         let (mut shadow_width,mut shadow_color,mut outline)=(0.,theme.color(mode,"ring")?,None);
         if matches!(node.kind,Kind::DisabledButton|Kind::Button) {
             style.padding = Rect {
@@ -154,7 +164,7 @@ impl Painter {
                 Utility::InlineFlex=>style.display=Display::Flex,
                 Utility::Dimension(property,value)=>{
                     if value==super::style::Length::Fit {match property{0=>style.size.width=Dimension::fit_content(),1=>style.size.height=Dimension::fit_content(),_=>return Err("Fit-content is supported for preferred dimensions only".into())};continue;}
-                    let value:LengthPercentageAuto=match value {super::style::Length::Pixels(v)=>length(v),super::style::Length::Percent(v)=>percent(v),super::style::Length::Auto|super::style::Length::None=>auto(),super::style::Length::Fit=>unreachable!()};
+                    let value:LengthPercentageAuto=match value {super::style::Length::Pixels(v)=>length(v),super::style::Length::Percent(v)=>percent(v),super::style::Length::Viewport(axis)=>length(if axis==0{self.viewport_width}else{self.viewport.size.ok_or("Viewport height is unavailable")?.1 as f32}),super::style::Length::Auto|super::style::Length::None=>auto(),super::style::Length::Fit=>unreachable!()};
                     match property {0=>style.size.width=value.into(),1=>style.size.height=value.into(),2=>style.min_size.width=value,3=>style.min_size.height=value,4=>style.max_size.width=value,_=>style.max_size.height=value};
                 },
                 Utility::SelfAlign(axis,value)=>{let value=match value {0=>Some(AlignSelf::START),1=>Some(AlignSelf::CENTER),2=>Some(AlignSelf::END),3=>Some(AlignSelf::STRETCH),_=>None};if axis==0{style.align_self=value;}else{style.justify_self=value;}},
@@ -167,7 +177,7 @@ impl Painter {
                 Utility::AutoRowsMin=>style.grid_auto_rows=vec![min_content()],
                 Utility::FontSize(v)=>inherited.size=v,Utility::Weight(v)=>inherited.weight=v,Utility::DefaultLeading(v)=>inherited.line_height=parley::style::LineHeight::Absolute(v),Utility::Leading(v)=>inherited.leading=Some(v),Utility::FontFamily(v)=>inherited.family=v,
                 Utility::Foreground(v)=>inherited.color=v,Utility::Background(v)=>background=Some(v),
-                Utility::Corner(c,v)=>radius[c as usize]=v as f64,Utility::EdgeBorder(side,v)=>{border[side as usize]=v as f64;match side {0=>style.border.top=length(v),1=>style.border.right=length(v),2=>style.border.bottom=length(v),_=>style.border.left=length(v)}},Utility::Overflow(value)=>overflow=value,
+                Utility::Corner(c,v)=>radius[c as usize]=v as f64,Utility::EdgeBorder(side,v)=>{border[side as usize]=v as f64;match side {0=>style.border.top=length(v),1=>style.border.right=length(v),2=>style.border.bottom=length(v),_=>style.border.left=length(v)}},Utility::Overflow(value)=>{overflow=value;let value=match value{1=>taffy::Overflow::Hidden,2=>taffy::Overflow::Scroll,_=>taffy::Overflow::Visible};style.overflow.x=value;style.overflow.y=value;},
                 Utility::BorderColor(v)=>border_color=v,Utility::Ring(v)=>{ring=v;outline=Some(v);suppress_outline=false;},Utility::Align(v)=>inherited.align=v,
                 Utility::RingWidth(v)=>shadow_width=v as f64,Utility::RingShadowColor(v)=>shadow_color=v,
                 Utility::Items(v)=>style.align_items=match v {0=>AlignItems::FLEX_START,1=>AlignItems::CENTER,_=>AlignItems::STRETCH},
@@ -237,6 +247,7 @@ impl Painter {
         self.scene_focused(node,width,scale,focus,focus)
     }
     fn scene_focused(&mut self,node:&Node,width:f32,scale:f64,focus:Option<u64>,visible_focus:Option<u64>)->Result<(Scene,accesskit::TreeUpdate),String> {
+        self.control_order.clear();self.tab_excluded.clear();self.scroll_chains.clear();self.scroll_order.clear();self.retain_owned_scrolls(node);
         self.tree.clear();self.hit_regions.clear();self.clip_stack.clear();self.live_editors.clear();self.cursors.clear();self.viewport_width=width;
         self.focus=visible_focus;
         node.ensure_identities();
@@ -283,16 +294,17 @@ impl Painter {
             )
             .map_err(|e| e.to_string())?;
         let layout=self.tree.layout(root.id).map_err(|e|e.to_string())?;
-        self.viewport.content=(layout.size.width.max(layout.scrollable_overflow_rect.right+layout.border.left) as f64,layout.size.height.max(layout.scrollable_overflow_rect.bottom+layout.border.top) as f64);
+        self.viewport.content=if root.overflow!=0{(layout.size.width as f64,layout.size.height as f64)}else{(layout.size.width.max(layout.scrollable_overflow_rect.right+layout.border.left) as f64,layout.size.height.max(layout.scrollable_overflow_rect.bottom+layout.border.top) as f64)};
+        self.configure_scrolls(&root,&[])?;
         self.viewport.scroll_by(0.,0.);
         let mut nodes = Vec::new();
         let root_identity=self.accessible(&root, &mut nodes, 0., 0., scale)?;
-        if self.viewport.reveal_focus {
-            if let Some(bounds)=focus.and_then(|focus|nodes.iter().find(|(id,_)|id.0==focus)).and_then(|(_,node)|node.bounds()) {
-                self.viewport.reveal(accesskit::Rect::new(bounds.x0/scale,bounds.y0/scale,bounds.x1/scale,bounds.y1/scale));
-            }
-            self.viewport.reveal_focus=false;
+        let reveal=self.reveal_target.take().or_else(||self.viewport.reveal_focus.then_some(focus).flatten());
+        if let Some(target)=reveal {
+            self.reveal_scrolled(target,&nodes,scale);
+            nodes.clear();self.accessible(&root,&mut nodes,0.,0.,scale)?;
         }
+        self.viewport.reveal_focus=false;
         let (dx,dy)=self.viewport.offset;
         for (_,node) in &mut nodes {if let Some(bounds)=node.bounds(){node.set_bounds(accesskit::Rect::new(bounds.x0-dx*scale,bounds.y0-dy*scale,bounds.x1-dx*scale,bounds.y1-dy*scale));}}
         let mut scene = Scene::new();
@@ -366,17 +378,20 @@ impl Painter {
         if item.semantics.invalid=="true" {node.set_invalid(accesskit::Invalid::True);}
         if item.disabled { node.set_disabled(); }
         else if item.role==Kind::Button {node.add_action(accesskit::Action::Click);node.add_action(accesskit::Action::Focus);}
-        if item.overflow{node.set_clips_children();}
+        if item.role==Kind::View && item.semantics.tab_index.is_some(){node.add_action(accesskit::Action::Focus);}
+        if item.overflow!=0{node.set_clips_children();}
+        if item.overflow==2{if let Some(region)=self.scrolls.get(&item.identity){region.viewport.accessibility(&mut node,scale);}}
         node.set_bounds(accesskit::Rect::new(
             x * scale,
             y * scale,
             (x + layout.size.width as f64) * scale,
             (y + layout.size.height as f64) * scale,
         ));
+        let (dx,dy)=self.scroll_offset(item.identity);
         let mut children = item
             .children
             .iter()
-            .map(|child| self.accessible(child, nodes, x, y, scale))
+            .map(|child| self.accessible(child, nodes, x-dx, y-dy, scale))
             .collect::<Result<Vec<_>, _>>()?;
         if item.field.is_none() && item.text.is_some() && !item.label.is_empty() && !matches!(role,accesskit::Role::Label|accesskit::Role::Button) {
             // Semantic text containers own content, not an invented accessible name.
@@ -394,7 +409,7 @@ impl Painter {
         let x=parent_x+layout.location.x as f64;let y=parent_y+layout.location.y as f64;
         let outset=item.shadow_width.max(if item.outline.is_some(){4.}else{0.});
         let mut bounds=vello::kurbo::Rect::new(x-outset,y-outset,x+layout.size.width as f64+outset,y+layout.size.height as f64+outset);
-        for child in &item.children {bounds=bounds.union(self.visual_bounds(child,x,y)?);}
+        if item.overflow==0{for child in &item.children {bounds=bounds.union(self.visual_bounds(child,x,y)?);}}
         Ok(bounds)
     }
     fn paint(
@@ -435,7 +450,7 @@ impl Painter {
             let mut border=outer.clone();border.extend(inner.elements().iter().copied());
             scene.fill(Fill::EvenOdd,transform,paint_color(item.border_color),None,&border);
         }
-        if item.overflow {scene.push_layer(Fill::NonZero,vello::peniko::BlendMode::default(),1.,transform,&inner);let mut clip=inner.clone();clip.apply_affine(transform);self.clip_stack.push(clip);}
+        if item.overflow!=0 {scene.push_layer(Fill::NonZero,vello::peniko::BlendMode::default(),1.,transform,&inner);let mut clip=inner.clone();clip.apply_affine(transform);self.clip_stack.push(clip);}
         let content_width=(layout.size.width-layout.padding.left-layout.padding.right-layout.border.left-layout.border.right).max(0.);
         let content_height=(layout.size.height-layout.padding.top-layout.padding.bottom-layout.border.top-layout.border.bottom).max(0.);
         let origin=(x+(layout.padding.left+layout.border.left) as f64,y+(layout.padding.top+layout.border.top) as f64);
@@ -470,11 +485,12 @@ impl Painter {
             text.align(match item.align {1=>Alignment::Center,2=>Alignment::End,_=>Alignment::Start},AlignmentOptions::default());
             paint_text(scene,text,paint_color(item.color),transform,origin);
         }
+        let (dx,dy)=self.scroll_offset(id);
         for child in &mut item.children {
-            self.paint(child, scene, x, y, scale, focus)?;
+            self.paint(child, scene, x-dx, y-dy, scale, focus)?;
         }
-        if item.overflow{self.clip_stack.pop();scene.pop_layer();}
-        if let Some(color)=item.outline.or_else(||(!item.suppress_outline && self.focus==Some(id) && matches!(item.role,Kind::Button|Kind::Input|Kind::Textarea)).then_some(item.ring)) {
+        if item.overflow!=0{self.clip_stack.pop();scene.pop_layer();}
+        if let Some(color)=item.outline.or_else(||(!item.suppress_outline && self.focus==Some(id) && (matches!(item.role,Kind::Button|Kind::Input|Kind::Textarea)||item.semantics.tab_index.is_some())).then_some(item.ring)) {
             scene.stroke(&vello::kurbo::Stroke::new(2.).with_join(vello::kurbo::Join::Miter), transform, paint_color(color), None,
                 &geometry::rounded(rect.inflate(3.,3.),geometry::outset(item.radius,3.)));
         }
@@ -546,7 +562,7 @@ fn keyboard(focus:&mut Option<u64>,pressed:&mut Option<u64>,ids:&[u64],shift:boo
     }
     None
 }
-fn focusable(node:&accesskit::Node)->bool {matches!(node.role(),accesskit::Role::Button|accesskit::Role::TextInput|accesskit::Role::MultilineTextInput) && !node.is_disabled() && !node.is_hidden()}
+fn focusable(node:&accesskit::Node)->bool {node.supports_action(accesskit::Action::Focus) && !node.is_disabled() && !node.is_hidden()}
 struct App {
     proxy: winit::event_loop::EventLoopProxy<accesskit::ActionRequest>,
     pointer: (f64,f64),
@@ -572,11 +588,13 @@ struct App {
     error: Option<String>,
 }
 impl App {
+    fn clickable(&self,id:u64)->bool {self.active.as_ref().is_some_and(|active|active.snapshot.lock().unwrap().nodes.iter().any(|(node_id,node)|node_id.0==id&&node.supports_action(accesskit::Action::Click)))}
     fn visible_hit(&self,id:u64)->bool {self.painter.hit_regions.get(&id).is_some_and(|paths|paths.iter().all(|path|path.contains(vello::kurbo::Point::new(self.pointer.0,self.pointer.1))))}
     fn controls(&self)->Vec<(u64,accesskit::Rect)> {
-        self.active.as_ref().map(|active|active.snapshot.lock().unwrap().nodes.iter()
-            .filter(|(_,n)|focusable(n))
-            .filter_map(|(id,n)|n.bounds().map(|bounds|(id.0,bounds))).collect()).unwrap_or_default()
+        self.active.as_ref().map(|active|{
+            let snapshot=active.snapshot.lock().unwrap();
+            self.painter.control_order.iter().filter_map(|id|snapshot.nodes.iter().find(|(node_id,node)|node_id.0==*id&&focusable(node)).and_then(|(_,node)|node.bounds()).map(|bounds|(*id,bounds))).collect()
+        }).unwrap_or_default()
     }
     fn pointer_nodes(&self)->std::collections::BTreeSet<u64> {
         self.active.as_ref().map(|active|active.snapshot.lock().unwrap().nodes.iter().filter_map(|(id,node)|node.bounds().filter(|r|self.pointer.0>=r.x0 && self.pointer.0<r.x1 && self.pointer.1>=r.y0 && self.pointer.1<r.y1 && self.visible_hit(id.0)).map(|_|id.0)).collect()).unwrap_or_default()
@@ -588,7 +606,7 @@ impl App {
         while ids.insert(current) {let Some(parent)=parents.get(&current) else{break;};current=*parent;}ids
     }
     fn hit(&self)->Option<u64> {
-        self.controls().into_iter().find(|(id,r)|self.pointer.0>=r.x0 && self.pointer.0<r.x1 && self.pointer.1>=r.y0 && self.pointer.1<r.y1 && self.visible_hit(*id)).map(|(id,_)|id).or_else(||self.painter.label_targets.iter().find(|(label,target)|self.visible_hit(**label) && self.controls().iter().any(|(id,_)|id==*target)).map(|(_,target)|*target))
+        self.controls().into_iter().rev().find(|(id,r)|self.pointer.0>=r.x0 && self.pointer.0<r.x1 && self.pointer.1>=r.y0 && self.pointer.1<r.y1 && self.visible_hit(*id)).map(|(id,_)|id).or_else(||self.painter.label_targets.iter().find(|(label,target)|self.visible_hit(**label) && self.controls().iter().any(|(id,_)|id==*target)).map(|(_,target)|*target))
     }
     fn activate(&mut self,id:u64,event_loop:&ActiveEventLoop) {
         match self.node.activate(id).and_then(|_|self.node.refresh()) {
@@ -751,7 +769,9 @@ impl App {
         let cursor=match cursor {1=>winit::window::CursorIcon::Text,2=>winit::window::CursorIcon::NotAllowed,_=>winit::window::CursorIcon::Default};
         active.window.set_cursor(cursor);
         let scale = active.window.scale_factor();
-        self.painter.viewport.size=Some((size.width as f64/scale,size.height as f64/scale));
+        let viewport=Some((size.width as f64/scale,size.height as f64/scale));
+        if self.painter.viewport.size!=viewport{self.painter.viewport.reveal_focus=self.focus.is_some();}
+        self.painter.viewport.size=viewport;
         let visible_focus=self.focus.filter(|id|self.focus_visible || self.painter.editors.contains_key(id));
         let (scene, mut snapshot) =
             self.painter
@@ -821,30 +841,13 @@ impl ApplicationHandler<accesskit::ActionRequest> for App {
         if request.target_tree!=accesskit::TreeId::ROOT {return;}
         let scale=self.active.as_ref().map(|active|active.window.scale_factor()).unwrap_or(1.);
         if request.action==accesskit::Action::ScrollIntoView {
-            let bounds=self.active.as_ref().and_then(|active|active.snapshot.lock().unwrap().nodes.iter().find(|(id,_)|*id==request.target_node).and_then(|(_,node)|node.bounds()));
-            if let Some(bounds)=bounds {
-                let offset=self.painter.viewport.offset;
-                self.painter.viewport.reveal(accesskit::Rect::new(bounds.x0/scale+offset.0,bounds.y0/scale+offset.1,bounds.x1/scale+offset.0,bounds.y1/scale+offset.1));
-                if let Some(active)=&self.active{active.window.request_redraw();}
-            }
+            if self.painter.scroll_chains.contains_key(&request.target_node.0){self.painter.reveal_target=Some(request.target_node.0);if let Some(active)=&self.active{active.window.request_redraw();}}
             return;
         }
-        if request.target_node.0==0 {
-            let size=self.painter.viewport.size.unwrap_or((0.,0.));
-            let step=if matches!(request.data,Some(accesskit::ActionData::ScrollUnit(accesskit::ScrollUnit::Item))){(32.,32.)}else{size};
-            match request.action {
-                accesskit::Action::ScrollDown=>{self.painter.viewport.scroll_by(0.,step.1);},
-                accesskit::Action::ScrollUp=>{self.painter.viewport.scroll_by(0.,-step.1);},
-                accesskit::Action::ScrollLeft=>{self.painter.viewport.scroll_by(-step.0,0.);},
-                accesskit::Action::ScrollRight=>{self.painter.viewport.scroll_by(step.0,0.);},
-                accesskit::Action::SetScrollOffset=>if let Some(accesskit::ActionData::SetScrollOffset(point))=request.data{self.painter.viewport.scroll_to(point.x/scale,point.y/scale);},
-                _=>return,
-            }
-            if let Some(active)=&self.active{active.window.request_redraw();}return;
-        }
+        if self.painter.scroll_action(&request,scale){if let Some(active)=&self.active{active.window.request_redraw();}return;}
         if !self.controls().iter().any(|(id,_)|*id==request.target_node.0) {return;}
         match request.action {
-            accesskit::Action::Click if !self.painter.editors.contains_key(&request.target_node.0)=>self.activate(request.target_node.0,event_loop),
+            accesskit::Action::Click if self.clickable(request.target_node.0)=>self.activate(request.target_node.0,event_loop),
             accesskit::Action::SetValue=>if let Some(accesskit::ActionData::Value(value))=request.data {
                 if let Err(error)=self.node.input(request.target_node.0,&value).and_then(|_|self.node.refresh()){self.fail(event_loop,error);}else if let Some(active)=&self.active{active.window.request_redraw();}
             },
@@ -898,31 +901,22 @@ impl ApplicationHandler<accesskit::ActionRequest> for App {
                     return;
                 }
                 if state==ElementState::Pressed {self.pressed=self.hit();self.set_focus(self.pressed);self.focus_visible=false;self.dragging_text=self.pressed.is_some_and(|id|self.painter.editors.contains_key(&id) && self.visible_hit(id));if self.dragging_text{self.pointer_edit(self.pressed.unwrap(),self.shift);}}
-                else if let Some(id)=self.pressed.take() {self.dragging_text=false;if self.hit()==Some(id) && !self.painter.editors.contains_key(&id){self.activate(id,event_loop);}}
+                else if let Some(id)=self.pressed.take() {self.dragging_text=false;if self.hit()==Some(id) && self.clickable(id){self.activate(id,event_loop);}}
                 if let Some(active)=&self.active {active.window.request_redraw();}
             },
             WindowEvent::KeyboardInput{event,..}=>{
                 self.focus_visible=true;
                 if event.logical_key==Key::Named(NamedKey::Tab) {
-                    let ids=self.controls().into_iter().map(|(id,_)|id).collect::<Vec<_>>();
+                    let ids=self.controls().into_iter().map(|(id,_)|id).filter(|id|!self.painter.tab_excluded.contains(id)).collect::<Vec<_>>();
                     let mut next=self.focus;keyboard(&mut next,&mut self.key_pressed,&ids,self.shift,&event.logical_key,event.state,event.repeat);self.set_focus(next);
                 }else if self.focus.is_some_and(|id|self.painter.editors.contains_key(&id)) {
                     if event.logical_key==Key::Named(NamedKey::Escape) {if let Some(editor)=self.focus.and_then(|id|self.painter.editors.get_mut(&id)){editor.cancel_composition(&mut self.painter.fonts,&mut self.painter.layouts);}}
                     else if let Err(error)=self.text_key(&event){self.fail(event_loop,error);}
                 }else{
                     if event.state==ElementState::Pressed {
-                        let page=self.painter.viewport.size.map(|size|size.1*0.9).unwrap_or(0.);
-                        match event.logical_key {
-                            Key::Named(NamedKey::PageDown)=>{self.painter.viewport.scroll_by(0.,page);},
-                            Key::Named(NamedKey::PageUp)=>{self.painter.viewport.scroll_by(0.,-page);},
-                            Key::Named(NamedKey::Home)=>{self.painter.viewport.scroll_to(0.,0.);},
-                            Key::Named(NamedKey::End)=>{let max=self.painter.viewport.maximum();self.painter.viewport.scroll_to(max.0,max.1);},
-                            Key::Named(NamedKey::ArrowDown)=>{self.painter.viewport.scroll_by(0.,32.);},
-                            Key::Named(NamedKey::ArrowUp)=>{self.painter.viewport.scroll_by(0.,-32.);},
-                            _=>{},
-                        }
+                        self.painter.scroll_key(self.focus,&event.logical_key,self.shift);
                     }
-                    let ids=self.controls().into_iter().map(|(id,_)|id).collect::<Vec<_>>();
+                    let ids=self.controls().into_iter().map(|(id,_)|id).filter(|id|self.clickable(*id)).collect::<Vec<_>>();
                     if let Some(id)=keyboard(&mut self.focus,&mut self.key_pressed,&ids,self.shift,&event.logical_key,event.state,event.repeat){self.activate(id,event_loop);}
                 }
                 if let Some(active)=&self.active {active.window.request_redraw();}
@@ -939,7 +933,8 @@ impl ApplicationHandler<accesskit::ActionRequest> for App {
                     editor.scroll.0=(editor.scroll.0-dx).clamp(0.,(text.width() as f64-editor.viewport.0).max(0.));editor.scroll.1=(editor.scroll.1-dy).clamp(0.,(text.height() as f64-editor.viewport.1).max(0.));
                     dx-=before.0-editor.scroll.0;dy-=before.1-editor.scroll.1;
                 }
-                self.painter.viewport.scroll_by(-dx,-dy);
+                let target=self.painter.scroll_order.iter().rev().find(|id|self.painter.scrolls.get(id).is_some_and(|region|region.wheel)&&self.visible_hit(**id)).copied();
+                self.painter.scroll_chain(target,-dx,-dy);
                 if let Some(active)=&self.active{active.window.request_redraw();}
             },
             WindowEvent::CloseRequested => {
@@ -1352,7 +1347,7 @@ mod composed_button_tests {
   let text=Node::new(Kind::Text,"text-sm leading-snug font-medium font-serif".into(),"Title".into(),vec![]).unwrap();
   let button=Node::button("Clipped".into(),"w-64 h-32 shrink-0".into(),false,||Ok(())).unwrap();
   let root=Node::new(Kind::View,"w-16 h-16 overflow-hidden rounded-xl border-t [--panel:--spacing(3)] px-(--panel)".into(),String::new(),vec![text,button]).unwrap();
-  let mut painter=Painter::new();let item=painter.node(&root,TextStyle::default()).unwrap();let style=painter.tree.style(item.id).unwrap();assert_eq!(style.padding.left,length(12.));assert_eq!(style.border.top,length(1.));assert_eq!(style.border.bottom,length(0.));assert!(item.overflow);
+  let mut painter=Painter::new();let item=painter.node(&root,TextStyle::default()).unwrap();let style=painter.tree.style(item.id).unwrap();assert_eq!(style.padding.left,length(12.));assert_eq!(style.border.top,length(1.));assert_eq!(style.border.bottom,length(0.));assert_eq!(item.overflow,1);
   let mut text=item.children[0].text.clone().unwrap();text.break_all_lines(None);assert!((text.height()-14.*1.375).abs()<0.02,"{}",text.height());
   let (_,tree)=painter.scene(&root,64.,1.,None).unwrap();assert!(tree.nodes.iter().any(|(id,n)|id.0==1 && n.clips_children()));
   let clips=&painter.hit_regions[&3];assert!(clips.len()>=2);assert!(!clips.iter().all(|path|path.contains(vello::kurbo::Point::new(80.,40.))));

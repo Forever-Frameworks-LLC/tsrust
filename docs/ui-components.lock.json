@@ -1,0 +1,272 @@
+{
+  "schemaVersion": 1,
+  "installed": [
+    {
+      "identity": {
+        "name": "tokens",
+        "version": "1.0.0",
+        "variant": "default"
+      },
+      "destination": "tsrust.config.json",
+      "catalog": "bundled-2026-10-19",
+      "payloadSha256": "672890add8ab2728b422142adc7dd3117f68f4980cf5c585688155169f3b8e13",
+      "compilerSha256": "47bba2a19d4b38c3bbcbca540f36c43076b6a39c787c67a57ac4ddf09274c788",
+      "compilerVersion": "0.1.0",
+      "compilerApi": 1,
+      "runtimeAbi": "ui-application-1",
+      "rust": "1.96.1",
+      "license": "MIT",
+      "attribution": {
+        "path": "attributions/tsrust-MIT.txt",
+        "sha256": "cbec69fd61450e157d5fcd9a18131012cd5eae59da5e834e8ef140aa7a363a12"
+      },
+      "dependencies": [],
+      "files": [
+        {
+          "path": "tsrust.config.json",
+          "jsonPointer": "/ui/theme",
+          "templateSha256": "465aa6242b591b43d4f5cd5f2dd37f607da205877f203939db71e304bd02386f",
+          "generatedSha256": "e16ca4c6ec010ee41f941361285505924b7ec38f99fd8e8cdfbe0200d85a285a"
+        }
+      ]
+    },
+    {
+      "identity": {
+        "name": "button",
+        "version": "2.0.0",
+        "variant": "default"
+      },
+      "destination": "src/components/ui",
+      "catalog": "bundled-2026-10-19",
+      "payloadSha256": "41b7284647e77f9dc3f8a435707000a27ebec29bbf18de4fe7165fdb416e3766",
+      "compilerSha256": "47bba2a19d4b38c3bbcbca540f36c43076b6a39c787c67a57ac4ddf09274c788",
+      "compilerVersion": "0.1.0",
+      "compilerApi": 1,
+      "runtimeAbi": "ui-application-1",
+      "rust": "1.96.1",
+      "license": "MIT",
+      "attribution": {
+        "path": "attributions/tsrust-MIT.txt",
+        "sha256": "cbec69fd61450e157d5fcd9a18131012cd5eae59da5e834e8ef140aa7a363a12"
+      },
+      "dependencies": [
+        {
+          "name": "tokens",
+          "version": "1.0.0",
+          "variant": "default"
+        }
+      ],
+      "files": [
+        {
+          "path": "src/components/ui/button.tsrx",
+          "templateSha256": "0d0de8e733d896855cd66ab482c401f10b77cf4cf49e36cbd0c181177abbfe9c",
+          "generatedSha256": "e928d50bcbd97a1e3d74a16cea679f483b211ec82cefb0b42f00e618638e9ee0"
+        }
+      ]
+    },
+    {
+      "identity": {
+        "name": "card",
+        "version": "3.0.0",
+        "variant": "default"
+      },
+      "destination": "src/components/ui",
+      "catalog": "bundled-2026-10-19",
+      "payloadSha256": "97a5cf2bb35ed36e892cb8cbe3b365c3190292124c14b5f9cf183c84431ccd5e",
+      "compilerSha256": "47bba2a19d4b38c3bbcbca540f36c43076b6a39c787c67a57ac4ddf09274c788",
+      "compilerVersion": "0.1.0",
+      "compilerApi": 2,
+      "runtimeAbi": "ui-application-1",
+      "rust": "1.96.1",
+      "license": "MIT",
+      "attribution": {
+        "path": "attributions/shadcn-MIT.txt",
+        "sha256": "1564074e13439397221ffd522e2e504d56561994a23d371aa5e3ad43e4f5423f"
+      },
+      "dependencies": [
+        {
+          "name": "tokens",
+          "version": "1.0.0",
+          "variant": "default"
+        }
+      ],
+      "files": [
+        {
+          "path": "src/components/ui/card.tsrx",
+          "templateSha256": "3afdc9c6262cfc220d1807342040648d2cfe58bee8258ce8ffaf6c7c912f7513",
+          "generatedSha256": "522773bae280530c1f794c92673b70e73502c9ff2006a73c6a7d9ad5cf587a9d"
+        }
+      ]
+    },
+    {
+      "identity": {
+        "name": "input",
+        "version": "3.0.0",
+        "variant": "default"
+      },
+      "destination": "src/components/ui",
+      "catalog": "bundled-2026-10-19",
+      "payloadSha256": "f114b8a646316c8408c3cf0764161cad7bf58b9aaca2938a7405687ec3e7bc50",
+      "compilerSha256": "47bba2a19d4b38c3bbcbca540f36c43076b6a39c787c67a57ac4ddf09274c788",
+      "compilerVersion": "0.1.0",
+      "compilerApi": 2,
+      "runtimeAbi": "ui-application-1",
+      "rust": "1.96.1",
+      "license": "MIT",
+      "attribution": {
+        "path": "attributions/shadcn-MIT.txt",
+        "sha256": "1564074e13439397221ffd522e2e504d56561994a23d371aa5e3ad43e4f5423f"
+      },
+      "dependencies": [
+        {
+          "name": "tokens",
+          "version": "1.0.0",
+          "variant": "default"
+        }
+      ],
+      "files": [
+        {
+          "path": "src/components/ui/input.tsrx",
+          "templateSha256": "d01bca7546059d5e98977b4560e30153af31dfd10328f782d7f5e40f8c4d22a2",
+          "generatedSha256": "1fa48d1cab155ac98b0f0bdf5fcdf9fa617a769e75653f499c97e9760c1bb34a"
+        }
+      ]
+    },
+    {
+      "identity": {
+        "name": "textarea",
+        "version": "3.0.0",
+        "variant": "default"
+      },
+      "destination": "src/components/ui",
+      "catalog": "bundled-2026-10-19",
+      "payloadSha256": "72e631ac707eb5c0c95bc59f76995834f1161db9534b8d6c5c4ce0d083229f95",
+      "compilerSha256": "47bba2a19d4b38c3bbcbca540f36c43076b6a39c787c67a57ac4ddf09274c788",
+      "compilerVersion": "0.1.0",
+      "compilerApi": 2,
+      "runtimeAbi": "ui-application-1",
+      "rust": "1.96.1",
+      "license": "MIT",
+      "attribution": {
+        "path": "attributions/shadcn-MIT.txt",
+        "sha256": "1564074e13439397221ffd522e2e504d56561994a23d371aa5e3ad43e4f5423f"
+      },
+      "dependencies": [
+        {
+          "name": "tokens",
+          "version": "1.0.0",
+          "variant": "default"
+        }
+      ],
+      "files": [
+        {
+          "path": "src/components/ui/textarea.tsrx",
+          "templateSha256": "dcbd642bc14790041ee8a968a96bb9e845a41f6f2f1c0efb55a0cab56803ed21",
+          "generatedSha256": "eacb29c8e9e05d7166ba0e7e4d0a5f0d67852fae7cb4423aff3891e8f382a03f"
+        }
+      ]
+    },
+    {
+      "identity": {
+        "name": "label",
+        "version": "3.0.0",
+        "variant": "default"
+      },
+      "destination": "src/components/ui",
+      "catalog": "bundled-2026-10-19",
+      "payloadSha256": "9e6e45e0328d70639f046feacf62fa4a69b53d80eca337b5c50b43de1c703781",
+      "compilerSha256": "47bba2a19d4b38c3bbcbca540f36c43076b6a39c787c67a57ac4ddf09274c788",
+      "compilerVersion": "0.1.0",
+      "compilerApi": 2,
+      "runtimeAbi": "ui-application-1",
+      "rust": "1.96.1",
+      "license": "MIT",
+      "attribution": {
+        "path": "attributions/shadcn-MIT.txt",
+        "sha256": "1564074e13439397221ffd522e2e504d56561994a23d371aa5e3ad43e4f5423f"
+      },
+      "dependencies": [
+        {
+          "name": "tokens",
+          "version": "1.0.0",
+          "variant": "default"
+        }
+      ],
+      "files": [
+        {
+          "path": "src/components/ui/label.tsrx",
+          "templateSha256": "a026fff5c0406b59175a5695d5c52b8d7e8e16979e3fc45e9bd925b8ffc8afc0",
+          "generatedSha256": "f5813996e553f25e652800dd698875ad16e6ac41df303d40a899b63f186148b3"
+        }
+      ]
+    },
+    {
+      "identity": {
+        "name": "kbd",
+        "version": "1.0.0",
+        "variant": "default"
+      },
+      "destination": "src/components/ui",
+      "catalog": "bundled-2026-10-19",
+      "payloadSha256": "67f4361512959077ab1816f3a1b5f5c78d6400f03723cae5013066b20f31c31d",
+      "compilerSha256": "47bba2a19d4b38c3bbcbca540f36c43076b6a39c787c67a57ac4ddf09274c788",
+      "compilerVersion": "0.1.0",
+      "compilerApi": 2,
+      "runtimeAbi": "ui-application-1",
+      "rust": "1.96.1",
+      "license": "MIT",
+      "attribution": {
+        "path": "attributions/shadcn-MIT.txt",
+        "sha256": "1564074e13439397221ffd522e2e504d56561994a23d371aa5e3ad43e4f5423f"
+      },
+      "dependencies": [
+        {
+          "name": "tokens",
+          "version": "1.0.0",
+          "variant": "default"
+        }
+      ],
+      "files": [
+        {
+          "path": "src/components/ui/kbd.tsrx",
+          "templateSha256": "da3ae90b67a99df8f9137f9e8c258f23c3887c780f9ee480f54da857c682e759",
+          "generatedSha256": "e4d818ec5cae9db67e0bf79d744081b99042789f8ca8c606e2ce0fb23be14d84"
+        }
+      ]
+    },
+    {
+      "identity": {
+        "name": "separator",
+        "version": "1.0.0",
+        "variant": "default"
+      },
+      "destination": "src/components/ui",
+      "catalog": "bundled-2026-10-19",
+      "payloadSha256": "624508cb8684a0b81804457edc483409f160cb2fc8445dc5c6d664ede81e0abb",
+      "compilerSha256": "47bba2a19d4b38c3bbcbca540f36c43076b6a39c787c67a57ac4ddf09274c788",
+      "compilerVersion": "0.1.0",
+      "compilerApi": 2,
+      "runtimeAbi": "ui-application-1",
+      "rust": "1.96.1",
+      "license": "MIT",
+      "attribution": {
+        "path": "attributions/shadcn-MIT.txt",
+        "sha256": "1564074e13439397221ffd522e2e504d56561994a23d371aa5e3ad43e4f5423f"
+      },
+      "dependencies": [
+        {
+          "name": "tokens",
+          "version": "1.0.0",
+          "variant": "default"
+        }
+      ],
+      "files": [
+        {
+          "path": "src/components/ui/separator.tsrx",
+          "templateSha256": "424ca62144fd21a20129443e08126a7feb018ff0787c55086202661ebb4c63d2",
+          "generatedSha256": "ae1714eded4efeb06918b802080e3c4d7ffb1d59ec03547ceaae71ab1cd9a5e9"
+        }
+      ]
+    }
+  ]
+}

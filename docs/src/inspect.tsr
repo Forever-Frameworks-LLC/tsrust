@@ -1,0 +1,15 @@
+import { document } from 'std:ui';
+import { assert } from 'std:testing';
+import { Page } from './app/page';
+
+function main() {
+  const html = document(Page(), 'Tsrust documentation');
+  assert(html.includes('One application. Two targets.'));
+  assert(html.includes('Count: 0'));
+  assert(html.includes('tabindex="0"'));
+  assert(html.includes('overflow:auto'));
+  assert(html.includes('100vh'));
+  assert(html.includes('aria-label="Documentation article"'));
+  assert(html.includes('aria-orientation="horizontal"'));
+  console.log('Documentation foundation passed');
+}

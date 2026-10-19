@@ -54,6 +54,7 @@ pub(crate) struct Semantics {
     pub described_by:String,
     pub invalid:String,
     pub window_drag_region:bool,
+    pub tab_index:Option<i64>,
 }
 
 pub struct Node {
@@ -85,6 +86,7 @@ impl Node {
         if config.is_empty(){return Ok(self);}
         let value:Semantics=serde_json::from_str(config).map_err(|e|format!("Invalid UI semantics: {e}"))?;
         if value.window_drag_region && self.kind!=Kind::View{return Err("windowDragRegion requires View".into());}
+        if value.tab_index.is_some_and(|index|!matches!(index,-1|0)) || value.tab_index.is_some() && self.kind!=Kind::View{return Err("View tabIndex supports 0 (sequential focus) or -1 (programmatic focus)".into());}
         let tag=if value.tag.is_empty(){self.tag()}else{&value.tag};
         let allowed=match self.kind {
             Kind::View=>matches!(tag,"div"|"section"|"span"|"label"|"kbd"|"code"),
@@ -110,7 +112,7 @@ impl Node {
         self.semantics=value;self.validate_structure()?;Ok(self)
     }
     fn has_enabled_controls(&self)->bool {!self.collapsed && (self.enabled_control() || self.children.iter().any(Self::has_enabled_controls))}
-    pub(crate) fn enabled_control(&self)->bool {matches!(self.kind,Kind::Button|Kind::Input|Kind::Textarea) && !self.is_disabled()}
+    pub(crate) fn enabled_control(&self)->bool {(matches!(self.kind,Kind::Button|Kind::Input|Kind::Textarea) || self.kind==Kind::View && self.semantics.tab_index.is_some()) && !self.is_disabled()}
     pub(crate) fn is_disabled(&self)->bool {self.kind==Kind::DisabledButton || self.editable.as_ref().is_some_and(|field|field.disabled)}
     fn apply_disabled(&mut self,next:bool)->bool {
         if let Some(field)=&mut self.editable {let changed=field.disabled!=next;field.disabled=next;changed}

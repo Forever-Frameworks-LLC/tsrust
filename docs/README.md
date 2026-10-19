@@ -6,6 +6,21 @@ all pinned components/blocks, themes, authoring APIs and curated benchmark pages
 It distinguishes planned work from accepted implementation and preserves the
 developer evidence paths below.
 
+## Runnable application foundation
+
+This directory is also a standalone UI project. Its explicit entrypoint is
+[src/main.tsr](src/main.tsr), shared page is [src/app/page.tsrx](src/app/page.tsrx),
+and editable controls are under [src/components/ui/](src/components/ui/).
+[tsrust.config.json](tsrust.config.json) enables web and native targets and owns
+the light/dark theme. Run `tsrust dev` from this directory on macOS for the current
+custom-titlebar example. Other native platforms require `titlebar: 'native'`.
+
+The initial shell demonstrates independent scroll panes, retained counter/draft
+state and live mode changes. It is not the completed documentation site: routing,
+source previews, Markdown, offline search and generated API/benchmark pages remain
+in the active plan. The browser build still uses `tools/build-ui-web.mjs` until
+ordinary CLI web build/dev support lands.
+
 ## Start here
 
 - [Standard-library roadmap](standard-library-roadmap.md): current implementation status and remaining S08–S21 work.
