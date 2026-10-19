@@ -556,12 +556,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
     }
     crate::callables::module_state::lower(&mut linked).map_err(|value| diagnostic(&graph, &segments, value))?;
     crate::local_functions::resolve(&mut linked).map_err(|value| diagnostic(&graph, &segments, value))?;
-    let checked = match crate::analysis::analyze(linked.clone()) {
-        Err(value) if value.code == "recursion-inference" => {
-            crate::analysis::analyze_recursive(linked.clone())
-        }
-        result => result,
-    };
+    let checked = crate::analysis::analyze_with_recursive_fallback(linked.clone());
     let checked=match checked {
         Ok(checked)=>checked,
         Err(error)=>{

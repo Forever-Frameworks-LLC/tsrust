@@ -625,6 +625,16 @@ pub fn analyze(mut program: Program) -> Result<CheckedProgram, Diagnostic> {
     finish_analysis(Analyzer::new(program)?.run()?)
 }
 
+pub(crate) fn analyze_with_recursive_fallback(mut program:Program)->Result<CheckedProgram,Diagnostic>{
+    if crate::stdlib::testing::program::registry_reachable(&mut program)? {return analyze_recursive(program);}
+    let proofs=std::cell::OnceCell::new();
+    let result=Analyzer::new_with_source_proofs(program.clone(),Some(&proofs)).and_then(Analyzer::run).and_then(finish_analysis);
+    match result {
+        Err(error) if error.code=="recursion-inference"=>analyze_recursive_with_proofs(program,&proofs),
+        result=>result,
+    }
+}
+
 // Incomplete capture layouts stay private, even after typed flow checking.
 fn finish_analysis(mut checked: CheckedProgram) -> Result<CheckedProgram, Diagnostic> {
     crate::callables::module_state::validate(&checked)?;
@@ -684,7 +694,10 @@ pub fn analyze_recursive(program: Program) -> Result<CheckedProgram, Diagnostic>
     // Each pass starts from the same source. Access modes are applied after
     // construction, so source callback proofs are independent of this fixed point.
     let source_proofs=std::cell::OnceCell::new();
-    let initial=Analyzer::new_with_source_proofs(program.clone(),Some(&source_proofs))?;
+    analyze_recursive_with_proofs(program,&source_proofs)
+}
+fn analyze_recursive_with_proofs(program:Program,source_proofs:&std::cell::OnceCell<crate::generic_call_validation::Proofs>)->Result<CheckedProgram,Diagnostic>{
+    let initial=Analyzer::new_with_source_proofs(program.clone(),Some(source_proofs))?;
     let mut modes = initial
         .signatures
         .iter()
@@ -704,7 +717,7 @@ pub fn analyze_recursive(program: Program) -> Result<CheckedProgram, Diagnostic>
     let mut remaining = parameter_count.saturating_mul(2) + 1;
     while remaining > 0 {
         remaining -= 1;
-        let mut analyzer = Analyzer::new_with_source_proofs(program.clone(),Some(&source_proofs))?;
+        let mut analyzer = Analyzer::new_with_source_proofs(program.clone(),Some(source_proofs))?;
         analyzer.assumed_modes = Some(modes.clone());
         analyzer.assumed_capture_access = capture_access.clone();
         analyzer.program_access = program_access.clone();
@@ -754,7 +767,7 @@ pub fn analyze_recursive(program: Program) -> Result<CheckedProgram, Diagnostic>
             }
         }
         if !changed {
-            let mut analyzer = Analyzer::new_with_source_proofs(program,Some(&source_proofs))?;
+            let mut analyzer = Analyzer::new_with_source_proofs(program,Some(source_proofs))?;
             analyzer.assumed_modes = Some(modes);
             analyzer.assumed_capture_access = capture_access;
             analyzer.program_access = program_access;
@@ -11752,5 +11765,11 @@ mod type_hints;
   let source=crate::format("function preserve<T>(value:T):T{return value;}function append(values:Mutable<int[]>,n:int):void{if(n>0){values.push(preserve<int>(n));append(values,n-1);}}function main(){const values=[0];append(values,2);}").unwrap();assert_eq!(crate::format(&source).unwrap(),source);
   let before=crate::generic_call_validation::validation_runs();let result=analyze_recursive(crate::syntax::parse(&source).unwrap()).unwrap();assert_eq!(crate::generic_call_validation::validation_runs()-before,1);let append=result.functions.iter().find(|function|function.name=="append").unwrap();assert_eq!(append.bindings[0].mode,Mode::Mutate);
   let invalid=source.replace("preserve<int>(n)","preserve<int>(n, 2)");assert!(analyze_recursive(crate::syntax::parse(&invalid).unwrap()).is_err());assert_eq!(crate::generic_call_validation::validation_runs()-before,2);
+ }
+ #[test]fn recursive_fallback_reuses_only_this_inputs_source_proofs(){
+  let source=crate::format("function append(values:Mutable<int[]>,n:int):void{if(n>0){values.push(n);append(values,n-1);}}function main(){const values=[0];append(values,2);}").unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+  let program=crate::syntax::parse(&source).unwrap();assert_eq!(analyze(program.clone()).err().expect("recursive access requires inference").code,"recursion-inference");
+  let before=crate::generic_call_validation::validation_runs();let result=analyze_with_recursive_fallback(program).unwrap();assert_eq!(crate::generic_call_validation::validation_runs()-before,1);assert_eq!(result.functions.iter().find(|function|function.name=="append").unwrap().bindings[0].mode,Mode::Mutate);
+  let invalid=source.replace("append(values,n-1)","append(values,true)");assert!(analyze_with_recursive_fallback(crate::syntax::parse(&invalid).unwrap()).is_err());assert_eq!(crate::generic_call_validation::validation_runs()-before,2);
  }
 }
