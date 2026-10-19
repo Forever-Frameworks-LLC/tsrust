@@ -12,7 +12,7 @@
     "exactJsxAttributes": "accepted: quoted record keys, exact hyphenated JSX names, ownership and incomplete-source editor help",
     "semanticElements": "accepted portable subset: tags, naming, roles, live content, hidden controls and orientation; arbitrary ARIA/HTML remains unsupported",
     "composedControls": "accepted portable foundation: owned mixed children, inline containers, optional handlers, noninteractive phrasing validation, exact owning array widening, resource-union clone rejection and inferred native callback identities",
-    "editableStateAndIme": "pending",
+    "editableStateAndIme": "scalar state accepted: one generic Signal API for int, number, boolean and string; Text bindings, captures, exact numeric storage, string snapshots and disposal. Native text input, selection and IME remain pending",
     "layoutAndTheme": "accepted portable layout, alpha/OKLCH colors, surface rings, bounded structural predicates, inherited numeric spacing, generic typography, independent edges/corners and rounded paint/pointer clipping; media, container queries and named font assets remain pending",
     "focusAndOverlays": "pending",
     "baseComponentComposition": "pending",

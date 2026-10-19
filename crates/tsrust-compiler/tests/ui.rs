@@ -53,7 +53,7 @@ fn component_return_retains_state_through_checked_moves() {
     for tail in ["return <Text>{first} / {second}</Text>;", "if (flag) {return <Text>{first}</Text>;}return <Text>{second}</Text>;"] {
         let source=format!("import {{Text,signal,Node}} from 'std:ui';function Component(flag:boolean):Node{{const first=signal(1);const second=signal(2);{tail}}}function main(){{const node=Component(true);}}");
         std::fs::write(&path,support::format_round_trip(&source)).unwrap();let checked=check_graph(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap()).unwrap();
-        assert!(checked.emit_rust().contains("tsrust_ui_own_state"));
+        assert!(checked.emit_rust().contains(".own_state(state)"));
     }
     for source in [
         "import {Text,signal,Node} from 'std:ui';function Component():Node{const count=signal(0);return count;}function main(){}",
@@ -78,7 +78,7 @@ fn direct_state_bindings_and_callback_capture_preserve_scopes() {
         let source=format!("import {{Text,View,Button,signal,Node,document}} from 'std:ui';function Component(flag:boolean):Node{{const count=signal(0);{construction}}}function main(){{console.log(document(Component(true),'test'));const limit=signal(9223372036854775807);try{{limit.set(limit.get()+1);}}catch(error){{console.log(limit.get());}}}}");
         let formatted=support::format_round_trip(&source);std::fs::write(&path,formatted).unwrap();
         let checked=check_graph(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap()).unwrap_or_else(|error|panic!("{construction}: {error:?}"));
-        let rust=checked.emit_rust();assert!(rust.contains("tsrust_ui_handle"));
+        let rust=checked.emit_rust();assert!(rust.contains(".handle()"));
         if construction.contains("const factory") {
             let output=support::run(support::cli().arg("run").arg(&path),90);support::success(&output);
             let output=String::from_utf8(output.stdout).unwrap();assert!(output.contains(">2</span>"));assert!(output.ends_with("9223372036854775807\n"));

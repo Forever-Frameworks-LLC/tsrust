@@ -47,3 +47,10 @@ caller overrides, edge/corner styling, header action layout, typography, rounded
 pointer clipping, accessibility and disposal. Image edge rules, inline-size
 containment and named font assets remain unsupported; this does not claim full
 Nova Card parity or timing.
+
+`verify-state.mjs <built-state-site>` checks the paired `examples/ui-state`
+component against `state-reference.ts` compiled with TypeScript. It covers all
+four scalar payloads, exact integers above 2^53, independent instances, text and
+disabled updates, keyboard activation, accessible controls and disposal. The
+native inspector additionally asserts string snapshots and IEEE-754 storage.
+This is untimed acceptance; it is not a throughput measurement.

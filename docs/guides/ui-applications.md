@@ -217,6 +217,13 @@ optional child arrays forwarded by older components. Each element moves once;
 resources cannot be cloned implicitly. Borrowed array widening is rejected: form
 the wider owned array first, then borrow it if needed.
 
+Scalar state uses `signal(initial)` for int, number, boolean or string.
+`Signal<T = int>` defaults its type only; the initial value remains required.
+String reads and writes are independent snapshots. Numeric storage preserves full
+int and IEEE-754 values; number text uses ordinary language formatting (-0 is 0).
+Arrays, records, nullable values, resources and callbacks are not scalar state.
+See examples/ui-state for a paired component and native assertions.
+
 Only direct Signal children bind updates. Computed strings/trees are construction-time
 snapshots; numeric/boolean/null children and dynamic conditional child trees are
 not provided as reactive rendering. See examples/ui-composition.

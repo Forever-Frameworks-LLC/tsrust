@@ -104,6 +104,7 @@ fn method<'a>(analyzer:&Analyzer,context:&Context,expr:&'a Expr,receiver:Option<
     if let Some(Type::Record(id))=receiver && analyzer.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::HttpContext) && name=="get" {
         *value=(||{let ExprKind::String(key)=&arguments.first()?.kind else{return None;};let Type::Record(variables)=analyzer.program.records[id].application.as_ref()?.resolved_arguments[1]else{return None;};let ty=analyzer.program.records[variables].fields.iter().find(|field|field.name.text==*key)?.ty?;analyzer.unions.intern([ty,Type::Undefined],expr.span).ok().map(|ty|if ty.is_copy(){ty}else{Type::BorrowedUnion(ty.union().unwrap())})})();return;
     }
+    if let Some(Type::Record(id))=receiver && analyzer.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::UiSignal) { *value=match name.as_str(){"get"=>analyzer.program.records[id].application.as_ref().map(|a|a.resolved_arguments[0]),"set"=>Some(Type::Void),_=>None};return; }
     if let Some(Type::Record(id))=receiver && crate::stdlib::cache::is_cache(analyzer.program.records[id].native_type){
         *value=match name.as_str() {
             "share"=>Some(Type::Record(id)),

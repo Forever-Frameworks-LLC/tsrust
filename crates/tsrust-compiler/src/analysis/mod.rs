@@ -8848,6 +8848,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         expected: Option<Type>,
         receiver_prepared: bool,
     ) -> Result<CallDispatch, Diagnostic> {
+        self.ui_empty_props(context,expr);
         if let ExprKind::Call(callee,_) = &expr.kind
             && !matches!(callee.kind,ExprKind::Unary{op:UnaryOp::AwaitCallee,..})
             && self.expression_type_hint(context,callee).is_some_and(|ty|self.is_task_type(ty)) {

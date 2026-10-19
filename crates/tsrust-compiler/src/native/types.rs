@@ -63,7 +63,7 @@ static UI_NODE: Declaration = Declaration {
     type_parameters: &[],
     ..THREAD
 };
-static UI_SIGNAL: Declaration = Declaration { id:NativeTypeId::UiSignal,name:"Signal",..UI_NODE };
+static UI_SIGNAL: Declaration = Declaration { id:NativeTypeId::UiSignal,name:"Signal",type_parameters:&["T"],..UI_NODE };
 static UI_ERROR: Declaration = Declaration {
     id: NativeTypeId::UiError,
     module: "std:ui-runtime",

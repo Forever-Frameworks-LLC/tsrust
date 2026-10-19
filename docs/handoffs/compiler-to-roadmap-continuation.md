@@ -190,6 +190,41 @@ not acceptance of any pending Nova component or block. Continue Card's real sour
 family; numeric spacing scope, typography, edge/corner styles, clipping, media and
 inline-size containment remain concrete requirements rather than inert markers.
 
+## Current typed scalar UI state — 2026-10-19
+
+`signal(initial)` now infers int, number, boolean or string. `Signal<T = int>`
+preserves existing integer annotations. Strings read/write independent snapshots;
+integers retain all 64 bits, numbers retain IEEE-754 values and direct Text bindings
+use ordinary language conversion (including -0 displayed as 0). Arrays, records,
+nullable values, callbacks and resources are explicitly rejected as scalar state.
+No public handle/owner helpers or duplicate reactive components were added.
+The returned tree keeps the single owner; Text and callbacks retain weak bindings.
+
+Empty-props JSX now supports named zero-parameter components. Attributes, children
+and ordinary `Component({})` calls retain their arity errors. The paired example
+uses two independent `<Counter />` instances and local application callbacks.
+The LSP substitutes scalar types into get/set help and preserves documentation on
+the generic public alias. Compiler facts expose the source-level scalar read rather
+than its hidden Result call, including distinct generic specializations.
+
+Focused acceptance covers four compiler witnesses, all 17 existing UI witnesses
+(reusing the earlier unaffected passes), 32 shared runtime checks, four scalar
+editor types, public alias help, four receiver agreement rows, state consistency
+and all four string-result typing modes. The first matrix report captured missing
+answers despite a successful command status; its original is retained. The fixed
+row passes in assertion mode. Native renderer package checks offline/locked.
+Fresh Wasm Chromium observations match the independent Node-after-tsc oracle for
+both instances, text/disabled updates, keyboard activation, exact large integers,
+special number strings, accessibility and disposal. Initial setup, harness and
+canonical-path failures remain original evidence under `tsrust-ui-scalar-*` in
+SQLite. No new timing, SQL pass or full compiler/LSP milestone run is claimed.
+
+Continue real editable controls using the pinned Base UI Input contract and Nova
+source already saved in SQLite (`tsrust-ui-editable-input-upstream.json`). Reuse
+Parley editing/selection/composition rather than hand-written Unicode editing.
+Input/textarea/field semantics, native IME, overlays, lists and the remaining
+complete source families/layouts/blocks are still required work.
+
 ## Current generic alias foundation — 2026-10-19
 
 Generic non-record aliases now accept type parameters and trailing defaults.

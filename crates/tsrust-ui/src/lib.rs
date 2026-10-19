@@ -6,7 +6,7 @@ mod native;
 #[cfg(all(target_arch="wasm32",feature="ui-web"))]
 pub mod browser;
 mod state;
-pub use state::Signal;
+pub use state::{Signal,TextBinding};
 pub mod style;
 pub mod theme;
 mod web;
@@ -24,7 +24,7 @@ pub enum Kind {
     Button,
 }
 
-pub enum TextPart { Literal(String), Signal(Signal) }
+pub enum TextPart { Literal(String), Signal(TextBinding) }
 /// Owned child content. Text parts are grouped without cloning their state references.
 pub enum Child { Node(Node), Text(TextPart) }
 
@@ -52,7 +52,7 @@ pub struct Node {
     pub(crate) parts: Vec<TextPart>,
     pub(crate) disabled: Option<Box<dyn FnMut()->Result<bool,String>>>,
     pub(crate) press: Option<Box<dyn FnMut() -> Result<(), String>>>,
-    state: Vec<Signal>,
+    state: Vec<Box<dyn std::any::Any>>,
 }
 
 impl Node {
@@ -131,7 +131,7 @@ impl Node {
         let theme=theme::Theme::parse(json)?;theme.color(mode,"background")?;
         self.theme=Some((theme,mode.to_owned()));Ok(self)
     }
-    pub fn own_state(mut self, state: Signal) -> Result<Self,String> { self.state.push(state); Ok(self) }
+    pub fn own_state<T: Clone + 'static>(mut self, state: Signal<T>) -> Result<Self,String> { self.state.push(Box::new(state)); Ok(self) }
     pub fn text(parts:Vec<TextPart>,class_name:String)->Result<Self,String> {
         let text=Self::text_value(&parts)?;
         let mut node=Self::new(Kind::Text,class_name,text,vec![])?;
@@ -142,11 +142,11 @@ impl Node {
         let mut text=String::new();
         for part in parts {match part {
             TextPart::Literal(value)=>text.push_str(value),
-            TextPart::Signal(handle)=>text.push_str(&handle.value().ok_or("Text binding refers to disposed state")?.to_string()),
+            TextPart::Signal(handle)=>text.push_str(&handle.value().map_err(|_|"Text binding refers to disposed state")?),
         }}
         Ok(text)
     }
-    pub fn bound_text(handle:Signal,class_name:String)->Result<Self,String> {Self::text(vec![TextPart::Signal(handle)],class_name)}
+    pub fn bound_text(handle:Signal,class_name:String)->Result<Self,String> {Self::text(vec![TextPart::Signal(handle.text_binding(i64::to_string))],class_name)}
     pub fn button(text: String, class_name: String, disabled: bool, press: impl FnMut()->Result<(),String>+'static) -> Result<Self,String> {
         let mut node=Self::new(if disabled {Kind::DisabledButton}else{Kind::Button},class_name,text,vec![])?;
         node.press=Some(Box::new(press));Ok(node)
@@ -270,7 +270,7 @@ mod interaction_tests {
     #[test]
     fn text_mixes_literals_and_multiple_reactive_children() {
         let first=Signal::new(2);let second=Signal::new(5);let action=first.handle();
-        let mut node=Node::text(vec![TextPart::Literal("Count: ".into()),TextPart::Signal(first.handle()),TextPart::Literal(" / ".into()),TextPart::Signal(second.handle())],String::new()).unwrap();
+        let mut node=Node::text(vec![TextPart::Literal("Count: ".into()),TextPart::Signal(first.text_binding(i64::to_string)),TextPart::Literal(" / ".into()),TextPart::Signal(second.text_binding(i64::to_string))],String::new()).unwrap();
         assert_eq!(node.text,"Count: 2 / 5");action.set(action.get().unwrap() - 3).unwrap();assert_eq!(node.refresh().unwrap(),1);assert_eq!(node.text,"Count: -1 / 5");
         assert_eq!(node.refresh().unwrap(),0);drop(first);assert!(node.refresh().is_err());
     }
@@ -359,7 +359,7 @@ mod composition_tests {
     fn mixed_children_group_adjacent_text_without_retaining_state() {
         let state=Signal::new(1);let observe=state.handle();
         let inline=Node::new(Kind::Text,String::new(),"Badge".into(),vec![]).unwrap();
-        let mut root=Node::view(vec![literal(""),literal("Hello "),Child::Text(TextPart::Signal(state.handle())),Child::Node(inline),literal(" end")],String::new()).unwrap().own_state(state).unwrap();
+        let mut root=Node::view(vec![literal(""),literal("Hello "),Child::Text(TextPart::Signal(state.text_binding(i64::to_string))),Child::Node(inline),literal(" end")],String::new()).unwrap().own_state(state).unwrap();
         assert_eq!(root.children.len(),3);assert_eq!(root.content_text(),"Hello 1Badge end");
         observe.set(2).unwrap();assert_eq!(root.refresh().unwrap(),1);assert_eq!(root.content_text(),"Hello 2Badge end");
         drop(root);assert!(observe.get().is_err());
@@ -388,4 +388,21 @@ mod composition_tests {
             assert!(Node::button_children(vec![Child::Node(child)],String::new(),false,None).is_err());
         }
     }
+}
+
+#[cfg(test)]
+mod scalar_binding_tests {
+ use super::*;
+ #[test]
+ fn typed_text_callbacks_and_owners_share_updates_without_retaining_disposed_state() {
+  let label=Signal::new(String::from("a"));let ready=Signal::new(false);let amount=Signal::new(1.25f64);
+  let observed=(label.handle(),ready.handle(),amount.handle());
+  let parts=vec![TextPart::Signal(label.text_binding(Clone::clone)),TextPart::Literal(" / ".into()),TextPart::Signal(ready.text_binding(bool::to_string)),TextPart::Literal(" / ".into()),TextPart::Signal(amount.text_binding(f64::to_string))];
+  let text=Node::text(parts,String::new()).unwrap();
+  let action=(label.handle(),ready.handle(),amount.handle());
+  let button=Node::button("Change".into(),String::new(),false,move||{action.0.set("b".into())?;action.1.set(true)?;action.2.set(1.75)?;Ok(())}).unwrap();
+  let mut root=Node::view(vec![Child::Node(text),Child::Node(button)],String::new()).unwrap().own_state(label).unwrap().own_state(ready).unwrap().own_state(amount).unwrap();
+  assert_eq!(root.children[0].text,"a / false / 1.25");assert!(root.activate(3).unwrap());assert_eq!(root.refresh().unwrap(),1);assert_eq!(root.children[0].text,"b / true / 1.75");
+  drop(root);assert!(observed.0.get().is_err());assert!(observed.1.get().is_err());assert!(observed.2.get().is_err());
+ }
 }

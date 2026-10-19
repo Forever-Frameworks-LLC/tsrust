@@ -153,11 +153,11 @@ impl SourceIndex {
         });
         if let Some(identity) = identity {
             let declaration = tsrust_compiler::native_types::declaration(identity);
-            if declaration.module == "std:ui-runtime" {return builtins_for(&format!("Ui{}",declaration.name));}
+
             if declaration.module == "std:sql" {return builtins_for(&format!("Sql{}",declaration.name));}
             if declaration.module == "std:sqlite" {return builtins_for(&format!("Sqlite{}",declaration.name));}
-            if declaration.module == "std:http" {
-                let mut entries=builtins_for(&format!("Http{}",declaration.name));
+            if matches!(declaration.module,"std:http"|"std:ui-runtime") {
+                let mut entries=builtins_for(&format!("{}{}",if declaration.module=="std:http"{"Http"}else{"Ui"},declaration.name));
                 let values=tsrust_compiler::type_syntax::parse(ty).ok().and_then(|annotation|if let tsrust_compiler::type_syntax::ValueAnnotationKind::Applied{arguments,..}=annotation.into_kind(){Some(arguments.into_iter().map(|argument|ty[argument.span.start..argument.span.end].to_owned()).collect::<Vec<_>>())}else{None}).unwrap_or_default();
                 let substitutions=declaration.type_parameters.iter().enumerate().map(|(index,name)|(*name,values.get(index).map(String::as_str).unwrap_or("null"))).collect::<Vec<_>>();
                 for entry in &mut entries{
@@ -206,6 +206,7 @@ impl SourceIndex {
             self.generic_aliases.get_or_insert_with(Default::default).import_as(catalog,&declaration.name,local,|name|mappings.get(name).cloned().unwrap_or_else(||name.into()));
             if let Some(parameters)=dependency.generic_parameters.get(&declaration.name){self.generic_parameters.insert(local.into(),parameters.clone());}
             let mut symbol=declaration.clone();symbol.name=local.into();symbol.ty=local.into();symbol.signature=symbol.signature.replacen(&format!("type {}",declaration.name),&format!("type {local}"),1);symbol.span=span;symbol.extent=span;
+            if let Some(module)=uri.strip_prefix("tsrust-stdlib:///") && let Some(entry)=builtins_for(module).into_iter().find(|entry|entry["name"]==declaration.name) && let Some(documentation)=entry["documentation"].as_str(){symbol.docs=documentation.to_owned();}
             self.foreign_definitions.insert(self.symbols.len(),json!({"uri":uri,"range":dependency.range(declaration.span)}));self.symbols.push(symbol);return true;
         }
         let Some(ty) = remap_imported_type(&dependency.written_type(&declaration.ty), &mappings) else { return false; };

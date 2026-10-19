@@ -6,6 +6,7 @@ mod coalesce_work;
 mod expression_work;
 mod program_testing;
 mod threads;
+mod ui;
 mod futures;
 mod http;
 mod sqlite;
@@ -2469,7 +2470,7 @@ impl Emitter<'_> {
             if let Some(name)=record.native_type.and_then(crate::stdlib::date::runtime_type) {let _=writeln!(output,"type Record{index} = tsrust_native_date::{name};");
                 continue;
             }
-            if let Some(name)=match record.native_type {Some(crate::native_signatures::NativeTypeId::UiSignal)=>Some("Signal"),_=>None} {let _=writeln!(output,"type Record{index} = tsrust_native_ui::{name};");continue;}
+            if let Some(name)=match record.native_type {Some(crate::native_signatures::NativeTypeId::UiSignal)=>Some("Signal"),_=>None} {let payload=record.application.as_ref().expect("applied state").resolved_arguments[0];let _=writeln!(output,"type Record{index} = tsrust_native_ui::{name}<{}>;",self.native_type(payload));continue;}
             if record.native_type == Some(crate::native_signatures::NativeTypeId::UiNode) {
                 let _ = writeln!(output, "type Record{index} = tsrust_native_ui::Node;");continue;}
             if record.native_type == Some(crate::native_signatures::NativeTypeId::SignalListener) { let _=writeln!(output,"type Record{index} = tsrust_native_signals::Listener;");continue;}
@@ -3139,7 +3140,7 @@ impl Emitter<'_> {
         if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:numeric"){output.push_str(&format!("mod tsrust_numeric {{ {} }}",crate::stdlib::numeric::emit::RUNTIME));}
         if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:crypto"){output.push_str(crate::stdlib::crypto::RUNTIME);}
         if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:env"){output.push_str(&format!("mod tsrust_native_env {{ {} }}",include_str!("../stdlib/env/runtime.rs")));}
-        if self.program.records.iter().any(|r|r.native_type==Some(crate::native_signatures::NativeTypeId::UiNode)){output.push_str(&crate::stdlib::ui::runtime(self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:ui-runtime" && crate::native_bindings::BINDINGS[id].name=="run")));}
+        if self.program.records.iter().any(|r|matches!(r.native_type,Some(crate::native_signatures::NativeTypeId::UiNode|crate::native_signatures::NativeTypeId::UiSignal))){output.push_str(&crate::stdlib::ui::runtime(self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:ui-runtime" && crate::native_bindings::BINDINGS[id].name=="run")));}
         for &id in self.native_bindings.borrow().iter() {
             let binding = &crate::native_bindings::BINDINGS[id];
             if binding.module == "std:date" {output.push_str(&crate::stdlib::date::emit::bridge(self.program,binding));}
@@ -8640,6 +8641,7 @@ impl Emitter<'_> {
                     if let Some(call)=self.sqlite_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.http_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call) = self.future_native(fun, expr, id, args) { return call; }
+                    if let Some(call)=self.ui_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.cache_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call) = self.thread_native(fun, expr, id, args) { return call; }
                     if let Some(call) = self.program_testing_native(fun, expr, id, args) { return call; }

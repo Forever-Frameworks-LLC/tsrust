@@ -13937,7 +13937,7 @@
           "documentation": "children is an ordered array of strings or Signal values. className defaults to empty."
         }
       ],
-      "documentation": "Creates text from literal and reactive children in their supplied order. Strings are joined without a separator; signals display signed integers and update after handlers. Example: <Text>Count: {count}</Text> shows Count: 0 for a zero-valued signal. Only changed bound text is updated; the component is not rerun. Empty children are valid. Invalid utilities or a disposed signal throw a readable error.  Optional as selects span (default), div, p, h1–h6, code or kbd; headings expose the same level in native accessibility. Semantic props accept id, aria-label, aria-hidden, data-slot and the supported noninteractive roles. Example: <Text as=\"h2\">Profile</Text> produces a level-two heading. Invalid tag/role combinations throw; arbitrary HTML, links and editable controls are not accepted. Ownership: consumes props; state bindings do not keep component state alive."
+      "documentation": "Creates text from literal and reactive children in their supplied order. Strings are joined without a separator; signals display int, number, boolean or string values and update after handlers. Number text uses ordinary language formatting, including NaN/infinities and -0 as 0. Example: <Text>Count: {count}</Text> shows Count: 0 for a zero-valued signal. Only changed bound text is updated; the component is not rerun. Empty children are valid. Invalid utilities or a disposed signal throw a readable error.  Optional as selects span (default), div, p, h1–h6, code or kbd; headings expose the same level in native accessibility. Semantic props accept id, aria-label, aria-hidden, data-slot and the supported noninteractive roles. Example: <Text as=\"h2\">Profile</Text> produces a level-two heading. Invalid tag/role combinations throw; arbitrary HTML, links and editable controls are not accepted. Ownership: consumes props; state bindings do not keep component state alive."
     },
     {
       "name": "View",
@@ -13993,12 +13993,12 @@
     },
     {
       "name": "signal",
-      "signature": "signal(initial: int): Signal",
-      "documentation": "Creates independent signed 64-bit integer state. initial has no default and accepts the full int range. Declare it with const inside a component. Use the variable directly in Text children and callbacks: const count = signal(0); <Text>Count: {count}</Text> initially displays Count: 0. count.set(count.get() + 1) updates the shared value. Constructor aliases and creation inside anonymous callbacks are not supported. Ownership: returning the component tree retains its state automatically; bindings and callback captures never extend its lifetime.",
+      "signature": "signal<T>(initial: T): Signal<T>",
+      "documentation": "Creates independent component state from an int, number, boolean or string. initial is required; infer T from the value or write signal<string>(\"ready\"). Arrays, records, nullable values, resources and callbacks are rejected. Declare state with const inside a component. Example: const name = signal(\"Ada\"); <Text>{name}</Text> displays Ada; name.set(\"Grace\") changes subsequent reads and bound text. int retains the full signed 64-bit range. number retains IEEE-754 values, including NaN, infinities and signed zero; text displays ordinary number strings, with -0 displayed as 0. Constructor aliases and creation inside anonymous callbacks are unsupported. Ownership: strings are independent snapshots; returning the component tree retains the single owner automatically. Bindings and callback captures never extend its lifetime.",
       "parameters": [
         {
-          "label": "initial: int",
-          "documentation": "Initial signed 64-bit value."
+          "label": "initial: T",
+          "documentation": "Required initial int, number, boolean or string. Strings are copied into state; there is no default value."
         }
       ]
     },
@@ -14009,8 +14009,8 @@
     },
     {
       "name": "Signal",
-      "signature": "type Signal",
-      "documentation": "Signed 64-bit component state created with signal(initial). Reference it directly in Text children and callback bodies; both observe the same value. Example: const count = signal(0); creates independent zero-valued state. Ownership: the returned component tree retains the owner, while bindings and captures are non-retaining. Disposal makes escaped references inactive. Signals cannot be cloned or sent to workers."
+      "signature": "type Signal<T = int>",
+      "documentation": "Component state holding int, number, boolean or string. T defaults to int when a type argument is omitted; signal(initial) still requires an initial value. Use state directly in Text children and callback bodies. Example: const active = signal(false); active.set(true); active.get(); returns true. String reads are independent snapshots. Ownership: the returned component tree retains one owner; text bindings and captures are non-retaining. Disposed references throw UiError. Signals cannot be cloned or sent to workers."
     },
     {
       "name": "UiError",
@@ -14026,7 +14026,7 @@
           "documentation": "The owned subtree receiving this theme scope."
         },
         {
-          "label": "value: ReadOnly<T>",
+          "label": "value: T",
           "documentation": "Serializable project theme data checked against the theme schema, normally read from tsrust.config.json ui.theme. Borrowed only during this call."
         },
         {
@@ -14263,7 +14263,7 @@
           "documentation": "Optional text tag: span (default), div, p, h1–h6, code or kbd. <Text as=\"h3\">Title</Text> exposes a level-three heading. Unsupported tags throw. Native uses matching accessibility roles and shared text shaping; browser defaults do not add heading margins or sizes. Ownership: consumes the tag string."
         },
         "children": {
-          "documentation": "Ordered string or Signal array. Optional; omission defaults to an empty array. <Text>A{count}</Text> displays A0 for count=signal(0). No implicit separator; disposed state throws. Ownership: consumes strings and retains non-owning state bindings."
+          "documentation": "Ordered array of strings or int/number/boolean/string Signal bindings. Optional; omission defaults to an empty array. <Text>A{count}</Text> displays A0 for count=signal(0). No implicit separator; disposed state throws. Ownership: consumes strings and retains non-owning state bindings."
         },
         "className": {
           "documentation": "Optional shared utility string, default empty. <Text className=\"font-bold\">Title</Text> draws bold text. Later classes override earlier properties within each state; unknown utilities throw. Container display/track/wrap utilities require View or a composed Button; Text remains a text leaf and rejects them. Shared layout capabilities include grid/flex display, equal grid tracks (1–12), bounded grid placement, per-side padding/gaps, preferred/min/max dimensions, alignment, wrapping and grow/shrink use the same logical-pixel model on both targets. p/px/py and size expand to independent properties; later classes win per property/state. Spacing 2/4/6 uses sm/md/lg, 1 uses sm/2, 3 averages sm/md; other numeric sizes use spacing.md/4 per unit. Percentage heights need a definite parent height. Example: <View className=\"grid grid-cols-2 gap-4 p-4\" /> creates two equal tracks with default 16px gaps/padding. Arbitrary CSS, breakpoints, named grid lines and subgrid remain unsupported. Semantic color utilities accept /N alpha multiplication for integer percentages 0–100 and transparent. ring-0/1/2/3 sets an outer surface ring width; ring-COLOR selects its color. These rings do not change layout and remain independent of the focus outline. Example: ring-1 ring-foreground/10 draws a 1px surface ring at 10% token alpha. Unsupported percentages throw. Native paint uses 8-bit sRGB; original theme strings are preserved. Scoped spacing uses [--NAME:--spacing(N)] and p/gap-(--NAME), inheriting numeric logical pixels. Missing variables resolve to zero. Metadata declarations are supported; interaction-state declarations and arbitrary expressions are rejected. Border sides and corners merge independently, overflow-hidden clips paint and pointer targets, and generic font/weight/line-height utilities are shared. Ownership: consumes the string."
@@ -14348,28 +14348,28 @@
     },
     {
       "name": "Child",
-      "signature": "type Child = string | Signal | Node",
+      "signature": "type Child = string | Signal<int> | Signal<number> | Signal<boolean> | Signal<string> | Node",
       "parameters": [],
-      "documentation": "An owned UI child accepted by View and Button: literal text, a direct Signal binding or a Node returned by a component. Example: <View>Hello <Text as=\"code\">world</Text></View> keeps the text and child in order. Adjacent strings/signals share one anonymous Text node; empty literals are omitted. Button additionally requires noninteractive phrasing content. Numeric, boolean, null and undefined children are unsupported. Computed strings/trees are construction-time snapshots; only direct signals refresh. Ownership: transfers Nodes and strings exactly once; signal bindings stay non-retaining. Child arrays containing Nodes or Signals cannot be cloned or sent to workers."
+      "documentation": "An owned UI child accepted by View and Button: literal text, a direct int/number/boolean/string Signal binding or a Node returned by a component. Example: <View>Hello <Text as=\"code\">world</Text></View> keeps the text and child in order. Adjacent strings/signals share one anonymous Text node; empty literals are omitted. Button additionally requires noninteractive phrasing content. Numeric, boolean, null and undefined children are unsupported. Computed strings/trees are construction-time snapshots; only direct signals refresh. Ownership: transfers Nodes and strings exactly once; signal bindings stay non-retaining. Child arrays containing Nodes or Signals cannot be cloned or sent to workers."
     }
   ],
   "UiSignal": [
     {
       "name": "get",
-      "signature": "get(): int",
+      "signature": "get(): T",
       "parameters": [],
-      "documentation": "Reads the current signed 64-bit integer value. Takes no arguments and does not change state. Example: const count = signal(0); count.get(); returns 0. Throws UiError if its component has been disposed. Ownership: borrows state without extending its lifetime."
+      "documentation": "Reads the current scalar value without changing state. Takes no arguments. Returns T; string results are independent snapshots. Example: const label = signal(\"first\"); const old = label.get(); label.set(\"second\"); old remains first. int preserves the full signed 64-bit range; number preserves IEEE-754 values and signed zero. Throws UiError when its component is disposed. Ownership: borrows state; the returned scalar or copied string does not retain state."
     },
     {
       "name": "set",
-      "signature": "set(value: int): void",
+      "signature": "set(value: T): void",
       "parameters": [
         {
-          "label": "value: int",
-          "documentation": "New signed 64-bit integer value; required, with no default."
+          "label": "value: T",
+          "documentation": "Required replacement with the same scalar type T. Strings are copied; there is no default."
         }
       ],
-      "documentation": "Replaces the current state value. Returns void; Text bindings refresh after the active handler returns. Accepts the full int range. Example: count.set(count.get() + 1); increments a live counter using application arithmetic. Checked integer overflow occurs before set and leaves state unchanged. Throws UiError if its component has been disposed. Ownership: borrows state without extending its lifetime."
+      "documentation": "Replaces the current state value and returns void. value must have the same int, number, boolean or string type T; no coercion occurs. Reads see the new value immediately; text and disabled bindings refresh after the active handler returns. Example: const label = signal(\"first\"); label.set(\"second\"); label.get(); returns second. int accepts its full signed 64-bit range; checked arithmetic fails before set and leaves state unchanged. number preserves NaN, infinities and signed zero. Throws UiError when its component is disposed. Ownership: borrows state and copies string values; it never extends the owner lifetime."
     }
   ]
 }

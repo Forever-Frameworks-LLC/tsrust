@@ -5,7 +5,7 @@ export type Node = NativeNode;
 /** A renderer or node-construction failure with a readable message. */
 export type UiError = NativeUiError;
 
-export type TextChild = string | Signal;
+export type TextChild = string | Signal<int> | Signal<number> | Signal<boolean> | Signal<string>;
 /** Ordered text, direct Signal bindings or owned subtrees. Adjacent text shares one run; empty literals are omitted. Computed strings/trees are construction-time snapshots. Ownership: transfers Nodes/strings once; state bindings are non-retaining. */
 export type Child = TextChild | Node;
 
@@ -111,20 +111,20 @@ export function run(node: Node, title: string): Result<void, UiError> {
   return nativeRun(node, title);
 }
 
-/** Component-owned integer state. Returning its UI subtree transfers this owner automatically. */
-export type Signal = NativeSignal;
+/** Component-owned scalar state. Returning its UI subtree transfers this owner automatically. */
+export type Signal<T = int> = NativeSignal<T>;
 
-export function signal(initial: int): Signal {
+export function signal<T>(initial: T): Signal<T> {
   return nativeSignal(initial);
 }
 
-function bindState(state: ReadOnly<Signal>): Signal {
+function bindState<T>(state: ReadOnly<Signal<T>>): Signal<T> {
   return nativeHandle(state);
 }
 
 
 
-function retainComponentState(node: Node, state: Signal): Node {
+function retainComponentState<T>(node: Node, state: Signal<T>): Node {
   return unwrap(nativeOwnState(node, state));
 }
 

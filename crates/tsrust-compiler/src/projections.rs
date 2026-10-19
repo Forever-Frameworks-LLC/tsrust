@@ -421,7 +421,13 @@ impl Analysis {
                         // raw validation it wraps; only the adapter's public type is the result.
                         let adapter = matches!(expression.kind,ExprKind::Unary{op:UnaryOp::Await,..}) || matches!(&expression.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Name(name) if name.starts_with("@schema:safeParseOutcome") || name.starts_with("@schema:parseResult")));
                         let span = (expression.span.start, expression.span.end);
-                        if adapter { adapter_spans.insert(span); methods.insert(span, vec![ty]); }
+                        let ui_adapter=matches!(expression.target,Some(CallTarget::ResultUnwrap(_))) && matches!(&expression.kind,ExprKind::Call(_,arguments) if arguments.first().is_some_and(|value|matches!(value.target,Some(CallTarget::NativeBinding(id)) if crate::native_bindings::BINDINGS[id].module=="std:ui-runtime")));
+                        // Hidden UI Result calls share a span with their source-level scalar read.
+                        if ui_adapter {
+                            if adapter_spans.insert(span) { methods.insert(span,vec![ty]); }
+                            else { let types=methods.entry(span).or_default();if !types.contains(&ty){types.push(ty);} }
+                        }
+                        else if adapter { adapter_spans.insert(span); methods.insert(span, vec![ty]); }
                         else if !adapter_spans.contains(&span) {
                             let types = methods.entry(span).or_default();
                             if !types.contains(&ty) {

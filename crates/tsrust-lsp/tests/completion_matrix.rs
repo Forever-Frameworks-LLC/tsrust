@@ -133,6 +133,7 @@ const TAIL: &str = "\n}\n";
 fn rows() -> Vec<Row> {
     let row = |kind, name, typed, includes, excludes| Row { kind, name, before: HEAD.into(), typed, after: TAIL, includes, excludes, silent: None, needs_check: false };
     let mut rows = vec![
+ Row {kind:Kind::StringMember,name:"scalar state string result",before:"import {signal} from 'std:ui';function main(){const label=signal('text');".into(),typed:"label.get().",after:"length;}",includes:&["length","split","trim"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
  Row {kind:Kind::ArrayMember,name:"generic alias defaults",before:"type Values<T=string>=T[];function main(){const values:Values=['text'];".into(),typed:"values.",after:"length;}",includes:&["length","map","join"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
 
  Row {kind:Kind::Temporal,name:"temporal imports",before:"import { ".into(),typed:"",after:" } from 'std:date';function main(){}",includes:&["parseTime","formatTime","compareTimes","parseISO","formatISO","now","startOfSecond","fromUnixMilliseconds","toUnixMilliseconds","fromUnixSeconds","toUnixSeconds","compareInstants","durationFromNanoseconds","durationFromMilliseconds","durationFromSeconds","durationToNanoseconds","durationToMilliseconds","addDurations","subtractDurations","addDuration","difference","parseTimeZone","fixedOffset","zoneName","offsetSeconds","localDate","localTime","resolveDateTime"],excludes:&["setHours"],silent:None,needs_check:false},

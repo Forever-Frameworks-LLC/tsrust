@@ -1,0 +1,26 @@
+import { signal, Signal, document } from 'std:ui';
+import { strictEqual } from 'std:testing';
+import { Page } from './page';
+
+function main() {
+  const html = document(Page(), 'State');
+  strictEqual(html.includes('Before / false / 1.25 / 9007199254740993'), true);
+  strictEqual(html.includes('0 / NaN / Infinity / -Infinity / 1e+21'), true);
+  const name = signal('first');
+  const snapshot = name.get();
+  name.set('second');
+  strictEqual(snapshot, 'first');
+  strictEqual(name.get(), 'second');
+  const flag = signal(false);
+  flag.set(true);
+  strictEqual(flag.get(), true);
+  const number = signal(-0.0);
+  strictEqual(1.0 / number.get(), -Infinity);
+  number.set(NaN);
+  strictEqual(Number.isNaN(number.get()), true);
+  number.set(Infinity);
+  strictEqual(number.get(), Infinity);
+  const count: Signal = signal(9007199254740993);
+  strictEqual(count.get(), 9007199254740993);
+  console.log('Scalar state passed');
+}
