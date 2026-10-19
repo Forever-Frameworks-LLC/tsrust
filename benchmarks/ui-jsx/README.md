@@ -18,3 +18,8 @@ including headings, named regions, live roles, separator orientation, hidden
 content, disabled accessible names and disposal. Its independent TypeScript oracle
 runs after tsc. The native renderer has matching AccessKit assertions. These are
 untimed checks; no component-family timing result is implied.
+
+`verify-composition.mjs <built-site>` checks composed content, integer bindings,
+optional handlers, a reactive disabled control without a handler, actual listener
+ownership, accessible names, alignment and disposal against composition-reference.ts.
+It records untimed observations and source identities; it does not claim timing.

@@ -28,13 +28,14 @@ impl Mount {
 }
 impl Drop for Mount { fn drop(&mut self){self.dispose();} }
 
-fn elements(node:&Node,document:&web_sys::Document,all:&mut Vec<Element>,theme:&super::theme::Theme,mode:&str)->Result<Element,JsValue> {
+fn elements(node:&Node,document:&web_sys::Document,all:&mut Vec<Element>,handlers:&mut Vec<usize>,theme:&super::theme::Theme,mode:&str)->Result<Element,JsValue> {
     let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));
     let tag=node.tag();
     let element=document.create_element(tag)?;
     for (key,value) in [("role",&node.semantics.role),("aria-label",&node.semantics.label),("id",&node.semantics.id),("data-slot",&node.semantics.slot)] {
         if !value.is_empty(){element.set_attribute(key,value)?;}
     }
+    if node.kind==Kind::View{element.set_attribute("data-tsrust-view","")?;}
     if node.kind==Kind::Text{element.set_attribute("data-tsrust-text","")?;}
     if node.semantics.role=="separator"{element.set_attribute("aria-orientation",if node.semantics.orientation=="vertical"{"vertical"}else{"horizontal"})?;}
     if node.semantics.hidden{element.set_attribute("aria-hidden","true")?;}
@@ -45,8 +46,9 @@ fn elements(node:&Node,document:&web_sys::Document,all:&mut Vec<Element>,theme:&
     if matches!(node.kind,Kind::Button|Kind::DisabledButton){element.set_attribute("type","button")?;}
     if node.kind==Kind::DisabledButton {element.set_attribute("disabled","")?;}
     if node.kind!=Kind::View {element.set_text_content(Some(&node.text));}
+    if node.press.is_some(){handlers.push(all.len());}
     all.push(element.clone());
-    for child in &node.children {let child=elements(child,document,all,theme,mode)?;element.append_child(&child)?;}
+    for child in &node.children {let child=elements(child,document,all,handlers,theme,mode)?;element.append_child(&child)?;}
     Ok(element)
 }
 fn update(node:&Node,elements:&[Element],next:&mut usize) {
@@ -69,12 +71,12 @@ pub fn mount(mut node:Node,title:&str)->Result<Mount,JsValue> {
     let scope=format!("[data-tsrust-mount=\"{id}\"]");
     let css=super::web::stylesheet(&node).replace(".ui[data-tsrust-node",&format!("{scope} .ui[data-tsrust-node"));
     let style=document.create_element("style")?;style.set_text_content(Some(&css));
-    let mut all=Vec::new();let tree=elements(&node,&document,&mut all,&super::theme::Theme::default(),"light")?;
+    let mut all=Vec::new();let mut handlers=Vec::new();let tree=elements(&node,&document,&mut all,&mut handlers,&super::theme::Theme::default(),"light")?;
     let root=document.create_element("div")?;root.set_attribute("data-tsrust-mount",&id.to_string())?;let default=super::theme::Theme::default();let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((&default,"light"));root.set_attribute("style",&format!("{}color:var(--ui-foreground);background:var(--ui-background);font-size:var(--ui-text-base);min-height:100vh",theme.variables(mode)))?;root.append_child(&tree)?;
     let state=Rc::new(RefCell::new(State{node:Some(node),elements:all,error:None}));
     let mut mount=Mount{listeners:vec![],state:state.clone(),root,style};
-    for (index,element) in state.borrow().elements.iter().enumerate() {
-        if element.tag_name()!="BUTTON" {continue;}
+    for index in handlers {
+        let element=state.borrow().elements[index].clone();
         let weak=Rc::downgrade(&state);
         let callback=Closure::wrap(Box::new(move |_event:Event| {
             let Some(state)=weak.upgrade() else{return;};

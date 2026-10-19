@@ -7,6 +7,7 @@ pub(in crate::analysis) enum Prelude{
 }
 pub(in crate::analysis) enum Frame{
     Mutation,
+    ArrayUnionWiden(Type),
     Stored(super::StoredValueFrame),
     StoredInjection{stored:super::StoredValueFrame,injection:Injection},
     Projection(Projection),
@@ -27,6 +28,7 @@ impl Analyzer{
         let result=match frame{
             Frame::Stored(frame)=>result.and_then(|actual|self.finish_stored_value(context,expr,frame,actual)),
             Frame::StoredInjection{stored,injection}=>result.and_then(|actual|self.finish_stored_value(context,expr,stored,actual)).and_then(|actual|self.finish_injection_work(context,expr,injection,actual)),
+            Frame::ArrayUnionWiden(target)=>result.and_then(|actual|self.finish_array_union_widening(expr,target,actual)),
             Frame::Mutation=>{context.mutation_place=None;result},
             Frame::Projection(frame)=>self.finish_projection_work(context,expr,frame,result),
             Frame::BorrowedExpected(id)=>result.and_then(|actual|{

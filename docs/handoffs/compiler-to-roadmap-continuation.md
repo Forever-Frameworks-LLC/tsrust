@@ -34,6 +34,44 @@ tsrust-shadcn-* in canonical SQLite. No independent screen-reader session or ful
 component-library acceptance is claimed. Use examples/ui-semantics as the focused
 primitive witness, and preserve the standalone counter owner's source.
 
+## Current owned child composition — 2026-10-19
+
+The second prerequisite section implements `Child = string | Signal | Node` for
+View/Button, span containers, mixed text/subtrees and optional button handlers.
+Adjacent text bindings share one owned run. Buttons validate phrasing descendants;
+nested controls/flow elements fail and release all handler environments once.
+Hidden decoration stays outside accessible names. Passive buttons remain focusable
+without retaining a dummy callback. Reactive disabled predicates still refresh.
+Native composed labels use centered flex layout and preserve one action target.
+Browser listeners exist only for actual callbacks and disappear on disposal.
+
+Existing owned string/Node arrays, including nullable forwarding props, move into
+broader tagged child arrays without cloning. Element conversion preserves order,
+exact integer values and resource ownership. Borrowed/mutable widening, narrowing
+and implicit numeric conversion fail. Shared clone validation now traverses union
+array leaves; inferred native array callbacks retain their checked identity rather
+than requiring users to import extra public type names. The focused native signature
+unit helper now maps only the two visible aliases its witness actually exercises.
+
+Focused acceptance includes 24 native runtime checks, compiler UI/ownership and
+exact-array witnesses, UI editor hover/diagnostics, the composed-span/import rows
+in all four typing modes, ViewProps/ButtonProps checker agreement and three UI
+consistency checks. Reuse passed checks; fixture-only failures and original logs
+remain preserved. Real Wasm Chromium agrees with the Node-after-tsc oracle for
+mixed children, state, disabled predicates, listener ownership, accessible names,
+centering and disposal. The existing paired counter passes fresh-artifact browser
+pointer, Tab/Enter/Space, disabled-control, stable-node, resize and disposal checks.
+Examples live in examples/ui-composition; formatting checks
+apply to all source. No timing, SQL or full regression run is implied.
+
+Computed strings/trees still snapshot at construction; only direct Signal children
+and disabled predicates bind updates. Numeric/boolean/null children, dynamic child
+reconciliation, rich inline Text, editable controls, overlays and Base UI render
+composition remain real pending capabilities. This section does not accept any
+pending Nova component/block as complete. Continue shared layout/theme capabilities
+and complete source families without another approval; preserve immutable legacy
+payloads and the standalone counter owner's source.
+
 ## Current terminal UI correction — 2026-10-18
 
 The owner rejected the numbered command dump as incomplete interactive CLI work.

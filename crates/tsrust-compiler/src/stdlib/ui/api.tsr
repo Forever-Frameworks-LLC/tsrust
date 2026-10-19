@@ -1,4 +1,4 @@
-import { semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, handle as nativeHandle, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, disabledButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
+import { semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, handle as nativeHandle, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
 
 /** An owned UI subtree. Moving a Node transfers all descendants. Nodes cannot be cloned or sent to workers. */
 export type Node = NativeNode;
@@ -6,6 +6,8 @@ export type Node = NativeNode;
 export type UiError = NativeUiError;
 
 export type TextChild = string | Signal;
+/** Ordered text, direct Signal bindings or owned subtrees. Adjacent text shares one run; empty literals are omitted. Computed strings/trees are construction-time snapshots. Ownership: transfers Nodes/strings once; state bindings are non-retaining. */
+export type Child = TextChild | Node;
 
 /** Shared element identity and accessible naming. Attributes are escaped in HTML and applied to the same native subtree. */
 export interface ElementProps {
@@ -36,13 +38,13 @@ export interface TextProps extends SemanticProps {
 
 export interface ViewProps extends SemanticProps {
   /** Semantic container tag; defaults to div. */
-  as?: 'div' | 'section';
-  children?: Node[];
+  as?: 'div' | 'section' | 'span';
+  children?: Child[];
   className?: string;
 }
 
 export interface ButtonProps extends ElementProps {
-  children?: string[];
+  children?: Child[];
   className?: string;
   disabled?: boolean | ReactiveBoolean;
   onPress?: Owned<Function<void>>;
@@ -74,7 +76,7 @@ export function View(props: ViewProps): Node {
     }
   }
 }
-/** Creates a semantic button with centered text. The rounded utility also rounds its native focus outline. Enabled buttons require a retained onPress handler. Disabled buttons never invoke it. */
+/** Creates a semantic button with optional retained onPress and composed phrasing children. Disabled buttons never activate. */
 export function Button(props: ButtonProps): Node {
   const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', '');
   const children = props.children ?? [];
@@ -82,21 +84,17 @@ export function Button(props: ButtonProps): Node {
   const disabled = props.disabled;
   if (disabled !== undefined && typeof disabled !== 'boolean') {
     if (handler === undefined) {
-      throw 'Reactive Button requires onPress';
+      return applySemantics(unwrapNode(nativeBindDisabled(unwrapNode(staticButton(children, props.className ?? '', false)), disabled.evaluate)), metadata);
     }
 
-    return applySemantics(unwrap(nativeBindDisabled(unwrap(nativeButton(children.join(''), props.className ?? '', false, handler)), disabled.evaluate)), metadata);
+    return applySemantics(unwrapNode(nativeBindDisabled(unwrapNode(nativeButton(children, props.className ?? '', false, handler)), disabled.evaluate)), metadata);
   }
 
   if (handler !== undefined) {
-    return applySemantics(unwrap(nativeButton(children.join(''), props.className ?? '', disabled ?? false, handler)), metadata);
+    return applySemantics(unwrapNode(nativeButton(children, props.className ?? '', disabled ?? false, handler)), metadata);
   }
 
-  if (!(disabled ?? false)) {
-    throw 'Enabled Button requires onPress';
-  }
-
-  return applySemantics(unwrap(disabledButton(children.join(''), props.className ?? '')), metadata);
+  return applySemantics(unwrapNode(staticButton(children, props.className ?? '', disabled ?? false)), metadata);
 }
 
 /** Produces a complete escaped HTML document with shared utility styles. Borrows the tree and title; returns an owned string. Does not execute callbacks or mutate nodes. */
@@ -204,7 +202,11 @@ function semanticConfig(tag: string, role: string, label: string, id: string, hi
 }
 
 function applySemantics(node: Node, metadata: string): Node {
-  match (nativeSemantics(node, metadata)) {
+  return unwrapNode(nativeSemantics(node, metadata));
+}
+
+function unwrapNode(result: Result<Node, UiError>): Node {
+  match (result) {
     Ok(value) => {
       return value;
     },

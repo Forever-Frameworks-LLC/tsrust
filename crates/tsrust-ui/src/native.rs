@@ -20,6 +20,7 @@ use winit::{
 struct TextStyle {
     size: f32,
     bold: bool,
+    align: u8,
     color: [u8; 3],
 }
 impl Default for TextStyle {
@@ -27,6 +28,7 @@ impl Default for TextStyle {
         Self {
             size: 16.,
             bold: false,
+            align: 0,
             color: [23, 32, 51],
         }
     }
@@ -82,7 +84,8 @@ impl Painter {
             ..Style::default()
         };
         let (mut background, mut radius) = (node.theme.as_ref().map(|_|theme.color(mode,"background").unwrap()), 0.);
-        let (mut border,mut border_color,mut ring,mut align)=(0.,theme.color(mode,"border")?,theme.color(mode,"ring")?,if matches!(node.kind,Kind::Button|Kind::DisabledButton){1}else{0});
+        if matches!(node.kind,Kind::Button|Kind::DisabledButton){inherited.align=1;style.flex_direction=FlexDirection::Row;style.align_items=AlignItems::CENTER;style.justify_content=JustifyContent::CENTER;}
+        let (mut border,mut border_color,mut ring)=(0.,theme.color(mode,"border")?,theme.color(mode,"ring")?);
         if matches!(node.kind,Kind::DisabledButton|Kind::Button) {
             style.padding = Rect {
                 left: length(16.),
@@ -102,7 +105,7 @@ impl Painter {
                 Utility::FontSize(v)=>inherited.size=v,Utility::Bold(v)=>inherited.bold=v,
                 Utility::Foreground(v)=>inherited.color=v,Utility::Background(v)=>background=Some(v),
                 Utility::Rounded(v)=>radius=v as f64,Utility::BorderWidth(v)=>{border=v as f64;style.border=Rect{left:length(v),right:length(v),top:length(v),bottom:length(v)};},
-                Utility::BorderColor(v)=>border_color=v,Utility::Ring(v)=>ring=v,Utility::Align(v)=>align=v,
+                Utility::BorderColor(v)=>border_color=v,Utility::Ring(v)=>ring=v,Utility::Align(v)=>inherited.align=v,
                 Utility::Items(v)=>style.align_items=match v {0=>AlignItems::FLEX_START,1=>AlignItems::CENTER,_=>AlignItems::STRETCH},
                 Utility::Justify(v)=>style.justify_content=match v {0=>JustifyContent::FLEX_START,1=>JustifyContent::CENTER,_=>JustifyContent::SPACE_BETWEEN},
             }
@@ -112,7 +115,7 @@ impl Painter {
             .iter()
             .map(|child| self.themed_node(child, inherited,theme,mode,next))
             .collect::<Result<Vec<_>, _>>()?;
-        let (text, id) = if node.kind == Kind::View {
+        let (text, id) = if node.kind == Kind::View || !children.is_empty() {
             (
                 None,
                 self.tree
@@ -140,13 +143,13 @@ impl Painter {
         Ok(Item {
             role: node.kind,
             semantics: node.semantics.clone(),
-            label: node.text.clone(),
+            label: if matches!(node.kind,Kind::Button|Kind::DisabledButton){node.content_text()}else{node.text.clone()},
             id,
             text,
             color: inherited.color,
             background,
             radius,
-            border,border_color,ring,align,
+            border,border_color,ring,align:inherited.align,
             disabled: node.kind == Kind::DisabledButton,
             children,
         })
@@ -900,5 +903,22 @@ mod semantic_accessibility_tests {
         for (id,role,body) in [(10,accesskit::Role::Paragraph,"Paragraph body"),(11,accesskit::Role::Code,"code body")] {
             assert_eq!(node(id).role(),role);assert_eq!(node(id).label(),None);assert_eq!(node(id|(1u64<<63)).label(),Some(body));
         }
+    }
+}
+
+#[cfg(test)]
+mod composed_button_tests {
+    use super::*;
+    #[test]
+    fn composed_labels_center_and_keep_one_action_target() {
+        let text=Node::new(Kind::Text,String::new(),"Two\nlines".into(),vec![]).unwrap();
+        let root=Node::button_children(vec![crate::Child::Node(text)],"rounded".into(),false,None).unwrap();
+        let mut painter=Painter::new();let (_,snapshot)=painter.scene(&root,320.,1.,None).unwrap();
+        assert_eq!(snapshot.nodes.iter().filter(|(_,node)|node.supports_action(accesskit::Action::Click)).count(),1);
+        let button=&snapshot.nodes.iter().find(|(_,node)|node.role()==accesskit::Role::Button).unwrap().1;
+        let label=&snapshot.nodes.iter().find(|(_,node)|node.role()==accesskit::Role::Label).unwrap().1;
+        assert_eq!(button.label(),Some("Two\nlines"));assert_eq!(label.label(),Some("Two\nlines"));
+        let parent=button.bounds().unwrap();let child=label.bounds().unwrap();
+        assert!(((child.x0+child.x1)-(parent.x0+parent.x1)).abs()<0.1);
     }
 }

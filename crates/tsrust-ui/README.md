@@ -13,8 +13,9 @@ Wasm DOM backend. See the current compiler handoff for focused evidence and limi
 
 ## Current contract
 
-- `View` owns child nodes. `Text` and `DisabledButton` own text and reject child
-  nodes. View text must be wrapped in Text. Maximum depth is 128 nodes.
+- View accepts owned Nodes and text parts. Text is a text leaf. Button accepts
+  noninteractive phrasing children. The low-level Node::new constructor retains its
+  strict shape rules; view/button_children normalize mixed content. Depth is at most 128.
 - The utility vocabulary is `flex-row`, `flex-col`, `gap-2`, `gap-4`, `p-2`, `p-4`,
   `text-base`, `text-xl`, `font-bold`, `bg-background`, `bg-primary`,
   `text-foreground`, `text-primary-foreground`, and `rounded`.
@@ -95,3 +96,14 @@ A nonempty `aria-label` on generic text/containers, paragraphs, code or presenta
 throws instead of producing different native and browser semantics. Native paragraph,
 code and live-role containers preserve their text as accessible content children.
 See [ARIA naming rules](https://www.w3.org/TR/wai-aria-1.2/#namefromprohibited).
+
+## Composed content
+
+View and button factories also accept owned Child values (Nodes or text parts).
+Adjacent text parts share a text node, preserving weak signal bindings; empty
+literals do not create anonymous boxes. Button descendants must be noninteractive
+phrasing content. Span layout containers support composed button content on both
+backends. Native text alignment inherits into children; both renderers center
+button content. A missing handler is a normal no-op control, with no browser click
+listener allocated for it. This does not add dynamic child reconciliation, arbitrary
+rich text or general DOM event objects.

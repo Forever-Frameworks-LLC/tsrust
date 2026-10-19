@@ -11,11 +11,12 @@
   "foundation": {
     "exactJsxAttributes": "accepted: quoted record keys, exact hyphenated JSX names, ownership and incomplete-source editor help",
     "semanticElements": "accepted portable subset: tags, naming, roles, live content, hidden controls and orientation; arbitrary ARIA/HTML remains unsupported",
-    "composedControls": "pending",
+    "composedControls": "accepted portable foundation: owned mixed children, inline containers, optional handlers, noninteractive phrasing validation, exact owning array widening, resource-union clone rejection and inferred native callback identities",
     "editableStateAndIme": "pending",
     "layoutAndTheme": "pending",
     "focusAndOverlays": "pending",
-    "baseComponentComposition": "pending"
+    "baseComponentComposition": "pending",
+    "reactiveExpressions": "pending: computed strings/trees are construction-time snapshots; direct signals and disabled predicates refresh"
   },
   "components": [
     {

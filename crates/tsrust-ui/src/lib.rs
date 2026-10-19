@@ -25,6 +25,8 @@ pub enum Kind {
 }
 
 pub enum TextPart { Literal(String), Signal(Signal) }
+/// Owned child content. Text parts are grouped without cloning their state references.
+pub enum Child { Node(Node), Text(TextPart) }
 
 #[derive(Clone, Debug, Default, serde::Deserialize)]
 #[serde(default, deny_unknown_fields, rename_all="camelCase")]
@@ -58,7 +60,7 @@ impl Node {
         let value:Semantics=serde_json::from_str(config).map_err(|e|format!("Invalid UI semantics: {e}"))?;
         let tag=if value.tag.is_empty(){self.tag()}else{&value.tag};
         let allowed=match self.kind {
-            Kind::View=>matches!(tag,"div"|"section"),
+            Kind::View=>matches!(tag,"div"|"section"|"span"),
             Kind::Text=>matches!(tag,"div"|"span"|"p"|"h1"|"h2"|"h3"|"h4"|"h5"|"h6"|"code"|"kbd"),
             Kind::Button|Kind::DisabledButton=>tag=="button",
         };
@@ -78,6 +80,44 @@ impl Node {
     fn has_enabled_controls(&self)->bool {self.kind==Kind::Button || self.children.iter().any(Self::has_enabled_controls)}
     pub(crate) fn tag(&self)->&str {
         if !self.semantics.tag.is_empty(){&self.semantics.tag}else{match self.kind{Kind::View=>"div",Kind::Text=>"span",Kind::Button|Kind::DisabledButton=>"button"}}
+    }
+    pub fn view(children: Vec<Child>, class_name: String) -> Result<Self,String> {
+        Self::new(Kind::View,class_name,String::new(),Self::child_nodes(children)?)
+    }
+    fn child_nodes(children: Vec<Child>) -> Result<Vec<Node>,String> {
+        fn flush(parts: &mut Vec<TextPart>, nodes: &mut Vec<Node>) -> Result<(),String> {
+            if parts.iter().any(|part|match part{TextPart::Literal(text)=>!text.is_empty(),TextPart::Signal(_)=>true}) {
+                nodes.push(Node::text(std::mem::take(parts),String::new())?);
+            } else { parts.clear(); }
+            Ok(())
+        }
+        let mut nodes=Vec::new();let mut parts=Vec::new();
+        for child in children {
+            match child {
+                Child::Text(part)=>parts.push(part),
+                Child::Node(node)=>{flush(&mut parts,&mut nodes)?;nodes.push(node);}
+            }
+        }
+        flush(&mut parts,&mut nodes)?;Ok(nodes)
+    }
+    pub fn button_children(children:Vec<Child>,class_name:String,disabled:bool,press:Option<Box<dyn FnMut()->Result<(),String>>>) -> Result<Self,String> {
+        fn phrasing(node:&Node)->bool {
+            matches!(node.tag(),"span"|"code"|"kbd")
+                && matches!(node.semantics.role.as_str(),""|"none"|"presentation")
+                && !matches!(node.kind,Kind::Button|Kind::DisabledButton)
+                && node.children.iter().all(phrasing)
+        }
+        let children=Self::child_nodes(children)?;
+        if !children.iter().all(phrasing){return Err("Button children must be noninteractive phrasing content: text, span, code or kbd".into());}
+        let mut node=Self::new(Kind::View,class_name,String::new(),children)?;
+        node.kind=if disabled{Kind::DisabledButton}else{Kind::Button};node.press=press;Ok(node)
+    }
+    pub(crate) fn content_text(&self)->String {
+        fn append(node:&Node,out:&mut String) {
+            if node.semantics.hidden{return;}
+            out.push_str(&node.text);for child in &node.children{append(child,out);}
+        }
+        let mut output=String::new();append(self,&mut output);output
     }
     pub fn with_disabled(mut self,mut predicate:impl FnMut()->Result<bool,String>+'static)->Result<Self,String> {
         if !matches!(self.kind,Kind::Button|Kind::DisabledButton) {return Err("A disabled condition requires a Button".into());}
@@ -300,5 +340,44 @@ mod semantics_tests {
         assert_eq!(root.refresh().unwrap(),0); disabled.set(false);
         assert!(root.refresh().unwrap_err().contains("aria-hidden"));
         drop(root); assert_eq!(released.get(),1);
+    }
+}
+
+#[cfg(test)]
+mod composition_tests {
+    use super::*;
+    fn literal(value:&str)->Child {Child::Text(TextPart::Literal(value.into()))}
+    #[test]
+    fn mixed_children_group_adjacent_text_without_retaining_state() {
+        let state=Signal::new(1);let observe=state.handle();
+        let inline=Node::new(Kind::Text,String::new(),"Badge".into(),vec![]).unwrap();
+        let mut root=Node::view(vec![literal(""),literal("Hello "),Child::Text(TextPart::Signal(state.handle())),Child::Node(inline),literal(" end")],String::new()).unwrap().own_state(state).unwrap();
+        assert_eq!(root.children.len(),3);assert_eq!(root.content_text(),"Hello 1Badge end");
+        observe.set(2).unwrap();assert_eq!(root.refresh().unwrap(),1);assert_eq!(root.content_text(),"Hello 2Badge end");
+        drop(root);assert!(observe.get().is_err());
+        assert!(Node::view(vec![literal("")],String::new()).unwrap().children.is_empty());
+    }
+    #[test]
+    fn no_handler_buttons_and_inline_spans_preserve_content_and_hidden_names() {
+        let decoration=Node::new(Kind::Text,String::new(),"hidden".into(),vec![]).unwrap().with_semantics(r#"{"hidden":true}"#).unwrap();
+        let span=Node::view(vec![literal("Ready")],String::new()).unwrap().with_semantics(r#"{"tag":"span"}"#).unwrap();
+        let mut button=Node::button_children(vec![Child::Node(span),literal(" now"),Child::Node(decoration)],String::new(),false,None).unwrap();
+        assert_eq!(button.content_text(),"Ready now");assert!(!button.activate(1).unwrap());
+        let html=document(&button,"Composed");assert!(html.contains("<span data-tsrust-view"));assert!(html.contains("aria-hidden=\"true\""));
+        let disable=std::rc::Rc::new(std::cell::Cell::new(true));let check=disable.clone();
+        let mut button=button.with_disabled(move||Ok(check.get())).unwrap();assert_eq!(button.kind,Kind::DisabledButton);
+        disable.set(false);assert_eq!(button.refresh().unwrap(),1);assert_eq!(button.kind,Kind::Button);
+    }
+    #[test]
+    fn invalid_button_children_release_both_handler_environments_once() {
+        use std::{rc::Rc,cell::Cell};struct Probe(Rc<Cell<usize>>);impl Drop for Probe{fn drop(&mut self){self.0.set(self.0.get()+1);}}
+        let releases=Rc::new(Cell::new(0));let child_probe=Probe(releases.clone());let parent_probe=Probe(releases.clone());
+        let child=Node::button("Nested".into(),String::new(),false,move||{assert_eq!(child_probe.0.get(),0);Ok(())}).unwrap();
+        assert!(Node::button_children(vec![Child::Node(child)],String::new(),false,Some(Box::new(move||{assert_eq!(parent_probe.0.get(),0);Ok(())}))).is_err());
+        assert_eq!(releases.get(),2);
+        for tag in ["div","p","h2"] {
+            let child=Node::new(Kind::Text,String::new(),"Flow".into(),vec![]).unwrap().with_semantics(&format!(r#"{{"tag":"{tag}"}}"#)).unwrap();
+            assert!(Node::button_children(vec![Child::Node(child)],String::new(),false,None).is_err());
+        }
     }
 }

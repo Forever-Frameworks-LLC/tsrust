@@ -64,7 +64,7 @@ impl Emitter<'_> {
         target: Type,
         value: &str,
     ) -> String {
-        if source == target {
+        if target.accepts_scalar_value(source) {
             return value.into();
         }
         match (source, target) {
@@ -84,7 +84,7 @@ impl Emitter<'_> {
                 let converted =
                     self.record_carrier_conversion(source.ty(), target.ty(), "record_array_item");
                 format!(
-                    "({value}).into_iter().map(|record_array_item|{{{converted}}}).collect::<{}>()",
+                    "{{let mut record_array_source={value};let mut record_array_result:{}=From::from([]);while let Some(record_array_item)=record_array_source.pop(){{record_array_result.push({converted});}}record_array_result.reverse();record_array_result}}",
                     self.native_type(Type::Array(target))
                 )
             }
@@ -139,20 +139,23 @@ impl Emitter<'_> {
                         };
                         let to = targets
                             .iter()
-                            .position(|&candidate| {
-                                candidate == member
+                            .position(|&candidate| candidate.accepts_scalar_value(member))
+                            .or_else(|| targets.iter().position(|&candidate| {
+                                matches!((candidate, member), (Type::Array(_), Type::Array(_)))
                                     || matches!(
                                         (candidate, member),
                                         (Type::Record(_), Type::Record(_))
                                     )
                                     || (callable(candidate) && callable(member))
-                            })
+                            }))
                             .expect("checked nullable carrier member");
                         format!(
                             "Union{}::V{index}(payload)=>Union{}::V{to}({})",
                             source.index(),
                             target.index(),
-                            self.record_carrier_conversion(member, targets[to], "payload")
+                            if targets[to].accepts_scalar_value(member) {
+                                self.union_transfer_payload(source, target, member, "payload")
+                            } else { self.record_carrier_conversion(member, targets[to], "payload") }
                         )
                     })
                     .collect::<Vec<_>>()
@@ -162,6 +165,14 @@ impl Emitter<'_> {
                     "{{let nullable_carrier: {} = {value}; match nullable_carrier{{{arms}}}}}",
                     self.native_type(Type::Union(source))
                 )
+            }
+            (source, Type::Union(target)) => {
+                let targets = &self.program.unions[target.index()].members;
+                let tag = targets.iter().position(|&member| member.accepts_scalar_value(source))
+                    .or_else(|| targets.iter().position(|member| matches!((source, member), (Type::Array(_), Type::Array(_)))))
+                    .expect("checked array element alternative");
+                let converted = self.record_carrier_conversion(source, targets[tag], value);
+                format!("Union{}::V{tag}({})", target.index(), self.union_store_payload(target, targets[tag], &converted))
             }
             (Type::Closure(_) | Type::BorrowedCallable(_), Type::Callback(id)) => {
                 format!("C{id}::from({value})")

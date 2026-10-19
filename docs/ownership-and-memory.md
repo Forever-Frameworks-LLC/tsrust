@@ -241,3 +241,22 @@ Research:
 * test isolation
 * dependency injection
 * application state
+
+### Moving arrays into tagged element types
+
+An owned array can move into an array whose union element type includes every
+source alternative. The conversion preserves order and moves each element once;
+it does not clone resources or convert integers to floating point. Nullable
+arrays retain their `null`/`undefined` alternatives when the destination includes
+the same alternatives.
+
+```tsr
+const labels = ['Save', 'Cancel'];
+const children: (string | boolean)[] = labels;
+// labels has moved; children owns both strings.
+```
+
+This conversion requires ownership. Passing `string[]` as a borrowed or mutable
+`(string | boolean)[]` is rejected. Move it into the wider owned array first, then
+borrow that array. Narrowing element alternatives, structural resource casts and
+`int[]` to `(number | string)[]` are not implicit conversions.

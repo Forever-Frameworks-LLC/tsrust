@@ -1,0 +1,23 @@
+import { Screen } from './screen';
+import { document, Button, Text, View } from 'std:ui';
+import { strictEqual } from 'std:testing';
+
+function main() {
+  const html = document(Screen(), 'UI composition');
+  strictEqual(html.includes('Count: 0'), true);
+  strictEqual(html.includes('No application handler'), true);
+  strictEqual(html.includes('data-slot="conditional" type="button" disabled'), true);
+  const strings = ['first', 'second'];
+  const legacy = Button({
+    children: strings
+  });
+  strictEqual(document(legacy, 'Legacy').includes('firstsecond'), true);
+  const nodes = [Text({
+    children: ['owned child']
+  })];
+  const boxed = View({
+    children: nodes
+  });
+  strictEqual(document(boxed, 'Owned').includes('owned child'), true);
+  console.log('UI composition passed');
+}

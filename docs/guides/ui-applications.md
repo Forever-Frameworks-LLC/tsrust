@@ -47,7 +47,7 @@ State priority is base, hover, focus, active, disabled. Buttons center text, kee
 rounded focus outlines and exclude disabled handlers from activation.
 `disabled={count.get() < 5}` captures a weak derived condition and reevaluates after
 handlers. It becomes enabled at 5 without rerunning or remounting the component.
-Reactive buttons require a retained handler even while initially disabled. Predicate
+Handlers are optional, including on reactively disabled buttons. Predicate
 errors use normal mounted-tree failure and cleanup. Direct JSX conditions can use
 multiple component signals and ordinary short-circuit operators. Scalar values
 computed earlier into ordinary variables remain snapshots; this is not a general
@@ -183,3 +183,36 @@ A nonempty `aria-label` on generic text/containers, paragraphs, code or presenta
 throws instead of producing different native and browser semantics. Native paragraph,
 code and live-role containers preserve their text as accessible content children.
 See [ARIA naming rules](https://www.w3.org/TR/wai-aria-1.2/#namefromprohibited).
+
+## Composed children
+
+View and Button accept ordered strings, direct signals and owned component Nodes.
+Adjacent literal/bound text shares one text node. Empty literals are omitted;
+explicit Nodes keep their position and ownership. Text remains a text leaf accepting
+strings/signals. View as=span creates a layout box with a span DOM tag; class names
+still select its layout. Font size, color and text alignment inherit.
+
+```tsrust
+<Button onPress={() => { count.set(count.get() + 1); }}>
+  <View as="span" className="flex-row gap-2">
+    <Text as="kbd" aria-hidden>+</Text>Count: {count}
+  </View>
+</Button>
+```
+
+Buttons require noninteractive phrasing descendants: spans, code, kbd and text.
+Flow elements, nested controls and nonpresentational roles fail instead of changing
+meaning. Hidden decoration does not contribute to the button's accessible name.
+An omitted onPress creates a normal focusable button with no application action;
+it does not require a dummy callback. Reactive disabled predicates still refresh
+after other handlers. Disabled controls remain excluded from activation/focus.
+
+Nodes cannot be reused in a second parent, cloned or sent to workers.
+Existing owned `string[]` and `Node[]` values can move into `Child[]`, including
+optional child arrays forwarded by older components. Each element moves once;
+resources cannot be cloned implicitly. Borrowed array widening is rejected: form
+the wider owned array first, then borrow it if needed.
+
+Only direct Signal children bind updates. Computed strings/trees are construction-time
+snapshots; numeric/boolean/null children and dynamic conditional child trees are
+not provided as reactive rendering. See examples/ui-composition.

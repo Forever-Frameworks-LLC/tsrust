@@ -12,7 +12,7 @@ fn escape(value: &str, out: &mut String) {
         }
     }
 }
-pub(crate) const BASE: &str = "body{margin:0;font-family:system-ui,sans-serif}:where(.ui){box-sizing:border-box;margin:0;font:inherit;color:inherit;border-color:var(--ui-border);white-space:pre-wrap}:where(div.ui:not([data-tsrust-text]),section.ui){display:flex;flex-direction:column}:where(.ui[data-tsrust-text]){display:block}:where(button.ui){appearance:none;border:0 solid var(--ui-border);border-radius:0;background:transparent;text-align:center;padding:8px 16px;white-space:pre-wrap}:where(button.ui:disabled){opacity:.6}:where(button.ui:focus-visible){outline:2px solid var(--ui-ring);outline-offset:2px}:where([data-tsrust-theme]){color:var(--ui-foreground);background:var(--ui-background);font-size:var(--ui-text-base)}";
+pub(crate) const BASE: &str = "body{margin:0;font-family:system-ui,sans-serif}:where(.ui){box-sizing:border-box;margin:0;font:inherit;color:inherit;border-color:var(--ui-border);white-space:pre-wrap}:where(.ui[data-tsrust-view]){display:flex;flex-direction:column}:where(.ui[data-tsrust-text]){display:block}:where(button.ui){display:flex;flex-direction:row;align-items:center;justify-content:center;appearance:none;border:0 solid var(--ui-border);border-radius:0;background:transparent;text-align:center;padding:8px 16px;white-space:pre-wrap}:where(button.ui:disabled){opacity:.6}:where(button.ui:focus-visible){outline:2px solid var(--ui-ring);outline-offset:2px}:where([data-tsrust-theme]){color:var(--ui-foreground);background:var(--ui-background);font-size:var(--ui-text-base)}";
 pub(crate) fn scope(node:&Node,theme:&crate::theme::Theme,mode:&str)->String {
     if node.theme.is_some() {theme.variables(mode)}else{String::new()}
 }
@@ -24,6 +24,7 @@ fn element(node:&Node,out:&mut String,next:&mut usize,theme:&crate::theme::Theme
  for (key,value) in [("role",&node.semantics.role),("aria-label",&node.semantics.label),("id",&node.semantics.id),("data-slot",&node.semantics.slot)] {
   if !value.is_empty(){out.push(' ');out.push_str(key);out.push_str("=\"");escape(value,out);out.push('"');}
  }
+ if node.kind==Kind::View{out.push_str(" data-tsrust-view");}
  if node.kind==Kind::Text{out.push_str(" data-tsrust-text");}
  if node.semantics.role=="separator"{out.push_str(if node.semantics.orientation=="vertical"{" aria-orientation=\"vertical\""}else{" aria-orientation=\"horizontal\""});}
  if node.semantics.hidden{out.push_str(" aria-hidden=\"true\"");}

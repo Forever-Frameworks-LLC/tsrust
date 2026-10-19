@@ -1,0 +1,6 @@
+import { Screen } from './screen';
+import { run } from 'std:ui';
+
+function main() {
+  unwrap(run(Screen(), 'UI composition'));
+}

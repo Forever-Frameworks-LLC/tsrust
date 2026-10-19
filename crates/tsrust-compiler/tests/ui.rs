@@ -148,3 +148,21 @@ fn exact_semantic_attributes_reach_generated_native_html() {
     let entry=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/ui-semantics/inspect.tsr");
     let output=support::run(support::cli().arg("run").arg(entry),90);support::success(&output);assert_eq!(output.stdout,b"UI semantics passed\n");
 }
+
+#[test]
+fn composed_children_and_legacy_arrays_execute_without_cloning() {
+    let entry=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/ui-composition/inspect.tsr");
+    let output=support::run(support::cli().arg("run").arg(entry),120);support::success(&output);assert_eq!(output.stdout,b"UI composition passed\n");
+}
+
+#[test]
+fn composed_children_reject_copying_through_unions_and_infer_native_callbacks() {
+    let dir=support::TempDirectory::new();let path=dir.0.join("main.tsrx");
+    let source="import {Text,Child} from 'std:ui';function main(){const child:Child=<Text>owned</Text>;const children=[child];children.forEach((item)=>{});}";
+    std::fs::write(&path,support::format_round_trip(source)).unwrap();load_project(&FileSourceProvider,path.to_str().unwrap()).and_then(check_graph).unwrap();
+    for operation in ["clone(child)", "clone([child])", "[child].slice()", "[child].filter((item)=>{return true;})", "clone({nested:[child]} as Holder)"] {
+        let source=format!("import {{Text,Child}} from 'std:ui';type Holder={{nested:Child[];}};function main(){{const child:Child=<Text>owned</Text>;const copy={operation};}}");
+        std::fs::write(&path,source).unwrap();let error=load_project(&FileSourceProvider,path.to_str().unwrap()).and_then(check_graph).err().expect("Child ownership must reject cloning");
+        assert_eq!(error.code,"clone-type","{operation}: {error:?}");
+    }
+}

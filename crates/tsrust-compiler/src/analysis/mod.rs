@@ -93,6 +93,7 @@ mod record_array_carriers;
 mod record_value_carriers;
 mod carrier_type_join;
 mod carrier_retarget;
+mod array_union_widening;
 mod carrier_literal_join;
 mod record_storage_writes;
 mod record_branch_carriers;
@@ -4958,6 +4959,9 @@ impl Analyzer {
         {
             return self.prepare_projection_work(context,expr,mode,expected,place,union,narrowed).map(Some);
         }
+        if let Some(work) = self.prepare_array_union_widening(context, expr, mode, expected)? {
+            return Ok(Some(work));
+        }
         if let Some(Type::BorrowedUnion(id)) = expected {
             if mode != Mode::Read {
                 return (Err(Diagnostic::new(
@@ -7640,7 +7644,7 @@ impl Analyzer {
     /// Whether a contextual type needs an already materialized nominal name.
     fn names_materialized_type(&self, ty: Type) -> bool {
         match ty {
-            Type::Record(id) => self.program.records[id].is_tuple() || self.program.records[id].application.is_some(),
+            Type::Record(id) => self.program.records[id].native_type.is_some() || self.program.records[id].is_tuple() || self.program.records[id].application.is_some(),
             Type::Set(_) | Type::Map(_) => true,
             Type::Array(element) => {
 self.names_materialized_type(element.with_depth(0).ty())
@@ -10171,16 +10175,9 @@ self.names_materialized_type(element.with_depth(0).ty())
 
     fn require_cloneable(&mut self, ty: Type, span: Span) -> Result<(), Diagnostic> {
         if self.shared_callable_handle(ty) { return Ok(()); }
-        let payload = self.unions.payload(ty).unwrap_or(ty);
-        if !matches!(
-            payload,
-            Type::Record(_) | Type::Map(_)
-                | Type::Array(ArrayElement::Record(_, _) | ArrayElement::Map(_, _) | ArrayElement::StoredCallable(_, _))
-                | Type::Closure(_)
-                | Type::Callable(_)
-                | Type::Callback(_)
-                | Type::StoredCallable(_)
-        ) {
+        let mut leaf = ty;
+        while let Type::Array(element) = leaf { leaf = element.ty(); }
+        if matches!(leaf.scalar_base(), Type::String | Type::Int | Type::Number | Type::Boolean | Type::Null | Type::Undefined) {
             return Ok(());
         }
         if self

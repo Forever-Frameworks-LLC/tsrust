@@ -11,6 +11,7 @@ use crate::{
 const SIGNAL:Signature=Signature::Named(NativeTypeId::UiSignal);
 const HANDLE:Signature=Signature::Named(NativeTypeId::UiSignal);
 pub(crate) const TEXT_CHILDREN:Signature=Signature::Array(&Signature::Union(&[Signature::String,HANDLE]));
+pub(crate) const CHILDREN:Signature=Signature::Array(&Signature::Union(&[Signature::String,HANDLE,Signature::Named(NativeTypeId::UiNode)]));
 const NODE: Signature = Signature::Named(NativeTypeId::UiNode);
 const ERROR: Signature = Signature::Named(NativeTypeId::UiError);
 const fn parameter(name: &'static str, ty: NativeType, access: Mode) -> NativeParameter {
@@ -38,26 +39,13 @@ pub(crate) const TEXT: NativeBinding = NativeBinding {
 };
 pub(crate) const VIEW: NativeBinding = NativeBinding {
     name: "view",
-    parameters: &[
-        parameter(
-            "children",
-            NativeType::Structured(&Signature::Array(&NODE)),
-            Mode::Consume,
-        ),
-        parameter("className", NativeType::String, Mode::Read),
-    ],
-    backend: NativeBackend::Bundled {
-        symbol: "tsrust_ui_view",
-    },
-    ..TEXT
+    parameters:&[parameter("children",NativeType::Structured(&CHILDREN),Mode::Consume),parameter("className",NativeType::String,Mode::Read)],
+    backend:NativeBackend::Bundled{symbol:"tsrust_ui_view"},..TEXT
 };
 pub(crate) const BUTTON: NativeBinding = NativeBinding {
-    name: "disabledButton",
-    parameters:&[parameter("text",NativeType::String,Mode::Read),parameter("className",NativeType::String,Mode::Read)],
-    backend: NativeBackend::Bundled {
-        symbol: "tsrust_ui_button",
-    },
-    ..TEXT
+    name:"staticButton",
+    parameters:&[parameter("children",NativeType::Structured(&CHILDREN),Mode::Consume),parameter("className",NativeType::String,Mode::Read),parameter("disabled",NativeType::Boolean,Mode::Read)],
+    backend:NativeBackend::Bundled{symbol:"tsrust_ui_static_button"},..TEXT
 };
 pub(crate) const DOCUMENT: NativeBinding = NativeBinding {
     name: "document",
@@ -96,7 +84,7 @@ pub(crate) const GET:NativeBinding=NativeBinding{name:"get",parameters:&[paramet
 pub(crate) const SET:NativeBinding=NativeBinding{name:"set",parameters:&[parameter("state",NativeType::Structured(&SIGNAL),Mode::Read),parameter("value",NativeType::Int,Mode::Read)],result:NativeType::Structured(&Signature::Result(&Signature::Void,&ERROR)),backend:NativeBackend::Bundled{symbol:"tsrust_ui_set"},..TEXT};
 
 pub(crate) const OWN_STATE:NativeBinding=NativeBinding{name:"ownState",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("state",NativeType::Structured(&SIGNAL),Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_own_state"},..TEXT};
-pub(crate) const PRESS_BUTTON:NativeBinding=NativeBinding{name:"button",parameters:&[parameter("text",NativeType::String,Mode::Read),parameter("className",NativeType::String,Mode::Read),parameter("disabled",NativeType::Boolean,Mode::Read),parameter("onPress",NativeType::OwnedVoidCallback,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_press_button"},..TEXT};
+pub(crate) const PRESS_BUTTON:NativeBinding=NativeBinding{name:"button",parameters:&[parameter("children",NativeType::Structured(&CHILDREN),Mode::Consume),parameter("className",NativeType::String,Mode::Read),parameter("disabled",NativeType::Boolean,Mode::Read),parameter("onPress",NativeType::OwnedVoidCallback,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_press_button"},..TEXT};
 
 pub(crate) fn runtime(with_native: bool) -> String {
     let native =

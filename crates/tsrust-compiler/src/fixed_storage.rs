@@ -757,6 +757,7 @@ impl<'a> Proof<'a> {
                     Mode::Consume
                 },
             ),
+            ExprKind::Unary { op: UnaryOp::RecordCarrier, value, .. } => self.expr(id, value, Mode::Consume),
             ExprKind::Unary {
                 op: UnaryOp::CoalesceSelected | UnaryOp::OptionalSelected | UnaryOp::OptionalBoundary | UnaryOp::NonNull,
                 value,

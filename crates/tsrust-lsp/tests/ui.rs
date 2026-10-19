@@ -93,3 +93,30 @@ fn inline_config_theme_supports_help_navigation_and_unsaved_validation() {
  assert!(session.completion("src/main.tsrx",source,source.find("bg-primary").unwrap()+4).unwrap().contains(&"bg-primary".into()));
  session.change("tsrust.config.json",&config);session.settle();assert!(session.hover("src/main.tsrx",source,source.find("withTheme(<").unwrap()+3).unwrap().contains("Scopes"));
 }
+
+#[test]
+fn composed_child_help_and_optional_handler_behavior_are_current() {
+ let source="import {Button,View,Text,Child,Node} from 'std:ui';function Page():Node{return <Button><View as=\"span\">Ready</View></Button>;}function main(){const node=Page();}";
+ let mut session=support::session::Session::start(&[]);session.open("main.tsrx",source);session.settle();
+ assert!(session.hover("main.tsrx",source,source.find("Button><").unwrap()+2).unwrap().contains("onPress is optional"));
+ assert!(session.hover("main.tsrx",source,source.find("Child,Node").unwrap()+2).unwrap().contains("non-retaining"));
+}
+
+#[test]
+fn owning_child_array_forwarding_preserves_editor_types() {
+    let source="import {View,Text,Child,Node} from 'std:ui';function Wrap(children:Node[]):Node{return View({children:children});}function main(){const text=['first'];const mixed:Child[]=text;const child=Text({children:['owned']});const nodes=[child];const view=View({children:nodes});}";
+    let mut session=support::session::Session::start(&[]);
+    session.open("main.tsrx",&source);
+    let diagnostics=session.wait_for_diagnostics("main.tsrx");session.settle();
+    assert_eq!(diagnostics.as_array().unwrap().len(),0,"{diagnostics}");
+    let hover=session.hover("main.tsrx",&source,source.find("mixed:Child").unwrap()).unwrap_or_default();
+    assert!(hover.contains("Child") || hover.contains("Node"),"{hover}");
+}
+
+#[test]
+fn union_child_arrays_reject_resource_copying_in_editor() {
+    let source="import {Text,Child} from 'std:ui';function main(){const child:Child=<Text>owned</Text>;const children=[child];const copy=clone(children);}";
+    let mut session=support::session::Session::start(&[]);session.open("main.tsrx",source);
+    let diagnostics=session.wait_for_diagnostics("main.tsrx");
+    assert!(diagnostics.to_string().contains("clone-type"),"{diagnostics}");
+}

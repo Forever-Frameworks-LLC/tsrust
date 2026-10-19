@@ -20,11 +20,22 @@ pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> Strin
     let (parameters,call)=match binding.name {
         "get" => (format!("state:&Record{}",record(NativeTypeId::UiSignal)),"state.get()".into()),
         "set" => (format!("state:&Record{},value:i64",record(NativeTypeId::UiSignal)),"state.set(value)".into()),
-        "disabledButton" => {
-            let kind="DisabledButton";
-            ("text:&String,class_name:&String".into(),format!("tsrust_native_ui::Node::new(tsrust_native_ui::Kind::{kind},class_name.as_ref().to_owned(),text.as_ref().to_owned(),Vec::new())"))
-        }
-        "view" => (format!("mut children:RecordArray{node},class_name:&String"),"{let mut nodes=Vec::with_capacity(children.len());while let Some(child)=children.pop(){nodes.push(child);}nodes.reverse();tsrust_native_ui::Node::new(tsrust_native_ui::Kind::View,class_name.as_ref().to_owned(),std::string::String::new(),nodes)}".into()),
+        "view"|"staticButton"|"button" => {
+            let array=crate::native_binding_types::resolve(&program.records,&super::CHILDREN).unwrap();
+            let Type::Array(element)=array else{unreachable!()};let Type::Union(union)=element.ty() else{unreachable!()};
+            let members=&program.unions[union.index()].members;
+            let literal=members.iter().position(|ty|*ty==Type::String).unwrap();
+            let handle=members.iter().position(|ty|*ty==Type::Record(record(NativeTypeId::UiSignal))).unwrap();
+            let child=members.iter().position(|ty|*ty==Type::Record(node)).unwrap();
+            let mut parameters=format!("mut children:{},class_name:&String",crate::emit::ty(array));
+            let factory=match binding.name {
+                "view"=>"tsrust_native_ui::Node::view(parts,class_name.as_ref().to_owned())",
+                "staticButton"=>{parameters.push_str(",disabled:bool");"tsrust_native_ui::Node::button_children(parts,class_name.as_ref().to_owned(),disabled,None)"},
+                "button"=>{parameters.push_str(",disabled:bool,handler:impl FnMut()->Result<(),std::string::String>+'static");"tsrust_native_ui::Node::button_children(parts,class_name.as_ref().to_owned(),disabled,Some(Box::new(handler)))"},
+                _=>unreachable!(),
+            };
+            (parameters,format!("{{let mut parts=Vec::with_capacity(children.len());while let Some(child)=children.pop(){{parts.push(match child{{Union{union}::V{literal}(text)=>tsrust_native_ui::Child::Text(tsrust_native_ui::TextPart::Literal(text.as_ref().to_owned())),Union{union}::V{handle}(handle)=>tsrust_native_ui::Child::Text(tsrust_native_ui::TextPart::Signal(handle)),Union{union}::V{child}(node)=>tsrust_native_ui::Child::Node(node)}});}}parts.reverse();{factory}}}",union=union.index()))
+        },
         "text" => {
             let array=crate::native_binding_types::resolve(&program.records,&super::TEXT_CHILDREN).unwrap();
             let Type::Array(element)=array else{unreachable!()};let Type::Union(union)=element.ty() else{unreachable!()};
@@ -36,7 +47,6 @@ pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> Strin
         "theme" => (format!("node:Record{node},config:&String,mode:&String"),"node.with_theme(config.as_ref(),mode.as_ref())".into()),
         "semantics" => (format!("node:Record{node},config:&String"),"node.with_semantics(config.as_ref())".into()),
         "ownState" => (format!("node:Record{node},state:Record{}",record(NativeTypeId::UiSignal)),"node.own_state(state)".into()),
-        "button" => ("text:&String,class_name:&String,disabled:bool,handler:impl FnMut()->Result<(),std::string::String>+'static".into(),"tsrust_native_ui::Node::button(text.as_ref().to_owned(),class_name.as_ref().to_owned(),disabled,handler)".into()),
         "document" => return format!("fn {symbol}(node:&Record{node},title:&String)->String{{String::Owned(tsrust_native_ui::document(node,title.as_ref()))}}\n"),
         "run" => (format!("node:Record{node},title:&String"),"tsrust_native_ui::run(node,title.as_ref().to_owned())".into()),
         _=>unreachable!(),

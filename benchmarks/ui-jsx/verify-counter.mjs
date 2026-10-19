@@ -84,7 +84,7 @@ try {
   }
   else {
   const initialRequests=requests;
-  const counts=()=>evaluate('[...document.querySelectorAll("span")].slice(1).map(n=>n.textContent.replace(/^Count: /,""))');
+  const counts=()=>evaluate('[...document.querySelectorAll("span")].filter(n=>!n.closest("button")).slice(1).map(n=>n.textContent.replace(/^Count: /,""))');
   assert.deepEqual(await counts(),['0','0']);
   await evaluate('window.originalNodes=[...document.querySelectorAll("[data-tsrust-node]")];window.mutations=[];window.observer=new MutationObserver(records=>window.mutations.push(...records.map(r=>r.target.dataset.tsrustNode)));window.observer.observe(document.body,{subtree:true,childList:true,characterData:true})');
   const bounds=await evaluate('[...document.querySelectorAll("button")].map(e=>{const r=e.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})');
