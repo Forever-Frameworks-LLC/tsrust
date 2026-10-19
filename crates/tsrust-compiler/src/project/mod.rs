@@ -269,7 +269,7 @@ pub(crate) fn lex_tolerant(text: &str) -> Result<Vec<syntax::Token>, Diagnostic>
         bytes[start..end].fill(b' ');
     }
 }
-fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, ProjectDiagnostic> {
+pub(crate) fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, ProjectDiagnostic> {
     if Path::new(&source.id.0).extension().is_some_and(|value| value == "rs") { return rust::module(source); }
     if let Some(extension) = Path::new(&source.id.0).extension().and_then(|value| value.to_str())
         && matches!(extension, "json" | "jsonc")
@@ -648,6 +648,16 @@ fn load_graph(
             Span::default(),
         )
     })?;
+    if declarations && !entry.0.starts_with("std:") {
+        for root in Path::new(&entry.0).parent().unwrap_or(Path::new(".")).ancestors() {
+            let config=SourceId(root.join("tsrust.config.json").to_string_lossy().into_owned());
+            if let Ok(text)=provider.read(&config) {
+                let value:serde_json::Value=serde_json::from_str(&text).map_err(|e|error(&config,"ui-config",e.to_string(),Span::default()))?;
+                if let Some(ui)=value.get("ui") {crate::ui_project::Config::parse(ui).map_err(|e|error(&config,"ui-theme",e,Span::new(0,text.len().min(1))))?;}
+                break;
+            }
+        }
+    }
     let mut graph = ProjectGraph {
         entry: entry.clone(),
         modules: BTreeMap::new(),
@@ -693,7 +703,7 @@ fn visit(
         let source=SourceId(path.to_string_lossy().into_owned());
         match provider.read(&source) {Ok(value)=>Ok(Some(value)),Err(_)=>Ok(None)}
     }).map_err(|message|error(&id,"ui-config",message,Span::default()))? {
-        crate::ui_project::theme::Theme::parse(&text).map_err(|message|error(&id,"ui-theme",message,Span::new(0,text.len().min(1))))?;
+        crate::ui_project::theme::Theme::parse(&crate::ui_project::theme_document(Path::new(&id.0),&text).map(|(value,_)|value.to_string()).unwrap_or_else(||text.clone())).map_err(|message|error(&id,"ui-theme",message,Span::new(0,text.len().min(1))))?;
     }
     let source=SourceFile{id:id.clone(),text};
     let mut module=if id.0.ends_with(".bindings.json") {

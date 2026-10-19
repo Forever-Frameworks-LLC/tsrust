@@ -8,6 +8,14 @@ const [entry, output] = process.argv.slice(2);
 if (!entry || !output || !process.env.TSRUST || !process.env.WASM_BINDGEN || !process.env.CARGO_TARGET_DIR) {
   throw new Error('Usage: TSRUST=... WASM_BINDGEN=... CARGO_TARGET_DIR=... node tools/build-ui-web.mjs entry.tsr new-output-directory');
 }
+let projectRoot = path.dirname(fs.realpathSync(entry));
+while (!fs.existsSync(path.join(projectRoot, 'tsrust.config.json'))) {
+  const parent = path.dirname(projectRoot);
+  if (parent === projectRoot) throw new Error('Web UI needs tsrust.config.json ui.target.web=true. Run tsrust ui add tokens@1.0.0 --target web.');
+  projectRoot = parent;
+}
+const projectConfig = JSON.parse(fs.readFileSync(path.join(projectRoot, 'tsrust.config.json'), 'utf8'));
+if (projectConfig.ui?.target?.web !== true) throw new Error('Web target disabled. Set tsrust.config.json ui.target.web=true or run tsrust ui add tokens@1.0.0 --target web.');
 const destination = path.resolve(output);
 if (fs.existsSync(destination)) throw new Error('Output already exists; choose a new directory.');
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'tsrust-ui-web-'));

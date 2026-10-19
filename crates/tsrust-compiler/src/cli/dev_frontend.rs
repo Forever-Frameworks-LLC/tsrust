@@ -65,6 +65,7 @@ fn compile(session:&mut ProjectSession,entry:&std::path::Path,sources:&Snapshot)
  let analysis=tsrust_compiler::project_cli::check_input_cached_with_provider(entry,&source,session,sources).map_err(|error|error.render_with_provider(&entry.display().to_string(),&source,false,sources))?;
  let check=started.elapsed();let started=Instant::now();
  let(rust,features)=analysis.emit_rust_with_native_features();let emit=started.elapsed();
+ if features.contains(&"ui-native"){tsrust_compiler::ui_project::require_target(entry,"native",|path|sources.read(&tsrust_compiler::project::SourceId(path.to_string_lossy().into_owned())).map(Some).or(Ok(None)))?;}
  let mut identity=Vec::new();
  match &analysis {
   CheckedInput::Project(project)=>for(id,module)in &project.graph.modules {for value in [id.0.as_bytes(),module.source.text.as_bytes()] {identity.extend_from_slice(&(value.len()as u64).to_le_bytes());identity.extend_from_slice(value);}},

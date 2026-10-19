@@ -1,6 +1,7 @@
 <!-- Current continuation takes precedence over historical scheduling below. -->
 
-Current UI application contract (2026-10-18): owned theme JSON, shared semantic
+Current UI application contract (2026-10-18): inline ui.theme configuration,
+src/app and src/components conventions, explicit ui.target booleans and first-component ui add setup, shared semantic
 utilities, editable local components, exact offline installation/locks and LSP
 are implemented. Direct signal-reading disabled predicates refresh after handlers.
 See [the application guide](guides/ui-applications.md) and current handoff for

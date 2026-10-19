@@ -2,7 +2,7 @@
 declare function require(name: string): {readFileSync(path: string, encoding: string): string};
 declare const process: {argv: string[]};
 declare const console: {log(value: string): void};
-const theme = JSON.parse(require('node:fs').readFileSync(process.argv[2], 'utf8'));
+const theme = JSON.parse(require('node:fs').readFileSync(process.argv[2], 'utf8')).ui.theme;
 function color(key: string): string {
   const seen = new Set<string>();
   while (true) {

@@ -174,6 +174,7 @@ mod platform {
                 _=>return Err(format!("Unknown or repeated dev option: {arg}. Usage: tsrust dev [--release] [--verbose] [--color auto|always|never] [-- program-arguments]")),
             }
         }
+        crate::ui_cli::check_default_setup()?;
         let project=project_config::discover()?.ok_or("dev needs tsrust.config.json; create a project with `tsrust new <name>`")?;
         let _signals=Signals::install()?;
         let root=project.root;

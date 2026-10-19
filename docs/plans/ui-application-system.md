@@ -6,6 +6,12 @@ UI_VISION.md sections 6, 18 and 19. See the application guide for exact supporte
 boundaries. Existing ownership, cancellation and resource acceptance remains
 authoritative; subsequent controls and routing work needs no planning approval.
 
+`ui.theme` now lives inside `tsrust.config.json`. `ui.target` explicitly enables
+native/web booleans; embedded remains false until supported. The first `ui add`
+selects targets interactively in a terminal or accepts repeatable `--target` flags.
+Imports and build/run/dev never create setup: they report the explicit command.
+Application and component source conventions are under `src/`.
+
 ## Product experience
 
 A UI project owns its root page, reusable component source, theme and installation
@@ -18,21 +24,21 @@ The intended project is:
 
 ```text
 tsrust.config.json            executable entry, aliases and UI source locations
-ui.theme.json                 semantic colors, spacing, typography and radius
+                              (ui.theme holds colors, spacing, typography and radius)
 ui-components.lock.json       immutable installation identities and compatibility
-app/page.tsrx                 root UI screen
-components/ui/button.tsrx     editable styled Button
-components/ui/card.tsrx       editable composed Card
+src/app/page.tsrx             root UI screen
+src/components/ui/button.tsrx     editable styled Button
+src/components/ui/card.tsrx       editable composed Card
 src/main.tsr                  inspectable startup and root composition
 tests/                        application-owned tests
 ```
 
-The `components/ui` destination is a configurable ordinary source directory. The
+The `src/components/ui` destination is a configurable ordinary source directory. The
 page imports its Button from that directory. The local Button can import the
 semantic Button primitive from `std:ui` under an alias. No second renderer, hidden
 application arithmetic or public lifetime attachment is needed.
 
-`app/page.tsrx` is the agreed screen convention. `build.entry` currently selects the
+`src/app/page.tsrx` is the agreed screen convention. `build.entry` currently selects the
 executable bootstrap. Root setup must make that distinction visible; naming files
 alone does not implement nested routing or layout retention.
 

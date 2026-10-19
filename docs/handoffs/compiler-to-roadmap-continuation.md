@@ -1,5 +1,33 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
+## Current application configuration update — 2026-10-18
+
+The owner requested inline `ui.theme` in `tsrust.config.json`, source conventions
+under `src/app` and `src/components`, explicit boolean ui.target choices, interactive selection without flags,
+and first-component setup through ui add without a separate
+initialization command. This supersedes external theme files/root-level app paths
+in historical entries below. Legacy external theme paths remain readable.
+Complete this as one compiler/CLI/editor/examples section; preserve source edits,
+configuration fields, exact offline identities and accepted rendering evidence.
+See the application guide for explicit installation and read-only import diagnostics. Imports, build/run/dev
+and editor checks must never install configuration or components.
+
+Focused acceptance passes: ten installer/target witnesses, four CLI application
+witnesses, three compiler theme witnesses and eight UI editor witnesses. Reuse
+those accepted results; the focused web-only export repair also passes. Real PTY
+selection retries an invalid choice and creates no files before selection. Web-only
+new scaffolding checks/formats successfully. Native CLI rejects web-only window
+entries; web package export defaults to ui-web, and the bounded web builder rejects
+native-only configuration before writing output. Embedded remains unsupported.
+
+The standalone counter is migrated to src/app and src/components with its page
+bytes and theme values preserved exactly. Check, format, generated native build and
+its screen test pass; renderer support is reused. The matched untimed Node-after-tsc
+oracle agrees with generated HTML from inline configuration. Rendering/input,
+lifetime and SQL evidence from c0eeb633 remains applicable and is reused; no broad
+regression or timing matrix is triggered. Closed records use tsrust-ui-config-* in
+canonical SQLite, including the original editor failure and repaired diagnostics.
+
 ## Current owner direction: complete UI application workflow — 2026-10-18
 
 The owner stopped local tuning in favor of a researched, coherent UI system.

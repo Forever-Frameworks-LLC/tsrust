@@ -74,3 +74,22 @@ fn incompatible_ui_lock_publishes_a_readable_project_error() {
  let mut session=support::session::Session::start(&[("tsrust.config.json",config),("ui.lock.json",lock),("main.tsr",source)]);
  session.open("main.tsr",source);let diagnostics=session.wait_for_diagnostics("main.tsr");assert!(diagnostics.to_string().contains("migrate explicitly"),"{diagnostics}");
 }
+
+#[test]
+fn inline_config_theme_supports_help_navigation_and_unsaved_validation() {
+ let theme:serde_json::Value=serde_json::from_str(tsrust_compiler::ui_project::theme::DEFAULT_JSON).unwrap();
+ let config=serde_json::json!({"schemaVersion":1,"name":"inline-ui","build":{"entry":"src/main.tsrx","output":"target/app"},"ui":{"target":{"native":false,"web":true,"embedded":false},"theme":theme,"components":"src/components/ui","lock":"ui-components.lock.json"}}).to_string();
+ let source="import {View,withTheme,Node} from 'std:ui';import config from '../tsrust.config.json';function main(){const node=withTheme(<View className=\"bg-primary p-4\"/>,config.ui.theme);}";
+ let mut session=support::session::Session::start(&[("tsrust.config.json",&config),("src/main.tsrx",source)]);
+ session.open("src/main.tsrx",source);session.open("tsrust.config.json",&config);session.settle();
+ let target_at=config.find("\"native\"").unwrap()+3;assert!(session.hover("tsrust.config.json",&config,target_at).unwrap().contains("Boolean"));assert!(session.completion("tsrust.config.json",&config,target_at).unwrap().contains(&"native".into()));
+ let at=config.find("\"primary\"").unwrap()+4;assert!(session.hover("tsrust.config.json",&config,at).unwrap().contains("#RRGGBB"));
+ assert!(session.completion("tsrust.config.json",&config,at).unwrap().contains(&"primary".into()));
+ let uri=session.uri("src/main.tsrx");let location=session.request("textDocument/definition",serde_json::json!({"textDocument":{"uri":uri},"position":{"line":0,"character":source.find("bg-primary").unwrap()+4}}));
+ assert_eq!(location.as_array().unwrap().len(),2,"{location}");assert!(location.to_string().contains("tsrust.config.json"));
+ let bad=config.replacen("#2563eb","#12345680",1);session.change("tsrust.config.json",&bad);
+ let mut diagnostics=session.wait_for_diagnostics("tsrust.config.json");for _ in 0..3{if diagnostics.to_string().contains("#RRGGBB"){break;}diagnostics=session.wait_for_diagnostics("tsrust.config.json");}
+ assert!(diagnostics.to_string().contains("#RRGGBB"),"{diagnostics}");
+ assert!(session.completion("src/main.tsrx",source,source.find("bg-primary").unwrap()+4).unwrap().contains(&"bg-primary".into()));
+ session.change("tsrust.config.json",&config);session.settle();assert!(session.hover("src/main.tsrx",source,source.find("withTheme(<").unwrap()+3).unwrap().contains("Scopes"));
+}

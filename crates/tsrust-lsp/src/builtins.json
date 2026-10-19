@@ -14027,14 +14027,14 @@
         },
         {
           "label": "value: ReadOnly<T>",
-          "documentation": "Serializable project theme data checked against the theme schema, normally imported from ui.theme.json. Borrowed only during this call."
+          "documentation": "Serializable project theme data checked against the theme schema, normally read from tsrust.config.json ui.theme. Borrowed only during this call."
         },
         {
           "label": "mode?: string",
           "documentation": "Selects light or dark; defaults to light. Other strings throw a readable error."
         }
       ],
-      "documentation": "Scopes project colors, spacing, radius and typography to an owned subtree. Requires every light/dark token. Colors accept exact opaque #RRGGBB sRGB bytes or @token aliases within the same mode; unknown tokens, missing references and cycles throw. spacing.sm/md/lg accepts 0–512 logical pixels; radius accepts 0–256; typography.base/xl accepts 8–128. Unknown keys fail. Returns a Node without rerunning its children or changing their state. Example: import theme from './ui.theme.json'; withTheme(Page(), theme, 'dark') uses the project dark palette. Separate trees keep independent themes. Runtime reactive mode switching is not supported yet. Ownership: consumes child nodes; reads and serializes theme data during construction. The resulting subtree owns its checked theme."
+      "documentation": "Scopes project colors, spacing, radius and typography to an owned subtree. Requires every light/dark token. Colors accept exact opaque #RRGGBB sRGB bytes or @token aliases within the same mode; unknown tokens, missing references and cycles throw. spacing.sm/md/lg accepts 0–512 logical pixels; radius accepts 0–256; typography.base/xl accepts 8–128. Unknown keys fail. Returns a Node without rerunning its children or changing their state. Example: import config from './tsrust.config.json'; withTheme(Page(), config.ui.theme, 'dark') uses the project dark palette. Separate trees keep independent themes. Runtime reactive mode switching is not supported yet. Ownership: consumes child nodes; reads and serializes theme data during construction. The resulting subtree owns its checked theme."
     },
     {
       "name": "ThemeConfig",

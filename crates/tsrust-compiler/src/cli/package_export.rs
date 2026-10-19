@@ -1,7 +1,7 @@
 //! Export a standalone, relocatable source package. No registry access or rustc
 //! invocation is needed during export; compilation is the recipient's next step.
 use std::{fs,io,path::Path};
-pub(crate) fn export(root:&Path,rust:&str)->io::Result<()> {
+pub(crate) fn export(root:&Path,rust:&str,web_only:bool)->io::Result<()> {
  let dependencies=tsrust_compiler::native_runtime::separate(rust).dependencies;
  if dependencies {
   crate::native_dependency_bundle::materialize(root)?;
@@ -28,7 +28,7 @@ pub(crate) fn export(root:&Path,rust:&str)->io::Result<()> {
                 );
         }
         if rust.contains("mod tsrust_native_ui {") && rust.contains("use vello::") {
-            manifest = manifest.replace("default = [", "default = [\"ui-native\", ");}
+            let feature=if web_only{"ui-web"}else{"ui-native"};manifest = manifest.replace("default = [", &format!("default = [\"{feature}\", "));}
   if rust.contains("mod tsrust_native_date {"){manifest=manifest.replace("default = [", "default = [\"calendar\", ");}
   if rust.contains("mod tsrust_native_crypto {"){manifest=manifest.replace("default = [", "default = [\"crypto\", ");}
   if rust.contains("mod tsrust_native_signals {"){manifest=manifest.replace("default = [", "default = [\"signals\", ");}

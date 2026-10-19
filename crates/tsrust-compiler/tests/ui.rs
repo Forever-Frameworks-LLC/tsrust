@@ -131,3 +131,11 @@ fn installed_ui_compatibility_pins_block_incompatible_builds_without_rewriting()
  let lock=serde_json::json!({"schemaVersion":1,"installed":[{"compilerApi":999,"runtimeAbi":"ui-application-1","rust":tsrust_compiler::RUST_BACKEND_VERSION,"compilerSha256":"a".repeat(64)}]}).to_string();
  std::fs::write(dir.0.join("ui.lock.json"),&lock).unwrap();let error=load_project(&FileSourceProvider,entry.to_str().unwrap()).unwrap_err();assert!(error.message.contains("migrate explicitly"),"{error:?}");assert_eq!(std::fs::read_to_string(dir.0.join("ui.lock.json")).unwrap(),lock);
 }
+
+#[test]
+fn inline_theme_is_validated_without_importing_the_configuration() {
+ let dir=support::TempDirectory::new();let entry=dir.0.join("main.tsr");std::fs::write(&entry,support::format_round_trip("function main(){}")).unwrap();
+ let mut ui=serde_json::to_value(tsrust_compiler::ui_project::Config::default()).unwrap();let config=dir.0.join("tsrust.config.json");
+ std::fs::write(&config,serde_json::json!({"ui":ui}).to_string()).unwrap();load_project(&FileSourceProvider,entry.to_str().unwrap()).unwrap();
+ ui["theme"]["radius"]["sm"]=serde_json::json!(-1);std::fs::write(&config,serde_json::json!({"ui":ui}).to_string()).unwrap();let error=load_project(&FileSourceProvider,entry.to_str().unwrap()).unwrap_err();assert!(error.message.contains("radius.sm"),"{error:?}");tsrust_compiler::project::load_project_headers(&FileSourceProvider,entry.to_str().unwrap()).unwrap();
+}

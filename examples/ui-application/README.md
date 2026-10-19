@@ -1,7 +1,7 @@
 # Project-owned UI
 
 This is the theme/component workflow produced by `tsrust new counter --ui`.
-`app/page.tsrx` owns the state and event logic. `components/ui` contains ordinary,
+`src/app/page.tsrx` owns the state and event logic. `src/components/ui` contains ordinary,
 editable source; primitives and ownership checks stay in `std:ui`.
 
 Run `tsrust run web.tsr` for the assertion-based HTML example, or `tsrust dev`

@@ -4,6 +4,16 @@ Status: product direction refined with the owner on 2026-10-11; the checked `.ts
 
 The [feasibility review](docs/plans/ui-feasibility-review.md#follow-up-review-after-app-directory-and-loader-decisions) preserves the original research and unresolved contracts. Its historical first-task sequencing is superseded by the current compiler handoff. State ownership and bounded browser/native counters now have focused acceptance; text input, dynamic trees, routing and navigation remain unfinished. Review recommendations remain distinct from owner-approved decisions.
 
+Owner update (2026-10-18): `tsrust.config.json` owns inline `ui.theme` tokens.
+Application source belongs under `src/`: the route tree is `src/app/`, reusable
+controls are `src/components/`, and bundled controls default to
+`src/components/ui/`. References to `app/` and `components/` in earlier examples
+below are relative to `src/`. First `ui add` provisions missing settings and directories. `ui.target` explicitly
+selects native/web booleans; embedded stays false until supported. Target selection
+is interactive without flags in a terminal. Imports and compiler/editor analysis
+remain read-only and report setup commands. The current
+application guide records implemented behavior and remaining routing work.
+
 ## Agreed direction and open decisions
 
 - Develop the shared API through paired web and desktop prototypes from the beginning. Neither target is merely a later port.
@@ -15,9 +25,9 @@ The [feasibility review](docs/plans/ui-feasibility-review.md#follow-up-review-af
 - Reuse the existing compiler's language, types, ownership and module contracts. A separate UI crate or driver may be useful; a separate language implementation is not the intended direction.
 - File-based routing inspired by the Next.js app directory is a priority. The owner prefers server rendering per request with partial navigation/data updates and persistent shared layouts. Static routes obtain their required data and generate all declared pages at build time. Desktop shares route paths and typed links for local navigation; web rendering settings apply only to web builds. Detailed loader, update and fallback contracts remain proposals in section 18.
 - Not-found behavior must be explicit, editable application source. A generator may provide a default handler, but the framework must not silently substitute a hidden component. CLI generation should preview the destination relative to the current directory and confirm artifact kind. Dependency and parameter injection are desired ergonomics; their typed ownership/lifetime contracts remain to be designed.
-- No separate `views/` convention is required. `app/` owns routes and route-local UI; `components/` owns reusable, editable `.tsrx` components. The owner wants shadcn-like CLI source installation from a catalog bundled offline in the binary, with immutable versions from the start and no automatic replacement of installed components when the CLI updates.
+- No separate `views/` convention is required. `src/app/` owns routes and route-local UI; `src/components/` owns reusable, editable `.tsrx` components. The owner wants shadcn-like CLI source installation from a catalog bundled offline in the binary, with immutable versions from the start and no automatic replacement of installed components when the CLI updates.
 - The owner wants an Axum-backed Tsrust HTTP library with Hono-like ergonomics to make middleware, security and UI templating concrete. Use the [HTTP/UI contract proposal](docs/plans/axum-hono-http-ui-contract.md) to explore that boundary; exact APIs and implementation order are not yet accepted. Keep this within the existing HTTP/async roadmap rather than creating a competing server runtime.
-- Use a dedicated `app/` route tree. Each segment, including the root, may define special layout, template, page, loader, not-found, error, route and middleware files. A colocated `loader.tsr` supplies type-safe data to its page by convention, without a page import or re-export. It runs only for that page's execution, never merely because a directory or API route is visited. Middleware is a sequential ancestor chain: every preceding segment's middleware runs before the selected handler unless an earlier middleware returns a response. Descendants cannot replace or bypass inherited middleware. Details below distinguish this owner direction from proposed lifecycle/dispatch rules.
+- Use a dedicated `src/app/` route tree. Each segment, including the root, may define special layout, template, page, loader, not-found, error, route and middleware files. A colocated `loader.tsr` supplies type-safe data to its page by convention, without a page import or re-export. It runs only for that page's execution, never merely because a directory or API route is visited. Middleware is a sequential ancestor chain: every preceding segment's middleware runs before the selected handler unless an earlier middleware returns a response. Descendants cannot replace or bypass inherited middleware. Details below distinguish this owner direction from proposed lifecycle/dispatch rules.
 
 ### Application policy and framework guarantees
 
@@ -751,12 +761,12 @@ The generator should show the detected project root, invocation directory, artif
 
 ### Offline, versioned component source
 
-Use `components/` for reusable UI, with `components/ui/` as a suggested destination for catalog components. This is a configurable ordinary source directory, not a second routing root. Route-local types/components can remain under `app/` without becoming endpoints. No `views/` layer is required. Installed files are owned by the developer and imported locally; native/compiler primitives remain a separately versioned underlying capability.
+Use `src/components/` for reusable UI, with `src/components/ui/` as a suggested destination for catalog components. This is a configurable ordinary source directory, not a second routing root. Route-local types/components can remain under `app/` without becoming endpoints. No `views/` layer is required. Installed files are owned by the developer and imported locally; native/compiler primitives remain a separately versioned underlying capability.
 
 Candidate commands (not implemented):
 
 ```text
-tsrust ui add button@1.0.0 --cwd ./my-app --path components/ui
+tsrust ui add button@1.0.0 --cwd ./my-app --path src/components/ui
 tsrust ui add text-input@1.0.0 --cwd ./my-app --dry-run
 tsrust ui list --bundled
 ```
