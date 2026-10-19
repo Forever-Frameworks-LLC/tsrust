@@ -362,3 +362,12 @@ fn nullish_parser_type_borrow_and_normal_depth_diagnostics_are_precise() {
 fn optional_call_results_take_a_fallback_under_an_expected_type() {
     support::execute("type H={run:ReadOnly<Function<int>>;};function pick(h:ReadOnly<H>|undefined):int{return 0;}function main():void{const h:H|undefined={run:():int=>3};const n:int=h?.run()??-1;const m=h?.run()??-1;console.log(n,m);}", "3 3\n", None);
 }
+
+#[test]
+fn literal_fallback_preserves_existing_optional_union_members(){
+ let source="type Direction='horizontal'|'vertical';function direction(value:Direction|undefined):Direction{const selected=value??'horizontal';return selected;}function flag(value:true|null):true{const selected=value??true;return selected;}function main(){console.log(direction(undefined),direction('vertical'),flag(null),flag(true));}";
+ native(source,"horizontal vertical true true\n","","");
+ for fallback in ["'diagonal'","String('horizontal')"] {
+  let source=format!("type Direction='horizontal'|'vertical';function direction(value:Direction|undefined):Direction{{const selected=value??{fallback};return selected;}}function main(){{}}");assert!(check(&source).is_err(),"{fallback}");
+ }
+}

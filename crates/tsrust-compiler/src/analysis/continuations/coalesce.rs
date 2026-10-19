@@ -109,7 +109,12 @@ impl Analyzer {
         // An int array literal beside a number array payload is a number
         // array, so `numbers ?? [1, 2]` stays one array type.
         let literal_fallback = matches!(right.kind, ExprKind::Array(_))
-            && matches!((payload, rhs_hint), (Type::Array(ArrayElement::Number(wanted)), Some(Type::Array(ArrayElement::Int(found)))) if wanted == found);
+            && matches!((payload, rhs_hint), (Type::Array(ArrayElement::Number(wanted)), Some(Type::Array(ArrayElement::Int(found)))) if wanted == found)
+            || fallback_context.union().map(|id|self.unions.members(id)).unwrap_or_else(||vec![fallback_context]).iter().any(|ty| {
+                if let Type::Literal(id,kind)=*ty {
+                    crate::literal_types::LiteralValue::expression(right,kind).is_some_and(|value|value.is_ok_and(|value|self.program.records[id].literal_definition.as_ref()==Some(&value)))
+                }else{false}
+            });
         if expected.is_none() && !literal_fallback && !number_literal_context(right) && let Some(ty)=rhs_hint
             && !ty.union().map(|id|self.unions.members(id)).unwrap_or_else(||vec![ty]).iter().any(|member|matches!(member,Type::Closure(_)|Type::Callable(_)|Type::Callback(_)|Type::StoredCallable(_))) {contextual_members.push(ty.owning());}
         if let Some(ty) = rhs_hint {
