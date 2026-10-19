@@ -75,3 +75,9 @@ mod tests {
         assert!(checked(LiteralAnnotation::Number("1e999".into())).is_err());
     }
 }
+
+/// A closed scalar literal family has one decoder and exact, disjoint identities.
+pub(crate) fn family(values:&[Type])->Option<LiteralKind>{
+    let Type::Literal(_,kind)=*values.first()? else{return None;};
+    values.iter().all(|value|matches!(value,Type::Literal(_,other) if *other==kind)).then_some(kind)
+}

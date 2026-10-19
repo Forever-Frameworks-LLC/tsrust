@@ -8,6 +8,30 @@
   "startupSamples": 11,
   "compileSamples": 3,
   "workloads": [
+    {
+      "id": "native_json_literal_union",
+      "category": "json",
+      "description": "Checked same-kind scalar literal union JSON record decoding",
+      "source": "workloads/native_json_literal_union.tsr",
+      "counterpart": "workloads/native_json_literal_union.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 1,
+      "operationUnit": "One checked record decode and scalar field observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-json",
+      "inputText": "{\"name\":\"hello\",\"values\":[20,17],\"active\":true}",
+      "measured": false,
+      "measurementStatus": "unmeasured-json-family",
+      "specification": "Decode name, two integer values and active flag; independently observed checksum adds 42 per iteration.",
+      "notes": "Exact closed string alternatives and a singleton boolean are validated before ownership transfer. Node explicitly checks the same literals and shared safe-int domain. Untimed support only.",
+      "sourceSha256": "ab3cc07285a17425558bd211d2c1beba81383dff6d6a122d6daf6899f49724b2",
+      "counterpartSha256": "efa43cb9c80af8e2803d3d8662e989dfcb8baeb961d5ce1f302cc1eead69f577"
+    },
 {
   "id": "native_schema_export",
   "category": "schema",

@@ -192,3 +192,10 @@ fn generated_documentation_types_have_nested_member_help_without_running_a_build
  let at=source.find("source.start").unwrap()+7;let hover=session.hover("main.tsr",source,at).unwrap_or_default();assert!(hover.contains("int"),"{hover}");
  let at=source.find("source.start").unwrap()+7;let names=session.completion("main.tsr",source,at).unwrap();for name in ["start","end"]{assert!(names.contains(&name.into()),"{names:?}");}
 }
+
+#[test]
+fn typed_json_literal_union_help_and_inference_agree(){
+ let source="type Status='draft'|'published';function main(){const status=JSON.parse<Status>('\"draft\"');console.log(status);}";
+ let mut session=support::session::Session::start(&[]);session.open("main.tsr",source);let diagnostics=session.wait_for_diagnostics("main.tsr");session.settle();assert!(diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
+ let at=source.find("parse<").unwrap()+1;let hover=session.hover("main.tsr",source,at).unwrap_or_default();assert!(hover.contains("literal")&&hover.contains("shape-mismatch"),"{hover}");
+}

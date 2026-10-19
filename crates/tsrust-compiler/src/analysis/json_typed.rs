@@ -57,7 +57,7 @@ impl Analyzer {
                 continue;
             }
             match ty {
-                Type::Int | Type::Number | Type::Boolean | Type::String | Type::Null => {}
+                Type::Int | Type::Number | Type::Boolean | Type::String | Type::Null | Type::Literal(_,_) => {}
                 Type::Array(element) => pending.push(element.ty()),
                 Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::JsonRaw) && !jsonc && !jsonl => { borrowed_raw=true; }
                 Type::Record(id)
@@ -79,10 +79,10 @@ impl Analyzer {
                         .into_iter()
                         .filter(|ty| !matches!(ty, Type::Null | Type::Undefined))
                         .collect();
-                    if values.len() != 1 && !(values.is_empty() && has_null) {
+                    if values.len() != 1 && !(values.is_empty() && has_null) && crate::literal_types::family(&values).is_none() {
                         return Err(Diagnostic::new(
                             "json-type",
-                            "Typed JSON decoding currently supports nullable or optional values, not unions of multiple value shapes.",
+                            "Typed JSON decoding supports nullable/optional values and closed same-kind literal unions; other multiple-shape unions are unsupported.",
                             span,
                         ));
                     }

@@ -64,7 +64,8 @@ export function assertNativeJsonSource(source,row,kind){
   for(const snippet of ['let checksum=seed;let i=0;',body,'return checksum;'])if(!containsCodeSnippet(source,snippet))throw Error('JSON encoding operation placement');
   return;
  }
- if(row.id==='native_json_typed'){
+ if(['native_json_typed','native_json_literal_union'].includes(row.id)){
+  if(row.id==='native_json_literal_union'){const literal=kind==='native'?"name:'hello'|'other'":"name:'hello'|'other'";if(!containsCodeSnippet(source,literal)||!containsCodeSnippet(source,'active:true'))throw Error('JSON literal type contract');}
   if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON typed identity');
   if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON typed fingerprint');
   if(row.iterations!==2000||row.inputText!==typedInput||row.result!=='int'||row.operationsPerIteration!==1||row.operationUnit!=='One checked record decode and scalar field observation')throw Error('JSON typed denominator');

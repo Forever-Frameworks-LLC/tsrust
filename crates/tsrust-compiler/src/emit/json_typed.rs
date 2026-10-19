@@ -57,6 +57,7 @@ impl Emitter<'_> {
             let native = self.recursive_view_native_type(ty,"'de");
             let declaration=helper(ty);
             let body = match ty {
+                Type::Literal(id,kind)=>self.json_literal_leaf(id,kind),
                 Type::Int => {
                     "Ok(Self(tsrust_native_json::typed::ExactInt::deserialize(decoder)?.0))".into()
                 }
@@ -147,6 +148,11 @@ impl Emitter<'_> {
                 }
                 Type::Union(id) => {
                     let members = &self.program.unions[id.index()].members;
+                    let values=members.iter().copied().filter(|ty|!matches!(ty,Type::Null|Type::Undefined)).collect::<Vec<_>>();
+                    if let Some(kind)=crate::literal_types::family(&values){
+                        let body=self.json_literal_union(id,kind,&declaration);
+                        generated.push_str(&format!("struct {declaration}({native});impl<'de> serde::Deserialize<'de> for {declaration}{{fn deserialize<D:serde::Deserializer<'de>>(decoder:D)->Result<Self,D::Error>{{{body}}}}}"));continue;
+                    }
                     if members.iter().all(|ty|matches!(ty,Type::Null|Type::Undefined)) {
                         let null=members.iter().position(|ty|*ty==Type::Null).unwrap();
                         generated.push_str(&format!("struct {declaration}({native});impl<'de> serde::Deserialize<'de> for {declaration}{{fn deserialize<D:serde::Deserializer<'de>>(decoder:D)->Result<Self,D::Error>{{let ()=serde::Deserialize::deserialize(decoder)?;Ok(Self(Union{}::V{null}(TsrNull)))}}}}",id.index()));

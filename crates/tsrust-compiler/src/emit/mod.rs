@@ -18,6 +18,7 @@ mod results;
 mod schema;
 mod json_encoding;
 mod json_typed;
+mod json_literals;
 mod json_refinement;
 mod nullable_link_emit;
 mod recursive_union_payload_emit;
