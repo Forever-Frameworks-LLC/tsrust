@@ -167,7 +167,7 @@ names are preserved, including `aria-label`, `aria-hidden` and `data-slot`:
 Use quoted keys in ordinary props records, for example
 `{'aria-label': 'Account'}` and `props['aria-label']`. Heading tags carry accessible
 levels without introducing browser-only font sizes or margins. Text accepts span,
-div, p, h1–h6, code and kbd; View accepts div or section. A named region requires a
+div, p, h1–h6, code and kbd; View accepts div, section or label. A named region requires a
 nonblank accessible label. Alert is assertive; status is polite. A separator must
 be empty, is not focusable, and defaults to horizontal orientation. Class names
 still determine its dimensions. Hidden decoration remains visible but is excluded
@@ -175,7 +175,8 @@ from accessibility; enabled controls inside a hidden subtree are rejected, even
 when a reactive update would enable them later.
 
 Only supported semantic roles are accepted. This API does not expose arbitrary
-HTML, editable controls, ARIA relationships or simulated interactive roles.
+HTML or simulated interactive roles. Text controls and checked label/description
+relationships are covered below.
 See `examples/ui-semantics` for native and browser entries. The selected component
 baseline is current Base UI + Nova, pinned in
 [the coverage inventory](../plans/ui-component-coverage.json). Existing offline
@@ -354,7 +355,66 @@ padding box, including asymmetric inner border curves. `overflow-visible`
 restores overflow. The node's own outer ring/focus outline remains outside its
 content clip. Descendant outlines are clipped by ancestors. Native hit geometry
 uses physical coordinates at the current display scale. Clipping does not disable
-controls or remove them from source, keyboard or accessibility order. Scrolling
-and automatic keyboard-focus scrolling remain unsupported on native; do not place
+controls or remove them from source, keyboard or accessibility order. Container scrolling
+and automatic container keyboard-focus scrolling remain unsupported on native; do not place
 necessary controls entirely outside a clipped region. Native curves use cubic
 quarter-ellipse approximation; pixel-identical rasterization is not claimed.
+
+## Editable text controls
+
+`tsrust ui add input@3.0.0 textarea@3.0.0 label@3.0.0 --offline` adds editable local
+Base UI + Nova text-control adaptations. Use their project imports. `std:ui`
+supplies the portable Input/Textarea primitives and View's label tag; there is no
+separate browser module or public lifetime handle. See `examples/ui-inputs`.
+
+```tsrust
+const name = signal('Ada');
+return (
+  <View>
+    <Label htmlFor="name">Name</Label>
+    <Input id="name" value={name.get()} onChange={(event) => {
+      name.set(event.target.value);
+    }}/>
+  </View>
+);
+```
+
+`value` selects controlled editing; application state accepts or rejects each
+committed edit. Direct signals and state-reading JSX value, disabled and readOnly
+expressions refresh after handlers. An unchanged controlled echo preserves cursor
+selection. Omit value to use uncontrolled editing initialized by defaultValue.
+Empty string and zero controlled values take precedence. Values accept strings,
+exact ints and numbers with ordinary formatting; edits always produce strings.
+Input removes CR/LF, while Textarea normalizes CRLF/CR to LF. Browser values with
+unpaired UTF-16 surrogates fail explicitly instead of silently becoming replacement
+characters; portable strings contain Unicode scalar values.
+
+`onChange` receives borrowed target/currentTarget snapshots with value, name and
+id. Composition preedit remains internal until commit. Native editing delegates
+Unicode shaping and selection to Parley and clipboard operations to the OS. Cut
+only deletes after successful copying. Clipboard failures leave values unchanged
+and report a message. Linux clipboard persistence after exit needs a clipboard
+manager; no helper process stays alive to retain it. Browser autocomplete is a
+hint; native autocomplete is not implemented. The native accessibility tree
+exposes focus, values, labels/descriptions, required/invalid/read-only/disabled
+state and SetValue. Accessibility text-range navigation remains pending.
+
+Use htmlFor/id or wrap one control in a label. Nested labels and multiple enclosed
+controls fail. Keep explicit IDs unique within the document; duplicate IDs are not
+rejected. aria-describedby accepts ordered ID references; missing references
+are ignored. aria-invalid is an explicit boolean, with no validation policy.
+Field labels and descriptions do not introduce framework-owned application state.
+
+Nova spacing supports half steps through 3.5 and size 5. Viewport sm/md/lg/xl/2xl
+variants use 640/768/1024/1280/1536 logical pixels. dark matches the enclosing mode;
+placeholder:text-COLOR styles only the hint, and aria-invalid matches true.
+outline-none removes the fallback focus outline: retain a visible focus ring.
+field-sizing-content grows Textarea within min/max bounds. Editor scrolling is
+supported; general native container scrolling is still pending.
+
+These adaptations are a text-control slice, not complete Input parity. Password,
+file, number/date and other specialized types are rejected. DOM event methods,
+refs, Base UI value-change details, form submission, composition callbacks, resize handles, animated transitions
+and Label peer/group disabled styling remain pending. Generic callback-result
+inference from an unannotated closure alone also remains a language gap; generated
+input getters use an expected checked scalar union without precision erasure.

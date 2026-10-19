@@ -6,6 +6,8 @@ mod native;
 #[cfg(all(target_arch="wasm32",feature="ui-web"))]
 pub mod browser;
 mod state;
+mod editable;
+pub(crate) use editable::{ValueBinding,ChangeHandler};
 pub use state::{Signal,TextBinding};
 pub mod style;
 pub mod theme;
@@ -22,6 +24,8 @@ pub enum Kind {
     Text,
     DisabledButton,
     Button,
+    Input,
+    Textarea,
 }
 
 pub enum TextPart { Literal(String), Signal(TextBinding) }
@@ -39,6 +43,9 @@ pub(crate) struct Semantics {
     pub slot: String,
     pub size: String,
     pub orientation: String,
+    pub html_for:String,
+    pub described_by:String,
+    pub invalid:String,
 }
 
 pub struct Node {
@@ -52,6 +59,8 @@ pub struct Node {
     pub(crate) parts: Vec<TextPart>,
     pub(crate) disabled: Option<Box<dyn FnMut()->Result<bool,String>>>,
     pub(crate) press: Option<Box<dyn FnMut() -> Result<(), String>>>,
+    pub(crate) editable: Option<editable::Editable>,
+    read_only: Option<Box<dyn FnMut()->Result<bool,String>>>,
     state: Vec<Box<dyn std::any::Any>>,
 }
 
@@ -61,27 +70,44 @@ impl Node {
         let value:Semantics=serde_json::from_str(config).map_err(|e|format!("Invalid UI semantics: {e}"))?;
         let tag=if value.tag.is_empty(){self.tag()}else{&value.tag};
         let allowed=match self.kind {
-            Kind::View=>matches!(tag,"div"|"section"|"span"),
+            Kind::View=>matches!(tag,"div"|"section"|"span"|"label"),
             Kind::Text=>matches!(tag,"div"|"span"|"p"|"h1"|"h2"|"h3"|"h4"|"h5"|"h6"|"code"|"kbd"),
             Kind::Button|Kind::DisabledButton=>tag=="button",
+            Kind::Input=>tag=="input",
+            Kind::Textarea=>tag=="textarea",
         };
         if !allowed{return Err(format!("Unsupported UI element for {:?}: {tag}",self.kind));}
         if !matches!(value.role.as_str(),""|"alert"|"status"|"separator"|"group"|"note"|"region"|"none"|"presentation") {return Err(format!("Unsupported UI role: {}",value.role));}
-        if matches!(self.kind,Kind::Button|Kind::DisabledButton) && !value.role.is_empty(){return Err("Button keeps its implicit button role".into());}
+        if matches!(self.kind,Kind::Button|Kind::DisabledButton|Kind::Input|Kind::Textarea) && !value.role.is_empty(){return Err("Interactive controls keep their implicit role".into());}
         if !value.orientation.is_empty() && (value.role!="separator" || !matches!(value.orientation.as_str(),"horizontal"|"vertical")){return Err("aria-orientation requires a separator and horizontal or vertical".into());}
-        let name_allowed=if value.role.is_empty(){matches!(tag,"button"|"h1"|"h2"|"h3"|"h4"|"h5"|"h6"|"section")}else{!matches!(value.role.as_str(),"none"|"presentation")};
+        let name_allowed=if value.role.is_empty(){matches!(tag,"button"|"input"|"textarea"|"h1"|"h2"|"h3"|"h4"|"h5"|"h6"|"section")}else{!matches!(value.role.as_str(),"none"|"presentation")};
         if !value.label.is_empty() && !name_allowed{return Err("aria-label requires a button, heading, section or a role that supports naming".into());}
         if value.role=="region" && value.label.trim().is_empty(){return Err("A region requires an accessible label".into());}
         if value.role=="separator" && (!self.text.is_empty() || !self.children.is_empty()){return Err("A separator cannot contain text or children".into());}
+        if !value.html_for.is_empty() && tag!="label"{return Err("htmlFor requires a label element".into());}
+        if value.html_for.chars().any(|ch|ch.is_ascii_whitespace()||ch.is_control()){return Err("htmlFor must name a single document ID".into());}
+        if value.described_by.chars().any(|ch|ch.is_control() && !ch.is_ascii_whitespace()){return Err("aria-describedby contains an invalid ID".into());}
+        if !matches!(value.invalid.as_str(),""|"true"|"false"){return Err("aria-invalid supports boolean values".into());}
+        if tag=="label" {
+            fn labels(node:&Node)->bool {node.tag()=="label" || node.children.iter().any(labels)}
+            fn controls(node:&Node)->usize {usize::from(matches!(node.kind,Kind::Button|Kind::DisabledButton|Kind::Input|Kind::Textarea))+node.children.iter().map(controls).sum::<usize>()}
+            if self.children.iter().any(labels) || controls(&self)>1 {return Err("Labels cannot nest or contain more than one control".into());}
+        }
         if value.id.chars().any(|ch|ch.is_ascii_whitespace()||ch.is_control()){return Err("UI id cannot contain whitespace or control characters".into());}
         if value.slot.chars().any(|ch|!(ch.is_ascii_alphanumeric()||ch=='-')){return Err("UI slot must contain ASCII letters, digits or hyphens".into());}
         if value.size.chars().any(|ch|!(ch.is_ascii_alphanumeric()||ch=='-')){return Err("UI data-size must contain ASCII letters, digits or hyphens".into());}
         if value.hidden && self.has_enabled_controls(){return Err("An aria-hidden subtree cannot contain enabled interactive controls".into());}
         self.semantics=value;Ok(self)
     }
-    fn has_enabled_controls(&self)->bool {self.kind==Kind::Button || self.children.iter().any(Self::has_enabled_controls)}
+    fn has_enabled_controls(&self)->bool {self.enabled_control() || self.children.iter().any(Self::has_enabled_controls)}
+    pub(crate) fn enabled_control(&self)->bool {matches!(self.kind,Kind::Button|Kind::Input|Kind::Textarea) && !self.is_disabled()}
+    pub(crate) fn is_disabled(&self)->bool {self.kind==Kind::DisabledButton || self.editable.as_ref().is_some_and(|field|field.disabled)}
+    fn apply_disabled(&mut self,next:bool)->bool {
+        if let Some(field)=&mut self.editable {let changed=field.disabled!=next;field.disabled=next;changed}
+        else {let kind=if next{Kind::DisabledButton}else{Kind::Button};let changed=self.kind!=kind;self.kind=kind;changed}
+    }
     pub(crate) fn tag(&self)->&str {
-        if !self.semantics.tag.is_empty(){&self.semantics.tag}else{match self.kind{Kind::View=>"div",Kind::Text=>"span",Kind::Button|Kind::DisabledButton=>"button"}}
+        if !self.semantics.tag.is_empty(){&self.semantics.tag}else{match self.kind{Kind::View=>"div",Kind::Text=>"span",Kind::Button|Kind::DisabledButton=>"button",Kind::Input=>"input",Kind::Textarea=>"textarea"}}
     }
     pub fn view(children: Vec<Child>, class_name: String) -> Result<Self,String> {
         Self::new(Kind::View,class_name,String::new(),Self::child_nodes(children)?)
@@ -117,14 +143,29 @@ impl Node {
     #[cfg(any(test,feature="native"))]
     pub(crate) fn content_text(&self)->String {
         fn append(node:&Node,out:&mut String) {
-            if node.semantics.hidden{return;}
+            if node.semantics.hidden || node.editable.is_some(){return;}
             out.push_str(&node.text);for child in &node.children{append(child,out);}
         }
         let mut output=String::new();append(self,&mut output);output
     }
     pub fn with_disabled(mut self,mut predicate:impl FnMut()->Result<bool,String>+'static)->Result<Self,String> {
-        if !matches!(self.kind,Kind::Button|Kind::DisabledButton) {return Err("A disabled condition requires a Button".into());}
-        self.kind=if predicate()? {Kind::DisabledButton}else{Kind::Button};self.disabled=Some(Box::new(predicate));Ok(self)
+        if !matches!(self.kind,Kind::Button|Kind::DisabledButton|Kind::Input|Kind::Textarea) {return Err("A disabled condition requires Button, Input or Textarea".into());}
+        self.apply_disabled(predicate()?);self.disabled=Some(Box::new(predicate));Ok(self)
+    }
+
+    pub fn with_read_only(mut self,mut predicate:impl FnMut()->Result<bool,String>+'static)->Result<Self,String> {
+        let field=self.editable.as_mut().ok_or("A readOnly condition requires Input or Textarea")?;
+        field.read_only=predicate()?;self.read_only=Some(Box::new(predicate));Ok(self)
+    }
+    pub fn input_control(binding:Option<ValueBinding>,default_value:Option<String>,options:&str,class_name:String,changed:Option<ChangeHandler>)->Result<Self,String> {
+        let options:editable::Options=serde_json::from_str(options).map_err(|e|format!("Invalid input options: {e}"))?;
+        if !matches!(options.input_type.as_str(),""|"text"){return Err("This input backend supports type=text; other input types are not implemented".into());}
+        let field=editable::Editable {
+            value:editable::normalize(default_value.as_deref().unwrap_or(""),options.multiline),
+            placeholder:options.placeholder,disabled:options.disabled,read_only:options.read_only,multiline:options.multiline,
+            required:options.required,name:options.name,auto_complete:options.auto_complete,binding,changed,
+        };
+        Self::editable(field,class_name)
     }
 
     pub fn with_theme(mut self, json: &str, mode: &str) -> Result<Self,String> {
@@ -154,8 +195,15 @@ impl Node {
     #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
     pub(crate) fn refresh(&mut self) -> Result<usize,String> {
         let mut changed=0;
-        if let Some(predicate)=&mut self.disabled {
-            let kind=if predicate()? {Kind::DisabledButton}else{Kind::Button};if kind!=self.kind {self.kind=kind;changed+=1;}
+        let disabled=if let Some(predicate)=&mut self.disabled {Some(predicate()?)}else{None};
+        if let Some(value)=disabled {changed+=usize::from(self.apply_disabled(value));}
+        let read_only=if let Some(predicate)=&mut self.read_only {Some(predicate()?)}else{None};
+        if let Some(field)=&mut self.editable {
+            if let Some(value)=read_only {if value!=field.read_only {field.read_only=value;changed+=1;}}
+            let value_changed=field.refresh()?;
+            let text_changed=self.text!=field.value;
+            if text_changed {self.text=field.value.clone();}
+            changed+=usize::from(value_changed||text_changed);
         }
 
         if !self.parts.is_empty() {
@@ -182,6 +230,30 @@ impl Node {
         visit(self,target,&mut 1)
     }
 
+    pub(crate) fn editable(mut field:editable::Editable,class_name:String)->Result<Self,String> {
+        field.refresh()?;
+        let mut node=Self::new(Kind::View,class_name,String::new(),vec![])?;
+        node.kind=if field.multiline{Kind::Textarea}else{Kind::Input};node.text=field.value.clone();node.editable=Some(field);Ok(node)
+    }
+    #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
+    pub(crate) fn input(&mut self,target:u64,value:&str)->Result<bool,String> {
+        fn visit(node:&mut Node,target:u64,value:&str,next:&mut u64)->Result<bool,String>{
+            let id=*next;*next+=1;
+            if id==target {
+                let Some(field)=&mut node.editable else{return Ok(false);};
+                let changed=field.input(value,&node.semantics.id)?;node.text=field.value.clone();return Ok(changed);
+            }
+            for child in &mut node.children {if visit(child,target,value,next)?{return Ok(true);}}
+            Ok(false)
+        }
+        visit(self,target,value,&mut 1)
+    }
+
+    #[cfg(feature="native")]
+    fn control_value(&self,target:u64)->Option<&str> {
+        fn find<'a>(node:&'a Node,target:u64,next:&mut u64)->Option<&'a str>{let id=*next;*next+=1;if id==target{return node.editable.as_ref().map(|field|field.value.as_str());}for child in &node.children{if let Some(value)=find(child,target,next){return Some(value);}}None}
+        find(self,target,&mut 1)
+    }
     pub fn new(
         kind: Kind,
         class_name: String,
@@ -197,6 +269,7 @@ impl Node {
             return Err("Container layout utilities require View or composed Button children; Text remains a text leaf".into());
         }
         match kind {
+            Kind::Input|Kind::Textarea=>return Err("Construct editable controls with input_control".into()),
             Kind::View if !text.is_empty() => return Err("View text must be inside Text".into()),
             Kind::Text | Kind::DisabledButton | Kind::Button if !children.is_empty() => {
                 return Err("Text and Button accept text children only".into());
@@ -212,7 +285,7 @@ impl Node {
             class_name,
             text,
             children,
-            parts: Vec::new(), disabled:None, press: None, state: Vec::new(),
+            parts: Vec::new(), disabled:None, press: None, state: Vec::new(), editable:None, read_only:None,
         })
     }
 }
@@ -404,5 +477,51 @@ mod scalar_binding_tests {
   let mut root=Node::view(vec![Child::Node(text),Child::Node(button)],String::new()).unwrap().own_state(label).unwrap().own_state(ready).unwrap().own_state(amount).unwrap();
   assert_eq!(root.children[0].text,"a / false / 1.25");assert!(root.activate(3).unwrap());assert_eq!(root.refresh().unwrap(),1);assert_eq!(root.children[0].text,"b / true / 1.75");
   drop(root);assert!(observed.0.get().is_err());assert!(observed.1.get().is_err());assert!(observed.2.get().is_err());
+ }
+}
+
+#[cfg(test)]
+mod editable_semantics_tests {
+ use super::*;
+ #[test]
+ fn controls_escape_values_normalize_lines_and_reject_false_semantics() {
+  let input=Node::input_control(None,Some("<&\"'\r\n🙂".into()),"{}",String::new(),None).unwrap().with_semantics(r#"{"id":"name","describedBy":"hint","invalid":"false"}"#).unwrap();let html=document(&input,"Input");assert!(html.contains("value=\"&lt;&amp;&quot;&#39;🙂\""));assert!(!html.contains("</input>"));assert!(html.contains("aria-invalid=\"false\""));
+  let mut area=Node::input_control(None,Some("a\r\nb\rc".into()),r#"{"multiline":true}"#,String::new(),None).unwrap();assert_eq!(area.text,"a\nb\nc");area.input(1,"x\r\ny").unwrap();assert_eq!(area.text,"x\ny");
+  assert!(Node::input_control(None,None,r#"{"type":"password"}"#,String::new(),None).is_err());
+  assert!(Node::new(Kind::Input,String::new(),String::new(),vec![]).is_err());
+  assert!(Node::new(Kind::Text,String::new(),"label".into(),vec![]).unwrap().with_semantics(r#"{"htmlFor":"name"}"#).is_err());
+  assert!(Node::new(Kind::View,String::new(),String::new(),vec![input]).unwrap().with_semantics(r#"{"hidden":true}"#).is_err());
+ }
+ #[test]
+ fn disabled_read_only_and_unchanged_values_do_not_invoke_callbacks() {
+  use std::{cell::Cell,rc::Rc};let calls=Rc::new(Cell::new(0));let observed=calls.clone();let mut node=Node::input_control(None,None,"{}",String::new(),Some(Box::new(move|_,_,_|{calls.set(calls.get()+1);Ok(())}))).unwrap();assert!(node.input(1,"new").unwrap());assert_eq!(observed.get(),1);assert!(!node.input(1,"new").unwrap());node.editable.as_mut().unwrap().read_only=true;assert!(!node.input(1,"other").unwrap());assert_eq!(node.text,"new");node.editable.as_mut().unwrap().read_only=false;node.apply_disabled(true);assert!(!node.input(1,"other").unwrap());assert_eq!(observed.get(),1);
+ }
+}
+
+#[cfg(test)]
+mod editable_cleanup_tests {
+ use super::*;
+ use std::{cell::RefCell,rc::Rc};
+ struct Probe(&'static str,Rc<RefCell<Vec<&'static str>>>);
+ impl Probe {fn touch(&self){}}
+ impl Drop for Probe {fn drop(&mut self){self.1.borrow_mut().push(self.0);}}
+ #[test]
+ fn failed_edit_releases_independent_callback_environments_before_state_owner() {
+  let released=Rc::new(RefCell::new(Vec::new()));let probe=|name|Probe(name,released.clone());let read=probe("binding");let write=probe("handler");let disabled=probe("disabled");let read_only=probe("read-only");
+  let mut node=Node::input_control(Some(Box::new(move||{read.touch();Ok("initial".into())})),None,"{}",String::new(),Some(Box::new(move|_,_,_|{write.touch();Err("application failure".into())}))).unwrap().with_disabled(move||{disabled.touch();Ok(false)}).unwrap().with_read_only(move||{read_only.touch();Ok(false)}).unwrap();node.state.push(Box::new(probe("owner")));
+  assert_eq!(node.input(1,"next"),Err("application failure".into()));assert!(released.borrow().is_empty());drop(node);assert_eq!(*released.borrow(),vec!["disabled","binding","handler","read-only","owner"]);
+ }
+ #[test]
+ fn failed_initial_getter_drops_both_environments_once() {
+  let released=Rc::new(RefCell::new(Vec::new()));let read=Probe("binding",released.clone());let write=Probe("handler",released.clone());let result=Node::input_control(Some(Box::new(move||{read.touch();Err("getter failure".into())})),None,"{}",String::new(),Some(Box::new(move|_,_,_|{write.touch();Ok(())})));assert!(result.is_err());assert_eq!(*released.borrow(),vec!["binding","handler"]);
+ }
+}
+#[cfg(test)]
+mod editable_event_tests {
+ use super::*;
+ #[test]
+ fn committed_changes_receive_managed_name_and_id_metadata() {
+  use std::{cell::RefCell,rc::Rc};let events=Rc::new(RefCell::new(Vec::new()));let observed=events.clone();
+  let mut node=Node::input_control(None,None,r#"{"name":"profile"}"#,String::new(),Some(Box::new(move|value,name,id|{events.borrow_mut().push((value.to_owned(),name.to_owned(),id.to_owned()));Ok(())}))).unwrap().with_semantics(r#"{"id":"name"}"#).unwrap();node.input(1,"Ada🙂").unwrap();assert_eq!(*observed.borrow(),vec![("Ada🙂".into(),"profile".into(),"name".into())]);assert!(!node.input(1,"Ada🙂").unwrap());assert_eq!(observed.borrow().len(),1);
  }
 }

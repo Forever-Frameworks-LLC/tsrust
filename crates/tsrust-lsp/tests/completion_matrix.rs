@@ -133,6 +133,8 @@ const TAIL: &str = "\n}\n";
 fn rows() -> Vec<Row> {
     let row = |kind, name, typed, includes, excludes| Row { kind, name, before: HEAD.into(), typed, after: TAIL, includes, excludes, silent: None, needs_check: false };
     let mut rows = vec![
+ Row {kind:Kind::RecordField,name:"input change target",before:"import {InputChangeEvent} from 'std:ui';function inspect(event:ReadOnly<InputChangeEvent>){".into(),typed:"event.target.",after:"value;}function main(){}",includes:&["value","name","id"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+ Row {kind:Kind::CallbackParameter,name:"input inferred callback",before:"import {Input} from 'std:ui';function main(){const node=Input({onChange:(event)=>{console.log(".into(),typed:"event.target.",after:"value);}});}",includes:&["value","name","id"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
  Row {kind:Kind::StringMember,name:"scalar state string result",before:"import {signal} from 'std:ui';function main(){const label=signal('text');".into(),typed:"label.get().",after:"length;}",includes:&["length","split","trim"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
  Row {kind:Kind::ArrayMember,name:"generic alias defaults",before:"type Values<T=string>=T[];function main(){const values:Values=['text'];".into(),typed:"values.",after:"length;}",includes:&["length","map","join"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
 

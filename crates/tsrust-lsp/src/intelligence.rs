@@ -2818,7 +2818,7 @@ impl SourceIndex {
             }
             let mut mappings=types.clone();
             let referenced=dependency.symbols.iter().filter(|record|matches!(record.kind,10|23) && record.scope==0 && record.owner.is_none())
-                .filter(|record|symbol.parameters.iter().any(|parameter|parameter.split(|ch:char|!ch.is_ascii_alphanumeric() && ch!='_').any(|word|word==record.name)))
+                .filter(|record|!dependency.native_type_aliases.contains_key(&record.name) && symbol.parameters.iter().any(|parameter|parameter.split(|ch:char|!ch.is_ascii_alphanumeric() && ch!='_').any(|word|word==record.name)))
                 .map(|record|record.name.clone()).collect::<Vec<_>>();
             let encoded=uri.as_bytes().iter().map(|byte|format!("{byte:02x}")).collect::<String>();
             for record in &referenced {
@@ -2909,8 +2909,10 @@ impl SourceIndex {
                     || field.ty.contains(['\'','"'])
                     || owner.starts_with("__tsrust_private_")
                     || (callable_storage_type(&field.ty) || contains_callable_annotation(&field.ty))
+                    || dependency.native_type_aliases.keys().any(|native|field.ty.split(|ch:char|!ch.is_ascii_alphanumeric() && ch!='_').any(|word|word==native))
                 {
                     let mut mappings = types.clone();
+                    for (name,identity) in &dependency.native_type_aliases {mappings.insert(name.clone(),self.native_type_spelling(*identity));}
                     for symbol in &dependency.symbols {
                         let candidate = if matches!(symbol.kind, 10 | 23) {
                             Some(symbol.name.as_str())
@@ -2920,6 +2922,7 @@ impl SourceIndex {
                         let Some(candidate) = candidate.filter(|candidate| name(candidate)) else {
                             continue;
                         };
+                        if dependency.native_type_aliases.contains_key(candidate){continue;}
                         let identity = mappings
                             .entry(candidate.to_owned())
                             .or_insert_with(|| {

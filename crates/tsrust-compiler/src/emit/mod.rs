@@ -1251,13 +1251,16 @@ impl Emitter<'_> {
     }
 
     fn ui_callback(&self,callback:Type,span:crate::Span,success:&str)->String {
+        self.ui_callback_arguments(callback,span,success,"()")
+    }
+    fn ui_callback_arguments(&self,callback:Type,span:crate::Span,success:&str,arguments:&str)->String {
         let registered=match callback {
             Type::Callback(id)=>self.result_callbacks.borrow().get(&id).cloned(),
             Type::StoredCallable(id)=>self.result_storage.borrow().get(&id).cloned(),
             Type::Closure(id)=>self.result_closures.borrow().get(&id).cloned().map(|name|(name,self.program.error_effects.closure_errors[id].clone())),
             _=>None,
         };
-        let invocation="Callback::invoke(&mut registered_callback,())";
+        let invocation=format!("Callback::invoke(&mut registered_callback,{arguments})");
         let result=if let Some((name,contract))=registered {
             let invocation=format!("{{let result:Result<{success},{name}>={invocation};result}}");
             let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
@@ -8713,7 +8716,7 @@ impl Emitter<'_> {
                         let call=if binding.name=="beginSuite"{format!("tsrust_testing_begin_suite_result({})",arguments[0])}else if binding.name=="beginFile"{format!("tsrust_testing_begin_file_result({})",arguments[0])}else{"tsrust_testing_end_suite_result()".into()};
                         if let Some(call)=self.typed_runner_result(&call,expr.span,None){return call;}
                     }
-                    if binding.module=="std:ui-runtime" && binding.name=="bindDisabled" {let result=self.ui_callback(args[1].ty.expect("UI condition"),expr.span,"bool");return format!("{{let node={};let mut registered_callback={};tsrust_ui_bind_disabled(node,move ||{result})}}",arguments[0],arguments[1]);}
+                    if binding.module=="std:ui-runtime" && matches!(binding.name,"bindDisabled"|"bindReadOnly") {let result=self.ui_callback(args[1].ty.expect("UI condition"),expr.span,"bool");let symbol=if binding.name=="bindDisabled"{"tsrust_ui_bind_disabled"}else{"tsrust_ui_bind_read_only"};return format!("{{let node={};let mut registered_callback={};{symbol}(node,move ||{result})}}",arguments[0],arguments[1]);}
                     if binding.module=="std:ui-runtime" && binding.name=="button" { return self.ui_press_adapter(&arguments,args[3].ty.expect("UI handler"),expr.span); }
                     if binding.module=="std:path" && binding.name=="relative" {
                         let call=crate::native_emit::call(binding,arguments);

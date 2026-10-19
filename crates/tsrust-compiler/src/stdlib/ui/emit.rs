@@ -5,7 +5,7 @@ use crate::{
     syntax::Type,
 };
 pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> String {
-    if matches!(binding.name,"signal"|"handle"|"get"|"set"|"ownState"){return String::new();}
+    if matches!(binding.name,"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"){return String::new();}
     let node = program
         .records
         .iter()
@@ -37,6 +37,7 @@ pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> Strin
             let bindings=signal_arms(program,members,union.index(),false);
             (format!("mut children:{},class_name:&String",crate::emit::ty(array)),format!("{{let mut parts=Vec::with_capacity(children.len());while let Some(child)=children.pop(){{parts.push(match child{{Union{}::V{literal}(text)=>tsrust_native_ui::TextPart::Literal(text.as_ref().to_owned()),{bindings}}});}}parts.reverse();tsrust_native_ui::Node::text(parts,class_name.as_ref().to_owned())}}",union.index()))
         },
+        "bindReadOnly" => (format!("node:Record{node},predicate:impl FnMut()->Result<bool,std::string::String>+'static"),"node.with_read_only(predicate)".into()),
         "bindDisabled" => (format!("node:Record{node},predicate:impl FnMut()->Result<bool,std::string::String>+'static"),"node.with_disabled(predicate)".into()),
         "theme" => (format!("node:Record{node},config:&String,mode:&String"),"node.with_theme(config.as_ref(),mode.as_ref())".into()),
         "semantics" => (format!("node:Record{node},config:&String"),"node.with_semantics(config.as_ref())".into()),

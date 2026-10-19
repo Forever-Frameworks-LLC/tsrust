@@ -297,3 +297,14 @@ fn ui_semantic_attributes_keep_exact_names_and_checked_help() {
  let uri=session.uri("main.tsrx");let location=session.request("textDocument/definition",serde_json::json!({"textDocument":{"uri":uri},"position":{"line":0,"character":at+6}}));assert!(!location.is_null());
  let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
 }
+
+#[test]
+fn editable_control_events_and_exact_props_keep_help_and_zero_fallbacks() {
+ let source="import {Input,Node,signal} from 'std:ui';function Page():Node{const name=signal('Ada');return <Input aria-label=\"Name\" aria-describedby=\"hint\" value={name.get()} readOnly={false} onChange={(event)=>{name.set(event.target.value);}}/>;}function main(){const node=Page();}";
+ let mut session=Session::start(&[]);session.open("main.tsrx",source);session.settle();
+ for (needle,wanted) in [("aria-describedby=","description"),("readOnly=","selection"),("onChange=","snapshot"),("target.value","InputTarget")] {
+  let at=source.find(needle).unwrap();let hover=session.hover("main.tsrx",source,at+2).unwrap_or_default();assert!(hover.to_lowercase().contains(&wanted.to_lowercase()),"{needle}: {hover}");
+ }
+ let at=source.find("target.value").unwrap()+"target.".len();let members=session.completion("main.tsrx",source,at).unwrap();for member in ["value","name","id"]{assert!(members.contains(&member.to_string()),"{members:?}");}
+ let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
+}

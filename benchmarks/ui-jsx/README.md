@@ -54,3 +54,18 @@ four scalar payloads, exact integers above 2^53, independent instances, text and
 disabled updates, keyboard activation, accessible controls and disposal. The
 native inspector additionally asserts string snapshots and IEEE-754 storage.
 This is untimed acceptance; it is not a throughput measurement.
+
+Editable text controls: build `examples/ui-inputs/src/main.tsr` for web and run
+`node benchmarks/ui-jsx/verify-inputs.mjs <site>`. The untimed harness compares
+committed application transitions with `input-reference.ts` after TypeScript
+compilation, using a real browser for typing, selection preservation, composition,
+controlled/uncontrolled values, disabled/read-only state, labels, descriptions,
+required/invalid state, responsive Nova styling and disposal. It records exact
+source hashes and closes its server/browser. Native model and layout witnesses
+cover Parley selection, IME cancellation, undo/redo, scrolling and AccessKit state.
+These checks do not measure performance or accept specialized input types.
+
+Build the same project's `src/failures.tsrx` as a second entry and run
+`verify-input-failures.mjs <site>` to check throwing derived getters and change
+handlers. Each failed mount reports its own error, releases the owned tree and
+ignores later events; explicit disposal removes the remaining host elements.

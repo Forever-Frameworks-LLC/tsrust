@@ -12,11 +12,11 @@
     "exactJsxAttributes": "accepted: quoted record keys, exact hyphenated JSX names, ownership and incomplete-source editor help",
     "semanticElements": "accepted portable subset: tags, naming, roles, live content, hidden controls and orientation; arbitrary ARIA/HTML remains unsupported",
     "composedControls": "accepted portable foundation: owned mixed children, inline containers, optional handlers, noninteractive phrasing validation, exact owning array widening, resource-union clone rejection and inferred native callback identities",
-    "editableStateAndIme": "scalar state accepted: one generic Signal API for int, number, boolean and string; Text bindings, captures, exact numeric storage, string snapshots and disposal. Native text input, selection and IME remain pending",
-    "layoutAndTheme": "accepted portable layout, alpha/OKLCH colors, surface rings, bounded structural predicates, inherited numeric spacing, generic typography, independent edges/corners and rounded paint/pointer clipping; media, container queries and named font assets remain pending",
+    "editableStateAndIme": "accepted portable text-control foundation: scalar state, controlled/uncontrolled Input/Textarea, weak derived value/readOnly bindings, borrowed change snapshots, Parley Unicode selection/IME, undo/redo, scrolling and app-owned OS clipboard. Specialized inputs and accessibility text-range navigation remain pending",
+    "layoutAndTheme": "accepted portable layout, alpha/OKLCH colors, surface rings, bounded structural predicates, inherited numeric spacing, generic typography, independent edges/corners and rounded paint/pointer clipping; viewport breakpoints and scoped dark/invalid/placeholder states; container queries and named font assets remain pending",
     "focusAndOverlays": "pending",
     "baseComponentComposition": "pending",
-    "reactiveExpressions": "pending: computed strings/trees are construction-time snapshots; direct signals and disabled predicates refresh",
+    "reactiveExpressions": "partial: direct scalar signals and declared UI value/disabled/readOnly expressions refresh after handlers; arbitrary computed text/trees, nullable children and dynamic lists remain pending",
     "ownedPropForwarding": "accepted: JSX consumes sources, projects declared props, fills omitted optional fields, rejects explicit unknown attributes and releases excess fields exactly once; ordinary spread/rest remains checked-copy"
   },
   "components": [
@@ -312,10 +312,24 @@
       "name": "input",
       "source": "apps/v4/registry/bases/base/ui/input.tsx",
       "gitBlobSha1": "06c96abffafcd0fbbedb24778f0c2f668e1b2109",
-      "status": "pending",
+      "status": "partial",
       "capabilityFamilies": [
         "editable-values"
-      ]
+      ],
+      "implementation": {
+        "catalog": "input@3.0.0",
+        "exports": [
+          "Input"
+        ],
+        "acceptedScope": "editable portable text-control source; real browser DOM and native GPU rendering, checked ownership, Unicode/IME model, accessible labels/descriptions/state, responsive/scoped theme styling, editor agreement and offline installation",
+        "pending": [
+          "specialized input types",
+          "Base UI value-change details and form integration",
+          "DOM event methods, refs and composition callbacks",
+          "native accessibility text-range navigation",
+          "animated transitions"
+        ]
+      }
     },
     {
       "name": "item",
@@ -339,10 +353,21 @@
       "name": "label",
       "source": "apps/v4/registry/bases/base/ui/label.tsx",
       "gitBlobSha1": "3b0886ba1826c80e7c6e0c22b699a43cb6df5bc9",
-      "status": "pending",
+      "status": "partial",
       "capabilityFamilies": [
         "editable-values"
-      ]
+      ],
+      "implementation": {
+        "catalog": "label@3.0.0",
+        "exports": [
+          "Label"
+        ],
+        "acceptedScope": "editable portable text-control source; real browser DOM and native GPU rendering, checked ownership, Unicode/IME model, accessible labels/descriptions/state, responsive/scoped theme styling, editor agreement and offline installation",
+        "pending": [
+          "peer/group disabled styling",
+          "full field composition and form integration"
+        ]
+      }
     },
     {
       "name": "marker",
@@ -564,10 +589,23 @@
       "name": "textarea",
       "source": "apps/v4/registry/bases/base/ui/textarea.tsx",
       "gitBlobSha1": "8b8d3f1c6cc7c66c2fab2e050164f355a655b6c9",
-      "status": "pending",
+      "status": "partial",
       "capabilityFamilies": [
         "editable-values"
-      ]
+      ],
+      "implementation": {
+        "catalog": "textarea@3.0.0",
+        "exports": [
+          "Textarea"
+        ],
+        "acceptedScope": "editable portable text-control source; real browser DOM and native GPU rendering, checked ownership, Unicode/IME model, accessible labels/descriptions/state, responsive/scoped theme styling, editor agreement and offline installation",
+        "pending": [
+          "DOM event methods, refs and composition callbacks",
+          "form integration",
+          "native accessibility text-range navigation",
+          "resize handles and animated transitions"
+        ]
+      }
     },
     {
       "name": "toast",

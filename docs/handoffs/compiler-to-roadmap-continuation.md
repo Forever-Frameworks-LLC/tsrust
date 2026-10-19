@@ -1,5 +1,29 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
+## Current editable text controls — 2026-10-19
+
+Portable Input/Textarea and local Nova input/textarea/label v3 sources now work on
+both targets. Controlled/uncontrolled editing, weak derived value/readOnly props,
+borrowed change snapshots, Unicode selection/IME, clipboard, undo/redo, scrolling,
+accessible labels/descriptions/state and scoped responsive styles are implemented.
+Use `examples/ui-inputs`; no public handle or dummy handler is needed. See
+[text-control acceptance](../plans/ui-editable-controls-acceptance.md) for exact
+boundaries. Specialized inputs, value-change details, form integration and full
+Label composition remain pending; all three coverage entries stay partial.
+
+Focused acceptance reuses 63 distinct runtime witnesses and six compiler witnesses,
+with event documentation/consistency, eight receiver agreements, two typing rows
+and native-alias type help. Fresh Wasm Chromium transitions match Node-after-tsc;
+separate failure mounts release independently. Nested dark disabled/invalid colors
+and custom spacing/radius pass. Fresh generated native export builds offline/locked
+and presents/resizes on the GPU. Failed attempts, repairs and exact identities use
+`tsrust-ui-input-*` in SQLite. No SQL, full regression pass or new timing was run.
+
+Continue Field composition and its nullable/dynamic child prerequisites, then the
+remaining complete Base UI + Nova component/layout/block families, keyed editing
+and persistent routing. Reuse accepted input/IME and ownership evidence. Do not
+replace missing parts with inert wrappers or treat remaining UI work as optional.
+
 ## Current shadcn continuation — 2026-10-18
 
 The owner selected current Base UI + Nova. The pinned inventory contains all 64

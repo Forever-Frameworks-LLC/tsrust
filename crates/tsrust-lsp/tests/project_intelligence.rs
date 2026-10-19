@@ -3160,3 +3160,13 @@ fn http_context_request_query_editor_contract() {
   for name in ["query","queries","header"] {assert!(completion.as_array().is_some_and(|items|items.iter().any(|item|item["label"]==name)),"{entry}\n{completion}");}
  }
 }
+
+#[test]
+fn ui_field_types_keep_public_native_names_and_generic_arguments() {
+ let source=tsrust_compiler::format("import {InputProps,ViewProps,Signal} from 'std:ui';function probe(field:ReadOnly<InputProps>,view:ReadOnly<ViewProps>){field.value;view.children;}function main(){}").unwrap();assert_eq!(tsrust_compiler::format(&source).unwrap(),source);
+ let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();let id=source_id(uri).unwrap();workspace.open(id.clone(),1,source.clone());let checked=workspace.snapshot().check(&id).unwrap();
+ let index=ProjectIndex::checked(&checked);
+ {
+  for needle in ["alue;","hildren;"] {let completion=ask(&index,&source,needle,"textDocument/completion");let item=completion.as_array().unwrap().iter().find(|item|item["label"]==if needle=="alue;"{"value"}else{"children"}).unwrap();let detail=item["detail"].as_str().unwrap();assert!(detail.contains("Signal<int>")&&detail.contains("Signal<string>")&&!detail.contains("NativeSignal"),"{item}");let reply=ask(&index,&source,needle,"textDocument/hover");let text=reply["contents"]["value"].as_str().unwrap_or("");assert!(text.contains("Signal<int>")&&text.contains("Signal<string>")&&!text.contains("NativeSignal"),"{needle}: {source}\n{reply}");}
+ }
+}

@@ -14176,7 +14176,7 @@
       "name": "ReactiveBoolean",
       "signature": "interface ReactiveBoolean",
       "parameters": [],
-      "documentation": "A state-dependent boolean condition that refreshes after UI handlers without rerunning the component. JSX disabled={count.get() < 5} creates this binding automatically and becomes false at 5. Ownership: the returned subtree owns the condition; references do not extend the component state lifetime.",
+      "documentation": "Compiler-generated boolean predicate used by state-reading disabled/readOnly JSX expressions. It has no constructor arguments and evaluates after application handlers. <Input readOnly={locked.get()}/> follows the signal without a public lifetime helper. The predicate returns boolean or throws; errors stop the mounted tree and release it. Ownership: stores an owned callback with non-retaining state captures.",
       "fields": {
         "evaluate": {
           "documentation": "Evaluates the retained condition with no arguments and returns boolean. The mounted tree reevaluates it after handlers. Example: disabled={count.get() < 5} is true at 0 and false at 5. Captured state-read failures propagate through normal UI error cleanup. Conditions must not mutate state. Ownership: the subtree owns this callback and releases it before its state owners."
@@ -14203,6 +14203,12 @@
         },
         "data-size": {
           "documentation": "Optional component size metadata using ASCII letters, digits and hyphens; defaults to absent. <View data-size=\"sm\" className=\"data-[size=sm]:p-3\" /> uses the small metadata condition on both targets. The string does not select dimensions by itself or add an accessibility role. Invalid characters throw. No function arguments. Ownership: consumes the supplied string."
+        },
+        "aria-describedby": {
+          "documentation": "Optional space-separated document IDs, default none. <Input aria-label=\"Name\" aria-describedby=\"hint\"/> with <Text id=\"hint\">Use your full name.</Text> exposes that text as its accessible description on both targets. Missing IDs are ignored; order is preserved. This does not add an accessible name or run validation. No function arguments. Ownership: consumes the ID string."
+        },
+        "aria-invalid": {
+          "documentation": "Optional boolean validation state; omitted means unspecified. <Input aria-label=\"Name\" aria-invalid/> exposes invalid=true and matches aria-invalid: classes. false exposes a valid state; this property does not validate data or disable editing. Only boolean values are supported. No function arguments. Ownership: copies the flag."
         }
       }
     },
@@ -14232,6 +14238,12 @@
         },
         "data-size": {
           "documentation": "Optional component size metadata using ASCII letters, digits and hyphens; defaults to absent. <View data-size=\"sm\" className=\"data-[size=sm]:p-3\" /> uses the small metadata condition on both targets. The string does not select dimensions by itself or add an accessibility role. Invalid characters throw. No function arguments. Ownership: consumes the supplied string."
+        },
+        "aria-describedby": {
+          "documentation": "Optional space-separated document IDs, default none. <Input aria-label=\"Name\" aria-describedby=\"hint\"/> with <Text id=\"hint\">Use your full name.</Text> exposes that text as its accessible description on both targets. Missing IDs are ignored; order is preserved. This does not add an accessible name or run validation. No function arguments. Ownership: consumes the ID string."
+        },
+        "aria-invalid": {
+          "documentation": "Optional boolean validation state; omitted means unspecified. <Input aria-label=\"Name\" aria-invalid/> exposes invalid=true and matches aria-invalid: classes. false exposes a valid state; this property does not validate data or disable editing. Only boolean values are supported. No function arguments. Ownership: copies the flag."
         }
       }
     },
@@ -14270,6 +14282,12 @@
         },
         "data-size": {
           "documentation": "Optional component size metadata using ASCII letters, digits and hyphens; defaults to absent. <View data-size=\"sm\" className=\"data-[size=sm]:p-3\" /> uses the small metadata condition on both targets. The string does not select dimensions by itself or add an accessibility role. Invalid characters throw. No function arguments. Ownership: consumes the supplied string."
+        },
+        "aria-describedby": {
+          "documentation": "Optional space-separated document IDs, default none. <Input aria-label=\"Name\" aria-describedby=\"hint\"/> with <Text id=\"hint\">Use your full name.</Text> exposes that text as its accessible description on both targets. Missing IDs are ignored; order is preserved. This does not add an accessible name or run validation. No function arguments. Ownership: consumes the ID string."
+        },
+        "aria-invalid": {
+          "documentation": "Optional boolean validation state; omitted means unspecified. <Input aria-label=\"Name\" aria-invalid/> exposes invalid=true and matches aria-invalid: classes. false exposes a valid state; this property does not validate data or disable editing. Only boolean values are supported. No function arguments. Ownership: copies the flag."
         }
       }
     },
@@ -14298,7 +14316,7 @@
           "documentation": "Optional separator orientation: horizontal (default) or vertical. Only valid with role=\"separator\". <View role=\"separator\" aria-orientation=\"vertical\" /> exposes a vertical, nonfocusable separator on both backends. This describes orientation; classes still control dimensions. Other roles/values throw. Ownership: consumes the string."
         },
         "as": {
-          "documentation": "Optional semantic container tag, div (default), section or span. <View as=\"span\">Inline content</View> creates a native layout container with a span DOM tag. Use flex-row for a horizontal container; as does not imply browser-only inline layout. Unsupported tags throw. Ownership: consumes the tag string."
+          "documentation": "Optional container tag: div (default), section, span or label. <View as=\"label\" htmlFor=\"name\">Name</View> labels the control id=\"name\". Container children keep owned source order. label must not nest another label or enclose multiple controls. Unsupported tags throw. No function arguments. Ownership: consumes the tag string."
         },
         "children": {
           "documentation": "Optional ordered Child array: strings, Signal bindings or uniquely owned Nodes. Omission defaults to empty. <View>Hello <Text>world</Text></View> preserves order; <Button>Count: {count}</Button> binds the signal. Adjacent literal/bound text shares one run. Button requires noninteractive phrasing children; View accepts any subtree. Boolean, numeric, null and undefined children are unsupported. Computed strings/trees are construction-time snapshots; only direct signals refresh. Ownership: consumes nodes/strings; state bindings do not retain owners."
@@ -14308,6 +14326,15 @@
         },
         "data-size": {
           "documentation": "Optional component size metadata using ASCII letters, digits and hyphens; defaults to absent. <View data-size=\"sm\" className=\"data-[size=sm]:p-3\" /> uses the small metadata condition on both targets. The string does not select dimensions by itself or add an accessibility role. Invalid characters throw. No function arguments. Ownership: consumes the supplied string."
+        },
+        "aria-describedby": {
+          "documentation": "Optional space-separated document IDs, default none. <Input aria-label=\"Name\" aria-describedby=\"hint\"/> with <Text id=\"hint\">Use your full name.</Text> exposes that text as its accessible description on both targets. Missing IDs are ignored; order is preserved. This does not add an accessible name or run validation. No function arguments. Ownership: consumes the ID string."
+        },
+        "aria-invalid": {
+          "documentation": "Optional boolean validation state; omitted means unspecified. <Input aria-label=\"Name\" aria-invalid/> exposes invalid=true and matches aria-invalid: classes. false exposes a valid state; this property does not validate data or disable editing. Only boolean values are supported. No function arguments. Ownership: copies the flag."
+        },
+        "htmlFor": {
+          "documentation": "Optional associated control ID, valid only with as=\"label\". <View as=\"label\" htmlFor=\"name\">Name</View> labels and focuses the control id=\"name\" on both targets. Omit htmlFor to label the first enclosed control. Nested labels and multiple enclosed controls throw. Invalid ID whitespace/control characters throw. Empty means implicit association; missing IDs associate with nothing. No function arguments. Ownership: consumes the ID string."
         }
       }
     },
@@ -14343,6 +14370,12 @@
         },
         "data-size": {
           "documentation": "Optional component size metadata using ASCII letters, digits and hyphens; defaults to absent. <View data-size=\"sm\" className=\"data-[size=sm]:p-3\" /> uses the small metadata condition on both targets. The string does not select dimensions by itself or add an accessibility role. Invalid characters throw. No function arguments. Ownership: consumes the supplied string."
+        },
+        "aria-describedby": {
+          "documentation": "Optional space-separated document IDs, default none. <Input aria-label=\"Name\" aria-describedby=\"hint\"/> with <Text id=\"hint\">Use your full name.</Text> exposes that text as its accessible description on both targets. Missing IDs are ignored; order is preserved. This does not add an accessible name or run validation. No function arguments. Ownership: consumes the ID string."
+        },
+        "aria-invalid": {
+          "documentation": "Optional boolean validation state; omitted means unspecified. <Input aria-label=\"Name\" aria-invalid/> exposes invalid=true and matches aria-invalid: classes. false exposes a valid state; this property does not validate data or disable editing. Only boolean values are supported. No function arguments. Ownership: copies the flag."
         }
       }
     },
@@ -14351,6 +14384,256 @@
       "signature": "type Child = string | Signal<int> | Signal<number> | Signal<boolean> | Signal<string> | Node",
       "parameters": [],
       "documentation": "An owned UI child accepted by View and Button: literal text, a direct int/number/boolean/string Signal binding or a Node returned by a component. Example: <View>Hello <Text as=\"code\">world</Text></View> keeps the text and child in order. Adjacent strings/signals share one anonymous Text node; empty literals are omitted. Button additionally requires noninteractive phrasing content. Numeric, boolean, null and undefined children are unsupported. Computed strings/trees are construction-time snapshots; only direct signals refresh. Ownership: transfers Nodes and strings exactly once; signal bindings stay non-retaining. Child arrays containing Nodes or Signals cannot be cloned or sent to workers."
+    },
+    {
+      "name": "Input",
+      "signature": "Input(props: InputProps): Node",
+      "parameters": [
+        {
+          "label": "props: InputProps",
+          "documentation": "Owned text-control options; optional fields use the documented defaults."
+        }
+      ],
+      "documentation": "Creates an owned editable text control. Props have documented defaults; unknown utilities/semantics and unsupported input types throw. Omit value for uncontrolled editing; supply value and onChange for application-controlled editing. IME preedit stays internal until commit. Read-only fields preserve selection; disabled fields cannot focus. Text inputs remove CR/LF; Textarea normalizes CRLF/CR to LF. Native editing supports Unicode selection, clipboard, movement and undo/redo; clipboard failures leave values unchanged and report an error. Native autocomplete and accessibility text-range navigation remain unsupported. DOM refs/event methods, specialized input types, form submission and resize handles remain unsupported. Ownership: consumes props, the change callback and non-retaining state bindings; returned Node owns control lifetime. Example: `const field=Input({defaultValue: 'Ada', 'aria-label': 'Name'});` starts with Ada; typing changes only an uncontrolled field."
+    },
+    {
+      "name": "Textarea",
+      "signature": "Textarea(props: TextareaProps): Node",
+      "parameters": [
+        {
+          "label": "props: TextareaProps",
+          "documentation": "Owned text-control options; optional fields use the documented defaults."
+        }
+      ],
+      "documentation": "Creates an owned editable text control. Props have documented defaults; unknown utilities/semantics and unsupported input types throw. Omit value for uncontrolled editing; supply value and onChange for application-controlled editing. IME preedit stays internal until commit. Read-only fields preserve selection; disabled fields cannot focus. Text inputs remove CR/LF; Textarea normalizes CRLF/CR to LF. Native editing supports Unicode selection, clipboard, movement and undo/redo; clipboard failures leave values unchanged and report an error. Native autocomplete and accessibility text-range navigation remain unsupported. DOM refs/event methods, specialized input types, form submission and resize handles remain unsupported. Ownership: consumes props, the change callback and non-retaining state bindings; returned Node owns control lifetime. Example: `const field=Textarea({defaultValue: 'Ada', 'aria-label': 'Name'});` starts with Ada; typing changes only an uncontrolled field."
+    },
+    {
+      "name": "TextFieldProps",
+      "signature": "interface TextFieldProps",
+      "parameters": [],
+      "documentation": "Owned text-control properties for portable editing. Optional fields use their individual defaults. Example: <Input aria-label=\"Name\" defaultValue=\"Ada\"/> starts at Ada. Unknown props are rejected; callback target/currentTarget are snapshots. Ownership: component calls consume props and callbacks.",
+      "fields": {
+        "id": {
+          "documentation": "Optional document identifier, without ASCII whitespace or control characters. Defaults to none. <View id=\"account\" /> produces id=\"account\" in HTML. Both adapters retain it as tree metadata; no lookup or routing API is created. Construction throws for invalid IDs. Ownership: consumes the supplied string."
+        },
+        "aria-label": {
+          "documentation": "Optional accessible name; defaults to visible text or descendants. <Text as=\"h2\" aria-label=\"Total\">42</Text> displays 42 and exposes Total as its accessible name on both backends. A region requires a nonblank name. Generic containers/text, paragraphs, code and presentation cannot be named and throw for a nonempty aria-label. Does not change displayed text. Ownership: consumes the name string."
+        },
+        "aria-hidden": {
+          "documentation": "Optional boolean, default false. <Text aria-hidden>Decoration</Text> keeps text visible but excludes it from accessibility. An enabled control anywhere in the subtree throws; making a hidden descendant enabled during refresh stops the mounted tree and uses normal cleanup. Ownership: copies the flag; does not retain state."
+        },
+        "data-slot": {
+          "documentation": "Optional component slot name, using only ASCII letters, digits and hyphens. Defaults to none. <View data-slot=\"card-content\" /> emits that HTML attribute and retains the same native metadata. Invalid names throw. Checked data/descendant/group selectors can match this metadata; arbitrary CSS selectors remain unsupported. Ownership: consumes the slot string."
+        },
+        "data-size": {
+          "documentation": "Optional component size metadata using ASCII letters, digits and hyphens; defaults to absent. <View data-size=\"sm\" className=\"data-[size=sm]:p-3\" /> uses the small metadata condition on both targets. The string does not select dimensions by itself or add an accessibility role. Invalid characters throw. No function arguments. Ownership: consumes the supplied string."
+        },
+        "aria-describedby": {
+          "documentation": "Optional space-separated document IDs, default none. <Input aria-label=\"Name\" aria-describedby=\"hint\"/> with <Text id=\"hint\">Use your full name.</Text> exposes that text as its accessible description on both targets. Missing IDs are ignored; order is preserved. This does not add an accessible name or run validation. No function arguments. Ownership: consumes the ID string."
+        },
+        "aria-invalid": {
+          "documentation": "Optional boolean validation state; omitted means unspecified. <Input aria-label=\"Name\" aria-invalid/> exposes invalid=true and matches aria-invalid: classes. false exposes a valid state; this property does not validate data or disable editing. Only boolean values are supported. No function arguments. Ownership: copies the flag."
+        },
+        "value": {
+          "documentation": "Optional controlled string, int or number, or a checked Signal/derived binding of one of those types. Omission selects uncontrolled editing. Empty string and zero take precedence over defaultValue. <Input value={name.get()} onChange={(event)=>{name.set(event.target.value);}}/> follows application state. Direct signals and state-reading JSX value expressions refresh after handlers. Unpaired browser UTF-16 surrogates stop the tree with an explicit error; portable text contains Unicode scalar values. Edits always produce strings; ints preserve all 64 bits and numbers use ordinary number formatting. A handler must update application state to accept a controlled edit; otherwise the current value is restored. A disposed binding or thrown getter stops the tree with normal cleanup. Ownership: consumes the value or non-retaining binding."
+        },
+        "defaultValue": {
+          "documentation": "Optional initial uncontrolled string, int or number; defaults to empty. <Input defaultValue=\"Ada\"/> starts at Ada and retains user edits. An explicit value overrides it, including empty string/zero. Later defaultValue updates are not reactive. Single-line CR/LF are removed; Textarea normalizes CRLF/CR to LF. Ownership: consumes the initial value."
+        },
+        "placeholder": {
+          "documentation": "Optional empty-field hint, default empty. <Input aria-label=\"Name\" placeholder=\"Your name\"/> displays Your name only while its value is empty. The hint is not an accessible name; use a visible label or aria-label. No numeric parsing or validation occurs. Ownership: consumes the hint string."
+        },
+        "disabled": {
+          "documentation": "Optional boolean or compiler-generated state predicate, default false. <Input disabled={locked.get()}/> cannot edit, receive pointer activation or enter keyboard focus while true. Value and application state stay intact. Refresh errors stop and dispose the mounted tree. Ownership: copies the flag or consumes a non-retaining predicate."
+        },
+        "readOnly": {
+          "documentation": "Optional boolean or compiler-generated state predicate, default false. <Input readOnly={locked.get()}/> stays focusable/selectable but ignores edits while true. Unlike disabled, keyboard copy and selection remain available. Refresh errors stop the tree. Ownership: copies the flag or consumes a non-retaining predicate."
+        },
+        "required": {
+          "documentation": "Optional boolean, default false. <Input aria-label=\"Name\" required/> exposes required state to assistive technology and the browser. This does not add validation policy or automatic submission. No function arguments. Ownership: copies the flag."
+        },
+        "name": {
+          "documentation": "Optional field name, default empty. <Input name=\"profile\" onChange={(event)=>{console.log(event.target.name);}}/> supplies profile in each change snapshot. This slice does not submit forms automatically. Ownership: consumes the name and retains an immutable copy for callbacks."
+        },
+        "autoComplete": {
+          "documentation": "Optional browser autocomplete hint, default absent. <Input aria-label=\"Name\" autoComplete=\"name\"/> requests the browser’s name completion; honoring it depends on browser policy. Native platform autocomplete is unsupported and receives no suggestion provider. Ownership: consumes the hint."
+        },
+        "className": {
+          "documentation": "Optional checked shared utility classes, default empty. <Input aria-label=\"Name\" className=\"h-8 px-2.5 rounded-lg border border-input focus-visible:ring-3\"/> creates a 32px field with themed spacing, border and focus ring. Later matching classes win by property/state. Unknown classes throw. Ownership: consumes the class string."
+        },
+        "onChange": {
+          "documentation": "Optional owned callback taking ReadOnly<InputChangeEvent>, default none. <Input onChange={(event)=>{name.set(event.target.value);}}/> copies edited text into application state. Called once per changed committed value; IME preedit remains internal until commit. target/currentTarget contain value, name and id snapshots, not DOM elements. Callback returns void; throwing stops and disposes the mounted tree. No preventDefault, DOM methods or composition callback interface is exposed. Controlled edits not reflected in application state are restored. Ownership: consumes the callback, borrows event snapshots only during invocation; retaining text requires an explicit copy or Signal.set."
+        }
+      }
+    },
+    {
+      "name": "InputProps",
+      "signature": "interface InputProps",
+      "parameters": [],
+      "documentation": "Owned text-control properties for portable editing. Optional fields use their individual defaults. Example: <Input aria-label=\"Name\" defaultValue=\"Ada\"/> starts at Ada. Unknown props are rejected; callback target/currentTarget are snapshots. Ownership: component calls consume props and callbacks.",
+      "fields": {
+        "id": {
+          "documentation": "Optional document identifier, without ASCII whitespace or control characters. Defaults to none. <View id=\"account\" /> produces id=\"account\" in HTML. Both adapters retain it as tree metadata; no lookup or routing API is created. Construction throws for invalid IDs. Ownership: consumes the supplied string."
+        },
+        "aria-label": {
+          "documentation": "Optional accessible name; defaults to visible text or descendants. <Text as=\"h2\" aria-label=\"Total\">42</Text> displays 42 and exposes Total as its accessible name on both backends. A region requires a nonblank name. Generic containers/text, paragraphs, code and presentation cannot be named and throw for a nonempty aria-label. Does not change displayed text. Ownership: consumes the name string."
+        },
+        "aria-hidden": {
+          "documentation": "Optional boolean, default false. <Text aria-hidden>Decoration</Text> keeps text visible but excludes it from accessibility. An enabled control anywhere in the subtree throws; making a hidden descendant enabled during refresh stops the mounted tree and uses normal cleanup. Ownership: copies the flag; does not retain state."
+        },
+        "data-slot": {
+          "documentation": "Optional component slot name, using only ASCII letters, digits and hyphens. Defaults to none. <View data-slot=\"card-content\" /> emits that HTML attribute and retains the same native metadata. Invalid names throw. Checked data/descendant/group selectors can match this metadata; arbitrary CSS selectors remain unsupported. Ownership: consumes the slot string."
+        },
+        "data-size": {
+          "documentation": "Optional component size metadata using ASCII letters, digits and hyphens; defaults to absent. <View data-size=\"sm\" className=\"data-[size=sm]:p-3\" /> uses the small metadata condition on both targets. The string does not select dimensions by itself or add an accessibility role. Invalid characters throw. No function arguments. Ownership: consumes the supplied string."
+        },
+        "aria-describedby": {
+          "documentation": "Optional space-separated document IDs, default none. <Input aria-label=\"Name\" aria-describedby=\"hint\"/> with <Text id=\"hint\">Use your full name.</Text> exposes that text as its accessible description on both targets. Missing IDs are ignored; order is preserved. This does not add an accessible name or run validation. No function arguments. Ownership: consumes the ID string."
+        },
+        "aria-invalid": {
+          "documentation": "Optional boolean validation state; omitted means unspecified. <Input aria-label=\"Name\" aria-invalid/> exposes invalid=true and matches aria-invalid: classes. false exposes a valid state; this property does not validate data or disable editing. Only boolean values are supported. No function arguments. Ownership: copies the flag."
+        },
+        "value": {
+          "documentation": "Optional controlled string, int or number, or a checked Signal/derived binding of one of those types. Omission selects uncontrolled editing. Empty string and zero take precedence over defaultValue. <Input value={name.get()} onChange={(event)=>{name.set(event.target.value);}}/> follows application state. Direct signals and state-reading JSX value expressions refresh after handlers. Unpaired browser UTF-16 surrogates stop the tree with an explicit error; portable text contains Unicode scalar values. Edits always produce strings; ints preserve all 64 bits and numbers use ordinary number formatting. A handler must update application state to accept a controlled edit; otherwise the current value is restored. A disposed binding or thrown getter stops the tree with normal cleanup. Ownership: consumes the value or non-retaining binding."
+        },
+        "defaultValue": {
+          "documentation": "Optional initial uncontrolled string, int or number; defaults to empty. <Input defaultValue=\"Ada\"/> starts at Ada and retains user edits. An explicit value overrides it, including empty string/zero. Later defaultValue updates are not reactive. Single-line CR/LF are removed; Textarea normalizes CRLF/CR to LF. Ownership: consumes the initial value."
+        },
+        "placeholder": {
+          "documentation": "Optional empty-field hint, default empty. <Input aria-label=\"Name\" placeholder=\"Your name\"/> displays Your name only while its value is empty. The hint is not an accessible name; use a visible label or aria-label. No numeric parsing or validation occurs. Ownership: consumes the hint string."
+        },
+        "disabled": {
+          "documentation": "Optional boolean or compiler-generated state predicate, default false. <Input disabled={locked.get()}/> cannot edit, receive pointer activation or enter keyboard focus while true. Value and application state stay intact. Refresh errors stop and dispose the mounted tree. Ownership: copies the flag or consumes a non-retaining predicate."
+        },
+        "readOnly": {
+          "documentation": "Optional boolean or compiler-generated state predicate, default false. <Input readOnly={locked.get()}/> stays focusable/selectable but ignores edits while true. Unlike disabled, keyboard copy and selection remain available. Refresh errors stop the tree. Ownership: copies the flag or consumes a non-retaining predicate."
+        },
+        "required": {
+          "documentation": "Optional boolean, default false. <Input aria-label=\"Name\" required/> exposes required state to assistive technology and the browser. This does not add validation policy or automatic submission. No function arguments. Ownership: copies the flag."
+        },
+        "name": {
+          "documentation": "Optional field name, default empty. <Input name=\"profile\" onChange={(event)=>{console.log(event.target.name);}}/> supplies profile in each change snapshot. This slice does not submit forms automatically. Ownership: consumes the name and retains an immutable copy for callbacks."
+        },
+        "autoComplete": {
+          "documentation": "Optional browser autocomplete hint, default absent. <Input aria-label=\"Name\" autoComplete=\"name\"/> requests the browser’s name completion; honoring it depends on browser policy. Native platform autocomplete is unsupported and receives no suggestion provider. Ownership: consumes the hint."
+        },
+        "className": {
+          "documentation": "Optional checked shared utility classes, default empty. <Input aria-label=\"Name\" className=\"h-8 px-2.5 rounded-lg border border-input focus-visible:ring-3\"/> creates a 32px field with themed spacing, border and focus ring. Later matching classes win by property/state. Unknown classes throw. Ownership: consumes the class string."
+        },
+        "onChange": {
+          "documentation": "Optional owned callback taking ReadOnly<InputChangeEvent>, default none. <Input onChange={(event)=>{name.set(event.target.value);}}/> copies edited text into application state. Called once per changed committed value; IME preedit remains internal until commit. target/currentTarget contain value, name and id snapshots, not DOM elements. Callback returns void; throwing stops and disposes the mounted tree. No preventDefault, DOM methods or composition callback interface is exposed. Controlled edits not reflected in application state are restored. Ownership: consumes the callback, borrows event snapshots only during invocation; retaining text requires an explicit copy or Signal.set."
+        },
+        "type": {
+          "documentation": "Optional input type: text (default). <Input type=\"text\" aria-label=\"Name\"/> creates a single-line editor. Password, file, number/date and other specialized input types are unsupported and rejected; they never silently fall back to text. Ownership: consumes the literal string."
+        }
+      }
+    },
+    {
+      "name": "TextareaProps",
+      "signature": "interface TextareaProps",
+      "parameters": [],
+      "documentation": "Owned text-control properties for portable editing. Optional fields use their individual defaults. Example: <Input aria-label=\"Name\" defaultValue=\"Ada\"/> starts at Ada. Unknown props are rejected; callback target/currentTarget are snapshots. Ownership: component calls consume props and callbacks.",
+      "fields": {
+        "id": {
+          "documentation": "Optional document identifier, without ASCII whitespace or control characters. Defaults to none. <View id=\"account\" /> produces id=\"account\" in HTML. Both adapters retain it as tree metadata; no lookup or routing API is created. Construction throws for invalid IDs. Ownership: consumes the supplied string."
+        },
+        "aria-label": {
+          "documentation": "Optional accessible name; defaults to visible text or descendants. <Text as=\"h2\" aria-label=\"Total\">42</Text> displays 42 and exposes Total as its accessible name on both backends. A region requires a nonblank name. Generic containers/text, paragraphs, code and presentation cannot be named and throw for a nonempty aria-label. Does not change displayed text. Ownership: consumes the name string."
+        },
+        "aria-hidden": {
+          "documentation": "Optional boolean, default false. <Text aria-hidden>Decoration</Text> keeps text visible but excludes it from accessibility. An enabled control anywhere in the subtree throws; making a hidden descendant enabled during refresh stops the mounted tree and uses normal cleanup. Ownership: copies the flag; does not retain state."
+        },
+        "data-slot": {
+          "documentation": "Optional component slot name, using only ASCII letters, digits and hyphens. Defaults to none. <View data-slot=\"card-content\" /> emits that HTML attribute and retains the same native metadata. Invalid names throw. Checked data/descendant/group selectors can match this metadata; arbitrary CSS selectors remain unsupported. Ownership: consumes the slot string."
+        },
+        "data-size": {
+          "documentation": "Optional component size metadata using ASCII letters, digits and hyphens; defaults to absent. <View data-size=\"sm\" className=\"data-[size=sm]:p-3\" /> uses the small metadata condition on both targets. The string does not select dimensions by itself or add an accessibility role. Invalid characters throw. No function arguments. Ownership: consumes the supplied string."
+        },
+        "aria-describedby": {
+          "documentation": "Optional space-separated document IDs, default none. <Input aria-label=\"Name\" aria-describedby=\"hint\"/> with <Text id=\"hint\">Use your full name.</Text> exposes that text as its accessible description on both targets. Missing IDs are ignored; order is preserved. This does not add an accessible name or run validation. No function arguments. Ownership: consumes the ID string."
+        },
+        "aria-invalid": {
+          "documentation": "Optional boolean validation state; omitted means unspecified. <Input aria-label=\"Name\" aria-invalid/> exposes invalid=true and matches aria-invalid: classes. false exposes a valid state; this property does not validate data or disable editing. Only boolean values are supported. No function arguments. Ownership: copies the flag."
+        },
+        "value": {
+          "documentation": "Optional controlled string, int or number, or a checked Signal/derived binding of one of those types. Omission selects uncontrolled editing. Empty string and zero take precedence over defaultValue. <Input value={name.get()} onChange={(event)=>{name.set(event.target.value);}}/> follows application state. Direct signals and state-reading JSX value expressions refresh after handlers. Unpaired browser UTF-16 surrogates stop the tree with an explicit error; portable text contains Unicode scalar values. Edits always produce strings; ints preserve all 64 bits and numbers use ordinary number formatting. A handler must update application state to accept a controlled edit; otherwise the current value is restored. A disposed binding or thrown getter stops the tree with normal cleanup. Ownership: consumes the value or non-retaining binding."
+        },
+        "defaultValue": {
+          "documentation": "Optional initial uncontrolled string, int or number; defaults to empty. <Input defaultValue=\"Ada\"/> starts at Ada and retains user edits. An explicit value overrides it, including empty string/zero. Later defaultValue updates are not reactive. Single-line CR/LF are removed; Textarea normalizes CRLF/CR to LF. Ownership: consumes the initial value."
+        },
+        "placeholder": {
+          "documentation": "Optional empty-field hint, default empty. <Input aria-label=\"Name\" placeholder=\"Your name\"/> displays Your name only while its value is empty. The hint is not an accessible name; use a visible label or aria-label. No numeric parsing or validation occurs. Ownership: consumes the hint string."
+        },
+        "disabled": {
+          "documentation": "Optional boolean or compiler-generated state predicate, default false. <Input disabled={locked.get()}/> cannot edit, receive pointer activation or enter keyboard focus while true. Value and application state stay intact. Refresh errors stop and dispose the mounted tree. Ownership: copies the flag or consumes a non-retaining predicate."
+        },
+        "readOnly": {
+          "documentation": "Optional boolean or compiler-generated state predicate, default false. <Input readOnly={locked.get()}/> stays focusable/selectable but ignores edits while true. Unlike disabled, keyboard copy and selection remain available. Refresh errors stop the tree. Ownership: copies the flag or consumes a non-retaining predicate."
+        },
+        "required": {
+          "documentation": "Optional boolean, default false. <Input aria-label=\"Name\" required/> exposes required state to assistive technology and the browser. This does not add validation policy or automatic submission. No function arguments. Ownership: copies the flag."
+        },
+        "name": {
+          "documentation": "Optional field name, default empty. <Input name=\"profile\" onChange={(event)=>{console.log(event.target.name);}}/> supplies profile in each change snapshot. This slice does not submit forms automatically. Ownership: consumes the name and retains an immutable copy for callbacks."
+        },
+        "autoComplete": {
+          "documentation": "Optional browser autocomplete hint, default absent. <Input aria-label=\"Name\" autoComplete=\"name\"/> requests the browser’s name completion; honoring it depends on browser policy. Native platform autocomplete is unsupported and receives no suggestion provider. Ownership: consumes the hint."
+        },
+        "className": {
+          "documentation": "Optional checked shared utility classes, default empty. <Input aria-label=\"Name\" className=\"h-8 px-2.5 rounded-lg border border-input focus-visible:ring-3\"/> creates a 32px field with themed spacing, border and focus ring. Later matching classes win by property/state. Unknown classes throw. Ownership: consumes the class string."
+        },
+        "onChange": {
+          "documentation": "Optional owned callback taking ReadOnly<InputChangeEvent>, default none. <Input onChange={(event)=>{name.set(event.target.value);}}/> copies edited text into application state. Called once per changed committed value; IME preedit remains internal until commit. target/currentTarget contain value, name and id snapshots, not DOM elements. Callback returns void; throwing stops and disposes the mounted tree. No preventDefault, DOM methods or composition callback interface is exposed. Controlled edits not reflected in application state are restored. Ownership: consumes the callback, borrows event snapshots only during invocation; retaining text requires an explicit copy or Signal.set."
+        }
+      }
+    },
+    {
+      "name": "InputValue",
+      "signature": "type InputValue = string | int | number | Signal<string> | Signal<int> | Signal<number> | ReactiveInputValue",
+      "parameters": [],
+      "documentation": "Accepted controlled field values. Integers preserve all 64 bits, numbers use ordinary number formatting and strings remain Unicode text. No function arguments. `value={9007199254740993}` displays exactly 9007199254740993. Editing returns strings without numeric parsing. Boolean, nullable and resource payloads are unsupported. Ownership: consumes scalar values or non-retaining bindings; application state remains owned by the returned component tree."
+    },
+    {
+      "name": "ReactiveInputValue",
+      "signature": "interface ReactiveInputValue",
+      "parameters": [],
+      "documentation": "Compiler-generated value getter used by state-reading JSX value expressions. No public helper call is needed. `<Input value={name.get() + '!'}/>` displays the current name followed by ! after each handler. Input bindings require string, int or number; thrown getters stop and dispose the tree. Ownership: owns the getter callback with non-retaining state captures.",
+      "fields": {
+        "evaluate": {
+          "documentation": "Owned zero-argument getter returning string | int | number without mutating the binding. Compiler-generated `value={name.get()}` reads the current string. Input supports string/int/number results only; errors propagate to control construction/refresh and dispose the tree. Ownership: callback captures state non-retainingly."
+        }
+      }
+    },
+    {
+      "name": "InputTarget",
+      "signature": "interface InputTarget",
+      "parameters": [],
+      "documentation": "Read-only control snapshot observed during onChange. No constructor or function arguments. `event.target.value` is the new normalized text, not parsed data or an element reference. Snapshot contains value, name and id; no DOM methods. Ownership: handler borrows the snapshot; explicit clones or Signal.set retain copied data.",
+      "fields": {
+        "value": {
+          "documentation": "Normalized committed Unicode field text. Input removes CR/LF; Textarea normalizes CRLF/CR to LF. `event.target.value` is Ada after typing Ada. No numeric parsing, arguments or receiver mutation. Ownership: borrowed snapshot string; copy before retaining."
+        },
+        "name": {
+          "documentation": "The field name or empty string when omitted. For <Input name=\"profile\"/>, event.target.name is profile. No arguments or mutation. Ownership: borrowed snapshot string."
+        },
+        "id": {
+          "documentation": "The explicit document ID or empty string when omitted. For <Input id=\"name\"/>, event.target.id is name. No arguments or mutation. Ownership: borrowed snapshot string."
+        }
+      }
+    },
+    {
+      "name": "InputChangeEvent",
+      "signature": "interface InputChangeEvent",
+      "parameters": [],
+      "documentation": "Committed text-change snapshot passed to onChange. No function arguments. `event.target.value` and `event.currentTarget.value` both contain the normalized new text. No DOM references, preventDefault or composition methods are available. A callback returns void and may throw; errors stop the mounted tree. Ownership: borrowed only during callback execution.",
+      "fields": {
+        "target": {
+          "documentation": "Read-only InputTarget snapshot with value, name and id. Direct handlers observe identical target/currentTarget values. `event.target.value` is Ada after a committed Ada edit. No function arguments or receiver mutation. Ownership: borrow lasts for the callback; copy strings to retain them."
+        },
+        "currentTarget": {
+          "documentation": "Read-only InputTarget snapshot with value, name and id. Direct handlers observe identical target/currentTarget values. `event.currentTarget.value` is Ada after a committed Ada edit. No function arguments or receiver mutation. Ownership: borrow lasts for the callback; copy strings to retain them."
+        }
+      }
     }
   ],
   "UiSignal": [

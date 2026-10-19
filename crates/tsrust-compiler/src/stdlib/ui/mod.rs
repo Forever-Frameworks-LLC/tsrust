@@ -14,6 +14,7 @@ const SIGNAL_BOOLEAN:Signature=Signature::Applied(NativeTypeId::UiSignal,&[Signa
 const SIGNAL_STRING:Signature=Signature::Applied(NativeTypeId::UiSignal,&[Signature::String]);
 pub(crate) const TEXT_CHILDREN:Signature=Signature::Array(&Signature::Union(&[Signature::String,SIGNAL_INT,SIGNAL_NUMBER,SIGNAL_BOOLEAN,SIGNAL_STRING]));
 pub(crate) const CHILDREN:Signature=Signature::Array(&Signature::Union(&[Signature::String,SIGNAL_INT,SIGNAL_NUMBER,SIGNAL_BOOLEAN,SIGNAL_STRING,Signature::Named(NativeTypeId::UiNode)]));
+pub(crate) const INPUT_DEFAULT:Signature=Signature::Optional(&Signature::Union(&[Signature::String,Signature::Int,Signature::Number]));
 const NODE: Signature = Signature::Named(NativeTypeId::UiNode);
 const ERROR: Signature = Signature::Named(NativeTypeId::UiError);
 const fn parameter(name: &'static str, ty: NativeType, access: Mode) -> NativeParameter {
@@ -66,6 +67,8 @@ pub(crate) const SEMANTICS:NativeBinding=NativeBinding{name:"semantics",paramete
 
 pub(crate) const DISABLED_BINDING:NativeBinding=NativeBinding{name:"bindDisabled",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("predicate",NativeType::OwnedBooleanCallback,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_bind_disabled"},..TEXT};
 
+pub(crate) const READ_ONLY_BINDING:NativeBinding=NativeBinding{name:"bindReadOnly",backend:NativeBackend::Bundled{symbol:"tsrust_ui_bind_read_only"},..DISABLED_BINDING};
+
 pub(crate) const RUN: NativeBinding = NativeBinding {
     name: "run",
     parameters: &[
@@ -88,10 +91,14 @@ pub(crate) const SET:NativeBinding=NativeBinding{name:"set",parameters:&[paramet
 pub(crate) const OWN_STATE:NativeBinding=NativeBinding{name:"ownState",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("state",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_own_state"},..TEXT};
 pub(crate) const PRESS_BUTTON:NativeBinding=NativeBinding{name:"button",parameters:&[parameter("children",NativeType::Structured(&CHILDREN),Mode::Consume),parameter("className",NativeType::String,Mode::Read),parameter("disabled",NativeType::Boolean,Mode::Read),parameter("onPress",NativeType::OwnedVoidCallback,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_press_button"},..TEXT};
 
+pub(crate) const INPUT:NativeBinding=NativeBinding{name:"input",parameters:&[parameter("value",NativeType::ObservedValue,Mode::Consume),parameter("defaultValue",NativeType::Structured(&INPUT_DEFAULT),Mode::Consume),parameter("options",NativeType::String,Mode::Read),parameter("className",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_input"},..TEXT};
+pub(crate) const INPUT_CHANGE:NativeBinding=NativeBinding{name:"inputChange",parameters:&[parameter("value",NativeType::ObservedValue,Mode::Consume),parameter("defaultValue",NativeType::Structured(&INPUT_DEFAULT),Mode::Consume),parameter("options",NativeType::String,Mode::Read),parameter("className",NativeType::String,Mode::Read),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_input_change"},..TEXT};
+
 pub(crate) fn runtime(with_native: bool) -> String {
     let native =
         include_str!("../../../../tsrust-ui/src/native.rs").replace("use crate::{", "use super::{")
-        .replace("#[path = \"native_geometry.rs\"]\nmod geometry;",&format!("mod geometry {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_geometry.rs")));
+        .replace("#[path = \"native_geometry.rs\"]\nmod geometry;",&format!("mod geometry {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_geometry.rs")))
+        .replace("#[path = \"native_editing.rs\"]\nmod editing;",&format!("mod editing {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_editing.rs").replace("use crate::editable::normalize;", "use super::super::editable::normalize;")));
     let style = include_str!("../../../../tsrust-ui/src/style.rs")
         .replace("mod layout;",&format!("mod layout {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/style/layout.rs")))
         .replace("mod structural;",&format!("mod structural {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/style/structural.rs")))
@@ -110,6 +117,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("#[cfg(feature = \"native\")]\npub use native::run;",if with_native {"#[cfg(all(not(target_arch=\"wasm32\"),not(feature = \"ui-acceptance\")))] pub use native::run;\n#[cfg(feature = \"ui-acceptance\")] pub use native::verify_window as run;"}else{""})
         .replace("#[cfg(feature = \"acceptance\")]\n#[doc(hidden)]\npub use native::verify_window;",if with_native {"#[cfg(feature = \"ui-acceptance\")] pub use native::verify_window;"}else{""})
         .replace("pub mod browser;",&format!("pub mod browser {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/browser.rs").replace("use crate::{", "use super::{")))
+        .replace("mod editable;",&format!("mod editable {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/editable.rs")))
         .replace("mod state;", &format!("mod state {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/state.rs")))
         .replace("pub mod style;",&format!("pub mod style {{\n{style}\n}}"))
         .replace("pub mod theme;",&format!("pub mod theme {{\n{theme}\n}}"))

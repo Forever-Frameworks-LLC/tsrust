@@ -11,6 +11,7 @@ fn enabled()->bool{true}
 // Runtime-owned pins cannot be redeclared or replaced by a binding package.
 pub fn reserved(name:&str)->bool {
  [
+        "arboard",
         "winit",
         "vello",
         "taffy",

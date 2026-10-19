@@ -198,7 +198,7 @@ impl SourceIndex {
             // Alias expansions expose private record fields just like function results.
             let parameters=dependency.generic_parameters.get(&declaration.name);
             let referenced=dependency.symbols.iter().filter(|record|matches!(record.kind,10|23) && record.scope==0 && record.owner.is_none())
-                .filter(|record|!parameters.is_some_and(|parameters|parameters.contains(&record.name)) && declaration.signature.split(|ch:char|!ch.is_ascii_alphanumeric() && ch!='_').any(|word|word==record.name))
+                .filter(|record|!dependency.native_type_aliases.contains_key(&record.name) && !parameters.is_some_and(|parameters|parameters.contains(&record.name)) && declaration.signature.split(|ch:char|!ch.is_ascii_alphanumeric() && ch!='_').any(|word|word==record.name))
                 .map(|record|record.name.clone()).collect::<Vec<_>>();
             let encoded=uri.as_bytes().iter().map(|byte|format!("{byte:02x}")).collect::<String>();
             for record in &referenced {let identity=mappings.entry(record.clone()).or_insert_with(||format!("__tsrust_private_{encoded}_{record}")).clone();self.generic_display_names.insert(identity,record.clone());}

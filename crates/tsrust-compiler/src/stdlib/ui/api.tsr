@@ -1,4 +1,4 @@
-import { semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, handle as nativeHandle, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
+import { input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, handle as nativeHandle, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
 
 /** An owned UI subtree. Moving a Node transfers all descendants. Nodes cannot be cloned or sent to workers. */
 export type Node = NativeNode;
@@ -17,6 +17,10 @@ export interface ElementProps {
   'aria-label'?: string;
   /** Excludes a noninteractive subtree from accessibility. Enabled controls inside it are rejected. Defaults to false. */
   'aria-hidden'?: boolean;
+  /** Space-separated IDs of descriptive content. Missing IDs are ignored; text is exposed as a description. */
+  'aria-describedby'?: string;
+  /** Marks validation state for assistive technology and styling; does not run validation. Omission leaves it unspecified. */
+  'aria-invalid'?: boolean;
   /** Local component slot for styling and inspection. ASCII letters, digits and hyphens; defaults to none. */
   'data-slot'?: string;
   /** Component size metadata for checked data/group selectors. ASCII letters, digits and hyphens; empty means absent. */
@@ -41,7 +45,9 @@ export interface TextProps extends SemanticProps {
 
 export interface ViewProps extends SemanticProps {
   /** Semantic container tag; defaults to div. */
-  as?: 'div' | 'section' | 'span';
+  as?: 'div' | 'section' | 'span' | 'label';
+  /** For as=label, the single ID of its associated control. Omission labels the first enclosed control. */
+  htmlFor?: string;
   children?: Child[];
   /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Later classes win per property/state. */
   className?: string;
@@ -55,9 +61,113 @@ export interface ButtonProps extends ElementProps {
   onPress?: Owned<Function<void>>;
 }
 
+/** Text-field values preserve exact ints and ordinary number formatting. Signal and derived bindings retain no state owner. */
+export type InputValue = string | int | number | Signal<string> | Signal<int> | Signal<number> | ReactiveInputValue;
+
+/** A read-only snapshot supplied during a text-field change. It retains no element or state. */
+export interface InputTarget {
+  /** Current normalized field text, including Unicode. It does not parse numeric input. */
+  value: string;
+  /** The field's name, or an empty string when omitted. */
+  name: string;
+  /** The field's explicit id, or an empty string when omitted. */
+  id: string;
+}
+
+export interface InputChangeEvent {
+  /** Snapshot of the field that changed. */
+  target: InputTarget;
+  /** Snapshot of the field whose handler is running; matches target for a directly registered handler. */
+  currentTarget: InputTarget;
+}
+
+export interface TextFieldProps extends ElementProps {
+  /** Controlled text/numeric value. Direct signals and state-reading JSX expressions refresh after handlers. Omission selects uncontrolled state. */
+  value?: InputValue;
+  /** Initial uncontrolled value only; an explicit value takes precedence, including the empty string and zero. */
+  defaultValue?: string | int | number;
+  /** Hint shown when empty. A visible Label or aria-label should provide the accessible name. */
+  placeholder?: string;
+  /** Disabled fields cannot edit or receive focus. State-reading JSX conditions refresh after handlers. */
+  disabled?: boolean | ReactiveBoolean;
+  /** Read-only fields retain selection/focus but cannot change text. State-reading JSX conditions refresh after handlers. */
+  readOnly?: boolean | ReactiveBoolean;
+  required?: boolean;
+  name?: string;
+  autoComplete?: string;
+  className?: string;
+  /** Receives a borrowed value snapshot; edit logic stays in application code. String state.set copies the new text. */
+  onChange?: Owned<Function<void, [event: ReadOnly<InputChangeEvent>]>>;
+}
+
+export interface InputProps extends TextFieldProps {
+  /** This portable slice supports text. Password, file and other specialized input types fail explicitly. */
+  type?: 'text';
+}
+
+export interface TextareaProps extends TextFieldProps {}
+
+/** Creates a single-line field. CR/LF are removed like HTML text inputs; values otherwise remain exact Unicode strings. */
+export function Input(props: InputProps): Node {
+  return <TextField {...props} multiline={false}/>;
+}
+/** Creates a multiline field. CRLF/CR values normalize to LF; no numeric conversion occurs. */
+export function Textarea(props: TextareaProps): Node {
+  return <TextField {...props} multiline={true}/>;
+}
+
+interface InputOptions {
+  placeholder: string;
+  disabled: boolean;
+  readOnly: boolean;
+  multiline: boolean;
+  required: boolean;
+  name: string;
+  autoComplete: string;
+  type: string;
+}
+
+function inputReadOnly(node: Node, value: boolean | ReactiveBoolean | undefined): Node {
+  if (value !== undefined && typeof value !== 'boolean') {
+    return unwrapNode(nativeBindReadOnly(node, value.evaluate));
+  }
+
+  return node;
+}
+
+function inputFlags(node: Node, disabled: boolean | ReactiveBoolean | undefined, readOnly: boolean | ReactiveBoolean | undefined): Node {
+  if (disabled !== undefined && typeof disabled !== 'boolean') {
+    return inputReadOnly(unwrapNode(nativeBindDisabled(node, disabled.evaluate)), readOnly);
+  }
+
+  return inputReadOnly(node, readOnly);
+}
+
+interface TextFieldOptions extends TextFieldProps {
+  multiline: boolean;
+}
+
+function TextField(props: TextFieldOptions): Node {
+  const name = props.name ?? '';
+  const id = props.id ?? '';
+  const disabled = props.disabled;
+  const readOnly = props.readOnly;
+  const metadata = semanticConfig('', '', props['aria-label'] ?? '', clone(id), props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
+  const options: InputOptions = {
+    placeholder: props.placeholder ?? '', disabled: typeof disabled === 'boolean' ? disabled : false, readOnly: typeof readOnly === 'boolean' ? readOnly : false, multiline: props.multiline, required: props.required ?? false, name: clone(name), autoComplete: props.autoComplete ?? '', type: 'text'
+  };
+  const config = JSON.stringify(options);
+  const handler = props.onChange;
+  if (handler !== undefined) {
+    return applySemantics(inputFlags(unwrapNode(nativeInputChange(props.value, props.defaultValue, config, props.className ?? '', handler)), disabled, readOnly), metadata);
+  }
+
+  return applySemantics(inputFlags(unwrapNode(nativeInput(props.value, props.defaultValue, config, props.className ?? '')), disabled, readOnly), metadata);
+}
+
 /** Creates a text node by joining text children without a separator. className defaults to empty. Unknown utilities throw a message. Owns its text. */
 export function Text(props: TextProps): Node {
-  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', String(props['aria-orientation'] ?? ''));
+  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
   const result = text(props.children ?? [], props.className ?? '');
   match (result) {
     Ok(value) => {
@@ -70,7 +180,7 @@ export function Text(props: TextProps): Node {
 }
 /** Creates a container, preserving child order. className defaults to empty. Unknown utilities or depth over 128 throw a message. Consumes its children. */
 export function View(props: ViewProps): Node {
-  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', String(props['aria-orientation'] ?? ''));
+  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']), props.htmlFor ?? '');
   const result = view(props.children ?? [], props.className ?? '');
   match (result) {
     Ok(value) => {
@@ -83,7 +193,7 @@ export function View(props: ViewProps): Node {
 }
 /** Creates a semantic button with optional retained onPress and composed phrasing children. Disabled buttons never activate. */
 export function Button(props: ButtonProps): Node {
-  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', '');
+  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
   const children = props.children ?? [];
   const handler = props.onPress;
   const disabled = props.disabled;
@@ -179,10 +289,21 @@ export function withTheme<T>(node: Node, value: ReadOnly<T>, mode?: string): Nod
   return unwrap(nativeTheme(node, JSON.stringify(value), mode ?? 'light'));
 }
 
-/** A boolean condition that refreshes after UI handlers without rerunning the component. Ownership: the returned subtree owns the condition. */
+/** A boolean condition refreshed after UI handlers without rerunning the component. */
 export interface ReactiveBoolean {
-  /** Evaluates the captured condition with no arguments. Returns boolean; state-read errors propagate. The mounted tree calls it after handlers. It must not mutate state. Owns its callback environment; captures do not retain state owners. */
+  /** Zero-argument boolean predicate; owns its callback with non-retaining state captures. */
   evaluate: Owned<Function<boolean>>;
+}
+/** A checked text-control value expression. The tagged scalar union preserves int, number and string without conversion. */
+export interface ReactiveInputValue {
+  /** Zero-argument scalar getter. Errors propagate; expressions must not mutate state. Captured component state remains non-retaining. */
+  evaluate: Owned<Function<string | int | number>>;
+}
+
+function bindValue(evaluate: Owned<Function<string | int | number>>): ReactiveInputValue {
+  return {
+    evaluate
+  };
 }
 
 function bindCondition(evaluate: Owned<Function<boolean>>): ReactiveBoolean {
@@ -200,15 +321,18 @@ interface SemanticConfig {
   slot: string;
   size: string;
   orientation: string;
+  describedBy: string;
+  invalid: string;
+  htmlFor: string;
 }
 
-function semanticConfig(tag: string, role: string, label: string, id: string, hidden: boolean, slot: string, size: string, orientation: string): string {
-  if (tag === '' && role === '' && label === '' && id === '' && !hidden && slot === '' && size === '' && orientation === '') {
+function semanticConfig(tag: string, role: string, label: string, id: string, hidden: boolean, slot: string, size: string, orientation: string, describedBy: string = '', invalid: string = '', htmlFor: string = ''): string {
+  if (tag === '' && role === '' && label === '' && id === '' && !hidden && slot === '' && size === '' && orientation === '' && describedBy === '' && invalid === '' && htmlFor === '') {
     return '';
   }
 
   const config: SemanticConfig = {
-    tag, role, label, id, hidden, slot, size, orientation
+    tag, role, label, id, hidden, slot, size, orientation, describedBy, invalid, htmlFor
   };
   return JSON.stringify(config);
 }

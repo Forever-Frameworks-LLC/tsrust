@@ -18,7 +18,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use support::session::Session;
 use tsrust_lsp::{project_diagnostics::source_id, workspace::Workspace};
 
-const PRELUDE: &str = "import {Signal,ThemeConfig,ThemeRadius,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {CryptoError} from 'std:crypto';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
+const PRELUDE: &str = "import {InputTarget,InputChangeEvent,TextFieldProps,InputProps,TextareaProps,ReactiveInputValue,Signal,ThemeConfig,ThemeRadius,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {CryptoError} from 'std:crypto';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
 
 /// A receiver `x` of one type inside `probe`.
 struct Receiver {
@@ -28,6 +28,12 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
+Receiver {ty:"InputTarget",parameter:"x: ReadOnly<InputTarget>"},
+Receiver {ty:"InputChangeEvent",parameter:"x: ReadOnly<InputChangeEvent>"},
+Receiver {ty:"TextFieldProps",parameter:"x: ReadOnly<TextFieldProps>"},
+Receiver {ty:"InputProps",parameter:"x: ReadOnly<InputProps>"},
+Receiver {ty:"TextareaProps",parameter:"x: ReadOnly<TextareaProps>"},
+Receiver {ty:"ReactiveInputValue",parameter:"x: ReactiveInputValue"},
 Receiver {ty:"AliasItem",parameter:"x: ReadOnly<AliasItem>"},
 Receiver {ty:"ThemeRadius",parameter:"x: ReadOnly<ThemeRadius>"},
 Receiver {ty:"ElementProps",parameter:"x: ReadOnly<ElementProps>"},
@@ -138,6 +144,11 @@ const EXCEPTIONS: &[Exception] = &[];
 const ABSENT: &str = "zzqqabsent";
 
 fn prelude(parameter: &str) -> String {
+    let annotation=parameter.split_once(':').map(|(_,ty)|ty.trim()).unwrap_or(parameter);
+    let annotation=annotation.strip_prefix("ReadOnly<").unwrap_or(annotation);
+    let family=annotation.split('<').next().unwrap_or(annotation).trim_end_matches('>');
+    let ui=PRELUDE.lines().next().unwrap();
+    if ui.split_once('{').unwrap().1.split_once('}').unwrap().0.split(',').any(|name|name==family){return format!("{ui}\n");}
     // Only the resource row needs the bundled testing implementation in every probe.
     let testing = if parameter.contains("TrackedResource") { "import {TrackedResource} from 'std:testing';\n" } else { "" };
     let numeric=if parameter.contains("NumericError"){ "import {NumericError} from 'std:numeric';\n" }else{""};
@@ -254,7 +265,7 @@ fn completion_offers_the_fields_the_checker_accepts_and_no_method_it_rejects() {
         let absent_field = answer(field_form, ABSENT, receiver.parameter);
         let absent_call = answer(call_form, ABSENT, receiver.parameter);
         assert!(absent_field.is_some() && absent_call.is_some(), "{}: an absent member must be rejected", receiver.ty);
-        let fields = candidates.iter().filter(|name|name.chars().all(|ch|ch.is_ascii_alphanumeric()||ch=='_') || matches!(receiver.ty,"ElementProps"|"SemanticProps"|"TextProps"|"ViewProps"|"ButtonProps")).filter(|name| answer(field_form, name, receiver.parameter) != absent_field).cloned().collect::<BTreeSet<_>>();
+        let fields = candidates.iter().filter(|name|name.chars().all(|ch|ch.is_ascii_alphanumeric()||ch=='_') || matches!(receiver.ty,"ElementProps"|"SemanticProps"|"TextProps"|"ViewProps"|"ButtonProps"|"TextFieldProps"|"InputProps"|"TextareaProps")).filter(|name| answer(field_form, name, receiver.parameter) != absent_field).cloned().collect::<BTreeSet<_>>();
         let prelude = prelude(receiver.parameter);
         let before = format!("{prelude}function probe({}) {{\n  x.", receiver.parameter);
         let text = format!("{before}\n}}\nfunction main() {{}}\n");

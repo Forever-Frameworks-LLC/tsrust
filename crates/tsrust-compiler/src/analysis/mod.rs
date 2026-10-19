@@ -2472,11 +2472,11 @@ impl Analyzer {
     /// A generic application spells its checked arguments the same way.
     fn declaration_name(&self, id: usize) -> std::borrow::Cow<'_, str> {
         let record = &self.program.records[id];
-        if let Some(native) = record.native_type { return crate::native_types::declaration(native).name.into(); }
+        let native_name=record.native_type.map(|native|crate::native_types::declaration(native).name);
         match &record.application {
-            Some(application) if !application.resolved_arguments.is_empty() => format!("{}<{}>", application.declaration.text,
+            Some(application) if !application.resolved_arguments.is_empty() => format!("{}<{}>", native_name.unwrap_or(&application.declaration.text),
                 application.resolved_arguments.iter().map(|argument| self.type_name(*argument).into_owned()).collect::<Vec<_>>().join(", ")).into(),
-            _ => record.name.text.as_str().into(),
+            _ => native_name.unwrap_or(&record.name.text).into(),
         }
     }
 

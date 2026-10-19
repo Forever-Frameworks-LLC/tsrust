@@ -1,0 +1,15 @@
+import { document } from 'std:ui';
+import { strictEqual } from 'std:testing';
+import { Page } from './app/page';
+
+function main() {
+  const html = document(Page(), 'Editable');
+  strictEqual(html.includes('for="name"'), true);
+  strictEqual(html.includes('aria-describedby="name-help"'), true);
+  strictEqual(html.includes('value="9007199254740993"'), true);
+  strictEqual(html.includes('value="Ada!"'), true);
+  strictEqual(html.includes('aria-invalid="true"'), true);
+  strictEqual(html.includes('</input>'), false);
+  strictEqual(html.includes('>First</textarea>'), true);
+  console.log('Editable controls passed');
+}

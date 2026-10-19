@@ -36,6 +36,6 @@ pub(super) fn css(token:&str,theme:&Theme)->Option<String> {
   theme.spacing.md=8.;let (rules,vars)=super::super::structural::scoped(&child,&[&root],&theme,"light",&vars);
   assert_eq!(vars["panel"],14.);assert!(rules.iter().any(|(_,v)|matches!(v,Utility::Padding(0,0.))));assert!(rules.iter().any(|(_,v)|matches!(v,Utility::Padding(1,8.))));
   assert_eq!(css("p-(--panel)",&theme).unwrap(),"padding-top:var(--panel,0px);padding-right:var(--panel,0px);padding-bottom:var(--panel,0px);padding-left:var(--panel,0px)");
-  for invalid in ["hover:[--panel:--spacing(4)]","[--bad_name:--spacing(4)]","[--panel:--spacing(5)]","[--panel:var(--other)]","p-(--)","w-(--panel)"]{assert!(super::super::validate(invalid).is_err(),"{invalid}");}
+  for invalid in ["hover:[--panel:--spacing(4)]","[--bad_name:--spacing(4)]","[--panel:--spacing(7)]","[--panel:var(--other)]","p-(--)","w-(--panel)"]{assert!(super::super::validate(invalid).is_err(),"{invalid}");}
  }
 }

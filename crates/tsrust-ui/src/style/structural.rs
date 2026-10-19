@@ -12,9 +12,11 @@ fn attribute(value:&str)->Option<(&str,&str)> {
  (matches!(key,"slot"|"size") && name(value)).then_some((key,value))
 }
 #[derive(Clone,Copy)]
-pub(super) enum Predicate<'a> { Data(&'a str,&'a str), HasData(&'a str,&'a str), GroupData(&'a str,&'a str,&'a str), Class(&'a str) }
+pub(super) enum Predicate<'a> { Data(&'a str,&'a str), HasData(&'a str,&'a str), GroupData(&'a str,&'a str,&'a str), Class(&'a str), Dark, MinWidth(u16), Invalid }
 impl<'a> Predicate<'a> {
  fn parse(text:&'a str)->Option<Self> {
+  match text {"dark"=>return Some(Self::Dark),"sm"=>return Some(Self::MinWidth(640)),"md"=>return Some(Self::MinWidth(768)),"lg"=>return Some(Self::MinWidth(1024)),"xl"=>return Some(Self::MinWidth(1280)),"2xl"=>return Some(Self::MinWidth(1536)),"aria-invalid"=>return Some(Self::Invalid),_=>{}}
+
   if let Some(value)=text.strip_prefix("data-[").and_then(|v|v.strip_suffix(']')){let (k,v)=attribute(value)?;return Some(Self::Data(k,v));}
   if let Some(value)=text.strip_prefix("has-data-[").and_then(|v|v.strip_suffix(']')){let (k,v)=attribute(value)?;return Some(Self::HasData(k,v));}
   if let Some(value)=text.strip_prefix("group-data-[") {let (attr,group)=value.split_once("]/")?;let (k,v)=attribute(attr)?;return name(group).then_some(Self::GroupData(k,v,group));}
@@ -24,10 +26,11 @@ impl<'a> Predicate<'a> {
  fn matches(self,node:&Node,ancestors:&[&Node])->bool {
   fn data(node:&Node,key:&str,value:&str)->bool {(if key=="slot"{&node.semantics.slot}else{&node.semantics.size})==value}
   fn has(node:&Node,key:&str,value:&str)->bool {node.children.iter().any(|child|data(child,key,value)||has(child,key,value))}
-  match self {Self::Data(k,v)=>data(node,k,v),Self::HasData(k,v)=>has(node,k,v),Self::GroupData(k,v,group)=>ancestors.iter().any(|parent|parent.class_name.split_whitespace().any(|class|class.strip_prefix("group/")==Some(group)) && data(parent,k,v)),Self::Class(class)=>node.class_name.split_whitespace().any(|token|token==class)}
+  match self {Self::Data(k,v)=>data(node,k,v),Self::HasData(k,v)=>has(node,k,v),Self::GroupData(k,v,group)=>ancestors.iter().any(|parent|parent.class_name.split_whitespace().any(|class|class.strip_prefix("group/")==Some(group)) && data(parent,k,v)),Self::Class(class)=>node.class_name.split_whitespace().any(|token|token==class),Self::Dark|Self::MinWidth(_)=>true,Self::Invalid=>node.semantics.invalid=="true"}
  }
  fn selector(self,scope:&str)->String {
   match self {
+   Self::Dark|Self::MinWidth(_)=>String::new(),Self::Invalid=>":where([aria-invalid=\"true\"])".into(),
    Self::Data(k,v)=>format!(":where([data-{k}=\"{v}\"])") ,
    Self::HasData(k,v)=>format!(":where(:has([data-{k}=\"{v}\"]))"),
    Self::GroupData(k,v,group)=>format!(":where({scope}.group\\/{group}[data-{k}=\"{v}\"] *)"),
@@ -36,19 +39,20 @@ impl<'a> Predicate<'a> {
  }
 
 }
-pub(super) struct Parts<'a> {pub state:State,pub token:&'a str,predicates:Vec<Predicate<'a>>}
+pub(super) struct Parts<'a> {pub state:State,pub token:&'a str,pub placeholder:bool,predicates:Vec<Predicate<'a>>}
 pub(super) fn parts(class:&str)->Result<Parts<'_>,String> {
  let mut start=0;let mut depth=0usize;let mut prefixes=Vec::new();
  for (at,ch) in class.char_indices(){match ch {'['|'('=>depth+=1,']'|')'=>{if depth==0{return Err(format!("Unbalanced UI utility: {class}"));}depth-=1;},':' if depth==0=>{prefixes.push(&class[start..at]);start=at+1;},_=>{}}}
  if depth!=0{return Err(format!("Unbalanced UI utility: {class}"));}
- let mut state=State::Base;let mut predicates=Vec::new();
+ let mut state=State::Base;let mut predicates=Vec::new();let mut placeholder=false;
  for prefix in prefixes {
-  let interaction=match prefix {"hover"=>Some(State::Hover),"focus"=>Some(State::Focus),"active"=>Some(State::Active),"disabled"=>Some(State::Disabled),_=>None};
-  if let Some(value)=interaction {if state!=State::Base{return Err("Compound UI interaction states are unsupported".into());}state=value;}
+  let interaction=match prefix {"hover"=>Some(State::Hover),"focus"|"focus-visible"=>Some(State::Focus),"active"=>Some(State::Active),"disabled"=>Some(State::Disabled),_=>None};
+  if prefix=="placeholder" {if placeholder{return Err("Duplicate placeholder variant".into());}placeholder=true;}
+  else if let Some(value)=interaction {if state!=State::Base{return Err("Compound UI interaction states are unsupported".into());}state=value;}
   else if let Some(value)=Predicate::parse(prefix){predicates.push(value);}
   else{return Err(format!("Unsupported UI state or selector: {prefix}"));}
  }
- Ok(Parts{state,token:&class[start..],predicates})
+ Ok(Parts{state,token:&class[start..],placeholder,predicates})
 }
 pub(super) fn marker(token:&str)->bool {token.strip_prefix("group/").is_some_and(name)}
 #[cfg(test)]
@@ -57,12 +61,17 @@ pub(crate) fn resolved(node:&Node,ancestors:&[&Node],theme:&Theme,mode:&str)->Ve
 }
 #[cfg(any(test,feature="native"))]
 pub(crate) fn scoped(node:&Node,ancestors:&[&Node],theme:&Theme,mode:&str,inherited:&std::collections::BTreeMap<String,f32>)->(Vec<(State,Utility)>,std::collections::BTreeMap<String,f32>) {
+ scoped_at_width(node,ancestors,theme,mode,inherited,0.)
+}
+#[cfg(any(test,feature="native"))]
+pub(crate) fn scoped_at_width(node:&Node,ancestors:&[&Node],theme:&Theme,mode:&str,inherited:&std::collections::BTreeMap<String,f32>,width:f32)->(Vec<(State,Utility)>,std::collections::BTreeMap<String,f32>) {
  let mut variables=inherited.clone();let mut filtered=Vec::new();
  for class in node.class_name.split_whitespace(){
   let parsed=parts(class).expect("validated utility");
-  if !parsed.predicates.iter().all(|p|p.matches(node,ancestors)){continue;}
+  if !parsed.predicates.iter().all(|p|match p {Predicate::Dark=>mode=="dark",Predicate::MinWidth(min)=>width>=*min as f32,_=>p.matches(node,ancestors)}){continue;}
   if let Some((name,scale))=super::custom_spacing::declaration(parsed.token){variables.insert(name.into(),super::layout::spacing(scale,theme));}
-  filtered.push(match parsed.state {State::Base=>parsed.token.to_owned(),state=>format!("{}:{}",state_name(state),parsed.token)});
+  let token=if parsed.placeholder{format!("placeholder:{}",parsed.token)}else{parsed.token.to_owned()};
+  filtered.push(match parsed.state {State::Base=>token,state=>format!("{}:{token}",state_name(state))});
  }
  (super::resolved_with_variables(&filtered.join(" "),theme,mode,&variables),variables)
 }
@@ -74,12 +83,18 @@ pub(super) fn css(classes:&str,theme:&Theme,mode:&str,id:usize,scope:&str)->Stri
  for state in [State::Base,State::Hover,State::Focus,State::Active,State::Disabled] {
   for class in classes.split_whitespace(){
    let parsed=parts(class).expect("validated utility");if parsed.state!=state || marker(parsed.token){continue;}
-   let declarations=super::custom_spacing::css(parsed.token,theme).unwrap_or_else(||super::resolved(parsed.token,theme,mode).into_iter().map(|(_,v)|v.css()).collect::<Vec<_>>().join(";"));
+   if parsed.predicates.iter().any(|p|matches!(p,Predicate::Dark)) && mode!="dark"{continue;}
+   let media=parsed.predicates.iter().filter_map(|p|if let Predicate::MinWidth(width)=p{Some(*width)}else{None}).max();
+   let token=if parsed.placeholder{format!("placeholder:{}",parsed.token)}else{parsed.token.to_owned()};
+   let declarations=super::custom_spacing::css(parsed.token,theme).unwrap_or_else(||super::resolved(&token,theme,mode).into_iter().map(|(_,v)|v.css()).collect::<Vec<_>>().join(";"));
    if declarations.is_empty(){continue;}
    let mut after=String::new();
    for predicate in parsed.predicates {after.push_str(&predicate.selector(&scope));}
    after.push_str(match state {State::Base=>"",State::Hover=>":where(:hover:not(:disabled))",State::Focus=>":where(:focus-visible)",State::Active=>":where(:active:not(:disabled))",State::Disabled=>":where(:disabled)"});
+   if parsed.placeholder{after.push_str("::placeholder");}
+   if let Some(width)=media{output.push_str(&format!("@media(min-width:{width}px){{"));}
    output.push_str(&format!("{scope}.ui[data-tsrust-node=\"{id}\"]{after}{{{declarations}}}"));
+   if media.is_some(){output.push('}');}
   }
  }
  output
