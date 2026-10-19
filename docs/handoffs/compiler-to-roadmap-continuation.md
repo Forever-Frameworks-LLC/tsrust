@@ -13,6 +13,37 @@ arguments/returns/examples and inline comparable results (strings/trim is the fi
 pilot). Both views use the same curated evidence and explicit unmeasured states.
 Existing counter owner files and developer evidence paths remain preserved.
 
+## Rich inline docs and actual web development server — 2026-10-19
+
+The preview at `http://127.0.0.1:4317/` now runs
+`tsrust dev --target web --port 4317`, not the earlier Python static server.
+The installed CLI supports the same command. Web dependencies/package workspaces
+persist and successful publications reload automatically; errors retain the last
+successful app. Current browser assets are from `6bbacdbe` and remain byte-identical
+through the compiler-identity refresh. No fresh build is needed to view progress.
+
+Rich inline Markdown, configurable syntax colors, exact source copy with retry and
+disposal, category navigation, cleaner search and the revised landing pass the
+focused live-browser observer. Native inline layout/accessibility and focused LSP
+help, including standalone/custom/inline theme JSON, pass through `19d1d634`.
+Formatted generated native inline execution passes. Installed CLI/LSP consumers
+are refreshed and editor settings restored; the running editor maps the new inode.
+Closed evidence is imported and independently restored/verified in SQLite.
+
+The full native docs app build is still running; finish its bounded launch before
+closing paired acceptance. Reuse passed checks. The additional duplicate-proof
+repair at `86033af4` still needs its focused source-proof/project witnesses and
+consumer refresh. Native compilation was temporarily paused during the dev
+refresh and has resumed; do not leave a paused build behind. The dev server is now
+idle and intentionally remains running.
+
+See [current acceptance](../milestones/ui-documentation-inline-and-web-dev.md).
+Startup is still slow in the debug compiler (297,033 ms initial, 271,651 ms after
+compiler-identity refresh); do not describe dependency persistence as complete
+frontend caching or measured performance. Most Base UI/Nova component families,
+assets, external links, keyed routing, overlays/focus and custom base composition
+remain required. No broad regression, benchmark or SQL rerun was triggered.
+
 ## Landing, actual documentation navigation and search — 2026-10-19
 
 Accepted source: `d1870833`, following `a5531211`. The preview now separates `/`
