@@ -344,6 +344,7 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::date::END_OF_MONTH,
     crate::stdlib::ui::SIGNAL_NEW,crate::stdlib::ui::HANDLE_NEW,crate::stdlib::ui::GET,crate::stdlib::ui::SET,crate::stdlib::ui::OWN_STATE,crate::stdlib::ui::PRESS_BUTTON,
     crate::stdlib::ui::READ_ONLY_BINDING,
+    crate::stdlib::ui::HIDDEN_BINDING,
     crate::stdlib::ui::TEXT_BINDING,
     crate::stdlib::ui::BRANCH,
     crate::stdlib::ui::INPUT,crate::stdlib::ui::INPUT_CHANGE,

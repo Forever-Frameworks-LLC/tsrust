@@ -13978,7 +13978,7 @@
     },
     {
       "name": "run",
-      "signature": "run(node: Node, title: string): Result<void, UiError>",
+      "signature": "run(node: Node, title: string, options?: WindowOptions): Result<void, UiError>",
       "parameters": [
         {
           "label": "node: Node",
@@ -13987,9 +13987,13 @@
         {
           "label": "title: string",
           "documentation": "Native window title, borrowed during setup."
+        },
+        {
+          "label": "options?: WindowOptions",
+          "documentation": "Optional creation-time dimensions and native/custom titlebar. Defaults to 640×480 logical pixels, minimum 240×160, native titlebar. Invalid dimensions return Err. Browsers validate options but keep their host window."
         }
       ],
-      "documentation": "Opens a GPU-rendered native window and waits for closure on the main thread. Returns Ok after window resources are released, or Err with code UiError and a readable message if initialization or rendering fails. Resize and DPI changes update layout. Content larger than the native window scrolls with wheel or trackpad input. PageUp/PageDown, Home/End and arrow keys scroll when a text field is not handling them; Tab reveals the focused control. Scroll offsets also update pointer targets, accessibility bounds and text-input positions. No CPU fallback is selected. Example: unwrap(run(<Text>Hello</Text>, \"Demo\")) displays Hello until the window closes. Requires a graphical desktop and supported GPU. Ownership: consumes the subtree; renderer resources belong to the event loop and release on exit."
+      "documentation": "Opens a GPU-rendered native window and waits for closure on the main thread. Returns Ok after window resources are released, or Err with code UiError and a readable message if initialization or rendering fails. Resize and DPI changes update layout. Content larger than the native window scrolls with wheel or trackpad input. PageUp/PageDown, Home/End and arrow keys scroll when a text field is not handling them; Tab reveals the focused control. Scroll offsets also update pointer targets, accessibility bounds and text-input positions. Optional WindowOptions selects initial/minimum dimensions and titlebar at creation. Custom titlebars currently require macOS, preserve real traffic-light controls and use View.windowDragRegion for dragging. Other desktop platforms return Err for custom. Reserve header space; live titlebar switching is unsupported. Browser mounts validate options but cannot change their host window. Invalid options return Err before a window opens. No CPU fallback is selected. Example: unwrap(run(<Text>Hello</Text>, \"Demo\")) displays Hello until the window closes. Requires a graphical desktop and supported GPU. Ownership: consumes the subtree; renderer resources belong to the event loop and release on exit."
     },
     {
       "name": "signal",
@@ -14018,8 +14022,30 @@
       "documentation": "A UI failure with string code and message fields. run returns Err for renderer or handler failures and releases its owned subtree. Example: const result = run(node, \"Demo\"); returns Result<void, UiError>. Errors own their message; no renderer resource is retained."
     },
     {
+      "name": "WindowOptions",
+      "signature": "interface WindowOptions",
+      "documentation": "Optional creation-time settings for run. Dimensions use finite logical pixels, not physical display pixels. Omitted fields use documented defaults. Minima cannot exceed initial dimensions. For example, run(node, \"Docs\", {width: 1040, height: 760, minWidth: 480, titlebar: \"custom\"}) creates a macOS window whose own content supplies the header while retaining OS window controls. Options are serialized and validated before opening; invalid values or unsupported custom titlebars return Err. Browser hosts retain their dimensions and chrome. Ownership: options are consumed as ordinary config data; no public window resource is exposed.",
+      "fields": {
+        "width": {
+          "documentation": "Initial content width, 240–16384 logical pixels; defaults to 640. Invalid values return Err from run. Ownership: reads ordinary configuration during setup."
+        },
+        "height": {
+          "documentation": "Initial content height, 160–16384 logical pixels; defaults to 480. Invalid values return Err from run. Ownership: reads ordinary configuration during setup."
+        },
+        "minWidth": {
+          "documentation": "Minimum content width, 240–initial width; defaults to 240. Invalid values return Err from run. Ownership: reads ordinary configuration during setup."
+        },
+        "minHeight": {
+          "documentation": "Minimum content height, 160–initial height; defaults to 160. Invalid values return Err from run. Ownership: reads ordinary configuration during setup."
+        },
+        "titlebar": {
+          "documentation": "Native (default) or custom. Custom currently requires macOS and preserves traffic-light controls. Reserve header space and mark View drag regions. Other desktop platforms return Err; browser hosts keep their own chrome. Creation-time only, not a live mode. Invalid values return Err from run. Ownership: reads ordinary configuration during setup."
+        }
+      }
+    },
+    {
       "name": "withTheme",
-      "signature": "withTheme<T>(node: Node, value: ReadOnly<T>, mode?: string): Node",
+      "signature": "withTheme<T>(node: Node, value: ReadOnly<T>, mode?: string | Signal<string>): Node",
       "parameters": [
         {
           "label": "node: Node",
@@ -14030,11 +14056,11 @@
           "documentation": "Serializable project theme data checked against the theme schema, normally read from tsrust.config.json ui.theme. Borrowed only during this call."
         },
         {
-          "label": "mode?: string",
-          "documentation": "Selects light or dark; defaults to light. Other strings throw a readable error."
+          "label": "mode?: string | Signal<string>",
+          "documentation": "Light or dark, default light. A string Signal switches mode after handlers while preserving child state, fields and identities. Invalid strings throw. This binding retains no state owner."
         }
       ],
-      "documentation": "Scopes project colors, spacing, radius and typography to an owned subtree. Requires every light/dark token. Colors accept #RRGGBB, #RRGGBBAA, checked in-gamut oklch() and @token aliases within the same mode. OKLCH uses lightness/alpha 0–1 or 0–100%, nonnegative unitless chroma and hue 0–360; unsupported syntax, ranges, gamut, unknown tokens, missing references and cycles throw. Resolved background must be opaque; transparent native windows are unsupported. Functional conversion uses renderer float precision; native paint has an 8-bit sRGB boundary, while stored theme strings remain unchanged. spacing.sm/md/lg accepts 0–512 logical pixels; radius accepts 0–256; typography.base/xl accepts 8–128. Unknown keys fail. Returns a Node without rerunning its children or changing their state. Example: import config from './tsrust.config.json'; withTheme(Page(), config.ui.theme, 'dark') uses the project dark palette. Separate trees keep independent themes. Runtime reactive mode switching is not supported yet. Ownership: consumes child nodes; reads and serializes theme data during construction. The resulting subtree owns its checked theme."
+      "documentation": "Scopes project colors, spacing, radius and typography to an owned subtree. Requires every light/dark token. Colors accept #RRGGBB, #RRGGBBAA, checked in-gamut oklch() and @token aliases within the same mode. OKLCH uses lightness/alpha 0–1 or 0–100%, nonnegative unitless chroma and hue 0–360; unsupported syntax, ranges, gamut, unknown tokens, missing references and cycles throw. Resolved background must be opaque; transparent native windows are unsupported. Functional conversion uses renderer float precision; native paint has an 8-bit sRGB boundary, while stored theme strings remain unchanged. spacing.sm/md/lg accepts 0–512 logical pixels; radius accepts 0–256; typography.base/xl accepts 8–128. Unknown keys fail. Returns a Node without rerunning its children or changing their state. Example: import config from './tsrust.config.json'; withTheme(Page(), config.ui.theme, 'dark') uses the project dark palette. Separate trees keep independent themes. Pass a component-local string Signal to switch palettes after handlers without rerunning components, remounting children or losing field values. Nested explicit theme scopes stay independent; transparent conditional roots follow the enclosing scope. Invalid modes throw before replacing the checked palette. Example: const mode = signal(\"light\"); return withTheme(<View><Button onPress={() => mode.set(\"dark\")}>Dark</Button></View>, config.ui.theme, mode); switches after the button press. Theme tokens are read during construction; mutable token-record bindings remain unsupported. Ownership: consumes child nodes; reads and serializes theme data during construction. The resulting subtree owns its checked theme; live mode bindings hold a non-retaining reference to component state."
     },
     {
       "name": "ThemeConfig",
@@ -14335,6 +14361,12 @@
         },
         "htmlFor": {
           "documentation": "Optional associated control ID, valid only with as=\"label\". <View as=\"label\" htmlFor=\"name\">Name</View> labels and focuses the control id=\"name\" on both targets. Omit htmlFor to label the first enclosed control. Nested labels and multiple enclosed controls throw. Invalid ID whitespace/control characters throw. Empty means implicit association; missing IDs associate with nothing. No function arguments. Ownership: consumes the ID string."
+        },
+        "hidden": {
+          "documentation": "Optional boolean or reactive boolean condition; defaults to false. <View hidden={showCode.get()}>Preview</View> excludes the subtree from layout, paint, pointer/keyboard input and accessibility when true, while retaining its state, callbacks and identities. It becomes visible with its prior values when false. Unlike a conditional JSX branch, hiding does not dispose the subtree. Hidden descendants defer reactive refresh until shown. Errors in the condition propagate. Ownership: retains child owners until the containing tree is released; the condition captures state without retaining its owner."
+        },
+        "windowDragRegion": {
+          "documentation": "Optional boolean, default false. <View windowDragRegion>Title<Button>Menu</Button></View> marks a drag surface in a native custom titlebar. Text and empty space drag; buttons, disabled controls, fields and labels exclude dragging. Native titlebars and browser hosts keep their existing window behavior. Reserve room for macOS traffic-light controls in custom content. This property does not add interactive or accessibility semantics. Ownership: copies the flag and retains no window handle."
         }
       }
     },

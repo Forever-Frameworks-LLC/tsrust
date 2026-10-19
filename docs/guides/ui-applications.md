@@ -1,5 +1,37 @@
 # UI application ownership and offline components
 
+## Live mode, retained visibility and native headers
+
+`withTheme(node, config.ui.theme, mode)` accepts `light`, `dark`, or a
+component-local `Signal<string>`. A live mode updates the palette after handlers,
+preserving child state, node identities and field values. Nested explicit theme
+scopes remain independent. Invalid modes throw before replacing the checked
+palette. Theme token data is still read during construction; this is not yet a
+live token-record editor.
+
+`<View hidden={showCode.get()}>…</View>` removes the subtree from layout, paint,
+interaction and accessibility while retaining its state and callbacks. Showing it
+restores its prior values. Hidden descendants defer reactive refresh until shown.
+Use a conditional JSX branch when removal should dispose and later reconstruct
+its children. `aria-hidden` instead keeps noninteractive content visible while
+excluding it from accessibility.
+
+`run(node, title, options?)` accepts creation-time `WindowOptions`. Defaults are
+640×480 logical pixels and native titlebars. Width/minWidth accept 240–16384;
+height/minHeight accept 160–16384. Minima default to 240×160 and cannot exceed
+initial dimensions. Invalid options return `Err` before opening a window.
+
+On macOS, `titlebar: 'custom'` extends content into a transparent titlebar while
+preserving real traffic-light controls. Reserve space for these controls and mark
+custom drag surfaces with `<View windowDragRegion>`. Text and blank space drag;
+interactive descendants, including disabled controls and labels, exclude dragging.
+Other desktop platforms currently return `Err` for custom titlebars. Browsers
+validate options and retain their host window. Live chrome switching and custom
+chrome on other native platforms remain unsupported.
+
+See [the paired application example](../../examples/ui-application-state/README.md) for
+an edited draft and counter that survive theme and preview/source switching.
+
 Create a project with `tsrust new counter --ui --target native`. `build.entry` selects the visible
 `src/main.tsr` bootstrap; `src/app/page.tsrx` is the root screen. The bootstrap imports
 `tsrust.config.json` and applies `config.ui.theme` with `withTheme`, then calls `run`. Application handlers

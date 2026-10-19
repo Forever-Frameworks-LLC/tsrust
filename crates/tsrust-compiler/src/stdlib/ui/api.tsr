@@ -1,4 +1,4 @@
-import { branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, handle as nativeHandle, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
+import { bindHidden as nativeBindHidden, branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, handle as nativeHandle, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
 
 /** An owned UI subtree. Moving a Node transfers all descendants. Nodes cannot be cloned or sent to workers. */
 export type Node = NativeNode;
@@ -47,6 +47,10 @@ export interface TextProps extends SemanticProps {
 }
 
 export interface ViewProps extends SemanticProps {
+  /** Removes this subtree from layout, paint, interaction and accessibility while retaining its state. JSX state conditions refresh after handlers. Defaults to false. */
+  hidden?: boolean | ReactiveBoolean;
+  /** Marks a native custom-header drag surface. Interactive descendants, including disabled controls and labels, exclude dragging. Browser hosts keep control of their own window. */
+  windowDragRegion?: boolean;
   /** Semantic container tag; defaults to div. kbd and code accept composed phrasing children. */
   as?: 'div' | 'section' | 'span' | 'label' | 'kbd' | 'code';
   /** For as=label, the single ID of its associated control. Omission labels the first enclosed control. */
@@ -183,11 +187,21 @@ export function Text(props: TextProps): Node {
 }
 /** Creates a container, preserving child order. className defaults to empty. Unknown utilities or depth over 128 throw a message. Consumes its children. */
 export function View(props: ViewProps): Node {
-  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']), props.htmlFor ?? '');
+  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']), props.htmlFor ?? '', props.windowDragRegion ?? false);
   const result = view(props.children ?? [], props.className ?? '');
   match (result) {
     Ok(value) => {
-      return applySemantics(value, metadata);
+      const node = applySemantics(value, metadata);
+      const hidden = props.hidden;
+      if (hidden === undefined) {
+        return node;
+      }
+
+      if (typeof hidden !== 'boolean') {
+        return unwrapNode(nativeBindHidden(node, hidden.evaluate));
+      }
+
+      return unwrapNode(nativeBindHidden(node, () => hidden));
     },
     Err(error) => {
       throw error.message;
@@ -219,9 +233,23 @@ export function Button(props: ButtonProps): Node {
 export function document(node: ReadOnly<Node>, title: string): string {
   return nativeDocument(node, title);
 }
-/** Opens a GPU-rendered native window on the main thread and waits for closure. Returns Ok after cleanup or Err with a renderer error. Consumes the tree; title is borrowed. */
-export function run(node: Node, title: string): Result<void, UiError> {
-  return nativeRun(node, title);
+/** Checked native window creation options. Browser hosts retain control of their own window. */
+export interface WindowOptions {
+  /** Initial content width, 240–16384 logical pixels; defaults to 640. */
+  width?: number;
+  /** Initial content height, 160–16384 logical pixels; defaults to 480. */
+  height?: number;
+  /** Minimum width, 240–initial width; defaults to 240. */
+  minWidth?: number;
+  /** Minimum height, 160–initial height; defaults to 160. */
+  minHeight?: number;
+  /** Native by default. Custom currently requires macOS and keeps traffic-light controls over content. Reserve header space and mark drag surfaces with View.windowDragRegion. Creation-time only. Browsers retain their host window. */
+  titlebar?: 'native' | 'custom';
+}
+
+/** Opens a GPU-rendered native window on the main thread and waits for closure. Checked options apply during creation. Browsers mount within their host page. Returns Ok after cleanup or Err for invalid options, renderer or handler errors. Consumes the tree; title is borrowed. */
+export function run(node: Node, title: string, options?: WindowOptions): Result<void, UiError> {
+  return nativeRun(node, title, JSON.stringify(options ?? {}));
 }
 
 /** Component-owned scalar state. Returning its UI subtree transfers this owner automatically. */
@@ -287,8 +315,8 @@ export interface ThemeConfig {
   radius: ThemeRadius;
   typography: ThemeTypography;
 }
-/** Applies checked project tokens to this subtree. Mode defaults to light. Does not change component state. */
-export function withTheme<T>(node: Node, value: ReadOnly<T>, mode?: string): Node {
+/** Applies checked project tokens to this subtree. Mode defaults to light. A string Signal switches palettes after handlers without remounting children. */
+export function withTheme<T>(node: Node, value: ReadOnly<T>, mode?: string | Signal<string>): Node {
   return unwrap(nativeTheme(node, JSON.stringify(value), mode ?? 'light'));
 }
 
@@ -335,15 +363,16 @@ interface SemanticConfig {
   describedBy: string;
   invalid: string;
   htmlFor: string;
+  windowDragRegion: boolean;
 }
 
-function semanticConfig(tag: string, role: string, label: string, id: string, hidden: boolean, slot: string, size: string, orientation: string, describedBy: string = '', invalid: string = '', htmlFor: string = ''): string {
-  if (tag === '' && role === '' && label === '' && id === '' && !hidden && slot === '' && size === '' && orientation === '' && describedBy === '' && invalid === '' && htmlFor === '') {
+function semanticConfig(tag: string, role: string, label: string, id: string, hidden: boolean, slot: string, size: string, orientation: string, describedBy: string = '', invalid: string = '', htmlFor: string = '', windowDragRegion: boolean = false): string {
+  if (tag === '' && role === '' && label === '' && id === '' && !hidden && slot === '' && size === '' && orientation === '' && describedBy === '' && invalid === '' && htmlFor === '' && !windowDragRegion) {
     return '';
   }
 
   const config: SemanticConfig = {
-    tag, role, label, id, hidden, slot, size, orientation, describedBy, invalid, htmlFor
+    tag, role, label, id, hidden, slot, size, orientation, describedBy, invalid, htmlFor, windowDragRegion
   };
   return JSON.stringify(config);
 }

@@ -63,10 +63,13 @@ pub(crate) const DOCUMENT: NativeBinding = NativeBinding {
     },
     ..TEXT
 };
-pub(crate) const THEME:NativeBinding=NativeBinding{name:"theme",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("config",NativeType::String,Mode::Read),parameter("mode",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_theme"},..TEXT};
+pub(crate) const THEME_MODE:Signature=Signature::Union(&[Signature::String,SIGNAL_STRING]);
+pub(crate) const THEME:NativeBinding=NativeBinding{name:"theme",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("config",NativeType::String,Mode::Read),parameter("mode",NativeType::Structured(&THEME_MODE),Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_theme"},..TEXT};
 pub(crate) const SEMANTICS:NativeBinding=NativeBinding{name:"semantics",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("config",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_semantics"},..TEXT};
 
 pub(crate) const DISABLED_BINDING:NativeBinding=NativeBinding{name:"bindDisabled",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("predicate",NativeType::OwnedBooleanCallback,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_bind_disabled"},..TEXT};
+
+pub(crate) const HIDDEN_BINDING:NativeBinding=NativeBinding{name:"bindHidden",backend:NativeBackend::Bundled{symbol:"tsrust_ui_bind_hidden"},..DISABLED_BINDING};
 
 pub(crate) const READ_ONLY_BINDING:NativeBinding=NativeBinding{name:"bindReadOnly",backend:NativeBackend::Bundled{symbol:"tsrust_ui_bind_read_only"},..DISABLED_BINDING};
 
@@ -75,6 +78,7 @@ pub(crate) const RUN: NativeBinding = NativeBinding {
     parameters: &[
         parameter("node", NativeType::Structured(&NODE), Mode::Consume),
         parameter("title", NativeType::String, Mode::Read),
+        parameter("options", NativeType::String, Mode::Read),
     ],
     result: NativeType::Structured(&Signature::Result(&Signature::Void, &ERROR)),
     backend: NativeBackend::Bundled {
@@ -124,6 +128,9 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("pub mod browser;",&format!("pub mod browser {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/browser.rs").replace("use crate::{", "use super::{")))
         .replace("mod editable;",&format!("mod editable {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/editable.rs")))
         .replace("mod state;", &format!("mod state {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/state.rs")))
+        .replace("#[cfg(test)]\nmod application_tests;", "")
+        .replace("mod window;",&format!("mod window {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/window.rs")))
+        .replace("#[cfg(feature = \"native\")]\npub use native::run_configured;",if with_native {"#[cfg(all(not(target_arch=\"wasm32\"),not(feature=\"ui-acceptance\")))] pub use native::run_configured;\n#[cfg(feature=\"ui-acceptance\")] pub use native::verify_window_configured as run_configured;"}else{""})
         .replace("mod branch;", &format!("mod branch {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/branch.rs")))
         .replace("pub mod style;",&format!("pub mod style {{\n{style}\n}}"))
         .replace("pub mod theme;",&format!("pub mod theme {{\n{theme}\n}}"))
@@ -131,7 +138,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
 
         .replace("feature=\"native\"","not(target_arch=\"wasm32\")")
         .replace("feature = \"acceptance\"","feature = \"ui-acceptance\"");
-    format!("mod tsrust_native_ui {{\n{body}\n#[cfg(all(target_arch=\"wasm32\",feature=\"ui-web\"))] pub use browser::run;\n}}\n")
+    format!("mod tsrust_native_ui {{\n{body}\n#[cfg(all(target_arch=\"wasm32\",feature=\"ui-web\"))] pub use browser::{{run,run_configured}};\n}}\n")
 }
 
 /// Unused trusted UI facades must not pull a native event loop into an HTML build.

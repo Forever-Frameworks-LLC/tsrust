@@ -7,6 +7,9 @@ mod native;
 pub mod browser;
 mod state;
 mod branch;
+mod window;
+#[cfg(test)]
+mod application_tests;
 mod editable;
 pub(crate) use editable::{ValueBinding,ChangeHandler};
 pub use state::{Signal,TextBinding};
@@ -15,6 +18,8 @@ pub mod theme;
 mod web;
 #[cfg(feature = "native")]
 pub use native::run;
+#[cfg(feature = "native")]
+pub use native::run_configured;
 #[cfg(feature = "acceptance")]
 #[doc(hidden)]
 pub use native::verify_window;
@@ -47,6 +52,7 @@ pub(crate) struct Semantics {
     pub html_for:String,
     pub described_by:String,
     pub invalid:String,
+    pub window_drag_region:bool,
 }
 
 pub struct Node {
@@ -55,6 +61,8 @@ pub struct Node {
     next_identity:std::cell::Cell<u64>,
     anonymous_text:bool,
     pub(crate) theme: Option<(theme::Theme,String)>,
+    theme_mode: Option<TextBinding>,
+    theme_inherited: bool,
     pub(crate) semantics: Semantics,
     pub(crate) kind: Kind,
     pub(crate) class_name: String,
@@ -65,6 +73,8 @@ pub struct Node {
     pub(crate) press: Option<Box<dyn FnMut() -> Result<(), String>>>,
     pub(crate) editable: Option<editable::Editable>,
     read_only: Option<Box<dyn FnMut()->Result<bool,String>>>,
+    collapsed:bool,
+    hidden:Option<Box<dyn FnMut()->Result<bool,String>>>,
     branch:Option<branch::Branch>,
     state: Vec<Box<dyn std::any::Any>>,
 }
@@ -73,6 +83,7 @@ impl Node {
     pub fn with_semantics(mut self, config: &str) -> Result<Self,String> {
         if config.is_empty(){return Ok(self);}
         let value:Semantics=serde_json::from_str(config).map_err(|e|format!("Invalid UI semantics: {e}"))?;
+        if value.window_drag_region && self.kind!=Kind::View{return Err("windowDragRegion requires View".into());}
         let tag=if value.tag.is_empty(){self.tag()}else{&value.tag};
         let allowed=match self.kind {
             Kind::View=>matches!(tag,"div"|"section"|"span"|"label"|"kbd"|"code"),
@@ -97,7 +108,7 @@ impl Node {
         if value.size.chars().any(|ch|!(ch.is_ascii_alphanumeric()||ch=='-')){return Err("UI data-size must contain ASCII letters, digits or hyphens".into());}
         self.semantics=value;self.validate_structure()?;Ok(self)
     }
-    fn has_enabled_controls(&self)->bool {self.enabled_control() || self.children.iter().any(Self::has_enabled_controls)}
+    fn has_enabled_controls(&self)->bool {!self.collapsed && (self.enabled_control() || self.children.iter().any(Self::has_enabled_controls))}
     pub(crate) fn enabled_control(&self)->bool {matches!(self.kind,Kind::Button|Kind::Input|Kind::Textarea) && !self.is_disabled()}
     pub(crate) fn is_disabled(&self)->bool {self.kind==Kind::DisabledButton || self.editable.as_ref().is_some_and(|field|field.disabled)}
     fn apply_disabled(&mut self,next:bool)->bool {
@@ -135,7 +146,7 @@ impl Node {
     #[cfg(any(test,feature="native"))]
     pub(crate) fn content_text(&self)->String {
         fn append(node:&Node,out:&mut String) {
-            if node.semantics.hidden || node.editable.is_some(){return;}
+            if node.collapsed || node.semantics.hidden || node.editable.is_some(){return;}
             out.push_str(&node.text);for child in &node.children{append(child,out);}
         }
         let mut output=String::new();append(self,&mut output);output
@@ -148,6 +159,10 @@ impl Node {
     pub fn with_read_only(mut self,mut predicate:impl FnMut()->Result<bool,String>+'static)->Result<Self,String> {
         let field=self.editable.as_mut().ok_or("A readOnly condition requires Input or Textarea")?;
         field.read_only=predicate()?;self.read_only=Some(Box::new(predicate));Ok(self)
+    }
+    pub fn with_hidden(mut self,mut predicate:impl FnMut()->Result<bool,String>+'static)->Result<Self,String> {
+        if self.kind!=Kind::View {return Err("hidden requires View".into());}
+        self.collapsed=predicate()?;self.hidden=Some(Box::new(predicate));Ok(self)
     }
     pub fn input_control(binding:Option<ValueBinding>,default_value:Option<String>,options:&str,class_name:String,changed:Option<ChangeHandler>)->Result<Self,String> {
         let options:editable::Options=serde_json::from_str(options).map_err(|e|format!("Invalid input options: {e}"))?;
@@ -162,7 +177,10 @@ impl Node {
 
     pub fn with_theme(mut self, json: &str, mode: &str) -> Result<Self,String> {
         let theme=theme::Theme::parse(json)?;theme.color(mode,"background")?;
-        self.theme=Some((theme,mode.to_owned()));self.inherit_branch_theme();Ok(self)
+        self.theme=Some((theme,mode.to_owned()));self.theme_mode=None;self.theme_inherited=false;self.inherit_branch_theme();Ok(self)
+    }
+    pub fn with_theme_binding(self,json:&str,mode:TextBinding)->Result<Self,String> {
+        let mut node=self.with_theme(json,&mode.value()?)?;node.theme_mode=Some(mode);Ok(node)
     }
     pub fn own_state<T: Clone + 'static>(mut self, state: Signal<T>) -> Result<Self,String> { self.state.push(Box::new(state)); Ok(self) }
     pub fn text(parts:Vec<TextPart>,class_name:String)->Result<Self,String> {
@@ -194,7 +212,15 @@ impl Node {
     }
     #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
     fn refresh_inner(&mut self) -> Result<usize,String> {
-        let mut changed=self.refresh_branch()?;
+        let mut changed=0;
+        if let Some(binding)=&mut self.hidden {let next=binding()?;changed+=usize::from(next!=self.collapsed);self.collapsed=next;}
+        if self.collapsed{return Ok(changed);}
+        if let Some(binding)=&self.theme_mode {
+            let mode=binding.value()?;let (theme,current)=self.theme.as_mut().expect("theme binding scope");
+            theme.color(&mode,"background")?;
+            if *current!=mode {*current=mode;changed+=1;self.inherit_branch_theme();}
+        }
+        changed+=self.refresh_branch()?;
         let disabled=if let Some(predicate)=&mut self.disabled {Some(predicate()?)}else{None};
         if let Some(value)=disabled {changed+=usize::from(self.apply_disabled(value));}
         let read_only=if let Some(predicate)=&mut self.read_only {Some(predicate()?)}else{None};
@@ -221,6 +247,7 @@ impl Node {
     pub(crate) fn activate(&mut self, target: u64) -> Result<bool,String> {
         self.ensure_identities();
         fn visit(node:&mut Node,target:u64)->Result<bool,String> {
+            if node.collapsed{return Ok(false);}
             if node.identity.get()==target {
                 if node.kind!=Kind::Button {return Ok(false);}
                 if let Some(handler)=&mut node.press {handler()?;return Ok(true);}
@@ -241,6 +268,7 @@ impl Node {
     pub(crate) fn input(&mut self,target:u64,value:&str)->Result<bool,String> {
         self.ensure_identities();
         fn visit(node:&mut Node,target:u64,value:&str)->Result<bool,String>{
+            if node.collapsed{return Ok(false);}
             if node.identity.get()==target {
                 let Some(field)=&mut node.editable else{return Ok(false);};
                 let changed=field.input(value,&node.semantics.id)?;node.text=field.value.clone();return Ok(changed);
@@ -283,13 +311,13 @@ impl Node {
         Ok(Self {
             depth,
             identity:std::cell::Cell::new(0),next_identity:std::cell::Cell::new(0),anonymous_text:false,branch:None,
-            theme: None,
+            theme: None,theme_mode:None,theme_inherited:false,
             semantics: Semantics::default(),
             kind,
             class_name,
             text,
             children,
-            parts: Vec::new(), disabled:None, press: None, state: Vec::new(), editable:None, read_only:None,
+            parts: Vec::new(), disabled:None, press: None, state: Vec::new(), editable:None, read_only:None,collapsed:false,hidden:None,
         })
     }
 }

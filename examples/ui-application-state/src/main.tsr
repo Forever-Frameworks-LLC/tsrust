@@ -1,0 +1,8 @@
+import { run } from 'std:ui';
+import { Page } from './app/page';
+
+function main() {
+  unwrap(run(Page(), 'Tsrust application contracts', {
+    width: 1040, height: 760, minWidth: 480, titlebar: 'custom'
+  }));
+}

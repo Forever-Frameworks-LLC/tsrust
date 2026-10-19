@@ -59,7 +59,7 @@ impl Lower<'_> {
                             *child=call(self.text_binding,vec![getter],span);
                         }}
                     }
-                    if key.kind!=TokenKind::JsxOpen || !matches!(key.text.as_str(),"disabled"|"readOnly"|"value") {continue;}
+                    if key.kind!=TokenKind::JsxOpen || !matches!(key.text.as_str(),"disabled"|"readOnly"|"value"|"hidden") {continue;}
                     if key.text!="disabled" && !self.reactive_props.get(&(span.start,span.end)).is_some_and(|props|props.contains(&key.text)){continue;}
                     if key.text=="value" && matches!(&value.kind,ExprKind::Name(name) if scope.contains_key(name)){continue;}
                     let mut reactive=false;
@@ -172,7 +172,7 @@ pub(crate) fn retain_state(program:&mut Program,names:&BTreeMap<String,String>)-
     let mut reactive_props=std::collections::BTreeMap::<(usize,usize),std::collections::BTreeSet<String>>::new();
     let text_marker=crate::native_type_resolution::linked_name(crate::native_signatures::NativeTypeId::UiTextBinding);
     let node_marker=crate::native_type_resolution::linked_name(crate::native_signatures::NativeTypeId::UiNode);
-    for (property,binding) in [("value",names.get("ReactiveInputValue")),("readOnly",names.get("ReactiveBoolean")),("children",Some(&text_marker)),("branch",Some(&node_marker))] {
+    for (property,binding) in [("hidden",names.get("ReactiveBoolean")),("value",names.get("ReactiveInputValue")),("readOnly",names.get("ReactiveBoolean")),("children",Some(&text_marker)),("branch",Some(&node_marker))] {
       if let Some(binding)=binding {
         fn includes(annotation:&crate::type_syntax::ValueAnnotation,binding:&str,arrays:bool)->bool {
             use crate::type_syntax::ValueAnnotationKind as K;

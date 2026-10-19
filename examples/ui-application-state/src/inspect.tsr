@@ -1,0 +1,13 @@
+import { document } from 'std:ui';
+import { strictEqual } from 'std:testing';
+import { Page } from './app/page';
+
+function main() {
+  const html = document(Page(), 'Application');
+  strictEqual(html.includes('Count: 0'), true);
+  strictEqual(html.includes('Mode: light'), true);
+  strictEqual(html.includes('id="source"'), false);
+  strictEqual(html.includes('id="draft"'), true);
+  strictEqual(html.includes('Independent light scope'), true);
+  console.log('Application contracts passed');
+}

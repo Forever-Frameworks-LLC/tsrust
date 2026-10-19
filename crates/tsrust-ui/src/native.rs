@@ -565,6 +565,7 @@ struct App {
     deadline: Option<std::time::Instant>,
     node: Node,
     title: String,
+    options:super::window::Options,
     context: RenderContext,
     painter: Painter,
     active: Option<Active>,
@@ -674,14 +675,17 @@ impl App {
         event_loop.exit();
     }
     fn open(&mut self, event_loop: &ActiveEventLoop) -> Result<(), String> {
+        let attributes=Window::default_attributes().with_title(&self.title).with_visible(false)
+            .with_inner_size(LogicalSize::new(self.options.width,self.options.height))
+            .with_min_inner_size(LogicalSize::new(self.options.min_width,self.options.min_height));
+        #[cfg(target_os="macos")]
+        let attributes=if self.options.titlebar==super::window::Titlebar::Custom {
+            use winit::platform::macos::WindowAttributesExtMacOS;
+            attributes.with_fullsize_content_view(true).with_titlebar_transparent(true).with_title_hidden(true)
+        }else{attributes};
         let window = Arc::new(
             event_loop
-                .create_window(
-                    Window::default_attributes()
-                        .with_title(&self.title)
-                        .with_visible(false)
-                        .with_inner_size(LogicalSize::new(640., 480.)),
-                )
+                .create_window(attributes)
                 .map_err(|e| e.to_string())?,
         );
         let size = window.inner_size();
@@ -889,6 +893,10 @@ impl ApplicationHandler<accesskit::ActionRequest> for App {
             WindowEvent::ModifiersChanged(modifiers)=>{self.modifiers=modifiers.state();self.shift=self.modifiers.shift_key();},
             WindowEvent::Focused(false)=>{self.pressed=None;self.set_focus(None);},
             WindowEvent::MouseInput{state,button:MouseButton::Left,..}=>{
+                if state==ElementState::Pressed && self.options.titlebar==super::window::Titlebar::Custom && self.node.window_drag_at(|id|self.visible_hit(id)) {
+                    if let Some(active)=&self.active {if let Err(error)=active.window.drag_window(){self.fail(event_loop,error);}}
+                    return;
+                }
                 if state==ElementState::Pressed {self.pressed=self.hit();self.set_focus(self.pressed);self.focus_visible=false;self.dragging_text=self.pressed.is_some_and(|id|self.painter.editors.contains_key(&id) && self.visible_hit(id));if self.dragging_text{self.pointer_edit(self.pressed.unwrap(),self.shift);}}
                 else if let Some(id)=self.pressed.take() {self.dragging_text=false;if self.hit()==Some(id) && !self.painter.editors.contains_key(&id){self.activate(id,event_loop);}}
                 if let Some(active)=&self.active {active.window.request_redraw();}
@@ -976,13 +984,22 @@ impl ApplicationHandler<accesskit::ActionRequest> for App {
 }
 /// Open the owned static tree on the platform event-loop thread; return after close.
 pub fn run(node: Node, title: String) -> Result<(), String> {
-    run_window(node, title, false)
+    run_configured(node,title,"{}")
+}
+pub fn run_configured(node:Node,title:String,options:&str)->Result<(),String> {
+    run_window(node,title,false,options)
 }
 #[cfg(feature = "acceptance")]
 pub fn verify_window(node: Node, title: String) -> Result<(), String> {
-    run_window(node, title, true)
+    run_window(node, title, true,"{}")
 }
-fn run_window(node: Node, title: String, close_after_frame: bool) -> Result<(), String> {
+#[cfg(feature = "acceptance")]
+pub fn verify_window_configured(node:Node,title:String,options:&str)->Result<(),String> {run_window(node,title,true,options)}
+fn run_window(mut node: Node, title: String, close_after_frame: bool,options:&str) -> Result<(), String> {
+    let options=super::window::Options::parse(options)?;
+    #[cfg(not(target_os="macos"))]
+    if options.titlebar==super::window::Titlebar::Custom{return Err("Custom titlebars currently require macOS; use titlebar: native on this platform".into());}
+    node.refresh()?;
     let event_loop = EventLoop::<accesskit::ActionRequest>::with_user_event().build().map_err(|e| e.to_string())?;
     let mut app = App {
         proxy: event_loop.create_proxy(), pointer:(-1.,-1.),pressed:None,dragging_text:false,focus:None,shift:false,modifiers:ModifiersState::empty(),focus_visible:false,clipboard:None,key_pressed:None,
@@ -994,6 +1011,7 @@ fn run_window(node: Node, title: String, close_after_frame: bool) -> Result<(), 
             .then(|| std::time::Instant::now() + std::time::Duration::from_secs(20)),
         node,
         title,
+        options,
         context: RenderContext::new(),
         painter: Painter::new(),
         active: None,
@@ -1009,6 +1027,24 @@ fn run_window(node: Node, title: String, close_after_frame: bool) -> Result<(), 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn application_theme_visibility_and_header_hits_share_native_node_identities() {
+        let mode=crate::Signal::new(String::from("light"));let hidden=crate::Signal::new(false);let test=hidden.handle();
+        let field=Node::input_control(None,Some("draft".into()),"{}","w-48 h-12".into(),None).unwrap();
+        let panel=Node::view(vec![crate::Child::Node(field)],"gap-4".into()).unwrap().with_hidden(move||test.get()).unwrap();
+        let disabled=Node::button_children(vec![],"w-24 h-12".into(),true,None).unwrap();
+        let mut root=Node::view(vec![crate::Child::Node(panel),crate::Child::Node(disabled)],"gap-4 p-4".into()).unwrap()
+            .with_semantics(r#"{"windowDragRegion":true}"#).unwrap().with_theme_binding(include_str!("theme.json"),mode.text_binding(Clone::clone)).unwrap();
+        root.refresh().unwrap();let field=root.children[0].children[0].identity.get();let button=root.children[1].identity.get();
+        let mut painter=Painter::new();let (_,first)=painter.scene(&root,640.,1.,Some(field)).unwrap();let bounds=first.nodes.iter().find(|(id,_)|id.0==button).unwrap().1.bounds().unwrap();
+        let point=vello::kurbo::Point::new(bounds.x0+2.,bounds.y0+2.);
+        assert!(!root.window_drag_at(|id|painter.hit_regions.get(&id).is_some_and(|paths|paths.iter().all(|path|path.contains(point)))));
+        root.input(field,"kept 🦀").unwrap();mode.set("dark".into()).unwrap();root.refresh().unwrap();
+        let (_,dark)=painter.scene(&root,640.,1.,Some(field)).unwrap();assert_eq!(dark.nodes.iter().find(|(id,_)|id.0==field).unwrap().1.value(),Some("kept 🦀"));
+        let item=painter.node(&root,TextStyle::default()).unwrap();assert_eq!(item.background,Some(crate::theme::Theme::default().color("dark","background").unwrap()));
+        hidden.set(true).unwrap();root.refresh().unwrap();let (_,hidden_tree)=painter.scene(&root,640.,1.,None).unwrap();assert!(!hidden_tree.nodes.iter().any(|(id,_)|id.0==field));
+        hidden.set(false).unwrap();root.refresh().unwrap();let (_,restored)=painter.scene(&root,480.,2.,Some(field)).unwrap();assert_eq!(restored.nodes.iter().find(|(id,_)|id.0==field).unwrap().1.value(),Some("kept 🦀"));
+    }
     #[test]
     fn layout_and_accessibility_preserve_static_semantics() {
         let button = Node::new(

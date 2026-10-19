@@ -101,3 +101,13 @@ observer checks two independent light/dark/scaled mounts against
 `content-reference.ts` after tsc, including keycap geometry, separators, theme
 colors, accessibility, live child bindings, DOM identity and disposal. This is
 untimed acceptance support; no performance measurement is claimed.
+
+## Application modes and visibility
+
+`application-reference.ts` is the independent Node-after-tsc state-transition
+oracle for `examples/ui-application-state`. Build that shared entry with
+`tools/build-ui-web.mjs`, then run `verify-application.mjs <site>` for untimed
+browser acceptance. The observer checks palette changes, nested scopes, retained
+field DOM/focus, hidden preview state/accessibility, responsive header, read-only
+source and disposal. It records exact source hashes. Native model/layout/header
+hit witnesses cover the same section in `tsrust-ui`. No timing is claimed.

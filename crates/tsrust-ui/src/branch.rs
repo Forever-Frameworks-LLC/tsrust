@@ -72,16 +72,27 @@ impl Node {
         if selected==branch.selected{return Ok(0);}
         self.children.clear();branch.selected=selected;
         if let Some(mut child)=if selected{(branch.present)()?}else{(branch.absent)()?} {
-            child.reset_identities();if child.theme.is_none(){child.theme=self.theme.clone();child.inherit_branch_theme();}
+            child.reset_identities();if child.theme.is_none(){child.theme=self.theme.clone();child.theme_inherited=child.theme.is_some();child.inherit_branch_theme();}
             self.children.push(child);
         }
         Ok(1)
     }
     pub(crate) fn inherit_branch_theme(&mut self) {
-        if self.branch.is_some(){if let Some(child)=self.children.first_mut(){if child.theme.is_none(){child.theme=self.theme.clone();child.inherit_branch_theme();}}}
+        if self.branch.is_some(){if let Some(child)=self.children.first_mut(){if child.theme.is_none()||child.theme_inherited{child.theme=self.theme.clone();child.theme_inherited=child.theme.is_some();child.inherit_branch_theme();}}}
     }
     pub(crate) fn visible_root(&self)->Option<&Node> {
-        if self.branch.is_some(){self.children.first().and_then(Self::visible_root)}else if self.anonymous_text&&self.text.is_empty(){None}else{Some(self)}
+        if self.collapsed{None}else if self.branch.is_some(){self.children.first().and_then(Self::visible_root)}else if self.anonymous_text&&self.text.is_empty(){None}else{Some(self)}
+    }
+    #[cfg(any(test,feature="native"))]
+    pub(crate) fn window_drag_at(&self,contains:impl Fn(u64)->bool)->bool {
+        fn visit(node:&Node,inherited:bool,blocked:bool,contains:&impl Fn(u64)->bool)->Option<bool> {
+            if node.collapsed{return None;}
+            let blocked=blocked||matches!(node.kind,Kind::Button|Kind::DisabledButton|Kind::Input|Kind::Textarea)||node.tag()=="label";
+            let drag=(inherited||node.semantics.window_drag_region)&&!blocked;
+            for child in node.children.iter().rev(){if let Some(hit)=visit(child,drag,blocked,contains){return Some(hit);}}
+            if node.branch.is_none()&&contains(node.identity.get()){Some(drag)}else{None}
+        }
+        visit(self,false,false,&contains).unwrap_or(false)
     }
     pub(crate) fn visible_children(&self)->impl Iterator<Item=&Node> {self.children.iter().filter_map(Self::visible_root)}
     pub(crate) fn reset_identities(&self) {

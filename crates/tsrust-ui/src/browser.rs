@@ -65,6 +65,7 @@ fn sync_element(node:&Node,document:&web_sys::Document,all:&mut std::collections
     if node.press.is_some(){element.set_attribute("data-tsrust-press","")?;}
     all.insert(id,element.clone());element};
 
+    if node.theme.is_some(){element.set_attribute("style",&super::web::scope(node,theme,mode))?;}
     if matches!(node.kind,Kind::Button|Kind::DisabledButton|Kind::Input|Kind::Textarea) {
         if node.is_disabled(){element.set_attribute("disabled","")?;}else{element.remove_attribute("disabled")?;}
     }
@@ -102,6 +103,7 @@ fn update(state:&mut State,document:&web_sys::Document)->Result<(),JsValue> {
     state.elements.retain(|id,element|{if live.contains(id){true}else{element.remove();false}});
     state.composing.retain(|id,_|live.contains(id));
     let default=super::theme::Theme::default();let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((&default,"light"));
+    state.root.set_attribute("style",&format!("{}color:var(--ui-foreground);background:var(--ui-background);font-size:var(--ui-text-base);min-height:100vh",theme.variables(mode)))?;
     let mut roots=Vec::new();if let Some(root)=node.visible_root(){roots.push(sync_element(root,document,&mut state.elements,&mut state.composing,theme,mode)?);}
     order_children(&state.root,&roots)?;
     let css=super::web::stylesheet(node,&state.scope);if state.style.text_content().as_deref()!=Some(&css){state.style.set_text_content(Some(&css));}
@@ -170,4 +172,9 @@ pub fn launch(entry:impl FnOnce()->bool)->Result<js_sys::Array,JsValue> {
         if !success {return Err(JsValue::from_str("UI entry failed"));}
         Ok(mounts.into_iter().map(JsValue::from).collect())
     })
+}
+
+pub fn run_configured(node:Node,title:String,options:&str)->Result<(),String> {
+    super::window::Options::parse(options)?;
+    run(node,title)
 }
