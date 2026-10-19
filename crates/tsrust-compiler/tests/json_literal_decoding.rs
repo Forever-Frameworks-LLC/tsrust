@@ -6,13 +6,14 @@ import {strictEqual} from 'std:testing';
 import {parseJsonc,openJsonl,readJsonl,closeJsonl} from 'std:json';
 type Status='draft'|'published';
 type Item={status:Status;single:'draft';optional?:Status;maybe:Status|null;};
-type Big=9007199254740993|9007199254740994;
+type Big=9007199254740993|9007199254740994;type Flag=true|false;type Ratio=2.5|7.5;
 function main(){
  const item=JSON.parse<Item>('{"status":"published","single":"draft","maybe":null}');
  strictEqual(item.status==='published',true);strictEqual(item.single==='draft',true);strictEqual(item.optional===undefined,true);strictEqual(item.maybe===null,true);
  const strings=JSON.parse<Status[]>('["draft","published","draft"]');strictEqual(strings.length,3);
  strictEqual(JSON.parse<true>('true')===true,true);strictEqual(JSON.parse<false>('false')===false,true);
  strictEqual(JSON.parse<7>('7')===7,true);strictEqual(JSON.parse<2.5>('2.5')===2.5,true);
+ const flag=JSON.parse<Flag>('false');strictEqual(flag===false,true);const ratio=JSON.parse<Ratio>('7.5');strictEqual(ratio===7.5,true);
  const big=JSON.parse<Big>('9007199254740993');strictEqual(big===9007199254740993,true);
  strictEqual(JSON.stringify(JSON.parse<0.0>('-0.0')),'-0.0');
  for(const input of ['"bad"','null','42','true']){match(JSON.tryParse<Status>(input)){Ok(value)=>{throw 'invalid literal accepted';},Err(error)=>{strictEqual(error.code,'shape-mismatch');}}}
