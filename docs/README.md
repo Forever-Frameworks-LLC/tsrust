@@ -17,9 +17,9 @@ custom-titlebar example. Other native platforms require `titlebar: 'native'`.
 
 The site source now separates the landing page at `/` from documentation at
 `/docs`. The shared fixed catalog supplies page links, retained route examples,
-local text/code search, block Markdown and explicit pending-page status. The
-current section is awaiting paired acceptance; rich inline formatting, highlighted
-code, complete component pages and benchmark charts remain in the active plan. The browser build still uses `tools/build-ui-web.mjs` until
+local text/code search, block Markdown and explicit pending-page status. See [navigation acceptance](milestones/ui-documentation-navigation.md) for the
+paired checks. Rich inline formatting, highlighted code, complete component pages
+and benchmark charts remain in the active plan. The browser build still uses `tools/build-ui-web.mjs` until
 ordinary CLI web build/dev support lands. For a built directory,
 `python3 tools/serve-ui-preview.py <directory>` serves history fallback for direct
 document URLs and leaves missing assets as errors.

@@ -13,6 +13,30 @@ arguments/returns/examples and inline comparable results (strings/trim is the fi
 pilot). Both views use the same curated evidence and explicit unmeasured states.
 Existing counter owner files and developer evidence paths remain preserved.
 
+## Landing, actual documentation navigation and search — 2026-10-19
+
+Accepted source: `d1870833`, following `a5531211`. The preview now separates `/`
+from `/docs`. Refresh the existing browser tab. Every catalog destination has a
+real anchor; page content, offline text/API/code search, history, direct/Unicode
+heading entry, pending labels and not-found behavior pass the scoped real-browser
+observer. Search stays outside the scrolling index; retained article scroll and
+home counter state survive route changes. Initial heading focus now runs after
+mounting. Page-cache exit releases mounts and persisted return launches a fresh root.
+
+The shared block renderer keeps list/table/link semantics. Compiler project/native
+execution, native ownership/accessibility and focused LSP help pass. The same native
+docs route passes a bounded launch; this adds no OS gesture/pixel claim. Five
+consumers are current; settings are exactly restored and the active editor maps the
+installed inode. See [navigation acceptance](../milestones/ui-documentation-navigation.md)
+for scope, immutable evidence and cleanup. No full matrix, timing or SQL rerun.
+
+Continue required rich inline text/code/asset rendering and complete Base UI/Nova
+families, overlays/focus, blocks and theme editing. The current fixed retained
+catalog does not complete keyed/dynamic routing or general route lifecycle policy.
+Do not represent pending component pages as implemented components. Preserve the
+live preview, current content outputs and warm dependency caches; reuse accepted
+checks. The earlier content/foundation sections below remain historical evidence.
+
 ## Checked documentation content and child forwarding — 2026-10-19
 
 Content, literal JSON decoding and cached CLI preparation pass focused acceptance
