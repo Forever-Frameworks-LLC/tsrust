@@ -57,11 +57,15 @@ statistics. Preserve those caches and records. Kbd/Separator still need the
 outstanding paired browser evidence. Existing Button/Card versions must not be
 relabelled Nova implementations without completing their actual contracts.
 
-Current theme binding, retained hidden subtrees and creation-time custom-header
-source changes are unaccepted work in progress. Finish or revise them within
-step 2; they do not establish a final window API. Generic reactive props, keyed
-lists, persistent routing, nested scrolling, overlays/focus and integrated web
-build/dev remain framework dependencies.
+Live string-signal palette modes, retained `View.hidden` subtrees and checked
+creation-time window options have focused paired acceptance at source `c8699512`.
+The macOS custom header preserves OS controls and excludes controls/labels from
+drag surfaces. Actual OS drag gestures, live chrome changes and custom headers on
+other desktop platforms remain unaccepted. Live token-record editing, generic
+reactive props, keyed lists, persistent routing, nested scrolling, overlays/focus
+and integrated web build/dev remain framework dependencies. The new
+`examples/ui-application-state` fixture preserves the older application fixture
+and standalone counter owner files.
 
 ## Project and content layout
 

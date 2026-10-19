@@ -11,9 +11,46 @@ benchmark harness or exposing the full canonical database. Benchmark documentati
 includes overview graphs and Node-style per-method reference sections, with
 arguments/returns/examples and inline comparable results (strings/trim is the first
 pilot). Both views use the same curated evidence and explicit unmeasured states.
-Existing counter owner
-files and developer evidence paths remain preserved. Theme/visibility/header
-source changes in the working tree are unaccepted work, not completed features.
+Existing counter owner files and developer evidence paths remain preserved.
+
+## Live application state and window setup — 2026-10-19
+
+Accepted source: `c8699512`, after initial checkpoint `5d068a07`. The previously
+unverified section now passes targeted compiler/native execution, eight native/
+model cases, editor help/diagnostics, an independent Node-after-tsc/browser observer,
+formatted-source checks and a bounded generated macOS window launch. Five executable
+consumers are refreshed from the accepted source; both editor settings files are
+restored byte-for-byte and their servers restarted. No full regression, SQL suite
+or performance matrix was repeated.
+
+`withTheme` accepts component-local string signals for live light/dark modes,
+preserving children, field values and browser focus. Explicit nested scopes remain
+independent, including transparent branches. `View.hidden` retains state/callbacks/
+identities while excluding its subtree from layout, input and accessibility; JSX
+removal still disposes its branch. `WindowOptions` validates creation dimensions
+and macOS custom chrome with OS controls; clipped drag surfaces exclude controls,
+including disabled controls and labels. Browser hosts retain their window chrome.
+Live titlebar changes, other desktop custom chrome, OS drag-gesture automation and
+live token-record editing remain pending. The new example is
+`examples/ui-application-state`; the pre-existing `ui-application` fixture and
+standalone counter owner files are preserved.
+
+Acceptance also repairs unique composite-result inference into union contexts,
+native retained-boolean callback adaptation and hover/definition on typed literal
+keys such as `WindowOptions.width`. Ambiguous generic payloads still reject.
+`dev` now honors `TSRUST_CACHE_DIR`, matching build/run/cache commands. Its restart
+witness passes. The first generated window attempt exposed the ignored override
+and was stopped/reaped; its new private cache was removed. The repaired launch
+uses the counter's existing dependency workspace and reaps its program after five
+seconds. These are untimed acceptance observations, not new performance claims.
+
+Thirty-two exact successful/failed records, source identities, generated package/
+browser inputs and consumer receipts use `tsrust-ui-application-` paths in SQLite.
+Independent decompression restores every byte and the integrity check passes;
+verified loose copies and owned package/site outputs are removed. Continue the paired documentation app
+from the implementation plan: native/web pane scrolling and navigation, organized
+Markdown/code rendering, real component pages and offline search. General reactive
+props, keyed routing and the complete component/block families remain required.
 
 ## Installed corrections and startup cache repair — 2026-10-19
 
