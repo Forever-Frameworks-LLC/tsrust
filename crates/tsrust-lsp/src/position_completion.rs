@@ -96,12 +96,8 @@ impl SourceIndex {
         })
     }
 
-    /// Fields of the record type that a literal is written for.
-    pub(super) fn record_literal_completion(&self, offset: usize, prefix_start: usize) -> Option<Value> {
-        let open = self.open_brace(prefix_start)?;
-        if open == 0 || !self.entry_start(open, prefix_start) {
-            return None;
-        }
+    fn record_literal_type(&self,open:usize)->Option<String> {
+        if open==0{return None;}
         // `const name: Type = {`: the annotation names the record.
         let ty = if self.text(open - 1) == "=" {
             let mut colon = open - 1;
@@ -112,7 +108,27 @@ impl SourceIndex {
         } else {
             return None;
         };
-        let ty = self.written_type(ty.trim());
+        Some(self.written_type(ty.trim()))
+    }
+
+    pub(super) fn record_literal_field(&self,offset:usize)->Option<(String,String,Option<usize>,Span)> {
+        let token=self.token_at(offset)?;
+        if self.text(token+1)!=":" {return None;}
+        let field=if name(self.text(token)){self.text(token).to_owned()}else{quoted_property_name(self.text(token))?};
+        let open=self.open_brace(self.tokens[token].span.start)?;
+        if !self.entry_start(open,self.tokens[token].span.start){return None;}
+        let receiver=self.record_literal_type(open)?;
+        let ty=self.common_record_fields(&receiver,true).remove(&field)?;
+        let owners=self.record_alternatives(&receiver,true);
+        let symbol=self.symbols.iter().position(|symbol|symbol.name==field&&symbol.owner.as_ref().is_some_and(|owner|owners.contains(owner)));
+        Some((field,ty,symbol,self.tokens[token].span))
+    }
+
+    /// Fields of the record type that a literal is written for.
+    pub(super) fn record_literal_completion(&self, offset: usize, prefix_start: usize) -> Option<Value> {
+        let open = self.open_brace(prefix_start)?;
+        if !self.entry_start(open,prefix_start){return None;}
+        let ty=self.record_literal_type(open)?;
         let mut fields = self.symbols.iter().filter(|symbol| symbol.owner.as_deref() == Some(ty.as_str())).map(|symbol| (symbol.name.clone(), symbol.ty.clone())).collect::<Vec<_>>();
         if fields.is_empty() {
             fields = self.common_record_fields(&ty, true).into_iter().collect();

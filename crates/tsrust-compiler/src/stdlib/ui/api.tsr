@@ -1,4 +1,4 @@
-import { bindHidden as nativeBindHidden, branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, handle as nativeHandle, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
+import { themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, handle as nativeHandle, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
 
 /** An owned UI subtree. Moving a Node transfers all descendants. Nodes cannot be cloned or sent to workers. */
 export type Node = NativeNode;
@@ -201,7 +201,8 @@ export function View(props: ViewProps): Node {
         return unwrapNode(nativeBindHidden(node, hidden.evaluate));
       }
 
-      return unwrapNode(nativeBindHidden(node, () => hidden));
+      const collapsed = hidden === true;
+      return unwrapNode(nativeBindHidden(node, () => collapsed));
     },
     Err(error) => {
       throw error.message;
@@ -317,7 +318,16 @@ export interface ThemeConfig {
 }
 /** Applies checked project tokens to this subtree. Mode defaults to light. A string Signal switches palettes after handlers without remounting children. */
 export function withTheme<T>(node: Node, value: ReadOnly<T>, mode?: string | Signal<string>): Node {
-  return unwrap(nativeTheme(node, JSON.stringify(value), mode ?? 'light'));
+  const config = JSON.stringify(value);
+  if (mode === undefined) {
+    return unwrap(nativeTheme(node, config, 'light'));
+  }
+
+  if (typeof mode === 'string') {
+    return unwrap(nativeTheme(node, config, mode));
+  }
+
+  return unwrap(nativeThemeMode(node, config, mode));
 }
 
 /** A boolean condition refreshed after UI handlers without rerunning the component. */

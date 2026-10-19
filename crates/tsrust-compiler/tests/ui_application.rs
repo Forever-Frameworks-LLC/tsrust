@@ -1,6 +1,14 @@
 mod support;
 
 #[test]
+fn composite_generic_results_use_unique_union_members_without_guessing_between_payloads() {
+    let source=support::format_round_trip("interface Box<T>{value:T;}function box<T>(value:T):Box<T>{return {value};}function accept(value:string|Box<int>):int{if(typeof value==='string'){return 0;}return value.value;}function either(value:Box<int>|Box<string>):boolean{return true;}function main(){console.log(accept(box(7)),either(box('text')));}");
+    support::execute(&source,"7 true\n",None);
+    let rejected=support::format_round_trip("interface Box<T>{value:T;}function empty<T>():Box<T>{throw 'unused';}function main(){const value:Box<int>|Box<string> = empty();}");
+    let dir=support::TempDirectory::new();let path=dir.source(&rejected);let output=support::run(support::cli().arg("check").arg(&path),30);assert!(!output.status.success());assert!(String::from_utf8_lossy(&output.stderr).contains("generic-inference"));
+}
+
+#[test]
 fn application_modes_visibility_and_options_check_emit_and_execute() {
     let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/ui-application-state");
     for file in ["src/app/page.tsrx","src/main.tsr","src/inspect.tsr"] {

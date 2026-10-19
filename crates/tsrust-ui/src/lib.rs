@@ -7,6 +7,7 @@ mod native;
 pub mod browser;
 mod state;
 mod branch;
+#[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
 mod window;
 #[cfg(test)]
 mod application_tests;

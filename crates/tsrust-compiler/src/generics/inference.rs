@@ -141,7 +141,23 @@ impl Types<'_> {
             let accepted = self.contextual_type(pattern, bindings)
                 .is_some_and(|actual| self.unions.accepts(expected, actual));
             if !accepted {
-                self.unify(pattern, expected, &variables, bindings)?;
+                let prior=bindings.clone();
+                if let Err(error)=self.unify(pattern, expected, &variables, bindings) {
+                    *bindings=prior.clone();
+                    let Type::Union(union)=expected else{return Err(error);};
+                    // A concrete result shape can determine its payload from a
+                    // unique compatible destination member, never the first one.
+                    let mut candidates=Vec::new();
+                    for member in self.unions.members(union) {
+                        let mut candidate=prior.clone();
+                        if self.unify(pattern,member,&variables,&mut candidate).is_ok() && !candidates.contains(&candidate) {candidates.push(candidate);}
+                    }
+                    match candidates.len() {
+                        0=>return Err(error),
+                        1=>*bindings=candidates.pop().unwrap(),
+                        _=>return Err(Diagnostic::new("generic-inference","Result context has several compatible generic payloads; provide argument types or explicit type arguments.",pattern.span)),
+                    }
+                }
             }
         }
         for (pattern, actual) in deferred {

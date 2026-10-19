@@ -111,7 +111,8 @@ mod platform {
         let backend_elapsed=backend_started.elapsed();
         let binary=files.0.join("program");
         let features=frontend.features.join(",");
-        let cache=tsrust_compiler::native_cache::NativeCache::new(&root.join("target/tsrust-native"),&[
+        let cache_root=std::env::var_os("TSRUST_CACHE_DIR").map(PathBuf::from).unwrap_or_else(||root.join("target/tsrust-native"));
+        let cache=tsrust_compiler::native_cache::NativeCache::new(&cache_root,&[
             b"native-cache-abi-4-ui-dev-profile",crate::native_dependency_bundle::IDENTITY.as_bytes(),backend_identity.as_bytes(),env!("CARGO_PKG_VERSION").as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),
             if release{b"release"}else{b"debug"},b"edition=2024;overflow-checks=on",frontend.rust.as_bytes(),&frontend.identity,features.as_bytes(),
         ]);
@@ -119,7 +120,7 @@ mod platform {
         let native_started=Instant::now();
         if !reused {
             let prepare_started=Instant::now();
-            let mut prepared=crate::runtime_build::Prepared::for_dev(&frontend.rust,&backend_identity,&root.join("target/tsrust-native"),&files.0,release)?;
+            let mut prepared=crate::runtime_build::Prepared::for_dev(&frontend.rust,&backend_identity,&cache_root,&files.0,release)?;
             if verbose{eprintln!("[build] runtime-prepare={:.1}ms",prepare_started.elapsed().as_secs_f64()*1000.);}
             if let Some(mut command)=prepared.command.take() {
                 let runtime_started=Instant::now();

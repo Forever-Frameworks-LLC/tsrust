@@ -17,6 +17,19 @@ fn wait(path:&std::path::Path,needle:&str)->String {
 fn config(root:&std::path::Path,target:&str){fs::write(root.join("tsrust.config.json"),format!(r#"{{"schemaVersion":1,"name":"aliases","build":{{"entry":"src/main.tsr","output":"dist/aliases"}},"paths":{{"@/*":"{target}/*"}}}}"#)).unwrap();}
 fn pid(log:&str)->i32 {log.lines().find_map(|line|line.split_once("Started program (pid ").map(|(_,tail)|tail.split(')').next().unwrap().parse().unwrap())).unwrap()}
 #[test]
+fn dev_explicit_cache_directory_is_shared_with_cache_commands_and_reused_on_restart() {
+ let dir=support::TempDirectory::new();support::success(&support::run(support::cli().current_dir(&dir.0).args(["new","app"]),20));let root=dir.0.join("app");let cache=dir.0.join("shared cache");
+ fs::write(root.join("src/main.tsr"),support::format_round_trip("import {basename} from 'std:path';function main(){console.log(basename('/tmp/shared-ready'));}")).unwrap();
+ for expected in ["cache=miss","cache=hit"] {
+  let out=dir.0.join("stdout");let err=dir.0.join("stderr");let mut command=support::cli();command.current_dir(&root).args(["dev","--verbose","--color=never"]).env("TSRUST_CACHE_DIR",&cache).stdout(fs::File::create(&out).unwrap()).stderr(fs::File::create(&err).unwrap());
+  let mut dev=Dev(command.spawn().unwrap());wait(&out,"shared-ready");let text=wait(&err,"Started program (pid ");assert!(text.contains(expected),"{text}");
+  unsafe{kill(dev.0.id()as i32,2);}let deadline=Instant::now()+Duration::from_secs(5);
+  loop {if let Some(status)=dev.0.try_wait().unwrap(){assert!(status.success());break;}assert!(Instant::now()<deadline,"dev failed to stop");std::thread::sleep(Duration::from_millis(20));}
+ }
+ assert!(cache.join("v2").is_dir());assert!(cache.join("runtime/v2").is_dir());assert!(!root.join("target/tsrust-native").exists());
+ let output=support::run(support::cli().current_dir(&root).args(["cache","info"]).env("TSRUST_CACHE_DIR",&cache),10);support::success(&output);assert!(String::from_utf8_lossy(&output.stdout).contains("shared cache"));
+}
+#[test]
 fn alias_config_edits_rebuild_and_keep_the_last_program_on_failure(){
  let dir=support::TempDirectory::new();let root=dir.0.join("project");fs::create_dir_all(root.join("src/one")).unwrap();fs::create_dir(root.join("src/two")).unwrap();
  fs::write(root.join("src/main.tsr"),support::format_round_trip("import {greeting} from '@/greeting';function main(){console.log(greeting());while(true){}}" )).unwrap();

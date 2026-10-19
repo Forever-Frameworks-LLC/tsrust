@@ -3152,6 +3152,14 @@ impl SourceIndex {
         if method=="textDocument/hover" && let Some((class,span))=self.ui_class_at(offset) {
             return Ok(json!({"contents":{"kind":"markdown","value":tsrust_compiler::ui_project::style::documentation(&class)},"range":self.range(span)}));
         }
+        if matches!(method,"textDocument/hover"|"textDocument/definition") && let Some((field,ty,symbol,span))=self.record_literal_field(offset) {
+            if method=="textDocument/definition" {
+                if let Some(symbol)=symbol{return Ok(self.foreign_definitions.get(&symbol).cloned().unwrap_or_else(||json!({"uri":uri,"range":self.range(self.symbols[symbol].span)})));}
+            }else{
+                let docs=symbol.map(|symbol|crate::documentation::render(&self.symbols[symbol].docs)).unwrap_or_default();
+                return Ok(json!({"contents":{"kind":"markdown","value":format!("```tsrust\n{field}: {}\n```\n\n{docs}",self.display_type(&ty))},"range":self.range(span)}));
+            }
+        }
         if method == "textDocument/completion" && let Some(items) = self.schema_path_completion(offset) {
             return Ok(items);
         }

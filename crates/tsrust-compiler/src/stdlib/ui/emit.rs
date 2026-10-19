@@ -44,11 +44,10 @@ pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> Strin
         "bindHidden" => (format!("node:Record{node},predicate:impl FnMut()->Result<bool,std::string::String>+'static"),"node.with_hidden(predicate)".into()),
         "bindReadOnly" => (format!("node:Record{node},predicate:impl FnMut()->Result<bool,std::string::String>+'static"),"node.with_read_only(predicate)".into()),
         "bindDisabled" => (format!("node:Record{node},predicate:impl FnMut()->Result<bool,std::string::String>+'static"),"node.with_disabled(predicate)".into()),
-        "theme" => {
-            let mode=crate::native_binding_types::resolve(&program.records,&super::THEME_MODE).unwrap();
-            let Type::Union(union)=mode else{unreachable!()};let members=&program.unions[union.index()].members;
-            let literal=members.iter().position(|ty|*ty==Type::String).unwrap();let signal=members.iter().position(|ty|*ty!=Type::String).unwrap();
-            (format!("node:Record{node},config:&String,mode:&{}",crate::emit::ty(mode)),format!("match mode{{Union{union}::V{literal}(mode)=>node.with_theme(config.as_ref(),mode.as_ref()),Union{union}::V{signal}(mode)=>node.with_theme_binding(config.as_ref(),mode.text_binding(|value|value.as_ref().to_owned()))}}",union=union.index()))
+        "theme" => (format!("node:Record{node},config:&String,mode:&String"),"node.with_theme(config.as_ref(),mode.as_ref())".into()),
+        "themeMode" => {
+            let mode=crate::native_binding_types::resolve(&program.records,&super::SIGNAL_STRING).unwrap();
+            (format!("node:Record{node},config:&String,mode:&{}",crate::emit::ty(mode)),"node.with_theme_binding(config.as_ref(),mode.text_binding(|value|value.as_ref().to_owned()))".into())
         },
         "semantics" => (format!("node:Record{node},config:&String"),"node.with_semantics(config.as_ref())".into()),
         "document" => return format!("fn {symbol}(node:&Record{node},title:&String)->String{{String::Owned(tsrust_native_ui::document(node,title.as_ref()))}}\n"),

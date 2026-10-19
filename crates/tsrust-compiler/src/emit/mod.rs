@@ -8718,7 +8718,7 @@ impl Emitter<'_> {
                         let call=if binding.name=="beginSuite"{format!("tsrust_testing_begin_suite_result({})",arguments[0])}else if binding.name=="beginFile"{format!("tsrust_testing_begin_file_result({})",arguments[0])}else{"tsrust_testing_end_suite_result()".into()};
                         if let Some(call)=self.typed_runner_result(&call,expr.span,None){return call;}
                     }
-                    if binding.module=="std:ui-runtime" && matches!(binding.name,"bindDisabled"|"bindReadOnly") {let result=self.ui_callback(args[1].ty.expect("UI condition"),expr.span,"bool");let symbol=if binding.name=="bindDisabled"{"tsrust_ui_bind_disabled"}else{"tsrust_ui_bind_read_only"};return format!("{{let node={};let mut registered_callback={};{symbol}(node,move ||{result})}}",arguments[0],arguments[1]);}
+                    if binding.module=="std:ui-runtime" && matches!(binding.name,"bindDisabled"|"bindReadOnly"|"bindHidden") {let result=self.ui_callback(args[1].ty.expect("UI condition"),expr.span,"bool");let crate::native_bindings::NativeBackend::Bundled{symbol}=binding.backend;return format!("{{let node={};let mut registered_callback={};{symbol}(node,move ||{result})}}",arguments[0],arguments[1]);}
                     if binding.module=="std:ui-runtime" && binding.name=="button" { return self.ui_press_adapter(&arguments,args[3].ty.expect("UI handler"),expr.span); }
                     if binding.module=="std:path" && binding.name=="relative" {
                         let call=crate::native_emit::call(binding,arguments);

@@ -198,7 +198,9 @@ classes are compiler errors; dynamic class strings are validated on construction
 Native artifacts have no implicit size/count quota. `tsrust cache info` reports
 project cache bytes; `tsrust cache clean` explicitly removes reusable artifacts
 under namespace locks. Running private executable copies remain valid. A later
-build recreates removed support. `TSRUST_CACHE_DIR` selects a shared cache for build/run.
+build recreates removed support. `TSRUST_CACHE_DIR` selects the same shared cache
+for build, run, dev and cache info/clean. Source/backend/profile identities and
+workspace locks still apply when projects share that directory.
 
 A runtime cache miss also reuses a persistent, locked dependency workspace under
 `target/tsrust-native/runtime/build-v1`. Runtime source revisions rebuild the support
