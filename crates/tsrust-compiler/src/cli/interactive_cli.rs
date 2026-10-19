@@ -23,6 +23,7 @@ fn header() -> Result<(), String> {
     if !rich() || HEADER.swap(true, Ordering::Relaxed) { return Ok(()); }
     let (height, width) = console::Term::stderr().size();
     if width >= 40 && height >= 20 {
+        eprintln!();
         for line in ["▀█▀ █▀▀ █▀█ █ █ █▀▀ ▀█▀", " █  ▀▀█ █▀▄ █ █ ▀▀█  █ ", " ▀  ▀▀▀ ▀ ▀ ▀▀▀ ▀▀▀  ▀ "] {
             eprintln!("  {}", console::Style::new().for_stderr().cyan().bold().apply_to(line));
         }
