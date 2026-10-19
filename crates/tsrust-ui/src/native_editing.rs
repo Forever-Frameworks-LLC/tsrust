@@ -1,11 +1,11 @@
 //! Native controls delegate shaping, selection and IME editing to Parley.
 use parley::{FontContext, FontWeight, LayoutContext, StyleProperty, editing::PlainEditor};
-use super::TextStyle;
+use super::{TextStyle,inline::Brush};
 
 #[derive(Clone)]
 pub(super) struct Snapshot {value:String,anchor:usize,focus:usize}
 pub(super) struct Editor {
-    pub text: PlainEditor<()>,
+    pub text: PlainEditor<Brush>,
     multiline: bool,
     composition: Option<(String, usize, usize)>,
     pub read_only: bool,
@@ -43,7 +43,7 @@ impl Editor {
         let selection=self.text.raw_selection();Snapshot{value:self.committed(),anchor:selection.anchor().index(),focus:selection.focus().index()}
     }
     pub fn record(&mut self,before:Snapshot) {if before.value!=self.committed(){self.undo.push(before);self.redo.clear();self.reveal=true;}}
-    pub fn undo(&mut self,redo:bool,fonts:&mut FontContext,layouts:&mut LayoutContext<()>) {
+    pub fn undo(&mut self,redo:bool,fonts:&mut FontContext,layouts:&mut LayoutContext<Brush>) {
         self.cancel_composition(fonts,layouts);let current=self.snapshot();
         let Some(previous)=(if redo{&mut self.redo}else{&mut self.undo}).pop() else{return;};
         (if redo{&mut self.undo}else{&mut self.redo}).push(current);
@@ -57,13 +57,13 @@ impl Editor {
             if start<*scroll {*scroll=start.max(0.);}
         }
     }
-    pub fn pointer(&mut self,point:(f64,f64),extend:bool,fonts:&mut FontContext,layouts:&mut LayoutContext<()>) {
+    pub fn pointer(&mut self,point:(f64,f64),extend:bool,fonts:&mut FontContext,layouts:&mut LayoutContext<Brush>) {
         self.cancel_composition(fonts,layouts);self.reveal=true;
         let (x,y)=((point.0-self.origin.0+self.scroll.0) as f32,(point.1-self.origin.1+self.scroll.1) as f32);
         let mut driver=self.text.driver(fonts,layouts);
         if extend{driver.extend_selection_to_point(x,y);}else{driver.move_to_point(x,y);}
     }
-    pub fn navigation(&mut self,key:&winit::keyboard::Key,shift:bool,word:bool,command:bool,fonts:&mut FontContext,layouts:&mut LayoutContext<()>) ->bool {
+    pub fn navigation(&mut self,key:&winit::keyboard::Key,shift:bool,word:bool,command:bool,fonts:&mut FontContext,layouts:&mut LayoutContext<Brush>) ->bool {
         use winit::keyboard::{Key,NamedKey};
         if self.text.is_composing(){return false;}
         let mut driver=self.text.driver(fonts,layouts);
@@ -89,12 +89,12 @@ impl Editor {
         }
     }
 
-    pub fn insert(&mut self, value: &str, fonts: &mut FontContext, layouts: &mut LayoutContext<()>) {
+    pub fn insert(&mut self, value: &str, fonts: &mut FontContext, layouts: &mut LayoutContext<Brush>) {
         self.cancel_composition(fonts, layouts);self.reveal=true;
         self.text.driver(fonts, layouts).insert_or_replace_selection(&normalize(value, self.multiline));
     }
 
-    pub fn preedit(&mut self, value: &str, cursor: Option<(usize, usize)>, fonts: &mut FontContext, layouts: &mut LayoutContext<()>) -> Result<(), String> {
+    pub fn preedit(&mut self, value: &str, cursor: Option<(usize, usize)>, fonts: &mut FontContext, layouts: &mut LayoutContext<Brush>) -> Result<(), String> {
         self.reveal=true;
         if value.is_empty() {
             self.cancel_composition(fonts, layouts);
@@ -117,7 +117,7 @@ impl Editor {
         Ok(())
     }
 
-    pub fn cancel_composition(&mut self, fonts: &mut FontContext, layouts: &mut LayoutContext<()>) {
+    pub fn cancel_composition(&mut self, fonts: &mut FontContext, layouts: &mut LayoutContext<Brush>) {
         if let Some((value, anchor, focus)) = self.composition.take() {
             self.text.set_text(&value);
             self.text.driver(fonts, layouts).select_byte_range(anchor, focus);

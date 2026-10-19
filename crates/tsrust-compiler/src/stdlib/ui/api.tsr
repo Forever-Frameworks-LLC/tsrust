@@ -1,4 +1,4 @@
-import { location as nativeLocation, navigate as nativeNavigate, traverse as nativeTraverse, link as nativeLink, themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, handle as nativeHandle, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
+import { copyButton as nativeCopyButton, location as nativeLocation, navigate as nativeNavigate, traverse as nativeTraverse, link as nativeLink, themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, handle as nativeHandle, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
 
 /** An owned UI subtree. Moving a Node transfers all descendants. Nodes cannot be cloned or sent to workers. */
 export type Node = NativeNode;
@@ -40,9 +40,9 @@ export interface SemanticProps extends ElementProps {
 
 export interface TextProps extends SemanticProps {
   /** Defaults to span. Heading levels are reflected in native accessibility. */
-  as?: 'span' | 'div' | 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'code' | 'kbd';
+  as?: 'span' | 'div' | 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'code' | 'kbd' | 'strong' | 'em' | 'del';
   /** Ordered text content. Pass between tags or with children={values}; combining both is rejected. */
-  children?: TextChild[];
+  children?: Child[];
   /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Later classes win per property/state. */
   className?: string;
 }
@@ -175,6 +175,19 @@ function TextField(props: TextFieldOptions): Node {
   }
 
   return applySemantics(inputFlags(unwrapNode(nativeInput(props.value, props.defaultValue, config, props.className ?? '')), disabled, readOnly), metadata);
+}
+
+/** A platform clipboard control. It reports completion only after the platform write settles. */
+export interface CopyButtonProps extends ElementProps {
+  /** Exact clipboard text; Unicode, CRLF and trailing whitespace are preserved. */
+  value: string;
+  /** Shared button utilities. Defaults to empty. */
+  className?: string;
+}
+/** Copies value on activation. Shows Copy, Copying…, Copied or Copy failed. Try again.; failures retain the application and expose the platform message as a description. Ownership: owns a text snapshot; browser completion never retains a removed subtree. */
+export function CopyButton(props: CopyButtonProps): Node {
+  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
+  return applySemantics(unwrapNode(nativeCopyButton(props.value, props.className ?? '')), metadata);
 }
 
 /** Creates a text node by joining text children without a separator. className defaults to empty. Unknown utilities throw a message. Owns its text. */

@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 mod paint_color;
 pub use paint_color::ResolvedColor;
 
-pub const COLORS: &[&str] = &["background", "foreground", "card", "card-foreground", "primary", "primary-foreground", "secondary", "secondary-foreground", "muted", "muted-foreground", "accent", "accent-foreground", "destructive", "destructive-foreground", "border", "input", "ring"];
+pub const COLORS: &[&str] = &["background", "foreground", "card", "card-foreground", "primary", "primary-foreground", "secondary", "secondary-foreground", "muted", "muted-foreground", "accent", "accent-foreground", "destructive", "destructive-foreground", "border", "input", "ring", "syntax-keyword", "syntax-string", "syntax-number", "syntax-type"];
 pub fn key_name(key:&str)->String {
  let mut out=String::new();let mut upper=false;
  for ch in key.chars() {if ch=='-' {upper=true;}else if upper {out.extend(ch.to_uppercase());upper=false;}else{out.push(ch);}}out
@@ -57,7 +57,13 @@ impl Theme {
         let mut key=key_name(key);let mut seen=std::collections::BTreeSet::new();
         loop {
             if !seen.insert(key.clone()){return Err(format!("UI theme alias cycle: {mode}.{key}"));}
-            let value=values.get(&key).ok_or_else(||format!("Missing UI theme token: {mode}.{key}"))?.trim();
+            let fallback=match (mode,key.as_str()) {
+                ("light","syntaxKeyword")=>Some("#9f1239"),("dark","syntaxKeyword")=>Some("#fda4af"),
+                ("light","syntaxString")=>Some("#166534"),("dark","syntaxString")=>Some("#86efac"),
+                ("light","syntaxNumber")=>Some("#92400e"),("dark","syntaxNumber")=>Some("#fcd34d"),
+                ("light","syntaxType")=>Some("#1e40af"),("dark","syntaxType")=>Some("#93c5fd"),_=>None,
+            };
+            let value=values.get(&key).map(String::as_str).or(fallback).ok_or_else(||format!("Missing UI theme token: {mode}.{key}"))?.trim();
             if let Some(alias)=value.strip_prefix('@'){key=key_name(alias);continue;}
             return ResolvedColor::parse(value).map_err(|error|format!("UI theme {mode}.{key}: {error}"));
         }
@@ -117,5 +123,12 @@ impl Theme {
   value["radius"]["xl"]=21.into();assert_eq!(Theme::parse(&value.to_string()).unwrap().radius.extra_large(),21.);
   value["radius"]["xl"]=serde_json::Value::Null;assert!(Theme::parse(&value.to_string()).is_err());
   for invalid in [-0.1,256.01]{value["radius"]["xl"]=serde_json::json!(invalid);assert!(Theme::parse(&value.to_string()).is_err());}
+ }
+}
+
+#[cfg(test)]mod syntax_tests{
+ use super::*;
+ #[test]fn syntax_tokens_are_optional_customizable_and_alias_checked(){
+  let mut data:serde_json::Value=serde_json::from_str(DEFAULT_JSON).unwrap();let default=Theme::parse(&data.to_string()).unwrap();assert_ne!(default.color("light","syntax-string").unwrap(),default.color("dark","syntax-string").unwrap());data["light"]["syntaxString"]="@foreground".into();let custom=Theme::parse(&data.to_string()).unwrap();assert_eq!(custom.color("light","syntax-string").unwrap(),custom.color("light","foreground").unwrap());data["light"]["syntaxString"]="@syntaxString".into();assert!(Theme::parse(&data.to_string()).is_err());data["light"]["syntaxString"]="#not-a-color".into();assert!(Theme::parse(&data.to_string()).is_err());
  }
 }

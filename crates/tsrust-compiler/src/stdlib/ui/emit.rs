@@ -13,7 +13,7 @@ pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> Strin
         .unwrap();
     let NativeBackend::Bundled { symbol } = binding.backend;
     let (parameters,call)=match binding.name {
-        "view"|"staticButton"|"button"|"link" => {
+        "view"|"staticButton"|"button"|"link"|"text" => {
             let array=crate::native_binding_types::resolve(&program.records,&super::CHILDREN).unwrap();
             let Type::Array(element)=array else{unreachable!()};let Type::Union(union)=element.ty() else{unreachable!()};
             let members=&program.unions[union.index()].members;
@@ -24,6 +24,7 @@ pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> Strin
             let child=members.iter().position(|ty|*ty==Type::Record(node)).unwrap();
             let mut parameters=format!("mut children:{},class_name:&String",crate::emit::ty(array));
             let factory=match binding.name {
+                "text"=>"tsrust_native_ui::Node::text_children(parts,class_name.as_ref().to_owned())",
                 "link"=>{parameters.push_str(",href:&String");"tsrust_native_ui::navigation::link(parts,class_name.as_ref().to_owned(),href.as_ref())"},
                 "view"=>"tsrust_native_ui::Node::view(parts,class_name.as_ref().to_owned())",
                 "staticButton"=>{parameters.push_str(",disabled:bool");"tsrust_native_ui::Node::button_children(parts,class_name.as_ref().to_owned(),disabled,None)"},
@@ -32,19 +33,10 @@ pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> Strin
             };
             (parameters,format!("{{let mut parts=Vec::with_capacity(children.len());while let Some(child)=children.pop(){{parts.push(match child{{{absent}{scalars}Union{union}::V{literal}(text)=>tsrust_native_ui::Child::Text(tsrust_native_ui::TextPart::Literal(text.as_ref().to_owned())),{bindings}Union{union}::V{child}(node)=>tsrust_native_ui::Child::Node(node)}});}}parts.reverse();{factory}}}",union=union.index()))
         },
+        "copyButton" => ("value:&String,class_name:&String".into(),"tsrust_native_ui::clipboard::button(value.as_ref().to_owned(),class_name.as_ref().to_owned())".into()),
         "location" => (String::new(),"tsrust_native_ui::navigation::location(|value|String::Owned(value),|value:&String|value.as_ref().to_owned())".into()),
         "navigate" => ("path:&String".into(),"tsrust_native_ui::navigation::navigate(path.as_ref())".into()),
         "traverse" => ("forward:bool".into(),"tsrust_native_ui::navigation::traverse(forward)".into()),
-        "text" => {
-            let array=crate::native_binding_types::resolve(&program.records,&super::TEXT_CHILDREN).unwrap();
-            let Type::Array(element)=array else{unreachable!()};let Type::Union(union)=element.ty() else{unreachable!()};
-            let members=&program.unions[union.index()].members;
-            let literal=members.iter().position(|ty|*ty==Type::String).unwrap();
-            let bindings=signal_arms(program,members,union.index(),false);
-            let absent=absent_arms(members,union.index());
-            let scalars=scalar_arms(program,members,union.index(),binding.name!="text");
-            (format!("mut children:{},class_name:&String",crate::emit::ty(array)),format!("{{let mut parts=Vec::with_capacity(children.len());while let Some(child)=children.pop(){{parts.push(match child{{{absent}{scalars}Union{}::V{literal}(text)=>tsrust_native_ui::TextPart::Literal(text.as_ref().to_owned()),{bindings}}});}}parts.reverse();tsrust_native_ui::Node::text(parts,class_name.as_ref().to_owned())}}",union.index()))
-        },
         "bindHidden" => (format!("node:Record{node},predicate:impl FnMut()->Result<bool,std::string::String>+'static"),"node.with_hidden(predicate)".into()),
         "bindReadOnly" => (format!("node:Record{node},predicate:impl FnMut()->Result<bool,std::string::String>+'static"),"node.with_read_only(predicate)".into()),
         "bindDisabled" => (format!("node:Record{node},predicate:impl FnMut()->Result<bool,std::string::String>+'static"),"node.with_disabled(predicate)".into()),

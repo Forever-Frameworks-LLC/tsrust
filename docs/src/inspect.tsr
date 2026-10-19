@@ -4,9 +4,9 @@ import { Page } from './app/page';
 
 function main() {
   const html = document(Page(), 'Tsrust');
-  strictEqual(html.includes('Closer to the machine.'), true);
+  strictEqual(html.includes('Stay expressive.'), true);
   strictEqual(html.includes('href="/docs"'), true);
-  strictEqual(html.includes('Read the documentation'), true);
+  strictEqual(html.includes('Documentation'), true);
   strictEqual(html.includes('href="/docs/getting-started/installation"'), true);
   strictEqual(html.includes('Count: 0'), true);
   strictEqual(html.includes('Show source'), true);

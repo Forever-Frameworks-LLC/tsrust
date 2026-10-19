@@ -13,11 +13,11 @@ const profile=fs.mkdtempSync(path.join(os.tmpdir(),'tsrust-application-browser-'
 let browser,socket,timer,server;
 try {
  let expected;
- if(!['docs-example','docs-navigation'].includes(scenario)){
+ if(!['docs-example','docs-navigation','docs-inline'].includes(scenario)){
  const compiler=spawnSync(process.execPath,[path.join(here,'../runtime/node_modules/typescript/bin/tsc'),'--target','es2022','--lib','es2022','--skipLibCheck','--outDir',profile,path.join(here,'application-reference.ts')],{encoding:'utf8',timeout:30000});assert.equal(compiler.status,0,compiler.stderr||compiler.stdout);
  const reference=spawnSync(process.execPath,[path.join(profile,'application-reference.js')],{encoding:'utf8',timeout:30000});assert.equal(reference.status,0,reference.stderr);expected=JSON.parse(reference.stdout);
  }
- server=http.createServer((request,response)=>{let name=request.url==='/'?'index.html':request.url.slice(1);if(!['index.html','app.js','app_bg.wasm'].includes(name)){if(scenario==='docs-navigation'&&request.headers.accept?.includes('text/html'))name='index.html';else{response.writeHead(404).end();return;}}response.setHeader('Content-Type',name.endsWith('.wasm')?'application/wasm':name.endsWith('.js')?'text/javascript':'text/html');response.end(fs.readFileSync(path.join(site,name)));});
+ server=http.createServer((request,response)=>{let name=request.url==='/'?'index.html':request.url.slice(1);if(!['index.html','app.js','app_bg.wasm'].includes(name)){if(['docs-navigation','docs-inline'].includes(scenario)&&request.headers.accept?.includes('text/html'))name='index.html';else{response.writeHead(404).end();return;}}response.setHeader('Content-Type',name.endsWith('.wasm')?'application/wasm':name.endsWith('.js')?'text/javascript':'text/html');response.end(fs.readFileSync(path.join(site,name)));});
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  browser=spawn(process.env.CHROME||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',['--headless=new','--disable-extensions','--no-first-run','--no-default-browser-check','--remote-debugging-port=0',`--user-data-dir=${profile}`,'about:blank'],{stdio:'ignore'});
  const portFile=path.join(profile,'DevToolsActivePort');for(let i=0;!fs.existsSync(portFile)&&i<100;i++)await new Promise(resolve=>setTimeout(resolve,100));assert(fs.existsSync(portFile),'Chrome did not start');
@@ -28,7 +28,9 @@ try {
  async function evaluate(expression){const result=await call('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});assert(!result.exceptionDetails,JSON.stringify(result.exceptionDetails));return result.result.value;}
  timer=setTimeout(()=>browser.kill('SIGKILL'),45000);await call('Runtime.enable');await call('Page.enable');await call('Page.navigate',{url:`http://127.0.0.1:${server.address().port}/`});
  for(let i=0;i<100&&!await evaluate('Boolean(window.ui)');i++)await new Promise(resolve=>setTimeout(resolve,100));assert(await evaluate('Boolean(window.ui)'),JSON.stringify(errors));
- if(scenario==='docs-navigation'){
+ if(scenario==='docs-inline'){
+  const {observeDocsInline}=await import('./docs-inline-observer.mjs');await observeDocsInline({evaluate,call,errors,site});
+ } else if(scenario==='docs-navigation'){
   const {observeDocsNavigation}=await import('./docs-navigation-observer.mjs');await observeDocsNavigation({evaluate,call,errors,site});
  } else if(scenario==='docs-example'){
   const {observeDocsExample}=await import('./docs-example-observer.mjs');await observeDocsExample({evaluate,call,errors,site});

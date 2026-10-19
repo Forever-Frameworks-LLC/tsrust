@@ -7,6 +7,8 @@ export interface DocRange {
 export interface DocCodeToken {
   source: DocRange;
   class: string;
+  /** Exact lexeme, avoiding a conversion between UTF-8 ranges and string indices. */
+  text: string;
 }
 /** Flat preorder tree; parent=-1 means a root. Text and raw source remain separate. */
 export interface DocNode {

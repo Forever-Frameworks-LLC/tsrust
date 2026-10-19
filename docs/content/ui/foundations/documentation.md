@@ -5,16 +5,6 @@
 
 This site is a Tsrust application. The landing page lives at `/`; the shared documentation catalog lives under `/docs`.
 
-## Navigation and search
-
-- Choose a page from the sidebar.
-- Search page text and code without a network service.
-- Use Back and Next to traverse your browsing history.
-
-The browser supports direct document URLs and normal modified link clicks. Native builds use the same paths and keep an application history. Each route retains its own example state while mounted in the fixed catalog.
-
-> A pending component page is an implementation inventory entry. It does not claim a finished control or a working component preview.
-
 ## Content structure
 
 The checked CommonMark tree supplies headings, paragraphs, lists, blockquotes, tables and code fences. HTML remains literal text; content never executes application code.
@@ -23,7 +13,7 @@ The checked CommonMark tree supplies headings, paragraphs, lists, blockquotes, t
 | --- | --- | --- |
 | Headings and paragraphs | Semantic elements | Accessible headings and text |
 | Lists and tables | List and table elements | List and table roles |
-| Code blocks | Read-only text control | Read-only text editor |
+| Code blocks | Highlighted, selectable text | Highlighted, selectable text |
 | Application links | Browser anchors | Accessible links |
 
 ## Try a sequence
@@ -36,12 +26,20 @@ The checked CommonMark tree supplies headings, paragraphs, lists, blockquotes, t
 
 Heading links preserve Unicode text through browser URL encoding, history and direct entry. Native uses the same decoded heading identity.
 
-## Current rendering limits
+## Inline text and source
 
-Inline emphasis currently retains its text without rich formatting. Paragraph links appear as separate links after their paragraph. Images appear as labeled references. Dedicated syntax-colored code, an exact-byte copy command and rich inline selection remain unfinished. Read-only code controls normalize line endings.
+Use **strong emphasis**, *emphasis*, ~~deleted text~~ and `inline code` in the same paragraph. Follow [state and ownership](state.md) without leaving the sentence.
 
-- [x] Content is checked before publication.
-- [x] Page navigation changes the selected document.
-- [ ] Rich inline rendering is complete.
+```tsrust
+// Unicode and whitespace stay intact when copied.
+const greeting = 'Hello, café 文';
+console.log(greeting.trim());
+```
 
-See [state and ownership](state.md) for the lifetime contract and [theming](theming.md) for project-owned design tokens.
+Copy writes the original source, including line endings and trailing whitespace. The button reports success after the clipboard write completes. If permission is denied, it displays a retry message. Browser clipboard access requires HTTPS or localhost.
+
+The `syntaxKeyword`, `syntaxString`, `syntaxNumber` and `syntaxType` tokens in each theme mode customize highlighting. Omitted tokens use built-in light/dark colors. Unknown languages remain plain text.
+
+## Rendering limits
+
+Images appear as labeled references. External links display their destination as text. Raw HTML is displayed literally. Native text selection stays within one paragraph or code block; cross-paragraph selection and accessibility text-range navigation are not supported yet.

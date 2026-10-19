@@ -1,5 +1,5 @@
 import { View, Text, Node, Child, Link } from 'std:ui';
-import { Textarea } from '../ui/textarea';
+import { CodeBlock } from './code-block';
 import { DocPage, DocNode, DocCatalog, renderExample } from '../../../target/docs-content/catalog';
 import { ExampleCard } from './example-card';
 import { ApiReference } from './api-reference';
@@ -40,28 +40,72 @@ function content(nodes: ReadOnly<DocNode[]>, index: int): string {
   return value;
 }
 
-function heading(text: string, level: int, id: string): Node {
+function inlineContent(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>, parent: int): Child[] {
+  let children: Child[] = [];
+  for (let i = parent + 1; i < page.document.nodes.length; i++) {
+    const node = page.document.nodes[i];
+    if (node.parent < parent) {
+      break;
+    }
+
+    if (node.parent !== parent) {
+      continue;
+    }
+
+    if (node.kind === 'text' || node.kind === 'html-literal') {
+      children.push(clone(node.text));
+    } else if (node.kind === 'soft-break') {
+      children.push(' ');
+    } else if (node.kind === 'hard-break') {
+      children.push('\n');
+    } else if (node.kind === 'code') {
+      children.push(<Text as="code" className="font-mono text-foreground">{clone(node.text)}</Text>);
+    } else if (node.kind === 'strong') {
+      children.push(<Text as="strong" children={inlineContent(page,catalog,i)}/>);
+    } else if (node.kind === 'emphasis') {
+      children.push(<Text as="em" children={inlineContent(page,catalog,i)}/>);
+    } else if (node.kind === 'strike') {
+      children.push(<Text as="del" children={inlineContent(page,catalog,i)}/>);
+    } else if (node.kind === 'link') {
+      if (node.destination.startsWith('/')) {
+        children.push(<Link href={linkTarget(node.destination,catalog)} className="text-primary" children={inlineContent(page,catalog,i)}/>);
+      } else if (node.destination.startsWith('#')) {
+        children.push(<Link href={docsPath(page.route)+'#'+page.metadata.id+'-'+node.destination.slice(1)} className="text-primary" children={inlineContent(page,catalog,i)}/>);
+      } else {
+        children.push(content(page.document.nodes, i) + ' (' + node.destination + ')');
+      }
+    } else if (node.kind === 'image') {
+      children.push('Image: ' + content(page.document.nodes, i));
+    } else if (node.kind === 'task') {
+      children.push(node.checked === true ? '[x] ' : '[ ] ');
+    }
+  }
+
+  return children;
+}
+
+function heading(text: Child[], level: int, id: string): Node {
   if (level === 1) {
-    return (<Text id={id} as="h1" className="text-3xl font-semibold leading-snug">{text}</Text>);
+    return (<Text id={id} as="h1" className="text-3xl font-semibold leading-snug" children={text}/>);
   }
 
   if (level === 2) {
-    return (<Text id={id} as="h2" className="text-xl font-semibold pt-6">{text}</Text>);
+    return (<Text id={id} as="h2" className="text-xl font-semibold pt-6" children={text}/>);
   }
 
   if (level === 3) {
-    return (<Text id={id} as="h3" className="text-base font-semibold pt-4">{text}</Text>);
+    return (<Text id={id} as="h3" className="text-base font-semibold pt-4" children={text}/>);
   }
 
   if (level === 4) {
-    return (<Text id={id} as="h4" className="font-semibold">{text}</Text>);
+    return (<Text id={id} as="h4" className="font-semibold" children={text}/>);
   }
 
   if (level === 5) {
-    return (<Text id={id} as="h5" className="font-semibold">{text}</Text>);
+    return (<Text id={id} as="h5" className="font-semibold" children={text}/>);
   }
 
-  return (<Text id={id} as="h6" className="font-semibold">{text}</Text>);
+  return (<Text id={id} as="h6" className="font-semibold" children={text}/>);
 }
 
 function linkTarget(destination: string, catalog: ReadOnly<DocCatalog>): string {
@@ -90,30 +134,11 @@ function renderBlocks(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>, pa
 
     const text = content(page.document.nodes, i);
     if (node.kind === 'heading') {
-      blocks.push(heading(text, node.level, page.metadata.id + '-' + node.anchor));
+      blocks.push(heading(inlineContent(page, catalog, i), node.level, page.metadata.id + '-' + node.anchor));
     } else if (node.kind === 'paragraph') {
-      blocks.push(<Text as="p" className="leading-normal text-muted-foreground">{text}</Text>);
-      for (let j = i + 1; j < page.document.nodes.length; j++) {
-        const inline = page.document.nodes[j];
-        if (inline.parent < i) {
-          break;
-        }
-
-        if (inline.kind === 'link') {
-          const label = content(page.document.nodes, j);
-          if (inline.destination.startsWith('/')) {
-            blocks.push(<Link href={linkTarget(inline.destination, catalog)} className="text-sm font-medium py-1">{label} {'↗'}</Link>);
-          } else if (inline.destination.startsWith('#')) {
-            blocks.push(<Link href={docsPath(page.route) + '#' + page.metadata.id + '-' + inline.destination.slice(1)} className="text-sm font-medium py-1">{label}</Link>);
-          } else {
-            blocks.push(<Text className="font-mono text-sm">{label}: {clone(inline.destination)}</Text>);
-          }
-        } else if (inline.kind === 'image') {
-          blocks.push(<Text className="text-sm">Image: {content(page.document.nodes, j)} ({clone(inline.destination)})</Text>);
-        }
-      }
+      blocks.push(<Text as="p" className="leading-normal text-muted-foreground" children={inlineContent(page,catalog,i)}/>);
     } else if (node.kind === 'code-block') {
-      blocks.push(<View className="rounded-lg border bg-muted p-4 gap-2"><Text className="text-xs font-mono text-muted-foreground">{clone(node.language)}</Text><Textarea aria-label="Code example" value={clone(node.raw)} readOnly className="font-mono text-sm w-full h-48 border-0 bg-transparent"/></View>);
+      blocks.push(<CodeBlock code={clone(node.raw)} tokens={clone(node.tokens)} language={clone(node.language)}/>);
     } else if (node.kind === 'quote') {
       blocks.push(<View as="blockquote" className="border-l-2 pl-4 gap-4" children={renderBlocks(page, catalog, i)}/>);
     } else if (node.kind === 'list') {
@@ -135,9 +160,9 @@ function renderBlocks(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>, pa
       blocks.push(<View as="tr" className="flex-row border-t" children={renderBlocks(page, catalog, i)}/>);
     } else if (node.kind === 'table-cell') {
       if (page.document.nodes[parent].kind === 'table-head') {
-        blocks.push(<View as="th" className="grow min-w-0 w-1/2 p-3"><Text className="text-sm leading-normal">{text}</Text></View>);
+        blocks.push(<View as="th" className="grow min-w-0 w-1/2 p-3"><Text className="text-sm leading-normal" children={inlineContent(page,catalog,i)}/></View>);
       } else {
-        blocks.push(<View as="td" className="grow min-w-0 w-1/2 p-3"><Text className="text-sm leading-normal">{text}</Text></View>);
+        blocks.push(<View as="td" className="grow min-w-0 w-1/2 p-3"><Text className="text-sm leading-normal" children={inlineContent(page,catalog,i)}/></View>);
       }
     } else if (node.kind === 'rule') {
       blocks.push(<View role="separator" className="border-t"/>);
@@ -160,7 +185,7 @@ export function Markdown(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>)
   for (const id of page.metadata.examples) {
     for (const example of catalog.examples) {
       if (id === example.id) {
-        blocks.push(<ExampleCard id={page.metadata.id + '-' + id} title="Try the example" description="The preview and source come from the same checked project file." source={clone(example.source)} code={clone(example.code)}>{renderExample(clone(id))}</ExampleCard>);
+        blocks.push(<ExampleCard id={page.metadata.id + '-' + id} title="Try the example" description="The preview and source come from the same checked project file." source={clone(example.source)} code={clone(example.code)} tokens={clone(example.tokens)}>{renderExample(clone(id))}</ExampleCard>);
       }
     }
   }

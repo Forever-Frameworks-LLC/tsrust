@@ -109,12 +109,13 @@ impl Node {
         assign(self,&mut next,reset);self.next_identity.set(next);
     }
     pub(crate) fn phrasing(&self)->bool {
-        self.visible_root().is_none_or(|node|matches!(node.tag(),"span"|"code"|"kbd")
+        self.visible_root().is_none_or(|node|matches!(node.tag(),"span"|"code"|"kbd"|"strong"|"em"|"del")
             && matches!(node.semantics.role.as_str(),""|"none"|"presentation")
             && node.semantics.tab_index.is_none() && !matches!(node.kind,Kind::Button|Kind::DisabledButton)
             && node.children.iter().all(Self::phrasing))
     }
     pub(crate) fn validate_structure(&self)->Result<(),String> {
+        if self.kind==Kind::Text {for child in &self.children {child.validate_inline()?;}}
         if matches!(self.kind,Kind::Button|Kind::DisabledButton) && !self.children.iter().all(Self::phrasing){return Err("Button children must be noninteractive phrasing content: text, span, code or kbd".into());}
         if self.semantics.role=="separator" && (!self.text.is_empty()||self.visible_children().next().is_some()){return Err("A separator cannot contain text or children".into());}
         if self.tag()=="label" {

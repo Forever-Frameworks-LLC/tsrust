@@ -12,7 +12,6 @@ const SIGNAL_INT:Signature=Signature::Applied(NativeTypeId::UiSignal,&[Signature
 const SIGNAL_NUMBER:Signature=Signature::Applied(NativeTypeId::UiSignal,&[Signature::Number]);
 const SIGNAL_BOOLEAN:Signature=Signature::Applied(NativeTypeId::UiSignal,&[Signature::Boolean]);
 const SIGNAL_STRING:Signature=Signature::Applied(NativeTypeId::UiSignal,&[Signature::String]);
-pub(crate) const TEXT_CHILDREN:Signature=Signature::Array(&Signature::Optional(&Signature::Union(&[Signature::String,Signature::Int,Signature::Number,Signature::Named(NativeTypeId::UiTextBinding),SIGNAL_INT,SIGNAL_NUMBER,SIGNAL_BOOLEAN,SIGNAL_STRING,Signature::Null])));
 pub(crate) const CHILD_VALUE:Signature=Signature::Optional(&Signature::Union(&[Signature::String,Signature::Int,Signature::Number,Signature::Named(NativeTypeId::UiTextBinding),SIGNAL_INT,SIGNAL_NUMBER,SIGNAL_BOOLEAN,SIGNAL_STRING,Signature::Named(NativeTypeId::UiNode),Signature::Null]));
 pub(crate) const CHILDREN:Signature=Signature::Array(&CHILD_VALUE);
 pub(crate) const INPUT_DEFAULT:Signature=Signature::Optional(&Signature::Union(&[Signature::String,Signature::Int,Signature::Number]));
@@ -31,7 +30,7 @@ pub(crate) const TEXT: NativeBinding = NativeBinding {
     module: "std:ui-runtime",
     name: "text",
     parameters: &[
-        parameter("children", NativeType::Structured(&TEXT_CHILDREN), Mode::Consume),
+        parameter("children", NativeType::Structured(&CHILDREN), Mode::Consume),
         parameter("className", NativeType::String, Mode::Read),
     ],
     result: NativeType::Structured(&Signature::Result(&NODE, &ERROR)),
@@ -41,6 +40,7 @@ pub(crate) const TEXT: NativeBinding = NativeBinding {
     },
     features: &["ui"],
 };
+pub(crate) const COPY_BUTTON:NativeBinding=NativeBinding{name:"copyButton",parameters:&[parameter("value",NativeType::String,Mode::Read),parameter("className",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_copy_button"},..TEXT};
 pub(crate) const VIEW: NativeBinding = NativeBinding {
     name: "view",
     parameters:&[parameter("children",NativeType::Structured(&CHILDREN),Mode::Consume),parameter("className",NativeType::String,Mode::Read)],
@@ -112,6 +112,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("#[path = \"native_geometry.rs\"]\nmod geometry;",&format!("mod geometry {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_geometry.rs")))
         .replace("#[path = \"native_viewport.rs\"]\nmod viewport;",&format!("mod viewport {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_viewport.rs")))
         .replace("#[path = \"native_scrolling.rs\"]\nmod scrolling;",&format!("mod scrolling {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_scrolling.rs")))
+        .replace("#[path = \"native_inline.rs\"]\nmod inline;",&format!("mod inline {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_inline.rs").replace("crate::theme::", "super::super::theme::").replace("crate::Semantics", "super::super::Semantics")))
         .replace("#[path = \"native_editing.rs\"]\nmod editing;",&format!("mod editing {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_editing.rs").replace("use crate::editable::normalize;", "use super::super::editable::normalize;")));
     let style = include_str!("../../../../tsrust-ui/src/style.rs")
         .replace("mod layout;",&format!("mod layout {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/style/layout.rs")))
@@ -132,6 +133,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("#[cfg(feature = \"acceptance\")]\n#[doc(hidden)]\npub use native::verify_window;",if with_native {"#[cfg(feature = \"ui-acceptance\")] pub use native::verify_window;"}else{""})
         .replace("pub mod browser;",&format!("pub mod browser {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/browser.rs").replace("use crate::{", "use super::{")))
         .replace("mod editable;",&format!("mod editable {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/editable.rs")))
+        .replace("pub mod clipboard;", &format!("pub mod clipboard {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/clipboard.rs").replace("crate::Node", "super::Node")))
         .replace("pub mod navigation;", &format!("pub mod navigation {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/navigation.rs")))
         .replace("mod state;", &format!("mod state {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/state.rs")))
         .replace("#[cfg(test)]\nmod application_tests;", "")

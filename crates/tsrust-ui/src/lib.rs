@@ -13,6 +13,7 @@ mod window;
 #[cfg(test)]
 mod application_tests;
 mod editable;
+pub mod clipboard;
 pub(crate) use editable::{ValueBinding,ChangeHandler};
 pub use state::{Signal,TextBinding};
 pub mod style;
@@ -74,6 +75,7 @@ pub struct Node {
     pub(crate) children: Vec<Node>,
     pub(crate) parts: Vec<TextPart>,
     pub(crate) disabled: Option<Box<dyn FnMut()->Result<bool,String>>>,
+    pub(crate) copy:Option<clipboard::Copy>,
     pub(crate) press: Option<Box<dyn FnMut() -> Result<(), String>>>,
     pub(crate) editable: Option<editable::Editable>,
     read_only: Option<Box<dyn FnMut()->Result<bool,String>>>,
@@ -93,7 +95,7 @@ impl Node {
         let tag=if value.tag.is_empty(){self.tag()}else{&value.tag};
         let allowed=match self.kind {
             Kind::View=>matches!(tag,"div"|"section"|"span"|"label"|"kbd"|"code"|"nav"|"main"|"header"|"footer"|"aside"|"article"|"blockquote"|"ul"|"ol"|"li"|"table"|"thead"|"tbody"|"tr"|"th"|"td"),
-            Kind::Text=>matches!(tag,"div"|"span"|"p"|"h1"|"h2"|"h3"|"h4"|"h5"|"h6"|"code"|"kbd"),
+            Kind::Text=>matches!(tag,"div"|"span"|"p"|"h1"|"h2"|"h3"|"h4"|"h5"|"h6"|"code"|"kbd"|"strong"|"em"|"del"),
             Kind::Button|Kind::DisabledButton=>matches!(tag,"button"|"a"),
             Kind::Input=>tag=="input",
             Kind::Textarea=>tag=="textarea",
@@ -116,7 +118,7 @@ impl Node {
     }
     fn has_enabled_controls(&self)->bool {!self.collapsed && (self.enabled_control() || self.children.iter().any(Self::has_enabled_controls))}
     pub(crate) fn enabled_control(&self)->bool {(matches!(self.kind,Kind::Button|Kind::Input|Kind::Textarea) || self.kind==Kind::View && self.semantics.tab_index.is_some()) && !self.is_disabled()}
-    pub(crate) fn is_disabled(&self)->bool {self.kind==Kind::DisabledButton || self.editable.as_ref().is_some_and(|field|field.disabled)}
+    pub(crate) fn is_disabled(&self)->bool {self.kind==Kind::DisabledButton || self.copy.as_ref().is_some_and(|copy|copy.pending) || self.editable.as_ref().is_some_and(|field|field.disabled)}
     fn apply_disabled(&mut self,next:bool)->bool {
         if let Some(field)=&mut self.editable {let changed=field.disabled!=next;field.disabled=next;changed}
         else {let kind=if next{Kind::DisabledButton}else{Kind::Button};let changed=self.kind!=kind;self.kind=kind;changed}
@@ -195,6 +197,24 @@ impl Node {
         if parts.iter().any(|part|matches!(part,TextPart::Signal(_))) {node.parts=parts;}
         Ok(node)
     }
+    /// One shaped paragraph with nested inline semantic nodes.
+    pub fn text_children(children:Vec<Child>,class_name:String)->Result<Self,String> {
+        if style::requires_container(&class_name){return Err("Container layout utilities require View; Text shares one paragraph".into());}
+        if children.iter().all(|child|matches!(child,Child::Text(_))){return Self::text(children.into_iter().map(|child|match child{Child::Text(part)=>part,_=>unreachable!()}).collect(),class_name);}
+        let children=Self::child_nodes(children)?;
+        for child in &children {child.validate_inline()?;}
+        let mut node=Self::new(Kind::View,class_name,String::new(),children)?;
+        node.kind=Kind::Text;node.validate_structure()?;Ok(node)
+    }
+    fn validate_inline(&self)->Result<(),String> {
+        let Some(node)=self.visible_root() else{return Ok(());};
+        if !(node.kind==Kind::Text && matches!(node.tag(),"span"|"code"|"kbd"|"strong"|"em"|"del") || !node.semantics.href.is_empty()) {
+            return Err("Text children require inline Text or Link; blocks and controls belong in View".into());
+        }
+        style::validate_inline(&node.class_name)?;
+        for child in &node.children {child.validate_inline()?;}
+        Ok(())
+    }
     #[doc(hidden)]
     pub fn text_run(parts:Vec<TextPart>)->Result<Self,String> {
         let mut node=Self::text(parts,String::new())?;node.anonymous_text=true;Ok(node)
@@ -255,7 +275,7 @@ impl Node {
         fn visit(node:&mut Node,target:u64)->Result<bool,String> {
             if node.collapsed{return Ok(false);}
             if node.identity.get()==target {
-                if node.kind!=Kind::Button {return Ok(false);}
+                if node.kind!=Kind::Button || node.is_disabled() {return Ok(false);}
                 if let Some(handler)=&mut node.press {handler()?;return Ok(true);}
                 return Ok(false);
             }
@@ -323,7 +343,7 @@ impl Node {
             class_name,
             text,
             children,
-            parts: Vec::new(), disabled:None, press: None, state: Vec::new(), editable:None, read_only:None,collapsed:false,hidden:None,
+            parts: Vec::new(), disabled:None, copy:None, press: None, state: Vec::new(), editable:None, read_only:None,collapsed:false,hidden:None,
         })
     }
 }
@@ -561,5 +581,13 @@ mod editable_event_tests {
  fn committed_changes_receive_managed_name_and_id_metadata() {
   use std::{cell::RefCell,rc::Rc};let events=Rc::new(RefCell::new(Vec::new()));let observed=events.clone();
   let mut node=Node::input_control(None,None,r#"{"name":"profile"}"#,String::new(),Some(Box::new(move|value,name,id|{events.borrow_mut().push((value.to_owned(),name.to_owned(),id.to_owned()));Ok(())}))).unwrap().with_semantics(r#"{"id":"name"}"#).unwrap();node.input(1,"Ada🙂").unwrap();assert_eq!(*observed.borrow(),vec![("Ada🙂".into(),"profile".into(),"name".into())]);assert!(!node.input(1,"Ada🙂").unwrap());assert_eq!(observed.borrow().len(),1);
+ }
+}
+
+#[cfg(test)]mod inline_content_tests{
+ use super::*;
+ #[test]fn rich_text_rejects_block_controls_boxes_and_keeps_reactive_children(){
+  for child in [Node::view(vec![],String::new()).unwrap(),Node::button("bad".into(),String::new(),false,||Ok(())).unwrap(),Node::text(vec![TextPart::Literal("box".into())],"p-2".into()).unwrap()] {assert!(Node::text_children(vec![Child::Node(child)],String::new()).is_err());}
+  let state=Signal::new(1i64);let child=Node::text(vec![TextPart::Signal(state.handle().text_binding(i64::to_string))],"font-bold".into()).unwrap().with_semantics("{\"tag\":\"strong\"}").unwrap();let mut node=Node::text_children(vec![Child::Text(TextPart::Literal("Count ".into())),Child::Node(child)],String::new()).unwrap();node.ensure_identities();let id=node.children[1].identity.get();state.set(2).unwrap();node.refresh().unwrap();assert!(document(&node,"Text").contains(">2</strong>"));assert_eq!(node.children[1].identity.get(),id);drop(state);assert!(node.refresh().unwrap_err().contains("disposed"));
  }
 }

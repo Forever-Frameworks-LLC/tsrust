@@ -36,6 +36,8 @@ impl Painter {
         }
         self.scroll_chains.insert(item.identity, chain.clone());
         for child in &item.children { self.configure_scrolls(child, &chain)?; }
+        fn register(parts:&[Inline],chain:&[u64],map:&mut std::collections::BTreeMap<u64,Vec<u64>>){for part in parts {map.insert(part.identity,chain.to_vec());register(&part.children,chain,map);}}
+        register(&item.inline,&chain,&mut self.scroll_chains);
         Ok(())
     }
     pub(super) fn scroll_offset(&self, id: u64) -> (f64, f64) {

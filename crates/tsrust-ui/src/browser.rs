@@ -63,7 +63,7 @@ fn sync_element(node:&Node,document:&web_sys::Document,all:&mut std::collections
         value_property(&element,&field.value)?;
     }
     if node.kind!=Kind::View && node.editable.is_none() {element.set_text_content(Some(&node.text));}
-    if node.press.is_some(){element.set_attribute("data-tsrust-press","")?;}
+    if node.press.is_some()||node.copy.is_some(){element.set_attribute("data-tsrust-press","")?;}
     all.insert(id,element.clone());element};
 
     if !node.semantics.href.is_empty(){
@@ -77,6 +77,11 @@ fn sync_element(node:&Node,document:&web_sys::Document,all:&mut std::collections
         let preserve=composing.get(&id).is_some_and(|original|original==&field.value)&&!field.disabled&&!field.read_only;
         if !preserve{composing.remove(&id);value_property(&element,&field.value)?;}
         if field.read_only{element.set_attribute("readonly","")?;}else{element.remove_attribute("readonly")?;}
+    }
+    if let Some(copy)=&node.copy {
+        element.set_text_content(Some(&node.text));element.set_attribute("aria-live","polite")?;
+        element.set_attribute("data-copy-state",if copy.pending{"pending"}else if !copy.error.is_empty(){"error"}else if node.text=="Copied"{"copied"}else{"idle"})?;
+        if copy.error.is_empty(){element.remove_attribute("title")?;}else{element.set_attribute("title",&copy.error)?;}
     }
     if !node.parts.is_empty()&&element.text_content().as_deref()!=Some(node.text.as_str()){element.set_text_content(Some(&node.text));}
     if node.kind==Kind::View||!node.children.is_empty(){
@@ -149,7 +154,7 @@ pub fn mount(mut node:Node,title:&str)->Result<Mount,JsValue> {
     for event in ["click","input","compositionstart","compositionend"] {
         let weak=Rc::downgrade(&state);let document=document.clone();
         let callback=Closure::wrap(Box::new(move |message:Event| {
-            let Some(state)=weak.upgrade() else{return;};let Ok(mut state)=state.try_borrow_mut() else{return;};
+            let Some(state_ref)=weak.upgrade() else{return;};let Ok(mut state)=state_ref.try_borrow_mut() else{return;};
             if state.node.is_none(){return;}
             let Some(target)=message.target().and_then(|target|target.dyn_into::<Element>().ok()) else{return;};
             let target=if event=="click"{match target.closest("[data-tsrust-press]"){Ok(Some(element))=>element,_=>return}}else{target};
@@ -167,6 +172,19 @@ pub fn mount(mut node:Node,title:&str)->Result<Mount,JsValue> {
             }
             if event=="input"&&state.composing.contains_key(&id){return;}
             if event=="compositionend"&&state.composing.remove(&id).is_none(){return;}
+            if event=="click" {
+                let request=state.node.as_mut().and_then(|node|node.copy_node_mut(id)).and_then(Node::begin_copy);
+                if let Some((serial,value))=request {
+                    let pending=clipboard_write(&value);let weak=Rc::downgrade(&state_ref);let document=document.clone();
+                    wasm_bindgen_futures::spawn_local(async move {
+                        let result=wasm_bindgen_futures::JsFuture::from(pending).await.map(|_|()).map_err(|error|error.as_string().unwrap_or_else(||format!("{error:?}")));
+                        let Some(state)=weak.upgrade() else{return;};let Ok(mut state)=state.try_borrow_mut() else{return;};
+                        let Some(node)=state.node.as_mut().and_then(|node|node.copy_node_mut(id)) else{return;};node.finish_copy(serial,result);
+                        if let Err(error)=update(&mut state,&document){state.error=Some(format!("{error:?}"));state.node.take();}
+                    });
+                    if let Err(error)=update(&mut state,&document){state.error=Some(format!("{error:?}"));state.node.take();}return;
+                }
+            }
             let input=event!="click";let result=if input{control_value(&target)}else{Ok(String::new())};
             let node=state.node.as_mut().unwrap();
             if let Err(error)=result.and_then(|value|if input{node.input(id,&value)}else{node.activate(id)}).and_then(|_|node.refresh()) {
@@ -220,4 +238,14 @@ pub fn launch(entry:impl FnOnce()->bool)->Result<js_sys::Array,JsValue> {
 pub fn run_configured(node:Node,title:String,options:&str)->Result<(),String> {
     super::window::Options::parse(options)?;
     run(node,title)
+}
+
+fn clipboard_write(value:&str)->js_sys::Promise {
+    let start=(||->Result<js_sys::Promise,JsValue>{
+        let window=web_sys::window().ok_or_else(||JsValue::from_str("Browser window unavailable"))?;
+        let navigator=js_sys::Reflect::get(window.as_ref(),&JsValue::from_str("navigator"))?;
+        let clipboard=js_sys::Reflect::get(&navigator,&JsValue::from_str("clipboard"))?;
+        let write=js_sys::Reflect::get(&clipboard,&JsValue::from_str("writeText"))?.dyn_into::<js_sys::Function>()?;
+        write.call1(&clipboard,&JsValue::from_str(value))?.dyn_into::<js_sys::Promise>()
+    })();start.unwrap_or_else(|error|js_sys::Promise::reject(&error))
 }

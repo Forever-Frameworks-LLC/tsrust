@@ -1,7 +1,8 @@
 import { View, Text, Node, Child, signal } from 'std:ui';
 import { Button } from '../ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../ui/card';
-import { Textarea } from '../ui/textarea';
+import { CodeBlock } from './code-block';
+import { DocCodeToken } from '../../../target/docs-content/catalog';
 
 export interface ExampleCardProps {
   id: string;
@@ -9,6 +10,7 @@ export interface ExampleCardProps {
   description: string;
   source: string;
   code: string;
+  tokens: DocCodeToken[];
   children?: Child[];
 }
 
@@ -28,8 +30,7 @@ export function ExampleCard(props: ExampleCardProps): Node {
         <View id={previewId} hidden={showSource.get()} className="h-32 overflow-auto" children={props.children} />
         <View id={sourceId} hidden={!showSource.get()} className="gap-2">
           <Text className="text-sm font-mono text-muted-foreground">{props.source}</Text>
-          <Textarea aria-label={sourceLabel} value={props.code} readOnly className="w-full h-64 font-mono text-sm" />
-          <Text className="text-sm text-muted-foreground">Read-only source. Select text and use your platform's copy shortcut. Syntax colors and a dedicated copy action are still pending.</Text>
+          <CodeBlock label={sourceLabel} code={props.code} tokens={props.tokens} />
         </View>
         <Button variant="outline" onPress={() => { showSource.set(!showSource.get()); }}>{showSource.get() ? 'Show preview' : 'Show source'}</Button>
       </CardContent>

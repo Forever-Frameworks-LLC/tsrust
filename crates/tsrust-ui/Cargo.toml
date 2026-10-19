@@ -5,7 +5,7 @@ edition = "2024"
 publish = false
 
 [features]
-ui-web = ["dep:wasm-bindgen", "dep:js-sys", "dep:web-sys"]
+ui-web = ["dep:wasm-bindgen", "dep:js-sys", "dep:web-sys", "dep:wasm-bindgen-futures"]
 default = []
 acceptance = ["native"]
 native = ["dep:winit", "dep:vello", "dep:taffy", "dep:parley", "dep:pollster", "dep:accesskit", "dep:accesskit_winit", "dep:arboard"]
@@ -28,3 +28,5 @@ arboard = { version = "=3.7.0", default-features = false, features = ["wayland-d
 wasm-bindgen = { version = "=0.2.129", optional = true }
 js-sys = { version = "=0.3.106", optional = true }
 web-sys = { version = "=0.3.106", optional = true, features = ["Window", "Document", "HtmlElement", "Element", "Node", "Event", "EventTarget"] }
+
+wasm-bindgen-futures = { version = "=0.4.79", optional = true }

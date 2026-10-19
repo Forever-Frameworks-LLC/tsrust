@@ -80,7 +80,7 @@ fn library(root:&Path,config:&docs::Config,inputs:&mut BTreeMap<String,String>,p
             public.push(json!({"name":name,"status":status,"description":description,"dependencies":entry.get("registryDependencies").cloned().unwrap_or(json!([]))}));
             let route=format!("/ui/{group}/{name}");
             if !pages.iter().any(|page|page.route==route){
-                let text=format!("# {}\n\n{}\n\nImplementation status: {}. This is an inventory destination, not a working preview.\n",name.split('-').map(|word|{let mut chars=word.chars();chars.next().unwrap().to_uppercase().collect::<String>()+chars.as_str()}).collect::<Vec<_>>().join(" "),description,status);
+                let text=format!("# {}\n\n{}\n\nNot available yet.\n",name.split('-').map(|word|{let mut chars=word.chars();chars.next().unwrap().to_uppercase().collect::<String>()+chars.as_str()}).collect::<Vec<_>>().join(" "),description);
                 pages.push(docs::Page{metadata:docs::Metadata{id:format!("{group}-{name}"),group:group.into(),order:1000,status:if status=="partial"{docs::Status::Partial}else{docs::Status::Pending},targets:vec![docs::Target::Web,docs::Target::Native],examples:vec![],api:vec![],component:(group=="components").then(||name.to_string())},route,source:format!("inventory:{path}#{group}/{name}"),sha256:hash(text.as_bytes()),document:docs::parse(&text,0)?,markdown:text});
             }
         }
@@ -232,7 +232,7 @@ fn build(root:&Path)->Result<String,String>{
     for definition in &mut api{definition.source=definition.source.strip_prefix(&format!("{}/",root.display())).unwrap_or(&definition.source).to_string();for field in &mut definition.fields{field.source=field.source.strip_prefix(&format!("{}/",root.display())).unwrap_or(&field.source).to_string();}}
     for (id,module) in &checked.graph.modules{if id.0.starts_with("std:"){pin(&mut inputs,id.0.clone(),module.source.text.as_bytes())?;}else if let Ok(relative)=Path::new(&id.0).strip_prefix(&root){if id.0!=checked.graph.entry.0{pin(&mut inputs,relative.to_string_lossy().replace('\\',"/"),module.source.text.as_bytes())?;}}}
     pages.sort_by(|a,b|(&a.metadata.group,a.metadata.order,&a.route).cmp(&(&b.metadata.group,b.metadata.order,&b.route)));
-    let catalog=docs::Catalog{schema_version:1,pages,examples,inputs,api,library};
+    let catalog=docs::Catalog{schema_version:2,pages,examples,inputs,api,library};
     let json=serde_json::to_string_pretty(&catalog).map_err(|error|error.to_string())?;
     let module=super::docs_model::module(&json,&catalog.examples)?;
     let generated=Inputs{entry:SourceId(root.join("target/docs-content/catalog.tsr").to_string_lossy().into_owned()),source:module.clone()};

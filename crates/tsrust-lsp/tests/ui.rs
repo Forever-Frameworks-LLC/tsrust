@@ -227,3 +227,11 @@ fn application_links_location_and_display_type_help_match_checked_source(){
  let at=source.find("navigate('/docs')").unwrap()+10;let signature=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsrx")},"position":{"line":0,"character":at}}));assert!(signature.to_string().contains("path: string"),"{signature}");
  for (needle,expected) in [("location();","single application"),("href=","absolute"),("text-3xl","36"),("<Link ","anchor")]{let at=source.find(needle).unwrap()+if needle=="<Link "{2}else{1};let help=session.hover("main.tsrx",source,at).unwrap_or_default();assert!(help.to_lowercase().contains(&expected.to_lowercase()),"{needle}: {help}");}
 }
+
+#[test]
+fn inline_text_and_clipboard_help_match_paired_components(){
+ let source="import {Text,CopyButton} from 'std:ui';function main(){const node=<Text as=\"p\">Read <Text as=\"strong\">bold</Text> <Text as=\"em\">café</Text></Text>;const copy=<CopyButton value=\"exact\" className=\"text-syntax-string\"/>;}";
+ let mut session=support::session::Session::start(&[]);session.open("main.tsrx",source);let diagnostics=session.wait_for_diagnostics("main.tsrx");session.settle();assert!(diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
+ for (needle,expected) in [("Text as=\"p\"","paragraph"),("CopyButton value=","clipboard"),("value=\"exact\"","Unicode"),("text-syntax-string","syntax-string")] {let help=session.hover("main.tsrx",source,source.find(needle).unwrap()+1).unwrap_or_default();assert!(help.to_lowercase().contains(&expected.to_lowercase()),"{needle}: {help}");}
+ let choices=session.completion("main.tsrx",source,source.find("value=\"exact\"").unwrap()).unwrap();assert!(choices.contains(&"value".into()));assert!(choices.contains(&"className".into()));
+}

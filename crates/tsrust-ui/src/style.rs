@@ -228,3 +228,12 @@ pub fn completion_tokens(prefix:&str)->Vec<String> {
   assert!(css("ring-1 ring-foreground/10",&theme,"light",1,"").contains("box-shadow:"));
  }
 }
+
+/// Inline text has typography, not independent layout boxes on either renderer.
+pub(crate) fn validate_inline(classes:&str)->Result<(),String> {
+ validate(classes)?;
+ if resolved(classes,&Theme::default(),"light").iter().any(|(_,value)|!matches!(value,Utility::FontSize(_)|Utility::Weight(_)|Utility::DefaultLeading(_)|Utility::Leading(_)|Utility::FontFamily(_)|Utility::Foreground(_))) {
+  return Err("Inline Text and Link support typography and text colors; box/layout utilities require a surrounding View".into());
+ }
+ Ok(())
+}
