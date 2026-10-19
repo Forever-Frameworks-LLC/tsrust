@@ -30,8 +30,14 @@ impl Drop for Mount { fn drop(&mut self){self.dispose();} }
 
 fn elements(node:&Node,document:&web_sys::Document,all:&mut Vec<Element>,theme:&super::theme::Theme,mode:&str)->Result<Element,JsValue> {
     let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));
-    let tag=match node.kind {Kind::View=>"div",Kind::Text=>"span",Kind::Button|Kind::DisabledButton=>"button"};
+    let tag=node.tag();
     let element=document.create_element(tag)?;
+    for (key,value) in [("role",&node.semantics.role),("aria-label",&node.semantics.label),("id",&node.semantics.id),("data-slot",&node.semantics.slot)] {
+        if !value.is_empty(){element.set_attribute(key,value)?;}
+    }
+    if node.kind==Kind::Text{element.set_attribute("data-tsrust-text","")?;}
+    if node.semantics.role=="separator"{element.set_attribute("aria-orientation",if node.semantics.orientation=="vertical"{"vertical"}else{"horizontal"})?;}
+    if node.semantics.hidden{element.set_attribute("aria-hidden","true")?;}
     if node.theme.is_some(){element.set_attribute("data-tsrust-theme","")?;}
     element.set_attribute("style",&super::web::scope(node,theme,mode))?;
     element.set_attribute("class",&format!("ui {}",node.class_name))?;

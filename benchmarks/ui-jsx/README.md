@@ -12,3 +12,9 @@ in real Chromium. It skips the previously accepted input/lifetime interaction pa
 The regular invocation includes both presentation and interaction checks. Build
 fresh artifacts with `tools/build-ui-web.mjs`; do not relabel an older artifact as
 current. These checks report observations and source identities, not throughput.
+
+`verify-semantics.mjs <built-site>` checks the semantic UI example in real Chromium,
+including headings, named regions, live roles, separator orientation, hidden
+content, disabled accessible names and disposal. Its independent TypeScript oracle
+runs after tsc. The native renderer has matching AccessKit assertions. These are
+untimed checks; no component-family timing result is implied.

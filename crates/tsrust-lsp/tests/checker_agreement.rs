@@ -18,7 +18,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use support::session::Session;
 use tsrust_lsp::{project_diagnostics::source_id, workspace::Workspace};
 
-const PRELUDE: &str = "import {Signal,ThemeConfig,ReactiveBoolean} from 'std:ui';\nimport {CryptoError} from 'std:crypto';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n";
+const PRELUDE: &str = "import {Signal,ThemeConfig,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {CryptoError} from 'std:crypto';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n";
 
 /// A receiver `x` of one type inside `probe`.
 struct Receiver {
@@ -28,6 +28,11 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
+Receiver {ty:"ElementProps",parameter:"x: ReadOnly<ElementProps>"},
+Receiver {ty:"SemanticProps",parameter:"x: ReadOnly<SemanticProps>"},
+Receiver {ty:"TextProps",parameter:"x: ReadOnly<TextProps>"},
+Receiver {ty:"ViewProps",parameter:"x: ReadOnly<ViewProps>"},
+Receiver {ty:"ButtonProps",parameter:"x: ReadOnly<ButtonProps>"},
 Receiver {ty:"ThemeConfig",parameter:"x: ReadOnly<ThemeConfig>"},
 Receiver {ty:"ReactiveBoolean",parameter:"x: ReactiveBoolean"},
 Receiver {ty:"Signal",parameter:"x: ReadOnly<Signal>"},
@@ -151,7 +156,8 @@ fn diagnostic(body: &str, parameter: &str) -> Option<(String, String)> {
 /// The checker's answer for `name`, with the name itself removed so that two
 /// rejections of different names compare equal.
 fn answer(form: &str, name: &str, parameter: &str) -> Option<(String, String)> {
-    diagnostic(&form.replace("NAME", name), parameter).map(|(code, mut message)| {
+    let form=if name.chars().all(|ch|ch.is_ascii_alphanumeric()||ch=='_'){form.replace("NAME",name)}else{form.replace(".NAME",&format!("[{}]",serde_json::to_string(name).unwrap()))};
+    diagnostic(&form, parameter).map(|(code, mut message)| {
         // Only the last quoted name is the member; a type can have the same spelling.
         let quoted = format!("\"{name}\"");
         if let Some(at) = message.rfind(&quoted) {
@@ -164,11 +170,11 @@ fn answer(form: &str, name: &str, parameter: &str) -> Option<(String, String)> {
 /// The checker's type of field `name` of the receiver: the type it names
 /// when a member that cannot exist is read from that field.
 fn field_type(name: &str, parameter: &str) -> Option<String> {
-    let (_, message) = diagnostic(&format!("console.log(x.{name}.{ABSENT});"), parameter)?;
+    let (_, message) = diagnostic(&format!("console.log(x[{}].{ABSENT});",serde_json::to_string(name).unwrap()), parameter)?;
     let rest = message.strip_prefix("Type \"")?;
     // Diagnostics spell a native type by its linked name; the editor shows
     // the declared name.
-    let mut ty = rest[..rest.find("\" has no field")?].to_owned();
+    let mut ty:String=serde_json::from_str(&format!("\"{}\"",&rest[..rest.find("\" has no field")?])).expect("decode compiler type spelling");
     while let Some(start) = ty.find("__tsrust_module_native#") {
         let end = start + ty[start..].rfind('#').map_or(0, |end| end + 1);
         let name_end = ty[start..].find(|ch: char| !(ch.is_ascii_alphanumeric() || matches!(ch, '_' | '#' | ':'))).map_or(ty.len(), |offset| start + offset);
@@ -234,7 +240,7 @@ fn completion_offers_the_fields_the_checker_accepts_and_no_method_it_rejects() {
     let mut unresolved = EXCEPTIONS.iter().map(|exception| (exception.ty, exception.name)).collect::<BTreeSet<_>>();
     let only = std::env::var("TSRUST_LSP_AGREEMENT_TYPE").ok();
     for receiver in RECEIVERS {
-        if only.as_ref().is_some_and(|only| only != receiver.ty) {
+        if only.as_ref().is_some_and(|only| !only.split(',').any(|wanted|wanted==receiver.ty)) {
             continue;
         }
         eprintln!("agreement receiver: {}", receiver.ty);
@@ -243,7 +249,7 @@ fn completion_offers_the_fields_the_checker_accepts_and_no_method_it_rejects() {
         let absent_field = answer(field_form, ABSENT, receiver.parameter);
         let absent_call = answer(call_form, ABSENT, receiver.parameter);
         assert!(absent_field.is_some() && absent_call.is_some(), "{}: an absent member must be rejected", receiver.ty);
-        let fields = candidates.iter().filter(|name| answer(field_form, name, receiver.parameter) != absent_field).cloned().collect::<BTreeSet<_>>();
+        let fields = candidates.iter().filter(|name|name.chars().all(|ch|ch.is_ascii_alphanumeric()||ch=='_') || matches!(receiver.ty,"ElementProps"|"SemanticProps"|"TextProps"|"ViewProps"|"ButtonProps")).filter(|name| answer(field_form, name, receiver.parameter) != absent_field).cloned().collect::<BTreeSet<_>>();
         let prelude = prelude(receiver.parameter);
         let before = format!("{prelude}function probe({}) {{\n  x.", receiver.parameter);
         let text = format!("{before}\n}}\nfunction main() {{}}\n");
@@ -287,7 +293,7 @@ fn completion_offers_the_fields_the_checker_accepts_and_no_method_it_rejects() {
         for name in fields.intersection(&offered) {
             let Some(checked) = field_type(name, receiver.parameter) else { continue };
             let shown = details[name].split_once(": ").map_or("", |(_, ty)| ty);
-            if checked=="closure" {
+            if checked.split('|').any(|member|member.trim()=="closure") {
                 if !callable_field_agrees(receiver,name,shown) {failures.push(format!("{}.{}: displayed callback type `{shown}` disagrees with its checked contract",receiver.ty,name));}
                 continue;
             }

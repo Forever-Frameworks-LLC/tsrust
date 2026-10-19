@@ -49,6 +49,11 @@ pub(super) fn lex_step(source: &str, i: &mut usize, tokens: &mut Vec<Token>, mod
             push("{".into(),start+1,TokenKind::Symbol);
             return Ok(true);
         }
+        if rest.as_bytes().first().is_some_and(|ch| ch.is_ascii_alphabetic() || *ch == b'_') {
+            let length = rest.bytes().take_while(|ch| ch.is_ascii_alphanumeric() || matches!(ch, b'_' | b'-')).count();
+            push(rest[..length].into(), start + length, TokenKind::Name);
+            return Ok(true);
+        }
     } else if let Some(Mode::Expression { braces })=modes.last_mut() {
         if rest.starts_with('}') && *braces==0 {
             modes.pop();

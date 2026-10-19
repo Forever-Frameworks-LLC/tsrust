@@ -26,9 +26,22 @@ pub enum Kind {
 
 pub enum TextPart { Literal(String), Signal(Signal) }
 
+#[derive(Clone, Debug, Default, serde::Deserialize)]
+#[serde(default, deny_unknown_fields, rename_all="camelCase")]
+pub(crate) struct Semantics {
+    pub tag: String,
+    pub role: String,
+    pub label: String,
+    pub id: String,
+    pub hidden: bool,
+    pub slot: String,
+    pub orientation: String,
+}
+
 pub struct Node {
     depth: usize,
     pub(crate) theme: Option<(theme::Theme,String)>,
+    pub(crate) semantics: Semantics,
     pub(crate) kind: Kind,
     pub(crate) class_name: String,
     pub(crate) text: String,
@@ -40,6 +53,32 @@ pub struct Node {
 }
 
 impl Node {
+    pub fn with_semantics(mut self, config: &str) -> Result<Self,String> {
+        if config.is_empty(){return Ok(self);}
+        let value:Semantics=serde_json::from_str(config).map_err(|e|format!("Invalid UI semantics: {e}"))?;
+        let tag=if value.tag.is_empty(){self.tag()}else{&value.tag};
+        let allowed=match self.kind {
+            Kind::View=>matches!(tag,"div"|"section"),
+            Kind::Text=>matches!(tag,"div"|"span"|"p"|"h1"|"h2"|"h3"|"h4"|"h5"|"h6"|"code"|"kbd"),
+            Kind::Button|Kind::DisabledButton=>tag=="button",
+        };
+        if !allowed{return Err(format!("Unsupported UI element for {:?}: {tag}",self.kind));}
+        if !matches!(value.role.as_str(),""|"alert"|"status"|"separator"|"group"|"note"|"region"|"none"|"presentation") {return Err(format!("Unsupported UI role: {}",value.role));}
+        if matches!(self.kind,Kind::Button|Kind::DisabledButton) && !value.role.is_empty(){return Err("Button keeps its implicit button role".into());}
+        if !value.orientation.is_empty() && (value.role!="separator" || !matches!(value.orientation.as_str(),"horizontal"|"vertical")){return Err("aria-orientation requires a separator and horizontal or vertical".into());}
+        let name_allowed=if value.role.is_empty(){matches!(tag,"button"|"h1"|"h2"|"h3"|"h4"|"h5"|"h6"|"section")}else{!matches!(value.role.as_str(),"none"|"presentation")};
+        if !value.label.is_empty() && !name_allowed{return Err("aria-label requires a button, heading, section or a role that supports naming".into());}
+        if value.role=="region" && value.label.trim().is_empty(){return Err("A region requires an accessible label".into());}
+        if value.role=="separator" && (!self.text.is_empty() || !self.children.is_empty()){return Err("A separator cannot contain text or children".into());}
+        if value.id.chars().any(|ch|ch.is_ascii_whitespace()||ch.is_control()){return Err("UI id cannot contain whitespace or control characters".into());}
+        if value.slot.chars().any(|ch|!(ch.is_ascii_alphanumeric()||ch=='-')){return Err("UI slot must contain ASCII letters, digits or hyphens".into());}
+        if value.hidden && self.has_enabled_controls(){return Err("An aria-hidden subtree cannot contain enabled interactive controls".into());}
+        self.semantics=value;Ok(self)
+    }
+    fn has_enabled_controls(&self)->bool {self.kind==Kind::Button || self.children.iter().any(Self::has_enabled_controls)}
+    pub(crate) fn tag(&self)->&str {
+        if !self.semantics.tag.is_empty(){&self.semantics.tag}else{match self.kind{Kind::View=>"div",Kind::Text=>"span",Kind::Button|Kind::DisabledButton=>"button"}}
+    }
     pub fn with_disabled(mut self,mut predicate:impl FnMut()->Result<bool,String>+'static)->Result<Self,String> {
         if !matches!(self.kind,Kind::Button|Kind::DisabledButton) {return Err("A disabled condition requires a Button".into());}
         self.kind=if predicate()? {Kind::DisabledButton}else{Kind::Button};self.disabled=Some(Box::new(predicate));Ok(self)
@@ -80,6 +119,7 @@ impl Node {
             if text!=self.text {self.text=text;changed+=1;}
         }
         for child in &mut self.children {changed+=child.refresh()?;}
+        if self.semantics.hidden && self.has_enabled_controls(){return Err("An aria-hidden subtree cannot contain enabled interactive controls".into());}
         Ok(changed)
     }
     /// Stable preorder IDs belong to this mounted tree, with zero reserved for its window.
@@ -119,6 +159,7 @@ impl Node {
         Ok(Self {
             depth,
             theme: None,
+            semantics: Semantics::default(),
             kind,
             class_name,
             text,
@@ -225,4 +266,39 @@ mod interaction_tests {
   let node=Node::button("Fails".into(),String::new(),false,||Ok(())).unwrap();
   assert!(node.with_disabled(move||{assert_eq!(probe.0.get(),0);Err("condition failed".into())}).is_err());assert_eq!(releases.get(),1);
  }
+}
+
+#[cfg(test)]
+mod semantics_tests {
+    use super::*;
+    fn text(value: &str) -> Node { Node::new(Kind::Text, String::new(), value.into(), vec![]).unwrap() }
+    #[test]
+    fn semantics_validate_tag_role_identity_and_hidden_controls() {
+        for config in [r#"{"tag":"script"}"#, r#"{"role":"unknown"}"#, r#"{"role":"region"}"#,
+            r#"{"role":"separator"}"#, r#"{"id":"two words"}"#, r#"{"slot":"bad slot"}"#,
+            r#"{"orientation":"vertical"}"#, r#"{"role":"separator","orientation":"diagonal"}"#,
+            r#"{"unknown":true}"#, r#"{"label":"Name"}"#, r#"{"tag":"p","label":"Name"}"#,
+            r#"{"tag":"code","label":"Name"}"#, r#"{"role":"presentation","label":"Name"}"#] {
+            assert!(text("hello").with_semantics(config).is_err(), "{config}");
+        }
+        assert!(text("hello").with_semantics(r#"{"tag":"h6","id":"heading","label":"Override"}"#).is_ok());
+        assert!(text("").with_semantics(r#"{"role":"separator","orientation":"vertical"}"#).is_ok());
+        assert!(Node::button("action".into(),String::new(),false,||Ok(())).unwrap().with_semantics(r#"{"role":"none"}"#).is_err());
+        let child=Node::button("action".into(),String::new(),false,||Ok(())).unwrap();
+        assert!(Node::new(Kind::View,String::new(),String::new(),vec![child]).unwrap().with_semantics(r#"{"hidden":true}"#).is_err());
+    }
+    #[test]
+    fn newly_enabled_hidden_control_stops_refresh_and_releases_capture() {
+        use std::{rc::Rc,cell::Cell};
+        struct Probe(Rc<Cell<usize>>);
+        impl Drop for Probe { fn drop(&mut self) { self.0.set(self.0.get()+1); } }
+        let released=Rc::new(Cell::new(0)); let probe=Probe(released.clone());
+        let disabled=Rc::new(Cell::new(true)); let condition=disabled.clone();
+        let child=Node::button("action".into(),String::new(),true,move||{assert_eq!(probe.0.get(),0);Ok(())}).unwrap()
+            .with_disabled(move||Ok(condition.get())).unwrap();
+        let mut root=Node::new(Kind::View,String::new(),String::new(),vec![child]).unwrap().with_semantics(r#"{"hidden":true}"#).unwrap();
+        assert_eq!(root.refresh().unwrap(),0); disabled.set(false);
+        assert!(root.refresh().unwrap_err().contains("aria-hidden"));
+        drop(root); assert_eq!(released.get(),1);
+    }
 }

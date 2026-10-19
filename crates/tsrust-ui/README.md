@@ -18,7 +18,7 @@ Wasm DOM backend. See the current compiler handoff for focused evidence and limi
 - The utility vocabulary is `flex-row`, `flex-col`, `gap-2`, `gap-4`, `p-2`, `p-4`,
   `text-base`, `text-xl`, `font-bold`, `bg-background`, `bg-primary`,
   `text-foreground`, `text-primary-foreground`, and `rounded`.
-- Unknown utilities and conflicting utilities of one category reject. Utility
+- Unknown utilities reject; later utilities override earlier properties in each state. Utility
   whitespace is normalized. Units are logical pixels; native presentation scales
   them by the window DPI. Font size and color inherit through containers.
 - HTML text, titles and class attributes are escaped. Buttons use semantic disabled
@@ -67,3 +67,31 @@ Buttons center text within their padding on both renderers. The native focus
 outline follows the button's rounded geometry. Native layout uses the current
 logical viewport width; resizing repaints from that size during the resize event,
 without changing font sizes or accumulated scale factors.
+
+## Element semantics
+
+`std:ui` exposes exact JSX `id`, `aria-label`, `aria-hidden`, `data-slot`, `role`
+and `aria-orientation` properties. Ordinary records declare quoted property names
+and read them with bracket access. The compiler keeps those keys distinct from
+camel-case names and dotted paths; editor completion inserts valid bracket access.
+
+Text can select `span`, `div`, `p`, `h1`–`h6`, `code` or `kbd`; View selects `div`
+or `section`. Headings retain their levels in AccessKit. Class names determine
+appearance rather than browser heading defaults. Supported noninteractive roles
+are alert, status, separator, group, note, region, none and presentation. Alert
+and status expose assertive/polite live semantics. Separators must be empty and
+are nonfocusable, with horizontal orientation by default. A region needs a
+nonblank accessible name. Button retains its implicit interactive role.
+
+Hidden accessible subtrees cannot contain enabled controls. A reactive change
+that would enable a hidden control fails refresh and uses normal mounted-tree
+cleanup. Semantic validation consumes failed subtrees and releases their captures.
+Arbitrary HTML, event attributes, links, editable values, ARIA relationships and
+interactive role emulation remain unsupported. These primitives are prerequisites
+for the selected Base UI/Nova source port, not full component parity.
+
+Accessible names require a button, heading, named section or supported naming role.
+A nonempty `aria-label` on generic text/containers, paragraphs, code or presentation
+throws instead of producing different native and browser semantics. Native paragraph,
+code and live-role containers preserve their text as accessible content children.
+See [ARIA naming rules](https://www.w3.org/TR/wai-aria-1.2/#namefromprohibited).

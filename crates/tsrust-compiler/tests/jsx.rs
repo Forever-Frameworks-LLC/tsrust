@@ -91,3 +91,36 @@ fn parenthesized_multiline_jsx_keeps_return_layout() {
     assert!(formatted.contains("return (\n    <View"));
     assert!(formatted.contains("\n  );"));
 }
+
+#[test]
+fn quoted_properties_and_hyphenated_jsx_attributes_preserve_identity() {
+    let source=r#"
+interface Identity { 'aria-label': string; 'data-slot'?: string; }
+interface Props extends Identity { children: string[]; }
+function Label(props: Props): string { return props['aria-label'] + ':' + props.children.join(''); }
+type Values = { 'with space': int; 'a.b': string; };
+function main() {
+    const props: Identity = {'aria-label': 'Accessible', 'data-slot': 'label'};
+    console.log(<Label {...props} aria-label="Override">Body</Label>);
+    const values: Values = {'a.b':'exact', 'with space':7};
+    console.log(values['with space'], values['a.b'], JSON.stringify(values));
+}
+"#;
+    let dir=support::TempDirectory::new();let path=dir.0.join("quoted-properties.tsrx");
+    std::fs::write(&path,support::format_round_trip(source)).unwrap();
+    let output=support::run(support::cli().arg("run").arg(&path),90);support::success(&output);
+    assert_eq!(output.stdout,b"Override:Body\n7 exact {\"a.b\":\"exact\",\"with space\":7}\n");
+    for (from,to) in [("aria-label=\"Override\"","aria-label={7}"),("aria-label=\"Override\"","aria-label=\"one\" aria-label=\"two\""),("'with space':7","'with space':'wrong'")] {
+        assert!(analyze(&source.replace(from,to)).is_err(),"{to}");
+    }
+    assert!(analyze("type Bad = { 'bad\\0key': int; }; function main(){}").err().unwrap().message.contains("NUL"));
+    assert!(analyze("function main(){const invalid={'quoted'};}").is_err());
+}
+
+#[test]
+fn quoted_owned_fields_keep_distinct_move_paths() {
+    let source="type Inner={b:string;};type Row={'a.b':string; a:Inner;};function main(){const row:Row={'a.b':'flat',a:{b:'nested'}};const flat=row['a.b'];const nested=row.a.b;console.log(flat,nested);}";
+    support::execute(source,"flat nested\n",None);
+    let source=source.replace("console.log(flat,nested);","console.log(flat,nested);console.log(row['a.b']);");
+    assert!(analyze(&source).is_err(),"moving a quoted field must invalidate that exact owner");
+}

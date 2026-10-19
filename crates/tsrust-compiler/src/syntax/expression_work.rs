@@ -59,9 +59,9 @@ impl Parser<'_> {
                     key.text = "record#spread".into();
                     key
                 } else {
-                    self.name()?
+                    self.property_name()?
                 };
-                if !spread && (self.is(",") || self.is("}")) {
+                if !spread && key.kind != TokenKind::String && (self.is(",") || self.is("}")) {
                     let value = Expr::new(ExprKind::Name(key.text.clone()), key.span);
                     fields.push((key, value));
                     if !self.accept(",") {

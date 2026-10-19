@@ -1,5 +1,39 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
+## Current shadcn continuation — 2026-10-18
+
+The owner selected current Base UI + Nova. The pinned inventory contains all 64
+Base UI source components, three composed documentation recipes and 30 Base UI
+blocks, including their block dependencies. See
+[coverage](../plans/ui-component-coverage.json). Pending entries are not installed
+stubs or accepted clones. Existing immutable Button/Card v1/v2 remain intact.
+Continue composition, layout/theme capabilities, real controls and complete source
+families across both targets. No further planning approval is required.
+
+The first prerequisite section is implemented: quoted record keys and exact JSX
+aria-/data- names; semantic Text/View tags; accessible names, heading levels,
+regions, alert/status content, separators and hidden-control validation. Empty
+children default to empty arrays. Native semantic content is separate from its
+accessible name, preserving paragraph/code/live-role bodies and stable action IDs.
+Invalid naming on generic/paragraph/code/presentation elements fails explicitly.
+The editor completes exact names, inserts bracket access for quoted members and
+keeps fields/hover/navigation while source is incomplete. Constructor semantic
+failures retain the facade's readable-string behavior and consume failed trees.
+
+Focused acceptance reuses completed passes: all eight JSX witnesses, eleven UI
+compiler witnesses, runtime ownership/theme/accessibility checks, UI editor help,
+three UI consistency checks, the semantic typing-speed row in four modes and all
+five UI prop-type agreements. Only affected failures were repaired/rerun. Real
+Wasm Chromium DOM/accessibility/disposal agrees with the independent Node-after-tsc
+oracle. Native conformance changes have affected semantic checks; the final
+formatted generated-native example also checks readable invalid-naming errors.
+Whole-project formatting proves token preservation/idempotence; final pass changes
+only the new facade formatting. SQL, broad regressions and timing were not rerun.
+Original failures and exact pinned upstream inputs use tsrust-ui-semantics-* and
+tsrust-shadcn-* in canonical SQLite. No independent screen-reader session or full
+component-library acceptance is claimed. Use examples/ui-semantics as the focused
+primitive witness, and preserve the standalone counter owner's source.
+
 ## Current terminal UI correction — 2026-10-18
 
 The owner rejected the numbered command dump as incomplete interactive CLI work.

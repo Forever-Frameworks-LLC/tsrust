@@ -13937,7 +13937,7 @@
           "documentation": "children is an ordered array of strings or Signal values. className defaults to empty."
         }
       ],
-      "documentation": "Creates text from literal and reactive children in their supplied order. Strings are joined without a separator; signals display signed integers and update after handlers. Example: <Text>Count: {count}</Text> shows Count: 0 for a zero-valued signal. Only changed bound text is updated; the component is not rerun. Empty children are valid. Invalid utilities or a disposed signal throw a readable error. Ownership: consumes props; state bindings do not keep component state alive."
+      "documentation": "Creates text from literal and reactive children in their supplied order. Strings are joined without a separator; signals display signed integers and update after handlers. Example: <Text>Count: {count}</Text> shows Count: 0 for a zero-valued signal. Only changed bound text is updated; the component is not rerun. Empty children are valid. Invalid utilities or a disposed signal throw a readable error.  Optional as selects span (default), div, p, h1–h6, code or kbd; headings expose the same level in native accessibility. Semantic props accept id, aria-label, aria-hidden, data-slot and the supported noninteractive roles. Example: <Text as=\"h2\">Profile</Text> produces a level-two heading. Invalid tag/role combinations throw; arbitrary HTML, links and editable controls are not accepted. Ownership: consumes props; state bindings do not keep component state alive."
     },
     {
       "name": "View",
@@ -13948,7 +13948,7 @@
           "documentation": "children is an ordered Node array. className defaults to empty."
         }
       ],
-      "documentation": "Creates a container with children in their supplied order. Empty child arrays are valid. Unknown utilities or a tree deeper than 128 nodes throw a readable string. JSX example: <View><Text>Hello</Text></View> produces one container with one text child. Ownership: consumes child nodes, including on failure, and returns a uniquely owned subtree."
+      "documentation": "Creates a container with children in their supplied order. Empty child arrays are valid. Unknown utilities or a tree deeper than 128 nodes throw a readable string. JSX example: <View><Text>Hello</Text></View> produces one container with one text child.  Optional as selects div (default) or section. id, aria-label, aria-hidden, data-slot and supported noninteractive roles are shared with Text. Example: <View as=\"section\" role=\"region\" aria-label=\"Account\" /> creates an accessible named region. A region without a nonblank name throws. A separator must be empty; aria-orientation defaults to horizontal. An aria-hidden subtree cannot contain enabled buttons, including after reactive changes. Invalid semantics consume and release the failed subtree. Ownership: consumes child nodes, including on failure, and returns a uniquely owned subtree."
     },
     {
       "name": "Button",
@@ -13959,7 +13959,7 @@
           "documentation": "children is an ordered string array. disabled defaults to false; enabled buttons require an owned onPress callback. className defaults to empty. disabled also accepts compiler-derived ReactiveBoolean values for JSX state expressions."
         }
       ],
-      "documentation": "Creates a semantic button with a retained synchronous onPress handler. Text is centered within its padding. The rounded utility shapes both the button and its native focus outline. Pointer click, Enter and Space activate enabled buttons. Disabled buttons never invoke their handler. Unknown utilities and enabled buttons without a handler throw. Handler failures stop native execution and return UiError; browser failures retire the tree and remain available through its mount error. Example: <Button onPress={() => { count.set(count.get() + 1); }}>Increment</Button>. Ownership: consumes props and the handler environment; captures are released with the subtree. State-dependent JSX expressions such as disabled={count.get() < 5} are retained as checked derived boolean bindings. They reevaluate after handlers; disabled buttons remain excluded from activation and native focus order. Reactive buttons require onPress even while initially disabled. Predicate failure stops the mounted tree with the normal UiError cleanup."
+      "documentation": "Creates a semantic button with a retained synchronous onPress handler. Text is centered within its padding. The rounded utility shapes both the button and its native focus outline. Pointer click, Enter and Space activate enabled buttons. Disabled buttons never invoke their handler. Unknown utilities and enabled buttons without a handler throw. Handler failures stop native execution and return UiError; browser failures retire the tree and remain available through its mount error. Example: <Button onPress={() => { count.set(count.get() + 1); }}>Increment</Button>.  State-dependent JSX expressions such as disabled={count.get() < 5} are retained as checked derived boolean bindings. They reevaluate after handlers; disabled buttons remain excluded from activation and native focus order. Reactive buttons require onPress even while initially disabled. Predicate failure stops the mounted tree with the normal UiError cleanup. Optional id, aria-label, aria-hidden and data-slot retain their exact JSX spelling. aria-label overrides the accessible name without replacing visible text. Enabled buttons cannot be aria-hidden; Button keeps its button role. Ownership: consumes props and the handler environment; captures are released with the subtree."
     },
     {
       "name": "document",
@@ -14160,6 +14160,154 @@
       "fields": {
         "evaluate": {
           "documentation": "Evaluates the retained condition with no arguments and returns boolean. The mounted tree reevaluates it after handlers. Example: disabled={count.get() < 5} is true at 0 and false at 5. Captured state-read failures propagate through normal UI error cleanup. Conditions must not mutate state. Ownership: the subtree owns this callback and releases it before its state owners."
+        }
+      }
+    },
+    {
+      "name": "ElementProps",
+      "signature": "interface ElementProps",
+      "parameters": [],
+      "documentation": "Checked element identity and accessible naming. Props are ordinary owned records; optional fields have the documented defaults. Use exact quoted names in ordinary records, for example {'aria-label': 'Account'}, and aria-label=\"Account\" in JSX. Unsupported semantics fail explicitly. Ownership: component calls consume their props and owned descendants.",
+      "fields": {
+        "id": {
+          "documentation": "Optional document identifier, without ASCII whitespace or control characters. Defaults to none. <View id=\"account\" /> produces id=\"account\" in HTML. Both adapters retain it as tree metadata; no lookup or routing API is created. Construction throws for invalid IDs. Ownership: consumes the supplied string."
+        },
+        "aria-label": {
+          "documentation": "Optional accessible name; defaults to visible text or descendants. <Text as=\"h2\" aria-label=\"Total\">42</Text> displays 42 and exposes Total as its accessible name on both backends. A region requires a nonblank name. Generic containers/text, paragraphs, code and presentation cannot be named and throw for a nonempty aria-label. Does not change displayed text. Ownership: consumes the name string."
+        },
+        "aria-hidden": {
+          "documentation": "Optional boolean, default false. <Text aria-hidden>Decoration</Text> keeps text visible but excludes it from accessibility. An enabled control anywhere in the subtree throws; making a hidden descendant enabled during refresh stops the mounted tree and uses normal cleanup. Ownership: copies the flag; does not retain state."
+        },
+        "data-slot": {
+          "documentation": "Optional component slot name, using only ASCII letters, digits and hyphens. Defaults to none. <View data-slot=\"card-content\" /> emits that HTML attribute and retains the same native metadata. Invalid names throw; this does not add arbitrary CSS selector support. Ownership: consumes the slot string."
+        }
+      }
+    },
+    {
+      "name": "SemanticProps",
+      "signature": "interface SemanticProps",
+      "parameters": [],
+      "documentation": "Checked UI component properties with shared web and native behavior. Props are ordinary owned records; optional fields have the documented defaults. Use exact quoted names in ordinary records, for example {'aria-label': 'Account'}, and aria-label=\"Account\" in JSX. Unsupported semantics fail explicitly. Ownership: component calls consume their props and owned descendants.",
+      "fields": {
+        "id": {
+          "documentation": "Optional document identifier, without ASCII whitespace or control characters. Defaults to none. <View id=\"account\" /> produces id=\"account\" in HTML. Both adapters retain it as tree metadata; no lookup or routing API is created. Construction throws for invalid IDs. Ownership: consumes the supplied string."
+        },
+        "aria-label": {
+          "documentation": "Optional accessible name; defaults to visible text or descendants. <Text as=\"h2\" aria-label=\"Total\">42</Text> displays 42 and exposes Total as its accessible name on both backends. A region requires a nonblank name. Generic containers/text, paragraphs, code and presentation cannot be named and throw for a nonempty aria-label. Does not change displayed text. Ownership: consumes the name string."
+        },
+        "aria-hidden": {
+          "documentation": "Optional boolean, default false. <Text aria-hidden>Decoration</Text> keeps text visible but excludes it from accessibility. An enabled control anywhere in the subtree throws; making a hidden descendant enabled during refresh stops the mounted tree and uses normal cleanup. Ownership: copies the flag; does not retain state."
+        },
+        "data-slot": {
+          "documentation": "Optional component slot name, using only ASCII letters, digits and hyphens. Defaults to none. <View data-slot=\"card-content\" /> emits that HTML attribute and retains the same native metadata. Invalid names throw; this does not add arbitrary CSS selector support. Ownership: consumes the slot string."
+        },
+        "role": {
+          "documentation": "Optional noninteractive role: alert, status, separator, group, note, region, none or presentation. Defaults to the chosen tag's implicit role. <Text role=\"status\">Saved</Text> exposes a polite live status; alert is assertive. Region requires aria-label. Separator requires empty text and no children. Unsupported roles throw; role does not turn a View into an interactive widget. Ownership: consumes the role string."
+        },
+        "aria-orientation": {
+          "documentation": "Optional separator orientation: horizontal (default) or vertical. Only valid with role=\"separator\". <View role=\"separator\" aria-orientation=\"vertical\" /> exposes a vertical, nonfocusable separator on both backends. This describes orientation; classes still control dimensions. Other roles/values throw. Ownership: consumes the string."
+        }
+      }
+    },
+    {
+      "name": "TextProps",
+      "signature": "interface TextProps",
+      "parameters": [],
+      "documentation": "Checked UI component properties with shared web and native behavior. Props are ordinary owned records; optional fields have the documented defaults. Use exact quoted names in ordinary records, for example {'aria-label': 'Account'}, and aria-label=\"Account\" in JSX. Unsupported semantics fail explicitly. Ownership: component calls consume their props and owned descendants.",
+      "fields": {
+        "id": {
+          "documentation": "Optional document identifier, without ASCII whitespace or control characters. Defaults to none. <View id=\"account\" /> produces id=\"account\" in HTML. Both adapters retain it as tree metadata; no lookup or routing API is created. Construction throws for invalid IDs. Ownership: consumes the supplied string."
+        },
+        "aria-label": {
+          "documentation": "Optional accessible name; defaults to visible text or descendants. <Text as=\"h2\" aria-label=\"Total\">42</Text> displays 42 and exposes Total as its accessible name on both backends. A region requires a nonblank name. Generic containers/text, paragraphs, code and presentation cannot be named and throw for a nonempty aria-label. Does not change displayed text. Ownership: consumes the name string."
+        },
+        "aria-hidden": {
+          "documentation": "Optional boolean, default false. <Text aria-hidden>Decoration</Text> keeps text visible but excludes it from accessibility. An enabled control anywhere in the subtree throws; making a hidden descendant enabled during refresh stops the mounted tree and uses normal cleanup. Ownership: copies the flag; does not retain state."
+        },
+        "data-slot": {
+          "documentation": "Optional component slot name, using only ASCII letters, digits and hyphens. Defaults to none. <View data-slot=\"card-content\" /> emits that HTML attribute and retains the same native metadata. Invalid names throw; this does not add arbitrary CSS selector support. Ownership: consumes the slot string."
+        },
+        "role": {
+          "documentation": "Optional noninteractive role: alert, status, separator, group, note, region, none or presentation. Defaults to the chosen tag's implicit role. <Text role=\"status\">Saved</Text> exposes a polite live status; alert is assertive. Region requires aria-label. Separator requires empty text and no children. Unsupported roles throw; role does not turn a View into an interactive widget. Ownership: consumes the role string."
+        },
+        "aria-orientation": {
+          "documentation": "Optional separator orientation: horizontal (default) or vertical. Only valid with role=\"separator\". <View role=\"separator\" aria-orientation=\"vertical\" /> exposes a vertical, nonfocusable separator on both backends. This describes orientation; classes still control dimensions. Other roles/values throw. Ownership: consumes the string."
+        },
+        "as": {
+          "documentation": "Optional text tag: span (default), div, p, h1–h6, code or kbd. <Text as=\"h3\">Title</Text> exposes a level-three heading. Unsupported tags throw. Native uses matching accessibility roles and shared text shaping; browser defaults do not add heading margins or sizes. Ownership: consumes the tag string."
+        },
+        "children": {
+          "documentation": "Ordered string or Signal array. Optional; omission defaults to an empty array. <Text>A{count}</Text> displays A0 for count=signal(0). No implicit separator; disposed state throws. Ownership: consumes strings and retains non-owning state bindings."
+        },
+        "className": {
+          "documentation": "Optional shared utility string, default empty. <Text className=\"font-bold\">Title</Text> draws bold text. Later classes override earlier properties within each state; unknown utilities throw. Ownership: consumes the string."
+        }
+      }
+    },
+    {
+      "name": "ViewProps",
+      "signature": "interface ViewProps",
+      "parameters": [],
+      "documentation": "Checked UI component properties with shared web and native behavior. Props are ordinary owned records; optional fields have the documented defaults. Use exact quoted names in ordinary records, for example {'aria-label': 'Account'}, and aria-label=\"Account\" in JSX. Unsupported semantics fail explicitly. Ownership: component calls consume their props and owned descendants.",
+      "fields": {
+        "id": {
+          "documentation": "Optional document identifier, without ASCII whitespace or control characters. Defaults to none. <View id=\"account\" /> produces id=\"account\" in HTML. Both adapters retain it as tree metadata; no lookup or routing API is created. Construction throws for invalid IDs. Ownership: consumes the supplied string."
+        },
+        "aria-label": {
+          "documentation": "Optional accessible name; defaults to visible text or descendants. <Text as=\"h2\" aria-label=\"Total\">42</Text> displays 42 and exposes Total as its accessible name on both backends. A region requires a nonblank name. Generic containers/text, paragraphs, code and presentation cannot be named and throw for a nonempty aria-label. Does not change displayed text. Ownership: consumes the name string."
+        },
+        "aria-hidden": {
+          "documentation": "Optional boolean, default false. <Text aria-hidden>Decoration</Text> keeps text visible but excludes it from accessibility. An enabled control anywhere in the subtree throws; making a hidden descendant enabled during refresh stops the mounted tree and uses normal cleanup. Ownership: copies the flag; does not retain state."
+        },
+        "data-slot": {
+          "documentation": "Optional component slot name, using only ASCII letters, digits and hyphens. Defaults to none. <View data-slot=\"card-content\" /> emits that HTML attribute and retains the same native metadata. Invalid names throw; this does not add arbitrary CSS selector support. Ownership: consumes the slot string."
+        },
+        "role": {
+          "documentation": "Optional noninteractive role: alert, status, separator, group, note, region, none or presentation. Defaults to the chosen tag's implicit role. <Text role=\"status\">Saved</Text> exposes a polite live status; alert is assertive. Region requires aria-label. Separator requires empty text and no children. Unsupported roles throw; role does not turn a View into an interactive widget. Ownership: consumes the role string."
+        },
+        "aria-orientation": {
+          "documentation": "Optional separator orientation: horizontal (default) or vertical. Only valid with role=\"separator\". <View role=\"separator\" aria-orientation=\"vertical\" /> exposes a vertical, nonfocusable separator on both backends. This describes orientation; classes still control dimensions. Other roles/values throw. Ownership: consumes the string."
+        },
+        "as": {
+          "documentation": "Optional semantic container tag, div (default) or section. <View as=\"section\" /> emits a section without inventing an accessible name. Use role=\"region\" with aria-label for a named region. Unsupported tags throw. Ownership: consumes the tag string."
+        },
+        "children": {
+          "documentation": "Ordered Node array. Optional; omission defaults to an empty array. <View><Text>A</Text><Text>B</Text></View> preserves A then B. Text children must be inside Text. Maximum tree depth is 128. Ownership: consumes all child subtrees."
+        },
+        "className": {
+          "documentation": "Optional shared utility string, default empty. <View className=\"flex-row gap-4\" /> uses a horizontal container and project spacing.md between children. Later classes override earlier properties within each state; unknown utilities throw. Ownership: consumes the string."
+        }
+      }
+    },
+    {
+      "name": "ButtonProps",
+      "signature": "interface ButtonProps",
+      "parameters": [],
+      "documentation": "Checked UI component properties with shared web and native behavior. Props are ordinary owned records; optional fields have the documented defaults. Use exact quoted names in ordinary records, for example {'aria-label': 'Account'}, and aria-label=\"Account\" in JSX. Unsupported semantics fail explicitly. Ownership: component calls consume their props and owned descendants.",
+      "fields": {
+        "id": {
+          "documentation": "Optional document identifier, without ASCII whitespace or control characters. Defaults to none. <View id=\"account\" /> produces id=\"account\" in HTML. Both adapters retain it as tree metadata; no lookup or routing API is created. Construction throws for invalid IDs. Ownership: consumes the supplied string."
+        },
+        "aria-label": {
+          "documentation": "Optional accessible name; defaults to visible text or descendants. <Text as=\"h2\" aria-label=\"Total\">42</Text> displays 42 and exposes Total as its accessible name on both backends. A region requires a nonblank name. Generic containers/text, paragraphs, code and presentation cannot be named and throw for a nonempty aria-label. Does not change displayed text. Ownership: consumes the name string."
+        },
+        "aria-hidden": {
+          "documentation": "Optional boolean, default false. <Text aria-hidden>Decoration</Text> keeps text visible but excludes it from accessibility. An enabled control anywhere in the subtree throws; making a hidden descendant enabled during refresh stops the mounted tree and uses normal cleanup. Ownership: copies the flag; does not retain state."
+        },
+        "data-slot": {
+          "documentation": "Optional component slot name, using only ASCII letters, digits and hyphens. Defaults to none. <View data-slot=\"card-content\" /> emits that HTML attribute and retains the same native metadata. Invalid names throw; this does not add arbitrary CSS selector support. Ownership: consumes the slot string."
+        },
+        "children": {
+          "documentation": "Ordered string array, joined without a separator. <Button disabled>Ready</Button> displays Ready. Node/icon children are not supported yet. Ownership: consumes text children."
+        },
+        "className": {
+          "documentation": "Optional shared utility string, default empty. rounded shapes both the button and its native focus outline. Unknown utilities throw. Ownership: consumes the string."
+        },
+        "disabled": {
+          "documentation": "Optional boolean or compiler-derived ReactiveBoolean, default false. Disabled buttons do not activate or take native focus. JSX disabled={count.get()<5} refreshes after handlers. Reactive buttons require onPress. Ownership: the subtree owns derived callback captures without retaining state owners."
+        },
+        "onPress": {
+          "documentation": "Optional retained synchronous callback with no arguments and void result. Required for enabled or reactively disabled buttons. <Button onPress={()=>{count.set(count.get()+1);}}>Add</Button> increments count once per activation. Failures stop the mounted tree with cleanup. Ownership: consumes the callback environment; releases it with the subtree."
         }
       }
     }

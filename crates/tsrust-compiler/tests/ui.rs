@@ -6,6 +6,9 @@ fn project(entry: &str) -> tsrust_compiler::project::ProjectAnalysis {
         .join(entry);
     check_graph(load_project(&FileSourceProvider, path.to_str().unwrap()).unwrap()).unwrap()
 }
+fn configure_ui(root: &std::path::Path) {
+    std::fs::write(root.join("tsrust.config.json"),serde_json::json!({"ui":tsrust_compiler::ui_project::Config::default()}).to_string()).unwrap();
+}
 #[test]
 fn ui_generated_static_targets_share_checked_nodes() {
     let html = project("web.tsr").emit_rust();
@@ -64,7 +67,7 @@ fn component_return_retains_state_through_checked_moves() {
 
 #[test]
 fn direct_state_bindings_and_callback_capture_preserve_scopes() {
-    let dir=support::TempDirectory::new();let path=dir.0.join("main.tsrx");
+    let dir=support::TempDirectory::new();configure_ui(&dir.0);let path=dir.0.join("main.tsrx");
     for construction in [
         "const press=()=>{count.set(count.get() + 1);};press();return (<Text>{count} / {count}</Text>);",
         "const factory=()=>{return ()=>{count.set(count.get() + 1);};};const first=factory();const second=factory();first();second();return (<View><Text>{count}</Text><Button onPress={()=>{count.set(count.get()+1);}}>Increment</Button></View>);",
@@ -104,7 +107,7 @@ fn application_theme_local_components_and_prop_forwarding_are_checked() {
 
 #[test]
 fn state_dependent_disabled_condition_is_retained_and_not_a_snapshot() {
- let dir=support::TempDirectory::new();let entry=dir.0.join("main.tsrx");
+ let dir=support::TempDirectory::new();configure_ui(&dir.0);let entry=dir.0.join("main.tsrx");
  let source="import {Button,View,Node,signal,document} from 'std:ui';function Page():Node{const count=signal(0);return <View><Button onPress={()=>{count.set(count.get()+1);}}>Increment</Button><Button disabled={count.get() < 5} onPress={()=>{count.set(count.get()+100);}}>Disabled</Button></View>;}function main(){console.log(document(Page(),'Reactive'));}";
  std::fs::write(&entry,support::format_round_trip(source)).unwrap();let checked=check_graph(load_project(&FileSourceProvider,entry.to_str().unwrap()).unwrap()).unwrap();let rust=checked.emit_rust();assert!(rust.contains("tsrust_ui_bind_disabled"));assert!(rust.contains("Result<bool"));
  let output=support::run(support::cli().arg("run").arg(&entry),120);support::success(&output);assert!(String::from_utf8(output.stdout).unwrap().contains(" disabled class="));
@@ -138,4 +141,10 @@ fn inline_theme_is_validated_without_importing_the_configuration() {
  let mut ui=serde_json::to_value(tsrust_compiler::ui_project::Config::default()).unwrap();let config=dir.0.join("tsrust.config.json");
  std::fs::write(&config,serde_json::json!({"ui":ui}).to_string()).unwrap();load_project(&FileSourceProvider,entry.to_str().unwrap()).unwrap();
  ui["theme"]["radius"]["sm"]=serde_json::json!(-1);std::fs::write(&config,serde_json::json!({"ui":ui}).to_string()).unwrap();let error=load_project(&FileSourceProvider,entry.to_str().unwrap()).unwrap_err();assert!(error.message.contains("radius.sm"),"{error:?}");tsrust_compiler::project::load_project_headers(&FileSourceProvider,entry.to_str().unwrap()).unwrap();
+}
+
+#[test]
+fn exact_semantic_attributes_reach_generated_native_html() {
+    let entry=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/ui-semantics/inspect.tsr");
+    let output=support::run(support::cli().arg("run").arg(entry),90);support::success(&output);assert_eq!(output.stdout,b"UI semantics passed\n");
 }

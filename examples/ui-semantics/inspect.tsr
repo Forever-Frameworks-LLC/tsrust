@@ -1,0 +1,26 @@
+import { Screen } from './screen';
+import { Text, document } from 'std:ui';
+import { strictEqual } from 'std:testing';
+
+function main() {
+  const html = document(Screen(), 'Semantic UI');
+  strictEqual(html.includes('<section role="region" aria-label="Account" data-slot="account"'), true);
+  strictEqual(html.includes('<h2 id="profile-title"'), true);
+  strictEqual(html.includes('role="alert" aria-label="Error summary"'), true);
+  strictEqual(html.includes('role="separator" aria-orientation="horizontal"'), true);
+  strictEqual(html.includes('aria-hidden="true"'), true);
+  strictEqual(html.includes('aria-label="Save profile" type="button" disabled'), true);
+  let rejected = false;
+  try {
+    const invalid = Text({
+      'aria-label': 'Invalid name', children: ['Visible text']
+    });
+  } catch (error) {
+    if (typeof error === 'string') {
+      rejected = error.includes('aria-label requires');
+    }
+  }
+
+  strictEqual(rejected, true, 'Invalid naming must return a readable error');
+  console.log('UI semantics passed');
+}

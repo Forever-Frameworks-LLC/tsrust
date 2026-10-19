@@ -146,3 +146,40 @@ Native artifacts have no implicit size/count quota. `tsrust cache info` reports
 project cache bytes; `tsrust cache clean` explicitly removes reusable artifacts
 under namespace locks. Running private executable copies remain valid. A later
 build recreates removed support. `TSRUST_CACHE_DIR` selects a shared cache.
+
+## Semantic local components
+
+Editable components use `std:ui` primitives on both backends. Exact JSX attribute
+names are preserved, including `aria-label`, `aria-hidden` and `data-slot`:
+
+```tsrust
+<View as="section" role="region" aria-label="Account">
+  <Text as="h2" className="text-xl font-bold">Profile</Text>
+  <Text role="status">Saved</Text>
+  <View role="separator" aria-orientation="horizontal" />
+</View>
+```
+
+Use quoted keys in ordinary props records, for example
+`{'aria-label': 'Account'}` and `props['aria-label']`. Heading tags carry accessible
+levels without introducing browser-only font sizes or margins. Text accepts span,
+div, p, h1–h6, code and kbd; View accepts div or section. A named region requires a
+nonblank accessible label. Alert is assertive; status is polite. A separator must
+be empty, is not focusable, and defaults to horizontal orientation. Class names
+still determine its dimensions. Hidden decoration remains visible but is excluded
+from accessibility; enabled controls inside a hidden subtree are rejected, even
+when a reactive update would enable them later.
+
+Only supported semantic roles are accepted. This API does not expose arbitrary
+HTML, editable controls, ARIA relationships or simulated interactive roles.
+See `examples/ui-semantics` for native and browser entries. The selected component
+baseline is current Base UI + Nova, pinned in
+[the coverage inventory](../plans/ui-component-coverage.json). Existing offline
+Button/Card v1/v2 are retained; they do not yet claim Nova parity. Pending inventory
+entries are not installable placeholders.
+
+Accessible names require a button, heading, named section or supported naming role.
+A nonempty `aria-label` on generic text/containers, paragraphs, code or presentation
+throws instead of producing different native and browser semantics. Native paragraph,
+code and live-role containers preserve their text as accessible content children.
+See [ARIA naming rules](https://www.w3.org/TR/wai-aria-1.2/#namefromprohibited).

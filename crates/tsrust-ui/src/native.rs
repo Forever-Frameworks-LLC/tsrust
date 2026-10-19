@@ -38,6 +38,7 @@ fn layout_text(text: &mut Layout<()>, width: f32, button: bool) {
 
 struct Item {
     role: Kind,
+    semantics: super::Semantics,
     label: String,
     id: NodeId,
     text: Option<Layout<()>>,
@@ -138,6 +139,7 @@ impl Painter {
         };
         Ok(Item {
             role: node.kind,
+            semantics: node.semantics.clone(),
             label: node.text.clone(),
             id,
             text,
@@ -227,12 +229,28 @@ impl Painter {
             parent_x + layout.location.x as f64,
             parent_y + layout.location.y as f64,
         );
-        let mut node = accesskit::Node::new(match item.role {
+        let default_role=match item.role {
             Kind::View => accesskit::Role::GenericContainer,
             Kind::Text => accesskit::Role::Label,
             Kind::DisabledButton | Kind::Button => accesskit::Role::Button,
-        });
-        if !item.label.is_empty() {
+        };
+        let role=match item.semantics.role.as_str(){
+            "alert"=>accesskit::Role::Alert,"status"=>accesskit::Role::Status,"separator"=>accesskit::Role::Splitter,
+            "group"=>accesskit::Role::Group,"note"=>accesskit::Role::Note,"region"=>accesskit::Role::Region,
+            "none"|"presentation"=>accesskit::Role::GenericContainer,
+            _ if matches!(item.semantics.tag.as_str(),"h1"|"h2"|"h3"|"h4"|"h5"|"h6")=>accesskit::Role::Heading,
+            _ if item.semantics.tag=="p"=>accesskit::Role::Paragraph,
+            _ if item.semantics.tag=="code"=>accesskit::Role::Code,
+            _ if item.semantics.tag=="section" && !item.semantics.label.trim().is_empty()=>accesskit::Role::Region,
+            _=>default_role,
+        };
+        let mut node = accesskit::Node::new(role);
+        if role==accesskit::Role::Heading{node.set_level((item.semantics.tag.as_bytes()[1]-b'1') as usize);}
+        if role==accesskit::Role::Splitter{node.set_orientation(if item.semantics.orientation=="vertical"{accesskit::Orientation::Vertical}else{accesskit::Orientation::Horizontal});}
+        if item.semantics.hidden{node.set_hidden();}
+        if item.semantics.role=="alert"{node.set_live(accesskit::Live::Assertive);}else if item.semantics.role=="status"{node.set_live(accesskit::Live::Polite);}
+        if !item.semantics.label.is_empty(){node.set_label(item.semantics.label.clone());}
+        else if !item.label.is_empty() && matches!(role,accesskit::Role::Label|accesskit::Role::Button|accesskit::Role::Heading) {
             node.set_label(item.label.clone());
         }
         if item.disabled { node.set_disabled(); }
@@ -243,11 +261,18 @@ impl Painter {
             (x + layout.size.width as f64) * scale,
             (y + layout.size.height as f64) * scale,
         ));
-        let children = item
+        let mut children = item
             .children
             .iter()
             .map(|child| self.accessible(child, nodes, next, x, y, scale))
             .collect::<Result<Vec<_>, _>>()?;
+        if item.text.is_some() && !item.label.is_empty() && !matches!(role,accesskit::Role::Label|accesskit::Role::Button) {
+            // Semantic text containers own content, not an invented accessible name.
+            let content_id=accesskit::NodeId(id.0 | (1u64<<63));
+            let mut content=accesskit::Node::new(accesskit::Role::Label);
+            content.set_label(item.label.clone());content.set_bounds(node.bounds().expect("text bounds"));
+            children.push(content_id);nodes.push((content_id,content));
+        }
         node.set_children(children);
         nodes.push((id, node));
         Ok(id)
@@ -845,4 +870,35 @@ mod presentation_tests {
   painter.hover.insert(2);let hovered=painter.node(&root,TextStyle::default()).unwrap();assert_eq!(hovered.children[0].background,Some([0x65,0x43,0x21]));
   painter.focus=Some(2);let focused=painter.node(&root,TextStyle::default()).unwrap();assert_eq!(focused.children[0].background,Some([0x33,0x41,0x55]));
  }
+}
+
+#[cfg(test)]
+mod semantic_accessibility_tests {
+    use super::*;
+    #[test]
+    fn headings_live_roles_names_hidden_state_and_separator_orientation() {
+        let text=|value:&str,config:&str|Node::new(Kind::Text,String::new(),value.into(),vec![]).unwrap().with_semantics(config).unwrap();
+        let root=Node::new(Kind::View,String::new(),String::new(),vec![
+            text("First",r#"{"tag":"h1"}"#), text("Last",r#"{"tag":"h6"}"#),
+            text("Problem",r#"{"role":"alert","label":"Error summary"}"#),
+            text("Saved",r#"{"role":"status"}"#), text("Decoration",r#"{"hidden":true}"#),
+            text("",r#"{"role":"separator"}"#), text("",r#"{"role":"separator","orientation":"vertical"}"#),
+            Node::new(Kind::View,String::new(),String::new(),vec![]).unwrap().with_semantics(r#"{"tag":"section","label":"Implicit region"}"#).unwrap(),
+            text("Paragraph body",r#"{"tag":"p"}"#),text("code body",r#"{"tag":"code"}"#),
+        ]).unwrap().with_semantics(r#"{"tag":"section","role":"region","label":"Account"}"#).unwrap();
+        let mut painter=Painter::new(); let (_,tree)=painter.scene(&root,400.,1.,None).unwrap();
+        let node=|id:u64|&tree.nodes.iter().find(|(key,_)|key.0==id).unwrap().1;
+        assert_eq!(node(1).role(),accesskit::Role::Region); assert_eq!(node(1).label(),Some("Account"));
+        assert_eq!(node(2).role(),accesskit::Role::Heading); assert_eq!(node(2).level(),Some(0));
+        assert_eq!(node(3).level(),Some(5));
+        assert_eq!(node(4).role(),accesskit::Role::Alert); assert_eq!(node(4).label(),Some("Error summary")); assert_eq!(node(4).live(),Some(accesskit::Live::Assertive));
+        assert_eq!(node(5).live(),Some(accesskit::Live::Polite)); assert_eq!(node(5).label(),None);assert_eq!(node((1u64<<63)|5).label(),Some("Saved"));assert!(node(6).is_hidden());
+        assert_eq!(node(7).role(),accesskit::Role::Splitter); assert_eq!(node(7).orientation(),Some(accesskit::Orientation::Horizontal));
+        assert_eq!(node(8).orientation(),Some(accesskit::Orientation::Vertical));
+        assert!(!node(7).supports_action(accesskit::Action::Focus));
+        assert_eq!(node(9).role(),accesskit::Role::Region);
+        for (id,role,body) in [(10,accesskit::Role::Paragraph,"Paragraph body"),(11,accesskit::Role::Code,"code body")] {
+            assert_eq!(node(id).role(),role);assert_eq!(node(id).label(),None);assert_eq!(node(id|(1u64<<63)).label(),Some(body));
+        }
+    }
 }

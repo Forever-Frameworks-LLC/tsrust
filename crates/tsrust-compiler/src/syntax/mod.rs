@@ -2014,6 +2014,17 @@ impl Parser<'_> {
         }
         Ok(self.take())
     }
+    fn property_name(&mut self) -> Result<Token, Diagnostic> {
+        if self.peek().kind == TokenKind::String {
+            let token = self.take();
+            if token.text.contains('\0') {
+                return Err(Diagnostic::new("unsupported", "Record property names cannot contain NUL.", token.span));
+            }
+            Ok(token)
+        } else {
+            self.name()
+        }
+    }
     fn value_annotation(&mut self) -> Result<crate::type_syntax::ValueAnnotation, Diagnostic> {
         let (mut annotation, index) =
             crate::type_syntax::parse_prefix(&mut self.tokens, self.i, self.depth, self.policy)?;
@@ -2128,7 +2139,7 @@ impl Parser<'_> {
         self.expect("{")?;
         let mut fields = Vec::new();
         while !self.accept("}") {
-            let field = self.name()?;
+            let field = self.property_name()?;
             if self.is("(") || self.is("<") {
                 return Err(Diagnostic::new(
                     "unsupported",
@@ -2352,7 +2363,7 @@ impl Parser<'_> {
                 self.expect("{")?;
                 let mut fields = Vec::new();
                 while !self.accept("}") {
-                    let field = self.name()?;
+                    let field = self.property_name()?;
                     let optional = self.accept("?");
                     self.expect(":")?;
                     let annotation = self.value_annotation()?;

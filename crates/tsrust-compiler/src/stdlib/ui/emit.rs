@@ -34,6 +34,7 @@ pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> Strin
         },
         "bindDisabled" => (format!("node:Record{node},predicate:impl FnMut()->Result<bool,std::string::String>+'static"),"node.with_disabled(predicate)".into()),
         "theme" => (format!("node:Record{node},config:&String,mode:&String"),"node.with_theme(config.as_ref(),mode.as_ref())".into()),
+        "semantics" => (format!("node:Record{node},config:&String"),"node.with_semantics(config.as_ref())".into()),
         "ownState" => (format!("node:Record{node},state:Record{}",record(NativeTypeId::UiSignal)),"node.own_state(state)".into()),
         "button" => ("text:&String,class_name:&String,disabled:bool,handler:impl FnMut()->Result<(),std::string::String>+'static".into(),"tsrust_native_ui::Node::button(text.as_ref().to_owned(),class_name.as_ref().to_owned(),disabled,handler)".into()),
         "document" => return format!("fn {symbol}(node:&Record{node},title:&String)->String{{String::Owned(tsrust_native_ui::document(node,title.as_ref()))}}\n"),

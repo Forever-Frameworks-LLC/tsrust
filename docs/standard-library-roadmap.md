@@ -1,5 +1,13 @@
 <!-- Current continuation takes precedence over historical scheduling below. -->
 
+Current component-library direction (2026-10-18): port current Base UI + Nova,
+including the complete component/block inventory and editable offline source.
+[Coverage](plans/ui-component-coverage.json) distinguishes accepted primitive
+prerequisites from pending components. Exact quoted/JSX attributes and shared
+semantic accessibility now pass focused acceptance; composition, layout/theme,
+controls and complete Nova families remain active work. This supersedes historical
+statements limiting the library to Button/Card or treating remaining UI work as optional.
+
 Current UI application contract (2026-10-18): inline ui.theme configuration,
 src/app and src/components conventions, explicit ui.target booleans and first-component ui add setup, shared semantic
 utilities, editable local components, exact offline installation/locks and LSP

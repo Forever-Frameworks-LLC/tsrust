@@ -7,7 +7,7 @@ impl SourceIndex {
  pub(super) fn ui_value(&self,offset:usize)->Option<(usize,String,usize,String)> {
   let token=self.tokens.iter().position(|token|token.literal && token.span.start<offset && offset<token.span.end)?;
   let attribute=self.ui_attribute(token)?;
-  let field=self.text(attribute).to_owned();self.jsx_props(self.tokens[attribute].span.end)?;
+  let (_,field)=self.jsx_attribute_at(self.tokens[attribute].span.end)?;
   let start=self.tokens[token].span.start+1;let prefix=self.source.get(start..offset)?.to_owned();Some((token,field,start,prefix))
  }
  pub(super) fn ui_value_completion(&self,offset:usize)->Option<Value> {

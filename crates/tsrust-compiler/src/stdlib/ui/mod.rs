@@ -72,6 +72,7 @@ pub(crate) const DOCUMENT: NativeBinding = NativeBinding {
     ..TEXT
 };
 pub(crate) const THEME:NativeBinding=NativeBinding{name:"theme",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("config",NativeType::String,Mode::Read),parameter("mode",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_theme"},..TEXT};
+pub(crate) const SEMANTICS:NativeBinding=NativeBinding{name:"semantics",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("config",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_semantics"},..TEXT};
 
 pub(crate) const DISABLED_BINDING:NativeBinding=NativeBinding{name:"bindDisabled",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("predicate",NativeType::OwnedBooleanCallback,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_bind_disabled"},..TEXT};
 

@@ -1231,8 +1231,9 @@ impl SourceIndex {
                     let mut n = open + 1;
                     while n < end {
                         // `name?: Type` is a field that a literal may omit.
-                        let optional = name(self.text(n)) && self.text(n + 1) == "?" && self.text(n + 2) == ":";
-                        if name(self.text(n)) && (self.text(n + 1) == ":" || optional) {
+                        let property=if name(self.text(n)){Some(self.text(n).to_owned())}else{quoted_property_name(self.text(n))};
+                        let optional = property.is_some() && self.text(n + 1) == "?" && self.text(n + 2) == ":";
+                        if let Some(property)=property && (self.text(n + 1) == ":" || optional) {
                             let colon = n + 1 + usize::from(optional);
                             let end_type = self.end_type(colon + 1).min(end);
                             let written = self.written_type(&self.snippet(colon + 1, end_type));
@@ -1245,11 +1246,12 @@ impl SourceIndex {
                                 n,
                                 8,
                                 ty.clone(),
-                                format!("{}{}: {ty}", self.text(n), if optional { "?" } else { "" }),
+                                format!("{}{}: {ty}", property, if optional { "?" } else { "" }),
                                 self.tokens[n].span,
                                 self.tokens[n].span.start,
                                 self.tokens[n].scope,
                             );
+                            self.symbols[field].name = property;
                             self.symbols[field].owner = Some(owner.clone());
                             n = end_type + 1;
                         } else {
@@ -2188,6 +2190,10 @@ impl SourceIndex {
             }
             if self.text(end) == "[" {
                 let close = self.pairs.get(end).copied().flatten()?;
+                if close==end+2 && let Some(key)=quoted_property_name(self.text(end+1))
+                    && let Some(field)=self.common_record_fields(&ty,false).remove(&key) {
+                    ty=field;end=close+1;continue;
+                }
                 ty = if let Ok(annotation) = tsrust_compiler::type_syntax::parse(&ty) {
                     if let tsrust_compiler::type_syntax::ValueAnnotationKind::Tuple(positions) = annotation.into_kind() {
                         let position = self.text(end + 1).parse::<usize>().ok()?;
@@ -2523,6 +2529,8 @@ impl SourceIndex {
                 if let Some(element) = array_element_type(&receiver) {
                     return element.into();
                 }
+                if n==open+2 && let Some(key)=quoted_property_name(self.text(open+1))
+                    && let Some(field)=self.common_record_fields(receiver,false).remove(&key) {return field;}
                 // A string position is a one-character string.
                 if receiver == "string" || literal_scalar_family(receiver) == Some("string") {
                     return "string".into();
@@ -3143,6 +3151,23 @@ impl SourceIndex {
         if method == "textDocument/completion" && let Some(items) = self.import_path_completion(offset, uri) {
             return Ok(items);
         }
+        if matches!(method,"textDocument/hover"|"textDocument/definition") && let Some(token)=self.token_at(offset) {
+        if token>=2 && self.tokens[token].literal && self.text(token-1)=="[" && self.text(token+1)=="]"
+            && let Some(field)=quoted_property_name(self.text(token)) {
+            let receiver=self.expression_type(token-2);
+            if let Some(ty)=self.common_record_fields(&receiver,false).remove(&field) {
+                let owners=self.record_alternatives(&receiver,false);
+                let symbol=self.symbols.iter().position(|symbol|symbol.name==field && symbol.owner.as_ref().is_some_and(|owner|owners.contains(owner)));
+                if method=="textDocument/definition" && let Some(symbol)=symbol {
+                    return Ok(self.foreign_definitions.get(&symbol).cloned().unwrap_or_else(||json!({"uri":uri,"range":self.range(self.symbols[symbol].span)})));
+                }
+                if method=="textDocument/hover" {
+                    let docs=symbol.map(|symbol|crate::documentation::render(&self.symbols[symbol].docs)).unwrap_or_default();
+                    return Ok(json!({"contents":{"kind":"markdown","value":format!("```tsrust\n{field}: {}\n```\n\n{docs}",self.display_type(&ty))},"range":self.range(self.tokens[token].span)}));
+                }
+            }
+        }
+        }
         if method != "textDocument/signatureHelp" && self.excluded(offset) {
             return Ok(if method == "textDocument/completion" {
                 json!([])
@@ -3167,15 +3192,19 @@ impl SourceIndex {
         let Some(token) = self.token_at(offset) else {
             return Ok(Value::Null);
         };
+        if let Some((span,field))=self.jsx_attribute_at(offset) {
+            if method=="textDocument/definition" && let Some(symbol)=self.jsx_prop_symbol(span.end,&field) {
+                return Ok(self.foreign_definitions.get(&symbol).cloned().unwrap_or_else(||json!({"uri":uri,"range":self.range(self.symbols[symbol].span)})));
+            }
+            if method=="textDocument/hover" && let Some((_,fields,_))=self.jsx_props(span.end)
+                && let Some((_,ty))=fields.iter().find(|(name,_)|name==&field) {
+                let docs=self.jsx_prop_symbol(span.end,&field).map(|symbol|crate::documentation::render(&self.symbols[symbol].docs)).unwrap_or_default();
+                let docs=if docs.is_empty(){String::new()}else{format!("\n\n{docs}")};
+                return Ok(json!({"contents":{"kind":"markdown","value":format!("```tsrust\n{field}: {}\n```{docs}",self.display_type(ty))},"range":self.range(span)}));
+            }
+        }
         if !name(self.text(token)) {
             return Ok(Value::Null);
-        }
-        if method=="textDocument/definition" && let Some(field)=self.jsx_prop_symbol(self.tokens[token].span.end,self.text(token)) {
-            return Ok(self.foreign_definitions.get(&field).cloned().unwrap_or_else(||json!({"uri":uri,"range":self.range(self.symbols[field].span)})));
-        }
-        if method=="textDocument/hover" && let Some((_,fields,_))=self.jsx_props(self.tokens[token].span.end)
-            && let Some((field,ty))=fields.iter().find(|(field,_)|field==self.text(token)) {
-            return Ok(json!({"contents":{"kind":"markdown","value":format!("```tsrust\n{field}: {}\n```",self.display_type(ty))},"range":self.range(self.tokens[token].span)}));
         }
         if let Some((_,definition))=self.checked_control_labels.iter().find(|(span,_)|*span==self.tokens[token].span){
             let declaration=*definition;
@@ -3461,7 +3490,15 @@ impl SourceIndex {
             let ty = self.member_receiver_type(dot);
             // After a member separator only members are offered, never names
             // of the enclosing scope.
-            return json!(self.member_items(&ty, prefix, replace, &self.receiver_text(dot)));
+            let mut items=self.member_items(&ty, prefix, replace, &self.receiver_text(dot));
+            for item in &mut items {
+                if item["kind"]==5 && let Some(field)=item["label"].as_str() && !name(field) {
+                    let field=serde_json::to_string(field).expect("property spelling");
+                    let optional=if self.text(dot)=="?."{"?."}else{""};
+                    item["textEdit"]=json!({"range":self.range(Span::new(self.tokens[dot].span.start,offset)),"newText":format!("{optional}[{field}]")});
+                }
+            }
+            return json!(items);
         }
         if before.is_some_and(|id| member_separator(self.text(id))) {
             crate::counters::count(&crate::counters::NON_MEMBER_AFTER_SEPARATOR, "scope names requested after a member separator");
@@ -4411,6 +4448,13 @@ fn builtin_type_substitution(text:&str,types:&[(&str,&str)])->String {
 }
 
 // Literal identities stay precise in hover; member lookup uses their scalar API.
+fn quoted_property_name(text: &str) -> Option<String> {
+    use tsrust_compiler::type_syntax::{ValueAnnotationKind, LiteralAnnotation};
+    if !text.starts_with(['\'', '"']) { return None; }
+    let ValueAnnotationKind::Literal(LiteralAnnotation::String(value))=tsrust_compiler::type_syntax::parse(text).ok()?.into_kind() else { return None; };
+    (!value.contains('\0')).then_some(value)
+}
+
 fn literal_scalar_family(ty: &str) -> Option<&'static str> {
     use tsrust_compiler::type_syntax::{ValueAnnotationKind, LiteralAnnotation};
     let ValueAnnotationKind::Literal(value) = tsrust_compiler::type_syntax::parse(ty).ok()?.into_kind() else { return None; };

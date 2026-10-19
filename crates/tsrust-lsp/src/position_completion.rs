@@ -18,8 +18,20 @@ impl SourceIndex {
         let (_,ty)=self.symbols[component].parameters.first()?.split_once(':')?;let ty=self.written_type(ty.trim());
         self.symbols.iter().position(|symbol|symbol.owner.as_deref()==Some(ty.as_str()) && symbol.name==field)
     }
+    pub(super) fn jsx_attribute_at(&self, offset: usize) -> Option<(Span, String)> {
+        let byte = |ch: u8| ch.is_ascii_alphanumeric() || matches!(ch, b'_' | b'-');
+        let bytes = self.source.as_bytes();
+        let mut start = offset.min(bytes.len());
+        let mut end = start;
+        while start > 0 && byte(bytes[start - 1]) { start -= 1; }
+        while end < bytes.len() && byte(bytes[end]) { end += 1; }
+        if start == end { return None; }
+        self.jsx_props(end)?;
+        Some((Span::new(start, end), self.source[start..end].to_owned()))
+    }
     pub(super) fn jsx_attribute_completion(&self, offset: usize, prefix_start: usize) -> Option<Value> {
         let (_,fields,written)=self.jsx_props(offset)?;
+        let prefix_start=self.jsx_attribute_at(offset).map_or(prefix_start,|(span,_)|span.start);
         let prefix=&self.source[prefix_start..offset];
         let replace=self.range(Span::new(prefix_start,offset));
         Some(json!(fields.into_iter().filter(|(name,_)|name!="children" && name.starts_with(prefix) && !written.contains(name)).map(|(name,ty)|{

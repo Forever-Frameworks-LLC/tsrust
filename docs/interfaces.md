@@ -57,3 +57,24 @@ const named: Named = { name: player.name.slice(0) };
 - Method signatures such as `run(): int;` (`unsupported`). Declare a function-typed field: `run: Function<int>;`.
 - Declaring an interface inside a function (`syntax`).
 - Declaring the same interface name twice. TypeScript merges such declarations; here it is a `duplicate` error.
+
+## Quoted property names
+
+Interfaces, record type declarations and constructor literals accept quoted keys.
+Use bracket access for names that are not identifiers. Names retain their exact
+identity through inheritance, spread, moves and JSON serialization:
+
+```tsrust
+interface Accessible { 'aria-label': string; }
+interface Props extends Accessible { 'data-slot'?: string; }
+function name(props: ReadOnly<Props>): string {
+    return clone(props['aria-label']);
+}
+```
+
+A key such as `'a.b'` is one field, distinct from a nested `a.b` path. Moving it
+invalidates that exact field without moving its sibling. Keys containing NUL are
+explicitly unsupported; quoted strings are not shorthand property declarations.
+JSX accepts hyphenated names such as `aria-label="Account"` with the same checked
+property identity. Editor completion inserts bracket access for quoted names and
+keeps inherited fields available while JSX is incomplete.

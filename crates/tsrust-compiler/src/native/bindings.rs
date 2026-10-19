@@ -346,6 +346,7 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::ui::TEXT,
     crate::stdlib::ui::VIEW,
     crate::stdlib::ui::THEME,
+    crate::stdlib::ui::SEMANTICS,
     crate::stdlib::ui::DISABLED_BINDING,
     crate::stdlib::ui::BUTTON,
     crate::stdlib::ui::DOCUMENT,

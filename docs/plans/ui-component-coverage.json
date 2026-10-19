@@ -1,0 +1,1087 @@
+{
+  "schemaVersion": 1,
+  "baseline": {
+    "repository": "https://github.com/shadcn-ui/ui",
+    "commit": "daaf156ee00ed91cc7e6bdd937c1b4973152d141",
+    "base": "base",
+    "style": "nova",
+    "license": "MIT"
+  },
+  "acceptance": "Pending entries are an implementation inventory, not installable stubs. Acceptance requires actual source, web/native behavior, accessibility, customization, editor help and offline installation. Existing v1/v2 Button/Card remain supported but are not Nova clones.",
+  "foundation": {
+    "exactJsxAttributes": "accepted: quoted record keys, exact hyphenated JSX names, ownership and incomplete-source editor help",
+    "semanticElements": "accepted portable subset: tags, naming, roles, live content, hidden controls and orientation; arbitrary ARIA/HTML remains unsupported",
+    "composedControls": "pending",
+    "editableStateAndIme": "pending",
+    "layoutAndTheme": "pending",
+    "focusAndOverlays": "pending",
+    "baseComponentComposition": "pending"
+  },
+  "components": [
+    {
+      "name": "accordion",
+      "source": "apps/v4/registry/bases/base/ui/accordion.tsx",
+      "gitBlobSha1": "182ccd8e3e872fc0b0a24bb72c0469b6a5857b16",
+      "status": "pending",
+      "capabilityFamilies": [
+        "structured-content"
+      ]
+    },
+    {
+      "name": "alert-dialog",
+      "source": "apps/v4/registry/bases/base/ui/alert-dialog.tsx",
+      "gitBlobSha1": "ab1dc757812bf207ee16691f265470b78ce56d40",
+      "status": "pending",
+      "capabilityFamilies": [
+        "overlays-and-focus"
+      ]
+    },
+    {
+      "name": "alert",
+      "source": "apps/v4/registry/bases/base/ui/alert.tsx",
+      "gitBlobSha1": "e9aa02f381ef6e588cfb57696f76703c0f7c4ceb",
+      "status": "pending",
+      "capabilityFamilies": [
+        "semantic-elements"
+      ]
+    },
+    {
+      "name": "aspect-ratio",
+      "source": "apps/v4/registry/bases/base/ui/aspect-ratio.tsx",
+      "gitBlobSha1": "ebe2783654a6ce3240b2bd3a4bdb80b07c26cf8f",
+      "status": "pending",
+      "capabilityFamilies": [
+        "layout"
+      ]
+    },
+    {
+      "name": "attachment",
+      "source": "apps/v4/registry/bases/base/ui/attachment.tsx",
+      "gitBlobSha1": "be31b4b73bb15e7e080e0b63681a8cae1793261e",
+      "status": "pending",
+      "capabilityFamilies": [
+        "extended-content"
+      ]
+    },
+    {
+      "name": "avatar",
+      "source": "apps/v4/registry/bases/base/ui/avatar.tsx",
+      "gitBlobSha1": "d46f2e9392747cd065e6e760092a7a2b500b4634",
+      "status": "pending",
+      "capabilityFamilies": [
+        "animation-and-media"
+      ]
+    },
+    {
+      "name": "badge",
+      "source": "apps/v4/registry/bases/base/ui/badge.tsx",
+      "gitBlobSha1": "10a7f676f81090c851211f363057238d5906e2ca",
+      "status": "pending",
+      "capabilityFamilies": [
+        "semantic-elements"
+      ]
+    },
+    {
+      "name": "breadcrumb",
+      "source": "apps/v4/registry/bases/base/ui/breadcrumb.tsx",
+      "gitBlobSha1": "e0a0a2f1f55e4bba083ddf7a44f85bd34ce91804",
+      "status": "pending",
+      "capabilityFamilies": [
+        "structured-content"
+      ]
+    },
+    {
+      "name": "bubble",
+      "source": "apps/v4/registry/bases/base/ui/bubble.tsx",
+      "gitBlobSha1": "0b5a88bcce7ee588094c255e823d69950f841138",
+      "status": "pending",
+      "capabilityFamilies": [
+        "extended-content"
+      ]
+    },
+    {
+      "name": "button-group",
+      "source": "apps/v4/registry/bases/base/ui/button-group.tsx",
+      "gitBlobSha1": "9bdfea8e85060ffbc302fab7dad64ca761b4b073",
+      "status": "pending",
+      "capabilityFamilies": [
+        "composed-controls"
+      ]
+    },
+    {
+      "name": "button",
+      "source": "apps/v4/registry/bases/base/ui/button.tsx",
+      "gitBlobSha1": "2007374034d564bb926915baa057e500cab631a4",
+      "status": "pending",
+      "capabilityFamilies": [
+        "composed-controls"
+      ]
+    },
+    {
+      "name": "calendar",
+      "source": "apps/v4/registry/bases/base/ui/calendar.tsx",
+      "gitBlobSha1": "568ab9fd00a03d1651d1b42cb8915eed282cf1a4",
+      "status": "pending",
+      "capabilityFamilies": [
+        "temporal-and-charts"
+      ]
+    },
+    {
+      "name": "card",
+      "source": "apps/v4/registry/bases/base/ui/card.tsx",
+      "gitBlobSha1": "2062884f29a8044fa48edf86605182eca29f8716",
+      "status": "pending",
+      "capabilityFamilies": [
+        "semantic-elements"
+      ]
+    },
+    {
+      "name": "carousel",
+      "source": "apps/v4/registry/bases/base/ui/carousel.tsx",
+      "gitBlobSha1": "67bb25fa3ad927545ee1b80189cd7e9c9c3ca96a",
+      "status": "pending",
+      "capabilityFamilies": [
+        "animation-and-media"
+      ]
+    },
+    {
+      "name": "chart",
+      "source": "apps/v4/registry/bases/base/ui/chart.tsx",
+      "gitBlobSha1": "fa460c956066fbc5720ebe4203ba7353628201d5",
+      "status": "pending",
+      "capabilityFamilies": [
+        "temporal-and-charts"
+      ]
+    },
+    {
+      "name": "checkbox",
+      "source": "apps/v4/registry/bases/base/ui/checkbox.tsx",
+      "gitBlobSha1": "ecf58adc56fd11b95c5962e3e6482fad5c27ebb1",
+      "status": "pending",
+      "capabilityFamilies": [
+        "composed-controls"
+      ]
+    },
+    {
+      "name": "code-block",
+      "source": "apps/v4/registry/bases/base/ui/code-block.tsx",
+      "gitBlobSha1": "ecb191d6122e9011a6cf2b172bf283f2e1524341",
+      "status": "pending",
+      "capabilityFamilies": [
+        "extended-content"
+      ]
+    },
+    {
+      "name": "collapsible",
+      "source": "apps/v4/registry/bases/base/ui/collapsible.tsx",
+      "gitBlobSha1": "488fb33af5107a94791ef3235ee58861e3ed6855",
+      "status": "pending",
+      "capabilityFamilies": [
+        "structured-content"
+      ]
+    },
+    {
+      "name": "combobox",
+      "source": "apps/v4/registry/bases/base/ui/combobox.tsx",
+      "gitBlobSha1": "8fc7ae799f00cec1cf4efa6ab8509717f64a7a91",
+      "status": "pending",
+      "capabilityFamilies": [
+        "overlays-and-focus"
+      ]
+    },
+    {
+      "name": "command",
+      "source": "apps/v4/registry/bases/base/ui/command.tsx",
+      "gitBlobSha1": "21dd5593478db868a6a566af6b2914fd1dfbc96f",
+      "status": "pending",
+      "capabilityFamilies": [
+        "overlays-and-focus"
+      ]
+    },
+    {
+      "name": "context-menu",
+      "source": "apps/v4/registry/bases/base/ui/context-menu.tsx",
+      "gitBlobSha1": "3fc2b82c358ed8f592a6a13539bb051c9d978d19",
+      "status": "pending",
+      "capabilityFamilies": [
+        "overlays-and-focus"
+      ]
+    },
+    {
+      "name": "dialog",
+      "source": "apps/v4/registry/bases/base/ui/dialog.tsx",
+      "gitBlobSha1": "8c68524ade906dc3754769729ae3cbcb1b9d7b55",
+      "status": "pending",
+      "capabilityFamilies": [
+        "overlays-and-focus"
+      ]
+    },
+    {
+      "name": "direction",
+      "source": "apps/v4/registry/bases/base/ui/direction.tsx",
+      "gitBlobSha1": "d8cf134614ac38b4fbc6c902e6e2cf770ba389c1",
+      "status": "pending",
+      "capabilityFamilies": [
+        "layout"
+      ]
+    },
+    {
+      "name": "drawer",
+      "source": "apps/v4/registry/bases/base/ui/drawer.tsx",
+      "gitBlobSha1": "bebe3a912626745d7567982acd7b2465504e59c1",
+      "status": "pending",
+      "capabilityFamilies": [
+        "overlays-and-focus"
+      ]
+    },
+    {
+      "name": "dropdown-menu",
+      "source": "apps/v4/registry/bases/base/ui/dropdown-menu.tsx",
+      "gitBlobSha1": "4c4543e2954441c012d3a7dc1d850e99613f5651",
+      "status": "pending",
+      "capabilityFamilies": [
+        "overlays-and-focus"
+      ]
+    },
+    {
+      "name": "empty",
+      "source": "apps/v4/registry/bases/base/ui/empty.tsx",
+      "gitBlobSha1": "6a49a9813c02e2ce2548402e1a63b05de550bace",
+      "status": "pending",
+      "capabilityFamilies": [
+        "semantic-elements"
+      ]
+    },
+    {
+      "name": "field",
+      "source": "apps/v4/registry/bases/base/ui/field.tsx",
+      "gitBlobSha1": "d58e0d29dbfe52053a21eff0b837f571b278f1ef",
+      "status": "pending",
+      "capabilityFamilies": [
+        "editable-values"
+      ]
+    },
+    {
+      "name": "hover-card",
+      "source": "apps/v4/registry/bases/base/ui/hover-card.tsx",
+      "gitBlobSha1": "f76bbaa239c8907d8935521f20e940bb4e3a40ff",
+      "status": "pending",
+      "capabilityFamilies": [
+        "overlays-and-focus"
+      ]
+    },
+    {
+      "name": "input-group",
+      "source": "apps/v4/registry/bases/base/ui/input-group.tsx",
+      "gitBlobSha1": "cb328462c7c372f1b22342b25d396704d87247c1",
+      "status": "pending",
+      "capabilityFamilies": [
+        "editable-values"
+      ]
+    },
+    {
+      "name": "input-otp",
+      "source": "apps/v4/registry/bases/base/ui/input-otp.tsx",
+      "gitBlobSha1": "9680970c7bfcf40588b8c69123b2d02a1e2699b6",
+      "status": "pending",
+      "capabilityFamilies": [
+        "editable-values"
+      ]
+    },
+    {
+      "name": "input",
+      "source": "apps/v4/registry/bases/base/ui/input.tsx",
+      "gitBlobSha1": "06c96abffafcd0fbbedb24778f0c2f668e1b2109",
+      "status": "pending",
+      "capabilityFamilies": [
+        "editable-values"
+      ]
+    },
+    {
+      "name": "item",
+      "source": "apps/v4/registry/bases/base/ui/item.tsx",
+      "gitBlobSha1": "ebdb220dcada0975388fbf2b095b1db61c5d8413",
+      "status": "pending",
+      "capabilityFamilies": [
+        "semantic-elements"
+      ]
+    },
+    {
+      "name": "kbd",
+      "source": "apps/v4/registry/bases/base/ui/kbd.tsx",
+      "gitBlobSha1": "1fc8d9c188183e3df985d9a1f454ca692186790f",
+      "status": "pending",
+      "capabilityFamilies": [
+        "semantic-elements"
+      ]
+    },
+    {
+      "name": "label",
+      "source": "apps/v4/registry/bases/base/ui/label.tsx",
+      "gitBlobSha1": "3b0886ba1826c80e7c6e0c22b699a43cb6df5bc9",
+      "status": "pending",
+      "capabilityFamilies": [
+        "editable-values"
+      ]
+    },
+    {
+      "name": "marker",
+      "source": "apps/v4/registry/bases/base/ui/marker.tsx",
+      "gitBlobSha1": "4fcf772c96f7649cea01ad6f7a688a521a817a42",
+      "status": "pending",
+      "capabilityFamilies": [
+        "extended-content"
+      ]
+    },
+    {
+      "name": "menubar",
+      "source": "apps/v4/registry/bases/base/ui/menubar.tsx",
+      "gitBlobSha1": "ac05ba9b8ef04ea55c038d8b6eb244a8c0f323ef",
+      "status": "pending",
+      "capabilityFamilies": [
+        "overlays-and-focus"
+      ]
+    },
+    {
+      "name": "message-scroller",
+      "source": "apps/v4/registry/bases/base/ui/message-scroller.tsx",
+      "gitBlobSha1": "37268f119d3298c7c428bda0751c2af32f0ada9e",
+      "status": "pending",
+      "capabilityFamilies": [
+        "extended-content"
+      ]
+    },
+    {
+      "name": "message",
+      "source": "apps/v4/registry/bases/base/ui/message.tsx",
+      "gitBlobSha1": "ae7aef393f0714997c632fdac0755ce9d830f965",
+      "status": "pending",
+      "capabilityFamilies": [
+        "extended-content"
+      ]
+    },
+    {
+      "name": "native-select",
+      "source": "apps/v4/registry/bases/base/ui/native-select.tsx",
+      "gitBlobSha1": "273a3bc8ea586d4d525c7d3da108c65810894e93",
+      "status": "pending",
+      "capabilityFamilies": [
+        "editable-values"
+      ]
+    },
+    {
+      "name": "navigation-menu",
+      "source": "apps/v4/registry/bases/base/ui/navigation-menu.tsx",
+      "gitBlobSha1": "54bf3f8c29ab48b087a62dce4bcbe8ede7ab6418",
+      "status": "pending",
+      "capabilityFamilies": [
+        "overlays-and-focus"
+      ]
+    },
+    {
+      "name": "pagination",
+      "source": "apps/v4/registry/bases/base/ui/pagination.tsx",
+      "gitBlobSha1": "b1f8b1df96e8a29f8f799c190cf545544607d2a5",
+      "status": "pending",
+      "capabilityFamilies": [
+        "structured-content"
+      ]
+    },
+    {
+      "name": "popover",
+      "source": "apps/v4/registry/bases/base/ui/popover.tsx",
+      "gitBlobSha1": "808aa62dc13b4b9c37efbe9c676c09b8e06c0738",
+      "status": "pending",
+      "capabilityFamilies": [
+        "overlays-and-focus"
+      ]
+    },
+    {
+      "name": "progress",
+      "source": "apps/v4/registry/bases/base/ui/progress.tsx",
+      "gitBlobSha1": "43df6eb11e1c55ad939e24dc408042efa6fe8f93",
+      "status": "pending",
+      "capabilityFamilies": [
+        "animation-and-media"
+      ]
+    },
+    {
+      "name": "questionnaire",
+      "source": "apps/v4/registry/bases/base/ui/questionnaire.tsx",
+      "gitBlobSha1": "59de4ea25facd1a4514a192eb08d6fe7987ca14e",
+      "status": "pending",
+      "capabilityFamilies": [
+        "extended-content"
+      ]
+    },
+    {
+      "name": "radio-group",
+      "source": "apps/v4/registry/bases/base/ui/radio-group.tsx",
+      "gitBlobSha1": "1293df6fbc4dde4dcd15cb60aacb734031844164",
+      "status": "pending",
+      "capabilityFamilies": [
+        "composed-controls"
+      ]
+    },
+    {
+      "name": "resizable",
+      "source": "apps/v4/registry/bases/base/ui/resizable.tsx",
+      "gitBlobSha1": "76d7a0e2dc9e2ea70b7d01bc286f7cde64fbe6c8",
+      "status": "pending",
+      "capabilityFamilies": [
+        "layout"
+      ]
+    },
+    {
+      "name": "scroll-area",
+      "source": "apps/v4/registry/bases/base/ui/scroll-area.tsx",
+      "gitBlobSha1": "a7acc33718ff8d558e276048c9cc191d8d0d5b2b",
+      "status": "pending",
+      "capabilityFamilies": [
+        "layout"
+      ]
+    },
+    {
+      "name": "select",
+      "source": "apps/v4/registry/bases/base/ui/select.tsx",
+      "gitBlobSha1": "2cb76c117197336324cfaed1300e92ca65273b40",
+      "status": "pending",
+      "capabilityFamilies": [
+        "overlays-and-focus"
+      ]
+    },
+    {
+      "name": "separator",
+      "source": "apps/v4/registry/bases/base/ui/separator.tsx",
+      "gitBlobSha1": "d69c13426761105ab42e5a6bd364dc54bd70f78c",
+      "status": "pending",
+      "capabilityFamilies": [
+        "semantic-elements"
+      ]
+    },
+    {
+      "name": "sheet",
+      "source": "apps/v4/registry/bases/base/ui/sheet.tsx",
+      "gitBlobSha1": "72669ad9cb812dcbf389f8be6e8157eaa8023479",
+      "status": "pending",
+      "capabilityFamilies": [
+        "overlays-and-focus"
+      ]
+    },
+    {
+      "name": "sidebar",
+      "source": "apps/v4/registry/bases/base/ui/sidebar.tsx",
+      "gitBlobSha1": "1ca3356406a02d78b828f8ade02a420f19b40e55",
+      "status": "pending",
+      "capabilityFamilies": [
+        "layout"
+      ]
+    },
+    {
+      "name": "skeleton",
+      "source": "apps/v4/registry/bases/base/ui/skeleton.tsx",
+      "gitBlobSha1": "0439455a951949f8a75be48fa2c8b8e9f3d8b0f2",
+      "status": "pending",
+      "capabilityFamilies": [
+        "animation-and-media"
+      ]
+    },
+    {
+      "name": "slider",
+      "source": "apps/v4/registry/bases/base/ui/slider.tsx",
+      "gitBlobSha1": "2e55a9a0fc07b66fc86ce1df33c86c2501939088",
+      "status": "pending",
+      "capabilityFamilies": [
+        "animation-and-media"
+      ]
+    },
+    {
+      "name": "sonner",
+      "source": "apps/v4/registry/bases/base/ui/sonner.tsx",
+      "gitBlobSha1": "0c2e93ea32d47a346e4dd0d92b916d965c09d7e5",
+      "status": "pending",
+      "capabilityFamilies": [
+        "animation-and-media"
+      ]
+    },
+    {
+      "name": "spinner",
+      "source": "apps/v4/registry/bases/base/ui/spinner.tsx",
+      "gitBlobSha1": "2a91bf988618e87a3698133b0bd971a00ec3f61b",
+      "status": "pending",
+      "capabilityFamilies": [
+        "animation-and-media"
+      ]
+    },
+    {
+      "name": "switch",
+      "source": "apps/v4/registry/bases/base/ui/switch.tsx",
+      "gitBlobSha1": "753fd22a92536c103d3ff4c4c6171d48f428ead7",
+      "status": "pending",
+      "capabilityFamilies": [
+        "composed-controls"
+      ]
+    },
+    {
+      "name": "table",
+      "source": "apps/v4/registry/bases/base/ui/table.tsx",
+      "gitBlobSha1": "160cf7aa14b8467a777eb2405053d2d968f641b9",
+      "status": "pending",
+      "capabilityFamilies": [
+        "structured-content"
+      ]
+    },
+    {
+      "name": "tabs",
+      "source": "apps/v4/registry/bases/base/ui/tabs.tsx",
+      "gitBlobSha1": "2b39bbfe73883fcb8a6630e0d6af953ed0b08f49",
+      "status": "pending",
+      "capabilityFamilies": [
+        "structured-content"
+      ]
+    },
+    {
+      "name": "textarea",
+      "source": "apps/v4/registry/bases/base/ui/textarea.tsx",
+      "gitBlobSha1": "8b8d3f1c6cc7c66c2fab2e050164f355a655b6c9",
+      "status": "pending",
+      "capabilityFamilies": [
+        "editable-values"
+      ]
+    },
+    {
+      "name": "toast",
+      "source": "apps/v4/registry/bases/base/ui/toast.tsx",
+      "gitBlobSha1": "0c9dfc0a76eeacfde789c4beed5f4eea2666c686",
+      "status": "pending",
+      "capabilityFamilies": [
+        "animation-and-media"
+      ]
+    },
+    {
+      "name": "toggle-group",
+      "source": "apps/v4/registry/bases/base/ui/toggle-group.tsx",
+      "gitBlobSha1": "f2d9475eaaa1132ea00efd113a415dac46cd2bb3",
+      "status": "pending",
+      "capabilityFamilies": [
+        "composed-controls"
+      ]
+    },
+    {
+      "name": "toggle",
+      "source": "apps/v4/registry/bases/base/ui/toggle.tsx",
+      "gitBlobSha1": "b058b4d0e74ccc7de2258b63a77f0136bb391b11",
+      "status": "pending",
+      "capabilityFamilies": [
+        "composed-controls"
+      ]
+    },
+    {
+      "name": "tooltip",
+      "source": "apps/v4/registry/bases/base/ui/tooltip.tsx",
+      "gitBlobSha1": "8fbd22dacb65913e7e31cde7ad800dce6f889116",
+      "status": "pending",
+      "capabilityFamilies": [
+        "overlays-and-focus"
+      ]
+    },
+    {
+      "name": "trace",
+      "source": "apps/v4/registry/bases/base/ui/trace.tsx",
+      "gitBlobSha1": "dd8676567bd72d32ba695470e797eaf8c66af900",
+      "status": "pending",
+      "capabilityFamilies": [
+        "extended-content"
+      ]
+    }
+  ],
+  "recipes": [
+    {
+      "name": "data-table",
+      "source": "https://ui.shadcn.com/docs/components/data-table",
+      "status": "pending"
+    },
+    {
+      "name": "date-picker",
+      "source": "https://ui.shadcn.com/docs/components/date-picker",
+      "status": "pending"
+    },
+    {
+      "name": "typography",
+      "source": "https://ui.shadcn.com/docs/components/typography",
+      "status": "pending"
+    }
+  ],
+  "blocks": [
+    {
+      "name": "dashboard-01",
+      "source": "apps/v4/registry/bases/base/blocks/dashboard-01",
+      "gitTreeSha1": "7f78b7baa4f4d66859ca9b874cc0e026f1c7e61e",
+      "status": "pending",
+      "registryDependencies": [
+        "sidebar",
+        "breadcrumb",
+        "separator",
+        "label",
+        "chart",
+        "card",
+        "select",
+        "tabs",
+        "table",
+        "toggle-group",
+        "badge",
+        "button",
+        "checkbox",
+        "dropdown-menu",
+        "drawer",
+        "input",
+        "avatar",
+        "sheet",
+        "sonner"
+      ],
+      "description": "A dashboard with sidebar, charts and data table."
+    },
+    {
+      "name": "login-01",
+      "source": "apps/v4/registry/bases/base/blocks/login-01",
+      "gitTreeSha1": "e3ec131427faa3b759908e5533a1ce16a5429c7b",
+      "status": "pending",
+      "registryDependencies": [
+        "button",
+        "card",
+        "input",
+        "label",
+        "field"
+      ],
+      "description": "A simple login form."
+    },
+    {
+      "name": "login-02",
+      "source": "apps/v4/registry/bases/base/blocks/login-02",
+      "gitTreeSha1": "b81e8f81b78a8a4f07bbc18a7e2c4f98de82a612",
+      "status": "pending",
+      "registryDependencies": [
+        "button",
+        "input",
+        "label",
+        "field"
+      ],
+      "description": "A two column login page with a cover image."
+    },
+    {
+      "name": "login-03",
+      "source": "apps/v4/registry/bases/base/blocks/login-03",
+      "gitTreeSha1": "2cda76f97354ce3cc76cc1edb5b63a10e9636666",
+      "status": "pending",
+      "registryDependencies": [
+        "button",
+        "card",
+        "input",
+        "label",
+        "field"
+      ],
+      "description": "A login page with a muted background color."
+    },
+    {
+      "name": "login-04",
+      "source": "apps/v4/registry/bases/base/blocks/login-04",
+      "gitTreeSha1": "d66ab1e5fcb685138ec3b410520fde05472d5a7d",
+      "status": "pending",
+      "registryDependencies": [
+        "button",
+        "card",
+        "input",
+        "label",
+        "field"
+      ],
+      "description": "A login page with form and image."
+    },
+    {
+      "name": "login-05",
+      "source": "apps/v4/registry/bases/base/blocks/login-05",
+      "gitTreeSha1": "98dc634115e3db8eeb93d3bdcbc70578572163c8",
+      "status": "pending",
+      "registryDependencies": [
+        "button",
+        "input",
+        "label",
+        "field"
+      ],
+      "description": "A simple email-only login page."
+    },
+    {
+      "name": "preview-02",
+      "source": "apps/v4/registry/bases/base/blocks/preview-02",
+      "gitTreeSha1": "cdcbb9bcb46b907d0e596f80215f76bdfea28015",
+      "status": "pending",
+      "registryDependencies": [
+        "accordion",
+        "badge",
+        "breadcrumb",
+        "button",
+        "calendar",
+        "card",
+        "chart",
+        "checkbox",
+        "combobox",
+        "dropdown-menu",
+        "empty",
+        "field",
+        "input",
+        "input-group",
+        "item",
+        "label",
+        "native-select",
+        "progress",
+        "radio-group",
+        "select",
+        "separator",
+        "sidebar",
+        "skeleton",
+        "slider",
+        "spinner",
+        "switch",
+        "table",
+        "tabs",
+        "textarea",
+        "toggle-group"
+      ]
+    },
+    {
+      "name": "preview-03",
+      "source": "apps/v4/registry/bases/base/blocks/preview-03",
+      "gitTreeSha1": "3f133d50a65e4fd869a6344e43c45f5f1d87dceb",
+      "status": "pending",
+      "registryDependencies": []
+    },
+    {
+      "name": "preview",
+      "source": "apps/v4/registry/bases/base/blocks/preview",
+      "gitTreeSha1": "7dcc41d21a7a92ccae665919428975919a525bbe",
+      "status": "pending",
+      "registryDependencies": [
+        "alert-dialog",
+        "avatar",
+        "badge",
+        "button",
+        "button-group",
+        "card",
+        "chart",
+        "checkbox",
+        "combobox",
+        "dropdown-menu",
+        "empty",
+        "field",
+        "input",
+        "input-group",
+        "item",
+        "label",
+        "popover",
+        "radio-group",
+        "select",
+        "separator",
+        "sheet",
+        "slider",
+        "spinner",
+        "switch",
+        "textarea",
+        "tooltip",
+        "example"
+      ]
+    },
+    {
+      "name": "sidebar-01",
+      "source": "apps/v4/registry/bases/base/blocks/sidebar-01",
+      "gitTreeSha1": "bc7f221bac2e41cd69d5de45a19c8c8ff04bc5f3",
+      "status": "pending",
+      "registryDependencies": [
+        "sidebar",
+        "breadcrumb",
+        "separator",
+        "label",
+        "dropdown-menu"
+      ],
+      "description": "A simple sidebar with navigation grouped by section."
+    },
+    {
+      "name": "sidebar-02",
+      "source": "apps/v4/registry/bases/base/blocks/sidebar-02",
+      "gitTreeSha1": "05baf811d56b5dfb01f38b22139f4448bd00a8bb",
+      "status": "pending",
+      "registryDependencies": [
+        "sidebar",
+        "breadcrumb",
+        "separator",
+        "label",
+        "dropdown-menu"
+      ],
+      "description": "A sidebar with collapsible sections."
+    },
+    {
+      "name": "sidebar-03",
+      "source": "apps/v4/registry/bases/base/blocks/sidebar-03",
+      "gitTreeSha1": "6f2dceba7414162066835dbf5feea694d3c54a87",
+      "status": "pending",
+      "registryDependencies": [
+        "sidebar",
+        "breadcrumb"
+      ],
+      "description": "A sidebar with submenus."
+    },
+    {
+      "name": "sidebar-04",
+      "source": "apps/v4/registry/bases/base/blocks/sidebar-04",
+      "gitTreeSha1": "2a1d82c9bb4948beebe3340a56b851c61cd625e2",
+      "status": "pending",
+      "registryDependencies": [
+        "sidebar",
+        "breadcrumb",
+        "separator"
+      ],
+      "description": "A floating sidebar with submenus."
+    },
+    {
+      "name": "sidebar-05",
+      "source": "apps/v4/registry/bases/base/blocks/sidebar-05",
+      "gitTreeSha1": "c9f0a94e8fbed94ed444291565d10b7393f45188",
+      "status": "pending",
+      "registryDependencies": [
+        "sidebar",
+        "breadcrumb",
+        "separator",
+        "label",
+        "collapsible"
+      ],
+      "description": "A sidebar with collapsible submenus."
+    },
+    {
+      "name": "sidebar-06",
+      "source": "apps/v4/registry/bases/base/blocks/sidebar-06",
+      "gitTreeSha1": "229f25c2da7b903e31cb30d259fd1b37b945bef3",
+      "status": "pending",
+      "registryDependencies": [
+        "sidebar",
+        "breadcrumb",
+        "separator",
+        "card",
+        "dropdown-menu"
+      ],
+      "description": "A sidebar with submenus as dropdowns."
+    },
+    {
+      "name": "sidebar-07",
+      "source": "apps/v4/registry/bases/base/blocks/sidebar-07",
+      "gitTreeSha1": "9b0924b6fddbe7a126aa34467ebf2e004f719777",
+      "status": "pending",
+      "registryDependencies": [
+        "sidebar",
+        "breadcrumb",
+        "separator",
+        "collapsible",
+        "dropdown-menu",
+        "avatar"
+      ],
+      "description": "A sidebar that collapses to icons."
+    },
+    {
+      "name": "sidebar-08",
+      "source": "apps/v4/registry/bases/base/blocks/sidebar-08",
+      "gitTreeSha1": "be536177335267499cdfb04179570dee4f0f0050",
+      "status": "pending",
+      "registryDependencies": [
+        "sidebar",
+        "breadcrumb",
+        "separator",
+        "collapsible",
+        "dropdown-menu",
+        "avatar"
+      ],
+      "description": "An inset sidebar with secondary navigation."
+    },
+    {
+      "name": "sidebar-09",
+      "source": "apps/v4/registry/bases/base/blocks/sidebar-09",
+      "gitTreeSha1": "a2d90a3efeed2f95e70ba6efa7e37e12a38db5ac",
+      "status": "pending",
+      "registryDependencies": [
+        "sidebar",
+        "breadcrumb",
+        "separator",
+        "collapsible",
+        "dropdown-menu",
+        "avatar",
+        "switch",
+        "label"
+      ],
+      "description": "Collapsible nested sidebars."
+    },
+    {
+      "name": "sidebar-10",
+      "source": "apps/v4/registry/bases/base/blocks/sidebar-10",
+      "gitTreeSha1": "0cf3ad8a3a8db5368b80a3476f76f87ada83a6a4",
+      "status": "pending",
+      "registryDependencies": [
+        "sidebar",
+        "breadcrumb",
+        "separator",
+        "popover",
+        "collapsible",
+        "dropdown-menu"
+      ],
+      "description": "A sidebar in a popover."
+    },
+    {
+      "name": "sidebar-11",
+      "source": "apps/v4/registry/bases/base/blocks/sidebar-11",
+      "gitTreeSha1": "d5b5ad2d742cd1f1506f5723463431a7bc983b56",
+      "status": "pending",
+      "registryDependencies": [
+        "sidebar",
+        "breadcrumb",
+        "separator",
+        "collapsible"
+      ],
+      "description": "A sidebar with a collapsible file tree."
+    },
+    {
+      "name": "sidebar-12",
+      "source": "apps/v4/registry/bases/base/blocks/sidebar-12",
+      "gitTreeSha1": "f7573a5a0d4a05ae2b1302bc7f483cb903cc975d",
+      "status": "pending",
+      "registryDependencies": [
+        "sidebar",
+        "breadcrumb",
+        "separator",
+        "collapsible",
+        "calendar",
+        "dropdown-menu",
+        "avatar"
+      ],
+      "description": "A sidebar with a calendar."
+    },
+    {
+      "name": "sidebar-13",
+      "source": "apps/v4/registry/bases/base/blocks/sidebar-13",
+      "gitTreeSha1": "edb3dbe9f554eedc13caa0c611e4c2b9c5fda0a5",
+      "status": "pending",
+      "registryDependencies": [
+        "sidebar",
+        "breadcrumb",
+        "button",
+        "dialog"
+      ],
+      "description": "A sidebar in a dialog."
+    },
+    {
+      "name": "sidebar-14",
+      "source": "apps/v4/registry/bases/base/blocks/sidebar-14",
+      "gitTreeSha1": "f1e49c965e064aa6e000347714c398063391365c",
+      "status": "pending",
+      "registryDependencies": [
+        "sidebar",
+        "breadcrumb"
+      ],
+      "description": "A sidebar on the right."
+    },
+    {
+      "name": "sidebar-15",
+      "source": "apps/v4/registry/bases/base/blocks/sidebar-15",
+      "gitTreeSha1": "8cde61772dd049797b0e996bcd5b046d0a4cee2d",
+      "status": "pending",
+      "registryDependencies": [
+        "sidebar",
+        "breadcrumb",
+        "separator",
+        "popover",
+        "collapsible",
+        "dropdown-menu",
+        "calendar",
+        "avatar"
+      ],
+      "description": "A left and right sidebar."
+    },
+    {
+      "name": "sidebar-16",
+      "source": "apps/v4/registry/bases/base/blocks/sidebar-16",
+      "gitTreeSha1": "9bb70405224e62408fe471ba1d5f056a1212f26b",
+      "status": "pending",
+      "registryDependencies": [
+        "sidebar",
+        "breadcrumb",
+        "separator",
+        "collapsible",
+        "dropdown-menu",
+        "avatar",
+        "button",
+        "label"
+      ],
+      "description": "A sidebar with a sticky site header."
+    },
+    {
+      "name": "signup-01",
+      "source": "apps/v4/registry/bases/base/blocks/signup-01",
+      "gitTreeSha1": "9db282af47cbce3a898124668d713511265b68fa",
+      "status": "pending",
+      "registryDependencies": [
+        "button",
+        "card",
+        "input",
+        "label"
+      ],
+      "description": "A simple signup form."
+    },
+    {
+      "name": "signup-02",
+      "source": "apps/v4/registry/bases/base/blocks/signup-02",
+      "gitTreeSha1": "5b66b10cd2a0c1bfb680d1646a9bbf503a5e2a17",
+      "status": "pending",
+      "registryDependencies": [
+        "button",
+        "input",
+        "label",
+        "field"
+      ],
+      "description": "A two column signup page with a cover image."
+    },
+    {
+      "name": "signup-03",
+      "source": "apps/v4/registry/bases/base/blocks/signup-03",
+      "gitTreeSha1": "5dcb35a911949b85ea4f2b9df9a7a7e3c5a78218",
+      "status": "pending",
+      "registryDependencies": [
+        "button",
+        "card",
+        "input",
+        "label",
+        "field"
+      ],
+      "description": "A signup page with a muted background color."
+    },
+    {
+      "name": "signup-04",
+      "source": "apps/v4/registry/bases/base/blocks/signup-04",
+      "gitTreeSha1": "8bb80631fcd6b7d778179080e16485fce683e2cd",
+      "status": "pending",
+      "registryDependencies": [
+        "button",
+        "card",
+        "input",
+        "label",
+        "field"
+      ],
+      "description": "A signup page with form and image."
+    },
+    {
+      "name": "signup-05",
+      "source": "apps/v4/registry/bases/base/blocks/signup-05",
+      "gitTreeSha1": "0e0266e67c85107ad69f5de01e1302d072eeca75",
+      "status": "pending",
+      "registryDependencies": [
+        "button",
+        "input",
+        "label"
+      ],
+      "description": "A simple signup form with social providers."
+    }
+  ]
+}

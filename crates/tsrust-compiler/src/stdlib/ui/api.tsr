@@ -1,4 +1,4 @@
-import { bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, handle as nativeHandle, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, disabledButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
+import { semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, handle as nativeHandle, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, disabledButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
 
 /** An owned UI subtree. Moving a Node transfers all descendants. Nodes cannot be cloned or sent to workers. */
 export type Node = NativeNode;
@@ -7,18 +7,42 @@ export type UiError = NativeUiError;
 
 export type TextChild = string | Signal;
 
-export interface TextProps {
-  children: TextChild[];
+/** Shared element identity and accessible naming. Attributes are escaped in HTML and applied to the same native subtree. */
+export interface ElementProps {
+  /** A document ID without ASCII whitespace/control characters. Defaults to no ID. */
+  id?: string;
+  /** Accessible name for buttons, headings, named sections or supported named roles. Generic text/containers, paragraphs, code and presentation cannot be named. */
+  'aria-label'?: string;
+  /** Excludes a noninteractive subtree from accessibility. Enabled controls inside it are rejected. Defaults to false. */
+  'aria-hidden'?: boolean;
+  /** Local component slot for styling and inspection. ASCII letters, digits and hyphens; defaults to none. */
+  'data-slot'?: string;
+}
+
+/** Noninteractive semantic roles shared by View and Text. Unsupported roles fail rather than losing accessibility behavior. */
+export interface SemanticProps extends ElementProps {
+  /** Defaults to the element's implicit role. A region requires aria-label; separators require empty content. */
+  role?: 'alert' | 'status' | 'separator' | 'group' | 'note' | 'region' | 'none' | 'presentation';
+  /** Only valid for role=separator; defaults to horizontal. */
+  'aria-orientation'?: 'horizontal' | 'vertical';
+}
+
+export interface TextProps extends SemanticProps {
+  /** Defaults to span. Heading levels are reflected in native accessibility. */
+  as?: 'span' | 'div' | 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'code' | 'kbd';
+  children?: TextChild[];
   className?: string;
 }
 
-export interface ViewProps {
-  children: Node[];
+export interface ViewProps extends SemanticProps {
+  /** Semantic container tag; defaults to div. */
+  as?: 'div' | 'section';
+  children?: Node[];
   className?: string;
 }
 
-export interface ButtonProps {
-  children: string[];
+export interface ButtonProps extends ElementProps {
+  children?: string[];
   className?: string;
   disabled?: boolean | ReactiveBoolean;
   onPress?: Owned<Function<void>>;
@@ -26,10 +50,11 @@ export interface ButtonProps {
 
 /** Creates a text node by joining text children without a separator. className defaults to empty. Unknown utilities throw a message. Owns its text. */
 export function Text(props: TextProps): Node {
-  const result = text(props.children, props.className ?? '');
+  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', String(props['aria-orientation'] ?? ''));
+  const result = text(props.children ?? [], props.className ?? '');
   match (result) {
     Ok(value) => {
-      return value;
+      return applySemantics(value, metadata);
     },
     Err(error) => {
       throw error.message;
@@ -38,10 +63,11 @@ export function Text(props: TextProps): Node {
 }
 /** Creates a container, preserving child order. className defaults to empty. Unknown utilities or depth over 128 throw a message. Consumes its children. */
 export function View(props: ViewProps): Node {
-  const result = view(props.children, props.className ?? '');
+  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', String(props['aria-orientation'] ?? ''));
+  const result = view(props.children ?? [], props.className ?? '');
   match (result) {
     Ok(value) => {
-      return value;
+      return applySemantics(value, metadata);
     },
     Err(error) => {
       throw error.message;
@@ -50,6 +76,8 @@ export function View(props: ViewProps): Node {
 }
 /** Creates a semantic button with centered text. The rounded utility also rounds its native focus outline. Enabled buttons require a retained onPress handler. Disabled buttons never invoke it. */
 export function Button(props: ButtonProps): Node {
+  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', '');
+  const children = props.children ?? [];
   const handler = props.onPress;
   const disabled = props.disabled;
   if (disabled !== undefined && typeof disabled !== 'boolean') {
@@ -57,18 +85,18 @@ export function Button(props: ButtonProps): Node {
       throw 'Reactive Button requires onPress';
     }
 
-    return unwrap(nativeBindDisabled(unwrap(nativeButton(props.children.join(''), props.className ?? '', false, handler)), disabled.evaluate));
+    return applySemantics(unwrap(nativeBindDisabled(unwrap(nativeButton(children.join(''), props.className ?? '', false, handler)), disabled.evaluate)), metadata);
   }
 
   if (handler !== undefined) {
-    return unwrap(nativeButton(props.children.join(''), props.className ?? '', disabled ?? false, handler));
+    return applySemantics(unwrap(nativeButton(children.join(''), props.className ?? '', disabled ?? false, handler)), metadata);
   }
 
   if (!(disabled ?? false)) {
     throw 'Enabled Button requires onPress';
   }
 
-  return unwrap(disabledButton(props.children.join(''), props.className ?? ''));
+  return applySemantics(unwrap(disabledButton(children.join(''), props.className ?? '')), metadata);
 }
 
 /** Produces a complete escaped HTML document with shared utility styles. Borrows the tree and title; returns an owned string. Does not execute callbacks or mutate nodes. */
@@ -152,4 +180,36 @@ function bindCondition(evaluate: Owned<Function<boolean>>): ReactiveBoolean {
   return {
     evaluate
   };
+}
+
+interface SemanticConfig {
+  tag: string;
+  role: string;
+  label: string;
+  id: string;
+  hidden: boolean;
+  slot: string;
+  orientation: string;
+}
+
+function semanticConfig(tag: string, role: string, label: string, id: string, hidden: boolean, slot: string, orientation: string): string {
+  if (tag === '' && role === '' && label === '' && id === '' && !hidden && slot === '' && orientation === '') {
+    return '';
+  }
+
+  const config: SemanticConfig = {
+    tag, role, label, id, hidden, slot, orientation
+  };
+  return JSON.stringify(config);
+}
+
+function applySemantics(node: Node, metadata: string): Node {
+  match (nativeSemantics(node, metadata)) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
 }

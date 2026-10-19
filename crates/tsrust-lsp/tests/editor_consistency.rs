@@ -287,3 +287,13 @@ fn ui_condition_props_and_class_help_match_checked_source() {
  let class=source.find("rounded").unwrap()+3;assert!(session.hover("main.tsrx",source,class).unwrap().contains("Shared web/native"));
  let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
 }
+
+#[test]
+fn ui_semantic_attributes_keep_exact_names_and_checked_help() {
+ let source="import {View,Text,Node} from 'std:ui';function Page():Node{return <View as=\"section\" role=\"region\" aria-label=\"Account\"><Text as=\"h2\">Profile</Text></View>;}function main(){const node=Page();}";
+ let mut session=Session::start(&[]);session.open("main.tsrx",source);session.settle();
+ let at=source.find("aria-label=").unwrap();assert!(session.hover("main.tsrx",source,at+6).unwrap().contains("string"));
+ let labels=session.completion("main.tsrx",source,at+5).unwrap();assert!(labels.contains(&"aria-label".into()),"{labels:?}");
+ let uri=session.uri("main.tsrx");let location=session.request("textDocument/definition",serde_json::json!({"textDocument":{"uri":uri},"position":{"line":0,"character":at+6}}));assert!(!location.is_null());
+ let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
+}

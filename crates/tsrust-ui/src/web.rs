@@ -12,15 +12,21 @@ fn escape(value: &str, out: &mut String) {
         }
     }
 }
-pub(crate) const BASE: &str = "body{margin:0;font-family:system-ui,sans-serif}:where(.ui){box-sizing:border-box;font:inherit;color:inherit;border-color:var(--ui-border)}:where(div.ui){display:flex;flex-direction:column}:where(span.ui){display:block;white-space:pre-wrap}:where(button.ui){appearance:none;border:0 solid var(--ui-border);border-radius:0;background:transparent;text-align:center;padding:8px 16px;white-space:pre-wrap}:where(button.ui:disabled){opacity:.6}:where(button.ui:focus-visible){outline:2px solid var(--ui-ring);outline-offset:2px}:where([data-tsrust-theme]){color:var(--ui-foreground);background:var(--ui-background);font-size:var(--ui-text-base)}";
+pub(crate) const BASE: &str = "body{margin:0;font-family:system-ui,sans-serif}:where(.ui){box-sizing:border-box;margin:0;font:inherit;color:inherit;border-color:var(--ui-border);white-space:pre-wrap}:where(div.ui:not([data-tsrust-text]),section.ui){display:flex;flex-direction:column}:where(.ui[data-tsrust-text]){display:block}:where(button.ui){appearance:none;border:0 solid var(--ui-border);border-radius:0;background:transparent;text-align:center;padding:8px 16px;white-space:pre-wrap}:where(button.ui:disabled){opacity:.6}:where(button.ui:focus-visible){outline:2px solid var(--ui-ring);outline-offset:2px}:where([data-tsrust-theme]){color:var(--ui-foreground);background:var(--ui-background);font-size:var(--ui-text-base)}";
 pub(crate) fn scope(node:&Node,theme:&crate::theme::Theme,mode:&str)->String {
     if node.theme.is_some() {theme.variables(mode)}else{String::new()}
 }
 fn element(node:&Node,out:&mut String,next:&mut usize,theme:&crate::theme::Theme,mode:&str) {
  let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));
  let id=*next;*next+=1;
- let tag=match node.kind {Kind::View=>"div",Kind::Text=>"span",Kind::Button|Kind::DisabledButton=>"button"};
+ let tag=node.tag();
  out.push('<');out.push_str(tag);
+ for (key,value) in [("role",&node.semantics.role),("aria-label",&node.semantics.label),("id",&node.semantics.id),("data-slot",&node.semantics.slot)] {
+  if !value.is_empty(){out.push(' ');out.push_str(key);out.push_str("=\"");escape(value,out);out.push('"');}
+ }
+ if node.kind==Kind::Text{out.push_str(" data-tsrust-text");}
+ if node.semantics.role=="separator"{out.push_str(if node.semantics.orientation=="vertical"{" aria-orientation=\"vertical\""}else{" aria-orientation=\"horizontal\""});}
+ if node.semantics.hidden{out.push_str(" aria-hidden=\"true\"");}
  if matches!(node.kind,Kind::Button|Kind::DisabledButton) {out.push_str(" type=\"button\"");}
  if node.kind==Kind::DisabledButton {out.push_str(" disabled");}
  if node.theme.is_some(){out.push_str(" data-tsrust-theme");}
@@ -63,5 +69,18 @@ mod tests {
         assert!(html.contains("<title>&lt;title&gt;</title>"));
         assert!(!html.contains("<script"));
         assert!(Node::new(Kind::View, "bg-[url(evil)]".into(), String::new(), vec![]).is_err());
+    }
+}
+
+#[cfg(test)]
+mod semantic_tests {
+    use super::*;
+    #[test]
+    fn metadata_is_escaped_and_text_divs_keep_leaf_layout() {
+        let text=Node::new(Kind::Text,String::new(),"Body".into(),vec![]).unwrap().with_semantics(r#"{"tag":"div","role":"group","label":"<&\"'","id":"exact.id","slot":"card-title"}"#).unwrap();
+        let html=document(&text,"Semantics");
+        assert!(html.contains("<div role=\"group\" aria-label=\"&lt;&amp;&quot;&#39;\" id=\"exact.id\" data-slot=\"card-title\" data-tsrust-text"));
+        assert!(html.contains(":where(.ui[data-tsrust-text]){display:block}"));
+        assert!(html.contains(">Body</div>"));
     }
 }
