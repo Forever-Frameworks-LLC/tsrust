@@ -686,3 +686,23 @@ position; removing its subtree retires that state.
 The runnable documentation foundation now lives in `docs/`, with editable controls
 installed by the normal offline CLI. It is an initial shared shell; routing,
 Markdown, full-text search and complete component reference pages remain pending.
+
+### Forwarding child arrays
+
+Use a `children` attribute when forwarding an existing owned child array:
+
+```tsrust
+import { View, Node, Child } from 'std:ui';
+interface PanelProps { children?: Child[]; }
+function Panel(props: PanelProps): Node {
+  return (<View className="gap-4" children={props.children} />);
+}
+```
+
+A component accepts either the explicit attribute or meaningful content between
+its tags. Combining both or repeating the attribute is a syntax error. Whitespace
+indentation in an otherwise empty body does not create another child source.
+The ordinary props/array checker determines the expected type; forwarding an owned
+array transfers it once. Spread ordering and disposal follow ordinary record
+spread rules. This does not add automatic flattening for `{array}` inside a JSX
+body; use the explicit attribute for a complete child array.

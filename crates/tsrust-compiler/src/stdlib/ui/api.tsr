@@ -41,6 +41,7 @@ export interface SemanticProps extends ElementProps {
 export interface TextProps extends SemanticProps {
   /** Defaults to span. Heading levels are reflected in native accessibility. */
   as?: 'span' | 'div' | 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'code' | 'kbd';
+  /** Ordered text content. Pass between tags or with children={values}; combining both is rejected. */
   children?: TextChild[];
   /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Later classes win per property/state. */
   className?: string;
@@ -57,12 +58,14 @@ export interface ViewProps extends SemanticProps {
   as?: 'div' | 'section' | 'span' | 'label' | 'kbd' | 'code';
   /** For as=label, the single ID of its associated control. Omission labels the first enclosed control. */
   htmlFor?: string;
+  /** Owned ordered content. Pass between tags or with children={values}; combining both is rejected. Forwarding transfers the array once. */
   children?: Child[];
   /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Later classes win per property/state. */
   className?: string;
 }
 
 export interface ButtonProps extends ElementProps {
+  /** Owned ordered content. Pass between tags or with children={values}; combining both is rejected. Forwarding transfers the array once. */
   children?: Child[];
   /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Later classes win per property/state. */
   className?: string;

@@ -209,3 +209,12 @@ fn documentation_example_card_keeps_owned_children_and_source_props_in_editor(){
  let hover=session.hover("main.tsrx",source,source.find("code=\"").unwrap()+1).unwrap_or_default();assert!(hover.contains("string"),"{hover}");
  let broken=source.replace("code=\"export function Example(){}\"","code={true}");session.change("main.tsrx",&broken);let diagnostics=session.wait_for_diagnostics("main.tsrx");assert!(!diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
 }
+
+#[test]
+fn explicit_children_completion_hover_and_conflicts_match_the_compiler(){
+ let source="import {View,Text,Node} from 'std:ui';function Page():Node{return (<View children={[<Text>Owned child</Text>]}/>);}function main(){}";
+ let mut session=support::session::Session::start(&[]);session.open("main.tsrx",source);let diagnostics=session.wait_for_diagnostics("main.tsrx");session.settle();assert!(diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
+ let at=source.find("children=").unwrap();let help=session.hover("main.tsrx",source,at+2).unwrap_or_default();assert!(help.contains("children")&&help.contains("once"),"{help}");
+ let partial=source.replace("children={[<Text>Owned child</Text>]}","chi");session.change("main.tsrx",&partial);session.settle();let names=session.completion("main.tsrx",&partial,partial.find("chi/").unwrap()+3).unwrap();assert!(names.contains(&"children".into()),"{names:?}");
+ let broken=source.replace("/>);",">Duplicate</View>);");session.change("main.tsrx",&broken);let diagnostics=session.wait_for_diagnostics("main.tsrx");assert!(!diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
+}

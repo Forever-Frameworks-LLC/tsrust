@@ -86,8 +86,8 @@ impl Parser<'_> {
                 }
                 else {
                     let mut name=self.name()?;name.kind=TokenKind::JsxOpen;
-                    if name.text=="children" || frame.fields.iter().any(|(key,_)|key.text==name.text) {
-                        return Err(Diagnostic::new("syntax","JSX attributes must be unique; children are supplied between the tags.",name.span));
+                    if frame.fields.iter().any(|(key,_)|key.text==name.text) {
+                        return Err(Diagnostic::new("syntax","JSX attributes must be unique.",name.span));
                     }
                     if self.accept("=") {
                         if self.accept("{") {
@@ -138,6 +138,9 @@ impl Parser<'_> {
     fn jsx_finish(&mut self, mut frame: Box<Frame>, machine: &mut Machine) -> Result<(),Diagnostic> {
         let span=Span::new(frame.start,self.tokens[self.i-1].span.end);
         if !frame.children.is_empty() {
+            if let Some((name,_))=frame.fields.iter().find(|(name,_)|name.text=="children"){
+                return Err(Diagnostic::new("syntax","Supply JSX children either as a children attribute or between the tags, not both.",name.span));
+            }
             let child_span=Span::new(frame.children[0].span.start,frame.children.last().unwrap().span.end);
             frame.fields.push((Token{text:"children".into(),span:child_span,kind:TokenKind::Name},Expr::new(ExprKind::Array(frame.children),child_span)));
         }

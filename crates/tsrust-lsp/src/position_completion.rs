@@ -34,7 +34,7 @@ impl SourceIndex {
         let prefix_start=self.jsx_attribute_at(offset).map_or(prefix_start,|(span,_)|span.start);
         let prefix=&self.source[prefix_start..offset];
         let replace=self.range(Span::new(prefix_start,offset));
-        Some(json!(fields.into_iter().filter(|(name,_)|name!="children" && name.starts_with(prefix) && !written.contains(name)).map(|(name,ty)|{
+        Some(json!(fields.into_iter().filter(|(name,_)|name.starts_with(prefix) && !written.contains(name)).map(|(name,ty)|{
             json!({"label":name,"kind":5,"detail":format!("{name}: {}",self.display_type(&ty)),"textEdit":{"range":replace,"newText":format!("{name}=")}})
         }).collect::<Vec<_>>()))
     }
