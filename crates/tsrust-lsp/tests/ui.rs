@@ -199,3 +199,13 @@ fn typed_json_literal_union_help_and_inference_agree(){
  let mut session=support::session::Session::start(&[]);session.open("main.tsr",source);let diagnostics=session.wait_for_diagnostics("main.tsr");session.settle();assert!(diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
  let at=source.find("parse<").unwrap()+1;let hover=session.hover("main.tsr",source,at).unwrap_or_default();assert!(hover.contains("literal")&&hover.contains("shape-mismatch"),"{hover}");
 }
+
+#[test]
+fn documentation_example_card_keeps_owned_children_and_source_props_in_editor(){
+ let card=include_str!("../../../docs/src/components/docs/example-card.tsrx");
+ let button=include_str!("../../../docs/src/components/ui/button.tsrx");let surface=include_str!("../../../docs/src/components/ui/card.tsrx");let textarea=include_str!("../../../docs/src/components/ui/textarea.tsrx");
+ let source="import {ExampleCard} from './components/docs/example-card';import {Text,Node} from 'std:ui';function Page():Node{return (<ExampleCard id=\"example\" title=\"Example\" description=\"Live preview\" source=\"example.tsrx\" code=\"export function Example(){}\"><Text>Live child</Text></ExampleCard>);}function main(){}";
+ let mut session=support::session::Session::start(&[("components/docs/example-card.tsrx",card),("components/ui/button.tsrx",button),("components/ui/card.tsrx",surface),("components/ui/textarea.tsrx",textarea)]);session.open("main.tsrx",source);let diagnostics=session.wait_for_diagnostics("main.tsrx");session.settle();assert!(diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
+ let hover=session.hover("main.tsrx",source,source.find("code=\"").unwrap()+1).unwrap_or_default();assert!(hover.contains("string"),"{hover}");
+ let broken=source.replace("code=\"export function Example(){}\"","code={true}");session.change("main.tsrx",&broken);let diagnostics=session.wait_for_diagnostics("main.tsrx");assert!(!diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
+}
