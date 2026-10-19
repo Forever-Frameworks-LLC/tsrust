@@ -90,7 +90,9 @@ export function Page(): Node {
     }
 
     sections.push(<Link href={first} className="text-xs md:text-sm px-3 py-3 rounded hover:bg-muted">{groupLabel(group)}</Link>);
-    navigation.push(<View hidden={query.get().length === 0 && activeGroup(path.get()) !== group} className="gap-1"><Text className="text-xs font-semibold pt-6 pb-2 text-muted-foreground">{groupLabel(group)}</Text><View children={entries}/></View>);
+    const selectedGroup = clone(group);
+    const label = groupLabel(group);
+    navigation.push(<View hidden={query.get().length === 0 && activeGroup(path.get()) !== selectedGroup} className="gap-1"><Text className="text-xs font-semibold pt-6 pb-2 text-muted-foreground">{label}</Text><View children={entries}/></View>);
   }
 
   for (const page of catalog.pages) {

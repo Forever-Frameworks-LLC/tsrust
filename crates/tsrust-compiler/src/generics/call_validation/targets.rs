@@ -108,10 +108,10 @@ fn body_writes(body: &[Stmt], writes: &mut Vec<Write>) {
     }
 }
 
-pub(super) fn writes(program: &mut Program) -> Result<Vec<Write>, Diagnostic> {
+pub(super) fn writes(program: &Program) -> Result<Vec<Write>, Diagnostic> {
     let mut writes = Vec::new();
-    for function in &mut program.functions {
-        function_writes(function, &mut writes)?;
+    for function in &program.functions {
+        function_writes(&mut function.clone(), &mut writes)?;
     }
     Ok(writes)
 }
