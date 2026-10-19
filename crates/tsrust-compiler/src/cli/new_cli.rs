@@ -5,10 +5,15 @@ pub fn run(args:impl Iterator<Item=String>)->Result<u8,String> {
     let mut args=args;let mut ui=false;let mut requested=None;let mut targets=vec![];
     while let Some(arg)=args.next(){match arg.as_str(){"--ui" if !ui=>ui=true,"--target"=>targets.push(args.next().ok_or("--target requires native or web")?),_ if !arg.starts_with('-') && requested.is_none()=>requested=Some(arg),_=>return Err("Usage: tsrust new <name-or-path> [--ui [--target native|web]...]".into())}}
     if !ui && !targets.is_empty(){return Err("--target requires --ui".into());}
-    let root=PathBuf::from(requested.ok_or("Missing project name")?);
-    let name=root.file_name().and_then(|value|value.to_str()).filter(|name|valid_name(name))
-        .ok_or("Project name must start with a letter and contain only ASCII letters, digits, '_' or '-' (maximum 100 characters)")?;
-    if fs::symlink_metadata(&root).is_ok(){return Err(format!("Cannot create {}. Existing projects are never overwritten.",root.display()));}
+    let guided=requested.is_none() && super::interactive_cli::available();
+    let root=loop {
+        let requested=if guided {let Some(value)=super::interactive_cli::text("Project name or path (q to cancel)")? else{return Ok(0);};value}else{requested.take().ok_or("Missing project name. Run tsrust new in a terminal, or pass a name.")?};
+        match destination(&requested) {Ok(root)=>break root,Err(error) if guided=>eprintln!("{error}"),Err(error)=>return Err(error)}
+    };
+    if guided && !ui {
+        let Some(kind)=super::interactive_cli::choose("Project type",&["Console application","UI application"])? else{return Ok(0);};ui=kind==1;
+    }
+    let name=root.file_name().and_then(|value|value.to_str()).unwrap();
     let target=if ui{Some(super::ui_cli::select_targets(None,&targets,false)?)}else{None};
     if ui {super::verify_backend()?;}
     // Exclusive creation protects existing files, directories and symlinks.
@@ -40,6 +45,16 @@ pub fn run(args:impl Iterator<Item=String>)->Result<u8,String> {
         println!("Created {}. Web UI selected; use the bounded Wasm web builder. Native dev/run is disabled.",root.display());
     }else{println!("Created {}.\nRun `tsrust dev` from that directory.",root.display());}
     Ok(0)
+}
+
+fn destination(requested:&str)->Result<PathBuf,String> {
+    let root=PathBuf::from(requested);
+    root.file_name().and_then(|value|value.to_str()).filter(|name|valid_name(name))
+        .ok_or("Project name must start with a letter and contain only ASCII letters, digits, '_' or '-' (maximum 100 characters)")?;
+    if fs::symlink_metadata(&root).is_ok(){return Err(format!("Cannot create {}. Existing projects are never overwritten.",root.display()));}
+    let parent=root.parent().filter(|path|!path.as_os_str().is_empty()).unwrap_or(std::path::Path::new("."));
+    if !parent.is_dir(){return Err(format!("Parent directory does not exist: {}",parent.display()));}
+    Ok(root)
 }
 
 pub(super) const UI_MAIN: &str = "import { run, withTheme } from 'std:ui';import config from '../tsrust.config.json';import { Page } from './app/page';function main(){unwrap(run(withTheme(Page(),config.ui.theme), 'Tsrust UI'));}";

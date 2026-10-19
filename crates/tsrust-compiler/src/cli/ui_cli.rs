@@ -158,7 +158,9 @@ pub(super) fn install_defaults(root:&Path,config:&Config)->Result<(),String> {
  apply(root,&plan(root,config,&requests,None,&hash)?)
 }
 pub(super) fn run(args:impl Iterator<Item=String>)->Result<u8,String> {
- let mut args=args;let command=args.next().ok_or("Usage: tsrust ui <list --bundled|init|add name@version> [--cwd directory] [--path directory] [--dry-run] [--json]")?;
+ let mut args=args;let command=match args.next(){Some(command)=>command,None if super::interactive_cli::available()=>{
+  let Some(choice)=super::interactive_cli::choose("UI components",&["Add a bundled component","List bundled components"])? else{return Ok(0);};if choice==0{"add".into()}else{"list".into()}
+ },None=>return Err("Usage: tsrust ui <list --bundled|init|add name@version> [--cwd directory] [--path directory] [--dry-run] [--json]".into())};
  let mut targets=vec![];let mut unattended=false;
  let(mut cwd,mut path,mut variant,mut dry,mut json)=(None,None,"default".to_owned(),false,false);let mut requests=vec![];
  while let Some(arg)=args.next(){match arg.as_str(){"--cwd"=>cwd=Some(PathBuf::from(args.next().ok_or("--cwd requires a directory")?)),"--path"=>path=Some(PathBuf::from(args.next().ok_or("--path requires a relative directory")?)),"--target"=>targets.push(args.next().ok_or("--target requires native or web")?),"--variant"=>variant=args.next().ok_or("--variant requires a name")?,"--dry-run"=>dry=true,"--json"=>json=true,"--yes"=>unattended=true,"--bundled"|"--offline"=>{},_ if !arg.starts_with('-')=>requests.push(arg),_=>return Err(format!("Unknown UI option: {arg}"))}}
@@ -166,12 +168,19 @@ pub(super) fn run(args:impl Iterator<Item=String>)->Result<u8,String> {
  let selected=match cwd {Some(path)=>path,None=>std::env::current_dir().map_err(|e|e.to_string())?};
  let selected=fs::canonicalize(selected).map_err(|e|e.to_string())?;
  let root=selected.ancestors().find(|root|root.join(super::project_config::FILE).exists()).unwrap_or(&selected).to_owned();
+ if command=="add" && requests.is_empty() && !dry && !json && !unattended && super::interactive_cli::available() {
+  let items=catalog()?.into_iter().filter(|item|item.variant==variant).collect::<Vec<_>>();
+  if items.is_empty(){return Err(format!("No bundled UI components for variant {variant}"));}
+  let labels=items.iter().map(|item|format!("{}@{} ({})",item.name,item.version,item.variant)).collect::<Vec<_>>();
+  let Some(choice)=super::interactive_cli::choose("Bundled components (exact offline versions)",&labels.iter().map(String::as_str).collect::<Vec<_>>())? else{return Ok(0);};
+  requests.push(format!("{}@{}",items[choice].name,items[choice].version));
+ }
  if command!="init" && (command!="add" || requests.is_empty()) {return Err("Usage: tsrust ui add name@version ... [--cwd directory] [--path directory] [--dry-run] [--json]".into());}
  if command=="init" && !requests.is_empty(){return Err("ui init accepts no component names".into());}
  let requests=if command=="init" {vec![Identity{name:"tokens".into(),version:"1.0.0".into(),variant:"default".into()}]}else{
   requests.into_iter().map(|request|{let (name,version)=request.split_once('@').ok_or("UI installation requires an exact bundled version, for example button@1.0.0")?;Ok(Identity{name:name.into(),version:version.into(),variant:variant.clone()})}).collect::<Result<Vec<_>,String>>()?
  };
- let plan=setup_plan_with_targets(&root,&requests,path.as_deref(),&compiler_hash()?,&targets,dry || unattended)?;print_plan(&plan,json);
+ let plan=setup_plan_with_targets(&root,&requests,path.as_deref(),&compiler_hash()?,&targets,dry || unattended || json)?;print_plan(&plan,json);
  if !dry {super::verify_backend()?;apply(&root,&plan)?;}Ok(0)
 }
 fn setup_plan_with_targets(root:&Path,requests:&[Identity],destination:Option<&Path>,compiler_hash:&str,targets:&[String],dry:bool)->Result<Plan,String> {

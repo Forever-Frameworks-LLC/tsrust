@@ -20,6 +20,7 @@ mod ui_cli;
 mod cache_cli;
 mod format_cli;
 mod check_cli;
+mod interactive_cli;
 use std::env;
 use std::fs;
 use std::io::IsTerminal;
@@ -31,6 +32,7 @@ use tsrust_compiler::RUST_BACKEND_VERSION;
 const USAGE: &str = "tsrust — native TypeScript-style programs
 
 Usage:
+  tsrust                       Open the interactive command menu in a terminal
   tsrust <command> [input.tsr] [options]
   tsrust add <crate[@version]> [--project directory] [--features feature,...]
   tsrust update <crate> [--to version] [--dry-run]
@@ -38,7 +40,7 @@ Usage:
   tsrust packages [--project directory]
   tsrust remove <crate> [--dry-run]
   tsrust bindings resolve <file.bindings.json> [--offline]
-  tsrust new <name-or-path> [--ui [--target native|web]...]
+  tsrust new [name-or-path] [--ui [--target native|web]...]
   tsrust ui <list --bundled|init|add name@version> [--cwd directory] [--path directory] [--target native|web]... [--dry-run]
   tsrust cache <info|clean>
   tsrust dev [--release] [--verbose] [--color auto|always|never] [-- program-arguments]
@@ -162,7 +164,12 @@ mod argument_tests {
 }
 
 fn run() -> Result<u8, String> {
-    let mut args = env::args().skip(1);
+    let arguments=env::args().skip(1).collect::<Vec<_>>();
+    let arguments=if arguments.is_empty() {
+        if !interactive_cli::available() {print_help();return Ok(0);}
+        let Some(arguments)=interactive_cli::command()? else{return Ok(0);};arguments
+    }else{arguments};
+    let mut args = arguments.into_iter();
     let Some(command) = args.next() else {
         return Err("Missing command. Run `tsrust --help` for usage.".into());
     };

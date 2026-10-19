@@ -1,5 +1,20 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
+## Current interactive CLI correction — 2026-10-18
+
+Bare `tsrust` previously errored despite the owner's request for interactive CLI
+workflows. It now opens a terminal command menu using existing command dispatch,
+with guided `new` destination/type selection and exact bundled component selection
+for `ui add`. Explicit commands remain scriptable; redirected bare invocation is
+nonblocking, and JSON/dry-run/unattended UI installation never prompts. Existing
+target selection and installer ownership rules remain; choosing creates no files.
+Four focused CLI checks pass, including real terminal project/UI creation,
+cancellation, EOF, invalid-answer retries, source/format checks and unattended
+guards. Prompt unit coverage and existing help/usage checks pass. Whole-project
+formatting changes zero files/fingerprints. Native rendering, SQL and full-family
+regressions are reused rather than rerun. Evidence uses `tsrust-interactive-cli-*`
+in canonical SQLite. See [the project CLI guide](../guides/project-cli.md).
+
 ## Current HTTP editor correction — 2026-10-18
 
 The owner reported missing hover on `ctx.req.queries` and questioned Hono parity.

@@ -1,5 +1,20 @@
 # Create and develop a Tsrust project
 
+Run `tsrust` without arguments in a terminal to open the interactive command menu.
+It offers project creation, exact bundled UI components and help. Inside a project,
+it also offers dev, run, build, check, tests and a formatting check. Choose a number;
+`q` or end-of-input cancels without selecting an action. When stdin or stderr is
+not a terminal, bare invocation prints help and exits successfully instead of
+waiting for input.
+
+`tsrust new` asks for a destination and console/UI project type. `tsrust new --ui`
+asks for the destination and UI targets. The destination must be new and its parent
+must exist; invalid answers retry before creating files. `tsrust ui` offers add/list,
+and `tsrust ui add` lets you choose an exact bundled component version before target
+selection and installation. These prompts require terminal input and stderr.
+`ui add --json`, `--yes` and `--dry-run` never prompt; pass exact component versions
+and target flags for scripts. Fully specified commands keep their existing behavior.
+
 ```sh
 tsrust new hello
 cd hello
@@ -113,7 +128,7 @@ Unicode input. Flag interpretation belongs to application code.
 
 ## UI project entry
 
-`tsrust new counter --ui` generates `app/page.tsrx`, exporting `Page`, and an
+`tsrust new counter --ui` generates `src/app/page.tsrx`, exporting `Page`, and an
 explicit `src/main.tsr` bootstrap that imports and mounts it. `build.entry` continues
 to identify that executable file in `tsrust.config.json`; the component name is not
 an implicit executable entrypoint. This is the first root-page convention from
