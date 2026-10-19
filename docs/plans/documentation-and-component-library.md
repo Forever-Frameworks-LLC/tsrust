@@ -85,6 +85,18 @@ Shared rich-text rendering, persistent routes/keyed lists and full-text search
 remain implementation requirements; generated inventory pages are not completed
 components.
 
+The rich documentation section passes focused acceptance through `a8f63f4c`:
+shared inline emphasis/deletion/local links, native paragraph shaping and selection,
+configurable code colors, exact source-copy snapshots and disposal, section
+navigation and the revised landing page. The preview now uses the actual
+`tsrust dev --target web --port 4317` watcher/server; it remains running. The native
+docs app builds and passes its bounded launch. See
+[rich documentation acceptance](../milestones/ui-documentation-inline-and-web-dev.md).
+Production web build/export integration, external links, image assets, dynamic keyed
+routing and the remaining component/focus families are still required. Dependency
+workspaces persist, but end-to-end frontend startup remains slow and is unmeasured
+after the duplicate-proof repair; do not claim the cache solves that yet.
+
 ## Project and content layout
 
 Use `docs/` as a separate runnable Tsrust project. Keep the standalone

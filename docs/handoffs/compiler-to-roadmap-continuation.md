@@ -21,6 +21,9 @@ The installed CLI supports the same command. Web dependencies/package workspaces
 persist and successful publications reload automatically; errors retain the last
 successful app. Current browser assets are from `6bbacdbe` and remain byte-identical
 through the compiler-identity refresh. No fresh build is needed to view progress.
+The live supervisor is still the `6bbacdbe` process; the installed CLI includes the
+new proof-reuse repair. Restart the supervisor when its compiler/runtime needs to
+change; do not claim its next build already uses that repair.
 
 Rich inline Markdown, configurable syntax colors, exact source copy with retry and
 disposal, category navigation, cleaner search and the revised landing pass the
@@ -30,12 +33,15 @@ Formatted generated native inline execution passes. Installed CLI/LSP consumers
 are refreshed and editor settings restored; the running editor maps the new inode.
 Closed evidence is imported and independently restored/verified in SQLite.
 
-The full native docs app build is still running; finish its bounded launch before
-closing paired acceptance. Reuse passed checks. The additional duplicate-proof
-repair at `86033af4` still needs its focused source-proof/project witnesses and
-consumer refresh. Native compilation was temporarily paused during the dev
-refresh and has resumed; do not leave a paused build behind. The dev server is now
-idle and intentionally remains running.
+The shared native docs app now builds and passes its bounded five-second launch;
+it emits no output/errors and is reaped. This does not add OS gesture/pixel claims.
+The duplicate-proof repair through `a8f63f4c` passes focused source-proof isolation,
+recursive fallback and formatted native project assertions. Reuse these checks.
+All five CLI/LSP consumers are current through `a8f63f4c`, with exact settings
+restoration and the active editor inode verified. The dev server is idle and
+intentionally remains running; its accepted assets are held in memory. Both current
+native runtime workspaces stay warm. Obsolete bundle workspaces, executable variants
+and the byte-verified old static preview files are removed.
 
 See [current acceptance](../milestones/ui-documentation-inline-and-web-dev.md).
 Startup is still slow in the debug compiler (297,033 ms initial, 271,651 ms after

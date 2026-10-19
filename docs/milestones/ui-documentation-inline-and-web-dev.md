@@ -1,7 +1,7 @@
 # Rich documentation text and web development server
 
 Source checkpoints: `0323d1fb`, `74f66d45`, `aac7c4af`, `2fb36412`,
-`328e9de6`, `6bbacdbe`, and `19d1d634`.
+`328e9de6`, `6bbacdbe`, `19d1d634`, `86033af4`, and `a8f63f4c`.
 
 ## Observable behavior
 
@@ -43,20 +43,44 @@ inputs, revision rejection and a complete 2 MB Wasm response from a nonblocking
 listener. macOS accepted sockets now explicitly use blocking writes with a timeout.
 The actual live server serves complete current JavaScript and Wasm responses.
 
-Source-only callback proofs are reused across ownership inference passes within
-one input. Isolation, malformed-next-input and existing capture/origin witnesses
-pass. No ownership inference pass is omitted. The real docs build still took
+Source-only callback proofs are reused across ownership inference passes and the
+ordinary project retry into recursive access inference, within one input. Isolation,
+malformed-next-input and existing capture/origin witnesses pass. The final native
+project witness uses formatted modules and std:testing assertions for generic calls,
+recursive mutation, array length and values. No ownership inference pass is omitted.
+The new proof-count witness initially omitted a generic contract, then its malformed
+input replacement missed formatter spacing; both fixture mistakes are corrected.
+Passed cases were retained and only the affected witness was rerun. The real docs build still took
 297,033 ms in the debug compiler: startup speed remains unresolved. This is an
 operational observation, not a performance benchmark.
 
-## Remaining acceptance and limits
+## Accepted scope and limits
 
-Generated native execution and installed consumer refresh are in progress.
-No complete compiler/LSP matrix, SQL suite or timed benchmark was run for this
-section. SQLite ingestion and output cleanup follow closure of these checks.
+Formatted generated native inline execution passes. The complete shared native docs
+app builds, remains alive for a bounded five-second launch, emits no output/errors
+and is reaped. This adds no OS gesture, native clipboard gesture or pixel claim.
+Installed CLI/LSP consumers are refreshed; editor settings are restored byte-for-byte
+with their timestamps and the active editor maps the installed inode.
+
+Closed original logs, failed attempts, screenshots and receipts are independently
+restored and verified from SQLite before loose records are removed. Two obsolete
+runtime workspaces (1,941,569,860 bytes) are removed after checking their exact
+identities, unused locks and accepted replacements. Both current warm workspaces
+remain. Obsolete executable variants (1,412,375,680 bytes), the reaped native
+smoke executable and eight byte-verified historical preview files are removed.
+All five consumers are current through `a8f63f4c`; the active preview keeps its
+accepted assets in memory. No complete compiler/LSP matrix, SQL suite or timed
+benchmark was run.
 
 Markdown images remain labeled references and external links display destination
 text. Native selection is limited to a paragraph/code block; cross-paragraph
 selection, text-range accessibility and selection autoscroll remain incomplete.
 Dynamic keyed routing, overlay/focus families and most pinned components are still
 required. This section does not claim complete shadcn/Base UI parity.
+
+Key SQLite records include `tsrust-docs-inline-browser-clipboard.log`,
+`tsrust-docs-inline-lsp-repair.log`, `tsrust-docs-inline-native-hidden.log`,
+`tsrust-docs-inline-native-execution.log`, `tsrust-docs-inline-publication.json`,
+`tsrust-docs-inline-republication.json`, `tsrust-docs-inline-native-launch.json`,
+`tsrust-docs-fallback-final.log` and `tsrust-docs-fallback-native-assertions.log`.
+The intentional live dev log remains open outside SQLite.
