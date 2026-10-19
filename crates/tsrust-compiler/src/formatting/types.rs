@@ -53,9 +53,11 @@ pub(super) fn generic_spans(tokens: &[Token]) -> Vec<Span> {
             }
         }
     }
+    let headers = crate::syntax::alias_parameter_spans(tokens);
     let mut spans: Vec<Span> = Vec::new();
     let mut annotation_tokens = tokens.to_vec();
     for (index, token) in real.iter().enumerate() {
+        if let Some(span) = headers.iter().find(|span| span.start == token.span.start) { spans.push(*span); continue; }
         if spans.last().is_some_and(|span| span.start <= token.span.start && token.span.start < span.end)
         {
             continue;

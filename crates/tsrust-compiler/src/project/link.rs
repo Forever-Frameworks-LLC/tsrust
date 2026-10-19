@@ -331,7 +331,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         }
         let mut exported = std::mem::take(&mut program.type_aliases);
         for annotation in exported.values_mut() {
-            crate::type_aliases::link_names(annotation, &|name| {
+            crate::type_aliases::link_alias(annotation, &|name| {
                 visible.get(name).cloned().unwrap_or_else(|| symbol(module, name))
             });
         }

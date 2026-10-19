@@ -1,3 +1,6 @@
+mod alias_query;
+pub use alias_query::{TypeAliasCatalog,TypeAliasInfo};
+pub(crate) use alias_query::alias_parameter_spans;
 mod declaration_work;
 mod expression_work;
 pub(crate) mod jsx;
@@ -1949,7 +1952,7 @@ struct Parser<'a> {
     /// Position bindings of destructured parameters; they open the body.
     parameter_patterns: Vec<Stmt>,
     /// `type Name = Type;` declarations of the file, fully expanded.
-    aliases: std::collections::HashMap<String, crate::type_syntax::ValueAnnotation>,
+    aliases: crate::type_aliases::Aliases,
     /// Names of the aliases this file declares, as opposed to imports.
     local_aliases: Vec<String>,
     /// Fields of imported record types, for `interface ... extends`.
@@ -2030,9 +2033,26 @@ impl Parser<'_> {
             crate::type_syntax::parse_prefix(&mut self.tokens, self.i, self.depth, self.policy)?;
         self.i = index;
         if !self.aliases.is_empty() {
-            crate::type_aliases::expand(&mut annotation, &self.aliases);
+            crate::type_aliases::expand(&mut annotation, &self.aliases)?;
         }
         Ok(annotation)
+    }
+
+    fn alias_parameters_at(&mut self,mut index:usize)->Result<(Vec<crate::type_aliases::Parameter>,usize),Diagnostic>{
+        let mut parameters:Vec<crate::type_aliases::Parameter>=Vec::new();if self.tokens[index].text!="<"{return Ok((parameters,index));}index+=1;
+        loop {
+            let token=self.tokens[index].clone();
+            if token.kind!=TokenKind::Name || matches!(token.text.as_str(),"int"|"number"|"string"|"boolean"|"void"|"null"|"undefined"|"true"|"false"){return Err(Diagnostic::new("type-parameter","Expected a non-primitive type parameter name.",token.span));}
+            if parameters.iter().any(|p|p.name.text==token.text){return Err(Diagnostic::new("duplicate",format!("Type parameter {:?} is already declared.",token.text),token.span));}
+            if parameters.len()>=128{return Err(Diagnostic::new("unsupported","A declaration supports at most 128 type parameters.",token.span));}index+=1;
+            let default=if self.tokens[index].text=="="{let (value,next)=crate::type_syntax::parse_prefix(&mut self.tokens,index+1,self.depth,self.policy)?;index=next;Some(value)}else{None};
+            if default.is_none() && parameters.iter().any(|p|p.default.is_some()){return Err(Diagnostic::new("type-parameter","A required type parameter cannot follow one with a default.",token.span));}
+            parameters.push(crate::type_aliases::Parameter{name:crate::type_syntax::TypeName{text:token.text,span:token.span},default});
+            if self.tokens[index].text!=","{break;}index+=1;
+        }
+        crate::type_syntax::split_closer(&mut self.tokens,index);if self.tokens[index].text!=">"{return Err(Diagnostic::new("syntax","Expected closing > after alias type parameters.",self.tokens[index].span));}
+        for (at,parameter) in parameters.iter().enumerate(){if let Some(default)=&parameter.default{let later=parameters[at..].iter().map(|p|p.name.text.as_str()).collect::<std::collections::HashSet<_>>();let mut pending=vec![default];while let Some(value)=pending.pop(){use crate::type_syntax::ValueAnnotationKind as K;match &value.kind {K::Named(name)|K::Applied{name,..} if later.contains(name.text.as_str())=>return Err(Diagnostic::new("type-parameter","An alias parameter default can reference only earlier type parameters.",name.span)),K::Array(v)|K::Group(v)=>pending.push(v),K::Union(v)|K::Tuple(v)|K::Applied{arguments:v,..}=>pending.extend(v),K::Callable{parameters,result,..}=>{pending.extend(parameters.iter().map(|p|&p.annotation));pending.push(result);},_=>{}}}}}
+        Ok((parameters,index+1))
     }
 
     /// Reads every top-level `type Name = Type;` whose right side is not a
@@ -2055,34 +2075,16 @@ impl Parser<'_> {
                 && token.kind == TokenKind::Name
                 && token.text == "type"
                 && self.tokens[index + 1].kind == TokenKind::Name
-                && (index == 0 || matches!(self.tokens[index - 1].text.as_str(), ";" | "}"));
+                && (index == 0 || matches!(self.tokens[index - 1].text.as_str(), ";" | "}" | "export"));
             if !declaration {
                 index += 1;
                 continue;
             }
             let name = self.tokens[index + 1].clone();
-            let after = &self.tokens[index + 2];
-            if after.text == "<" {
-                // A generic declaration is a record unless its right side is not a body.
-                let mut close = index + 3;
-                while close < self.tokens.len() && self.tokens[close].text != "=" && self.tokens[close].text != ";" {
-                    close += 1;
-                }
-                if self.tokens.get(close).is_some_and(|token| token.text == "=")
-                    && self.tokens.get(close + 1).is_some_and(|token| token.text != "{")
-                {
-                    return Err(Diagnostic::new(
-                        "unsupported",
-                        "A type alias cannot have type parameters. Only record types can: `type Box<T> = { value: T; };`.",
-                        name.span,
-                    ));
-                }
-                index += 1;
-                continue;
-            }
-            if after.text != "=" || self.tokens[index + 3].text == "{" {
-                index += 1;
-                continue;
+            let (parameters,after)=self.alias_parameters_at(index+2)?;
+            if self.tokens[after].text!="=" || self.tokens.get(after+1).is_some_and(|token|token.text=="{") {
+                if parameters.iter().any(|p|p.default.is_some()){return Err(Diagnostic::new("unsupported","Type parameter defaults are supported on non-record type aliases; use an alias of a generic record.",name.span));}
+                index+=1;continue;
             }
             if matches!(
                 name.text.as_str(),
@@ -2094,8 +2096,8 @@ impl Parser<'_> {
                     name.span,
                 ));
             }
-            let (annotation, end) = crate::type_syntax::parse_prefix(&mut self.tokens, index + 3, self.depth, self.policy)?;
-            raw.push((name, annotation));
+            let (annotation, end) = crate::type_syntax::parse_prefix(&mut self.tokens, after + 1, self.depth, self.policy)?;
+            let span=name.span;raw.push((name, crate::type_aliases::Alias{span,parameters,annotation}));
             index = end;
         }
         let imported = std::mem::take(&mut self.aliases);
@@ -2326,12 +2328,12 @@ impl Parser<'_> {
                 program.records.push(self.enum_declaration(&program.records)?);
             } else if self.is("type")
                 && self.tokens.get(self.i + 1).is_some_and(|token| self.aliases.contains_key(&token.text))
-                && self.tokens.get(self.i + 2).is_some_and(|token| token.text == "=")
-                && self.tokens.get(self.i + 3).is_some_and(|token| token.text != "{")
+                && {let (_,after)=self.alias_parameters_at(self.i+2)?;self.tokens[after].text=="=" && self.tokens.get(after+1).is_some_and(|token|token.text!="{")}
             {
                 // Already collected; skip the declaration.
-                self.i += 3;
-                let name = self.tokens[self.i - 2].clone();
+                let name=self.tokens[self.i+1].clone();
+                let (_,after)=self.alias_parameters_at(self.i+2)?;self.i=after;
+                self.expect("=")?;
                 if program.records.iter().any(|record| record.name.text == name.text) {
                     return Err(Diagnostic::new(
                         "duplicate",
@@ -2489,7 +2491,7 @@ impl Parser<'_> {
         let (access, mut annotation, next) =
             crate::type_syntax::parse_parameter_prefix(&mut self.tokens, self.i, self.depth, self.policy)?;
         self.i = next;
-        crate::type_aliases::expand(&mut annotation, &self.aliases);
+        crate::type_aliases::expand(&mut annotation, &self.aliases)?;
         let access = access.map(|access| Token {
             text: access.mode.as_str().to_owned(),
             span: access.span,
@@ -3260,7 +3262,7 @@ impl Parser<'_> {
         let mut arguments = arguments?;
         if !self.aliases.is_empty() {
             for argument in &mut arguments {
-                crate::type_aliases::expand(argument, &self.aliases);
+                crate::type_aliases::expand(argument, &self.aliases)?;
             }
         }
         Ok(arguments)

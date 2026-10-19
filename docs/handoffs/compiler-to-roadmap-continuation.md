@@ -190,6 +190,34 @@ not acceptance of any pending Nova component or block. Continue Card's real sour
 family; numeric spacing scope, typography, edge/corner styles, clipping, media and
 inline-size containment remain concrete requirements rather than inert markers.
 
+## Current generic alias foundation — 2026-10-19
+
+Generic non-record aliases now accept type parameters and trailing defaults.
+Substitution preserves lexical parameters, callable access, exact integers and
+resource ownership across modules. Defaults can refer to earlier parameters;
+missing/extra arguments, cyclic aliases and oversized expansions fail explicitly.
+Record/interface/function parameter defaults remain unsupported. Data borrowing
+stays on function parameters rather than aliasing an access wrapper.
+
+The LSP uses a compiler query for generic alias expansion, retains imported
+private record/native members, shows defaults and follows definitions. Focused
+acceptance covers five compiler witnesses, six existing alias regressions,
+imported/local editor behavior, a checker agreement row, hover/typing consistency
+and all four typing modes for the new array-alias row. The formatted project
+executes with exact 9007199254740993, native-cache aliases and independent resource
+release observation; clone/reuse rejection remains strict.
+
+The existing matched type-alias workload now exercises generic aliases/defaults
+without changing its result, oracle, operation counts, ABI or timing protocol.
+Four untimed native/Node-after-tsc cases agree; registration guards pass.
+Whole-project formatting proves token preservation/idempotence. Original initial
+build failures and all completed evidence use `tsrust-generic-alias-*` in SQLite.
+No full regression, SQL rerun or new timing is claimed.
+
+Continue typed UI state and editable controls using this foundation. This is a
+language prerequisite, not component-family completion. Base UI + Nova remains
+the selected baseline; the remaining component/block inventory stays required.
+
 ## Current Card content port and shared surface styling — 2026-10-19
 
 card@3.0.0 installs all seven editable content parts with the pinned Base UI + Nova

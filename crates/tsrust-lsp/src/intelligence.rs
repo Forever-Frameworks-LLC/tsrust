@@ -68,6 +68,7 @@ pub struct SourceIndex {
     enum_scalar_types: std::collections::BTreeMap<String,String>,
     /// `type Name = Type;` declarations: name to fully expanded type text.
     type_aliases: std::collections::BTreeMap<String, String>,
+    generic_aliases:Option<tsrust_compiler::TypeAliasCatalog>,
     generic_display_names: std::collections::BTreeMap<String, String>,
     nominal_definitions: std::collections::BTreeMap<String, Value>,
     generic_parameters: std::collections::BTreeMap<String, Vec<String>>,
@@ -147,7 +148,7 @@ impl SourceIndex {
             end_scope: 0,
             checked_control_labels: vec![],
             import_exports: vec![],
-            type_aliases: Default::default(),
+            type_aliases: Default::default(),generic_aliases:None,
             checked_views: vec![],
             json_string_receivers: vec![],
             checked_method_results: vec![],
@@ -900,11 +901,13 @@ impl SourceIndex {
     }
     /// Canonical form of a written type, with type aliases expanded.
     fn written_type(&self, text: &str) -> String {
+        if let Some(catalog)=&self.generic_aliases && let Ok(expanded)=catalog.expand(text){return canonical_data_type(&expand_type_aliases(&expanded,&self.type_aliases));}
         canonical_data_type(&expand_type_aliases(text, &self.type_aliases))
     }
     /// Collects top-level `type Name = Type;` declarations that are not
     /// record bodies and expands the aliases they mention.
     fn collect_type_aliases(&mut self) {
+        self.generic_aliases=tsrust_compiler::TypeAliasCatalog::parse(&self.source).ok().filter(|catalog|catalog.has_generics());
         let mut written = std::collections::BTreeMap::new();
         for id in 0..self.tokens.len() {
             if self.text(id) == "type"
@@ -1084,7 +1087,13 @@ impl SourceIndex {
         }
         self.collect_type_aliases();
         let mut interface_bases: Vec<(String, Vec<String>)> = Vec::new();
+        let generic_aliases=self.generic_aliases.as_ref().map(|catalog|catalog.declarations()).unwrap_or_default();
         for id in 0..self.tokens.len() {
+            if self.text(id)=="type" && let Some(info)=generic_aliases.iter().find(|info|!info.parameters.is_empty() && self.tokens.get(id+1).is_some_and(|token|token.span==info.span)) {
+                self.generic_parameters.insert(info.name.clone(),info.parameters.clone());
+                self.add(id+1,26,info.name.clone(),info.signature.clone(),Span::new(self.tokens[id].span.start,info.extent.end),self.tokens[id].span.start,self.tokens[id].scope);
+                continue;
+            }
             if self.text(id) == "type"
                 && self.text(id + 2) == "="
                 && self.type_aliases.contains_key(self.text(id + 1))

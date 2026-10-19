@@ -1,0 +1,13 @@
+import { LruCache } from 'std:cache';
+
+export interface ValueBox<T> {
+  value: T;
+}
+/** Optional owned data; the alias adds no clone or wrapper. */
+export type Maybe<T> = T | undefined;
+/** Default int rows; pass another type explicitly for text or resources. */
+export type Rows<T = int> = ValueBox<T>[];
+/** A later default can use an earlier parameter. */
+export type Pair<A = int, B = Maybe<A>> = [A, B];
+
+export type Cache<K = int, V = string> = LruCache<K, V>;

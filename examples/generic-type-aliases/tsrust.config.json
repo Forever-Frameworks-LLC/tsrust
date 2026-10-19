@@ -1,0 +1,5 @@
+{
+  "schemaVersion": 1,
+  "name": "generic-type-aliases",
+  "build": { "entry": "main.tsr", "output": "target/generic-type-aliases" }
+}

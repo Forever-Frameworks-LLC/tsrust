@@ -194,6 +194,20 @@ impl SourceIndex {
         for (name, identity) in &dependency.native_type_aliases {
             mappings.insert(name.clone(), self.native_type_spelling(*identity));
         }
+        if let Some(catalog)=&dependency.generic_aliases && catalog.declarations().iter().any(|alias|alias.name==declaration.name && !alias.parameters.is_empty()) {
+            // Alias expansions expose private record fields just like function results.
+            let parameters=dependency.generic_parameters.get(&declaration.name);
+            let referenced=dependency.symbols.iter().filter(|record|matches!(record.kind,10|23) && record.scope==0 && record.owner.is_none())
+                .filter(|record|!parameters.is_some_and(|parameters|parameters.contains(&record.name)) && declaration.signature.split(|ch:char|!ch.is_ascii_alphanumeric() && ch!='_').any(|word|word==record.name))
+                .map(|record|record.name.clone()).collect::<Vec<_>>();
+            let encoded=uri.as_bytes().iter().map(|byte|format!("{byte:02x}")).collect::<String>();
+            for record in &referenced {let identity=mappings.entry(record.clone()).or_insert_with(||format!("__tsrust_private_{encoded}_{record}")).clone();self.generic_display_names.insert(identity,record.clone());}
+            for record in &referenced {self.import_record_fields(dependency,record,&mappings[record],span,uri,&mappings);}
+            self.generic_aliases.get_or_insert_with(Default::default).import_as(catalog,&declaration.name,local,|name|mappings.get(name).cloned().unwrap_or_else(||name.into()));
+            if let Some(parameters)=dependency.generic_parameters.get(&declaration.name){self.generic_parameters.insert(local.into(),parameters.clone());}
+            let mut symbol=declaration.clone();symbol.name=local.into();symbol.ty=local.into();symbol.signature=symbol.signature.replacen(&format!("type {}",declaration.name),&format!("type {local}"),1);symbol.span=span;symbol.extent=span;
+            self.foreign_definitions.insert(self.symbols.len(),json!({"uri":uri,"range":dependency.range(declaration.span)}));self.symbols.push(symbol);return true;
+        }
         let Some(ty) = remap_imported_type(&dependency.written_type(&declaration.ty), &mappings) else { return false; };
         self.type_aliases.insert(local.into(), ty.clone());
         let mut symbol = declaration.clone();

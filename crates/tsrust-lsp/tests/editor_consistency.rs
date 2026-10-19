@@ -7,7 +7,7 @@ use std::time::Duration;
 use support::session::Session;
 
 const GREETING: &str = "export function greeting(): string { return \"hi\"; }\n";
-const HEAD: &str = "import { greeting } from './greeting.tsr';\nimport { s } from 'std:schema';\n\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n\nfunction main() {\n  const values: int[] = [1, 2, 3];\n  const item: Item = { id: 1, name: \"a\" };\n  const text = \"abc\";\n  const lookup = new Map<string, int>();\n  const seen = new Set<int>();\n  const parsed = schema.safeParse(greeting());\n  const loaded: Result<string, int> = Ok(greeting());\n  ";
+const HEAD: &str = "import { greeting } from './greeting.tsr';\nimport { s } from 'std:schema';\n\ntype Item = { id: int; name: string; };\ntype AliasValues<T=int> = T[];\nconst schema = s.string();\n\nfunction main() {\n  const values: AliasValues = [1, 2, 3];\n  const item: Item = { id: 1, name: \"a\" };\n  const text = \"abc\";\n  const lookup = new Map<string, int>();\n  const seen = new Set<int>();\n  const parsed = schema.safeParse(greeting());\n  const loaded: Result<string, int> = Ok(greeting());\n  ";
 const TAIL: &str = "\n}\n";
 
 #[test]

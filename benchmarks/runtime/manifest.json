@@ -19467,10 +19467,10 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": true,
       "measured": false,
-      "notes": "Gate 163: aliases of a union, arrays, a primitive and a tuple used in a parameter, bindings, destructuring and the result container. Five observed cells per scenario. Verified untimed; unmeasured, language milestone pending.",
-      "specification": "Declare union, array, primitive and tuple aliases; build an alias-typed union array and tuple, classify elements through an alias-typed parameter and retain five cells.",
-      "sourceSha256": "602f5e2857d339781090262d478f808ef12c5d4b9311fbc048475f4418d968d6",
-      "counterpartSha256": "d171a28d33c27e03d0207df396144405d8ca9ebdd4b393e7fd445e7b961f4216"
+      "notes": "Generic aliases and trailing defaults name union arrays, tuples and result containers. Original five-cell result, operation counts and measurement protocol are unchanged. Untimed acceptance; no new timing claimed.",
+      "specification": "Declare a union and generic aliases with defaults; instantiate union arrays and tuples, classify elements through an alias-typed parameter and retain five cells.",
+      "sourceSha256": "e591f67c8394ade205b8a0fe46bfa6f1c68fd5b33dc547dfb398c1d4a7dcc155",
+      "counterpartSha256": "6649c8daa8a2e40b792963f26cfbfd3d1728f33cbaacc17c7d23c1ccbb9732c4"
     },
     {
       "id": "string_indexing",

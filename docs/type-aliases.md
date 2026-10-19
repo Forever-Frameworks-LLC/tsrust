@@ -39,10 +39,30 @@ A record type is still declared with a body, `type Point = { x: int; y: int; };`
 
 - An alias is declared at the top level of a file. A declaration inside a function is a `syntax` error.
 - An alias cannot refer to itself, directly or through other aliases (`recursive-alias`). Use a record type for a recursive shape.
-- An alias cannot have type parameters (`unsupported`). Generic record types can.
+- An alias can have type parameters and trailing defaults, such as `type Values<T = string> = T[];`. Omitted arguments use their defaults; missing required or extra arguments are `arity` errors. A default can reference an earlier parameter. Defaults on record bodies, interfaces and functions remain unsupported.
 - A name can be declared once: two aliases, or an alias and a record or enum with the same name, are a `duplicate` error. Built-in type names cannot be declared.
 - A type error in a use of an alias is reported at the use.
 - `export type Name = Type;` exports an alias. An importing file uses it like its own aliases. The alias can name types of its own file that the importing file did not import.
+
+## Generic aliases
+
+```tsrust
+type Values<T = string> = T[];
+type Pair<A = int, B = Values<A>> = [A, B];
+interface Box<T> { value: T; }
+type Rows<T = int> = Box<T>[];
+```
+
+`Values` means `string[]`; `Values<int>` means `int[]`. `Pair` means
+`[int, int[]]`. Parameters shadow other type names inside their alias. Aliases
+preserve the expanded type's ownership, borrowing and exact integer semantics;
+they do not clone resources or convert numeric values. Exported generic aliases
+retain their defaults when imported.
+
+Aliases cannot form recursive types. Expansion is limited to 65536 annotation
+nodes and the existing annotation-depth limit; excessive expansion reports an
+error instead of exhausting memory. See the executable
+[`generic-type-aliases` example](../examples/generic-type-aliases/README.md).
 
 ## In the editor
 

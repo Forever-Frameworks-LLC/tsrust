@@ -1,0 +1,43 @@
+import { LruCache } from 'std:cache';
+import { Rows, Pair, Maybe, Cache } from './models';
+import { strictEqual, trackedResource, TrackedResource, resourceId, releaseCount, closeResource } from 'std:testing';
+
+function first(rows: ReadOnly<Rows>): int {
+  return rows[0].value;
+}
+
+function transfer(value: Maybe<TrackedResource>): Maybe<TrackedResource> {
+  return value;
+}
+
+function main() {
+  const rows: Rows = [{
+    value: 9007199254740993
+  }];
+  strictEqual(first(rows), 9007199254740993);
+  const words: Rows<string> = [{
+    value: 'text'
+  }];
+  strictEqual(words[0].value, 'text');
+  const pair: Pair = [7, undefined];
+  strictEqual(pair[0], 7);
+  strictEqual(pair[1] === undefined, true);
+  const resource = trackedResource();
+  const identity = resourceId(resource);
+  const moved = transfer(resource);
+  if (moved !== undefined) {
+    closeResource(moved);
+  }
+
+  strictEqual(releaseCount(identity), 1);
+  const cache: Cache = new LruCache<int, string>(2);
+  unwrap(cache.set(1, 'one'));
+  const found = cache.get(1);
+  if (found !== undefined) {
+    strictEqual(found, 'one');
+  } else {
+    throw 'missing key';
+  }
+
+  console.log('Generic type aliases passed');
+}

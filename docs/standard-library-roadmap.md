@@ -14,7 +14,7 @@ utilities, editable local components, exact offline installation/locks and LSP
 are implemented. Direct signal-reading disabled predicates refresh after handlers.
 See [the application guide](guides/ui-applications.md) and current handoff for
 focused acceptance and explicit limits. Required next UI work is editable controls,
-string/boolean state, keyed lists and persistent routing; historical UI pause and
+string/boolean state (generic aliases/defaults now accepted), keyed lists and persistent routing; historical UI pause and
 resource-dependency statements below are superseded.
 
 Exact decimal focused acceptance is complete on macOS: `std:decimal.parseDecimal`,

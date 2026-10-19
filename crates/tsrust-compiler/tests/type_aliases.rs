@@ -28,7 +28,6 @@ fn type_aliases_keep_static_contracts() {
         ("type Id = int; type Id = { x: int; }; function main() { }", "duplicate"),
         ("type int = string; function main() { }", "duplicate"),
         ("type Id = Missing | int; function main() { const a: Id = 1; }", "type"),
-        ("type Maybe<T> = T | undefined; function main() { }", "unsupported"),
         ("type Id = ; function main() { }", "syntax"),
         ("function main() { type Id = int; }", "syntax"),
     ] {

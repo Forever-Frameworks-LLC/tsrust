@@ -1,10 +1,12 @@
 type int=number;
 type Id = int | string;
-type Ids = Id[];
+type Values<T = string> = T[];
+type Ids = Values<Id>;
 type Count = int;
-type Pair = [Count, string];
-type Row = string[];
-type Rows = Row[];
+type Tuple<A = Count, B = string> = [A, B];
+type Pair = Tuple;
+type Row = Values;
+type Rows = Values<Row>;
 function kind(id: Id): string { if (typeof id === "string") { return "text"; } return "number"; }
 function workload(n: int, seed: int, input: string): string[][] {
  const output:Rows=[];let i:Count=0;
