@@ -526,3 +526,46 @@ rules are checked again when branches change. Failure stops the affected mount
 and releases its owned tree; other mounts keep working. This does not add keyed
 lists, generic reactive prop forwarding or persistent routing. See
 `examples/ui-conditional-mounting` for the paired interactive example.
+
+## Keyboard content and separators
+
+`tsrust ui add kbd separator --offline` adds editable local `Kbd`, `KbdGroup` and
+`Separator` source from the pinned Base UI + Nova baseline. Kbd displays text;
+it does not register keyboard shortcuts. Both keyboard parts use semantic kbd
+containers and accept owned composed children, including live text. Interactive
+children still reject when nested inside a Button. Caller classes override
+component properties and inherit the configured theme.
+
+```tsrust
+import { View, Text, Node } from 'std:ui';
+import { Kbd, KbdGroup } from './components/ui/kbd';
+import { Separator } from './components/ui/separator';
+
+function Toolbar(): Node {
+  return (
+    <View className="gap-4">
+      <KbdGroup><Kbd>Ctrl</Kbd>+<Kbd>K</Kbd></KbdGroup>
+      <Separator />
+      <View className="flex-row items-center h-12 gap-4">
+        <Text>First section</Text>
+        <Separator orientation="vertical" />
+        <Text>Second section</Text>
+      </View>
+    </View>
+  );
+}
+```
+
+Separator defaults to horizontal, is nonfocusable, and exposes orientation through
+accessibility and data metadata. Horizontal lines have one logical pixel of height
+and fill available width. Vertical lines have one logical pixel of width and
+stretch in their parent's cross axis. They accept no children; arbitrary render
+callbacks and DOM props remain outside the declared portable interface.
+
+`inline-flex`, preferred `w-fit`/`h-fit`/`size-fit` and `text-xs` share compiler,
+native and editor behavior. Fit-content uses the available size bounded by
+min-content and max-content; unbreakable text can overflow. text-xs uses 3/4 of
+`typography.base` with a default line height of one base unit. `in-data-[slot=VALUE]`
+matches any ancestor, excluding self; separator `data-horizontal`/`data-vertical`
+variants match orientation. SVG icons and Tooltip itself remain pending; styling
+under an explicit tooltip-content context does not install tooltip behavior.

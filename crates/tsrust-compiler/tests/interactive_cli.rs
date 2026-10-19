@@ -217,8 +217,8 @@ mod terminal {
         let root=support::TempDirectory::new();let mut terminal=Terminal::start(&root.0,&["ui","list","--bundled"]);terminal.finish();
         assert!(terminal.text.contains("COMPONENTS")&&terminal.text.contains("FOUNDATIONS")&&has_color(&terminal.text));
         let output=support::run(support::cli().args(["ui","list","--bundled","--json"]).current_dir(&root.0),10);
-        support::success(&output);let items:serde_json::Value=serde_json::from_slice(&output.stdout).unwrap();assert_eq!(items.as_array().unwrap().len(),6);assert!(!output.stdout.contains(&27));
-        let identities=items.as_array().unwrap().iter().map(|item|(item["name"].as_str().unwrap(),item["variant"].as_str().unwrap())).collect::<std::collections::BTreeSet<_>>();assert_eq!(identities.len(),6);
+        support::success(&output);let items:serde_json::Value=serde_json::from_slice(&output.stdout).unwrap();assert_eq!(items.as_array().unwrap().len(),8);assert!(!output.stdout.contains(&27));
+        let identities=items.as_array().unwrap().iter().map(|item|(item["name"].as_str().unwrap(),item["variant"].as_str().unwrap())).collect::<std::collections::BTreeSet<_>>();assert_eq!(identities.len(),8);
         assert!(items.as_array().unwrap().iter().any(|item|item["name"]=="card" && item["version"]=="3.0.0"));
         let output=support::run(support::cli().args(["ui","list","--bundled"]).current_dir(&root.0),10);
         support::success(&output);assert!(String::from_utf8_lossy(&output.stdout).contains("button@2.0.0 --variant default (MIT)"));assert!(!output.stdout.contains(&27));

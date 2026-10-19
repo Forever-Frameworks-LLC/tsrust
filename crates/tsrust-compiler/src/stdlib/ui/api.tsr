@@ -47,8 +47,8 @@ export interface TextProps extends SemanticProps {
 }
 
 export interface ViewProps extends SemanticProps {
-  /** Semantic container tag; defaults to div. */
-  as?: 'div' | 'section' | 'span' | 'label';
+  /** Semantic container tag; defaults to div. kbd and code accept composed phrasing children. */
+  as?: 'div' | 'section' | 'span' | 'label' | 'kbd' | 'code';
   /** For as=label, the single ID of its associated control. Omission labels the first enclosed control. */
   htmlFor?: string;
   children?: Child[];

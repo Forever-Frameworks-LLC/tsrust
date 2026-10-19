@@ -2,11 +2,11 @@
 use super::{Theme, Utility};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Length { Pixels(f32), Percent(f32), Auto, None }
+pub enum Length { Pixels(f32), Percent(f32), Auto, None, Fit }
 impl Length {
     pub(super) fn css(self) -> String { match self {
         Self::Pixels(value) => format!("{value}px"), Self::Percent(value) => format!("{}%",value*100.),
-        Self::Auto => "auto".into(), Self::None => "none".into(),
+        Self::Auto => "auto".into(), Self::None => "none".into(), Self::Fit=>"fit-content".into(),
     }}
 }
 pub(super) const SPACING: &[&str] = &["0","px","0.5","1","1.5","2","2.5","3","3.5","4","5","6","8","12","16","24","32","48","64","96"];
@@ -16,7 +16,7 @@ pub(super) fn spacing(size:&str,theme:&Theme)->f32 { match size {
     _=>size.parse::<f32>().expect("validated size")*theme.spacing.md as f32/4.,
 }}
 pub(super) fn tokens()->Vec<String> {
-    let mut values=["flex","grid","auto-rows-min","flex-wrap","flex-nowrap","grow","grow-0","shrink","shrink-0"].into_iter().map(str::to_owned).collect::<Vec<_>>();
+    let mut values=["flex","inline-flex","grid","auto-rows-min","flex-wrap","flex-nowrap","grow","grow-0","shrink","shrink-0"].into_iter().map(str::to_owned).collect::<Vec<_>>();
     for prefix in ["p","px","py","pt","pr","pb","pl","gap","gap-x","gap-y"] {
         for size in SPACING {values.push(format!("{prefix}-{size}"));}
     }
@@ -26,6 +26,7 @@ pub(super) fn tokens()->Vec<String> {
             values.push(format!("{prefix}-{size}"));
         }
         if prefix.starts_with("max-"){values.push(format!("{prefix}-none"));}
+        if matches!(prefix,"w"|"h"|"size"){values.push(format!("{prefix}-fit"));}
     }
     for prefix in ["grid-cols","grid-rows"] {
         values.push(format!("{prefix}-none"));
@@ -39,7 +40,7 @@ pub(super) fn tokens()->Vec<String> {
 }
 pub(super) fn resolve(token:&str,theme:&Theme)->Option<Vec<Utility>> {
     let simple=match token {
-        "flex"=>Some(Utility::Display(false)),"grid"=>Some(Utility::Display(true)),"auto-rows-min"=>Some(Utility::AutoRowsMin),
+        "flex"=>Some(Utility::Display(false)),"inline-flex"=>Some(Utility::InlineFlex),"grid"=>Some(Utility::Display(true)),"auto-rows-min"=>Some(Utility::AutoRowsMin),
         "flex-wrap"=>Some(Utility::Wrap(true)),"flex-nowrap"=>Some(Utility::Wrap(false)),
         "grow"=>Some(Utility::Grow(1.)),"grow-0"=>Some(Utility::Grow(0.)),"shrink"=>Some(Utility::Shrink(1.)),"shrink-0"=>Some(Utility::Shrink(0.)),
         "grid-cols-[1fr_auto]"=>Some(Utility::Tracks(0,255)),"grid-rows-[auto_auto]"=>Some(Utility::Tracks(1,254)),_=>None,
@@ -53,7 +54,7 @@ pub(super) fn resolve(token:&str,theme:&Theme)->Option<Vec<Utility>> {
     }
     for (prefix,axes) in [("min-w-",&[2][..]),("min-h-",&[3][..]),("max-w-",&[4][..]),("max-h-",&[5][..]),("size-",&[0,1][..]),("w-",&[0][..]),("h-",&[1][..])] {
         if let Some(size)=token.strip_prefix(prefix){
-            let value=match size {"auto"=>Length::Auto,"none"=>Length::None,"full"=>Length::Percent(1.),"1/2"=>Length::Percent(0.5),"1/3"=>Length::Percent(1./3.),"2/3"=>Length::Percent(2./3.),"1/4"=>Length::Percent(0.25),"3/4"=>Length::Percent(0.75),_=>Length::Pixels(spacing(size,theme))};
+            let value=match size {"auto"=>Length::Auto,"none"=>Length::None,"fit"=>Length::Fit,"full"=>Length::Percent(1.),"1/2"=>Length::Percent(0.5),"1/3"=>Length::Percent(1./3.),"2/3"=>Length::Percent(2./3.),"1/4"=>Length::Percent(0.25),"3/4"=>Length::Percent(0.75),_=>Length::Pixels(spacing(size,theme))};
             return Some(axes.iter().map(|&axis|Utility::Dimension(axis,value)).collect());
         }
     }
@@ -65,7 +66,7 @@ pub(super) fn resolve(token:&str,theme:&Theme)->Option<Vec<Utility>> {
 
 pub(super) fn theme_keys(token:&str)->Vec<&'static str> {
     for prefix in ["gap-x-","gap-y-","gap-","min-w-","min-h-","max-w-","max-h-","size-","w-","h-","px-","py-","pt-","pr-","pb-","pl-","p-"] {
-        if let Some(size)=token.strip_prefix(prefix) {return match size {"1"|"2"=>vec!["sm"],"3"=>vec!["sm","md"],"6"=>vec!["lg"],"0"|"px"|"auto"|"none"|"full"|"1/2"|"1/3"|"2/3"|"1/4"|"3/4"=>vec![],_=>vec!["md"]};}
+        if let Some(size)=token.strip_prefix(prefix) {return match size {"1"|"2"=>vec!["sm"],"3"=>vec!["sm","md"],"6"=>vec!["lg"],"0"|"px"|"auto"|"none"|"fit"|"full"|"1/2"|"1/3"|"2/3"|"1/4"|"3/4"=>vec![],_=>vec!["md"]};}
     }
     vec![]
 }

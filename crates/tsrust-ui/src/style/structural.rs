@@ -9,30 +9,34 @@ use super::super::Node;
 pub(super) fn name(value:&str)->bool {!value.is_empty() && value.bytes().all(|b|b.is_ascii_alphanumeric()||b==b'-')}
 fn attribute(value:&str)->Option<(&str,&str)> {
  let (key,value)=value.split_once('=')?;
- (matches!(key,"slot"|"size") && name(value)).then_some((key,value))
+ (matches!(key,"slot"|"size"|"orientation") && name(value)).then_some((key,value))
 }
 #[derive(Clone,Copy)]
-pub(super) enum Predicate<'a> { Data(&'a str,&'a str), HasData(&'a str,&'a str), GroupData(&'a str,&'a str,&'a str), Class(&'a str), Dark, MinWidth(u16), Invalid }
+pub(super) enum Predicate<'a> { Data(&'a str,&'a str), HasData(&'a str,&'a str), InData(&'a str,&'a str), GroupData(&'a str,&'a str,&'a str), Class(&'a str), Dark, MinWidth(u16), Invalid }
 impl<'a> Predicate<'a> {
  fn parse(text:&'a str)->Option<Self> {
   match text {"dark"=>return Some(Self::Dark),"sm"=>return Some(Self::MinWidth(640)),"md"=>return Some(Self::MinWidth(768)),"lg"=>return Some(Self::MinWidth(1024)),"xl"=>return Some(Self::MinWidth(1280)),"2xl"=>return Some(Self::MinWidth(1536)),"aria-invalid"=>return Some(Self::Invalid),_=>{}}
+  if text=="data-horizontal"{return Some(Self::Data("orientation","horizontal"));}
+  if text=="data-vertical"{return Some(Self::Data("orientation","vertical"));}
 
   if let Some(value)=text.strip_prefix("data-[").and_then(|v|v.strip_suffix(']')){let (k,v)=attribute(value)?;return Some(Self::Data(k,v));}
   if let Some(value)=text.strip_prefix("has-data-[").and_then(|v|v.strip_suffix(']')){let (k,v)=attribute(value)?;return Some(Self::HasData(k,v));}
+  if let Some(value)=text.strip_prefix("in-data-[").and_then(|v|v.strip_suffix(']')){let (k,v)=attribute(value)?;return Some(Self::InData(k,v));}
   if let Some(value)=text.strip_prefix("group-data-[") {let (attr,group)=value.split_once("]/")?;let (k,v)=attribute(attr)?;return name(group).then_some(Self::GroupData(k,v,group));}
   text.strip_prefix("[.").and_then(|v|v.strip_suffix(']')).filter(|v|name(v)).map(Self::Class)
  }
  #[cfg(any(test,feature="native"))]
  fn matches(self,node:&Node,ancestors:&[&Node])->bool {
-  fn data(node:&Node,key:&str,value:&str)->bool {(if key=="slot"{&node.semantics.slot}else{&node.semantics.size})==value}
+  fn data(node:&Node,key:&str,value:&str)->bool {match key {"slot"=>node.semantics.slot==value,"size"=>node.semantics.size==value,"orientation"=>node.semantics.role=="separator" && (if node.semantics.orientation.is_empty(){"horizontal"}else{&node.semantics.orientation})==value,_=>false}}
   fn has(node:&Node,key:&str,value:&str)->bool {node.children.iter().any(|child|data(child,key,value)||has(child,key,value))}
-  match self {Self::Data(k,v)=>data(node,k,v),Self::HasData(k,v)=>has(node,k,v),Self::GroupData(k,v,group)=>ancestors.iter().any(|parent|parent.class_name.split_whitespace().any(|class|class.strip_prefix("group/")==Some(group)) && data(parent,k,v)),Self::Class(class)=>node.class_name.split_whitespace().any(|token|token==class),Self::Dark|Self::MinWidth(_)=>true,Self::Invalid=>node.semantics.invalid=="true"}
+  match self {Self::Data(k,v)=>data(node,k,v),Self::HasData(k,v)=>has(node,k,v),Self::InData(k,v)=>ancestors.iter().any(|parent|data(parent,k,v)),Self::GroupData(k,v,group)=>ancestors.iter().any(|parent|parent.class_name.split_whitespace().any(|class|class.strip_prefix("group/")==Some(group)) && data(parent,k,v)),Self::Class(class)=>node.class_name.split_whitespace().any(|token|token==class),Self::Dark|Self::MinWidth(_)=>true,Self::Invalid=>node.semantics.invalid=="true"}
  }
  fn selector(self,scope:&str)->String {
   match self {
    Self::Dark|Self::MinWidth(_)=>String::new(),Self::Invalid=>":where([aria-invalid=\"true\"])".into(),
    Self::Data(k,v)=>format!(":where([data-{k}=\"{v}\"])") ,
    Self::HasData(k,v)=>format!(":where(:has([data-{k}=\"{v}\"]))"),
+   Self::InData(k,v)=>format!(":where({scope}[data-{k}=\"{v}\"] *)"),
    Self::GroupData(k,v,group)=>format!(":where({scope}.group\\/{group}[data-{k}=\"{v}\"] *)"),
    Self::Class(class)=>format!(":where([class~=\"{class}\"])") ,
   }
@@ -136,5 +140,20 @@ pub(super) fn css(classes:&str,theme:&Theme,mode:&str,id:u64,scope:&str)->String
  #[test] fn size_metadata_is_checked_and_does_not_create_a_role() {
   assert!(view("",r#"{"size":"sm"}"#,vec![]).semantics.role.is_empty());
   assert!(Node::new(Kind::View,String::new(),String::new(),vec![]).unwrap().with_semantics(r#"{"size":"bad size"}"#).is_err());
+ }
+}
+
+#[cfg(test)] mod content_tests {
+ use super::*;
+ #[test]fn orientation_and_ancestor_metadata_match_the_browser_contract(){
+  let horizontal=Node::view(vec![],"data-horizontal:h-px data-vertical:w-px".into()).unwrap().with_semantics(r#"{"role":"separator"}"#).unwrap();
+  let rules=resolved(&horizontal,&[],&Theme::default(),"light");assert!(rules.iter().any(|(_,v)|matches!(v,Utility::Dimension(1,super::super::Length::Pixels(1.)))));assert!(!rules.iter().any(|(_,v)|matches!(v,Utility::Dimension(0,_))));
+  let parent=Node::view(vec![],String::new()).unwrap().with_semantics(r#"{"slot":"tooltip-content"}"#).unwrap();
+  let child=Node::view(vec![],"in-data-[slot=tooltip-content]:bg-background/20 dark:in-data-[slot=tooltip-content]:bg-background/10".into()).unwrap();
+  let light=resolved(&child,&[&parent],&Theme::default(),"light");let dark=resolved(&child,&[&parent],&Theme::default(),"dark");
+  assert!(light.iter().any(|(_,v)|matches!(v,Utility::Background(v) if (v.alpha()-0.2).abs()<0.00001)));
+  assert!(dark.iter().any(|(_,v)|matches!(v,Utility::Background(v) if (v.alpha()-0.1).abs()<0.00001)));assert!(resolved(&child,&[],&Theme::default(),"light").is_empty());
+  let css=css("in-data-[slot=tooltip-content]:bg-background/20 data-horizontal:h-px",&Theme::default(),"light",2,"[data-tsrust-mount=\"1\"]");assert!(css.contains(":where([data-tsrust-mount=\"1\"] [data-slot=\"tooltip-content\"] *)"));assert!(css.contains("[data-orientation=\"horizontal\"]"));
+  let control=Node::button("Nested".into(),String::new(),false,||Ok(())).unwrap();let key=Node::view(vec![crate::Child::Node(control)],String::new()).unwrap().with_semantics(r#"{"tag":"kbd"}"#).unwrap();assert!(Node::button_children(vec![crate::Child::Node(key)],String::new(),false,None).is_err());
  }
 }

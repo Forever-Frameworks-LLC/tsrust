@@ -144,8 +144,10 @@ impl Painter {
                 Utility::GapAxis(axis,v)=>{if axis==0{style.gap.height=length(v);}else{style.gap.width=length(v);}},
                 Utility::Padding(side,v)=>match side {0=>style.padding.top=length(v),1=>style.padding.right=length(v),2=>style.padding.bottom=length(v),_=>style.padding.left=length(v)},
                 Utility::Display(grid)=>style.display=if grid{Display::Grid}else{Display::Flex},
+                Utility::InlineFlex=>style.display=Display::Flex,
                 Utility::Dimension(property,value)=>{
-                    let value:LengthPercentageAuto=match value {super::style::Length::Pixels(v)=>length(v),super::style::Length::Percent(v)=>percent(v),super::style::Length::Auto|super::style::Length::None=>auto()};
+                    if value==super::style::Length::Fit {match property{0=>style.size.width=Dimension::fit_content(),1=>style.size.height=Dimension::fit_content(),_=>return Err("Fit-content is supported for preferred dimensions only".into())};continue;}
+                    let value:LengthPercentageAuto=match value {super::style::Length::Pixels(v)=>length(v),super::style::Length::Percent(v)=>percent(v),super::style::Length::Auto|super::style::Length::None=>auto(),super::style::Length::Fit=>unreachable!()};
                     match property {0=>style.size.width=value.into(),1=>style.size.height=value.into(),2=>style.min_size.width=value,3=>style.min_size.height=value,4=>style.max_size.width=value,_=>style.max_size.height=value};
                 },
                 Utility::SelfAlign(axis,value)=>{let value=match value {0=>Some(AlignSelf::START),1=>Some(AlignSelf::CENTER),2=>Some(AlignSelf::END),3=>Some(AlignSelf::STRETCH),_=>None};if axis==0{style.align_self=value;}else{style.justify_self=value;}},
@@ -1300,5 +1302,24 @@ mod label_editable_tests {
  fn implicit_label_names_exclude_the_associated_editable_value() {
   let input=Node::input_control(None,Some("Ada".into()),"{}",String::new(),None).unwrap();let label=Node::view(vec![Child::Text(TextPart::Literal("Name".into())),Child::Node(input)],String::new()).unwrap().with_semantics(r#"{"tag":"label"}"#).unwrap();assert_eq!(label.content_text(),"Name");
   let mut painter=Painter::new();let (_,tree)=painter.scene(&label,320.,1.,None).unwrap();let node=|id|&tree.nodes.iter().find(|(n,_)|n.0==id).unwrap().1;assert_eq!(node(1).label(),Some("Name"));assert_eq!(node(3).labelled_by(),&[accesskit::NodeId(1)]);assert_eq!(node(3).value(),Some("Ada"));
+ }
+}
+
+#[cfg(test)]mod semantic_content_tests {
+ use super::*;
+ fn view(classes:&str,semantics:&str,children:Vec<Node>)->Node{Node::view(children.into_iter().map(super::super::Child::Node).collect(),classes.into()).unwrap().with_semantics(semantics).unwrap()}
+ fn key(value:&str)->Node{view("inline-flex flex-row h-5 w-fit min-w-5 items-center justify-center gap-1 rounded-sm px-1 font-sans text-xs font-medium bg-muted pointer-events-none",r#"{"tag":"kbd","slot":"kbd"}"#,vec![Node::text(vec![super::super::TextPart::Literal(value.into())],String::new()).unwrap()])}
+ fn rect(tree:&accesskit::TreeUpdate,id:u64)->accesskit::Rect{tree.nodes.iter().find(|(node,_)|node.0==id).unwrap().1.bounds().unwrap()}
+ #[test]fn keycap_fit_content_and_vertical_separator_keep_layout_and_noninteractive_semantics(){
+  let separator=view("shrink-0 bg-border data-horizontal:h-px data-horizontal:w-full data-vertical:w-px data-vertical:self-stretch",r#"{"role":"separator","orientation":"vertical"}"#,vec![]);
+  let root=view("flex-row items-center h-12 gap-4","",vec![key("Ctrl"),separator,key("K")]);let mut painter=Painter::new();let (_,tree)=painter.scene(&root,320.,1.,None).unwrap();
+  let first=rect(&tree,2);let separator=rect(&tree,4);let last=rect(&tree,5);assert_eq!(first.height(),20.);assert!(first.width()>=20.&&first.width()<100.);assert_eq!(last.height(),20.);assert_eq!(separator.width(),1.);assert_eq!(separator.height(),48.);assert!(first.x1<separator.x0&&separator.x1<last.x0);
+  let node=&tree.nodes.iter().find(|(id,_)|id.0==4).unwrap().1;assert_eq!(node.role(),accesskit::Role::Splitter);assert_eq!(node.orientation(),Some(accesskit::Orientation::Vertical));assert!(!node.supports_action(accesskit::Action::Focus));assert!(painter.hit_regions[&2].iter().any(|path|path.elements().is_empty()));
+ }
+ #[test]fn horizontal_separator_and_custom_theme_scale_remain_independent_of_pixel_border(){
+  let separator=view("shrink-0 bg-border data-horizontal:h-px data-horizontal:w-full",r#"{"role":"separator"}"#,vec![]);
+  let mut theme=serde_json::to_value(super::super::theme::Theme::default()).unwrap();theme["spacing"]["md"]=20.into();theme["typography"]["base"]=20.into();
+  let root=view("p-4 gap-4","",vec![key("A"),separator]).with_theme(&theme.to_string(),"dark").unwrap();let mut painter=Painter::new();let (_,tree)=painter.scene(&root,320.,1.,None).unwrap();assert_eq!(rect(&tree,2).height(),25.);assert_eq!(rect(&tree,4).height(),1.);assert_eq!(rect(&tree,4).width(),280.);
+  let item=painter.node(&root,TextStyle::default()).unwrap();assert_eq!(item.children[0].text_style.size,15.);assert_eq!(item.children[0].children[0].text_style.size,15.);
  }
 }

@@ -94,3 +94,10 @@ layout, retired events, new-node themes, accessibility and disposal. Build
 `examples/ui-conditional-mounting/src/failures.tsrx` and run
 `verify-conditional-failures.mjs <site>` for lazy-construction errors and independent
 mount cleanup. Both observers are untimed and close their isolated processes.
+
+Semantic content: build `examples/ui-content/src/acceptance.tsr` with the bounded
+Wasm builder, then run `node benchmarks/ui-jsx/verify-content.mjs <site>`. The
+observer checks two independent light/dark/scaled mounts against
+`content-reference.ts` after tsc, including keycap geometry, separators, theme
+colors, accessibility, live child bindings, DOM identity and disposal. This is
+untimed acceptance support; no performance measurement is claimed.

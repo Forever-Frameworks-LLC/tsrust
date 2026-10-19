@@ -1,0 +1,11 @@
+import { run, withTheme } from 'std:ui';
+import config from '../tsrust.config.json';
+import { Page } from './app/page';
+
+function main() {
+  unwrap(run(withTheme(Page(), config.ui.theme), 'Content light'));
+  const scaled = clone(config.ui.theme);
+  scaled.spacing.md = 20;
+  scaled.typography.base = 20;
+  unwrap(run(withTheme(Page(), scaled, 'dark'), 'Content dark and scaled'));
+}

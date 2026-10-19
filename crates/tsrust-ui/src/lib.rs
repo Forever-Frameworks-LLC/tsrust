@@ -75,7 +75,7 @@ impl Node {
         let value:Semantics=serde_json::from_str(config).map_err(|e|format!("Invalid UI semantics: {e}"))?;
         let tag=if value.tag.is_empty(){self.tag()}else{&value.tag};
         let allowed=match self.kind {
-            Kind::View=>matches!(tag,"div"|"section"|"span"|"label"),
+            Kind::View=>matches!(tag,"div"|"section"|"span"|"label"|"kbd"|"code"),
             Kind::Text=>matches!(tag,"div"|"span"|"p"|"h1"|"h2"|"h3"|"h4"|"h5"|"h6"|"code"|"kbd"),
             Kind::Button|Kind::DisabledButton=>tag=="button",
             Kind::Input=>tag=="input",

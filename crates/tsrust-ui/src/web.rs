@@ -25,7 +25,7 @@ fn element(node:&Node,out:&mut String,theme:&crate::theme::Theme,mode:&str) {
  }
  if node.kind==Kind::View{out.push_str(" data-tsrust-view");}
  if node.kind==Kind::Text{out.push_str(" data-tsrust-text");}
- if node.semantics.role=="separator"{out.push_str(if node.semantics.orientation=="vertical"{" aria-orientation=\"vertical\""}else{" aria-orientation=\"horizontal\""});}
+ if node.semantics.role=="separator"{out.push_str(if node.semantics.orientation=="vertical"{" aria-orientation=\"vertical\" data-orientation=\"vertical\" data-vertical"}else{" aria-orientation=\"horizontal\" data-orientation=\"horizontal\" data-horizontal"});}
  if node.semantics.hidden{out.push_str(" aria-hidden=\"true\"");}
  if matches!(node.kind,Kind::Button|Kind::DisabledButton) {out.push_str(" type=\"button\"");}
  if node.is_disabled() {out.push_str(" disabled");}

@@ -44,7 +44,7 @@ fn sync_element(node:&Node,document:&web_sys::Document,all:&mut std::collections
     }
     if node.kind==Kind::View{element.set_attribute("data-tsrust-view","")?;}
     if node.kind==Kind::Text{element.set_attribute("data-tsrust-text","")?;}
-    if node.semantics.role=="separator"{element.set_attribute("aria-orientation",if node.semantics.orientation=="vertical"{"vertical"}else{"horizontal"})?;}
+    if node.semantics.role=="separator"{let orientation=if node.semantics.orientation=="vertical"{"vertical"}else{"horizontal"};element.set_attribute("aria-orientation",orientation)?;element.set_attribute("data-orientation",orientation)?;element.set_attribute(if orientation=="vertical"{"data-vertical"}else{"data-horizontal"},"")?;}
     if node.semantics.hidden{element.set_attribute("aria-hidden","true")?;}
     if node.theme.is_some(){element.set_attribute("data-tsrust-theme","")?;}
     element.set_attribute("style",&super::web::scope(node,theme,mode))?;
