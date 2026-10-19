@@ -43,3 +43,12 @@ flags and cursor visibility on success and cancellation, including short and
 color-disabled terminals. No SQL suites, complete compiler/LSP matrix or timing
 were repeated. Original logs and source identities use `tsrust-ui-terminal-*` in
 canonical SQLite.
+
+Accepted source checkpoint: `80355ccd`. Installed CLI/LSP, workspace server override
+and both shared-target executables are rebuilt from that commit and independently
+hashed. Both live VS Code servers restart with exact settings restoration. The
+installed CLI reports six unique current catalog entries; a dry run in the user's
+standalone counter proposes `button-v2.tsrx` and `card-v3.tsrx` without changing
+source, configuration or lock bytes. The installed counter check and formatting
+remain clean. Cleanup removes 76 obsolete test/native outputs (2649.7 MiB), verifies
+all five consumers remain unchanged and finds no owned build/test/browser process.

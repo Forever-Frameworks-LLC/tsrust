@@ -17,6 +17,15 @@ Thirty-seven CLI unit, seven terminal and five affected UI project witnesses pas
 no full compiler/LSP, SQL or UI rendering matrix was repeated. Continue the Nova
 component families using the standalone counter as the visible working project.
 
+Accepted source checkpoint: `80355ccd`. Five executable consumers are refreshed;
+both live editors restart with exact settings restoration. Installed catalog and
+counter dry-run/check/format checks pass without source/config/lock writes. The
+counter preview adds versioned current files alongside its owner files. SQLite
+retains exact logs, identities and cleanup receipts. Seventy-six obsolete outputs
+(2649.7 MiB) are removed; all five consumers remain unchanged and no owned test,
+build or browser processes remain. Do not rebuild removed acceptance outputs merely
+to refill caches.
+
 ## Current conditional UI mounting — 2026-10-19
 
 Local-state JSX ternaries now mount lazy nested branches. Selected components keep
