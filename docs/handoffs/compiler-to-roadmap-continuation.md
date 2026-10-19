@@ -13,6 +13,27 @@ arguments/returns/examples and inline comparable results (strings/trim is the fi
 pilot). Both views use the same curated evidence and explicit unmeasured states.
 Existing counter owner files and developer evidence paths remain preserved.
 
+## Checked documentation content and child forwarding — 2026-10-19
+
+Content, literal JSON decoding and cached CLI preparation pass focused acceptance
+through `522cdf9c`. The generated 103-page catalog contains nine authored pages,
+53 checked API declarations, exact source/examples and explicitly pending pinned
+library destinations. CommonMark/source ranges, imported inherited prop origins,
+invalid-publication preservation and immutable dev snapshots have witnesses.
+All four literal JSON scalar families preserve checked precision/ownership;
+mixed shape unions remain unsupported. Build/run/dev prepare declared docs content;
+checks/LSP remain read-only. No benchmark or SQL suite runs during content builds.
+
+Explicit JSX child arrays now forward with `children={values}`. Syntax conflicts,
+evaluation order, editor hover/completion and four typing modes pass through
+`3a049e7f`; ordinary owning-array rules remain unchanged. Keep the unrelated
+coalesced-array receiver inference limitation visible in readiness notes.
+[Content acceptance](../milestones/ui-documentation-content.md) records evidence
+and the active shared example-card publication. Continue the required rich text,
+keyed identity/navigation, full-text search and complete component families. These
+are required work, not conditional follow-ups. Reuse accepted scrolling, mode,
+resource/cancellation and database evidence.
+
 ## Documentation shell and nested panes — 2026-10-19
 
 Accepted source: `0948dca6`, following checkpoint `4710cde2`. The standalone

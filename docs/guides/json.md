@@ -310,3 +310,24 @@ Writer errors use offset zero, not an output byte location. The line field is
 the current record for write and the next-record counter for flush/close; a flush
 error can concern any buffered earlier record. Writer resources cannot be cloned
 or constructed as ordinary records.
+
+
+### Checked literal targets
+
+Explicit typed decoders accept scalar literal types and closed unions of one
+scalar kind. Nullable/optional values retain their ordinary missing/null rules.
+Unknown alternatives reject as `shape-mismatch`; numeric precision checks and
+input budgets remain in effect. Mixed value-shape unions remain unsupported.
+
+```tsrust
+type Status = 'draft' | 'published';
+function main() {
+  const status = JSON.parse<Status>('"draft"');
+  console.log(status === 'draft', String(status).length); // true 5
+}
+```
+
+Direct common string-member lookup on a literal union is not yet implemented;
+`String(status)` explicitly obtains an owned string without changing its text.
+For typed JSONC/JSONL literal results, use ordinary Result matching. Nested generic
+inference through `unwrap(parseJsonc<Status>(...))` remains a separate limitation.

@@ -26,6 +26,8 @@ Current compiler probes establish these remaining gaps:
 | `async c => c.text("ok")` | Accepted | Reuse existing async-arrow evidence |
 | JSX `children={ownedArray}` | Accepted at `a0fca44c` with compiler/editor witnesses | Explicit attributes and body children cannot be combined; automatic `{array}` body flattening remains unsupported |
 | `(props.children ?? []).join('|')` on optional string arrays | `join() requires an array` in a minimized content-card witness | Direct nonoptional array receivers work. Investigate expression receiver inference without changing coalescing or ownership contracts |
+| Shared string members on a closed literal union | `item.name.length` rejects when name is `'hello'|'other'`; `String(item.name).length` checks | Use the explicit checked conversion for now; complete shared scalar member inference before claiming parity |
+| Nested literal JSONC result inference | Comparing `unwrap(parseJsonc<Status>(text))` directly is rejected as non-scalar; staged Result matching works | Investigate nested generic-result inference separately from checked literal decoding |
 
 Probe sources, exact diagnostics and compiler hash are retained as
 `tsrust-readiness-20261018.json` in canonical SQLite after evidence import. A

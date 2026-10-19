@@ -76,6 +76,15 @@ not complete steps 1–3: content classification, persistent navigation/keyed li
 full reactive forwarding and the actual reference pages remain pending. A local
 preview requested by the owner runs on `http://127.0.0.1:4317/`.
 
+The checked content section is accepted through `522cdf9c`: nine authored pages,
+103 destinations, original-source ranges, checked API inheritance, exact examples,
+literal JSON materialization and automatic cached build/run/dev preparation.
+Explicit JSX `children` forwarding and editor agreement are accepted through
+`3a049e7f`. See [content acceptance](../milestones/ui-documentation-content.md).
+Shared rich-text rendering, persistent routes/keyed lists and full-text search
+remain implementation requirements; generated inventory pages are not completed
+components.
+
 ## Project and content layout
 
 Use `docs/` as a separate runnable Tsrust project. Keep the standalone
@@ -127,15 +136,15 @@ implicit module or a different UI routing convention.
 - [ ] Classify existing Markdown as current user documentation, design proposal,
   accepted evidence or historical record. There are currently 721 Markdown files;
   bulk moving them before classification would break useful references.
-- [ ] Define stable page IDs, directory-derived routes, navigation groups, order,
+- [x] Define stable page IDs, directory-derived routes, navigation groups, order,
   title, summary, target capabilities, status and optional example references.
   Reject duplicate IDs, missing assets, unsafe paths and unresolved references.
 - [ ] Record each existing component's exact source version, exported pieces,
   declared props, behavioral limits and accepted target evidence. Extend the
   existing coverage inventory rather than creating a competing status ledger.
-- [ ] Write the first content pages from verified behavior: installation,
+- [x] Write the first content pages from verified behavior: installation,
   project structure, state/ownership, theming and existing component APIs.
-- [ ] Establish a language-reference pilot for strings and `trim`, including the
+- [x] Establish a language-reference pilot for strings and `trim`, including the
   API-to-workload mapping. Reuse accepted measurements where present; record an
   explicit unmeasured state otherwise. Do not wait for the complete UI library
   before proving this documentation/evidence relationship.
@@ -151,7 +160,7 @@ the inventory accounts for all 64 components, three recipes and 30 blocks.
 - [ ] Complete checked reactive props and forwarding required by navigation,
   variants, class names, metadata and visibility. Conditional unmount and retained
   hiding must have distinct documented behavior. State remains owned exactly once.
-- [ ] Implement nested scroll containers, viewport sizing and resize behavior.
+- [x] Implement nested scroll containers, viewport sizing and resize behavior.
   Share offsets across layout, paint/clipping, pointer targeting, text editing,
   keyboard focus reveal and accessibility. Bubble unused wheel deltas correctly.
 - [ ] Establish window options, platform safe areas and native/custom headers.
@@ -176,7 +185,7 @@ prototype is not proof of universal native-header support.
 
 ### 3. Create the documentation shell as the first real consumer
 
-- [ ] Scaffold `docs/` through the ordinary project/config/component workflows.
+- [x] Scaffold `docs/` through the ordinary project/config/component workflows.
   Use the real CLI, explicit entrypoint and selected targets. Ensure all required
   project files, offline assets and attribution notices are present.
 - [ ] Build a restrained, readable documentation layout: global section navigation,

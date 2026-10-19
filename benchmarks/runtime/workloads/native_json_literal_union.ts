@@ -15,7 +15,7 @@ function workload(n: number, seed: number, input: string): number {
   while (i < n) {
     const item = decodeItem(input);
     if (!item.active) { throw 'Inactive item'; }
-    checksum += item.name.length + item.values[0]! + item.values[1]!;
+    checksum += String(item.name).length + item.values[0]! + item.values[1]!;
     i++;
   }
   return checksum;

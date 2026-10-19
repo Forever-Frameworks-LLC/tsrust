@@ -13,7 +13,7 @@ function workload(n: int, seed: int, input: string): int {
       throw 'Inactive item';
     }
 
-    checksum += item.name.length + item.values[0] + item.values[1];
+    checksum += String(item.name).length + item.values[0] + item.values[1];
     i++;
   }
 
