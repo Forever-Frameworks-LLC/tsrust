@@ -19,6 +19,14 @@ and custom spacing/radius pass. Fresh generated native export builds offline/loc
 and presents/resizes on the GPU. Failed attempts, repairs and exact identities use
 `tsrust-ui-input-*` in SQLite. No SQL, full regression pass or new timing was run.
 
+Accepted source checkpoint: `6281f73c`. Both installed tools and the workspace
+LSP override are refreshed; the active editor server restarted. The standalone
+counter source/settings remain byte-identical, and both project checks plus the
+installed event-editor witness pass. SQLite holds the consumer hashes and cleanup
+receipts. Obsolete outputs reduced the shared target from 19,065 MiB to 12,195 MiB;
+all five consumers and useful dependencies remain. No owned test processes remain.
+Some removed build variants will rebuild on demand; no warm-up pass was run.
+
 Continue Field composition and its nullable/dynamic child prerequisites, then the
 remaining complete Base UI + Nova component/layout/block families, keyed editing
 and persistent routing. Reuse accepted input/IME and ownership evidence. Do not
