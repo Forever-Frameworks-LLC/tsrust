@@ -30,7 +30,16 @@ fn route(path:&Path)->Result<String,String>{
 }
 struct Inputs {entry:SourceId,source:String}
 impl SourceProvider for Inputs{
-    fn resolve(&self,importer:Option<&SourceId>,path:&str)->Result<SourceId,String>{if importer.is_none()&&path==self.entry.0{Ok(self.entry.clone())}else{FileSourceProvider.resolve(importer,path)}}
+    fn resolve(&self,importer:Option<&SourceId>,path:&str)->Result<SourceId,String>{
+        if importer.is_none()&&path==self.entry.0{return Ok(self.entry.clone());}
+        if importer==Some(&self.entry)&&(path.starts_with("./")||path.starts_with("../")){
+            // The virtual generated module is checked before its output directory exists.
+            let mut normalized=PathBuf::new();
+            for part in Path::new(&self.entry.0).parent().unwrap().join(path).components(){match part{std::path::Component::CurDir=>{},std::path::Component::ParentDir=>{normalized.pop();},other=>normalized.push(other.as_os_str())}}
+            return FileSourceProvider.resolve(None,normalized.to_str().ok_or("Documentation imports must be UTF-8")?);
+        }
+        FileSourceProvider.resolve(importer,path)
+    }
     fn read(&self,id:&SourceId)->Result<String,String>{if *id==self.entry{Ok(self.source.clone())}else{FileSourceProvider.read(id)}}
 }
 fn graph(root:&Path,config:&docs::Config)->Result<project::ProjectAnalysis,String>{
