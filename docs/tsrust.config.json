@@ -69,5 +69,33 @@
         "xl": 24
       }
     }
+  },
+  "documentation": {
+    "content": "content",
+    "inventory": "plans/ui-component-coverage.json",
+    "apiSources": [
+      "std:ui",
+      "src/components/ui/button.tsrx",
+      "src/components/ui/card.tsrx",
+      "src/components/ui/input.tsrx",
+      "src/components/ui/textarea.tsrx",
+      "src/components/ui/label.tsrx",
+      "src/components/ui/kbd.tsrx",
+      "src/components/ui/separator.tsrx"
+    ],
+    "examples": [
+      {
+        "id": "counter",
+        "source": "src/examples/counter.tsrx",
+        "export": "Counter",
+        "kind": "component"
+      },
+      {
+        "id": "strings-trim",
+        "source": "src/examples/strings-trim.tsr",
+        "export": "trimmed",
+        "kind": "code"
+      }
+    ]
   }
 }

@@ -1,0 +1,117 @@
+/** UTF-8 byte offsets into original source, with an exclusive end. */
+export interface DocRange {
+  start: int;
+  end: int;
+}
+
+export interface DocCodeToken {
+  source: DocRange;
+  class: string;
+}
+/** Flat preorder tree; parent=-1 means a root. Text and raw source remain separate. */
+export interface DocNode {
+  kind: 'paragraph' | 'heading' | 'quote' | 'code-block' | 'html-literal' | 'list' | 'item' | 'table' | 'table-head' | 'table-row' | 'table-cell' | 'emphasis' | 'strong' | 'strike' | 'link' | 'image' | 'text' | 'code' | 'soft-break' | 'hard-break' | 'rule' | 'task';
+  source: DocRange;
+  parent: int;
+  text: string;
+  raw: string;
+  destination: string;
+  title: string;
+  anchor: string;
+  language: string;
+  level: int;
+  ordinal: int | null;
+  checked: boolean | null;
+  alignment: string[];
+  tokens: DocCodeToken[];
+}
+
+export interface DocHeading {
+  anchor: string;
+  title: string;
+  level: int;
+  node: int;
+  source: DocRange;
+}
+
+export interface DocDocument {
+  nodes: DocNode[];
+  headings: DocHeading[];
+  title: string;
+  summary: string;
+}
+
+export interface DocMetadata {
+  id: string;
+  group: string;
+  order: int;
+  status: 'ready' | 'partial' | 'pending' | 'proposal';
+  targets: ('web' | 'native')[];
+  examples: string[];
+  component: string | null;
+  api: DocApiReference[];
+}
+
+export interface DocApiReference {
+  receiver: string;
+  name: string;
+}
+
+export interface DocPage {
+  metadata: DocMetadata;
+  route: string;
+  source: string;
+  sha256: string;
+  markdown: string;
+  document: DocDocument;
+}
+/** Exact source for preview, copying and download; token ranges never rewrite it. */
+export interface DocExample {
+  kind: 'component' | 'code';
+  id: string;
+  source: string;
+  export: string;
+  sha256: string;
+  code: string;
+  tokens: DocCodeToken[];
+}
+
+export interface DocApiField {
+  name: string;
+  optional: boolean;
+  signature: string;
+  documentation: string;
+  source: string;
+  range: DocRange;
+}
+
+export interface DocApi {
+  name: string;
+  kind: string;
+  source: string;
+  range: DocRange | null;
+  signature: string;
+  documentation: string;
+  fields: DocApiField[];
+}
+
+export interface DocLibraryEntry {
+  name: string;
+  status: string;
+  description: string;
+  dependencies: string[];
+}
+
+export interface DocLibrary {
+  components: DocLibraryEntry[];
+  recipes: DocLibraryEntry[];
+  blocks: DocLibraryEntry[];
+}
+/** Inputs/fingerprints remain build metadata; runtime exposes only the checked documentation payload. */
+export interface DocCatalog {
+  schemaVersion: int;
+  pages: DocPage[];
+  examples: DocExample[];
+  api: DocApi[];
+  library: DocLibrary;
+}

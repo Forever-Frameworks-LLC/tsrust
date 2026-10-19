@@ -52,6 +52,7 @@ pub fn discover(importer:&Path,mut read:impl FnMut(&Path)->Result<Option<String>
   if let Some(text)=read(&path)? {
    let value:Value=serde_json::from_str(&text).map_err(|error|format!("{}: {error}",path.display()))?;
    let object=value.as_object().ok_or_else(||format!("{}: configuration must be an object",path.display()))?;
+   if let Some(value)=object.get("documentation"){let config:crate::documentation::Config=serde_json::from_value(value.clone()).map_err(|error|format!("Invalid documentation configuration: {error}"))?;config.validate()?;}
    if let Some(ui)=object.get("ui") {let ui=crate::ui_project::Config::paths(ui)?;crate::ui_project::validate_lock(root,&ui,&mut read)?;}
    return Aliases::parse(root,object.get("paths")).map(Some).map_err(|error|format!("{}: {error}",path.display()));
   }

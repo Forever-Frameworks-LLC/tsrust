@@ -1,0 +1,13 @@
+import { strictEqual } from 'std:testing';
+
+/** Removes surrounding Unicode whitespace, leaving inner text unchanged. */
+export function trimmed(): string {
+  return '  Hello  '.trim();
+}
+
+function main() {
+  strictEqual(trimmed(), 'Hello');
+  strictEqual('\u0085hello\u0085'.trim(), 'hello');
+  strictEqual('\uFEFFhello\uFEFF'.trim(), '\uFEFFhello\uFEFF');
+  console.log('String trim documentation passed');
+}

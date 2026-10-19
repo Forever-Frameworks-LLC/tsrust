@@ -183,3 +183,12 @@ fn semantic_content_orientation_fit_and_window_scrolling_help_match_checked_prop
  }
  let broken=source.replace("orientation=\"vertical\"","orientation=\"diagonal\"");session.change("main.tsrx",&broken);let diagnostics=session.wait_for_diagnostics("main.tsrx");assert!(!diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
 }
+
+#[test]
+fn generated_documentation_types_have_nested_member_help_without_running_a_build(){
+ let model=tsrust_compiler::documentation::MODEL_SOURCE;
+ let source="import {DocCatalog} from './content-types';function read(value:ReadOnly<DocCatalog>):int{return value.pages[0].document.nodes[0].source.start;}function main(){}";
+ let mut session=support::session::Session::start(&[("content-types.tsr",model)]);session.open("main.tsr",source);session.settle();
+ let at=source.find("source.start").unwrap()+7;let hover=session.hover("main.tsr",source,at).unwrap_or_default();assert!(hover.contains("int"),"{hover}");
+ let at=source.find("source.start").unwrap()+7;let names=session.completion("main.tsr",source,at).unwrap();for name in ["start","end"]{assert!(names.contains(&name.into()),"{names:?}");}
+}

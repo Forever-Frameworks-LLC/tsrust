@@ -90,6 +90,7 @@ pub(crate) use records::recursive_links as recursive_links;
 pub(crate) use records::runtime as record_runtime;
 mod runtime;
 mod storage;
+pub mod documentation;
 mod syntax;
 pub(crate) use callables::local_function_values as local_function_values;
 pub(crate) use callables::local_functions as local_functions;
