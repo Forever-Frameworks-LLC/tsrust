@@ -11767,7 +11767,7 @@ mod type_hints;
   let invalid=source.replace("preserve<int>(n)","preserve<int>(n, 2)");assert!(analyze_recursive(crate::syntax::parse(&invalid).unwrap()).is_err());assert_eq!(crate::generic_call_validation::validation_runs()-before,2);
  }
  #[test]fn recursive_fallback_reuses_only_this_inputs_source_proofs(){
-  let source=crate::format("function append(values:Mutable<int[]>,n:int):void{if(n>0){values.push(n);append(values,n-1);}}function main(){const values=[0];append(values,2);}").unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+  let source=crate::format("function preserve<T>(value:T):T{return value;}function append(values:Mutable<int[]>,n:int):void{if(n>0){values.push(preserve<int>(n));append(values,n-1);}}function main(){const values=[0];append(values,2);}").unwrap();assert_eq!(crate::format(&source).unwrap(),source);
   let program=crate::syntax::parse(&source).unwrap();assert_eq!(analyze(program.clone()).err().expect("recursive access requires inference").code,"recursion-inference");
   let before=crate::generic_call_validation::validation_runs();let result=analyze_with_recursive_fallback(program).unwrap();assert_eq!(crate::generic_call_validation::validation_runs()-before,1);assert_eq!(result.functions.iter().find(|function|function.name=="append").unwrap().bindings[0].mode,Mode::Mutate);
   let invalid=source.replace("append(values,n-1)","append(values,true)");assert!(analyze_with_recursive_fallback(crate::syntax::parse(&invalid).unwrap()).is_err());assert_eq!(crate::generic_call_validation::validation_runs()-before,2);
