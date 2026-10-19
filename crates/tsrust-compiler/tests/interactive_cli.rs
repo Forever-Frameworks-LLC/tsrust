@@ -143,7 +143,7 @@ mod terminal {
         assert!(terminal.text.contains("Dependencies: tokens@1.0.0"));
         assert!(terminal.text.contains("Install component"));
         terminal.answer("Component catalog", &["Back to UI", ENTER]);
-        terminal.answer("Browse components", &[DOWN, DOWN, ENTER]);
+        terminal.answer("Browse components", &[DOWN, DOWN, DOWN, ENTER]);
         terminal.answer("What would you like to do?", &[CANCEL]);
         terminal.finish();
         assert_eq!(std::fs::read_dir(&root.0).unwrap().count(), 0);

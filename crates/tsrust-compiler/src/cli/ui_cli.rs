@@ -3,6 +3,8 @@ use std::{collections::BTreeMap,fs,path::{Path,PathBuf},io::{Read,Write}};
 use serde::{Deserialize,Serialize};
 use sha2::{Digest,Sha256};
 use tsrust_compiler::ui_project::{Config,Targets,safe_relative};
+#[path = "ui_attributions.rs"]
+mod attributions;
 const ABI:&str=tsrust_compiler::ui_project::RUNTIME_ABI;
 const CATALOG:&str="bundled-2026-10-19";
 #[derive(Clone,Debug,Deserialize,Serialize,PartialEq,Eq,PartialOrd,Ord)]
@@ -19,7 +21,7 @@ struct Item {name:String,version:String,variant:String,license:String,license_te
 struct LockedFile {path:PathBuf,#[serde(default,skip_serializing_if="Option::is_none")] json_pointer:Option<String>,template_sha256:String,generated_sha256:String}
 #[derive(Deserialize,Serialize)]
 #[serde(deny_unknown_fields,rename_all="camelCase")]
-struct Installed {identity:Identity,destination:PathBuf,catalog:String,payload_sha256:String,compiler_sha256:String,compiler_version:String,compiler_api:u32,runtime_abi:String,rust:String,license:String,license_text:String,dependencies:Vec<Identity>,files:Vec<LockedFile>}
+struct Installed {identity:Identity,destination:PathBuf,catalog:String,payload_sha256:String,compiler_sha256:String,compiler_version:String,compiler_api:u32,runtime_abi:String,rust:String,license:String,#[serde(default,skip_serializing_if="Option::is_none")]license_text:Option<String>,#[serde(default,skip_serializing_if="Option::is_none")]attribution:Option<attributions::Attribution>,dependencies:Vec<Identity>,files:Vec<LockedFile>}
 #[derive(Deserialize,Serialize)]
 #[serde(deny_unknown_fields,rename_all="camelCase")]
 struct Lock {schema_version:u32,installed:Vec<Installed>}
@@ -114,6 +116,7 @@ fn read_lock(root:&Path,config:&Config)->Result<(Lock,Option<Vec<u8>>),String> {
  for entry in &lock.installed {
   if entry.runtime_abi!=ABI || !tsrust_compiler::ui_project::supports_compiler_api(u64::from(entry.compiler_api)) || entry.rust!=tsrust_compiler::RUST_BACKEND_VERSION {return Err("Installed UI component requires another compiler/runtime/toolchain".into());}
   safe_relative(&entry.destination)?;for file in &entry.files {no_symlinks(root,&file.path)?;}
+  if let Some(notice)=&entry.attribution {if !notice.path.starts_with("attributions") || notice.path.components().count()<2{return Err("Attribution paths must be files under attributions/".into());}let path=no_symlinks(root,&notice.path)?;let bytes=fs::read(&path).map_err(|e|format!("Missing attribution {}: {e}. Restore it from version control.",notice.path.display()))?;if hash(&bytes)!=notice.sha256{return Err(format!("Attribution {} differs from its recorded notice",notice.path.display()));}}
  }
  Ok((lock,bytes))
 }
@@ -134,6 +137,8 @@ fn plan_from_catalog(root:&Path,config:&Config,requests:&[Identity],destination:
    for file in &installed.files {if !no_symlinks(root,&file.path)?.is_file(){return Err(format!("Installed UI file missing: {}. Restore it from version control.",file.path.display()));}}
    messages.push(format!("preserve {}@{} in {} (including local edits)",id.name,id.version,target.display()));continue;
   }
+  let attribution=attributions::record(&item.license_text)?;
+  attributions::ensure(root,&attribution,&item.license_text,&mut files,&mut messages)?;
   let mut locked=vec![];
   for file in &item.files {
    safe_relative(Path::new(&file.path))?;
@@ -143,12 +148,12 @@ fn plan_from_catalog(root:&Path,config:&Config,requests:&[Identity],destination:
     messages.push("use project-owned tsrust.config.json ui.theme".into());continue;
    }
    if no_symlinks(root,&path)?.exists() || files.contains_key(&path) {return Err(format!("Refusing to overwrite {}. Existing files need an installation record.",path.display()));}
-   let generated=if file.path.ends_with(".tsrx") {tsrust_compiler::format(&installed_source(item,file,&path,&resolved,&paths)?).map_err(|e|format!("Invalid bundled component: {}",e.message))?}else {tsrust_compiler::ui_project::theme::Theme::parse(&file.content)?;file.content.clone()};
+   let generated=if file.path.ends_with(".tsrx") {let source=installed_source(item,file,&path,&resolved,&paths)?;let source=attributions::source(&source,&item.license,&item.license_text,&path,&attribution)?;tsrust_compiler::format(&source).map_err(|e|format!("Invalid bundled component: {}",e.message))?}else {tsrust_compiler::ui_project::theme::Theme::parse(&file.content)?;file.content.clone()};
    locked.push(LockedFile{path:path.clone(),json_pointer:None,template_sha256:hash(file.content.as_bytes()),generated_sha256:hash(generated.as_bytes())});
    messages.push(format!("create {} ({}@{})",path.display(),id.name,id.version));files.insert(path,generated.into_bytes());
   }
   let payload=serde_json::to_vec(&item).map_err(|e|e.to_string())?;
-  lock.installed.push(Installed{identity:id,destination:target.to_owned(),catalog:CATALOG.into(),payload_sha256:hash(&payload),compiler_sha256:compiler_hash.into(),compiler_version:env!("CARGO_PKG_VERSION").into(),compiler_api:item.compiler_api,runtime_abi:ABI.into(),rust:tsrust_compiler::RUST_BACKEND_VERSION.into(),license:item.license.clone(),license_text:item.license_text.clone(),dependencies:item.dependencies.clone(),files:locked});
+  lock.installed.push(Installed{identity:id,destination:target.to_owned(),catalog:CATALOG.into(),payload_sha256:hash(&payload),compiler_sha256:compiler_hash.into(),compiler_version:env!("CARGO_PKG_VERSION").into(),compiler_api:item.compiler_api,runtime_abi:ABI.into(),rust:tsrust_compiler::RUST_BACKEND_VERSION.into(),license:item.license.clone(),license_text:None,attribution:Some(attribution),dependencies:item.dependencies.clone(),files:locked});
  }
  let bytes=if lock.installed.len()==installed_before {previous.clone().unwrap_or_default()}else {let mut bytes=serde_json::to_vec_pretty(&lock).map_err(|e|e.to_string())?;bytes.push(b'\n');bytes};
  Ok(Plan{files:files.into_iter().collect(),updates:vec![],directories:vec![PathBuf::from("src/app"),destination.to_owned()],lock_path:config.lock.clone(),previous,lock:bytes,messages})
@@ -263,8 +268,8 @@ fn print_catalog(items:&[Item]) {
 }
 pub(super) fn run(args:impl Iterator<Item=String>)->Result<u8,String> {
  let mut args=args;let command=match args.next(){Some(command)=>command,None if super::interactive_cli::available()=>{
-  let Some(choice)=super::interactive_cli::choose("UI components",&["Add bundled components","List bundled components"])? else{return Ok(0);};if choice==0{"add".into()}else{"list".into()}
- },None=>return Err("Usage: tsrust ui <list --bundled|init|add name...> [--cwd directory] [--path directory] [--dry-run] [--json]".into())};
+  let Some(choice)=super::interactive_cli::choose("UI components",&["Add bundled components","List bundled components","Consolidate license notices"])? else{return Ok(0);};match choice{0=>"add".into(),1=>"list".into(),_=>"attributions".into()}
+ },None=>return Err("Usage: tsrust ui <list --bundled|init|add name...|attributions> [--cwd directory] [--path directory] [--dry-run] [--json]".into())};
  let mut targets=vec![];let mut unattended=false;
  let(mut cwd,mut path,mut variant,mut dry,mut json)=(None,None,"default".to_owned(),false,false);let mut requests=vec![];
  while let Some(arg)=args.next(){match arg.as_str(){"--cwd"=>cwd=Some(PathBuf::from(args.next().ok_or("--cwd requires a directory")?)),"--path"=>path=Some(PathBuf::from(args.next().ok_or("--path requires a relative directory")?)),"--target"=>targets.push(args.next().ok_or("--target requires native or web")?),"--variant"=>variant=args.next().ok_or("--variant requires a name")?,"--dry-run"=>dry=true,"--json"=>json=true,"--yes"=>unattended=true,"--bundled"|"--offline"=>{},_ if !arg.starts_with('-')=>requests.push(arg),_=>return Err(format!("Unknown UI option: {arg}"))}}
@@ -272,6 +277,12 @@ pub(super) fn run(args:impl Iterator<Item=String>)->Result<u8,String> {
  let selected=match cwd {Some(path)=>path,None=>std::env::current_dir().map_err(|e|e.to_string())?};
  let selected=fs::canonicalize(selected).map_err(|e|e.to_string())?;
  let root=selected.ancestors().find(|root|root.join(super::project_config::FILE).exists()).unwrap_or(&selected).to_owned();
+ if command=="attributions" {
+  if !requests.is_empty() || path.is_some() || !targets.is_empty() || variant!="default" {return Err("Usage: tsrust ui attributions [--cwd directory] [--dry-run] [--json]".into());}
+  let value:serde_json::Value=serde_json::from_slice(&fs::read(no_symlinks(&root,Path::new(super::project_config::FILE))?).map_err(|e|e.to_string())?).map_err(|e|e.to_string())?;
+  let config=Config::parse(value.get("ui").ok_or("Project has no UI setup; run tsrust ui add first")?)?;
+  let plan=attributions::migrate(&root,&config)?;print_plan(&plan,json);if !dry {apply(&root,&plan)?;}return Ok(0);
+ }
  if command=="add" && requests.is_empty() && !dry && !json && !unattended && super::interactive_cli::available() {
   let items=ordered_catalog()?.into_iter().filter(|item|item.variant==variant).collect::<Vec<_>>();
   if items.is_empty(){return Err(format!("No bundled UI components for variant {variant}"));}
@@ -358,7 +369,7 @@ fn print_plan(plan:&Plan,json:bool){if json {println!("{}",serde_json::json!({"o
   let application=root.join("src/app/page.tsrx");fs::write(&application,"import {Button} from '../components/ui/button'; // Owner application\n").unwrap();let original=fs::read(&application).unwrap();
   let mut card=items.iter().find(|item|item.name=="card" && item.version=="3.0.0").unwrap().clone();card.dependencies.push(button("2.0.0"));card.files[0].content="import {Button} from './button';\nimport {Node} from 'std:ui';\n// './button' remains a comment.\nexport function Card():Node{const example='./button';return <Button>{example}</Button>;}".into();
   let mut fixtures=items;fixtures.retain(|item|identity(item)!=identity(&card));fixtures.push(card.clone());
-  let next=plan_from_catalog(&root,&config,&[identity(&card),button("2.0.0")],None,"compiler-two",&fixtures).unwrap();assert_eq!(next.files.len(),2);apply(&root,&next).unwrap();
+  let next=plan_from_catalog(&root,&config,&[identity(&card),button("2.0.0")],None,"compiler-two",&fixtures).unwrap();assert_eq!(next.files.iter().filter(|(path,_)|path.extension().is_some_and(|extension|extension=="tsrx")).count(),2);apply(&root,&next).unwrap();
   let generated=fs::read_to_string(root.join(&config.components).join("card.tsrx")).unwrap();assert_eq!(tsrust_compiler::ui_project::source_imports(&generated).unwrap(),vec!["./button-v2","std:ui"]);assert!(generated.contains("// './button' remains a comment.") && generated.contains("'./button'"));
   assert_eq!(fs::read_to_string(root.join(source)).unwrap(),"// Owner button\n");assert_eq!(fs::read(&application).unwrap(),original);
   let lock=fs::read(root.join(&config.lock)).unwrap();apply(&root,&plan_from_catalog(&root,&config,&[identity(&card)],None,"compiler-three",&fixtures).unwrap()).unwrap();assert_eq!(fs::read(root.join(&config.lock)).unwrap(),lock);
@@ -378,6 +389,16 @@ fn print_plan(plan:&Plan,json:bool){if json {println!("{}",serde_json::json!({"o
 fn project_root(entry:&Path)->Result<PathBuf,String> {
  for root in entry.parent().unwrap().ancestors(){match fs::symlink_metadata(root.join(super::project_config::FILE)){Ok(_)=>return Ok(root.to_owned()),Err(e) if e.kind()==std::io::ErrorKind::NotFound=>{},Err(e)=>return Err(e.to_string())}}
  Ok(entry.ancestors().find(|p|p.file_name().is_some_and(|v|v=="src")).and_then(Path::parent).unwrap_or(entry.parent().unwrap()).to_owned())
+}
+pub(super) fn attribution_files(entry:&Path)->Result<Vec<(PathBuf,Vec<u8>)>,String> {
+ let root=project_root(entry)?;let Some(bytes)=read_optional(&no_symlinks(&root,Path::new(super::project_config::FILE))?)? else{return Ok(vec![]);};
+ let value:serde_json::Value=serde_json::from_slice(&bytes).map_err(|e|e.to_string())?;let Some(ui)=value.get("ui")else{return Ok(vec![]);};
+ let config=Config::parse(ui)?;let(lock,_)=read_lock(&root,&config)?;let mut files=BTreeMap::new();
+ for entry in lock.installed {
+  if let Some(notice)=entry.attribution {files.insert(notice.path.clone(),fs::read(no_symlinks(&root,&notice.path)?).map_err(|e|e.to_string())?);}
+  else if let Some(text)=entry.license_text {files.insert(attributions::record(&text)?.path,text.into_bytes());}
+ }
+ Ok(files.into_iter().collect())
 }
 fn normalized(path:&Path)->PathBuf {
  let mut result=PathBuf::new();for part in path.components(){match part{std::path::Component::CurDir=>{},std::path::Component::ParentDir=>{result.pop();},_=>result.push(part.as_os_str())}}result
@@ -439,8 +460,8 @@ pub(super) fn check_default_setup()->Result<(),String>{
  }
  #[test]fn invalid_json_and_staging_failure_leave_owner_bytes_intact(){
   let root=scratch();for value in ["[1]","null","\"literal\"","not-json"]{fs::write(root.join("tsrust.config.json"),value).unwrap();assert!(setup_plan(&root,&button(),None,"compiler",None).is_err());assert_eq!(fs::read_to_string(root.join("tsrust.config.json")).unwrap(),value);}
-  fs::remove_file(root.join("tsrust.config.json")).unwrap();let plan=setup_plan(&root,&button(),None,"compiler",None).unwrap();fs::create_dir(root.join("src")).unwrap();let foreign=root.join(format!("src/.tsrust-ui-{}-1.tmp",std::process::id()));fs::write(&foreign,"owner file").unwrap();
-  assert!(apply(&root,&plan).is_err());assert_eq!(fs::read_to_string(&foreign).unwrap(),"owner file");assert!(!root.join("src/components/ui/button.tsrx").exists());assert!(!root.join("tsrust.config.json").exists());assert!(!root.join("ui-components.lock.json").exists());fs::remove_dir_all(root).unwrap();
+  fs::remove_file(root.join("tsrust.config.json")).unwrap();let plan=setup_plan(&root,&button(),None,"compiler",None).unwrap();fs::create_dir(root.join("src")).unwrap();let index=plan.files.iter().position(|(path,_)|path==Path::new("src/main.tsr")).unwrap();let foreign=root.join(format!("src/.tsrust-ui-{}-{index}.tmp",std::process::id()));fs::write(&foreign,"owner file").unwrap();
+  assert!(apply(&root,&plan).is_err());assert_eq!(fs::read_to_string(&foreign).unwrap(),"owner file");assert!(!root.join("src/components/ui/button.tsrx").exists());assert!(!root.join("tsrust.config.json").exists());assert!(!root.join("ui-components.lock.json").exists());assert!(!root.join("attributions").exists());fs::remove_dir_all(root).unwrap();
  }
  #[cfg(unix)]#[test]fn readonly_configuration_is_rejected_before_creating_sources(){
   use std::os::unix::fs::PermissionsExt;let root=scratch();let path=root.join("tsrust.config.json");fs::write(&path,r#"{"schemaVersion":1,"name":"owner","build":{"entry":"src/main.tsr","output":"target/app"}}"#).unwrap();let plan=setup_plan(&root,&button(),None,"compiler",None).unwrap();fs::set_permissions(&path,fs::Permissions::from_mode(0o444)).unwrap();assert!(apply(&root,&plan).is_err());assert!(!root.join("src").exists());fs::set_permissions(&path,fs::Permissions::from_mode(0o644)).unwrap();fs::remove_dir_all(root).unwrap();

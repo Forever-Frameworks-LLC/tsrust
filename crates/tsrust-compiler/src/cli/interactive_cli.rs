@@ -180,9 +180,10 @@ pub(super) fn command() -> Result<Option<Vec<String>>, String> {
             "Quality" => action("Quality", &[("Check types", "tsrust check", &["check"]), ("Run tests", "tsrust test", &["test"]), ("Check formatting", "tsrust format --check", &["format", "--check"])])?,
             "Project" => action("Project", &[("Create a project", "Choose a destination, application type and UI targets", &["new"])])?,
             "UI" => loop {
-                let Some(choice) = select("UI", &[("Browse components", "Search current offline components and inspect details"), ("Add components", "Select several and install editable source together"), ("Back", "Return to categories")], false)? else { return Ok(None); };
-                if choice == 2 { break Some(Vec::new()); }
+                let Some(choice) = select("UI", &[("Browse components", "Search current offline components and inspect details"), ("Add components", "Select several and install editable source together"), ("Consolidate license notices", "Move full component notices into attributions/"), ("Back", "Return to categories")], false)? else { return Ok(None); };
+                if choice == 3 { break Some(Vec::new()); }
                 if choice == 1 { break Some(vec!["ui".into(), "add".into()]); }
+                if choice == 2 { break Some(vec!["ui".into(), "attributions".into()]); }
                 let Some(args) = super::ui_cli::browse()? else { return Ok(None); };
                 if !args.is_empty() { break Some(std::iter::once("ui".into()).chain(args).collect()); }
             },

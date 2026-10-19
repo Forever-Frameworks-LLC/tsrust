@@ -37,6 +37,7 @@ try {
   fs.writeFileSync(manifest, fs.readFileSync(manifest, 'utf8').replace(/^default = .*$/m, 'default = ["ui-web"]') + '\n[lib]\npath = "src/main.rs"\ncrate-type = ["cdylib"]\n');
   run('cargo', ['build', '--offline', '--locked', '--release', '--target', 'wasm32-unknown-unknown', '--lib'], pkg);
   fs.mkdirSync(destination);
+  if (fs.existsSync(path.join(pkg,'attributions'))) fs.cpSync(path.join(pkg,'attributions'),path.join(destination,'attributions'),{recursive:true});
   run(process.env.WASM_BINDGEN, [path.join(process.env.CARGO_TARGET_DIR, 'wasm32-unknown-unknown/release/tsrust_export.wasm'), '--target', 'web', '--out-dir', destination, '--out-name', 'app', '--no-typescript']);
   fs.writeFileSync(path.join(destination, 'index.html'), `<!doctype html><html><head><meta charset="utf-8"><title>Tsrust UI</title></head><body><script type="module">
 import init, {launch} from './app.js';

@@ -588,3 +588,34 @@ min-content and max-content; unbreakable text can overflow. text-xs uses 3/4 of
 matches any ancestor, excluding self; separator `data-horizontal`/`data-vertical`
 variants match orientation. SVG icons and Tooltip itself remain pending; styling
 under an explicit tooltip-content context does not install tooltip behavior.
+
+## Shared component attributions
+
+New offline installations place full notices in `attributions/` at the project
+root. Adapted shadcn source shares `attributions/shadcn-MIT.txt`; Tsrust component
+source shares `attributions/tsrust-MIT.txt`. Additional distinct notices get
+content-addressed filenames. Each generated component has one short relative
+license reference, which also works with a custom component directory.
+
+The lock records notice paths and SHA-256 hashes instead of repeating full notice
+text in each new record. Immutable catalog templates and their original hashes
+stay unchanged. Re-adding components preserves existing source and legacy records.
+Missing, edited or symlinked notices fail installation with an explicit diagnostic;
+installation does not overwrite them.
+
+Move legacy full headers explicitly, preserving all component bodies and edits:
+
+```sh
+tsrust ui attributions --dry-run
+tsrust ui attributions
+```
+
+This command moves recognized leading license blocks into shared files, retains
+other provenance comments, and changes no application imports or component logic.
+Existing template/generated hashes remain original installation provenance.
+Repeated migration is idempotent. The same transactional publication/rollback
+covers source comments, notices and lock changes. No network or Rust compilation
+is needed. Package exports and the bounded web builder include recorded notices.
+Keep `attributions/` with distributed source and carry the applicable notices
+with packaged applications. UI attribution collection covers installed component
+sources; vendored Rust dependencies retain their own notices under `vendor/`.

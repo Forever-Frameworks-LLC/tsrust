@@ -43,6 +43,7 @@ Usage:
   tsrust bindings resolve <file.bindings.json> [--offline]
   tsrust new [name-or-path] [--ui [--target native|web]...]
   tsrust ui <list --bundled|init|add name...> [--cwd directory] [--path directory] [--target native|web]... [--dry-run]
+  tsrust ui attributions [--cwd directory] [--dry-run]
   tsrust cache <info|clean>
   tsrust dev [--release] [--verbose] [--color auto|always|never] [-- program-arguments]
   tsrust run [input.tsr] [--release] [-- program-arguments]
@@ -322,7 +323,8 @@ fn run() -> Result<u8, String> {
                 let targets=tsrust_compiler::ui_project::configured_targets(&canonical_source,|path|match fs::read_to_string(path){Ok(text)=>Ok(Some(text)),Err(e) if e.kind()==std::io::ErrorKind::NotFound=>Ok(None),Err(e)=>Err(e.to_string())})?.ok_or("UI package export needs ui.target. Run tsrust ui add tokens@1.0.0 with --target native or --target web")?;
                 !targets.native && targets.web
             }else{false};
-            package_export::export(output,&rust,web_only).map_err(|error|format!("Unable to export package {}: {error}",output.display()))?;
+            let notices=if native_features.iter().any(|feature|feature.starts_with("ui")){ui_cli::attribution_files(&canonical_source)?}else{vec![]};
+            package_export::export(output,&rust,web_only,&notices).map_err(|error|format!("Unable to export package {}: {error}",output.display()))?;
             println!("Emitted package {}",output.display());
             return Ok(0);
         }

@@ -1,5 +1,31 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
+## Current owner corrections and active UI foundation — 2026-10-19
+
+The standalone counter is becoming a reusable documentation/showcase application:
+component navigation, preview/code cards, detailed props/variants, live themes and
+configurable native/custom window chrome with accessible controls and dragging.
+Repair startup caching, page scrolling and resized multiword text first; see
+[the native foundation checkpoint](../plans/ui-window-cache-foundation.md).
+Thirty-one native cases and dependency reuse/lock/clean witnesses pass. Standalone
+startup/GPU acceptance, editor refresh and the documentation application remain
+required work. No broad regression or SQL run is triggered by this checkpoint.
+
+Component licenses now use shared project `attributions/` files with short relative
+source references. Offline installation deduplicates full notices, records paths
+and SHA-256 hashes, and retains immutable template identities. Explicit
+`tsrust ui attributions [--dry-run]` migrates recognized legacy headers while
+preserving edited bodies and original provenance. Source package exports and the
+bounded web builder retain notices. Sixteen installer cases, public migration /
+package export, current Card/text/content installation and affected terminal
+navigation pass; original staging-failure evidence is retained with its repaired
+witness. Consumer and standalone refresh are pending.
+
+Owner clarification supersedes the row-padding statement below: add space before
+and after selection lists, keep individual option rows compact. Apply to every
+single/multiple/search/target selector and plain fallback. This correction is the
+next terminal edit; the previous padding evidence remains historical.
+
 ## Current terminal component installation — 2026-10-19
 
 All selectors now use padded rows with a smaller visible item count in short

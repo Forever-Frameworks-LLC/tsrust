@@ -1,7 +1,7 @@
 //! Export a standalone, relocatable source package. No registry access or rustc
 //! invocation is needed during export; compilation is the recipient's next step.
 use std::{fs,io,path::Path};
-pub(crate) fn export(root:&Path,rust:&str,web_only:bool)->io::Result<()> {
+pub(crate) fn export(root:&Path,rust:&str,web_only:bool,notices:&[(std::path::PathBuf,Vec<u8>)])->io::Result<()> {
  let dependencies=tsrust_compiler::native_runtime::separate(rust).dependencies;
  if dependencies {
   crate::native_dependency_bundle::materialize(root)?;
@@ -41,6 +41,11 @@ pub(crate) fn export(root:&Path,rust:&str,web_only:bool)->io::Result<()> {
   fs::write(root.join("Cargo.toml"),manifest)?;fs::write(root.join("Cargo.lock"),lock)?;
   if !dependencies {fs::write(root.join(".cargo/config.toml"),"[net]\noffline = true\n")?;}
   fs::write(root.join("src/main.rs"),rust)?;
+  for (path,bytes) in notices {
+   tsrust_compiler::ui_project::safe_relative(path).map_err(io::Error::other)?;
+   if !path.starts_with("attributions"){return Err(io::Error::other("Attribution must be under attributions/"));}
+   let path=root.join(path);fs::create_dir_all(path.parent().unwrap())?;fs::write(path,bytes)?;
+  }
   fs::write(root.join("rust-toolchain.toml"),format!("[toolchain]\nchannel = {:?}\nprofile = \"minimal\"\n",tsrust_compiler::RUST_BACKEND_VERSION))?;
   fs::write(root.join(".gitignore"),"/target/\n")?;
   fs::write(root.join("README.md"),format!("# Exported Tsrust program\n\nRequires the installed Rust {} toolchain. From this directory:\n\n```sh\ncargo build --offline --locked\n./target/debug/program\n# Optimized build, retaining checked integer overflow:\ncargo build --offline --locked --release\n./target/release/program\n```\n\nThe package can be moved independently of the Tsrust project and compiler.\nNative dependency sources and their license files, when needed, are included\nin vendor/. No dependency download, external library path or manual --extern\nflag is required. Rust itself must already be installed for offline builds.\nThe executable name is program; change the [[bin]] name in Cargo.toml if needed.\n\nRun Cargo from this directory so it discovers .cargo/config.toml. From another\ndirectory, pass both --manifest-path and --config with paths into this package.\nDebug and release profiles preserve integer overflow checks. The exported executable preserves the compiler-generated entrypoint and behavior.\n",tsrust_compiler::RUST_BACKEND_VERSION))?;
