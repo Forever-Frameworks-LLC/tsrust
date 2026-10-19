@@ -10,6 +10,19 @@ const GREETING: &str = "export function greeting(): string { return \"hi\"; }\n"
 const HEAD: &str = "import { greeting } from './greeting.tsr';\nimport { s } from 'std:schema';\n\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n\nfunction main() {\n  const values: int[] = [1, 2, 3];\n  const item: Item = { id: 1, name: \"a\" };\n  const text = \"abc\";\n  const lookup = new Map<string, int>();\n  const seen = new Set<int>();\n  const parsed = schema.safeParse(greeting());\n  const loaded: Result<string, int> = Ok(greeting());\n  ";
 const TAIL: &str = "\n}\n";
 
+#[test]
+fn nested_native_request_keeps_hover_and_completion() {
+    let text=tsrust_compiler::format("import {Context} from 'std:http';function probe(ctx:Mutable<Context>){const tags=ctx.req.queries('tag');}function main(){}").unwrap();
+    let mut session=Session::start(&[]);session.open("main.tsr",&text);session.settle();
+    let offset=text.find("queries(").unwrap();
+    let hover=session.hover("main.tsr",&text,offset).unwrap_or_default();
+    assert!(hover.contains("string[]")&&hover.contains("Ownership:"),"{hover}");
+    let labels=session.completion("main.tsr",&text,offset).unwrap();
+    for member in ["query","queries","header","text"] {assert!(labels.iter().any(|label|label==member),"{labels:?}");}
+    let counters=session.request("tsrust/counters",Value::Null);
+    for name in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"] {assert_eq!(counters[name],0,"{counters}");}
+}
+
 /// A receiver whose type hover reports. `silent` is the reviewed reason why
 /// completion offers nothing; hover must then say so too.
 struct Receiver {

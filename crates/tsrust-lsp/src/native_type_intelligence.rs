@@ -230,8 +230,22 @@ impl SourceIndex {
         if !declaration.type_parameters.is_empty() {
             self.generic_parameters.insert(local.into(), declaration.type_parameters.iter().map(|name| (*name).to_owned()).collect());
         }
+        // Field types must use the same identities as their editor declarations.
+        let mut mentioned = Vec::new();
+        for field in declaration.fields {
+            let _ = field.signature.render(|id| {
+                mentioned.push(id);
+                Some(tsrust_compiler::native_types::declaration(id).name.into())
+            });
+        }
+        for id in mentioned {
+            if !self.native_type_aliases.values().any(|known| *known == id) {
+                self.native_type_spelling(id);
+            }
+        }
+        let names = self.native_type_aliases.iter().map(|(name, id)| (*id, name.clone())).collect::<Vec<_>>();
         let render = |signature: &tsrust_compiler::native_signatures::Signature| {
-            signature.render_with_parameters(|id| Some(tsrust_compiler::native_types::declaration(id).name.into()), |index| declaration.type_parameters.get(index).map(|name| (*name).into())).expect("registered native field signature").into_owned()
+            signature.render_with_parameters(|id| names.iter().find(|(known, _)| *known == id).map(|(_, name)| name.clone().into()), |index| declaration.type_parameters.get(index).map(|name| (*name).into())).expect("registered native field signature").into_owned()
         };
         let fields = declaration.fields.iter().map(|field| format!("{}{}: {}", field.name, if field.optional { "?" } else { "" }, render(&field.signature))).collect::<Vec<_>>();
         let type_name = if declaration.type_parameters.is_empty() { local.to_owned() } else { format!("{local}<{}>", declaration.type_parameters.join(", ")) };
@@ -264,20 +278,6 @@ impl SourceIndex {
                 }
             }
             for id in identities {if !self.native_type_aliases.values().any(|known|*known==id){self.native_type_spelling(id);}}
-        }
-        // A field can hold another native record. Declare it too, so its
-        // members are known where the document does not import its name.
-        let mut mentioned = Vec::new();
-        for field in declaration.fields {
-            let _ = field.signature.render(|id| {
-                mentioned.push(id);
-                Some(tsrust_compiler::native_types::declaration(id).name.into())
-            });
-        }
-        for id in mentioned {
-            if id != declaration.id && !self.native_type_aliases.values().any(|known| *known == id) {
-                self.native_type_spelling(id);
-            }
         }
     }
     /// Native aliases retain declaration identity while navigation stays on the

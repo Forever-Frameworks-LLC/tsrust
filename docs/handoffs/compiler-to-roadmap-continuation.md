@@ -1,5 +1,18 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
+## Current HTTP editor correction — 2026-10-18
+
+The owner reported missing hover on `ctx.req.queries` and questioned Hono parity.
+Hono does expose `queries(name)` for repeated parameters. The editor lost native
+field identity when Context imported Request indirectly. Shared field rendering
+now retains identity; typed, generic, aliased and inferred nested access passes
+focused hover, completion and parameter-help checks. Both typing-speed rows,
+editor consistency and Context/Request checker agreement pass. See
+[the query acceptance note](../plans/http-query-acceptance.md). No-argument record
+overloads and the documented encoded-name ordering difference remain open parity
+gaps, not accepted 1:1 behavior. Reuse native query evidence for this editor-only
+repair; no SQL, rendering, full regression or performance rerun is needed.
+
 ## Current application configuration update — 2026-10-18
 
 The owner requested inline `ui.theme` in `tsrust.config.json`, source conventions

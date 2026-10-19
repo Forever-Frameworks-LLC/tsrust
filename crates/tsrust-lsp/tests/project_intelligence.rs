@@ -3140,3 +3140,23 @@ fn http_query_editor_contract(){
  let hover=ask(&index,entry,"queries('tag'","textDocument/hover");let docs=hover["contents"]["value"].as_str().unwrap();for text in ["string[]","undefined","wire order","Ownership:"]{assert!(docs.contains(text),"{hover}");}
  let help=ask(&index,entry,"'tag'","textDocument/signatureHelp");assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),1,"{help}");
 }
+
+#[test]
+fn http_context_request_query_editor_contract() {
+ for entry in [
+  "import {Context} from 'std:http';function probe(ctx:Mutable<Context>){return ctx.req.queries('tag');}function main(){}",
+  "import {Context,Request as Incoming} from 'std:http';function probe(ctx:Mutable<Context>){return ctx.req.queries('tag');}function main(){}",
+  "import {Context} from 'std:http';type Request={custom:int;};function probe(ctx:Mutable<Context>){return ctx.req.queries('tag');}function main(){}",
+  "import {Context as C} from 'std:http';type State={name:string;};type Variables={id:string;};function probe(ctx:Mutable<C<State,Variables>>){return ctx.req.queries('tag');}function main(){}",
+  "import {Router} from 'std:http';function main(){const app=new Router();app.get('/',ctx=>{const tags=ctx.req.queries('tag');return ctx.text('ok');});}",
+ ] {
+  let entry=tsrust_compiler::format(entry).unwrap();assert_eq!(tsrust_compiler::format(&entry).unwrap(),entry);
+  let uri=source_id("file:///tsrust-intelligence/main.tsr").unwrap();let mut workspace=Workspace::default();workspace.open(uri.clone(),1,entry.clone());
+  let checked=workspace.snapshot().check(&uri).unwrap();let index=ProjectIndex::checked(&checked);
+  let hover=ask(&index,&entry,"queries(","textDocument/hover");let docs=hover["contents"]["value"].as_str().unwrap_or("");
+  for text in ["string[]","undefined","wire order","Ownership:"] {assert!(docs.contains(text),"{entry}\n{hover}");}
+  let help=ask(&index,&entry,"'tag'","textDocument/signatureHelp");assert_eq!(help["signatures"][0]["parameters"].as_array().map(Vec::len),Some(1),"{entry}\n{help}");
+  let completion=ask(&index,&entry,"queries(","textDocument/completion");
+  for name in ["query","queries","header"] {assert!(completion.as_array().is_some_and(|items|items.iter().any(|item|item["label"]==name)),"{entry}\n{completion}");}
+ }
+}

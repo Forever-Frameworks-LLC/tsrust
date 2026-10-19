@@ -34,3 +34,29 @@ Three completion matrix checks pass, including the request row in all four modes
 The query hover/signature contract passes. Whole-project formatting and Git
 whitespace checks pass. Evidence uses `tsrust-http-query-*` in canonical SQLite. No SQL,
 full-family regression or performance timing was requested or rerun.
+
+## Nested request editor repair — 2026-10-18
+
+The original editor witness used a standalone `Request` variable and missed
+`Context.req`. Native field signatures rendered public type names while their
+editor declarations used private identities. This made `ctx.req.queries` compile
+successfully but return no hover when only `Context` was imported.
+
+Native field signatures now retain the registered declaration identity, including
+aliases and types not explicitly imported. Focused witnesses cover plain and
+generic Context parameters, an inferred Router callback, an aliased Request import
+and a user record named Request. Hover, parameter help and completion must agree.
+Typing-speed matrix rows cover both typed and inferred nested request access.
+
+The name `queries` is part of Hono's request API; it is not a Tsrust invention.
+This repair does not complete Hono parity. The missing no-argument `query()` and
+`queries()` object overloads and the encoded-name ordering difference above remain
+open. Preserve the requested record shapes when implementing those overloads;
+do not substitute Map or advertise the named subset as a 1:1 interface.
+
+Focused acceptance passes: both query project contracts, three HTTP context
+protocol checks, nested request editor consistency, both nested request matrix
+rows in all four modes, and Context/Request checker agreement. Whole-project
+formatting changes zero files/fingerprints. Native behavior is unchanged; existing
+query execution evidence is reused. Repair evidence uses `tsrust-http-hover-*`
+in canonical SQLite, including the original missing-hover reproduction.
