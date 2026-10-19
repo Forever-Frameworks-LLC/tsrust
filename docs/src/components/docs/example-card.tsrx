@@ -25,7 +25,7 @@ export function ExampleCard(props: ExampleCardProps): Node {
         <CardDescription>{props.description}</CardDescription>
       </CardHeader>
       <CardContent className="gap-4">
-        <View id={previewId} hidden={showSource.get()} className="h-64 overflow-auto">{props.children}</View>
+        <View id={previewId} hidden={showSource.get()} className="h-32 overflow-auto" children={props.children} />
         <View id={sourceId} hidden={!showSource.get()} className="gap-2">
           <Text className="text-sm font-mono text-muted-foreground">{props.source}</Text>
           <Textarea aria-label={sourceLabel} value={props.code} readOnly className="w-full h-64 font-mono text-sm" />
