@@ -18,6 +18,14 @@ independent mounts, accessible names, unchanged control identities and disposal.
 Original failures/repairs use `tsrust-ui-computed-*` in SQLite. No full matrix,
 SQL, new GPU smoke or timing was repeated.
 
+Accepted source checkpoint: `39c97cad`. Installed CLI/LSP, workspace server override
+and both shared-target executables are rebuilt from that commit. The live editor
+restarted; installed computed-text help and computed-project/counter checks pass.
+Counter source/settings remain unchanged. SQLite retains consumer hashes, exact
+record restoration and cleanup receipts. Both generated sites and 117 obsolete
+build outputs (1434.7 MiB) were removed; all five consumers remain unchanged.
+No owned build/browser/test processes remained after acceptance.
+
 Continue dynamic conditional mounting and Field composition, then the remaining
 Nova component/layout/block families, keyed editing and persistent routing.
 Integrated CLI web build/dev remains required. Inferred helper returns, generic

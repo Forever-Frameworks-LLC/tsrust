@@ -42,6 +42,13 @@ repair after formatting. Temporary diagnostic instrumentation was removed.
 No full regression, SQL run, performance timing or new GPU smoke was repeated;
 previous unchanged renderer evidence remains applicable.
 
+Accepted source checkpoint: `39c97cad`. Installed CLI/LSP, workspace server override
+and both shared-target executables are refreshed from that commit. The live editor
+restarted with exact counter settings restored; installed hover/completion and
+computed-project/counter checks pass. Counter source is unchanged. Consumer hashes,
+exact evidence restoration, process audit and generated-output cleanup use the
+same SQLite evidence prefix. No owned browser/test/build processes remain.
+
 This is a bounded scalar-expression prerequisite, not general reactive props.
 Precomputed local values remain snapshots. Inferred helper returns, generic child
 contracts and state reached through arbitrary prop records are not made reactive.
