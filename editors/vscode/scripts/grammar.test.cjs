@@ -15,6 +15,7 @@ test('real TextMate tokenization covers lexer syntax and multiline state', async
   const grammar = await registry.loadGrammar('source.tsrust');
   const cases = [
     ['const node = <View className="p-4"><Text>{count}</Text></View>; const next = 1;', [['View','entity.name.function'],['className','entity.other.attribute-name'],['"p-4"','string.quoted.double'],['next','source.tsrust']]],
+    ['const node = <View as="section" role="region" aria-label="Account" data-slot="card"><Text as="h2">Profile</Text></View>;', [['aria-label','entity.other.attribute-name'],['data-slot','entity.other.attribute-name']]],
     ['async function answer(): Task<int> { return await work(); }', [['async','keyword.control.async'],['function','storage.type'],['Task','support.type.builtin'],['await','keyword.control']]],
     ['match (result) { Ok(value) => {} Err(error) => {} }', [['match', 'keyword.control'], ['Ok', 'support.function'], ['Err', 'support.function']]],
     ['const result: Result<int, string> = Ok<int, string>(5);', [['Result', 'support.type.builtin'], ['Ok', 'support.function']]],
@@ -45,7 +46,7 @@ test('real TextMate tokenization covers lexer syntax and multiline state', async
       const offset = line.indexOf(word);
       const token = tokens.find(t => t.startIndex <= offset && t.endIndex > offset);
       assert.ok(token?.scopes.some(s => s.startsWith(scope)), `${word} should have ${scope}: ${JSON.stringify(tokens)}`);
-      if(scope === "constant.numeric") assert.ok(token.endIndex >= offset + word.length, `Numeric token must cover ${word}`);
+      if(scope === "constant.numeric" || scope === "entity.other.attribute-name") assert.ok(token.endIndex >= offset + word.length, `Token must cover ${word}`);
     }
   }
   const first = grammar.tokenizeLine('/* function main');
