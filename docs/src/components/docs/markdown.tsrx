@@ -125,8 +125,7 @@ function linkTarget(destination: string, catalog: ReadOnly<DocCatalog>): string 
   throw 'Documentation link target is missing';
 }
 
-function renderExamples(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>): Child[] {
-  let blocks: Child[] = [];
+function appendExamples(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>, blocks: Mutable<Child[]>): void {
   for (const id of page.metadata.examples) {
     for (const example of catalog.examples) {
       if (id === example.id) {
@@ -135,7 +134,6 @@ function renderExamples(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>):
     }
   }
 
-  return blocks;
 }
 
 function renderBlocks(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>, parent: int): Child[] {
@@ -161,9 +159,7 @@ function renderBlocks(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>, pa
 
     const text = content(page.document.nodes, i);
     if (parent === -1 && !examplesInserted && node.kind === 'heading' && node.level !== 1) {
-      for (const example of renderExamples(page, catalog)) {
-        blocks.push(example);
-      }
+      appendExamples(page, catalog, blocks);
 
       examplesInserted = true;
     }
@@ -224,9 +220,7 @@ function renderBlocks(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>, pa
   }
 
   if (parent === -1 && !examplesInserted) {
-    for (const example of renderExamples(page, catalog)) {
-      blocks.push(example);
-    }
+    appendExamples(page, catalog, blocks);
   }
 
   return blocks;
