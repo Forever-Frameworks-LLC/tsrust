@@ -13,9 +13,10 @@ const profile=fs.mkdtempSync(path.join(os.tmpdir(),'tsrust-application-browser-'
 let browser,socket,timer,server;
 try {
  let expected;
- if(!['docs-example','docs-navigation','docs-inline','docs-landing','landing-reference'].includes(scenario)){
- const compiler=spawnSync(process.execPath,[path.join(here,'../runtime/node_modules/typescript/bin/tsc'),'--target','es2022','--lib','es2022','--skipLibCheck','--outDir',profile,path.join(here,'application-reference.ts')],{encoding:'utf8',timeout:30000});assert.equal(compiler.status,0,compiler.stderr||compiler.stdout);
- const reference=spawnSync(process.execPath,[path.join(profile,'application-reference.js')],{encoding:'utf8',timeout:30000});assert.equal(reference.status,0,reference.stderr);expected=JSON.parse(reference.stdout);
+ if(!['docs-example','docs-navigation','docs-inline','landing-reference'].includes(scenario)){
+ const referenceName=scenario==='docs-landing'?'visibility-reference':'application-reference';
+ const compiler=spawnSync(process.execPath,[path.join(here,'../runtime/node_modules/typescript/bin/tsc'),'--target','es2022','--lib','es2022','--skipLibCheck','--outDir',profile,path.join(here,referenceName+'.ts')],{encoding:'utf8',timeout:30000});assert.equal(compiler.status,0,compiler.stderr||compiler.stdout);
+ const reference=spawnSync(process.execPath,[path.join(profile,referenceName+'.js')],{encoding:'utf8',timeout:30000});assert.equal(reference.status,0,reference.stderr);expected=JSON.parse(reference.stdout);
  }
  if(!liveURL)server=http.createServer((request,response)=>{let name=request.url==='/'?'index.html':request.url.slice(1);if(!['index.html','app.js','app_bg.wasm'].includes(name)){if(['docs-navigation','docs-inline','docs-landing','landing-reference'].includes(scenario)&&request.headers.accept?.includes('text/html'))name='index.html';else{response.writeHead(404).end();return;}}response.setHeader('Content-Type',name.endsWith('.wasm')?'application/wasm':name.endsWith('.js')?'text/javascript':'text/html');response.end(fs.readFileSync(path.join(site,name)));});
  if(!liveURL)await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
@@ -26,12 +27,12 @@ try {
  socket.addEventListener('message',event=>{const message=JSON.parse(event.data);if(message.id){const slot=pending.get(message.id);pending.delete(message.id);message.error?slot.reject(message.error):slot.resolve(message.result);}if(message.method==='Runtime.exceptionThrown')errors.push(message.params.exceptionDetails);});
  function call(method,params={}){return new Promise((resolve,reject)=>{const id=++sequence;pending.set(id,{resolve,reject});socket.send(JSON.stringify({id,method,params}));});}
  async function evaluate(expression){const result=await call('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});assert(!result.exceptionDetails,JSON.stringify(result.exceptionDetails));return result.result.value;}
- timer=setTimeout(()=>browser.kill('SIGKILL'),45000);await call('Runtime.enable');await call('Page.enable');await call('Page.navigate',{url:liveURL||`http://127.0.0.1:${server.address().port}/`});
+ timer=setTimeout(()=>browser.kill('SIGKILL'),45000);await call('Runtime.enable');await call('Page.enable');if(scenario==='docs-landing'){const {observerTracking}=await import('./docs-landing-observer.mjs');await call('Page.addScriptToEvaluateOnNewDocument',{source:observerTracking});}await call('Page.navigate',{url:liveURL||`http://127.0.0.1:${server.address().port}/`});
  const ready=scenario==='landing-reference'?"!!document.querySelector('#hero-title')":'Boolean(window.ui)';for(let i=0;i<100&&!await evaluate(ready);i++)await new Promise(resolve=>setTimeout(resolve,100));assert(await evaluate(ready),JSON.stringify(errors));
  if(scenario==='landing-reference'){
   const {observeLandingReference}=await import('./landing-reference-observer.mjs');await observeLandingReference({evaluate,call,errors,site});
  } else if(scenario==='docs-landing'){
-  const {observeDocsLanding}=await import('./docs-landing-observer.mjs');await observeDocsLanding({evaluate,call,errors,site});
+  const {observeDocsLanding}=await import('./docs-landing-observer.mjs');await observeDocsLanding({evaluate,call,errors,site,expected});
  } else if(scenario==='docs-inline'){
   const {observeDocsInline}=await import('./docs-inline-observer.mjs');await observeDocsInline({evaluate,call,errors,site});
  } else if(scenario==='docs-navigation'){

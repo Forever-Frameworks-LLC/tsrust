@@ -12,7 +12,8 @@ after initial layout, then only when that boolean changes.
 Scroll the example's pane to the observed view. Its status changes to visible.
 Scrolling within the visible range does not produce duplicate notifications.
 Hiding the view reports false while retaining its state; showing it observes its
-position again. PageUp, PageDown, Home and End work when the pane has keyboard focus.
+position again. Removing it disposes the view and releases its observers; mounting
+again creates a new view with an initial notification. PageUp, PageDown, Home and End work when the pane has keyboard focus.
 
 ## State and cleanup
 

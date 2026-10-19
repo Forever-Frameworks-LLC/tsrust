@@ -90,6 +90,12 @@ one of the project's selected runtimes. This is a prerequisite, not later polish
 - React to unsaved module, declaration and project-target edits. Invalidate affected
   target/export caches when flags, source, declarations or resolution inputs change.
   No Cargo build, Node execution or network request is needed to report availability.
+- Resolve availability from cached module/export facts before expensive body and
+  ownership analysis. A slow full-project check must not delay a missing-target
+  diagnostic. Retain useful availability results while the edited function body is
+  incomplete. Measure edit-to-diagnostic latency on a representative multi-target
+  project, including changing one export and toggling one target; do not claim
+  instant feedback from a small isolated hover test alone.
 - Checks and editor operations remain read-only. A code action may propose a concrete
   adapter scaffold, but it cannot silently install dependencies, create fake behavior,
   modify targets or claim that a scaffold implements the missing feature.

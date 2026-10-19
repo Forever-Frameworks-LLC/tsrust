@@ -5,7 +5,7 @@ import { DocExample, renderExample } from '../../../target/docs-content/catalog'
 import { rustMessage } from '../../examples/rust-message';
 
 export interface LandingProps {
-  examples: ReadOnly<DocExample[]>;
+  examples: DocExample[];
 }
 
 interface ChapterProps {
@@ -22,7 +22,7 @@ function Chapter(props: ChapterProps): Node {
   const entered = signal(false);
   return (
     <View id={props.id} as="section" className="border-t py-16 md:py-24 gap-8" onVisibilityChange={(visible) => { if (visible) { entered.set(true); } }}>
-      <View className="grid lg:grid-cols-2 gap-8 md:gap-16">
+      <View className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-16">
         <View className="gap-6">
           <Text className="text-xs font-mono text-primary">{props.number}</Text>
           <Text as="h2" className="text-3xl md:text-4xl font-semibold leading-tight max-w-128">{props.title}</Text>
@@ -64,7 +64,7 @@ export function Landing(props: LandingProps): Node {
       <View as="section" className="py-16 md:py-24 gap-12" onVisibilityChange={(visible) => { if (visible) { started.set(true); } }}>
         <View className="flex-row items-center gap-3"><Text className="font-mono text-xs text-primary">TYPESCRIPT SYNTAX / RUST EXECUTION</Text></View>
         <Text as="h1" className="text-3xl md:text-5xl lg:text-7xl font-semibold leading-tight">Write TypeScript.{'\n'}<Text className="text-primary">Ship Native Rust.</Text></Text>
-        <View className="grid lg:grid-cols-2 gap-8 md:gap-16">
+        <View className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-16">
           <View className="gap-8">
             <Text className="text-xl leading-normal text-muted-foreground max-w-128">Keep the syntax you know. Compile to Rust. Build services and interfaces with checked ownership, local components and room to go lower.</Text>
             <View className="flex-row flex-wrap gap-3"><Link href="/docs/getting-started/installation" className="px-6 py-3 rounded bg-primary text-primary-foreground focus:ring">Start building {'↗'}</Link><Link href="/docs" className="px-6 py-3 rounded border hover:bg-muted focus:ring">Read the docs</Link></View>
@@ -88,9 +88,9 @@ export function Landing(props: LandingProps): Node {
       </Chapter>
       <View as="section" className="border-t py-16 md:py-24 gap-8">
         <View className="flex-row items-center justify-between gap-4"><Text className="font-mono text-xs text-primary">LOCAL BY DESIGN</Text><Text className="font-mono text-xs text-muted-foreground">NO REGISTRY REQUEST</Text></View>
-        <View className="grid md:grid-cols-2 gap-8 md:gap-16">
+        <View className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16">
           <View className="gap-6"><Text as="h2" className="text-3xl md:text-4xl font-semibold leading-tight">Install the source.{'\n'}Make it yours.</Text><Text className="leading-normal text-muted-foreground max-w-128">Components arrive as editable project files. Shared design tokens control light and dark themes. Your changes stay yours when the library moves forward.</Text><Link href="/docs/ui/components/button" className="text-primary py-2 focus:ring">Explore components {'↗'}</Link></View>
-          <View className="border rounded-lg bg-muted p-6 gap-6"><View className="flex-row items-center justify-between gap-4"><Text className="font-mono text-xs">OFFLINE COMPONENTS</Text><CopyButton value="tsrust ui add button" className="text-xs rounded border px-3 py-2 focus:ring"/></View><Text as="code" className="font-mono text-base">$ tsrust ui add button{'\n\n'}src/components/ui/button.tsrx{'\n'}tsrust.config.json{'\n'}ui-components.lock.json</Text></View>
+          <View className="border rounded-lg bg-muted p-6 gap-6"><View className="flex-row items-center justify-between gap-4"><Text className="font-mono text-xs">OFFLINE COMPONENTS</Text><CopyButton value="tsrust ui add button" className="text-xs rounded border px-3 py-2 focus:ring"/></View><View role="region" aria-label="Offline component commands" tabIndex={0} className="min-w-0 overflow-auto"><Text as="code" className="font-mono text-base">$ tsrust ui add button{'\n\n'}src/components/ui/button.tsrx{'\n'}tsrust.config.json{'\n'}ui-components.lock.json</Text></View></View>
         </View>
       </View>
       <View as="section" className="border-t py-16 md:py-24 gap-8">

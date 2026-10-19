@@ -69,6 +69,6 @@ ui-acceptance = ["ui-native"]
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { version = "=0.2.129", optional = true }
 js-sys = { version = "=0.3.106", optional = true }
-web-sys = { version = "=0.3.106", optional = true, features = ["Window", "Document", "HtmlElement", "Element", "Node", "Event", "EventTarget", "IntersectionObserver", "IntersectionObserverEntry", "IntersectionObserverInit", "DomRectReadOnly"] }
+web-sys = { version = "=0.3.106", optional = true, features = ["Window", "Document", "HtmlElement", "Element", "Node", "Event", "EventTarget", "IntersectionObserver", "IntersectionObserverEntry", "IntersectionObserverInit", "DomRectReadOnly", "ResizeObserver", "ResizeObserverEntry"] }
 
 wasm-bindgen-futures = { version = "=0.4.79", optional = true }
