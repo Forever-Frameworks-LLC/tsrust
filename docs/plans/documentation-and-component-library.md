@@ -67,6 +67,15 @@ and integrated web build/dev remain framework dependencies. The new
 `examples/ui-application-state` fixture preserves the older application fixture
 and standalone counter owner files.
 
+The next foundation section is accepted at `0948dca6`: bounded nested scroll
+panes, viewport dimensions, checked `View.tabIndex`, focus reveal and retained
+pane offsets. The real `docs/` project now has offline-installed local controls
+and a paired initial shell. [Acceptance](../milestones/ui-documentation-foundation.md)
+records targeted checks and the repaired browser CSS/offset ordering. This does
+not complete steps 1–3: content classification, persistent navigation/keyed lists,
+full reactive forwarding and the actual reference pages remain pending. A local
+preview requested by the owner runs on `http://127.0.0.1:4317/`.
+
 ## Project and content layout
 
 Use `docs/` as a separate runnable Tsrust project. Keep the standalone

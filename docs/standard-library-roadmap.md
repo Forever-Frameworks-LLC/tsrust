@@ -1,5 +1,13 @@
 <!-- Current continuation takes precedence over historical scheduling below. -->
 
+Current documentation foundation (2026-10-19): the standalone `docs/` application,
+paired nested scroll panes, viewport sizing, pane focus and retained offsets pass
+focused compiler/native/editor/browser acceptance at `0948dca6`. See
+[the acceptance record](milestones/ui-documentation-foundation.md). Full pages,
+Markdown/code rendering, persistent routing, offline search and the complete
+component/block plan remain active requirements; the initial shell does not
+claim that broader work is done.
+
 Current component-library direction (2026-10-18): port current Base UI + Nova,
 including the complete component/block inventory and editable offline source.
 [Coverage](plans/ui-component-coverage.json) distinguishes accepted primitive

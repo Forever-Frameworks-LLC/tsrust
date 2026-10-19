@@ -13,6 +13,25 @@ arguments/returns/examples and inline comparable results (strings/trim is the fi
 pilot). Both views use the same curated evidence and explicit unmeasured states.
 Existing counter owner files and developer evidence paths remain preserved.
 
+## Documentation shell and nested panes — 2026-10-19
+
+Accepted source: `0948dca6`, following checkpoint `4710cde2`. The standalone
+`docs/` project now contains editable offline-installed controls, explicit paired
+targets and the first actual shared shell. Bounded panes, viewport sizing,
+`View.tabIndex`, focus reveal, wheel bubbling and retained scroll state pass
+focused native/compiler/editor/browser acceptance. Browser hiding exposed CSS/
+offset restoration ordering; the repair preserves actual DOM and scroll state.
+The generated macOS window initializes and is reaped. Five consumers and both
+editor servers are refreshed with exact settings restoration.
+
+See [foundation acceptance](../milestones/ui-documentation-foundation.md).
+One requested preview server intentionally remains at `http://127.0.0.1:4317/`;
+refresh for verified section updates. Other acceptance processes are reaped.
+Continue content classification, keyed identity/persistent routing, Markdown/code
+rendering and offline full-text search. The shell explicitly marks those features
+pending; it does not claim complete component pages. Preserve accepted checks;
+no full matrix or SQL rerun is due merely for this section.
+
 ## Live application state and window setup — 2026-10-19
 
 Accepted source: `c8699512`, after initial checkpoint `5d068a07`. The previously
