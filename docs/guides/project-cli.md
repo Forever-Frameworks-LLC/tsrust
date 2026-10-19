@@ -111,7 +111,8 @@ automatically on a supported stderr terminal; redirected output, `NO_COLOR` and
 `TERM=dumb` stay plain. Override with `--color auto|always|never` before `--`.
 Program output is unchanged. `tsrust dev --verbose` adds process IDs, temporary binary
 paths and successful exit messages, plus checking, emission, backend verification,
-cache lookup and combined native compilation/linking timings.
+cache lookup, runtime preparation, persistent dependency workspace paths, runtime
+build/publication and combined native compilation/linking timings.
 
 Dev shares the validated project cache at `target/tsrust-native` across edits and
 sessions. Each running executable remains a private copy, so builds cannot overwrite

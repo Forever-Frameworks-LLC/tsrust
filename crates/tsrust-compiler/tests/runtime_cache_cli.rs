@@ -42,3 +42,14 @@ fn project_theme_edits_reuse_runtime_support() {
   let output=support::run(&mut std::process::Command::new(&binary),10);support::success(&output);assert!(String::from_utf8(output.stdout).unwrap().contains(color));
  }
 }
+
+#[test]
+#[cfg(unix)]
+fn explicit_clean_counts_persistent_dependency_workspaces_and_preserves_lock_inodes() {
+ use std::os::unix::fs::{MetadataExt,symlink};
+ let dir=support::TempDirectory::new();let cache=dir.0.join("cache");let workspace=cache.join("runtime/build-v1/0123456789abcdef");let nested=workspace.join("native-support/vendor");fs::create_dir_all(&nested).unwrap();
+ fs::write(workspace.join("identity"),"workspace").unwrap();fs::write(workspace.join(".lock"),"").unwrap();fs::write(nested.join("payload"),"dependency bytes").unwrap();
+ let outside=dir.0.join("owner-file");fs::write(&outside,"preserve").unwrap();symlink(&outside,nested.join("linked")).unwrap();let inode=fs::metadata(workspace.join(".lock")).unwrap().ino();
+ let output=support::run(support::cli().args(["cache","info"]).env("TSRUST_CACHE_DIR",&cache),20);support::success(&output);assert!(String::from_utf8_lossy(&output.stdout).contains("1 artifacts"));
+ let output=support::run(support::cli().args(["cache","clean"]).env("TSRUST_CACHE_DIR",&cache),20);support::success(&output);assert!(!workspace.join("native-support").exists());assert!(!workspace.join("identity").exists());assert_eq!(fs::metadata(workspace.join(".lock")).unwrap().ino(),inode);assert_eq!(fs::read(outside).unwrap(),b"preserve");
+}

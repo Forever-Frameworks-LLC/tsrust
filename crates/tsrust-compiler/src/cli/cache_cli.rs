@@ -16,8 +16,27 @@ pub(super) fn run(mut args:impl Iterator<Item=String>)->Result<u8,String> {
    if command=="clean" {fs::remove_dir_all(entry.path()).map_err(|e|e.to_string())?;}
   }
  }
+ let workspaces=root.join("runtime/build-v1");
+ if workspaces.exists() {
+  if fs::symlink_metadata(&workspaces).map_err(|e|e.to_string())?.file_type().is_symlink(){return Err("Build workspace namespace must not be a symlink".into());}
+  for entry in fs::read_dir(&workspaces).map_err(|e|e.to_string())? {
+   let entry=entry.map_err(|e|e.to_string())?;let name=entry.file_name();let name=name.to_string_lossy();
+   if !entry.file_type().map_err(|e|e.to_string())?.is_dir() || name.len()!=16 || !name.bytes().all(|v|v.is_ascii_hexdigit()){continue;}
+   let lock=fs::OpenOptions::new().read(true).write(true).create(true).truncate(false).open(entry.path().join(".lock")).map_err(|e|e.to_string())?;
+   lock.lock().map_err(|e|e.to_string())?;
+   if !entry.path().join("identity").is_file(){continue;}
+   count+=1;bytes+=size(&entry.path())?;
+   if command=="clean" {
+    // Retain the lock inode: an already waiting build must acquire this same lock.
+    for child in fs::read_dir(entry.path()).map_err(|e|e.to_string())? {
+     let child=child.map_err(|e|e.to_string())?;if child.file_name()==".lock"{continue;}
+     if child.file_type().map_err(|e|e.to_string())?.is_dir(){fs::remove_dir_all(child.path())}else{fs::remove_file(child.path())}.map_err(|e|e.to_string())?;
+    }
+   }
+  }
+ }
  println!("{}: {count} artifacts, {bytes} bytes{}",root.display(),if command=="clean" {" removed; running private copies remain valid"}else{"; no automatic quota"});Ok(0)
 }
 fn size(path:&Path)->Result<u64,String> {
- let mut bytes=0;for entry in fs::read_dir(path).map_err(|e|e.to_string())? {let entry=entry.map_err(|e|e.to_string())?;if entry.file_type().map_err(|e|e.to_string())?.is_file(){bytes+=entry.metadata().map_err(|e|e.to_string())?.len();}}Ok(bytes)
+ let mut bytes=0;for entry in fs::read_dir(path).map_err(|e|e.to_string())? {let entry=entry.map_err(|e|e.to_string())?;let kind=entry.file_type().map_err(|e|e.to_string())?;if kind.is_file(){bytes+=entry.metadata().map_err(|e|e.to_string())?.len();}else if kind.is_dir(){bytes+=size(&entry.path())?;}}Ok(bytes)
 }

@@ -118,8 +118,12 @@ mod platform {
         let cache_started=Instant::now();let reused=cache.try_copy_to(&binary);let cache_elapsed=cache_started.elapsed();
         let native_started=Instant::now();
         if !reused {
+            let prepare_started=Instant::now();
             let mut prepared=crate::runtime_build::Prepared::for_dev(&frontend.rust,&backend_identity,&root.join("target/tsrust-native"),&files.0,release)?;
+            if verbose{eprintln!("[build] runtime-prepare={:.1}ms",prepare_started.elapsed().as_secs_f64()*1000.);}
             if let Some(mut command)=prepared.command.take() {
+                let runtime_started=Instant::now();
+                if verbose{if let Some(directory)=command.get_current_dir(){eprintln!("[build] dependency-workspace={}",directory.display());}}
                 if frontend.features.contains(&"ui") { report(Status::Info,"Preparing native UI renderer (runtime cache miss)."); }
                 let errors=files.0.join("runtime.stderr");
                 command.stdout(std::process::Stdio::null()).stderr(std::fs::File::create(&errors).map_err(|e|e.to_string())?);
@@ -127,6 +131,7 @@ mod platform {
                 let Some(status)=wait_for_build(&mut compiler,root,expected,watcher)? else{return Ok(None);};
                 if !status.success(){return Err(format!("Runtime compilation failed:\n{}",std::fs::read_to_string(errors).unwrap_or_default()));}
                 prepared.publish();
+                if verbose{eprintln!("[build] runtime-build+publish={:.1}ms",runtime_started.elapsed().as_secs_f64()*1000.);}
             }
             if verbose{eprintln!("[build] runtime={}",prepared.state);}
             // A file avoids pipe backpressure while the supervisor watches edits.

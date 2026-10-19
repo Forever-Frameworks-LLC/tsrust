@@ -160,3 +160,15 @@ fn card_parts_spacing_typography_and_radius_help_follow_owned_sources() {
   let help=session.hover("main.tsrx",source,source.find(needle).unwrap()+3).unwrap_or_default();assert!(help.to_lowercase().contains(&expected.to_lowercase()),"{needle}: {help}");
  }
 }
+
+#[test]
+fn semantic_content_orientation_fit_and_window_scrolling_help_match_checked_props() {
+ let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-compiler/src/ui-catalog/semantic-content-1.0.0.json")).unwrap();
+ let kbd=catalog[0]["files"][0]["content"].as_str().unwrap();let separator=catalog[1]["files"][0]["content"].as_str().unwrap();
+ let source="import {Kbd} from './kbd';import {Separator} from './separator';import {View,run} from 'std:ui';function main(){const node=<View><Kbd className=\"w-fit text-xs\">Ctrl</Kbd><Separator orientation=\"vertical\"/><View as=\"code\">Code</View></View>;const result=run(node,'Demo');}";
+ let mut session=support::session::Session::start(&[("kbd.tsrx",kbd),("separator.tsrx",separator)]);session.open("main.tsrx",source);let diagnostics=session.wait_for_diagnostics("main.tsrx");session.settle();assert!(diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
+ for (needle,expected) in [("orientation=","vertical"),("w-fit","fit-content"),("text-xs","12"),("run(node","PageUp")] {
+  let help=session.hover("main.tsrx",source,source.find(needle).unwrap()+2).unwrap_or_default();assert!(help.contains(expected),"{needle}: {help}");
+ }
+ let broken=source.replace("orientation=\"vertical\"","orientation=\"diagonal\"");session.change("main.tsrx",&broken);let diagnostics=session.wait_for_diagnostics("main.tsrx");assert!(!diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
+}

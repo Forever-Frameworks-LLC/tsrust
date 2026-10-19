@@ -13989,7 +13989,7 @@
           "documentation": "Native window title, borrowed during setup."
         }
       ],
-      "documentation": "Opens a GPU-rendered native window and waits for closure on the main thread. Returns Ok after window resources are released, or Err with code UiError and a readable message if initialization or rendering fails. Resize and DPI changes update layout. No CPU fallback is selected. Example: unwrap(run(<Text>Hello</Text>, \"Demo\")) displays Hello until the window closes. Requires a graphical desktop and supported GPU. Ownership: consumes the subtree; renderer resources belong to the event loop and release on exit."
+      "documentation": "Opens a GPU-rendered native window and waits for closure on the main thread. Returns Ok after window resources are released, or Err with code UiError and a readable message if initialization or rendering fails. Resize and DPI changes update layout. Content larger than the native window scrolls with wheel or trackpad input. PageUp/PageDown, Home/End and arrow keys scroll when a text field is not handling them; Tab reveals the focused control. Scroll offsets also update pointer targets, accessibility bounds and text-input positions. No CPU fallback is selected. Example: unwrap(run(<Text>Hello</Text>, \"Demo\")) displays Hello until the window closes. Requires a graphical desktop and supported GPU. Ownership: consumes the subtree; renderer resources belong to the event loop and release on exit."
     },
     {
       "name": "signal",

@@ -102,6 +102,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
     let native =
         include_str!("../../../../tsrust-ui/src/native.rs").replace("use crate::{", "use super::{")
         .replace("#[path = \"native_geometry.rs\"]\nmod geometry;",&format!("mod geometry {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_geometry.rs")))
+        .replace("#[path = \"native_viewport.rs\"]\nmod viewport;",&format!("mod viewport {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_viewport.rs")))
         .replace("#[path = \"native_editing.rs\"]\nmod editing;",&format!("mod editing {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_editing.rs").replace("use crate::editable::normalize;", "use super::super::editable::normalize;")));
     let style = include_str!("../../../../tsrust-ui/src/style.rs")
         .replace("mod layout;",&format!("mod layout {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/style/layout.rs")))

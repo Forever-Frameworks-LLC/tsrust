@@ -1,5 +1,6 @@
 mod dev_cli;
 mod runtime_build;
+mod native_workspace;
 mod rust_bindings;
 mod package_cli;
 mod package_validation;

@@ -166,7 +166,26 @@ classes are compiler errors; dynamic class strings are validated on construction
 Native artifacts have no implicit size/count quota. `tsrust cache info` reports
 project cache bytes; `tsrust cache clean` explicitly removes reusable artifacts
 under namespace locks. Running private executable copies remain valid. A later
-build recreates removed support. `TSRUST_CACHE_DIR` selects a shared cache.
+build recreates removed support. `TSRUST_CACHE_DIR` selects a shared cache for build/run.
+
+A runtime cache miss also reuses a persistent, locked dependency workspace under
+`target/tsrust-native/runtime/build-v1`. Runtime source revisions rebuild the support
+library while unchanged Cargo dependencies retain their artifacts. Toolchain,
+bundle and profile changes use separate workspaces. Dev never waits on a busy
+workspace; that build uses private temporary storage. Resolved Rust binding
+packages currently retain their existing private build protocol. Cache info and
+clean include the persistent dependency workspaces; cleaning waits for active
+build/link readers and preserves lock identities.
+
+Native windows scroll content that exceeds their viewport, including horizontal
+overflow. Wheel and trackpad input scroll the page; text fields consume their own
+scroll range first and pass remaining movement to the page. PageUp/PageDown,
+Home/End and vertical arrows scroll outside text editing. Tab reveals the newly
+focused control. Painting, hit tests, accessibility and IME positions share the
+same scroll offset. Nested component scroll areas and scrollbar controls are
+separate library work; this window behavior does not claim those components.
+Native text layout retains fractional coordinates so rounded widths do not cause
+an extra painted line after measurement.
 
 ## Semantic local components
 
