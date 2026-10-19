@@ -65,13 +65,13 @@ export function assertNativeJsonSource(source,row,kind){
   return;
  }
  if(['native_json_typed','native_json_literal_union'].includes(row.id)){
-  if(row.id==='native_json_literal_union'){const literal=kind==='native'?"name:'hello'|'other'":"name:'hello'|'other'";if(!containsCodeSnippet(source,literal)||!containsCodeSnippet(source,'active:true'))throw Error('JSON literal type contract');}
+  if(row.id==='native_json_literal_union'){const literal="name:'hello'|'other'";if(!containsCodeSnippet(source,literal)||!containsCodeSnippet(source,'active:true'))throw Error('JSON literal type contract');}
   if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON typed identity');
   if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON typed fingerprint');
   if(row.iterations!==2000||row.inputText!==typedInput||row.result!=='int'||row.operationsPerIteration!==1||row.operationUnit!=='One checked record decode and scalar field observation')throw Error('JSON typed denominator');
   const body=kind==='native'?`while(i<n){const item=JSON.parse<Item>(input);if(!item.active){throw 'Inactive item';}checksum+=item.name.length+item.values[0]+item.values[1];i++;}`:`while(i<n){const item=decodeItem(input);if(!item.active){throw 'Inactive item';}checksum+=item.name.length+item.values[0]!+item.values[1]!;i++;}`;
   for(const snippet of ['let checksum=seed;let i=0;',body,'return checksum;'])if(!containsCodeSnippet(source,snippet))throw Error('JSON typed operation placement');
-  if(kind==='typescript')for(const snippet of ["const item:unknown=JSON.parse(input);","if(typeof fields.name!=='string'||typeof fields.active!=='boolean'||!Array.isArray(fields.values))throw Error('shape-mismatch');","for(const value of fields.values){if(typeof value!=='number'||!Number.isSafeInteger(value))throw Error('integer-range');}"])if(!containsCodeSnippet(source,snippet))throw Error('JSON typed checked fields');
+  if(kind==='typescript')for(const snippet of ["const item:unknown=JSON.parse(input);",row.id==='native_json_literal_union'?"if((fields.name!=='hello'&&fields.name!=='other')||fields.active!==true||!Array.isArray(fields.values))throw Error('shape-mismatch');":"if(typeof fields.name!=='string'||typeof fields.active!=='boolean'||!Array.isArray(fields.values))throw Error('shape-mismatch');","for(const value of fields.values){if(typeof value!=='number'||!Number.isSafeInteger(value))throw Error('integer-range');}"])if(!containsCodeSnippet(source,snippet))throw Error('JSON typed checked fields');
   return;
  }
 
