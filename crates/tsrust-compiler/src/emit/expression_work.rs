@@ -237,8 +237,8 @@ impl<'p> Emitter<'p> {
             let mut children=Vec::new();let mut snapshots=Vec::new();
             for arg in args{
                 if let ExprKind::Unary{op:UnaryOp::Spread,value,..}=&arg.kind{
-                    let snapshot=self.record_parameter_fields_clone(fun,value);
-                    if snapshot.is_none(){children.push((value.as_ref(),Mode::Read));}
+                    let snapshot=if arg.moved_spread {None}else{self.record_parameter_fields_clone(fun,value)};
+                    if snapshot.is_none(){children.push((value.as_ref(),if arg.moved_spread {Mode::Consume}else{Mode::Read}));}
                     snapshots.push(snapshot);
                 }else{children.push((arg,Mode::Consume));snapshots.push(None);}
             }
@@ -563,7 +563,7 @@ impl<'p> Emitter<'p> {
             let copied=args.iter().zip(snapshots).map(|(arg,snapshot)|{
                 if let Some(snapshot)=snapshot{return snapshot;}
                 let code=rendered.next().expect("completed object spread source");
-                if let ExprKind::Unary{op:UnaryOp::Spread,value,..}=&arg.kind{self.finish_clone_argument(fun,value,code)}else{code}
+                if let ExprKind::Unary{op:UnaryOp::Spread,value,..}=&arg.kind && !arg.moved_spread {self.finish_clone_argument(fun,value,code)}else{code}
             }).collect();
             debug_assert!(rendered.next().is_none());
             return Self::access_wrapped(expr,mode,self.object_spread_value_with(result,args,copied));

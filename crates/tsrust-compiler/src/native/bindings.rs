@@ -12,6 +12,7 @@ pub enum NativeType {
     Void,
     /// Owned reusable callback with no arguments and a void result.
     OwnedVoidCallback,
+    OwnedBooleanCallback,
     /// Private registry callback; program access is supplied at invocation.
     ProgramVoidCallback,
     ProgramReusableVoidCallback,
@@ -33,6 +34,7 @@ impl NativeType {
             Self::Void => Signature::Void,
             Self::ProgramReusableVoidCallback => Signature::Intrinsic(Intrinsic::ProgramReusableVoidCallback),
             Self::ProgramVoidCallback => Signature::Intrinsic(Intrinsic::ProgramVoidCallback),
+            Self::OwnedBooleanCallback => Signature::Intrinsic(Intrinsic::OwnedBooleanCallback),
             Self::OwnedVoidCallback => Signature::Intrinsic(Intrinsic::OwnedVoidCallback),
             Self::SharedCallback => Signature::Intrinsic(Intrinsic::SharedCallback),
             Self::ObservedValue => Signature::Intrinsic(Intrinsic::ObservedValue),
@@ -343,6 +345,8 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::ui::SIGNAL_NEW,crate::stdlib::ui::HANDLE_NEW,crate::stdlib::ui::GET,crate::stdlib::ui::SET,crate::stdlib::ui::OWN_STATE,crate::stdlib::ui::PRESS_BUTTON,
     crate::stdlib::ui::TEXT,
     crate::stdlib::ui::VIEW,
+    crate::stdlib::ui::THEME,
+    crate::stdlib::ui::DISABLED_BINDING,
     crate::stdlib::ui::BUTTON,
     crate::stdlib::ui::DOCUMENT,
     crate::stdlib::ui::RUN,

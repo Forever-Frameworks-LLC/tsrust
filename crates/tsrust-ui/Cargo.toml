@@ -11,6 +11,9 @@ acceptance = ["native"]
 native = ["dep:winit", "dep:vello", "dep:taffy", "dep:parley", "dep:pollster", "dep:accesskit", "dep:accesskit_winit"]
 
 [dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+color = "=0.3.3"
 winit = { version = "=0.30.13", optional = true }
 vello = { version = "=0.11.0", optional = true }
 taffy = { version = "=0.15.0", optional = true }

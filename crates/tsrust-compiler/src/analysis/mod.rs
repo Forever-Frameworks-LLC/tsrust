@@ -9331,8 +9331,8 @@ self.names_materialized_type(element.with_depth(0).ty())
         if ty == crate::native_bindings::NativeType::SharedCallback {
             return Err(Diagnostic::new("unsupported", "The private sharing intrinsic requires a direct call.", Span::default()));
         }
-        if matches!(ty, crate::native_bindings::NativeType::OwnedVoidCallback | crate::native_bindings::NativeType::ProgramVoidCallback | crate::native_bindings::NativeType::ProgramReusableVoidCallback) {
-            let annotation = crate::type_syntax::parse("Owned<Function<void>>")?;
+        if matches!(ty, crate::native_bindings::NativeType::OwnedBooleanCallback | crate::native_bindings::NativeType::OwnedVoidCallback | crate::native_bindings::NativeType::ProgramVoidCallback | crate::native_bindings::NativeType::ProgramReusableVoidCallback) {
+            let annotation = crate::type_syntax::parse(if ty==crate::native_bindings::NativeType::OwnedBooleanCallback {"Owned<Function<boolean>>"}else{"Owned<Function<void>>"})?;
             let mut callback = crate::callable_annotations::callback(&annotation).expect("native callback annotation");
             if ty == crate::native_bindings::NativeType::ProgramVoidCallback { callback.kind = CallbackKind::Program; }
             if ty == crate::native_bindings::NativeType::ProgramReusableVoidCallback { callback.kind = CallbackKind::ProgramReusable; }
@@ -10757,7 +10757,7 @@ fn native_type(ty: crate::native_bindings::NativeType, records: &[Record]) -> Ty
         NativeType::Int => Type::Int,
         NativeType::Number => Type::Number,
         NativeType::Void => Type::Void,
-        NativeType::ProgramReusableVoidCallback | NativeType::ProgramVoidCallback | NativeType::OwnedVoidCallback | NativeType::SharedCallback | NativeType::ObservedValue => unreachable!("native callbacks resolve through callable contracts"),
+        NativeType::OwnedBooleanCallback | NativeType::ProgramReusableVoidCallback | NativeType::ProgramVoidCallback | NativeType::OwnedVoidCallback | NativeType::SharedCallback | NativeType::ObservedValue => unreachable!("native callbacks resolve through callable contracts"),
     }
 }
 

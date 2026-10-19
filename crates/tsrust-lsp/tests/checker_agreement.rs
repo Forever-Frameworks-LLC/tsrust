@@ -18,7 +18,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use support::session::Session;
 use tsrust_lsp::{project_diagnostics::source_id, workspace::Workspace};
 
-const PRELUDE: &str = "import {Signal} from 'std:ui';\nimport {CryptoError} from 'std:crypto';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n";
+const PRELUDE: &str = "import {Signal,ThemeConfig,ReactiveBoolean} from 'std:ui';\nimport {CryptoError} from 'std:crypto';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n";
 
 /// A receiver `x` of one type inside `probe`.
 struct Receiver {
@@ -28,6 +28,8 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
+Receiver {ty:"ThemeConfig",parameter:"x: ReadOnly<ThemeConfig>"},
+Receiver {ty:"ReactiveBoolean",parameter:"x: ReactiveBoolean"},
 Receiver {ty:"Signal",parameter:"x: ReadOnly<Signal>"},
 Receiver {ty:"InheritedItem",parameter:"x: ReadOnly<InheritedItem>"},
 Receiver {ty:"CryptoError",parameter:"x: ReadOnly<CryptoError>"},
@@ -178,6 +180,17 @@ fn field_type(name: &str, parameter: &str) -> Option<String> {
     Some(ty)
 }
 
+// Missing-member diagnostics call every callable "closure". Compare its checked
+// contract with a checked declaration of the displayed type instead.
+fn callable_field_agrees(receiver:&Receiver,name:&str,shown:&str)->bool {
+ use tsrust_compiler::project::{ProjectType,SourceId};
+ let source=format!("{} interface DisplayedContract {{ member:{shown}; }} function probe({}){{}} function main(){{}}",prelude(receiver.parameter),receiver.parameter);
+ let entry=SourceId("/tsrust-agreement-callable/main.tsr".into());let mut workspace=Workspace::default();workspace.open(entry.clone(),1,source);
+ let Ok(analysis)=workspace.snapshot().check_with_diagnostics(&entry) else{return false;};let facts=analysis.checked_type_facts();
+ let find=|owner:&str,field:&str|facts.record_fields.iter().find(|(ty,n,_,_,_)|n==field && matches!(ty,ProjectType::Named{name,..} if name==owner)).map(|(_,_,_,ty,_)|ty);
+ find(receiver.ty,name).zip(find("DisplayedContract","member")).is_some_and(|(actual,displayed)|actual==displayed)
+}
+
 fn alternatives(ty: &str) -> BTreeSet<String> {
     let mut depth = 0i32;
     let mut parts = BTreeSet::new();
@@ -274,6 +287,10 @@ fn completion_offers_the_fields_the_checker_accepts_and_no_method_it_rejects() {
         for name in fields.intersection(&offered) {
             let Some(checked) = field_type(name, receiver.parameter) else { continue };
             let shown = details[name].split_once(": ").map_or("", |(_, ty)| ty);
+            if checked=="closure" {
+                if !callable_field_agrees(receiver,name,shown) {failures.push(format!("{}.{}: displayed callback type `{shown}` disagrees with its checked contract",receiver.ty,name));}
+                continue;
+            }
             if alternatives(shown) != alternatives(&checked) {
                 failures.push(format!("{}.{name}: completion shows `{shown}`; the checker's type is `{checked}`", receiver.ty));
             }

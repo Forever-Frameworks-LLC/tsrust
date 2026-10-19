@@ -32,6 +32,8 @@ pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> Strin
             let literal=members.iter().position(|ty|*ty==Type::String).unwrap();let handle=members.iter().position(|ty|*ty==Type::Record(record(NativeTypeId::UiSignal))).unwrap();
             (format!("mut children:{},class_name:&String",crate::emit::ty(array)),format!("{{let mut parts=Vec::with_capacity(children.len());while let Some(child)=children.pop(){{parts.push(match child{{Union{}::V{literal}(text)=>tsrust_native_ui::TextPart::Literal(text.as_ref().to_owned()),Union{}::V{handle}(handle)=>tsrust_native_ui::TextPart::Signal(handle)}});}}parts.reverse();tsrust_native_ui::Node::text(parts,class_name.as_ref().to_owned())}}",union.index(),union.index()))
         },
+        "bindDisabled" => (format!("node:Record{node},predicate:impl FnMut()->Result<bool,std::string::String>+'static"),"node.with_disabled(predicate)".into()),
+        "theme" => (format!("node:Record{node},config:&String,mode:&String"),"node.with_theme(config.as_ref(),mode.as_ref())".into()),
         "ownState" => (format!("node:Record{node},state:Record{}",record(NativeTypeId::UiSignal)),"node.own_state(state)".into()),
         "button" => ("text:&String,class_name:&String,disabled:bool,handler:impl FnMut()->Result<(),std::string::String>+'static".into(),"tsrust_native_ui::Node::button(text.as_ref().to_owned(),class_name.as_ref().to_owned(),disabled,handler)".into()),
         "document" => return format!("fn {symbol}(node:&Record{node},title:&String)->String{{String::Owned(tsrust_native_ui::document(node,title.as_ref()))}}\n"),

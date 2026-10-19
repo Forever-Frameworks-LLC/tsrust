@@ -239,7 +239,7 @@ impl WorkspaceSnapshot {
         let candidates=if let Some(importer)=importer {
             let aliases=tsrust_compiler::project_resolution::discover(Path::new(&importer.0),|path|self.read_config(path))?;
             tsrust_compiler::project_resolution::candidates(Path::new(&importer.0),path,aliases.as_ref())?
-        } else {vec![PathBuf::from(path)]};
+        } else {tsrust_compiler::project_resolution::discover(Path::new(path),|path|self.read_config(path))?;vec![PathBuf::from(path)]};
         for candidate in &candidates {
             let id=self.observe_path(candidate)?;
             if self.open.contains_key(&id) {return Ok(id);}

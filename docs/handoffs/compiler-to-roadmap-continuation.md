@@ -11,34 +11,59 @@ They are missing product requirements, not optional later polish. Keep Caveman
 updates concise and Ponytail's minimum complete solution; no repeated planning
 approval is needed. Do not reopen the selected GPU or bounded Wasm decisions.
 
-The working source includes renderer/scaffold/cache changes, but this section is
-not fully accepted: the new real-browser presentation check fails because
-`button.ui` overrides `rounded` through CSS specificity. Preserve that failure and
-fix style resolution as part of the theme/component contract. No theme JSON,
-component catalog, `ui add` command or source-version lock exists yet. `new --ui`
-currently generates only an explicit bootstrap and root page; it is not the final
-source-owned component workflow.
+The application section now implements project-owned light/dark theme JSON,
+semantic token scales, editable local Button/Card source, exact bundled v1/v2
+payloads, offline dependency installation and compatibility/provenance locks.
+`new --ui` uses that same installer. JSX prop spread transfers owned callbacks and
+children; direct signal-reading `disabled={count.get() < 5}` predicates use weak
+captures and refresh after handlers. No public lifetime plumbing is required.
+See [the application guide](../guides/ui-applications.md) for supported utilities,
+range checks, source preservation, explicit upgrades and unsupported cases.
 
-Passed focused evidence: 11 native/runtime tests after the root-width repair;
-TextMate multiline JSX coloring; two new/scaffold checks; four UI editor checks and
-standalone protocol diagnostics/completion; seven native cache checks plus the
-repaired standalone-run cleanup case; two runtime cache checks. The actual native
-window becomes visible and accepts 800/480/640-width resize operations. Screenshot
-capture is unavailable, so do not claim pixel inspection. The first optimized
-support compilation took 255.7 seconds. A later unchanged dev build took 115 ms,
-and a real page edit took 3.586 seconds with runtime reuse. These are diagnostic
-samples, not controlled benchmarks. The original artifact was 305,877,497 bytes;
-the interim 512 MiB runtime cache admits it. The final cache policy remains part of
-the researched contract rather than another arbitrary limit increase.
+Compiler and editor acceptance covers derived conditions, owned prop forwarding,
+configured/unsaved theme errors, lock incompatibility, inherited props/variants,
+class completion/hover, definitions, checker agreement and editor consistency.
+Installer witnesses cover exact dependency closure, custom destinations, edited
+source/lock preservation across compatible compiler changes and refusal to
+silently overwrite upgrades. Shared native layout/paint and theme precision checks
+pass. The untimed Node-after-tsc oracle agrees with generated native HTML tokens
+and component sizes. Existing lifetime, cancellation, grammar and SQL evidence is
+reused; no full regression or performance matrix was started.
 
-The standalone project now uses `app/page.tsrx`; its owner-added Decrement handler
-and styling were preserved during checks. One earlier diagnostic run reports
-sourceRestored=false because the owner edited the page concurrently; the checker
-did not overwrite those edits. The final warm check restores its own edit exactly.
-Retain original failures and repairs in canonical SQLite under `tsrust-ui-*`.
-Reuse accepted lifetime/input/SQL evidence. No full regression or timing matrix was
-started. Continue with the whole application workflow, then real editable controls
-and routing; do not substitute more counter micro-optimizations.
+Real Chromium acceptance passes derived disabled updates (0, 5, 105), stable DOM,
+dark semantic colors, local Button size/padding, rounded keyboard focus, focus-over-
+hover priority, stable font/height across 640/800/480/640 widths and disposal.
+The generated Wasm is 396,689 bytes plus 15,619 bytes of JavaScript glue,
+uncompressed; these are payload observations, not speed measurements. UI package
+export now permits the pure JSON module needed by theme serialization while still
+rejecting native service/file/task modules in the bounded browser tool.
+Generated native GPU acceptance passes the same state transition through actual
+Accessibility button actions and closes the window cleanly. Pixel inspection is
+not claimed. The first new support build took 270.7 seconds; the standalone build
+reused renderer support and spent 3.3 seconds in native compilation/linking. These
+are diagnostic samples, not controlled benchmarks. Installed compiler/LSP consumers
+are refreshed; real standalone protocol checks include local props, classes, clean
+diagnostics, invalid setter reporting and diagnostic clearing. The standalone
+GPU app independently passes 0–5–105–104 while the second counter stays at 0;
+its application-owned screen test and formatting/check commands also pass.
+
+Runtime artifacts no longer have implicit disk size/count quotas. Explicit
+`cache info`/`cache clean`, identity checks, atomic publication and private copies
+remain. Earlier 255.7-second cold/115-ms warm/3.586-second edited-build observations
+are historical diagnostics, not controlled benchmarks or current measurements.
+
+Closed records are byte-verified in canonical SQLite under `tsrust-ui-contract-*`.
+One earlier theme-agreement rerun accidentally overwrote its loose original log;
+only a retrieved diagnostic excerpt survives for that attempt. The archive labels
+that excerpt explicitly. Earlier failures and subsequent complete repaired logs
+remain intact. Do not claim full original-byte preservation for that one attempt.
+
+The standalone project retains its owner's Decrement handler, two independent
+counters and exact derived disabled condition. Continue with the editable-list
+family (string/boolean state, text editing/IME, selection, keyed insertion/removal
+and deterministic disposal), then persistent layouts and typed routing. These are
+required product work, not optional counter polish. The GPU and bounded Wasm
+choices remain settled. No full UI-readiness claim is made.
 
 
 ## Standalone UI project and installed editor — accepted 2026-10-18

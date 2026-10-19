@@ -46,6 +46,7 @@ impl SourceProvider for FileSourceProvider {
             }
         }
         let canonical=canonical.ok_or_else(||format!("Cannot resolve {path}; tried {}",candidates.iter().map(|path|path.display().to_string()).collect::<Vec<_>>().join(", ")))?;
+        if importer.is_none(){crate::project_resolution::discover(&canonical,|path|match std::fs::read_to_string(path){Ok(text)=>Ok(Some(text)),Err(e) if e.kind()==std::io::ErrorKind::NotFound=>Ok(None),Err(e)=>Err(e.to_string())})?;}
         let identity = canonical
             .to_str()
             .ok_or("Source path must be valid UTF-8.")?;
@@ -638,6 +639,8 @@ fn load_graph(
     mut cache:Option<&mut HeaderCache>,
 ) -> Result<ProjectGraph, ProjectDiagnostic> {
     let entry = provider.resolve(None, entry).map_err(|message| {
+        // Keep entry coordinates available when configuration fails before traversal.
+        let _=provider.read(&SourceId(entry.into()));
         error(
             &SourceId(entry.into()),
             "module-load",
@@ -686,6 +689,12 @@ fn visit(
         provider.read(&id)
             .map_err(|message| error(&id, "module-load", message, Span::default()))?
     };
+    if declarations && id.0.ends_with(".json") && crate::ui_project::configured_theme(Path::new(&id.0),|path|{
+        let source=SourceId(path.to_string_lossy().into_owned());
+        match provider.read(&source) {Ok(value)=>Ok(Some(value)),Err(_)=>Ok(None)}
+    }).map_err(|message|error(&id,"ui-config",message,Span::default()))? {
+        crate::ui_project::theme::Theme::parse(&text).map_err(|message|error(&id,"ui-theme",message,Span::new(0,text.len().min(1))))?;
+    }
     let source=SourceFile{id:id.clone(),text};
     let mut module=if id.0.ends_with(".bindings.json") {
         let (mut module,inputs)=rust::bindings(provider,source)?;

@@ -13,6 +13,11 @@ impl SourceIndex {
         if fields.is_empty(){fields=self.common_record_fields(&ty,true).into_iter().collect();}
         Some((component,fields,written))
     }
+    pub(super) fn jsx_prop_symbol(&self,offset:usize,field:&str)->Option<usize> {
+        let (component,_,_)=self.jsx_props(offset)?;
+        let (_,ty)=self.symbols[component].parameters.first()?.split_once(':')?;let ty=self.written_type(ty.trim());
+        self.symbols.iter().position(|symbol|symbol.owner.as_deref()==Some(ty.as_str()) && symbol.name==field)
+    }
     pub(super) fn jsx_attribute_completion(&self, offset: usize, prefix_start: usize) -> Option<Value> {
         let (_,fields,written)=self.jsx_props(offset)?;
         let prefix=&self.source[prefix_start..offset];

@@ -12,56 +12,37 @@ fn escape(value: &str, out: &mut String) {
         }
     }
 }
-fn element(node: &Node, out: &mut String) {
-    let tag = match node.kind {
-        Kind::View => "div",
-        Kind::Text => "span",
-        Kind::Button => "button",
-        Kind::DisabledButton => "button",
-    };
-    out.push('<');
-    out.push_str(tag);
-    if node.kind == Kind::DisabledButton {
-        out.push_str(" type=\"button\" disabled");
-    }
-    out.push_str(" class=\"ui ");
-    escape(&node.class_name, out);
-    out.push_str("\">");
-    escape(&node.text, out);
-    for child in &node.children {
-        element(child, out);
-    }
-    out.push_str("</");
-    out.push_str(tag);
-    out.push('>');
+pub(crate) const BASE: &str = "body{margin:0;font-family:system-ui,sans-serif}:where(.ui){box-sizing:border-box;font:inherit;color:inherit;border-color:var(--ui-border)}:where(div.ui){display:flex;flex-direction:column}:where(span.ui){display:block;white-space:pre-wrap}:where(button.ui){appearance:none;border:0 solid var(--ui-border);border-radius:0;background:transparent;text-align:center;padding:8px 16px;white-space:pre-wrap}:where(button.ui:disabled){opacity:.6}:where(button.ui:focus-visible){outline:2px solid var(--ui-ring);outline-offset:2px}:where([data-tsrust-theme]){color:var(--ui-foreground);background:var(--ui-background);font-size:var(--ui-text-base)}";
+pub(crate) fn scope(node:&Node,theme:&crate::theme::Theme,mode:&str)->String {
+    if node.theme.is_some() {theme.variables(mode)}else{String::new()}
 }
-pub(crate) fn document(root: &Node, title: &str) -> String {
-    let mut out = String::from(
-        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>",
-    );
-    escape(title, &mut out);
-    out.push_str("</title><style>body{margin:0;font-family:system-ui,sans-serif;color:#172033;background:#fff}.ui{box-sizing:border-box;font:inherit}div.ui{display:flex;flex-direction:column}span.ui{display:block;white-space:pre-wrap}button.ui{appearance:none;border:0;border-radius:0;background:transparent;color:inherit;text-align:center;padding:8px 16px;white-space:pre-wrap}button.ui:disabled{opacity:.6}");
-    let mut tokens = std::collections::BTreeSet::new();
-    fn collect<'a>(node: &'a Node, tokens: &mut std::collections::BTreeSet<&'a str>) {
-        tokens.extend(node.class_name.split_whitespace());
-        for child in &node.children {
-            collect(child, tokens);
-        }
-    }
-    collect(root, &mut tokens);
-    for token in tokens {
-        if let Some(rule) = crate::style::Utility::parse(token) {
-            out.push('.');
-            out.push_str(token);
-            out.push('{');
-            out.push_str(&rule.css());
-            out.push('}');
-        }
-    }
-    out.push_str("</style></head><body>");
-    element(root, &mut out);
-    out.push_str("</body></html>");
-    out
+fn element(node:&Node,out:&mut String,next:&mut usize,theme:&crate::theme::Theme,mode:&str) {
+ let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));
+ let id=*next;*next+=1;
+ let tag=match node.kind {Kind::View=>"div",Kind::Text=>"span",Kind::Button|Kind::DisabledButton=>"button"};
+ out.push('<');out.push_str(tag);
+ if matches!(node.kind,Kind::Button|Kind::DisabledButton) {out.push_str(" type=\"button\"");}
+ if node.kind==Kind::DisabledButton {out.push_str(" disabled");}
+ if node.theme.is_some(){out.push_str(" data-tsrust-theme");}
+ out.push_str(" class=\"ui ");escape(&node.class_name,out);
+ out.push_str(&format!("\" data-tsrust-node=\"{id}\" style=\""));escape(&scope(node,theme,mode),out);out.push_str("\">");
+ escape(&node.text,out);for child in &node.children {element(child,out,next,theme,mode);}
+ out.push_str("</");out.push_str(tag);out.push('>');
+}
+pub(crate) fn stylesheet(node:&Node)->String {
+ fn collect(node:&Node,next:&mut usize,theme:&crate::theme::Theme,mode:&str,out:&mut String) {
+  let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));
+  let id=*next;*next+=1;out.push_str(&crate::style::css(&node.class_name,theme,mode,id));
+  for child in &node.children {collect(child,next,theme,mode,out);}
+ }
+ let default=crate::theme::Theme::default();let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((&default,"light"));let mut out=BASE.to_owned();
+ out.push_str(&format!("body{{{}color:var(--ui-foreground);background:var(--ui-background);font-size:var(--ui-text-base)}}",theme.variables(mode)));
+ collect(node,&mut 1,theme,mode,&mut out);out
+}
+pub(crate) fn document(root:&Node,title:&str)->String {
+ let mut out=String::from("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>");
+ escape(title,&mut out);out.push_str("</title><style>");out.push_str(&stylesheet(root));out.push_str("</style></head><body>");
+ element(root,&mut out,&mut 1,&crate::theme::Theme::default(),"light");out.push_str("</body></html>");out
 }
 
 #[cfg(test)]

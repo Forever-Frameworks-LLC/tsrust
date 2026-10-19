@@ -48,6 +48,7 @@ impl ProjectIndex {
                 declaration = SourceIndex::with_entry_help(&module.source.text, false);
                 declaration.add_data_schema(&schema);
                 index.add_data_schema(&schema);
+                index.theme_document=serde_json::from_str::<Value>(&module.source.text).ok().is_some_and(|value|value.get("schemaVersion").is_some() && value.get("light").is_some() && value.get("dark").is_some());
             }
 
             for import in &module.imports {
@@ -132,6 +133,28 @@ impl ProjectIndex {
     ) -> Option<Result<Value, String>> {
         let id = source_id(uri).ok()?;
         if self.graph.modules.get(&id).is_some_and(|module|module.rust.is_some()){return None;}
+        if method=="textDocument/definition" {
+            let index=self.indices.get(&id)?;
+            let position:lsp_types::Position=serde_json::from_value(params.get("position")?.clone()).ok()?;
+            if let Some((class,_))=index.ui_class_at(index.offset(position)?) {
+                let paths=tsrust_compiler::ui_project::utility_theme_paths(&class);
+                let mut locations=vec![];
+                for (source,module) in &self.graph.modules {
+                    if tsrust_compiler::ui_project::theme::Theme::parse(&module.source.text).is_err(){continue;}
+                    let Some(data)=&module.data else{continue;};let schema=data.schema();
+                    for path in &paths {
+                        let mut annotation=&schema.root;let mut span=None;
+                        for key in path {
+                            let tsrust_compiler::type_syntax::ValueAnnotationKind::Named(name)=&annotation.kind else{span=None;break;};
+                            let Some(field)=schema.records.iter().find(|record|record.name==name.text).and_then(|record|record.fields.iter().find(|field|field.name==*key)) else{span=None;break;};
+                            span=Some(field.span);annotation=&field.annotation;
+                        }
+                        if let Some(span)=span {let range=crate::LineIndex::new(&module.source.text).range(&module.source.text,span).ok()?;locations.push(serde_json::json!({"uri":file_uri(source).ok()?,"range":range}));}
+                    }
+                }
+                return Some(Ok(serde_json::json!(locations)));
+            }
+        }
         if method == "textDocument/references" {
             let index = self.indices.get(&id)?;
             let canonical_uri = file_uri(&id).ok()?;

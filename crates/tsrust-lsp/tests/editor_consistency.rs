@@ -264,3 +264,13 @@ fn ui_state_members_are_reachable_without_lifetime_helpers() {
     let counters=session.request("tsrust/counters",Value::Null);
     for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"] {assert_eq!(counters[key],0,"{counters}");}
 }
+
+#[test]
+fn ui_condition_props_and_class_help_match_checked_source() {
+ let source="import {Button,Node,signal} from 'std:ui';function Page():Node{const count=signal(0);return <Button disabled={count.get() < 5} onPress={()=>{count.set(count.get()+100);}} className=\"rounded\">Disabled</Button>;}function main(){const node=Page();}";
+ let mut session=Session::start(&[]);session.open("main.tsrx",source);session.settle();
+ let at=source.find("disabled=").unwrap();let fields=session.completion("main.tsrx",source,at).unwrap();assert!(fields.contains(&"disabled".into()),"{fields:?}");
+ assert!(session.hover("main.tsrx",source,at+2).unwrap().contains("ReactiveBoolean"));
+ let class=source.find("rounded").unwrap()+3;assert!(session.hover("main.tsrx",source,class).unwrap().contains("Shared web/native"));
+ let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
+}

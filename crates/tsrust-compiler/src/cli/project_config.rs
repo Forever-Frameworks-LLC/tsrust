@@ -3,7 +3,7 @@ use std::{env,fs,path::{Path,PathBuf,Component}};
 use serde_json::Value;
 
 pub const FILE:&str="tsrust.config.json";
-pub struct Project {pub root:PathBuf,pub entry:PathBuf,pub output:PathBuf}
+pub struct Project {pub root:PathBuf,pub entry:PathBuf,pub output:PathBuf,pub ui:Option<tsrust_compiler::ui_project::Config>}
 fn object<'a>(value:&'a Value,at:&str,keys:&[&str])->Result<&'a serde_json::Map<String,Value>,String> {
     let object=value.as_object().ok_or_else(||format!("{at} must be an object"))?;
     for key in object.keys() {if !keys.contains(&key.as_str()) {return Err(format!("Unknown {at} setting: {key}"));}}
@@ -29,10 +29,11 @@ pub fn load(root:&Path)->Result<Project,String> {
 pub(crate) fn parse(root:&Path,text:&str)->Result<Project,String> {
     let path=root.join(FILE);
     let value:Value=serde_json::from_str(text).map_err(|e|format!("{}: {e}",path.display()))?;
-    let config=object(&value,FILE,&["schemaVersion","name","build","paths"])?;
+    let config=object(&value,FILE,&["schemaVersion","name","build","paths","ui"])?;
     if config.get("schemaVersion").and_then(Value::as_u64)!=Some(1) {return Err(format!("{FILE}: schemaVersion must be 1"));}
     if !config.get("name").and_then(Value::as_str).is_some_and(valid_name) {return Err(format!("{FILE}: name must start with a letter and contain only ASCII letters, digits, '_' or '-' (maximum 100 characters)"));}
     tsrust_compiler::project_resolution::Aliases::parse(root,config.get("paths"))?;
+    let ui=config.get("ui").map(tsrust_compiler::ui_project::Config::parse).transpose()?;
     let build=object(config.get("build").ok_or("Missing build configuration")?,"build",&["entry","output"])?;
     let entry=relative(build.get("entry"),"build.entry")?;
     let output=relative(build.get("output"),"build.output")?;
@@ -40,7 +41,7 @@ pub(crate) fn parse(root:&Path,text:&str)->Result<Project,String> {
     if output==entry || output.extension().is_some_and(|extension|extension=="tsr" || extension=="tsrx") || output==Path::new(FILE) {
         return Err("build.output must not name a source or configuration file".into());
     }
-    Ok(Project {root:root.to_owned(),entry:root.join(entry),output:root.join(output)})
+    Ok(Project {ui,root:root.to_owned(),entry:root.join(entry),output:root.join(output)})
 }
 pub fn discover()->Result<Option<Project>,String> {
     let cwd=env::current_dir().map_err(|e|e.to_string())?;

@@ -1,4 +1,4 @@
-import { Signal as NativeSignal, signal as nativeSignal, handle as nativeHandle, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, disabledButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
+import { bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, handle as nativeHandle, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, disabledButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
 
 /** An owned UI subtree. Moving a Node transfers all descendants. Nodes cannot be cloned or sent to workers. */
 export type Node = NativeNode;
@@ -20,11 +20,11 @@ export interface ViewProps {
 export interface ButtonProps {
   children: string[];
   className?: string;
-  disabled?: boolean;
+  disabled?: boolean | ReactiveBoolean;
   onPress?: Owned<Function<void>>;
 }
 
-/** Creates a text node by joining text children without a separator. className defaults to empty. Unknown or conflicting utilities throw a message. Owns its text. */
+/** Creates a text node by joining text children without a separator. className defaults to empty. Unknown utilities throw a message. Owns its text. */
 export function Text(props: TextProps): Node {
   const result = text(props.children, props.className ?? '');
   match (result) {
@@ -36,7 +36,7 @@ export function Text(props: TextProps): Node {
     }
   }
 }
-/** Creates a container, preserving child order. className defaults to empty. Unknown/conflicting utilities or depth over 128 throw a message. Consumes its children. */
+/** Creates a container, preserving child order. className defaults to empty. Unknown utilities or depth over 128 throw a message. Consumes its children. */
 export function View(props: ViewProps): Node {
   const result = view(props.children, props.className ?? '');
   match (result) {
@@ -51,11 +51,20 @@ export function View(props: ViewProps): Node {
 /** Creates a semantic button with centered text. The rounded utility also rounds its native focus outline. Enabled buttons require a retained onPress handler. Disabled buttons never invoke it. */
 export function Button(props: ButtonProps): Node {
   const handler = props.onPress;
-  if (handler !== undefined) {
-    return unwrap(nativeButton(props.children.join(''), props.className ?? '', props.disabled ?? false, handler));
+  const disabled = props.disabled;
+  if (disabled !== undefined && typeof disabled !== 'boolean') {
+    if (handler === undefined) {
+      throw 'Reactive Button requires onPress';
+    }
+
+    return unwrap(nativeBindDisabled(unwrap(nativeButton(props.children.join(''), props.className ?? '', false, handler)), disabled.evaluate));
   }
 
-  if (!(props.disabled ?? false)) {
+  if (handler !== undefined) {
+    return unwrap(nativeButton(props.children.join(''), props.className ?? '', disabled ?? false, handler));
+  }
+
+  if (!(disabled ?? false)) {
     throw 'Enabled Button requires onPress';
   }
 
@@ -86,4 +95,61 @@ function bindState(state: ReadOnly<Signal>): Signal {
 
 function retainComponentState(node: Node, state: Signal): Node {
   return unwrap(nativeOwnState(node, state));
+}
+
+/** Required theme tokens. Colors are opaque #RRGGBB sRGB or @token aliases in the same mode. */
+export interface ThemeColors {
+  background: string;
+  foreground: string;
+  card: string;
+  cardForeground: string;
+  primary: string;
+  primaryForeground: string;
+  secondary: string;
+  secondaryForeground: string;
+  muted: string;
+  mutedForeground: string;
+  accent: string;
+  accentForeground: string;
+  destructive: string;
+  destructiveForeground: string;
+  border: string;
+  input: string;
+  ring: string;
+}
+
+export interface ThemeScale {
+  sm: int | number;
+  md: int | number;
+  lg: int | number;
+}
+
+export interface ThemeTypography {
+  base: int | number;
+  xl: int | number;
+}
+
+export interface ThemeConfig {
+  schemaVersion: int;
+  light: ThemeColors;
+  dark: ThemeColors;
+  spacing: ThemeScale;
+  radius: ThemeScale;
+  typography: ThemeTypography;
+}
+/** Applies checked project tokens to this subtree. Mode defaults to light. Does not change component state. */
+export function withTheme<T>(node: Node, value: ReadOnly<T>, mode?: string): Node {
+  return unwrap(nativeTheme(node, JSON.stringify(value), mode ?? 'light'));
+}
+
+/** A boolean condition that refreshes after UI handlers without rerunning the component. Ownership: the returned subtree owns the condition. */
+export interface ReactiveBoolean {
+  /** Evaluates the captured condition with no arguments. Returns boolean; state-read errors propagate. The mounted tree calls it after handlers. It must not mutate state. Owns its callback environment; captures do not retain state owners. */
+  evaluate: Owned<Function<boolean>>;
+}
+
+function bindCondition(evaluate: Owned<Function<boolean>>): ReactiveBoolean {
+  return {
+    evaluate
+  };
 }

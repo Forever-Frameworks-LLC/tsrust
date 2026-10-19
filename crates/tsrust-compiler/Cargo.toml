@@ -13,6 +13,7 @@ name = "tsrust"
 path = "src/cli/main.rs"
 
 [dependencies]
+tsrust-ui = { path = "../tsrust-ui" }
 sha2 = { version = "=0.11.1" }
 subtle = { version = "=2.6.1" }
 syn = { version = "=3.0.6", features = ["full", "visit"] }

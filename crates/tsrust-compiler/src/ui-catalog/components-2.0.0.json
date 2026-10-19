@@ -1,0 +1,50 @@
+[
+  {
+    "name": "button",
+    "version": "2.0.0",
+    "variant": "default",
+    "license": "MIT",
+    "licenseText": "Copyright (c) Tsrust contributors\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.\n",
+    "runtimeAbi": "ui-application-1",
+    "compilerApi": 1,
+    "rust": "1.96.1",
+    "dependencies": [
+      {
+        "name": "tokens",
+        "version": "1.0.0",
+        "variant": "default"
+      }
+    ],
+    "files": [
+      {
+        "path": "button.tsrx",
+        "destination": "components",
+        "content": "import {Button as PrimitiveButton, ButtonProps as PrimitiveButtonProps, Node} from 'std:ui';\nexport interface ButtonProps extends PrimitiveButtonProps {\n  variant?: 'default' | 'secondary' | 'outline' | 'destructive';\n  size?: 'sm' | 'default' | 'lg';\n}\n/** Locally editable project button. Caller classes override defaults by property and state. */\nexport function Button(props: ButtonProps): Node {\n  const variant = props.variant ?? 'default';\n  const size = props.size ?? 'default';\n  let classes = 'rounded text-center focus:ring ';\n  if (variant === 'secondary') { classes += 'bg-secondary text-secondary-foreground hover:bg-accent active:bg-muted '; }\n  else if (variant === 'outline') { classes += 'border border-border bg-background text-foreground hover:bg-accent active:bg-muted '; }\n  else if (variant === 'destructive') { classes += 'bg-destructive text-destructive-foreground hover:bg-secondary active:bg-muted '; }\n  else { classes += 'bg-primary text-primary-foreground hover:bg-secondary active:bg-accent '; }\n  if (size === 'sm') { classes += 'px-2 py-2 '; }\n  else if (size === 'lg') { classes += 'px-6 py-4 '; }\n  else { classes += 'px-4 py-2 '; }\n  classes += props.className ?? '';\n  return PrimitiveButton({children: props.children, className: classes, disabled: props.disabled, onPress: props.onPress});\n}\n"
+      }
+    ]
+  },
+  {
+    "name": "card",
+    "version": "2.0.0",
+    "variant": "default",
+    "license": "MIT",
+    "licenseText": "Copyright (c) Tsrust contributors\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.\n",
+    "runtimeAbi": "ui-application-1",
+    "compilerApi": 1,
+    "rust": "1.96.1",
+    "dependencies": [
+      {
+        "name": "tokens",
+        "version": "1.0.0",
+        "variant": "default"
+      }
+    ],
+    "files": [
+      {
+        "path": "card.tsrx",
+        "destination": "components",
+        "content": "import {View, ViewProps, Node} from 'std:ui';\nexport type CardProps = ViewProps;\n/** Locally editable project container. Children retain their order and ownership. */\nexport function Card(props: CardProps): Node {\n  const classes = 'rounded-lg border border-border bg-card text-card-foreground p-4 gap-4 ' + (props.className ?? '');\n  return <View {...props} className={classes} />;\n}\n"
+      }
+    ]
+  }
+]

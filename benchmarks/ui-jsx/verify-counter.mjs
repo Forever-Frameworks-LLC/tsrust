@@ -9,10 +9,10 @@ import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 const [site, mode]=process.argv.slice(2);
 assert(site,'Pass the built counter site');
-assert(mode===undefined || mode==='--presentation-only','Unknown counter verification mode');
+assert(mode===undefined || mode==='--presentation-only' || mode==='--application','Unknown counter verification mode');
 const profile=fs.mkdtempSync(path.join(os.tmpdir(),'tsrust-counter-browser-'));
 const here=path.dirname(fileURLToPath(import.meta.url));
-if(mode!=='--presentation-only') {
+if(mode===undefined) {
 const reference=spawnSync(process.execPath,[path.join(here,'../runtime/node_modules/typescript/bin/tsc'),'--target','es2022','--lib','es2022','--skipLibCheck','--outDir',profile,path.join(here,'counter-reference.ts')],{encoding:'utf8',timeout:30000});
 assert.equal(reference.status,0,reference.stderr||reference.stdout);
 const oracle=spawnSync(process.execPath,[path.join(profile,'counter-reference.js')],{encoding:'utf8',timeout:30000});
@@ -58,6 +58,30 @@ try {
   for(const name of ['app.js','app_bg.wasm']) console.log(JSON.stringify({artifact:name,sha256:createHash('sha256').update(fs.readFileSync(path.join(site,name))).digest('hex')}));
   console.log(JSON.stringify({verifier:'verify-counter.mjs',sha256:createHash('sha256').update(fs.readFileSync(fileURLToPath(import.meta.url))).digest('hex')}));
   if(mode==='--presentation-only') {assert.deepEqual(errors,[]); await evaluate('window.ui.dispose()'); process.exitCode=0;}
+  else if(mode==='--application') {
+    const names=await evaluate('[...document.querySelectorAll("button")].map(e=>e.textContent)');
+    assert.deepEqual(names,['Disabled','Increment']);
+    const counts=()=>evaluate('document.querySelector("span").textContent');
+    assert.equal(await counts(),'Count: 0');
+    assert.equal(await evaluate('document.querySelector("button").disabled'),true);
+    await evaluate('window.originalNodes=[...document.querySelectorAll("[data-tsrust-node]")];document.querySelector("button").click()');
+    assert.equal(await counts(),'Count: 0');
+    for(let i=0;i<5;i++) await evaluate('document.querySelectorAll("button")[1].click()');
+    assert.equal(await counts(),'Count: 5');
+    assert.equal(await evaluate('document.querySelector("button").disabled'),false);
+    await evaluate('document.querySelector("button").click()');assert.equal(await counts(),'Count: 105');
+    assert(await evaluate('window.originalNodes.every(n=>n.isConnected)'));
+    await call('Input.dispatchKeyEvent',{type:'rawKeyDown',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
+    await call('Input.dispatchKeyEvent',{type:'keyUp',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
+    await evaluate('document.querySelectorAll("button")[1].focus()');
+    const themed=await evaluate('(()=>{const e=document.querySelectorAll("button")[1],s=getComputedStyle(e);return {radius:s.borderRadius,padding:s.padding,font:s.fontSize,outline:s.outlineColor,background:getComputedStyle(document.querySelector("[data-tsrust-mount]")).backgroundColor}})()');
+    assert.equal(themed.radius,'12px');assert.equal(themed.padding,'16px 24px');assert.equal(themed.outline,'rgb(96, 165, 250)');assert.equal(themed.background,'rgb(15, 23, 42)');
+    const point=await evaluate('(()=>{const r=document.querySelectorAll("button")[1].getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})()');
+    await call('Input.dispatchMouseEvent',{type:'mouseMoved',...point});
+    assert.equal(await evaluate('getComputedStyle(document.querySelectorAll("button")[1]).backgroundColor'),'rgb(51, 65, 85)','Focus must override hover by shared state priority');
+    assert.deepEqual(errors,[]);await evaluate('window.ui.dispose()');assert.equal(await evaluate('document.querySelectorAll("[data-tsrust-node]").length'),0);
+    console.log(JSON.stringify({case:'ui-application-browser',status:'pass',observed:['Count: 0','Count: 5','Count: 105'],checks:['reactive disabled','stable nodes','dark tokens','local button size','rounded focus','dispose'],themed,timed:false}));
+  }
   else {
   const initialRequests=requests;
   const counts=()=>evaluate('[...document.querySelectorAll("span")].slice(1).map(n=>n.textContent.replace(/^Count: /,""))');

@@ -157,7 +157,7 @@ fn statement_kind(kind: &StmtKind, values: &mut Values<'_>) -> StmtKind {
 fn finish(source: Source<'_>, values: &mut Values<'_>) -> Built {
     match source {
         Source::Expr(value) => Built::Expr(Expr { kind: expression_kind(&value.kind, values), span: value.span, ty: value.ty, binding: value.binding, target: value.target,
-            schema_invocations: value.schema_invocations.clone(), json_string_view: value.json_string_view, supplied_count: value.supplied_count, traversal_method: value.traversal_method,
+            schema_invocations: value.schema_invocations.clone(), json_string_view: value.json_string_view, moved_spread:value.moved_spread, supplied_count: value.supplied_count, traversal_method: value.traversal_method,
             may_fail: value.may_fail, own_may_fail: value.own_may_fail, effects_checked: value.effects_checked, callable_origin: value.callable_origin,
             generic_invocation: value.generic_invocation, capture_slots: value.capture_slots.clone(), depth: value.depth }),
         Source::Stmt(value) => Built::Stmt(Stmt { labels: value.labels.clone(), control_target: value.control_target, kind: statement_kind(&value.kind, values), span: value.span }),

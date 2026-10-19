@@ -4284,6 +4284,7 @@ dependencies = [
  "syn 3.0.6",
  "tokio",
  "tokio-rustls",
+ "tsrust-ui",
  "uuid",
 ]
 
@@ -4304,9 +4305,12 @@ version = "0.1.0"
 dependencies = [
  "accesskit",
  "accesskit_winit",
+ "color",
  "js-sys",
  "parley",
  "pollster",
+ "serde",
+ "serde_json",
  "taffy",
  "vello",
  "wasm-bindgen",

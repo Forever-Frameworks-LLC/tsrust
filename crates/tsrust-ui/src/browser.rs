@@ -28,20 +28,27 @@ impl Mount {
 }
 impl Drop for Mount { fn drop(&mut self){self.dispose();} }
 
-fn elements(node:&Node,document:&web_sys::Document,all:&mut Vec<Element>)->Result<Element,JsValue> {
+fn elements(node:&Node,document:&web_sys::Document,all:&mut Vec<Element>,theme:&super::theme::Theme,mode:&str)->Result<Element,JsValue> {
+    let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));
     let tag=match node.kind {Kind::View=>"div",Kind::Text=>"span",Kind::Button|Kind::DisabledButton=>"button"};
     let element=document.create_element(tag)?;
+    if node.theme.is_some(){element.set_attribute("data-tsrust-theme","")?;}
+    element.set_attribute("style",&super::web::scope(node,theme,mode))?;
     element.set_attribute("class",&format!("ui {}",node.class_name))?;
     element.set_attribute("data-tsrust-node",&(all.len()+1).to_string())?;
     if matches!(node.kind,Kind::Button|Kind::DisabledButton){element.set_attribute("type","button")?;}
     if node.kind==Kind::DisabledButton {element.set_attribute("disabled","")?;}
     if node.kind!=Kind::View {element.set_text_content(Some(&node.text));}
     all.push(element.clone());
-    for child in &node.children {let child=elements(child,document,all)?;element.append_child(&child)?;}
+    for child in &node.children {let child=elements(child,document,all,theme,mode)?;element.append_child(&child)?;}
     Ok(element)
 }
 fn update(node:&Node,elements:&[Element],next:&mut usize) {
     let element=&elements[*next];*next+=1;
+    if matches!(node.kind,Kind::Button|Kind::DisabledButton) {
+        if node.kind==Kind::DisabledButton {let _=element.set_attribute("disabled","");}else{let _=element.remove_attribute("disabled");}
+    }
+
     if !node.parts.is_empty() && element.text_content().as_deref()!=Some(node.text.as_str()) {
         element.set_text_content(Some(&node.text));
     }
@@ -51,14 +58,17 @@ pub fn mount(mut node:Node,title:&str)->Result<Mount,JsValue> {
     node.refresh().map_err(|e|JsValue::from_str(&e))?;
     let document=web_sys::window().and_then(|w|w.document()).ok_or_else(||JsValue::from_str("Browser document unavailable"))?;
     document.set_title(title);
-    let html=super::document(&node,title);
-    let css=html.split_once("<style>").unwrap().1.split_once("</style>").unwrap().0;
-    let style=document.create_element("style")?;style.set_text_content(Some(css));
-    let mut all=Vec::new();let root=elements(&node,&document,&mut all)?;
+    thread_local! {static SEQUENCE:std::cell::Cell<u64>=const{std::cell::Cell::new(0)};}
+    let id=SEQUENCE.with(|id|{let next=id.get().checked_add(1).expect("UI mount identities exhausted");id.set(next);next});
+    let scope=format!("[data-tsrust-mount=\"{id}\"]");
+    let css=super::web::stylesheet(&node).replace(".ui[data-tsrust-node",&format!("{scope} .ui[data-tsrust-node"));
+    let style=document.create_element("style")?;style.set_text_content(Some(&css));
+    let mut all=Vec::new();let tree=elements(&node,&document,&mut all,&super::theme::Theme::default(),"light")?;
+    let root=document.create_element("div")?;root.set_attribute("data-tsrust-mount",&id.to_string())?;let default=super::theme::Theme::default();let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((&default,"light"));root.set_attribute("style",&format!("{}color:var(--ui-foreground);background:var(--ui-background);font-size:var(--ui-text-base);min-height:100vh",theme.variables(mode)))?;root.append_child(&tree)?;
     let state=Rc::new(RefCell::new(State{node:Some(node),elements:all,error:None}));
     let mut mount=Mount{listeners:vec![],state:state.clone(),root,style};
     for (index,element) in state.borrow().elements.iter().enumerate() {
-        if element.tag_name()!="BUTTON" || element.has_attribute("disabled") {continue;}
+        if element.tag_name()!="BUTTON" {continue;}
         let weak=Rc::downgrade(&state);
         let callback=Closure::wrap(Box::new(move |_event:Event| {
             let Some(state)=weak.upgrade() else{return;};

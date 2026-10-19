@@ -13948,7 +13948,7 @@
           "documentation": "children is an ordered Node array. className defaults to empty."
         }
       ],
-      "documentation": "Creates a container with children in their supplied order. Empty child arrays are valid. Unknown/conflicting utilities or a tree deeper than 128 nodes throw a readable string. JSX example: <View><Text>Hello</Text></View> produces one container with one text child. Ownership: consumes child nodes, including on failure, and returns a uniquely owned subtree."
+      "documentation": "Creates a container with children in their supplied order. Empty child arrays are valid. Unknown utilities or a tree deeper than 128 nodes throw a readable string. JSX example: <View><Text>Hello</Text></View> produces one container with one text child. Ownership: consumes child nodes, including on failure, and returns a uniquely owned subtree."
     },
     {
       "name": "Button",
@@ -13956,10 +13956,10 @@
       "parameters": [
         {
           "label": "props: ButtonProps",
-          "documentation": "children is an ordered string array. disabled defaults to false; enabled buttons require an owned onPress callback. className defaults to empty."
+          "documentation": "children is an ordered string array. disabled defaults to false; enabled buttons require an owned onPress callback. className defaults to empty. disabled also accepts compiler-derived ReactiveBoolean values for JSX state expressions."
         }
       ],
-      "documentation": "Creates a semantic button with a retained synchronous onPress handler. Text is centered within its padding. The rounded utility shapes both the button and its native focus outline. Pointer click, Enter and Space activate enabled buttons. Disabled buttons never invoke their handler. Unknown/conflicting utilities and enabled buttons without a handler throw. Handler failures stop native execution and return UiError; browser failures retire the tree and remain available through its mount error. Example: <Button onPress={() => { count.set(count.get() + 1); }}>Increment</Button>. Ownership: consumes props and the handler environment; captures are released with the subtree."
+      "documentation": "Creates a semantic button with a retained synchronous onPress handler. Text is centered within its padding. The rounded utility shapes both the button and its native focus outline. Pointer click, Enter and Space activate enabled buttons. Disabled buttons never invoke their handler. Unknown utilities and enabled buttons without a handler throw. Handler failures stop native execution and return UiError; browser failures retire the tree and remain available through its mount error. Example: <Button onPress={() => { count.set(count.get() + 1); }}>Increment</Button>. Ownership: consumes props and the handler environment; captures are released with the subtree. State-dependent JSX expressions such as disabled={count.get() < 5} are retained as checked derived boolean bindings. They reevaluate after handlers; disabled buttons remain excluded from activation and native focus order. Reactive buttons require onPress even while initially disabled. Predicate failure stops the mounted tree with the normal UiError cleanup."
     },
     {
       "name": "document",
@@ -14016,6 +14016,152 @@
       "name": "UiError",
       "signature": "type UiError",
       "documentation": "A UI failure with string code and message fields. run returns Err for renderer or handler failures and releases its owned subtree. Example: const result = run(node, \"Demo\"); returns Result<void, UiError>. Errors own their message; no renderer resource is retained."
+    },
+    {
+      "name": "withTheme",
+      "signature": "withTheme<T>(node: Node, value: ReadOnly<T>, mode?: string): Node",
+      "parameters": [
+        {
+          "label": "node: Node",
+          "documentation": "The owned subtree receiving this theme scope."
+        },
+        {
+          "label": "value: ReadOnly<T>",
+          "documentation": "Serializable project theme data checked against the theme schema, normally imported from ui.theme.json. Borrowed only during this call."
+        },
+        {
+          "label": "mode?: string",
+          "documentation": "Selects light or dark; defaults to light. Other strings throw a readable error."
+        }
+      ],
+      "documentation": "Scopes project colors, spacing, radius and typography to an owned subtree. Requires every light/dark token. Colors accept exact opaque #RRGGBB sRGB bytes or @token aliases within the same mode; unknown tokens, missing references and cycles throw. spacing.sm/md/lg accepts 0–512 logical pixels; radius accepts 0–256; typography.base/xl accepts 8–128. Unknown keys fail. Returns a Node without rerunning its children or changing their state. Example: import theme from './ui.theme.json'; withTheme(Page(), theme, 'dark') uses the project dark palette. Separate trees keep independent themes. Runtime reactive mode switching is not supported yet. Ownership: consumes child nodes; reads and serializes theme data during construction. The resulting subtree owns its checked theme."
+    },
+    {
+      "name": "ThemeConfig",
+      "signature": "interface ThemeConfig",
+      "parameters": [],
+      "documentation": "Project-owned UI token data. Required schemaVersion, light, dark, spacing, radius and typography fields have no implicit missing-token defaults. Pass an imported theme to withTheme(Page(), theme); the subtree uses these values on both backends. Invalid keys, values and aliases produce readable errors. Ownership: readonly data imports are borrowed; clone an import before editing its data.",
+      "fields": {
+        "schemaVersion": {
+          "documentation": "Theme schema identifier. Must be int 1; other values fail validation. Read with theme.schemaVersion; the bundled theme returns 1. Reading does not change the theme. Ownership: copies the scalar."
+        },
+        "light": {
+          "documentation": "Semantic colors selected by light mode, the default mode of withTheme. Every ThemeColors key is required. For the bundled theme, theme.light.primary is the raw string #2563eb. Reading does not resolve aliases or mutate data. Ownership: borrows the color record."
+        },
+        "dark": {
+          "documentation": "Semantic colors selected by withTheme(node, theme, \"dark\"). Every ThemeColors key is required. The bundled theme.dark.background is #0f172a. Reading does not mutate data. Ownership: borrows the color record."
+        },
+        "spacing": {
+          "documentation": "Required sm/md/lg spacing scale, 0–512 finite logical pixels per value. p-2/4/6, px-, py- and gap- use these slots; 0 uses zero. theme.spacing.md is 16 in the bundled theme. Both adapters apply display scaling. Ownership: borrows the scale; reading does not mutate it."
+        },
+        "radius": {
+          "documentation": "Required sm/md/lg corner scale, 0–256 finite logical pixels. rounded uses md; rounded-sm/lg use the other slots. The bundled theme.radius.md is 8, including rounded button focus geometry. Ownership: borrows the scale; reading does not mutate it."
+        },
+        "typography": {
+          "documentation": "Required base/xl text sizes, 8–128 finite logical pixels. text-base/xl select these sizes. theme.typography.xl is 24 in the bundled theme. Font family customization is unsupported. Ownership: borrows the scale; reading does not mutate it."
+        }
+      }
+    },
+    {
+      "name": "ThemeColors",
+      "signature": "interface ThemeColors",
+      "parameters": [],
+      "documentation": "Required semantic color slots for one mode. Values are raw opaque sRGB #RRGGBB strings or @token aliases within that mode. Both adapters resolve aliases during construction; missing references, cycles, unknown keys, alpha and other color formats fail. Example: primary: \"#123456\" changes bg-primary to that color. Ownership: ordinary data, borrowed from readonly imports.",
+      "fields": {
+        "background": {
+          "documentation": "Required color for default surface. Accepts #RRGGBB or @token in the same mode; no missing-value default. For example, background: \"#123456\" resolves to sRGB bytes 18, 52, 86. Reading returns the raw string without changing it; aliases resolve when a theme is applied. Ownership: borrows the string from readonly data."
+        },
+        "foreground": {
+          "documentation": "Required color for default text. Accepts #RRGGBB or @token in the same mode; no missing-value default. For example, foreground: \"#123456\" resolves to sRGB bytes 18, 52, 86. Reading returns the raw string without changing it; aliases resolve when a theme is applied. Ownership: borrows the string from readonly data."
+        },
+        "card": {
+          "documentation": "Required color for card surface. Accepts #RRGGBB or @token in the same mode; no missing-value default. For example, card: \"#123456\" resolves to sRGB bytes 18, 52, 86. Reading returns the raw string without changing it; aliases resolve when a theme is applied. Ownership: borrows the string from readonly data."
+        },
+        "cardForeground": {
+          "documentation": "Required color for text on cards. Accepts #RRGGBB or @token in the same mode; no missing-value default. For example, cardForeground: \"#123456\" resolves to sRGB bytes 18, 52, 86. Reading returns the raw string without changing it; aliases resolve when a theme is applied. Ownership: borrows the string from readonly data."
+        },
+        "primary": {
+          "documentation": "Required color for primary control surface. Accepts #RRGGBB or @token in the same mode; no missing-value default. For example, primary: \"#123456\" resolves to sRGB bytes 18, 52, 86. Reading returns the raw string without changing it; aliases resolve when a theme is applied. Ownership: borrows the string from readonly data."
+        },
+        "primaryForeground": {
+          "documentation": "Required color for text on primary controls. Accepts #RRGGBB or @token in the same mode; no missing-value default. For example, primaryForeground: \"#123456\" resolves to sRGB bytes 18, 52, 86. Reading returns the raw string without changing it; aliases resolve when a theme is applied. Ownership: borrows the string from readonly data."
+        },
+        "secondary": {
+          "documentation": "Required color for secondary control surface. Accepts #RRGGBB or @token in the same mode; no missing-value default. For example, secondary: \"#123456\" resolves to sRGB bytes 18, 52, 86. Reading returns the raw string without changing it; aliases resolve when a theme is applied. Ownership: borrows the string from readonly data."
+        },
+        "secondaryForeground": {
+          "documentation": "Required color for text on secondary controls. Accepts #RRGGBB or @token in the same mode; no missing-value default. For example, secondaryForeground: \"#123456\" resolves to sRGB bytes 18, 52, 86. Reading returns the raw string without changing it; aliases resolve when a theme is applied. Ownership: borrows the string from readonly data."
+        },
+        "muted": {
+          "documentation": "Required color for muted surface. Accepts #RRGGBB or @token in the same mode; no missing-value default. For example, muted: \"#123456\" resolves to sRGB bytes 18, 52, 86. Reading returns the raw string without changing it; aliases resolve when a theme is applied. Ownership: borrows the string from readonly data."
+        },
+        "mutedForeground": {
+          "documentation": "Required color for muted text. Accepts #RRGGBB or @token in the same mode; no missing-value default. For example, mutedForeground: \"#123456\" resolves to sRGB bytes 18, 52, 86. Reading returns the raw string without changing it; aliases resolve when a theme is applied. Ownership: borrows the string from readonly data."
+        },
+        "accent": {
+          "documentation": "Required color for accent surface. Accepts #RRGGBB or @token in the same mode; no missing-value default. For example, accent: \"#123456\" resolves to sRGB bytes 18, 52, 86. Reading returns the raw string without changing it; aliases resolve when a theme is applied. Ownership: borrows the string from readonly data."
+        },
+        "accentForeground": {
+          "documentation": "Required color for text on accent surfaces. Accepts #RRGGBB or @token in the same mode; no missing-value default. For example, accentForeground: \"#123456\" resolves to sRGB bytes 18, 52, 86. Reading returns the raw string without changing it; aliases resolve when a theme is applied. Ownership: borrows the string from readonly data."
+        },
+        "destructive": {
+          "documentation": "Required color for destructive action surface. Accepts #RRGGBB or @token in the same mode; no missing-value default. For example, destructive: \"#123456\" resolves to sRGB bytes 18, 52, 86. Reading returns the raw string without changing it; aliases resolve when a theme is applied. Ownership: borrows the string from readonly data."
+        },
+        "destructiveForeground": {
+          "documentation": "Required color for text on destructive actions. Accepts #RRGGBB or @token in the same mode; no missing-value default. For example, destructiveForeground: \"#123456\" resolves to sRGB bytes 18, 52, 86. Reading returns the raw string without changing it; aliases resolve when a theme is applied. Ownership: borrows the string from readonly data."
+        },
+        "border": {
+          "documentation": "Required color for default borders. Accepts #RRGGBB or @token in the same mode; no missing-value default. For example, border: \"#123456\" resolves to sRGB bytes 18, 52, 86. Reading returns the raw string without changing it; aliases resolve when a theme is applied. Ownership: borrows the string from readonly data."
+        },
+        "input": {
+          "documentation": "Required color for input boundary color token. Accepts #RRGGBB or @token in the same mode; no missing-value default. For example, input: \"#123456\" resolves to sRGB bytes 18, 52, 86. Reading returns the raw string without changing it; aliases resolve when a theme is applied. Ownership: borrows the string from readonly data."
+        },
+        "ring": {
+          "documentation": "Required color for focus outlines. Accepts #RRGGBB or @token in the same mode; no missing-value default. For example, ring: \"#123456\" resolves to sRGB bytes 18, 52, 86. Reading returns the raw string without changing it; aliases resolve when a theme is applied. Ownership: borrows the string from readonly data."
+        }
+      }
+    },
+    {
+      "name": "ThemeScale",
+      "signature": "interface ThemeScale",
+      "parameters": [],
+      "documentation": "Required sm/md/lg dimensions shared by spacing or radius. Values accept int or number logical pixels; spacing allows 0–512, radius 0–256. Negative, nonfinite and out-of-range values fail theme validation. Ownership: ordinary data; reading does not mutate the scale.",
+      "fields": {
+        "sm": {
+          "documentation": "Required sm scale slot. Finite int or number logical pixels: spacing 0–512; radius 0–256. For the bundled theme, theme.spacing.sm is 8 and theme.radius.sm is 4. No missing-value default. Reading leaves the receiver unchanged. Ownership: copies the scalar value."
+        },
+        "md": {
+          "documentation": "Required md scale slot. Finite int or number logical pixels: spacing 0–512; radius 0–256. For the bundled theme, theme.spacing.md is 16 and theme.radius.md is 8. No missing-value default. Reading leaves the receiver unchanged. Ownership: copies the scalar value."
+        },
+        "lg": {
+          "documentation": "Required lg scale slot. Finite int or number logical pixels: spacing 0–512; radius 0–256. For the bundled theme, theme.spacing.lg is 24 and theme.radius.lg is 12. No missing-value default. Reading leaves the receiver unchanged. Ownership: copies the scalar value."
+        }
+      }
+    },
+    {
+      "name": "ThemeTypography",
+      "signature": "interface ThemeTypography",
+      "parameters": [],
+      "documentation": "Required base/xl text dimensions, 8–128 finite logical pixels. There are no missing-value defaults. Text inherits its enclosing theme size; text-base/xl selects a slot explicitly. Ownership: ordinary data; reading does not mutate it.",
+      "fields": {
+        "base": {
+          "documentation": "Required base text size, int or number between 8 and 128 logical pixels. theme.typography.base is 16 in the bundled theme. Reading returns that scalar without changing the receiver. Ownership: copies the scalar value."
+        },
+        "xl": {
+          "documentation": "Required xl text size, int or number between 8 and 128 logical pixels. theme.typography.xl is 24 in the bundled theme. Reading returns that scalar without changing the receiver. Ownership: copies the scalar value."
+        }
+      }
+    },
+    {
+      "name": "ReactiveBoolean",
+      "signature": "interface ReactiveBoolean",
+      "parameters": [],
+      "documentation": "A state-dependent boolean condition that refreshes after UI handlers without rerunning the component. JSX disabled={count.get() < 5} creates this binding automatically and becomes false at 5. Reactive buttons require onPress even while initially disabled. Ownership: the returned subtree owns the condition; references do not extend the component state lifetime.",
+      "fields": {
+        "evaluate": {
+          "documentation": "Evaluates the retained condition with no arguments and returns boolean. The mounted tree reevaluates it after handlers. Example: disabled={count.get() < 5} is true at 0 and false at 5. Captured state-read failures propagate through normal UI error cleanup. Conditions must not mutate state. Ownership: the subtree owns this callback and releases it before its state owners."
+        }
+      }
     }
   ],
   "UiSignal": [

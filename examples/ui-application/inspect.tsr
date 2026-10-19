@@ -1,0 +1,7 @@
+import { withTheme, document } from 'std:ui';
+import theme from './ui.theme.json';
+import { Page } from './app/page';
+
+function main() {
+  console.log(document(withTheme(Page(), theme, 'dark'), 'Project UI'));
+}

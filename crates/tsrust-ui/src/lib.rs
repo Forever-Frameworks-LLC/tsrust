@@ -7,7 +7,8 @@ mod native;
 pub mod browser;
 mod state;
 pub use state::Signal;
-mod style;
+pub mod style;
+pub mod theme;
 mod web;
 #[cfg(feature = "native")]
 pub use native::run;
@@ -27,16 +28,27 @@ pub enum TextPart { Literal(String), Signal(Signal) }
 
 pub struct Node {
     depth: usize,
+    pub(crate) theme: Option<(theme::Theme,String)>,
     pub(crate) kind: Kind,
     pub(crate) class_name: String,
     pub(crate) text: String,
     pub(crate) children: Vec<Node>,
     pub(crate) parts: Vec<TextPart>,
+    pub(crate) disabled: Option<Box<dyn FnMut()->Result<bool,String>>>,
     pub(crate) press: Option<Box<dyn FnMut() -> Result<(), String>>>,
     state: Vec<Signal>,
 }
 
 impl Node {
+    pub fn with_disabled(mut self,mut predicate:impl FnMut()->Result<bool,String>+'static)->Result<Self,String> {
+        if !matches!(self.kind,Kind::Button|Kind::DisabledButton) {return Err("A disabled condition requires a Button".into());}
+        self.kind=if predicate()? {Kind::DisabledButton}else{Kind::Button};self.disabled=Some(Box::new(predicate));Ok(self)
+    }
+
+    pub fn with_theme(mut self, json: &str, mode: &str) -> Result<Self,String> {
+        let theme=theme::Theme::parse(json)?;theme.color(mode,"background")?;
+        self.theme=Some((theme,mode.to_owned()));Ok(self)
+    }
     pub fn own_state(mut self, state: Signal) -> Result<Self,String> { self.state.push(state); Ok(self) }
     pub fn text(parts:Vec<TextPart>,class_name:String)->Result<Self,String> {
         let text=Self::text_value(&parts)?;
@@ -59,6 +71,10 @@ impl Node {
     }
     pub(crate) fn refresh(&mut self) -> Result<usize,String> {
         let mut changed=0;
+        if let Some(predicate)=&mut self.disabled {
+            let kind=if predicate()? {Kind::DisabledButton}else{Kind::Button};if kind!=self.kind {self.kind=kind;changed+=1;}
+        }
+
         if !self.parts.is_empty() {
             let text=Self::text_value(&self.parts)?;
             if text!=self.text {self.text=text;changed+=1;}
@@ -91,14 +107,7 @@ impl Node {
         if depth > 128 {
             return Err("UI nesting exceeds 128 nodes".into());
         }
-        let mut categories = std::collections::BTreeSet::new();
-        for token in class_name.split_whitespace() {
-            let utility = style::Utility::parse(token)
-                .ok_or_else(|| format!("Unsupported UI utility: {token}"))?;
-            if !categories.insert(utility.category()) {
-                return Err(format!("Conflicting UI utility: {token}"));
-            }
-        }
+        style::validate(&class_name)?;
         match kind {
             Kind::View if !text.is_empty() => return Err("View text must be inside Text".into()),
             Kind::Text | Kind::DisabledButton | Kind::Button if !children.is_empty() => {
@@ -109,11 +118,12 @@ impl Node {
         let class_name = class_name.split_whitespace().collect::<Vec<_>>().join(" ");
         Ok(Self {
             depth,
+            theme: None,
             kind,
             class_name,
             text,
             children,
-            parts: Vec::new(), press: None, state: Vec::new(),
+            parts: Vec::new(), disabled:None, press: None, state: Vec::new(),
         })
     }
 }
@@ -126,11 +136,11 @@ pub fn document(root: &Node, title: &str) -> String {
 mod tests {
     use super::*;
     #[test]
-    fn invalid_shape_conflicting_utilities_and_depth_reject() {
+    fn invalid_shape_unknown_utilities_and_depth_reject() {
         assert!(
             Node::new(
                 Kind::View,
-                "flex-row flex-col".into(),
+                "unknown".into(),
                 String::new(),
                 vec![]
             )
@@ -195,4 +205,24 @@ mod interaction_tests {
         assert!(!root.activate(999).unwrap());
         drop(root);assert_eq!(a.value(),None);assert_eq!(b.value(),None);assert!(a.set(1).is_err());
     }
+}
+
+#[cfg(test)]mod condition_tests {
+ use super::*;
+ #[test]fn disabled_expression_refreshes_after_actions_and_prevents_dispatch() {
+  let count=Signal::new(0);let increment=count.handle();let condition=count.handle();let action=count.handle();let observe=count.handle();
+  let increment=Node::button("Increment".into(),String::new(),false,move||{increment.set(increment.get()?+1)}).unwrap();
+  let conditional=Node::button("Disabled".into(),String::new(),false,move||{action.set(action.get()?+100)}).unwrap().with_disabled(move||Ok(condition.get()?<5)).unwrap();
+  let mut root=Node::new(Kind::View,String::new(),String::new(),vec![increment,conditional]).unwrap().own_state(count).unwrap();
+  assert!(!root.activate(3).unwrap());assert_eq!(observe.get().unwrap(),0);
+  for _ in 0..5 {assert!(root.activate(2).unwrap());root.refresh().unwrap();}
+  assert_eq!(root.children[1].kind,Kind::Button);assert!(root.activate(3).unwrap());assert_eq!(observe.get().unwrap(),105);
+  drop(root);assert!(observe.get().is_err());
+ }
+ #[test]fn failed_condition_releases_callback_once_before_state_owner() {
+  use std::{rc::Rc,cell::Cell};struct Probe(Rc<Cell<usize>>);impl Drop for Probe{fn drop(&mut self){self.0.set(self.0.get()+1);}}
+  let releases=Rc::new(Cell::new(0));let probe=Probe(releases.clone());
+  let node=Node::button("Fails".into(),String::new(),false,||Ok(())).unwrap();
+  assert!(node.with_disabled(move||{assert_eq!(probe.0.get(),0);Err("condition failed".into())}).is_err());assert_eq!(releases.get(),1);
+ }
 }

@@ -6,11 +6,24 @@ type Scope=BTreeMap<String,String>;
 fn name(value:&str,span:Span)->Expr {Expr::new(ExprKind::Name(value.into()),span)}
 fn call(target:&str,args:Vec<Expr>,span:Span)->Expr {Expr::new(ExprKind::Call(Box::new(name(target,span)),args),span)}
 fn statement(kind:StmtKind,span:Span)->Stmt {Stmt{kind,span,labels:vec![],control_target:None}}
-struct Lower<'a> {signal:&'a str,bind:&'a str,retain:&'a str,next:usize,constructors:Vec<Span>}
+struct Lower<'a> {condition:&'a str,next_closure:usize,signal:&'a str,bind:&'a str,retain:&'a str,next:usize,constructors:Vec<Span>}
 impl Lower<'_> {
     fn expression(&mut self,value:&mut Expr,scope:&Scope)->Result<(),Diagnostic> {
         crate::source_walk::expression_pruned(value,&mut |value| {
             let span=value.span;
+            if let ExprKind::Record(fields)=&mut value.kind {
+                for (key,value) in fields {
+                    if key.kind!=TokenKind::JsxOpen || key.text!="disabled" {continue;}
+                    let mut reactive=false;
+                    crate::source_walk::expression(value,&mut |expression| {if let ExprKind::Name(name)=&expression.kind {reactive|=scope.contains_key(name);}Ok(())})?;
+                    if reactive {
+                        let span=value.span;let original=std::mem::replace(value,Expr::new(ExprKind::Undefined,span));
+                        let closure=Expr::new(ExprKind::Closure{id:self.next_closure,params:vec![],result:crate::syntax::ResultAnnotation::Inferred(span),body:vec![statement(StmtKind::Return(Some(original)),span)]},span);self.next_closure+=1;
+                        *value=call(self.condition,vec![closure],span);
+                    }
+                }
+            }
+
             if let ExprKind::Name(source)=&value.kind {
                 if let Some(target)=scope.get(source) {*value=call(self.bind,vec![name(target,span)],span);return Ok(false);}
             }
@@ -96,8 +109,10 @@ impl Lower<'_> {
     }
 }
 pub(crate) fn retain_state(program:&mut Program,names:&BTreeMap<String,String>)->Result<(),Diagnostic> {
-    let (Some(signal),Some(bind),Some(retain))=(names.get("signal"),names.get("bindState"),names.get("retainComponentState")) else{return Ok(());};
-    let mut lower=Lower{signal,bind,retain,next:0,constructors:vec![]};
+    let (Some(signal),Some(bind),Some(retain),Some(condition))=(names.get("signal"),names.get("bindState"),names.get("retainComponentState"),names.get("bindCondition")) else{return Ok(());};
+    let mut next_closure=0;
+    for function in &mut program.functions {crate::source_walk::function_body(function,&mut |_|Ok(()),&mut |expr|{if let ExprKind::Closure{id,..}=&expr.kind {next_closure=next_closure.max(id+1);}Ok(())})?;}
+    let mut lower=Lower{condition,next_closure,signal,bind,retain,next:0,constructors:vec![]};
     for function in &mut program.functions {
         if names.values().any(|name|name==&function.name.text) {continue;}
         lower.body(&mut function.body,&Scope::new(),&[],true)?;

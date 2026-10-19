@@ -38,10 +38,11 @@ impl Analyzer {
         let expected=if !spread&&!overwritten&&let Some(Type::Record(id))=expected{self.fields[id].get(&key.text).copied()}else{None};
         let prior=self.builtin_literals;
         if spread{self.builtin_literals=true;}
-        Some(Input{key,value:Box::new(value),spread,prior,expected})
+        let consume=spread && key.kind==TokenKind::JsxOpen;
+        Some(Input{consume,key,value:Box::new(value),spread,prior,expected})
     }
     pub(super) fn finish_object_spread_value(&mut self,work:&mut Work,input:Input,actual:Result<Type,Diagnostic>)->Result<(),Diagnostic>{
-        let Input{key,value,spread,prior,..}=input;
+        let Input{key,value,spread,consume,prior,..}=input;
         if spread{self.builtin_literals=prior;}
         let mut value=*value;
         let actual=actual?;
@@ -49,7 +50,7 @@ impl Analyzer {
             let Type::Record(id)=actual else{return Err(Diagnostic::new("type","Object spread requires a fixed record.",value.span));};
             if self.program.records[id].is_tuple(){return Err(Diagnostic::new("type","Object spread requires a fixed record.",value.span));}
             self.require_native_capability(Type::Record(id),crate::native_types::Capability::ObjectSpread,value.span,false)?;
-            self.require_cloneable(Type::Record(id),value.span)?;
+            if !consume {self.require_cloneable(Type::Record(id),value.span)?;}
             id
         }else{
             let field=RecordField{name:key.clone(),annotation:crate::type_syntax::ValueAnnotation{kind:crate::type_syntax::ValueAnnotationKind::Named(crate::type_syntax::TypeName{text:key.text.clone(),span:key.span}),span:key.span},ty:Some(actual),callable_declaration:None,optional:false};
@@ -59,7 +60,7 @@ impl Analyzer {
         for field in self.program.records[part].fields.clone(){
             if let Some(old)=work.fields.iter_mut().find(|old|old.name.text==field.name.text){*old=field;}else{work.fields.push(field);}
         }
-        if spread{value=Expr::checked(ExprKind::Unary{op:UnaryOp::Spread,operator:key.span,value:Box::new(value)},key.span,Some(Type::Record(part)));}
+        if spread{value=Expr::checked(ExprKind::Unary{op:UnaryOp::Spread,operator:key.span,value:Box::new(value)},key.span,Some(Type::Record(part)));value.moved_spread=consume;}
         work.args.push(value);Ok(())
     }
     pub(super) fn finish_object_spread_work(&mut self,expr:&mut Expr,work:Work,expected:Option<Type>)->Result<Type,Diagnostic>{
@@ -74,4 +75,4 @@ impl Analyzer {
     }
 }
 pub(super) struct Work{parts:std::collections::VecDeque<(Token,Expr)>,args:Vec<Expr>,fields:Vec<RecordField>}
-pub(super) struct Input{key:Token,pub value:Box<Expr>,pub spread:bool,prior:bool,pub expected:Option<Type>}
+pub(super) struct Input{key:Token,pub value:Box<Expr>,pub spread:bool,pub consume:bool,prior:bool,pub expected:Option<Type>}

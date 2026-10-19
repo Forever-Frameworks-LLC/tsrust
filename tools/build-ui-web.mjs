@@ -21,8 +21,8 @@ try {
   const source = path.join(pkg, 'src/main.rs');
   const rust = fs.readFileSync(source, 'utf8');
   const modules = [...rust.matchAll(/mod (tsrust_native_\w+)\s*\{/g)].map(match => match[1]);
-  if (!modules.includes('tsrust_native_ui') || modules.some(name => name !== 'tsrust_native_ui')) {
-    throw new Error('This bounded browser backend supports UI-only entries; native service, file and task runtimes are unsupported.');
+  if (!modules.includes('tsrust_native_ui') || modules.some(name => !['tsrust_native_ui', 'tsrust_native_json'].includes(name))) {
+    throw new Error('This bounded browser backend supports UI and JSON data; native service, file and task runtimes are unsupported.');
   }
   fs.appendFileSync(source, '\n#[wasm_bindgen::prelude::wasm_bindgen]\npub fn launch()->Result<js_sys::Array,wasm_bindgen::JsValue>{tsrust_native_ui::browser::launch(||main()==std::process::ExitCode::SUCCESS)}\n');
   const manifest = path.join(pkg, 'Cargo.toml');

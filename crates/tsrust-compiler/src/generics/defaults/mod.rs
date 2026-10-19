@@ -349,6 +349,7 @@ impl Types<'_> {
                                     crate::native_bindings::NativeType::Int => "int",
                                     crate::native_bindings::NativeType::Number => "number",
                                     crate::native_bindings::NativeType::Void => "void",
+                                    crate::native_bindings::NativeType::OwnedBooleanCallback => "Owned<Function<boolean>>",
                                     crate::native_bindings::NativeType::ProgramReusableVoidCallback | crate::native_bindings::NativeType::ProgramVoidCallback | crate::native_bindings::NativeType::OwnedVoidCallback | crate::native_bindings::NativeType::SharedCallback => "Owned<Function<void>>",
                                     crate::native_bindings::NativeType::ObservedValue => "unknown",
                                 }
@@ -578,7 +579,7 @@ impl Types<'_> {
                             NativeType::Int => "int",
                             NativeType::Number => "number",
                             NativeType::Void => "void",
-                            NativeType::Structured(_) | NativeType::ProgramReusableVoidCallback | NativeType::ProgramVoidCallback | NativeType::OwnedVoidCallback | NativeType::SharedCallback | NativeType::ObservedValue => return None,
+                            NativeType::OwnedBooleanCallback | NativeType::Structured(_) | NativeType::ProgramReusableVoidCallback | NativeType::ProgramVoidCallback | NativeType::OwnedVoidCallback | NativeType::SharedCallback | NativeType::ObservedValue => return None,
                         });
                     }
                     if name == "clone" && !self.functions.contains_key(name.as_str()) {

@@ -17,6 +17,8 @@ mod result_intelligence;
 mod outcome_intelligence;
 #[path = "native_type_intelligence.rs"]
 mod native_type_intelligence;
+#[path = "ui_intelligence.rs"]
+mod ui_intelligence;
 #[path = "data_intelligence.rs"]
 mod data_intelligence;
 #[path = "cursor_repair.rs"]
@@ -99,6 +101,8 @@ pub struct SourceIndex {
     declarator_separators: std::collections::HashMap<usize, &'static str>,
     /// The checker accepted exactly this text, so its facts describe it.
     checked: bool,
+    pub(crate) theme_document: bool,
+    interface_bases:Vec<(String,Vec<String>)>,
 }
 fn member_separator(text: &str) -> bool {
     matches!(text, "." | "?.")
@@ -125,6 +129,8 @@ impl SourceIndex {
             native_origins: Default::default(),
             native_type_aliases: Default::default(),
             entry_help,
+            theme_document: false,
+            interface_bases:Vec::new(),
             source: source.into(),
             lines: LineIndex::new(source),
             tokens: vec![],
@@ -1432,34 +1438,8 @@ impl SourceIndex {
                 }
             }
         }
-        // An interface has the fields of the types it extends. Bases may be
-        // declared later, so repeat until no interface gains a field.
-        for _ in 0..16 {
-            let mut added = false;
-            for (owner, bases) in &interface_bases {
-                for base in bases {
-                    let inherited = self
-                        .symbols
-                        .iter()
-                        .filter(|symbol| symbol.kind == 8 && symbol.owner.as_deref() == Some(base.as_str()))
-                        .cloned()
-                        .collect::<Vec<_>>();
-                    for mut field in inherited {
-                        if self.symbols.iter().any(|symbol| {
-                            symbol.kind == 8 && symbol.owner.as_deref() == Some(owner.as_str()) && symbol.name == field.name
-                        }) {
-                            continue;
-                        }
-                        field.owner = Some(owner.clone());
-                        self.symbols.push(field);
-                        added = true;
-                    }
-                }
-            }
-            if !added {
-                break;
-            }
-        }
+        self.interface_bases=interface_bases;
+        self.inherit_interface_fields();
         // Every function expression declares its parameters in its body scope.
         for keyword in 0..self.tokens.len() {
             if self.text(keyword) != "function" || self.text(keyword + 1) != "(" {
@@ -2432,7 +2412,7 @@ impl SourceIndex {
             .get(&symbol)
             .is_none_or(|&available| available <= offset)
     }
-    fn offset(&self, position: Position) -> Option<usize> {
+    pub(crate) fn offset(&self, position: Position) -> Option<usize> {
         let mut start = 0;
         for _ in 0..position.line {
             start += self.source.get(start..)?.find('\n')? + 1;
@@ -2818,17 +2798,27 @@ impl SourceIndex {
             symbol.docs = documentation.to_owned();
         }
         if symbol.kind == 12 {
-            symbol.ty = remap_imported_type(&symbol.ty, types).unwrap_or_default();
-            // Rest labels have no initializer; remap their declared array through
-            // the same imported nominal identities as ordinary checked types.
+            // Parameter records remain discoverable even when only the function is imported.
             for parameter in &mut symbol.parameters {
-                if parameter.trim_start().starts_with("...")
-                    && let Some((name, ty)) = parameter.split_once(':')
-                    && let Some(ty) = remap_imported_type(ty, types)
-                {
-                    let mapped = format!("{name}:{ty}");
-                    symbol.signature = symbol.signature.replacen(parameter.as_str(), &mapped, 1);
-                    *parameter = mapped;
+                if let Some((name,ty))=parameter.split_once(':') && !dependency.native_type_aliases.contains_key(ty.trim()) {
+                    let expanded=format!("{name}: {}",dependency.written_type(ty.trim()));symbol.signature=symbol.signature.replacen(parameter.as_str(),&expanded,1);*parameter=expanded;
+                }
+            }
+            let mut mappings=types.clone();
+            let referenced=dependency.symbols.iter().filter(|record|matches!(record.kind,10|23) && record.scope==0 && record.owner.is_none())
+                .filter(|record|symbol.parameters.iter().any(|parameter|parameter.split(|ch:char|!ch.is_ascii_alphanumeric() && ch!='_').any(|word|word==record.name)))
+                .map(|record|record.name.clone()).collect::<Vec<_>>();
+            let encoded=uri.as_bytes().iter().map(|byte|format!("{byte:02x}")).collect::<String>();
+            for record in &referenced {
+                let identity=mappings.entry(record.clone()).or_insert_with(||format!("__tsrust_private_{encoded}_{record}")).clone();
+                self.generic_display_names.insert(identity,record.clone());
+            }
+            for record in &referenced {self.import_record_fields(dependency,record,&mappings[record],span,uri,&mappings);}
+            symbol.ty=remap_imported_type(&symbol.ty,&mappings).unwrap_or_default();
+            for parameter in &mut symbol.parameters {
+                if let Some((name,ty))=parameter.split_once(':') && let Some(ty)=remap_imported_type(ty,&mappings) {
+                    let mapped=format!("{name}: {}",ty.trim());
+                    symbol.signature=symbol.signature.replacen(parameter.as_str(),&mapped,1);*parameter=mapped;
                 }
             }
         }
@@ -2904,6 +2894,7 @@ impl SourceIndex {
                     continue;
                 }
                 let ty = if generic.is_some()
+                    || field.ty.contains(['\'','"'])
                     || owner.starts_with("__tsrust_private_")
                     || (callable_storage_type(&field.ty) || contains_callable_annotation(&field.ty))
                 {
@@ -2990,6 +2981,7 @@ impl SourceIndex {
                                     format!("@{uri}#{base}")
                                 }
                             });
+                            self.generic_display_names.insert(identity.clone(),dependency.generic_display_names.get(base).cloned().unwrap_or_else(||base.rsplit('#').next().unwrap_or(base).to_owned()));
                             pending.push((base.to_owned(), identity.clone()));
                             Some(format!("{identity}{suffix}"))
                         })
@@ -2998,11 +2990,10 @@ impl SourceIndex {
                         .unwrap_or_default()
                 };
                 let mut imported = field.clone();
-                if uri.starts_with("tsrust-stdlib:///")
-                    && let Some(entry) = builtins_for(&record).into_iter().find(|entry| entry["name"] == field.name)
-                    && let Some(documentation) = entry["documentation"].as_str()
-                {
-                    imported.docs = documentation.to_owned();
+                if let Some(module)=uri.strip_prefix("tsrust-stdlib:///") {
+                    let documentation=builtins_for(&record).into_iter().find(|entry|entry["name"]==field.name).and_then(|entry|entry["documentation"].as_str().map(str::to_owned))
+                        .or_else(||builtins_for(module).into_iter().find(|entry|entry["name"]==record).and_then(|entry|entry["fields"][&field.name]["documentation"].as_str().map(str::to_owned)));
+                    if let Some(documentation)=documentation {imported.docs=documentation;}
                 }
                 imported.ty = ty;
                 if imported.kind == 22 { imported.signature = format!("{owner}.{}: {}", imported.name, self.display_type(&imported.ty)); }
@@ -3061,8 +3052,23 @@ impl SourceIndex {
             .collect();
         self.import_exports.push((names, items));
     }
+    fn inherit_interface_fields(&mut self) {
+        let bases=self.interface_bases.clone();
+        for _ in 0..=bases.len() {
+            let mut added=false;
+            for (owner,bases) in &bases {for base in bases {
+                let inherited=self.symbols.iter().enumerate().filter(|(_,symbol)|symbol.kind==8 && symbol.owner.as_deref()==Some(base.as_str())).map(|(id,symbol)|(symbol.clone(),self.foreign_definitions.get(&id).cloned())).collect::<Vec<_>>();
+                for (mut field,definition) in inherited {
+                    if self.symbols.iter().any(|symbol|symbol.kind==8 && symbol.owner.as_deref()==Some(owner.as_str()) && symbol.name==field.name){continue;}
+                    field.owner=Some(owner.clone());if let Some(definition)=definition {self.foreign_definitions.insert(self.symbols.len(),definition);}self.symbols.push(field);added=true;
+                }
+            }}
+            if !added {break;}
+        }
+    }
     pub(crate) fn finish_imports(&mut self) {
         self.refresh_native_aliases();
+        self.inherit_interface_fields();
         self.materialize_generic_fields();
         self.refresh_checked_initializers();
         self.refresh_result_match_bindings();
@@ -3126,6 +3132,11 @@ impl SourceIndex {
         let offset = self
             .offset(position)
             .ok_or("Position is outside the document or splits a surrogate pair")?;
+        if let Some(answer)=self.ui_theme_request(method,offset,uri) {return Ok(answer);}
+        if method=="textDocument/completion" && let Some(items)=self.ui_value_completion(offset) {return Ok(items);}
+        if method=="textDocument/hover" && let Some((class,span))=self.ui_class_at(offset) {
+            return Ok(json!({"contents":{"kind":"markdown","value":format!("`{class}`\n\nShared web/native utility. Uses the enclosing Theme tokens. Later classes override earlier classes by property within each state. Unsupported utilities produce a compiler error. Ownership: does not change node ownership.")},"range":self.range(span)}));
+        }
         if method == "textDocument/completion" && let Some(items) = self.schema_path_completion(offset) {
             return Ok(items);
         }
@@ -3158,6 +3169,9 @@ impl SourceIndex {
         };
         if !name(self.text(token)) {
             return Ok(Value::Null);
+        }
+        if method=="textDocument/definition" && let Some(field)=self.jsx_prop_symbol(self.tokens[token].span.end,self.text(token)) {
+            return Ok(self.foreign_definitions.get(&field).cloned().unwrap_or_else(||json!({"uri":uri,"range":self.range(self.symbols[field].span)})));
         }
         if method=="textDocument/hover" && let Some((_,fields,_))=self.jsx_props(self.tokens[token].span.end)
             && let Some((field,ty))=fields.iter().find(|(field,_)|field==self.text(token)) {
@@ -3911,6 +3925,15 @@ fn remap_imported_type(
     let mut offset = 0;
     while offset < ty.len() {
         let ch = ty[offset..].chars().next()?;
+        if matches!(ch,'\''|'"') {
+            let start=offset;offset+=ch.len_utf8();let mut closed=false;
+            while offset<ty.len() {
+                let next=ty[offset..].chars().next()?;offset+=next.len_utf8();
+                if next=='\\' {let escaped=ty[offset..].chars().next()?;offset+=escaped.len_utf8();}
+                else if next==ch {closed=true;break;}
+            }
+            if !closed{return None;}output.push_str(&ty[start..offset]);continue;
+        }
         if ch.is_ascii_alphabetic() || ch == '_' {
             let end = offset
                 + ty[offset..]

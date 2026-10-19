@@ -41,7 +41,8 @@ impl SourceIndex {
                     CallableOwnership::Read => Some("ReadOnly"),
                     CallableOwnership::ProgramReusable | CallableOwnership::Reusable => Some("Mutable"),
                     CallableOwnership::Once => Some("Once"),
-                    CallableOwnership::Program | CallableOwnership::Owned => None,
+                    CallableOwnership::Program => None,
+                    CallableOwnership::Owned => Some("Owned"),
                     CallableOwnership::OwnedOnce => Some("Once"),
                     CallableOwnership::SharedRead => Some("SharedRead"),
                 };

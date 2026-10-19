@@ -16,6 +16,8 @@ mod dev_watch;
 mod dev_events;
 mod project_config;
 mod new_cli;
+mod ui_cli;
+mod cache_cli;
 mod format_cli;
 mod check_cli;
 use std::env;
@@ -37,6 +39,8 @@ Usage:
   tsrust remove <crate> [--dry-run]
   tsrust bindings resolve <file.bindings.json> [--offline]
   tsrust new <name-or-path> [--ui]
+  tsrust ui <list --bundled|init|add name@version> [--cwd directory] [--path directory] [--dry-run]
+  tsrust cache <info|clean>
   tsrust dev [--release] [--verbose] [--color auto|always|never] [-- program-arguments]
   tsrust run [input.tsr] [--release] [-- program-arguments]
   tsrust test [files/directories] [options]
@@ -170,6 +174,8 @@ fn run() -> Result<u8, String> {
     if matches!(command.as_str(),"add"|"update"|"features"|"remove"|"packages") {return package_cli::run(&command,args);}
     if command=="bindings" {return rust_bindings::resolve(args);}
     if command=="dev" {return dev_cli::run(args);}
+    if command=="cache" {return cache_cli::run(args);}
+    if command=="ui" {return ui_cli::run(args);}
     if command=="new" {return new_cli::run(args);}
     let (arguments,program_arguments)=split_program_arguments(&command,args.collect());
     let (arguments,project_root)=project_config::defaults(&command,arguments)?;

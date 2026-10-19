@@ -1,10 +1,10 @@
 # UI application system: source ownership, themes and offline distribution
 
-Status: researched implementation contract, 2026-10-18. This reconciles the owner's
-current direction with UI_VISION.md sections 6, 18 and 19. It does not claim that
-the described catalog or theme system is implemented. Continue from this contract
-without another planning approval. Existing ownership, cancellation and resource
-acceptance remains authoritative.
+Status: implemented application contract, 2026-10-18; focused acceptance is
+recorded in the current handoff. This reconciles the owner's direction with
+UI_VISION.md sections 6, 18 and 19. See the application guide for exact supported
+boundaries. Existing ownership, cancellation and resource acceptance remains
+authoritative; subsequent controls and routing work needs no planning approval.
 
 ## Product experience
 
@@ -149,7 +149,7 @@ with its recorded supported toolchain. New catalog versions do not rewrite it.
 
 ## Coherent implementation and acceptance
 
-The next complete section connects configuration, theme validation, shared styling,
+The completed application section connects configuration, theme validation, shared styling,
 editable Button/Card source, embedded catalog installation, compatibility records,
 compiler forwarding support, LSP and the standalone project. It is complete only
 when a user can install offline, edit a component, change the theme, and see the

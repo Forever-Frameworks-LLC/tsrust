@@ -71,6 +71,10 @@ pub(crate) const DOCUMENT: NativeBinding = NativeBinding {
     },
     ..TEXT
 };
+pub(crate) const THEME:NativeBinding=NativeBinding{name:"theme",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("config",NativeType::String,Mode::Read),parameter("mode",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_theme"},..TEXT};
+
+pub(crate) const DISABLED_BINDING:NativeBinding=NativeBinding{name:"bindDisabled",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("predicate",NativeType::OwnedBooleanCallback,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_bind_disabled"},..TEXT};
+
 pub(crate) const RUN: NativeBinding = NativeBinding {
     name: "run",
     parameters: &[
@@ -96,10 +100,11 @@ pub(crate) const PRESS_BUTTON:NativeBinding=NativeBinding{name:"button",paramete
 pub(crate) fn runtime(with_native: bool) -> String {
     let native =
         include_str!("../../../../tsrust-ui/src/native.rs").replace("use crate::{", "use super::{");
-    let style = include_str!("../../../../tsrust-ui/src/style.rs");
+    let style = include_str!("../../../../tsrust-ui/src/style.rs").replace("crate::theme", "super::theme");
+    let theme=include_str!("../../../../tsrust-ui/src/theme.rs").replace("include_str!(\"theme.json\")", &format!("{:?}",include_str!("../../../../tsrust-ui/src/theme.json")));
     let web = include_str!("../../../../tsrust-ui/src/web.rs")
         .replace("use crate::{", "use super::{")
-        .replace("crate::style::", "super::style::");
+        .replace("crate::style::", "super::style::").replace("crate::theme::", "super::theme::");
     let body=include_str!("../../../../tsrust-ui/src/lib.rs")
         .replace("#[cfg(feature = \"native\")]\nmod native;",if with_native {"__UI_NATIVE__"} else {""})
         .replace("__UI_NATIVE__",&format!("#[cfg(not(target_arch=\"wasm32\"))] mod native {{\n{native}\n}}"))
@@ -107,7 +112,8 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("#[cfg(feature = \"acceptance\")]\n#[doc(hidden)]\npub use native::verify_window;",if with_native {"#[cfg(feature = \"ui-acceptance\")] pub use native::verify_window;"}else{""})
         .replace("pub mod browser;",&format!("pub mod browser {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/browser.rs").replace("use crate::{", "use super::{")))
         .replace("mod state;", &format!("mod state {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/state.rs")))
-        .replace("mod style;",&format!("mod style {{\n{style}\n}}"))
+        .replace("pub mod style;",&format!("pub mod style {{\n{style}\n}}"))
+        .replace("pub mod theme;",&format!("pub mod theme {{\n{theme}\n}}"))
         .replace("mod web;",&format!("mod web {{\n{web}\n}}"))
 
         .replace("feature = \"acceptance\"","feature = \"ui-acceptance\"");

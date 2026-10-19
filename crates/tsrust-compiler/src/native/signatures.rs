@@ -97,6 +97,7 @@ pub enum Intrinsic {
     ProgramVoidCallback,
     ProgramReusableVoidCallback,
     OwnedVoidCallback,
+    OwnedBooleanCallback,
     SharedCallback,
     ObservedValue,
 }
@@ -207,6 +208,7 @@ impl Signature {
             Self::Int => Some("int"), Self::Number => Some("number"), Self::Void => Some("void"), Self::Null => Some("null"),
             Self::Intrinsic(Intrinsic::ProgramReusableVoidCallback) => Some("Mutable<Function<void>>"),
             Self::Intrinsic(Intrinsic::ProgramVoidCallback) => Some("Owned<Function<void>>"),
+            Self::Intrinsic(Intrinsic::OwnedBooleanCallback) => Some("Owned<Function<boolean>>"),
             Self::Intrinsic(Intrinsic::OwnedVoidCallback) => Some("Owned<Function<void>>"),
             Self::Intrinsic(Intrinsic::SharedCallback) => Some("Function"),
             Self::Intrinsic(Intrinsic::ObservedValue) => Some("unknown"),
@@ -249,6 +251,7 @@ impl Signature {
                         Self::Intrinsic(intrinsic) => output.push_str(match intrinsic {
                             Intrinsic::ProgramReusableVoidCallback => "Mutable<Function<void>>",
                             Intrinsic::ProgramVoidCallback | Intrinsic::OwnedVoidCallback => "Owned<Function<void>>",
+                            Intrinsic::OwnedBooleanCallback => "Owned<Function<boolean>>",
                             Intrinsic::SharedCallback => "Function",
                             Intrinsic::ObservedValue => "unknown",
                         }),

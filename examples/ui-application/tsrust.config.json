@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "name": "ui-application",
+  "build": {
+    "entry": "native.tsr",
+    "output": "target/ui-application"
+  },
+  "ui": {
+    "theme": "ui.theme.json",
+    "components": "components/ui",
+    "lock": "ui-components.lock.json"
+  }
+}

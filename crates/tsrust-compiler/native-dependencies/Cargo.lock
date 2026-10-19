@@ -4223,6 +4223,7 @@ dependencies = [
  "bigdecimal",
  "chrono",
  "chrono-tz",
+ "color",
  "futures-core",
  "getrandom 0.4.3",
  "http-body",

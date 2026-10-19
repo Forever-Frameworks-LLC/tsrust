@@ -1,0 +1,13 @@
+import { withTheme, document } from 'std:ui';
+import theme from './ui.theme.json';
+import { Page } from './app/page';
+import { strictEqual } from 'std:testing';
+
+function main() {
+  const node = withTheme(Page(), theme, 'dark');
+  const html = document(node, 'Project UI');
+  strictEqual(html.includes('Count: 0'), true);
+  strictEqual(html.includes('--ui-background:#0f172a'), true);
+  strictEqual(html.includes('border-radius:12px'), true);
+  console.log('project-ui-ok');
+}

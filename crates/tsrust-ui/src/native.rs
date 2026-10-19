@@ -1,5 +1,5 @@
 //! The event loop owns the surface, renderer and window. No global window registry.
-use crate::{Kind, Node, style::Utility};
+use crate::{Kind, Node, style::{Utility,State}};
 use parley::{Alignment, AlignmentOptions, FontContext, FontWeight, Layout, LayoutContext, PositionedLayoutItem, StyleProperty};
 use std::sync::{Arc, Mutex};
 use taffy::prelude::*;
@@ -44,10 +44,17 @@ struct Item {
     color: [u8; 3],
     background: Option<[u8; 3]>,
     radius: f64,
+    border: f64,
+    border_color: [u8;3],
+    ring: [u8;3],
+    align: u8,
     disabled: bool,
     children: Vec<Item>,
 }
 struct Painter {
+    hover: std::collections::BTreeSet<u64>,
+    pressed_nodes: std::collections::BTreeSet<u64>,
+    focus: Option<u64>,
     fonts: FontContext,
     layouts: LayoutContext<()>,
     tree: TaffyTree<Layout<()>>,
@@ -55,17 +62,26 @@ struct Painter {
 impl Painter {
     fn new() -> Self {
         Self {
+            hover: Default::default(), pressed_nodes:Default::default(), focus: None,
             fonts: FontContext::new(),
             layouts: LayoutContext::new(),
             tree: TaffyTree::new(),
         }
     }
-    fn node(&mut self, node: &Node, mut inherited: TextStyle) -> Result<Item, String> {
+    fn node(&mut self,node:&Node,inherited:TextStyle)->Result<Item,String> {
+        self.themed_node(node,inherited,&super::theme::Theme::default(),"light",&mut 1)
+    }
+    fn themed_node(&mut self, node: &Node, mut inherited: TextStyle, theme:&super::theme::Theme, mode:&str, next:&mut u64) -> Result<Item, String> {
+        let id=*next;*next+=1;
+        let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));
+        if node.theme.is_some() {inherited.size=theme.typography.base as f32;inherited.color=theme.color(mode,"foreground")?;}
+
         let mut style = Style {
             flex_direction: FlexDirection::Column,
             ..Style::default()
         };
-        let (mut background, mut radius) = (None, 0.);
+        let (mut background, mut radius) = (node.theme.as_ref().map(|_|theme.color(mode,"background").unwrap()), 0.);
+        let (mut border,mut border_color,mut ring,mut align)=(0.,theme.color(mode,"border")?,theme.color(mode,"ring")?,if matches!(node.kind,Kind::Button|Kind::DisabledButton){1}else{0});
         if matches!(node.kind,Kind::DisabledButton|Kind::Button) {
             style.padding = Rect {
                 left: length(16.),
@@ -74,35 +90,26 @@ impl Painter {
                 bottom: length(8.),
             };
         }
-        for token in node.class_name.split_whitespace() {
-            match Utility::parse(token).expect("validated utility") {
-                Utility::Row => style.flex_direction = FlexDirection::Row,
-                Utility::Column => style.flex_direction = FlexDirection::Column,
-                Utility::Gap(v) => {
-                    style.gap = Size {
-                        width: length(v),
-                        height: length(v),
-                    }
-                }
-                Utility::Padding(v) => {
-                    style.padding = Rect {
-                        left: length(v),
-                        right: length(v),
-                        top: length(v),
-                        bottom: length(v),
-                    }
-                }
-                Utility::FontSize(v) => inherited.size = v,
-                Utility::Bold => inherited.bold = true,
-                Utility::Foreground(v) => inherited.color = v,
-                Utility::Background(v) => background = Some(v),
-                Utility::Rounded(v) => radius = v as f64,
+        for (state,utility) in super::style::resolved(&node.class_name,theme,mode) {
+            if !match state {State::Base=>true,State::Hover=>self.hover.contains(&id) && node.kind!=Kind::DisabledButton,State::Active=>self.pressed_nodes.contains(&id) && node.kind!=Kind::DisabledButton,State::Focus=>self.focus==Some(id),State::Disabled=>node.kind==Kind::DisabledButton} {continue;}
+            match utility {
+                Utility::Row=>style.flex_direction=FlexDirection::Row,
+                Utility::Column=>style.flex_direction=FlexDirection::Column,
+                Utility::Gap(v)=>style.gap=Size{width:length(v),height:length(v)},
+                Utility::PaddingX(v)=>{style.padding.left=length(v);style.padding.right=length(v);},
+                Utility::PaddingY(v)=>{style.padding.top=length(v);style.padding.bottom=length(v);},
+                Utility::FontSize(v)=>inherited.size=v,Utility::Bold(v)=>inherited.bold=v,
+                Utility::Foreground(v)=>inherited.color=v,Utility::Background(v)=>background=Some(v),
+                Utility::Rounded(v)=>radius=v as f64,Utility::BorderWidth(v)=>{border=v as f64;style.border=Rect{left:length(v),right:length(v),top:length(v),bottom:length(v)};},
+                Utility::BorderColor(v)=>border_color=v,Utility::Ring(v)=>ring=v,Utility::Align(v)=>align=v,
+                Utility::Items(v)=>style.align_items=match v {0=>AlignItems::FLEX_START,1=>AlignItems::CENTER,_=>AlignItems::STRETCH},
+                Utility::Justify(v)=>style.justify_content=match v {0=>JustifyContent::FLEX_START,1=>JustifyContent::CENTER,_=>JustifyContent::SPACE_BETWEEN},
             }
         }
         let children = node
             .children
             .iter()
-            .map(|child| self.node(child, inherited))
+            .map(|child| self.themed_node(child, inherited,theme,mode,next))
             .collect::<Result<Vec<_>, _>>()?;
         let (text, id) = if node.kind == Kind::View {
             (
@@ -137,6 +144,7 @@ impl Painter {
             color: inherited.color,
             background,
             radius,
+            border,border_color,ring,align,
             disabled: node.kind == Kind::DisabledButton,
             children,
         })
@@ -149,6 +157,7 @@ impl Painter {
         focus: Option<u64>,
     ) -> Result<(Scene, accesskit::TreeUpdate), String> {
         self.tree.clear();
+        self.focus=focus;
         let mut root = self.node(node, TextStyle::default())?;
         let mut root_style = self.tree.style(root.id).map_err(|e| e.to_string())?.clone();
         root_style.size.width = length(width);
@@ -291,9 +300,15 @@ impl Painter {
                 ),
             );
         }
+        if item.border>0. {
+            let [r,g,b]=item.border_color;
+            scene.stroke(&vello::kurbo::Stroke::new(item.border),transform,Color::from_rgb8(r,g,b),None,
+                &RoundedRect::new(x+item.border/2.,y+item.border/2.,x+layout.size.width as f64-item.border/2.,y+layout.size.height as f64-item.border/2.,item.radius));
+        }
         if let Some(text) = &mut item.text {
-            layout_text(text, layout.size.width - layout.padding.left - layout.padding.right,
+            layout_text(text, layout.size.width - layout.padding.left - layout.padding.right - layout.border.left - layout.border.right,
                 matches!(item.role, Kind::Button | Kind::DisabledButton));
+            text.align(match item.align {1=>Alignment::Center,2=>Alignment::End,_=>Alignment::Start},AlignmentOptions::default());
             let [r, g, b] = item.color;
             let color = Color::from_rgba8(r, g, b, (alpha * 255.) as u8);
             for line in text.lines() {
@@ -312,8 +327,8 @@ impl Painter {
                             .transform(
                                 transform
                                     * Affine::translate((
-                                        x + layout.padding.left as f64,
-                                        y + layout.padding.top as f64,
+                                        x + (layout.padding.left + layout.border.left) as f64,
+                                        y + (layout.padding.top + layout.border.top) as f64,
                                     )),
                             )
                             .brush(color)
@@ -333,8 +348,8 @@ impl Painter {
             self.paint(child, scene, x, y, scale, focus, next)?;
         }
         if focus == Some(id) && item.role == Kind::Button {
-            scene.stroke(&vello::kurbo::Stroke::new(2.), transform, Color::from_rgb8(23,32,51), None,
-                &RoundedRect::new(x, y, x + layout.size.width as f64, y + layout.size.height as f64, item.radius));
+            scene.stroke(&vello::kurbo::Stroke::new(2.), transform, Color::from_rgb8(item.ring[0],item.ring[1],item.ring[2]), None,
+                &RoundedRect::new(x-3., y-3., x + layout.size.width as f64+3., y + layout.size.height as f64+3., item.radius+3.));
         }
         if item.disabled {
             scene.pop_layer();
@@ -401,6 +416,15 @@ impl App {
         self.active.as_ref().map(|active|active.snapshot.lock().unwrap().nodes.iter()
             .filter(|(_,n)|n.role()==accesskit::Role::Button && !n.is_disabled())
             .filter_map(|(id,n)|n.bounds().map(|bounds|(id.0,bounds))).collect()).unwrap_or_default()
+    }
+    fn pointer_nodes(&self)->std::collections::BTreeSet<u64> {
+        self.active.as_ref().map(|active|active.snapshot.lock().unwrap().nodes.iter().filter_map(|(id,node)|node.bounds().filter(|r|self.pointer.0>=r.x0 && self.pointer.0<r.x1 && self.pointer.1>=r.y0 && self.pointer.1<r.y1).map(|_|id.0)).collect()).unwrap_or_default()
+    }
+    fn pressed_nodes(&self)->std::collections::BTreeSet<u64> {
+        let mut ids=std::collections::BTreeSet::new();let Some(mut current)=self.pressed.or(self.key_pressed) else{return ids;};
+        let Some(active)=&self.active else{return ids;};let snapshot=active.snapshot.lock().unwrap();
+        let parents=snapshot.nodes.iter().flat_map(|(id,node)|node.children().iter().map(move|child|(child.0,id.0))).collect::<std::collections::BTreeMap<_,_>>();
+        while ids.insert(current) {let Some(parent)=parents.get(&current) else{break;};current=*parent;}ids
     }
     fn hit(&self)->Option<u64> {
         self.buttons().into_iter().find(|(_,r)|self.pointer.0>=r.x0 && self.pointer.0<r.x1 && self.pointer.1>=r.y0 && self.pointer.1<r.y1).map(|(id,_)|id)
@@ -473,6 +497,7 @@ impl App {
         Ok(())
     }
     fn draw(&mut self) -> Result<bool, String> {
+        self.painter.hover=self.pointer_nodes();self.painter.pressed_nodes=self.pressed_nodes();
         let Some(active) = &mut self.active else {
             return Ok(false);
         };
@@ -492,6 +517,7 @@ impl App {
         if let Some((_, root)) = snapshot.nodes.iter_mut().find(|(id, _)| id.0 == 0) {
             root.set_label(self.title.clone());
         }
+        if self.focus.is_some_and(|id|!snapshot.nodes.iter().any(|(node_id,node)|node_id.0==id && node.role()==accesskit::Role::Button && !node.is_disabled())) {self.focus=None;self.key_pressed=None;}
         snapshot.focus=accesskit::NodeId(self.focus.unwrap_or(0));
         *active.snapshot.lock().unwrap() = snapshot.clone();
         active.accessibility.update_if_active(|| snapshot);
@@ -504,7 +530,7 @@ impl App {
                 &scene,
                 &active.surface.target_view,
                 &RenderParams {
-                    base_color: Color::WHITE,
+                    base_color: {let theme=self.node.theme.as_ref();let default=super::theme::Theme::default();let (theme,mode)=theme.map(|(t,m)|(t,m.as_str())).unwrap_or((&default,"light"));let [r,g,b]=theme.color(mode,"background")?;Color::from_rgb8(r,g,b)},
                     width: size.width,
                     height: size.height,
                     antialiasing_method: AaConfig::Msaa16,
@@ -588,7 +614,8 @@ impl ApplicationHandler<accesskit::ActionRequest> for App {
             active.accessibility.process_event(&active.window, &event);
         }
         match event {
-            WindowEvent::CursorMoved{position,..}=>self.pointer=(position.x,position.y),
+            WindowEvent::CursorMoved{position,..}=>{self.pointer=(position.x,position.y);if let Some(active)=&self.active {active.window.request_redraw();}},
+            WindowEvent::CursorLeft{..}=>{self.pointer=(-1.,-1.);if let Some(active)=&self.active {active.window.request_redraw();}},
             WindowEvent::ModifiersChanged(modifiers)=>self.shift=modifiers.state().shift_key(),
             WindowEvent::Focused(false)=>{self.pressed=None;self.key_pressed=None;self.focus=None;},
             WindowEvent::MouseInput{state,button:MouseButton::Left,..}=>{
@@ -652,7 +679,7 @@ pub fn verify_window(node: Node, title: String) -> Result<(), String> {
 fn run_window(node: Node, title: String, close_after_frame: bool) -> Result<(), String> {
     let event_loop = EventLoop::<accesskit::ActionRequest>::with_user_event().build().map_err(|e| e.to_string())?;
     let mut app = App {
-        proxy: event_loop.create_proxy(), pointer:(0.,0.),pressed:None,focus:None,shift:false,key_pressed:None,
+        proxy: event_loop.create_proxy(), pointer:(-1.,-1.),pressed:None,focus:None,shift:false,key_pressed:None,
         close_after_frame,
         presented: false,
         #[cfg(feature = "acceptance")]
@@ -803,4 +830,19 @@ mod presentation_tests {
             previous=Some((bounds.y0,bounds.height()));
         }
     }
+}
+
+#[cfg(test)]mod project_theme_tests {
+ use super::*;
+ #[test]fn project_tokens_drive_layout_paint_and_interaction_states() {
+  let mut value:serde_json::Value=serde_json::from_str(super::super::theme::DEFAULT_JSON).unwrap();
+  value["dark"]["primary"]="#123456".into();value["dark"]["accent"]="#654321".into();value["radius"]["md"]=13.into();value["spacing"]["md"]=21.into();value["typography"]["base"]=19.into();
+  let button=Node::button("Centered".into(),"p-4 px-2 bg-primary hover:bg-accent focus:bg-secondary rounded border border-border".into(),false,||Ok(())).unwrap();
+  let root=Node::new(Kind::View,String::new(),String::new(),vec![button]).unwrap().with_theme(&value.to_string(),"dark").unwrap();
+  let mut painter=Painter::new();let item=painter.node(&root,TextStyle::default()).unwrap();let button=&item.children[0];
+  assert_eq!(button.background,Some([0x12,0x34,0x56]));assert_eq!(button.radius,13.);assert_eq!(button.border,1.);assert_eq!(button.align,1);
+  let style=painter.tree.style(button.id).unwrap();assert_eq!(style.padding.top,length(21.));assert_eq!(style.padding.left,length(8.));
+  painter.hover.insert(2);let hovered=painter.node(&root,TextStyle::default()).unwrap();assert_eq!(hovered.children[0].background,Some([0x65,0x43,0x21]));
+  painter.focus=Some(2);let focused=painter.node(&root,TextStyle::default()).unwrap();assert_eq!(focused.children[0].background,Some([0x33,0x41,0x55]));
+ }
 }

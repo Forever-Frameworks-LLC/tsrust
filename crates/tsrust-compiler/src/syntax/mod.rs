@@ -1049,6 +1049,7 @@ pub struct Expr {
     pub(crate) schema_invocations: Option<Box<[usize]>>,
     /// A checked string-category proof for this JSON read, without changing storage.
     pub(crate) json_string_view: bool,
+    pub(crate) moved_spread: bool,
     /// Original source argument count, before optional padding or rest packing.
     pub supplied_count: Option<CallArgumentCount>,
     /// Specialized callback body used by the enclosing array traversal.
@@ -1479,6 +1480,7 @@ impl Expr {
             target: None,
             schema_invocations: None,
             json_string_view: false,
+            moved_spread: false,
             traversal_method: None,
             may_fail: false,
             own_may_fail: false,

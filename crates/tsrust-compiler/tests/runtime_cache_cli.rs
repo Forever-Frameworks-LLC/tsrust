@@ -28,3 +28,17 @@ fn repeated_project_runs_reuse_default_persistent_cache() {
   assert_eq!(output.stdout,b"Hello from counter!\n");
  }
 }
+
+#[test]
+fn project_theme_edits_reuse_runtime_support() {
+ let dir=support::TempDirectory::new();let root=&dir.0;let cache=root.join("cache");
+ fs::write(root.join("tsrust.config.json"),r#"{"ui":{"theme":"ui.theme.json","components":"components/ui","lock":"ui.lock.json"}}"#).unwrap();
+ let source="import {withTheme,Text,document} from 'std:ui';import theme from './ui.theme.json';function main(){console.log(document(withTheme(<Text>Theme</Text>,theme),'UI'));}";
+ let entry=root.join("main.tsrx");fs::write(&entry,support::format_round_trip(source)).unwrap();let binary=root.join("program");
+ for (index,color) in ["#123456","#654321"].iter().enumerate() {
+  fs::write(root.join("ui.theme.json"),tsrust_compiler::ui_project::theme::DEFAULT_JSON.replacen("#ffffff",color,1)).unwrap();
+  let output=support::run(support::cli().args(["build",entry.to_str().unwrap(),"-o",binary.to_str().unwrap()]).env("TSRUST_CACHE_DIR",&cache).env("TSRUST_BUILD_TIMINGS","1"),120);support::success(&output);
+  let log=String::from_utf8_lossy(&output.stderr);assert!(log.contains(if index==0{"runtime=miss"}else{"runtime=hit"}),"{log}");
+  let output=support::run(&mut std::process::Command::new(&binary),10);support::success(&output);assert!(String::from_utf8(output.stdout).unwrap().contains(color));
+ }
+}

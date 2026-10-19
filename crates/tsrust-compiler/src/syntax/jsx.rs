@@ -75,8 +75,12 @@ impl Parser<'_> {
             Work::JsxAttributes(mut frame) => {
                 if self.accept("/>") { self.jsx_finish(frame,machine)?; }
                 else if self.accept(">") { machine.work.push(Work::JsxChildren(frame)); }
+                else if self.accept("{") {
+                    let mut name=self.expect("...")?;name.text="record#spread".into();name.kind=TokenKind::JsxOpen;
+                    machine.request(Work::JsxAttribute(frame,Box::new(name)),Work::Parse(0));
+                }
                 else {
-                    let name=self.name()?;
+                    let mut name=self.name()?;name.kind=TokenKind::JsxOpen;
                     if name.text=="children" || frame.fields.iter().any(|(key,_)|key.text==name.text) {
                         return Err(Diagnostic::new("syntax","JSX attributes must be unique; children are supplied between the tags.",name.span));
                     }
@@ -86,6 +90,7 @@ impl Parser<'_> {
                         } else if self.peek().kind==TokenKind::String {
                             let value=self.take();
                             let text=entities(&value.text,value.span)?;
+                            if name.text=="className" {tsrust_ui::style::validate(&text).map_err(|message|Diagnostic::new("ui-class",message,value.span))?;}
                             frame.fields.push((name,Expr::new(ExprKind::String(text),value.span)));
                             machine.work.push(Work::JsxAttributes(frame));
                         } else { return Err(Diagnostic::new("syntax","Expected a quoted JSX attribute or {expression}.",self.peek().span)); }
@@ -98,6 +103,7 @@ impl Parser<'_> {
             }
             Work::JsxAttribute(mut frame,name) => {
                 let value=machine.value(); self.expect("}")?;
+                if name.text=="className" && let ExprKind::String(text)=&value.kind {tsrust_ui::style::validate(text).map_err(|message|Diagnostic::new("ui-class",message,value.span))?;}
                 frame.fields.push((*name,value)); machine.work.push(Work::JsxAttributes(frame));
             }
             Work::JsxChildren(mut frame) => {

@@ -1249,7 +1249,7 @@ impl Emitter<'_> {
         self.typed_runner_result(&call,span,closure)
     }
 
-    fn ui_press_adapter(&self,arguments:&[String],callback:Type,span:crate::Span)->String {
+    fn ui_callback(&self,callback:Type,span:crate::Span,success:&str)->String {
         let registered=match callback {
             Type::Callback(id)=>self.result_callbacks.borrow().get(&id).cloned(),
             Type::StoredCallable(id)=>self.result_storage.borrow().get(&id).cloned(),
@@ -1258,7 +1258,7 @@ impl Emitter<'_> {
         };
         let invocation="Callback::invoke(&mut registered_callback,())";
         let result=if let Some((name,contract))=registered {
-            let invocation=format!("{{let result:Result<(),{name}>={invocation};result}}");
+            let invocation=format!("{{let result:Result<{success},{name}>={invocation};result}}");
             let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
             let payloads=contract.native_payloads(&unions,runtime,span).expect("checked runner callback contract");
@@ -1271,7 +1271,11 @@ impl Emitter<'_> {
                 arms.push_str(&format!("{}::V{tag}(payload)=>{text},",exception_emit::constructor_path(&name)));
             }
             if arms.is_empty(){format!("{invocation}.map_err(|error|match error{{}})")}else{format!("{invocation}.map_err(|error|match &error{{{arms}}})")}
-        }else{format!("{{let result:()={invocation};Ok(result)}}")};
+        }else{format!("{{let result:{success}={invocation};Ok(result)}}")};
+        result
+    }
+    fn ui_press_adapter(&self,arguments:&[String],callback:Type,span:crate::Span)->String {
+        let result=self.ui_callback(callback,span,"()");
         format!("{{let label={};let class_name={};let disabled={};let mut registered_callback={};tsrust_ui_press_button(label,class_name,disabled,move ||{result})}}",arguments[0],arguments[1],arguments[2],arguments[3])
     }
     #[inline(never)]
@@ -8707,6 +8711,7 @@ impl Emitter<'_> {
                         let call=if binding.name=="beginSuite"{format!("tsrust_testing_begin_suite_result({})",arguments[0])}else if binding.name=="beginFile"{format!("tsrust_testing_begin_file_result({})",arguments[0])}else{"tsrust_testing_end_suite_result()".into()};
                         if let Some(call)=self.typed_runner_result(&call,expr.span,None){return call;}
                     }
+                    if binding.module=="std:ui-runtime" && binding.name=="bindDisabled" {let result=self.ui_callback(args[1].ty.expect("UI condition"),expr.span,"bool");return format!("{{let node={};let mut registered_callback={};tsrust_ui_bind_disabled(node,move ||{result})}}",arguments[0],arguments[1]);}
                     if binding.module=="std:ui-runtime" && binding.name=="button" { return self.ui_press_adapter(&arguments,args[3].ty.expect("UI handler"),expr.span); }
                     if binding.module=="std:path" && binding.name=="relative" {
                         let call=crate::native_emit::call(binding,arguments);

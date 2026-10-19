@@ -26,7 +26,8 @@ http-body-util = { version = "=0.1.5", optional = true }
 hyper-util = { version = "=0.1.21", optional = true, features = ["server-auto", "tokio", "service"] }
 tokio = { version = "=1.53.3", optional = true, features = ["rt-multi-thread", "time", "sync", "net", "signal"] }
 rayon = { version = "=1.11.0", optional = true }
-serde = "=1.0.229"
+color = "=0.3.3"
+serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = { version = "=1.0.151", features = ["raw_value"] }
 
 winit = { version = "=0.30.13", optional = true }

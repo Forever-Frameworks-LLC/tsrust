@@ -19,7 +19,7 @@ pub(super) fn step<'a>(analyzer:&mut Analyzer,context:&mut Context,mut task:Box<
         if let Some(mut input)=analyzer.next_object_spread_value(context,task.work.as_mut().unwrap(),task.expected){
             let span=input.value.span;
             let value=std::mem::replace(&mut input.value,Box::new(Expr::new(ExprKind::Undefined,span)));
-            let child=Task::Expression(ExpressionTask::new(Expression::Child(value),task.context,if input.spread{Mode::Read}else{Mode::Consume},task.loans.clone(),input.expected));
+            let child=Task::Expression(ExpressionTask::new(Expression::Child(value),task.context,if input.spread && !input.consume{Mode::Read}else{Mode::Consume},task.loans.clone(),input.expected));
             task.pending=Some(input);return Ok(Some(child));
         }
         analyzer.finish_object_spread_work(&mut task.expression,task.work.take().unwrap(),task.expected).map(|ty|task.expression.ty=Some(ty))?;Ok(None)

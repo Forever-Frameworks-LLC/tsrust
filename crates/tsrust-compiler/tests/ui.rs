@@ -77,9 +77,7 @@ fn direct_state_bindings_and_callback_capture_preserve_scopes() {
         let checked=check_graph(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap()).unwrap_or_else(|error|panic!("{construction}: {error:?}"));
         let rust=checked.emit_rust();assert!(rust.contains("tsrust_ui_handle"));
         if construction.contains("const factory") {
-            let rust_path=dir.0.join("nested.rs");let binary=dir.0.join("nested");std::fs::write(&rust_path,rust).unwrap();
-            let compiled=support::run(support::rustc().arg("--edition=2024").arg(&rust_path).arg("-o").arg(&binary),60);support::success(&compiled);
-            let output=support::run(&mut std::process::Command::new(binary),10);support::success(&output);
+            let output=support::run(support::cli().arg("run").arg(&path),90);support::success(&output);
             let output=String::from_utf8(output.stdout).unwrap();assert!(output.contains(">2</span>"));assert!(output.ends_with("9223372036854775807\n"));
         }
     }
@@ -92,4 +90,44 @@ fn direct_state_bindings_and_callback_capture_preserve_scopes() {
         let source=format!("import {{Text,signal,Node}} from 'std:ui';function Component():Node{{const count=signal(0);{construction}}}function main(){{}}");
         std::fs::write(&path,source).unwrap();assert!(load_project(&FileSourceProvider,path.to_str().unwrap()).and_then(check_graph).is_err());
     }
+}
+
+#[test]
+fn application_theme_local_components_and_prop_forwarding_are_checked() {
+ let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/ui-application");
+ let entry=root.join("web.tsr");let checked=check_graph(load_project(&FileSourceProvider,entry.to_str().unwrap()).unwrap()).unwrap();assert!(checked.emit_rust().contains("with_theme"));
+ let dir=support::TempDirectory::new();let entry=dir.0.join("main.tsrx");
+ for source in ["import {View} from 'std:ui';function main(){const n=<View className=\"unknown\"/>;}","import {View} from 'std:ui';function main(){const n=<View className={'unknown'}/>;}"] {std::fs::write(&entry,source).unwrap();let error=load_project(&FileSourceProvider,entry.to_str().unwrap()).unwrap_err();assert_eq!(error.code,"ui-class");}
+ let source="import {Button,ButtonProps,Node,document} from 'std:ui';function Forward(props:ButtonProps):Node{return <Button {...props} className=\"rounded\"/>;}function main(){const n=<Forward disabled>Done</Forward>;console.log(document(n,'Forward'));}";
+ std::fs::write(&entry,support::format_round_trip(source)).unwrap();check_graph(load_project(&FileSourceProvider,entry.to_str().unwrap()).unwrap()).unwrap();
+}
+
+#[test]
+fn state_dependent_disabled_condition_is_retained_and_not_a_snapshot() {
+ let dir=support::TempDirectory::new();let entry=dir.0.join("main.tsrx");
+ let source="import {Button,View,Node,signal,document} from 'std:ui';function Page():Node{const count=signal(0);return <View><Button onPress={()=>{count.set(count.get()+1);}}>Increment</Button><Button disabled={count.get() < 5} onPress={()=>{count.set(count.get()+100);}}>Disabled</Button></View>;}function main(){console.log(document(Page(),'Reactive'));}";
+ std::fs::write(&entry,support::format_round_trip(source)).unwrap();let checked=check_graph(load_project(&FileSourceProvider,entry.to_str().unwrap()).unwrap()).unwrap();let rust=checked.emit_rust();assert!(rust.contains("tsrust_ui_bind_disabled"));assert!(rust.contains("Result<bool"));
+ let output=support::run(support::cli().arg("run").arg(&entry),120);support::success(&output);assert!(String::from_utf8(output.stdout).unwrap().contains(" disabled class="));
+}
+
+#[test]
+fn configured_theme_validation_runs_for_checks_and_preserves_tolerant_headers() {
+ let dir=support::TempDirectory::new();std::fs::create_dir(dir.0.join("design")).unwrap();
+ std::fs::write(dir.0.join("tsrust.config.json"),r#"{"ui":{"theme":"design/tokens.json","components":"local/controls","lock":"ui.lock.json"}}"#).unwrap();
+ let source="import theme from './design/tokens.json';function main(){console.log(theme.schemaVersion);}";
+ let entry=dir.0.join("main.tsr");std::fs::write(&entry,support::format_round_trip(source)).unwrap();
+ let tokens=tsrust_compiler::ui_project::theme::DEFAULT_JSON;
+ std::fs::write(dir.0.join("design/tokens.json"),tokens.replacen("#2563eb","#12345680",1)).unwrap();
+ let error=load_project(&FileSourceProvider,entry.to_str().unwrap()).unwrap_err();assert_eq!(error.code,"ui-theme");assert!(error.location.source.0.ends_with("design/tokens.json"));
+ tsrust_compiler::project::load_project_headers(&FileSourceProvider,entry.to_str().unwrap()).unwrap();
+ std::fs::write(dir.0.join("design/tokens.json"),tokens).unwrap();check_graph(load_project(&FileSourceProvider,entry.to_str().unwrap()).unwrap()).unwrap();
+}
+
+#[test]
+fn installed_ui_compatibility_pins_block_incompatible_builds_without_rewriting() {
+ let dir=support::TempDirectory::new();let entry=dir.0.join("main.tsr");
+ std::fs::write(&entry,support::format_round_trip("function main(){console.log('owned source');}")).unwrap();
+ std::fs::write(dir.0.join("tsrust.config.json"),r#"{"ui":{"theme":"ui.theme.json","components":"components/ui","lock":"ui.lock.json"}}"#).unwrap();
+ let lock=serde_json::json!({"schemaVersion":1,"installed":[{"compilerApi":999,"runtimeAbi":"ui-application-1","rust":tsrust_compiler::RUST_BACKEND_VERSION,"compilerSha256":"a".repeat(64)}]}).to_string();
+ std::fs::write(dir.0.join("ui.lock.json"),&lock).unwrap();let error=load_project(&FileSourceProvider,entry.to_str().unwrap()).unwrap_err();assert!(error.message.contains("migrate explicitly"),"{error:?}");assert_eq!(std::fs::read_to_string(dir.0.join("ui.lock.json")).unwrap(),lock);
 }
