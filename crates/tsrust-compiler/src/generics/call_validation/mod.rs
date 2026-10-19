@@ -3,6 +3,7 @@ use crate::syntax::*;
 use crate::{Diagnostic, Span};
 use std::collections::{HashMap, HashSet};
 mod branch_flow;
+mod direct_calls;
 mod effect_bodies;
 mod once_environment_facts;
 #[cfg(test)]
@@ -341,7 +342,10 @@ pub(crate) fn validate(program: &Program) -> Result<Proofs, Diagnostic> {
         })?;
         let flow_started=trace.then(std::time::Instant::now);
         if trace {eprintln!("[source-flow] start {}",function.name.text);}
-        let branch_facts = branch_flow::analyze(&function, &bindings, &writes, &declarations, &effects)?;
+        let branch_facts = match direct_calls::facts(&function, &bindings, &declarations, &effects)? {
+            Some(facts)=>Some(facts),
+            None=>branch_flow::analyze(&function, &bindings, &writes, &declarations, &effects)?,
+        };
         if let Some(started)=flow_started {eprintln!("[source-flow] finish {} {:.1}ms",function.name.text,started.elapsed().as_secs_f64()*1000.);}
         let function_scope = function.scope_span;
         let direct_writes = function

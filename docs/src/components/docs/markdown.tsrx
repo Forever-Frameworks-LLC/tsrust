@@ -125,8 +125,22 @@ function linkTarget(destination: string, catalog: ReadOnly<DocCatalog>): string 
   throw 'Documentation link target is missing';
 }
 
+function renderExamples(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>): Child[] {
+  let blocks: Child[] = [];
+  for (const id of page.metadata.examples) {
+    for (const example of catalog.examples) {
+      if (id === example.id) {
+        blocks.push(<ExampleCard id={page.metadata.id + '-' + id} title={id.split('-').join(' ')} source={clone(example.source)} code={clone(example.code)} tokens={clone(example.tokens)}>{renderExample(clone(id))}</ExampleCard>);
+      }
+    }
+  }
+
+  return blocks;
+}
+
 function renderBlocks(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>, parent: int): Child[] {
   let blocks: Child[] = [];
+  let examplesInserted = false;
   let listItem = 0;
   let inlineItem = false;
   let column = 0;
@@ -146,6 +160,14 @@ function renderBlocks(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>, pa
     }
 
     const text = content(page.document.nodes, i);
+    if (parent === -1 && !examplesInserted && node.kind === 'heading' && node.level !== 1) {
+      for (const example of renderExamples(page, catalog)) {
+        blocks.push(example);
+      }
+
+      examplesInserted = true;
+    }
+
     if (node.kind === 'heading') {
       blocks.push(heading(inlineContent(page, catalog, i), node.level, page.metadata.id + '-' + node.anchor));
     } else if (node.kind === 'paragraph') {
@@ -201,18 +223,17 @@ function renderBlocks(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>, pa
     }
   }
 
+  if (parent === -1 && !examplesInserted) {
+    for (const example of renderExamples(page, catalog)) {
+      blocks.push(example);
+    }
+  }
+
   return blocks;
 }
 
 export function Markdown(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>): Node {
   let blocks = renderBlocks(page, catalog, -1);
-  for (const id of page.metadata.examples) {
-    for (const example of catalog.examples) {
-      if (id === example.id) {
-        blocks.push(<ExampleCard id={page.metadata.id + '-' + id} title={id.split('-').join(' ')} source={clone(example.source)} code={clone(example.code)} tokens={clone(example.tokens)}>{renderExample(clone(id))}</ExampleCard>);
-      }
-    }
-  }
 
   blocks.push(ApiReference(page, catalog));
   return (<View className="gap-5" children={blocks}/>);

@@ -43,6 +43,10 @@ export async function observeDocsComponents({evaluate,call,errors,site}) {
    await clickButton('[data-slot=route-page] button','Show source');await clickButton('[data-slot=route-page] button','Show preview');
    await evaluate(`document.querySelector('button[aria-label="Toggle light and dark theme"]').click()`);
    assert(await evaluate(`document.querySelector('#input-states-name')===retainedInput&&retainedInput.value==='Grace 🦀'`));
+   const colors=await evaluate(`(()=>{const error=document.querySelector('#input-states-error');return {foreground:getComputedStyle(error).color,background:getComputedStyle(error.closest('[data-slot=card]')).backgroundColor};})()`);
+   const luminance=value=>{const rgb=value.match(/[\d.]+/g).slice(0,3).map(component=>{const n=Number(component)/255;return n<=0.04045?n/12.92:((n+0.055)/1.055)**2.4;});return rgb[0]*0.2126+rgb[1]*0.7152+rgb[2]*0.0722;};
+   const a=luminance(colors.foreground),b=luminance(colors.background);assert((Math.max(a,b)+0.05)/(Math.min(a,b)+0.05)>=4.5,'Dark validation text meets AA contrast');
+
   }else if(name==='card'){
    await clickButton('[data-slot=route-page] button','Change access');assert(await evaluate(`document.querySelector('[data-slot=route-page]').textContent.includes('Shared workspace')`));
    await evaluate(`const field=document.querySelector('#card-project-name');field.value='';field.dispatchEvent(new Event('input',{bubbles:true}));`);
@@ -66,6 +70,8 @@ export async function observeDocsComponents({evaluate,call,errors,site}) {
   }
  }
  await clickLink('/docs/ui/components/card');
+ assert(await evaluate(`!!(document.querySelector('#component-card-card-layout-preview').compareDocumentPosition(document.querySelector('#component-card-install-and-import')) & Node.DOCUMENT_POSITION_FOLLOWING)`),'Preview precedes installation and reference text');
+ await evaluate(`document.querySelector('#component-card-card-layout-preview').scrollIntoView({block:'center'})`);
  fs.writeFileSync(path.join(site,'component-card.png'),Buffer.from((await call('Page.captureScreenshot',{format:'png'})).data,'base64'));
  assert.deepEqual(await evaluate('window.ui.mounts.map(mount=>mount.error())'),[null]);await evaluate('window.ui.dispose()');assert.equal(await evaluate(`document.querySelectorAll('[data-tsrust-node]').length`),0);assert.deepEqual(errors,[]);
  console.log(JSON.stringify({case:'local-component-documentation',status:'pass',pages:pages.length,examples:pages.flatMap(entry=>entry[1]).length,checks:['real routed previews','exact source and copy','controlled and retained values','disabled/read-only/invalid fields','label focus','separator geometry/AX','both themes','480px and 1280px controls','disposal'],timed:false}));

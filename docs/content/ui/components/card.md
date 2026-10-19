@@ -3,7 +3,7 @@
 -->
 # Card
 
-The current Card ports the portable content parts of the pinned Nova surface. Image edge variants, inline-size containment and container queries remain unsupported.
+Group related content and actions in a themed surface. Compose a header, body, optional action and footer; use the compact size when space is limited.
 
 ## Install and import
 
@@ -24,3 +24,7 @@ CardTitle is a layout container. Put a semantic heading inside it when the surro
 ## Customization
 
 The local source exposes shared utilities and `data-slot` metadata. Caller classes override default properties. `data-size` takes precedence over the convenience `size` prop. Unsupported utilities throw rather than silently disappearing.
+
+## Limits
+
+Image edge variants, inline-size containment and container queries remain unsupported. Use ordinary content children and explicit viewport layouts.

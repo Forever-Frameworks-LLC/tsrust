@@ -3,7 +3,7 @@
 -->
 # Input
 
-The current portable Input is a single-line text field with controlled/uncontrolled values, checked change snapshots and native text editing. It is a partial Nova implementation.
+Edit a single line of text. Control the value through application state, or let the field retain its own draft.
 
 ## Install and import
 
