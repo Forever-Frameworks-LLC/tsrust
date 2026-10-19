@@ -13,7 +13,7 @@
     "semanticElements": "accepted portable subset: tags, naming, roles, live content, hidden controls and orientation; arbitrary ARIA/HTML remains unsupported",
     "composedControls": "accepted portable foundation: owned mixed children, inline containers, optional handlers, noninteractive phrasing validation, exact owning array widening, resource-union clone rejection and inferred native callback identities",
     "editableStateAndIme": "pending",
-    "layoutAndTheme": "pending",
+    "layoutAndTheme": "accepted shared layout foundation: grid/flex, dimensions, placement, per-side spacing, source-ordered overrides and theme navigation; alpha colors, full Nova typography, clipping and structural selectors pending",
     "focusAndOverlays": "pending",
     "baseComponentComposition": "pending",
     "reactiveExpressions": "pending: computed strings/trees are construction-time snapshots; direct signals and disabled predicates refresh"

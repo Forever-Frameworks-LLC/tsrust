@@ -216,3 +216,39 @@ the wider owned array first, then borrow it if needed.
 Only direct Signal children bind updates. Computed strings/trees are construction-time
 snapshots; numeric/boolean/null children and dynamic conditional child trees are
 not provided as reactive rendering. See examples/ui-composition.
+
+## Shared layout
+
+Container display/track/wrap utilities require View or a composed Button; Text
+remains a text leaf and rejects them. Item sizing, padding and alignment still
+apply to text leaves. `View` defaults to a flex column. `flex`, `grid`, `flex-row`, `flex-col`,
+`flex-wrap` and `flex-nowrap` select layout. Grid columns/rows accept counts 1–12,
+`none`, `grid-cols-[1fr_auto]` and `grid-rows-[auto_auto]`. Numeric tracks divide
+space equally with zero minimum. `auto-rows-min` sizes implicit rows to minimum
+content. Child `col-start`/`row-start` use one-based lines 1–13; spans accept 1–12.
+Source, keyboard and accessibility order remain unchanged by visual placement.
+
+`p`, `px`, `py`, `pt`, `pr`, `pb`, `pl`, `gap`, `gap-x` and `gap-y` accept
+0, px, 1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64 and 96. Sizes 2/4/6 preserve
+spacing.sm/md/lg. Size 1 is sm/2; size 3 averages sm/md. Other numeric sizes use
+spacing.md/4 per unit. px means exactly one logical pixel. Combined utilities
+expand into independent sides/axes: `pl-6 p-4 pr-2` finishes with md left/top/bottom
+and sm right. Interaction states have their own overrides.
+
+`w`, `h`, `min-w`, `min-h`, `max-w`, `max-h` and `size` accept that scale, full and
+fractions 1/2, 1/3, 2/3, 1/4 and 3/4. size changes both preferred dimensions.
+Auto is supported except for maxima, where none removes the maximum. Min/max
+constraints still apply. Percentages use the parent content box; percentage height
+needs a definite parent height and otherwise behaves as auto. Root preferred and
+maximum widths are honored on native and web.
+
+`self-*` and `justify-self-*` accept start/center/end/stretch/auto. self controls the
+flex cross/grid block axis; justify-self controls grid inline alignment. grow/shrink
+use factor 1; grow-0/shrink-0 use 0. Wrapping and factors respect min/max sizes.
+Defaults match flex column containers with no explicit tracks/dimensions.
+
+Compiler checks, completion, hover, theme navigation, native Taffy and browser CSS
+share these rules. Unknown utilities fail explicitly. Arbitrary CSS, responsive
+breakpoints, named grid lines, subgrid, scrolling and general track expressions
+are unsupported. No layout utility duplicates or retains a child's owner. See
+examples/ui-layout for the paired custom-theme grid witness.

@@ -89,7 +89,9 @@ pub(crate) const PRESS_BUTTON:NativeBinding=NativeBinding{name:"button",paramete
 pub(crate) fn runtime(with_native: bool) -> String {
     let native =
         include_str!("../../../../tsrust-ui/src/native.rs").replace("use crate::{", "use super::{");
-    let style = include_str!("../../../../tsrust-ui/src/style.rs").replace("crate::theme", "super::theme");
+    let style = include_str!("../../../../tsrust-ui/src/style.rs")
+        .replace("mod layout;",&format!("mod layout {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/style/layout.rs")))
+        .replace("crate::theme", "super::theme");
     let theme=include_str!("../../../../tsrust-ui/src/theme.rs").replace("include_str!(\"theme.json\")", &format!("{:?}",include_str!("../../../../tsrust-ui/src/theme.json")));
     let web = include_str!("../../../../tsrust-ui/src/web.rs")
         .replace("use crate::{", "use super::{")
@@ -105,6 +107,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("pub mod theme;",&format!("pub mod theme {{\n{theme}\n}}"))
         .replace("mod web;",&format!("mod web {{\n{web}\n}}"))
 
+        .replace("feature=\"native\"","not(target_arch=\"wasm32\")")
         .replace("feature = \"acceptance\"","feature = \"ui-acceptance\"");
     format!("mod tsrust_native_ui {{\n{body}\n#[cfg(all(target_arch=\"wasm32\",feature=\"ui-web\"))] pub use browser::run;\n}}\n")
 }

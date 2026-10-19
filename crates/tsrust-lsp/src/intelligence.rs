@@ -3143,7 +3143,7 @@ impl SourceIndex {
         if let Some(answer)=self.ui_theme_request(method,offset,uri) {return Ok(answer);}
         if method=="textDocument/completion" && let Some(items)=self.ui_value_completion(offset) {return Ok(items);}
         if method=="textDocument/hover" && let Some((class,span))=self.ui_class_at(offset) {
-            return Ok(json!({"contents":{"kind":"markdown","value":format!("`{class}`\n\nShared web/native utility. Uses the enclosing Theme tokens. Later classes override earlier classes by property within each state. Unsupported utilities produce a compiler error. Ownership: does not change node ownership.")},"range":self.range(span)}));
+            return Ok(json!({"contents":{"kind":"markdown","value":tsrust_compiler::ui_project::style::documentation(&class)},"range":self.range(span)}));
         }
         if method == "textDocument/completion" && let Some(items) = self.schema_path_completion(offset) {
             return Ok(items);

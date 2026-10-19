@@ -99,9 +99,21 @@ impl Painter {
             match utility {
                 Utility::Row=>style.flex_direction=FlexDirection::Row,
                 Utility::Column=>style.flex_direction=FlexDirection::Column,
-                Utility::Gap(v)=>style.gap=Size{width:length(v),height:length(v)},
-                Utility::PaddingX(v)=>{style.padding.left=length(v);style.padding.right=length(v);},
-                Utility::PaddingY(v)=>{style.padding.top=length(v);style.padding.bottom=length(v);},
+                Utility::GapAxis(axis,v)=>{if axis==0{style.gap.height=length(v);}else{style.gap.width=length(v);}},
+                Utility::Padding(side,v)=>match side {0=>style.padding.top=length(v),1=>style.padding.right=length(v),2=>style.padding.bottom=length(v),_=>style.padding.left=length(v)},
+                Utility::Display(grid)=>style.display=if grid{Display::Grid}else{Display::Flex},
+                Utility::Dimension(property,value)=>{
+                    let value:LengthPercentageAuto=match value {super::style::Length::Pixels(v)=>length(v),super::style::Length::Percent(v)=>percent(v),super::style::Length::Auto|super::style::Length::None=>auto()};
+                    match property {0=>style.size.width=value.into(),1=>style.size.height=value.into(),2=>style.min_size.width=value,3=>style.min_size.height=value,4=>style.max_size.width=value,_=>style.max_size.height=value};
+                },
+                Utility::SelfAlign(axis,value)=>{let value=match value {0=>Some(AlignSelf::START),1=>Some(AlignSelf::CENTER),2=>Some(AlignSelf::END),3=>Some(AlignSelf::STRETCH),_=>None};if axis==0{style.align_self=value;}else{style.justify_self=value;}},
+                Utility::Shrink(v)=>style.flex_shrink=v,Utility::Grow(v)=>style.flex_grow=v,Utility::Wrap(v)=>style.flex_wrap=if v{FlexWrap::Wrap}else{FlexWrap::NoWrap},
+                Utility::Tracks(axis,count)=>{
+                    let tracks=match count {255=>vec![fr(1.),auto()],254=>vec![auto(),auto()],_=>vec![flex(1.);count as usize]};
+                    if axis==0{style.grid_template_columns=tracks;}else{style.grid_template_rows=tracks;}
+                },
+                Utility::Placement(property,count)=>match property {0=>style.grid_column.start=line(count as i16),1=>style.grid_column.end=span(count),2=>style.grid_row.start=line(count as i16),_=>style.grid_row.end=span(count)},
+                Utility::AutoRowsMin=>style.grid_auto_rows=vec![min_content()],
                 Utility::FontSize(v)=>inherited.size=v,Utility::Bold(v)=>inherited.bold=v,
                 Utility::Foreground(v)=>inherited.color=v,Utility::Background(v)=>background=Some(v),
                 Utility::Rounded(v)=>radius=v as f64,Utility::BorderWidth(v)=>{border=v as f64;style.border=Rect{left:length(v),right:length(v),top:length(v),bottom:length(v)};},
@@ -165,7 +177,7 @@ impl Painter {
         self.focus=focus;
         let mut root = self.node(node, TextStyle::default())?;
         let mut root_style = self.tree.style(root.id).map_err(|e| e.to_string())?.clone();
-        root_style.size.width = length(width);
+        if root_style.size.width.is_auto() {root_style.size.width = length(width);}
         self.tree.set_style(root.id, root_style).map_err(|e| e.to_string())?;
         self.tree
             .compute_layout_with_measure(
@@ -921,4 +933,26 @@ mod composed_button_tests {
         let parent=button.bounds().unwrap();let child=label.bounds().unwrap();
         assert!(((child.x0+child.x1)-(parent.x0+parent.x1)).abs()<0.1);
     }
+}
+
+#[cfg(test)] mod layout_tests {
+ use super::*;
+ fn view(classes:&str,children:Vec<Node>)->Node{Node::new(Kind::View,classes.into(),String::new(),children).unwrap()}
+ fn bounds(tree:&accesskit::TreeUpdate,id:u64)->accesskit::Rect{tree.nodes.iter().find(|(node,_)|node.0==id).unwrap().1.bounds().unwrap()}
+ #[test] fn equal_grid_tracks_spans_and_custom_theme_match_content_geometry() {
+  let mut theme=serde_json::from_str::<serde_json::Value>(super::super::theme::DEFAULT_JSON).unwrap();theme["spacing"]["md"]=20.into();
+  let root=view("grid grid-cols-2 gap-4 p-4",vec![view("min-w-0 h-8",vec![]),view("col-start-2 row-start-1 row-span-2",vec![]),view("col-start-1 row-start-2 h-8",vec![])]).with_theme(&theme.to_string(),"light").unwrap();
+  let mut painter=Painter::new();for width in [360.,640.,320.] {
+   let (_,tree)=painter.scene(&root,width,1.,None).unwrap();let a=bounds(&tree,2);let b=bounds(&tree,3);let c=bounds(&tree,4);
+   assert!((a.width()-(width as f64-60.)/2.).abs()<0.1);assert_eq!((a.x0,a.y0,a.height()),(20.,20.,40.));
+   assert_eq!(b.height(),100.);assert_eq!(b.y0,20.);assert_eq!(c.y0,80.);assert_eq!(c.x0,20.);
+   assert!(b.x0>a.x1);assert_eq!(tree.nodes.iter().filter(|(_,node)|node.supports_action(accesskit::Action::Focus)).count(),0);
+  }
+ }
+ #[test] fn preferred_root_sizes_bounds_percentages_and_padding_remain_distinct() {
+  let mut painter=Painter::new();let root=view("w-64 max-w-full h-8",vec![]);
+  for (width,expected) in [(400.,256.),(200.,200.)] {let (_,tree)=painter.scene(&root,width,1.,None).unwrap();assert_eq!(bounds(&tree,1).width(),expected);}
+  let root=view("w-1/2 size-8 w-1/2 min-h-16",vec![]);let (_,tree)=painter.scene(&root,400.,1.,None).unwrap();assert_eq!((bounds(&tree,1).width(),bounds(&tree,1).height()),(200.,64.));
+  let child=Node::new(Kind::Text,String::new(),"child".into(),vec![]).unwrap();let root=view("pl-6 p-4 pr-2",vec![child]);let (_,tree)=painter.scene(&root,400.,1.,None).unwrap();let child=bounds(&tree,2);assert_eq!((child.x0,child.y0,child.width()),(16.,16.,376.));
+ }
 }

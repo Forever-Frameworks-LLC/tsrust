@@ -112,6 +112,7 @@ impl Node {
         let mut node=Self::new(Kind::View,class_name,String::new(),children)?;
         node.kind=if disabled{Kind::DisabledButton}else{Kind::Button};node.press=press;Ok(node)
     }
+    #[cfg(any(test,feature="native"))]
     pub(crate) fn content_text(&self)->String {
         fn append(node:&Node,out:&mut String) {
             if node.semantics.hidden{return;}
@@ -148,6 +149,7 @@ impl Node {
         let mut node=Self::new(if disabled {Kind::DisabledButton}else{Kind::Button},class_name,text,vec![])?;
         node.press=Some(Box::new(press));Ok(node)
     }
+    #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
     pub(crate) fn refresh(&mut self) -> Result<usize,String> {
         let mut changed=0;
         if let Some(predicate)=&mut self.disabled {
@@ -163,6 +165,7 @@ impl Node {
         Ok(changed)
     }
     /// Stable preorder IDs belong to this mounted tree, with zero reserved for its window.
+    #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
     pub(crate) fn activate(&mut self, target: u64) -> Result<bool,String> {
         fn visit(node:&mut Node,target:u64,next:&mut u64)->Result<bool,String> {
             let id=*next;*next+=1;
@@ -188,6 +191,9 @@ impl Node {
             return Err("UI nesting exceeds 128 nodes".into());
         }
         style::validate(&class_name)?;
+        if (kind==Kind::Text || (matches!(kind,Kind::Button|Kind::DisabledButton) && !text.is_empty())) && style::requires_container(&class_name) {
+            return Err("Container layout utilities require View or composed Button children; Text remains a text leaf".into());
+        }
         match kind {
             Kind::View if !text.is_empty() => return Err("View text must be inside Text".into()),
             Kind::Text | Kind::DisabledButton | Kind::Button if !children.is_empty() => {

@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "name": "ui-layout",
+  "build": {
+    "entry": "main.tsr",
+    "output": "target/ui-layout"
+  },
+  "ui": {
+    "theme": {
+      "schemaVersion": 1,
+      "light": {
+        "background": "#ffffff",
+        "foreground": "#172033",
+        "card": "#ffffff",
+        "cardForeground": "@foreground",
+        "primary": "#2563eb",
+        "primaryForeground": "#ffffff",
+        "secondary": "#e2e8f0",
+        "secondaryForeground": "@foreground",
+        "muted": "#f1f5f9",
+        "mutedForeground": "#475569",
+        "accent": "#dbeafe",
+        "accentForeground": "@foreground",
+        "destructive": "#b91c1c",
+        "destructiveForeground": "#ffffff",
+        "border": "#cbd5e1",
+        "input": "@border",
+        "ring": "@primary"
+      },
+      "dark": {
+        "background": "#0f172a",
+        "foreground": "#f8fafc",
+        "card": "#1e293b",
+        "cardForeground": "@foreground",
+        "primary": "#60a5fa",
+        "primaryForeground": "#0f172a",
+        "secondary": "#334155",
+        "secondaryForeground": "@foreground",
+        "muted": "#1e293b",
+        "mutedForeground": "#cbd5e1",
+        "accent": "#1e3a8a",
+        "accentForeground": "@foreground",
+        "destructive": "#b91c1c",
+        "destructiveForeground": "#ffffff",
+        "border": "#475569",
+        "input": "@border",
+        "ring": "@primary"
+      },
+      "spacing": {
+        "sm": 8,
+        "md": 20,
+        "lg": 24
+      },
+      "radius": {
+        "sm": 4,
+        "md": 8,
+        "lg": 12
+      },
+      "typography": {
+        "base": 16,
+        "xl": 24
+      }
+    },
+    "components": "src/components/ui",
+    "lock": "ui-components.lock.json",
+    "target": {
+      "native": true,
+      "web": true,
+      "embedded": false
+    }
+  }
+}

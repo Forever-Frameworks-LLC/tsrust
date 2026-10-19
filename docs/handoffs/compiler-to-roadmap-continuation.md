@@ -72,6 +72,41 @@ pending Nova component/block as complete. Continue shared layout/theme capabilit
 and complete source families without another approval; preserve immutable legacy
 payloads and the standalone counter owner's source.
 
+## Current shared layout foundation — 2026-10-19
+
+The layout section implements grid/flex display, equal tracks, the two portable
+written track lists, starts/spans, per-side padding/gaps, preferred/min/max sizes,
+fractions, item alignment, wrapping and grow/shrink. p/px/py and size expand into
+independent properties so later source classes win correctly. Sizes 2/4/6 retain
+sm/md/lg; 1 uses sm/2, 3 averages sm/md and other numeric sizes use md/4 per unit.
+Native root preferred widths now survive window layout; max constraints still
+apply. Text leaves reject container display/track/wrap utilities explicitly;
+composed Buttons and Views can use them. Item dimensions/padding remain valid on
+Text. Conditional method compilation removes UI dependency warnings without blanket
+suppression; generated host and Wasm runtimes preserve their required methods.
+
+The shared utility provider owns validation, CSS/native values, documentation and
+theme references. Completion/hover describe real behavior and navigation reaches
+all contributing spacing fields. No new field/member types changed, so the
+accepted UI checker-agreement evidence remains applicable.
+
+Focused acceptance: five new layout/guard checks, the existing style merge check,
+two native presentation checks and the composed-button geometry check; generated
+native std:testing example and invalid-token witnesses; new/existing theme editor
+checks; grid completion in four typing modes. The editor fixture now actually
+scopes its imported theme, matching the API being navigated. Original failed build
+and fixture records are retained. Real Wasm Chromium grid placement, spans, resize,
+custom spacing, accessible region and disposal agree with the independent
+Node-after-tsc oracle at three widths. Fresh counter artifacts retain presentation;
+reuse the earlier complete counter input/disposal pass.
+
+See examples/ui-layout and the layout guide for exact supported sizes/limits.
+Arbitrary CSS, breakpoints, named lines, subgrid and scrolling remain unsupported.
+Alpha colors, Nova typography, clipping, structural selectors and complete Nova
+source components/blocks remain pending. No SQL, full regression or performance
+run was requested by this prerequisite section. Preserve the earlier evidence and
+continue implementation rather than repeating passed suites.
+
 ## Current terminal UI correction — 2026-10-18
 
 The owner rejected the numbered command dump as incomplete interactive CLI work.

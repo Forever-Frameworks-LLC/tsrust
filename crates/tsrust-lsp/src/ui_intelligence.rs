@@ -17,7 +17,7 @@ impl SourceIndex {
    let (state,word)=prefix.split_once(':').map_or(("",prefix),|(state,word)|(state,word));
    if !state.is_empty() && tsrust_compiler::ui_project::style::validate(&format!("{state}:p-0")).is_err(){return Some(json!([]));}
    let range=self.range(Span::new(start,offset));
-   let values=tsrust_compiler::ui_project::style::tokens().into_iter().map(|token|if state.is_empty(){token}else{format!("{state}:{token}")}).filter(|v|v.starts_with(prefix)).map(|value|json!({"label":value,"kind":12,"detail":"Shared web/native UI utility; later classes override earlier properties","textEdit":{"range":range,"newText":value}})).collect::<Vec<_>>();
+   let values=tsrust_compiler::ui_project::style::tokens().into_iter().map(|token|if state.is_empty(){token}else{format!("{state}:{token}")}).filter(|v|v.starts_with(prefix)).map(|value|json!({"label":value,"kind":12,"detail":"Shared web/native UI utility; later classes override earlier properties","documentation":{"kind":"markdown","value":tsrust_compiler::ui_project::style::documentation(&value)},"textEdit":{"range":range,"newText":value}})).collect::<Vec<_>>();
    let _=word;return Some(json!(values));
   }
   let (_,fields,_)=self.jsx_props(self.tokens[self.ui_attribute(token)?].span.end)?;let (_,ty)=fields.iter().find(|(name,_)|*name==field)?;

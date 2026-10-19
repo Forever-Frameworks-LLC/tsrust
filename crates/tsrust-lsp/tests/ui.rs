@@ -120,3 +120,13 @@ fn union_child_arrays_reject_resource_copying_in_editor() {
     let diagnostics=session.wait_for_diagnostics("main.tsrx");
     assert!(diagnostics.to_string().contains("clone-type"),"{diagnostics}");
 }
+
+#[test]
+fn layout_utility_help_and_theme_references_come_from_shared_rules() {
+    let config=serde_json::json!({"ui":tsrust_compiler::ui_project::Config::default()}).to_string();
+    let source="import {View,withTheme} from 'std:ui';import config from './tsrust.config.json';function main(){const node=withTheme(<View className=\"grid grid-cols-2 w-64 pl-3\"/>,config.ui.theme);}";
+    let mut session=support::session::Session::start(&[("tsrust.config.json",&config)]);session.open("main.tsrx",source);session.settle();
+    let at=source.find("grid-cols-2").unwrap()+4;let hover=session.hover("main.tsrx",source,at).unwrap_or_default();assert!(hover.contains("zero minimum"),"{hover}");
+    let at=source.find("w-64").unwrap()+2;let uri=session.uri("main.tsrx");let definitions=session.request("textDocument/definition",serde_json::json!({"textDocument":{"uri":uri},"position":{"line":0,"character":at}}));assert_eq!(definitions.as_array().unwrap().len(),1,"{definitions}");
+    let at=source.find("pl-3").unwrap()+2;let uri=session.uri("main.tsrx");let definitions=session.request("textDocument/definition",serde_json::json!({"textDocument":{"uri":uri},"position":{"line":0,"character":at}}));assert_eq!(definitions.as_array().unwrap().len(),2,"{definitions}");
+}

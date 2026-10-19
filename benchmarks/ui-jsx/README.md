@@ -23,3 +23,8 @@ untimed checks; no component-family timing result is implied.
 optional handlers, a reactive disabled control without a handler, actual listener
 ownership, accessible names, alignment and disposal against composition-reference.ts.
 It records untimed observations and source identities; it does not claim timing.
+
+`verify-layout.mjs <built-site>` checks the shared grid example against an independent
+Node-after-tsc geometry oracle at three viewport widths. Native Taffy checks cover
+the same custom spacing, grid placement and spans, plus preferred/min/max sizing,
+percentage widths and per-side padding precedence. These checks are untimed.

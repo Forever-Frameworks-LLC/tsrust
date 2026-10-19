@@ -33,6 +33,7 @@ export interface TextProps extends SemanticProps {
   /** Defaults to span. Heading levels are reflected in native accessibility. */
   as?: 'span' | 'div' | 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'code' | 'kbd';
   children?: TextChild[];
+  /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Later classes win per property/state. */
   className?: string;
 }
 
@@ -40,11 +41,13 @@ export interface ViewProps extends SemanticProps {
   /** Semantic container tag; defaults to div. */
   as?: 'div' | 'section' | 'span';
   children?: Child[];
+  /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Later classes win per property/state. */
   className?: string;
 }
 
 export interface ButtonProps extends ElementProps {
   children?: Child[];
+  /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Later classes win per property/state. */
   className?: string;
   disabled?: boolean | ReactiveBoolean;
   onPress?: Owned<Function<void>>;

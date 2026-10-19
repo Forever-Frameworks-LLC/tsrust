@@ -58,14 +58,7 @@ pub fn configured_theme(path:&Path,mut read:impl FnMut(&Path)->Result<Option<Str
 }
 
 /// Authoring references of a validated utility, independent of editor token tables.
-pub fn utility_theme_paths(class:&str)->Vec<Vec<String>> {
- if style::validate(class).is_err(){return vec![];}
- let token=class.rsplit(':').next().unwrap();
- let color=if token=="ring" {Some("ring")}else{token.strip_prefix("bg-").or_else(||token.strip_prefix("text-")).or_else(||token.strip_prefix("border-"))};
- if let Some(color)=color.filter(|color|theme::COLORS.contains(color)) {return ["light","dark"].into_iter().map(|mode|vec![mode.into(),theme::key_name(color)]).collect();}
- let field=if token=="rounded" {Some(("radius","md"))}else if token=="rounded-sm" {Some(("radius","sm"))}else if token=="rounded-lg" {Some(("radius","lg"))}else if let Some(size)=token.strip_prefix("text-").filter(|size|matches!(*size,"base"|"xl")) {Some(("typography",size))}else if let Some((prefix,size))=token.split_once('-') && matches!(prefix,"p"|"px"|"py"|"gap") {match size {"2"=>Some(("spacing","sm")),"4"=>Some(("spacing","md")),"6"=>Some(("spacing","lg")),_=>None}}else{None};
- field.into_iter().map(|(group,key)|vec![group.into(),key.into()]).collect()
-}
+pub fn utility_theme_paths(class:&str)->Vec<Vec<String>> {style::theme_paths(class)}
 
 pub const RUNTIME_ABI:&str="ui-application-1";
 pub const COMPILER_API:u64=1;

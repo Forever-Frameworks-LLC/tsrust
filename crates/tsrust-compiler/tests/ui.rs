@@ -166,3 +166,14 @@ fn composed_children_reject_copying_through_unions_and_infer_native_callbacks() 
         assert_eq!(error.code,"clone-type","{operation}: {error:?}");
     }
 }
+
+#[test]
+fn shared_grid_layout_and_custom_theme_execute_in_formatted_projects() {
+    let entry=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/ui-layout/inspect.tsr");
+    let output=support::run(support::cli().arg("run").arg(entry),120);support::success(&output);assert_eq!(output.stdout,b"UI layout passed\n");
+    let dir=support::TempDirectory::new();let path=dir.0.join("main.tsrx");
+    for class in ["grid-cols-0","grid-cols-13","col-span-13","max-w-auto","w-none","grid-cols-[2fr_1fr]"] {
+        std::fs::write(&path,format!("import {{View}} from 'std:ui';function main(){{const node=<View className=\"{class}\"/>;}}")).unwrap();
+        let error=load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap_err();assert_eq!(error.code,"ui-class","{class}: {error:?}");
+    }
+}

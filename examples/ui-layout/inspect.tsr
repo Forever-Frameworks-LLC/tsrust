@@ -1,0 +1,31 @@
+import { Screen } from './screen';
+import { document, Text } from 'std:ui';
+import { strictEqual } from 'std:testing';
+
+function main() {
+  const light = document(Screen(false), 'Light');
+  strictEqual(light.includes('display:grid'), true);
+  strictEqual(light.includes('grid-template-columns:repeat(2,minmax(0,1fr))'), true);
+  strictEqual(light.includes('padding-left:20px'), true);
+  strictEqual(light.includes('row-gap:20px'), true);
+  strictEqual(light.includes('grid-row-end:span 2'), true);
+  strictEqual(light.includes('height:40px'), true);
+  strictEqual(light.includes('background:#2563eb'), true);
+  const dark = document(Screen(true), 'Dark');
+  strictEqual(dark.includes('background:#60a5fa'), true);
+  const leaf = Text({
+    className: 'w-64 pl-3', children: ['Sized text']
+  });
+  strictEqual(document(leaf, 'Leaf').includes('width:256px'), true);
+  let rejected = false;
+  try {
+    const invalid = Text({
+      className: 'grid grid-cols-2', children: ['Not a container']
+    });
+  } catch (error) {
+    rejected = true;
+  }
+
+  strictEqual(rejected, true, 'Text container layout must fail explicitly');
+  console.log('UI layout passed');
+}
