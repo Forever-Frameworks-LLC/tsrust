@@ -26,7 +26,7 @@ try {
  timer=setTimeout(()=>browser.kill('SIGKILL'),45000);await call('Runtime.enable');await call('Page.enable');await call('Page.navigate',{url:`http://127.0.0.1:${server.address().port}/`});
  for(let i=0;i<100&&!await evaluate('Boolean(window.ui)');i++)await new Promise(resolve=>setTimeout(resolve,100));assert(await evaluate('Boolean(window.ui)'),JSON.stringify(errors));
  if(scenario==='docs') {
-  const {observeDocs}=await import('./docs-observer.mjs');await observeDocs({evaluate,call,errors,site});
+  const {observeDocs}=await import('./docs-observer.mjs');await observeDocs({evaluate,call,errors,site,expected});
  } else {
  const observed=[];
  async function snapshot(index){const value=await evaluate(`({count:document.querySelector('#count')?.textContent??null,draft:document.querySelector('#draft')?.value??null,mode:document.querySelector('#mode').textContent,source:!!document.querySelector('#source'),background:getComputedStyle(document.querySelector('#application')).backgroundColor})`);observed.push(value);const wanted={...expected.steps[index]};if(wanted.source){wanted.count=null;wanted.draft=null;}assert.deepEqual(value,wanted);assert.equal(await evaluate(`getComputedStyle(document.querySelector('#nested')).backgroundColor`),expected.nested);}

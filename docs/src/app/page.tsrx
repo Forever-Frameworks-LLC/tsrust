@@ -16,7 +16,7 @@ export function Page(): Node {
         <Button variant="outline" size="sm" onPress={() => { mode.set(mode.get() === 'light' ? 'dark' : 'light'); }}>Light / dark</Button>
       </View>
       <View className="flex-row grow min-h-0">
-        <View id="sidebar" role="region" aria-label="Documentation index" tabIndex={0} className="w-32 md:w-56 shrink-0 overflow-auto p-4 gap-4 border-r">
+        <View id="sidebar" role="region" aria-label="Documentation index" tabIndex={0} className="w-32 md:w-48 shrink-0 overflow-auto p-4 gap-4 border-r">
           <Text className="font-semibold">Foundations</Text>
           <Text className="text-sm text-muted-foreground">Shared web and native application</Text>
           <Separator />
@@ -32,9 +32,9 @@ export function Page(): Node {
           <Text className="text-sm text-muted-foreground">Component pages, routing, Markdown and search are being built. This screen exercises the shared application foundation.</Text>
         </View>
         <View id="article" role="region" aria-label="Documentation article" tabIndex={0} className="grow min-w-0 overflow-auto p-4 md:p-8">
-          <View className="max-w-192 gap-6">
+          <View className="max-w-full gap-6">
             <Text className="text-sm text-muted-foreground">UI / APPLICATION FOUNDATION</Text>
-            <Text as="h1" className="text-3xl font-semibold">One application. Two targets.</Text>
+            <Text as="h1" className="text-xl font-semibold">One application. Two targets.</Text>
             <Text className="text-muted-foreground">Editable local components, checked state and a shared layout. This is the beginning of the documentation application.</Text>
             <Card>
               <CardHeader>
@@ -42,7 +42,7 @@ export function Page(): Node {
                 <CardDescription>Change the counter, edit the draft, switch themes and resize the window.</CardDescription>
               </CardHeader>
               <CardContent className="gap-4">
-                <View id="preview" hidden={hidePreview.get()} className="h-40 overflow-auto"><Counter /></View>
+                <View id="preview" hidden={hidePreview.get()} className="h-32 overflow-auto"><Counter /></View>
                 <Button variant="outline" onPress={() => { hidePreview.set(!hidePreview.get()); }}>Hide / show preview</Button>
               </CardContent>
             </Card>

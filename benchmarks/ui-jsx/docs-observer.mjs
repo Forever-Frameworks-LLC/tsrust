@@ -2,21 +2,23 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-export async function observeDocs({evaluate,call,errors,site}) {
+export async function observeDocs({evaluate,call,errors,site,expected}) {
  await call('Emulation.setDeviceMetricsOverride',{width:800,height:480,deviceScaleFactor:2,mobile:false});
  const click=async text=>evaluate(`Array.from(document.querySelectorAll('button')).find(button=>button.textContent===${JSON.stringify(text)}).click()`);
- assert.equal(await evaluate(`document.querySelector('#example-count').textContent`),'Count: 0');
+ assert.equal(await evaluate(`document.querySelector('#example-count').textContent`),expected.steps[0].count);
  await click('Increment');
  await evaluate(`window.draft=document.querySelector('#example-draft');draft.value='Edited 🦀';draft.dispatchEvent(new Event('input',{bubbles:true}));draft.focus();document.querySelector('#preview').scrollTop=35;window.previewOffset=document.querySelector('#preview').scrollTop;`);
  assert(await evaluate('previewOffset>0'),'Example must have actual nested overflow');
  await click('Light / dark');
  assert(await evaluate(`document.querySelector('#example-draft')===draft&&document.activeElement===draft`),'Theme preserves DOM/focus');
  assert.equal(await evaluate(`getComputedStyle(document.querySelector('#docs')).backgroundColor`),'rgb(9, 9, 11)');
+ assert(await evaluate(`document.querySelector('#preview').scrollTop===previewOffset`),'Theme preserves preview offset');
  await click('Hide / show preview');assert.equal(await evaluate(`document.querySelector('#preview')!==null`),false);
  await click('Hide / show preview');
- assert(await evaluate(`document.querySelector('#preview').scrollTop===previewOffset&&document.querySelector('#example-draft')===draft`),'Retained preview keeps DOM and scroll position');
- assert.equal(await evaluate(`document.querySelector('#example-draft').value`),'Edited 🦀');
- assert.equal(await evaluate(`document.querySelector('#example-count').textContent`),'Count: 1');
+ const retained=await evaluate(`({offset:document.querySelector('#preview').scrollTop,expected:previewOffset,same:document.querySelector('#example-draft')===draft,client:document.querySelector('#preview').clientHeight,content:document.querySelector('#preview').scrollHeight})`);
+ assert(retained.offset===retained.expected&&retained.same,'Retained preview keeps DOM and scroll position: '+JSON.stringify(retained));
+ assert.equal(await evaluate(`document.querySelector('#example-draft').value`),expected.steps[1].draft);
+ assert.equal(await evaluate(`document.querySelector('#example-count').textContent`),expected.steps[1].count);
  const geometry=await evaluate(`(()=>{const article=document.querySelector('#article'),sidebar=document.querySelector('#sidebar');article.scrollTop=140;return {article:article.scrollTop,sidebar:sidebar.scrollTop,window:scrollY,height:document.querySelector('#docs').getBoundingClientRect().height,tab:article.tabIndex};})()`);
  assert.equal(geometry.article,140);assert.equal(geometry.sidebar,0);assert.equal(geometry.window,0);assert.equal(geometry.height,480);assert.equal(geometry.tab,0);
  // Real wheel input targets the article; sidebar remains independent.

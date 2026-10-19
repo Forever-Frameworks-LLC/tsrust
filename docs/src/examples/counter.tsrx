@@ -7,7 +7,7 @@ export function Counter(): Node {
   const count = signal(0);
   return (
     <View className="gap-4">
-      <Text id="example-count" className="text-2xl font-semibold">Count: {count}</Text>
+      <Text id="example-count" className="text-xl font-semibold">Count: {count}</Text>
       <View className="flex-row flex-wrap gap-2">
         <Button onPress={() => { count.set(count.get() + 1); }}>Increment</Button>
         <Button variant="outline" onPress={() => { count.set(count.get() - 1); }}>Decrement</Button>

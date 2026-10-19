@@ -1,15 +1,15 @@
 import { document } from 'std:ui';
-import { assert } from 'std:testing';
+import { strictEqual } from 'std:testing';
 import { Page } from './app/page';
 
 function main() {
   const html = document(Page(), 'Tsrust documentation');
-  assert(html.includes('One application. Two targets.'));
-  assert(html.includes('Count: 0'));
-  assert(html.includes('tabindex="0"'));
-  assert(html.includes('overflow:auto'));
-  assert(html.includes('100vh'));
-  assert(html.includes('aria-label="Documentation article"'));
-  assert(html.includes('aria-orientation="horizontal"'));
+  strictEqual(html.includes('One application. Two targets.'), true);
+  strictEqual(html.includes('Count: 0'), true);
+  strictEqual(html.includes('tabindex="0"'), true);
+  strictEqual(html.includes('overflow:auto'), true);
+  strictEqual(html.includes('100vh'), true);
+  strictEqual(html.includes('aria-label="Documentation article"'), true);
+  strictEqual(html.includes('aria-orientation="horizontal"'), true);
   console.log('Documentation foundation passed');
 }
