@@ -107,6 +107,50 @@ source components/blocks remain pending. No SQL, full regression or performance
 run was requested by this prerequisite section. Preserve the earlier evidence and
 continue implementation rather than repeating passed suites.
 
+## Current checked paint colors and surface rings — 2026-10-19
+
+The paint section adds alpha hex and checked in-gamut OKLCH, canonical semantic
+aliases, integer color-opacity modifiers and surface ring width/color utilities.
+Both targets consume one resolved sRGB float representation; imported theme strings
+stay unchanged. OKLCH lightness/alpha accept 0–1 or percentages, chroma is
+nonnegative/unitless, hue is unitless 0–360. Other functional syntaxes, missing
+components, hue/chroma units, invalid ranges and unsupported gamut fail. Tiny
+conversion roundoff is retained, not clipped; native scene encoding explicitly
+quantizes premultiplied sRGB to RGBA8. No HDR/wide-gamut, transparent-window or
+pixel-identical rasterization claim is made. Background must resolve opaque.
+
+Color /N multiplies existing alpha for integer percentages 0–100. Completion offers
+common percentages after slash without multiplying ordinary completion lists.
+Surface rings use independent width/color and reset per node; parent ring colors
+do not leak into children. Legacy ring remains an explicit outline whenever its
+state matches. Surface rings and focus outlines stay independent. Native opacity
+bounds include known child overflow and style outsets rather than clipping rings
+to the button box. Square stroke corners retain square joins.
+
+Focused acceptance passes eight color/contrast/encoding checks, disabled overflow,
+existing theme behavior/validation and keyboard focus. The generated-native
+std:testing example checks rendered styles and original data, with invalid utility
+witnesses; the affected compiler theme check passes. New/existing editor color and
+theme checks pass, including unsaved gamut failure. Color-opacity completion passes
+all four typing modes. Real Wasm Chromium matches the independent double-precision
+Node-after-tsc oracle for alpha hex, OKLCH, multiplication, aliases, border/ring
+colors, scope reset, hover, keyboard focus, accessible names and disposal. The
+native witness checks actual encoded scene data, not GPU readback. Default text
+and focus pairs have light/dark contrast checks; arbitrary custom themes still
+require accessibility review. Reuse earlier geometry/input/ownership evidence.
+
+Source/oracles live in examples/ui-colors and benchmarks/ui-jsx. The exact official
+CSS Color 4 input and closed original records use tsrust-ui-colors-* in canonical
+SQLite. No new public field/member types changed, so accepted checker agreement
+remains applicable. No SQL, complete regression or performance pass was rerun.
+
+Continue the actual Nova source families. Card has seven parts and requires
+metadata/structural selectors, numeric spacing scope, typography and edge/corner
+styles; these must be generic renderer capabilities, not runtime Card switches.
+Keep original MIT attribution and immutable v1/v2 payloads. No pending component
+or block is accepted by these prerequisite sections, and no further planning
+approval is required.
+
 ## Current terminal UI correction — 2026-10-18
 
 The owner rejected the numbered command dump as incomplete interactive CLI work.

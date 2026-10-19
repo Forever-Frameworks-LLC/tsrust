@@ -1,5 +1,5 @@
 //! One property merge policy: later classes override earlier classes in each state.
-use crate::theme::{Theme,COLORS};
+use crate::theme::{Theme,COLORS,ResolvedColor};
 mod layout;
 pub use layout::Length;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -8,11 +8,11 @@ pub enum State { Base, Hover, Focus, Active, Disabled }
 pub enum Utility {
  Row, Column, GapAxis(u8,f32), Padding(u8,f32), FontSize(f32), Bold(bool),
  Display(bool), Dimension(u8,Length), SelfAlign(u8,u8), Shrink(f32), Grow(f32), Wrap(bool), Tracks(u8,u8), Placement(u8,u16), AutoRowsMin,
- Background([u8;3]), Foreground([u8;3]), Rounded(f32), BorderWidth(f32), BorderColor([u8;3]),
- Align(u8), Items(u8), Justify(u8), Ring([u8;3]),
+ Background(ResolvedColor), Foreground(ResolvedColor), Rounded(f32), BorderWidth(f32), BorderColor(ResolvedColor),
+ Align(u8), Items(u8), Justify(u8), Ring(ResolvedColor), RingWidth(f32), RingShadowColor(ResolvedColor),
 }
 impl Utility {
- pub fn category(self)->u8 {match self {Self::Row|Self::Column=>0,Self::GapAxis(axis,_)=>16+axis,Self::Padding(side,_)=>20+side,Self::Display(_)=>30,Self::Dimension(property,_)=>24+property,Self::SelfAlign(axis,_)=>31+axis,Self::Shrink(_)=>33,Self::Grow(_)=>34,Self::Wrap(_)=>35,Self::Tracks(axis,_)=>36+axis,Self::Placement(property,_)=>38+property,Self::AutoRowsMin=>42,Self::FontSize(_)=>4,Self::Bold(_)=>5,Self::Background(_)=>6,Self::Foreground(_)=>7,Self::Rounded(_)=>8,Self::BorderWidth(_)=>9,Self::BorderColor(_)=>10,Self::Align(_)=>11,Self::Items(_)=>12,Self::Justify(_)=>13,Self::Ring(_)=>14}}
+ pub fn category(self)->u8 {match self {Self::Row|Self::Column=>0,Self::GapAxis(axis,_)=>16+axis,Self::Padding(side,_)=>20+side,Self::Display(_)=>30,Self::Dimension(property,_)=>24+property,Self::SelfAlign(axis,_)=>31+axis,Self::Shrink(_)=>33,Self::Grow(_)=>34,Self::Wrap(_)=>35,Self::Tracks(axis,_)=>36+axis,Self::Placement(property,_)=>38+property,Self::AutoRowsMin=>42,Self::FontSize(_)=>4,Self::Bold(_)=>5,Self::Background(_)=>6,Self::Foreground(_)=>7,Self::Rounded(_)=>8,Self::BorderWidth(_)=>9,Self::BorderColor(_)=>10,Self::Align(_)=>11,Self::Items(_)=>12,Self::Justify(_)=>13,Self::Ring(_)=>14,Self::RingWidth(_)=>43,Self::RingShadowColor(_)=>44}}
  pub(crate) fn css(self)->String {match self {
   Self::Row=>"flex-direction:row".into(),Self::Column=>"flex-direction:column".into(),Self::GapAxis(axis,v)=>format!("{}-gap:{v}px",if axis==0 {"row"}else{"column"}),
   Self::Display(grid)=>format!("display:{}",if grid{"grid"}else{"flex"}),
@@ -24,16 +24,19 @@ impl Utility {
   Self::AutoRowsMin=>"grid-auto-rows:min-content".into(),
   Self::Padding(side,v)=>format!("padding-{}:{v}px",["top","right","bottom","left"][side as usize]),
   Self::FontSize(v)=>format!("font-size:{v}px"),Self::Bold(v)=>format!("font-weight:{}",if v {700}else{400}),Self::Rounded(v)=>format!("border-radius:{v}px"),
-  Self::Background([r,g,b])=>format!("background:#{r:02x}{g:02x}{b:02x}"),Self::Foreground([r,g,b])=>format!("color:#{r:02x}{g:02x}{b:02x}"),
-  Self::BorderWidth(v)=>format!("border-width:{v}px;border-style:solid"),Self::BorderColor([r,g,b])=>format!("border-color:#{r:02x}{g:02x}{b:02x}"),
+  Self::Background(v)=>format!("background:{}",v.css()),Self::Foreground(v)=>format!("color:{}",v.css()),
+  Self::BorderWidth(v)=>format!("border-width:{v}px;border-style:solid"),Self::BorderColor(v)=>format!("border-color:{}",v.css()),
   Self::Align(v)=>format!("text-align:{}",["left","center","right"][v as usize]),Self::Items(v)=>format!("align-items:{}",["flex-start","center","stretch"][v as usize]),Self::Justify(v)=>format!("justify-content:{}",["flex-start","center","space-between"][v as usize]),
-  Self::Ring([r,g,b])=>format!("outline:2px solid #{r:02x}{g:02x}{b:02x};outline-offset:2px"),
+  Self::Ring(v)=>format!("outline:2px solid {};outline-offset:2px",v.css()),
+  Self::RingWidth(v)=>format!("--ui-shadow-ring-width:{v}px;box-shadow:0 0 0 var(--ui-shadow-ring-width) var(--ui-shadow-ring-color,var(--ui-ring))"),
+  Self::RingShadowColor(v)=>format!("--ui-shadow-ring-color:{}",v.css()),
  }}
 }
 fn build_tokens()->Vec<String> {
  let mut tokens=["flex-row","flex-col","font-bold","font-normal","rounded","rounded-none","rounded-sm","rounded-lg","border","border-0","text-left","text-center","text-right","items-start","items-center","items-stretch","justify-start","justify-center","justify-between","text-base","text-xl","ring"].into_iter().map(str::to_owned).collect::<Vec<_>>();
  tokens.extend(layout::tokens());
- for color in COLORS {for prefix in ["bg","text","border"] {tokens.push(format!("{prefix}-{color}"));}}
+ tokens.extend(["ring-0","ring-1","ring-2","ring-3"].map(str::to_owned));
+ for color in COLORS.iter().copied().chain(["transparent"]) {for prefix in ["bg","text","border","ring"] {tokens.push(format!("{prefix}-{color}"));}}
  tokens
 }
 fn split(token:&str)->Result<(State,&str),String> {
@@ -45,12 +48,13 @@ fn known_tokens()->&'static std::collections::BTreeSet<String> {
 }
 pub fn tokens()->Vec<String> {known_tokens().iter().cloned().collect()}
 pub fn validate(classes:&str)->Result<(),String> {
- let known=known_tokens(); for class in classes.split_whitespace() {let (_,token)=split(class)?;if !known.contains(token) {return Err(format!("Unsupported UI utility: {class}"));}}Ok(())
+ let known=known_tokens(); for class in classes.split_whitespace() {let (_,token)=split(class)?;if !known.contains(token) && opacity_token(token).is_none() {return Err(format!("Unsupported UI utility: {class}"));}}Ok(())
 }
 pub(crate) fn resolved(classes:&str,theme:&Theme,mode:&str)->Vec<(State,Utility)> {
  let mut rules=std::collections::BTreeMap::new();
  for class in classes.split_whitespace() {
   let (state,token)=split(class).expect("validated utility");
+  let (token,opacity)=opacity_token(token).unwrap_or((token,1.));
   let mut put=|value:Utility|{rules.insert((state,value.category()),value);};
   if let Some(values)=layout::resolve(token,theme){for value in values {put(value);}continue;}
   let value=match token {
@@ -58,10 +62,11 @@ pub(crate) fn resolved(classes:&str,theme:&Theme,mode:&str)->Vec<(State,Utility)
    "text-base"=>Utility::FontSize(theme.typography.base as f32),"text-xl"=>Utility::FontSize(theme.typography.xl as f32),
    "rounded"=>Utility::Rounded(theme.radius.md as f32),"rounded-sm"=>Utility::Rounded(theme.radius.sm as f32),"rounded-lg"=>Utility::Rounded(theme.radius.lg as f32),"rounded-none"=>Utility::Rounded(0.),
    "border"=>Utility::BorderWidth(1.),"border-0"=>Utility::BorderWidth(0.),"ring"=>Utility::Ring(theme.color(mode,"ring").unwrap()),
+   "ring-0"=>Utility::RingWidth(0.),"ring-1"=>Utility::RingWidth(1.),"ring-2"=>Utility::RingWidth(2.),"ring-3"=>Utility::RingWidth(3.),
    "text-left"=>Utility::Align(0),"text-center"=>Utility::Align(1),"text-right"=>Utility::Align(2),
    "items-start"=>Utility::Items(0),"items-center"=>Utility::Items(1),"items-stretch"=>Utility::Items(2),
    "justify-start"=>Utility::Justify(0),"justify-center"=>Utility::Justify(1),"justify-between"=>Utility::Justify(2),
-   _=>{let (kind,color)=token.split_once('-').unwrap();let color=theme.color(mode,color).expect("validated theme token");match kind {"bg"=>Utility::Background(color),"text"=>Utility::Foreground(color),"border"=>Utility::BorderColor(color),_=>unreachable!()}},
+   _=>{let (kind,color)=token.split_once('-').unwrap();let color=if color=="transparent"{ResolvedColor::transparent()}else{theme.color(mode,color).expect("validated theme token")}.opacity(opacity);match kind {"bg"=>Utility::Background(color),"text"=>Utility::Foreground(color),"border"=>Utility::BorderColor(color),"ring"=>Utility::RingShadowColor(color),_=>unreachable!()}},
   };put(value);
  }
  rules.into_iter().map(|((state,_),value)|(state,value)).collect()
@@ -91,8 +96,8 @@ pub(crate) fn css(classes:&str,theme:&Theme,mode:&str,id:usize)->String {
 /// Theme references used by authoring navigation and both renderers.
 pub fn theme_paths(class:&str)->Vec<Vec<String>> {
  if validate(class).is_err(){return vec![];}
- let token=class.rsplit(':').next().unwrap();
- let color=if token=="ring" {Some("ring")}else{token.strip_prefix("bg-").or_else(||token.strip_prefix("text-")).or_else(||token.strip_prefix("border-"))};
+ let token=class.rsplit(':').next().unwrap();let token=opacity_token(token).map_or(token,|(base,_)|base);
+ let color=if token=="ring" {Some("ring")}else{token.strip_prefix("bg-").or_else(||token.strip_prefix("text-")).or_else(||token.strip_prefix("border-")).or_else(||token.strip_prefix("ring-"))};
  if let Some(color)=color.filter(|color|COLORS.contains(color)) {return ["light","dark"].into_iter().map(|mode|vec![mode.into(),crate::theme::key_name(color)]).collect();}
  let field=match token {"rounded"=>Some(("radius","md")),"rounded-sm"=>Some(("radius","sm")),"rounded-lg"=>Some(("radius","lg")),"text-base"=>Some(("typography","base")),"text-xl"=>Some(("typography","xl")),_=>None};
  if let Some((group,key))=field{return vec![vec![group.into(),key.into()]];}
@@ -103,7 +108,11 @@ pub fn theme_paths(class:&str)->Vec<Vec<String>> {
 pub fn documentation(class:&str)->String {
  if validate(class).is_err(){return String::new();}
  let (_,token)=split(class).unwrap();
- let (purpose,example)=if token.starts_with("grid-cols-") || token.starts_with("grid-rows-") {
+ let (purpose,example)=if matches!(token,"ring-0"|"ring-1"|"ring-2"|"ring-3") {
+  ("Sets an outer surface ring width of 0–3 logical pixels without changing layout. ring-COLOR selects its color and defaults to the theme ring token. This surface ring is independent of the button's keyboard focus outline.",format!("<View className=\"{class} ring-foreground/10\" />"))
+ }else if color_token(opacity_token(token).map_or(token,|(base,_)|base)) {
+  ("Sets a semantic theme color. Optional /N multiplies its alpha by an integer percentage 0–100; fractional, negative and out-of-range percentages fail. transparent is zero-alpha black. Ring colors need a ring-0/1/2/3 width to paint a surface ring. Color changes do not hide semantic content from accessibility. Native output has an 8-bit sRGB paint boundary; theme strings remain unchanged.",format!("<View className=\"{class}\" />"))
+ }else if token.starts_with("grid-cols-") || token.starts_with("grid-rows-") {
   ("Sets explicit grid tracks. Numeric counts 1–12 divide available space equally with zero minimum; none removes explicit tracks. The two written track lists preserve their auto/fraction sizing. Requires a grid container.",format!("<View className=\"grid {class}\" />"))
  }else if token.starts_with("col-") || token.starts_with("row-") {
   ("Places a child in its parent grid. Starts are one-based lines 1–13; spans cover 1–12 tracks. Placement changes visual layout without changing source, keyboard or accessibility order.",format!("<View className=\"grid grid-cols-2\"><View className=\"{class}\" /></View>"))
@@ -160,4 +169,40 @@ pub fn documentation(class:&str)->String {
 /// Text leaves have no child boxes to lay out as a flex/grid container.
 pub fn requires_container(classes:&str)->bool {
  classes.split_whitespace().any(|class|split(class).is_ok_and(|(_,token)|matches!(token,"flex"|"grid"|"flex-wrap"|"flex-nowrap"|"auto-rows-min") || token.starts_with("grid-cols-") || token.starts_with("grid-rows-")))
+}
+
+fn color_token(token:&str)->bool {
+ ["bg-","text-","border-","ring-"].iter().any(|prefix|token.strip_prefix(prefix).is_some_and(|name|name=="transparent" || COLORS.contains(&name)))
+}
+fn opacity_token(token:&str)->Option<(&str,f32)> {
+ let (base,percentage)=token.rsplit_once('/')?;
+ if !color_token(base) || percentage.is_empty() || !percentage.bytes().all(|v|v.is_ascii_digit()){return None;}
+ let value=percentage.parse::<u8>().ok()?;
+ (value<=100 && value.to_string()==percentage).then_some((base,value as f32/100.))
+}
+/// Suggest common percentages after slash without multiplying every ordinary completion list.
+pub fn completion_tokens(prefix:&str)->Vec<String> {
+ if let Some((base,_))=prefix.rsplit_once('/') && color_token(base) {
+  return [0,5,10,15,20,25,30,40,50,60,70,75,80,90,95,100].into_iter().map(|value|format!("{base}/{value}")).collect();
+ }
+ tokens()
+}
+
+#[cfg(test)] mod color_tests {
+ use super::*;
+ #[test] fn alpha_modifiers_merge_colors_and_preserve_their_theme_references() {
+  for token in ["bg-primary/0","bg-primary/23","hover:bg-primary/50","text-foreground/100","border-input/50","ring-foreground/10","bg-transparent"]{assert!(validate(token).is_ok(),"{token}");}
+  for token in ["bg-primary/-1","bg-primary/101","bg-primary/50.5","bg-primary/050","w-4/50","ring-1/50"]{assert!(validate(token).is_err(),"{token}");}
+  let theme=Theme::default();let values=resolved("bg-primary/50 bg-accent ring-1 ring-foreground/10",&theme,"light");
+  assert!(values.iter().any(|(_,v)|matches!(v,Utility::Background(v) if v.alpha()==1.)));
+  assert!(values.iter().any(|(_,v)|matches!(v,Utility::RingWidth(1.))));
+  assert!(values.iter().any(|(_,v)|matches!(v,Utility::RingShadowColor(v) if (v.alpha()-0.1).abs()<0.000001)));
+  assert_eq!(theme_paths("hover:bg-primary/50"),vec![vec!["light","primary"],vec!["dark","primary"]]);
+  assert!(completion_tokens("bg-primary/").contains(&"bg-primary/50".into()));assert!(!tokens().iter().any(|v|v=="bg-primary/50"));
+ }
+ #[test] fn token_alpha_and_modifier_multiply_without_byte_quantization() {
+  let mut raw:serde_json::Value=serde_json::from_str(super::super::theme::DEFAULT_JSON).unwrap();raw["light"]["primary"]="#12345680".into();let theme=Theme::parse(&raw.to_string()).unwrap();
+  let values=resolved("bg-primary/25",&theme,"light");let Utility::Background(color)=values[0].1 else{panic!("background expected")};assert!((color.alpha()-128./255.*0.25).abs()<0.0000001);
+  assert!(css("ring-1 ring-foreground/10",&theme,"light",1).contains("box-shadow:"));
+ }
 }

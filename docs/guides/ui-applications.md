@@ -22,11 +22,15 @@ The inline theme requires schemaVersion 1; light/dark objects; spacing.sm/md/lg;
 radius.sm/md/lg; typography.base/xl. Light and dark each require background,
 foreground, card/cardForeground, primary/primaryForeground,
 secondary/secondaryForeground, muted/mutedForeground, accent/accentForeground,
-destructive/destructiveForeground, border, input and ring. Colors use opaque
-sRGB `#RRGGBB` or an alias such as `@foreground` within the same mode. Unknown
-fields, missing tokens/references and cycles are errors. Alpha, wide-gamut colors
-and other CSS color syntaxes are explicitly unsupported; nothing is silently
-clipped. Spacing accepts 0–512 logical pixels; radius 0–256; text sizes 8–128. Dimensions are range-checked before conversion to the shared single-precision rendering format; fine fractions can round during layout.
+destructive/destructiveForeground, border, input and ring. Colors accept `#RRGGBB`, `#RRGGBBAA`, checked in-gamut `oklch()`
+and aliases such as `@foreground` or `@card-foreground` within the same mode.
+Unknown fields, missing tokens/references, cycles and unsupported gamut are errors.
+OKLCH lightness/alpha accept 0–1 or 0–100%; chroma is nonnegative and unitless;
+hue is a unitless 0–360 degree value. Other functional syntaxes, hue/chroma units,
+missing components and out-of-range values are unsupported. The resolved background
+must be opaque: transparent native windows are not implemented. Functional colors
+use renderer float precision; native paint encodes premultiplied 8-bit sRGB, so
+small pixel rounding differences remain possible. Source theme strings stay unchanged. Spacing accepts 0–512 logical pixels; radius 0–256; text sizes 8–128. Dimensions are range-checked before conversion to the shared single-precision rendering format; fine fractions can round during layout.
 
 `withTheme(Page(), config.ui.theme, 'dark')` defaults to light when
 mode is omitted. Each subtree owns its checked theme; mounted trees do not share
@@ -252,3 +256,25 @@ share these rules. Unknown utilities fail explicitly. Arbitrary CSS, responsive
 breakpoints, named grid lines, subgrid, scrolling and general track expressions
 are unsupported. No layout utility duplicates or retains a child's owner. See
 examples/ui-layout for the paired custom-theme grid witness.
+
+
+## Alpha and surface rings
+
+`bg-`, `text-`, `border-` and `ring-` semantic colors accept `/N` to multiply the
+source alpha by an integer percentage 0–100. For example an 80% primary color
+with `bg-primary/50` paints at 40% alpha. Invalid/fractional percentages fail;
+common percentages are suggested after slash. transparent is zero-alpha black.
+Color alpha does not remove content from accessibility.
+
+`ring-0`, `ring-1`, `ring-2` and `ring-3` set an outer surface ring width in logical
+pixels. `ring-foreground/10` selects its color; color alone does not create a ring.
+The default ring color uses the enclosing theme's ring token. Each node resets
+ring variables to its own defaults; a parent's surface ring color does not leak
+into a child's ring. Surface rings leave layout size unchanged. The legacy `ring`
+utility remains a 2px outline with 2px offset, separate from surface rings and
+applicable whenever its state matches. Native buttons keep their default focus
+outline. See examples/ui-colors for both targets and unchanged imported theme data.
+
+Default body, primary button, muted text and focus color pairs have focused contrast
+checks in light/dark mode. Arbitrary custom palettes still require an accessibility
+review; accepting a valid color does not guarantee sufficient contrast.

@@ -120,7 +120,7 @@ fn configured_theme_validation_runs_for_checks_and_preserves_tolerant_headers() 
  let source="import theme from './design/tokens.json';function main(){console.log(theme.schemaVersion);}";
  let entry=dir.0.join("main.tsr");std::fs::write(&entry,support::format_round_trip(source)).unwrap();
  let tokens=tsrust_compiler::ui_project::theme::DEFAULT_JSON;
- std::fs::write(dir.0.join("design/tokens.json"),tokens.replacen("#2563eb","#12345680",1)).unwrap();
+ std::fs::write(dir.0.join("design/tokens.json"),tokens.replacen("#2563eb","#12345g80",1)).unwrap();
  let error=load_project(&FileSourceProvider,entry.to_str().unwrap()).unwrap_err();assert_eq!(error.code,"ui-theme");assert!(error.location.source.0.ends_with("design/tokens.json"));
  tsrust_compiler::project::load_project_headers(&FileSourceProvider,entry.to_str().unwrap()).unwrap();
  std::fs::write(dir.0.join("design/tokens.json"),tokens).unwrap();check_graph(load_project(&FileSourceProvider,entry.to_str().unwrap()).unwrap()).unwrap();
@@ -176,4 +176,14 @@ fn shared_grid_layout_and_custom_theme_execute_in_formatted_projects() {
         std::fs::write(&path,format!("import {{View}} from 'std:ui';function main(){{const node=<View className=\"{class}\"/>;}}")).unwrap();
         let error=load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap_err();assert_eq!(error.code,"ui-class","{class}: {error:?}");
     }
+}
+
+#[test]
+fn checked_colors_rings_and_unchanged_theme_data_execute_in_formatted_projects() {
+ let entry=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/ui-colors/inspect.tsr");
+ let output=support::run(support::cli().arg("run").arg(entry),120);support::success(&output);assert_eq!(output.stdout,b"UI colors passed\n");
+ let dir=support::TempDirectory::new();let path=dir.0.join("main.tsrx");
+ for class in ["bg-primary/101","bg-primary/-1","bg-primary/50.5","ring-1/50"] {
+  std::fs::write(&path,format!("import {{View}} from 'std:ui';function main(){{const node=<View className=\"{class}\"/>;}}")).unwrap();assert_eq!(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap_err().code,"ui-class");
+ }
 }

@@ -21,7 +21,7 @@ struct TextStyle {
     size: f32,
     bold: bool,
     align: u8,
-    color: [u8; 3],
+    color: super::theme::ResolvedColor,
 }
 impl Default for TextStyle {
     fn default() -> Self {
@@ -29,10 +29,11 @@ impl Default for TextStyle {
             size: 16.,
             bold: false,
             align: 0,
-            color: [23, 32, 51],
+            color: super::theme::ResolvedColor::rgb8(23,32,51),
         }
     }
 }
+fn paint_color(color:super::theme::ResolvedColor)->Color {Color::new(color.components())}
 fn layout_text(text: &mut Layout<()>, width: f32, button: bool) {
     text.break_all_lines(Some(width.max(0.)));
     if button { text.align(Alignment::Center, AlignmentOptions::default()); }
@@ -44,13 +45,16 @@ struct Item {
     label: String,
     id: NodeId,
     text: Option<Layout<()>>,
-    color: [u8; 3],
-    background: Option<[u8; 3]>,
+    color: super::theme::ResolvedColor,
+    background: Option<super::theme::ResolvedColor>,
     radius: f64,
     border: f64,
-    border_color: [u8;3],
-    ring: [u8;3],
+    border_color: super::theme::ResolvedColor,
+    ring: super::theme::ResolvedColor,
     align: u8,
+    shadow_width:f64,
+    shadow_color:super::theme::ResolvedColor,
+    outline:Option<super::theme::ResolvedColor>,
     disabled: bool,
     children: Vec<Item>,
 }
@@ -86,6 +90,7 @@ impl Painter {
         let (mut background, mut radius) = (node.theme.as_ref().map(|_|theme.color(mode,"background").unwrap()), 0.);
         if matches!(node.kind,Kind::Button|Kind::DisabledButton){inherited.align=1;style.flex_direction=FlexDirection::Row;style.align_items=AlignItems::CENTER;style.justify_content=JustifyContent::CENTER;}
         let (mut border,mut border_color,mut ring)=(0.,theme.color(mode,"border")?,theme.color(mode,"ring")?);
+        let (mut shadow_width,mut shadow_color,mut outline)=(0.,theme.color(mode,"ring")?,None);
         if matches!(node.kind,Kind::DisabledButton|Kind::Button) {
             style.padding = Rect {
                 left: length(16.),
@@ -117,7 +122,8 @@ impl Painter {
                 Utility::FontSize(v)=>inherited.size=v,Utility::Bold(v)=>inherited.bold=v,
                 Utility::Foreground(v)=>inherited.color=v,Utility::Background(v)=>background=Some(v),
                 Utility::Rounded(v)=>radius=v as f64,Utility::BorderWidth(v)=>{border=v as f64;style.border=Rect{left:length(v),right:length(v),top:length(v),bottom:length(v)};},
-                Utility::BorderColor(v)=>border_color=v,Utility::Ring(v)=>ring=v,Utility::Align(v)=>inherited.align=v,
+                Utility::BorderColor(v)=>border_color=v,Utility::Ring(v)=>{ring=v;outline=Some(v);},Utility::Align(v)=>inherited.align=v,
+                Utility::RingWidth(v)=>shadow_width=v as f64,Utility::RingShadowColor(v)=>shadow_color=v,
                 Utility::Items(v)=>style.align_items=match v {0=>AlignItems::FLEX_START,1=>AlignItems::CENTER,_=>AlignItems::STRETCH},
                 Utility::Justify(v)=>style.justify_content=match v {0=>JustifyContent::FLEX_START,1=>JustifyContent::CENTER,_=>JustifyContent::SPACE_BETWEEN},
             }
@@ -161,7 +167,7 @@ impl Painter {
             color: inherited.color,
             background,
             radius,
-            border,border_color,ring,align:inherited.align,
+            border,border_color,ring,align:inherited.align,shadow_width,shadow_color,outline,
             disabled: node.kind == Kind::DisabledButton,
             children,
         })
@@ -292,6 +298,14 @@ impl Painter {
         nodes.push((id, node));
         Ok(id)
     }
+    fn visual_bounds(&self,item:&Item,parent_x:f64,parent_y:f64)->Result<vello::kurbo::Rect,String> {
+        let layout=self.tree.layout(item.id).map_err(|e|e.to_string())?;
+        let x=parent_x+layout.location.x as f64;let y=parent_y+layout.location.y as f64;
+        let outset=item.shadow_width.max(if item.outline.is_some(){4.}else{0.});
+        let mut bounds=vello::kurbo::Rect::new(x-outset,y-outset,x+layout.size.width as f64+outset,y+layout.size.height as f64+outset);
+        for child in &item.children {bounds=bounds.union(self.visual_bounds(child,x,y)?);}
+        Ok(bounds)
+    }
     fn paint(
         &self,
         item: &mut Item,
@@ -316,20 +330,19 @@ impl Painter {
                 vello::peniko::BlendMode::default(),
                 0.6,
                 transform,
-                &vello::kurbo::Rect::new(
-                    x,
-                    y,
-                    x + layout.size.width as f64,
-                    y + layout.size.height as f64,
-                ),
+                &self.visual_bounds(item,parent_x,parent_y)?,
             );
         }
-        let alpha = 1.;
-        if let Some([r, g, b]) = item.background {
+        if item.shadow_width>0. {
+            let half=item.shadow_width/2.;
+            scene.stroke(&vello::kurbo::Stroke::new(item.shadow_width).with_join(vello::kurbo::Join::Miter),transform,paint_color(item.shadow_color),None,
+                &RoundedRect::new(x-half,y-half,x+layout.size.width as f64+half,y+layout.size.height as f64+half,if item.radius==0.{0.}else{item.radius+half}));
+        }
+        if let Some(color) = item.background {
             scene.fill(
                 Fill::NonZero,
                 transform,
-                Color::from_rgba8(r, g, b, (alpha * 255.) as u8),
+                paint_color(color),
                 None,
                 &RoundedRect::new(
                     x,
@@ -341,16 +354,14 @@ impl Painter {
             );
         }
         if item.border>0. {
-            let [r,g,b]=item.border_color;
-            scene.stroke(&vello::kurbo::Stroke::new(item.border),transform,Color::from_rgb8(r,g,b),None,
+            scene.stroke(&vello::kurbo::Stroke::new(item.border).with_join(vello::kurbo::Join::Miter),transform,paint_color(item.border_color),None,
                 &RoundedRect::new(x+item.border/2.,y+item.border/2.,x+layout.size.width as f64-item.border/2.,y+layout.size.height as f64-item.border/2.,item.radius));
         }
         if let Some(text) = &mut item.text {
             layout_text(text, layout.size.width - layout.padding.left - layout.padding.right - layout.border.left - layout.border.right,
                 matches!(item.role, Kind::Button | Kind::DisabledButton));
             text.align(match item.align {1=>Alignment::Center,2=>Alignment::End,_=>Alignment::Start},AlignmentOptions::default());
-            let [r, g, b] = item.color;
-            let color = Color::from_rgba8(r, g, b, (alpha * 255.) as u8);
+            let color = paint_color(item.color);
             for line in text.lines() {
                 for run in line.items() {
                     if let PositionedLayoutItem::GlyphRun(glyph_run) = run {
@@ -387,9 +398,9 @@ impl Painter {
         for child in &mut item.children {
             self.paint(child, scene, x, y, scale, focus, next)?;
         }
-        if focus == Some(id) && item.role == Kind::Button {
-            scene.stroke(&vello::kurbo::Stroke::new(2.), transform, Color::from_rgb8(item.ring[0],item.ring[1],item.ring[2]), None,
-                &RoundedRect::new(x-3., y-3., x + layout.size.width as f64+3., y + layout.size.height as f64+3., item.radius+3.));
+        if let Some(color)=item.outline.or_else(||(focus==Some(id) && item.role==Kind::Button).then_some(item.ring)) {
+            scene.stroke(&vello::kurbo::Stroke::new(2.).with_join(vello::kurbo::Join::Miter), transform, paint_color(color), None,
+                &RoundedRect::new(x-3., y-3., x + layout.size.width as f64+3., y + layout.size.height as f64+3., if item.radius==0.{0.}else{item.radius+3.}));
         }
         if item.disabled {
             scene.pop_layer();
@@ -570,7 +581,7 @@ impl App {
                 &scene,
                 &active.surface.target_view,
                 &RenderParams {
-                    base_color: {let theme=self.node.theme.as_ref();let default=super::theme::Theme::default();let (theme,mode)=theme.map(|(t,m)|(t,m.as_str())).unwrap_or((&default,"light"));let [r,g,b]=theme.color(mode,"background")?;Color::from_rgb8(r,g,b)},
+                    base_color: {let theme=self.node.theme.as_ref();let default=super::theme::Theme::default();let (theme,mode)=theme.map(|(t,m)|(t,m.as_str())).unwrap_or((&default,"light"));paint_color(theme.color(mode,"background")?)},
                     width: size.width,
                     height: size.height,
                     antialiasing_method: AaConfig::Msaa16,
@@ -880,10 +891,10 @@ mod presentation_tests {
   let button=Node::button("Centered".into(),"p-4 px-2 bg-primary hover:bg-accent focus:bg-secondary rounded border border-border".into(),false,||Ok(())).unwrap();
   let root=Node::new(Kind::View,String::new(),String::new(),vec![button]).unwrap().with_theme(&value.to_string(),"dark").unwrap();
   let mut painter=Painter::new();let item=painter.node(&root,TextStyle::default()).unwrap();let button=&item.children[0];
-  assert_eq!(button.background,Some([0x12,0x34,0x56]));assert_eq!(button.radius,13.);assert_eq!(button.border,1.);assert_eq!(button.align,1);
+  assert_eq!(button.background,Some(super::super::theme::ResolvedColor::rgb8(0x12,0x34,0x56)));assert_eq!(button.radius,13.);assert_eq!(button.border,1.);assert_eq!(button.align,1);
   let style=painter.tree.style(button.id).unwrap();assert_eq!(style.padding.top,length(21.));assert_eq!(style.padding.left,length(8.));
-  painter.hover.insert(2);let hovered=painter.node(&root,TextStyle::default()).unwrap();assert_eq!(hovered.children[0].background,Some([0x65,0x43,0x21]));
-  painter.focus=Some(2);let focused=painter.node(&root,TextStyle::default()).unwrap();assert_eq!(focused.children[0].background,Some([0x33,0x41,0x55]));
+  painter.hover.insert(2);let hovered=painter.node(&root,TextStyle::default()).unwrap();assert_eq!(hovered.children[0].background,Some(super::super::theme::ResolvedColor::rgb8(0x65,0x43,0x21)));
+  painter.focus=Some(2);let focused=painter.node(&root,TextStyle::default()).unwrap();assert_eq!(focused.children[0].background,Some(super::super::theme::ResolvedColor::rgb8(0x33,0x41,0x55)));
  }
 }
 
@@ -954,5 +965,41 @@ mod composed_button_tests {
   for (width,expected) in [(400.,256.),(200.,200.)] {let (_,tree)=painter.scene(&root,width,1.,None).unwrap();assert_eq!(bounds(&tree,1).width(),expected);}
   let root=view("w-1/2 size-8 w-1/2 min-h-16",vec![]);let (_,tree)=painter.scene(&root,400.,1.,None).unwrap();assert_eq!((bounds(&tree,1).width(),bounds(&tree,1).height()),(200.,64.));
   let child=Node::new(Kind::Text,String::new(),"child".into(),vec![]).unwrap();let root=view("pl-6 p-4 pr-2",vec![child]);let (_,tree)=painter.scene(&root,400.,1.,None).unwrap();let child=bounds(&tree,2);assert_eq!((child.x0,child.y0,child.width()),(16.,16.,376.));
+ }
+}
+
+#[cfg(test)] mod color_tests {
+ use super::*;
+ #[test] fn encoded_native_paint_declares_its_premultiplied_eight_bit_boundary() {
+  let mut theme:serde_json::Value=serde_json::from_str(super::super::theme::DEFAULT_JSON).unwrap();theme["light"]["primary"]="#3366cc".into();
+  let node=Node::new(Kind::View,"size-8 bg-primary/50".into(),String::new(),vec![]).unwrap().with_theme(&theme.to_string(),"light").unwrap();
+  let mut painter=Painter::new();let (scene,_)=painter.scene(&node,100.,1.,None).unwrap();
+  assert_eq!(scene.encoding().draw_tags.len(),1);assert_eq!(scene.encoding().draw_data,vec![u32::from_le_bytes([26,51,102,128])]);
+ }
+ #[test] fn surface_rings_and_explicit_outlines_are_independent_of_focus() {
+  let node=Node::new(Kind::View,"size-8 bg-primary/50 ring-1 ring-foreground/10 ring".into(),String::new(),vec![]).unwrap();
+  let mut painter=Painter::new();let item=painter.node(&node,TextStyle::default()).unwrap();assert_eq!(item.shadow_width,1.);assert!((item.shadow_color.alpha()-0.1).abs()<0.000001);assert_eq!(item.background.unwrap().alpha(),0.5);assert!(item.outline.is_some());
+  let (scene,_)=painter.scene(&node,100.,1.,None).unwrap();assert_eq!(scene.encoding().draw_tags.len(),3);
+ }
+}
+
+#[cfg(test)] mod opacity_bounds_tests {
+ use super::*;
+ #[test] fn disabled_group_bounds_include_child_overflow_and_surface_rings() {
+  let child=Node::new(Kind::View,"w-64 h-8 shrink-0 ring-3".into(),String::new(),vec![]).unwrap().with_semantics(r#"{"tag":"span"}"#).unwrap();
+  let node=Node::button_children(vec![crate::Child::Node(child)],"w-16 p-0 ring-1".into(),true,None).unwrap();let mut painter=Painter::new();let root=painter.node(&node,TextStyle::default()).unwrap();
+  painter.tree.compute_layout(root.id,Size{width:AvailableSpace::Definite(400.),height:AvailableSpace::MaxContent}).unwrap();let bounds=painter.visual_bounds(&root,0.,0.).unwrap();
+  assert_eq!((bounds.x0,bounds.x1),(-99.,163.));assert_eq!((bounds.y0,bounds.y1),(-3.,35.));
+ }
+}
+
+#[cfg(test)] mod hover_color_tests {
+ use super::*;
+ #[test] fn hover_opacity_multiplies_color_and_child_rings_reset_to_theme() {
+  let button=Node::button_children(vec![crate::Child::Text(crate::TextPart::Literal("Continue".into()))],"bg-foreground hover:bg-foreground/90".into(),false,None).unwrap();
+  let child=Node::new(Kind::View,"size-8 ring-1".into(),String::new(),vec![]).unwrap();
+  let root=Node::new(Kind::View,"ring-1 ring-foreground/10".into(),String::new(),vec![button,child]).unwrap();let mut painter=Painter::new();painter.hover.insert(2);let item=painter.node(&root,TextStyle::default()).unwrap();
+  assert!((item.children[0].background.unwrap().alpha()-0.9).abs()<0.000001);
+  assert_eq!(item.children[1].shadow_color,super::super::theme::Theme::default().color("light","ring").unwrap());assert!((item.shadow_color.alpha()-0.1).abs()<0.000001);
  }
 }

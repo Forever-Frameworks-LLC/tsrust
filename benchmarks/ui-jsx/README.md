@@ -28,3 +28,10 @@ It records untimed observations and source identities; it does not claim timing.
 Node-after-tsc geometry oracle at three viewport widths. Native Taffy checks cover
 the same custom spacing, grid placement and spans, plus preferred/min/max sizing,
 percentage widths and per-side padding precedence. These checks are untimed.
+
+`verify-colors.mjs <built-site>` checks alpha hex, OKLCH conversion, alpha modifiers,
+semantic aliases, border/ring colors, ring scope reset, hover and keyboard focus.
+Its independent double-precision Node-after-tsc oracle uses CSS Color 4 matrices;
+native scene checks separately verify the premultiplied RGBA8 encoding boundary.
+Source theme strings remain unchanged. These are untimed color/semantics checks,
+not a GPU screenshot or a claim of identical rasterization between backends.

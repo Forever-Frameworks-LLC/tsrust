@@ -107,3 +107,13 @@ backends. Native text alignment inherits into children; both renderers center
 button content. A missing handler is a normal no-op control, with no browser click
 listener allocated for it. This does not add dynamic child reconciliation, arbitrary
 rich text or general DOM event objects.
+
+## Checked paint colors
+
+Themes accept six/eight-digit sRGB hex, checked in-gamut OKLCH and semantic aliases.
+The shared resolved representation keeps renderer floats; source strings remain
+untouched. Native scene encoding has an explicit premultiplied 8-bit sRGB boundary.
+The focused scene witness checks actual encoded color data. No pixel-perfect
+native/browser rasterization, wide-gamut, HDR or transparent-window claim is made.
+Surface rings are separate from focus outlines. Disabled opacity bounds include
+known child overflow and style outsets so rings are not clipped to the button box.

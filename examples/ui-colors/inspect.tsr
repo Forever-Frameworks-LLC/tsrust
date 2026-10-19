@@ -1,0 +1,16 @@
+import { Screen } from './screen';
+import { document } from 'std:ui';
+import { strictEqual } from 'std:testing';
+import config from './tsrust.config.json';
+
+function main() {
+  strictEqual(config.ui.theme.light.primary, 'oklch(0.6 0.12 260 / 0.8)');
+  strictEqual(config.ui.theme.light.accent, '@card-foreground');
+  const html = document(Screen(), 'Colors');
+  strictEqual(html.includes('color(srgb '), true);
+  strictEqual(html.includes(' / 0.4)'), true);
+  strictEqual(html.includes('box-shadow:'), true);
+  strictEqual(html.includes('outline:2px solid'), true);
+  strictEqual(html.includes('Continue'), true);
+  console.log('UI colors passed');
+}

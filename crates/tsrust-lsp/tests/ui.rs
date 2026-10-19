@@ -45,7 +45,7 @@ fn ui_class_completion_hover_and_theme_navigation_use_shared_contract() {
  assert!(locations.as_array().is_some_and(|v|v.len()==2),"{locations}");
  session.open("ui.theme.json",theme);session.settle();let at=theme.find("primary\"").unwrap()+4;
  assert!(session.hover("ui.theme.json",theme,at).unwrap().contains("#RRGGBB"));
- let broken=theme.replacen("#2563eb","#12345680",1);session.change("ui.theme.json",&broken);
+ let broken=theme.replacen("#2563eb","#12345g80",1);session.change("ui.theme.json",&broken);
  let mut diagnostics=session.wait_for_diagnostics("ui.theme.json");
  for _ in 0..3 {if diagnostics.to_string().contains("ui-theme"){break;}diagnostics=session.wait_for_diagnostics("ui.theme.json");}
  assert!(diagnostics.to_string().contains("ui-theme"),"{diagnostics}");
@@ -87,7 +87,7 @@ fn inline_config_theme_supports_help_navigation_and_unsaved_validation() {
  assert!(session.completion("tsrust.config.json",&config,at).unwrap().contains(&"primary".into()));
  let uri=session.uri("src/main.tsrx");let location=session.request("textDocument/definition",serde_json::json!({"textDocument":{"uri":uri},"position":{"line":0,"character":source.find("bg-primary").unwrap()+4}}));
  assert_eq!(location.as_array().unwrap().len(),2,"{location}");assert!(location.to_string().contains("tsrust.config.json"));
- let bad=config.replacen("#2563eb","#12345680",1);session.change("tsrust.config.json",&bad);
+ let bad=config.replacen("#2563eb","#12345g80",1);session.change("tsrust.config.json",&bad);
  let mut diagnostics=session.wait_for_diagnostics("tsrust.config.json");for _ in 0..3{if diagnostics.to_string().contains("#RRGGBB"){break;}diagnostics=session.wait_for_diagnostics("tsrust.config.json");}
  assert!(diagnostics.to_string().contains("#RRGGBB"),"{diagnostics}");
  assert!(session.completion("src/main.tsrx",source,source.find("bg-primary").unwrap()+4).unwrap().contains(&"bg-primary".into()));
@@ -129,4 +129,14 @@ fn layout_utility_help_and_theme_references_come_from_shared_rules() {
     let at=source.find("grid-cols-2").unwrap()+4;let hover=session.hover("main.tsrx",source,at).unwrap_or_default();assert!(hover.contains("zero minimum"),"{hover}");
     let at=source.find("w-64").unwrap()+2;let uri=session.uri("main.tsrx");let definitions=session.request("textDocument/definition",serde_json::json!({"textDocument":{"uri":uri},"position":{"line":0,"character":at}}));assert_eq!(definitions.as_array().unwrap().len(),1,"{definitions}");
     let at=source.find("pl-3").unwrap()+2;let uri=session.uri("main.tsrx");let definitions=session.request("textDocument/definition",serde_json::json!({"textDocument":{"uri":uri},"position":{"line":0,"character":at}}));assert_eq!(definitions.as_array().unwrap().len(),2,"{definitions}");
+}
+
+#[test]
+fn color_opacity_help_and_theme_ranges_match_runtime_rules() {
+ let theme=std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/ui-colors/tsrust.config.json")).unwrap();
+ let source="import {View,withTheme} from 'std:ui';import config from './tsrust.config.json';function main(){const node=withTheme(<View className=\"bg-primary/50 ring-1 ring-foreground/10\"/>,config.ui.theme);}";
+ let mut session=support::session::Session::start(&[("tsrust.config.json",&theme)]);session.open("main.tsrx",source);let diagnostics=session.wait_for_diagnostics("main.tsrx");assert!(diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");session.settle();
+ let hover=session.hover("main.tsrx",source,source.find("bg-primary/50").unwrap()+4).unwrap();assert!(hover.contains("multiplies") && hover.contains("8-bit"),"{hover}");
+ let at=source.find("bg-primary/50").unwrap()+4;let uri=session.uri("main.tsrx");let locations=session.request("textDocument/definition",serde_json::json!({"textDocument":{"uri":uri},"position":{"line":0,"character":at}}));assert_eq!(locations.as_array().unwrap().len(),2,"{locations}");
+ session.open("tsrust.config.json",&theme);session.settle();let bad=theme.replace("oklch(0.6 0.12 260 / 0.8)","oklch(0.6 0.8 30)");session.change("tsrust.config.json",&bad);let diagnostics=session.wait_for_diagnostics("tsrust.config.json");assert!(diagnostics.to_string().contains("sRGB gamut"),"{diagnostics}");
 }
