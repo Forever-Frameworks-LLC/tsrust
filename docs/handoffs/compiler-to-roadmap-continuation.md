@@ -26,7 +26,12 @@ The landing uses the intended GitHub repository
 `https://github.com/Forever-Frameworks-LLC/tsrust` and GitHub Releases. Omit Discord
 and the unverified curl installer. Use actual language/CLI APIs and accepted evidence;
 do not publish invented size/performance claims from the earlier design brief.
-Shared visibility callbacks and HTTPS links are in progress and unverified.
+Shared visibility callbacks and HTTPS links pass focused acceptance through
+`0f56fbfc`; see [landing acceptance](../milestones/ui-shared-landing-and-visibility.md).
+The current dev server uses that compiler/runtime and publishes revision 1. The
+active editor maps the refreshed server inode. Continue richer component pages
+and the required Base UI/Nova families; the HTML design reference does not establish
+sticky scene/animation parity in the shared renderer.
 
 ## Rich inline docs and actual web development server — 2026-10-19
 
