@@ -16,6 +16,12 @@ three prop agreements and the independent Node-after-tsc/browser observer pass.
 Reuse previous unchanged renderer/GPU/runtime evidence. Originals and repairs use
 `tsrust-ui-nullable-*` in SQLite; no SQL, full matrix or timing was repeated.
 
+Accepted source checkpoint: `b1d1f255`. Installed CLI/LSP and the workspace
+server override are refreshed. The active editor restarted; installed nullable
+help plus both nullable-project and standalone-counter checks pass. Counter
+source/settings are unchanged. SQLite retains consumer hashes and verified cleanup
+receipts; generated sites and minimized debugging fixtures were removed.
+
 Continue dynamic conditional mounting/derived text and Field composition, then
 complete remaining Nova components/layouts/blocks, keyed editing and persistent
 routing. Integrated CLI web build/dev is also a concrete gap: current browser
