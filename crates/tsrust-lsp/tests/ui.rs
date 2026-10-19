@@ -234,5 +234,8 @@ fn inline_text_and_clipboard_help_match_paired_components(){
  let mut session=support::session::Session::start(&[]);session.open("main.tsrx",source);let diagnostics=session.wait_for_diagnostics("main.tsrx");session.settle();assert!(diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
  for (needle,expected) in [("Text as=\"p\"","paragraph"),("CopyButton value=","clipboard"),("value=\"exact\"","Unicode"),("text-syntax-string","syntax-string")] {let help=session.hover("main.tsrx",source,source.find(needle).unwrap()+1).unwrap_or_default();assert!(help.to_lowercase().contains(&expected.to_lowercase()),"{needle}: {help}");}
  let choices=session.completion("main.tsrx",source,source.find("value=\"exact\"").unwrap()).unwrap();assert!(choices.contains(&"value".into()));assert!(choices.contains(&"className".into()));
- let theme=tsrust_compiler::ui_project::theme::DEFAULT_JSON;session.open("ui.theme.json",theme);session.settle();let at=theme.find("syntaxKeyword").unwrap()+4;assert!(session.hover("ui.theme.json",theme,at).unwrap_or_default().contains("Optional code syntax color"));let keys=session.completion("ui.theme.json",theme,at).unwrap();assert!(keys.contains(&"syntaxKeyword".into()));
+ let theme=tsrust_compiler::ui_project::theme::DEFAULT_JSON;
+ for (file,text) in [("ui.theme.json",theme.to_owned()),("palette.json",theme.to_owned()),("tsrust.config.json",format!("{{\"ui\":{{\"theme\":{theme}}}}}"))] {
+  session.open(file,&text);session.settle();let at=text.find("syntaxKeyword").unwrap()+4;let help=session.hover(file,&text,at).unwrap_or_default();assert!(help.contains("Optional code syntax color"),"{file}: {help}");let keys=session.completion(file,&text,at).unwrap();assert!(keys.contains(&"syntaxKeyword".into()));
+ }
 }

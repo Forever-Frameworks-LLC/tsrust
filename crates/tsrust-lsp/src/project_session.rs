@@ -125,6 +125,16 @@ impl ProjectSession {
             .values()
             .filter(|(input, _)| self.workspace.current(input))
             .find_map(|(_, index)| index.request(method, params, uri))
+            .or_else(|| {
+                if !matches!(method,"textDocument/hover"|"textDocument/completion"){return None;}
+                let (id,snapshot,_)=self.buffers.get(uri)?;
+                let path=std::path::Path::new(&id.0);
+                if path.file_name().is_none_or(|name|name!="tsrust.config.json" && name!="ui.theme.json")
+                    && tsrust_compiler::ui_project::theme_document(path,&snapshot.text).is_none(){return None;}
+                let mut index=crate::intelligence::SourceIndex::new(&snapshot.text);
+                index.theme_document=true;
+                Some(index.request(method,params,uri))
+            })
             .map(|result| {
                 result.map(|mut value| {
                     if matches!(

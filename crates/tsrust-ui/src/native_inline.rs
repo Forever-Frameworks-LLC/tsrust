@@ -4,7 +4,7 @@ use std::ops::Range;
 #[derive(Clone,Copy,Default,PartialEq,Debug)]
 pub(super) struct Brush {pub color:Option<crate::theme::ResolvedColor>,pub underline:bool,pub strike:bool}
 pub(super) struct Inline {
-    pub identity:u64,pub semantics:crate::Semantics,pub label:String,pub range:Range<usize>,pub children:Vec<Inline>,style:TextStyle,ring:crate::theme::ResolvedColor,
+    pub identity:u64,pub semantics:crate::Semantics,pub label:String,accessible_label:String,pub range:Range<usize>,pub children:Vec<Inline>,style:TextStyle,ring:crate::theme::ResolvedColor,
 }
 pub(super) fn collect(item:Item,text:&mut String,spans:&mut Vec<(Range<usize>,TextStyle)>)->Inline {
     let start=text.len();let mut children=Vec::new();
@@ -18,7 +18,7 @@ pub(super) fn collect(item:Item,text:&mut String,spans:&mut Vec<(Range<usize>,Te
         }
         for part in item.inline{children.push(append(part,text,spans));}
     }else{for child in item.children{children.push(collect(child,text,spans));}}
-    Inline{identity:item.identity,semantics:item.semantics,label:text[start..].to_owned(),range:start..text.len(),children,style:item.text_style,ring:item.ring}
+    Inline{identity:item.identity,semantics:item.semantics,label:text[start..].to_owned(),accessible_label:item.label,range:start..text.len(),children,style:item.text_style,ring:item.ring}
 }
 pub(super) fn default_style(builder:&mut parley::RangedBuilder<'_,Brush>,style:TextStyle){
     builder.push_default(StyleProperty::Brush(Brush{color:None,underline:style.underline,strike:style.strike}));
@@ -44,7 +44,7 @@ pub(super) fn accessible(part:&Inline,text:&Layout<Brush>,origin:(f64,f64),scale
     if part.semantics.invalid=="true"{node.set_invalid(accesskit::Invalid::True);}
     if part.semantics.role=="separator"{node.set_orientation(if part.semantics.orientation=="vertical"{accesskit::Orientation::Vertical}else{accesskit::Orientation::Horizontal});}
     if part.semantics.hidden{node.set_hidden();}
-    if part.children.is_empty()||role==accesskit::Role::Link||!part.semantics.label.is_empty() {node.set_label(if part.semantics.label.is_empty(){part.label.clone()}else{part.semantics.label.clone()});}
+    if part.children.is_empty()||role==accesskit::Role::Link||!part.semantics.label.is_empty() {node.set_label(if part.semantics.label.is_empty(){part.accessible_label.clone()}else{part.semantics.label.clone()});}
     if role==accesskit::Role::Link && super::super::navigation::is_current(&part.semantics.href){node.set_aria_current(accesskit::AriaCurrent::Page);}
     if role==accesskit::Role::Link {node.add_action(accesskit::Action::Click);node.add_action(accesskit::Action::Focus);}
     if let Some(bounds)=rects(part,text,origin).into_iter().reduce(|a,b|a.union(b)){node.set_bounds(accesskit::Rect::new(bounds.x0*scale,bounds.y0*scale,bounds.x1*scale,bounds.y1*scale));}
@@ -69,7 +69,8 @@ impl Painter {
  #[test]fn inline_wrapping_preserves_styles_link_geometry_and_accessibility(){
   use crate::Child;
   let location=crate::navigation::location(|value|value,|value:&String|value.clone()).unwrap();
-  let link=crate::navigation::link(vec![Child::Text(crate::TextPart::Literal("café 文 and a long destination".into()))],"text-primary".into(),"/docs").unwrap();
+  let decoration=text("↗ ","span","").with_semantics("{\"hidden\":true}").unwrap();
+  let link=crate::navigation::link(vec![Child::Node(decoration),Child::Text(crate::TextPart::Literal("café 文 and a long destination".into()))],"text-primary".into(),"/docs").unwrap();
   let mut root=Node::text_children(vec![Child::Text(crate::TextPart::Literal("Before ".into())),Child::Node(text("bold ","strong","text-syntax-keyword")),Child::Node(text("italic ","em","")),Child::Node(link),Child::Text(crate::TextPart::Literal(" after".into()))],"text-sm".into()).unwrap().with_semantics("{\"tag\":\"p\"}").unwrap();root.refresh().unwrap();
   let mut painter=Painter::new();let (_,tree)=painter.scene(&root,120.,1.,None).unwrap();let (_,link)=tree.nodes.iter().find(|(_,node)|node.role()==accesskit::Role::Link).unwrap();assert_eq!(link.label(),Some("café 文 and a long destination"));assert!(link.supports_action(accesskit::Action::Click));assert!(link.bounds().unwrap().height()>16.);
   let item=painter.node(&root,TextStyle::default()).unwrap();assert!(item.children.is_empty());assert_eq!(item.inline[1].style.weight,700.);assert!(item.inline[2].style.italic);let mut paragraph=item.text.unwrap();paragraph.break_all_lines(Some(120.));assert!(paragraph.lines().count()>2);let mut colors=Vec::new();for line in paragraph.lines(){for item in line.items(){if let PositionedLayoutItem::GlyphRun(run)=item{if let Some(color)=run.style().brush.color{colors.push(color);}}}}assert!(colors.contains(&crate::theme::Theme::default().color("light","syntax-keyword").unwrap()));assert!(colors.contains(&crate::theme::Theme::default().color("light","primary").unwrap()));
