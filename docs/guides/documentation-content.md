@@ -86,6 +86,17 @@ exact signed integers. There is no unchecked cast or JSON execution.
 A successful content build validates everything before publication. The typed
 module is replaced atomically; unchanged output retains its mtime. A failed build
 preserves the previous publication. Generated files are not source backups and
-must not be edited. Checks/editor analysis stay read-only. Automatic build/dev
-content preparation, shared Markdown rendering, navigation and offline full-text
-search are subsequent application integration work.
+must not be edited. Build/run/dev prepare configured content automatically. The
+bounded web builder prepares content before exporting its checked module. Checks
+and editor analysis remain read-only; on a clean checkout, run the explicit content
+command before inspecting imports from generated output.
+
+The persistent content cache verifies the compiler executable identity, all pinned
+input hashes, the complete Markdown file list and both output hashes. Unchanged
+output retains its mtime; changing/adding/removing pages or modifying generated
+output invalidates reuse. This cache has no arbitrary entry limit. Dev watches
+configured content/assets rather than historical evidence Markdown. Generated
+content must match the exact frontend snapshot; source changes during generation
+retry before compiling. A content error keeps the previously running application.
+
+Shared Markdown rendering, navigation and offline full-text search remain pending.

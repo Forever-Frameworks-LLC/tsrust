@@ -25,6 +25,7 @@ function run(command, args, cwd) {
 }
 try {
   const pkg = path.join(scratch, 'package');
+  if (projectConfig.documentation) run(process.env.TSRUST, ['docs', 'content', '--cwd', projectRoot]);
   run(process.env.TSRUST, ['emit', path.resolve(entry), '--package', '-o', pkg]);
   const source = path.join(pkg, 'src/main.rs');
   const rust = fs.readFileSync(source, 'utf8');

@@ -1,5 +1,5 @@
 //! Content builds write one self-contained typed module; Markdown never executes code.
-use std::{collections::{BTreeMap,BTreeSet},env,fs,path::{Path,PathBuf},io::Write};
+use std::{collections::{BTreeMap,BTreeSet},env,fs,path::{Path,PathBuf},io::{Read,Write}};
 use sha2::{Digest,Sha256};
 use serde_json::{Value,json};
 use tsrust_compiler::{documentation as docs,project::{self,FileSourceProvider,SourceId,SourceProvider}};
@@ -17,9 +17,9 @@ fn read(root:&Path,relative:&Path,inputs:&mut BTreeMap<String,String>)->Result<S
     let path=file(root,relative)?;let text=fs::read_to_string(&path).map_err(|error|format!("{}: {error}",path.display()))?;
     pin(inputs,relative.to_string_lossy().replace('\\',"/"),text.as_bytes())?;Ok(text)
 }
-fn markdown_files(root:&Path,relative:&Path,output:&mut Vec<PathBuf>)->Result<(),String>{
+fn content_files(root:&Path,relative:&Path,output:&mut Vec<PathBuf>,markdown_only:bool)->Result<(),String>{
     let path=file(root,relative)?;let mut children=fs::read_dir(&path).map_err(|error|format!("{}: {error}",path.display()))?.collect::<Result<Vec<_>,_>>().map_err(|error|error.to_string())?;children.sort_by_key(|entry|entry.file_name());
-    for child in children{let relative=relative.join(child.file_name());let path=file(root,&relative)?;if path.is_dir(){markdown_files(root,&relative,output)?;}else if path.extension().is_some_and(|value|value=="md"){output.push(relative);}}
+    for child in children{let relative=relative.join(child.file_name());let path=file(root,&relative)?;if path.is_dir(){content_files(root,&relative,output,markdown_only)?;}else if !markdown_only||path.extension().is_some_and(|value|value=="md"){output.push(relative);}}
     Ok(())
 }
 fn route(path:&Path)->Result<String,String>{
@@ -116,6 +116,61 @@ fn links(root:&Path,content:&Path,pages:&mut [docs::Page],inputs:&mut BTreeMap<S
     }
     Ok(())
 }
+/// Watch authored content/assets plus declared inputs outside the ordinary source extensions.
+pub(super) fn watched_inputs(root:&Path)->Result<Vec<PathBuf>,String>{
+    let text=fs::read_to_string(root.join(super::project_config::FILE)).map_err(|error|error.to_string())?;
+    let Ok(value)=serde_json::from_str::<Value>(&text) else{return Ok(vec![]);};
+    let Some(value)=value.get("documentation") else{return Ok(vec![]);};
+    let Ok(config)=serde_json::from_value::<docs::Config>(value.clone()) else{return Ok(vec![]);};if config.validate().is_err(){return Ok(vec![]);}
+    let mut relative=Vec::new();content_files(root,Path::new(&config.content),&mut relative,false)?;
+    let manifest=file(root,Path::new("target/docs-content/inputs.json"))?;
+    if let Ok(bytes)=fs::read(&manifest){relative.push(PathBuf::from("target/docs-content/inputs.json"));if let Ok(value)=serde_json::from_slice::<Value>(&bytes){if value["generator"]=="tsrust-docs-content-v1"{if let Some(inputs)=value["inputs"].as_object(){for path in inputs.keys().filter(|path|!path.starts_with("std:")){let path=Path::new(path);if file(root,path)?.is_file(){relative.push(path.to_owned());}}}}}}
+    let mut paths=relative.into_iter().map(|path|file(root,&path)).collect::<Result<Vec<_>,_>>()?;paths.sort();paths.dedup();Ok(paths)
+}
+/// Compare publication inputs to the exact dev snapshot, including additions/deletions.
+pub(super) fn matches_snapshot(root:&Path,inputs:&crate::dev_watch::Inputs)->Result<bool,String>{
+    let Some(config)=inputs.get(&root.join(super::project_config::FILE)) else{return Ok(false);};
+    let config:Value=serde_json::from_slice(config.bytes()).map_err(|error|error.to_string())?;
+    let Some(config)=config.get("documentation") else{return Ok(true);};
+    let config:docs::Config=serde_json::from_value(config.clone()).map_err(|error|error.to_string())?;
+    let Some(manifest)=inputs.get(&root.join("target/docs-content/inputs.json")) else{return Ok(false);};
+    let manifest:Value=serde_json::from_slice(manifest.bytes()).map_err(|error|error.to_string())?;
+    let Some(pinned)=manifest["inputs"].as_object() else{return Ok(false);};
+    for (path,expected) in pinned.iter().filter(|(path,_)|!path.starts_with("std:")){
+        let Some(contents)=inputs.get(&root.join(path)) else{return Ok(false);};
+        if expected.as_str()!=Some(hash(contents.bytes()).as_str()){return Ok(false);}
+    }
+    let content=root.join(&config.content);
+    let pages=inputs.keys().filter(|path|path.starts_with(&content)&&path.extension().is_some_and(|extension|extension=="md")).map(|path|path.strip_prefix(root).unwrap().to_owned()).collect::<Vec<_>>();
+    if manifest["sourcePages"]!=serde_json::to_value(pages).map_err(|error|error.to_string())?{return Ok(false);}
+    if let Some(module)=inputs.get(&root.join("target/docs-content/catalog.tsr")){if manifest["moduleSha256"].as_str()!=Some(hash(module.bytes()).as_str()){return Ok(false);}}
+    Ok(true)
+}
+fn compiler_identity()->Result<String,String>{
+    static ID:std::sync::OnceLock<Result<String,String>>=std::sync::OnceLock::new();
+    ID.get_or_init(||{
+        let mut file=fs::File::open(env::current_exe().map_err(|error|error.to_string())?).map_err(|error|error.to_string())?;
+        let mut digest=Sha256::new();let mut bytes=[0u8;65536];
+        loop{let count=file.read(&mut bytes).map_err(|error|error.to_string())?;if count==0{break;}digest.update(&bytes[..count]);}
+        Ok(digest.finalize().iter().map(|byte|format!("{byte:02x}")).collect())
+    }).clone()
+}
+fn reuse(root:&Path,pages:&[PathBuf],compiler:&str)->Result<Option<String>,String>{
+    let path=file(root,Path::new("target/docs-content/inputs.json"))?;
+    let old=match fs::read(path){Ok(bytes)=>serde_json::from_slice::<Value>(&bytes).ok(),Err(error) if error.kind()==std::io::ErrorKind::NotFound=>None,Err(error)=>return Err(error.to_string())};
+    let Some(old)=old else{return Ok(None);};
+    if old["generator"]!="tsrust-docs-content-v1"||old["compilerSha256"]!=compiler||old["sourcePages"]!=serde_json::to_value(pages).map_err(|error|error.to_string())?{return Ok(None);}
+    let Some(inputs)=old["inputs"].as_object() else{return Ok(None);};
+    for (path,expected) in inputs{if !path.starts_with("std:"){
+        let bytes=match fs::read(file(root,Path::new(path))?){Ok(bytes)=>bytes,Err(error) if error.kind()==std::io::ErrorKind::NotFound=>return Ok(None),Err(error)=>return Err(error.to_string())};
+        if expected.as_str()!=Some(hash(&bytes).as_str()){return Ok(None);}
+    }}
+    for (name,key) in [("catalog.json","catalogSha256"),("catalog.tsr","moduleSha256")]{
+        let bytes=match fs::read(file(root,&Path::new("target/docs-content").join(name))?){Ok(bytes)=>bytes,Err(error) if error.kind()==std::io::ErrorKind::NotFound=>return Ok(None),Err(error)=>return Err(error.to_string())};
+        if old[key].as_str()!=Some(hash(&bytes).as_str()){return Ok(None);}
+    }
+    Ok(old["summary"].as_str().map(str::to_owned))
+}
 fn publish(root:&Path,name:&str,bytes:&[u8])->Result<(),String>{
     let path=file(root,&Path::new("target/docs-content").join(name))?;
     if path.exists()&&fs::read(&path).map_err(|error|error.to_string())?==bytes{return Ok(());}
@@ -129,10 +184,26 @@ pub(super) fn run(mut arguments:impl Iterator<Item=String>)->Result<u8,String>{
     let mut directory=env::current_dir().map_err(|error|error.to_string())?;
     while let Some(argument)=arguments.next(){match argument.as_str(){"--cwd"=>directory=PathBuf::from(arguments.next().ok_or("--cwd needs a directory")?),_=>return Err(format!("Unknown docs content option: {argument}"))}}
     let root=directory.canonicalize().map_err(|error|error.to_string())?;
-    super::project_config::load(&root)?;
+    println!("{}",build(&root)?);Ok(0)
+}
+/// Only execution/build paths call this. Editor and check paths never generate files.
+pub(super) fn prepare_entry(entry:&Path)->Result<(),String>{
+    let entry=entry.canonicalize().map_err(|error|error.to_string())?;
+    for root in entry.parent().unwrap().ancestors(){if root.join(super::project_config::FILE).is_file(){return prepare_root(root);}}
+    Ok(())
+}
+pub(super) fn prepare_root(root:&Path)->Result<(),String>{
+    let path=root.join(super::project_config::FILE);
+    let text=fs::read_to_string(path).map_err(|error|error.to_string())?;
+    let value:Value=serde_json::from_str(&text).map_err(|error|error.to_string())?;
+    if value.get("documentation").is_some(){build(root)?;}Ok(())
+}
+fn build(root:&Path)->Result<String,String>{
+    super::project_config::load(root)?;
     let mut inputs=BTreeMap::new();let text=read(&root,Path::new("tsrust.config.json"),&mut inputs)?;let value:Value=serde_json::from_str(&text).map_err(|error|error.to_string())?;
     let config:docs::Config=serde_json::from_value(value.get("documentation").cloned().ok_or("Add documentation configuration to tsrust.config.json")?).map_err(|error|error.to_string())?;config.validate()?;
-    let content=Path::new(&config.content);let mut files=Vec::new();markdown_files(&root,content,&mut files)?;
+    let content=Path::new(&config.content);let mut files=Vec::new();content_files(root,content,&mut files,true)?;
+    let compiler=compiler_identity()?;if let Some(summary)=reuse(root,&files,&compiler)?{return Ok(summary);}let source_pages=files.clone();
     let mut pages=Vec::new();
     for path in files{
         let source=read(&root,&path,&mut inputs)?;let (metadata,offset)=docs::metadata(&source).map_err(|error|format!("{}: {error}",path.display()))?;
@@ -164,9 +235,9 @@ pub(super) fn run(mut arguments:impl Iterator<Item=String>)->Result<u8,String>{
     let catalog=docs::Catalog{schema_version:1,pages,examples,inputs,api,library};
     let json=serde_json::to_string_pretty(&catalog).map_err(|error|error.to_string())?;
     let module=super::docs_model::module(&json,&catalog.examples)?;
-    for (path,digest) in &catalog.inputs{if !path.starts_with("std:") {let bytes=fs::read(file(&root,Path::new(path))?).map_err(|error|error.to_string())?;if hash(&bytes)!=*digest{return Err(format!("{path} changed during documentation build; retry"));}}}
     let generated=Inputs{entry:SourceId(root.join("target/docs-content/catalog.tsr").to_string_lossy().into_owned()),source:module.clone()};
     project::check_graph(project::load_project(&generated,&generated.entry.0).map_err(|error|format!("Generated documentation module: {}",error.message))?).map_err(|error|format!("Generated documentation module: {}",error.message))?;
+    for (path,digest) in &catalog.inputs{if !path.starts_with("std:") {let bytes=fs::read(file(&root,Path::new(path))?).map_err(|error|error.to_string())?;if hash(&bytes)!=*digest{return Err(format!("{path} changed during documentation build; retry"));}}}
     let destination=file(&root,Path::new("target/docs-content"))?;
     if destination.exists(){
         let old=fs::read_to_string(file(&root,Path::new("target/docs-content/inputs.json"))?).map_err(|_|"Refusing to overwrite an unowned docs-content directory")?;
@@ -174,7 +245,25 @@ pub(super) fn run(mut arguments:impl Iterator<Item=String>)->Result<u8,String>{
         if old["generator"]!="tsrust-docs-content-v1"{return Err("Refusing to overwrite an unowned docs-content directory".into());}
     }
     fs::create_dir_all(&destination).map_err(|error|error.to_string())?;
-    let manifest=json!({"generator":"tsrust-docs-content-v1","inputs":catalog.inputs,"catalogSha256":hash(json.as_bytes()),"moduleSha256":hash(module.as_bytes())});
+    let summary=format!("Built {} documentation pages, {} checked examples and {} API declarations (offline).",catalog.pages.len(),catalog.examples.len(),catalog.api.len());
+    let manifest=json!({"generator":"tsrust-docs-content-v1","compilerSha256":compiler,"sourcePages":source_pages,"summary":summary,"inputs":catalog.inputs,"catalogSha256":hash(json.as_bytes()),"moduleSha256":hash(module.as_bytes())});
     publish(&root,"catalog.json",json.as_bytes())?;publish(&root,"inputs.json",serde_json::to_string_pretty(&manifest).unwrap().as_bytes())?;publish(&root,"catalog.tsr",module.as_bytes())?;
-    println!("Built {} documentation pages, {} checked examples and {} API declarations (offline).",catalog.pages.len(),catalog.examples.len(),catalog.api.len());Ok(0)
+    Ok(summary)
+}
+
+#[cfg(test)]mod tests{
+ use super::*;
+ #[test]
+ fn dev_publication_must_match_the_exact_snapshot_after_content_changes(){
+  let temp=crate::TempDirectory::new().unwrap();let root=temp.0.canonicalize().unwrap();fs::create_dir(root.join("content")).unwrap();fs::create_dir(root.join("src")).unwrap();
+  fs::write(root.join("tsrust.config.json"),r#"{"schemaVersion":1,"name":"docs-watch","build":{"entry":"src/main.tsr","output":"target/app"},"documentation":{"content":"content","apiSources":[],"examples":[],"inventory":null}}"#).unwrap();
+  fs::write(root.join("src/main.tsr"),"function main(){}").unwrap();
+  let header="<!-- tsrust-docs\n{\"id\":\"home\",\"group\":\"guides\",\"order\":0,\"status\":\"ready\",\"targets\":[\"web\",\"native\"]}\n-->\n";
+  fs::write(root.join("content/index.md"),format!("{header}# Home\n")).unwrap();prepare_root(&root).unwrap();
+  let mut watcher=crate::dev_watch::Watcher::default();let accepted=watcher.snapshot(&root).unwrap();assert!(matches_snapshot(&root,&accepted).unwrap());
+  fs::write(root.join("content/index.md"),format!("{header}# Edit\n")).unwrap();assert!(!matches_snapshot(&root,&watcher.snapshot(&root).unwrap()).unwrap());
+  prepare_root(&root).unwrap();watcher.invalidate(&root);assert!(matches_snapshot(&root,&watcher.snapshot(&root).unwrap()).unwrap());
+  fs::write(root.join("content/new.md"),"# New").unwrap();assert!(!matches_snapshot(&root,&watcher.snapshot(&root).unwrap()).unwrap());
+  fs::remove_file(root.join("content/index.md")).unwrap();assert!(!matches_snapshot(&root,&watcher.snapshot(&root).unwrap()).unwrap());
+ }
 }

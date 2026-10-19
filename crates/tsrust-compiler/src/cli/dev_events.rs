@@ -1,6 +1,12 @@
 //! Native notifications trigger reconciliation; they are never source truth.
 use std::{collections::{BTreeMap,BTreeSet},fs,io,path::{Path,PathBuf},os::{fd::{AsRawFd,FromRawFd,OwnedFd},unix::{fs::MetadataExt,ffi::OsStrExt}}};
 fn walk(root:&Path,visit:&mut impl FnMut(&Path,&fs::Metadata)->io::Result<()>)->io::Result<()> {
+ let content=crate::docs_cli::watched_inputs(root).unwrap_or_default().into_iter().collect::<BTreeSet<_>>();
+ walk_inner(root,&content,visit)?;
+ for path in content{match fs::symlink_metadata(&path){Ok(metadata) if metadata.is_file()=>visit(&path,&metadata)?,Ok(_)=>{},Err(error) if error.kind()==io::ErrorKind::NotFound=>{},Err(error)=>return Err(error)}}
+ Ok(())
+}
+fn walk_inner(root:&Path,content:&BTreeSet<PathBuf>,visit:&mut impl FnMut(&Path,&fs::Metadata)->io::Result<()>)->io::Result<()> {
  let metadata=fs::symlink_metadata(root)?;
  if metadata.file_type().is_symlink(){return Ok(());}
  visit(root,&metadata)?;
@@ -8,8 +14,8 @@ fn walk(root:&Path,visit:&mut impl FnMut(&Path,&fs::Metadata)->io::Result<()>)->
   for entry in fs::read_dir(root)? {
    let entry=entry?;let kind=entry.file_type()?;let path=entry.path();
    if kind.is_symlink(){continue;}
-   if kind.is_dir() && !matches!(entry.file_name().to_str(),Some(".git"|"node_modules"|"target")) {walk(&path,visit)?;}
-   else if kind.is_file() && (path.extension().is_some_and(|ext|matches!(ext.to_str(),Some("tsr"|"tsrx"|"rs"|"json"|"jsonc"|"lock")))) {visit(&path,&entry.metadata()?)?;}
+   if kind.is_dir() && !matches!(entry.file_name().to_str(),Some(".git"|"node_modules"|"target")) {walk_inner(&path,content,visit)?;}
+   else if kind.is_file() && (content.contains(&path)||path.extension().is_some_and(|ext|matches!(ext.to_str(),Some("tsr"|"tsrx"|"rs"|"json"|"jsonc"|"lock")))) {visit(&path,&entry.metadata()?)?;}
   }
  }
  Ok(())

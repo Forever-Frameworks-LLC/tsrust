@@ -189,15 +189,21 @@ mod platform {
         let mut watcher=Watcher::default();
         let mut previous:Option<Fingerprint>=None;let mut running:Option<Running>=None;let mut built_once=false;
         while !STOP.load(Ordering::Relaxed) {
-            let input=watcher.snapshot(&root);
+            let mut input=watcher.snapshot(&root);
             if previous.as_ref()!=Some(&input) {
                 // Debounce edits, but initial startup has no preceding edit burst.
                 if previous.is_some() {
                     std::thread::sleep(Duration::from_millis(100));
                     if watcher.snapshot(&root)!=input {continue;}
                 }
-                previous=Some(input.clone());
                 let build_started=Instant::now();
+                if input.is_ok(){
+                    if let Err(error)=crate::docs_cli::prepare_root(&root){previous=Some(input);report(Status::Error,error);continue;}
+                    // Generated modules enter the same immutable frontend snapshot.
+                    watcher.invalidate(&root);input=watcher.snapshot(&root);
+                    if let Ok(inputs)=&input{if !crate::docs_cli::matches_snapshot(&root,inputs)?{continue;}}
+                }
+                previous=Some(input.clone());
                 let result=match &input {Err(error)=>Err(error.clone()),Ok(_)=>build(&root,release,verbose,&input,&mut watcher,&worker)};
                 match result {
                     Ok(Some((files,binary))) if !STOP.load(Ordering::Relaxed) && watcher.snapshot(&root)==input=>{

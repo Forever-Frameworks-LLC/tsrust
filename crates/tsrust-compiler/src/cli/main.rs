@@ -274,7 +274,7 @@ fn run() -> Result<u8, String> {
     {
         return Err("output must not overwrite the source".into());
     }
-    if matches!(command.as_str(),"build"|"run") {ui_cli::check_setup(&source_path)?;}
+    if matches!(command.as_str(),"build"|"run") {docs_cli::prepare_entry(&source_path)?;ui_cli::check_setup(&source_path)?;}
     let source = fs::read_to_string(&source_path).map_err(|e| e.to_string())?;
 
     let check_started=std::time::Instant::now();

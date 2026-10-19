@@ -30,6 +30,10 @@ pub(crate) struct Watcher {
     #[cfg(test)] reads:usize,
 }
 impl Watcher {
+    pub(crate) fn invalidate(&mut self,root:&Path){
+        self.previous=None;
+        if let Some(events)=&mut self.events{if let Err(error)=events.refresh(root){crate::dev_cli::report(crate::dev_cli::Status::Warning,format_args!("Native watching failed ({error}); using polling."));self.events=None;}}
+    }
     pub(crate) fn snapshot(&mut self,root:&Path)->Fingerprint {
         if !self.initialized {
             self.initialized=true;
@@ -63,6 +67,7 @@ impl Watcher {
     fn read_snapshot(&mut self,root:&Path)->Fingerprint {
         #[cfg(test)] {self.scans+=1;}
         let mut files=tsrust_compiler::source_discovery::discover_project_inputs(&[root.to_owned()])?;
+        files.extend(crate::docs_cli::watched_inputs(root)?);
         let config=root.join(crate::project_config::FILE);
         files.push(fs::canonicalize(&config).map_err(|error|format!("{}: {error}",config.display()))?);
         files.sort();files.dedup();
@@ -86,7 +91,8 @@ impl Watcher {
             values.insert(path.clone(),self.entries[&path].1.clone());
         }
         self.entries.retain(|path,_|values.contains_key(path));
-        let (inputs,dependencies)=crate::dev_dependencies::capture(root,values)?;
+        let (inputs,mut dependencies)=crate::dev_dependencies::capture(root,values)?;
+        let manifest=root.join("target/docs-content/inputs.json");if inputs.contains_key(&manifest){dependencies.insert(manifest.clone(),fs::metadata(&manifest).ok().map(Stamp::from));}
         if self.entries.iter().any(|(path,(stamp,_))|fs::metadata(path).ok().map(Stamp::from).as_ref()!=Some(stamp)){return Err("Source changed during dependency capture; retrying".into());}
         self.dependencies=dependencies;
         Ok(inputs)
@@ -95,6 +101,18 @@ impl Watcher {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn documentation_watches_content_assets_and_new_pages_but_excludes_historical_markdown(){
+        let directory=crate::TempDirectory::new().unwrap();let root=directory.0.canonicalize().unwrap();
+        fs::write(root.join("tsrust.config.json"),r#"{"documentation":{"content":"content","examples":[],"apiSources":[],"inventory":null}}"#).unwrap();
+        fs::create_dir(root.join("content")).unwrap();fs::write(root.join("content/index.md"),"# Home").unwrap();fs::write(root.join("content/image.png"),b"first").unwrap();fs::write(root.join("history.md"),"old").unwrap();
+        let mut watcher=Watcher::default();let before=watcher.snapshot(&root).unwrap();assert!(before.contains_key(&root.join("content/index.md")));assert!(before.contains_key(&root.join("content/image.png")));assert!(!before.contains_key(&root.join("history.md")));
+        fs::write(root.join("history.md"),"new").unwrap();assert_eq!(watcher.snapshot(&root).unwrap(),before);
+        fs::write(root.join("content/index.md"),"# Edit").unwrap();let next=watcher.snapshot(&root).unwrap();assert_ne!(next,before);
+        fs::write(root.join("content/image.png"),b"other").unwrap();assert_ne!(watcher.snapshot(&root).unwrap(),next);
+        fs::write(root.join("content/new.md"),"# New").unwrap();assert!(watcher.snapshot(&root).unwrap().contains_key(&root.join("content/new.md")));
+        fs::remove_file(root.join("content/new.md")).unwrap();assert!(!watcher.snapshot(&root).unwrap().contains_key(&root.join("content/new.md")));
+    }
     #[test]
     fn unchanged_polls_reuse_bytes_and_same_size_edits_are_detected() {
         let directory=crate::TempDirectory::new().unwrap();let canonical=directory.0.canonicalize().unwrap();let root=&canonical;

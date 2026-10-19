@@ -31,3 +31,26 @@ fn invalid_content_never_replaces_accepted_output_and_checks_remain_read_only(){
  #[cfg(unix)]{std::os::unix::fs::symlink(root.join("content/index.md"),root.join("content/link.md")).unwrap();assert!(!run().status.success());fs::remove_file(root.join("content/link.md")).unwrap();}
  assert!(!root.join("src").exists(),"Content checks must not create UI project source");
 }
+
+#[test]
+fn execution_prepares_content_and_cache_tracks_compiler_sources_and_publications(){
+ let temp=support::TempDirectory::new();let root=&temp.0;fs::create_dir_all(root.join("content")).unwrap();fs::create_dir_all(root.join("src")).unwrap();
+ fs::write(root.join("tsrust.config.json"),r#"{"schemaVersion":1,"name":"content-app","build":{"entry":"src/main.tsr","output":"target/app"},"documentation":{"content":"content","examples":[],"apiSources":[],"inventory":null}}"#).unwrap();
+ let header="<!-- tsrust-docs\n{\"id\":\"home\",\"group\":\"guides\",\"order\":0,\"status\":\"ready\",\"targets\":[\"web\",\"native\"]}\n-->\n";
+ fs::write(root.join("content/index.md"),format!("{header}# Home\n")).unwrap();
+ let entry=root.join("src/main.tsr");fs::write(&entry,support::format_round_trip("import {loadCatalog} from '../target/docs-content/catalog';function main(){const catalog=loadCatalog();console.log(catalog.pages[0].document.title);}")).unwrap();
+ let check=support::run(support::cli().arg("check").arg(&entry),30);assert!(!check.status.success());assert!(!root.join("target").exists(),"check must stay read-only");
+ let run=support::run(support::cli().arg("run").arg(&entry),180);support::success(&run);assert_eq!(run.stdout,b"Home\n");
+ let module=root.join("target/docs-content/catalog.tsr");let accepted=fs::read(&module).unwrap();let before=fs::metadata(&module).unwrap().modified().unwrap();
+ let content=||support::run(support::cli().args(["docs","content","--cwd"]).arg(root),60);
+ support::success(&content());assert_eq!(before,fs::metadata(&module).unwrap().modified().unwrap());
+ let manifest:serde_json::Value=serde_json::from_slice(&fs::read(root.join("target/docs-content/inputs.json")).unwrap()).unwrap();assert_eq!(manifest["compilerSha256"].as_str().unwrap().len(),64);
+ let mut wrong_compiler=manifest.clone();wrong_compiler["compilerSha256"]=serde_json::json!("wrong compiler");fs::write(root.join("target/docs-content/inputs.json"),serde_json::to_vec(&wrong_compiler).unwrap()).unwrap();support::success(&content());
+ let refreshed:serde_json::Value=serde_json::from_slice(&fs::read(root.join("target/docs-content/inputs.json")).unwrap()).unwrap();assert_eq!(manifest["compilerSha256"],refreshed["compilerSha256"]);
+ fs::write(&module,"tampered").unwrap();support::success(&content());assert_eq!(fs::read(&module).unwrap(),accepted);
+ let other=header.replace("\"home\"","\"other\"");fs::write(root.join("content/other.md"),format!("{other}# Other\n")).unwrap();support::success(&content());
+ let catalog:serde_json::Value=serde_json::from_slice(&fs::read(root.join("target/docs-content/catalog.json")).unwrap()).unwrap();assert_eq!(catalog["pages"].as_array().unwrap().len(),2);
+ fs::remove_file(root.join("content/other.md")).unwrap();fs::write(root.join("content/index.md"),format!("{header}# Updated\n")).unwrap();
+ let binary=root.join("target/app");let build=support::run(support::cli().arg("build").arg(&entry).arg("-o").arg(&binary),180);support::success(&build);
+ let output=support::run(std::process::Command::new(&binary).current_dir(root),30);support::success(&output);assert_eq!(output.stdout,b"Updated\n");
+}
