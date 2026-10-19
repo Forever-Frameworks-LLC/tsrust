@@ -681,7 +681,10 @@ fn definitely_assigned(checked: &mut CheckedProgram) -> Result<(), Diagnostic> {
 /// Resolve finite access lattices before a fresh definitive ownership analysis.
 /// Speculative checked trees are discarded and are never exposed or emitted.
 pub fn analyze_recursive(program: Program) -> Result<CheckedProgram, Diagnostic> {
-    let initial = Analyzer::new(program.clone())?;
+    // Each pass starts from the same source. Access modes are applied after
+    // construction, so source callback proofs are independent of this fixed point.
+    let source_proofs=std::cell::OnceCell::new();
+    let initial=Analyzer::new_with_source_proofs(program.clone(),Some(&source_proofs))?;
     let mut modes = initial
         .signatures
         .iter()
@@ -701,7 +704,7 @@ pub fn analyze_recursive(program: Program) -> Result<CheckedProgram, Diagnostic>
     let mut remaining = parameter_count.saturating_mul(2) + 1;
     while remaining > 0 {
         remaining -= 1;
-        let mut analyzer = Analyzer::new(program.clone())?;
+        let mut analyzer = Analyzer::new_with_source_proofs(program.clone(),Some(&source_proofs))?;
         analyzer.assumed_modes = Some(modes.clone());
         analyzer.assumed_capture_access = capture_access.clone();
         analyzer.program_access = program_access.clone();
@@ -751,7 +754,7 @@ pub fn analyze_recursive(program: Program) -> Result<CheckedProgram, Diagnostic>
             }
         }
         if !changed {
-            let mut analyzer = Analyzer::new(program)?;
+            let mut analyzer = Analyzer::new_with_source_proofs(program,Some(&source_proofs))?;
             analyzer.assumed_modes = Some(modes);
             analyzer.assumed_capture_access = capture_access;
             analyzer.program_access = program_access;
@@ -1516,7 +1519,8 @@ impl Analyzer {
         }
     }
 
-    fn new(mut program: Program) -> Result<Self, Diagnostic> {
+    fn new(program:Program)->Result<Self,Diagnostic>{Self::new_with_source_proofs(program,None)}
+    fn new_with_source_proofs(mut program:Program,source_proofs:Option<&std::cell::OnceCell<crate::generic_call_validation::Proofs>>)->Result<Self,Diagnostic> {
         // Never silently drop preserved initializers while module ownership
         // lowering is under construction.
         if let Some(statement) = program.module_bindings.first() {
@@ -1543,7 +1547,7 @@ impl Analyzer {
                 base.span,
             ));
         }
-        let mut generic_functions = crate::generic_functions::specialize(&mut program)?;
+        let mut generic_functions=if source_proofs.is_some(){crate::generic_functions::specialize_with_proofs(&mut program,source_proofs)?}else{crate::generic_functions::specialize(&mut program)?};
         if let Some((span, arguments)) = program.call_type_arguments.first() {
             return Err(Diagnostic::new(
                 "type",
@@ -11741,3 +11745,12 @@ mod ownership_walk_tests {
 mod borrow_hints;
 
 mod type_hints;
+
+#[cfg(test)]mod source_proof_reuse_tests{
+ use super::*;
+ #[test]fn source_proofs_run_once_per_access_fixed_point_and_never_cross_inputs(){
+  let source=crate::format("function preserve<T>(value:T):T{return value;}function append(values:Mutable<int[]>,n:int):void{if(n>0){values.push(preserve<int>(n));append(values,n-1);}}function main(){const values=[0];append(values,2);}").unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+  let before=crate::generic_call_validation::validation_runs();let result=analyze_recursive(crate::syntax::parse(&source).unwrap()).unwrap();assert_eq!(crate::generic_call_validation::validation_runs()-before,1);let append=result.functions.iter().find(|function|function.name=="append").unwrap();assert_eq!(append.bindings[0].mode,Mode::Mutate);
+  let invalid=source.replace("preserve<int>(n)","preserve<int>(n, 2)");assert!(analyze_recursive(crate::syntax::parse(&invalid).unwrap()).is_err());assert_eq!(crate::generic_call_validation::validation_runs()-before,2);
+ }
+}

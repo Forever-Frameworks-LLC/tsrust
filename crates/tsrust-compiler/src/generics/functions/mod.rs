@@ -467,6 +467,10 @@ mod exception_scope_tests {
 }
 
 pub(crate) fn specialize(program: &mut Program) -> Result<Cache, Diagnostic> {
+    specialize_with_proofs(program,None)
+}
+// The slot belongs to one immutable source compilation, before access-mode inference.
+pub(crate) fn specialize_with_proofs(program:&mut Program,source_proofs:Option<&std::cell::OnceCell<crate::generic_call_validation::Proofs>>)->Result<Cache,Diagnostic> {
     if !program
         .functions
         .iter()
@@ -485,7 +489,11 @@ pub(crate) fn specialize(program: &mut Program) -> Result<Cache, Diagnostic> {
         }
     }
     crate::generic_defaults::validate(program)?;
-    let callable_proofs = crate::generic_call_validation::validate(program)?;
+    let callable_proofs=if let Some(proofs)=source_proofs.and_then(std::cell::OnceCell::get){proofs.clone()}else{
+        let proofs=crate::generic_call_validation::validate(program)?;
+        if let Some(slot)=source_proofs{assert!(slot.set(proofs.clone()).is_ok(),"Source callback proofs initialized twice");}
+        proofs
+    };
     let mut declarations = HashMap::new();
     let mut cache = Cache {
         nongeneric_names: program.functions.iter().filter(|function| function.type_parameters.is_empty()).map(|function| function.name.text.clone()).collect(),

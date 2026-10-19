@@ -238,7 +238,13 @@ fn related(mut error: Diagnostic, contract: &Contract) -> Diagnostic {
     error
 }
 
-pub(crate) fn validate(program: &mut Program) -> Result<Proofs, Diagnostic> {
+#[cfg(test)]
+thread_local! {static VALIDATION_RUNS:std::cell::Cell<usize>=const {std::cell::Cell::new(0)};}
+#[cfg(test)]
+pub(crate) fn validation_runs()->usize{VALIDATION_RUNS.with(std::cell::Cell::get)}
+
+pub(crate) fn validate(program: &Program) -> Result<Proofs, Diagnostic> {
+    #[cfg(test)] VALIDATION_RUNS.with(|count|count.set(count.get()+1));
     let trace=std::env::var_os("TSRUST_TRACE_SOURCE_FLOW").is_some();
     let mut proofs = Proofs::default();
     let declaration_spans = program.functions.iter().map(|function| function.name.span).collect::<HashSet<_>>();
@@ -268,7 +274,8 @@ pub(crate) fn validate(program: &mut Program) -> Result<Proofs, Diagnostic> {
         .iter()
         .map(|(span, args)| ((span.start, span.end), args.clone()))
         .collect::<HashMap<_, _>>();
-    for function in &mut program.functions {
+    for original in &program.functions {
+        let mut function=original.clone();
         let validate_template = !function.type_parameters.is_empty();
         let owner = function.name.text.clone();
         let mut bindings = function
@@ -305,7 +312,7 @@ pub(crate) fn validate(program: &mut Program) -> Result<Proofs, Diagnostic> {
             })
             .collect::<Vec<_>>();
         collect(&function.body, &mut bindings, &effects);
-        crate::source_walk::function_body(function, &mut |_| Ok(()), &mut |expression| {
+        crate::source_walk::function_body(&mut function, &mut |_| Ok(()), &mut |expression| {
             if let ExprKind::Closure { params, body, .. } = &expression.kind {
                 bindings.extend(params.iter().map(|parameter| Binding { alternatives: None,
                     identity: effects.declared(parameter.name.span),
@@ -334,7 +341,7 @@ pub(crate) fn validate(program: &mut Program) -> Result<Proofs, Diagnostic> {
         })?;
         let flow_started=trace.then(std::time::Instant::now);
         if trace {eprintln!("[source-flow] start {}",function.name.text);}
-        let branch_facts = branch_flow::analyze(function, &bindings, &writes, &declarations, &effects)?;
+        let branch_facts = branch_flow::analyze(&function, &bindings, &writes, &declarations, &effects)?;
         if let Some(started)=flow_started {eprintln!("[source-flow] finish {} {:.1}ms",function.name.text,started.elapsed().as_secs_f64()*1000.);}
         let function_scope = function.scope_span;
         let direct_writes = function
@@ -366,13 +373,13 @@ pub(crate) fn validate(program: &mut Program) -> Result<Proofs, Diagnostic> {
                 function_scope.start <= write.span.start && write.span.end <= function_scope.end
             })
             .all(|write| direct_writes.contains(&(write.span.start, write.span.end)));
-        crate::source_walk::function_body(function, &mut |_| Ok(()), &mut |expression| {
+        crate::source_walk::function_body(&mut function, &mut |_| Ok(()), &mut |expression| {
             if matches!(expression.kind, ExprKind::Closure { .. }) {
                 linear = false;
             }
             Ok(())
         })?;
-        crate::source_walk::function_body(function, &mut |_| Ok(()), &mut |expression| {
+        crate::source_walk::function_body(&mut function, &mut |_| Ok(()), &mut |expression| {
             let ExprKind::Call(callee, args) = &expression.kind else {
                 return Ok(());
             };

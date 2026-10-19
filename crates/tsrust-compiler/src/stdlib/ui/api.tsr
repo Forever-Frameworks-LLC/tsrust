@@ -336,6 +336,14 @@ export interface ThemeColors {
   border: string;
   input: string;
   ring: string;
+  /** Optional code keyword color; omitted uses the mode's built-in syntax color. */
+  syntaxKeyword?: string;
+  /** Optional quoted string color; supports the same checked color syntax and aliases. */
+  syntaxString?: string;
+  /** Optional numeric literal color. Omission keeps the built-in mode color. */
+  syntaxNumber?: string;
+  /** Optional type/component name color. Omission keeps the built-in mode color. */
+  syntaxType?: string;
 }
 
 export interface ThemeScale {

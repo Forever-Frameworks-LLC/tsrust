@@ -1,6 +1,6 @@
 //! Source declaration proofs stay separate from native storage membership.
 use super::*;
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub(crate) struct Proofs {
     calls: HashMap<String, HashMap<(usize, usize, usize, usize), Option<Vec<Span>>>>,
 }

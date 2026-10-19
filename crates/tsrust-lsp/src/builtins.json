@@ -14137,10 +14137,10 @@
           "documentation": "Theme schema identifier. Must be int 1; other values fail validation. Read with theme.schemaVersion; the bundled theme returns 1. Reading does not change the theme. Ownership: copies the scalar."
         },
         "light": {
-          "documentation": "Semantic colors selected by light mode, the default mode of withTheme. Every ThemeColors key is required. For the bundled theme, theme.light.primary is the raw string #2563eb. Reading does not resolve aliases or mutate data. Ownership: borrows the color record."
+          "documentation": "Semantic colors selected by light mode, the default mode of withTheme. Surface ThemeColors keys are required; syntaxKeyword/String/Number/Type have built-in defaults. For the bundled theme, theme.light.primary is the raw string #2563eb. Reading does not resolve aliases or mutate data. Ownership: borrows the color record."
         },
         "dark": {
-          "documentation": "Semantic colors selected by withTheme(node, theme, \"dark\"). Every ThemeColors key is required. The bundled theme.dark.background is #0f172a. Reading does not mutate data. Ownership: borrows the color record."
+          "documentation": "Semantic colors selected by withTheme(node, theme, \"dark\"). Surface ThemeColors keys are required; syntaxKeyword/String/Number/Type have built-in defaults. The bundled theme.dark.background is #0f172a. Reading does not mutate data. Ownership: borrows the color record."
         },
         "spacing": {
           "documentation": "Required sm/md/lg spacing scale, 0–512 finite logical pixels per value. p-2/4/6, px-, py- and gap- use these slots; 0 uses zero. theme.spacing.md is 16 in the bundled theme. Both adapters apply display scaling. Ownership: borrows the scale; reading does not mutate it."
@@ -14209,6 +14209,18 @@
         },
         "ring": {
           "documentation": "Required color for focus outlines. Accepts #RRGGBB, #RRGGBBAA, in-gamut oklch(L C H / A) or @token in the same mode; no missing-value default. L/A accept 0–1 or 0–100%, C is nonnegative and unitless, H is unitless 0–360. Invalid ranges, unsupported gamut, missing aliases and cycles fail. Functional conversion uses renderer float precision; native paint uses 8-bit sRGB. For example, ring: \"#123456\" resolves to sRGB bytes 18, 52, 86. Reading returns the raw string without changing it; aliases resolve when a theme is applied. Ownership: borrows the string from readonly data."
+        },
+        "syntaxKeyword": {
+          "documentation": "Optional code keywords color, using checked sRGB hex, in-gamut oklch() or @token aliases. Defaults to #9f1239 in light mode and #fda4af in dark mode. For example, syntaxKeyword: \"@foreground\" uses the text color. Does not alter source or copied text; invalid colors and alias cycles throw during theme validation. Ownership: consumes the configured string."
+        },
+        "syntaxString": {
+          "documentation": "Optional string literals color, using checked sRGB hex, in-gamut oklch() or @token aliases. Defaults to #166534 in light mode and #86efac in dark mode. For example, syntaxString: \"@foreground\" uses the text color. Does not alter source or copied text; invalid colors and alias cycles throw during theme validation. Ownership: consumes the configured string."
+        },
+        "syntaxNumber": {
+          "documentation": "Optional numeric literals color, using checked sRGB hex, in-gamut oklch() or @token aliases. Defaults to #92400e in light mode and #fcd34d in dark mode. For example, syntaxNumber: \"@foreground\" uses the text color. Does not alter source or copied text; invalid colors and alias cycles throw during theme validation. Ownership: consumes the configured string."
+        },
+        "syntaxType": {
+          "documentation": "Optional type and component names color, using checked sRGB hex, in-gamut oklch() or @token aliases. Defaults to #1e40af in light mode and #93c5fd in dark mode. For example, syntaxType: \"@foreground\" uses the text color. Does not alter source or copied text; invalid colors and alias cycles throw during theme validation. Ownership: consumes the configured string."
         }
       }
     },

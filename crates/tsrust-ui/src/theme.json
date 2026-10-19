@@ -17,7 +17,11 @@
     "destructiveForeground": "#ffffff",
     "border": "#cbd5e1",
     "input": "@border",
-    "ring": "@primary"
+    "ring": "@primary",
+    "syntaxKeyword": "#9f1239",
+    "syntaxString": "#166534",
+    "syntaxNumber": "#92400e",
+    "syntaxType": "#1e40af"
   },
   "dark": {
     "background": "#0f172a",
@@ -36,7 +40,11 @@
     "destructiveForeground": "#ffffff",
     "border": "#475569",
     "input": "@border",
-    "ring": "@primary"
+    "ring": "@primary",
+    "syntaxKeyword": "#fda4af",
+    "syntaxString": "#86efac",
+    "syntaxNumber": "#fcd34d",
+    "syntaxType": "#93c5fd"
   },
   "spacing": {
     "sm": 8,
