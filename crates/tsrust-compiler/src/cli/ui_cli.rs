@@ -157,6 +157,43 @@ pub(super) fn install_defaults(root:&Path,config:&Config)->Result<(),String> {
  let requests=["button","card"].map(|name|Identity{name:name.into(),version:"1.0.0".into(),variant:"default".into()});
  apply(root,&plan(root,config,&requests,None,&hash)?)
 }
+fn ordered_catalog()->Result<Vec<Item>,String> {
+ let mut items=catalog()?;items.sort_by(|a,b|(a.name=="tokens",&a.name,&a.version).cmp(&(b.name=="tokens",&b.name,&b.version)));Ok(items)
+}
+/// Empty arguments return to the UI category; cancellation exits the launcher.
+pub(super) fn browse()->Result<Option<Vec<String>>,String> {
+ let items=ordered_catalog()?;
+ loop {
+  let mut labels=items.iter().map(|item|(format!("{}@{}",item.name,item.version),format!("{} · {} · {}",if item.name=="tokens"{"Foundation"}else{"Component"},item.variant,item.license))).collect::<Vec<_>>();
+  labels.push(("Back to UI".into(),"Return without installing".into()));
+  let choices=labels.iter().map(|(label,hint)|(label.as_str(),hint.as_str())).collect::<Vec<_>>();
+  let Some(index)=super::interactive_cli::select("Component catalog · type to search",&choices,true)? else{return Ok(None);};
+  let Some(item)=items.get(index)else{return Ok(Some(vec![]));};
+  let dependencies=item.dependencies.iter().map(|dependency|format!("{}@{}",dependency.name,dependency.version)).collect::<Vec<_>>().join(", ");
+  let files=if item.name=="tokens"{"Theme configuration (inline ui.theme by default)".into()}else{item.files.iter().map(|file|file.path.as_str()).collect::<Vec<_>>().join(", ")};
+  super::interactive_cli::note(&format!("{}@{}",item.name,item.version),&format!("Variant: {}\nLicense: {}\nSource: {}\nDependencies: {}\n\nInstalls editable local source from the bundled offline catalog.\nExisting project edits are preserved; occupied upgrades are refused.",item.variant,item.license,files,if dependencies.is_empty(){"none"}else{&dependencies}))?;
+  match super::interactive_cli::choose("Component actions",&["Install this exact version","Back to catalog"])? {
+   Some(0)=>return Ok(Some(vec!["add".into(),format!("{}@{}",item.name,item.version),"--variant".into(),item.variant.clone()])),
+   Some(_)=>{},None=>return Ok(None),
+  }
+ }
+}
+fn print_catalog(items:&[Item]) {
+ use std::io::IsTerminal;
+ if !std::io::stdout().is_terminal() || std::env::var("TERM").as_deref()==Ok("dumb") {
+  for item in items {println!("{}@{} --variant {} ({})",item.name,item.version,item.variant,item.license);}return;
+ }
+ println!();
+ for (title,foundation) in [("COMPONENTS",false),("FOUNDATIONS",true)] {
+  println!("  {}",console::style(title).cyan().bold());
+  for item in items.iter().filter(|item|(item.name=="tokens")==foundation) {
+   println!("  {:<12} {:<10} {:<10} {}",console::style(&item.name).bold(),item.version,item.variant,console::style(&item.license).dim());
+  }
+  println!();
+ }
+ println!("  {}",console::style("Offline · exact versions · editable local source").dim());
+ println!("  tsrust ui add button@1.0.0\n");
+}
 pub(super) fn run(args:impl Iterator<Item=String>)->Result<u8,String> {
  let mut args=args;let command=match args.next(){Some(command)=>command,None if super::interactive_cli::available()=>{
   let Some(choice)=super::interactive_cli::choose("UI components",&["Add a bundled component","List bundled components"])? else{return Ok(0);};if choice==0{"add".into()}else{"list".into()}
@@ -164,15 +201,16 @@ pub(super) fn run(args:impl Iterator<Item=String>)->Result<u8,String> {
  let mut targets=vec![];let mut unattended=false;
  let(mut cwd,mut path,mut variant,mut dry,mut json)=(None,None,"default".to_owned(),false,false);let mut requests=vec![];
  while let Some(arg)=args.next(){match arg.as_str(){"--cwd"=>cwd=Some(PathBuf::from(args.next().ok_or("--cwd requires a directory")?)),"--path"=>path=Some(PathBuf::from(args.next().ok_or("--path requires a relative directory")?)),"--target"=>targets.push(args.next().ok_or("--target requires native or web")?),"--variant"=>variant=args.next().ok_or("--variant requires a name")?,"--dry-run"=>dry=true,"--json"=>json=true,"--yes"=>unattended=true,"--bundled"|"--offline"=>{},_ if !arg.starts_with('-')=>requests.push(arg),_=>return Err(format!("Unknown UI option: {arg}"))}}
- if command=="list" {if !requests.is_empty() || path.is_some() || dry || !targets.is_empty() {return Err("Usage: tsrust ui list --bundled [--json]".into());}let items=catalog()?;if json {println!("{}",serde_json::to_string_pretty(&items).unwrap());}else {for item in items {println!("{}@{} --variant {} ({})",item.name,item.version,item.variant,item.license);}}return Ok(0);}
+ if command=="list" {if !requests.is_empty() || path.is_some() || dry || !targets.is_empty() {return Err("Usage: tsrust ui list --bundled [--json]".into());}let items=catalog()?;if json {println!("{}",serde_json::to_string_pretty(&items).unwrap());}else {print_catalog(&items);}return Ok(0);}
  let selected=match cwd {Some(path)=>path,None=>std::env::current_dir().map_err(|e|e.to_string())?};
  let selected=fs::canonicalize(selected).map_err(|e|e.to_string())?;
  let root=selected.ancestors().find(|root|root.join(super::project_config::FILE).exists()).unwrap_or(&selected).to_owned();
  if command=="add" && requests.is_empty() && !dry && !json && !unattended && super::interactive_cli::available() {
-  let items=catalog()?.into_iter().filter(|item|item.variant==variant).collect::<Vec<_>>();
+  let items=ordered_catalog()?.into_iter().filter(|item|item.variant==variant).collect::<Vec<_>>();
   if items.is_empty(){return Err(format!("No bundled UI components for variant {variant}"));}
-  let labels=items.iter().map(|item|format!("{}@{} ({})",item.name,item.version,item.variant)).collect::<Vec<_>>();
-  let Some(choice)=super::interactive_cli::choose("Bundled components (exact offline versions)",&labels.iter().map(String::as_str).collect::<Vec<_>>())? else{return Ok(0);};
+  let labels=items.iter().map(|item|(format!("{}@{}",item.name,item.version),format!("{} · {}",item.variant,item.license))).collect::<Vec<_>>();
+  let choices=labels.iter().map(|(label,hint)|(label.as_str(),hint.as_str())).collect::<Vec<_>>();
+  let Some(choice)=super::interactive_cli::select("Add a component · type to search",&choices,true)? else{return Ok(0);};
   requests.push(format!("{}@{}",items[choice].name,items[choice].version));
  }
  if command!="init" && (command!="add" || requests.is_empty()) {return Err("Usage: tsrust ui add name@version ... [--cwd directory] [--path directory] [--dry-run] [--json]".into());}
@@ -325,6 +363,7 @@ pub(super) fn select_targets(existing:Option<&Targets>,flags:&[String],nonintera
  if let Some(target)=existing{target.validate()?;return Ok(target.clone());}
  use std::io::{IsTerminal,Write};
  if noninteractive || !std::io::stdin().is_terminal() || !std::io::stderr().is_terminal(){return Err("No UI target selected. Pass --target native, --target web, or repeat both flags. Interactive selection requires a terminal; --dry-run never prompts.".into());}
+ if super::interactive_cli::rich(){return parse_targets(&super::interactive_cli::targets()?,Targets::default());}
  loop{
   eprint!("UI targets: 1) native desktop  2) web. Choose one or both (for example 1,2): ");std::io::stderr().flush().map_err(|e|e.to_string())?;
   let mut line=String::new();if std::io::stdin().read_line(&mut line).map_err(|e|e.to_string())?==0{return Err("UI target selection ended before a choice; no files created".into());}

@@ -165,7 +165,8 @@ mod argument_tests {
 
 fn run() -> Result<u8, String> {
     let arguments=env::args().skip(1).collect::<Vec<_>>();
-    let arguments=if arguments.is_empty() {
+    interactive_cli::colors();
+    let arguments=if interactive_cli::launcher(&arguments)? {
         if !interactive_cli::available() {print_help();return Ok(0);}
         let Some(arguments)=interactive_cli::command()? else{return Ok(0);};arguments
     }else{arguments};

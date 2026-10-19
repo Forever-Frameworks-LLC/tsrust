@@ -7,7 +7,7 @@ pub fn run(args:impl Iterator<Item=String>)->Result<u8,String> {
     if !ui && !targets.is_empty(){return Err("--target requires --ui".into());}
     let guided=requested.is_none() && super::interactive_cli::available();
     let root=loop {
-        let requested=if guided {let Some(value)=super::interactive_cli::text("Project name or path (q to cancel)")? else{return Ok(0);};value}else{requested.take().ok_or("Missing project name. Run tsrust new in a terminal, or pass a name.")?};
+        let requested=if guided {let Some(value)=super::interactive_cli::text("Project name or path")? else{return Ok(0);};value}else{requested.take().ok_or("Missing project name. Run tsrust new in a terminal, or pass a name.")?};
         match destination(&requested) {Ok(root)=>break root,Err(error) if guided=>eprintln!("{error}"),Err(error)=>return Err(error)}
     };
     if guided && !ui {

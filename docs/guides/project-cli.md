@@ -1,19 +1,32 @@
 # Create and develop a Tsrust project
 
 Run `tsrust` without arguments in a terminal to open the interactive command menu.
-It offers project creation, exact bundled UI components and help. Inside a project,
-it also offers dev, run, build, check, tests and a formatting check. Choose a number;
-`q` or end-of-input cancels without selecting an action. When stdin or stderr is
-not a terminal, bare invocation prints help and exits successfully instead of
-waiting for input.
+The launcher groups actions into Development, Quality, UI and Project screens,
+with help and exit alongside them. Development and Quality appear inside projects.
+Use arrow keys and Enter, or the displayed Back item to return to categories.
+Esc or Ctrl+C cancels. A compact wordmark, color, action hints and workspace context
+provide terminal presentation without changing the commands themselves.
+
+The UI browser filters exact bundled versions as you type, shows source,
+dependency and license details, and returns to browsing without closing the
+launcher. Installation is an explicit action. Native/web targets use Space to
+toggle one or both choices, then Enter to confirm; nothing is selected implicitly.
+
+`NO_COLOR` and `--color never` disable colors; `--color always` explicitly enables
+them. For example, `tsrust --color never` opens the launcher without color. Narrow
+terminals omit the wordmark and scroll longer selections. `TERM=dumb` uses numbered
+prompts with `q`/EOF cancellation. When stdin or stderr is not a terminal, bare
+invocation prints help and exits successfully instead of waiting for input.
 
 `tsrust new` asks for a destination and console/UI project type. `tsrust new --ui`
 asks for the destination and UI targets. The destination must be new and its parent
 must exist; invalid answers retry before creating files. `tsrust ui` offers add/list,
-and `tsrust ui add` lets you choose an exact bundled component version before target
+and `tsrust ui add` lets you search exact bundled component versions before target
 selection and installation. These prompts require terminal input and stderr.
 `ui add --json`, `--yes` and `--dry-run` never prompt; pass exact component versions
 and target flags for scripts. Fully specified commands keep their existing behavior.
+`tsrust ui list --bundled` groups components and foundations in a terminal;
+redirected text and `--json` preserve their plain machine-readable output.
 
 ```sh
 tsrust new hello

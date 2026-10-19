@@ -1,5 +1,28 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
+## Current terminal UI correction — 2026-10-18
+
+The owner rejected the numbered command dump as incomplete interactive CLI work.
+It now uses grouped, styled keyboard screens, a compact wordmark, searchable
+offline component browsing/details, Back navigation, editable input and native/web
+multiselect. Pinned Cliclack/Console provide terminal controls; ordinary command
+dispatch and installer ownership remain. Redirected/JSON output stays plain,
+color policy is honored and TERM=dumb retains a numbered fallback. This supersedes
+the numbered-only interaction below; reuse accepted non-presentation behavior.
+
+Six focused CLI witnesses pass, reusing five prompt-guard passes and rerunning only
+the repaired keyboard witness. Two prompt unit checks and existing help/usage
+checks pass. Real terminal acceptance covers arrows, search, browser details/back,
+project creation/check/formatting, exact component installation, web-only and paired
+target selection, colors/NO_COLOR/forced color, narrow displays, unattended guards,
+Esc/Ctrl+C and restored input flags/cursor. A prompt-wide input guard fixes the
+redraw cancellation race; the test ignores only kernel-owned PENDIN status, not
+input behavior flags. Original failed runs remain in SQLite under tsrust-terminal-ui-*.
+Whole-project formatting changes zero files/fingerprints. The installed CLI is
+atomically refreshed and manually exercised from the standalone counter through
+UI browsing and clean cancellation. No SQL, rendering, full regression or timing
+suite was rerun; independent Windows terminal acceptance is not claimed.
+
 ## Current interactive CLI correction — 2026-10-18
 
 Bare `tsrust` previously errored despite the owner's request for interactive CLI
