@@ -32,6 +32,10 @@ The checked CommonMark tree supplies headings, paragraphs, lists, blockquotes, t
 4. Follow a heading link in the contents rail.
 5. Return to the landing page and check that its counter retains state.
 
+## Unicode: café 文
+
+Heading links preserve Unicode text through browser URL encoding, history and direct entry. Native uses the same decoded heading identity.
+
 ## Current rendering limits
 
 Inline emphasis currently retains its text without rich formatting. Paragraph links appear as separate links after their paragraph. Images appear as labeled references. Dedicated syntax-colored code, an exact-byte copy command and rich inline selection remain unfinished. Read-only code controls normalize line endings.

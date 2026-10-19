@@ -608,6 +608,7 @@ struct App {
 }
 impl App {
     fn clickable(&self,id:u64)->bool {self.active.as_ref().is_some_and(|active|active.snapshot.lock().unwrap().nodes.iter().any(|(node_id,node)|node_id.0==id&&node.supports_action(accesskit::Action::Click)))}
+    fn link(&self,id:u64)->bool {self.active.as_ref().is_some_and(|active|active.snapshot.lock().unwrap().nodes.iter().any(|(node_id,node)|node_id.0==id&&node.role()==accesskit::Role::Link))}
     fn visible_hit(&self,id:u64)->bool {self.painter.hit_regions.get(&id).is_some_and(|paths|paths.iter().all(|path|path.contains(vello::kurbo::Point::new(self.pointer.0,self.pointer.1))))}
     fn controls(&self)->Vec<(u64,accesskit::Rect)> {
         self.active.as_ref().map(|active|{
@@ -774,7 +775,7 @@ impl App {
         if let Some(path)=super::navigation::current(){
             if path!=self.location {
                 fn target(node:&Node,fragment:Option<&str>)->Option<u64>{let node=node.visible_root()?;if fragment.map_or(node.tag()=="h1",|fragment|node.semantics.id==fragment){return Some(node.identity.get());}node.children.iter().find_map(|child|target(child,fragment))}
-                self.node.ensure_identities();self.painter.reveal_target=target(&self.node,path.split_once('#').map(|(_,fragment)|fragment));self.location=path;
+                self.node.ensure_identities();self.painter.reveal_target=path.split_once('#').and_then(|(_,fragment)|target(&self.node,Some(fragment)));self.location=path;
             }
         }
         self.painter.hover=self.pointer_nodes();self.painter.pressed_nodes=self.pressed_nodes();
@@ -941,7 +942,7 @@ impl ApplicationHandler<accesskit::ActionRequest> for App {
                     if event.state==ElementState::Pressed {
                         self.painter.scroll_key(self.focus,&event.logical_key,self.shift);
                     }
-                    let ids=self.controls().into_iter().map(|(id,_)|id).filter(|id|self.clickable(*id)).collect::<Vec<_>>();
+                    let ids=self.controls().into_iter().map(|(id,_)|id).filter(|id|self.clickable(*id) && !(event.logical_key==Key::Named(NamedKey::Space) && self.link(*id))).collect::<Vec<_>>();
                     if let Some(id)=keyboard(&mut self.focus,&mut self.key_pressed,&ids,self.shift,&event.logical_key,event.state,event.repeat){self.activate(id,event_loop);}
                 }
                 if let Some(active)=&self.active {active.window.request_redraw();}

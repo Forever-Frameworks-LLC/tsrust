@@ -13937,7 +13937,7 @@
           "documentation": "href is an absolute application path; children contains owned phrasing content. className defaults to empty. Element identity and accessible naming are forwarded."
         }
       ],
-      "documentation": "Creates an application link with browser anchor semantics and a native accessibility Link role. href accepts /docs or /docs#heading. Empty paths, external URLs, queries, percent escapes, backslashes, whitespace and dot traversal throw a readable error. Unmodified browser clicks navigate without reloading; modified clicks keep browser behavior. Native activation updates the same application location. Example: <Link href=\"/docs\">Read docs</Link> opens /docs. Links need a live location owner for activation, but document() can serialize them without one. Ownership: consumes children once; activation never retains the location owner."
+      "documentation": "Creates an application link with browser anchor semantics and a native accessibility Link role. href accepts /docs or /docs#heading. Empty paths, external URLs, queries, percent escapes, backslashes, whitespace and dot traversal throw a readable error. Unmodified browser clicks navigate without reloading; modified clicks keep browser behavior. Native activation updates the same application location. Example: <Link href=\"/docs\">Read docs</Link> opens /docs. Construct interactive links after their location owner. Links bind to that owner without retaining it; document() can serialize static links without an owner. Ownership: consumes children once; activation never retains the location owner."
     },
     {
       "name": "location",

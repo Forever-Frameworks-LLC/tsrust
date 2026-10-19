@@ -117,10 +117,18 @@ fn update(state:&mut State,document:&web_sys::Document)->Result<(),JsValue> {
     let mut roots=Vec::new();if let Some(root)=node.visible_root(){roots.push(sync_element(root,document,&mut state.elements,&mut state.composing,theme,mode)?);}
     order_children(&state.root,&roots)?;
     for (id,(x,y)) in &state.scrolls {if let Some(element)=state.elements.get(id).filter(|element|element.is_connected()){element.set_scroll_left(*x);element.set_scroll_top(*y);}}
+    focus_location(state,document)
+}
+fn focus_location(state:&mut State,document:&web_sys::Document)->Result<(),JsValue>{
+    if !state.root.is_connected(){return Ok(());}
     if let Some(path)=super::navigation::current(){
         if path!=state.location {
-            let target=path.split_once('#').and_then(|(_,fragment)|document.get_element_by_id(fragment)).or_else(||document.query_selector("[data-slot='route-page'] h1, #landing h1").ok().flatten());
-            if let Some(target)=target{target.set_attribute("tabindex","-1")?;if let Ok(focus)=js_sys::Reflect::get(target.as_ref(),&JsValue::from_str("focus")){if let Some(focus)=focus.dyn_ref::<js_sys::Function>(){let _=focus.call0(target.as_ref());}}if path.contains('#'){target.scroll_into_view();}}
+            let target=path.split_once('#').and_then(|(_,fragment)|document.get_element_by_id(fragment)).filter(|target|state.root.contains(Some(target.as_ref()))).or_else(||state.root.query_selector("h1").ok().flatten());
+            if let Some(target)=target {
+                target.set_attribute("tabindex","-1")?;
+                if let Ok(focus)=js_sys::Reflect::get(target.as_ref(),&JsValue::from_str("focus")){if let Some(focus)=focus.dyn_ref::<js_sys::Function>(){let options=js_sys::Object::new();let _=js_sys::Reflect::set(options.as_ref(),&JsValue::from_str("preventScroll"),&JsValue::TRUE);let _=focus.call1(target.as_ref(),options.as_ref());}}
+                if path.contains('#'){target.scroll_into_view();}
+            }
             state.location=path;
         }
     }
@@ -184,7 +192,7 @@ pub fn mount(mut node:Node,title:&str)->Result<Mount,JsValue> {
         }
     }
     let body=document.body().ok_or_else(||JsValue::from_str("Browser body unavailable"))?;
-    body.append_child(&style)?;body.append_child(&root)?;Ok(mount)
+    body.append_child(&style)?;body.append_child(&root)?;focus_location(&mut state.borrow_mut(),&document)?;Ok(mount)
 }
 
 // This slot exists only during entry construction. Returned JS Mount objects own

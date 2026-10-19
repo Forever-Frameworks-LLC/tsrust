@@ -1,7 +1,7 @@
 //! One application owns its location. Links and platform listeners retain only weak state.
 use super::{Child,Node,Signal};
 use std::{cell::RefCell,rc::{Rc,Weak}};
-struct Navigation { read:Box<dyn Fn()->Result<String,String>>,write:Box<dyn Fn(String)->Result<(),String>>,history:RefCell<(Vec<String>,usize)> }
+struct Navigation { read:Box<dyn Fn()->Result<String,String>>,write:Box<dyn Fn(String)->Result<(),String>>,#[cfg(not(all(target_arch="wasm32",feature="ui-web")))]history:RefCell<(Vec<String>,usize)> }
 thread_local! {static ACTIVE:RefCell<Weak<Navigation>>=const{RefCell::new(Weak::new())};}
 fn active()->Result<Rc<Navigation>,String>{ACTIVE.with(|value|value.borrow().upgrade()).ok_or_else(||"No live UI location owner".into())}
 /// Absolute application paths only. External URLs are deliberately a separate contract.
@@ -11,8 +11,15 @@ pub fn checked_path(path:&str)->Result<String,String>{
     if fragment.is_some_and(|value|value.is_empty()||value.contains('#')){return Err("UI link fragment is invalid".into());}
     let base=if path.len()>1{path.trim_end_matches('/')}else{path};Ok(match fragment{Some(fragment)=>format!("{base}#{fragment}"),None=>base.into()})
 }
+// Browsers encode Unicode path/fragment bytes even when the authored link has no escapes.
+#[cfg(any(test,all(target_arch="wasm32",feature="ui-web")))]
+fn decoded_browser_path(path:&str)->Result<String,String>{
+    let mut bytes=Vec::with_capacity(path.len());let mut source=path.as_bytes().iter().copied();
+    while let Some(byte)=source.next(){if byte==b'%' {let high=source.next().and_then(|byte|(byte as char).to_digit(16)).ok_or("Invalid browser path escape")?;let low=source.next().and_then(|byte|(byte as char).to_digit(16)).ok_or("Invalid browser path escape")?;let value=(high*16+low)as u8;if value.is_ascii(){return Err("Escaped ASCII application paths are unsupported".into());}bytes.push(value);}else{bytes.push(byte);}}
+    let path=String::from_utf8(bytes).map_err(|_|"Browser path is not valid UTF-8")?;checked_path(&path)
+}
 #[cfg(all(target_arch="wasm32",feature="ui-web"))]
-fn browser_path()->Result<String,String>{use wasm_bindgen::JsValue;let window=web_sys::window().ok_or("Browser window unavailable")?;let location=js_sys::Reflect::get(window.as_ref(),&JsValue::from_str("location")).map_err(|_|"Browser location unavailable")?;let get=|name|js_sys::Reflect::get(&location,&JsValue::from_str(name)).ok().and_then(|value|value.as_string()).ok_or_else(||String::from("Browser location is invalid"));checked_path(&(get("pathname")?+&get("hash")?))}
+fn browser_path()->Result<String,String>{use wasm_bindgen::JsValue;let window=web_sys::window().ok_or("Browser window unavailable")?;let location=js_sys::Reflect::get(window.as_ref(),&JsValue::from_str("location")).map_err(|_|"Browser location unavailable")?;let get=|name|js_sys::Reflect::get(&location,&JsValue::from_str(name)).ok().and_then(|value|value.as_string()).ok_or_else(||String::from("Browser location is invalid"));decoded_browser_path(&(get("pathname")?+&get("hash")?))}
 #[cfg(not(all(target_arch="wasm32",feature="ui-web")))]
 fn browser_path()->Result<String,String>{Ok("/".into())}
 #[cfg(all(target_arch="wasm32",feature="ui-web"))]
@@ -22,11 +29,11 @@ fn browser_history(_: &str,_:Option<&str>)->Result<(),String>{Ok(())}
 pub fn location<T:Clone+'static>(decode:fn(String)->T,encode:fn(&T)->String)->Result<Signal<T>,String>{
     if ACTIVE.with(|value|value.borrow().upgrade().is_some()){return Err("Create UI location once in the application root".into());}
     let path=browser_path()?;let state=Signal::new(decode(path.clone()));let read=state.handle();let write=state.handle();
-    let owner=Rc::new(Navigation{read:Box::new(move||read.get().map(|value|encode(&value))),write:Box::new(move|path|write.set(decode(path))),history:RefCell::new((vec![path],0))});
+    let owner=Rc::new(Navigation{read:Box::new(move||read.get().map(|value|encode(&value))),write:Box::new(move|path|write.set(decode(path))),#[cfg(not(all(target_arch="wasm32",feature="ui-web")))]history:RefCell::new((vec![path],0))});
     ACTIVE.with(|value|*value.borrow_mut()=Rc::downgrade(&owner));let weak=Rc::downgrade(&owner);
     Ok(state.with_owner(owner,move|next|{let owner=weak.upgrade().ok_or("UI location is disposed")?;let path=checked_path(&encode(next))?;push(&owner,&path)?;Ok(decode(path))}))
 }
-fn push(owner:&Navigation,path:&str)->Result<(),String>{let path=checked_path(path)?;if (owner.read)()?==path{return Ok(());}browser_history("pushState",Some(&path))?;let mut history=owner.history.borrow_mut();let end=history.1+1;history.0.truncate(end);history.0.push(path);history.1+=1;Ok(())}
+fn push(owner:&Navigation,path:&str)->Result<(),String>{let path=checked_path(path)?;if (owner.read)()?==path{return Ok(());}browser_history("pushState",Some(&path))?;#[cfg(not(all(target_arch="wasm32",feature="ui-web")))]{let mut history=owner.history.borrow_mut();let end=history.1+1;history.0.truncate(end);history.0.push(path);history.1+=1;}Ok(())}
 pub(crate) fn current()->Option<String>{active().ok().and_then(|owner|(owner.read)().ok())}
 pub(crate) fn is_current(href:&str)->bool{!href.contains('#')&&current().is_some_and(|path|path.split('#').next()==Some(href))}
 pub fn navigate(path:&str)->Result<(),String>{let path=checked_path(path)?;let owner=active()?;push(&owner,&path)?;(owner.write)(path)}
@@ -42,6 +49,7 @@ pub(crate) fn restore_browser()->Result<(),String>{let Ok(owner)=active()else{re
 pub fn link(children:Vec<Child>,class_name:String,path:&str)->Result<Node,String>{let path=checked_path(path)?;let href=path.clone();let owner=ACTIVE.with(|value|value.borrow().clone());let mut node=Node::button_children(children,class_name,false,Some(Box::new(move||{let owner=owner.upgrade().ok_or("UI link location is disposed")?;push(&owner,&path)?;(owner.write)(path.clone())})))?;node.semantics.href=href;Ok(node)}
 #[cfg(test)]
 mod tests{
+ #[test]fn browser_unicode_paths_decode_without_accepting_escaped_separators(){assert_eq!(super::decoded_browser_path("/docs/caf%C3%A9#%E6%96%87").unwrap(),"/docs/café#文");for path in ["/docs%2Fhidden","/docs%23fragment","/docs%20space","/%FF","/%C3","/%ZZ"]{assert!(super::decoded_browser_path(path).is_err(),"{path}");}}
  use super::*;
  #[test]fn location_owns_history_and_releases_weak_callbacks(){let state=location(String::from,Clone::clone).unwrap();let weak=state.handle();let mut node=link(vec![],String::new(),"/docs/ui/button").unwrap();(node.press.as_mut().unwrap())().unwrap();assert_eq!(state.get().unwrap(),"/docs/ui/button");traverse(false).unwrap();assert_eq!(state.get().unwrap(),"/");traverse(true).unwrap();assert_eq!(state.get().unwrap(),"/docs/ui/button");state.set("/docs/".into()).unwrap();assert_eq!(state.get().unwrap(),"/docs");assert!(location(String::from,Clone::clone).is_err());assert!(navigate("//unsafe").is_err());drop(state);assert!(weak.get().is_err());assert!((node.press.as_mut().unwrap())().is_err());let next=location(String::from,Clone::clone).unwrap();assert!((node.press.as_mut().unwrap())().is_err());assert_eq!(next.get().unwrap(),"/");}
  #[test]fn paths_are_checked_and_document_links_keep_semantics(){for path in ["https://host/","//host","/a/../b","/a?x","/a%2fb","/a\\b","/a b","/a#"]{assert!(checked_path(path).is_err(),"{path}");}assert_eq!(checked_path("/docs/#start").unwrap(),"/docs#start");let link=link(vec![Child::Text(super::super::TextPart::Literal("Read docs".into()))],String::new(),"/docs").unwrap();let html=super::super::document(&link,"Links");assert!(html.contains("<a ")&&html.contains("href=\"/docs\""));assert!(!html.contains("type=\"button\""));}

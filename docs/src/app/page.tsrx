@@ -40,6 +40,8 @@ export function Page(): Node {
   const path = location();
   const query = signal('');
   const catalog = loadCatalog();
+  const matches = signal(catalog.pages.length);
+  let terms: string[] = [];
   let navigation: Child[] = [];
   let articles: Child[] = [];
   let known = '|/|';
@@ -53,6 +55,7 @@ export function Page(): Node {
 
       const target = docsPath(page.route);
       const searchable = searchablePage(page, catalog);
+      terms.push(clone(searchable));
       navigation.push(<View hidden={!searchable.includes(query.get().trim().toLowerCase())}><Link href={clone(target)} className="text-sm py-2 px-3 rounded hover:bg-muted focus:ring">{clone(page.document.title)}</Link></View>);
     }
   }
@@ -113,9 +116,10 @@ export function Page(): Node {
         </View>
       </View>
       <View hidden={routePath(path.get()) === '/'} id="documentation" className="grow min-h-0 flex-row">
-        <View id="sidebar" as="nav" aria-label="Documentation navigation" tabIndex={0} className="w-32 md:w-64 shrink-0 overflow-auto border-r px-3 pb-6">
-          <View className="pt-6 gap-3"><Input aria-label="Search documentation" placeholder="Search documentation…" value={query} onChange={(event) => { query.set(event.target.value); }}/><View className="flex-row flex-wrap gap-2"><Button variant="outline" size="sm" onPress={() => { back(); }}>Back</Button><Button variant="outline" size="sm" onPress={() => { forward(); }}>Next</Button></View><Text className="text-xs text-muted-foreground">Search page text, APIs and code. Pending entries are labeled on their pages.</Text></View>
-          <View children={navigation}/>
+        <View id="sidebar" as="nav" aria-label="Documentation navigation" className="w-32 md:w-64 shrink-0 min-h-0 border-r">
+          <View className="shrink-0 pt-6 px-3 gap-3"><Input aria-label="Search documentation" aria-describedby="search-feedback" placeholder="Search documentation…" value={query} onChange={(event) => { query.set(event.target.value); const needle = event.target.value.trim().toLowerCase(); let total = 0; for (const term of terms) { if (term.includes(needle)) { total++; } } matches.set(total); }}/><View className="flex-row flex-wrap gap-2"><Button variant="outline" size="sm" onPress={() => { back(); }}>Back</Button><Button variant="outline" size="sm" onPress={() => { forward(); }}>Next</Button></View><Text className="text-xs text-muted-foreground">Search page text, APIs and code. Pending entries are labeled on their pages.</Text></View>
+          <View hidden={query.get().length === 0} className="shrink-0 pt-4 px-3"><Text id="search-feedback" role="status" className="text-xs text-muted-foreground">{matches.get() === 0 ? 'No pages match. Try another search.' : String(matches.get()) + ' matching pages'}</Text></View>
+          <View id="navigation-pages" role="region" aria-label="Documentation pages" tabIndex={0} className="grow min-h-0 overflow-auto px-3 pb-6" children={navigation}/>
         </View>
         <View className="grow min-w-0 flex-row" children={articles}/>
         <View hidden={known.includes('|' + routePath(path.get()) + '|')} className="grow p-8 gap-6"><Text as="h1" className="text-3xl font-semibold">Page not found</Text><Text className="text-muted-foreground">This path is not in the documentation catalog.</Text><Link href="/docs" className="py-3">Return to documentation</Link></View>
