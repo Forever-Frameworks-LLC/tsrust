@@ -24,6 +24,8 @@ Current compiler probes establish these remaining gaps:
 | Class declaration | Generic `Expected ";"` diagnostic | Improve unsupported-syntax diagnostics; classes are not silently provided by native constructors |
 | `keyof Item` | Generic `Expected ";"` diagnostic | Inventory type operators needed by framework authors before a bounded implementation |
 | `async c => c.text("ok")` | Accepted | Reuse existing async-arrow evidence |
+| JSX `children={ownedArray}` | Accepted at `a0fca44c` with compiler/editor witnesses | Explicit attributes and body children cannot be combined; automatic `{array}` body flattening remains unsupported |
+| `(props.children ?? []).join('|')` on optional string arrays | `join() requires an array` in a minimized content-card witness | Direct nonoptional array receivers work. Investigate expression receiver inference without changing coalescing or ownership contracts |
 
 Probe sources, exact diagnostics and compiler hash are retained as
 `tsrust-readiness-20261018.json` in canonical SQLite after evidence import. A

@@ -33,7 +33,7 @@ fn application_props_reject_unsupported_types_and_do_not_change_unrelated_hidden
 #[test]
 fn documentation_foundation_formats_checks_emits_and_executes() {
     let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs");
-    for file in ["src/app/page.tsrx","src/examples/counter.tsrx","src/main.tsr","src/inspect.tsr"] {
+    for file in ["src/app/page.tsrx","src/components/docs/example-card.tsrx","src/examples/counter.tsrx","src/main.tsr","src/inspect.tsr"] {
         let path=root.join(file);assert_eq!(std::fs::read_to_string(&path).unwrap(),support::format_round_trip(&std::fs::read_to_string(&path).unwrap()));
     }
     let output=support::run(support::cli().arg("run").arg(root.join("src/inspect.tsr")),120);support::success(&output);assert_eq!(output.stdout,b"Documentation foundation passed\n");

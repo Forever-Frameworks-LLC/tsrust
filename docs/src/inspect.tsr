@@ -4,8 +4,11 @@ import { Page } from './app/page';
 
 function main() {
   const html = document(Page(), 'Tsrust documentation');
-  strictEqual(html.includes('One application. Two targets.'), true);
+  strictEqual(html.includes('Build with Tsrust'), true);
   strictEqual(html.includes('Count: 0'), true);
+  strictEqual(html.includes('page destinations / 2 checked examples /'), true);
+  strictEqual(html.includes('Show source'), true);
+  strictEqual(html.includes('id="counter-preview"'), true);
   strictEqual(html.includes('tabindex="0"'), true);
   strictEqual(html.includes('overflow:auto'), true);
   strictEqual(html.includes('100vh'), true);
