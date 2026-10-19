@@ -5,7 +5,7 @@ use sha2::{Digest,Sha256};
 use tsrust_compiler::ui_project::{Config,Targets,safe_relative};
 const ABI:&str=tsrust_compiler::ui_project::RUNTIME_ABI;
 const CATALOG:&str="bundled-2026-10-19";
-#[derive(Clone,Debug,Deserialize,Serialize,PartialEq,Eq)]
+#[derive(Clone,Debug,Deserialize,Serialize,PartialEq,Eq,PartialOrd,Ord)]
 #[serde(deny_unknown_fields)]
 struct Identity {name:String,version:String,variant:String}
 #[derive(Clone,Deserialize,Serialize)]
@@ -30,6 +30,69 @@ fn catalog()->Result<Vec<Item>,String> {
  Ok(items)
 }
 fn identity(item:&Item)->Identity {Identity{name:item.name.clone(),version:item.version.clone(),variant:item.variant.clone()}}
+fn version_number(version:&str)->Result<[u64;3],String> {
+ let parts=version.split('.').map(str::parse::<u64>).collect::<Result<Vec<_>,_>>().map_err(|_|format!("Invalid bundled UI version: {version}"))?;
+ parts.try_into().map_err(|_|format!("Invalid bundled UI version: {version}"))
+}
+fn current_items(items:Vec<Item>)->Result<Vec<Item>,String> {
+ let mut current:BTreeMap<(String,String),Item>=BTreeMap::new();
+ for item in items {
+  let key=(item.name.clone(),item.variant.clone());let number=version_number(&item.version)?;
+  if current.get(&key).is_none_or(|old|version_number(&old.version).is_ok_and(|old|old<number)){current.insert(key,item);}
+ }
+ Ok(current.into_values().collect())
+}
+fn current_request(request:&str,variant:&str,items:&[Item])->Result<Identity,String> {
+ let (name,version)=request.split_once('@').map_or((request,None),|(name,version)|(name,Some(version)));
+ let item=items.iter().find(|item|item.name==name && item.variant==variant).ok_or_else(||format!("Unknown current UI component {request}; run tsrust ui list --bundled"))?;
+ if version.is_some_and(|version|version!=item.version){return Err(format!("Only {}@{} is supported for new installations; existing project files are preserved",item.name,item.version));}
+ Ok(identity(item))
+}
+fn versioned_path(path:&Path,version:&str)->Result<PathBuf,String> {
+ let number=version_number(version)?;
+ let suffix=if number[1..]==[0,0]{number[0].to_string()}else{version.replace('.',"-")};
+ let stem=path.file_stem().and_then(|stem|stem.to_str()).ok_or("Invalid bundled component filename")?;
+ let name=match path.extension().and_then(|value|value.to_str()){Some(extension)=>format!("{stem}-v{suffix}.{extension}"),None=>format!("{stem}-v{suffix}")};
+ Ok(path.with_file_name(name))
+}
+fn placements(root:&Path,config:&Config,items:&[Item],lock:&Lock,destination:&Path)->Result<BTreeMap<(Identity,String),PathBuf>,String> {
+ let mut paths=BTreeMap::new();
+ for item in items {
+  let id=identity(item);let target=if item.name=="tokens"{config.theme_destination()}else{destination};
+  let installed=lock.installed.iter().find(|entry|entry.identity==id && entry.destination==target);
+  if installed.is_some_and(|entry|entry.files.len()!=item.files.len()){return Err("Installed UI file count does not match its immutable payload".into());}
+  let other=lock.installed.iter().any(|entry|entry.identity.name==id.name && entry.destination==target);
+  for (index,file) in item.files.iter().enumerate(){
+   safe_relative(Path::new(&file.path))?;
+   let path=if let Some(installed)=installed {installed.files[index].path.clone()}else{match file.destination.as_str(){
+    "theme"=>config.theme_destination().to_owned(),
+    "components"=>{let path=target.join(&file.path);if other || no_symlinks(root,&path)?.exists(){versioned_path(&path,&item.version)?}else{path}},
+    _=>return Err("Unsupported bundled destination".into()),
+   }};
+   no_symlinks(root,&path)?;paths.insert((id.clone(),file.path.clone()),path);
+  }
+ }
+ Ok(paths)
+}
+fn installed_source(item:&Item,file:&File,path:&Path,resolved:&[Item],paths:&BTreeMap<(Identity,String),PathBuf>)->Result<String,String> {
+ tsrust_compiler::ui_project::rewrite_source_imports(&file.content,|import|{
+  if !import.starts_with('.') {return Ok(None);}
+  let original=normalized(&Path::new(&file.path).parent().unwrap_or(Path::new("")).join(import));
+  for dependency in std::iter::once(item).chain(resolved.iter().filter(|dependency|item.dependencies.contains(&identity(dependency)))) {
+   for target in dependency.files.iter().filter(|file|file.destination=="components") {
+    let expected=Path::new(&target.path);
+    if original!=expected && (original.extension().is_some() || original.with_extension("tsrx")!=expected){continue;}
+    let actual=&paths[&(identity(dependency),target.path.clone())];
+    let from=path.parent().unwrap_or(Path::new(""));
+    let mut relative=tsrust_compiler::native_path_relative::relative_host(from.to_str().ok_or("Invalid UI path")?,actual.to_str().ok_or("Invalid UI path")?)?.replace('\\',"/");
+    if original.extension().is_none(){relative=relative.strip_suffix(".tsrx").unwrap_or(&relative).to_owned();}
+    if !relative.starts_with('.') {relative=format!("./{relative}");}
+    return Ok(Some(relative));
+   }
+  }
+  Err(format!("Bundled {} imports {import} without a matching declared component dependency",item.name))
+ })
+}
 fn resolve(request:&Identity,items:&[Item],resolved:&mut Vec<Item>,active:&mut Vec<Identity>)->Result<(),String> {
  if resolved.iter().any(|item|identity(item)==*request) {return Ok(());}
  if active.contains(request) {return Err("Bundled UI dependency cycle".into());}
@@ -57,32 +120,35 @@ fn read_lock(root:&Path,config:&Config)->Result<(Lock,Option<Vec<u8>>),String> {
 struct Update {path:PathBuf,previous:Option<Vec<u8>>,bytes:Vec<u8>}
 struct Plan {files:Vec<(PathBuf,Vec<u8>)>,updates:Vec<Update>,directories:Vec<PathBuf>,lock_path:PathBuf,previous:Option<Vec<u8>>,lock:Vec<u8>,messages:Vec<String>}
 fn plan(root:&Path,config:&Config,requests:&[Identity],destination:Option<&Path>,compiler_hash:&str)->Result<Plan,String> {
+ plan_from_catalog(root,config,requests,destination,compiler_hash,&catalog()?)
+}
+fn plan_from_catalog(root:&Path,config:&Config,requests:&[Identity],destination:Option<&Path>,compiler_hash:&str,items:&[Item])->Result<Plan,String> {
  let destination=destination.unwrap_or(&config.components);no_symlinks(root,destination)?;
- let items=catalog()?;let mut resolved=Vec::new();for request in requests {resolve(request,&items,&mut resolved,&mut vec![])?;}
+ let mut resolved=Vec::new();for request in requests {resolve(request,items,&mut resolved,&mut vec![])?;}
  let (mut lock,previous)=read_lock(root,config)?;let installed_before=lock.installed.len();let mut files=BTreeMap::new();let mut messages=vec![];
- for item in resolved {
+ let paths=placements(root,config,&resolved,&lock,destination)?;
+ for item in &resolved {
   let id=identity(&item);let target=if item.name=="tokens" {config.theme_destination()}else{destination};
-  if let Some(installed)=lock.installed.iter().find(|value|value.identity.name==id.name && value.destination==target) {
-   if installed.identity!=id {return Err(format!("{} contains {}@{}; upgrades never overwrite owned source. Select another --path.",target.display(),id.name,installed.identity.version));}
-   if installed.payload_sha256!=hash(&serde_json::to_vec(&item).map_err(|e|e.to_string())?) {return Err("Installed UI payload identity does not match the bundled immutable version".into());}
+  if let Some(installed)=lock.installed.iter().find(|value|value.identity==id && value.destination==target) {
+   if installed.payload_sha256!=hash(&serde_json::to_vec(item).map_err(|e|e.to_string())?) {return Err("Installed UI payload identity does not match the bundled immutable version".into());}
    for file in &installed.files {if !no_symlinks(root,&file.path)?.is_file(){return Err(format!("Installed UI file missing: {}. Restore it from version control.",file.path.display()));}}
    messages.push(format!("preserve {}@{} in {} (including local edits)",id.name,id.version,target.display()));continue;
   }
   let mut locked=vec![];
   for file in &item.files {
    safe_relative(Path::new(&file.path))?;
-   let path=match file.destination.as_str() {"theme"=>config.theme_destination().to_owned(),"components"=>target.join(&file.path),_=>return Err("Unsupported bundled destination".into())};
+   let path=paths[&(id.clone(),file.path.clone())].clone();
    if file.destination=="theme" && config.external_theme().is_none() {
     locked.push(LockedFile{path,json_pointer:Some("/ui/theme".into()),template_sha256:hash(file.content.as_bytes()),generated_sha256:hash(&serde_json::to_vec_pretty(&config.theme).map_err(|e|e.to_string())?)});
     messages.push("use project-owned tsrust.config.json ui.theme".into());continue;
    }
    if no_symlinks(root,&path)?.exists() || files.contains_key(&path) {return Err(format!("Refusing to overwrite {}. Existing files need an installation record.",path.display()));}
-   let generated=if file.path.ends_with(".tsrx") {tsrust_compiler::format(&file.content).map_err(|e|format!("Invalid bundled component: {}",e.message))?}else {tsrust_compiler::ui_project::theme::Theme::parse(&file.content)?;file.content.clone()};
+   let generated=if file.path.ends_with(".tsrx") {tsrust_compiler::format(&installed_source(item,file,&path,&resolved,&paths)?).map_err(|e|format!("Invalid bundled component: {}",e.message))?}else {tsrust_compiler::ui_project::theme::Theme::parse(&file.content)?;file.content.clone()};
    locked.push(LockedFile{path:path.clone(),json_pointer:None,template_sha256:hash(file.content.as_bytes()),generated_sha256:hash(generated.as_bytes())});
    messages.push(format!("create {} ({}@{})",path.display(),id.name,id.version));files.insert(path,generated.into_bytes());
   }
   let payload=serde_json::to_vec(&item).map_err(|e|e.to_string())?;
-  lock.installed.push(Installed{identity:id,destination:target.to_owned(),catalog:CATALOG.into(),payload_sha256:hash(&payload),compiler_sha256:compiler_hash.into(),compiler_version:env!("CARGO_PKG_VERSION").into(),compiler_api:item.compiler_api,runtime_abi:ABI.into(),rust:tsrust_compiler::RUST_BACKEND_VERSION.into(),license:item.license,license_text:item.license_text,dependencies:item.dependencies,files:locked});
+  lock.installed.push(Installed{identity:id,destination:target.to_owned(),catalog:CATALOG.into(),payload_sha256:hash(&payload),compiler_sha256:compiler_hash.into(),compiler_version:env!("CARGO_PKG_VERSION").into(),compiler_api:item.compiler_api,runtime_abi:ABI.into(),rust:tsrust_compiler::RUST_BACKEND_VERSION.into(),license:item.license.clone(),license_text:item.license_text.clone(),dependencies:item.dependencies.clone(),files:locked});
  }
  let bytes=if lock.installed.len()==installed_before {previous.clone().unwrap_or_default()}else {let mut bytes=serde_json::to_vec_pretty(&lock).map_err(|e|e.to_string())?;bytes.push(b'\n');bytes};
  Ok(Plan{files:files.into_iter().collect(),updates:vec![],directories:vec![PathBuf::from("src/app"),destination.to_owned()],lock_path:config.lock.clone(),previous,lock:bytes,messages})
@@ -154,25 +220,26 @@ fn compiler_hash()->Result<String,String> {
 }
 pub(super) fn install_defaults(root:&Path,config:&Config)->Result<(),String> {
  super::verify_backend()?;let hash=compiler_hash()?;
- let requests=["button","card"].map(|name|Identity{name:name.into(),version:"1.0.0".into(),variant:"default".into()});
+ let items=ordered_catalog()?;
+ let requests=["button","card"].map(|name|current_request(name,"default",&items)).into_iter().collect::<Result<Vec<_>,_>>()?;
  apply(root,&plan(root,config,&requests,None,&hash)?)
 }
 fn ordered_catalog()->Result<Vec<Item>,String> {
- let mut items=catalog()?;items.sort_by(|a,b|(a.name=="tokens",&a.name,&a.version).cmp(&(b.name=="tokens",&b.name,&b.version)));Ok(items)
+ let mut items=current_items(catalog()?)?;items.sort_by(|a,b|(a.name=="tokens",&a.name,&a.variant).cmp(&(b.name=="tokens",&b.name,&b.variant)));Ok(items)
 }
 /// Empty arguments return to the UI category; cancellation exits the launcher.
 pub(super) fn browse()->Result<Option<Vec<String>>,String> {
  let items=ordered_catalog()?;
  loop {
-  let mut labels=items.iter().map(|item|(format!("{}@{}",item.name,item.version),format!("{} · {} · {}",if item.name=="tokens"{"Foundation"}else{"Component"},item.variant,item.license))).collect::<Vec<_>>();
+  let mut labels=items.iter().map(|item|(item.name.clone(),format!("v{} · {} · {} · {}",item.version,if item.name=="tokens"{"Foundation"}else{"Component"},item.variant,item.license))).collect::<Vec<_>>();
   labels.push(("Back to UI".into(),"Return without installing".into()));
   let choices=labels.iter().map(|(label,hint)|(label.as_str(),hint.as_str())).collect::<Vec<_>>();
   let Some(index)=super::interactive_cli::select("Component catalog · type to search",&choices,true)? else{return Ok(None);};
   let Some(item)=items.get(index)else{return Ok(Some(vec![]));};
   let dependencies=item.dependencies.iter().map(|dependency|format!("{}@{}",dependency.name,dependency.version)).collect::<Vec<_>>().join(", ");
   let files=if item.name=="tokens"{"Theme configuration (inline ui.theme by default)".into()}else{item.files.iter().map(|file|file.path.as_str()).collect::<Vec<_>>().join(", ")};
-  super::interactive_cli::note(&format!("{}@{}",item.name,item.version),&format!("Variant: {}\nLicense: {}\nSource: {}\nDependencies: {}\n\nInstalls editable local source from the bundled offline catalog.\nExisting project edits are preserved; occupied upgrades are refused.",item.variant,item.license,files,if dependencies.is_empty(){"none"}else{&dependencies}))?;
-  match super::interactive_cli::choose("Component actions",&["Install this exact version","Back to catalog"])? {
+  super::interactive_cli::note(&item.name,&format!("Current version: {}\nVariant: {}\nLicense: {}\nSource: {}\nDependencies: {}\n\nInstalls editable local source from the bundled offline catalog.\nUpgrades get versioned filenames; existing files and application imports stay intact.",item.version,item.variant,item.license,files,if dependencies.is_empty(){"none"}else{&dependencies}))?;
+  match super::interactive_cli::choose("Component actions",&["Install component","Back to catalog"])? {
    Some(0)=>return Ok(Some(vec!["add".into(),format!("{}@{}",item.name,item.version),"--variant".into(),item.variant.clone()])),
    Some(_)=>{},None=>return Ok(None),
   }
@@ -191,32 +258,32 @@ fn print_catalog(items:&[Item]) {
   }
   println!();
  }
- println!("  {}",console::style("Offline · exact versions · editable local source").dim());
- println!("  tsrust ui add button@1.0.0\n");
+ println!("  {}",console::style("Offline · current components · editable local source").dim());
+ println!("  tsrust ui add button card\n");
 }
 pub(super) fn run(args:impl Iterator<Item=String>)->Result<u8,String> {
  let mut args=args;let command=match args.next(){Some(command)=>command,None if super::interactive_cli::available()=>{
-  let Some(choice)=super::interactive_cli::choose("UI components",&["Add a bundled component","List bundled components"])? else{return Ok(0);};if choice==0{"add".into()}else{"list".into()}
- },None=>return Err("Usage: tsrust ui <list --bundled|init|add name@version> [--cwd directory] [--path directory] [--dry-run] [--json]".into())};
+  let Some(choice)=super::interactive_cli::choose("UI components",&["Add bundled components","List bundled components"])? else{return Ok(0);};if choice==0{"add".into()}else{"list".into()}
+ },None=>return Err("Usage: tsrust ui <list --bundled|init|add name...> [--cwd directory] [--path directory] [--dry-run] [--json]".into())};
  let mut targets=vec![];let mut unattended=false;
  let(mut cwd,mut path,mut variant,mut dry,mut json)=(None,None,"default".to_owned(),false,false);let mut requests=vec![];
  while let Some(arg)=args.next(){match arg.as_str(){"--cwd"=>cwd=Some(PathBuf::from(args.next().ok_or("--cwd requires a directory")?)),"--path"=>path=Some(PathBuf::from(args.next().ok_or("--path requires a relative directory")?)),"--target"=>targets.push(args.next().ok_or("--target requires native or web")?),"--variant"=>variant=args.next().ok_or("--variant requires a name")?,"--dry-run"=>dry=true,"--json"=>json=true,"--yes"=>unattended=true,"--bundled"|"--offline"=>{},_ if !arg.starts_with('-')=>requests.push(arg),_=>return Err(format!("Unknown UI option: {arg}"))}}
- if command=="list" {if !requests.is_empty() || path.is_some() || dry || !targets.is_empty() {return Err("Usage: tsrust ui list --bundled [--json]".into());}let items=catalog()?;if json {println!("{}",serde_json::to_string_pretty(&items).unwrap());}else {print_catalog(&items);}return Ok(0);}
+ if command=="list" {if !requests.is_empty() || path.is_some() || dry || !targets.is_empty() {return Err("Usage: tsrust ui list --bundled [--json]".into());}let items=ordered_catalog()?;if json {println!("{}",serde_json::to_string_pretty(&items).unwrap());}else {print_catalog(&items);}return Ok(0);}
  let selected=match cwd {Some(path)=>path,None=>std::env::current_dir().map_err(|e|e.to_string())?};
  let selected=fs::canonicalize(selected).map_err(|e|e.to_string())?;
  let root=selected.ancestors().find(|root|root.join(super::project_config::FILE).exists()).unwrap_or(&selected).to_owned();
  if command=="add" && requests.is_empty() && !dry && !json && !unattended && super::interactive_cli::available() {
   let items=ordered_catalog()?.into_iter().filter(|item|item.variant==variant).collect::<Vec<_>>();
   if items.is_empty(){return Err(format!("No bundled UI components for variant {variant}"));}
-  let labels=items.iter().map(|item|(format!("{}@{}",item.name,item.version),format!("{} · {}",item.variant,item.license))).collect::<Vec<_>>();
+  let labels=items.iter().map(|item|(item.name.clone(),format!("v{} · {} · {}",item.version,item.variant,item.license))).collect::<Vec<_>>();
   let choices=labels.iter().map(|(label,hint)|(label.as_str(),hint.as_str())).collect::<Vec<_>>();
-  let Some(choice)=super::interactive_cli::select("Add a component · type to search",&choices,true)? else{return Ok(0);};
-  requests.push(format!("{}@{}",items[choice].name,items[choice].version));
+  let Some(selected)=super::interactive_cli::multiselect("Add components",&choices)? else{return Ok(0);};
+  requests.extend(selected.into_iter().map(|choice|format!("{}@{}",items[choice].name,items[choice].version)));
  }
- if command!="init" && (command!="add" || requests.is_empty()) {return Err("Usage: tsrust ui add name@version ... [--cwd directory] [--path directory] [--dry-run] [--json]".into());}
+ if command!="init" && (command!="add" || requests.is_empty()) {return Err("Usage: tsrust ui add name ... [--cwd directory] [--path directory] [--dry-run] [--json]".into());}
  if command=="init" && !requests.is_empty(){return Err("ui init accepts no component names".into());}
  let requests=if command=="init" {vec![Identity{name:"tokens".into(),version:"1.0.0".into(),variant:"default".into()}]}else{
-  requests.into_iter().map(|request|{let (name,version)=request.split_once('@').ok_or("UI installation requires an exact bundled version, for example button@1.0.0")?;Ok(Identity{name:name.into(),version:version.into(),variant:variant.clone()})}).collect::<Result<Vec<_>,String>>()?
+  let items=ordered_catalog()?;requests.into_iter().map(|request|current_request(&request,&variant,&items)).collect::<Result<Vec<_>,String>>()?
  };
  let plan=setup_plan_with_targets(&root,&requests,path.as_deref(),&compiler_hash()?,&targets,dry || unattended || json)?;print_plan(&plan,json);
  if !dry {super::verify_backend()?;apply(&root,&plan)?;}Ok(0)
@@ -272,9 +339,38 @@ fn print_plan(plan:&Plan,json:bool){if json {println!("{}",serde_json::json!({"o
   let initial=setup_plan(&root,&[request("1.0.0")],Some(Path::new("local/controls")),"compiler-one",None).unwrap();assert!(!root.join(&config.lock).exists());apply(&root,&initial).unwrap();
   let source=root.join("local/controls/button.tsrx");fs::write(&source,"// owned customization\n").unwrap();let lock=fs::read(root.join(&config.lock)).unwrap();
   let same=plan(&root,&config,&[request("1.0.0")],Some(Path::new("local/controls")),"compiler-two").unwrap();apply(&root,&same).unwrap();assert_eq!(fs::read(root.join(&config.lock)).unwrap(),lock);assert_eq!(fs::read_to_string(&source).unwrap(),"// owned customization\n");
-  for version in ["9.9.9","2.0.0"] {assert!(plan(&root,&config,&[request(version)],Some(Path::new("local/controls")),"compiler-two").is_err());assert_eq!(fs::read(root.join(&config.lock)).unwrap(),lock);}
+  assert!(plan(&root,&config,&[request("9.9.9")],Some(Path::new("local/controls")),"compiler-two").is_err());assert_eq!(fs::read(root.join(&config.lock)).unwrap(),lock);
+  let upgrade=plan(&root,&config,&[request("2.0.0")],Some(Path::new("local/controls")),"compiler-two").unwrap();apply(&root,&upgrade).unwrap();assert!(root.join("local/controls/button-v2.tsrx").is_file());assert_eq!(fs::read_to_string(&source).unwrap(),"// owned customization\n");
+  let after=fs::read(root.join(&config.lock)).unwrap();let same=plan(&root,&config,&[request("2.0.0")],Some(Path::new("local/controls")),"compiler-three").unwrap();apply(&root,&same).unwrap();assert_eq!(fs::read(root.join(&config.lock)).unwrap(),after);
   let next=plan(&root,&config,&[request("2.0.0")],Some(Path::new("alternate")),"compiler-two").unwrap();apply(&root,&next).unwrap();assert!(root.join("alternate/button.tsrx").is_file());assert!(plan(&root,&config,&[request("1.0.0")],Some(Path::new("../escape")),"compiler").is_err());
   fs::remove_dir_all(root).unwrap();
+ }
+ #[test]fn current_catalog_has_one_supported_version_per_component(){
+  let items=ordered_catalog().unwrap();let identities=items.iter().map(|item|(&item.name,&item.variant)).collect::<std::collections::BTreeSet<_>>();assert_eq!(items.len(),identities.len());
+  assert_eq!(current_request("button","default",&items).unwrap().version,"2.0.0");assert_eq!(current_request("card@3.0.0","default",&items).unwrap().version,"3.0.0");
+  for name in ["card@1.0.0","card@2.0.0","missing","button@9.9.9"]{assert!(current_request(name,"default",&items).is_err());}
+  let mut values=vec![items[0].clone();3];for (item,version) in values.iter_mut().zip(["2.0.0","10.0.0","3.0.0"]){item.version=version.into();}assert_eq!(current_items(values).unwrap()[0].version,"10.0.0");
+ }
+ #[test]fn batch_upgrade_rewrites_only_new_dependency_imports_and_preserves_applications(){
+  let root=scratch();let config=Config::default();let items=catalog().unwrap();let button=|version:&str|Identity{name:"button".into(),version:version.into(),variant:"default".into()};
+  apply(&root,&setup_plan(&root,&[button("1.0.0")],None,"compiler",None).unwrap()).unwrap();
+  let source=config.components.join("button.tsrx");fs::write(root.join(&source),"// Owner button\n").unwrap();
+  let application=root.join("src/app/page.tsrx");fs::write(&application,"import {Button} from '../components/ui/button'; // Owner application\n").unwrap();let original=fs::read(&application).unwrap();
+  let mut card=items.iter().find(|item|item.name=="card" && item.version=="3.0.0").unwrap().clone();card.dependencies.push(button("2.0.0"));card.files[0].content="import {Button} from './button';\nimport {Node} from 'std:ui';\n// './button' remains a comment.\nexport function Card():Node{const example='./button';return <Button>{example}</Button>;}".into();
+  let mut fixtures=items;fixtures.retain(|item|identity(item)!=identity(&card));fixtures.push(card.clone());
+  let next=plan_from_catalog(&root,&config,&[identity(&card),button("2.0.0")],None,"compiler-two",&fixtures).unwrap();assert_eq!(next.files.len(),2);apply(&root,&next).unwrap();
+  let generated=fs::read_to_string(root.join(&config.components).join("card.tsrx")).unwrap();assert_eq!(tsrust_compiler::ui_project::source_imports(&generated).unwrap(),vec!["./button-v2","std:ui"]);assert!(generated.contains("// './button' remains a comment.") && generated.contains("'./button'"));
+  assert_eq!(fs::read_to_string(root.join(source)).unwrap(),"// Owner button\n");assert_eq!(fs::read(&application).unwrap(),original);
+  let lock=fs::read(root.join(&config.lock)).unwrap();apply(&root,&plan_from_catalog(&root,&config,&[identity(&card)],None,"compiler-three",&fixtures).unwrap()).unwrap();assert_eq!(fs::read(root.join(&config.lock)).unwrap(),lock);
+  fs::remove_dir_all(root).unwrap();
+ }
+ #[test]fn occupied_upgrade_fails_the_entire_batch_and_missing_owned_files_are_not_repaired(){
+  let root=scratch();let config=Config::default();let button=Identity{name:"button".into(),version:"2.0.0".into(),variant:"default".into()};
+  fs::create_dir_all(root.join(&config.components)).unwrap();for file in ["button.tsrx","button-v2.tsrx"]{fs::write(root.join(&config.components).join(file),"// Owner bytes\n").unwrap();}
+  let card=Identity{name:"card".into(),version:"3.0.0".into(),variant:"default".into()};assert!(setup_plan(&root,&[button.clone(),card],None,"compiler",None).is_err());assert!(!root.join(&config.lock).exists());assert!(!root.join(&config.components).join("card.tsrx").exists());
+  fs::remove_file(root.join(&config.components).join("button-v2.tsrx")).unwrap();apply(&root,&setup_plan(&root,&[button.clone()],None,"compiler",None).unwrap()).unwrap();assert_eq!(fs::read_to_string(root.join(&config.components).join("button.tsrx")).unwrap(),"// Owner bytes\n");
+  fs::remove_file(root.join(&config.components).join("button-v2.tsrx")).unwrap();assert!(plan(&root,&config,&[button],None,"compiler").is_err());
+  assert_eq!(versioned_path(Path::new("nested/card.tsrx"),"2.1.3").unwrap(),Path::new("nested/card-v2-1-3.tsrx"));fs::remove_dir_all(root).unwrap();
  }
  #[cfg(unix)]#[test]fn refuses_symlink_and_preflights_every_file(){let root=scratch();let config=Config::default();std::os::unix::fs::symlink(std::env::temp_dir(),root.join("src")).unwrap();let id=Identity{name:"button".into(),version:"1.0.0".into(),variant:"default".into()};assert!(plan(&root,&config,&[id],None,"compiler").is_err());assert!(!root.join("ui.theme.json").exists());fs::remove_dir_all(root).unwrap();}
 }
@@ -294,7 +390,7 @@ pub(super) fn check_setup(entry:&Path)->Result<(),String> {
  safe_relative(&components)?;
  let aliases=tsrust_compiler::project_resolution::Aliases::parse(&root,value.as_ref().and_then(|v|v.get("paths")))?;
  let mut pending=vec![entry.clone()];let mut seen=std::collections::BTreeSet::new();let mut requests=vec![];let mut uses_ui=false;
- let items=catalog()?;
+ let items=ordered_catalog()?;
  while let Some(path)=pending.pop(){
   let path=normalized(&path);if !seen.insert(path.clone()) || path.extension().is_none_or(|v|v!="tsr" && v!="tsrx"){continue;}
   let text=fs::read_to_string(&path).map_err(|e|e.to_string())?;
@@ -303,7 +399,7 @@ pub(super) fn check_setup(entry:&Path)->Result<(),String> {
    if import=="std:ui"{uses_ui=true;continue;}if import.starts_with("std:"){continue;}
    let Ok(candidates)=tsrust_compiler::project_resolution::candidates(&path,&import,Some(&aliases)) else{continue;};
    if let Some(target)=candidates.iter().find(|path|path.is_file()){pending.push(target.clone());continue;}
-   for item in items.iter().filter(|item|item.version=="1.0.0" && item.name!="tokens"){
+   for item in items.iter().filter(|item|item.name!="tokens"){
     if item.files.iter().any(|file|candidates.iter().any(|target|normalized(target)==root.join(&components).join(&file.path))){uses_ui=true;requests.push(identity(item));}
    }
   }

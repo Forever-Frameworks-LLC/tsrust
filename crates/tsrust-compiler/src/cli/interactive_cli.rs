@@ -2,6 +2,28 @@
 use std::io::{self, BufRead, IsTerminal, Write};
 use std::sync::atomic::{AtomicBool, Ordering};
 static HEADER: AtomicBool = AtomicBool::new(false);
+struct DefaultTheme;
+impl cliclack::Theme for DefaultTheme {}
+struct SpaciousTheme;
+impl cliclack::Theme for SpaciousTheme {
+    fn format_select_item(&self, state:&cliclack::ThemeState, selected:bool, label:&str, hint:&str)->String {
+        let item=cliclack::Theme::format_select_item(&DefaultTheme,state,selected,label,hint);
+        self.pad(state,item)
+    }
+    fn format_multiselect_item(&self, state:&cliclack::ThemeState, selected:bool, active:bool, label:&str, hint:&str)->String {
+        let item=cliclack::Theme::format_multiselect_item(&DefaultTheme,state,selected,active,label,hint);
+        self.pad(state,item)
+    }
+}
+impl SpaciousTheme {
+    fn pad(&self,state:&cliclack::ThemeState,item:String)->String {
+        use cliclack::Theme;
+        if matches!(state,cliclack::ThemeState::Active|cliclack::ThemeState::Error(_)) && !item.is_empty() {
+            format!("{}\n{item}",self.bar_color(state).apply_to("│"))
+        }else{item}
+    }
+}
+fn visible_rows(height:u16)->usize { (usize::from(height).saturating_sub(10)/2).clamp(1,10) }
 
 pub(super) fn available() -> bool { io::stdin().is_terminal() && io::stderr().is_terminal() }
 pub(super) fn rich() -> bool { available() && std::env::var("TERM").as_deref() != Ok("dumb") }
@@ -21,6 +43,7 @@ pub(super) fn launcher(arguments: &[String]) -> Result<bool, String> {
 }
 fn header() -> Result<(), String> {
     if !rich() || HEADER.swap(true, Ordering::Relaxed) { return Ok(()); }
+    cliclack::set_theme(SpaciousTheme);
     let (height, width) = console::Term::stderr().size();
     if width >= 40 && height >= 20 {
         eprintln!();
@@ -85,7 +108,7 @@ pub(super) fn text(label: &str) -> Result<Option<String>, String> {
 }
 fn choose_from(input: &mut impl BufRead, output: &mut impl Write, title: &str, choices: &[(&str, &str)]) -> Result<Option<usize>, String> {
     writeln!(output, "{title}").map_err(|e| e.to_string())?;
-    for (index, (label, hint)) in choices.iter().enumerate() { writeln!(output, "  {}) {label}  {hint}", index + 1).map_err(|e| e.to_string())?; }
+    for (index, (label, hint)) in choices.iter().enumerate() { writeln!(output, "\n  {}) {label}  {hint}", index + 1).map_err(|e| e.to_string())?; }
     loop {
         let Some(line) = read_line(input, output, "Choose a number (q to cancel)")? else { return Ok(None); };
         if let Ok(number) = line.parse::<usize>() && number > 0 && number <= choices.len() { return Ok(Some(number - 1)); }
@@ -95,7 +118,7 @@ fn choose_from(input: &mut impl BufRead, output: &mut impl Write, title: &str, c
 pub(super) fn select(title: &str, choices: &[(&str, &str)], searchable: bool) -> Result<Option<usize>, String> {
     if !rich() { return choose_from(&mut io::stdin().lock(), &mut io::stderr().lock(), title, choices); }
     header()?;
-    let rows = usize::from(console::Term::stderr().size().0).saturating_sub(10).clamp(3, 10);
+    let rows = visible_rows(console::Term::stderr().size().0);
     let mut prompt = cliclack::select(format!("{title}  ·  ↑↓ move, Enter select, Esc cancel")).max_rows(rows);
     for (index, (label, hint)) in choices.iter().enumerate() { prompt = prompt.item(index, label, hint); }
     if searchable { prompt = prompt.filter_mode(); }
@@ -104,9 +127,29 @@ pub(super) fn select(title: &str, choices: &[(&str, &str)], searchable: bool) ->
 pub(super) fn choose(title: &str, choices: &[&str]) -> Result<Option<usize>, String> {
     select(title, &choices.iter().map(|label| (*label, "")).collect::<Vec<_>>(), false)
 }
+fn multiple_from(input:&mut impl BufRead,output:&mut impl Write,title:&str,choices:&[(&str,&str)])->Result<Option<Vec<usize>>,String> {
+    writeln!(output,"{title}").map_err(|e|e.to_string())?;
+    for (index,(label,hint)) in choices.iter().enumerate(){writeln!(output,"\n  {}) {label}  {hint}",index+1).map_err(|e|e.to_string())?;}
+    loop {
+        let Some(line)=read_line(input,output,"Choose numbers separated by commas (q to cancel)")? else{return Ok(None);};
+        let selected=line.split(|ch:char|ch==',' || ch.is_whitespace()).filter(|part|!part.is_empty()).map(|part|part.parse::<usize>()).collect::<Result<Vec<_>,_>>();
+        if let Ok(mut selected)=selected && !selected.is_empty() && selected.iter().all(|number|*number>0 && *number<=choices.len()) {
+            selected.sort_unstable();selected.dedup();return Ok(Some(selected.into_iter().map(|number|number-1).collect()));
+        }
+        writeln!(output,"Choose at least one number from 1 to {}, or q to cancel.",choices.len()).map_err(|e|e.to_string())?;
+    }
+}
+pub(super) fn multiselect(title:&str,choices:&[(&str,&str)])->Result<Option<Vec<usize>>,String> {
+    if !rich(){return multiple_from(&mut io::stdin().lock(),&mut io::stderr().lock(),title,choices);}
+    header()?;
+    let mut prompt=cliclack::multiselect(format!("{title}  ·  ↑↓ move, Space toggle, Enter install, Esc cancel")).max_rows(visible_rows(console::Term::stderr().size().0)).required(true);
+    for (index,(label,hint)) in choices.iter().enumerate(){prompt=prompt.item(index,label,hint);}
+    prompt_result(interact(||prompt.interact()))
+}
 pub(super) fn targets() -> Result<Vec<String>, String> {
     header()?;
     interact(|| cliclack::multiselect("UI targets  ·  ↑↓ move, Space toggle, Enter confirm")
+        .max_rows(visible_rows(console::Term::stderr().size().0))
         .item("native", "Native desktop", "GPU rendering with native windows")
         .item("web", "Web", "Browser output through the bounded Wasm builder")
         .required(true).interact()).map(|values| values.into_iter().map(str::to_owned).collect())
@@ -137,7 +180,7 @@ pub(super) fn command() -> Result<Option<Vec<String>>, String> {
             "Quality" => action("Quality", &[("Check types", "tsrust check", &["check"]), ("Run tests", "tsrust test", &["test"]), ("Check formatting", "tsrust format --check", &["format", "--check"])])?,
             "Project" => action("Project", &[("Create a project", "Choose a destination, application type and UI targets", &["new"])])?,
             "UI" => loop {
-                let Some(choice) = select("UI", &[("Browse components", "Search exact offline versions and inspect details"), ("Add a component", "Install editable source in this project"), ("Back", "Return to categories")], false)? else { return Ok(None); };
+                let Some(choice) = select("UI", &[("Browse components", "Search current offline components and inspect details"), ("Add components", "Select several and install editable source together"), ("Back", "Return to categories")], false)? else { return Ok(None); };
                 if choice == 2 { break Some(Vec::new()); }
                 if choice == 1 { break Some(vec!["ui".into(), "add".into()]); }
                 let Some(args) = super::ui_cli::browse()? else { return Ok(None); };
@@ -156,6 +199,21 @@ pub(super) fn command() -> Result<Option<Vec<String>>, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn every_active_selector_has_padding_and_rows_fit_short_terminals() {
+        use cliclack::{Theme,ThemeState};let theme=SpaciousTheme;
+        for output in [theme.format_select_item(&ThemeState::Active,true,"Choice","Hint"),theme.format_multiselect_item(&ThemeState::Active,true,true,"Choice","Hint")] {
+            let lines=output.lines().collect::<Vec<_>>();assert_eq!(lines.len(),2);assert!(lines[0].contains('│')&&!lines[0].contains("Choice"));assert!(lines[1].contains("Choice"));
+        }
+        assert_eq!(theme.format_select_item(&ThemeState::Submit,false,"Choice",""),"");
+        for (height,rows) in [(12,1),(20,5),(32,10)]{assert_eq!(visible_rows(height),rows);}
+    }
+    #[test]
+    fn plain_multiselect_retries_deduplicates_and_cancels_without_defaults() {
+        let mut output=Vec::new();let choices=[("one","first"),("two","second")];
+        assert_eq!(multiple_from(&mut "\n0\n1,3\n1,bad\n2,1,2\n".as_bytes(),&mut output,"Components",&choices).unwrap(),Some(vec![0,1]));
+        for input in ["q\n",""]{assert_eq!(multiple_from(&mut input.as_bytes(),&mut Vec::new(),"Components",&choices).unwrap(),None);}
+    }
     #[test]
     fn plain_terminal_retries_and_cancels_without_defaults() {
         for (input, expected) in [("wrong\n0\n3\n2\n", Some(1)), ("q\n", None), ("", None)] {

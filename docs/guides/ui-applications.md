@@ -68,11 +68,17 @@ special compiler path or implicit callback clone.
 
 ## Offline installation
 
-- `tsrust ui list --bundled [--json]` lists embedded exact payloads.
+- `tsrust ui list --bundled [--json]` lists one current payload per component and
+  source variant. The terminal browser uses component names, with version details.
 - `tsrust ui init [--path src/local/controls]` prepares missing UI settings.
   Existing settings remain; repeated initialization is safe.
-- `tsrust ui add button@1.0.0 card@1.0.0 --target native [--cwd project] [--path src/local/controls]`
+- `tsrust ui add button card --target native [--cwd project] [--path src/local/controls]`
   resolves the entire embedded dependency closure before writing.
+- `tsrust ui add` in a terminal selects multiple components with Space and installs
+  them together with Enter. Cancellation writes nothing. Without rich terminal
+  support, enter comma-separated numbers. Target selection still precedes writes.
+- An explicit `@version` must name the current bundled version. New installations
+  do not select historical versions; compatible existing installed source stays owned.
 - `--dry-run [--json]` previews without writes. `--offline` and `--yes` are
   accepted for scripts. Installation is always offline; missing target choices
   prompt only in a terminal without --yes or --dry-run.
@@ -123,7 +129,7 @@ and reported rather than overwritten. This is a filesystem transaction for norma
 errors, not a crash-proof journal or a defense against hostile concurrent directory
 replacement.
 
-The binary embeds v1 and v2 component payloads and the exact v1 token dependency.
+The public catalog offers the current component payload and exact token dependency.
 There are no network calls, npm steps or hooks. Missing versions, incompatible
 runtime/compiler API/Rust requirements, dependency conflicts, occupied paths and
 unsafe destinations fail preflight. The pinned Rust toolchain must be installed;
@@ -137,9 +143,20 @@ runtime ABI, pinned Rust version, license text, dependencies and destinations.
 Checks and builds reject unsupported installed compiler API/runtime ABI/Rust pins. Compiler executable identity is provenance; compatible compiler builds can retain
 installed source. Same-version re-adds preserve customized bytes and the lock
 unchanged. They do not repair deleted files. Commit source, theme and lock together;
-the lock cannot reproduce your edits. Upgrades into occupied paths are refused;
-install into another path and migrate explicitly. Published v1 payloads and their
-closure remain bundled. No unlimited future retention policy is implied.
+the lock cannot reproduce your edits. A first installation uses `card.tsrx`.
+An upgrade preserves it and adds the current version under `card-v3.tsrx`.
+Minor/patch releases use names such as `card-v3-1-2.tsrx`, avoiding dots that would
+look like source extensions. Already occupied versioned files without a matching
+installation record cause the entire batch to fail before publication. Re-adding
+an installed version preserves its actual filename and edits. A missing recorded
+file must be restored from version control; re-add never silently repairs it.
+
+Only newly generated bundled source has its parsed relative imports updated to
+the dependency's recorded filename. Comments, ordinary strings, existing local
+components and application imports stay intact. The lock records both immutable
+templates and generated file hashes/paths. Historical payloads retained internally
+validate existing installation records; they are not additional choices or a
+promise of future version support. `--path` remains available for alternate trees.
 
 LSP uses compiler component types for props/variants, the shared utility catalog
 for class completion/hover, and theme data for definition links. JSON theme help

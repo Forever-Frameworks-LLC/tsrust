@@ -1,5 +1,22 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
+## Current terminal component installation — 2026-10-19
+
+All selectors now use padded rows with a smaller visible item count in short
+terminals. `tsrust ui add` selects several components with Space and installs one
+combined transaction with Enter. Catalogs, browsing and scaffolds use one current
+version per component/source variant; scripts can pass names or current exact pins.
+Older payloads validate existing records but are not new installation choices.
+
+Upgrades preserve existing files and application imports, adding filenames such as
+`card-v3.tsrx`. Newly generated bundled source imports the dependency's recorded
+filename. Parsed import rewriting leaves comments, ordinary strings and existing
+source alone. Idempotence, collision preflight and transactional cleanup remain.
+See [terminal installation acceptance](../plans/ui-terminal-installation-acceptance.md).
+Thirty-seven CLI unit, seven terminal and five affected UI project witnesses pass;
+no full compiler/LSP, SQL or UI rendering matrix was repeated. Continue the Nova
+component families using the standalone counter as the visible working project.
+
 ## Current conditional UI mounting — 2026-10-19
 
 Local-state JSX ternaries now mount lazy nested branches. Selected components keep

@@ -41,7 +41,7 @@ Usage:
   tsrust remove <crate> [--dry-run]
   tsrust bindings resolve <file.bindings.json> [--offline]
   tsrust new [name-or-path] [--ui [--target native|web]...]
-  tsrust ui <list --bundled|init|add name@version> [--cwd directory] [--path directory] [--target native|web]... [--dry-run]
+  tsrust ui <list --bundled|init|add name...> [--cwd directory] [--path directory] [--target native|web]... [--dry-run]
   tsrust cache <info|clean>
   tsrust dev [--release] [--verbose] [--color auto|always|never] [-- program-arguments]
   tsrust run [input.tsr] [--release] [-- program-arguments]

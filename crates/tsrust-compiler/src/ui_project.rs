@@ -82,6 +82,17 @@ pub fn source_imports(source:&str)->Result<Vec<String>,String> {
  crate::project::parse_module(source,false).map(|module|module.imports.into_iter().map(|import|import.path).collect()).map_err(|error|error.message)
 }
 
+/// Rewrite only parsed module specifiers; comments, application strings and JSX text stay intact.
+pub fn rewrite_source_imports(source:&str,mut replacement:impl FnMut(&str)->Result<Option<String>,String>)->Result<String,String> {
+ let input=crate::project::SourceFile{id:crate::project::SourceId("ui-import-rewrite.tsrx".into()),text:source.into()};
+ let module=crate::project::parse_module(input,false).map_err(|error|error.message)?;
+ let mut result=source.to_owned();
+ for import in module.imports.into_iter().rev(){if let Some(path)=replacement(&import.path)? {
+  result.replace_range(import.span.start..import.span.end,&serde_json::to_string(&path).map_err(|e|e.to_string())?);
+ }}
+ Ok(result)
+}
+
 /// Deployment checks consume the compiler's selected native features, not source-name guesses.
 pub fn configured_targets(entry:&Path,mut read:impl FnMut(&Path)->Result<Option<String>,String>)->Result<Option<Targets>,String>{
  for root in entry.parent().unwrap_or(Path::new(".")).ancestors(){if let Some(text)=read(&root.join("tsrust.config.json"))?{

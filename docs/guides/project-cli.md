@@ -7,7 +7,8 @@ Use arrow keys and Enter, or the displayed Back item to return to categories.
 Esc or Ctrl+C cancels. A compact wordmark, color, action hints and workspace context
 provide terminal presentation without changing the commands themselves.
 
-The UI browser filters exact bundled versions as you type, shows source,
+Every selection has space between items; short terminals scroll fewer items to
+keep that spacing. The UI browser filters current components as you type, shows source,
 dependency and license details, and returns to browsing without closing the
 launcher. Installation is an explicit action. Native/web targets use Space to
 toggle one or both choices, then Enter to confirm; nothing is selected implicitly.
@@ -21,12 +22,19 @@ invocation prints help and exits successfully instead of waiting for input.
 `tsrust new` asks for a destination and console/UI project type. `tsrust new --ui`
 asks for the destination and UI targets. The destination must be new and its parent
 must exist; invalid answers retry before creating files. `tsrust ui` offers add/list,
-and `tsrust ui add` lets you search exact bundled component versions before target
-selection and installation. These prompts require terminal input and stderr.
-`ui add --json`, `--yes` and `--dry-run` never prompt; pass exact component versions
-and target flags for scripts. Fully specified commands keep their existing behavior.
+and `tsrust ui add` lets you select several current components with Space, then
+install them together with Enter. Target selection follows before any writes.
+These prompts require terminal input and stderr.
+`ui add --json`, `--yes` and `--dry-run` never prompt; pass component names
+and target flags for scripts, for example `tsrust ui add button card --target native`.
+An optional `@version` must match the current bundled version. Older versions are
+not offered for new installation; existing installed source remains supported.
 `tsrust ui list --bundled` groups components and foundations in a terminal;
 redirected text and `--json` preserve their plain machine-readable output.
+All catalog views show one current version per component and source variant.
+Upgrades preserve the old file and create a versioned filename such as
+`card-v3.tsrx`. Newly installed bundled dependencies import their recorded file.
+Existing application imports and customized components are never rewritten.
 
 ```sh
 tsrust new hello

@@ -138,10 +138,10 @@ mod terminal {
         let mut terminal = Terminal::start(&root.0, &[]);
         terminal.answer("What would you like to do?", &[ENTER]);
         terminal.answer("Browse components", &[ENTER]);
-        terminal.answer("Component catalog", &["button@1.0.0", ENTER]);
+        terminal.answer("Component catalog", &["button", ENTER]);
         terminal.answer("Component actions", &[DOWN, ENTER]);
         assert!(terminal.text.contains("Dependencies: tokens@1.0.0"));
-        assert!(terminal.text.contains("Install this exact version"));
+        assert!(terminal.text.contains("Install component"));
         terminal.answer("Component catalog", &["Back to UI", ENTER]);
         terminal.answer("Browse components", &[DOWN, DOWN, ENTER]);
         terminal.answer("What would you like to do?", &[CANCEL]);
@@ -150,19 +150,20 @@ mod terminal {
     }
 
     #[test]
-    fn guided_ui_search_and_target_multiselect_install_exact_versions() {
+    fn guided_ui_multiselect_installs_current_components_in_one_transaction() {
         let root = support::TempDirectory::new();
         let mut terminal = Terminal::start(&root.0, &["ui", "add"]);
-        terminal.answer("Add a component", &["button@1.0.0", ENTER]);
+        terminal.answer("Add components", &[ENTER]);
+        terminal.answer("Input required", &[" ", DOWN, " ", ENTER]);
         assert!(!root.0.join("tsrust.config.json").exists());
         terminal.answer("UI targets", &[DOWN, " ", ENTER]);
         terminal.finish();
         let config: serde_json::Value = serde_json::from_slice(&std::fs::read(root.0.join("tsrust.config.json")).unwrap()).unwrap();
         assert_eq!(config["ui"]["target"], serde_json::json!({"native":false,"web":true,"embedded":false}));
         assert!(root.0.join("src/components/ui/button.tsrx").is_file());
-        assert!(!root.0.join("src/components/ui/card.tsrx").exists());
+        assert!(root.0.join("src/components/ui/card.tsrx").is_file());
         let lock: serde_json::Value = serde_json::from_slice(&std::fs::read(root.0.join("ui-components.lock.json")).unwrap()).unwrap();
-        assert!(lock["installed"].as_array().unwrap().iter().any(|item| item["identity"]["name"]=="button" && item["identity"]["version"]=="1.0.0"));
+        assert!(lock["installed"].as_array().unwrap().iter().any(|item| item["identity"]["name"]=="button" && item["identity"]["version"]=="2.0.0"));
         let output = support::run(support::cli().args(["check"]).current_dir(&root.0), 20);
         support::success(&output);
         let mut terminal = Terminal::start(&root.0, &["new", "--ui"]);
@@ -200,11 +201,11 @@ mod terminal {
         }
         for args in [&["ui"][..], &["ui","add"][..], &["new"][..]] {
             let root=support::TempDirectory::new();let mut terminal=Terminal::start(&root.0,args);
-            let prompt=if args==["new"]{"Project name or path"}else if args==["ui"]{"UI components"}else{"Add a component"};
+            let prompt=if args==["new"]{"Project name or path"}else if args==["ui"]{"UI components"}else{"Add components"};
             terminal.answer(prompt,&[CANCEL]);terminal.finish();assert_eq!(std::fs::read_dir(&root.0).unwrap().count(),0);
         }
         for flag in ["--json","--yes","--dry-run"] {
-            let root=support::TempDirectory::new();let mut terminal=Terminal::start(&root.0,&["ui","add","button@1.0.0",flag]);
+            let root=support::TempDirectory::new();let mut terminal=Terminal::start(&root.0,&["ui","add","button@2.0.0",flag]);
             terminal.finish_status(false);assert!(terminal.text.contains("--target"));assert_eq!(std::fs::read_dir(&root.0).unwrap().count(),0);
         }
         let root=support::TempDirectory::new();let mut terminal=Terminal::configured(&root.0,&[],&[("TERM","dumb")],80,24);
@@ -217,7 +218,21 @@ mod terminal {
         assert!(terminal.text.contains("COMPONENTS")&&terminal.text.contains("FOUNDATIONS")&&has_color(&terminal.text));
         let output=support::run(support::cli().args(["ui","list","--bundled","--json"]).current_dir(&root.0),10);
         support::success(&output);let items:serde_json::Value=serde_json::from_slice(&output.stdout).unwrap();assert_eq!(items.as_array().unwrap().len(),6);assert!(!output.stdout.contains(&27));
+        let identities=items.as_array().unwrap().iter().map(|item|(item["name"].as_str().unwrap(),item["variant"].as_str().unwrap())).collect::<std::collections::BTreeSet<_>>();assert_eq!(identities.len(),6);
+        assert!(items.as_array().unwrap().iter().any(|item|item["name"]=="card" && item["version"]=="3.0.0"));
         let output=support::run(support::cli().args(["ui","list","--bundled"]).current_dir(&root.0),10);
-        support::success(&output);assert!(String::from_utf8_lossy(&output.stdout).contains("button@1.0.0 --variant default (MIT)"));assert!(!output.stdout.contains(&27));
+        support::success(&output);assert!(String::from_utf8_lossy(&output.stdout).contains("button@2.0.0 --variant default (MIT)"));assert!(!output.stdout.contains(&27));
+    }
+
+    #[test]
+    fn batch_selection_cancels_without_writes_and_scrolls_in_short_terminals() {
+        for (width,height) in [(100,32),(40,12)] {
+            let root=support::TempDirectory::new();let mut terminal=Terminal::configured(&root.0,&["ui","add"],&[],width,height);
+            terminal.answer("Add components",&[" ",DOWN," ",CANCEL]);terminal.finish();assert_eq!(std::fs::read_dir(&root.0).unwrap().count(),0);
+        }
+        let root=support::TempDirectory::new();let mut terminal=Terminal::configured(&root.0,&["ui","add"],&[("TERM","dumb")],80,24);
+        terminal.answer("q to cancel",&["1,2\n"]);terminal.answer("UI targets",&["1\n"]);terminal.finish();
+        for name in ["button","card"]{assert!(root.0.join(format!("src/components/ui/{name}.tsrx")).is_file());}
+        assert!(!terminal.text.contains('\x1b'));
     }
 }
