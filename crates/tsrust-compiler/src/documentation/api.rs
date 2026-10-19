@@ -53,7 +53,7 @@ pub fn api(project:&ProjectAnalysis,sources:&[SourceId])->Result<Vec<ApiDefiniti
                 if declaration.source!=*id||declaration.span!=*span{continue;}
                 let original=project.graph.modules.get(&location.source).ok_or("Missing checked prop declaration")?;
                 let record=parsed.get(&location.source).and_then(|program|program.records.iter().find(|record|record.fields.iter().any(|field|field.name.span==location.span)));
-                let field=record.and_then(|record|record.fields.iter().find(|field|field.name.span==location.span)).ok_or("Missing source prop annotation")?;
+                let field=record.and_then(|record|record.fields.iter().find(|field|field.name.span==location.span)).ok_or_else(||format!("Missing source prop annotation for {}.{} at {}:{}..{}",export,name,location.source.0,location.span.start,location.span.end))?;
                 let annotation=&original.source.text[field.annotation.span.start..field.annotation.span.end];
                 let mut documentation=before(&original.source.text,location.span.start);
                 if location.source.0=="std:ui" {
