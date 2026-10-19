@@ -11,7 +11,7 @@ fn nullable_children_do_not_relax_owned_storage_or_supported_payloads() {
       "const children:Child[]=[null,<Text>owned</Text>,undefined];const copied=clone(children);",
       "const children:Child[]=[null,<Text>owned</Text>];const borrow=(items:ReadOnly<Child[]>):Node=>{return View({children:items});};const node=borrow(children);",
       "const node=<View>{false}</View>;",
-      "const node=<Text>{123}</Text>;",
+      "const node=<Text>{{value:123}}</Text>;",
     ] {
       let dir=support::TempDirectory::new();std::fs::write(dir.0.join("tsrust.config.json"),serde_json::json!({"ui":tsrust_compiler::ui_project::Config::default()}).to_string()).unwrap();
       let source=support::format_round_trip(&format!("import {{Child,Node,Text,View,signal}} from 'std:ui';function main(){{{body}}}"));let path=dir.0.join("main.tsrx");std::fs::write(&path,source).unwrap();

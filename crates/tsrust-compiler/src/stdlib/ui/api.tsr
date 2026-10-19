@@ -1,13 +1,15 @@
-import { input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, handle as nativeHandle, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
+import { TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, handle as nativeHandle, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
 
 /** An owned UI subtree. Moving a Node transfers all descendants. Nodes cannot be cloned or sent to workers. */
 export type Node = NativeNode;
 /** A renderer or node-construction failure with a readable message. */
 export type UiError = NativeUiError;
 
-/** Ordered text/bindings; null and undefined produce no text. */
-export type TextChild = string | Signal<int> | Signal<number> | Signal<boolean> | Signal<string> | null | undefined;
-/** Ordered text, direct Signal bindings or owned subtrees. Adjacent text shares one run; null, undefined and empty literals are omitted. Computed strings/trees are construction-time snapshots. Ownership: transfers Nodes/strings once; state bindings are non-retaining. */
+/** An owned live scalar text expression produced automatically by JSX. It has no public constructor or receiver methods. */
+export type TextBinding = NativeTextBinding;
+/** Ordered strings/numeric snapshots and live bindings; null and undefined produce no text. */
+export type TextChild = string | int | number | TextBinding | Signal<int> | Signal<number> | Signal<boolean> | Signal<string> | null | undefined;
+/** Ordered text, direct Signal bindings or owned subtrees. Adjacent text shares one run; null, undefined and empty literals are omitted. Supported JSX scalar expressions reading local component state refresh; other computed strings/trees are construction-time snapshots. Ownership: transfers Nodes/strings once; state bindings are non-retaining. */
 export type Child = TextChild | Node;
 
 /** Shared element identity and accessible naming. Attributes are escaped in HTML and applied to the same native subtree. */
@@ -299,6 +301,10 @@ export interface ReactiveBoolean {
 export interface ReactiveInputValue {
   /** Zero-argument scalar getter. Errors propagate; expressions must not mutate state. Captured component state remains non-retaining. */
   evaluate: Owned<Function<string | int | number>>;
+}
+
+function bindText(evaluate: Owned<Function<string | int | number | boolean | null | undefined>>): TextBinding {
+  return nativeBindText(evaluate);
 }
 
 function bindValue(evaluate: Owned<Function<string | int | number>>): ReactiveInputValue {

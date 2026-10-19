@@ -225,9 +225,11 @@ int and IEEE-754 values; number text uses ordinary language formatting (-0 is 0)
 Arrays, records, nullable values, resources and callbacks are not scalar state.
 See examples/ui-state for a paired component and native assertions.
 
-Only direct Signal children bind updates. Computed strings/trees are construction-time
-snapshots; numeric/boolean/null children and dynamic conditional child trees are
-not provided as reactive rendering. See examples/ui-composition.
+Direct Signal children and supported scalar JSX expressions bind updates.
+Numeric children preserve their exact scalar types; null/undefined are omitted.
+Bare booleans remain errors. Dynamic conditional node trees remain
+construction-time snapshots. See examples/ui-composition and the computed-text
+section below.
 
 ## Shared layout
 
@@ -436,7 +438,31 @@ function Message(props: { visible: boolean; }): Node | null {
 
 These branches select initial content. Dynamic conditional mounting and keyed
 lists remain separate work. Signal payloads still require nonnullable scalar
-values. Bare boolean and numeric children remain unsupported; use a ternary with
-null/undefined for absence and ordinary string conversion for numeric snapshots.
+values. Bare boolean literals remain unsupported; use a ternary with
+null/undefined for absence and strings or numeric snapshots for visible text.
 Nullable arrays containing owning Nodes or Signals still cannot be cloned,
 borrowed into owning props or sent to workers.
+
+
+## Computed scalar text
+
+Keep using Text, View and Button. Supported JSX expressions reading directly
+declared component state become live text bindings: `{count.get() + 1}`, string
+operations/templates, scalar conditional branches and top-level/imported helpers
+with declared scalar return types. Application formatting belongs in `.tsrx`, `.tsr` or
+portable Rust functions; no framework increment helper or public binding factory
+is needed. See `examples/ui-computed-text`.
+
+Precompute outside JSX for a snapshot. Unknown/inferred helper results, generic
+child contracts, state reached through arbitrary prop records and computed node
+trees remain snapshots. Getter expressions must be pure; construction and refresh
+may evaluate them. Null/undefined getter values contribute no characters; this
+changes text, not component mounting. Dynamic branches and keyed lists remain
+separate work. Captured owned data follows ordinary callback rules without
+implicit clones.
+
+Numeric literal and owning numeric-array children preserve their exact types.
+Integers use all 64 bits; numbers keep ordinary NaN/infinity formatting and -0 as
+0. Bare boolean literals remain unsupported; explicit boolean state bindings
+produce true/false text. Getter errors stop the affected mount, preserve their
+message and release the callback environment independently of other mounts.

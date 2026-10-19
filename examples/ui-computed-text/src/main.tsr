@@ -1,0 +1,7 @@
+import { run, withTheme } from 'std:ui';
+import config from '../tsrust.config.json';
+import { Page } from './app/page';
+
+function main() {
+  unwrap(run(withTheme(Page(), config.ui.theme), 'Computed text'));
+}

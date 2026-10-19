@@ -1,0 +1,17 @@
+import { document, Text, Node } from 'std:ui';
+import { strictEqual } from 'std:testing';
+import { Page } from './app/page';
+
+function main() {
+  const html = document(Page(), 'Computed');
+  strictEqual(html.includes('>2 / Item 1</span>'), true);
+  strictEqual(html.includes('>Hello ADA</span>'), true);
+  strictEqual(html.includes('>AB</span>'), true);
+  strictEqual(html.includes('>9007199254740993 / 1.25 / 0</span>'), true);
+  const numbers = [9007199254740993, 2];
+  const numeric = document(Text({
+    children: numbers
+  }), 'Numbers');
+  strictEqual(numeric.includes('>90071992547409932</span>'), true);
+  console.log('Computed text passed');
+}

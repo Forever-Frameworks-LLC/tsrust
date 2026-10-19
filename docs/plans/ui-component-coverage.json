@@ -16,7 +16,7 @@
     "layoutAndTheme": "accepted portable layout, alpha/OKLCH colors, surface rings, bounded structural predicates, inherited numeric spacing, generic typography, independent edges/corners and rounded paint/pointer clipping; viewport breakpoints and scoped dark/invalid/placeholder states; container queries and named font assets remain pending",
     "focusAndOverlays": "pending",
     "baseComponentComposition": "pending",
-    "reactiveExpressions": "partial: direct scalar signals and declared UI value/disabled/readOnly expressions refresh after handlers; initial nullable children/components are accepted. Dynamic conditional mounting, derived text and keyed lists remain pending",
+    "reactiveExpressions": "partial: direct scalar signals, declared UI value/disabled/readOnly expressions and supported scalar JSX text expressions refresh after handlers; exact numeric children and initial nullable children/components are accepted. Precomputed values, unknown/inferred helpers, generic child contracts and arbitrary prop-record reads remain snapshots. Dynamic conditional node mounting and keyed lists remain pending",
     "ownedPropForwarding": "accepted: JSX consumes sources, projects declared props, fills omitted optional fields, rejects explicit unknown attributes and releases excess fields exactly once; ordinary spread/rest remains checked-copy"
   },
   "components": [

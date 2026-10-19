@@ -1,5 +1,29 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
+## Current computed UI text — 2026-10-19
+
+Supported scalar JSX expressions now refresh text after handlers in Text, View
+and Button. Arithmetic, strings, scalar nullable branches and declared top-level
+or imported scalar helpers work with directly declared component state. Private
+getters reuse text runs and weak state captures; no public attachment API or
+duplicate component is required. Numeric children preserve exact int/number types.
+This supersedes the earlier bare-numeric rejection. Bare booleans remain errors.
+
+See [computed text acceptance](../plans/ui-computed-text-acceptance.md) and
+examples/ui-computed-text. Two new/seven affected compiler witnesses, computed and
+existing scalar/nullable editor help, three prop agreements, four affected runtime
+witnesses and two fresh Wasm Chromium observers pass. Browser observations agree
+with an independent Node-after-tsc oracle, including preserved application errors,
+independent mounts, accessible names, unchanged control identities and disposal.
+Original failures/repairs use `tsrust-ui-computed-*` in SQLite. No full matrix,
+SQL, new GPU smoke or timing was repeated.
+
+Continue dynamic conditional mounting and Field composition, then the remaining
+Nova component/layout/block families, keyed editing and persistent routing.
+Integrated CLI web build/dev remains required. Inferred helper returns, generic
+child contracts and arbitrary prop-record reads are still snapshots; do not claim
+general reactive props or full library parity.
+
 ## Current nullable UI composition — 2026-10-19
 
 Null/undefined children and stateful `Node | null | undefined` component results

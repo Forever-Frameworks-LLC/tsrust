@@ -5,6 +5,7 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum NativeTypeId {
     UiSignal,
+    UiTextBinding,
     UiNode,
     UiError,
     LruCache, SharedLruCache, CacheEntry, CacheInsertError,

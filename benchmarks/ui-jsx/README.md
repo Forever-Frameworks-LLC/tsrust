@@ -77,3 +77,11 @@ button names agree, and two present nullable components retain independent live
 state. Disposal removes every mounted node. The native inspector separately
 observes resource release for present, null and undefined results. This is untimed
 initial-branch composition; dynamic branch replacement is not claimed.
+
+
+`verify-computed.mjs <site>` compares computed scalar text in Text/View/Button
+with `computed-reference.ts` after tsc. It covers arithmetic, imported helpers,
+string operations, nullable text, exact numeric literals, stable node identities,
+accessible names and disposal. Build `examples/ui-computed-text/src/failures.tsrx`
+and use `verify-computed-failures.mjs <site>` for readable getter failure and
+independent-mount cleanup. These are untimed observers, not throughput claims.

@@ -12,6 +12,7 @@ impl Analyzer {
  }
 
  pub(super) fn ui_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic> {
+  if let Some(result)=self.ui_text_binding_call(context,expression,loans,expected)? {return Ok(Some(result));}
   if let Some(result)=self.ui_input_call(context,expression,loans,expected)? {return Ok(Some(result));}
   let ExprKind::Call(callee,args)=&mut expression.kind else{return Ok(None)};
   if let ExprKind::Field(base,member)=&callee.kind {
@@ -44,6 +45,15 @@ impl Analyzer {
    }
   };
   self.require(result,expected,expression.span)?;expression.ty=Some(result);expression.target=Some(CallTarget::NativeBinding(id));Ok(Some(result))
+ }
+ fn ui_text_binding_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic> {
+  let ExprKind::Call(callee,args)=&mut expression.kind else{return Ok(None)};let ExprKind::Name(name)=&callee.kind else{return Ok(None)};
+  let Some((id,binding))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|binding.module=="std:ui-runtime" && binding.name=="bindText") else{return Ok(None)};
+  Self::arity(args.len(),1,expression.span)?;
+  let annotation=crate::type_syntax::parse("Owned<Function<string | int | number | boolean | null | undefined>>")?;
+  let callback=crate::callable_annotations::callback(&annotation).expect("text binding callback");let wanted=self.resolve_callback(&callback)?;
+  self.check_call_arguments(context,args,&[ArgumentContract{ty:wanted,mode:Mode::Consume,omission:crate::ParameterOmission::Required,rest:false}],loans)?;
+  let result=native_type(binding.result,&self.program.records);self.require(result,expected,expression.span)?;expression.ty=Some(result);expression.target=Some(CallTarget::NativeBinding(id));Ok(Some(result))
  }
  #[inline(never)]
  fn ui_input_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{

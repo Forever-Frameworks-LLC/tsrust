@@ -183,7 +183,7 @@ impl Node {
         let mut text=String::new();
         for part in parts {match part {
             TextPart::Literal(value)=>text.push_str(value),
-            TextPart::Signal(handle)=>text.push_str(&handle.value().map_err(|_|"Text binding refers to disposed state")?),
+            TextPart::Signal(handle)=>text.push_str(&handle.value()?),
         }}
         Ok(text)
     }
