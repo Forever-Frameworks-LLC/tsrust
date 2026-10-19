@@ -69,3 +69,11 @@ Build the same project's `src/failures.tsrx` as a second entry and run
 `verify-input-failures.mjs <site>` to check throwing derived getters and change
 handlers. Each failed mount reports its own error, releases the owned tree and
 ignores later events; explicit disposal removes the remaining host elements.
+
+`verify-nullable.mjs <built-site>` checks `examples/ui-nullable-children` against
+`nullable-reference.ts` after TypeScript compilation. Null and undefined produce
+no placeholder elements, adjacent text stays joined, sibling order and accessible
+button names agree, and two present nullable components retain independent live
+state. Disposal removes every mounted node. The native inspector separately
+observes resource release for present, null and undefined results. This is untimed
+initial-branch composition; dynamic branch replacement is not claimed.

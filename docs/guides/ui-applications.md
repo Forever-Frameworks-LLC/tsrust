@@ -418,3 +418,25 @@ refs, Base UI value-change details, form submission, composition callbacks, resi
 and Label peer/group disabled styling remain pending. Generic callback-result
 inference from an unannotated closure alone also remains a language gap; generated
 input getters use an expected checked scalar union without precision erasure.
+
+## Nullable children and component results
+
+`Child` and `TextChild` accept null and undefined. They produce no node or text,
+preserve sibling order and leave adjacent text in one run. A component can return
+`Node | null | undefined`, including a component with local scalar state. Present
+results retain their state automatically; absent results release local callbacks
+before their state owners. No public lifetime helper is needed. See
+`examples/ui-nullable-children` for independent counters and resource observations.
+
+```tsrust
+function Message(props: { visible: boolean; }): Node | null {
+  return props.visible ? <Text>Ready</Text> : null;
+}
+```
+
+These branches select initial content. Dynamic conditional mounting and keyed
+lists remain separate work. Signal payloads still require nonnullable scalar
+values. Bare boolean and numeric children remain unsupported; use a ternary with
+null/undefined for absence and ordinary string conversion for numeric snapshots.
+Nullable arrays containing owning Nodes or Signals still cannot be cloned,
+borrowed into owning props or sent to workers.

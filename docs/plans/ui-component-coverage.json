@@ -11,12 +11,12 @@
   "foundation": {
     "exactJsxAttributes": "accepted: quoted record keys, exact hyphenated JSX names, ownership and incomplete-source editor help",
     "semanticElements": "accepted portable subset: tags, naming, roles, live content, hidden controls and orientation; arbitrary ARIA/HTML remains unsupported",
-    "composedControls": "accepted portable foundation: owned mixed children, inline containers, optional handlers, noninteractive phrasing validation, exact owning array widening, resource-union clone rejection and inferred native callback identities",
+    "composedControls": "accepted portable foundation: owned mixed children, inline containers, optional handlers, noninteractive phrasing validation, exact owning array widening, resource-union clone rejection and inferred native callback identities; null/undefined entries and stateful nullable component results are accepted without placeholder nodes, with exact ownership and lexical cleanup",
     "editableStateAndIme": "accepted portable text-control foundation: scalar state, controlled/uncontrolled Input/Textarea, weak derived value/readOnly bindings, borrowed change snapshots, Parley Unicode selection/IME, undo/redo, scrolling and app-owned OS clipboard. Specialized inputs and accessibility text-range navigation remain pending",
     "layoutAndTheme": "accepted portable layout, alpha/OKLCH colors, surface rings, bounded structural predicates, inherited numeric spacing, generic typography, independent edges/corners and rounded paint/pointer clipping; viewport breakpoints and scoped dark/invalid/placeholder states; container queries and named font assets remain pending",
     "focusAndOverlays": "pending",
     "baseComponentComposition": "pending",
-    "reactiveExpressions": "partial: direct scalar signals and declared UI value/disabled/readOnly expressions refresh after handlers; arbitrary computed text/trees, nullable children and dynamic lists remain pending",
+    "reactiveExpressions": "partial: direct scalar signals and declared UI value/disabled/readOnly expressions refresh after handlers; initial nullable children/components are accepted. Dynamic conditional mounting, derived text and keyed lists remain pending",
     "ownedPropForwarding": "accepted: JSX consumes sources, projects declared props, fills omitted optional fields, rejects explicit unknown attributes and releases excess fields exactly once; ordinary spread/rest remains checked-copy"
   },
   "components": [

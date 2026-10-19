@@ -12,8 +12,8 @@ const SIGNAL_INT:Signature=Signature::Applied(NativeTypeId::UiSignal,&[Signature
 const SIGNAL_NUMBER:Signature=Signature::Applied(NativeTypeId::UiSignal,&[Signature::Number]);
 const SIGNAL_BOOLEAN:Signature=Signature::Applied(NativeTypeId::UiSignal,&[Signature::Boolean]);
 const SIGNAL_STRING:Signature=Signature::Applied(NativeTypeId::UiSignal,&[Signature::String]);
-pub(crate) const TEXT_CHILDREN:Signature=Signature::Array(&Signature::Union(&[Signature::String,SIGNAL_INT,SIGNAL_NUMBER,SIGNAL_BOOLEAN,SIGNAL_STRING]));
-pub(crate) const CHILDREN:Signature=Signature::Array(&Signature::Union(&[Signature::String,SIGNAL_INT,SIGNAL_NUMBER,SIGNAL_BOOLEAN,SIGNAL_STRING,Signature::Named(NativeTypeId::UiNode)]));
+pub(crate) const TEXT_CHILDREN:Signature=Signature::Array(&Signature::Optional(&Signature::Union(&[Signature::String,SIGNAL_INT,SIGNAL_NUMBER,SIGNAL_BOOLEAN,SIGNAL_STRING,Signature::Null])));
+pub(crate) const CHILDREN:Signature=Signature::Array(&Signature::Optional(&Signature::Union(&[Signature::String,SIGNAL_INT,SIGNAL_NUMBER,SIGNAL_BOOLEAN,SIGNAL_STRING,Signature::Named(NativeTypeId::UiNode),Signature::Null])));
 pub(crate) const INPUT_DEFAULT:Signature=Signature::Optional(&Signature::Union(&[Signature::String,Signature::Int,Signature::Number]));
 const NODE: Signature = Signature::Named(NativeTypeId::UiNode);
 const ERROR: Signature = Signature::Named(NativeTypeId::UiError);
@@ -88,7 +88,7 @@ pub(crate) const HANDLE_NEW:NativeBinding=NativeBinding{name:"handle",parameters
 pub(crate) const GET:NativeBinding=NativeBinding{name:"get",parameters:&[parameter("state",NativeType::ObservedValue,Mode::Read)],result:NativeType::ObservedValue,backend:NativeBackend::Bundled{symbol:"tsrust_ui_get"},..TEXT};
 pub(crate) const SET:NativeBinding=NativeBinding{name:"set",parameters:&[parameter("state",NativeType::ObservedValue,Mode::Read),parameter("value",NativeType::ObservedValue,Mode::Read)],result:NativeType::ObservedValue,backend:NativeBackend::Bundled{symbol:"tsrust_ui_set"},..TEXT};
 
-pub(crate) const OWN_STATE:NativeBinding=NativeBinding{name:"ownState",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("state",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_own_state"},..TEXT};
+pub(crate) const OWN_STATE:NativeBinding=NativeBinding{name:"ownState",result:NativeType::ObservedValue,parameters:&[parameter("node",NativeType::ObservedValue,Mode::Consume),parameter("state",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_own_state"},..TEXT};
 pub(crate) const PRESS_BUTTON:NativeBinding=NativeBinding{name:"button",parameters:&[parameter("children",NativeType::Structured(&CHILDREN),Mode::Consume),parameter("className",NativeType::String,Mode::Read),parameter("disabled",NativeType::Boolean,Mode::Read),parameter("onPress",NativeType::OwnedVoidCallback,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_press_button"},..TEXT};
 
 pub(crate) const INPUT:NativeBinding=NativeBinding{name:"input",parameters:&[parameter("value",NativeType::ObservedValue,Mode::Consume),parameter("defaultValue",NativeType::Structured(&INPUT_DEFAULT),Mode::Consume),parameter("options",NativeType::String,Mode::Read),parameter("className",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_input"},..TEXT};

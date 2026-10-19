@@ -15,7 +15,7 @@ impl Emitter<'_> {
    "handle"=>return Some(format!("({}).handle()",read(&args[0]))),
    "get"=>format!("({}).get()",read(&args[0])),
    "set"=>format!("{{let state={};let next={};state.set(next)}}",read(&args[0]),scalar(&args[1])),
-   "ownState"=>format!("{{let node={};let state={};node.own_state(state)}}",self.expr(fun,&args[0],Mode::Consume),self.expr(fun,&args[1],Mode::Consume)),
+   "ownState"=>format!("{{let node={};let state={};{}}}",self.expr(fun,&args[0],Mode::Consume),self.expr(fun,&args[1],Mode::Consume),self.ui_retained_result(args[0].ty.unwrap(),"node")),
    _=>unreachable!(),
   };
   let union=expr.ty.unwrap().union().expect("UI result");let members=&self.program.unions[union.index()].members;let [ok,err]=crate::result_identity::variants(&self.program.records,members).unwrap();
@@ -24,6 +24,12 @@ impl Emitter<'_> {
   let failure=format!("Record{}{{field0:String::Borrowed(\"UiError\"),field1:String::Owned(message){}}}",self.native_record_declaration(error),self.schema_record_order(error));
   Some(format!("match {call}{{Ok(value)=>{},Err(message)=>{}}}",wrap(ok,"value"),wrap(err,&failure)))
  }
+ fn ui_retained_result(&self,ty:Type,node:&str)->String {match ty {
+  Type::Record(_)=>format!("{node}.own_state(state)"),
+  Type::Null|Type::Undefined=>format!("{{drop(state);Ok::<_,std::string::String>({node})}}"),
+  Type::Union(id)=>{let arms=self.program.unions[id.index()].members.iter().enumerate().map(|(tag,&ty)|format!("Union{}::V{tag}(node)=>({}).map(Union{}::V{tag}),",id.index(),self.ui_retained_result(ty,"node"),id.index())).collect::<String>();format!("match {node}{{{arms}}}")},
+  _=>unreachable!("checked nullable component result"),
+ }}
  fn ui_input_constructor(&self,fun:&CheckedFunction,args:&[Expr],changed:bool,span:crate::Span)->String {
   let value=self.ui_input_binding(args[0].ty.unwrap(),&self.expr(fun,&args[0],Mode::Consume),span);
   let default=self.ui_input_default(args[1].ty.unwrap(),&self.expr(fun,&args[1],Mode::Consume));

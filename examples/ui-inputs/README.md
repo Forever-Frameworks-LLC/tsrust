@@ -1,7 +1,8 @@
 # Editable controls
 
-Run `tsrust dev` for the configured native target, or `tsrust build --target web`
-for the browser. `src/main.tsr` is the configured entry; `src/app/page.tsrx` owns
+Run `tsrust dev` for the configured native target. Browser output currently uses
+the compiler repository’s `tools/build-ui-web.mjs` builder; integrated CLI web
+build/dev commands remain pending. `src/main.tsr` is the configured entry; `src/app/page.tsrx` owns
 application state and callbacks. The three component files are editable local
 Base UI + Nova adaptations, also bundled for offline `tsrust ui add`.
 

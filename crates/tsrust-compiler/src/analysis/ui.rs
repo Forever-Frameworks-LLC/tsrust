@@ -30,7 +30,7 @@ impl Analyzer {
    self.thread_application(NativeTypeId::UiSignal,&[payload],expression.span)?
   } else {
    let at=usize::from(binding.name=="ownState");
-   if at==1 {let node=self.ui_record(NativeTypeId::UiNode);let ty=self.expression(context,&mut args[0],Mode::Consume,loans,Some(node))?;self.require(ty,Some(node),args[0].span)?;}
+   if at==1 {let ty=self.expression(context,&mut args[0],Mode::Consume,loans,None)?;self.ui_component_result(ty,args[0].span)?;}
    let ty=self.expression(context,&mut args[at],if at==1{Mode::Consume}else{Mode::Read},loans,None)?;
    let Type::Record(record)=ty else{return Err(Diagnostic::new("type","Expected component state.",args[at].span));};
    if self.program.records[record].native_type!=Some(NativeTypeId::UiSignal){return Err(Diagnostic::new("type","Expected component state.",args[at].span));}
@@ -85,6 +85,14 @@ impl Analyzer {
     if !signal && !derived{return Err(Diagnostic::new("ui-input-value","Input values must be strings, ints, numbers or checked bindings of those types.",span));}
    },
    _=>return Err(Diagnostic::new("ui-input-value","Input values must be strings, ints, numbers or checked bindings of those types.",span)),
+  }}Ok(())
+ }
+ fn ui_component_result(&self,ty:Type,span:Span)->Result<(),Diagnostic> {
+  let mut pending=vec![ty];while let Some(ty)=pending.pop(){match ty {
+   Type::Null|Type::Undefined=>{},
+   Type::Record(id) if self.program.records[id].native_type==Some(NativeTypeId::UiNode)=>{},
+   Type::Union(id)=>pending.extend(self.unions.members(id)),
+   _=>return Err(Diagnostic::new("ui-state-return","A component with local state must return an owned Node, null or undefined.",span)),
   }}Ok(())
  }
  fn ui_record(&self,identity:NativeTypeId)->Type {Type::Record(self.program.records.iter().position(|record|record.native_type==Some(identity)).expect("registered UI record"))}

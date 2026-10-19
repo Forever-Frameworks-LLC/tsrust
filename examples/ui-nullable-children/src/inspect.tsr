@@ -1,0 +1,58 @@
+import { document, View, Button, Text, Node, signal } from 'std:ui';
+import { strictEqual, trackedResource, resourceId, releaseCount, liveCount, TrackedResource } from 'std:testing';
+import { Page } from './app/page';
+
+interface TrackedProps {
+  resource: TrackedResource;
+  absence: int;
+}
+
+function Tracked(props: TrackedProps): Node | null | undefined {
+  const count = signal(0);
+  const absence = props.absence;
+  const resource = props.resource;
+  const node = <Button onPress={() => { count.set(count.get() + 1); console.log(resourceId(resource)); }}>Tracked: {count}</Button>;
+  const result = absence === 1 ? null : absence === 2 ? undefined : node;
+  return result;
+}
+
+function matched(show: boolean): Node | null {
+  const result: Result<Node, string> = show ? Ok(<Text>matched</Text>) : Err('absent');
+  return match (result) {
+    Ok(node) => node,
+    Err(message) => null,
+  };
+}
+
+function main() {
+  const html = document(Page(), 'Nullable');
+  strictEqual(html.includes('BeforeBetween'), true);
+  strictEqual(html.includes('>ABC</span>'), true);
+  strictEqual(html.split('<button').length - 1, 3);
+  strictEqual(html.includes('>null<'), false);
+  strictEqual(html.includes('>undefined<'), false);
+  const matchedHtml = document(View({
+    children: [matched(false), matched(true)]
+  }), 'Match');
+  strictEqual(matchedHtml.includes('>matched</span>'), true);
+  const baseline = liveCount();
+  for (const absence of [0, 1, 2]) {
+    const resource = trackedResource();
+    const identity = resourceId(resource);
+    {
+      const result = Tracked({
+        resource, absence
+      });
+      strictEqual(releaseCount(identity), absence === 0 ? 0 : 1);
+      const child = View({
+        children: [null, result, undefined]
+      });
+      strictEqual(releaseCount(identity), absence === 0 ? 0 : 1);
+    }
+
+    strictEqual(releaseCount(identity), 1);
+    strictEqual(liveCount(), baseline);
+  }
+
+  console.log('Nullable children passed');
+}

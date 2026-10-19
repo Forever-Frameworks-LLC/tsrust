@@ -4982,6 +4982,7 @@ impl Analyzer {
                     }
                     | ExprKind::Inject { .. }
                     | ExprKind::Project { .. }
+                    | ExprKind::Match { .. }
             )
         {
             return self.prepare_injection_work(context,expr,mode,loans,id).map(Some);

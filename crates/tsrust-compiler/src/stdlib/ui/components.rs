@@ -82,9 +82,16 @@ impl Lower<'_> {
                 }
                 StmtKind::Return(Some(value))=>{
                     self.expression(value,&scope)?;
-                    for owner in &owners {
+                    if !owners.is_empty() && !matches!(value.kind,ExprKind::Null|ExprKind::Undefined) {
                         let span=value.span;let original=std::mem::replace(value,Expr::new(ExprKind::Undefined,span));
-                        *value=call(self.retain,vec![original,name(&owner.text,owner.span)],span);
+                        let local=format!("@ui:return:{}",self.next);let id=usize::MAX-self.next;self.next+=1;
+                        let result=name(&local,span);let mut retained=result.clone();
+                        for owner in &owners {retained=call(self.retain,vec![retained,name(&owner.text,owner.span)],span);}
+                        let absent=|kind|Expr::new(ExprKind::Binary{op:crate::syntax::BinaryOp::Equal,operator:span,left:Box::new(result.clone()),right:Box::new(Expr::new(kind,span))},span);
+                        let inner=Expr::new(ExprKind::Conditional{predicate:Box::new(absent(ExprKind::Undefined)),consequent:Box::new(result.clone()),alternate:Box::new(retained)},span);
+                        let output=Expr::new(ExprKind::Conditional{predicate:Box::new(absent(ExprKind::Null)),consequent:Box::new(result),alternate:Box::new(inner)},span);
+                        // Absence leaves owners in lexical scope so local callbacks drop first.
+                        *value=Expr::new(ExprKind::Match{id,body:vec![self::statement(StmtKind::Let{rebindable:false,name:Token{text:local,span,kind:TokenKind::Name},annotation:None,value:original,binding:None},span),self::statement(StmtKind::Expr(call("@match:yield",vec![output],span)),span)]},span);
                     }
                 }
                 StmtKind::Block(nested)=>self.body(nested,&scope,&owners,allow_state)?,

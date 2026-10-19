@@ -15,9 +15,12 @@ are implemented. Direct signal-reading disabled predicates refresh after handler
 See [the application guide](guides/ui-applications.md) and current handoff for
 focused acceptance and explicit limits. Portable text controls, native selection/IME and local Nova Input/Textarea/Label
 sources now pass focused acceptance within their explicit partial scope. Required
-next UI work includes Field composition and nullable/dynamic children, complete
+next UI work includes dynamic conditional mounting/derived text and Field composition, complete
 remaining component/layout/block families, keyed lists and persistent routing; historical UI pause and
-resource-dependency statements below are superseded.
+resource-dependency statements below are superseded. Initial nullable children and
+stateful nullable component results now pass focused acceptance. Integrated CLI web
+build/dev remains a concrete requirement; browser output still uses the bounded
+repository builder.
 
 Exact decimal focused acceptance is complete on macOS: `std:decimal.parseDecimal`,
 checked arithmetic/conversions, editor/examples, offline export and untimed matched

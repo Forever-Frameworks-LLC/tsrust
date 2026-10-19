@@ -1,5 +1,27 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
+## Current nullable UI composition — 2026-10-19
+
+Null/undefined children and stateful `Node | null | undefined` component results
+now pass focused compiler/native/editor and fresh Wasm Chromium acceptance.
+Absent results create no placeholder and preserve lexical callback-before-owner
+cleanup. Present components retain independent live state. Nullable owning arrays
+still reject cloning/borrowed forwarding; bare numeric/boolean children remain
+unsupported. Contextual match blocks retain the complete union rather than only
+its present payload, with an ordinary source match regression too. See
+[nullable composition acceptance](../plans/ui-nullable-children-acceptance.md).
+
+Three compiler witnesses, nullable help, scalar help, input-event consistency,
+three prop agreements and the independent Node-after-tsc/browser observer pass.
+Reuse previous unchanged renderer/GPU/runtime evidence. Originals and repairs use
+`tsrust-ui-nullable-*` in SQLite; no SQL, full matrix or timing was repeated.
+
+Continue dynamic conditional mounting/derived text and Field composition, then
+complete remaining Nova components/layouts/blocks, keyed editing and persistent
+routing. Integrated CLI web build/dev is also a concrete gap: current browser
+output uses the repository's bounded Wasm builder. Do not document an unimplemented
+`tsrust build --target web` command or treat these requirements as optional.
+
 ## Current editable text controls — 2026-10-19
 
 Portable Input/Textarea and local Nova input/textarea/label v3 sources now work on

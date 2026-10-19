@@ -5,8 +5,9 @@ export type Node = NativeNode;
 /** A renderer or node-construction failure with a readable message. */
 export type UiError = NativeUiError;
 
-export type TextChild = string | Signal<int> | Signal<number> | Signal<boolean> | Signal<string>;
-/** Ordered text, direct Signal bindings or owned subtrees. Adjacent text shares one run; empty literals are omitted. Computed strings/trees are construction-time snapshots. Ownership: transfers Nodes/strings once; state bindings are non-retaining. */
+/** Ordered text/bindings; null and undefined produce no text. */
+export type TextChild = string | Signal<int> | Signal<number> | Signal<boolean> | Signal<string> | null | undefined;
+/** Ordered text, direct Signal bindings or owned subtrees. Adjacent text shares one run; null, undefined and empty literals are omitted. Computed strings/trees are construction-time snapshots. Ownership: transfers Nodes/strings once; state bindings are non-retaining. */
 export type Child = TextChild | Node;
 
 /** Shared element identity and accessible naming. Attributes are escaped in HTML and applied to the same native subtree. */
@@ -234,7 +235,7 @@ function bindState<T>(state: ReadOnly<Signal<T>>): Signal<T> {
 
 
 
-function retainComponentState<T>(node: Node, state: Signal<T>): Node {
+function retainComponentState<T, N>(node: N, state: Signal<T>): N {
   return unwrap(nativeOwnState(node, state));
 }
 

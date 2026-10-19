@@ -19,6 +19,7 @@ pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> Strin
             let members=&program.unions[union.index()].members;
             let literal=members.iter().position(|ty|*ty==Type::String).unwrap();
             let bindings=signal_arms(program,members,union.index(),true);
+            let absent=absent_arms(members,union.index());
             let child=members.iter().position(|ty|*ty==Type::Record(node)).unwrap();
             let mut parameters=format!("mut children:{},class_name:&String",crate::emit::ty(array));
             let factory=match binding.name {
@@ -27,7 +28,7 @@ pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> Strin
                 "button"=>{parameters.push_str(",disabled:bool,handler:impl FnMut()->Result<(),std::string::String>+'static");"tsrust_native_ui::Node::button_children(parts,class_name.as_ref().to_owned(),disabled,Some(Box::new(handler)))"},
                 _=>unreachable!(),
             };
-            (parameters,format!("{{let mut parts=Vec::with_capacity(children.len());while let Some(child)=children.pop(){{parts.push(match child{{Union{union}::V{literal}(text)=>tsrust_native_ui::Child::Text(tsrust_native_ui::TextPart::Literal(text.as_ref().to_owned())),{bindings}Union{union}::V{child}(node)=>tsrust_native_ui::Child::Node(node)}});}}parts.reverse();{factory}}}",union=union.index()))
+            (parameters,format!("{{let mut parts=Vec::with_capacity(children.len());while let Some(child)=children.pop(){{parts.push(match child{{{absent}Union{union}::V{literal}(text)=>tsrust_native_ui::Child::Text(tsrust_native_ui::TextPart::Literal(text.as_ref().to_owned())),{bindings}Union{union}::V{child}(node)=>tsrust_native_ui::Child::Node(node)}});}}parts.reverse();{factory}}}",union=union.index()))
         },
         "text" => {
             let array=crate::native_binding_types::resolve(&program.records,&super::TEXT_CHILDREN).unwrap();
@@ -35,7 +36,8 @@ pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> Strin
             let members=&program.unions[union.index()].members;
             let literal=members.iter().position(|ty|*ty==Type::String).unwrap();
             let bindings=signal_arms(program,members,union.index(),false);
-            (format!("mut children:{},class_name:&String",crate::emit::ty(array)),format!("{{let mut parts=Vec::with_capacity(children.len());while let Some(child)=children.pop(){{parts.push(match child{{Union{}::V{literal}(text)=>tsrust_native_ui::TextPart::Literal(text.as_ref().to_owned()),{bindings}}});}}parts.reverse();tsrust_native_ui::Node::text(parts,class_name.as_ref().to_owned())}}",union.index()))
+            let absent=absent_arms(members,union.index());
+            (format!("mut children:{},class_name:&String",crate::emit::ty(array)),format!("{{let mut parts=Vec::with_capacity(children.len());while let Some(child)=children.pop(){{parts.push(match child{{{absent}Union{}::V{literal}(text)=>tsrust_native_ui::TextPart::Literal(text.as_ref().to_owned()),{bindings}}});}}parts.reverse();tsrust_native_ui::Node::text(parts,class_name.as_ref().to_owned())}}",union.index()))
         },
         "bindReadOnly" => (format!("node:Record{node},predicate:impl FnMut()->Result<bool,std::string::String>+'static"),"node.with_read_only(predicate)".into()),
         "bindDisabled" => (format!("node:Record{node},predicate:impl FnMut()->Result<bool,std::string::String>+'static"),"node.with_disabled(predicate)".into()),
@@ -87,4 +89,8 @@ fn signal_arms(program:&CheckedProgram,members:&[Type],union:usize,child:bool)->
   let part=if child{format!("tsrust_native_ui::Child::Text({part})")}else{part};
   Some(format!("Union{union}::V{tag}(handle)=>{part},"))
  }).collect()
+}
+
+fn absent_arms(members:&[Type],union:usize)->String {
+ members.iter().enumerate().filter(|(_,ty)|matches!(ty,Type::Null|Type::Undefined)).map(|(tag,_)|format!("Union{union}::V{tag}(_)=>continue,")).collect()
 }
