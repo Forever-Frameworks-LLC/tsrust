@@ -869,7 +869,7 @@ impl<'a> Proof<'a> {
                 | CallTarget::StringRaw | CallTarget::StringFromCodePoint | CallTarget::StringFromCharCode => {
                     args.iter().all(|a| self.expr(id, a, Mode::Read))
                 }
-                CallTarget::RecordSpread(_) => args.iter().all(|arg|if let ExprKind::Unary{op:UnaryOp::Spread,value,..}=&arg.kind{self.expr(id,value,Mode::Read)}else{self.expr(id,arg,Mode::Consume)}),
+                CallTarget::RecordSpread(_) => args.iter().all(|arg|if let ExprKind::Unary{op:UnaryOp::Spread,value,..}=&arg.kind{self.expr(id,value,if arg.moved_spread{Mode::Consume}else{Mode::Read})}else{self.expr(id,arg,Mode::Consume)}),
                 CallTarget::StringConversion => args.iter().all(|a| self.expr(id, a, Mode::Read)),
                 CallTarget::NumberParseFloat => self.expr(id, &args[0], Mode::Read),
                 CallTarget::NumberParseInt => {

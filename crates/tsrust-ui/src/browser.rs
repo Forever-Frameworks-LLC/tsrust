@@ -32,7 +32,7 @@ fn elements(node:&Node,document:&web_sys::Document,all:&mut Vec<Element>,handler
     let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));
     let tag=node.tag();
     let element=document.create_element(tag)?;
-    for (key,value) in [("role",&node.semantics.role),("aria-label",&node.semantics.label),("id",&node.semantics.id),("data-slot",&node.semantics.slot)] {
+    for (key,value) in [("role",&node.semantics.role),("aria-label",&node.semantics.label),("id",&node.semantics.id),("data-slot",&node.semantics.slot),("data-size",&node.semantics.size)] {
         if !value.is_empty(){element.set_attribute(key,value)?;}
     }
     if node.kind==Kind::View{element.set_attribute("data-tsrust-view","")?;}
@@ -69,7 +69,7 @@ pub fn mount(mut node:Node,title:&str)->Result<Mount,JsValue> {
     thread_local! {static SEQUENCE:std::cell::Cell<u64>=const{std::cell::Cell::new(0)};}
     let id=SEQUENCE.with(|id|{let next=id.get().checked_add(1).expect("UI mount identities exhausted");id.set(next);next});
     let scope=format!("[data-tsrust-mount=\"{id}\"]");
-    let css=super::web::stylesheet(&node).replace(".ui[data-tsrust-node",&format!("{scope} .ui[data-tsrust-node"));
+    let css=super::web::stylesheet(&node,&scope);
     let style=document.create_element("style")?;style.set_text_content(Some(&css));
     let mut all=Vec::new();let mut handlers=Vec::new();let tree=elements(&node,&document,&mut all,&mut handlers,&super::theme::Theme::default(),"light")?;
     let root=document.create_element("div")?;root.set_attribute("data-tsrust-mount",&id.to_string())?;let default=super::theme::Theme::default();let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((&default,"light"));root.set_attribute("style",&format!("{}color:var(--ui-foreground);background:var(--ui-background);font-size:var(--ui-text-base);min-height:100vh",theme.variables(mode)))?;root.append_child(&tree)?;

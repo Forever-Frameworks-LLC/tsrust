@@ -187,3 +187,16 @@ fn checked_colors_rings_and_unchanged_theme_data_execute_in_formatted_projects()
   std::fs::write(&path,format!("import {{View}} from 'std:ui';function main(){{const node=<View className=\"{class}\"/>;}}")).unwrap();assert_eq!(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap_err().code,"ui-class");
  }
 }
+
+#[test]
+fn extended_jsx_props_move_resources_and_ignore_only_excess_spread_fields() {
+    let entry=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/ui-forwarding/inspect.tsrx");
+    let output=support::run(support::cli().arg("run").arg(&entry),120);support::success(&output);assert_eq!(output.stdout,b"UI forwarding passed\n");
+    let dir=support::TempDirectory::new();configure_ui(&dir.0);let path=dir.0.join("main.tsrx");
+    for source in [
+      "import {View,ViewProps,Node} from 'std:ui';interface Props extends ViewProps{size?:string;}function Forward(p:Props):Node{const node=<View {...p}/>;return <View {...p}/>;}function main(){}",
+      "import {View,ViewProps,Node} from 'std:ui';interface Props extends ViewProps{size?:string;}function Forward(p:ReadOnly<Props>):Node{return <View {...p}/>;}function main(){}",
+      "import {View,ViewProps,Node} from 'std:ui';interface Props extends ViewProps{size?:string;}function Forward(p:Props):Node{return <View {...p} size='explicit'/>;}function main(){}",
+      "import {View,ViewProps,Node} from 'std:ui';interface Props extends ViewProps{size?:string;}function Forward(p:Props):Node{return View({...p});}function main(){}",
+    ]{std::fs::write(&path,source).unwrap();assert!(load_project(&FileSourceProvider,path.to_str().unwrap()).and_then(check_graph).is_err(),"{source}");}
+}

@@ -278,3 +278,32 @@ outline. See examples/ui-colors for both targets and unchanged imported theme da
 Default body, primary button, muted text and focus color pairs have focused contrast
 checks in light/dark mode. Arbitrary custom palettes still require an accessibility
 review; accepting a valid color does not guarantee sufficient contrast.
+
+### Owned JSX forwarding and metadata conditions
+
+A local interface can extend a primitive's props. `<View {...props} />` moves the
+source once, forwards only fields declared by ViewProps, and destroys excess
+spread fields once. Omitted optional fields become undefined; missing required
+fields and explicitly written unknown attributes fail. Later attributes/spreads
+win, including an explicitly present undefined. Read/clone ordinary string fields
+before moving props if they contribute to a later override. Ordinary `{...props}`
+and record rest retain their checked-copy semantics and reject resource copying.
+See `examples/ui-forwarding` for the executable ownership witness.
+
+`data-slot` and `data-size` carry checked ASCII letters/digits/hyphens; empty means
+absent. `data-size` does not assign dimensions or accessibility roles. Shared
+class conditions support `data-[slot=VALUE]`, `data-[size=VALUE]`,
+`has-data-[slot=VALUE]`, `has-data-[size=VALUE]`, and the named-ancestor forms
+`group-data-[slot=VALUE]/NAME` and `group-data-[size=VALUE]/NAME`. Put `group/NAME`
+on an ancestor to identify it. `has-data` searches descendants, excluding self;
+group conditions match any named ancestor, excluding self. `[.CLASS]` tests an
+exact class on the same node. Names and values use ASCII letters/digits/hyphens.
+Conditions can compose with each other and one hover/focus/active/disabled state.
+All conditions must match. Arbitrary CSS selectors remain unsupported.
+
+Later classes override earlier properties within each state. Matching interaction
+states override base properties, retaining the existing portable contract.
+Predicates do not increase browser selector specificity. Native layout uses the
+same predicates against borrowed tree context without cloning descendants.
+Browser selectors stay live when DOM metadata changes; this does not introduce
+a public DOM mutation API or dynamic tree reconciliation.

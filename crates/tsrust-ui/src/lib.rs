@@ -37,6 +37,7 @@ pub(crate) struct Semantics {
     pub id: String,
     pub hidden: bool,
     pub slot: String,
+    pub size: String,
     pub orientation: String,
 }
 
@@ -74,6 +75,7 @@ impl Node {
         if value.role=="separator" && (!self.text.is_empty() || !self.children.is_empty()){return Err("A separator cannot contain text or children".into());}
         if value.id.chars().any(|ch|ch.is_ascii_whitespace()||ch.is_control()){return Err("UI id cannot contain whitespace or control characters".into());}
         if value.slot.chars().any(|ch|!(ch.is_ascii_alphanumeric()||ch=='-')){return Err("UI slot must contain ASCII letters, digits or hyphens".into());}
+        if value.size.chars().any(|ch|!(ch.is_ascii_alphanumeric()||ch=='-')){return Err("UI data-size must contain ASCII letters, digits or hyphens".into());}
         if value.hidden && self.has_enabled_controls(){return Err("An aria-hidden subtree cannot contain enabled interactive controls".into());}
         self.semantics=value;Ok(self)
     }

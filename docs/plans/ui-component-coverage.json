@@ -13,10 +13,11 @@
     "semanticElements": "accepted portable subset: tags, naming, roles, live content, hidden controls and orientation; arbitrary ARIA/HTML remains unsupported",
     "composedControls": "accepted portable foundation: owned mixed children, inline containers, optional handlers, noninteractive phrasing validation, exact owning array widening, resource-union clone rejection and inferred native callback identities",
     "editableStateAndIme": "pending",
-    "layoutAndTheme": "accepted layout, checked alpha/OKLCH colors and surface rings; Nova typography, general clipping and structural selectors remain pending",
+    "layoutAndTheme": "accepted layout, checked alpha/OKLCH colors, surface rings and bounded metadata/descendant/named-group/own-class predicates; Nova typography, numeric custom spacing, general clipping, child-position selectors and container queries remain pending",
     "focusAndOverlays": "pending",
     "baseComponentComposition": "pending",
-    "reactiveExpressions": "pending: computed strings/trees are construction-time snapshots; direct signals and disabled predicates refresh"
+    "reactiveExpressions": "pending: computed strings/trees are construction-time snapshots; direct signals and disabled predicates refresh",
+    "ownedPropForwarding": "accepted: JSX consumes sources, projects declared props, fills omitted optional fields, rejects explicit unknown attributes and releases excess fields exactly once; ordinary spread/rest remains checked-copy"
   },
   "components": [
     {

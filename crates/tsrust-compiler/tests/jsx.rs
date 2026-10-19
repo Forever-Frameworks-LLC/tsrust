@@ -124,3 +124,22 @@ fn quoted_owned_fields_keep_distinct_move_paths() {
     let source=source.replace("console.log(flat,nested);","console.log(flat,nested);console.log(row['a.b']);");
     assert!(analyze(&source).is_err(),"moving a quoted field must invalidate that exact owner");
 }
+
+#[test]
+fn jsx_spread_projects_declared_props_and_defaults_missing_optional_fields() {
+    support::execute(r#"
+interface Base {value:int; note?:string;}
+interface Extended extends Base {extra:string;}
+function Label(props:Base):string{return String(props.value)+':'+(props.note??'none');}
+function source():Extended{console.log('source');return {value:9007199254740993,extra:'extra'};}
+function override():int{console.log('override');return 7;}
+function main(){console.log(<Label {...source()}/>);console.log(<Label {...source()} value={override()}/>);console.log(<Label {...{value:3,extra:'ignored'}}/>);}
+"#, "source\n9007199254740993:none\nsource\noverride\n7:none\n3:none\n",None);
+    for (source,expected) in [
+        ("interface Base{value:int;}interface Extra extends Base{extra:string;}function Label(p:Base):int{return p.value;}function main(){const source:Extra={value:1,extra:'x'};const n=<Label {...source} extra='explicit'/>;}","Unknown JSX attribute"),
+        ("interface Base{value:int;}interface Extra{extra:string;}function Label(p:Base):int{return p.value;}function main(){const source:Extra={extra:'x'};const n=<Label {...source}/>;}","Missing required JSX attribute"),
+        ("interface Base{value:int;}interface Wrong{value:string;}function Label(p:Base):int{return p.value;}function main(){const source:Wrong={value:'wrong'};const n=<Label {...source}/>;}","Expected int"),
+        ("interface Base{value:int;}function Label(p:Base):int{return p.value;}function main(){const source:Base={value:1};const n=<Label {...source}/>;console.log(source.value);}","transferred"),
+        ("interface Base{value:int;}interface Extra extends Base{extra:int;}function main(){const source:Extra={value:1,extra:2};const narrowed:Base={...source};}","Spread record fields must match"),
+    ] {let formatted=support::format_round_trip(source);let error=analyze(&formatted).expect_err(source);assert!(error.message.contains(expected),"{expected}: {error:?}");}
+}

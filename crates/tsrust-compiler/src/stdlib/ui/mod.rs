@@ -91,6 +91,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         include_str!("../../../../tsrust-ui/src/native.rs").replace("use crate::{", "use super::{");
     let style = include_str!("../../../../tsrust-ui/src/style.rs")
         .replace("mod layout;",&format!("mod layout {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/style/layout.rs")))
+        .replace("mod structural;",&format!("mod structural {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/style/structural.rs")))
         .replace("crate::theme", "super::theme");
     let theme=include_str!("../../../../tsrust-ui/src/theme.rs")
         .replace("mod paint_color;",&format!("mod paint_color {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/theme/paint_color.rs")))

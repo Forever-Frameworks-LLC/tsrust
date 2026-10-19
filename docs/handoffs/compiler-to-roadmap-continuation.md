@@ -151,6 +151,43 @@ Keep original MIT attribution and immutable v1/v2 payloads. No pending component
 or block is accepted by these prerequisite sections, and no further planning
 approval is required.
 
+## Current owned prop forwarding and structural conditions — 2026-10-19
+
+Extended local props can move through JSX into a narrower declared component
+interface. Only excess spread fields are discarded, with native destruction once;
+explicit unknown attributes and missing required fields fail. Omitted optional
+fields hold undefined. Sources evaluate once in order, including overridden fields;
+exact integer values survive. Ordinary object spread/rest retains checked-copy
+semantics. Record spread storage planning now respects existing JSX move markers.
+
+Shared data-size metadata and bounded data/descendant/named-group/own-class
+conditions drive both targets. Predicates compose by conjunction, exclude self for
+ancestor/descendant matching, and preserve source order per property/state.
+Browser predicates have zero extra specificity. Mount scope surrounds each complete
+selector and every ancestor condition, avoiding cross-mount matches. Multiple named
+groups can match the same ancestor without imposing an ordering between groups.
+Native matching borrows context without cloning owned descendants.
+
+Focused acceptance includes native predicate/metadata/layout checks, exact-value
+JSX output, formatted rejection controls with diagnostic assertions, generated-native
+independent release observations, editor forwarding/hover/chained completion, all
+five prop agreements, both new typing rows in four modes and three UI consistency
+checks. The initial rejection fixture incorrectly failed before its intended rule;
+it now uses named records and asserts the actual diagnostic. Original records remain
+preserved. Fresh Wasm Chromium agrees with the independent Node-after-tsc oracle for
+small/default scopes, spacing, descendant predicates, own classes, chained groups,
+live DOM metadata, two-mount isolation, accessible content and disposal. The browser
+caught incorrect ancestor scoping; the repaired witness reuses unaffected evidence.
+Final whole-project formatting preserves tokens and is idempotent.
+
+Examples/oracles live in examples/ui-forwarding and benchmarks/ui-jsx. Closed records
+use tsrust-ui-structural-* in canonical SQLite, including original failed controls
+and browser runs. No SQL, broad regressions or timing was rerun. Existing counter
+input/ownership acceptance remains applicable. This is an accepted prerequisite,
+not acceptance of any pending Nova component or block. Continue Card's real source
+family; numeric spacing scope, typography, edge/corner styles, clipping, media and
+inline-size containment remain concrete requirements rather than inert markers.
+
 ## Current terminal UI correction — 2026-10-18
 
 The owner rejected the numbered command dump as incomplete interactive CLI work.

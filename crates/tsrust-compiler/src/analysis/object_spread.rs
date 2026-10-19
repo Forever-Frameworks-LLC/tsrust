@@ -29,7 +29,9 @@ impl Analyzer {
             return Err(Diagnostic::new("native-opaque", "Opaque native values cannot be constructed with record spread; use their module's constructors.", expr.span));
         }
         let ExprKind::Record(source)=&mut expr.kind else{unreachable!()};
-        Ok(Work{parts:std::collections::VecDeque::from(std::mem::take(source)),args:Vec::new(),fields:Vec::new()})
+        let jsx=source.iter().any(|(key,_)|key.kind==TokenKind::JsxOpen);
+        let explicit=source.iter().filter(|(key,_)|key.text!="record#spread").map(|(key,_)|key.clone()).collect();
+        Ok(Work{parts:std::collections::VecDeque::from(std::mem::take(source)),args:Vec::new(),fields:Vec::new(),jsx,explicit})
     }
     pub(super) fn next_object_spread_value(&mut self,context:&Context,work:&mut Work,expected:Option<Type>)->Option<Input>{
         let (key,value)=work.parts.pop_front()?;
@@ -64,15 +66,28 @@ impl Analyzer {
         work.args.push(value);Ok(())
     }
     pub(super) fn finish_object_spread_work(&mut self,expr:&mut Expr,work:Work,expected:Option<Type>)->Result<Type,Diagnostic>{
-        let Work{fields,args,..}=work;
+        let Work{mut fields,mut args,jsx,explicit,..}=work;
         let result=if let Some(Type::Record(id))=expected {
-            if self.program.records[id].is_tuple()||self.fields[id].len()!=fields.len(){return Err(Diagnostic::new("type","Spread record fields must match its result annotation.",expr.span));}
-            for field in &fields{let Some(ty)=self.fields[id].get(&field.name.text).copied()else{return Err(Diagnostic::new("type","Spread record has a field absent from its result annotation.",field.name.span));};self.require(field.ty.expect("checked spread field"),Some(ty),field.name.span)?;}
+            if jsx {
+                for key in explicit {if !self.fields[id].contains_key(&key.text){return Err(Diagnostic::new("type",format!("Unknown JSX attribute: {}.",key.text),key.span));}}
+                // JSX forwards only the declared component interface; excess spread fields are dropped with their source owner.
+                for field in self.program.records[id].fields.clone(){
+                    if fields.iter().any(|actual|actual.name.text==field.name.text){continue;}
+                    if !field.optional{return Err(Diagnostic::new("type",format!("Missing required JSX attribute: {}.",field.name.text),expr.span));}
+                    let key=Token{text:field.name.text,span:expr.span,kind:TokenKind::Name};
+                    let value=Expr::checked(ExprKind::Undefined,expr.span,Some(Type::Undefined));
+                    let definition=RecordField{name:key.clone(),annotation:field.annotation,ty:Some(Type::Undefined),callable_declaration:None,optional:false};
+                    let part=self.spread_record_shape(vec![definition.clone()],expr.span);
+                    args.push(Expr::checked(ExprKind::Record(vec![(key,value)]),expr.span,Some(Type::Record(part))));fields.push(definition);
+                }
+            }
+            if self.program.records[id].is_tuple()||(!jsx && self.fields[id].len()!=fields.len()){return Err(Diagnostic::new("type","Spread record fields must match its result annotation.",expr.span));}
+            for field in &fields{let Some(ty)=self.fields[id].get(&field.name.text).copied()else{if jsx{continue;}return Err(Diagnostic::new("type","Spread record has a field absent from its result annotation.",field.name.span));};self.require(field.ty.expect("checked spread field"),Some(ty),field.name.span)?;}
             id
         }else{self.spread_record_shape(fields,expr.span)};
         let callee=Expr::new(ExprKind::Name("record#spread".into()),expr.span);
         expr.kind=ExprKind::Call(Box::new(callee),args);expr.target=Some(CallTarget::RecordSpread(result));Ok(Type::Record(result))
     }
 }
-pub(super) struct Work{parts:std::collections::VecDeque<(Token,Expr)>,args:Vec<Expr>,fields:Vec<RecordField>}
+pub(super) struct Work{parts:std::collections::VecDeque<(Token,Expr)>,args:Vec<Expr>,fields:Vec<RecordField>,jsx:bool,explicit:Vec<Token>}
 pub(super) struct Input{key:Token,pub value:Box<Expr>,pub spread:bool,pub consume:bool,prior:bool,pub expected:Option<Type>}

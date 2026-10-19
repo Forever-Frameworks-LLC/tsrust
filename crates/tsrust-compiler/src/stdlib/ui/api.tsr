@@ -19,6 +19,8 @@ export interface ElementProps {
   'aria-hidden'?: boolean;
   /** Local component slot for styling and inspection. ASCII letters, digits and hyphens; defaults to none. */
   'data-slot'?: string;
+  /** Component size metadata for checked data/group selectors. ASCII letters, digits and hyphens; empty means absent. */
+  'data-size'?: string;
 }
 
 /** Noninteractive semantic roles shared by View and Text. Unsupported roles fail rather than losing accessibility behavior. */
@@ -55,7 +57,7 @@ export interface ButtonProps extends ElementProps {
 
 /** Creates a text node by joining text children without a separator. className defaults to empty. Unknown utilities throw a message. Owns its text. */
 export function Text(props: TextProps): Node {
-  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', String(props['aria-orientation'] ?? ''));
+  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', String(props['aria-orientation'] ?? ''));
   const result = text(props.children ?? [], props.className ?? '');
   match (result) {
     Ok(value) => {
@@ -68,7 +70,7 @@ export function Text(props: TextProps): Node {
 }
 /** Creates a container, preserving child order. className defaults to empty. Unknown utilities or depth over 128 throw a message. Consumes its children. */
 export function View(props: ViewProps): Node {
-  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', String(props['aria-orientation'] ?? ''));
+  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', String(props['aria-orientation'] ?? ''));
   const result = view(props.children ?? [], props.className ?? '');
   match (result) {
     Ok(value) => {
@@ -81,7 +83,7 @@ export function View(props: ViewProps): Node {
 }
 /** Creates a semantic button with optional retained onPress and composed phrasing children. Disabled buttons never activate. */
 export function Button(props: ButtonProps): Node {
-  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', '');
+  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', '');
   const children = props.children ?? [];
   const handler = props.onPress;
   const disabled = props.disabled;
@@ -126,7 +128,7 @@ function retainComponentState(node: Node, state: Signal): Node {
   return unwrap(nativeOwnState(node, state));
 }
 
-/** Required theme tokens. Colors are opaque #RRGGBB sRGB or @token aliases in the same mode. */
+/** Required theme tokens. Colors are checked #RRGGBB/#RRGGBBAA sRGB, in-gamut oklch() or @token aliases in the same mode; background must be opaque. */
 export interface ThemeColors {
   background: string;
   foreground: string;
@@ -190,16 +192,17 @@ interface SemanticConfig {
   id: string;
   hidden: boolean;
   slot: string;
+  size: string;
   orientation: string;
 }
 
-function semanticConfig(tag: string, role: string, label: string, id: string, hidden: boolean, slot: string, orientation: string): string {
-  if (tag === '' && role === '' && label === '' && id === '' && !hidden && slot === '' && orientation === '') {
+function semanticConfig(tag: string, role: string, label: string, id: string, hidden: boolean, slot: string, size: string, orientation: string): string {
+  if (tag === '' && role === '' && label === '' && id === '' && !hidden && slot === '' && size === '' && orientation === '') {
     return '';
   }
 
   const config: SemanticConfig = {
-    tag, role, label, id, hidden, slot, orientation
+    tag, role, label, id, hidden, slot, size, orientation
   };
   return JSON.stringify(config);
 }

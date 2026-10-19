@@ -35,3 +35,8 @@ Its independent double-precision Node-after-tsc oracle uses CSS Color 4 matrices
 native scene checks separately verify the premultiplied RGBA8 encoding boundary.
 Source theme strings remain unchanged. These are untimed color/semantics checks,
 not a GPU screenshot or a claim of identical rasterization between backends.
+
+`verify-forwarding.mjs <built-site>` compares the owned-prop/metadata example with
+`forwarding-reference.ts` after tsc. It checks small/default scopes, descendant and
+own-class conditions, live DOM metadata, accessible content and disposal. This is
+an untimed prerequisite witness, not acceptance or timing for a Nova component.

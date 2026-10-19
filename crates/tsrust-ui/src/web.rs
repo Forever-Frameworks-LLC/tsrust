@@ -21,7 +21,7 @@ fn element(node:&Node,out:&mut String,next:&mut usize,theme:&crate::theme::Theme
  let id=*next;*next+=1;
  let tag=node.tag();
  out.push('<');out.push_str(tag);
- for (key,value) in [("role",&node.semantics.role),("aria-label",&node.semantics.label),("id",&node.semantics.id),("data-slot",&node.semantics.slot)] {
+ for (key,value) in [("role",&node.semantics.role),("aria-label",&node.semantics.label),("id",&node.semantics.id),("data-slot",&node.semantics.slot),("data-size",&node.semantics.size)] {
   if !value.is_empty(){out.push(' ');out.push_str(key);out.push_str("=\"");escape(value,out);out.push('"');}
  }
  if node.kind==Kind::View{out.push_str(" data-tsrust-view");}
@@ -36,19 +36,19 @@ fn element(node:&Node,out:&mut String,next:&mut usize,theme:&crate::theme::Theme
  escape(&node.text,out);for child in &node.children {element(child,out,next,theme,mode);}
  out.push_str("</");out.push_str(tag);out.push('>');
 }
-pub(crate) fn stylesheet(node:&Node)->String {
- fn collect(node:&Node,next:&mut usize,theme:&crate::theme::Theme,mode:&str,out:&mut String) {
+pub(crate) fn stylesheet(node:&Node,scope:&str)->String {
+ fn collect(node:&Node,next:&mut usize,theme:&crate::theme::Theme,mode:&str,scope:&str,out:&mut String) {
   let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));
-  let id=*next;*next+=1;out.push_str(&crate::style::css(&node.class_name,theme,mode,id));
-  for child in &node.children {collect(child,next,theme,mode,out);}
+  let id=*next;*next+=1;out.push_str(&crate::style::css(&node.class_name,theme,mode,id,scope));
+  for child in &node.children {collect(child,next,theme,mode,scope,out);}
  }
  let default=crate::theme::Theme::default();let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((&default,"light"));let mut out=BASE.to_owned();
  out.push_str(&format!("body{{{}color:var(--ui-foreground);background:var(--ui-background);font-size:var(--ui-text-base)}}",theme.variables(mode)));
- collect(node,&mut 1,theme,mode,&mut out);out
+ collect(node,&mut 1,theme,mode,scope,&mut out);out
 }
 pub(crate) fn document(root:&Node,title:&str)->String {
  let mut out=String::from("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>");
- escape(title,&mut out);out.push_str("</title><style>");out.push_str(&stylesheet(root));out.push_str("</style></head><body>");
+ escape(title,&mut out);out.push_str("</title><style>");out.push_str(&stylesheet(root,""));out.push_str("</style></head><body>");
  element(root,&mut out,&mut 1,&crate::theme::Theme::default(),"light");out.push_str("</body></html>");out
 }
 

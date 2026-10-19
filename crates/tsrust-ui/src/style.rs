@@ -1,6 +1,9 @@
 //! One property merge policy: later classes override earlier classes in each state.
 use crate::theme::{Theme,COLORS,ResolvedColor};
 mod layout;
+mod structural;
+#[cfg(any(test,feature="native"))]
+pub(crate) use structural::resolved as resolved_node;
 pub use layout::Length;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum State { Base, Hover, Focus, Active, Disabled }
@@ -39,21 +42,20 @@ fn build_tokens()->Vec<String> {
  for color in COLORS.iter().copied().chain(["transparent"]) {for prefix in ["bg","text","border","ring"] {tokens.push(format!("{prefix}-{color}"));}}
  tokens
 }
-fn split(token:&str)->Result<(State,&str),String> {
- match token.split_once(':') {None=>Ok((State::Base,token)),Some((prefix,token))=>Ok((match prefix {"hover"=>State::Hover,"focus"=>State::Focus,"active"=>State::Active,"disabled"=>State::Disabled,_=>return Err(format!("Unsupported UI state: {prefix}"))},token))}
-}
+fn split(token:&str)->Result<(State,&str),String> {let parts=structural::parts(token)?;Ok((parts.state,parts.token))}
 fn known_tokens()->&'static std::collections::BTreeSet<String> {
  static TOKENS:std::sync::OnceLock<std::collections::BTreeSet<String>>=std::sync::OnceLock::new();
  TOKENS.get_or_init(||build_tokens().into_iter().collect())
 }
 pub fn tokens()->Vec<String> {known_tokens().iter().cloned().collect()}
 pub fn validate(classes:&str)->Result<(),String> {
- let known=known_tokens(); for class in classes.split_whitespace() {let (_,token)=split(class)?;if !known.contains(token) && opacity_token(token).is_none() {return Err(format!("Unsupported UI utility: {class}"));}}Ok(())
+ let known=known_tokens(); for class in classes.split_whitespace() {let (_,token)=split(class)?;if !known.contains(token) && opacity_token(token).is_none() && !structural::marker(token) {return Err(format!("Unsupported UI utility: {class}"));}}Ok(())
 }
 pub(crate) fn resolved(classes:&str,theme:&Theme,mode:&str)->Vec<(State,Utility)> {
  let mut rules=std::collections::BTreeMap::new();
  for class in classes.split_whitespace() {
   let (state,token)=split(class).expect("validated utility");
+  if structural::marker(token){continue;}
   let (token,opacity)=opacity_token(token).unwrap_or((token,1.));
   let mut put=|value:Utility|{rules.insert((state,value.category()),value);};
   if let Some(values)=layout::resolve(token,theme){for value in values {put(value);}continue;}
@@ -72,16 +74,10 @@ pub(crate) fn resolved(classes:&str,theme:&Theme,mode:&str)->Vec<(State,Utility)
  rules.into_iter().map(|((state,_),value)|(state,value)).collect()
 }
 // Keep semantic references in browser CSS so nested theme scopes inherit correctly.
-pub(crate) fn css(classes:&str,theme:&Theme,mode:&str,id:usize)->String {
- let mut output=String::new();
- for state in [State::Base,State::Hover,State::Focus,State::Active,State::Disabled] {
-  let declarations=resolved(classes,theme,mode).into_iter().filter(|(s,_)|*s==state).map(|(_,v)|v.css()).collect::<Vec<_>>().join(";");
-  if declarations.is_empty(){continue;}
-  let selector=match state {State::Base=>"",State::Hover=>":where(:hover:not(:disabled))",State::Focus=>":where(:focus-visible)",State::Active=>":where(:active:not(:disabled))",State::Disabled=>":where(:disabled)"};
-  output.push_str(&format!(".ui[data-tsrust-node=\"{id}\"]{selector}{{{declarations}}}"));
- }
- output
+pub(crate) fn css(classes:&str,theme:&Theme,mode:&str,id:usize,scope:&str)->String {
+ structural::css(classes,theme,mode,id,scope)
 }
+
 #[cfg(test)] mod tests {
  use super::*;
  #[test] fn caller_overrides_merge_by_property_and_state() {
@@ -96,7 +92,7 @@ pub(crate) fn css(classes:&str,theme:&Theme,mode:&str,id:usize)->String {
 /// Theme references used by authoring navigation and both renderers.
 pub fn theme_paths(class:&str)->Vec<Vec<String>> {
  if validate(class).is_err(){return vec![];}
- let token=class.rsplit(':').next().unwrap();let token=opacity_token(token).map_or(token,|(base,_)|base);
+ let (_,token)=split(class).unwrap();let token=opacity_token(token).map_or(token,|(base,_)|base);
  let color=if token=="ring" {Some("ring")}else{token.strip_prefix("bg-").or_else(||token.strip_prefix("text-")).or_else(||token.strip_prefix("border-")).or_else(||token.strip_prefix("ring-"))};
  if let Some(color)=color.filter(|color|COLORS.contains(color)) {return ["light","dark"].into_iter().map(|mode|vec![mode.into(),crate::theme::key_name(color)]).collect();}
  let field=match token {"rounded"=>Some(("radius","md")),"rounded-sm"=>Some(("radius","sm")),"rounded-lg"=>Some(("radius","lg")),"text-base"=>Some(("typography","base")),"text-xl"=>Some(("typography","xl")),_=>None};
@@ -108,7 +104,9 @@ pub fn theme_paths(class:&str)->Vec<Vec<String>> {
 pub fn documentation(class:&str)->String {
  if validate(class).is_err(){return String::new();}
  let (_,token)=split(class).unwrap();
- let (purpose,example)=if matches!(token,"ring-0"|"ring-1"|"ring-2"|"ring-3") {
+ let (purpose,example)=if structural::marker(token) {
+  ("Names an ancestor group for checked group-data-[slot=VALUE]/NAME and group-data-[size=VALUE]/NAME selectors. Marker alone changes no visual property. Group names use ASCII letters, digits and hyphens.",format!("<View className=\"{class}\" />"))
+ }else if matches!(token,"ring-0"|"ring-1"|"ring-2"|"ring-3") {
   ("Sets an outer surface ring width of 0–3 logical pixels without changing layout. ring-COLOR selects its color and defaults to the theme ring token. This surface ring is independent of the button's keyboard focus outline.",format!("<View className=\"{class} ring-foreground/10\" />"))
  }else if color_token(opacity_token(token).map_or(token,|(base,_)|base)) {
   ("Sets a semantic theme color. Optional /N multiplies its alpha by an integer percentage 0–100; fractional, negative and out-of-range percentages fail. transparent is zero-alpha black. Ring colors need a ring-0/1/2/3 width to paint a surface ring. Color changes do not hide semantic content from accessibility. Native output has an 8-bit sRGB paint boundary; theme strings remain unchanged.",format!("<View className=\"{class}\" />"))
@@ -132,7 +130,7 @@ pub fn documentation(class:&str)->String {
   ("Uses the enclosing theme for colors, radius or typography and applies the checked property in the selected interaction state. Later classes override earlier classes by property within each state.",format!("<View className=\"{class}\" />"))
  };
  let declarations=resolved(class,&Theme::default(),"light").into_iter().map(|(_,value)|value.css()).collect::<Vec<_>>().join("; ");
- format!("`{class}`\n\nShared web/native utility. {purpose} Container display/track/wrap utilities require View or a composed Button; text leaves reject them. No function arguments. Unknown utilities and unsupported state prefixes fail at check/construction time. Example: `{example}`. With the default light theme: `{declarations}`. The enclosing theme supplies custom values; layout uses logical pixels. Arbitrary CSS, breakpoints, named grid lines and subgrid remain unsupported. Ownership: changes layout/style without changing child ownership.")
+ format!("`{class}`\n\nShared web/native utility. {purpose} Container display/track/wrap utilities require View or a composed Button; text leaves reject them. No function arguments. Metadata variants accept data-[slot=VALUE], data-[size=VALUE], has-data-[slot=VALUE], has-data-[size=VALUE], group-data-[slot=VALUE]/NAME, group-data-[size=VALUE]/NAME and [.CLASS]. has-data matches descendants, excluding self. Group variants match any named ancestor, excluding self. Values/names use ASCII letters, digits and hyphens. Multiple metadata predicates compose by conjunction; at most one interaction state is supported. Metadata predicates change styling, never accessibility or source order. Unknown utilities and unsupported state prefixes fail at check/construction time. Example: `{example}`. With the default light theme: `{declarations}`. The enclosing theme supplies custom values; layout uses logical pixels. Arbitrary CSS, breakpoints, named grid lines and subgrid remain unsupported. Ownership: changes layout/style without changing child ownership.")
 }
 
 #[cfg(test)] mod layout_tests {
@@ -162,7 +160,7 @@ pub fn documentation(class:&str)->String {
   }
   assert_eq!(theme_paths("pl-3"),vec![vec!["spacing","sm"],vec!["spacing","md"]]);
   assert_eq!(theme_paths("w-64"),vec![vec!["spacing","md"]]);assert!(theme_paths("w-full").is_empty());
-  assert!(css("grid grid-cols-2 gap-4",&theme,"light",1).contains("grid-template-columns:repeat(2,minmax(0,1fr))"));
+  assert!(css("grid grid-cols-2 gap-4",&theme,"light",1,"").contains("grid-template-columns:repeat(2,minmax(0,1fr))"));
  }
 }
 
@@ -203,6 +201,6 @@ pub fn completion_tokens(prefix:&str)->Vec<String> {
  #[test] fn token_alpha_and_modifier_multiply_without_byte_quantization() {
   let mut raw:serde_json::Value=serde_json::from_str(super::super::theme::DEFAULT_JSON).unwrap();raw["light"]["primary"]="#12345680".into();let theme=Theme::parse(&raw.to_string()).unwrap();
   let values=resolved("bg-primary/25",&theme,"light");let Utility::Background(color)=values[0].1 else{panic!("background expected")};assert!((color.alpha()-128./255.*0.25).abs()<0.0000001);
-  assert!(css("ring-1 ring-foreground/10",&theme,"light",1).contains("box-shadow:"));
+  assert!(css("ring-1 ring-foreground/10",&theme,"light",1,"").contains("box-shadow:"));
  }
 }

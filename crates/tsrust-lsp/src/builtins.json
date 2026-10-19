@@ -14179,7 +14179,10 @@
           "documentation": "Optional boolean, default false. <Text aria-hidden>Decoration</Text> keeps text visible but excludes it from accessibility. An enabled control anywhere in the subtree throws; making a hidden descendant enabled during refresh stops the mounted tree and uses normal cleanup. Ownership: copies the flag; does not retain state."
         },
         "data-slot": {
-          "documentation": "Optional component slot name, using only ASCII letters, digits and hyphens. Defaults to none. <View data-slot=\"card-content\" /> emits that HTML attribute and retains the same native metadata. Invalid names throw; this does not add arbitrary CSS selector support. Ownership: consumes the slot string."
+          "documentation": "Optional component slot name, using only ASCII letters, digits and hyphens. Defaults to none. <View data-slot=\"card-content\" /> emits that HTML attribute and retains the same native metadata. Invalid names throw. Checked data/descendant/group selectors can match this metadata; arbitrary CSS selectors remain unsupported. Ownership: consumes the slot string."
+        },
+        "data-size": {
+          "documentation": "Optional component size metadata using ASCII letters, digits and hyphens; defaults to absent. <View data-size=\"sm\" className=\"data-[size=sm]:p-3\" /> uses the small metadata condition on both targets. The string does not select dimensions by itself or add an accessibility role. Invalid characters throw. No function arguments. Ownership: consumes the supplied string."
         }
       }
     },
@@ -14199,13 +14202,16 @@
           "documentation": "Optional boolean, default false. <Text aria-hidden>Decoration</Text> keeps text visible but excludes it from accessibility. An enabled control anywhere in the subtree throws; making a hidden descendant enabled during refresh stops the mounted tree and uses normal cleanup. Ownership: copies the flag; does not retain state."
         },
         "data-slot": {
-          "documentation": "Optional component slot name, using only ASCII letters, digits and hyphens. Defaults to none. <View data-slot=\"card-content\" /> emits that HTML attribute and retains the same native metadata. Invalid names throw; this does not add arbitrary CSS selector support. Ownership: consumes the slot string."
+          "documentation": "Optional component slot name, using only ASCII letters, digits and hyphens. Defaults to none. <View data-slot=\"card-content\" /> emits that HTML attribute and retains the same native metadata. Invalid names throw. Checked data/descendant/group selectors can match this metadata; arbitrary CSS selectors remain unsupported. Ownership: consumes the slot string."
         },
         "role": {
           "documentation": "Optional noninteractive role: alert, status, separator, group, note, region, none or presentation. Defaults to the chosen tag's implicit role. <Text role=\"status\">Saved</Text> exposes a polite live status; alert is assertive. Region requires aria-label. Separator requires empty text and no children. Unsupported roles throw; role does not turn a View into an interactive widget. Ownership: consumes the role string."
         },
         "aria-orientation": {
           "documentation": "Optional separator orientation: horizontal (default) or vertical. Only valid with role=\"separator\". <View role=\"separator\" aria-orientation=\"vertical\" /> exposes a vertical, nonfocusable separator on both backends. This describes orientation; classes still control dimensions. Other roles/values throw. Ownership: consumes the string."
+        },
+        "data-size": {
+          "documentation": "Optional component size metadata using ASCII letters, digits and hyphens; defaults to absent. <View data-size=\"sm\" className=\"data-[size=sm]:p-3\" /> uses the small metadata condition on both targets. The string does not select dimensions by itself or add an accessibility role. Invalid characters throw. No function arguments. Ownership: consumes the supplied string."
         }
       }
     },
@@ -14225,7 +14231,7 @@
           "documentation": "Optional boolean, default false. <Text aria-hidden>Decoration</Text> keeps text visible but excludes it from accessibility. An enabled control anywhere in the subtree throws; making a hidden descendant enabled during refresh stops the mounted tree and uses normal cleanup. Ownership: copies the flag; does not retain state."
         },
         "data-slot": {
-          "documentation": "Optional component slot name, using only ASCII letters, digits and hyphens. Defaults to none. <View data-slot=\"card-content\" /> emits that HTML attribute and retains the same native metadata. Invalid names throw; this does not add arbitrary CSS selector support. Ownership: consumes the slot string."
+          "documentation": "Optional component slot name, using only ASCII letters, digits and hyphens. Defaults to none. <View data-slot=\"card-content\" /> emits that HTML attribute and retains the same native metadata. Invalid names throw. Checked data/descendant/group selectors can match this metadata; arbitrary CSS selectors remain unsupported. Ownership: consumes the slot string."
         },
         "role": {
           "documentation": "Optional noninteractive role: alert, status, separator, group, note, region, none or presentation. Defaults to the chosen tag's implicit role. <Text role=\"status\">Saved</Text> exposes a polite live status; alert is assertive. Region requires aria-label. Separator requires empty text and no children. Unsupported roles throw; role does not turn a View into an interactive widget. Ownership: consumes the role string."
@@ -14241,6 +14247,9 @@
         },
         "className": {
           "documentation": "Optional shared utility string, default empty. <Text className=\"font-bold\">Title</Text> draws bold text. Later classes override earlier properties within each state; unknown utilities throw. Container display/track/wrap utilities require View or a composed Button; Text remains a text leaf and rejects them. Shared layout capabilities include grid/flex display, equal grid tracks (1–12), bounded grid placement, per-side padding/gaps, preferred/min/max dimensions, alignment, wrapping and grow/shrink use the same logical-pixel model on both targets. p/px/py and size expand to independent properties; later classes win per property/state. Spacing 2/4/6 uses sm/md/lg, 1 uses sm/2, 3 averages sm/md; other numeric sizes use spacing.md/4 per unit. Percentage heights need a definite parent height. Example: <View className=\"grid grid-cols-2 gap-4 p-4\" /> creates two equal tracks with default 16px gaps/padding. Arbitrary CSS, breakpoints, named grid lines and subgrid remain unsupported. Semantic color utilities accept /N alpha multiplication for integer percentages 0–100 and transparent. ring-0/1/2/3 sets an outer surface ring width; ring-COLOR selects its color. These rings do not change layout and remain independent of the focus outline. Example: ring-1 ring-foreground/10 draws a 1px surface ring at 10% token alpha. Unsupported percentages throw. Native paint uses 8-bit sRGB; original theme strings are preserved. Ownership: consumes the string."
+        },
+        "data-size": {
+          "documentation": "Optional component size metadata using ASCII letters, digits and hyphens; defaults to absent. <View data-size=\"sm\" className=\"data-[size=sm]:p-3\" /> uses the small metadata condition on both targets. The string does not select dimensions by itself or add an accessibility role. Invalid characters throw. No function arguments. Ownership: consumes the supplied string."
         }
       }
     },
@@ -14260,7 +14269,7 @@
           "documentation": "Optional boolean, default false. <Text aria-hidden>Decoration</Text> keeps text visible but excludes it from accessibility. An enabled control anywhere in the subtree throws; making a hidden descendant enabled during refresh stops the mounted tree and uses normal cleanup. Ownership: copies the flag; does not retain state."
         },
         "data-slot": {
-          "documentation": "Optional component slot name, using only ASCII letters, digits and hyphens. Defaults to none. <View data-slot=\"card-content\" /> emits that HTML attribute and retains the same native metadata. Invalid names throw; this does not add arbitrary CSS selector support. Ownership: consumes the slot string."
+          "documentation": "Optional component slot name, using only ASCII letters, digits and hyphens. Defaults to none. <View data-slot=\"card-content\" /> emits that HTML attribute and retains the same native metadata. Invalid names throw. Checked data/descendant/group selectors can match this metadata; arbitrary CSS selectors remain unsupported. Ownership: consumes the slot string."
         },
         "role": {
           "documentation": "Optional noninteractive role: alert, status, separator, group, note, region, none or presentation. Defaults to the chosen tag's implicit role. <Text role=\"status\">Saved</Text> exposes a polite live status; alert is assertive. Region requires aria-label. Separator requires empty text and no children. Unsupported roles throw; role does not turn a View into an interactive widget. Ownership: consumes the role string."
@@ -14276,6 +14285,9 @@
         },
         "className": {
           "documentation": "Optional shared utility string, default empty. <View className=\"flex-row gap-4\" /> uses a horizontal container and project spacing.md between children. Later classes override earlier properties within each state; unknown utilities throw. Grid/flex display, equal grid tracks (1–12), bounded grid placement, per-side padding/gaps, preferred/min/max dimensions, alignment, wrapping and grow/shrink use the same logical-pixel model on both targets. p/px/py and size expand to independent properties; later classes win per property/state. Spacing 2/4/6 uses sm/md/lg, 1 uses sm/2, 3 averages sm/md; other numeric sizes use spacing.md/4 per unit. Percentage heights need a definite parent height. Example: <View className=\"grid grid-cols-2 gap-4 p-4\" /> creates two equal tracks with default 16px gaps/padding. Arbitrary CSS, breakpoints, named grid lines and subgrid remain unsupported. Semantic color utilities accept /N alpha multiplication for integer percentages 0–100 and transparent. ring-0/1/2/3 sets an outer surface ring width; ring-COLOR selects its color. These rings do not change layout and remain independent of the focus outline. Example: ring-1 ring-foreground/10 draws a 1px surface ring at 10% token alpha. Unsupported percentages throw. Native paint uses 8-bit sRGB; original theme strings are preserved. Ownership: consumes the string."
+        },
+        "data-size": {
+          "documentation": "Optional component size metadata using ASCII letters, digits and hyphens; defaults to absent. <View data-size=\"sm\" className=\"data-[size=sm]:p-3\" /> uses the small metadata condition on both targets. The string does not select dimensions by itself or add an accessibility role. Invalid characters throw. No function arguments. Ownership: consumes the supplied string."
         }
       }
     },
@@ -14295,7 +14307,7 @@
           "documentation": "Optional boolean, default false. <Text aria-hidden>Decoration</Text> keeps text visible but excludes it from accessibility. An enabled control anywhere in the subtree throws; making a hidden descendant enabled during refresh stops the mounted tree and uses normal cleanup. Ownership: copies the flag; does not retain state."
         },
         "data-slot": {
-          "documentation": "Optional component slot name, using only ASCII letters, digits and hyphens. Defaults to none. <View data-slot=\"card-content\" /> emits that HTML attribute and retains the same native metadata. Invalid names throw; this does not add arbitrary CSS selector support. Ownership: consumes the slot string."
+          "documentation": "Optional component slot name, using only ASCII letters, digits and hyphens. Defaults to none. <View data-slot=\"card-content\" /> emits that HTML attribute and retains the same native metadata. Invalid names throw. Checked data/descendant/group selectors can match this metadata; arbitrary CSS selectors remain unsupported. Ownership: consumes the slot string."
         },
         "children": {
           "documentation": "Optional ordered Child array: strings, Signal bindings or uniquely owned Nodes. Omission defaults to empty. <View>Hello <Text>world</Text></View> preserves order; <Button>Count: {count}</Button> binds the signal. Adjacent literal/bound text shares one run. Button requires noninteractive phrasing children; View accepts any subtree. Boolean, numeric, null and undefined children are unsupported. Computed strings/trees are construction-time snapshots; only direct signals refresh. Ownership: consumes nodes/strings; state bindings do not retain owners."
@@ -14308,6 +14320,9 @@
         },
         "onPress": {
           "documentation": "Optional retained synchronous callback with no arguments and void result; omitted means no application action. <Button onPress={()=>{count.set(count.get()+1);}}>Add</Button> increments count once per activation. Disabled buttons do not invoke it. Failure stops the mounted tree with cleanup. Ownership: consumes the callback and releases its environment with the subtree."
+        },
+        "data-size": {
+          "documentation": "Optional component size metadata using ASCII letters, digits and hyphens; defaults to absent. <View data-size=\"sm\" className=\"data-[size=sm]:p-3\" /> uses the small metadata condition on both targets. The string does not select dimensions by itself or add an accessibility role. Invalid characters throw. No function arguments. Ownership: consumes the supplied string."
         }
       }
     },

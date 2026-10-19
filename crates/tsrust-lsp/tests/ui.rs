@@ -140,3 +140,13 @@ fn color_opacity_help_and_theme_ranges_match_runtime_rules() {
  let at=source.find("bg-primary/50").unwrap()+4;let uri=session.uri("main.tsrx");let locations=session.request("textDocument/definition",serde_json::json!({"textDocument":{"uri":uri},"position":{"line":0,"character":at}}));assert_eq!(locations.as_array().unwrap().len(),2,"{locations}");
  session.open("tsrust.config.json",&theme);session.settle();let bad=theme.replace("oklch(0.6 0.12 260 / 0.8)","oklch(0.6 0.8 30)");session.change("tsrust.config.json",&bad);let diagnostics=session.wait_for_diagnostics("tsrust.config.json");assert!(diagnostics.to_string().contains("sRGB gamut"),"{diagnostics}");
 }
+
+#[test]
+fn extended_jsx_forwarding_metadata_and_structural_help_are_checked() {
+ let source="import {View,ViewProps,Text,Node} from 'std:ui';interface Props extends ViewProps {size?:'sm'|'default';}function Forward(props:Props):Node{return <View {...props} data-size=\"sm\"/>;}function main(){const node=<Forward size=\"sm\"><Text>Owned</Text></Forward>;const other=<View className=\"group-data-[size=sm]/panel:hover:bg-primary/50\"/>;}";
+ let mut session=support::session::Session::start(&[]);session.open("main.tsrx",source);let diagnostics=session.wait_for_diagnostics("main.tsrx");session.settle();assert_eq!(diagnostics.as_array().unwrap().len(),0,"{diagnostics}");
+ let help=session.hover("main.tsrx",source,source.find("data-size=").unwrap()+3).unwrap_or_default();assert!(help.contains("metadata"),"{help}");
+ let at=source.find("group-data-").unwrap()+7;let help=session.hover("main.tsrx",source,at).unwrap_or_default();assert!(help.contains("excluding self"),"{help}");
+ let at=source.find("bg-primary/50").unwrap()+13;assert!(session.completion("main.tsrx",source,at).unwrap().contains(&"group-data-[size=sm]/panel:hover:bg-primary/50".into()));
+ let broken=source.replace("<View {...props} data-size=", "<View {...props} size=");session.change("main.tsrx",&broken);let diagnostics=session.wait_for_diagnostics("main.tsrx");assert!(diagnostics.to_string().contains("Unknown JSX attribute"),"{diagnostics}");
+}

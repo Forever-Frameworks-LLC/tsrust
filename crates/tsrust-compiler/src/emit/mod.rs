@@ -6689,12 +6689,12 @@ impl Emitter<'_> {
             let Type::Record(id)=arg.ty.expect("checked spread part")else{unreachable!()};
             let mut arms=String::new();
             for (field,definition) in self.program.records[id].fields.iter().enumerate(){
-                let output=self.fields[result][definition.name.text.as_str()];
+                let Some(&output)=self.fields[result].get(definition.name.text.as_str())else{continue;};
                 last.insert(definition.name.text.clone(),(part,field));
                 let _=write!(arms,"{field}=>{output},");
             }
             if arms.is_empty(){continue;}
-            let _=write!(code,"for spread_index in spread_part{part}.key_order{{let output=match spread_index{{{arms}_=>unreachable!()}};if !spread_seen[output]{{spread_seen[output]=true;spread_order[spread_next]=output;spread_next+=1;}}}}");
+            let _=write!(code,"for spread_index in spread_part{part}.key_order{{let output=match spread_index{{{arms}_=>continue}};if !spread_seen[output]{{spread_seen[output]=true;spread_order[spread_next]=output;spread_next+=1;}}}}");
         }
         let fields=self.program.records[result].fields.iter().enumerate().map(|(index,definition)|{let (part,field)=last[&definition.name.text];let Type::Record(source)=args[part].ty.expect("checked spread part") else{unreachable!()};let copied=format!("spread_part{part}.field{field}");let adapted=self.element_alternative(self.program.records[source].fields[field].ty.expect("checked source field"),definition.ty.expect("checked result field"),&copied);format!("field{index}:{adapted}")}).collect::<Vec<_>>().join(",");
         let _=write!(code,"Record{result}{{{fields}{}key_order:spread_order}}}}",if fields.is_empty(){""}else{","});code

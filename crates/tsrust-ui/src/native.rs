@@ -76,9 +76,9 @@ impl Painter {
         }
     }
     fn node(&mut self,node:&Node,inherited:TextStyle)->Result<Item,String> {
-        self.themed_node(node,inherited,&super::theme::Theme::default(),"light",&mut 1)
+        self.themed_node(node,inherited,&super::theme::Theme::default(),"light",&mut 1,&mut Vec::new())
     }
-    fn themed_node(&mut self, node: &Node, mut inherited: TextStyle, theme:&super::theme::Theme, mode:&str, next:&mut u64) -> Result<Item, String> {
+    fn themed_node<'a>(&mut self, node: &'a Node, mut inherited: TextStyle, theme:&super::theme::Theme, mode:&str, next:&mut u64,ancestors:&mut Vec<&'a Node>) -> Result<Item, String> {
         let id=*next;*next+=1;
         let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));
         if node.theme.is_some() {inherited.size=theme.typography.base as f32;inherited.color=theme.color(mode,"foreground")?;}
@@ -99,7 +99,7 @@ impl Painter {
                 bottom: length(8.),
             };
         }
-        for (state,utility) in super::style::resolved(&node.class_name,theme,mode) {
+        for (state,utility) in super::style::resolved_node(node,ancestors,theme,mode) {
             if !match state {State::Base=>true,State::Hover=>self.hover.contains(&id) && node.kind!=Kind::DisabledButton,State::Active=>self.pressed_nodes.contains(&id) && node.kind!=Kind::DisabledButton,State::Focus=>self.focus==Some(id),State::Disabled=>node.kind==Kind::DisabledButton} {continue;}
             match utility {
                 Utility::Row=>style.flex_direction=FlexDirection::Row,
@@ -128,11 +128,13 @@ impl Painter {
                 Utility::Justify(v)=>style.justify_content=match v {0=>JustifyContent::FLEX_START,1=>JustifyContent::CENTER,_=>JustifyContent::SPACE_BETWEEN},
             }
         }
+        ancestors.push(node);
         let children = node
             .children
             .iter()
-            .map(|child| self.themed_node(child, inherited,theme,mode,next))
+            .map(|child| self.themed_node(child, inherited,theme,mode,next,ancestors))
             .collect::<Result<Vec<_>, _>>()?;
+        ancestors.pop();
         let (text, id) = if node.kind == Kind::View || !children.is_empty() {
             (
                 None,
@@ -1001,5 +1003,17 @@ mod composed_button_tests {
   let root=Node::new(Kind::View,"ring-1 ring-foreground/10".into(),String::new(),vec![button,child]).unwrap();let mut painter=Painter::new();painter.hover.insert(2);let item=painter.node(&root,TextStyle::default()).unwrap();
   assert!((item.children[0].background.unwrap().alpha()-0.9).abs()<0.000001);
   assert_eq!(item.children[1].shadow_color,super::super::theme::Theme::default().color("light","ring").unwrap());assert!((item.shadow_color.alpha()-0.1).abs()<0.000001);
+ }
+}
+
+#[cfg(test)] mod structural_tests {
+ use super::*;
+ #[test] fn structural_conditions_drive_native_layout_and_keep_source_order() {
+  let leaf=Node::new(Kind::View,"p-4 group-data-[size=sm]/panel:px-3".into(),String::new(),vec![]).unwrap().with_semantics(r#"{"slot":"body"}"#).unwrap();
+  let root=Node::new(Kind::View,"group/panel p-4 has-data-[slot=body]:pb-0 data-[size=sm]:pt-3".into(),String::new(),vec![leaf]).unwrap().with_semantics(r#"{"size":"sm"}"#).unwrap();
+  let mut painter=Painter::new();let item=painter.node(&root,TextStyle::default()).unwrap();
+  let style=painter.tree.style(item.id).unwrap();assert_eq!(style.padding.top,length(12.));assert_eq!(style.padding.bottom,length(0.));
+  let style=painter.tree.style(item.children[0].id).unwrap();assert_eq!(style.padding.left,length(12.));assert_eq!(style.padding.top,length(16.));
+  assert_eq!(item.children[0].semantics.slot,"body");
  }
 }
