@@ -1,5 +1,11 @@
 # Documentation index
 
+The active [documentation application and component-library plan](plans/documentation-and-component-library.md)
+covers the paired web/native docs project, organized Markdown, offline search,
+all pinned components/blocks, themes, authoring APIs and curated benchmark pages.
+It distinguishes planned work from accepted implementation and preserves the
+developer evidence paths below.
+
 ## Start here
 
 - [Standard-library roadmap](standard-library-roadmap.md): current implementation status and remaining S08–S21 work.

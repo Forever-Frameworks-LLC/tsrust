@@ -1,5 +1,16 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
+Current owner direction (2026-10-19): follow the
+[documentation application and complete component-library plan](../plans/documentation-and-component-library.md).
+Create a separate runnable docs project under `docs/`, with organized Markdown,
+real examples, code rendering, all 64 pinned components, three recipes, 30 blocks,
+theme generation and custom-component authoring. Web/native have equal acceptance
+priority; resolve native headers early. Search starts with offline full-text;
+semantic search follows later. Publish curated SQLite exports without moving the
+benchmark harness or exposing the full canonical database. Existing counter owner
+files and developer evidence paths remain preserved. Theme/visibility/header
+source changes in the working tree are unaccepted work, not completed features.
+
 ## Installed corrections and startup cache repair — 2026-10-19
 
 Owner's selector correction is installed: compact option rows and padding around
