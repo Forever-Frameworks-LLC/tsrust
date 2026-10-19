@@ -28,8 +28,15 @@ Explicit JSX child arrays now forward with `children={values}`. Syntax conflicts
 evaluation order, editor hover/completion and four typing modes pass through
 `3a049e7f`; ordinary owning-array rules remain unchanged. Keep the unrelated
 coalesced-array receiver inference limitation visible in readiness notes.
-[Content acceptance](../milestones/ui-documentation-content.md) records evidence
-and the active shared example-card publication. Continue the required rich text,
+The shared ExampleCard publication at `15b533a3` passes actual browser retention,
+exact read-only source, accessibility/narrow layout, native inspection and a bounded
+native launch. The existing preview URL serves `docs-content`; refresh it. This
+launch reuses accepted native interaction behavior and adds no OS gesture claim.
+Five consumers are refreshed from `3a049e7f`; both editor settings files are restored.
+Untimed native/Node workload support is repaired at `a09aa41e`; it remains unmeasured.
+[Content acceptance](../milestones/ui-documentation-content.md) records exact evidence
+and cleanup. Closed records and obsolete executable variants are removed; preserve
+the current browser assets, generated catalog and warm runtime dependencies. Continue the required rich text,
 keyed identity/navigation, full-text search and complete component families. These
 are required work, not conditional follow-ups. Reuse accepted scrolling, mode,
 resource/cancellation and database evidence.
