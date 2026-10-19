@@ -17,13 +17,18 @@ pub struct Scale { pub sm:f64, pub md:f64, pub lg:f64 }
 #[serde(deny_unknown_fields)]
 pub struct Typography { pub base:f64, pub xl:f64 }
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Radius {pub sm:f64,pub md:f64,pub lg:f64,#[serde(default,deserialize_with="present_radius",skip_serializing_if="Option::is_none")]pub xl:Option<f64>}
+fn present_radius<'de,D:serde::Deserializer<'de>>(input:D)->Result<Option<f64>,D::Error> {f64::deserialize(input).map(Some)}
+impl Radius {pub fn extra_large(&self)->f64 {self.xl.unwrap_or(self.lg)}}
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields, rename_all="camelCase")]
 pub struct Theme {
     pub schema_version:u32,
     pub light:BTreeMap<String,String>,
     pub dark:BTreeMap<String,String>,
     pub spacing:Scale,
-    pub radius:Scale,
+    pub radius:Radius,
     pub typography:Typography,
 }
 impl Default for Theme {fn default()->Self {Self::parse(DEFAULT_JSON).expect("valid bundled theme")}}
@@ -36,11 +41,12 @@ impl Theme {
             for key in COLORS {theme.color(name,key)?;}
             if theme.color(name,"background")?.alpha()!=1. {return Err(format!("UI theme {name}.background must be opaque; transparent native windows are unsupported"));}
         }
-        for (name,scale,maximum) in [("spacing",&theme.spacing,512.),("radius",&theme.radius,256.)] {
+        for (name,scale,maximum) in [("spacing",&theme.spacing,512.),("radius",&Scale{sm:theme.radius.sm,md:theme.radius.md,lg:theme.radius.lg},256.)] {
             for (key,value) in [("sm",scale.sm),("md",scale.md),("lg",scale.lg)] {
                 if !value.is_finite() || !(0. ..=maximum).contains(&value) {return Err(format!("UI theme {name}.{key} must be between 0 and {maximum} logical pixels"));}
             }
         }
+        if let Some(value)=theme.radius.xl && (!value.is_finite() || !(0. ..=256.).contains(&value)){return Err("UI theme radius.xl must be between 0 and 256 logical pixels".into());}
         for (key,value) in [("base",theme.typography.base),("xl",theme.typography.xl)] {
             if !value.is_finite() || !(8. ..=128.).contains(&value) {return Err(format!("UI theme typography.{key} must be between 8 and 128 logical pixels"));}
         }
@@ -59,7 +65,8 @@ impl Theme {
     pub(crate) fn variables(&self,mode:&str)->String {
         let mut result=String::new();
         for key in COLORS {let color=self.color(mode,key).expect("validated theme");result.push_str(&format!("--ui-{key}:{};",color.css()));}
-        for (name,scale) in [("spacing",&self.spacing),("radius",&self.radius)] {for (key,value) in [("sm",scale.sm),("md",scale.md),("lg",scale.lg)] {result.push_str(&format!("--ui-{name}-{key}:{}px;",value as f32));}}
+        for (name,scale) in [("spacing",&self.spacing),("radius",&Scale{sm:self.radius.sm,md:self.radius.md,lg:self.radius.lg})] {for (key,value) in [("sm",scale.sm),("md",scale.md),("lg",scale.lg)] {result.push_str(&format!("--ui-{name}-{key}:{}px;",value as f32));}}
+        result.push_str(&format!("--ui-radius-xl:{}px;",self.radius.extra_large() as f32));
         result.push_str(&format!("--ui-text-base:{}px;--ui-text-xl:{}px;",self.typography.base as f32,self.typography.xl as f32));result
     }
 }
@@ -99,5 +106,16 @@ impl Theme {
   for mode in ["light","dark"] {for (fg,bg,minimum) in [("foreground","background",4.5),("primary-foreground","primary",4.5),("muted-foreground","muted",4.5),("ring","background",3.)] {
    let fg=luminance(theme.color(mode,fg).unwrap());let bg=luminance(theme.color(mode,bg).unwrap());let ratio=(fg.max(bg)+0.05)/(fg.min(bg)+0.05);assert!(ratio>=minimum,"{mode}: contrast {ratio} below {minimum}");
   }}
+ }
+}
+
+#[cfg(test)] mod radius_tests {
+ use super::*;
+ #[test] fn card_extra_large_radius_is_checked_and_older_themes_keep_their_large_radius() {
+  let mut value:serde_json::Value=serde_json::from_str(DEFAULT_JSON).unwrap();value["radius"].as_object_mut().unwrap().remove("xl");value["radius"]["lg"]=17.into();
+  assert_eq!(Theme::parse(&value.to_string()).unwrap().radius.extra_large(),17.);
+  value["radius"]["xl"]=21.into();assert_eq!(Theme::parse(&value.to_string()).unwrap().radius.extra_large(),21.);
+  value["radius"]["xl"]=serde_json::Value::Null;assert!(Theme::parse(&value.to_string()).is_err());
+  for invalid in [-0.1,256.01]{value["radius"]["xl"]=serde_json::json!(invalid);assert!(Theme::parse(&value.to_string()).is_err());}
  }
 }

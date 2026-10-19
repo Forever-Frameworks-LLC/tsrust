@@ -7,6 +7,8 @@ Base UI source components, three composed documentation recipes and 30 Base UI
 blocks, including their block dependencies. See
 [coverage](../plans/ui-component-coverage.json). Pending entries are not installed
 stubs or accepted clones. Existing immutable Button/Card v1/v2 remain intact.
+Card v3 now supplies seven working portable content parts; its explicit media,
+containment and font-asset gaps keep full Nova parity pending.
 Continue composition, layout/theme capabilities, real controls and complete source
 families across both targets. No further planning approval is required.
 
@@ -187,6 +189,58 @@ input/ownership acceptance remains applicable. This is an accepted prerequisite,
 not acceptance of any pending Nova component or block. Continue Card's real source
 family; numeric spacing scope, typography, edge/corner styles, clipping, media and
 inline-size containment remain concrete requirements rather than inert markers.
+
+## Current Card content port and shared surface styling — 2026-10-19
+
+card@3.0.0 installs all seven editable content parts with the pinned Base UI + Nova
+MIT attribution. Default/small cards, descriptions, actions, content and footers
+work on both targets. This is a partial content port, not full Nova parity:
+image primitives/edge selectors, inline-size containment/container queries and
+named heading-font assets remain unsupported and explicit in source/help/coverage.
+Header is an ordinary grid, so intrinsic layouts can differ from containment.
+Do not publish inert markers or call the remaining library/blocks complete.
+
+Generic renderer capabilities implement inherited numeric spacing declarations
+[--NAME:--spacing(N)] and p/gap references. Values resolve in their declaring theme
+scope; metadata conditions and source overrides work. Missing references resolve
+to zero; interaction-state declarations, aliases/arithmetic/cycles fail. text-sm,
+numeric weights, leading ratios and generic font families share their values.
+Explicit leading wins over a size default. radius.xl is optional and falls back to
+lg; present null, negative and out-of-range values fail. Native corners scale
+together and asymmetric borders use elliptical padding curves. Independent sides
+and corners merge in source order. overflow-hidden clips paint and pointer targets
+at physical display scale while preserving source/keyboard/accessibility order.
+Native scrolling/automatic focus scrolling remain unsupported; necessary controls
+must not be placed entirely outside a clipped region. Cubic curve approximation,
+platform font selection and rasterization do not imply pixel identity.
+
+API 2 accepts API 1 locks/payloads while preserving exact ABI/toolchain checks.
+New installation records retain each payload's actual minimum API, so adding old
+Button v2 beside Card v3 remains supported. Existing v1/v2 payload bytes are intact.
+The installer/catalog remains offline and does not overwrite local components.
+
+Focused acceptance: five new native style/geometry checks and six affected existing
+paint/presentation/opacity checks; native Card inspector and offline installation
+with full license/old-version compatibility; styled/plain/JSON catalog witness;
+Card/source/utility editor help; ThemeRadius and affected ThemeConfig agreement;
+font and radius completion rows in four modes. Reuse earlier ownership, input,
+structural and prop agreement evidence. The null-radius boundary was tightened
+and only its affected unit was rerun. A generated native GPU package passes cargo
+check offline without launching a window. Fresh Wasm Chromium matches the independent
+Node-after-tsc style oracle for all seven parts, default/small/custom spacing,
+caller overrides, header layout, typography, rounded click clipping, accessible
+heading/region/buttons and disposal. All examples pass project formatting and
+formatted native execution. No SQL, broad compiler/LSP regression or timing rerun.
+Original records use tsrust-ui-card-* in canonical SQLite; exact generated native
+package inputs are preserved there. Source/oracles: examples/ui-card and
+benchmarks/ui-jsx. Full-family/performance acceptance remains separate.
+
+Continue implementing concrete missing primitives and real source families without
+another go-ahead. Editable state/IME, focus/overlays, render composition, media,
+containment, remaining semantics and layouts/blocks are required work. Inventory
+state support before editable controls; use the pinned Base UI API and existing
+Parley editing facilities where practical. Preserve the single std:ui facade,
+automatic ownership and app-local callbacks; no public handle/ownState/add plumbing.
 
 ## Current terminal UI correction — 2026-10-18
 

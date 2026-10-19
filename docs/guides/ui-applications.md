@@ -307,3 +307,47 @@ Predicates do not increase browser selector specificity. Native layout uses the
 same predicates against borrowed tree context without cloning descendants.
 Browser selectors stay live when DOM metadata changes; this does not introduce
 a public DOM mutation API or dynamic tree reconciliation.
+
+### Card content, scoped spacing and rounded clipping
+
+`tsrust ui add card@3.0.0 --offline` installs the seven editable Base UI + Nova
+content parts with the original MIT license and pinned source attribution. The
+working example is `examples/ui-card`. This remains a portable content port:
+image primitives/edge variants, inline-size containment/container queries and
+named heading-font assets are unsupported, so full Nova Card parity is pending.
+CardHeader uses ordinary grid intrinsic sizing. Existing v1/v2 payloads remain
+immutable and compatible; API 2 accepts API 1 source locks.
+
+Declare numeric spacing with `[--NAME:--spacing(N)]`; N uses the same checked scale
+as p/gap. Use p/px/py/pt/pr/pb/pl/gap/gap-x/gap-y-(--NAME) to consume it. Names use
+ASCII letters/digits/hyphens. Values resolve in the declaring theme scope and
+inherit as logical pixels; nested theme changes do not recompute inherited
+values. Later matching declarations win. Metadata conditions are supported;
+interaction-state declarations, expressions, aliases and variable cycles fail.
+A missing variable resolves to zero, replacing earlier padding/gap values. Card
+sets its own --card-spacing, so a nested Card starts a new scope.
+
+`text-sm` uses 7/8 of typography.base for font size and 5/4 for default line height
+(14px/20px at base=16). `leading-snug`/`leading-normal` use inherited ratios 1.375
+and 1.5; explicit leading overrides the text-sm default regardless of class order.
+`font-medium`/`font-semibold` use weights 500/600. `font-sans`/`font-serif`/`font-mono`
+select system UI, serif or monospace generic families; actual fonts and glyph
+rasterization depend on the platform. Arbitrary named/font-asset loading is not
+implemented. Card titles are ordinary content; supply a semantic heading child
+when needed rather than assigning every title an invented heading level.
+
+`radius.xl` is optional, finite 0–256, and falls back to lg. `rounded-xl` and
+rounded-t/r/b/l/tl/tr/br/bl-xl use it; other corner variants use none/sm/md/lg.
+Radii scale together to fit the box. Border sides use border-t/r/b/l, with -0 or
+-2 selecting zero or two logical pixels; unqualified border uses one pixel.
+Later classes override each side/corner independently.
+
+`overflow-hidden` clips descendant paint and pointer targets to the rounded
+padding box, including asymmetric inner border curves. `overflow-visible`
+restores overflow. The node's own outer ring/focus outline remains outside its
+content clip. Descendant outlines are clipped by ancestors. Native hit geometry
+uses physical coordinates at the current display scale. Clipping does not disable
+controls or remove them from source, keyboard or accessibility order. Scrolling
+and automatic keyboard-focus scrolling remain unsupported on native; do not place
+necessary controls entirely outside a clipped region. Native curves use cubic
+quarter-ellipse approximation; pixel-identical rasterization is not claimed.

@@ -200,3 +200,18 @@ fn extended_jsx_props_move_resources_and_ignore_only_excess_spread_fields() {
       "import {View,ViewProps,Node} from 'std:ui';interface Props extends ViewProps{size?:string;}function Forward(p:Props):Node{return View({...p});}function main(){}",
     ]{std::fs::write(&path,source).unwrap();assert!(load_project(&FileSourceProvider,path.to_str().unwrap()).and_then(check_graph).is_err(),"{source}");}
 }
+
+#[test]
+fn nova_card_content_source_is_local_complete_and_native_executable() {
+ let catalog:serde_json::Value=serde_json::from_str(include_str!("../src/ui-catalog/components-3.0.0.json")).unwrap();let source=catalog[0]["files"][0]["content"].as_str().unwrap();
+ let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/ui-card");let installed=std::fs::read_to_string(root.join("src/components/ui/card.tsrx")).unwrap();assert_eq!(support::format_round_trip(source),installed);
+ for part in ["Card","CardHeader","CardTitle","CardDescription","CardAction","CardContent","CardFooter"]{assert!(source.contains(&format!("export function {part}(")));}
+ let entry=root.join("src/inspect.tsr");let output=support::run(support::cli().arg("run").arg(entry),120);support::success(&output);assert_eq!(output.stdout,b"Card content parts passed\n");
+ let dir=support::TempDirectory::new();let added=support::run(support::cli().args(["ui","add","card@3.0.0","--target","native","--offline"]).current_dir(&dir.0),20);support::success(&added);
+ assert_eq!(std::fs::read_to_string(dir.0.join("src/components/ui/card.tsrx")).unwrap(),installed);
+ let older=support::run(support::cli().args(["ui","add","button@2.0.0","--offline"]).current_dir(&dir.0),20);support::success(&older);
+ let lock:serde_json::Value=serde_json::from_slice(&std::fs::read(dir.0.join("ui-components.lock.json")).unwrap()).unwrap();let entries=lock["installed"].as_array().unwrap();
+ assert!(entries.iter().any(|entry|entry["identity"]["name"]=="card" && entry["compilerApi"]==2 && entry["licenseText"].as_str().unwrap().contains("Copyright (c) 2023 shadcn")));
+ assert!(entries.iter().any(|entry|entry["identity"]["name"]=="button" && entry["compilerApi"]==1));
+ assert!(tsrust_compiler::ui_project::supports_compiler_api(1));assert!(tsrust_compiler::ui_project::supports_compiler_api(2));assert!(!tsrust_compiler::ui_project::supports_compiler_api(0));assert!(!tsrust_compiler::ui_project::supports_compiler_api(3));
+}

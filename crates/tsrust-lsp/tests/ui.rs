@@ -150,3 +150,13 @@ fn extended_jsx_forwarding_metadata_and_structural_help_are_checked() {
  let at=source.find("bg-primary/50").unwrap()+13;assert!(session.completion("main.tsrx",source,at).unwrap().contains(&"group-data-[size=sm]/panel:hover:bg-primary/50".into()));
  let broken=source.replace("<View {...props} data-size=", "<View {...props} size=");session.change("main.tsrx",&broken);let diagnostics=session.wait_for_diagnostics("main.tsrx");assert!(diagnostics.to_string().contains("Unknown JSX attribute"),"{diagnostics}");
 }
+
+#[test]
+fn card_parts_spacing_typography_and_radius_help_follow_owned_sources() {
+ let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-compiler/src/ui-catalog/components-3.0.0.json")).unwrap();let card=catalog[0]["files"][0]["content"].as_str().unwrap();
+ let source="import {Card,CardHeader,CardTitle} from './card';import {View,ThemeRadius} from 'std:ui';function main(){const card=<Card size=\"sm\"><CardHeader><CardTitle>Title</CardTitle></CardHeader></Card>;const n=<View className=\"[--panel:--spacing(4)] p-(--panel) text-sm font-medium rounded-xl overflow-hidden\"/>;}";
+ let mut session=support::session::Session::start(&[("card.tsrx",card)]);session.open("main.tsrx",source);let diagnostics=session.wait_for_diagnostics("main.tsrx");session.settle();assert_eq!(diagnostics.as_array().unwrap().len(),0,"{diagnostics}");
+ for (needle,expected) in [("CardHeader><","Header grid"),("p-(--panel)","missing variable"),("text-sm","14px/20px"),("rounded-xl","radius.xl"),("overflow-hidden","pointer targets")] {
+  let help=session.hover("main.tsrx",source,source.find(needle).unwrap()+3).unwrap_or_default();assert!(help.to_lowercase().contains(&expected.to_lowercase()),"{needle}: {help}");
+ }
+}

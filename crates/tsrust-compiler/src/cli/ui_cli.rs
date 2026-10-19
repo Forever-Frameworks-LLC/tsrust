@@ -4,7 +4,7 @@ use serde::{Deserialize,Serialize};
 use sha2::{Digest,Sha256};
 use tsrust_compiler::ui_project::{Config,Targets,safe_relative};
 const ABI:&str=tsrust_compiler::ui_project::RUNTIME_ABI;
-const CATALOG:&str="bundled-2026-10-18";
+const CATALOG:&str="bundled-2026-10-19";
 #[derive(Clone,Debug,Deserialize,Serialize,PartialEq,Eq)]
 #[serde(deny_unknown_fields)]
 struct Identity {name:String,version:String,variant:String}
@@ -26,7 +26,7 @@ struct Lock {schema_version:u32,installed:Vec<Installed>}
 fn hash(bytes:&[u8])->String {Sha256::digest(bytes).iter().map(|byte|format!("{byte:02x}")).collect()}
 fn catalog()->Result<Vec<Item>,String> {
  let mut items=Vec::new();
- for text in [include_str!("../ui-catalog/tokens-1.0.0.json"),include_str!("../ui-catalog/components-1.0.0.json"),include_str!("../ui-catalog/components-2.0.0.json")] {items.extend(serde_json::from_str::<Vec<Item>>(text).map_err(|e|e.to_string())?);}
+ for text in [include_str!("../ui-catalog/tokens-1.0.0.json"),include_str!("../ui-catalog/components-1.0.0.json"),include_str!("../ui-catalog/components-2.0.0.json"),include_str!("../ui-catalog/components-3.0.0.json")] {items.extend(serde_json::from_str::<Vec<Item>>(text).map_err(|e|e.to_string())?);}
  Ok(items)
 }
 fn identity(item:&Item)->Identity {Identity{name:item.name.clone(),version:item.version.clone(),variant:item.variant.clone()}}
@@ -35,7 +35,7 @@ fn resolve(request:&Identity,items:&[Item],resolved:&mut Vec<Item>,active:&mut V
  if active.contains(request) {return Err("Bundled UI dependency cycle".into());}
  if resolved.iter().any(|item|item.name==request.name && item.version!=request.version) {return Err(format!("Conflicting UI dependency versions for {}",request.name));}
  let item=items.iter().find(|item|identity(item)==*request).ok_or_else(||format!("UI component {}@{} ({}) is not bundled; run tsrust ui list --bundled",request.name,request.version,request.variant))?;
- if item.runtime_abi!=ABI || u64::from(item.compiler_api)!=tsrust_compiler::ui_project::COMPILER_API || item.rust!=tsrust_compiler::RUST_BACKEND_VERSION {return Err(format!("Unsupported bundled prerequisites for {}@{}",item.name,item.version));}
+ if item.runtime_abi!=ABI || !tsrust_compiler::ui_project::supports_compiler_api(u64::from(item.compiler_api)) || item.rust!=tsrust_compiler::RUST_BACKEND_VERSION {return Err(format!("Unsupported bundled prerequisites for {}@{}",item.name,item.version));}
  active.push(request.clone());for dependency in &item.dependencies {resolve(dependency,items,resolved,active)?;}active.pop();resolved.push(item.clone());Ok(())
 }
 fn no_symlinks(root:&Path,relative:&Path)->Result<PathBuf,String> {
@@ -49,7 +49,7 @@ fn read_lock(root:&Path,config:&Config)->Result<(Lock,Option<Vec<u8>>),String> {
  let lock=match &bytes {Some(bytes)=>serde_json::from_slice::<Lock>(bytes).map_err(|e|format!("Invalid {}: {e}",config.lock.display()))?,None=>Lock{schema_version:1,installed:vec![]}};
  if lock.schema_version!=1 {return Err("Unsupported UI lock schemaVersion".into());}
  for entry in &lock.installed {
-  if entry.runtime_abi!=ABI || u64::from(entry.compiler_api)!=tsrust_compiler::ui_project::COMPILER_API || entry.rust!=tsrust_compiler::RUST_BACKEND_VERSION {return Err("Installed UI component requires another compiler/runtime/toolchain".into());}
+  if entry.runtime_abi!=ABI || !tsrust_compiler::ui_project::supports_compiler_api(u64::from(entry.compiler_api)) || entry.rust!=tsrust_compiler::RUST_BACKEND_VERSION {return Err("Installed UI component requires another compiler/runtime/toolchain".into());}
   safe_relative(&entry.destination)?;for file in &entry.files {no_symlinks(root,&file.path)?;}
  }
  Ok((lock,bytes))
@@ -82,7 +82,7 @@ fn plan(root:&Path,config:&Config,requests:&[Identity],destination:Option<&Path>
    messages.push(format!("create {} ({}@{})",path.display(),id.name,id.version));files.insert(path,generated.into_bytes());
   }
   let payload=serde_json::to_vec(&item).map_err(|e|e.to_string())?;
-  lock.installed.push(Installed{identity:id,destination:target.to_owned(),catalog:CATALOG.into(),payload_sha256:hash(&payload),compiler_sha256:compiler_hash.into(),compiler_version:env!("CARGO_PKG_VERSION").into(),compiler_api:tsrust_compiler::ui_project::COMPILER_API as u32,runtime_abi:ABI.into(),rust:tsrust_compiler::RUST_BACKEND_VERSION.into(),license:item.license,license_text:item.license_text,dependencies:item.dependencies,files:locked});
+  lock.installed.push(Installed{identity:id,destination:target.to_owned(),catalog:CATALOG.into(),payload_sha256:hash(&payload),compiler_sha256:compiler_hash.into(),compiler_version:env!("CARGO_PKG_VERSION").into(),compiler_api:item.compiler_api,runtime_abi:ABI.into(),rust:tsrust_compiler::RUST_BACKEND_VERSION.into(),license:item.license,license_text:item.license_text,dependencies:item.dependencies,files:locked});
  }
  let bytes=if lock.installed.len()==installed_before {previous.clone().unwrap_or_default()}else {let mut bytes=serde_json::to_vec_pretty(&lock).map_err(|e|e.to_string())?;bytes.push(b'\n');bytes};
  Ok(Plan{files:files.into_iter().collect(),updates:vec![],directories:vec![PathBuf::from("src/app"),destination.to_owned()],lock_path:config.lock.clone(),previous,lock:bytes,messages})

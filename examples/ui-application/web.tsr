@@ -8,6 +8,9 @@ function main() {
   const html = document(node, 'Project UI');
   strictEqual(html.includes('Count: 0'), true);
   strictEqual(html.includes('--ui-background:#0f172a'), true);
-  strictEqual(html.includes('border-radius:12px'), true);
+  for (const corner of ['top-left', 'top-right', 'bottom-right', 'bottom-left']) {
+    strictEqual(html.includes('border-' + corner + '-radius:12px'), true);
+  }
+
   console.log('project-ui-ok');
 }

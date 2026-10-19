@@ -155,6 +155,12 @@ export interface ThemeScale {
   lg: int | number;
 }
 
+/** Corner radius scale. xl defaults to lg for existing themes. */
+export interface ThemeRadius extends ThemeScale {
+  /** Extra-large corner radius in finite logical pixels, 0–256; omitted uses lg. */
+  xl?: int | number;
+}
+
 export interface ThemeTypography {
   base: int | number;
   xl: int | number;
@@ -165,7 +171,7 @@ export interface ThemeConfig {
   light: ThemeColors;
   dark: ThemeColors;
   spacing: ThemeScale;
-  radius: ThemeScale;
+  radius: ThemeRadius;
   typography: ThemeTypography;
 }
 /** Applies checked project tokens to this subtree. Mode defaults to light. Does not change component state. */

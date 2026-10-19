@@ -46,7 +46,8 @@
   "radius": {
     "sm": 4,
     "md": 8,
-    "lg": 12
+    "lg": 12,
+    "xl": 12
   },
   "typography": {
     "base": 16,

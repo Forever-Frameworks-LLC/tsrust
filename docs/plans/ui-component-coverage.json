@@ -13,7 +13,7 @@
     "semanticElements": "accepted portable subset: tags, naming, roles, live content, hidden controls and orientation; arbitrary ARIA/HTML remains unsupported",
     "composedControls": "accepted portable foundation: owned mixed children, inline containers, optional handlers, noninteractive phrasing validation, exact owning array widening, resource-union clone rejection and inferred native callback identities",
     "editableStateAndIme": "pending",
-    "layoutAndTheme": "accepted layout, checked alpha/OKLCH colors, surface rings and bounded metadata/descendant/named-group/own-class predicates; Nova typography, numeric custom spacing, general clipping, child-position selectors and container queries remain pending",
+    "layoutAndTheme": "accepted portable layout, alpha/OKLCH colors, surface rings, bounded structural predicates, inherited numeric spacing, generic typography, independent edges/corners and rounded paint/pointer clipping; media, container queries and named font assets remain pending",
     "focusAndOverlays": "pending",
     "baseComponentComposition": "pending",
     "reactiveExpressions": "pending: computed strings/trees are construction-time snapshots; direct signals and disabled predicates refresh",
@@ -132,10 +132,28 @@
       "name": "card",
       "source": "apps/v4/registry/bases/base/ui/card.tsx",
       "gitBlobSha1": "2062884f29a8044fa48edf86605182eca29f8716",
-      "status": "pending",
+      "status": "partial",
       "capabilityFamilies": [
         "semantic-elements"
-      ]
+      ],
+      "implementation": {
+        "catalog": "card@3.0.0",
+        "exports": [
+          "Card",
+          "CardHeader",
+          "CardTitle",
+          "CardDescription",
+          "CardAction",
+          "CardContent",
+          "CardFooter"
+        ],
+        "acceptedScope": "editable portable content parts; native/generated-native/Wasm, scoped theme overrides, accessibility, editor and offline installation",
+        "pending": [
+          "image primitives and first/last image variants",
+          "inline-size containment and container queries",
+          "named heading-font assets"
+        ]
+      }
     },
     {
       "name": "carousel",

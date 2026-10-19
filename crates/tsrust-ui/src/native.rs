@@ -3,7 +3,9 @@ use crate::{Kind, Node, style::{Utility,State}};
 use parley::{Alignment, AlignmentOptions, FontContext, FontWeight, Layout, LayoutContext, PositionedLayoutItem, StyleProperty};
 use std::sync::{Arc, Mutex};
 use taffy::prelude::*;
-use vello::kurbo::{Affine, RoundedRect};
+use vello::kurbo::{Affine,Shape};
+#[path = "native_geometry.rs"]
+mod geometry;
 use vello::peniko::{Color, Fill};
 use vello::util::{RenderContext, RenderSurface};
 use vello::{AaConfig, RenderParams, Renderer, RendererOptions, Scene};
@@ -19,7 +21,10 @@ use winit::{
 #[derive(Clone, Copy)]
 struct TextStyle {
     size: f32,
-    bold: bool,
+    weight:f32,
+    line_height:parley::style::LineHeight,
+    leading:Option<f32>,
+    family:u8,
     align: u8,
     color: super::theme::ResolvedColor,
 }
@@ -27,7 +32,7 @@ impl Default for TextStyle {
     fn default() -> Self {
         Self {
             size: 16.,
-            bold: false,
+            weight:400.,line_height:parley::style::LineHeight::NORMAL,leading:None,family:0,
             align: 0,
             color: super::theme::ResolvedColor::rgb8(23,32,51),
         }
@@ -47,8 +52,9 @@ struct Item {
     text: Option<Layout<()>>,
     color: super::theme::ResolvedColor,
     background: Option<super::theme::ResolvedColor>,
-    radius: f64,
-    border: f64,
+    radius: [f64;4],
+    border: [f64;4],
+    overflow:bool,
     border_color: super::theme::ResolvedColor,
     ring: super::theme::ResolvedColor,
     align: u8,
@@ -59,6 +65,8 @@ struct Item {
     children: Vec<Item>,
 }
 struct Painter {
+    hit_regions:std::collections::BTreeMap<u64,Vec<vello::kurbo::BezPath>>,
+    clip_stack:Vec<vello::kurbo::BezPath>,
     hover: std::collections::BTreeSet<u64>,
     pressed_nodes: std::collections::BTreeSet<u64>,
     focus: Option<u64>,
@@ -69,16 +77,16 @@ struct Painter {
 impl Painter {
     fn new() -> Self {
         Self {
-            hover: Default::default(), pressed_nodes:Default::default(), focus: None,
+            hit_regions:Default::default(),clip_stack:Vec::new(),hover: Default::default(), pressed_nodes:Default::default(), focus: None,
             fonts: FontContext::new(),
             layouts: LayoutContext::new(),
             tree: TaffyTree::new(),
         }
     }
     fn node(&mut self,node:&Node,inherited:TextStyle)->Result<Item,String> {
-        self.themed_node(node,inherited,&super::theme::Theme::default(),"light",&mut 1,&mut Vec::new())
+        self.themed_node(node,inherited,&super::theme::Theme::default(),"light",&mut 1,&mut Vec::new(),&std::collections::BTreeMap::new())
     }
-    fn themed_node<'a>(&mut self, node: &'a Node, mut inherited: TextStyle, theme:&super::theme::Theme, mode:&str, next:&mut u64,ancestors:&mut Vec<&'a Node>) -> Result<Item, String> {
+    fn themed_node<'a>(&mut self, node: &'a Node, mut inherited: TextStyle, theme:&super::theme::Theme, mode:&str, next:&mut u64,ancestors:&mut Vec<&'a Node>,variables:&std::collections::BTreeMap<String,f32>) -> Result<Item, String> {
         let id=*next;*next+=1;
         let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));
         if node.theme.is_some() {inherited.size=theme.typography.base as f32;inherited.color=theme.color(mode,"foreground")?;}
@@ -87,9 +95,10 @@ impl Painter {
             flex_direction: FlexDirection::Column,
             ..Style::default()
         };
-        let (mut background, mut radius) = (node.theme.as_ref().map(|_|theme.color(mode,"background").unwrap()), 0.);
+        let (mut background, mut radius) = (node.theme.as_ref().map(|_|theme.color(mode,"background").unwrap()), [0.;4]);
         if matches!(node.kind,Kind::Button|Kind::DisabledButton){inherited.align=1;style.flex_direction=FlexDirection::Row;style.align_items=AlignItems::CENTER;style.justify_content=JustifyContent::CENTER;}
-        let (mut border,mut border_color,mut ring)=(0.,theme.color(mode,"border")?,theme.color(mode,"ring")?);
+        let (mut border,mut border_color,mut ring)=([0.;4],theme.color(mode,"border")?,theme.color(mode,"ring")?);
+        let mut overflow=false;
         let (mut shadow_width,mut shadow_color,mut outline)=(0.,theme.color(mode,"ring")?,None);
         if matches!(node.kind,Kind::DisabledButton|Kind::Button) {
             style.padding = Rect {
@@ -99,7 +108,8 @@ impl Painter {
                 bottom: length(8.),
             };
         }
-        for (state,utility) in super::style::resolved_node(node,ancestors,theme,mode) {
+        let (rules,variables)=super::style::resolved_scoped_node(node,ancestors,theme,mode,variables);
+        for (state,utility) in rules {
             if !match state {State::Base=>true,State::Hover=>self.hover.contains(&id) && node.kind!=Kind::DisabledButton,State::Active=>self.pressed_nodes.contains(&id) && node.kind!=Kind::DisabledButton,State::Focus=>self.focus==Some(id),State::Disabled=>node.kind==Kind::DisabledButton} {continue;}
             match utility {
                 Utility::Row=>style.flex_direction=FlexDirection::Row,
@@ -119,9 +129,9 @@ impl Painter {
                 },
                 Utility::Placement(property,count)=>match property {0=>style.grid_column.start=line(count as i16),1=>style.grid_column.end=span(count),2=>style.grid_row.start=line(count as i16),_=>style.grid_row.end=span(count)},
                 Utility::AutoRowsMin=>style.grid_auto_rows=vec![min_content()],
-                Utility::FontSize(v)=>inherited.size=v,Utility::Bold(v)=>inherited.bold=v,
+                Utility::FontSize(v)=>inherited.size=v,Utility::Weight(v)=>inherited.weight=v,Utility::DefaultLeading(v)=>inherited.line_height=parley::style::LineHeight::Absolute(v),Utility::Leading(v)=>inherited.leading=Some(v),Utility::FontFamily(v)=>inherited.family=v,
                 Utility::Foreground(v)=>inherited.color=v,Utility::Background(v)=>background=Some(v),
-                Utility::Rounded(v)=>radius=v as f64,Utility::BorderWidth(v)=>{border=v as f64;style.border=Rect{left:length(v),right:length(v),top:length(v),bottom:length(v)};},
+                Utility::Corner(c,v)=>radius[c as usize]=v as f64,Utility::EdgeBorder(side,v)=>{border[side as usize]=v as f64;match side {0=>style.border.top=length(v),1=>style.border.right=length(v),2=>style.border.bottom=length(v),_=>style.border.left=length(v)}},Utility::Overflow(value)=>overflow=value,
                 Utility::BorderColor(v)=>border_color=v,Utility::Ring(v)=>{ring=v;outline=Some(v);},Utility::Align(v)=>inherited.align=v,
                 Utility::RingWidth(v)=>shadow_width=v as f64,Utility::RingShadowColor(v)=>shadow_color=v,
                 Utility::Items(v)=>style.align_items=match v {0=>AlignItems::FLEX_START,1=>AlignItems::CENTER,_=>AlignItems::STRETCH},
@@ -132,7 +142,7 @@ impl Painter {
         let children = node
             .children
             .iter()
-            .map(|child| self.themed_node(child, inherited,theme,mode,next,ancestors))
+            .map(|child| self.themed_node(child, inherited,theme,mode,next,ancestors,&variables))
             .collect::<Result<Vec<_>, _>>()?;
         ancestors.pop();
         let (text, id) = if node.kind == Kind::View || !children.is_empty() {
@@ -151,8 +161,10 @@ impl Painter {
                 .ranged_builder(&mut self.fonts, &node.text, 1., true);
             builder.push_default(StyleProperty::FontSize(inherited.size));
             builder.push_default(StyleProperty::FontWeight(FontWeight::new(
-                if inherited.bold { 700. } else { 400. },
+                inherited.weight,
             )));
+            builder.push_default(StyleProperty::LineHeight(inherited.leading.map(parley::style::LineHeight::FontSizeRelative).unwrap_or(inherited.line_height)));
+            builder.push_default(StyleProperty::from(match inherited.family {1=>parley::style::GenericFamily::Serif,2=>parley::style::GenericFamily::Monospace,_=>parley::style::GenericFamily::SystemUi}));
             let layout: Layout<()> = builder.build(&node.text);
             let id = self
                 .tree
@@ -169,7 +181,7 @@ impl Painter {
             color: inherited.color,
             background,
             radius,
-            border,border_color,ring,align:inherited.align,shadow_width,shadow_color,outline,
+            border,overflow,border_color,ring,align:inherited.align,shadow_width,shadow_color,outline,
             disabled: node.kind == Kind::DisabledButton,
             children,
         })
@@ -181,7 +193,7 @@ impl Painter {
         scale: f64,
         focus: Option<u64>,
     ) -> Result<(Scene, accesskit::TreeUpdate), String> {
-        self.tree.clear();
+        self.tree.clear();self.hit_regions.clear();self.clip_stack.clear();
         self.focus=focus;
         let mut root = self.node(node, TextStyle::default())?;
         let mut root_style = self.tree.style(root.id).map_err(|e| e.to_string())?.clone();
@@ -247,7 +259,7 @@ impl Painter {
     ) -> Result<accesskit::NodeId, String> {
         let id = accesskit::NodeId(*next);
         *next += 1;
-        let layout = self.tree.layout(item.id).map_err(|e| e.to_string())?;
+        let layout = *self.tree.layout(item.id).map_err(|e| e.to_string())?;
         let (x, y) = (
             parent_x + layout.location.x as f64,
             parent_y + layout.location.y as f64,
@@ -278,6 +290,7 @@ impl Painter {
         }
         if item.disabled { node.set_disabled(); }
         else if item.role==Kind::Button {node.add_action(accesskit::Action::Click);node.add_action(accesskit::Action::Focus);}
+        if item.overflow{node.set_clips_children();}
         node.set_bounds(accesskit::Rect::new(
             x * scale,
             y * scale,
@@ -309,7 +322,7 @@ impl Painter {
         Ok(bounds)
     }
     fn paint(
-        &self,
+        &mut self,
         item: &mut Item,
         scene: &mut Scene,
         parent_x: f64,
@@ -335,30 +348,20 @@ impl Painter {
                 &self.visual_bounds(item,parent_x,parent_y)?,
             );
         }
+        let rect=vello::kurbo::Rect::new(x,y,x+layout.size.width as f64,y+layout.size.height as f64);
+        let outer=geometry::rounded(rect,item.radius);let inner=geometry::inner(rect,item.radius,item.border);
+        let mut hits=self.clip_stack.clone();let mut hit=outer.clone();hit.apply_affine(transform);hits.push(hit);self.hit_regions.insert(id,hits);
         if item.shadow_width>0. {
             let half=item.shadow_width/2.;
             scene.stroke(&vello::kurbo::Stroke::new(item.shadow_width).with_join(vello::kurbo::Join::Miter),transform,paint_color(item.shadow_color),None,
-                &RoundedRect::new(x-half,y-half,x+layout.size.width as f64+half,y+layout.size.height as f64+half,if item.radius==0.{0.}else{item.radius+half}));
+                &geometry::rounded(rect.inflate(half,half),geometry::outset(item.radius,half)));
         }
-        if let Some(color) = item.background {
-            scene.fill(
-                Fill::NonZero,
-                transform,
-                paint_color(color),
-                None,
-                &RoundedRect::new(
-                    x,
-                    y,
-                    x + layout.size.width as f64,
-                    y + layout.size.height as f64,
-                    item.radius,
-                ),
-            );
+        if let Some(color)=item.background {scene.fill(Fill::NonZero,transform,paint_color(color),None,&outer);}
+        if item.border.iter().any(|v|*v>0.) {
+            let mut border=outer.clone();border.extend(inner.elements().iter().copied());
+            scene.fill(Fill::EvenOdd,transform,paint_color(item.border_color),None,&border);
         }
-        if item.border>0. {
-            scene.stroke(&vello::kurbo::Stroke::new(item.border).with_join(vello::kurbo::Join::Miter),transform,paint_color(item.border_color),None,
-                &RoundedRect::new(x+item.border/2.,y+item.border/2.,x+layout.size.width as f64-item.border/2.,y+layout.size.height as f64-item.border/2.,item.radius));
-        }
+        if item.overflow {scene.push_layer(Fill::NonZero,vello::peniko::BlendMode::default(),1.,transform,&inner);let mut clip=inner.clone();clip.apply_affine(transform);self.clip_stack.push(clip);}
         if let Some(text) = &mut item.text {
             layout_text(text, layout.size.width - layout.padding.left - layout.padding.right - layout.border.left - layout.border.right,
                 matches!(item.role, Kind::Button | Kind::DisabledButton));
@@ -400,9 +403,10 @@ impl Painter {
         for child in &mut item.children {
             self.paint(child, scene, x, y, scale, focus, next)?;
         }
+        if item.overflow{self.clip_stack.pop();scene.pop_layer();}
         if let Some(color)=item.outline.or_else(||(focus==Some(id) && item.role==Kind::Button).then_some(item.ring)) {
             scene.stroke(&vello::kurbo::Stroke::new(2.).with_join(vello::kurbo::Join::Miter), transform, paint_color(color), None,
-                &RoundedRect::new(x-3., y-3., x + layout.size.width as f64+3., y + layout.size.height as f64+3., if item.radius==0.{0.}else{item.radius+3.}));
+                &geometry::rounded(rect.inflate(3.,3.),geometry::outset(item.radius,3.)));
         }
         if item.disabled {
             scene.pop_layer();
@@ -465,13 +469,14 @@ struct App {
     error: Option<String>,
 }
 impl App {
+    fn visible_hit(&self,id:u64)->bool {self.painter.hit_regions.get(&id).is_some_and(|paths|paths.iter().all(|path|path.contains(vello::kurbo::Point::new(self.pointer.0,self.pointer.1))))}
     fn buttons(&self)->Vec<(u64,accesskit::Rect)> {
         self.active.as_ref().map(|active|active.snapshot.lock().unwrap().nodes.iter()
             .filter(|(_,n)|n.role()==accesskit::Role::Button && !n.is_disabled())
             .filter_map(|(id,n)|n.bounds().map(|bounds|(id.0,bounds))).collect()).unwrap_or_default()
     }
     fn pointer_nodes(&self)->std::collections::BTreeSet<u64> {
-        self.active.as_ref().map(|active|active.snapshot.lock().unwrap().nodes.iter().filter_map(|(id,node)|node.bounds().filter(|r|self.pointer.0>=r.x0 && self.pointer.0<r.x1 && self.pointer.1>=r.y0 && self.pointer.1<r.y1).map(|_|id.0)).collect()).unwrap_or_default()
+        self.active.as_ref().map(|active|active.snapshot.lock().unwrap().nodes.iter().filter_map(|(id,node)|node.bounds().filter(|r|self.pointer.0>=r.x0 && self.pointer.0<r.x1 && self.pointer.1>=r.y0 && self.pointer.1<r.y1 && self.visible_hit(id.0)).map(|_|id.0)).collect()).unwrap_or_default()
     }
     fn pressed_nodes(&self)->std::collections::BTreeSet<u64> {
         let mut ids=std::collections::BTreeSet::new();let Some(mut current)=self.pressed.or(self.key_pressed) else{return ids;};
@@ -480,7 +485,7 @@ impl App {
         while ids.insert(current) {let Some(parent)=parents.get(&current) else{break;};current=*parent;}ids
     }
     fn hit(&self)->Option<u64> {
-        self.buttons().into_iter().find(|(_,r)|self.pointer.0>=r.x0 && self.pointer.0<r.x1 && self.pointer.1>=r.y0 && self.pointer.1<r.y1).map(|(id,_)|id)
+        self.buttons().into_iter().find(|(id,r)|self.pointer.0>=r.x0 && self.pointer.0<r.x1 && self.pointer.1>=r.y0 && self.pointer.1<r.y1 && self.visible_hit(*id)).map(|(id,_)|id)
     }
     fn activate(&mut self,id:u64,event_loop:&ActiveEventLoop) {
         match self.node.activate(id).and_then(|_|self.node.refresh()) {
@@ -893,7 +898,7 @@ mod presentation_tests {
   let button=Node::button("Centered".into(),"p-4 px-2 bg-primary hover:bg-accent focus:bg-secondary rounded border border-border".into(),false,||Ok(())).unwrap();
   let root=Node::new(Kind::View,String::new(),String::new(),vec![button]).unwrap().with_theme(&value.to_string(),"dark").unwrap();
   let mut painter=Painter::new();let item=painter.node(&root,TextStyle::default()).unwrap();let button=&item.children[0];
-  assert_eq!(button.background,Some(super::super::theme::ResolvedColor::rgb8(0x12,0x34,0x56)));assert_eq!(button.radius,13.);assert_eq!(button.border,1.);assert_eq!(button.align,1);
+  assert_eq!(button.background,Some(super::super::theme::ResolvedColor::rgb8(0x12,0x34,0x56)));assert_eq!(button.radius,[13.;4]);assert_eq!(button.border,[1.;4]);assert_eq!(button.align,1);
   let style=painter.tree.style(button.id).unwrap();assert_eq!(style.padding.top,length(21.));assert_eq!(style.padding.left,length(8.));
   painter.hover.insert(2);let hovered=painter.node(&root,TextStyle::default()).unwrap();assert_eq!(hovered.children[0].background,Some(super::super::theme::ResolvedColor::rgb8(0x65,0x43,0x21)));
   painter.focus=Some(2);let focused=painter.node(&root,TextStyle::default()).unwrap();assert_eq!(focused.children[0].background,Some(super::super::theme::ResolvedColor::rgb8(0x33,0x41,0x55)));
@@ -1015,5 +1020,19 @@ mod composed_button_tests {
   let style=painter.tree.style(item.id).unwrap();assert_eq!(style.padding.top,length(12.));assert_eq!(style.padding.bottom,length(0.));
   let style=painter.tree.style(item.children[0].id).unwrap();assert_eq!(style.padding.left,length(12.));assert_eq!(style.padding.top,length(16.));
   assert_eq!(item.children[0].semantics.slot,"body");
+ }
+}
+
+#[cfg(test)] mod card_style_tests {
+ use super::*;
+ #[test] fn inherited_spacing_typography_and_clips_affect_real_native_layout() {
+  let text=Node::new(Kind::Text,"text-sm leading-snug font-medium font-serif".into(),"Title".into(),vec![]).unwrap();
+  let button=Node::button("Clipped".into(),"w-64 h-32 shrink-0".into(),false,||Ok(())).unwrap();
+  let root=Node::new(Kind::View,"w-16 h-16 overflow-hidden rounded-xl border-t [--panel:--spacing(3)] px-(--panel)".into(),String::new(),vec![text,button]).unwrap();
+  let mut painter=Painter::new();let item=painter.node(&root,TextStyle::default()).unwrap();let style=painter.tree.style(item.id).unwrap();assert_eq!(style.padding.left,length(12.));assert_eq!(style.border.top,length(1.));assert_eq!(style.border.bottom,length(0.));assert!(item.overflow);
+  let mut text=item.children[0].text.clone().unwrap();text.break_all_lines(None);assert!((text.height()-14.*1.375).abs()<0.02,"{}",text.height());
+  let (_,tree)=painter.scene(&root,64.,1.,None).unwrap();assert!(tree.nodes.iter().any(|(id,n)|id.0==1 && n.clips_children()));
+  let clips=&painter.hit_regions[&3];assert!(clips.len()>=2);assert!(!clips.iter().all(|path|path.contains(vello::kurbo::Point::new(80.,40.))));
+  painter.scene(&root,64.,2.,None).unwrap();let clips=&painter.hit_regions[&3];assert!(clips.iter().all(|path|path.contains(vello::kurbo::Point::new(40.,80.))));assert!(!clips.iter().all(|path|path.contains(vello::kurbo::Point::new(160.,80.))));
  }
 }

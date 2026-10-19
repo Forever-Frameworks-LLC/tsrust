@@ -88,10 +88,13 @@ pub(crate) const PRESS_BUTTON:NativeBinding=NativeBinding{name:"button",paramete
 
 pub(crate) fn runtime(with_native: bool) -> String {
     let native =
-        include_str!("../../../../tsrust-ui/src/native.rs").replace("use crate::{", "use super::{");
+        include_str!("../../../../tsrust-ui/src/native.rs").replace("use crate::{", "use super::{")
+        .replace("#[path = \"native_geometry.rs\"]\nmod geometry;",&format!("mod geometry {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_geometry.rs")));
     let style = include_str!("../../../../tsrust-ui/src/style.rs")
         .replace("mod layout;",&format!("mod layout {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/style/layout.rs")))
         .replace("mod structural;",&format!("mod structural {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/style/structural.rs")))
+        .replace("mod custom_spacing;",&format!("mod custom_spacing {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/style/custom_spacing.rs")))
+        .replace("mod edges;",&format!("mod edges {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/style/edges.rs")))
         .replace("crate::theme", "super::theme");
     let theme=include_str!("../../../../tsrust-ui/src/theme.rs")
         .replace("mod paint_color;",&format!("mod paint_color {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/theme/paint_color.rs")))

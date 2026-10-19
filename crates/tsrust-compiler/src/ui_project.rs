@@ -61,7 +61,8 @@ pub fn configured_theme(path:&Path,mut read:impl FnMut(&Path)->Result<Option<Str
 pub fn utility_theme_paths(class:&str)->Vec<Vec<String>> {style::theme_paths(class)}
 
 pub const RUNTIME_ABI:&str="ui-application-1";
-pub const COMPILER_API:u64=1;
+pub const COMPILER_API:u64=2;
+pub fn supports_compiler_api(value:u64)->bool {(1..=COMPILER_API).contains(&value)}
 /// Installed compatibility pins apply during checks/builds, not only when adding source.
 pub fn validate_lock(root:&Path,config:&Config,read:&mut impl FnMut(&Path)->Result<Option<String>,String>)->Result<(),String> {
  let path=root.join(&config.lock);let Some(text)=read(&path)? else{return Ok(());};
@@ -69,7 +70,7 @@ pub fn validate_lock(root:&Path,config:&Config,read:&mut impl FnMut(&Path)->Resu
  if value.get("schemaVersion").and_then(serde_json::Value::as_u64)!=Some(1){return Err(format!("{}: unsupported UI lock schemaVersion",path.display()));}
  let entries=value.get("installed").and_then(serde_json::Value::as_array).ok_or("UI lock installed must be an array")?;
  for entry in entries {
-  if entry.get("compilerApi").and_then(serde_json::Value::as_u64)!=Some(COMPILER_API) || entry.get("runtimeAbi").and_then(serde_json::Value::as_str)!=Some(RUNTIME_ABI) || entry.get("rust").and_then(serde_json::Value::as_str)!=Some(crate::RUST_BACKEND_VERSION) {return Err(format!("{}: installed UI source requires another compiler API, runtime ABI or Rust toolchain; use its recorded supported toolchain or migrate explicitly",path.display()));}
+  if !entry.get("compilerApi").and_then(serde_json::Value::as_u64).is_some_and(supports_compiler_api) || entry.get("runtimeAbi").and_then(serde_json::Value::as_str)!=Some(RUNTIME_ABI) || entry.get("rust").and_then(serde_json::Value::as_str)!=Some(crate::RUST_BACKEND_VERSION) {return Err(format!("{}: installed UI source requires another compiler API, runtime ABI or Rust toolchain; use its recorded supported toolchain or migrate explicitly",path.display()));}
   if !entry.get("compilerSha256").and_then(serde_json::Value::as_str).is_some_and(|hash|hash.len()==64 && hash.bytes().all(|v|v.is_ascii_hexdigit())) {return Err(format!("{}: missing full compiler SHA-256 provenance",path.display()));}
  }
  Ok(())

@@ -40,3 +40,10 @@ not a GPU screenshot or a claim of identical rasterization between backends.
 `forwarding-reference.ts` after tsc. It checks small/default scopes, descendant and
 own-class conditions, live DOM metadata, accessible content and disposal. This is
 an untimed prerequisite witness, not acceptance or timing for a Nova component.
+
+`verify-card.mjs <built-site>` compares all seven editable content parts against
+`card-reference.ts` after tsc. It checks default/small and custom numeric spacing,
+caller overrides, edge/corner styling, header action layout, typography, rounded
+pointer clipping, accessibility and disposal. Image edge rules, inline-size
+containment and named font assets remain unsupported; this does not claim full
+Nova Card parity or timing.

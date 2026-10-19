@@ -51,14 +51,20 @@ pub(super) fn parts(class:&str)->Result<Parts<'_>,String> {
  Ok(Parts{state,token:&class[start..],predicates})
 }
 pub(super) fn marker(token:&str)->bool {token.strip_prefix("group/").is_some_and(name)}
-#[cfg(any(test,feature="native"))]
+#[cfg(test)]
 pub(crate) fn resolved(node:&Node,ancestors:&[&Node],theme:&Theme,mode:&str)->Vec<(State,Utility)> {
- let filtered=node.class_name.split_whitespace().filter_map(|class|{
+ scoped(node,ancestors,theme,mode,&std::collections::BTreeMap::new()).0
+}
+#[cfg(any(test,feature="native"))]
+pub(crate) fn scoped(node:&Node,ancestors:&[&Node],theme:&Theme,mode:&str,inherited:&std::collections::BTreeMap<String,f32>)->(Vec<(State,Utility)>,std::collections::BTreeMap<String,f32>) {
+ let mut variables=inherited.clone();let mut filtered=Vec::new();
+ for class in node.class_name.split_whitespace(){
   let parsed=parts(class).expect("validated utility");
-  if !parsed.predicates.iter().all(|p|p.matches(node,ancestors)){return None;}
-  Some(match parsed.state {State::Base=>parsed.token.to_owned(),state=>format!("{}:{}",state_name(state),parsed.token)})
- }).collect::<Vec<_>>().join(" ");
- super::resolved(&filtered,theme,mode)
+  if !parsed.predicates.iter().all(|p|p.matches(node,ancestors)){continue;}
+  if let Some((name,scale))=super::custom_spacing::declaration(parsed.token){variables.insert(name.into(),super::layout::spacing(scale,theme));}
+  filtered.push(match parsed.state {State::Base=>parsed.token.to_owned(),state=>format!("{}:{}",state_name(state),parsed.token)});
+ }
+ (super::resolved_with_variables(&filtered.join(" "),theme,mode,&variables),variables)
 }
 #[cfg(any(test,feature="native"))]
 fn state_name(state:State)->&'static str {match state{State::Base=>"",State::Hover=>"hover",State::Focus=>"focus",State::Active=>"active",State::Disabled=>"disabled"}}
@@ -68,7 +74,7 @@ pub(super) fn css(classes:&str,theme:&Theme,mode:&str,id:usize,scope:&str)->Stri
  for state in [State::Base,State::Hover,State::Focus,State::Active,State::Disabled] {
   for class in classes.split_whitespace(){
    let parsed=parts(class).expect("validated utility");if parsed.state!=state || marker(parsed.token){continue;}
-   let declarations=super::resolved(parsed.token,theme,mode).into_iter().map(|(_,v)|v.css()).collect::<Vec<_>>().join(";");
+   let declarations=super::custom_spacing::css(parsed.token,theme).unwrap_or_else(||super::resolved(parsed.token,theme,mode).into_iter().map(|(_,v)|v.css()).collect::<Vec<_>>().join(";"));
    if declarations.is_empty(){continue;}
    let mut after=String::new();
    for predicate in parsed.predicates {after.push_str(&predicate.selector(&scope));}

@@ -1,0 +1,30 @@
+import { Screen } from './screen';
+import { document, View, Text, ThemeRadius, withTheme } from 'std:ui';
+import { strictEqual } from 'std:testing';
+import config from '../tsrust.config.json';
+
+function main() {
+  const html = document(Screen(), 'Card');
+  for (const slot of ['card', 'card-header', 'card-title', 'card-description', 'card-action', 'card-content', 'card-footer']) {
+    strictEqual(html.includes('data-slot="' + slot + '"'), true);
+  }
+
+  strictEqual(html.includes('data-size="sm"'), true);
+  strictEqual(html.includes('var(--card-spacing,0px)'), true);
+  strictEqual(html.includes('--card-spacing:24px'), true);
+  strictEqual(html.includes('font-weight:500'), true);
+  strictEqual(html.includes('overflow:hidden'), true);
+  strictEqual(html.includes('border-top-width:1px'), true);
+  strictEqual(html.includes('border-bottom-left-radius:14px'), true);
+  const radius: ThemeRadius = {
+    sm: 4, md: 8, lg: 12
+  };
+  strictEqual(radius.xl === undefined, true);
+  const node = withTheme(View({
+    children: [Text({
+      children: ['Typography'], className: 'text-sm font-medium leading-snug font-serif'
+    })]
+  }), config.ui.theme);
+  strictEqual(document(node, 'Type').includes('font-family:serif'), true);
+  console.log('Card content parts passed');
+}

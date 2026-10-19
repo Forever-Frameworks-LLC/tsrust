@@ -2,20 +2,24 @@
 use crate::theme::{Theme,COLORS,ResolvedColor};
 mod layout;
 mod structural;
+mod custom_spacing;
+mod edges;
 #[cfg(any(test,feature="native"))]
+pub(crate) use structural::scoped as resolved_scoped_node;
+#[cfg(test)]
 pub(crate) use structural::resolved as resolved_node;
 pub use layout::Length;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum State { Base, Hover, Focus, Active, Disabled }
 #[derive(Debug, Clone, Copy)]
 pub enum Utility {
- Row, Column, GapAxis(u8,f32), Padding(u8,f32), FontSize(f32), Bold(bool),
+ Row, Column, GapAxis(u8,f32), Padding(u8,f32), FontSize(f32), Weight(f32), DefaultLeading(f32), Leading(f32), FontFamily(u8),
  Display(bool), Dimension(u8,Length), SelfAlign(u8,u8), Shrink(f32), Grow(f32), Wrap(bool), Tracks(u8,u8), Placement(u8,u16), AutoRowsMin,
- Background(ResolvedColor), Foreground(ResolvedColor), Rounded(f32), BorderWidth(f32), BorderColor(ResolvedColor),
+ Background(ResolvedColor), Foreground(ResolvedColor), Corner(u8,f32), EdgeBorder(u8,f32), Overflow(bool), BorderColor(ResolvedColor),
  Align(u8), Items(u8), Justify(u8), Ring(ResolvedColor), RingWidth(f32), RingShadowColor(ResolvedColor),
 }
 impl Utility {
- pub fn category(self)->u8 {match self {Self::Row|Self::Column=>0,Self::GapAxis(axis,_)=>16+axis,Self::Padding(side,_)=>20+side,Self::Display(_)=>30,Self::Dimension(property,_)=>24+property,Self::SelfAlign(axis,_)=>31+axis,Self::Shrink(_)=>33,Self::Grow(_)=>34,Self::Wrap(_)=>35,Self::Tracks(axis,_)=>36+axis,Self::Placement(property,_)=>38+property,Self::AutoRowsMin=>42,Self::FontSize(_)=>4,Self::Bold(_)=>5,Self::Background(_)=>6,Self::Foreground(_)=>7,Self::Rounded(_)=>8,Self::BorderWidth(_)=>9,Self::BorderColor(_)=>10,Self::Align(_)=>11,Self::Items(_)=>12,Self::Justify(_)=>13,Self::Ring(_)=>14,Self::RingWidth(_)=>43,Self::RingShadowColor(_)=>44}}
+ pub fn category(self)->u8 {match self {Self::Row|Self::Column=>0,Self::GapAxis(axis,_)=>16+axis,Self::Padding(side,_)=>20+side,Self::Display(_)=>30,Self::Dimension(property,_)=>24+property,Self::SelfAlign(axis,_)=>31+axis,Self::Shrink(_)=>33,Self::Grow(_)=>34,Self::Wrap(_)=>35,Self::Tracks(axis,_)=>36+axis,Self::Placement(property,_)=>38+property,Self::AutoRowsMin=>42,Self::FontSize(_)=>4,Self::Weight(_)=>5,Self::DefaultLeading(_)=>45,Self::Leading(_)=>46,Self::FontFamily(_)=>47,Self::Background(_)=>6,Self::Foreground(_)=>7,Self::Corner(corner,_)=>48+corner,Self::EdgeBorder(side,_)=>52+side,Self::Overflow(_)=>56,Self::BorderColor(_)=>10,Self::Align(_)=>11,Self::Items(_)=>12,Self::Justify(_)=>13,Self::Ring(_)=>14,Self::RingWidth(_)=>43,Self::RingShadowColor(_)=>44}}
  pub(crate) fn css(self)->String {match self {
   Self::Row=>"flex-direction:row".into(),Self::Column=>"flex-direction:column".into(),Self::GapAxis(axis,v)=>format!("{}-gap:{v}px",if axis==0 {"row"}else{"column"}),
   Self::Display(grid)=>format!("display:{}",if grid{"grid"}else{"flex"}),
@@ -26,9 +30,9 @@ impl Utility {
   Self::Placement(property,count)=>format!("{}:{}{count}",["grid-column-start","grid-column-end","grid-row-start","grid-row-end"][property as usize],if property%2==1{"span "}else{""}),
   Self::AutoRowsMin=>"grid-auto-rows:min-content".into(),
   Self::Padding(side,v)=>format!("padding-{}:{v}px",["top","right","bottom","left"][side as usize]),
-  Self::FontSize(v)=>format!("font-size:{v}px"),Self::Bold(v)=>format!("font-weight:{}",if v {700}else{400}),Self::Rounded(v)=>format!("border-radius:{v}px"),
+  Self::FontSize(v)=>format!("font-size:{v}px"),Self::Weight(v)=>format!("font-weight:{v}"),Self::DefaultLeading(v)=>format!("line-height:var(--ui-leading,{v}px)"),Self::Leading(v)=>format!("--ui-leading:{v};line-height:{v}"),Self::FontFamily(v)=>format!("font-family:{}",["system-ui,sans-serif","serif","monospace"][v as usize]),Self::Corner(c,v)=>format!("border-{}-radius:{v}px",["top-left","top-right","bottom-right","bottom-left"][c as usize]),Self::Overflow(v)=>format!("overflow:{}",if v{"hidden"}else{"visible"}),
   Self::Background(v)=>format!("background:{}",v.css()),Self::Foreground(v)=>format!("color:{}",v.css()),
-  Self::BorderWidth(v)=>format!("border-width:{v}px;border-style:solid"),Self::BorderColor(v)=>format!("border-color:{}",v.css()),
+  Self::EdgeBorder(s,v)=>{let side=["top","right","bottom","left"][s as usize];format!("border-{side}-width:{v}px;border-{side}-style:solid")},Self::BorderColor(v)=>format!("border-color:{}",v.css()),
   Self::Align(v)=>format!("text-align:{}",["left","center","right"][v as usize]),Self::Items(v)=>format!("align-items:{}",["flex-start","center","stretch"][v as usize]),Self::Justify(v)=>format!("justify-content:{}",["flex-start","center","space-between"][v as usize]),
   Self::Ring(v)=>format!("outline:2px solid {};outline-offset:2px",v.css()),
   Self::RingWidth(v)=>format!("--ui-shadow-ring-width:{v}px;box-shadow:0 0 0 var(--ui-shadow-ring-width) var(--ui-shadow-ring-color,var(--ui-ring))"),
@@ -36,8 +40,8 @@ impl Utility {
  }}
 }
 fn build_tokens()->Vec<String> {
- let mut tokens=["flex-row","flex-col","font-bold","font-normal","rounded","rounded-none","rounded-sm","rounded-lg","border","border-0","text-left","text-center","text-right","items-start","items-center","items-stretch","justify-start","justify-center","justify-between","text-base","text-xl","ring"].into_iter().map(str::to_owned).collect::<Vec<_>>();
- tokens.extend(layout::tokens());
+ let mut tokens=["flex-row","flex-col","font-bold","font-normal","rounded","rounded-none","rounded-sm","rounded-lg","border","border-0","text-left","text-center","text-right","items-start","items-center","items-stretch","justify-start","justify-center","justify-between","text-base","text-xl","text-sm","font-medium","font-semibold","leading-snug","leading-normal","font-sans","font-serif","font-mono","rounded-xl","ring"].into_iter().map(str::to_owned).collect::<Vec<_>>();
+ tokens.extend(layout::tokens());tokens.extend(edges::tokens());
  tokens.extend(["ring-0","ring-1","ring-2","ring-3"].map(str::to_owned));
  for color in COLORS.iter().copied().chain(["transparent"]) {for prefix in ["bg","text","border","ring"] {tokens.push(format!("{prefix}-{color}"));}}
  tokens
@@ -49,21 +53,24 @@ fn known_tokens()->&'static std::collections::BTreeSet<String> {
 }
 pub fn tokens()->Vec<String> {known_tokens().iter().cloned().collect()}
 pub fn validate(classes:&str)->Result<(),String> {
- let known=known_tokens(); for class in classes.split_whitespace() {let (_,token)=split(class)?;if !known.contains(token) && opacity_token(token).is_none() && !structural::marker(token) {return Err(format!("Unsupported UI utility: {class}"));}}Ok(())
+ let known=known_tokens(); for class in classes.split_whitespace() {let (state,token)=split(class)?;if custom_spacing::declaration(token).is_some() && state!=State::Base{return Err("Spacing variable declarations cannot use interaction states".into());}if !known.contains(token) && opacity_token(token).is_none() && !structural::marker(token) && custom_spacing::declaration(token).is_none() && custom_spacing::reference(token).is_none() {return Err(format!("Unsupported UI utility: {class}"));}}Ok(())
 }
 pub(crate) fn resolved(classes:&str,theme:&Theme,mode:&str)->Vec<(State,Utility)> {
+ resolved_with_variables(classes,theme,mode,&std::collections::BTreeMap::new())
+}
+fn resolved_with_variables(classes:&str,theme:&Theme,mode:&str,variables:&std::collections::BTreeMap<String,f32>)->Vec<(State,Utility)> {
  let mut rules=std::collections::BTreeMap::new();
  for class in classes.split_whitespace() {
   let (state,token)=split(class).expect("validated utility");
-  if structural::marker(token){continue;}
+  if structural::marker(token)||custom_spacing::declaration(token).is_some(){continue;}
   let (token,opacity)=opacity_token(token).unwrap_or((token,1.));
   let mut put=|value:Utility|{rules.insert((state,value.category()),value);};
-  if let Some(values)=layout::resolve(token,theme){for value in values {put(value);}continue;}
+  if let Some(values)=custom_spacing::resolve(token,theme,variables).or_else(||edges::resolve(token,theme)).or_else(||layout::resolve(token,theme)){for value in values {put(value);}continue;}
+  if token=="text-sm"{put(Utility::FontSize(theme.typography.base as f32*0.875));put(Utility::DefaultLeading(theme.typography.base as f32*1.25));continue;}
   let value=match token {
-   "flex-row"=>Utility::Row,"flex-col"=>Utility::Column,"font-bold"=>Utility::Bold(true),"font-normal"=>Utility::Bold(false),
+   "flex-row"=>Utility::Row,"flex-col"=>Utility::Column,"font-bold"=>Utility::Weight(700.),"font-normal"=>Utility::Weight(400.),"font-medium"=>Utility::Weight(500.),"font-semibold"=>Utility::Weight(600.),"font-sans"=>Utility::FontFamily(0),"font-serif"=>Utility::FontFamily(1),"font-mono"=>Utility::FontFamily(2),"leading-snug"=>Utility::Leading(1.375),"leading-normal"=>Utility::Leading(1.5),
    "text-base"=>Utility::FontSize(theme.typography.base as f32),"text-xl"=>Utility::FontSize(theme.typography.xl as f32),
-   "rounded"=>Utility::Rounded(theme.radius.md as f32),"rounded-sm"=>Utility::Rounded(theme.radius.sm as f32),"rounded-lg"=>Utility::Rounded(theme.radius.lg as f32),"rounded-none"=>Utility::Rounded(0.),
-   "border"=>Utility::BorderWidth(1.),"border-0"=>Utility::BorderWidth(0.),"ring"=>Utility::Ring(theme.color(mode,"ring").unwrap()),
+   "ring"=>Utility::Ring(theme.color(mode,"ring").unwrap()),
    "ring-0"=>Utility::RingWidth(0.),"ring-1"=>Utility::RingWidth(1.),"ring-2"=>Utility::RingWidth(2.),"ring-3"=>Utility::RingWidth(3.),
    "text-left"=>Utility::Align(0),"text-center"=>Utility::Align(1),"text-right"=>Utility::Align(2),
    "items-start"=>Utility::Items(0),"items-center"=>Utility::Items(1),"items-stretch"=>Utility::Items(2),
@@ -93,9 +100,12 @@ pub(crate) fn css(classes:&str,theme:&Theme,mode:&str,id:usize,scope:&str)->Stri
 pub fn theme_paths(class:&str)->Vec<Vec<String>> {
  if validate(class).is_err(){return vec![];}
  let (_,token)=split(class).unwrap();let token=opacity_token(token).map_or(token,|(base,_)|base);
+ if let Some((_,scale))=custom_spacing::declaration(token){return layout::theme_keys(&format!("p-{scale}")).into_iter().map(|key|vec!["spacing".into(),key.into()]).collect();}
+ if custom_spacing::reference(token).is_some(){return vec![];}
  let color=if token=="ring" {Some("ring")}else{token.strip_prefix("bg-").or_else(||token.strip_prefix("text-")).or_else(||token.strip_prefix("border-")).or_else(||token.strip_prefix("ring-"))};
  if let Some(color)=color.filter(|color|COLORS.contains(color)) {return ["light","dark"].into_iter().map(|mode|vec![mode.into(),crate::theme::key_name(color)]).collect();}
- let field=match token {"rounded"=>Some(("radius","md")),"rounded-sm"=>Some(("radius","sm")),"rounded-lg"=>Some(("radius","lg")),"text-base"=>Some(("typography","base")),"text-xl"=>Some(("typography","xl")),_=>None};
+ if token.starts_with("rounded") {let key=if token.ends_with("-none"){return vec![];}else if token.ends_with("-sm"){"sm"}else if token.ends_with("-lg"){"lg"}else if token.ends_with("-xl"){"xl"}else{"md"};let mut paths=vec![vec!["radius".into(),key.into()]];if key=="xl"{paths.push(vec!["radius".into(),"lg".into()]);}return paths;}
+ let field=match token {"rounded"=>Some(("radius","md")),"rounded-sm"=>Some(("radius","sm")),"rounded-lg"=>Some(("radius","lg")),"rounded-xl"=>Some(("radius","xl")),"text-sm"|"text-base"=>Some(("typography","base")),"text-xl"=>Some(("typography","xl")),_=>None};
  if let Some((group,key))=field{return vec![vec![group.into(),key.into()]];}
  layout::theme_keys(token).into_iter().map(|key|vec!["spacing".into(),key.into()]).collect()
 }
@@ -103,8 +113,14 @@ pub fn theme_paths(class:&str)->Vec<Vec<String>> {
 /// Observable utility behavior, shared with completion and hover.
 pub fn documentation(class:&str)->String {
  if validate(class).is_err(){return String::new();}
- let (_,token)=split(class).unwrap();
- let (purpose,example)=if structural::marker(token) {
+ let (_,token)=split(class).unwrap();let default=Theme::default();
+ let (purpose,example)=if edges::resolve(token,&default).is_some() {
+  ("Sets independent border sides, corner radii or overflow clipping. border and border-t/r/b/l use 1px, -0 removes it and -2 uses 2px; widths participate in layout. rounded and rounded-t/r/b/l/tl/tr/br/bl select md, with -none/sm/lg/xl selecting those slots. radius.xl defaults to lg for older themes. Corner radii scale together to fit the box. Later source classes win independently per side/corner. overflow-hidden clips descendant paint and pointer targets to the rounded padding box; overflow-visible restores overflow. Clipping preserves source/keyboard/accessibility order and does not make clipped controls disabled.",format!("<View className=\"{class}\" />"))
+ }else if token=="text-sm" || token.starts_with("leading-") || matches!(token,"font-medium"|"font-semibold"|"font-sans"|"font-serif"|"font-mono") {
+  ("text-sm uses 7/8 of typography.base for size and 5/4 of base for default line height (14px/20px at base=16). leading-snug and leading-normal select inherited font-size ratios 1.375 and 1.5; explicit leading wins over a text-sm default regardless of class order. font-medium/semibold select numeric weights 500/600. font-sans/serif/mono select system UI, serif or monospace generic families. Installed font selection and glyph rasterization vary by platform; arbitrary font assets and named families remain unsupported.",format!("<Text className=\"{class}\">Title</Text>"))
+ }else if custom_spacing::declaration(token).is_some() || custom_spacing::reference(token).is_some() {
+  ("Declares an inherited numeric spacing variable with [--NAME:--spacing(N)], or uses it with p/px/py/pt/pr/pb/pl/gap/gap-x/gap-y-(--NAME). N uses the checked project spacing scale; declarations resolve in their own theme scope and inherit as logical pixels. Later matching declarations win. A missing variable resolves to zero, replacing earlier padding/gap values. Metadata conditions are allowed; interaction-state declarations, arithmetic, aliases and cycles are unsupported. Variables affect spacing only, not accessibility.",format!("<View className=\"[--panel-spacing:--spacing(4)] p-(--panel-spacing)\" />"))
+ }else if structural::marker(token) {
   ("Names an ancestor group for checked group-data-[slot=VALUE]/NAME and group-data-[size=VALUE]/NAME selectors. Marker alone changes no visual property. Group names use ASCII letters, digits and hyphens.",format!("<View className=\"{class}\" />"))
  }else if matches!(token,"ring-0"|"ring-1"|"ring-2"|"ring-3") {
   ("Sets an outer surface ring width of 0–3 logical pixels without changing layout. ring-COLOR selects its color and defaults to the theme ring token. This surface ring is independent of the button's keyboard focus outline.",format!("<View className=\"{class} ring-foreground/10\" />"))
@@ -129,7 +145,7 @@ pub fn documentation(class:&str)->String {
  }else {
   ("Uses the enclosing theme for colors, radius or typography and applies the checked property in the selected interaction state. Later classes override earlier classes by property within each state.",format!("<View className=\"{class}\" />"))
  };
- let declarations=resolved(class,&Theme::default(),"light").into_iter().map(|(_,value)|value.css()).collect::<Vec<_>>().join("; ");
+ let declarations=custom_spacing::css(token,&default).unwrap_or_else(||resolved(class,&default,"light").into_iter().map(|(_,value)|value.css()).collect::<Vec<_>>().join("; "));
  format!("`{class}`\n\nShared web/native utility. {purpose} Container display/track/wrap utilities require View or a composed Button; text leaves reject them. No function arguments. Metadata variants accept data-[slot=VALUE], data-[size=VALUE], has-data-[slot=VALUE], has-data-[size=VALUE], group-data-[slot=VALUE]/NAME, group-data-[size=VALUE]/NAME and [.CLASS]. has-data matches descendants, excluding self. Group variants match any named ancestor, excluding self. Values/names use ASCII letters, digits and hyphens. Multiple metadata predicates compose by conjunction; at most one interaction state is supported. Metadata predicates change styling, never accessibility or source order. Unknown utilities and unsupported state prefixes fail at check/construction time. Example: `{example}`. With the default light theme: `{declarations}`. The enclosing theme supplies custom values; layout uses logical pixels. Arbitrary CSS, breakpoints, named grid lines and subgrid remain unsupported. Ownership: changes layout/style without changing child ownership.")
 }
 
