@@ -1,9 +1,11 @@
 # Current component selection and safe batch installation
 
-Terminal selectors share one padded theme. Single and multiple selections have
-blank space before each item, including target selection. The visible item count
-accounts for that spacing in short terminals. Numbered fallback lists use the
-same spacing; their batch prompt accepts comma-separated choices.
+Owner clarification on 2026-10-19 supersedes the original row-padding behavior:
+selection lists have space before and after the complete list, with compact
+individual rows. Single, multiple, searchable, target and plain fallback selectors
+share this behavior. Visible item counts use one row per option in short terminals.
+The plain batch prompt accepts comma-separated choices. Earlier padding evidence
+below describes its historical source checkpoint.
 
 Catalog listing, browsing, interactive addition and project scaffolds use one
 current version per component and source variant. Browser rows use component
@@ -52,3 +54,10 @@ standalone counter proposes `button-v2.tsrx` and `card-v3.tsrx` without changing
 source, configuration or lock bytes. The installed counter check and formatting
 remain clean. Cleanup removes 76 obsolete test/native outputs (2649.7 MiB), verifies
 all five consumers remain unchanged and finds no owned build/test/browser process.
+
+
+The clarified list spacing passes four focused prompt/fallback checks and all seven
+terminal witnesses on 2026-10-19. Rich prompts add padding only around active/error
+lists; submitted/cancelled summaries and text inputs keep their default layout.
+Compact item rows restore the short-terminal visible count without changing
+selection, search, validation, cancellation or terminal restoration behavior.

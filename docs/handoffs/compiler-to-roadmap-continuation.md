@@ -21,10 +21,11 @@ package export, current Card/text/content installation and affected terminal
 navigation pass; original staging-failure evidence is retained with its repaired
 witness. Consumer and standalone refresh are pending.
 
-Owner clarification supersedes the row-padding statement below: add space before
-and after selection lists, keep individual option rows compact. Apply to every
-single/multiple/search/target selector and plain fallback. This correction is the
-next terminal edit; the previous padding evidence remains historical.
+Owner clarification supersedes the row-padding statement below: lists now have
+space before/after the complete options, with compact individual rows. Single,
+multiple, searchable, target and plain fallback selectors share this behavior.
+Four focused prompt checks and all seven terminal witnesses pass; previous
+row-padding evidence remains historical. Consumer refresh follows this checkpoint.
 
 ## Current terminal component installation — 2026-10-19
 

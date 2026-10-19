@@ -7,8 +7,8 @@ Use arrow keys and Enter, or the displayed Back item to return to categories.
 Esc or Ctrl+C cancels. A compact wordmark, color, action hints and workspace context
 provide terminal presentation without changing the commands themselves.
 
-Every selection has space between items; short terminals scroll fewer items to
-keep that spacing. The UI browser filters current components as you type, shows source,
+Selection lists have blank space before and after their options. Individual rows
+stay compact; short terminals scroll the list. The UI browser filters current components as you type, shows source,
 dependency and license details, and returns to browsing without closing the
 launcher. Installation is an explicit action. Native/web targets use Space to
 toggle one or both choices, then Enter to confirm; nothing is selected implicitly.

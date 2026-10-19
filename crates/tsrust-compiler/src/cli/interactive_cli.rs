@@ -4,26 +4,22 @@ use std::sync::atomic::{AtomicBool, Ordering};
 static HEADER: AtomicBool = AtomicBool::new(false);
 struct DefaultTheme;
 impl cliclack::Theme for DefaultTheme {}
-struct SpaciousTheme;
-impl cliclack::Theme for SpaciousTheme {
-    fn format_select_item(&self, state:&cliclack::ThemeState, selected:bool, label:&str, hint:&str)->String {
-        let item=cliclack::Theme::format_select_item(&DefaultTheme,state,selected,label,hint);
-        self.pad(state,item)
+struct SelectionTheme;
+impl cliclack::Theme for SelectionTheme {
+    fn format_header(&self,state:&cliclack::ThemeState,prompt:&str)->String {
+        let header=cliclack::Theme::format_header(&DefaultTheme,state,prompt);
+        if matches!(state,cliclack::ThemeState::Active|cliclack::ThemeState::Error(_)) {
+            format!("{header}{}\n",self.bar_color(state).apply_to("│"))
+        }else{header}
     }
-    fn format_multiselect_item(&self, state:&cliclack::ThemeState, selected:bool, active:bool, label:&str, hint:&str)->String {
-        let item=cliclack::Theme::format_multiselect_item(&DefaultTheme,state,selected,active,label,hint);
-        self.pad(state,item)
-    }
-}
-impl SpaciousTheme {
-    fn pad(&self,state:&cliclack::ThemeState,item:String)->String {
-        use cliclack::Theme;
-        if matches!(state,cliclack::ThemeState::Active|cliclack::ThemeState::Error(_)) && !item.is_empty() {
-            format!("{}\n{item}",self.bar_color(state).apply_to("│"))
-        }else{item}
+    fn format_footer_with_message(&self,state:&cliclack::ThemeState,message:&str)->String {
+        let footer=cliclack::Theme::format_footer_with_message(&DefaultTheme,state,message);
+        if matches!(state,cliclack::ThemeState::Active|cliclack::ThemeState::Error(_)) {
+            format!("{}\n{footer}",self.bar_color(state).apply_to("│"))
+        }else{footer}
     }
 }
-fn visible_rows(height:u16)->usize { (usize::from(height).saturating_sub(10)/2).clamp(1,10) }
+fn visible_rows(height:u16)->usize { usize::from(height).saturating_sub(10).clamp(1,10) }
 
 pub(super) fn available() -> bool { io::stdin().is_terminal() && io::stderr().is_terminal() }
 pub(super) fn rich() -> bool { available() && std::env::var("TERM").as_deref() != Ok("dumb") }
@@ -43,7 +39,7 @@ pub(super) fn launcher(arguments: &[String]) -> Result<bool, String> {
 }
 fn header() -> Result<(), String> {
     if !rich() || HEADER.swap(true, Ordering::Relaxed) { return Ok(()); }
-    cliclack::set_theme(SpaciousTheme);
+    cliclack::set_theme(DefaultTheme);
     let (height, width) = console::Term::stderr().size();
     if width >= 40 && height >= 20 {
         eprintln!();
@@ -93,6 +89,12 @@ fn interact<T>(prompt: impl FnOnce() -> io::Result<T>) -> io::Result<T> {
     let _input = PromptInput::enter()?;
     prompt()
 }
+fn interact_selection<T>(prompt:impl FnOnce()->io::Result<T>)->io::Result<T> {
+    cliclack::set_theme(SelectionTheme);
+    let result=interact(prompt);
+    cliclack::set_theme(DefaultTheme);
+    result
+}
 fn read_line(input: &mut impl BufRead, output: &mut impl Write, label: &str) -> Result<Option<String>, String> {
     write!(output, "{label}: ").and_then(|_| output.flush()).map_err(|e| e.to_string())?;
     let mut line = String::new();
@@ -107,8 +109,9 @@ pub(super) fn text(label: &str) -> Result<Option<String>, String> {
         .map(|value| value.map(|text| text.trim().to_owned()))
 }
 fn choose_from(input: &mut impl BufRead, output: &mut impl Write, title: &str, choices: &[(&str, &str)]) -> Result<Option<usize>, String> {
-    writeln!(output, "{title}").map_err(|e| e.to_string())?;
-    for (index, (label, hint)) in choices.iter().enumerate() { writeln!(output, "\n  {}) {label}  {hint}", index + 1).map_err(|e| e.to_string())?; }
+    writeln!(output, "{title}\n").map_err(|e| e.to_string())?;
+    for (index, (label, hint)) in choices.iter().enumerate() { writeln!(output, "  {}) {label}  {hint}", index + 1).map_err(|e| e.to_string())?; }
+    writeln!(output).map_err(|e|e.to_string())?;
     loop {
         let Some(line) = read_line(input, output, "Choose a number (q to cancel)")? else { return Ok(None); };
         if let Ok(number) = line.parse::<usize>() && number > 0 && number <= choices.len() { return Ok(Some(number - 1)); }
@@ -122,14 +125,15 @@ pub(super) fn select(title: &str, choices: &[(&str, &str)], searchable: bool) ->
     let mut prompt = cliclack::select(format!("{title}  ·  ↑↓ move, Enter select, Esc cancel")).max_rows(rows);
     for (index, (label, hint)) in choices.iter().enumerate() { prompt = prompt.item(index, label, hint); }
     if searchable { prompt = prompt.filter_mode(); }
-    prompt_result(interact(|| prompt.interact()))
+    prompt_result(interact_selection(|| prompt.interact()))
 }
 pub(super) fn choose(title: &str, choices: &[&str]) -> Result<Option<usize>, String> {
     select(title, &choices.iter().map(|label| (*label, "")).collect::<Vec<_>>(), false)
 }
 fn multiple_from(input:&mut impl BufRead,output:&mut impl Write,title:&str,choices:&[(&str,&str)])->Result<Option<Vec<usize>>,String> {
-    writeln!(output,"{title}").map_err(|e|e.to_string())?;
-    for (index,(label,hint)) in choices.iter().enumerate(){writeln!(output,"\n  {}) {label}  {hint}",index+1).map_err(|e|e.to_string())?;}
+    writeln!(output,"{title}\n").map_err(|e|e.to_string())?;
+    for (index,(label,hint)) in choices.iter().enumerate(){writeln!(output,"  {}) {label}  {hint}",index+1).map_err(|e|e.to_string())?;}
+    writeln!(output).map_err(|e|e.to_string())?;
     loop {
         let Some(line)=read_line(input,output,"Choose numbers separated by commas (q to cancel)")? else{return Ok(None);};
         let selected=line.split(|ch:char|ch==',' || ch.is_whitespace()).filter(|part|!part.is_empty()).map(|part|part.parse::<usize>()).collect::<Result<Vec<_>,_>>();
@@ -144,11 +148,11 @@ pub(super) fn multiselect(title:&str,choices:&[(&str,&str)])->Result<Option<Vec<
     header()?;
     let mut prompt=cliclack::multiselect(format!("{title}  ·  ↑↓ move, Space toggle, Enter install, Esc cancel")).max_rows(visible_rows(console::Term::stderr().size().0)).required(true);
     for (index,(label,hint)) in choices.iter().enumerate(){prompt=prompt.item(index,label,hint);}
-    prompt_result(interact(||prompt.interact()))
+    prompt_result(interact_selection(||prompt.interact()))
 }
 pub(super) fn targets() -> Result<Vec<String>, String> {
     header()?;
-    interact(|| cliclack::multiselect("UI targets  ·  ↑↓ move, Space toggle, Enter confirm")
+    interact_selection(|| cliclack::multiselect("UI targets  ·  ↑↓ move, Space toggle, Enter confirm")
         .max_rows(visible_rows(console::Term::stderr().size().0))
         .item("native", "Native desktop", "GPU rendering with native windows")
         .item("web", "Web", "Browser output through the bounded Wasm builder")
@@ -201,13 +205,28 @@ pub(super) fn command() -> Result<Option<Vec<String>>, String> {
 mod tests {
     use super::*;
     #[test]
-    fn every_active_selector_has_padding_and_rows_fit_short_terminals() {
-        use cliclack::{Theme,ThemeState};let theme=SpaciousTheme;
-        for output in [theme.format_select_item(&ThemeState::Active,true,"Choice","Hint"),theme.format_multiselect_item(&ThemeState::Active,true,true,"Choice","Hint")] {
-            let lines=output.lines().collect::<Vec<_>>();assert_eq!(lines.len(),2);assert!(lines[0].contains('│')&&!lines[0].contains("Choice"));assert!(lines[1].contains("Choice"));
+    fn selectors_pad_list_boundaries_and_keep_item_rows_compact() {
+        use cliclack::{Theme,ThemeState};let theme=SelectionTheme;
+        for state in [ThemeState::Active,ThemeState::Error("Choose an item".into())] {
+            let header=theme.format_header(&state,"Choose");let footer=theme.format_footer_with_message(&state,"scroll");
+            assert_eq!(header.lines().count(),2);assert!(header.lines().last().unwrap().contains('│'));
+            assert_eq!(footer.lines().count(),2);assert!(footer.lines().next().unwrap().contains('│'));assert!(footer.contains("scroll")||matches!(state,ThemeState::Error(_)));
+            for output in [theme.format_select_item(&state,true,"Choice","Hint"),theme.format_multiselect_item(&state,true,true,"Choice","Hint")] {
+                assert_eq!(output.lines().count(),1);assert!(output.contains("Choice"));
+            }
+        }
+        for state in [ThemeState::Submit,ThemeState::Cancel] {
+            assert_eq!(theme.format_header(&state,"Choose"),DefaultTheme.format_header(&state,"Choose"));
+            assert_eq!(theme.format_footer_with_message(&state,""),DefaultTheme.format_footer_with_message(&state,""));
         }
         assert_eq!(theme.format_select_item(&ThemeState::Submit,false,"Choice",""),"");
-        for (height,rows) in [(12,1),(20,5),(32,10)]{assert_eq!(visible_rows(height),rows);}
+        for (height,rows) in [(8,1),(12,2),(20,10),(32,10)]{assert_eq!(visible_rows(height),rows);}
+        for multiple in [false,true] {
+            let mut output=Vec::new();let choices=[("one","first"),("two","second")];
+            if multiple {multiple_from(&mut "1\n".as_bytes(),&mut output,"Choose",&choices).unwrap();}
+            else {choose_from(&mut "1\n".as_bytes(),&mut output,"Choose",&choices).unwrap();}
+            assert!(String::from_utf8(output).unwrap().starts_with("Choose\n\n  1) one  first\n  2) two  second\n\nChoose"));
+        }
     }
     #[test]
     fn plain_multiselect_retries_deduplicates_and_cancels_without_defaults() {
