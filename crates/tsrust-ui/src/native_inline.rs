@@ -18,7 +18,7 @@ pub(super) fn collect(item:Item,text:&mut String,spans:&mut Vec<(Range<usize>,Te
         }
         for part in item.inline{children.push(append(part,text,spans));}
     }else{for child in item.children{children.push(collect(child,text,spans));}}
-    Inline{identity:item.identity,semantics:item.semantics,label:item.raw_text,range:start..text.len(),children,style:item.text_style}
+    Inline{identity:item.identity,semantics:item.semantics,label:text[start..].to_owned(),range:start..text.len(),children,style:item.text_style}
 }
 pub(super) fn default_style(builder:&mut parley::RangedBuilder<'_,Brush>,style:TextStyle){
     builder.push_default(StyleProperty::Brush(Brush{color:None,underline:style.underline,strike:style.strike}));

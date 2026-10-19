@@ -573,7 +573,7 @@ fn paint_text(scene:&mut Scene,text:&mut Layout<Brush>,color:Color,transform:Aff
         let font_run=glyph_run.run();let coordinates=font_run.normalized_coords().iter().map(|coord|coord.to_bits()).collect::<Vec<_>>();
         scene.draw_glyphs(font_run.font()).font_size(font_run.font_size()).normalized_coords(&coordinates).transform(transform*Affine::translate(origin)).brush(glyph_run.style().brush.color.map(paint_color).unwrap_or(color)).draw(Fill::NonZero,glyph_run.positioned_glyphs().map(|glyph|vello::Glyph{id:glyph.id,x:glyph.x,y:glyph.y}));
         let style=glyph_run.style();let brush=style.brush;let metrics=font_run.font_metrics();
-        for (enabled,y) in [(brush.underline,glyph_run.baseline()+metrics.underline_offset),(brush.strike,glyph_run.baseline()-metrics.strikethrough_offset)] {
+        for (enabled,y) in [(brush.underline,glyph_run.baseline()-metrics.underline_offset),(brush.strike,glyph_run.baseline()-metrics.strikethrough_offset)] {
             if enabled {scene.stroke(&vello::kurbo::Stroke::new(metrics.underline_size.max(1.) as f64),transform,brush.color.map(paint_color).unwrap_or(color),None,&vello::kurbo::Line::new((origin.0+glyph_run.offset() as f64,origin.1+y as f64),(origin.0+(glyph_run.offset()+glyph_run.advance()) as f64,origin.1+y as f64)));}
         }
     }}}

@@ -4356,6 +4356,7 @@ dependencies = [
  "uuid",
  "vello",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
  "web-sys",
  "winit",
 ]

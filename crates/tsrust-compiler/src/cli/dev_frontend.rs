@@ -2,7 +2,7 @@
 use std::{path::PathBuf,sync::mpsc::{self,Receiver,SyncSender},time::{Duration,Instant}};
 use tsrust_compiler::{project::{FileSourceProvider,SourceProvider},project_cli::CheckedInput,project_session::{ProjectSession,SessionStats}};
 pub(crate) struct Output {pub rust:String,pub features:Vec<&'static str>,pub identity:Vec<u8>,pub stats:SessionStats,pub check:Duration,pub emit:Duration}
-pub(crate) struct Request {pub entry:PathBuf,pub sources:Snapshot,pub reply:mpsc::Sender<Result<Output,String>>}
+pub(crate) struct Request {pub entry:PathBuf,pub target:&'static str,pub sources:Snapshot,pub reply:mpsc::Sender<Result<Output,String>>}
 /// Watcher-owned bytes and captured entry-graph resolutions remain fixed for a
 /// request, including imported dependencies outside the ordinary watch tree.
 pub(crate) struct Snapshot {pub root:PathBuf,pub files:crate::dev_watch::Inputs}
@@ -56,16 +56,20 @@ impl Worker {
 }
 fn run(requests:Receiver<Request>) {
  let mut session=ProjectSession::default();
- for request in requests {let result=compile(&mut session,&request.entry,&request.sources);let _=request.reply.send(result);}
+ for request in requests {let result=compile_target(&mut session,&request.entry,&request.sources,request.target);let _=request.reply.send(result);}
 }
+#[cfg(test)]
 fn compile(session:&mut ProjectSession,entry:&std::path::Path,sources:&Snapshot)->Result<Output,String> {
+ compile_target(session,entry,sources,"native")
+}
+fn compile_target(session:&mut ProjectSession,entry:&std::path::Path,sources:&Snapshot,target:&str)->Result<Output,String>{
  let started=Instant::now();
  let id=sources.resolve(None,entry.to_str().ok_or("Source path must be valid UTF-8.")?)?;
  let source=sources.read(&id)?;
  let analysis=tsrust_compiler::project_cli::check_input_cached_with_provider(entry,&source,session,sources).map_err(|error|error.render_with_provider(&entry.display().to_string(),&source,false,sources))?;
  let check=started.elapsed();let started=Instant::now();
  let(rust,features)=analysis.emit_rust_with_native_features();let emit=started.elapsed();
- if features.contains(&"ui-native"){tsrust_compiler::ui_project::require_target(entry,"native",|path|sources.read(&tsrust_compiler::project::SourceId(path.to_string_lossy().into_owned())).map(Some).or(Ok(None)))?;}
+ if features.contains(&"ui-native"){tsrust_compiler::ui_project::require_target(entry,target,|path|sources.read(&tsrust_compiler::project::SourceId(path.to_string_lossy().into_owned())).map(Some).or(Ok(None)))?;}
  let mut identity=Vec::new();
  match &analysis {
   CheckedInput::Project(project)=>for(id,module)in &project.graph.modules {for value in [id.0.as_bytes(),module.source.text.as_bytes()] {identity.extend_from_slice(&(value.len()as u64).to_le_bytes());identity.extend_from_slice(value);}},
@@ -159,4 +163,11 @@ mod tests {
   assert!(compile(&mut session,&entry,&before).unwrap().rust.contains("pub fn value()->i64{1}"));
  }
 
+}
+
+#[cfg(test)]mod web_target_tests{
+ use super::*;
+ #[test]fn web_only_project_uses_web_target_in_the_same_frozen_frontend(){
+  let root=crate::TempDirectory::new().unwrap();let config=serde_json::json!({"schemaVersion":1,"name":"web-dev","build":{"entry":"main.tsrx","output":"target/app"},"ui":{"target":{"native":false,"web":true,"embedded":false},"theme":serde_json::from_str::<serde_json::Value>(tsrust_compiler::ui_project::theme::DEFAULT_JSON).unwrap(),"components":"src/components/ui","lock":"ui-components.lock.json"}});std::fs::write(root.0.join("tsrust.config.json"),config.to_string()).unwrap();let entry=root.0.join("main.tsrx");std::fs::write(&entry,"import {Text,run} from 'std:ui';function main(){unwrap(run(<Text>Web</Text>,'Web'));}").unwrap();let mut watcher=crate::dev_watch::Watcher::default();let snapshot=Snapshot{root:root.0.clone(),files:watcher.snapshot(&root.0).unwrap()};let mut session=ProjectSession::default();assert!(compile_target(&mut session,&entry,&snapshot,"web").is_ok());assert!(compile_target(&mut session,&entry,&snapshot,"native").err().unwrap().contains("disabled"));
+ }
 }

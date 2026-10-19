@@ -103,5 +103,5 @@ pub fn configured_targets(entry:&Path,mut read:impl FnMut(&Path)->Result<Option<
 pub fn require_target(entry:&Path,target:&str,read:impl FnMut(&Path)->Result<Option<String>,String>)->Result<(),String>{
  let selected=configured_targets(entry,read)?.ok_or("UI deployment needs an explicit ui.target. Run tsrust ui add tokens@1.0.0 with --target native or --target web")?;
  if match target{"native"=>selected.native,"web"=>selected.web,_=>false}{return Ok(());}
- Err(format!("UI {target} target is disabled in tsrust.config.json ui.target. Enable it explicitly to use this backend. Web-only projects use the bounded Wasm web builder; native dev/run does not launch a web application."))
+ Err(format!("UI {target} target is disabled in tsrust.config.json ui.target. Enable it explicitly to use this backend. Use tsrust dev --target web for browser development or --target native for a desktop window."))
 }

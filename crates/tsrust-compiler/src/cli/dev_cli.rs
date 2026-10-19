@@ -67,13 +67,14 @@ mod platform {
             std::thread::sleep(Duration::from_millis(20));
         }
     }
-    fn build(root:&Path,release:bool,verbose:bool,expected:&Fingerprint,watcher:&mut Watcher,worker:&crate::dev_frontend::Worker)->Result<Option<(TempDirectory,PathBuf)>,String> {
+    enum Artifact {Native(TempDirectory,PathBuf),Web}
+    fn build(root:&Path,release:bool,verbose:bool,expected:&Fingerprint,watcher:&mut Watcher,worker:&crate::dev_frontend::Worker,web:Option<&mut crate::dev_web::Web>)->Result<Option<Artifact>,String> {
         use std::sync::mpsc::{self,TrySendError,RecvTimeoutError};
         let inputs=expected.as_ref().map_err(Clone::clone)?;
         let config=inputs.get(&root.join(project_config::FILE)).ok_or("Missing project configuration in build snapshot")?;
         let project=project_config::parse(root,std::str::from_utf8(config.bytes()).map_err(|e|e.to_string())?)?;
         let (reply,response)=mpsc::channel();
-        let mut request=crate::dev_frontend::Request{entry:project.entry,sources:crate::dev_frontend::Snapshot{root:root.to_owned(),files:expected.as_ref().map_err(Clone::clone)?.clone()},reply};
+        let mut request=crate::dev_frontend::Request{entry:project.entry,target:if web.is_some(){"web"}else{"native"},sources:crate::dev_frontend::Snapshot{root:root.to_owned(),files:expected.as_ref().map_err(Clone::clone)?.clone()},reply};
         loop {
             if STOP.load(Ordering::Relaxed) || &watcher.snapshot(root)!=expected {return Ok(None);}
             match worker.requests.try_send(request) {
@@ -99,6 +100,13 @@ mod platform {
         };
         if &watcher.snapshot(root)!=expected {return Ok(None);}
         if verbose {eprintln!("[build] syntax reused={} parsed={} headers reused={} parsed={}",frontend.stats.reused,frontend.stats.parsed,frontend.stats.headers_reused,frontend.stats.headers_parsed);}
+        if let Some(web)=web {
+            let built=web.build(&frontend.rust,root,release,|command|{
+                let mut process=Process::spawn(command)?;
+                match wait_for_build(&mut process,root,expected,watcher)? {Some(status) if status.success()=>Ok(true),Some(status)=>Err(format!("Web tool failed ({status})")),None=>Ok(false)}
+            })?;
+            return Ok(built.then_some(Artifact::Web));
+        }
         let files=TempDirectory::new().map_err(|e|e.to_string())?;
         let backend_started=Instant::now();
         let probe_out=files.0.join("backend-version.stdout");let probe_err=files.0.join("backend-version.stderr");
@@ -146,7 +154,7 @@ mod platform {
             let _=cache.try_publish(&binary);
         }
         if verbose {eprintln!("[build] check={:.1}ms emit={:.1}ms backend={:.1}ms cache={} ({:.1}ms) native+link={:.1}ms",frontend.check.as_secs_f64()*1000.0,frontend.emit.as_secs_f64()*1000.0,backend_elapsed.as_secs_f64()*1000.0,if reused{"hit"}else{"miss"},cache_elapsed.as_secs_f64()*1000.0,if reused{0.0}else{native_started.elapsed().as_secs_f64()*1000.0});}
-        Ok(Some((files,binary)))
+        Ok(Some(Artifact::Native(files,binary)))
     }
     #[cfg(test)]
     mod tests {
@@ -167,23 +175,32 @@ mod platform {
         }
     }
     pub fn run(args:impl Iterator<Item=String>)->Result<u8,String> {
-        let mut release=false;let mut verbose=false;let mut program_args=Vec::new();let mut passthrough=false;
+        let mut release=false;let mut verbose=false;let mut target=None;let mut port=None;let mut program_args=Vec::new();let mut passthrough=false;
         let mut args=args.peekable();
         while let Some(arg)=args.next() {
             if passthrough {program_args.push(arg);continue;}
             match arg.as_str() {
                 "--"=>passthrough=true,
+                "--target" if target.is_none()=>{let value=args.next().ok_or("--target requires native or web")?;if !matches!(value.as_str(),"native"|"web"){return Err("--target requires native or web".into());}target=Some(value);},
+                "--port" if port.is_none()=>{port=Some(args.next().ok_or("--port requires 0 through 65535")?.parse::<u16>().map_err(|_|"--port requires 0 through 65535")?);},
                 "--release" if !release=>release=true,
                 "--verbose" if !verbose=>verbose=true,
                 "--color"=>{let mode=args.next().ok_or("--color requires auto, always or never")?;if !matches!(mode.as_str(),"auto"|"always"|"never"){return Err("--color requires auto, always or never".into());}},
                 _ if arg.starts_with("--color=")=>{if !matches!(&arg[8..],"auto"|"always"|"never"){return Err("--color requires auto, always or never".into());}},
-                _=>return Err(format!("Unknown or repeated dev option: {arg}. Usage: tsrust dev [--release] [--verbose] [--color auto|always|never] [-- program-arguments]")),
+                _=>return Err(format!("Unknown or repeated dev option: {arg}. Usage: tsrust dev [--target native|web] [--port 4317] [--release] [--verbose] [--color auto|always|never] [-- program-arguments]")),
             }
         }
         crate::ui_cli::check_default_setup()?;
         let project=project_config::discover()?.ok_or("dev needs tsrust.config.json; create a project with `tsrust new <name>`")?;
+        let target=match target {Some(target)=>target,None=>{
+            let targets=tsrust_compiler::ui_project::configured_targets(&project.entry,|path|std::fs::read_to_string(path).map(Some).map_err(|e|e.to_string()))?;
+            if targets.is_some_and(|targets|targets.web&&!targets.native){"web".into()}else{"native".into()}
+        }};
+        if target=="native" && port.is_some(){return Err("--port applies only to --target web".into());}
+        if target=="web" && !program_args.is_empty(){return Err("Web dev does not accept native program arguments".into());}
         let _signals=Signals::install()?;
         let root=project.root;
+        let mut web=if target=="web"{Some(crate::dev_web::Web::new(&root,port.unwrap_or(4317))?)}else{None};
         report(Status::Info,format_args!("Watching {}. Press Ctrl+C to stop.",root.display()));
         let worker=crate::dev_frontend::Worker::new()?;
         let mut watcher=Watcher::default();
@@ -197,17 +214,19 @@ mod platform {
                     if watcher.snapshot(&root)!=input {continue;}
                 }
                 let build_started=Instant::now();
+                if let Some(web)=&web {web.building();}
                 if input.is_ok(){
-                    if let Err(error)=crate::docs_cli::prepare_root(&root){previous=Some(input);report(Status::Error,error);continue;}
+                    if let Err(error)=crate::docs_cli::prepare_root(&root){previous=Some(input);report(Status::Error,&error);if let Some(web)=&web{web.failure(&error);}continue;}
                     // Generated modules enter the same immutable frontend snapshot.
                     watcher.invalidate(&root);input=watcher.snapshot(&root);
                     if let Ok(inputs)=&input{if !crate::docs_cli::matches_snapshot(&root,inputs)?{continue;}}
                 }
                 previous=Some(input.clone());
-                let result=match &input {Err(error)=>Err(error.clone()),Ok(_)=>build(&root,release,verbose,&input,&mut watcher,&worker)};
+                let result=match &input {Err(error)=>Err(error.clone()),Ok(_)=>build(&root,release,verbose,&input,&mut watcher,&worker,web.as_mut())};
                 match result {
-                    Ok(Some((files,binary))) if !STOP.load(Ordering::Relaxed) && watcher.snapshot(&root)==input=>{
+                    Ok(Some(artifact)) if !STOP.load(Ordering::Relaxed) && watcher.snapshot(&root)==input=>{
                         report(Status::Success,format_args!("{} in {:.0} ms",if built_once {"Rebuilt"} else {"Built"},build_started.elapsed().as_secs_f64()*1000.0));built_once=true;
+                        let Artifact::Native(files,binary)=artifact else{if let Some(web)=&mut web{web.publish()?;}continue;};
                         if let Some(mut old)=running.take(){old.process.stop();}
                         let mut command=Command::new(binary);command.current_dir(&root).args(&program_args);
                         match Process::spawn(&mut command) {
@@ -218,9 +237,8 @@ mod platform {
                             Err(error)=>report(Status::Error,format_args!("Cannot start program: {error}")),
                         }
                     },
-                    Ok(_)=>{},
-                    Err(error) if error=="Build failed"=>report(Status::Error,format_args!("Build failed; {}.",if running.is_some(){"previous program remains running"}else{"waiting for changes"})),
-                    Err(error)=>report(Status::Error,error),
+                    Ok(_)=>{previous=None;},
+                    Err(error)=>{if let Some(web)=&web{web.failure(&error);}report(Status::Error,format_args!("{error}; {}.",if running.is_some()||web.as_ref().is_some_and(|web|web.ready()){"previous application remains running"}else{"waiting for changes"}));},
                 }
             }
             if let Some(active)=&mut running {

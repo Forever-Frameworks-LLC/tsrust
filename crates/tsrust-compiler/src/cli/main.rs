@@ -1,4 +1,5 @@
 mod dev_cli;
+mod dev_web;
 mod runtime_build;
 mod native_workspace;
 mod rust_bindings;
@@ -48,7 +49,7 @@ Usage:
   tsrust ui attributions [--cwd directory] [--dry-run]
   tsrust docs content [--cwd directory]
   tsrust cache <info|clean>
-  tsrust dev [--release] [--verbose] [--color auto|always|never] [-- program-arguments]
+  tsrust dev [--target native|web] [--port 4317] [--release] [--verbose] [--color auto|always|never] [-- program-arguments]
   tsrust run [input.tsr] [--release] [-- program-arguments]
   tsrust test [files/directories] [options]
   tsrust format [files/directories] [--check | --write]
@@ -62,7 +63,7 @@ Commands:
   remove   Validate dependency removal without rewriting adapters
   bindings Resolve and vendor declared Rust dependencies
   docs     Compile checked documentation content and exact example/API data offline
-  dev      Watch, rebuild and restart a configured native program
+  dev      Watch a configured native program or web UI
   new      Create a project with source, tests and configuration
   check    Check files/directories recursively; defaults to the current directory
   format   Format all .tsr project files; one explicit file prints source

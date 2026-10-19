@@ -4505,6 +4505,7 @@ dependencies = [
  "taffy",
  "vello",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
  "web-sys",
  "winit",
 ]
