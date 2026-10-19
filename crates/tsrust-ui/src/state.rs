@@ -1,7 +1,7 @@
 //! Component state has one strong owner; bindings and captures use weak references.
 use std::{cell::RefCell, rc::{Rc, Weak}};
 
-pub struct Signal<T = i64>(Reference<T>);
+pub struct Signal<T = i64>(Reference<T>,Option<Rc<dyn std::any::Any>>,Option<Rc<dyn Fn(&T)->Result<T,String>>>);
 pub struct TextBinding(Box<dyn Fn() -> Result<String,String>>);
 impl TextBinding {
     pub fn value(&self) -> Result<String,String> { (self.0)() }
@@ -11,13 +11,14 @@ impl TextBinding {
 }
 enum Reference<T> { Owner(Rc<RefCell<T>>), Binding(Weak<RefCell<T>>) }
 impl<T: Clone> Signal<T> {
-    pub fn new(value: T) -> Self { Self(Reference::Owner(Rc::new(RefCell::new(value)))) }
+    pub fn new(value: T) -> Self { Self(Reference::Owner(Rc::new(RefCell::new(value))),None,None) }
     pub fn handle(&self) -> Self {
         Self(Reference::Binding(match &self.0 {
             Reference::Owner(value) => Rc::downgrade(value),
             Reference::Binding(value) => value.clone(),
-        }))
+        }),None,self.2.clone())
     }
+    pub(crate) fn with_owner(mut self,owner:Rc<dyn std::any::Any>,set:impl Fn(&T)->Result<T,String>+'static)->Self {self.1=Some(owner);self.2=Some(Rc::new(set));self}
     pub fn text_binding(&self, format: fn(&T) -> String) -> TextBinding where T: 'static {
         let binding=self.handle();
         TextBinding(Box::new(move || binding.get().map(|value|format(&value)).map_err(|_|"Text binding refers to disposed state".into())))
@@ -29,6 +30,7 @@ impl<T: Clone> Signal<T> {
     pub fn get(&self) -> Result<T,String> { self.value().ok_or_else(||"UI state is disposed".into()) }
     pub fn set(&self, next:T) -> Result<(),String> {
         let value=self.live().ok_or_else(||String::from("UI state is disposed"))?;
+        let next=if let Some(set)=&self.2{set(&next)?}else{next};
         *value.borrow_mut()=next;Ok(())
     }
 }

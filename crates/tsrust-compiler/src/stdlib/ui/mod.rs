@@ -88,6 +88,10 @@ pub(crate) const RUN: NativeBinding = NativeBinding {
     ..TEXT
 };
 
+pub(crate) const LOCATION:NativeBinding=NativeBinding{name:"location",parameters:&[],result:NativeType::Structured(&Signature::Result(&SIGNAL_STRING,&ERROR)),backend:NativeBackend::Bundled{symbol:"tsrust_ui_location"},..TEXT};
+pub(crate) const NAVIGATE:NativeBinding=NativeBinding{name:"navigate",parameters:&[parameter("path",NativeType::String,Mode::Read)],result:NativeType::Structured(&Signature::Result(&Signature::Void,&ERROR)),backend:NativeBackend::Bundled{symbol:"tsrust_ui_navigate"},..TEXT};
+pub(crate) const TRAVERSE:NativeBinding=NativeBinding{name:"traverse",parameters:&[parameter("forward",NativeType::Boolean,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_traverse"},..NAVIGATE};
+pub(crate) const LINK:NativeBinding=NativeBinding{name:"link",parameters:&[parameter("children",NativeType::Structured(&CHILDREN),Mode::Consume),parameter("className",NativeType::String,Mode::Read),parameter("href",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_link"},..TEXT};
 pub(crate) const SIGNAL_NEW:NativeBinding=NativeBinding{name:"signal",parameters:&[parameter("initial",NativeType::ObservedValue,Mode::Read)],result:NativeType::ObservedValue,backend:NativeBackend::Bundled{symbol:"tsrust_ui_signal"},..TEXT};
 pub(crate) const HANDLE_NEW:NativeBinding=NativeBinding{name:"handle",parameters:&[parameter("signal",NativeType::ObservedValue,Mode::Read)],result:NativeType::ObservedValue,backend:NativeBackend::Bundled{symbol:"tsrust_ui_handle"},..TEXT};
 pub(crate) const GET:NativeBinding=NativeBinding{name:"get",parameters:&[parameter("state",NativeType::ObservedValue,Mode::Read)],result:NativeType::ObservedValue,backend:NativeBackend::Bundled{symbol:"tsrust_ui_get"},..TEXT};
@@ -128,6 +132,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("#[cfg(feature = \"acceptance\")]\n#[doc(hidden)]\npub use native::verify_window;",if with_native {"#[cfg(feature = \"ui-acceptance\")] pub use native::verify_window;"}else{""})
         .replace("pub mod browser;",&format!("pub mod browser {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/browser.rs").replace("use crate::{", "use super::{")))
         .replace("mod editable;",&format!("mod editable {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/editable.rs")))
+        .replace("pub mod navigation;", &format!("pub mod navigation {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/navigation.rs")))
         .replace("mod state;", &format!("mod state {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/state.rs")))
         .replace("#[cfg(test)]\nmod application_tests;", "")
         .replace("mod window;",&format!("mod window {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/window.rs")))

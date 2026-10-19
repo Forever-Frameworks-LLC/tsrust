@@ -3,16 +3,14 @@ import { strictEqual } from 'std:testing';
 import { Page } from './app/page';
 
 function main() {
-  const html = document(Page(), 'Tsrust documentation');
-  strictEqual(html.includes('Build with Tsrust'), true);
+  const html = document(Page(), 'Tsrust');
+  strictEqual(html.includes('Closer to the machine.'), true);
+  strictEqual(html.includes('href="/docs"'), true);
+  strictEqual(html.includes('Read the documentation'), true);
+  strictEqual(html.includes('href="/docs/getting-started/installation"'), true);
   strictEqual(html.includes('Count: 0'), true);
-  strictEqual(html.includes('page destinations / 2 checked examples /'), true);
   strictEqual(html.includes('Show source'), true);
-  strictEqual(html.includes('id="counter-preview"'), true);
-  strictEqual(html.includes('tabindex="0"'), true);
-  strictEqual(html.includes('overflow:auto'), true);
+  strictEqual(html.includes('103 page destinations'), false);
   strictEqual(html.includes('100vh'), true);
-  strictEqual(html.includes('aria-label="Documentation article"'), true);
-  strictEqual(html.includes('aria-orientation="horizontal"'), true);
-  console.log('Documentation foundation passed');
+  console.log('Documentation home and links passed');
 }

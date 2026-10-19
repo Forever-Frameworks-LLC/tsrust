@@ -41,7 +41,7 @@ try {
   if (fs.existsSync(path.join(pkg,'attributions'))) fs.cpSync(path.join(pkg,'attributions'),path.join(destination,'attributions'),{recursive:true});
   run(process.env.WASM_BINDGEN, [path.join(process.env.CARGO_TARGET_DIR, 'wasm32-unknown-unknown/release/tsrust_export.wasm'), '--target', 'web', '--out-dir', destination, '--out-name', 'app', '--no-typescript']);
   fs.writeFileSync(path.join(destination, 'index.html'), `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Tsrust UI</title><style>html,body{margin:0;padding:0}</style></head><body><script type="module">
-import init, {launch} from './app.js';
+import init, {launch} from '/app.js';
 await init();
 const mounts = launch();
 window.ui = {mounts, dispose() {for (const mount of mounts) mount.free(); mounts.length = 0;}};

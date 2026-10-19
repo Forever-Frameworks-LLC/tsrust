@@ -13929,6 +13929,46 @@
 ],
   "std:ui": [
     {
+      "name": "Link",
+      "signature": "Link(props: LinkProps): Node",
+      "parameters": [
+        {
+          "label": "props: LinkProps",
+          "documentation": "href is an absolute application path; children contains owned phrasing content. className defaults to empty. Element identity and accessible naming are forwarded."
+        }
+      ],
+      "documentation": "Creates an application link with browser anchor semantics and a native accessibility Link role. href accepts /docs or /docs#heading. Empty paths, external URLs, queries, percent escapes, backslashes, whitespace and dot traversal throw a readable error. Unmodified browser clicks navigate without reloading; modified clicks keep browser behavior. Native activation updates the same application location. Example: <Link href=\"/docs\">Read docs</Link> opens /docs. Links need a live location owner for activation, but document() can serialize them without one. Ownership: consumes children once; activation never retains the location owner."
+    },
+    {
+      "name": "location",
+      "signature": "location(): Signal<string>",
+      "parameters": [],
+      "documentation": "Creates the single application location owner. No arguments. Starts at the browser pathname plus fragment, or / on native. get() returns an owned path snapshot; set(path) checks and normalizes a local path, pushes history and updates the binding. A repeated current path adds no entry. Browser back/forward updates the same signal. Native history starts at /. A second live owner or invalid initial path throws. Example: const path = location(); returning <Text>{path.get()}</Text> shows / initially on native. Create it directly in a root component const declaration so its state is retained automatically. Ownership: one component owns the location; callbacks and history listeners use non-retaining bindings."
+    },
+    {
+      "name": "navigate",
+      "signature": "navigate(path: string): void",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Absolute application path with an optional nonempty heading fragment. The same path restrictions as Link apply."
+        }
+      ],
+      "documentation": "Pushes an application location and updates shared route bindings without reloading the browser. Returns void; does not mutate the argument. The current path is a no-op. A missing/disposed location owner or invalid path throws. Example: navigate(\"/docs\"); makes location().get() /docs on the existing owner; do not create another location owner to read it. Ownership: borrows the path and retains no state owner."
+    },
+    {
+      "name": "back",
+      "signature": "back(): void",
+      "parameters": [],
+      "documentation": "Visits the previous application history entry. No arguments; returns void. Browser behavior follows browser history, including leaving the site when appropriate. Native history stops at its initial entry. A missing/disposed location owner throws. Example: navigate(\"/docs\"); back(); restores / on a new native application. Ownership: retains no location or route subtree."
+    },
+    {
+      "name": "forward",
+      "signature": "forward(): void",
+      "parameters": [],
+      "documentation": "Visits the next application history entry after back(). No arguments; returns void. Browser traversal is asynchronous; native traversal updates the location immediately. Native history with no next entry is unchanged. A missing/disposed location owner throws. Example: navigate(\"/docs\"); back(); forward(); restores /docs on native. Ownership: retains no location or route subtree."
+    },
+    {
       "name": "Text",
       "signature": "Text(props: TextProps): Node",
       "parameters": [
@@ -13948,7 +13988,7 @@
           "documentation": "Optional children is an ordered Child array: text strings/numbers, Signal/TextBinding values, owned Nodes, null or undefined. Omission defaults to empty. className defaults to empty."
         }
       ],
-      "documentation": "Creates a container from ordered strings/numbers, Signal/TextBinding values and owned Node children. JSX scalar expressions reading directly declared local state refresh after handlers without replacing nodes. Adjacent text/bindings share one text run; explicit nodes keep their place. Null, undefined, empty strings and omitted children produce no anonymous text node. Unknown utilities or depth over 128 fail. as selects div (default), section, span or label; all are native layout containers. Example: <View>Hello <Text as=\"code\">world</Text></View> preserves Hello then world without cloning the child. Font size, color and text alignment inherit. Exact semantic attributes, roles and naming rules apply. Grid/flex display, equal grid tracks (1–12), bounded grid placement, per-side padding/gaps, preferred/min/max dimensions, alignment, wrapping and grow/shrink use the same logical-pixel model on both targets. p/px/py and size expand to independent properties; later classes win per property/state. Spacing 2/4/6 uses sm/md/lg, 1 uses sm/2, 3 averages sm/md; other numeric sizes use spacing.md/4 per unit. Percentage heights need a definite parent height. Example: <View className=\"grid grid-cols-2 gap-4 p-4\" /> creates two equal tracks with default 16px gaps/padding. Viewport sm/md/lg/xl/2xl variants use 640/768/1024/1280/1536 logical pixels; dark matches the enclosing theme. Arbitrary CSS, container queries, named grid lines and subgrid remain unsupported.  A conditional JSX ternary whose condition reads directly declared component state mounts only its selected branch. Nested branches work. Unchanged selection preserves child state; removal releases it once, and later selection constructs fresh state. Transparent slots add no layout or accessibility element. Empty/absent derived text in containers also contributes no anonymous layout item; explicit Text components keep their own node. For example, <View>{visible.get()?<Text>Ready</Text>:null}</View> shows/hides Ready. Prebuilt owned Nodes cannot be consumed repeatedly from captures; ordinary callback ownership errors apply. Invalid interactive/label/hidden ancestry is checked again after replacement. Use as=\"kbd\" or as=\"code\" for composed noninteractive phrasing containers; these tags do not register keyboard handlers. View.hidden excludes a retained subtree from layout, input and accessibility until shown; unlike conditional removal, it preserves child state. overflow-auto scrolls a bounded container on both targets; screen dimensions use logical window/browser viewport size. View.tabIndex=0 adds a source-order Tab stop; -1 permits programmatic/accessibility focus. View.windowDragRegion marks noninteractive custom-header drag surfaces. Ownership: consumes props and child nodes, including on failure; bindings never retain state owners."
+      "documentation": "Creates a container from ordered strings/numbers, Signal/TextBinding values and owned Node children. JSX scalar expressions reading directly declared local state refresh after handlers without replacing nodes. Adjacent text/bindings share one text run; explicit nodes keep their place. Null, undefined, empty strings and omitted children produce no anonymous text node. Unknown utilities or depth over 128 fail. as selects div (default), section, span or label; all are native layout containers. Example: <View>Hello <Text as=\"code\">world</Text></View> preserves Hello then world without cloning the child. Font size, color and text alignment inherit. Exact semantic attributes, roles and naming rules apply. Grid/flex display, equal grid tracks (1–12), bounded grid placement, per-side padding/gaps, preferred/min/max dimensions, alignment, wrapping and grow/shrink use the same logical-pixel model on both targets. p/px/py and size expand to independent properties; later classes win per property/state. Spacing 2/4/6 uses sm/md/lg, 1 uses sm/2, 3 averages sm/md; other numeric sizes use spacing.md/4 per unit. Percentage heights need a definite parent height. Example: <View className=\"grid grid-cols-2 gap-4 p-4\" /> creates two equal tracks with default 16px gaps/padding. Viewport sm/md/lg/xl/2xl variants use 640/768/1024/1280/1536 logical pixels; dark matches the enclosing theme. Arbitrary CSS, container queries, named grid lines and subgrid remain unsupported.  A conditional JSX ternary whose condition reads directly declared component state mounts only its selected branch. Nested branches work. Unchanged selection preserves child state; removal releases it once, and later selection constructs fresh state. Transparent slots add no layout or accessibility element. Empty/absent derived text in containers also contributes no anonymous layout item; explicit Text components keep their own node. For example, <View>{visible.get()?<Text>Ready</Text>:null}</View> shows/hides Ready. Prebuilt owned Nodes cannot be consumed repeatedly from captures; ordinary callback ownership errors apply. Invalid interactive/label/hidden ancestry is checked again after replacement. Use as=\"kbd\" or as=\"code\" for composed noninteractive phrasing containers; these tags do not register keyboard handlers. View.hidden excludes a retained subtree from layout, input and accessibility until shown; unlike conditional removal, it preserves child state. overflow-auto scrolls a bounded container on both targets; screen dimensions use logical window/browser viewport size. View.tabIndex=0 adds a source-order Tab stop; -1 permits programmatic/accessibility focus. View.windowDragRegion marks noninteractive custom-header drag surfaces. Semantic as also supports nav/main/header/footer/aside/article, blockquote, ul/ol/li and table/thead/tbody/tr/th/td. These keep their browser/native landmark, list and table roles; use explicit layout classes. Example: <View as=\"table\"><View as=\"tr\"><View as=\"td\"><Text>Value</Text></View></View></View> exposes a table cell. Ownership: consumes props and child nodes, including on failure; bindings never retain state owners."
     },
     {
       "name": "Button",

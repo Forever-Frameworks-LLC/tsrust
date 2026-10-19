@@ -6,7 +6,7 @@ type Scope=BTreeMap<String,String>;
 fn name(value:&str,span:Span)->Expr {Expr::new(ExprKind::Name(value.into()),span)}
 fn call(target:&str,args:Vec<Expr>,span:Span)->Expr {Expr::new(ExprKind::Call(Box::new(name(target,span)),args),span)}
 fn statement(kind:StmtKind,span:Span)->Stmt {Stmt{kind,span,labels:vec![],control_target:None}}
-struct Lower<'a> {branch:&'a str,child_result:crate::type_syntax::ValueAnnotation,scalar_functions:std::collections::BTreeSet<String>,shadowed:std::collections::BTreeSet<String>,text_binding:&'a str,reactive_props:std::collections::BTreeMap<(usize,usize),std::collections::BTreeSet<String>>,condition:&'a str,value_binding:&'a str,next_closure:usize,signal:&'a str,bind:&'a str,retain:&'a str,next:usize,constructors:Vec<Span>}
+struct Lower<'a> {branch:&'a str,child_result:crate::type_syntax::ValueAnnotation,scalar_functions:std::collections::BTreeSet<String>,shadowed:std::collections::BTreeSet<String>,text_binding:&'a str,reactive_props:std::collections::BTreeMap<(usize,usize),std::collections::BTreeSet<String>>,condition:&'a str,value_binding:&'a str,next_closure:usize,signal:&'a str,location:Option<&'a String>,bind:&'a str,retain:&'a str,next:usize,constructors:Vec<Span>}
 fn scalar_annotation(value:&crate::type_syntax::ValueAnnotation)->bool {
  use crate::type_syntax::ValueAnnotationKind as K;
  match &value.kind {K::Named(name)=>matches!(name.text.as_str(),"string"|"int"|"number"|"boolean"|"null"|"undefined"),K::Literal(_)=>true,K::Group(value)=>scalar_annotation(value),K::Union(values)=>values.iter().all(scalar_annotation),_=>false}
@@ -114,7 +114,7 @@ impl Lower<'_> {
         for statement in statements {
             match &mut statement.kind {
                 StmtKind::Let{rebindable,name,value,..}=>{
-                    let state=matches!(&value.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(n) if n==self.signal));
+                    let state=matches!(&value.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(n) if n==self.signal || self.location.is_some_and(|location|n==location)));
                     self.expression(value,&scope)?;
                     if state {
                         if !allow_state || *rebindable {return Err(Diagnostic::new("ui-state-owner","Create component state with a direct const declaration outside anonymous callbacks.",name.span));}
@@ -188,7 +188,7 @@ pub(crate) fn retain_state(program:&mut Program,names:&BTreeMap<String,String>)-
     for function in &mut program.functions {crate::source_walk::function_body(function,&mut |_|Ok(()),&mut |expr|{if let ExprKind::Closure{id,..}=&expr.kind {next_closure=next_closure.max(id+1);}Ok(())})?;}
     let scalar_functions=program.functions.iter().filter(|function|matches!(&function.result,Some(crate::syntax::ResultAnnotation::Named(value)) if scalar_annotation(value))).map(|function|function.name.text.clone()).chain(["String","Number","Boolean","parseInt","parseFloat","isNaN","isFinite"].into_iter().map(str::to_owned)).collect();
     let child_result=crate::native_type_resolution::project(&mut program.records,&super::CHILD_VALUE,Span::default())?;
-    let mut lower=Lower{branch,child_result,scalar_functions,shadowed:Default::default(),text_binding,reactive_props,condition,value_binding,next_closure,signal,bind,retain,next:0,constructors:vec![]};
+    let mut lower=Lower{branch,child_result,scalar_functions,shadowed:Default::default(),text_binding,reactive_props,condition,value_binding,next_closure,signal,location:names.get("location"),bind,retain,next:0,constructors:vec![]};
     for function in &mut program.functions {
         if names.values().any(|name|name==&function.name.text) {continue;}
         fn locals(body:&[Stmt],names:&mut std::collections::BTreeSet<String>) {
@@ -208,7 +208,7 @@ pub(crate) fn retain_state(program:&mut Program,names:&BTreeMap<String,String>)-
         lower.shadowed=shadowed;
         lower.body(&mut function.body,&Scope::new(),&[],true)?;
         crate::source_walk::function_body(function,&mut |_|Ok(()),&mut |expression| {
-            if matches!(&expression.kind,ExprKind::Name(name) if name==signal) && !lower.constructors.contains(&expression.span) {
+            if matches!(&expression.kind,ExprKind::Name(name) if name==signal || names.get("location").is_some_and(|location|name==location)) && !lower.constructors.contains(&expression.span) {
                 return Err(Diagnostic::new("ui-state-owner","Create component state with a direct const declaration; signal constructor aliases are not supported.",expression.span));
             }
             Ok(())

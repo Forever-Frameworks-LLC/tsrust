@@ -10,7 +10,7 @@ impl Length {
         Self::Auto => "auto".into(), Self::None => "none".into(), Self::Fit=>"fit-content".into(),
     }}
 }
-pub(super) const SPACING: &[&str] = &["0","px","0.5","1","1.5","2","2.5","3","3.5","4","5","6","8","12","16","24","32","48","64","96"];
+pub(super) const SPACING: &[&str] = &["0","px","0.5","1","1.5","2","2.5","3","3.5","4","5","6","8","12","16","24","32","48","64","96","128","160","192","256"];
 pub(super) fn spacing(size:&str,theme:&Theme)->f32 { match size {
     "px"=>1., "2"=>theme.spacing.sm as f32,"4"=>theme.spacing.md as f32,"6"=>theme.spacing.lg as f32,
     "1"=>theme.spacing.sm as f32/2.,"3"=>(theme.spacing.sm+theme.spacing.md) as f32/2.,

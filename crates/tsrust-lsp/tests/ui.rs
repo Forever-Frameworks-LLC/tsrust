@@ -218,3 +218,10 @@ fn explicit_children_completion_hover_and_conflicts_match_the_compiler(){
  let partial=source.replace("children={[<Text>Owned child</Text>]}","chi");session.change("main.tsrx",&partial);session.settle();let names=session.completion("main.tsrx",&partial,partial.find("chi/").unwrap()+3).unwrap();assert!(names.contains(&"children".into()),"{names:?}");
  let broken=source.replace("/>);",">Duplicate</View>);");session.change("main.tsrx",&broken);let diagnostics=session.wait_for_diagnostics("main.tsrx");assert!(!diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
 }
+
+#[test]
+fn application_links_location_and_display_type_help_match_checked_source(){
+ let source="import {View,Text,Link,Node,location,navigate,back,forward} from 'std:ui';function App():Node{const path=location();return <View><Link href=\"/docs\" aria-label=\"Read docs\">Docs</Link><Text className=\"text-3xl\">{path.get()}</Text><View hidden={path.get()!=='/docs'}><Text>Article</Text></View></View>;}function main(){}";
+ let mut session=support::session::Session::start(&[]);session.open("main.tsrx",source);let diagnostics=session.wait_for_diagnostics("main.tsrx");session.settle();assert!(diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
+ for (needle,expected) in [("location();","single application"),("href=","absolute"),("text-3xl","36"),("<Link ","anchor")]{let at=source.find(needle).unwrap()+if needle=="<Link "{2}else{1};let help=session.hover("main.tsrx",source,at).unwrap_or_default();assert!(help.to_lowercase().contains(&expected.to_lowercase()),"{needle}: {help}");}
+}

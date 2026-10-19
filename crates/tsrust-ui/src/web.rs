@@ -12,7 +12,7 @@ fn escape(value: &str, out: &mut String) {
         }
     }
 }
-pub(crate) const BASE: &str = "body{margin:0;font-family:system-ui,sans-serif}:where(.ui){--ui-shadow-ring-width:0px;--ui-shadow-ring-color:var(--ui-ring);box-sizing:border-box;margin:0;font:inherit;color:inherit;border-color:var(--ui-border);white-space:pre-wrap}:where(.ui[data-tsrust-view]){display:flex;flex-direction:column}:where(.ui[data-tsrust-text]){display:block}:where(button.ui){display:flex;flex-direction:row;align-items:center;justify-content:center;appearance:none;border:0 solid var(--ui-border);border-radius:0;background:transparent;text-align:center;padding:8px 16px;white-space:pre-wrap}:where(button.ui:disabled,input.ui:disabled,textarea.ui:disabled){opacity:.6}:where(input.ui,textarea.ui){appearance:none;border:0 solid var(--ui-border);border-radius:0;background:transparent;width:240px;height:32px;padding:0;line-height:normal;text-align:start}:where(textarea.ui){height:64px;resize:none;white-space:pre-wrap}:where(input.ui){white-space:pre}:where(input.ui::placeholder,textarea.ui::placeholder){color:inherit;opacity:.6}:where(button.ui:focus-visible,input.ui:focus-visible,textarea.ui:focus-visible){outline:2px solid var(--ui-ring);outline-offset:2px}:where([data-tsrust-theme]){color:var(--ui-foreground);background:var(--ui-background);font-size:var(--ui-text-base)}";
+pub(crate) const BASE: &str = "body{margin:0;font-family:system-ui,sans-serif}:where(.ui){--ui-shadow-ring-width:0px;--ui-shadow-ring-color:var(--ui-ring);box-sizing:border-box;margin:0;font:inherit;color:inherit;border-color:var(--ui-border);white-space:pre-wrap}:where(.ui[data-tsrust-view]){display:flex;flex-direction:column}:where(.ui[data-tsrust-text]){display:block}:where(ul.ui,ol.ui){padding:0;list-style:none}:where(a.ui){text-decoration:none;cursor:pointer}:where(a.ui[aria-current=page]){background:var(--ui-muted);font-weight:500}:where(a.ui:focus-visible){outline:2px solid var(--ui-ring);outline-offset:2px}:where(button.ui){display:flex;flex-direction:row;align-items:center;justify-content:center;appearance:none;border:0 solid var(--ui-border);border-radius:0;background:transparent;text-align:center;padding:8px 16px;white-space:pre-wrap}:where(button.ui:disabled,input.ui:disabled,textarea.ui:disabled){opacity:.6}:where(input.ui,textarea.ui){appearance:none;border:0 solid var(--ui-border);border-radius:0;background:transparent;width:240px;height:32px;padding:0;line-height:normal;text-align:start}:where(textarea.ui){height:64px;resize:none;white-space:pre-wrap}:where(input.ui){white-space:pre}:where(input.ui::placeholder,textarea.ui::placeholder){color:inherit;opacity:.6}:where(button.ui:focus-visible,input.ui:focus-visible,textarea.ui:focus-visible){outline:2px solid var(--ui-ring);outline-offset:2px}:where([data-tsrust-theme]){color:var(--ui-foreground);background:var(--ui-background);font-size:var(--ui-text-base)}";
 pub(crate) fn scope(node:&Node,theme:&crate::theme::Theme,mode:&str)->String {
     if node.theme.is_some() {theme.variables(mode)}else{String::new()}
 }
@@ -20,15 +20,16 @@ fn element(node:&Node,out:&mut String,theme:&crate::theme::Theme,mode:&str) {
  let Some(node)=node.visible_root() else{return;};let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));let id=node.identity.get();
  let tag=node.tag();
  out.push('<');out.push_str(tag);
- for (key,value) in [("role",&node.semantics.role),("aria-label",&node.semantics.label),("id",&node.semantics.id),("data-slot",&node.semantics.slot),("data-size",&node.semantics.size),("for",&node.semantics.html_for),("aria-describedby",&node.semantics.described_by),("aria-invalid",&node.semantics.invalid)] {
+ for (key,value) in [("href",&node.semantics.href),("role",&node.semantics.role),("aria-label",&node.semantics.label),("id",&node.semantics.id),("data-slot",&node.semantics.slot),("data-size",&node.semantics.size),("for",&node.semantics.html_for),("aria-describedby",&node.semantics.described_by),("aria-invalid",&node.semantics.invalid)] {
   if !value.is_empty(){out.push(' ');out.push_str(key);out.push_str("=\"");escape(value,out);out.push('"');}
  }
+ if !node.semantics.href.is_empty()&&super::navigation::is_current(&node.semantics.href){out.push_str(" aria-current=\"page\"");}
  if let Some(index)=node.semantics.tab_index{out.push_str(&format!(" tabindex=\"{index}\""));}
  if node.kind==Kind::View{out.push_str(" data-tsrust-view");}
  if node.kind==Kind::Text{out.push_str(" data-tsrust-text");}
  if node.semantics.role=="separator"{out.push_str(if node.semantics.orientation=="vertical"{" aria-orientation=\"vertical\" data-orientation=\"vertical\" data-vertical"}else{" aria-orientation=\"horizontal\" data-orientation=\"horizontal\" data-horizontal"});}
  if node.semantics.hidden{out.push_str(" aria-hidden=\"true\"");}
- if matches!(node.kind,Kind::Button|Kind::DisabledButton) {out.push_str(" type=\"button\"");}
+ if matches!(node.kind,Kind::Button|Kind::DisabledButton) && node.semantics.href.is_empty() {out.push_str(" type=\"button\"");}
  if node.is_disabled() {out.push_str(" disabled");}
  if let Some(field)=&node.editable {
   out.push_str(" placeholder=\"");escape(&field.placeholder,out);out.push('"');

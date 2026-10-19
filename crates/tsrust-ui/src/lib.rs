@@ -6,6 +6,7 @@ mod native;
 #[cfg(all(target_arch="wasm32",feature="ui-web"))]
 pub mod browser;
 mod state;
+pub mod navigation;
 mod branch;
 #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
 mod window;
@@ -43,6 +44,7 @@ pub enum Child { Node(Node), Text(TextPart) }
 #[serde(default, deny_unknown_fields, rename_all="camelCase")]
 pub(crate) struct Semantics {
     pub tag: String,
+    pub href:String,
     pub role: String,
     pub label: String,
     pub id: String,
@@ -85,13 +87,14 @@ impl Node {
     pub fn with_semantics(mut self, config: &str) -> Result<Self,String> {
         if config.is_empty(){return Ok(self);}
         let value:Semantics=serde_json::from_str(config).map_err(|e|format!("Invalid UI semantics: {e}"))?;
+        if !value.href.is_empty(){return Err("href is set only by Link".into());}
         if value.window_drag_region && self.kind!=Kind::View{return Err("windowDragRegion requires View".into());}
         if value.tab_index.is_some_and(|index|!matches!(index,-1|0)) || value.tab_index.is_some() && self.kind!=Kind::View{return Err("View tabIndex supports 0 (sequential focus) or -1 (programmatic focus)".into());}
         let tag=if value.tag.is_empty(){self.tag()}else{&value.tag};
         let allowed=match self.kind {
-            Kind::View=>matches!(tag,"div"|"section"|"span"|"label"|"kbd"|"code"),
+            Kind::View=>matches!(tag,"div"|"section"|"span"|"label"|"kbd"|"code"|"nav"|"main"|"header"|"footer"|"aside"|"article"|"blockquote"|"ul"|"ol"|"li"|"table"|"thead"|"tbody"|"tr"|"th"|"td"),
             Kind::Text=>matches!(tag,"div"|"span"|"p"|"h1"|"h2"|"h3"|"h4"|"h5"|"h6"|"code"|"kbd"),
-            Kind::Button|Kind::DisabledButton=>tag=="button",
+            Kind::Button|Kind::DisabledButton=>matches!(tag,"button"|"a"),
             Kind::Input=>tag=="input",
             Kind::Textarea=>tag=="textarea",
         };
@@ -99,7 +102,7 @@ impl Node {
         if !matches!(value.role.as_str(),""|"alert"|"status"|"separator"|"group"|"note"|"region"|"none"|"presentation") {return Err(format!("Unsupported UI role: {}",value.role));}
         if matches!(self.kind,Kind::Button|Kind::DisabledButton|Kind::Input|Kind::Textarea) && !value.role.is_empty(){return Err("Interactive controls keep their implicit role".into());}
         if !value.orientation.is_empty() && (value.role!="separator" || !matches!(value.orientation.as_str(),"horizontal"|"vertical")){return Err("aria-orientation requires a separator and horizontal or vertical".into());}
-        let name_allowed=if value.role.is_empty(){matches!(tag,"button"|"input"|"textarea"|"h1"|"h2"|"h3"|"h4"|"h5"|"h6"|"section")}else{!matches!(value.role.as_str(),"none"|"presentation")};
+        let name_allowed=if value.role.is_empty(){matches!(tag,"nav"|"main"|"header"|"footer"|"aside"|"article"|"table"|"a"|"button"|"input"|"textarea"|"h1"|"h2"|"h3"|"h4"|"h5"|"h6"|"section")}else{!matches!(value.role.as_str(),"none"|"presentation")};
         if !value.label.is_empty() && !name_allowed{return Err("aria-label requires a button, heading, section or a role that supports naming".into());}
         if value.role=="region" && value.label.trim().is_empty(){return Err("A region requires an accessible label".into());}
         if !value.html_for.is_empty() && tag!="label"{return Err("htmlFor requires a label element".into());}
@@ -109,7 +112,7 @@ impl Node {
         if value.id.chars().any(|ch|ch.is_ascii_whitespace()||ch.is_control()){return Err("UI id cannot contain whitespace or control characters".into());}
         if value.slot.chars().any(|ch|!(ch.is_ascii_alphanumeric()||ch=='-')){return Err("UI slot must contain ASCII letters, digits or hyphens".into());}
         if value.size.chars().any(|ch|!(ch.is_ascii_alphanumeric()||ch=='-')){return Err("UI data-size must contain ASCII letters, digits or hyphens".into());}
-        self.semantics=value;self.validate_structure()?;Ok(self)
+        let href=std::mem::take(&mut self.semantics.href);self.semantics=value;self.semantics.href=href;self.validate_structure()?;Ok(self)
     }
     fn has_enabled_controls(&self)->bool {!self.collapsed && (self.enabled_control() || self.children.iter().any(Self::has_enabled_controls))}
     pub(crate) fn enabled_control(&self)->bool {(matches!(self.kind,Kind::Button|Kind::Input|Kind::Textarea) || self.kind==Kind::View && self.semantics.tab_index.is_some()) && !self.is_disabled()}
@@ -119,7 +122,7 @@ impl Node {
         else {let kind=if next{Kind::DisabledButton}else{Kind::Button};let changed=self.kind!=kind;self.kind=kind;changed}
     }
     pub(crate) fn tag(&self)->&str {
-        if !self.semantics.tag.is_empty(){&self.semantics.tag}else{match self.kind{Kind::View=>"div",Kind::Text=>"span",Kind::Button|Kind::DisabledButton=>"button",Kind::Input=>"input",Kind::Textarea=>"textarea"}}
+        if !self.semantics.href.is_empty(){"a"}else if !self.semantics.tag.is_empty(){&self.semantics.tag}else{match self.kind{Kind::View=>"div",Kind::Text=>"span",Kind::Button|Kind::DisabledButton=>"button",Kind::Input=>"input",Kind::Textarea=>"textarea"}}
     }
     pub fn view(children: Vec<Child>, class_name: String) -> Result<Self,String> {
         Self::new(Kind::View,class_name,String::new(),Self::child_nodes(children)?)

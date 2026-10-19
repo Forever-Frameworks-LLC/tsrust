@@ -139,11 +139,11 @@ impl Painter {
             self.live_editors.insert(id);
         }
         let (mut background, mut radius) = (node.theme.as_ref().map(|_|theme.color(mode,"background").unwrap()), [0.;4]);
-        if matches!(node.kind,Kind::Button|Kind::DisabledButton){inherited.align=1;style.flex_direction=FlexDirection::Row;style.align_items=AlignItems::CENTER;style.justify_content=JustifyContent::CENTER;}
+        if matches!(node.kind,Kind::Button|Kind::DisabledButton)&&node.semantics.href.is_empty(){inherited.align=1;style.flex_direction=FlexDirection::Row;style.align_items=AlignItems::CENTER;style.justify_content=JustifyContent::CENTER;}
         let (mut border,mut border_color,mut ring)=([0.;4],theme.color(mode,"border")?,theme.color(mode,"ring")?);
         let mut overflow=0;let mut opacity=if node.is_disabled(){0.6}else{1.};let mut suppress_outline=false;let mut placeholder_color=None;
         let (mut shadow_width,mut shadow_color,mut outline)=(0.,theme.color(mode,"ring")?,None);
-        if matches!(node.kind,Kind::DisabledButton|Kind::Button) {
+        if matches!(node.kind,Kind::DisabledButton|Kind::Button)&&node.semantics.href.is_empty() {
             style.padding = Rect {
                 left: length(16.),
                 right: length(16.),
@@ -351,10 +351,27 @@ impl Painter {
             Kind::Textarea => accesskit::Role::MultilineTextInput,
         };
         let role=match item.semantics.role.as_str(){
+            _ if !item.semantics.href.is_empty()=>accesskit::Role::Link,
             "alert"=>accesskit::Role::Alert,"status"=>accesskit::Role::Status,"separator"=>accesskit::Role::Splitter,
             "group"=>accesskit::Role::Group,"note"=>accesskit::Role::Note,"region"=>accesskit::Role::Region,
             "none"|"presentation"=>accesskit::Role::GenericContainer,
             _ if matches!(item.semantics.tag.as_str(),"h1"|"h2"|"h3"|"h4"|"h5"|"h6")=>accesskit::Role::Heading,
+            _ if item.semantics.tag=="nav"=>accesskit::Role::Navigation,
+            _ if item.semantics.tag=="main"=>accesskit::Role::Main,
+            _ if item.semantics.tag=="header"=>accesskit::Role::Header,
+            _ if item.semantics.tag=="footer"=>accesskit::Role::Footer,
+            _ if item.semantics.tag=="aside"=>accesskit::Role::Complementary,
+            _ if item.semantics.tag=="article"=>accesskit::Role::Article,
+            _ if item.semantics.tag=="blockquote"=>accesskit::Role::Blockquote,
+            _ if item.semantics.tag=="ul"=>accesskit::Role::List,
+            _ if item.semantics.tag=="ol"=>accesskit::Role::List,
+            _ if item.semantics.tag=="li"=>accesskit::Role::ListItem,
+            _ if item.semantics.tag=="table"=>accesskit::Role::Table,
+            _ if item.semantics.tag=="thead"=>accesskit::Role::RowGroup,
+            _ if item.semantics.tag=="tbody"=>accesskit::Role::RowGroup,
+            _ if item.semantics.tag=="tr"=>accesskit::Role::Row,
+            _ if item.semantics.tag=="th"=>accesskit::Role::ColumnHeader,
+            _ if item.semantics.tag=="td"=>accesskit::Role::Cell,
             _ if item.semantics.tag=="label"=>accesskit::Role::Label,
             _ if item.semantics.tag=="p"=>accesskit::Role::Paragraph,
             _ if item.semantics.tag=="code"=>accesskit::Role::Code,
@@ -362,12 +379,13 @@ impl Painter {
             _=>default_role,
         };
         let mut node = accesskit::Node::new(role);
+        if !item.semantics.href.is_empty()&&super::navigation::is_current(&item.semantics.href){node.set_aria_current(accesskit::AriaCurrent::Page);}
         if role==accesskit::Role::Heading{node.set_level((item.semantics.tag.as_bytes()[1]-b'1') as usize);}
         if role==accesskit::Role::Splitter{node.set_orientation(if item.semantics.orientation=="vertical"{accesskit::Orientation::Vertical}else{accesskit::Orientation::Horizontal});}
         if item.semantics.hidden{node.set_hidden();}
         if item.semantics.role=="alert"{node.set_live(accesskit::Live::Assertive);}else if item.semantics.role=="status"{node.set_live(accesskit::Live::Polite);}
         if !item.semantics.label.is_empty(){node.set_label(item.semantics.label.clone());}
-        else if !item.label.is_empty() && matches!(role,accesskit::Role::Label|accesskit::Role::Button|accesskit::Role::Heading) {
+        else if !item.label.is_empty() && matches!(role,accesskit::Role::Label|accesskit::Role::Button|accesskit::Role::Link|accesskit::Role::Heading) {
             node.set_label(item.label.clone());
         }
         if let Some(field)=&item.field {
@@ -481,7 +499,7 @@ impl Painter {
             }
             scene.pop_layer();
         }else if let Some(text) = &mut item.text {
-            layout_text(text,content_width,matches!(item.role,Kind::Button|Kind::DisabledButton));
+            layout_text(text,content_width,matches!(item.role,Kind::Button|Kind::DisabledButton)&&item.semantics.href.is_empty());
             text.align(match item.align {1=>Alignment::Center,2=>Alignment::End,_=>Alignment::Start},AlignmentOptions::default());
             paint_text(scene,text,paint_color(item.color),transform,origin);
         }
@@ -564,6 +582,7 @@ fn keyboard(focus:&mut Option<u64>,pressed:&mut Option<u64>,ids:&[u64],shift:boo
 }
 fn focusable(node:&accesskit::Node)->bool {node.supports_action(accesskit::Action::Focus) && !node.is_disabled() && !node.is_hidden()}
 struct App {
+    location:String,
     proxy: winit::event_loop::EventLoopProxy<accesskit::ActionRequest>,
     pointer: (f64,f64),
     pressed: Option<u64>,
@@ -752,6 +771,12 @@ impl App {
         Ok(())
     }
     fn draw(&mut self) -> Result<bool, String> {
+        if let Some(path)=super::navigation::current(){
+            if path!=self.location {
+                fn target(node:&Node,fragment:Option<&str>)->Option<u64>{let node=node.visible_root()?;if fragment.map_or(node.tag()=="h1",|fragment|node.semantics.id==fragment){return Some(node.identity.get());}node.children.iter().find_map(|child|target(child,fragment))}
+                self.node.ensure_identities();self.painter.reveal_target=target(&self.node,path.split_once('#').map(|(_,fragment)|fragment));self.location=path;
+            }
+        }
         self.painter.hover=self.pointer_nodes();self.painter.pressed_nodes=self.pressed_nodes();
         let cursor=self.painter.cursors.iter().rev().find(|(id,_)|self.visible_hit(**id)).map(|(_,cursor)|*cursor).unwrap_or(0);
         let Some(active) = &mut self.active else {
@@ -997,6 +1022,7 @@ fn run_window(mut node: Node, title: String, close_after_frame: bool,options:&st
     node.refresh()?;
     let event_loop = EventLoop::<accesskit::ActionRequest>::with_user_event().build().map_err(|e| e.to_string())?;
     let mut app = App {
+        location:String::new(),
         proxy: event_loop.create_proxy(), pointer:(-1.,-1.),pressed:None,dragging_text:false,focus:None,shift:false,modifiers:ModifiersState::empty(),focus_visible:false,clipboard:None,key_pressed:None,
         close_after_frame,
         presented: false,
@@ -1462,4 +1488,24 @@ mod label_editable_tests {
   assert!(!painter.viewport.scroll_to(f64::NAN,f64::INFINITY));
  }
 
+}
+
+#[cfg(test)]
+mod navigation_semantic_tests {
+ use super::*;
+ #[test]
+ fn native_links_and_markdown_structures_keep_accessibility_roles(){
+  let location=crate::navigation::location(String::from,Clone::clone).unwrap();
+  crate::navigation::navigate("/docs").unwrap();
+  let link=crate::navigation::link(vec![crate::Child::Text(crate::TextPart::Literal("Docs".into()))],String::new(),"/docs").unwrap();
+  let item=Node::view(vec![crate::Child::Text(crate::TextPart::Literal("Item".into()))],String::new()).unwrap().with_semantics(r#"{"tag":"li"}"#).unwrap();
+  let list=Node::view(vec![crate::Child::Node(item)],String::new()).unwrap().with_semantics(r#"{"tag":"ul"}"#).unwrap();
+  let cell=Node::view(vec![crate::Child::Text(crate::TextPart::Literal("Value".into()))],String::new()).unwrap().with_semantics(r#"{"tag":"td"}"#).unwrap();
+  let row=Node::view(vec![crate::Child::Node(cell)],"flex-row".into()).unwrap().with_semantics(r#"{"tag":"tr"}"#).unwrap();
+  let table=Node::view(vec![crate::Child::Node(row)],String::new()).unwrap().with_semantics(r#"{"tag":"table"}"#).unwrap();
+  let mut root=Node::view(vec![crate::Child::Node(link),crate::Child::Node(list),crate::Child::Node(table)],String::new()).unwrap().own_state(location).unwrap();root.refresh().unwrap();
+  let (_,snapshot)=Painter::new().scene(&root,640.,1.,None).unwrap();
+  for role in [accesskit::Role::Link,accesskit::Role::List,accesskit::Role::ListItem,accesskit::Role::Table,accesskit::Role::Row,accesskit::Role::Cell]{assert!(snapshot.nodes.iter().any(|(_,node)|node.role()==role),"{role:?}");}
+  let link=&snapshot.nodes.iter().find(|(_,node)|node.role()==accesskit::Role::Link).unwrap().1;assert_eq!(link.label(),Some("Docs"));assert_eq!(link.aria_current(),Some(accesskit::AriaCurrent::Page));
+ }
 }

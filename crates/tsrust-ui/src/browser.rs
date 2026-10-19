@@ -4,8 +4,8 @@ use std::{cell::RefCell,rc::Rc};
 use wasm_bindgen::{prelude::*,JsCast};
 use web_sys::{Element,Event};
 
-struct State { node:Option<Node>, elements:std::collections::BTreeMap<u64,Element>, error:Option<String>, composing:std::collections::BTreeMap<u64,String>, scrolls:std::collections::BTreeMap<u64,(i32,i32)>, root:Element, style:Element, scope:String }
-struct Listener { element:Element, event:&'static str, callback:Closure<dyn FnMut(Event)> }
+struct State { location:String, node:Option<Node>, elements:std::collections::BTreeMap<u64,Element>, error:Option<String>, composing:std::collections::BTreeMap<u64,String>, scrolls:std::collections::BTreeMap<u64,(i32,i32)>, root:Element, style:Element, scope:String }
+struct Listener { element:web_sys::EventTarget, event:&'static str, callback:Closure<dyn FnMut(Event)> }
 impl Drop for Listener {
     fn drop(&mut self) { let _=self.element.remove_event_listener_with_callback_and_bool(self.event,self.callback.as_ref().unchecked_ref(),true); }
 }
@@ -39,7 +39,7 @@ fn sync_element(node:&Node,document:&web_sys::Document,all:&mut std::collections
     let tag=node.tag();
     let id=node.identity.get();let element=if let Some(element)=all.get(&id){element.clone()}else{
     let element=document.create_element(tag)?;
-    for (key,value) in [("role",&node.semantics.role),("aria-label",&node.semantics.label),("id",&node.semantics.id),("data-slot",&node.semantics.slot),("data-size",&node.semantics.size),("for",&node.semantics.html_for),("aria-describedby",&node.semantics.described_by),("aria-invalid",&node.semantics.invalid)] {
+    for (key,value) in [("href",&node.semantics.href),("role",&node.semantics.role),("aria-label",&node.semantics.label),("id",&node.semantics.id),("data-slot",&node.semantics.slot),("data-size",&node.semantics.size),("for",&node.semantics.html_for),("aria-describedby",&node.semantics.described_by),("aria-invalid",&node.semantics.invalid)] {
         if !value.is_empty(){element.set_attribute(key,value)?;}
     }
     if let Some(index)=node.semantics.tab_index{element.set_attribute("tabindex",&index.to_string())?;}
@@ -51,7 +51,7 @@ fn sync_element(node:&Node,document:&web_sys::Document,all:&mut std::collections
     element.set_attribute("style",&super::web::scope(node,theme,mode))?;
     element.set_attribute("class",&format!("ui {}",node.class_name))?;
     element.set_attribute("data-tsrust-node",&id.to_string())?;
-    if matches!(node.kind,Kind::Button|Kind::DisabledButton){element.set_attribute("type","button")?;}
+    if matches!(node.kind,Kind::Button|Kind::DisabledButton)&&node.semantics.href.is_empty(){element.set_attribute("type","button")?;}
     if node.is_disabled() {element.set_attribute("disabled","")?;}
     if let Some(field)=&node.editable {
         element.set_attribute("placeholder",&field.placeholder)?;
@@ -66,6 +66,9 @@ fn sync_element(node:&Node,document:&web_sys::Document,all:&mut std::collections
     if node.press.is_some(){element.set_attribute("data-tsrust-press","")?;}
     all.insert(id,element.clone());element};
 
+    if !node.semantics.href.is_empty(){
+        if super::navigation::is_current(&node.semantics.href){element.set_attribute("aria-current","page")?;}else{element.remove_attribute("aria-current")?;}
+    }
     if node.theme.is_some(){element.set_attribute("style",&super::web::scope(node,theme,mode))?;}
     if matches!(node.kind,Kind::Button|Kind::DisabledButton|Kind::Input|Kind::Textarea) {
         if node.is_disabled(){element.set_attribute("disabled","")?;}else{element.remove_attribute("disabled")?;}
@@ -114,6 +117,13 @@ fn update(state:&mut State,document:&web_sys::Document)->Result<(),JsValue> {
     let mut roots=Vec::new();if let Some(root)=node.visible_root(){roots.push(sync_element(root,document,&mut state.elements,&mut state.composing,theme,mode)?);}
     order_children(&state.root,&roots)?;
     for (id,(x,y)) in &state.scrolls {if let Some(element)=state.elements.get(id).filter(|element|element.is_connected()){element.set_scroll_left(*x);element.set_scroll_top(*y);}}
+    if let Some(path)=super::navigation::current(){
+        if path!=state.location {
+            let target=path.split_once('#').and_then(|(_,fragment)|document.get_element_by_id(fragment)).or_else(||document.query_selector("[data-slot='route-page'] h1, #landing h1").ok().flatten());
+            if let Some(target)=target{target.set_attribute("tabindex","-1")?;if let Ok(focus)=js_sys::Reflect::get(target.as_ref(),&JsValue::from_str("focus")){if let Some(focus)=focus.dyn_ref::<js_sys::Function>(){let _=focus.call0(target.as_ref());}}if path.contains('#'){target.scroll_into_view();}}
+            state.location=path;
+        }
+    }
     Ok(())
 }
 pub fn mount(mut node:Node,title:&str)->Result<Mount,JsValue> {
@@ -125,7 +135,7 @@ pub fn mount(mut node:Node,title:&str)->Result<Mount,JsValue> {
     let scope=format!("[data-tsrust-mount=\"{id}\"]");
     let style=document.create_element("style")?;
     let root=document.create_element("div")?;root.set_attribute("data-tsrust-mount",&id.to_string())?;let default=super::theme::Theme::default();let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((&default,"light"));root.set_attribute("style",&format!("{}color:var(--ui-foreground);background:var(--ui-background);font-size:var(--ui-text-base);min-height:100vh",theme.variables(mode)))?;
-    let mut state=State{node:Some(node),elements:Default::default(),error:None,composing:Default::default(),scrolls:Default::default(),root:root.clone(),style:style.clone(),scope};
+    let mut state=State{location:String::new(),node:Some(node),elements:Default::default(),error:None,composing:Default::default(),scrolls:Default::default(),root:root.clone(),style:style.clone(),scope};
     update(&mut state,&document)?;
     let state=Rc::new(RefCell::new(state));let mut mount=Mount{listeners:vec![],state:state.clone()};
     for event in ["click","input","compositionstart","compositionend"] {
@@ -135,6 +145,11 @@ pub fn mount(mut node:Node,title:&str)->Result<Mount,JsValue> {
             if state.node.is_none(){return;}
             let Some(target)=message.target().and_then(|target|target.dyn_into::<Element>().ok()) else{return;};
             let target=if event=="click"{match target.closest("[data-tsrust-press]"){Ok(Some(element))=>element,_=>return}}else{target};
+            if event=="click" && target.tag_name()=="A" {
+                let property=|name|js_sys::Reflect::get(message.as_ref(),&JsValue::from_str(name)).unwrap_or(JsValue::UNDEFINED);
+                if ["ctrlKey","metaKey","shiftKey","altKey"].iter().any(|name|property(name).as_bool()==Some(true))||property("button").as_f64().is_some_and(|button|button!=0.){return;}
+                message.prevent_default();
+            }
             if event!="click"&&!matches!(target.tag_name().as_str(),"INPUT"|"TEXTAREA"){return;}
             let Some(id)=target.get_attribute("data-tsrust-node").and_then(|value|value.parse::<u64>().ok()) else{return;};
             if state.elements.get(&id)!=Some(&target){return;}
@@ -153,7 +168,20 @@ pub fn mount(mut node:Node,title:&str)->Result<Mount,JsValue> {
         }) as Box<dyn FnMut(Event)>);
         // Capture keeps the existing control behavior for nonbubbling synthetic events too.
         root.add_event_listener_with_callback_and_bool(event,callback.as_ref().unchecked_ref(),true)?;
-        mount.listeners.push(Listener{element:root.clone(),event,callback});
+        mount.listeners.push(Listener{element:root.clone().into(),event,callback});
+    }
+    if let Some(window)=web_sys::window() {
+        for event in ["popstate","hashchange"] {
+            let weak=Rc::downgrade(&state);let document=document.clone();
+            let callback=Closure::wrap(Box::new(move |_:Event| {
+                let Some(state)=weak.upgrade() else{return;};let Ok(mut state)=state.try_borrow_mut() else{return;};if state.node.is_none(){return;}
+                let result=super::navigation::restore_browser().and_then(|_|state.node.as_mut().unwrap().refresh().map(|_|()));
+                if let Err(error)=result{state.error=Some(error);state.node.take();return;}
+                if let Err(error)=update(&mut state,&document){state.error=Some(format!("{error:?}"));state.node.take();}
+            }) as Box<dyn FnMut(Event)>);
+            window.add_event_listener_with_callback_and_bool(event,callback.as_ref().unchecked_ref(),true)?;
+            mount.listeners.push(Listener{element:window.clone().into(),event,callback});
+        }
     }
     let body=document.body().ok_or_else(||JsValue::from_str("Browser body unavailable"))?;
     body.append_child(&style)?;body.append_child(&root)?;Ok(mount)

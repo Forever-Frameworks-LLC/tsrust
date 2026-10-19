@@ -1,4 +1,4 @@
-import { themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, handle as nativeHandle, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
+import { location as nativeLocation, navigate as nativeNavigate, traverse as nativeTraverse, link as nativeLink, themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, handle as nativeHandle, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
 
 /** An owned UI subtree. Moving a Node transfers all descendants. Nodes cannot be cloned or sent to workers. */
 export type Node = NativeNode;
@@ -54,8 +54,8 @@ export interface ViewProps extends SemanticProps {
   hidden?: boolean | ReactiveBoolean;
   /** Marks a native custom-header drag surface. Interactive descendants, including disabled controls and labels, exclude dragging. Browser hosts keep control of their own window. */
   windowDragRegion?: boolean;
-  /** Semantic container tag; defaults to div. kbd and code accept composed phrasing children. */
-  as?: 'div' | 'section' | 'span' | 'label' | 'kbd' | 'code';
+  /** Semantic container tag; defaults to div. Landmarks, lists, blockquotes and table parts preserve their native accessibility roles. Layout remains explicit through className. kbd and code accept composed phrasing children. */
+  as?: 'div' | 'section' | 'span' | 'label' | 'kbd' | 'code' | 'nav' | 'main' | 'header' | 'footer' | 'aside' | 'article' | 'blockquote' | 'ul' | 'ol' | 'li' | 'table' | 'thead' | 'tbody' | 'tr' | 'th' | 'td';
   /** For as=label, the single ID of its associated control. Omission labels the first enclosed control. */
   htmlFor?: string;
   /** Owned ordered content. Pass between tags or with children={values}; combining both is rejected. Forwarding transfers the array once. */
@@ -233,6 +233,35 @@ export function Button(props: ButtonProps): Node {
   }
 
   return applySemantics(unwrapNode(staticButton(children, props.className ?? '', disabled ?? false)), metadata);
+}
+
+/** An internal application link. External URLs, query strings, escapes and traversal are rejected. */
+export interface LinkProps extends ElementProps {
+  /** Absolute local path, optionally followed by a heading fragment. */
+  href: string;
+  children?: Child[];
+  className?: string;
+}
+/** Navigates within this application. Browser links keep native anchor behavior for modified clicks. Native links expose the Link accessibility role. */
+export function Link(props: LinkProps): Node {
+  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
+  return applySemantics(unwrapNode(nativeLink(props.children ?? [], props.className ?? '', props.href)), metadata);
+}
+/** Creates the single application location owner, initially the browser path or / on native. Its get/set methods use checked absolute local paths. */
+export function location(): Signal<string> {
+  return unwrap(nativeLocation());
+}
+/** Pushes an application path. Navigating to the current path is a no-op. */
+export function navigate(path: string): void {
+  unwrap(nativeNavigate(path));
+}
+/** Visits the preceding browser/native history entry. No prior entry is a no-op on native. */
+export function back(): void {
+  unwrap(nativeTraverse(false));
+}
+/** Visits the following browser/native history entry. No following entry is a no-op on native. */
+export function forward(): void {
+  unwrap(nativeTraverse(true));
 }
 
 /** Produces a complete escaped HTML document with shared utility styles. Borrows the tree and title; returns an owned string. Does not execute callbacks or mutate nodes. */

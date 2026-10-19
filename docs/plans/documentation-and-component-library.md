@@ -551,3 +551,14 @@ scope and source fidelity. No authenticated GitHub connection is required.
 - [GitHub Flavored Markdown specification](https://github.github.com/gfm/)
 - [Current UI application guide](../guides/ui-applications.md)
 - [Canonical analytics storage](../../benchmarks/storage/README.md)
+
+## Site composition and visible navigation — 2026-10-19
+
+The owner requires a distinct landing page at `/`, with documentation under
+`/docs`. Next.js and Better Auth are visual references: restrained monochrome,
+fine borders, grouped sidebar navigation, readable article measure and an
+in-page contents rail. Keep the shared native custom header usable. Destination
+counts are not navigation acceptance. Every published page needs an actual
+link, browser history/deep entry and paired native navigation. Search must act
+on the visible index. Rich inline text, code rendering and complete component
+families remain required even after basic page navigation works.
