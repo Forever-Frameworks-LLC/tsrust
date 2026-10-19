@@ -329,6 +329,13 @@ fn nullable_imported_types_callbacks_and_recursion_execute() {
     }
 }
 #[test]
+fn recursive_project_fallback_preserves_generic_calls_and_mutation() {
+    let entry=support::format_round_trip("import {append} from './append.tsr';import {strictEqual} from 'std:testing';function main(){const values=[0];append(values,2);strictEqual(values.length,3);strictEqual(values[1],2);strictEqual(values[2],1);}");
+    let dependency=support::format_round_trip("function preserve<T>(value:T):T{return value;}export function append(values:Mutable<int[]>,n:int):void{if(n>0){values.push(preserve<int>(n));append(values,n-1);}}");
+    let directory=support::TempDirectory::new();let main=directory.0.join("main.tsr");std::fs::write(&main,entry).unwrap();std::fs::write(directory.0.join("append.tsr"),dependency).unwrap();
+    let output=support::run(support::cli().arg("run").arg(main),120);support::success(&output);assert!(output.stdout.is_empty());assert!(output.stderr.is_empty());
+}
+#[test]
 fn private_symbols_and_reserved_names_are_rejected() {
     for (entry, dependency, code) in [
         (
