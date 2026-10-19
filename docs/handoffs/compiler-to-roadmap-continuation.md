@@ -7,7 +7,11 @@ real examples, code rendering, all 64 pinned components, three recipes, 30 block
 theme generation and custom-component authoring. Web/native have equal acceptance
 priority; resolve native headers early. Search starts with offline full-text;
 semantic search follows later. Publish curated SQLite exports without moving the
-benchmark harness or exposing the full canonical database. Existing counter owner
+benchmark harness or exposing the full canonical database. Benchmark documentation
+includes overview graphs and Node-style per-method reference sections, with
+arguments/returns/examples and inline comparable results (strings/trim is the first
+pilot). Both views use the same curated evidence and explicit unmeasured states.
+Existing counter owner
 files and developer evidence paths remain preserved. Theme/visibility/header
 source changes in the working tree are unaccepted work, not completed features.
 

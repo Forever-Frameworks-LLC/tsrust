@@ -15,8 +15,11 @@ whole library as complete after building its shell.
   search is a later, separately designed addition; no embedding service or model
   download is required to read, build or search the documentation.
 - Publish curated, reproducible snapshots exported from canonical
-  `benchmarks/records.sqlite`. Do not ship the full evidence database, move the
-  benchmark harness, or execute benchmarks during documentation builds.
+  `benchmarks/records.sqlite`. Benchmarks are part of the documentation: overall
+  comparison pages and results embedded beside individual methods, such as
+  `strings` / `trim`. They are not confined to a separate performance dashboard.
+  Do not ship the full evidence database, move the benchmark harness, or execute
+  benchmarks during documentation builds.
 - Keep the approved Base UI + Nova baseline pinned to
   `daaf156ee00ed91cc7e6bdd937c1b4973152d141`. The current scope is 64 component
   entries, three recipes and 30 blocks in
@@ -119,6 +122,10 @@ implicit module or a different UI routing convention.
   existing coverage inventory rather than creating a competing status ledger.
 - [ ] Write the first content pages from verified behavior: installation,
   project structure, state/ownership, theming and existing component APIs.
+- [ ] Establish a language-reference pilot for strings and `trim`, including the
+  API-to-workload mapping. Reuse accepted measurements where present; record an
+  explicit unmeasured state otherwise. Do not wait for the complete UI library
+  before proving this documentation/evidence relationship.
 
 Acceptance: every first-page claim maps to current source or accepted evidence;
 the inventory accounts for all 64 components, three recipes and 30 blocks.
@@ -358,6 +365,17 @@ component without modifying compiler internals or copying private runtime code.
 - [ ] Explain language behavior using runnable examples alongside the relevant
   measured workload, methodology, distributions and limitations. Preserve slower
   results, failed historical runs and unmatched/unmeasured distinctions.
+- [ ] Build Node-style reference sections for each documented language/container/
+  resource type and standard-library module, with an on-page method/property
+  index and stable anchors. A `strings` page contains a real `trim` section, not
+  merely a link to a general benchmark page. Follow the method contract below.
+- [ ] Embed method-specific charts/comparison tables beside their API explanation,
+  using the same snapshot and filters as the overview graphs. Link each result to
+  its workload, input characteristics and original measurement provenance.
+- [ ] Build overview graphs by feature family, operation and input size, with
+  visible runtime/toolchain/machine/run filters. Explain inclusion/exclusion and
+  aggregation. Never average unrelated units or present selected fast cases as
+  overall language performance.
 - [ ] Add accessible charts/tables and useful filters without implying unrelated
   hardware, versions or measurements are comparable. Keep original benchmarks,
   drivers, oracles, registrations and SQLite as the canonical sources.
@@ -365,6 +383,47 @@ component without modifying compiler internals or copying private runtime code.
 Acceptance: docs rebuild offline from curated exports without SQLite access;
 every displayed measurement traces to exact original evidence. No new timing
 run is required merely to publish an accepted existing measurement.
+
+#### Language and method reference contract
+
+Use [Node's API reference](https://nodejs.org/api/buffer.html#bufsubarraystart-end)
+as a reading/navigation reference: recognizable method headings, typed arguments,
+returns, behavioral explanation and examples. Write original Tsrust documentation
+from checked behavior. The benchmark integration is an additional Tsrust feature.
+
+A method section, for example `strings#trim`, contains:
+
+1. **Purpose and signature.** What it does, receiver type, overloads and type
+   parameters where applicable. Display checked public syntax.
+2. **Arguments.** Names, types, required/optional status, defaults, valid ranges
+   and errors. For a method without arguments, state that directly.
+3. **Return and behavior.** Exact return type, receiver mutation, absence/failure
+   behavior and useful edge cases. Put its concise ownership/borrowing explanation
+   after observable behavior. Explain relevant native differences directly.
+4. **Examples.** Copyable, compiler-verified source with expected results; relevant
+   Unicode, empty input or boundary cases. Examples and editor help must agree.
+5. **Measured performance.** Comparable Tsrust/native versus Node-after-tsc results
+   for this method and workload. Show input kind/size, units, distributions or
+   uncertainty supported by the original protocol, sample count and versions.
+   Allocation data and direct Rust comparisons appear only when actually recorded.
+6. **Evidence and limitations.** Link workload source/oracle, original run identity,
+   compiler/source hashes and full methodology. Make mismatched semantics,
+   historical versions and missing evidence visible. Show “No accepted measurement”
+   when appropriate, never invented data, zero bars or an unrelated method's ratio.
+
+Assign stable API IDs independent of file paths. Map workloads explicitly to one
+or more API IDs and retain their input parameters and semantic scope. A workload
+that includes several operations must not be mislabeled as an isolated method
+measurement. Aggregate pages and inline sections resolve those same identities;
+do not copy results into Markdown by hand. Preserve historical results when
+current source changes; label their applicability rather than silently calling
+them current. Native runtime throughput, browser performance, compilation time and
+development startup are separate measurements.
+
+First acceptance uses the strings/`trim` pilot plus an overview assembled from
+the same curated records. Expand through arrays, collections, resources and
+standard-library APIs as their current documentation is migrated. Benchmarks are
+present throughout the reference even when a particular method is unmeasured.
 
 ### 14. Finish CLI integration and project-wide acceptance
 
