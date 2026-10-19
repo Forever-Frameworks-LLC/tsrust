@@ -1,10 +1,10 @@
-import { View, Text, Node, Child, signal, location, Link, withTheme } from 'std:ui';
+import { View, Text, Node, Child, signal, location, Link, withTheme, Button as ThemeButton } from 'std:ui';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { ExampleCard } from '../components/docs/example-card';
+import { Landing } from '../components/docs/landing';
 import { searchablePage } from '../components/docs/api-reference';
 import { Markdown, docsPath, routePath } from '../components/docs/markdown';
-import { loadCatalog, renderExample, DocCodeToken } from '../../target/docs-content/catalog';
+import { loadCatalog } from '../../target/docs-content/catalog';
 import config from '../../tsrust.config.json';
 
 function groupLabel(group: string): string {
@@ -119,39 +119,19 @@ export function Page(): Node {
     );
   }
 
-  let counterCode = '';
-  let counterTokens: DocCodeToken[] = [];
-  for (const example of catalog.examples) {
-    if (example.id === 'counter') {
-      counterCode = clone(example.code);
-      counterTokens = clone(example.tokens);
-    }
-  }
-
   return withTheme(
     <View id="site" className="h-screen overflow-hidden bg-background text-foreground">
-      <View as="header" windowDragRegion className="h-16 shrink-0 flex-row items-center justify-between gap-4 pl-24 pr-6 border-b">
-        <Link href="/" className="font-mono font-semibold text-base">tsrust.</Link>
-        <View className="flex-row items-center gap-2"><Link href="/docs" className="text-sm px-3 py-2 rounded hover:bg-muted">Docs</Link><Button variant="outline" size="sm" onPress={() => { mode.set(mode.get() === 'light' ? 'dark' : 'light'); }}>Light / dark</Button></View>
+      <View as="header" windowDragRegion className="h-24 md:h-16 shrink-0 flex-col md:flex-row items-stretch md:items-center justify-between gap-1 md:gap-4 px-4 md:pl-24 md:pr-6 border-b">
+        <Link href="/" className="font-mono font-semibold text-base pl-24 md:pl-0 py-2">tsrust.</Link>
+        <View as="nav" aria-label="Main navigation" className="flex-row items-center justify-between md:justify-start gap-1 md:gap-2">
+          <Link href="/docs" className="text-sm px-3 py-2 rounded hover:bg-muted focus:ring">Docs</Link>
+          <Link href="https://github.com/Forever-Frameworks-LLC/tsrust" className="text-sm px-3 py-2 rounded hover:bg-muted focus:ring">GitHub</Link>
+          <Link href="https://github.com/Forever-Frameworks-LLC/tsrust/releases" className="text-sm px-3 py-2 rounded hover:bg-muted focus:ring">Releases</Link>
+          <ThemeButton aria-label="Toggle light and dark theme" className="text-sm px-3 py-2 rounded border hover:bg-muted focus:ring" onPress={() => { mode.set(mode.get() === 'light' ? 'dark' : 'light'); }}>Theme</ThemeButton>
+        </View>
       </View>
       <View hidden={routePath(path.get()) !== '/'} id="landing" as="main" aria-label="Tsrust home" tabIndex={0} className="grow min-h-0 overflow-auto">
-        <View className="p-6 md:p-12 gap-12">
-          <View className="grid lg:grid-cols-2 gap-8 py-8 md:py-12">
-            <View className="gap-8 justify-center">
-              <Text as="h1" className="text-4xl md:text-5xl font-semibold leading-snug">Stay expressive.{'\n'}<Text className="text-primary">Go native.</Text></Text>
-              <Text className="text-xl leading-normal text-muted-foreground max-w-128">TypeScript-style syntax. Rust execution. Web and desktop interfaces from the same source.</Text>
-              <View className="flex-row flex-wrap gap-3"><Link href="/docs/getting-started/installation" className="px-6 py-3 rounded bg-primary text-primary-foreground focus:ring">Get started</Link><Link href="/docs" className="px-6 py-3 rounded border hover:bg-muted focus:ring">Documentation</Link></View>
-            </View>
-            <ExampleCard id="home-counter" title="counter.tsrx" description="One component. Two targets." source="src/examples/counter.tsrx" code={counterCode} tokens={counterTokens}>{renderExample('counter')}</ExampleCard>
-          </View>
-          <View className="border-t pt-8 gap-8">
-            <Text as="h2" className="text-3xl font-semibold max-w-160">Own the whole stack.{'\n'}Including the components.</Text>
-            <View className="grid md:grid-cols-2 gap-8">
-              <View className="gap-4"><Text className="text-xl font-semibold">The source is yours.</Text><Text className="leading-normal text-muted-foreground max-w-128">Add components offline. Edit their source. Set your design tokens in one project configuration.</Text><Link href="/docs/ui/components/button" className="font-medium py-3 text-primary">Explore components {'↗'}</Link></View>
-              <View className="gap-4"><Text className="text-xl font-semibold">Ownership you can follow.</Text><Text className="leading-normal text-muted-foreground max-w-128">Local state stays with its component. Resource lifetimes and boundary conversions are checked before execution.</Text><Link href="/docs/ui/foundations/state" className="font-medium py-3 text-primary">State and ownership {'↗'}</Link></View>
-            </View>
-          </View>
-        </View>
+        <Landing examples={catalog.examples}/>
       </View>
       <View hidden={routePath(path.get()) === '/'} id="documentation" className="grow min-h-0">
         <View as="nav" aria-label="Documentation sections" className="shrink-0 flex-row flex-wrap border-b px-3 gap-1" children={sections}/>

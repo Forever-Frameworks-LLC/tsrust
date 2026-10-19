@@ -4503,6 +4503,7 @@ dependencies = [
  "serde",
  "serde_json",
  "taffy",
+ "url",
  "vello",
  "wasm-bindgen",
  "wasm-bindgen-futures",

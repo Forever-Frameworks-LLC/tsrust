@@ -69,6 +69,8 @@ function inlineContent(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>, p
     } else if (node.kind === 'link') {
       if (node.destination.startsWith('/')) {
         children.push(<Link href={linkTarget(node.destination,catalog)} className="text-primary" children={inlineContent(page,catalog,i)}/>);
+      } else if (node.destination.startsWith('https://')) {
+        children.push(<Link href={clone(node.destination)} className="text-primary" children={inlineContent(page,catalog,i)}/>);
       } else if (node.destination.startsWith('#')) {
         children.push(<Link href={docsPath(page.route)+'#'+page.metadata.id+'-'+node.destination.slice(1)} className="text-primary" children={inlineContent(page,catalog,i)}/>);
       } else {

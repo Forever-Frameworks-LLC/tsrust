@@ -1,0 +1,9 @@
+import { Router } from 'std:http';
+
+export function service(): Router {
+  const app = new Router();
+  app.get('/hello/:name', (c) => {
+    return c.text('Hello, ' + c.req.param('name'));
+  });
+  return app;
+}

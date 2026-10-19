@@ -1,4 +1,4 @@
-import { copyButton as nativeCopyButton, location as nativeLocation, navigate as nativeNavigate, traverse as nativeTraverse, link as nativeLink, themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, handle as nativeHandle, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
+import { visibility as nativeVisibility, copyButton as nativeCopyButton, location as nativeLocation, navigate as nativeNavigate, traverse as nativeTraverse, link as nativeLink, themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, handle as nativeHandle, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
 
 /** An owned UI subtree. Moving a Node transfers all descendants. Nodes cannot be cloned or sent to workers. */
 export type Node = NativeNode;
@@ -48,6 +48,8 @@ export interface TextProps extends SemanticProps {
 }
 
 export interface ViewProps extends SemanticProps {
+  /** Receives initial visibility and changes after layout. Visible means positive area inside the viewport and every clipping ancestor, not occlusion detection. Hidden subtrees report false. No scroll interception. */
+  onVisibilityChange?: Owned<Function<void, [visible: boolean]>>;
   /** 0 participates in source-order keyboard focus; -1 allows pointer/accessibility focus only. Omission is not focusable. Positive values are rejected. Name scroll regions with role=region and aria-label. */
   tabIndex?: int;
   /** Removes this subtree from layout, paint, interaction and accessibility while retaining its state. JSX state conditions refresh after handlers. Defaults to false. */
@@ -209,7 +211,9 @@ export function View(props: ViewProps): Node {
   const result = view(props.children ?? [], props.className ?? '');
   match (result) {
     Ok(value) => {
-      const node = applySemantics(value, metadata);
+      const decorated = applySemantics(value, metadata);
+      const observer = props.onVisibilityChange;
+      const node = observer === undefined ? decorated : unwrapNode(nativeVisibility(decorated, observer));
       const hidden = props.hidden;
       if (hidden === undefined) {
         return node;
@@ -248,14 +252,14 @@ export function Button(props: ButtonProps): Node {
   return applySemantics(unwrapNode(staticButton(children, props.className ?? '', disabled ?? false)), metadata);
 }
 
-/** An internal application link. External URLs, query strings, escapes and traversal are rejected. */
+/** An application path or HTTPS link. External links open through the browser or native default browser. */
 export interface LinkProps extends ElementProps {
-  /** Absolute local path, optionally followed by a heading fragment. */
+  /** Absolute local path with optional heading fragment, or an HTTPS URL without credentials. Local queries, escapes and traversal are rejected. */
   href: string;
   children?: Child[];
   className?: string;
 }
-/** Navigates within this application. Browser links keep native anchor behavior for modified clicks. Native links expose the Link accessibility role. */
+/** Navigates locally or opens an HTTPS URL. External links leave application history unchanged. Browser anchors retain modified-click behavior; native launch failures throw. */
 export function Link(props: LinkProps): Node {
   const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
   return applySemantics(unwrapNode(nativeLink(props.children ?? [], props.className ?? '', props.href)), metadata);

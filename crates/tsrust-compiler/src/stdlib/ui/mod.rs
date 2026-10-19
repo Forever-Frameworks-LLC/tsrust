@@ -40,6 +40,7 @@ pub(crate) const TEXT: NativeBinding = NativeBinding {
     },
     features: &["ui"],
 };
+pub(crate) const VISIBILITY:NativeBinding=NativeBinding{name:"visibility",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_visibility"},..TEXT};
 pub(crate) const COPY_BUTTON:NativeBinding=NativeBinding{name:"copyButton",parameters:&[parameter("value",NativeType::String,Mode::Read),parameter("className",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_copy_button"},..TEXT};
 pub(crate) const VIEW: NativeBinding = NativeBinding {
     name: "view",
@@ -132,6 +133,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("#[cfg(feature = \"native\")]\npub use native::run;",if with_native {"#[cfg(all(not(target_arch=\"wasm32\"),not(feature = \"ui-acceptance\")))] pub use native::run;\n#[cfg(feature = \"ui-acceptance\")] pub use native::verify_window as run;"}else{""})
         .replace("#[cfg(feature = \"acceptance\")]\n#[doc(hidden)]\npub use native::verify_window;",if with_native {"#[cfg(feature = \"ui-acceptance\")] pub use native::verify_window;"}else{""})
         .replace("pub mod browser;",&format!("pub mod browser {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/browser.rs").replace("use crate::{", "use super::{")))
+        .replace("mod visibility;",&format!("mod visibility {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/visibility.rs").replace("use crate::{", "use super::{")))
         .replace("mod editable;",&format!("mod editable {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/editable.rs")))
         .replace("pub mod clipboard;", &format!("pub mod clipboard {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/clipboard.rs").replace("crate::Node", "super::Node")))
         .replace("pub mod navigation;", &format!("pub mod navigation {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/navigation.rs")))

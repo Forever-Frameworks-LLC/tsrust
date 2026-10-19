@@ -13934,10 +13934,10 @@
       "parameters": [
         {
           "label": "props: LinkProps",
-          "documentation": "href is an absolute application path; children contains owned phrasing content. className defaults to empty. Element identity and accessible naming are forwarded."
+          "documentation": "href is an absolute application path or HTTPS URL without credentials. children contains owned phrasing content; className defaults to empty. Element identity and naming are forwarded."
         }
       ],
-      "documentation": "Creates an application link with browser anchor semantics and a native accessibility Link role. href accepts /docs or /docs#heading. Empty paths, external URLs, queries, percent escapes, backslashes, whitespace and dot traversal throw a readable error. Unmodified browser clicks navigate without reloading; modified clicks keep browser behavior. Native activation updates the same application location. Example: <Link href=\"/docs\">Read docs</Link> opens /docs. Construct interactive links after their location owner. Links bind to that owner without retaining it; document() can serialize static links without an owner. Ownership: consumes children once; activation never retains the location owner."
+      "documentation": "Creates a link with browser anchor semantics and native accessibility Link role. Local href values such as /docs and /docs#heading navigate without reloading; construct interactive local links after the application location owner. Local queries, percent escapes, backslashes, whitespace and traversal throw. HTTPS URLs require a host and reject credentials, raw controls, whitespace and backslashes. Browser HTTPS links follow the anchor, including modified clicks; native activation opens the default browser and leaves local history unchanged. Native launch failure throws a readable error. Other schemes, including javascript:, file:, http: and protocol-relative URLs, are rejected. Example: <Link href=\"https://github.com/Forever-Frameworks-LLC/tsrust/releases\">Releases</Link> opens GitHub Releases. document() emits an escaped anchor without launching anything. Ownership: consumes children and strings; local links hold only a non-retaining location binding, and HTTPS links need no location owner."
     },
     {
       "name": "location",
@@ -13951,7 +13951,7 @@
       "parameters": [
         {
           "label": "path: string",
-          "documentation": "Absolute application path with an optional nonempty heading fragment. The same path restrictions as Link apply."
+          "documentation": "Absolute application path with an optional nonempty heading fragment. The local path restrictions of Link apply; HTTPS links cannot be passed to navigate."
         }
       ],
       "documentation": "Pushes an application location and updates shared route bindings without reloading the browser. Returns void; does not mutate the argument. The current path is a no-op. A missing/disposed location owner or invalid path throws. Example: navigate(\"/docs\"); makes location().get() /docs on the existing owner; do not create another location owner to read it. Ownership: borrows the path and retains no state owner."
@@ -14400,6 +14400,9 @@
       "parameters": [],
       "documentation": "Checked UI component properties with shared web and native behavior. Props are ordinary owned records; optional fields have the documented defaults. Use exact quoted names in ordinary records, for example {'aria-label': 'Account'}, and aria-label=\"Account\" in JSX. Unsupported semantics fail explicitly. Ownership: component calls consume their props and owned descendants.",
       "fields": {
+        "onVisibilityChange": {
+          "documentation": "Optional owned reusable callback (visible: boolean) => void, default none. Reports initial visibility after mounting and each boolean transition after layout, scrolling, resizing or hidden changes. true means this View has positive rectangular area inside the viewport and all clipping ancestors; zero-size or hidden views report false. It does not detect occlusion by siblings, opacity or other windows. Example: const entered = signal(false); return <View onVisibilityChange={(visible) => { if (visible) { entered.set(true); } }}><Text>{entered.get() ? \"Ready\" : \"Waiting\"}</Text></View>; shows Ready on first entry and retains it. Callbacks may update state; updates refresh after the callback without intercepting scrolling. Throwing stops the mounted tree with normal cleanup. Keep layout feedback stable: callbacks which repeatedly hide/show their own view can oscillate. Browser reports are asynchronous; native reports follow layout. Static document() serialization never invokes callbacks. Ownership: the View owns the callback; local component state captures are non-retaining and removed nodes receive no late notifications."
+        },
         "id": {
           "documentation": "Optional document identifier, without ASCII whitespace or control characters. Defaults to none. <View id=\"account\" /> produces id=\"account\" in HTML. Both adapters retain it as tree metadata; no lookup or routing API is created. Construction throws for invalid IDs. Ownership: consumes the supplied string."
         },

@@ -13,6 +13,7 @@ mod window;
 #[cfg(test)]
 mod application_tests;
 mod editable;
+mod visibility;
 pub mod clipboard;
 pub(crate) use editable::{ValueBinding,ChangeHandler};
 pub use state::{Signal,TextBinding};
@@ -76,6 +77,7 @@ pub struct Node {
     pub(crate) parts: Vec<TextPart>,
     pub(crate) disabled: Option<Box<dyn FnMut()->Result<bool,String>>>,
     pub(crate) copy:Option<clipboard::Copy>,
+    pub(crate) visibility:Option<visibility::Observation>,
     pub(crate) press: Option<Box<dyn FnMut() -> Result<(), String>>>,
     pub(crate) editable: Option<editable::Editable>,
     read_only: Option<Box<dyn FnMut()->Result<bool,String>>>,
@@ -343,7 +345,7 @@ impl Node {
             class_name,
             text,
             children,
-            parts: Vec::new(), disabled:None, copy:None, press: None, state: Vec::new(), editable:None, read_only:None,collapsed:false,hidden:None,
+            parts: Vec::new(), disabled:None, visibility:None, copy:None, press: None, state: Vec::new(), editable:None, read_only:None,collapsed:false,hidden:None,
         })
     }
 }

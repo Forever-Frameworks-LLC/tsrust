@@ -13,6 +13,7 @@ native = ["dep:winit", "dep:vello", "dep:taffy", "dep:parley", "dep:pollster", "
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+url = "=2.5.8"
 color = "=0.3.3"
 winit = { version = "=0.30.13", optional = true }
 vello = { version = "=0.11.0", optional = true }
@@ -27,6 +28,6 @@ arboard = { version = "=3.7.0", default-features = false, features = ["wayland-d
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { version = "=0.2.129", optional = true }
 js-sys = { version = "=0.3.106", optional = true }
-web-sys = { version = "=0.3.106", optional = true, features = ["Window", "Document", "HtmlElement", "Element", "Node", "Event", "EventTarget"] }
+web-sys = { version = "=0.3.106", optional = true, features = ["Window", "Document", "HtmlElement", "Element", "Node", "Event", "EventTarget", "IntersectionObserver", "IntersectionObserverEntry", "IntersectionObserverInit", "DomRectReadOnly"] }
 
 wasm-bindgen-futures = { version = "=0.4.79", optional = true }

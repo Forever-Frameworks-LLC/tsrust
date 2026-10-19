@@ -95,6 +95,24 @@
         "source": "src/examples/strings-trim.tsr",
         "export": "trimmed",
         "kind": "code"
+      },
+      {
+        "id": "rust-message",
+        "source": "src/examples/rust-message.tsr",
+        "export": "rustMessage",
+        "kind": "code"
+      },
+      {
+        "id": "native-service",
+        "source": "src/examples/native-service.tsr",
+        "export": "service",
+        "kind": "code"
+      },
+      {
+        "id": "visibility",
+        "source": "src/examples/visibility.tsrx",
+        "export": "Visibility",
+        "kind": "component"
       }
     ]
   }

@@ -13,6 +13,21 @@ arguments/returns/examples and inline comparable results (strings/trim is the fi
 pilot). Both views use the same curated evidence and explicit unmeasured states.
 Existing counter owner files and developer evidence paths remain preserved.
 
+## Current continuation after bridge discussion — 2026-10-19
+
+Resume the shared landing and component library with paired web/native behavior,
+live dev preview and current LSP. The optional browser JS/TS bridge is explicitly
+[deferred](../plans/optional-browser-javascript-bridge.md). It requires ordinary
+imports, no server/native JS runtime, explicit target implementations and immediate
+editor/compiler diagnostics for every configured target down to individual exports.
+Do not implement it as part of the landing or silently drop unsupported behavior.
+
+The landing uses the intended GitHub repository
+`https://github.com/Forever-Frameworks-LLC/tsrust` and GitHub Releases. Omit Discord
+and the unverified curl installer. Use actual language/CLI APIs and accepted evidence;
+do not publish invented size/performance claims from the earlier design brief.
+Shared visibility callbacks and HTTPS links are in progress and unverified.
+
 ## Rich inline docs and actual web development server — 2026-10-19
 
 The preview at `http://127.0.0.1:4317/` now runs

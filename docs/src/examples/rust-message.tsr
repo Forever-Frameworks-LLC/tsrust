@@ -1,0 +1,5 @@
+import { greeting } from './message.rs';
+
+export function rustMessage(): string {
+  return greeting();
+}

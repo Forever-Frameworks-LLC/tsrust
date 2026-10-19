@@ -73,6 +73,7 @@ impl Prepared {
   if runtime.contains("pub mod tsrust_native_threads {") || runtime.contains("pub use rayon;") { command.args(["--features", "threads"]); }
   if runtime.contains("pub mod tsrust_native_futures {") {command.args(["--features","async"]);}
   if runtime.contains("pub mod tsrust_native_http {"){command.args(["--features","http"]);}
+  if runtime.contains("pub mod tsrust_native_ui {"){command.args(["--features","ui"]);}
   if runtime.contains("pub mod tsrust_native_ui {") && runtime.contains("use vello::"){command.args(["--features", "ui-native"]);
         }
         if runtime.contains("pub mod tsrust_native_date {") {

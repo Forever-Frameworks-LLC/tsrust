@@ -41,6 +41,14 @@ acceptance. This plan supersedes earlier suggestions that the documentation app,
 remaining UI families or native behavior are optional. Historical acceptance
 evidence is retained; this plan does not erase outstanding checks.
 
+## Deferred browser escape hatch
+
+The owner approved an optional JS/TS browser bridge for later design and
+implementation. See [the bridge contract](optional-browser-javascript-bridge.md).
+Core components remain shared compiled code. Immediate compiler/LSP diagnostics
+for missing individual exports on any configured target are mandatory before
+bridge acceptance. This does not delay the shared landing or remaining library.
+
 ## Existing support to reuse
 
 The checked `.tsrx` pipeline, automatic component state retention, weak callback

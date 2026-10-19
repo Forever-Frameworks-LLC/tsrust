@@ -6,7 +6,7 @@ export async function observeDocsInline({evaluate,call,errors,site}) {
  const wait=async expression=>{for(let i=0;i<100;i++){if(await evaluate(expression))return;await new Promise(resolve=>setTimeout(resolve,50));}assert.fail(`Timeout: ${expression}`);};
  const click=async href=>{assert(await evaluate(`!!document.querySelector('a[href=${JSON.stringify(href)}]')`),href);await evaluate(`document.querySelector('a[href=${JSON.stringify(href)}]').click()`);};
  await call('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
- assert(await evaluate(`document.querySelector('#landing h1').textContent.includes('Go native.')`));
+ assert(await evaluate(`document.querySelector('#landing h1').textContent.includes('Ship Native Rust.')`));
  assert(!await evaluate(`document.body.textContent.includes('Search page text, APIs and code')`));
  fs.writeFileSync(path.join(site,'landing.png'),Buffer.from((await call('Page.captureScreenshot',{format:'png'})).data,'base64'));
  await evaluate(`document.querySelector('#home-counter-preview button').click();Array.from(document.querySelectorAll('#landing button')).find(node=>node.textContent==='Show source').click()`);assert(await evaluate(`document.querySelector('#home-counter-source code').textContent.includes('count.set(count.get() + 1)')`));await evaluate(`Array.from(document.querySelectorAll('#landing button')).find(node=>node.textContent==='Show preview').click()`);assert(await evaluate(`document.querySelector('#home-counter-preview').textContent.includes('Count: 1')`));
@@ -38,7 +38,7 @@ export async function observeDocsInline({evaluate,call,errors,site}) {
  } finally {
   await evaluate(`(async()=>{navigator.clipboard.writeText=restoreWrite;if(originalClipboard.length)await navigator.clipboard.write(originalClipboard);else await restoreWrite('');delete window.originalClipboard;})()`);
  }
- await evaluate(`navigator.clipboard.writeText=realWrite;Array.from(document.querySelectorAll('button')).find(node=>node.textContent==='Light / dark').click()`);assert(await evaluate(`getComputedStyle(code.querySelector('[data-slot=keyword]')).color!==getComputedStyle(code.querySelector('[data-slot=string]')).color`));
+ await evaluate(`navigator.clipboard.writeText=realWrite;document.querySelector('button[aria-label="Toggle light and dark theme"]').click()`);assert(await evaluate(`getComputedStyle(code.querySelector('[data-slot=keyword]')).color!==getComputedStyle(code.querySelector('[data-slot=string]')).color`));
  fs.writeFileSync(path.join(site,'docs.png'),Buffer.from((await call('Page.captureScreenshot',{format:'png'})).data,'base64'));
  // Search spans sections even though the default index shows one category.
  await evaluate(`(()=>{const search=document.querySelector('input[aria-label="Search documentation"]');search.value='U+0085';search.dispatchEvent(new Event('input',{bubbles:true}));})()`);assert.equal(await evaluate(`document.querySelectorAll('#sidebar a').length`),1);await click('/docs/standard-library/strings');assert(!await evaluate(`document.querySelector('[data-slot=route-page]').textContent.includes('Benchmark evidence')`));

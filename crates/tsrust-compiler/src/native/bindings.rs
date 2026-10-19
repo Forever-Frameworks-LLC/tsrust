@@ -350,7 +350,7 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::ui::BRANCH,
     crate::stdlib::ui::INPUT,crate::stdlib::ui::INPUT_CHANGE,
     crate::stdlib::ui::TEXT,crate::stdlib::ui::COPY_BUTTON,
-    crate::stdlib::ui::VIEW,
+    crate::stdlib::ui::VIEW,crate::stdlib::ui::VISIBILITY,
     crate::stdlib::ui::THEME,
     crate::stdlib::ui::THEME_MODE,
     crate::stdlib::ui::SEMANTICS,

@@ -1,0 +1,205 @@
+<!doctype html>
+<!-- Standalone design reference. The production app is shared .tsrx in src/components/docs/landing.tsrx.
+     Tailwind 4.1.18 utilities are compiled into this file; no CDN or runtime package is required. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Write TypeScript. Ship Native Rust. Services and interfaces with checked ownership and editable local components.">
+  <title>tsrust — Write TypeScript. Ship Native Rust.</title>
+  <style id="tailwind">/*! tailwindcss v4.1.18 | MIT License | https://tailwindcss.com */
+@layer properties{@supports (((-webkit-hyphens:none)) and (not (margin-trim:inline))) or ((-moz-orient:inline) and (not (color:rgb(from red r g b)))){*,:before,:after,::backdrop{--tw-border-style:solid;--tw-leading:initial;--tw-font-weight:initial;--tw-tracking:initial}}}@layer theme{:root,:host{--font-sans:ui-sans-serif,system-ui,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji";--font-mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;--spacing:.25rem;--container-lg:32rem;--container-4xl:56rem;--text-xs:.75rem;--text-xs--line-height:calc(1/.75);--text-sm:.875rem;--text-sm--line-height:calc(1.25/.875);--text-lg:1.125rem;--text-lg--line-height:calc(1.75/1.125);--text-xl:1.25rem;--text-xl--line-height:calc(1.75/1.25);--font-weight-medium:500;--font-weight-semibold:600;--tracking-tight:-.025em;--tracking-widest:.1em;--leading-relaxed:1.625;--leading-loose:2;--radius-xl:.75rem;--default-font-family:var(--font-sans);--default-mono-font-family:var(--font-mono)}}@layer base{*,:after,:before,::backdrop{box-sizing:border-box;border:0 solid;margin:0;padding:0}::file-selector-button{box-sizing:border-box;border:0 solid;margin:0;padding:0}html,:host{-webkit-text-size-adjust:100%;tab-size:4;line-height:1.5;font-family:var(--default-font-family,ui-sans-serif,system-ui,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji");font-feature-settings:var(--default-font-feature-settings,normal);font-variation-settings:var(--default-font-variation-settings,normal);-webkit-tap-highlight-color:transparent}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;-webkit-text-decoration:inherit;-webkit-text-decoration:inherit;-webkit-text-decoration:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,samp,pre{font-family:var(--default-mono-font-family,ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace);font-feature-settings:var(--default-mono-font-feature-settings,normal);font-variation-settings:var(--default-mono-font-variation-settings,normal);font-size:1em}small{font-size:80%}sub,sup{vertical-align:baseline;font-size:75%;line-height:0;position:relative}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}:-moz-focusring{outline:auto}progress{vertical-align:baseline}summary{display:list-item}ol,ul,menu{list-style:none}img,svg,video,canvas,audio,iframe,embed,object{vertical-align:middle;display:block}img,video{max-width:100%;height:auto}button,input,select,optgroup,textarea{font:inherit;font-feature-settings:inherit;font-variation-settings:inherit;letter-spacing:inherit;color:inherit;opacity:1;background-color:#0000;border-radius:0}::file-selector-button{font:inherit;font-feature-settings:inherit;font-variation-settings:inherit;letter-spacing:inherit;color:inherit;opacity:1;background-color:#0000;border-radius:0}:where(select:is([multiple],[size])) optgroup{font-weight:bolder}:where(select:is([multiple],[size])) optgroup option{padding-inline-start:20px}::file-selector-button{margin-inline-end:4px}::placeholder{opacity:1}@supports (not ((-webkit-appearance:-apple-pay-button))) or (contain-intrinsic-size:1px){::placeholder{color:currentColor}@supports (color:color-mix(in lab, red, red)){::placeholder{color:color-mix(in oklab,currentcolor 50%,transparent)}}}textarea{resize:vertical}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-date-and-time-value{min-height:1lh;text-align:inherit}::-webkit-datetime-edit{display:inline-flex}::-webkit-datetime-edit-fields-wrapper{padding:0}::-webkit-datetime-edit{padding-block:0}::-webkit-datetime-edit-year-field{padding-block:0}::-webkit-datetime-edit-month-field{padding-block:0}::-webkit-datetime-edit-day-field{padding-block:0}::-webkit-datetime-edit-hour-field{padding-block:0}::-webkit-datetime-edit-minute-field{padding-block:0}::-webkit-datetime-edit-second-field{padding-block:0}::-webkit-datetime-edit-millisecond-field{padding-block:0}::-webkit-datetime-edit-meridiem-field{padding-block:0}::-webkit-calendar-picker-indicator{line-height:1}:-moz-ui-invalid{box-shadow:none}button,input:where([type=button],[type=reset],[type=submit]){appearance:button}::file-selector-button{appearance:button}::-webkit-inner-spin-button{height:auto}::-webkit-outer-spin-button{height:auto}[hidden]:where(:not([hidden=until-found])){display:none!important}}@layer components;@layer utilities{.visible{visibility:visible}.sr-only{clip-path:inset(50%);white-space:nowrap;border-width:0;width:1px;height:1px;margin:-1px;padding:0;position:absolute;overflow:hidden}.sticky{position:sticky}.top-0{top:calc(var(--spacing)*0)}.z-50{z-index:50}.mt-4{margin-top:calc(var(--spacing)*4)}.mt-6{margin-top:calc(var(--spacing)*6)}.mt-8{margin-top:calc(var(--spacing)*8)}.mt-10{margin-top:calc(var(--spacing)*10)}.mt-12{margin-top:calc(var(--spacing)*12)}.mb-2{margin-bottom:calc(var(--spacing)*2)}.mb-3{margin-bottom:calc(var(--spacing)*3)}.mb-6{margin-bottom:calc(var(--spacing)*6)}.mb-8{margin-bottom:calc(var(--spacing)*8)}.flex{display:flex}.grid{display:grid}.hidden{display:none}.inline-block{display:inline-block}.min-h-20{min-height:calc(var(--spacing)*20)}.max-w-4xl{max-width:var(--container-4xl)}.max-w-lg{max-width:var(--container-lg)}.grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}.items-center{align-items:center}.items-start{align-items:flex-start}.justify-between{justify-content:space-between}.gap-2{gap:calc(var(--spacing)*2)}.gap-3{gap:calc(var(--spacing)*3)}.gap-4{gap:calc(var(--spacing)*4)}.gap-8{gap:calc(var(--spacing)*8)}.gap-10{gap:calc(var(--spacing)*10)}.gap-12{gap:calc(var(--spacing)*12)}.self-start{align-self:flex-start}.overflow-hidden{overflow:hidden}.rounded{border-radius:.25rem}.rounded-xl{border-radius:var(--radius-xl)}.border{border-style:var(--tw-border-style);border-width:1px}.border-t{border-top-style:var(--tw-border-style);border-top-width:1px}.border-b{border-bottom-style:var(--tw-border-style);border-bottom-width:1px}.p-6{padding:calc(var(--spacing)*6)}.px-3{padding-inline:calc(var(--spacing)*3)}.px-5{padding-inline:calc(var(--spacing)*5)}.px-6{padding-inline:calc(var(--spacing)*6)}.py-2{padding-block:calc(var(--spacing)*2)}.py-3{padding-block:calc(var(--spacing)*3)}.py-4{padding-block:calc(var(--spacing)*4)}.py-5{padding-block:calc(var(--spacing)*5)}.py-8{padding-block:calc(var(--spacing)*8)}.py-20{padding-block:calc(var(--spacing)*20)}.pt-16{padding-top:calc(var(--spacing)*16)}.pb-6{padding-bottom:calc(var(--spacing)*6)}.pb-20{padding-bottom:calc(var(--spacing)*20)}.font-mono{font-family:var(--font-mono)}.text-lg{font-size:var(--text-lg);line-height:var(--tw-leading,var(--text-lg--line-height))}.text-sm{font-size:var(--text-sm);line-height:var(--tw-leading,var(--text-sm--line-height))}.text-xl{font-size:var(--text-xl);line-height:var(--tw-leading,var(--text-xl--line-height))}.text-xs{font-size:var(--text-xs);line-height:var(--tw-leading,var(--text-xs--line-height))}.leading-loose{--tw-leading:var(--leading-loose);line-height:var(--leading-loose)}.leading-relaxed{--tw-leading:var(--leading-relaxed);line-height:var(--leading-relaxed)}.font-medium{--tw-font-weight:var(--font-weight-medium);font-weight:var(--font-weight-medium)}.font-semibold{--tw-font-weight:var(--font-weight-semibold);font-weight:var(--font-weight-semibold)}.tracking-tight{--tw-tracking:var(--tracking-tight);letter-spacing:var(--tracking-tight)}.tracking-widest{--tw-tracking:var(--tracking-widest);letter-spacing:var(--tracking-widest)}@media (min-width:40rem){.sm\:inline{display:inline}.sm\:gap-5{gap:calc(var(--spacing)*5)}}@media (min-width:48rem){.md\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.md\:py-28{padding-block:calc(var(--spacing)*28)}.md\:pt-24{padding-top:calc(var(--spacing)*24)}.md\:pb-28{padding-bottom:calc(var(--spacing)*28)}}@media (min-width:64rem){.lg\:mt-16{margin-top:calc(var(--spacing)*16)}.lg\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.lg\:gap-20{gap:calc(var(--spacing)*20)}}}@property --tw-border-style{syntax:"*";inherits:false;initial-value:solid}@property --tw-leading{syntax:"*";inherits:false}@property --tw-font-weight{syntax:"*";inherits:false}@property --tw-tracking{syntax:"*";inherits:false}</style>
+  <style>
+    :root{color-scheme:light;--paper:#fafafa;--ink:#18181b;--soft:#52525b;--line:#d4d4d8;--panel:#f4f4f5;--accent:#a93819;--accent-ink:#fafafa}
+    :root[data-theme=dark]{color-scheme:dark;--paper:#09090b;--ink:#fafafa;--soft:#a1a1aa;--line:#3f3f46;--panel:#18181b;--accent:#ffad8a;--accent-ink:#18181b}
+    html{scroll-padding-top:6rem}body{background:var(--paper);color:var(--ink);font-family:ui-sans-serif,system-ui,sans-serif}::selection{background:var(--accent);color:var(--accent-ink)}
+    :focus-visible{outline:2px solid var(--accent);outline-offset:5px;border-radius:4px}a,button{touch-action:manipulation}button,a{ -webkit-tap-highlight-color:transparent}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.6}
+    .shell{width:min(1280px,100% - 3rem);margin-inline:auto}.muted{color:var(--soft)}.accent{color:var(--accent)}.line{border-color:var(--line)}.panel{background:var(--panel)}.action{background:var(--accent);color:var(--accent-ink)}
+    .skip{position:fixed;left:1rem;top:-8rem;z-index:100;background:var(--paper);padding:1rem}.skip:focus{top:1rem}
+    .hero-title{font-size:clamp(2.75rem,7.7vw,7.7rem);line-height:1.03;letter-spacing:-.065em;font-weight:600}.display-title{font-size:clamp(2.4rem,4.7vw,5rem);line-height:1.07;letter-spacing:-.045em;font-weight:550}
+    .terminal{box-shadow:0 24px 64px -40px #0008}.terminal-line{min-height:1.7em}.enhanced .terminal-line{transition:opacity .3s,transform .3s}.enhanced .terminal-line[data-pending]{opacity:0;transform:translateY(4px)}
+    .chapter{min-height:75vh;padding-block:5rem}.chapter-title{font-size:clamp(2rem,3.5vw,3.25rem);line-height:1.1;letter-spacing:-.04em}.code-panel pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:2}.code-panel{border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+    .enhanced .code-panel[hidden]{display:none}.code-panel{margin-block:1rem}.enhanced .code-panel{margin-block:0;animation:enter .35s both}.chapter-number{transition:color .2s}.enhanced .chapter[data-active] .chapter-number{color:var(--accent)}
+    .kw{color:var(--accent)}.str{color:var(--soft)}.readout{border-left:2px solid var(--accent)}.terminal-grid{background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:48px 48px;background-position:center}
+    @keyframes enter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+    @media(min-width:900px){.story{display:grid;grid-template-columns:1fr 1fr;gap:5rem}.stage{position:sticky;top:8rem;align-self:start;padding-top:5rem}.enhanced .mobile-code{display:none}}
+    @media(max-width:899px){.enhanced .stage{display:none}.chapter{min-height:0;padding-block:3rem}.chapter+.chapter{border-top:1px solid var(--line)}.mobile-code{margin-top:2rem}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.enhanced .terminal-line[data-pending]{opacity:1;transform:none}}
+    @media(forced-colors:active){.action{border:1px solid ButtonText}.readout{border-color:CanvasText}}
+  </style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="sticky top-0 z-50 border-b line" style="background:var(--paper)">
+  <nav aria-label="Main navigation" class="shell flex min-h-20 items-center justify-between gap-4 py-3">
+    <a href="#main" aria-label="tsrust home" class="font-mono text-lg font-semibold tracking-tight">tsrust<span class="accent">.</span></a>
+    <div class="flex items-center gap-2 sm:gap-5 text-sm">
+      <a href="/docs">Docs</a>
+      <a class="hidden sm:inline" href="https://github.com/Forever-Frameworks-LLC/tsrust">GitHub</a>
+      <a href="https://github.com/Forever-Frameworks-LLC/tsrust/releases" class="action rounded px-3 py-2">Releases ↗</a>
+      <button id="theme" type="button" aria-label="Toggle light and dark theme" class="rounded border line px-3 py-2"><span aria-hidden="true">◐</span></button>
+    </div>
+  </nav>
+</header>
+<main id="main">
+  <section class="shell pt-16 pb-20 md:pt-24 md:pb-28" aria-labelledby="hero-title">
+    <p class="accent font-mono text-xs tracking-widest mb-8">TYPESCRIPT SYNTAX / RUST EXECUTION</p>
+    <h1 id="hero-title" class="hero-title">Write TypeScript.<br><span class="accent">Ship Native Rust.</span></h1>
+    <div class="grid gap-10 lg:grid-cols-2 lg:gap-20 mt-12 lg:mt-16">
+      <div class="flex flex-col items-start gap-8">
+        <p class="muted max-w-lg text-xl leading-relaxed">Keep the syntax you know. Compile to Rust. Build services and interfaces with checked ownership, local components and room to go lower.</p>
+        <div class="flex flex-wrap gap-3"><a href="/docs/getting-started/installation" class="action rounded px-6 py-3 font-medium">Start building ↗</a><a href="/docs" class="rounded border line px-6 py-3">Read the docs</a></div>
+      </div>
+      <div class="terminal rounded-xl border line overflow-hidden panel" aria-label="Illustration of the build workflow">
+        <div class="border-b line flex justify-between px-6 py-3 font-mono text-xs muted"><span>BUILD FLOW</span><span class="accent">.tsr → Rust</span></div>
+        <div class="p-6 font-mono text-sm leading-relaxed">
+          <p>$ tsrust build</p>
+          <div class="mt-4" aria-hidden="true"><p class="terminal-line muted">Check source and ownership</p><p class="terminal-line muted">Generate Rust</p><p class="terminal-line accent">Compile for the selected target</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <div class="border-t line">
+    <div class="shell story">
+      <div>
+        <section class="chapter" data-chapter="0" aria-labelledby="familiar-title">
+          <p class="chapter-number font-mono text-xs muted mb-6">01 / FAMILIAR GROUND</p>
+          <h2 id="familiar-title" class="chapter-title font-semibold">Routes you can read.<br>A runtime you can leave behind.</h2>
+          <p class="muted text-lg leading-relaxed mt-6 max-w-lg">Compose handlers and middleware with Router. Keep application policy in application code. Axum handles the HTTP foundation.</p>
+          <p class="accent font-mono text-sm mt-8">HTTP / Router over Axum</p>
+          <div class="mobile-code" data-mobile="0"></div>
+        </section>
+        <section class="chapter" data-chapter="1" aria-labelledby="rust-title">
+          <p class="chapter-number font-mono text-xs muted mb-6">02 / THE ESCAPE HATCH</p>
+          <h2 id="rust-title" class="chapter-title font-semibold">When you need Rust,<br>import Rust.</h2>
+          <p class="muted text-lg leading-relaxed mt-6 max-w-lg">Use a checked Rust binding alongside your Tsrust code. Keep native APIs and explicit ownership at the boundary.</p>
+          <p class="accent font-mono text-sm mt-8">{ .tsr + .rs } / one checked build</p>
+          <div class="mobile-code" data-mobile="1"></div>
+        </section>
+        <section class="chapter" data-chapter="2" aria-labelledby="fabric-title">
+          <p class="chapter-number font-mono text-xs muted mb-6">03 / THE APP FABRIC</p>
+          <h2 id="fabric-title" class="chapter-title font-semibold">Two targets.<br>Your components.<br>Your source.</h2>
+          <p class="muted text-lg leading-relaxed mt-6 max-w-lg">Build web and desktop interfaces from the same .tsrx component. Add bundled components offline, edit their files and set the theme in your project configuration.</p>
+          <p class="accent font-mono text-sm mt-8">WEB + NATIVE / shared component state</p>
+          <div class="mobile-code" data-mobile="2"></div>
+        </section>
+      </div>
+      <div class="stage" aria-label="Code examples">
+        <article class="code-panel" data-code="0">
+          <div class="flex justify-between items-center border-b line px-5 py-3"><h3 class="font-mono text-xs muted">native-service.tsr</h3><button type="button" data-copy class="font-mono text-xs border line rounded px-3 py-2">Copy</button></div>
+          <pre class="p-6 text-sm leading-relaxed"><code><span class="kw">import</span> { Router } <span class="kw">from</span> <span class="str">'std:http'</span>;
+
+<span class="kw">export function</span> service(): Router {
+  <span class="kw">const</span> app = <span class="kw">new</span> Router();
+  app.get(<span class="str">'/hello/:name'</span>, (c) =&gt; {
+    <span class="kw">return</span> c.text(<span class="str">'Hello, '</span> + c.req.param(<span class="str">'name'</span>));
+  });
+  <span class="kw">return</span> app;
+}</code></pre>
+          <div class="border-t line px-6 py-4 grid grid-cols-2 gap-4 font-mono text-xs"><div><p class="muted mb-2">SOURCE</p><p>TypeScript-style syntax</p></div><div><p class="muted mb-2">EXECUTION</p><p>Compiled Rust</p></div></div>
+        </article>
+        <article class="code-panel" data-code="1">
+          <div class="flex justify-between items-center border-b line px-5 py-3"><h3 class="font-mono text-xs muted">rust-message.tsr</h3><button type="button" data-copy class="font-mono text-xs border line rounded px-3 py-2">Copy</button></div>
+          <pre class="p-6 text-sm leading-relaxed"><code><span class="kw">import</span> { greeting } <span class="kw">from</span> <span class="str">'./message.rs'</span>;
+
+<span class="kw">export function</span> rustMessage(): string {
+  <span class="kw">return</span> greeting();
+}</code></pre>
+          <div class="border-t line px-6 py-4"><p class="font-mono text-xs muted mb-3">message.rs</p><pre class="font-mono text-sm leading-relaxed"><code><span class="kw">pub fn</span> greeting() -&gt; String {
+    String::from(<span class="str">"Hello from Rust"</span>)
+}</code></pre></div>
+        </article>
+        <article class="code-panel" data-code="2">
+          <div class="flex justify-between items-center border-b line px-5 py-3"><h3 class="font-mono text-xs muted">counter.tsrx</h3><button type="button" data-copy class="font-mono text-xs border line rounded px-3 py-2">Copy</button></div>
+          <pre class="p-6 text-sm leading-relaxed"><code><span class="kw">const</span> count = signal(0);
+<span class="kw">return</span> (
+  &lt;Button onPress={() =&gt; {
+    count.set(count.get() + 1);
+  }}&gt;
+    Count: {count.get()}
+  &lt;/Button&gt;
+);</code></pre>
+          <div class="border-t line px-6 py-5 flex items-center justify-between gap-4"><p class="font-mono text-sm">WEB + NATIVE</p><p class="accent font-mono text-xs">.tsrx</p></div>
+        </article>
+      </div>
+    </div>
+  </div>
+  <section class="shell py-20 border-t line" aria-labelledby="local-title">
+    <p class="accent font-mono text-xs tracking-widest mb-8">LOCAL BY DESIGN</p>
+    <div class="grid gap-12 md:grid-cols-2 lg:gap-20">
+      <div><h2 id="local-title" class="display-title">Install the source.<br>Make it yours.</h2><p class="muted text-lg leading-relaxed max-w-lg mt-6">Components arrive as editable project files. Shared design tokens control light and dark themes. Your changes stay yours when the library moves forward.</p><a class="accent inline-block mt-6 py-2" href="/docs/ui/components/button">Explore components ↗</a></div>
+      <div class="code-panel self-start"><div class="flex justify-between items-center px-6 py-3 border-b line"><p class="muted font-mono text-xs">OFFLINE COMPONENTS</p><button type="button" data-copy class="font-mono text-xs border line rounded px-3 py-2">Copy</button></div><pre class="p-6 font-mono text-sm leading-relaxed"><code>tsrust ui add button</code></pre><div class="px-6 pb-6 font-mono text-sm muted leading-loose">src/components/ui/button.tsrx<br>tsrust.config.json<br>ui-components.lock.json</div><p class="px-6 pb-6 accent font-mono text-xs">NO REGISTRY REQUEST</p></div>
+    </div>
+  </section>
+  <section class="shell py-20 md:py-28 border-t line" aria-labelledby="cta-title">
+    <p class="accent font-mono text-xs tracking-widest mb-8">FROM SOURCE TO SOMETHING YOURS</p>
+    <h2 id="cta-title" class="display-title max-w-4xl">Your next app.<br>A different foundation.</h2>
+    <div class="flex flex-wrap gap-3 mt-10"><a class="action rounded px-6 py-3 font-medium" href="https://github.com/Forever-Frameworks-LLC/tsrust/releases">GitHub Releases ↗</a><a class="border line rounded px-6 py-3" href="/docs/getting-started/installation">Build from source</a></div>
+  </section>
+</main>
+<footer class="shell border-t line py-8 flex flex-wrap items-center justify-between gap-4"><p class="font-mono font-semibold">tsrust<span class="accent">.</span></p><p class="muted text-xs">TypeScript-style syntax. Rust execution.</p></footer>
+<p id="feedback" role="status" class="sr-only"></p>
+<script>
+(() => {
+  const root = document.documentElement;
+  const theme = document.getElementById('theme');
+  theme.addEventListener('click', () => {
+    root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    theme.setAttribute('aria-label', `Switch to ${root.dataset.theme === 'dark' ? 'light' : 'dark'} theme`);
+  });
+  const panels = [...document.querySelectorAll('[data-code]')];
+  for (const panel of panels) {
+    const copy = panel.cloneNode(true);
+    copy.removeAttribute('data-code');
+    document.querySelector(`[data-mobile="${panel.dataset.code}"]`).append(copy);
+  }
+  document.querySelectorAll('[data-copy]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const code = button.closest('.code-panel').querySelector('code').textContent;
+      button.disabled = true;
+      button.textContent = 'Copying…';
+      try {
+        await navigator.clipboard.writeText(code);
+        button.textContent = 'Copied';
+        document.getElementById('feedback').textContent = 'Code copied.';
+      } catch {
+        button.textContent = 'Retry copy';
+        document.getElementById('feedback').textContent = 'Copy failed. Select the code to copy manually.';
+      } finally { button.disabled = false; }
+    });
+  });
+  if (!('IntersectionObserver' in window)) return;
+  root.classList.add('enhanced');
+  const chapters = [...document.querySelectorAll('[data-chapter]')];
+  let active = -1;
+  const activate = index => {
+    if (active === index) return;
+    active = index;
+    panels.forEach((panel, i) => { panel.hidden = i !== index; });
+    chapters.forEach((chapter, i) => { chapter.toggleAttribute('data-active', i === index); });
+  };
+  activate(0);
+  const visible = new Map();
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      const index = Number(entry.target.dataset.chapter);
+      if (entry.isIntersecting) visible.set(index, entry.intersectionRatio);
+      else visible.delete(index);
+    });
+    const candidates = [...visible].sort((a, b) => b[1] - a[1] || a[0] - b[0]);
+    if (candidates.length) activate(candidates[0][0]);
+  }, { rootMargin: '-15% 0px -35% 0px', threshold: [0, .1, .25, .5, .75, 1] });
+  chapters.forEach(chapter => observer.observe(chapter));
+  const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const timers = [];
+  if (!motion.matches) document.querySelectorAll('.terminal-line').forEach((line, index) => {
+    line.setAttribute('data-pending', '');
+    timers.push(setTimeout(() => line.removeAttribute('data-pending'), 250 + index * 220));
+  });
+  window.addEventListener('pagehide', () => { observer.disconnect(); timers.forEach(clearTimeout); });
+  window.addEventListener('pageshow', event => { if (event.persisted) chapters.forEach(chapter => observer.observe(chapter)); });
+})();
+</script>
+</body>
+</html>

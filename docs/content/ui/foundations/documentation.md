@@ -42,4 +42,4 @@ The `syntaxKeyword`, `syntaxString`, `syntaxNumber` and `syntaxType` tokens in e
 
 ## Rendering limits
 
-Images appear as labeled references. External links display their destination as text. Raw HTML is displayed literally. Native text selection stays within one paragraph or code block; cross-paragraph selection and accessibility text-range navigation are not supported yet.
+Images appear as labeled references. HTTPS links open through the browser or the native default browser. Other external schemes remain labeled references. Raw HTML is displayed literally. Native text selection stays within one paragraph or code block; cross-paragraph selection and accessibility text-range navigation are not supported yet.

@@ -4,7 +4,7 @@ use std::{cell::RefCell,rc::Rc};
 use wasm_bindgen::{prelude::*,JsCast};
 use web_sys::{Element,Event};
 
-struct State { location:String, node:Option<Node>, elements:std::collections::BTreeMap<u64,Element>, error:Option<String>, composing:std::collections::BTreeMap<u64,String>, scrolls:std::collections::BTreeMap<u64,(i32,i32)>, root:Element, style:Element, scope:String }
+struct State { weak:std::rc::Weak<RefCell<State>>, visibility_queued:bool, observer:Option<web_sys::IntersectionObserver>, observed:std::collections::BTreeSet<u64>, disposed:bool, location:String, node:Option<Node>, elements:std::collections::BTreeMap<u64,Element>, error:Option<String>, composing:std::collections::BTreeMap<u64,String>, scrolls:std::collections::BTreeMap<u64,(i32,i32)>, root:Element, style:Element, scope:String }
 struct Listener { element:web_sys::EventTarget, event:&'static str, callback:Closure<dyn FnMut(Event)> }
 impl Drop for Listener {
     fn drop(&mut self) { let _=self.element.remove_event_listener_with_callback_and_bool(self.event,self.callback.as_ref().unchecked_ref(),true); }
@@ -12,13 +12,14 @@ impl Drop for Listener {
 #[wasm_bindgen]
 pub struct Mount {
     listeners:Vec<Listener>,
+    visibility_callback:Option<Closure<dyn FnMut(js_sys::Array,web_sys::IntersectionObserver)>>,
     state:Rc<RefCell<State>>,
 }
 #[wasm_bindgen]
 impl Mount {
     pub fn dispose(&mut self) {
         self.listeners.clear();
-        let mut state=self.state.borrow_mut();state.node.take();state.composing.clear();state.elements.clear();state.scrolls.clear();state.root.remove();state.style.remove();
+        let mut state=self.state.borrow_mut();state.disposed=true;if let Some(observer)=state.observer.take(){observer.disconnect();}state.observed.clear();self.visibility_callback.take();state.node.take();state.composing.clear();state.elements.clear();state.scrolls.clear();state.root.remove();state.style.remove();
     }
     pub fn error(&self)->Option<String> {self.state.borrow().error.clone()}
 }
@@ -122,7 +123,34 @@ fn update(state:&mut State,document:&web_sys::Document)->Result<(),JsValue> {
     let mut roots=Vec::new();if let Some(root)=node.visible_root(){roots.push(sync_element(root,document,&mut state.elements,&mut state.composing,theme,mode)?);}
     order_children(&state.root,&roots)?;
     for (id,(x,y)) in &state.scrolls {if let Some(element)=state.elements.get(id).filter(|element|element.is_connected()){element.set_scroll_left(*x);element.set_scroll_top(*y);}}
-    focus_location(state,document)
+    observe(state);queue_hidden(state,document);focus_location(state,document)
+}
+fn observe(state:&mut State) {
+    let Some(observer)=state.observer.as_ref() else{return;};
+    let mut ids=Vec::new();if let Some(node)=&state.node{node.observed_nodes(true,&mut ids);}
+    let live=ids.into_iter().filter(|id|state.elements.get(id).is_some_and(|element|element.is_connected())).collect::<std::collections::BTreeSet<_>>();
+    for id in state.observed.difference(&live){if let Some(element)=state.elements.get(id){observer.unobserve(element);}}
+    for id in live.difference(&state.observed){if let Some(element)=state.elements.get(id){observer.observe(element);}}
+    state.observed=live;
+}
+fn queue_hidden(state:&mut State,document:&web_sys::Document) {
+    if state.visibility_queued||state.weak.strong_count()==0{return;}
+    state.visibility_queued=true;let weak=state.weak.clone();let document=document.clone();
+    wasm_bindgen_futures::spawn_local(async move {
+        let Some(state_ref)=weak.upgrade() else{return;};
+        let changes={let mut state=state_ref.borrow_mut();state.visibility_queued=false;if state.disposed{return;}
+            let mut ids=Vec::new();if let Some(node)=&state.node{node.observed_nodes(false,&mut ids);}
+            ids.into_iter().filter(|id|!state.observed.contains(id)).map(|id|(id,false)).collect::<Vec<_>>()};
+        if !changes.is_empty(){visibility_update(&state_ref,&document,&changes);}
+    });
+}
+fn visibility_update(state_ref:&Rc<RefCell<State>>,document:&web_sys::Document,changes:&[(u64,bool)]) {
+    // Application callbacks can call a host binding which disposes this Mount.
+    let Some(mut node)=state_ref.borrow_mut().node.take() else{return;};
+    let result=(||->Result<bool,String>{let mut changed=false;for &(id,visible) in changes {changed|=node.visibility_changed(id,visible)?;}if changed{node.refresh()?;}Ok(changed)})();
+    let mut state=state_ref.borrow_mut();if state.disposed{return;}
+    let changed=match result{Ok(changed)=>changed,Err(error)=>{state.error=Some(error);return;}};
+    state.node=Some(node);if !changed{return;}if let Err(error)=update(&mut state,document){state.error=Some(format!("{error:?}"));state.node.take();}
 }
 fn focus_location(state:&mut State,document:&web_sys::Document)->Result<(),JsValue>{
     if !state.root.is_connected(){return Ok(());}
@@ -148,9 +176,23 @@ pub fn mount(mut node:Node,title:&str)->Result<Mount,JsValue> {
     let scope=format!("[data-tsrust-mount=\"{id}\"]");
     let style=document.create_element("style")?;
     let root=document.create_element("div")?;root.set_attribute("data-tsrust-mount",&id.to_string())?;let default=super::theme::Theme::default();let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((&default,"light"));root.set_attribute("style",&format!("{}color:var(--ui-foreground);background:var(--ui-background);font-size:var(--ui-text-base);min-height:100vh",theme.variables(mode)))?;
-    let mut state=State{location:String::new(),node:Some(node),elements:Default::default(),error:None,composing:Default::default(),scrolls:Default::default(),root:root.clone(),style:style.clone(),scope};
+    let mut state=State{weak:Default::default(),visibility_queued:false,observer:None,observed:Default::default(),disposed:false,location:String::new(),node:Some(node),elements:Default::default(),error:None,composing:Default::default(),scrolls:Default::default(),root:root.clone(),style:style.clone(),scope};
     update(&mut state,&document)?;
-    let state=Rc::new(RefCell::new(state));let mut mount=Mount{listeners:vec![],state:state.clone()};
+    let state=Rc::new(RefCell::new(state));state.borrow_mut().weak=Rc::downgrade(&state);let mut mount=Mount{listeners:vec![],visibility_callback:None,state:state.clone()};
+    let weak=Rc::downgrade(&state);let visibility_document=document.clone();
+    let visibility_callback=Closure::wrap(Box::new(move |entries:js_sys::Array,_:web_sys::IntersectionObserver| {
+        let Some(state)=weak.upgrade() else{return;};
+        let mut changes=Vec::new();
+        {let state=state.borrow();if state.disposed{return;}
+        for entry in entries.iter().filter_map(|entry|entry.dyn_into::<web_sys::IntersectionObserverEntry>().ok()) {
+            let element=entry.target();let Some(id)=element.get_attribute("data-tsrust-node").and_then(|value|value.parse::<u64>().ok()) else{continue;};
+            if !state.observed.contains(&id)||state.elements.get(&id)!=Some(&element){continue;}
+            changes.push((id,element.is_connected()&&entry.intersection_ratio()>0.));
+        }}
+        if !changes.is_empty(){visibility_update(&state,&visibility_document,&changes);}
+    }) as Box<dyn FnMut(js_sys::Array,web_sys::IntersectionObserver)>);
+    let options=web_sys::IntersectionObserverInit::new();let thresholds=js_sys::Array::new();thresholds.push(&JsValue::from_f64(0.));thresholds.push(&JsValue::from_f64(f64::EPSILON));options.set_threshold(&thresholds);
+    state.borrow_mut().observer=Some(web_sys::IntersectionObserver::new_with_options(visibility_callback.as_ref().unchecked_ref(),&options)?);mount.visibility_callback=Some(visibility_callback);
     for event in ["click","input","compositionstart","compositionend"] {
         let weak=Rc::downgrade(&state);let document=document.clone();
         let callback=Closure::wrap(Box::new(move |message:Event| {
@@ -159,6 +201,7 @@ pub fn mount(mut node:Node,title:&str)->Result<Mount,JsValue> {
             let Some(target)=message.target().and_then(|target|target.dyn_into::<Element>().ok()) else{return;};
             let target=if event=="click"{match target.closest("[data-tsrust-press]"){Ok(Some(element))=>element,_=>return}}else{target};
             if event=="click" && target.tag_name()=="A" {
+                if target.get_attribute("href").is_some_and(|href|super::navigation::external(&href)){return;}
                 let property=|name|js_sys::Reflect::get(message.as_ref(),&JsValue::from_str(name)).unwrap_or(JsValue::UNDEFINED);
                 if ["ctrlKey","metaKey","shiftKey","altKey"].iter().any(|name|property(name).as_bool()==Some(true))||property("button").as_f64().is_some_and(|button|button!=0.){return;}
                 message.prevent_default();
@@ -194,6 +237,7 @@ pub fn mount(mut node:Node,title:&str)->Result<Mount,JsValue> {
                 state.error=Some(error);state.node.take();state.composing.clear();return;
             }
             if let Err(error)=update(&mut state,&document){state.error=Some(error.as_string().unwrap_or_else(||"DOM update failed".into()));state.node.take();state.composing.clear();}
+
         }) as Box<dyn FnMut(Event)>);
         // Capture keeps the existing control behavior for nonbubbling synthetic events too.
         root.add_event_listener_with_callback_and_bool(event,callback.as_ref().unchecked_ref(),true)?;
@@ -213,7 +257,7 @@ pub fn mount(mut node:Node,title:&str)->Result<Mount,JsValue> {
         }
     }
     let body=document.body().ok_or_else(||JsValue::from_str("Browser body unavailable"))?;
-    body.append_child(&style)?;body.append_child(&root)?;focus_location(&mut state.borrow_mut(),&document)?;Ok(mount)
+    body.append_child(&style)?;body.append_child(&root)?;observe(&mut state.borrow_mut());queue_hidden(&mut state.borrow_mut(),&document);focus_location(&mut state.borrow_mut(),&document)?;Ok(mount)
 }
 
 // This slot exists only during entry construction. Returned JS Mount objects own

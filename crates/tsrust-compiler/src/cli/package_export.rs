@@ -27,6 +27,7 @@ pub(crate) fn export(root:&Path,rust:&str,web_only:bool,notices:&[(std::path::Pa
   if rust.contains("mod tsrust_native_futures {") {manifest=manifest.replace("default = []", "default = [\"async\"]").replace("default = [\"threads\"]", "default = [\"threads\", \"async\"]",
                 );
         }
+  if rust.contains("mod tsrust_native_ui {"){manifest=manifest.replace("default = [", "default = [\"ui\", ");}
         if rust.contains("mod tsrust_native_ui {") && rust.contains("use vello::") {
             let feature=if web_only{"ui-web"}else{"ui-native"};manifest = manifest.replace("default = [", &format!("default = [\"{feature}\", "));}
   if rust.contains("mod tsrust_native_date {"){manifest=manifest.replace("default = [", "default = [\"calendar\", ");}

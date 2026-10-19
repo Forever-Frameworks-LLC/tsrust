@@ -239,3 +239,14 @@ fn inline_text_and_clipboard_help_match_paired_components(){
   session.open(file,&text);session.settle();let at=text.find("syntaxKeyword").unwrap()+4;let help=session.hover(file,&text,at).unwrap_or_default();assert!(help.contains("Optional code syntax color"),"{file}: {help}");let keys=session.completion(file,&text,at).unwrap();assert!(keys.contains(&"syntaxKeyword".into()));
  }
 }
+
+#[test]
+fn visibility_and_external_links_offer_matching_help_and_diagnostics(){
+ let source="import {View,Text,Link,Node,signal} from 'std:ui';function Page():Node{const seen=signal(false);return <View onVisibilityChange={(visible)=>{seen.set(visible);}}><Text className=\"text-7xl leading-tight\">{seen.get() ? 'Seen' : 'Waiting'}</Text><Link href=\"https://github.com/Forever-Frameworks-LLC/tsrust\">GitHub</Link></View>;}function main(){}";
+ let mut session=support::session::Session::start(&[]);session.open("main.tsrx",source);let diagnostics=session.wait_for_diagnostics("main.tsrx");session.settle();assert!(diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
+ let at=source.find("onVisibilityChange=").unwrap();let help=session.hover("main.tsrx",source,at+3).unwrap_or_default();assert!(help.contains("clipping ancestors")&&help.contains("non-retaining"),"{help}");
+ let choices=session.completion("main.tsrx",source,at).unwrap();assert!(choices.contains(&"onVisibilityChange".into()),"{choices:?}");
+ let help=session.hover("main.tsrx",source,source.find("Link href=").unwrap()+1).unwrap_or_default();assert!(help.contains("HTTPS")&&help.contains("history unchanged"),"{help}");
+ let help=session.hover("main.tsrx",source,source.find("text-7xl").unwrap()+3).unwrap_or_default();assert!(help.contains("96px"),"{help}");
+ let broken=source.replace("(visible)=>","(visible:string)=>");session.change("main.tsrx",&broken);let diagnostics=session.wait_for_diagnostics("main.tsrx");assert!(!diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
+}

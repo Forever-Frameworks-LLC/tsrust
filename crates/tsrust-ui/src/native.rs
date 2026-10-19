@@ -856,6 +856,7 @@ impl App {
             let area=editor.text.ime_cursor_area();
             active.window.set_ime_cursor_area(winit::dpi::LogicalPosition::new(editor.origin.0-editor.scroll.0+area.x0,editor.origin.1-editor.scroll.1+area.y0),LogicalSize::new((area.x1-area.x0).max(1.),(area.y1-area.y0).max(1.)));
         }
+        let mut observed=Vec::new();self.node.observed_nodes(false,&mut observed);let visibility=self.painter.visibility(&observed,&snapshot.nodes,scale);
         *active.snapshot.lock().unwrap() = snapshot.clone();
         active.accessibility.update_if_active(|| snapshot);
         let device = &self.context.devices[active.surface.dev_id];
@@ -902,6 +903,8 @@ impl App {
         device.queue.submit([encoder.finish()]);
         active.window.pre_present_notify();
         device.queue.present(texture);
+        let mut changed=false;for (id,visible) in visibility{changed|=self.node.visibility_changed(id,visible)?;}
+        if changed{self.node.refresh()?;active.window.request_redraw();}
         Ok(true)
     }
 }

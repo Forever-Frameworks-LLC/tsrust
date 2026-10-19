@@ -40,6 +40,22 @@ impl Painter {
         register(&item.inline,&chain,&mut self.scroll_chains);
         Ok(())
     }
+    pub(super) fn visibility(&self,ids:&[u64],nodes:&[(accesskit::NodeId,accesskit::Node)],scale:f64)->Vec<(u64,bool)> {
+        let bounds=nodes.iter().filter_map(|(id,node)|node.bounds().map(|bounds|(id.0,bounds))).collect::<std::collections::BTreeMap<_,_>>();
+        let size=self.viewport.size.unwrap_or((0.,0.));
+        ids.iter().map(|id|{
+            let mut rectangle=bounds.get(id).copied().unwrap_or(accesskit::Rect::ZERO);
+            let mut clip=|bounds:accesskit::Rect|{rectangle=accesskit::Rect::new(rectangle.x0.max(bounds.x0),rectangle.y0.max(bounds.y0),rectangle.x1.min(bounds.x1),rectangle.y1.min(bounds.y1));};
+            clip(accesskit::Rect::new(0.,0.,size.0*scale,size.1*scale));
+            for parent in self.scroll_chains.get(id).into_iter().flatten().filter(|parent|*parent!=id){
+                if let (Some(bounds),Some(region))=(bounds.get(parent),self.scrolls.get(parent)) {
+                    let size=region.viewport.size.unwrap_or((0.,0.));let x=bounds.x0+region.inset.0*scale;let y=bounds.y0+region.inset.1*scale;
+                    clip(accesskit::Rect::new(x,y,x+size.0*scale,y+size.1*scale));
+                }
+            }
+            (*id,rectangle.x1>rectangle.x0 && rectangle.y1>rectangle.y0)
+        }).collect()
+    }
     pub(super) fn scroll_offset(&self, id: u64) -> (f64, f64) {
         self.scrolls.get(&id).map(|region| region.viewport.offset).unwrap_or((0., 0.))
     }
@@ -214,4 +230,21 @@ mod tests {
             assert!(view("", vec![]).with_semantics(metadata).is_err(), "{metadata}");
         }
     }
+    #[test]
+    fn visibility_follows_nested_clips_fractional_scale_hidden_and_resize() {
+        let target=view("h-16 shrink-0",vec![]);
+        let pane=view("h-24 overflow-auto shrink-0",vec![view("h-32 shrink-0",vec![]),target,view("h-32 shrink-0",vec![])]);
+        let mut root=view("h-screen overflow-hidden",vec![pane]);let mut painter=Painter::new();painter.viewport.size=Some((320.,240.));
+        let (_,snapshot)=painter.scene(&root,320.,1.5,None).unwrap();let pane=root.children[0].identity.get();let target=root.children[0].children[1].identity.get();
+        assert_eq!(painter.visibility(&[target],&snapshot.nodes,1.5),[(target,false)]);
+        painter.scroll_chain(Some(pane),0.,64.);let (_,snapshot)=painter.scene(&root,320.,1.5,None).unwrap();
+        assert_eq!(painter.visibility(&[target],&snapshot.nodes,1.5),[(target,true)]);
+        painter.scroll_chain(Some(pane),0.,-32.);let (_,snapshot)=painter.scene(&root,320.,1.5,None).unwrap();
+        assert_eq!(painter.visibility(&[target],&snapshot.nodes,1.5),[(target,false)],"Edge contact is not positive area");
+        painter.viewport.size=Some((320.,80.));painter.scroll_chain(Some(pane),0.,128.);let (_,snapshot)=painter.scene(&root,320.,2.,None).unwrap();
+        assert_eq!(painter.visibility(&[target],&snapshot.nodes,2.),[(target,true)]);
+        root.children[0].collapsed=true;let (_,snapshot)=painter.scene(&root,320.,2.,None).unwrap();assert_eq!(painter.visibility(&[target],&snapshot.nodes,2.),[(target,false)]);
+        root.children.clear();let (_,snapshot)=painter.scene(&root,320.,2.,None).unwrap();assert_eq!(painter.visibility(&[target],&snapshot.nodes,2.),[(target,false)]);
+    }
+
 }

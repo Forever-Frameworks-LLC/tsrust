@@ -46,10 +46,41 @@ pub fn traverse(forward:bool)->Result<(),String>{
 }
 #[cfg(all(target_arch="wasm32",feature="ui-web"))]
 pub(crate) fn restore_browser()->Result<(),String>{let Ok(owner)=active()else{return Ok(())};(owner.write)(browser_path()?)}
-pub fn link(children:Vec<Child>,class_name:String,path:&str)->Result<Node,String>{let path=checked_path(path)?;let href=path.clone();let owner=ACTIVE.with(|value|value.borrow().clone());let mut node=Node::button_children(children,class_name,false,Some(Box::new(move||{let owner=owner.upgrade().ok_or("UI link location is disposed")?;push(&owner,&path)?;(owner.write)(path.clone())})))?;node.semantics.href=href;Ok(node)}
+/// HTTPS links use the platform launcher; application paths retain local routing.
+pub(crate) fn external(href:&str)->bool{href.starts_with("https://")}
+pub fn checked_href(href:&str)->Result<String,String>{
+    if !external(href){return checked_path(href);}
+    if href.contains('\\') || href.chars().any(|ch|ch.is_control()||ch.is_whitespace()){return Err("HTTPS links cannot contain whitespace, controls or backslashes".into());}
+    let url=url::Url::parse(href).map_err(|error|format!("Invalid HTTPS link: {error}"))?;
+    if url.scheme()!="https" || url.host_str().is_none() || !url.username().is_empty() || url.password().is_some(){return Err("HTTPS links require a host and cannot contain credentials".into());}
+    Ok(url.into())
+}
+#[cfg(not(all(target_arch="wasm32",feature="ui-web")))]
+fn open_external(href:&str)->Result<(),String>{
+    #[cfg(target_os="macos")]let mut command=std::process::Command::new("/usr/bin/open");
+    #[cfg(target_os="windows")]let mut command={let mut command=std::process::Command::new("rundll32.exe");command.arg("url.dll,FileProtocolHandler");command};
+    #[cfg(not(any(target_os="macos",target_os="windows")))]let mut command=std::process::Command::new("xdg-open");
+    let result=command.arg(href).stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).status().map_err(|error|format!("Cannot open HTTPS link: {error}"))?;
+    if result.success(){Ok(())}else{Err(format!("HTTPS link launcher exited with {result}"))}
+}
+#[cfg(all(target_arch="wasm32",feature="ui-web"))]
+fn open_external(_:&str)->Result<(),String>{Err("Browser HTTPS links use anchor activation".into())}
+pub fn link(children:Vec<Child>,class_name:String,path:&str)->Result<Node,String>{
+    let path=checked_href(path)?;let href=path.clone();let owner=ACTIVE.with(|value|value.borrow().clone());
+    let mut node=Node::button_children(children,class_name,false,Some(Box::new(move||{
+        if external(&path){return open_external(&path);}
+        let owner=owner.upgrade().ok_or("UI link location is disposed")?;push(&owner,&path)?;(owner.write)(path.clone())
+    })))?;node.semantics.href=href;Ok(node)
+}
+
 #[cfg(test)]
 mod tests{
  #[test]fn browser_unicode_paths_decode_without_accepting_escaped_separators(){assert_eq!(super::decoded_browser_path("/docs/caf%C3%A9#%E6%96%87").unwrap(),"/docs/café#文");for path in ["/docs%2Fhidden","/docs%23fragment","/docs%20space","/%FF","/%C3","/%ZZ"]{assert!(super::decoded_browser_path(path).is_err(),"{path}");}}
+ #[test]fn https_links_validate_without_a_location_or_launcher(){
+  for href in ["javascript:alert(1)","http://host/","file:///tmp/app","//host/","https://user:secret@host/","https://host/has space","https://host/\\path","https://host/\n"]{assert!(super::checked_href(href).is_err(),"{href:?}");}
+  let node=super::link(vec![],String::new(),"https://github.com/Forever-Frameworks-LLC/tsrust/releases?tag=a&mode=b").unwrap();
+  let html=super::super::document(&node,"External");assert!(html.contains("href=\"https://github.com/Forever-Frameworks-LLC/tsrust/releases?tag=a&amp;mode=b\""));assert!(!html.contains(" aria-current="));
+ }
  use super::*;
  #[test]fn location_owns_history_and_releases_weak_callbacks(){let state=location(String::from,Clone::clone).unwrap();let weak=state.handle();let mut node=link(vec![],String::new(),"/docs/ui/button").unwrap();(node.press.as_mut().unwrap())().unwrap();assert_eq!(state.get().unwrap(),"/docs/ui/button");traverse(false).unwrap();assert_eq!(state.get().unwrap(),"/");traverse(true).unwrap();assert_eq!(state.get().unwrap(),"/docs/ui/button");state.set("/docs/".into()).unwrap();assert_eq!(state.get().unwrap(),"/docs");assert!(location(String::from,Clone::clone).is_err());assert!(navigate("//unsafe").is_err());drop(state);assert!(weak.get().is_err());assert!((node.press.as_mut().unwrap())().is_err());let next=location(String::from,Clone::clone).unwrap();assert!((node.press.as_mut().unwrap())().is_err());assert_eq!(next.get().unwrap(),"/");}
  #[test]fn paths_are_checked_and_document_links_keep_semantics(){for path in ["https://host/","//host","/a/../b","/a?x","/a%2fb","/a\\b","/a b","/a#"]{assert!(checked_path(path).is_err(),"{path}");}assert_eq!(checked_path("/docs/#start").unwrap(),"/docs#start");let link=link(vec![Child::Text(super::super::TextPart::Literal("Read docs".into()))],String::new(),"/docs").unwrap();let html=super::super::document(&link,"Links");assert!(html.contains("<a ")&&html.contains("href=\"/docs\""));assert!(!html.contains("type=\"button\""));}

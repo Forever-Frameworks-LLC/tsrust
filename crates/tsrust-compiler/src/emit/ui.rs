@@ -5,11 +5,15 @@ const CHANGE_HANDLER:&str="Box<dyn FnMut(&str,&str,&str)->Result<(),std::string:
 impl Emitter<'_> {
  pub(super) fn ui_native(&self,fun:&CheckedFunction,expr:&Expr,id:usize,args:&[Expr])->Option<String>{
   let binding=&crate::native_bindings::BINDINGS[id];
-  if binding.module!="std:ui-runtime" || !matches!(binding.name,"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"){return None;}
+  if binding.module!="std:ui-runtime" || !matches!(binding.name,"visibility"|"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"){return None;}
   self.native_bindings.borrow_mut().insert(id);
   let read=|arg:&Expr|self.expr(fun,arg,Mode::Read);
   let scalar=|arg:&Expr|{let text=read(arg);if arg.ty==Some(Type::String){format!("String::clone({text})")}else{text}};
   let call=match binding.name {
+   "visibility"=>{
+    let callback=args[1].ty.unwrap();let invoke=self.ui_callback_arguments(callback,expr.span,"()","(visible,)");
+    format!("{{let node={};let mut registered_callback={};node.with_visibility(move |visible:bool|{{{invoke}}})}}",self.expr(fun,&args[0],Mode::Consume),self.expr(fun,&args[1],Mode::Consume))
+   },
    "branch"=>{
     let adapters=args.iter().enumerate().map(|(index,arg)|{
      let callback=arg.ty.unwrap();let result=self.ui_getter_result(callback);let invoke=self.ui_callback(callback,expr.span,&self.native_type(result));
