@@ -1,4 +1,4 @@
-use super::{Document, Heading, Kind, Node, Range, highlight, safe_destination};
+use super::{Document, Heading, Kind, Node, highlight, safe_destination};
 use pulldown_cmark::{BrokenLink,CodeBlockKind,Event,Options,Parser,Tag};
 use std::collections::BTreeSet;
 
@@ -26,7 +26,7 @@ fn anchor(title:&str,used:&mut BTreeSet<String>)->String {
 /// CommonMark plus tables, task lists and strikethrough. Byte ranges reference the original source.
 pub fn parse(source:&str,offset:usize)->Result<Document,String> {
     if !source.is_char_boundary(offset){return Err("Markdown offset is not a UTF-8 boundary".into());}
-    let mut nodes=Vec::<Node>::new();let mut stack=Vec::<usize>::new();let mut headings=Vec::new();let mut used=BTreeSet::new();let mut title=String::new();let mut summary=String::new();
+    let mut nodes=Vec::<Node>::new();let mut stack=Vec::<usize>::new();let mut headings=Vec::new();let mut used=BTreeSet::new();let mut title=String::new();let mut summary=String::new();let mut code_ranges=std::collections::BTreeMap::<usize,(usize,usize)>::new();
     let options=Options::ENABLE_TABLES|Options::ENABLE_TASKLISTS|Options::ENABLE_STRIKETHROUGH;
     let mut unresolved=Vec::new();
     let callback=|link:BrokenLink<'_>|{unresolved.push(link.reference.to_string());None};
@@ -66,13 +66,14 @@ pub fn parse(source:&str,offset:usize)->Result<Document,String> {
                         headings.push(Heading{anchor:id,title:text,level:nodes[index].level,node:index,source:nodes[index].source.clone()});
                     },
                     Kind::Paragraph if summary.is_empty()&&nodes[index].parent<0=>summary=content(&nodes,index),
-                    Kind::CodeBlock=>nodes[index].tokens=highlight(&nodes[index].text,&nodes[index].language)?,
+                    Kind::CodeBlock=>{if let Some((start,end))=code_ranges.remove(&index){nodes[index].raw=source[start..end].to_string();}nodes[index].tokens=highlight(&nodes[index].text,&nodes[index].language)?;},
                     Kind::Image=>{nodes[index].text=content(&nodes,index);if nodes[index].text.trim().is_empty(){return Err(format!("Documentation images need nonempty alt text at byte {}",nodes[index].source.start));}},
                     _=>{},
                 }
             },
             Event::Text(text) if stack.last().is_some_and(|id|nodes[*id].kind==Kind::CodeBlock)=>{
-                let node=&mut nodes[*stack.last().unwrap()];node.text.push_str(&text);node.raw.push_str(&source[range]);
+                let index=*stack.last().unwrap();code_ranges.entry(index).and_modify(|span|span.1=range.end).or_insert((range.start,range.end));
+                nodes[index].text.push_str(&text);
             },
             event=>{
                 let (kind,text,checked)=match event {

@@ -3,7 +3,7 @@ use std::{collections::{BTreeMap,BTreeSet},env,fs,path::{Path,PathBuf},io::Write
 use sha2::{Digest,Sha256};
 use serde_json::{Value,json};
 use tsrust_compiler::{documentation as docs,project::{self,FileSourceProvider,SourceId,SourceProvider}};
-fn hash(bytes:&[u8])->String{format!("{:x}",Sha256::digest(bytes))}
+fn hash(bytes:&[u8])->String{Sha256::digest(bytes).iter().map(|byte|format!("{byte:02x}")).collect()}
 fn file(root:&Path,relative:&Path)->Result<PathBuf,String>{
     tsrust_compiler::ui_project::safe_relative(relative)?;
     let mut path=root.to_owned();
@@ -50,7 +50,7 @@ fn graph(root:&Path,config:&docs::Config)->Result<project::ProjectAnalysis,Strin
         let exports=&headers.modules[&headers.entry].exports;
         let imports=exports.keys().filter(|name|name.as_str()!="default").enumerate().map(|(item,name)|format!("{name} as D{index}_{item}")).collect::<Vec<_>>().join(",");
         if imports.is_empty(){return Err(format!("Documentation API/example has no named exports: {path}"));}
-        source.push_str(&format!("import {{{imports}}} from {};\n",tsrust_compiler::json_string(&target)));
+        source.push_str(&format!("import {{{imports}}} from {};\n",tsrust_compiler::json_string(&format!("../{path}"))));
     }
     source.push_str("function main() {}\n");let provider=Inputs{entry:entry.clone(),source};
     project::check_graph(project::load_project(&provider,&entry.0).map_err(|error|format!("{}: {}",error.location.source.0,error.message))?).map_err(|error|format!("{}: {}",error.location.source.0,error.message))

@@ -12,7 +12,7 @@ pub fn highlight(source:&str, language:&str)->Result<Vec<CodeToken>,String> {
     for token in tokens.into_iter().filter(|token|token.kind!=TokenKind::End) {
         if offset<token.span.start {
             let gap=&source[offset..token.span.start];
-            output.push(CodeToken{source:Range{start:offset,end:token.span.start},class:if (gap.trim_start().starts_with("//")||gap.trim_start().starts_with("/*")){"comment"}else{"plain"}.into()});
+            output.push(CodeToken{source:Range{start:offset,end:token.span.start},class:if gap.trim_start().starts_with("//")||gap.trim_start().starts_with("/*"){"comment"}else{"plain"}.into()});
         }
         let class=match token.kind {
             TokenKind::JsxOpen|TokenKind::JsxClose=>{tag_name=true;"punctuation"},
@@ -28,6 +28,6 @@ pub fn highlight(source:&str, language:&str)->Result<Vec<CodeToken>,String> {
         };
         offset=token.span.end;output.push(CodeToken{source:Range{start:token.span.start,end:offset},class:class.into()});
     }
-    if offset<source.len(){let gap=&source[offset..];output.push(CodeToken{source:Range{start:offset,end:source.len()},class:if (gap.trim_start().starts_with("//")||gap.trim_start().starts_with("/*")){"comment"}else{"plain"}.into()});}
+    if offset<source.len(){let gap=&source[offset..];output.push(CodeToken{source:Range{start:offset,end:source.len()},class:if gap.trim_start().starts_with("//")||gap.trim_start().starts_with("/*"){"comment"}else{"plain"}.into()});}
     Ok(output)
 }
