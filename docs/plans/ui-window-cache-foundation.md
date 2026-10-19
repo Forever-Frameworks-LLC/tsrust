@@ -29,3 +29,19 @@ time, and executes both newly linked results. Workspace serialization/identity a
 explicit clean with an unrelated symlink target pass. Standalone startup/GPU,
 consumer refresh, remaining content/editor checks and final acceptance remain
 pending. No full regression, SQL suite or throughput benchmark was repeated.
+
+
+The first bounded standalone preparation timed out after 240 seconds with one
+Cargo job. Resuming its persistent workspace completed in 98,987 ms; an unchanged
+restart completed in 5,778 ms with runtime reuse but an unexpected executable-cache
+miss. These are diagnostic observations, not a statistical benchmark.
+
+Exact cache identity comparison isolates that miss to generated Rust: source graph,
+toolchain, features and flags were identical. Callback error-layout sharing compared
+raw failure-discovery order instead of canonical native payload alternatives. Layout
+keys now use the existing checked canonical payloads, preserving error contracts,
+injection, ownership and cleanup. A focused witness reverses discovery order and
+requires identical Rust, then executes both thrown payload cases. Four fresh UI
+compiler processes also emit byte-identical Rust. Both focused witnesses pass;
+no full compiler/LSP or service/SQL suite was rerun. Installed refresh and repeated
+standalone startup observations follow this source checkpoint.

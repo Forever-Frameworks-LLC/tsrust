@@ -1953,16 +1953,17 @@ impl Emitter<'_> {
         }
         let mut callback_contracts=self.program.error_effects.callback_errors.iter().collect::<Vec<_>>();
         callback_contracts.sort_by_key(|(id,_)|**id);
-        let mut callback_layouts:Vec<(crate::error_effects::FailureSet,String)>=vec![];
+        // Failure discovery order is not part of the native ABI or artifact identity.
+        let mut callback_layouts:Vec<(Vec<Type>,String)>=vec![];
         for (id,contract) in callback_contracts {
             if !contract.runtime && !contract.opaque && contract.explicit.is_empty() {continue;}
             let span=crate::Span::default();
             if *id>=self.program.callback_contracts.len() {return Err(crate::Diagnostic::new("error-effect","Result preparation requires a known callback declaration.",span));}
             if contract.opaque && !active_callbacks.contains(id) {continue;}
-            contract.native_payloads(&unions,runtime,span)?;
-            let name=if let Some((_,name))=callback_layouts.iter().find(|(saved,_)|saved==contract) {name.clone()} else {
+            let payloads=contract.native_payloads(&unions,runtime,span)?;
+            let name=if let Some((_,name))=callback_layouts.iter().find(|(saved,_)|*saved==payloads) {name.clone()} else {
                 let (declaration,name)=self.completion_error_layout(&format!("TsrCallbackError{id}"),contract,runtime,span);
-                declarations.push_str(&declaration);callback_layouts.push((contract.clone(),name.clone()));name
+                declarations.push_str(&declaration);callback_layouts.push((payloads,name.clone()));name
             };
             callbacks.insert(*id,(name,contract.clone()));
         }
@@ -1981,11 +1982,11 @@ impl Emitter<'_> {
             }
             let contract=self.program.error_effects.closure_errors.get(index).ok_or_else(||crate::Diagnostic::new("error-effect","Result preparation requires saved closure contracts.",closure.span))?;
             if !contract.runtime && !contract.opaque && contract.explicit.is_empty() {continue;}
-            contract.native_payloads(&unions,runtime,closure.span)?;
+            let payloads=contract.native_payloads(&unions,runtime,closure.span)?;
             if closure.polymorphic {
                 return Err(crate::Diagnostic::new("error-effect","Polymorphic Result closures require method-specific registration.",closure.span));
             }
-            if let Some((_,name))=callback_layouts.iter().find(|(saved,_)|saved==contract) {
+            if let Some((_,name))=callback_layouts.iter().find(|(saved,_)|*saved==payloads) {
                 // Equal checked payload sets share their native callback ABI.
                 closures.insert(index,name.clone());
             } else {
@@ -10293,3 +10294,20 @@ mod nullable_recursive_tests;
 
 #[path = "../stdlib/collections/ordered_set_emit.rs"]
 mod ordered_set_emit;
+
+#[cfg(test)]mod deterministic_error_layout_tests {
+    #[test]
+    fn callback_error_layout_identity_ignores_failure_discovery_order() {
+        let source="function invoke(action:Function<void>):void{action();}function fail(value:boolean):void{if(value){throw 'text';}throw 7;}function main(){for(const value of [true,false]){try{invoke(()=>{fail(value);});}catch(error){console.log(error);}}}";
+        let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+        let mut analysis=crate::check(&source).unwrap();
+        for contract in analysis.program.error_effects.callback_errors.values_mut().chain(&mut analysis.program.error_effects.closure_errors) {contract.explicit.sort_by_key(|ty|format!("{ty:?}"));}
+        let original=analysis.emit_rust();
+        let contract=analysis.program.error_effects.closure_errors.iter_mut().find(|contract|contract.explicit.len()>1 && analysis.program.error_effects.callback_errors.values().any(|callback|callback==*contract)).expect("closure shares a callback's checked error alternatives");
+        contract.explicit.reverse();let emitted=analysis.emit_rust();assert_eq!(emitted,original,"error discovery order must not change native ABI names or artifact cache identity");
+        struct Cleanup(std::path::PathBuf);impl Drop for Cleanup{fn drop(&mut self){let _=std::fs::remove_dir_all(&self.0);}}
+        let directory=Cleanup(std::env::temp_dir().join(format!("tsrust-error-layout-{}",std::process::id())));std::fs::create_dir(&directory.0).unwrap();let input=directory.0.join("program.rs");let binary=directory.0.join("program");std::fs::write(&input,emitted).unwrap();
+        let output=std::process::Command::new("rustup").args(["run",crate::RUST_BACKEND_VERSION,"rustc","--edition=2024"]).arg(input).arg("-o").arg(&binary).output().unwrap();assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));
+        let output=std::process::Command::new(binary).output().unwrap();assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));assert_eq!(output.stdout,b"text\n7\n");
+    }
+}

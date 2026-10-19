@@ -425,3 +425,14 @@ fn default_run_cleans_artifacts_after_success_and_runtime_failure() {
         );
     }
 }
+
+#[test]
+fn callback_error_layout_identity_is_stable_across_ui_compiler_processes() {
+    let entry=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/ui-conditional-mounting/src/main.tsr");
+    let mut reference=None;
+    for _ in 0..4 {
+        let output=support::run(support::cli().arg("emit").arg(&entry),30);support::success(&output);
+        if let Some(reference)=&reference {assert_eq!(&output.stdout,reference,"unchanged UI source must produce identical Rust across fresh processes");}
+        else {reference=Some(output.stdout);}
+    }
+}
