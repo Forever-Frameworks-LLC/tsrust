@@ -20,10 +20,10 @@ function main(){
  match(JSON.tryParse<2.5>('9007199254740993')){Ok(value)=>{throw 'integer rounded';},Err(error)=>{strictEqual(error.code,'number-precision');}}
  match(JSON.tryParse<Item>('{"status":"bad","status":"draft","single":"draft","maybe":null}')){Ok(value)=>{throw 'invalid duplicate ignored';},Err(error)=>{strictEqual(error.code,'shape-mismatch');}}
  match(JSON.tryParse<Status[]>('["draft","published"]',{maxBytes:1024,maxDepth:4,maxEntries:4,maxNodes:2})){Ok(value)=>{throw 'budget bypassed';},Err(error)=>{strictEqual(error.code,'node-limit');}}
- strictEqual(unwrap(parseJsonc<Status>('/* header */"published"'))==='published',true);
- const reader=unwrap(openJsonl('records.jsonl'));const record=unwrap(readJsonl<Status>(reader));
- if(record!==undefined){strictEqual(record==='draft',true);}else{throw 'missing JSONL record';}
- strictEqual(unwrap(readJsonl<Status>(reader))===undefined,true);unwrap(closeJsonl(reader));
+ match(parseJsonc<Status>('/* header */"published"')){Ok(value)=>{strictEqual(value==='published',true);},Err(error)=>{throw error.message;}}
+ const reader=unwrap(openJsonl('records.jsonl'));
+ match(readJsonl<Status>(reader)){Ok(value)=>{if(value!==undefined){strictEqual(value==='draft',true);}else{throw 'missing JSONL record';}},Err(error)=>{throw error.message;}}
+ match(readJsonl<Status>(reader)){Ok(value)=>{strictEqual(value===undefined,true);},Err(error)=>{throw error.message;}}unwrap(closeJsonl(reader));
  console.log('Literal JSON passed');
 }
 "#;

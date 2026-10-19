@@ -24,6 +24,23 @@ fn header(source:&str,start:usize)->Result<String,String> {
     }
     Err("Public documentation declaration has no body".into())
 }
+/// Imported inheritance uses the base span for diagnostics. Follow that checked base
+/// through the module graph to recover the field's actual source annotation.
+fn field_origin(project:&ProjectAnalysis,parsed:&BTreeMap<SourceId,syntax::Program>,facts:&crate::project::ProjectCheckedTypeFacts,name:&str,mut location:crate::project::SourceLocation)->Result<crate::project::SourceLocation,String>{
+    for _ in 0..128 {
+        if parsed.get(&location.source).is_some_and(|program|program.records.iter().any(|record|record.fields.iter().any(|field|field.name.text==name&&field.name.span==location.span))){return Ok(location);}
+        let module=project.graph.modules.get(&location.source).ok_or("Missing inherited field module")?;
+        let base=module.source.text.get(location.span.start..location.span.end).ok_or("Invalid inherited base range")?;
+        let imported=module.imports.iter().find_map(|import|import.bindings.iter().find(|binding|binding.local==base).and_then(|binding|Some((import.target.as_ref()?,&binding.exported))));
+        let Some((target,export))=imported else{return Err(format!("Cannot resolve inherited field {name} through {base} in {}",location.source.0));};
+        let span=project.graph.modules.get(target).and_then(|module|module.exports.get(export)).ok_or("Missing inherited base export")?;
+        location=facts.record_fields.iter().find_map(|(owner,field,origin,_,_)|{
+            let ProjectType::Named{declaration:Some(declaration),..}=owner else{return None;};
+            (field==name&&declaration.source==*target&&declaration.span==*span).then(||origin.clone())
+        }).ok_or_else(||format!("Missing checked inherited field {export}.{name}"))?;
+    }
+    Err("Inherited documentation field exceeds the source depth limit".into())
+}
 /// Declaration/field identities come from a successful project check, not a parallel type parser.
 pub fn api(project:&ProjectAnalysis,sources:&[SourceId])->Result<Vec<ApiDefinition>,String> {
     let mut parsed=BTreeMap::new();
@@ -51,6 +68,7 @@ pub fn api(project:&ProjectAnalysis,sources:&[SourceId])->Result<Vec<ApiDefiniti
             for (owner,name,location,_,optional) in &facts.record_fields {
                 let ProjectType::Named{declaration:Some(declaration),..}=owner else{continue;};
                 if declaration.source!=*id||declaration.span!=*span{continue;}
+                let location=field_origin(project,&parsed,&facts,name,location.clone())?;
                 let original=project.graph.modules.get(&location.source).ok_or("Missing checked prop declaration")?;
                 let record=parsed.get(&location.source).and_then(|program|program.records.iter().find(|record|record.fields.iter().any(|field|field.name.span==location.span)));
                 let field=record.and_then(|record|record.fields.iter().find(|field|field.name.span==location.span)).ok_or_else(||format!("Missing source prop annotation for {}.{} at {}:{}..{}",export,name,location.source.0,location.span.start,location.span.end))?;
