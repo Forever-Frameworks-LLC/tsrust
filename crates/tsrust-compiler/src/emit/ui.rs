@@ -5,13 +5,21 @@ const CHANGE_HANDLER:&str="Box<dyn FnMut(&str,&str,&str)->Result<(),std::string:
 impl Emitter<'_> {
  pub(super) fn ui_native(&self,fun:&CheckedFunction,expr:&Expr,id:usize,args:&[Expr])->Option<String>{
   let binding=&crate::native_bindings::BINDINGS[id];
-  if binding.module!="std:ui-runtime" || !matches!(binding.name,"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"){return None;}
+  if binding.module!="std:ui-runtime" || !matches!(binding.name,"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"){return None;}
   self.native_bindings.borrow_mut().insert(id);
   let read=|arg:&Expr|self.expr(fun,arg,Mode::Read);
   let scalar=|arg:&Expr|{let text=read(arg);if arg.ty==Some(Type::String){format!("String::clone({text})")}else{text}};
   let call=match binding.name {
+   "branch"=>{
+    let adapters=args.iter().enumerate().map(|(index,arg)|{
+     let callback=arg.ty.unwrap();let result=self.ui_getter_result(callback);let invoke=self.ui_callback(callback,expr.span,&self.native_type(result));
+     let output=if index==0{invoke}else{format!("({invoke}).and_then(|value|{})",self.ui_branch_child(result,"value"))};
+     format!("{{let mut registered_callback={};move||{{{output}}}}}",self.expr(fun,arg,Mode::Consume))
+    }).collect::<Vec<_>>();
+    format!("{{let predicate={};let present={};let absent={};tsrust_native_ui::Node::branch(predicate,present,absent)}}",adapters[0],adapters[1],adapters[2])
+   },
    "bindText"=>{
-    let callback=args[0].ty.unwrap();let result=match callback{Type::Callback(id)=>self.program.callback_contracts[id].result,Type::StoredCallable(family)=>self.program.callback_contracts[self.program.stored_contracts.declaration(family).expect("checked text getter")].result,Type::Closure(id)=>self.program.closures[id].function.result,_=>unreachable!("checked text getter")};
+    let callback=args[0].ty.unwrap();let result=self.ui_getter_result(callback);
     let invoke=self.ui_callback(callback,expr.span,&self.native_type(result));let format=self.ui_text_scalar(result,"value");
     return Some(format!("{{let mut registered_callback={};tsrust_native_ui::TextBinding::computed(move||{{let result={invoke};result.map(|value|{format})}})}}",self.expr(fun,&args[0],Mode::Consume)));
    },
@@ -29,6 +37,20 @@ impl Emitter<'_> {
   let failure=format!("Record{}{{field0:String::Borrowed(\"UiError\"),field1:String::Owned(message){}}}",self.native_record_declaration(error),self.schema_record_order(error));
   Some(format!("match {call}{{Ok(value)=>{},Err(message)=>{}}}",wrap(ok,"value"),wrap(err,&failure)))
  }
+ fn ui_getter_result(&self,callback:Type)->Type {match callback{Type::Callback(id)=>self.program.callback_contracts[id].result,Type::StoredCallable(family)=>self.program.callback_contracts[self.program.stored_contracts.declaration(family).expect("checked UI getter")].result,Type::Closure(id)=>self.program.closures[id].function.result,_=>unreachable!("checked UI getter")}}
+ fn ui_branch_child(&self,ty:Type,value:&str)->String {match ty {
+  Type::Union(id)=>{let arms=self.program.unions[id.index()].members.iter().enumerate().map(|(tag,&ty)|format!("Union{}::V{tag}(value)=>{},",id.index(),self.ui_branch_child(ty,"value"))).collect::<String>();format!("match {value}{{{arms}}}")},
+  Type::Null|Type::Undefined=>format!("{{let _={value};Ok(None)}}"),
+  Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::UiNode)=>format!("Ok(Some({value}))"),
+  _=>{
+   let part=if let Type::Record(id)=ty {
+    let record=&self.program.records[id];let binding=if record.native_type==Some(crate::native_signatures::NativeTypeId::UiTextBinding){value.to_owned()}else{
+     let payload=record.application.as_ref().expect("checked signal child").resolved_arguments[0];let format=match payload{Type::String=>"|value|value.as_ref().to_owned()".to_owned(),Type::Number=>"|value|tsr_number_to_string(*value,10,\"UI text\").into_owned()".into(),Type::Int|Type::Boolean=>"|value|value.to_string()".into(),_=>unreachable!()};format!("({value}).text_binding({format})")
+    };format!("tsrust_native_ui::TextPart::Signal({binding})")
+   }else{format!("tsrust_native_ui::TextPart::Literal({})",self.ui_input_scalar(ty,value))};
+   format!("tsrust_native_ui::Node::text_run(vec![{part}]).map(Some)")
+  },
+ }}
  fn ui_text_scalar(&self,ty:Type,expression:&str)->String {match ty {
   Type::Union(id)=>{let arms=self.program.unions[id.index()].members.iter().enumerate().map(|(tag,&ty)|format!("Union{}::V{tag}(value)=>{},",id.index(),self.ui_text_scalar(ty,"value"))).collect::<String>();format!("match {expression}{{{arms}}}")},
   Type::Boolean=>format!("({expression}).to_string()"),

@@ -13,7 +13,8 @@ const SIGNAL_NUMBER:Signature=Signature::Applied(NativeTypeId::UiSignal,&[Signat
 const SIGNAL_BOOLEAN:Signature=Signature::Applied(NativeTypeId::UiSignal,&[Signature::Boolean]);
 const SIGNAL_STRING:Signature=Signature::Applied(NativeTypeId::UiSignal,&[Signature::String]);
 pub(crate) const TEXT_CHILDREN:Signature=Signature::Array(&Signature::Optional(&Signature::Union(&[Signature::String,Signature::Int,Signature::Number,Signature::Named(NativeTypeId::UiTextBinding),SIGNAL_INT,SIGNAL_NUMBER,SIGNAL_BOOLEAN,SIGNAL_STRING,Signature::Null])));
-pub(crate) const CHILDREN:Signature=Signature::Array(&Signature::Optional(&Signature::Union(&[Signature::String,Signature::Int,Signature::Number,Signature::Named(NativeTypeId::UiTextBinding),SIGNAL_INT,SIGNAL_NUMBER,SIGNAL_BOOLEAN,SIGNAL_STRING,Signature::Named(NativeTypeId::UiNode),Signature::Null])));
+pub(crate) const CHILD_VALUE:Signature=Signature::Optional(&Signature::Union(&[Signature::String,Signature::Int,Signature::Number,Signature::Named(NativeTypeId::UiTextBinding),SIGNAL_INT,SIGNAL_NUMBER,SIGNAL_BOOLEAN,SIGNAL_STRING,Signature::Named(NativeTypeId::UiNode),Signature::Null]));
+pub(crate) const CHILDREN:Signature=Signature::Array(&CHILD_VALUE);
 pub(crate) const INPUT_DEFAULT:Signature=Signature::Optional(&Signature::Union(&[Signature::String,Signature::Int,Signature::Number]));
 const NODE: Signature = Signature::Named(NativeTypeId::UiNode);
 const ERROR: Signature = Signature::Named(NativeTypeId::UiError);
@@ -92,6 +93,7 @@ pub(crate) const OWN_STATE:NativeBinding=NativeBinding{name:"ownState",result:Na
 pub(crate) const PRESS_BUTTON:NativeBinding=NativeBinding{name:"button",parameters:&[parameter("children",NativeType::Structured(&CHILDREN),Mode::Consume),parameter("className",NativeType::String,Mode::Read),parameter("disabled",NativeType::Boolean,Mode::Read),parameter("onPress",NativeType::OwnedVoidCallback,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_press_button"},..TEXT};
 
 pub(crate) const TEXT_BINDING:NativeBinding=NativeBinding{name:"bindText",parameters:&[parameter("evaluate",NativeType::ObservedValue,Mode::Consume)],result:NativeType::Structured(&Signature::Named(NativeTypeId::UiTextBinding)),backend:NativeBackend::Bundled{symbol:"tsrust_ui_text_binding"},..TEXT};
+pub(crate) const BRANCH:NativeBinding=NativeBinding{name:"branch",parameters:&[parameter("predicate",NativeType::OwnedBooleanCallback,Mode::Consume),parameter("present",NativeType::ObservedValue,Mode::Consume),parameter("absent",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_branch"},..TEXT};
 
 pub(crate) const INPUT:NativeBinding=NativeBinding{name:"input",parameters:&[parameter("value",NativeType::ObservedValue,Mode::Consume),parameter("defaultValue",NativeType::Structured(&INPUT_DEFAULT),Mode::Consume),parameter("options",NativeType::String,Mode::Read),parameter("className",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_input"},..TEXT};
 pub(crate) const INPUT_CHANGE:NativeBinding=NativeBinding{name:"inputChange",parameters:&[parameter("value",NativeType::ObservedValue,Mode::Consume),parameter("defaultValue",NativeType::Structured(&INPUT_DEFAULT),Mode::Consume),parameter("options",NativeType::String,Mode::Read),parameter("className",NativeType::String,Mode::Read),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_input_change"},..TEXT};
@@ -121,6 +123,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("pub mod browser;",&format!("pub mod browser {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/browser.rs").replace("use crate::{", "use super::{")))
         .replace("mod editable;",&format!("mod editable {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/editable.rs")))
         .replace("mod state;", &format!("mod state {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/state.rs")))
+        .replace("mod branch;", &format!("mod branch {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/branch.rs")))
         .replace("pub mod style;",&format!("pub mod style {{\n{style}\n}}"))
         .replace("pub mod theme;",&format!("pub mod theme {{\n{theme}\n}}"))
         .replace("mod web;",&format!("mod web {{\n{web}\n}}"))
@@ -179,6 +182,9 @@ pub(crate) fn omit_unused(
 }
 
 pub(crate) fn prepare(program:&mut crate::syntax::Program)->Result<(),crate::Diagnostic> {
+    if program.records.iter().any(|record|record.native_type==Some(NativeTypeId::UiNode)) {
+        crate::native_binding_types::prepare_signature(&mut program.records,&CHILD_VALUE,&[],crate::Span::default())?;
+    }
     if program.records.iter().any(|record|record.native_type==Some(NativeTypeId::UiSignal)) {
         for binding in [&GET,&SET] {crate::native_binding_types::prepare(&mut program.records,binding,crate::Span::default())?;}
     }

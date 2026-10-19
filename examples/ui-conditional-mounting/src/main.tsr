@@ -1,0 +1,12 @@
+import { run, withTheme } from 'std:ui';
+import config from '../tsrust.config.json';
+import { Page } from './app/page';
+
+function main() {
+  match (run(withTheme(Page(), config.ui.theme), 'Conditional mounting')) {
+    Ok(_) => {},
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}

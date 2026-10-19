@@ -16,9 +16,8 @@ pub(crate) const BASE: &str = "body{margin:0;font-family:system-ui,sans-serif}:w
 pub(crate) fn scope(node:&Node,theme:&crate::theme::Theme,mode:&str)->String {
     if node.theme.is_some() {theme.variables(mode)}else{String::new()}
 }
-fn element(node:&Node,out:&mut String,next:&mut usize,theme:&crate::theme::Theme,mode:&str) {
- let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));
- let id=*next;*next+=1;
+fn element(node:&Node,out:&mut String,theme:&crate::theme::Theme,mode:&str) {
+ let Some(node)=node.visible_root() else{return;};let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));let id=node.identity.get();
  let tag=node.tag();
  out.push('<');out.push_str(tag);
  for (key,value) in [("role",&node.semantics.role),("aria-label",&node.semantics.label),("id",&node.semantics.id),("data-slot",&node.semantics.slot),("data-size",&node.semantics.size),("for",&node.semantics.html_for),("aria-describedby",&node.semantics.described_by),("aria-invalid",&node.semantics.invalid)] {
@@ -41,23 +40,22 @@ fn element(node:&Node,out:&mut String,next:&mut usize,theme:&crate::theme::Theme
  out.push_str(" class=\"ui ");escape(&node.class_name,out);
  out.push_str(&format!("\" data-tsrust-node=\"{id}\" style=\""));escape(&scope(node,theme,mode),out);out.push_str("\">");
  if node.kind==Kind::Input {return;}
- escape(&node.text,out);for child in &node.children {element(child,out,next,theme,mode);}
+ escape(&node.text,out);for child in &node.children {element(child,out,theme,mode);}
  out.push_str("</");out.push_str(tag);out.push('>');
 }
 pub(crate) fn stylesheet(node:&Node,scope:&str)->String {
- fn collect(node:&Node,next:&mut usize,theme:&crate::theme::Theme,mode:&str,scope:&str,out:&mut String) {
-  let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));
-  let id=*next;*next+=1;out.push_str(&crate::style::css(&node.class_name,theme,mode,id,scope));
-  for child in &node.children {collect(child,next,theme,mode,scope,out);}
+ fn collect(node:&Node,theme:&crate::theme::Theme,mode:&str,scope:&str,out:&mut String) {
+  let Some(node)=node.visible_root() else{return;};let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));let id=node.identity.get();out.push_str(&crate::style::css(&node.class_name,theme,mode,id,scope));
+  for child in &node.children {collect(child,theme,mode,scope,out);}
  }
  let default=crate::theme::Theme::default();let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((&default,"light"));let mut out=BASE.to_owned();
  out.push_str(&format!("body{{{}color:var(--ui-foreground);background:var(--ui-background);font-size:var(--ui-text-base)}}",theme.variables(mode)));
- collect(node,&mut 1,theme,mode,scope,&mut out);out
+ node.ensure_identities();collect(node,theme,mode,scope,&mut out);out
 }
 pub(crate) fn document(root:&Node,title:&str)->String {
  let mut out=String::from("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>");
  escape(title,&mut out);out.push_str("</title><style>");out.push_str(&stylesheet(root,""));out.push_str("</style></head><body>");
- element(root,&mut out,&mut 1,&crate::theme::Theme::default(),"light");out.push_str("</body></html>");out
+ element(root,&mut out,&crate::theme::Theme::default(),"light");out.push_str("</body></html>");out
 }
 
 #[cfg(test)]

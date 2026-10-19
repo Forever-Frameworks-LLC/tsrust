@@ -85,3 +85,12 @@ string operations, nullable text, exact numeric literals, stable node identities
 accessible names and disposal. Build `examples/ui-computed-text/src/failures.tsrx`
 and use `verify-computed-failures.mjs <site>` for readable getter failure and
 independent-mount cleanup. These are untimed observers, not throughput claims.
+
+
+`verify-conditional.mjs <site>` compares nested lazy mounting with
+`conditional-reference.ts` after tsc. It checks selected-branch state, fresh state
+after removal, sibling/control identities, focus/selection/IME, transparent row
+layout, retired events, new-node themes, accessibility and disposal. Build
+`examples/ui-conditional-mounting/src/failures.tsrx` and run
+`verify-conditional-failures.mjs <site>` for lazy-construction errors and independent
+mount cleanup. Both observers are untimed and close their isolated processes.

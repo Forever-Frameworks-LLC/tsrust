@@ -60,6 +60,7 @@ struct Item {
     role: Kind,
     semantics: super::Semantics,
     label: String,
+    identity:u64,
     id: NodeId,
     text: Option<Layout<()>>,
     color: super::theme::ResolvedColor,
@@ -101,10 +102,11 @@ impl Painter {
         }
     }
     fn node(&mut self,node:&Node,inherited:TextStyle)->Result<Item,String> {
-        self.themed_node(node,inherited,&super::theme::Theme::default(),"light",&mut 1,&mut Vec::new(),&std::collections::BTreeMap::new())
+        node.ensure_identities();let node=node.visible_root().ok_or("UI root is absent")?;
+        self.themed_node(node,inherited,&super::theme::Theme::default(),"light",&mut Vec::new(),&std::collections::BTreeMap::new())
     }
-    fn themed_node<'a>(&mut self, node: &'a Node, mut inherited: TextStyle, theme:&super::theme::Theme, mode:&str, next:&mut u64,ancestors:&mut Vec<&'a Node>,variables:&std::collections::BTreeMap<String,f32>) -> Result<Item, String> {
-        let id=*next;*next+=1;
+    fn themed_node<'a>(&mut self, node: &'a Node, mut inherited: TextStyle, theme:&super::theme::Theme, mode:&str, ancestors:&mut Vec<&'a Node>,variables:&std::collections::BTreeMap<String,f32>) -> Result<Item, String> {
+        let id=node.identity.get();
         let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));
         if node.theme.is_some() {inherited.size=theme.typography.base as f32;inherited.color=theme.color(mode,"foreground")?;}
 
@@ -165,9 +167,8 @@ impl Painter {
         }
         ancestors.push(node);
         let children = node
-            .children
-            .iter()
-            .map(|child| self.themed_node(child, inherited,theme,mode,next,ancestors,&variables))
+            .visible_children()
+            .map(|child| self.themed_node(child, inherited,theme,mode,ancestors,&variables))
             .collect::<Result<Vec<_>, _>>()?;
         ancestors.pop();
         let (text, id) = if node.kind == Kind::View || !children.is_empty() {
@@ -200,6 +201,7 @@ impl Painter {
             (Some(layout), id)
         };
         Ok(Item {
+            identity:node.identity.get(),
             opacity,suppress_outline,placeholder_color,
             field:node.editable.as_ref().map(|field|FieldInfo{value:field.value.clone(),placeholder:field.placeholder.clone(),read_only:field.read_only,required:field.required}),
             text_style:inherited,
@@ -228,8 +230,14 @@ impl Painter {
     fn scene_focused(&mut self,node:&Node,width:f32,scale:f64,focus:Option<u64>,visible_focus:Option<u64>)->Result<(Scene,accesskit::TreeUpdate),String> {
         self.tree.clear();self.hit_regions.clear();self.clip_stack.clear();self.live_editors.clear();self.cursors.clear();self.viewport_width=width;
         self.focus=visible_focus;
+        node.ensure_identities();
+        if node.visible_root().is_none(){
+            for editor in self.editors.values_mut(){editor.cancel_composition(&mut self.fonts,&mut self.layouts);}self.editors.clear();self.label_targets.clear();
+            return Ok((Scene::new(),accesskit::TreeUpdate{nodes:vec![(accesskit::NodeId(0),accesskit::Node::new(accesskit::Role::Window))],tree:Some(accesskit::TreeInfo::new(accesskit::NodeId(0))),tree_id:accesskit::TreeId::ROOT,focus:accesskit::NodeId(0)}));
+        }
         let mut root = self.node(node, TextStyle::default())?;
-        self.editors.retain(|id,_|self.live_editors.contains(id));
+        let (editors,fonts,layouts,live)=(&mut self.editors,&mut self.fonts,&mut self.layouts,&self.live_editors);
+        editors.retain(|id,editor|{if live.contains(id){true}else{editor.cancel_composition(fonts,layouts);false}});
         let mut root_style = self.tree.style(root.id).map_err(|e| e.to_string())?.clone();
         if root_style.size.width.is_auto() {root_style.size.width = length(width);}
         self.tree.set_style(root.id, root_style).map_err(|e| e.to_string())?;
@@ -265,13 +273,12 @@ impl Painter {
             )
             .map_err(|e| e.to_string())?;
         let mut scene = Scene::new();
-        self.paint(&mut root, &mut scene, 0., 0., scale, focus, &mut 1)?;
+        self.paint(&mut root, &mut scene, 0., 0., scale, focus)?;
         let mut nodes = Vec::new();
-        let mut next = 1;
-        self.accessible(&root, &mut nodes, &mut next, 0., 0., scale)?;
+        let root_identity=self.accessible(&root, &mut nodes, 0., 0., scale)?;
         self.label_targets=associate_controls(node,&mut nodes);
         let mut window = accesskit::Node::new(accesskit::Role::Window);
-        window.set_children(vec![accesskit::NodeId(1)]);
+        window.set_children(vec![root_identity]);
         nodes.push((accesskit::NodeId(0), window));
         Ok((
             scene,
@@ -287,13 +294,11 @@ impl Painter {
         &self,
         item: &Item,
         nodes: &mut Vec<(accesskit::NodeId, accesskit::Node)>,
-        next: &mut u64,
         parent_x: f64,
         parent_y: f64,
         scale: f64,
     ) -> Result<accesskit::NodeId, String> {
-        let id = accesskit::NodeId(*next);
-        *next += 1;
+        let id = accesskit::NodeId(item.identity);
         let layout = *self.tree.layout(item.id).map_err(|e| e.to_string())?;
         let (x, y) = (
             parent_x + layout.location.x as f64,
@@ -344,7 +349,7 @@ impl Painter {
         let mut children = item
             .children
             .iter()
-            .map(|child| self.accessible(child, nodes, next, x, y, scale))
+            .map(|child| self.accessible(child, nodes, x, y, scale))
             .collect::<Result<Vec<_>, _>>()?;
         if item.field.is_none() && item.text.is_some() && !item.label.is_empty() && !matches!(role,accesskit::Role::Label|accesskit::Role::Button) {
             // Semantic text containers own content, not an invented accessible name.
@@ -373,15 +378,13 @@ impl Painter {
         parent_y: f64,
         scale: f64,
         focus: Option<u64>,
-        next: &mut u64,
     ) -> Result<(), String> {
         let layout = self.tree.layout(item.id).map_err(|e| e.to_string())?;
         let (x, y) = (
             parent_x + layout.location.x as f64,
             parent_y + layout.location.y as f64,
         );
-        let id = *next;
-        *next += 1;
+        let id = item.identity;
         let transform = Affine::scale(scale);
         if item.opacity<1. {
             scene.push_layer(
@@ -441,7 +444,7 @@ impl Painter {
             paint_text(scene,text,paint_color(item.color),transform,origin);
         }
         for child in &mut item.children {
-            self.paint(child, scene, x, y, scale, focus, next)?;
+            self.paint(child, scene, x, y, scale, focus)?;
         }
         if item.overflow{self.clip_stack.pop();scene.pop_layer();}
         if let Some(color)=item.outline.or_else(||(!item.suppress_outline && self.focus==Some(id) && matches!(item.role,Kind::Button|Kind::Input|Kind::Textarea)).then_some(item.ring)) {
@@ -456,18 +459,18 @@ impl Painter {
 }
 
 fn associate_controls(root:&Node,nodes:&mut [(accesskit::NodeId,accesskit::Node)])->std::collections::BTreeMap<u64,u64> {
-    fn collect<'a>(node:&'a Node,all:&mut Vec<&'a Node>) {all.push(node);for child in &node.children{collect(child,all);}}
+    fn collect<'a>(node:&'a Node,all:&mut std::collections::BTreeMap<u64,&'a Node>) {if let Some(node)=node.visible_root(){all.insert(node.identity.get(),node);for child in &node.children{collect(child,all);}}}
     fn labelable(node:&Node)->bool {matches!(node.kind,Kind::Button|Kind::DisabledButton|Kind::Input|Kind::Textarea)}
-    fn first(node:&Node,id:&mut u64)->Option<u64> {let current=*id;*id+=1;if labelable(node){return Some(current);}for child in &node.children{if let Some(found)=first(child,id){return Some(found);}}None}
-    let mut all=Vec::new();collect(root,&mut all);
-    let mut ids=std::collections::BTreeMap::new();for (index,node) in all.iter().enumerate(){if !node.semantics.id.is_empty(){ids.entry(node.semantics.id.as_str()).or_insert(index as u64+1);}}
+    fn first(node:&Node)->Option<u64> {let node=node.visible_root()?;if labelable(node){return Some(node.identity.get());}node.children.iter().find_map(first)}
+    let mut all=std::collections::BTreeMap::new();collect(root,&mut all);
+    let mut ids=std::collections::BTreeMap::new();for (&id,node) in &all {if !node.semantics.id.is_empty(){ids.entry(node.semantics.id.as_str()).or_insert(id);}}
     let mut labels=std::collections::BTreeMap::<u64,Vec<accesskit::NodeId>>::new();let mut targets=std::collections::BTreeMap::new();
-    for (index,node) in all.iter().enumerate().filter(|(_,node)|node.tag()=="label") {
-        let target=if node.semantics.html_for.is_empty(){first(node,&mut (index as u64+1))}else{ids.get(node.semantics.html_for.as_str()).copied().filter(|id|labelable(all[*id as usize-1]))};
-        if let Some(target)=target{targets.insert(index as u64+1,target);labels.entry(target).or_default().push(accesskit::NodeId(index as u64+1));}
+    for (&id,node) in all.iter().filter(|(_,node)|node.tag()=="label") {
+        let target=if node.semantics.html_for.is_empty(){first(node)}else{ids.get(node.semantics.html_for.as_str()).copied().filter(|id|all.get(id).is_some_and(|node|labelable(node)))};
+        if let Some(target)=target{targets.insert(id,target);labels.entry(target).or_default().push(accesskit::NodeId(id));}
     }
     for (id,accessible) in nodes {
-        let Some(node)=id.0.checked_sub(1).and_then(|index|all.get(index as usize)) else{continue;};
+        let Some(node)=all.get(&id.0) else{continue;};
         if node.semantics.label.is_empty(){if let Some(labels)=labels.get(&id.0){accessible.set_labelled_by(labels.clone());}}
         let described=node.semantics.described_by.split_ascii_whitespace().filter_map(|name|ids.get(name).copied()).map(accesskit::NodeId).collect::<Vec<_>>();
         if !described.is_empty(){accessible.set_described_by(described);}
@@ -987,6 +990,45 @@ mod tests {
                 assert_eq!(b.y0, a.y0 * 2.);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod conditional_tests {
+    use super::*;
+    use crate::{Child,Signal};
+    #[test]
+    fn empty_live_text_runs_create_no_layout_gap_and_keep_adjacent_controls() {
+        let text=Signal::new(String::new());let read=text.handle();let update=text.handle();
+        let input=Node::input_control(None,Some("stable".into()),"{}",String::new(),None).unwrap();
+        let mut root=Node::view(vec![Child::Text(crate::TextPart::Signal(read.text_binding(Clone::clone))),Child::Node(input)],"flex-row gap-4".into()).unwrap().own_state(text).unwrap();root.refresh().unwrap();let stable=root.children[1].identity.get();let mut painter=Painter::new();
+        let (_,empty)=painter.scene(&root,600.,1.,Some(stable)).unwrap();assert_eq!(root.visible_children().count(),1);assert_eq!(empty.nodes.iter().find(|(id,_)|id.0==stable).unwrap().1.bounds().unwrap().x0,0.);
+        update.set("Ready".into()).unwrap();root.refresh().unwrap();let (_,present)=painter.scene(&root,600.,1.,Some(stable)).unwrap();assert_eq!(root.visible_children().count(),2);assert!(present.nodes.iter().find(|(id,_)|id.0==stable).unwrap().1.bounds().unwrap().x0>16.);
+        update.set(String::new()).unwrap();root.refresh().unwrap();let (_,removed)=painter.scene(&root,600.,1.,Some(stable)).unwrap();assert_eq!(removed.nodes.iter().find(|(id,_)|id.0==stable).unwrap().1.bounds().unwrap().x0,0.);assert_eq!(painter.editors.len(),1);
+        drop(root);assert!(update.get().is_err());
+    }
+    #[test]
+    fn conditional_layout_and_accessibility_keep_retained_editor_identity_and_ime() {
+        let show=Signal::new(true);let select=show.handle();
+        let branch=Node::branch(move||select.get(),||Ok(Some(Node::input_control(None,Some("branch".into()),"{}",String::new(),None)?.with_semantics(r#"{"label":"Branch"}"#)?)),||Ok(None)).unwrap();
+        let stable=Node::input_control(None,Some("stable".into()),"{}",String::new(),None).unwrap().with_semantics(r#"{"id":"stable","label":"Stable"}"#).unwrap();
+        let mut root=Node::view(vec![Child::Node(branch),Child::Node(stable)],"flex-row gap-4".into()).unwrap();root.refresh().unwrap();
+        let old=root.children[0].visible_root().unwrap().identity.get();let stable=root.children[1].identity.get();let mut painter=Painter::new();
+        let (_,first)=painter.scene(&root,600.,1.,Some(stable)).unwrap();let bounds=first.nodes.iter().find(|(id,_)|id.0==stable).unwrap().1.bounds().unwrap();assert_eq!(bounds.x0,256.);
+        for id in [old,stable]{let editor=painter.editors.get_mut(&id).unwrap();editor.text.driver(&mut painter.fonts,&mut painter.layouts).select_byte_range(1,3);editor.preedit("漢",Some((3,3)),&mut painter.fonts,&mut painter.layouts).unwrap();}
+        let preedit=painter.editors[&stable].text.raw_text().to_owned();show.set(false).unwrap();root.refresh().unwrap();
+        let (_,hidden)=painter.scene(&root,600.,1.,Some(stable)).unwrap();assert!(!painter.editors.contains_key(&old));assert!(!hidden.nodes.iter().any(|(id,_)|id.0==old));
+        let stable_accessible=hidden.nodes.iter().find(|(id,_)|id.0==stable).unwrap();assert_eq!(stable_accessible.1.bounds().unwrap().x0,0.);assert_eq!(stable_accessible.1.label(),Some("Stable"));
+        assert_eq!(painter.editors[&stable].text.raw_text(),preedit);assert!(painter.editors[&stable].text.is_composing());
+        show.set(true).unwrap();root.refresh().unwrap();let fresh=root.children[0].visible_root().unwrap().identity.get();assert!(fresh>stable);
+        let (_,shown)=painter.scene(&root,600.,1.,Some(stable)).unwrap();assert!(shown.nodes.iter().any(|(id,_)|id.0==fresh));assert_eq!(painter.editors[&fresh].text.raw_text(),"branch");assert!(!painter.editors[&fresh].text.is_composing());assert!(painter.editors[&stable].text.is_composing());
+        let mut focus=Some(stable);let mut pressed=None;keyboard(&mut focus,&mut pressed,&[fresh,stable],false,&Key::Named(NamedKey::Tab),ElementState::Pressed,false);assert_eq!(focus,Some(fresh));
+    }
+    #[test]
+    fn conditional_root_can_disappear_without_a_layout_or_accessibility_placeholder() {
+        let show=Signal::new(true);let select=show.handle();let mut root=Node::branch(move||select.get(),||Ok(Some(Node::input_control(None,None,"{}",String::new(),None)?)),||Ok(None)).unwrap();
+        root.refresh().unwrap();let mut painter=Painter::new();painter.scene(&root,600.,1.,None).unwrap();assert_eq!(painter.editors.len(),1);
+        show.set(false).unwrap();root.refresh().unwrap();let (_,snapshot)=painter.scene(&root,600.,1.,None).unwrap();assert_eq!(snapshot.nodes.len(),1);assert_eq!(snapshot.nodes[0].0,accesskit::NodeId(0));assert!(painter.editors.is_empty());
     }
 }
 

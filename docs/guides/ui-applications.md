@@ -227,8 +227,7 @@ See examples/ui-state for a paired component and native assertions.
 
 Direct Signal children and supported scalar JSX expressions bind updates.
 Numeric children preserve their exact scalar types; null/undefined are omitted.
-Bare booleans remain errors. Dynamic conditional node trees remain
-construction-time snapshots. See examples/ui-composition and the computed-text
+Bare booleans remain errors. Local-state JSX ternaries lazily mount selected node branches. See examples/ui-composition and the computed-text
 section below.
 
 ## Shared layout
@@ -436,8 +435,9 @@ function Message(props: { visible: boolean; }): Node | null {
 }
 ```
 
-These branches select initial content. Dynamic conditional mounting and keyed
-lists remain separate work. Signal payloads still require nonnullable scalar
+Ordinary scalar props select initial content. JSX ternaries reading directly
+declared component state mount lazily, as described below. Keyed lists remain
+separate work. Signal payloads still require nonnullable scalar
 values. Bare boolean literals remain unsupported; use a ternary with
 null/undefined for absence and strings or numeric snapshots for visible text.
 Nullable arrays containing owning Nodes or Signals still cannot be cloned,
@@ -454,11 +454,10 @@ portable Rust functions; no framework increment helper or public binding factory
 is needed. See `examples/ui-computed-text`.
 
 Precompute outside JSX for a snapshot. Unknown/inferred helper results, generic
-child contracts, state reached through arbitrary prop records and computed node
-trees remain snapshots. Getter expressions must be pure; construction and refresh
+child contracts and state reached through arbitrary prop records remain snapshots. Getter expressions must be pure; construction and refresh
 may evaluate them. Null/undefined getter values contribute no characters; this
-changes text, not component mounting. Dynamic branches and keyed lists remain
-separate work. Captured owned data follows ordinary callback rules without
+changes text. Node branches use the conditional mounting contract below; keyed
+lists remain separate work. Captured owned data follows ordinary callback rules without
 implicit clones.
 
 Numeric literal and owning numeric-array children preserve their exact types.
@@ -466,3 +465,47 @@ Integers use all 64 bits; numbers keep ordinary NaN/infinity formatting and -0 a
 0. Bare boolean literals remain unsupported; explicit boolean state bindings
 produce true/false text. Getter errors stop the affected mount, preserve their
 message and release the callback environment independently of other mounts.
+
+
+## Conditional mounting
+
+Use ordinary JSX ternaries, including nested conditions. Only the selected branch
+is constructed. Conditions reading directly declared component state refresh after
+handlers; selecting the same branch preserves its local state and controls.
+Removing a branch releases its callbacks, resources and local owners once.
+Selecting it again constructs fresh state. Transparent internal slots add no
+layout gap, wrapper element or accessibility node.
+
+```tsrust
+function Page(): Node {
+  const visible = signal(true);
+  return (
+    <View>
+      <Button onPress={() => { visible.set(!visible.get()); }}>Toggle</Button>
+      {visible.get() ? <Counter/> : null}
+      <Input aria-label="Persistent name" defaultValue="Ada"/>
+    </View>
+  );
+}
+```
+
+The neighboring input keeps its identity, selection, focus and active composition
+when the counter appears or disappears. Removed controls cannot receive later
+framework events, and their IDs are not reused. Native text editors cancel removed
+composition and release editing state. Browser listeners belong to the mount;
+new branches participate through delegated events without retaining dead handlers.
+New nodes receive the project theme and scoped styles.
+
+A component can also return a local-state ternary directly. Its returned Node owns
+the dynamic slot, even when the selected branch currently contributes no visible
+node. Local-state conditional results therefore describe a live subtree rather
+than exposing a null snapshot. Ordinary scalar conditions and precomputed values
+retain their normal snapshot behavior. Expressions must obey normal callback
+ownership: repeatedly moving a prebuilt Node from a capture is an error. Construct
+it inside the selected JSX branch instead. Getter conditions must be pure.
+
+Button phrasing, label nesting/control counts, separator content and aria-hidden
+rules are checked again when branches change. Failure stops the affected mount
+and releases its owned tree; other mounts keep working. This does not add keyed
+lists, generic reactive prop forwarding or persistent routing. See
+`examples/ui-conditional-mounting` for the paired interactive example.

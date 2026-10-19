@@ -6,6 +6,7 @@ mod native;
 #[cfg(all(target_arch="wasm32",feature="ui-web"))]
 pub mod browser;
 mod state;
+mod branch;
 mod editable;
 pub(crate) use editable::{ValueBinding,ChangeHandler};
 pub use state::{Signal,TextBinding};
@@ -50,6 +51,9 @@ pub(crate) struct Semantics {
 
 pub struct Node {
     depth: usize,
+    identity:std::cell::Cell<u64>,
+    next_identity:std::cell::Cell<u64>,
+    anonymous_text:bool,
     pub(crate) theme: Option<(theme::Theme,String)>,
     pub(crate) semantics: Semantics,
     pub(crate) kind: Kind,
@@ -61,6 +65,7 @@ pub struct Node {
     pub(crate) press: Option<Box<dyn FnMut() -> Result<(), String>>>,
     pub(crate) editable: Option<editable::Editable>,
     read_only: Option<Box<dyn FnMut()->Result<bool,String>>>,
+    branch:Option<branch::Branch>,
     state: Vec<Box<dyn std::any::Any>>,
 }
 
@@ -83,21 +88,14 @@ impl Node {
         let name_allowed=if value.role.is_empty(){matches!(tag,"button"|"input"|"textarea"|"h1"|"h2"|"h3"|"h4"|"h5"|"h6"|"section")}else{!matches!(value.role.as_str(),"none"|"presentation")};
         if !value.label.is_empty() && !name_allowed{return Err("aria-label requires a button, heading, section or a role that supports naming".into());}
         if value.role=="region" && value.label.trim().is_empty(){return Err("A region requires an accessible label".into());}
-        if value.role=="separator" && (!self.text.is_empty() || !self.children.is_empty()){return Err("A separator cannot contain text or children".into());}
         if !value.html_for.is_empty() && tag!="label"{return Err("htmlFor requires a label element".into());}
         if value.html_for.chars().any(|ch|ch.is_ascii_whitespace()||ch.is_control()){return Err("htmlFor must name a single document ID".into());}
         if value.described_by.chars().any(|ch|ch.is_control() && !ch.is_ascii_whitespace()){return Err("aria-describedby contains an invalid ID".into());}
         if !matches!(value.invalid.as_str(),""|"true"|"false"){return Err("aria-invalid supports boolean values".into());}
-        if tag=="label" {
-            fn labels(node:&Node)->bool {node.tag()=="label" || node.children.iter().any(labels)}
-            fn controls(node:&Node)->usize {usize::from(matches!(node.kind,Kind::Button|Kind::DisabledButton|Kind::Input|Kind::Textarea))+node.children.iter().map(controls).sum::<usize>()}
-            if self.children.iter().any(labels) || controls(&self)>1 {return Err("Labels cannot nest or contain more than one control".into());}
-        }
         if value.id.chars().any(|ch|ch.is_ascii_whitespace()||ch.is_control()){return Err("UI id cannot contain whitespace or control characters".into());}
         if value.slot.chars().any(|ch|!(ch.is_ascii_alphanumeric()||ch=='-')){return Err("UI slot must contain ASCII letters, digits or hyphens".into());}
         if value.size.chars().any(|ch|!(ch.is_ascii_alphanumeric()||ch=='-')){return Err("UI data-size must contain ASCII letters, digits or hyphens".into());}
-        if value.hidden && self.has_enabled_controls(){return Err("An aria-hidden subtree cannot contain enabled interactive controls".into());}
-        self.semantics=value;Ok(self)
+        self.semantics=value;self.validate_structure()?;Ok(self)
     }
     fn has_enabled_controls(&self)->bool {self.enabled_control() || self.children.iter().any(Self::has_enabled_controls)}
     pub(crate) fn enabled_control(&self)->bool {matches!(self.kind,Kind::Button|Kind::Input|Kind::Textarea) && !self.is_disabled()}
@@ -115,7 +113,7 @@ impl Node {
     fn child_nodes(children: Vec<Child>) -> Result<Vec<Node>,String> {
         fn flush(parts: &mut Vec<TextPart>, nodes: &mut Vec<Node>) -> Result<(),String> {
             if parts.iter().any(|part|match part{TextPart::Literal(text)=>!text.is_empty(),TextPart::Signal(_)=>true}) {
-                nodes.push(Node::text(std::mem::take(parts),String::new())?);
+                nodes.push(Node::text_run(std::mem::take(parts))?);
             } else { parts.clear(); }
             Ok(())
         }
@@ -129,14 +127,8 @@ impl Node {
         flush(&mut parts,&mut nodes)?;Ok(nodes)
     }
     pub fn button_children(children:Vec<Child>,class_name:String,disabled:bool,press:Option<Box<dyn FnMut()->Result<(),String>>>) -> Result<Self,String> {
-        fn phrasing(node:&Node)->bool {
-            matches!(node.tag(),"span"|"code"|"kbd")
-                && matches!(node.semantics.role.as_str(),""|"none"|"presentation")
-                && !matches!(node.kind,Kind::Button|Kind::DisabledButton)
-                && node.children.iter().all(phrasing)
-        }
         let children=Self::child_nodes(children)?;
-        if !children.iter().all(phrasing){return Err("Button children must be noninteractive phrasing content: text, span, code or kbd".into());}
+        if !children.iter().all(Self::phrasing){return Err("Button children must be noninteractive phrasing content: text, span, code or kbd".into());}
         let mut node=Self::new(Kind::View,class_name,String::new(),children)?;
         node.kind=if disabled{Kind::DisabledButton}else{Kind::Button};node.press=press;Ok(node)
     }
@@ -170,7 +162,7 @@ impl Node {
 
     pub fn with_theme(mut self, json: &str, mode: &str) -> Result<Self,String> {
         let theme=theme::Theme::parse(json)?;theme.color(mode,"background")?;
-        self.theme=Some((theme,mode.to_owned()));Ok(self)
+        self.theme=Some((theme,mode.to_owned()));self.inherit_branch_theme();Ok(self)
     }
     pub fn own_state<T: Clone + 'static>(mut self, state: Signal<T>) -> Result<Self,String> { self.state.push(Box::new(state)); Ok(self) }
     pub fn text(parts:Vec<TextPart>,class_name:String)->Result<Self,String> {
@@ -178,6 +170,10 @@ impl Node {
         let mut node=Self::new(Kind::Text,class_name,text,vec![])?;
         if parts.iter().any(|part|matches!(part,TextPart::Signal(_))) {node.parts=parts;}
         Ok(node)
+    }
+    #[doc(hidden)]
+    pub fn text_run(parts:Vec<TextPart>)->Result<Self,String> {
+        let mut node=Self::text(parts,String::new())?;node.anonymous_text=true;Ok(node)
     }
     fn text_value(parts:&[TextPart])->Result<String,String> {
         let mut text=String::new();
@@ -194,7 +190,11 @@ impl Node {
     }
     #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
     pub(crate) fn refresh(&mut self) -> Result<usize,String> {
-        let mut changed=0;
+        let changed=self.refresh_inner()?;self.ensure_identities();Ok(changed)
+    }
+    #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
+    fn refresh_inner(&mut self) -> Result<usize,String> {
+        let mut changed=self.refresh_branch()?;
         let disabled=if let Some(predicate)=&mut self.disabled {Some(predicate()?)}else{None};
         if let Some(value)=disabled {changed+=usize::from(self.apply_disabled(value));}
         let read_only=if let Some(predicate)=&mut self.read_only {Some(predicate()?)}else{None};
@@ -210,24 +210,26 @@ impl Node {
             let text=Self::text_value(&self.parts)?;
             if text!=self.text {self.text=text;changed+=1;}
         }
-        for child in &mut self.children {changed+=child.refresh()?;}
-        if self.semantics.hidden && self.has_enabled_controls(){return Err("An aria-hidden subtree cannot contain enabled interactive controls".into());}
+        for child in &mut self.children {changed+=child.refresh_inner()?;}
+        self.depth=usize::from(self.branch.is_none())+self.children.iter().map(|child|child.depth).max().unwrap_or(0);
+        if self.depth>128{return Err("UI nesting exceeds 128 nodes".into());}
+        self.validate_structure()?;
         Ok(changed)
     }
-    /// Stable preorder IDs belong to this mounted tree, with zero reserved for its window.
+    /// IDs initially follow preorder; removed IDs are never reused within this tree.
     #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
     pub(crate) fn activate(&mut self, target: u64) -> Result<bool,String> {
-        fn visit(node:&mut Node,target:u64,next:&mut u64)->Result<bool,String> {
-            let id=*next;*next+=1;
-            if id==target {
+        self.ensure_identities();
+        fn visit(node:&mut Node,target:u64)->Result<bool,String> {
+            if node.identity.get()==target {
                 if node.kind!=Kind::Button {return Ok(false);}
                 if let Some(handler)=&mut node.press {handler()?;return Ok(true);}
                 return Ok(false);
             }
-            for child in &mut node.children {if visit(child,target,next)? {return Ok(true);}}
+            for child in &mut node.children {if visit(child,target)? {return Ok(true);}}
             Ok(false)
         }
-        visit(self,target,&mut 1)
+        visit(self,target)
     }
 
     pub(crate) fn editable(mut field:editable::Editable,class_name:String)->Result<Self,String> {
@@ -237,22 +239,22 @@ impl Node {
     }
     #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
     pub(crate) fn input(&mut self,target:u64,value:&str)->Result<bool,String> {
-        fn visit(node:&mut Node,target:u64,value:&str,next:&mut u64)->Result<bool,String>{
-            let id=*next;*next+=1;
-            if id==target {
+        self.ensure_identities();
+        fn visit(node:&mut Node,target:u64,value:&str)->Result<bool,String>{
+            if node.identity.get()==target {
                 let Some(field)=&mut node.editable else{return Ok(false);};
                 let changed=field.input(value,&node.semantics.id)?;node.text=field.value.clone();return Ok(changed);
             }
-            for child in &mut node.children {if visit(child,target,value,next)?{return Ok(true);}}
+            for child in &mut node.children {if visit(child,target,value)?{return Ok(true);}}
             Ok(false)
         }
-        visit(self,target,value,&mut 1)
+        visit(self,target,value)
     }
 
     #[cfg(feature="native")]
     fn control_value(&self,target:u64)->Option<&str> {
-        fn find<'a>(node:&'a Node,target:u64,next:&mut u64)->Option<&'a str>{let id=*next;*next+=1;if id==target{return node.editable.as_ref().map(|field|field.value.as_str());}for child in &node.children{if let Some(value)=find(child,target,next){return Some(value);}}None}
-        find(self,target,&mut 1)
+        fn find(node:&Node,target:u64)->Option<&str>{if node.identity.get()==target{return node.editable.as_ref().map(|field|field.value.as_str());}node.children.iter().find_map(|child|find(child,target))}
+        find(self,target)
     }
     pub fn new(
         kind: Kind,
@@ -277,8 +279,10 @@ impl Node {
             _ => {}
         }
         let class_name = class_name.split_whitespace().collect::<Vec<_>>().join(" ");
+        for child in &children{child.reset_identities();}
         Ok(Self {
             depth,
+            identity:std::cell::Cell::new(0),next_identity:std::cell::Cell::new(0),anonymous_text:false,branch:None,
             theme: None,
             semantics: Semantics::default(),
             kind,

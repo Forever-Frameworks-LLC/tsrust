@@ -77,7 +77,7 @@ pub(crate) fn scoped_at_width(node:&Node,ancestors:&[&Node],theme:&Theme,mode:&s
 }
 #[cfg(any(test,feature="native"))]
 fn state_name(state:State)->&'static str {match state{State::Base=>"",State::Hover=>"hover",State::Focus=>"focus",State::Active=>"active",State::Disabled=>"disabled"}}
-pub(super) fn css(classes:&str,theme:&Theme,mode:&str,id:usize,scope:&str)->String {
+pub(super) fn css(classes:&str,theme:&Theme,mode:&str,id:u64,scope:&str)->String {
  let mut output=String::new();let scope=if scope.is_empty(){String::new()}else{format!("{scope} ")};
  // States override base properties, preserving the existing shared merge contract.
  for state in [State::Base,State::Hover,State::Focus,State::Active,State::Disabled] {

@@ -85,7 +85,7 @@ fn resolved_with_variables(classes:&str,theme:&Theme,mode:&str,variables:&std::c
  rules.into_iter().map(|((state,_),value)|(state,value)).collect()
 }
 // Keep semantic references in browser CSS so nested theme scopes inherit correctly.
-pub(crate) fn css(classes:&str,theme:&Theme,mode:&str,id:usize,scope:&str)->String {
+pub(crate) fn css(classes:&str,theme:&Theme,mode:&str,id:u64,scope:&str)->String {
  structural::css(classes,theme,mode,id,scope)
 }
 

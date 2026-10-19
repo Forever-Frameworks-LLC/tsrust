@@ -1,5 +1,33 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
+## Current conditional UI mounting — 2026-10-19
+
+Local-state JSX ternaries now mount lazy nested branches. Selected components keep
+state until removed; remounting creates fresh state. Transparent slots and empty
+anonymous text create no layout/AX wrapper. Retained controls keep identities,
+focus, selection and IME; removed controls/editors release normally. Browser
+listeners belong to the mount, and native paint/AX use persistent owned-node IDs.
+Ancestry and depth rules are checked again after replacement.
+
+See [conditional mounting acceptance](../plans/ui-conditional-mounting-acceptance.md)
+and examples/ui-conditional-mounting. Seventy-one distinct runtime cases, two new
+compiler witnesses with explicit rejection reasons, computed/nullable compiler
+checks and conditional/computed editor help pass. Three fresh Wasm Chromium
+observers agree with independent Node-after-tsc oracles; existing input behavior
+survives the delegated event path. A fresh offline locked native export presents
+through three resizes. Its dependency build timed out once before window launch;
+the same target/package resumed without repeating completed checks and passed.
+No full compiler/LSP matrix, SQL or performance timing was repeated.
+
+Original failures/repairs and source identities use `tsrust-ui-conditional-*` in
+SQLite. The internal text-run ABI is exported for generated Rust consumers but
+has no public Tsrust factory. Local-state conditional component results represent
+live slots even when visually absent; precomputed/scalar-prop conditions retain
+snapshot behavior. Generic reactive props, arbitrary prop-record state reads and
+keyed lists remain pending. Continue Field composition and remaining Nova families,
+layouts/blocks, persistent routing and integrated CLI web build/dev. Do not treat
+these as optional or describe the complete library as accepted.
+
 ## Current computed UI text — 2026-10-19
 
 Supported scalar JSX expressions now refresh text after handlers in Text, View

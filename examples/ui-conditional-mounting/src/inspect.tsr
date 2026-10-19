@@ -1,0 +1,19 @@
+import { document, View, Text, Node, signal } from 'std:ui';
+import { strictEqual } from 'std:testing';
+import { Page } from './app/page';
+
+function Root(): Node {
+  const visible = signal(true);
+  return visible.get() ? <Text>Root branch</Text> : null;
+}
+
+function main() {
+  const html = document(Page(), 'Branches');
+  strictEqual(html.includes('>First: 1</span>'), true);
+  strictEqual(html.includes('Second:'), false);
+  strictEqual(html.split('<input').length - 1, 1);
+  const root = document(Root(), 'Root');
+  strictEqual(root.includes('>Root branch</span>'), true);
+  strictEqual(root.includes('<div'), false);
+  console.log('Conditional mounting passed');
+}

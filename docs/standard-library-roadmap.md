@@ -15,12 +15,13 @@ are implemented. Direct signal-reading disabled predicates refresh after handler
 See [the application guide](guides/ui-applications.md) and current handoff for
 focused acceptance and explicit limits. Portable text controls, native selection/IME and local Nova Input/Textarea/Label
 sources now pass focused acceptance within their explicit partial scope. Required
-next UI work includes dynamic conditional mounting and Field composition, complete
+next UI work includes Field composition, complete
 remaining component/layout/block families, keyed lists and persistent routing; historical UI pause and
 resource-dependency statements below are superseded. Initial nullable children and
 stateful nullable component results now pass focused acceptance. Supported scalar JSX text
 expressions and exact numeric children also pass focused compiler/runtime/editor and
-fresh browser acceptance. Integrated CLI web
+fresh browser acceptance. Local-state conditional mounting, retained editor identities,
+branch cleanup and transparent native/web layout also pass focused acceptance. Integrated CLI web
 build/dev remains a concrete requirement; browser output still uses the bounded
 repository builder.
 
