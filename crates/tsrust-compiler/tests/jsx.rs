@@ -147,8 +147,8 @@ function main(){console.log(<Label {...source()}/>);console.log(<Label {...sourc
 #[test]
 fn explicit_jsx_children_forward_once_and_reject_duplicate_child_sources(){
  let source=r#"
-interface Props { children?: string[]; }
-function Box(props:Props):string{return (props.children??[]).join('|');}
+interface Props { children: string[]; }
+function Box(props:Props):string{return props.children.join('|');}
 function values():string[]{console.log('children evaluated');return ['a','🦀'];}
 function main(){console.log(<Box children={values()}/>);console.log(<Box children={['empty body']}>
  </Box>);}
