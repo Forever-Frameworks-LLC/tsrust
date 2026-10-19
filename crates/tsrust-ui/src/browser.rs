@@ -175,6 +175,9 @@ pub fn mount(mut node:Node,title:&str)->Result<Mount,JsValue> {
             if event=="click" {
                 let request=state.node.as_mut().and_then(|node|node.copy_node_mut(id)).and_then(Node::begin_copy);
                 if let Some((serial,value))=request {
+                    if let Err(error)=update(&mut state,&document){state.error=Some(format!("{error:?}"));state.node.take();return;}
+                    // A host clipboard implementation may synchronously dispose the mount.
+                    drop(state);
                     let pending=clipboard_write(&value);let weak=Rc::downgrade(&state_ref);let document=document.clone();
                     wasm_bindgen_futures::spawn_local(async move {
                         let result=wasm_bindgen_futures::JsFuture::from(pending).await.map(|_|()).map_err(|error|error.as_string().unwrap_or_else(||format!("{error:?}")));
@@ -182,7 +185,7 @@ pub fn mount(mut node:Node,title:&str)->Result<Mount,JsValue> {
                         let Some(node)=state.node.as_mut().and_then(|node|node.copy_node_mut(id)) else{return;};node.finish_copy(serial,result);
                         if let Err(error)=update(&mut state,&document){state.error=Some(format!("{error:?}"));state.node.take();}
                     });
-                    if let Err(error)=update(&mut state,&document){state.error=Some(format!("{error:?}"));state.node.take();}return;
+                    return;
                 }
             }
             let input=event!="click";let result=if input{control_value(&target)}else{Ok(String::new())};
@@ -245,6 +248,7 @@ fn clipboard_write(value:&str)->js_sys::Promise {
         let window=web_sys::window().ok_or_else(||JsValue::from_str("Browser window unavailable"))?;
         let navigator=js_sys::Reflect::get(window.as_ref(),&JsValue::from_str("navigator"))?;
         let clipboard=js_sys::Reflect::get(&navigator,&JsValue::from_str("clipboard"))?;
+        if clipboard.is_undefined()||clipboard.is_null(){return Err(JsValue::from_str("Clipboard unavailable. Use HTTPS or localhost."));}
         let write=js_sys::Reflect::get(&clipboard,&JsValue::from_str("writeText"))?.dyn_into::<js_sys::Function>()?;
         write.call1(&clipboard,&JsValue::from_str(value))?.dyn_into::<js_sys::Promise>()
     })();start.unwrap_or_else(|error|js_sys::Promise::reject(&error))

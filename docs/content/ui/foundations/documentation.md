@@ -18,7 +18,7 @@ The checked CommonMark tree supplies headings, paragraphs, lists, blockquotes, t
 
 ## Try a sequence
 
-3. Open a documentation page.
+3. Open a **documentation page**.
 4. Follow a heading link in the contents rail.
 5. Return to the landing page and check that its counter retains state.
 

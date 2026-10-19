@@ -4,7 +4,7 @@ use std::ops::Range;
 #[derive(Clone,Copy,Default,PartialEq,Debug)]
 pub(super) struct Brush {pub color:Option<crate::theme::ResolvedColor>,pub underline:bool,pub strike:bool}
 pub(super) struct Inline {
-    pub identity:u64,pub semantics:crate::Semantics,pub label:String,pub range:Range<usize>,pub children:Vec<Inline>,style:TextStyle,
+    pub identity:u64,pub semantics:crate::Semantics,pub label:String,pub range:Range<usize>,pub children:Vec<Inline>,style:TextStyle,ring:crate::theme::ResolvedColor,
 }
 pub(super) fn collect(item:Item,text:&mut String,spans:&mut Vec<(Range<usize>,TextStyle)>)->Inline {
     let start=text.len();let mut children=Vec::new();
@@ -18,7 +18,7 @@ pub(super) fn collect(item:Item,text:&mut String,spans:&mut Vec<(Range<usize>,Te
         }
         for part in item.inline{children.push(append(part,text,spans));}
     }else{for child in item.children{children.push(collect(child,text,spans));}}
-    Inline{identity:item.identity,semantics:item.semantics,label:text[start..].to_owned(),range:start..text.len(),children,style:item.text_style}
+    Inline{identity:item.identity,semantics:item.semantics,label:text[start..].to_owned(),range:start..text.len(),children,style:item.text_style,ring:item.ring}
 }
 pub(super) fn default_style(builder:&mut parley::RangedBuilder<'_,Brush>,style:TextStyle){
     builder.push_default(StyleProperty::Brush(Brush{color:None,underline:style.underline,strike:style.strike}));
@@ -52,7 +52,7 @@ pub(super) fn accessible(part:&Inline,text:&Layout<Brush>,origin:(f64,f64),scale
 }
 pub(super) fn paint(part:&Inline,text:&Layout<Brush>,scene:&mut Scene,origin:(f64,f64),transform:Affine,clips:&[vello::kurbo::BezPath],hits:&mut std::collections::BTreeMap<u64,Vec<vello::kurbo::BezPath>>,cursors:&mut std::collections::BTreeMap<u64,u8>,focus:Option<u64>){
     let mut path=vello::kurbo::BezPath::new();
-    for rect in rects(part,text,origin){path.extend(rect.to_path(0.1).elements().iter().copied());if focus==Some(part.identity){scene.stroke(&vello::kurbo::Stroke::new(2.),transform,paint_color(part.style.color),None,&rect.inflate(1.,1.));}}
+    for rect in rects(part,text,origin){path.extend(rect.to_path(0.1).elements().iter().copied());if focus==Some(part.identity){scene.stroke(&vello::kurbo::Stroke::new(2.),transform,paint_color(part.ring),None,&rect.inflate(1.,1.));}}
     path.apply_affine(transform);let mut regions=clips.to_vec();regions.push(path);if !part.style.pointer_events{regions.push(vello::kurbo::BezPath::new());}hits.insert(part.identity,regions);cursors.insert(part.identity,if part.semantics.href.is_empty(){1}else{3});
     for child in &part.children {paint(child,text,scene,origin,transform,clips,hits,cursors,focus);}
 }
@@ -70,9 +70,9 @@ impl Painter {
   use crate::Child;
   let location=crate::navigation::location(|value|value,|value:&String|value.clone()).unwrap();
   let link=crate::navigation::link(vec![Child::Text(crate::TextPart::Literal("café 文 and a long destination".into()))],"text-primary".into(),"/docs").unwrap();
-  let mut root=Node::text_children(vec![Child::Text(crate::TextPart::Literal("Before ".into())),Child::Node(text("bold ","strong","")),Child::Node(text("italic ","em","")),Child::Node(link),Child::Text(crate::TextPart::Literal(" after".into()))],"text-sm".into()).unwrap().with_semantics("{\"tag\":\"p\"}").unwrap();root.refresh().unwrap();
+  let mut root=Node::text_children(vec![Child::Text(crate::TextPart::Literal("Before ".into())),Child::Node(text("bold ","strong","text-syntax-keyword")),Child::Node(text("italic ","em","")),Child::Node(link),Child::Text(crate::TextPart::Literal(" after".into()))],"text-sm".into()).unwrap().with_semantics("{\"tag\":\"p\"}").unwrap();root.refresh().unwrap();
   let mut painter=Painter::new();let (_,tree)=painter.scene(&root,120.,1.,None).unwrap();let (_,link)=tree.nodes.iter().find(|(_,node)|node.role()==accesskit::Role::Link).unwrap();assert_eq!(link.label(),Some("café 文 and a long destination"));assert!(link.supports_action(accesskit::Action::Click));assert!(link.bounds().unwrap().height()>16.);
-  let item=painter.node(&root,TextStyle::default()).unwrap();assert!(item.children.is_empty());assert_eq!(item.inline[1].style.weight,700.);assert!(item.inline[2].style.italic);let mut paragraph=item.text.unwrap();paragraph.break_all_lines(Some(120.));assert!(paragraph.lines().count()>2);
+  let item=painter.node(&root,TextStyle::default()).unwrap();assert!(item.children.is_empty());assert_eq!(item.inline[1].style.weight,700.);assert!(item.inline[2].style.italic);let mut paragraph=item.text.unwrap();paragraph.break_all_lines(Some(120.));assert!(paragraph.lines().count()>2);let mut colors=Vec::new();for line in paragraph.lines(){for item in line.items(){if let PositionedLayoutItem::GlyphRun(run)=item{if let Some(color)=run.style().brush.color{colors.push(color);}}}}assert!(colors.contains(&crate::theme::Theme::default().color("light","syntax-keyword").unwrap()));assert!(colors.contains(&crate::theme::Theme::default().color("light","primary").unwrap()));
   let link_id=tree.nodes.iter().find(|(_,node)|node.role()==accesskit::Role::Link).unwrap().0.0;assert!(painter.hit_regions.contains_key(&link_id));assert!(painter.scroll_chains.contains_key(&link_id));assert!(root.activate(link_id).unwrap());assert_eq!(location.get().unwrap(),"/docs");
  }
 }

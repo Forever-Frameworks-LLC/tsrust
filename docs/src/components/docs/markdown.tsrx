@@ -75,7 +75,7 @@ function inlineContent(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>, p
         children.push(content(page.document.nodes, i) + ' (' + node.destination + ')');
       }
     } else if (node.kind === 'image') {
-      children.push('Image: ' + content(page.document.nodes, i));
+      children.push('Image: ' + content(page.document.nodes, i) + ' (' + node.destination + ')');
     } else if (node.kind === 'task') {
       children.push(node.checked === true ? '[x] ' : '[ ] ');
     }
@@ -126,9 +126,20 @@ function linkTarget(destination: string, catalog: ReadOnly<DocCatalog>): string 
 function renderBlocks(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>, parent: int): Child[] {
   let blocks: Child[] = [];
   let listItem = 0;
+  let inlineItem = false;
+  let column = 0;
   for (let i = 0; i < page.document.nodes.length; i++) {
     const node = page.document.nodes[i];
     if (node.parent !== parent) {
+      continue;
+    }
+
+    if (parent >= 0 && page.document.nodes[parent].kind === 'item' && (node.kind === 'text' || node.kind === 'code' || node.kind === 'strong' || node.kind === 'emphasis' || node.kind === 'strike' || node.kind === 'link' || node.kind === 'image' || node.kind === 'task' || node.kind === 'soft-break' || node.kind === 'hard-break')) {
+      if (!inlineItem) {
+        blocks.push(<Text className="leading-normal text-muted-foreground" children={inlineContent(page,catalog,parent)}/>);
+        inlineItem = true;
+      }
+
       continue;
     }
 
@@ -159,10 +170,21 @@ function renderBlocks(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>, pa
     } else if (node.kind === 'table-row') {
       blocks.push(<View as="tr" className="flex-row border-t" children={renderBlocks(page, catalog, i)}/>);
     } else if (node.kind === 'table-cell') {
+      const table = page.document.nodes[page.document.nodes[parent].parent];
+      let cellStyle = 'text-sm leading-normal text-left';
+      if (column < table.alignment.length) {
+        if (table.alignment[column] === 'center') {
+          cellStyle = 'text-sm leading-normal text-center';
+        } else if (table.alignment[column] === 'right') {
+          cellStyle = 'text-sm leading-normal text-right';
+        }
+      }
+
+      column++;
       if (page.document.nodes[parent].kind === 'table-head') {
-        blocks.push(<View as="th" className="grow min-w-0 w-1/2 p-3"><Text className="text-sm leading-normal" children={inlineContent(page,catalog,i)}/></View>);
+        blocks.push(<View as="th" className="grow min-w-0 w-1/2 p-3"><Text className={cellStyle} children={inlineContent(page,catalog,i)}/></View>);
       } else {
-        blocks.push(<View as="td" className="grow min-w-0 w-1/2 p-3"><Text className="text-sm leading-normal" children={inlineContent(page,catalog,i)}/></View>);
+        blocks.push(<View as="td" className="grow min-w-0 w-1/2 p-3"><Text className={cellStyle} children={inlineContent(page,catalog,i)}/></View>);
       }
     } else if (node.kind === 'rule') {
       blocks.push(<View role="separator" className="border-t"/>);

@@ -317,7 +317,7 @@ function retainComponentState<T, N>(node: N, state: Signal<T>): N {
   return unwrap(nativeOwnState(node, state));
 }
 
-/** Required theme tokens. Colors are checked #RRGGBB/#RRGGBBAA sRGB, in-gamut oklch() or @token aliases in the same mode; background must be opaque. */
+/** Surface theme colors are required; syntax colors are optional. Colors are checked #RRGGBB/#RRGGBBAA sRGB, in-gamut oklch() or @token aliases in the same mode; background must be opaque. */
 export interface ThemeColors {
   background: string;
   foreground: string;

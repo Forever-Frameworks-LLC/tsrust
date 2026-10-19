@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import {spawn,spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
-const [site,scenario]=process.argv.slice(2);assert(site,'Pass the built ui-application site');
+const [site,scenario,liveURL]=process.argv.slice(2);assert(site,'Pass the built ui-application site');
 const here=path.dirname(fileURLToPath(import.meta.url));
 const profile=fs.mkdtempSync(path.join(os.tmpdir(),'tsrust-application-browser-'));
 let browser,socket,timer,server;
@@ -17,8 +17,8 @@ try {
  const compiler=spawnSync(process.execPath,[path.join(here,'../runtime/node_modules/typescript/bin/tsc'),'--target','es2022','--lib','es2022','--skipLibCheck','--outDir',profile,path.join(here,'application-reference.ts')],{encoding:'utf8',timeout:30000});assert.equal(compiler.status,0,compiler.stderr||compiler.stdout);
  const reference=spawnSync(process.execPath,[path.join(profile,'application-reference.js')],{encoding:'utf8',timeout:30000});assert.equal(reference.status,0,reference.stderr);expected=JSON.parse(reference.stdout);
  }
- server=http.createServer((request,response)=>{let name=request.url==='/'?'index.html':request.url.slice(1);if(!['index.html','app.js','app_bg.wasm'].includes(name)){if(['docs-navigation','docs-inline'].includes(scenario)&&request.headers.accept?.includes('text/html'))name='index.html';else{response.writeHead(404).end();return;}}response.setHeader('Content-Type',name.endsWith('.wasm')?'application/wasm':name.endsWith('.js')?'text/javascript':'text/html');response.end(fs.readFileSync(path.join(site,name)));});
- await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ if(!liveURL)server=http.createServer((request,response)=>{let name=request.url==='/'?'index.html':request.url.slice(1);if(!['index.html','app.js','app_bg.wasm'].includes(name)){if(['docs-navigation','docs-inline'].includes(scenario)&&request.headers.accept?.includes('text/html'))name='index.html';else{response.writeHead(404).end();return;}}response.setHeader('Content-Type',name.endsWith('.wasm')?'application/wasm':name.endsWith('.js')?'text/javascript':'text/html');response.end(fs.readFileSync(path.join(site,name)));});
+ if(!liveURL)await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  browser=spawn(process.env.CHROME||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',['--headless=new','--disable-extensions','--no-first-run','--no-default-browser-check','--remote-debugging-port=0',`--user-data-dir=${profile}`,'about:blank'],{stdio:'ignore'});
  const portFile=path.join(profile,'DevToolsActivePort');for(let i=0;!fs.existsSync(portFile)&&i<100;i++)await new Promise(resolve=>setTimeout(resolve,100));assert(fs.existsSync(portFile),'Chrome did not start');
  const port=fs.readFileSync(portFile,'utf8').split('\n')[0];const page=await(await fetch(`http://127.0.0.1:${port}/json/new?about:blank`,{method:'PUT'})).json();socket=new WebSocket(page.webSocketDebuggerUrl);await new Promise((resolve,reject)=>{socket.addEventListener('open',resolve,{once:true});socket.addEventListener('error',reject,{once:true});});
@@ -26,7 +26,7 @@ try {
  socket.addEventListener('message',event=>{const message=JSON.parse(event.data);if(message.id){const slot=pending.get(message.id);pending.delete(message.id);message.error?slot.reject(message.error):slot.resolve(message.result);}if(message.method==='Runtime.exceptionThrown')errors.push(message.params.exceptionDetails);});
  function call(method,params={}){return new Promise((resolve,reject)=>{const id=++sequence;pending.set(id,{resolve,reject});socket.send(JSON.stringify({id,method,params}));});}
  async function evaluate(expression){const result=await call('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});assert(!result.exceptionDetails,JSON.stringify(result.exceptionDetails));return result.result.value;}
- timer=setTimeout(()=>browser.kill('SIGKILL'),45000);await call('Runtime.enable');await call('Page.enable');await call('Page.navigate',{url:`http://127.0.0.1:${server.address().port}/`});
+ timer=setTimeout(()=>browser.kill('SIGKILL'),45000);await call('Runtime.enable');await call('Page.enable');await call('Page.navigate',{url:liveURL||`http://127.0.0.1:${server.address().port}/`});
  for(let i=0;i<100&&!await evaluate('Boolean(window.ui)');i++)await new Promise(resolve=>setTimeout(resolve,100));assert(await evaluate('Boolean(window.ui)'),JSON.stringify(errors));
  if(scenario==='docs-inline'){
   const {observeDocsInline}=await import('./docs-inline-observer.mjs');await observeDocsInline({evaluate,call,errors,site});
