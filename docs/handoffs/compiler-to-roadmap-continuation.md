@@ -28,6 +28,16 @@ keyed lists remain pending. Continue Field composition and remaining Nova famili
 layouts/blocks, persistent routing and integrated CLI web build/dev. Do not treat
 these as optional or describe the complete library as accepted.
 
+Accepted source checkpoint: `2f610a65`. All five executable consumers are refreshed
+from that commit; the standalone counter's live editor server restarted with its
+settings restored exactly. Installed conditional/computed editor witnesses pass.
+The working user demo is `/Users/seancotter/Desktop/dev/learning/tsrust-counter`,
+with its screen in `src/app/page.tsrx`. It now demonstrates computed text and
+conditional mounting while retaining the owner's original counter controls,
+editable button, theme and lock. Its project check, formatting and installed-server
+open-document diagnostics/hover pass. Compiler-repo examples remain focused
+acceptance witnesses; continue visible demo updates in the standalone project.
+
 ## Current computed UI text — 2026-10-19
 
 Supported scalar JSX expressions now refresh text after handlers in Text, View

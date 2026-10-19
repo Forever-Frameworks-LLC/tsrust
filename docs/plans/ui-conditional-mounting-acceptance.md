@@ -76,3 +76,15 @@ Design follows [the UI vision](../../UI_VISION.md), the pinned component invento
 and the [conditional control-flow reference](https://docs.solidjs.com/concepts/control-flow/conditional-rendering).
 The public syntax remains an ordinary JSX ternary. Taffy's pinned Display enum
 has no contents mode, so native fragments flatten into their actual parent.
+
+Consumer receipt: CLI, installed LSP, editor override and shared-target binaries
+are refreshed from accepted source checkpoint `2f610a65`. The standalone counter
+at `/Users/seancotter/Desktop/dev/learning/tsrust-counter` now shows computed double
+values, threshold-dependent text and a removable second counter. Existing counter
+arithmetic, threshold, local button, theme and installation lock are preserved.
+Its README identifies the working page and current supported scope. Installed
+project check and formatting pass; a real installed-server open document reports
+no diagnostics and retains `get(): int` help. Installed conditional/computed editor
+witnesses also pass. The live editor restarts with exact settings restoration.
+This demo update reuses the accepted native/browser transition evidence above;
+no additional full regression, GPU launch or timing is claimed.
