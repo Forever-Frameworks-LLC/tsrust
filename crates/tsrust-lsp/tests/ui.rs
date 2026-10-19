@@ -250,3 +250,37 @@ fn visibility_and_external_links_offer_matching_help_and_diagnostics(){
  let help=session.hover("main.tsrx",source,source.find("text-7xl").unwrap()+3).unwrap_or_default();assert!(help.contains("96px"),"{help}");
  let broken=source.replace("(visible)=>","(visible:string)=>");session.change("main.tsrx",&broken);let diagnostics=session.wait_for_diagnostics("main.tsrx");assert!(!diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
 }
+
+#[test]
+fn local_component_gallery_examples_keep_checked_props_and_change_help() {
+ let files=[
+  ("components/ui/button.tsrx",include_str!("../../../docs/src/components/ui/button.tsrx")),
+  ("components/ui/card.tsrx",include_str!("../../../docs/src/components/ui/card.tsrx")),
+  ("components/ui/input.tsrx",include_str!("../../../docs/src/components/ui/input.tsrx")),
+  ("components/ui/textarea.tsrx",include_str!("../../../docs/src/components/ui/textarea.tsrx")),
+  ("components/ui/label.tsrx",include_str!("../../../docs/src/components/ui/label.tsrx")),
+  ("components/ui/kbd.tsrx",include_str!("../../../docs/src/components/ui/kbd.tsrx")),
+  ("components/ui/separator.tsrx",include_str!("../../../docs/src/components/ui/separator.tsrx")),
+  ("examples/card-layout.tsrx",include_str!("../../../docs/src/examples/card-layout.tsrx")),
+  ("examples/card-project.tsrx",include_str!("../../../docs/src/examples/card-project.tsrx")),
+  ("examples/input-states.tsrx",include_str!("../../../docs/src/examples/input-states.tsrx")),
+  ("examples/multiline-draft.tsrx",include_str!("../../../docs/src/examples/multiline-draft.tsrx")),
+  ("examples/field-labels.tsrx",include_str!("../../../docs/src/examples/field-labels.tsrx")),
+  ("examples/keyboard-shortcuts.tsrx",include_str!("../../../docs/src/examples/keyboard-shortcuts.tsrx")),
+  ("examples/section-dividers.tsrx",include_str!("../../../docs/src/examples/section-dividers.tsrx")),
+ ];
+ let mut session=support::session::Session::start(&files);
+ for (file,source) in &files[7..] {
+  session.open(file,source);let diagnostics=session.wait_for_diagnostics(file);session.settle();
+  assert!(diagnostics.as_array().unwrap().is_empty(),"{file}: {diagnostics}");
+ }
+ let (file,source)=files[9];
+ let at=source.find("event.target.value").unwrap()+13;
+ assert!(session.hover(file,source,at).unwrap_or_default().contains("string"));
+ let at=source.find("aria-invalid=").unwrap()+3;
+ assert!(session.hover(file,source,at).unwrap_or_default().contains("validation"));
+ let (file,source)=files[13];let at=source.find("orientation=").unwrap();
+ let names=session.completion(file,source,at).unwrap();assert!(names.contains(&"orientation".into()),"{names:?}");
+ let broken=source.replace("orientation=\"vertical\"","orientation=\"diagonal\"");session.change(file,&broken);
+ let diagnostics=session.wait_for_diagnostics(file);assert!(!diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
+}

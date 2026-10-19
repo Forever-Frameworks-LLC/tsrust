@@ -209,7 +209,7 @@ export function Markdown(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>)
   for (const id of page.metadata.examples) {
     for (const example of catalog.examples) {
       if (id === example.id) {
-        blocks.push(<ExampleCard id={page.metadata.id + '-' + id} title="Try the example" description="The preview and source come from the same checked project file." source={clone(example.source)} code={clone(example.code)} tokens={clone(example.tokens)}>{renderExample(clone(id))}</ExampleCard>);
+        blocks.push(<ExampleCard id={page.metadata.id + '-' + id} title={id.split('-').join(' ')} source={clone(example.source)} code={clone(example.code)} tokens={clone(example.tokens)}>{renderExample(clone(id))}</ExampleCard>);
       }
     }
   }

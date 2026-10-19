@@ -1,9 +1,15 @@
 <!-- tsrust-docs
-{"id":"component-card","group":"components","order":20,"status":"partial","targets":["web","native"],"component":"card"}
+{"id":"component-card","group":"components","order":20,"status":"partial","targets":["web","native"],"component":"card","examples":["card-layout","card-project"]}
 -->
 # Card
 
 The current Card ports the portable content parts of the pinned Nova surface. Image edge variants, inline-size containment and container queries remain unsupported.
+
+## Install and import
+
+Run `tsrust ui add card --offline`. Import the exports from your configured local
+component directory. The installed source belongs to the project; theme tokens and
+caller classes customize the same component on web and native.
 
 ## Composition
 

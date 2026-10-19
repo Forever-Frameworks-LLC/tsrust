@@ -113,6 +113,48 @@
         "source": "src/examples/visibility.tsrx",
         "export": "Visibility",
         "kind": "component"
+      },
+      {
+        "id": "card-layout",
+        "source": "src/examples/card-layout.tsrx",
+        "export": "CardLayout",
+        "kind": "component"
+      },
+      {
+        "id": "input-states",
+        "source": "src/examples/input-states.tsrx",
+        "export": "InputStates",
+        "kind": "component"
+      },
+      {
+        "id": "card-project",
+        "source": "src/examples/card-project.tsrx",
+        "export": "CardProject",
+        "kind": "component"
+      },
+      {
+        "id": "multiline-draft",
+        "source": "src/examples/multiline-draft.tsrx",
+        "export": "MultilineDraft",
+        "kind": "component"
+      },
+      {
+        "id": "field-labels",
+        "source": "src/examples/field-labels.tsrx",
+        "export": "FieldLabels",
+        "kind": "component"
+      },
+      {
+        "id": "keyboard-shortcuts",
+        "source": "src/examples/keyboard-shortcuts.tsrx",
+        "export": "KeyboardShortcuts",
+        "kind": "component"
+      },
+      {
+        "id": "section-dividers",
+        "source": "src/examples/section-dividers.tsrx",
+        "export": "SectionDividers",
+        "kind": "component"
       }
     ]
   }

@@ -122,7 +122,7 @@ export function Page(): Node {
   return withTheme(
     <View id="site" className="h-screen overflow-hidden bg-background text-foreground">
       <View as="header" windowDragRegion className="h-24 md:h-16 shrink-0 flex-col md:flex-row items-stretch md:items-center justify-between gap-1 md:gap-4 px-4 md:pl-24 md:pr-6 border-b">
-        <Link href="/" className="font-mono font-semibold text-base pl-24 md:pl-0 py-2">tsrust.</Link>
+        <Link href="/" className="bg-transparent font-mono font-semibold text-base pl-24 md:pl-0 py-2">tsrust.</Link>
         <View as="nav" aria-label="Main navigation" className="flex-row items-center justify-between md:justify-start gap-1 md:gap-2">
           <Link href="/docs" className="text-sm px-3 py-2 rounded hover:bg-muted focus:ring">Docs</Link>
           <Link href="https://github.com/Forever-Frameworks-LLC/tsrust" className="text-sm px-3 py-2 rounded hover:bg-muted focus:ring">GitHub</Link>

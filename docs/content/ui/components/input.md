@@ -1,9 +1,15 @@
 <!-- tsrust-docs
-{"id":"component-input","group":"components","order":30,"status":"partial","targets":["web","native"],"component":"input","examples":["counter"]}
+{"id":"component-input","group":"components","order":30,"status":"partial","targets":["web","native"],"component":"input","examples":["input-states"]}
 -->
 # Input
 
 The current portable Input is a single-line text field with controlled/uncontrolled values, checked change snapshots and native text editing. It is a partial Nova implementation.
+
+## Install and import
+
+Run `tsrust ui add input --offline`. Import the exports from your configured local
+component directory. The installed source belongs to the project; theme tokens and
+caller classes customize the same component on web and native.
 
 ## Values
 
