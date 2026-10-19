@@ -239,6 +239,7 @@ fn related(mut error: Diagnostic, contract: &Contract) -> Diagnostic {
 }
 
 pub(crate) fn validate(program: &mut Program) -> Result<Proofs, Diagnostic> {
+    let trace=std::env::var_os("TSRUST_TRACE_SOURCE_FLOW").is_some();
     let mut proofs = Proofs::default();
     let declaration_spans = program.functions.iter().map(|function| function.name.span).collect::<HashSet<_>>();
     let effects = effect_bodies::Index::new(program)?;
@@ -331,7 +332,10 @@ pub(crate) fn validate(program: &mut Program) -> Result<Proofs, Diagnostic> {
             }
             Ok(())
         })?;
+        let flow_started=trace.then(std::time::Instant::now);
+        if trace {eprintln!("[source-flow] start {}",function.name.text);}
         let branch_facts = branch_flow::analyze(function, &bindings, &writes, &declarations, &effects)?;
+        if let Some(started)=flow_started {eprintln!("[source-flow] finish {} {:.1}ms",function.name.text,started.elapsed().as_secs_f64()*1000.);}
         let function_scope = function.scope_span;
         let direct_writes = function
             .body

@@ -41,13 +41,14 @@ struct TextStyle {
     color: super::theme::ResolvedColor,
     cursor:u8,
     pointer_events:bool,
+    selectable:bool,
 }
 impl Default for TextStyle {
     fn default() -> Self {
         Self {
             size: 16.,
             weight:400.,line_height:parley::style::LineHeight::NORMAL,leading:None,family:0,italic:false,strike:false,underline:false,
-            align: 0,cursor:0,pointer_events:true,
+            align: 0,cursor:0,pointer_events:true,selectable:true,
             color: super::theme::ResolvedColor::rgb8(23,32,51),
         }
     }
@@ -168,7 +169,7 @@ impl Painter {
         for (state,utility) in rules {
             if !match state {State::Base=>true,State::Hover=>self.hover.contains(&id) && !node.is_disabled(),State::Active=>self.pressed_nodes.contains(&id) && !node.is_disabled(),State::Focus=>self.focus==Some(id),State::Disabled=>node.is_disabled()} {continue;}
             match utility {
-                Utility::Placeholder(color)=>placeholder_color=Some(color),Utility::Opacity(value)=>opacity=value,Utility::OutlineNone=>{outline=None;suppress_outline=true;},Utility::Cursor(value)=>inherited.cursor=value,Utility::SelectNone=>{},Utility::PointerEvents(value)=>inherited.pointer_events=value,Utility::FieldSizingContent=>{if node.kind==Kind::Textarea{style.size.height=auto();}},
+                Utility::Placeholder(color)=>placeholder_color=Some(color),Utility::Opacity(value)=>opacity=value,Utility::OutlineNone=>{outline=None;suppress_outline=true;},Utility::Cursor(value)=>inherited.cursor=value,Utility::SelectNone=>inherited.selectable=false,Utility::PointerEvents(value)=>inherited.pointer_events=value,Utility::FieldSizingContent=>{if node.kind==Kind::Textarea{style.size.height=auto();}},
                 Utility::Row=>style.flex_direction=FlexDirection::Row,
                 Utility::Column=>style.flex_direction=FlexDirection::Column,
                 Utility::GapAxis(axis,v)=>{if axis==0{style.gap.height=length(v);}else{style.gap.width=length(v);}},
@@ -394,6 +395,9 @@ impl Painter {
             _ if item.semantics.tag=="label"=>accesskit::Role::Label,
             _ if item.semantics.tag=="p"=>accesskit::Role::Paragraph,
             _ if item.semantics.tag=="code"=>accesskit::Role::Code,
+            _ if item.semantics.tag=="strong"=>accesskit::Role::Strong,
+            _ if item.semantics.tag=="em"=>accesskit::Role::Emphasis,
+            _ if item.semantics.tag=="del"=>accesskit::Role::ContentDeletion,
             _ if item.semantics.tag=="section" && !item.semantics.label.trim().is_empty()=>accesskit::Role::Region,
             _=>default_role,
         };
@@ -481,7 +485,7 @@ impl Painter {
         }
         let rect=vello::kurbo::Rect::new(x,y,x+layout.size.width as f64,y+layout.size.height as f64);
         let outer=geometry::rounded(rect,item.radius);let inner=geometry::inner(rect,item.radius,item.border);
-        let mut hits=self.clip_stack.clone();let mut hit=outer.clone();hit.apply_affine(transform);hits.push(hit);if !item.text_style.pointer_events{hits.push(vello::kurbo::BezPath::new());}self.hit_regions.insert(id,hits);self.cursors.insert(id,if (item.field.is_some()||item.role==Kind::Text) && item.text_style.cursor==0{1}else{item.text_style.cursor});
+        let mut hits=self.clip_stack.clone();let mut hit=outer.clone();hit.apply_affine(transform);hits.push(hit);if !item.text_style.pointer_events{hits.push(vello::kurbo::BezPath::new());}self.hit_regions.insert(id,hits);self.cursors.insert(id,if !item.semantics.href.is_empty()&&item.text_style.cursor==0{3}else if (item.field.is_some()||item.role==Kind::Text&&item.text_style.selectable) && item.text_style.cursor==0{1}else{item.text_style.cursor});
         if item.shadow_width>0. {
             let half=item.shadow_width/2.;
             scene.stroke(&vello::kurbo::Stroke::new(item.shadow_width).with_join(vello::kurbo::Join::Miter),transform,paint_color(item.shadow_color),None,
@@ -525,7 +529,7 @@ impl Painter {
         }else if let Some(text) = &mut item.text {
             layout_text(text,content_width,matches!(item.role,Kind::Button|Kind::DisabledButton)&&item.semantics.href.is_empty());
             text.align(match item.align {1=>Alignment::Center,2=>Alignment::End,_=>Alignment::Start},AlignmentOptions::default());
-            if item.role==Kind::Text {
+            if item.role==Kind::Text && item.text_style.selectable {
                 self.live_readonly.insert(id);let selected=self.readonly.entry(id).or_insert_with(||inline::Selectable::new(item.raw_text.clone(),text.clone(),origin));selected.sync(&item.raw_text,text,origin);
                 if self.selected_text==Some(id){selected.paint(scene,transform,item.ring);}
             }
@@ -831,7 +835,7 @@ impl App {
             self.context
                 .resize_surface(&mut active.surface, size.width, size.height);
         }
-        let cursor=match cursor {1=>winit::window::CursorIcon::Text,2=>winit::window::CursorIcon::NotAllowed,_=>winit::window::CursorIcon::Default};
+        let cursor=match cursor {1=>winit::window::CursorIcon::Text,2=>winit::window::CursorIcon::NotAllowed,3=>winit::window::CursorIcon::Pointer,_=>winit::window::CursorIcon::Default};
         active.window.set_cursor(cursor);
         let scale = active.window.scale_factor();
         let viewport=Some((size.width as f64/scale,size.height as f64/scale));
@@ -966,8 +970,8 @@ impl ApplicationHandler<accesskit::ActionRequest> for App {
                     return;
                 }
                 if state==ElementState::Pressed {self.pressed=self.hit();self.set_focus(self.pressed);self.focus_visible=false;self.dragging_text=self.pressed.is_some_and(|id|self.painter.editors.contains_key(&id) && self.visible_hit(id));if self.dragging_text{self.pointer_edit(self.pressed.unwrap(),self.shift);}
-                    self.dragging_selection=false;self.painter.selected_text=None;
-                    if !self.pressed.is_some_and(|id|self.clickable(id)||self.painter.editors.contains_key(&id)){self.painter.selected_text=self.pointer_nodes().iter().rev().find(|id|self.painter.live_readonly.contains(id)).copied();self.dragging_selection=self.painter.selected_text.is_some();self.select_text(false);}
+                    let previous_selection=self.painter.selected_text;self.dragging_selection=false;self.painter.selected_text=None;
+                    if !self.pressed.is_some_and(|id|self.clickable(id)||self.painter.editors.contains_key(&id)){self.painter.selected_text=self.pointer_nodes().iter().rev().find(|id|self.painter.live_readonly.contains(id)).copied();self.dragging_selection=self.painter.selected_text.is_some();self.select_text(self.shift&&previous_selection==self.painter.selected_text);}
                 }
                 else if let Some(id)=self.pressed.take() {self.dragging_text=false;self.dragging_selection=false;if self.hit()==Some(id) && self.clickable(id){self.activate(id,event_loop);}}
                 if state==ElementState::Released{self.dragging_selection=false;}

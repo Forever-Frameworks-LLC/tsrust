@@ -193,7 +193,7 @@ mod platform {
         crate::ui_cli::check_default_setup()?;
         let project=project_config::discover()?.ok_or("dev needs tsrust.config.json; create a project with `tsrust new <name>`")?;
         let target=match target {Some(target)=>target,None=>{
-            let targets=tsrust_compiler::ui_project::configured_targets(&project.entry,|path|std::fs::read_to_string(path).map(Some).map_err(|e|e.to_string()))?;
+            let targets=tsrust_compiler::ui_project::configured_targets(&project.entry,crate::dev_web::read_optional)?;
             if targets.is_some_and(|targets|targets.web&&!targets.native){"web".into()}else{"native".into()}
         }};
         if target=="native" && port.is_some(){return Err("--port applies only to --target web".into());}

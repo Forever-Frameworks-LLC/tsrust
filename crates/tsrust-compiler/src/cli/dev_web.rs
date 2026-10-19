@@ -6,10 +6,11 @@ use crate::{TempDirectory,dev_cli::{report,Status}};
 struct Published {revision:u64,assets:BTreeMap<String,Arc<Vec<u8>>>,building:bool,error:String}
 pub(crate) struct Web {root:PathBuf,workspace:PathBuf,_lock:fs::File,state:Arc<Mutex<Published>>,stop:Arc<AtomicBool>,server:Option<thread::JoinHandle<()>>,pending:Option<TempDirectory>}
 fn write_changed(path:&Path,value:impl AsRef<[u8]>)->Result<(),String>{let value=value.as_ref();if fs::read(path).ok().as_deref()!=Some(value){fs::write(path,value).map_err(|e|e.to_string())?;}Ok(())}
+pub(crate) fn read_optional(path:&Path)->Result<Option<String>,String>{match fs::read_to_string(path){Ok(text)=>Ok(Some(text)),Err(error) if error.kind()==std::io::ErrorKind::NotFound=>Ok(None),Err(error)=>Err(error.to_string())}}
 impl Web {
  pub fn new(root:&Path,port:u16)->Result<Self,String>{
   let config=fs::read_to_string(root.join("tsrust.config.json")).map_err(|e|e.to_string())?;let project=crate::project_config::parse(root,&config)?;
-  tsrust_compiler::ui_project::require_target(&project.entry,"web",|path|fs::read_to_string(path).map(Some).map_err(|e|e.to_string()))?;
+  tsrust_compiler::ui_project::require_target(&project.entry,"web",read_optional)?;
   let cache=root.join("target/tsrust-web");fs::create_dir_all(&cache).map_err(|e|e.to_string())?;
   let lock=fs::OpenOptions::new().create(true).truncate(false).read(true).write(true).open(cache.join("dev.lock")).map_err(|e|e.to_string())?;lock.try_lock().map_err(|_|"Another web dev server owns this project")?;
   let state=Arc::new(Mutex::new(Published::default()));
@@ -78,6 +79,9 @@ fn serve(mut stream:TcpStream,shared:&Mutex<Published>)->std::io::Result<()>{
 }
 #[cfg(test)]mod tests{
  use super::*;
+ #[test]fn nested_entry_discovery_and_server_drop_release_the_project_lock(){
+  let files=TempDirectory::new().unwrap();let root=fs::canonicalize(&files.0).unwrap();fs::create_dir(root.join("src")).unwrap();fs::write(root.join("src/main.tsrx"),"function main(){}").unwrap();let mut ui=tsrust_compiler::ui_project::Config::default();ui.target=Some(tsrust_compiler::ui_project::Targets{web:true,native:false,embedded:false});let config=serde_json::json!({"schemaVersion":1,"name":"web-dev","build":{"entry":"src/main.tsrx","output":"target/app"},"ui":ui});fs::write(root.join("tsrust.config.json"),config.to_string()).unwrap();let server=Web::new(&root,0).unwrap();assert!(!server.ready());assert!(Web::new(&root,0).is_err());drop(server);assert!(Web::new(&root,0).is_ok());
+ }
  #[test]fn development_html_owns_reload_and_preserves_mount_cleanup(){let source=html(7,true);assert!(source.contains("/app.js?v=7"));assert!(source.contains("/app_bg.wasm?v=7"));assert!(source.contains("pagehide"));assert!(source.contains("mount.free()"));assert!(!source.contains("Starting application"));}
  #[test]fn local_server_keeps_failed_build_assets_and_rejects_mixed_revisions(){
   fn request(state:Arc<Mutex<Published>>,url:&str,accept:&str)->String{let listener=TcpListener::bind(("127.0.0.1",0)).unwrap();let port=listener.local_addr().unwrap().port();let worker=thread::spawn(move||serve(listener.accept().unwrap().0,&state).unwrap());let mut stream=TcpStream::connect(("127.0.0.1",port)).unwrap();write!(stream,"GET {url} HTTP/1.1\r\nHost: localhost\r\nAccept: {accept}\r\n\r\n").unwrap();let mut result=String::new();stream.read_to_string(&mut result).unwrap();worker.join().unwrap();result}

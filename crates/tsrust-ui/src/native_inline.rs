@@ -38,9 +38,14 @@ fn rects(part:&Inline,text:&Layout<Brush>,origin:(f64,f64))->Vec<vello::kurbo::R
 }
 pub(super) fn accessible(part:&Inline,text:&Layout<Brush>,origin:(f64,f64),scale:f64,nodes:&mut Vec<(accesskit::NodeId,accesskit::Node)>)->accesskit::NodeId {
     let id=accesskit::NodeId(part.identity);let role=if !part.semantics.href.is_empty(){accesskit::Role::Link}else{match part.semantics.tag.as_str(){"strong"=>accesskit::Role::Strong,"em"=>accesskit::Role::Emphasis,"del"=>accesskit::Role::ContentDeletion,"code"=>accesskit::Role::Code,_=>if part.children.is_empty(){accesskit::Role::Label}else{accesskit::Role::GenericContainer}}};
+    let role=match part.semantics.role.as_str(){"alert"=>accesskit::Role::Alert,"status"=>accesskit::Role::Status,"group"=>accesskit::Role::Group,"note"=>accesskit::Role::Note,"region"=>accesskit::Role::Region,"separator"=>accesskit::Role::Splitter,"none"|"presentation"=>accesskit::Role::GenericContainer,_=>role};
     let mut node=accesskit::Node::new(role);
+    if part.semantics.role=="alert"{node.set_live(accesskit::Live::Assertive);}else if part.semantics.role=="status"{node.set_live(accesskit::Live::Polite);}
+    if part.semantics.invalid=="true"{node.set_invalid(accesskit::Invalid::True);}
+    if part.semantics.role=="separator"{node.set_orientation(if part.semantics.orientation=="vertical"{accesskit::Orientation::Vertical}else{accesskit::Orientation::Horizontal});}
     if part.semantics.hidden{node.set_hidden();}
-    if part.children.is_empty()||role==accesskit::Role::Link {node.set_label(if part.semantics.label.is_empty(){part.label.clone()}else{part.semantics.label.clone()});}
+    if part.children.is_empty()||role==accesskit::Role::Link||!part.semantics.label.is_empty() {node.set_label(if part.semantics.label.is_empty(){part.label.clone()}else{part.semantics.label.clone()});}
+    if role==accesskit::Role::Link && super::super::navigation::is_current(&part.semantics.href){node.set_aria_current(accesskit::AriaCurrent::Page);}
     if role==accesskit::Role::Link {node.add_action(accesskit::Action::Click);node.add_action(accesskit::Action::Focus);}
     if let Some(bounds)=rects(part,text,origin).into_iter().reduce(|a,b|a.union(b)){node.set_bounds(accesskit::Rect::new(bounds.x0*scale,bounds.y0*scale,bounds.x1*scale,bounds.y1*scale));}
     node.set_children(part.children.iter().map(|child|accessible(child,text,origin,scale,nodes)).collect::<Vec<_>>());nodes.push((id,node));id
@@ -48,7 +53,7 @@ pub(super) fn accessible(part:&Inline,text:&Layout<Brush>,origin:(f64,f64),scale
 pub(super) fn paint(part:&Inline,text:&Layout<Brush>,scene:&mut Scene,origin:(f64,f64),transform:Affine,clips:&[vello::kurbo::BezPath],hits:&mut std::collections::BTreeMap<u64,Vec<vello::kurbo::BezPath>>,cursors:&mut std::collections::BTreeMap<u64,u8>,focus:Option<u64>){
     let mut path=vello::kurbo::BezPath::new();
     for rect in rects(part,text,origin){path.extend(rect.to_path(0.1).elements().iter().copied());if focus==Some(part.identity){scene.stroke(&vello::kurbo::Stroke::new(2.),transform,paint_color(part.style.color),None,&rect.inflate(1.,1.));}}
-    path.apply_affine(transform);let mut regions=clips.to_vec();regions.push(path);hits.insert(part.identity,regions);cursors.insert(part.identity,0);
+    path.apply_affine(transform);let mut regions=clips.to_vec();regions.push(path);if !part.style.pointer_events{regions.push(vello::kurbo::BezPath::new());}hits.insert(part.identity,regions);cursors.insert(part.identity,if part.semantics.href.is_empty(){1}else{3});
     for child in &part.children {paint(child,text,scene,origin,transform,clips,hits,cursors,focus);}
 }
 impl Painter {

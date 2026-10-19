@@ -20,7 +20,7 @@ pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> Strin
             let literal=members.iter().position(|ty|*ty==Type::String).unwrap();
             let bindings=signal_arms(program,members,union.index(),true);
             let absent=absent_arms(members,union.index());
-            let scalars=scalar_arms(program,members,union.index(),binding.name!="text");
+            let scalars=scalar_arms(program,members,union.index(),true);
             let child=members.iter().position(|ty|*ty==Type::Record(node)).unwrap();
             let mut parameters=format!("mut children:{},class_name:&String",crate::emit::ty(array));
             let factory=match binding.name {
