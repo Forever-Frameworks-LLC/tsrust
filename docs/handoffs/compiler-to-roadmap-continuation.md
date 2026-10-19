@@ -1,6 +1,48 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
-## Current owner corrections and active UI foundation — 2026-10-19
+## Installed corrections and startup cache repair — 2026-10-19
+
+Owner's selector correction is installed: compact option rows and padding around
+complete lists in rich single/multiple/search/target and plain selectors. Four
+focused prompt checks and seven terminal witnesses pass. Full UI component notices
+now live once per notice in project `attributions/`, with short source references
+and lock hashes. Explicit offline migration preserves component bodies, page,
+theme and config. Sixteen installer cases, migration/package export, current
+Card/text/content installation and terminal navigation pass. The standalone
+counter is migrated, checked and formatted; package/web exports retain notices.
+
+Source `1a653745` also repairs unstable callback error-layout naming. Raw failure
+order made unchanged UI source emit different Rust and miss the executable cache;
+layout sharing now uses existing canonical checked payload alternatives. Reversed
+failure-order/native execution and four fresh compiler-process witnesses pass.
+No ownership/error contract, cleanup or transport rule is relaxed.
+
+Native window scrolling and fractional text measurement pass 31 focused cases.
+Persistent dependency workspaces preserve Cargo artifacts across runtime source
+revisions, with exact identities, serialized writers and explicit clean handling.
+The cold GPU build timed out at 240 seconds; resuming the same workspace finished
+in 98,987 ms. A later 5,778 ms runtime-cache hit exposed the executable-identity
+bug above. After repair, unchanged native starts take 1,394 and 1,556 ms, both
+executable-cache hits with zero native/link work. These are bounded warm startup
+observations, not a statistical benchmark or cold-start guarantee. Both owned
+programs are reaped. Five executable consumers match rebuilt source and both live
+editor servers restart with exact settings restoration. Semantic content/run help
+and literal fallback regression also pass. No full compiler/LSP, SQL or benchmark
+matrix was repeated. Exact original logs/failures use `tsrust-ui-` records in SQLite. Sixty-six closed
+records are imported, independently restored byte-for-byte and verified with
+SQLite integrity checks; verified loose copies are removed. Eleven obsolete
+test executables (932 MiB) are pruned with all five consumers unchanged. No owned
+dev, native test program or build process remains; the two editor servers stay live.
+
+Continue the requested documentation application using the standalone project:
+component navigation, detailed examples/API/variants, preview and copyable code,
+live themes and native/custom window chrome with accessible drag/control behavior.
+It is not implemented yet. Current screen remains the counter. Finish missing
+reactive props, nested scrolling, component families and paired browser/native
+acceptance instead of treating them as optional. Kbd/Separator browser evidence
+remains pending; prior compiler/native/editor checks are accepted and reusable.
+
+## Prior source checkpoint notes — 2026-10-19
 
 The standalone counter is becoming a reusable documentation/showcase application:
 component navigation, preview/code cards, detailed props/variants, live themes and

@@ -45,3 +45,19 @@ requires identical Rust, then executes both thrown payload cases. Four fresh UI
 compiler processes also emit byte-identical Rust. Both focused witnesses pass;
 no full compiler/LSP or service/SQL suite was rerun. Installed refresh and repeated
 standalone startup observations follow this source checkpoint.
+
+
+Accepted source repair: `1a653745`; installed CLI/LSP and workspace LSP consumers
+match rebuilt source artifacts, and both editor settings were restored exactly.
+Two subsequent unchanged counter launches hit the executable cache: 1,394 ms and
+1,556 ms, with native+link=0.0 ms. Each owned native program stayed running for
+five seconds without reporting a startup failure, then its dev supervisor reaped
+it. These warm observations do not claim cold preparation is free, statistical
+performance, automated wheel interaction or screenshot/presentation acceptance.
+The original timeout, resumed build and unexpected cache miss remain evidence.
+
+The documentation/showcase application, live theme mode, native/custom titlebar
+contract, nested scrolling and remaining component families still require
+implementation. The counter's page remains the existing working screen; it is not
+yet the requested documentation application. Kbd/Separator browser acceptance
+also remains pending. Reuse the accepted compiler, native and editor checks.
