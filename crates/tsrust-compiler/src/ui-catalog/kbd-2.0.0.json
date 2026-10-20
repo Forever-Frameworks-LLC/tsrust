@@ -1,0 +1,26 @@
+[
+  {
+    "variant": "default",
+    "license": "MIT",
+    "licenseText": "MIT License\n\nCopyright (c) 2023 shadcn\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n",
+    "runtimeAbi": "ui-application-1",
+    "compilerApi": 10,
+    "rust": "1.96.1",
+    "name": "kbd",
+    "version": "2.0.0",
+    "dependencies": [
+      {
+        "name": "tokens",
+        "version": "1.0.0",
+        "variant": "default"
+      }
+    ],
+    "files": [
+      {
+        "path": "kbd.tsrx",
+        "destination": "components",
+        "content": "import { View, ViewProps, Node, ReactiveValue, useProp } from 'std:ui';\n\nexport interface KbdProps extends ViewProps<ReactiveValue<string>, ReactiveValue<string>> {}\nexport interface KbdGroupProps extends KbdProps {}\n\n/** Displays keyboard text without registering a shortcut. Caller classes remain reactive. */\nexport function Kbd(props: KbdProps): Node {\n  const classes = useProp<string>(props.className ?? '');\n  const slot = clone(props['data-slot']) ?? 'kbd';\n  props.className = undefined;\n  return (\n    <View {...props} as=\"kbd\" data-slot={slot} className={\"pointer-events-none inline-flex flex-row items-center justify-center select-none bg-muted text-muted-foreground in-data-[slot=tooltip-content]:bg-background/20 in-data-[slot=tooltip-content]:text-background dark:in-data-[slot=tooltip-content]:bg-background/10 h-5 w-fit min-w-5 gap-1 rounded-sm px-1 font-sans text-xs font-medium [&_svg:not([class*='size-'])]:size-3 \" + classes.get()}/>\n  );\n}\n\n/** Groups keycaps and separators in source order; it does not install keyboard handlers. */\nexport function KbdGroup(props: KbdGroupProps): Node {\n  const classes = useProp<string>(props.className ?? '');\n  const slot = clone(props['data-slot']) ?? 'kbd-group';\n  props.className = undefined;\n  return (\n    <View {...props} as=\"kbd\" data-slot={slot} className={'inline-flex flex-row items-center gap-1 ' + classes.get()}/>\n  );\n}\n"
+      }
+    ]
+  }
+]

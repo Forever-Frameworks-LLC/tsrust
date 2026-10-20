@@ -9,3 +9,13 @@ fn local_content_components_keep_prop_help_and_new_utility_completion(){
  let at=source.find("w-fit").unwrap()+2;assert!(session.completion("main.tsrx",source,at).unwrap().iter().any(|value|value=="w-fit"));
  let bad=source.replace("orientation=\"vertical\"","orientation=\"diagonal\"");session.change("main.tsrx",&bad);let diagnostics=session.wait_for_diagnostics("main.tsrx");assert!(!diagnostics.as_array().unwrap().is_empty());
 }
+
+#[test]
+fn current_keycaps_keep_reactive_prop_help_and_reject_unknown_props(){
+ let source="import {Kbd,KbdGroup,KbdProps} from './kbd';import {Node,signal} from 'std:ui';function read(props:ReadOnly<KbdProps>){const classes=props.className;}function Page():Node{const active=signal(false);return <KbdGroup className={active.get()?'gap-2':'gap-1'}><Kbd role='group' aria-label='Save' className={active.get()?'bg-primary':'bg-muted'}>S</Kbd></KbdGroup>;}";
+ let mut session=support::session::Session::start(&[("kbd.tsrx",include_str!("../../../docs/src/components/ui/kbd-v2.tsrx"))]);session.open("main.tsrx",source);let diagnostics=session.wait_for_diagnostics("main.tsrx");session.settle();assert!(diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
+ let at=source.find("props.className").unwrap()+"props.".len()+1;let hover=session.hover("main.tsrx",source,at).unwrap_or_default();assert!(hover.contains("string"),"{hover}");
+ let at=source.find("props.className").unwrap()+"props.".len();let completion=session.completion("main.tsrx",source,at).unwrap();for name in ["className","children","aria-label","id"]{assert!(completion.iter().any(|value|value==name),"missing {name}: {completion:?}");}
+ let bad=source.replace("<Kbd role", "<Kbd invalidProp={1} role");session.change("main.tsrx",&bad);let diagnostics=session.wait_for_diagnostics("main.tsrx");assert!(diagnostics.to_string().contains("invalidProp"),"{diagnostics}");
+ let counters=session.request("tsrust/counters",serde_json::json!({}));for name in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[name],0,"{counters}");}
+}

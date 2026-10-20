@@ -542,7 +542,7 @@
       "name": "kbd",
       "source": "apps/v4/registry/bases/base/ui/kbd.tsx",
       "gitBlobSha1": "1fc8d9c188183e3df985d9a1f454ca692186790f",
-      "status": "pending",
+      "status": "partial",
       "capabilityFamilies": [
         "semantic-elements"
       ],
@@ -551,7 +551,8 @@
         "Default composition",
         "Variants, sizes and caller customization",
         "Keyboard, accessibility and light/dark states"
-      ]
+      ],
+      "notes": "Kbd 2 and KbdGroup keep the pinned Base UI + Nova exports, kbd tags, caller slot overrides, live class forwarding and default SVG sizing. Paired focused acceptance is in progress. Boxed keycaps compose in containers and buttons; paragraph-inline boxes, arbitrary DOM events/refs, full Base UI composition and an implemented Tooltip remain unsupported."
     },
     {
       "name": "label",

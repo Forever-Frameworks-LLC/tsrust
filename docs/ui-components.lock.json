@@ -437,6 +437,40 @@
           "generatedSha256": "a9e07d3249437faf8cd664efe3d520be1b23b3e75dc1afccf7e2d12d11a9ba7f"
         }
       ]
+    },
+    {
+      "identity": {
+        "name": "kbd",
+        "version": "2.0.0",
+        "variant": "default"
+      },
+      "destination": "src/components/ui",
+      "catalog": "bundled-2026-10-20",
+      "payloadSha256": "e8233a8c8c8a251d84addace540b0540f37191d05e7c30acd88ef15a8cf3644c",
+      "compilerSha256": "bd0ae498a38c657e60720921fda28de2ac5973e8f034cd75dee37ef7e517dc61",
+      "compilerVersion": "0.1.0",
+      "compilerApi": 10,
+      "runtimeAbi": "ui-application-1",
+      "rust": "1.96.1",
+      "license": "MIT",
+      "attribution": {
+        "path": "attributions/shadcn-MIT.txt",
+        "sha256": "1564074e13439397221ffd522e2e504d56561994a23d371aa5e3ad43e4f5423f"
+      },
+      "dependencies": [
+        {
+          "name": "tokens",
+          "version": "1.0.0",
+          "variant": "default"
+        }
+      ],
+      "files": [
+        {
+          "path": "src/components/ui/kbd-v2.tsrx",
+          "templateSha256": "5c3937f9830df6f4c7da61bb49417812b21e8e2c44929994e82d54283108d754",
+          "generatedSha256": "aab6ca0550ecc898e512eb29beb7a53140e868ff3ba948e478fbd513929b4e43"
+        }
+      ]
     }
   ]
 }

@@ -88,7 +88,7 @@
       "src/components/ui/input.tsrx",
       "src/components/ui/textarea.tsrx",
       "src/components/ui/label.tsrx",
-      "src/components/ui/kbd.tsrx",
+      "src/components/ui/kbd-v2.tsrx",
       "src/components/ui/separator.tsrx",
       "src/components/ui/aspect-ratio.tsrx",
       "src/components/ui/alert-v2.tsrx",
@@ -280,6 +280,18 @@
         "id": "empty-theme",
         "source": "src/examples/empty-states.tsrx",
         "export": "EmptyTheme",
+        "kind": "component"
+      },
+      {
+        "id": "keyboard-customization",
+        "source": "src/examples/keyboard-shortcuts.tsrx",
+        "export": "KeyboardCustomization",
+        "kind": "component"
+      },
+      {
+        "id": "keyboard-icons-theme",
+        "source": "src/examples/keyboard-shortcuts.tsrx",
+        "export": "KeyboardIconsAndTheme",
         "kind": "component"
       }
     ]
