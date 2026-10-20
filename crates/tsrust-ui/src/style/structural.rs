@@ -9,13 +9,13 @@ use super::super::Node;
 pub(super) fn name(value:&str)->bool {!value.is_empty() && value.bytes().all(|b|b.is_ascii_alphanumeric()||b==b'-')}
 fn attribute(value:&str)->Option<(&str,&str)> {
  let (key,value)=value.split_once('=')?;
- (matches!(key,"slot"|"size"|"variant"|"orientation") && name(value)).then_some((key,value))
+ (matches!(key,"slot"|"size"|"variant"|"orientation"|"state") && name(value)).then_some((key,value))
 }
 #[derive(Clone,Copy)]
-pub(super) enum Predicate<'a> { Data(&'a str,&'a str), HasData(&'a str,&'a str), InData(&'a str,&'a str), GroupData(&'a str,&'a str,&'a str), Class(&'a str), Dark, MinWidth(u16), Invalid, Current, Anchor }
+pub(super) enum Predicate<'a> { Data(&'a str,&'a str), HasData(&'a str,&'a str), InData(&'a str,&'a str), GroupData(&'a str,&'a str,&'a str), Class(&'a str), Dark, MinWidth(u16), Invalid, Current, Anchor, HasExpanded }
 impl<'a> Predicate<'a> {
  fn parse(text:&'a str)->Option<Self> {
-  match text {"[a]"=>return Some(Self::Anchor),"dark"=>return Some(Self::Dark),"sm"=>return Some(Self::MinWidth(640)),"md"=>return Some(Self::MinWidth(768)),"lg"=>return Some(Self::MinWidth(1024)),"xl"=>return Some(Self::MinWidth(1280)),"2xl"=>return Some(Self::MinWidth(1536)),"aria-invalid"=>return Some(Self::Invalid),_=>{}}
+  match text {"has-aria-expanded"=>return Some(Self::HasExpanded),"[a]"=>return Some(Self::Anchor),"dark"=>return Some(Self::Dark),"sm"=>return Some(Self::MinWidth(640)),"md"=>return Some(Self::MinWidth(768)),"lg"=>return Some(Self::MinWidth(1024)),"xl"=>return Some(Self::MinWidth(1280)),"2xl"=>return Some(Self::MinWidth(1536)),"aria-invalid"=>return Some(Self::Invalid),_=>{}}
   if text=="data-horizontal"{return Some(Self::Data("orientation","horizontal"));}
   if text=="aria-current"{return Some(Self::Current);}
   if text=="data-vertical"{return Some(Self::Data("orientation","vertical"));}
@@ -28,13 +28,14 @@ impl<'a> Predicate<'a> {
  }
  #[cfg(any(test,feature="native"))]
  fn matches(self,node:&Node,ancestors:&[&Node])->bool {
-  fn data(node:&Node,key:&str,value:&str)->bool {match key {"slot"=>node.semantics.slot==value,"size"=>node.semantics.size==value,"variant"=>node.semantics.variant==value,"orientation"=>node.semantics.role=="separator" && (if node.semantics.orientation.is_empty(){"horizontal"}else{&node.semantics.orientation})==value,_=>false}}
+  fn data(node:&Node,key:&str,value:&str)->bool {match key {"state"=>node.semantics.state==value,"slot"=>node.semantics.slot==value,"size"=>node.semantics.size==value,"variant"=>node.semantics.variant==value,"orientation"=>node.semantics.role=="separator" && (if node.semantics.orientation.is_empty(){"horizontal"}else{&node.semantics.orientation})==value,_=>false}}
   fn has(node:&Node,key:&str,value:&str)->bool {node.children.iter().any(|child|data(child,key,value)||has(child,key,value))}
-  match self {Self::Anchor=>node.tag()=="a",Self::Data(k,v)=>data(node,k,v),Self::HasData(k,v)=>has(node,k,v),Self::InData(k,v)=>ancestors.iter().any(|parent|data(parent,k,v)),Self::GroupData(k,v,group)=>ancestors.iter().any(|parent|parent.class_name.split_whitespace().any(|class|class.strip_prefix("group/")==Some(group)) && data(parent,k,v)),Self::Class(class)=>node.class_name.split_whitespace().any(|token|token==class),Self::Dark|Self::MinWidth(_)=>true,Self::Invalid=>node.semantics.invalid=="true",Self::Current=>super::super::navigation::is_current(&node.semantics.href)}
+  fn expanded(node:&Node)->bool{node.visible_children().any(|child|child.semantics.expanded=="true"||expanded(child))}
+  match self {Self::HasExpanded=>expanded(node),Self::Anchor=>node.tag()=="a",Self::Data(k,v)=>data(node,k,v),Self::HasData(k,v)=>has(node,k,v),Self::InData(k,v)=>ancestors.iter().any(|parent|data(parent,k,v)),Self::GroupData(k,v,group)=>ancestors.iter().any(|parent|parent.class_name.split_whitespace().any(|class|class.strip_prefix("group/")==Some(group)) && data(parent,k,v)),Self::Class(class)=>node.class_name.split_whitespace().any(|token|token==class),Self::Dark|Self::MinWidth(_)=>true,Self::Invalid=>node.semantics.invalid=="true",Self::Current=>super::super::navigation::is_current(&node.semantics.href)}
  }
  fn selector(self,scope:&str)->String {
   match self {
-   Self::Anchor=>":where(a)".into(),Self::Dark|Self::MinWidth(_)=>String::new(),Self::Invalid=>":where([aria-invalid=\"true\"])".into(),Self::Current=>":where([aria-current=\"page\"],[aria-current=\"location\"])".into(),
+   Self::HasExpanded=>":where(:has([aria-expanded=\"true\"]))".into(),Self::Anchor=>":where(a)".into(),Self::Dark|Self::MinWidth(_)=>String::new(),Self::Invalid=>":where([aria-invalid=\"true\"])".into(),Self::Current=>":where([aria-current=\"page\"],[aria-current=\"location\"])".into(),
    Self::Data(k,v)=>format!(":where([data-{k}=\"{v}\"])") ,
    Self::HasData(k,v)=>format!(":where(:has([data-{k}=\"{v}\"]))"),
    Self::InData(k,v)=>format!(":where({scope}[data-{k}=\"{v}\"] *)"),
@@ -45,11 +46,11 @@ impl<'a> Predicate<'a> {
 
 }
 #[derive(Clone,Copy)]
-enum Descendant {Svg,DefaultSvg,DirectLink}
+enum Descendant {Svg,DefaultSvg,DirectLink,Row,LastRow,DirectLastRow}
 impl Descendant {
- fn css(self)->&'static str{match self{Self::Svg=>" :where(svg)",Self::DefaultSvg=>" :where(svg:not([class*='size-']))",Self::DirectLink=>" > :where(a)"}}
+ fn css(self)->&'static str{match self{Self::Row=>" :where(tr)",Self::LastRow=>" :where(tr:last-child)",Self::DirectLastRow=>" > :where(tr:last-child)",Self::Svg=>" :where(svg)",Self::DefaultSvg=>" :where(svg:not([class*='size-']))",Self::DirectLink=>" > :where(a)"}}
  #[cfg(any(test,feature="native"))]
- fn matches(self,node:&Node,direct:bool)->bool{match self{Self::Svg=>node.kind==super::super::Kind::Svg,Self::DefaultSvg=>node.kind==super::super::Kind::Svg&&!node.class_name.contains("size-"),Self::DirectLink=>direct&&node.tag()=="a"}}
+ fn matches(self,node:&Node,direct:bool,ancestors:&[&Node])->bool{let last=||ancestors.last().and_then(|parent|parent.visible_children().last()).is_some_and(|child|std::ptr::eq(child,node));match self{Self::Row=>node.tag()=="tr",Self::LastRow=>node.tag()=="tr"&&last(),Self::DirectLastRow=>direct&&node.tag()=="tr"&&last(),Self::Svg=>node.kind==super::super::Kind::Svg,Self::DefaultSvg=>node.kind==super::super::Kind::Svg&&!node.class_name.contains("size-"),Self::DirectLink=>direct&&node.tag()=="a"}}
 }
 pub(super) struct Parts<'a> {pub state:State,pub token:&'a str,pub placeholder:bool,descendant:Option<Descendant>,predicates:Vec<Predicate<'a>>}
 pub(super) fn parts(class:&str)->Result<Parts<'_>,String> {
@@ -58,7 +59,7 @@ pub(super) fn parts(class:&str)->Result<Parts<'_>,String> {
  if depth!=0{return Err(format!("Unbalanced UI utility: {class}"));}
  let mut state=State::Base;let mut predicates=Vec::new();let mut placeholder=false;let mut descendant=None;
  for prefix in prefixes {
-  let target=match prefix {"[&_svg]"=>Some(Descendant::Svg),"[&_svg:not([class*='size-'])]"=>Some(Descendant::DefaultSvg),"[&>a]"|"[&>a:hover]"=>Some(Descendant::DirectLink),_=>None};
+  let target=match prefix {"[&_tr]"=>Some(Descendant::Row),"[&_tr:last-child]"=>Some(Descendant::LastRow),"[&>tr:last-child]"=>Some(Descendant::DirectLastRow),"[&_svg]"=>Some(Descendant::Svg),"[&_svg:not([class*='size-'])]"=>Some(Descendant::DefaultSvg),"[&>a]"|"[&>a:hover]"=>Some(Descendant::DirectLink),_=>None};
   if let Some(target)=target {if descendant.is_some(){return Err("Compound descendant selectors are unsupported".into());}descendant=Some(target);if prefix=="[&>a:hover]"{if state!=State::Base{return Err("Compound UI interaction states are unsupported".into());}state=State::Hover;}continue;}
   let interaction=match prefix {"hover"=>Some(State::Hover),"focus"|"focus-visible"=>Some(State::Focus),"active"=>Some(State::Active),"disabled"=>Some(State::Disabled),_=>None};
   if prefix=="placeholder" {if placeholder{return Err("Duplicate placeholder variant".into());}placeholder=true;}
@@ -68,7 +69,7 @@ pub(super) fn parts(class:&str)->Result<Parts<'_>,String> {
  }
  let token=&class[start..];
  if let Some(target)=descendant {
-  let allowed=match target {Descendant::Svg|Descendant::DefaultSvg=>matches!(token,"pointer-events-none"|"pointer-events-auto"|"shrink"|"shrink-0")||token.strip_prefix("size-").is_some_and(|size|super::layout::SPACING.contains(&size)),Descendant::DirectLink=>matches!(token,"underline"|"no-underline")||token.starts_with("underline-offset-")||token.starts_with("text-")&&(super::color_token(token)||super::opacity_token(token).is_some())};
+  let allowed=match target {Descendant::Row|Descendant::LastRow|Descendant::DirectLastRow=>super::edges::resolve(token,&Theme::default()).is_some_and(|values|values.iter().all(|value|matches!(value,super::Utility::EdgeBorder(_,_)))),Descendant::Svg|Descendant::DefaultSvg=>matches!(token,"pointer-events-none"|"pointer-events-auto"|"shrink"|"shrink-0")||token.strip_prefix("size-").is_some_and(|size|super::layout::SPACING.contains(&size)),Descendant::DirectLink=>matches!(token,"underline"|"no-underline")||token.starts_with("underline-offset-")||token.starts_with("text-")&&(super::color_token(token)||super::opacity_token(token).is_some())};
   if !allowed||placeholder{return Err("SVG descendant selectors support pointer events, shrink and numeric size; direct Link selectors support decoration and text colors".into());}
  }
  Ok(Parts{state,token,placeholder,descendant,predicates})
@@ -88,7 +89,7 @@ pub(crate) fn scoped_at_width(node:&Node,ancestors:&[&Node],theme:&Theme,mode:&s
  let sources=ancestors.iter().enumerate().map(|(index,parent)|(*parent,&ancestors[..index],Some(index+1==ancestors.len()))).chain(std::iter::once((node,ancestors,None)));
  for (source,parents,direct) in sources {let mut filtered=Vec::new();for class in source.class_name.split_whitespace(){
   let parsed=parts(class).expect("validated utility");
-  match (direct,parsed.descendant){(None,None)=>{},(Some(direct),Some(target))if target.matches(node,direct)=>{},_=>continue}
+  match (direct,parsed.descendant){(None,None)=>{},(Some(direct),Some(target))if target.matches(node,direct,ancestors)=>{},_=>continue}
   if !parsed.predicates.iter().all(|p|match p {Predicate::Dark=>mode=="dark",Predicate::MinWidth(min)=>width>=*min as f32,_=>p.matches(source,parents)}){continue;}
   if let Some((name,scale))=super::custom_spacing::declaration(parsed.token){variables.insert(name.into(),super::layout::spacing(scale,theme));}
   let token=if parsed.placeholder{format!("placeholder:{}",parsed.token)}else{parsed.token.to_owned()};

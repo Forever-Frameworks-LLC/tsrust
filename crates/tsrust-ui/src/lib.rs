@@ -10,6 +10,8 @@ mod computed;
 mod identity;
 pub use identity::use_id;
 mod vector;
+#[cfg(any(test,feature="native"))]
+mod table;
 pub mod navigation;
 mod branch;
 #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
@@ -18,6 +20,8 @@ mod window;
 mod application_tests;
 #[cfg(test)]
 mod empty_style_tests;
+#[cfg(test)]
+mod table_semantics_tests;
 #[cfg(test)]
 mod reactive_semantics_tests;
 mod editable;
@@ -65,6 +69,9 @@ pub(crate) struct Semantics {
     pub slot: String,
     pub size: String,
     pub variant:String,
+    pub state:String,
+    pub col_span:Option<i64>,
+    pub scope:String,
     pub orientation: String,
     pub html_for:String,
     pub described_by:String,
@@ -134,7 +141,7 @@ impl Node {
         if value.tab_index.is_some_and(|index|!matches!(index,-1|0)) || value.tab_index.is_some() && self.kind!=Kind::View{return Err("View tabIndex supports 0 (sequential focus) or -1 (programmatic focus)".into());}
         let tag=if value.tag.is_empty(){self.tag()}else{&value.tag};
         let allowed=match self.kind {
-            Kind::View=>matches!(tag,"div"|"section"|"span"|"label"|"kbd"|"code"|"nav"|"main"|"header"|"footer"|"aside"|"article"|"blockquote"|"ul"|"ol"|"li"|"table"|"thead"|"tbody"|"tr"|"th"|"td"),
+            Kind::View=>matches!(tag,"div"|"section"|"span"|"label"|"kbd"|"code"|"nav"|"main"|"header"|"footer"|"aside"|"article"|"blockquote"|"ul"|"ol"|"li"|"table"|"thead"|"tbody"|"tfoot"|"tr"|"th"|"td"|"caption"),
             Kind::Text=>matches!(tag,"div"|"span"|"p"|"h1"|"h2"|"h3"|"h4"|"h5"|"h6"|"code"|"kbd"|"strong"|"em"|"del"),
             Kind::Button|Kind::DisabledButton=>matches!(tag,"button"|"a"),
             Kind::Input=>tag=="input",
@@ -142,6 +149,9 @@ impl Node {
             Kind::Svg=>tag=="svg",Kind::SvgPath=>tag=="path",
         };
         if !allowed{return Err(format!("Unsupported UI element for {:?}: {tag}",self.kind));}
+        if value.col_span.is_some() && !matches!(tag,"th"|"td") {return Err("colSpan requires a table header or data cell".into());}
+        if value.col_span.is_some_and(|span|!(1..=1000).contains(&span)) {return Err("Table colSpan must be an integer from 1 through 1000".into());}
+        if !value.scope.is_empty() && (tag!="th" || !matches!(value.scope.as_str(),"row"|"col"|"rowgroup"|"colgroup")) {return Err("Table scope requires th and row, col, rowgroup or colgroup".into());}
         if !matches!(value.role.as_str(),""|"alert"|"status"|"separator"|"group"|"note"|"region"|"none"|"presentation"|"img") {return Err(format!("Unsupported UI role: {}",value.role));}
         if value.role=="img" && self.kind!=Kind::Svg{return Err("role=img requires Svg".into());}
         if matches!(self.kind,Kind::Button|Kind::DisabledButton|Kind::Input|Kind::Textarea) && !value.role.is_empty(){return Err("Interactive controls keep their implicit role".into());}
@@ -161,6 +171,7 @@ impl Node {
         if value.id.chars().any(|ch|ch.is_ascii_whitespace()||ch.is_control()){return Err("UI id cannot contain whitespace or control characters".into());}
         if value.slot.chars().any(|ch|!(ch.is_ascii_alphanumeric()||ch=='-')){return Err("UI slot must contain ASCII letters, digits or hyphens".into());}
         if value.variant.chars().any(|ch|!(ch.is_ascii_alphanumeric()||ch=='-')){return Err("UI data-variant must contain ASCII letters, digits or hyphens".into());}
+        if value.state.chars().any(|ch|!(ch.is_ascii_alphanumeric()||ch=='-')){return Err("UI data-state must contain ASCII letters, digits or hyphens".into());}
         if value.size.chars().any(|ch|!(ch.is_ascii_alphanumeric()||ch=='-')){return Err("UI data-size must contain ASCII letters, digits or hyphens".into());}
         value.href=self.semantics.href.clone();
         if self.variant_binding.is_some(){value.variant=self.semantics.variant.clone();}

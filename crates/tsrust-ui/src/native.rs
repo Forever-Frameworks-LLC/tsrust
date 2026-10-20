@@ -16,6 +16,8 @@ mod scrolling;
 mod inline;
 #[path = "native_vector.rs"]
 mod vector;
+#[path = "native_table.rs"]
+mod table;
 use inline::{Brush,Inline};
 use vello::peniko::{Color, Fill};
 use vello::util::{RenderContext, RenderSurface};
@@ -79,6 +81,8 @@ fn layout_text(text: &mut Layout<Brush>, width: f32, button: bool,balance:bool) 
 struct FieldInfo {value:String,placeholder:String,read_only:bool,required:bool}
 struct Measure {text:Layout<Brush>,nowrap:bool,balance:bool}
 struct Item {
+    table_display:Option<u8>,
+    caption_bottom:bool,
     display_none:bool,
     opacity:f32,
     suppress_outline:bool,
@@ -180,7 +184,7 @@ impl Painter {
         let mut dashed=false;
         let (mut border,mut border_color,mut ring)=([0.;4],theme.color(mode,"border")?,theme.color(mode,"ring")?);
         if let Some(super::vector::Data::Root(root))=node.vector.as_deref(){style.size.width=length(root.width as f32);style.size.height=length(root.height as f32);style.flex_shrink=0.;style.overflow.x=taffy::Overflow::Hidden;style.overflow.y=taffy::Overflow::Hidden;}
-        let mut inline_flex=false;let mut overflow=if node.kind==Kind::Svg{1}else{0};let mut opacity=if node.is_disabled(){0.6}else{1.};let mut suppress_outline=false;let mut placeholder_color=None;
+        let mut table_display=None;let mut caption_bottom=false;let mut inline_flex=false;let mut overflow=if node.kind==Kind::Svg{1}else{0};let mut opacity=if node.is_disabled(){0.6}else{1.};let mut suppress_outline=false;let mut placeholder_color=None;
         let (mut shadow_width,mut shadow_color,mut outline)=(0.,theme.color(mode,"ring")?,None);
         if matches!(node.kind,Kind::DisabledButton|Kind::Button)&&node.semantics.href.is_empty() {
             style.padding = Rect {
@@ -202,9 +206,12 @@ impl Painter {
                 Utility::Column=>style.flex_direction=FlexDirection::Column,
                 Utility::GapAxis(axis,v)=>{if axis==0{style.gap.height=length(v);}else{style.gap.width=length(v);}},
                 Utility::Padding(side,v)=>match side {0=>style.padding.top=length(v),1=>style.padding.right=length(v),2=>style.padding.bottom=length(v),_=>style.padding.left=length(v)},
-                Utility::Hidden=>{inline_flex=false;style.display=Display::None;},
-                Utility::Display(grid)=>{inline_flex=false;style.display=if grid{Display::Grid}else{Display::Flex};},
-                Utility::InlineFlex=>{inline_flex=true;style.display=Display::Flex;},
+                Utility::Hidden=>{table_display=None;inline_flex=false;style.display=Display::None;},
+                Utility::Display(grid)=>{table_display=None;inline_flex=false;style.display=if grid{Display::Grid}else{Display::Flex};},
+                Utility::InlineFlex=>{table_display=None;inline_flex=true;style.display=Display::Flex;},
+                Utility::TableDisplay(display)=>{table_display=Some(display);inline_flex=false;style.display=if display==4{Display::Grid}else{Display::Flex};style.flex_direction=FlexDirection::Column;if display==4{style.align_items=AlignItems::STRETCH;}},
+                Utility::CaptionBottom(bottom)=>caption_bottom=bottom,
+                Utility::VerticalAlign(value)=>style.justify_content=match value{0=>JustifyContent::START,1=>JustifyContent::CENTER,_=>JustifyContent::END},
                 Utility::Dimension(property,value)=>{
                     if value==super::style::Length::Fit {match property{0=>style.size.width=Dimension::fit_content(),1=>style.size.height=Dimension::fit_content(),_=>return Err("Fit-content is supported for preferred dimensions only".into())};continue;}
                     let value:LengthPercentageAuto=match value {super::style::Length::Pixels(v)=>length(v),super::style::Length::Percent(v)=>percent(v),super::style::Length::Viewport(axis)=>length(if axis==0{self.viewport_width}else{self.viewport.size.ok_or("Viewport height is unavailable")?.1 as f32}),super::style::Length::Auto|super::style::Length::None=>auto(),super::style::Length::Fit=>unreachable!()};
@@ -230,6 +237,7 @@ impl Painter {
                 Utility::Justify(v)=>style.justify_content=match v {0=>JustifyContent::FLEX_START,1=>JustifyContent::CENTER,_=>JustifyContent::SPACE_BETWEEN},
             }
         }
+        if table_display.is_some() && style.min_size.width.is_auto(){style.min_size.width=length(0.);}
         // Taffy transfers max-height into an absent max-width. A separately specified width keeps its own bound.
         if style.aspect_ratio.is_some() && style.size.width.into_raw().is_length_or_percentage() && style.max_size.width.is_auto() && !style.max_size.height.is_auto() {style.max_size.width=length(f32::MAX);}
         if node.kind==Kind::Input {inherited.whitespace=super::style::WhiteSpace::Pre;}else if node.kind==Kind::Textarea {inherited.whitespace=super::style::WhiteSpace::PreWrap;}
@@ -269,6 +277,7 @@ impl Painter {
             (Some(layout), id)
         };
         Ok(Item {
+            table_display,caption_bottom,
             display_none,
             identity:node.identity.get(),
             opacity,suppress_outline,placeholder_color,copy_error:node.copy.as_ref().map(|copy|copy.error.clone()),
@@ -289,38 +298,9 @@ impl Painter {
             children,inline,
         })
     }
-    fn scene(
-        &mut self,
-        node: &Node,
-        width: f32,
-        scale: f64,
-        focus: Option<u64>,
-    ) -> Result<(Scene, accesskit::TreeUpdate), String> {
-        self.scene_focused(node,width,scale,focus,focus)
-    }
-    fn scene_focused(&mut self,node:&Node,width:f32,scale:f64,focus:Option<u64>,visible_focus:Option<u64>)->Result<(Scene,accesskit::TreeUpdate),String> {
-        self.control_order.clear();self.tab_excluded.clear();self.scroll_chains.clear();self.scroll_order.clear();self.retain_owned_scrolls(node);
-        self.tree.clear();self.hit_regions.clear();self.clip_stack.clear();self.live_editors.clear();self.live_readonly.clear();self.cursors.clear();self.viewport_width=width;
-        self.focus=visible_focus;
-        node.ensure_identities();
-        if node.visible_root().is_none(){
-            self.viewport.content=(0.,0.);self.viewport.scroll_to(0.,0.);
-            for editor in self.editors.values_mut(){editor.cancel_composition(&mut self.fonts,&mut self.layouts);}self.editors.clear();self.label_targets.clear();
-            return Ok((Scene::new(),accesskit::TreeUpdate{nodes:vec![(accesskit::NodeId(0),accesskit::Node::new(accesskit::Role::Window))],tree:Some(accesskit::TreeInfo::new(accesskit::NodeId(0))),tree_id:accesskit::TreeId::ROOT,focus:accesskit::NodeId(0)}));
-        }
-        let mut root = self.node(node, TextStyle::default())?;
-        let (editors,fonts,layouts,live)=(&mut self.editors,&mut self.fonts,&mut self.layouts,&self.live_editors);
-        editors.retain(|id,editor|{if live.contains(id){true}else{editor.cancel_composition(fonts,layouts);false}});
-        let mut root_style = self.tree.style(root.id).map_err(|e| e.to_string())?.clone();
-        if root_style.size.width.is_auto() {root_style.size.width = length(width);}
-        self.tree.set_style(root.id, root_style).map_err(|e| e.to_string())?;
+    fn measure_tree(&mut self,id:NodeId,available:Size<AvailableSpace>)->Result<(),String>{
         self.tree
-            .compute_layout_with_measure(
-                root.id,
-                Size {
-                    width: AvailableSpace::Definite(width),
-                    height: AvailableSpace::MaxContent,
-                },
+            .compute_layout_with_measure(id, available,
                 |inputs, _, context, style| {
                     use taffy::MaybeResolve;
                     let mut leaf=style.clone();
@@ -354,7 +334,36 @@ impl Painter {
                     )
                 },
             )
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| e.to_string())
+    }
+    fn scene(
+        &mut self,
+        node: &Node,
+        width: f32,
+        scale: f64,
+        focus: Option<u64>,
+    ) -> Result<(Scene, accesskit::TreeUpdate), String> {
+        self.scene_focused(node,width,scale,focus,focus)
+    }
+    fn scene_focused(&mut self,node:&Node,width:f32,scale:f64,focus:Option<u64>,visible_focus:Option<u64>)->Result<(Scene,accesskit::TreeUpdate),String> {
+        self.control_order.clear();self.tab_excluded.clear();self.scroll_chains.clear();self.scroll_order.clear();self.retain_owned_scrolls(node);
+        self.tree.clear();self.hit_regions.clear();self.clip_stack.clear();self.live_editors.clear();self.live_readonly.clear();self.cursors.clear();self.viewport_width=width;
+        self.focus=visible_focus;
+        node.ensure_identities();
+        if node.visible_root().is_none(){
+            self.viewport.content=(0.,0.);self.viewport.scroll_to(0.,0.);
+            for editor in self.editors.values_mut(){editor.cancel_composition(&mut self.fonts,&mut self.layouts);}self.editors.clear();self.label_targets.clear();
+            return Ok((Scene::new(),accesskit::TreeUpdate{nodes:vec![(accesskit::NodeId(0),accesskit::Node::new(accesskit::Role::Window))],tree:Some(accesskit::TreeInfo::new(accesskit::NodeId(0))),tree_id:accesskit::TreeId::ROOT,focus:accesskit::NodeId(0)}));
+        }
+        let mut root = self.node(node, TextStyle::default())?;
+        let (editors,fonts,layouts,live)=(&mut self.editors,&mut self.fonts,&mut self.layouts,&self.live_editors);
+        editors.retain(|id,editor|{if live.contains(id){true}else{editor.cancel_composition(fonts,layouts);false}});
+        let mut root_style = self.tree.style(root.id).map_err(|e| e.to_string())?.clone();
+        if root_style.size.width.is_auto() {root_style.size.width = length(width);}
+        self.tree.set_style(root.id, root_style).map_err(|e| e.to_string())?;
+        let available=Size{width:AvailableSpace::Definite(width),height:AvailableSpace::MaxContent};
+        self.measure_tree(root.id,available)?;
+        if self.prepare_tables(&root)?{self.measure_tree(root.id,available)?;}
         let layout=self.tree.layout(root.id).map_err(|e|e.to_string())?;
         self.viewport.content=if root.overflow!=0{(layout.size.width as f64,layout.size.height as f64)}else{(layout.size.width.max(layout.scrollable_overflow_rect.right+layout.border.left) as f64,layout.size.height.max(layout.scrollable_overflow_rect.bottom+layout.border.top) as f64)};
         self.configure_scrolls(&root,&[])?;
@@ -433,9 +442,10 @@ impl Painter {
             _ if item.semantics.tag=="li"=>accesskit::Role::ListItem,
             _ if item.semantics.tag=="table"=>accesskit::Role::Table,
             _ if item.semantics.tag=="thead"=>accesskit::Role::RowGroup,
-            _ if item.semantics.tag=="tbody"=>accesskit::Role::RowGroup,
+            _ if item.semantics.tag=="tbody" || item.semantics.tag=="tfoot"=>accesskit::Role::RowGroup,
+            _ if item.semantics.tag=="caption"=>accesskit::Role::Caption,
             _ if item.semantics.tag=="tr"=>accesskit::Role::Row,
-            _ if item.semantics.tag=="th"=>accesskit::Role::ColumnHeader,
+            _ if item.semantics.tag=="th"=>if matches!(item.semantics.scope.as_str(),"row"|"rowgroup"){accesskit::Role::RowHeader}else{accesskit::Role::ColumnHeader},
             _ if item.semantics.tag=="td"=>accesskit::Role::Cell,
             _ if item.semantics.tag=="label"=>accesskit::Role::Label,
             _ if item.semantics.tag=="p"=>accesskit::Role::Paragraph,
@@ -447,6 +457,7 @@ impl Painter {
             _=>default_role,
         };
         let mut node = accesskit::Node::new(role);
+        if let Some(span)=item.semantics.col_span{node.set_column_span(span as usize);}
         if let Some(current)=super::navigation::current_kind(&item.semantics.href){node.set_aria_current(if current=="page"{accesskit::AriaCurrent::Page}else{accesskit::AriaCurrent::Location});}
         if role==accesskit::Role::Heading{node.set_level((item.semantics.tag.as_bytes()[1]-b'1') as usize);}
         if role==accesskit::Role::Splitter{node.set_orientation(if item.semantics.orientation=="vertical"{accesskit::Orientation::Vertical}else{accesskit::Orientation::Horizontal});}

@@ -93,7 +93,8 @@
       "src/components/ui/aspect-ratio.tsrx",
       "src/components/ui/alert-v2.tsrx",
       "src/components/ui/badge.tsrx",
-      "src/components/ui/empty.tsrx"
+      "src/components/ui/empty.tsrx",
+      "src/components/ui/table.tsrx"
     ],
     "examples": [
       {
@@ -293,6 +294,24 @@
         "source": "src/examples/keyboard-shortcuts.tsrx",
         "export": "KeyboardIconsAndTheme",
         "kind": "component"
+      },
+      {
+        "id": "invoice-table",
+        "source": "src/examples/table-layouts.tsrx",
+        "kind": "component",
+        "export": "InvoiceTable"
+      },
+      {
+        "id": "table-states",
+        "source": "src/examples/table-layouts.tsrx",
+        "kind": "component",
+        "export": "TableStates"
+      },
+      {
+        "id": "table-overflow",
+        "source": "src/examples/table-layouts.tsrx",
+        "kind": "component",
+        "export": "TableOverflow"
       }
     ]
   }

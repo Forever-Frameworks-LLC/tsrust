@@ -39,3 +39,29 @@ fn keyboard_reference_keeps_nested_markdown_and_paired_examples_executable(){
  for relative in ["src/acceptance/keyboard-documentation.tsr","src/examples/keyboard-shortcuts.tsrx","src/components/ui/kbd-v2.tsrx","src/components/docs/markdown-content.tsrx"]{let source=std::fs::read_to_string(root.join(relative)).unwrap();assert_eq!(source,support::format_round_trip(&source));}
  let output=support::run(support::cli().arg("run").arg(root.join("src/acceptance/keyboard-documentation.tsr")),180);support::success(&output);assert_eq!(output.stdout,b"Keyboard documentation passed\n");
 }
+
+#[test]
+fn current_table_exports_keep_spans_scope_and_owned_children(){
+ let dir=support::TempDirectory::new();support::success(&support::run(support::cli().args(["ui","add","table","--target","native","--target","web","--offline"]).current_dir(&dir.0),30));
+ let source=r#"import {document,View,Text} from 'std:ui';
+import {Table,TableHeader,TableBody,TableFooter,TableRow,TableHead,TableCell,TableCaption} from './src/components/ui/table';
+import {trackedResource,resourceId,releaseCount,strictEqual} from 'std:testing';
+function main(){
+ const owner=trackedResource();const id=resourceId(owner);
+ {const table=<Table id="owned-table" className={{evaluate:()=>{strictEqual(releaseCount(resourceId(owner)),0);return 'text-base';}}}><TableCaption>Invoices</TableCaption><TableHeader><TableRow><TableHead scope="col">Invoice</TableHead><TableHead scope="col">Amount</TableHead></TableRow></TableHeader><TableBody><TableRow data-state="selected"><TableHead scope="row">One</TableHead><TableCell>$10</TableCell></TableRow></TableBody><TableFooter><TableRow><TableCell colSpan={2}>Total $10</TableCell></TableRow></TableFooter></Table>;
+ const html=document(table,'Table');for(const text of ['<table','<thead','<tbody','<tfoot','<caption','colspan="2"','scope="row"','data-state="selected"','data-slot="table-container"']){strictEqual(html.includes(text),true,text);}strictEqual(releaseCount(id),0);}
+ strictEqual(releaseCount(id),1);
+ let rejected=false;try{const bad=<TableCell colSpan={0}>Bad</TableCell>;}catch{rejected=true;}strictEqual(rejected,true);
+ let nested=false;try{const bad=<Table><TableBody><TableRow><TableCell><Table/></TableCell></TableRow></TableBody></Table>;}catch{nested=true;}strictEqual(nested,true);
+ console.log('Current table passed');
+}"#;
+ let path=dir.0.join("inspect.tsrx");std::fs::write(&path,support::format_round_trip(source)).unwrap();let output=support::run(support::cli().arg("run").arg(&path),180);support::success(&output);assert_eq!(output.stdout,b"Current table passed\n");
+ let installed=std::fs::read_to_string(dir.0.join("src/components/ui/table.tsrx")).unwrap();for export in ["TableHeaderProps","TableBodyProps","TableFooterProps","TableRowProps","TableHeadProps","TableCellProps","TableCaptionProps"]{assert!(installed.contains(export));}assert!(installed.starts_with("// License: MIT. See "));
+}
+
+#[test]
+fn table_documentation_keeps_formatted_paired_examples_executable(){
+ let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs");
+ for relative in ["src/acceptance/table-documentation.tsr","src/examples/table-layouts.tsrx","src/components/ui/table.tsrx"]{let source=std::fs::read_to_string(root.join(relative)).unwrap();assert_eq!(source,support::format_round_trip(&source));}
+ let output=support::run(support::cli().arg("run").arg(root.join("src/acceptance/table-documentation.tsr")),180);support::success(&output);assert_eq!(output.stdout,b"Table documentation passed\n");
+}

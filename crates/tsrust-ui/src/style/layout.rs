@@ -28,7 +28,7 @@ pub(super) fn aspect(token:&str)->Option<Option<f32>> {
     (ratio.is_finite() && ratio>0.).then_some(Some(ratio))
 }
 pub(super) fn tokens()->Vec<String> {
-    let mut values=["flex-1","max-w-sm","relative","absolute","aspect-auto","aspect-square","aspect-video","aspect-[16/9]","aspect-[3/4]","aspect-[1.5]","hidden","flex","inline-flex","grid","auto-rows-min","flex-wrap","flex-nowrap","grow","grow-0","shrink","shrink-0"].into_iter().map(str::to_owned).collect::<Vec<_>>();
+    let mut values=["table","table-header-group","table-row-group","table-footer-group","table-row","table-cell","table-caption","caption-top","caption-bottom","align-top","align-middle","align-bottom","flex-1","max-w-sm","relative","absolute","aspect-auto","aspect-square","aspect-video","aspect-[16/9]","aspect-[3/4]","aspect-[1.5]","hidden","flex","inline-flex","grid","auto-rows-min","flex-wrap","flex-nowrap","grow","grow-0","shrink","shrink-0"].into_iter().map(str::to_owned).collect::<Vec<_>>();
     for prefix in ["inset","inset-x","inset-y","top","right","bottom","left"] {
         for size in SPACING.iter().copied().chain(["full","1/2","1/3","2/3","1/4","3/4"]) {values.push(format!("{prefix}-{size}"));values.push(format!("-{prefix}-{size}"));}
         values.push(format!("{prefix}-auto"));
@@ -55,6 +55,9 @@ pub(super) fn tokens()->Vec<String> {
     values
 }
 pub(super) fn resolve(token:&str,theme:&Theme)->Option<Vec<Utility>> {
+    if let Some(index)=["table","table-header-group","table-row-group","table-footer-group","table-row","table-cell","table-caption"].iter().position(|value|*value==token){return Some(vec![Utility::TableDisplay(index as u8)]);}
+    if let Some(index)=["caption-top","caption-bottom"].iter().position(|value|*value==token){return Some(vec![Utility::CaptionBottom(index==1)]);}
+    if let Some(index)=["align-top","align-middle","align-bottom"].iter().position(|value|*value==token){return Some(vec![Utility::VerticalAlign(index as u8)]);}
     if token=="flex-1"{return Some(vec![Utility::Grow(1.),Utility::Shrink(1.),Utility::BasisZero]);}
     if token=="max-w-sm"{return Some(vec![Utility::Dimension(4,Length::Pixels(theme.typography.base as f32*24.))]);}
     for (prefix,sides) in [("m-",&[0,1,2,3][..]),("mx-",&[1,3][..]),("my-",&[0,2][..]),("mt-",&[0][..]),("mr-",&[1][..]),("mb-",&[2][..]),("ml-",&[3][..])]{if let Some(size)=token.strip_prefix(prefix){return Some(sides.iter().map(|&side|Utility::Margin(side,spacing(size,theme))).collect());}}
@@ -77,7 +80,7 @@ pub(super) fn resolve(token:&str,theme:&Theme)->Option<Vec<Utility>> {
     for (prefix,axes) in [("min-w-",&[2][..]),("min-h-",&[3][..]),("max-w-",&[4][..]),("max-h-",&[5][..]),("size-",&[0,1][..]),("w-",&[0][..]),("h-",&[1][..])] {
         if let Some(size)=token.strip_prefix(prefix){
             if size=="screen"{return Some(axes.iter().map(|&axis|Utility::Dimension(axis,Length::Viewport(axis%2))).collect());}
-            let value=match size {"auto"=>Length::Auto,"none"=>Length::None,"fit"=>Length::Fit,"full"=>Length::Percent(1.),"1/2"=>Length::Percent(0.5),"1/3"=>Length::Percent(1./3.),"2/3"=>Length::Percent(2./3.),"1/4"=>Length::Percent(0.25),"3/4"=>Length::Percent(0.75),_=>Length::Pixels(spacing(size,theme))};
+            let value=if let Some(value)=pixels(size){Length::Pixels(value)}else{match size {"auto"=>Length::Auto,"none"=>Length::None,"fit"=>Length::Fit,"full"=>Length::Percent(1.),"1/2"=>Length::Percent(0.5),"1/3"=>Length::Percent(1./3.),"2/3"=>Length::Percent(2./3.),"1/4"=>Length::Percent(0.25),"3/4"=>Length::Percent(0.75),_=>Length::Pixels(spacing(size,theme))}};
             return Some(axes.iter().map(|&axis|Utility::Dimension(axis,value)).collect());
         }
     }
@@ -99,7 +102,7 @@ fn offset(token:&str,theme:&Theme)->Option<Vec<Utility>> {
 
 pub(super) fn theme_keys(token:&str)->Vec<&'static str> {
     for prefix in ["m-","mx-","my-","mt-","mr-","mb-","ml-","gap-x-","gap-y-","gap-","min-w-","min-h-","max-w-","max-h-","size-","w-","h-","px-","py-","pt-","pr-","pb-","pl-","p-"] {
-        if let Some(size)=token.strip_prefix(prefix) {return match size {"1"|"2"=>vec!["sm"],"3"=>vec!["sm","md"],"6"=>vec!["lg"],"0"|"px"|"auto"|"none"|"fit"|"full"|"screen"|"1/2"|"1/3"|"2/3"|"1/4"|"3/4"=>vec![],_=>vec!["md"]};}
+        if let Some(size)=token.strip_prefix(prefix) {if pixels(size).is_some(){return vec![];}return match size {"1"|"2"=>vec!["sm"],"3"=>vec!["sm","md"],"6"=>vec!["lg"],"0"|"px"|"auto"|"none"|"fit"|"full"|"screen"|"1/2"|"1/3"|"2/3"|"1/4"|"3/4"=>vec![],_=>vec!["md"]};}
     }
     vec![]
 }
@@ -113,4 +116,14 @@ pub(super) fn theme_keys(token:&str)->Vec<&'static str> {
   let rules=super::super::resolved("aspect-video aspect-square",&Theme::default(),"light");assert_eq!(rules.iter().filter(|(_,rule)|matches!(rule,Utility::AspectRatio(_))).count(),1);assert!(rules.iter().any(|(_,rule)|matches!(rule,Utility::AspectRatio(Some(1.)))));
   assert!(super::super::documentation("aspect-[3/4]").contains("f32"));assert!(super::super::documentation("relative").contains("unsupported"));
  }
+}
+
+// Pixel dimensions have no theme dependency and never accept CSS expressions.
+pub(super) fn pixels(size:&str)->Option<f32>{
+ let text=size.strip_prefix('[')?.strip_suffix("px]").or_else(||size.strip_prefix('[')?.strip_suffix(']'))?;
+ if text.is_empty()||!text.bytes().all(|b|b.is_ascii_digit()||b==b'.'){return None;}
+ let value=text.parse::<f32>().ok()?;(value.is_finite()&&value>=0.).then_some(value)
+}
+pub(super) fn pixel_dimension(token:&str)->bool{
+ ["min-w-","min-h-","max-w-","max-h-","size-","w-","h-"].iter().any(|prefix|token.strip_prefix(prefix).is_some_and(|size|pixels(size).is_some()))
 }

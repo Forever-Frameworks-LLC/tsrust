@@ -137,6 +137,17 @@ impl Node {
             && node.children.iter().all(Self::phrasing))
     }
     pub(crate) fn validate_structure(&self)->Result<(),String> {
+        let table_display=|name:&str|self.class_name.split_whitespace().any(|class|class==name);
+        if table_display("table-row") && self.visible_children().any(|child|!matches!(child.tag(),"th"|"td")||!child.class_name.split_whitespace().any(|class|class=="table-cell")){
+            return Err("A table-row requires table-cell children with th or td tags".into());
+        }
+        if ["table-header-group","table-row-group","table-footer-group"].iter().any(|class|table_display(class)) && self.visible_children().any(|child|child.tag()!="tr"||!child.class_name.split_whitespace().any(|class|class=="table-row")){
+            return Err("A table group requires table-row children with tr tags".into());
+        }
+        if self.tag()=="table" && self.class_name.split_whitespace().any(|class|class=="table"){
+            fn nested(node:&Node)->bool{node.visible_root().is_some_and(|node|node.tag()=="table"||node.visible_children().any(nested))}
+            if self.visible_children().any(nested){return Err("Nested portable tables are unsupported; place related tables in separate regions".into());}
+        }
         if matches!(self.kind,Kind::Svg|Kind::SvgPath) && self.vector.is_none(){return Err("Construct vector nodes with Svg or Path".into());}
         if self.kind==Kind::Svg && self.children.iter().any(|child|child.kind!=Kind::SvgPath){return Err("Svg children must be Path nodes".into());}
         if self.kind!=Kind::Svg && self.children.iter().any(|child|child.kind==Kind::SvgPath){return Err("Path requires an enclosing Svg".into());}

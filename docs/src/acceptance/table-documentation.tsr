@@ -1,0 +1,18 @@
+import { document } from 'std:ui';
+import { strictEqual } from 'std:testing';
+import { InvoiceTable, TableStates, TableOverflow } from '../examples/table-layouts';
+
+function main() {
+  const invoice = document(InvoiceTable(), 'Invoices');
+  for (const tag of ['table', 'thead', 'tbody', 'tfoot', 'caption', 'th', 'tr', 'td']) {
+    strictEqual(invoice.includes('<' + tag), true, tag);
+  }
+
+  strictEqual(invoice.includes('colspan="3"'), true, 'footer span');
+  strictEqual(invoice.includes('scope="col"'), true, 'column scope');
+  strictEqual(invoice.includes('data-slot="table-container"'), true, 'outer container');
+  strictEqual(invoice.includes('$750.00'), true, 'total');
+  strictEqual(document(TableStates(), 'State').includes('Toggle row selection'), true);
+  strictEqual(document(TableOverflow(), 'Overflow').includes('Native GPU'), true);
+  console.log('Table documentation passed');
+}

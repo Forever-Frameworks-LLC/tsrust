@@ -171,9 +171,15 @@ interface ViewProperties<Classes, Variant> extends SemanticProps<Variant> {
   /** Marks a native custom-header drag surface. Interactive descendants, including disabled controls and labels, exclude dragging. Browser hosts keep control of their own window. */
   windowDragRegion?: boolean;
   /** Semantic container tag; defaults to div. Landmarks, lists, blockquotes and table parts preserve their native accessibility roles. Layout remains explicit through className. kbd and code accept composed phrasing children. */
-  as?: 'div' | 'section' | 'span' | 'label' | 'kbd' | 'code' | 'nav' | 'main' | 'header' | 'footer' | 'aside' | 'article' | 'blockquote' | 'ul' | 'ol' | 'li' | 'table' | 'thead' | 'tbody' | 'tr' | 'th' | 'td';
+  as?: 'div' | 'section' | 'span' | 'label' | 'kbd' | 'code' | 'nav' | 'main' | 'header' | 'footer' | 'aside' | 'article' | 'blockquote' | 'ul' | 'ol' | 'li' | 'table' | 'thead' | 'tbody' | 'tfoot' | 'caption' | 'tr' | 'th' | 'td';
   /** For as=label, the single ID of its associated control. Omission labels the first enclosed control. */
   htmlFor?: string;
+  /** Optional live styling state, such as selected. ASCII letters, digits and hyphens; empty omits it. Does not change accessibility selection. */
+  'data-state'?: ReactiveValue<string | undefined>;
+  /** Static horizontal table-cell span, integer 1–1000. Defaults to one; only th/td accept it. Invalid values throw. */
+  colSpan?: int;
+  /** Table header association; only th accepts row, col, rowgroup or colgroup. Omission uses automatic association. */
+  scope?: 'row' | 'col' | 'rowgroup' | 'colgroup';
   /** Owned ordered content. Pass between tags or with children={values}; combining both is rejected. Forwarding transfers the array once. */
   children?: Child[];
   /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Includes relative/absolute parent positioning and checked insets; inline descendants require typography only. Includes aspect-square/video/[W/H]/[R]/auto with finite positive f32 ratios. Explicit sizes and min/max bounds still apply. Later classes win per property/state. */
@@ -367,7 +373,7 @@ export function View(props: ViewProps<ReactiveValue<string>, ReactiveValue<strin
   const className = props.className;
   const variant = props['data-variant'];
   const classes = typeof className === 'string' ? clone(className) : '';
-  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid'], props.htmlFor ?? '', props.windowDragRegion ?? false, props.tabIndex);
+  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid'], props.htmlFor ?? '', props.windowDragRegion ?? false, props.tabIndex, undefined, undefined, props['data-state'], props.colSpan, String(props.scope ?? ''));
   const result = view(props.children ?? [], classes);
   match (result) {
     Ok(value) => {
@@ -650,6 +656,9 @@ interface SemanticConfig {
   htmlFor: string;
   windowDragRegion: boolean;
   tabIndex?: int;
+  state: string;
+  colSpan?: int;
+  scope: string;
 }
 
 function semanticString(value: Mutable<ReactiveValue<string | undefined> | undefined>): string {
@@ -672,7 +681,7 @@ function semanticBoolean(value: Mutable<ReactiveValue<boolean | undefined> | und
   return value.evaluate();
 }
 
-function semanticSnapshot(config: ReadOnly<SemanticConfig>, label: Mutable<ReactiveValue<string | undefined> | undefined>, hidden: Mutable<ReactiveValue<boolean | undefined> | undefined>, describedBy: Mutable<ReactiveValue<string | undefined> | undefined>, invalid: Mutable<ReactiveValue<boolean | undefined> | undefined>, expanded: Mutable<ReactiveValue<boolean | undefined> | undefined>, controls: Mutable<ReactiveValue<string | undefined> | undefined>): string {
+function semanticSnapshot(config: ReadOnly<SemanticConfig>, label: Mutable<ReactiveValue<string | undefined> | undefined>, hidden: Mutable<ReactiveValue<boolean | undefined> | undefined>, describedBy: Mutable<ReactiveValue<string | undefined> | undefined>, invalid: Mutable<ReactiveValue<boolean | undefined> | undefined>, expanded: Mutable<ReactiveValue<boolean | undefined> | undefined>, controls: Mutable<ReactiveValue<string | undefined> | undefined>, state: Mutable<ReactiveValue<string | undefined> | undefined>): string {
   const next = clone(config);
   next.label = semanticString(label);
   const hiddenValue = semanticBoolean(hidden);
@@ -683,6 +692,7 @@ function semanticSnapshot(config: ReadOnly<SemanticConfig>, label: Mutable<React
   const expandedValue = semanticBoolean(expanded);
   next.expanded = expandedValue === undefined ? '' : String(expandedValue);
   next.controls = semanticString(controls);
+  next.state = semanticString(state);
   if (config.tag === 'svg' && config.role === '') {
     next.role = next.label === '' ? 'presentation' : 'img';
   }
@@ -690,12 +700,12 @@ function semanticSnapshot(config: ReadOnly<SemanticConfig>, label: Mutable<React
   return JSON.stringify(next);
 }
 
-function semanticConfig(tag: string, role: string, label: ReactiveValue<string | undefined> | undefined, id: string, hidden: ReactiveValue<boolean | undefined> | undefined, slot: string, size: string, variant: string, orientation: string, describedBy: ReactiveValue<string | undefined> | undefined = '', invalid: ReactiveValue<boolean | undefined> | undefined = undefined, htmlFor: string = '', windowDragRegion: boolean = false, tabIndex?: int, expanded?: ReactiveValue<boolean | undefined>, controls?: ReactiveValue<string | undefined>): ReactiveValue<string> {
+function semanticConfig(tag: string, role: string, label: ReactiveValue<string | undefined> | undefined, id: string, hidden: ReactiveValue<boolean | undefined> | undefined, slot: string, size: string, variant: string, orientation: string, describedBy: ReactiveValue<string | undefined> | undefined = '', invalid: ReactiveValue<boolean | undefined> | undefined = undefined, htmlFor: string = '', windowDragRegion: boolean = false, tabIndex?: int, expanded?: ReactiveValue<boolean | undefined>, controls?: ReactiveValue<string | undefined>, state?: ReactiveValue<string | undefined>, colSpan?: int, scope: string = ''): ReactiveValue<string> {
   const config: SemanticConfig = {
-    tag, role, label: '', id, hidden: false, slot, size, variant, orientation, describedBy: '', invalid: '', expanded: '', controls: '', htmlFor, windowDragRegion, tabIndex
+    tag, role, label: '', id, hidden: false, slot, size, variant, orientation, describedBy: '', invalid: '', expanded: '', controls: '', htmlFor, windowDragRegion, tabIndex, state: '', colSpan, scope
   };
-  if ((label === undefined || typeof label === 'string') && (hidden === undefined || typeof hidden === 'boolean') && (describedBy === undefined || typeof describedBy === 'string') && (invalid === undefined || typeof invalid === 'boolean') && (expanded === undefined || typeof expanded === 'boolean') && (controls === undefined || typeof controls === 'string')) {
-    if (config.tag === '' && config.role === '' && (label === undefined || label === '') && config.id === '' && (hidden === undefined || !hidden) && config.slot === '' && config.size === '' && config.variant === '' && config.orientation === '' && (describedBy === undefined || describedBy === '') && invalid === undefined && expanded === undefined && (controls === undefined || controls === '') && config.htmlFor === '' && !config.windowDragRegion && config.tabIndex === undefined) {
+  if ((label === undefined || typeof label === 'string') && (hidden === undefined || typeof hidden === 'boolean') && (describedBy === undefined || typeof describedBy === 'string') && (invalid === undefined || typeof invalid === 'boolean') && (expanded === undefined || typeof expanded === 'boolean') && (controls === undefined || typeof controls === 'string') && (state === undefined || typeof state === 'string')) {
+    if (config.tag === '' && config.role === '' && (label === undefined || label === '') && config.id === '' && (hidden === undefined || !hidden) && config.slot === '' && config.size === '' && config.variant === '' && config.orientation === '' && (describedBy === undefined || describedBy === '') && invalid === undefined && expanded === undefined && (controls === undefined || controls === '') && config.htmlFor === '' && !config.windowDragRegion && config.tabIndex === undefined && (state === undefined || state === '') && colSpan === undefined && config.scope === '') {
       return '';
     }
 
@@ -705,6 +715,7 @@ function semanticConfig(tag: string, role: string, label: ReactiveValue<string |
     config.invalid = typeof invalid === 'boolean' ? String(invalid) : '';
     config.expanded = typeof expanded === 'boolean' ? String(expanded) : '';
     config.controls = typeof controls === 'string' ? clone(controls) : '';
+    config.state = typeof state === 'string' ? clone(state) : '';
     if (config.tag === 'svg' && config.role === '') {
       config.role = config.label === '' ? 'presentation' : 'img';
     }
@@ -713,7 +724,7 @@ function semanticConfig(tag: string, role: string, label: ReactiveValue<string |
   }
 
   return {
-    evaluate: () => semanticSnapshot(config, label, hidden, describedBy, invalid, expanded, controls)
+    evaluate: () => semanticSnapshot(config, label, hidden, describedBy, invalid, expanded, controls, state)
   };
 }
 
