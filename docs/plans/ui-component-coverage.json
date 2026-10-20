@@ -552,7 +552,7 @@
         "Variants, sizes and caller customization",
         "Keyboard, accessibility and light/dark states"
       ],
-      "notes": "Kbd 2 and KbdGroup keep the pinned Base UI + Nova exports, kbd tags, caller slot overrides, live class forwarding and default SVG sizing. Paired focused acceptance is in progress. Boxed keycaps compose in containers and buttons; paragraph-inline boxes, arbitrary DOM events/refs, full Base UI composition and an implemented Tooltip remain unsupported."
+      "notes": "Kbd 2 and KbdGroup keep the pinned Base UI + Nova exports, kbd tags, caller slot overrides, live class forwarding and default SVG sizing. Focused paired acceptance: docs/milestones/ui-keycaps-and-markdown-frames.md. Boxed keycaps compose in containers and buttons; paragraph-inline boxes, arbitrary DOM events/refs, full Base UI composition and an implemented Tooltip remain unsupported."
     },
     {
       "name": "label",

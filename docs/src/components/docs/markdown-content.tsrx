@@ -58,20 +58,20 @@ function inlineContent(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>, p
     } else if (node.kind === 'hard-break') {
       children.push('\n');
     } else if (node.kind === 'code') {
-      children.push(<Text as="code" className="font-mono text-foreground">{clone(node.text)}</Text>);
+      children.push(inlineText('code', [clone(node.text)]));
     } else if (node.kind === 'strong') {
-      children.push(<Text as="strong" children={inlineContent(page,catalog,i)}/>);
+      children.push(inlineText('strong', inlineContent(page, catalog, i)));
     } else if (node.kind === 'emphasis') {
-      children.push(<Text as="em" children={inlineContent(page,catalog,i)}/>);
+      children.push(inlineText('em', inlineContent(page, catalog, i)));
     } else if (node.kind === 'strike') {
-      children.push(<Text as="del" children={inlineContent(page,catalog,i)}/>);
+      children.push(inlineText('del', inlineContent(page, catalog, i)));
     } else if (node.kind === 'link') {
       if (node.destination.startsWith('/')) {
-        children.push(<Link href={linkTarget(node.destination,catalog)} className="text-primary" children={inlineContent(page,catalog,i)}/>);
+        children.push(inlineLink(linkTarget(node.destination, catalog), inlineContent(page, catalog, i)));
       } else if (node.destination.startsWith('https://')) {
-        children.push(<Link href={clone(node.destination)} className="text-primary" children={inlineContent(page,catalog,i)}/>);
+        children.push(inlineLink(clone(node.destination), inlineContent(page, catalog, i)));
       } else if (node.destination.startsWith('#')) {
-        children.push(<Link href={docsPath(page.route)+'#'+page.metadata.id+'-'+node.destination.slice(1)} className="text-primary" children={inlineContent(page,catalog,i)}/>);
+        children.push(inlineLink(docsPath(page.route) + '#' + page.metadata.id + '-' + node.destination.slice(1), inlineContent(page, catalog, i)));
       } else {
         children.push(content(page.document.nodes, i) + ' (' + node.destination + ')');
       }
@@ -129,6 +129,125 @@ function appendExamples(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>, 
 
 }
 
+// Keep JSX construction outside recursive dispatch so inactive kinds do not retain props frames.
+function inlineText(tag: 'code' | 'strong' | 'em' | 'del', children: Child[]): Node {
+  const classes = tag === 'code' ? 'font-mono text-foreground' : '';
+  return (<Text as={tag} className={classes} children={children}/>);
+}
+
+function inlineLink(href: string, children: Child[]): Node {
+  return (<Link href={href} className="text-primary" children={children}/>);
+}
+
+function textBlock(children: Child[], tag: 'span' | 'p' | 'code', classes: string): Node {
+  return (<Text as={tag} className={classes} children={children}/>);
+}
+
+function codeBlock(node: ReadOnly<DocNode>): Node {
+  return (<CodeBlock code={clone(node.raw)} tokens={clone(node.tokens)} language={clone(node.language)}/>);
+}
+
+function separatorBlock(): Node {
+  return (<View role="separator" className="border-t"/>);
+}
+
+function containerBlock(node: ReadOnly<DocNode>, children: Child[], marker: string): Node {
+  if (node.kind === 'quote') {
+    return (<View as="blockquote" className="border-l-2 pl-4 gap-4" children={children}/>);
+  }
+
+  if (node.kind === 'list') {
+    return (<View as={node.ordinal === null ? 'ul' : 'ol'} className="pl-4 gap-2" children={children}/>);
+  }
+
+  if (node.kind === 'item') {
+    return (<View as="li" className="flex-row gap-3"><Text className="text-muted-foreground">{marker}</Text><View className="grow min-w-0 gap-2" children={children}/></View>);
+  }
+
+  if (node.kind === 'table') {
+    return (<View as="table" className="border rounded overflow-auto" children={children}/>);
+  }
+
+  if (node.kind === 'table-head') {
+    return (<View as="thead"><View as="tr" className="flex-row bg-muted font-semibold" children={children}/></View>);
+  }
+
+  if (node.kind === 'table-row') {
+    return (<View as="tr" className="flex-row border-t" children={children}/>);
+  }
+
+  throw 'Invalid Markdown container';
+}
+
+function tableCell(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>, index: int, column: int): Node {
+  const node = page.document.nodes[index];
+  const parent = page.document.nodes[node.parent];
+  const table = page.document.nodes[parent.parent];
+  let classes = 'text-sm leading-normal text-left';
+  if (column < table.alignment.length) {
+    if (table.alignment[column] === 'center') {
+      classes = 'text-sm leading-normal text-center';
+    } else if (table.alignment[column] === 'right') {
+      classes = 'text-sm leading-normal text-right';
+    }
+  }
+
+  const children = inlineContent(page, catalog, index);
+  return (<View as={parent.kind === 'table-head' ? 'th' : 'td'} className="grow min-w-0 w-1/2 p-3"><Text className={classes} children={children}/></View>);
+}
+
+function renderBlock(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>, index: int, listItem: int, column: int): Node | null {
+  const node = page.document.nodes[index];
+  if (node.kind === 'quote' || node.kind === 'list' || node.kind === 'item' || node.kind === 'table' || node.kind === 'table-head' || node.kind === 'table-row') {
+    let marker = '';
+    if (node.kind === 'item') {
+      const list = page.document.nodes[node.parent];
+      marker = list.ordinal === null ? '•' : String(list.ordinal + listItem) + '.';
+    }
+
+    const children = renderBlocks(page, catalog, index);
+    return containerBlock(node, children, marker);
+  }
+
+  if (node.kind === 'table-cell') {
+    return tableCell(page, catalog, index, column);
+  }
+
+  if (node.kind === 'heading') {
+    return heading(inlineContent(page, catalog, index), node.level, page.metadata.id + '-' + node.anchor);
+  }
+
+  if (node.kind === 'paragraph') {
+    return textBlock(inlineContent(page, catalog, index), 'p', 'leading-normal text-muted-foreground');
+  }
+
+  if (node.kind === 'code-block') {
+    return codeBlock(node);
+  }
+
+  if (node.kind === 'rule') {
+    return separatorBlock();
+  }
+
+  if (node.kind === 'html-literal') {
+    return textBlock([clone(node.text)], 'code', 'font-mono text-sm');
+  }
+
+  if (node.kind === 'task') {
+    return textBlock([node.checked === true ? '[x]' : '[ ]'], 'span', '');
+  }
+
+  if (node.kind === 'text' || node.kind === 'code') {
+    return textBlock([clone(node.text)], 'span', 'leading-normal text-muted-foreground');
+  }
+
+  if (node.kind === 'strong' || node.kind === 'emphasis' || node.kind === 'strike' || node.kind === 'link') {
+    return textBlock([content(page.document.nodes, index)], 'span', 'leading-normal text-muted-foreground');
+  }
+
+  return null;
+}
+
 function renderBlocks(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>, parent: int): Child[] {
   let blocks: Child[] = [];
   let examplesInserted = false;
@@ -143,72 +262,29 @@ function renderBlocks(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>, pa
 
     if (parent >= 0 && page.document.nodes[parent].kind === 'item' && (node.kind === 'text' || node.kind === 'code' || node.kind === 'strong' || node.kind === 'emphasis' || node.kind === 'strike' || node.kind === 'link' || node.kind === 'image' || node.kind === 'task' || node.kind === 'soft-break' || node.kind === 'hard-break')) {
       if (!inlineItem) {
-        blocks.push(<Text className="leading-normal text-muted-foreground" children={inlineContent(page,catalog,parent)}/>);
+        blocks.push(textBlock(inlineContent(page, catalog, parent), 'span', 'leading-normal text-muted-foreground'));
         inlineItem = true;
       }
 
       continue;
     }
 
-    const text = content(page.document.nodes, i);
     if (parent === -1 && !examplesInserted && node.kind === 'heading' && node.level !== 1) {
       appendExamples(page, catalog, blocks);
-
       examplesInserted = true;
     }
 
-    if (node.kind === 'heading') {
-      blocks.push(heading(inlineContent(page, catalog, i), node.level, page.metadata.id + '-' + node.anchor));
-    } else if (node.kind === 'paragraph') {
-      blocks.push(<Text as="p" className="leading-normal text-muted-foreground" children={inlineContent(page,catalog,i)}/>);
-    } else if (node.kind === 'code-block') {
-      blocks.push(<CodeBlock code={clone(node.raw)} tokens={clone(node.tokens)} language={clone(node.language)}/>);
-    } else if (node.kind === 'quote') {
-      blocks.push(<View as="blockquote" className="border-l-2 pl-4 gap-4" children={renderBlocks(page, catalog, i)}/>);
-    } else if (node.kind === 'list') {
-      if (node.ordinal === null) {
-        blocks.push(<View as="ul" className="pl-4 gap-2" children={renderBlocks(page, catalog, i)}/>);
-      } else {
-        blocks.push(<View as="ol" className="pl-4 gap-2" children={renderBlocks(page, catalog, i)}/>);
-      }
-    } else if (node.kind === 'item') {
-      const list = page.document.nodes[parent];
-      const marker = list.ordinal === null ? '•' : String(list.ordinal + listItem) + '.';
+    const block = renderBlock(page, catalog, i, listItem, column);
+    if (node.kind === 'item') {
       listItem++;
-      blocks.push(<View as="li" className="flex-row gap-3"><Text className="text-muted-foreground">{marker}</Text><View className="grow min-w-0 gap-2" children={renderBlocks(page, catalog, i)}/></View>);
-    } else if (node.kind === 'table') {
-      blocks.push(<View as="table" className="border rounded overflow-auto" children={renderBlocks(page, catalog, i)}/>);
-    } else if (node.kind === 'table-head') {
-      blocks.push(<View as="thead"><View as="tr" className="flex-row bg-muted font-semibold" children={renderBlocks(page, catalog, i)}/></View>);
-    } else if (node.kind === 'table-row') {
-      blocks.push(<View as="tr" className="flex-row border-t" children={renderBlocks(page, catalog, i)}/>);
-    } else if (node.kind === 'table-cell') {
-      const table = page.document.nodes[page.document.nodes[parent].parent];
-      let cellStyle = 'text-sm leading-normal text-left';
-      if (column < table.alignment.length) {
-        if (table.alignment[column] === 'center') {
-          cellStyle = 'text-sm leading-normal text-center';
-        } else if (table.alignment[column] === 'right') {
-          cellStyle = 'text-sm leading-normal text-right';
-        }
-      }
+    }
 
+    if (node.kind === 'table-cell') {
       column++;
-      if (page.document.nodes[parent].kind === 'table-head') {
-        blocks.push(<View as="th" className="grow min-w-0 w-1/2 p-3"><Text className={cellStyle} children={inlineContent(page,catalog,i)}/></View>);
-      } else {
-        blocks.push(<View as="td" className="grow min-w-0 w-1/2 p-3"><Text className={cellStyle} children={inlineContent(page,catalog,i)}/></View>);
-      }
-    } else if (node.kind === 'rule') {
-      blocks.push(<View role="separator" className="border-t"/>);
-    } else if (node.kind === 'html-literal') {
-      blocks.push(<Text as="code" className="font-mono text-sm">{clone(node.text)}</Text>);
-    } else if (node.kind === 'task') {
-      blocks.push(<Text>{node.checked === true ? '[x]' : '[ ]'}</Text>);
-    } else if (node.kind === 'text' || node.kind === 'code') {
-      blocks.push(<Text className="leading-normal text-muted-foreground">{clone(node.text)}</Text>);
-    } else if (node.kind === 'strong' || node.kind === 'emphasis' || node.kind === 'strike' || node.kind === 'link') {
-      blocks.push(<Text className="leading-normal text-muted-foreground">{text}</Text>);
+    }
+
+    if (block !== null) {
+      blocks.push(block);
     }
   }
 

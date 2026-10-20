@@ -1,0 +1,21 @@
+import { document } from 'std:ui';
+import { strictEqual } from 'std:testing';
+import { loadPage } from '../../target/docs-content/catalog';
+import { MarkdownContent } from '../components/docs/markdown-content';
+import { KeyboardShortcuts, KeyboardCustomization, KeyboardIconsAndTheme } from '../examples/keyboard-shortcuts';
+
+function main() {
+  const catalog = loadPage('/ui/components/kbd');
+  const html = document(MarkdownContent(catalog.pages[0], catalog), 'Keyboard documentation');
+  strictEqual(html.includes('<table'), true, 'property table');
+  strictEqual(html.includes('<thead'), true, 'table headings');
+  strictEqual(html.includes('<th'), true, 'heading cells');
+  strictEqual(html.includes('<td'), true, 'body cells');
+  strictEqual(html.includes('className'), true, 'property content');
+  strictEqual(html.includes('a bare keyboard text container cannot be named.'), true, 'accessible naming guidance');
+  strictEqual(html.includes('keyboard-customization'), true, 'embedded examples');
+  strictEqual(document(KeyboardShortcuts(), 'Shortcuts').includes('data-slot="kbd-group"'), true);
+  strictEqual(document(KeyboardCustomization(), 'Customization').includes('Change keycap style'), true);
+  strictEqual(document(KeyboardIconsAndTheme(), 'Theme').includes('Toggle keycap theme'), true);
+  console.log('Keyboard documentation passed');
+}

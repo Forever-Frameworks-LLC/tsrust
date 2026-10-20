@@ -17,7 +17,7 @@ fn separator_children_unknown_orientation_and_unsupported_props_reject(){
 }
 
 #[test]
-fn current_keycaps_preserve_semantics_svg_defaults_and_owned_bindings(){
+fn current_keycaps_preserve_semantics_and_owned_bindings(){
  let dir=support::TempDirectory::new();support::success(&support::run(support::cli().args(["ui","add","kbd","--target","native","--target","web","--offline"]).current_dir(&dir.0),30));
  let source=r#"import {View,Button,Svg,Path,document} from 'std:ui';
 import {Kbd,KbdGroup} from './src/components/ui/kbd';
@@ -25,10 +25,17 @@ import {trackedResource,resourceId,releaseCount,strictEqual} from 'std:testing';
 function main(){
  const owner=trackedResource();const id=resourceId(owner);
  {const node=<Kbd id="owned-key" data-slot="custom-key" role="group" aria-label="Command" className={{evaluate:()=>{strictEqual(releaseCount(resourceId(owner)),0);return 'h-8 px-3';}}}><Svg fill="none" stroke="currentColor"><Path d="M4 12H20"/></Svg>K</Kbd>;
- const html=document(node,'Key');strictEqual(html.includes('data-slot="custom-key"'),true,'caller slot');strictEqual(html.includes('aria-label="Command"'),true,'accessible group name');strictEqual(html.includes('height:32px'),true,'explicit height');strictEqual(html.includes('width:12px'),true,'default SVG size');strictEqual(releaseCount(id),0);}
+ const html=document(node,'Key');strictEqual(html.includes('data-slot="custom-key"'),true,'caller slot');strictEqual(html.includes('aria-label="Command"'),true,'accessible group name');strictEqual(html.includes('height:32px'),true,'explicit height');strictEqual(html.includes('viewBox="0 0 24 24"'),true,'SVG child');strictEqual(releaseCount(id),0);}
  strictEqual(releaseCount(id),1);
  const nested=document(<Button><KbdGroup><Kbd>Ctrl</Kbd>+<Kbd>K</Kbd></KbdGroup></Button>,'Shortcut');strictEqual(nested.includes('data-slot="kbd-group"'),true);strictEqual(nested.includes('<kbd'),true);
  console.log('Current keycaps passed');
 }"#;
  let path=dir.0.join("inspect.tsrx");std::fs::write(&path,support::format_round_trip(source)).unwrap();let output=support::run(support::cli().arg("run").arg(&path),180);support::success(&output);assert_eq!(output.stdout,b"Current keycaps passed\n");
+}
+
+#[test]
+fn keyboard_reference_keeps_nested_markdown_and_paired_examples_executable(){
+ let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs");
+ for relative in ["src/acceptance/keyboard-documentation.tsr","src/examples/keyboard-shortcuts.tsrx","src/components/ui/kbd-v2.tsrx","src/components/docs/markdown-content.tsrx"]{let source=std::fs::read_to_string(root.join(relative)).unwrap();assert_eq!(source,support::format_round_trip(&source));}
+ let output=support::run(support::cli().arg("run").arg(root.join("src/acceptance/keyboard-documentation.tsr")),180);support::success(&output);assert_eq!(output.stdout,b"Keyboard documentation passed\n");
 }
