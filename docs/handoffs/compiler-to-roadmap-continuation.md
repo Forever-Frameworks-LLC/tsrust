@@ -13,6 +13,34 @@ arguments/returns/examples and inline comparable results (strings/trim is the fi
 pilot). Both views use the same curated evidence and explicit unmeasured states.
 Existing counter owner files and developer evidence paths remain preserved.
 
+## Current reading and reference section — 2026-10-20
+
+The owner's reported scroll, selected-navigation, theme-link, light syntax and
+preview defects are repaired through `8803a208`. See
+[reading/reference acceptance](../milestones/documentation-reading-and-reference.md)
+and [the full section audit](../plans/documentation-experience-audit.md).
+
+There are 160 destinations and source-derived references for 101 public receivers;
+941 API declarations do not mean 941 new or reverified runtime implementations.
+Generated payloads are readable UTF-8 data, with shared decoders and bounded page
+construction. The native bundled path repair is `3239330f`. Focused compiler,
+installed-LSP, native models, actual browser and real native schema-route startup
+pass. Consumers and active editor are current; already open landing/catalog
+versions publish empty diagnostics. Reuse accepted SQL/resource/runtime evidence.
+
+The real dev preview stays at port 4317. An expanded-content diagnostic before
+final copy/layout polish records 262.7 ms readiness and a 149.7 ms maximum event-loop
+gap; no controlled timing claim is added. Cold
+whole-repository editor scans remain slow. Keep HTML-first loading, executable
+splitting and editor background scheduling explicit. The small-screen reading
+layout is usable; compact mobile navigation disclosure remains required.
+
+Resume generic reactive custom props/base composition and the focus/disclosure
+families before claiming the remaining Base UI/Nova components, charts, themes and
+blocks complete. The audit lists the required material and intended presentation
+for every section. The old HTML design reference has not yet been aligned with the
+new shared landing. No additional owner approval is needed.
+
 ## Current startup responsiveness repair — 2026-10-19
 
 The owner's startup priority is accepted through `583c097d`: the original fresh-page

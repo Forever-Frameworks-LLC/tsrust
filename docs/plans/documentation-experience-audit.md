@@ -26,19 +26,19 @@ the galleries. Do not use screenshots, fake metrics or inert controls as accepta
 
 ## Reported defects and stronger acceptance
 
-- [ ] Restore long article, landing, sidebar and code offsets across link clicks,
+- [x] Restore long article, landing, sidebar and code offsets across link clicks,
   browser back/forward, fragments, section changes, search and theme changes.
   Test actual overflow and wheel input; a 90-pixel offset on one page is insufficient.
-- [ ] Show the selected section on every descendant URL and the exact selected
+- [x] Show the selected section on every descendant URL and the exact selected
   page independently. Preserve the selected group when a search is cleared.
-- [ ] Use project primary colors for selected navigation, prose links and calls
+- [x] Use project primary colors for selected navigation, prose links and calls
   to action. Preserve foreground contrast and independent nested theme scopes.
-- [ ] Verify distinct syntax classes in both modes, after switching modes and
+- [x] Verify distinct syntax classes in both modes, after switching modes and
   opening a previously hidden source panel. Plain command fences must be identified
   as plain commands, not presented as broken TypeScript highlighting.
-- [ ] Let ordinary component previews size to their content. Restrict scrolling
+- [x] Let ordinary component previews size to their content. Restrict scrolling
   to examples explicitly demonstrating a scroll container or bounded code panel.
-- [ ] Replace the landing's oversized diagnostic counter with a concise useful
+- [x] Replace the landing's oversized diagnostic counter with a concise useful
   interaction. Keep source, native implementation and browser behavior identical.
 
 ## Content inventory: what each section must present
@@ -75,8 +75,8 @@ the galleries. Do not use screenshots, fake metrics or inert controls as accepta
 
 ### Standard library and services
 
-- [ ] Every public std module and every public builtin receiver gets a mapped destination.
-- [ ] Method references derive signatures and behavioral prose from the editor catalog.
+- [x] Every public std module and every public builtin receiver gets a mapped destination.
+- [x] Method references derive signatures and behavioral prose from the editor catalog.
 - [ ] Each method presents arguments/defaults/errors, return/mutation, examples, ownership,
   boundary values and relevant method-level benchmark evidence.
 - [ ] Strings, arrays, tuples, numbers, Math, JSON, Object, Map/Set and other collections.
@@ -141,3 +141,18 @@ not historical evidence. Their prose and executable examples now live under
 `content/language/`. Original paths retain short links to the current guides;
 existing handoff and evidence links are preserved. Other root-level documents
 still need individual review before moving them.
+
+## Reading and reference acceptance — 2026-10-20
+
+The reported reading defects pass focused browser acceptance at 390, 768 and 1440
+pixels. The native build and largest schema route pass startup smoke; native
+selection/theme and route-owned identity checks pass. See
+[the acceptance record](../milestones/documentation-reading-and-reference.md).
+There are 160 destinations and 101 mapped public receivers. These counts describe
+reference coverage, not completed components, tutorials, charts or blocks.
+
+The small-screen sidebar now stacks above the article. A proper compact navigation
+disclosure remains required with the disclosure/focus family. The current whole
+repository editor scan is slow on a cold restart; asset indexing no longer lexes
+raw prose as code, but shared project analysis and interruptible background scans
+still need attention. Do not claim immediate cold-project readiness.
