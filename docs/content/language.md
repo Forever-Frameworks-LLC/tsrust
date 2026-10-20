@@ -9,6 +9,8 @@ Tsrust checks TypeScript-style source and compiles it to Rust. Ownership, suppor
 - [Functions and interfaces](/language/functions)
 - [Ownership and resources](/language/ownership)
 - [Modules and Rust](/language/modules)
+- [Type aliases](/language/type-aliases)
+- [Switch statements](/language/switch)
 - [Builtin functions](/language/builtins)
 - [Arrays](/standard-library/arrays)
 - [Strings](/standard-library/strings)

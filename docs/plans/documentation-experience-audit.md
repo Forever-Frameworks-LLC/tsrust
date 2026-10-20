@@ -133,3 +133,11 @@ the galleries. Do not use screenshots, fake metrics or inert controls as accepta
 Batch targeted verification after each complete section. Keep the dev preview and
 installed editor current. Reuse existing SQL/resource/compiler evidence; do not
 restart full matrices after individual controls. Update this checklist as work lands.
+
+## Reviewed source migration
+
+The existing Type aliases and Switch statements guides are user documentation,
+not historical evidence. Their prose and executable examples now live under
+`content/language/`. Original paths retain short links to the current guides;
+existing handoff and evidence links are preserved. Other root-level documents
+still need individual review before moving them.

@@ -1,3 +1,4 @@
+import {documentationLink} from './documentation-links.mjs';
 // Untimed observation of the shared landing and rectangle-visibility contract.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -17,7 +18,7 @@ for(const name of ['IntersectionObserver','ResizeObserver']){
 
 export async function observeDocsLanding({evaluate,call,errors,site,expected}) {
  const wait=async expression=>{for(let i=0;i<100;i++){if(await evaluate(expression))return;await new Promise(resolve=>setTimeout(resolve,50));}assert.fail(`Timeout: ${expression}`);};
- const click=async href=>{assert(await evaluate(`!!document.querySelector('a[href=${JSON.stringify(href)}]')`),href);await evaluate(`document.querySelector('a[href=${JSON.stringify(href)}]').click()`);};
+ const click=documentationLink(evaluate);
  await call('Emulation.setDeviceMetricsOverride',{width:1440,height:960,deviceScaleFactor:1,mobile:false});
  assert.equal(await evaluate(`document.querySelector('#landing h1').textContent`),'Write TypeScript.\nShip Native Rust.');
  assert.equal(await evaluate(`document.querySelectorAll('nav[aria-label="Main navigation"] a[href^="https://github.com/Forever-Frameworks-LLC/tsrust"]').length`),2);

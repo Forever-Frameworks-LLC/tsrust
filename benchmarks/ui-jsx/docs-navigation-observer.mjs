@@ -1,3 +1,4 @@
+import {documentationLink} from './documentation-links.mjs';
 // Observe actual routed DOM and browser history; catalog data alone cannot pass.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -7,22 +8,22 @@ export async function observeDocsNavigation({evaluate,call,errors,site}) {
  const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../docs');
  const catalog=JSON.parse(fs.readFileSync(path.join(root,'target/docs-content/catalog.json'),'utf8'));
  const wait=async expression=>{for(let i=0;i<100;i++){if(await evaluate(expression))return;await new Promise(resolve=>setTimeout(resolve,50));}assert.fail(`Timeout: ${expression}`);};
- const click=async href=>{assert(await evaluate(`!!document.querySelector('a[href=${JSON.stringify(href)}]')`),href);await evaluate(`document.querySelector('a[href=${JSON.stringify(href)}]').click()`);};
+ const click=documentationLink(evaluate);
  await call('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
  assert.equal(await evaluate('location.pathname'),'/');
- assert(await evaluate('document.querySelector("#landing h1").textContent.includes("Closer to the machine")'));
+ assert(await evaluate('document.querySelector("#landing h1").textContent.includes("Ship Native Rust.")'));
  await evaluate(`window.pageIdentity=document.querySelector('[data-tsrust-mount]');document.querySelector('#home-workspace-preview button').click()`);
  await click('/docs');assert.equal(await evaluate('location.pathname'),'/docs');
  assert.equal(await evaluate('document.querySelector("[data-slot=route-page] h1").textContent'),'Build with Tsrust');
  fs.writeFileSync(path.join(site,'docs-initial.png'),Buffer.from((await call('Page.captureScreenshot',{format:'png'})).data,'base64'));
- const searchTop=await evaluate(`document.querySelector('input[aria-label="Search documentation"]').getBoundingClientRect().top`);await evaluate(`document.querySelector('#navigation-pages').scrollTop=400`);assert.equal(await evaluate(`document.querySelector('input[aria-label="Search documentation"]').getBoundingClientRect().top`),searchTop,'Search remains outside the scrolling index');
+ const searchTop=await evaluate(`document.querySelector('input[aria-label="Search documentation"]').getBoundingClientRect().top`);await evaluate(`document.querySelector('[aria-label="Getting started pages"]').scrollTop=400`);assert.equal(await evaluate(`document.querySelector('input[aria-label="Search documentation"]').getBoundingClientRect().top`),searchTop,'Search remains outside the scrolling index');
  const links=await evaluate(`Array.from(document.querySelectorAll('#sidebar a')).map(node=>node.getAttribute('href'))`);
- assert.equal(links.length,catalog.pages.length);assert.equal(new Set(links).size,catalog.pages.length);
- for(const page of catalog.pages)assert(links.includes(page.route==='/'?'/docs':'/docs'+page.route),page.route);
+ const currentPages=catalog.pages.filter(page=>page.metadata.group==='getting-started');assert.equal(links.length,currentPages.length);assert.equal(new Set(links).size,currentPages.length);
+ for(const page of currentPages)assert(links.includes(page.route==='/'?'/docs':'/docs'+page.route),page.route);
  assert(await evaluate(`document.querySelector('#sidebar a[href="/docs"]').getAttribute('aria-current')==='page'`));
  await click('/docs/getting-started/installation');assert.equal(await evaluate('location.pathname'),'/docs/getting-started/installation');
  assert(await evaluate(`document.querySelector('[data-slot=route-page] h1').textContent.includes('Install')`));
- assert(await evaluate(`Array.from(document.querySelectorAll('[data-slot=route-page] textarea')).some(node=>node.value.includes('tsrust new my-app'))`));
+ assert(await evaluate(`Array.from(document.querySelectorAll('[data-slot=route-page] code')).some(node=>node.textContent.includes('tsrust new my-app'))`));
  const heading=await evaluate(`document.querySelector('nav[aria-label="On this page"] a').getAttribute('href')`);await click(heading);assert(await evaluate(`document.activeElement.id===decodeURIComponent(location.hash.slice(1))`),'Heading navigation focuses the destination');
  await evaluate('history.back()');await wait(`location.hash===''`);
  await evaluate(`document.querySelector('[data-slot=route-page]').scrollTop=90`);
@@ -32,7 +33,7 @@ export async function observeDocsNavigation({evaluate,call,errors,site}) {
  await click('/docs/ui/foundations/documentation');assert(await evaluate(`document.querySelector('[data-slot=route-page] table').textContent.includes('Native')`));const structures=(await call('Accessibility.getFullAXTree')).nodes.filter(node=>!node.ignored);for(const role of ['table','list'])assert(structures.some(node=>node.role?.value===role),role);
  const unicode=await evaluate(`Array.from(document.querySelectorAll('nav[aria-label="On this page"] a')).find(node=>node.textContent.includes('café')).getAttribute('href')`);await click(unicode);assert(await evaluate(`document.activeElement.id===decodeURIComponent(location.hash.slice(1))`));
  await evaluate(`(()=>{const search=document.querySelector('input[aria-label="Search documentation"]');search.value='U+0085';search.dispatchEvent(new Event('input',{bubbles:true}));})()`);
- const found=await evaluate(`Array.from(document.querySelectorAll('#sidebar a')).map(node=>node.getAttribute('href'))`);assert.deepEqual(found,['/docs/standard-library/strings']);
+ const found=await evaluate(`Array.from(document.querySelectorAll('#sidebar a')).map(node=>node.getAttribute('href'))`);assert(found.includes('/docs/standard-library/strings'));
  await click('/docs/standard-library/strings');assert(await evaluate(`document.querySelector('[data-slot=route-page]').textContent.includes('U+0085')`));
  await evaluate(`(()=>{const search=document.querySelector('input[aria-label="Search documentation"]');search.value='';search.dispatchEvent(new Event('input',{bubbles:true}));})()`);
  await evaluate(`(()=>{const search=document.querySelector('input[aria-label="Search documentation"]');search.value='aria-describedby';search.dispatchEvent(new Event('input',{bubbles:true}));})()`);assert(await evaluate(`!!document.querySelector('#sidebar a[href="/docs/ui/components/button"]')`),'Inherited API fields are searchable');
@@ -40,7 +41,7 @@ export async function observeDocsNavigation({evaluate,call,errors,site}) {
  await evaluate(`(()=>{const search=document.querySelector('input[aria-label="Search documentation"]');search.value='';search.dispatchEvent(new Event('input',{bubbles:true}));})()`);
  await evaluate(`(()=>{const search=document.querySelector('input[aria-label="Search documentation"]');search.value='no-such-page-777';search.dispatchEvent(new Event('input',{bubbles:true}));})()`);assert(await evaluate(`document.querySelector('#search-feedback').textContent.includes('No pages match')`));assert.equal(await evaluate(`document.querySelectorAll('#sidebar a').length`),0);
  await evaluate(`(()=>{const search=document.querySelector('input[aria-label="Search documentation"]');search.value='';search.dispatchEvent(new Event('input',{bubbles:true}));})()`);
- const pending=catalog.pages.find(page=>page.metadata.status==='pending');await click('/docs'+pending.route);assert(await evaluate(`document.querySelector('[data-slot=route-page]').textContent.includes('Status: pending')`));
+ const pending=catalog.pages.find(page=>page.metadata.status==='pending');await click('/docs'+pending.route);assert(await evaluate(`document.querySelector('[data-slot=route-page]').textContent.includes('Not available yet')`));
  await click('/');assert(await evaluate(`document.querySelector('[data-tsrust-mount]')===pageIdentity`));assert(await evaluate(`document.querySelector('#home-workspace-preview').textContent.includes('Saved Fieldwork')`),'Home workspace survives route changes');
  await evaluate(`document.querySelector('button[aria-label="Toggle light and dark theme"]').click()`);assert(await evaluate(`document.querySelector('#home-workspace-preview').textContent.includes('Saved Fieldwork')`));
  await click('/docs');

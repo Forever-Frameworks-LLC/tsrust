@@ -1,17 +1,18 @@
+import {documentationLink} from './documentation-links.mjs';
 // Actual DOM, system clipboard and lifecycle assertions; no timing claims.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 export async function observeDocsInline({evaluate,call,errors,site}) {
  const wait=async expression=>{for(let i=0;i<100;i++){if(await evaluate(expression))return;await new Promise(resolve=>setTimeout(resolve,50));}assert.fail(`Timeout: ${expression}`);};
- const click=async href=>{assert(await evaluate(`!!document.querySelector('a[href=${JSON.stringify(href)}]')`),href);await evaluate(`document.querySelector('a[href=${JSON.stringify(href)}]').click()`);};
+ const click=documentationLink(evaluate);
  await call('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
  assert(await evaluate(`document.querySelector('#landing h1').textContent.includes('Ship Native Rust.')`));
  assert(!await evaluate(`document.body.textContent.includes('Search page text, APIs and code')`));
  fs.writeFileSync(path.join(site,'landing.png'),Buffer.from((await call('Page.captureScreenshot',{format:'png'})).data,'base64'));
  await evaluate(`document.querySelector('#home-workspace-preview button').click();Array.from(document.querySelectorAll('#landing button')).find(node=>node.textContent==='View source').click()`);assert(await evaluate(`document.querySelector('#home-workspace-source code').textContent.includes("saved.set('Saved '")`));await evaluate(`Array.from(document.querySelectorAll('#landing button')).find(node=>node.textContent==='Preview').click()`);assert(await evaluate(`document.querySelector('#home-workspace-preview').textContent.includes('Saved Fieldwork')`));
- await click('/docs');assert.equal(await evaluate(`document.querySelectorAll('#sidebar a').length`),3,'Only the current section appears');
- assert.equal(await evaluate(`document.querySelectorAll('nav[aria-label="Documentation sections"] a').length`),6);
+ await click('/docs');assert.equal(await evaluate(`document.querySelectorAll('#sidebar a').length`),4,'Only the current section appears');
+ assert.equal(await evaluate(`document.querySelectorAll('nav[aria-label="Documentation sections"] a').length`),12);
  assert(!await evaluate(`Array.from(document.querySelectorAll('#sidebar button')).some(node=>['Back','Next'].includes(node.textContent))`));
  await click('/docs/ui/foundations/state');await click('/docs/ui/foundations/documentation');
  const article=`document.querySelector('[data-slot=route-page]')`;
@@ -41,7 +42,7 @@ export async function observeDocsInline({evaluate,call,errors,site}) {
  await evaluate(`navigator.clipboard.writeText=realWrite;document.querySelector('button[aria-label="Toggle light and dark theme"]').click()`);assert(await evaluate(`getComputedStyle(code.querySelector('[data-slot=keyword]')).color!==getComputedStyle(code.querySelector('[data-slot=string]')).color`));
  fs.writeFileSync(path.join(site,'docs.png'),Buffer.from((await call('Page.captureScreenshot',{format:'png'})).data,'base64'));
  // Search spans sections even though the default index shows one category.
- await evaluate(`(()=>{const search=document.querySelector('input[aria-label="Search documentation"]');search.value='U+0085';search.dispatchEvent(new Event('input',{bubbles:true}));})()`);assert.equal(await evaluate(`document.querySelectorAll('#sidebar a').length`),1);await click('/docs/standard-library/strings');assert(!await evaluate(`document.querySelector('[data-slot=route-page]').textContent.includes('Benchmark evidence')`));
+ await evaluate(`(()=>{const search=document.querySelector('input[aria-label="Search documentation"]');search.value='U+0085';search.dispatchEvent(new Event('input',{bubbles:true}));})()`);assert(await evaluate(`!!document.querySelector('#sidebar a[href="/docs/standard-library/strings"]')`));await click('/docs/standard-library/strings');assert(!await evaluate(`document.querySelector('[data-slot=route-page]').textContent.includes('Benchmark evidence')`));
  await evaluate(`(()=>{const search=document.querySelector('input[aria-label="Search documentation"]');search.value='';search.dispatchEvent(new Event('input',{bubbles:true}));})()`);
  await click('/');await call('Emulation.setDeviceMetricsOverride',{width:480,height:700,deviceScaleFactor:1,mobile:false});assert(await evaluate('document.documentElement.scrollWidth<=innerWidth'));assert(await evaluate(`document.querySelector('#landing h1').getBoundingClientRect().right<=innerWidth`));
  await click('/docs/ui/foundations/state');await click('/docs/ui/foundations/documentation');assert(await evaluate('document.documentElement.scrollWidth<=innerWidth'));

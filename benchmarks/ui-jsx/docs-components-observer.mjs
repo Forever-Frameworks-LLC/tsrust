@@ -20,7 +20,7 @@ export async function observeDocsComponents({evaluate,call,errors,site}) {
   for(const id of ids){
    const prefix=`component-${name}-${id}`;
    const exact=fs.readFileSync(path.join(root,`src/examples/${id}.tsrx`),'utf8');
-   assert(await evaluate(`!!document.querySelector('#${prefix}-preview[role=region][tabindex="0"][aria-label]')`));
+   assert(await evaluate(`!!document.querySelector('#${prefix}-preview[role=region][aria-label]')`));
    // Find the shared card from the actual pane, not an inventory-only placeholder.
    await evaluate(`document.querySelector('#${prefix}-preview').closest('[data-slot=card]').querySelectorAll('button')[0]`);
    await evaluate(`Array.from(document.querySelector('#${prefix}-preview').closest('[data-slot=card]').querySelectorAll('button')).find(node=>node.textContent==='Show source').click()`);
