@@ -93,11 +93,11 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn with_class_binding(mut self,evaluate:impl FnMut()->Result<String,String>+'static)->Result<Self,String>{
-        self.class_binding=Some(Box::new(evaluate));Ok(self)
+    pub fn with_class_binding(mut self,mut evaluate:impl FnMut()->Result<String,String>+'static)->Result<Self,String>{
+        let value=evaluate()?;self.check_class(&value)?;self.class_name=value;self.class_binding=Some(Box::new(evaluate));Ok(self)
     }
-    pub fn with_variant_binding(mut self,evaluate:impl FnMut()->Result<String,String>+'static)->Result<Self,String>{
-        self.variant_binding=Some(Box::new(evaluate));Ok(self)
+    pub fn with_variant_binding(mut self,mut evaluate:impl FnMut()->Result<String,String>+'static)->Result<Self,String>{
+        let value=evaluate()?;Self::check_variant(&value)?;self.semantics.variant=value;self.variant_binding=Some(Box::new(evaluate));Ok(self)
     }
     fn check_variant(value:&str)->Result<(),String>{if value.chars().any(|ch|!(ch.is_ascii_alphanumeric()||ch=='-')){return Err("UI data-variant must contain ASCII letters, digits or hyphens".into());}Ok(())}
     fn check_class(&self,value:&str)->Result<(),String>{

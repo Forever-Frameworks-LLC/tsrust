@@ -68,6 +68,10 @@ impl Emitter<'_> {
             return value.into();
         }
         match (source, target) {
+            (Type::Union(source), target) if matches!(target,Type::String|Type::Int|Type::Number|Type::Boolean)
+                && self.program.unions[source.index()].members.iter().all(|&member|target.accepts_scalar_value(member))=>{
+                let arms=(0..self.program.unions[source.index()].members.len()).map(|tag|format!("Union{}::V{tag}(payload)=>payload",source.index())).collect::<Vec<_>>().join(",");format!("match {value}{{{arms}}}")
+            }
             (Type::StoredCallable(source),Type::StoredCallable(target))
                 if self.program.stored_contracts.scoped_native_family(source).is_some()
                     && self.program.stored_contracts.scoped_native_family(target).is_some()=> {

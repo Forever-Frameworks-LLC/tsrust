@@ -1,0 +1,6 @@
+import { run } from 'std:ui';
+import { Page } from './app/page';
+
+function main() {
+  run(Page(), 'Reactive props');
+}

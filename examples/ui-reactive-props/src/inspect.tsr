@@ -1,0 +1,28 @@
+import { document, computed, useProp } from 'std:ui';
+import { strictEqual } from 'std:testing';
+import { Page } from './app/page';
+import { Order } from './order';
+
+function scalar(value: Owned<Function<string>>): string {
+  return value();
+}
+
+function main() {
+  const constant = useProp<int>(9007199254740993);
+  const value = computed<int>(() => constant.get() + 1);
+  const absent = computed<int | undefined>(() => undefined);
+  strictEqual(value.get(), 9007199254740994);
+  strictEqual(absent.get(), undefined);
+  const choice = computed<'default' | 'destructive'>(() => 'destructive');
+  strictEqual(choice.get() === 'destructive', true);
+  strictEqual(scalar(() => choice.get()), 'destructive');
+  const html = document(Page(), 'Reactive props');
+  strictEqual(html.includes('data-slot="notice"'), true);
+  strictEqual(html.includes('data-variant="default"'), true);
+  strictEqual(html.includes('Count: 0 / doubled: 0'), true);
+  strictEqual(html.includes('data-slot="replacement"'), true);
+  strictEqual(html.split('<button').length, 3);
+  const ordered = document(Order(), 'Order');
+  strictEqual(ordered.includes('source-order'), true);
+  console.log('Reactive props passed');
+}

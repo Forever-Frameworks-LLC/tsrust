@@ -81,6 +81,7 @@ fn regular<'a>(analyzer:&Analyzer,context:&Context,expr:&'a Expr,work:&mut Vec<W
     if let ExprKind::Name(name)=&callee.kind{
         if name=="@native:std:result#unwrap" && arguments.len()==1 {query(work,Frame::Unwrap,&arguments[0]);return;}
         if let Some((_,binding))=crate::native_bindings::by_symbol(name){
+            if binding.module=="std:ui-runtime" && binding.name=="handle" && arguments.len()==1{query(work,Frame::Own,&arguments[0]);return;}
             *value=if matches!(binding.module,"std:threads"|"std:result"|"std:futures") || matches!(binding.result,crate::native_bindings::NativeType::SharedCallback|crate::native_bindings::NativeType::ObservedValue){None}else{Some(native_type(binding.result,&analyzer.program.records))};return;
         }
         if !context.names.contains_key(name) && !context.pending_names.contains(name) && !analyzer.function_names.contains_key(name)
@@ -104,7 +105,7 @@ fn method<'a>(analyzer:&Analyzer,context:&Context,expr:&'a Expr,receiver:Option<
     if let Some(Type::Record(id))=receiver && analyzer.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::HttpContext) && name=="get" {
         *value=(||{let ExprKind::String(key)=&arguments.first()?.kind else{return None;};let Type::Record(variables)=analyzer.program.records[id].application.as_ref()?.resolved_arguments[1]else{return None;};let ty=analyzer.program.records[variables].fields.iter().find(|field|field.name.text==*key)?.ty?;analyzer.unions.intern([ty,Type::Undefined],expr.span).ok().map(|ty|if ty.is_copy(){ty}else{Type::BorrowedUnion(ty.union().unwrap())})})();return;
     }
-    if let Some(Type::Record(id))=receiver && matches!(analyzer.program.records[id].native_type,Some(crate::native_signatures::NativeTypeId::UiSignal|crate::native_signatures::NativeTypeId::UiComputed)) { *value=match name.as_str(){"get"=>analyzer.program.records[id].application.as_ref().map(|a|a.resolved_arguments[0]),"set"=>Some(Type::Void),_=>None};return; }
+    if let Some(Type::Record(id))=receiver && matches!(analyzer.program.records[id].native_type,Some(crate::native_signatures::NativeTypeId::UiSignal|crate::native_signatures::NativeTypeId::UiComputed)) { *value=match name.as_str(){"get"=>analyzer.program.records[id].application.as_ref().map(|a|a.resolved_arguments[0]),"set" if analyzer.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::UiSignal)=>Some(Type::Void),_=>None};return; }
     if let Some(Type::Record(id))=receiver && crate::stdlib::cache::is_cache(analyzer.program.records[id].native_type){
         *value=match name.as_str() {
             "share"=>Some(Type::Record(id)),

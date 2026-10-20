@@ -13984,10 +13984,10 @@
     },
     {
       "name": "Link",
-      "signature": "Link(props: LinkProps): Node",
+      "signature": "Link(props: LinkProps<ReactiveValue<string>, ReactiveValue<string>>): Node",
       "parameters": [
         {
-          "label": "props: LinkProps",
+          "label": "props: LinkProps<ReactiveValue<string>, ReactiveValue<string>>",
           "documentation": "href is an absolute application path or HTTPS URL without credentials. children contains owned phrasing content; className defaults to empty. Element identity and naming are forwarded."
         }
       ],
@@ -14024,10 +14024,10 @@
     },
     {
       "name": "CopyButton",
-      "signature": "CopyButton(props: CopyButtonProps): Node",
+      "signature": "CopyButton(props: CopyButtonProps<ReactiveValue<string>, ReactiveValue<string>>): Node",
       "parameters": [
         {
-          "label": "props: CopyButtonProps",
+          "label": "props: CopyButtonProps<ReactiveValue<string>, ReactiveValue<string>>",
           "documentation": "value is the exact text to copy, including Unicode, CRLF and trailing whitespace. className defaults to empty; normal element identity and accessible naming props apply."
         }
       ],
@@ -14035,7 +14035,7 @@
     },
     {
       "name": "CopyButtonProps",
-      "signature": "interface CopyButtonProps",
+      "signature": "type CopyButtonProps<Classes = string, Variant = string>",
       "parameters": [],
       "documentation": "Clipboard button properties. value is required; className and inherited ElementProps are optional. Ownership: consumes the value and other supplied strings.",
       "fields": {
@@ -14043,16 +14043,16 @@
           "documentation": "Required string copied exactly, including Unicode, newlines and whitespace. No trimming or numeric conversion. <CopyButton value=\"hello\"/> copies hello on activation. Empty text is supported. Ownership: stores an independent snapshot."
         },
         "className": {
-          "documentation": "Optional checked shared button utilities, default empty. <CopyButton value=\"hello\" className=\"rounded border px-3 py-2\"/> styles the control on both targets. Unknown utilities throw. Shared aspect utilities set a preferred width/height ratio: aspect-square (1), aspect-video (16/9), aspect-[W/H], aspect-[R], or aspect-auto. Ratios must be finite, positive and within f32 native layout range; both targets use the normalized f32 ratio. With default spacing, <View className=\"w-64 aspect-video\"/> is 256 by 144 logical pixels. Explicit width and height and min/max bounds take precedence. Children can overflow without clipping. Every UI layout box establishes a containing block. absolute removes a box from flow and positions it in its immediate UI parent; relative keeps normal flow. Insets use checked theme spacing, fractions/full or auto. Inline descendants reject box utilities. fixed/sticky positioning, z-index and transforms remain unsupported. Ownership: consumes the string."
+          "documentation": "Optional checked shared button utilities, default empty. <CopyButton value=\"hello\" className=\"rounded border px-3 py-2\"/> styles the control on both targets. Unknown utilities throw. Shared aspect utilities set a preferred width/height ratio: aspect-square (1), aspect-video (16/9), aspect-[W/H], aspect-[R], or aspect-auto. Ratios must be finite, positive and within f32 native layout range; both targets use the normalized f32 ratio. With default spacing, <View className=\"w-64 aspect-video\"/> is 256 by 144 logical pixels. Explicit width and height and min/max bounds take precedence. Children can overflow without clipping. Every UI layout box establishes a containing block. absolute removes a box from flow and positions it in its immediate UI parent; relative keeps normal flow. Insets use checked theme spacing, fractions/full or auto. Inline descendants reject box utilities. fixed/sticky positioning, z-index and transforms remain unsupported. Ownership: consumes the string. Direct state-reading intrinsic JSX expressions update after handlers without remounting. Custom components need an explicit reactive prop contract; precomputed values remain snapshots."
         }
       }
     },
     {
       "name": "Text",
-      "signature": "Text(props: TextProps): Node",
+      "signature": "Text(props: TextProps<ReactiveValue<string>, ReactiveValue<string>>): Node",
       "parameters": [
         {
-          "label": "props: TextProps",
+          "label": "props: TextProps<ReactiveValue<string>, ReactiveValue<string>>",
           "documentation": "Optional children is an ordered Child array: scalar text/bindings and inline Text or Link nodes. Null/undefined are omitted. className defaults to empty."
         }
       ],
@@ -14060,10 +14060,10 @@
     },
     {
       "name": "View",
-      "signature": "View(props: ViewProps): Node",
+      "signature": "View(props: ViewProps<ReactiveValue<string>, ReactiveValue<string>>): Node",
       "parameters": [
         {
-          "label": "props: ViewProps",
+          "label": "props: ViewProps<ReactiveValue<string>, ReactiveValue<string>>",
           "documentation": "Optional children is an ordered Child array: text strings/numbers, Signal/TextBinding values, owned Nodes, null or undefined. Omission defaults to empty. className defaults to empty."
         }
       ],
@@ -14071,10 +14071,10 @@
     },
     {
       "name": "Button",
-      "signature": "Button(props: ButtonProps): Node",
+      "signature": "Button(props: ButtonProps<ReactiveValue<string>, ReactiveValue<string>>): Node",
       "parameters": [
         {
-          "label": "props: ButtonProps",
+          "label": "props: ButtonProps<ReactiveValue<string>, ReactiveValue<string>>",
           "documentation": "Optional children accepts strings/numbers, Signal/TextBinding values and owned phrasing Nodes, null or undefined. disabled defaults to false and also accepts compiler-derived ReactiveBoolean conditions. onPress is optional. className defaults to empty."
         }
       ],
@@ -14342,7 +14342,7 @@
     },
     {
       "name": "ElementProps",
-      "signature": "interface ElementProps",
+      "signature": "type ElementProps<Variant = string>",
       "parameters": [],
       "documentation": "Checked element identity and accessible naming. Props are ordinary owned records; optional fields have the documented defaults. Use exact quoted names in ordinary records, for example {'aria-label': 'Account'}, and aria-label=\"Account\" in JSX. Unsupported semantics fail explicitly. Ownership: component calls consume their props and owned descendants.",
       "fields": {
@@ -14368,13 +14368,13 @@
           "documentation": "Optional boolean validation state; omitted means unspecified. <Input aria-label=\"Name\" aria-invalid/> exposes invalid=true and matches aria-invalid: classes. false exposes a valid state; this property does not validate data or disable editing. Only boolean values are supported. No function arguments. Ownership: copies the flag."
         },
         "data-variant": {
-          "documentation": "Optional variant metadata, default absent. ASCII letters, digits and hyphens are accepted; empty omits the attribute. This does not choose styles or change accessibility by itself. Example: <View data-variant=\"destructive\" className=\"data-[variant=destructive]:text-destructive\" /> selects the destructive text token on both targets. Invalid characters throw. Values are construction-time snapshots. Ownership: consumes the optional string."
+          "documentation": "Optional variant metadata, default absent. ASCII letters, digits and hyphens are accepted; empty omits the attribute. This does not choose styles or change accessibility by itself. Example: <View data-variant=\"destructive\" className=\"data-[variant=destructive]:text-destructive\" /> selects the destructive text token on both targets. Invalid characters throw. Values are construction-time snapshots. Ownership: consumes the optional string. Direct state-reading intrinsic JSX expressions update after handlers without remounting. Custom components need an explicit reactive prop contract; precomputed values remain snapshots."
         }
       }
     },
     {
       "name": "SemanticProps",
-      "signature": "interface SemanticProps",
+      "signature": "type SemanticProps<Variant = string>",
       "parameters": [],
       "documentation": "Checked UI component properties with shared web and native behavior. Props are ordinary owned records; optional fields have the documented defaults. Use exact quoted names in ordinary records, for example {'aria-label': 'Account'}, and aria-label=\"Account\" in JSX. Unsupported semantics fail explicitly. Ownership: component calls consume their props and owned descendants.",
       "fields": {
@@ -14406,13 +14406,13 @@
           "documentation": "Optional boolean validation state; omitted means unspecified. <Input aria-label=\"Name\" aria-invalid/> exposes invalid=true and matches aria-invalid: classes. false exposes a valid state; this property does not validate data or disable editing. Only boolean values are supported. No function arguments. Ownership: copies the flag."
         },
         "data-variant": {
-          "documentation": "Optional variant metadata, default absent. ASCII letters, digits and hyphens are accepted; empty omits the attribute. This does not choose styles or change accessibility by itself. Example: <View data-variant=\"destructive\" className=\"data-[variant=destructive]:text-destructive\" /> selects the destructive text token on both targets. Invalid characters throw. Values are construction-time snapshots. Ownership: consumes the optional string."
+          "documentation": "Optional variant metadata, default absent. ASCII letters, digits and hyphens are accepted; empty omits the attribute. This does not choose styles or change accessibility by itself. Example: <View data-variant=\"destructive\" className=\"data-[variant=destructive]:text-destructive\" /> selects the destructive text token on both targets. Invalid characters throw. Values are construction-time snapshots. Ownership: consumes the optional string. Direct state-reading intrinsic JSX expressions update after handlers without remounting. Custom components need an explicit reactive prop contract; precomputed values remain snapshots."
         }
       }
     },
     {
       "name": "TextProps",
-      "signature": "interface TextProps",
+      "signature": "type TextProps<Classes = string, Variant = string>",
       "parameters": [],
       "documentation": "Checked UI component properties with shared web and native behavior. Props are ordinary owned records; optional fields have the documented defaults. Use exact quoted names in ordinary records, for example {'aria-label': 'Account'}, and aria-label=\"Account\" in JSX. Unsupported semantics fail explicitly. Ownership: component calls consume their props and owned descendants.",
       "fields": {
@@ -14441,7 +14441,7 @@
           "documentation": "Optional ordered Child array; omission defaults to empty. Strings, exact ints, numbers, direct scalar Signal bindings and compiler-retained scalar expressions display in order. Null/undefined contribute no characters or placeholder. Nested Text (span, strong, em, del, code, kbd) and Link nodes share one wrapping paragraph. Blocks, buttons, inputs, nested links and inline box/layout styles throw. <Text>{count.get()+1}</Text> updates after handlers for directly declared component state. Top-level/imported helpers with declared scalar returns participate. Precomputed values, unknown/inferred helpers, arbitrary prop-record reads and computed node trees remain snapshots. Bare booleans are unsupported; boolean Signal bindings display true/false. Getter expressions must be pure; application errors propagate. Pass content between tags or through children={values}; combining both is rejected. Explicit child arrays transfer once and remain subject to ordinary ownership checks.\n\nOwnership: consumes strings and owned children once; bindings do not retain state owners and owning child arrays cannot be cloned."
         },
         "className": {
-          "documentation": "Optional checked utilities, default empty. Typography, foreground color, padding, preferred sizes and text alignment apply to the paragraph. Container display utilities require View. Nested inline Text and Link accept only typography and foreground colors, including state variants; box/layout utilities throw. Example: <Text><Text as=\"strong\" className=\"text-primary\">Important</Text> detail</Text>. Syntax foreground tokens text-syntax-keyword/string/number/type use configurable ui.theme.light/dark.syntaxKeyword/String/Number/Type colors with accessible defaults when omitted. Theme aliases and color validation apply. Shared aspect utilities set a preferred width/height ratio: aspect-square (1), aspect-video (16/9), aspect-[W/H], aspect-[R], or aspect-auto. Ratios must be finite, positive and within f32 native layout range; both targets use the normalized f32 ratio. With default spacing, <View className=\"w-64 aspect-video\"/> is 256 by 144 logical pixels. Explicit width and height and min/max bounds take precedence. Children can overflow without clipping. Every UI layout box establishes a containing block. absolute removes a box from flow and positions it in its immediate UI parent; relative keeps normal flow. Insets use checked theme spacing, fractions/full or auto. Inline descendants reject box utilities. fixed/sticky positioning, z-index and transforms remain unsupported. Ownership: consumes the string."
+          "documentation": "Optional checked utilities, default empty. Typography, foreground color, padding, preferred sizes and text alignment apply to the paragraph. Container display utilities require View. Nested inline Text and Link accept only typography and foreground colors, including state variants; box/layout utilities throw. Example: <Text><Text as=\"strong\" className=\"text-primary\">Important</Text> detail</Text>. Syntax foreground tokens text-syntax-keyword/string/number/type use configurable ui.theme.light/dark.syntaxKeyword/String/Number/Type colors with accessible defaults when omitted. Theme aliases and color validation apply. Shared aspect utilities set a preferred width/height ratio: aspect-square (1), aspect-video (16/9), aspect-[W/H], aspect-[R], or aspect-auto. Ratios must be finite, positive and within f32 native layout range; both targets use the normalized f32 ratio. With default spacing, <View className=\"w-64 aspect-video\"/> is 256 by 144 logical pixels. Explicit width and height and min/max bounds take precedence. Children can overflow without clipping. Every UI layout box establishes a containing block. absolute removes a box from flow and positions it in its immediate UI parent; relative keeps normal flow. Insets use checked theme spacing, fractions/full or auto. Inline descendants reject box utilities. fixed/sticky positioning, z-index and transforms remain unsupported. Ownership: consumes the string. Direct state-reading intrinsic JSX expressions update after handlers without remounting. Custom components need an explicit reactive prop contract; precomputed values remain snapshots."
         },
         "data-size": {
           "documentation": "Optional component size metadata using ASCII letters, digits and hyphens; defaults to absent. <View data-size=\"sm\" className=\"data-[size=sm]:p-3\" /> uses the small metadata condition on both targets. The string does not select dimensions by itself or add an accessibility role. Invalid characters throw. No function arguments. Ownership: consumes the supplied string."
@@ -14453,15 +14453,15 @@
           "documentation": "Optional boolean validation state; omitted means unspecified. <Input aria-label=\"Name\" aria-invalid/> exposes invalid=true and matches aria-invalid: classes. false exposes a valid state; this property does not validate data or disable editing. Only boolean values are supported. No function arguments. Ownership: copies the flag."
         },
         "data-variant": {
-          "documentation": "Optional variant metadata, default absent. ASCII letters, digits and hyphens are accepted; empty omits the attribute. This does not choose styles or change accessibility by itself. Example: <View data-variant=\"destructive\" className=\"data-[variant=destructive]:text-destructive\" /> selects the destructive text token on both targets. Invalid characters throw. Values are construction-time snapshots. Ownership: consumes the optional string."
+          "documentation": "Optional variant metadata, default absent. ASCII letters, digits and hyphens are accepted; empty omits the attribute. This does not choose styles or change accessibility by itself. Example: <View data-variant=\"destructive\" className=\"data-[variant=destructive]:text-destructive\" /> selects the destructive text token on both targets. Invalid characters throw. Values are construction-time snapshots. Ownership: consumes the optional string. Direct state-reading intrinsic JSX expressions update after handlers without remounting. Custom components need an explicit reactive prop contract; precomputed values remain snapshots."
         }
       }
     },
     {
       "name": "ViewProps",
-      "signature": "interface ViewProps",
+      "signature": "type ViewProps<Classes = string, Variant = string>",
       "parameters": [],
-      "documentation": "Checked UI component properties with shared web and native behavior. Props are ordinary owned records; optional fields have the documented defaults. Use exact quoted names in ordinary records, for example {'aria-label': 'Account'}, and aria-label=\"Account\" in JSX. Unsupported semantics fail explicitly. Ownership: component calls consume their props and owned descendants.",
+      "documentation": "Checked UI component properties with shared web and native behavior. Props are ordinary owned records; optional fields have the documented defaults. Use exact quoted names in ordinary records, for example {'aria-label': 'Account'}, and aria-label=\"Account\" in JSX. Unsupported semantics fail explicitly. Ownership: component calls consume their props and owned descendants. Classes and Variant default to string, preserving construction-time wrapper contracts. A component author may select ReactiveValue<string> for these type arguments and read those values with useProp().",
       "fields": {
         "onVisibilityChange": {
           "documentation": "Optional owned reusable callback (visible: boolean) => void, default none. Reports initial visibility after mounting and each boolean transition after layout, scrolling, resizing or hidden changes. true means this View has positive rectangular area inside the viewport and all clipping ancestors; zero-size or hidden views report false. It does not detect occlusion by siblings, opacity or other windows. Example: const entered = signal(false); return <View onVisibilityChange={(visible) => { if (visible) { entered.set(true); } }}><Text>{entered.get() ? \"Ready\" : \"Waiting\"}</Text></View>; shows Ready on first entry and retains it. Callbacks may update state; updates refresh after the callback without intercepting scrolling. Throwing stops the mounted tree with normal cleanup. Keep layout feedback stable: callbacks which repeatedly hide/show their own view can oscillate. Browser reports are asynchronous; native reports follow layout. Static document() serialization never invokes callbacks. Ownership: the View owns the callback; local component state captures are non-retaining and removed nodes receive no late notifications."
@@ -14491,7 +14491,7 @@
           "documentation": "Optional ordered Child array; omission defaults to empty. Strings, exact ints, numbers, direct scalar Signal bindings and compiler-retained scalar expressions display in order. Null/undefined contribute no characters or placeholder. View accepts owned subtrees; Button requires noninteractive phrasing content. <Text>{count.get()+1}</Text> updates after handlers for directly declared component state. Top-level/imported helpers with declared scalar returns participate. Precomputed values, unknown/inferred helpers, arbitrary prop-record reads remain snapshots. Bare booleans are unsupported; boolean Signal bindings display true/false. Getter expressions must be pure; application errors propagate.  A conditional JSX ternary whose condition reads directly declared component state mounts only its selected branch. Nested branches work. Unchanged selection preserves child state; removal releases it once, and later selection constructs fresh state. Transparent slots add no layout or accessibility element. Empty/absent derived text in containers also contributes no anonymous layout item; explicit Text components keep their own node. For example, <View>{visible.get()?<Text>Ready</Text>:null}</View> shows/hides Ready. Prebuilt owned Nodes cannot be consumed repeatedly from captures; ordinary callback ownership errors apply. Invalid interactive/label/hidden ancestry is checked again after replacement. Pass content between tags or through children={values}; combining both is rejected. Explicit child arrays transfer once and remain subject to ordinary ownership checks.\n\nOwnership: consumes strings and owned children once; bindings do not retain state owners and owning child arrays cannot be cloned."
         },
         "className": {
-          "documentation": "Optional shared utility string, default empty. <View className=\"flex-row gap-4\" /> uses a horizontal container and project spacing.md between children. Later classes override earlier properties within each state; unknown utilities throw. Grid/flex display, equal grid tracks (1–12), bounded grid placement, per-side padding/gaps, preferred/min/max dimensions, alignment, wrapping and grow/shrink use the same logical-pixel model on both targets. p/px/py and size expand to independent properties; later classes win per property/state. Spacing 2/4/6 uses sm/md/lg, 1 uses sm/2, 3 averages sm/md; other numeric sizes use spacing.md/4 per unit. Percentage heights need a definite parent height. Example: <View className=\"grid grid-cols-2 gap-4 p-4\" /> creates two equal tracks with default 16px gaps/padding. Viewport sm/md/lg/xl/2xl variants use 640/768/1024/1280/1536 logical pixels. Arbitrary CSS, container queries, named grid lines and subgrid remain unsupported. Semantic color utilities accept /N alpha multiplication for integer percentages 0–100 and transparent. ring-0/1/2/3 sets an outer surface ring width; ring-COLOR selects its color. These rings do not change layout and remain independent of the focus outline. Example: ring-1 ring-foreground/10 draws a 1px surface ring at 10% token alpha. Unsupported percentages throw. Native paint uses 8-bit sRGB; original theme strings are preserved. Scoped spacing uses [--NAME:--spacing(N)] and p/gap-(--NAME), inheriting numeric logical pixels. Missing variables resolve to zero. Metadata declarations are supported; interaction-state declarations and arbitrary expressions are rejected. Border sides and corners merge independently, overflow-hidden clips paint and pointer targets, and generic font/weight/line-height utilities are shared. aspect-square/video/[W/H]/[R]/auto sets or clears a preferred width/height ratio, normalized to finite positive f32 layout precision on both targets. A definite width derives automatic height; explicit dimensions and min/max constraints win. Zero, negative, nonfinite and native range overflow/underflow reject. Example: <View className=\"w-64 aspect-video\"/> is 256 by 144 logical pixels at default spacing. Every UI layout box establishes a containing block. absolute removes a box from normal flow and positions it in its immediate UI parent; relative keeps normal flow. top/right/bottom/left and inset/inset-x/inset-y use theme spacing, percentages or auto, with optional negative numeric/fraction offsets. Later classes win per side. Inline descendants reject box utilities. fixed, sticky, z-index and transforms remain unsupported. Example: <View className=\"w-64 h-32\"><View className=\"absolute top-2 right-2 w-8 h-8\" /></View> places the child 8px from the top and right at default spacing. Ownership: consumes the string."
+          "documentation": "Optional shared utility string, default empty. <View className=\"flex-row gap-4\" /> uses a horizontal container and project spacing.md between children. Later classes override earlier properties within each state; unknown utilities throw. Grid/flex display, equal grid tracks (1–12), bounded grid placement, per-side padding/gaps, preferred/min/max dimensions, alignment, wrapping and grow/shrink use the same logical-pixel model on both targets. p/px/py and size expand to independent properties; later classes win per property/state. Spacing 2/4/6 uses sm/md/lg, 1 uses sm/2, 3 averages sm/md; other numeric sizes use spacing.md/4 per unit. Percentage heights need a definite parent height. Example: <View className=\"grid grid-cols-2 gap-4 p-4\" /> creates two equal tracks with default 16px gaps/padding. Viewport sm/md/lg/xl/2xl variants use 640/768/1024/1280/1536 logical pixels. Arbitrary CSS, container queries, named grid lines and subgrid remain unsupported. Semantic color utilities accept /N alpha multiplication for integer percentages 0–100 and transparent. ring-0/1/2/3 sets an outer surface ring width; ring-COLOR selects its color. These rings do not change layout and remain independent of the focus outline. Example: ring-1 ring-foreground/10 draws a 1px surface ring at 10% token alpha. Unsupported percentages throw. Native paint uses 8-bit sRGB; original theme strings are preserved. Scoped spacing uses [--NAME:--spacing(N)] and p/gap-(--NAME), inheriting numeric logical pixels. Missing variables resolve to zero. Metadata declarations are supported; interaction-state declarations and arbitrary expressions are rejected. Border sides and corners merge independently, overflow-hidden clips paint and pointer targets, and generic font/weight/line-height utilities are shared. aspect-square/video/[W/H]/[R]/auto sets or clears a preferred width/height ratio, normalized to finite positive f32 layout precision on both targets. A definite width derives automatic height; explicit dimensions and min/max constraints win. Zero, negative, nonfinite and native range overflow/underflow reject. Example: <View className=\"w-64 aspect-video\"/> is 256 by 144 logical pixels at default spacing. Every UI layout box establishes a containing block. absolute removes a box from normal flow and positions it in its immediate UI parent; relative keeps normal flow. top/right/bottom/left and inset/inset-x/inset-y use theme spacing, percentages or auto, with optional negative numeric/fraction offsets. Later classes win per side. Inline descendants reject box utilities. fixed, sticky, z-index and transforms remain unsupported. Example: <View className=\"w-64 h-32\"><View className=\"absolute top-2 right-2 w-8 h-8\" /></View> places the child 8px from the top and right at default spacing. Ownership: consumes the string. Direct state-reading intrinsic JSX expressions update after handlers without remounting. Custom components need an explicit reactive prop contract; precomputed values remain snapshots."
         },
         "data-size": {
           "documentation": "Optional component size metadata using ASCII letters, digits and hyphens; defaults to absent. <View data-size=\"sm\" className=\"data-[size=sm]:p-3\" /> uses the small metadata condition on both targets. The string does not select dimensions by itself or add an accessibility role. Invalid characters throw. No function arguments. Ownership: consumes the supplied string."
@@ -14515,15 +14515,18 @@
           "documentation": "Optional boolean, default false. <View windowDragRegion>Title<Button>Menu</Button></View> marks a drag surface in a native custom titlebar. Text and empty space drag; buttons, disabled controls, fields and labels exclude dragging. Native titlebars and browser hosts keep their existing window behavior. Reserve room for macOS traffic-light controls in custom content. This property does not add interactive or accessibility semantics. Ownership: copies the flag and retains no window handle."
         },
         "data-variant": {
-          "documentation": "Optional variant metadata, default absent. ASCII letters, digits and hyphens are accepted; empty omits the attribute. This does not choose styles or change accessibility by itself. Example: <View data-variant=\"destructive\" className=\"data-[variant=destructive]:text-destructive\" /> selects the destructive text token on both targets. Invalid characters throw. Values are construction-time snapshots. Ownership: consumes the optional string."
+          "documentation": "Optional variant metadata, default absent. ASCII letters, digits and hyphens are accepted; empty omits the attribute. This does not choose styles or change accessibility by itself. Example: <View data-variant=\"destructive\" className=\"data-[variant=destructive]:text-destructive\" /> selects the destructive text token on both targets. Invalid characters throw. Values are construction-time snapshots. Ownership: consumes the optional string. Direct state-reading intrinsic JSX expressions update after handlers without remounting. Custom components need an explicit reactive prop contract; precomputed values remain snapshots."
+        },
+        "render": {
+          "documentation": "Optional replacement factory, called once with the owned render props. Forward those props into one returned node; the primitive adds no wrapper and does not rerun the factory on updates. For example, render={(props) => <View {...props}/>} preserves its behavior. Exceptions release supplied props and callbacks normally. Ownership: transfers children and handlers once; the factory itself is released after returning."
         }
       }
     },
     {
       "name": "ButtonProps",
-      "signature": "interface ButtonProps",
+      "signature": "type ButtonProps<Classes = string, Variant = string>",
       "parameters": [],
-      "documentation": "Checked UI component properties with shared web and native behavior. Props are ordinary owned records; optional fields have the documented defaults. Use exact quoted names in ordinary records, for example {'aria-label': 'Account'}, and aria-label=\"Account\" in JSX. Unsupported semantics fail explicitly. Ownership: component calls consume their props and owned descendants.",
+      "documentation": "Checked UI component properties with shared web and native behavior. Props are ordinary owned records; optional fields have the documented defaults. Use exact quoted names in ordinary records, for example {'aria-label': 'Account'}, and aria-label=\"Account\" in JSX. Unsupported semantics fail explicitly. Ownership: component calls consume their props and owned descendants. Classes and Variant default to string, preserving construction-time wrapper contracts. A component author may select ReactiveValue<string> for these type arguments and read those values with useProp().",
       "fields": {
         "id": {
           "documentation": "Optional document identifier, without ASCII whitespace or control characters. Defaults to none. <View id=\"account\" /> produces id=\"account\" in HTML. Both adapters retain it as tree metadata; no lookup or routing API is created. Construction throws for invalid IDs. Ownership: consumes the supplied string."
@@ -14541,7 +14544,7 @@
           "documentation": "Optional ordered Child array; omission defaults to empty. Strings, exact ints, numbers, direct scalar Signal bindings and compiler-retained scalar expressions display in order. Null/undefined contribute no characters or placeholder. View accepts owned subtrees; Button requires noninteractive phrasing content. <Text>{count.get()+1}</Text> updates after handlers for directly declared component state. Top-level/imported helpers with declared scalar returns participate. Precomputed values, unknown/inferred helpers, arbitrary prop-record reads remain snapshots. Bare booleans are unsupported; boolean Signal bindings display true/false. Getter expressions must be pure; application errors propagate.  A conditional JSX ternary whose condition reads directly declared component state mounts only its selected branch. Nested branches work. Unchanged selection preserves child state; removal releases it once, and later selection constructs fresh state. Transparent slots add no layout or accessibility element. Empty/absent derived text in containers also contributes no anonymous layout item; explicit Text components keep their own node. For example, <View>{visible.get()?<Text>Ready</Text>:null}</View> shows/hides Ready. Prebuilt owned Nodes cannot be consumed repeatedly from captures; ordinary callback ownership errors apply. Invalid interactive/label/hidden ancestry is checked again after replacement. Pass content between tags or through children={values}; combining both is rejected. Explicit child arrays transfer once and remain subject to ordinary ownership checks.\n\nOwnership: consumes strings and owned children once; bindings do not retain state owners and owning child arrays cannot be cloned."
         },
         "className": {
-          "documentation": "Optional shared utility string, default empty. rounded shapes both the button and its native focus outline. Unknown utilities throw. Grid/flex display, equal grid tracks (1–12), bounded grid placement, per-side padding/gaps, preferred/min/max dimensions, alignment, wrapping and grow/shrink use the same logical-pixel model on both targets. p/px/py and size expand to independent properties; later classes win per property/state. Spacing 2/4/6 uses sm/md/lg, 1 uses sm/2, 3 averages sm/md; other numeric sizes use spacing.md/4 per unit. Percentage heights need a definite parent height. Example: <View className=\"grid grid-cols-2 gap-4 p-4\" /> creates two equal tracks with default 16px gaps/padding. Viewport sm/md/lg/xl/2xl variants use 640/768/1024/1280/1536 logical pixels. Arbitrary CSS, container queries, named grid lines and subgrid remain unsupported. Semantic color utilities accept /N alpha multiplication for integer percentages 0–100 and transparent. ring-0/1/2/3 sets an outer surface ring width; ring-COLOR selects its color. These rings do not change layout and remain independent of the focus outline. Example: ring-1 ring-foreground/10 draws a 1px surface ring at 10% token alpha. Unsupported percentages throw. Native paint uses 8-bit sRGB; original theme strings are preserved. Scoped spacing uses [--NAME:--spacing(N)] and p/gap-(--NAME), inheriting numeric logical pixels. Missing variables resolve to zero. Metadata declarations are supported; interaction-state declarations and arbitrary expressions are rejected. Border sides and corners merge independently, overflow-hidden clips paint and pointer targets, and generic font/weight/line-height utilities are shared. aspect-square/video/[W/H]/[R]/auto sets or clears a preferred width/height ratio, normalized to finite positive f32 layout precision on both targets. A definite width derives automatic height; explicit dimensions and min/max constraints win. Zero, negative, nonfinite and native range overflow/underflow reject. Example: <View className=\"w-64 aspect-video\"/> is 256 by 144 logical pixels at default spacing. Every UI layout box establishes a containing block. absolute removes a box from normal flow and positions it in its immediate UI parent; relative keeps normal flow. top/right/bottom/left and inset/inset-x/inset-y use theme spacing, percentages or auto, with optional negative numeric/fraction offsets. Later classes win per side. Inline descendants reject box utilities. fixed, sticky, z-index and transforms remain unsupported. Example: <View className=\"w-64 h-32\"><View className=\"absolute top-2 right-2 w-8 h-8\" /></View> places the child 8px from the top and right at default spacing. Ownership: consumes the string."
+          "documentation": "Optional shared utility string, default empty. rounded shapes both the button and its native focus outline. Unknown utilities throw. Grid/flex display, equal grid tracks (1–12), bounded grid placement, per-side padding/gaps, preferred/min/max dimensions, alignment, wrapping and grow/shrink use the same logical-pixel model on both targets. p/px/py and size expand to independent properties; later classes win per property/state. Spacing 2/4/6 uses sm/md/lg, 1 uses sm/2, 3 averages sm/md; other numeric sizes use spacing.md/4 per unit. Percentage heights need a definite parent height. Example: <View className=\"grid grid-cols-2 gap-4 p-4\" /> creates two equal tracks with default 16px gaps/padding. Viewport sm/md/lg/xl/2xl variants use 640/768/1024/1280/1536 logical pixels. Arbitrary CSS, container queries, named grid lines and subgrid remain unsupported. Semantic color utilities accept /N alpha multiplication for integer percentages 0–100 and transparent. ring-0/1/2/3 sets an outer surface ring width; ring-COLOR selects its color. These rings do not change layout and remain independent of the focus outline. Example: ring-1 ring-foreground/10 draws a 1px surface ring at 10% token alpha. Unsupported percentages throw. Native paint uses 8-bit sRGB; original theme strings are preserved. Scoped spacing uses [--NAME:--spacing(N)] and p/gap-(--NAME), inheriting numeric logical pixels. Missing variables resolve to zero. Metadata declarations are supported; interaction-state declarations and arbitrary expressions are rejected. Border sides and corners merge independently, overflow-hidden clips paint and pointer targets, and generic font/weight/line-height utilities are shared. aspect-square/video/[W/H]/[R]/auto sets or clears a preferred width/height ratio, normalized to finite positive f32 layout precision on both targets. A definite width derives automatic height; explicit dimensions and min/max constraints win. Zero, negative, nonfinite and native range overflow/underflow reject. Example: <View className=\"w-64 aspect-video\"/> is 256 by 144 logical pixels at default spacing. Every UI layout box establishes a containing block. absolute removes a box from normal flow and positions it in its immediate UI parent; relative keeps normal flow. top/right/bottom/left and inset/inset-x/inset-y use theme spacing, percentages or auto, with optional negative numeric/fraction offsets. Later classes win per side. Inline descendants reject box utilities. fixed, sticky, z-index and transforms remain unsupported. Example: <View className=\"w-64 h-32\"><View className=\"absolute top-2 right-2 w-8 h-8\" /></View> places the child 8px from the top and right at default spacing. Ownership: consumes the string. Direct state-reading intrinsic JSX expressions update after handlers without remounting. Custom components need an explicit reactive prop contract; precomputed values remain snapshots."
         },
         "disabled": {
           "documentation": "Optional boolean or compiler-derived ReactiveBoolean, default false. Disabled buttons do not activate or take native focus. JSX disabled={count.get()<5} refreshes after handlers. Ownership: the subtree owns derived callback captures without retaining state owners."
@@ -14559,7 +14562,10 @@
           "documentation": "Optional boolean validation state; omitted means unspecified. <Input aria-label=\"Name\" aria-invalid/> exposes invalid=true and matches aria-invalid: classes. false exposes a valid state; this property does not validate data or disable editing. Only boolean values are supported. No function arguments. Ownership: copies the flag."
         },
         "data-variant": {
-          "documentation": "Optional variant metadata, default absent. ASCII letters, digits and hyphens are accepted; empty omits the attribute. This does not choose styles or change accessibility by itself. Example: <View data-variant=\"destructive\" className=\"data-[variant=destructive]:text-destructive\" /> selects the destructive text token on both targets. Invalid characters throw. Values are construction-time snapshots. Ownership: consumes the optional string."
+          "documentation": "Optional variant metadata, default absent. ASCII letters, digits and hyphens are accepted; empty omits the attribute. This does not choose styles or change accessibility by itself. Example: <View data-variant=\"destructive\" className=\"data-[variant=destructive]:text-destructive\" /> selects the destructive text token on both targets. Invalid characters throw. Values are construction-time snapshots. Ownership: consumes the optional string. Direct state-reading intrinsic JSX expressions update after handlers without remounting. Custom components need an explicit reactive prop contract; precomputed values remain snapshots."
+        },
+        "render": {
+          "documentation": "Optional replacement factory, called once with the owned render props. Forward those props into one returned node; the primitive adds no wrapper and does not rerun the factory on updates. For example, render={(props) => <Button {...props}/>} preserves its behavior. Exceptions release supplied props and callbacks normally. Ownership: transfers children and handlers once; the factory itself is released after returning."
         }
       }
     },
@@ -14571,10 +14577,10 @@
     },
     {
       "name": "Input",
-      "signature": "Input(props: InputProps): Node",
+      "signature": "Input(props: InputProps<ReactiveValue<string>, ReactiveValue<string>>): Node",
       "parameters": [
         {
-          "label": "props: InputProps",
+          "label": "props: InputProps<ReactiveValue<string>, ReactiveValue<string>>",
           "documentation": "Owned text-control options; optional fields use the documented defaults."
         }
       ],
@@ -14582,10 +14588,10 @@
     },
     {
       "name": "Textarea",
-      "signature": "Textarea(props: TextareaProps): Node",
+      "signature": "Textarea(props: TextareaProps<ReactiveValue<string>, ReactiveValue<string>>): Node",
       "parameters": [
         {
-          "label": "props: TextareaProps",
+          "label": "props: TextareaProps<ReactiveValue<string>, ReactiveValue<string>>",
           "documentation": "Owned text-control options; optional fields use the documented defaults."
         }
       ],
@@ -14593,7 +14599,7 @@
     },
     {
       "name": "TextFieldProps",
-      "signature": "interface TextFieldProps",
+      "signature": "type TextFieldProps<Classes = string, Variant = string>",
       "parameters": [],
       "documentation": "Owned text-control properties for portable editing. Optional fields use their individual defaults. Example: <Input aria-label=\"Name\" defaultValue=\"Ada\"/> starts at Ada. Unknown props are rejected; callback target/currentTarget are snapshots. Ownership: component calls consume props and callbacks.",
       "fields": {
@@ -14643,19 +14649,19 @@
           "documentation": "Optional browser autocomplete hint, default absent. <Input aria-label=\"Name\" autoComplete=\"name\"/> requests the browser’s name completion; honoring it depends on browser policy. Native platform autocomplete is unsupported and receives no suggestion provider. Ownership: consumes the hint."
         },
         "className": {
-          "documentation": "Optional checked shared utility classes, default empty. <Input aria-label=\"Name\" className=\"h-8 px-2.5 rounded-lg border border-input focus-visible:ring-3\"/> creates a 32px field with themed spacing, border and focus ring. Later matching classes win by property/state. Unknown classes throw. Shared aspect utilities set a preferred width/height ratio: aspect-square (1), aspect-video (16/9), aspect-[W/H], aspect-[R], or aspect-auto. Ratios must be finite, positive and within f32 native layout range; both targets use the normalized f32 ratio. With default spacing, <View className=\"w-64 aspect-video\"/> is 256 by 144 logical pixels. Explicit width and height and min/max bounds take precedence. Children can overflow without clipping. Every UI layout box establishes a containing block. absolute removes a box from flow and positions it in its immediate UI parent; relative keeps normal flow. Insets use checked theme spacing, fractions/full or auto. Inline descendants reject box utilities. fixed/sticky positioning, z-index and transforms remain unsupported. Ownership: consumes the class string."
+          "documentation": "Optional checked shared utility classes, default empty. <Input aria-label=\"Name\" className=\"h-8 px-2.5 rounded-lg border border-input focus-visible:ring-3\"/> creates a 32px field with themed spacing, border and focus ring. Later matching classes win by property/state. Unknown classes throw. Shared aspect utilities set a preferred width/height ratio: aspect-square (1), aspect-video (16/9), aspect-[W/H], aspect-[R], or aspect-auto. Ratios must be finite, positive and within f32 native layout range; both targets use the normalized f32 ratio. With default spacing, <View className=\"w-64 aspect-video\"/> is 256 by 144 logical pixels. Explicit width and height and min/max bounds take precedence. Children can overflow without clipping. Every UI layout box establishes a containing block. absolute removes a box from flow and positions it in its immediate UI parent; relative keeps normal flow. Insets use checked theme spacing, fractions/full or auto. Inline descendants reject box utilities. fixed/sticky positioning, z-index and transforms remain unsupported. Ownership: consumes the class string. Direct state-reading intrinsic JSX expressions update after handlers without remounting. Custom components need an explicit reactive prop contract; precomputed values remain snapshots."
         },
         "onChange": {
           "documentation": "Optional owned callback taking ReadOnly<InputChangeEvent>, default none. <Input onChange={(event)=>{name.set(event.target.value);}}/> copies edited text into application state. Called once per changed committed value; IME preedit remains internal until commit. target/currentTarget contain value, name and id snapshots, not DOM elements. Callback returns void; throwing stops and disposes the mounted tree. No preventDefault, DOM methods or composition callback interface is exposed. Controlled edits not reflected in application state are restored. Ownership: consumes the callback, borrows event snapshots only during invocation; retaining text requires an explicit copy or Signal.set."
         },
         "data-variant": {
-          "documentation": "Optional variant metadata, default absent. ASCII letters, digits and hyphens are accepted; empty omits the attribute. This does not choose styles or change accessibility by itself. Example: <View data-variant=\"destructive\" className=\"data-[variant=destructive]:text-destructive\" /> selects the destructive text token on both targets. Invalid characters throw. Values are construction-time snapshots. Ownership: consumes the optional string."
+          "documentation": "Optional variant metadata, default absent. ASCII letters, digits and hyphens are accepted; empty omits the attribute. This does not choose styles or change accessibility by itself. Example: <View data-variant=\"destructive\" className=\"data-[variant=destructive]:text-destructive\" /> selects the destructive text token on both targets. Invalid characters throw. Values are construction-time snapshots. Ownership: consumes the optional string. Direct state-reading intrinsic JSX expressions update after handlers without remounting. Custom components need an explicit reactive prop contract; precomputed values remain snapshots."
         }
       }
     },
     {
       "name": "InputProps",
-      "signature": "interface InputProps",
+      "signature": "type InputProps<Classes = string, Variant = string>",
       "parameters": [],
       "documentation": "Owned text-control properties for portable editing. Optional fields use their individual defaults. Example: <Input aria-label=\"Name\" defaultValue=\"Ada\"/> starts at Ada. Unknown props are rejected; callback target/currentTarget are snapshots. Ownership: component calls consume props and callbacks.",
       "fields": {
@@ -14705,7 +14711,7 @@
           "documentation": "Optional browser autocomplete hint, default absent. <Input aria-label=\"Name\" autoComplete=\"name\"/> requests the browser’s name completion; honoring it depends on browser policy. Native platform autocomplete is unsupported and receives no suggestion provider. Ownership: consumes the hint."
         },
         "className": {
-          "documentation": "Optional checked shared utility classes, default empty. <Input aria-label=\"Name\" className=\"h-8 px-2.5 rounded-lg border border-input focus-visible:ring-3\"/> creates a 32px field with themed spacing, border and focus ring. Later matching classes win by property/state. Unknown classes throw. Shared aspect utilities set a preferred width/height ratio: aspect-square (1), aspect-video (16/9), aspect-[W/H], aspect-[R], or aspect-auto. Ratios must be finite, positive and within f32 native layout range; both targets use the normalized f32 ratio. With default spacing, <View className=\"w-64 aspect-video\"/> is 256 by 144 logical pixels. Explicit width and height and min/max bounds take precedence. Children can overflow without clipping. Every UI layout box establishes a containing block. absolute removes a box from flow and positions it in its immediate UI parent; relative keeps normal flow. Insets use checked theme spacing, fractions/full or auto. Inline descendants reject box utilities. fixed/sticky positioning, z-index and transforms remain unsupported. Ownership: consumes the class string."
+          "documentation": "Optional checked shared utility classes, default empty. <Input aria-label=\"Name\" className=\"h-8 px-2.5 rounded-lg border border-input focus-visible:ring-3\"/> creates a 32px field with themed spacing, border and focus ring. Later matching classes win by property/state. Unknown classes throw. Shared aspect utilities set a preferred width/height ratio: aspect-square (1), aspect-video (16/9), aspect-[W/H], aspect-[R], or aspect-auto. Ratios must be finite, positive and within f32 native layout range; both targets use the normalized f32 ratio. With default spacing, <View className=\"w-64 aspect-video\"/> is 256 by 144 logical pixels. Explicit width and height and min/max bounds take precedence. Children can overflow without clipping. Every UI layout box establishes a containing block. absolute removes a box from flow and positions it in its immediate UI parent; relative keeps normal flow. Insets use checked theme spacing, fractions/full or auto. Inline descendants reject box utilities. fixed/sticky positioning, z-index and transforms remain unsupported. Ownership: consumes the class string. Direct state-reading intrinsic JSX expressions update after handlers without remounting. Custom components need an explicit reactive prop contract; precomputed values remain snapshots."
         },
         "onChange": {
           "documentation": "Optional owned callback taking ReadOnly<InputChangeEvent>, default none. <Input onChange={(event)=>{name.set(event.target.value);}}/> copies edited text into application state. Called once per changed committed value; IME preedit remains internal until commit. target/currentTarget contain value, name and id snapshots, not DOM elements. Callback returns void; throwing stops and disposes the mounted tree. No preventDefault, DOM methods or composition callback interface is exposed. Controlled edits not reflected in application state are restored. Ownership: consumes the callback, borrows event snapshots only during invocation; retaining text requires an explicit copy or Signal.set."
@@ -14714,13 +14720,13 @@
           "documentation": "Optional input type: text (default). <Input type=\"text\" aria-label=\"Name\"/> creates a single-line editor. Password, file, number/date and other specialized input types are unsupported and rejected; they never silently fall back to text. Ownership: consumes the literal string."
         },
         "data-variant": {
-          "documentation": "Optional variant metadata, default absent. ASCII letters, digits and hyphens are accepted; empty omits the attribute. This does not choose styles or change accessibility by itself. Example: <View data-variant=\"destructive\" className=\"data-[variant=destructive]:text-destructive\" /> selects the destructive text token on both targets. Invalid characters throw. Values are construction-time snapshots. Ownership: consumes the optional string."
+          "documentation": "Optional variant metadata, default absent. ASCII letters, digits and hyphens are accepted; empty omits the attribute. This does not choose styles or change accessibility by itself. Example: <View data-variant=\"destructive\" className=\"data-[variant=destructive]:text-destructive\" /> selects the destructive text token on both targets. Invalid characters throw. Values are construction-time snapshots. Ownership: consumes the optional string. Direct state-reading intrinsic JSX expressions update after handlers without remounting. Custom components need an explicit reactive prop contract; precomputed values remain snapshots."
         }
       }
     },
     {
       "name": "TextareaProps",
-      "signature": "interface TextareaProps",
+      "signature": "type TextareaProps<Classes = string, Variant = string>",
       "parameters": [],
       "documentation": "Owned text-control properties for portable editing. Optional fields use their individual defaults. Example: <Input aria-label=\"Name\" defaultValue=\"Ada\"/> starts at Ada. Unknown props are rejected; callback target/currentTarget are snapshots. Ownership: component calls consume props and callbacks.",
       "fields": {
@@ -14770,13 +14776,13 @@
           "documentation": "Optional browser autocomplete hint, default absent. <Input aria-label=\"Name\" autoComplete=\"name\"/> requests the browser’s name completion; honoring it depends on browser policy. Native platform autocomplete is unsupported and receives no suggestion provider. Ownership: consumes the hint."
         },
         "className": {
-          "documentation": "Optional checked shared utility classes, default empty. <Input aria-label=\"Name\" className=\"h-8 px-2.5 rounded-lg border border-input focus-visible:ring-3\"/> creates a 32px field with themed spacing, border and focus ring. Later matching classes win by property/state. Unknown classes throw. Shared aspect utilities set a preferred width/height ratio: aspect-square (1), aspect-video (16/9), aspect-[W/H], aspect-[R], or aspect-auto. Ratios must be finite, positive and within f32 native layout range; both targets use the normalized f32 ratio. With default spacing, <View className=\"w-64 aspect-video\"/> is 256 by 144 logical pixels. Explicit width and height and min/max bounds take precedence. Children can overflow without clipping. Every UI layout box establishes a containing block. absolute removes a box from flow and positions it in its immediate UI parent; relative keeps normal flow. Insets use checked theme spacing, fractions/full or auto. Inline descendants reject box utilities. fixed/sticky positioning, z-index and transforms remain unsupported. Ownership: consumes the class string."
+          "documentation": "Optional checked shared utility classes, default empty. <Input aria-label=\"Name\" className=\"h-8 px-2.5 rounded-lg border border-input focus-visible:ring-3\"/> creates a 32px field with themed spacing, border and focus ring. Later matching classes win by property/state. Unknown classes throw. Shared aspect utilities set a preferred width/height ratio: aspect-square (1), aspect-video (16/9), aspect-[W/H], aspect-[R], or aspect-auto. Ratios must be finite, positive and within f32 native layout range; both targets use the normalized f32 ratio. With default spacing, <View className=\"w-64 aspect-video\"/> is 256 by 144 logical pixels. Explicit width and height and min/max bounds take precedence. Children can overflow without clipping. Every UI layout box establishes a containing block. absolute removes a box from flow and positions it in its immediate UI parent; relative keeps normal flow. Insets use checked theme spacing, fractions/full or auto. Inline descendants reject box utilities. fixed/sticky positioning, z-index and transforms remain unsupported. Ownership: consumes the class string. Direct state-reading intrinsic JSX expressions update after handlers without remounting. Custom components need an explicit reactive prop contract; precomputed values remain snapshots."
         },
         "onChange": {
           "documentation": "Optional owned callback taking ReadOnly<InputChangeEvent>, default none. <Input onChange={(event)=>{name.set(event.target.value);}}/> copies edited text into application state. Called once per changed committed value; IME preedit remains internal until commit. target/currentTarget contain value, name and id snapshots, not DOM elements. Callback returns void; throwing stops and disposes the mounted tree. No preventDefault, DOM methods or composition callback interface is exposed. Controlled edits not reflected in application state are restored. Ownership: consumes the callback, borrows event snapshots only during invocation; retaining text requires an explicit copy or Signal.set."
         },
         "data-variant": {
-          "documentation": "Optional variant metadata, default absent. ASCII letters, digits and hyphens are accepted; empty omits the attribute. This does not choose styles or change accessibility by itself. Example: <View data-variant=\"destructive\" className=\"data-[variant=destructive]:text-destructive\" /> selects the destructive text token on both targets. Invalid characters throw. Values are construction-time snapshots. Ownership: consumes the optional string."
+          "documentation": "Optional variant metadata, default absent. ASCII letters, digits and hyphens are accepted; empty omits the attribute. This does not choose styles or change accessibility by itself. Example: <View data-variant=\"destructive\" className=\"data-[variant=destructive]:text-destructive\" /> selects the destructive text token on both targets. Invalid characters throw. Values are construction-time snapshots. Ownership: consumes the optional string. Direct state-reading intrinsic JSX expressions update after handlers without remounting. Custom components need an explicit reactive prop contract; precomputed values remain snapshots."
         }
       }
     },
@@ -14839,6 +14845,84 @@
       "signature": "type TextBinding",
       "parameters": [],
       "documentation": "An owned live scalar text expression stored by the existing Text/View/Button children. JSX creates it automatically for supported expressions reading directly declared component state; no helper import or separate component is needed. <Text>{count.get()+1}</Text> displays 2 for count 1, then 3 after count becomes 2. Strings, exact 64-bit ints, numbers and explicit boolean bindings use ordinary formatting; -0 displays 0. Null/undefined getter results contribute no characters. Getters run during construction/refresh and must be pure. A getter error stops the mounted tree and preserves its readable message. There is no public constructor, field or receiver method. Ownership: transfers once with its callback; component-state captures stay weak. It cannot be cloned, reflected or sent to workers."
+    },
+    {
+      "name": "Reactive",
+      "signature": "interface Reactive<T>",
+      "documentation": "A reusable zero-argument scalar getter used by ReactiveValue<T> component fields. JSX creates it for state-reading expressions when the receiving field declares the contract. For example, tone={active.get() ? \"destructive\" : \"default\"} stays live when tone is a ReactiveValue field and the component reads it with useProp(). Evaluators return T or throw; keep them free of state changes and I/O. Ownership: consumes one callback with weak references to component state; no resource value is cloned.",
+      "fields": {
+        "evaluate": {
+          "documentation": "Called without arguments to read the latest T. Throws propagate through ordinary UI cleanup. For example, {evaluate: () => count.get() + 1} yields 2 when count is 1. Evaluators must not mutate state. Ownership: owns a reusable callback; moving the descriptor transfers it once."
+        }
+      }
+    },
+    {
+      "name": "ReactiveValue",
+      "signature": "type ReactiveValue<T> = Reactive<T> | T",
+      "documentation": "A constant or live scalar component prop. Declare caption: ReactiveValue<string> to accept both caption=\"Ready\" and caption={name.get()}. In the component, const caption = useProp(props.caption); then caption.get() reads the latest value. Construction-time props keep their existing value contract. Ownership: transfers the scalar or evaluator once; callbacks do not retain component state owners."
+    },
+    {
+      "name": "Computed",
+      "signature": "type Computed<T>",
+      "documentation": "A component-owned read-only scalar expression. get() reevaluates on every read; values are not memoized and there is no setter. Supports exact ints, numbers, strings, booleans, enums, literal unions and nullable scalars. Arrays, records, callbacks and resources cannot be results. For example, const doubled = computed<int>(() => count.get() * 2); doubled.get() returns 6 when count is 3. Ownership: declare with const in the component; its returned tree retains the owner, while callbacks and text bindings use weak references. Cannot be cloned or sent to workers."
+    },
+    {
+      "name": "computed",
+      "signature": "computed<T>(source: Owned<Function<T>>): Computed<T>",
+      "documentation": "Creates a read-only scalar expression from an owned reusable zero-argument getter. source is required. get() reevaluates each read without memoization or component reruns. Keep evaluators free of state changes and I/O. Supports exact ints, numbers, booleans, strings, enums, literal unions and nullable scalars; resources, arrays, records and callbacks cannot be results. Example: const total = computed<int>(() => count.get() + 1); returns 2 at count 1 and 5 at count 4. Getter failures, recursive reads and disposed references throw UiError when read. Use useProp() to adapt a ReactiveValue prop. Ownership: moves one callback; returning the component tree retains its owner while bindings capture weak references. Declare a direct const outside anonymous event callbacks.",
+      "parameters": [
+        {
+          "label": "source: Owned<Function<T>>",
+          "documentation": "Required reusable zero-argument getter returning a supported scalar T or throwing. No default. Keep reads free of mutation and I/O."
+        }
+      ],
+      "examples": [
+        {
+          "source": "import {computed} from 'std:ui';\nfunction main(){const value=computed<int>(()=>42);console.log(value.get());}\n",
+          "output": "42\n"
+        }
+      ]
+    },
+    {
+      "name": "ViewRenderProps",
+      "signature": "type ViewRenderProps<Classes = ReactiveValue<string>, Variant = ReactiveValue<string>>",
+      "documentation": "Owned View props passed once into a replacement render factory. Contains children, metadata, visibility and styling, without another render field. For example, render={(props) => <View {...props} as=\"section\"/>} creates one section with forwarded children and behavior. Forward needed props into the returned node. Ownership: moves owned children and callbacks once; no wrapper is retained. Styling/variant fields may be live descriptors; use useProp() when deriving new classes, or forward them intact."
+    },
+    {
+      "name": "ButtonRenderProps",
+      "signature": "type ButtonRenderProps<Classes = ReactiveValue<string>, Variant = ReactiveValue<string>>",
+      "documentation": "Owned Button props passed once into a replacement factory. Contains children, disabled state, onPress, metadata and styling, without another render field. For example, render={(props) => <Button {...props} className=\"p-4\"/>} preserves the supplied behavior on one button. Ownership: forwards owned callbacks and children once; no extra control or focus stop is created. Styling/variant fields may be live descriptors; use useProp() when deriving new classes, or forward them intact."
+    },
+    {
+      "name": "useProp",
+      "signature": "useProp<T>(source: ReactiveValue<T>): Computed<T>",
+      "documentation": "Adapts a scalar constant or live JSX prop to a read-only component value. source is required. const label = useProp(props.caption); label.get() reads the latest caption without rerunning the component. Generic props must declare ReactiveValue<T>; ordinary precomputed values remain snapshots. Scalars, literal/nullable unions and enums preserve their checked types. Resources and containers are rejected. Getter failures propagate on reads; strings return independent snapshots. Ownership: transfers one scalar/evaluator, automatically retains the owner with the returned tree and captures only weak references in bindings. Declare a direct const in the component.",
+      "parameters": [
+        {
+          "label": "source: ReactiveValue<T>",
+          "documentation": "Required scalar constant or JSX reactive descriptor; no default. Use ?? before adapting an optional field when it needs a default."
+        }
+      ],
+      "examples": [
+        {
+          "source": "import {useProp} from 'std:ui';\nfunction main(){const label=useProp<string>('Ready');console.log(label.get());}\n",
+          "output": "Ready\n"
+        }
+      ]
+    }
+  ],
+  "UiComputed": [
+    {
+      "name": "get",
+      "signature": "get(): T",
+      "parameters": [],
+      "documentation": "Evaluates the current scalar value without changing it. Takes no arguments; returns exactly T, including literal/nullable alternatives. For example, computed<int>(() => count.get() * 2).get() returns 8 at count 4. Reads are not memoized. Getter failures, recursively reading the same computed value, and disposed bindings throw UiError. Strings return independent snapshots; int preserves signed 64-bit values. Ownership: borrows the evaluator; the result does not retain its owner.",
+      "examples": [
+        {
+          "source": "import {computed} from 'std:ui';\nfunction main(){const value=computed<int>(()=>42);console.log(value.get());}\n",
+          "output": "42\n"
+        }
+      ]
     }
   ],
   "UiSignal": [

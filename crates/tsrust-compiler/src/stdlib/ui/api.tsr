@@ -1,4 +1,4 @@
-import { bindClass as nativeBindClass, bindVariant as nativeBindVariant, Computed as NativeComputed, computed as nativeComputed, route as nativeRoute, visibility as nativeVisibility, copyButton as nativeCopyButton, location as nativeLocation, navigate as nativeNavigate, traverse as nativeTraverse, link as nativeLink, themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, handle as nativeHandle, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
+import { bindClass as nativeBindClass, bindVariant as nativeBindVariant, Computed as NativeComputed, computed as nativeComputed, route as nativeRoute, visibility as nativeVisibility, copyButton as nativeCopyButton, location as nativeLocation, navigate as nativeNavigate, traverse as nativeTraverse, link as nativeLink, themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
 
 /** An owned UI subtree. Moving a Node transfers all descendants. Nodes cannot be cloned or sent to workers. */
 export type Node = NativeNode;
@@ -43,14 +43,16 @@ interface SemanticMetadata<Variant> extends ElementProps<Variant> {
 
 export type SemanticProps<Variant = string> = SemanticMetadata<Variant>;
 
-export interface TextProps extends SemanticProps {
+interface TextProperties<Classes, Variant> extends SemanticProps<Variant> {
   /** Defaults to span. Heading levels are reflected in native accessibility. */
   as?: 'span' | 'div' | 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'code' | 'kbd' | 'strong' | 'em' | 'del';
   /** Ordered text content. Pass between tags or with children={values}; combining both is rejected. */
   children?: Child[];
   /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Includes relative/absolute parent positioning and checked insets; inline descendants require typography only. Includes aspect-square/video/[W/H]/[R]/auto with finite positive f32 ratios. Explicit sizes and min/max bounds still apply. Later classes win per property/state. */
-  className?: string;
+  className?: Classes;
 }
+
+export type TextProps<Classes = string, Variant = string> = TextProperties<Classes, Variant>;
 
 interface ViewProperties<Classes, Variant> extends SemanticProps<Variant> {
   /** Receives initial visibility and changes after layout. Visible means positive area inside the viewport and every clipping ancestor, not occlusion detection. Hidden subtrees report false. No scroll interception. */
@@ -72,10 +74,10 @@ interface ViewProperties<Classes, Variant> extends SemanticProps<Variant> {
 }
 
 /** Props forwarded once to a replacement View renderer; there is no render field to recurse through. */
-export type ViewRenderProps<Classes = string, Variant = string> = ViewProperties<Classes, Variant>;
+export type ViewRenderProps<Classes = ReactiveValue<string>, Variant = ReactiveValue<string>> = ViewProperties<Classes, Variant>;
 interface ViewComponentProps<Classes, Variant> extends ViewRenderProps<Classes, Variant> {
   /** Optional replacement factory. Forward its owned props into one UI node; returning it adds no wrapper or focus stop. */
-  render?: Owned<Function<Node, [props: ViewRenderProps<Classes, Variant>]>>;
+  render?: Owned<Function<Node, [props: Owned<ViewRenderProps>]>>;
 }
 
 export type ViewProps<Classes = string, Variant = string> = ViewComponentProps<Classes, Variant>;
@@ -90,10 +92,10 @@ interface ButtonProperties<Classes, Variant> extends ElementProps<Variant> {
 }
 
 /** Button props supplied to a replacement factory, including children, disabled state and onPress. */
-export type ButtonRenderProps<Classes = string, Variant = string> = ButtonProperties<Classes, Variant>;
+export type ButtonRenderProps<Classes = ReactiveValue<string>, Variant = ReactiveValue<string>> = ButtonProperties<Classes, Variant>;
 interface ButtonComponentProps<Classes, Variant> extends ButtonRenderProps<Classes, Variant> {
   /** Optional replacement factory. Forward all supplied behavior onto one control; it is called once and adds no wrapper. */
-  render?: Owned<Function<Node, [props: ButtonRenderProps<Classes, Variant>]>>;
+  render?: Owned<Function<Node, [props: Owned<ButtonRenderProps>]>>;
 }
 
 export type ButtonProps<Classes = string, Variant = string> = ButtonComponentProps<Classes, Variant>;
@@ -118,7 +120,7 @@ export interface InputChangeEvent {
   currentTarget: InputTarget;
 }
 
-export interface TextFieldProps extends ElementProps {
+interface TextFieldProperties<Classes, Variant> extends ElementProps<Variant> {
   /** Controlled text/numeric value. Direct signals and state-reading JSX expressions refresh after handlers. Omission selects uncontrolled state. */
   value?: InputValue;
   /** Initial uncontrolled value only; an explicit value takes precedence, including the empty string and zero. */
@@ -132,24 +134,28 @@ export interface TextFieldProps extends ElementProps {
   required?: boolean;
   name?: string;
   autoComplete?: string;
-  className?: string;
+  className?: Classes;
   /** Receives a borrowed value snapshot; edit logic stays in application code. String state.set copies the new text. */
   onChange?: Owned<Function<void, [event: ReadOnly<InputChangeEvent>]>>;
 }
 
-export interface InputProps extends TextFieldProps {
+export type TextFieldProps<Classes = string, Variant = string> = TextFieldProperties<Classes, Variant>;
+
+interface InputProperties<Classes, Variant> extends TextFieldProps<Classes, Variant> {
   /** This portable slice supports text. Password, file and other specialized input types fail explicitly. */
   type?: 'text';
 }
 
-export interface TextareaProps extends TextFieldProps {}
+export type InputProps<Classes = string, Variant = string> = InputProperties<Classes, Variant>;
+
+export type TextareaProps<Classes = string, Variant = string> = TextFieldProps<Classes, Variant>;
 
 /** Creates a single-line field. CR/LF are removed like HTML text inputs; values otherwise remain exact Unicode strings. */
-export function Input(props: InputProps): Node {
+export function Input(props: InputProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
   return <TextField {...props} multiline={false}/>;
 }
 /** Creates a multiline field. CRLF/CR values normalize to LF; no numeric conversion occurs. */
-export function Textarea(props: TextareaProps): Node {
+export function Textarea(props: TextareaProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
   return <TextField {...props} multiline={true}/>;
 }
 
@@ -180,7 +186,7 @@ function inputFlags(node: Node, disabled: boolean | ReactiveBoolean | undefined,
   return inputReadOnly(node, readOnly);
 }
 
-interface TextFieldOptions extends TextFieldProps {
+interface TextFieldOptions extends TextFieldProps<ReactiveValue<string>, ReactiveValue<string>> {
   multiline: boolean;
 }
 
@@ -189,39 +195,50 @@ function TextField(props: TextFieldOptions): Node {
   const id = props.id ?? '';
   const disabled = props.disabled;
   const readOnly = props.readOnly;
-  const metadata = semanticConfig('', '', props['aria-label'] ?? '', clone(id), props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', props['data-variant'] ?? '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
+  const className = props.className;
+  const variant = props['data-variant'];
+  const classes = typeof className === 'string' ? clone(className) : '';
+  const metadata = semanticConfig('', '', props['aria-label'] ?? '', clone(id), props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
   const options: InputOptions = {
     placeholder: props.placeholder ?? '', disabled: typeof disabled === 'boolean' ? disabled : false, readOnly: typeof readOnly === 'boolean' ? readOnly : false, multiline: props.multiline, required: props.required ?? false, name: clone(name), autoComplete: props.autoComplete ?? '', type: 'text'
   };
   const config = JSON.stringify(options);
   const handler = props.onChange;
   if (handler !== undefined) {
-    return applySemantics(inputFlags(unwrapNode(nativeInputChange(props.value, props.defaultValue, config, props.className ?? '', handler)), disabled, readOnly), metadata);
+    return applyProperties(inputFlags(unwrapNode(nativeInputChange(props.value, props.defaultValue, config, classes, handler)), disabled, readOnly), metadata, className, variant);
   }
 
-  return applySemantics(inputFlags(unwrapNode(nativeInput(props.value, props.defaultValue, config, props.className ?? '')), disabled, readOnly), metadata);
+  return applyProperties(inputFlags(unwrapNode(nativeInput(props.value, props.defaultValue, config, classes)), disabled, readOnly), metadata, className, variant);
 }
 
 /** A platform clipboard control. It reports completion only after the platform write settles. */
-export interface CopyButtonProps extends ElementProps {
+interface CopyButtonProperties<Classes, Variant> extends ElementProps<Variant> {
   /** Exact clipboard text; Unicode, CRLF and trailing whitespace are preserved. */
   value: string;
   /** Shared button utilities. Defaults to empty. */
-  className?: string;
+  className?: Classes;
 }
+
+export type CopyButtonProps<Classes = string, Variant = string> = CopyButtonProperties<Classes, Variant>;
 /** Copies value on activation. Shows Copy, Copying…, Copied or Copy failed. Try again.; failures retain the application and expose the platform message as a description. Ownership: owns a text snapshot; browser completion never retains a removed subtree. */
-export function CopyButton(props: CopyButtonProps): Node {
-  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', props['data-variant'] ?? '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
-  return applySemantics(unwrapNode(nativeCopyButton(props.value, props.className ?? '')), metadata);
+export function CopyButton(props: CopyButtonProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
+  const className = props.className;
+  const variant = props['data-variant'];
+  const classes = typeof className === 'string' ? clone(className) : '';
+  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
+  return applyProperties(unwrapNode(nativeCopyButton(props.value, classes)), metadata, className, variant);
 }
 
 /** Creates a text node by joining text children without a separator. className defaults to empty. Unknown utilities throw a message. Owns its text. */
-export function Text(props: TextProps): Node {
-  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', props['data-variant'] ?? '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
-  const result = text(props.children ?? [], props.className ?? '');
+export function Text(props: TextProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
+  const className = props.className;
+  const variant = props['data-variant'];
+  const classes = typeof className === 'string' ? clone(className) : '';
+  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
+  const result = text(props.children ?? [], classes);
   match (result) {
     Ok(value) => {
-      return applySemantics(value, metadata);
+      return applyProperties(value, metadata, className, variant);
     },
     Err(error) => {
       throw error.message;
@@ -229,17 +246,21 @@ export function Text(props: TextProps): Node {
   }
 }
 /** Creates a container, preserving child order. className defaults to empty. Unknown utilities or depth over 128 throw a message. Consumes its children. */
-export function View(props: ViewProps): Node {
+export function View(props: ViewProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
   const Render = props.render;
+  props.render = undefined;
   if (Render !== undefined) {
     return <Render {...props}/>;
   }
 
-  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', props['data-variant'] ?? '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']), props.htmlFor ?? '', props.windowDragRegion ?? false, props.tabIndex);
-  const result = view(props.children ?? [], props.className ?? '');
+  const className = props.className;
+  const variant = props['data-variant'];
+  const classes = typeof className === 'string' ? clone(className) : '';
+  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']), props.htmlFor ?? '', props.windowDragRegion ?? false, props.tabIndex);
+  const result = view(props.children ?? [], classes);
   match (result) {
     Ok(value) => {
-      const decorated = applySemantics(value, metadata);
+      const decorated = applyProperties(value, metadata, className, variant);
       const observer = props.onVisibilityChange;
       const node = observer === undefined ? decorated : unwrapNode(nativeVisibility(decorated, observer));
       const hidden = props.hidden;
@@ -260,42 +281,51 @@ export function View(props: ViewProps): Node {
   }
 }
 /** Creates a semantic button with optional retained onPress and composed phrasing children. Disabled buttons never activate. */
-export function Button(props: ButtonProps): Node {
+export function Button(props: ButtonProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
   const Render = props.render;
+  props.render = undefined;
   if (Render !== undefined) {
     return <Render {...props}/>;
   }
 
-  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', props['data-variant'] ?? '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
+  const className = props.className;
+  const variant = props['data-variant'];
+  const classes = typeof className === 'string' ? clone(className) : '';
+  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
   const children = props.children ?? [];
   const handler = props.onPress;
   const disabled = props.disabled;
   if (disabled !== undefined && typeof disabled !== 'boolean') {
     if (handler === undefined) {
-      return applySemantics(unwrapNode(nativeBindDisabled(unwrapNode(staticButton(children, props.className ?? '', false)), disabled.evaluate)), metadata);
+      return applyProperties(unwrapNode(nativeBindDisabled(unwrapNode(staticButton(children, classes, false)), disabled.evaluate)), metadata, className, variant);
     }
 
-    return applySemantics(unwrapNode(nativeBindDisabled(unwrapNode(nativeButton(children, props.className ?? '', false, handler)), disabled.evaluate)), metadata);
+    return applyProperties(unwrapNode(nativeBindDisabled(unwrapNode(nativeButton(children, classes, false, handler)), disabled.evaluate)), metadata, className, variant);
   }
 
   if (handler !== undefined) {
-    return applySemantics(unwrapNode(nativeButton(children, props.className ?? '', disabled ?? false, handler)), metadata);
+    return applyProperties(unwrapNode(nativeButton(children, classes, disabled ?? false, handler)), metadata, className, variant);
   }
 
-  return applySemantics(unwrapNode(staticButton(children, props.className ?? '', disabled ?? false)), metadata);
+  return applyProperties(unwrapNode(staticButton(children, classes, disabled ?? false)), metadata, className, variant);
 }
 
 /** An application path or HTTPS link. External links open through the browser or native default browser. */
-export interface LinkProps extends ElementProps {
+interface LinkProperties<Classes, Variant> extends ElementProps<Variant> {
   /** Absolute local path with optional heading fragment, or an HTTPS URL without credentials. Local queries, escapes and traversal are rejected. */
   href: string;
   children?: Child[];
-  className?: string;
+  className?: Classes;
 }
+
+export type LinkProps<Classes = string, Variant = string> = LinkProperties<Classes, Variant>;
 /** Navigates locally or opens an HTTPS URL. The current page and ancestor path segments expose aria-current for styling and accessibility. External links leave application history unchanged. Browser anchors retain modified-click behavior; native launch failures throw. */
-export function Link(props: LinkProps): Node {
-  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', props['data-variant'] ?? '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
-  return applySemantics(unwrapNode(nativeLink(props.children ?? [], props.className ?? '', props.href)), metadata);
+export function Link(props: LinkProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
+  const className = props.className;
+  const variant = props['data-variant'];
+  const classes = typeof className === 'string' ? clone(className) : '';
+  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
+  return applyProperties(unwrapNode(nativeLink(props.children ?? [], classes, props.href)), metadata, className, variant);
 }
 /** Creates the single application location owner, initially the browser path or / on native. Its get/set methods use checked absolute local paths. */
 export function location(): Signal<string> {
@@ -358,9 +388,7 @@ export function signal<T>(initial: T): Signal<T> {
   return nativeSignal(initial);
 }
 
-function bindState<T>(state: ReadOnly<T>): T {
-  return nativeHandle(state);
-}
+
 
 
 
@@ -441,21 +469,19 @@ export interface Reactive<T> {
   /** Zero-argument checked getter. Owns its callback and does not retain component state owners. */
   evaluate: Owned<Function<T>>;
 }
-/** A constant or live scalar component prop. Reactivity requires a declared ReactiveValue prop and computed() in the component that reads it. */
+/** A constant or live scalar component prop. Reactivity requires a declared ReactiveValue prop and useProp() in the component that reads it. */
 export type ReactiveValue<T> = Reactive<T> | T;
 /** A component-owned read-only expression. get() evaluates its latest scalar value; there is no setter. */
 export type Computed<T> = NativeComputed<T>;
-/** Owns a constant, JSX prop binding or reusable getter. get() evaluates on each read, without memoization. Returning the component tree retains this value automatically. */
-export function computed<T>(source: Reactive<T> | Owned<Function<T>> | T): Computed<T> {
+/** Owns a reusable zero-argument scalar getter. get() evaluates on each read without memoization. Returning the component tree retains this value automatically. */
+export function computed<T>(source: Owned<Function<T>>): Computed<T> {
   return nativeComputed(source);
 }
 
-function bindReactive<T>(evaluate: Owned<Function<T>>): Reactive<T> {
-  return {
-    evaluate
-  };
+/** Adapts a constant or live component prop into a read-only value. The returned tree retains its owner automatically. */
+export function useProp<T>(source: ReactiveValue<T>): Computed<T> {
+  return nativeComputed(source);
 }
-
 /** A boolean condition refreshed after UI handlers without rerunning the component. */
 export interface ReactiveBoolean {
   /** Zero-argument boolean predicate; owns its callback with non-retaining state captures. */
@@ -530,10 +556,8 @@ function unwrapNode(result: Result<Node, UiError>): Node {
   }
 }
 
-function bindClasses(node: Node, evaluate: Owned<Function<string>>): Node {
-  return unwrapNode(nativeBindClass(node, evaluate));
-}
-
-function bindVariant(node: Node, evaluate: Owned<Function<string>>): Node {
-  return unwrapNode(nativeBindVariant(node, evaluate));
+function applyProperties(node: Node, metadata: string, classes: ReactiveValue<string> | undefined, variant: ReactiveValue<string> | undefined): Node {
+  const decorated = applySemantics(node, metadata);
+  const styled = classes !== undefined && typeof classes !== 'string' ? unwrapNode(nativeBindClass(decorated, classes.evaluate)) : decorated;
+  return variant !== undefined && typeof variant !== 'string' ? unwrapNode(nativeBindVariant(styled, variant.evaluate)) : styled;
 }

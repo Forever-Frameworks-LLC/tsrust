@@ -4976,6 +4976,12 @@ impl Analyzer {
         {
             return self.prepare_projection_work(context,expr,mode,expected,place,union,narrowed).map(Some);
         }
+        if let Some(target@ (Type::String|Type::Int|Type::Number|Type::Boolean))=expected
+            && let Some(source@Type::Union(id))=self.expression_type_hint(context,expr)
+            && self.unions.members(id).iter().all(|&member|target.accepts_scalar_value(member))
+            && mode==Mode::Consume {
+            return Ok(Some(Prelude::Child{mode,expected:Some(source),frame:Frame::ScalarUnionWiden(target)}));
+        }
         if let Some(work) = self.prepare_array_union_widening(context, expr, mode, expected)? {
             return Ok(Some(work));
         }

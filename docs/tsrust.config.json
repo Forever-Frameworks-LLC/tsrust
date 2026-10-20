@@ -207,6 +207,12 @@
         "source": "src/examples/parent-positioning.tsrx",
         "export": "ParentPositioning",
         "kind": "component"
+      },
+      {
+        "id": "reactive-props",
+        "source": "src/examples/reactive-props.tsrx",
+        "export": "Page",
+        "kind": "component"
       }
     ]
   }

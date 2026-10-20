@@ -12,6 +12,7 @@ impl Analyzer {
  }
 
  pub(super) fn ui_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic> {
+  if let Some(result)=self.ui_reactive_call(context,expression,loans,expected)? {return Ok(Some(result));}
   if let Some(result)=self.ui_string_binding_call(context,expression,loans,expected)? {return Ok(Some(result));}
   if let Some(result)=self.ui_computed_call(context,expression,loans,expected)? {return Ok(Some(result));}
   if let Some(result)=self.ui_visibility_call(context,expression,loans,expected)? {return Ok(Some(result));}
@@ -53,6 +54,22 @@ impl Analyzer {
   };
   self.require(result,expected,expression.span)?;expression.ty=Some(result);expression.target=Some(CallTarget::NativeBinding(id));Ok(Some(result))
  }
+ fn ui_reactive_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{
+  let ExprKind::Call(callee,args)=&mut expression.kind else{return Ok(None)};let ExprKind::Name(name)=&callee.kind else{return Ok(None)};
+  let Some((id,_))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|binding.module=="std:ui-runtime"&&binding.name=="reactive") else{return Ok(None)};Self::arity(args.len(),1,expression.span)?;
+  let (record,callback)=self.ui_reactive_prop_type(expected,expression.span)?;
+  if let ExprKind::Closure{result,..}=&mut args[0].kind && matches!(result,crate::syntax::ResultAnnotation::Inferred(_)){
+   let payload=self.ui_computed_callback(callback).expect("checked reactive callback").0;
+   *result=crate::syntax::ResultAnnotation::Named(Box::new(self.checked_value_annotation(payload,expression.span)?));
+  }
+  self.check_call_arguments(context,args,&[ArgumentContract{ty:callback,mode:Mode::Consume,omission:crate::ParameterOmission::Required,rest:false}],loans)?;
+  let result=Type::Record(record);self.require(result,expected,expression.span)?;expression.ty=Some(result);expression.target=Some(CallTarget::NativeBinding(id));Ok(Some(result))
+ }
+ pub(super) fn ui_reactive_prop_type(&self,expected:Option<Type>,span:Span)->Result<(usize,Type),Diagnostic>{
+  let mut pending=expected.into_iter().collect::<Vec<_>>();let mut found=None;
+  while let Some(ty)=pending.pop(){match ty{Type::Union(id)=>pending.extend(self.unions.members(id)),Type::Record(record)=>{let fields=&self.program.records[record].fields;if fields.len()==1&&fields[0].name.text=="evaluate"{if let Some((payload,_))=fields[0].ty.and_then(|ty|self.ui_computed_callback(ty)){self.ui_computed_scalar(payload,span)?;if found.is_some(){return Err(Diagnostic::new("ui-reactive-prop","Use one ReactiveValue<T> contract for a live scalar prop.",span));}found=Some((record,fields[0].ty.unwrap()));}}},_=>{}}}
+  found.ok_or_else(||Diagnostic::new("ui-reactive-prop","This JSX expression requires a declared ReactiveValue<T> scalar prop.",span))
+ }
  fn ui_string_binding_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{
   let ExprKind::Call(callee,args)=&mut expression.kind else{return Ok(None)};let ExprKind::Name(name)=&callee.kind else{return Ok(None)};
   let Some((id,binding))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|binding.module=="std:ui-runtime"&&matches!(binding.name,"bindClass"|"bindVariant")) else{return Ok(None)};
@@ -71,10 +88,14 @@ impl Analyzer {
   let Some(result@Type::Record(record))=expected else{return Err(Diagnostic::new("ui-computed-type","A computed expression requires its declared Computed<T> result.",expression.span))};
   if self.program.records[record].native_type!=Some(NativeTypeId::UiComputed){return Err(Diagnostic::new("ui-computed-type","Expected Computed<T>.",expression.span));}
   let payload=self.program.records[record].application.as_ref().expect("computed application").resolved_arguments[0];self.ui_computed_scalar(payload,expression.span)?;
-  let actual=self.expression(context,&mut args[0],Mode::Consume,loans,None)?;let mut pending=vec![actual];
+  let hint=self.expression_type_hint(context,&args[0]);
+  let wanted=if hint.is_some_and(|ty|matches!(ty,Type::Callback(_)|Type::StoredCallable(_)|Type::Closure(_))){
+   let result=self.checked_value_annotation(payload,expression.span)?;let annotation=crate::syntax::CallbackAnnotation{kind:crate::syntax::CallbackKind::Owned,params:vec![],result:Box::new(crate::syntax::ResultAnnotation::Named(Box::new(result))),span:expression.span};Some(self.resolve_callback(&annotation)?)
+  }else{None};
+  let actual=self.expression(context,&mut args[0],Mode::Consume,loans,wanted)?;let mut pending=vec![actual];
   while let Some(value)=pending.pop(){
    if let Type::Union(union)=value{pending.extend(self.unions.members(union));continue;}
-   let output=if let Some((output,_))=self.ui_computed_callback(value){output}else if let Type::Record(record)=value{
+   let output=if let Type::Closure(id)=value{self.closures[id].function.result}else if let Some((output,_))=self.ui_computed_callback(value){output}else if let Type::Record(record)=value{
     let fields=&self.program.records[record].fields;
     if fields.len()!=1||fields[0].name.text!="evaluate"{return Err(Diagnostic::new("ui-computed-type","A reactive prop requires a reusable zero-argument evaluate callback.",args[0].span));}
     self.ui_computed_callback(fields[0].ty.expect("reactive field")).ok_or_else(||Diagnostic::new("ui-computed-type","A reactive prop requires a reusable zero-argument evaluate callback.",args[0].span))?.0

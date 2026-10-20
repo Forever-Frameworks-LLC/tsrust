@@ -76,7 +76,13 @@ impl Analyzer {
         }
         let contextual_result = generic_wrapper.and_then(|_| contextual)
             .and_then(|ty| self.checked_generic_callable_shape(self.unions.payload(ty).unwrap_or(ty)))
-            .map(|(_, result)| result);
+            .map(|(_, result)| result)
+            .or_else(||matches!(result,ResultAnnotation::Inferred(_)).then_some(contextual).flatten()
+                .and_then(|ty|self.checked_generic_callable_shape(self.unions.payload(ty).unwrap_or(ty)))
+                .map(|(_,result)|result).filter(|result|{
+                    let members=result.union().map_or_else(||vec![*result],|id|self.unions.members(id));
+                    members.iter().all(|value|matches!(value.scalar_base(),Type::String|Type::Int|Type::Number|Type::Boolean|Type::Null|Type::Undefined|Type::Enum(..)))
+                }));
         let inferred_result = matches!(result, ResultAnnotation::Inferred(_)) && contextual_result.is_none();
         let result = if let Some(result) = contextual_result { result }
             else if inferred_result { Type::Void } else { self.resolve_result(result)? };

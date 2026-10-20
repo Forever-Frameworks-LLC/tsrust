@@ -210,6 +210,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
     // Fields of each module's plain record types, in linked form, for
     // interfaces of importing modules that extend them.
     let mut module_records: BTreeMap<SourceId, crate::type_aliases::ImportedRecords> = BTreeMap::new();
+    let mut linked_records=crate::type_aliases::ImportedRecords::new();
     for (module, id) in graph.order.iter().enumerate() {
         let source = &graph.modules[id];
         let length = source.source.text.len().max(source.declaration_source.len());
@@ -232,6 +233,11 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
                     imported_records.insert(binding.local.clone(), fields.clone());
                 }
             }
+        }
+        for alias in imported.values(){
+            let mut annotation=&alias.annotation;while let crate::type_syntax::ValueAnnotationKind::Group(inner)=&annotation.kind{annotation=inner;}
+            let name=match &annotation.kind{crate::type_syntax::ValueAnnotationKind::Named(name)|crate::type_syntax::ValueAnnotationKind::Applied{name,..}=>Some(&name.text),_=>None};
+            if let Some(name)=name{if let Some(fields)=linked_records.get(name){imported_records.insert(name.clone(),fields.clone());}}
         }
         let parsed = if let Some(cache)=cache.as_deref_mut() {
             cache.parse(&graph,id,module,entries.contains(id),imported,imported_records)
@@ -348,6 +354,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
                         if record.type_parameters.iter().any(|parameter|parameter.text==name){name.to_owned()}else{visible.get(name).cloned().unwrap_or_else(|| symbol(module, name))}
                     });
                 }
+                linked_records.insert(symbol(module,&record.name.text),(record.type_parameters.clone(),fields.clone()));
                 record_fields.insert(record.name.text.clone(), (record.type_parameters.clone(),fields));
             }
         }

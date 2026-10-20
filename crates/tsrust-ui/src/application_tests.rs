@@ -60,3 +60,35 @@ fn header_drag_regions_exclude_disabled_controls_labels_and_retained_hidden_node
     for child in &root.children[1..] {assert!(!root.window_drag_at(|id|id==child.identity.get() || child.children.iter().any(|child|child.identity.get()==id)));}
     assert!(text("invalid").with_semantics(r#"{"windowDragRegion":true}"#).is_err());
 }
+
+#[test]
+fn reactive_classes_and_variants_preserve_identity_handlers_and_release_owners() {
+    struct Probe(Rc<Cell<usize>>);impl Drop for Probe{fn drop(&mut self){self.0.set(self.0.get()+1);}}
+    let drops=Rc::new(Cell::new(0));let probe=Probe(drops.clone());
+    let active=Signal::new(false);let press=active.handle();let style=active.handle();let variant=active.handle();let observe=active.handle();
+    let derived=Computed::new(move||{let _=&probe;Ok(if style.get()?{"p-4 text-destructive"}else{"p-2 text-foreground"}.to_owned())});let read=derived.handle();
+    let control=Node::button_children(vec![Child::Node(text("Toggle"))],String::new(),false,Some(Box::new(move||press.set(!press.get()?)))).unwrap();
+    let mut root=Node::view(vec![Child::Node(control)],String::new()).unwrap()
+        .with_class_binding(move||read.get()).unwrap()
+        .with_variant_binding(move||Ok(if variant.get()?{"destructive"}else{"default"}.into())).unwrap()
+        .own_state(derived).unwrap().own_state(active).unwrap();
+    root.refresh().unwrap();let root_id=root.identity.get();let button_id=root.children[0].identity.get();
+    assert_eq!(root.class_name,"p-2 text-foreground");assert_eq!(root.semantics.variant,"default");
+    assert!(root.activate(button_id).unwrap());assert_eq!(root.refresh().unwrap(),2);
+    assert_eq!(root.class_name,"p-4 text-destructive");assert_eq!(root.semantics.variant,"destructive");assert_eq!(root.identity.get(),root_id);assert_eq!(root.children[0].identity.get(),button_id);
+    assert!(document(&root,"Props").contains("data-variant=\"destructive\""));
+    assert!(root.activate(button_id).unwrap());root.refresh().unwrap();assert_eq!(root.class_name,"p-2 text-foreground");assert_eq!(drops.get(),0);
+    drop(root);assert_eq!(drops.get(),1);assert!(observe.get().is_err());
+}
+
+#[test]
+fn reactive_style_validation_rejects_bad_updates_without_replacing_the_previous_value() {
+    let classes=Signal::new("p-2".to_owned());let read=classes.handle();
+    let mut root=Node::view(Vec::new(),String::new()).unwrap().with_class_binding(move||read.get()).unwrap();
+    classes.set("invented-layout".into()).unwrap();assert!(root.refresh().is_err());assert_eq!(root.class_name,"p-2");
+    let variants=Signal::new("default".to_owned());let read=variants.handle();let mut root=Node::view(Vec::new(),String::new()).unwrap().with_variant_binding(move||read.get()).unwrap();
+    variants.set("bad variant".into()).unwrap();assert!(root.refresh().is_err());assert_eq!(root.semantics.variant,"default");
+    assert!(text("leaf").with_class_binding(||Ok("flex".into())).is_err());
+    let child=text("inline").with_class_binding(||Ok("text-primary".into())).unwrap();
+    let mut inline=Node::view(vec![Child::Node(child)],String::new()).unwrap().with_semantics(r#"{"tag":"span"}"#).unwrap();inline.refresh().unwrap();
+}

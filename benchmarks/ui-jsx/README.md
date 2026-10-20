@@ -128,3 +128,11 @@ after TypeScript compilation. The native `positioning_tests` print the same four
 observed boxes across flex/grid and three display scales. Compare their captured
 log with `node benchmarks/ui-jsx/verify-positioning-native.mjs <native-log>`.
 Neither witness establishes GPU pixel equivalence or actual OS gestures.
+
+`verify-application.mjs <site> reactive-props` checks the paired
+`examples/ui-reactive-props` project against `reactive-props-reference.ts` after
+TypeScript compilation. It observes live literal props, classes, variant metadata,
+derived text, forwarded handlers/children, stable nodes/focus and disposal. Native
+model tests cover matching transitions, validation errors and independent release
+observation. These are untimed correctness witnesses; no new throughput result is
+claimed.

@@ -6,7 +6,7 @@ type Scope=BTreeMap<String,String>;
 fn name(value:&str,span:Span)->Expr {Expr::new(ExprKind::Name(value.into()),span)}
 fn call(target:&str,args:Vec<Expr>,span:Span)->Expr {Expr::new(ExprKind::Call(Box::new(name(target,span)),args),span)}
 fn statement(kind:StmtKind,span:Span)->Stmt {Stmt{kind,span,labels:vec![],control_target:None}}
-struct Lower<'a> {primitives:std::collections::BTreeSet<String>,class_binding:Option<&'a String>,variant_binding:Option<&'a String>,wrapped:Vec<Span>,computed:Option<&'a String>,reactive:Option<&'a String>,branch:&'a str,child_result:crate::type_syntax::ValueAnnotation,scalar_functions:std::collections::BTreeSet<String>,shadowed:std::collections::BTreeSet<String>,text_binding:&'a str,reactive_props:std::collections::BTreeMap<(usize,usize),std::collections::BTreeSet<String>>,condition:&'a str,value_binding:&'a str,next_closure:usize,signal:&'a str,location:Option<&'a String>,bind:&'a str,retain:&'a str,next:usize,constructors:Vec<Span>}
+struct Lower<'a> {computed:Option<&'a String>,prop:Option<&'a String>,branch:&'a str,child_result:crate::type_syntax::ValueAnnotation,scalar_functions:std::collections::BTreeSet<String>,shadowed:std::collections::BTreeSet<String>,text_binding:&'a str,reactive_types:BTreeMap<(usize,usize,String),crate::type_syntax::ValueAnnotation>,reactive_props:std::collections::BTreeMap<(usize,usize),std::collections::BTreeSet<String>>,condition:&'a str,value_binding:&'a str,next_closure:usize,signal:&'a str,location:Option<&'a String>,bind:&'a str,retain:&'a str,next:usize,constructors:Vec<Span>}
 fn scalar_annotation(value:&crate::type_syntax::ValueAnnotation)->bool {
  use crate::type_syntax::ValueAnnotationKind as K;
  match &value.kind {K::Named(name)=>matches!(name.text.as_str(),"string"|"int"|"number"|"boolean"|"null"|"undefined"),K::Literal(_)=>true,K::Group(value)=>scalar_annotation(value),K::Union(values)=>values.iter().all(scalar_annotation),_=>false}
@@ -30,28 +30,6 @@ fn scalar_text(value:&Expr,scope:&Scope,functions:&std::collections::BTreeSet<St
  }
 }
 impl Lower<'_> {
-    fn attributes(&mut self,value:&mut Expr,scope:&Scope)->Result<(),Diagnostic>{
-        if scope.is_empty()||self.wrapped.contains(&value.span){return Ok(());}
-        let ExprKind::Call(callee,args)=&mut value.kind else{return Ok(())};let ExprKind::Name(component)=&callee.kind else{return Ok(())};if !self.primitives.contains(component)||args.len()!=1{return Ok(());}
-        let ExprKind::Record(fields)=&mut args[0].kind else{return Ok(())};let mut prefix=vec![];let mut bindings=vec![];
-        for(key,expression)in fields{
-            if key.kind!=TokenKind::JsxOpen||!matches!(key.text.as_str(),"className"|"data-variant"){continue;}
-            let mut reactive=false;crate::source_walk::expression(expression,&mut|value|{if let ExprKind::Name(name)=&value.kind{reactive|=scope.contains_key(name);}Ok(())})?;if !reactive{continue;}
-            let span=expression.span;let getter=format!("@ui:attribute:{}",self.next);self.next+=1;let original=std::mem::replace(expression,Expr::new(ExprKind::Undefined,span));
-            let result=crate::syntax::ResultAnnotation::Named(Box::new(crate::type_syntax::parse("string")?));
-            let empty=Expr::new(ExprKind::Closure{id:self.next_closure,params:vec![],result:result.clone(),body:vec![statement(StmtKind::Return(Some(Expr::new(ExprKind::String(String::new()),span))),span)]},span);self.next_closure+=1;
-            prefix.push(statement(StmtKind::Let{rebindable:true,name:Token{text:getter.clone(),span,kind:TokenKind::Name},annotation:Some(crate::type_syntax::parse("Owned<Function<string>>")?),value:empty,binding:None},span));
-            let actual=Expr::new(ExprKind::Closure{id:self.next_closure,params:vec![],result,body:vec![statement(StmtKind::Return(Some(original)),span)]},span);self.next_closure+=1;
-            let body=vec![statement(StmtKind::Assign{target:name(&getter,span),value:actual,operator:None},span),statement(StmtKind::Expr(call("@match:yield",vec![call(&getter,vec![],span)],span)),span)];
-            *expression=Expr::new(ExprKind::Match{id:usize::MAX-self.next,body},span);self.next+=1;
-            bindings.push((if key.text=="className"{self.class_binding}else{self.variant_binding}.expect("attribute binder"),getter));
-        }
-        if prefix.is_empty(){return Ok(());}
-        let span=value.span;self.wrapped.push(span);let original=std::mem::replace(value,Expr::new(ExprKind::Undefined,span));let mut result=original;
-        for(binder,getter)in bindings{result=call(binder,vec![result,name(&getter,span)],span);}
-        prefix.push(statement(StmtKind::Expr(call("@match:yield",vec![result],span)),span));
-        *value=Expr::new(ExprKind::Match{id:usize::MAX-self.next,body:prefix},span);self.next+=1;Ok(())
-    }
     fn branch_expression(&mut self,value:&mut Expr,scope:&Scope)->Result<bool,Diagnostic> {
         if scalar_text(value,scope,&self.scalar_functions,&self.shadowed){return Ok(false);}
         let ExprKind::Conditional{predicate,..}=&value.kind else{return Ok(false)};
@@ -67,7 +45,6 @@ impl Lower<'_> {
     }
     fn expression(&mut self,value:&mut Expr,scope:&Scope)->Result<(),Diagnostic> {
         crate::source_walk::expression_pruned(value,&mut |value| {
-            self.attributes(value,scope)?;
             let span=value.span;
             if let ExprKind::Record(fields)=&mut value.kind {
                 for (key,value) in fields {
@@ -89,11 +66,11 @@ impl Lower<'_> {
                     let mut reactive=false;
                     crate::source_walk::expression(value,&mut |expression| {if let ExprKind::Name(name)=&expression.kind {reactive|=scope.contains_key(name);}Ok(())})?;
                     if reactive {
-                        let span=value.span;let original=std::mem::replace(value,Expr::new(ExprKind::Undefined,span));
+                        let record_span=span;let span=value.span;let original=std::mem::replace(value,Expr::new(ExprKind::Undefined,span));
                         // Retained getters carry the declared scalar union through owning callback storage.
-                        let result=if key.text=="value"{crate::syntax::ResultAnnotation::Named(Box::new(crate::type_syntax::parse("string | int | number")?))}else{crate::syntax::ResultAnnotation::Inferred(span)};
+                        let result=if generic{crate::syntax::ResultAnnotation::Named(Box::new(self.reactive_types[&(record_span.start,record_span.end,key.text.clone())].clone()))}else if key.text=="value"{crate::syntax::ResultAnnotation::Named(Box::new(crate::type_syntax::parse("string | int | number")?))}else{crate::syntax::ResultAnnotation::Inferred(span)};
                         let closure=Expr::new(ExprKind::Closure{id:self.next_closure,params:vec![],result,body:vec![statement(StmtKind::Return(Some(original)),span)]},span);self.next_closure+=1;
-                        *value=call(if generic{self.reactive.expect("reactive prop binder")}else if key.text=="value"{self.value_binding}else{self.condition},vec![closure],span);
+                        *value=call(if generic{"@native:std:ui-runtime#reactive"}else if key.text=="value"{self.value_binding}else{self.condition},vec![closure],span);
                     }
                 }
             }
@@ -138,7 +115,7 @@ impl Lower<'_> {
         for statement in statements {
             match &mut statement.kind {
                 StmtKind::Let{rebindable,name,value,..}=>{
-                    let state=matches!(&value.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(n) if n==self.signal || self.location.is_some_and(|location|n==location) || self.computed.is_some_and(|computed|n==computed)));
+                    let state=matches!(&value.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(n) if n==self.signal || self.location.is_some_and(|location|n==location) || self.computed.is_some_and(|computed|n==computed) || self.prop.is_some_and(|prop|n==prop)));
                     self.expression(value,&scope)?;
                     if state {
                         if !allow_state || *rebindable {return Err(Diagnostic::new("ui-state-owner","Create component state with a direct const declaration outside anonymous callbacks.",name.span));}
@@ -191,8 +168,9 @@ impl Lower<'_> {
     }
 }
 pub(crate) fn retain_state(program:&mut Program,names:&BTreeMap<String,String>)->Result<(),Diagnostic> {
-    let (Some(signal),Some(bind),Some(retain),Some(condition),Some(value_binding),Some(text_binding),Some(branch))=(names.get("signal"),names.get("bindState"),names.get("retainComponentState"),names.get("bindCondition"),names.get("bindValue"),names.get("bindText"),names.get("bindBranch")) else{return Ok(());};
+    let (Some(signal),Some(retain),Some(condition),Some(value_binding),Some(text_binding),Some(branch))=(names.get("signal"),names.get("retainComponentState"),names.get("bindCondition"),names.get("bindValue"),names.get("bindText"),names.get("bindBranch")) else{return Ok(());};
     // Only declared reactive prop contracts receive retained getters; unrelated props stay ordinary values.
+    let mut reactive_types=BTreeMap::new();
     let mut reactive_props=std::collections::BTreeMap::<(usize,usize),std::collections::BTreeSet<String>>::new();
     let text_marker=crate::native_type_resolution::linked_name(crate::native_signatures::NativeTypeId::UiTextBinding);
     let node_marker=crate::native_type_resolution::linked_name(crate::native_signatures::NativeTypeId::UiNode);
@@ -208,18 +186,25 @@ pub(crate) fn retain_state(program:&mut Program,names:&BTreeMap<String,String>)-
         for function in &mut program.functions {crate::source_walk::function_body(function,&mut |_|Ok(()),&mut |expression|{if let ExprKind::Call(callee,args)=&expression.kind{if matches!(&callee.kind,ExprKind::Name(name) if components.contains(name)){if let Some(props)=args.first(){reactive_props.entry((props.span.start,props.span.end)).or_default().insert(property.into());}}}Ok(())})?;}
     }
     }
-    if names.get("bindReactive").is_some(){
+    if names.get("ReactiveValue").is_some(){
      let aliases=[names.get("Reactive"),names.get("ReactiveValue")].into_iter().flatten().collect::<std::collections::BTreeSet<_>>();
-     fn reactive(annotation:&crate::type_syntax::ValueAnnotation,names:&std::collections::BTreeSet<&String>)->bool {use crate::type_syntax::ValueAnnotationKind as K;match &annotation.kind{K::Applied{name,..}=>names.contains(&name.text),K::Group(value)=>reactive(value,names),K::Union(values)=>values.iter().any(|value|reactive(value,names)),_=>false}}
-     let fields=program.records.iter().map(|record|(record.name.text.clone(),record.fields.iter().filter(|field|reactive(&field.annotation,&aliases)).map(|field|format!("generic:{}",field.name.text)).collect::<std::collections::BTreeSet<_>>())).filter(|(_,fields)|!fields.is_empty()).collect::<BTreeMap<_,_>>();
-     let components=program.functions.iter().filter_map(|function|{let (_,annotation,_)=function.params.first()?;use crate::type_syntax::ValueAnnotationKind as K;let name=match &annotation.kind{K::Named(name)|K::Applied{name,..}=>&name.text,_=>return None};Some((function.name.text.clone(),fields.get(name)?.clone()))}).collect::<BTreeMap<_,_>>();
-     for function in &mut program.functions{crate::source_walk::function_body(function,&mut |_|Ok(()),&mut |expression|{if let ExprKind::Call(callee,args)=&expression.kind{if let ExprKind::Name(name)=&callee.kind{if let Some(fields)=components.get(name){if let Some(props)=args.first(){reactive_props.entry((props.span.start,props.span.end)).or_default().extend(fields.clone());}}}}Ok(())})?;}
+     fn reactive(annotation:&crate::type_syntax::ValueAnnotation,names:&std::collections::BTreeSet<&String>)->Option<crate::type_syntax::ValueAnnotation> {use crate::type_syntax::ValueAnnotationKind as K;match &annotation.kind{K::Applied{name,arguments} if names.contains(&name.text)=>arguments.first().cloned(),K::Group(value)=>reactive(value,names),K::Union(values)=>values.iter().find_map(|value|reactive(value,names)),_=>None}}
+     let components=program.functions.iter().filter_map(|function|{
+      let (_,annotation,_)=function.params.first()?;use crate::type_syntax::ValueAnnotationKind as K;let mut annotation=annotation;while let K::Group(inner)=&annotation.kind{annotation=inner;}
+      let (name,arguments)=match &annotation.kind{K::Named(name)=>(&name.text,&[][..]),K::Applied{name,arguments}=>(&name.text,arguments.as_slice()),_=>return None};
+      let record=program.records.iter().find(|record|record.name.text==*name)?;let bindings=record.type_parameters.iter().zip(arguments).map(|(parameter,value)|(parameter.text.clone(),value.clone())).collect();
+      let mut selected=BTreeMap::new();
+      for field in &record.fields{let mut annotation=field.annotation.clone();crate::type_substitution::apply(&mut annotation,&bindings).ok()?;if let Some(payload)=reactive(&annotation,&aliases){selected.insert(field.name.text.clone(),payload);}}
+      Some((function.name.text.clone(),selected))
+     }).collect::<BTreeMap<_,_>>();
+     for function in &mut program.functions{crate::source_walk::function_body(function,&mut |_|Ok(()),&mut |expression|{if let ExprKind::Call(callee,args)=&expression.kind{if let ExprKind::Name(name)=&callee.kind{if let Some(fields)=components.get(name){if let Some(props)=args.first(){for (field,payload) in fields{reactive_props.entry((props.span.start,props.span.end)).or_default().insert(format!("generic:{field}"));reactive_types.insert((props.span.start,props.span.end,field.clone()),payload.clone());}}}}}Ok(())})?;}
     }
     let mut next_closure=0;
     for function in &mut program.functions {crate::source_walk::function_body(function,&mut |_|Ok(()),&mut |expr|{if let ExprKind::Closure{id,..}=&expr.kind {next_closure=next_closure.max(id+1);}Ok(())})?;}
     let scalar_functions=program.functions.iter().filter(|function|matches!(&function.result,Some(crate::syntax::ResultAnnotation::Named(value)) if scalar_annotation(value))).map(|function|function.name.text.clone()).chain(["String","Number","Boolean","parseInt","parseFloat","isNaN","isFinite"].into_iter().map(str::to_owned)).collect();
     let child_result=crate::native_type_resolution::project(&mut program.records,&super::CHILD_VALUE,Span::default())?;
-    let mut lower=Lower{primitives:["View","Text","Button","Input","Textarea","TextField","Link","CopyButton"].into_iter().filter_map(|name|names.get(name).cloned()).collect(),class_binding:names.get("bindClasses"),variant_binding:names.get("bindVariant"),wrapped:vec![],computed:names.get("computed"),reactive:names.get("bindReactive"),branch,child_result,scalar_functions,shadowed:Default::default(),text_binding,reactive_props,condition,value_binding,next_closure,signal,location:names.get("location"),bind,retain,next:0,constructors:vec![]};
+    let bind="@native:std:ui-runtime#handle";
+    let mut lower=Lower{computed:names.get("computed"),prop:names.get("useProp"),branch,child_result,scalar_functions,shadowed:Default::default(),text_binding,reactive_types,reactive_props,condition,value_binding,next_closure,signal,location:names.get("location"),bind,retain,next:0,constructors:vec![]};
     for function in &mut program.functions {
         if names.values().any(|name|name==&function.name.text) {continue;}
         fn locals(body:&[Stmt],names:&mut std::collections::BTreeSet<String>) {
@@ -239,8 +224,8 @@ pub(crate) fn retain_state(program:&mut Program,names:&BTreeMap<String,String>)-
         lower.shadowed=shadowed;
         lower.body(&mut function.body,&Scope::new(),&[],true)?;
         crate::source_walk::function_body(function,&mut |_|Ok(()),&mut |expression| {
-            if matches!(&expression.kind,ExprKind::Name(name) if name==signal || names.get("location").is_some_and(|location|name==location)) && !lower.constructors.contains(&expression.span) {
-                return Err(Diagnostic::new("ui-state-owner","Create component state with a direct const declaration; signal constructor aliases are not supported.",expression.span));
+            if matches!(&expression.kind,ExprKind::Name(name) if name==signal || ["location","computed","useProp"].iter().any(|constructor|names.get(*constructor).is_some_and(|value|name==value))) && !lower.constructors.contains(&expression.span) {
+                return Err(Diagnostic::new("ui-state-owner","Create component state with a direct const declaration; state constructor aliases are not supported.",expression.span));
             }
             Ok(())
         })?;

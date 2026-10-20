@@ -8,6 +8,7 @@ pub(in crate::analysis) enum Prelude{
 pub(in crate::analysis) enum Frame{
     Mutation,
     ArrayUnionWiden(Type),
+    ScalarUnionWiden(Type),
     Stored(super::StoredValueFrame),
     StoredInjection{stored:super::StoredValueFrame,injection:Injection},
     Projection(Projection),
@@ -28,6 +29,10 @@ impl Analyzer{
         let result=match frame{
             Frame::Stored(frame)=>result.and_then(|actual|self.finish_stored_value(context,expr,frame,actual)),
             Frame::StoredInjection{stored,injection}=>result.and_then(|actual|self.finish_stored_value(context,expr,stored,actual)).and_then(|actual|self.finish_injection_work(context,expr,injection,actual)),
+            Frame::ScalarUnionWiden(target)=>result.and_then(|actual|{
+                if !actual.union().is_some_and(|id|self.unions.members(id).iter().all(|&member|target.accepts_scalar_value(member))){return Err(Diagnostic::new("type","Every union alternative must have the destination scalar type.",expr.span));}
+                expr.wrap_record_carrier(target);Ok(target)
+            }),
             Frame::ArrayUnionWiden(target)=>result.and_then(|actual|self.finish_array_union_widening(expr,target,actual)),
             Frame::Mutation=>{context.mutation_place=None;result},
             Frame::Projection(frame)=>self.finish_projection_work(context,expr,frame,result),
@@ -180,6 +185,7 @@ impl Analyzer{
         };
         let member_hint = member_hint.filter(|ty| !matches!(ty, Type::Union(_)));
         let member_hint = match &expr.kind {
+            ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if name=="@native:std:ui-runtime#reactive") => Some(Type::Record(self.ui_reactive_prop_type(Some(expected),expr.span)?.0)),
             ExprKind::Record(fields) if member_hint.is_none() => {
                 self.record_alternative(union, fields, expr.span)?
             }
