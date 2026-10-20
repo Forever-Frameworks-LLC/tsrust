@@ -678,11 +678,19 @@ function semanticConfig(tag: string, role: string, label: ReactiveValue<string |
     tag, role, label: '', id, hidden: false, slot, size, variant, orientation, describedBy: '', invalid: '', htmlFor, windowDragRegion, tabIndex
   };
   if ((label === undefined || typeof label === 'string') && (hidden === undefined || typeof hidden === 'boolean') && (describedBy === undefined || typeof describedBy === 'string') && (invalid === undefined || typeof invalid === 'boolean')) {
-    if (tag === '' && role === '' && (label === undefined || label === '') && id === '' && (hidden === undefined || !hidden) && slot === '' && size === '' && variant === '' && orientation === '' && (describedBy === undefined || describedBy === '') && invalid === undefined && htmlFor === '' && !windowDragRegion && tabIndex === undefined) {
+    if (config.tag === '' && config.role === '' && (label === undefined || label === '') && config.id === '' && (hidden === undefined || !hidden) && config.slot === '' && config.size === '' && config.variant === '' && config.orientation === '' && (describedBy === undefined || describedBy === '') && invalid === undefined && config.htmlFor === '' && !config.windowDragRegion && config.tabIndex === undefined) {
       return '';
     }
 
-    return semanticSnapshot(config, label, hidden, describedBy, invalid);
+    config.label = typeof label === 'string' ? clone(label) : '';
+    config.hidden = typeof hidden === 'boolean' ? hidden : (config.tag === 'svg' && config.label === '');
+    config.describedBy = typeof describedBy === 'string' ? clone(describedBy) : '';
+    config.invalid = typeof invalid === 'boolean' ? String(invalid) : '';
+    if (config.tag === 'svg' && config.role === '') {
+      config.role = config.label === '' ? 'presentation' : 'img';
+    }
+
+    return JSON.stringify(config);
   }
 
   return {

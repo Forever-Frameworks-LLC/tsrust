@@ -6948,7 +6948,8 @@ impl Emitter<'_> {
                     && !(b.parameter && (b.omission.is_omittable() || (b.mode==Mode::Mutate && self.multiple_data_union(b.ty))) && b.ty.union().is_some()))
                 || b.borrowed_element.is_some()
                 || b.borrowed_place.is_some()
-                || b.mutable_place))
+                || b.mutable_place
+                || (b.capture_reference && matches!(b.ty,Type::Union(_)))))
             || (b.ty.is_copy() && b.capture_reference)
         {
             "*"
