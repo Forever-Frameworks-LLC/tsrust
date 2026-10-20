@@ -86,11 +86,11 @@ impl Node {
             if !selected || branch.initialized {return Ok(1);}
             branch.initialized=true;
         }else{self.children.clear();}
-        if let Some(mut child)=if selected{(branch.present)()?}else{(branch.absent)()?} {
+        let child=if branch.retained {let mut factory=std::mem::replace(&mut branch.present,Box::new(||Ok(None)));factory()}else if selected{(branch.present)()}else{(branch.absent)()};
+        if let Some(mut child)=child? {
             child.reset_identities();if child.theme.is_none(){child.theme=self.theme.clone();child.theme_inherited=child.theme.is_some();child.inherit_branch_theme();}
             self.children.push(child);
         }
-        if branch.retained {branch.present=Box::new(||Ok(None));}
         Ok(1)
     }
     pub(crate) fn inherit_branch_theme(&mut self) {
@@ -165,5 +165,14 @@ mod retained_route_tests {
   let next=crate::navigation::location(String::from,Clone::clone).unwrap();assert!(route.refresh().is_err());drop(route);drop(next);
   let owner=crate::navigation::location(String::from,Clone::clone).unwrap();let dropped=Rc::new(Cell::new(0));let probe=Release(dropped.clone());let route=Node::route("/never",true,move||{let _=&probe;Ok(None)}).unwrap();assert_eq!(dropped.get(),0);drop(route);assert_eq!(dropped.get(),1);drop(owner);
   for path in ["/docs#part","/docs?query","/../bad","https://host"] {assert!(Node::route(path,true,||Ok(None)).is_err(),"{path}");}
+ }
+}
+
+#[cfg(test)] mod failed_route_tests {
+ use super::*;use std::{rc::Rc,cell::Cell};
+ #[test] fn failed_first_visit_releases_factory_captures_and_does_not_retry(){
+  struct Release(Rc<Cell<usize>>);impl Drop for Release{fn drop(&mut self){self.0.set(self.0.get()+1);}}
+  let owner=crate::navigation::location(String::from,Clone::clone).unwrap();let released=Rc::new(Cell::new(0));let called=Rc::new(Cell::new(0));let counter=called.clone();let probe=Release(released.clone());
+  let mut route=Node::route("/bad",true,move||{let _=&probe;counter.set(counter.get()+1);Err("construction failed".into())}).unwrap();owner.set("/bad".into()).unwrap();assert_eq!(route.refresh().unwrap_err(),"construction failed");assert_eq!(released.get(),1);route.refresh().unwrap();assert_eq!(called.get(),1);drop(route);assert_eq!(released.get(),1);
  }
 }
