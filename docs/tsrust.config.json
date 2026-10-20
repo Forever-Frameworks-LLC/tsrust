@@ -90,7 +90,8 @@
       "src/components/ui/label.tsrx",
       "src/components/ui/kbd.tsrx",
       "src/components/ui/separator.tsrx",
-      "src/components/ui/aspect-ratio.tsrx"
+      "src/components/ui/aspect-ratio.tsrx",
+      "src/components/ui/alert.tsrx"
     ],
     "examples": [
       {
@@ -169,6 +170,42 @@
         "id": "aspect-ratio-layout",
         "source": "src/examples/aspect-ratio-layout.tsrx",
         "export": "AspectRatioLayout",
+        "kind": "component"
+      },
+      {
+        "id": "alert-variants",
+        "source": "src/examples/alert-variants.tsrx",
+        "export": "AlertVariants",
+        "kind": "component"
+      },
+      {
+        "id": "alert-actions",
+        "source": "src/examples/alert-actions.tsrx",
+        "export": "AlertActions",
+        "kind": "component"
+      },
+      {
+        "id": "alert-validation",
+        "source": "src/examples/alert-validation.tsrx",
+        "export": "AlertValidation",
+        "kind": "component"
+      },
+      {
+        "id": "alert-layouts",
+        "source": "src/examples/alert-layouts.tsrx",
+        "export": "AlertLayouts",
+        "kind": "component"
+      },
+      {
+        "id": "alert-theme",
+        "source": "src/examples/alert-theme.tsrx",
+        "export": "AlertTheme",
+        "kind": "component"
+      },
+      {
+        "id": "parent-positioning",
+        "source": "src/examples/parent-positioning.tsrx",
+        "export": "ParentPositioning",
         "kind": "component"
       }
     ]

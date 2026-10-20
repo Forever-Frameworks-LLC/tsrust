@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import {textContrasts} from './text-contrast.mjs';
 
 export async function observeDocsExperience({evaluate,call,errors,site}) {
  const catalog=JSON.parse(fs.readFileSync(new URL('../../docs/target/docs-content/catalog.json',import.meta.url)));
@@ -15,7 +16,7 @@ export async function observeDocsExperience({evaluate,call,errors,site}) {
  const group=async name=>{const links=await evaluate(`Array.from(document.querySelectorAll('nav[aria-label="Documentation sections"] a')).map(a=>({href:a.getAttribute('href'),text:a.textContent}))`);assert(links.some(link=>link.href==='/docs/'+name),JSON.stringify({links,mounts:await evaluate('window.ui.mounts.map(m=>m.error())'),headings:await evaluate('Array.from(document.querySelectorAll(\"h1\")).map(h=>h.textContent)')}));await evaluate(`document.querySelector('nav[aria-label="Documentation sections"] a[href=${JSON.stringify('/docs/'+name)}]').click()`);await wait(`location.pathname===${JSON.stringify('/docs/'+name)}`);};
  const theme=()=>evaluate(`document.querySelector('button[aria-label="Toggle light and dark theme"]').click()`);
  const modeColors=()=>evaluate(`Object.fromEntries(['keyword','string','number','type'].map(kind=>[kind,Array.from(document.querySelectorAll('[data-slot="'+kind+'"]')).filter(x=>x.getClientRects().length).map(x=>getComputedStyle(x).color)[0]??null]))`);
- const contrast=()=>evaluate(`(()=>{const canvas=document.createElement('canvas');canvas.width=canvas.height=1;const context=canvas.getContext('2d',{willReadFrequently:true});function rgba(color){context.clearRect(0,0,1,1);context.fillStyle=color;context.fillRect(0,0,1,1);return [...context.getImageData(0,0,1,1).data].map((value,index)=>index===3?value/255:value);}function over(top,bottom){return top.slice(0,3).map((value,index)=>value*top[3]+bottom[index]*(1-top[3]));}function luminance(rgb){return rgb.map(value=>{value/=255;return value<=.04045?value/12.92:((value+.055)/1.055)**2.4;}).reduce((sum,value,index)=>sum+value*[.2126,.7152,.0722][index],0);}return Array.from(document.querySelectorAll('[data-slot=keyword],[data-slot=string],[data-slot=number],[data-slot=type]')).filter(node=>node.getClientRects().length).slice(0,100).map(node=>{let ancestors=[];for(let parent=node;parent;parent=parent.parentElement)ancestors.push(parent);let background=[255,255,255];for(const parent of ancestors.reverse())background=over(rgba(getComputedStyle(parent).backgroundColor),background);const a=luminance(background),b=luminance(over(rgba(getComputedStyle(node).color),background));return (Math.max(a,b)+.05)/(Math.min(a,b)+.05);});})()`);
+ const contrast=()=>textContrasts(evaluate,'[data-slot=keyword],[data-slot=string],[data-slot=number],[data-slot=type]');
  const state=()=>evaluate('window.ui.mounts.map(m=>m.error())');
  await call('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
  await evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))');

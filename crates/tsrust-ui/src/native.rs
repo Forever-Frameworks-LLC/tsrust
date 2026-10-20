@@ -1601,6 +1601,11 @@ mod navigation_semantic_tests {
 
 #[cfg(test)]mod positioning_tests {
  use super::*;
+ #[test]fn intrinsic_alert_action_stays_out_of_grid_flow_and_keeps_live_role(){
+  let action=Node::view(vec![crate::Child::Node(Node::button("Retry".into(),"text-xs px-2 py-1".into(),false,||Ok(())).unwrap())],"absolute top-2 right-2".into()).unwrap().with_semantics(r#"{"slot":"alert-action"}"#).unwrap();
+  let title=Node::text(vec![crate::TextPart::Literal("Connection failed".into())],"text-sm font-medium".into()).unwrap();let description=Node::text(vec![crate::TextPart::Literal("Check the server address.".into())],"text-sm".into()).unwrap();
+  let root=Node::view(vec![crate::Child::Node(title),crate::Child::Node(description),crate::Child::Node(action)],"grid grid-cols-1 gap-0.5 px-2.5 py-2 border has-data-[slot=alert-action]:pr-18".into()).unwrap().with_semantics(r#"{"role":"alert","variant":"destructive"}"#).unwrap();root.ensure_identities();let action_id=root.children[2].identity.get();let mut painter=Painter::new();let (_,tree)=painter.scene(&root,320.,1.,None).unwrap();let parent=&tree.nodes.iter().find(|(id,_)|id.0==root.identity.get()).unwrap().1;assert_eq!(parent.role(),accesskit::Role::Alert);assert_eq!(parent.live(),Some(accesskit::Live::Assertive));let rect=tree.nodes.iter().find(|(id,_)|id.0==action_id).unwrap().1.bounds().unwrap();assert!((rect.y0-9.).abs()<0.05&&((rect.x1+9.)-320.).abs()<0.05,"{rect:?}");assert!(rect.width()<72.,"Action must shrink to its button rather than stretching across the content: {rect:?}");
+ }
  #[test] fn parent_positioning_has_matching_flow_bounds_and_source_order(){
   let cases=[("absolute top-2 right-2 w-8 h-8",214.,10.,32.,32.),("absolute inset-x-4 top-1/2 h-8",18.,96.,220.,32.),("relative top-2 left-1/4 w-8 h-8 shrink-0",73.,26.,32.,32.),("absolute -left-2 -top-2 w-8 h-8",-6.,-6.,32.,32.)];
   let mut observed=Vec::new();for display in ["flex","grid"]{for (index,(classes,x,y,width,height)) in cases.into_iter().enumerate(){

@@ -56,7 +56,7 @@
       "name": "alert",
       "source": "apps/v4/registry/bases/base/ui/alert.tsx",
       "gitBlobSha1": "e9aa02f381ef6e588cfb57696f76703c0f7c4ceb",
-      "status": "pending",
+      "status": "partial",
       "capabilityFamilies": [
         "semantic-elements"
       ],
@@ -65,7 +65,8 @@
         "Default composition",
         "Variants, sizes and caller customization",
         "Keyboard, accessibility and light/dark states"
-      ]
+      ],
+      "notes": "Four editable text/action subcomponents, default/destructive palettes, assertive/polite live roles, retained hidden state, scoped modes and checked parent positioning. SVG icons, arbitrary descendant CSS, text balancing, generic reactive variant props and render composition remain unsupported. Focused acceptance pending."
     },
     {
       "name": "aspect-ratio",

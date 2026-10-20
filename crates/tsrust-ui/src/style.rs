@@ -257,6 +257,7 @@ pub(crate) fn validate_inline(classes:&str)->Result<(),String> {
  #[test] fn variant_predicates_keep_ancestor_and_caller_override_rules(){
   let child=super::super::Node::view(vec![],"text-muted-foreground group-data-[variant=destructive]/alert:text-destructive/90 text-primary".into()).unwrap();
   let root=super::super::Node::view(vec![],"group/alert".into()).unwrap().with_semantics(r#"{"variant":"destructive","slot":"alert"}"#).unwrap();let theme=Theme::default();
+  let base=super::super::Node::view(vec![],"text-muted-foreground group-data-[variant=destructive]/alert:text-destructive/90".into()).unwrap();let selected=resolved_node(&base,&[&root],&theme,"light");assert!(selected.iter().any(|(_,value)|matches!(value,Utility::Foreground(color)if *color==theme.color("light","destructive").unwrap().opacity(0.9))));
   let rules=resolved_node(&child,&[&root],&theme,"light");assert!(rules.iter().any(|(_,value)|matches!(value,Utility::Foreground(color)if *color==theme.color("light","primary").unwrap())));
   assert!(super::super::Node::view(vec![],String::new()).unwrap().with_semantics(r#"{"variant":"bad value"}"#).is_err());
   let html=super::super::document(&root,"Variant");assert!(html.contains("data-variant=\"destructive\""));
