@@ -83,7 +83,7 @@
     "inventory": "plans/ui-component-coverage.json",
     "apiSources": [
       "std:ui",
-      "src/components/ui/button.tsrx",
+      "src/components/ui/button-v3.tsrx",
       "src/components/ui/card.tsrx",
       "src/components/ui/input.tsrx",
       "src/components/ui/textarea.tsrx",

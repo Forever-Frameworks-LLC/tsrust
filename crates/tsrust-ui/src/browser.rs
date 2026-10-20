@@ -36,19 +36,21 @@ fn order_children(parent:&Element,children:&[Element])->Result<(),JsValue> {
     while let Some(node)=next{next=node.next_sibling();parent.remove_child(&node)?;}
     Ok(())
 }
+fn semantic_attributes(node:&Node)->[(&'static str,&str);11]{
+    [("href",&node.semantics.href),("role",&node.semantics.role),("aria-label",&node.semantics.label),("id",&node.semantics.id),("data-slot",&node.semantics.slot),("data-size",&node.semantics.size),("data-variant",&node.semantics.variant),("for",&node.semantics.html_for),("aria-describedby",&node.semantics.described_by),("aria-invalid",&node.semantics.invalid),("aria-hidden",if node.semantics.hidden{"true"}else{""})]
+}
 fn sync_element(node:&Node,document:&web_sys::Document,all:&mut std::collections::BTreeMap<u64,Element>,composing:&mut std::collections::BTreeMap<u64,String>,theme:&super::theme::Theme,mode:&str)->Result<Element,JsValue> {
     let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));
     let tag=node.tag();
     let id=node.identity.get();let element=if let Some(element)=all.get(&id){element.clone()}else{
     let element=if matches!(node.kind,Kind::Svg|Kind::SvgPath){document.create_element_ns(Some("http://www.w3.org/2000/svg"),tag)?}else{document.create_element(tag)?};
-    for (key,value) in [("href",&node.semantics.href),("role",&node.semantics.role),("aria-label",&node.semantics.label),("id",&node.semantics.id),("data-slot",&node.semantics.slot),("data-size",&node.semantics.size),("data-variant",&node.semantics.variant),("for",&node.semantics.html_for),("aria-describedby",&node.semantics.described_by),("aria-invalid",&node.semantics.invalid)] {
+    for (key,value) in semantic_attributes(node) {
         if !value.is_empty(){element.set_attribute(key,value)?;}
     }
     if let Some(index)=node.semantics.tab_index{element.set_attribute("tabindex",&index.to_string())?;}
     if node.kind==Kind::View{element.set_attribute("data-tsrust-view","")?;}
     if node.kind==Kind::Text{element.set_attribute("data-tsrust-text","")?;}
     if node.semantics.role=="separator"{let orientation=if node.semantics.orientation=="vertical"{"vertical"}else{"horizontal"};element.set_attribute("aria-orientation",orientation)?;element.set_attribute("data-orientation",orientation)?;element.set_attribute(if orientation=="vertical"{"data-vertical"}else{"data-horizontal"},"")?;}
-    if node.semantics.hidden{element.set_attribute("aria-hidden","true")?;}
     if node.theme.is_some(){element.set_attribute("data-tsrust-theme","")?;}
     element.set_attribute("style",&super::web::scope(node,theme,mode))?;
     element.set_attribute("class",&format!("ui {}",node.class_name))?;
@@ -68,6 +70,13 @@ fn sync_element(node:&Node,document:&web_sys::Document,all:&mut std::collections
     if node.press.is_some()||node.copy.is_some(){element.set_attribute("data-tsrust-press","")?;}
     all.insert(id,element.clone());element};
 
+    if node.semantic_binding.is_some(){
+        for (key,value) in semantic_attributes(node){
+            let current=element.get_attribute(key);
+            if value.is_empty(){if current.is_some(){element.remove_attribute(key)?;}}
+            else if current.as_deref()!=Some(value){element.set_attribute(key,value)?;}
+        }
+    }
     if node.class_binding.is_some(){
         let classes=format!("ui {}",node.class_name);
         if element.get_attribute("class").as_deref()!=Some(classes.as_str()){element.set_attribute("class",&classes)?;}

@@ -1,5 +1,5 @@
 import { View, Text, Input, Button, Svg, Path, Node, signal } from 'std:ui';
-import { Button as LocalButton } from '../components/ui/button';
+import { Button as LocalButton } from '../components/ui/button-v3';
 import { Badge } from '../components/ui/badge';
 
 export function ReactiveSemanticsExample(): Node {
@@ -7,8 +7,8 @@ export function ReactiveSemanticsExample(): Node {
   return (
     <View className="gap-4">
       <Input id="metadata-draft" defaultValue="Kept draft" aria-label={changed.get() ? 'Renamed draft' : 'Draft'} aria-describedby={changed.get() ? 'metadata-error' : 'metadata-hint'} aria-invalid={changed.get() ? true : undefined} className="rounded border px-3 py-2 aria-invalid:border-destructive"/>
-      <Text id="metadata-hint" className="text-sm text-muted-foreground">Keep this draft while changing metadata.</Text>
-      <Text id="metadata-error" className="text-sm text-destructive">A validation message chosen by application code.</Text>
+      <Text id="metadata-hint" className="text-sm text-muted-foreground">Choose a unique project name.</Text>
+      <Text id="metadata-error" className="text-sm text-destructive">That name is already in use.</Text>
       <LocalButton id="metadata-toggle" aria-label={changed.get() ? 'Restore metadata' : 'Change metadata'} onPress={() => { changed.set(!changed.get()); }}>Change metadata</LocalButton>
       <Badge id="metadata-badge" aria-label={changed.get() ? 'Updated status' : 'Initial status'} render={(props) => <Button {...props}/>}>Status action</Badge>
       <View id="metadata-decoration" aria-hidden={changed.get()}><Text>Decorative detail</Text></View>

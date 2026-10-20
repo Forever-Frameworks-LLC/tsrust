@@ -7,6 +7,10 @@ Accessible names, descriptions and validation state can change without replacing
 a control. The same props update browser attributes and native accessibility.
 Typing, selection, focus and component state remain attached to the original node.
 
+The example uses editable Button version 3. `tsrust ui add button --offline`
+preserves an existing button file and installs the new source as `button-v3.tsrx`;
+existing application imports stay unchanged. Compiler API 8 is required.
+
 ## Live properties
 
 `aria-label`, `aria-describedby`, `aria-hidden` and `aria-invalid`
@@ -32,8 +36,8 @@ geometry and identity throughout these changes.
 ## Validation and ownership
 
 Metadata follows the same checked rules on every update. Names on generic text or
-presentation fail. Regions need nonblank names.  Invalid JSON or metadata does not replace valid
-metadata. Getters must not mutate state; their errors propagate and stop a mounted
+presentation fail. Regions need nonblank names. Invalid JSON or metadata does not
+replace valid metadata. Getters must not mutate state; their errors propagate and stop a mounted
 tree through normal cleanup.
 
 Accessibility-hidden content cannot contain enabled controls. Disabling controls
@@ -45,5 +49,5 @@ Each affected node owns one metadata evaluator. Its state captures remain weak;
 disposing the subtree releases the evaluator. Constants use the static path.
 Identity, tags, explicit roles, slots and size metadata stay construction-time values.
 Existing Card wrappers can continue cloning static size metadata; live size
-forwarding needs a separate compatible prop contract. Expanded
-relationships, event/ref merging and focus scopes remain separate work.
+forwarding needs a separate compatible prop contract. Expanded relationships,
+event/ref merging and focus scopes remain separate work.

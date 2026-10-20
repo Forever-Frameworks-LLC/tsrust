@@ -369,6 +369,40 @@
           "generatedSha256": "9ee8994f0226a86fc0d65239375c01729fd835af2300cf5a991fa8bb19b66699"
         }
       ]
+    },
+    {
+      "identity": {
+        "name": "button",
+        "version": "3.0.0",
+        "variant": "default"
+      },
+      "destination": "src/components/ui",
+      "catalog": "bundled-2026-10-20",
+      "payloadSha256": "974a6f5ea4e88b9d0c23b1be662c0fcc2156075d0a1262f7f500966227012a29",
+      "compilerSha256": "580f985e7eb9be65d8f74fbcbf6d0d4eb1636e4b4cdff79b700eb6258663a21b",
+      "compilerVersion": "0.1.0",
+      "compilerApi": 8,
+      "runtimeAbi": "ui-application-1",
+      "rust": "1.96.1",
+      "license": "MIT",
+      "attribution": {
+        "path": "attributions/tsrust-MIT.txt",
+        "sha256": "cbec69fd61450e157d5fcd9a18131012cd5eae59da5e834e8ef140aa7a363a12"
+      },
+      "dependencies": [
+        {
+          "name": "tokens",
+          "version": "1.0.0",
+          "variant": "default"
+        }
+      ],
+      "files": [
+        {
+          "path": "src/components/ui/button-v3.tsrx",
+          "templateSha256": "34a028e7912f825e0f0d11e006680912b7444c58356af03417cc3f321a6682af",
+          "generatedSha256": "1563fc9890493c5c6a017bd0879a1d996a3b3ae7e2cdbb82463431e70b63dfcc"
+        }
+      ]
     }
   ]
 }

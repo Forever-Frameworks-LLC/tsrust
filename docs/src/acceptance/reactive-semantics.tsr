@@ -1,6 +1,7 @@
 import { document } from 'std:ui';
 import { strictEqual } from 'std:testing';
 import { ReactiveSemanticsExample } from '../examples/reactive-semantics';
+import { verify } from './reactive-semantics-documentation';
 
 function main() {
   const node = ReactiveSemanticsExample();
@@ -10,5 +11,6 @@ function main() {
   strictEqual(html.includes('aria-label="Change metadata"'), true);
   strictEqual(html.includes('aria-label="Initial status"'), true);
   strictEqual(html.includes('role="presentation"'), true);
+  verify();
   console.log('Reactive semantics passed');
 }

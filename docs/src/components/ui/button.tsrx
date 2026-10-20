@@ -29,7 +29,7 @@ export function Button(props: ButtonProps): Node {
   }
 
   classes += props.className ?? '';
-  props.variant = undefined;
-  props.size = undefined;
-  return (<PrimitiveButton {...props} className={classes}/>);
+  return PrimitiveButton({
+    children: props.children, className: classes, disabled: props.disabled, onPress: props.onPress
+  });
 }

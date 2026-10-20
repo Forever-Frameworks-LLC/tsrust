@@ -4,9 +4,9 @@ use std::{fs,path::Path};
 #[test]
 fn reactive_semantics_execute_formatted_gallery_and_documented_example(){
  let root=Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs");
- for relative in ["src/examples/reactive-semantics.tsrx","src/acceptance/reactive-semantics.tsr","src/components/ui/button.tsrx"]{let source=fs::read_to_string(root.join(relative)).unwrap();assert_eq!(source,support::format_round_trip(&source));}
- let output=support::run(support::cli().arg("run").arg(root.join("src/acceptance/reactive-semantics.tsr")),180);support::success(&output);assert_eq!(output.stdout,b"Reactive semantics passed\n");
- let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();let entry=catalog["std:ui"].as_array().unwrap().iter().find(|entry|entry["name"]=="ElementProps").unwrap();let example=&entry["examples"][0];let directory=support::TempDirectory::new();support::success(&support::run(support::cli().args(["ui","add","tokens","--offline","--target","native"]).current_dir(&directory.0),30));let path=directory.0.join("main.tsrx");fs::write(&path,support::format_round_trip(example["source"].as_str().unwrap())).unwrap();let output=support::run(support::cli().arg("run").arg(path),180);support::success(&output);assert_eq!(output.stdout,example["output"].as_str().unwrap().as_bytes());
+ for relative in ["src/examples/reactive-semantics.tsrx","src/acceptance/reactive-semantics.tsr","src/acceptance/reactive-semantics-documentation.tsrx","src/components/ui/button-v3.tsrx"]{let source=fs::read_to_string(root.join(relative)).unwrap();assert_eq!(source,support::format_round_trip(&source));}
+ let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();let entry=catalog["std:ui"].as_array().unwrap().iter().find(|entry|entry["name"]=="ElementProps").unwrap();let example=&entry["examples"][0];let documented=example["source"].as_str().unwrap().replace("function main()","export function verify()");assert_eq!(fs::read_to_string(root.join("src/acceptance/reactive-semantics-documentation.tsrx")).unwrap(),support::format_round_trip(&documented));
+ let output=support::run(support::cli().arg("run").arg(root.join("src/acceptance/reactive-semantics.tsr")),180);support::success(&output);assert_eq!(output.stdout,format!("{}Reactive semantics passed\n",example["output"].as_str().unwrap()).as_bytes());
 }
 
 #[test]
