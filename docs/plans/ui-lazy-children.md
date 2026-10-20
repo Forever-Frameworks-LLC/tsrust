@@ -23,10 +23,10 @@ content after an unmount. Eager Child[] forwarding alone cannot provide that.
 
 ## Acceptance
 
-- [ ] Compiler lowering, public type, ownership/order/failure witnesses.
-- [ ] Paired deferred-content example and native runtime integration.
-- [ ] Editor agreement, typing scenarios, hover and documented example.
-- [ ] Independent reference, batched targeted checks, consumers/preview and SQLite.
+- [x] Compiler lowering, public type, ownership/order/failure witnesses.
+- [x] Paired deferred-content example and native runtime integration.
+- [x] Editor agreement, typing scenarios, hover and documented example.
+- [x] Independent reference, batched targeted checks, consumers/preview and SQLite.
 
 This does not by itself complete context providers, event/ref merging, focus or
 compound controls. Complete those contracts before marking dependent components

@@ -1,20 +1,26 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
-Current section — 2026-10-20: shared Svg/Path rendering passes focused native,
-compiler, installed-LSP and actual dev-browser acceptance. See
-[vector acceptance](../milestones/ui-vector-rendering.md). Retained paths, checked
-geometry, viewport policies, semantic paint, icons and a live chart are paired.
-Incomplete JSX also retains generic parameter fields and inherited alias metadata.
-There are 163 destinations, 24 checked examples and 970 API declarations. The CLI
-uses `b79807d3`; the installed/active editor includes `a3525f16`. Settings bytes/time
-are exact. The actual dev route is `/docs/ui/foundations/vector-graphics` on 4317.
+Current section — 2026-10-20: lazy children pass focused generated-native,
+installed-LSP and actual dev-browser acceptance. See
+[lazy-child acceptance](../milestones/ui-lazy-children.md). Ordinary nested JSX
+becomes an owned array factory only for a declared child-factory contract. Eager
+arrays remain eager; resource order, single-use transfer, partial-failure cleanup,
+fresh reopened content and retained parent state pass. Content reports 164 pages,
+25 checked examples and 971 API declarations. The installed CLI/LSP include
+`2ec53b01`; corrected witnesses are `482e86d5`. Settings bytes/time are exact.
+The actual dev gallery is `/docs/ui/foundations/lazy-children` on port 4317.
 
-Continue lazy children/context, event/ref composition, focus/disclosure/overlays,
-then the remaining components/charts/themes/blocks. Svg is a drawing foundation,
-not full chart or SVG parity. Automatic component icon layout and transitions,
-build latency, cold editor scheduling and web delivery remain open. Reuse accepted
-evidence; no additional owner go-ahead is needed. SQLite closure and removal of
-2778752550 bytes of disposable outputs pass. Continue with lazy child composition.
+Continue scoped context, event/ref composition and focus/disclosure/overlays;
+independent components can proceed alongside those foundations. Then finish the
+remaining component/chart/theme/block inventory. The deferred-panel example is
+not a completed disclosure. Build latency, cold editor scheduling, HTML-first
+loading and executable splitting remain open. Reuse accepted evidence and batch
+focused checks; no additional owner go-ahead is needed.
+
+Shared Svg/Path rendering is accepted through `7b82bcfa`; see
+[vector acceptance](../milestones/ui-vector-rendering.md). It supplies checked
+retained paths and paired native Vello/browser SVG, not full chart/SVG parity.
+Vector cleanup removed 2778752550 bytes of disposable outputs.
 
 Accepted Badge section — 2026-10-20: editable Badge and shared text flow pass focused
 native/compiler, installed-LSP and actual dev-browser acceptance. See
