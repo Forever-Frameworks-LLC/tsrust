@@ -215,3 +215,10 @@ fn nova_card_content_source_is_local_complete_and_native_executable() {
  assert!(entries.iter().any(|entry|entry["identity"]["name"]=="button" && entry["compilerApi"]==1));
  assert!(tsrust_compiler::ui_project::supports_compiler_api(1));assert!(tsrust_compiler::ui_project::supports_compiler_api(2));assert!(!tsrust_compiler::ui_project::supports_compiler_api(0));assert!(!tsrust_compiler::ui_project::supports_compiler_api(3));
 }
+
+#[test]
+fn retained_route_documented_example_runs_formatted_and_rejects_bad_contracts(){
+ let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();let example=&catalog["std:ui"].as_array().unwrap().iter().find(|entry|entry["name"]=="Route").unwrap()["examples"][0];
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(example["source"].as_str().unwrap()));let run=support::run(support::cli().arg("run").arg(path),90);support::success(&run);assert_eq!(String::from_utf8(run.stdout).unwrap(),example["output"].as_str().unwrap());
+ for props in ["path=\"/\"","path=\"/\" render={()=> 3}","path=\"/\" exact=\"yes\" render={()=> <Text>Home</Text>}"] {let source=format!("import {{Route,Text}} from 'std:ui';function main(){{const route=<Route {props}/>;}}");let path=directory.source(&support::format_round_trip(&source));let output=support::run(support::cli().arg("check").arg(path),15);assert!(!output.status.success(),"{props}");}
+}

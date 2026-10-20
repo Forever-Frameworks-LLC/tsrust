@@ -5,6 +5,8 @@ use super::{Kind,Node};
 #[cfg_attr(not(any(test,feature="native",all(target_arch="wasm32",feature="ui-web"))),allow(dead_code))]
 pub(crate) struct Branch {
     selected:bool,
+    pub(crate) retained:bool,
+    initialized:bool,
     predicate:Box<dyn FnMut()->Result<bool,String>>,
     present:Box<dyn FnMut()->Result<Option<Node>,String>>,
     absent:Box<dyn FnMut()->Result<Option<Node>,String>>,
@@ -63,18 +65,32 @@ impl Node {
         let selected=predicate()?;let child=if selected{present()?}else{absent()?};
         let mut node=Self::new(Kind::View,String::new(),String::new(),vec![])?;
         node.children=child.into_iter().collect();node.depth=node.children.first().map_or(0,|child|child.depth);for child in &node.children{child.reset_identities();}
-        node.branch=Some(Branch{selected,predicate:Box::new(predicate),present:Box::new(present),absent:Box::new(absent)});Ok(node)
+        node.branch=Some(Branch{selected,retained:false,initialized:selected,predicate:Box::new(predicate),present:Box::new(present),absent:Box::new(absent)});Ok(node)
+    }
+    /// A location match constructs content once and retains it while inactive.
+    pub fn route(path:&str,exact:bool,present:impl FnMut()->Result<Option<Node>,String>+'static)->Result<Self,String> {
+        let predicate=super::navigation::route_predicate(path,exact)?;
+        let mut node=Self::branch(predicate,present,||Ok(None))?;
+        let branch=node.branch.as_mut().expect("route branch");branch.retained=true;node.collapsed=!branch.selected;
+        if branch.initialized {branch.present=Box::new(||Ok(None));}
+        Ok(node)
     }
     #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
     pub(crate) fn refresh_branch(&mut self)->Result<usize,String> {
         let Some(branch)=&mut self.branch else{return Ok(0)};
         let selected=(branch.predicate)()?;
         if selected==branch.selected{return Ok(0);}
-        self.children.clear();branch.selected=selected;
+        branch.selected=selected;
+        if branch.retained {
+            self.collapsed=!selected;
+            if !selected || branch.initialized {return Ok(1);}
+            branch.initialized=true;
+        }else{self.children.clear();}
         if let Some(mut child)=if selected{(branch.present)()?}else{(branch.absent)()?} {
             child.reset_identities();if child.theme.is_none(){child.theme=self.theme.clone();child.theme_inherited=child.theme.is_some();child.inherit_branch_theme();}
             self.children.push(child);
         }
+        if branch.retained {branch.present=Box::new(||Ok(None));}
         Ok(1)
     }
     pub(crate) fn inherit_branch_theme(&mut self) {
@@ -126,4 +142,28 @@ impl Node {
         if self.semantics.hidden && self.has_enabled_controls(){return Err("An aria-hidden subtree cannot contain enabled interactive controls".into());}
         Ok(())
     }
+}
+
+#[cfg(test)]
+mod retained_route_tests {
+ use super::*;
+ use std::{rc::Rc,cell::Cell};
+ struct Release(Rc<Cell<usize>>);impl Drop for Release {fn drop(&mut self){self.0.set(self.0.get()+1);}}
+ #[test] fn retained_routes_construct_once_keep_identity_and_release_only_with_the_owner(){
+  let location=crate::navigation::location(String::from,Clone::clone).unwrap();let control=location.handle();let builds=Rc::new(Cell::new(0));let releases=Rc::new(Cell::new(0));let made=builds.clone();let dropped=releases.clone();
+  let route=Node::route("/docs",true,move||{made.set(made.get()+1);let release=Release(dropped.clone());Ok(Some(Node::button("Count".into(),String::new(),false,move||{let _=&release;Ok(())})?))}).unwrap();
+  let mut root=Node::view(vec![crate::Child::Node(route)],String::new()).unwrap().own_state(location).unwrap();root.refresh().unwrap();assert_eq!(builds.get(),0);
+  control.set("/docs#heading".into()).unwrap();root.refresh().unwrap();assert_eq!(builds.get(),1);let id=root.children[0].children[0].identity.get();assert!(root.activate(id).unwrap());
+  control.set("/".into()).unwrap();root.refresh().unwrap();assert!(!root.activate(id).unwrap());assert_eq!(releases.get(),0);assert!(root.children[0].visible_root().is_none());
+  control.set("/docs".into()).unwrap();root.refresh().unwrap();assert_eq!(root.children[0].children[0].identity.get(),id);assert_eq!(builds.get(),1);assert_eq!(releases.get(),0);
+  drop(root);assert_eq!(releases.get(),1);assert!(control.get().is_err());
+ }
+ #[test] fn prefix_matching_is_segment_based_factories_release_unvisited_and_old_routes_do_not_rebind(){
+  let owner=crate::navigation::location(String::from,Clone::clone).unwrap();let dropped=Rc::new(Cell::new(0));let probe=Release(dropped.clone());
+  let mut route=Node::route("/docs/",false,move||{let _=&probe;Ok(Some(Node::text(vec![],String::new())?))}).unwrap();
+  owner.set("/docs-other".into()).unwrap();route.refresh().unwrap();assert!(route.visible_root().is_none());owner.set("/docs/api".into()).unwrap();route.refresh().unwrap();assert!(route.visible_root().is_some());assert_eq!(dropped.get(),1,"Factory captures release after construction");drop(owner);
+  let next=crate::navigation::location(String::from,Clone::clone).unwrap();assert!(route.refresh().is_err());drop(route);drop(next);
+  let owner=crate::navigation::location(String::from,Clone::clone).unwrap();let dropped=Rc::new(Cell::new(0));let probe=Release(dropped.clone());let route=Node::route("/never",true,move||{let _=&probe;Ok(None)}).unwrap();assert_eq!(dropped.get(),0);drop(route);assert_eq!(dropped.get(),1);drop(owner);
+  for path in ["/docs#part","/docs?query","/../bad","https://host"] {assert!(Node::route(path,true,||Ok(None)).is_err(),"{path}");}
+ }
 }

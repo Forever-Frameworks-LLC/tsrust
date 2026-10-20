@@ -1,12 +1,8 @@
 import { View, Text, Node, Child, Link, CopyButton, signal } from 'std:ui';
 import { CodeBlock } from './code-block';
 import { ExampleCard } from './example-card';
-import { DocExample, renderExample } from '../../../target/docs-content/catalog';
+import { loadExample, renderExample } from '../../../target/docs-content/catalog';
 import { rustMessage } from '../../examples/rust-message';
-
-export interface LandingProps {
-  examples: DocExample[];
-}
 
 interface ChapterProps {
   id: string;
@@ -37,27 +33,17 @@ function Chapter(props: ChapterProps): Node {
   );
 }
 
-function source(examples: ReadOnly<DocExample[]>, id: ReadOnly<string>): Node {
-  for (const example of examples) {
-    if (example.id === id) {
-      return <CodeBlock code={clone(example.code)} tokens={clone(example.tokens)} label={clone(example.source)}/>;
-    }
-  }
-
-  throw 'Landing example is missing from the checked catalog';
+function source(id: ReadOnly<string>): Node {
+  const example = loadExample(id);
+  return <CodeBlock code={example.code} tokens={example.tokens} label={example.source}/>;
 }
 
-function counter(examples: ReadOnly<DocExample[]>): Node {
-  for (const example of examples) {
-    if (example.id === 'counter') {
-      return <ExampleCard id="home-counter" title="counter.tsrx" description="One component. Two targets." source={clone(example.source)} code={clone(example.code)} tokens={clone(example.tokens)}>{renderExample('counter')}</ExampleCard>;
-    }
-  }
-
-  throw 'Counter example is missing from the checked catalog';
+function counter(): Node {
+  const example = loadExample('counter');
+  return <ExampleCard id="home-counter" title="counter.tsrx" description="One component. Two targets." source={example.source} code={example.code} tokens={example.tokens}>{renderExample('counter')}</ExampleCard>;
 }
 
-export function Landing(props: LandingProps): Node {
+export function Landing(): Node {
   const started = signal(false);
   return (
     <View className="px-6 md:px-12 lg:px-16">
@@ -76,15 +62,15 @@ export function Landing(props: LandingProps): Node {
         </View>
       </View>
       <Chapter id="familiar" number="01 / FAMILIAR GROUND" title="Routes you can read. A runtime you can leave behind." description="Compose handlers and middleware with Router. Keep application policy in application code. Axum handles the HTTP foundation." result="HTTP / Router over Axum">
-        {source(props.examples, 'native-service')}
+        {source('native-service')}
         <Link href="/docs/getting-started/project-structure" className="text-sm text-primary py-2 focus:ring">See the project structure {'↗'}</Link>
       </Chapter>
       <Chapter id="rust" number="02 / THE ESCAPE HATCH" title="When you need Rust, import Rust." description="Use a checked Rust binding alongside your Tsrust code. Keep native APIs and explicit ownership at the boundary. Both web and desktop compile this example." result="{ .tsr + .rs } / one checked build">
-        {source(props.examples, 'rust-message')}
+        {source('rust-message')}
         <View className="border-l-2 border-primary pl-4 gap-2"><Text className="font-mono text-xs text-muted-foreground">RUNNING IN THIS APP</Text><Text className="font-mono text-xl">{rustMessage()}</Text></View>
       </Chapter>
       <Chapter id="fabric" number="03 / THE APP FABRIC" title="Two targets. Your components. Your source." description="Build web and desktop interfaces from the same .tsrx component. Add bundled components offline, edit their files and set the theme in your project configuration." result="WEB + NATIVE / shared component state">
-        {counter(props.examples)}
+        {counter()}
       </Chapter>
       <View as="section" className="border-t py-16 md:py-24 gap-8">
         <View className="flex-row items-center justify-between gap-4"><Text className="font-mono text-xs text-primary">LOCAL BY DESIGN</Text><Text className="font-mono text-xs text-muted-foreground">NO REGISTRY REQUEST</Text></View>

@@ -34,6 +34,12 @@ pub fn location<T:Clone+'static>(decode:fn(String)->T,encode:fn(&T)->String)->Re
     Ok(state.with_owner(owner,move|next|{let owner=weak.upgrade().ok_or("UI location is disposed")?;let path=checked_path(&encode(next))?;push(&owner,&path)?;Ok(decode(path))}))
 }
 fn push(owner:&Navigation,path:&str)->Result<(),String>{let path=checked_path(path)?;if (owner.read)()?==path{return Ok(());}browser_history("pushState",Some(&path))?;#[cfg(not(all(target_arch="wasm32",feature="ui-web")))]{let mut history=owner.history.borrow_mut();let end=history.1+1;history.0.truncate(end);history.0.push(path);history.1+=1;}Ok(())}
+pub(crate) fn route_predicate(path:&str,exact:bool)->Result<impl FnMut()->Result<bool,String>+'static,String>{
+    let path=checked_path(path)?;
+    if path.contains('#'){return Err("UI Route paths cannot contain a heading fragment".into());}
+    let owner=Rc::downgrade(&active()?);
+    Ok(move||{let owner=owner.upgrade().ok_or("UI Route location is disposed")?;let current=(owner.read)()?;let current=current.split('#').next().unwrap_or("/");Ok(current==path || !exact && (path=="/" || current.strip_prefix(&path).is_some_and(|rest|rest.starts_with('/'))))})
+}
 pub(crate) fn current()->Option<String>{active().ok().and_then(|owner|(owner.read)().ok())}
 pub(crate) fn is_current(href:&str)->bool{!href.contains('#')&&current().is_some_and(|path|path.split('#').next()==Some(href))}
 pub fn navigate(path:&str)->Result<(),String>{let path=checked_path(path)?;let owner=active()?;push(&owner,&path)?;(owner.write)(path)}

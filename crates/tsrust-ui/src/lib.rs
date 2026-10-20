@@ -240,7 +240,8 @@ impl Node {
     }
     #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
     fn refresh_inner(&mut self) -> Result<usize,String> {
-        let mut changed=0;
+        let retained=self.branch.as_ref().is_some_and(|branch|branch.retained);
+        let mut changed=if retained{self.refresh_branch()?}else{0};
         if let Some(binding)=&mut self.hidden {let next=binding()?;changed+=usize::from(next!=self.collapsed);self.collapsed=next;}
         if self.collapsed{return Ok(changed);}
         if let Some(binding)=&self.theme_mode {
@@ -248,7 +249,7 @@ impl Node {
             theme.color(&mode,"background")?;
             if *current!=mode {*current=mode;changed+=1;self.inherit_branch_theme();}
         }
-        changed+=self.refresh_branch()?;
+        if !retained {changed+=self.refresh_branch()?;}
         let disabled=if let Some(predicate)=&mut self.disabled {Some(predicate()?)}else{None};
         if let Some(value)=disabled {changed+=usize::from(self.apply_disabled(value));}
         let read_only=if let Some(predicate)=&mut self.read_only {Some(predicate()?)}else{None};

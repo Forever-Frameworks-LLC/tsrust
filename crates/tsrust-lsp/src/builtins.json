@@ -13950,6 +13950,34 @@
 ],
   "std:ui": [
     {
+      "name": "Route",
+      "signature": "Route(props: RouteProps): Node",
+      "parameters": [
+        {
+          "label": "props: RouteProps",
+          "documentation": "path is an absolute local path. exact defaults to true. render is an owned zero-argument factory returning Node, called once on first match."
+        }
+      ],
+      "documentation": "Lazily constructs a retained route subtree on web and native. Create the single location() owner first. path uses local navigation rules, normalizes trailing slashes and rejects queries, escapes, traversal and fragments. exact defaults to true; false also matches descendant path segments, so /docs matches /docs/api but not /docs-other. Location fragments do not change the route. render runs once at the first match; later visits preserve the same Nodes, fields, component state and scroll positions. Inactive content leaves layout, input and accessibility. Returns a transparent Node without an extra layout/focus element. Factory errors propagate without an automatic retry. This defers construction, not executable download. Example: <Route path=\"/docs\" render={() => <Text>Documentation</Text>}/> initially renders nothing at / and renders Documentation after navigate(\"/docs\"). Ownership: consumes the factory, drops its captures after construction, retains visited content until parent disposal, and never retains or replaces the location owner. An unvisited factory releases when its parent disposes.",
+      "examples": [{"source": "import {View,Text,Route,location,Node,document} from 'std:ui';function App():Node{const path=location();return <View><Route path=\"/\" render={()=> <Text>Home</Text>}/><Route path=\"/docs\" render={()=> <Text>Documentation</Text>}/></View>;}function main(){const app=App();console.log(document(app,'Route').includes('Home'));}", "output": "true\n"}]
+    },
+    {
+      "name": "RouteProps",
+      "signature": "interface RouteProps",
+      "documentation": "Properties for retained, lazy route content. Supply path and render; exact defaults to true. Only a matching route calls its factory. For example, <Route path=\"/docs\" exact={false} render={() => <Text>Docs</Text>}/> matches /docs and /docs/api. Ownership: transfers the factory once; constructed content remains owned by its route.",
+      "fields": {
+        "path": {
+          "documentation": "Required absolute local route path. Trailing slashes normalize. Queries, escapes, traversal and heading fragments throw. Example: path=\"/docs\" matches /docs, including /docs#heading. Read at construction; changing an ordinary prop record does not update the path. Ownership: copies the checked path into the route."
+        },
+        "exact": {
+          "documentation": "Optional boolean, default true. false matches the path and its descendants at slash boundaries. Example: path=\"/docs\" exact={false} matches /docs/api and rejects /docs-other. / with exact=false matches all local paths. Fragments do not affect matching. Ownership: copies one boolean at construction."
+        },
+        "render": {
+          "documentation": "Required owned zero-argument function returning Node. Runs once on the first match. Example: render={() => <Text>Hello</Text>} constructs Hello only after its route becomes active. Revisits keep the same subtree and state. Errors propagate; no automatic retry. Ownership: consumes the factory and releases captures after its call; uncalled factories and visited subtrees release with the parent."
+        }
+      }
+    },
+    {
       "name": "Link",
       "signature": "Link(props: LinkProps): Node",
       "parameters": [

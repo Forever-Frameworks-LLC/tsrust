@@ -13,7 +13,7 @@ const profile=fs.mkdtempSync(path.join(os.tmpdir(),'tsrust-application-browser-'
 let browser,socket,timer,server;
 try {
  let expected;
- if(!['docs-example','docs-navigation','docs-inline','docs-components','landing-reference'].includes(scenario)){
+ if(!['docs-example','docs-navigation','docs-inline','docs-components','docs-startup','landing-reference'].includes(scenario)){
  const referenceName=scenario==='docs-aspect'?'aspect-ratio-reference':scenario==='docs-landing'?'visibility-reference':'application-reference';
  const compiler=spawnSync(process.execPath,[path.join(here,'../runtime/node_modules/typescript/bin/tsc'),'--target','es2022','--lib','es2022','--skipLibCheck','--outDir',profile,path.join(here,referenceName+'.ts')],{encoding:'utf8',timeout:30000});assert.equal(compiler.status,0,compiler.stderr||compiler.stdout);
  const reference=spawnSync(process.execPath,[path.join(profile,referenceName+'.js')],{encoding:'utf8',timeout:30000});assert.equal(reference.status,0,reference.stderr);expected=JSON.parse(reference.stdout);
@@ -33,6 +33,8 @@ try {
   const {observeLandingReference}=await import('./landing-reference-observer.mjs');await observeLandingReference({evaluate,call,errors,site});
  } else if(scenario==='docs-landing'){
   const {observeDocsLanding}=await import('./docs-landing-observer.mjs');await observeDocsLanding({evaluate,call,errors,site,expected});
+ } else if(scenario==='docs-startup'){
+  const {observeDocsStartup}=await import('./docs-startup-observer.mjs');await observeDocsStartup({evaluate,call,errors,site});
  } else if(scenario==='docs-aspect'){
   const {observeAspectRatio}=await import('./aspect-ratio-observer.mjs');await observeAspectRatio({evaluate,call,errors,site,expected});
  } else if(scenario==='docs-components'){

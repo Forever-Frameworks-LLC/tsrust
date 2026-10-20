@@ -31,7 +31,7 @@ pub struct Theme {
     pub radius:Radius,
     pub typography:Typography,
 }
-impl Default for Theme {fn default()->Self {Self::parse(DEFAULT_JSON).expect("valid bundled theme")}}
+impl Default for Theme {fn default()->Self {static DEFAULT:std::sync::LazyLock<Theme>=std::sync::LazyLock::new(||Theme::parse(DEFAULT_JSON).expect("valid bundled theme"));DEFAULT.clone()}}
 impl Theme {
     pub fn parse(text:&str)->Result<Self,String> {
         let theme:Self=serde_json::from_str(text).map_err(|e|format!("Invalid UI theme: {e}"))?;
@@ -130,5 +130,12 @@ impl Theme {
  use super::*;
  #[test]fn syntax_tokens_are_optional_customizable_and_alias_checked(){
   let mut data:serde_json::Value=serde_json::from_str(DEFAULT_JSON).unwrap();for mode in ["light","dark"]{for key in ["syntaxKeyword","syntaxString","syntaxNumber","syntaxType"]{data[mode].as_object_mut().unwrap().remove(key);}}let default=Theme::parse(&data.to_string()).unwrap();assert_ne!(default.color("light","syntax-string").unwrap(),default.color("dark","syntax-string").unwrap());data["light"]["syntaxString"]="@foreground".into();let custom=Theme::parse(&data.to_string()).unwrap();assert_eq!(custom.color("light","syntax-string").unwrap(),custom.color("light","foreground").unwrap());data["light"]["syntaxString"]="@syntaxString".into();assert!(Theme::parse(&data.to_string()).is_err());data["light"]["syntaxString"]="#not-a-color".into();assert!(Theme::parse(&data.to_string()).is_err());
+ }
+}
+
+#[cfg(test)] mod default_cache_tests {
+ #[test] fn default_theme_cache_returns_independent_editable_values(){
+  let mut first=super::Theme::default();let second=super::Theme::default();first.light.insert("primary".into(),"#000000".into());first.spacing.sm=41.;
+  assert_ne!(first.color("light","primary").unwrap(),second.color("light","primary").unwrap());assert_ne!(first.spacing.sm,second.spacing.sm);assert_eq!(second.light,super::Theme::parse(super::DEFAULT_JSON).unwrap().light);
  }
 }

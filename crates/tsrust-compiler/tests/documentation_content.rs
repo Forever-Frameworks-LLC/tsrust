@@ -54,3 +54,15 @@ fn execution_prepares_content_and_cache_tracks_compiler_sources_and_publications
  let binary=root.join("target/app");let build=support::run(support::cli().arg("build").arg(&entry).arg("-o").arg(&binary),180);support::success(&build);
  let output=support::run(std::process::Command::new(&binary).current_dir(root),30);support::success(&output);assert_eq!(output.stdout,b"Updated\n");
 }
+
+#[test]
+fn page_sized_readable_loaders_and_generated_output_cache_remain_checked(){
+ let temp=support::TempDirectory::new();let root=&temp.0;fs::create_dir_all(root.join("content")).unwrap();fs::create_dir_all(root.join("src")).unwrap();
+ fs::write(root.join("tsrust.config.json"),r#"{"schemaVersion":1,"name":"lazy-content","build":{"entry":"src/main.tsr","output":"target/app"},"documentation":{"content":"content","examples":[],"apiSources":[],"inventory":null}}"#).unwrap();
+ for (name,title) in [("index","Home"),("second","Second")]{let header=format!("<!-- tsrust-docs\n{{\"id\":\"{name}\",\"group\":\"guides\",\"order\":0,\"status\":\"ready\",\"targets\":[\"web\",\"native\"]}}\n-->\n# {title}\n\nExact café text and `code`.\n");fs::write(root.join(format!("content/{name}.md")),header).unwrap();}
+ let entry=root.join("src/main.tsr");let source="import {loadNavigation,loadPage,loadCatalog,loadSearch,pageId} from '../target/docs-content/catalog';import {strictEqual} from 'std:testing';function main(){const index=loadNavigation();strictEqual(index.length,2);const selected=loadPage('/second');strictEqual(selected.pages.length,1);strictEqual(selected.pages[0].document.title,'Second');strictEqual(pageId('/second'),'second');const search=loadSearch();strictEqual(search.length,2);strictEqual(search[0].text.includes('café'),true);const full=loadCatalog();strictEqual(full.pages.length,2);console.log('Lazy data passed');}";
+ fs::write(&entry,support::format_round_trip(source)).unwrap();let run=support::run(support::cli().arg("run").arg(&entry),180);support::success(&run);assert_eq!(run.stdout,b"Lazy data passed\n");
+ let directory=root.join("target/docs-content");let module=fs::read_to_string(directory.join("catalog.tsr")).unwrap();assert!(module.len()<8000);assert!(!module.contains("JSON.parse"));let page=directory.join("pages/second.tsr");let accepted=fs::read(&page).unwrap();assert!(String::from_utf8_lossy(&accepted).contains("\"nodes\": ["));
+ let before=fs::metadata(&page).unwrap().modified().unwrap();let build=||support::run(support::cli().args(["docs","content","--cwd"]).arg(root),60);support::success(&build());assert_eq!(before,fs::metadata(&page).unwrap().modified().unwrap());fs::write(&page,"tampered").unwrap();support::success(&build());assert_eq!(fs::read(&page).unwrap(),accepted);
+ fs::remove_file(root.join("content/second.md")).unwrap();support::success(&build());assert!(!page.exists(),"Unchanged obsolete generated data must be removed");
+}

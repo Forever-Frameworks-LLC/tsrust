@@ -1,6 +1,6 @@
 import { View, Text, Node, Child, Link } from 'std:ui';
 import { CodeBlock } from './code-block';
-import { DocPage, DocNode, DocCatalog, renderExample } from '../../../target/docs-content/catalog';
+import { DocPage, DocNode, DocCatalog, renderExample, pageId } from '../../../target/docs-content/catalog';
 import { ExampleCard } from './example-card';
 import { ApiReference } from './api-reference';
 
@@ -116,13 +116,7 @@ function linkTarget(destination: string, catalog: ReadOnly<DocCatalog>): string 
     return docsPath(destination);
   }
 
-  for (const page of catalog.pages) {
-    if (page.route === parts[0]) {
-      return docsPath(page.route) + '#' + page.metadata.id + '-' + parts[1];
-    }
-  }
-
-  throw 'Documentation link target is missing';
+  return docsPath(parts[0]) + '#' + pageId(parts[0]) + '-' + parts[1];
 }
 
 function appendExamples(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>, blocks: Mutable<Child[]>): void {

@@ -1,4 +1,4 @@
-import { visibility as nativeVisibility, copyButton as nativeCopyButton, location as nativeLocation, navigate as nativeNavigate, traverse as nativeTraverse, link as nativeLink, themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, handle as nativeHandle, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
+import { route as nativeRoute, visibility as nativeVisibility, copyButton as nativeCopyButton, location as nativeLocation, navigate as nativeNavigate, traverse as nativeTraverse, link as nativeLink, themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, handle as nativeHandle, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
 
 /** An owned UI subtree. Moving a Node transfers all descendants. Nodes cannot be cloned or sent to workers. */
 export type Node = NativeNode;
@@ -279,6 +279,20 @@ export function back(): void {
 /** Visits the following browser/native history entry. No following entry is a no-op on native. */
 export function forward(): void {
   unwrap(nativeTraverse(true));
+}
+
+/** A retained lazy route. Create one location() owner in the application root first. */
+export interface RouteProps {
+  /** Absolute local path. Trailing slashes normalize; queries, escapes, traversal and fragments reject. */
+  path: string;
+  /** True by default. False also matches descendant path segments; /docs does not match /docs-other. Hash changes do not reconstruct content. */
+  exact?: boolean;
+  /** Called once on the first matching location. Its Node, state, controls and scroll positions remain retained during later visits. Factory failures propagate; no retry is implied. */
+  render: Owned<Function<Node>>;
+}
+/** Renders no node until its path matches, then retains the same subtree while inactive. No wrapper layout or focus stop is added. Root disposal releases both uncalled factories and visited content. Only visited routes construct their content; this does not split downloaded executable code. */
+export function Route(props: RouteProps): Node {
+  return unwrapNode(nativeRoute(props.path, props.exact ?? true, props.render));
 }
 
 /** Produces a complete escaped HTML document with shared utility styles. Borrows the tree and title; returns an owned string. Does not execute callbacks or mutate nodes. */
