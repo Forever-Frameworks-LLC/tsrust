@@ -13,6 +13,31 @@ arguments/returns/examples and inline comparable results (strings/trim is the fi
 pilot). Both views use the same curated evidence and explicit unmeasured states.
 Existing counter owner files and developer evidence paths remain preserved.
 
+## Current startup responsiveness repair — 2026-10-19
+
+The owner's startup priority is accepted through `583c097d`: the original fresh-page
+event-loop gap of 2,196 ms falls to 108.3 ms, with readiness at 172.1 ms in the normal
+cold-page diagnostic. Retained lazy Route factories construct articles only on first
+visit and preserve visited state/DOM/scroll. Default theme validation is cached once
+with independent returned values. The escaped 1.63 MB catalog program becomes a
+47.7 KB dispatcher plus checked page-sized factories; search loads on first query.
+See [startup acceptance](../milestones/ui-documentation-startup.md).
+
+The actual native documentation route, seven native lifetime/theme cases, formatted
+compiler example/contracts, content tamper/reuse/cleanup, installed LSP and actual
+browser wheel/navigation/state/search/theme/deep-entry/disposal checks pass. Live
+gzip transport preserves exact decoded bytes, MIME, HEAD and revision behavior;
+5.42 MB raw Wasm transfers as 1.86 MB. At 4× CPU slowdown and 1.6 Mbps/150 ms, the
+event-loop gap is 417 ms; the cold network transfer still takes 9.5 seconds. These
+are diagnostics, not controlled benchmarks. HTML-first hydration and real executable
+splitting remain required work; Route defers construction, not binary download.
+
+The final real dev preview stays at port 4317 with current CLI/LSP consumers and
+restored editor settings. Resume the shared landing and required component library,
+including generic reactive props, base composition, overlays/focus and richer paired
+motion. Keep loading/first-paint work explicit rather than claiming production web
+readiness from this responsiveness repair. Reuse accepted UI/resource/SQL evidence.
+
 ## Current continuation after bridge discussion — 2026-10-19
 
 Resume the shared landing and component library with paired web/native behavior,

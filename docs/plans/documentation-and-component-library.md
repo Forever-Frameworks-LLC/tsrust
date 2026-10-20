@@ -112,6 +112,14 @@ ratio supports explicit/min/max dimensions and caller overrides; generic reactiv
 ratio updates and intrinsic-width cross-axis sizing remain required work. This does
 not establish full Nova fidelity or complete the other component families.
 
+Startup responsiveness now has focused acceptance through `583c097d`. Shared
+retained lazy routes defer article construction; page-sized checked data factories
+replace the escaped catalog program; search loads on first query. Native/browser
+retention and cleanup pass. Dev assets negotiate precomputed gzip while preserving
+streaming MIME and exact decoded bytes. See [startup acceptance](../milestones/ui-documentation-startup.md).
+Cold transfer still precedes Wasm interactivity; HTML-first hydration and actual
+executable splitting remain required web-foundation work, with paired semantics.
+
 ## Project and content layout
 
 Use `docs/` as a separate runnable Tsrust project. Keep the standalone
