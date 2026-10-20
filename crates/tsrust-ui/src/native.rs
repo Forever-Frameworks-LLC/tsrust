@@ -38,7 +38,7 @@ struct TextStyle {
     strike:bool,
     underlines:Option<std::rc::Rc<Vec<inline::Underline>>>,
     underline_offset:Option<f32>,
-    whitespace:crate::style::WhiteSpace,
+    whitespace:super::style::WhiteSpace,
     align: u8,
     color: super::theme::ResolvedColor,
     cursor:u8,
@@ -160,7 +160,7 @@ impl Painter {
         let (mut background, mut radius) = (node.theme.as_ref().map(|_|theme.color(mode,"background").unwrap()), [0.;4]);
         if matches!(node.kind,Kind::Button|Kind::DisabledButton)&&node.semantics.href.is_empty(){inherited.align=1;style.flex_direction=FlexDirection::Row;style.align_items=AlignItems::CENTER;style.justify_content=JustifyContent::CENTER;}
         let (mut border,mut border_color,mut ring)=([0.;4],theme.color(mode,"border")?,theme.color(mode,"ring")?);
-        let mut overflow=0;let mut opacity=if node.is_disabled(){0.6}else{1.};let mut suppress_outline=false;let mut placeholder_color=None;
+        let mut inline_flex=false;let mut overflow=0;let mut opacity=if node.is_disabled(){0.6}else{1.};let mut suppress_outline=false;let mut placeholder_color=None;
         let (mut shadow_width,mut shadow_color,mut outline)=(0.,theme.color(mode,"ring")?,None);
         if matches!(node.kind,Kind::DisabledButton|Kind::Button)&&node.semantics.href.is_empty() {
             style.padding = Rect {
@@ -181,8 +181,8 @@ impl Painter {
                 Utility::Column=>style.flex_direction=FlexDirection::Column,
                 Utility::GapAxis(axis,v)=>{if axis==0{style.gap.height=length(v);}else{style.gap.width=length(v);}},
                 Utility::Padding(side,v)=>match side {0=>style.padding.top=length(v),1=>style.padding.right=length(v),2=>style.padding.bottom=length(v),_=>style.padding.left=length(v)},
-                Utility::Display(grid)=>style.display=if grid{Display::Grid}else{Display::Flex},
-                Utility::InlineFlex=>style.display=Display::Flex,
+                Utility::Display(grid)=>{inline_flex=false;style.display=if grid{Display::Grid}else{Display::Flex};},
+                Utility::InlineFlex=>{inline_flex=true;style.display=Display::Flex;},
                 Utility::Dimension(property,value)=>{
                     if value==super::style::Length::Fit {match property{0=>style.size.width=Dimension::fit_content(),1=>style.size.height=Dimension::fit_content(),_=>return Err("Fit-content is supported for preferred dimensions only".into())};continue;}
                     let value:LengthPercentageAuto=match value {super::style::Length::Pixels(v)=>length(v),super::style::Length::Percent(v)=>percent(v),super::style::Length::Viewport(axis)=>length(if axis==0{self.viewport_width}else{self.viewport.size.ok_or("Viewport height is unavailable")?.1 as f32}),super::style::Length::Auto|super::style::Length::None=>auto(),super::style::Length::Fit=>unreachable!()};
@@ -208,7 +208,8 @@ impl Painter {
         }
         // Taffy transfers max-height into an absent max-width. A separately specified width keeps its own bound.
         if style.aspect_ratio.is_some() && style.size.width.into_raw().is_length_or_percentage() && style.max_size.width.is_auto() && !style.max_size.height.is_auto() {style.max_size.width=length(f32::MAX);}
-        if node.kind==Kind::Input {inherited.whitespace=crate::style::WhiteSpace::Pre;}else if node.kind==Kind::Textarea {inherited.whitespace=crate::style::WhiteSpace::PreWrap;}
+        if node.kind==Kind::Input {inherited.whitespace=super::style::WhiteSpace::Pre;}else if node.kind==Kind::Textarea {inherited.whitespace=super::style::WhiteSpace::PreWrap;}
+        if inline_flex || style.position==taffy::Position::Absolute {inherited.underlines=None;}
         if underline {let layers=inherited.underlines.get_or_insert_with(Default::default);std::rc::Rc::make_mut(layers).push(inline::Underline{color:inherited.color,offset:inherited.underline_offset});}
         ancestors.push(node);
         let mut children = node

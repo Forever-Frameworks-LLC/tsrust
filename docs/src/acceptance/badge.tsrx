@@ -1,6 +1,6 @@
 import { View, Text, Button, Link, document } from 'std:ui';
 import { strictEqual } from 'std:testing';
-import { Badge, badgeVariants } from '../components/ui/badge';
+import { Badge, badgeVariants, BadgeVariant } from '../components/ui/badge';
 
 function main() {
   const defaults = badgeVariants();
@@ -8,8 +8,9 @@ function main() {
   strictEqual(badgeVariants({
     variant: null
   }).includes('bg-primary'), false);
-  for (const variant of ['default', 'secondary', 'destructive', 'outline', 'ghost', 'link']) {
-    const html = document(<Badge variant={variant}>Status</Badge>, 'Badge');
+  const variants: BadgeVariant[] = ['default', 'secondary', 'destructive', 'outline', 'ghost', 'link'];
+  for (const variant of variants) {
+    const html = document(<Badge variant={clone(variant)}>Status</Badge>, 'Badge');
     strictEqual(html.includes('data-variant="' + variant + '"'), true);
     strictEqual(html.includes('white-space:nowrap'), true);
     strictEqual(html.includes('<span'), true);

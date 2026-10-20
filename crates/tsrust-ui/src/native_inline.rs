@@ -172,6 +172,9 @@ impl App {
   for options in ["{}","{\"multiline\":true}"] {let field=Node::input_control(None,Some("  café   ".into()),options,"whitespace-normal".into(),None).unwrap();let mut painter=Painter::new();let item=painter.node(&field,TextStyle::default()).unwrap();assert_eq!(item.selection_text,"  café   ");}
   let child=text("  one   two  ","");let node=Node::view(vec![crate::Child::Node(child)],"whitespace-nowrap".into()).unwrap();let mut painter=Painter::new();let item=painter.node(&node,TextStyle::default()).unwrap();assert_eq!(item.children[0].selection_text,"one two");
  }
+ #[test]fn out_of_flow_and_atomic_boxes_do_not_receive_ancestor_decorations(){
+  for classes in ["absolute", "inline-flex"] {let child=Node::view(vec![crate::Child::Node(text("Separate", ""))],classes.into()).unwrap();let node=Node::view(vec![crate::Child::Node(child)],"underline".into()).unwrap();let mut painter=Painter::new();let item=painter.node(&node,TextStyle::default()).unwrap();assert!(item.children[0].children[0].text_style.underlines.is_none());}
+ }
  #[test]fn local_underline_removal_keeps_ancestor_color_and_offset(){
   let child=text("Nested","no-underline text-destructive underline-offset-8");let node=Node::text_children(vec![crate::Child::Node(child)],"underline underline-offset-4 text-primary".into()).unwrap();let mut painter=Painter::new();let item=painter.node(&node,TextStyle::default()).unwrap();let layers=item.inline[0].style.underlines.as_ref().unwrap();assert_eq!(layers.len(),1);assert_eq!(layers[0].offset,Some(4.));assert_eq!(layers[0].color,crate::theme::Theme::default().color("light","primary").unwrap());
  }

@@ -124,6 +124,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("mod layout;",&format!("mod layout {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/style/layout.rs")))
         .replace("mod structural;",&format!("mod structural {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/style/structural.rs")))
         .replace("mod custom_spacing;",&format!("mod custom_spacing {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/style/custom_spacing.rs")))
+        .replace("mod text;",&format!("mod text {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/style/text.rs")))
         .replace("mod edges;",&format!("mod edges {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/style/edges.rs")))
         .replace("crate::theme", "super::theme");
     let theme=include_str!("../../../../tsrust-ui/src/theme.rs")

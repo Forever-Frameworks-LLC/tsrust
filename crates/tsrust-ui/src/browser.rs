@@ -138,7 +138,7 @@ fn update(state:&mut State,document:&web_sys::Document)->Result<(),JsValue> {
     for positions in state.reading_positions.values_mut(){positions.retain(|id,_|owned.contains(id));}
     state.composing.retain(|id,_|live.contains(id));
     let default=super::theme::Theme::default();let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((&default,"light"));
-    state.root.set_attribute("style",&format!("{}color:var(--ui-foreground);background:var(--ui-background);font-size:var(--ui-text-base);min-height:100vh",theme.variables(mode)))?;
+    state.root.set_attribute("style",&format!("{}color:var(--ui-foreground);background:var(--ui-background);font-size:var(--ui-text-base);white-space:pre-wrap;min-height:100vh",theme.variables(mode)))?;
     // Restored panes need their sizing/overflow rules before offsets can be applied.
     let css=super::web::stylesheet(node,&state.scope);if state.style.text_content().as_deref()!=Some(&css){state.style.set_text_content(Some(&css));}
     let mut roots=Vec::new();if let Some(root)=node.visible_root(){roots.push(sync_element(root,document,&mut state.elements,&mut state.composing,theme,mode)?);}
@@ -197,7 +197,7 @@ pub fn mount(mut node:Node,title:&str)->Result<Mount,JsValue> {
     let id=SEQUENCE.with(|id|{let next=id.get().checked_add(1).expect("UI mount identities exhausted");id.set(next);next});
     let scope=format!("[data-tsrust-mount=\"{id}\"]");
     let style=document.create_element("style")?;
-    let root=document.create_element("div")?;root.set_attribute("data-tsrust-mount",&id.to_string())?;let default=super::theme::Theme::default();let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((&default,"light"));root.set_attribute("style",&format!("{}color:var(--ui-foreground);background:var(--ui-background);font-size:var(--ui-text-base);min-height:100vh",theme.variables(mode)))?;
+    let root=document.create_element("div")?;root.set_attribute("data-tsrust-mount",&id.to_string())?;let default=super::theme::Theme::default();let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((&default,"light"));root.set_attribute("style",&format!("{}color:var(--ui-foreground);background:var(--ui-background);font-size:var(--ui-text-base);white-space:pre-wrap;min-height:100vh",theme.variables(mode)))?;
     let mut state=State{weak:Default::default(),visibility_queued:false,observer:None,resize_observer:None,observed:Default::default(),disposed:false,location:String::new(),node:Some(node),elements:Default::default(),error:None,composing:Default::default(),scrolls:Default::default(),reading_positions:Default::default(),root:root.clone(),style:style.clone(),scope};
     update(&mut state,&document)?;
     let state=Rc::new(RefCell::new(state));state.borrow_mut().weak=Rc::downgrade(&state);let mut mount=Mount{listeners:vec![],visibility_callback:None,resize_callback:None,state:state.clone()};
