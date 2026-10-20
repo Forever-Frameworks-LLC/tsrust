@@ -24,6 +24,7 @@ serde_json = { version = "1", features = ["raw_value"] }
 pulldown-cmark = { version = "=0.13.4", default-features = false }
 cliclack = "=0.5.6"
 console = "=0.16.6"
+flate2 = "=1.1.10"
 
 [target.'cfg(unix)'.dependencies]
 libc = "=0.2.183"

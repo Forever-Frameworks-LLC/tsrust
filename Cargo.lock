@@ -4454,6 +4454,7 @@ dependencies = [
  "chrono-tz",
  "cliclack",
  "console",
+ "flate2",
  "futures-core",
  "getrandom 0.4.3",
  "http-body",

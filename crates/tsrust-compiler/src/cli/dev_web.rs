@@ -3,7 +3,7 @@ use std::{collections::BTreeMap,fs,io::{Read,Write},net::{TcpListener,TcpStream}
 use std::hash::{Hash,Hasher};
 use crate::{TempDirectory,dev_cli::{report,Status}};
 #[derive(Default)]
-struct Published {revision:u64,assets:BTreeMap<String,Arc<Vec<u8>>>,building:bool,error:String}
+struct Published {revision:u64,assets:BTreeMap<String,Arc<Vec<u8>>>,gzip:BTreeMap<String,Arc<Vec<u8>>>,building:bool,error:String}
 pub(crate) struct Web {root:PathBuf,workspace:PathBuf,_lock:fs::File,state:Arc<Mutex<Published>>,stop:Arc<AtomicBool>,server:Option<thread::JoinHandle<()>>,pending:Option<TempDirectory>}
 fn write_changed(path:&Path,value:impl AsRef<[u8]>)->Result<(),String>{let value=value.as_ref();if fs::read(path).ok().as_deref()!=Some(value){fs::write(path,value).map_err(|e|e.to_string())?;}Ok(())}
 pub(crate) fn read_optional(path:&Path)->Result<Option<String>,String>{match fs::read_to_string(path){Ok(text)=>Ok(Some(text)),Err(error) if error.kind()==std::io::ErrorKind::NotFound=>Ok(None),Err(error)=>Err(error.to_string())}}
@@ -14,7 +14,7 @@ impl Web {
   let cache=root.join("target/tsrust-web");fs::create_dir_all(&cache).map_err(|e|e.to_string())?;
   let lock=fs::OpenOptions::new().create(true).truncate(false).read(true).write(true).open(cache.join("dev.lock")).map_err(|e|e.to_string())?;lock.try_lock().map_err(|_|"Another web dev server owns this project")?;
   let state=Arc::new(Mutex::new(Published::default()));
-  if let Some(seed)=std::env::var_os("TSRUST_DEV_SEED"){state.lock().unwrap().assets=load_assets(Path::new(&seed))?;state.lock().unwrap().revision=1;}
+  if let Some(seed)=std::env::var_os("TSRUST_DEV_SEED"){state.lock().unwrap().assets=load_assets(Path::new(&seed))?;{let mut published=state.lock().unwrap();published.gzip=gzip_assets(&published.assets)?;}state.lock().unwrap().revision=1;}
   let listener=TcpListener::bind(("127.0.0.1",port)).map_err(|e|format!("Cannot listen for web development: {e}"))?;let address=listener.local_addr().map_err(|e|e.to_string())?;listener.set_nonblocking(true).map_err(|e|e.to_string())?;
   let stop=Arc::new(AtomicBool::new(false));let shared=state.clone();let stopping=stop.clone();
   let server=thread::Builder::new().name("dev-web-http".into()).spawn(move||{while !stopping.load(Ordering::Relaxed){match listener.accept(){Ok((stream,_))=>{let _=serve(stream,&shared);},Err(error) if error.kind()==std::io::ErrorKind::WouldBlock=>thread::sleep(Duration::from_millis(20)),Err(_)=>break}}}).map_err(|e|e.to_string())?;
@@ -48,10 +48,23 @@ impl Web {
  pub fn publish(&mut self)->Result<(),String>{
   let files=self.pending.take().ok_or("No completed web build")?;let mut assets=load_assets(&files.0)?;
   let notices=self.workspace.join("attributions");if notices.is_dir(){for file in fs::read_dir(notices).map_err(|e|e.to_string())?{let file=file.map_err(|e|e.to_string())?;if file.file_type().map_err(|e|e.to_string())?.is_file(){assets.insert(format!("attributions/{}",file.file_name().to_string_lossy()),Arc::new(fs::read(file.path()).map_err(|e|e.to_string())?));}}}
-  let mut state=self.state.lock().unwrap();state.assets=assets;state.revision=state.revision.checked_add(1).ok_or("Web revision exhausted")?;state.building=false;state.error.clear();Ok(())
+  let gzip=gzip_assets(&assets)?;
+  let mut state=self.state.lock().unwrap();state.assets=assets;state.gzip=gzip;state.revision=state.revision.checked_add(1).ok_or("Web revision exhausted")?;state.building=false;state.error.clear();Ok(())
  }
 }
 impl Drop for Web {fn drop(&mut self){self.stop.store(true,Ordering::Relaxed);if let Some(server)=self.server.take(){let _=server.join();}}}
+fn gzip_assets(assets:&BTreeMap<String,Arc<Vec<u8>>>)->Result<BTreeMap<String,Arc<Vec<u8>>>,String>{
+ assets.iter().map(|(name,bytes)|{let mut encoder=flate2::write::GzEncoder::new(Vec::new(),flate2::Compression::fast());encoder.write_all(bytes).map_err(|e|e.to_string())?;let bytes=encoder.finish().map_err(|e|e.to_string())?;Ok((name.clone(),Arc::new(bytes)))}).collect()
+}
+fn encodings(request:&str)->(f32,f32){
+ let (mut gzip,mut identity,mut wildcard):(Option<f32>,Option<f32>,Option<f32>)=(None,None,None);
+ for line in request.lines().skip(1){let Some((name,value))=line.split_once(':')else{continue;};if !name.trim().eq_ignore_ascii_case("accept-encoding"){continue;}
+  for item in value.split(','){let mut parts=item.split(';');let name=parts.next().unwrap_or("").trim();let mut quality=1.;for parameter in parts{if let Some((key,value))=parameter.trim().split_once('='){if key.eq_ignore_ascii_case("q"){quality=value.trim().parse::<f32>().ok().filter(|q|q.is_finite()&&(0. ..=1.).contains(q)).unwrap_or(0.);}}}
+   let slot=if name.eq_ignore_ascii_case("gzip"){&mut gzip}else if name.eq_ignore_ascii_case("identity"){&mut identity}else if name=="*"{&mut wildcard}else{continue;};*slot=Some(slot.map_or(quality,|previous|previous.min(quality)));
+  }
+ }
+ (gzip.or(wildcard).unwrap_or(0.),identity.unwrap_or(if wildcard==Some(0.){0.}else{1.}))
+}
 fn load_assets(root:&Path)->Result<BTreeMap<String,Arc<Vec<u8>>>,String>{let mut assets=BTreeMap::new();for name in ["app.js","app_bg.wasm"]{assets.insert(name.into(),Arc::new(fs::read(root.join(name)).map_err(|e|format!("Missing web asset {name}: {e}"))?));}Ok(assets)}
 fn html(revision:u64,ready:bool)->String{
  let application=if ready{format!(r#"import init,{{launch}} from '/app.js?v={revision}';
@@ -68,14 +81,15 @@ fn serve(mut stream:TcpStream,shared:&Mutex<Published>)->std::io::Result<()>{
  stream.set_nonblocking(false)?;stream.set_read_timeout(Some(Duration::from_secs(1)))?;stream.set_write_timeout(Some(Duration::from_secs(5)))?;
  let mut input=Vec::new();let mut block=[0u8;2048];while !input.windows(4).any(|part|part==b"\r\n\r\n") {let count=stream.read(&mut block)?;if count==0{return Ok(());}input.extend_from_slice(&block[..count]);if input.len()>16384{return Ok(());}}
  let request=String::from_utf8_lossy(&input);let mut first=request.lines().next().unwrap_or("").split_whitespace();let method=first.next().unwrap_or("");let url=first.next().unwrap_or("/");let (path,query)=url.split_once('?').unwrap_or((url,""));
+ let (gzip_quality,identity_quality)=encodings(&request);let mut compressed=false;
  let state=shared.lock().unwrap();let mut status="200 OK";let mut mime="text/html; charset=utf-8";
  let body=if !matches!(method,"GET"|"HEAD"){status="405 Method Not Allowed";Arc::new(Vec::new())}
  else if path=="/__tsrust_dev"{mime="application/json";Arc::new(serde_json::to_vec(&serde_json::json!({"revision":state.revision,"building":state.building,"error":state.error})).unwrap())}
  else if let Some(asset)=state.assets.get(path.trim_start_matches('/')){
-  if !query.is_empty()&&query!=format!("v={}",state.revision){status="409 Conflict";Arc::new(Vec::new())}else{mime=if path.ends_with(".wasm"){"application/wasm"}else if path.ends_with(".js"){"text/javascript; charset=utf-8"}else{"text/plain; charset=utf-8"};asset.clone()}
+  if !query.is_empty()&&query!=format!("v={}",state.revision){status="409 Conflict";Arc::new(Vec::new())}else{mime=if path.ends_with(".wasm"){"application/wasm"}else if path.ends_with(".js"){"text/javascript; charset=utf-8"}else{"text/plain; charset=utf-8"};if gzip_quality>0. && gzip_quality>=identity_quality {if let Some(gzip)=state.gzip.get(path.trim_start_matches('/')){compressed=true;gzip.clone()}else if identity_quality>0.{asset.clone()}else{status="406 Not Acceptable";Arc::new(Vec::new())}}else if identity_quality>0.{asset.clone()}else{status="406 Not Acceptable";Arc::new(Vec::new())}}
  }else if path=="/"||request.lines().skip(1).any(|line|line.to_ascii_lowercase().starts_with("accept:")&&line.contains("text/html")){Arc::new(html(state.revision,!state.assets.is_empty()).into_bytes())}
  else{status="404 Not Found";Arc::new(Vec::new())};drop(state);
- write!(stream,"HTTP/1.1 {status}\r\nContent-Type: {mime}\r\nContent-Length: {}\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n",body.len())?;if method!="HEAD"{stream.write_all(&body)?;}Ok(())
+ write!(stream,"HTTP/1.1 {status}\r\nContent-Type: {mime}\r\nContent-Length: {}\r\n{}Vary: Accept-Encoding\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n",body.len(),if compressed{"Content-Encoding: gzip\r\n"}else{""})?;if method!="HEAD"{stream.write_all(&body)?;}Ok(())
 }
 #[cfg(test)]mod tests{
  use super::*;
