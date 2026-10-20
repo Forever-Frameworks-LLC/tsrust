@@ -83,9 +83,9 @@ pub fn api(project:&ProjectAnalysis,sources:&[SourceId])->Result<Vec<ApiDefiniti
                         if let Some(text)=entry["fields"][name]["documentation"].as_str(){documentation=text.into();}
                     }}
                 }
-                fields.push(ApiField{name:name.clone(),optional:*optional,signature:format!("{}{}: {}",if name.bytes().all(|ch|ch.is_ascii_alphanumeric()||ch==b'_'){name.clone()}else{crate::json_string(name)},if *optional{"?"}else{""},annotation),document:super::parse(&documentation,0)?,documentation,source:location.source.0.clone(),range:Range{start:location.span.start,end:field.annotation.span.end}});
+                fields.push(ApiField{name:name.clone(),optional:*optional,signature:format!("{}{}: {}",if name.bytes().all(|ch|ch.is_ascii_alphanumeric()||ch==b'_'){name.clone()}else{crate::json_string(name)},if *optional{"?"}else{""},annotation),document:super::markdown::parse_api(&documentation)?,documentation,source:location.source.0.clone(),range:Range{start:location.span.start,end:field.annotation.span.end}});
             }
-            output.push(ApiDefinition{name:export.clone(),kind:kind.into(),source:id.0.clone(),range:Some(Range{start:span.start,end:span.end}),signature,document:super::parse(&before(source,span.start),0)?,documentation:before(source,span.start),fields});
+            output.push(ApiDefinition{name:export.clone(),kind:kind.into(),source:id.0.clone(),range:Some(Range{start:span.start,end:span.end}),signature,document:super::markdown::parse_api(&before(source,span.start))?,documentation:before(source,span.start),fields});
         }
     }
     Ok(output)
@@ -95,5 +95,6 @@ pub fn api(project:&ProjectAnalysis,sources:&[SourceId])->Result<Vec<ApiDefiniti
 pub fn builtin(reference:&super::ApiReference)->Result<ApiDefinition,String>{
  let catalog=builtin_catalog()?;
  let entry=catalog[&reference.receiver].as_array().and_then(|entries|entries.iter().find(|entry|entry["name"].as_str()==Some(&reference.name))).ok_or_else(||format!("Unknown built-in documentation {}.{}",reference.receiver,reference.name))?;
- Ok(ApiDefinition{name:format!("{}.{}",reference.receiver,reference.name),kind:"method".into(),source:format!("builtin:{}",reference.receiver),range:None,signature:entry["signature"].as_str().ok_or("Built-in has no signature")?.into(),document:super::parse(entry["documentation"].as_str().ok_or("Built-in has no documentation")?,0)?,documentation:entry["documentation"].as_str().ok_or("Built-in has no documentation")?.into(),fields:vec![]})
+ let documentation=entry["documentation"].as_str().ok_or("Built-in has no documentation")?;let document=super::markdown::parse_api(documentation).map_err(|error|format!("API {}.{}: {error}",reference.receiver,reference.name))?;
+ Ok(ApiDefinition{name:format!("{}.{}",reference.receiver,reference.name),kind:"method".into(),source:format!("builtin:{}",reference.receiver),range:None,signature:entry["signature"].as_str().ok_or("Built-in has no signature")?.into(),document,documentation:documentation.into(),fields:vec![]})
 }

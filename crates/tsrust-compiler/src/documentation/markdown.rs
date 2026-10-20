@@ -25,6 +25,12 @@ fn anchor(title:&str,used:&mut BTreeSet<String>)->String {
 }
 /// CommonMark plus tables, task lists and strikethrough. Byte ranges reference the original source.
 pub fn parse(source:&str,offset:usize)->Result<Document,String> {
+    parse_inner(source,offset,true)
+}
+/// Hover prose uses ordinary CommonMark: unmatched [labels] remain literal text.
+/// Authored page files retain strict unresolved-reference diagnostics.
+pub(super) fn parse_api(source:&str)->Result<Document,String>{parse_inner(source,0,false)}
+fn parse_inner(source:&str,offset:usize,strict_references:bool)->Result<Document,String> {
     if !source.is_char_boundary(offset){return Err("Markdown offset is not a UTF-8 boundary".into());}
     let mut nodes=Vec::<Node>::new();let mut stack=Vec::<usize>::new();let mut headings=Vec::new();let mut used=BTreeSet::new();let mut title=String::new();let mut summary=String::new();let mut code_ranges=std::collections::BTreeMap::<usize,(usize,usize)>::new();
     let options=Options::ENABLE_TABLES|Options::ENABLE_TASKLISTS|Options::ENABLE_STRIKETHROUGH;
@@ -87,7 +93,7 @@ pub fn parse(source:&str,offset:usize)->Result<Document,String> {
             },
         }
     }
-    if !unresolved.is_empty(){return Err(format!("Unresolved Markdown references: {}",unresolved.join(", ")));}
+    if strict_references&&!unresolved.is_empty(){return Err(format!("Unresolved Markdown references: {}",unresolved.join(", ")));}
     if !stack.is_empty(){return Err("Unclosed Markdown parser output".into());}
     Ok(Document{nodes,headings,title,summary})
 }
@@ -95,6 +101,11 @@ pub fn parse(source:&str,offset:usize)->Result<Document,String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]fn api_prose_keeps_bracketed_utility_labels_literal_without_weakening_pages_or_urls(){
+        let text="Use aspect-[W/H] and [--NAME:--spacing(N)] with `text-primary`.";
+        assert!(parse(text,0).is_err());let doc=parse_api(text).unwrap();assert_eq!(content(&doc.nodes,0),text.replace('`',""));
+        assert!(parse_api("[bad](javascript:alert)").is_err());assert!(parse("[missing][reference]",0).is_err());
+    }
     #[test]
     fn commonmark_extensions_ranges_anchors_and_code_remain_structured() {
         let source="# Héllo 🦀\n\nText **bold** and *soft* and ~~gone~~ with `x`.\n\n## Same\n\n## Same\n\n## Same-2\n\n> Quote\n\n3. Third\n4. Fourth\n\n- [x] Done\n- [ ] Next\n\n| Left | Right |\n| :--- | ---: |\n| a | b |\n\n```tsrx\nconst n = <View><Text>🦀</Text></View>;\n```\n\n---\n\n<script>alert('x')</script>\n";
