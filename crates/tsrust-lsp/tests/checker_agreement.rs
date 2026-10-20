@@ -18,7 +18,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use support::session::Session;
 use tsrust_lsp::{project_diagnostics::source_id, workspace::Workspace};
 
-const PRELUDE: &str = "import {Computed,Reactive,ViewRenderProps,ButtonRenderProps,InputTarget,InputChangeEvent,TextFieldProps,InputProps,TextareaProps,ReactiveInputValue,Signal,ThemeConfig,ThemeRadius,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {CryptoError} from 'std:crypto';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
+const PRELUDE: &str = "import {Node,Computed,Reactive,ViewRenderProps,ButtonRenderProps,InputTarget,InputChangeEvent,TextFieldProps,InputProps,TextareaProps,ReactiveInputValue,Signal,ThemeConfig,ThemeRadius,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {CryptoError} from 'std:crypto';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
 
 /// A receiver `x` of one type inside `probe`.
 struct Receiver {
@@ -213,7 +213,7 @@ fn callable_field_agrees(receiver:&Receiver,name:&str,shown:&str)->bool {
  use tsrust_compiler::project::{ProjectType,SourceId};
  let source=format!("{} interface DisplayedContract {{ member:{shown}; }} function probe({}){{}} function main(){{}}",prelude(receiver.parameter),receiver.parameter);
  let entry=SourceId("/tsrust-agreement-callable/main.tsr".into());let mut workspace=Workspace::default();workspace.open(entry.clone(),1,source.clone());
- let Ok(analysis)=workspace.snapshot().check_with_diagnostics(&entry) else{return false;};let facts=analysis.checked_type_facts();
+ let analysis=match workspace.snapshot().check_with_diagnostics(&entry){Ok(analysis)=>analysis,Err(errors)=>{eprintln!("{}.{}: displayed contract did not check: {errors:?}",receiver.ty,name);return false;}};let facts=analysis.checked_type_facts();
  let find=|owner:&str,field:&str|facts.record_fields.iter().find(|(ty,n,_,_,_)|n==field && matches!(ty,ProjectType::Named{name,..} if name==owner)).map(|(_,_,_,ty,_)|ty);
  let parameter=source.find("function probe(").unwrap()+"function probe(".len();
  let receiver_type=facts.parameter_types.iter().find(|fact|fact.location.source==entry && fact.location.span.start==parameter).map(|fact|&fact.ty);
@@ -362,5 +362,6 @@ fn generic_prop_callback_details_keep_public_nominal_names() {
         let render=items.as_array().unwrap().iter().find(|item|item["label"]=="render").unwrap();
         let detail=render["detail"].as_str().unwrap();
         assert!(detail.contains("ViewRenderProps")&&!detail.contains("ViewProperties"),"{phase}: {detail}");
+        assert!(callable_field_agrees(&Receiver{ty:"ViewProps",parameter:"x: ReadOnly<ViewProps>"},"render",detail.split_once(": ").unwrap().1),"{phase}: {detail}");
     }
 }
