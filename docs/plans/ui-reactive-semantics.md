@@ -6,8 +6,8 @@ cheap and update retained native/browser controls without replacing identity.
 ## Contract
 
 - Support live `aria-label`, `aria-describedby`, `aria-hidden`, `aria-invalid`
-  and `data-size` using the existing declared ReactiveValue contract.
-- Keep identity, element tags, roles and slots construction-time values. SVG's
+  using the existing declared ReactiveValue contract.
+- Keep identity, element tags, roles, slots and size metadata construction-time values. SVG's
   existing automatic decorative/image policy follows its current label unless
   explicitly overridden. No arbitrary ARIA is accepted.
 - Evaluate one metadata binding per affected node. Preserve static fast paths,

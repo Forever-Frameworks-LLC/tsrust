@@ -9,13 +9,13 @@ Typing, selection, focus and component state remain attached to the original nod
 
 ## Live properties
 
-`aria-label`, `aria-describedby`, `aria-hidden`, `aria-invalid` and `data-size`
+`aria-label`, `aria-describedby`, `aria-hidden` and `aria-invalid`
 accept constants or `ReactiveValue` expressions. Expressions reading directly
 declared component state become retained getters. Forward these props unchanged
 through local components and replacement renderers. Reading a prop into a plain
 precomputed scalar still creates a snapshot; use `useProp` when transforming it.
 
-Undefined removes explicit names, descriptions, invalid state and size metadata.
+Undefined removes explicit names, descriptions and invalid state.
 An absent hidden flag defaults to false. Empty names fall back to content where
 the element permits it. Descriptions resolve their current space-separated IDs;
 missing targets are ignored. Invalid state describes application validation and
@@ -32,8 +32,7 @@ geometry and identity throughout these changes.
 ## Validation and ownership
 
 Metadata follows the same checked rules on every update. Names on generic text or
-presentation fail. Regions need nonblank names. Size metadata accepts ASCII
-letters, digits and hyphens. Invalid JSON or metadata does not replace valid
+presentation fail. Regions need nonblank names.  Invalid JSON or metadata does not replace valid
 metadata. Getters must not mutate state; their errors propagate and stop a mounted
 tree through normal cleanup.
 
@@ -44,5 +43,7 @@ Use View.hidden for retained content that must also leave layout and interaction
 
 Each affected node owns one metadata evaluator. Its state captures remain weak;
 disposing the subtree releases the evaluator. Constants use the static path.
-Identity, tags, explicit roles and slots stay construction-time values. Expanded
+Identity, tags, explicit roles, slots and size metadata stay construction-time values.
+Existing Card wrappers can continue cloning static size metadata; live size
+forwarding needs a separate compatible prop contract. Expanded
 relationships, event/ref merging and focus scopes remain separate work.

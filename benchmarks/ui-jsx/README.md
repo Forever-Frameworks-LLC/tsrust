@@ -164,7 +164,7 @@ All these checks are untimed; no JavaScript GC cleanup parity is implied.
 
 The `docs-reactive-semantics` scenario uses the independent Node-after-tsc
 transition model and actual dev gallery. It checks live names, descriptions,
-nullable invalid state, size selectors, hidden decoration and SVG default roles,
+nullable invalid state, hidden decoration and SVG default roles,
 with retained field identity/draft/selection/focus, replacement and local-component
 forwarding, accessibility, three viewport widths, theme changes and disposal.
 Run `node benchmarks/ui-jsx/verify-application.mjs <output> docs-reactive-semantics

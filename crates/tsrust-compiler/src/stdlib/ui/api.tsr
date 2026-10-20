@@ -29,8 +29,8 @@ interface ElementMetadata<Variant> {
   'aria-invalid'?: ReactiveValue<boolean | undefined>;
   /** Local component slot for styling and inspection. ASCII letters, digits and hyphens; defaults to none. */
   'data-slot'?: string;
-  /** Live component size metadata for checked data/group selectors. ASCII letters, digits and hyphens; empty means absent. */
-  'data-size'?: ReactiveValue<string | undefined>;
+  /** Component size metadata for checked data/group selectors. ASCII letters, digits and hyphens; empty means absent. */
+  'data-size'?: string;
   /** Component variant metadata for data/group selectors; ASCII letters, digits and hyphens. Empty means absent. Does not change styles without a matching class. */
   'data-variant'?: Variant;
 }
@@ -658,12 +658,11 @@ function semanticBoolean(value: Mutable<ReactiveValue<boolean | undefined> | und
   return value.evaluate();
 }
 
-function semanticSnapshot(config: ReadOnly<SemanticConfig>, label: Mutable<ReactiveValue<string | undefined> | undefined>, hidden: Mutable<ReactiveValue<boolean | undefined> | undefined>, size: Mutable<ReactiveValue<string | undefined> | undefined>, describedBy: Mutable<ReactiveValue<string | undefined> | undefined>, invalid: Mutable<ReactiveValue<boolean | undefined> | undefined>): string {
+function semanticSnapshot(config: ReadOnly<SemanticConfig>, label: Mutable<ReactiveValue<string | undefined> | undefined>, hidden: Mutable<ReactiveValue<boolean | undefined> | undefined>, describedBy: Mutable<ReactiveValue<string | undefined> | undefined>, invalid: Mutable<ReactiveValue<boolean | undefined> | undefined>): string {
   const next = clone(config);
   next.label = semanticString(label);
   const hiddenValue = semanticBoolean(hidden);
   next.hidden = hiddenValue ?? (config.tag === 'svg' && next.label === '');
-  next.size = semanticString(size);
   next.describedBy = semanticString(describedBy);
   const invalidValue = semanticBoolean(invalid);
   next.invalid = invalidValue === undefined ? '' : String(invalidValue);
@@ -674,20 +673,20 @@ function semanticSnapshot(config: ReadOnly<SemanticConfig>, label: Mutable<React
   return JSON.stringify(next);
 }
 
-function semanticConfig(tag: string, role: string, label: ReactiveValue<string | undefined> | undefined, id: string, hidden: ReactiveValue<boolean | undefined> | undefined, slot: string, size: ReactiveValue<string | undefined> | undefined, variant: string, orientation: string, describedBy: ReactiveValue<string | undefined> | undefined = '', invalid: ReactiveValue<boolean | undefined> | undefined = undefined, htmlFor: string = '', windowDragRegion: boolean = false, tabIndex?: int): ReactiveValue<string> {
+function semanticConfig(tag: string, role: string, label: ReactiveValue<string | undefined> | undefined, id: string, hidden: ReactiveValue<boolean | undefined> | undefined, slot: string, size: string, variant: string, orientation: string, describedBy: ReactiveValue<string | undefined> | undefined = '', invalid: ReactiveValue<boolean | undefined> | undefined = undefined, htmlFor: string = '', windowDragRegion: boolean = false, tabIndex?: int): ReactiveValue<string> {
   const config: SemanticConfig = {
-    tag, role, label: '', id, hidden: false, slot, size: '', variant, orientation, describedBy: '', invalid: '', htmlFor, windowDragRegion, tabIndex
+    tag, role, label: '', id, hidden: false, slot, size, variant, orientation, describedBy: '', invalid: '', htmlFor, windowDragRegion, tabIndex
   };
-  if ((label === undefined || typeof label === 'string') && (hidden === undefined || typeof hidden === 'boolean') && (size === undefined || typeof size === 'string') && (describedBy === undefined || typeof describedBy === 'string') && (invalid === undefined || typeof invalid === 'boolean')) {
-    if (tag === '' && role === '' && (label === undefined || label === '') && id === '' && (hidden === undefined || !hidden) && slot === '' && (size === undefined || size === '') && variant === '' && orientation === '' && (describedBy === undefined || describedBy === '') && invalid === undefined && htmlFor === '' && !windowDragRegion && tabIndex === undefined) {
+  if ((label === undefined || typeof label === 'string') && (hidden === undefined || typeof hidden === 'boolean') && (describedBy === undefined || typeof describedBy === 'string') && (invalid === undefined || typeof invalid === 'boolean')) {
+    if (tag === '' && role === '' && (label === undefined || label === '') && id === '' && (hidden === undefined || !hidden) && slot === '' && size === '' && variant === '' && orientation === '' && (describedBy === undefined || describedBy === '') && invalid === undefined && htmlFor === '' && !windowDragRegion && tabIndex === undefined) {
       return '';
     }
 
-    return semanticSnapshot(config, label, hidden, size, describedBy, invalid);
+    return semanticSnapshot(config, label, hidden, describedBy, invalid);
   }
 
   return {
-    evaluate: () => semanticSnapshot(config, label, hidden, size, describedBy, invalid)
+    evaluate: () => semanticSnapshot(config, label, hidden, describedBy, invalid)
   };
 }
 

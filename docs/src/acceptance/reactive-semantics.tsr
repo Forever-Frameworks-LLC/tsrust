@@ -10,6 +10,5 @@ function main() {
   strictEqual(html.includes('aria-label="Change metadata"'), true);
   strictEqual(html.includes('aria-label="Initial status"'), true);
   strictEqual(html.includes('role="presentation"'), true);
-  strictEqual(html.includes('data-size="sm"'), true);
   console.log('Reactive semantics passed');
 }
