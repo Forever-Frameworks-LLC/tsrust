@@ -61,8 +61,8 @@ of complete Base UI/Nova parity.
 Native page scrolling, fractional text layout, persistent Cargo dependency
 workspaces and deterministic executable-cache identities are accepted. Warm counter
 starts observed at 1,394 and 1,556 ms are startup observations, not benchmark
-statistics. Preserve those caches and records. Kbd/Separator still need the
-outstanding paired browser evidence. Existing Button/Card versions must not be
+statistics. Preserve those caches and records. Kbd/Separator now have paired gallery evidence; see
+[the component-page acceptance](../milestones/ui-component-documentation-gallery.md). Existing Button/Card versions must not be
 relabelled Nova implementations without completing their actual contracts.
 
 Live string-signal palette modes, retained `View.hidden` subtrees and checked

@@ -28,10 +28,36 @@ and the unverified curl installer. Use actual language/CLI APIs and accepted evi
 do not publish invented size/performance claims from the earlier design brief.
 Shared visibility callbacks and HTTPS links pass focused acceptance through
 `0f56fbfc`; see [landing acceptance](../milestones/ui-shared-landing-and-visibility.md).
-The current dev server uses that compiler/runtime and publishes revision 1. The
-active editor maps the refreshed server inode. Continue richer component pages
+The current compiler/editor follow-up is `b13c831a`, described below; the
+preview remains at port 4317. Continue richer component pages
 and the required Base UI/Nova families; the HTML design reference does not establish
 sticky scene/animation parity in the shared renderer.
+
+## Current component galleries and compiler repair — 2026-10-19
+
+Continue after `b13c831a`. Six component routes now have seven real previews and
+exact copyable sources, with previews before the reference text. Card/Input prose
+is cleaned up; Textarea, Label, Kbd and Separator have authored behavioral pages.
+Dark error/button contrast exceeds AA. Native component assertions, the actual
+native Card docs route, focused LSP help and live browser interactions pass.
+See [gallery acceptance](../milestones/ui-component-documentation-gallery.md).
+The full pinned library remains required; these are not full Nova parity claims.
+
+The direct-declaration source-call repair preserves emitted gallery and full-app
+Rust byte-for-byte. Indirect calls retain contextual analysis and ordinary
+ownership checking remains. Installed consumers and active editor are refreshed.
+The current dev server uses this compiler and reports a 15,893 ms initial build
+with warm dependencies. The earlier unchanged-source build reported 253,046 ms;
+these are observations, not a controlled performance benchmark. Reuse the accepted
+browser evidence and current warm web/native workspaces.
+
+Next component slice: AspectRatio. Its exact pinned upstream source is verified
+against Git blob `ebe2783654a6ce3240b2bd3a4bdb80b07c26cf8f` and retained in SQLite.
+Its ratio prop is required. An independent geometry oracle is prepared but unrun;
+no AspectRatio runtime, installer or editor support is claimed yet. Continue shared
+layout/component implementation and paired pages, then overlays/base composition,
+blocks and theme generation. The optional JS bridge remains deferred with mandatory
+per-export editor/compiler availability across every configured target.
 
 ## Rich inline docs and actual web development server — 2026-10-19
 
