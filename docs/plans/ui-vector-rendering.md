@@ -26,12 +26,15 @@ and the defer aspect flag remain explicitly unsupported.
 
 ## Acceptance
 
-- [ ] Runtime model, validation, ownership and reactive path updates.
-- [ ] Paired browser/native painting, layout, clipping and accessibility.
-- [ ] Compiler/runtime packaging, public API and editor agreement/help.
-- [ ] Shared docs/examples and independent untimed Node reference support.
-- [ ] Batch affected acceptance, refresh consumers/preview, SQLite and cleanup.
+- [x] Runtime model, validation, ownership and reactive path updates.
+- [x] Paired browser/native painting, layout, clipping and accessibility.
+- [x] Compiler/runtime packaging, public API and editor agreement/help.
+- [x] Shared docs/examples and independent untimed Node reference support.
+- [x] Batch affected acceptance, refresh consumers/preview, SQLite and cleanup.
 
 Gradients, filters, masks, arbitrary DOM/CSS and interaction policy are outside this
 first vector section. Required context, event/ref composition and focus/overlays
 remain separate foundations; finishing vectors does not complete those contracts.
+
+Paired focused acceptance and canonical cleanup are recorded in
+[the section acceptance](../milestones/ui-vector-rendering.md).

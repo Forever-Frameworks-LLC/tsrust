@@ -1,6 +1,22 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
-Current section — 2026-10-20: editable Badge and shared text flow pass focused
+Current section — 2026-10-20: shared Svg/Path rendering passes focused native,
+compiler, installed-LSP and actual dev-browser acceptance. See
+[vector acceptance](../milestones/ui-vector-rendering.md). Retained paths, checked
+geometry, viewport policies, semantic paint, icons and a live chart are paired.
+Incomplete JSX also retains generic parameter fields and inherited alias metadata.
+There are 163 destinations, 24 checked examples and 970 API declarations. The CLI
+uses `b79807d3`; the installed/active editor includes `a3525f16`. Settings bytes/time
+are exact. The actual dev route is `/docs/ui/foundations/vector-graphics` on 4317.
+
+Continue lazy children/context, event/ref composition, focus/disclosure/overlays,
+then the remaining components/charts/themes/blocks. Svg is a drawing foundation,
+not full chart or SVG parity. Automatic component icon layout and transitions,
+build latency, cold editor scheduling and web delivery remain open. Reuse accepted
+evidence; no additional owner go-ahead is needed. SQLite closure and removal of
+2778752550 bytes of disposable outputs pass. Continue with lazy child composition.
+
+Accepted Badge section — 2026-10-20: editable Badge and shared text flow pass focused
 native/compiler, installed-LSP and actual dev-browser acceptance. See
 [Badge acceptance](../milestones/ui-badge-and-text-flow.md). Six palettes,
 live/nullable props, once-only replacement controls, Unicode selection, text

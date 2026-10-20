@@ -128,6 +128,13 @@ composition or primitive-metadata contract. Context, full event/ref merging, liv
 primitive metadata beyond the declared bindings, focus/disclosure/overlays and the
 remaining inventory are required work. The dev preview and active editor are updated.
 
+Shared SVG paths now pass paired focused acceptance through `a3525f16`; see
+[vector acceptance](../milestones/ui-vector-rendering.md). Local icons and a live
+chart use the same checked path model, theme paint and retained identity. The
+editor recovers complete generic props while JSX is unfinished. This closes the
+scoped drawing foundation; context/lazy children, event/ref composition, focus and
+chart interaction remain required before their dependent component families.
+
 ## Project and content layout
 
 Use `docs/` as a separate runnable Tsrust project. Keep the standalone

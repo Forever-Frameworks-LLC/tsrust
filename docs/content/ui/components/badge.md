@@ -31,4 +31,4 @@ The default height is five spacing units, 20 logical pixels with default tokens.
 
 Colors come from the enclosing theme: primary, secondary, destructive, muted, foreground, border and ring tokens. Both targets resolve nested light/dark scopes. Test custom foreground/background pairs for contrast, including hover and destructive palettes; changing tokens cannot guarantee contrast automatically.
 
-Keyboard rings use three logical pixels. `aria-invalid` changes the border and ring without inventing validation behavior. No arbitrary ARIA is accepted silently. SVG icons, icon-dependent padding, animated transitions and complete Base UI event/ref composition remain unsupported. This page documents the implemented portable subset.
+Keyboard rings use three logical pixels. `aria-invalid` changes the border and ring without inventing validation behavior. No arbitrary ARIA is accepted silently. Shared SVG primitives are described in [Vector graphics](/ui/foundations/vector-graphics). Automatic icon sizing, icon-dependent padding, animated transitions and complete Base UI event/ref composition remain unsupported. This page documents the implemented portable subset.

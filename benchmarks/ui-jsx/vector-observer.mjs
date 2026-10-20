@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import {createHash} from 'node:crypto';
 export async function observeVectors({evaluate,call,errors,expected,site}){
  assert(await evaluate(`document.querySelector('#vector-chart')?.namespaceURI==='http://www.w3.org/2000/svg'`));
  await evaluate(`window.series=document.querySelector('#vector-series');window.area=document.querySelector('#vector-area');window.chart=document.querySelector('#vector-chart')`);
@@ -13,5 +14,7 @@ export async function observeVectors({evaluate,call,errors,expected,site}){
  for(const width of [390,768,1280]){await call('Emulation.setDeviceMetricsOverride',{width,height:950,deviceScaleFactor:1,mobile:false});await evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))');assert(await evaluate('document.documentElement.scrollWidth<=innerWidth'));}
  const before=await evaluate('getComputedStyle(series).stroke');await evaluate(`document.querySelector('button[aria-label="Toggle light and dark theme"]').click()`);assert.notEqual(await evaluate('getComputedStyle(series).stroke'),before);
  await evaluate(`chart.scrollIntoView({block:'center'})`);fs.writeFileSync(path.join(site,'vectors.png'),Buffer.from((await call('Page.captureScreenshot',{format:'png'})).data,'base64'));
- assert.deepEqual(await evaluate('window.ui.mounts.map(mount=>mount.error())'),[null]);await evaluate('window.ui.dispose()');assert.equal(await evaluate('document.querySelectorAll("[data-tsrust-node]").length'),0);assert.deepEqual(errors,[]);console.log(JSON.stringify({case:'vectors',status:'pass',observed,viewports:expected.browser,timed:false}));
+ assert.deepEqual(await evaluate('window.ui.mounts.map(mount=>mount.error())'),[null]);await evaluate('window.ui.dispose()');assert.equal(await evaluate('document.querySelectorAll("[data-tsrust-node]").length'),0);assert.deepEqual(errors,[]);
+ for(const source of ['vector-reference.ts','vector-observer.mjs','../../docs/src/examples/vector-icons.tsrx','../../docs/src/examples/vector-chart.tsrx','../../docs/src/examples/vector-viewports.tsrx','../../docs/tsrust.config.json','../../crates/tsrust-compiler/src/stdlib/ui/api.tsr','../../crates/tsrust-ui/src/vector.rs','../../crates/tsrust-ui/src/native_vector.rs'])console.log(JSON.stringify({source,sha256:createHash('sha256').update(fs.readFileSync(new URL(source,import.meta.url))).digest('hex')}));
+ console.log(JSON.stringify({case:'vectors',status:'pass',observed,viewports:expected.browser,timed:false}));
 }
