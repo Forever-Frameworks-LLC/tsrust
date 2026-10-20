@@ -79,6 +79,7 @@ fn layout_text(text: &mut Layout<Brush>, width: f32, button: bool,balance:bool) 
 struct FieldInfo {value:String,placeholder:String,read_only:bool,required:bool}
 struct Measure {text:Layout<Brush>,nowrap:bool,balance:bool}
 struct Item {
+    display_none:bool,
     opacity:f32,
     suppress_outline:bool,
     placeholder_color:Option<super::theme::ResolvedColor>,
@@ -155,7 +156,7 @@ impl Painter {
     fn themed_node<'a>(&mut self, node: &'a Node, mut inherited: TextStyle, theme:&super::theme::Theme, mode:&str, ancestors:&mut Vec<&'a Node>,variables:&std::collections::BTreeMap<String,f32>) -> Result<Item, String> {
         if node.kind==Kind::SvgPath{return Err("Path requires an enclosing Svg".into());}
         let id=node.identity.get();
-        if node.enabled_control() {self.control_order.push(id);}
+
         if node.semantics.tab_index==Some(-1){self.tab_excluded.insert(id);}
         let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));
         if node.theme.is_some() {inherited.size=theme.typography.base as f32;inherited.color=theme.color(mode,"foreground")?;}
@@ -201,6 +202,7 @@ impl Painter {
                 Utility::Column=>style.flex_direction=FlexDirection::Column,
                 Utility::GapAxis(axis,v)=>{if axis==0{style.gap.height=length(v);}else{style.gap.width=length(v);}},
                 Utility::Padding(side,v)=>match side {0=>style.padding.top=length(v),1=>style.padding.right=length(v),2=>style.padding.bottom=length(v),_=>style.padding.left=length(v)},
+                Utility::Hidden=>{inline_flex=false;style.display=Display::None;},
                 Utility::Display(grid)=>{inline_flex=false;style.display=if grid{Display::Grid}else{Display::Flex};},
                 Utility::InlineFlex=>{inline_flex=true;style.display=Display::Flex;},
                 Utility::Dimension(property,value)=>{
@@ -232,11 +234,13 @@ impl Painter {
         if style.aspect_ratio.is_some() && style.size.width.into_raw().is_length_or_percentage() && style.max_size.width.is_auto() && !style.max_size.height.is_auto() {style.max_size.width=length(f32::MAX);}
         if node.kind==Kind::Input {inherited.whitespace=super::style::WhiteSpace::Pre;}else if node.kind==Kind::Textarea {inherited.whitespace=super::style::WhiteSpace::PreWrap;}
         if inline_flex || style.position==taffy::Position::Absolute {inherited.underlines=None;}
+        let display_none=style.display==Display::None;
+        if !display_none && node.enabled_control(){self.control_order.push(id);}
         if underline {let layers=inherited.underlines.get_or_insert_with(Default::default);std::rc::Rc::make_mut(layers).push(inline::Underline{color:inherited.color,offset:inherited.underline_offset});}
         ancestors.push(node);
         let vector=vector::collect(node,inherited.color,theme,mode,ancestors,&variables,self.viewport_width)?;
         let mut children = node
-            .visible_children().filter(|_|node.kind!=Kind::Svg)
+            .visible_children().filter(|_|node.kind!=Kind::Svg && !display_none)
             .map(|child| self.themed_node(child, inherited.clone(),theme,mode,ancestors,&variables))
             .collect::<Result<Vec<_>, _>>()?;
         ancestors.pop();
@@ -265,6 +269,7 @@ impl Painter {
             (Some(layout), id)
         };
         Ok(Item {
+            display_none,
             identity:node.identity.get(),
             opacity,suppress_outline,placeholder_color,copy_error:node.copy.as_ref().map(|copy|copy.error.clone()),
             field:node.editable.as_ref().map(|field|FieldInfo{value:field.value.clone(),placeholder:field.placeholder.clone(),read_only:field.read_only,required:field.required}),
@@ -396,6 +401,7 @@ impl Painter {
         scale: f64,
     ) -> Result<accesskit::NodeId, String> {
         let id = accesskit::NodeId(item.identity);
+        if item.display_none{let mut node=accesskit::Node::new(accesskit::Role::GenericContainer);node.set_hidden();nodes.push((id,node));return Ok(id);}
         let layout = *self.tree.layout(item.id).map_err(|e| e.to_string())?;
         let (x, y) = (
             parent_x + layout.location.x as f64,
@@ -444,7 +450,7 @@ impl Painter {
         if let Some(current)=super::navigation::current_kind(&item.semantics.href){node.set_aria_current(if current=="page"{accesskit::AriaCurrent::Page}else{accesskit::AriaCurrent::Location});}
         if role==accesskit::Role::Heading{node.set_level((item.semantics.tag.as_bytes()[1]-b'1') as usize);}
         if role==accesskit::Role::Splitter{node.set_orientation(if item.semantics.orientation=="vertical"{accesskit::Orientation::Vertical}else{accesskit::Orientation::Horizontal});}
-        if item.semantics.hidden{node.set_hidden();}
+        if item.semantics.hidden || item.display_none{node.set_hidden();}
         if item.semantics.role=="alert"{node.set_live(accesskit::Live::Assertive);}else if item.semantics.role=="status"{node.set_live(accesskit::Live::Polite);}
         if !item.semantics.label.is_empty(){node.set_label(item.semantics.label.clone());}
         else if !item.label.is_empty() && item.inline.is_empty() && matches!(role,accesskit::Role::Label|accesskit::Role::Button|accesskit::Role::Link|accesskit::Role::Heading) {
@@ -507,6 +513,7 @@ impl Painter {
         scale: f64,
         focus: Option<u64>,
     ) -> Result<(), String> {
+        if item.display_none{return Ok(());}
         let layout = self.tree.layout(item.id).map_err(|e| e.to_string())?;
         let (x, y) = (
             parent_x + layout.location.x as f64,
@@ -1697,5 +1704,26 @@ mod navigation_semantic_tests {
   let mut painter=Painter::new();let item=painter.node(&root,TextStyle::default()).unwrap();assert!(item.dashed);assert_eq!(item.border,[1.,0.,1.,1.]);let style=painter.tree.style(item.id).unwrap();assert_eq!(style.max_size.width,length(480.));let media=&item.children[0];assert_eq!(painter.tree.style(media.id).unwrap().margin.bottom,length(8.));
   for (icon,size) in media.children.iter().zip([20.,24.]){assert_eq!(painter.tree.style(icon.id).unwrap().size.width,length(size));assert!(!icon.text_style.pointer_events);}
   for width in [240.,390.,768.] {painter.scene(&root,width,1.,None).unwrap();}
+ }
+}
+
+#[cfg(test)] mod responsive_navigation_tests {
+ use super::*;
+ #[test] fn responsive_hidden_subtrees_leave_layout_focus_and_accessibility_without_disposal() {
+  let button=Node::button("Menu item".into(),"p-2".into(),false,||Ok(())).unwrap();
+  let panel=Node::view(vec![crate::Child::Node(button)],"hidden lg:flex h-32".into()).unwrap();
+  let article=Node::view(vec![],"h-24".into()).unwrap();
+  let root=Node::view(vec![crate::Child::Node(panel),crate::Child::Node(article)],String::new()).unwrap();
+  root.ensure_identities();let panel_id=root.children[0].identity.get();let button_id=root.children[0].children[0].identity.get();let article_id=root.children[1].identity.get();
+  let mut painter=Painter::new();
+  for (width,shown) in [(390.,false),(1023.,false),(1024.,true),(1440.,true),(768.,false),(1024.,true)] {
+   let (_,tree)=painter.scene(&root,width,1.,None).unwrap();
+   assert_eq!(painter.control_order.contains(&button_id),shown);
+   assert_eq!(tree.nodes.iter().any(|(id,_)|id.0==button_id),shown);
+   let panel=&tree.nodes.iter().find(|(id,_)|id.0==panel_id).unwrap().1;assert_eq!(panel.is_hidden(),!shown);
+   let article=&tree.nodes.iter().find(|(id,_)|id.0==article_id).unwrap().1;assert!((article.bounds().unwrap().y0-if shown{128.}else{0.}).abs()<0.01);
+   assert_eq!(painter.hit_regions.contains_key(&button_id),shown);
+  }
+  assert!(root.children[0].children[0].press.is_some());
  }
 }

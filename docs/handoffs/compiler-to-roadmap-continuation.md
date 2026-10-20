@@ -1,6 +1,16 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
-Current section — 2026-10-20: disclosure semantics and runtime-local instance IDs
+Current section — 2026-10-20: Empty's six exports and paired typography pass
+[focused acceptance](../milestones/ui-empty-and-typography.md) through `d72c8f6f`.
+Coverage remains partial: Text slots deliberately expose TextProps, not full DOM
+replacement/event/ref APIs. Actual pinned shadcn contracts remain the baseline.
+The owner reports stale dev-console exports, multiple selected navigation entries
+and cramped responsive docs. Repair these together, with paired responsive
+visibility and actual browser/layout checks, before continuing compound components.
+Keep the live preview and editor current. Reuse accepted evidence; no new go-ahead
+is needed. Workspace LSP scan cost and initial web startup remain open.
+
+Previous accepted section — 2026-10-20: disclosure semantics and runtime-local instance IDs
 pass focused paired acceptance. See [acceptance](../milestones/ui-disclosure-semantics.md).
 Live Button expanded/controls metadata forwards through local components. Native
 accessibility actions use current state, resolve visible targets and guard repeated,

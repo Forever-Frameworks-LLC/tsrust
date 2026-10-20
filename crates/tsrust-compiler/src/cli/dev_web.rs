@@ -2,8 +2,10 @@
 use std::{collections::BTreeMap,fs,io::{Read,Write},net::{TcpListener,TcpStream},path::{Path,PathBuf},process::{Command,Stdio},sync::{Arc,Mutex,atomic::{AtomicBool,Ordering}},thread,time::Duration};
 use std::hash::{Hash,Hasher};
 use crate::{TempDirectory,dev_cli::{report,Status}};
-#[derive(Default)]
-struct Published {revision:u64,assets:BTreeMap<String,Arc<Vec<u8>>>,gzip:BTreeMap<String,Arc<Vec<u8>>>,building:bool,error:String}
+struct Published {session:String,revision:u64,assets:BTreeMap<String,Arc<Vec<u8>>>,gzip:BTreeMap<String,Arc<Vec<u8>>>,building:bool,error:String}
+impl Default for Published {
+ fn default()->Self{Self{session:format!("{:x}-{:x}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("system clock precedes Unix epoch").as_nanos()),revision:0,assets:Default::default(),gzip:Default::default(),building:false,error:String::new()}}
+}
 pub(crate) struct Web {root:PathBuf,workspace:PathBuf,_lock:fs::File,state:Arc<Mutex<Published>>,stop:Arc<AtomicBool>,server:Option<thread::JoinHandle<()>>,pending:Option<TempDirectory>}
 fn write_changed(path:&Path,value:impl AsRef<[u8]>)->Result<(),String>{let value=value.as_ref();if fs::read(path).ok().as_deref()!=Some(value){fs::write(path,value).map_err(|e|e.to_string())?;}Ok(())}
 pub(crate) fn read_optional(path:&Path)->Result<Option<String>,String>{match fs::read_to_string(path){Ok(text)=>Ok(Some(text)),Err(error) if error.kind()==std::io::ErrorKind::NotFound=>Ok(None),Err(error)=>Err(error.to_string())}}
@@ -66,14 +68,14 @@ fn encodings(request:&str)->(f32,f32){
  (gzip.or(wildcard).unwrap_or(0.),identity.unwrap_or(if wildcard==Some(0.){0.}else{1.}))
 }
 fn load_assets(root:&Path)->Result<BTreeMap<String,Arc<Vec<u8>>>,String>{let mut assets=BTreeMap::new();for name in ["app.js","app_bg.wasm"]{assets.insert(name.into(),Arc::new(fs::read(root.join(name)).map_err(|e|format!("Missing web asset {name}: {e}"))?));}Ok(assets)}
-fn html(revision:u64,ready:bool)->String{
- let application=if ready{format!(r#"import init,{{launch}} from '/app.js?v={revision}';
-await init({{module_or_path:'/app_bg.wasm?v={revision}'}});
+fn html(session:&str,revision:u64,ready:bool)->String{
+ let application=if ready{format!(r#"import init,{{launch}} from '/app.js?v={revision}&s={session}';
+await init({{module_or_path:'/app_bg.wasm?v={revision}&s={session}'}});
 const mounts=launch();window.ui={{mounts,dispose(){{for(const mount of mounts)mount.free();mounts.length=0;}}}};
 addEventListener('pagehide',()=>window.ui.dispose());
 addEventListener('pageshow',event=>{{if(event.persisted&&mounts.length===0)mounts.push(...launch());}});"#)}else{String::new()};
  format!(r#"<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Tsrust</title></head><body>{}<script type="module">
-let timer,error='';function watch(){{timer=setInterval(async()=>{{try{{const status=await(await fetch('/__tsrust_dev',{{cache:'no-store'}})).json();if(status.revision!=={revision})location.reload();if(status.error&&error!==status.error){{console.error(status.error);error=status.error;}}}}catch{{}}}},750);}}watch();addEventListener('pagehide',()=>clearInterval(timer));addEventListener('pageshow',event=>{{if(event.persisted)watch();}});
+let timer,error='';function watch(){{timer=setInterval(async()=>{{try{{const status=await(await fetch('/__tsrust_dev',{{cache:'no-store'}})).json();if(status.session!=={session:?}||status.revision!=={revision})location.reload();if(status.error&&error!==status.error){{console.error(status.error);error=status.error;}}}}catch{{}}}},750);}}watch();addEventListener('pagehide',()=>clearInterval(timer));addEventListener('pageshow',event=>{{if(event.persisted)watch();}});
 {application}
 </script></body></html>"#,if ready{""}else{"<p>Starting application…</p>"})
 }
@@ -84,10 +86,10 @@ fn serve(mut stream:TcpStream,shared:&Mutex<Published>)->std::io::Result<()>{
  let (gzip_quality,identity_quality)=encodings(&request);let mut compressed=false;
  let state=shared.lock().unwrap();let mut status="200 OK";let mut mime="text/html; charset=utf-8";
  let body=if !matches!(method,"GET"|"HEAD"){status="405 Method Not Allowed";Arc::new(Vec::new())}
- else if path=="/__tsrust_dev"{mime="application/json";Arc::new(serde_json::to_vec(&serde_json::json!({"revision":state.revision,"building":state.building,"error":state.error})).unwrap())}
+ else if path=="/__tsrust_dev"{mime="application/json";Arc::new(serde_json::to_vec(&serde_json::json!({"session":state.session,"revision":state.revision,"building":state.building,"error":state.error})).unwrap())}
  else if let Some(asset)=state.assets.get(path.trim_start_matches('/')){
-  if !query.is_empty()&&query!=format!("v={}",state.revision){status="409 Conflict";Arc::new(Vec::new())}else{mime=if path.ends_with(".wasm"){"application/wasm"}else if path.ends_with(".js"){"text/javascript; charset=utf-8"}else{"text/plain; charset=utf-8"};if gzip_quality>0. && gzip_quality>=identity_quality {if let Some(gzip)=state.gzip.get(path.trim_start_matches('/')){compressed=true;gzip.clone()}else if identity_quality>0.{asset.clone()}else{status="406 Not Acceptable";Arc::new(Vec::new())}}else if identity_quality>0.{asset.clone()}else{status="406 Not Acceptable";Arc::new(Vec::new())}}
- }else if path=="/"||request.lines().skip(1).any(|line|line.to_ascii_lowercase().starts_with("accept:")&&line.contains("text/html")){Arc::new(html(state.revision,!state.assets.is_empty()).into_bytes())}
+  if !query.is_empty()&&query!=format!("v={}&s={}",state.revision,state.session){status="409 Conflict";Arc::new(Vec::new())}else{mime=if path.ends_with(".wasm"){"application/wasm"}else if path.ends_with(".js"){"text/javascript; charset=utf-8"}else{"text/plain; charset=utf-8"};if gzip_quality>0. && gzip_quality>=identity_quality {if let Some(gzip)=state.gzip.get(path.trim_start_matches('/')){compressed=true;gzip.clone()}else if identity_quality>0.{asset.clone()}else{status="406 Not Acceptable";Arc::new(Vec::new())}}else if identity_quality>0.{asset.clone()}else{status="406 Not Acceptable";Arc::new(Vec::new())}}
+ }else if path=="/"||request.lines().skip(1).any(|line|line.to_ascii_lowercase().starts_with("accept:")&&line.contains("text/html")){Arc::new(html(&state.session,state.revision,!state.assets.is_empty()).into_bytes())}
  else{status="404 Not Found";Arc::new(Vec::new())};drop(state);
  write!(stream,"HTTP/1.1 {status}\r\nContent-Type: {mime}\r\nContent-Length: {}\r\n{}Vary: Accept-Encoding\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n",body.len(),if compressed{"Content-Encoding: gzip\r\n"}else{""})?;if method!="HEAD"{stream.write_all(&body)?;}Ok(())
 }
@@ -96,9 +98,9 @@ fn serve(mut stream:TcpStream,shared:&Mutex<Published>)->std::io::Result<()>{
  #[test]fn nested_entry_discovery_and_server_drop_release_the_project_lock(){
   let files=TempDirectory::new().unwrap();let root=fs::canonicalize(&files.0).unwrap();fs::create_dir(root.join("src")).unwrap();fs::write(root.join("src/main.tsrx"),"function main(){}").unwrap();let mut ui=tsrust_compiler::ui_project::Config::default();ui.target=Some(tsrust_compiler::ui_project::Targets{web:true,native:false,embedded:false});let config=serde_json::json!({"schemaVersion":1,"name":"web-dev","build":{"entry":"src/main.tsrx","output":"target/app"},"ui":ui});fs::write(root.join("tsrust.config.json"),config.to_string()).unwrap();let server=Web::new(&root,0).unwrap();assert!(!server.ready());assert!(Web::new(&root,0).is_err());drop(server);assert!(Web::new(&root,0).is_ok());
  }
- #[test]fn development_html_owns_reload_and_preserves_mount_cleanup(){let source=html(7,true);assert!(source.contains("/app.js?v=7"));assert!(source.contains("/app_bg.wasm?v=7"));assert!(source.contains("pagehide"));assert!(source.contains("mount.free()"));assert!(!source.contains("Starting application"));}
+ #[test]fn development_html_owns_reload_and_preserves_mount_cleanup(){let source=html("test",7,true);assert!(source.contains("/app.js?v=7"));assert!(source.contains("/app_bg.wasm?v=7"));assert!(source.contains("pagehide"));assert!(source.contains("mount.free()"));assert!(!source.contains("Starting application"));assert!(source.contains("status.session!==\"test\""));assert!(source.contains("v=7&s=test"));assert_ne!(html("other",7,true),source);}
  #[test]fn local_server_keeps_failed_build_assets_and_rejects_mixed_revisions(){
   fn request(state:Arc<Mutex<Published>>,url:&str,accept:&str)->String{let listener=TcpListener::bind(("127.0.0.1",0)).unwrap();let port=listener.local_addr().unwrap().port();listener.set_nonblocking(true).unwrap();let worker=thread::spawn(move||{let stream=loop{match listener.accept(){Ok((stream,_))=>break stream,Err(error) if error.kind()==std::io::ErrorKind::WouldBlock=>thread::sleep(Duration::from_millis(1)),Err(error)=>panic!("{error}")}};serve(stream,&state).unwrap()});let mut stream=TcpStream::connect(("127.0.0.1",port)).unwrap();write!(stream,"GET {url} HTTP/1.1\r\nHost: localhost\r\nAccept: {accept}\r\n\r\n").unwrap();let mut result=String::new();stream.read_to_string(&mut result).unwrap();worker.join().unwrap();result}
-  let mut state=Published{revision:2,error:"Build failed".into(),..Default::default()};state.assets.insert("app.js".into(),Arc::new(b"working source".to_vec()));state.assets.insert("app_bg.wasm".into(),Arc::new(vec![b'x';2_000_000]));let state=Arc::new(Mutex::new(state));let large=request(state.clone(),"/app_bg.wasm?v=2","*/*");assert!(large.contains("application/wasm"));assert_eq!(large.split_once("\r\n\r\n").unwrap().1.len(),2_000_000);assert!(request(state.clone(),"/app.js?v=2","*/*").contains("working source"));assert!(request(state.clone(),"/app.js?v=1","*/*").contains("409 Conflict"));assert!(request(state.clone(),"/docs/deep","text/html").contains("/app.js?v=2"));assert!(request(state.clone(),"/missing.js","*/*").contains("404 Not Found"));assert!(request(state,"/__tsrust_dev","*/*").contains("Build failed"));
+  let mut state=Published{session:"test".into(),revision:2,error:"Build failed".into(),..Default::default()};state.assets.insert("app.js".into(),Arc::new(b"working source".to_vec()));state.assets.insert("app_bg.wasm".into(),Arc::new(vec![b'x';2_000_000]));let state=Arc::new(Mutex::new(state));let large=request(state.clone(),"/app_bg.wasm?v=2&s=test","*/*");assert!(large.contains("application/wasm"));assert_eq!(large.split_once("\r\n\r\n").unwrap().1.len(),2_000_000);assert!(request(state.clone(),"/app.js?v=2&s=test","*/*").contains("working source"));assert!(request(state.clone(),"/app.js?v=1&s=test","*/*").contains("409 Conflict"));assert!(request(state.clone(),"/app.js?v=2&s=old-process","*/*").contains("409 Conflict"));assert!(request(state.clone(),"/docs/deep","text/html").contains("/app.js?v=2"));assert!(request(state.clone(),"/missing.js","*/*").contains("404 Not Found"));assert!(request(state,"/__tsrust_dev","*/*").contains("Build failed"));
  }
 }

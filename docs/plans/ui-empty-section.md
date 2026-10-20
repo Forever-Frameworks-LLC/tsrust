@@ -1,5 +1,7 @@
 # Empty component section
 
+Accepted through `d72c8f6f`; see [focused acceptance](../milestones/ui-empty-and-typography.md).
+
 After disclosure semantics, port all six Empty exports from the pinned Base UI +
 Nova baseline in `ui-component-coverage.json`. Reuse accepted View replacement,
 ReactiveValue/useProp, live metadata, SVG and offline installer contracts.

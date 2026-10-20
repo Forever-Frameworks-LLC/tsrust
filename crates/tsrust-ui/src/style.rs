@@ -17,13 +17,13 @@ pub enum State { Base, Hover, Focus, Active, Disabled }
 pub enum Utility {
  BasisZero, Tracking(f32), Balance(bool), BorderDashed(bool), Margin(u8,f32), WhiteSpace(WhiteSpace), Underline(bool), UnderlineOffset(Option<f32>),
  Row, Column, GapAxis(u8,f32), Padding(u8,f32), FontSize(f32), Weight(f32), DefaultLeading(f32), Leading(f32), FontFamily(u8),
- Display(bool), InlineFlex, Dimension(u8,Length), SelfAlign(u8,u8), Shrink(f32), Grow(f32), Wrap(bool), Tracks(u8,u8), Placement(u8,u16), AutoRowsMin,
+ Display(bool), Hidden, InlineFlex, Dimension(u8,Length), SelfAlign(u8,u8), Shrink(f32), Grow(f32), Wrap(bool), Tracks(u8,u8), Placement(u8,u16), AutoRowsMin,
  Background(ResolvedColor), Foreground(ResolvedColor), Corner(u8,f32), EdgeBorder(u8,f32), Overflow(u8), BorderColor(ResolvedColor),
  Align(u8), Items(u8), Justify(u8), Ring(ResolvedColor), RingWidth(f32), RingShadowColor(ResolvedColor),
  Placeholder(ResolvedColor),Opacity(f32),OutlineNone,Cursor(u8),SelectNone,PointerEvents(bool),FieldSizingContent,AspectRatio(Option<f32>),Relative,Absolute,Inset(u8,Length),
 }
 impl Utility {
- pub fn category(self)->u8 {match self {Self::BasisZero=>80,Self::Tracking(_)=>73,Self::Balance(_)=>74,Self::BorderDashed(_)=>75,Self::Margin(side,_)=>76+side,Self::WhiteSpace(_)=>70,Self::Underline(_)=>71,Self::UnderlineOffset(_)=>72,Self::Row|Self::Column=>0,Self::GapAxis(axis,_)=>16+axis,Self::Padding(side,_)=>20+side,Self::Display(_)|Self::InlineFlex=>30,Self::Dimension(property,_)=>24+property,Self::SelfAlign(axis,_)=>31+axis,Self::Shrink(_)=>33,Self::Grow(_)=>34,Self::Wrap(_)=>35,Self::Tracks(axis,_)=>36+axis,Self::Placement(property,_)=>38+property,Self::AutoRowsMin=>42,Self::FontSize(_)=>4,Self::Weight(_)=>5,Self::DefaultLeading(_)=>45,Self::Leading(_)=>46,Self::FontFamily(_)=>47,Self::Background(_)=>6,Self::Foreground(_)=>7,Self::Corner(corner,_)=>48+corner,Self::EdgeBorder(side,_)=>52+side,Self::Overflow(_)=>56,Self::BorderColor(_)=>10,Self::Align(_)=>11,Self::Items(_)=>12,Self::Justify(_)=>13,Self::Ring(_)=>14,Self::RingWidth(_)=>43,Self::RingShadowColor(_)=>44,Self::Placeholder(_)=>57,Self::Opacity(_)=>58,Self::OutlineNone=>14,Self::Cursor(_)=>60,Self::SelectNone=>61,Self::PointerEvents(_)=>62,Self::FieldSizingContent=>63,Self::AspectRatio(_)=>64,Self::Relative|Self::Absolute=>65,Self::Inset(side,_)=>66+side}}
+ pub fn category(self)->u8 {match self {Self::BasisZero=>80,Self::Tracking(_)=>73,Self::Balance(_)=>74,Self::BorderDashed(_)=>75,Self::Margin(side,_)=>76+side,Self::WhiteSpace(_)=>70,Self::Underline(_)=>71,Self::UnderlineOffset(_)=>72,Self::Row|Self::Column=>0,Self::GapAxis(axis,_)=>16+axis,Self::Padding(side,_)=>20+side,Self::Display(_)|Self::Hidden|Self::InlineFlex=>30,Self::Dimension(property,_)=>24+property,Self::SelfAlign(axis,_)=>31+axis,Self::Shrink(_)=>33,Self::Grow(_)=>34,Self::Wrap(_)=>35,Self::Tracks(axis,_)=>36+axis,Self::Placement(property,_)=>38+property,Self::AutoRowsMin=>42,Self::FontSize(_)=>4,Self::Weight(_)=>5,Self::DefaultLeading(_)=>45,Self::Leading(_)=>46,Self::FontFamily(_)=>47,Self::Background(_)=>6,Self::Foreground(_)=>7,Self::Corner(corner,_)=>48+corner,Self::EdgeBorder(side,_)=>52+side,Self::Overflow(_)=>56,Self::BorderColor(_)=>10,Self::Align(_)=>11,Self::Items(_)=>12,Self::Justify(_)=>13,Self::Ring(_)=>14,Self::RingWidth(_)=>43,Self::RingShadowColor(_)=>44,Self::Placeholder(_)=>57,Self::Opacity(_)=>58,Self::OutlineNone=>14,Self::Cursor(_)=>60,Self::SelectNone=>61,Self::PointerEvents(_)=>62,Self::FieldSizingContent=>63,Self::AspectRatio(_)=>64,Self::Relative|Self::Absolute=>65,Self::Inset(side,_)=>66+side}}
  pub(crate) fn css(self)->String {match self {
   Self::BasisZero=>"flex-basis:0%".into(),Self::Tracking(v)=>format!("letter-spacing:{v}em"),Self::Balance(v)=>format!("text-wrap-style:{}",if v{"balance"}else{"auto"}),Self::BorderDashed(v)=>format!("border-style:{}",if v{"dashed"}else{"solid"}),Self::Margin(side,v)=>format!("margin-{}:{v}px",["top","right","bottom","left"][side as usize]),
   Self::WhiteSpace(v)=>format!("white-space:{}",v.css()),Self::Underline(v)=>format!("text-decoration-line:{}",if v{"underline"}else{"none"}),Self::UnderlineOffset(v)=>format!("text-underline-offset:{}",v.map_or_else(||"auto".into(),|v|format!("{v}px"))),
@@ -31,6 +31,7 @@ impl Utility {
   Self::Placeholder(v)=>format!("color:{};opacity:1",v.css()),Self::Opacity(v)=>format!("opacity:{v}"),Self::OutlineNone=>"outline:none".into(),Self::Cursor(v)=>format!("cursor:{}",["auto","text","not-allowed"][v as usize]),Self::SelectNone=>"user-select:none".into(),Self::PointerEvents(v)=>format!("pointer-events:{}",if v{"auto"}else{"none"}),Self::FieldSizingContent=>"field-sizing:content;height:auto".into(),
   Self::Row=>"flex-direction:row".into(),Self::Column=>"flex-direction:column".into(),Self::GapAxis(axis,v)=>format!("{}-gap:{v}px",if axis==0 {"row"}else{"column"}),
   Self::InlineFlex=>"display:inline-flex".into(),
+  Self::Hidden=>"display:none".into(),
   Self::Display(grid)=>format!("display:{}",if grid{"grid"}else{"flex"}),
   Self::Dimension(property,value)=>format!("{}:{}",["width","height","min-width","min-height","max-width","max-height"][property as usize],value.css()),
   Self::SelfAlign(axis,value)=>format!("{}-self:{}",if axis==0{"align"}else{"justify"},["start","center","end","stretch","auto"][value as usize]),
@@ -127,7 +128,9 @@ pub fn theme_paths(class:&str)->Vec<Vec<String>> {
 pub fn documentation(class:&str)->String {
  if validate(class).is_err(){return String::new();}
  let (_,token)=split(class).unwrap();let default=Theme::default();
- let (purpose,example)=if matches!(token,"text-balance"|"text-wrap-auto") {
+ let (purpose,example)=if token=="hidden" {
+  ("Removes the element and its subtree from layout, painting, pointer input, keyboard focus and accessibility. Responsive flex/grid utilities can show the same retained subtree at a wider viewport. Unlike conditional children, this preserves state and ownership and does not dispose handlers. No arguments. Example: hidden md:flex hides below 768 logical pixels and shows at or above 768.",format!("<View className=\"{class} md:flex\"/>"))
+ }else if matches!(token,"text-balance"|"text-wrap-auto") {
   ("Balances short wrapped text without changing its value or hard breaks. text-balance asks both renderers for balanced line lengths; text-wrap-auto restores ordinary wrapping. Native balancing preserves the ordinary line count for blocks of 2–6 lines using a bounded width search; longer blocks use ordinary wrapping. Browsers choose their own balancing algorithm and limits, so exact break positions can differ with fonts. Whitespace/nowrap rules still apply. Measurement, painting, selection and accessibility geometry share the native layout. Does not change width constraints or editable-control behavior. No arguments or ownership change.",format!("<Text className=\"w-64 text-center {class}\">Build a workspace for your next project</Text>"))
  }else if matches!(token,"tracking-tight"|"tracking-normal") {
   ("Sets inherited letter spacing relative to the current font size. tracking-tight uses -0.025em (-0.4 logical pixels at font-size 16); tracking-normal restores zero extra spacing. Native shaping, measurement, selection and painting use the same spacing. Stored text is unchanged; font shaping can differ across platforms. No arguments or ownership change.",format!("<Text className=\"{class}\">Project settings</Text>"))
@@ -283,5 +286,15 @@ pub(crate) fn validate_inline(classes:&str)->Result<(),String> {
   let rules=resolved_node(&child,&[&root],&theme,"light");assert!(rules.iter().any(|(_,value)|matches!(value,Utility::Foreground(color)if *color==theme.color("light","primary").unwrap())));
   assert!(super::super::Node::view(vec![],String::new()).unwrap().with_semantics(r#"{"variant":"bad value"}"#).is_err());
   let html=super::super::document(&root,"Variant");assert!(html.contains("data-variant=\"destructive\""));
+ }
+}
+
+#[cfg(test)] mod responsive_navigation_tests {
+ use super::*;
+ #[test] fn hidden_shares_display_precedence_and_documents_retained_ownership() {
+  assert!(validate("hidden lg:flex").is_ok());assert_eq!(resolved("flex hidden",&Theme::default(),"light").last().unwrap().1.css(),"display:none");
+  assert_eq!(resolved("hidden flex",&Theme::default(),"light").last().unwrap().1.css(),"display:flex");
+  assert!(documentation("hidden").contains("does not dispose handlers"));
+  assert!(css("hidden lg:flex",&Theme::default(),"light",1,"").contains("display:none"));
  }
 }

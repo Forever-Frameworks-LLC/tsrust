@@ -17,6 +17,7 @@ impl Painter {
         self.scrolls.retain(|id, _| live.contains(id));
     }
     pub(super) fn configure_scrolls(&mut self, item: &Item, ancestors: &[u64]) -> Result<(), String> {
+        if item.display_none{return Ok(());}
         let mut chain = ancestors.to_vec();
         if item.overflow != 0 {
             let layout = self.tree.layout(item.id).map_err(|error| error.to_string())?;

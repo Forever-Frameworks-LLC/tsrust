@@ -125,11 +125,11 @@ function Article(route: string): Node {
   const hasContents = contents.length !== 0;
 
   return (
-    <View className="grow min-h-0 flex-col lg:flex-row">
-      <View id={page.metadata.id + '-article'} data-slot="route-page" as="main" aria-label="Documentation article" tabIndex={0} className="grow min-w-0 overflow-auto p-6 md:p-8">
+    <View className="grow min-h-0 min-w-0 flex-col xl:flex-row">
+      <View id={page.metadata.id + '-article'} data-slot="route-page" as="main" aria-label="Documentation article" tabIndex={0} className="grow min-h-0 min-w-0 overflow-auto p-4 md:p-8">
         <View className="max-w-192 gap-6"><Text className="text-xs text-muted-foreground">DOCUMENTATION / {groupLabel(page.metadata.group)}</Text>{Markdown(page,catalog)}</View>
       </View>
-      <View hidden={!hasContents} as="nav" aria-label="On this page" tabIndex={0} className="h-24 lg:h-full w-full lg:w-48 shrink-0 overflow-auto border-l p-4 gap-2"><Text className="text-xs font-semibold pt-6 pb-2">ON THIS PAGE</Text><View children={contents}/></View>
+      <View hidden={!hasContents} as="nav" aria-label="On this page" tabIndex={0} className="hidden xl:flex h-full w-48 shrink-0 overflow-auto border-l p-4 gap-2"><Text className="text-xs font-semibold pt-6 pb-2">ON THIS PAGE</Text><View children={contents}/></View>
     </View>
   );
 }
@@ -138,6 +138,8 @@ export function Page(): Node {
   const mode = signal('light');
   const path = location();
   const query = signal('');
+  const menuOpen = signal(false);
+  const menuPath = signal('');
   const pages = loadNavigation();
   const pageCount = pages.length;
   const matches = signal(pageCount);
@@ -147,6 +149,7 @@ export function Page(): Node {
   let searchNavigation: Child[] = [];
   let articles: Child[] = [];
   let sections: Child[] = [];
+  let mobileSections: Child[] = [];
   let known = '|/|';
   const groups = ['getting-started', 'language', 'cli', 'standard-library', 'framework', 'foundations', 'components', 'recipes', 'blocks', 'charts', 'themes', 'performance'];
   for (const group of groups) {
@@ -167,11 +170,13 @@ export function Page(): Node {
       }
 
       const key = '|' + target + '|';
-      entries.push(<Link href={clone(target)} className="text-sm py-2 px-3 rounded hover:bg-muted focus:ring aria-current:bg-primary/10 aria-current:text-primary aria-current:font-semibold">{clone(page.title)}</Link>);
-      searchNavigation.push(<View hidden={!hits.get().includes(key)}><Link href={clone(target)} className="text-sm py-2 px-3 rounded hover:bg-muted focus:ring aria-current:bg-primary/10 aria-current:text-primary">{clone(page.title)}</Link></View>);
+      entries.push(<Link href={clone(target)} className={'text-sm py-2 px-3 rounded hover:bg-muted focus:ring ' + (routePath(path.get()) === target ? 'bg-primary/10 text-primary font-semibold' : 'bg-transparent')}>{clone(page.title)}</Link>);
+      searchNavigation.push(<View hidden={!hits.get().includes(key)}><Link href={clone(target)} className={'text-sm py-2 px-3 rounded hover:bg-muted focus:ring ' + (routePath(path.get()) === target ? 'bg-primary/10 text-primary font-semibold' : 'bg-transparent')}>{clone(page.title)}</Link></View>);
     }
 
-    sections.push(<Link href={first} className="shrink-0 text-xs md:text-sm px-3 py-3 rounded hover:bg-muted focus:ring aria-current:text-primary aria-current:bg-primary/10">{groupLabel(group)}</Link>);
+    const sectionGroup = clone(group);
+    sections.push(<Link href={clone(first)} className={'shrink-0 text-sm px-3 py-3 rounded hover:bg-muted focus:ring ' + (activeGroup(path.get()) === sectionGroup ? 'text-primary bg-primary/10' : 'bg-transparent')}>{groupLabel(group)}</Link>);
+    mobileSections.push(<Link href={first} className={'text-xs px-3 py-2 rounded hover:bg-muted focus:ring ' + (activeGroup(path.get()) === sectionGroup ? 'text-primary bg-primary/10' : 'bg-transparent')}>{groupLabel(group)}</Link>);
     const selectedGroup = clone(group);
     const label = groupLabel(group);
     const paneLabel = clone(label) + ' pages';
@@ -187,26 +192,28 @@ export function Page(): Node {
 
   return withTheme(
     <View id="site" className="h-screen overflow-hidden bg-background text-foreground">
-      <View as="header" windowDragRegion className="h-24 md:h-16 shrink-0 flex-col md:flex-row items-stretch md:items-center justify-between gap-1 md:gap-4 px-4 md:pl-24 md:pr-6 border-b">
-        <Link href="/" className="bg-transparent font-mono font-semibold text-base pl-24 md:pl-0 py-2">tsrust.</Link>
-        <View as="nav" aria-label="Main navigation" className="flex-row items-center justify-between md:justify-start gap-1 md:gap-2">
+      <View as="header" windowDragRegion className="h-16 shrink-0 flex-row items-center justify-between gap-2 pl-24 pr-3 lg:pr-6 border-b">
+        <Link href="/" className="bg-transparent font-mono font-semibold text-base py-2">tsrust.</Link>
+        <View as="nav" aria-label="Main navigation" className="flex-row items-center gap-1 lg:gap-2">
           <Link href="/docs" className="text-sm px-3 py-2 rounded hover:bg-muted focus:ring aria-current:text-primary">Docs</Link>
-          <Link href="https://github.com/Forever-Frameworks-LLC/tsrust" className="text-sm px-3 py-2 rounded hover:bg-muted focus:ring">GitHub</Link>
-          <Link href="https://github.com/Forever-Frameworks-LLC/tsrust/releases" className="text-sm px-3 py-2 rounded hover:bg-muted focus:ring">Releases</Link>
+          <Link href="https://github.com/Forever-Frameworks-LLC/tsrust" className="hidden lg:flex text-sm px-3 py-2 rounded hover:bg-muted focus:ring">GitHub</Link>
+          <Link href="https://github.com/Forever-Frameworks-LLC/tsrust/releases" className="hidden lg:flex text-sm px-3 py-2 rounded hover:bg-muted focus:ring">Releases</Link>
           <ThemeButton aria-label="Toggle light and dark theme" className="text-sm px-3 py-2 rounded border hover:bg-muted focus:ring" onPress={() => { mode.set(mode.get() === 'light' ? 'dark' : 'light'); }}>Theme</ThemeButton>
         </View>
       </View>
       <Route path="/" render={() => <View id="landing" as="main" aria-label="Tsrust home" tabIndex={0} className="grow min-h-0 overflow-auto"><Landing/></View>}/>
       <View hidden={routePath(path.get()) === '/'} id="documentation" className="grow min-h-0">
-        <View as="nav" aria-label="Documentation sections" className="h-12 shrink-0 flex-row overflow-auto border-b px-3 gap-1" children={sections}/>
-        <View className="grow min-h-0 flex-col md:flex-row">
-        <View id="sidebar" as="nav" aria-label="Documentation navigation" className="w-full md:w-64 h-32 md:h-full shrink-0 min-h-0 border-b md:border-r">
-          <View className="shrink-0 pt-6 px-3 gap-3"><Input aria-label="Search documentation" aria-describedby="search-feedback" placeholder="Search documentation…" value={query} onChange={(event) => { query.set(event.target.value); const needle = event.target.value.trim().toLowerCase(); if (needle.length === 0) { matches.set(pageCount); hits.set(''); } else { if (terms.length === 0) { terms = loadSearch(); } let selected = ''; let total = 0; for (const term of terms) { if (term.text.toLowerCase().includes(needle)) { selected += '|' + docsPath(term.route) + '|'; total++; } } hits.set(selected); matches.set(total); } }}/></View>
+        <View as="nav" aria-label="Documentation sections" className="hidden lg:flex h-12 shrink-0 flex-row overflow-auto border-b px-3 gap-1" children={sections}/>
+        <View className="lg:hidden shrink-0 flex-row items-center justify-between border-b px-4 py-2"><ThemeButton aria-label="Browse documentation" aria-expanded={menuOpen.get() && menuPath.get() === path.get()} aria-controls="sidebar" className="text-sm px-3 py-2 rounded border focus:ring" onPress={() => { const wasOpen = menuOpen.get() && menuPath.get() === path.get(); menuPath.set(path.get()); menuOpen.set(!wasOpen); }}>Browse docs</ThemeButton><Text className="text-xs text-muted-foreground">{groupLabel(activeGroup(path.get()))}</Text></View>
+        <View className="grow min-h-0 min-w-0 flex-col lg:flex-row">
+        <View id="sidebar" as="nav" aria-label="Documentation navigation" className={(menuOpen.get() && menuPath.get() === path.get() ? 'flex' : 'hidden') + ' lg:flex w-full lg:w-64 h-full shrink-0 min-h-0 border-b lg:border-r'}>
+          <View as="nav" aria-label="Browse documentation sections" className="lg:hidden shrink-0 flex-row flex-wrap p-3 gap-1" children={mobileSections}/>
+          <View className="shrink-0 pt-4 px-3 gap-3"><Input aria-label="Search documentation" aria-describedby="search-feedback" placeholder="Search documentation…" value={query} onChange={(event) => { query.set(event.target.value); const needle = event.target.value.trim().toLowerCase(); if (needle.length === 0) { matches.set(pageCount); hits.set(''); } else { if (terms.length === 0) { terms = loadSearch(); } let selected = ''; let total = 0; for (const term of terms) { if (term.text.toLowerCase().includes(needle)) { selected += '|' + docsPath(term.route) + '|'; total++; } } hits.set(selected); matches.set(total); } }}/></View>
           <View hidden={query.get().trim().length === 0} className="shrink-0 pt-4 px-3"><Text id="search-feedback" role="status" className="text-xs text-muted-foreground">{matches.get() === 0 ? 'No pages match. Try another search.' : String(matches.get()) + ' matching pages'}</Text></View>
           <View id="navigation-pages" hidden={query.get().trim().length !== 0} className="grow min-h-0" children={navigation}/>
           <View hidden={query.get().trim().length === 0} role="region" aria-label="Search results" tabIndex={0} className="grow min-h-0 overflow-auto px-3 pb-6" children={searchNavigation}/>
         </View>
-        <View className="grow min-h-0 min-w-0 flex-row" children={articles}/>
+        <View className={(menuOpen.get() && menuPath.get() === path.get() ? 'hidden' : 'flex') + ' lg:flex grow min-h-0 min-w-0 flex-row'} children={articles}/>
         <View hidden={known.includes('|' + routePath(path.get()) + '|')} className="grow p-8 gap-6"><Text as="h1" className="text-3xl font-semibold">Page not found</Text><Text className="text-muted-foreground">This path is not in the documentation catalog.</Text><Link href="/docs" className="py-3">Return to documentation</Link></View>
         </View>
       </View>

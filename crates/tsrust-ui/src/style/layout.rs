@@ -28,7 +28,7 @@ pub(super) fn aspect(token:&str)->Option<Option<f32>> {
     (ratio.is_finite() && ratio>0.).then_some(Some(ratio))
 }
 pub(super) fn tokens()->Vec<String> {
-    let mut values=["flex-1","max-w-sm","relative","absolute","aspect-auto","aspect-square","aspect-video","aspect-[16/9]","aspect-[3/4]","aspect-[1.5]","flex","inline-flex","grid","auto-rows-min","flex-wrap","flex-nowrap","grow","grow-0","shrink","shrink-0"].into_iter().map(str::to_owned).collect::<Vec<_>>();
+    let mut values=["flex-1","max-w-sm","relative","absolute","aspect-auto","aspect-square","aspect-video","aspect-[16/9]","aspect-[3/4]","aspect-[1.5]","hidden","flex","inline-flex","grid","auto-rows-min","flex-wrap","flex-nowrap","grow","grow-0","shrink","shrink-0"].into_iter().map(str::to_owned).collect::<Vec<_>>();
     for prefix in ["inset","inset-x","inset-y","top","right","bottom","left"] {
         for size in SPACING.iter().copied().chain(["full","1/2","1/3","2/3","1/4","3/4"]) {values.push(format!("{prefix}-{size}"));values.push(format!("-{prefix}-{size}"));}
         values.push(format!("{prefix}-auto"));
@@ -62,7 +62,7 @@ pub(super) fn resolve(token:&str,theme:&Theme)->Option<Vec<Utility>> {
     if let Some(values)=offset(token,theme){return Some(values);}
     let simple=match token {
         "relative"=>Some(Utility::Relative),"absolute"=>Some(Utility::Absolute),
-        "flex"=>Some(Utility::Display(false)),"inline-flex"=>Some(Utility::InlineFlex),"grid"=>Some(Utility::Display(true)),"auto-rows-min"=>Some(Utility::AutoRowsMin),
+        "hidden"=>Some(Utility::Hidden),"flex"=>Some(Utility::Display(false)),"inline-flex"=>Some(Utility::InlineFlex),"grid"=>Some(Utility::Display(true)),"auto-rows-min"=>Some(Utility::AutoRowsMin),
         "flex-wrap"=>Some(Utility::Wrap(true)),"flex-nowrap"=>Some(Utility::Wrap(false)),
         "grow"=>Some(Utility::Grow(1.)),"grow-0"=>Some(Utility::Grow(0.)),"shrink"=>Some(Utility::Shrink(1.)),"shrink-0"=>Some(Utility::Shrink(0.)),
         "grid-cols-[1fr_auto]"=>Some(Utility::Tracks(0,255)),"grid-rows-[auto_auto]"=>Some(Utility::Tracks(1,254)),_=>None,
