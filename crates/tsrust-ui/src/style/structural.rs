@@ -84,17 +84,19 @@ pub(crate) fn scoped(node:&Node,ancestors:&[&Node],theme:&Theme,mode:&str,inheri
 }
 #[cfg(any(test,feature="native"))]
 pub(crate) fn scoped_at_width(node:&Node,ancestors:&[&Node],theme:&Theme,mode:&str,inherited:&std::collections::BTreeMap<String,f32>,width:f32)->(Vec<(State,Utility)>,std::collections::BTreeMap<String,f32>) {
- let mut variables=inherited.clone();let mut filtered=Vec::new();
+ let mut variables=inherited.clone();let mut output=Vec::new();
  let sources=ancestors.iter().enumerate().map(|(index,parent)|(*parent,&ancestors[..index],Some(index+1==ancestors.len()))).chain(std::iter::once((node,ancestors,None)));
- for (source,parents,direct) in sources {for class in source.class_name.split_whitespace(){
+ for (source,parents,direct) in sources {let mut filtered=Vec::new();for class in source.class_name.split_whitespace(){
   let parsed=parts(class).expect("validated utility");
   match (direct,parsed.descendant){(None,None)=>{},(Some(direct),Some(target))if target.matches(node,direct)=>{},_=>continue}
   if !parsed.predicates.iter().all(|p|match p {Predicate::Dark=>mode=="dark",Predicate::MinWidth(min)=>width>=*min as f32,_=>p.matches(source,parents)}){continue;}
   if let Some((name,scale))=super::custom_spacing::declaration(parsed.token){variables.insert(name.into(),super::layout::spacing(scale,theme));}
   let token=if parsed.placeholder{format!("placeholder:{}",parsed.token)}else{parsed.token.to_owned()};
   filtered.push(match parsed.state {State::Base=>token,state=>format!("{}:{token}",state_name(state))});
- }}
- (super::resolved_with_variables(&filtered.join(" "),theme,mode,&variables),variables)
+ }
+  output.extend(super::resolved_with_variables(&filtered.join(" "),theme,mode,&variables));
+ }
+ (output,variables)
 }
 #[cfg(any(test,feature="native"))]
 fn state_name(state:State)->&'static str {match state{State::Base=>"",State::Hover=>"hover",State::Focus=>"focus",State::Active=>"active",State::Disabled=>"disabled"}}

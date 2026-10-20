@@ -42,3 +42,13 @@ fn empty_heading_family_is_optional_and_checked(){
  for (family,index) in [("sans",0),("serif",1),("mono",2)]{value["typography"]["headingFamily"]=family.into();let theme=theme::Theme::parse(&value.to_string()).unwrap();assert_eq!(theme.typography.heading_family.index(),index);assert!(style::resolved("font-heading",&theme,"light").iter().any(|(_,v)|matches!(v,Utility::FontFamily(found)if *found==index)));}
  for invalid in [serde_json::Value::Null,42.into(),"Comic Sans".into()]{value["typography"]["headingFamily"]=invalid;assert!(theme::Theme::parse(&value.to_string()).is_err());}
 }
+
+#[test]
+fn descendant_cascade_matches_browser_order_for_local_base_and_hover_colors(){
+ let theme=theme::Theme::default();let parent=Node::text(vec![],"[&>a:hover]:text-primary".into()).unwrap();
+ let mut child=navigation::link(vec![],"text-foreground".into(),"/docs").unwrap();
+ let selected=|node:&Node|style::resolved_node(node,&[&parent],&theme,"light").into_iter().filter(|(state,_)|matches!(state,State::Base|State::Hover)).filter_map(|(_,value)|if let Utility::Foreground(color)=value{Some(color)}else{None}).last();
+ assert_eq!(selected(&child),Some(theme.color("light","foreground").unwrap()));
+ child.class_name="text-foreground hover:text-muted-foreground".into();assert_eq!(selected(&child),Some(theme.color("light","muted-foreground").unwrap()));
+ let css=style::css(&parent.class_name,&theme,"light",1,"")+&style::css(&child.class_name,&theme,"light",2,"");assert!(css.find("var(--ui-primary)").unwrap()<css.find("var(--ui-foreground)").unwrap());assert!(css.find("var(--ui-foreground)").unwrap()<css.find("var(--ui-muted-foreground)").unwrap());
+}
