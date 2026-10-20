@@ -13,6 +13,7 @@ impl Analyzer {
 
  pub(super) fn ui_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic> {
   if let Some(result)=self.ui_visibility_call(context,expression,loans,expected)? {return Ok(Some(result));}
+  if let Some(result)=self.ui_route_call(context,expression,loans,expected)? {return Ok(Some(result));}
   if let Some(result)=self.ui_branch_call(context,expression,loans,expected)? {return Ok(Some(result));}
   if let Some(result)=self.ui_text_binding_call(context,expression,loans,expected)? {return Ok(Some(result));}
   if let Some(result)=self.ui_input_call(context,expression,loans,expected)? {return Ok(Some(result));}
@@ -57,6 +58,16 @@ impl Analyzer {
   let node=self.native_parameter_type(binding.parameters[0].ty)?;
   let contract=|ty|ArgumentContract{ty,mode:Mode::Consume,omission:crate::ParameterOmission::Required,rest:false};
   self.check_call_arguments(context,args,&[contract(node),contract(handler)],loans)?;
+  let result=native_type(binding.result,&self.program.records);self.require(result,expected,expression.span)?;expression.ty=Some(result);expression.target=Some(CallTarget::NativeBinding(id));Ok(Some(result))
+ }
+ fn ui_route_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic> {
+  let ExprKind::Call(callee,args)=&mut expression.kind else{return Ok(None)};let ExprKind::Name(name)=&callee.kind else{return Ok(None)};
+  let Some((id,binding))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|binding.module=="std:ui-runtime"&&binding.name=="route") else{return Ok(None)};
+  Self::arity(args.len(),3,expression.span)?;
+  let node=self.ui_record(NativeTypeId::UiNode);let result=self.checked_value_annotation(node,expression.span)?;
+  let annotation=crate::syntax::CallbackAnnotation{kind:crate::syntax::CallbackKind::Owned,params:vec![],result:Box::new(crate::syntax::ResultAnnotation::Named(Box::new(result))),span:expression.span};let render=self.resolve_callback(&annotation)?;
+  let contract=|ty,mode|ArgumentContract{ty,mode,omission:crate::ParameterOmission::Required,rest:false};
+  self.check_call_arguments(context,args,&[contract(Type::String,Mode::Read),contract(Type::Boolean,Mode::Read),contract(render,Mode::Consume)],loans)?;
   let result=native_type(binding.result,&self.program.records);self.require(result,expected,expression.span)?;expression.ty=Some(result);expression.target=Some(CallTarget::NativeBinding(id));Ok(Some(result))
  }
  fn ui_branch_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic> {
