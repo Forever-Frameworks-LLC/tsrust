@@ -2,7 +2,6 @@
 use crate::Mode;
 use crate::project::{ProjectAnalysis, SourceLocation};
 use crate::syntax::{CallbackKind, Type};
-use crate::type_syntax::{ValueAnnotation, ValueAnnotationKind as Kind};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -433,9 +432,6 @@ impl ProjectAnalysis {
             arguments: vec![],
         })
     }
-    fn project_record(&self, id: usize, names: &HashMap<&str, usize>) -> Option<ProjectType> {
-        self.project_type(Type::Record(id), names)
-    }
     fn project_record_inner(&self, id: usize, names: &HashMap<&str, usize>, active: &mut HashSet<Type>) -> Option<ProjectType> {
         let record = &self.analysis.program.records[id];
         if let Some((input, output, json_input)) = self.analysis.program.schema_pipelines.types(id) {
@@ -498,9 +494,9 @@ impl ProjectAnalysis {
             .as_ref()
             .map(|application| {
                 application
-                    .arguments
+                    .resolved_arguments
                     .iter()
-                    .map(|argument| self.project_annotation(argument, names))
+                    .map(|argument| self.project_type_inner(*argument, names, active))
                     .collect::<Option<Vec<_>>>()
             })
             .unwrap_or(Some(vec![]))?;
@@ -510,37 +506,7 @@ impl ProjectAnalysis {
             arguments,
         })
     }
-    fn project_annotation(
-        &self,
-        annotation: &ValueAnnotation,
-        names: &HashMap<&str, usize>,
-    ) -> Option<ProjectType> {
-        match &annotation.kind {
-            Kind::Literal(value) => Some(ProjectType::Named {name:value.text(),declaration:None,arguments:vec![]}),
-            Kind::Named(name) => {
-                if let Some(id) = names.get(name.text.as_str()) {
-                    return self.project_record(*id, names);
-                }
-                Some(ProjectType::Named {
-                    name: name.text.clone(),
-                    declaration: None,
-                    arguments: vec![],
-                })
-            }
-            Kind::Group(inner) => self.project_annotation(inner, names),
-            Kind::Array(inner) => Some(ProjectType::Array(Box::new(
-                self.project_annotation(inner, names)?,
-            ))),
-            Kind::Union(members) => Some(ProjectType::Union(
-                members
-                    .iter()
-                    .map(|member| self.project_annotation(member, names))
-                    .collect::<Option<_>>()?,
-            )),
-            Kind::Tuple(positions) => Some(ProjectType::Tuple(positions.iter().map(|position|self.project_annotation(position,names)).collect::<Option<_>>()?)),
-            Kind::Applied { .. } | Kind::Callable { .. } | Kind::Polymorphic { .. } => None,
-        }
-    }
+
 }
 
 #[cfg(test)]

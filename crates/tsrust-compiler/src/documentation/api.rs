@@ -28,13 +28,13 @@ fn header(source:&str,start:usize)->Result<String,String> {
     }
     Err("Public documentation declaration has no body".into())
 }
-fn record_alias<'a>(program:&'a syntax::Program,aliases:&syntax::TypeAliasCatalog,export:&str)->Option<&'a syntax::Record>{
- let (target,alias)=aliases.identity_record_aliases().into_iter().find(|(_,alias)|alias.name==export)?;
- program.records.iter().find(|record|record.name.text==target&&record.type_parameters.len()==alias.parameters.len())
+type RecordAliases=BTreeMap<SourceId,BTreeMap<String,(String,usize)>>;
+fn record_alias<'a>(program:&'a syntax::Program,aliases:&BTreeMap<String,(String,usize)>,export:&str)->Option<&'a syntax::Record>{
+ let (target,arity)=aliases.get(export)?;program.records.iter().find(|record|record.name.text==*target&&record.type_parameters.len()==*arity)
 }
 /// Imported inheritance uses the base span for diagnostics. Follow that checked base
 /// through the module graph to recover the field's actual source annotation.
-fn field_origin(project:&ProjectAnalysis,parsed:&BTreeMap<SourceId,syntax::Program>,facts:&crate::project::ProjectCheckedTypeFacts,name:&str,mut location:crate::project::SourceLocation)->Result<crate::project::SourceLocation,String>{
+fn field_origin(project:&ProjectAnalysis,parsed:&BTreeMap<SourceId,syntax::Program>,facts:&crate::project::ProjectCheckedTypeFacts,record_aliases:&RecordAliases,name:&str,mut location:crate::project::SourceLocation)->Result<crate::project::SourceLocation,String>{
     for _ in 0..128 {
         if parsed.get(&location.source).is_some_and(|program|program.records.iter().any(|record|record.fields.iter().any(|field|field.name.text==name&&field.name.span==location.span))){return Ok(location);}
         let module=project.graph.modules.get(&location.source).ok_or("Missing inherited field module")?;
@@ -42,21 +42,23 @@ fn field_origin(project:&ProjectAnalysis,parsed:&BTreeMap<SourceId,syntax::Progr
         let imported=module.imports.iter().find_map(|import|import.bindings.iter().find(|binding|binding.local==base).and_then(|binding|Some((import.target.as_ref()?,&binding.exported))));
         let Some((target,export))=imported else{return Err(format!("Cannot resolve inherited field {name} through {base} in {}",location.source.0));};
         let module=project.graph.modules.get(target).ok_or("Missing inherited base module")?;
-        let aliases=syntax::TypeAliasCatalog::parse(&module.declaration_source).map_err(|error|error.message)?;
-        let span=parsed.get(target).and_then(|program|record_alias(program,&aliases,export)).map(|record|record.name.span).or_else(||module.exports.get(export).copied()).ok_or("Missing inherited base export")?;
-        location=facts.record_fields.iter().find_map(|(owner,field,origin,_,_)|{
+        let span=parsed.get(target).and_then(|program|record_alias(program,&record_aliases[target],export)).map(|record|record.name.span).or_else(||module.exports.get(export).copied()).ok_or("Missing inherited base export")?;
+        // Generic bases need not have a concrete instance in this checked graph.
+        location=parsed.get(target).and_then(|program|program.records.iter().find(|record|record.name.span==span)).and_then(|record|record.fields.iter().find(|field|field.name.text==name)).map(|field|crate::project::SourceLocation{source:target.clone(),span:field.name.span}).or_else(||facts.record_fields.iter().find_map(|(owner,field,origin,_,_)|{
             let ProjectType::Named{declaration:Some(declaration),..}=owner else{return None;};
             (field==name&&declaration.source==*target&&declaration.span==span).then(||origin.clone())
-        }).ok_or_else(||format!("Missing checked inherited field {export}.{name}"))?;
+        })).ok_or_else(||format!("Missing checked inherited field {export}.{name}"))?;
     }
     Err("Inherited documentation field exceeds the source depth limit".into())
 }
 /// Declaration/field identities come from a successful project check, not a parallel type parser.
 pub fn api(project:&ProjectAnalysis,sources:&[SourceId])->Result<Vec<ApiDefinition>,String> {
-    let mut parsed=BTreeMap::new();
+    let mut parsed=BTreeMap::new();let mut catalogs=BTreeMap::new();let mut record_aliases=RecordAliases::new();
     for (id,module) in &project.graph.modules {
         if module.data.is_none()&&module.rust.is_none(){
             let program=syntax::parse_module(&module.declaration_source,crate::project::is_test_entry(&id.0),Default::default(),Default::default()).map_err(|error|format!("{}: {}",id.0,error.message))?;
+            let aliases=syntax::TypeAliasCatalog::parse(&module.declaration_source).map_err(|error|error.message)?;
+            record_aliases.insert(id.clone(),aliases.identity_record_aliases().into_iter().map(|(target,alias)|(alias.name,(target,alias.parameters.len()))).collect());catalogs.insert(id.clone(),aliases);
             parsed.insert(id.clone(),program);
         }
     }
@@ -66,7 +68,7 @@ pub fn api(project:&ProjectAnalysis,sources:&[SourceId])->Result<Vec<ApiDefiniti
         let module=project.graph.modules.get(id).ok_or_else(||format!("Documentation API module is outside the checked graph: {}",id.0))?;
         let program=parsed.get(id).ok_or("Documentation API source must be Tsrust")?;
         let source=&module.source.text;
-        let aliases=syntax::TypeAliasCatalog::parse(&module.declaration_source).map_err(|error|error.message)?;
+        let aliases=&catalogs[id];
         for (export,span) in &module.exports {
             if export=="default"{continue;}
             let (kind,signature)=if let Some(function)=program.functions.iter().find(|value|value.name.span==*span||value.name.text==*export){
@@ -74,13 +76,19 @@ pub fn api(project:&ProjectAnalysis,sources:&[SourceId])->Result<Vec<ApiDefiniti
             }else if let Some(record)=program.records.iter().find(|value|value.name.span==*span||value.name.text==*export){
                 ("interface",format!("interface {}",header(source,record.name.span.start)?))
             }else if let Some(alias)=aliases.declarations().into_iter().find(|value|value.name==*export){("type",alias.signature)}else{continue;};
-            let declaration_span=record_alias(program,&aliases,export).map_or(*span,|record|record.name.span);
+            let declaration_span=record_alias(program,&record_aliases[id],export).map_or(*span,|record|record.name.span);
+            let mut candidates=facts.record_fields.iter().filter_map(|(owner,name,location,_,optional)|{
+                let ProjectType::Named{declaration:Some(declaration),..}=owner else{return None;};
+                (declaration.source==*id&&declaration.span==declaration_span).then(||(name.clone(),location.clone(),*optional))
+            }).collect::<Vec<_>>();
+            // Checked generic declarations have fields even when unused facades have no specialization.
+            if let Some(record)=program.records.iter().find(|record|record.name.span==declaration_span&&!record.type_parameters.is_empty()){
+                candidates.extend(record.fields.iter().map(|field|(field.name.text.clone(),crate::project::SourceLocation{source:id.clone(),span:field.name.span},field.optional)));
+            }
             let mut fields=Vec::new();let mut seen=std::collections::BTreeSet::new();
-            for (owner,name,location,_,optional) in &facts.record_fields {
-                let ProjectType::Named{declaration:Some(declaration),..}=owner else{continue;};
-                if declaration.source!=*id||declaration.span!=declaration_span{continue;}
+            for (name,location,optional) in candidates {
                 if !seen.insert(name.clone()){continue;}
-                let location=field_origin(project,&parsed,&facts,name,location.clone())?;
+                let location=field_origin(project,&parsed,&facts,&record_aliases,&name,location)?;
                 let original=project.graph.modules.get(&location.source).ok_or("Missing checked prop declaration")?;
                 let record=parsed.get(&location.source).and_then(|program|program.records.iter().find(|record|record.fields.iter().any(|field|field.name.span==location.span)));
                 let field=record.and_then(|record|record.fields.iter().find(|field|field.name.span==location.span)).ok_or_else(||format!("Missing source prop annotation for {}.{} at {}:{}..{}",export,name,location.source.0,location.span.start,location.span.end))?;
@@ -88,14 +96,13 @@ pub fn api(project:&ProjectAnalysis,sources:&[SourceId])->Result<Vec<ApiDefiniti
                 let mut documentation=before(&original.source.text,location.span.start);
                 if location.source.0=="std:ui" {
                     if let Some(record)=record {if let Some(entry)=docs["std:ui"].as_array().and_then(|entries|entries.iter().find(|entry|entry["name"].as_str()==Some(record.name.text.as_str())).or_else(||{
-                        let aliases=syntax::TypeAliasCatalog::parse(&original.declaration_source).ok()?;
-                        let public=aliases.identity_record_aliases().into_iter().find(|(target,alias)|target==&record.name.text&&original.exports.contains_key(&alias.name))?.1.name;
-                        entries.iter().find(|entry|entry["name"]==public)
+                        let public=record_aliases[&location.source].iter().find(|(alias,(target,_))|target==&record.name.text&&original.exports.contains_key(*alias))?.0;
+                        entries.iter().find(|entry|entry["name"]==public.as_str())
                     })){
-                        if let Some(text)=entry["fields"][name]["documentation"].as_str(){documentation=text.into();}
+                        if let Some(text)=entry["fields"][&name]["documentation"].as_str(){documentation=text.into();}
                     }}
                 }
-                fields.push(ApiField{name:name.clone(),optional:*optional,signature:format!("{}{}: {}",if name.bytes().all(|ch|ch.is_ascii_alphanumeric()||ch==b'_'){name.clone()}else{crate::json_string(name)},if *optional{"?"}else{""},annotation),document:super::markdown::parse_api(&documentation)?,documentation,source:location.source.0.clone(),range:Range{start:location.span.start,end:field.annotation.span.end}});
+                fields.push(ApiField{name:name.clone(),optional,signature:format!("{}{}: {}",if name.bytes().all(|ch|ch.is_ascii_alphanumeric()||ch==b'_'){name.clone()}else{crate::json_string(&name)},if optional{"?"}else{""},annotation),document:super::markdown::parse_api(&documentation)?,documentation,source:location.source.0.clone(),range:Range{start:location.span.start,end:field.annotation.span.end}});
             }
             output.push(ApiDefinition{name:export.clone(),kind:kind.into(),source:id.0.clone(),range:Some(Range{start:span.start,end:span.end}),signature,document:super::markdown::parse_api(&before(source,span.start))?,documentation:before(source,span.start),fields});
         }

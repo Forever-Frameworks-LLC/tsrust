@@ -69,6 +69,7 @@ pub struct SourceIndex {
     /// `type Name = Type;` declarations: name to fully expanded type text.
     type_aliases: std::collections::BTreeMap<String, String>,
     generic_aliases:Option<tsrust_compiler::TypeAliasCatalog>,
+    public_record_aliases:std::collections::BTreeMap<String,(String,usize)>,
     generic_display_names: std::collections::BTreeMap<String, String>,
     nominal_definitions: std::collections::BTreeMap<String, Value>,
     generic_parameters: std::collections::BTreeMap<String, Vec<String>>,
@@ -148,7 +149,7 @@ impl SourceIndex {
             end_scope: 0,
             checked_control_labels: vec![],
             import_exports: vec![],
-            type_aliases: Default::default(),generic_aliases:None,
+            type_aliases: Default::default(),generic_aliases:None,public_record_aliases:Default::default(),
             checked_views: vec![],
             json_string_receivers: vec![],
             checked_method_results: vec![],
@@ -573,11 +574,7 @@ impl SourceIndex {
         }
     }
     fn public_record_alias(&self,record:&str)->Option<String>{
-        self.generic_aliases.as_ref()?.identity_record_aliases().into_iter().find_map(|(target,alias)|{
-            if target!=record || self.generic_parameters.get(record).map_or(0,Vec::len)!=alias.parameters.len(){return None;}
-            let at=self.tokens.iter().position(|token|token.span==alias.span)?;
-            (at>=2&&self.text(at-1)=="type"&&self.text(at-2)=="export").then_some(alias.name)
-        })
+        self.public_record_aliases.get(record).filter(|(_,arity)|self.generic_parameters.get(record).map_or(0,Vec::len)==*arity).map(|(name,_)|name.clone())
     }
     fn display_type(&self, ty: &str) -> String {
         let mut display = ty.to_owned();
@@ -915,6 +912,10 @@ impl SourceIndex {
     /// record bodies and expands the aliases they mention.
     fn collect_type_aliases(&mut self) {
         self.generic_aliases=tsrust_compiler::TypeAliasCatalog::parse(&self.source).ok().filter(|catalog|catalog.has_generics());
+        self.public_record_aliases.clear();
+        if let Some(catalog)=&self.generic_aliases{for (target,alias) in catalog.identity_record_aliases(){
+            if let Some(at)=self.tokens.iter().position(|token|token.span==alias.span) && at>=2 && self.text(at-1)=="type" && self.text(at-2)=="export"{self.public_record_aliases.entry(target).or_insert((alias.name,alias.parameters.len()));}
+        }}
         let mut written = std::collections::BTreeMap::new();
         for id in 0..self.tokens.len() {
             if self.text(id) == "type"
