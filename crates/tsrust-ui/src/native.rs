@@ -415,7 +415,7 @@ impl Painter {
             _=>default_role,
         };
         let mut node = accesskit::Node::new(role);
-        if !item.semantics.href.is_empty()&&super::navigation::is_current(&item.semantics.href){node.set_aria_current(accesskit::AriaCurrent::Page);}
+        if let Some(current)=super::navigation::current_kind(&item.semantics.href){node.set_aria_current(if current=="page"{accesskit::AriaCurrent::Page}else{accesskit::AriaCurrent::Location});}
         if role==accesskit::Role::Heading{node.set_level((item.semantics.tag.as_bytes()[1]-b'1') as usize);}
         if role==accesskit::Role::Splitter{node.set_orientation(if item.semantics.orientation=="vertical"{accesskit::Orientation::Vertical}else{accesskit::Orientation::Horizontal});}
         if item.semantics.hidden{node.set_hidden();}
@@ -633,6 +633,7 @@ fn keyboard(focus:&mut Option<u64>,pressed:&mut Option<u64>,ids:&[u64],shift:boo
 fn focusable(node:&accesskit::Node)->bool {node.supports_action(accesskit::Action::Focus) && !node.is_disabled() && !node.is_hidden()}
 struct App {
     location:String,
+    reading_positions:std::collections::BTreeMap<String,std::collections::BTreeMap<u64,(f64,f64)>>,
     proxy: winit::event_loop::EventLoopProxy<accesskit::ActionRequest>,
     pointer: (f64,f64),
     pressed: Option<u64>,
@@ -830,8 +831,12 @@ impl App {
     fn draw(&mut self) -> Result<bool, String> {
         if let Some(path)=super::navigation::current(){
             if path!=self.location {
+                let reading_nodes=self.node.reading_nodes();for positions in self.reading_positions.values_mut(){positions.retain(|id,_|reading_nodes.contains(id));}
+                if !self.location.is_empty(){self.reading_positions.insert(self.location.clone(),self.painter.scroll_order.iter().filter(|id|reading_nodes.contains(id)).filter_map(|id|self.painter.scrolls.get(id).map(|region|(*id,region.viewport.offset))).collect());}
+                let restored=self.reading_positions.get(&path);
+                if let Some(positions)=restored{for (id,(x,y)) in positions{if let Some(region)=self.painter.scrolls.get_mut(id){region.viewport.scroll_to(*x,*y);}}}
                 fn target(node:&Node,fragment:Option<&str>)->Option<u64>{let node=node.visible_root()?;if fragment.map_or(node.tag()=="h1",|fragment|node.semantics.id==fragment){return Some(node.identity.get());}node.children.iter().find_map(|child|target(child,fragment))}
-                self.node.ensure_identities();self.painter.reveal_target=path.split_once('#').and_then(|(_,fragment)|target(&self.node,Some(fragment)));self.location=path;
+                self.node.ensure_identities();self.painter.reveal_target=if restored.is_some(){None}else{path.split_once('#').and_then(|(_,fragment)|target(&self.node,Some(fragment)))};self.location=path;
             }
         }
         self.painter.hover=self.pointer_nodes();self.painter.pressed_nodes=self.pressed_nodes();
@@ -1089,6 +1094,7 @@ fn run_window(mut node: Node, title: String, close_after_frame: bool,options:&st
     let event_loop = EventLoop::<accesskit::ActionRequest>::with_user_event().build().map_err(|e| e.to_string())?;
     let mut app = App {
         location:String::new(),
+        reading_positions:Default::default(),
         proxy: event_loop.create_proxy(), pointer:(-1.,-1.),pressed:None,dragging_text:false,dragging_selection:false,focus:None,shift:false,modifiers:ModifiersState::empty(),focus_visible:false,clipboard:None,key_pressed:None,
         close_after_frame,
         presented: false,

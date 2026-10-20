@@ -1,6 +1,15 @@
 mod support;
 
 #[test]
+fn selected_navigation_utility_completion_and_link_hover_share_runtime_contract(){
+ let source="import {Link,Node,location} from 'std:ui';function Page():Node{const path=location();return <Link href=\"/docs\" className=\"aria-current:text-primary\">Docs</Link>;}function main(){const node=Page();}";
+ let mut session=support::session::Session::start(&[("main.tsrx",source)]);session.open("main.tsrx",source);session.settle();
+ let at=source.find("aria-current:text-primary").unwrap()+"aria-current:text-pr".len();let values=session.completion("main.tsrx",source,at).unwrap();assert!(values.contains(&"aria-current:text-primary".into()),"{values:?}");
+ let help=session.hover("main.tsrx",source,at).unwrap();assert!(help.contains("ancestor path segment")&&help.contains("Ownership"),"{help}");
+ let help=session.hover("main.tsrx",source,source.find("<Link href").unwrap()+2).unwrap();assert!(help.contains("aria-current=location"),"{help}");
+}
+
+#[test]
 fn application_modes_visibility_and_window_options_have_checked_editor_help() {
  let theme=include_str!("../../../examples/ui-application-state/tsrust.config.json");
  let source="import {View,Text,Button,Node,signal,withTheme,run,WindowOptions} from 'std:ui';import config from './theme.json';function Page():Node{const mode=signal('light');const hidden=signal(false);return withTheme(<View windowDragRegion tabIndex={0} role=\"region\" aria-label=\"Article\" className=\"h-screen overflow-auto\"><Button onPress={()=>mode.set('dark')}>Dark</Button><View hidden={hidden.get()}><Text>Preview</Text></View></View>,config.ui.theme,mode);}function main(){const options:WindowOptions={width:1040,titlebar:'custom'};const result=run(Page(),'Docs',options);}";

@@ -23,7 +23,7 @@ fn element(node:&Node,out:&mut String,theme:&crate::theme::Theme,mode:&str) {
  for (key,value) in [("href",&node.semantics.href),("role",&node.semantics.role),("aria-label",&node.semantics.label),("id",&node.semantics.id),("data-slot",&node.semantics.slot),("data-size",&node.semantics.size),("for",&node.semantics.html_for),("aria-describedby",&node.semantics.described_by),("aria-invalid",&node.semantics.invalid)] {
   if !value.is_empty(){out.push(' ');out.push_str(key);out.push_str("=\"");escape(value,out);out.push('"');}
  }
- if !node.semantics.href.is_empty()&&super::navigation::is_current(&node.semantics.href){out.push_str(" aria-current=\"page\"");}
+ if let Some(current)=super::navigation::current_kind(&node.semantics.href){out.push_str(&format!(" aria-current=\"{current}\""));}
  if let Some(index)=node.semantics.tab_index{out.push_str(&format!(" tabindex=\"{index}\""));}
  if node.copy.is_some(){out.push_str(" aria-live=\"polite\" data-copy-state=\"idle\"");}
  if node.kind==Kind::View{out.push_str(" data-tsrust-view");}

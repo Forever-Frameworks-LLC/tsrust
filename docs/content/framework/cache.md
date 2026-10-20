@@ -1,0 +1,6 @@
+<!-- tsrust-docs
+{"id":"reference-framework-cache","group":"framework","order":20,"status":"partial","targets":["web","native"],"api":[{"receiver":"std:cache","name":"LruCache"},{"receiver":"std:cache","name":"CacheEntry"},{"receiver":"std:cache","name":"CacheInsertError"},{"receiver":"std:cache","name":"SharedLruCache"},{"receiver":"LruCache","name":"get"},{"receiver":"LruCache","name":"peek"},{"receiver":"LruCache","name":"set"},{"receiver":"LruCache","name":"remove"},{"receiver":"LruCache","name":"size"},{"receiver":"LruCache","name":"clear"},{"receiver":"CacheEntry","name":"key"},{"receiver":"CacheEntry","name":"value"},{"receiver":"CacheInsertError","name":"code"},{"receiver":"CacheInsertError","name":"key"},{"receiver":"CacheInsertError","name":"value"},{"receiver":"SharedLruCache","name":"getCloned"},{"receiver":"SharedLruCache","name":"peekCloned"},{"receiver":"SharedLruCache","name":"set"},{"receiver":"SharedLruCache","name":"remove"},{"receiver":"SharedLruCache","name":"size"},{"receiver":"SharedLruCache","name":"clear"},{"receiver":"SharedLruCache","name":"share"}]}
+-->
+# Caches
+
+Cache reads follow the declared nullable/entry ownership contract. Capacity, eviction, release observation and shared access are explicit API behavior.

@@ -1,0 +1,6 @@
+<!-- tsrust-docs
+{"id":"reference-framework-sqlite","group":"framework","order":20,"status":"partial","targets":["web","native"],"api":[{"receiver":"std:sqlite","name":"open"},{"receiver":"std:sqlite","name":"Connection"},{"receiver":"std:sqlite","name":"Statement"},{"receiver":"std:sqlite","name":"Transaction"},{"receiver":"std:sqlite","name":"Row"},{"receiver":"std:sqlite","name":"SqliteError"},{"receiver":"SqliteConnection","name":"prepare"},{"receiver":"SqliteConnection","name":"begin"},{"receiver":"SqliteConnection","name":"close"},{"receiver":"SqliteTransaction","name":"prepare"},{"receiver":"SqliteTransaction","name":"commit"},{"receiver":"SqliteTransaction","name":"rollback"},{"receiver":"SqliteStatement","name":"execute"},{"receiver":"SqliteStatement","name":"query"},{"receiver":"SqliteStatement","name":"finalize"},{"receiver":"SqliteRow","name":"int"},{"receiver":"SqliteRow","name":"number"},{"receiver":"SqliteRow","name":"text"},{"receiver":"SqliteRow","name":"blob"},{"receiver":"SqliteRow","name":"isNull"},{"receiver":"SqliteSqliteError","name":"code"},{"receiver":"SqliteSqliteError","name":"message"}]}
+-->
+# SQLite
+
+Use the local SQLite APIs when a synchronous owned connection fits the application. The pool API is documented separately. Exact decimals, binary data and nullable values must use explicit supported conversions.

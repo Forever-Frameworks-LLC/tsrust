@@ -57,6 +57,12 @@ mod tests {
     }
 }
 impl Node {
+    /// Route reading positions exclude shared navigation and other layout panes.
+    #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
+    pub(crate) fn reading_nodes(&self)->std::collections::BTreeSet<u64>{
+        fn collect(node:&Node,inside:bool,ids:&mut std::collections::BTreeSet<u64>){let inside=inside||node.branch.as_ref().is_some_and(|branch|branch.retained);if inside&&node.branch.is_none(){ids.insert(node.identity.get());}for child in &node.children{collect(child,inside,ids);}}
+        let mut ids=std::collections::BTreeSet::new();collect(self,false,&mut ids);ids
+    }
     pub fn branch(
         mut predicate:impl FnMut()->Result<bool,String>+'static,
         mut present:impl FnMut()->Result<Option<Node>,String>+'static,

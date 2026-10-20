@@ -31,7 +31,11 @@
         "primaryForeground": "#18181b",
         "ring": "#a1a1aa",
         "secondary": "#27272a",
-        "secondaryForeground": "@foreground"
+        "secondaryForeground": "@foreground",
+        "syntaxKeyword": "#fda4af",
+        "syntaxString": "#86efac",
+        "syntaxNumber": "#fcd34d",
+        "syntaxType": "#93c5fd"
       },
       "light": {
         "accent": "#e4e4e7",
@@ -50,7 +54,11 @@
         "primaryForeground": "#fafafa",
         "ring": "#71717a",
         "secondary": "#f4f4f5",
-        "secondaryForeground": "@foreground"
+        "secondaryForeground": "@foreground",
+        "syntaxKeyword": "#9f1239",
+        "syntaxString": "#166534",
+        "syntaxNumber": "#92400e",
+        "syntaxType": "#1e40af"
       },
       "radius": {
         "lg": 12,

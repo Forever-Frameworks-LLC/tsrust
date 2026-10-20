@@ -7,6 +7,30 @@ import { loadNavigation, loadSearch, loadPage, DocSearchEntry } from '../../targ
 import config from '../../tsrust.config.json';
 
 function groupLabel(group: string): string {
+  if (group === 'language') {
+    return 'Language';
+  }
+
+  if (group === 'framework') {
+    return 'Services';
+  }
+
+  if (group === 'cli') {
+    return 'CLI';
+  }
+
+  if (group === 'charts') {
+    return 'Charts';
+  }
+
+  if (group === 'themes') {
+    return 'Themes';
+  }
+
+  if (group === 'performance') {
+    return 'Performance';
+  }
+
   if (group === 'getting-started') {
     return 'Getting started';
   }
@@ -35,6 +59,30 @@ function groupLabel(group: string): string {
 }
 
 function activeGroup(path: string): string {
+  if (path.startsWith('/docs/language')) {
+    return 'language';
+  }
+
+  if (path.startsWith('/docs/framework')) {
+    return 'framework';
+  }
+
+  if (path.startsWith('/docs/cli')) {
+    return 'cli';
+  }
+
+  if (path.startsWith('/docs/ui/charts')) {
+    return 'charts';
+  }
+
+  if (path.startsWith('/docs/ui/themes')) {
+    return 'themes';
+  }
+
+  if (path.startsWith('/docs/performance')) {
+    return 'performance';
+  }
+
   if (path.startsWith('/docs/standard-library')) {
     return 'standard-library';
   }
@@ -89,13 +137,18 @@ export function Page(): Node {
   const hits = signal('');
   let terms: DocSearchEntry[] = [];
   let navigation: Child[] = [];
+  let searchNavigation: Child[] = [];
   let articles: Child[] = [];
   let sections: Child[] = [];
   let known = '|/|';
-  const groups = ['getting-started', 'foundations', 'standard-library', 'components', 'recipes', 'blocks'];
+  const groups = ['getting-started', 'language', 'cli', 'standard-library', 'framework', 'foundations', 'components', 'recipes', 'blocks', 'charts', 'themes', 'performance'];
   for (const group of groups) {
     let entries: Child[] = [];
-    let first = '';
+    let first = '/docs/' + group;
+    if (group === 'foundations' || group === 'components' || group === 'recipes' || group === 'blocks' || group === 'charts' || group === 'themes') {
+      first = '/docs/ui/' + group;
+    }
+
     for (const page of pages) {
       if (page.group !== group) {
         continue;
@@ -107,13 +160,14 @@ export function Page(): Node {
       }
 
       const key = '|' + target + '|';
-      entries.push(<View hidden={query.get().trim().length !== 0 && !hits.get().includes(key)}><Link href={clone(target)} className="text-sm py-2 px-3 rounded hover:bg-muted focus:ring">{clone(page.title)}</Link></View>);
+      entries.push(<Link href={clone(target)} className="text-sm py-2 px-3 rounded hover:bg-muted focus:ring aria-current:bg-primary/10 aria-current:text-primary aria-current:font-semibold">{clone(page.title)}</Link>);
+      searchNavigation.push(<View hidden={!hits.get().includes(key)}><Link href={clone(target)} className="text-sm py-2 px-3 rounded hover:bg-muted focus:ring aria-current:bg-primary/10 aria-current:text-primary">{clone(page.title)}</Link></View>);
     }
 
-    sections.push(<Link href={first} className="text-xs md:text-sm px-3 py-3 rounded hover:bg-muted">{groupLabel(group)}</Link>);
+    sections.push(<Link href={first} className="shrink-0 text-xs md:text-sm px-3 py-3 rounded hover:bg-muted focus:ring aria-current:text-primary aria-current:bg-primary/10">{groupLabel(group)}</Link>);
     const selectedGroup = clone(group);
     const label = groupLabel(group);
-    navigation.push(<View hidden={query.get().trim().length === 0 && activeGroup(path.get()) !== selectedGroup} className="gap-1"><Text className="text-xs font-semibold pt-6 pb-2 text-muted-foreground">{label}</Text><View children={entries}/></View>);
+    navigation.push(<View hidden={query.get().trim().length !== 0 || activeGroup(path.get()) !== selectedGroup} className="grow min-h-0 gap-1"><Text className="shrink-0 text-xs font-semibold pt-6 pb-2 px-3 text-muted-foreground">{label}</Text><View role="region" aria-label={clone(label) + ' pages'} tabIndex={0} className="grow min-h-0 overflow-auto px-3 pb-6" children={entries}/></View>);
   }
 
   for (const page of pages) {
@@ -128,7 +182,7 @@ export function Page(): Node {
       <View as="header" windowDragRegion className="h-24 md:h-16 shrink-0 flex-col md:flex-row items-stretch md:items-center justify-between gap-1 md:gap-4 px-4 md:pl-24 md:pr-6 border-b">
         <Link href="/" className="bg-transparent font-mono font-semibold text-base pl-24 md:pl-0 py-2">tsrust.</Link>
         <View as="nav" aria-label="Main navigation" className="flex-row items-center justify-between md:justify-start gap-1 md:gap-2">
-          <Link href="/docs" className="text-sm px-3 py-2 rounded hover:bg-muted focus:ring">Docs</Link>
+          <Link href="/docs" className="text-sm px-3 py-2 rounded hover:bg-muted focus:ring aria-current:text-primary">Docs</Link>
           <Link href="https://github.com/Forever-Frameworks-LLC/tsrust" className="text-sm px-3 py-2 rounded hover:bg-muted focus:ring">GitHub</Link>
           <Link href="https://github.com/Forever-Frameworks-LLC/tsrust/releases" className="text-sm px-3 py-2 rounded hover:bg-muted focus:ring">Releases</Link>
           <ThemeButton aria-label="Toggle light and dark theme" className="text-sm px-3 py-2 rounded border hover:bg-muted focus:ring" onPress={() => { mode.set(mode.get() === 'light' ? 'dark' : 'light'); }}>Theme</ThemeButton>
@@ -136,12 +190,13 @@ export function Page(): Node {
       </View>
       <Route path="/" render={() => <View id="landing" as="main" aria-label="Tsrust home" tabIndex={0} className="grow min-h-0 overflow-auto"><Landing/></View>}/>
       <View hidden={routePath(path.get()) === '/'} id="documentation" className="grow min-h-0">
-        <View as="nav" aria-label="Documentation sections" className="shrink-0 flex-row flex-wrap border-b px-3 gap-1" children={sections}/>
+        <View as="nav" aria-label="Documentation sections" className="h-12 shrink-0 flex-row overflow-auto border-b px-3 gap-1" children={sections}/>
         <View className="grow min-h-0 flex-row">
         <View id="sidebar" as="nav" aria-label="Documentation navigation" className="w-32 md:w-64 shrink-0 min-h-0 border-r">
           <View className="shrink-0 pt-6 px-3 gap-3"><Input aria-label="Search documentation" aria-describedby="search-feedback" placeholder="Search documentation…" value={query} onChange={(event) => { query.set(event.target.value); const needle = event.target.value.trim().toLowerCase(); if (needle.length === 0) { matches.set(pageCount); hits.set(''); } else { if (terms.length === 0) { terms = loadSearch(); } let selected = ''; let total = 0; for (const term of terms) { if (term.text.toLowerCase().includes(needle)) { selected += '|' + docsPath(term.route) + '|'; total++; } } hits.set(selected); matches.set(total); } }}/></View>
           <View hidden={query.get().trim().length === 0} className="shrink-0 pt-4 px-3"><Text id="search-feedback" role="status" className="text-xs text-muted-foreground">{matches.get() === 0 ? 'No pages match. Try another search.' : String(matches.get()) + ' matching pages'}</Text></View>
-          <View id="navigation-pages" role="region" aria-label="Documentation pages" tabIndex={0} className="grow min-h-0 overflow-auto px-3 pb-6" children={navigation}/>
+          <View id="navigation-pages" hidden={query.get().trim().length !== 0} className="grow min-h-0" children={navigation}/>
+          <View hidden={query.get().trim().length === 0} role="region" aria-label="Search results" tabIndex={0} className="grow min-h-0 overflow-auto px-3 pb-6" children={searchNavigation}/>
         </View>
         <View className="grow min-w-0 flex-row" children={articles}/>
         <View hidden={known.includes('|' + routePath(path.get()) + '|')} className="grow p-8 gap-6"><Text as="h1" className="text-3xl font-semibold">Page not found</Text><Text className="text-muted-foreground">This path is not in the documentation catalog.</Text><Link href="/docs" className="py-3">Return to documentation</Link></View>

@@ -15,14 +15,18 @@ and editable controls are under [src/components/ui/](src/components/ui/).
 the light/dark theme. Run `tsrust dev` from this directory on macOS for the current
 custom-titlebar example. Other native platforms require `titlebar: 'native'`.
 
-The site source now separates the landing page at `/` from documentation at
-`/docs`. The shared fixed catalog supplies page links, retained route examples,
-local text/code search, block Markdown and explicit pending-page status. See [navigation acceptance](milestones/ui-documentation-navigation.md) for the
-paired checks. Rich inline formatting, highlighted code, complete component pages
-and benchmark charts remain in the active plan. The browser build still uses `tools/build-ui-web.mjs` until
-ordinary CLI web build/dev support lands. For a built directory,
-`python3 tools/serve-ui-preview.py <directory>` serves history fallback for direct
-document URLs and leaves missing assets as errors.
+The site has a landing page at `/` and documentation at `/docs`. Run
+`tsrust dev --target web --port 4317` here for the live browser preview. The real
+CLI watches application source and Markdown, retains the previous application on
+build failure and reloads after successful publication. Article construction and
+search data are lazy; this does not yet split executable downloads or render
+HTML before Wasm startup.
+
+[The experience audit](plans/documentation-experience-audit.md) lists required
+navigation, theme, content and gallery work. The
+[reference map](plans/documentation-reference-coverage.json) accounts for public
+editor-catalog receivers. A reference destination or pending inventory entry is
+not a completed component, tutorial or measured benchmark.
 
 ## Start here
 

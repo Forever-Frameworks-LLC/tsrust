@@ -1,12 +1,11 @@
-import { View, Text, Node, Child, Link, CopyButton, signal } from 'std:ui';
+import { View, Text, Node, Child, Link, CopyButton, signal, Button } from 'std:ui';
 import { CodeBlock } from './code-block';
-import { ExampleCard } from './example-card';
 import { loadExample, renderExample } from '../../../target/docs-content/catalog';
 import { rustMessage } from '../../examples/rust-message';
 
 interface ChapterProps {
   id: string;
-  number: string;
+  label: string;
   title: string;
   description: string;
   result: string;
@@ -20,7 +19,7 @@ function Chapter(props: ChapterProps): Node {
     <View id={props.id} as="section" className="border-t py-16 md:py-24 gap-8" onVisibilityChange={(visible) => { if (visible) { entered.set(true); } }}>
       <View className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-16">
         <View className="gap-6">
-          <Text className="text-xs font-mono text-primary">{props.number}</Text>
+          <Text className="text-xs font-mono text-primary">{props.label}</Text>
           <Text as="h2" className="text-3xl md:text-4xl font-semibold leading-tight max-w-128">{props.title}</Text>
           <Text className="text-base md:text-xl text-muted-foreground leading-normal max-w-128">{props.description}</Text>
           <View className="h-12 justify-center">
@@ -38,9 +37,16 @@ function source(id: ReadOnly<string>): Node {
   return <CodeBlock code={example.code} tokens={example.tokens} label={example.source}/>;
 }
 
-function counter(): Node {
-  const example = loadExample('counter');
-  return <ExampleCard id="home-counter" title="counter.tsrx" description="One component. Two targets." source={example.source} code={example.code} tokens={example.tokens}>{renderExample('counter')}</ExampleCard>;
+function workspace(): Node {
+  const example = loadExample('card-project');
+  const sourceVisible = signal(false);
+  return (
+    <View className="gap-4">
+      <View id="home-workspace-preview" hidden={sourceVisible.get()}>{renderExample('card-project')}</View>
+      <View id="home-workspace-source" hidden={!sourceVisible.get()}><CodeBlock code={example.code} tokens={example.tokens} label="Project settings source"/></View>
+      <Button className="self-start text-sm px-4 py-2 rounded border hover:bg-muted focus:ring" onPress={() => { sourceVisible.set(!sourceVisible.get()); }}>{sourceVisible.get() ? 'Preview' : 'View source'}</Button>
+    </View>
+  );
 }
 
 export function Landing(): Node {
@@ -52,25 +58,25 @@ export function Landing(): Node {
         <Text as="h1" className="text-3xl md:text-5xl lg:text-7xl font-semibold leading-tight">Write TypeScript.{'\n'}<Text className="text-primary">Ship Native Rust.</Text></Text>
         <View className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-16">
           <View className="gap-8">
-            <Text className="text-xl leading-normal text-muted-foreground max-w-128">Keep the syntax you know. Compile to Rust. Build services and interfaces with checked ownership, local components and room to go lower.</Text>
+            <Text className="text-xl leading-normal text-muted-foreground max-w-128">TypeScript-style source. Checked ownership. Direct Rust imports. Build a service or a shared web and native interface from a project you control.</Text>
             <View className="flex-row flex-wrap gap-3"><Link href="/docs/getting-started/installation" className="px-6 py-3 rounded bg-primary text-primary-foreground focus:ring">Start building {'↗'}</Link><Link href="/docs" className="px-6 py-3 rounded border hover:bg-muted focus:ring">Read the docs</Link></View>
           </View>
           <View className="border rounded-lg bg-card overflow-hidden">
-            <View className="px-6 py-3 border-b flex-row justify-between gap-4"><Text className="font-mono text-xs text-muted-foreground">YOUR TERMINAL</Text><Text className="font-mono text-xs text-primary">.tsr → Rust</Text></View>
-            <View className="p-6 gap-4"><Text as="code" className="font-mono text-sm">$ tsrust build</Text><View className="h-16 justify-center"><View hidden={!started.get()}><Text className="font-mono text-sm text-primary">Source checked.{'\n'}Rust binding: {rustMessage()}</Text></View></View><Text className="text-xs text-muted-foreground">Project entry and output live in tsrust.config.json.</Text></View>
+            <View className="px-6 py-3 border-b flex-row justify-between gap-4"><Text className="font-mono text-xs text-muted-foreground">BUILD NATIVE</Text><Text className="font-mono text-xs text-primary">.tsr → Rust</Text></View>
+            <View className="p-6 gap-4"><Text as="code" className="font-mono text-sm">$ tsrust build</Text><View className="h-16 justify-center"><View hidden={!started.get()}><Text className="font-mono text-sm text-primary">Called from this page:{'\n'}{rustMessage()}</Text></View></View><Text className="text-xs text-muted-foreground">A Rust-backed executable, with an explicit project entrypoint.</Text></View>
           </View>
         </View>
       </View>
-      <Chapter id="familiar" number="01 / FAMILIAR GROUND" title="Routes you can read. A runtime you can leave behind." description="Compose handlers and middleware with Router. Keep application policy in application code. Axum handles the HTTP foundation." result="HTTP / Router over Axum">
+      <Chapter id="familiar" label="SERVICES" title="Readable routes. Native execution." description="Compose handlers and middleware with Router. Keep application policy in application code. Axum handles the HTTP foundation." result="HTTP / Router over Axum">
         {source('native-service')}
         <Link href="/docs/getting-started/project-structure" className="text-sm text-primary py-2 focus:ring">See the project structure {'↗'}</Link>
       </Chapter>
-      <Chapter id="rust" number="02 / THE ESCAPE HATCH" title="When you need Rust, import Rust." description="Use a checked Rust binding alongside your Tsrust code. Keep native APIs and explicit ownership at the boundary. Both web and desktop compile this example." result="{ .tsr + .rs } / one checked build">
+      <Chapter id="rust" label="RUST INTEROP" title="When you need Rust, import Rust." description="Use a checked Rust binding alongside your Tsrust code. Keep native APIs and explicit ownership at the boundary. Both web and desktop compile this example." result="{ .tsr + .rs } / one checked build">
         {source('rust-message')}
         <View className="border-l-2 border-primary pl-4 gap-2"><Text className="font-mono text-xs text-muted-foreground">RUNNING IN THIS APP</Text><Text className="font-mono text-xl">{rustMessage()}</Text></View>
       </Chapter>
-      <Chapter id="fabric" number="03 / THE APP FABRIC" title="Two targets. Your components. Your source." description="Build web and desktop interfaces from the same .tsrx component. Add bundled components offline, edit their files and set the theme in your project configuration." result="WEB + NATIVE / shared component state">
-        {counter()}
+      <Chapter id="fabric" label="WEB + NATIVE" title="One interface. Two places to call home." description="Build web and desktop interfaces from the same .tsrx component. Add bundled components offline, edit their files and set the theme in your project configuration." result="WEB + NATIVE / shared component state">
+        {workspace()}
       </Chapter>
       <View as="section" className="border-t py-16 md:py-24 gap-8">
         <View className="flex-row items-center justify-between gap-4"><Text className="font-mono text-xs text-primary">LOCAL BY DESIGN</Text><Text className="font-mono text-xs text-muted-foreground">NO REGISTRY REQUEST</Text></View>
@@ -80,8 +86,8 @@ export function Landing(): Node {
         </View>
       </View>
       <View as="section" className="border-t py-16 md:py-24 gap-8">
-        <Text className="font-mono text-xs text-primary">FROM SOURCE TO SOMETHING YOURS</Text>
-        <Text as="h2" className="text-4xl md:text-6xl font-semibold leading-tight max-w-192">Your next app.{'\n'}A different foundation.</Text>
+        <Text className="font-mono text-xs text-primary">START BUILDING</Text>
+        <Text as="h2" className="text-4xl md:text-6xl font-semibold leading-tight max-w-192">Keep your syntax.{'\n'}Choose your foundation.</Text>
         <View className="flex-row flex-wrap gap-3"><Link href="https://github.com/Forever-Frameworks-LLC/tsrust/releases" className="px-6 py-3 rounded bg-primary text-primary-foreground focus:ring">GitHub Releases {'↗'}</Link><Link href="/docs/getting-started/installation" className="px-6 py-3 rounded border hover:bg-muted focus:ring">Build from source</Link></View>
       </View>
       <View as="footer" className="border-t py-6 flex-row flex-wrap justify-between gap-4"><Text className="font-mono text-sm">tsrust.</Text><Text className="text-xs text-muted-foreground">TypeScript-style syntax. Rust execution.</Text></View>

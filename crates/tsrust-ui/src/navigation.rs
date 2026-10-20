@@ -41,7 +41,14 @@ pub(crate) fn route_predicate(path:&str,exact:bool)->Result<impl FnMut()->Result
     Ok(move||{let owner=owner.upgrade().ok_or("UI Route location is disposed")?;let current=(owner.read)()?;let current=current.split('#').next().unwrap_or("/");Ok(current==path || !exact && (path=="/" || current.strip_prefix(&path).is_some_and(|rest|rest.starts_with('/'))))})
 }
 pub(crate) fn current()->Option<String>{active().ok().and_then(|owner|(owner.read)().ok())}
-pub(crate) fn is_current(href:&str)->bool{!href.contains('#')&&current().is_some_and(|path|path.split('#').next()==Some(href))}
+pub(crate) fn current_kind(href:&str)->Option<&'static str>{
+    if href.is_empty()||external(href){return None;}
+    let current=current()?;
+    if href.contains('#'){return (current==href).then_some("location");}
+    let path=current.split('#').next()?;
+    if path==href{Some("page")}else if href!="/"&&path.strip_prefix(href).is_some_and(|rest|rest.starts_with('/')){Some("location")}else{None}
+}
+pub(crate) fn is_current(href:&str)->bool{current_kind(href).is_some()}
 pub fn navigate(path:&str)->Result<(),String>{let path=checked_path(path)?;let owner=active()?;push(&owner,&path)?;(owner.write)(path)}
 pub fn traverse(forward:bool)->Result<(),String>{
     let owner=active()?;
@@ -81,6 +88,11 @@ pub fn link(children:Vec<Child>,class_name:String,path:&str)->Result<Node,String
 
 #[cfg(test)]
 mod tests{
+ #[test]fn selected_links_distinguish_page_ancestors_fragments_and_unrelated_segments(){
+  let state=location(String::from,Clone::clone).unwrap();state.set("/docs/ui/components/button#variants".into()).unwrap();
+  for (href,expected) in [("/docs/ui/components/button",Some("page")),("/docs",Some("location")),("/docs/ui/components",Some("location")),("/docs/ui/components/button#variants",Some("location")),("/docs/u",None),("/docs/ui/components/buttons",None),("/",None),("/docs/ui/components/button#props",None),("https://example.com/docs",None)]{assert_eq!(current_kind(href),expected,"{href}");}
+  state.set("/".into()).unwrap();assert_eq!(current_kind("/"),Some("page"));drop(state);assert_eq!(current_kind("/"),None);
+ }
  #[test]fn browser_unicode_paths_decode_without_accepting_escaped_separators(){assert_eq!(super::decoded_browser_path("/docs/caf%C3%A9#%E6%96%87").unwrap(),"/docs/café#文");for path in ["/docs%2Fhidden","/docs%23fragment","/docs%20space","/%FF","/%C3","/%ZZ"]{assert!(super::decoded_browser_path(path).is_err(),"{path}");}}
  #[test]fn https_links_validate_without_a_location_or_launcher(){
   for href in ["javascript:alert(1)","http://host/","file:///tmp/app","//host/","https://user:secret@host/","https://host/has space","https://host/\\path","https://host/\n"]{assert!(super::checked_href(href).is_err(),"{href:?}");}

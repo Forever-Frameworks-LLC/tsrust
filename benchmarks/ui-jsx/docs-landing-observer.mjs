@@ -29,10 +29,10 @@ export async function observeDocsLanding({evaluate,call,errors,site,expected}) {
  }
  assert.equal(await evaluate(`document.querySelector('header').getBoundingClientRect().top`),initialHeader);
  assert(await evaluate(`document.querySelector('#rust').textContent.includes('Hello from Rust')`));
- await evaluate(`document.querySelector('#home-counter-preview button').click();Array.from(document.querySelectorAll('#landing button')).find(node=>node.textContent==='Show source').click()`);
- assert(await evaluate(`document.querySelector('#home-counter-source code').textContent.includes('count.set(count.get() + 1)')`));
- await evaluate(`Array.from(document.querySelectorAll('#landing button')).find(node=>node.textContent==='Show preview').click()`);
- assert(await evaluate(`document.querySelector('#home-counter-preview').textContent.includes('Count: 1')`));
+ await evaluate(`document.querySelector('#home-workspace-preview button').click();Array.from(document.querySelectorAll('#landing button')).find(node=>node.textContent==='View source').click()`);
+ assert(await evaluate(`document.querySelector('#home-workspace-source code').textContent.includes("saved.set('Saved '")`));
+ await evaluate(`Array.from(document.querySelectorAll('#landing button')).find(node=>node.textContent==='Preview').click()`);
+ assert(await evaluate(`document.querySelector('#home-workspace-preview').textContent.includes('Saved Fieldwork')`));
  for(const width of [320,480,768,1024,1440]){
   await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:false});
   await evaluate(`document.querySelector('#landing').scrollTop=0`);
@@ -72,8 +72,8 @@ export async function observeDocsLanding({evaluate,call,errors,site,expected}) {
  await evaluate(`Array.from(document.querySelectorAll('button')).find(node=>node.textContent==='Mount observed view').click()`);
  await wait(`document.querySelector('#visibility-state').textContent===${JSON.stringify(expected.steps[7].label)}`);
  assert(await evaluate(`document.querySelector('#visibility-target')!==retiredVisibilityTarget`));
- await click('/');await wait(`!!document.querySelector('#home-counter-preview')`);
- assert(await evaluate(`document.querySelector('#home-counter-preview').textContent.includes('Count: 1')`));
+ await click('/');await wait(`!!document.querySelector('#home-workspace-preview')`);
+ assert(await evaluate(`document.querySelector('#home-workspace-preview').textContent.includes('Saved Fieldwork')`));
  assert.deepEqual(await evaluate(`window.ui.mounts.map(mount=>mount.error())`),[null]);
  await evaluate(`document.querySelector('#landing').scrollTop=500;window.ui.dispose()`);await new Promise(resolve=>setTimeout(resolve,75));
  assert.equal(await evaluate(`document.querySelectorAll('[data-tsrust-node]').length`),0);assert.deepEqual(errors,[]);

@@ -1,4 +1,10 @@
 mod support;
+
+#[test]fn code_fence_aliases_preserve_source_and_distinct_light_mode_tokens(){
+ let source="const label: string = 'café';\nconst count = 42;";
+ for language in ["tsrust","tsr","tsrx","typescript","ts","tsx","javascript","js","jsx"]{let tokens=tsrust_compiler::documentation::highlight(source,language).unwrap();assert_eq!(tokens.iter().map(|token|token.text.as_str()).collect::<String>(),source);for class in ["keyword","type","string","number"]{assert!(tokens.iter().any(|token|token.class==class),"{language} {class}");}}
+ let json="{\"name\":\"café\",\"count\":42,\"enabled\":true}";let tokens=tsrust_compiler::documentation::highlight(json,"json").unwrap();assert_eq!(tokens.iter().map(|token|token.text.as_str()).collect::<String>(),json);assert!(tokens.iter().any(|token|token.class=="number"));
+}
 #[test]
 fn formatted_inline_semantics_and_exact_clipboard_snapshot_have_native_support(){
  let source=r#"import {View,Text,Link,CopyButton,Node,location,document} from 'std:ui';import {strictEqual} from 'std:testing';

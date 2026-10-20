@@ -29,6 +29,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "structured-content"
+      ],
+      "description": "Reveal related sections of content with independent or exclusive expansion.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -38,6 +44,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "overlays-and-focus"
+      ],
+      "description": "Ask for an explicit decision before a destructive or consequential action.",
+      "documentationExamples": [
+        "Default trigger and content",
+        "Keyboard opening, dismissal and focus return",
+        "Nested overlays and constrained viewport"
       ]
     },
     {
@@ -47,6 +59,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "semantic-elements"
+      ],
+      "description": "Present contextual information, warnings or errors without interrupting a task.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -57,7 +75,13 @@
       "capabilityFamilies": [
         "layout"
       ],
-      "notes": "Editable offline component with required finite positive construction-time ratio, shared native/web layout, forwarded View metadata and owned children. Caller overrides and explicit/min/max geometry are checked. Reactive ratio updates, intrinsic-width cross-axis sizing and media fitting remain unsupported."
+      "notes": "Editable offline component with required finite positive construction-time ratio, shared native/web layout, forwarded View metadata and owned children. Caller overrides and explicit/min/max geometry are checked. Reactive ratio updates, intrinsic-width cross-axis sizing and media fitting remain unsupported.",
+      "description": "Keep a content region at a declared width-to-height ratio.",
+      "documentationExamples": [
+        "Default layout and caller overrides",
+        "Narrow and wide viewports",
+        "Theme spacing and content overflow"
+      ]
     },
     {
       "name": "attachment",
@@ -66,6 +90,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "extended-content"
+      ],
+      "description": "Present attached files with names, sizes, actions and progress states.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -75,6 +105,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "animation-and-media"
+      ],
+      "description": "Represent a person or workspace with an image and an accessible fallback.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -84,6 +120,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "semantic-elements"
+      ],
+      "description": "Label status, category or count in a compact inline element.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -93,6 +135,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "structured-content"
+      ],
+      "description": "Show the current page within a navigable hierarchy.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -102,6 +150,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "extended-content"
+      ],
+      "description": "Group conversational content with attribution and actions.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -111,6 +165,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "composed-controls"
+      ],
+      "description": "Group related actions while preserving individual button semantics.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -120,6 +180,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "composed-controls"
+      ],
+      "description": "Trigger an application action with clear pressed, focus and disabled behavior.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -129,6 +195,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "temporal-and-charts"
+      ],
+      "description": "Browse dates and choose a day or date range with keyboard support.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -156,7 +228,13 @@
           "inline-size containment and container queries",
           "named heading-font assets"
         ]
-      }
+      },
+      "description": "Compose a surface from header, description, content, action and footer parts.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
+      ]
     },
     {
       "name": "carousel",
@@ -165,6 +243,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "animation-and-media"
+      ],
+      "description": "Browse a sequence of items with keyboard and pointer controls.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -174,6 +258,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "temporal-and-charts"
+      ],
+      "description": "Plot application data with shared geometry, interaction and accessible alternatives.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -183,6 +273,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "composed-controls"
+      ],
+      "description": "Choose one or more independent options, including mixed selection.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -192,6 +288,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "extended-content"
+      ],
+      "description": "Present highlighted code with exact copying and readable long-line handling.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -201,6 +303,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "structured-content"
+      ],
+      "description": "Expand or collapse one region without disturbing surrounding content.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -210,6 +318,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "overlays-and-focus"
+      ],
+      "description": "Search and choose values from a keyboard-accessible popup.",
+      "documentationExamples": [
+        "Default trigger and content",
+        "Keyboard opening, dismissal and focus return",
+        "Nested overlays and constrained viewport"
       ]
     },
     {
@@ -219,6 +333,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "overlays-and-focus"
+      ],
+      "description": "Find and execute actions through a searchable command menu.",
+      "documentationExamples": [
+        "Default trigger and content",
+        "Keyboard opening, dismissal and focus return",
+        "Nested overlays and constrained viewport"
       ]
     },
     {
@@ -228,6 +348,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "overlays-and-focus"
+      ],
+      "description": "Offer contextual actions through pointer or keyboard activation.",
+      "documentationExamples": [
+        "Default trigger and content",
+        "Keyboard opening, dismissal and focus return",
+        "Nested overlays and constrained viewport"
       ]
     },
     {
@@ -237,6 +363,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "overlays-and-focus"
+      ],
+      "description": "Present a modal interaction with managed focus and dismissal.",
+      "documentationExamples": [
+        "Default trigger and content",
+        "Keyboard opening, dismissal and focus return",
+        "Nested overlays and constrained viewport"
       ]
     },
     {
@@ -246,6 +378,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "layout"
+      ],
+      "description": "Set reading direction for layout and directional controls.",
+      "documentationExamples": [
+        "Default layout and caller overrides",
+        "Narrow and wide viewports",
+        "Theme spacing and content overflow"
       ]
     },
     {
@@ -255,6 +393,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "overlays-and-focus"
+      ],
+      "description": "Present an edge panel with appropriate dismissal and focus behavior.",
+      "documentationExamples": [
+        "Default trigger and content",
+        "Keyboard opening, dismissal and focus return",
+        "Nested overlays and constrained viewport"
       ]
     },
     {
@@ -264,6 +408,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "overlays-and-focus"
+      ],
+      "description": "Open a keyboard-navigable list of actions from a trigger.",
+      "documentationExamples": [
+        "Default trigger and content",
+        "Keyboard opening, dismissal and focus return",
+        "Nested overlays and constrained viewport"
       ]
     },
     {
@@ -273,6 +423,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "semantic-elements"
+      ],
+      "description": "Explain an empty state and provide a useful next action.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -282,6 +438,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "editable-values"
+      ],
+      "description": "Compose a form label, description, control and validation message.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -291,6 +453,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "overlays-and-focus"
+      ],
+      "description": "Show supplementary content on pointer hover and keyboard focus.",
+      "documentationExamples": [
+        "Default trigger and content",
+        "Keyboard opening, dismissal and focus return",
+        "Nested overlays and constrained viewport"
       ]
     },
     {
@@ -300,6 +468,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "editable-values"
+      ],
+      "description": "Compose an input with leading or trailing text, buttons and other adornments.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -309,6 +483,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "editable-values"
+      ],
+      "description": "Enter a short verification code with predictable paste and keyboard behavior.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -332,7 +512,13 @@
           "native accessibility text-range navigation",
           "animated transitions"
         ]
-      }
+      },
+      "description": "Edit a single line of text with selection, labeling and validation states.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
+      ]
     },
     {
       "name": "item",
@@ -341,6 +527,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "semantic-elements"
+      ],
+      "description": "Compose an actionable list item from media, text and trailing controls.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -350,6 +542,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "semantic-elements"
+      ],
+      "description": "Display a keyboard key or shortcut using readable semantic text.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -370,7 +568,13 @@
           "peer/group disabled styling",
           "full field composition and form integration"
         ]
-      }
+      },
+      "description": "Associate visible text with a form control.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
+      ]
     },
     {
       "name": "marker",
@@ -379,6 +583,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "extended-content"
+      ],
+      "description": "Annotate a position, range or item with a readable indicator.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -388,6 +598,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "overlays-and-focus"
+      ],
+      "description": "Provide desktop-style menus with arrow-key navigation.",
+      "documentationExamples": [
+        "Default trigger and content",
+        "Keyboard opening, dismissal and focus return",
+        "Nested overlays and constrained viewport"
       ]
     },
     {
@@ -397,6 +613,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "extended-content"
+      ],
+      "description": "Navigate a message history while preserving the reader's position.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -406,6 +628,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "extended-content"
+      ],
+      "description": "Compose a conversation message with its content and associated actions.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -415,6 +643,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "editable-values"
+      ],
+      "description": "Choose a value through the host platform's supported selection control.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -424,6 +658,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "overlays-and-focus"
+      ],
+      "description": "Present grouped site navigation with keyboard-accessible disclosure.",
+      "documentationExamples": [
+        "Default trigger and content",
+        "Keyboard opening, dismissal and focus return",
+        "Nested overlays and constrained viewport"
       ]
     },
     {
@@ -433,6 +673,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "structured-content"
+      ],
+      "description": "Navigate a paged result set without hiding the current page.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -442,6 +688,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "overlays-and-focus"
+      ],
+      "description": "Anchor supplementary interactive content to a trigger.",
+      "documentationExamples": [
+        "Default trigger and content",
+        "Keyboard opening, dismissal and focus return",
+        "Nested overlays and constrained viewport"
       ]
     },
     {
@@ -451,6 +703,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "animation-and-media"
+      ],
+      "description": "Show determinate or indeterminate progress with an accessible value.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -460,6 +718,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "extended-content"
+      ],
+      "description": "Compose a sequence of questions, responses and validation states.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -469,6 +733,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "composed-controls"
+      ],
+      "description": "Choose one option from an explicitly labeled set.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -478,6 +748,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "layout"
+      ],
+      "description": "Let users resize adjacent panels with pointer and keyboard input.",
+      "documentationExamples": [
+        "Default layout and caller overrides",
+        "Narrow and wide viewports",
+        "Theme spacing and content overflow"
       ]
     },
     {
@@ -487,6 +763,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "layout"
+      ],
+      "description": "Provide a deliberate scrollable viewport with retained offsets.",
+      "documentationExamples": [
+        "Default layout and caller overrides",
+        "Narrow and wide viewports",
+        "Theme spacing and content overflow"
       ]
     },
     {
@@ -496,6 +778,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "overlays-and-focus"
+      ],
+      "description": "Choose one value from a keyboard-accessible list.",
+      "documentationExamples": [
+        "Default trigger and content",
+        "Keyboard opening, dismissal and focus return",
+        "Nested overlays and constrained viewport"
       ]
     },
     {
@@ -505,6 +793,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "semantic-elements"
+      ],
+      "description": "Separate content visually and, when appropriate, semantically.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -514,6 +808,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "overlays-and-focus"
+      ],
+      "description": "Present a focused edge panel composed from dialog behavior.",
+      "documentationExamples": [
+        "Default trigger and content",
+        "Keyboard opening, dismissal and focus return",
+        "Nested overlays and constrained viewport"
       ]
     },
     {
@@ -523,6 +823,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "layout"
+      ],
+      "description": "Compose persistent application navigation with responsive and collapsed states.",
+      "documentationExamples": [
+        "Default layout and caller overrides",
+        "Narrow and wide viewports",
+        "Theme spacing and content overflow"
       ]
     },
     {
@@ -532,6 +838,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "animation-and-media"
+      ],
+      "description": "Reserve space while content loads without implying interactive controls.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -541,6 +853,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "animation-and-media"
+      ],
+      "description": "Choose a number or range with pointer and keyboard adjustment.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -550,6 +868,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "animation-and-media"
+      ],
+      "description": "Present queued transient notifications without stealing focus.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -559,6 +883,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "animation-and-media"
+      ],
+      "description": "Indicate an operation whose duration is unknown.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -568,6 +898,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "composed-controls"
+      ],
+      "description": "Change a binary setting with an explicit checked state.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -577,6 +913,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "structured-content"
+      ],
+      "description": "Present related data using row, column and header relationships.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -586,6 +928,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "structured-content"
+      ],
+      "description": "Switch between associated panels with accessible selection and keyboard behavior.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -608,7 +956,13 @@
           "native accessibility text-range navigation",
           "resize handles and animated transitions"
         ]
-      }
+      },
+      "description": "Edit multiline text with selection, scrolling and validation states.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
+      ]
     },
     {
       "name": "toast",
@@ -617,6 +971,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "animation-and-media"
+      ],
+      "description": "Present a transient notification with controlled duration and optional actions.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -626,6 +986,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "composed-controls"
+      ],
+      "description": "Group related pressed-state controls with single or multiple selection.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -635,6 +1001,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "composed-controls"
+      ],
+      "description": "Expose the pressed state of a reversible action.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     },
     {
@@ -644,6 +1016,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "overlays-and-focus"
+      ],
+      "description": "Name or describe a control on hover and keyboard focus.",
+      "documentationExamples": [
+        "Default trigger and content",
+        "Keyboard opening, dismissal and focus return",
+        "Nested overlays and constrained viewport"
       ]
     },
     {
@@ -653,6 +1031,12 @@
       "status": "pending",
       "capabilityFamilies": [
         "extended-content"
+      ],
+      "description": "Present a structured sequence of operations and their details.",
+      "documentationExamples": [
+        "Default composition",
+        "Variants, sizes and caller customization",
+        "Keyboard, accessibility and light/dark states"
       ]
     }
   ],

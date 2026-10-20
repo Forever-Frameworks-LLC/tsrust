@@ -50,9 +50,9 @@ export async function observeDocsComponents({evaluate,call,errors,site}) {
   }else if(name==='card'){
    await clickButton('[data-slot=route-page] button','Change access');assert(await evaluate(`document.querySelector('[data-slot=route-page]').textContent.includes('Shared workspace')`));
    await evaluate(`const field=document.querySelector('#card-project-name');field.value='';field.dispatchEvent(new Event('input',{bubbles:true}));`);
-   assert(await evaluate(`Array.from(document.querySelectorAll('[data-slot=route-page] button')).find(node=>node.textContent==='Apply name').disabled`));
-   await evaluate(`const field2=document.querySelector('#card-project-name');field2.value='Docs';field2.dispatchEvent(new Event('input',{bubbles:true}));`);await clickButton('[data-slot=route-page] button','Apply name');
-   assert(await evaluate(`document.querySelector('[data-slot=route-page]').textContent.includes('Project name: Docs')`));
+   assert(await evaluate(`Array.from(document.querySelectorAll('[data-slot=route-page] button')).find(node=>node.textContent==='Save changes').disabled`));
+   await evaluate(`const field2=document.querySelector('#card-project-name');field2.value='Docs';field2.dispatchEvent(new Event('input',{bubbles:true}));`);await clickButton('[data-slot=route-page] button','Save changes');
+   assert(await evaluate(`document.querySelector('[data-slot=route-page]').textContent.includes('Saved Docs')`));
   }else if(name==='textarea'){
    await evaluate(`(()=>{const field=document.querySelector('#multiline-message');field.value='文\\n🦀';field.dispatchEvent(new Event('input',{bubbles:true}));})()`);
    assert(await evaluate(`document.querySelector('[data-slot=route-page]').textContent.includes('UTF-8 bytes: 8')`));

@@ -11,7 +11,7 @@ export async function observeDocsNavigation({evaluate,call,errors,site}) {
  await call('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
  assert.equal(await evaluate('location.pathname'),'/');
  assert(await evaluate('document.querySelector("#landing h1").textContent.includes("Closer to the machine")'));
- await evaluate(`window.pageIdentity=document.querySelector('[data-tsrust-mount]');document.querySelector('#home-counter-preview button').click()`);
+ await evaluate(`window.pageIdentity=document.querySelector('[data-tsrust-mount]');document.querySelector('#home-workspace-preview button').click()`);
  await click('/docs');assert.equal(await evaluate('location.pathname'),'/docs');
  assert.equal(await evaluate('document.querySelector("[data-slot=route-page] h1").textContent'),'Build with Tsrust');
  fs.writeFileSync(path.join(site,'docs-initial.png'),Buffer.from((await call('Page.captureScreenshot',{format:'png'})).data,'base64'));
@@ -41,8 +41,8 @@ export async function observeDocsNavigation({evaluate,call,errors,site}) {
  await evaluate(`(()=>{const search=document.querySelector('input[aria-label="Search documentation"]');search.value='no-such-page-777';search.dispatchEvent(new Event('input',{bubbles:true}));})()`);assert(await evaluate(`document.querySelector('#search-feedback').textContent.includes('No pages match')`));assert.equal(await evaluate(`document.querySelectorAll('#sidebar a').length`),0);
  await evaluate(`(()=>{const search=document.querySelector('input[aria-label="Search documentation"]');search.value='';search.dispatchEvent(new Event('input',{bubbles:true}));})()`);
  const pending=catalog.pages.find(page=>page.metadata.status==='pending');await click('/docs'+pending.route);assert(await evaluate(`document.querySelector('[data-slot=route-page]').textContent.includes('Status: pending')`));
- await click('/');assert(await evaluate(`document.querySelector('[data-tsrust-mount]')===pageIdentity`));assert(await evaluate(`document.querySelector('#home-counter-preview').textContent.includes('Count: 1')`),'Home counter survives route changes');
- await evaluate(`Array.from(document.querySelectorAll('button')).find(node=>node.textContent==='Light / dark').click()`);assert(await evaluate(`document.querySelector('#home-counter-preview').textContent.includes('Count: 1')`));
+ await click('/');assert(await evaluate(`document.querySelector('[data-tsrust-mount]')===pageIdentity`));assert(await evaluate(`document.querySelector('#home-workspace-preview').textContent.includes('Saved Fieldwork')`),'Home workspace survives route changes');
+ await evaluate(`document.querySelector('button[aria-label="Toggle light and dark theme"]').click()`);assert(await evaluate(`document.querySelector('#home-workspace-preview').textContent.includes('Saved Fieldwork')`));
  await click('/docs');
  const ax=(await call('Accessibility.getFullAXTree')).nodes.filter(node=>!node.ignored);assert(ax.some(node=>node.role?.value==='link'&&node.name?.value==='Build with Tsrust'));assert(ax.some(node=>node.role?.value==='textbox'&&node.name?.value==='Search documentation'));
  await call('Emulation.setDeviceMetricsOverride',{width:480,height:640,deviceScaleFactor:1,mobile:false});

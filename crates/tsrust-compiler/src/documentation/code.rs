@@ -6,7 +6,7 @@ use crate::syntax::{self,TokenKind};
 pub struct CodeToken { pub source: Range, pub class: String, pub text:String }
 /// Unknown fences remain exact readable text; Tsrust fences use the actual compiler lexer.
 pub fn highlight(source:&str, language:&str)->Result<Vec<CodeToken>,String> {
-    if !matches!(language,"tsrust"|"tsr"|"tsrx"){return Ok(vec![CodeToken{source:Range{start:0,end:source.len()},class:"plain".into(),text:source.into()}]);}
+    if !matches!(language,"tsrust"|"tsr"|"tsrx"|"typescript"|"ts"|"tsx"|"javascript"|"js"|"jsx"|"json"){return Ok(vec![CodeToken{source:Range{start:0,end:source.len()},class:"plain".into(),text:source.into()}]);}
     let tokens=syntax::lex(source).map_err(|error|format!("Code fence cannot be tokenized: {} at byte {}",error.message,error.span.start))?;
     let mut output=Vec::new();let mut offset=0;let mut tag_name=false;
     for token in tokens.into_iter().filter(|token|token.kind!=TokenKind::End) {

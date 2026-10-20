@@ -12,11 +12,12 @@ fn attribute(value:&str)->Option<(&str,&str)> {
  (matches!(key,"slot"|"size"|"orientation") && name(value)).then_some((key,value))
 }
 #[derive(Clone,Copy)]
-pub(super) enum Predicate<'a> { Data(&'a str,&'a str), HasData(&'a str,&'a str), InData(&'a str,&'a str), GroupData(&'a str,&'a str,&'a str), Class(&'a str), Dark, MinWidth(u16), Invalid }
+pub(super) enum Predicate<'a> { Data(&'a str,&'a str), HasData(&'a str,&'a str), InData(&'a str,&'a str), GroupData(&'a str,&'a str,&'a str), Class(&'a str), Dark, MinWidth(u16), Invalid, Current }
 impl<'a> Predicate<'a> {
  fn parse(text:&'a str)->Option<Self> {
   match text {"dark"=>return Some(Self::Dark),"sm"=>return Some(Self::MinWidth(640)),"md"=>return Some(Self::MinWidth(768)),"lg"=>return Some(Self::MinWidth(1024)),"xl"=>return Some(Self::MinWidth(1280)),"2xl"=>return Some(Self::MinWidth(1536)),"aria-invalid"=>return Some(Self::Invalid),_=>{}}
   if text=="data-horizontal"{return Some(Self::Data("orientation","horizontal"));}
+  if text=="aria-current"{return Some(Self::Current);}
   if text=="data-vertical"{return Some(Self::Data("orientation","vertical"));}
 
   if let Some(value)=text.strip_prefix("data-[").and_then(|v|v.strip_suffix(']')){let (k,v)=attribute(value)?;return Some(Self::Data(k,v));}
@@ -29,11 +30,11 @@ impl<'a> Predicate<'a> {
  fn matches(self,node:&Node,ancestors:&[&Node])->bool {
   fn data(node:&Node,key:&str,value:&str)->bool {match key {"slot"=>node.semantics.slot==value,"size"=>node.semantics.size==value,"orientation"=>node.semantics.role=="separator" && (if node.semantics.orientation.is_empty(){"horizontal"}else{&node.semantics.orientation})==value,_=>false}}
   fn has(node:&Node,key:&str,value:&str)->bool {node.children.iter().any(|child|data(child,key,value)||has(child,key,value))}
-  match self {Self::Data(k,v)=>data(node,k,v),Self::HasData(k,v)=>has(node,k,v),Self::InData(k,v)=>ancestors.iter().any(|parent|data(parent,k,v)),Self::GroupData(k,v,group)=>ancestors.iter().any(|parent|parent.class_name.split_whitespace().any(|class|class.strip_prefix("group/")==Some(group)) && data(parent,k,v)),Self::Class(class)=>node.class_name.split_whitespace().any(|token|token==class),Self::Dark|Self::MinWidth(_)=>true,Self::Invalid=>node.semantics.invalid=="true"}
+  match self {Self::Data(k,v)=>data(node,k,v),Self::HasData(k,v)=>has(node,k,v),Self::InData(k,v)=>ancestors.iter().any(|parent|data(parent,k,v)),Self::GroupData(k,v,group)=>ancestors.iter().any(|parent|parent.class_name.split_whitespace().any(|class|class.strip_prefix("group/")==Some(group)) && data(parent,k,v)),Self::Class(class)=>node.class_name.split_whitespace().any(|token|token==class),Self::Dark|Self::MinWidth(_)=>true,Self::Invalid=>node.semantics.invalid=="true",Self::Current=>crate::navigation::is_current(&node.semantics.href)}
  }
  fn selector(self,scope:&str)->String {
   match self {
-   Self::Dark|Self::MinWidth(_)=>String::new(),Self::Invalid=>":where([aria-invalid=\"true\"])".into(),
+   Self::Dark|Self::MinWidth(_)=>String::new(),Self::Invalid=>":where([aria-invalid=\"true\"])".into(),Self::Current=>":where([aria-current=\"page\"],[aria-current=\"location\"])".into(),
    Self::Data(k,v)=>format!(":where([data-{k}=\"{v}\"])") ,
    Self::HasData(k,v)=>format!(":where(:has([data-{k}=\"{v}\"]))"),
    Self::InData(k,v)=>format!(":where({scope}[data-{k}=\"{v}\"] *)"),
@@ -90,7 +91,7 @@ pub(super) fn css(classes:&str,theme:&Theme,mode:&str,id:u64,scope:&str)->String
    if parsed.predicates.iter().any(|p|matches!(p,Predicate::Dark)) && mode!="dark"{continue;}
    let media=parsed.predicates.iter().filter_map(|p|if let Predicate::MinWidth(width)=p{Some(*width)}else{None}).max();
    let token=if parsed.placeholder{format!("placeholder:{}",parsed.token)}else{parsed.token.to_owned()};
-   let declarations=super::custom_spacing::css(parsed.token,theme).unwrap_or_else(||super::resolved(&token,theme,mode).into_iter().map(|(_,v)|v.css()).collect::<Vec<_>>().join(";"));
+   let declarations=semantic_color(parsed.token,parsed.placeholder).or_else(||super::custom_spacing::css(parsed.token,theme)).unwrap_or_else(||super::resolved(&token,theme,mode).into_iter().map(|(_,v)|v.css()).collect::<Vec<_>>().join(";"));
    if declarations.is_empty(){continue;}
    let mut after=String::new();
    for predicate in parsed.predicates {after.push_str(&predicate.selector(&scope));}
@@ -103,10 +104,27 @@ pub(super) fn css(classes:&str,theme:&Theme,mode:&str,id:u64,scope:&str)->String
  }
  output
 }
+// Resolve semantic colors in the enclosing live scope, including late-mounted content.
+fn semantic_color(token:&str,placeholder:bool)->Option<String>{
+ let (base,opacity)=super::opacity_token(token).unwrap_or((token,1.));
+ let (property,key)=base.split_once('-')?;
+ if !super::super::theme::COLORS.contains(&key){return None;}
+ let property=match property{"text"=>"color","bg"=>"background","border"=>"border-color","ring"=>"--ui-shadow-ring-color",_=>return None};
+ if placeholder&&property!="color"{return None;}
+ let value=if opacity==1.{format!("var(--ui-{key})")}else{format!("color-mix(in srgb,var(--ui-{key}) {}%,transparent)",opacity*100.)};
+ Some(format!("{property}:{value}{}",if placeholder{";opacity:1"}else{""}))
+}
 
 #[cfg(test)] mod tests {
  use super::*;
  use crate::{Kind,Child};
+ #[test] fn semantic_colors_and_selected_navigation_follow_live_scopes(){
+  let state=crate::navigation::location(String::from,Clone::clone).unwrap();state.set("/docs/ui/components/button".into()).unwrap();
+  let link=crate::navigation::link(vec![],"text-muted-foreground aria-current:text-primary aria-current:bg-primary/10".into(),"/docs/ui/components").unwrap();
+  let theme=Theme::default();let rules=resolved(&link,&[],&theme,"light");assert!(rules.iter().any(|(_,v)|matches!(v,Utility::Foreground(color) if *color==theme.color("light","primary").unwrap())));
+  let css=css("text-syntax-keyword placeholder:text-primary/50 aria-current:bg-primary/10",&theme,"light",7,"");assert!(css.contains("color:var(--ui-syntax-keyword)"));assert!(css.contains("::placeholder{color:color-mix(in srgb,var(--ui-primary) 50%,transparent);opacity:1}"));assert!(css.contains("[aria-current=\"location\"]"));assert!(css.contains("background:color-mix(in srgb,var(--ui-primary) 10%,transparent)"));
+  state.set("/other".into()).unwrap();let rules=resolved(&link,&[],&theme,"light");assert!(!rules.iter().any(|(_,v)|matches!(v,Utility::Background(_))));
+ }
  fn view(classes:&str,metadata:&str,children:Vec<Node>)->Node {Node::view(children.into_iter().map(Child::Node).collect(),classes.into()).unwrap().with_semantics(metadata).unwrap()}
  #[test] fn checked_predicates_match_only_the_intended_tree_context() {
   let leaf=view("p-4 group-data-[size=sm]/panel:px-3 data-[slot=body]:pt-2 group-data-[size=sm]/tile:group-data-[size=sm]/panel:min-h-8",r#"{"slot":"body"}"#,vec![]);

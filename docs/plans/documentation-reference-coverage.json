@@ -1,0 +1,413 @@
+{
+  "schemaVersion": 1,
+  "source": "crates/tsrust-lsp/src/builtins.json",
+  "excludedInternalReceivers": [
+    "std:testing-runtime"
+  ],
+  "receivers": {
+    "boolean": {
+      "route": "/docs/language/values",
+      "members": 2
+    },
+    "number": {
+      "route": "/docs/language/values",
+      "members": 6
+    },
+    "int": {
+      "route": "/docs/language/values",
+      "members": 3
+    },
+    "globals": {
+      "route": "/docs/language/builtins",
+      "members": 28
+    },
+    "Object": {
+      "route": "/docs/language/builtins",
+      "members": 5
+    },
+    "JSON": {
+      "route": "/docs/language/builtins",
+      "members": 4
+    },
+    "console": {
+      "route": "/docs/language/builtins",
+      "members": 22
+    },
+    "std:ui": {
+      "route": "/docs/ui/foundations/reference",
+      "members": 43
+    },
+    "UiSignal": {
+      "route": "/docs/ui/foundations/reference",
+      "members": 2
+    },
+    "Array": {
+      "route": "/docs/standard-library/arrays",
+      "members": 40
+    },
+    "ArrayConstructor": {
+      "route": "/docs/standard-library/arrays",
+      "members": 3
+    },
+    "Tuple": {
+      "route": "/docs/standard-library/arrays",
+      "members": 1
+    },
+    "Number": {
+      "route": "/docs/standard-library/numbers",
+      "members": 14
+    },
+    "Math": {
+      "route": "/docs/standard-library/numbers",
+      "members": 44
+    },
+    "std:collections": {
+      "route": "/docs/standard-library/collections",
+      "members": 4
+    },
+    "Set": {
+      "route": "/docs/standard-library/collections",
+      "members": 16
+    },
+    "Map": {
+      "route": "/docs/standard-library/collections",
+      "members": 10
+    },
+    "MapConstructor": {
+      "route": "/docs/standard-library/collections",
+      "members": 1
+    },
+    "Deque": {
+      "route": "/docs/standard-library/collections",
+      "members": 9
+    },
+    "OrderedSet": {
+      "route": "/docs/standard-library/collections",
+      "members": 5
+    },
+    "Heap": {
+      "route": "/docs/standard-library/collections",
+      "members": 5
+    },
+    "OrderedMap": {
+      "route": "/docs/standard-library/collections",
+      "members": 10
+    },
+    "ValidationContext": {
+      "route": "/docs/standard-library/schema",
+      "members": 1
+    },
+    "SchemaPipeline": {
+      "route": "/docs/standard-library/schema",
+      "members": 11
+    },
+    "std:schema": {
+      "route": "/docs/standard-library/schema",
+      "members": 8
+    },
+    "schemaBuilder": {
+      "route": "/docs/standard-library/schema",
+      "members": 15
+    },
+    "SchemaArray": {
+      "route": "/docs/standard-library/schema",
+      "members": 5
+    },
+    "Schema": {
+      "route": "/docs/standard-library/schema",
+      "members": 7
+    },
+    "SchemaBoolean": {
+      "route": "/docs/standard-library/schema",
+      "members": 5
+    },
+    "SchemaInt": {
+      "route": "/docs/standard-library/schema",
+      "members": 9
+    },
+    "SchemaNumber": {
+      "route": "/docs/standard-library/schema",
+      "members": 9
+    },
+    "SchemaNull": {
+      "route": "/docs/standard-library/schema",
+      "members": 5
+    },
+    "SchemaObject": {
+      "route": "/docs/standard-library/schema",
+      "members": 7
+    },
+    "SchemaRetained": {
+      "route": "/docs/standard-library/schema",
+      "members": 5
+    },
+    "SchemaPresence": {
+      "route": "/docs/standard-library/schema",
+      "members": 5
+    },
+    "SchemaLiteral": {
+      "route": "/docs/standard-library/schema",
+      "members": 5
+    },
+    "SchemaEnum": {
+      "route": "/docs/standard-library/schema",
+      "members": 5
+    },
+    "SchemaDeclaredEnum": {
+      "route": "/docs/standard-library/schema",
+      "members": 5
+    },
+    "SchemaUnion": {
+      "route": "/docs/standard-library/schema",
+      "members": 5
+    },
+    "std:futures": {
+      "route": "/docs/standard-library/futures",
+      "members": 8
+    },
+    "TaskMethods": {
+      "route": "/docs/standard-library/futures",
+      "members": 2
+    },
+    "Job": {
+      "route": "/docs/standard-library/futures",
+      "members": 2
+    },
+    "AsyncChannel": {
+      "route": "/docs/standard-library/futures",
+      "members": 4
+    },
+    "AsyncSender": {
+      "route": "/docs/standard-library/futures",
+      "members": 1
+    },
+    "std:threads": {
+      "route": "/docs/standard-library/threads",
+      "members": 18
+    },
+    "ThreadPool": {
+      "route": "/docs/standard-library/threads",
+      "members": 3
+    },
+    "Channel": {
+      "route": "/docs/standard-library/threads",
+      "members": 4
+    },
+    "Sender": {
+      "route": "/docs/standard-library/threads",
+      "members": 3
+    },
+    "TaskContext": {
+      "route": "/docs/standard-library/threads",
+      "members": 1
+    },
+    "Thread": {
+      "route": "/docs/standard-library/threads",
+      "members": 3
+    },
+    "ScopedThread": {
+      "route": "/docs/standard-library/threads",
+      "members": 3
+    },
+    "std:testing": {
+      "route": "/docs/standard-library/testing",
+      "members": 24
+    },
+    "Expectation": {
+      "route": "/docs/standard-library/testing",
+      "members": 15
+    },
+    "NegatedExpectation": {
+      "route": "/docs/standard-library/testing",
+      "members": 14
+    },
+    "std:http": {
+      "route": "/docs/framework/routing",
+      "members": 26
+    },
+    "HttpRouter": {
+      "route": "/docs/framework/routing",
+      "members": 11
+    },
+    "HttpApp": {
+      "route": "/docs/framework/routing",
+      "members": 12
+    },
+    "HttpServerOptions": {
+      "route": "/docs/framework/routing",
+      "members": 7
+    },
+    "HttpServer": {
+      "route": "/docs/framework/routing",
+      "members": 3
+    },
+    "HttpContext": {
+      "route": "/docs/framework/request-response",
+      "members": 7
+    },
+    "HttpRequest": {
+      "route": "/docs/framework/request-response",
+      "members": 11
+    },
+    "HttpResponse": {
+      "route": "/docs/framework/request-response",
+      "members": 5
+    },
+    "HttpNext": {
+      "route": "/docs/framework/request-response",
+      "members": 1
+    },
+    "HttpContextNext": {
+      "route": "/docs/framework/request-response",
+      "members": 0
+    },
+    "HttpFormField": {
+      "route": "/docs/framework/request-response",
+      "members": 2
+    },
+    "HttpMultipartPart": {
+      "route": "/docs/framework/request-response",
+      "members": 4
+    },
+    "HttpClient": {
+      "route": "/docs/framework/client",
+      "members": 1
+    },
+    "HttpBody": {
+      "route": "/docs/framework/client",
+      "members": 2
+    },
+    "std:sql": {
+      "route": "/docs/framework/sql",
+      "members": 6
+    },
+    "SqlPool": {
+      "route": "/docs/framework/sql",
+      "members": 6
+    },
+    "SqlTransaction": {
+      "route": "/docs/framework/sql",
+      "members": 4
+    },
+    "SqlRow": {
+      "route": "/docs/framework/sql",
+      "members": 6
+    },
+    "SqlCursor": {
+      "route": "/docs/framework/sql",
+      "members": 2
+    },
+    "SqlSqlError": {
+      "route": "/docs/framework/sql",
+      "members": 2
+    },
+    "std:sqlite": {
+      "route": "/docs/framework/sqlite",
+      "members": 6
+    },
+    "SqliteConnection": {
+      "route": "/docs/framework/sqlite",
+      "members": 3
+    },
+    "SqliteTransaction": {
+      "route": "/docs/framework/sqlite",
+      "members": 3
+    },
+    "SqliteStatement": {
+      "route": "/docs/framework/sqlite",
+      "members": 3
+    },
+    "SqliteRow": {
+      "route": "/docs/framework/sqlite",
+      "members": 5
+    },
+    "SqliteSqliteError": {
+      "route": "/docs/framework/sqlite",
+      "members": 2
+    },
+    "std:cache": {
+      "route": "/docs/framework/cache",
+      "members": 4
+    },
+    "LruCache": {
+      "route": "/docs/framework/cache",
+      "members": 6
+    },
+    "CacheEntry": {
+      "route": "/docs/framework/cache",
+      "members": 2
+    },
+    "CacheInsertError": {
+      "route": "/docs/framework/cache",
+      "members": 3
+    },
+    "SharedLruCache": {
+      "route": "/docs/framework/cache",
+      "members": 7
+    },
+    "std:result": {
+      "route": "/docs/standard-library/result",
+      "members": 1
+    },
+    "std:os": {
+      "route": "/docs/standard-library/os",
+      "members": 3
+    },
+    "std:path": {
+      "route": "/docs/standard-library/path",
+      "members": 7
+    },
+    "std:fs": {
+      "route": "/docs/standard-library/fs",
+      "members": 15
+    },
+    "std:bytes": {
+      "route": "/docs/standard-library/bytes",
+      "members": 16
+    },
+    "std:env": {
+      "route": "/docs/standard-library/env",
+      "members": 3
+    },
+    "std:time": {
+      "route": "/docs/standard-library/time",
+      "members": 1
+    },
+    "std:json": {
+      "route": "/docs/standard-library/json",
+      "members": 41
+    },
+    "std:numeric": {
+      "route": "/docs/standard-library/numeric",
+      "members": 7
+    },
+    "std:decimal": {
+      "route": "/docs/standard-library/decimal",
+      "members": 13
+    },
+    "std:date": {
+      "route": "/docs/standard-library/date",
+      "members": 47
+    },
+    "std:uuid": {
+      "route": "/docs/standard-library/uuid",
+      "members": 9
+    },
+    "std:crypto": {
+      "route": "/docs/standard-library/crypto",
+      "members": 4
+    },
+    "std:signals": {
+      "route": "/docs/standard-library/signals",
+      "members": 4
+    },
+    "string": {
+      "route": "/docs/standard-library/strings",
+      "members": 47
+    },
+    "StringConstructor": {
+      "route": "/docs/standard-library/strings",
+      "members": 3
+    }
+  }
+}

@@ -4,7 +4,7 @@ use std::{cell::RefCell,rc::Rc};
 use wasm_bindgen::{prelude::*,JsCast};
 use web_sys::{Element,Event};
 
-struct State { weak:std::rc::Weak<RefCell<State>>, visibility_queued:bool, observer:Option<web_sys::IntersectionObserver>, resize_observer:Option<web_sys::ResizeObserver>, observed:std::collections::BTreeSet<u64>, disposed:bool, location:String, node:Option<Node>, elements:std::collections::BTreeMap<u64,Element>, error:Option<String>, composing:std::collections::BTreeMap<u64,String>, scrolls:std::collections::BTreeMap<u64,(i32,i32)>, root:Element, style:Element, scope:String }
+struct State { weak:std::rc::Weak<RefCell<State>>, visibility_queued:bool, observer:Option<web_sys::IntersectionObserver>, resize_observer:Option<web_sys::ResizeObserver>, observed:std::collections::BTreeSet<u64>, disposed:bool, location:String, node:Option<Node>, elements:std::collections::BTreeMap<u64,Element>, error:Option<String>, composing:std::collections::BTreeMap<u64,String>, scrolls:std::collections::BTreeMap<u64,(i32,i32)>, reading_positions:std::collections::BTreeMap<String,std::collections::BTreeMap<u64,(i32,i32)>>, root:Element, style:Element, scope:String }
 struct Listener { element:web_sys::EventTarget, event:&'static str, callback:Closure<dyn FnMut(Event)> }
 impl Drop for Listener {
     fn drop(&mut self) { let _=self.element.remove_event_listener_with_callback_and_bool(self.event,self.callback.as_ref().unchecked_ref(),true); }
@@ -20,7 +20,7 @@ pub struct Mount {
 impl Mount {
     pub fn dispose(&mut self) {
         self.listeners.clear();
-        let mut state=self.state.borrow_mut();state.disposed=true;if let Some(observer)=state.observer.take(){observer.disconnect();observer.take_records();}if let Some(observer)=state.resize_observer.take(){observer.disconnect();}state.observed.clear();self.visibility_callback.take();self.resize_callback.take();state.node.take();state.composing.clear();state.elements.clear();state.scrolls.clear();state.root.remove();state.style.remove();
+        let mut state=self.state.borrow_mut();state.disposed=true;if let Some(observer)=state.observer.take(){observer.disconnect();observer.take_records();}if let Some(observer)=state.resize_observer.take(){observer.disconnect();}state.observed.clear();self.visibility_callback.take();self.resize_callback.take();state.node.take();state.composing.clear();state.elements.clear();state.scrolls.clear();state.reading_positions.clear();state.root.remove();state.style.remove();
     }
     pub fn error(&self)->Option<String> {self.state.borrow().error.clone()}
 }
@@ -69,7 +69,7 @@ fn sync_element(node:&Node,document:&web_sys::Document,all:&mut std::collections
     all.insert(id,element.clone());element};
 
     if !node.semantics.href.is_empty(){
-        if super::navigation::is_current(&node.semantics.href){element.set_attribute("aria-current","page")?;}else{element.remove_attribute("aria-current")?;}
+        if let Some(current)=super::navigation::current_kind(&node.semantics.href){element.set_attribute("aria-current",current)?;}else{element.remove_attribute("aria-current")?;}
     }
     if node.theme.is_some(){element.set_attribute("style",&super::web::scope(node,theme,mode))?;}
     if matches!(node.kind,Kind::Button|Kind::DisabledButton|Kind::Input|Kind::Textarea) {
@@ -112,7 +112,13 @@ fn update(state:&mut State,document:&web_sys::Document)->Result<(),JsValue> {
     fn collect_owned(node:&Node,owned:&mut std::collections::BTreeSet<u64>){owned.insert(node.identity.get());for child in &node.children{collect_owned(child,owned);}}
     let mut live=std::collections::BTreeSet::new();collect(node,&mut live);
     let mut owned=std::collections::BTreeSet::new();collect_owned(node,&mut owned);
+    let reading_nodes=node.reading_nodes();
     for (id,element) in &state.elements {if element.is_connected(){state.scrolls.insert(*id,(element.scroll_left(),element.scroll_top()));}}
+    let location=super::navigation::current().unwrap_or_default();
+    let navigating=location!=state.location;
+    if navigating&&!state.location.is_empty(){
+        state.reading_positions.insert(state.location.clone(),state.elements.iter().filter(|(id,element)|reading_nodes.contains(id)&&element.is_connected()).filter_map(|(id,_)|state.scrolls.get(id).map(|position|(*id,*position))).collect());
+    }
     // Detach hidden panes but retain their elements/offsets until their model is removed.
     for (id,element) in &state.elements {if !live.contains(id) && state.observed.remove(id) {
         if let Some(observer)=&state.observer{observer.unobserve(element);}
@@ -120,6 +126,7 @@ fn update(state:&mut State,document:&web_sys::Document)->Result<(),JsValue> {
     }}
     state.elements.retain(|id,element|{if !live.contains(id){element.remove();}owned.contains(id)});
     state.scrolls.retain(|id,_|owned.contains(id));
+    for positions in state.reading_positions.values_mut(){positions.retain(|id,_|owned.contains(id));}
     state.composing.retain(|id,_|live.contains(id));
     let default=super::theme::Theme::default();let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((&default,"light"));
     state.root.set_attribute("style",&format!("{}color:var(--ui-foreground);background:var(--ui-background);font-size:var(--ui-text-base);min-height:100vh",theme.variables(mode)))?;
@@ -127,6 +134,7 @@ fn update(state:&mut State,document:&web_sys::Document)->Result<(),JsValue> {
     let css=super::web::stylesheet(node,&state.scope);if state.style.text_content().as_deref()!=Some(&css){state.style.set_text_content(Some(&css));}
     let mut roots=Vec::new();if let Some(root)=node.visible_root(){roots.push(sync_element(root,document,&mut state.elements,&mut state.composing,theme,mode)?);}
     order_children(&state.root,&roots)?;
+    if navigating {if let Some(positions)=state.reading_positions.get(&location){for (id,position) in positions{state.scrolls.insert(*id,*position);}}}
     for (id,(x,y)) in &state.scrolls {if let Some(element)=state.elements.get(id).filter(|element|element.is_connected()){element.set_scroll_left(*x);element.set_scroll_top(*y);}}
     observe(state);queue_hidden(state,document);focus_location(state,document)
 }
@@ -165,7 +173,7 @@ fn focus_location(state:&mut State,document:&web_sys::Document)->Result<(),JsVal
             if let Some(target)=target {
                 target.set_attribute("tabindex","-1")?;
                 if let Ok(focus)=js_sys::Reflect::get(target.as_ref(),&JsValue::from_str("focus")){if let Some(focus)=focus.dyn_ref::<js_sys::Function>(){let options=js_sys::Object::new();let _=js_sys::Reflect::set(options.as_ref(),&JsValue::from_str("preventScroll"),&JsValue::TRUE);let _=focus.call1(target.as_ref(),options.as_ref());}}
-                if path.contains('#'){target.scroll_into_view();}
+                if path.contains('#')&&!state.reading_positions.contains_key(&path){target.scroll_into_view();}
             }
             state.location=path;
         }
@@ -181,7 +189,7 @@ pub fn mount(mut node:Node,title:&str)->Result<Mount,JsValue> {
     let scope=format!("[data-tsrust-mount=\"{id}\"]");
     let style=document.create_element("style")?;
     let root=document.create_element("div")?;root.set_attribute("data-tsrust-mount",&id.to_string())?;let default=super::theme::Theme::default();let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((&default,"light"));root.set_attribute("style",&format!("{}color:var(--ui-foreground);background:var(--ui-background);font-size:var(--ui-text-base);min-height:100vh",theme.variables(mode)))?;
-    let mut state=State{weak:Default::default(),visibility_queued:false,observer:None,resize_observer:None,observed:Default::default(),disposed:false,location:String::new(),node:Some(node),elements:Default::default(),error:None,composing:Default::default(),scrolls:Default::default(),root:root.clone(),style:style.clone(),scope};
+    let mut state=State{weak:Default::default(),visibility_queued:false,observer:None,resize_observer:None,observed:Default::default(),disposed:false,location:String::new(),node:Some(node),elements:Default::default(),error:None,composing:Default::default(),scrolls:Default::default(),reading_positions:Default::default(),root:root.clone(),style:style.clone(),scope};
     update(&mut state,&document)?;
     let state=Rc::new(RefCell::new(state));state.borrow_mut().weak=Rc::downgrade(&state);let mut mount=Mount{listeners:vec![],visibility_callback:None,resize_callback:None,state:state.clone()};
     let weak=Rc::downgrade(&state);let visibility_document=document.clone();

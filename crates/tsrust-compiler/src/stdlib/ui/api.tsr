@@ -259,7 +259,7 @@ export interface LinkProps extends ElementProps {
   children?: Child[];
   className?: string;
 }
-/** Navigates locally or opens an HTTPS URL. External links leave application history unchanged. Browser anchors retain modified-click behavior; native launch failures throw. */
+/** Navigates locally or opens an HTTPS URL. The current page and ancestor path segments expose aria-current for styling and accessibility. External links leave application history unchanged. Browser anchors retain modified-click behavior; native launch failures throw. */
 export function Link(props: LinkProps): Node {
   const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
   return applySemantics(unwrapNode(nativeLink(props.children ?? [], props.className ?? '', props.href)), metadata);

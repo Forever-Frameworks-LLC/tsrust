@@ -5,13 +5,13 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 
 export function CardProject(): Node {
-  const name = signal('My project');
-  const saved = signal('Project name: My project');
+  const name = signal('Fieldwork');
+  const saved = signal('Your workspace is ready.');
   return (
     <Card className="w-full">
-      <CardHeader><CardTitle><Text as="h3">Project settings</Text></CardTitle><CardDescription>Update the name shown in this preview.</CardDescription></CardHeader>
-      <CardContent className="gap-2"><Label htmlFor="card-project-name">Project name</Label><Input id="card-project-name" value={name} onChange={(event) => { name.set(event.target.value); }} /><Text role="status">{saved}</Text></CardContent>
-      <CardFooter><Button disabled={name.get().length === 0} onPress={() => { saved.set('Project name: ' + name.get()); }}>Apply name</Button></CardFooter>
+      <CardHeader><CardTitle><Text as="h3" className="text-xl">Your workspace</Text></CardTitle><CardDescription>A name for what you’re making next.</CardDescription></CardHeader>
+      <CardContent className="gap-3"><Label htmlFor="card-project-name">Project name</Label><Input id="card-project-name" value={name} className="w-full" onChange={(event) => { name.set(event.target.value); }} /><Text role="status" className="text-sm text-muted-foreground">{saved}</Text></CardContent>
+      <CardFooter className="flex-wrap justify-between gap-4"><Text className="text-xs text-muted-foreground">Local state. Your source.</Text><Button disabled={name.get().trim().length === 0} onPress={() => { saved.set('Saved ' + name.get().trim()); }}>Save changes</Button></CardFooter>
     </Card>
   );
 }

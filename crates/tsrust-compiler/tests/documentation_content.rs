@@ -2,10 +2,20 @@ mod support;
 use std::{fs,path::{Path,PathBuf}};
 fn root()->PathBuf{Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs").canonicalize().unwrap()}
 #[test]
+fn documentation_reference_map_covers_every_public_editor_receiver_without_invented_members(){
+ let root=root();let map:serde_json::Value=serde_json::from_slice(&fs::read(root.join("plans/documentation-reference-coverage.json")).unwrap()).unwrap();let builtins:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
+ for (receiver,entries) in builtins.as_object().unwrap(){if map["excludedInternalReceivers"].as_array().unwrap().iter().any(|value|value==receiver){continue;}
+  let entry=&map["receivers"][receiver];assert_eq!(entry["members"].as_u64(),Some(entries.as_array().unwrap().len()as u64),"{receiver}");
+  let route=entry["route"].as_str().unwrap().strip_prefix("/docs/").unwrap();let path=root.join("content").join(format!("{route}.md"));let source=fs::read_to_string(path).unwrap();let (metadata,_)=tsrust_compiler::documentation::metadata(&source).unwrap();
+  let names=metadata.api.iter().filter(|reference|reference.receiver==*receiver).map(|reference|reference.name.as_str()).collect::<std::collections::BTreeSet<_>>();assert_eq!(names,entries.as_array().unwrap().iter().map(|entry|entry["name"].as_str().unwrap()).collect(),"{receiver}");
+ }
+}
+#[test]
 fn authored_content_api_inventory_and_exact_examples_build_into_checked_native_data(){
  let root=root();let output=support::run(support::cli().args(["docs","content","--cwd"]).arg(&root),120);support::success(&output);
  let data:serde_json::Value=serde_json::from_slice(&fs::read(root.join("target/docs-content/catalog.json")).unwrap()).unwrap();
- let pages=data["pages"].as_array().unwrap();assert_eq!(pages.len(),103);
+ let pages=data["pages"].as_array().unwrap();assert!(pages.len()>150,"Expanded public reference destinations must be published");
+ let config:serde_json::Value=serde_json::from_slice(&fs::read(root.join("tsrust.config.json")).unwrap()).unwrap();let expected_examples=config["documentation"]["examples"].as_array().unwrap().len();
  for (group,count) in [("components",64),("recipes",3),("blocks",30)]{assert_eq!(data["library"][group].as_array().unwrap().len(),count);}
  let trim=pages.iter().find(|page|page["metadata"]["id"]=="strings").unwrap();assert!(trim["markdown"].as_str().unwrap().contains("No accepted isolated trim measurement"));
  let builtin=data["api"].as_array().unwrap().iter().find(|entry|entry["name"]=="string.trim").unwrap();assert_eq!(builtin["signature"],"trim(): string");assert!(builtin["documentation"].as_str().unwrap().contains("0085"));
@@ -15,7 +25,7 @@ fn authored_content_api_inventory_and_exact_examples_build_into_checked_native_d
  for page in pages{let markdown=page["markdown"].as_str().unwrap();for node in page["document"]["nodes"].as_array().unwrap(){let start=node["source"]["start"].as_u64().unwrap() as usize;let end=node["source"]["end"].as_u64().unwrap() as usize;assert!(start<=end&&end<=markdown.len()&&markdown.is_char_boundary(start)&&markdown.is_char_boundary(end));}}
  let example=&data["examples"][0];let exact=fs::read_to_string(root.join(example["source"].as_str().unwrap())).unwrap();assert_eq!(example["code"].as_str().unwrap(),exact);
  let module=root.join("target/docs-content/catalog.tsr");let generated=fs::read_to_string(&module).unwrap();assert_eq!(generated,support::format_round_trip(&generated));
- let inspection=root.join("target/docs-content/inspect.tsr");let source=format!("import {{loadCatalog,renderExample}} from './catalog';import {{strictEqual}} from 'std:testing';import {{document}} from 'std:ui';function main(){{const catalog=loadCatalog();strictEqual(catalog.pages.length,103);strictEqual(catalog.examples.length,2);strictEqual(catalog.examples[0].code,{});const preview=renderExample('counter');if(preview!==null){{strictEqual(document(preview,'Example').includes('Count: 0'),true);}}else{{throw 'Missing actual preview';}}strictEqual(renderExample('strings-trim')===null,true);console.log('Documentation content passed');}}",tsrust_compiler::json_string(&exact));
+ let inspection=root.join("target/docs-content/inspect.tsr");let source=format!("import {{loadCatalog,renderExample}} from './catalog';import {{strictEqual}} from 'std:testing';import {{document}} from 'std:ui';function main(){{const catalog=loadCatalog();strictEqual(catalog.pages.length,{});strictEqual(catalog.examples.length,{});strictEqual(catalog.examples[0].code,{});const preview=renderExample('counter');if(preview!==null){{strictEqual(document(preview,'Example').includes('Count: 0'),true);}}else{{throw 'Missing actual preview';}}strictEqual(renderExample('strings-trim')===null,true);console.log('Documentation content passed');}}",pages.len(),expected_examples,tsrust_compiler::json_string(&exact));
  fs::write(&inspection,support::format_round_trip(&source)).unwrap();let result=support::run(support::cli().arg("run").arg(&inspection),180);fs::remove_file(&inspection).unwrap();support::success(&result);assert_eq!(result.stdout,b"Documentation content passed\n");
  let result=support::run(support::cli().arg("run").arg(root.join("src/examples/strings-trim.tsr")),90);support::success(&result);assert_eq!(result.stdout,b"String trim documentation passed\n");
  let before=fs::metadata(&module).unwrap().modified().unwrap();let repeat=support::run(support::cli().args(["docs","content","--cwd"]).arg(&root),120);support::success(&repeat);assert_eq!(before,fs::metadata(&module).unwrap().modified().unwrap(),"Unchanged inputs must not cause dev rebuilds");

@@ -28,7 +28,7 @@ export function ExampleCard(props: ExampleCardProps): Node {
         {props.description === undefined ? null : <CardDescription>{props.description}</CardDescription>}
       </CardHeader>
       <CardContent className="gap-4">
-        <View id={previewId} hidden={showSource.get()} role="region" aria-label={previewLabel} tabIndex={0} className="min-h-32 max-h-96 overflow-auto" children={props.children} />
+        <View id={previewId} hidden={showSource.get()} role="region" aria-label={previewLabel} className="min-h-32 gap-4" children={props.children} />
         <View id={sourceId} hidden={!showSource.get()} className="gap-2">
           <Text className="text-sm font-mono text-muted-foreground">{props.source}</Text>
           <CodeBlock label={sourceLabel} code={props.code} tokens={props.tokens} />

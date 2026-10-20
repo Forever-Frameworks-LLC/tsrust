@@ -9,6 +9,9 @@ The existing editable Button provides a press callback, checked disabled conditi
 
 ```text
 tsrust ui add button --offline
+```
+
+```tsrust
 import { Button } from '../components/ui/button';
 ```
 
