@@ -6,7 +6,7 @@ export function verifyEmptyComposition() {
   const resource = trackedResource();
   const id = resourceId(resource);
   {
-    const node = <Empty render={(props) => (<View {...props} role="region" aria-label={{ evaluate: () => { strictEqual(releaseCount(resourceId(resource)), 0); return 'Empty slot'; } }}/>)}><Text>Forwarded children</Text></Empty>;
+    const node = <Empty className={{ evaluate: () => { strictEqual(releaseCount(resourceId(resource)), 0); return 'p-6'; } }} render={(props) => (<View {...props} role="region" aria-label="Empty slot"/>)}><Text>Forwarded children</Text></Empty>;
     const html = document(node, 'Composition');
     strictEqual(html.includes('Forwarded children'), true);
     strictEqual(html.includes('aria-label="Empty slot"'), true);

@@ -94,7 +94,7 @@ impl Parser<'_> {
                             machine.request(Work::JsxAttribute(frame,Box::new(name)),Work::Parse(0));
                         } else if self.peek().kind==TokenKind::String {
                             let value=self.take();
-                            let text=entities(&value.text,value.span)?;
+                            let text=entities(&value.text,value.span,true)?;
                             if name.text=="className" {tsrust_ui::style::validate(&text).map_err(|message|Diagnostic::new("ui-class",message,value.span))?;}
                             frame.fields.push((name,Expr::new(ExprKind::String(text),value.span)));
                             machine.work.push(Work::JsxAttributes(frame));
@@ -118,7 +118,7 @@ impl Parser<'_> {
                     self.expect(">")?; self.jsx_finish(frame,machine)?;
                 } else if self.peek().kind==TokenKind::JsxText {
                     let text=self.take();
-                    let value=entities(&child_text(&text.text),text.span)?;
+                    let value=entities(&child_text(&text.text),text.span,false)?;
                     if !value.is_empty() { frame.children.push(Expr::new(ExprKind::String(value),text.span)); }
                     machine.work.push(Work::JsxChildren(frame));
                 } else if self.accept("{") {
@@ -164,11 +164,13 @@ fn child_text(text: &str) -> String {
     }).collect::<Vec<_>>().join(" ")
 }
 
-fn entities(text: &str, span: Span) -> Result<String,Diagnostic> {
+fn entities(text: &str, span: Span,attribute:bool) -> Result<String,Diagnostic> {
     let mut output=String::new(); let mut remaining=text;
     while let Some(at)=remaining.find('&') {
         output.push_str(&remaining[..at]); remaining=&remaining[at+1..];
-        let Some(end)=remaining.find(';') else {return Err(Diagnostic::new("syntax","Unterminated JSX entity; use {\"&\"} for a literal ampersand.",span));};
+        let end=remaining.find(';');
+        if attribute && !remaining.starts_with('#') && end.is_none_or(|end|!remaining[..end].bytes().all(|ch|ch.is_ascii_alphanumeric()||ch==b'#')) {output.push('&');continue;}
+        let Some(end)=end else {return Err(Diagnostic::new("syntax","Unterminated JSX entity; use {\"&\"} for a literal ampersand.",span));};
         let entity=&remaining[..end];
         let value=match entity {
             "amp"=>Some('&'),"lt"=>Some('<'),"gt"=>Some('>'),"quot"=>Some('"'),"apos"=>Some('\''),

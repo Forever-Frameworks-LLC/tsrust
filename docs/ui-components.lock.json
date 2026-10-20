@@ -403,6 +403,40 @@
           "generatedSha256": "1563fc9890493c5c6a017bd0879a1d996a3b3ae7e2cdbb82463431e70b63dfcc"
         }
       ]
+    },
+    {
+      "identity": {
+        "name": "empty",
+        "version": "1.0.0",
+        "variant": "default"
+      },
+      "destination": "src/components/ui",
+      "catalog": "bundled-2026-10-20",
+      "payloadSha256": "f2916f44e2c7b8cd6986bf8973dfc1ce5008ea76bc9fd86224553eac5b3c6808",
+      "compilerSha256": "7cafd42e6695b35905ffa3936583a16677c576771deb454c77817ddd16e784f7",
+      "compilerVersion": "0.1.0",
+      "compilerApi": 10,
+      "runtimeAbi": "ui-application-1",
+      "rust": "1.96.1",
+      "license": "MIT",
+      "attribution": {
+        "path": "attributions/shadcn-MIT.txt",
+        "sha256": "1564074e13439397221ffd522e2e504d56561994a23d371aa5e3ad43e4f5423f"
+      },
+      "dependencies": [
+        {
+          "name": "tokens",
+          "version": "1.0.0",
+          "variant": "default"
+        }
+      ],
+      "files": [
+        {
+          "path": "src/components/ui/empty.tsrx",
+          "templateSha256": "b9bac43db0657c580293865556bdc2f971e50c14fbeb83373cfcb904b69d4cd3",
+          "generatedSha256": "a9e07d3249437faf8cd664efe3d520be1b23b3e75dc1afccf7e2d12d11a9ba7f"
+        }
+      ]
     }
   ]
 }

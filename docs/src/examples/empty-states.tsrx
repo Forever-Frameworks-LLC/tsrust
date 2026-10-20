@@ -49,9 +49,15 @@ export function EmptyLayouts(): Node {
 export function EmptyTheme(): Node {
   const mode = signal('light');
   const theme: ThemeConfig = {
-    schemaVersion: 1, light: clone(config.ui.theme.light), dark: clone(config.ui.theme.dark), spacing: {
+    schemaVersion: 1, light: {
+      ...clone(config.ui.theme.light)
+    }, dark: {
+      ...clone(config.ui.theme.dark)
+    }, spacing: {
       sm: 10, md: 20, lg: 30
-    }, radius: clone(config.ui.theme.radius), typography: {
+    }, radius: {
+      ...clone(config.ui.theme.radius)
+    }, typography: {
       base: 20, xl: 28, headingFamily: 'serif'
     }
   };
