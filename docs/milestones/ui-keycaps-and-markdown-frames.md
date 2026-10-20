@@ -62,3 +62,10 @@ full regression matrix, SQL suite or runtime benchmark pass is implied.
 SQLite stores the pinned references, focused logs, geometry/contrast observations,
 clipboard hashes, measured Wasm frames and closure receipts. Closed loose records
 are removed after independent byte/hash and database integrity verification.
+
+Storage closure verifies 58 records and 134,734 original bytes in addition to the
+26 earlier latency records (5,946,884 bytes). Independent decompression, SHA-256,
+SQLite integrity and foreign-key checks pass. Cleanup removes 2,025,646,212
+apparent bytes of obsolete unit/integration outputs while preserving the five
+current consumers and reusable component/editor suites. The current preview log
+remains live; the screenshot is retained as a user-facing artifact.
