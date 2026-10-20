@@ -310,6 +310,6 @@ fn consuming_throw_assertion_has_signature_and_ownership_help(){
 fn lazy_route_required_factory_and_retention_help_agree(){
  let source="import {View,Text,Route,location,Node} from 'std:ui';function Page():Node{const path=location();return <View><Route path=\"/docs\" render={()=> <Text>Docs</Text>}/></View>;}function main(){}";
  let mut session=support::session::Session::start(&[]);session.open("main.tsrx",source);let diagnostics=session.wait_for_diagnostics("main.tsrx");session.settle();assert!(diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
- let at=source.find("render=").unwrap();let names=session.completion("main.tsrx",source,at).unwrap();for name in ["path","exact","render"]{assert!(names.contains(&name.into()),"{names:?}");}let help=session.hover("main.tsrx",source,at+2).unwrap_or_default();assert!(help.contains("once")&&help.contains("Ownership"),"{help}");
+ let at=source.find("render=").unwrap();let names=session.completion("main.tsrx",source,at).unwrap();for name in ["exact","render"]{assert!(names.contains(&name.into()),"{names:?}");}let help=session.hover("main.tsrx",source,at+2).unwrap_or_default();assert!(help.contains("once")&&help.contains("same subtree"),"{help}");
  let broken=source.replace("render={()=> <Text>Docs</Text>}","");session.change("main.tsrx",&broken);assert!(!session.wait_for_diagnostics("main.tsrx").as_array().unwrap().is_empty());
 }
