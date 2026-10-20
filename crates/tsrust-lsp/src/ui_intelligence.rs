@@ -15,7 +15,6 @@ impl SourceIndex {
   if field=="className" {
    let start=start+prefix.rfind(char::is_whitespace).map_or(0,|at|at+1);let prefix=&self.source[start..offset];
    let (state,word)=prefix.rsplit_once(':').map_or(("",prefix),|(state,word)|(state,word));
-   if !state.is_empty() && tsrust_compiler::ui_project::style::validate(&format!("{state}:p-0")).is_err(){return Some(json!([]));}
    let range=self.range(Span::new(start,offset));
    let values=tsrust_compiler::ui_project::style::completion_tokens(word).into_iter().map(|token|if state.is_empty(){token}else{format!("{state}:{token}")}).filter(|v|v.starts_with(prefix)&&tsrust_compiler::ui_project::style::validate(v).is_ok()).map(|value|json!({"label":value,"kind":12,"detail":"Shared web/native UI utility; later classes override earlier properties","documentation":{"kind":"markdown","value":tsrust_compiler::ui_project::style::documentation(&value)},"textEdit":{"range":range,"newText":value}})).collect::<Vec<_>>();
    return Some(json!(values));
