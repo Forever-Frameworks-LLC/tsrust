@@ -6,5 +6,5 @@ function mark(value: string): string {
 }
 
 export function Order(): Node {
-  return (<View className={mark('p-2')} {...{id: 'source-order'}} data-variant={mark('default')}><Text>{mark('child')}</Text></View>);
+  return (<View render={(props) => (<View {...props} as="section"/>)} className={mark('p-2')} {...{id: 'source-order'}} data-variant={mark('default')}><Text>{mark('child')}</Text></View>);
 }

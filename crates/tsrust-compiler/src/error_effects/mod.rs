@@ -265,9 +265,7 @@ fn refresh_schema_invocations(program:&mut CheckedProgram) {
 }
 
 pub(crate) fn annotate(program:&mut CheckedProgram)->ErrorEffects {
-    refresh_schema_invocations(program);
-    let families=program.stored_contracts.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
-    annotate_parts_with_storage(&mut program.functions.iter_mut().collect::<Vec<_>>(),&mut program.closures,&families,&program.polymorphic_invocations)
+    annotate_with_callbacks(program,&Default::default())
 }
 /// Solve finite callback-origin relationships retained by source checking.
 /// Unknown source kinds and declarations without callers remain opaque.
@@ -542,15 +540,17 @@ fn walk_checked_expressions<'a>(body:&'a [Stmt],initializers:impl Iterator<Item=
 pub(crate) fn annotate_with_callbacks(program:&mut CheckedProgram,callbacks:&std::collections::HashMap<usize,FailureSet>)->ErrorEffects {
     refresh_schema_invocations(program);
     let families=program.stored_contracts.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
+    // A closed owning family with no constructors is an empty enum, not an unknown callback.
+    let uninhabited=program.stored_contracts.families().filter(|(id,_,origins)|origins.is_empty()&&!program.stored_contracts.is_borrowed(*id)&&program.stored_contracts.scoped_native_family(*id).is_none()).map(|(id,_,_)|id).collect();
     let mut functions=program.functions.iter_mut().map(Some).collect::<Vec<_>>();
-    annotate_partial_with_contracts(&mut functions,&mut program.closures,&families,callbacks,&program.polymorphic_invocations)
+    annotate_partial_with_contracts(&mut functions,&mut program.closures,&families,callbacks,&program.polymorphic_invocations,&uninhabited)
 }
 pub(crate) fn annotate_parts_with_storage(functions:&mut [&mut CheckedFunction],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],invocations:&crate::polymorphic_invocation_plans::Registry)->ErrorEffects {
     annotate_partial_with_storage(&mut functions.iter_mut().map(|function|Some(&mut **function)).collect::<Vec<_>>(),closures,families,invocations)
 }
 
 pub(crate) fn annotate_partial_with_storage(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],invocations:&crate::polymorphic_invocation_plans::Registry)->ErrorEffects {
-    annotate_partial_with_contracts(functions,closures,families,&Default::default(),invocations)
+    annotate_partial_with_contracts(functions,closures,families,&Default::default(),invocations,&Default::default())
 }
 
 /// Include calls in the currently checked region before its callable is stored.
@@ -602,7 +602,7 @@ pub(crate) fn annotate_partial_with_callers(functions:&mut [Option<&mut CheckedF
     }
     let mut callbacks=origins.keys().map(|id|(*id,if grounded.contains(id){FailureSet::default()}else{FailureSet::unknown()})).collect::<HashMap<_,_>>();
     loop {
-        let effects=annotate_partial_with_contracts(functions,closures,families,&callbacks,invocations);
+        let effects=annotate_partial_with_contracts(functions,closures,families,&callbacks,invocations,&Default::default());
         let mut changed=false;
         for (id,types) in &origins {
             let mut found=FailureSet::default();
@@ -621,8 +621,8 @@ pub(crate) fn annotate_partial_with_callers(functions:&mut [Option<&mut CheckedF
     }
 }
 #[inline(never)]
-fn annotate_partial_with_contracts(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],callbacks:&std::collections::HashMap<usize,FailureSet>,invocations:&crate::polymorphic_invocation_plans::Registry)->ErrorEffects {
-    let mut effects=ErrorEffects{invocation_errors:vec![FailureSet::default();invocations.entries().count()],method_errors:closures.iter().enumerate().flat_map(|(id,closure)|closure.methods.iter().enumerate().map(move |(method,_)|((id,method),FailureSet::default()))).collect(),callback_errors:callbacks.clone(),functions:vec![false;functions.len()],closures:vec![false;closures.len()],function_errors:vec![FailureSet::default();functions.len()],closure_errors:vec![FailureSet::default();closures.len()],runtime_schema:Some(runtime_error_schema()),storage_errors:families.iter().map(|(id,origins)|(*id,if origins.is_empty(){FailureSet::unknown()}else{FailureSet::default()})).collect()};
+fn annotate_partial_with_contracts(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],callbacks:&std::collections::HashMap<usize,FailureSet>,invocations:&crate::polymorphic_invocation_plans::Registry,uninhabited:&std::collections::HashSet<usize>)->ErrorEffects {
+    let mut effects=ErrorEffects{invocation_errors:vec![FailureSet::default();invocations.entries().count()],method_errors:closures.iter().enumerate().flat_map(|(id,closure)|closure.methods.iter().enumerate().map(move |(method,_)|((id,method),FailureSet::default()))).collect(),callback_errors:callbacks.clone(),functions:vec![false;functions.len()],closures:vec![false;closures.len()],function_errors:vec![FailureSet::default();functions.len()],closure_errors:vec![FailureSet::default();closures.len()],runtime_schema:Some(runtime_error_schema()),storage_errors:families.iter().map(|(id,origins)|(*id,if origins.is_empty()&&!uninhabited.contains(id){FailureSet::unknown()}else{FailureSet::default()})).collect()};
     for (id,function) in functions.iter().enumerate() {
         if function.is_none() {effects.function_errors[id]=FailureSet::unknown();effects.functions[id]=true;}
     }
@@ -660,7 +660,7 @@ fn annotate_partial_with_contracts(functions:&mut [Option<&mut CheckedFunction>]
             effects.closures[id]=effects.closure_errors[id].may_fail();
         }
         for (id,origins) in families {
-            let mut next=if origins.is_empty(){FailureSet::unknown()}else{FailureSet::default()};
+            let mut next=if origins.is_empty()&&!uninhabited.contains(id){FailureSet::unknown()}else{FailureSet::default()};
             for origin in origins {next |= effects.closure_errors.get(*origin).cloned().unwrap_or_else(FailureSet::unknown);}
             changed |= effects.storage_errors.get_mut(id).expect("initialized family effects").join(next);
         }

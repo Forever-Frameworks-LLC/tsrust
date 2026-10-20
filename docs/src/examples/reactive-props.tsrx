@@ -26,7 +26,7 @@ export function Page(): Node {
         <Text>Count: {count.get()} / doubled: {doubled.get()}</Text>
       </Notice>
       <Button onPress={() => { active.set(!active.get()); }} className="rounded bg-primary text-primary-foreground p-2">Toggle tone</Button>
-      <Button onPress={() => { count.set(count.get() + 1); }} className="rounded bg-secondary text-secondary-foreground p-2"
+      <Button disabled={count.get() >= 2} onPress={() => { count.set(count.get() + 1); }} className="rounded bg-secondary text-secondary-foreground p-2"
         render={(props) => (<Button {...props} data-slot="replacement" />)}>Increment</Button>
     </View>
   );

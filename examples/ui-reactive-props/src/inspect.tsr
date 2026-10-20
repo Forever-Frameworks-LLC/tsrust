@@ -7,7 +7,26 @@ function scalar(value: Owned<Function<string>>): string {
   return value();
 }
 
+interface FactoryProps {
+  evaluate?: Owned<Function<string>>;
+}
+
+function ReadFactory(props: FactoryProps): string {
+  const evaluate = props.evaluate;
+  if (evaluate === undefined) {
+    return 'absent';
+  }
+
+  return evaluate();
+}
+
 function main() {
+  const empty: FactoryProps = {};
+  strictEqual(<ReadFactory {...empty}/>, 'absent');
+  const populated: FactoryProps = {
+    evaluate: () => 'present'
+  };
+  strictEqual(<ReadFactory {...populated}/>, 'present');
   const constant = useProp<int>(9007199254740993);
   const value = computed<int>(() => constant.get() + 1);
   const absent = computed<int | undefined>(() => undefined);
@@ -24,5 +43,6 @@ function main() {
   strictEqual(html.split('<button').length, 3);
   const ordered = document(Order(), 'Order');
   strictEqual(ordered.includes('source-order'), true);
+  strictEqual(ordered.includes('<section'), true);
   console.log('Reactive props passed');
 }

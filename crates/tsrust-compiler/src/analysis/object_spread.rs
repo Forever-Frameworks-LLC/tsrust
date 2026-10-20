@@ -83,7 +83,22 @@ impl Analyzer {
             }
             if self.program.records[id].is_tuple()||(!jsx && self.fields[id].len()!=fields.len()){return Err(Diagnostic::new("type","Spread record fields must match its result annotation.",expr.span));}
             for field in &fields{let Some(ty)=self.fields[id].get(&field.name.text).copied()else{if jsx{continue;}return Err(Diagnostic::new("type","Spread record has a field absent from its result annotation.",field.name.span));};self.require(field.ty.expect("checked spread field"),Some(ty),field.name.span)?;}
-            id
+            let mut concrete=self.program.records[id].fields.iter().map(|field|field.ty.unwrap()).collect::<Vec<_>>();let mut specialized=false;
+            for (position,field) in self.program.records[id].fields.clone().iter().enumerate(){
+                let expected=field.ty.unwrap();let mut actual=fields.iter().find(|actual|actual.name.text==field.name.text).unwrap().ty.unwrap();
+                let payload=self.unions.payload(expected).unwrap_or(expected);
+                if let Type::Callback(callback)=payload && matches!(actual,Type::Null|Type::Undefined){
+                    let absent=self.absent_callback(callback);let union=expected.union().expect("nullable callback field");actual=self.unions.intern(self.unions.members(union).into_iter().map(|member|if member==payload{absent}else{member}),expr.span)?;
+                }
+                if matches!(payload,Type::Callback(_)|Type::BorrowedCallable(_)) || self.scoped_record_nullable_contract(actual,expected)
+                    || matches!((actual,expected),(Type::Record(actual),Type::Record(expected)) if self.scoped_records.declaration(actual)==expected && actual!=expected){
+                    concrete[position]=actual;specialized|=actual!=expected;
+                }
+            }
+            if specialized{
+                let instance=self.scoped_records.materialize(id,concrete,&mut self.program.records);
+                while self.fields.len()<self.program.records.len(){let at=self.fields.len();self.fields.push(self.program.records[at].fields.iter().map(|field|(field.name.text.clone(),field.ty.unwrap())).collect());}instance
+            }else{id}
         }else{self.spread_record_shape(fields,expr.span)};
         let callee=Expr::new(ExprKind::Name("record#spread".into()),expr.span);
         expr.kind=ExprKind::Call(Box::new(callee),args);expr.target=Some(CallTarget::RecordSpread(result));Ok(Type::Record(result))

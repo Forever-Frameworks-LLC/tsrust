@@ -7,7 +7,9 @@ fn computed_receiver_is_readonly_and_preserves_payload_help() {
   let mut session=support::session::Session::start(&[]);session.open("main.tsr",&source);let diagnostics=session.wait_for_diagnostics("main.tsr");session.settle();assert!(diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
   let at=source.find("value.get").unwrap()+6;assert_eq!(session.completion("main.tsr",&source,at).unwrap(),vec!["get"]);
   let hover=session.hover("main.tsr",&source,at).unwrap_or_default();assert!(hover.contains("get():")&&hover.contains("Evaluates")&&hover.contains("Ownership:"),"{hover}");
-  for part in payload.split(" | "){assert!(hover.contains(part),"{hover}");}
+  if !payload.contains('|'){assert!(hover.contains(&format!("get(): {payload}")),"{hover}");}
+  let call=source.find("value.get(").unwrap()+10;let signature=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsr")},"position":{"line":0,"character":call}}));assert!(signature.to_string().contains("get()"),"{signature}");
+  for part in payload.split(" | "){assert!(hover.contains(part.trim_matches('\'')),"{hover}");}
  }
 }
 

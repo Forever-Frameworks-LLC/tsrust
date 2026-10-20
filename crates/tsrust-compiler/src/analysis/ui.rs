@@ -56,14 +56,11 @@ impl Analyzer {
  }
  fn ui_reactive_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{
   let ExprKind::Call(callee,args)=&mut expression.kind else{return Ok(None)};let ExprKind::Name(name)=&callee.kind else{return Ok(None)};
-  let Some((id,_))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|binding.module=="std:ui-runtime"&&binding.name=="reactive") else{return Ok(None)};Self::arity(args.len(),1,expression.span)?;
-  let (record,callback)=self.ui_reactive_prop_type(expected,expression.span)?;
-  if let ExprKind::Closure{result,..}=&mut args[0].kind && matches!(result,crate::syntax::ResultAnnotation::Inferred(_)){
-   let payload=self.ui_computed_callback(callback).expect("checked reactive callback").0;
-   *result=crate::syntax::ResultAnnotation::Named(Box::new(self.checked_value_annotation(payload,expression.span)?));
-  }
-  self.check_call_arguments(context,args,&[ArgumentContract{ty:callback,mode:Mode::Consume,omission:crate::ParameterOmission::Required,rest:false}],loans)?;
-  let result=Type::Record(record);self.require(result,expected,expression.span)?;expression.ty=Some(result);expression.target=Some(CallTarget::NativeBinding(id));Ok(Some(result))
+  if name!="@native:std:ui-runtime#reactive"{return Ok(None);}Self::arity(args.len(),1,expression.span)?;
+  let (record,_)=self.ui_reactive_prop_type(expected,expression.span)?;
+  let getter=args.remove(0);let field=crate::syntax::Token{text:"evaluate".into(),span:expression.span,kind:crate::syntax::TokenKind::Name};
+  expression.kind=ExprKind::Record(vec![(field,getter)]);
+  let actual=self.expression(context,expression,Mode::Consume,loans,Some(Type::Record(record)))?;self.require(actual,expected,expression.span)?;Ok(Some(actual))
  }
  pub(super) fn ui_reactive_prop_type(&self,expected:Option<Type>,span:Span)->Result<(usize,Type),Diagnostic>{
   let mut pending=expected.into_iter().collect::<Vec<_>>();let mut found=None;

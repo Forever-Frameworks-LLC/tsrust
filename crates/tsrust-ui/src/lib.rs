@@ -209,7 +209,7 @@ impl Node {
     pub fn with_theme_binding(self,json:&str,mode:TextBinding)->Result<Self,String> {
         let mut node=self.with_theme(json,&mode.value()?)?;node.theme_mode=Some(mode);Ok(node)
     }
-    pub fn own_state<T: Clone + 'static>(mut self, state: Signal<T>) -> Result<Self,String> { self.state.push(Box::new(state)); Ok(self) }
+    pub fn own_state<T: 'static>(mut self, state: T) -> Result<Self,String> { self.state.push(Box::new(state)); Ok(self) }
     pub fn text(parts:Vec<TextPart>,class_name:String)->Result<Self,String> {
         let text=Self::text_value(&parts)?;
         let mut node=Self::new(Kind::Text,class_name,text,vec![])?;

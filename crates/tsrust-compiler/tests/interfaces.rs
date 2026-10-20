@@ -87,3 +87,9 @@ fn generic_interface_inheritance_links_private_types_and_parameters() {
     let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
     assert_eq!(String::from_utf8(output.stdout).unwrap(),"ok 7 done\n");
 }
+
+#[test]
+fn aliases_of_generic_records_keep_defaults_and_private_base_fields(){
+ let directory=support::TempDirectory::new();let types="interface Private<T>{value:T;}export type Props<T=string>=Private<T>;";let source="import {Props} from './types';interface Default extends Props{label:string;}interface Count extends Props<int>{}function main(){const text:Default={value:'ready',label:'label'};const count:Count={value:42};console.log(text.value,text.label,count.value);}";
+ std::fs::write(directory.0.join("types.tsr"),support::format_round_trip(types)).unwrap();let path=directory.0.join("main.tsr");std::fs::write(&path,support::format_round_trip(source)).unwrap();let result=support::run(support::cli().arg("run").arg(path),60);support::success(&result);assert_eq!(result.stdout,b"ready label 42\n");
+}

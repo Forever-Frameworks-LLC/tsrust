@@ -29,9 +29,11 @@ Replacement code must forward the behavior it needs onto its returned control.
 - [ ] Independent Node-after-tsc transition oracle and native/browser observers.
 - [ ] Batch focused acceptance, refresh preview/editor and verify SQLite evidence.
 
-Before expanding examples, one narrow compiler probe resolves two implementation
-uncertainties: generic reactive-value inference and owned callback-prop projection.
-That probe is not a partial feature acceptance or a full regression pass.
+Compiler/native witnesses pass for typed values, normal props, replacement factories,
+source order and owning callback forwarding. Runtime witnesses pass for live styles,
+variant metadata, exact/nullable values, invalid updates, stable nodes and independent
+release. LSP/browser acceptance and refreshed executable consumers remain pending.
+The matched TypeScript/browser transitions are untimed; no measurement is claimed.
 
 The implementation keeps generic callable/data union restrictions intact:
 `computed` accepts an owned getter; `useProp` adapts a scalar or `Reactive<T>`
@@ -40,3 +42,8 @@ which preserves receiver type hints before comparison analysis. Owning homogeneo
 scalar-union widening uses explicit tag matching; mixed or nullable unions do not
 silently become strings. Replacement props are restored after extracting `render`
 so children/callbacks can transfer as one complete record.
+
+JSX spread preserves concrete callback fields, including absent environments. Only
+closed owning callback families with no constructors are proven uninhabited.
+Unknown borrowed callbacks and incomplete analysis retain unresolved error contracts.
+The existing rejection and fallible-record witnesses continue to pass.
