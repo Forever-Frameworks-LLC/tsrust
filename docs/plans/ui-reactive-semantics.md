@@ -19,10 +19,10 @@ cheap and update retained native/browser controls without replacing identity.
 
 ## Acceptance
 
-- [ ] Shared runtime, compiler facade and formatted ownership/error witnesses.
-- [ ] Local component forwarding, paired gallery and independent reference.
-- [ ] Completion, hover, parameter help, diagnostics and documented examples.
-- [ ] Batched targeted checks, installed consumers, preview and SQLite closure.
+- [x] Shared runtime, compiler facade and formatted ownership/error witnesses.
+- [x] Local component forwarding, paired gallery and independent reference.
+- [x] Completion, hover, parameter help, diagnostics and documented examples.
+- [x] Batched targeted checks, installed consumers, preview and SQLite closure.
 
 Expanded/controls relationships, event/ref merging, context and focus scopes remain
 separate contracts. This section does not label pending compound controls complete.

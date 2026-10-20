@@ -1,6 +1,29 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
-Current section — 2026-10-20: lazy children pass focused generated-native,
+Current section — 2026-10-20: reactive accessibility passes focused compiler,
+native model/accessibility, generated-native, installed-LSP and actual dev-browser
+acceptance. See [acceptance](../milestones/ui-reactive-semantics.md). Names,
+descriptions, hidden and invalid states refresh without replacing controls. SVG
+image/decorative defaults follow live labels. Retained DOM now updates/removes
+semantic attributes. A shared captured-union reborrow defect is repaired without
+changing ownership rules. Static size metadata remains compatible with Card.
+
+Button 3 forwards metadata/replacement props. The docs installer preserves the
+previous Button exactly and adds `button-v3.tsrx`; existing imports stay unchanged.
+There are 165 pages, 26 checked examples and 971 declarations. The installed CLI
+and active LSP include `72d91de7`; settings bytes/time are exact. The actual dev
+preview is `/docs/ui/foundations/reactive-semantics` on port 4317. Browser-only
+repair reuses accepted native evidence. No full regression, SQL or timing pass is
+implied. Build latency and cold editor scheduling remain unresolved.
+
+Continue scoped context, event/ref composition, focus/disclosure/overlays and the
+remaining component/chart/theme/block inventory. Expanded/controls relationships
+are still required. Empty's exact pinned Nova source/styles have been read;
+tracking, relaxed leading, balanced text, dashed borders and descendant icon sizing
+need explicit paired support. Do not claim unsupported utilities are implemented.
+Reuse accepted evidence and batch focused checks; no owner go-ahead is needed.
+
+Accepted lazy children — 2026-10-20: lazy children pass focused generated-native,
 installed-LSP and actual dev-browser acceptance. See
 [lazy-child acceptance](../milestones/ui-lazy-children.md). Ordinary nested JSX
 becomes an owned array factory only for a declared child-factory contract. Eager
