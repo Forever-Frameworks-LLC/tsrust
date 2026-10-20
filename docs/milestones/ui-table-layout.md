@@ -35,3 +35,18 @@ The native/model batch passes 20 checks, including seven new column/semantic/sty
 and actual shaped native geometry witnesses. The broad substring filter also ran
 existing editable-control witnesses; their success is retained and need not be
 repeated. The constrained-column repair adds passing native width and hidden-row witnesses; pure constraints verify that unconstrained columns receive surplus first. Shared validation also passes explicit nested-table and malformed-group rejection witnesses. The run has no GPU-window requirement. Generated native installation and ownership, current LSP behavior, paired documentation execution and browser interaction remain pending. Initial compiler failures preserve the original evidence: unused catch payloads were replaced with payload-free catches, and the metadata fast path now reads config.scope after scope transfers into that record. A direct ordinary-file facade check correctly refuses private runtime imports; it is not facade acceptance. The ordinary module/compiler path supplies the actual check.
+
+
+The generated-native gate subsequently found an omitted inline table module in
+the bundled SDK. Both the pure constraints and native layout helper now use the
+existing runtime expansion path. The focused renderer-package witness emits and
+builds a real native-window program without launching another window. This checks
+the path that document-only native execution would not exercise.
+
+The first LSP protocol run showed the correct colSpan type but no inherited help.
+Checked synthetic fields could precede imported documentation, and both import
+and inheritance skipped existing fields. The repair enriches only derived fields
+from their actual source, keeps compiler-provided types, and preserves explicitly
+declared field documentation. The new regression covers multiple imports,
+generic inheritance and an explicit local override. These repairs are awaiting
+their focused acceptance; earlier passing model evidence remains retained.

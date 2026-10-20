@@ -105,6 +105,7 @@ pub struct SourceIndex {
     checked: bool,
     pub(crate) theme_document: bool,
     interface_bases:Vec<(String,Vec<String>)>,
+    declared_record_fields:std::collections::BTreeSet<(String,String)>,
 }
 fn member_separator(text: &str) -> bool {
     matches!(text, "." | "?.")
@@ -133,6 +134,7 @@ impl SourceIndex {
             entry_help,
             theme_document: false,
             interface_bases:Vec::new(),
+            declared_record_fields:Default::default(),
             source: source.into(),
             lines: LineIndex::new(source),
             tokens: vec![],
@@ -1097,6 +1099,7 @@ impl SourceIndex {
             }
         }
         self.collect_type_aliases();
+        self.declared_record_fields.clear();
         let mut interface_bases: Vec<(String, Vec<String>)> = Vec::new();
         let generic_aliases=self.generic_aliases.as_ref().map(|catalog|catalog.declarations()).unwrap_or_default();
         for id in 0..self.tokens.len() {
@@ -1272,6 +1275,7 @@ impl SourceIndex {
                                 self.tokens[n].span.start,
                                 self.tokens[n].scope,
                             );
+                            self.declared_record_fields.insert((owner.clone(),property.clone()));
                             self.symbols[field].name = property;
                             self.symbols[field].owner = Some(owner.clone());
                             n = end_type + 1;
@@ -2870,6 +2874,13 @@ impl SourceIndex {
         }
         true
     }
+    fn imported_field_docs(dependency:&SourceIndex,record:&str,field:&Symbol,uri:&str)->String{
+        let Some(module)=uri.strip_prefix("tsrust-stdlib:///") else{return field.docs.clone();};
+        builtins_for(record).into_iter().find(|entry|entry["name"]==field.name).and_then(|entry|entry["documentation"].as_str().map(str::to_owned))
+            .or_else(||builtins_for(module).into_iter().find(|entry|entry["name"]==record).and_then(|entry|entry["fields"][&field.name]["documentation"].as_str().map(str::to_owned)))
+            .or_else(||dependency.public_record_alias(record).and_then(|alias|builtins_for(module).into_iter().find(|entry|entry["name"]==alias).and_then(|entry|entry["fields"][&field.name]["documentation"].as_str().map(str::to_owned))))
+            .unwrap_or_else(||field.docs.clone())
+    }
     fn import_record_fields(
         &mut self,
         dependency: &SourceIndex,
@@ -2910,11 +2921,11 @@ impl SourceIndex {
                 .enumerate()
                 .filter(|(_, s)| s.owner.as_deref() == Some(record.as_str()))
             {
-                if self
-                    .symbols
-                    .iter()
-                    .any(|s| s.owner.as_deref() == Some(owner.as_str()) && s.name == field.name)
-                {
+                if let Some(existing)=self.symbols.iter().position(|symbol|symbol.owner.as_deref()==Some(owner.as_str())&&symbol.name==field.name){
+                    if !self.declared_record_fields.contains(&(owner.clone(),field.name.clone())){
+                        if self.symbols[existing].docs.is_empty(){self.symbols[existing].docs=Self::imported_field_docs(dependency,&record,field,uri);}
+                        self.foreign_definitions.entry(existing).or_insert_with(||dependency.foreign_definitions.get(&field_id).cloned().unwrap_or_else(||json!({"uri":uri,"range":dependency.range(field.span)})));
+                    }
                     continue;
                 }
                 let ty = if generic.is_some()
@@ -3017,12 +3028,7 @@ impl SourceIndex {
                         .unwrap_or_default()
                 };
                 let mut imported = field.clone();
-                if let Some(module)=uri.strip_prefix("tsrust-stdlib:///") {
-                    let documentation=builtins_for(&record).into_iter().find(|entry|entry["name"]==field.name).and_then(|entry|entry["documentation"].as_str().map(str::to_owned))
-                        .or_else(||builtins_for(module).into_iter().find(|entry|entry["name"]==record).and_then(|entry|entry["fields"][&field.name]["documentation"].as_str().map(str::to_owned)));
-                    let documentation=documentation.or_else(||dependency.public_record_alias(&record).and_then(|alias|builtins_for(module).into_iter().find(|entry|entry["name"]==alias).and_then(|entry|entry["fields"][&field.name]["documentation"].as_str().map(str::to_owned))));
-                    if let Some(documentation)=documentation {imported.docs=documentation;}
-                }
+                imported.docs=Self::imported_field_docs(dependency,&record,field,uri);
                 imported.ty = ty;
                 if imported.kind == 22 { imported.signature = format!("{owner}.{}: {}", imported.name, self.display_type(&imported.ty)); }
                 if contains_callable_annotation(&imported.ty) {
@@ -3096,7 +3102,14 @@ impl SourceIndex {
                 };
                 let inherited=self.symbols.iter().enumerate().filter(|(_,symbol)|symbol.kind==8 && symbol.owner.as_deref()==Some(base_name.as_str())).map(|(id,symbol)|(symbol.clone(),self.foreign_definitions.get(&id).cloned())).collect::<Vec<_>>();
                 for (mut field,definition) in inherited {
-                    if self.symbols.iter().any(|symbol|symbol.kind==8 && symbol.owner.as_deref()==Some(owner.as_str()) && symbol.name==field.name){continue;}
+                    if let Some(existing)=self.symbols.iter().position(|symbol|symbol.kind==8 && symbol.owner.as_deref()==Some(owner.as_str()) && symbol.name==field.name){
+                        // Checked inherited fields may exist before imports supply their documentation.
+                        if !self.declared_record_fields.contains(&(owner.clone(),field.name.clone())){
+                            if self.symbols[existing].docs.is_empty()&&!field.docs.is_empty(){self.symbols[existing].docs=field.docs.clone();added=true;}
+                            if let Some(definition)=definition{self.foreign_definitions.entry(existing).or_insert(definition);}
+                        }
+                        continue;
+                    }
                     if !bindings.is_empty(){let Some(ty)=generic_intelligence::substitute_type(&field.ty,&bindings) else{continue;};field.ty=canonical_data_type(&ty);field.signature=format!("{}: {}",field.name,field.ty);}
                     field.owner=Some(owner.clone());if let Some(definition)=definition {self.foreign_definitions.insert(self.symbols.len(),definition);}self.symbols.push(field);added=true;
                 }

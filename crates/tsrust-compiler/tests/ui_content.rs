@@ -65,3 +65,12 @@ fn table_documentation_keeps_formatted_paired_examples_executable(){
  for relative in ["src/acceptance/table-documentation.tsr","src/examples/table-layouts.tsrx","src/components/ui/table.tsrx"]{let source=std::fs::read_to_string(root.join(relative)).unwrap();assert_eq!(source,support::format_round_trip(&source));}
  let output=support::run(support::cli().arg("run").arg(root.join("src/acceptance/table-documentation.tsr")),180);support::success(&output);assert_eq!(output.stdout,b"Table documentation passed\n");
 }
+
+#[test]
+fn table_native_renderer_bundle_inlines_its_layout_helpers(){
+ let dir=support::TempDirectory::new();support::success(&support::run(support::cli().args(["ui","add","table","--target","native","--offline"]).current_dir(&dir.0),30));
+ let source="import {run} from 'std:ui';import {Table,TableBody,TableRow,TableCell} from './src/components/ui/table';function main(){unwrap(run(<Table><TableBody><TableRow><TableCell>Native columns</TableCell></TableRow></TableBody></Table>,'Table'));}";
+ let path=dir.0.join("native.tsrx");std::fs::write(&path,support::format_round_trip(source)).unwrap();
+ let output=support::run(support::cli().arg("emit").arg(&path),60);support::success(&output);let rust=String::from_utf8(output.stdout).unwrap();assert!(!rust.contains("mod table;"));assert!(rust.contains("fn prepare_tables")&&rust.contains("pub(crate) struct Column"));
+ support::success(&support::run(support::cli().arg("build").arg(&path).arg("--output").arg(dir.0.join("table-native")),240));
+}

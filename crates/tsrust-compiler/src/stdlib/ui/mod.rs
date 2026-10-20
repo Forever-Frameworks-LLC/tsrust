@@ -125,6 +125,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("#[path = \"native_viewport.rs\"]\nmod viewport;",&format!("mod viewport {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_viewport.rs")))
         .replace("#[path = \"native_scrolling.rs\"]\nmod scrolling;",&format!("mod scrolling {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_scrolling.rs")))
         .replace("#[path = \"native_vector.rs\"]\nmod vector;",&format!("mod vector {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_vector.rs").replace("crate::", "super::super::")))
+        .replace("#[path = \"native_table.rs\"]\nmod table;",&format!("mod table {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_table.rs").replace("crate::", "super::super::")))
         .replace("#[path = \"native_inline.rs\"]\nmod inline;",&format!("mod inline {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_inline.rs").replace("crate::theme::", "super::super::theme::").replace("crate::Semantics", "super::super::Semantics")))
         .replace("#[path = \"native_editing.rs\"]\nmod editing;",&format!("mod editing {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_editing.rs").replace("use crate::editable::normalize;", "use super::super::editable::normalize;")));
     let style = include_str!("../../../../tsrust-ui/src/style.rs")
@@ -151,6 +152,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("pub mod clipboard;", &format!("pub mod clipboard {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/clipboard.rs").replace("crate::Node", "super::Node")))
         .replace("pub mod navigation;", &format!("pub mod navigation {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/navigation.rs")))
         .replace("mod vector;",&format!("mod vector {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/vector.rs").replace("use crate::{", "use super::{").replace("crate::theme::", "super::theme::")))
+        .replace("mod table;",&format!("mod table {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/table.rs")))
         .replace("mod identity;",&format!("mod identity {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/identity.rs")))
         .replace("mod computed;",&format!("mod computed {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/computed.rs")))
         .replace("mod state;", &format!("mod state {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/state.rs")))
