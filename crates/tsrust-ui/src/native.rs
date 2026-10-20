@@ -1625,4 +1625,14 @@ mod navigation_semantic_tests {
    for scale in [1.,1.5,2.]{let (_,tree)=painter.scene(&root,256.,scale,None).unwrap();let rect=tree.nodes.iter().find(|(id,_)|id.0==identity).unwrap().1.bounds().unwrap();for (actual,expected) in [(rect.x0,x),(rect.y0,y),(rect.width(),width),(rect.height(),height)]{assert!((actual/scale-expected).abs()<0.05,"{display} {classes}: {rect:?}");}if scale==1.&&display=="flex"{observed.push(serde_json::json!({"index":index,"x":rect.x0,"y":rect.y0,"width":rect.width(),"height":rect.height()}));}}
   }}println!("POSITION_GEOMETRY {}",serde_json::json!({"cases":observed}));
  }
+ #[test]
+ fn reactive_metadata_updates_native_accessibility_without_replacing_the_field(){
+  let updated=crate::Signal::new(false);let read=updated.handle();
+  let field=Node::input_control(None,Some("Draft".into()),"{}",String::new(),None).unwrap().with_semantics_binding(move||Ok(if read.get()?{r#"{"id":"field","label":"Updated","describedBy":"hint","invalid":"true"}"#}else{r#"{"id":"field","label":"Initial"}"#}.into())).unwrap();
+  let hint=Node::text(vec![crate::TextPart::Literal("Current hint".into())],String::new()).unwrap().with_semantics(r#"{"id":"hint"}"#).unwrap();
+  let mut root=Node::view(vec![crate::Child::Node(field),crate::Child::Node(hint)],String::new()).unwrap();root.ensure_identities();let identity=root.children[0].identity.get();
+  let mut painter=Painter::new();let (_,first)=painter.scene(&root,400.,1.,None).unwrap();let initial=first.nodes.iter().find(|(id,_)|id.0==identity).unwrap();assert_eq!(initial.1.label(),Some("Initial"));
+  updated.set(true).unwrap();root.refresh().unwrap();let (_,next)=painter.scene(&root,400.,1.,None).unwrap();let field=next.nodes.iter().find(|(id,_)|id.0==identity).unwrap();assert_eq!(field.1.label(),Some("Updated"));assert_eq!(field.1.invalid(),Some(accesskit::Invalid::True));assert_eq!(field.1.described_by(),&[accesskit::NodeId(root.children[1].identity.get())]);assert_eq!(root.children[0].text,"Draft");
+ }
+
 }

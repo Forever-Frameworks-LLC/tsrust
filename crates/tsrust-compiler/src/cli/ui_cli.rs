@@ -28,7 +28,7 @@ struct Lock {schema_version:u32,installed:Vec<Installed>}
 fn hash(bytes:&[u8])->String {Sha256::digest(bytes).iter().map(|byte|format!("{byte:02x}")).collect()}
 fn catalog()->Result<Vec<Item>,String> {
  let mut items=Vec::new();
- for text in [include_str!("../ui-catalog/tokens-1.0.0.json"),include_str!("../ui-catalog/components-1.0.0.json"),include_str!("../ui-catalog/components-2.0.0.json"),include_str!("../ui-catalog/components-3.0.0.json"),include_str!("../ui-catalog/semantic-content-1.0.0.json"),include_str!("../ui-catalog/aspect-ratio-1.0.0.json"),include_str!("../ui-catalog/alert-1.0.0.json"),include_str!("../ui-catalog/alert-2.0.0.json"),include_str!("../ui-catalog/badge-1.0.0.json")] {items.extend(serde_json::from_str::<Vec<Item>>(text).map_err(|e|e.to_string())?);}
+ for text in [include_str!("../ui-catalog/tokens-1.0.0.json"),include_str!("../ui-catalog/components-1.0.0.json"),include_str!("../ui-catalog/components-2.0.0.json"),include_str!("../ui-catalog/components-3.0.0.json"),include_str!("../ui-catalog/semantic-content-1.0.0.json"),include_str!("../ui-catalog/aspect-ratio-1.0.0.json"),include_str!("../ui-catalog/alert-1.0.0.json"),include_str!("../ui-catalog/alert-2.0.0.json"),include_str!("../ui-catalog/badge-1.0.0.json"),include_str!("../ui-catalog/button-3.0.0.json")] {items.extend(serde_json::from_str::<Vec<Item>>(text).map_err(|e|e.to_string())?);}
  Ok(items)
 }
 fn identity(item:&Item)->Identity {Identity{name:item.name.clone(),version:item.version.clone(),variant:item.variant.clone()}}
@@ -358,8 +358,8 @@ fn print_plan(plan:&Plan,json:bool){if json {println!("{}",serde_json::json!({"o
  }
  #[test]fn current_catalog_has_one_supported_version_per_component(){
   let items=ordered_catalog().unwrap();let identities=items.iter().map(|item|(&item.name,&item.variant)).collect::<std::collections::BTreeSet<_>>();assert_eq!(items.len(),identities.len());
-  assert_eq!(current_request("button","default",&items).unwrap().version,"2.0.0");assert_eq!(current_request("card@3.0.0","default",&items).unwrap().version,"3.0.0");
-  for name in ["card@1.0.0","card@2.0.0","missing","button@9.9.9"]{assert!(current_request(name,"default",&items).is_err());}
+  assert_eq!(current_request("button","default",&items).unwrap().version,"3.0.0");assert_eq!(current_request("card@3.0.0","default",&items).unwrap().version,"3.0.0");
+  for name in ["card@1.0.0","card@2.0.0","button@2.0.0","missing","button@9.9.9"]{assert!(current_request(name,"default",&items).is_err());}
   let mut values=vec![items[0].clone();3];for (item,version) in values.iter_mut().zip(["2.0.0","10.0.0","3.0.0"]){item.version=version.into();}assert_eq!(current_items(values).unwrap()[0].version,"10.0.0");
  }
  #[test]fn batch_upgrade_rewrites_only_new_dependency_imports_and_preserves_applications(){

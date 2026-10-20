@@ -69,7 +69,7 @@ impl Analyzer {
  }
  fn ui_string_binding_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{
   let ExprKind::Call(callee,args)=&mut expression.kind else{return Ok(None)};let ExprKind::Name(name)=&callee.kind else{return Ok(None)};
-  let Some((id,binding))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|binding.module=="std:ui-runtime"&&matches!(binding.name,"bindClass"|"bindVariant"|"bindPath")) else{return Ok(None)};
+  let Some((id,binding))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|binding.module=="std:ui-runtime"&&matches!(binding.name,"bindSemantics"|"bindClass"|"bindVariant"|"bindPath")) else{return Ok(None)};
   Self::arity(args.len(),2,expression.span)?;let annotation=crate::type_syntax::parse("Owned<Function<string>>")?;let callback=crate::callable_annotations::callback(&annotation).unwrap();let getter=self.resolve_callback(&callback)?;
   let node=self.ui_record(NativeTypeId::UiNode);let contract=|ty|ArgumentContract{ty,mode:Mode::Consume,omission:crate::ParameterOmission::Required,rest:false};self.check_call_arguments(context,args,&[contract(node),contract(getter)],loans)?;
   let result=native_type(binding.result,&self.program.records);self.require(result,expected,expression.span)?;expression.ty=Some(result);expression.target=Some(CallTarget::NativeBinding(id));Ok(Some(result))

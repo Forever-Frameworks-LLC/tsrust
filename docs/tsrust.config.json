@@ -244,6 +244,12 @@
         "source": "src/examples/vector-viewports.tsrx",
         "export": "VectorViewports",
         "kind": "component"
+      },
+      {
+        "id": "reactive-semantics",
+        "source": "src/examples/reactive-semantics.tsrx",
+        "export": "ReactiveSemanticsExample",
+        "kind": "component"
       }
     ]
   }

@@ -14,7 +14,7 @@ let browser,socket,timer,server;
 try {
  let expected;
  if(!['docs-example','docs-navigation','docs-inline','docs-components','docs-startup','docs-experience','landing-reference'].includes(scenario)){
- const referenceName=scenario==='docs-lazy-children'?'lazy-children-reference':scenario==='docs-vectors'?'vector-reference':scenario==='docs-badge'?'badge-reference':['reactive-props','docs-reactive-props'].includes(scenario)?'reactive-props-reference':scenario==='docs-alert'?'alert-reference':scenario==='docs-aspect'?'aspect-ratio-reference':scenario==='docs-landing'?'visibility-reference':'application-reference';
+ const referenceName=scenario==='docs-reactive-semantics'?'reactive-semantics-reference':scenario==='docs-lazy-children'?'lazy-children-reference':scenario==='docs-vectors'?'vector-reference':scenario==='docs-badge'?'badge-reference':['reactive-props','docs-reactive-props'].includes(scenario)?'reactive-props-reference':scenario==='docs-alert'?'alert-reference':scenario==='docs-aspect'?'aspect-ratio-reference':scenario==='docs-landing'?'visibility-reference':'application-reference';
  const compiler=spawnSync(process.execPath,[path.join(here,'../runtime/node_modules/typescript/bin/tsc'),'--target','es2022','--lib','es2022','--skipLibCheck','--outDir',profile,path.join(here,referenceName+'.ts')],{encoding:'utf8',timeout:30000});assert.equal(compiler.status,0,compiler.stderr||compiler.stdout);
  const reference=spawnSync(process.execPath,[path.join(profile,referenceName+'.js')],{encoding:'utf8',timeout:30000});assert.equal(reference.status,0,reference.stderr);expected=JSON.parse(reference.stdout);
  }
@@ -35,6 +35,8 @@ try {
   const {observeDocsLanding}=await import('./docs-landing-observer.mjs');await observeDocsLanding({evaluate,call,errors,site,expected});
  } else if(['reactive-props','docs-reactive-props'].includes(scenario)){
   const {observeReactiveProps}=await import('./reactive-props-observer.mjs');await observeReactiveProps({evaluate,call,errors,expected});
+ } else if(scenario==='docs-reactive-semantics'){
+  const {observeReactiveSemantics}=await import('./reactive-semantics-observer.mjs');await observeReactiveSemantics({evaluate,call,errors,expected,site});
  } else if(scenario==='docs-lazy-children'){
   const {observeLazyChildren}=await import('./lazy-children-observer.mjs');await observeLazyChildren({evaluate,call,errors,expected,site});
 } else if(scenario==='docs-vectors'){

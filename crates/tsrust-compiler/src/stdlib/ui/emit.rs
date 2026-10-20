@@ -5,7 +5,7 @@ use crate::{
     syntax::Type,
 };
 pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> String {
-    if matches!(binding.name,"computed"|"computedGet"|"bindClass"|"bindVariant"|"bindPath"|"visibility"|"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"|"route"){return String::new();}
+    if matches!(binding.name,"computed"|"computedGet"|"bindSemantics"|"bindClass"|"bindVariant"|"bindPath"|"visibility"|"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"|"route"){return String::new();}
     let node = program
         .records
         .iter()

@@ -327,3 +327,10 @@ fn lazy_child_factories_have_invocation_help_without_resource_methods(){
  let mut session=Session::start(&[]);session.open("main.tsrx",source);session.settle();let at=source.find("render()").unwrap()+2;let hover=session.hover("main.tsrx",source,at).unwrap_or_default();assert!(hover.contains("Child")||hover.contains("Node"),"{hover}");
  let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
 }
+
+#[test]
+fn reactive_metadata_help_matches_completion_and_diagnostics(){
+ let source="import {Input,signal} from 'std:ui';function main(){const changed=signal(false);const node=<Input aria-invalid={changed.get()?true:undefined}/>;}";
+ let mut session=Session::start(&[]);session.open("main.tsrx",source);let diagnostics=session.wait_for_diagnostics("main.tsrx");assert!(diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");session.settle();let at=source.find("aria-invalid=").unwrap();let hover=session.hover("main.tsrx",source,at+3).unwrap_or_default();assert!(hover.contains("live")&&hover.contains("undefined"),"{hover}");let offered=session.completion("main.tsrx",source,at+3).unwrap();assert!(offered.contains(&"aria-invalid".into()),"{offered:?}");
+ let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
+}

@@ -14,6 +14,8 @@ mod branch;
 mod window;
 #[cfg(test)]
 mod application_tests;
+#[cfg(test)]
+mod reactive_semantics_tests;
 mod editable;
 mod visibility;
 pub mod clipboard;
@@ -47,7 +49,7 @@ pub enum TextPart { Literal(String), Signal(TextBinding) }
 /// Owned child content. Text parts are grouped without cloning their state references.
 pub enum Child { Node(Node), Text(TextPart) }
 
-#[derive(Clone, Debug, Default, serde::Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Deserialize)]
 #[serde(default, deny_unknown_fields, rename_all="camelCase")]
 pub(crate) struct Semantics {
     pub tag: String,
@@ -92,6 +94,7 @@ pub struct Node {
     branch:Option<branch::Branch>,
     class_binding:Option<Box<dyn FnMut()->Result<String,String>>>,
     variant_binding:Option<Box<dyn FnMut()->Result<String,String>>>,
+    semantic_binding:Option<Box<dyn FnMut()->Result<String,String>>>,
     state: Vec<Box<dyn std::any::Any>>,
     vector:Option<Box<vector::Data>>,
 }
@@ -111,8 +114,15 @@ impl Node {
         if (self.kind==Kind::Text||matches!(self.kind,Kind::Button|Kind::DisabledButton)&&!self.text.is_empty())&&style::requires_container(value){return Err("Container layout utilities require View or composed Button children; Text remains a text leaf".into());}Ok(())
     }
     pub fn with_semantics(mut self, config: &str) -> Result<Self,String> {
-        if config.is_empty(){return Ok(self);}
-        let value:Semantics=serde_json::from_str(config).map_err(|e|format!("Invalid UI semantics: {e}"))?;
+        self.apply_semantics(config,true)?;Ok(self)
+    }
+    pub fn with_semantics_binding(mut self,mut evaluate:impl FnMut()->Result<String,String>+'static)->Result<Self,String>{
+        self.apply_semantics(&evaluate()?,true)?;
+        self.semantic_binding=Some(Box::new(evaluate));Ok(self)
+    }
+    fn apply_semantics(&mut self,config:&str,validate_structure:bool)->Result<bool,String>{
+        if config.is_empty(){return Ok(false);}
+        let mut value:Semantics=serde_json::from_str(config).map_err(|e|format!("Invalid UI semantics: {e}"))?;
         if !value.href.is_empty(){return Err("href is set only by Link".into());}
         if value.window_drag_region && self.kind!=Kind::View{return Err("windowDragRegion requires View".into());}
         if value.tab_index.is_some_and(|index|!matches!(index,-1|0)) || value.tab_index.is_some() && self.kind!=Kind::View{return Err("View tabIndex supports 0 (sequential focus) or -1 (programmatic focus)".into());}
@@ -141,7 +151,11 @@ impl Node {
         if value.slot.chars().any(|ch|!(ch.is_ascii_alphanumeric()||ch=='-')){return Err("UI slot must contain ASCII letters, digits or hyphens".into());}
         if value.variant.chars().any(|ch|!(ch.is_ascii_alphanumeric()||ch=='-')){return Err("UI data-variant must contain ASCII letters, digits or hyphens".into());}
         if value.size.chars().any(|ch|!(ch.is_ascii_alphanumeric()||ch=='-')){return Err("UI data-size must contain ASCII letters, digits or hyphens".into());}
-        let href=std::mem::take(&mut self.semantics.href);self.semantics=value;self.semantics.href=href;self.validate_structure()?;Ok(self)
+        value.href=self.semantics.href.clone();
+        if self.variant_binding.is_some(){value.variant=self.semantics.variant.clone();}
+        let prior=std::mem::replace(&mut self.semantics,value);
+        if validate_structure {if let Err(error)=self.validate_structure(){self.semantics=prior;return Err(error);}}
+        Ok(prior!=self.semantics)
     }
     fn has_enabled_controls(&self)->bool {!self.collapsed && (self.enabled_control() || self.children.iter().any(Self::has_enabled_controls))}
     pub(crate) fn enabled_control(&self)->bool {(matches!(self.kind,Kind::Button|Kind::Input|Kind::Textarea) || self.kind==Kind::View && self.semantics.tab_index.is_some()) && !self.is_disabled()}
@@ -278,6 +292,9 @@ impl Node {
         }
         if !retained {changed+=self.refresh_branch()?;}
         if let Some(data)=&mut self.vector{changed+=data.refresh()?;}
+        let metadata=if let Some(binding)=&mut self.semantic_binding{Some(binding()?)}else{None};
+        if let Some(config)=metadata{changed+=usize::from(self.apply_semantics(&config,false)?);}
+
         if let Some(binding)=&mut self.class_binding{let next=binding()?;self.check_class(&next)?;if next!=self.class_name{self.class_name=next;changed+=1;}}
         if let Some(binding)=&mut self.variant_binding{let next=binding()?;Self::check_variant(&next)?;if next!=self.semantics.variant{self.semantics.variant=next;changed+=1;}}
         let disabled=if let Some(predicate)=&mut self.disabled {Some(predicate()?)}else{None};
@@ -376,7 +393,7 @@ impl Node {
             class_name,
             text,
             children,
-            vector:None,parts: Vec::new(), disabled:None, visibility:None, copy:None, press: None, class_binding:None,variant_binding:None,state: Vec::new(), editable:None, read_only:None,collapsed:false,hidden:None,
+            vector:None,parts: Vec::new(), disabled:None, visibility:None, copy:None, press: None, class_binding:None,variant_binding:None,semantic_binding:None,state: Vec::new(), editable:None, read_only:None,collapsed:false,hidden:None,
         };if matches!(kind,Kind::Svg|Kind::SvgPath){node.check_class(&node.class_name)?;}if kind!=Kind::Svg && node.children.iter().any(|child|child.kind==Kind::SvgPath){return Err("Path requires an enclosing Svg".into());}Ok(node)
     }
 }

@@ -1,4 +1,4 @@
-import { svg as nativeSvg, path as nativePath, bindPath as nativeBindPath, validateRoot as nativeValidateRoot, bindClass as nativeBindClass, bindVariant as nativeBindVariant, Computed as NativeComputed, computed as nativeComputed, route as nativeRoute, visibility as nativeVisibility, copyButton as nativeCopyButton, location as nativeLocation, navigate as nativeNavigate, traverse as nativeTraverse, link as nativeLink, themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
+import { svg as nativeSvg, path as nativePath, bindPath as nativeBindPath, validateRoot as nativeValidateRoot, bindClass as nativeBindClass, bindVariant as nativeBindVariant, Computed as NativeComputed, computed as nativeComputed, route as nativeRoute, visibility as nativeVisibility, copyButton as nativeCopyButton, location as nativeLocation, navigate as nativeNavigate, traverse as nativeTraverse, link as nativeLink, themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, bindSemantics as nativeBindSemantics, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
 
 /** An owned UI subtree. Moving a Node transfers all descendants. Nodes cannot be cloned or sent to workers. */
 export type Node = NativeNode;
@@ -19,18 +19,18 @@ export type LazyChildren = Owned<Function<Child[]>>;
 interface ElementMetadata<Variant> {
   /** A document ID without ASCII whitespace/control characters. Defaults to no ID. */
   id?: string;
-  /** Accessible name for buttons, headings, named sections or supported named roles. Generic text/containers, paragraphs, code and presentation cannot be named. */
-  'aria-label'?: string;
-  /** Excludes a noninteractive subtree from accessibility. Enabled controls inside it are rejected. Defaults to false. */
-  'aria-hidden'?: boolean;
-  /** Space-separated IDs of descriptive content. Missing IDs are ignored; text is exposed as a description. */
-  'aria-describedby'?: string;
-  /** Marks validation state for assistive technology and styling; does not run validation. Omission leaves it unspecified. */
-  'aria-invalid'?: boolean;
+  /** Live accessible name for buttons, headings, named sections or supported named roles. Generic text/containers, paragraphs, code and presentation cannot be named. */
+  'aria-label'?: ReactiveValue<string | undefined>;
+  /** Live flag excluding a noninteractive subtree from accessibility. Enabled controls inside it are rejected. Defaults to false. */
+  'aria-hidden'?: ReactiveValue<boolean | undefined>;
+  /** Live space-separated IDs of descriptive content. Missing IDs are ignored; text is exposed as a description. */
+  'aria-describedby'?: ReactiveValue<string | undefined>;
+  /** Live validation state for assistive technology and styling; does not run validation. Omission leaves it unspecified. */
+  'aria-invalid'?: ReactiveValue<boolean | undefined>;
   /** Local component slot for styling and inspection. ASCII letters, digits and hyphens; defaults to none. */
   'data-slot'?: string;
-  /** Component size metadata for checked data/group selectors. ASCII letters, digits and hyphens; empty means absent. */
-  'data-size'?: string;
+  /** Live component size metadata for checked data/group selectors. ASCII letters, digits and hyphens; empty means absent. */
+  'data-size'?: ReactiveValue<string | undefined>;
   /** Component variant metadata for data/group selectors; ASCII letters, digits and hyphens. Empty means absent. Does not change styles without a matching class. */
   'data-variant'?: Variant;
 }
@@ -118,8 +118,8 @@ export function Svg(props: SvgProps<ReactiveValue<string>, ReactiveValue<string>
   const className = props.className;
   const variant = props['data-variant'];
   const label = props['aria-label'] ?? '';
-  const hidden = props['aria-hidden'] ?? label === '';
-  const metadata = semanticConfig('', String(props.role ?? (label === '' ? 'presentation' : 'img')), label, props.id ?? '', hidden, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
+  const hidden = props['aria-hidden'];
+  const metadata = semanticConfig('svg', String(props.role ?? ''), label, props.id ?? '', hidden, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
   const options: SvgOptions = {
     viewBox: props.viewBox ?? '0 0 24 24', width, height, preserveAspectRatio: props.preserveAspectRatio ?? 'xMidYMid meet', paint: {
       fill: props.fill, stroke: props.stroke, strokeWidth: props.strokeWidth, strokeLinecap: props.strokeLinecap, strokeLinejoin: props.strokeLinejoin, strokeMiterlimit: props.strokeMiterlimit, fillRule: props.fillRule
@@ -134,7 +134,7 @@ export function Path(props: PathProps<ReactiveValue<string>, ReactiveValue<strin
   const data = props.d;
   const className = props.className;
   const variant = props['data-variant'];
-  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
+  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
   const options: SvgPaintProps = {
     fill: props.fill, stroke: props.stroke, strokeWidth: props.strokeWidth, strokeLinecap: props.strokeLinecap, strokeLinejoin: props.strokeLinejoin, strokeMiterlimit: props.strokeMiterlimit, fillRule: props.fillRule
   };
@@ -299,7 +299,7 @@ function TextField(props: TextFieldOptions): Node {
   const className = props.className;
   const variant = props['data-variant'];
   const classes = typeof className === 'string' ? clone(className) : '';
-  const metadata = semanticConfig('', '', props['aria-label'] ?? '', clone(id), props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
+  const metadata = semanticConfig('', '', props['aria-label'] ?? '', clone(id), props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
   const options: InputOptions = {
     placeholder: props.placeholder ?? '', disabled: typeof disabled === 'boolean' ? disabled : false, readOnly: typeof readOnly === 'boolean' ? readOnly : false, multiline: props.multiline, required: props.required ?? false, name: clone(name), autoComplete: props.autoComplete ?? '', type: 'text'
   };
@@ -326,7 +326,7 @@ export function CopyButton(props: CopyButtonProps<ReactiveValue<string>, Reactiv
   const className = props.className;
   const variant = props['data-variant'];
   const classes = typeof className === 'string' ? clone(className) : '';
-  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
+  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
   return applyProperties(unwrapNode(nativeCopyButton(props.value, classes)), metadata, className, variant);
 }
 
@@ -335,7 +335,7 @@ export function Text(props: TextProps<ReactiveValue<string>, ReactiveValue<strin
   const className = props.className;
   const variant = props['data-variant'];
   const classes = typeof className === 'string' ? clone(className) : '';
-  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
+  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid']);
   const result = text(props.children ?? [], classes);
   match (result) {
     Ok(value) => {
@@ -357,7 +357,7 @@ export function View(props: ViewProps<ReactiveValue<string>, ReactiveValue<strin
   const className = props.className;
   const variant = props['data-variant'];
   const classes = typeof className === 'string' ? clone(className) : '';
-  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']), props.htmlFor ?? '', props.windowDragRegion ?? false, props.tabIndex);
+  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid'], props.htmlFor ?? '', props.windowDragRegion ?? false, props.tabIndex);
   const result = view(props.children ?? [], classes);
   match (result) {
     Ok(value) => {
@@ -392,7 +392,7 @@ export function Button(props: ButtonProps<ReactiveValue<string>, ReactiveValue<s
   const className = props.className;
   const variant = props['data-variant'];
   const classes = typeof className === 'string' ? clone(className) : '';
-  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
+  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
   const children = props.children ?? [];
   const handler = props.onPress;
   const disabled = props.disabled;
@@ -425,7 +425,7 @@ export function Link(props: LinkProps<ReactiveValue<string>, ReactiveValue<strin
   const className = props.className;
   const variant = props['data-variant'];
   const classes = typeof className === 'string' ? clone(className) : '';
-  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
+  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
   return applyProperties(unwrapNode(nativeLink(props.children ?? [], classes, props.href)), metadata, className, variant);
 }
 /** Creates the single application location owner, initially the browser path or / on native. Its get/set methods use checked absolute local paths. */
@@ -638,19 +638,65 @@ interface SemanticConfig {
   tabIndex?: int;
 }
 
-function semanticConfig(tag: string, role: string, label: string, id: string, hidden: boolean, slot: string, size: string, variant: string, orientation: string, describedBy: string = '', invalid: string = '', htmlFor: string = '', windowDragRegion: boolean = false, tabIndex?: int): string {
-  if (tag === '' && role === '' && label === '' && id === '' && !hidden && slot === '' && size === '' && variant === '' && orientation === '' && describedBy === '' && invalid === '' && htmlFor === '' && !windowDragRegion && tabIndex === undefined) {
+function semanticString(value: Mutable<ReactiveValue<string | undefined> | undefined>): string {
+  if (value === undefined) {
     return '';
   }
 
-  const config: SemanticConfig = {
-    tag, role, label, id, hidden, slot, size, variant, orientation, describedBy, invalid, htmlFor, windowDragRegion, tabIndex
-  };
-  return JSON.stringify(config);
+  if (typeof value === 'string') {
+    return clone(value);
+  }
+
+  return value.evaluate() ?? '';
 }
 
-function applySemantics(node: Node, metadata: string): Node {
-  return unwrapNode(nativeSemantics(node, metadata));
+function semanticBoolean(value: Mutable<ReactiveValue<boolean | undefined> | undefined>): boolean | undefined {
+  if (value === undefined || typeof value === 'boolean') {
+    return value;
+  }
+
+  return value.evaluate();
+}
+
+function semanticSnapshot(config: ReadOnly<SemanticConfig>, label: Mutable<ReactiveValue<string | undefined> | undefined>, hidden: Mutable<ReactiveValue<boolean | undefined> | undefined>, size: Mutable<ReactiveValue<string | undefined> | undefined>, describedBy: Mutable<ReactiveValue<string | undefined> | undefined>, invalid: Mutable<ReactiveValue<boolean | undefined> | undefined>): string {
+  const next = clone(config);
+  next.label = semanticString(label);
+  const hiddenValue = semanticBoolean(hidden);
+  next.hidden = hiddenValue ?? (config.tag === 'svg' && next.label === '');
+  next.size = semanticString(size);
+  next.describedBy = semanticString(describedBy);
+  const invalidValue = semanticBoolean(invalid);
+  next.invalid = invalidValue === undefined ? '' : String(invalidValue);
+  if (config.tag === 'svg' && config.role === '') {
+    next.role = next.label === '' ? 'presentation' : 'img';
+  }
+
+  return JSON.stringify(next);
+}
+
+function semanticConfig(tag: string, role: string, label: ReactiveValue<string | undefined> | undefined, id: string, hidden: ReactiveValue<boolean | undefined> | undefined, slot: string, size: ReactiveValue<string | undefined> | undefined, variant: string, orientation: string, describedBy: ReactiveValue<string | undefined> | undefined = '', invalid: ReactiveValue<boolean | undefined> | undefined = undefined, htmlFor: string = '', windowDragRegion: boolean = false, tabIndex?: int): ReactiveValue<string> {
+  const config: SemanticConfig = {
+    tag, role, label: '', id, hidden: false, slot, size: '', variant, orientation, describedBy: '', invalid: '', htmlFor, windowDragRegion, tabIndex
+  };
+  if ((label === undefined || typeof label === 'string') && (hidden === undefined || typeof hidden === 'boolean') && (size === undefined || typeof size === 'string') && (describedBy === undefined || typeof describedBy === 'string') && (invalid === undefined || typeof invalid === 'boolean')) {
+    if (tag === '' && role === '' && (label === undefined || label === '') && id === '' && (hidden === undefined || !hidden) && slot === '' && (size === undefined || size === '') && variant === '' && orientation === '' && (describedBy === undefined || describedBy === '') && invalid === undefined && htmlFor === '' && !windowDragRegion && tabIndex === undefined) {
+      return '';
+    }
+
+    return semanticSnapshot(config, label, hidden, size, describedBy, invalid);
+  }
+
+  return {
+    evaluate: () => semanticSnapshot(config, label, hidden, size, describedBy, invalid)
+  };
+}
+
+function applySemantics(node: Node, metadata: ReactiveValue<string>): Node {
+  if (typeof metadata === 'string') {
+    return unwrapNode(nativeSemantics(node, metadata));
+  }
+
+  return unwrapNode(nativeBindSemantics(node, metadata.evaluate));
 }
 
 function unwrapNode(result: Result<Node, UiError>): Node {
@@ -664,7 +710,7 @@ function unwrapNode(result: Result<Node, UiError>): Node {
   }
 }
 
-function applyProperties(node: Node, metadata: string, classes: ReactiveValue<string> | undefined, variant: ReactiveValue<string> | undefined): Node {
+function applyProperties(node: Node, metadata: ReactiveValue<string>, classes: ReactiveValue<string> | undefined, variant: ReactiveValue<string> | undefined): Node {
   const decorated = applySemantics(node, metadata);
   const styled = classes !== undefined && typeof classes !== 'string' ? unwrapNode(nativeBindClass(decorated, classes.evaluate)) : decorated;
   return variant !== undefined && typeof variant !== 'string' ? unwrapNode(nativeBindVariant(styled, variant.evaluate)) : styled;

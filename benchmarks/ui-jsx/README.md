@@ -161,3 +161,12 @@ hashes. `verify-lazy-native.mjs <compiler-log>` compares actual generated-native
 construction order with the compiled TypeScript reference. Native std:testing
 resource assertions independently verify unused, consumed and failed factories.
 All these checks are untimed; no JavaScript GC cleanup parity is implied.
+
+The `docs-reactive-semantics` scenario uses the independent Node-after-tsc
+transition model and actual dev gallery. It checks live names, descriptions,
+nullable invalid state, size selectors, hidden decoration and SVG default roles,
+with retained field identity/draft/selection/focus, replacement and local-component
+forwarding, accessibility, three viewport widths, theme changes and disposal.
+Run `node benchmarks/ui-jsx/verify-application.mjs <output> docs-reactive-semantics
+http://127.0.0.1:4317/docs/ui/foundations/reactive-semantics` after the completed
+section builds. This is untimed correctness evidence, not benchmark timing.

@@ -209,10 +209,10 @@ fn nova_card_content_source_is_local_complete_and_native_executable() {
  let entry=root.join("src/inspect.tsr");let output=support::run(support::cli().arg("run").arg(entry),120);support::success(&output);assert_eq!(output.stdout,b"Card content parts passed\n");
  let dir=support::TempDirectory::new();let added=support::run(support::cli().args(["ui","add","card@3.0.0","--target","native","--offline"]).current_dir(&dir.0),20);support::success(&added);
  let generated=std::fs::read_to_string(dir.0.join("src/components/ui/card.tsrx")).unwrap();assert!(generated.starts_with("// License: MIT. See ../../../attributions/shadcn-MIT.txt."));assert_eq!(generated.split_once("import ").unwrap().1,installed.split_once("import ").unwrap().1);
- let older=support::run(support::cli().args(["ui","add","button@2.0.0","--offline"]).current_dir(&dir.0),20);support::success(&older);
+ let older=support::run(support::cli().args(["ui","add","button@3.0.0","--offline"]).current_dir(&dir.0),20);support::success(&older);
  let lock:serde_json::Value=serde_json::from_slice(&std::fs::read(dir.0.join("ui-components.lock.json")).unwrap()).unwrap();let entries=lock["installed"].as_array().unwrap();
  assert!(entries.iter().any(|entry|entry["identity"]["name"]=="card" && entry["compilerApi"]==2 && entry["attribution"]["path"]=="attributions/shadcn-MIT.txt" && entry.get("licenseText").is_none()));
- assert!(entries.iter().any(|entry|entry["identity"]["name"]=="button" && entry["compilerApi"]==1));
+ assert!(entries.iter().any(|entry|entry["identity"]["name"]=="button" && entry["compilerApi"]==8));
 
 }
 
@@ -225,5 +225,5 @@ fn retained_route_documented_example_runs_formatted_and_rejects_bad_contracts(){
 
 #[test]
 fn compiler_api_preserves_prior_contracts_and_rejects_unknown_versions(){
- assert!(tsrust_compiler::ui_project::supports_compiler_api(1));assert!(tsrust_compiler::ui_project::supports_compiler_api(2));assert!(!tsrust_compiler::ui_project::supports_compiler_api(0));assert!(tsrust_compiler::ui_project::supports_compiler_api(3));assert!(tsrust_compiler::ui_project::supports_compiler_api(4));assert!(tsrust_compiler::ui_project::supports_compiler_api(5));assert!(tsrust_compiler::ui_project::supports_compiler_api(6));assert!(tsrust_compiler::ui_project::supports_compiler_api(7));assert!(!tsrust_compiler::ui_project::supports_compiler_api(8));
+ assert!(tsrust_compiler::ui_project::supports_compiler_api(1));assert!(tsrust_compiler::ui_project::supports_compiler_api(2));assert!(!tsrust_compiler::ui_project::supports_compiler_api(0));assert!(tsrust_compiler::ui_project::supports_compiler_api(3));assert!(tsrust_compiler::ui_project::supports_compiler_api(4));assert!(tsrust_compiler::ui_project::supports_compiler_api(5));assert!(tsrust_compiler::ui_project::supports_compiler_api(6));assert!(tsrust_compiler::ui_project::supports_compiler_api(7));assert!(tsrust_compiler::ui_project::supports_compiler_api(8));assert!(!tsrust_compiler::ui_project::supports_compiler_api(9));
 }
