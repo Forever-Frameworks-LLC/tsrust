@@ -10,6 +10,13 @@ fn spelling(value: &ValueAnnotation) -> String {
     }
 }
 impl SourceIndex {
+    pub(crate) fn text_asset(source:&str,schema:&DataSchema)->Self {
+        let mut index=Self::with_entry_help("",false);
+        index.source=source.into();index.lines=LineIndex::new(source);index.scopes[0].span=Span::new(0,source.len());
+        index.add_data_schema(schema);
+        for symbol in &mut index.symbols {symbol.docs="Exact UTF-8 text embedded at build time. Read-only string; reads do not copy. Use clone() for an owned copy. Text is not executable source or parsed JSON.".into();}
+        index
+    }
     pub(crate) fn add_data_schema(&mut self, schema: &DataSchema) {
         self.symbols.clear();
         for record in &schema.records {

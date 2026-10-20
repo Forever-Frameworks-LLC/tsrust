@@ -135,7 +135,7 @@ pub(super) fn watched_inputs(root:&Path)->Result<Vec<PathBuf>,String>{
     let Ok(config)=serde_json::from_value::<docs::Config>(value.clone()) else{return Ok(vec![]);};if config.validate().is_err(){return Ok(vec![]);}
     let mut relative=Vec::new();content_files(root,Path::new(&config.content),&mut relative,false)?;
     let manifest=file(root,Path::new("target/docs-content/inputs.json"))?;
-    if let Ok(bytes)=fs::read(&manifest){relative.push(PathBuf::from("target/docs-content/inputs.json"));if let Ok(value)=serde_json::from_slice::<Value>(&bytes){if matches!(value["generator"].as_str(),Some("tsrust-docs-content-v1"|"tsrust-docs-content-v2")){if let Some(inputs)=value["inputs"].as_object(){for path in inputs.keys().filter(|path|!path.starts_with("std:")){let path=Path::new(path);if file(root,path)?.is_file(){relative.push(path.to_owned());}}}}}}
+    if let Ok(bytes)=fs::read(&manifest){relative.push(PathBuf::from("target/docs-content/inputs.json"));if let Ok(value)=serde_json::from_slice::<Value>(&bytes){if matches!(value["generator"].as_str(),Some("tsrust-docs-content-v1"|"tsrust-docs-content-v2"|"tsrust-docs-content-v3")){if let Some(inputs)=value["inputs"].as_object(){for path in inputs.keys().filter(|path|!path.starts_with("std:")){let path=Path::new(path);if file(root,path)?.is_file(){relative.push(path.to_owned());}}}}}}
     if let Ok(bytes)=fs::read(&manifest){if let Ok(value)=serde_json::from_slice::<Value>(&bytes){if let Some(generated)=value["generated"].as_object(){for name in generated.keys(){let path=Path::new("target/docs-content").join(name);if file(root,&path)?.is_file(){relative.push(path);}}}}}
     let mut paths=relative.into_iter().map(|path|file(root,&path)).collect::<Result<Vec<_>,_>>()?;paths.sort();paths.dedup();Ok(paths)
 }
@@ -172,7 +172,7 @@ fn reuse(root:&Path,pages:&[PathBuf],compiler:&str)->Result<Option<String>,Strin
     let path=file(root,Path::new("target/docs-content/inputs.json"))?;
     let old=match fs::read(path){Ok(bytes)=>serde_json::from_slice::<Value>(&bytes).ok(),Err(error) if error.kind()==std::io::ErrorKind::NotFound=>None,Err(error)=>return Err(error.to_string())};
     let Some(old)=old else{return Ok(None);};
-    if old["generator"]!="tsrust-docs-content-v2"||old["compilerSha256"]!=compiler||old["sourcePages"]!=serde_json::to_value(pages).map_err(|error|error.to_string())?{return Ok(None);}
+    if old["generator"]!="tsrust-docs-content-v3"||old["compilerSha256"]!=compiler||old["sourcePages"]!=serde_json::to_value(pages).map_err(|error|error.to_string())?{return Ok(None);}
     let Some(inputs)=old["inputs"].as_object() else{return Ok(None);};
     for (path,expected) in inputs{if !path.starts_with("std:"){
         let bytes=match fs::read(file(root,Path::new(path))?){Ok(bytes)=>bytes,Err(error) if error.kind()==std::io::ErrorKind::NotFound=>return Ok(None),Err(error)=>return Err(error.to_string())};
@@ -260,12 +260,12 @@ fn build(root:&Path)->Result<String,String>{
     if destination.exists(){
         let old=fs::read_to_string(file(&root,Path::new("target/docs-content/inputs.json"))?).map_err(|_|"Refusing to overwrite an unowned docs-content directory")?;
         let old:Value=serde_json::from_str(&old).map_err(|_|"Invalid docs-content ownership manifest")?;
-        if !matches!(old["generator"].as_str(),Some("tsrust-docs-content-v1"|"tsrust-docs-content-v2")){return Err("Refusing to overwrite an unowned docs-content directory".into());}
+        if !matches!(old["generator"].as_str(),Some("tsrust-docs-content-v1"|"tsrust-docs-content-v2"|"tsrust-docs-content-v3")){return Err("Refusing to overwrite an unowned docs-content directory".into());}
         if let Some(generated)=old["generated"].as_object(){for (name,digest) in generated{if !publication.files.contains_key(name){if let Some(digest)=digest.as_str(){obsolete.insert(name.clone(),digest.to_owned());}}}}
     }
     fs::create_dir_all(&destination).map_err(|error|error.to_string())?;
     let summary=format!("Built {} documentation pages, {} checked examples and {} API declarations (offline).",catalog.pages.len(),catalog.examples.len(),catalog.api.len());
-    let manifest=json!({"generator":"tsrust-docs-content-v2","generated":publication.files.iter().map(|(name,source)|(name.clone(),hash(source.as_bytes()))).collect::<BTreeMap<_,_>>(),"compilerSha256":compiler,"sourcePages":source_pages,"summary":summary,"inputs":catalog.inputs,"catalogSha256":hash(json.as_bytes()),"moduleSha256":hash(module.as_bytes())});
+    let manifest=json!({"generator":"tsrust-docs-content-v3","generated":publication.files.iter().map(|(name,source)|(name.clone(),hash(source.as_bytes()))).collect::<BTreeMap<_,_>>(),"compilerSha256":compiler,"sourcePages":source_pages,"summary":summary,"inputs":catalog.inputs,"catalogSha256":hash(json.as_bytes()),"moduleSha256":hash(module.as_bytes())});
     for (name,source) in &publication.files {if name!="catalog.tsr"{publish(&root,name,source.as_bytes())?;}}
     publish(&root,"catalog.json",json.as_bytes())?;publish(&root,"catalog.tsr",module.as_bytes())?;publish(&root,"inputs.json",serde_json::to_string_pretty(&manifest).unwrap().as_bytes())?;
     for (name,digest) in obsolete {let path=file(root,&Path::new("target/docs-content").join(name))?;if let Ok(bytes)=fs::read(&path){if hash(&bytes)==digest{fs::remove_file(path).map_err(|e|e.to_string())?;}}}

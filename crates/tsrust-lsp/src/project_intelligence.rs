@@ -20,6 +20,8 @@ impl ProjectIndex {
         let facts = analysis.checked_type_facts();
         let local_functions = analysis.checked_local_functions();
         for id in &analysis.graph.order {
+            // Data has no executable body; its complete declarations come from the checked schema.
+            if analysis.graph.modules[id].data.is_some(){index.indices.get_mut(id).expect("indexed data source").mark_checked();continue;}
             let mut source = index.indices.remove(id).expect("indexed project source");
             source.checked_control_labels=labels.iter().filter(|(span,definition)|span.source==*id && definition.source==*id).map(|(span,definition)|(span.span,definition.span)).collect();
             source.apply_project_checked_facts(&analysis.graph, id, &facts, &index.indices);
@@ -32,7 +34,7 @@ impl ProjectIndex {
     }
     pub fn new(graph: &ProjectGraph) -> Self {
         let mut index = Self::build(graph);
-        for (id,source) in &mut index.indices {source.recover_project_member_receivers(graph,id);}
+        for (id,source) in &mut index.indices {if graph.modules[id].data.is_none(){source.recover_project_member_receivers(graph,id);}}
         index.refresh_references();
         index
     }
@@ -41,9 +43,9 @@ impl ProjectIndex {
         let mut declarations: BTreeMap<SourceId, SourceIndex> = BTreeMap::new();
         for id in &graph.order {
             let module = &graph.modules[id];
-            let mut declaration = SourceIndex::with_entry_help(&module.declaration_source, false);
-            let mut index = SourceIndex::with_entry_help(module.checked_source(), id == &graph.entry);
-            if let Some(data) = &module.data {
+            let text_asset=module.data.is_some()&&std::path::Path::new(&id.0).extension().is_some_and(|value|value=="txt");
+            let (mut declaration,mut index)=if text_asset {let schema=module.data.as_ref().unwrap().schema();(SourceIndex::text_asset(&module.source.text,&schema),SourceIndex::text_asset(&module.source.text,&schema))}else{(SourceIndex::with_entry_help(&module.declaration_source,false),SourceIndex::with_entry_help(module.checked_source(),id==&graph.entry))};
+            if let Some(data) = &module.data && !text_asset {
                 let schema = data.schema();
                 declaration = SourceIndex::with_entry_help(&module.source.text, false);
                 declaration.add_data_schema(&schema);
