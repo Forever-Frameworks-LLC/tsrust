@@ -269,7 +269,7 @@ fn lazy_children(program:&mut Program)->Result<BTreeMap<(usize,usize),crate::syn
   if !matches!(callback.kind,crate::syntax::CallbackKind::Owned|crate::syntax::CallbackKind::OwnedOnce)||!callback.params.is_empty(){continue;}
   let result=callback.result.value_annotation();let mut array=&result;while let K::Group(value)=&array.kind{array=value;}
   if !matches!(array.kind,K::Array(_)){continue;}
-  components.insert(function.name.text.clone(),*callback.result);
+  components.insert(function.name.text.clone(),callback.result.as_ref().clone());
  }
  let mut selected=BTreeMap::new();
  for function in &mut program.functions {crate::source_walk::function_body(function,&mut |_|Ok(()),&mut |expression|{

@@ -80,8 +80,9 @@ impl Analyzer {
             .or_else(||matches!(result,ResultAnnotation::Inferred(_)).then_some(contextual).flatten()
                 .and_then(|ty|self.checked_generic_callable_shape(self.unions.payload(ty).unwrap_or(ty)))
                 .map(|(_,result)|result).filter(|result|{
+                    // Context types array literals; existing array values still require exact element types.
                     let members=result.union().map_or_else(||vec![*result],|id|self.unions.members(id));
-                    members.iter().all(|value|matches!(value.scalar_base(),Type::String|Type::Int|Type::Number|Type::Boolean|Type::Null|Type::Undefined|Type::Enum(..)))
+                    members.iter().all(|value|matches!(value.scalar_base(),Type::String|Type::Int|Type::Number|Type::Boolean|Type::Null|Type::Undefined|Type::Enum(..)|Type::Array(_)))
                 }));
         let inferred_result = matches!(result, ResultAnnotation::Inferred(_)) && contextual_result.is_none();
         let result = if let Some(result) = contextual_result { result }

@@ -16,7 +16,9 @@ order. Ignoring or dropping the factory does not construct the children.
 
 Ordinary `children?: Child[]` keeps its eager behavior. Passing
 `children={factory}` forwards an existing factory; it does not invoke it. There is
-no implicit cache and no extra wrapper node.
+no implicit cache and no extra wrapper node. Explicit arrow factories use their
+declared array return type, including empty and mixed child literals. Existing
+array variables keep their element type; this does not add array covariance.
 
 ## Create, close and reopen
 
@@ -33,7 +35,7 @@ example demonstrates evaluation and ownership only.
 
 The normal factory is reusable. Its captures must remain valid for another call.
 A child expression cannot move the same owned Node or resource out on every call.
-Use `Once<LazyChildren>` for a component that deliberately consumes its factory
+Use `Once<Function<Child[]>>` for a component that deliberately consumes its factory
 once; a second call then fails checking. Explicit clones remain explicit.
 
 State capture follows ordinary component rules. Factories and event handlers keep

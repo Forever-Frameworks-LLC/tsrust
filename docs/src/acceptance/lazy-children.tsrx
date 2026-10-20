@@ -3,6 +3,7 @@ import { strictEqual, throws, trackedResource, resourceId, releaseCount, liveCou
 
 interface OptionalProps {
   children?: LazyChildren;
+  observed?: int;
 }
 
 interface FactoryBase<T> {
@@ -11,7 +12,7 @@ interface FactoryBase<T> {
 
 interface RequiredProps extends FactoryBase<LazyChildren> {}
 
-interface OnceProps extends FactoryBase < Once < LazyChildren >> {}
+interface OnceProps extends FactoryBase<Once<Function<Child[]>>> {}
 
 interface OrderedProps extends OptionalProps {
   id: string;
@@ -53,10 +54,12 @@ function EagerChild(): Node {
 
 function Ignore(props: OptionalProps): Node {
   console.log('ignored-parent');
+  strictEqual(releaseCount(props.observed ?? 0), 0);
   return (<View/>);
 }
 
 function ProbeChild(resource: ReadOnly<TrackedResource>): Node {
+  strictEqual(releaseCount(resourceId(resource)), 0);
   console.log('probe-child');
   return (<Text>probe {resourceId(resource)}</Text>);
 }
@@ -108,6 +111,10 @@ function failedResource(): int {
   return id;
 }
 
+function scalarArray(create: Owned<Function<(int | string)[]>>): (int | string)[] {
+  return create();
+}
+
 function main() {
   const baseline = liveCount();
   const ordered = <Ordered id={attribute()}><OrderedChild/></Ordered>;
@@ -116,7 +123,7 @@ function main() {
   strictEqual(document(eager, 'Eager').includes('Still eager'), true);
   const unused = trackedResource();
   const unusedId = resourceId(unused);
-  const ignored = <Ignore>{ProbeChild(unused)}</Ignore>;
+  const ignored = <Ignore observed={unusedId}>{ProbeChild(unused)}</Ignore>;
   strictEqual(releaseCount(unusedId), 1);
   const repeated = trackedResource();
   const repeatedId = resourceId(repeated);
@@ -128,6 +135,11 @@ function main() {
   strictEqual(document(empty, 'Empty').includes('id="empty"'), true);
   const explicit = <Ordered id="explicit" children={() => [<Text>Explicit</Text>]}/>;
   strictEqual(document(explicit, 'Explicit').includes('Explicit'), true);
+  const emptyFactory = <OnceParent children={() => []}/>;
+  strictEqual(document(emptyFactory, 'Empty factory').includes('<div'), true);
+  const values = scalarArray(() => [1, 'two']);
+  strictEqual(String(values[0]), '1');
+  strictEqual(String(values[1]), 'two');
   strictEqual(liveCount(), baseline);
   console.log('Lazy children passed');
 }
