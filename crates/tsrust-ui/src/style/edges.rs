@@ -2,7 +2,7 @@
 use super::{Theme,Utility};
 pub(super) fn tokens()->Vec<String> {
  let mut out=vec!["overflow-hidden".into(),"overflow-visible".into(),"overflow-auto".into()];
- for corner in ["","t-","r-","b-","l-","tl-","tr-","br-","bl-"] {for size in ["none","sm","lg","xl"] {out.push(format!("rounded-{corner}{size}"));}if !corner.is_empty(){out.push(format!("rounded-{}",corner.trim_end_matches('-')));}}
+ for corner in ["","t-","r-","b-","l-","tl-","tr-","br-","bl-"] {for size in ["none","sm","lg","xl","2xl","3xl","4xl"] {out.push(format!("rounded-{corner}{size}"));}if !corner.is_empty(){out.push(format!("rounded-{}",corner.trim_end_matches('-')));}}
  for edge in ["","t","r","b","l"] {let base=if edge.is_empty(){"border".to_owned()}else{format!("border-{edge}")};out.extend([base.clone(),format!("{base}-0"),format!("{base}-2")]);}out
 }
 pub(super) fn resolve(token:&str,theme:&Theme)->Option<Vec<Utility>> {
@@ -15,7 +15,7 @@ pub(super) fn resolve(token:&str,theme:&Theme)->Option<Vec<Utility>> {
    let (first,tail)=rest.split_once('-').unwrap_or((rest,""));
    match first {"t"=>(&[0,1][..],tail),"r"=>(&[1,2][..],tail),"b"=>(&[2,3][..],tail),"l"=>(&[3,0][..],tail),"tl"=>(&[0][..],tail),"tr"=>(&[1][..],tail),"br"=>(&[2][..],tail),"bl"=>(&[3][..],tail),_=>(&[0,1,2,3][..],rest)}
   };
-  let value=match size {""=>theme.radius.md,"none"=>0.,"sm"=>theme.radius.sm,"lg"=>theme.radius.lg,"xl"=>theme.radius.extra_large(),_=>return None} as f32;
+  let value=match size {""=>theme.radius.md,"none"=>0.,"sm"=>theme.radius.sm,"lg"=>theme.radius.lg,"xl"=>theme.radius.extra_large(),"2xl"=>theme.radius.extra_large()*1.25,"3xl"=>theme.radius.extra_large()*1.5,"4xl"=>theme.radius.extra_large()*2.,_=>return None} as f32;
   return Some(corners.iter().map(|&corner|Utility::Corner(corner,value)).collect());
  }
  if token=="border" || token.starts_with("border-") {

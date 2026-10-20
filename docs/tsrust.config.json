@@ -91,7 +91,8 @@
       "src/components/ui/kbd.tsrx",
       "src/components/ui/separator.tsrx",
       "src/components/ui/aspect-ratio.tsrx",
-      "src/components/ui/alert-v2.tsrx"
+      "src/components/ui/alert-v2.tsrx",
+      "src/components/ui/badge.tsrx"
     ],
     "examples": [
       {
@@ -212,6 +213,12 @@
         "id": "reactive-props",
         "source": "src/examples/reactive-props.tsrx",
         "export": "Page",
+        "kind": "component"
+      },
+      {
+        "id": "badge-variants",
+        "source": "src/examples/badge-variants.tsrx",
+        "export": "BadgeVariants",
         "kind": "component"
       }
     ]

@@ -1,18 +1,20 @@
 //! Inline descendants share shaping while retaining semantic identity and hit geometry.
 use super::*;
 use std::ops::Range;
-#[derive(Clone,Copy,Default,PartialEq,Debug)]
-pub(super) struct Brush {pub color:Option<crate::theme::ResolvedColor>,pub underline:bool,pub strike:bool}
+#[derive(Clone,Copy,PartialEq,Debug)]
+pub(super) struct Underline {pub color:crate::theme::ResolvedColor,pub offset:Option<f32>}
+#[derive(Clone,Default,PartialEq,Debug)]
+pub(super) struct Brush {pub color:Option<crate::theme::ResolvedColor>,pub underlines:Option<std::rc::Rc<Vec<Underline>>>,pub strike:bool}
 pub(super) struct Inline {
     pub identity:u64,pub semantics:crate::Semantics,pub label:String,accessible_label:String,pub range:Range<usize>,pub children:Vec<Inline>,style:TextStyle,ring:crate::theme::ResolvedColor,
 }
 pub(super) fn collect(item:Item,text:&mut String,spans:&mut Vec<(Range<usize>,TextStyle)>)->Inline {
     let start=text.len();let mut children=Vec::new();
-    if item.inline.is_empty() && item.children.is_empty(){text.push_str(&item.raw_text);spans.push((start..text.len(),item.text_style));}
+    if item.inline.is_empty() && item.children.is_empty(){text.push_str(&item.raw_text);spans.push((start..text.len(),item.text_style.clone()));}
     else if !item.inline.is_empty(){
         fn append(part:Inline,text:&mut String,spans:&mut Vec<(Range<usize>,TextStyle)>)->Inline {
             let start=text.len();let mut children=Vec::new();
-            if part.children.is_empty(){text.push_str(&part.label);spans.push((start..text.len(),part.style));}
+            if part.children.is_empty(){text.push_str(&part.label);spans.push((start..text.len(),part.style.clone()));}
             else{for child in part.children {children.push(append(child,text,spans));}}
             Inline{range:start..text.len(),children,..part}
         }
@@ -20,17 +22,46 @@ pub(super) fn collect(item:Item,text:&mut String,spans:&mut Vec<(Range<usize>,Te
     }else{for child in item.children{children.push(collect(child,text,spans));}}
     Inline{identity:item.identity,semantics:item.semantics,label:text[start..].to_owned(),accessible_label:item.label,range:start..text.len(),children,style:item.text_style,ring:item.ring}
 }
-pub(super) fn default_style(builder:&mut parley::RangedBuilder<'_,Brush>,style:TextStyle){
-    builder.push_default(StyleProperty::Brush(Brush{color:None,underline:style.underline,strike:style.strike}));
+pub(super) fn default_style(builder:&mut parley::RangedBuilder<'_,Brush>,style:&TextStyle){
+    builder.push_default(StyleProperty::Brush(Brush{color:None,underlines:style.underlines.clone(),strike:style.strike}));
+    builder.push_default(StyleProperty::TextWrapMode(if style.whitespace.wraps(){parley::style::TextWrapMode::Wrap}else{parley::style::TextWrapMode::NoWrap}));
     builder.push_default(StyleProperty::FontStyle(if style.italic{parley::style::FontStyle::Italic}else{parley::style::FontStyle::Normal}));
 }
-pub(super) fn range_style(builder:&mut parley::RangedBuilder<'_,Brush>,range:Range<usize>,style:TextStyle){
+pub(super) fn range_style(builder:&mut parley::RangedBuilder<'_,Brush>,range:Range<usize>,style:&TextStyle){
+    builder.push(StyleProperty::TextWrapMode(if style.whitespace.wraps(){parley::style::TextWrapMode::Wrap}else{parley::style::TextWrapMode::NoWrap}),range.clone());
     builder.push(StyleProperty::FontSize(style.size),range.clone());
     builder.push(StyleProperty::FontWeight(FontWeight::new(style.weight)),range.clone());
     builder.push(StyleProperty::FontStyle(if style.italic{parley::style::FontStyle::Italic}else{parley::style::FontStyle::Normal}),range.clone());
     builder.push(StyleProperty::LineHeight(style.leading.map(parley::style::LineHeight::FontSizeRelative).unwrap_or(style.line_height)),range.clone());
     builder.push(StyleProperty::from(match style.family{1=>parley::style::GenericFamily::Serif,2=>parley::style::GenericFamily::Monospace,_=>parley::style::GenericFamily::SystemUi}),range.clone());
-    builder.push(StyleProperty::Brush(Brush{color:Some(style.color),underline:style.underline,strike:style.strike}),range);
+    builder.push(StyleProperty::Brush(Brush{color:Some(style.color),underlines:style.underlines.clone(),strike:style.strike}),range);
+}
+// TreeBuilder performs CSS whitespace collapsing; keep source ranges separate from displayed ranges.
+pub(super) fn shape(layouts:&mut LayoutContext<Brush>,fonts:&mut FontContext,text:&str,style:&TextStyle,spans:&[(Range<usize>,TextStyle)],inline:&mut [Inline])->(Layout<Brush>,String){
+ if !style.whitespace.collapses() && !spans.iter().any(|(_,style)|style.whitespace.collapses()) {
+  let mut builder=layouts.ranged_builder(fonts,text,1.,true);
+  builder.push_default(StyleProperty::FontSize(style.size));builder.push_default(StyleProperty::FontWeight(FontWeight::new(style.weight)));
+  builder.push_default(StyleProperty::LineHeight(style.leading.map(parley::style::LineHeight::FontSizeRelative).unwrap_or(style.line_height)));
+  builder.push_default(StyleProperty::from(match style.family{1=>parley::style::GenericFamily::Serif,2=>parley::style::GenericFamily::Monospace,_=>parley::style::GenericFamily::SystemUi}));
+  default_style(&mut builder,style);for (range,style) in spans {range_style(&mut builder,range.clone(),style);}
+  return (builder.build(text),text.into());
+ }
+ fn resolved(style:&TextStyle)->parley::style::TextStyle<'static,'static,Brush>{
+  parley::style::TextStyle{font_family:match style.family{1=>parley::style::GenericFamily::Serif,2=>parley::style::GenericFamily::Monospace,_=>parley::style::GenericFamily::SystemUi}.into(),font_size:style.size,font_weight:FontWeight::new(style.weight),font_style:if style.italic{parley::style::FontStyle::Italic}else{parley::style::FontStyle::Normal},line_height:style.leading.map(parley::style::LineHeight::FontSizeRelative).unwrap_or(style.line_height),brush:Brush{color:Some(style.color),underlines:style.underlines.clone(),strike:style.strike},text_wrap_mode:if style.whitespace.wraps(){parley::style::TextWrapMode::Wrap}else{parley::style::TextWrapMode::NoWrap},white_space_collapse:if style.whitespace.collapses(){parley::style::WhiteSpaceCollapse::Collapse}else{parley::style::WhiteSpaceCollapse::Preserve},..Default::default()}
+ }
+ let root=resolved(style);let mut builder=layouts.tree_builder(fonts,1.,true,&root);
+ let mut anchors=std::collections::BTreeMap::new();
+ let anchor=|builder:&parley::TreeBuilder<'_,Brush>|{let value=builder.text();(value.len(),builder.has_pending_whitespace()&&!value.is_empty()&&!value.ends_with(['\n','\r','\u{2028}','\u{2029}']))};
+ if spans.is_empty(){builder.push_text(text);}else{for (range,style) in spans {
+  anchors.insert(range.start,anchor(&builder));builder.push_style_span(resolved(style));builder.push_text(&text[range.clone()]);builder.pop_style_span();anchors.insert(range.end,anchor(&builder));
+ }}
+ let (layout,visible)=builder.build();
+ fn remap(part:&mut Inline,anchors:&std::collections::BTreeMap<usize,(usize,bool)>,visible:&str){
+  let at=|source|{let &(index,pending)=anchors.get(&source).expect("inline boundary is a span boundary");index+usize::from(pending&&visible.as_bytes().get(index)==Some(&b' '))};
+  part.range=at(part.range.start)..at(part.range.end);for child in &mut part.children{remap(child,anchors,visible);}
+ }
+ for part in inline {remap(part,&anchors,&visible);}
+ (layout,visible)
 }
 fn rects(part:&Inline,text:&Layout<Brush>,origin:(f64,f64))->Vec<vello::kurbo::Rect>{
     let selection=parley::editing::Selection::new(parley::editing::Cursor::from_byte_index(text,part.range.start,parley::Affinity::Downstream),parley::editing::Cursor::from_byte_index(text,part.range.end,parley::Affinity::Upstream));
@@ -119,5 +150,29 @@ impl App {
  use super::*;
  #[test]fn select_all_keeps_unicode_crlf_across_styles_and_resets_on_value_change(){
   let raw="café 文\r\n  ";let mut painter=Painter::new();let node=Node::text(vec![crate::TextPart::Literal(raw.into())],"font-mono".into()).unwrap();let item=painter.node(&node,TextStyle::default()).unwrap();let mut layout=item.text.unwrap();layout.break_all_lines(Some(60.));let mut selection=Selectable::new(raw.into(),layout.clone(),(0.,0.));selection.all();assert_eq!(selection.selected().as_deref(),Some(raw));assert!(selection.navigation(&Key::Named(NamedKey::ArrowLeft),true,false));assert!(raw.is_char_boundary(selection.selection.focus().index()));selection.sync("new",&layout,(0.,0.));assert!(selection.selected().is_none());
+ }
+}
+
+#[cfg(test)]mod flow_tests {
+ use super::*;
+ fn text(value:&str,classes:&str)->Node{Node::text(vec![crate::TextPart::Literal(value.into())],classes.into()).unwrap()}
+ #[test]fn collapsed_unicode_spans_keep_selection_links_and_source_text(){
+  let link=crate::navigation::link(vec![crate::Child::Text(crate::TextPart::Literal("  café 文  ".into()))],String::new(),"/docs").unwrap();
+  let node=Node::text_children(vec![crate::Child::Text(crate::TextPart::Literal("  Before \n ".into())),crate::Child::Node(link),crate::Child::Text(crate::TextPart::Literal(" \t after  ".into()))],"whitespace-normal".into()).unwrap();
+  let original=node.content_text();let mut painter=Painter::new();let item=painter.node(&node,TextStyle::default()).unwrap();
+  assert_eq!(item.selection_text,"Before café 文 after");assert_eq!(node.content_text(),original);
+  let link=item.inline.iter().find(|part|!part.semantics.href.is_empty()).unwrap();assert_eq!(&item.selection_text[link.range.clone()],"café 文 ");
+  let mut layout=item.text.unwrap();layout.break_all_lines(Some(80.));assert!(layout.lines().count()>1);assert!(!rects(link,&layout,(0.,0.)).is_empty());
+  let mut selection=Selectable::new(item.selection_text,layout,(0.,0.));selection.all();assert_eq!(selection.selected().as_deref(),Some("Before café 文 after"));
+ }
+ #[test]fn flow_modes_inherit_and_do_not_change_editable_values(){
+  for (class,value,lines) in [("whitespace-normal","one two three",3),("whitespace-nowrap","one two three",1),("whitespace-pre","  one\n two  three  ",2),("whitespace-pre-wrap","  one\n two  three  ",5)]{
+   let node=text("  one\n two  three  ",class);let mut painter=Painter::new();let item=painter.node(&node,TextStyle::default()).unwrap();assert_eq!(item.selection_text,value);let mut layout=item.text.unwrap();layout.break_all_lines(Some(32.));if class=="whitespace-normal"||class=="whitespace-pre-wrap"{assert!(layout.lines().count()>1,"{class}");}else{assert_eq!(layout.lines().count(),lines,"{class}");}
+  }
+  for options in ["{}","{\"multiline\":true}"] {let field=Node::input_control(None,Some("  café   ".into()),options,"whitespace-normal".into(),None).unwrap();let mut painter=Painter::new();let item=painter.node(&field,TextStyle::default()).unwrap();assert_eq!(item.selection_text,"  café   ");}
+  let child=text("  one   two  ","");let node=Node::view(vec![crate::Child::Node(child)],"whitespace-nowrap".into()).unwrap();let mut painter=Painter::new();let item=painter.node(&node,TextStyle::default()).unwrap();assert_eq!(item.children[0].selection_text,"one two");
+ }
+ #[test]fn local_underline_removal_keeps_ancestor_color_and_offset(){
+  let child=text("Nested","no-underline text-destructive underline-offset-8");let node=Node::text_children(vec![crate::Child::Node(child)],"underline underline-offset-4 text-primary".into()).unwrap();let mut painter=Painter::new();let item=painter.node(&node,TextStyle::default()).unwrap();let layers=item.inline[0].style.underlines.as_ref().unwrap();assert_eq!(layers.len(),1);assert_eq!(layers[0].offset,Some(4.));assert_eq!(layers[0].color,crate::theme::Theme::default().color("light","primary").unwrap());
  }
 }

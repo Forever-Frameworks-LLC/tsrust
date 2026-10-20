@@ -27,7 +27,7 @@ use winit::{
     window::{Window, WindowId},
 };
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct TextStyle {
     size: f32,
     weight:f32,
@@ -36,7 +36,9 @@ struct TextStyle {
     family:u8,
     italic:bool,
     strike:bool,
-    underline:bool,
+    underlines:Option<std::rc::Rc<Vec<inline::Underline>>>,
+    underline_offset:Option<f32>,
+    whitespace:crate::style::WhiteSpace,
     align: u8,
     color: super::theme::ResolvedColor,
     cursor:u8,
@@ -47,7 +49,7 @@ impl Default for TextStyle {
     fn default() -> Self {
         Self {
             size: 16.,
-            weight:400.,line_height:parley::style::LineHeight::NORMAL,leading:None,family:0,italic:false,strike:false,underline:false,
+            weight:400.,line_height:parley::style::LineHeight::NORMAL,leading:None,family:0,italic:false,strike:false,underlines:None,underline_offset:None,whitespace:Default::default(),
             align: 0,cursor:0,pointer_events:true,selectable:true,
             color: super::theme::ResolvedColor::rgb8(23,32,51),
         }
@@ -73,6 +75,7 @@ struct Item {
     semantics: super::Semantics,
     label: String,
     raw_text:String,
+    selection_text:String,
     identity:u64,
     id: NodeId,
     text: Option<Layout<Brush>>,
@@ -140,7 +143,8 @@ impl Painter {
         let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));
         if node.theme.is_some() {inherited.size=theme.typography.base as f32;inherited.color=theme.color(mode,"foreground")?;}
 
-        match node.tag(){"strong"=>inherited.weight=700.,"em"=>inherited.italic=true,"del"=>inherited.strike=true,"a" if ancestors.iter().any(|node|node.kind==Kind::Text)=>inherited.underline=true,_=>{}}
+        let mut underline=node.tag()=="a" && ancestors.iter().any(|node|node.kind==Kind::Text);
+        match node.tag(){"strong"=>inherited.weight=700.,"em"=>inherited.italic=true,"del"=>inherited.strike=true,_=>{}}
         let mut style = Style {
             flex_direction: FlexDirection::Column,
             position: taffy::Position::Relative,
@@ -192,6 +196,7 @@ impl Painter {
                 },
                 Utility::Placement(property,count)=>match property {0=>style.grid_column.start=line(count as i16),1=>style.grid_column.end=span(count),2=>style.grid_row.start=line(count as i16),_=>style.grid_row.end=span(count)},
                 Utility::AutoRowsMin=>style.grid_auto_rows=vec![min_content()],
+                Utility::WhiteSpace(v)=>inherited.whitespace=v,Utility::Underline(v)=>underline=v,Utility::UnderlineOffset(v)=>inherited.underline_offset=v,
                 Utility::FontSize(v)=>inherited.size=v,Utility::Weight(v)=>inherited.weight=v,Utility::DefaultLeading(v)=>inherited.line_height=parley::style::LineHeight::Absolute(v),Utility::Leading(v)=>inherited.leading=Some(v),Utility::FontFamily(v)=>inherited.family=v,
                 Utility::Foreground(v)=>inherited.color=v,Utility::Background(v)=>background=Some(v),
                 Utility::Corner(c,v)=>radius[c as usize]=v as f64,Utility::EdgeBorder(side,v)=>{border[side as usize]=v as f64;match side {0=>style.border.top=length(v),1=>style.border.right=length(v),2=>style.border.bottom=length(v),_=>style.border.left=length(v)}},Utility::Overflow(value)=>{overflow=value;let value=match value{1=>taffy::Overflow::Hidden,2=>taffy::Overflow::Scroll,_=>taffy::Overflow::Visible};style.overflow.x=value;style.overflow.y=value;},
@@ -203,14 +208,17 @@ impl Painter {
         }
         // Taffy transfers max-height into an absent max-width. A separately specified width keeps its own bound.
         if style.aspect_ratio.is_some() && style.size.width.into_raw().is_length_or_percentage() && style.max_size.width.is_auto() && !style.max_size.height.is_auto() {style.max_size.width=length(f32::MAX);}
+        if node.kind==Kind::Input {inherited.whitespace=crate::style::WhiteSpace::Pre;}else if node.kind==Kind::Textarea {inherited.whitespace=crate::style::WhiteSpace::PreWrap;}
+        if underline {let layers=inherited.underlines.get_or_insert_with(Default::default);std::rc::Rc::make_mut(layers).push(inline::Underline{color:inherited.color,offset:inherited.underline_offset});}
         ancestors.push(node);
         let mut children = node
             .visible_children()
-            .map(|child| self.themed_node(child, inherited,theme,mode,ancestors,&variables))
+            .map(|child| self.themed_node(child, inherited.clone(),theme,mode,ancestors,&variables))
             .collect::<Result<Vec<_>, _>>()?;
         ancestors.pop();
         let mut inline=Vec::new();let mut spans=Vec::new();let mut paragraph=String::new();
         if node.kind==Kind::Text && !children.is_empty(){for child in std::mem::take(&mut children){inline.push(inline::collect(child,&mut paragraph,&mut spans));}}
+        let mut selection_text=String::new();
         let (text, id) = if node.kind == Kind::View || !children.is_empty() {
             (
                 None,
@@ -224,18 +232,8 @@ impl Painter {
         } else {
             let raw=self.editors.get(&id).map(|editor|editor.text.raw_text()).unwrap_or(if inline.is_empty(){&node.text}else{&paragraph});
             let display=node.editable.as_ref().filter(|_|raw.is_empty()).map(|field|field.placeholder.as_str()).unwrap_or(raw);
-            let mut builder = self
-                .layouts
-                .ranged_builder(&mut self.fonts, display, 1., true);
-            builder.push_default(StyleProperty::FontSize(inherited.size));
-            builder.push_default(StyleProperty::FontWeight(FontWeight::new(
-                inherited.weight,
-            )));
-            builder.push_default(StyleProperty::LineHeight(inherited.leading.map(parley::style::LineHeight::FontSizeRelative).unwrap_or(inherited.line_height)));
-            builder.push_default(StyleProperty::from(match inherited.family {1=>parley::style::GenericFamily::Serif,2=>parley::style::GenericFamily::Monospace,_=>parley::style::GenericFamily::SystemUi}));
-            inline::default_style(&mut builder,inherited);
-            for (range,style) in spans {inline::range_style(&mut builder,range,style);}
-            let layout: Layout<Brush> = builder.build(display);
+            let (layout,visible)=inline::shape(&mut self.layouts,&mut self.fonts,display,&inherited,&spans,&mut inline);
+            selection_text=visible;
             let id = self
                 .tree
                 .new_leaf_with_context(style, Measure{text:layout.clone(),nowrap:node.kind==Kind::Input})
@@ -247,7 +245,8 @@ impl Painter {
             opacity,suppress_outline,placeholder_color,copy_error:node.copy.as_ref().map(|copy|copy.error.clone()),
             field:node.editable.as_ref().map(|field|FieldInfo{value:field.value.clone(),placeholder:field.placeholder.clone(),read_only:field.read_only,required:field.required}),
             raw_text:if inline.is_empty(){node.text.clone()}else{paragraph},
-            text_style:inherited,
+            selection_text,
+            text_style:inherited.clone(),
             role: node.kind,
             semantics: node.semantics.clone(),
             label: if matches!(node.kind,Kind::Button|Kind::DisabledButton) || node.kind==Kind::Text || node.tag()=="label" {node.content_text()}else{node.text.clone()},
@@ -516,7 +515,7 @@ impl Painter {
         let content_height=(layout.size.height-layout.padding.top-layout.padding.bottom-layout.border.top-layout.border.bottom).max(0.);
         let origin=(x+(layout.padding.left+layout.border.left) as f64,y+(layout.padding.top+layout.border.top) as f64);
         if let Some(editor)=self.editors.get_mut(&id) {
-            editor.configure(item.text_style,content_width);
+            editor.configure(item.text_style.clone(),content_width);
             editor.origin=origin;let viewport=(content_width as f64,content_height as f64);if editor.viewport!=viewport{editor.reveal=true;}editor.viewport=viewport;
             let mut text=editor.text.layout(&mut self.fonts,&mut self.layouts).clone();
             if focus==Some(id) && editor.reveal{editor.ensure_cursor_visible();editor.reveal=false;}
@@ -545,7 +544,7 @@ impl Painter {
             layout_text(text,content_width,matches!(item.role,Kind::Button|Kind::DisabledButton)&&item.semantics.href.is_empty());
             text.align(match item.align {1=>Alignment::Center,2=>Alignment::End,_=>Alignment::Start},AlignmentOptions::default());
             if item.role==Kind::Text && item.text_style.selectable {
-                self.live_readonly.insert(id);let selected=self.readonly.entry(id).or_insert_with(||inline::Selectable::new(item.raw_text.clone(),text.clone(),origin));selected.sync(&item.raw_text,text,origin);
+                self.live_readonly.insert(id);let selected=self.readonly.entry(id).or_insert_with(||inline::Selectable::new(item.selection_text.clone(),text.clone(),origin));selected.sync(&item.selection_text,text,origin);
                 if self.selected_text==Some(id){selected.paint(scene,transform,item.ring);}
             }
             paint_text(scene,text,paint_color(item.color),transform,origin);
@@ -591,8 +590,9 @@ fn paint_text(scene:&mut Scene,text:&mut Layout<Brush>,color:Color,transform:Aff
     for line in text.lines(){for run in line.items(){if let PositionedLayoutItem::GlyphRun(glyph_run)=run {
         let font_run=glyph_run.run();let coordinates=font_run.normalized_coords().iter().map(|coord|coord.to_bits()).collect::<Vec<_>>();
         scene.draw_glyphs(font_run.font()).font_size(font_run.font_size()).normalized_coords(&coordinates).transform(transform*Affine::translate(origin)).brush(glyph_run.style().brush.color.map(paint_color).unwrap_or(color)).draw(Fill::NonZero,glyph_run.positioned_glyphs().map(|glyph|vello::Glyph{id:glyph.id,x:glyph.x,y:glyph.y}));
-        let style=glyph_run.style();let brush=style.brush;let metrics=font_run.font_metrics();
-        for (enabled,y) in [(brush.underline,glyph_run.baseline()-metrics.underline_offset),(brush.strike,glyph_run.baseline()-metrics.strikethrough_offset)] {
+        let style=glyph_run.style();let brush=&style.brush;let metrics=font_run.font_metrics();
+        if let Some(layers)=&brush.underlines {for layer in layers.iter(){let y=layer.offset.map_or(glyph_run.baseline()-metrics.underline_offset,|offset|glyph_run.baseline()+offset);scene.stroke(&vello::kurbo::Stroke::new(metrics.underline_size.max(1.) as f64),transform,paint_color(layer.color),None,&vello::kurbo::Line::new((origin.0+glyph_run.offset() as f64,origin.1+y as f64),(origin.0+(glyph_run.offset()+glyph_run.advance()) as f64,origin.1+y as f64)));}}
+        for (enabled,y) in [(brush.strike,glyph_run.baseline()-metrics.strikethrough_offset)] {
             if enabled {scene.stroke(&vello::kurbo::Stroke::new(metrics.underline_size.max(1.) as f64),transform,brush.color.map(paint_color).unwrap_or(color),None,&vello::kurbo::Line::new((origin.0+glyph_run.offset() as f64,origin.1+y as f64),(origin.0+(glyph_run.offset()+glyph_run.advance()) as f64,origin.1+y as f64)));}
         }
     }}}

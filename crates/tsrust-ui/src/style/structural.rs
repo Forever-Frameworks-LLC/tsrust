@@ -12,10 +12,10 @@ fn attribute(value:&str)->Option<(&str,&str)> {
  (matches!(key,"slot"|"size"|"variant"|"orientation") && name(value)).then_some((key,value))
 }
 #[derive(Clone,Copy)]
-pub(super) enum Predicate<'a> { Data(&'a str,&'a str), HasData(&'a str,&'a str), InData(&'a str,&'a str), GroupData(&'a str,&'a str,&'a str), Class(&'a str), Dark, MinWidth(u16), Invalid, Current }
+pub(super) enum Predicate<'a> { Data(&'a str,&'a str), HasData(&'a str,&'a str), InData(&'a str,&'a str), GroupData(&'a str,&'a str,&'a str), Class(&'a str), Dark, MinWidth(u16), Invalid, Current, Anchor }
 impl<'a> Predicate<'a> {
  fn parse(text:&'a str)->Option<Self> {
-  match text {"dark"=>return Some(Self::Dark),"sm"=>return Some(Self::MinWidth(640)),"md"=>return Some(Self::MinWidth(768)),"lg"=>return Some(Self::MinWidth(1024)),"xl"=>return Some(Self::MinWidth(1280)),"2xl"=>return Some(Self::MinWidth(1536)),"aria-invalid"=>return Some(Self::Invalid),_=>{}}
+  match text {"[a]"=>return Some(Self::Anchor),"dark"=>return Some(Self::Dark),"sm"=>return Some(Self::MinWidth(640)),"md"=>return Some(Self::MinWidth(768)),"lg"=>return Some(Self::MinWidth(1024)),"xl"=>return Some(Self::MinWidth(1280)),"2xl"=>return Some(Self::MinWidth(1536)),"aria-invalid"=>return Some(Self::Invalid),_=>{}}
   if text=="data-horizontal"{return Some(Self::Data("orientation","horizontal"));}
   if text=="aria-current"{return Some(Self::Current);}
   if text=="data-vertical"{return Some(Self::Data("orientation","vertical"));}
@@ -30,11 +30,11 @@ impl<'a> Predicate<'a> {
  fn matches(self,node:&Node,ancestors:&[&Node])->bool {
   fn data(node:&Node,key:&str,value:&str)->bool {match key {"slot"=>node.semantics.slot==value,"size"=>node.semantics.size==value,"variant"=>node.semantics.variant==value,"orientation"=>node.semantics.role=="separator" && (if node.semantics.orientation.is_empty(){"horizontal"}else{&node.semantics.orientation})==value,_=>false}}
   fn has(node:&Node,key:&str,value:&str)->bool {node.children.iter().any(|child|data(child,key,value)||has(child,key,value))}
-  match self {Self::Data(k,v)=>data(node,k,v),Self::HasData(k,v)=>has(node,k,v),Self::InData(k,v)=>ancestors.iter().any(|parent|data(parent,k,v)),Self::GroupData(k,v,group)=>ancestors.iter().any(|parent|parent.class_name.split_whitespace().any(|class|class.strip_prefix("group/")==Some(group)) && data(parent,k,v)),Self::Class(class)=>node.class_name.split_whitespace().any(|token|token==class),Self::Dark|Self::MinWidth(_)=>true,Self::Invalid=>node.semantics.invalid=="true",Self::Current=>super::super::navigation::is_current(&node.semantics.href)}
+  match self {Self::Anchor=>node.tag()=="a",Self::Data(k,v)=>data(node,k,v),Self::HasData(k,v)=>has(node,k,v),Self::InData(k,v)=>ancestors.iter().any(|parent|data(parent,k,v)),Self::GroupData(k,v,group)=>ancestors.iter().any(|parent|parent.class_name.split_whitespace().any(|class|class.strip_prefix("group/")==Some(group)) && data(parent,k,v)),Self::Class(class)=>node.class_name.split_whitespace().any(|token|token==class),Self::Dark|Self::MinWidth(_)=>true,Self::Invalid=>node.semantics.invalid=="true",Self::Current=>super::super::navigation::is_current(&node.semantics.href)}
  }
  fn selector(self,scope:&str)->String {
   match self {
-   Self::Dark|Self::MinWidth(_)=>String::new(),Self::Invalid=>":where([aria-invalid=\"true\"])".into(),Self::Current=>":where([aria-current=\"page\"],[aria-current=\"location\"])".into(),
+   Self::Anchor=>":where(a)".into(),Self::Dark|Self::MinWidth(_)=>String::new(),Self::Invalid=>":where([aria-invalid=\"true\"])".into(),Self::Current=>":where([aria-current=\"page\"],[aria-current=\"location\"])".into(),
    Self::Data(k,v)=>format!(":where([data-{k}=\"{v}\"])") ,
    Self::HasData(k,v)=>format!(":where(:has([data-{k}=\"{v}\"]))"),
    Self::InData(k,v)=>format!(":where({scope}[data-{k}=\"{v}\"] *)"),
@@ -94,6 +94,7 @@ pub(super) fn css(classes:&str,theme:&Theme,mode:&str,id:u64,scope:&str)->String
    let declarations=semantic_color(parsed.token,parsed.placeholder).or_else(||super::custom_spacing::css(parsed.token,theme)).unwrap_or_else(||super::resolved(&token,theme,mode).into_iter().map(|(_,v)|v.css()).collect::<Vec<_>>().join(";"));
    if declarations.is_empty(){continue;}
    let mut after=String::new();
+   if parsed.token.starts_with("whitespace-"){after.push_str(":where(:not(input):not(textarea))");}
    for predicate in parsed.predicates {after.push_str(&predicate.selector(&scope));}
    after.push_str(match state {State::Base=>"",State::Hover=>":where(:hover:not(:disabled))",State::Focus=>":where(:focus-visible)",State::Active=>":where(:active:not(:disabled))",State::Disabled=>":where(:disabled)"});
    if parsed.placeholder{after.push_str("::placeholder");}

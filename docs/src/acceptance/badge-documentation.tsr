@@ -1,0 +1,10 @@
+import { navigate, run } from 'std:ui';
+import { Page } from '../app/page';
+
+function main() {
+  const app = Page();
+  navigate('/docs/ui/components/badge');
+  unwrap(run(app, 'Tsrust Badge documentation', {
+    width: 1100, height: 780, minWidth: 480, minHeight: 360, titlebar: 'custom'
+  }));
+}

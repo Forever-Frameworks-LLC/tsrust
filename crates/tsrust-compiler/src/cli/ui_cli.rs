@@ -28,7 +28,7 @@ struct Lock {schema_version:u32,installed:Vec<Installed>}
 fn hash(bytes:&[u8])->String {Sha256::digest(bytes).iter().map(|byte|format!("{byte:02x}")).collect()}
 fn catalog()->Result<Vec<Item>,String> {
  let mut items=Vec::new();
- for text in [include_str!("../ui-catalog/tokens-1.0.0.json"),include_str!("../ui-catalog/components-1.0.0.json"),include_str!("../ui-catalog/components-2.0.0.json"),include_str!("../ui-catalog/components-3.0.0.json"),include_str!("../ui-catalog/semantic-content-1.0.0.json"),include_str!("../ui-catalog/aspect-ratio-1.0.0.json"),include_str!("../ui-catalog/alert-1.0.0.json"),include_str!("../ui-catalog/alert-2.0.0.json")] {items.extend(serde_json::from_str::<Vec<Item>>(text).map_err(|e|e.to_string())?);}
+ for text in [include_str!("../ui-catalog/tokens-1.0.0.json"),include_str!("../ui-catalog/components-1.0.0.json"),include_str!("../ui-catalog/components-2.0.0.json"),include_str!("../ui-catalog/components-3.0.0.json"),include_str!("../ui-catalog/semantic-content-1.0.0.json"),include_str!("../ui-catalog/aspect-ratio-1.0.0.json"),include_str!("../ui-catalog/alert-1.0.0.json"),include_str!("../ui-catalog/alert-2.0.0.json"),include_str!("../ui-catalog/badge-1.0.0.json")] {items.extend(serde_json::from_str::<Vec<Item>>(text).map_err(|e|e.to_string())?);}
  Ok(items)
 }
 fn identity(item:&Item)->Identity {Identity{name:item.name.clone(),version:item.version.clone(),variant:item.variant.clone()}}
