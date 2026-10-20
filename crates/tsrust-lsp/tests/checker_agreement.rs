@@ -212,10 +212,13 @@ fn field_type(name: &str, parameter: &str) -> Option<String> {
 fn callable_field_agrees(receiver:&Receiver,name:&str,shown:&str)->bool {
  use tsrust_compiler::project::{ProjectType,SourceId};
  let source=format!("{} interface DisplayedContract {{ member:{shown}; }} function probe({}){{}} function main(){{}}",prelude(receiver.parameter),receiver.parameter);
- let entry=SourceId("/tsrust-agreement-callable/main.tsr".into());let mut workspace=Workspace::default();workspace.open(entry.clone(),1,source);
+ let entry=SourceId("/tsrust-agreement-callable/main.tsr".into());let mut workspace=Workspace::default();workspace.open(entry.clone(),1,source.clone());
  let Ok(analysis)=workspace.snapshot().check_with_diagnostics(&entry) else{return false;};let facts=analysis.checked_type_facts();
  let find=|owner:&str,field:&str|facts.record_fields.iter().find(|(ty,n,_,_,_)|n==field && matches!(ty,ProjectType::Named{name,..} if name==owner)).map(|(_,_,_,ty,_)|ty);
- find(receiver.ty,name).zip(find("DisplayedContract","member")).is_some_and(|(actual,displayed)|actual==displayed)
+ let parameter=source.find("function probe(").unwrap()+"function probe(".len();
+ let receiver_type=facts.parameter_types.iter().find(|fact|fact.location.source==entry && fact.location.span.start==parameter).map(|fact|&fact.ty);
+ let actual=receiver_type.and_then(|owner|facts.record_fields.iter().find(|(ty,n,_,_,_)|ty==owner&&n==name).map(|(_,_,_,ty,_)|ty));
+ actual.zip(find("DisplayedContract","member")).is_some_and(|(actual,displayed)|actual==displayed)
 }
 
 fn alternatives(ty: &str) -> BTreeSet<String> {
@@ -270,7 +273,7 @@ fn completion_offers_the_fields_the_checker_accepts_and_no_method_it_rejects() {
         let absent_field = answer(field_form, ABSENT, receiver.parameter);
         let absent_call = answer(call_form, ABSENT, receiver.parameter);
         assert!(absent_field.is_some() && absent_call.is_some(), "{}: an absent member must be rejected", receiver.ty);
-        let fields = candidates.iter().filter(|name|name.chars().all(|ch|ch.is_ascii_alphanumeric()||ch=='_') || matches!(receiver.ty,"ElementProps"|"SemanticProps"|"TextProps"|"ViewProps"|"ButtonProps"|"TextFieldProps"|"InputProps"|"TextareaProps")).filter(|name| answer(field_form, name, receiver.parameter) != absent_field).cloned().collect::<BTreeSet<_>>();
+        let fields = candidates.iter().filter(|name|name.chars().all(|ch|ch.is_ascii_alphanumeric()||ch=='_') || matches!(receiver.ty,"ElementProps"|"SemanticProps"|"TextProps"|"ViewProps"|"ButtonProps"|"ViewRenderProps"|"ButtonRenderProps"|"TextFieldProps"|"InputProps"|"TextareaProps")).filter(|name| answer(field_form, name, receiver.parameter) != absent_field).cloned().collect::<BTreeSet<_>>();
         let prelude = prelude(receiver.parameter);
         let before = format!("{prelude}function probe({}) {{\n  x.", receiver.parameter);
         let text = format!("{before}\n}}\nfunction main() {{}}\n");
