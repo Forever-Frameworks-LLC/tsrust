@@ -1,5 +1,5 @@
 <!-- tsrust-docs
-{"id":"component-alert","group":"components","order":10,"status":"partial","targets":["web","native"],"component":"alert","examples":["alert-variants","alert-actions","alert-validation","alert-layouts","alert-theme"]}
+{"id":"component-alert","group":"components","order":10,"status":"partial","targets":["web","native"],"component":"alert","examples":["alert-variants","alert-actions","alert-validation","alert-layouts","alert-theme","reactive-props"]}
 -->
 # Alert
 
@@ -7,7 +7,7 @@ Present contextual information without opening a dialog. Compose a title, descri
 
 ## Install
 
-Run `tsrust ui add alert --offline`. Import `Alert`, `AlertTitle`, `AlertDescription` and `AlertAction` from `src/components/ui/alert`. The installed file is yours to edit. This version requires compiler API 3 for variant metadata and parent positioning; older compilers report that prerequisite instead of approximating the layout.
+Run `tsrust ui add alert --offline`. Import `Alert`, `AlertTitle`, `AlertDescription` and `AlertAction` from `src/components/ui/alert`. The installed file is yours to edit. Version 2 requires compiler API 4 for live props and replacement rendering. Upgrading preserves the earlier file and installs `alert-v2.tsrx`; application imports change only when you edit them. Older source keeps its original behavior. Older compilers report that prerequisite instead of approximating the layout.
 
 ## Announcements and focus
 
@@ -31,6 +31,6 @@ Use `card`, `cardForeground`, `destructive`, `mutedForeground` and `border` to c
 
 ## Current boundaries
 
-The four content/action subcomponents, inherited View metadata, retained hidden state and scoped mode switching work on web and native. Variant and ordinary custom class props are construction-time values; generic reactive custom props remain unfinished. SVG icons, arbitrary descendant CSS, automatic text balancing and Base UI render composition are not implemented. These are remaining clone capabilities, not silent fallbacks.
+The four content/action subcomponents, inherited View metadata, retained hidden state and scoped mode switching work on web and native. Version 2 accepts live variant and class expressions, including title/description/action classes. Its `render` factory forwards styled props once without adding a wrapper. The live example switches palettes and nested title classes on the same nodes. SVG icons, arbitrary descendant CSS, automatic text balancing and the remaining Base UI event/ref composition contracts are not implemented. These are remaining clone capabilities, not silent fallbacks.
 
 Each component consumes its forwarded children once. Application handlers keep the existing checked capture and cleanup rules; no public lifetime handle is needed.

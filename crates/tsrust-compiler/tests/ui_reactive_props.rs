@@ -4,7 +4,7 @@ use std::{fs,path::Path};
 #[test]
 fn reactive_props_and_replacement_composition_execute_after_formatting(){
  let root=Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/ui-reactive-props");
- for relative in ["src/app/page.tsrx","src/main.tsr","src/inspect.tsr","src/order.tsrx"]{let source=fs::read_to_string(root.join(relative)).unwrap();assert_eq!(source,support::format_round_trip(&source));}
+ for relative in ["src/app/page.tsrx","src/main.tsr","src/inspect.tsr","src/order.tsrx","src/components/ui/alert.tsrx"]{let source=fs::read_to_string(root.join(relative)).unwrap();assert_eq!(source,support::format_round_trip(&source));}
  let result=support::run(support::cli().arg("run").arg(root.join("src/inspect.tsr")),180);support::success(&result);assert_eq!(result.stdout,b"p-2\ndefault\nchild\nReactive props passed\n");
 }
 

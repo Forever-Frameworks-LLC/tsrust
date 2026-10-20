@@ -91,7 +91,7 @@
       "src/components/ui/kbd.tsrx",
       "src/components/ui/separator.tsrx",
       "src/components/ui/aspect-ratio.tsrx",
-      "src/components/ui/alert.tsrx"
+      "src/components/ui/alert-v2.tsrx"
     ],
     "examples": [
       {

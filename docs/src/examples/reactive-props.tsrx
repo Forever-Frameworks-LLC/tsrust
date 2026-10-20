@@ -1,4 +1,5 @@
 import { View, Button, Text, Node, signal, computed, useProp, ReactiveValue, ViewProps } from 'std:ui';
+import { Alert, AlertTitle, AlertDescription } from '../components/ui/alert-v2';
 
 interface NoticeProps extends ViewProps<ReactiveValue<string>, ReactiveValue<string>> {
   tone?: ReactiveValue<'default' | 'destructive'>;
@@ -25,6 +26,11 @@ export function Page(): Node {
       <Notice tone={active.get() ? 'destructive' : 'default'} className={active.get() ? 'bg-muted' : 'bg-background'}>
         <Text>Count: {count.get()} / doubled: {doubled.get()}</Text>
       </Notice>
+      <Alert variant={active.get() ? 'destructive' : 'default'} className={active.get() ? 'bg-muted' : 'bg-card'}
+        render={(props) => (<View {...props} as="section" data-slot="reactive-alert" />)}>
+        <AlertTitle className={active.get() ? 'font-bold' : 'font-medium'}>Live component</AlertTitle>
+        <AlertDescription>The same alert changes palette without remounting.</AlertDescription>
+      </Alert>
       <Button onPress={() => { active.set(!active.get()); }} className="rounded bg-primary text-primary-foreground p-2">Toggle tone</Button>
       <Button disabled={count.get() >= 2} onPress={() => { count.set(count.get() + 1); }} className="rounded bg-secondary text-secondary-foreground p-2"
         render={(props) => (<Button {...props} data-slot="replacement" />)}>Increment</Button>

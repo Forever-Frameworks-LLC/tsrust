@@ -1,0 +1,26 @@
+[
+  {
+    "variant": "default",
+    "license": "MIT",
+    "licenseText": "MIT License\n\nCopyright (c) 2023 shadcn\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n",
+    "runtimeAbi": "ui-application-1",
+    "compilerApi": 4,
+    "rust": "1.96.1",
+    "name": "alert",
+    "version": "2.0.0",
+    "dependencies": [
+      {
+        "name": "tokens",
+        "version": "1.0.0",
+        "variant": "default"
+      }
+    ],
+    "files": [
+      {
+        "path": "alert.tsrx",
+        "destination": "components",
+        "content": "/*\nMIT License\n\nCopyright (c) 2023 shadcn\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n*/\nimport { View, ViewProps, Node, ReactiveValue, useProp } from 'std:ui';\n\nexport interface AlertProps extends ViewProps<ReactiveValue<string>, ReactiveValue<string>> {\n  /** Live palette. Defaults to default; also updates data-variant and descendant styles. */\n  variant?: ReactiveValue<'default' | 'destructive'>;\n}\n/** Contextual live content. Defaults to role=alert; use status for polite updates. Replacement renderers receive styled props once. */\nexport function Alert(props: AlertProps): Node {\n  const variant = useProp<'default' | 'destructive'>(props.variant ?? 'default');\n  const classes = useProp<string>(props.className ?? '');\n  const slot = clone(props['data-slot']) ?? 'alert';\n  const role = clone(props.role) ?? 'alert';\n  props.variant = undefined;\n  props.className = undefined;\n  return (\n    <View {...props} role={role} data-slot={slot} data-variant={variant.get()}\n      className={'group/alert relative w-full grid grid-cols-1 gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:pr-18 bg-card ' + (variant.get() === 'destructive' ? 'text-destructive ' : 'text-card-foreground ') + classes.get()} />\n  );\n}\n/** Title styling without an implicit heading. Forward a Text heading when appropriate. */\nexport function AlertTitle(props: ViewProps<ReactiveValue<string>, ReactiveValue<string>>): Node {\n  const classes = useProp<string>(props.className ?? '');\n  const slot = clone(props['data-slot']) ?? 'alert-title';\n  props.className = undefined;\n  return (<View {...props} data-slot={slot} className={'font-medium ' + classes.get()} />);\n}\n/** Muted description; destructive alerts use the destructive token at 90% alpha. Caller classes override defaults. */\nexport function AlertDescription(props: ViewProps<ReactiveValue<string>, ReactiveValue<string>>): Node {\n  const classes = useProp<string>(props.className ?? '');\n  const slot = clone(props['data-slot']) ?? 'alert-description';\n  props.className = undefined;\n  return (<View {...props} data-slot={slot} className={'text-sm text-muted-foreground group-data-[variant=destructive]/alert:text-destructive/90 ' + classes.get()} />);\n}\n/** Direct child action slot, positioned 8px from the top/right at default spacing. Supply your own Button or Link. */\nexport function AlertAction(props: ViewProps<ReactiveValue<string>, ReactiveValue<string>>): Node {\n  const classes = useProp<string>(props.className ?? '');\n  const slot = clone(props['data-slot']) ?? 'alert-action';\n  props.className = undefined;\n  return (<View {...props} data-slot={slot} className={'absolute top-2 right-2 ' + classes.get()} />);\n}\n"
+      }
+    ]
+  }
+]

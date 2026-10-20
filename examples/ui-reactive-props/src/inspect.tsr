@@ -40,6 +40,9 @@ function main() {
   strictEqual(html.includes('data-variant="default"'), true);
   strictEqual(html.includes('Count: 0 / doubled: 0'), true);
   strictEqual(html.includes('data-slot="replacement"'), true);
+  strictEqual(html.includes('data-slot="reactive-alert"'), true);
+  strictEqual(html.includes('<section'), true);
+  strictEqual(html.split('role="alert"').length, 2);
   strictEqual(html.split('<button').length, 3);
   const ordered = document(Order(), 'Order');
   strictEqual(ordered.includes('source-order'), true);
