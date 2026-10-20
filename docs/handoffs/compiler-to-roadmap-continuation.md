@@ -1,3 +1,7 @@
+Current performance repair — 2026-10-20: [dev and workspace latency](../milestones/compiler-dev-and-workspace-latency.md) records focused acceptance. Real warm docs rebuild is 14,870 ms; emitted Rust remains byte-identical across the runtime-support scan repair. Actual repository LSP scanning is 133,894.5 ms cold and 1,068.0 ms warm, with 238.8 ms foreground hover and zero stale/member counters. These are diagnostic observations, not matched benchmarks. Five consumers and the active editor are refreshed; settings bytes/time are exact. Port 4317 remains the real dev watcher. The in-app tab was reloaded from an obsolete foundation screen onto the shared landing.
+
+Continue the pinned Base UI + Nova component contracts and paired docs. Kbd 2 source and upgrade/native witnesses are in progress; do not describe that section as accepted yet. Full compound context/event/ref composition, focus/overlays, remaining components/charts/themes/blocks, HTML-first loading and executable splitting remain open. Reuse accepted evidence; batch affected checks and continue without another go-ahead.
+
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
 Current section — 2026-10-20: documentation navigation passes

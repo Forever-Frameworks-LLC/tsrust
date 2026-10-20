@@ -71,6 +71,7 @@ impl Scanner {
 struct Entry {
     input: WorkspaceSnapshot,
     errors: Vec<ProjectDiagnostic>,
+    modules: BTreeSet<SourceId>,
 }
 /// Worker-local entry results. Each entry retains its own dependency observations.
 #[derive(Default)]
@@ -95,16 +96,27 @@ impl Cache {
         if path.extension().is_some_and(|extension|extension=="tsr" || extension=="tsrx") && roots.iter().any(|root|path.starts_with(root)) {files.insert(id);}
     }
     self.entries.retain(|id,_|files.contains(id));
+    let configured=files.iter().map(|id|(id.clone(),job.input.configured_entry(id))).collect::<BTreeMap<_,_>>();
+    let preferred=configured.values().flatten().filter(|id|files.contains(*id)).cloned().collect::<BTreeSet<_>>();
+    let ordered=preferred.iter().cloned().chain(files.iter().filter(|id|!preferred.contains(*id)).cloned());
+    let mut covered=BTreeSet::new();
     let mut errors=Vec::new();
-    for file in files {
+    for file in ordered {
         if interrupted(){return Ok(None);}
+        if covered.contains(&file) && !tsrust_compiler::project::is_test_entry(&file.0) {continue;}
         if !self.entries.get(&file).is_some_and(|entry|job.input.can_reuse(&entry.input)) {
             let input=job.input.fresh();
-            let errors=input.check_with_diagnostics(&file).err().unwrap_or_default();
-            self.entries.insert(file.clone(),Entry{input,errors});
+            let (errors,modules)=match input.check_with_diagnostics(&file) {
+                Ok(analysis)=>(vec![],analysis.graph.modules.keys().cloned().collect()),
+                Err(errors)=>(errors,BTreeSet::new()),
+            };
+            self.entries.insert(file.clone(),Entry{input,errors,modules});
             self.checked+=1;
         }
         let entry=&self.entries[&file];
+        // A successful configured graph checks every imported body. Failed graphs,
+        // test entries and files outside that project still receive independent checks.
+        covered.extend(entry.modules.iter().filter(|id|configured.get(*id).is_some_and(|owner|owner.as_ref()==Some(&file))).cloned());
         job.input.absorb(&entry.input);
         errors.extend(entry.errors.iter().cloned());
     }

@@ -1,4 +1,5 @@
 mod declaration_scope;
+mod runtime_support_ids;
 #[cfg(test)]
 mod statement_work_tests;
 use declaration_scope::Declarations;
@@ -3050,9 +3051,10 @@ impl Emitter<'_> {
         }
         // Record arrays inline only small records whose entire field tree has no
         // arrays. This preserves recursive indirection and bounds inline size.
+        let record_arrays = runtime_support_ids::referenced(&output, "RecordArray", "", self.program.records.len());
         for index in 0..self.program.records.len() {
             if !self.record_runtime.recursive(index)
-                && (output.contains(&format!("RecordArray{index}")) || native_view_emit::access(self.program, index).is_some())
+                && (record_arrays.contains(&index) || native_view_emit::access(self.program, index).is_some())
             {
                 if native_view_emit::access(self.program, index).is_some() {
                     let _ = writeln!(output, "type RecordArray{index}<'a> = Vec<Record{index}<'a>>;");
@@ -3228,6 +3230,7 @@ impl Emitter<'_> {
             output.push_str(crate::runtime::NUMERIC_ARRAYS);
         }
         self.data_spread_declarations(&mut output);
+        let record_array_structs=runtime_support_ids::referenced(&output,"struct RecordArray","(",self.program.records.len());
         if output.contains("TsrSpreadSlot") { output.push_str(spread_emit::SPREAD_SLOTS); }
         if output.contains(".tsr_spread_mut_items()") {
             output.push_str(crate::runtime::SPREAD_MUT_ITEMS_VEC);
@@ -3244,7 +3247,7 @@ impl Emitter<'_> {
                 output.push_str(crate::runtime::OWNED_ITEMS_NUMERIC);
             }
             for (id, _) in self.program.records.iter().enumerate() {
-                if output.contains(&format!("struct RecordArray{id}(")) {
+                if record_array_structs.contains(&id) {
                     let _ = writeln!(
                         output,
                         "impl TsrOwnedItems<Record{id}> for RecordArray{id} {{ fn tsr_owned_items(mut self) -> impl Iterator<Item=Record{id}> {{ std::mem::take(&mut self.0).into_iter() }} }}"
@@ -3347,7 +3350,7 @@ impl Emitter<'_> {
             }
             for index in 0..self.program.records.len() {
                 if let Some(registration)=self.record_join_registration(index){output.push_str(&registration);}
-                if output.contains(&format!("struct RecordArray{index}(")) {
+                if record_array_structs.contains(&index) {
                     let _ = writeln!(
                         output,
                         "impl TsrJoinText for RecordArray{index} {{ fn append_locale_text(&self, output: &mut std::string::String) {{ tsr_append_locale(output, self.iter()); }} fn append_join_text(&self, output: &mut std::string::String) {{ tsr_append_join(output, self.iter(), \",\"); }} }}"

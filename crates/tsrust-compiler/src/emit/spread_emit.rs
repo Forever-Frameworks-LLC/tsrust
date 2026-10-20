@@ -24,8 +24,9 @@ impl Emitter<'_> {
         if self.spread_multiple(union) {let index=self.program.unions[union.index()].members.iter().position(|ty|*ty==member).unwrap();format!("TsrDataSpread{}::V{index}({slot})",union.index())}else{slot}
     }
     pub(super) fn data_spread_declarations(&self,output:&mut String){
+        let referenced=runtime_support_ids::referenced(output,"TsrDataSpread","",self.program.unions.len());
         for (index,union) in self.program.unions.iter().enumerate(){
-            if !output.contains(&format!("TsrDataSpread{index}")){continue;}
+            if !referenced.contains(&index){continue;}
             write!(output,"enum TsrDataSpread{index}<'a> {{").unwrap();
             for (position,member) in union.members.iter().enumerate(){write!(output,"V{position}(TsrSpreadSlot<'a,{}>),",self.native_type(*member)).unwrap();}
             output.push_str("}\n");

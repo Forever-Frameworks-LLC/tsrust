@@ -243,6 +243,16 @@ impl SourceProvider for WorkspaceSnapshot {
 }
 
 impl WorkspaceSnapshot {
+    /// Prefer the configured application graph; unreferenced files remain separate entries.
+    pub(crate) fn configured_entry(&self, source: &SourceId) -> Option<SourceId> {
+        for root in Path::new(&source.0).parent()?.ancestors() {
+            let Some(text) = self.read_config(&root.join("tsrust.config.json")).ok()? else { continue; };
+            let value: serde_json::Value = serde_json::from_str(&text).ok()?;
+            let entry = value.pointer("/build/entry")?.as_str()?;
+            return self.resolve(None, root.join(entry).to_str()?).ok();
+        }
+        None
+    }
     fn resolve_path(&self, importer: Option<&SourceId>, path: &str) -> Result<SourceId, String> {
         let candidates=if let Some(importer)=importer {
             let aliases=tsrust_compiler::project_resolution::discover(Path::new(&importer.0),|path|self.read_config(path))?;
