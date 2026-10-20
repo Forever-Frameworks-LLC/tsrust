@@ -14,6 +14,8 @@ pub fn reserved(name:&str)->bool {
         "arboard",
         "winit",
         "vello",
+        "kurbo",
+        "svgtypes",
         "taffy",
         "parley",
         "pollster",

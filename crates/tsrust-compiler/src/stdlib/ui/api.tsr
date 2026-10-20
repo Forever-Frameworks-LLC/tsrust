@@ -1,4 +1,4 @@
-import { bindClass as nativeBindClass, bindVariant as nativeBindVariant, Computed as NativeComputed, computed as nativeComputed, route as nativeRoute, visibility as nativeVisibility, copyButton as nativeCopyButton, location as nativeLocation, navigate as nativeNavigate, traverse as nativeTraverse, link as nativeLink, themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
+import { svg as nativeSvg, path as nativePath, bindPath as nativeBindPath, validateRoot as nativeValidateRoot, bindClass as nativeBindClass, bindVariant as nativeBindVariant, Computed as NativeComputed, computed as nativeComputed, route as nativeRoute, visibility as nativeVisibility, copyButton as nativeCopyButton, location as nativeLocation, navigate as nativeNavigate, traverse as nativeTraverse, link as nativeLink, themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
 
 /** An owned UI subtree. Moving a Node transfers all descendants. Nodes cannot be cloned or sent to workers. */
 export type Node = NativeNode;
@@ -42,6 +42,104 @@ interface SemanticMetadata<Variant> extends ElementProps<Variant> {
 }
 
 export type SemanticProps<Variant = string> = SemanticMetadata<Variant>;
+
+interface SvgPaintProps {
+  /** Fill paint: none, currentColor, a semantic token name, checked hex or in-gamut oklch. Svg defaults to currentColor; Path inherits. External paint URLs are rejected. */
+  fill?: string;
+  /** Stroke paint with the same accepted values as fill. Svg defaults to none; Path inherits. */
+  stroke?: string;
+  /** Finite nonnegative stroke width in viewBox units. Svg defaults to 1; Path inherits. Native geometry precision applies. */
+  strokeWidth?: number;
+  /** End-cap geometry. Svg defaults to butt; Path inherits. */
+  strokeLinecap?: 'butt' | 'round' | 'square';
+  /** Join geometry. Svg defaults to miter; Path inherits. */
+  strokeLinejoin?: 'miter' | 'round' | 'bevel';
+  /** Finite miter length/width limit, at least 1. Svg defaults to 4; Path inherits. */
+  strokeMiterlimit?: number;
+  /** Interior winding rule. Svg defaults to nonzero; Path inherits. */
+  fillRule?: 'nonzero' | 'evenodd';
+}
+
+interface SvgProperties<Classes, Variant> extends ElementProps<Variant>, SvgPaintProps {
+  /** Four finite x/y/width/height numbers separated by spaces or commas. Width/height must be positive. Defaults to 0 0 24 24. */
+  viewBox?: string;
+  /** Preferred viewport width in logical pixels. Finite and nonnegative; defaults to 24. Width utilities override this value. */
+  width?: number;
+  /** Preferred viewport height in logical pixels. Finite and nonnegative; defaults to 24. Height utilities override this value. */
+  height?: number;
+  /** none stretches independently. xMin/Mid/MaxYMin/Mid/Max plus optional meet/slice aligns a uniform scale. Defaults to xMidYMid meet. */
+  preserveAspectRatio?: string;
+  /** Image semantics. Named images default to img; unlabelled icons default to presentation and aria-hidden. Visible images require aria-label. */
+  role?: 'img' | 'presentation';
+  /** Owned Path nodes in paint order. Other node/text children reject. An empty d hides a retained path. */
+  children?: Child[];
+  /** Shared box and color utilities. Defaults to empty. Svg starts at 24 by 24 and clips to its viewport; overflow-visible opts out. Intrinsic auto/fit sizing rejects; use explicit, fractional or viewport dimensions. */
+  className?: Classes;
+}
+
+export type SvgProps<Classes = string, Variant = string> = SvgProperties<Classes, Variant>;
+interface PathProperties<Data, Classes, Variant> extends ElementProps<Variant>, SvgPaintProps {
+  /** SVG M/L/H/V/C/S/Q/T/A/Z commands, relative or absolute. Empty is valid. Invalid/nonfinite data rejects. Live expressions update the same path. Limits: 1048576 UTF-8 bytes and 100000 source segments/resulting elements. Nonzero arc radii must exceed 0.00001 units; zero radii draw a line. Original strings stay unchanged. */
+  d: Data;
+  /** Base semantic text colors and opacity only. Defaults to empty. Put layout, theme scopes and interaction styles on the enclosing Svg. */
+  className?: Classes;
+}
+
+export type PathProps<Data = string, Classes = string, Variant = string> = PathProperties<Data, Classes, Variant>;
+interface SvgOptions {
+  viewBox: string;
+  width: number;
+  height: number;
+  preserveAspectRatio: string;
+  paint: SvgPaintProps;
+}
+
+function checkSvgPaint(strokeWidth: number | undefined, strokeMiterlimit: number | undefined): void {
+  if (strokeWidth !== undefined && (!Number.isFinite(strokeWidth) || strokeWidth < 0)) {
+    throw 'SVG strokeWidth must be finite and nonnegative';
+  }
+
+  if (strokeMiterlimit !== undefined && (!Number.isFinite(strokeMiterlimit) || strokeMiterlimit < 1)) {
+    throw 'SVG strokeMiterlimit must be finite and at least 1';
+  }
+}
+/** Creates a checked vector viewport with owned Path children. Defaults to a decorative 24px image; provide aria-label for meaningful imagery. No browser JS or external resources are loaded. */
+export function Svg(props: SvgProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
+  checkSvgPaint(props.strokeWidth, props.strokeMiterlimit);
+  const width: number = props.width ?? 24;
+  const height: number = props.height ?? 24;
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width < 0 || height < 0) {
+    throw 'SVG width/height must be finite and nonnegative';
+  }
+
+  const className = props.className;
+  const variant = props['data-variant'];
+  const label = props['aria-label'] ?? '';
+  const hidden = props['aria-hidden'] ?? label === '';
+  const metadata = semanticConfig('', String(props.role ?? (label === '' ? 'presentation' : 'img')), label, props.id ?? '', hidden, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
+  const options: SvgOptions = {
+    viewBox: props.viewBox ?? '0 0 24 24', width, height, preserveAspectRatio: props.preserveAspectRatio ?? 'xMidYMid meet', paint: {
+      fill: props.fill, stroke: props.stroke, strokeWidth: props.strokeWidth, strokeLinecap: props.strokeLinecap, strokeLinejoin: props.strokeLinejoin, strokeMiterlimit: props.strokeMiterlimit, fillRule: props.fillRule
+    }
+  };
+  const config = JSON.stringify(options);
+  return applyProperties(unwrapNode(nativeSvg(props.children ?? [], typeof className === 'string' ? clone(className) : '', config)), metadata, className, variant);
+}
+/** Creates owned path geometry for an enclosing Svg. Paint inherits from Svg unless overridden. Resource bindings use weak captures; removing the tree releases its evaluators. */
+export function Path(props: PathProps<ReactiveValue<string>, ReactiveValue<string>, ReactiveValue<string>>): Node {
+  checkSvgPaint(props.strokeWidth, props.strokeMiterlimit);
+  const data = props.d;
+  const className = props.className;
+  const variant = props['data-variant'];
+  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
+  const options: SvgPaintProps = {
+    fill: props.fill, stroke: props.stroke, strokeWidth: props.strokeWidth, strokeLinecap: props.strokeLinecap, strokeLinejoin: props.strokeLinejoin, strokeMiterlimit: props.strokeMiterlimit, fillRule: props.fillRule
+  };
+  const config = JSON.stringify(options);
+  const node = unwrapNode(nativePath(typeof data === 'string' ? clone(data) : '', typeof className === 'string' ? clone(className) : '', config));
+  const bound = typeof data === 'string' ? node : unwrapNode(nativeBindPath(node, data.evaluate));
+  return applyProperties(bound, metadata, className, variant);
+}
 
 interface TextProperties<Classes, Variant> extends SemanticProps<Variant> {
   /** Defaults to span. Heading levels are reflected in native accessibility. */
@@ -360,6 +458,13 @@ export function Route(props: RouteProps): Node {
 
 /** Produces a complete escaped HTML document with shared utility styles. Borrows the tree and title; returns an owned string. Does not execute callbacks or mutate nodes. */
 export function document(node: ReadOnly<Node>, title: string): string {
+  match (nativeValidateRoot(node)) {
+    Ok(_) => {},
+    Err(error) => {
+      throw error.message;
+    }
+  }
+
   return nativeDocument(node, title);
 }
 /** Checked native window creation options. Browser hosts retain control of their own window. */

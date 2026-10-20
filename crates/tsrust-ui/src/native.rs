@@ -14,6 +14,8 @@ mod viewport;
 mod scrolling;
 #[path = "native_inline.rs"]
 mod inline;
+#[path = "native_vector.rs"]
+mod vector;
 use inline::{Brush,Inline};
 use vello::peniko::{Color, Fill};
 use vello::util::{RenderContext, RenderSurface};
@@ -71,6 +73,7 @@ struct Item {
     field: Option<FieldInfo>,
     copy_error:Option<String>,
     text_style: TextStyle,
+    vector:Option<Box<vector::Vector>>,
     role: Kind,
     semantics: super::Semantics,
     label: String,
@@ -137,6 +140,7 @@ impl Painter {
         self.themed_node(node,inherited,&super::theme::Theme::default(),"light",&mut Vec::new(),&std::collections::BTreeMap::new())
     }
     fn themed_node<'a>(&mut self, node: &'a Node, mut inherited: TextStyle, theme:&super::theme::Theme, mode:&str, ancestors:&mut Vec<&'a Node>,variables:&std::collections::BTreeMap<String,f32>) -> Result<Item, String> {
+        if node.kind==Kind::SvgPath{return Err("Path requires an enclosing Svg".into());}
         let id=node.identity.get();
         if node.enabled_control() {self.control_order.push(id);}
         if node.semantics.tab_index==Some(-1){self.tab_excluded.insert(id);}
@@ -160,7 +164,8 @@ impl Painter {
         let (mut background, mut radius) = (node.theme.as_ref().map(|_|theme.color(mode,"background").unwrap()), [0.;4]);
         if matches!(node.kind,Kind::Button|Kind::DisabledButton)&&node.semantics.href.is_empty(){inherited.align=1;style.flex_direction=FlexDirection::Row;style.align_items=AlignItems::CENTER;style.justify_content=JustifyContent::CENTER;}
         let (mut border,mut border_color,mut ring)=([0.;4],theme.color(mode,"border")?,theme.color(mode,"ring")?);
-        let mut inline_flex=false;let mut overflow=0;let mut opacity=if node.is_disabled(){0.6}else{1.};let mut suppress_outline=false;let mut placeholder_color=None;
+        if let Some(super::vector::Data::Root(root))=node.vector.as_deref(){style.size.width=length(root.width as f32);style.size.height=length(root.height as f32);style.flex_shrink=0.;style.overflow.x=taffy::Overflow::Hidden;style.overflow.y=taffy::Overflow::Hidden;}
+        let mut inline_flex=false;let mut overflow=if node.kind==Kind::Svg{1}else{0};let mut opacity=if node.is_disabled(){0.6}else{1.};let mut suppress_outline=false;let mut placeholder_color=None;
         let (mut shadow_width,mut shadow_color,mut outline)=(0.,theme.color(mode,"ring")?,None);
         if matches!(node.kind,Kind::DisabledButton|Kind::Button)&&node.semantics.href.is_empty() {
             style.padding = Rect {
@@ -212,15 +217,16 @@ impl Painter {
         if inline_flex || style.position==taffy::Position::Absolute {inherited.underlines=None;}
         if underline {let layers=inherited.underlines.get_or_insert_with(Default::default);std::rc::Rc::make_mut(layers).push(inline::Underline{color:inherited.color,offset:inherited.underline_offset});}
         ancestors.push(node);
+        let vector=vector::collect(node,inherited.color,theme,mode,ancestors,&variables,self.viewport_width)?;
         let mut children = node
-            .visible_children()
+            .visible_children().filter(|_|node.kind!=Kind::Svg)
             .map(|child| self.themed_node(child, inherited.clone(),theme,mode,ancestors,&variables))
             .collect::<Result<Vec<_>, _>>()?;
         ancestors.pop();
         let mut inline=Vec::new();let mut spans=Vec::new();let mut paragraph=String::new();
         if node.kind==Kind::Text && !children.is_empty(){for child in std::mem::take(&mut children){inline.push(inline::collect(child,&mut paragraph,&mut spans));}}
         let mut selection_text=String::new();
-        let (text, id) = if node.kind == Kind::View || !children.is_empty() {
+        let (text, id) = if matches!(node.kind,Kind::View|Kind::Svg) || !children.is_empty() {
             (
                 None,
                 self.tree
@@ -247,7 +253,7 @@ impl Painter {
             field:node.editable.as_ref().map(|field|FieldInfo{value:field.value.clone(),placeholder:field.placeholder.clone(),read_only:field.read_only,required:field.required}),
             raw_text:if inline.is_empty(){node.text.clone()}else{paragraph},
             selection_text,
-            text_style:inherited.clone(),
+            text_style:inherited.clone(),vector,
             role: node.kind,
             semantics: node.semantics.clone(),
             label: if matches!(node.kind,Kind::Button|Kind::DisabledButton) || node.kind==Kind::Text || node.tag()=="label" {node.content_text()}else{node.text.clone()},
@@ -384,6 +390,7 @@ impl Painter {
             Kind::DisabledButton | Kind::Button => accesskit::Role::Button,
             Kind::Input => accesskit::Role::TextInput,
             Kind::Textarea => accesskit::Role::MultilineTextInput,
+            Kind::Svg=>accesskit::Role::Image,Kind::SvgPath=>accesskit::Role::GenericContainer,
         };
         let role=match item.semantics.role.as_str(){
             _ if !item.semantics.href.is_empty()=>accesskit::Role::Link,
@@ -515,6 +522,7 @@ impl Painter {
         let content_width=(layout.size.width-layout.padding.left-layout.padding.right-layout.border.left-layout.border.right).max(0.);
         let content_height=(layout.size.height-layout.padding.top-layout.padding.bottom-layout.border.top-layout.border.bottom).max(0.);
         let origin=(x+(layout.padding.left+layout.border.left) as f64,y+(layout.padding.top+layout.border.top) as f64);
+        if let Some(vector)=&item.vector{vector::paint(vector,scene,transform*Affine::translate(origin),content_width as f64,content_height as f64)?;}
         if let Some(editor)=self.editors.get_mut(&id) {
             editor.configure(item.text_style.clone(),content_width);
             editor.origin=origin;let viewport=(content_width as f64,content_height as f64);if editor.viewport!=viewport{editor.reveal=true;}editor.viewport=viewport;
@@ -572,7 +580,8 @@ fn associate_controls(root:&Node,nodes:&mut [(accesskit::NodeId,accesskit::Node)
     fn labelable(node:&Node)->bool {matches!(node.kind,Kind::Button|Kind::DisabledButton|Kind::Input|Kind::Textarea)}
     fn first(node:&Node)->Option<u64> {let node=node.visible_root()?;if labelable(node){return Some(node.identity.get());}node.children.iter().find_map(first)}
     let mut all=std::collections::BTreeMap::new();collect(root,&mut all);
-    let mut ids=std::collections::BTreeMap::new();for (&id,node) in &all {if !node.semantics.id.is_empty(){ids.entry(node.semantics.id.as_str()).or_insert(id);}}
+    let accessible_ids=nodes.iter().map(|(id,_)|id.0).collect::<std::collections::BTreeSet<_>>();
+    let mut ids=std::collections::BTreeMap::new();for (&id,node) in &all {if accessible_ids.contains(&id)&&!node.semantics.id.is_empty(){ids.entry(node.semantics.id.as_str()).or_insert(id);}}
     let mut labels=std::collections::BTreeMap::<u64,Vec<accesskit::NodeId>>::new();let mut targets=std::collections::BTreeMap::new();
     for (&id,node) in all.iter().filter(|(_,node)|node.tag()=="label") {
         let target=if node.semantics.html_for.is_empty(){first(node)}else{ids.get(node.semantics.html_for.as_str()).copied().filter(|id|all.get(id).is_some_and(|node|labelable(node)))};
@@ -1081,6 +1090,7 @@ pub fn run(node: Node, title: String) -> Result<(), String> {
     run_configured(node,title,"{}")
 }
 pub fn run_configured(node:Node,title:String,options:&str)->Result<(),String> {
+    node.validate_root()?;
     run_window(node,title,false,options)
 }
 #[cfg(feature = "acceptance")]

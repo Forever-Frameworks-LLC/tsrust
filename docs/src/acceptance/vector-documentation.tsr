@@ -1,0 +1,10 @@
+import { navigate, run } from 'std:ui';
+import { Page } from '../app/page';
+
+function main() {
+  const app = Page();
+  navigate('/docs/ui/foundations/vector-graphics');
+  unwrap(run(app, 'Tsrust vector graphics', {
+    width: 1100, height: 780, minWidth: 480, minHeight: 360, titlebar: 'custom'
+  }));
+}

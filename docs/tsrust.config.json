@@ -220,6 +220,24 @@
         "source": "src/examples/badge-variants.tsrx",
         "export": "BadgeVariants",
         "kind": "component"
+      },
+      {
+        "id": "vector-icons",
+        "source": "src/examples/vector-icons.tsrx",
+        "export": "VectorIcons",
+        "kind": "component"
+      },
+      {
+        "id": "vector-chart",
+        "source": "src/examples/vector-chart.tsrx",
+        "export": "VectorChart",
+        "kind": "component"
+      },
+      {
+        "id": "vector-viewports",
+        "source": "src/examples/vector-viewports.tsrx",
+        "export": "VectorViewports",
+        "kind": "component"
       }
     ]
   }

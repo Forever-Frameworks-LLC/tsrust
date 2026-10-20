@@ -40,7 +40,7 @@ fn sync_element(node:&Node,document:&web_sys::Document,all:&mut std::collections
     let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));
     let tag=node.tag();
     let id=node.identity.get();let element=if let Some(element)=all.get(&id){element.clone()}else{
-    let element=document.create_element(tag)?;
+    let element=if matches!(node.kind,Kind::Svg|Kind::SvgPath){document.create_element_ns(Some("http://www.w3.org/2000/svg"),tag)?}else{document.create_element(tag)?};
     for (key,value) in [("href",&node.semantics.href),("role",&node.semantics.role),("aria-label",&node.semantics.label),("id",&node.semantics.id),("data-slot",&node.semantics.slot),("data-size",&node.semantics.size),("data-variant",&node.semantics.variant),("for",&node.semantics.html_for),("aria-describedby",&node.semantics.described_by),("aria-invalid",&node.semantics.invalid)] {
         if !value.is_empty(){element.set_attribute(key,value)?;}
     }
@@ -95,6 +95,7 @@ fn sync_element(node:&Node,document:&web_sys::Document,all:&mut std::collections
         if copy.error.is_empty(){element.remove_attribute("title")?;}else{element.set_attribute("title",&copy.error)?;}
     }
     if !node.parts.is_empty()&&element.text_content().as_deref()!=Some(node.text.as_str()){element.set_text_content(Some(&node.text));}
+    if let Some(vector)=&node.vector{for (key,value) in vector.attributes(){if element.get_attribute(key).as_deref()!=Some(&value){element.set_attribute(key,&value)?;}}}
     if node.kind==Kind::View||!node.children.is_empty(){
         let mut children=Vec::new();for child in node.visible_children(){children.push(sync_element(child,document,all,composing,theme,mode)?);}
         order_children(&element,&children)?;
@@ -190,6 +191,7 @@ fn focus_location(state:&mut State,document:&web_sys::Document)->Result<(),JsVal
     Ok(())
 }
 pub fn mount(mut node:Node,title:&str)->Result<Mount,JsValue> {
+    node.validate_root().map_err(|error|JsValue::from_str(&error))?;
     node.refresh().map_err(|e|JsValue::from_str(&e))?;
     let document=web_sys::window().and_then(|w|w.document()).ok_or_else(||JsValue::from_str("Browser document unavailable"))?;
     document.set_title(title);

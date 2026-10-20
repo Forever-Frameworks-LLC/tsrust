@@ -18,7 +18,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use support::session::Session;
 use tsrust_lsp::{project_diagnostics::source_id, workspace::Workspace};
 
-const PRELUDE: &str = "import {Node,Computed,Reactive,ViewRenderProps,ButtonRenderProps,InputTarget,InputChangeEvent,TextFieldProps,InputProps,TextareaProps,ReactiveInputValue,Signal,ThemeConfig,ThemeRadius,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {CryptoError} from 'std:crypto';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
+const PRELUDE: &str = "import {SvgProps,PathProps,Node,Computed,Reactive,ViewRenderProps,ButtonRenderProps,InputTarget,InputChangeEvent,TextFieldProps,InputProps,TextareaProps,ReactiveInputValue,Signal,ThemeConfig,ThemeRadius,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {CryptoError} from 'std:crypto';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
 
 /// A receiver `x` of one type inside `probe`.
 struct Receiver {
@@ -28,6 +28,8 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
+Receiver {ty:"SvgProps",parameter:"x: ReadOnly<SvgProps>"},
+Receiver {ty:"PathProps",parameter:"x: ReadOnly<PathProps>"},
 Receiver {ty:"Computed<int>",parameter:"x: ReadOnly<Computed<int>>"},
 Receiver {ty:"Computed<string>",parameter:"x: ReadOnly<Computed<string>>"},
 Receiver {ty:"Reactive<string>",parameter:"x: Reactive<string>"},
@@ -273,7 +275,7 @@ fn completion_offers_the_fields_the_checker_accepts_and_no_method_it_rejects() {
         let absent_field = answer(field_form, ABSENT, receiver.parameter);
         let absent_call = answer(call_form, ABSENT, receiver.parameter);
         assert!(absent_field.is_some() && absent_call.is_some(), "{}: an absent member must be rejected", receiver.ty);
-        let fields = candidates.iter().filter(|name|name.chars().all(|ch|ch.is_ascii_alphanumeric()||ch=='_') || matches!(receiver.ty,"ElementProps"|"SemanticProps"|"TextProps"|"ViewProps"|"ButtonProps"|"ViewRenderProps"|"ButtonRenderProps"|"TextFieldProps"|"InputProps"|"TextareaProps")).filter(|name| answer(field_form, name, receiver.parameter) != absent_field).cloned().collect::<BTreeSet<_>>();
+        let fields = candidates.iter().filter(|name|name.chars().all(|ch|ch.is_ascii_alphanumeric()||ch=='_') || matches!(receiver.ty,"SvgProps"|"PathProps"|"ElementProps"|"SemanticProps"|"TextProps"|"ViewProps"|"ButtonProps"|"ViewRenderProps"|"ButtonRenderProps"|"TextFieldProps"|"InputProps"|"TextareaProps")).filter(|name| answer(field_form, name, receiver.parameter) != absent_field).cloned().collect::<BTreeSet<_>>();
         let prelude = prelude(receiver.parameter);
         let before = format!("{prelude}function probe({}) {{\n  x.", receiver.parameter);
         let text = format!("{before}\n}}\nfunction main() {{}}\n");

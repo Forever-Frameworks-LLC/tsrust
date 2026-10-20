@@ -143,3 +143,11 @@ Link/Button semantics, node retention, narrow layouts and disposal against
 `badge-reference.ts` after TypeScript compilation. Native flow witnesses cover
 Unicode selection, inline link ranges, inherited whitespace, editable values and
 local/ancestor decoration boundaries. These are untimed correctness checks.
+
+The vector section uses `vector-reference.ts` for independent viewport mapping and
+six-value chart paths. `verify-application.mjs <output> docs-vectors
+http://127.0.0.1:4317/docs/ui/foundations/vector-graphics` checks the actual guide's
+SVG namespaces, retained paths, data transitions, accessible images/buttons,
+responsive bounds, theme stroke and cleanup. Run `verify-vector-native.mjs
+<native-vector-log>` against the native viewport witness to compare its actual
+corners with the TypeScript-after-tsc oracle. No timing is claimed.

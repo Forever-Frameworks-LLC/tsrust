@@ -131,12 +131,16 @@ impl Node {
         assign(self,&mut next,reset);self.next_identity.set(next);
     }
     pub(crate) fn phrasing(&self)->bool {
-        self.visible_root().is_none_or(|node|matches!(node.tag(),"span"|"code"|"kbd"|"strong"|"em"|"del")
+        self.visible_root().is_none_or(|node|node.kind==Kind::Svg || matches!(node.tag(),"span"|"code"|"kbd"|"strong"|"em"|"del")
             && matches!(node.semantics.role.as_str(),""|"none"|"presentation")
             && node.semantics.tab_index.is_none() && !matches!(node.kind,Kind::Button|Kind::DisabledButton)
             && node.children.iter().all(Self::phrasing))
     }
     pub(crate) fn validate_structure(&self)->Result<(),String> {
+        if matches!(self.kind,Kind::Svg|Kind::SvgPath) && self.vector.is_none(){return Err("Construct vector nodes with Svg or Path".into());}
+        if self.kind==Kind::Svg && self.children.iter().any(|child|child.kind!=Kind::SvgPath){return Err("Svg children must be Path nodes".into());}
+        if self.kind!=Kind::Svg && self.children.iter().any(|child|child.kind==Kind::SvgPath){return Err("Path requires an enclosing Svg".into());}
+        if self.kind==Kind::Svg && !self.semantics.hidden && self.semantics.role!="presentation" && self.semantics.label.trim().is_empty(){return Err("A visible SVG image requires aria-label, or mark it decorative with aria-hidden".into());}
         if self.kind==Kind::Text {for child in &self.children {child.validate_inline()?;}}
         if matches!(self.kind,Kind::Button|Kind::DisabledButton) && !self.children.iter().all(Self::phrasing){return Err("Button children must be noninteractive phrasing content: text, span, code or kbd".into());}
         if self.semantics.role=="separator" && (!self.text.is_empty()||self.visible_children().next().is_some()){return Err("A separator cannot contain text or children".into());}

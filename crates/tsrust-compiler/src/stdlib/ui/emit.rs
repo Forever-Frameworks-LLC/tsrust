@@ -5,7 +5,7 @@ use crate::{
     syntax::Type,
 };
 pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> String {
-    if matches!(binding.name,"computed"|"computedGet"|"bindClass"|"bindVariant"|"visibility"|"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"|"route"){return String::new();}
+    if matches!(binding.name,"computed"|"computedGet"|"bindClass"|"bindVariant"|"bindPath"|"visibility"|"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"|"route"){return String::new();}
     let node = program
         .records
         .iter()
@@ -13,7 +13,7 @@ pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> Strin
         .unwrap();
     let NativeBackend::Bundled { symbol } = binding.backend;
     let (parameters,call)=match binding.name {
-        "view"|"staticButton"|"button"|"link"|"text" => {
+        "svg"|"view"|"staticButton"|"button"|"link"|"text" => {
             let array=crate::native_binding_types::resolve(&program.records,&super::CHILDREN).unwrap();
             let Type::Array(element)=array else{unreachable!()};let Type::Union(union)=element.ty() else{unreachable!()};
             let members=&program.unions[union.index()].members;
@@ -26,6 +26,7 @@ pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> Strin
             let factory=match binding.name {
                 "text"=>"tsrust_native_ui::Node::text_children(parts,class_name.as_ref().to_owned())",
                 "link"=>{parameters.push_str(",href:&String");"tsrust_native_ui::navigation::link(parts,class_name.as_ref().to_owned(),href.as_ref())"},
+                "svg"=>{parameters.push_str(",options:&String");"tsrust_native_ui::Node::svg(parts,class_name.as_ref().to_owned(),options.as_ref())"},
                 "view"=>"tsrust_native_ui::Node::view(parts,class_name.as_ref().to_owned())",
                 "staticButton"=>{parameters.push_str(",disabled:bool");"tsrust_native_ui::Node::button_children(parts,class_name.as_ref().to_owned(),disabled,None)"},
                 "button"=>{parameters.push_str(",disabled:bool,handler:impl FnMut()->Result<(),std::string::String>+'static");"tsrust_native_ui::Node::button_children(parts,class_name.as_ref().to_owned(),disabled,Some(Box::new(handler)))"},
@@ -33,6 +34,8 @@ pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> Strin
             };
             (parameters,format!("{{let mut parts=Vec::with_capacity(children.len());while let Some(child)=children.pop(){{parts.push(match child{{{absent}{scalars}Union{union}::V{literal}(text)=>tsrust_native_ui::Child::Text(tsrust_native_ui::TextPart::Literal(text.as_ref().to_owned())),{bindings}Union{union}::V{child}(node)=>tsrust_native_ui::Child::Node(node)}});}}parts.reverse();{factory}}}",union=union.index()))
         },
+        "path"=>("data:&String,class_name:&String,options:&String".into(),"tsrust_native_ui::Node::svg_path(data.as_ref(),class_name.as_ref().to_owned(),options.as_ref())".into()),
+        "validateRoot"=>(format!("node:&Record{node}"),"node.validate_root()".into()),
         "copyButton" => ("value:&String,class_name:&String".into(),"tsrust_native_ui::clipboard::button(value.as_ref().to_owned(),class_name.as_ref().to_owned())".into()),
         "location" => (String::new(),"tsrust_native_ui::navigation::location(|value|String::Owned(value),|value:&String|value.as_ref().to_owned())".into()),
         "navigate" => ("path:&String".into(),"tsrust_native_ui::navigation::navigate(path.as_ref())".into()),

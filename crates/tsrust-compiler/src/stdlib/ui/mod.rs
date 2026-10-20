@@ -71,6 +71,10 @@ pub(crate) const SEMANTICS:NativeBinding=NativeBinding{name:"semantics",paramete
 pub(crate) const DISABLED_BINDING:NativeBinding=NativeBinding{name:"bindDisabled",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("predicate",NativeType::OwnedBooleanCallback,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_bind_disabled"},..TEXT};
 
 pub(crate) const CLASS_BINDING:NativeBinding=NativeBinding{name:"bindClass",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("evaluate",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_bind_class"},..TEXT};
+pub(crate) const PATH_BINDING:NativeBinding=NativeBinding{name:"bindPath",backend:NativeBackend::Bundled{symbol:"tsrust_ui_bind_path"},..CLASS_BINDING};
+pub(crate) const SVG:NativeBinding=NativeBinding{name:"svg",parameters:&[parameter("children",NativeType::Structured(&CHILDREN),Mode::Consume),parameter("className",NativeType::String,Mode::Read),parameter("options",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_svg"},..TEXT};
+pub(crate) const PATH:NativeBinding=NativeBinding{name:"path",parameters:&[parameter("data",NativeType::String,Mode::Read),parameter("className",NativeType::String,Mode::Read),parameter("options",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_path"},..TEXT};
+pub(crate) const VALIDATE_ROOT:NativeBinding=NativeBinding{name:"validateRoot",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Read)],result:NativeType::Structured(&Signature::Result(&Signature::Void,&ERROR)),backend:NativeBackend::Bundled{symbol:"tsrust_ui_validate_root"},..TEXT};
 pub(crate) const VARIANT_BINDING:NativeBinding=NativeBinding{name:"bindVariant",backend:NativeBackend::Bundled{symbol:"tsrust_ui_bind_variant"},..CLASS_BINDING};
 pub(crate) const HIDDEN_BINDING:NativeBinding=NativeBinding{name:"bindHidden",backend:NativeBackend::Bundled{symbol:"tsrust_ui_bind_hidden"},..DISABLED_BINDING};
 
@@ -118,6 +122,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("#[path = \"native_geometry.rs\"]\nmod geometry;",&format!("mod geometry {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_geometry.rs")))
         .replace("#[path = \"native_viewport.rs\"]\nmod viewport;",&format!("mod viewport {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_viewport.rs")))
         .replace("#[path = \"native_scrolling.rs\"]\nmod scrolling;",&format!("mod scrolling {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_scrolling.rs")))
+        .replace("#[path = \"native_vector.rs\"]\nmod vector;",&format!("mod vector {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_vector.rs").replace("crate::", "super::super::")))
         .replace("#[path = \"native_inline.rs\"]\nmod inline;",&format!("mod inline {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_inline.rs").replace("crate::theme::", "super::super::theme::").replace("crate::Semantics", "super::super::Semantics")))
         .replace("#[path = \"native_editing.rs\"]\nmod editing;",&format!("mod editing {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_editing.rs").replace("use crate::editable::normalize;", "use super::super::editable::normalize;")));
     let style = include_str!("../../../../tsrust-ui/src/style.rs")
@@ -143,6 +148,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("mod editable;",&format!("mod editable {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/editable.rs")))
         .replace("pub mod clipboard;", &format!("pub mod clipboard {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/clipboard.rs").replace("crate::Node", "super::Node")))
         .replace("pub mod navigation;", &format!("pub mod navigation {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/navigation.rs")))
+        .replace("mod vector;",&format!("mod vector {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/vector.rs").replace("use crate::{", "use super::{").replace("crate::theme::", "super::theme::")))
         .replace("mod computed;",&format!("mod computed {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/computed.rs")))
         .replace("mod state;", &format!("mod state {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/state.rs")))
         .replace("#[cfg(test)]\nmod application_tests;", "")

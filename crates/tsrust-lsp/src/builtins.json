@@ -13950,6 +13950,168 @@
 ],
   "std:ui": [
     {
+      "name": "Svg",
+      "signature": "Svg(props: SvgProps<ReactiveValue<string>, ReactiveValue<string>>): Node",
+      "parameters": [
+        {
+          "label": "props: SvgProps<ReactiveValue<string>, ReactiveValue<string>>",
+          "documentation": "Optional owned Path children, viewBox, width/height, aspect policy, paint and element metadata. Defaults to a decorative 24px viewport. Classes and variant metadata may be live. See SvgProps for exact fields and errors."
+        }
+      ],
+      "documentation": "Creates a checked vector viewport containing owned Path nodes in paint order. Defaults: viewBox=\"0 0 24 24\", width=height=24, preserveAspectRatio=\"xMidYMid meet\", fill=currentColor, stroke=none, strokeWidth=1. Width/height utilities override preferred dimensions; overflow-hidden is the default and overflow-visible permits drawing outside the viewport. Supply aria-label for meaningful imagery; omission creates a decorative icon. Invalid geometry, paint, children, names or nonfinite options throw readable messages. Width/height and metadata are snapshots; class/variant expressions are live. Geometry is parsed once per changed d value; original path strings are preserved. Native Vello and browser SVG share checked viewport mapping and paint inputs. Display uses native floating layout/GPU precision; fonts, curves and rasterization are not pixel equivalence. Gradients, filters, masks, arbitrary SVG elements and external paint URLs are unsupported. Example: <Svg aria-label=\"Saved\" fill=\"none\" stroke=\"currentColor\"><Path d=\"M2 12L10 20L22 4\"/></Svg> exposes an image named Saved. Ownership: consumes props and Path children; no JavaScript runtime, external registry or public lifetime handle is created.",
+      "examples": [
+        {
+          "source": "import {Svg,Path,document} from 'std:ui';import {strictEqual} from 'std:testing';function main(){const html=document(<Svg aria-label=\"Saved\" fill=\"none\" stroke=\"currentColor\"><Path d=\"M2 12L10 20L22 4\"/></Svg>,'Vector');strictEqual(html.includes('role=\"img\"'),true);strictEqual(html.includes('d=\"M2 12L10 20L22 4\"'),true);console.log('Vector markup passed');}",
+          "output": "Vector markup passed\n"
+        }
+      ]
+    },
+    {
+      "name": "Path",
+      "signature": "Path(props: PathProps<ReactiveValue<string>, ReactiveValue<string>, ReactiveValue<string>>): Node",
+      "parameters": [
+        {
+          "label": "props: PathProps<ReactiveValue<string>, ReactiveValue<string>, ReactiveValue<string>>",
+          "documentation": "Required d accepts a string or automatic live scalar expression. Optional paint overrides Svg; optional classes support base text colors/opacity only. Path requires an enclosing Svg and has no children."
+        }
+      ],
+      "documentation": "Creates owned SVG path geometry for one Svg. Supports absolute/relative M/L/H/V/C/S/Q/T/A/Z data. Empty d paints nothing while retaining identity; malformed or nonfinite data throws. Maximum source size is 1048576 UTF-8 bytes and maximum parsed geometry is 100000 source segments or resulting geometry elements. Nonzero arc radii must exceed 0.00001 units; zero radii draw a line. Paint inherits from Svg unless supplied. Layout/interaction classes and a separate theme scope on Path reject; apply those to Svg. Geometry is parsed once per changed d value; original path strings are preserved. Native Vello and browser SVG share checked viewport mapping and paint inputs. Display uses native floating layout/GPU precision; fonts, curves and rasterization are not pixel equivalence. Gradients, filters, masks, arbitrary SVG elements and external paint URLs are unsupported. Example: <Path d={active.get() ? \"M0 0L24 24\" : \"\"} stroke=\"primary\" fill=\"none\"/> toggles the same path after its application handler changes active. Ownership: consumes props; live evaluators use weak local-state captures and release with the owned tree.",
+      "examples": []
+    },
+    {
+      "name": "SvgProps",
+      "signature": "type SvgProps<Classes = string, Variant = string>",
+      "parameters": [],
+      "documentation": "Vector viewport options. Omitted scalar fields use the documented defaults; paint, viewport and ordinary metadata are construction-time snapshots. Classes/Variant default to string for local wrapper compatibility; select ReactiveValue<string> for live wrappers. No receiver methods or mutation. Ownership: component calls consume these records and children.",
+      "fields": {
+        "id": {
+          "documentation": "Optional document identifier, without ASCII whitespace or control characters. Defaults to none. <View id=\"account\" /> produces id=\"account\" in HTML. Both adapters retain it as tree metadata; no lookup or routing API is created. Construction throws for invalid IDs. Ownership: consumes the supplied string."
+        },
+        "aria-label": {
+          "documentation": "Names a meaningful vector image. Omission creates a decorative presentation image with aria-hidden=true. Supplying a nonempty label defaults role to img and aria-hidden to false. Explicit visible image semantics require a nonempty label; presentation cannot be named. Labels are construction-time snapshots. Example: <Svg aria-label=\"Saved\"><Path d=\"M2 12L10 20L22 4\"/></Svg> exposes one image named Saved. Ownership: consumes the supplied string."
+        },
+        "aria-hidden": {
+          "documentation": "Boolean accessibility exclusion. Defaults to true for an unlabelled Svg and false when aria-label is provided. It changes accessibility, not paint. A visible meaningful image needs aria-label. Decorative icons inside a Button do not add to its name. Ownership: scalar snapshot."
+        },
+        "data-slot": {
+          "documentation": "Optional component slot name, using only ASCII letters, digits and hyphens. Defaults to none. <View data-slot=\"card-content\" /> emits that HTML attribute and retains the same native metadata. Invalid names throw. Checked data/descendant/group selectors can match this metadata; arbitrary CSS selectors remain unsupported. Ownership: consumes the slot string."
+        },
+        "data-size": {
+          "documentation": "Optional component size metadata using ASCII letters, digits and hyphens; defaults to absent. <View data-size=\"sm\" className=\"data-[size=sm]:p-3\" /> uses the small metadata condition on both targets. The string does not select dimensions by itself or add an accessibility role. Invalid characters throw. No function arguments. Ownership: consumes the supplied string."
+        },
+        "aria-describedby": {
+          "documentation": "Optional space-separated document IDs, default none. <Input aria-label=\"Name\" aria-describedby=\"hint\"/> with <Text id=\"hint\">Use your full name.</Text> exposes that text as its accessible description on both targets. Missing IDs are ignored; order is preserved. This does not add an accessible name or run validation. No function arguments. Ownership: consumes the ID string."
+        },
+        "aria-invalid": {
+          "documentation": "Optional boolean validation state; omitted means unspecified. <Input aria-label=\"Name\" aria-invalid/> exposes invalid=true and matches aria-invalid: classes. false exposes a valid state; this property does not validate data or disable editing. Only boolean values are supported. No function arguments. Ownership: copies the flag."
+        },
+        "data-variant": {
+          "documentation": "Optional variant metadata, default absent. ASCII letters, digits and hyphens are accepted; empty omits the attribute. This does not choose styles or change accessibility by itself. Example: <View data-variant=\"destructive\" className=\"data-[variant=destructive]:text-destructive\" /> selects the destructive text token on both targets. Invalid characters throw. Plain string props remain construction-time snapshots. Direct state-reading intrinsic JSX expressions update after handlers without remounting. Custom components need an explicit reactive prop contract; precomputed values remain snapshots. Ownership: transfers one string or owned evaluator once; bindings do not retain component state owners."
+        },
+        "fill": {
+          "documentation": "Fill paint: none, currentColor, a semantic token name, checked hex or in-gamut oklch. Svg defaults to currentColor; Path inherits. External paint URLs are rejected. Example: <Svg fill=\"primary\"><Path d=\"M0 0H24V24H0Z\"/></Svg> fills a square with primary. none disables fill; paint URLs and unsupported CSS color formats throw. Native layout/GPU floating precision and rasterization apply; source data is not changed. Ownership: consumes props and strings without cloning nodes."
+        },
+        "stroke": {
+          "documentation": "Stroke paint with the same accepted values as fill. Svg defaults to none; Path inherits. Example: <Svg fill=\"none\" stroke=\"currentColor\"><Path d=\"M2 12L22 12\"/></Svg> strokes a line in inherited text color. none disables the stroke. Native layout/GPU floating precision and rasterization apply; source data is not changed. Ownership: consumes props and strings without cloning nodes."
+        },
+        "strokeWidth": {
+          "documentation": "Finite nonnegative stroke width in viewBox units. Svg defaults to 1; Path inherits. Native geometry precision applies. Example: <Svg stroke=\"primary\" strokeWidth={2}><Path d=\"M2 12L22 12\"/></Svg> uses two viewBox units, two logical pixels at the default size. Zero disables stroking. Negative, NaN, infinite or native-overflow values throw before JSON serialization. Native layout/GPU floating precision and rasterization apply; source data is not changed. Ownership: consumes props and strings without cloning nodes."
+        },
+        "strokeLinecap": {
+          "documentation": "End-cap geometry. Svg defaults to butt; Path inherits. Example: <Svg stroke=\"primary\" strokeWidth={2} strokeLinecap=\"round\"><Path d=\"M2 12L22 12\"/></Svg> extends rounded caps one unit past each endpoint. butt stops at endpoints; square extends square caps. Other values throw. Native layout/GPU floating precision and rasterization apply; source data is not changed. Ownership: consumes props and strings without cloning nodes."
+        },
+        "strokeLinejoin": {
+          "documentation": "Join geometry. Svg defaults to miter; Path inherits. Example: <Svg stroke=\"primary\" fill=\"none\" strokeLinejoin=\"round\"><Path d=\"M2 20L12 2L22 20\"/></Svg> rounds the corner. miter observes strokeMiterlimit; bevel cuts the corner. Other values throw. Native layout/GPU floating precision and rasterization apply; source data is not changed. Ownership: consumes props and strings without cloning nodes."
+        },
+        "strokeMiterlimit": {
+          "documentation": "Finite miter length/width limit, at least 1. Svg defaults to 4; Path inherits. Example: <Svg stroke=\"primary\" strokeMiterlimit={1}><Path d=\"M2 20L12 2L22 20\"/></Svg> bevels a join beyond that unitless length/width ratio. Values below 1, nonfinite or native-overflow values throw, even with another join style. Native layout/GPU floating precision and rasterization apply; source data is not changed. Ownership: consumes props and strings without cloning nodes."
+        },
+        "fillRule": {
+          "documentation": "Interior winding rule. Svg defaults to nonzero; Path inherits. Example: <Svg fillRule=\"evenodd\"><Path d=\"M0 0H24V24H0Z M6 6H18V18H6Z\"/></Svg> leaves a center hole; nonzero fills both same-direction contours. Other values throw. Native layout/GPU floating precision and rasterization apply; source data is not changed. Ownership: consumes props and strings without cloning nodes."
+        },
+        "viewBox": {
+          "documentation": "Four finite x/y/width/height numbers separated by spaces or commas. Width/height must be positive. Defaults to 0 0 24 24. Example: <Svg viewBox=\"10 20 40 20\" width={96} height={96}/> maps (10,20) to viewport (0,24) with centered meet. Negative origins work. Empty numbers, zero/negative extents, nonfinite/native-overflow values or transforms throw. Native layout/GPU floating precision and rasterization apply; source data is not changed. Ownership: consumes props and strings without cloning nodes."
+        },
+        "width": {
+          "documentation": "Preferred viewport width in logical pixels. Finite and nonnegative; defaults to 24. Width utilities override this value. Example: <Svg width={48} height={24}/> prefers 48px width; className=\"w-16\" overrides it to 64px with default spacing. Zero paints nothing; negative, NaN, infinite or native-overflow dimensions throw. No focus is added. Native layout/GPU floating precision and rasterization apply; source data is not changed. Ownership: consumes props and strings without cloning nodes."
+        },
+        "height": {
+          "documentation": "Preferred viewport height in logical pixels. Finite and nonnegative; defaults to 24. Height utilities override this value. Example: <Svg width={48} height={24}/> prefers 24px height; className=\"h-16\" overrides it to 64px with default spacing. Zero paints nothing; negative, NaN, infinite or native-overflow dimensions throw. Native layout/GPU floating precision and rasterization apply; source data is not changed. Ownership: consumes props and strings without cloning nodes."
+        },
+        "preserveAspectRatio": {
+          "documentation": "none stretches independently. xMin/Mid/MaxYMin/Mid/Max plus optional meet/slice aligns a uniform scale. Defaults to xMidYMid meet. Example: <Svg viewBox=\"0 0 40 20\" width={96} height={96} preserveAspectRatio=\"xMidYMid meet\"/> centers a 96 by 48 drawing. none stretches both axes. slice fills the viewport and may clip. All nine alignments work; extra/unknown words reject. Stroke scales with geometry; non-scaling stroke is unsupported. Native layout/GPU floating precision and rasterization apply; source data is not changed. Ownership: consumes props and strings without cloning nodes."
+        },
+        "role": {
+          "documentation": "Image semantics. Named images default to img; unlabelled icons default to presentation and aria-hidden. Visible images require aria-label. Example: <Svg aria-label=\"Sales\"/> exposes one image named Sales. Explicit img without a label stays hidden by default; aria-hidden=false then requires a label. presentation cannot be named. No action or keyboard focus is added. Native layout/GPU floating precision and rasterization apply; source data is not changed. Ownership: consumes props and strings without cloning nodes."
+        },
+        "children": {
+          "documentation": "Owned Path nodes in paint order. Other node/text children reject. An empty d hides a retained path. Example: <Svg><Path d=\"M2 2L22 22\"/><Path d=\"M22 2L2 22\"/></Svg> paints the second path last. Text, controls, nested Svg and branch wrappers reject. Use live empty d to hide a retained shape. Children transfer once. Native layout/GPU floating precision and rasterization apply; source data is not changed. Ownership: consumes props and strings without cloning nodes."
+        },
+        "className": {
+          "documentation": "Shared box and color utilities. Defaults to empty. Svg starts at 24 by 24 and clips to its viewport; overflow-visible opts out. Intrinsic auto/fit sizing rejects; use explicit, fractional or viewport dimensions. Example: <Svg className=\"size-6 text-primary\"/> is 24px at default spacing and passes primary as currentColor. <Path className=\"text-destructive opacity-50\" d=\"M2 2L22 22\"/> uses destructive with half subtree opacity. Put layout, interaction styles and theme scopes on Svg; Path rejects them. Native layout/GPU floating precision and rasterization apply; source data is not changed. Ownership: consumes props and strings without cloning nodes."
+        }
+      }
+    },
+    {
+      "name": "PathProps",
+      "signature": "type PathProps<Data = string, Classes = string, Variant = string>",
+      "parameters": [],
+      "documentation": "Path data and paint options. d is required; defaults for paint come from the enclosing Svg. Data/Classes/Variant default to string; select ReactiveValue<string> for live wrappers. No children or receiver methods. Source strings are not normalized. Ownership: component calls consume props; live path bindings do not retain their component state.",
+      "fields": {
+        "id": {
+          "documentation": "Optional document identifier, without ASCII whitespace or control characters. Defaults to none. <View id=\"account\" /> produces id=\"account\" in HTML. Both adapters retain it as tree metadata; no lookup or routing API is created. Construction throws for invalid IDs. Ownership: consumes the supplied string."
+        },
+        "aria-label": {
+          "documentation": "Optional accessible name; defaults to visible text or descendants. <Text as=\"h2\" aria-label=\"Total\">42</Text> displays 42 and exposes Total as its accessible name on both backends. A region requires a nonblank name. Generic containers/text, paragraphs, code and presentation cannot be named and throw for a nonempty aria-label. Does not change displayed text. Ownership: consumes the name string."
+        },
+        "aria-hidden": {
+          "documentation": "Optional boolean, default false. <Text aria-hidden>Decoration</Text> keeps text visible but excludes it from accessibility. An enabled control anywhere in the subtree throws; making a hidden descendant enabled during refresh stops the mounted tree and uses normal cleanup. Ownership: copies the flag; does not retain state."
+        },
+        "data-slot": {
+          "documentation": "Optional component slot name, using only ASCII letters, digits and hyphens. Defaults to none. <View data-slot=\"card-content\" /> emits that HTML attribute and retains the same native metadata. Invalid names throw. Checked data/descendant/group selectors can match this metadata; arbitrary CSS selectors remain unsupported. Ownership: consumes the slot string."
+        },
+        "data-size": {
+          "documentation": "Optional component size metadata using ASCII letters, digits and hyphens; defaults to absent. <View data-size=\"sm\" className=\"data-[size=sm]:p-3\" /> uses the small metadata condition on both targets. The string does not select dimensions by itself or add an accessibility role. Invalid characters throw. No function arguments. Ownership: consumes the supplied string."
+        },
+        "aria-describedby": {
+          "documentation": "Optional space-separated document IDs, default none. <Input aria-label=\"Name\" aria-describedby=\"hint\"/> with <Text id=\"hint\">Use your full name.</Text> exposes that text as its accessible description on both targets. Missing IDs are ignored; order is preserved. This does not add an accessible name or run validation. No function arguments. Ownership: consumes the ID string."
+        },
+        "aria-invalid": {
+          "documentation": "Optional boolean validation state; omitted means unspecified. <Input aria-label=\"Name\" aria-invalid/> exposes invalid=true and matches aria-invalid: classes. false exposes a valid state; this property does not validate data or disable editing. Only boolean values are supported. No function arguments. Ownership: copies the flag."
+        },
+        "data-variant": {
+          "documentation": "Optional variant metadata, default absent. ASCII letters, digits and hyphens are accepted; empty omits the attribute. This does not choose styles or change accessibility by itself. Example: <View data-variant=\"destructive\" className=\"data-[variant=destructive]:text-destructive\" /> selects the destructive text token on both targets. Invalid characters throw. Plain string props remain construction-time snapshots. Direct state-reading intrinsic JSX expressions update after handlers without remounting. Custom components need an explicit reactive prop contract; precomputed values remain snapshots. Ownership: transfers one string or owned evaluator once; bindings do not retain component state owners."
+        },
+        "fill": {
+          "documentation": "Fill paint: none, currentColor, a semantic token name, checked hex or in-gamut oklch. Svg defaults to currentColor; Path inherits. External paint URLs are rejected. Example: <Svg fill=\"primary\"><Path d=\"M0 0H24V24H0Z\"/></Svg> fills a square with primary. none disables fill; paint URLs and unsupported CSS color formats throw. Native layout/GPU floating precision and rasterization apply; source data is not changed. Ownership: consumes props and strings without cloning nodes."
+        },
+        "stroke": {
+          "documentation": "Stroke paint with the same accepted values as fill. Svg defaults to none; Path inherits. Example: <Svg fill=\"none\" stroke=\"currentColor\"><Path d=\"M2 12L22 12\"/></Svg> strokes a line in inherited text color. none disables the stroke. Native layout/GPU floating precision and rasterization apply; source data is not changed. Ownership: consumes props and strings without cloning nodes."
+        },
+        "strokeWidth": {
+          "documentation": "Finite nonnegative stroke width in viewBox units. Svg defaults to 1; Path inherits. Native geometry precision applies. Example: <Svg stroke=\"primary\" strokeWidth={2}><Path d=\"M2 12L22 12\"/></Svg> uses two viewBox units, two logical pixels at the default size. Zero disables stroking. Negative, NaN, infinite or native-overflow values throw before JSON serialization. Native layout/GPU floating precision and rasterization apply; source data is not changed. Ownership: consumes props and strings without cloning nodes."
+        },
+        "strokeLinecap": {
+          "documentation": "End-cap geometry. Svg defaults to butt; Path inherits. Example: <Svg stroke=\"primary\" strokeWidth={2} strokeLinecap=\"round\"><Path d=\"M2 12L22 12\"/></Svg> extends rounded caps one unit past each endpoint. butt stops at endpoints; square extends square caps. Other values throw. Native layout/GPU floating precision and rasterization apply; source data is not changed. Ownership: consumes props and strings without cloning nodes."
+        },
+        "strokeLinejoin": {
+          "documentation": "Join geometry. Svg defaults to miter; Path inherits. Example: <Svg stroke=\"primary\" fill=\"none\" strokeLinejoin=\"round\"><Path d=\"M2 20L12 2L22 20\"/></Svg> rounds the corner. miter observes strokeMiterlimit; bevel cuts the corner. Other values throw. Native layout/GPU floating precision and rasterization apply; source data is not changed. Ownership: consumes props and strings without cloning nodes."
+        },
+        "strokeMiterlimit": {
+          "documentation": "Finite miter length/width limit, at least 1. Svg defaults to 4; Path inherits. Example: <Svg stroke=\"primary\" strokeMiterlimit={1}><Path d=\"M2 20L12 2L22 20\"/></Svg> bevels a join beyond that unitless length/width ratio. Values below 1, nonfinite or native-overflow values throw, even with another join style. Native layout/GPU floating precision and rasterization apply; source data is not changed. Ownership: consumes props and strings without cloning nodes."
+        },
+        "fillRule": {
+          "documentation": "Interior winding rule. Svg defaults to nonzero; Path inherits. Example: <Svg fillRule=\"evenodd\"><Path d=\"M0 0H24V24H0Z M6 6H18V18H6Z\"/></Svg> leaves a center hole; nonzero fills both same-direction contours. Other values throw. Native layout/GPU floating precision and rasterization apply; source data is not changed. Ownership: consumes props and strings without cloning nodes."
+        },
+        "d": {
+          "documentation": "SVG M/L/H/V/C/S/Q/T/A/Z commands, relative or absolute. Empty is valid. Invalid/nonfinite data rejects. Live expressions update the same path. Limits: 1048576 UTF-8 bytes and 100000 source segments or resulting geometry elements. Nonzero arc radii must exceed 0.00001 viewBox units; zero radii draw a line. Smaller nonzero radii reject. Original strings stay unchanged. Example: <Path d={visible.get() ? \"M2 2L22 22\" : \"\"}/> updates one retained shape. Invalid updates preserve the last valid path and report a mounted-tree error. Source strings stay exact. Path requires Svg; standalone rendering rejects. Native layout/GPU floating precision and rasterization apply; source data is not changed. Ownership: consumes props and strings without cloning nodes."
+        },
+        "className": {
+          "documentation": "Base semantic text colors and opacity only. Defaults to empty. Put layout, theme scopes and interaction styles on the enclosing Svg. Example: <Svg className=\"size-6 text-primary\"/> is 24px at default spacing and passes primary as currentColor. <Path className=\"text-destructive opacity-50\" d=\"M2 2L22 22\"/> uses destructive with half subtree opacity. Put layout, interaction styles and theme scopes on Svg; Path rejects them. Native layout/GPU floating precision and rasterization apply; source data is not changed. Ownership: consumes props and strings without cloning nodes."
+        }
+      }
+    },
+    {
       "name": "Route",
       "signature": "Route(props: RouteProps): Node",
       "parameters": [

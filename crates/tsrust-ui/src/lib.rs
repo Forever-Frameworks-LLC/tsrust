@@ -7,6 +7,7 @@ mod native;
 pub mod browser;
 mod state;
 mod computed;
+mod vector;
 pub mod navigation;
 mod branch;
 #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
@@ -38,6 +39,8 @@ pub enum Kind {
     Button,
     Input,
     Textarea,
+    Svg,
+    SvgPath,
 }
 
 pub enum TextPart { Literal(String), Signal(TextBinding) }
@@ -90,6 +93,7 @@ pub struct Node {
     class_binding:Option<Box<dyn FnMut()->Result<String,String>>>,
     variant_binding:Option<Box<dyn FnMut()->Result<String,String>>>,
     state: Vec<Box<dyn std::any::Any>>,
+    vector:Option<Box<vector::Data>>,
 }
 
 impl Node {
@@ -102,6 +106,8 @@ impl Node {
     fn check_variant(value:&str)->Result<(),String>{if value.chars().any(|ch|!(ch.is_ascii_alphanumeric()||ch=='-')){return Err("UI data-variant must contain ASCII letters, digits or hyphens".into());}Ok(())}
     fn check_class(&self,value:&str)->Result<(),String>{
         style::validate(value)?;
+        if self.kind==Kind::Svg && style::resolved(value,&theme::Theme::default(),"light").iter().any(|(_,value)|matches!(value,style::Utility::Dimension(property,style::Length::Fit) if *property<6)||matches!(value,style::Utility::Dimension(property,style::Length::Auto) if *property<4)){return Err("Svg intrinsic auto/fit sizing is not implemented; use explicit, fractional or viewport dimensions".into());}
+        if self.kind==Kind::SvgPath && style::resolved(value,&theme::Theme::default(),"light").iter().any(|(state,value)|*state!=style::State::Base||!matches!(value,style::Utility::Foreground(_)|style::Utility::Opacity(_))){return Err("Path classes support base text colors and opacity; put layout and interaction styles on Svg".into());}
         if (self.kind==Kind::Text||matches!(self.kind,Kind::Button|Kind::DisabledButton)&&!self.text.is_empty())&&style::requires_container(value){return Err("Container layout utilities require View or composed Button children; Text remains a text leaf".into());}Ok(())
     }
     pub fn with_semantics(mut self, config: &str) -> Result<Self,String> {
@@ -117,12 +123,14 @@ impl Node {
             Kind::Button|Kind::DisabledButton=>matches!(tag,"button"|"a"),
             Kind::Input=>tag=="input",
             Kind::Textarea=>tag=="textarea",
+            Kind::Svg=>tag=="svg",Kind::SvgPath=>tag=="path",
         };
         if !allowed{return Err(format!("Unsupported UI element for {:?}: {tag}",self.kind));}
-        if !matches!(value.role.as_str(),""|"alert"|"status"|"separator"|"group"|"note"|"region"|"none"|"presentation") {return Err(format!("Unsupported UI role: {}",value.role));}
+        if !matches!(value.role.as_str(),""|"alert"|"status"|"separator"|"group"|"note"|"region"|"none"|"presentation"|"img") {return Err(format!("Unsupported UI role: {}",value.role));}
+        if value.role=="img" && self.kind!=Kind::Svg{return Err("role=img requires Svg".into());}
         if matches!(self.kind,Kind::Button|Kind::DisabledButton|Kind::Input|Kind::Textarea) && !value.role.is_empty(){return Err("Interactive controls keep their implicit role".into());}
         if !value.orientation.is_empty() && (value.role!="separator" || !matches!(value.orientation.as_str(),"horizontal"|"vertical")){return Err("aria-orientation requires a separator and horizontal or vertical".into());}
-        let name_allowed=if value.role.is_empty(){matches!(tag,"nav"|"main"|"header"|"footer"|"aside"|"article"|"table"|"a"|"button"|"input"|"textarea"|"h1"|"h2"|"h3"|"h4"|"h5"|"h6"|"section")}else{!matches!(value.role.as_str(),"none"|"presentation")};
+        let name_allowed=if value.role.is_empty(){matches!(tag,"nav"|"main"|"header"|"footer"|"aside"|"article"|"table"|"a"|"button"|"input"|"textarea"|"h1"|"h2"|"h3"|"h4"|"h5"|"h6"|"section"|"svg")}else{!matches!(value.role.as_str(),"none"|"presentation")};
         if !value.label.is_empty() && !name_allowed{return Err("aria-label requires a button, heading, section or a role that supports naming".into());}
         if value.role=="region" && value.label.trim().is_empty(){return Err("A region requires an accessible label".into());}
         if !value.html_for.is_empty() && tag!="label"{return Err("htmlFor requires a label element".into());}
@@ -143,7 +151,7 @@ impl Node {
         else {let kind=if next{Kind::DisabledButton}else{Kind::Button};let changed=self.kind!=kind;self.kind=kind;changed}
     }
     pub(crate) fn tag(&self)->&str {
-        if !self.semantics.href.is_empty(){"a"}else if !self.semantics.tag.is_empty(){&self.semantics.tag}else{match self.kind{Kind::View=>"div",Kind::Text=>"span",Kind::Button|Kind::DisabledButton=>"button",Kind::Input=>"input",Kind::Textarea=>"textarea"}}
+        if !self.semantics.href.is_empty(){"a"}else if !self.semantics.tag.is_empty(){&self.semantics.tag}else{match self.kind{Kind::View=>"div",Kind::Text=>"span",Kind::Button|Kind::DisabledButton=>"button",Kind::Input=>"input",Kind::Textarea=>"textarea",Kind::Svg=>"svg",Kind::SvgPath=>"path"}}
     }
     pub fn view(children: Vec<Child>, class_name: String) -> Result<Self,String> {
         Self::new(Kind::View,class_name,String::new(),Self::child_nodes(children)?)
@@ -174,6 +182,7 @@ impl Node {
     pub(crate) fn content_text(&self)->String {
         fn append(node:&Node,out:&mut String) {
             if node.collapsed || node.semantics.hidden || node.editable.is_some(){return;}
+            if node.kind==Kind::Svg{if node.semantics.role!="presentation"{out.push_str(&node.semantics.label);}return;}
             out.push_str(&node.text);for child in &node.children{append(child,out);}
         }
         let mut output=String::new();append(self,&mut output);output
@@ -203,6 +212,7 @@ impl Node {
     }
 
     pub fn with_theme(mut self, json: &str, mode: &str) -> Result<Self,String> {
+        if self.kind==Kind::SvgPath{return Err("Put a vector theme scope on Svg, not an individual Path".into());}
         let theme=theme::Theme::parse(json)?;theme.color(mode,"background")?;
         self.theme=Some((theme,mode.to_owned()));self.theme_mode=None;self.theme_inherited=false;self.inherit_branch_theme();Ok(self)
     }
@@ -267,6 +277,7 @@ impl Node {
             if *current!=mode {*current=mode;changed+=1;self.inherit_branch_theme();}
         }
         if !retained {changed+=self.refresh_branch()?;}
+        if let Some(data)=&mut self.vector{changed+=data.refresh()?;}
         if let Some(binding)=&mut self.class_binding{let next=binding()?;self.check_class(&next)?;if next!=self.class_name{self.class_name=next;changed+=1;}}
         if let Some(binding)=&mut self.variant_binding{let next=binding()?;Self::check_variant(&next)?;if next!=self.semantics.variant{self.semantics.variant=next;changed+=1;}}
         let disabled=if let Some(predicate)=&mut self.disabled {Some(predicate()?)}else{None};
@@ -356,7 +367,7 @@ impl Node {
         }
         let class_name = class_name.split_whitespace().collect::<Vec<_>>().join(" ");
         for child in &children{child.reset_identities();}
-        Ok(Self {
+        let node=Self {
             depth,
             identity:std::cell::Cell::new(0),next_identity:std::cell::Cell::new(0),anonymous_text:false,branch:None,
             theme: None,theme_mode:None,theme_inherited:false,
@@ -365,8 +376,8 @@ impl Node {
             class_name,
             text,
             children,
-            parts: Vec::new(), disabled:None, visibility:None, copy:None, press: None, class_binding:None,variant_binding:None,state: Vec::new(), editable:None, read_only:None,collapsed:false,hidden:None,
-        })
+            vector:None,parts: Vec::new(), disabled:None, visibility:None, copy:None, press: None, class_binding:None,variant_binding:None,state: Vec::new(), editable:None, read_only:None,collapsed:false,hidden:None,
+        };if matches!(kind,Kind::Svg|Kind::SvgPath){node.check_class(&node.class_name)?;}if kind!=Kind::Svg && node.children.iter().any(|child|child.kind==Kind::SvgPath){return Err("Path requires an enclosing Svg".into());}Ok(node)
     }
 }
 

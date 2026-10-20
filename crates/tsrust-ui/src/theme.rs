@@ -139,3 +139,6 @@ impl Theme {
   assert_ne!(first.color("light","primary").unwrap(),second.color("light","primary").unwrap());assert_ne!(first.spacing.sm,second.spacing.sm);assert_eq!(second.light,super::Theme::parse(super::DEFAULT_JSON).unwrap().light);
  }
 }
+
+/// Shared checked literal paint boundary; token lookup remains scoped.
+pub(crate) fn literal_color(value:&str)->Result<ResolvedColor,String>{ResolvedColor::parse(value)}
