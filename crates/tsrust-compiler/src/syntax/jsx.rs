@@ -174,7 +174,7 @@ fn entities(text: &str, span: Span,attribute:bool) -> Result<String,Diagnostic> 
         let entity=&remaining[..end];
         let value=match entity {
             "amp"=>Some('&'),"lt"=>Some('<'),"gt"=>Some('>'),"quot"=>Some('"'),"apos"=>Some('\''),
-            _=>entity.strip_prefix("#x").and_then(|digits|u32::from_str_radix(digits,16).ok()).or_else(||entity.strip_prefix('#').and_then(|digits|digits.parse::<u32>().ok())).and_then(char::from_u32),
+            _=>entity.strip_prefix("#x").filter(|digits|!digits.is_empty()&&digits.bytes().all(|ch|ch.is_ascii_hexdigit())).and_then(|digits|u32::from_str_radix(digits,16).ok()).or_else(||entity.strip_prefix('#').filter(|digits|!digits.is_empty()&&digits.bytes().all(|ch|ch.is_ascii_digit())).and_then(|digits|digits.parse::<u32>().ok())).and_then(char::from_u32),
         }.ok_or_else(||Diagnostic::new("syntax","Unsupported or invalid JSX entity; use a braced string for exact text.",span))?;
         output.push(value); remaining=&remaining[end+1..];
     }

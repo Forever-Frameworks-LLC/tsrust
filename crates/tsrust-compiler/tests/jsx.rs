@@ -166,5 +166,5 @@ fn quoted_jsx_attributes_preserve_selector_and_literal_ampersands(){
  let source=r#"interface Props{className:string;label:string;}function Token(props:Props):string{return props.className+'|'+props.label;}
  function main(){console.log(<Token className="[&_svg]:size-4 [&>a]:underline" label="A&B &amp; &#35;"/>);}"#;
  support::execute(source,"[&_svg]:size-4 [&>a]:underline|A&B & #\n",None);
- for entity in ["&unknown;","&#xD800;","&#-1;","&#x+1;","&#1"]{assert!(analyze(&source.replace("&amp;",entity)).is_err());}
+ for entity in ["&unknown;","&#xD800;","&#-1;","&#x+1;","&#1"]{assert!(analyze(&source.replace("&amp;",entity)).is_err(),"{entity}");}
 }
