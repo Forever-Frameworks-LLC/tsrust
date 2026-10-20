@@ -28,6 +28,10 @@ fn header(source:&str,start:usize)->Result<String,String> {
     }
     Err("Public documentation declaration has no body".into())
 }
+fn record_alias<'a>(program:&'a syntax::Program,aliases:&syntax::TypeAliasCatalog,export:&str)->Option<&'a syntax::Record>{
+ let (target,alias)=aliases.identity_record_aliases().into_iter().find(|(_,alias)|alias.name==export)?;
+ program.records.iter().find(|record|record.name.text==target&&record.type_parameters.len()==alias.parameters.len())
+}
 /// Imported inheritance uses the base span for diagnostics. Follow that checked base
 /// through the module graph to recover the field's actual source annotation.
 fn field_origin(project:&ProjectAnalysis,parsed:&BTreeMap<SourceId,syntax::Program>,facts:&crate::project::ProjectCheckedTypeFacts,name:&str,mut location:crate::project::SourceLocation)->Result<crate::project::SourceLocation,String>{
@@ -37,10 +41,12 @@ fn field_origin(project:&ProjectAnalysis,parsed:&BTreeMap<SourceId,syntax::Progr
         let base=module.source.text.get(location.span.start..location.span.end).ok_or("Invalid inherited base range")?;
         let imported=module.imports.iter().find_map(|import|import.bindings.iter().find(|binding|binding.local==base).and_then(|binding|Some((import.target.as_ref()?,&binding.exported))));
         let Some((target,export))=imported else{return Err(format!("Cannot resolve inherited field {name} through {base} in {}",location.source.0));};
-        let span=project.graph.modules.get(target).and_then(|module|module.exports.get(export)).ok_or("Missing inherited base export")?;
+        let module=project.graph.modules.get(target).ok_or("Missing inherited base module")?;
+        let aliases=syntax::TypeAliasCatalog::parse(&module.declaration_source).map_err(|error|error.message)?;
+        let span=parsed.get(target).and_then(|program|record_alias(program,&aliases,export)).map(|record|record.name.span).or_else(||module.exports.get(export).copied()).ok_or("Missing inherited base export")?;
         location=facts.record_fields.iter().find_map(|(owner,field,origin,_,_)|{
             let ProjectType::Named{declaration:Some(declaration),..}=owner else{return None;};
-            (field==name&&declaration.source==*target&&declaration.span==*span).then(||origin.clone())
+            (field==name&&declaration.source==*target&&declaration.span==span).then(||origin.clone())
         }).ok_or_else(||format!("Missing checked inherited field {export}.{name}"))?;
     }
     Err("Inherited documentation field exceeds the source depth limit".into())
@@ -68,10 +74,12 @@ pub fn api(project:&ProjectAnalysis,sources:&[SourceId])->Result<Vec<ApiDefiniti
             }else if let Some(record)=program.records.iter().find(|value|value.name.span==*span||value.name.text==*export){
                 ("interface",format!("interface {}",header(source,record.name.span.start)?))
             }else if let Some(alias)=aliases.declarations().into_iter().find(|value|value.name==*export){("type",alias.signature)}else{continue;};
-            let mut fields=Vec::new();
+            let declaration_span=record_alias(program,&aliases,export).map_or(*span,|record|record.name.span);
+            let mut fields=Vec::new();let mut seen=std::collections::BTreeSet::new();
             for (owner,name,location,_,optional) in &facts.record_fields {
                 let ProjectType::Named{declaration:Some(declaration),..}=owner else{continue;};
-                if declaration.source!=*id||declaration.span!=*span{continue;}
+                if declaration.source!=*id||declaration.span!=declaration_span{continue;}
+                if !seen.insert(name.clone()){continue;}
                 let location=field_origin(project,&parsed,&facts,name,location.clone())?;
                 let original=project.graph.modules.get(&location.source).ok_or("Missing checked prop declaration")?;
                 let record=parsed.get(&location.source).and_then(|program|program.records.iter().find(|record|record.fields.iter().any(|field|field.name.span==location.span)));
@@ -79,7 +87,11 @@ pub fn api(project:&ProjectAnalysis,sources:&[SourceId])->Result<Vec<ApiDefiniti
                 let annotation=&original.source.text[field.annotation.span.start..field.annotation.span.end];
                 let mut documentation=before(&original.source.text,location.span.start);
                 if location.source.0=="std:ui" {
-                    if let Some(record)=record {if let Some(entry)=docs["std:ui"].as_array().and_then(|entries|entries.iter().find(|entry|entry["name"].as_str()==Some(record.name.text.as_str()))){
+                    if let Some(record)=record {if let Some(entry)=docs["std:ui"].as_array().and_then(|entries|entries.iter().find(|entry|entry["name"].as_str()==Some(record.name.text.as_str())).or_else(||{
+                        let aliases=syntax::TypeAliasCatalog::parse(&original.declaration_source).ok()?;
+                        let public=aliases.identity_record_aliases().into_iter().find(|(target,alias)|target==&record.name.text&&original.exports.contains_key(&alias.name))?.1.name;
+                        entries.iter().find(|entry|entry["name"]==public)
+                    })){
                         if let Some(text)=entry["fields"][name]["documentation"].as_str(){documentation=text.into();}
                     }}
                 }

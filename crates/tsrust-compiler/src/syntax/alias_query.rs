@@ -65,6 +65,16 @@ impl TypeAliasCatalog {
         values.sort_by(|a, b| a.name.cmp(&b.name));
         values
     }
+    /// Direct record aliases retain parameter order; transformed or fixed applications are excluded.
+    pub fn identity_record_aliases(&self)->Vec<(String,TypeAliasInfo)> {
+        self.declarations().into_iter().filter_map(|alias|{
+            let suffix=if alias.parameters.is_empty(){String::new()}else{format!("<{}>",alias.parameters.join(","))};
+            let expanded=self.expand(&format!("{}{suffix}",alias.name)).ok()?;let mut value=crate::type_syntax::parse(&expanded).ok()?;
+            while let Kind::Group(inner)=&value.kind{value=(**inner).clone();}
+            let target=match &value.kind{Kind::Named(name) if alias.parameters.is_empty()=>name.text.clone(),Kind::Applied{name,arguments} if arguments.len()==alias.parameters.len()&&arguments.iter().zip(&alias.parameters).all(|(value,parameter)|matches!(&value.kind,Kind::Named(name) if name.text==*parameter))=>name.text.clone(),_=>return None};
+            Some((target,alias))
+        }).collect()
+    }
     /// The importer supplies its existing type-name mapping; parameters remain lexical.
     pub fn import_as(
         &mut self,
@@ -215,4 +225,12 @@ pub(crate) fn alias_parameter_spans(tokens: &[Token]) -> Vec<Span> {
         index += 1;
     }
     spans
+}
+
+#[cfg(test)]mod identity_alias_tests {
+ use super::*;
+ #[test]fn only_identity_record_arguments_can_supply_public_display_names(){
+  let aliases=TypeAliasCatalog::parse("type Public<T=string>=Private<T>;type Wrapped<T>=Private<T[]>;type Fixed=Private<string>;type Swapped<A,B>=Pair<B,A>;").unwrap();
+  let found=aliases.identity_record_aliases().into_iter().map(|(target,alias)|(target,alias.name)).collect::<Vec<_>>();assert_eq!(found,vec![("Private".to_owned(),"Public".to_owned())]);
+ }
 }

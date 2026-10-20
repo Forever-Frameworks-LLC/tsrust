@@ -211,6 +211,7 @@ impl SourceIndex {
                 } else {
                     name.clone()
                 };
+                if (base.starts_with("__tsrust_private_")||base.starts_with('@')) && let Some(declaration)=declaration && let Some(dependency)=dependencies.get(&declaration.source) && let Some(alias)=dependency.public_record_alias(name){self.generic_display_names.insert(base.clone(),alias);}
                 if arguments.is_empty() {
                     return Some(base);
                 }
@@ -238,11 +239,12 @@ impl SourceIndex {
             let Some(owner)=self.project_type_spelling(graph,current,owner,dependencies) else{continue;};
             let Some(ty)=self.project_type_spelling(graph,current,ty,dependencies) else{continue;};
             let signature=format!("{name}{}: {}",if *optional{"?"}else{""},self.display_type(&ty));
-            if let Some(symbol)=self.symbols.iter_mut().find(|symbol|symbol.kind==8 && symbol.owner.as_deref()==Some(owner.as_str()) && symbol.name==*name){symbol.ty=ty;symbol.signature=signature;}
+            let template=owner.split('<').next().unwrap_or(&owner);let docs=self.symbols.iter().find(|symbol|symbol.kind==8&&symbol.owner.as_deref()==Some(template)&&symbol.name==*name).map(|symbol|symbol.docs.clone()).unwrap_or_default();
+            if let Some(symbol)=self.symbols.iter_mut().find(|symbol|symbol.kind==8 && symbol.owner.as_deref()==Some(owner.as_str()) && symbol.name==*name){symbol.ty=ty;symbol.signature=signature;if symbol.docs.is_empty(){symbol.docs=docs;}}
             else {
                 let span=if location.source==*current{location.span}else{Span::new(0,0)};
                 let id=self.symbols.len();
-                self.symbols.push(Symbol{name:name.clone(),kind:8,span,extent:span,scope:0,ty,signature,docs:String::new(),parameters:Vec::new(),owner:Some(owner)});
+                self.symbols.push(Symbol{name:name.clone(),kind:8,span,extent:span,scope:0,ty,signature,docs,parameters:Vec::new(),owner:Some(owner)});
                 if location.source!=*current && let Ok(uri)=crate::project_diagnostics::file_uri(&location.source){
                     let source=graph.modules[&location.source].checked_source();
                     if let Ok(range)=LineIndex::new(source).range(source,location.span){self.foreign_definitions.insert(id,json!({"uri":uri,"range":range}));}

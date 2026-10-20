@@ -572,6 +572,13 @@ impl SourceIndex {
             }
         }
     }
+    fn public_record_alias(&self,record:&str)->Option<String>{
+        self.generic_aliases.as_ref()?.identity_record_aliases().into_iter().find_map(|(target,alias)|{
+            if target!=record || self.generic_parameters.get(record).map_or(0,Vec::len)!=alias.parameters.len(){return None;}
+            let at=self.tokens.iter().position(|token|token.span==alias.span)?;
+            (at>=2&&self.text(at-1)=="type"&&self.text(at-2)=="export").then_some(alias.name)
+        })
+    }
     fn display_type(&self, ty: &str) -> String {
         let mut display = ty.to_owned();
         // Global JSON calls and task scheduling introduce native types without a source import
@@ -2823,7 +2830,7 @@ impl SourceIndex {
             let encoded=uri.as_bytes().iter().map(|byte|format!("{byte:02x}")).collect::<String>();
             for record in &referenced {
                 let identity=mappings.entry(record.clone()).or_insert_with(||format!("__tsrust_private_{encoded}_{record}")).clone();
-                self.generic_display_names.insert(identity,record.clone());
+                self.generic_display_names.insert(identity,dependency.public_record_alias(record).unwrap_or_else(||record.clone()));
             }
             for record in &referenced {self.import_record_fields(dependency,record,&mappings[record],span,uri,&mappings);}
             symbol.ty=remap_imported_type(&symbol.ty,&mappings).unwrap_or_default();
@@ -2944,7 +2951,7 @@ impl SourceIndex {
                                 .generic_display_names
                                 .get(candidate)
                                 .cloned()
-                                .unwrap_or_else(|| candidate.to_owned()),
+                                .unwrap_or_else(|| dependency.public_record_alias(candidate).unwrap_or_else(||candidate.to_owned())),
                         );
                         if field
                             .ty
@@ -2996,7 +3003,7 @@ impl SourceIndex {
                                     format!("@{uri}#{base}")
                                 }
                             });
-                            self.generic_display_names.insert(identity.clone(),dependency.generic_display_names.get(base).cloned().unwrap_or_else(||base.rsplit('#').next().unwrap_or(base).to_owned()));
+                            self.generic_display_names.insert(identity.clone(),dependency.generic_display_names.get(base).cloned().unwrap_or_else(||dependency.public_record_alias(base).unwrap_or_else(||base.rsplit('#').next().unwrap_or(base).to_owned())));
                             pending.push((base.to_owned(), identity.clone()));
                             Some(format!("{identity}{suffix}"))
                         })
@@ -3008,6 +3015,7 @@ impl SourceIndex {
                 if let Some(module)=uri.strip_prefix("tsrust-stdlib:///") {
                     let documentation=builtins_for(&record).into_iter().find(|entry|entry["name"]==field.name).and_then(|entry|entry["documentation"].as_str().map(str::to_owned))
                         .or_else(||builtins_for(module).into_iter().find(|entry|entry["name"]==record).and_then(|entry|entry["fields"][&field.name]["documentation"].as_str().map(str::to_owned)));
+                    let documentation=documentation.or_else(||dependency.public_record_alias(&record).and_then(|alias|builtins_for(module).into_iter().find(|entry|entry["name"]==alias).and_then(|entry|entry["fields"][&field.name]["documentation"].as_str().map(str::to_owned))));
                     if let Some(documentation)=documentation {imported.docs=documentation;}
                 }
                 imported.ty = ty;

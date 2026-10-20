@@ -76,3 +76,15 @@ fn page_sized_readable_loaders_and_generated_output_cache_remain_checked(){
  let before=fs::metadata(&page).unwrap().modified().unwrap();let build=||support::run(support::cli().args(["docs","content","--cwd"]).arg(root),60);support::success(&build());assert_eq!(before,fs::metadata(&page).unwrap().modified().unwrap());fs::write(&page,"tampered").unwrap();support::success(&build());assert_eq!(fs::read(&page).unwrap(),accepted);
  fs::remove_file(root.join("content/second.md")).unwrap();support::success(&build());assert!(!page.exists()&&!payload.exists(),"Unchanged obsolete loaders and payloads must be removed");
 }
+
+#[test]
+fn public_prop_aliases_and_inherited_fields_keep_complete_api_documents(){
+ let temp=support::TempDirectory::new();let root=&temp.0;fs::create_dir_all(root.join("content")).unwrap();fs::create_dir_all(root.join("src")).unwrap();
+ let mut config:serde_json::Value=serde_json::from_slice(&fs::read(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/ui-reactive-props/tsrust.config.json")).unwrap()).unwrap();config["documentation"]=serde_json::json!({"content":"content","examples":[],"apiSources":["std:ui","src/props.tsr"],"inventory":null});fs::write(root.join("tsrust.config.json"),serde_json::to_vec_pretty(&config).unwrap()).unwrap();
+ fs::write(root.join("content/index.md"),"<!-- tsrust-docs\n{\"id\":\"home\",\"group\":\"guides\",\"order\":0,\"status\":\"ready\",\"targets\":[\"web\",\"native\"]}\n-->\n# Home\n\nPublic props.\n").unwrap();fs::write(root.join("src/main.tsr"),support::format_round_trip("function main(){}" )).unwrap();fs::write(root.join("src/props.tsr"),support::format_round_trip("import {ViewProps} from 'std:ui';export interface PanelProps extends ViewProps{caption:string;}" )).unwrap();
+ support::success(&support::run(support::cli().args(["docs","content","--cwd"]).arg(root),120));let catalog:serde_json::Value=serde_json::from_slice(&fs::read(root.join("target/docs-content/catalog.json")).unwrap()).unwrap();
+ for name in ["ViewProps","ButtonProps","ViewRenderProps","ButtonRenderProps","PanelProps"]{
+  let api=catalog["api"].as_array().unwrap().iter().find(|entry|entry["name"]==name).unwrap();let fields=api["fields"].as_array().unwrap();assert!(!fields.is_empty(),"{name}");let names=fields.iter().map(|field|field["name"].as_str().unwrap()).collect::<std::collections::BTreeSet<_>>();assert_eq!(names.len(),fields.len());assert!(names.contains("id"));assert!(names.contains("className"));
+  if name.ends_with("RenderProps"){assert!(!names.contains("render"));}else{let render=fields.iter().find(|field|field["name"]=="render").unwrap();assert!(render["documentation"].as_str().unwrap().contains("replacement"),"{render}");}
+ }
+}

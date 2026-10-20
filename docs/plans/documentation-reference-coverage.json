@@ -35,7 +35,7 @@
     },
     "std:ui": {
       "route": "/docs/ui/foundations/reference",
-      "members": 43
+      "members": 50
     },
     "UiSignal": {
       "route": "/docs/ui/foundations/reference",
@@ -408,6 +408,10 @@
     "StringConstructor": {
       "route": "/docs/standard-library/strings",
       "members": 3
+    },
+    "UiComputed": {
+      "route": "/docs/ui/foundations/reference",
+      "members": 1
     }
   }
 }

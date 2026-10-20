@@ -39,7 +39,10 @@ Updating the compiler does not silently change editable local component contract
 ## Replace the base node
 
 `View` and `Button` accept a `render` factory. It receives owned props once. Return
-one node and forward needed behavior with JSX spread. There is no extra wrapper,
+one node and forward needed behavior with JSX spread. Anonymous factories can
+forward live descriptors intact. Put additional `useProp` or `computed` declarations
+in a named component; creating state inside anonymous callbacks is rejected.
+There is no extra wrapper,
 button or focus stop. Forwarded callbacks and children transfer once. Override
 props after the spread to replace those fields deliberately.
 
