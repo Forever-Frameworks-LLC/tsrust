@@ -17,6 +17,8 @@ mod window;
 #[cfg(test)]
 mod application_tests;
 #[cfg(test)]
+mod empty_style_tests;
+#[cfg(test)]
 mod reactive_semantics_tests;
 mod editable;
 mod visibility;

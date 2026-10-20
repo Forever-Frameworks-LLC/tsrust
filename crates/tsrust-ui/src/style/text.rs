@@ -9,8 +9,9 @@ impl WhiteSpace {
  #[cfg(any(test,feature="native"))]
  pub(crate) fn wraps(self)->bool {matches!(self,Self::Normal|Self::PreWrap)}
 }
-pub(super) fn tokens()->Vec<String> {["whitespace-normal","whitespace-nowrap","whitespace-pre","whitespace-pre-wrap","underline","no-underline","underline-offset-auto","underline-offset-0","underline-offset-1","underline-offset-2","underline-offset-4","underline-offset-8"].map(str::to_owned).to_vec()}
+pub(super) fn tokens()->Vec<String> {["text-balance","text-wrap-auto","tracking-tight","tracking-normal","whitespace-normal","whitespace-nowrap","whitespace-pre","whitespace-pre-wrap","underline","no-underline","underline-offset-auto","underline-offset-0","underline-offset-1","underline-offset-2","underline-offset-4","underline-offset-8"].map(str::to_owned).to_vec()}
 pub(super) fn resolve(token:&str)->Option<Utility> {Some(match token {
+ "text-balance"=>Utility::Balance(true),"text-wrap-auto"=>Utility::Balance(false),"tracking-tight"=>Utility::Tracking(-0.025),"tracking-normal"=>Utility::Tracking(0.),
  "whitespace-normal"=>Utility::WhiteSpace(WhiteSpace::Normal),"whitespace-nowrap"=>Utility::WhiteSpace(WhiteSpace::NoWrap),"whitespace-pre"=>Utility::WhiteSpace(WhiteSpace::Pre),"whitespace-pre-wrap"=>Utility::WhiteSpace(WhiteSpace::PreWrap),
  "underline"=>Utility::Underline(true),"no-underline"=>Utility::Underline(false),"underline-offset-auto"=>Utility::UnderlineOffset(None),
  "underline-offset-0"=>Utility::UnderlineOffset(Some(0.)),"underline-offset-1"=>Utility::UnderlineOffset(Some(1.)),"underline-offset-2"=>Utility::UnderlineOffset(Some(2.)),"underline-offset-4"=>Utility::UnderlineOffset(Some(4.)),"underline-offset-8"=>Utility::UnderlineOffset(Some(8.)),_=>return None})}

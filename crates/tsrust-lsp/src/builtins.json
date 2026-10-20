@@ -14493,15 +14493,24 @@
       "name": "ThemeTypography",
       "signature": "interface ThemeTypography",
       "parameters": [],
-      "documentation": "Required base/xl text dimensions, 8–128 finite logical pixels. There are no missing-value defaults. Text inherits its enclosing theme size; text-base/xl selects a slot explicitly. Ownership: ordinary data; reading does not mutate it.",
+      "documentation": "Required base/xl text dimensions, 8\u2013128 finite logical pixels, plus optional headingFamily. Base/xl have no missing-value defaults; headingFamily defaults to sans. Text inherits its enclosing theme. font-heading selects the scoped heading family. Ownership: ordinary data; reading does not mutate it.",
       "fields": {
         "base": {
           "documentation": "Required base text size, int or number between 8 and 128 logical pixels. theme.typography.base is 16 in the bundled theme. Reading returns that scalar without changing the receiver. Ownership: copies the scalar value."
         },
         "xl": {
           "documentation": "Required xl text size, int or number between 8 and 128 logical pixels. theme.typography.xl is 24 in the bundled theme. Reading returns that scalar without changing the receiver. Ownership: copies the scalar value."
+        },
+        "headingFamily": {
+          "documentation": "Optional generic heading font family: sans (default), serif or mono. font-heading applies it on both targets; explicit font-sans/serif/mono can override it. Named font files and other values reject. Example: const typography: ThemeTypography = { base: 16, xl: 24, headingFamily: \"serif\" }; selects system serif for headings. Actual fonts and glyph metrics vary by platform. No arguments. Ownership: owns the supplied string; reading does not mutate the receiver."
         }
-      }
+      },
+      "examples": [
+        {
+          "source": "import { ThemeTypography } from 'std:ui';\nfunction main() {\n  const typography: ThemeTypography = { base: 16, xl: 24, headingFamily: 'serif' };\n  console.log(typography.headingFamily ?? 'sans');\n}\n",
+          "output": "serif\n"
+        }
+      ]
     },
     {
       "name": "ReactiveBoolean",

@@ -5,7 +5,7 @@ Nova baseline in `ui-component-coverage.json`. Reuse accepted View replacement,
 ReactiveValue/useProp, live metadata, SVG and offline installer contracts.
 
 1. Implement the shared utilities required by the exact source: dashed borders,
-   tight tracking, relaxed line height and `text-sm/relaxed`, `max-w-sm`, balanced
+   tight tracking, scoped generic heading fonts, nonnegative margins, relaxed line height and `text-sm/relaxed`, `max-w-sm`, balanced
    text, descendant SVG pointer/shrink rules and default icon sizing that respects
    an explicit icon size. Preserve independent border widths and theme scaling.
    Native shaping, layout measurement, painting and selection must use the same
@@ -27,3 +27,11 @@ Pinned references already preserved in SQLite:
 `tsrust-empty-upstream.tsx`, `tsrust-empty-nova-reference.json` and
 `tsrust-empty-style-paths.json`. Scoped context, event/ref composition and focus
 scopes still precede dependent compound controls; Empty does not require them.
+
+
+Implementation checkpoint scope: text slots intentionally use the Text contract,
+including inline Link flow, rather than pretending View children have inline
+layout. They do not expose replacement callbacks. Container replacement remains
+once-only. SVG selectors accept pointer/shrink/numeric sizing; direct-Link selectors
+accept decoration/text colors. Other descendant selectors reject. Browser descendant
+sizes use the target's nearest theme variables, matching native scope resolution.

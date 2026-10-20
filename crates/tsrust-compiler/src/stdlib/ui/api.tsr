@@ -556,6 +556,8 @@ export interface ThemeRadius extends ThemeScale {
 }
 
 export interface ThemeTypography {
+  /** Heading generic family, default sans. Named font files are not supported. */
+  headingFamily?: 'sans' | 'serif' | 'mono';
   base: int | number;
   xl: int | number;
 }

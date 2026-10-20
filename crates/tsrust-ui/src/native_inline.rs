@@ -24,12 +24,14 @@ pub(super) fn collect(item:Item,text:&mut String,spans:&mut Vec<(Range<usize>,Te
 }
 pub(super) fn default_style(builder:&mut parley::RangedBuilder<'_,Brush>,style:&TextStyle){
     builder.push_default(StyleProperty::Brush(Brush{color:None,underlines:style.underlines.clone(),strike:style.strike}));
+    builder.push_default(StyleProperty::LetterSpacing(style.tracking*style.size));
     builder.push_default(StyleProperty::TextWrapMode(if style.whitespace.wraps(){parley::style::TextWrapMode::Wrap}else{parley::style::TextWrapMode::NoWrap}));
     builder.push_default(StyleProperty::FontStyle(if style.italic{parley::style::FontStyle::Italic}else{parley::style::FontStyle::Normal}));
 }
 pub(super) fn range_style(builder:&mut parley::RangedBuilder<'_,Brush>,range:Range<usize>,style:&TextStyle){
     builder.push(StyleProperty::TextWrapMode(if style.whitespace.wraps(){parley::style::TextWrapMode::Wrap}else{parley::style::TextWrapMode::NoWrap}),range.clone());
     builder.push(StyleProperty::FontSize(style.size),range.clone());
+    builder.push(StyleProperty::LetterSpacing(style.tracking*style.size),range.clone());
     builder.push(StyleProperty::FontWeight(FontWeight::new(style.weight)),range.clone());
     builder.push(StyleProperty::FontStyle(if style.italic{parley::style::FontStyle::Italic}else{parley::style::FontStyle::Normal}),range.clone());
     builder.push(StyleProperty::LineHeight(style.leading.map(parley::style::LineHeight::FontSizeRelative).unwrap_or(style.line_height)),range.clone());
@@ -47,7 +49,7 @@ pub(super) fn shape(layouts:&mut LayoutContext<Brush>,fonts:&mut FontContext,tex
   return (builder.build(text),text.into());
  }
  fn resolved(style:&TextStyle)->parley::style::TextStyle<'static,'static,Brush>{
-  parley::style::TextStyle{font_family:match style.family{1=>parley::style::GenericFamily::Serif,2=>parley::style::GenericFamily::Monospace,_=>parley::style::GenericFamily::SystemUi}.into(),font_size:style.size,font_weight:FontWeight::new(style.weight),font_style:if style.italic{parley::style::FontStyle::Italic}else{parley::style::FontStyle::Normal},line_height:style.leading.map(parley::style::LineHeight::FontSizeRelative).unwrap_or(style.line_height),brush:Brush{color:Some(style.color),underlines:style.underlines.clone(),strike:style.strike},text_wrap_mode:if style.whitespace.wraps(){parley::style::TextWrapMode::Wrap}else{parley::style::TextWrapMode::NoWrap},white_space_collapse:if style.whitespace.collapses(){parley::style::WhiteSpaceCollapse::Collapse}else{parley::style::WhiteSpaceCollapse::Preserve},..Default::default()}
+  parley::style::TextStyle{font_family:match style.family{1=>parley::style::GenericFamily::Serif,2=>parley::style::GenericFamily::Monospace,_=>parley::style::GenericFamily::SystemUi}.into(),font_size:style.size,letter_spacing:style.tracking*style.size,font_weight:FontWeight::new(style.weight),font_style:if style.italic{parley::style::FontStyle::Italic}else{parley::style::FontStyle::Normal},line_height:style.leading.map(parley::style::LineHeight::FontSizeRelative).unwrap_or(style.line_height),brush:Brush{color:Some(style.color),underlines:style.underlines.clone(),strike:style.strike},text_wrap_mode:if style.whitespace.wraps(){parley::style::TextWrapMode::Wrap}else{parley::style::TextWrapMode::NoWrap},white_space_collapse:if style.whitespace.collapses(){parley::style::WhiteSpaceCollapse::Collapse}else{parley::style::WhiteSpaceCollapse::Preserve},..Default::default()}
  }
  let root=resolved(style);let mut builder=layouts.tree_builder(fonts,1.,true,&root);
  let mut anchors=std::collections::BTreeMap::new();
@@ -91,7 +93,7 @@ impl Painter {
     pub(super) fn inline_layout(&self,item:&Item)->Result<Layout<Brush>,String>{
         let layout=self.tree.layout(item.id).map_err(|e|e.to_string())?;
         let width=(layout.size.width-layout.padding.left-layout.padding.right-layout.border.left-layout.border.right).max(0.);
-        let mut text=item.text.clone().ok_or("Inline content requires a text layout")?;layout_text(&mut text,width,false);text.align(match item.align{1=>Alignment::Center,2=>Alignment::End,_=>Alignment::Start},AlignmentOptions::default());Ok(text)
+        let mut text=item.text.clone().ok_or("Inline content requires a text layout")?;layout_text(&mut text,width,false,item.text_style.balance);text.align(match item.align{1=>Alignment::Center,2=>Alignment::End,_=>Alignment::Start},AlignmentOptions::default());Ok(text)
     }
 }
 #[cfg(test)]mod tests{

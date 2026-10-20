@@ -15,7 +15,11 @@ pub const DEFAULT_JSON: &str = include_str!("theme.json");
 pub struct Scale { pub sm:f64, pub md:f64, pub lg:f64 }
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct Typography { pub base:f64, pub xl:f64 }
+pub struct Typography { pub base:f64, pub xl:f64, #[serde(default,rename="headingFamily")]pub heading_family:FontFamily }
+#[derive(Clone,Copy,Debug,Default,Deserialize,Serialize)]
+#[serde(rename_all="lowercase")]
+pub enum FontFamily {#[default]Sans,Serif,Mono}
+impl FontFamily {pub(crate) fn index(self)->u8 {match self{Self::Sans=>0,Self::Serif=>1,Self::Mono=>2}}}
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Radius {pub sm:f64,pub md:f64,pub lg:f64,#[serde(default,deserialize_with="present_radius",skip_serializing_if="Option::is_none")]pub xl:Option<f64>}

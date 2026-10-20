@@ -35,6 +35,8 @@ struct TextStyle {
     weight:f32,
     line_height:parley::style::LineHeight,
     leading:Option<f32>,
+    tracking:f32,
+    balance:bool,
     family:u8,
     italic:bool,
     strike:bool,
@@ -51,21 +53,31 @@ impl Default for TextStyle {
     fn default() -> Self {
         Self {
             size: 16.,
-            weight:400.,line_height:parley::style::LineHeight::NORMAL,leading:None,family:0,italic:false,strike:false,underlines:None,underline_offset:None,whitespace:Default::default(),
+            weight:400.,line_height:parley::style::LineHeight::NORMAL,leading:None,tracking:0.,balance:false,family:0,italic:false,strike:false,underlines:None,underline_offset:None,whitespace:Default::default(),
             align: 0,cursor:0,pointer_events:true,selectable:true,
             color: super::theme::ResolvedColor::rgb8(23,32,51),
         }
     }
 }
 fn paint_color(color:super::theme::ResolvedColor)->Color {Color::new(color.components())}
-fn layout_text(text: &mut Layout<Brush>, width: f32, button: bool) {
-    text.break_all_lines(Some(width.max(0.)));
+fn layout_text(text: &mut Layout<Brush>, width: f32, button: bool,balance:bool) {
+    let width=width.max(0.);text.break_all_lines(Some(width));
+    let lines=text.lines().count();
+    if balance && width.is_finite() && width>0. && (2..=6).contains(&lines) {
+        let (mut low,mut high)=(0.,width);
+        for _ in 0..16 {if high-low<0.01{break;}let candidate=(low+high)/2.;text.break_all_lines(Some(candidate));if text.lines().count()>lines{low=candidate;}else{high=candidate;}}
+        let mut breaker=text.break_lines();breaker.state_mut().set_layout_max_advance(width);breaker.state_mut().set_line_max_advance(high);
+        while breaker.break_next().is_some(){
+            // Keep the containing block's alignment width after choosing balanced breaks.
+            breaker.set_prior_line_width(width);breaker.state_mut().set_line_max_advance(high);
+        }
+    }
     if button { text.align(Alignment::Center, AlignmentOptions::default()); }
 }
 
 #[derive(Clone)]
 struct FieldInfo {value:String,placeholder:String,read_only:bool,required:bool}
-struct Measure {text:Layout<Brush>,nowrap:bool}
+struct Measure {text:Layout<Brush>,nowrap:bool,balance:bool}
 struct Item {
     opacity:f32,
     suppress_outline:bool,
@@ -86,6 +98,7 @@ struct Item {
     background: Option<super::theme::ResolvedColor>,
     radius: [f64;4],
     border: [f64;4],
+    dashed:bool,
     overflow:u8,
     border_color: super::theme::ResolvedColor,
     ring: super::theme::ResolvedColor,
@@ -163,6 +176,7 @@ impl Painter {
         }
         let (mut background, mut radius) = (node.theme.as_ref().map(|_|theme.color(mode,"background").unwrap()), [0.;4]);
         if matches!(node.kind,Kind::Button|Kind::DisabledButton)&&node.semantics.href.is_empty(){inherited.align=1;style.flex_direction=FlexDirection::Row;style.align_items=AlignItems::CENTER;style.justify_content=JustifyContent::CENTER;}
+        let mut dashed=false;
         let (mut border,mut border_color,mut ring)=([0.;4],theme.color(mode,"border")?,theme.color(mode,"ring")?);
         if let Some(super::vector::Data::Root(root))=node.vector.as_deref(){style.size.width=length(root.width as f32);style.size.height=length(root.height as f32);style.flex_shrink=0.;style.overflow.x=taffy::Overflow::Hidden;style.overflow.y=taffy::Overflow::Hidden;}
         let mut inline_flex=false;let mut overflow=if node.kind==Kind::Svg{1}else{0};let mut opacity=if node.is_disabled(){0.6}else{1.};let mut suppress_outline=false;let mut placeholder_color=None;
@@ -180,6 +194,7 @@ impl Painter {
             if !match state {State::Base=>true,State::Hover=>self.hover.contains(&id) && !node.is_disabled(),State::Active=>self.pressed_nodes.contains(&id) && !node.is_disabled(),State::Focus=>self.focus==Some(id),State::Disabled=>node.is_disabled()} {continue;}
             match utility {
                 Utility::Placeholder(color)=>placeholder_color=Some(color),Utility::Opacity(value)=>opacity=value,Utility::OutlineNone=>{outline=None;suppress_outline=true;},Utility::Cursor(value)=>inherited.cursor=value,Utility::SelectNone=>inherited.selectable=false,Utility::PointerEvents(value)=>inherited.pointer_events=value,Utility::FieldSizingContent=>{if node.kind==Kind::Textarea{style.size.height=auto();}},
+                Utility::BasisZero=>style.flex_basis=percent(0.),
                 Utility::AspectRatio(value)=>style.aspect_ratio=value,Utility::Relative=>style.position=taffy::Position::Relative,Utility::Absolute=>style.position=taffy::Position::Absolute,
                 Utility::Inset(side,value)=>{let value=match value{Length::Pixels(value)=>length(value),Length::Percent(value)=>percent(value),Length::Auto=>auto(),_=>unreachable!("validated inset")};match side{0=>style.inset.top=value,1=>style.inset.right=value,2=>style.inset.bottom=value,_=>style.inset.left=value}},
                 Utility::Row=>style.flex_direction=FlexDirection::Row,
@@ -201,6 +216,8 @@ impl Painter {
                 },
                 Utility::Placement(property,count)=>match property {0=>style.grid_column.start=line(count as i16),1=>style.grid_column.end=span(count),2=>style.grid_row.start=line(count as i16),_=>style.grid_row.end=span(count)},
                 Utility::AutoRowsMin=>style.grid_auto_rows=vec![min_content()],
+                Utility::BorderDashed(value)=>dashed=value,Utility::Margin(side,value)=>match side{0=>style.margin.top=length(value),1=>style.margin.right=length(value),2=>style.margin.bottom=length(value),_=>style.margin.left=length(value)},
+                Utility::Tracking(value)=>inherited.tracking=value,Utility::Balance(value)=>inherited.balance=value,
                 Utility::WhiteSpace(v)=>inherited.whitespace=v,Utility::Underline(v)=>underline=v,Utility::UnderlineOffset(v)=>inherited.underline_offset=v,
                 Utility::FontSize(v)=>inherited.size=v,Utility::Weight(v)=>inherited.weight=v,Utility::DefaultLeading(v)=>inherited.line_height=parley::style::LineHeight::Absolute(v),Utility::Leading(v)=>inherited.leading=Some(v),Utility::FontFamily(v)=>inherited.family=v,
                 Utility::Foreground(v)=>inherited.color=v,Utility::Background(v)=>background=Some(v),
@@ -243,7 +260,7 @@ impl Painter {
             selection_text=visible;
             let id = self
                 .tree
-                .new_leaf_with_context(style, Measure{text:layout.clone(),nowrap:node.kind==Kind::Input})
+                .new_leaf_with_context(style, Measure{text:layout.clone(),nowrap:node.kind==Kind::Input,balance:inherited.balance&&node.editable.is_none()})
                 .map_err(|e| e.to_string())?;
             (Some(layout), id)
         };
@@ -262,7 +279,7 @@ impl Painter {
             color: inherited.color,
             background,
             radius,
-            border,overflow,border_color,ring,align:inherited.align,shadow_width,shadow_color,outline,
+            border,dashed,overflow,border_color,ring,align:inherited.align,shadow_width,shadow_color,outline,
             disabled: node.is_disabled(),
             children,inline,
         })
@@ -323,7 +340,7 @@ impl Painter {
                                 AvailableSpace::MinContent => Some(0.),
                                 _ => None,
                             });
-                            text.text.break_all_lines(if text.nowrap{None}else{width});
+                            if text.nowrap || width.is_none(){text.text.break_all_lines(None);}else{layout_text(&mut text.text,width.unwrap(),false,text.balance);}
                             Size {
                                 width: known.width.unwrap_or(text.text.width()),
                                 height: known.height.unwrap_or(text.text.height()),
@@ -517,7 +534,12 @@ impl Painter {
         if let Some(color)=item.background {scene.fill(Fill::NonZero,transform,paint_color(color),None,&outer);}
         if item.border.iter().any(|v|*v>0.) {
             let mut border=outer.clone();border.extend(inner.elements().iter().copied());
-            scene.fill(Fill::EvenOdd,transform,paint_color(item.border_color),None,&border);
+            if item.dashed {
+                let width=item.border.into_iter().fold(0f64,f64::max);
+                scene.push_layer(Fill::EvenOdd,vello::peniko::BlendMode::default(),1.,transform,&border);
+                scene.stroke(&vello::kurbo::Stroke::new(width*2.).with_dashes(0.,[width*3.,width*3.]),transform,paint_color(item.border_color),None,&outer);
+                scene.pop_layer();
+            }else{scene.fill(Fill::EvenOdd,transform,paint_color(item.border_color),None,&border);}
         }
         if item.overflow!=0 {scene.push_layer(Fill::NonZero,vello::peniko::BlendMode::default(),1.,transform,&inner);let mut clip=inner.clone();clip.apply_affine(transform);self.clip_stack.push(clip);}
         let content_width=(layout.size.width-layout.padding.left-layout.padding.right-layout.border.left-layout.border.right).max(0.);
@@ -539,7 +561,7 @@ impl Painter {
                 }
             }
             if editor.text.raw_text().is_empty() {
-                if let Some(placeholder)=&mut item.text {if item.role==Kind::Input{placeholder.break_all_lines(None);}else{layout_text(placeholder,content_width,false);}paint_text(scene,placeholder,paint_color(item.placeholder_color.unwrap_or_else(||item.color.opacity(0.6))),transform,origin);}
+                if let Some(placeholder)=&mut item.text {if item.role==Kind::Input{placeholder.break_all_lines(None);}else{layout_text(placeholder,content_width,false,false);}paint_text(scene,placeholder,paint_color(item.placeholder_color.unwrap_or_else(||item.color.opacity(0.6))),transform,origin);}
             }else{paint_text(scene,&mut text,paint_color(item.color),transform,offset);}
             if focus==Some(id) && !editor.disabled {
                 if let Some(caret)=editor.text.cursor_geometry(1.){scene.fill(Fill::NonZero,transform,paint_color(item.color),None,&vello::kurbo::Rect::new(caret.x0+offset.0,caret.y0+offset.1,caret.x1+offset.0,caret.y1+offset.1));}
@@ -551,7 +573,7 @@ impl Painter {
             }
             scene.pop_layer();
         }else if let Some(text) = &mut item.text {
-            layout_text(text,content_width,matches!(item.role,Kind::Button|Kind::DisabledButton)&&item.semantics.href.is_empty());
+            layout_text(text,content_width,matches!(item.role,Kind::Button|Kind::DisabledButton)&&item.semantics.href.is_empty(),item.text_style.balance);
             text.align(match item.align {1=>Alignment::Center,2=>Alignment::End,_=>Alignment::Start},AlignmentOptions::default());
             if item.role==Kind::Text && item.text_style.selectable {
                 self.live_readonly.insert(id);let selected=self.readonly.entry(id).or_insert_with(||inline::Selectable::new(item.selection_text.clone(),text.clone(),origin));selected.sync(&item.selection_text,text,origin);
@@ -1297,7 +1319,7 @@ mod presentation_tests {
         let text=item.text.as_mut().unwrap();
         let mut height=None;
         for width in [400.,720.,240.,400.] {
-            layout_text(text,width,true);
+            layout_text(text,width,true,false);
             if let Some(previous)=height { assert_eq!(text.height(),previous); }
             height=Some(text.height());
             for line in text.lines() {
@@ -1305,7 +1327,7 @@ mod presentation_tests {
                 assert!((metrics.offset * 2. + metrics.advance - width).abs()<0.1, "{metrics:?}");
             }
         }
-        layout_text(text,400.,false);
+        layout_text(text,400.,false,false);
         assert_eq!(text.lines().next().unwrap().metrics().offset,0.);
     }
     #[test]
@@ -1550,7 +1572,7 @@ mod label_editable_tests {
    let (_,tree)=painter.scene(&root,width,1.,None).unwrap();
    let bounds=tree.nodes.iter().find(|(id,_)|id.0==3).unwrap().1.bounds().unwrap();
    let item=painter.node(&root,TextStyle::default()).unwrap();let mut text=item.children[0].children[0].text.clone().unwrap();
-   layout_text(&mut text,bounds.width() as f32,false);
+   layout_text(&mut text,bounds.width() as f32,false,false);
    assert!(text.height() as f64<=bounds.height()+0.02,"font={size}, width={width}, label bounds={bounds:?}, painted height={}",text.height());
   }
   }
@@ -1656,5 +1678,24 @@ mod navigation_semantic_tests {
    open.set(is_open).unwrap();disabled.set(is_disabled).unwrap();root.refresh().unwrap();let (_,tree)=painter.scene(&root,400.,1.,None).unwrap();let node=&tree.nodes.iter().find(|(id,_)|id.0==trigger).unwrap().1;
    assert_eq!(node.is_expanded(),Some(is_open));let controlled=if is_open{vec![accesskit::NodeId(panel)]}else{vec![]};assert_eq!(node.controls(),controlled.as_slice());assert_eq!(node.supports_action(accesskit::Action::Expand),!is_open&&!is_disabled);assert_eq!(node.supports_action(accesskit::Action::Collapse),is_open&&!is_disabled);assert_eq!(node.supports_action(accesskit::Action::Click),!is_disabled);assert_eq!(root.children[1].children[0].text,"Draft");
   }
+ }
+}
+
+#[cfg(test)]mod empty_native_tests {
+ use super::*;
+ #[test]fn empty_text_balancing_tracking_and_selection_use_one_layout(){
+  let node=Node::text(vec![crate::TextPart::Literal("Build a workspace for your next project and bring your team together".into())],"w-64 text-sm/relaxed tracking-tight text-balance text-center".into()).unwrap();
+  let mut painter=Painter::new();let item=painter.node(&node,TextStyle::default()).unwrap();assert_eq!(item.text_style.tracking,-0.025);assert!(item.text_style.balance);assert_eq!(item.text_style.leading,Some(1.625));let original=item.text.unwrap();
+  for width in [120.,180.,256.,384.] {let mut ordinary=original.clone();layout_text(&mut ordinary,width,false,false);let mut balanced=original.clone();layout_text(&mut balanced,width,false,true);assert_eq!(balanced.lines().count(),ordinary.lines().count());assert_eq!(balanced.height(),ordinary.height());balanced.align(Alignment::Center,AlignmentOptions::default());for line in balanced.lines(){let m=line.metrics();assert!((m.inline_max_coord-width).abs()<0.01);assert!(m.offset>=0.);}
+   let mut selected=inline::Selectable::new(node.text.clone(),balanced,(0.,0.));selected.all();assert_eq!(selected.selected().as_deref(),Some(node.text.as_str()));
+  }
+ }
+ #[test]fn empty_layout_preserves_margins_borders_theme_sizes_and_icon_overrides(){
+  let icon=Node::svg(vec![],String::new(),"{}").unwrap();let explicit=Node::svg(vec![],"size-6".into(),"{}").unwrap();
+  let media=Node::view(vec![crate::Child::Node(icon),crate::Child::Node(explicit)],"flex-row mb-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4".into()).unwrap();
+  let root=Node::view(vec![crate::Child::Node(media)],"border-dashed border border-r-0 rounded-xl max-w-sm p-6".into()).unwrap();let mut theme=crate::theme::Theme::default();theme.spacing.md=20.;theme.typography.base=20.;let root=root.with_theme(&serde_json::to_string(&theme).unwrap(),"dark").unwrap();
+  let mut painter=Painter::new();let item=painter.node(&root,TextStyle::default()).unwrap();assert!(item.dashed);assert_eq!(item.border,[1.,0.,1.,1.]);let style=painter.tree.style(item.id).unwrap();assert_eq!(style.max_size.width,length(480.));let media=&item.children[0];assert_eq!(painter.tree.style(media.id).unwrap().margin.bottom,length(8.));
+  for (icon,size) in media.children.iter().zip([20.,24.]){assert_eq!(painter.tree.style(icon.id).unwrap().size.width,length(size));assert!(!icon.text_style.pointer_events);}
+  for width in [240.,390.,768.] {painter.scene(&root,width,1.,None).unwrap();}
  }
 }

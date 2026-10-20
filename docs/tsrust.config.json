@@ -92,7 +92,8 @@
       "src/components/ui/separator.tsrx",
       "src/components/ui/aspect-ratio.tsrx",
       "src/components/ui/alert-v2.tsrx",
-      "src/components/ui/badge.tsrx"
+      "src/components/ui/badge.tsrx",
+      "src/components/ui/empty.tsrx"
     ],
     "examples": [
       {
@@ -255,6 +256,30 @@
         "id": "disclosure-semantics",
         "source": "src/examples/disclosure-semantics.tsrx",
         "export": "DisclosureSemanticsExample",
+        "kind": "component"
+      },
+      {
+        "id": "empty-projects",
+        "source": "src/examples/empty-states.tsrx",
+        "export": "EmptyProjects",
+        "kind": "component"
+      },
+      {
+        "id": "empty-media-states",
+        "source": "src/examples/empty-states.tsrx",
+        "export": "EmptyMediaStates",
+        "kind": "component"
+      },
+      {
+        "id": "empty-layouts",
+        "source": "src/examples/empty-states.tsrx",
+        "export": "EmptyLayouts",
+        "kind": "component"
+      },
+      {
+        "id": "empty-theme",
+        "source": "src/examples/empty-states.tsrx",
+        "export": "EmptyTheme",
         "kind": "component"
       }
     ]

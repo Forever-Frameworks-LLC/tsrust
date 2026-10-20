@@ -61,7 +61,7 @@ pub fn configured_theme(path:&Path,mut read:impl FnMut(&Path)->Result<Option<Str
 pub fn utility_theme_paths(class:&str)->Vec<Vec<String>> {style::theme_paths(class)}
 
 pub const RUNTIME_ABI:&str="ui-application-1";
-pub const COMPILER_API:u64=9;
+pub const COMPILER_API:u64=10;
 pub fn supports_compiler_api(value:u64)->bool {(1..=COMPILER_API).contains(&value)}
 /// Installed compatibility pins apply during checks/builds, not only when adding source.
 pub fn validate_lock(root:&Path,config:&Config,read:&mut impl FnMut(&Path)->Result<Option<String>,String>)->Result<(),String> {

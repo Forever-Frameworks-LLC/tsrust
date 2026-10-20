@@ -1,11 +1,13 @@
 //! Edge properties expand before merging, so source order remains property order.
 use super::{Theme,Utility};
 pub(super) fn tokens()->Vec<String> {
- let mut out=vec!["overflow-hidden".into(),"overflow-visible".into(),"overflow-auto".into()];
+ let mut out=vec!["border-dashed".into(),"border-solid".into(),"overflow-hidden".into(),"overflow-visible".into(),"overflow-auto".into()];
  for corner in ["","t-","r-","b-","l-","tl-","tr-","br-","bl-"] {for size in ["none","sm","lg","xl","2xl","3xl","4xl"] {out.push(format!("rounded-{corner}{size}"));}if !corner.is_empty(){out.push(format!("rounded-{}",corner.trim_end_matches('-')));}}
  for edge in ["","t","r","b","l"] {let base=if edge.is_empty(){"border".to_owned()}else{format!("border-{edge}")};out.extend([base.clone(),format!("{base}-0"),format!("{base}-2")]);}out
 }
 pub(super) fn resolve(token:&str,theme:&Theme)->Option<Vec<Utility>> {
+ if token=="border-dashed"{return Some(vec![Utility::BorderDashed(true)]);}
+ if token=="border-solid"{return Some(vec![Utility::BorderDashed(false)]);}
  if token=="overflow-hidden"{return Some(vec![Utility::Overflow(1)]);}
  if token=="overflow-auto"{return Some(vec![Utility::Overflow(2)]);}
  if token=="overflow-visible"{return Some(vec![Utility::Overflow(0)]);}

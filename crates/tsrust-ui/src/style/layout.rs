@@ -28,12 +28,12 @@ pub(super) fn aspect(token:&str)->Option<Option<f32>> {
     (ratio.is_finite() && ratio>0.).then_some(Some(ratio))
 }
 pub(super) fn tokens()->Vec<String> {
-    let mut values=["relative","absolute","aspect-auto","aspect-square","aspect-video","aspect-[16/9]","aspect-[3/4]","aspect-[1.5]","flex","inline-flex","grid","auto-rows-min","flex-wrap","flex-nowrap","grow","grow-0","shrink","shrink-0"].into_iter().map(str::to_owned).collect::<Vec<_>>();
+    let mut values=["flex-1","max-w-sm","relative","absolute","aspect-auto","aspect-square","aspect-video","aspect-[16/9]","aspect-[3/4]","aspect-[1.5]","flex","inline-flex","grid","auto-rows-min","flex-wrap","flex-nowrap","grow","grow-0","shrink","shrink-0"].into_iter().map(str::to_owned).collect::<Vec<_>>();
     for prefix in ["inset","inset-x","inset-y","top","right","bottom","left"] {
         for size in SPACING.iter().copied().chain(["full","1/2","1/3","2/3","1/4","3/4"]) {values.push(format!("{prefix}-{size}"));values.push(format!("-{prefix}-{size}"));}
         values.push(format!("{prefix}-auto"));
     }
-    for prefix in ["p","px","py","pt","pr","pb","pl","gap","gap-x","gap-y"] {
+    for prefix in ["m","mx","my","mt","mr","mb","ml","p","px","py","pt","pr","pb","pl","gap","gap-x","gap-y"] {
         for size in SPACING {values.push(format!("{prefix}-{size}"));}
     }
     for prefix in ["w","h","min-w","min-h","max-w","max-h","size"] {
@@ -55,6 +55,9 @@ pub(super) fn tokens()->Vec<String> {
     values
 }
 pub(super) fn resolve(token:&str,theme:&Theme)->Option<Vec<Utility>> {
+    if token=="flex-1"{return Some(vec![Utility::Grow(1.),Utility::Shrink(1.),Utility::BasisZero]);}
+    if token=="max-w-sm"{return Some(vec![Utility::Dimension(4,Length::Pixels(theme.typography.base as f32*24.))]);}
+    for (prefix,sides) in [("m-",&[0,1,2,3][..]),("mx-",&[1,3][..]),("my-",&[0,2][..]),("mt-",&[0][..]),("mr-",&[1][..]),("mb-",&[2][..]),("ml-",&[3][..])]{if let Some(size)=token.strip_prefix(prefix){return Some(sides.iter().map(|&side|Utility::Margin(side,spacing(size,theme))).collect());}}
     if let Some(ratio)=aspect(token){return Some(vec![Utility::AspectRatio(ratio)]);}
     if let Some(values)=offset(token,theme){return Some(values);}
     let simple=match token {
@@ -95,7 +98,7 @@ fn offset(token:&str,theme:&Theme)->Option<Vec<Utility>> {
 }
 
 pub(super) fn theme_keys(token:&str)->Vec<&'static str> {
-    for prefix in ["gap-x-","gap-y-","gap-","min-w-","min-h-","max-w-","max-h-","size-","w-","h-","px-","py-","pt-","pr-","pb-","pl-","p-"] {
+    for prefix in ["m-","mx-","my-","mt-","mr-","mb-","ml-","gap-x-","gap-y-","gap-","min-w-","min-h-","max-w-","max-h-","size-","w-","h-","px-","py-","pt-","pr-","pb-","pl-","p-"] {
         if let Some(size)=token.strip_prefix(prefix) {return match size {"1"|"2"=>vec!["sm"],"3"=>vec!["sm","md"],"6"=>vec!["lg"],"0"|"px"|"auto"|"none"|"fit"|"full"|"screen"|"1/2"|"1/3"|"2/3"|"1/4"|"3/4"=>vec![],_=>vec!["md"]};}
     }
     vec![]

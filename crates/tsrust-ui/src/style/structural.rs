@@ -44,20 +44,34 @@ impl<'a> Predicate<'a> {
  }
 
 }
-pub(super) struct Parts<'a> {pub state:State,pub token:&'a str,pub placeholder:bool,predicates:Vec<Predicate<'a>>}
+#[derive(Clone,Copy)]
+enum Descendant {Svg,DefaultSvg,DirectLink}
+impl Descendant {
+ fn css(self)->&'static str{match self{Self::Svg=>" :where(svg)",Self::DefaultSvg=>" :where(svg:not([class*='size-']))",Self::DirectLink=>" > :where(a)"}}
+ #[cfg(any(test,feature="native"))]
+ fn matches(self,node:&Node,direct:bool)->bool{match self{Self::Svg=>node.kind==super::super::Kind::Svg,Self::DefaultSvg=>node.kind==super::super::Kind::Svg&&!node.class_name.contains("size-"),Self::DirectLink=>direct&&node.tag()=="a"}}
+}
+pub(super) struct Parts<'a> {pub state:State,pub token:&'a str,pub placeholder:bool,descendant:Option<Descendant>,predicates:Vec<Predicate<'a>>}
 pub(super) fn parts(class:&str)->Result<Parts<'_>,String> {
  let mut start=0;let mut depth=0usize;let mut prefixes=Vec::new();
  for (at,ch) in class.char_indices(){match ch {'['|'('=>depth+=1,']'|')'=>{if depth==0{return Err(format!("Unbalanced UI utility: {class}"));}depth-=1;},':' if depth==0=>{prefixes.push(&class[start..at]);start=at+1;},_=>{}}}
  if depth!=0{return Err(format!("Unbalanced UI utility: {class}"));}
- let mut state=State::Base;let mut predicates=Vec::new();let mut placeholder=false;
+ let mut state=State::Base;let mut predicates=Vec::new();let mut placeholder=false;let mut descendant=None;
  for prefix in prefixes {
+  let target=match prefix {"[&_svg]"=>Some(Descendant::Svg),"[&_svg:not([class*='size-'])]"=>Some(Descendant::DefaultSvg),"[&>a]"|"[&>a:hover]"=>Some(Descendant::DirectLink),_=>None};
+  if let Some(target)=target {if descendant.is_some(){return Err("Compound descendant selectors are unsupported".into());}descendant=Some(target);if prefix=="[&>a:hover]"{if state!=State::Base{return Err("Compound UI interaction states are unsupported".into());}state=State::Hover;}continue;}
   let interaction=match prefix {"hover"=>Some(State::Hover),"focus"|"focus-visible"=>Some(State::Focus),"active"=>Some(State::Active),"disabled"=>Some(State::Disabled),_=>None};
   if prefix=="placeholder" {if placeholder{return Err("Duplicate placeholder variant".into());}placeholder=true;}
   else if let Some(value)=interaction {if state!=State::Base{return Err("Compound UI interaction states are unsupported".into());}state=value;}
   else if let Some(value)=Predicate::parse(prefix){predicates.push(value);}
   else{return Err(format!("Unsupported UI state or selector: {prefix}"));}
  }
- Ok(Parts{state,token:&class[start..],placeholder,predicates})
+ let token=&class[start..];
+ if let Some(target)=descendant {
+  let allowed=match target {Descendant::Svg|Descendant::DefaultSvg=>matches!(token,"pointer-events-none"|"pointer-events-auto"|"shrink"|"shrink-0")||token.strip_prefix("size-").is_some_and(|size|super::layout::SPACING.contains(&size)),Descendant::DirectLink=>matches!(token,"underline"|"no-underline")||token.starts_with("underline-offset-")||token.starts_with("text-")&&(super::color_token(token)||super::opacity_token(token).is_some())};
+  if !allowed||placeholder{return Err("SVG descendant selectors support pointer events, shrink and numeric size; direct Link selectors support decoration and text colors".into());}
+ }
+ Ok(Parts{state,token,placeholder,descendant,predicates})
 }
 pub(super) fn marker(token:&str)->bool {token.strip_prefix("group/").is_some_and(name)}
 #[cfg(test)]
@@ -71,13 +85,15 @@ pub(crate) fn scoped(node:&Node,ancestors:&[&Node],theme:&Theme,mode:&str,inheri
 #[cfg(any(test,feature="native"))]
 pub(crate) fn scoped_at_width(node:&Node,ancestors:&[&Node],theme:&Theme,mode:&str,inherited:&std::collections::BTreeMap<String,f32>,width:f32)->(Vec<(State,Utility)>,std::collections::BTreeMap<String,f32>) {
  let mut variables=inherited.clone();let mut filtered=Vec::new();
- for class in node.class_name.split_whitespace(){
+ let sources=ancestors.iter().enumerate().map(|(index,parent)|(*parent,&ancestors[..index],Some(index+1==ancestors.len()))).chain(std::iter::once((node,ancestors,None)));
+ for (source,parents,direct) in sources {for class in source.class_name.split_whitespace(){
   let parsed=parts(class).expect("validated utility");
-  if !parsed.predicates.iter().all(|p|match p {Predicate::Dark=>mode=="dark",Predicate::MinWidth(min)=>width>=*min as f32,_=>p.matches(node,ancestors)}){continue;}
+  match (direct,parsed.descendant){(None,None)=>{},(Some(direct),Some(target))if target.matches(node,direct)=>{},_=>continue}
+  if !parsed.predicates.iter().all(|p|match p {Predicate::Dark=>mode=="dark",Predicate::MinWidth(min)=>width>=*min as f32,_=>p.matches(source,parents)}){continue;}
   if let Some((name,scale))=super::custom_spacing::declaration(parsed.token){variables.insert(name.into(),super::layout::spacing(scale,theme));}
   let token=if parsed.placeholder{format!("placeholder:{}",parsed.token)}else{parsed.token.to_owned()};
   filtered.push(match parsed.state {State::Base=>token,state=>format!("{}:{token}",state_name(state))});
- }
+ }}
  (super::resolved_with_variables(&filtered.join(" "),theme,mode,&variables),variables)
 }
 #[cfg(any(test,feature="native"))]
@@ -91,11 +107,12 @@ pub(super) fn css(classes:&str,theme:&Theme,mode:&str,id:u64,scope:&str)->String
    if parsed.predicates.iter().any(|p|matches!(p,Predicate::Dark)) && mode!="dark"{continue;}
    let media=parsed.predicates.iter().filter_map(|p|if let Predicate::MinWidth(width)=p{Some(*width)}else{None}).max();
    let token=if parsed.placeholder{format!("placeholder:{}",parsed.token)}else{parsed.token.to_owned()};
-   let declarations=semantic_color(parsed.token,parsed.placeholder).or_else(||super::custom_spacing::css(parsed.token,theme)).unwrap_or_else(||super::resolved(&token,theme,mode).into_iter().map(|(_,v)|v.css()).collect::<Vec<_>>().join(";"));
+   let declarations=descendant_size(&parsed).or_else(||semantic_color(parsed.token,parsed.placeholder)).or_else(||super::custom_spacing::css(parsed.token,theme)).unwrap_or_else(||super::resolved(&token,theme,mode).into_iter().map(|(_,v)|v.css()).collect::<Vec<_>>().join(";"));
    if declarations.is_empty(){continue;}
    let mut after=String::new();
    if parsed.token.starts_with("whitespace-"){after.push_str(":where(:not(input):not(textarea))");}
    for predicate in parsed.predicates {after.push_str(&predicate.selector(&scope));}
+   if let Some(target)=parsed.descendant{after.push_str(target.css());}
    after.push_str(match state {State::Base=>"",State::Hover=>":where(:hover:not(:disabled))",State::Focus=>":where(:focus-visible)",State::Active=>":where(:active:not(:disabled))",State::Disabled=>":where(:disabled)"});
    if parsed.placeholder{after.push_str("::placeholder");}
    if let Some(width)=media{output.push_str(&format!("@media(min-width:{width}px){{"));}
@@ -104,6 +121,11 @@ pub(super) fn css(classes:&str,theme:&Theme,mode:&str,id:u64,scope:&str)->String
   }
  }
  output
+}
+fn descendant_size(parsed:&Parts<'_>)->Option<String>{
+ parsed.descendant?;let size=parsed.token.strip_prefix("size-")?;
+ let length=match size {"px"=>"1px".into(),"2"=>"var(--ui-spacing-sm)".into(),"4"=>"var(--ui-spacing-md)".into(),"6"=>"var(--ui-spacing-lg)".into(),"1"=>"calc(var(--ui-spacing-sm)/2)".into(),"3"=>"calc((var(--ui-spacing-sm) + var(--ui-spacing-md))/2)".into(),_=>format!("calc(var(--ui-spacing-md)/4*{size})")};
+ Some(format!("width:{length};height:{length}"))
 }
 // Resolve semantic colors in the enclosing live scope, including late-mounted content.
 fn semantic_color(token:&str,placeholder:bool)->Option<String>{

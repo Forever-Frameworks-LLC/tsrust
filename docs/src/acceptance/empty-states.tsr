@@ -1,0 +1,22 @@
+import { verifyEmptyComposition } from './empty-composition';
+import { document } from 'std:ui';
+import { strictEqual } from 'std:testing';
+import { EmptyProjects, EmptyMediaStates, EmptyLayouts, EmptyTheme } from '../examples/empty-states';
+
+function main() {
+  const projects = document(EmptyProjects(), 'Projects');
+  strictEqual(projects.includes('No projects yet'), true);
+  strictEqual(projects.includes('data-slot="empty-header"'), true);
+  strictEqual(projects.includes('data-slot="empty-icon"'), true);
+  strictEqual(projects.includes('data-slot="empty-title"'), true);
+  strictEqual(projects.includes('data-slot="empty-description"'), true);
+  strictEqual(projects.includes('data-slot="empty-content"'), true);
+  strictEqual(projects.includes('border-style:dashed'), true);
+  const media = document(EmptyMediaStates(), 'Media');
+  strictEqual(media.includes('data-variant="icon"'), true);
+  strictEqual(media.includes('text-wrap-style:balance'), true);
+  strictEqual(document(EmptyLayouts(), 'Layouts').includes('grid-template-columns'), true);
+  strictEqual(document(EmptyTheme(), 'Theme').includes('font-family:serif'), true);
+  verifyEmptyComposition();
+  console.log('Empty component passed');
+}
