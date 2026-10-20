@@ -68,6 +68,15 @@ fn sync_element(node:&Node,document:&web_sys::Document,all:&mut std::collections
     if node.press.is_some()||node.copy.is_some(){element.set_attribute("data-tsrust-press","")?;}
     all.insert(id,element.clone());element};
 
+    if node.class_binding.is_some(){
+        let classes=format!("ui {}",node.class_name);
+        if element.get_attribute("class").as_deref()!=Some(classes.as_str()){element.set_attribute("class",&classes)?;}
+    }
+    if node.variant_binding.is_some(){
+        let variant=&node.semantics.variant;
+        if variant.is_empty(){element.remove_attribute("data-variant")?;}
+        else if element.get_attribute("data-variant").as_deref()!=Some(variant.as_str()){element.set_attribute("data-variant",variant)?;}
+    }
     if !node.semantics.href.is_empty(){
         if let Some(current)=super::navigation::current_kind(&node.semantics.href){element.set_attribute("aria-current",current)?;}else{element.remove_attribute("aria-current")?;}
     }

@@ -24,7 +24,7 @@ export function Page(): Node {
     <View className="flex flex-col gap-4 p-6">
       <Text as="h1" className="text-xl">Reactive props and composition</Text>
       <Notice tone={active.get() ? 'destructive' : 'default'} className={active.get() ? 'bg-muted' : 'bg-background'}>
-        <Text>Count: {count.get()} / doubled: {doubled.get()}</Text>
+        <Text data-variant={active.get() ? '' : 'default'}>Count: {count.get()} / doubled: {doubled.get()}</Text>
       </Notice>
       <Alert variant={active.get() ? 'destructive' : 'default'} className={active.get() ? 'bg-muted' : 'bg-card'}
         render={(props) => (<View {...props} as="section" data-slot="reactive-alert" />)}>

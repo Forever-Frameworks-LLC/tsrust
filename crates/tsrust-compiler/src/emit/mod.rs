@@ -2430,7 +2430,7 @@ impl Emitter<'_> {
                 }).collect::<Vec<_>>().join(",");
                 let backing = match definition.kind { crate::syntax::EnumKind::Number => "f64", crate::syntax::EnumKind::String => "&'static str" };
                 if !definition.members.is_empty() { output.push_str("#[repr(u32)]\n"); }
-                let _ = writeln!(output, "#[derive(Clone, Copy, Debug)] enum Enum{index} {{ {variants} }} impl Enum{index} {{ fn tsr_value(self) -> {backing} {{ match self {{ {arms} }} }} }} impl PartialEq for Enum{index} {{ fn eq(&self, other: &Self) -> bool {{ self.tsr_value() == other.tsr_value() }} }} impl PartialOrd for Enum{index} {{ fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {{ self.tsr_value().partial_cmp(&other.tsr_value()) }} }}");
+                let _ = writeln!(output, "#[derive(Clone, Copy, Debug)] enum Enum{index} {{ {variants} }} impl Enum{index} {{ fn tsr_value(self) -> {backing} {{ match self {{ {arms} }} }} }} impl PartialEq for Enum{index} {{ fn eq(&self, other: &Self) -> bool {{ self.tsr_value() == other.tsr_value() }} }} impl PartialOrd for Enum{index} {{ fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {{ std::cmp::PartialOrd::partial_cmp(&self.tsr_value(),&other.tsr_value()) }} }}");
             }
             if has_heap && let Some(definition)=&record.enum_definition {
                 let comparison=match definition.kind { crate::syntax::EnumKind::Number=>"TsrOrderedNumber::new(self.tsr_value()).cmp(&TsrOrderedNumber::new(other.tsr_value()))",crate::syntax::EnumKind::String=>"self.tsr_value().cmp(other.tsr_value())" };
