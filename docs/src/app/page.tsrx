@@ -3,6 +3,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Landing } from '../components/docs/landing';
 import { Markdown, docsPath, routePath } from '../components/docs/markdown';
+import { apiAnchor } from '../components/docs/api-reference';
 import { loadNavigation, loadSearch, loadPage, DocSearchEntry } from '../../target/docs-content/catalog';
 import config from '../../tsrust.config.json';
 
@@ -113,16 +114,22 @@ function Article(route: string): Node {
   let contents: Child[] = [];
   for (const item of page.document.headings) {
     if (item.level > 1) {
-      contents.push(<Link href={clone(target) + '#' + page.metadata.id + '-' + item.anchor} className="text-xs py-2 text-muted-foreground hover:text-foreground">{clone(item.title)}</Link>);
+      contents.push(<Link href={clone(target) + '#' + page.metadata.id + '-' + item.anchor} className="text-xs py-2 text-muted-foreground hover:text-primary aria-current:text-primary">{clone(item.title)}</Link>);
     }
   }
+
+  for (const declaration of catalog.api) {
+    contents.push(<Link href={clone(target) + '#' + apiAnchor(page.metadata.id,declaration.name)} className="text-xs py-2 text-muted-foreground hover:text-primary aria-current:text-primary">{clone(declaration.name)}</Link>);
+  }
+
+  const hasContents = contents.length !== 0;
 
   return (
     <View className="grow min-h-0 flex-col lg:flex-row">
       <View id={page.metadata.id + '-article'} data-slot="route-page" as="main" aria-label="Documentation article" tabIndex={0} className="grow min-w-0 overflow-auto p-6 md:p-8">
         <View className="max-w-192 gap-6"><Text className="text-xs text-muted-foreground">DOCUMENTATION / {groupLabel(page.metadata.group)}</Text>{Markdown(page,catalog)}</View>
       </View>
-      <View as="nav" aria-label="On this page" tabIndex={0} className="h-24 lg:h-full w-full lg:w-48 shrink-0 overflow-auto border-l p-4 gap-2"><Text className="text-xs font-semibold pt-6 pb-2">ON THIS PAGE</Text><View children={contents}/></View>
+      <View hidden={!hasContents} as="nav" aria-label="On this page" tabIndex={0} className="h-24 lg:h-full w-full lg:w-48 shrink-0 overflow-auto border-l p-4 gap-2"><Text className="text-xs font-semibold pt-6 pb-2">ON THIS PAGE</Text><View children={contents}/></View>
     </View>
   );
 }
@@ -167,7 +174,8 @@ export function Page(): Node {
     sections.push(<Link href={first} className="shrink-0 text-xs md:text-sm px-3 py-3 rounded hover:bg-muted focus:ring aria-current:text-primary aria-current:bg-primary/10">{groupLabel(group)}</Link>);
     const selectedGroup = clone(group);
     const label = groupLabel(group);
-    navigation.push(<View hidden={query.get().trim().length !== 0 || activeGroup(path.get()) !== selectedGroup} className="grow min-h-0 gap-1"><Text className="shrink-0 text-xs font-semibold pt-6 pb-2 px-3 text-muted-foreground">{label}</Text><View role="region" aria-label={clone(label) + ' pages'} tabIndex={0} className="grow min-h-0 overflow-auto px-3 pb-6" children={entries}/></View>);
+    const paneLabel = clone(label) + ' pages';
+    navigation.push(<View hidden={query.get().trim().length !== 0 || activeGroup(path.get()) !== selectedGroup} className="grow min-h-0 gap-1"><Text className="shrink-0 text-xs font-semibold pt-6 pb-2 px-3 text-muted-foreground">{label}</Text><View role="region" aria-label={paneLabel} tabIndex={0} className="grow min-h-0 overflow-auto px-3 pb-6" children={entries}/></View>);
   }
 
   for (const page of pages) {

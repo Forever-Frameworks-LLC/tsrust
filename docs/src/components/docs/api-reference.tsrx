@@ -2,6 +2,10 @@ import { View, Text, Node, Child } from 'std:ui';
 import { DocPage, DocApi, DocCatalog, DocDocument } from '../../../target/docs-content/catalog';
 import { MarkdownContent } from './markdown-content';
 
+export function apiAnchor(page: ReadOnly<string>, name: ReadOnly<string>): string {
+  return page + '-api-' + name.split(':').join('-').split('.').join('-');
+}
+
 function componentName(name: string): string {
   let result = '';
   for (const part of name.split('-')) {
@@ -74,7 +78,7 @@ export function ApiReference(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatal
       fields.push(<View className="border-t py-4 gap-2"><Text as="h4" className="font-mono text-sm font-semibold">{clone(field.name)}{field.optional ? '?' : ''}</Text><Text as="code" className="font-mono text-xs text-muted-foreground">{clone(field.signature)}</Text>{description(field.document,page,page.metadata.id+'-'+declaration.name.split('.').join('-').split(':').join('-')+'-'+field.name,catalog)}</View>);
     }
 
-    entries.push(<View className="border-t pt-6 gap-4"><Text as="h3" className="font-semibold text-xl">{clone(declaration.name)}</Text><Text as="code" className="font-mono text-sm">{clone(declaration.signature)}</Text>{description(declaration.document,page,page.metadata.id+'-'+declaration.name.split('.').join('-').split(':').join('-'),catalog)}<View children={fields}/></View>);
+    entries.push(<View className="border-t pt-6 gap-4"><Text id={apiAnchor(page.metadata.id,declaration.name)} as="h3" className="font-semibold text-xl">{clone(declaration.name)}</Text><Text as="code" className="font-mono text-sm">{clone(declaration.signature)}</Text>{description(declaration.document,page,page.metadata.id+'-'+declaration.name.split('.').join('-').split(':').join('-'),catalog)}<View children={fields}/></View>);
   }
 
   return (<View className="gap-6" children={entries}/>);
