@@ -1,7 +1,9 @@
 # Reactive props and replacement composition
 
-Implementation in progress; no acceptance claim. Continue from `41a8ae7f` without
-another approval. Preserve the accepted ownership, cancellation and cleanup rules.
+The scoped scalar-prop and replacement section passes focused acceptance.
+See [acceptance](../milestones/ui-reactive-props-and-composition.md). Preserve the
+accepted ownership, cancellation and cleanup rules. Full context, event/ref merging
+and focus/overlay composition remain required work.
 
 ## Contract
 
@@ -21,19 +23,27 @@ Replacement code must forward the behavior it needs onto its returned control.
 
 ## Complete-section acceptance
 
-- [ ] Compiler/runtime values, precise diagnostics and checked generic alias bases.
-- [ ] Intrinsic live classes/variant metadata, validation and source evaluation order.
-- [ ] Replacement composition, callbacks, children and once-only cleanup.
-- [ ] LSP completion/hover/signatures/diagnostics for the same contracts.
-- [ ] Editable local examples and docs; existing component sources still compile.
-- [ ] Independent Node-after-tsc transition oracle and native/browser observers.
-- [ ] Batch focused acceptance, refresh preview/editor and verify SQLite evidence.
+- [x] Compiler/runtime values, precise diagnostics and checked generic alias bases.
+- [x] Intrinsic live classes/variant metadata, validation and source evaluation order.
+- [x] Replacement composition, callbacks, children and once-only cleanup.
+- [x] LSP completion/hover/signatures/diagnostics for the same contracts.
+- [x] Editable local examples and docs; existing component sources still compile.
+- [x] Independent Node-after-tsc transition oracle and native/browser observers.
+- [x] Batch focused acceptance, refresh preview/editor and verify SQLite evidence.
 
 Compiler/native witnesses pass for typed values, normal props, replacement factories,
-source order and owning callback forwarding. Runtime witnesses pass for live styles,
-variant metadata, exact/nullable values, invalid updates, stable nodes and independent
-release. LSP/browser acceptance and refreshed executable consumers remain pending.
-The matched TypeScript/browser transitions are untimed; no measurement is claimed.
+source order and owning callback forwarding. Runtime witnesses independently pass
+for live styles, variant metadata, exact/nullable values, invalid updates, stable
+nodes and evaluator release. The installed LSP and active editor are refreshed.
+Optimized Wasm and the real dev guide match the independent TypeScript transitions,
+including actual CSS and attribute removal. The formatted native guide builds and
+passes its bounded startup observation. This is not OS gesture/pixel acceptance.
+The matched transitions are untimed; no performance measurement is claimed.
+
+Editable Alert version 2 applies the same contract. Offline installation preserves
+earlier source/imports and installs a versioned file; compiler API 4 guards its
+requirements. SVG icons, text balancing and full Base UI event/ref composition
+remain unsupported. The preview remains the actual port-4317 dev watcher.
 
 The implementation keeps generic callable/data union restrictions intact:
 `computed` accepts an owned getter; `useProp` adapts a scalar or `Reactive<T>`

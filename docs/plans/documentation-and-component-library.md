@@ -120,6 +120,14 @@ streaming MIME and exact decoded bytes. See [startup acceptance](../milestones/u
 Cold transfer still precedes Wasm interactivity; HTML-first hydration and actual
 executable splitting remain required web-foundation work, with paired semantics.
 
+The scalar reactive-prop and replacement section passes focused paired acceptance
+through `274a014e`; see [acceptance](../milestones/ui-reactive-props-and-composition.md).
+Alert version 2 applies the public authoring contract and preserves older source on
+upgrade. This closes the scoped scalar/class/variant section, not the complete
+composition or primitive-metadata contract. Context, full event/ref merging, live
+primitive metadata beyond the declared bindings, focus/disclosure/overlays and the
+remaining inventory are required work. The dev preview and active editor are updated.
+
 ## Project and content layout
 
 Use `docs/` as a separate runnable Tsrust project. Keep the standalone

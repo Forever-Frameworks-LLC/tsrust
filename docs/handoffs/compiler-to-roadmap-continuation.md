@@ -1,15 +1,22 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
-Current section — 2026-10-20: the scoped Alert/parent-positioning implementation
-passes focused compiler, installed-editor, native geometry, actual browser and
-native app startup acceptance. See [acceptance](../milestones/ui-alert-and-positioning.md).
-Five Alert galleries and the positioning gallery are live in the actual port 4317
-dev preview. There are 161 destinations, 19 checked examples and 946 API declarations.
-Alert remains partial; the full 64-component, three-recipe and 30-block inventory
-is still required. Continue reactive custom props/base composition and
-focus/disclosure/overlays before dependent components, charts, theme editing and
-blocks. Build latency and cold editor scheduling remain unresolved. Reuse accepted
-reading, resource, SQL and runtime evidence; no additional go-ahead is needed.
+Current section — 2026-10-20: scalar reactive custom props, derived getters and
+View/Button replacement composition pass focused compiler/runtime, installed-LSP,
+actual browser and native startup acceptance. See
+[acceptance](../milestones/ui-reactive-props-and-composition.md). Editable Alert
+version 2 uses live variants/classes and replacement rendering; the offline
+installer preserves earlier source/imports. The actual port-4317 dev guide at
+`/docs/ui/foundations/reactive-props` demonstrates both custom props and Alert.
+There are 162 destinations, 20 checked examples and 961 API declarations.
+
+The CLI is current at `274a014e`; the public/editor contract is current in the
+installed and active `a485dca3` LSP. Settings bytes and modification time are exact.
+Browser metadata synchronization and string-enum ordering repairs pass affected
+checks. Full context, event/ref merging, focus/disclosure/overlays and the remaining
+64-component, three-recipe and 30-block inventory are still required. Continue
+independent components and those foundations before dependent charts/themes/blocks.
+Build latency and cold editor scheduling remain unresolved. Reuse accepted reading,
+resource, SQL and runtime evidence; no additional go-ahead is needed.
 
 Current owner direction (2026-10-19): follow the
 [documentation application and complete component-library plan](../plans/documentation-and-component-library.md).
