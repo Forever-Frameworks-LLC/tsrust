@@ -1,0 +1,16 @@
+import { document, useId } from 'std:ui';
+import { strictEqual } from 'std:testing';
+import { DisclosureSemanticsExample } from '../examples/disclosure-semantics';
+
+function main() {
+  const first = useId();
+  const second = useId();
+  strictEqual(first === second, false);
+  const html = document(DisclosureSemanticsExample(), 'Disclosures');
+  strictEqual(html.includes('aria-expanded="false"'), true);
+  strictEqual(html.includes('aria-controls='), false);
+  strictEqual(html.includes('Project settings'), true);
+  strictEqual(html.includes('Workspace settings'), true);
+  strictEqual(html.includes('disabled'), true);
+  console.log('Disclosure semantics passed');
+}

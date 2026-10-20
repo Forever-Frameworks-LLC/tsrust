@@ -96,6 +96,7 @@ pub(crate) const RUN: NativeBinding = NativeBinding {
     ..TEXT
 };
 
+pub(crate) const USE_ID:NativeBinding=NativeBinding{name:"useId",parameters:&[],result:NativeType::Structured(&Signature::Result(&Signature::String,&ERROR)),backend:NativeBackend::Bundled{symbol:"tsrust_ui_use_id"},..TEXT};
 pub(crate) const LOCATION:NativeBinding=NativeBinding{name:"location",parameters:&[],result:NativeType::Structured(&Signature::Result(&SIGNAL_STRING,&ERROR)),backend:NativeBackend::Bundled{symbol:"tsrust_ui_location"},..TEXT};
 pub(crate) const NAVIGATE:NativeBinding=NativeBinding{name:"navigate",parameters:&[parameter("path",NativeType::String,Mode::Read)],result:NativeType::Structured(&Signature::Result(&Signature::Void,&ERROR)),backend:NativeBackend::Bundled{symbol:"tsrust_ui_navigate"},..TEXT};
 pub(crate) const TRAVERSE:NativeBinding=NativeBinding{name:"traverse",parameters:&[parameter("forward",NativeType::Boolean,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_traverse"},..NAVIGATE};
@@ -150,6 +151,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("pub mod clipboard;", &format!("pub mod clipboard {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/clipboard.rs").replace("crate::Node", "super::Node")))
         .replace("pub mod navigation;", &format!("pub mod navigation {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/navigation.rs")))
         .replace("mod vector;",&format!("mod vector {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/vector.rs").replace("use crate::{", "use super::{").replace("crate::theme::", "super::theme::")))
+        .replace("mod identity;",&format!("mod identity {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/identity.rs")))
         .replace("mod computed;",&format!("mod computed {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/computed.rs")))
         .replace("mod state;", &format!("mod state {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/state.rs")))
         .replace("#[cfg(test)]\nmod application_tests;", "")

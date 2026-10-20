@@ -6,6 +6,7 @@ use crate::{
 };
 pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> String {
     if matches!(binding.name,"computed"|"computedGet"|"bindSemantics"|"bindClass"|"bindVariant"|"bindPath"|"visibility"|"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"|"route"){return String::new();}
+    if binding.name=="useId"{return result_bridge(program,binding,String::new(),"tsrust_native_ui::use_id().map(String::Owned)".into());}
     let node = program
         .records
         .iter()
@@ -53,6 +54,11 @@ pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> Strin
         "run" => (format!("node:Record{node},title:&String,options:&String"),"tsrust_native_ui::run_configured(node,title.as_ref().to_owned(),options.as_ref())".into()),
         _=>unreachable!(),
     };
+    result_bridge(program,binding,parameters,call)
+}
+
+fn result_bridge(program:&CheckedProgram,binding:&NativeBinding,parameters:String,call:String)->String{
+    let NativeBackend::Bundled {symbol}=binding.backend;
     let NativeType::Structured(signature) = binding.result else {
         unreachable!()
     };

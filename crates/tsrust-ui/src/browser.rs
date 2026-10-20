@@ -36,8 +36,8 @@ fn order_children(parent:&Element,children:&[Element])->Result<(),JsValue> {
     while let Some(node)=next{next=node.next_sibling();parent.remove_child(&node)?;}
     Ok(())
 }
-fn semantic_attributes(node:&Node)->[(&'static str,&str);11]{
-    [("href",&node.semantics.href),("role",&node.semantics.role),("aria-label",&node.semantics.label),("id",&node.semantics.id),("data-slot",&node.semantics.slot),("data-size",&node.semantics.size),("data-variant",&node.semantics.variant),("for",&node.semantics.html_for),("aria-describedby",&node.semantics.described_by),("aria-invalid",&node.semantics.invalid),("aria-hidden",if node.semantics.hidden{"true"}else{""})]
+fn semantic_attributes(node:&Node)->[(&'static str,&str);13]{
+    [("href",&node.semantics.href),("role",&node.semantics.role),("aria-label",&node.semantics.label),("id",&node.semantics.id),("data-slot",&node.semantics.slot),("data-size",&node.semantics.size),("data-variant",&node.semantics.variant),("for",&node.semantics.html_for),("aria-describedby",&node.semantics.described_by),("aria-invalid",&node.semantics.invalid),("aria-expanded",&node.semantics.expanded),("aria-controls",&node.semantics.controls),("aria-hidden",if node.semantics.hidden{"true"}else{""})]
 }
 fn sync_element(node:&Node,document:&web_sys::Document,all:&mut std::collections::BTreeMap<u64,Element>,composing:&mut std::collections::BTreeMap<u64,String>,theme:&super::theme::Theme,mode:&str)->Result<Element,JsValue> {
     let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));

@@ -21,7 +21,7 @@ fn element(node:&Node,out:&mut String,theme:&crate::theme::Theme,mode:&str) {
  let tag=node.tag();
  out.push('<');out.push_str(tag);
  if let Some(vector)=&node.vector{for (key,value) in vector.attributes(){out.push(' ');out.push_str(key);out.push_str("=\"");escape(&value,out);out.push('\"');}}
- for (key,value) in [("href",&node.semantics.href),("role",&node.semantics.role),("aria-label",&node.semantics.label),("id",&node.semantics.id),("data-slot",&node.semantics.slot),("data-size",&node.semantics.size),("data-variant",&node.semantics.variant),("for",&node.semantics.html_for),("aria-describedby",&node.semantics.described_by),("aria-invalid",&node.semantics.invalid)] {
+ for (key,value) in [("href",&node.semantics.href),("role",&node.semantics.role),("aria-label",&node.semantics.label),("id",&node.semantics.id),("data-slot",&node.semantics.slot),("data-size",&node.semantics.size),("data-variant",&node.semantics.variant),("for",&node.semantics.html_for),("aria-describedby",&node.semantics.described_by),("aria-invalid",&node.semantics.invalid),("aria-expanded",&node.semantics.expanded),("aria-controls",&node.semantics.controls)] {
   if !value.is_empty(){out.push(' ');out.push_str(key);out.push_str("=\"");escape(value,out);out.push('"');}
  }
  if let Some(current)=super::navigation::current_kind(&node.semantics.href){out.push_str(&format!(" aria-current=\"{current}\""));}

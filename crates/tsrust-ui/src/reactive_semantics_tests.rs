@@ -43,3 +43,24 @@ fn metadata_callback_errors_do_not_replace_prior_values(){
  let failed=Signal::new(false);let read=failed.handle();let mut node=Node::button("Action".into(),String::new(),false,||Ok(())).unwrap().with_semantics_binding(move||if read.get()?{Err("Metadata failed".into())}else{Ok(String::from(r#"{"label":"Before"}"#))}).unwrap();
  failed.set(true).unwrap();assert_eq!(node.refresh().unwrap_err(),"Metadata failed");assert_eq!(node.semantics.label,"Before");
 }
+
+
+#[test]
+fn disclosure_metadata_validates_and_preserves_prior_state(){
+ let source=Signal::new(String::from(r#"{"expanded":"false","controls":"  panel\tother\n "}"#));let read=source.handle();
+ let mut trigger=Node::button("Details".into(),String::new(),false,||Ok(())).unwrap().with_semantics_binding(move||read.get()).unwrap();
+ assert_eq!(trigger.semantics.controls,"panel other");
+ for bad in [r#"{"expanded":"mixed"}"#,r#"{"controls":"bad\u0000id"}"#]{source.set(bad.into()).unwrap();assert!(trigger.refresh().is_err());assert_eq!(trigger.semantics.expanded,"false");assert_eq!(trigger.semantics.controls,"panel other");}
+ source.set("{}".into()).unwrap();trigger.refresh().unwrap();assert_eq!(trigger.semantics.expanded,"");assert_eq!(trigger.semantics.controls,"");
+ assert!(Node::view(vec![],String::new()).unwrap().with_semantics(r#"{"expanded":"false"}"#).is_err());
+ assert!(crate::navigation::link(vec![],String::new(),"/docs").unwrap().with_semantics(r#"{"controls":"panel"}"#).is_err());
+}
+
+#[test]
+fn disclosure_requests_follow_current_state_and_ignore_hidden_disabled_or_absent_states(){
+ let open=Signal::new(false);let read=open.handle();let write=open.handle();
+ let trigger=Node::button("Details".into(),String::new(),false,move||write.set(!write.get()?)).unwrap().with_semantics_binding(move||Ok(serde_json::json!({"expanded":read.get()?.to_string()}).to_string())).unwrap();
+ let mut root=Node::view(vec![Child::Node(trigger)],String::new()).unwrap();root.ensure_identities();let id=root.children[0].identity.get();
+ assert!(root.disclosure_request(id,true));assert!(!root.disclosure_request(id,false));root.activate(id).unwrap();root.refresh().unwrap();assert!(!root.disclosure_request(id,true));assert!(root.disclosure_request(id,false));
+ root.children[0].apply_disabled(true);assert!(!root.disclosure_request(id,false));root.children[0].apply_disabled(false);root.collapsed=true;assert!(!root.disclosure_request(id,false));root.collapsed=false;root.children[0].semantics.expanded.clear();assert!(!root.disclosure_request(id,true));assert!(!root.disclosure_request(id,false));
+}

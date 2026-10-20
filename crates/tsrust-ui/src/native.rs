@@ -440,8 +440,9 @@ impl Painter {
         }
         if let Some(error)=&item.copy_error {node.set_live(accesskit::Live::Polite);if !error.is_empty(){node.set_description(error.clone());}}
         if item.semantics.invalid=="true" {node.set_invalid(accesskit::Invalid::True);}
+        if !item.semantics.expanded.is_empty(){node.set_expanded(item.semantics.expanded=="true");}
         if item.disabled { node.set_disabled(); }
-        else if item.role==Kind::Button {node.add_action(accesskit::Action::Click);node.add_action(accesskit::Action::Focus);}
+        else if item.role==Kind::Button {node.add_action(accesskit::Action::Click);node.add_action(accesskit::Action::Focus);if !item.semantics.expanded.is_empty(){node.add_action(if item.semantics.expanded=="true"{accesskit::Action::Collapse}else{accesskit::Action::Expand});}}
         if item.role==Kind::View && item.semantics.tab_index.is_some(){node.add_action(accesskit::Action::Focus);}
         if item.overflow!=0{node.set_clips_children();}
         if item.overflow==2{if let Some(region)=self.scrolls.get(&item.identity){region.viewport.accessibility(&mut node,scale);}}
@@ -592,6 +593,9 @@ fn associate_controls(root:&Node,nodes:&mut [(accesskit::NodeId,accesskit::Node)
         if node.semantics.label.is_empty(){if let Some(labels)=labels.get(&id.0){accessible.set_labelled_by(labels.clone());}}
         let described=node.semantics.described_by.split_ascii_whitespace().filter_map(|name|ids.get(name).copied()).map(accesskit::NodeId).collect::<Vec<_>>();
         if !described.is_empty(){accessible.set_described_by(described);}
+        let controlled=node.semantics.controls.split_ascii_whitespace().filter_map(|name|ids.get(name).copied()).map(accesskit::NodeId).collect::<Vec<_>>();
+        if !controlled.is_empty(){accessible.set_controls(controlled);}
+
     }
     targets
 }
@@ -950,6 +954,9 @@ impl ApplicationHandler<accesskit::ActionRequest> for App {
         if !self.controls().iter().any(|(id,_)|*id==request.target_node.0) {return;}
         match request.action {
             accesskit::Action::Click if self.clickable(request.target_node.0)=>self.activate(request.target_node.0,event_loop),
+            accesskit::Action::Expand if self.node.disclosure_request(request.target_node.0,true)=>self.activate(request.target_node.0,event_loop),
+            accesskit::Action::Collapse if self.node.disclosure_request(request.target_node.0,false)=>self.activate(request.target_node.0,event_loop),
+
             accesskit::Action::SetValue=>if let Some(accesskit::ActionData::Value(value))=request.data {
                 if let Err(error)=self.node.input(request.target_node.0,&value).and_then(|_|self.node.refresh()){self.fail(event_loop,error);}else if let Some(active)=&self.active{active.window.request_redraw();}
             },
@@ -1635,4 +1642,19 @@ mod navigation_semantic_tests {
   updated.set(true).unwrap();root.refresh().unwrap();let (_,next)=painter.scene(&root,400.,1.,None).unwrap();let field=next.nodes.iter().find(|(id,_)|id.0==identity).unwrap();assert_eq!(field.1.label(),Some("Updated"));assert_eq!(field.1.invalid(),Some(accesskit::Invalid::True));assert_eq!(field.1.described_by(),&[accesskit::NodeId(root.children[1].identity.get())]);assert_eq!(root.children[0].text,"Draft");
  }
 
+}
+
+
+#[cfg(test)]mod disclosure_tests {
+ use super::*;
+ #[test]fn disclosure_accessibility_tracks_expansion_targets_and_disabled_actions(){
+  let open=crate::Signal::new(false);let read=open.handle();let hidden=open.handle();let disabled=crate::Signal::new(false);let disable=disabled.handle();
+  let trigger=Node::button("Project details".into(),String::new(),false,||Ok(())).unwrap().with_semantics_binding(move||Ok(serde_json::json!({"expanded":read.get()?.to_string(),"controls":"panel missing"}).to_string())).unwrap().with_disabled(move||disable.get()).unwrap();
+  let panel=Node::view(vec![crate::Child::Node(Node::input_control(None,Some("Draft".into()),"{}",String::new(),None).unwrap())],String::new()).unwrap().with_semantics(r#"{"id":"panel"}"#).unwrap().with_hidden(move||Ok(!hidden.get()?)).unwrap();
+  let mut root=Node::view(vec![crate::Child::Node(trigger),crate::Child::Node(panel)],String::new()).unwrap();root.ensure_identities();let trigger=root.children[0].identity.get();let panel=root.children[1].identity.get();let mut painter=Painter::new();
+  for (is_open,is_disabled) in [(false,false),(true,false),(true,true),(false,false)]{
+   open.set(is_open).unwrap();disabled.set(is_disabled).unwrap();root.refresh().unwrap();let (_,tree)=painter.scene(&root,400.,1.,None).unwrap();let node=&tree.nodes.iter().find(|(id,_)|id.0==trigger).unwrap().1;
+   assert_eq!(node.is_expanded(),Some(is_open));assert_eq!(node.controls(),if is_open{&[accesskit::NodeId(panel)][..]}else{&[]});assert_eq!(node.supports_action(accesskit::Action::Expand),!is_open&&!is_disabled);assert_eq!(node.supports_action(accesskit::Action::Collapse),is_open&&!is_disabled);assert_eq!(node.supports_action(accesskit::Action::Click),!is_disabled);assert_eq!(root.children[1].children[0].text,"Draft");
+  }
+ }
 }

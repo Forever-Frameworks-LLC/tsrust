@@ -7,6 +7,8 @@ mod native;
 pub mod browser;
 mod state;
 mod computed;
+mod identity;
+pub use identity::use_id;
 mod vector;
 pub mod navigation;
 mod branch;
@@ -65,6 +67,8 @@ pub(crate) struct Semantics {
     pub html_for:String,
     pub described_by:String,
     pub invalid:String,
+    pub expanded:String,
+    pub controls:String,
     pub window_drag_region:bool,
     pub tab_index:Option<i64>,
 }
@@ -147,6 +151,11 @@ impl Node {
         if value.html_for.chars().any(|ch|ch.is_ascii_whitespace()||ch.is_control()){return Err("htmlFor must name a single document ID".into());}
         if value.described_by.chars().any(|ch|ch.is_control() && !ch.is_ascii_whitespace()){return Err("aria-describedby contains an invalid ID".into());}
         if !matches!(value.invalid.as_str(),""|"true"|"false"){return Err("aria-invalid supports boolean values".into());}
+        if !matches!(value.expanded.as_str(),""|"true"|"false"){return Err("aria-expanded supports boolean values".into());}
+        if (!value.expanded.is_empty()||!value.controls.is_empty()) && (!matches!(self.kind,Kind::Button|Kind::DisabledButton)||tag!="button"){return Err("Disclosure metadata requires a Button".into());}
+        if value.controls.chars().any(|ch|ch.is_control()&&!ch.is_ascii_whitespace()){return Err("aria-controls contains an invalid ID".into());}
+        value.controls=value.controls.split_ascii_whitespace().collect::<Vec<_>>().join(" ");
+
         if value.id.chars().any(|ch|ch.is_ascii_whitespace()||ch.is_control()){return Err("UI id cannot contain whitespace or control characters".into());}
         if value.slot.chars().any(|ch|!(ch.is_ascii_alphanumeric()||ch=='-')){return Err("UI slot must contain ASCII letters, digits or hyphens".into());}
         if value.variant.chars().any(|ch|!(ch.is_ascii_alphanumeric()||ch=='-')){return Err("UI data-variant must contain ASCII letters, digits or hyphens".into());}
@@ -317,6 +326,12 @@ impl Node {
         if self.depth>128{return Err("UI nesting exceeds 128 nodes".into());}
         self.validate_structure()?;
         Ok(changed)
+    }
+    #[cfg(any(test,feature="native"))]
+    pub(crate) fn disclosure_request(&self,target:u64,expanded:bool)->bool{
+        let Some(node)=self.visible_root() else{return false;};
+        if node.identity.get()==target{return matches!(node.kind,Kind::Button)&&!node.is_disabled()&&node.semantics.expanded==(if expanded{"false"}else{"true"});}
+        node.children.iter().any(|child|child.disclosure_request(target,expanded))
     }
     /// IDs initially follow preorder; removed IDs are never reused within this tree.
     #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]

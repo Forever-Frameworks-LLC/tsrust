@@ -1,4 +1,4 @@
-import { svg as nativeSvg, path as nativePath, bindPath as nativeBindPath, validateRoot as nativeValidateRoot, bindClass as nativeBindClass, bindVariant as nativeBindVariant, Computed as NativeComputed, computed as nativeComputed, route as nativeRoute, visibility as nativeVisibility, copyButton as nativeCopyButton, location as nativeLocation, navigate as nativeNavigate, traverse as nativeTraverse, link as nativeLink, themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, bindSemantics as nativeBindSemantics, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
+import { useId as nativeUseId, svg as nativeSvg, path as nativePath, bindPath as nativeBindPath, validateRoot as nativeValidateRoot, bindClass as nativeBindClass, bindVariant as nativeBindVariant, Computed as NativeComputed, computed as nativeComputed, route as nativeRoute, visibility as nativeVisibility, copyButton as nativeCopyButton, location as nativeLocation, navigate as nativeNavigate, traverse as nativeTraverse, link as nativeLink, themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, bindSemantics as nativeBindSemantics, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
 
 /** An owned UI subtree. Moving a Node transfers all descendants. Nodes cannot be cloned or sent to workers. */
 export type Node = NativeNode;
@@ -14,6 +14,12 @@ export type Child = TextChild | Node;
 
 /** A deferred child array. Nested JSX becomes this owned zero-argument factory only when the component declares it. Each call constructs fresh content; dropping it does not construct content. */
 export type LazyChildren = Owned<Function<Child[]>>;
+
+/** Reserves a unique runtime-local UI identifier. Keep its owned string in component construction; every call allocates a different ID. No arguments or receiver. Throws if the counter is exhausted. */
+export function useId(): string {
+  return unwrap(nativeUseId());
+}
+
 
 /** Shared element identity and accessible naming. Attributes are escaped in HTML and applied to the same native subtree. */
 interface ElementMetadata<Variant> {
@@ -184,6 +190,10 @@ interface ViewComponentProps<Classes, Variant> extends ViewRenderProps<Classes, 
 export type ViewProps<Classes = string, Variant = string> = ViewComponentProps<Classes, Variant>;
 
 interface ButtonProperties<Classes, Variant> extends ElementProps<Variant> {
+  /** Live expansion state. Undefined removes the explicit state; application handlers control visibility. */
+  'aria-expanded'?: ReactiveValue<boolean | undefined>;
+  /** Live space-separated controlled element IDs. Undefined/empty removes the relationship; missing targets are ignored natively. */
+  'aria-controls'?: ReactiveValue<string | undefined>;
   /** Owned ordered content. Pass between tags or with children={values}; combining both is rejected. Forwarding transfers the array once. */
   children?: Child[];
   /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Includes relative/absolute parent positioning and checked insets; inline descendants require typography only. Includes aspect-square/video/[W/H]/[R]/auto with finite positive f32 ratios. Explicit sizes and min/max bounds still apply. Later classes win per property/state. */
@@ -392,7 +402,7 @@ export function Button(props: ButtonProps<ReactiveValue<string>, ReactiveValue<s
   const className = props.className;
   const variant = props['data-variant'];
   const classes = typeof className === 'string' ? clone(className) : '';
-  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
+  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid'], '', false, undefined, props['aria-expanded'], props['aria-controls']);
   const children = props.children ?? [];
   const handler = props.onPress;
   const disabled = props.disabled;
@@ -633,6 +643,8 @@ interface SemanticConfig {
   orientation: string;
   describedBy: string;
   invalid: string;
+  expanded: string;
+  controls: string;
   htmlFor: string;
   windowDragRegion: boolean;
   tabIndex?: int;
@@ -658,7 +670,7 @@ function semanticBoolean(value: Mutable<ReactiveValue<boolean | undefined> | und
   return value.evaluate();
 }
 
-function semanticSnapshot(config: ReadOnly<SemanticConfig>, label: Mutable<ReactiveValue<string | undefined> | undefined>, hidden: Mutable<ReactiveValue<boolean | undefined> | undefined>, describedBy: Mutable<ReactiveValue<string | undefined> | undefined>, invalid: Mutable<ReactiveValue<boolean | undefined> | undefined>): string {
+function semanticSnapshot(config: ReadOnly<SemanticConfig>, label: Mutable<ReactiveValue<string | undefined> | undefined>, hidden: Mutable<ReactiveValue<boolean | undefined> | undefined>, describedBy: Mutable<ReactiveValue<string | undefined> | undefined>, invalid: Mutable<ReactiveValue<boolean | undefined> | undefined>, expanded: Mutable<ReactiveValue<boolean | undefined> | undefined>, controls: Mutable<ReactiveValue<string | undefined> | undefined>): string {
   const next = clone(config);
   next.label = semanticString(label);
   const hiddenValue = semanticBoolean(hidden);
@@ -666,6 +678,9 @@ function semanticSnapshot(config: ReadOnly<SemanticConfig>, label: Mutable<React
   next.describedBy = semanticString(describedBy);
   const invalidValue = semanticBoolean(invalid);
   next.invalid = invalidValue === undefined ? '' : String(invalidValue);
+  const expandedValue = semanticBoolean(expanded);
+  next.expanded = expandedValue === undefined ? '' : String(expandedValue);
+  next.controls = semanticString(controls);
   if (config.tag === 'svg' && config.role === '') {
     next.role = next.label === '' ? 'presentation' : 'img';
   }
@@ -673,12 +688,12 @@ function semanticSnapshot(config: ReadOnly<SemanticConfig>, label: Mutable<React
   return JSON.stringify(next);
 }
 
-function semanticConfig(tag: string, role: string, label: ReactiveValue<string | undefined> | undefined, id: string, hidden: ReactiveValue<boolean | undefined> | undefined, slot: string, size: string, variant: string, orientation: string, describedBy: ReactiveValue<string | undefined> | undefined = '', invalid: ReactiveValue<boolean | undefined> | undefined = undefined, htmlFor: string = '', windowDragRegion: boolean = false, tabIndex?: int): ReactiveValue<string> {
+function semanticConfig(tag: string, role: string, label: ReactiveValue<string | undefined> | undefined, id: string, hidden: ReactiveValue<boolean | undefined> | undefined, slot: string, size: string, variant: string, orientation: string, describedBy: ReactiveValue<string | undefined> | undefined = '', invalid: ReactiveValue<boolean | undefined> | undefined = undefined, htmlFor: string = '', windowDragRegion: boolean = false, tabIndex?: int, expanded?: ReactiveValue<boolean | undefined>, controls?: ReactiveValue<string | undefined>): ReactiveValue<string> {
   const config: SemanticConfig = {
-    tag, role, label: '', id, hidden: false, slot, size, variant, orientation, describedBy: '', invalid: '', htmlFor, windowDragRegion, tabIndex
+    tag, role, label: '', id, hidden: false, slot, size, variant, orientation, describedBy: '', invalid: '', expanded: '', controls: '', htmlFor, windowDragRegion, tabIndex
   };
-  if ((label === undefined || typeof label === 'string') && (hidden === undefined || typeof hidden === 'boolean') && (describedBy === undefined || typeof describedBy === 'string') && (invalid === undefined || typeof invalid === 'boolean')) {
-    if (config.tag === '' && config.role === '' && (label === undefined || label === '') && config.id === '' && (hidden === undefined || !hidden) && config.slot === '' && config.size === '' && config.variant === '' && config.orientation === '' && (describedBy === undefined || describedBy === '') && invalid === undefined && config.htmlFor === '' && !config.windowDragRegion && config.tabIndex === undefined) {
+  if ((label === undefined || typeof label === 'string') && (hidden === undefined || typeof hidden === 'boolean') && (describedBy === undefined || typeof describedBy === 'string') && (invalid === undefined || typeof invalid === 'boolean') && (expanded === undefined || typeof expanded === 'boolean') && (controls === undefined || typeof controls === 'string')) {
+    if (config.tag === '' && config.role === '' && (label === undefined || label === '') && config.id === '' && (hidden === undefined || !hidden) && config.slot === '' && config.size === '' && config.variant === '' && config.orientation === '' && (describedBy === undefined || describedBy === '') && invalid === undefined && expanded === undefined && (controls === undefined || controls === '') && config.htmlFor === '' && !config.windowDragRegion && config.tabIndex === undefined) {
       return '';
     }
 
@@ -686,6 +701,8 @@ function semanticConfig(tag: string, role: string, label: ReactiveValue<string |
     config.hidden = typeof hidden === 'boolean' ? hidden : (config.tag === 'svg' && config.label === '');
     config.describedBy = typeof describedBy === 'string' ? clone(describedBy) : '';
     config.invalid = typeof invalid === 'boolean' ? String(invalid) : '';
+    config.expanded = typeof expanded === 'boolean' ? String(expanded) : '';
+    config.controls = typeof controls === 'string' ? clone(controls) : '';
     if (config.tag === 'svg' && config.role === '') {
       config.role = config.label === '' ? 'presentation' : 'img';
     }
@@ -694,7 +711,7 @@ function semanticConfig(tag: string, role: string, label: ReactiveValue<string |
   }
 
   return {
-    evaluate: () => semanticSnapshot(config, label, hidden, describedBy, invalid)
+    evaluate: () => semanticSnapshot(config, label, hidden, describedBy, invalid, expanded, controls)
   };
 }
 

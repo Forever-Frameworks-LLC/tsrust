@@ -250,6 +250,12 @@
         "source": "src/examples/reactive-semantics.tsrx",
         "export": "ReactiveSemanticsExample",
         "kind": "component"
+      },
+      {
+        "id": "disclosure-semantics",
+        "source": "src/examples/disclosure-semantics.tsrx",
+        "export": "DisclosureSemanticsExample",
+        "kind": "component"
       }
     ]
   }

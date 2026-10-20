@@ -334,3 +334,10 @@ fn reactive_metadata_help_matches_completion_and_diagnostics(){
  let mut session=Session::start(&[]);session.open("main.tsrx",source);let diagnostics=session.wait_for_diagnostics("main.tsrx");assert!(diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");session.settle();let at=source.find("aria-invalid=").unwrap();let hover=session.hover("main.tsrx",source,at+3).unwrap_or_default();assert!(hover.contains("live")&&hover.contains("undefined"),"{hover}");let offered=session.completion("main.tsrx",source,at+3).unwrap();assert!(offered.contains(&"aria-invalid".into()),"{offered:?}");
  let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
 }
+
+#[test]
+fn disclosure_help_matches_completion_and_diagnostics(){
+ let source="import {Button,signal} from 'std:ui';function main(){const open=signal(false);const node=<Button aria-expanded={open.get()}/>;}";
+ let mut session=Session::start(&[]);session.open("main.tsrx",source);let diagnostics=session.wait_for_diagnostics("main.tsrx");assert!(diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");session.settle();let at=source.find("aria-expanded=").unwrap();let hover=session.hover("main.tsrx",source,at+3).unwrap_or_default();assert!(hover.contains("live")&&hover.contains("undefined"),"{hover}");let offered=session.completion("main.tsrx",source,at+3).unwrap();for field in ["aria-expanded","aria-controls"]{assert!(offered.contains(&field.into()),"{offered:?}");}
+ let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
+}
