@@ -3,12 +3,16 @@ use crate::syntax;
 use super::Range;
 use serde::{Deserialize,Serialize};
 use std::collections::BTreeMap;
+fn builtin_catalog()->Result<&'static serde_json::Value,String>{
+ static CATALOG:std::sync::LazyLock<Result<serde_json::Value,String>>=std::sync::LazyLock::new(||serde_json::from_str(include_str!("../../../tsrust-lsp/src/builtins.json")).map_err(|error|error.to_string()));
+ CATALOG.as_ref().map_err(Clone::clone)
+}
 #[derive(Clone,Debug,Deserialize,Serialize)]
 #[serde(deny_unknown_fields,rename_all="camelCase")]
-pub struct ApiField {pub name:String,pub optional:bool,pub signature:String,pub documentation:String,pub source:String,pub range:Range}
+pub struct ApiField {pub name:String,pub optional:bool,pub signature:String,pub documentation:String,pub document:super::Document,pub source:String,pub range:Range}
 #[derive(Clone,Debug,Deserialize,Serialize)]
 #[serde(deny_unknown_fields,rename_all="camelCase")]
-pub struct ApiDefinition {pub name:String,pub kind:String,pub source:String,pub range:Option<Range>,pub signature:String,pub documentation:String,pub fields:Vec<ApiField>}
+pub struct ApiDefinition {pub name:String,pub kind:String,pub source:String,pub range:Option<Range>,pub signature:String,pub documentation:String,pub document:super::Document,pub fields:Vec<ApiField>}
 fn before(source:&str,start:usize)->String {
     let prefix=&source[..start];let Some(end)=prefix.rfind("*/") else{return String::new();};
     let tail=&prefix[end+2..];
@@ -50,7 +54,7 @@ pub fn api(project:&ProjectAnalysis,sources:&[SourceId])->Result<Vec<ApiDefiniti
             parsed.insert(id.clone(),program);
         }
     }
-    let docs:serde_json::Value=serde_json::from_str(include_str!("../../../tsrust-lsp/src/builtins.json")).map_err(|error|error.to_string())?;
+    let docs=builtin_catalog()?;
     let facts=project.checked_type_facts();let mut output=Vec::new();
     for id in sources {
         let module=project.graph.modules.get(id).ok_or_else(||format!("Documentation API module is outside the checked graph: {}",id.0))?;
@@ -79,9 +83,9 @@ pub fn api(project:&ProjectAnalysis,sources:&[SourceId])->Result<Vec<ApiDefiniti
                         if let Some(text)=entry["fields"][name]["documentation"].as_str(){documentation=text.into();}
                     }}
                 }
-                fields.push(ApiField{name:name.clone(),optional:*optional,signature:format!("{}{}: {}",if name.bytes().all(|ch|ch.is_ascii_alphanumeric()||ch==b'_'){name.clone()}else{crate::json_string(name)},if *optional{"?"}else{""},annotation),documentation,source:location.source.0.clone(),range:Range{start:location.span.start,end:field.annotation.span.end}});
+                fields.push(ApiField{name:name.clone(),optional:*optional,signature:format!("{}{}: {}",if name.bytes().all(|ch|ch.is_ascii_alphanumeric()||ch==b'_'){name.clone()}else{crate::json_string(name)},if *optional{"?"}else{""},annotation),document:super::parse(&documentation,0)?,documentation,source:location.source.0.clone(),range:Range{start:location.span.start,end:field.annotation.span.end}});
             }
-            output.push(ApiDefinition{name:export.clone(),kind:kind.into(),source:id.0.clone(),range:Some(Range{start:span.start,end:span.end}),signature,documentation:before(source,span.start),fields});
+            output.push(ApiDefinition{name:export.clone(),kind:kind.into(),source:id.0.clone(),range:Some(Range{start:span.start,end:span.end}),signature,document:super::parse(&before(source,span.start),0)?,documentation:before(source,span.start),fields});
         }
     }
     Ok(output)
@@ -89,7 +93,7 @@ pub fn api(project:&ProjectAnalysis,sources:&[SourceId])->Result<Vec<ApiDefiniti
 
 /// The editor catalog is the single behavioral documentation source for built-ins.
 pub fn builtin(reference:&super::ApiReference)->Result<ApiDefinition,String>{
- let catalog:serde_json::Value=serde_json::from_str(include_str!("../../../tsrust-lsp/src/builtins.json")).map_err(|error|error.to_string())?;
+ let catalog=builtin_catalog()?;
  let entry=catalog[&reference.receiver].as_array().and_then(|entries|entries.iter().find(|entry|entry["name"].as_str()==Some(&reference.name))).ok_or_else(||format!("Unknown built-in documentation {}.{}",reference.receiver,reference.name))?;
- Ok(ApiDefinition{name:format!("{}.{}",reference.receiver,reference.name),kind:"method".into(),source:format!("builtin:{}",reference.receiver),range:None,signature:entry["signature"].as_str().ok_or("Built-in has no signature")?.into(),documentation:entry["documentation"].as_str().ok_or("Built-in has no documentation")?.into(),fields:vec![]})
+ Ok(ApiDefinition{name:format!("{}.{}",reference.receiver,reference.name),kind:"method".into(),source:format!("builtin:{}",reference.receiver),range:None,signature:entry["signature"].as_str().ok_or("Built-in has no signature")?.into(),document:super::parse(entry["documentation"].as_str().ok_or("Built-in has no documentation")?,0)?,documentation:entry["documentation"].as_str().ok_or("Built-in has no documentation")?.into(),fields:vec![]})
 }

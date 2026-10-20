@@ -1,5 +1,11 @@
 mod support;
 
+#[test]fn builtin_behavior_renders_as_structured_markdown_with_exact_highlighted_examples(){
+ let reference=tsrust_compiler::documentation::ApiReference{receiver:"string".into(),name:"trim".into()};let entry=tsrust_compiler::documentation::builtin(&reference).unwrap();
+ assert!(entry.document.nodes.iter().any(|node|matches!(node.kind,tsrust_compiler::documentation::Kind::CodeBlock)&&node.tokens.iter().any(|token|token.class=="string")));
+ for node in &entry.document.nodes{assert!(node.source.start<=node.source.end&&node.source.end<=entry.documentation.len());for token in &node.tokens{assert_eq!(token.text,node.text[token.source.start..token.source.end]);}}
+}
+
 #[test]fn code_fence_aliases_preserve_source_and_distinct_light_mode_tokens(){
  let source="const label: string = 'café';\nconst count = 42;";
  for language in ["tsrust","tsr","tsrx","typescript","ts","tsx","javascript","js","jsx"]{let tokens=tsrust_compiler::documentation::highlight(source,language).unwrap();assert_eq!(tokens.iter().map(|token|token.text.as_str()).collect::<String>(),source);for class in ["keyword","type","string","number"]{assert!(tokens.iter().any(|token|token.class==class),"{language} {class}");}}

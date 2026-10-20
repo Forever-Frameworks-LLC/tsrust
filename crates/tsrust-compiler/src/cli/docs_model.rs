@@ -13,7 +13,7 @@ fn belongs(page:&docs::Page,entry:&docs::ApiDefinition)->bool {
   let name=component.split('-').map(|part|{let mut chars=part.chars();chars.next().map(|ch|ch.to_uppercase().to_string()+chars.as_str()).unwrap_or_default()}).collect::<String>();
   if entry.source.ends_with(&format!("/{component}.tsrx"))||entry.name==name||entry.name==format!("{name}Props"){return true;}
  }
- page.metadata.api.iter().any(|reference|entry.name==format!("{}.{}",reference.receiver,reference.name))
+ page.metadata.api.iter().any(|reference|entry.name==format!("{}.{}",reference.receiver,reference.name)||reference.receiver=="std:ui"&&entry.name==reference.name&&entry.kind=="interface")
 }
 pub(super) fn module(catalog:&docs::Catalog)->Result<Publication,String>{
  let mut files=BTreeMap::new();

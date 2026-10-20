@@ -1,5 +1,6 @@
 import { View, Text, Node, Child } from 'std:ui';
-import { DocPage, DocApi, DocCatalog } from '../../../target/docs-content/catalog';
+import { DocPage, DocApi, DocCatalog, DocDocument } from '../../../target/docs-content/catalog';
+import { MarkdownContent } from './markdown-content';
 
 function componentName(name: string): string {
   let result = '';
@@ -20,7 +21,7 @@ function belongs(page: ReadOnly<DocPage>, declaration: ReadOnly<DocApi>): boolea
   }
 
   for (const reference of page.metadata.api) {
-    if (declaration.name === reference.receiver + '.' + reference.name) {
+    if (declaration.name === reference.receiver + '.' + reference.name || reference.receiver === 'std:ui' && declaration.name === reference.name && declaration.kind === 'interface') {
       return true;
     }
   }
@@ -52,6 +53,15 @@ export function searchablePage(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCat
   return text.toLowerCase();
 }
 
+function description(document: ReadOnly<DocDocument>, page: ReadOnly<DocPage>, id: string, catalog: ReadOnly<DocCatalog>): Node {
+  const snippet: DocPage = {
+    metadata: {
+      id, group: clone(page.metadata.group), order: 0, status: 'partial', targets: ['web', 'native'], examples: [], api: [], component: null
+    }, route: clone(page.route), source: '', sha256: '', markdown: '', document: clone(document)
+  };
+  return MarkdownContent(snippet, catalog);
+}
+
 export function ApiReference(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>): Node {
   let entries: Child[] = [];
   for (const declaration of catalog.api) {
@@ -61,10 +71,10 @@ export function ApiReference(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatal
 
     let fields: Child[] = [];
     for (const field of declaration.fields) {
-      fields.push(<View className="border-t py-4 gap-2"><Text as="h4" className="font-mono text-sm font-semibold">{clone(field.name)}{field.optional ? '?' : ''}</Text><Text as="code" className="font-mono text-xs text-muted-foreground">{clone(field.signature)}</Text><Text className="leading-normal text-sm text-muted-foreground">{clone(field.documentation)}</Text></View>);
+      fields.push(<View className="border-t py-4 gap-2"><Text as="h4" className="font-mono text-sm font-semibold">{clone(field.name)}{field.optional ? '?' : ''}</Text><Text as="code" className="font-mono text-xs text-muted-foreground">{clone(field.signature)}</Text>{description(field.document,page,page.metadata.id+'-'+declaration.name.split('.').join('-').split(':').join('-')+'-'+field.name,catalog)}</View>);
     }
 
-    entries.push(<View className="border-t pt-6 gap-4"><Text as="h3" className="font-semibold text-xl">{clone(declaration.name)}</Text><Text as="code" className="font-mono text-sm">{clone(declaration.signature)}</Text><Text className="leading-normal text-muted-foreground">{clone(declaration.documentation)}</Text><View children={fields}/></View>);
+    entries.push(<View className="border-t pt-6 gap-4"><Text as="h3" className="font-semibold text-xl">{clone(declaration.name)}</Text><Text as="code" className="font-mono text-sm">{clone(declaration.signature)}</Text>{description(declaration.document,page,page.metadata.id+'-'+declaration.name.split('.').join('-').split(':').join('-'),catalog)}<View children={fields}/></View>);
   }
 
   return (<View className="gap-6" children={entries}/>);

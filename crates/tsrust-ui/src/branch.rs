@@ -154,6 +154,14 @@ impl Node {
 mod retained_route_tests {
  use super::*;
  use std::{rc::Rc,cell::Cell};
+ #[test]fn reading_positions_belong_to_routes_and_exclude_shared_navigation(){
+  let path=crate::navigation::location(String::from,Clone::clone).unwrap();let control=path.handle();
+  let shared=Node::view(vec![],"overflow-auto h-8".into()).unwrap();
+  let route=Node::route("/docs",true,||Ok(Some(Node::view(vec![crate::Child::Node(Node::new(Kind::Text,String::new(),"Article".into(),vec![])? )],"overflow-auto h-8".into())?))).unwrap();
+  let mut root=Node::view(vec![crate::Child::Node(shared),crate::Child::Node(route)],String::new()).unwrap().own_state(path).unwrap();root.refresh().unwrap();assert!(root.reading_nodes().is_empty());
+  control.set("/docs".into()).unwrap();root.refresh().unwrap();let identities=root.reading_nodes();assert_eq!(identities.len(),2);assert!(!identities.contains(&root.children[0].identity.get()));let pane=root.children[1].visible_root().unwrap().identity.get();assert!(identities.contains(&pane));
+  control.set("/other".into()).unwrap();root.refresh().unwrap();assert_eq!(root.reading_nodes(),identities,"Inactive retained panes still own their positions");
+ }
  struct Release(Rc<Cell<usize>>);impl Drop for Release {fn drop(&mut self){self.0.set(self.0.get()+1);}}
  #[test] fn retained_routes_construct_once_keep_identity_and_release_only_with_the_owner(){
   let location=crate::navigation::location(String::from,Clone::clone).unwrap();let control=location.handle();let builds=Rc::new(Cell::new(0));let releases=Rc::new(Cell::new(0));let made=builds.clone();let dropped=releases.clone();

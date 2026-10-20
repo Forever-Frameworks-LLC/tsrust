@@ -83,6 +83,7 @@ export interface DocApiField {
   optional: boolean;
   signature: string;
   documentation: string;
+  document: DocDocument;
   source: string;
   range: DocRange;
 }
@@ -94,6 +95,7 @@ export interface DocApi {
   range: DocRange | null;
   signature: string;
   documentation: string;
+  document: DocDocument;
   fields: DocApiField[];
 }
 
