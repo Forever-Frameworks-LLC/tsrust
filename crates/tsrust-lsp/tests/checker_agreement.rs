@@ -334,3 +334,33 @@ fn completion_offers_the_fields_the_checker_accepts_and_no_method_it_rejects() {
     }
     assert!(failures.is_empty(), "{} disagreements between the editor and the checker:\n{}", failures.len(), failures.join("\n"));
 }
+
+#[test]
+fn generic_prop_callback_details_keep_public_nominal_names() {
+    use tsrust_lsp::project_intelligence::ProjectIndex;
+    let source=format!("{PRELUDE}function probe(x:ReadOnly<ViewProps>){{if(x.render===undefined){{}}}}function main(){{}}");
+    let uri="file:///tsrust-prop-details/main.tsr";
+    let entry=source_id(uri).unwrap();
+    let mut workspace=Workspace::default();
+    workspace.open(entry.clone(),1,source.clone());
+    let checked=workspace.snapshot().check_with_diagnostics(&entry).unwrap();
+    let incomplete=source.replace("if(x.render===undefined){}","x.");
+    workspace.change(&entry,2,incomplete.clone());
+    let headers=tsrust_compiler::project::load_project_headers(&workspace.snapshot(),&entry.0).unwrap();
+    for (phase,text,index) in [
+        ("headers",&source,ProjectIndex::new(&checked.graph)),
+        ("checked",&source,ProjectIndex::checked(&checked)),
+        ("incomplete",&incomplete,ProjectIndex::new(&headers)),
+    ] {
+        let at=text.find("x.").unwrap()+2;
+        let line_start=text[..at].rfind('\n').map_or(0,|n|n+1);
+        let params=serde_json::json!({"textDocument":{"uri":uri},"position":{
+            "line":text[..at].matches('\n').count(),"character":text[line_start..at].encode_utf16().count()
+        }});
+        let reply=index.request("textDocument/completion",&params,uri).unwrap().unwrap();
+        let items=if reply.is_array(){&reply}else{&reply["items"]};
+        let render=items.as_array().unwrap().iter().find(|item|item["label"]=="render").unwrap();
+        let detail=render["detail"].as_str().unwrap();
+        assert!(detail.contains("ViewRenderProps")&&!detail.contains("ViewProperties"),"{phase}: {detail}");
+    }
+}

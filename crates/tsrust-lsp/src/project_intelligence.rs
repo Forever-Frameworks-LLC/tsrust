@@ -53,6 +53,8 @@ impl ProjectIndex {
                 index.theme_document=tsrust_compiler::ui_project::theme_document(std::path::Path::new(&id.0),&module.source.text).is_some();
             }
 
+            // Declaration text blanks export markers; retain public aliases from the original source.
+            declaration.inherit_public_record_aliases(&index);
             for import in &module.imports {
                 if let Some(native) = import.native {
                     index.import_native_names(import.names, native);

@@ -573,6 +573,9 @@ impl SourceIndex {
             }
         }
     }
+    pub(crate) fn inherit_public_record_aliases(&mut self,source:&Self){
+        self.public_record_aliases.clone_from(&source.public_record_aliases);
+    }
     fn public_record_alias(&self,record:&str)->Option<String>{
         self.public_record_aliases.get(record).filter(|(_,arity)|self.generic_parameters.get(record).map_or(0,Vec::len)==*arity).map(|(name,_)|name.clone())
     }
@@ -4629,4 +4632,11 @@ fn builtins_for(ty: &str) -> Vec<Value> {
         }
     }
     entries
+}
+
+#[cfg(test)]
+#[test]
+fn public_ui_record_aliases_hide_implementation_names(){
+ let index=SourceIndex::with_entry_help(include_str!("../../tsrust-compiler/src/stdlib/ui/api.tsr"),false);
+ for (private,public) in [("ViewProperties","ViewRenderProps"),("ButtonProperties","ButtonRenderProps"),("ViewComponentProps","ViewProps"),("ButtonComponentProps","ButtonProps")]{assert_eq!(index.public_record_alias(private).as_deref(),Some(public),"aliases={:?}; parameters={:?}",index.public_record_aliases,index.generic_parameters);}
 }
