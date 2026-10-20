@@ -309,3 +309,14 @@ fn editable_control_events_and_exact_props_keep_help_and_zero_fallbacks() {
  let at=source.find("target.value").unwrap()+"target.".len();let members=session.completion("main.tsrx",source,at).unwrap();for member in ["value","name","id"]{assert!(members.contains(&member.to_string()),"{members:?}");}
  let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
 }
+
+#[test]
+fn vector_public_exports_are_reachable_without_misleading_answers() {
+ let source="import { Svg, Path, SvgProps, PathProps } from 'std:ui';function main(){}";
+ let mut session=Session::start(&[]);let imports="import { } from 'std:ui';function main(){}";session.open("main.tsrx",imports);session.settle();
+ let offered=session.completion("main.tsrx",imports,imports.find('}').unwrap()).unwrap();
+ for name in ["Svg","Path","SvgProps","PathProps"]{assert!(offered.contains(&name.into()),"{name}: {offered:?}");}
+ session.change("main.tsrx",source);session.settle();
+ for name in ["Svg","Path","SvgProps","PathProps"]{assert!(!session.hover("main.tsrx",source,source.find(name).unwrap()+1).unwrap_or_default().is_empty(),"{name}");}
+ let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
+}

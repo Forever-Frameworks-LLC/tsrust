@@ -1,10 +1,12 @@
 import { View, Text, Svg, Path, Node } from 'std:ui';
 
-function Case(props: {
+interface VectorViewportProps {
   id: string;
   policy: string;
   label: string;
-}): Node {
+}
+
+function Case(props: VectorViewportProps): Node {
   return (
     <View className="gap-2 items-center">
       <Text className="text-xs text-muted-foreground">{clone(props.label)}</Text>

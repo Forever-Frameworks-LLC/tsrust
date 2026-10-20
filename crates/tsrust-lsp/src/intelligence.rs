@@ -1224,10 +1224,11 @@ impl SourceIndex {
                     let end = self.pairs[open].unwrap_or(self.tokens.len() - 1);
                     let owner = self.text(name_id).to_string();
                     if self.text(id) == "interface" {
-                        let bases = (header..open)
-                            .filter(|&n| name(self.text(n)) && self.text(n) != "extends")
-                            .map(|n| self.text(n).to_owned())
-                            .collect::<Vec<_>>();
+                        let mut bases=Vec::new();let mut at=header;
+                        if self.text(at)=="extends" {at+=1;while at<open {
+                            let end=self.end_type(at).min(open);if end<=at {break;}
+                            bases.push(self.written_type(&self.snippet(at,end)));at=end+usize::from(self.text(end)==",");
+                        }}
                         if !bases.is_empty() {
                             interface_bases.push((owner.clone(), bases));
                         }
@@ -3084,9 +3085,19 @@ impl SourceIndex {
         for _ in 0..=bases.len() {
             let mut added=false;
             for (owner,bases) in &bases {for base in bases {
-                let inherited=self.symbols.iter().enumerate().filter(|(_,symbol)|symbol.kind==8 && symbol.owner.as_deref()==Some(base.as_str())).map(|(id,symbol)|(symbol.clone(),self.foreign_definitions.get(&id).cloned())).collect::<Vec<_>>();
+                let Ok(annotation)=tsrust_compiler::type_syntax::parse(base) else{continue;};
+                use tsrust_compiler::type_syntax::ValueAnnotationKind;
+                let (base_name,bindings):(String,std::collections::BTreeMap<String,String>)=match annotation.into_kind(){
+                    ValueAnnotationKind::Named(name)=>(name.text,Default::default()),
+                    ValueAnnotationKind::Applied{name,arguments}=>{
+                        let Some(parameters)=self.generic_parameters.get(&name.text).filter(|parameters|parameters.len()==arguments.len()) else{continue;};
+                        let bindings=parameters.iter().cloned().zip(arguments.iter().map(|argument|base[argument.span.start..argument.span.end].to_owned())).collect();(name.text,bindings)
+                    },_=>continue,
+                };
+                let inherited=self.symbols.iter().enumerate().filter(|(_,symbol)|symbol.kind==8 && symbol.owner.as_deref()==Some(base_name.as_str())).map(|(id,symbol)|(symbol.clone(),self.foreign_definitions.get(&id).cloned())).collect::<Vec<_>>();
                 for (mut field,definition) in inherited {
                     if self.symbols.iter().any(|symbol|symbol.kind==8 && symbol.owner.as_deref()==Some(owner.as_str()) && symbol.name==field.name){continue;}
+                    if !bindings.is_empty(){let Some(ty)=generic_intelligence::substitute_type(&field.ty,&bindings) else{continue;};field.ty=canonical_data_type(&ty);field.signature=format!("{}: {}",field.name,field.ty);}
                     field.owner=Some(owner.clone());if let Some(definition)=definition {self.foreign_definitions.insert(self.symbols.len(),definition);}self.symbols.push(field);added=true;
                 }
             }}

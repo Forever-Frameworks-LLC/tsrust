@@ -253,3 +253,28 @@ fn sibling_modules(uri: &str) -> Vec<String> {
     found.sort();
     found
 }
+
+#[cfg(test)]
+mod ui_prop_tests {
+ use super::*;
+ #[test]
+ fn generic_base_aliases_substitute_renamed_parameters_in_incomplete_jsx() {
+  let source="interface Data<T>{'data-value'?:T;}type Parent<T>=Data<T[]>;interface Child<U> extends Parent<U>{other:boolean;}function Container(props:Child<int>):void{}function main(){const node=<Container data-/>;}";
+  let index=SourceIndex::with_entry_help(source,true);let at=source.find("data-/>").unwrap()+5;
+  let (_,fields,_)=index.jsx_props(at).unwrap();let ty=&fields.iter().find(|(name,_)|name=="data-value").unwrap().1;
+  assert_eq!(ty.replace(' ',""),"int[]|undefined");assert!(fields.iter().any(|(name,_)|name=="other"));
+ }
+ #[test]
+ fn imported_vector_fields_survive_an_unfinished_attribute() {
+  let dependency=SourceIndex::with_entry_help(include_str!("../../tsrust-compiler/src/stdlib/ui/api.tsr"),false);
+  for component in ["Svg","Path"] {
+   let source=format!("import {{{component}}} from 'std:ui';function main(){{const node=<{component} stroke/>;}}");
+   let mut index=SourceIndex::with_entry_help(&source,true);
+   assert!(index.import_declaration(&dependency,component,component,Span::new(8,8+component.len()),"tsrust-stdlib:///std:ui",&Default::default()));index.finish_imports();
+   let at=source.find("stroke").unwrap()+6;
+   let (_,fields,_)=index.jsx_props(at).unwrap();
+   for field in ["id","aria-label","data-slot","data-size","data-variant","strokeWidth",if component=="Svg"{"viewBox"}else{"d"}]{assert!(fields.iter().any(|(name,_)|name==field),"{component}.{field}: {fields:?}");}
+   if component=="Path"{assert!(!fields.iter().any(|(name,_)|name=="children"));}
+  }
+ }
+}

@@ -125,6 +125,13 @@ fn substitute(
         }
     }
 }
+pub(super) fn substitute_type(source:&str,bindings:&BTreeMap<String,String>)->Option<String>{
+ let annotation=parse(source).ok()?;let mut edits=Vec::new();substitute(&annotation,bindings,&mut edits);
+ edits.sort_by_key(|edit|std::cmp::Reverse(edit.0));
+ if source.len()+edits.iter().map(|edit|edit.2.len()).sum::<usize>()>65536{return None;}
+ let mut result=source.to_owned();for(start,end,replacement)in edits{result.replace_range(start..end,&replacement);}Some(result)
+}
+
 fn copy_annotation(value: &ValueAnnotation) -> bool {
     match &value.kind {
         Kind::Literal(value) => !matches!(value,tsrust_compiler::type_syntax::LiteralAnnotation::String(_)),
@@ -144,6 +151,9 @@ impl SourceIndex {
             .iter()
             .map(|symbol| symbol.ty.clone())
             .collect();
+        // Imported functions have no local parameter symbols until their call checks.
+        pending.extend(self.symbols.iter().flat_map(|symbol|symbol.parameters.iter())
+            .filter_map(|parameter|parameter.split_once(':').map(|(_,ty)|ty.trim().to_owned())));
         // Direct factory calls have no local variable carrying their concrete
         // result. Their checked expression types still need concrete members.
         pending.extend(self.checked_method_results.iter().map(|(_, ty)| ty.clone()));
@@ -211,19 +221,8 @@ impl SourceIndex {
                     .map(|(id, symbol)| (id, symbol.clone()))
                     .collect();
                 for (original, mut field) in fields {
-                    let Ok(annotation) = parse(&field.ty) else {
-                        continue;
-                    };
-                    let mut edits = Vec::new();
-                    substitute(&annotation, &bindings, &mut edits);
-                    edits.sort_by_key(|edit| std::cmp::Reverse(edit.0));
-                    if field.ty.len() + edits.iter().map(|edit| edit.2.len()).sum::<usize>() > 65536
-                    {
-                        continue;
-                    }
-                    for (start, end, replacement) in edits {
-                        field.ty.replace_range(start..end, &replacement);
-                    }
+                    let Some(ty)=substitute_type(&field.ty,&bindings) else{continue;};
+                    field.ty=ty;
                     field.ty = super::canonical_data_type(&field.ty);
                     pending.push(field.ty.clone());
                     let mut display = field.ty.clone();
