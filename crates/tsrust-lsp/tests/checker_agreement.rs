@@ -18,7 +18,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use support::session::Session;
 use tsrust_lsp::{project_diagnostics::source_id, workspace::Workspace};
 
-const PRELUDE: &str = "import {SvgProps,PathProps,Node,Computed,Reactive,ViewRenderProps,ButtonRenderProps,InputTarget,InputChangeEvent,TextFieldProps,InputProps,TextareaProps,ReactiveInputValue,Signal,ThemeConfig,ThemeRadius,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {CryptoError} from 'std:crypto';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
+const PRELUDE: &str = "import {LazyChildren,SvgProps,PathProps,Node,Computed,Reactive,ViewRenderProps,ButtonRenderProps,InputTarget,InputChangeEvent,TextFieldProps,InputProps,TextareaProps,ReactiveInputValue,Signal,ThemeConfig,ThemeRadius,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {CryptoError} from 'std:crypto';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
 
 /// A receiver `x` of one type inside `probe`.
 struct Receiver {
@@ -28,6 +28,7 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
+Receiver {ty:"LazyChildrenProps",parameter:"x: ReadOnly<LazyChildrenProps>"},
 Receiver {ty:"SvgProps",parameter:"x: ReadOnly<SvgProps>"},
 Receiver {ty:"PathProps",parameter:"x: ReadOnly<PathProps>"},
 Receiver {ty:"Computed<int>",parameter:"x: ReadOnly<Computed<int>>"},
@@ -155,6 +156,7 @@ fn prelude(parameter: &str) -> String {
     let annotation=annotation.strip_prefix("ReadOnly<").unwrap_or(annotation);
     let family=annotation.split('<').next().unwrap_or(annotation).trim_end_matches('>');
     let ui=PRELUDE.lines().next().unwrap();
+    if family=="LazyChildrenProps" {return format!("{ui}\ninterface LazyChildrenProps{{children?:LazyChildren;}}\n");}
     if ui.split_once('{').unwrap().1.split_once('}').unwrap().0.split(',').any(|name|name==family){return format!("{ui}\n");}
     // Only the resource row needs the bundled testing implementation in every probe.
     let testing = if parameter.contains("TrackedResource") { "import {TrackedResource} from 'std:testing';\n" } else { "" };

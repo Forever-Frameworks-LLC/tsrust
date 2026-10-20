@@ -12,6 +12,9 @@ export type TextChild = string | int | number | TextBinding | Signal<int> | Sign
 /** Ordered text, direct Signal bindings or owned subtrees. Adjacent text shares one run; null, undefined and empty literals are omitted. Supported JSX scalar expressions reading local component state refresh; local-state JSX ternaries lazily mount selected subtrees. Other computed values remain construction-time snapshots. Ownership: transfers Nodes/strings once; state bindings are non-retaining. */
 export type Child = TextChild | Node;
 
+/** A deferred child array. Nested JSX becomes this owned zero-argument factory only when the component declares it. Each call constructs fresh content; dropping it does not construct content. */
+export type LazyChildren = Owned<Function<Child[]>>;
+
 /** Shared element identity and accessible naming. Attributes are escaped in HTML and applied to the same native subtree. */
 interface ElementMetadata<Variant> {
   /** A document ID without ASCII whitespace/control characters. Defaults to no ID. */

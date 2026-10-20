@@ -222,6 +222,12 @@
         "kind": "component"
       },
       {
+        "id": "lazy-children",
+        "source": "src/examples/lazy-children.tsrx",
+        "export": "LazyChildrenExample",
+        "kind": "component"
+      },
+      {
         "id": "vector-icons",
         "source": "src/examples/vector-icons.tsrx",
         "export": "VectorIcons",

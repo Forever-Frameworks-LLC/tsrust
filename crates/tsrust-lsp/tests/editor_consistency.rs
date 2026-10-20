@@ -320,3 +320,10 @@ fn vector_public_exports_are_reachable_without_misleading_answers() {
  for name in ["Svg","Path","SvgProps","PathProps"]{assert!(!session.hover("main.tsrx",source,source.find(name).unwrap()+1).unwrap_or_default().is_empty(),"{name}");}
  let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
 }
+
+#[test]
+fn lazy_child_factories_have_invocation_help_without_resource_methods(){
+ let source="import {View,Node,LazyChildren} from 'std:ui';interface Props{children:LazyChildren;}function Panel(props:Props):Node{const render=props.children;return <View children={render()}/>;}function main(){const node=<Panel><View/></Panel>;}";
+ let mut session=Session::start(&[]);session.open("main.tsrx",source);session.settle();let at=source.find("render()").unwrap()+2;let hover=session.hover("main.tsrx",source,at).unwrap_or_default();assert!(hover.contains("Child")||hover.contains("Node"),"{hover}");
+ let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
+}

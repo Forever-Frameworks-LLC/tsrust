@@ -1,0 +1,10 @@
+import { navigate, run } from 'std:ui';
+import { Page } from '../app/page';
+
+function main() {
+  const app = Page();
+  navigate('/docs/ui/foundations/lazy-children');
+  unwrap(run(app, 'Tsrust lazy children', {
+    width: 1100, height: 780, minWidth: 480, minHeight: 360, titlebar: 'custom'
+  }));
+}

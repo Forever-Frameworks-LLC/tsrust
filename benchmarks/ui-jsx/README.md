@@ -151,3 +151,13 @@ SVG namespaces, retained paths, data transitions, accessible images/buttons,
 responsive bounds, theme stroke and cleanup. Run `verify-vector-native.mjs
 <native-vector-log>` against the native viewport witness to compare its actual
 corners with the TypeScript-after-tsc oracle. No timing is claimed.
+
+The lazy-child section uses `lazy-children-reference.ts` for independent constructor
+order and eight interactive states. `verify-application.mjs <output>
+docs-lazy-children http://127.0.0.1:4317/docs/ui/foundations/lazy-children` observes
+absent initial content, repeated fresh child state, parent DOM/draft retention,
+responsive layout, accessibility, theme changes and disposal. It records source
+hashes. `verify-lazy-native.mjs <compiler-log>` compares actual generated-native
+construction order with the compiled TypeScript reference. Native std:testing
+resource assertions independently verify unused, consumed and failed factories.
+All these checks are untimed; no JavaScript GC cleanup parity is implied.

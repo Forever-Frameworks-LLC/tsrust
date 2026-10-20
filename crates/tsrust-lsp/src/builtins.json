@@ -13950,6 +13950,18 @@
 ],
   "std:ui": [
     {
+      "name": "LazyChildren",
+      "signature": "type LazyChildren = Owned<Function<Child[]>>",
+      "parameters": [],
+      "documentation": "A deferred recipe for an owned child array. Declaring children?: LazyChildren on a top-level function component converts between-tag JSX into an owned zero-argument factory. Attributes run before the parent call; child expressions run in source order only when the component calls its factory. Each call returns fresh owned content. Ignoring or dropping the factory does not construct it. Ordinary Child[] props remain eager, and children={factory} forwards an explicit factory without invoking it. No result cache or wrapper node is added. Reusable factories cannot consume the same owned capture repeatedly; Once<LazyChildren> makes a deliberate single-use contract. Factory exceptions propagate without an implicit retry and release partially built values. Stored/local/indirect component callables can receive an explicit factory. Multiple factory alternatives do not select an overload automatically. No arguments are accepted when invoking this callback. Native and browser use the same checked construction and cleanup rules. Example: Panel calls its child factory and renders Ready; ignoring props.children would never construct Text. Ownership: the component receives an owned callback; forwarding moves it once. Existing weak component-state capture and subtree ownership still apply.",
+      "examples": [
+        {
+          "source": "import {View,Text,Node,LazyChildren,document} from 'std:ui';\ninterface Props{children?:LazyChildren;}\nfunction Panel(props:Props):Node{const render=props.children;return <View children={render===undefined?[]:render()}/>;}\nfunction main(){const node=<Panel><Text>Ready</Text></Panel>;console.log(document(node,'Panel').includes('Ready'));}\n",
+          "output": "true\n"
+        }
+      ]
+    },
+    {
       "name": "Svg",
       "signature": "Svg(props: SvgProps<ReactiveValue<string>, ReactiveValue<string>>): Node",
       "parameters": [
