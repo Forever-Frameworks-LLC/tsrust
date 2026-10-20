@@ -20,9 +20,9 @@ function main() {
   strictEqual(neutral.includes('data-variant='), false);
   const link = document(<Badge render={(props) => (<Link href="/docs" className={props.className} data-slot={props['data-slot']}>Docs</Link>)} />, 'Link');
   strictEqual(link.includes('<a '), true);
-  strictEqual(link.includes('<span'), false);
+  strictEqual(link.includes('<span class="ui group/badge'), false, 'Replacement Link has no Badge span wrapper');
   const button = document(<Badge render={(props) => (<Button className={props.className} onPress={() => {}}>Action</Button>)} />, 'Button');
   strictEqual(button.includes('<button'), true);
-  strictEqual(button.includes('<span'), false);
+  strictEqual(button.includes('<span class="ui group/badge'), false, 'Replacement Button has no Badge span wrapper');
   console.log('Badge composition passed');
 }

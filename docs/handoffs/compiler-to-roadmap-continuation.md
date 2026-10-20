@@ -1,6 +1,22 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
-Current section — 2026-10-20: scalar reactive custom props, derived getters and
+Current section — 2026-10-20: editable Badge and shared text flow pass focused
+native/compiler, installed-LSP and actual dev-browser acceptance. See
+[Badge acceptance](../milestones/ui-badge-and-text-flow.md). Six palettes,
+live/nullable props, once-only replacement controls, Unicode selection, text
+wrapping/decoration, Link predicates and offline installation are covered.
+The actual native docs route builds and passes bounded startup. There are 162
+destinations, 21 checked examples and 966 API declarations. The CLI/LSP use
+`61a0d5bf`; settings bytes/time are exact. The live port-4317 gallery is
+`/docs/ui/components/badge`.
+
+Continue context, event/ref composition, focus/disclosure/overlays and remaining
+components/charts/themes/blocks. SVG icons and transitions remain missing from
+Badge; this is not full Nova parity. Build latency and cold editor scheduling
+remain open. Reuse accepted evidence and batch focused checks after complete
+sections. No additional owner go-ahead is needed.
+
+Accepted reactive props — 2026-10-20: scalar reactive custom props, derived getters and
 View/Button replacement composition pass focused compiler/runtime, installed-LSP,
 actual browser and native startup acceptance. See
 [acceptance](../milestones/ui-reactive-props-and-composition.md). Editable Alert

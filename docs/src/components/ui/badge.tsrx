@@ -1,3 +1,4 @@
+// License: MIT. See ../../../attributions/shadcn-MIT.txt.
 import { View, ViewProps, Node, ReactiveValue, useProp } from 'std:ui';
 
 export type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline' | 'ghost' | 'link';

@@ -335,6 +335,40 @@
           "generatedSha256": "51c7fdad7efa76dca5242dfe6b369b348b15b12ac7d2948231e7db8c7a9f9191"
         }
       ]
+    },
+    {
+      "identity": {
+        "name": "badge",
+        "version": "1.0.0",
+        "variant": "default"
+      },
+      "destination": "src/components/ui",
+      "catalog": "bundled-2026-10-20",
+      "payloadSha256": "77893ef42d68366d1e83255e853816528f2ab9c92a0d9a5a5d944c6c735b4da9",
+      "compilerSha256": "1d94dd9a17a63a5cf5c2e909c522179d948cc7945c48d0964084c8e605132a8d",
+      "compilerVersion": "0.1.0",
+      "compilerApi": 5,
+      "runtimeAbi": "ui-application-1",
+      "rust": "1.96.1",
+      "license": "MIT",
+      "attribution": {
+        "path": "attributions/shadcn-MIT.txt",
+        "sha256": "1564074e13439397221ffd522e2e504d56561994a23d371aa5e3ad43e4f5423f"
+      },
+      "dependencies": [
+        {
+          "name": "tokens",
+          "version": "1.0.0",
+          "variant": "default"
+        }
+      ],
+      "files": [
+        {
+          "path": "src/components/ui/badge.tsrx",
+          "templateSha256": "affeb818510ffc3eec0af0a0b3e2e2260048bc40083a5137123c8f68ba0a435d",
+          "generatedSha256": "9ee8994f0226a86fc0d65239375c01729fd835af2300cf5a991fa8bb19b66699"
+        }
+      ]
     }
   ]
 }

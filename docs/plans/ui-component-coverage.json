@@ -118,7 +118,7 @@
       "name": "badge",
       "source": "apps/v4/registry/bases/base/ui/badge.tsx",
       "gitBlobSha1": "10a7f676f81090c851211f363057238d5906e2ca",
-      "status": "pending",
+      "status": "partial",
       "capabilityFamilies": [
         "semantic-elements"
       ],
@@ -127,7 +127,8 @@
         "Default composition",
         "Variants, sizes and caller customization",
         "Keyboard, accessibility and light/dark states"
-      ]
+      ],
+      "notes": "Editable six-palette Badge and class helper with live/nullable variants, reactive caller classes, once-only replacement controls and shared text flow/decoration. Focused paired acceptance: docs/milestones/ui-badge-and-text-flow.md. SVG icons, icon padding, animated transitions and full Base UI event/ref merging remain unsupported."
     },
     {
       "name": "breadcrumb",

@@ -36,7 +36,7 @@ try {
  } else if(['reactive-props','docs-reactive-props'].includes(scenario)){
   const {observeReactiveProps}=await import('./reactive-props-observer.mjs');await observeReactiveProps({evaluate,call,errors,expected});
  } else if(scenario==='docs-badge'){
-  const {observeBadge}=await import('./badge-observer.mjs');await observeBadge({evaluate,call,errors,expected});
+  const {observeBadge}=await import('./badge-observer.mjs');await observeBadge({evaluate,call,errors,expected,site});
  } else if(scenario==='docs-alert'){
   const {observeDocsAlert}=await import('./docs-alert-observer.mjs');await observeDocsAlert({evaluate,call,errors,site,expected});
  } else if(scenario==='docs-experience'){

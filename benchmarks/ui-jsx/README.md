@@ -136,3 +136,10 @@ derived text, forwarded handlers/children, stable nodes/focus and disposal. Nati
 model tests cover matching transitions, validation errors and independent release
 observation. These are untimed correctness witnesses; no new throughput result is
 claimed.
+
+`verify-application.mjs <output> docs-badge http://127.0.0.1:4317/docs/ui/components/badge`
+checks the six Badge palettes, live/nullable variants, caller padding, replacement
+Link/Button semantics, node retention, narrow layouts and disposal against
+`badge-reference.ts` after TypeScript compilation. Native flow witnesses cover
+Unicode selection, inline link ranges, inherited whitespace, editable values and
+local/ancestor decoration boundaries. These are untimed correctness checks.
