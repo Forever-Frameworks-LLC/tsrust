@@ -403,7 +403,13 @@ fn run(
                             }
                             projects.cache_actions(&checked.snapshot.uri, checked.workspace.as_ref().expect("project input"), actions);
                             projects.cache_index(&checked.snapshot.uri, checked.workspace.as_ref().expect("project input"), index);
-                            if !scanner.covers(&checked.snapshot.uri) {
+                            if scanner.covers(&checked.snapshot.uri) {
+                                // Foreground diagnostics must not wait for every closed workspace file.
+                                let entry=tsrust_lsp::project_diagnostics::source_id(&checked.snapshot.uri)?;
+                                if let Some(diagnostics)=buckets.get(&entry) {
+                                    if let Some(publication)=projects.publication(&entry,Some(checked.snapshot.version),diagnostics.clone()) {publish_project(&connection,publication)?;}
+                                }
+                            }else{
                                 for publication in projects.accept(&checked.snapshot.uri, checked.workspace.as_ref().expect("project input"), buckets)? { publish_project(&connection, publication)?; }
                             }
                         },

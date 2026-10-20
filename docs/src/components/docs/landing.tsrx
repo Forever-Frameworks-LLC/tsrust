@@ -1,4 +1,4 @@
-// Paired landing sections keep construction frames bounded.
+// Small paired landing sections keep construction frames bounded.
 import { View, Text, Node, Child, Link, CopyButton, signal, Button } from 'std:ui';
 import { CodeBlock } from './code-block';
 import { loadExample, renderExample } from '../../../target/docs-content/catalog';

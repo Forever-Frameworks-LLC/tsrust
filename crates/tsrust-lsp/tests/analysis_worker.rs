@@ -45,5 +45,7 @@ fn foreground_imported_members_remain_current_during_a_workspace_scan(){
  let source="import {Value} from './values.tsr';function read(value:ReadOnly<Value>){console.log(value.title);}";
  session.open("foreground.tsr",source);let offset=source.find("value.title").unwrap()+"value.".len();
  let hover=session.hover("foreground.tsr",source,offset+1).unwrap_or_default();assert!(hover.contains("string"),"{hover}");
+ let bad=source.replace("value.title","value.missing");session.change("foreground.tsr",&bad);
+ let mut diagnostics=session.wait_for_diagnostics("foreground.tsr");for _ in 0..3{if diagnostics.to_string().contains("missing"){break;}diagnostics=session.wait_for_diagnostics("foreground.tsr");}assert!(diagnostics.to_string().contains("missing"),"{diagnostics}");
  let counters=session.request("tsrust/counters",serde_json::Value::Null);assert_eq!(counters["staleAnswers"],0,"{counters}");
 }
