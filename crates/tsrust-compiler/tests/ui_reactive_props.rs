@@ -29,6 +29,7 @@ fn old_string_props_and_generic_alias_inheritance_stay_compatible(){
 #[test]
 fn reactive_catalog_examples_execute_with_the_documented_output(){
  let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();let directory=support::TempDirectory::new();let mut seen=std::collections::BTreeSet::new();
+ support::success(&support::run(support::cli().args(["ui","add","tokens","--offline","--target","native"]).current_dir(&directory.0),30));
  let entries=catalog["std:ui"].as_array().unwrap().iter().filter(|entry|matches!(entry["name"].as_str(),Some("computed"|"useProp"))).chain(catalog["UiComputed"].as_array().unwrap());
  for entry in entries{for example in entry["examples"].as_array().unwrap(){let source=support::format_round_trip(example["source"].as_str().unwrap());if !seen.insert(source.clone()){continue;}let path=directory.source(&source);let result=support::run(support::cli().arg("run").arg(path),90);support::success(&result);assert_eq!(result.stdout,example["output"].as_str().unwrap().as_bytes());}}
  assert_eq!(seen.len(),2);
