@@ -6,6 +6,7 @@ mod native;
 #[cfg(all(target_arch="wasm32",feature="ui-web"))]
 pub mod browser;
 mod state;
+mod computed;
 pub mod navigation;
 mod branch;
 #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
@@ -17,6 +18,7 @@ mod visibility;
 pub mod clipboard;
 pub(crate) use editable::{ValueBinding,ChangeHandler};
 pub use state::{Signal,TextBinding};
+pub use computed::Computed;
 pub mod style;
 pub mod theme;
 mod web;
@@ -85,10 +87,23 @@ pub struct Node {
     collapsed:bool,
     hidden:Option<Box<dyn FnMut()->Result<bool,String>>>,
     branch:Option<branch::Branch>,
+    class_binding:Option<Box<dyn FnMut()->Result<String,String>>>,
+    variant_binding:Option<Box<dyn FnMut()->Result<String,String>>>,
     state: Vec<Box<dyn std::any::Any>>,
 }
 
 impl Node {
+    pub fn with_class_binding(mut self,evaluate:impl FnMut()->Result<String,String>+'static)->Result<Self,String>{
+        self.class_binding=Some(Box::new(evaluate));Ok(self)
+    }
+    pub fn with_variant_binding(mut self,evaluate:impl FnMut()->Result<String,String>+'static)->Result<Self,String>{
+        self.variant_binding=Some(Box::new(evaluate));Ok(self)
+    }
+    fn check_variant(value:&str)->Result<(),String>{if value.chars().any(|ch|!(ch.is_ascii_alphanumeric()||ch=='-')){return Err("UI data-variant must contain ASCII letters, digits or hyphens".into());}Ok(())}
+    fn check_class(&self,value:&str)->Result<(),String>{
+        style::validate(value)?;
+        if (self.kind==Kind::Text||matches!(self.kind,Kind::Button|Kind::DisabledButton)&&!self.text.is_empty())&&style::requires_container(value){return Err("Container layout utilities require View or composed Button children; Text remains a text leaf".into());}Ok(())
+    }
     pub fn with_semantics(mut self, config: &str) -> Result<Self,String> {
         if config.is_empty(){return Ok(self);}
         let value:Semantics=serde_json::from_str(config).map_err(|e|format!("Invalid UI semantics: {e}"))?;
@@ -252,6 +267,8 @@ impl Node {
             if *current!=mode {*current=mode;changed+=1;self.inherit_branch_theme();}
         }
         if !retained {changed+=self.refresh_branch()?;}
+        if let Some(binding)=&mut self.class_binding{let next=binding()?;self.check_class(&next)?;if next!=self.class_name{self.class_name=next;changed+=1;}}
+        if let Some(binding)=&mut self.variant_binding{let next=binding()?;Self::check_variant(&next)?;if next!=self.semantics.variant{self.semantics.variant=next;changed+=1;}}
         let disabled=if let Some(predicate)=&mut self.disabled {Some(predicate()?)}else{None};
         if let Some(value)=disabled {changed+=usize::from(self.apply_disabled(value));}
         let read_only=if let Some(predicate)=&mut self.read_only {Some(predicate()?)}else{None};
@@ -348,7 +365,7 @@ impl Node {
             class_name,
             text,
             children,
-            parts: Vec::new(), disabled:None, visibility:None, copy:None, press: None, state: Vec::new(), editable:None, read_only:None,collapsed:false,hidden:None,
+            parts: Vec::new(), disabled:None, visibility:None, copy:None, press: None, class_binding:None,variant_binding:None,state: Vec::new(), editable:None, read_only:None,collapsed:false,hidden:None,
         })
     }
 }

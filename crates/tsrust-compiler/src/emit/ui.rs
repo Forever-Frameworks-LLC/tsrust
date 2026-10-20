@@ -5,11 +5,12 @@ const CHANGE_HANDLER:&str="Box<dyn FnMut(&str,&str,&str)->Result<(),std::string:
 impl Emitter<'_> {
  pub(super) fn ui_native(&self,fun:&CheckedFunction,expr:&Expr,id:usize,args:&[Expr])->Option<String>{
   let binding=&crate::native_bindings::BINDINGS[id];
-  if binding.module!="std:ui-runtime" || !matches!(binding.name,"visibility"|"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"|"route"){return None;}
+  if binding.module!="std:ui-runtime" || !matches!(binding.name,"bindClass"|"bindVariant"|"visibility"|"computed"|"computedGet"|"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"|"route"){return None;}
   self.native_bindings.borrow_mut().insert(id);
   let read=|arg:&Expr|self.expr(fun,arg,Mode::Read);
   let scalar=|arg:&Expr|{let text=read(arg);if arg.ty==Some(Type::String){format!("String::clone({text})")}else{text}};
   let call=match binding.name {
+   "bindClass"|"bindVariant"=>{let callback=args[1].ty.unwrap();let invoke=self.ui_callback(callback,expr.span,"String");let method=if binding.name=="bindClass"{"with_class_binding"}else{"with_variant_binding"};format!("{{let node={};let mut registered_callback={};node.{method}(move||({invoke}).map(|value|value.as_ref().to_owned()))}}",self.expr(fun,&args[0],Mode::Consume),self.expr(fun,&args[1],Mode::Consume))},
    "visibility"=>{
     let callback=args[1].ty.unwrap();let invoke=self.ui_callback_arguments(callback,expr.span,"()","(visible,)");
     format!("{{let node={};let mut registered_callback={};node.with_visibility(move |visible:bool|{{{invoke}}})}}",self.expr(fun,&args[0],Mode::Consume),self.expr(fun,&args[1],Mode::Consume))
@@ -32,9 +33,10 @@ impl Emitter<'_> {
     return Some(format!("{{let mut registered_callback={};tsrust_native_ui::TextBinding::computed(move||{{let result={invoke};result.map(|value|{format})}})}}",self.expr(fun,&args[0],Mode::Consume)));
    },
    "input"|"inputChange"=>self.ui_input_constructor(fun,args,binding.name=="inputChange",expr.span),
+   "computed"=>{let Type::Record(record)=expr.ty.unwrap() else{unreachable!()};let payload=self.program.records[record].application.as_ref().unwrap().resolved_arguments[0];return Some(self.ui_computed_source(args[0].ty.unwrap(),payload,&self.expr(fun,&args[0],Mode::Consume),expr.span));},
    "signal"=>return Some(format!("tsrust_native_ui::Signal::new({})",scalar(&args[0]))),
    "handle"=>return Some(format!("({}).handle()",read(&args[0]))),
-   "get"=>format!("({}).get()",read(&args[0])),
+   "get"|"computedGet"=>format!("({}).get()",read(&args[0])),
    "set"=>format!("{{let state={};let next={};state.set(next)}}",read(&args[0]),scalar(&args[1])),
    "ownState"=>format!("{{let node={};let state={};{}}}",self.expr(fun,&args[0],Mode::Consume),self.expr(fun,&args[1],Mode::Consume),self.ui_retained_result(args[0].ty.unwrap(),"node")),
    _=>unreachable!(),
@@ -44,6 +46,19 @@ impl Emitter<'_> {
   let Type::Record(error)=self.program.records[err].fields[0].ty.unwrap() else{unreachable!()};
   let failure=format!("Record{}{{field0:String::Borrowed(\"UiError\"),field1:String::Owned(message){}}}",self.native_record_declaration(error),self.schema_record_order(error));
   Some(format!("match {call}{{Ok(value)=>{},Err(message)=>{}}}",wrap(ok,"value"),wrap(err,&failure)))
+ }
+ fn ui_computed_source(&self,source:Type,payload:Type,value:&str,span:crate::Span)->String {
+  if let Type::Union(id)=source{let arms=self.program.unions[id.index()].members.iter().enumerate().map(|(tag,&ty)|format!("Union{}::V{tag}(value)=>{},",id.index(),self.ui_computed_source(ty,payload,"value",span))).collect::<String>();return format!("match {value}{{{arms}}}");}
+  if let Type::Record(id)=source{let callback=self.program.records[id].fields[0].ty.unwrap();return self.ui_computed_source(callback,payload,&format!("({value}).field0"),span);}
+  if matches!(source,Type::Callback(_)|Type::StoredCallable(_)|Type::Closure(_)){
+   let output=self.ui_getter_result(source);let invoke=self.ui_callback(source,span,&self.native_type(output));let output=self.ui_computed_inject(output,payload,"value");return format!("{{let mut registered_callback={value};tsrust_native_ui::Computed::new(move||({invoke}).map(|value|{output}))}}");
+  }
+  format!("tsrust_native_ui::Computed::constant({})",self.ui_computed_inject(source,payload,value))
+ }
+ fn ui_computed_inject(&self,source:Type,target:Type,value:&str)->String{
+  if source==target{return value.into();}
+  if let Type::Union(id)=target{let members=&self.program.unions[id.index()].members;if let Type::Union(source)=source{let arms=self.program.unions[source.index()].members.iter().enumerate().map(|(tag,&ty)|format!("Union{}::V{tag}(value)=>{},",source.index(),self.ui_computed_inject(ty,target,"value"))).collect::<String>();return format!("match {value}{{{arms}}}");}let tag=members.iter().position(|&ty|ty==source||matches!(source,Type::Literal(_,kind) if kind.base()==ty)).expect("checked computed scalar alternative");return format!("Union{}::V{tag}({value})",id.index());}
+  value.into()
  }
  fn ui_getter_result(&self,callback:Type)->Type {match callback{Type::Callback(id)=>self.program.callback_contracts[id].result,Type::StoredCallable(family)=>self.program.callback_contracts[self.program.stored_contracts.declaration(family).expect("checked UI getter")].result,Type::Closure(id)=>self.program.closures[id].function.result,_=>unreachable!("checked UI getter")}}
  fn ui_branch_child(&self,ty:Type,value:&str)->String {match ty {

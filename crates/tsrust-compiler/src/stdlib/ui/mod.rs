@@ -70,6 +70,8 @@ pub(crate) const SEMANTICS:NativeBinding=NativeBinding{name:"semantics",paramete
 
 pub(crate) const DISABLED_BINDING:NativeBinding=NativeBinding{name:"bindDisabled",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("predicate",NativeType::OwnedBooleanCallback,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_bind_disabled"},..TEXT};
 
+pub(crate) const CLASS_BINDING:NativeBinding=NativeBinding{name:"bindClass",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("evaluate",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_bind_class"},..TEXT};
+pub(crate) const VARIANT_BINDING:NativeBinding=NativeBinding{name:"bindVariant",backend:NativeBackend::Bundled{symbol:"tsrust_ui_bind_variant"},..CLASS_BINDING};
 pub(crate) const HIDDEN_BINDING:NativeBinding=NativeBinding{name:"bindHidden",backend:NativeBackend::Bundled{symbol:"tsrust_ui_bind_hidden"},..DISABLED_BINDING};
 
 pub(crate) const READ_ONLY_BINDING:NativeBinding=NativeBinding{name:"bindReadOnly",backend:NativeBackend::Bundled{symbol:"tsrust_ui_bind_read_only"},..DISABLED_BINDING};
@@ -94,6 +96,8 @@ pub(crate) const NAVIGATE:NativeBinding=NativeBinding{name:"navigate",parameters
 pub(crate) const TRAVERSE:NativeBinding=NativeBinding{name:"traverse",parameters:&[parameter("forward",NativeType::Boolean,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_traverse"},..NAVIGATE};
 pub(crate) const LINK:NativeBinding=NativeBinding{name:"link",parameters:&[parameter("children",NativeType::Structured(&CHILDREN),Mode::Consume),parameter("className",NativeType::String,Mode::Read),parameter("href",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_link"},..TEXT};
 pub(crate) const SIGNAL_NEW:NativeBinding=NativeBinding{name:"signal",parameters:&[parameter("initial",NativeType::ObservedValue,Mode::Read)],result:NativeType::ObservedValue,backend:NativeBackend::Bundled{symbol:"tsrust_ui_signal"},..TEXT};
+pub(crate) const COMPUTED_NEW:NativeBinding=NativeBinding{name:"computed",parameters:&[parameter("source",NativeType::ObservedValue,Mode::Consume)],result:NativeType::ObservedValue,backend:NativeBackend::Bundled{symbol:"tsrust_ui_computed"},..TEXT};
+pub(crate) const COMPUTED_GET:NativeBinding=NativeBinding{name:"computedGet",parameters:&[parameter("value",NativeType::ObservedValue,Mode::Read)],result:NativeType::ObservedValue,backend:NativeBackend::Bundled{symbol:"tsrust_ui_computed_get"},..TEXT};
 pub(crate) const HANDLE_NEW:NativeBinding=NativeBinding{name:"handle",parameters:&[parameter("signal",NativeType::ObservedValue,Mode::Read)],result:NativeType::ObservedValue,backend:NativeBackend::Bundled{symbol:"tsrust_ui_handle"},..TEXT};
 pub(crate) const GET:NativeBinding=NativeBinding{name:"get",parameters:&[parameter("state",NativeType::ObservedValue,Mode::Read)],result:NativeType::ObservedValue,backend:NativeBackend::Bundled{symbol:"tsrust_ui_get"},..TEXT};
 pub(crate) const SET:NativeBinding=NativeBinding{name:"set",parameters:&[parameter("state",NativeType::ObservedValue,Mode::Read),parameter("value",NativeType::ObservedValue,Mode::Read)],result:NativeType::ObservedValue,backend:NativeBackend::Bundled{symbol:"tsrust_ui_set"},..TEXT};
@@ -138,6 +142,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("mod editable;",&format!("mod editable {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/editable.rs")))
         .replace("pub mod clipboard;", &format!("pub mod clipboard {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/clipboard.rs").replace("crate::Node", "super::Node")))
         .replace("pub mod navigation;", &format!("pub mod navigation {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/navigation.rs")))
+        .replace("mod computed;",&format!("mod computed {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/computed.rs")))
         .replace("mod state;", &format!("mod state {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/state.rs")))
         .replace("#[cfg(test)]\nmod application_tests;", "")
         .replace("mod window;",&format!("mod window {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/window.rs")))

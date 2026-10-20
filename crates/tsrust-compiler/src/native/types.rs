@@ -64,6 +64,7 @@ static UI_NODE: Declaration = Declaration {
     ..THREAD
 };
 static UI_SIGNAL: Declaration = Declaration { id:NativeTypeId::UiSignal,name:"Signal",type_parameters:&["T"],..UI_NODE };
+static UI_COMPUTED:Declaration=Declaration{id:NativeTypeId::UiComputed,name:"Computed",..UI_SIGNAL};
 static UI_TEXT_BINDING:Declaration=Declaration{id:NativeTypeId::UiTextBinding,name:"TextBinding",..UI_NODE};
 static UI_ERROR: Declaration = Declaration {
     id: NativeTypeId::UiError,
@@ -477,6 +478,7 @@ NativeTypeId::HttpApp => &HTTPAPP,
         NativeTypeId::FsError => &FS_ERROR,
         NativeTypeId::EnvError => &ENV_ERROR,
         NativeTypeId::UiSignal => &UI_SIGNAL,
+        NativeTypeId::UiComputed => &UI_COMPUTED,
         NativeTypeId::UiNode => &UI_NODE,
         NativeTypeId::UiTextBinding => &UI_TEXT_BINDING,
         NativeTypeId::UiError => &UI_ERROR,
@@ -517,7 +519,7 @@ NativeTypeId::HttpApp => &HTTPAPP,
 /// Exact module/name lookup does not grant aliases a new declaration identity.
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
-    [&UI_SIGNAL,&UI_NODE,&UI_TEXT_BINDING,
+    [&UI_SIGNAL,&UI_COMPUTED,&UI_NODE,&UI_TEXT_BINDING,
         &UI_ERROR,
         &SIGNAL_LISTENER,&SIGNAL_ERROR,&CRYPTO_ERROR,&LRU_CACHE,&SHARED_LRU_CACHE,&CACHE_ENTRY,&CACHE_INSERT_ERROR,&UUID,&UUID_ERROR,&TIMEOFDAY,&UTCINSTANT,&TIMEDURATION,&TIMEZONE,&CALENDAR_DATE,&DATE_ERROR,&DECIMAL,&DECIMAL_ERROR,&NUMERIC_ERROR,&TRACKED_RESOURCE,&SQLPOOL,&SQLTRANSACTION,&SQLCURSOR,&SQLROW,&SQLERROR,&SQLITECONNECTION,&SQLITESTATEMENT,&SQLITETRANSACTION,&SQLITEROW,&SQLITEERROR,&HTTPTLSOPTIONS,&HTTPFORMFIELD,&HTTPMULTIPARTPART,&HTTPCOOKIEOPTIONS,&HTTPSERVEROPTIONS,&HTTPCLIENTOPTIONS,&HTTPROUTER,&HTTPCONTEXT,&HTTPCONTEXTNEXT,&HTTPAPP,&HTTPREQUEST,&HTTPRESPONSE,&HTTPBODY,&HTTPCLIENT,&HTTPSERVER,&HTTPNEXT,&HTTPERROR,&JOB,&ASYNC_ERROR,&ASYNC_CHANNEL,&ASYNC_SENDER,&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP,
     ].into_iter().find(|item| item.module == module && item.name == name)

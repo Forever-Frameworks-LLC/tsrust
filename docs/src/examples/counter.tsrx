@@ -1,7 +1,5 @@
 import { View, Text, Node, signal } from 'std:ui';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
 
 export function Counter(): Node {
   const count = signal(0);
@@ -13,8 +11,6 @@ export function Counter(): Node {
         <Button variant="outline" onPress={() => { count.set(count.get() - 1); }}>Decrement</Button>
         <Button variant="secondary" disabled={count.get() < 5} onPress={() => { count.set(count.get() + 100); }}>Add 100</Button>
       </View>
-      <Label htmlFor="example-draft">A draft that stays yours</Label>
-      <Input id="example-draft" defaultValue="Edit this, then change theme or hide the preview." className="w-full" />
     </View>
   );
 }

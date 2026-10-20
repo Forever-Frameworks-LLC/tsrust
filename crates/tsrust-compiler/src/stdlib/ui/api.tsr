@@ -1,4 +1,4 @@
-import { route as nativeRoute, visibility as nativeVisibility, copyButton as nativeCopyButton, location as nativeLocation, navigate as nativeNavigate, traverse as nativeTraverse, link as nativeLink, themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, handle as nativeHandle, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
+import { bindClass as nativeBindClass, bindVariant as nativeBindVariant, Computed as NativeComputed, computed as nativeComputed, route as nativeRoute, visibility as nativeVisibility, copyButton as nativeCopyButton, location as nativeLocation, navigate as nativeNavigate, traverse as nativeTraverse, link as nativeLink, themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, handle as nativeHandle, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
 
 /** An owned UI subtree. Moving a Node transfers all descendants. Nodes cannot be cloned or sent to workers. */
 export type Node = NativeNode;
@@ -13,7 +13,7 @@ export type TextChild = string | int | number | TextBinding | Signal<int> | Sign
 export type Child = TextChild | Node;
 
 /** Shared element identity and accessible naming. Attributes are escaped in HTML and applied to the same native subtree. */
-export interface ElementProps {
+interface ElementMetadata<Variant> {
   /** A document ID without ASCII whitespace/control characters. Defaults to no ID. */
   id?: string;
   /** Accessible name for buttons, headings, named sections or supported named roles. Generic text/containers, paragraphs, code and presentation cannot be named. */
@@ -29,16 +29,19 @@ export interface ElementProps {
   /** Component size metadata for checked data/group selectors. ASCII letters, digits and hyphens; empty means absent. */
   'data-size'?: string;
   /** Component variant metadata for data/group selectors; ASCII letters, digits and hyphens. Empty means absent. Does not change styles without a matching class. */
-  'data-variant'?: string;
+  'data-variant'?: Variant;
 }
 
 /** Noninteractive semantic roles shared by View and Text. Unsupported roles fail rather than losing accessibility behavior. */
-export interface SemanticProps extends ElementProps {
+export type ElementProps<Variant = string> = ElementMetadata<Variant>;
+interface SemanticMetadata<Variant> extends ElementProps<Variant> {
   /** Defaults to the element's implicit role. A region requires aria-label; separators require empty content. */
   role?: 'alert' | 'status' | 'separator' | 'group' | 'note' | 'region' | 'none' | 'presentation';
   /** Only valid for role=separator; defaults to horizontal. */
   'aria-orientation'?: 'horizontal' | 'vertical';
 }
+
+export type SemanticProps<Variant = string> = SemanticMetadata<Variant>;
 
 export interface TextProps extends SemanticProps {
   /** Defaults to span. Heading levels are reflected in native accessibility. */
@@ -49,7 +52,7 @@ export interface TextProps extends SemanticProps {
   className?: string;
 }
 
-export interface ViewProps extends SemanticProps {
+interface ViewProperties<Classes, Variant> extends SemanticProps<Variant> {
   /** Receives initial visibility and changes after layout. Visible means positive area inside the viewport and every clipping ancestor, not occlusion detection. Hidden subtrees report false. No scroll interception. */
   onVisibilityChange?: Owned<Function<void, [visible: boolean]>>;
   /** 0 participates in source-order keyboard focus; -1 allows pointer/accessibility focus only. Omission is not focusable. Positive values are rejected. Name scroll regions with role=region and aria-label. */
@@ -65,17 +68,35 @@ export interface ViewProps extends SemanticProps {
   /** Owned ordered content. Pass between tags or with children={values}; combining both is rejected. Forwarding transfers the array once. */
   children?: Child[];
   /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Includes relative/absolute parent positioning and checked insets; inline descendants require typography only. Includes aspect-square/video/[W/H]/[R]/auto with finite positive f32 ratios. Explicit sizes and min/max bounds still apply. Later classes win per property/state. */
-  className?: string;
+  className?: Classes;
 }
 
-export interface ButtonProps extends ElementProps {
+/** Props forwarded once to a replacement View renderer; there is no render field to recurse through. */
+export type ViewRenderProps<Classes = string, Variant = string> = ViewProperties<Classes, Variant>;
+interface ViewComponentProps<Classes, Variant> extends ViewRenderProps<Classes, Variant> {
+  /** Optional replacement factory. Forward its owned props into one UI node; returning it adds no wrapper or focus stop. */
+  render?: Owned<Function<Node, [props: ViewRenderProps<Classes, Variant>]>>;
+}
+
+export type ViewProps<Classes = string, Variant = string> = ViewComponentProps<Classes, Variant>;
+
+interface ButtonProperties<Classes, Variant> extends ElementProps<Variant> {
   /** Owned ordered content. Pass between tags or with children={values}; combining both is rejected. Forwarding transfers the array once. */
   children?: Child[];
   /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Includes relative/absolute parent positioning and checked insets; inline descendants require typography only. Includes aspect-square/video/[W/H]/[R]/auto with finite positive f32 ratios. Explicit sizes and min/max bounds still apply. Later classes win per property/state. */
-  className?: string;
+  className?: Classes;
   disabled?: boolean | ReactiveBoolean;
   onPress?: Owned<Function<void>>;
 }
+
+/** Button props supplied to a replacement factory, including children, disabled state and onPress. */
+export type ButtonRenderProps<Classes = string, Variant = string> = ButtonProperties<Classes, Variant>;
+interface ButtonComponentProps<Classes, Variant> extends ButtonRenderProps<Classes, Variant> {
+  /** Optional replacement factory. Forward all supplied behavior onto one control; it is called once and adds no wrapper. */
+  render?: Owned<Function<Node, [props: ButtonRenderProps<Classes, Variant>]>>;
+}
+
+export type ButtonProps<Classes = string, Variant = string> = ButtonComponentProps<Classes, Variant>;
 
 /** Text-field values preserve exact ints and ordinary number formatting. Signal and derived bindings retain no state owner. */
 export type InputValue = string | int | number | Signal<string> | Signal<int> | Signal<number> | ReactiveInputValue;
@@ -209,6 +230,11 @@ export function Text(props: TextProps): Node {
 }
 /** Creates a container, preserving child order. className defaults to empty. Unknown utilities or depth over 128 throw a message. Consumes its children. */
 export function View(props: ViewProps): Node {
+  const Render = props.render;
+  if (Render !== undefined) {
+    return <Render {...props}/>;
+  }
+
   const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', props['data-variant'] ?? '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']), props.htmlFor ?? '', props.windowDragRegion ?? false, props.tabIndex);
   const result = view(props.children ?? [], props.className ?? '');
   match (result) {
@@ -235,6 +261,11 @@ export function View(props: ViewProps): Node {
 }
 /** Creates a semantic button with optional retained onPress and composed phrasing children. Disabled buttons never activate. */
 export function Button(props: ButtonProps): Node {
+  const Render = props.render;
+  if (Render !== undefined) {
+    return <Render {...props}/>;
+  }
+
   const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', props['data-variant'] ?? '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
   const children = props.children ?? [];
   const handler = props.onPress;
@@ -327,13 +358,13 @@ export function signal<T>(initial: T): Signal<T> {
   return nativeSignal(initial);
 }
 
-function bindState<T>(state: ReadOnly<Signal<T>>): Signal<T> {
+function bindState<T>(state: ReadOnly<T>): T {
   return nativeHandle(state);
 }
 
 
 
-function retainComponentState<T, N>(node: N, state: Signal<T>): N {
+function retainComponentState<T, N>(node: N, state: T): N {
   return unwrap(nativeOwnState(node, state));
 }
 
@@ -403,6 +434,26 @@ export function withTheme<T>(node: Node, value: ReadOnly<T>, mode?: string | Sig
   }
 
   return unwrap(nativeThemeMode(node, config, mode));
+}
+
+/** A reusable scalar expression for a component prop. JSX creates this binding automatically for state-reading expressions. */
+export interface Reactive<T> {
+  /** Zero-argument checked getter. Owns its callback and does not retain component state owners. */
+  evaluate: Owned<Function<T>>;
+}
+/** A constant or live scalar component prop. Reactivity requires a declared ReactiveValue prop and computed() in the component that reads it. */
+export type ReactiveValue<T> = Reactive<T> | T;
+/** A component-owned read-only expression. get() evaluates its latest scalar value; there is no setter. */
+export type Computed<T> = NativeComputed<T>;
+/** Owns a constant, JSX prop binding or reusable getter. get() evaluates on each read, without memoization. Returning the component tree retains this value automatically. */
+export function computed<T>(source: Reactive<T> | Owned<Function<T>> | T): Computed<T> {
+  return nativeComputed(source);
+}
+
+function bindReactive<T>(evaluate: Owned<Function<T>>): Reactive<T> {
+  return {
+    evaluate
+  };
 }
 
 /** A boolean condition refreshed after UI handlers without rerunning the component. */
@@ -477,4 +528,12 @@ function unwrapNode(result: Result<Node, UiError>): Node {
       throw error.message;
     }
   }
+}
+
+function bindClasses(node: Node, evaluate: Owned<Function<string>>): Node {
+  return unwrapNode(nativeBindClass(node, evaluate));
+}
+
+function bindVariant(node: Node, evaluate: Owned<Function<string>>): Node {
+  return unwrapNode(nativeBindVariant(node, evaluate));
 }

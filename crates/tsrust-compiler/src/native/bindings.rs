@@ -343,9 +343,9 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::date::START_OF_MONTH,
     crate::stdlib::date::END_OF_MONTH,
     crate::stdlib::ui::LOCATION,crate::stdlib::ui::NAVIGATE,crate::stdlib::ui::TRAVERSE,crate::stdlib::ui::LINK,
-    crate::stdlib::ui::SIGNAL_NEW,crate::stdlib::ui::HANDLE_NEW,crate::stdlib::ui::GET,crate::stdlib::ui::SET,crate::stdlib::ui::OWN_STATE,crate::stdlib::ui::PRESS_BUTTON,
+    crate::stdlib::ui::COMPUTED_NEW,crate::stdlib::ui::COMPUTED_GET,crate::stdlib::ui::SIGNAL_NEW,crate::stdlib::ui::HANDLE_NEW,crate::stdlib::ui::GET,crate::stdlib::ui::SET,crate::stdlib::ui::OWN_STATE,crate::stdlib::ui::PRESS_BUTTON,
     crate::stdlib::ui::READ_ONLY_BINDING,
-    crate::stdlib::ui::HIDDEN_BINDING,
+    crate::stdlib::ui::CLASS_BINDING,crate::stdlib::ui::VARIANT_BINDING,crate::stdlib::ui::HIDDEN_BINDING,
     crate::stdlib::ui::TEXT_BINDING,
     crate::stdlib::ui::BRANCH,crate::stdlib::ui::ROUTE,
     crate::stdlib::ui::INPUT,crate::stdlib::ui::INPUT_CHANGE,
@@ -497,6 +497,7 @@ pub fn http_unwrapped(name:&str)->bool{crate::stdlib::http::public_unwrapped(nam
 
 /// State method signatures shared by checking and editor inference.
 pub fn ui_method(identity: crate::native_signatures::NativeTypeId, member: &str) -> Option<&'static NativeBinding> {
+    if identity==crate::native_signatures::NativeTypeId::UiComputed{return (member=="get").then(||lookup("std:ui-runtime","computedGet").ok()).flatten();}
     if identity!=crate::native_signatures::NativeTypeId::UiSignal || !matches!(member,"get"|"set") {return None;}
     lookup("std:ui-runtime",member).ok()
 }

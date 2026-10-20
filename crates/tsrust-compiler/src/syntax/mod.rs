@@ -2130,8 +2130,11 @@ impl Parser<'_> {
         let mut bases = Vec::new();
         if self.accept("extends") {
             loop {
-                let base = self.name()?;
+                let mut base = self.name()?;
                 let arguments=if self.is("<"){self.explicit_call_arguments()?}else{Vec::new()};
+                let mut annotation=crate::type_syntax::ValueAnnotation{span:base.span,kind:if arguments.is_empty(){crate::type_syntax::ValueAnnotationKind::Named(crate::type_syntax::TypeName{text:base.text.clone(),span:base.span})}else{crate::type_syntax::ValueAnnotationKind::Applied{name:crate::type_syntax::TypeName{text:base.text.clone(),span:base.span},arguments}}};
+                crate::type_aliases::expand(&mut annotation,&self.aliases)?;
+                let arguments=match annotation.kind{crate::type_syntax::ValueAnnotationKind::Named(name)=>{base.text=name.text;Vec::new()},crate::type_syntax::ValueAnnotationKind::Applied{name,arguments}=>{base.text=name.text;arguments},_=>return Err(Diagnostic::new("interface-base","An interface base alias must resolve to a named record type.",base.span))};
                 bases.push((base,arguments));
                 if !self.accept(",") {
                     break;

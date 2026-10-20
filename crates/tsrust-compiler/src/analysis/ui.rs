@@ -12,6 +12,8 @@ impl Analyzer {
  }
 
  pub(super) fn ui_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic> {
+  if let Some(result)=self.ui_string_binding_call(context,expression,loans,expected)? {return Ok(Some(result));}
+  if let Some(result)=self.ui_computed_call(context,expression,loans,expected)? {return Ok(Some(result));}
   if let Some(result)=self.ui_visibility_call(context,expression,loans,expected)? {return Ok(Some(result));}
   if let Some(result)=self.ui_route_call(context,expression,loans,expected)? {return Ok(Some(result));}
   if let Some(result)=self.ui_branch_call(context,expression,loans,expected)? {return Ok(Some(result));}
@@ -26,7 +28,7 @@ impl Analyzer {
    return self.expression(context,expression,Mode::Consume,loans,expected).map(Some);
   }
   let ExprKind::Name(name)=&callee.kind else{return Ok(None)};
-  let Some((id,binding))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|binding.module=="std:ui-runtime" && matches!(binding.name,"signal"|"handle"|"get"|"set"|"ownState")) else{return Ok(None)};
+  let Some((id,binding))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|binding.module=="std:ui-runtime" && matches!(binding.name,"signal"|"handle"|"get"|"computedGet"|"set"|"ownState")) else{return Ok(None)};
   Self::arity(args.len(),if matches!(binding.name,"set"|"ownState"){2}else{1},expression.span)?;
   let result=if binding.name=="signal" {
    let payload=self.expression(context,&mut args[0],Mode::Read,loans,None)?;
@@ -37,17 +39,49 @@ impl Analyzer {
    if at==1 {let ty=self.expression(context,&mut args[0],Mode::Consume,loans,None)?;self.ui_component_result(ty,args[0].span)?;}
    let ty=self.expression(context,&mut args[at],if at==1{Mode::Consume}else{Mode::Read},loans,None)?;
    let Type::Record(record)=ty else{return Err(Diagnostic::new("type","Expected component state.",args[at].span));};
-   if self.program.records[record].native_type!=Some(NativeTypeId::UiSignal){return Err(Diagnostic::new("type","Expected component state.",args[at].span));}
-   let payload=self.program.records[record].application.as_ref().expect("applied UI state").resolved_arguments[0];self.ui_scalar(payload,args[at].span)?;
+   if !matches!(self.program.records[record].native_type,Some(NativeTypeId::UiSignal|NativeTypeId::UiComputed)){return Err(Diagnostic::new("type","Expected component state.",args[at].span));}
+   if self.program.records[record].native_type==Some(NativeTypeId::UiComputed)&&binding.name=="set"{return Err(Diagnostic::new("ui-computed-readonly","Computed values are read-only.",expression.span));}
+   let payload=self.program.records[record].application.as_ref().expect("applied UI state").resolved_arguments[0];
+   if self.program.records[record].native_type==Some(NativeTypeId::UiSignal){self.ui_scalar(payload,args[at].span)?;}else{self.ui_computed_scalar(payload,args[at].span)?;}
    match binding.name {
     "handle"=>ty,
-    "get"=>{let error=self.ui_record(NativeTypeId::UiError);self.thread_result(payload,error,expression.span)?},
+    "get"|"computedGet"=>{let error=self.ui_record(NativeTypeId::UiError);self.thread_result(payload,error,expression.span)?},
     "set"=>{let actual=self.expression(context,&mut args[1],Mode::Read,loans,Some(payload))?;self.require(actual,Some(payload),args[1].span)?;let error=self.ui_record(NativeTypeId::UiError);self.thread_result(Type::Void,error,expression.span)?},
     "ownState"=>{let node=args[0].ty.unwrap();let error=self.ui_record(NativeTypeId::UiError);self.thread_result(node,error,expression.span)?},
     _=>unreachable!(),
    }
   };
   self.require(result,expected,expression.span)?;expression.ty=Some(result);expression.target=Some(CallTarget::NativeBinding(id));Ok(Some(result))
+ }
+ fn ui_string_binding_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{
+  let ExprKind::Call(callee,args)=&mut expression.kind else{return Ok(None)};let ExprKind::Name(name)=&callee.kind else{return Ok(None)};
+  let Some((id,binding))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|binding.module=="std:ui-runtime"&&matches!(binding.name,"bindClass"|"bindVariant")) else{return Ok(None)};
+  Self::arity(args.len(),2,expression.span)?;let annotation=crate::type_syntax::parse("Owned<Function<string>>")?;let callback=crate::callable_annotations::callback(&annotation).unwrap();let getter=self.resolve_callback(&callback)?;
+  let node=self.ui_record(NativeTypeId::UiNode);let contract=|ty|ArgumentContract{ty,mode:Mode::Consume,omission:crate::ParameterOmission::Required,rest:false};self.check_call_arguments(context,args,&[contract(node),contract(getter)],loans)?;
+  let result=native_type(binding.result,&self.program.records);self.require(result,expected,expression.span)?;expression.ty=Some(result);expression.target=Some(CallTarget::NativeBinding(id));Ok(Some(result))
+ }
+ fn ui_computed_scalar(&self,ty:Type,span:Span)->Result<(),Diagnostic>{
+  let mut pending=vec![ty];while let Some(ty)=pending.pop(){match ty{Type::String|Type::Int|Type::Number|Type::Boolean|Type::Null|Type::Undefined|Type::Literal(..)|Type::Enum(..)=>{},Type::Union(id)=>pending.extend(self.unions.members(id)),_=>return Err(Diagnostic::new("ui-computed-type","Computed values support scalars, literal unions and nullable scalars; resources, arrays, records and callbacks are not scalar results.",span))}}Ok(())
+ }
+ fn ui_computed_callback(&self,ty:Type)->Option<(Type,usize)>{let id=match ty{Type::Callback(id)=>id,Type::StoredCallable(family)=>self.callables.storage.declaration(family)?,_=>return None};let contract=&self.callables.callbacks[id];(contract.kind.is_owned()&&!contract.kind.is_once()&&contract.params.is_empty()).then_some((contract.result,id))}
+ fn ui_computed_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{
+  let ExprKind::Call(callee,args)=&mut expression.kind else{return Ok(None)};let ExprKind::Name(name)=&callee.kind else{return Ok(None)};
+  let Some((id,_))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|binding.module=="std:ui-runtime"&&binding.name=="computed") else{return Ok(None)};
+  Self::arity(args.len(),1,expression.span)?;
+  let Some(result@Type::Record(record))=expected else{return Err(Diagnostic::new("ui-computed-type","A computed expression requires its declared Computed<T> result.",expression.span))};
+  if self.program.records[record].native_type!=Some(NativeTypeId::UiComputed){return Err(Diagnostic::new("ui-computed-type","Expected Computed<T>.",expression.span));}
+  let payload=self.program.records[record].application.as_ref().expect("computed application").resolved_arguments[0];self.ui_computed_scalar(payload,expression.span)?;
+  let actual=self.expression(context,&mut args[0],Mode::Consume,loans,None)?;let mut pending=vec![actual];
+  while let Some(value)=pending.pop(){
+   if let Type::Union(union)=value{pending.extend(self.unions.members(union));continue;}
+   let output=if let Some((output,_))=self.ui_computed_callback(value){output}else if let Type::Record(record)=value{
+    let fields=&self.program.records[record].fields;
+    if fields.len()!=1||fields[0].name.text!="evaluate"{return Err(Diagnostic::new("ui-computed-type","A reactive prop requires a reusable zero-argument evaluate callback.",args[0].span));}
+    self.ui_computed_callback(fields[0].ty.expect("reactive field")).ok_or_else(||Diagnostic::new("ui-computed-type","A reactive prop requires a reusable zero-argument evaluate callback.",args[0].span))?.0
+   }else{self.ui_computed_scalar(value,args[0].span)?;value};
+   self.require(output,Some(payload),args[0].span)?;
+  }
+  expression.ty=Some(result);expression.target=Some(CallTarget::NativeBinding(id));Ok(Some(result))
  }
  fn ui_visibility_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic> {
   let ExprKind::Call(callee,args)=&mut expression.kind else{return Ok(None)};let ExprKind::Name(name)=&callee.kind else{return Ok(None)};
