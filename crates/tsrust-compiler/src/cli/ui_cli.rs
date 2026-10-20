@@ -6,7 +6,7 @@ use tsrust_compiler::ui_project::{Config,Targets,safe_relative};
 #[path = "ui_attributions.rs"]
 mod attributions;
 const ABI:&str=tsrust_compiler::ui_project::RUNTIME_ABI;
-const CATALOG:&str="bundled-2026-10-19";
+const CATALOG:&str="bundled-2026-10-20";
 #[derive(Clone,Debug,Deserialize,Serialize,PartialEq,Eq,PartialOrd,Ord)]
 #[serde(deny_unknown_fields)]
 struct Identity {name:String,version:String,variant:String}
@@ -28,7 +28,7 @@ struct Lock {schema_version:u32,installed:Vec<Installed>}
 fn hash(bytes:&[u8])->String {Sha256::digest(bytes).iter().map(|byte|format!("{byte:02x}")).collect()}
 fn catalog()->Result<Vec<Item>,String> {
  let mut items=Vec::new();
- for text in [include_str!("../ui-catalog/tokens-1.0.0.json"),include_str!("../ui-catalog/components-1.0.0.json"),include_str!("../ui-catalog/components-2.0.0.json"),include_str!("../ui-catalog/components-3.0.0.json"),include_str!("../ui-catalog/semantic-content-1.0.0.json"),include_str!("../ui-catalog/aspect-ratio-1.0.0.json")] {items.extend(serde_json::from_str::<Vec<Item>>(text).map_err(|e|e.to_string())?);}
+ for text in [include_str!("../ui-catalog/tokens-1.0.0.json"),include_str!("../ui-catalog/components-1.0.0.json"),include_str!("../ui-catalog/components-2.0.0.json"),include_str!("../ui-catalog/components-3.0.0.json"),include_str!("../ui-catalog/semantic-content-1.0.0.json"),include_str!("../ui-catalog/aspect-ratio-1.0.0.json"),include_str!("../ui-catalog/alert-1.0.0.json")] {items.extend(serde_json::from_str::<Vec<Item>>(text).map_err(|e|e.to_string())?);}
  Ok(items)
 }
 fn identity(item:&Item)->Identity {Identity{name:item.name.clone(),version:item.version.clone(),variant:item.variant.clone()}}

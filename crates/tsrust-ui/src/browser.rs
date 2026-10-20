@@ -41,7 +41,7 @@ fn sync_element(node:&Node,document:&web_sys::Document,all:&mut std::collections
     let tag=node.tag();
     let id=node.identity.get();let element=if let Some(element)=all.get(&id){element.clone()}else{
     let element=document.create_element(tag)?;
-    for (key,value) in [("href",&node.semantics.href),("role",&node.semantics.role),("aria-label",&node.semantics.label),("id",&node.semantics.id),("data-slot",&node.semantics.slot),("data-size",&node.semantics.size),("for",&node.semantics.html_for),("aria-describedby",&node.semantics.described_by),("aria-invalid",&node.semantics.invalid)] {
+    for (key,value) in [("href",&node.semantics.href),("role",&node.semantics.role),("aria-label",&node.semantics.label),("id",&node.semantics.id),("data-slot",&node.semantics.slot),("data-size",&node.semantics.size),("data-variant",&node.semantics.variant),("for",&node.semantics.html_for),("aria-describedby",&node.semantics.described_by),("aria-invalid",&node.semantics.invalid)] {
         if !value.is_empty(){element.set_attribute(key,value)?;}
     }
     if let Some(index)=node.semantics.tab_index{element.set_attribute("tabindex",&index.to_string())?;}

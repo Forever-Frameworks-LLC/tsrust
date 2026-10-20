@@ -170,7 +170,8 @@ impl Painter {
             if !match state {State::Base=>true,State::Hover=>self.hover.contains(&id) && !node.is_disabled(),State::Active=>self.pressed_nodes.contains(&id) && !node.is_disabled(),State::Focus=>self.focus==Some(id),State::Disabled=>node.is_disabled()} {continue;}
             match utility {
                 Utility::Placeholder(color)=>placeholder_color=Some(color),Utility::Opacity(value)=>opacity=value,Utility::OutlineNone=>{outline=None;suppress_outline=true;},Utility::Cursor(value)=>inherited.cursor=value,Utility::SelectNone=>inherited.selectable=false,Utility::PointerEvents(value)=>inherited.pointer_events=value,Utility::FieldSizingContent=>{if node.kind==Kind::Textarea{style.size.height=auto();}},
-                Utility::AspectRatio(value)=>style.aspect_ratio=value,Utility::Relative=>style.position=taffy::Position::Relative,
+                Utility::AspectRatio(value)=>style.aspect_ratio=value,Utility::Relative=>style.position=taffy::Position::Relative,Utility::Absolute=>style.position=taffy::Position::Absolute,
+                Utility::Inset(side,value)=>{let value=match value{Length::Pixels(value)=>length(value),Length::Percent(value)=>percent(value),Length::Auto=>auto(),_=>unreachable!("validated inset")};match side{0=>style.inset.top=value,1=>style.inset.right=value,2=>style.inset.bottom=value,_=>style.inset.left=value}},
                 Utility::Row=>style.flex_direction=FlexDirection::Row,
                 Utility::Column=>style.flex_direction=FlexDirection::Column,
                 Utility::GapAxis(axis,v)=>{if axis==0{style.gap.height=length(v);}else{style.gap.width=length(v);}},
@@ -1595,5 +1596,16 @@ mod navigation_semantic_tests {
   }
   }
   println!("ASPECT_GEOMETRY {}",serde_json::json!({"cases":observed}));
+ }
+}
+
+#[cfg(test)]mod positioning_tests {
+ use super::*;
+ #[test] fn parent_positioning_has_matching_flow_bounds_and_source_order(){
+  let cases=[("absolute top-2 right-2 w-8 h-8",214.,10.,32.,32.),("absolute inset-x-4 top-1/2 h-8",18.,96.,220.,32.),("relative top-2 left-1/4 w-8 h-8 shrink-0",73.,26.,32.,32.),("absolute -left-2 -top-2 w-8 h-8",-6.,-6.,32.,32.)];
+  let mut observed=Vec::new();for display in ["flex","grid"]{for (index,(classes,x,y,width,height)) in cases.into_iter().enumerate(){
+   let child=Node::view(vec![],classes.into()).unwrap();let root=Node::view(vec![crate::Child::Node(child)],format!("{display} h-48 border-2 p-4")).unwrap();root.ensure_identities();let identity=root.children[0].identity.get();let mut painter=Painter::new();
+   for scale in [1.,1.5,2.]{let (_,tree)=painter.scene(&root,256.,scale,None).unwrap();let rect=tree.nodes.iter().find(|(id,_)|id.0==identity).unwrap().1.bounds().unwrap();for (actual,expected) in [(rect.x0,x),(rect.y0,y),(rect.width(),width),(rect.height(),height)]{assert!((actual/scale-expected).abs()<0.05,"{display} {classes}: {rect:?}");}if scale==1.&&display=="flex"{observed.push(serde_json::json!({"index":index,"x":rect.x0,"y":rect.y0,"width":rect.width(),"height":rect.height()}));}}
+  }}println!("POSITION_GEOMETRY {}",serde_json::json!({"cases":observed}));
  }
 }

@@ -17,12 +17,12 @@ pub enum Utility {
  Display(bool), InlineFlex, Dimension(u8,Length), SelfAlign(u8,u8), Shrink(f32), Grow(f32), Wrap(bool), Tracks(u8,u8), Placement(u8,u16), AutoRowsMin,
  Background(ResolvedColor), Foreground(ResolvedColor), Corner(u8,f32), EdgeBorder(u8,f32), Overflow(u8), BorderColor(ResolvedColor),
  Align(u8), Items(u8), Justify(u8), Ring(ResolvedColor), RingWidth(f32), RingShadowColor(ResolvedColor),
- Placeholder(ResolvedColor),Opacity(f32),OutlineNone,Cursor(u8),SelectNone,PointerEvents(bool),FieldSizingContent,AspectRatio(Option<f32>),Relative,
+ Placeholder(ResolvedColor),Opacity(f32),OutlineNone,Cursor(u8),SelectNone,PointerEvents(bool),FieldSizingContent,AspectRatio(Option<f32>),Relative,Absolute,Inset(u8,Length),
 }
 impl Utility {
- pub fn category(self)->u8 {match self {Self::Row|Self::Column=>0,Self::GapAxis(axis,_)=>16+axis,Self::Padding(side,_)=>20+side,Self::Display(_)|Self::InlineFlex=>30,Self::Dimension(property,_)=>24+property,Self::SelfAlign(axis,_)=>31+axis,Self::Shrink(_)=>33,Self::Grow(_)=>34,Self::Wrap(_)=>35,Self::Tracks(axis,_)=>36+axis,Self::Placement(property,_)=>38+property,Self::AutoRowsMin=>42,Self::FontSize(_)=>4,Self::Weight(_)=>5,Self::DefaultLeading(_)=>45,Self::Leading(_)=>46,Self::FontFamily(_)=>47,Self::Background(_)=>6,Self::Foreground(_)=>7,Self::Corner(corner,_)=>48+corner,Self::EdgeBorder(side,_)=>52+side,Self::Overflow(_)=>56,Self::BorderColor(_)=>10,Self::Align(_)=>11,Self::Items(_)=>12,Self::Justify(_)=>13,Self::Ring(_)=>14,Self::RingWidth(_)=>43,Self::RingShadowColor(_)=>44,Self::Placeholder(_)=>57,Self::Opacity(_)=>58,Self::OutlineNone=>14,Self::Cursor(_)=>60,Self::SelectNone=>61,Self::PointerEvents(_)=>62,Self::FieldSizingContent=>63,Self::AspectRatio(_)=>64,Self::Relative=>65}}
+ pub fn category(self)->u8 {match self {Self::Row|Self::Column=>0,Self::GapAxis(axis,_)=>16+axis,Self::Padding(side,_)=>20+side,Self::Display(_)|Self::InlineFlex=>30,Self::Dimension(property,_)=>24+property,Self::SelfAlign(axis,_)=>31+axis,Self::Shrink(_)=>33,Self::Grow(_)=>34,Self::Wrap(_)=>35,Self::Tracks(axis,_)=>36+axis,Self::Placement(property,_)=>38+property,Self::AutoRowsMin=>42,Self::FontSize(_)=>4,Self::Weight(_)=>5,Self::DefaultLeading(_)=>45,Self::Leading(_)=>46,Self::FontFamily(_)=>47,Self::Background(_)=>6,Self::Foreground(_)=>7,Self::Corner(corner,_)=>48+corner,Self::EdgeBorder(side,_)=>52+side,Self::Overflow(_)=>56,Self::BorderColor(_)=>10,Self::Align(_)=>11,Self::Items(_)=>12,Self::Justify(_)=>13,Self::Ring(_)=>14,Self::RingWidth(_)=>43,Self::RingShadowColor(_)=>44,Self::Placeholder(_)=>57,Self::Opacity(_)=>58,Self::OutlineNone=>14,Self::Cursor(_)=>60,Self::SelectNone=>61,Self::PointerEvents(_)=>62,Self::FieldSizingContent=>63,Self::AspectRatio(_)=>64,Self::Relative|Self::Absolute=>65,Self::Inset(side,_)=>66+side}}
  pub(crate) fn css(self)->String {match self {
-  Self::AspectRatio(value)=>format!("aspect-ratio:{}",value.map_or_else(||"auto".into(),|value|value.to_string())),Self::Relative=>"position:relative".into(),
+  Self::AspectRatio(value)=>format!("aspect-ratio:{}",value.map_or_else(||"auto".into(),|value|value.to_string())),Self::Relative=>"position:relative".into(),Self::Absolute=>"position:absolute".into(),Self::Inset(side,value)=>format!("{}:{}",["top","right","bottom","left"][side as usize],value.css()),
   Self::Placeholder(v)=>format!("color:{};opacity:1",v.css()),Self::Opacity(v)=>format!("opacity:{v}"),Self::OutlineNone=>"outline:none".into(),Self::Cursor(v)=>format!("cursor:{}",["auto","text","not-allowed"][v as usize]),Self::SelectNone=>"user-select:none".into(),Self::PointerEvents(v)=>format!("pointer-events:{}",if v{"auto"}else{"none"}),Self::FieldSizingContent=>"field-sizing:content;height:auto".into(),
   Self::Row=>"flex-direction:row".into(),Self::Column=>"flex-direction:column".into(),Self::GapAxis(axis,v)=>format!("{}-gap:{v}px",if axis==0 {"row"}else{"column"}),
   Self::InlineFlex=>"display:inline-flex".into(),
@@ -123,8 +123,8 @@ pub fn documentation(class:&str)->String {
  let (_,token)=split(class).unwrap();let default=Theme::default();
  let (purpose,example)=if layout::aspect(token).is_some() {
   ("Sets a preferred width/height ratio on a layout box; inline text runs have no separate ratio box. aspect-square uses 1, aspect-video uses 16/9, aspect-[W/H] and aspect-[R] accept finite positive numbers, and aspect-auto removes the preference. Invalid, zero, negative, nonfinite or native-overflow/underflow ratios reject. Both targets normalize the ratio to f32 logical layout precision. A definite width with automatic height derives height; two explicit dimensions win. Min/max dimensions constrain the result. Children can overflow unless clipping/scrolling is requested. No accessibility role or ownership change. Later matching aspect classes win.",format!("<View className=\"w-64 {class}\" />"))
- }else if token=="relative" {
-  ("Keeps the element in normal layout flow and establishes its positioning context. It does not move the element. Absolute/sticky positioning and offsets remain unsupported and reject. No accessibility or ownership change.",format!("<View className=\"{class}\" />"))
+ }else if matches!(token,"relative"|"absolute") || layout::resolve(token,&default).is_some_and(|values|values.iter().any(|value|matches!(value,Utility::Inset(_,_)))) {
+  ("Positions a layout box within its immediate UI parent. Every UI box establishes a containing block. relative keeps normal flow; absolute removes the box from flow. top/right/bottom/left and inset/inset-x/inset-y set sides independently; auto clears a side. Spacing uses project tokens, fractions/full use the parent's corresponding dimension, and a leading minus negates a numeric/fraction offset. Later matching classes win independently per side. A definite parent size is needed for predictable percentage placement. Inline text descendants reject box utilities. Paint order, clipping and keyboard order remain source order; z-index, fixed/sticky positioning and transforms are unsupported. No ownership change.",format!("<View className=\"relative w-64 h-32\"><View className=\"absolute top-2 right-2 w-8 h-8\" /></View> // 8px from the parent's top/right at default spacing"))
  }else if matches!(token,"opacity-0"|"opacity-50"|"opacity-100"|"outline-none"|"cursor-auto"|"cursor-text"|"cursor-not-allowed"|"select-none"|"pointer-events-none"|"pointer-events-auto"|"field-sizing-content") {
   ("opacity-0/50/100 selects whole-subtree paint opacity 0/0.5/1 without changing layout, focus or accessibility. outline-none removes the fallback focus outline; supply a visible focus ring when using it. cursor-auto/text/not-allowed chooses the pointer cursor. pointer-events-none/auto removes/restores pointer targeting and is inherited; keyboard focus stays available. select-none prevents selection of static content, while editable fields keep editing selection. field-sizing-content makes Textarea height follow wrapped content/placeholder subject to min/max bounds; other nodes ignore it. No function arguments. Later matching classes override the same property.",format!("<Input className=\"{class}\" aria-label=\"Name\" />"))
  }else if edges::resolve(token,&default).is_some() {
@@ -134,7 +134,7 @@ pub fn documentation(class:&str)->String {
  }else if custom_spacing::declaration(token).is_some() || custom_spacing::reference(token).is_some() {
   ("Declares an inherited numeric spacing variable with [--NAME:--spacing(N)], or uses it with p/px/py/pt/pr/pb/pl/gap/gap-x/gap-y-(--NAME). N uses the checked project spacing scale; declarations resolve in their own theme scope and inherit as logical pixels. Later matching declarations win. A missing variable resolves to zero, replacing earlier padding/gap values. Metadata conditions are allowed; interaction-state declarations, arithmetic, aliases and cycles are unsupported. Variables affect spacing only, not accessibility.",format!("<View className=\"[--panel-spacing:--spacing(4)] p-(--panel-spacing)\" />"))
  }else if structural::marker(token) {
-  ("Names an ancestor group for checked group-data-[slot=VALUE]/NAME and group-data-[size=VALUE]/NAME selectors. Marker alone changes no visual property. Group names use ASCII letters, digits and hyphens.",format!("<View className=\"{class}\" />"))
+  ("Names an ancestor group for checked group-data-[slot=VALUE]/NAME and group-data-[size=VALUE]/NAME or group-data-[variant=VALUE]/NAME selectors. Marker alone changes no visual property. Group names use ASCII letters, digits and hyphens.",format!("<View className=\"{class}\" />"))
  }else if matches!(token,"ring-0"|"ring-1"|"ring-2"|"ring-3") {
   ("Sets an outer surface ring width of 0–3 logical pixels without changing layout. ring-COLOR selects its color and defaults to the theme ring token. This surface ring is independent of the button's keyboard focus outline.",format!("<View className=\"{class} ring-foreground/10\" />"))
  }else if color_token(opacity_token(token).map_or(token,|(base,_)|base)) {
@@ -241,4 +241,24 @@ pub(crate) fn validate_inline(classes:&str)->Result<(),String> {
   return Err("Inline Text and Link support typography and text colors; box/layout utilities require a surrounding View".into());
  }
  Ok(())
+}
+
+#[cfg(test)] mod positioning_tests {
+ use super::*;
+ #[test] fn position_sides_merge_independently_with_theme_percentages_and_resets(){
+  let mut theme=Theme::default();theme.spacing.sm=10.;theme.spacing.md=20.;
+  let rules=resolved("absolute inset-4 left-1/2 top-auto right-2 -bottom-px relative",&theme,"light");
+  assert!(rules.iter().any(|(_,value)|matches!(value,Utility::Relative)));
+  for (side,expected) in [(0,Length::Auto),(1,Length::Pixels(10.)),(2,Length::Pixels(-1.)),(3,Length::Percent(0.5))]{assert!(rules.iter().any(|(_,value)|matches!(value,Utility::Inset(actual,offset)if *actual==side&&*offset==expected)),"{rules:?}");}
+  for token in ["absolute","inset-0","inset-x-auto","top-1/2","-left-full","right-18","-inset-y-2.5"]{assert!(validate(token).is_ok(),"{token}");assert!(documentation(token).contains("parent"));}
+  for token in ["static","fixed","sticky","top-NaN","top-screen","top-[12px]","-top-auto","z-10"]{assert!(validate(token).is_err(),"{token}");}
+  assert!(validate_inline("absolute").is_err());assert!(validate_inline("left-2").is_err());
+ }
+ #[test] fn variant_predicates_keep_ancestor_and_caller_override_rules(){
+  let child=super::super::Node::view(vec![],"text-muted-foreground group-data-[variant=destructive]/alert:text-destructive/90 text-primary".into()).unwrap();
+  let root=super::super::Node::view(vec![],"group/alert".into()).unwrap().with_semantics(r#"{"variant":"destructive","slot":"alert"}"#).unwrap();let theme=Theme::default();
+  let rules=resolved_node(&child,&[&root],&theme,"light");assert!(rules.iter().any(|(_,value)|matches!(value,Utility::Foreground(color)if *color==theme.color("light","primary").unwrap())));
+  assert!(super::super::Node::view(vec![],String::new()).unwrap().with_semantics(r#"{"variant":"bad value"}"#).is_err());
+  let html=super::super::document(&root,"Variant");assert!(html.contains("data-variant=\"destructive\""));
+ }
 }

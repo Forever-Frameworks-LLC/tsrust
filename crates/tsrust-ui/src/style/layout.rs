@@ -10,7 +10,7 @@ impl Length {
         Self::Auto => "auto".into(), Self::None => "none".into(), Self::Fit=>"fit-content".into(),
     }}
 }
-pub(super) const SPACING: &[&str] = &["0","px","0.5","1","1.5","2","2.5","3","3.5","4","5","6","8","12","16","24","32","48","64","96","128","160","192","256"];
+pub(super) const SPACING: &[&str] = &["0","px","0.5","1","1.5","2","2.5","3","3.5","4","5","6","8","12","16","18","24","32","48","64","96","128","160","192","256"];
 pub(super) fn spacing(size:&str,theme:&Theme)->f32 { match size {
     "px"=>1., "2"=>theme.spacing.sm as f32,"4"=>theme.spacing.md as f32,"6"=>theme.spacing.lg as f32,
     "1"=>theme.spacing.sm as f32/2.,"3"=>(theme.spacing.sm+theme.spacing.md) as f32/2.,
@@ -28,7 +28,11 @@ pub(super) fn aspect(token:&str)->Option<Option<f32>> {
     (ratio.is_finite() && ratio>0.).then_some(Some(ratio))
 }
 pub(super) fn tokens()->Vec<String> {
-    let mut values=["relative","aspect-auto","aspect-square","aspect-video","aspect-[16/9]","aspect-[3/4]","aspect-[1.5]","flex","inline-flex","grid","auto-rows-min","flex-wrap","flex-nowrap","grow","grow-0","shrink","shrink-0"].into_iter().map(str::to_owned).collect::<Vec<_>>();
+    let mut values=["relative","absolute","aspect-auto","aspect-square","aspect-video","aspect-[16/9]","aspect-[3/4]","aspect-[1.5]","flex","inline-flex","grid","auto-rows-min","flex-wrap","flex-nowrap","grow","grow-0","shrink","shrink-0"].into_iter().map(str::to_owned).collect::<Vec<_>>();
+    for prefix in ["inset","inset-x","inset-y","top","right","bottom","left"] {
+        for size in SPACING.iter().copied().chain(["full","1/2","1/3","2/3","1/4","3/4"]) {values.push(format!("{prefix}-{size}"));values.push(format!("-{prefix}-{size}"));}
+        values.push(format!("{prefix}-auto"));
+    }
     for prefix in ["p","px","py","pt","pr","pb","pl","gap","gap-x","gap-y"] {
         for size in SPACING {values.push(format!("{prefix}-{size}"));}
     }
@@ -52,8 +56,9 @@ pub(super) fn tokens()->Vec<String> {
 }
 pub(super) fn resolve(token:&str,theme:&Theme)->Option<Vec<Utility>> {
     if let Some(ratio)=aspect(token){return Some(vec![Utility::AspectRatio(ratio)]);}
+    if let Some(values)=offset(token,theme){return Some(values);}
     let simple=match token {
-        "relative"=>Some(Utility::Relative),
+        "relative"=>Some(Utility::Relative),"absolute"=>Some(Utility::Absolute),
         "flex"=>Some(Utility::Display(false)),"inline-flex"=>Some(Utility::InlineFlex),"grid"=>Some(Utility::Display(true)),"auto-rows-min"=>Some(Utility::AutoRowsMin),
         "flex-wrap"=>Some(Utility::Wrap(true)),"flex-nowrap"=>Some(Utility::Wrap(false)),
         "grow"=>Some(Utility::Grow(1.)),"grow-0"=>Some(Utility::Grow(0.)),"shrink"=>Some(Utility::Shrink(1.)),"shrink-0"=>Some(Utility::Shrink(0.)),
@@ -76,6 +81,16 @@ pub(super) fn resolve(token:&str,theme:&Theme)->Option<Vec<Utility>> {
     for (prefix,axis) in [("grid-cols-",0),("grid-rows-",1)] {if let Some(count)=token.strip_prefix(prefix){return Some(vec![Utility::Tracks(axis,if count=="none"{0}else{count.parse().expect("validated tracks")})]);}}
     for (prefix,property) in [("col-start-",0),("col-span-",1),("row-start-",2),("row-span-",3)] {if let Some(count)=token.strip_prefix(prefix){return Some(vec![Utility::Placement(property,count.parse().expect("validated placement"))]);}}
     for (prefix,axis) in [("self-",0),("justify-self-",1)] {if let Some(align)=token.strip_prefix(prefix){return Some(vec![Utility::SelfAlign(axis,match align {"start"=>0,"center"=>1,"end"=>2,"stretch"=>3,"auto"=>4,_=>unreachable!()})]);}}
+    None
+}
+
+fn offset(token:&str,theme:&Theme)->Option<Vec<Utility>> {
+    let (token,sign)=token.strip_prefix('-').map_or((token,1.),|token|(token,-1.));
+    for (prefix,sides) in [("inset-x-",&[1,3][..]),("inset-y-",&[0,2][..]),("inset-",&[0,1,2,3][..]),("top-",&[0][..]),("right-",&[1][..]),("bottom-",&[2][..]),("left-",&[3][..])] {
+        let Some(size)=token.strip_prefix(prefix) else{continue;};
+        let value=match size {"auto" if sign>0.=>Length::Auto,"full"=>Length::Percent(sign),"1/2"=>Length::Percent(sign/2.),"1/3"=>Length::Percent(sign/3.),"2/3"=>Length::Percent(sign*2./3.),"1/4"=>Length::Percent(sign/4.),"3/4"=>Length::Percent(sign*3./4.),size if SPACING.contains(&size)=>Length::Pixels(sign*spacing(size,theme)),_=>return None};
+        return Some(sides.iter().map(|&side|Utility::Inset(side,value)).collect());
+    }
     None
 }
 

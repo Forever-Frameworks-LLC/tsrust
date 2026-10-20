@@ -213,7 +213,7 @@ fn nova_card_content_source_is_local_complete_and_native_executable() {
  let lock:serde_json::Value=serde_json::from_slice(&std::fs::read(dir.0.join("ui-components.lock.json")).unwrap()).unwrap();let entries=lock["installed"].as_array().unwrap();
  assert!(entries.iter().any(|entry|entry["identity"]["name"]=="card" && entry["compilerApi"]==2 && entry["attribution"]["path"]=="attributions/shadcn-MIT.txt" && entry.get("licenseText").is_none()));
  assert!(entries.iter().any(|entry|entry["identity"]["name"]=="button" && entry["compilerApi"]==1));
- assert!(tsrust_compiler::ui_project::supports_compiler_api(1));assert!(tsrust_compiler::ui_project::supports_compiler_api(2));assert!(!tsrust_compiler::ui_project::supports_compiler_api(0));assert!(!tsrust_compiler::ui_project::supports_compiler_api(3));
+ assert!(tsrust_compiler::ui_project::supports_compiler_api(1));assert!(tsrust_compiler::ui_project::supports_compiler_api(2));assert!(!tsrust_compiler::ui_project::supports_compiler_api(0));assert!(tsrust_compiler::ui_project::supports_compiler_api(3));assert!(!tsrust_compiler::ui_project::supports_compiler_api(4));
 }
 
 #[test]

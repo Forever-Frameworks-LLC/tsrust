@@ -290,8 +290,9 @@ fn ui_condition_props_and_class_help_match_checked_source() {
 
 #[test]
 fn ui_semantic_attributes_keep_exact_names_and_checked_help() {
- let source="import {View,Text,Node} from 'std:ui';function Page():Node{return <View as=\"section\" role=\"region\" aria-label=\"Account\"><Text as=\"h2\">Profile</Text></View>;}function main(){const node=Page();}";
+ let source="import {View,Text,Node} from 'std:ui';function Page():Node{return <View as=\"section\" role=\"region\" aria-label=\"Account\" data-variant=\"summary\"><Text as=\"h2\">Profile</Text></View>;}function main(){const node=Page();}";
  let mut session=Session::start(&[]);session.open("main.tsrx",source);session.settle();
+ let variant=source.find("data-variant=").unwrap();assert!(session.hover("main.tsrx",source,variant+3).unwrap().contains("variant"));
  let at=source.find("aria-label=").unwrap();assert!(session.hover("main.tsrx",source,at+6).unwrap().contains("string"));
  let labels=session.completion("main.tsrx",source,at+5).unwrap();assert!(labels.contains(&"aria-label".into()),"{labels:?}");
  let uri=session.uri("main.tsrx");let location=session.request("textDocument/definition",serde_json::json!({"textDocument":{"uri":uri},"position":{"line":0,"character":at+6}}));assert!(!location.is_null());

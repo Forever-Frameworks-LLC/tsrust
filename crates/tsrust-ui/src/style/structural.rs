@@ -9,7 +9,7 @@ use super::super::Node;
 pub(super) fn name(value:&str)->bool {!value.is_empty() && value.bytes().all(|b|b.is_ascii_alphanumeric()||b==b'-')}
 fn attribute(value:&str)->Option<(&str,&str)> {
  let (key,value)=value.split_once('=')?;
- (matches!(key,"slot"|"size"|"orientation") && name(value)).then_some((key,value))
+ (matches!(key,"slot"|"size"|"variant"|"orientation") && name(value)).then_some((key,value))
 }
 #[derive(Clone,Copy)]
 pub(super) enum Predicate<'a> { Data(&'a str,&'a str), HasData(&'a str,&'a str), InData(&'a str,&'a str), GroupData(&'a str,&'a str,&'a str), Class(&'a str), Dark, MinWidth(u16), Invalid, Current }
@@ -28,7 +28,7 @@ impl<'a> Predicate<'a> {
  }
  #[cfg(any(test,feature="native"))]
  fn matches(self,node:&Node,ancestors:&[&Node])->bool {
-  fn data(node:&Node,key:&str,value:&str)->bool {match key {"slot"=>node.semantics.slot==value,"size"=>node.semantics.size==value,"orientation"=>node.semantics.role=="separator" && (if node.semantics.orientation.is_empty(){"horizontal"}else{&node.semantics.orientation})==value,_=>false}}
+  fn data(node:&Node,key:&str,value:&str)->bool {match key {"slot"=>node.semantics.slot==value,"size"=>node.semantics.size==value,"variant"=>node.semantics.variant==value,"orientation"=>node.semantics.role=="separator" && (if node.semantics.orientation.is_empty(){"horizontal"}else{&node.semantics.orientation})==value,_=>false}}
   fn has(node:&Node,key:&str,value:&str)->bool {node.children.iter().any(|child|data(child,key,value)||has(child,key,value))}
   match self {Self::Data(k,v)=>data(node,k,v),Self::HasData(k,v)=>has(node,k,v),Self::InData(k,v)=>ancestors.iter().any(|parent|data(parent,k,v)),Self::GroupData(k,v,group)=>ancestors.iter().any(|parent|parent.class_name.split_whitespace().any(|class|class.strip_prefix("group/")==Some(group)) && data(parent,k,v)),Self::Class(class)=>node.class_name.split_whitespace().any(|token|token==class),Self::Dark|Self::MinWidth(_)=>true,Self::Invalid=>node.semantics.invalid=="true",Self::Current=>super::super::navigation::is_current(&node.semantics.href)}
  }

@@ -28,6 +28,8 @@ export interface ElementProps {
   'data-slot'?: string;
   /** Component size metadata for checked data/group selectors. ASCII letters, digits and hyphens; empty means absent. */
   'data-size'?: string;
+  /** Component variant metadata for data/group selectors; ASCII letters, digits and hyphens. Empty means absent. Does not change styles without a matching class. */
+  'data-variant'?: string;
 }
 
 /** Noninteractive semantic roles shared by View and Text. Unsupported roles fail rather than losing accessibility behavior. */
@@ -43,7 +45,7 @@ export interface TextProps extends SemanticProps {
   as?: 'span' | 'div' | 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'code' | 'kbd' | 'strong' | 'em' | 'del';
   /** Ordered text content. Pass between tags or with children={values}; combining both is rejected. */
   children?: Child[];
-  /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Includes aspect-square/video/[W/H]/[R]/auto with finite positive f32 ratios. Explicit sizes and min/max bounds still apply. Later classes win per property/state. */
+  /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Includes relative/absolute parent positioning and checked insets; inline descendants require typography only. Includes aspect-square/video/[W/H]/[R]/auto with finite positive f32 ratios. Explicit sizes and min/max bounds still apply. Later classes win per property/state. */
   className?: string;
 }
 
@@ -62,14 +64,14 @@ export interface ViewProps extends SemanticProps {
   htmlFor?: string;
   /** Owned ordered content. Pass between tags or with children={values}; combining both is rejected. Forwarding transfers the array once. */
   children?: Child[];
-  /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Includes aspect-square/video/[W/H]/[R]/auto with finite positive f32 ratios. Explicit sizes and min/max bounds still apply. Later classes win per property/state. */
+  /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Includes relative/absolute parent positioning and checked insets; inline descendants require typography only. Includes aspect-square/video/[W/H]/[R]/auto with finite positive f32 ratios. Explicit sizes and min/max bounds still apply. Later classes win per property/state. */
   className?: string;
 }
 
 export interface ButtonProps extends ElementProps {
   /** Owned ordered content. Pass between tags or with children={values}; combining both is rejected. Forwarding transfers the array once. */
   children?: Child[];
-  /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Includes aspect-square/video/[W/H]/[R]/auto with finite positive f32 ratios. Explicit sizes and min/max bounds still apply. Later classes win per property/state. */
+  /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Includes relative/absolute parent positioning and checked insets; inline descendants require typography only. Includes aspect-square/video/[W/H]/[R]/auto with finite positive f32 ratios. Explicit sizes and min/max bounds still apply. Later classes win per property/state. */
   className?: string;
   disabled?: boolean | ReactiveBoolean;
   onPress?: Owned<Function<void>>;
@@ -166,7 +168,7 @@ function TextField(props: TextFieldOptions): Node {
   const id = props.id ?? '';
   const disabled = props.disabled;
   const readOnly = props.readOnly;
-  const metadata = semanticConfig('', '', props['aria-label'] ?? '', clone(id), props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
+  const metadata = semanticConfig('', '', props['aria-label'] ?? '', clone(id), props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', props['data-variant'] ?? '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
   const options: InputOptions = {
     placeholder: props.placeholder ?? '', disabled: typeof disabled === 'boolean' ? disabled : false, readOnly: typeof readOnly === 'boolean' ? readOnly : false, multiline: props.multiline, required: props.required ?? false, name: clone(name), autoComplete: props.autoComplete ?? '', type: 'text'
   };
@@ -188,13 +190,13 @@ export interface CopyButtonProps extends ElementProps {
 }
 /** Copies value on activation. Shows Copy, Copying…, Copied or Copy failed. Try again.; failures retain the application and expose the platform message as a description. Ownership: owns a text snapshot; browser completion never retains a removed subtree. */
 export function CopyButton(props: CopyButtonProps): Node {
-  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
+  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', props['data-variant'] ?? '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
   return applySemantics(unwrapNode(nativeCopyButton(props.value, props.className ?? '')), metadata);
 }
 
 /** Creates a text node by joining text children without a separator. className defaults to empty. Unknown utilities throw a message. Owns its text. */
 export function Text(props: TextProps): Node {
-  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
+  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', props['data-variant'] ?? '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
   const result = text(props.children ?? [], props.className ?? '');
   match (result) {
     Ok(value) => {
@@ -207,7 +209,7 @@ export function Text(props: TextProps): Node {
 }
 /** Creates a container, preserving child order. className defaults to empty. Unknown utilities or depth over 128 throw a message. Consumes its children. */
 export function View(props: ViewProps): Node {
-  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']), props.htmlFor ?? '', props.windowDragRegion ?? false, props.tabIndex);
+  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', props['data-variant'] ?? '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']), props.htmlFor ?? '', props.windowDragRegion ?? false, props.tabIndex);
   const result = view(props.children ?? [], props.className ?? '');
   match (result) {
     Ok(value) => {
@@ -233,7 +235,7 @@ export function View(props: ViewProps): Node {
 }
 /** Creates a semantic button with optional retained onPress and composed phrasing children. Disabled buttons never activate. */
 export function Button(props: ButtonProps): Node {
-  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
+  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', props['data-variant'] ?? '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
   const children = props.children ?? [];
   const handler = props.onPress;
   const disabled = props.disabled;
@@ -261,7 +263,7 @@ export interface LinkProps extends ElementProps {
 }
 /** Navigates locally or opens an HTTPS URL. The current page and ancestor path segments expose aria-current for styling and accessibility. External links leave application history unchanged. Browser anchors retain modified-click behavior; native launch failures throw. */
 export function Link(props: LinkProps): Node {
-  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
+  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', props['data-variant'] ?? '', '', props['aria-describedby'] ?? '', props['aria-invalid'] === undefined ? '' : String(props['aria-invalid']));
   return applySemantics(unwrapNode(nativeLink(props.children ?? [], props.className ?? '', props.href)), metadata);
 }
 /** Creates the single application location owner, initially the browser path or / on native. Its get/set methods use checked absolute local paths. */
@@ -442,6 +444,7 @@ interface SemanticConfig {
   hidden: boolean;
   slot: string;
   size: string;
+  variant: string;
   orientation: string;
   describedBy: string;
   invalid: string;
@@ -450,13 +453,13 @@ interface SemanticConfig {
   tabIndex?: int;
 }
 
-function semanticConfig(tag: string, role: string, label: string, id: string, hidden: boolean, slot: string, size: string, orientation: string, describedBy: string = '', invalid: string = '', htmlFor: string = '', windowDragRegion: boolean = false, tabIndex?: int): string {
-  if (tag === '' && role === '' && label === '' && id === '' && !hidden && slot === '' && size === '' && orientation === '' && describedBy === '' && invalid === '' && htmlFor === '' && !windowDragRegion && tabIndex === undefined) {
+function semanticConfig(tag: string, role: string, label: string, id: string, hidden: boolean, slot: string, size: string, variant: string, orientation: string, describedBy: string = '', invalid: string = '', htmlFor: string = '', windowDragRegion: boolean = false, tabIndex?: int): string {
+  if (tag === '' && role === '' && label === '' && id === '' && !hidden && slot === '' && size === '' && variant === '' && orientation === '' && describedBy === '' && invalid === '' && htmlFor === '' && !windowDragRegion && tabIndex === undefined) {
     return '';
   }
 
   const config: SemanticConfig = {
-    tag, role, label, id, hidden, slot, size, orientation, describedBy, invalid, htmlFor, windowDragRegion, tabIndex
+    tag, role, label, id, hidden, slot, size, variant, orientation, describedBy, invalid, htmlFor, windowDragRegion, tabIndex
   };
   return JSON.stringify(config);
 }

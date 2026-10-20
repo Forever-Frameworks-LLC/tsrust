@@ -53,6 +53,7 @@ pub(crate) struct Semantics {
     pub hidden: bool,
     pub slot: String,
     pub size: String,
+    pub variant:String,
     pub orientation: String,
     pub html_for:String,
     pub described_by:String,
@@ -115,6 +116,7 @@ impl Node {
         if !matches!(value.invalid.as_str(),""|"true"|"false"){return Err("aria-invalid supports boolean values".into());}
         if value.id.chars().any(|ch|ch.is_ascii_whitespace()||ch.is_control()){return Err("UI id cannot contain whitespace or control characters".into());}
         if value.slot.chars().any(|ch|!(ch.is_ascii_alphanumeric()||ch=='-')){return Err("UI slot must contain ASCII letters, digits or hyphens".into());}
+        if value.variant.chars().any(|ch|!(ch.is_ascii_alphanumeric()||ch=='-')){return Err("UI data-variant must contain ASCII letters, digits or hyphens".into());}
         if value.size.chars().any(|ch|!(ch.is_ascii_alphanumeric()||ch=='-')){return Err("UI data-size must contain ASCII letters, digits or hyphens".into());}
         let href=std::mem::take(&mut self.semantics.href);self.semantics=value;self.semantics.href=href;self.validate_structure()?;Ok(self)
     }
