@@ -66,7 +66,7 @@
         "Variants, sizes and caller customization",
         "Keyboard, accessibility and light/dark states"
       ],
-      "notes": "Four editable text/action subcomponents, default/destructive palettes, assertive/polite live roles, retained hidden state, scoped modes and checked parent positioning. SVG icons, arbitrary descendant CSS, text balancing, generic reactive variant props and render composition remain unsupported. Focused acceptance pending."
+      "notes": "Four editable text/action subcomponents, default/destructive palettes, assertive/polite live roles, retained hidden state, scoped modes and checked parent positioning. SVG icons, arbitrary descendant CSS, text balancing, generic reactive variant props and render composition remain unsupported. Scoped acceptance: docs/milestones/ui-alert-and-positioning.md."
     },
     {
       "name": "aspect-ratio",

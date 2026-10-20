@@ -111,3 +111,20 @@ browser acceptance. The observer checks palette changes, nested scopes, retained
 field DOM/focus, hidden preview state/accessibility, responsive header, read-only
 source and disposal. It records exact source hashes. Native model/layout/header
 hit witnesses cover the same section in `tsrust-ui`. No timing is claimed.
+
+## Documentation Alert and positioning
+
+Run the docs project's actual `tsrust dev --target web --port 4317` preview, then
+create an empty output directory and run:
+
+```sh
+node benchmarks/ui-jsx/verify-application.mjs /tmp/alert-observation docs-alert http://127.0.0.1:4317/
+```
+
+This untimed observer checks the five editable Alert examples, retained state and
+focus, independent theme modes, role exposure, text contrast, narrow-width bounds
+and disposal. `alert-reference.ts` supplies independent CSS box-model equations
+after TypeScript compilation. The native `positioning_tests` print the same four
+observed boxes across flex/grid and three display scales. Compare their captured
+log with `node benchmarks/ui-jsx/verify-positioning-native.mjs <native-log>`.
+Neither witness establishes GPU pixel equivalence or actual OS gestures.

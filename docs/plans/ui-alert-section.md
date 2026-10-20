@@ -1,7 +1,8 @@
 # Alert composition and parent positioning
 
-Implementation in progress; not accepted. Continue after the accepted reading
-section at `cae9256b`. No additional owner approval is needed.
+The scoped section passes focused acceptance after the reading section at
+`cae9256b`. See [acceptance](../milestones/ui-alert-and-positioning.md). Alert remains
+partial against the complete pinned Nova contract. Continue without another approval.
 
 - [x] Shared relative/absolute positioning and bounded independent insets.
 - [x] Each UI box is a containing block on both renderers; inline text rejects box utilities.
@@ -11,10 +12,10 @@ section at `cae9256b`. No additional owner approval is needed.
 - [x] Native geometry, metadata/merge, offline installer and editor witnesses are written.
 - [x] Source examples for variants, retry/hide state, responsive actions, validation,
   scoped palettes and parent positioning are written.
-- [ ] Finalize the SDK payload and refresh consumers; reinstall the corrected draft through the offline CLI.
+- [x] Finalize the SDK payload and refresh consumers; reinstall the corrected draft through the offline CLI.
 - [x] Register examples/API source, author the Alert and positioning pages, browser oracle.
-- [ ] Batch targeted compiler/native/editor/browser acceptance after the section is complete.
-- [ ] Refresh actual preview/editor, inspect open diagnostics, import/verify SQLite evidence.
+- [x] Batch targeted compiler/native/editor/browser acceptance after the section is complete.
+- [x] Refresh actual preview/editor, inspect open diagnostics, import/verify SQLite evidence.
 
 The pinned Base UI/Nova source and CSS remain canonical evidence in SQLite.
 SVG/icon handling, arbitrary descendant CSS, generic reactive variant props,

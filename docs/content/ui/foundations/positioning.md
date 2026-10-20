@@ -9,6 +9,8 @@ Place a child within its UI parent without adding it to the parent's normal layo
 
 Every UI layout box establishes a containing block. `relative` keeps a box in normal flow. `absolute` removes it from that flow and positions it within its immediate UI parent. Other children do not reserve space for it.
 
+Give positioned content a surrounding View. Applying offsets directly to the application root is outside this shared parent-positioning contract.
+
 Use positioned View boxes around inline content. Nested Text and inline Link descendants reject box/layout utilities; they share a shaped paragraph rather than creating independent layout boxes.
 
 ## Insets and spacing

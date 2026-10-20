@@ -325,10 +325,9 @@ fn lazy_route_required_factory_and_retention_help_agree(){
 
 #[test]fn parent_positioning_and_variant_metadata_have_checked_editor_help(){
  let source="import {View} from 'std:ui';function main(){const node=<View data-variant=\"destructive\" className=\"absolute top-2 right-2 data-[variant=destructive]:bg-destructive\"/>;}";
- let mut session=support::session::Session::start(&[]);session.open("main.tsrx",source);session.settle();
+ let mut session=support::session::Session::start(&[]);session.open("main.tsrx",source);let errors=session.wait_for_diagnostics("main.tsrx");assert_eq!(errors,serde_json::json!([]),"{errors}");session.settle();
  for (needle,expected)in[("data-variant=","variant metadata"),("absolute top","immediate UI parent"),("top-2","Spacing")]{let at=source.find(needle).unwrap()+1;let hover=session.hover("main.tsrx",source,at).unwrap_or_default();assert!(hover.contains(expected),"{needle}: {hover}");}
  let at=source.find("top-2").unwrap()+4;let values=session.completion("main.tsrx",source,at).unwrap();assert!(values.contains(&"top-2".into()),"{values:?}");
- let errors=session.wait_for_diagnostics("main.tsrx");assert_eq!(errors,serde_json::json!([]),"{errors}");
 }
 
 #[test]fn alert_local_component_exports_props_and_owned_actions_are_discoverable(){

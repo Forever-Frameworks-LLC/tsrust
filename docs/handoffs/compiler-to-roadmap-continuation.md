@@ -1,5 +1,16 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
+Current section — 2026-10-20: the scoped Alert/parent-positioning implementation
+passes focused compiler, installed-editor, native geometry, actual browser and
+native app startup acceptance. See [acceptance](../milestones/ui-alert-and-positioning.md).
+Five Alert galleries and the positioning gallery are live in the actual port 4317
+dev preview. There are 161 destinations, 19 checked examples and 946 API declarations.
+Alert remains partial; the full 64-component, three-recipe and 30-block inventory
+is still required. Continue reactive custom props/base composition and
+focus/disclosure/overlays before dependent components, charts, theme editing and
+blocks. Build latency and cold editor scheduling remain unresolved. Reuse accepted
+reading, resource, SQL and runtime evidence; no additional go-ahead is needed.
+
 Current owner direction (2026-10-19): follow the
 [documentation application and complete component-library plan](../plans/documentation-and-component-library.md).
 Create a separate runnable docs project under `docs/`, with organized Markdown,
