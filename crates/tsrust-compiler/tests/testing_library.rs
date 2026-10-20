@@ -783,3 +783,19 @@ test('typed failure', (): void => {
     assert!(stdout.contains("typed failure"), "{stdout}");
     assert!(stdout.contains("record error preserved"), "{stdout}");
 }
+
+#[test]
+fn throws_invokes_once_reports_normal_return_and_releases_owned_resources(){
+ let source=include_str!("fixtures/testing-throws/assertions.tsr");
+ support::execute(source,"throws passed\n",None);
+ for source in ["import {throws} from 'std:testing';function main(){throws((value:int)=>{});}","import {throws} from 'std:testing';function main(){const action=()=>{};throws(action);action();}"]{
+  assert!(tsrust_compiler::check(&support::format_round_trip(source)).is_err(),"{source}");
+ }
+}
+
+#[test]
+fn documented_throw_assertion_example_runs_formatted(){
+ let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
+ let example=&catalog["std:testing"].as_array().unwrap().iter().find(|entry|entry["name"]=="throws").unwrap()["examples"][0];
+ support::execute(example["source"].as_str().unwrap(),example["output"].as_str().unwrap(),None);
+}

@@ -1,0 +1,26 @@
+[
+  {
+    "variant": "default",
+    "license": "MIT",
+    "licenseText": "MIT License\n\nCopyright (c) 2023 shadcn\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n",
+    "runtimeAbi": "ui-application-1",
+    "compilerApi": 2,
+    "rust": "1.96.1",
+    "version": "1.0.0",
+    "dependencies": [
+      {
+        "name": "tokens",
+        "version": "1.0.0",
+        "variant": "default"
+      }
+    ],
+    "name": "aspect-ratio",
+    "files": [
+      {
+        "path": "aspect-ratio.tsrx",
+        "destination": "components",
+        "content": "/*\nMIT License\n\nCopyright (c) 2023 shadcn\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n\nAdapted from shadcn-ui/ui daaf156ee00ed91cc7e6bdd937c1b4973152d141, Base UI + Nova.\n*/\nimport { View, ViewProps, Node } from 'std:ui';\n\nexport interface AspectRatioProps extends ViewProps {\n  /** Required construction-time width divided by height. State changes do not update this prop. Must be finite, positive and within native f32 layout range. No default. Use 16.0 / 9.0 for a widescreen ratio. */\n  ratio: number;\n}\n\n/** Reserves a preferred width/height ratio. Explicit dimensions and min/max constraints still apply. Caller classes override the ratio; children transfer once. Image loading and fitting are separate capabilities. */\nexport function AspectRatio(props: AspectRatioProps): Node {\n  const slot = clone(props['data-slot']) ?? 'aspect-ratio';\n  const classes = 'relative w-full min-w-0 shrink-0 aspect-[' + String(props.ratio) + '] ' + (clone(props.className) ?? '');\n  return (<View {...props} data-slot={slot} className={classes} />);\n}\n"
+      }
+    ]
+  }
+]

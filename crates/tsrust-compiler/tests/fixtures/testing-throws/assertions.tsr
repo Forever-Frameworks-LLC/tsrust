@@ -1,0 +1,30 @@
+import { throws, strictEqual, trackedResource, resourceId, closeResource, releaseCount, liveCount } from 'std:testing';
+
+function main() {
+  throws(() => {
+    throw 'expected';
+  });
+  const resource = trackedResource();
+  const key = resourceId(resource);
+  throws(() => {
+    closeResource(resource);
+    throw 'released';
+  });
+  strictEqual(releaseCount(key), 1);
+  const before = liveCount();
+  throws(() => {
+    const local = trackedResource();
+    const id = resourceId(local);
+    throw id;
+  });
+  strictEqual(liveCount(), before);
+  let failed = false;
+  try {
+    throws(() => {}, 'normal return');
+  } catch (error) {
+    failed = true;
+  }
+
+  strictEqual(failed, true);
+  console.log('throws passed');
+}

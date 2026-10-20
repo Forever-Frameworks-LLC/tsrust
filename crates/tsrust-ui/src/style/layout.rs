@@ -16,8 +16,19 @@ pub(super) fn spacing(size:&str,theme:&Theme)->f32 { match size {
     "1"=>theme.spacing.sm as f32/2.,"3"=>(theme.spacing.sm+theme.spacing.md) as f32/2.,
     _=>size.parse::<f32>().expect("validated size")*theme.spacing.md as f32/4.,
 }}
+/// A normalized ratio shared by CSS serialization and native logical geometry.
+pub(super) fn aspect(token:&str)->Option<Option<f32>> {
+    if token=="aspect-auto" {return Some(None);}
+    let value=match token {"aspect-square"=>"1","aspect-video"=>"16/9",_=>token.strip_prefix("aspect-[")?.strip_suffix(']')?};
+    let mut parts=value.split('/');
+    let width=parts.next()?.parse::<f64>().ok()?;
+    let height=parts.next().map(|part|part.parse::<f64>()).transpose().ok()?.unwrap_or(1.);
+    if parts.next().is_some() || !width.is_finite() || !height.is_finite() || width<=0. || height<=0. {return None;}
+    let ratio=(width/height) as f32;
+    (ratio.is_finite() && ratio>0.).then_some(Some(ratio))
+}
 pub(super) fn tokens()->Vec<String> {
-    let mut values=["flex","inline-flex","grid","auto-rows-min","flex-wrap","flex-nowrap","grow","grow-0","shrink","shrink-0"].into_iter().map(str::to_owned).collect::<Vec<_>>();
+    let mut values=["relative","aspect-auto","aspect-square","aspect-video","aspect-[16/9]","aspect-[3/4]","aspect-[1.5]","flex","inline-flex","grid","auto-rows-min","flex-wrap","flex-nowrap","grow","grow-0","shrink","shrink-0"].into_iter().map(str::to_owned).collect::<Vec<_>>();
     for prefix in ["p","px","py","pt","pr","pb","pl","gap","gap-x","gap-y"] {
         for size in SPACING {values.push(format!("{prefix}-{size}"));}
     }
@@ -40,7 +51,9 @@ pub(super) fn tokens()->Vec<String> {
     values
 }
 pub(super) fn resolve(token:&str,theme:&Theme)->Option<Vec<Utility>> {
+    if let Some(ratio)=aspect(token){return Some(vec![Utility::AspectRatio(ratio)]);}
     let simple=match token {
+        "relative"=>Some(Utility::Relative),
         "flex"=>Some(Utility::Display(false)),"inline-flex"=>Some(Utility::InlineFlex),"grid"=>Some(Utility::Display(true)),"auto-rows-min"=>Some(Utility::AutoRowsMin),
         "flex-wrap"=>Some(Utility::Wrap(true)),"flex-nowrap"=>Some(Utility::Wrap(false)),
         "grow"=>Some(Utility::Grow(1.)),"grow-0"=>Some(Utility::Grow(0.)),"shrink"=>Some(Utility::Shrink(1.)),"shrink-0"=>Some(Utility::Shrink(0.)),
@@ -71,4 +84,15 @@ pub(super) fn theme_keys(token:&str)->Vec<&'static str> {
         if let Some(size)=token.strip_prefix(prefix) {return match size {"1"|"2"=>vec!["sm"],"3"=>vec!["sm","md"],"6"=>vec!["lg"],"0"|"px"|"auto"|"none"|"fit"|"full"|"screen"|"1/2"|"1/3"|"2/3"|"1/4"|"3/4"=>vec![],_=>vec!["md"]};}
     }
     vec![]
+}
+
+#[cfg(test)]mod aspect_tests {
+ use super::*;
+ #[test]fn aspect_ratios_normalize_and_reject_invalid_native_geometry_inputs(){
+  for (class,expected) in [("aspect-square",1.),("aspect-video",16./9.),("aspect-[3/4]",0.75),("aspect-[1.5]",1.5)] {assert_eq!(aspect(class),Some(Some(expected)));}
+  assert_eq!(aspect("aspect-auto"),Some(None));
+  for class in ["aspect-[0]","aspect-[-1]","aspect-[NaN]","aspect-[inf]","aspect-[1/0]","aspect-[1/2/3]","aspect-[1e100]","aspect-[1e-100]","aspect-[]","aspect-[1;display:none]"]{assert!(aspect(class).is_none(),"{class}");assert!(super::super::validate(class).is_err(),"{class}");}
+  let rules=super::super::resolved("aspect-video aspect-square",&Theme::default(),"light");assert_eq!(rules.iter().filter(|(_,rule)|matches!(rule,Utility::AspectRatio(_))).count(),1);assert!(rules.iter().any(|(_,rule)|matches!(rule,Utility::AspectRatio(Some(1.)))));
+  assert!(super::super::documentation("aspect-[3/4]").contains("f32"));assert!(super::super::documentation("relative").contains("unsupported"));
+ }
 }

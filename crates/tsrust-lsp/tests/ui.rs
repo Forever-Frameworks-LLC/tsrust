@@ -284,3 +284,24 @@ fn local_component_gallery_examples_keep_checked_props_and_change_help() {
  let broken=source.replace("orientation=\"vertical\"","orientation=\"diagonal\"");session.change(file,&broken);
  let diagnostics=session.wait_for_diagnostics(file);assert!(!diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
 }
+
+#[test]
+fn aspect_ratio_component_required_props_and_geometry_help_agree(){
+ let component=include_str!("../../../docs/src/components/ui/aspect-ratio.tsrx");
+ let source="import {AspectRatio} from './aspect-ratio';import {Text,Node} from 'std:ui';function Page():Node{return <AspectRatio ratio={1.5} className=\"aspect-video\"><Text>Ratio</Text></AspectRatio>;}function main(){}";
+ let mut session=support::session::Session::start(&[("aspect-ratio.tsrx",component)]);session.open("main.tsrx",source);let diagnostics=session.wait_for_diagnostics("main.tsrx");session.settle();assert!(diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
+ let at=source.find("ratio={").unwrap();let fields=session.completion("main.tsrx",source,at).unwrap();for name in ["ratio","children","className","id"]{assert!(fields.contains(&name.into()),"{fields:?}");}
+ let help=session.hover("main.tsrx",source,at+2).unwrap_or_default();assert!(help.contains("Required")&&help.contains("f32"),"{help}");
+ let at=source.find("aspect-video").unwrap()+8;let values=session.completion("main.tsrx",source,at).unwrap();assert!(values.contains(&"aspect-video".into()),"{values:?}");assert!(session.hover("main.tsrx",source,at).unwrap_or_default().contains("width/height"));
+ for broken in [source.replace("ratio={1.5}",""),source.replace("ratio={1.5}","ratio=\"wide\""),source.replace("aspect-video","aspect-[0]")] {
+  session.change("main.tsrx",&broken);let diagnostics=session.wait_for_diagnostics("main.tsrx");assert!(!diagnostics.as_array().unwrap().is_empty(),"{broken}: {diagnostics}");
+ }
+}
+
+#[test]
+fn consuming_throw_assertion_has_signature_and_ownership_help(){
+ let source="import {throws} from 'std:testing';function main(){throws(()=>{throw 'expected';});}";
+ let mut session=support::session::Session::start(&[]);session.open("main.tsr",source);let diagnostics=session.wait_for_diagnostics("main.tsr");session.settle();assert!(diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
+ let at=source.rfind("throws(").unwrap()+2;let help=session.hover("main.tsr",source,at).unwrap_or_default();assert!(help.contains("single-use")&&help.contains("AssertionError"),"{help}");
+ let at=source.rfind("throws(").unwrap()+7;let signature=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsr")},"position":{"line":0,"character":at}}));assert!(signature.to_string().contains("Once<Function<void>>"),"{signature}");
+}

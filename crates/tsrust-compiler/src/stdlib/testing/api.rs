@@ -181,6 +181,26 @@ export function fail(message:string="Failed"):void {
 }
 
 
+/**
+Calls a synchronous callback once and fails unless it throws. Takes a consuming single-use zero-argument callback returning void, plus an optional failure message (default "Expected function to throw"). Any thrown value satisfies this assertion; the value is discarded. A callback that returns normally causes AssertionError after the callback completes. Returns void and does not retain the callback. Errors from asynchronous work are not awaited or observed; async callbacks do not match this signature.
+
+```tsrust
+import { throws } from "std:testing";
+function main(){throws(()=>{throw "expected";});console.log("passed");}
+// passed
+```
+
+Callback-local resources release through ordinary checked exception cleanup. The assertion's own no-throw failure is outside the catch and cannot satisfy itself. No error matcher or coercion is performed.
+
+Ownership: consumes the callback and drops it before returning; the message is borrowed.
+*/
+export function throws(callback:Once<Function<void>>,message:string="Expected function to throw"):void {
+    let didThrow=false;
+    try {callback();} catch(error) {didThrow=true;}
+    checkAssertion(didThrow,message);
+}
+
+
 export type Expectation<T> = {
  /**
 Provides negated identity, truthiness, falsiness, null, undefined, defined and NaN checks. Matchers return void and fail when their positive condition succeeds. The assertion object remains reusable. Chained .not.not is currently unsupported.

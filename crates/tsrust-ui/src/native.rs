@@ -170,6 +170,7 @@ impl Painter {
             if !match state {State::Base=>true,State::Hover=>self.hover.contains(&id) && !node.is_disabled(),State::Active=>self.pressed_nodes.contains(&id) && !node.is_disabled(),State::Focus=>self.focus==Some(id),State::Disabled=>node.is_disabled()} {continue;}
             match utility {
                 Utility::Placeholder(color)=>placeholder_color=Some(color),Utility::Opacity(value)=>opacity=value,Utility::OutlineNone=>{outline=None;suppress_outline=true;},Utility::Cursor(value)=>inherited.cursor=value,Utility::SelectNone=>inherited.selectable=false,Utility::PointerEvents(value)=>inherited.pointer_events=value,Utility::FieldSizingContent=>{if node.kind==Kind::Textarea{style.size.height=auto();}},
+                Utility::AspectRatio(value)=>style.aspect_ratio=value,Utility::Relative=>style.position=taffy::Position::Relative,
                 Utility::Row=>style.flex_direction=FlexDirection::Row,
                 Utility::Column=>style.flex_direction=FlexDirection::Column,
                 Utility::GapAxis(axis,v)=>{if axis==0{style.gap.height=length(v);}else{style.gap.width=length(v);}},
@@ -198,6 +199,8 @@ impl Painter {
                 Utility::Justify(v)=>style.justify_content=match v {0=>JustifyContent::FLEX_START,1=>JustifyContent::CENTER,_=>JustifyContent::SPACE_BETWEEN},
             }
         }
+        // Taffy transfers max-height into an absent max-width. A separately specified width keeps its own bound.
+        if style.aspect_ratio.is_some() && style.size.width.into_raw().is_length_or_percentage() && style.max_size.width.is_auto() && !style.max_size.height.is_auto() {style.max_size.width=length(f32::MAX);}
         ancestors.push(node);
         let mut children = node
             .visible_children()
@@ -289,9 +292,19 @@ impl Painter {
                     height: AvailableSpace::MaxContent,
                 },
                 |inputs, _, context, style| {
+                    use taffy::MaybeResolve;
+                    let mut leaf=style.clone();
+                    if let Some(ratio)=style.aspect_ratio {
+                        let dimensions=inputs.known_dimensions.or(style.size.maybe_resolve(inputs.parent_size,|_,_|0.)).maybe_apply_aspect_ratio(Some(ratio));
+                        if dimensions.width.is_some() || dimensions.height.is_some() {
+                            // Taffy's leaf ratio floor runs after max-height. Resolve the preference first, then clamp normally.
+                            leaf.size=Size{width:dimensions.width.map_or(style.size.width,length),height:dimensions.height.map_or(style.size.height,length)};
+                            leaf.aspect_ratio=None;
+                        }
+                    }
                     taffy::compute_leaf_layout(
                         inputs,
-                        style,
+                        &leaf,
                         |_, _| 0.,
                         |known, available| {
                             let Some(text) = context else {
@@ -1560,5 +1573,21 @@ mod navigation_semantic_tests {
   let (_,snapshot)=Painter::new().scene(&root,640.,1.,None).unwrap();
   for role in [accesskit::Role::Link,accesskit::Role::List,accesskit::Role::ListItem,accesskit::Role::Table,accesskit::Role::Row,accesskit::Role::Cell]{assert!(snapshot.nodes.iter().any(|(_,node)|node.role()==role),"{role:?}");}
   let link=&snapshot.nodes.iter().find(|(_,node)|node.role()==accesskit::Role::Link).unwrap().1;assert_eq!(link.label(),Some("Docs"));assert_eq!(link.aria_current(),Some(accesskit::AriaCurrent::Page));
+ }
+}
+
+#[cfg(test)]mod aspect_ratio_tests {
+ use super::*;
+ #[test]fn aspect_ratio_geometry_matches_preferred_dimensions_and_constraints(){
+  let mut observed=Vec::new();
+  for container in [0,1,2] {
+  for contents in [false,true] {
+  for (index,(classes,width,height)) in [("w-full aspect-square",320.,320.),("w-full aspect-video",320.,180.),("w-full aspect-[3/4]",120.,160.),("w-full aspect-[1.5]",317.5,317.5/1.5),("w-full aspect-video h-32",320.,128.),("w-full aspect-video min-h-64",320.,256.),("w-full aspect-square max-h-48",320.,192.)].into_iter().enumerate() {
+   let children=if contents{vec![super::super::Child::Node(Node::text(vec![super::super::TextPart::Literal("Content".into())],String::new()).unwrap())]}else{vec![]};let node=Node::view(children,format!("relative min-w-0 shrink-0 {classes}")).unwrap();let root=if container==0{node}else{Node::view(vec![super::super::Child::Node(node)],if container==1{"".into()}else{"grid grid-cols-1 items-start".into()}).unwrap()};let identity=if container==0{1}else{2};let mut painter=Painter::new();
+   for scale in [1.,1.5,2.] {let (_,tree)=painter.scene(&root,width,scale,None).unwrap();let rect=tree.nodes.iter().find(|(id,_)|id.0==identity).unwrap().1.bounds().unwrap();assert!((rect.width()/scale-width as f64).abs()<0.02,"{classes}: {rect:?}");assert!((rect.height()/scale-height as f64).abs()<0.02,"{classes}: {rect:?}");if scale==1. && !contents && container==0 {observed.push(serde_json::json!({"name":(["square","video","portrait","fractional-width","explicit-height","minimum-height","maximum-height"][index]),"width":rect.width(),"height":rect.height()}));}}
+  }
+  }
+  }
+  println!("ASPECT_GEOMETRY {}",serde_json::json!({"cases":observed}));
  }
 }

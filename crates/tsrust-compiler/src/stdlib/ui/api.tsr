@@ -43,7 +43,7 @@ export interface TextProps extends SemanticProps {
   as?: 'span' | 'div' | 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'code' | 'kbd' | 'strong' | 'em' | 'del';
   /** Ordered text content. Pass between tags or with children={values}; combining both is rejected. */
   children?: Child[];
-  /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Later classes win per property/state. */
+  /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Includes aspect-square/video/[W/H]/[R]/auto with finite positive f32 ratios. Explicit sizes and min/max bounds still apply. Later classes win per property/state. */
   className?: string;
 }
 
@@ -62,14 +62,14 @@ export interface ViewProps extends SemanticProps {
   htmlFor?: string;
   /** Owned ordered content. Pass between tags or with children={values}; combining both is rejected. Forwarding transfers the array once. */
   children?: Child[];
-  /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Later classes win per property/state. */
+  /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Includes aspect-square/video/[W/H]/[R]/auto with finite positive f32 ratios. Explicit sizes and min/max bounds still apply. Later classes win per property/state. */
   className?: string;
 }
 
 export interface ButtonProps extends ElementProps {
   /** Owned ordered content. Pass between tags or with children={values}; combining both is rejected. Forwarding transfers the array once. */
   children?: Child[];
-  /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Later classes win per property/state. */
+  /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Includes aspect-square/video/[W/H]/[R]/auto with finite positive f32 ratios. Explicit sizes and min/max bounds still apply. Later classes win per property/state. */
   className?: string;
   disabled?: boolean | ReactiveBoolean;
   onPress?: Owned<Function<void>>;
