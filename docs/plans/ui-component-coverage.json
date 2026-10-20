@@ -52,10 +52,11 @@
       "name": "aspect-ratio",
       "source": "apps/v4/registry/bases/base/ui/aspect-ratio.tsx",
       "gitBlobSha1": "ebe2783654a6ce3240b2bd3a4bdb80b07c26cf8f",
-      "status": "pending",
+      "status": "partial",
       "capabilityFamilies": [
         "layout"
-      ]
+      ],
+      "notes": "Editable offline component with required finite positive construction-time ratio, shared native/web layout, forwarded View metadata and owned children. Caller overrides and explicit/min/max geometry are checked. Reactive ratio updates, intrinsic-width cross-axis sizing and media fitting remain unsupported."
     },
     {
       "name": "attachment",

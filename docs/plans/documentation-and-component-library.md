@@ -105,6 +105,13 @@ routing and the remaining component/focus families are still required. Dependenc
 workspaces persist, but end-to-end frontend startup remains slow and is unmeasured
 after the duplicate-proof repair; do not claim the cache solves that yet.
 
+The shared AspectRatio component and authored seven-example page now pass focused
+compiler/native geometry, offline installation, editor and browser acceptance. See
+[AspectRatio acceptance](../milestones/ui-aspect-ratio.md). Its required construction-time
+ratio supports explicit/min/max dimensions and caller overrides; generic reactive
+ratio updates and intrinsic-width cross-axis sizing remain required work. This does
+not establish full Nova fidelity or complete the other component families.
+
 ## Project and content layout
 
 Use `docs/` as a separate runnable Tsrust project. Keep the standalone

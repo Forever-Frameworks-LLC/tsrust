@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 export async function observeAspectRatio({evaluate,call,errors,site,expected}) {
+ const exact=fs.readFileSync(new URL('../../docs/src/examples/aspect-ratio-layout.tsrx',import.meta.url),'utf8');
  await call('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
  await evaluate(`document.querySelector('a[href="/docs"]').click();Array.from(document.querySelectorAll('nav[aria-label="Documentation sections"] a')).find(node=>node.textContent==='Components').click();document.querySelector('#sidebar a[href="/docs/ui/components/aspect-ratio"]').click()`);
  assert.equal(await evaluate(`document.querySelector('[data-slot=route-page] h1').textContent`),'Aspect Ratio');
@@ -12,7 +13,10 @@ export async function observeAspectRatio({evaluate,call,errors,site,expected}) {
  }
  const card='#component-aspect-ratio-aspect-ratio-layout-preview';
  await evaluate(`Array.from(document.querySelectorAll('[data-slot=route-page] button')).find(node=>node.textContent==='Show source').click()`);
- assert(await evaluate(`document.querySelector('#component-aspect-ratio-aspect-ratio-layout-source code').textContent.includes('ratio={16.0 / 9.0}')`));
+ assert.equal(await evaluate(`document.querySelector('#component-aspect-ratio-aspect-ratio-layout-source code').textContent`),exact);
+ await evaluate(`Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>{window.copiedSource=value;}}});document.querySelector('#component-aspect-ratio-aspect-ratio-layout-source button').click()`);
+ for(let i=0;i<100&&!await evaluate(`window.copiedSource===${JSON.stringify(exact)}`);i++)await new Promise(resolve=>setTimeout(resolve,30));
+ assert.equal(await evaluate('window.copiedSource'),exact);
  await evaluate(`Array.from(document.querySelectorAll('[data-slot=route-page] button')).find(node=>node.textContent==='Show preview').click()`);
  for(const width of [480,768,1440]){
   await call('Emulation.setDeviceMetricsOverride',{width,height:1000,deviceScaleFactor:1,mobile:false});

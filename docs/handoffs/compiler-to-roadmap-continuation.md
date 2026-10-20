@@ -51,13 +51,21 @@ with warm dependencies. The earlier unchanged-source build reported 253,046 ms;
 these are observations, not a controlled performance benchmark. Reuse the accepted
 browser evidence and current warm web/native workspaces.
 
-Next component slice: AspectRatio. Its exact pinned upstream source is verified
-against Git blob `ebe2783654a6ce3240b2bd3a4bdb80b07c26cf8f` and retained in SQLite.
-Its ratio prop is required. An independent geometry oracle is prepared but unrun;
-no AspectRatio runtime, installer or editor support is claimed yet. Continue shared
-layout/component implementation and paired pages, then overlays/base composition,
-blocks and theme generation. The optional JS bridge remains deferred with mandatory
-per-export editor/compiler availability across every configured target.
+The AspectRatio section is implemented through `438444bf`, with shared positive
+finite ratio utilities, a required-ratio editable offline component and an authored
+page with seven live examples. Focused compiler/native, installer, ownership, LSP
+and real-browser checks pass. See [AspectRatio acceptance](../milestones/ui-aspect-ratio.md).
+Its exact pinned upstream source and independent geometry oracle remain in SQLite.
+Construction-time ratio support is partial; reactive custom props and intrinsic-width
+cross-axis sizing remain unsupported rather than silently approximated.
+
+Continue generic reactive custom props and base composition, overlays/focus, the
+remaining pinned component families, blocks and theme generation. The landing's
+shared visibility chapters still need the richer paired scroll/transition behavior;
+HTML design-reference motion is not shared-renderer parity. The optional JS bridge
+remains deferred with mandatory per-export editor/compiler availability across
+every configured target. Reuse accepted galleries, editing, resource and SQL
+checks; run focused checks after each complete implementation section.
 
 ## Rich inline docs and actual web development server — 2026-10-19
 

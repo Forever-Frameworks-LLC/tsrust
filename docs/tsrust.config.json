@@ -81,7 +81,8 @@
       "src/components/ui/textarea.tsrx",
       "src/components/ui/label.tsrx",
       "src/components/ui/kbd.tsrx",
-      "src/components/ui/separator.tsrx"
+      "src/components/ui/separator.tsrx",
+      "src/components/ui/aspect-ratio.tsrx"
     ],
     "examples": [
       {
@@ -154,6 +155,12 @@
         "id": "section-dividers",
         "source": "src/examples/section-dividers.tsrx",
         "export": "SectionDividers",
+        "kind": "component"
+      },
+      {
+        "id": "aspect-ratio-layout",
+        "source": "src/examples/aspect-ratio-layout.tsrx",
+        "export": "AspectRatioLayout",
         "kind": "component"
       }
     ]
