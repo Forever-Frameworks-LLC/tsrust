@@ -18,7 +18,8 @@ Ordinary `children?: Child[]` keeps its eager behavior. Passing
 `children={factory}` forwards an existing factory; it does not invoke it. There is
 no implicit cache and no extra wrapper node. Explicit arrow factories use their
 declared array return type, including empty and mixed child literals. Existing
-array variables keep their element type; this does not add array covariance.
+array variables keep their declared type. Existing consuming conversions still
+apply; moving an array into a factory does not leave a shared alias.
 
 ## Create, close and reopen
 

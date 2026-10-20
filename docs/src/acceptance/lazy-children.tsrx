@@ -101,6 +101,20 @@ function onceResource(): int {
   return id;
 }
 
+function onceArrayResource(): int {
+  const resource = trackedResource();
+  const id = resourceId(resource);
+  const values: Node[] = [<TrackedChild resource={resource}/>];
+  {
+    const node = <OnceParent children={() => values}/>;
+    strictEqual(releaseCount(id), 0);
+    strictEqual(document(node, 'Once array').includes('Owned child'), true);
+  }
+
+  strictEqual(releaseCount(id), 1);
+  return id;
+}
+
 function failedResource(): int {
   const resource = trackedResource();
   const id = resourceId(resource);
@@ -130,6 +144,7 @@ function main() {
   const repeat = <Repeat>{ProbeChild(repeated)}</Repeat>;
   strictEqual(releaseCount(repeatedId), 1);
   strictEqual(releaseCount(onceResource()), 1);
+  strictEqual(releaseCount(onceArrayResource()), 1);
   strictEqual(releaseCount(failedResource()), 1);
   const empty = <Ordered id="empty"/>;
   strictEqual(document(empty, 'Empty').includes('id="empty"'), true);
