@@ -3,4 +3,4 @@
 -->
 # Os
 
-Public `std:os` operations are listed below. Use each entry's exact argument, return and failure contract. Target-specific availability is not inferred from this page being readable on web or native.
+Inspect the host operating environment through std:os. Use returned host information for application decisions without assuming the browser, native and embedded targets expose identical capabilities.

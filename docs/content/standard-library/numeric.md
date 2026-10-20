@@ -3,4 +3,4 @@
 -->
 # Numeric
 
-Public `std:numeric` operations are listed below. Use each entry's exact argument, return and failure contract. Target-specific availability is not inferred from this page being readable on web or native.
+Convert numbers at explicit boundaries. std:numeric.parseInt validates a complete signed decimal string and reports syntax or range failures. The global parseInt has different prefix-parsing behavior.

@@ -3,4 +3,4 @@
 -->
 # Signals
 
-Public `std:signals` operations are listed below. Use each entry's exact argument, return and failure contract. Target-specific availability is not inferred from this page being readable on web or native.
+Coordinate shutdown with SIGINT and SIGTERM. Register a listener before announcing readiness, then await receive. Cancelling a receive releases its loan without closing the listener. These signal registrations require a Unix target.

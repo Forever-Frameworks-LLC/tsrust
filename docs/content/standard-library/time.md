@@ -3,4 +3,4 @@
 -->
 # Time
 
-Public `std:time` operations are listed below. Use each entry's exact argument, return and failure contract. Target-specific availability is not inferred from this page being readable on web or native.
+Measure elapsed time with a process-local monotonic clock. Subtract readings from the same process. For calendar timestamps, time zones and date arithmetic, use std:date.

@@ -3,4 +3,4 @@
 -->
 # Env
 
-Public `std:env` operations are listed below. Use each entry's exact argument, return and failure contract. Target-specific availability is not inferred from this page being readable on web or native.
+Read process environment values through std:env. Treat absent values separately from empty strings, then validate configuration before constructing application services.

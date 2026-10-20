@@ -3,4 +3,4 @@
 -->
 # Result
 
-Public `std:result` operations are listed below. Use each entry's exact argument, return and failure contract. Target-specific availability is not inferred from this page being readable on web or native.
+Represent an operation that can succeed or fail with Result. Match Ok and Err explicitly or use the supported propagation helpers. Keep an absent optional value separate from a failed operation.

@@ -3,4 +3,4 @@
 -->
 # Bytes
 
-Public `std:bytes` operations are listed below. Use each entry's exact argument, return and failure contract. Target-specific availability is not inferred from this page being readable on web or native.
+Store binary data in owned Bytes buffers. Indices and lengths count bytes; elements must be in 0..255. Access, mutation, copying and resizing check their ranges. clone creates independent storage.

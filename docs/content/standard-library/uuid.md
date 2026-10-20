@@ -3,4 +3,4 @@
 -->
 # UUID
 
-Public `std:uuid` operations are listed below. Use each entry's exact argument, return and failure contract. Target-specific availability is not inferred from this page being readable on web or native.
+Represent identifiers with UUID values and their checked text conversions. Keep UUIDs distinct from ordinary strings at storage and service boundaries.

@@ -199,14 +199,14 @@ export function Page(): Node {
       <Route path="/" render={() => <View id="landing" as="main" aria-label="Tsrust home" tabIndex={0} className="grow min-h-0 overflow-auto"><Landing/></View>}/>
       <View hidden={routePath(path.get()) === '/'} id="documentation" className="grow min-h-0">
         <View as="nav" aria-label="Documentation sections" className="h-12 shrink-0 flex-row overflow-auto border-b px-3 gap-1" children={sections}/>
-        <View className="grow min-h-0 flex-row">
-        <View id="sidebar" as="nav" aria-label="Documentation navigation" className="w-32 md:w-64 shrink-0 min-h-0 border-r">
+        <View className="grow min-h-0 flex-col md:flex-row">
+        <View id="sidebar" as="nav" aria-label="Documentation navigation" className="w-full md:w-64 h-32 md:h-full shrink-0 min-h-0 border-b md:border-r">
           <View className="shrink-0 pt-6 px-3 gap-3"><Input aria-label="Search documentation" aria-describedby="search-feedback" placeholder="Search documentation…" value={query} onChange={(event) => { query.set(event.target.value); const needle = event.target.value.trim().toLowerCase(); if (needle.length === 0) { matches.set(pageCount); hits.set(''); } else { if (terms.length === 0) { terms = loadSearch(); } let selected = ''; let total = 0; for (const term of terms) { if (term.text.toLowerCase().includes(needle)) { selected += '|' + docsPath(term.route) + '|'; total++; } } hits.set(selected); matches.set(total); } }}/></View>
           <View hidden={query.get().trim().length === 0} className="shrink-0 pt-4 px-3"><Text id="search-feedback" role="status" className="text-xs text-muted-foreground">{matches.get() === 0 ? 'No pages match. Try another search.' : String(matches.get()) + ' matching pages'}</Text></View>
           <View id="navigation-pages" hidden={query.get().trim().length !== 0} className="grow min-h-0" children={navigation}/>
           <View hidden={query.get().trim().length === 0} role="region" aria-label="Search results" tabIndex={0} className="grow min-h-0 overflow-auto px-3 pb-6" children={searchNavigation}/>
         </View>
-        <View className="grow min-w-0 flex-row" children={articles}/>
+        <View className="grow min-h-0 min-w-0 flex-row" children={articles}/>
         <View hidden={known.includes('|' + routePath(path.get()) + '|')} className="grow p-8 gap-6"><Text as="h1" className="text-3xl font-semibold">Page not found</Text><Text className="text-muted-foreground">This path is not in the documentation catalog.</Text><Link href="/docs" className="py-3">Return to documentation</Link></View>
         </View>
       </View>

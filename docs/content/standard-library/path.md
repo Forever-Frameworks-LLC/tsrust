@@ -3,4 +3,4 @@
 -->
 # Path
 
-Public `std:path` operations are listed below. Use each entry's exact argument, return and failure contract. Target-specific availability is not inferred from this page being readable on web or native.
+Construct and inspect filesystem paths. Path operations manipulate names; they do not prove a file exists or grant access to it. Use filesystem operations for those checks.

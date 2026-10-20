@@ -3,4 +3,4 @@
 -->
 # Date
 
-Public `std:date` operations are listed below. Use each entry's exact argument, return and failure contract. Target-specific availability is not inferred from this page being readable on web or native.
+Calendar dates, wall-clock times, instants, durations and time zones are separate types. Choose calendar operations for dates and duration arithmetic for elapsed time. A local date and time needs a zone before it identifies an instant.

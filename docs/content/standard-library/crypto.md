@@ -3,4 +3,4 @@
 -->
 # Crypto
 
-Public `std:crypto` operations are listed below. Use each entry's exact argument, return and failure contract. Target-specific availability is not inferred from this page being readable on web or native.
+Cryptographic operations work on explicit text or byte inputs. Choose the operation and encoding required by your protocol. Keep key material and application credential policy under application ownership.

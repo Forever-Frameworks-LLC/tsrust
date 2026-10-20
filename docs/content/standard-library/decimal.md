@@ -3,4 +3,4 @@
 -->
 # Decimal
 
-Public `std:decimal` operations are listed below. Use each entry's exact argument, return and failure contract. Target-specific availability is not inferred from this page being readable on web or native.
+Keep base-10 values exact with Decimal. parseDecimal validates the whole string; arithmetic returns checked results. toNumber rejects values that binary64 cannot represent exactly, including 0.1. Serialize exact values as decimal text.

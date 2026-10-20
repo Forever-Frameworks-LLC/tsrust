@@ -3,4 +3,4 @@
 -->
 # JSON
 
-Public `std:json` operations are listed below. Use each entry's exact argument, return and failure contract. Target-specific availability is not inferred from this page being readable on web or native.
+Parse, inspect and serialize JSON. Keep dynamic JSON values separate from checked application records. Follow the conversion contract when reading numbers, missing properties or nullable values.

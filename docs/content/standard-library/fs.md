@@ -3,4 +3,4 @@
 -->
 # Fs
 
-Public `std:fs` operations are listed below. Use each entry's exact argument, return and failure contract. Target-specific availability is not inferred from this page being readable on web or native.
+Read and write files through checked filesystem operations. File paths and file contents have different roles; choose text or binary operations deliberately and handle filesystem failures.

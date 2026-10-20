@@ -87,7 +87,7 @@ function inlineContent(page: ReadOnly<DocPage>, catalog: ReadOnly<DocCatalog>, p
 
 function heading(text: Child[], level: int, id: string): Node {
   if (level === 1) {
-    return (<Text id={id} as="h1" className="text-3xl font-semibold leading-snug" children={text}/>);
+    return (<Text id={id} as="h1" className="text-3xl font-semibold leading-snug outline-none" children={text}/>);
   }
 
   if (level === 2) {
