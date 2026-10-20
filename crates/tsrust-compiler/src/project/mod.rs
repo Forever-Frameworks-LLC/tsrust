@@ -272,14 +272,14 @@ pub(crate) fn lex_tolerant(text: &str) -> Result<Vec<syntax::Token>, Diagnostic>
 pub(crate) fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, ProjectDiagnostic> {
     if Path::new(&source.id.0).extension().is_some_and(|value| value == "rs") { return rust::module(source); }
     if let Some(extension) = Path::new(&source.id.0).extension().and_then(|value| value.to_str())
-        && matches!(extension, "json" | "jsonc")
+        && matches!(extension, "json" | "jsonc" | "txt")
     {
-        let value = crate::data_module::parse(&source.text, extension == "jsonc").map_err(|failure| {
+        let value = if extension=="txt" {crate::data_module::Value{span:Span::new(0,source.text.len()),kind:crate::data_module::Kind::String(source.text.clone())}}else{crate::data_module::parse(&source.text, extension == "jsonc").map_err(|failure| {
             let mut start = failure.offset.min(source.text.len());
             while !source.text.is_char_boundary(start) { start -= 1; }
             let end = start + source.text[start..].chars().next().map_or(0, char::len_utf8);
             error(&source.id, "data-json", format!("{} ({})", failure.message, failure.code), Span::new(start, end))
-        })?;
+        })?};
         crate::data_shape::infer(&value).map_err(|failure| error(&source.id, "data-type", failure.message, failure.span))?;
         return Ok(ModuleSource {
             rust: None,
@@ -400,7 +400,7 @@ pub(crate) fn parse_module(source: SourceFile, declarations: bool) -> Result<Mod
             let span = tokens[i].span;
             if crate::stdlib::source(&path).is_none() && !path.starts_with("std:")
                 && (path.is_empty() || path.starts_with('/')
-                    || Path::new(&path).extension().is_some_and(|extension|!matches!(extension.to_str(), Some("tsr" | "tsrx" | "rs" | "json" | "jsonc")))
+                    || Path::new(&path).extension().is_some_and(|extension|!matches!(extension.to_str(), Some("tsr" | "tsrx" | "rs" | "json" | "jsonc" | "txt")))
                     || path.contains(['\\', '\0', '\n', '\r']))
             {
                 return Err(error(

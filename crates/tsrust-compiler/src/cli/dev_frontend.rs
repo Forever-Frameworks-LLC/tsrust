@@ -13,7 +13,7 @@ impl Snapshot {
   normalized
  }
  fn captured(&self,path:&std::path::Path)->bool {
-  (path.extension().is_some_and(|ext|matches!(ext.to_str(),Some("tsr"|"tsrx"|"rs")))||path.file_name().is_some_and(|name|name=="tsrust.config.json"))&&path.strip_prefix(&self.root).is_ok_and(|relative|!relative.components().any(|part|matches!(part.as_os_str().to_str(),Some(".git"|"node_modules"|"target"))))
+  (path.extension().is_some_and(|ext|matches!(ext.to_str(),Some("tsr"|"tsrx"|"rs"|"txt")))||path.file_name().is_some_and(|name|name=="tsrust.config.json"))&&path.strip_prefix(&self.root).is_ok_and(|relative|!relative.components().any(|part|matches!(part.as_os_str().to_str(),Some(".git"|"node_modules"|"target"))))
  }
 }
 impl SourceProvider for Snapshot {

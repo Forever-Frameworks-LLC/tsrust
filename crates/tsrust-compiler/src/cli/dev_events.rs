@@ -15,7 +15,7 @@ fn walk_inner(root:&Path,content:&BTreeSet<PathBuf>,visit:&mut impl FnMut(&Path,
    let entry=entry?;let kind=entry.file_type()?;let path=entry.path();
    if kind.is_symlink(){continue;}
    if kind.is_dir() && !matches!(entry.file_name().to_str(),Some(".git"|"node_modules"|"target")) {walk_inner(&path,content,visit)?;}
-   else if kind.is_file() && (content.contains(&path)||path.extension().is_some_and(|ext|matches!(ext.to_str(),Some("tsr"|"tsrx"|"rs"|"json"|"jsonc"|"lock")))) {visit(&path,&entry.metadata()?)?;}
+   else if kind.is_file() && (content.contains(&path)||path.extension().is_some_and(|ext|matches!(ext.to_str(),Some("tsr"|"tsrx"|"rs"|"json"|"jsonc"|"txt"|"lock")))) {visit(&path,&entry.metadata()?)?;}
   }
  }
  Ok(())
@@ -120,9 +120,9 @@ mod tests {
  #[test]
  fn native_events_cover_json_jsonc_and_rust_content_edits() {
   let temp=crate::TempDirectory::new().unwrap();let root=&temp.0;
-  for name in ["data.json","data.jsonc","compute.rs","api.bindings.lock"] {fs::write(root.join(name),"{}").unwrap();}
+  for name in ["data.json","data.jsonc","compute.rs","api.bindings.lock","prose.txt"] {fs::write(root.join(name),"{}").unwrap();}
   let mut events=Events::new(root).unwrap();assert!(!events.changed().unwrap());
-  for name in ["data.json","data.jsonc","compute.rs","api.bindings.lock"] {fs::write(root.join(name),"{\"value\":1}").unwrap();changed(&mut events);events.refresh(root).unwrap();}
+  for name in ["data.json","data.jsonc","compute.rs","api.bindings.lock","prose.txt"] {fs::write(root.join(name),"{\"value\":1}").unwrap();changed(&mut events);events.refresh(root).unwrap();}
  }
  #[test]
  fn native_events_cover_atomic_saves_new_directories_and_idle() {

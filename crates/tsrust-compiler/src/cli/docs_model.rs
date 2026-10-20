@@ -1,11 +1,13 @@
-//! Small checked loaders and page-sized data factories; no escaped catalog JSON program.
+//! Small typed loaders and readable JSON text assets; payloads are not record-literal programs.
 use std::collections::BTreeMap;
 use tsrust_compiler::documentation::{self as docs,MODEL_SOURCE as MODEL};
 use serde_json::json;
 pub(super) struct Publication {pub files:BTreeMap<String,String>}
 fn data(files:&mut BTreeMap<String,String>,path:String,ty:&str,value:impl serde::Serialize)->Result<(),String>{
  let literal=serde_json::to_string_pretty(&value).map_err(|e|e.to_string())?;
- let source=format!("// Generated documentation data. Edit the declared source instead.\nimport {{{ty}}} from '../model';\nexport function load():{ty}{{return {literal};}}\n");
+ let payload=format!("{}.json.txt",path.trim_end_matches(".tsr"));let filename=payload.rsplit('/').next().unwrap();
+ let source=format!("// Generated typed loader. Readable JSON text lives beside this module.\nimport {{{}}} from '../model';\nimport content from './{filename}';\nexport function load():{ty}{{return JSON.parse<{ty}>(content);}}\n",ty.trim_end_matches("[]"));
+ files.insert(payload,literal);
  files.insert(path,tsrust_compiler::format(&source).map_err(|e|e.message)?);Ok(())
 }
 fn belongs(page:&docs::Page,entry:&docs::ApiDefinition)->bool {
@@ -44,8 +46,8 @@ pub(super) fn module(catalog:&docs::Catalog)->Result<Publication,String>{
  for (i,entry) in catalog.api.iter().enumerate(){data(&mut files,format!("api/declaration-{i}.tsr"),"DocApi",entry)?;source.push_str(&format!("import {{load as Api{i}}} from './api/declaration-{i}';\n"));all_api.push(format!("Api{i}()"));}
  // These data contain only strings and scalars. They never instantiate a component.
  for (name,ty,value) in [("navigation","DocNavigation[]",json!(navigation)),("search","DocSearchEntry[]",json!(search))]{
-  let element=ty.trim_end_matches("[]");let literal=serde_json::to_string_pretty(&value).map_err(|e|e.to_string())?;
-  files.insert(format!("{name}.tsr"),tsrust_compiler::format(&format!("import {{{element}}} from './model';\nexport function load():{ty}{{return {literal};}}" )).map_err(|e|e.message)?);
+  data(&mut files,format!("data/{name}.tsr"),ty,value)?;
+  files.insert(format!("{name}.tsr"),tsrust_compiler::format(&format!("import {{{element}}} from './model';import {{load as data}} from './data/{name}';export function load():{ty}{{return data();}}",element=ty.trim_end_matches("[]"))).map_err(|e|e.message)?);
   source.push_str(&format!("import {{load as {}Data}} from './{name}';\n",if name=="navigation"{"Navigation"}else{"Search"}));
  }
  source.push_str(&format!("export function pageId(route:ReadOnly<string>):string{{{page_ids}throw 'Unknown documentation route';}}\nexport function loadNavigation():DocNavigation[]{{return NavigationData();}}\nexport function loadSearch():DocSearchEntry[]{{return SearchData();}}\nexport function loadExample(id:ReadOnly<string>):DocExample{{{example_loaders}throw 'Unknown documentation example';}}\nexport function loadPage(route:ReadOnly<string>):DocCatalog{{{page_loaders}throw 'Unknown documentation route';}}\n/** Explicit full snapshot for tooling; application routes use loadPage instead. */\nexport function loadCatalog():DocCatalog{{return {{schemaVersion:2,pages:[{}],examples:[{}],api:[{}],library:LibraryData()}};}}\nexport function renderExample(id:ReadOnly<string>):{}{{{registry}throw 'Unknown documentation example';}}\n",all_pages.join(","),all_examples.join(","),all_api.join(","),if components{"Node|null"}else{"null"}));
