@@ -196,7 +196,7 @@ Ownership: consumes the callback and drops it before returning; the message is b
 */
 export function throws(callback:Once<Function<void>>,message:string="Expected function to throw"):void {
     let didThrow=false;
-    try {callback();} catch(error) {didThrow=true;}
+    try {callback();} catch {didThrow=true;}
     checkAssertion(didThrow,message);
 }
 

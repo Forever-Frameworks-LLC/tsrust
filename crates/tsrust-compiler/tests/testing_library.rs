@@ -787,9 +787,10 @@ test('typed failure', (): void => {
 #[test]
 fn throws_invokes_once_reports_normal_return_and_releases_owned_resources(){
  let source=include_str!("fixtures/testing-throws/assertions.tsr");
- support::execute(source,"throws passed\n",None);
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+ let output=support::run(support::cli().arg("run").arg(&path),60);support::success(&output);assert_eq!(output.stdout,b"throws passed\n");
  for source in ["import {throws} from 'std:testing';function main(){throws((value:int)=>{});}","import {throws} from 'std:testing';function main(){const action=()=>{};throws(action);action();}"]{
-  assert!(tsrust_compiler::check(&support::format_round_trip(source)).is_err(),"{source}");
+  let path=directory.source(&support::format_round_trip(source));let output=support::run(support::cli().arg("check").arg(path),10);assert!(!output.status.success(),"{source}");
  }
 }
 
@@ -797,5 +798,6 @@ fn throws_invokes_once_reports_normal_return_and_releases_owned_resources(){
 fn documented_throw_assertion_example_runs_formatted(){
  let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
  let example=&catalog["std:testing"].as_array().unwrap().iter().find(|entry|entry["name"]=="throws").unwrap()["examples"][0];
- support::execute(example["source"].as_str().unwrap(),example["output"].as_str().unwrap(),None);
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(example["source"].as_str().unwrap()));
+ let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);assert_eq!(String::from_utf8(output.stdout).unwrap(),example["output"].as_str().unwrap());
 }
