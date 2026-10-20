@@ -1654,7 +1654,7 @@ mod navigation_semantic_tests {
   let mut root=Node::view(vec![crate::Child::Node(trigger),crate::Child::Node(panel)],String::new()).unwrap();root.ensure_identities();let trigger=root.children[0].identity.get();let panel=root.children[1].identity.get();let mut painter=Painter::new();
   for (is_open,is_disabled) in [(false,false),(true,false),(true,true),(false,false)]{
    open.set(is_open).unwrap();disabled.set(is_disabled).unwrap();root.refresh().unwrap();let (_,tree)=painter.scene(&root,400.,1.,None).unwrap();let node=&tree.nodes.iter().find(|(id,_)|id.0==trigger).unwrap().1;
-   assert_eq!(node.is_expanded(),Some(is_open));assert_eq!(node.controls(),if is_open{&[accesskit::NodeId(panel)][..]}else{&[]});assert_eq!(node.supports_action(accesskit::Action::Expand),!is_open&&!is_disabled);assert_eq!(node.supports_action(accesskit::Action::Collapse),is_open&&!is_disabled);assert_eq!(node.supports_action(accesskit::Action::Click),!is_disabled);assert_eq!(root.children[1].children[0].text,"Draft");
+   assert_eq!(node.is_expanded(),Some(is_open));let controlled=if is_open{vec![accesskit::NodeId(panel)]}else{vec![]};assert_eq!(node.controls(),controlled.as_slice());assert_eq!(node.supports_action(accesskit::Action::Expand),!is_open&&!is_disabled);assert_eq!(node.supports_action(accesskit::Action::Collapse),is_open&&!is_disabled);assert_eq!(node.supports_action(accesskit::Action::Click),!is_disabled);assert_eq!(root.children[1].children[0].text,"Draft");
   }
  }
 }

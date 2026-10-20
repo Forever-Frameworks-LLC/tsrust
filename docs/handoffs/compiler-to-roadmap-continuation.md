@@ -1,6 +1,28 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
-Current section — 2026-10-20: reactive accessibility passes focused compiler,
+Current section — 2026-10-20: disclosure semantics and runtime-local instance IDs
+pass focused paired acceptance. See [acceptance](../milestones/ui-disclosure-semantics.md).
+Live Button expanded/controls metadata forwards through local components. Native
+accessibility actions use current state, resolve visible targets and guard repeated,
+disabled and hidden requests. useId has checked exhaustion and native-thread
+uniqueness. The two retained panels pass actual dev-browser keyboard, draft,
+identity, accessibility, theme and responsive checks. Existing native window/input
+startup evidence is reused; changed native scene/action behavior is checked directly.
+
+CLI and installed/active LSP include `d0712025` (API 9); test/signature witnesses
+are `48988790`. Workspace settings bytes/time are exact. Content reports 166 pages,
+27 checked examples and 972 declarations. Port 4317 serves the actual dev watcher;
+current gallery is `/docs/ui/foundations/disclosure-semantics`. SQLite verifies
+29 closed records and cleanup removes 10489378 bytes. Preview build latency
+(117553 ms) and cold editor scheduling remain unresolved.
+
+Continue [Empty's six-export section](../plans/ui-empty-section.md), including its
+required paired styles. Scoped context, event/ref merging, focus scopes,
+transitions and complete compound controls remain required. Expanded metadata
+alone is not a completed Collapsible. Continue remaining components/charts/themes/
+blocks; reuse accepted evidence and batch checks. No further go-ahead is needed.
+
+Accepted reactive accessibility — 2026-10-20: reactive accessibility passes focused compiler,
 native model/accessibility, generated-native, installed-LSP and actual dev-browser
 acceptance. See [acceptance](../milestones/ui-reactive-semantics.md). Names,
 descriptions, hidden and invalid states refresh without replacing controls. SVG
