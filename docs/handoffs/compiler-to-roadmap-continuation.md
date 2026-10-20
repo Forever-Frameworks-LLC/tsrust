@@ -1,14 +1,23 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
-Current section — 2026-10-20: Empty's six exports and paired typography pass
-[focused acceptance](../milestones/ui-empty-and-typography.md) through `d72c8f6f`.
-Coverage remains partial: Text slots deliberately expose TextProps, not full DOM
-replacement/event/ref APIs. Actual pinned shadcn contracts remain the baseline.
-The owner reports stale dev-console exports, multiple selected navigation entries
-and cramped responsive docs. Repair these together, with paired responsive
-visibility and actual browser/layout checks, before continuing compound components.
-Keep the live preview and editor current. Reuse accepted evidence; no new go-ahead
-is needed. Workspace LSP scan cost and initial web startup remain open.
+Current section — 2026-10-20: documentation navigation passes
+[focused paired acceptance](../milestones/ui-docs-responsive-navigation.md).
+Exactly one page is painted selected, section highlighting is separate, and small
+screens use Browse docs with a full-width article. Shared responsive hidden display
+preserves ownership while removing layout/input/accessibility. The actual browser
+passes five viewport widths, visible clicks, both palettes and console/mount checks.
+Dev polling/assets distinguish server restarts. CLI and active editor include the
+`bf9e9c92` contract. Landing section functions repair a measured Wasm stack trap;
+no stack limit was raised. Port 4317 remains the actual dev watcher.
+
+Empty's six exports and paired typography pass
+[acceptance](../milestones/ui-empty-and-typography.md) through `d72c8f6f`.
+Coverage remains partial: Text slots expose TextProps, not full DOM replacement/
+event/ref APIs. Continue actual pinned shadcn contracts, scoped context, event/ref
+composition and focus scopes before dependent compound controls. Keep remaining
+components/charts/themes/blocks paired. Workspace-wide LSP scan cost, initial web
+loading, general compiler temporary-frame growth and dev latency remain open.
+Reuse accepted evidence and batch targeted checks; no new go-ahead is needed.
 
 Previous accepted section — 2026-10-20: disclosure semantics and runtime-local instance IDs
 pass focused paired acceptance. See [acceptance](../milestones/ui-disclosure-semantics.md).

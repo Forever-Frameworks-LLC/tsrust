@@ -9,14 +9,16 @@ export async function observeResponsiveNavigation({evaluate,call,errors,site}) {
   const point=await evaluate(`(()=>{const n=document.querySelector(${JSON.stringify(selector)});n.scrollIntoView({block:'nearest'});const r=n.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()`);
   await call('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...point});await call('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...point});await frame();
  };
+ const status=await evaluate(`fetch('/__tsrust_dev').then(response=>response.json())`);assert.equal(status.error,'');assert.equal(typeof status.session,'string');assert(status.session.length>0);
  const origin=await evaluate('location.origin');
  await call('Page.navigate',{url:origin+'/docs/getting-started/project-structure'});
  for(let i=0;i<200&&!await evaluate(`Boolean(window.ui)&&!!document.querySelector('#sidebar')`);i++)await new Promise(r=>setTimeout(r,50));
  await call('Emulation.setDeviceMetricsOverride',{width:1440,height:900,deviceScaleFactor:1,mobile:false});await frame();
- const selection=await evaluate(`Array.from(document.querySelectorAll('#sidebar a')).filter(a=>getComputedStyle(a).backgroundColor!=='rgba(0, 0, 0, 0)').map(a=>({href:a.getAttribute('href'),color:getComputedStyle(a).color}))`);
+ await evaluate(`window.hasPaintedBackground=node=>{const canvas=document.createElement('canvas');canvas.width=canvas.height=1;const context=canvas.getContext('2d');context.fillStyle=getComputedStyle(node).backgroundColor;context.fillRect(0,0,1,1);return context.getImageData(0,0,1,1).data[3]>0;}`);
+ const selection=await evaluate(`Array.from(document.querySelectorAll('#navigation-pages a')).filter(a=>window.hasPaintedBackground(a)).map(a=>({href:a.getAttribute('href'),color:getComputedStyle(a).color}))`);
  assert.deepEqual(selection.map(x=>x.href),['/docs/getting-started/project-structure']);
  assert(selection[0].color==='rgb(169, 56, 25)');
- assert.equal(await evaluate(`Array.from(document.querySelectorAll('nav[aria-label="Documentation sections"] a')).filter(a=>getComputedStyle(a).backgroundColor!=='rgba(0, 0, 0, 0)').map(a=>a.textContent).join(',')`),'Getting started');
+ assert.equal(await evaluate(`Array.from(document.querySelectorAll('nav[aria-label="Documentation sections"] a')).filter(a=>window.hasPaintedBackground(a)).map(a=>a.textContent).join(',')`),'Getting started');
  for(const width of [390,768,1023,1024,1440]) {
   await call('Emulation.setDeviceMetricsOverride',{width,height:800,deviceScaleFactor:1,mobile:false});await frame();
   assert(await evaluate('document.documentElement.scrollWidth<=innerWidth'),`Viewport overflow ${width}`);
@@ -36,7 +38,7 @@ export async function observeResponsiveNavigation({evaluate,call,errors,site}) {
  await evaluate('history.back()');await frame();
  await click('button[aria-label="Toggle light and dark theme"]');
  await call('Emulation.setDeviceMetricsOverride',{width:1440,height:900,deviceScaleFactor:1,mobile:false});await frame();
- const dark=await evaluate(`Array.from(document.querySelectorAll('#sidebar a')).filter(a=>getComputedStyle(a).backgroundColor!=='rgba(0, 0, 0, 0)').map(a=>({href:a.getAttribute('href'),color:getComputedStyle(a).color}))`);
+ const dark=await evaluate(`Array.from(document.querySelectorAll('#navigation-pages a')).filter(a=>window.hasPaintedBackground(a)).map(a=>({href:a.getAttribute('href'),color:getComputedStyle(a).color}))`);
  assert.deepEqual(dark.map(x=>x.href),['/docs/getting-started/project-structure']);assert.equal(dark[0].color,'rgb(255, 173, 138)');
  assert.deepEqual(await evaluate('window.ui.mounts.map(m=>m.error())'),[null]);assert.deepEqual(errors,[]);
  console.log(JSON.stringify({case:'docs-responsive-navigation',status:'pass',widths:[390,768,1023,1024,1440],checks:['exact sidebar selection','separate active section','light/dark selection','visible mouse navigation','collapsed mobile controls','mobile disclosure and auto-close','full-width article','resize restoration','no viewport overflow','no mount errors'],timed:false}));

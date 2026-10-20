@@ -170,13 +170,16 @@ export function Page(): Node {
       }
 
       const key = '|' + target + '|';
-      entries.push(<Link href={clone(target)} className={'text-sm py-2 px-3 rounded hover:bg-muted focus:ring ' + (routePath(path.get()) === target ? 'bg-primary/10 text-primary font-semibold' : 'bg-transparent')}>{clone(page.title)}</Link>);
-      searchNavigation.push(<View hidden={!hits.get().includes(key)}><Link href={clone(target)} className={'text-sm py-2 px-3 rounded hover:bg-muted focus:ring ' + (routePath(path.get()) === target ? 'bg-primary/10 text-primary font-semibold' : 'bg-transparent')}>{clone(page.title)}</Link></View>);
+      const entryTarget = clone(target);
+      const searchTarget = clone(target);
+      entries.push(<Link href={clone(target)} className={'text-sm py-2 px-3 rounded hover:bg-muted focus:ring ' + (routePath(path.get()) === entryTarget ? 'bg-primary/10 text-primary font-semibold' : 'bg-transparent')}>{clone(page.title)}</Link>);
+      searchNavigation.push(<View hidden={!hits.get().includes(key)}><Link href={clone(target)} className={'text-sm py-2 px-3 rounded hover:bg-muted focus:ring ' + (routePath(path.get()) === searchTarget ? 'bg-primary/10 text-primary font-semibold' : 'bg-transparent')}>{clone(page.title)}</Link></View>);
     }
 
     const sectionGroup = clone(group);
+    const mobileSectionGroup = clone(group);
     sections.push(<Link href={clone(first)} className={'shrink-0 text-sm px-3 py-3 rounded hover:bg-muted focus:ring ' + (activeGroup(path.get()) === sectionGroup ? 'text-primary bg-primary/10' : 'bg-transparent')}>{groupLabel(group)}</Link>);
-    mobileSections.push(<Link href={first} className={'text-xs px-3 py-2 rounded hover:bg-muted focus:ring ' + (activeGroup(path.get()) === sectionGroup ? 'text-primary bg-primary/10' : 'bg-transparent')}>{groupLabel(group)}</Link>);
+    mobileSections.push(<Link href={first} className={'text-xs px-3 py-2 rounded hover:bg-muted focus:ring ' + (activeGroup(path.get()) === mobileSectionGroup ? 'text-primary bg-primary/10' : 'bg-transparent')}>{groupLabel(group)}</Link>);
     const selectedGroup = clone(group);
     const label = groupLabel(group);
     const paneLabel = clone(label) + ' pages';

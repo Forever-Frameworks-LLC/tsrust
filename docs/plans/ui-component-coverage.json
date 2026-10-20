@@ -432,7 +432,7 @@
         "Variants, sizes and caller customization",
         "Keyboard, accessibility and light/dark states"
       ],
-      "notes": "Six editable exports implemented for compiler API 10; focused paired acceptance is in progress. Containers use View replacement composition; title/description use flowing Text. Live/nullable media variants, caller classes, scoped generic heading fonts, typography, dashed borders and bounded SVG/direct-Link selectors are included. DOM events/refs and text-slot replacement callbacks remain unsupported."
+      "notes": "Six editable exports for compiler API 10 pass focused paired acceptance: docs/milestones/ui-empty-and-typography.md. Containers use View replacement composition; title/description use flowing Text. Live/nullable media variants, caller classes, scoped generic heading fonts, typography, dashed borders and bounded SVG/direct-Link selectors are included. DOM events/refs and text-slot replacement callbacks remain unsupported."
     },
     {
       "name": "field",
