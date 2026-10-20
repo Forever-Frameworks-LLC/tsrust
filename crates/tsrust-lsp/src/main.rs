@@ -34,6 +34,7 @@ enum Job {
 enum Checked {
     Document(DocumentChecked),
     Workspace(tsrust_lsp::workspace_scan::Checked),
+    WorkspaceInterrupted,
 }
 /// A request that waits for the analysis of the text it was asked about.
 struct Deferred {
@@ -96,6 +97,8 @@ fn run(
 ) -> Result<i32, String> {
     let (jobs, work) = bounded::<Job>(1);
     let (completed, results) = bounded::<Checked>(1);
+    let scan_interrupt=std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let worker_interrupt=std::sync::Arc::clone(&scan_interrupt);
     // Analysis is synchronous. Dropping this thread's handle permits exit without
     // waiting for an obsolete check. Cooperative interruption is compiler task C3.
     // Debug compiler frames for nested native calls exceed the default worker
@@ -105,9 +108,13 @@ fn run(
         while let Ok(job) = work.recv() {
             let job = match job {
                 Job::Workspace(job) => {
-                    let result=catch_unwind(AssertUnwindSafe(||scan_cache.check(&job)))
+                    let result=catch_unwind(AssertUnwindSafe(||scan_cache.check_cancellable(&job,||worker_interrupt.load(std::sync::atomic::Ordering::Relaxed))))
                         .unwrap_or_else(|_|Err("workspace analysis panicked".into()));
-                    if completed.send(Checked::Workspace(tsrust_lsp::workspace_scan::Checked {job,result})).is_err() {break;}
+                    let checked=match result {
+                        Ok(None)=>Checked::WorkspaceInterrupted,
+                        result=>Checked::Workspace(tsrust_lsp::workspace_scan::Checked{job,result:result.map(|buckets|buckets.expect("completed scan"))}),
+                    };
+                    if completed.send(checked).is_err() {break;}
                     continue;
                 }
                 Job::Document(job) => job,
@@ -172,6 +179,9 @@ fn run(
     let mut shutdown = false;
     let mut debounce = Duration::from_millis(200);
     loop {
+        if busy && in_flight.is_none() && (shutdown || documents.pending_count()!=0 || scanner.due_in(Instant::now()).is_some()) {
+            scan_interrupt.store(true,std::sync::atomic::Ordering::Relaxed);
+        }
         if ready
             && !shutdown
             && !busy
@@ -186,8 +196,9 @@ fn run(
             .map_err(|_| "analysis worker stopped")?;
             busy = true;
         }
-        if ready && !shutdown && !busy
+        if ready && !shutdown && !busy && documents.pending_count()==0
             && let Some(job)=scanner.next(Instant::now(),projects.workspace.snapshot()) {
+            scan_interrupt.store(false,std::sync::atomic::Ordering::Relaxed);
             jobs.send(Job::Workspace(job)).map_err(|_|"analysis worker stopped")?;
             busy=true;
         }
@@ -359,6 +370,10 @@ fn run(
                 busy = false;
                 in_flight = None;
                 let checked = match result.map_err(|_| "analysis worker stopped")? {
+                    Checked::WorkspaceInterrupted=>{
+                        if !shutdown{scanner.dirty(Instant::now(),debounce);}
+                        continue;
+                    }
                     Checked::Workspace(checked) => {
                         if !shutdown {
                             match scanner.accept(checked,&projects,Instant::now(),debounce) {

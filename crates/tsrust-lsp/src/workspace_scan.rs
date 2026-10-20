@@ -82,6 +82,10 @@ impl Cache {
     /// Number of entry analyses performed by the most recent scan.
     pub fn checked_entries(&self)->usize {self.checked}
     pub fn check(&mut self, job: &Job) -> Result<Buckets,String> {
+        self.check_cancellable(job,||false).map(|result|result.expect("uninterrupted scan"))
+    }
+    /// Completed entries stay reusable when foreground editor work interrupts a scan.
+    pub fn check_cancellable(&mut self, job:&Job,mut interrupted:impl FnMut()->bool)->Result<Option<Buckets>,String> {
     self.checked=0;
     let roots=job.roots.iter().filter(|root|root.exists()).cloned().collect::<Vec<_>>();
     let mut files=tsrust_compiler::source_discovery::discover(&roots)?.into_iter()
@@ -93,6 +97,7 @@ impl Cache {
     self.entries.retain(|id,_|files.contains(id));
     let mut errors=Vec::new();
     for file in files {
+        if interrupted(){return Ok(None);}
         if !self.entries.get(&file).is_some_and(|entry|job.input.can_reuse(&entry.input)) {
             let input=job.input.fresh();
             let errors=input.check_with_diagnostics(&file).err().unwrap_or_default();
@@ -103,12 +108,13 @@ impl Cache {
         job.input.absorb(&entry.input);
         errors.extend(entry.errors.iter().cloned());
     }
+    if interrupted(){return Ok(None);}
     let mut buckets=convert_all(&job.input,&errors)?;
     for diagnostics in buckets.values_mut() {
         diagnostics.sort_by_key(|error|(error.range.start.line,error.range.start.character,error.range.end.line,error.range.end.character));
         diagnostics.dedup();
     }
-    Ok(buckets)
+    Ok(Some(buckets))
 }
 
 }

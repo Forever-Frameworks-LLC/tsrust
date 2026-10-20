@@ -126,3 +126,17 @@ fn cached_missing_imports_and_disk_edits_are_invalidated_without_watch_events() 
     assert!(scanner.accept(Checked{job,result},&projects,now,Duration::ZERO).unwrap().is_empty());
     assert!(scanner.due_in(now).is_some());
 }
+
+#[test]
+fn interrupted_scan_resumes_completed_entries_and_keeps_stale_input_guards() {
+    use tsrust_lsp::workspace_scan::Cache;
+    let dir=Directory::new();let projects=ProjectSession::default();let mut scanner=Scanner::default();let mut cache=Cache::default();let now=Instant::now();
+    for name in ["a","b","c"] {std::fs::write(dir.0.join(format!("{name}.tsr")),format!("function {name}(){{const value:int=\"bad\";}}")).unwrap();}
+    scanner.initialize(&json!({"rootUri":dir.uri("")}),now);
+    let job=scanner.next(now,projects.workspace.snapshot()).unwrap();let mut visits=0;
+    assert!(cache.check_cancellable(&job,||{visits+=1;visits>1}).unwrap().is_none());assert_eq!(cache.checked_entries(),1);
+    scanner.dirty(now,Duration::ZERO);let job=scanner.next(now,projects.workspace.snapshot()).unwrap();let result=cache.check(&job);assert_eq!(cache.checked_entries(),2);
+    assert_eq!(result.as_ref().unwrap().values().map(Vec::len).sum::<usize>(),3);
+    std::fs::write(dir.0.join("a.tsr"),"function a(){}").unwrap();assert!(scanner.accept(Checked{job,result},&projects,now,Duration::ZERO).unwrap().is_empty());
+    let job=scanner.next(now,projects.workspace.snapshot()).unwrap();let result=cache.check(&job).unwrap();assert_eq!(cache.checked_entries(),1);assert_eq!(result.values().map(Vec::len).sum::<usize>(),2);
+}

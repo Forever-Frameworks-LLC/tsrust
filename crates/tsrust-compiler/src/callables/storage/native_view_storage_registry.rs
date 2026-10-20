@@ -2,6 +2,10 @@
 use super::*;
 
 impl Registry {
+    pub(crate) fn scoped_native_families(&self)->impl Iterator<Item=(usize,&crate::native_view_callable_storage::Family)> {
+        self.scoped_native.iter().filter_map(|&id|self.scoped_native_family(id).map(|family|(id,family)))
+    }
+
     pub(crate) fn scoped_native_family(&self,family:usize)->Option<&crate::native_view_callable_storage::Family> {
         if !self.scoped_native.contains(&family) {return None;}
         self.native_views.as_ref()?.get(family)

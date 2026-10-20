@@ -154,6 +154,7 @@ impl WorkspaceSnapshot {
     }
     /// Carry all reused dependencies into final stale-input validation and ranges.
     pub(crate) fn absorb(&self, input:&Self) {
+        if std::ptr::eq(self,input){return;}
         // Separate entries may observe an edit at different times. Never publish
         // a combined result whose dependency versions disagree.
         if !input.consistent.get()
@@ -161,6 +162,13 @@ impl WorkspaceSnapshot {
             || input.configs.borrow().iter().any(|(id,text)|self.configs.borrow().get(id).is_some_and(|old|old!=text))
             || input.disk.borrow().iter().any(|(id,stamp)|self.disk.borrow().get(id).is_some_and(|old|old!=stamp)) {
             self.consistent.set(false);
+        }
+        // Keep independent version observations, but retain identical dependency text once.
+        {
+            let existing=self.read.borrow();
+            for (id,text) in input.read.borrow_mut().iter_mut() {
+                if let Some(old)=existing.get(id).filter(|old|old.as_str()==text.as_str()) {*text=Arc::clone(old);}
+            }
         }
         self.read.borrow_mut().extend(input.read.borrow().clone());
         self.configs.borrow_mut().extend(input.configs.borrow().clone());
@@ -367,6 +375,21 @@ mod scan_input_tests {
         workspace.change(&component,2,"export function Label(props:int):int{return props;}".into());
         assert!(!workspace.current(&snapshot));
         assert!(workspace.snapshot().check(&entry).is_err());
+    }
+
+    #[test]
+    fn latency_cache_shares_equal_dependency_text_without_sharing_version_observations() {
+        let id=SourceId("/tmp/tsrust-shared-source.tsr".into());let mut workspace=Workspace::default();
+        workspace.open(id.clone(),1,"function value(){}".into());
+        let first=workspace.snapshot();first.read(&id).unwrap();
+        workspace.change(&id,2,"function value(){}".into());
+        let second=workspace.snapshot();second.read(&id).unwrap();
+        assert!(!Arc::ptr_eq(&first.sources()[&id],&second.sources()[&id]));
+        let combined=workspace.snapshot();combined.absorb(&first);combined.absorb(&second);
+        assert!(Arc::ptr_eq(&first.sources()[&id],&second.sources()[&id]));
+        assert!(!workspace.current(&first));assert!(workspace.current(&second));
+        workspace.change(&id,3,"function changed(){}".into());let changed=workspace.snapshot();changed.read(&id).unwrap();
+        combined.absorb(&changed);assert!(!workspace.current(&combined));assert!(!Arc::ptr_eq(&first.sources()[&id],&changed.sources()[&id]));
     }
 
 }

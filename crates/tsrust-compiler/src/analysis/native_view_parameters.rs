@@ -38,7 +38,8 @@ impl Analyzer {
     /// Reject cycles without a planned finite recursive lifetime boundary.
     pub(super) fn reject_recursive_native_view_storage(&self, ty: Type, span: Span) -> Result<(), Diagnostic> {
         if !self.native_borrow_types || !self.native_shape_contains_view(ty) {return Ok(());}
-        let recursive = crate::recursive_view_shapes::Index::with_storage(&self.program.records, &|id| self.unions.members(id), &self.callables.storage);
+        let shapes=self.native_recursive_shapes();
+        let recursive=&shapes.recursive;
         let mut pending=vec![(ty,Vec::<Type>::new())];
         while let Some((ty,mut ancestors))=pending.pop() {
             if matches!(ty, Type::Record(id) if recursive.access(id).is_some()) { continue; }
@@ -55,7 +56,8 @@ impl Analyzer {
     pub(super) fn seed_native_parameters(&self, context: &mut Context) -> Result<(), Diagnostic> {
         if !self.native_borrow_types {return Ok(());}
         self.refresh_native_recursive_shapes(context);
-        let recursive = crate::recursive_view_shapes::Index::with_storage(&self.program.records, &|id| self.unions.members(id), &self.callables.storage);
+        let shapes=std::rc::Rc::clone(context.native_recursive_shapes.as_ref().unwrap());
+        let recursive=&shapes.recursive;
         for root in 0..context.bindings.len() {
             let binding=&context.bindings[root];
             if !binding.parameter || !self.native_shape_contains_view(binding.ty) {continue;}

@@ -108,6 +108,11 @@ impl UnionArena {
         self.0.borrow().types[id.index()].members.clone()
     }
 
+    pub(crate) fn matches_members(&self, snapshot: &[UnionType]) -> bool {
+        let state=self.0.borrow();
+        state.types.len()==snapshot.len() && state.types.iter().zip(snapshot).all(|(current,old)|current.members==old.members)
+    }
+
     pub fn snapshot(&self) -> Vec<UnionType> {
         self.0.borrow().types.clone()
     }

@@ -101,10 +101,12 @@ mod platform {
         if &watcher.snapshot(root)!=expected {return Ok(None);}
         if verbose {eprintln!("[build] syntax reused={} parsed={} headers reused={} parsed={}",frontend.stats.reused,frontend.stats.parsed,frontend.stats.headers_reused,frontend.stats.headers_parsed);}
         if let Some(web)=web {
+            let web_started=Instant::now();
             let built=web.build(&frontend.rust,root,release,|command|{
                 let mut process=Process::spawn(command)?;
                 match wait_for_build(&mut process,root,expected,watcher)? {Some(status) if status.success()=>Ok(true),Some(status)=>Err(format!("Web tool failed ({status})")),None=>Ok(false)}
             })?;
+            if verbose {eprintln!("[build] check={:.1}ms emit={:.1}ms web={:.1}ms",frontend.check.as_secs_f64()*1000.0,frontend.emit.as_secs_f64()*1000.0,web_started.elapsed().as_secs_f64()*1000.0);}
             return Ok(built.then_some(Artifact::Web));
         }
         let files=TempDirectory::new().map_err(|e|e.to_string())?;

@@ -35,3 +35,15 @@ fn background_scan_checks_nested_http_before_publishing_closed_file_errors(){
  assert!(!diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
  session.request("tsrust/counters",serde_json::json!({}));
 }
+
+#[test]
+fn foreground_imported_members_remain_current_during_a_workspace_scan(){
+ let workload=include_str!("../../../examples/http/loopback.tsr");
+ let names=(0..24).map(|index|format!("background-{index:02}.tsr")).collect::<Vec<_>>();
+ let mut files=names.iter().map(|name|(name.as_str(),workload)).collect::<Vec<_>>();files.push(("values.tsr","export interface Value { title:string; }"));
+ let mut session=Session::start(&files);std::thread::sleep(std::time::Duration::from_millis(50));
+ let source="import {Value} from './values.tsr';function read(value:ReadOnly<Value>){console.log(value.title);}";
+ session.open("foreground.tsr",source);let offset=source.find("value.title").unwrap()+"value.".len();
+ let hover=session.hover("foreground.tsr",source,offset+1).unwrap_or_default();assert!(hover.contains("string"),"{hover}");
+ let counters=session.request("tsrust/counters",serde_json::Value::Null);assert_eq!(counters["staleAnswers"],0,"{counters}");
+}
