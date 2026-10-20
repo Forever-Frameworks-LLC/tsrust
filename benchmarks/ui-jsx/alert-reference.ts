@@ -1,4 +1,5 @@
 // Independent CSS box-model oracle: a 256x192 border-box, 2px borders and 16px padding.
+declare const console: {log(value: string): void};
 const border = 2;
 const padding = 16;
 const width = 256;

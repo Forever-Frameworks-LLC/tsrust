@@ -1,5 +1,5 @@
 //! The event loop owns the surface, renderer and window. No global window registry.
-use crate::{Kind, Node, style::{Utility,State}};
+use crate::{Kind, Node, style::{Utility,State,Length}};
 use parley::{Alignment, AlignmentOptions, FontContext, FontWeight, Layout, LayoutContext, PositionedLayoutItem, StyleProperty};
 use std::sync::{Arc, Mutex};
 use taffy::prelude::*;
@@ -143,6 +143,7 @@ impl Painter {
         match node.tag(){"strong"=>inherited.weight=700.,"em"=>inherited.italic=true,"del"=>inherited.strike=true,"a" if ancestors.iter().any(|node|node.kind==Kind::Text)=>inherited.underline=true,_=>{}}
         let mut style = Style {
             flex_direction: FlexDirection::Column,
+            position: taffy::Position::Relative,
             ..Style::default()
         };
         if let Some(field)=&node.editable {
