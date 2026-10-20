@@ -301,6 +301,40 @@
           "generatedSha256": "74278d8c0057d1c6f84934298dc622ef95caeca2ba924e07a5455bc894eb424e"
         }
       ]
+    },
+    {
+      "identity": {
+        "name": "alert",
+        "version": "2.0.0",
+        "variant": "default"
+      },
+      "destination": "src/components/ui",
+      "catalog": "bundled-2026-10-20",
+      "payloadSha256": "0c71312488242ccc3742ce2c6f55c25bffc683e189e48cf35569458a14e7eff5",
+      "compilerSha256": "f1fea397fcc5071be1c227866716668e6901c00f3d771e831c513281e870ee52",
+      "compilerVersion": "0.1.0",
+      "compilerApi": 4,
+      "runtimeAbi": "ui-application-1",
+      "rust": "1.96.1",
+      "license": "MIT",
+      "attribution": {
+        "path": "attributions/shadcn-MIT.txt",
+        "sha256": "1564074e13439397221ffd522e2e504d56561994a23d371aa5e3ad43e4f5423f"
+      },
+      "dependencies": [
+        {
+          "name": "tokens",
+          "version": "1.0.0",
+          "variant": "default"
+        }
+      ],
+      "files": [
+        {
+          "path": "src/components/ui/alert-v2.tsrx",
+          "templateSha256": "4fd6357123cf87deb8b1a9050c07ece4ed78c2f56a46ed3b259dd4c752720a1b",
+          "generatedSha256": "51c7fdad7efa76dca5242dfe6b369b348b15b12ac7d2948231e7db8c7a9f9191"
+        }
+      ]
     }
   ]
 }

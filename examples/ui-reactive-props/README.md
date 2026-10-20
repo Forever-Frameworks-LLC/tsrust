@@ -2,7 +2,7 @@
 
 Run `tsrust dev --target web` or `tsrust dev --target native` from this project.
 The same Page uses exact derived values, a typed live custom prop, dynamic styles
-and a replacement Button that forwards its owned children and handler once.
+a locally editable Alert with live variant/title classes, and a replacement Button that forwards its owned children and handler once.
 
 `tsrust run src/inspect.tsr` checks exact integer/nullable values and initial
 composition. Browser transitions have an independent TypeScript oracle in
