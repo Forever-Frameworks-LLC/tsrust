@@ -299,3 +299,34 @@ unwraps ReadOnly only for native aliases, while schema/path_intelligence.rs owns
 record_alternatives. Determine whether ownership wrappers hide inherited record
 members in header indices, then repair the shared lookup and retain the original
 header/checked multi-file assertions. No Table source edit or rerun has occurred.
+
+## Table inherited editor help accepted
+
+Working from 5c2be5ac. Shared member expression lookup now unwraps
+ReadOnly/Mutable/Owned around known record declarations as well as native aliases;
+callable ownership wrappers remain intact. Inheritance re-expands base aliases
+after imports arrive, using the existing written_type resolver. This preserves
+fields and documentation through private/generic imported aliases such as
+ViewProps -> ViewComponentProps -> ViewRenderProps. No language semantics changed.
+
+The formatted multi-file unit passes header and checked indices, renamed generic
+alias inheritance, ReadOnly/Mutable/Owned receivers, inherited versus local docs,
+original field definition destinations, and duplicate-inherited-field rejection.
+Its first cold compiler dependency rebuild took 6m21s; a new Mutable case correctly
+rejected implicit ownership transfer. Explicit clone(mutable.value) repaired the
+witness. The final focused unit passes in 0.07s after an 11.58s affected rebuild;
+log target/table-inherited-help-resumed.log. No weakening of compiler rules.
+
+Real ui_content protocol batch: four pass, Table fails missing colSpan docs.
+After the base-alias repair, only Table was rerun and passes in 5.77s (17.89s build),
+covering documented 1-1000 hover, inherited prop completion, rowSpan rejection and
+zero stale/unknown-receiver/nonmember counters. Original four passing cases remain
+retained, including imported inheritance and current/older content components.
+Logs: target/table-editor-protocol.log and table-editor-protocol-repair.log.
+Whole-project format and format . --check pass, zero files/fingerprints changed.
+
+Next: local checkpoint and refresh installed LSP without starting an editor/server.
+Then run the pending compiler ui_content Table native/installer/documentation
+witnesses, retaining cache and Windows resource bounds. Actual browser Table
+interaction and original finite goal remain incomplete. No full compiler/LSP or
+benchmark matrix, remote CI, push, tag or release was triggered.

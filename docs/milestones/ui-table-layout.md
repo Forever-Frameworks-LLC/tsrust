@@ -67,3 +67,24 @@ from their actual source, keeps compiler-provided types, and preserves explicitl
 declared field documentation. The new regression covers multiple imports,
 generic inheritance and an explicit local override. These repairs are awaiting
 their focused acceptance; earlier passing model evidence remains retained.
+
+## Windows inherited editor help, 2026-10-26
+
+After Windows native linking checkpoint 37a48cfb, the remaining null header hover
+was traced to ownership-wrapped record receivers. Shared lookup now unwraps known
+records, preserving callable ownership. The Table-only missing documentation then
+traced to imported generic aliases in inheritance bases; the existing written-type
+resolver now re-expands those bases after imports finish. No built-in docs were
+invented and no compiler rule changed.
+
+The formatted multi-file unit passes both header and checked indices for renamed
+generic aliases, ReadOnly/Mutable/Owned receivers, original definitions and local
+versus inherited help. A separate illegal inherited redeclaration still rejects.
+The real ui_content batch retains four passing protocol cases. Its failed Table
+case passes after the alias repair, with documented colSpan range, expected
+inherited prop completion, rowSpan diagnostic and zero consistency counters.
+Concise logs are target/table-inherited-help-resumed.log,
+target/table-editor-protocol.log and target/table-editor-protocol-repair.log.
+Whole-project formatting/token guards and format-check pass unchanged. This accepts
+the focused editor repair; generated-native, installation/documentation execution
+and actual browser acceptance remain pending.

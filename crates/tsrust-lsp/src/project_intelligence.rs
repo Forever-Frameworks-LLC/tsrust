@@ -22,9 +22,9 @@ mod inherited_help_tests {
         let root = crate::project_diagnostics::canonical_path(&std::env::temp_dir().join("tsrust-inherited-help"));
         let mut workspace = crate::workspace::Workspace::default();
         let sources = [
-            ("base.tsr", "export interface Base<T>{/** Base value contract. */value:T;}"),
-            ("leaf.tsr", "import {Base} from './base';export interface Middle<T> extends Base<T>{}export interface Leaf extends Middle<string>{}export interface Override{/** Local value contract. */value:string;}"),
-            ("main.tsr", "import {Leaf,Override,Middle} from './leaf';function inspect(base:ReadOnly<Leaf>,own:ReadOnly<Override>,generic:ReadOnly<Middle<string>>){const first=base.value;const second=own.value;const third=generic.value;}function main(){}"),
+            ("base.tsr", "export interface Base<T>{/** Base value contract. */value:T;}export type Alias<T>=Base<T>;"),
+            ("leaf.tsr", "import {Alias as RenamedBase} from './base';export interface Middle<T> extends RenamedBase<T>{}export interface Leaf extends Middle<string>{}export interface Override{/** Local value contract. */value:string;}"),
+            ("main.tsr", "import {Leaf,Override,Middle} from './leaf';function inspect(base:ReadOnly<Leaf>,own:ReadOnly<Override>,generic:ReadOnly<Middle<string>>,mutable:Mutable<Leaf>,owned:Owned<Leaf>){const first=base.value;const second=own.value;const third=generic.value;const fourth=clone(mutable.value);const fifth=owned.value;}function main(){}"),
         ];
         let mut text = String::new();
         for (name, source) in sources {
@@ -37,12 +37,15 @@ mod inherited_help_tests {
         let analysis = workspace.snapshot().check_with_diagnostics(&entry).unwrap();
         let uri = file_uri(&entry).unwrap();
         for (phase, index) in [("headers", ProjectIndex::new(&analysis.graph)), ("checked", ProjectIndex::checked(&analysis))] {
-            for (needle, expected, excluded) in [("base.value", "Base value contract", "Local value contract"), ("own.value", "Local value contract", "Base value contract"), ("generic.value", "Base value contract", "Local value contract")] {
+            for (needle, expected, excluded) in [("base.value", "Base value contract", "Local value contract"), ("own.value", "Local value contract", "Base value contract"), ("generic.value", "Base value contract", "Local value contract"), ("mutable.value", "Base value contract", "Local value contract"), ("owned.value", "Base value contract", "Local value contract")] {
                 let at = text.find(needle).unwrap() + needle.find('.').unwrap() + 2;
                 let start = text[..at].rfind('\n').map_or(0, |offset| offset + 1);
                 let params = serde_json::json!({"textDocument":{"uri":uri},"position":{"line":text[..at].matches('\n').count(),"character":text[start..at].encode_utf16().count()}});
                 let result = index.request("textDocument/hover", &params, uri.as_str()).unwrap().unwrap();
                 assert!(result.to_string().contains(expected) && !result.to_string().contains(excluded), "{phase} {needle}: {result}; fields: {:?}", analysis.checked_type_facts().record_fields);
+                let definition=index.request("textDocument/definition",&params,uri.as_str()).unwrap().unwrap();
+                let target=if needle=="own.value"{"leaf.tsr"}else{"base.tsr"};
+                assert_eq!(definition["uri"],file_uri(&SourceId(root.join(target).to_str().unwrap().into())).unwrap().as_str(),"{phase} {needle}: {definition}");
             }
         }
         // Redeclaring an inherited field is a compiler rejection, not a legal
