@@ -287,3 +287,15 @@ executables/symbols after inventory, then resume the preserved inherited Table
 help failure and component acceptance. Preserve the installed compiler, retained
 native dependency cache, measurements.sqlite, owner .agents/, agent-goal.md and
 examples/windows-setup/wut/. No remote CI, push, tag or release occurred.
+
+Accepted local source checkpoint: 37a48cfb. Its four inventoried completed test
+executables/symbols were removed after exact containment and process checks:
+1,036,928,000 logical bytes. No selected test executable, Cargo, rustc or generated
+UI process remained at cleanup. Installed tools and compiled dependencies remain.
+The preserved Table witness still fails headers base.value = null. Before changing
+documentation propagation, inspect member receiver spelling/resolution:
+intelligence.rs resolve_token compares the raw receiver owner, expression_type
+unwraps ReadOnly only for native aliases, while schema/path_intelligence.rs owns
+record_alternatives. Determine whether ownership wrappers hide inherited record
+members in header indices, then repair the shared lookup and retain the original
+header/checked multi-file assertions. No Table source edit or rerun has occurred.
