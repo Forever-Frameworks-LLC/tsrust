@@ -62,3 +62,9 @@ Current logs are concise gate evidence under target/windows-cli-*.log; they are
 not analytics records. No benchmarks were timed or imported. The separate generated
 native UI application linker failure for windows.0.52.0.lib remains open in the
 Windows installation evidence; it is not hidden by these launcher/guide passes.
+
+Accepted local checkpoint: 48e96ff9. The installed CLI also generated actual guides
+in the ongoing target/windows-ui-setup fixture, without changing its components.
+The redirected integration witness passes separately. Post-checkpoint cleanup
+removed four stopped CLI test executables/symbols (1,036,318,208 logical bytes;
+1,036,324,864 observed free bytes), preserving all installed/warm native consumers.

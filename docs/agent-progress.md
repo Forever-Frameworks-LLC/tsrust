@@ -222,8 +222,14 @@ The final normal CLI is installed and hash-matched:
 An installed-consumer check proves the exact reviewed project template is generated.
 The Windows setup example now contains that guide. Whole-project formatting and
 installed format-check pass with zero changes. No CLI build/test remains live.
-Next: save this accepted formatted checkpoint, then repair the separate Windows
-native import-library link/cache failure using retained compiled runtime artifacts.
+Accepted local checkpoint: 48e96ff9. The installed CLI also backfilled the
+compiler-owned target/windows-ui-setup fixture with real project/index/component
+guides while preserving its existing components. The redirected integration
+witness passes (help/no prompts/no writes). Four completed CLI test executables/
+symbols were pruned: 1,036,318,208 logical bytes; observed free increase
+1,036,324,864 bytes. Installed consumers and compiled dependencies remain intact.
+Next: repair the separate Windows native import-library link/cache failure using
+retained compiled runtime artifacts.
 
 Owner-created `examples/windows-setup/wut/` is unrelated and must not be staged,
 rewritten or deleted. Preserve untracked .agents/ and docs/agent-goal.md as well.
@@ -236,3 +242,16 @@ completed compile artifacts. Next Windows backend repair: retain resolved Cargo
 native link artifacts through live linking and cache restoration; bump cache ABI
 as needed, verify a native import-library round trip and the real generated app.
 Do not rerun the cold native dependency build just to rediscover this failure.
+
+Native linker investigation: the compiler-owned native vendor tree contains
+windows_x86_64_msvc-0.52.6/lib/windows.0.52.0.lib, so the required bytes are already
+in the pinned dependency bundle. Prepared.link currently passes only -L dependency,
+not a native import-library search directory. Inspect the simplest shared repair:
+restore the host-matching prebuilt Windows import libraries from the existing
+compiler-owned FILES closure into the dependency directory and add native linking
+for both fresh/cached paths. This may avoid unnecessary Cargo JSON protocols or
+cache format migration because those bytes are deterministic inputs of the pinned
+bundle. Verify before deciding. Link callers: main.rs, dev_cli.rs,
+package_validation.rs and a runtime_build test. Preserve errors and never overwrite
+an unexpected existing native artifact. Add exact byte/restoration witnesses and
+run the existing generated UI build from its retained cache, then real interaction.
