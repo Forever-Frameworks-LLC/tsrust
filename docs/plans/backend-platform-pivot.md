@@ -1,6 +1,9 @@
 # Tsrust backend application platform pivot
 
-Date: 2026-10-26. Status: owner-requested plan; implementation has not begun.
+Date: 2026-10-26. Status: owner-approved pivot; roadmap reconciliation and the
+first backend dependency-isolation section are in progress. The working prototype
+is not implemented. Follow [the executable prototype goal](../agent-goal.md) and
+[template/package decisions](backend-platform-packages.md).
 
 ## Product decision
 
@@ -19,10 +22,11 @@ Shared contracts and clients are required. Shared web/desktop presentation is th
 default. Identical mobile components are not required. Embedded UI and universal
 rendering leave the active roadmap until a concrete device/product justifies them.
 
-This plan proposes replacing the old universal UI completion goal. It does not
-delete implementations, mark unfinished UI acceptance complete, or silently amend
-the existing continuation instructions. The first implementation section must
-reconcile those instructions and roadmaps with the owner's pivot direction.
+The owner approved replacing the old universal UI completion goal. Active goals,
+roadmap and governing instructions now point here. Preserve implementations and
+historical evidence in place; unfinished UI acceptance is frozen, never passed.
+React web/Electron uses shadcn; Expo uses React Native Reusables. Electron Forge's
+Vite plugin is explicitly accepted despite its documented experimental status.
 
 ## Keep, freeze, and replace
 
@@ -112,7 +116,11 @@ client calls and an API identity. Handle stale generation in check/build. Specif
 rolling compatibility for deployed mobile/web clients; a hash alone is not a
 compatibility policy. Test additive and breaking contract changes.
 
-Use TanStack Query for caching/retries/invalidation. Generate query keys/options
+Use TanStack Query for caching/retries/invalidation. The owner requires a wrapper
+with named function calls and generated hooks: `api.tasks.list(args)`,
+`queries.tasks.list.useQuery(args)` and `queries.tasks.create.useMutation()` are
+proposed spellings, not implemented APIs. Also expose typed query/mutation options
+for prefetching, loaders and direct TanStack use. Generate query keys/options
 and mutation options around the plain client, rather than writing a query engine.
 Include operation, canonical arguments and relevant identity scope in keys. Clear
 or separate authenticated caches. Do not automatically retry mutations. Cancellation
@@ -209,12 +217,13 @@ Acceptance: actual supported simulator/device evidence, no Electron/Node-only
 imports in the client, auth/error behavior and compatible rolling upgrade witness.
 Do not claim iOS acceptance from Windows-only tests.
 
-### 6. Add cancellable work, events and the milestone review
+### 6. Add cancellable work and the milestone review
 
-Add one long task with explicit cancellation semantics and one bounded subscription
-after ordinary calls work. Select an established network event transport then;
-require unsubscribe cleanup, reconnect rules and backpressure behavior. Document
-whether events replay and how clients resynchronize after a gap.
+Add one long task with explicit cancellation and cleanup semantics after ordinary
+calls work. Subscriptions are a follow-up unless an actual prototype requirement
+needs them. When added, select an established network event transport and require
+unsubscribe cleanup, reconnect rules and bounded backpressure. Document whether
+events replay and how clients resynchronize after a gap.
 
 Run the meaningful backend-family regressions and matched performance review.
 Measure representative native compute, HTTP round trips, serialization, concurrency
@@ -228,11 +237,27 @@ work from bridge overhead. Then decide whether to optimize desktop transport.
 
 ### 7. Templates, upgrades and final UI retirement
 
+Frontend projects belong to their users. Users can cd into them, install or upgrade
+dependencies, edit scripts and manage them using normal upstream tools. Tsrust owns
+initial setup/import, generated clients, integration adapters and optional
+orchestration, such as serving web assets. Convenience commands must not become a
+closed dependency environment. Respect existing toolchains, scripts and lockfiles.
+Offer scoped migrations when Tsrust integration changes, including required
+integration dependency upgrades; unrelated framework/package updates remain the
+user's decision. See the package decision record for exact ownership boundaries.
+
+Support backend/client-only configuration, generated workspace imports, standalone
+client export/packing and explicit publication. Existing external projects need
+not adopt a Tsrust layout or frontend toolchain. Configure separate static app
+mounts and retain a source-level mounting API: a backend can serve several web
+apps with isolated asset roots and fallbacks alongside its API.
+
 Keep template versions, pinned lockfiles, provenance and licenses. Vendor editable
 application/component source where useful; consume frameworks as normal dependencies
 rather than owning framework forks. Never overwrite user edits on upgrade. Initially
-offer an explicit generated diff or fresh-template comparison rather than a custom
-automatic merge engine. Exercise one template upgrade with an owner-edited project.
+offer an explicit scoped migration diff rather than a custom automatic merge engine.
+Exercise a Tsrust integration upgrade with a user-edited project and an independently
+added dependency, plus a local exported-package consumer and two web app mounts.
 
 Move reference docs to an established presentation stack. After replacement examples
 and backend coverage pass, remove unused renderer/build dependencies in a separate
@@ -267,5 +292,6 @@ syntax and package choices provisional until that proof settles the real needs.
   reuse the query library; generated adapters are new Tsrust work.
 
 Repository review supports reuse of substantial backend foundations, not readiness
-of this new API generation or packaging product. No new builds, tests, benchmarks,
-dependency installations or platform acceptance were performed for this plan.
+of this new API generation or packaging product. Current dependency-isolation
+checks are recorded separately in the continuation state. No new prototype or
+cross-target packaging acceptance is implied by the plan or package research.

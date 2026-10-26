@@ -1,5 +1,16 @@
 # Development and acceptance workflow
 
+## Active backend pivot scope
+
+The owner's 2026-10-26 [prototype goal](agent-goal.md) supersedes universal UI
+completion priorities. Preserve frozen UI source/evidence, and run its focused
+compatibility checks when changing shared boundaries; do not treat it as an active
+component/rendering milestone. Backend-family full regressions select compiler
+and LSP packages explicitly. `--workspace` still includes the retained UI crate.
+Frontend/client/template acceptance follows the new goal and includes normal
+user-owned dependency edits, scoped integration migrations, standalone clients and
+multiple web app mounts.
+
 Use the [compiler source layout](guides/compiler-source-layout.md) when adding or
 relocating compiler modules.
 
@@ -103,9 +114,9 @@ and toolchain identities, protocols and sample counts. Markdown reports are opti
 exports. Do not retime unaffected workloads for presentation or replay history
 solely because a new feature landed.
 
-At a full milestone, run tests and doctest drivers in separate Cargo invocations:
-`RUST_TEST_THREADS=1 cargo test --workspace --lib --bins --tests --no-fail-fast`,
-then `cargo test --workspace --doc`. Relocated offline package witnesses rebuild
+At a full backend milestone, run tests and doctest drivers in separate Cargo invocations:
+`RUST_TEST_THREADS=1 cargo test -p tsrust-compiler -p tsrust-lsp --lib --bins --tests --no-fail-fast`,
+then `cargo test -p tsrust-compiler -p tsrust-lsp --doc`. Relocated offline package witnesses rebuild
 vendored dependencies in the shared target; the second invocation refreshes the
 workspace dependency artifacts before rustdoc uses them. Keep the existing single
 build job and disabled incremental compilation. This does not trigger a full pass

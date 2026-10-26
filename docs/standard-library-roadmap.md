@@ -1,5 +1,11 @@
 <!-- Current continuation takes precedence over historical scheduling below. -->
 
+> Priority update, 2026-10-26: follow [the backend platform pivot](plans/backend-platform-pivot.md)
+> and [prototype goal](agent-goal.md). Reuse accepted HTTP/async/SQL/schema/resource
+> foundations. Close service and client-boundary gaps required by the prototype;
+> old instructions to resume UI/Table are superseded. Platform limitations and
+> pending backend-family measurements remain accurately recorded below.
+
 Current documentation foundation (2026-10-19): the standalone `docs/` application,
 paired nested scroll panes, viewport sizing, pane focus and retained offsets pass
 focused compiler/native/editor/browser acceptance at `0948dca6`. See

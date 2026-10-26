@@ -1,5 +1,42 @@
 # Agent continuation state
 
+## Active owner direction: backend platform pivot (2026-10-26)
+
+The owner approved [the backend pivot](plans/backend-platform-pivot.md).
+[The working prototype goal](agent-goal.md) now supersedes old UI continuation.
+Use [package/template research](plans/backend-platform-packages.md) and preserve
+all legacy UI source/evidence in place. React/Vite + shadcn is selected for
+web/Electron; Electron Forge's Vite plugin is explicitly accepted. Expo + React
+Native Reusables is selected for mobile. Named generated calls/hooks wrap
+TanStack Query, with a framework-independent exportable client.
+
+Frontend projects are user-owned. Direct package installation, lock/script edits
+and independent upgrades are supported. Tsrust provides initial setup/import,
+generated clients, optional orchestration and scoped integration migrations.
+Existing projects can consume local/exported/packed/published clients. Multiple
+web app mounts and source-level serving configuration are required; do not force
+one layout or package manager. Public publication is not authorized by this work.
+
+First dependency-isolation section is in progress from baseline `89656526` and
+planning checkpoint `c3813d68`. Default workspace members now exclude UI; compiler
+uses the UI crate without runtime features, retaining theme/style authoring.
+Legacy default/native/web features preserve the runtime. Compiler/LSP lib/bin
+check passes; no-runtime tests pass 19 + 1 and preserved runtime tests pass 104 + 1.
+Generated-source/native behavior checks are pending. Whole-project formatting
+passes twice with zero changed files/fingerprints; local checkpoint follows.
+See [section evidence](milestones/backend-dependency-isolation.md) for exact commands
+and remaining embedded-source/offline-bundle coupling. No binary-size or speed
+improvement is claimed. No packages, full milestone regressions, benchmarks, CI,
+release or publication ran. Preserve owner `docs/src/main.tsr` and `.agents/`.
+
+Next: finish focused generated-UI compatibility checks, whole-project formatting
+and local checkpoint, then start checked operation-manifest/HTTP-client work.
+The original Windows/Table continuation below is historical and frozen where UI
+specific; retain its completed results and unresolved platform limitations.
+
+## Retained previous continuation state
+
+
 Updated: 2026-10-26. The audited dataset integration and requested cleanup are complete.
 The original compiler/UI continuation goal remains incomplete.
 

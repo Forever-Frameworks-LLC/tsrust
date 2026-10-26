@@ -6,9 +6,9 @@ mod custom_spacing;
 mod edges;
 mod text;
 pub use text::WhiteSpace;
-#[cfg(any(test,feature="native"))]
+#[cfg(any(all(test, feature = "runtime"),feature="native"))]
 pub(crate) use structural::scoped_at_width as resolved_scoped_node_at_width;
-#[cfg(test)]
+#[cfg(all(test, feature = "runtime"))]
 pub(crate) use structural::resolved as resolved_node;
 pub use layout::Length;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -133,13 +133,13 @@ pub fn documentation(class:&str)->String {
  if validate(class).is_err(){return String::new();}
  let (_,token)=split(class).unwrap();let default=Theme::default();
  let (purpose,example)=if matches!(token,"table"|"table-header-group"|"table-row-group"|"table-footer-group"|"table-row"|"table-cell"|"table-caption"|"caption-top"|"caption-bottom"|"align-top"|"align-middle"|"align-bottom") {
-  ("Selects portable shared-column table layout, caption placement or cell vertical alignment. Semantic tags alone do not change layout. Portable rows require th/td table-cell children, and groups require tr table-row children; malformed structures throw before rendering. Table rows share intrinsic column widths across header/body/footer; colSpan covers 1–1000 columns. Tables can exceed a narrow overflow-auto wrapper. Caption-bottom moves captions visually without changing source/ownership/focus order. align-top/middle/bottom places cell content within its row. Percentage cell widths, rowSpan, nested tables, fixed table layout, separate spacing and border-conflict resolution are unsupported. Font metrics and surplus width distribution can differ by target. No arguments or ownership change.",format!("<View as=\"table\" className=\"table caption-bottom\"><View as=\"tr\" className=\"table-row\"><View as=\"td\" className=\"table-cell align-middle\">Value</View></View></View> // one shared column"))
+  ("Selects portable shared-column table layout, caption placement or cell vertical alignment. Semantic tags alone do not change layout. Portable rows require th/td table-cell children, and groups require tr table-row children; malformed structures throw before rendering. Table rows share intrinsic column widths across header/body/footer; colSpan covers 1â€“1000 columns. Tables can exceed a narrow overflow-auto wrapper. Caption-bottom moves captions visually without changing source/ownership/focus order. align-top/middle/bottom places cell content within its row. Percentage cell widths, rowSpan, nested tables, fixed table layout, separate spacing and border-conflict resolution are unsupported. Font metrics and surplus width distribution can differ by target. No arguments or ownership change.",format!("<View as=\"table\" className=\"table caption-bottom\"><View as=\"tr\" className=\"table-row\"><View as=\"td\" className=\"table-cell align-middle\">Value</View></View></View> // one shared column"))
  }else if layout::pixel_dimension(token) {
   ("Sets a nonnegative finite logical-pixel box dimension with w/h/min-w/min-h/max-w/max-h/size-[Npx] (or [N]). No theme scaling. Fractions, negatives, CSS expressions and nonfinite/native-overflow values reject. Example w-[100px] prefers 100 logical pixels; content and min/max constraints can require more space. No arguments, text mutation or ownership change.",format!("<View className=\"{class}\"/>"))
  }else if token=="hidden" {
   ("Removes the element and its subtree from layout, painting, pointer input, keyboard focus and accessibility. Responsive flex/grid utilities can show the same retained subtree at a wider viewport. Unlike conditional children, this preserves state and ownership and does not dispose handlers. No arguments. Example: hidden md:flex hides below 768 logical pixels and shows at or above 768.",format!("<View className=\"{class} md:flex\"/>"))
  }else if matches!(token,"text-balance"|"text-wrap-auto") {
-  ("Balances short wrapped text without changing its value or hard breaks. text-balance asks both renderers for balanced line lengths; text-wrap-auto restores ordinary wrapping. Native balancing preserves the ordinary line count for blocks of 2–6 lines using a bounded width search; longer blocks use ordinary wrapping. Browsers choose their own balancing algorithm and limits, so exact break positions can differ with fonts. Whitespace/nowrap rules still apply. Measurement, painting, selection and accessibility geometry share the native layout. Does not change width constraints or editable-control behavior. No arguments or ownership change.",format!("<Text className=\"w-64 text-center {class}\">Build a workspace for your next project</Text>"))
+  ("Balances short wrapped text without changing its value or hard breaks. text-balance asks both renderers for balanced line lengths; text-wrap-auto restores ordinary wrapping. Native balancing preserves the ordinary line count for blocks of 2â€“6 lines using a bounded width search; longer blocks use ordinary wrapping. Browsers choose their own balancing algorithm and limits, so exact break positions can differ with fonts. Whitespace/nowrap rules still apply. Measurement, painting, selection and accessibility geometry share the native layout. Does not change width constraints or editable-control behavior. No arguments or ownership change.",format!("<Text className=\"w-64 text-center {class}\">Build a workspace for your next project</Text>"))
  }else if matches!(token,"tracking-tight"|"tracking-normal") {
   ("Sets inherited letter spacing relative to the current font size. tracking-tight uses -0.025em (-0.4 logical pixels at font-size 16); tracking-normal restores zero extra spacing. Native shaping, measurement, selection and painting use the same spacing. Stored text is unchanged; font shaping can differ across platforms. No arguments or ownership change.",format!("<Text className=\"{class}\">Project settings</Text>"))
  }else if token=="font-heading" {
@@ -169,13 +169,13 @@ pub fn documentation(class:&str)->String {
  }else if structural::marker(token) {
   ("Names an ancestor group for checked group-data-[slot=VALUE]/NAME and group-data-[size=VALUE]/NAME or group-data-[variant=VALUE]/NAME selectors. Marker alone changes no visual property. Group names use ASCII letters, digits and hyphens.",format!("<View className=\"{class}\" />"))
  }else if matches!(token,"ring-0"|"ring-1"|"ring-2"|"ring-3") {
-  ("Sets an outer surface ring width of 0–3 logical pixels without changing layout. ring-COLOR selects its color and defaults to the theme ring token. This surface ring is independent of the button's keyboard focus outline.",format!("<View className=\"{class} ring-foreground/10\" />"))
+  ("Sets an outer surface ring width of 0â€“3 logical pixels without changing layout. ring-COLOR selects its color and defaults to the theme ring token. This surface ring is independent of the button's keyboard focus outline.",format!("<View className=\"{class} ring-foreground/10\" />"))
  }else if color_token(opacity_token(token).map_or(token,|(base,_)|base)) {
-  ("Sets a semantic theme color. Optional /N multiplies its alpha by an integer percentage 0–100; fractional, negative and out-of-range percentages fail. placeholder:text-COLOR applies that color only to empty editable hints with full token opacity. transparent is zero-alpha black. Ring colors need a ring-0/1/2/3 width to paint a surface ring. Color changes do not hide semantic content from accessibility. Native output has an 8-bit sRGB paint boundary; theme strings remain unchanged.",format!("<View className=\"{class}\" />"))
+  ("Sets a semantic theme color. Optional /N multiplies its alpha by an integer percentage 0â€“100; fractional, negative and out-of-range percentages fail. placeholder:text-COLOR applies that color only to empty editable hints with full token opacity. transparent is zero-alpha black. Ring colors need a ring-0/1/2/3 width to paint a surface ring. Color changes do not hide semantic content from accessibility. Native output has an 8-bit sRGB paint boundary; theme strings remain unchanged.",format!("<View className=\"{class}\" />"))
  }else if token.starts_with("grid-cols-") || token.starts_with("grid-rows-") {
-  ("Sets explicit grid tracks. Numeric counts 1–12 divide available space equally with zero minimum; none removes explicit tracks. The two written track lists preserve their auto/fraction sizing. Requires a grid container.",format!("<View className=\"grid {class}\" />"))
+  ("Sets explicit grid tracks. Numeric counts 1â€“12 divide available space equally with zero minimum; none removes explicit tracks. The two written track lists preserve their auto/fraction sizing. Requires a grid container.",format!("<View className=\"grid {class}\" />"))
  }else if token.starts_with("col-") || token.starts_with("row-") {
-  ("Places a child in its parent grid. Starts are one-based lines 1–13; spans cover 1–12 tracks. Placement changes visual layout without changing source, keyboard or accessibility order.",format!("<View className=\"grid grid-cols-2\"><View className=\"{class}\" /></View>"))
+  ("Places a child in its parent grid. Starts are one-based lines 1â€“13; spans cover 1â€“12 tracks. Placement changes visual layout without changing source, keyboard or accessibility order.",format!("<View className=\"grid grid-cols-2\"><View className=\"{class}\" /></View>"))
  }else if token=="grid" || token=="flex" || token=="inline-flex" || token.starts_with("flex-") {
   ("Selects grid/flex display, flex direction or flex wrapping. Containers default to flex column. Wrapping needs a finite width and children that cannot shrink to one line; grid uses source-order auto placement.",format!("<View className=\"{class}\" />"))
  }else if token.starts_with("gap-") || token.starts_with('p') && token.contains('-') {
@@ -218,6 +218,7 @@ pub fn documentation(class:&str)->String {
   assert!(rules.iter().any(|(_,value)|matches!(value,Utility::Dimension(1,Length::Pixels(32.)))));
   for token in ["grid-cols-0","grid-cols-13","col-start-0","col-span-13","max-w-auto","w-none","w-[-2px]","grid-cols-[2fr_1fr]"]{assert!(validate(token).is_err(),"{token}");}
  }
+ #[cfg(feature = "runtime")]
  #[test] fn container_layout_rejects_text_leaves_and_preserves_item_dimensions() {
   use crate::{Node,Kind,Child,TextPart};
   assert!(Node::new(Kind::Text,"grid grid-cols-2".into(),"text".into(),vec![]).is_err());
@@ -297,6 +298,7 @@ pub(crate) fn validate_inline(classes:&str)->Result<(),String> {
   for token in ["static","fixed","sticky","top-NaN","top-screen","top-[12px]","-top-auto","z-10"]{assert!(validate(token).is_err(),"{token}");}
   assert!(validate_inline("absolute").is_err());assert!(validate_inline("left-2").is_err());
  }
+ #[cfg(feature = "runtime")]
  #[test] fn variant_predicates_keep_ancestor_and_caller_override_rules(){
   let child=super::super::Node::view(vec![],"text-muted-foreground group-data-[variant=destructive]/alert:text-destructive/90 text-primary".into()).unwrap();
   let root=super::super::Node::view(vec![],"group/alert".into()).unwrap().with_semantics(r#"{"variant":"destructive","slot":"alert"}"#).unwrap();let theme=Theme::default();

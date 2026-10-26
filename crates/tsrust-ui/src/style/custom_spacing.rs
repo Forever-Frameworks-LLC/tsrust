@@ -25,7 +25,7 @@ pub(super) fn css(token:&str,theme:&Theme)->Option<String> {
  }).collect::<Vec<_>>().join(";"))
 }
 
-#[cfg(test)] mod tests {
+#[cfg(all(test, feature = "runtime"))] mod tests {
  use super::*;
  use crate::{Node,Kind};
  #[test] fn card_scoped_spacing_inherits_values_and_defaults_missing_names_to_zero() {

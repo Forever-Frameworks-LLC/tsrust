@@ -1,5 +1,12 @@
 # Universal UI vision
 
+> Active scope update, 2026-10-26: the owner approved the
+> [backend platform pivot](docs/plans/backend-platform-pivot.md). This document
+> preserves the universal UI design and historical decisions. Its unfinished
+> renderer/component/embedded obligations are frozen, not active prerequisites.
+> Presentation now uses React/Vite + shadcn on web/Electron and Expo + React
+> Native Reusables on mobile. Follow [the prototype goal](docs/agent-goal.md).
+
 Status: product direction refined with the owner on 2026-10-11; the checked `.tsrx` component and paired interactive counter foundation is implemented. The current compiler handoff records accepted behavior. Broader API examples below remain design sketches unless covered by that acceptance.
 
 The [feasibility review](docs/plans/ui-feasibility-review.md#follow-up-review-after-app-directory-and-loader-decisions) preserves the original research and unresolved contracts. Its historical first-task sequencing is superseded by the current compiler handoff. State ownership and bounded browser/native counters now have focused acceptance; text input, dynamic trees, routing and navigation remain unfinished. Review recommendations remain distinct from owner-approved decisions.

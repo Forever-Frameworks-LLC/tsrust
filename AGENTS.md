@@ -1,5 +1,22 @@
 # Development requirements
 
+## Active product direction — 2026-10-26
+
+The owner approved the backend application platform pivot. Follow
+`docs/agent-goal.md` and `docs/plans/backend-platform-pivot.md` for active scope.
+Keep Tsrust as the native backend compiler; use React/Vite with shadcn for web
+and Electron, Expo with React Native Reusables for mobile, and named generated
+clients/hooks over TanStack Query. Electron Forge's Vite plugin is owner-approved.
+Frontend projects remain user-owned: users can manage dependencies and scripts
+directly. Tsrust supplies setup/import, optional orchestration, generated clients
+and scoped integration migrations. Support existing/external projects and multiple
+web mounts without forcing one layout or package manager.
+Preserve the old UI source and acceptance history in place. Universal rendering,
+Table/component expansion and embedded UI are frozen, not prototype prerequisites.
+This direction supersedes old UI continuation priorities and the local skill's
+prohibition on introducing React. Backend acceptance, ownership, editor agreement
+and analytics/privacy requirements remain in force.
+
 ## Local agent continuation
 
 For autonomous continuation, read `.agents/skills/tsrust-development/SKILL.md`

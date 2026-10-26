@@ -1,5 +1,11 @@
 # Tsrust
 
+> Product direction (2026-10-26): Tsrust is pivoting to native backends with
+> generated named TypeScript clients for React web, Electron and Expo applications.
+> Use [the active roadmap](docs/roadmap.md) and [prototype goal](docs/agent-goal.md).
+> The custom UI implementation described below is preserved and frozen. Generated
+> clients and managed frontend templates are planned/in progress, not released.
+
 **Write TypeScript-style code. Ship native programs.**
 
 Tsrust is an experimental language and compiler with familiar TypeScript syntax,

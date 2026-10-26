@@ -142,6 +142,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("use crate::{", "use super::{")
         .replace("crate::style::", "super::style::").replace("crate::theme::", "super::theme::");
     let body=include_str!("../../../../tsrust-ui/src/lib.rs")
+        .replace("#[cfg(feature = \"runtime\")]\n", "")
         .replace("#[cfg(feature = \"native\")]\nmod native;",if with_native {"__UI_NATIVE__"} else {""})
         .replace("__UI_NATIVE__",&format!("#[cfg(not(target_arch=\"wasm32\"))] mod native {{\n{native}\n}}"))
         .replace("#[cfg(feature = \"native\")]\npub use native::run;",if with_native {"#[cfg(all(not(target_arch=\"wasm32\"),not(feature = \"ui-acceptance\")))] pub use native::run;\n#[cfg(feature = \"ui-acceptance\")] pub use native::verify_window as run;"}else{""})
@@ -165,6 +166,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("mod web;",&format!("mod web {{\n{web}\n}}"))
 
         .replace("feature=\"native\"","not(target_arch=\"wasm32\")")
+        .replace("feature = \"runtime\"", "feature = \"ui\"")
         .replace("feature = \"acceptance\"","feature = \"ui-acceptance\"");
     format!("mod tsrust_native_ui {{\n{body}\n#[cfg(all(target_arch=\"wasm32\",feature=\"ui-web\"))] pub use browser::{{run,run_configured}};\n}}\n")
 }

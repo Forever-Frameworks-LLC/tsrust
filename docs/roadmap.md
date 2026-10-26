@@ -1,3 +1,40 @@
+# Active roadmap: native backend application platform
+
+Owner-approved pivot, 2026-10-26. Follow [the prototype goal](agent-goal.md),
+[pivot plan](plans/backend-platform-pivot.md) and
+[template/package decisions](plans/backend-platform-packages.md).
+
+Tsrust remains the native backend compiler. Presentation uses React/Vite + shadcn
+for web/Electron and Expo + React Native Reusables for mobile. Electron Forge's
+Vite plugin is accepted. Generate named API calls and a thin TanStack Query wrapper.
+Starter/imported frontends remain ordinary user-owned projects with unrestricted
+normal dependency management. Tsrust supplies optional orchestration and scoped
+integration migrations. Existing projects can import/export/pack/publish generated
+clients; a backend may serve multiple explicitly configured web application mounts.
+
+1. Reconcile scope and isolate legacy UI runtime dependencies from compiler/LSP
+   builds; preserve all old UI source and evidence in place.
+2. Generate one checked operation manifest, HTTP dispatcher and validated named
+   TypeScript client for a SQLite-backed task service.
+3. Deliver the React/shadcn web application, query wrapper and web asset serving.
+4. Package the shared UI and native backend with Electron Forge/Vite and prove
+   process lifecycle and renderer isolation on Windows.
+5. Prove an Expo/RNR Android client and backwards-compatible deployed API changes.
+6. Complete optional target orchestration, scoped integration migrations, client export
+   integration, a cancellable task, upgrade/rollback proof and milestone review.
+
+Each section requires focused compiler/native/editor/client acceptance. Reserve
+full regressions and measurements for the coherent backend-family milestone.
+Native compute, serialization and transport costs remain separate measurements.
+Exact versions/security review must be recorded when a template is admitted.
+
+Universal GPU/browser UI, Table/component expansion, custom routing/hydration,
+embedded rendering and the Tsrust UI docs application are frozen. Pending checks
+are not passed; their records below are historical, not the active work queue.
+Compiler language features remain eligible when the backend prototype needs them.
+
+## Retained historical roadmap and acceptance
+
 **Gate 180 accepted:** [Fallible callback fields behind record parameters](./milestones/180-fallible-record-callbacks.md). A field callback that throws or fails at runtime propagates through the function that received the record, with typed handlers over every failure a constructed record of that type can raise. Whole compiler crate 2,362 pass, editor 365; one matched workload verified untimed.
 
 **Gate 179 accepted:** [Assignment as a value for strings, arrays and records](./milestones/179-owned-assignment-values.md). The value is the target read in place; no copy. Compiler batch 692, editor 365, one matched workload verified untimed.

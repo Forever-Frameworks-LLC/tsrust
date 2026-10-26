@@ -1,5 +1,11 @@
 # Tsrust compiler completion: sustained execution handoff
 
+> Active scope, 2026-10-26: the [backend platform pivot](backend-platform-pivot.md)
+> prioritizes compiler work needed by native services and generated clients.
+> Historical inventories below remain evidence, not an obligation to finish
+> arbitrary TypeScript/npm or universal UI compatibility before the
+> [working prototype](../agent-goal.md).
+
 ## Owner request and execution goal
 
 The owner wants one agent to attempt to finish the remaining compiler in one sustained run. Work through the entire remaining compiler scope, using small, testable modules and accepted checkpoints. Do not stop merely because one gate or family finishes. One sustained run does not mean one giant patch or skipping verification. Do not promise completion before auditing what remains.

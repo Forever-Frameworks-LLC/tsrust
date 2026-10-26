@@ -1,5 +1,12 @@
 # Continuation acceptance checklist
 
+> Scope transition, 2026-10-26: use [the prototype goal](../agent-goal.md) and
+> [pivot plan](backend-platform-pivot.md) as the active checklist. The original
+> checklist below remains historical evidence. Table, universal rendering,
+> component-library parity, constrained-display and custom web-rendering work are
+> frozen rather than passed. Backend correctness, editor agreement, resource
+> safety and milestone measurement requirements remain active where applicable.
+
 Baseline: `7c956bd7`, inspected on Windows on 2026-10-26. This checklist reconciles
 the latest handoffs with the governing plans. It does not replace their detailed
 contracts or turn historical acceptance into Windows acceptance.
