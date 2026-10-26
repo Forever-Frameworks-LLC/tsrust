@@ -2,7 +2,7 @@ import { dirname } from 'node:path';
 import { resolveExecutable } from './executables';
 import { execFile } from 'node:child_process';
 import * as vscode from 'vscode';
-import { CloseAction, ErrorAction, LanguageClient, State, TransportKind } from 'vscode-languageclient/node';
+import { LanguageClient, State, TransportKind } from 'vscode-languageclient/node';
 
 let client: LanguageClient | undefined;
 let lifecycle = Promise.resolve();
@@ -113,10 +113,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       outputChannel: output,
       synchronize: { fileEvents: [sourceWatcher, dataWatcher] },
       initializationOptions: { debounceMs: settings.get<number>('analysis.debounceMs', 200) },
-      errorHandler: {
-        error: () => ({ action: ErrorAction.Continue }),
-        closed: () => ({ action: CloseAction.DoNotRestart }),
-      },
+      // Use the client's bounded recovery and protocol-error handling. An
+      // unexpected exit should not permanently disable editing after one failure.
+      connectionOptions: { maxRestartCount: 4 },
     });
     client = next;
     stateSubscription = next.onDidChangeState(event => {

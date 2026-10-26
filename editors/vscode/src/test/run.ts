@@ -40,7 +40,7 @@ async function main(): Promise<void> {
     await runTests({
       vscodeExecutablePath: process.env.VSCODE_EXECUTABLE,
       extensionDevelopmentPath: testedPath,
-      extensionTestsPath: path.join(__dirname, 'suite'),
+      extensionTestsPath: path.join(__dirname, process.env.TSRUST_VSCODE_SUITE === 'recovery' ? 'recovery' : 'suite'),
       launchArgs: [workspace, '--user-data-dir', path.join(temporary, 'user'), '--extensions-dir', path.join(temporary, 'extensions'), '--disable-workspace-trust', '--skip-welcome', '--skip-release-notes'],
     });
   } finally {

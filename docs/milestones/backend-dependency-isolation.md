@@ -1,7 +1,8 @@
 # Backend dependency isolation: first section
 
 Date: 2026-10-26. Baseline implementation: `89656526`; planning checkpoint:
-`c3813d68`. Status: focused validation in progress; this is not completion of the
+`c3813d68`. Source checkpoint: `be1dec4e`. Focused feature-isolation validation
+passes; this is not completion of the
 backend application prototype or complete removal of legacy UI coupling.
 
 ## Changes
@@ -44,10 +45,13 @@ colors, invalid class rejection, documentation and completion without runtime.
 - The preserved default runtime lib suite passes 104 tests plus the authoring
   integration witness. GPU/window, browser interaction and Table acceptance were
   not resumed or claimed.
-- Generated static/native source and generated HTML execution checks are pending.
+- Generated static/native source selection passes. Generated native HTML execution
+  first timed out at the unchanged 90-second limit; its retry exposed sandbox
+  denial creating the private runtime build directory. The unchanged witness
+  passes outside the sandbox in 88.98s. No timeout or assertion was weakened.
 - The initial whole-project formatter reported zero changed files/fingerprints.
   Final whole-project formatting passes twice with zero changed files/fingerprints;
-  local checkpoint follows. Generated compatibility checks remain pending.
+  source checkpoint is `be1dec4e`. Generated compatibility checks are now complete.
 
 Commands use the shared target, one Cargo job and disabled incremental compilation.
 The compiler check's sampled CLI rustc private memory reached 1,125 MiB; this is an

@@ -17,20 +17,35 @@ Existing projects can consume local/exported/packed/published clients. Multiple
 web app mounts and source-level serving configuration are required; do not force
 one layout or package manager. Public publication is not authorized by this work.
 
-First dependency-isolation section is in progress from baseline `89656526` and
-planning checkpoint `c3813d68`. Default workspace members now exclude UI; compiler
+First dependency-isolation section passes focused acceptance at checkpoint
+`be1dec4e`, from baseline `89656526` and planning checkpoint `c3813d68`. Default workspace members now exclude UI; compiler
 uses the UI crate without runtime features, retaining theme/style authoring.
 Legacy default/native/web features preserve the runtime. Compiler/LSP lib/bin
 check passes; no-runtime tests pass 19 + 1 and preserved runtime tests pass 104 + 1.
-Generated-source/native behavior checks are pending. Whole-project formatting
-passes twice with zero changed files/fingerprints; local checkpoint follows.
+Generated static/native source selection and native HTML execution now pass.
+The unchanged native witness passes outside the sandbox after a timeout and a
+private-temp access denial; original failures are retained. Whole-project formatting
+passes twice with zero changed files/fingerprints.
 See [section evidence](milestones/backend-dependency-isolation.md) for exact commands
 and remaining embedded-source/offline-bundle coupling. No binary-size or speed
 improvement is claimed. No packages, full milestone regressions, benchmarks, CI,
 release or publication ran. Preserve owner `docs/src/main.tsr` and `.agents/`.
 
-Next: finish focused generated-UI compatibility checks, whole-project formatting
-and local checkpoint, then start checked operation-manifest/HTTP-client work.
+The owner authorized continuous prototype implementation after a local checkpoint.
+Before new backend API changes, an extension recovery defect was repaired: the
+client no longer disables every unexpected restart. Focused development and exact
+packaged VSIX tests pass four automatic restarts, bounded fifth stop and manual
+recovery with current-text diagnostics. The VSIX is installed, and both normal
+editor windows' extension hosts were refreshed through Computer Use; both returned
+to checking enabled with no Problems reported. Underlying simultaneous exit cause
+and historical long-lived memory report remain unproven. See
+[recovery evidence](milestones/lsp-bounded-recovery.md).
+
+Next: checkpoint the accepted recovery fix, then implement the compiler-derived
+operation manifest and framework-independent named TypeScript client in one
+coherent section. Reuse checked function/type facts rather than parsing display
+strings. Add focused generated-client/validation/type-error witnesses before batch
+checks. No new API/client/template implementation exists yet.
 The original Windows/Table continuation below is historical and frozen where UI
 specific; retain its completed results and unresolved platform limitations.
 
