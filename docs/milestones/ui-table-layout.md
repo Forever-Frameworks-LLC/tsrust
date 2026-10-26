@@ -9,6 +9,14 @@ attribution paths before validation/lock serialization. Authored config/catalog
 validation stays strict. This repair is implemented but unvalidated. No Table
 source, lock registration, browser or native acceptance is implied.
 
+The installer prerequisite subsequently passes its generated-path, versioned
+installation/idempotence/owner-source and Kbd-upgrade witnesses. Its production CLI
+was not refreshed before the owner requested cleanup. The exact Table editor checks
+remain open: colSpan lacks inherited behavioral documentation. A focused compiler
+check found the old multi-import fixture illegally redeclared an inherited field;
+valid documentation cases and a separate duplicate-field rejection now preserve
+the existing language boundary. Their corrected focused unit remains unrun.
+
 This section is in validation. It is not accepted until generated-native, editor
 and actual browser checks complete. Reuse the earlier theme, ownership, window,
 navigation and Markdown evidence; no full regression or benchmark run is implied.

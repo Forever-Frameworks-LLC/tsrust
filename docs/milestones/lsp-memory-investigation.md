@@ -1,5 +1,11 @@
 # LSP memory investigation
 
+Continuation update, 2026-10-26: the owner reprioritized audited benchmark data
+integration and generated-output cleanup. Checker agreement was stopped at receiver
+`Time`; it is not a full pass. Dataset validation and cleanup results are recorded
+in [the current progress file](../agent-progress.md). No cache-repopulation build,
+normal editor LSP or preview was restarted after cleanup.
+
 Source baseline: `7c956bd7`; Windows investigation begun 2026-10-26. No normal
 editor, preview or whole-workspace scan has been started by this investigation.
 
