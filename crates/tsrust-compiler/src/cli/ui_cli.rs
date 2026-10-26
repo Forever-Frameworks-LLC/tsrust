@@ -50,12 +50,18 @@ fn current_request(request:&str,variant:&str,items:&[Item])->Result<Identity,Str
  if version.is_some_and(|version|version!=item.version){return Err(format!("Only {}@{} is supported for new installations; existing project files are preserved",item.name,item.version));}
  Ok(identity(item))
 }
+// Only generated paths use this conversion; authored config/catalog paths still
+// pass safe_relative before composition. Lock paths stay portable across hosts.
+fn portable_generated_path(path:&Path)->Result<PathBuf,String> {
+ let path=PathBuf::from(path.to_str().ok_or("Invalid generated UI path")?.replace('\\',"/"));
+ safe_relative(&path)?;Ok(path)
+}
 fn versioned_path(path:&Path,version:&str)->Result<PathBuf,String> {
  let number=version_number(version)?;
  let suffix=if number[1..]==[0,0]{number[0].to_string()}else{version.replace('.',"-")};
  let stem=path.file_stem().and_then(|stem|stem.to_str()).ok_or("Invalid bundled component filename")?;
  let name=match path.extension().and_then(|value|value.to_str()){Some(extension)=>format!("{stem}-v{suffix}.{extension}"),None=>format!("{stem}-v{suffix}")};
- Ok(path.with_file_name(name))
+ portable_generated_path(&path.with_file_name(name))
 }
 fn placements(root:&Path,config:&Config,items:&[Item],lock:&Lock,destination:&Path)->Result<BTreeMap<(Identity,String),PathBuf>,String> {
  let mut paths=BTreeMap::new();
@@ -68,7 +74,7 @@ fn placements(root:&Path,config:&Config,items:&[Item],lock:&Lock,destination:&Pa
    safe_relative(Path::new(&file.path))?;
    let path=if let Some(installed)=installed {installed.files[index].path.clone()}else{match file.destination.as_str(){
     "theme"=>config.theme_destination().to_owned(),
-    "components"=>{let path=target.join(&file.path);if other || no_symlinks(root,&path)?.exists(){versioned_path(&path,&item.version)?}else{path}},
+    "components"=>{let path=portable_generated_path(&target.join(&file.path))?;if other || no_symlinks(root,&path)?.exists(){versioned_path(&path,&item.version)?}else{path}},
     _=>return Err("Unsupported bundled destination".into()),
    }};
    no_symlinks(root,&path)?;paths.insert((id.clone(),file.path.clone()),path);
@@ -344,6 +350,14 @@ fn print_plan(plan:&Plan,json:bool){if json {println!("{}",serde_json::json!({"o
 
 #[cfg(test)]mod tests {
  use super::*;
+ #[test]fn generated_paths_stay_portable_without_relaxing_authored_path_validation(){
+  let path=portable_generated_path(&Path::new("src/components/ui").join("table.tsrx")).unwrap();
+  assert_eq!(path.to_str().unwrap(),"src/components/ui/table.tsrx");
+  assert_eq!(versioned_path(&path,"2.0.0").unwrap().to_str().unwrap(),"src/components/ui/table-v2.tsrx");
+  let notice=attributions::record(include_str!("../../../../attributions/shadcn-MIT.txt")).unwrap();
+  assert_eq!(notice.path.to_str().unwrap(),"attributions/shadcn-MIT.txt");
+  for path in ["../escape",r"src\controls","/absolute"] {assert!(safe_relative(Path::new(path)).is_err(),"{path}");}
+ }
  fn scratch()->PathBuf {let path=std::env::temp_dir().join(format!("tsrust-ui-installer-{}-{}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));fs::create_dir(&path).unwrap();path}
  #[test]fn versioned_offline_install_preserves_owned_source_and_lock() {
   let root=scratch();let config=Config::default();let request=|version:&str|Identity{name:"button".into(),version:version.into(),variant:"default".into()};

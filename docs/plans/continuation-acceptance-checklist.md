@@ -41,6 +41,49 @@ complete editor help/agreement, applicable real web/native interaction, offline
 installation/export and benchmark support with independent oracles. Timing remains
 separate from untimed correctness. Unavailable platform checks remain pending.
 
+## Fixed roadmap and vision reconciliation
+
+These are finite proof obligations from the roadmap's six phases and UI vision's
+vertical slices. Existing accepted records may close an obligation after source
+and evidence reconciliation; they do not automatically require new implementation.
+
+- [ ] Groundwork: reconcile the product thesis, minimum language subset, research
+  register, independent benchmark specifications and recorded design decisions.
+  Final branding and a hosted registry are explicitly deferred.
+- [ ] Core: reconcile the original User/normalize executable, inferred borrowing,
+  exclusive mutation, transfer rejection, explicit clone independence and original
+  diagnostic locations, with generated-native and allocation/compile-time evidence.
+- [ ] Backend: reconcile `/hello`, typed JSON/validation, middleware, native wrapper
+  boundaries, database slice, cancellation/shared-state/cleanup and the scoped
+  service readiness measurements. Full Hono/Web-standard compatibility is excluded.
+- [ ] Server HTML: reconcile a separate Html contract, JSX composition, contextual
+  dynamic escaping, explicit trusted markup and native response writing with the
+  original HTML workload. Streaming and async components require separately scoped
+  increments; do not infer their completion from synchronous output.
+- [ ] Ecosystem: reconcile shared content-addressed package storage for two projects,
+  lock identity, reproducible offline resolution/integrity and an inspection-only
+  npm analyzer with source locations and explicit analysis limits. Automatic npm
+  translation, hosted registry operations and compatibility percentages are deferred.
+- [ ] Paired UI slices: reconcile compiled static semantic HTML/native output,
+  independent interactive counters, stable-identity editable lists, validation,
+  focus/text editing/disposal and explicit target capability diagnostics. Finish
+  the required docs/component foundations through the sections above.
+- [ ] Headless constrained-display experiment: reconcile fixed viewport, supplied
+  input, restricted colors and inspectable redraw output. Real embedded hardware,
+  no_std and allocation restrictions await a separate feasibility/hardware decision.
+- [ ] Required web delivery: HTML-first loading, executable splitting, explicit
+  server/client dependency boundaries and checked rendering output. The selected
+  bounded Wasm counter is not a permanent backend decision. Detailed route-loader,
+  middleware enhancement, mutation/revalidation and hydration protocols still need
+  their recorded design decisions before implementation.
+
+The authoritative pinned UI inventory contains exactly 64 components, three recipes
+and 30 blocks. Its initial SHA-256 is
+`8d524d96d204fc50a0548a9a2954b359a342b4db08afda23a1de4f466a9135be`
+for `docs/plans/ui-component-coverage.json`. Status changes may update those bytes;
+new inventory entries require an explicit source/scope diff. Pending component
+destinations and documentation shells do not satisfy actual implementation.
+
 ## Explicit exclusions and decisions
 
 Semantic search and the optional browser JS/TS bridge are deferred. UI vision

@@ -1,5 +1,16 @@
 # Development requirements
 
+## Local agent continuation
+
+For autonomous continuation, read `.agents/skills/tsrust-development/SKILL.md`
+and `docs/agent-goal.md`. Use project-local Ponytail for implementation decisions
+and Caveman for concise chat updates; retain full technical detail in durable
+evidence. These preferences never weaken the acceptance requirements below.
+Routine checkpoints are local Git commits. Do not push on a timer, create release
+tags for testing, or use published releases as a development loop. Follow the
+remote-validation decision in the project skill before triggering GitHub Actions.
+
+
 Use [the development workflow](docs/development-workflow.md) for feature acceptance.
 
 One agent works in this tree at a time. Use Git commits as source checkpoints before risky edits and after accepted gates. Inspect status first and preserve unrelated changes. Do not create archive directories or file snapshots. The owner deleted historical archives. Keep SQLite as the durable analytics store: import and verify closed loose records, then remove the verified copies. Retain only concise current-gate logs outside SQLite. Rebuild executable consumers from commits when needed. Reuse one Cargo target, disable incremental compilation with CARGO_INCREMENTAL=0, and prune obsolete build/test/native outputs before handoff rather than accumulating them across gates.

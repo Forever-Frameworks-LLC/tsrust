@@ -89,9 +89,9 @@ evidence is `target/lsp-memory-probe-initial.json`. The expanded probe overlappe
 the affected agreement-test run. These are diagnostic observations, not isolated
 performance measurements or an observed process peak.
 
-Current CLI SHA-256 is
+The expanded probe's CLI SHA-256 is
 `03f689fa1ebafcd1fad8cb08c420ea837fee80c9e8e6a8bbfffefd17c28f2b39`;
-current LSP SHA-256 is
+its LSP SHA-256 is
 `9683938dd85c731eb1c7d95c68e9d55df24ad149d91222787fe8d27d8325e264`.
 These are local consumers, not installed/active-editor refresh claims.
 
@@ -135,6 +135,31 @@ identities; assertions remain unchanged. The three required agreement suites are
 running with `--no-fail-fast`, single test thread, and exact output in
 `target/lsp-memory-editor-checks-current.log`; the earlier output remains in
 `target/lsp-memory-editor-checks.log`.
+
+A third Unix-only identity was subsequently found in the callable-field helper.
+The CPU-active checker-agreement process was stopped before spending more time on
+that known-invalid fixture. Its abnormal exit is retained in the current log.
+The helper now uses the same host-absolute virtual URI path, with unchanged checked
+contract comparisons. The no-fail-fast invocation continues the completion and
+consistency suites. Rerun only checker_agreement with visible receiver progress;
+the interrupted test is not accepted evidence.
+
+The complete completion matrix finished in 575.82 seconds. Eight failures were
+limited to the standard/project import-path rows in all four typing modes; the
+remaining rows are retained. The module-inventory check also missed std:testing.
+Two Windows URI assumptions in `position_completion.rs` caused those failures:
+the compiler-confirmed module probe used a Unix virtual URI, and sibling discovery
+stripped the URI prefix without decoding it. Both now use shared canonical local
+path handling. An encoded-space/Unicode/percent directory witness passes. Rerunning
+only import-path rows plus module inventory passes all three tests in 7.31 seconds;
+the full affected project-diagnostics suite passes 17 tests in 0.81 seconds.
+Exact repair evidence is `target/lsp-import-path-acceptance.log`.
+
+Editor consistency passes all 27 tests in 39.66 seconds on the original complete
+run. Checker agreement is the only required memory-section editor acceptance still
+running; its repaired invocation exposes receiver progress in
+`target/lsp-checker-agreement-final.log`. No complete regression or runtime timing
+pass is implied by these focused suites.
 
 Whole-project `node tools/format-project.mjs` passed with the current CLI after
 installing locked tooling through `npm ci --ignore-scripts`: zero files formatted,

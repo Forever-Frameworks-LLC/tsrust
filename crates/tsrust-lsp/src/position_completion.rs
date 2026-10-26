@@ -198,9 +198,9 @@ fn builtins_catalog_modules() -> Vec<String> {
     MODULES
         .get_or_init(|| {
             let accepted = |module: &str, name: &str| {
-                let Ok(entry) = crate::project_diagnostics::source_id("file:///tsrust-module-probe/main.tsr") else {
-                    return false;
-                };
+                let path = crate::project_diagnostics::canonical_path(&std::env::temp_dir().join("tsrust-module-probe/main.tsr"));
+                let Some(path) = path.to_str() else { return false; };
+                let entry = tsrust_compiler::project::SourceId(path.into());
                 let mut workspace = crate::workspace::Workspace::default();
                 workspace.open(entry.clone(), 1, format!("import {{ {name} }} from '{module}';\nfunction main() {{}}\n"));
                 tsrust_compiler::project::load_project_headers(&workspace.snapshot(), &entry.0).is_ok()
@@ -222,10 +222,10 @@ fn builtins_catalog_modules() -> Vec<String> {
 
 /// Relative import paths of the source files beside the document.
 fn sibling_modules(uri: &str) -> Vec<String> {
-    let Some(path) = uri.strip_prefix("file://") else {
+    let Ok(source) = crate::project_diagnostics::source_id(uri) else {
         return Vec::new();
     };
-    let path = std::path::Path::new(path);
+    let path = std::path::Path::new(&source.0);
     let Some(directory) = path.parent() else {
         return Vec::new();
     };
@@ -257,6 +257,25 @@ fn sibling_modules(uri: &str) -> Vec<String> {
 #[cfg(test)]
 mod ui_prop_tests {
  use super::*;
+ #[test]
+ fn sibling_import_paths_decode_local_file_uris_and_exclude_the_document(){
+  let root=std::env::temp_dir().join(format!("tsrust import café %-{}-{}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+  std::fs::create_dir(&root).unwrap();
+  struct Scratch(std::path::PathBuf);
+  impl Drop for Scratch {fn drop(&mut self){
+   assert!(self.0.starts_with(std::env::temp_dir().canonicalize().unwrap()));
+   assert!(self.0.file_name().unwrap().to_string_lossy().starts_with("tsrust import café %-"));
+   std::fs::remove_dir_all(&self.0).unwrap();
+  }}
+  let scratch=Scratch(root.canonicalize().unwrap());
+  let source=tsrust_compiler::format("function main(){}").unwrap();
+  assert_eq!(tsrust_compiler::format(&source).unwrap(),source);
+  assert!(tsrust_compiler::check(&source).is_ok());
+  for name in ["main.tsr","shapes.tsr"] {std::fs::write(scratch.0.join(name),&source).unwrap();}
+  let id=tsrust_compiler::project::SourceId(scratch.0.join("main.tsr").to_str().unwrap().into());
+  let uri=crate::project_diagnostics::file_uri(&id).unwrap();
+  assert_eq!(sibling_modules(uri.as_str()),vec!["./shapes.tsr"]);
+ }
  #[test]
  fn generic_base_aliases_substitute_renamed_parameters_in_incomplete_jsx() {
   let source="interface Data<T>{'data-value'?:T;}type Parent<T>=Data<T[]>;interface Child<U> extends Parent<U>{other:boolean;}function Container(props:Child<int>):void{}function main(){const node=<Container data-/>;}";

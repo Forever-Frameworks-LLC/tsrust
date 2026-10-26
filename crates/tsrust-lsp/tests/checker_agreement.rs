@@ -221,9 +221,9 @@ fn field_type(name: &str, parameter: &str) -> Option<String> {
 // Missing-member diagnostics call every callable "closure". Compare its checked
 // contract with a checked declaration of the displayed type instead.
 fn callable_field_agrees(receiver:&Receiver,name:&str,shown:&str)->bool {
- use tsrust_compiler::project::{ProjectType,SourceId};
+ use tsrust_compiler::project::ProjectType;
  let source=format!("{} interface DisplayedContract {{ member:{shown}; }} function probe({}){{}} function main(){{}}",prelude(receiver.parameter),receiver.parameter);
- let entry=SourceId("/tsrust-agreement-callable/main.tsr".into());let mut workspace=Workspace::default();workspace.open(entry.clone(),1,source.clone());
+ let entry=source_id(&virtual_uri("tsrust-agreement-callable")).unwrap();let mut workspace=Workspace::default();workspace.open(entry.clone(),1,source.clone());
  let analysis=match workspace.snapshot().check_with_diagnostics(&entry){Ok(analysis)=>analysis,Err(errors)=>{eprintln!("{}.{}: displayed contract did not check: {errors:?}",receiver.ty,name);return false;}};let facts=analysis.checked_type_facts();
  let find=|owner:&str,field:&str|facts.record_fields.iter().find(|(ty,n,_,_,_)|n==field && matches!(ty,ProjectType::Named{name,..} if name==owner)).map(|(_,_,_,ty,_)|ty);
  let parameter=source.find("function probe(").unwrap()+"function probe(".len();

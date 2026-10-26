@@ -13,6 +13,47 @@ pub struct ProjectIndex {
     /// The validated module graph of this index, for checks of a repaired module.
     graph: ProjectGraph,
 }
+
+#[cfg(test)]
+mod inherited_help_tests {
+    use super::*;
+    #[test]
+    fn imported_inherited_fields_keep_help_in_header_and_checked_indices() {
+        let root = crate::project_diagnostics::canonical_path(&std::env::temp_dir().join("tsrust-inherited-help"));
+        let mut workspace = crate::workspace::Workspace::default();
+        let sources = [
+            ("base.tsr", "export interface Base<T>{/** Base value contract. */value:T;}"),
+            ("leaf.tsr", "import {Base} from './base';export interface Middle<T> extends Base<T>{}export interface Leaf extends Middle<string>{}export interface Override{/** Local value contract. */value:string;}"),
+            ("main.tsr", "import {Leaf,Override,Middle} from './leaf';function inspect(base:ReadOnly<Leaf>,own:ReadOnly<Override>,generic:ReadOnly<Middle<string>>){const first=base.value;const second=own.value;const third=generic.value;}function main(){}"),
+        ];
+        let mut text = String::new();
+        for (name, source) in sources {
+            let formatted = tsrust_compiler::format(source).unwrap();
+            assert_eq!(tsrust_compiler::format(&formatted).unwrap(), formatted);
+            if name == "main.tsr" { text = formatted.clone(); }
+            workspace.open(SourceId(root.join(name).to_str().unwrap().into()), 1, formatted);
+        }
+        let entry = SourceId(root.join("main.tsr").to_str().unwrap().into());
+        let analysis = workspace.snapshot().check_with_diagnostics(&entry).unwrap();
+        let uri = file_uri(&entry).unwrap();
+        for (phase, index) in [("headers", ProjectIndex::new(&analysis.graph)), ("checked", ProjectIndex::checked(&analysis))] {
+            for (needle, expected, excluded) in [("base.value", "Base value contract", "Local value contract"), ("own.value", "Local value contract", "Base value contract"), ("generic.value", "Base value contract", "Local value contract")] {
+                let at = text.find(needle).unwrap() + needle.find('.').unwrap() + 2;
+                let start = text[..at].rfind('\n').map_or(0, |offset| offset + 1);
+                let params = serde_json::json!({"textDocument":{"uri":uri},"position":{"line":text[..at].matches('\n').count(),"character":text[start..at].encode_utf16().count()}});
+                let result = index.request("textDocument/hover", &params, uri.as_str()).unwrap().unwrap();
+                assert!(result.to_string().contains(expected) && !result.to_string().contains(excluded), "{phase} {needle}: {result}; fields: {:?}", analysis.checked_type_facts().record_fields);
+            }
+        }
+        // Redeclaring an inherited field is a compiler rejection, not a legal
+        // way to override its documentation. Keep that boundary explicit.
+        let invalid = tsrust_compiler::format("import {Base} from './base';export interface Middle<T> extends Base<T>{}export interface Override extends Middle<string>{/** Local value contract. */value:string;}").unwrap();
+        assert_eq!(tsrust_compiler::format(&invalid).unwrap(),invalid);
+        let leaf = SourceId(root.join("leaf.tsr").to_str().unwrap().into());
+        workspace.change(&leaf, 2, invalid);
+        assert!(workspace.snapshot().check_with_diagnostics(&leaf).err().unwrap().iter().any(|error|error.code=="duplicate" && error.message.contains("value")));
+    }
+}
 impl ProjectIndex {
     pub fn checked(analysis: &tsrust_compiler::project::ProjectAnalysis) -> Self {
         let mut index = Self::build(&analysis.graph);

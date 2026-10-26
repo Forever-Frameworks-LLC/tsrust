@@ -1,5 +1,14 @@
 # Paired Table implementation
 
+Windows continuation, 2026-10-26: the memory investigation has bounded ownership,
+scan and protocol evidence at local checkpoint `7b18073a`; required editor agreement
+acceptance is still running. A read-only `ui add table --cwd docs --dry-run --json`
+found generated host separators rejected by the installer's strict portable-path
+guard. The prerequisite repair normalizes only generated component, versioned and
+attribution paths before validation/lock serialization. Authored config/catalog
+validation stays strict. This repair is implemented but unvalidated. No Table
+source, lock registration, browser or native acceptance is implied.
+
 This section is in validation. It is not accepted until generated-native, editor
 and actual browser checks complete. Reuse the earlier theme, ownership, window,
 navigation and Markdown evidence; no full regression or benchmark run is implied.
