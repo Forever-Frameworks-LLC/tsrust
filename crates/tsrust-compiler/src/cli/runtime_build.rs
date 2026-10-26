@@ -90,7 +90,11 @@ impl Prepared {
  pub fn publish(&self) {if let (Some(cache),Some(library))=(&self.cache,&self.library){let artifact=if let (Some(dependencies),Some(packed))=(&self.dependencies,&self.packed) {
    if crate::native_dependency_bundle::pack(library,dependencies,packed).is_err(){return;}packed
   }else{library};let _=if self.opportunistic{cache.try_publish(artifact)}else{cache.publish(artifact)};}}
- pub fn link(&self,command:&mut Command) {if let Some(dependencies)=&self.dependencies {command.arg("-L").arg(format!("dependency={}",dependencies.display()));}if let Some(library)=&self.library {command.arg("--extern").arg(format!("tsrust_runtime={}",library.display()));}}
+ pub fn link(&self,command:&mut Command)->Result<(),String> {if let Some(dependencies)=&self.dependencies {
+  let imports=crate::native_dependency_bundle::restore_import_libraries(dependencies).map_err(|e|e.to_string())?;
+  command.arg("-L").arg(format!("dependency={}",dependencies.display()));
+  if imports>0{command.arg("-L").arg(format!("native={}",dependencies.display()));}
+ }if let Some(library)=&self.library {command.arg("--extern").arg(format!("tsrust_runtime={}",library.display()));}Ok(())}
 }
 
 /// UI rendering must remain responsive in development; omit bulky dependency debug symbols.
@@ -117,7 +121,7 @@ pub(crate) fn profiles(native_ui: bool) -> &'static str {
    let stamp=fs::metadata(&json).unwrap().modified().unwrap();
    if let Some((previous_package,previous_json,previous_stamp))=&previous {assert_eq!(&package,previous_package);assert_eq!(&json,previous_json);assert_eq!(&stamp,previous_stamp);assert!(!String::from_utf8_lossy(&output.stderr).contains("Compiling serde_json"));}
    previous=Some((package,json,stamp));prepared.publish();
-   let binary=temporary.join("program");let mut command=crate::backend_command();prepared.link(&mut command);let output=command.arg("--edition=2024").arg(&prepared.application).arg("-o").arg(&binary).output().unwrap();assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));assert!(Command::new(binary).status().unwrap().success());
+   let binary=temporary.join("program");let mut command=crate::backend_command();prepared.link(&mut command).unwrap();let output=command.arg("--edition=2024").arg(&prepared.application).arg("-o").arg(&binary).output().unwrap();assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));assert!(Command::new(binary).status().unwrap().success());
   }
  }
 }

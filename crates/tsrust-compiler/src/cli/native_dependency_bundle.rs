@@ -23,6 +23,39 @@ pub(crate) fn materialize(root: &Path) -> io::Result<()> {
 // selected features; increment the protocol when build settings change.
 pub(crate) const IDENTITY:&str=concat!("native-dependencies-1\n",include_str!("../../native-dependencies/Cargo.toml"),include_str!("../../native-dependencies/Cargo.lock"));
 
+/// windows-targets records a native DLL import-library name in its rlib, but
+/// Cargo's native search path is not retained by the application rustc command.
+/// Recreate the host-matching imports from the same pinned source closure on
+/// both fresh builds and cache restores; existing TSRLIB2 artifacts stay valid.
+pub(crate) fn restore_import_libraries(root:&Path)->io::Result<usize> {
+    #[cfg(not(all(windows,target_env="msvc")))] {let _=root;Ok(0)}
+    #[cfg(all(windows,target_env="msvc"))] {
+        use std::io::Write;
+        if fs::symlink_metadata(root)?.file_type().is_symlink(){return Err(io::Error::other("Native dependency directory cannot be a symlink"));}
+        let mut needed=false;
+        for entry in fs::read_dir(root)? {let entry=entry?;if entry.file_type()?.is_file()&&entry.file_name().to_str().is_some_and(|name|name.starts_with("libwindows_targets-")&&name.ends_with(".rlib")){needed=true;break;}}
+        if !needed{return Ok(0);}
+        let architecture=match std::env::consts::ARCH {"x86"=>"i686",value=>value};
+        let prefix=format!("vendor/windows_{architecture}_msvc-");let mut count=0;
+        for (relative,bytes) in FILES {
+            if !relative.starts_with(prefix.as_str())||!relative.ends_with(".lib"){continue;}
+            let name=Path::new(relative).file_name().ok_or_else(||io::Error::other("Invalid bundled native import path"))?;
+            let path=root.join(name);
+            match fs::OpenOptions::new().write(true).create_new(true).open(&path) {
+                Ok(mut output)=>output.write_all(bytes)?,
+                Err(error) if error.kind()==io::ErrorKind::AlreadyExists=>{
+                    let metadata=fs::symlink_metadata(&path)?;
+                    if !metadata.is_file()||metadata.file_type().is_symlink()||metadata.len()!=bytes.len() as u64||fs::read(&path)?.as_slice()!=*bytes{return Err(io::Error::other(format!("Native import library differs from pinned bytes; preserved {}",path.display())));}
+                },
+                Err(error)=>return Err(error),
+            }
+            count+=1;
+        }
+        if count==0{return Err(io::Error::other("Pinned native bundle lacks this Windows host's import libraries"));}
+        Ok(count)
+    }
+}
+
 pub(crate) fn pack(library:&Path,dependencies:&Path,destination:&Path)->io::Result<()> {
     use std::io::Write;
     let mut files=Vec::new();
@@ -65,6 +98,24 @@ pub(crate) fn unpack(source:&Path,destination:&Path)->io::Result<()> {
 #[cfg(test)]
 mod artifact_tests {
     use super::*;
+    #[cfg(all(windows,target_env="msvc"))]
+    #[test]
+    fn windows_imports_restore_exactly_after_artifact_round_trip_and_preserve_unexpected_bytes(){
+        let temporary=crate::TempDirectory::new().unwrap();let root=&temporary.0;
+        let dependencies=root.join("deps");fs::create_dir(&dependencies).unwrap();
+        fs::write(dependencies.join("libwindows_targets-witness.rlib"),b"target metadata").unwrap();
+        let library=root.join("libtsrust_runtime.rlib");fs::write(&library,b"runtime").unwrap();
+        assert!(restore_import_libraries(&dependencies).unwrap()>0);
+        let imports=fs::read_dir(&dependencies).unwrap().map(Result::unwrap).filter(|file|file.path().extension().is_some_and(|value|value=="lib")).map(|file|(file.file_name(),fs::read(file.path()).unwrap())).collect::<Vec<_>>();
+        assert!(!imports.is_empty());
+        let packed=root.join("packed");pack(&library,&dependencies,&packed).unwrap();let restored=root.join("restored");unpack(&packed,&restored).unwrap();
+        assert!(imports.iter().all(|(name,_)|!restored.join(name).exists()),"imports are derived from pinned compiler inputs, not a changed cache format");
+        assert_eq!(restore_import_libraries(&restored).unwrap(),imports.len());
+        for (name,bytes) in &imports{assert_eq!(fs::read(restored.join(name)).unwrap(),*bytes);}
+        assert_eq!(restore_import_libraries(&restored).unwrap(),imports.len());
+        let occupied=restored.join(&imports[0].0);fs::write(&occupied,b"owner bytes").unwrap();
+        assert!(restore_import_libraries(&restored).is_err());assert_eq!(fs::read(occupied).unwrap(),b"owner bytes");
+    }
     #[test]
     fn artifact_round_trip_preserves_bytes_and_dependency_identity() {
         let directory=std::env::temp_dir().join(format!("tsrust-bundle-roundtrip-{}",std::process::id()));

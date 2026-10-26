@@ -70,7 +70,7 @@ fn compile(source:&str,backend:&str,root:&Path,execute:Option<&Path>)->Result<()
  fs::create_dir(root).map_err(|error|error.to_string())?;
  let mut prepared=crate::runtime_build::Prepared::new(source,backend,&root.parent().unwrap().join("runtime-cache"),root,false)?;
  if let Some(mut command)=prepared.command.take(){let output=command.output().map_err(|error|error.to_string())?;if !output.status.success(){return Err(format!("Candidate Rust dependency build failed:\n{}",String::from_utf8_lossy(&output.stderr)));}prepared.publish();}
- let executable=root.join("program");let mut command=crate::backend_command();prepared.link(&mut command);
+ let executable=root.join("program");let mut command=crate::backend_command();prepared.link(&mut command)?;
  let output=command.args(["--edition=2024","-C","overflow-checks=on"]).arg(&prepared.application).arg("-o").arg(&executable).output().map_err(|error|error.to_string())?;
  if !output.status.success(){return Err(format!("Candidate adapter/caller compilation failed:\n{}",String::from_utf8_lossy(&output.stderr)));}
  if let Some(project)=execute{let output=std::process::Command::new(&executable).current_dir(project).env("TSRUST_TEST_REPORTER","pretty").env("TSRUST_COLOR","never").output().map_err(|error|error.to_string())?;print!("{}",String::from_utf8_lossy(&output.stdout));if !output.status.success(){return Err(format!("Candidate project tests failed:\n{}\n{}",String::from_utf8_lossy(&output.stdout),String::from_utf8_lossy(&output.stderr)));}}

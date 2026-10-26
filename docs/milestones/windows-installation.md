@@ -188,4 +188,43 @@ Windows native renderer foundation passes: offline `cargo build --locked -p
 through its resize sequence and exits normally, printing `GPU frame presented;
 event loop closed`. No claim of complete glyph, input or generated-source parity
 is inferred from this narrow renderer witness. A generated native UI project now
-checks/formats successfully; its offline application backend is still building.
+checks/formats successfully; its offline application backend is accepted below.
+
+## Generated Windows UI and native import libraries
+
+Based on adc0f5d5, the generated app initially failed LNK1181 for
+windows.0.52.0.lib after its complete offline runtime compile. The pinned compiler
+bundle already contains that library. The shared runtime linker now restores
+host-matching MSVC imports beside dependency rlibs and adds their native search
+path. Ordinary builds, dev and package validation share this fallible operation.
+Unexpected existing files and symlinks are rejected without replacement. Other
+hosts and runtimes without windows-targets are unchanged.
+
+The existing TSRLIB2 format and native dependency identity remain valid. The
+focused artifact witness proves exact import bytes after pack/unpack, repeat
+restoration, and preservation of unexpected owner bytes. The two artifact tests
+pass; log: target/windows-native-import-tests.log. The current compiler also builds
+through the normal integration dependency graph; no Unix integration execution is
+claimed. No cold runtime compilation was repeated.
+
+The current normal compiler successfully builds target/windows-ui-setup using
+TSRUST_CACHE_DIR=D:/ai_dev/tsrust/target/tsrust-native, one Cargo job and incremental
+compilation disabled. target/windows-ui-generated-link-repair.log records
+runtime=hit and successful linking in 14.88 seconds. Its generated source had
+already passed check and stable formatting. The retained native workspace is
+runtime/build-v1/6be45785ffc2ba6b; compiled dependency caches remain preserved.
+
+Computer Use inspected the actual generated Tsrust UI window. The first observed
+counter value was 1, so no initial-zero assertion is claimed. One mouse click
+changed 1 to 2, focused Space changed 2 to 3, and Return changed 3 to 4. Captures
+showed legible Count text, the Increment button and its keyboard focus ring.
+Accessibility exposed the named button and focused element. Clicking the observed
+Close control exited the owned process 0. The initial Computer Use approval timed
+out; the owner requested another attempt, then access succeeded. No claims about
+clipboard, all glyphs, complete accessibility semantics or other platforms follow
+from this counter witness.
+
+Whole-project formatting reports zero changed files and fingerprints. The verified
+normal CLI refreshed the existing Cargo-installed compiler; source and installed
+SHA-256 match: 1f04114cd77b11d91d11133ce8a43fb49c8dbec03ca911e452ce4837a395fa78.
+Installed version remains 0.1.0. No release, tag, push or hosted CI was used.

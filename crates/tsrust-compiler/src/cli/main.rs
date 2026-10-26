@@ -409,7 +409,7 @@ fn run() -> Result<u8, String> {
             prepared.publish();
         }
         if env::var("TSRUST_BUILD_TIMINGS").as_deref()==Ok("1"){eprintln!("[build] runtime={}",prepared.state);}
-        let mut command=backend_command();prepared.link(&mut command);
+        let mut command=backend_command();prepared.link(&mut command)?;
         let result = command
             .arg("--edition=2024")
             .args([

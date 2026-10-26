@@ -255,3 +255,35 @@ bundle. Verify before deciding. Link callers: main.rs, dev_cli.rs,
 package_validation.rs and a runtime_build test. Preserve errors and never overwrite
 an unexpected existing native artifact. Add exact byte/restoration witnesses and
 run the existing generated UI build from its retained cache, then real interaction.
+
+## Native Windows import libraries accepted
+
+Based on adc0f5d5. Shared fallible Prepared.link restores host-matching MSVC
+windows-targets imports from the pinned FILES closure, adds native search lookup,
+and propagates errors through ordinary builds, dev and package validation. No
+cache-format migration or cold runtime rebuild was needed. Exclusive creation
+and exact length/byte checks preserve unexpected files; symlinks are rejected.
+
+Both artifact tests pass on final source (1m52s build, 0.10s execution), covering
+existing TSRLIB2 round trip, exact restored imports, idempotence and owner-byte
+preservation. The normal CLI integration graph builds successfully. The retained
+UI fixture links successfully with runtime=hit (14.88s native/link), log
+target/windows-ui-generated-link-repair.log. Computer Use verified visible Count
+1 -> 2 by click, 2 -> 3 by Space and 3 -> 4 by Return, with named accessible button
+and visible keyboard focus. Close exited the owned app 0. Initial-zero, clipboard,
+complete glyph/accessibility and other-platform acceptance remain unclaimed.
+The first approval timed out; the owner's requested retry succeeded. No test
+window remains. The final focused Cargo test is terminal, exit 0.
+
+Whole-project formatting changed zero files/fingerprints. Installed normal CLI
+and source SHA-256 match:
+1f04114cd77b11d91d11133ce8a43fb49c8dbec03ca911e452ce4837a395fa78.
+Installed version 0.1.0; LSP/VSIX remain previously accepted. Windows generated UI
+checklist item is complete; original required continuation scope remains open.
+See milestones/windows-installation.md for exact limits and evidence.
+
+Next: checkpoint this coherent repair locally, prune its now-disposable test
+executables/symbols after inventory, then resume the preserved inherited Table
+help failure and component acceptance. Preserve the installed compiler, retained
+native dependency cache, measurements.sqlite, owner .agents/, agent-goal.md and
+examples/windows-setup/wut/. No remote CI, push, tag or release occurred.

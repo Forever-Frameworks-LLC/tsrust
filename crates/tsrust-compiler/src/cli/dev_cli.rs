@@ -153,7 +153,7 @@ mod platform {
             if verbose{eprintln!("[build] runtime={}",prepared.state);}
             // A file avoids pipe backpressure while the supervisor watches edits.
             let errors=files.0.join("backend.stderr");
-            let mut command=crate::backend_command();prepared.link(&mut command);
+            let mut command=crate::backend_command();prepared.link(&mut command)?;
             command.current_dir(root).arg("--edition=2024").args(["-C",if release{"opt-level=3"}else{"opt-level=0"}]).args(["-C","overflow-checks=on"]).arg(&prepared.application).arg("-o").arg(&binary)
                 .stdout(std::process::Stdio::null()).stderr(std::fs::File::create(&errors).map_err(|e|e.to_string())?);
             let mut compiler=Process::spawn(&mut command)?;

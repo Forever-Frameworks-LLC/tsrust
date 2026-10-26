@@ -10,9 +10,10 @@ contracts or turn historical acceptance into Windows acceptance.
 - [x] Support native development rebuild/recovery and owned-process shutdown on Windows.
 - [x] Restore normal launcher interaction and generate project/component agent guidance.
   See [CLI acceptance](../milestones/cli-agent-guidance.md).
-- [ ] Complete generated native UI application linking and real input acceptance.
-  The renderer foundation presents/resizes/closes; generated app linking currently
-  lacks the windows.0.52.0.lib import library. Preserve its completed compile.
+- [x] Complete generated native UI application linking and real input acceptance.
+  Pinned MSVC import libraries restore from the existing runtime cache. The generated
+  counter passes mouse, Space and Enter activation, visible updates and clean close.
+  See [Windows evidence](../milestones/windows-installation.md).
 
 ## Required sections
 
