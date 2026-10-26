@@ -18,6 +18,12 @@ use std::collections::{BTreeMap, BTreeSet};
 use support::session::Session;
 use tsrust_lsp::{project_diagnostics::source_id, workspace::Workspace};
 
+fn virtual_uri(directory: &str) -> String {
+    tsrust_lsp::project_diagnostics::file_uri(&tsrust_compiler::project::SourceId(
+        std::env::temp_dir().join(directory).join("main.tsr").to_str().unwrap().into(),
+    )).unwrap().to_string()
+}
+
 const PRELUDE: &str = "import {ReactiveValue,LazyChildren,Child,TextBinding,SvgProps,PathProps,Node,Computed,Reactive,ViewRenderProps,ButtonRenderProps,InputTarget,InputChangeEvent,TextFieldProps,InputProps,TextareaProps,ReactiveInputValue,Signal,ThemeConfig,ThemeTypography,ThemeRadius,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {CryptoError} from 'std:crypto';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
 
 /// A receiver `x` of one type inside `probe`.
@@ -173,7 +179,7 @@ fn prelude(parameter: &str) -> String {
 fn diagnostic(body: &str, parameter: &str) -> Option<(String, String)> {
     let prelude = prelude(parameter);
     let source = format!("{prelude}function probe({parameter}) {{\n  {body}\n}}\nfunction main() {{}}\n");
-    let entry = source_id("file:///tsrust-agreement/main.tsr").unwrap();
+    let entry = source_id(&virtual_uri("tsrust-agreement")).unwrap();
     let mut workspace = Workspace::default();
     workspace.open(entry.clone(), 1, source);
     workspace.snapshot().check_with_diagnostics(&entry).err().map(|errors| (errors[0].code.to_owned(), errors[0].message.clone()))
@@ -344,7 +350,8 @@ fn completion_offers_the_fields_the_checker_accepts_and_no_method_it_rejects() {
 fn generic_prop_callback_details_keep_public_nominal_names() {
     use tsrust_lsp::project_intelligence::ProjectIndex;
     let source=format!("{PRELUDE}function probe(x:ReadOnly<ViewProps>){{if(x.render===undefined){{}}}}function main(){{}}");
-    let uri="file:///tsrust-prop-details/main.tsr";
+    let uri=virtual_uri("tsrust-prop-details");
+    let uri=uri.as_str();
     let entry=source_id(uri).unwrap();
     let mut workspace=Workspace::default();
     workspace.open(entry.clone(),1,source.clone());

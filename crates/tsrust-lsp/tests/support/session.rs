@@ -81,7 +81,9 @@ impl Session {
     }
 
     pub fn uri(&self, name: &str) -> String {
-        format!("file://{}/{name}", self.root.display())
+        tsrust_lsp::project_diagnostics::file_uri(&tsrust_compiler::project::SourceId(
+            self.root.join(name).to_str().unwrap().into(),
+        )).unwrap().to_string()
     }
 
     fn send(&mut self, message: Message) {

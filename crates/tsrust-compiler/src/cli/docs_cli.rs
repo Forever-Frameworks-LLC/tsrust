@@ -140,6 +140,7 @@ pub(super) fn watched_inputs(root:&Path)->Result<Vec<PathBuf>,String>{
     let mut paths=relative.into_iter().map(|path|file(root,&path)).collect::<Result<Vec<_>,_>>()?;paths.sort();paths.dedup();Ok(paths)
 }
 /// Compare publication inputs to the exact dev snapshot, including additions/deletions.
+#[cfg(unix)]
 pub(super) fn matches_snapshot(root:&Path,inputs:&crate::dev_watch::Inputs)->Result<bool,String>{
     let Some(config)=inputs.get(&root.join(super::project_config::FILE)) else{return Ok(false);};
     let config:Value=serde_json::from_slice(config.bytes()).map_err(|error|error.to_string())?;
@@ -275,6 +276,7 @@ fn build(root:&Path)->Result<String,String>{
 #[cfg(test)]mod tests{
  use super::*;
  #[test]
+ #[cfg(unix)]
  fn dev_publication_must_match_the_exact_snapshot_after_content_changes(){
   let temp=crate::TempDirectory::new().unwrap();let root=temp.0.canonicalize().unwrap();fs::create_dir(root.join("content")).unwrap();fs::create_dir(root.join("src")).unwrap();
   fs::write(root.join("tsrust.config.json"),r#"{"schemaVersion":1,"name":"docs-watch","build":{"entry":"src/main.tsr","output":"target/app"},"documentation":{"content":"content","apiSources":[],"examples":[],"inventory":null}}"#).unwrap();

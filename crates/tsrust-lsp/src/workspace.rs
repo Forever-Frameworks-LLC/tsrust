@@ -136,6 +136,15 @@ fn disk_stamp(id: &SourceId) -> Option<DiskStamp> {
     })
 }
 impl WorkspaceSnapshot {
+    /// Retain only inputs actually observed by a completed analysis. Active jobs
+    /// still need every open buffer for resolution; cached results do not.
+    pub(crate) fn retained(&self) -> Self {
+        let mut retained = self.clone();
+        let observed = self.observed.borrow();
+        retained.open.retain(|id, _| observed.contains(id));
+        retained.revisions.retain(|id, _| observed.contains(id));
+        retained
+    }
     fn disk_current(&self) -> bool {
         self.consistent.get() && self.disk
             .borrow()
@@ -275,7 +284,7 @@ impl WorkspaceSnapshot {
         let normalized=normalize(path)?;
         let lexical=SourceId(normalized.to_str().ok_or("Source path must be valid UTF-8.")?.into());
         self.observed.borrow_mut().insert(lexical.clone());
-        let canonical=std::fs::canonicalize(&normalized).unwrap_or(normalized);
+        let canonical=crate::project_diagnostics::canonical_path(&normalized);
         let id=SourceId(canonical.to_str().ok_or("Source path must be valid UTF-8.")?.into());
         self.observed.borrow_mut().insert(id.clone());
         // A changed disk file does not override an open buffer. A lexical
@@ -308,6 +317,33 @@ impl WorkspaceSnapshot {
 #[cfg(test)]
 mod scan_input_tests {
     use super::*;
+    #[test]
+    fn retained_analysis_releases_unrelated_revisions_without_losing_dependency_guards() {
+        let root = std::env::temp_dir();
+        let dependency = SourceId(root.join("tsrust-retained-dependency.tsr").to_str().unwrap().into());
+        let unrelated = SourceId(root.join("tsrust-retained-unrelated.tsr").to_str().unwrap().into());
+        let mut workspace = Workspace::default();
+        workspace.open(dependency.clone(), 1, "export function value():int{return 7;}".into());
+        workspace.open(unrelated.clone(), 1, "old unrelated buffer".repeat(4096));
+        let active = workspace.snapshot();
+        let old = Arc::downgrade(&active.open[&unrelated].text);
+        active.read(&dependency).unwrap();
+        let retained = active.retained();
+        assert_eq!(retained.open_sources(), vec![dependency.clone()]);
+        assert_eq!(retained.version(&dependency), Some(1));
+        assert_eq!(retained.sources()[&dependency].as_str(), "export function value():int{return 7;}");
+        workspace.change(&unrelated, 2, "new unrelated buffer".into());
+        assert!(old.upgrade().is_some(), "active analysis still owns its immutable inputs");
+        drop(active);
+        assert!(old.upgrade().is_none(), "cached analysis must release unrelated old text");
+        assert!(workspace.current(&retained));
+        assert!(workspace.snapshot().can_reuse(&retained));
+        workspace.close(&dependency);
+        assert!(!workspace.current(&retained));
+        assert!(!workspace.snapshot().can_reuse(&retained));
+        workspace.open(dependency.clone(), 1, "export function value():int{return 9;}".into());
+        assert!(!workspace.current(&retained), "reopening the same version has a new generation");
+    }
     #[test]
     fn disk_config_creation_and_rewrite_invalidate_without_watch_notifications() {
         struct Scratch(PathBuf);
