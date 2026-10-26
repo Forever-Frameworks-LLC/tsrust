@@ -468,3 +468,44 @@ shared target and explicit installed WASM_BINDGEN. Port 4317 was free before sta
 Build the initial previews sequentially; keep both active once ready. The paired
 interaction entry remains useful for focused checks, but full docs previews are
 now explicitly requested. Record exact live handles/PIDs and public local URL.
+
+## Owner stopped runtime work while exploring JavaScript UI frameworks
+
+The owner authorized stopping running processes. On 2026-10-26 the two owned docs
+dev supervisors (26884 native/session 45919, 36680 web/session 47210) and two
+installed LSP processes (35532, 25876) were stopped. Immediate verification found
+no matching Tsrust, LSP, Cargo, rustc or diagnostic program and no listener on
+4317. Do not restart previews, LSPs or builds merely to resume this note; preserve
+the owner's current framework exploration. This is a process stop request, not a
+claim that the original finite goal completed.
+
+Latest accepted source checkpoint: 89656526. The docs web supervisor successfully
+built in 213.31s and rebuilt in 88.94s. The actual in-app browser displayed the
+landing page (Write TypeScript. Ship Native Rust.) with navigation and examples;
+it was marked deliverable. Its old URL http://127.0.0.1:4317/ is now offline.
+
+Full native docs initially built in 162.40s, then exited 0xc00000fd (stack overflow).
+The cached executable reserves 1,048,576 stack bytes, commit 4,096. Its x64 unwind
+metadata contains individual stack allocations up to 609,800 and 419,384 bytes.
+A diagnostic executable copy with only the PE stack reservation raised to 8 MiB
+passed that failure and exposed the docs' macOS-only custom-titlebar request.
+The only remaining source edit, docs/src/main.tsr, omits that explicit request
+and uses the existing portable native default. Both watchers rebuilt from it.
+Unmodified native output still overflows its 1 MiB stack. The second header-only
+8 MiB diagnostic copy launched the full desktop docs successfully; Computer Use
+observed the real documentation UI, navigation, accessible controls and Strings
+article. Its process 30588 had already exited before the stop inventory.
+
+Diagnostic files are compiler-owned outputs under target/docs-stack-diagnostic;
+original native cache bytes were preserved. The working titlebar-default docs
+cache entry is target/tsrust-native/v2/675f2b66efaa814b; original failing entry is
+faa47a49323fc6ba. No production compiler stack-policy fix was implemented or
+accepted. Do not describe the diagnostic header change as a source/backend fix.
+A future native fix must cover normal/dev/cache identity and standalone exports,
+with a real Windows large-stack execution witness, rather than silently mutating
+cached executable headers. Browser source/runtime and native/UI framework choices
+can now be reconsidered under the owner's new direction.
+
+Preserve the owner's untracked .agents/, docs/agent-goal.md and newly observed
+docs/plans/backend-platform-pivot.md; it was not read or treated as a new request.
+No release, push, remote CI, analytics import or source archive was created.
