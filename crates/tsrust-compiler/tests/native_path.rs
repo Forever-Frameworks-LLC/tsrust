@@ -218,7 +218,7 @@ fn join_matches_independent_posix_and_windows_references() {
     }
     cases.push((0..1024).map(|i|["a","..","é😊",""][i%4].into()).collect());
     cases.push(vec!["é😊".repeat(8192),"..".into(),"report".into()]);
-    let mut node=Command::new("/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node")
+    let mut node=Command::new("node")
         .args(["-e","const p=require('node:path');const cases=JSON.parse(require('node:fs').readFileSync(0,'utf8'));console.log(cases.flatMap(parts=>[p.posix.join(...parts),p.win32.join(...parts)]).map(value=>Buffer.from(value).toString('hex')).join('\\n'));"])
         .stdin(Stdio::piped()).stdout(Stdio::piped()).spawn().unwrap();
     node.stdin.take().unwrap().write_all(format!("{cases:?}").as_bytes()).unwrap();

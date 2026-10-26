@@ -1,5 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
+fs.copyFileSync(path.resolve(__dirname, '../../../LICENSE'), 'LICENSE');
 const result = require('esbuild').buildSync({
   entryPoints: ['src/extension.ts'], bundle: true, platform: 'node',
   target: 'node20', format: 'cjs', outfile: 'out/extension.js', external: ['vscode'],

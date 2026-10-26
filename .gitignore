@@ -34,3 +34,7 @@ __pycache__/
 
 /benchmarks/decimal/node_modules/
 /benchmarks/calendar/node_modules/
+
+# Copied from the root license while packaging the editor.
+/editors/vscode/LICENSE
+/dist/

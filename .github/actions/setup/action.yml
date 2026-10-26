@@ -1,0 +1,25 @@
+name: Set up Tsrust build
+description: Install the repository toolchain and fetch both locked source closures.
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version: 24.11.1
+        package-manager-cache: false
+    - name: Install pinned Rust
+      shell: bash
+      run: |
+        version=$(python3 -c 'import tomllib; print(tomllib.load(open("rust-toolchain.toml", "rb"))["toolchain"]["channel"])')
+        rustup toolchain install "$version" --profile minimal --component rustfmt --component clippy
+    - name: Install Linux native build dependencies
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake pkg-config libxkbcommon-dev libwayland-dev libudev-dev libx11-dev libxrandr-dev libxi-dev libxcursor-dev libxinerama-dev
+    - name: Fetch locked dependencies
+      shell: bash
+      run: |
+        cargo fetch --locked
+        cargo fetch --locked --manifest-path crates/tsrust-compiler/native-dependencies/Cargo.toml

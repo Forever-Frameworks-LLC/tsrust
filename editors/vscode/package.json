@@ -4,7 +4,7 @@
   "description": "Tsrust diagnostics, documentation hover, autocomplete, signatures and source navigation.",
   "version": "0.2.0",
   "publisher": "tsrust-local",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "engines": {
     "vscode": "^1.100.0"
   },
@@ -173,5 +173,14 @@
     "typescript": "^5.9.0",
     "vscode-textmate": "^9.2.0",
     "vscode-oniguruma": "^2.0.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Forever-Frameworks-LLC/tsrust.git",
+    "directory": "editors/vscode"
+  },
+  "homepage": "https://github.com/Forever-Frameworks-LLC/tsrust#readme",
+  "bugs": {
+    "url": "https://github.com/Forever-Frameworks-LLC/tsrust/issues"
   }
 }

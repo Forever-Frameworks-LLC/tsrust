@@ -1748,7 +1748,7 @@ fn os_identity_zero_argument_native_contract() {
     let entry = support::format_round_trip("import {platform as target,arch} from 'std:os';import {strictEqual} from 'std:testing';function main(){const stored=target;const system:string=stored();const cpu:string=arch();strictEqual(system,target());strictEqual(cpu,arch());console.log(system,cpu);}");
     let memory=Memory::new(&[("main.tsr",&entry)]);
     let checked=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
-    let reference=std::process::Command::new("/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node").args(["-e","console.log(require('node:os').platform(),require('node:os').arch())"]).output().unwrap();
+    let reference=std::process::Command::new("node").args(["-e","console.log(require('node:os').platform(),require('node:os').arch())"]).output().unwrap();
     assert!(reference.status.success());
     for optimization in ["0","3"] {assert_eq!(native_stdout(&checked.emit_rust(),optimization),String::from_utf8(reference.stdout.clone()).unwrap());}
     for name in ["platform","arch"] {

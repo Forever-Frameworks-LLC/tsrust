@@ -1,0 +1,96 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      full_regressions:
+        description: Run the complete workspace regression suite (slow).
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      full_regressions:
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  CARGO_INCREMENTAL: '0'
+  CARGO_BUILD_JOBS: '1'
+  RUST_TEST_THREADS: '1'
+  CARGO_TARGET_DIR: ${{ github.workspace }}/target
+  CARGO_PROFILE_DEV_DEBUG: '0'
+  CARGO_PROFILE_TEST_DEBUG: '0'
+  CARGO_TERM_COLOR: always
+jobs:
+  source:
+    name: Compiler, LSP and renderer (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Compile both consumers
+        run: cargo build --offline --locked --bin tsrust --bin tsrust-lsp
+      - name: Check project formatting
+        run: target/debug/tsrust format . --check --color never
+      - name: Check release tooling and public documentation
+        run: node --test tools/tests/distribution.test.mjs
+      - name: Compiler and CLI acceptance
+        if: ${{ !inputs.full_regressions }}
+        run: cargo test --offline --locked -p tsrust-compiler --lib --bin tsrust --test acceptance --test project_commands --test formatting --test native_dependency_bundle
+      - name: LSP transport and compiler agreement
+        if: ${{ !inputs.full_regressions }}
+        run: cargo test --offline --locked -p tsrust-lsp --lib --bin tsrust-lsp --test stdio --test checker_agreement --test completion_matrix --test editor_consistency
+      - name: Complete regressions
+        if: ${{ inputs.full_regressions }}
+        run: |
+          cargo test --offline --locked --workspace --lib --bins --tests --no-fail-fast
+          cargo test --offline --locked --workspace --doc
+      - name: Native renderer model and layout checks
+        run: cargo test --offline --locked -p tsrust-ui --features native --lib
+      - name: Clippy
+        run: cargo clippy --offline --locked --workspace --lib --bins -- -D warnings
+  editor:
+    name: VS Code extension
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.11.1
+          package-manager-cache: false
+      - run: npm --prefix editors/vscode ci
+      - run: npm --prefix editors/vscode test
+      - run: npm --prefix editors/vscode run package
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vscode-extension
+          path: editors/vscode/*.vsix
+          if-no-files-found: error
+          retention-days: 7
+  ci:
+    name: CI
+    if: always()
+    needs: [source, editor]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require all checks
+        env:
+          SOURCE_RESULT: ${{ needs.source.result }}
+          EDITOR_RESULT: ${{ needs.editor.result }}
+        run: test "$SOURCE_RESULT" = success && test "$EDITOR_RESULT" = success

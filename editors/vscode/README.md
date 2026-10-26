@@ -1,97 +1,108 @@
 # Tsrust for VS Code
 
-Local editor support for `.tsr`: a file icon, syntax highlighting, documentation hover, argument help, autocomplete, source navigation, snippets, and live syntax, type and ownership errors from the actual Tsrust compiler. Errors include related transfer/access locations and appear in Problems. Unsaved files and untitled Tsrust buffers are checked in memory; Rust code generation and rustc are not involved.
+Editor support for `.tsr` and `.tsrx`: syntax highlighting, compiler diagnostics,
+completion, documentation hover, argument help, navigation, formatting and run
+commands. The Rust language server shares the compiler's analysis library.
 
-Workspace diagnostics scan `.tsr` files recursively, including unopened files.
-They skip `.git`, `node_modules`, `target` and symlinks during discovery. Open
-buffers override disk contents, including unsaved new files. File watcher changes
-and workspace folder changes schedule a fresh scan; deleted files and removed
-folders have their old diagnostics cleared. Opening a file outside the workspace
-still checks that file. Syntax recovery reports multiple statement errors. Semantic checking also reports
-independent type and ownership errors, suppressing follow-on name errors from an
-invalid declaration. Invalid returns and control jumps remain intact while checking
-continues in independent functions. Structurally invalid declarations can still
-limit recovery within the affected region.
+Tsrust and this extension are experimental. The current language server has an
+unresolved report of excessive memory use in long workspace sessions. Avoid large
+workspace scans until resolved; stop or disable the extension for the workspace
+if memory grows. Unexpected server termination does not trigger a restart loop.
 
+## Install
 
-## Build and install locally
+Download the `.vsix` asset from
+[GitHub Releases](https://github.com/Forever-Frameworks-LLC/tsrust/releases) and
+choose **Extensions → Install from VSIX**. Until releases are available, build
+locally using the instructions below. Marketplace publication is not configured.
 
-From the repository root, with its pinned Rust toolchain and Node.js 22 or newer:
+The extension bundles its JavaScript client and third-party notices. It does
+**not** include `tsrust` or `tsrust-lsp`; install both from the matching toolchain
+archive or build them from source.
+
+The extension finds executables beside an explicitly configured companion first,
+then in `~/.cargo/bin` and absolute PATH entries. A configured path must point to
+an executable and is never silently ignored. For a custom installation:
+
+```json
+{
+  "tsrust.compiler.path": "/absolute/path/to/tsrust",
+  "tsrust.server.path": "/absolute/path/to/tsrust-lsp"
+}
+```
+
+Use user settings to share paths across projects. Open a `.tsr` or `.tsrx` file
+in a trusted workspace. **View → Output → Tsrust** shows startup and protocol
+errors. Run **Tsrust: Restart Language Server** after replacing its executable;
+**Developer: Reload Window** reloads extension updates.
+
+Checking and formatting require no external Rust compiler. **Run File** and
+native builds require Rustup, the pinned Rust backend and a system linker.
+See [installation](../../docs/content/getting-started/installation.md).
+
+## Use
+
+- **Tsrust: Run File** saves and executes the current file. The editor play
+  button invokes the same command.
+- **Tsrust: Check File** runs a compiler check.
+- **Format Document** and **Tsrust: Format Document** use the shared formatter.
+- Hover and signature help explain supported APIs, argument contracts and errors.
+- Completion and navigation work with project imports and unsaved source.
+- Quick fixes appear only when the proposed edit passes the relevant check.
+
+`tsrust.checkOnSave` and `tsrust.formatOnSave` enable explicit save actions.
+Live diagnostics already run while typing. `tsrust.analysis.debounceMs` adjusts
+the delay after edits; its default is 200 ms. Changing executable or analysis
+settings restarts the server.
+
+Workspace discovery excludes `.git`, `node_modules`, `target` and symlinks.
+Open buffers override disk contents. Project diagnostics include dependencies
+and unopened source. Unsupported syntax or an unfinished declaration can still
+limit recovery; an absent answer is not proof that an API does not exist.
+Report a reproducible compiler/editor disagreement as a bug.
+
+UI projects have an explicit bootstrap at `src/main.tsr` and root component at
+`src/app/page.tsrx`. Open the project root for config-aware diagnostics and JSX
+completion. See [project structure](../../docs/content/getting-started/project-structure.md).
+
+## Build locally
+
+From the repository root, with Node.js 24, npm and the pinned Rust toolchain:
 
 ```sh
 cargo fetch --locked
-CARGO_INCREMENTAL=0 CARGO_TARGET_DIR=target/editor cargo build --offline --locked --release -p tsrust-lsp
+cargo fetch --locked --manifest-path crates/tsrust-compiler/native-dependencies/Cargo.toml
+CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 cargo build --offline --locked --release --bin tsrust --bin tsrust-lsp
 npm --prefix editors/vscode ci
 npm --prefix editors/vscode run package
 code --install-extension editors/vscode/tsrust-0.2.0.vsix --force
 ```
 
-The compiler and server have pinned dependencies; `cargo fetch --locked` downloads them once before offline builds. The VSIX bundles its JavaScript dependencies and their license notices, but does not contain the Rust server binary. Nothing is published to the Marketplace.
-
-Install both `tsrust` and `tsrust-lsp` in `~/.cargo/bin` or an absolute directory on PATH. New projects need no editor settings. The extension searches beside an explicitly configured companion executable first, then `~/.cargo/bin`, then absolute PATH entries. Explicit overrides must point to executable files and are never silently ignored.
-
-For development builds, optionally set **Tsrust › Server: Path** to an absolute path. For example:
-
-```json
-{
-  "tsrust.server.path": "/Users/seancotter/Desktop/dev/learning/tsrust/target/editor/release/tsrust-lsp",
-  "tsrust.analysis.debounceMs": 200
-}
-```
-
-Set it in user settings to reuse the binary across projects, or workspace settings for this project. After upgrading, run **Developer: Reload Window** once to load the new extension contributions. Open a `.tsr` file in a trusted workspace. Settings changes restart the server. **Tsrust: Restart Language Server** and the Tsrust status-bar entry restart it manually. **View → Output → Tsrust** shows startup/protocol errors. A missing executable leaves highlighting available and explains the required setup. Unexpected server termination leaves a stopped status; there is no automatic restart loop.
-
-Remove the extension with `code --uninstall-extension tsrust-local.tsrust` or the Extensions panel. Remove the Tsrust settings if no longer needed.
-
-## Supported limits
-
-Each file is a separate single-file program. The compiler reports its first error and checks the whole file, so unfinished syntax can hide later errors. Checks run on one background worker; edits replace pending buffers and obsolete results are suppressed, but running checks cannot be cancelled yet. UTF-8 compiler spans are converted to UTF-16 editor positions, including emoji and CRLF. Closing/reopening a document invalidates its old results.
-
-Hover displays source-declared function/callback signatures, adjacent `/** ... */` documentation and line comments, including `@param`/`@returns` text. Signature help highlights the active argument and shows parameter descriptions. Completion suggests visible declarations, declared record fields, keywords, and supported built-ins with docs. Definitions, references, highlights, outline symbols, and folding work within a file; documented function/type/control-flow snippets are included.
-
-These features use a tolerant source index so they also work in unfinished files. Types come from annotations and straightforward literals or declared call results; unknown or compound-expression types stay unknown. This is source assistance, not compiler-proven binding/type inference. Complex callable origins, semantic rename, checked inferred ownership hover, formatter, debugger and cross-file module analysis still need compiler work. The compiler handoffs for those capabilities are tracked in `docs/editor-foundation.md` in the repository. Local macOS is the verified platform; other platforms require their own integration verification. Remote workspaces require a server executable on the remote extension host.
-
-The file icon uses the standard language contribution and respects your chosen icon theme; a theme with its own explicit mapping can override it.
-
-## Verify or develop
+Keep both `target/release` executables on PATH or configure their absolute paths.
+Packaging copies the project license and generates `THIRD_PARTY_NOTICES.txt` for
+the bundled client. It publishes nothing externally.
 
 ```sh
-CARGO_TARGET_DIR=target/editor cargo test --offline --locked -p tsrust-lsp
-CARGO_TARGET_DIR=target/editor cargo clippy --offline --locked -p tsrust-lsp --all-targets -- -D warnings
-cargo fmt -p tsrust-lsp --check
 npm --prefix editors/vscode test
 ```
 
-For the VS Code Extension Host integration suite, point at the installed executable and built server (or omit the executable setting to let the test runner download VS Code):
+The Extension Host integration suite is separate. It uses a temporary VS Code
+profile and needs an installed VS Code or permission to download its test build:
 
 ```sh
-VSCODE_EXECUTABLE='/Applications/Visual Studio Code.app/Contents/MacOS/Code' \
-TSRUST_LSP_PATH="$PWD/target/editor/release/tsrust-lsp" \
-npm --prefix editors/vscode run test:integration
+TSRUST_LSP_PATH="$PWD/target/release/tsrust-lsp" \
+  npm --prefix editors/vscode run test:integration
 ```
 
-The suite creates temporary settings, extensions and source files, verifies unsaved errors, related locations, Unicode, repair, multiple files, rapid edits, restart, close/reopen, missing-server behavior, documentation hover, signatures, incomplete-source autocomplete, definitions/references and outline, then removes its temporary files. It does not change your normal VS Code profile. Set `TSRUST_VSIX_PATH` to an absolute packaged VSIX path to install and test that package in the temporary profile.
+Set `VSCODE_EXECUTABLE` to select a local VS Code executable and `TSRUST_VSIX_PATH`
+to exercise a packaged VSIX. See the [development workflow](../../docs/development-workflow.md)
+for compiler/LSP acceptance. Hosted extension tests do not establish native OS
+interaction or long-lived LSP memory safety.
 
-Check current compiler/editor contracts with `python3 editors/vscode/scripts/check-compiler.py` from the repository root. The script fingerprints compiler/LSP sources and the coverage inventory, reruns focused LSP tests only on change (or with `--force`), and stores successful state in `target/editor/compiler-compatibility.json`. No recurring task is installed by this command.
+The file icon respects the active icon theme. Remote workspaces need executables
+on the remote extension host. Uninstall with `code --uninstall-extension tsrust-local.tsrust`.
 
-For interactive development, run `npm --prefix editors/vscode run compile`, open `editors/vscode` as a VS Code folder and select **Tsrust Extension** in Run and Debug. Configure the server path in the launched Development Host.
+## License
 
-The adapter uses the official [Language Server Protocol](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/) and Microsoft's [VS Code language client](https://code.visualstudio.com/api/language-extensions/language-server-extension-guide). Runtime dependency versions are pinned in `Cargo.lock` and `package-lock.json`; bundled third-party licenses are generated in `THIRD_PARTY_NOTICES.txt`.
-
-### Quick fixes
-
-Use the lightbulb or **Cmd+.** on a syntax diagnostic to insert a missing semicolon or closing delimiter. Fixes preserve comments and are offered only when the edit makes the current document pass compiler checking. Other errors and documents with multiple remaining errors may have no quick fix.
-
-### Run, check and format
-
-Use the play button on a .tsr editor or **Tsrust: Run File** to save and execute it in a terminal. **Tsrust: Check File** runs compiler syntax/type/ownership checks. **Tsrust: Format Document** and standard Format Document use the shared Tsrust formatter. Set `tsrust.formatOnSave` and `tsrust.checkOnSave` to enable automatic actions. Set `tsrust.compiler.path` if the compiler is not beside the configured language server. Commands require workspace trust.
-
-Transferred strings, arrays and records can offer **Clone before transferring (copies data; may allocate)** via Cmd+.; the earlier transfer is edited only if the complete document then passes checking.
-
-For isolated CLI distribution acceptance, build the compiler with `CARGO_TARGET_DIR=target/editor cargo build --offline --locked -p tsrust-compiler`, then run `python3 editors/vscode/scripts/check-cli-distribution.py`. This copies only the CLI to a temporary directory, verifies check/emit with an empty PATH and builds/runs a two-file std:path project from an unrelated directory containing spaces. It requires the installed pinned Rust backend, cleans up its temporary project/cache and saves evidence under target/editor. It does not change a global installation. The separate check-offline-build.py verifies network-denied bundled builds on macOS.
-
-UI projects can start with `tsrust new counter --ui`. The generated
-`app/page.tsrx` exports the root `Page`; `src/main.tsr` visibly imports and mounts it.
-`build.entry` in `tsrust.config.json` identifies the executable bootstrap. Open the
-project directory as the workspace root for diagnostics, JSX attribute completion,
-component navigation and state-method help. Nested routing conventions are pending.
+MIT. Bundled third-party client code retains the licenses in
+`THIRD_PARTY_NOTICES.txt` generated during packaging.
