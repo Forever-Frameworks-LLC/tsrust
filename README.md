@@ -122,6 +122,10 @@ and [comparison limits](docs/runtime-comparisons.md) explain the measurements.
 The large [historical report](BENCHMARKS.md) is a snapshot, not a claim about every
 current feature.
 
+Individual timing samples and allocation counters are available in the
+[benchmark-only SQLite dataset](benchmarks/storage/PUBLIC_DATA.md), with source
+identities, toolchain versions and general hardware specifications.
+
 ## Explore
 
 - [Installation and first project](docs/content/getting-started/installation.md)
