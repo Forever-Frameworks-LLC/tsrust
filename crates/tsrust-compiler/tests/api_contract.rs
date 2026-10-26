@@ -78,6 +78,10 @@ fn package_metadata_is_portable_and_has_no_runtime_dependencies() {
     assert_eq!(package["private"], true);
     assert!(!files["index.js"].contains("operations.tsr"));
     assert!(files["index.d.ts"].contains("Promise<number>"));
+    assert_eq!(package["exports"]["./http"]["types"], "./http.d.ts");
+    assert!(files["http.d.ts"].contains("typeof globalThis.fetch"));
+    assert!(!files["index.d.ts"].contains("HeadersInit"));
+    assert!(!files["index.js"].contains("from './http.js'"));
     for name in ["../bad", "Name", "@scope/../bad", "@/bad"] { assert!(manifest.client_package(name, "0.1.0").is_err()); }
     assert!(manifest.client_package("api", "01.0.0").is_err());
 }

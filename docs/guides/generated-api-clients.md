@@ -64,8 +64,7 @@ const api = createClient(transport);
 const tasks = await api.tasks.list({ search: null });
 ```
 
-The test transport invokes no remote code; the next section supplies a normal
-HTTP transport/dispatcher. A transport implements
+A transport implements
 `request(operation, checkedInput, options)` and returns either
 `{ok:true,value}` or `{ok:false,error:{code,message}}`. Input is validated and copied
 before transport. Result validation rejects malformed values and unexpected
@@ -87,7 +86,48 @@ on the wire and become undefined to the caller. Object fields are data propertie
 accessors and unknown keys reject. Special JSON keys remain data without changing
 object prototypes. Recursive/deeper-than-128-level schemas, functions, native
 resources and implicit collection/domain serialization reject; project them into
-explicit supported data before exporting.
+explicit supported data before exporting. Strings must contain well-formed Unicode:
+lone UTF-16 surrogates reject before transport because native JSON strings use UTF-8.
+JSON encodes negative zero as zero; it is not a distinct wire value.
+
+## HTTP transport
+
+The separate `@example/api/http` export uses the host Fetch API. The plain package
+entry still requires no DOM types or Fetch globals. HTTP consumers need their
+browser/React Native Fetch type declarations. Pass an absolute endpoint URL:
+
+```ts
+import { createClient } from '@example/api';
+import { createHttpTransport } from '@example/api/http';
+
+const api = createClient(createHttpTransport({
+  url: 'http://127.0.0.1:4318/api',
+  headers: async () => ({ authorization: `Bearer ${await currentToken()}` }),
+}));
+const count = await api.math.count(1, { signal: controller.signal });
+```
+
+This is the client side of the protocol; generated native dispatch is pending.
+Each call posts `{operation,input}` as JSON to the configured endpoint and sends
+`x-tsrust-contract` with the calling client's contract hash. The server must make
+its own compatibility and application authorization decisions. Headers are resolved
+for each call so credential changes take effect; the adapter sets its protocol
+headers after application headers. Cookies are omitted and redirects reject.
+Use HTTPS for remote credentials. Loopback HTTP is available for the desktop bridge.
+URLs containing embedded credentials or fragments reject during construction.
+
+Non-2xx responses can carry the same structured public failure envelope. A success
+envelope on a failing HTTP status rejects. HTML, invalid JSON and invalid output
+data reject with protocol/HTTP/validation errors. Host network exception details
+are replaced with an `api-network` error; cancellation uses `api-cancelled`.
+There are no automatic retries, including mutations. Cancellation requests abort
+through the host Fetch API; it does not prove rollback or backend cleanup. Supply `fetch` explicitly for a
+host-specific adapter or testing. Response text is read before parsing; this client
+does not impose a streaming memory limit. Backend request/response bounds and
+mobile Fetch behavior remain service/platform acceptance requirements.
+
+Fetch status checking, JSON content types, credentials and cancellation follow
+[the Fetch API documentation](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch).
 
 The contract hash describes exact wire shape. It is not a compatibility policy:
 do not require exact hash equality for additive rolling upgrades. Hosted transport

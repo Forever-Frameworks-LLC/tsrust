@@ -83,6 +83,8 @@ cancellation, scoped migrations and the full backend-family review remain open.
 The manifest hash is not a rolling-compatibility policy. See
 [the guide](../guides/generated-api-clients.md) and [prototype goal](../agent-goal.md).
 
-Installed-consumer refresh and the final source checkpoint follow focused
-acceptance. Existing owner `docs/src/main.tsr` changes and `.agents/` remain intact.
+Accepted source checkpoint: `0075eb3e`. The normal installed compiler was atomically
+refreshed from the verified executable; installed `api generate` and `--check`
+both pass for the six-operation example. Existing owner `docs/src/main.tsr`
+changes and `.agents/` remain intact.
 Desktop control is released; continue with file/terminal and headless tools.

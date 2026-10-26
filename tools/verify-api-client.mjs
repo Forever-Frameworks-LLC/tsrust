@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { verifyHttp } from './verify-api-http.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const compiler = process.argv[2] || process.env.TSRUST || path.join(root, 'target/debug/tsrust' + (process.platform === 'win32' ? '.exe' : ''));
@@ -47,6 +48,7 @@ try {
   assert.deepEqual(seen[0].args, { search: null });
   assert.equal(Object.hasOwn(input, 'completed'), true);
   assert.deepEqual(await api.tasks.create({ title: 'User-owned app' }), { kind: 'task', id: 8, title: 'User-owned app', completed: false });
+  assert.equal((await api.tasks.create({ title: 'Unicode \u{1f680}' })).title, 'Unicode \u{1f680}');
   assert.equal(await api.meta.marker(), '__TSRUST_API_ID__');
   assert.equal(seen.at(-1).args, null);
   const controller = new AbortController();
@@ -110,10 +112,14 @@ void tasks; void count; void marker;
   command(process.execPath, [tsc, consumer, '--strict', '--noEmit', '--module', 'NodeNext', '--target', 'ES2022', '--lib', 'ES2022']);
   const browser = path.join(directory, 'browser.mts');
   fs.writeFileSync(browser, `import {createClient} from './client/index.js';
+import {createHttpTransport} from './client/http.js';
+const remote=createClient(createHttpTransport({url:'http://localhost/api',fetch:globalThis.fetch,headers:async()=>({authorization:'Bearer token'})}));
+remote.math.count(1,{signal:new AbortController().signal});
 const api=createClient({async request(){return {ok:true,value:1};}});
 api.math.count(1,{signal:new AbortController().signal});
 `);
   command(process.execPath, [tsc, browser, '--strict', '--noEmit', '--module', 'NodeNext', '--target', 'ES2022', '--lib', 'ES2022,DOM']);
+  await verifyHttp(output);
 
   fs.writeFileSync(path.join(output, 'index.js'), original + '\n// owner edit\n');
   assert.match(command(compiler, ['api', 'generate', '--config', config, '--out', output], 1), /user edits/);

@@ -64,12 +64,35 @@ success message. See [foundation evidence](milestones/checked-api-client-foundat
 The initial filtered library-unit build remains blocked by pre-existing Unix-only
 std:fs unit imports on Windows; do not claim that full suite passed.
 
-Next: final formatting/checkpoint and atomic installed CLI refresh, then add HTTP
-transport and native dispatch from this single checked contract. Reuse Router,
+Foundation accepted at `0075eb3e`; the normal installed compiler was atomically
+refreshed to the checked binary and generated/checked the six-operation example.
+HTTP client transport is now being implemented from that checkpoint, with a
+separate Fetch API export and headless real-loopback witnesses. Native dispatch
+is still pending. See [HTTP section state](milestones/api-http-transport.md).
+First Cargo session `76127` completed: five API tests pass. The actual generated
+package/client/HTTP/TypeScript/existing-app verifier passes with normal localhost
+and junction permission (`target/api-http-client-first.log`). Final-source Cargo
+session `89309` is live, output `target/api-http-final-focused.log`, because package
+metadata/test assertions changed during the first build. Poll this handle; do not
+start competing builds. After it passes, repeat the package verifier, checkpoint
+and refresh the installed CLI. Whole-project formatting passes twice with zero
+changed files/fingerprints, and `git diff --check` passes. Reuse Router,
 Context and std:schema; preserve per-transport validation/policy and keep private
 context out of wire arguments. Library-only API entries avoid generated-server
 bootstrap cycles. TanStack wrappers and the persistent SQLite service follow in
 coherent sections; no frontend template dependencies are installed yet.
+
+While the final compiler build runs, the independent SQLite domain section is
+implemented at `examples/backend-tasks/{repository.tsr,witness.tsr,migrations/1_tasks.sql}`.
+Its formatted project passes `tsrust check` using the first verified HTTP compiler
+(`target/task-repository-check.log`). CRUD uses atomic parameterized RETURNING,
+positive safe ids, trimmed 1–200-UTF-8-byte titles and bounded exclusive cursors.
+Typed domain failures remain data; backend SQL errors require server projection.
+`tools/verify-task-repository.mjs` will compile one native witness and execute it
+twice against one disposable on-disk database to prove process-restart persistence.
+It is not run yet: finish Cargo session `89309` before starting another native
+build in the one shared target. This section does not claim HTTP policy/dispatch
+or native acceptance. Preserve it separately from the HTTP acceptance checkpoint.
 
 The original Windows/Table continuation below is historical and frozen where UI
 specific; retain its completed results and unresolved platform limitations.

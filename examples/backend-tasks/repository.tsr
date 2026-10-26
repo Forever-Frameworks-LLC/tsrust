@@ -1,0 +1,114 @@
+import { Pool, Row } from 'std:sql';
+
+export type Item = {
+  kind: 'task';
+  id: int;
+  title: string;
+  completed: boolean;
+};
+
+export type Failure = {
+  kind: 'error';
+  code: 'invalid-input' | 'not-found';
+  message: string;
+};
+
+export type CreateInput = {
+  title: string;
+};
+
+export type UpdateInput = {
+  id: int;
+  title: string;
+  completed: boolean;
+};
+
+export type DeleteInput = {
+  id: int;
+};
+
+export type ListInput = {
+  after: int;
+  limit: int;
+};
+
+export type Page = {
+  kind: 'page';
+  items: Item[];
+};
+
+export type Deleted = {
+  kind: 'deleted';
+  id: int;
+};
+
+function item(row: ReadOnly<Row>): Item {
+  return {
+    kind: 'task', id: unwrap(row.int('id')), title: unwrap(row.text('title')), completed: unwrap(row.int('completed')) !== 0
+  };
+}
+
+function failure(code: 'invalid-input' | 'not-found', message: string): Failure {
+  return {
+    kind: 'error', code, message
+  };
+}
+
+function validId(id: int): boolean {
+  return id > 0 && id <= 9007199254740991;
+}
+
+export async function list(pool: ReadOnly<Pool>, input: ListInput): Task<Page | Failure> {
+  if (input.after < 0 || input.after > 9007199254740991 || input.limit < 1 || input.limit > 100) {
+    return failure('invalid-input', 'Expected a safe nonnegative cursor and a limit from 1 to 100');
+  }
+
+  const rows = await pool.query('SELECT id, title, completed FROM tasks WHERE id > ? ORDER BY id LIMIT ?', [input.after, input.limit]);
+  const items: Item[] = [];
+  for (const row of rows) {
+    items.push(item(row));
+  }
+
+  return {
+    kind: 'page', items
+  };
+}
+
+export async function create(pool: ReadOnly<Pool>, input: CreateInput): Task<Item | Failure> {
+  const title = input.title.trim();
+  if (title.length < 1 || title.length > 200) {
+    return failure('invalid-input', 'Task title must contain 1 to 200 UTF-8 bytes after trimming');
+  }
+  // RETURNING binds the result to this write, including with concurrent connections.
+  const rows = await pool.query('INSERT INTO tasks(title) VALUES (?) RETURNING id, title, completed', [title]);
+  return item(rows[0]);
+}
+
+export async function update(pool: ReadOnly<Pool>, input: UpdateInput): Task<Item | Failure> {
+  const title = input.title.trim();
+  if (!validId(input.id) || title.length < 1 || title.length > 200) {
+    return failure('invalid-input', 'Expected a positive safe id and a title from 1 to 200 UTF-8 bytes');
+  }
+
+  const rows = await pool.query('UPDATE tasks SET title = ?, completed = ? WHERE id = ? RETURNING id, title, completed', [title, input.completed ? 1 : 0, input.id]);
+  if (rows.length === 0) {
+    return failure('not-found', 'Task does not exist');
+  }
+
+  return item(rows[0]);
+}
+
+export async function remove(pool: ReadOnly<Pool>, input: DeleteInput): Task<Deleted | Failure> {
+  if (!validId(input.id)) {
+    return failure('invalid-input', 'Expected a positive safe task id');
+  }
+
+  const rows = await pool.query('DELETE FROM tasks WHERE id = ? RETURNING id', [input.id]);
+  if (rows.length === 0) {
+    return failure('not-found', 'Task does not exist');
+  }
+
+  return {
+    kind: 'deleted', id: unwrap(rows[0].int('id'))
+  };
+}

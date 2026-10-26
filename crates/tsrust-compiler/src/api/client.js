@@ -29,7 +29,13 @@ function validate(schema, value, operation, path, depth = 0) {
   const fail = expected => { throw new ApiError('api-validation', `${path}: expected ${expected}`, operation); };
   if (depth > 128) fail('data nested at most 128 levels');
   switch (schema.type) {
-    case 'string': if (typeof value !== 'string') fail('string'); return value;
+    case 'string':
+      if (typeof value !== 'string') fail('string');
+      for (const character of value) {
+        const code = character.codePointAt(0);
+        if (code >= 0xd800 && code <= 0xdfff) fail('well-formed Unicode string');
+      }
+      return value;
     case 'integer': if (!Number.isSafeInteger(value)) fail('safe integer'); return value;
     case 'number': if (typeof value !== 'number' || !Number.isFinite(value)) fail('finite number'); return value;
     case 'boolean': if (typeof value !== 'boolean') fail('boolean'); return value;
