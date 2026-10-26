@@ -9,21 +9,32 @@ Audited data integration and cleanup are complete; builds now run only for concr
 installation/feature acceptance, not to repopulate caches. Table continuation and
 its pending checks remain preserved below.
 
-## Windows development supervisor in progress
+## Windows development supervisor accepted
 
-Current source checkpoint `17f6f315`. Windows Job Object containment, console stop
-handling, native notifications and exact file stamps are implemented but unaccepted.
-`cargo check --offline --bin tsrust` passes in 2m40s; log
-`target/windows-dev-check.log`. Focused `cargo test --offline --locked --bin tsrust
-dev_ -- --test-threads=1` is live in command session 32983, log
-`target/windows-dev-focused.log`. It uses the shared target, one job and no
-incremental compilation. The compiler library is rebuilding after the direct
-Windows binding dependency changed its Cargo identity; observed private memory
-peaked around 2.3 GiB, CPU time continues increasing. A concurrent native async-SQL
-example build belongs to the user and was left alone. Next: poll this same live
-handle, repair only affected failures, then run `tools/smoke-windows-dev.py` against
-the new CLI.
-Do not install or claim this supervisor until native replacement and cleanup pass.
+Based on local checkpoint `49b9625a`, the Windows supervisor now uses suspended
+child assignment to private Job Objects, console stop handling, native recursive
+notifications, exact volume/file/time stamps and canonical source identities.
+The existing frontend, immutable snapshots and replacement semantics remain shared.
+Sixteen focused cases pass across retained batches, including orphan isolation,
+restored-write-time edits, concurrent atomic saves, frozen external imports and
+documentation publication mutation/guards. Permission-only failures pass unchanged
+outside the sandbox. Two real documentation separator bugs were repaired.
+
+The normal CLI passes `tools/smoke-windows-dev.py`: Unicode/space paths, native
+execution, bad-edit preservation, replacement, Ctrl+C and Ctrl+Break cleanup.
+Scaffold/check/format/run/test/bundled JSON smoke also passes. Whole-project
+formatting changes zero files/fingerprints; installed `format . --check` passes.
+The existing Cargo-installed compiler was refreshed byte-for-byte from the verified
+normal CLI; SHA-256 `9885034dd785f8eb19e959ae0125514ec913fb10c6efd3740a5b0009712f5fba`.
+Original Unicode source/help bytes were preserved after correcting a transient
+file-edit encoding mistake. The normal CLI uses the already built integration-test
+dependency graph; no Unix-only integration test was claimed as run on Windows.
+
+See [Windows evidence](milestones/windows-installation.md) for exact commands,
+resource observations and remaining GPU/window and web prerequisite acceptance.
+No test/build remains live from this section. No remote validation or release ran.
+Next: record the formatted local checkpoint, then continue Windows native UI
+prerequisite/window acceptance under explicit resource bounds before Table work.
 
 ## SQL template highlighting
 

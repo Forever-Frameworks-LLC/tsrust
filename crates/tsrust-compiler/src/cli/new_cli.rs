@@ -35,8 +35,8 @@ pub fn run(args:impl Iterator<Item=String>)->Result<u8,String> {
         fs::write(root.join(path),formatted).map_err(|e|e.to_string())?;
     }
     fs::write(root.join(".gitignore"),"/target/\n").map_err(|e|e.to_string())?;
-    let console_start=if cfg!(windows){"Run `tsrust run` to execute the application. The development watcher (`tsrust dev`) is not yet supported on Windows."}else{"Run `tsrust dev` to rebuild and restart on source changes."};
-    let ui_start=if cfg!(windows){"Run `tsrust run` to open the native UI. The development watcher (`tsrust dev`) is not yet supported on Windows."}else{"Run `tsrust dev` to open the native UI and restart after edits."};
+    let console_start="Run `tsrust dev` to rebuild and restart on source changes.";
+    let ui_start="Run `tsrust dev` to open the native UI and restart after edits.";
     fs::write(root.join("README.md"),format!("# {name}\n\n{console_start}\n\n- `tsrust run`: run once.\n- `tsrust build`: build the configured binary.\n- `tsrust check`: check project sources.\n- `tsrust test`: run project tests.\n- `tsrust format`: format project sources.\n\nThe nearest `{FILE}` defines the project root, entry and output.\nA `main` entrypoint is optional; this template includes one to print a greeting.\n")).map_err(|e|e.to_string())?;
     if ui {
         super::ui_cli::install_defaults(&root,&ui_config)?;
@@ -45,7 +45,7 @@ pub fn run(args:impl Iterator<Item=String>)->Result<u8,String> {
     if target.as_ref().is_some_and(|t|!t.native){
         let readme=root.join("README.md");let text=fs::read_to_string(&readme).map_err(|e|e.to_string())?.replace(ui_start,"This project selects the web target. Build with `tsrust build --target web` after installing the web prerequisites. Native dev/run is disabled.");let text=text.replace("`tsrust build` writes the configured executable.","Use `tsrust build --target web` for browser output; `tsrust emit --package` exports web support without enabling native GPU dependencies.");fs::write(readme,text).map_err(|e|e.to_string())?;
         println!("Created {}. Web UI selected; use `tsrust build --target web` after installing web prerequisites. Native dev/run is disabled.",root.display());
-    }else{let command=if cfg!(windows){"tsrust run"}else{"tsrust dev"};println!("Created {}.\nRun `{command}` from that directory.",root.display());}
+    }else{println!("Created {}.\nRun `tsrust dev` from that directory.",root.display());}
     Ok(0)
 }
 

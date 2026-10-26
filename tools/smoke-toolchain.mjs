@@ -15,7 +15,7 @@ const run = (...args) => execFileSync(compiler, args, {
 try {
   assert.match(run('--version'), /^tsrust \d+\.\d+\.\d+/);
   const created = run('new', 'hello');
-  const startCommand = process.platform === 'win32' ? 'tsrust run' : 'tsrust dev';
+  const startCommand = 'tsrust dev';
   assert.ok(created.includes(`Run \`${startCommand}\``), created);
   assert.ok(fs.readFileSync(path.join(directory, 'hello/README.md'), 'utf8').includes(`Run \`${startCommand}\``));
   const config = JSON.parse(fs.readFileSync(path.join(directory, 'hello/tsrust.config.json')));

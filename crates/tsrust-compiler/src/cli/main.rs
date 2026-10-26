@@ -8,14 +8,19 @@ mod package_validation;
 mod rust_binding_packages;
 mod package_export;
 mod native_dependency_bundle;
-#[cfg(unix)]
+#[cfg(any(unix,windows))]
 mod dev_frontend;
-#[cfg(unix)]
+#[cfg(any(unix,windows))]
 mod dev_dependencies;
-#[cfg(unix)]
+#[cfg(any(unix,windows))]
 mod dev_watch;
 #[cfg(unix)]
 mod dev_events;
+#[cfg(windows)]
+#[path="dev_windows_events.rs"]
+mod dev_events;
+#[cfg(windows)]
+mod dev_windows;
 mod project_config;
 mod new_cli;
 mod ui_cli;

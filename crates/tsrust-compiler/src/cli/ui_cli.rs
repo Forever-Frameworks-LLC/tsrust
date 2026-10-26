@@ -52,7 +52,7 @@ fn current_request(request:&str,variant:&str,items:&[Item])->Result<Identity,Str
 }
 // Only generated paths use this conversion; authored config/catalog paths still
 // pass safe_relative before composition. Lock paths stay portable across hosts.
-fn portable_generated_path(path:&Path)->Result<PathBuf,String> {
+pub(super) fn portable_generated_path(path:&Path)->Result<PathBuf,String> {
  let path=PathBuf::from(path.to_str().ok_or("Invalid generated UI path")?.replace('\\',"/"));
  safe_relative(&path)?;Ok(path)
 }

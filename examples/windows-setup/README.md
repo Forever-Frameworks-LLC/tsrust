@@ -1,6 +1,6 @@
 # windows-setup
 
-Run `tsrust run` to execute the application. The development watcher (`tsrust dev`) is not yet supported on Windows.
+Run `tsrust dev` to rebuild and restart on source changes. Press Ctrl+C to stop.
 
 - `tsrust run`: run once.
 - `tsrust build`: build the configured binary.

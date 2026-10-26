@@ -86,6 +86,19 @@ mod tests {
   let formatted=tsrust_compiler::format(text).unwrap();assert_eq!(tsrust_compiler::format(&formatted).unwrap(),formatted);std::fs::write(path,formatted).unwrap();
  }
  #[test]
+ fn external_dependency_edits_keep_old_snapshots_frozen_and_refresh_new_ones(){
+  let dir=crate::TempDirectory::new().unwrap();let base=dir.0.canonicalize().unwrap();let root=base.join("app");std::fs::create_dir(&root).unwrap();
+  std::fs::write(root.join("tsrust.config.json"),r#"{"schemaVersion":1,"name":"app","build":{"entry":"main.tsr","output":"app"}}"#).unwrap();let entry=root.join("main.tsr");let external=base.join("external.tsr");
+  write(&external,"export function value():int{return 1;}");write(&entry,"import {value} from '../external';function main(){console.log(value());}");
+  let mut watcher=crate::dev_watch::Watcher::default();let before=Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()};let mut session=ProjectSession::default();
+  let first=compile(&mut session,&entry,&before).unwrap().rust;
+  write(&external,"export function value():int{return 2;}");
+  assert_eq!(compile(&mut session,&entry,&before).unwrap().rust,first);
+  let after=Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()};
+  assert_ne!(compile(&mut session,&entry,&after).unwrap().rust,first);
+ }
+ #[cfg(unix)]
+ #[test]
  fn external_and_symlink_dependencies_are_captured_and_reconciled() {
   let dir=crate::TempDirectory::new().unwrap();let base=std::fs::canonicalize(&dir.0).unwrap();let root=base.join("app");std::fs::create_dir(&root).unwrap();
   let external=base.join("dependency.tsr");write(&external,"export function value():int{return 1;}");

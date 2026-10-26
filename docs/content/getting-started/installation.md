@@ -107,11 +107,14 @@ The extension discovers both Cargo-installed executables without workspace-speci
 paths and supplies the default formatter for `.tsr` and `.tsrx` files. Explicit
 user formatter choices still take precedence.
 
-Native `build`/`run`, checking, formatting and editor support are distinct from the
-development watcher. The integrated `tsrust dev` supervisor currently reports an
-unsupported-platform error on Windows; its Unix process-control implementation is
-not evidence of Windows watcher support. Browser UI builds additionally need the
-web prerequisites described below.
+Run `tsrust dev` from a configured project to rebuild and restart after edits.
+Windows uses native directory notifications and owns compiler/program descendants
+through Windows Job Objects. Failed builds keep the previous application running;
+a successful rebuild replaces it. Press Ctrl+C or Ctrl+Break to stop the supervisor
+and its descendants. Set `TSRUST_DEV_WATCH=poll` to request polling when native
+notifications are unavailable or unsuitable, such as on some network filesystems.
+Browser UI builds additionally need the web prerequisites described below.
+Native GPU-window setup requires its own platform prerequisites and validation.
 
 The current LSP has an unresolved excessive-memory report during long workspace
 sessions. Use small workspaces and stop the language server if memory grows.
