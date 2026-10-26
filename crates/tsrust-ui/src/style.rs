@@ -197,6 +197,16 @@ pub fn documentation(class:&str)->String {
 
 #[cfg(test)] mod layout_tests {
  use super::*;
+ #[test] fn table_header_height_uses_the_shared_spacing_scale() {
+  assert!(tokens().iter().any(|token|token=="h-10"));
+  let mut theme=Theme::default();
+  for (spacing,height) in [(16.,40.),(20.,50.)] {
+   theme.spacing.md=spacing;
+   let rules=resolved("h-10",&theme,"light");
+   assert!(rules.iter().any(|(_,value)|matches!(value,Utility::Dimension(1,Length::Pixels(actual)) if *actual==height)),"{rules:?}");
+   assert!(rules.iter().any(|(_,value)|value.css()==format!("height:{height}px")));
+  }
+ }
  #[test] fn every_layout_token_resolves_and_keeps_property_order() {
   let theme=Theme::default();for token in layout::tokens(){assert!(validate(&token).is_ok(),"{token}");assert!(!resolved(&token,&theme,"light").is_empty(),"{token}");assert!(!documentation(&token).is_empty());}
   let rules=resolved("pl-6 p-4 pr-2 gap-x-6 gap-2 gap-y-4 size-8 w-12",&theme,"light");

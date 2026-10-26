@@ -114,7 +114,7 @@ pub struct Node {
 
 impl Node {
     pub fn with_class_binding(mut self,mut evaluate:impl FnMut()->Result<String,String>+'static)->Result<Self,String>{
-        let value=evaluate()?;self.check_class(&value)?;self.class_name=value;self.class_binding=Some(Box::new(evaluate));Ok(self)
+        let value=evaluate()?;self.check_class(&value)?;self.class_name=value;self.validate_structure()?;self.class_binding=Some(Box::new(evaluate));Ok(self)
     }
     pub fn with_variant_binding(mut self,mut evaluate:impl FnMut()->Result<String,String>+'static)->Result<Self,String>{
         let value=evaluate()?;Self::check_variant(&value)?;self.semantics.variant=value;self.variant_binding=Some(Box::new(evaluate));Ok(self)

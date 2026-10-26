@@ -50,7 +50,7 @@ rustup toolchain install 1.96.1 --profile minimal
 
 Use Xcode Command Line Tools on macOS, or the distribution's C build tools on
 Linux. Building GPU applications on Linux also requires native development
-libraries; see [contributor setup](../../../CONTRIBUTING.md).
+libraries; see [contributor setup](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/CONTRIBUTING.md).
 
 ## Build from source
 
@@ -72,7 +72,7 @@ native dependency source graphs. Put both executables from `target/release` on
 Download the release's `.vsix` file and use **Extensions → Install from VSIX** in
 VS Code. The VSIX does not embed the Rust server: keep `tsrust` and `tsrust-lsp`
 on `PATH`. The extension also searches `~/.cargo/bin` and beside configured
-companion executables. See [VS Code setup](../../../editors/vscode/README.md) for
+companion executables. See [VS Code setup](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/editors/vscode/README.md) for
 explicit paths and local packaging.
 
 ## Windows source installation

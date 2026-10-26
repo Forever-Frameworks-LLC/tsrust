@@ -88,3 +88,31 @@ target/table-editor-protocol.log and target/table-editor-protocol-repair.log.
 Whole-project formatting/token guards and format-check pass unchanged. This accepts
 the focused editor repair; generated-native, installation/documentation execution
 and actual browser acceptance remain pending.
+
+## Windows generated-native construction acceptance
+
+The shared spacing scale omitted 10 despite the pinned Table's h-10 default.
+Adding the missing scale token preserves its source and supports default 40px
+and custom 50px dimensions through the shared CSS/native rules. Four layout tests
+pass, including token registration, resolved dimensions and existing all-token
+coverage. Two installation-page links escaped the docs project root; they now
+use the actual external repository documents, preserving link traversal guards.
+The keyboard and Table documentation native executables pass after that repair.
+
+The compiler content batch retains four passing cases: semantic content/offline
+installation, keyboard reference, Table documentation and native renderer bundle.
+Its only remaining failure was nested-table rejection in the actual editable
+components. Labeled original assertions identified it; initial reactive class
+binding checked utility spelling but skipped structural validation after the
+semantic tag was already applied. with_class_binding now invokes the existing
+shared validator before returning. Eight selected model checks pass, including
+rejected bound rows/tables and evaluator-capture disposal.
+
+The exact generated-native Table witness subsequently passes in 31.55s after
+an 11m20s compiler rebuild. Span/HTML checks, capture retention, exact single
+release, invalid span and nested-table rejection remain intact. Log:
+target/table-ownership-structure-repair.log. No cold dependency replay or unchanged
+full regression was used. The new formatted table-interaction.tsrx entry imports
+the real three documentation examples, adds a theme toggle and narrow overflow
+container; check passes and it is registered for formatting acceptance. Actual
+browser/window Table interaction and the complete paired section remain pending.

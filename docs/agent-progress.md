@@ -330,3 +330,141 @@ Then run the pending compiler ui_content Table native/installer/documentation
 witnesses, retaining cache and Windows resource bounds. Actual browser Table
 interaction and original finite goal remain incomplete. No full compiler/LSP or
 benchmark matrix, remote CI, push, tag or release was triggered.
+
+Accepted local editor source checkpoint: d26613f7. The current normal server hash is
+88a39d6439bfb5729d896c4167f32c3e026c044066f033c197cb2ed80326cfd1.
+Installed LSP refresh failed because its executable is in use; the copy did not
+succeed, and the installed consumer is not claimed updated. Preserve its running
+editor session. Candidate remains target/debug/tsrust-lsp.exe; install after the
+existing server releases the Windows image lock. Do not start an extra LSP.
+
+## Table native/content acceptance in progress
+
+The compiler ui_content substring batch 19308 is terminal: five failures in 164.77s.
+Three report Access denied; two documentation cases reject out-of-project relative
+links introduced in installation.md. An unchanged exact Table rerun with native
+permissions reaches real execution and fails Unsupported UI utility: h-10.
+Logs: target/table-native-installer-docs.log and table-native-installer-permitted.log.
+
+The pending repair adds missing scale token 10 to the existing shared spacing
+list, preserving the pinned Table h-10 class. Four style layout tests pass in 0.03s
+(19.45s build), including a new native/CSS-resolved 40px default and 50px custom
+spacing witness, plus existing all-token/property-order coverage. Editor tokens
+and docs use this same list. Installation's contributor/editor links now point to
+the repository's actual GitHub documents; the project link-escape guard is unchanged.
+No catalog source or immutable payload identity was rewritten.
+
+Affected compiler batch is live in session 71922 with native permissions, shared
+cache, one job, no incremental; log target/table-native-installer-docs-repaired.log.
+It rebuilds the compiler with current shared UI sources and retries the five cases
+(the substring also matches executable). Do not restart on quiet output. Inspect
+the exact terminal result before accepting or repairing. Whole-project formatting
+reports zero files and fingerprints changed. Current uncommitted files are
+crates/tsrust-ui/src/style.rs, style/layout.rs, installation.md and this evidence.
+After acceptance, update evidence, checkpoint locally, and continue actual browser
+Table acceptance. Installed LSP refresh remains image-locked, as recorded above.
+
+Browser prerequisites now exist on this computer: rustup target add
+wasm32-unknown-unknown --toolchain 1.96.1 succeeded and installed-target inventory
+confirms it. wasm-bindgen 0.2.129 matches both lockfiles. Official GitHub release
+metadata (https://github.com/wasm-bindgen/wasm-bindgen/releases/tag/0.2.129) identifies
+the Windows archive SHA-256 as
+79e348c169d0c10c0b287647f1e753d0985353ca96800bc29be8f4261baf13e6;
+local bytes match. Only the explicit regular wasm-bindgen.exe archive member was
+installed, with exclusive creation, to C:/Users/skeet/.cargo/bin/wasm-bindgen.exe.
+Version check passes; executable SHA-256:
+7923ed91d8ece7a2986dc5de9395bff2a8e5cae483330b13d0ec97a955b0e351.
+No toolchain/compiler versions were changed. The verified disposable download is
+target/tool-downloads/wasm-bindgen-0.2.129-x86_64-pc-windows-msvc.tar.gz; remove after
+acceptance, preserve the installed tool. Actual browser build/interactions remain
+pending. Use one existing shared Cargo target, explicit WASM_BINDGEN and TSRUST,
+and the current compiler after batch 71922 completes.
+
+Latest verified batch 71922 observation: compiler rebuild completed in 7m57s;
+keyboard documentation, semantic-content native/offline installation, and Table
+documentation native execution all pass. current_table_exports_keep_spans_scope_
+and_owned_children still fails; its captured panic is not printed until the batch
+ends. The final native renderer bundle case remains running; write_stdin(71922)
+confirmed it live. Re-poll this same handle, then inspect the complete log for the
+first failure. Do not rerun the three successful cases or restart the final case
+solely because this turn ends. No repaired Table installer/ownership acceptance
+is claimed yet. The unrelated user-owned installed tsrust dev process was seen
+while testing and was preserved; do not treat it as abandoned cleanup output.
+
+## Bound Table structure repair, current acceptance
+
+Batch 71922 is terminal: four pass, one fails, 339.67s after the 7m57s compiler
+build. The native renderer bundle passes in addition to the earlier three cases.
+An exact labeled rerun (88158, terminal exit 101, 21.28s) identifies the sole
+failure as nested table rejects; all ownership/span/HTML assertions precede it.
+Original checks were retained and their messages made specific in ui_content.rs.
+
+Root cause: with_class_binding checked utility spelling and stored evaluated
+classes, but did not validate structure after classes arrived. Editable Table
+components apply semantic tags before their reactive class expression, so initial
+nested-table and malformed-row guards were bypassed. Initial binding now calls
+the existing validate_structure immediately after class assignment. Refresh already
+validates structure before returning. No new parser, adapter policy or guard
+weakening. Eight selected model tests pass, including rejected bound nesting/row
+structure and exact evaluator-capture disposal; log target/table-bound-structure.log.
+
+Only the remaining generated-native case is rebuilding/running in session 77058,
+log target/table-ownership-structure-repair.log, one job, no incremental, shared
+native cache and native permissions. Reuse that handle. Do not repeat the four
+passing compiler cases. The compiler embeds changed UI source, so its dependent
+rebuild is necessary; do not launch competing builds. Same 8 GiB private/4 GiB
+free memory and 15-minute investigation bounds apply.
+
+A durable paired interaction entry now exists at
+docs/src/acceptance/table-interaction.tsrx. It imports the actual InvoiceTable,
+TableStates and TableOverflow docs examples, keeps a narrow overflow container,
+and adds a theme toggle. Whole-project formatting (one new fixture, zero changed
+fingerprints) and the formatted entry's compiler check pass. Native/window and
+browser interaction are still pending. After 77058 completes, use its current
+compiler with tools/build-ui-web.mjs and installed pinned Wasm prerequisites;
+keep one Cargo target. Add the new entry to formatting acceptance as appropriate.
+
+Latest session 77058 inspection: Cargo 31052/21372 remains live, started 16:39:27
+local. Compiler library finished; rustc 22216 is building the normal CLI at
+opt-level=1, started 16:45:55. At inspection it used 2,665 MiB private memory and
+76.48 CPU seconds, so the quiet log is not terminal. Re-poll 77058 before launching
+anything. Investigate at 15 minutes from initial build start (16:54:27 local),
+checking CPU progress and free memory; do not blindly restart. The interaction
+entry is now registered in the existing documentation formatting fixture list.
+Current uncommitted source also includes lib.rs, table_semantics_tests.rs,
+ui_content.rs labeled assertions and new table-interaction.tsrx. No new source
+checkpoint claims the generated-native repair accepted yet. Preserve owner files.
+
+When the current native witness passes, refresh paired evidence and checkpoint.
+For the later LSP refresh/build, selecting both compiler and LSP with their shared
+ui_content no-run targets may reuse the current compiler dev-dependency graph;
+avoid alternating feature graphs and unnecessary compiler rebuilds. Run only the
+required exact LSP case afterward, retaining earlier passes. Installed LSP remains
+image-locked; do not interrupt unrelated editor work to copy it.
+
+## Table shared construction accepted; owner requests live docs
+
+Session 77058 is terminal, exit 0: 11m20s required compiler/CLI rebuild, then the
+exact generated-native Table witness passes in 31.55s. Nested-table rejection,
+span/HTML semantics and exact evaluator-capture retention/release all pass with
+original assertions. The initial-bound-class structural guard is accepted with
+the eight model passes; the four earlier compiler/content/native-renderer passes
+remain retained. No full compiler/LSP matrix or timing milestone is claimed.
+Whole-project second formatting pass and format . --check pass with zero changes.
+Current normal compiler and refreshed installed compiler SHA-256 match:
+d2e248d53fe071988a621199663ee7301fc57e4654320c997f353d11d9c7e5c1.
+Installed compiler was idle before refresh. The installed LSP remains separately
+image-locked, not claimed refreshed.
+
+The owner's latest priority is keeping the full docs site running in both web
+and desktop while work continues. A persistent installed-compiler native dev
+supervisor is live in session 45919, cwd D:/ai_dev/tsrust/docs, log
+target/docs-desktop-preview.log. It watches the real docs project with --target
+native --verbose, one job, no incremental, TSRUST_CACHE_DIR pointing to the retained
+target/tsrust-native. First build is in progress. Do not stop this requested
+preview during routine cleanup. Next: inspect its build/window, then start the
+web dev supervisor on loopback port 4317 with CARGO_TARGET_DIR set to the existing
+shared target and explicit installed WASM_BINDGEN. Port 4317 was free before start.
+Build the initial previews sequentially; keep both active once ready. The paired
+interaction entry remains useful for focused checks, but full docs previews are
+now explicitly requested. Record exact live handles/PIDs and public local URL.
