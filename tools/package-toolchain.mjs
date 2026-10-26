@@ -26,9 +26,10 @@ try {
     fs.writeFileSync(to, bytes);
     files[relative] = {sha256: crypto.createHash('sha256').update(bytes).digest('hex'), bytes: bytes.length};
   }
+  const suffix = target.includes('-windows-') ? '.exe' : '';
   for (const [name, input] of [['tsrust', compiler], ['tsrust-lsp', server]]) {
-    copy(path.resolve(input), `bin/${name}`);
-    fs.chmodSync(path.join(destination, 'bin', name), 0o755);
+    copy(path.resolve(input), `bin/${name}${suffix}`);
+    if (!suffix) fs.chmodSync(path.join(destination, 'bin', name), 0o755);
   }
   copy(path.join(root, 'LICENSE'), 'LICENSE');
   function notices(directory, relative, insideNotice = false) {

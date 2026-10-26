@@ -121,6 +121,7 @@
     },
     "configurationDefaults": {
       "[tsrust]": {
+        "editor.defaultFormatter": "tsrust-local.tsrust",
         "editor.tabSize": 2,
         "editor.insertSpaces": true
       }

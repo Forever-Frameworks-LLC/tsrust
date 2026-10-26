@@ -3,6 +3,24 @@
 Updated: 2026-10-26. The audited dataset integration and requested cleanup are complete.
 The original compiler/UI continuation goal remains incomplete.
 
+Current owner priority is Windows integration and installation on this computer.
+See [Windows installation acceptance](milestones/windows-installation.md).
+Audited data integration and cleanup are complete; builds now run only for concrete
+installation/feature acceptance, not to repopulate caches. Table continuation and
+its pending checks remain preserved below.
+
+## Windows installation section
+
+Based on `0e7a72a1`, the Windows section installs both development consumers through
+Cargo and the verified VSIX in the normal VS Code user profile. Six distribution
+checks, four executable-discovery checks, grammar validation and real packaged
+Windows editor integration pass. Native example check/run/test pass. Full details
+and remaining watcher/GPU gaps: [Windows evidence](milestones/windows-installation.md).
+The final CLI reinstall and external smoke pass, including corrected scaffold hints.
+Whole-project formatting reports zero changed files and zero fingerprint changes.
+No remote validation or release was triggered. Original Table acceptance remains
+pending; Windows integration is the owner's current priority.
+
 ## Source and current priority
 
 - Original source: `7c956bd7`; memory checkpoint: `7b18073a`; continuation and
@@ -67,7 +85,7 @@ The original compiler/UI continuation goal remains incomplete.
 - Windows installer generated paths now retain portable separators without changing
   authored-path guards. The focused path, actual versioned install/idempotence/
   owner-edit preservation and Kbd-upgrade witnesses pass. The production CLI was
-  not refreshed to that installer repair; only its test executable was verified.
+  refreshed to that installer repair during the Windows installation section.
 - [Table acceptance](milestones/ui-table-layout.md) remains open. `colSpan` hover
   has its type but lacks documented behavior. The old generic inheritance fixture
   illegally redeclared an inherited field. Positive cases now use legal declarations,
@@ -75,7 +93,8 @@ The original compiler/UI continuation goal remains incomplete.
 - The new formatted header/checked-index unit witness initially exposed that
   duplicate-field rejection. A later test compile failed because ProjectAnalysis
   has no Debug implementation; `unwrap_err()` was repaired to `err().unwrap()`.
-  The corrected witness is still unrun. No Table source/lock installation,
+  The corrected witness ran and fails at `headers base.value null`; its focused
+  log is `target/table-inherited-help-resumed.log`. No Table source/lock installation,
   generated-native, browser or performance acceptance has passed in this clone.
 - Whole-project formatter and a separate `format . --check` pass with zero source
   or fingerprint changes. All checkpoints are local; source and tests with pending
@@ -83,9 +102,13 @@ The original compiler/UI continuation goal remains incomplete.
 
 ## Next executable work
 
-When continuing real implementation, use the single shared target, one Cargo job
-and CARGO_INCREMENTAL=0. Run the corrected focused inherited-help unit first,
-trace checked field documentation provenance, and repair Table help without
-weakening its assertions. Resume pending checker acceptance and the exact Table
-compiler/editor witnesses from the pause handoff. Keep completed evidence; do not
+Windows installation and packaged editor acceptance are complete. Keep prioritizing
+Windows integration: inspect native UI prerequisites and the Unix-only development
+supervisor before selecting the next coherent section. Do not describe watcher,
+GPU-window or web-toolchain support as accepted from console smoke alone.
+
+When returning to Table, trace checked field documentation provenance and repair
+inherited help without weakening assertions. Resume pending checker acceptance
+and exact Table compiler/editor witnesses from the pause handoff. Use the shared
+target, one Cargo job and CARGO_INCREMENTAL=0. Preserve completed evidence; do not
 restart broad regressions or timing solely because caches were pruned.

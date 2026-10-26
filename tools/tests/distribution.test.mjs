@@ -49,7 +49,7 @@ test('packaging preserves bytes, source versions, notices and executable permiss
   }
   assert.deepEqual(fs.readFileSync(path.join(output, 'bin/tsrust')), fs.readFileSync(inputs[0]));
   assert.deepEqual(fs.readFileSync(path.join(output, 'bin/tsrust-lsp')), fs.readFileSync(inputs[1]));
-  assert.ok(fs.statSync(path.join(output, 'bin/tsrust')).mode & 0o111);
+  if (process.platform !== 'win32') assert.ok(fs.statSync(path.join(output, 'bin/tsrust')).mode & 0o111);
   assert.equal(fs.readFileSync(path.join(output, 'LICENSE'), 'utf8'), fs.readFileSync(path.join(root, 'LICENSE'), 'utf8'));
   assert.equal(fs.readFileSync(path.join(output, 'attributions/dependencies/example-1.0.0/licenses/MIT.txt'), 'utf8'), 'dependency license fixture\n');
   assert.ok(!fs.existsSync(path.join(output, 'attributions/dependencies/example-1.0.0/lib.rs')));
@@ -79,6 +79,20 @@ test('development packages are marked as incomplete for redistribution', () => t
   assert.equal(result.status, 0, result.stderr);
   assert.equal(JSON.parse(fs.readFileSync(path.join(output, 'manifest.json'))).distribution, 'development');
   assert.match(fs.readFileSync(path.join(output, 'README.md'), 'utf8'), /not a redistribution artifact/);
+}));
+
+test('Windows packages keep executable suffixes and exact manifest identities', () => temporary(directory => {
+  const inputs = consumers(directory);
+  const output = path.join(directory, 'Windows package');
+  const result = pack([...inputs, 'x86_64-pc-windows-msvc', output]);
+  assert.equal(result.status, 0, result.stderr);
+  const manifest = JSON.parse(fs.readFileSync(path.join(output, 'manifest.json')));
+  for (const [index, name] of ['tsrust.exe', 'tsrust-lsp.exe'].entries()) {
+    const bytes = fs.readFileSync(path.join(output, 'bin', name));
+    assert.deepEqual(bytes, fs.readFileSync(inputs[index]));
+    assert.deepEqual(manifest.files[`bin/${name}`], {sha256: digest(bytes), bytes: bytes.length});
+    assert.ok(!fs.existsSync(path.join(output, 'bin', name.slice(0, -4))));
+  }
 }));
 
 test('release preflight accepts exact versions and rejects mismatches and dirty sources', () => temporary(directory => {

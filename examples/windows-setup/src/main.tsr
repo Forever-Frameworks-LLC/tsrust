@@ -1,0 +1,5 @@
+import { greeting } from './greeting.tsr';
+
+function main() {
+  console.log(greeting());
+}

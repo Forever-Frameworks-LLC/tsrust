@@ -36,6 +36,12 @@ in a trusted workspace. **View → Output → Tsrust** shows startup and protoco
 errors. Run **Tsrust: Restart Language Server** after replacing its executable;
 **Developer: Reload Window** reloads extension updates.
 
+On Windows, Cargo installs `tsrust.exe` and `tsrust-lsp.exe` under
+`%USERPROFILE%\.cargo\bin`; keep the `.exe` suffixes. The same automatic discovery
+works in a fresh project without custom paths. Paths containing spaces or Unicode
+are supported. The extension supplies the Tsrust default formatter without
+overwriting explicit user settings.
+
 Checking and formatting require no external Rust compiler. **Run File** and
 native builds require Rustup, the pinned Rust backend and a system linker.
 See [installation](../../docs/content/getting-started/installation.md).

@@ -75,6 +75,44 @@ on `PATH`. The extension also searches `~/.cargo/bin` and beside configured
 companion executables. See [VS Code setup](../../../editors/vscode/README.md) for
 explicit paths and local packaging.
 
+## Windows source installation
+
+Use the MSVC Rust host (`x86_64-pc-windows-msvc`) and Visual Studio's **Desktop
+development with C++** workload, including a Windows SDK. The linker must be
+available to Rust. The native application smoke check exercises the linker rather
+than assuming that finding `cargo` proves the complete toolchain works.
+
+From this checkout in PowerShell, install both development consumers together in
+the standard Cargo executable directory:
+
+```powershell
+$env:CARGO_INCREMENTAL = '0'
+$env:CARGO_BUILD_JOBS = '1'
+cargo fetch --locked
+cargo fetch --locked --manifest-path crates/tsrust-compiler/native-dependencies/Cargo.toml
+cargo install --path crates/tsrust-compiler --bin tsrust --locked --debug --target-dir target
+cargo install --path crates/tsrust-lsp --bin tsrust-lsp --locked --debug --target-dir target
+tsrust --version
+```
+
+`--debug` installs a development build and reuses the shared target. Omit it when
+an optimized local installation is needed; a release-profile build is not a public
+release. Cargo installs `tsrust.exe` and `tsrust-lsp.exe` in
+`$HOME\.cargo\bin`. Rustup normally adds this directory to the user PATH; open a
+new terminal after changing PATH. Do not rename away the `.exe` suffix.
+
+Package the local editor extension with `npm ci`, `npm test` and `npm run package`
+from `editors/vscode`, then install its VSIX using VS Code's **Install from VSIX**.
+The extension discovers both Cargo-installed executables without workspace-specific
+paths and supplies the default formatter for `.tsr` and `.tsrx` files. Explicit
+user formatter choices still take precedence.
+
+Native `build`/`run`, checking, formatting and editor support are distinct from the
+development watcher. The integrated `tsrust dev` supervisor currently reports an
+unsupported-platform error on Windows; its Unix process-control implementation is
+not evidence of Windows watcher support. Browser UI builds additionally need the
+web prerequisites described below.
+
 The current LSP has an unresolved excessive-memory report during long workspace
 sessions. Use small workspaces and stop the language server if memory grows.
 

@@ -95,7 +95,7 @@ type User = { name: string; age: int; };
 function main() { const user: User = { name: "Pat", age: 2 }; const result = sum(1, 2); user.name; }
 `;
   await replace(editor, intelligence);
-  const callOffset = intelligence.lastIndexOf('sum(');
+  const callOffset = document.getText().lastIndexOf('sum(');
   const hovers = await vscode.commands.executeCommand<vscode.Hover[]>('vscode.executeHoverProvider', uri, document.positionAt(callOffset + 1));
   assert.ok(hovers?.some(hover => hover.contents.some(content => typeof content !== 'string' && 'value' in content && content.value.includes('Adds two values.'))), 'function hover includes documentation');
   const help = await vscode.commands.executeCommand<vscode.SignatureHelp>('vscode.executeSignatureHelpProvider', uri, document.positionAt(callOffset + 7), '(', false);
