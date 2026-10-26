@@ -8,6 +8,34 @@ The source repository is intended for
 `https://github.com/Forever-Frameworks-LLC/tsrust`. Links use that address; creating
 or pushing the repository is a separate owner operation.
 
+## Configured repository policy
+
+The repository is public at the address above. As of 2026-10-26, `main` requires
+a pull request, the aggregate **CI** check, resolved review conversations and
+linear history. Squash is the allowed merge method; merged branches are deleted
+automatically. Auto-merge and update-branch suggestions are enabled.
+
+[CODEOWNERS](../../.github/CODEOWNERS) assigns every path to `@Cotter45`.
+A separate review ruleset requires one approval and code-owner review, dismissing
+stale approvals after changes. Only `Cotter45` can bypass that review rule when
+merging a pull request, allowing the owner to merge their own work without a
+second reviewer. GitHub's bypass follows the merging actor, not the author:
+the owner can also explicitly bypass review on someone else's PR. Contributors
+cannot bypass it. The personal review bypass does not bypass CI or permit direct
+pushes to `main`.
+
+Only repository maintainers/admins can create or modify `v*` release tags.
+Immutable releases protect published release assets and associated tags.
+Private vulnerability reporting, Dependabot alerts/security updates, secret
+scanning and secret push protection are enabled. The unused wiki is disabled;
+documentation lives in this checkout.
+
+Existing Actions policy retains selected actions, mandatory commit pinning,
+read-only default tokens and disabled workflow approval of pull requests.
+Default artifact/log retention is 30 days; workflows explicitly retain their
+temporary artifacts for seven days. Repository protections are live settings,
+not automatically restored by cloning or forking the source.
+
 ## One-time repository setup
 
 1. Push the source to the intended repository with `main` as the default branch.
