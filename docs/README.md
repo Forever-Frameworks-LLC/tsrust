@@ -8,6 +8,7 @@ these guides distinguish supported behavior from planned work.
 
 - [Install the CLI and editor](content/getting-started/installation.md)
 - [Understand project structure](content/getting-started/project-structure.md)
+- [Set up Windows development](guides/windows.md)
 - [Use the CLI](guides/project-cli.md)
 - [Explore the standard library](standard-library.md)
 - [Understand string semantics](string-semantics.md)

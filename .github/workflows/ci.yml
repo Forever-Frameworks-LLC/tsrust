@@ -19,6 +19,9 @@ permissions:
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
+defaults:
+  run:
+    shell: bash
 env:
   CARGO_INCREMENTAL: '0'
   CARGO_BUILD_JOBS: '1'
@@ -33,7 +36,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-15]
+        os: [ubuntu-24.04, macos-15, windows-2025]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
     steps:
@@ -48,20 +51,53 @@ jobs:
       - name: Check release tooling and public documentation
         run: node --test tools/tests/distribution.test.mjs
       - name: Compiler and CLI acceptance
-        if: ${{ !inputs.full_regressions }}
+        if: ${{ !inputs.full_regressions && runner.os != 'Windows' }}
         run: cargo test --offline --locked -p tsrust-compiler --lib --bin tsrust --test acceptance --test project_commands --test formatting --test native_dependency_bundle
       - name: LSP transport and compiler agreement
-        if: ${{ !inputs.full_regressions }}
+        if: ${{ !inputs.full_regressions && runner.os != 'Windows' }}
         run: cargo test --offline --locked -p tsrust-lsp --lib --bin tsrust-lsp --test stdio --test checker_agreement --test completion_matrix --test editor_consistency
       - name: Complete regressions
-        if: ${{ inputs.full_regressions }}
+        if: ${{ inputs.full_regressions && runner.os != 'Windows' }}
         run: |
           cargo test --offline --locked --workspace --lib --bins --tests --no-fail-fast
           cargo test --offline --locked --workspace --doc
       - name: Native renderer model and layout checks
+        if: runner.os != 'Windows'
         run: cargo test --offline --locked -p tsrust-ui --features native --lib
       - name: Clippy
+        if: runner.os != 'Windows'
         run: cargo clippy --offline --locked --workspace --lib --bins -- -D warnings
+      - name: Windows compiler and offline bundle acceptance
+        if: runner.os == 'Windows'
+        run: |
+          cargo test --offline --locked -p tsrust-compiler --test acceptance --test formatting --test native_dependency_bundle
+          cargo test --offline --locked -p tsrust-compiler --test project_commands new_scaffolds_a_formatted_checkable_project_without_overwriting -- --exact
+      - name: Host path and project diagnostics
+        run: cargo test --offline --locked -p tsrust-lsp --test host_paths
+      - name: Windows LSP transport
+        if: runner.os == 'Windows'
+        run: cargo test --offline --locked -p tsrust-lsp --test stdio framed_transport_unicode_diagnostics_repair_and_lifecycle -- --exact
+      - name: Windows native renderer compilation
+        if: runner.os == 'Windows'
+        run: cargo check --offline --locked -p tsrust-ui --features native --lib
+      - name: Package Windows development toolchain
+        if: runner.os == 'Windows'
+        run: |
+          cargo vendor --offline --locked --versioned-dirs --sync crates/tsrust-compiler/native-dependencies/Cargo.toml target/windows-vendor > /dev/null
+          mkdir -p dist
+          node tools/package-toolchain.mjs target/debug/tsrust.exe target/debug/tsrust-lsp.exe x86_64-pc-windows-msvc dist/tsrust-windows-x64 target/windows-vendor
+          node tools/smoke-toolchain.mjs dist/tsrust-windows-x64/bin/tsrust.exe
+      - name: Archive Windows development toolchain
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -LiteralPath dist/tsrust-windows-x64 -DestinationPath dist/tsrust-windows-x64.zip
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: runner.os == 'Windows'
+        with:
+          name: windows-x64-development-toolchain
+          path: dist/tsrust-windows-x64.zip
+          if-no-files-found: error
+          retention-days: 7
   editor:
     name: VS Code extension
     runs-on: ubuntu-24.04

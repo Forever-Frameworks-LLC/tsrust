@@ -1,6 +1,8 @@
 //! Native development supervisor. Builds never replace a running executable inode.
+#[cfg(unix)]
 #[derive(Clone, Copy)]
 pub(crate) enum Status { Info, Success, Warning, Error }
+#[cfg(unix)]
 pub(crate) fn report(status:Status,message:impl std::fmt::Display) {
     use std::io::IsTerminal;
     let code=match status {Status::Info=>"1;36",Status::Success=>"1;32",Status::Warning=>"1;33",Status::Error=>"1;31"};

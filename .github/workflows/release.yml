@@ -7,6 +7,9 @@ permissions:
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
+defaults:
+  run:
+    shell: bash
 env:
   CARGO_INCREMENTAL: '0'
   CARGO_BUILD_JOBS: '1'
@@ -42,6 +45,8 @@ jobs:
             target: aarch64-apple-darwin
           - os: macos-15-intel
             target: x86_64-apple-darwin
+          - os: windows-2025
+            target: x86_64-pc-windows-msvc
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
     steps:
@@ -60,16 +65,28 @@ jobs:
         run: |
           test "$(rustc -vV | sed -n 's/^host: //p')" = "$RUST_TARGET"
           package="tsrust-${RELEASE_TAG}-${RUST_TARGET}"
+          suffix=""
+          if [[ "$RUNNER_OS" == "Windows" ]]; then suffix=".exe"; fi
           mkdir -p dist
-          node tools/package-toolchain.mjs target/release/tsrust target/release/tsrust-lsp "$RUST_TARGET" "dist/$package" target/release-vendor
+          node tools/package-toolchain.mjs "target/release/tsrust$suffix" "target/release/tsrust-lsp$suffix" "$RUST_TARGET" "dist/$package" target/release-vendor
           node -e 'const m=JSON.parse(require("node:fs").readFileSync(process.argv[1]));if(m.sourceTreeDirty||m.distribution!=="release")process.exit(1)' "dist/$package/manifest.json"
-          node tools/smoke-toolchain.mjs "dist/$package/bin/tsrust"
-          tar -czf "dist/$package.tar.gz" -C dist "$package"
-          rm -rf "dist/$package" target/release-vendor
+          node tools/smoke-toolchain.mjs "dist/$package/bin/tsrust$suffix"
+          echo "TSRUST_RELEASE_PACKAGE=$package" >> "$GITHUB_ENV"
+      - name: Archive Unix toolchain
+        if: runner.os != 'Windows'
+        run: tar -czf "dist/$TSRUST_RELEASE_PACKAGE.tar.gz" -C dist "$TSRUST_RELEASE_PACKAGE"
+      - name: Archive Windows toolchain
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -LiteralPath "dist/$($env:TSRUST_RELEASE_PACKAGE)" -DestinationPath "dist/$($env:TSRUST_RELEASE_PACKAGE).zip"
+      - name: Remove packaged intermediates
+        run: rm -rf "dist/$TSRUST_RELEASE_PACKAGE" target/release-vendor
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: toolchain-${{ matrix.target }}
-          path: dist/*.tar.gz
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
           if-no-files-found: error
           retention-days: 7
   publish:
@@ -98,8 +115,9 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           test "$(find dist -maxdepth 1 -name '*.tar.gz' | wc -l)" -eq 3
+          test "$(find dist -maxdepth 1 -name '*.zip' | wc -l)" -eq 1
           test "$(find dist -maxdepth 1 -name '*.vsix' | wc -l)" -eq 1
-          (cd dist && sha256sum *.tar.gz *.vsix > SHA256SUMS)
+          (cd dist && sha256sum *.tar.gz *.zip *.vsix > SHA256SUMS)
           args=(--verify-tag --title "Tsrust $RELEASE_TAG" --generate-notes --notes-file .github/release-notes.md)
           if [[ "$RELEASE_TAG" == *-* ]]; then args+=(--prerelease); fi
           gh release create "$RELEASE_TAG" dist/* "${args[@]}"

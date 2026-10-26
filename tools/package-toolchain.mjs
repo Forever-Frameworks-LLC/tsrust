@@ -14,6 +14,7 @@ const git = (...args) => execFileSync('git', ['-C', root, ...args], {encoding: '
 const version = crate => fs.readFileSync(path.join(root, 'crates', crate, 'Cargo.toml'), 'utf8').match(/^version = "([^"]+)"/m)[1];
 const rust = fs.readFileSync(path.join(root, 'rust-toolchain.toml'), 'utf8').match(/^channel = "([^"]+)"/m)[1];
 const destination = path.resolve(output);
+const suffix = target.includes('-windows-') ? '.exe' : '';
 fs.mkdirSync(destination);
 let complete = false;
 try {
@@ -27,8 +28,8 @@ try {
     files[relative] = {sha256: crypto.createHash('sha256').update(bytes).digest('hex'), bytes: bytes.length};
   }
   for (const [name, input] of [['tsrust', compiler], ['tsrust-lsp', server]]) {
-    copy(path.resolve(input), `bin/${name}`);
-    fs.chmodSync(path.join(destination, 'bin', name), 0o755);
+    copy(path.resolve(input), `bin/${name}${suffix}`);
+    fs.chmodSync(path.join(destination, 'bin', name + suffix), 0o755);
   }
   copy(path.join(root, 'LICENSE'), 'LICENSE');
   function notices(directory, relative, insideNotice = false) {

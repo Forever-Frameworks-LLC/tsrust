@@ -49,7 +49,7 @@ test('packaging preserves bytes, source versions, notices and executable permiss
   }
   assert.deepEqual(fs.readFileSync(path.join(output, 'bin/tsrust')), fs.readFileSync(inputs[0]));
   assert.deepEqual(fs.readFileSync(path.join(output, 'bin/tsrust-lsp')), fs.readFileSync(inputs[1]));
-  assert.ok(fs.statSync(path.join(output, 'bin/tsrust')).mode & 0o111);
+  if (process.platform !== 'win32') assert.ok(fs.statSync(path.join(output, 'bin/tsrust')).mode & 0o111);
   assert.equal(fs.readFileSync(path.join(output, 'LICENSE'), 'utf8'), fs.readFileSync(path.join(root, 'LICENSE'), 'utf8'));
   assert.equal(fs.readFileSync(path.join(output, 'attributions/dependencies/example-1.0.0/licenses/MIT.txt'), 'utf8'), 'dependency license fixture\n');
   assert.ok(!fs.existsSync(path.join(output, 'attributions/dependencies/example-1.0.0/lib.rs')));
@@ -117,3 +117,17 @@ test('public entry-point documentation links resolve within the checkout', () =>
     }
   }
 });
+
+// Assert target naming on every host; fixture inputs are never executed.
+test('Windows packages retain .exe names and hash both consumers', () => temporary(directory => {
+  const output = path.join(directory, 'package');
+  const inputs = consumers(directory);
+  const result = pack([...inputs, 'x86_64-pc-windows-msvc', output]);
+  assert.equal(result.status, 0, result.stderr);
+  const manifest = JSON.parse(fs.readFileSync(path.join(output, 'manifest.json')));
+  for (const [index, name] of ['tsrust.exe', 'tsrust-lsp.exe'].entries()) {
+    assert.deepEqual(fs.readFileSync(path.join(output, 'bin', name)), fs.readFileSync(inputs[index]));
+    assert.equal(manifest.files['bin/' + name].sha256, digest(fs.readFileSync(inputs[index])));
+  }
+  assert.ok(!fs.existsSync(path.join(output, 'bin/tsrust')));
+}));

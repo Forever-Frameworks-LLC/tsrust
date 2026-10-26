@@ -8,7 +8,9 @@ for acceptance requirements.
 ## Set up
 
 Install Rustup, a native linker/C toolchain, Node.js 24 and npm. The repository
-pins Rust 1.96.1. Linux native UI builds also need the development packages listed
+pins Rust 1.96.1. Windows contributors should start with
+[the Windows guide](docs/guides/windows.md); the full Unix regression matrix is
+not yet portable. Linux native UI builds also need the development packages listed
 in [.github/actions/setup/action.yml](.github/actions/setup/action.yml).
 
 ```sh

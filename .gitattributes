@@ -1,0 +1,2 @@
+# Keep formatted sources, literal fixtures and benchmark fingerprints stable across hosts.
+* text=auto eol=lf

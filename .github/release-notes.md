@@ -9,6 +9,9 @@ Tsrust is experimental. Language, library and component APIs may change.
 
 Download the archive matching your host, verify it against `SHA256SUMS`, and put
 both `bin/` executables on `PATH`. Install the separate VSIX in VS Code.
+Windows x64 downloads use a ZIP containing `tsrust.exe` and `tsrust-lsp.exe`.
+Windows support is experimental: dev supervision, consuming filesystem close and
+shutdown signals remain Unix-only. See `docs/guides/windows.md` in the tagged source.
 Native compilation requires Rustup with Rust 1.96.1 and a system linker. These
 archives do not include Rust itself. Linux archives target glibc-based systems
 built against Ubuntu 24.04; they are not static musl binaries.

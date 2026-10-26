@@ -1,4 +1,5 @@
 mod dev_cli;
+#[cfg(unix)]
 mod dev_web;
 mod runtime_build;
 mod native_workspace;

@@ -114,7 +114,8 @@ The UI component library and paired documentation app are still under developmen
 The current LSP has an unresolved report of excessive memory use during long
 sessions; avoid opening very large workspaces until that issue is resolved.
 macOS has the most development coverage. CI and release workflows target Linux
-x64 and macOS; Windows distribution is not configured yet. Native GPU rendering
+x64, macOS and experimental Windows x64 builds. Windows has a narrower acceptance
+baseline; see [Windows setup and limits](docs/guides/windows.md). Native GPU rendering
 and accessibility still need real desktop checks beyond hosted CI.
 
 Performance depends on the workload. [Benchmark methodology](benchmarks/runtime/README.md)

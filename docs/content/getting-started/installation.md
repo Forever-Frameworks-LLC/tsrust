@@ -10,8 +10,8 @@ components. It is experimental; language and library APIs may change.
 
 Open [GitHub Releases](https://github.com/Forever-Frameworks-LLC/tsrust/releases)
 and choose the archive matching your host. Download `SHA256SUMS` alongside it.
-Release archives are configured for Linux x64, macOS Apple Silicon and macOS
-Intel. Until the first release is published, use the source build below.
+Release archives are configured for Linux x64, macOS Apple Silicon/Intel and
+experimental Windows x64 (MSVC). Until the first release is published, use the source build below.
 
 Verify the selected archive's checksum before extraction. For example, on macOS:
 
@@ -37,6 +37,10 @@ license and attributions with any redistributed copy. Archives include a
 `manifest.json` recording source commit, both consumer versions and file hashes.
 Checksums detect corruption; these binaries are not code-signed or notarized.
 Linux archives require a glibc system compatible with Ubuntu 24.04, not Alpine.
+
+Windows uses a `.zip` archive containing `tsrust.exe` and `tsrust-lsp.exe`. See
+[Windows setup](../../guides/windows.md) for PowerShell installation, development
+artifacts and platform limitations.
 
 ## Install the native backend
 

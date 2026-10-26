@@ -51,8 +51,15 @@ pub fn source_path_id(uri: &str) -> Result<SourceId, String> {
     if path.contains('\0') {
         return Err("File URI must not contain a null byte.".into());
     }
+    #[cfg(windows)]
+    let path = url::Url::parse(uri)
+        .map_err(|_| "Invalid local file URI.")?
+        .to_file_path()
+        .map_err(|_| "Windows file URIs require an absolute drive path.")?;
+    #[cfg(not(windows))]
+    let path = PathBuf::from(path);
     let mut normalized = PathBuf::new();
-    for component in Path::new(&path).components() {
+    for component in path.components() {
         match component {
             Component::ParentDir => {
                 normalized.pop();
@@ -79,6 +86,18 @@ pub fn file_uri(id: &SourceId) -> Result<Uri, String> {
     if !Path::new(&id.0).is_absolute() || id.0.contains('\0') {
         return Err("Source identity must be an absolute local path.".into());
     }
+    #[cfg(windows)]
+    {
+        use std::path::Prefix;
+        if !matches!(Path::new(&id.0).components().next(), Some(Component::Prefix(prefix)) if matches!(prefix.kind(), Prefix::Disk(_) | Prefix::VerbatimDisk(_))) {
+            return Err("Remote file URI authorities are not supported.".into());
+        }
+        return url::Url::from_file_path(&id.0)
+            .map_err(|_| "Cannot encode source file URI.")?
+            .as_str().parse().map_err(|_| "Cannot encode source file URI.".into());
+    }
+    #[cfg(not(windows))]
+    {
     let mut uri = String::from("file://");
     for byte in id.0.bytes() {
         if byte.is_ascii_alphanumeric() || b"/-._~:".contains(&byte) {
@@ -89,6 +108,7 @@ pub fn file_uri(id: &SourceId) -> Result<Uri, String> {
     }
     uri.parse()
         .map_err(|_| "Cannot encode source file URI.".into())
+    }
 }
 /// All loaded files receive a bucket, so repaired project checks can clear old errors.
 pub fn convert(

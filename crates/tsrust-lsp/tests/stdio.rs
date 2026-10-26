@@ -89,6 +89,8 @@ impl Drop for Server {
 }
 #[test]
 fn framed_transport_unicode_diagnostics_repair_and_lifecycle() {
+    let path = std::env::temp_dir().join(format!("tsrust-stdio-unicode-{}.tsr", std::process::id()));
+    let uri = tsrust_lsp::project_diagnostics::file_uri(&tsrust_compiler::project::SourceId(path.to_str().unwrap().into())).unwrap().to_string();
     let mut server = Server::start();
     server.request(0, "unknown", json!({}));
     assert!(
@@ -100,18 +102,18 @@ fn framed_transport_unicode_diagnostics_repair_and_lifecycle() {
     );
     server.notify("initialized", json!({}));
     let source = "function main() { const x = \"😀\"; const y: int = true; }";
-    let expected = tsrust_lsp::diagnostics(source, "file:///unicode.tsr").unwrap();
-    server.notify("textDocument/didOpen", json!({"textDocument":{"uri":"file:///unicode.tsr","languageId":"tsrust","version":1,"text":source}}));
+    let expected = tsrust_lsp::diagnostics(source, uri.as_str()).unwrap();
+    server.notify("textDocument/didOpen", json!({"textDocument":{"uri":uri.as_str(),"languageId":"tsrust","version":1,"text":source}}));
     assert!(
         matches!(server.receive(), Message::Notification(n) if n.method == "textDocument/publishDiagnostics" && n.params["version"] == 1 && n.params["diagnostics"] == serde_json::to_value(expected).unwrap())
     );
-    server.notify("textDocument/didChange", json!({"textDocument":{"uri":"file:///unicode.tsr","version":2},"contentChanges":[{"text":"function main() {}"}]}));
+    server.notify("textDocument/didChange", json!({"textDocument":{"uri":uri.as_str(),"version":2},"contentChanges":[{"text":"function main() {}"}]}));
     assert!(
         matches!(server.receive(), Message::Notification(n) if n.params["version"] == 2 && n.params["diagnostics"] == json!([]))
     );
     server.notify(
         "textDocument/didClose",
-        json!({"textDocument":{"uri":"file:///unicode.tsr"}}),
+        json!({"textDocument":{"uri":uri.as_str()}}),
     );
     assert!(
         matches!(server.receive(), Message::Notification(n) if n.params["diagnostics"] == json!([]))

@@ -58,6 +58,14 @@ before calling this release pipeline verified.
 dispatch and release calls. Linux x64 and macOS ARM run selected compiler/CLI
 acceptance, LSP transport and checker agreement, renderer model checks, Clippy and
 project formatting. A separate job tests and packages the VS Code extension.
+Windows x64 uses a narrower baseline: consumer compilation, CLI/format/offline
+bundle acceptance, scaffold preservation, LSP host paths/transport, native renderer
+compilation and a packaged CLI smoke check. Successful Windows jobs also upload a
+`windows-x64-development-toolchain` ZIP for testing before a tagged release.
+Windows does not run compiler library unit tests yet because their consuming
+filesystem backend is explicitly Unix-only. Windows Clippy and the full regression
+matrix remain pending; these are not passed by skipping unsupported targets.
+
 Builds use the committed toolchain and both lockfiles, one Cargo job, one test
 thread and disabled incremental compilation. Jobs have explicit timeouts. Build
 outputs are not cached; uploaded artifacts expire after seven days.
@@ -104,6 +112,7 @@ The build matrix compiles optimized CLI and LSP executables on their host runner
 | Ubuntu 24.04 x64 | `x86_64-unknown-linux-gnu` |
 | macOS 15 ARM | `aarch64-apple-darwin` |
 | macOS 15 Intel | `x86_64-apple-darwin` |
+| Windows 2025 x64 | `x86_64-pc-windows-msvc` |
 
 Each archive contains the two consumers, an MIT license, upstream notices,
 version/source metadata and per-file SHA-256 digests. Native dependency sources
@@ -112,7 +121,7 @@ workspace and native dependency closures using `cargo vendor --locked`.
 
 The packaged CLI runs a fresh project outside the checkout: scaffold, check,
 format, native execution, tests and bundled JSON. Only after all hosts pass does
-publication create a GitHub Release containing three archives, one VSIX and
+publication create a GitHub Release containing four archives (three tarballs and a Windows ZIP), one VSIX and
 `SHA256SUMS`. GitHub also provides the tagged source archives. Tags with a
 prerelease suffix create prereleases; ordinary semantic version tags create
 regular releases. Existing releases are never overwritten automatically.
@@ -139,7 +148,8 @@ notarize or generate build attestations. Do not claim those properties.
 
 Native application compilation still requires Rustup with Rust 1.96.1 and a
 system linker. Linux binaries are built on Ubuntu 24.04 with glibc; Alpine/musl,
-Windows and Linux ARM archives are not provided. macOS unsigned executable policy
+Linux ARM archives are not provided. Windows coverage is experimental; see
+[Windows setup and limits](windows.md). macOS unsigned executable policy
 may require local approval. No `curl | sh` installer, registry publication or
 Marketplace upload is configured.
 
