@@ -49,12 +49,12 @@ impl SourceProvider for Inputs{
     }
     fn read(&self,id:&SourceId)->Result<String,String>{if *id==self.entry{Ok(self.source.clone())}else{FileSourceProvider.read(id)}}
 }
-struct PublicationInputs {entry:SourceId,files:BTreeMap<SourceId,String>}
+pub(super) struct PublicationInputs {pub(super) entry:SourceId,pub(super) files:BTreeMap<SourceId,String>}
 impl SourceProvider for PublicationInputs {
  fn resolve(&self,importer:Option<&SourceId>,path:&str)->Result<SourceId,String>{
   let candidate=if Path::new(path).is_absolute(){PathBuf::from(path)}else if path.starts_with("./")||path.starts_with("../"){Path::new(&importer.ok_or("Relative generated import needs an importer")?.0).parent().unwrap().join(path)}else{return FileSourceProvider.resolve(importer,path);};
   let mut normalized=PathBuf::new();for part in candidate.components(){match part{std::path::Component::CurDir=>{},std::path::Component::ParentDir=>{normalized.pop();},other=>normalized.push(other.as_os_str())}}
-  for candidate in [normalized.clone(),normalized.with_extension("tsr")] {let id=SourceId(candidate.to_string_lossy().into_owned());if self.files.contains_key(&id){return Ok(id);}}
+  for candidate in [normalized.clone(),normalized.with_extension("tsr"),normalized.with_extension("tsrx"),normalized.join("index.tsr"),normalized.join("index.tsrx")] {let id=SourceId(candidate.to_string_lossy().into_owned());if self.files.contains_key(&id){return Ok(id);}}
   FileSourceProvider.resolve(importer,path)
  }
  fn read(&self,id:&SourceId)->Result<String,String>{self.files.get(id).cloned().map(Ok).unwrap_or_else(||FileSourceProvider.read(id))}

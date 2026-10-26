@@ -5,6 +5,8 @@ use sha2::{Digest,Sha256};
 use tsrust_compiler::ui_project::{Config,Targets,safe_relative};
 #[path = "ui_attributions.rs"]
 mod attributions;
+#[path = "ui_agent_guidance.rs"]
+mod agents;
 const ABI:&str=tsrust_compiler::ui_project::RUNTIME_ABI;
 const CATALOG:&str="bundled-2026-10-20";
 #[derive(Clone,Debug,Deserialize,Serialize,PartialEq,Eq,PartialOrd,Ord)]
@@ -111,7 +113,8 @@ fn resolve(request:&Identity,items:&[Item],resolved:&mut Vec<Item>,active:&mut V
 }
 fn no_symlinks(root:&Path,relative:&Path)->Result<PathBuf,String> {
  safe_relative(relative)?;let mut current=root.to_owned();
- for part in relative.components() {current.push(part);match fs::symlink_metadata(&current) {Ok(metadata) if metadata.file_type().is_symlink()=>return Err(format!("UI installation refuses symlink: {}",current.display())),Ok(_)=>{},Err(e) if e.kind()==std::io::ErrorKind::NotFound=>{},Err(e)=>return Err(e.to_string())}}
+ let mut parts=relative.components().peekable();
+ while let Some(part)=parts.next() {current.push(part);match fs::symlink_metadata(&current) {Ok(metadata) if metadata.file_type().is_symlink()=>return Err(format!("UI installation refuses symlink: {}",current.display())),Ok(metadata) if parts.peek().is_some()&&!metadata.is_dir()=>return Err(format!("UI path parent must be a directory: {}",current.display())),Ok(_)=>{},Err(e) if e.kind()==std::io::ErrorKind::NotFound=>{},Err(e)=>return Err(e.to_string())}}
  Ok(current)
 }
 fn read_lock(root:&Path,config:&Config)->Result<(Lock,Option<Vec<u8>>),String> {
@@ -162,7 +165,9 @@ fn plan_from_catalog(root:&Path,config:&Config,requests:&[Identity],destination:
   lock.installed.push(Installed{identity:id,destination:target.to_owned(),catalog:CATALOG.into(),payload_sha256:hash(&payload),compiler_sha256:compiler_hash.into(),compiler_version:env!("CARGO_PKG_VERSION").into(),compiler_api:item.compiler_api,runtime_abi:ABI.into(),rust:tsrust_compiler::RUST_BACKEND_VERSION.into(),license:item.license.clone(),license_text:None,attribution:Some(attribution),dependencies:item.dependencies.clone(),files:locked});
  }
  let bytes=if lock.installed.len()==installed_before {previous.clone().unwrap_or_default()}else {let mut bytes=serde_json::to_vec_pretty(&lock).map_err(|e|e.to_string())?;bytes.push(b'\n');bytes};
- Ok(Plan{files:files.into_iter().collect(),updates:vec![],directories:vec![PathBuf::from("src/app"),destination.to_owned()],lock_path:config.lock.clone(),previous,lock:bytes,messages})
+ let mut plan=Plan{files:files.into_iter().collect(),updates:vec![],directories:vec![PathBuf::from("src/app"),destination.to_owned()],lock_path:config.lock.clone(),previous,lock:bytes,messages};
+ agents::plan(root,config,destination,&resolved,&paths,&mut plan)?;
+ Ok(plan)
 }
 fn read_optional(path:&Path)->Result<Option<Vec<u8>>,String> {
  match fs::read(path){Ok(bytes)=>Ok(Some(bytes)),Err(e) if e.kind()==std::io::ErrorKind::NotFound=>Ok(None),Err(e)=>Err(format!("{}: {e}",path.display()))}

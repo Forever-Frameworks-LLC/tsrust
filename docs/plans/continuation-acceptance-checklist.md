@@ -4,6 +4,16 @@ Baseline: `7c956bd7`, inspected on Windows on 2026-10-26. This checklist reconci
 the latest handoffs with the governing plans. It does not replace their detailed
 contracts or turn historical acceptance into Windows acceptance.
 
+## Owner-added Windows priorities
+
+- [x] Install and verify the CLI/LSP and packaged editor on this computer.
+- [x] Support native development rebuild/recovery and owned-process shutdown on Windows.
+- [x] Restore normal launcher interaction and generate project/component agent guidance.
+  See [CLI acceptance](../milestones/cli-agent-guidance.md).
+- [ ] Complete generated native UI application linking and real input acceptance.
+  The renderer foundation presents/resizes/closes; generated app linking currently
+  lacks the windows.0.52.0.lib import library. Preserve its completed compile.
+
 ## Required sections
 
 - [ ] Resolve the reported long-lived LSP memory pressure. Inspect retained inputs,

@@ -183,3 +183,20 @@ tsrust format --check
 
 Checks and editor analysis are read-only. See [project structure](project-structure.md)
 and [theming](../ui/foundations/theming.md) for configuration and customization.
+
+## Agent guidance and terminal presentation
+
+`tsrust new` writes a project `AGENTS.md` with commands, ownership expectations,
+UI entry conventions and verification steps. Component installation adds an
+`AGENTS.md` index in the configured component directory and a versioned reference
+for each installed component. References contain imports, checked public
+signatures, props and available behavioral documentation. Read the local source
+after customization. Existing owner guides are preserved; new component links
+append to the directory index. Dry runs do not write these files.
+
+The arrow-key launcher appears in an interactive terminal. An explicit `TERM=dumb`
+selects numbered prompts; redirected input prints help without prompting. Remove
+an accidentally inherited `TERM=dumb` in a normal Windows terminal and start a
+new terminal. The Windows setup example clears that inherited setting in its
+workspace terminal environment. The branded header is printed when the terminal
+is wide enough, including short terminal panels; visible menu rows adapt to height.

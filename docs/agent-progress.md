@@ -3,7 +3,8 @@
 Updated: 2026-10-26. The audited dataset integration and requested cleanup are complete.
 The original compiler/UI continuation goal remains incomplete.
 
-Current owner priority is Windows integration and installation on this computer.
+Current owner priority is Windows integration; the latest request adds normal
+launcher presentation and generated project/component agent guidance.
 See [Windows installation acceptance](milestones/windows-installation.md).
 Audited data integration and cleanup are complete; builds now run only for concrete
 installation/feature acceptance, not to repopulate caches. Table continuation and
@@ -33,8 +34,19 @@ dependency graph; no Unix-only integration test was claimed as run on Windows.
 See [Windows evidence](milestones/windows-installation.md) for exact commands,
 resource observations and remaining GPU/window and web prerequisite acceptance.
 No test/build remains live from this section. No remote validation or release ran.
-Next: record the formatted local checkpoint, then continue Windows native UI
-prerequisite/window acceptance under explicit resource bounds before Table work.
+Accepted source checkpoint: `a1a6cc4e`. Pruned its four completed CLI/unit-test
+executables and symbols: 930,684,416 logical bytes; observed free-space increase
+930,689,024 bytes. Installed consumers, source, databases and dependency caches
+remain intact. No project test/Cargo process remained before cleanup.
+
+Next section: actual Windows GPU/window prerequisites. Hardware reports NVIDIA
+GeForce RTX 4090, driver 32.0.16.1742. Reuse the existing `tsrust-ui` static example
+with `--features acceptance -- --verify-window`, which presents a GPU frame and
+closes its event loop. Build offline in the shared target with one job and no
+incremental compilation; retain the 8 GiB private-memory / 4 GiB free-memory
+bounds and investigate after 15 minutes without completion. Runtime acceptance
+must exit within 30 seconds after build completion. Do not claim generated Tsrust
+UI or interactive behavior solely from the Rust renderer witness.
 
 ## SQL template highlighting
 
@@ -166,3 +178,61 @@ inherited help without weakening assertions. Resume pending checker acceptance
 and exact Table compiler/editor witnesses from the pause handoff. Use the shared
 target, one Cargo job and CARGO_INCREMENTAL=0. Preserve completed evidence; do not
 restart broad regressions or timing solely because caches were pruned.
+
+## Windows native UI section in progress
+
+The existing Rust static window witness builds offline in 3m53s and passes actual
+frame presentation, resize sequence and event-loop closure within the 30-second
+external runtime bound. Logs: `target/windows-ui-build.log` and
+`target/windows-ui-window-smoke.log`. This proves the renderer window path, not
+generated Tsrust application behavior or all input/clipboard/accessibility contracts.
+
+A fresh `target/windows-ui-setup` scaffold is generated through the installed CLI
+with `--ui --target native`; check and format-check pass. Its Page has reactive
+Count text and an Increment button. Its offline generated native build completed runtime compilation but failed
+application linking (LNK1181, missing windows.0.52.0.lib); log
+`target/windows-ui-generated-build.log`. No build remains live from that run. `TSRUST_CACHE_DIR=D:/ai_dev/tsrust/target/tsrust-native`,
+CARGO_BUILD_JOBS=1, CARGO_INCREMENTAL=0. The compiler-owned shared native workspace
+is `runtime/build-v1/6be45785ffc2ba6b` under that cache; it owns its required native
+Cargo target. This is application installation validation, not cache repopulation.
+Source/public measurements and unrelated user processes remain preserved.
+
+Next: repair preservation of Cargo native link artifacts/search paths without
+repeating the completed cold runtime compilation. After successful linking, open
+the generated app and verify actual
+button/keyboard reactive updates and orderly close through Computer Use, under a
+three-minute interactive-window bound. The Rust renderer witness alone does not
+accept these generated-source interactions. Inspect/repair any Windows failure;
+do not restart a live build because output observation expired.
+
+## Launcher and generated agent guidance accepted
+
+Source baseline a1a6cc4e. See [complete CLI evidence](milestones/cli-agent-guidance.md).
+The normal arrow-key launcher and short-panel branding pass real Windows console
+checks, including Ctrl+C/Esc, cursor visibility and exact input-mode restoration.
+The example workspace clears inherited TERM=dumb for new terminals; existing shells
+need replacement. `tsrust new` generates root AGENTS.md, and UI installation adds
+an index plus checked versioned component API references through its existing
+atomic transaction. Owner guides/source/lock bytes are preserved; dry runs do not
+write. All 17 installer cases and four launcher helper cases pass across retained
+batches, plus complete-catalog, versioned-import and real CLI guide smokes.
+
+The final normal CLI is installed and hash-matched:
+616c928d888970c69a6752ae69d2afc6a814224dae10842662d40c87eb6e63c4.
+An installed-consumer check proves the exact reviewed project template is generated.
+The Windows setup example now contains that guide. Whole-project formatting and
+installed format-check pass with zero changes. No CLI build/test remains live.
+Next: save this accepted formatted checkpoint, then repair the separate Windows
+native import-library link/cache failure using retained compiled runtime artifacts.
+
+Owner-created `examples/windows-setup/wut/` is unrelated and must not be staged,
+rewritten or deleted. Preserve untracked .agents/ and docs/agent-goal.md as well.
+
+Generated native UI build 86380 is terminal (exit 1). Cargo compiled its offline
+UI runtime, but final application linking fails LNK1181 for windows.0.52.0.lib.
+The existing packed runtime carries rlibs/DLLs but loses Cargo native import-library
+search paths. Keep shared native workspace runtime/build-v1/6be45785ffc2ba6b and
+completed compile artifacts. Next Windows backend repair: retain resolved Cargo
+native link artifacts through live linking and cache restoration; bump cache ABI
+as needed, verify a native import-library round trip and the real generated app.
+Do not rerun the cold native dependency build just to rediscover this failure.

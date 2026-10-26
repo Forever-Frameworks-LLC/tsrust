@@ -170,3 +170,22 @@ was about 2.5 GiB with over 12 GiB free; the same live build completed. Subseque
 CLI-only rebuilds took about two minutes. No duplicate full pass, benchmark timing,
 push, hosted workflow, tag or release occurred. Windows GPU/window and web toolchain
 validation remain distinct next sections; Unix execution remains unverified here.
+
+Post-checkpoint cleanup (`a1a6cc4e`): four completed-gate unit/integration test
+executables and symbols removed after exact-path inventory and process checks.
+Logical bytes removed: 930,684,416; observed free-space increase: 930,689,024.
+Compiler/LSP consumers, warm dependencies, public measurements and owner files
+remain preserved. Test programs are reproducible from the source checkpoint.
+
+Next Windows native-renderer section is bounded separately: RTX 4090 with driver
+32.0.16.1742, existing auto-closing `static --verify-window` witness, shared target,
+one Cargo job, incremental disabled, 8 GiB private / 4 GiB free memory bounds,
+15-minute build investigation and 30-second post-build runtime limit.
+
+Windows native renderer foundation passes: offline `cargo build --locked -p
+ tsrust-ui --features acceptance --example static` (3m53s), followed by the existing
+`static.exe --verify-window` with a 30-second external timeout. It presents frames
+through its resize sequence and exits normally, printing `GPU frame presented;
+event loop closed`. No claim of complete glyph, input or generated-source parity
+is inferred from this narrow renderer witness. A generated native UI project now
+checks/formats successfully; its offline application backend is still building.
