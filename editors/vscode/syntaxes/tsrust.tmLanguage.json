@@ -237,7 +237,7 @@
     },
     {
       "name": "support.type.primitive.tsrust",
-      "match": "\\b(?:int|number|string|boolean|void)\\b"
+      "match": "(?<![\\w.])\\b(?:int|number|string|boolean|void)\\b(?!\\s*\\()"
     },
     {
       "name": "constant.language.tsrust",

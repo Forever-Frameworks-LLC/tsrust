@@ -9,6 +9,34 @@ Audited data integration and cleanup are complete; builds now run only for concr
 installation/feature acceptance, not to repopulate caches. Table continuation and
 its pending checks remain preserved below.
 
+## Windows development supervisor in progress
+
+Current source checkpoint `17f6f315`. Windows Job Object containment, console stop
+handling, native notifications and exact file stamps are implemented but unaccepted.
+`cargo check --offline --bin tsrust` passes in 2m40s; log
+`target/windows-dev-check.log`. Focused `cargo test --offline --locked --bin tsrust
+dev_ -- --test-threads=1` is live in command session 32983, log
+`target/windows-dev-focused.log`. It uses the shared target, one job and no
+incremental compilation. The compiler library is rebuilding after the direct
+Windows binding dependency changed its Cargo identity; observed private memory
+peaked around 2.3 GiB, CPU time continues increasing. A concurrent native async-SQL
+example build belongs to the user and was left alone. Next: poll this same live
+handle, repair only affected failures, then run `tools/smoke-windows-dev.py` against
+the new CLI.
+Do not install or claim this supervisor until native replacement and cleanup pass.
+
+## SQL template highlighting
+
+The owner screenshot shows expected interpolation: backtick strings embed code
+inside `${...}`, while `'id'` and `'name'` are nested quoted arguments. A real
+lexical classification bug also matched `.int()` as the primitive type `int`.
+The top-level primitive rule now excludes member names and call positions; type
+annotation patterns retain their original rules. The exact SQL template, ordinary
+quoted text, spaced method calls and stored member references have regression
+assertions. The complete TextMate grammar test passes. Packaging/compilation pass,
+the updated VSIX is installed, and whole-project formatting changes zero files or
+fingerprints. Existing VS Code windows need reload for the new grammar.
+
 ## Duplicate Run button repair
 
 The installed Code Runner 0.12.2 contributes `code-runner.run` to the shared
