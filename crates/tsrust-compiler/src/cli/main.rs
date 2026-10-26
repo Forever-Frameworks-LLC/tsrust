@@ -26,6 +26,7 @@ mod new_cli;
 mod ui_cli;
 mod cache_cli;
 mod docs_cli;
+mod api_cli;
 mod docs_model;
 mod format_cli;
 mod check_cli;
@@ -53,6 +54,7 @@ Usage:
   tsrust ui <list --bundled|init|add name...> [--cwd directory] [--path directory] [--target native|web]... [--dry-run]
   tsrust ui attributions [--cwd directory] [--dry-run]
   tsrust docs content [--cwd directory]
+  tsrust api generate [--config tsrust.api.json] [--out directory] [--check]
   tsrust cache <info|clean>
   tsrust dev [--target native|web] [--port 4317] [--release] [--verbose] [--color auto|always|never] [-- program-arguments]
   tsrust run [input.tsr] [--release] [-- program-arguments]
@@ -68,6 +70,7 @@ Commands:
   remove   Validate dependency removal without rewriting adapters
   bindings Resolve and vendor declared Rust dependencies
   docs     Compile checked documentation content and exact example/API data offline
+  api      Generate a checked named TypeScript client without adopting frontend tooling
   dev      Watch a configured native program or web UI
   new      Create a project with source, tests and configuration
   check    Check files/directories recursively; defaults to the current directory
@@ -195,6 +198,7 @@ fn run() -> Result<u8, String> {
     if command=="bindings" {return rust_bindings::resolve(args);}
     if command=="dev" {return dev_cli::run(args);}
     if command=="docs" {return docs_cli::run(args);}
+    if command=="api" {return api_cli::run(args);}
     if command=="cache" {return cache_cli::run(args);}
     if command=="ui" {return ui_cli::run(args);}
     if command=="new" {return new_cli::run(args);}

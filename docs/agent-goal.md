@@ -102,6 +102,10 @@ Native compilation is not a universal speed guarantee. Preserve original samples
 and protocols; distinguish acceptance from unmeasured workloads. SQLite remains
 the canonical benchmark store; publish only the allowlisted export.
 
+The owner requested their computer back after the editor refresh. Continue with
+file/terminal tools and headless verification. Do not resume interactive desktop
+control unless the owner requests it.
+
 One agent writes this tree at a time. Inspect status, preserve unrelated changes,
 use local Git checkpoints before risky edits and after accepted sections, format
 the entire project before source checkpoints, use one Cargo target/job and

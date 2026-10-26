@@ -170,7 +170,7 @@ fn diagnostic(
             .collect(),
     }
 }
-fn symbol(module: usize, name: &str) -> String {
+pub(crate) fn symbol(module: usize, name: &str) -> String {
     format!("{}{module}_{name}", crate::type_aliases::LINKED_PREFIX)
 }
 

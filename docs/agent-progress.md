@@ -41,11 +41,36 @@ to checking enabled with no Problems reported. Underlying simultaneous exit caus
 and historical long-lived memory report remain unproven. See
 [recovery evidence](milestones/lsp-bounded-recovery.md).
 
-Next: checkpoint the accepted recovery fix, then implement the compiler-derived
-operation manifest and framework-independent named TypeScript client in one
-coherent section. Reuse checked function/type facts rather than parsing display
-strings. Add focused generated-client/validation/type-error witnesses before batch
-checks. No new API/client/template implementation exists yet.
+Recovery checkpoints are `ba73eda2` and documentation `e3974b2f`. The owner then
+requested the computer back. Computer Use is finished; do not resume interactive
+desktop control unless requested. Keep future verification headless.
+
+## Current section: checked API client foundation
+
+Implemented from `e3974b2f`: `crates/tsrust-compiler/src/api/`, CLI `api_cli.rs`,
+`tsrust api generate`, explicit allowlist/configuration, deterministic manifests,
+framework-independent named ESM clients/declarations and safe output ownership.
+`examples/api-contract` and `tools/verify-api-client.mjs` provide executable/native,
+codec, TypeScript and existing-project witnesses. No frontend or backend server
+implementation is claimed by this foundation.
+
+Five focused compiler API integration tests pass. The complete headless client
+witness passes every advertised codec family, unsupported native/recursive/literal
+rejections, real named calls, TypeScript errors/inference, output staleness and
+owner protection, and ordinary linked consumption without frontend adoption.
+The junction requires normal permission on Windows; the sandbox denial is retained.
+The final formatted native fixture builds/runs and prints the exact assertion
+success message. See [foundation evidence](milestones/checked-api-client-foundation.md).
+The initial filtered library-unit build remains blocked by pre-existing Unix-only
+std:fs unit imports on Windows; do not claim that full suite passed.
+
+Next: final formatting/checkpoint and atomic installed CLI refresh, then add HTTP
+transport and native dispatch from this single checked contract. Reuse Router,
+Context and std:schema; preserve per-transport validation/policy and keep private
+context out of wire arguments. Library-only API entries avoid generated-server
+bootstrap cycles. TanStack wrappers and the persistent SQLite service follow in
+coherent sections; no frontend template dependencies are installed yet.
+
 The original Windows/Table continuation below is historical and frozen where UI
 specific; retain its completed results and unresolved platform limitations.
 
