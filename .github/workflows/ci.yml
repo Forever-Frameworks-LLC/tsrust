@@ -47,6 +47,9 @@ jobs:
         run: target/debug/tsrust format . --check --color never
       - name: Check release tooling and public documentation
         run: node --test tools/tests/distribution.test.mjs
+      - name: Benchmark export privacy and measurement preservation
+        if: runner.os == 'Linux'
+        run: python3 -B -m unittest discover -s benchmarks/storage -p 'test_*.py'
       - name: Compiler and CLI acceptance
         if: ${{ !inputs.full_regressions }}
         run: cargo test --offline --locked -p tsrust-compiler --lib --bin tsrust --test acceptance --test project_commands --test formatting --test native_dependency_bundle

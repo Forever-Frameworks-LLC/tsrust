@@ -114,6 +114,22 @@ checks only.
 
 ## Analytics purpose and storage
 
+The owner's October 26, 2026 privacy direction supersedes the historical policy
+of importing every closed log into SQLite. `benchmarks/measurements.sqlite` is
+the shareable benchmark-only database. It contains indexed accepted samples,
+allocation counters, summaries, source/proof hashes, toolchain versions and
+general hardware specifications. Generate it with `benchmarks/storage/public.py`;
+never copy the mixed archive into a public release. See
+[the public dataset contract](../benchmarks/storage/PUBLIC_DATA.md).
+
+`benchmarks/records.sqlite` is the ignored legacy evidence store. It includes
+historical logs, source snapshots and local paths. Preserve these existing
+records locally, but stop importing routine logs, source snapshots and session
+receipts. Raw measured records and their acceptance proofs remain local inputs
+for exact verification and future benchmark exports. Current command logs are
+disposable after their result is recorded. The historical retention instructions
+below describe existing records, not permission to accumulate new unrelated logs.
+
 At completed feature-family milestones, use correctness checks and matched performance measurements to review the completed foundation before optimization or further dependencies. Routine checkpoint timing should compare generated native execution against Node after TypeScript compilation. The broader runtime matrix remains available for optional comparison; preserve its existing measurements as context. A universal runtime win is not an acceptance requirement.
 
 Keep SQLite as the persistent analytics source of truth: exact original records, source and toolchain identities, workload semantics, individual samples, normalized allocation counters and derived queryable summaries. Loose files may serve active checks, but closed records should be imported and verified before their disposable copies are removed. Preserve byte-exact restoration for historical evidence consumers. Do not rerun measurements merely to change their presentation.
@@ -205,16 +221,18 @@ work with its evidence references. A clean checkpoint before a risky change repl
 discard another agent's changes. Do not create archive directories or snapshots;
 the owner deleted the historical archives.
 
-Generated executables, run artifacts and the canonical SQLite analytics store are
-ignored by Git. Rebuild binaries from the relevant source commit when needed. Preserve analytics evidence in SQLite, not duplicate loose trees; a source commit
+Generated executables, run artifacts and the legacy SQLite evidence store are
+ignored by Git. The benchmark-only measurements database may be shared. Rebuild binaries from the relevant source commit when needed. Preserve analytics evidence in SQLite, not duplicate loose trees; a source commit
 is not its backup. Import and verify closed records before removing their loose copies. Do not create archive
 directories or snapshots.
 
 
 ## Generated-file retention
 
-SQLite is the durable home for closed benchmark records and diagnostic evidence.
-Import original bytes, verify hashes and database integrity, then remove loose copies.
+SQLite is the durable home for benchmark measurements. Historical diagnostic
+evidence remains in the local mixed archive; do not add routine logs or source
+snapshots. For measured records, import original bytes, verify hashes and
+database integrity, then remove loose copies.
 When a path already names different immutable bytes, preserve the new version under
 an explicit content-addressed SQLite record path; never overwrite historical data.
 Do not create filesystem archives, source snapshots or duplicate evidence trees.
