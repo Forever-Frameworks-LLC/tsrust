@@ -21,7 +21,7 @@ export async function run(): Promise<void> {
   assert.ok(extension);
   await extension.activate();
   const uri = vscode.Uri.joinPath(folder, 'live.tsr');
-  const ownership = 'type User = { name: string; };\nfunction take(user: User): User { return user; }\nfunction main() {\n const user: User = { name: "😀" };\n const saved = take(user);\n console.log(saved.name);\n console.log(user.name);\n}';
+  const ownership = 'type User = { name: string; };\nfunction take(user: User): User { return user; }\nfunction main() {\n const user: User = { name: "ðŸ˜€" };\n const saved = take(user);\n console.log(saved.name);\n console.log(user.name);\n}';
   await vscode.workspace.fs.writeFile(uri, Buffer.from('function main() {}'));
   const document = await vscode.workspace.openTextDocument(uri);
   let editor = await vscode.window.showTextDocument(document, { preview: false });
@@ -34,14 +34,14 @@ export async function run(): Promise<void> {
   assert.ok(document.getText(ownershipError.range).includes('user'));
   await replace(editor, 'function main() {}');
   await waitFor(() => vscode.languages.getDiagnostics(uri).length === 0, 'repair clears errors');
-  await replace(editor, 'function main(){const text="😀" /* keep */\nconsole.log(text);}');
+  await replace(editor, 'function main(){const text="ðŸ˜€" /* keep */\nconsole.log(text);}');
   await waitFor(() => vscode.languages.getDiagnostics(uri).some(d => d.code === 'syntax'), 'quick fix diagnostic');
   const fixDiagnostic = vscode.languages.getDiagnostics(uri)[0];
   const actions = await vscode.commands.executeCommand<vscode.CodeAction[]>('vscode.executeCodeActionProvider', uri, fixDiagnostic.range, vscode.CodeActionKind.QuickFix.value);
   const fix = actions?.find(action => action.title === 'Insert missing ;');
   assert.ok(fix?.edit, 'compiler-backed missing semicolon quick fix');
   assert.ok(await vscode.workspace.applyEdit(fix.edit));
-  assert.ok(document.getText().includes('"😀"; /* keep */'), 'fix preserves comments and Unicode');
+  assert.ok(document.getText().includes('"ðŸ˜€"; /* keep */'), 'fix preserves comments and Unicode');
   await waitFor(() => vscode.languages.getDiagnostics(uri).length === 0, 'quick fix clears diagnostic');
   await replace(editor, ownership.replace("const saved = take(user);", "const user2 = user;\n const saved = take(user);"));
   await waitFor(() => vscode.languages.getDiagnostics(uri).some(d => d.code === 'transferred'), 'clone diagnostic');
@@ -51,7 +51,7 @@ export async function run(): Promise<void> {
   assert.ok(cloneFix?.edit, 'verified clone action at earlier transfer');
   assert.ok(await vscode.workspace.applyEdit(cloneFix.edit));
   await waitFor(() => vscode.languages.getDiagnostics(uri).length === 0, 'clone clears ownership diagnostic');
-  await replace(editor, 'function main(){console.log("😀");}');
+  await replace(editor, 'function main(){console.log("ðŸ˜€");}');
   await vscode.commands.executeCommand('tsrust.formatDocument');
   assert.ok(document.getText().includes('\n  console.log'), 'format command expands block with two-space indentation');
   assert.equal(await vscode.commands.executeCommand('tsrust.checkFile',uri),0, 'file checks from command');
@@ -67,7 +67,7 @@ export async function run(): Promise<void> {
   assert.ok(await document.save());
   assert.ok(document.getText().includes('\n  console.log'), 'format-on-save applies two-space indentation before writing');
   await configuration.update('formatOnSave',false,vscode.ConfigurationTarget.Workspace);
-  const unicode = 'function main() { const text = "😀é"; const x: int = true; }';
+  const unicode = 'function main() { const text = "ðŸ˜€Ã©"; const x: int = true; }';
   await replace(editor, unicode);
   await waitFor(() => vscode.languages.getDiagnostics(uri).some(d => d.code === 'type'), 'Unicode type diagnostic');
   const diagnostic = vscode.languages.getDiagnostics(uri)[0];
@@ -117,6 +117,9 @@ function main() { const user: User = { name: "Pat", age: 2 }; const result = sum
   assert.ok(completions?.items.some(item => item.label === 'sum'), 'function autocomplete works in incomplete source');
   const extensionManifest = extension.packageJSON;
   assert.ok(extensionManifest.contributes.languages[0].icon.dark.endsWith('tsrust.svg'));
+  const menus = extensionManifest.contributes.menus;
+  assert.equal(menus['editor/title'], undefined, 'Run uses the shared play menu instead of a second toolbar button');
+  assert.deepEqual(menus['editor/title/run'], [{command:'tsrust.runFile',when:'resourceLangId == tsrust && isWorkspaceTrusted',group:'navigation@-1'}]);
   await replace(editor, 'function main() {}');
   await waitFor(() => vscode.languages.getDiagnostics(uri).length === 0, 'repair after intelligence tests');
   await document.save();

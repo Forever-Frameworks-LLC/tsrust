@@ -133,11 +133,11 @@
       }
     ],
     "menus": {
-      "editor/title": [
+      "editor/title/run": [
         {
           "command": "tsrust.runFile",
           "when": "resourceLangId == tsrust && isWorkspaceTrusted",
-          "group": "navigation"
+          "group": "navigation@-1"
         }
       ],
       "editor/context": [

@@ -9,6 +9,21 @@ Audited data integration and cleanup are complete; builds now run only for concr
 installation/feature acceptance, not to repopulate caches. Table continuation and
 its pending checks remain preserved below.
 
+## Duplicate Run button repair
+
+The installed Code Runner 0.12.2 contributes `code-runner.run` to the shared
+`editor/title/run` menu. Tsrust previously contributed a separate direct
+`editor/title` action, producing two play buttons. Tsrust now contributes to the
+shared Run menu with priority `navigation@-1` for trusted Tsrust documents.
+The command palette and context-menu command remain unchanged. This applies on
+all hosts; no Code Runner setting or unrelated extension was disabled.
+
+Compilation, packaging and the focused contribution assertion pass. The rebuilt
+VSIX is installed in the normal user profile. Existing VS Code windows need a
+reload to re-read the updated manifest. The packaged integration suite now asserts
+the shared contribution and absence of a separate direct action; the unchanged
+full integration suite was not repeated for this manifest-only behavior change.
+
 ## Windows installation section
 
 Based on `0e7a72a1`, the Windows section installs both development consumers through
