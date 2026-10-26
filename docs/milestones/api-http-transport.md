@@ -1,7 +1,8 @@
 # API HTTP client transport
 
-Status: implementation in progress from `0075eb3e`; native dispatch is not yet
-implemented. This section does not establish the end-to-end service prototype.
+Status: focused client acceptance passes at source checkpoint `f729211`, from
+`0075eb3e`. Native dispatch is not yet implemented. This section does not establish
+the end-to-end service prototype.
 
 The generated package adds a separate `./http` export using the host Fetch API.
 The plain entry keeps its dependency-free, DOM-free declarations. HTTP callers
@@ -43,9 +44,10 @@ with `CARGO_INCREMENTAL=0`, `CARGO_BUILD_JOBS=1`, output
 `target/api-http-focused.log`: five tests pass. The library/CLI build took about
 ten minutes; observed CLI compilation used approximately 2,518 MiB private memory.
 Source metadata and test assertions were completed while this first build was
-running, so a final-source rerun of the same affected target is now live in
-session `89309`, with output `target/api-http-final-focused.log`. Poll this handle;
-do not launch another build or restart solely because its redirected log is quiet.
+running, so a final-source rerun of the same affected target completed in session
+`89309`, output `target/api-http-final-focused.log`: all five tests pass. This
+required rebuild took 14m27s (an observation, not a benchmark). Quiet CLI compilation
+was verified by the exact live process and advancing CPU time; it was not restarted.
 
 `node tools/verify-api-client.mjs` passes against the actual first rebuilt CLI,
 including generated HTTP exports, DOM consumer type checking with native fetch
@@ -53,12 +55,21 @@ and AbortController, DOM-free plain consumers, the positive Unicode round trip,
 all loopback failures/cancellation cases, output ownership and linked existing-app
 consumption. Output: `target/api-http-client-first.log`.
 
-Pending: final-source Cargo completion, repeat generated-package acceptance for
-that final binary, local checkpoint and installed-consumer refresh. The full
-verifier needs normal localhost and temporary junction permission on this Windows
-host. Whole-project formatting passes twice with zero files/fingerprints changed;
+The final binary also passes the complete verifier, output
+`target/api-http-client-final.log`. The normal installed compiler was atomically
+refreshed; installed generation and `--check` both pass in completed session
+`45219` for the six-operation example. Its SHA-256 is
+`9eefc40ff18da31e80d51a5c5069db27a80de28437789d45d876b756b5e60338`.
+The language-server binary was not replaced. The full verifier needs normal
+localhost and temporary junction permission on this Windows host.
+Whole-project formatting passes twice with zero files/fingerprints changed;
 `git diff --check` passes and owner edits remain
 untouched. No broad regressions, performance measurements, public publication,
 remote CI or interactive desktop control ran.
+
+The same source checkpoint preserves the next task-repository section with its
+native acceptance explicitly pending at that checkpoint. Its later native process-
+restart SQLite verification passes in completed session `80514`, output
+`target/task-repository-native.log`; see [repository evidence](task-repository.md).
 
 Fetch behavior was checked against [MDN's Fetch API guide](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch).

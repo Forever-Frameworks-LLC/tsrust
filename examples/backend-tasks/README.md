@@ -1,4 +1,4 @@
-# Native task repository (in progress)
+# Native task repository
 
 This is the SQLite domain layer for the backend prototype. It does not yet expose
 HTTP operations or claim application access-policy acceptance. A private borrowed
@@ -22,4 +22,7 @@ its own migration path. Run `node tools/verify-task-repository.mjs` after other
 Cargo work finishes; it compiles once and drives both phases against a temporary
 disk database, then removes the database. `--run-only` reuses that executable for
 affected execution checks. The formatted source passes Tsrust project checking.
-Native validation is pending, not passed.
+Native CRUD and validation pass, including UTF-8 byte boundaries, SQL-looking
+parameter values, cursor ordering and persistence across executable restarts.
+See [acceptance evidence](../../docs/milestones/task-repository.md). HTTP access
+policy and generated dispatch remain pending.

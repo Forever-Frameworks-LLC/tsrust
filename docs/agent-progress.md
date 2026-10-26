@@ -66,16 +66,18 @@ std:fs unit imports on Windows; do not claim that full suite passed.
 
 Foundation accepted at `0075eb3e`; the normal installed compiler was atomically
 refreshed to the checked binary and generated/checked the six-operation example.
-HTTP client transport is now being implemented from that checkpoint, with a
-separate Fetch API export and headless real-loopback witnesses. Native dispatch
-is still pending. See [HTTP section state](milestones/api-http-transport.md).
+HTTP client transport passes focused acceptance at source checkpoint `f729211`,
+with a separate Fetch API export and headless real-loopback witnesses. Native
+dispatch is still pending. See [HTTP evidence](milestones/api-http-transport.md).
 First Cargo session `76127` completed: five API tests pass. The actual generated
 package/client/HTTP/TypeScript/existing-app verifier passes with normal localhost
 and junction permission (`target/api-http-client-first.log`). Final-source Cargo
-session `89309` is live, output `target/api-http-final-focused.log`, because package
-metadata/test assertions changed during the first build. Poll this handle; do not
-start competing builds. After it passes, repeat the package verifier, checkpoint
-and refresh the installed CLI. Whole-project formatting passes twice with zero
+session `89309` completed: five tests pass, output `target/api-http-final-focused.log`.
+The complete final generated-package verifier also passes
+(`target/api-http-client-final.log`). The installed compiler was atomically
+refreshed to SHA-256 `9eefc40ff18da31e80d51a5c5069db27a80de28437789d45d876b756b5e60338`;
+installed generation/check smoke session `45219` completed successfully. LSP was not replaced.
+Whole-project formatting passes twice with zero
 changed files/fingerprints, and `git diff --check` passes. Reuse Router,
 Context and std:schema; preserve per-transport validation/policy and keep private
 context out of wire arguments. Library-only API entries avoid generated-server
@@ -90,9 +92,16 @@ positive safe ids, trimmed 1–200-UTF-8-byte titles and bounded exclusive curso
 Typed domain failures remain data; backend SQL errors require server projection.
 `tools/verify-task-repository.mjs` will compile one native witness and execute it
 twice against one disposable on-disk database to prove process-restart persistence.
-It is not run yet: finish Cargo session `89309` before starting another native
-build in the one shared target. This section does not claim HTTP policy/dispatch
-or native acceptance. Preserve it separately from the HTTP acceptance checkpoint.
+Its native build/execution completed in session `80514`, exit 0, output
+`target/task-repository-native.log`. Native CRUD/validation/UTF-8 boundaries,
+parameterized SQL, pagination and disk persistence across executable restarts
+all pass. See [repository evidence](milestones/task-repository.md). Source is
+preserved by `f729211`. No build sessions remain live from these sections.
+Next implement generated native dispatch and explicitly selected borrowed Context
+parameters. Reuse the existing candidate source overlay for checked generation;
+retain strict tuple/union support rather than asserting unknown JSON as DTOs.
+Application-owned auth, server-side validation/error projection and compatibility
+come before claiming the end-to-end task service accepted.
 
 The original Windows/Table continuation below is historical and frozen where UI
 specific; retain its completed results and unresolved platform limitations.
