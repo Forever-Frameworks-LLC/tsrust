@@ -864,6 +864,7 @@ struct Analyzer {
     http_handler_origins: HashSet<usize>,
     discovering_results: bool,
     discovering_function: Option<usize>,
+    discovery_body_sources: Option<HashMap<usize, Vec<Stmt>>>,
     result_dependents: HashMap<usize, HashSet<usize>>,
     known_results: HashMap<usize, Type>,
     /// Result types of recursive functions without a result annotation,
@@ -1729,6 +1730,7 @@ impl Analyzer {
             http_handler_origins: HashSet::new(),
             discovering_results: false,
             discovering_function: None,
+            discovery_body_sources: Some(HashMap::new()),
             result_dependents: HashMap::new(),
             known_results: HashMap::new(),
             provisional_results: HashMap::new(),
@@ -2663,9 +2665,11 @@ impl Analyzer {
         let mut postponed = Vec::new();
         // Checking consumes a body; keep the source of every function that may
         // need the second attempt, including one reached through a call.
-        let sources = self.signatures.iter().zip(&self.program.functions)
-            .map(|(signature, function)| (signature.params.iter().any(|ty| matches!(ty, Type::Record(_)))
-                || return_type_inference::has_exception_region(&function.body)).then(|| function.body.clone()))
+        let mut discovery_sources = self.discovery_body_sources.take().unwrap_or_default();
+        let sources = self.signatures.iter().zip(&self.program.functions).enumerate()
+            .map(|(index, (signature, function))| discovery_sources.remove(&index).or_else(||
+                (signature.params.iter().any(|ty| matches!(ty, Type::Record(_)))
+                || return_type_inference::has_exception_region(&function.body)).then(|| function.body.clone())))
             .collect::<Vec<_>>();
         // The number of known record callbacks when each function was checked.
         let mut field_origins = vec![usize::MAX; sources.len()];

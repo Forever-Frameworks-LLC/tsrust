@@ -126,6 +126,35 @@ rebuilt. Settle the remaining inference issue before another costly build; do no
 bypass checking, cast DTOs, or claim native acceptance. No sessions remain live.
 Native dispatch acceptance and installed compiler refresh remain pending.
 
+Latest source checkpoint is `d3f5854f`, explicitly preserving native API work with
+pending acceptance. The factory failure now has a canonical reproducer: typed JSON
+decode before an inferred opaque factory in an async function; no condition is
+needed. A guarded shared scheduling repair and compiler/native/ownership/editor
+regressions are implemented, not accepted yet. See
+[inferred factory evidence](milestones/async-inferred-factories.md).
+Focused batch `62239` completed: nine API contract passes, three named-inference
+passes and two new-case failures; Cargo stopped before recursive/editor targets.
+The negative case correctly rejected transfer, but its assertion expected the
+wrong wording. The positive case exposed helper source consumed before the retry
+table was captured. The repair retains eligible bodies at first consumption until
+the normal retry table is built, and checks the real transfer diagnostic.
+Repair batch `58322` completed: all five named-inference tests and all sixteen
+recursive-callable tests passed, including the new native execution and transfer
+rejection. Editor tests passed eight; seven fixtures failed before analysis because
+their Unix-rooted file URIs lack a Windows drive. The editor fixtures now use the
+existing absolute-path URI conversion. Editor-only rerun `72526` completed:
+fourteen pass, the new case exposes unresolved inferred receivers returning raw
+Result from direct `rule().safeParseJson(...)`. Fix the shared schema receiver
+recognition; do not weaken the witness to require a variable. SDK verifier passes
+with the rebuilt CLI. Actual server generation advances to nested tuple adapter
+inference failure. Disposable target previews investigate tuple/scalar/record
+materialization; no emitter adaptation has been admitted. Typed JSON alone rejects
+multiple-shape unions, so it cannot replace the full contract. See milestone logs.
+No test/build sessions remain live. Whole-project formatting passed twice
+with zero changes/fingerprint updates; run again before the next checkpoint.
+Installed
+compiler/LSP remain at the prior accepted versions; desktop control stays off.
+
 The original Windows/Table continuation below is historical and frozen where UI
 specific; retain its completed results and unresolved platform limitations.
 
