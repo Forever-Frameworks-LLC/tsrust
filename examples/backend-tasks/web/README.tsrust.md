@@ -50,5 +50,7 @@ retried. Query abort does not imply backend rollback. Disconnect clears the
 session cache; already accepted writes may still complete.
 
 See `docs/milestones/task-web.md` for exact acceptance and remaining requirements.
-Native production asset serving, two mounts, Electron and Expo remain pending.
+Native production asset serving and two mounts pass focused acceptance. Electron
+and Expo remain pending. Build with TSRUST_WEB_BASE=/web/ and set the backend's
+TASK_WEB_ROOT to the absolute dist directory to serve this app from native code.
 The root upstream README is retained for Vite configuration guidance.

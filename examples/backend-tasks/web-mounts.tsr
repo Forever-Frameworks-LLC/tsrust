@@ -1,0 +1,34 @@
+import { Router } from 'std:http';
+import { get } from 'std:env';
+import { Application } from './context.tsr';
+
+export type WebMount = {
+  prefix: string;
+  directory: string;
+  fallback: string;
+};
+
+export function mountWeb(app: Mutable<Router<Application>>, mounts: ReadOnly<WebMount[]>): void {
+  for (const mount of mounts) {
+    app.serveStatic(mount.prefix, mount.directory, mount.fallback);
+  }
+}
+
+export function mountConfiguredWeb(app: Mutable<Router<Application>>): void {
+  const mounts: WebMount[] = [];
+  const web = unwrap(get('TASK_WEB_ROOT'));
+  if (web !== undefined && web !== '') {
+    mounts.push({
+      prefix: '/web', directory: clone(web), fallback: 'index.html'
+    });
+  }
+
+  const admin = unwrap(get('TASK_ADMIN_ROOT'));
+  if (admin !== undefined && admin !== '') {
+    mounts.push({
+      prefix: '/admin', directory: clone(admin), fallback: 'index.html'
+    });
+  }
+
+  mountWeb(app, mounts);
+}

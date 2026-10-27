@@ -42,7 +42,7 @@ impl Analyzer {
     }
    }else{
     *expression=crate::stdlib::http::call(name,args,span);
-    if matches!(name,"__routerConfigure"|"__routerRoute"|"__routerUsePath"|"__contextText"|"__contextHtml"|"__contextJson"|"__contextHeader"|"__contextStatus"|"__configure"|"__route"|"__requestHeader"|"__requestSetHeader"|"__responseHeader"|"__responseSetHeader"){*expression=crate::stdlib::futures::unwrap(expression.clone());}
+    if matches!(name,"__routerStatic"|"__routerConfigure"|"__routerRoute"|"__routerUsePath"|"__contextText"|"__contextHtml"|"__contextJson"|"__contextHeader"|"__contextStatus"|"__configure"|"__route"|"__requestHeader"|"__requestSetHeader"|"__responseHeader"|"__responseSetHeader"){*expression=crate::stdlib::futures::unwrap(expression.clone());}
    }
    return self.expression(context,expression,if name=="__contextGet"{Mode::Read}else{Mode::Consume},loans,expected).map(Some);
   }

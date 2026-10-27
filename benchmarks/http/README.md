@@ -59,3 +59,17 @@ independent checksum is 128 * 6 * 7 = 5376. Node uses a highWaterMark-one object
 stream and validates the same complete body. This is in-process streaming, not
 network throughput or a claim of identical scheduler costs. The usual timing
 protocol is registered; run `--producer --verify` for one untimed batch.
+
+`--static` selects streamed static-file HTTP, with an independent Node core HTTP
+and filesystem stream counterpart. Both serve the same `value.txt` containing
+UTF-8 `42`; every response checks status/body and contributes 42 to the independent
+128 * 42 checksum. Filesystem metadata, open, streaming, loopback transport and
+body collection are inside the batch. Build/startup are outside it; repeated
+requests use a warm filesystem cache. This is not backend computation throughput.
+The harness seeds the common external asset root and pins both source hashes in
+static-manifest.json. It preserves 3 processes, 8 warmups, 31 samples and 128 requests
+per batch; `--static --verify` uses one untimed correctness batch. This new epoch
+pins Node v24.19.0; older workloads retain their original v24.11.1 requirement.
+Run `node benchmarks/http/static-registration.test.mjs` for source/protocol guards.
+Both counterparts pass a separate one-batch untimed check with checksum 5376;
+timing remains pending. Registration/correctness is not performance measurement.

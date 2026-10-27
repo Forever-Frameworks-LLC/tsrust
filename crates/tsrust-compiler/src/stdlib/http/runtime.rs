@@ -61,9 +61,12 @@ mod tsrust_native_http {
             Ok(())
         }
         pub fn status(&mut self,status:i64)->Result<(),Error>{self.status=status_code(status)?;Ok(())}
+        fn apply_headers(&self,response:&mut Response){
+            for name in self.headers.keys(){response.inner.headers_mut().remove(name);for value in self.headers.get_all(name){response.inner.headers_mut().append(name,value.clone());}}
+        }
         pub fn content(&self,body:String,status:Option<i64>,content_type:&str)->Result<Response,Error>{
             let mut response=Response::content(body,status.unwrap_or(self.status.as_u16() as i64),content_type)?;
-            for name in self.headers.keys(){response.inner.headers_mut().remove(name);for value in self.headers.get_all(name){response.inner.headers_mut().append(name,value.clone());}}
+            self.apply_headers(&mut response);
             Ok(response)
         }
         pub fn text(&self,body:String,status:Option<i64>)->Result<Response,Error>{self.content(body,status,"text/plain; charset=utf-8")}
@@ -117,18 +120,93 @@ mod tsrust_native_http {
                     };
                     context.field0.params=params;
                     let callback=layer.callback.clone();
-                    if let Some(response)=callback(context,self).await{context.field2=response;context.finalized=true;}
+                    if let Some(mut response)=callback(context,self).await{context.apply_headers(&mut response);context.field2=response;context.finalized=true;}
                     return;
                 }
                 context.field2=context.text("Not Found".into(),Some(404)).unwrap();context.finalized=true;
             })
         }
     }
-    pub struct Router<S=()> {app:App,layers:Vec<ContextLayer<S>>,state:Arc<S>}
+    // Static roots are deployment-owned, read-only public assets, never uploads.
+    // Canonical paths reject symlink escapes; local writers must not race serving.
+    struct StaticMount {prefix:String,root:std::path::PathBuf,fallback:Option<std::path::PathBuf>}
+    fn static_segments(path:&str)->Result<std::path::PathBuf,Error>{
+        let mut result=std::path::PathBuf::new();
+        if path.is_empty(){return Ok(result);}
+        for raw in path.split('/'){
+            let part=decode_component(raw,false).map_err(|_|error("static","Invalid static path"))?;
+            let stem=part.split('.').next().unwrap_or("").to_ascii_lowercase();
+            let device=matches!(stem.as_str(),"con"|"prn"|"aux"|"nul") || (stem.starts_with("com")||stem.starts_with("lpt")) && stem.len()==4 && matches!(stem.as_bytes()[3],b'1'..=b'9');
+            if part.is_empty()||part.starts_with('.')||part.ends_with(['.',' '])||device||part.chars().any(|c|c.is_control()||"/\\:%?\"<>|*#".contains(c)){return Err(error("static","Invalid static path"));}
+            result.push(part);
+        }Ok(result)
+    }
+    impl StaticMount {
+        fn new(prefix:&str,directory:&str,fallback:&str)->Result<Self,Error>{
+            if !prefix.starts_with('/')||prefix.ends_with('/')||prefix[1..].split('/').any(|part|part.is_empty()||!part.bytes().all(|b|b.is_ascii_alphanumeric()||b==b'-'||b==b'_')){return Err(error("static","Mount prefix requires nonempty literal URL segments without a trailing slash"));}
+            let root=std::fs::canonicalize(directory).map_err(|_|error("static","Static root must be an existing readable directory"))?;
+            if !root.is_dir(){return Err(error("static","Static root must be a directory"));}
+            let fallback=if fallback.is_empty(){None}else{
+                let relative=static_segments(fallback)?;
+                if relative.extension().and_then(|v|v.to_str())!=Some("html"){return Err(error("static","SPA fallback must be an HTML file"));}
+                let file=std::fs::canonicalize(root.join(relative)).map_err(|_|error("static","SPA fallback must be an existing file within its root"))?;
+                if !file.starts_with(&root)||!file.is_file(){return Err(error("static","SPA fallback must be an existing file within its root"));}Some(file)
+            };Ok(Self{prefix:prefix.into(),root,fallback})
+        }
+        async fn resolve(&self,path:&std::path::Path)->Result<Option<std::path::PathBuf>,()>{
+            match tokio::fs::canonicalize(self.root.join(path)).await{
+                Ok(file)=>{
+                    if !file.starts_with(&self.root){return Err(());}
+                    let metadata=tokio::fs::metadata(&file).await.map_err(|_|())?;
+                    if metadata.is_file(){Ok(Some(file))}
+                    else if metadata.is_dir(){
+                        let index=tokio::fs::canonicalize(file.join("index.html")).await;
+                        match index{Ok(file) if file.starts_with(&self.root)&&tokio::fs::metadata(&file).await.map_err(|_|())?.is_file()=>Ok(Some(file)),Ok(_)=>Err(()),Err(e) if e.kind()==std::io::ErrorKind::NotFound=>Ok(None),Err(_)=>Err(())}
+                    }else{Err(())}
+                },
+                Err(e) if e.kind()==std::io::ErrorKind::NotFound=>Ok(None),Err(_)=>Err(())
+            }
+        }
+        async fn respond(&self,request:&Request)->Response{
+            let path=request.inner.uri().path();
+            if path==self.prefix{
+                return Response{inner:http::Response::builder().status(307).header("location",format!("{}/{}",self.prefix,request.inner.uri().query().map(|q|format!("?{q}")).unwrap_or_default())).body(ExclusiveBody::new(Body::empty())).unwrap()};
+            }
+            let Some(relative)=path.strip_prefix(&format!("{}/",self.prefix))else{return fixed(404,"Not Found");};
+            let relative=relative.strip_suffix('/').unwrap_or(relative);
+            let decoded=match static_segments(relative){Ok(path)=>path,Err(_)=>return fixed(400,"Bad Request")};
+            let file=match self.resolve(&decoded).await{
+                Ok(Some(file))=>file,Err(())=>return fixed(404,"Not Found"),Ok(None)=>{
+                    let html=request.inner.headers().get("accept").and_then(|v|v.to_str().ok()).is_some_and(|value|value.split(',').any(|item|{
+                        let mut parts=item.split(';');if parts.next().unwrap_or("").trim()!="text/html"{return false;}
+                        parts.all(|part|part.trim().strip_prefix("q=").is_none_or(|q|q.parse::<f32>().is_ok_and(|q|q>0.0&&q<=1.0)))
+                    }));
+                    if !html||decoded.extension().is_some(){return fixed(404,"Not Found");}
+                    let Some(file)=&self.fallback else{return fixed(404,"Not Found");};
+                    // Recheck after deployment changes; never fall into another mount.
+                    match self.resolve(file.strip_prefix(&self.root).unwrap()).await{Ok(Some(file))=>file,_=>return fixed(404,"Not Found")}
+                }
+            };
+            let mut input=http::Request::builder().method(request.inner.method().clone()).uri(request.inner.uri().clone()).body(Body::empty()).unwrap();
+            *input.headers_mut()=request.inner.headers().clone();
+            match tower_http::services::ServeFile::new(file).try_call(input).await{
+                Ok(response)=>Response{inner:response.map(|body|ExclusiveBody::new(Body::new(body)))},
+                Err(_)=>fixed(500,"Internal Server Error")
+            }
+        }
+    }
+    pub struct Router<S=()> {app:App,layers:Vec<ContextLayer<S>>,state:Arc<S>,static_prefixes:Vec<String>}
     impl Router<()> {pub fn new()->Self{Self::with_state(())}}
     impl<S:Send+Sync+'static> Router<S> {
-        pub fn with_state(state:S)->Self{Self{app:App::new(),layers:Vec::new(),state:Arc::new(state)}}
+        pub fn with_state(state:S)->Self{Self{app:App::new(),layers:Vec::new(),state:Arc::new(state),static_prefixes:Vec::new()}}
         pub fn configure(&mut self,values:[i64;7])->Result<(),Error>{self.app.configure(values)}
+        pub fn serve_static(&mut self,prefix:&str,directory:&str,fallback:&str)->Result<(),Error>{
+            let mount=Arc::new(StaticMount::new(prefix,directory,fallback)?);
+            if self.static_prefixes.iter().any(|other|other==prefix||other.starts_with(&format!("{prefix}/"))||prefix.starts_with(&format!("{other}/"))){return Err(error("static","Static mount prefixes must not overlap"));}
+            let pattern=ContextPattern::new(&format!("{prefix}/*"))?;
+            let callback:ContextMiddleware<S>=Arc::new(move|context,_|{let mount=mount.clone();Box::pin(async move{Some(mount.respond(&context.field0).await)})});
+            self.layers.push(ContextLayer{method:Some(Method::GET),pattern,callback});self.static_prefixes.push(prefix.into());Ok(())
+        }
         pub fn use_middleware<F>(&mut self,middleware:F) where F:for<'a> Fn(&'a mut Context<S>,ContextNext)->ContextPending<'a>+Send+Sync+'static{self.use_many("*",vec![Arc::new(middleware)]).expect("the global pattern is valid");}
         pub fn use_many(&mut self,path:&str,callbacks:Vec<ContextMiddleware<S>>)->Result<(),Error>{
             let pattern=ContextPattern::new(path)?;

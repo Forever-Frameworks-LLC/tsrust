@@ -1,0 +1,42 @@
+import { Router, Client, request } from 'std:http';
+import { get } from 'std:env';
+import { monotonicNow } from 'std:time';
+
+async function batch(client: ReadOnly<Client>, url: ReadOnly<string>): Task<int> {
+  let sum = 0;
+  for (let index = 0; index < 128; index++) {
+    const response = await client.send(request('GET', url, ''));
+    if (response.status() !== 200 || await response.text() !== '42') {
+      throw 'Unexpected static response';
+    }
+
+    sum += 42;
+  }
+
+  return sum;
+}
+
+async function main(): Task<void> {
+  const root = unwrap(get('TSRUST_STATIC_BENCH_ROOT'));
+  if (root === undefined) {
+    throw 'Missing static benchmark root';
+  }
+
+  const app = new Router();
+  app.serveStatic('/assets', root);
+  const server = await app.listen('127.0.0.1:0');
+  const client = new Client();
+  const url = 'http://' + server.address() + '/assets/value.txt';
+  for (let warmup = 0; warmup < 8; warmup++) {
+    await batch(client, url);
+  }
+
+  for (let sample = 0; sample < 31; sample++) {
+    const start = monotonicNow();
+    const sum = await batch(client, url);
+    console.log(sum);
+    console.log(monotonicNow() - start);
+  }
+
+  await server.shutdown();
+}

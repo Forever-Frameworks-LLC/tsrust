@@ -1,6 +1,56 @@
 # Agent continuation state
 
-## Current section: React/Vite task web app
+## Current section: SDK compatibility across hosted replicas
+
+Native static web mounts now pass focused acceptance from baseline `6ceb7ccc`.
+See `docs/milestones/static-web-mounts.md` for exact source, retained failures and
+repairs, licenses, checks and consumer-refresh limit. Seven affected compiler/
+runtime cases pass, plus retained editor help, Router typing-speed/agreement and
+HTTP reachability. Native static acceptance passes in
+`target/task-static-header-acceptance.log`: two roots, isolated fallbacks/API,
+security paths, byte/range/HEAD/304, file cancellation, actual native-served React
+CRUD and orderly drain/temporary cleanup. Screenshot inspected headlessly.
+Both matched static benchmark counterparts pass one untimed 128-request batch,
+checksum 5376; no timing or analytics import. Preserve these passes.
+
+Installed CLI atomically refreshed; source/API stale checks pass. SHA-256
+`dc1e0480b107dfc30ca41824346f1d84d553495bc356da5eb26ba5fd9c67750b`.
+Installed LSP replacement is image-locked by editor processes 32876/32540; two
+standard atomic attempts failed and temporary files were cleaned. Do not stop
+owner editor processes or use computer control. Rebuilt debug LSP passes headless
+acceptance; active-editor refresh/live diagnostics remain pending. Debug SHA-256
+`5bccffaba56857c0106108d3022ebf208d26adfb6e33d3d3810b6a8405f3df18`.
+
+Next: final whole-project format/idempotence and local static checkpoint, then
+implement the owner's SDK compatibility/versioning steering below. Native servers,
+Cargo builds and browser checks are terminal; no owned preview is left running.
+Preserve owner `docs/src/main.tsr`, `.agents/` and newly observed
+`examples/windows-setup/wut/`. No full compiler/LSP family pass, performance
+measurement, desktop/mobile packaging, remote CI or publication is claimed.
+
+Owner discussion: SDK generation should remain framework/language independent.
+Recommended follow-up is an optional framework-independent JS query entry backed
+by TanStack query-core, with React hooks layered above it. Plain calls already
+have no React/cache dependency. Cache identity should include service/principal,
+contract, operation and normalized response-changing inputs; policy/signals/retry
+settings and secrets stay out of keys. Additional language generators are an
+extension path, not a claim that every language is implemented. Complete the
+current static section before changing the generated adapter architecture.
+
+Owner also identified replica-rollout hazards in exact manifest-hash admission.
+Next SDK section must separate artifact identity, SDK semantic version and stable
+API compatibility version. Compare retained baselines during generation, prevent
+accidental breaking updates, preserve existing calls and add actual mixed-replica
+acceptance. Current old-client/new-server proof is directional, not a rolling-fleet
+guarantee. New clients cannot assume new capabilities on old replicas. Capability
+handling must be valid for the replica actually serving each request; do not infer
+fleet-wide support from one random replica or retry ambiguous writes. Compatible
+manifest hash changes should not alone cause runtime rejection. Explicitly version
+breaking behavior and define deployment/fallback policy; do not promise arbitrary
+new features work on old servers. Prioritize this owner steering before expanding
+query adapter/framework targets after the static checkpoint.
+
+## Accepted section: React/Vite task web app
 
 Implemented and focused-validated `examples/backend-tasks/web`, official pinned
 Vite + shadcn Base UI/Nova, normal pnpm project with installed generated API.
@@ -144,7 +194,7 @@ While the final compiler build runs, the independent SQLite domain section is
 implemented at `examples/backend-tasks/{repository.tsr,witness.tsr,migrations/1_tasks.sql}`.
 Its formatted project passes `tsrust check` using the first verified HTTP compiler
 (`target/task-repository-check.log`). CRUD uses atomic parameterized RETURNING,
-positive safe ids, trimmed 1–200-UTF-8-byte titles and bounded exclusive cursors.
+positive safe ids, trimmed 1â€“200-UTF-8-byte titles and bounded exclusive cursors.
 Typed domain failures remain data; backend SQL errors require server projection.
 `tools/verify-task-repository.mjs` will compile one native witness and execute it
 twice against one disposable on-disk database to prove process-restart persistence.

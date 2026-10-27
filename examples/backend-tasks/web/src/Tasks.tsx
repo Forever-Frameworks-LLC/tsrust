@@ -21,7 +21,7 @@ function Failure({ message }: { message: string }) {
   return <Alert variant="destructive"><AlertTitle>Could not finish</AlertTitle><AlertDescription>{message}</AlertDescription></Alert>
 }
 function Connect({ onConnect }: { onConnect: (session: Session) => void }) {
-  const [endpoint, setEndpoint] = useState(new URL('api', window.location.href).href)
+  const [endpoint, setEndpoint] = useState(new URL('/api', window.location.href).href)
   const [token, setToken] = useState('')
   const [error, setError] = useState<string>()
   function connect(event: FormEvent) {

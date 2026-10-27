@@ -4,6 +4,7 @@ import { Channel, Sender } from 'std:futures';
 import { Response } from 'std:http';
 import { TaskContext } from './context.tsr';
 import { routes } from './application.tsr';
+import { mountConfiguredWeb } from './web-mounts.tsr';
 import { authorize } from './access.tsr';
 import { tokenHash } from '../service/security.tsr';
 
@@ -16,6 +17,15 @@ function required(name: string): string {
   const value = unwrap(get(name));
   if (value === undefined || value === '') {
     throw 'Missing task HTTP witness setting';
+  }
+
+  return value;
+}
+
+function setting(name: string, fallback: string): string {
+  const value = unwrap(get(name));
+  if (value === undefined) {
+    return fallback;
   }
 
   return value;
@@ -36,12 +46,15 @@ async function main(): Task<void> {
   const stop = control.sender();
   const pool = await connect(required('TASK_TEST_DATABASE_URL'), 2, 3000);
   await pool.migrate(required('TASK_TEST_MIGRATIONS'));
+  const origin = setting('TASK_TEST_ORIGIN', 'http://127.0.0.1:5173');
+  const address = setting('TASK_TEST_ADDRESS', '127.0.0.1:0');
   const app = routes({
-    pool, tokenDigest: tokenHash(required('TASK_TEST_TOKEN')), browserOrigin: 'http://127.0.0.1:5173'
+    pool, tokenDigest: tokenHash(required('TASK_TEST_TOKEN')), browserOrigin: origin
   });
+  mountConfiguredWeb(app);
   // This authenticated control route exists only in the test executable.
   app.post('/__fixture_stop', (context) => stopFixture(context, stop));
-  const server = await app.listen('127.0.0.1:0');
+  const server = await app.listen(address);
   const ready: Ready = {
     kind: 'ready', address: server.address()
   };

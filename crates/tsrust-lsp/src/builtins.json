@@ -13769,7 +13769,33 @@
         "output": "ok\n"
       }
     ]
-  }
+  },
+{
+  "name": "serveStatic",
+  "signature": "serveStatic(prefix: string, directory: string, fallback?: string): void",
+  "parameters": [
+    {
+      "label": "prefix: string",
+      "documentation": "Non-root URL prefix such as /web or /tools/admin. Use literal ASCII alphanumeric, hyphen or underscore segments, without a trailing slash. Static mount prefixes cannot overlap."
+    },
+    {
+      "label": "directory: string",
+      "documentation": "Existing deployment-owned directory of public assets. Relative paths resolve at registration. Keep the directory read-only while serving; do not use an upload or source directory."
+    },
+    {
+      "label": "fallback?: string",
+      "documentation": "Optional relative .html file within this root, such as index.html. Omitted or empty disables SPA fallback. It must exist at registration."
+    }
+  ],
+  "documentation": "Serves public files under one isolated URL prefix for GET and HEAD. Mutates router registration and returns no value. Files stream with MIME types, byte ranges and conditional date requests; HEAD keeps response headers without a body. /web redirects to /web/ so relative assets resolve correctly. Directories can serve index.html but never list their contents.\n\nAn optional SPA fallback applies only to missing extensionless paths with an explicit acceptable text/html Accept value. Missing assets such as .js return 404. Other methods, other prefixes and /api are unaffected when mounted at /web. Matching uses registration order; put protected application routes before a mount. Overlapping static prefixes are rejected.\n\nInvalid prefixes, missing roots, invalid or outside-root fallback paths throw HttpError with code static before registering a layer. Requests reject malformed escapes, dot/hidden segments, encoded separators, controls, Windows device/alternate-stream names and double encoding. Canonical path checks reject symlink escapes with 404. URL queries do not select files. Filesystem failures never return local paths. Public roots are trusted deployment inputs: local writers must not race file resolution or replace directory ancestors. This does not sandbox an adversarial filesystem writer.\n\n```tsrust\napp.serveStatic('/web', 'web/dist', 'index.html');\napp.serveStatic('/admin', 'admin/dist', 'index.html');\n```\n\nGET /web/projects with Accept: text/html returns web/dist/index.html. GET /admin/missing.js returns 404 instead of either app's HTML. Build each frontend with its matching public base path. Relative files resolve against the mount's directory, not the request or later working directory. Cache policy, CSP, access control and public asset selection remain application-owned.\n\nOwnership: mutates Router, borrows and copies the three configuration strings, and retains no caller loan. Response bodies own their open-file streams until completion or cancellation.",
+  "inferredSignature": "function serveStatic(prefix: string, directory: string, fallback?: string): void",
+  "examples": [
+    {
+      "source": "import {Router} from 'std:http';function configure(app:Mutable<Router>,root:string){app.serveStatic('/web',root,'index.html');app.serveStatic('/public',root);}function main(){console.log('ok');}",
+      "output": "ok\n"
+    }
+  ]
+}
 ],
 "HttpContext": [
   {

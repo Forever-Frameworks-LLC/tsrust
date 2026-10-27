@@ -1,0 +1,16 @@
+{
+  "id": "static-file",
+  "semanticEpoch": "static-file-v1",
+  "expected": 5376,
+  "fixture": "42",
+  "protocol": {
+    "processes": 3,
+    "warmups": 8,
+    "samples": 31,
+    "iterations": 128
+  },
+  "sources": {
+    "tsr": "eedc296f5c0bc08cf23aff7d0e5a0f7e3e4591ea1cc569a0d6cc403b7f2e00f5",
+    "ts": "169c71aebf1090ac6d90a9e551fed68ede65bd0b65a25eba0732f0592d00b85f"
+  }
+}

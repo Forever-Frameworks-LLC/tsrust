@@ -1,5 +1,20 @@
 # Native task backend
 
+The React/shadcn app is in [web](web/README.tsrust.md). The native service can
+serve its production build at `/web/` alongside the API. Build the app with
+`TSRUST_WEB_BASE=/web/`, then set `TASK_WEB_ROOT` to the absolute `web/dist` folder
+when starting the backend. Set `TASK_ORIGIN` to the service's HTTP(S) origin for
+same-origin browser requests. Unset the build base variable for root-path Vite
+development. `TASK_ADMIN_ROOT` optionally mounts a second independently built app
+at `/admin/`; build that app for `/admin/` too. No JavaScript server is needed for
+native production asset serving.
+
+[web-mounts.tsr](web-mounts.tsr) exposes `WebMount` and `mountWeb` for source-level
+configuration of other non-overlapping prefixes. Each mount has its own public
+directory and optional relative HTML fallback. API routes and missing assets do
+not become SPA pages. Keep public roots deployment-owned and read-only. See
+[static acceptance](../../docs/milestones/static-web-mounts.md) for exact limits.
+
 The SQLite domain layer and generated four-operation HTTP API pass focused Windows
 native acceptance. The production entry passes source checking; TLS and its
 signal lifecycle still need runtime acceptance. A private borrowed pool

@@ -1,5 +1,15 @@
 mod support;
 #[test]
+fn static_mount_completion_and_help() {
+ let source="import {Router} from 'std:http';function main(){const app=new Router();app.serveStatic('/web','dist','index.html');}";
+ let mut session=support::session::Session::start(&[]);session.open("main.tsr",source);session.settle();
+ let start=source.find("app.serveStatic").unwrap();
+ let hover=session.hover("main.tsr",source,start+5).unwrap_or_default();
+ assert!(hover.contains("serveStatic")&&hover.contains("text/html")&&hover.contains("Ownership"),"{hover}");
+ let completion=session.completion("main.tsr",source,start+4).unwrap();
+ assert!(completion.iter().any(|value|value=="serveStatic"),"{completion:?}");
+}
+#[test]
 fn hono_context_header_and_route_help(){
  let source="import {Router,Context,ContextNext} from 'std:http';async function middleware(c:Mutable<Context>,next:ContextNext):Task<void>{c.header('x-before','yes');await next();c.header('x-after','yes');}function main(){const app=new Router();app.use('/',middleware);app.get('/',async (c,next)=>{await next();},c=>c.text('ok'));}";
  let mut session=support::session::Session::start(&[]);session.open("main.tsr",source);session.settle();

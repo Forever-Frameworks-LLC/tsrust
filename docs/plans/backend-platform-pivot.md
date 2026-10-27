@@ -279,6 +279,30 @@ syntax and package choices provisional until that proof settles the real needs.
 
 ## References and evidence boundaries
 
+### SDK compatibility and hosted replicas (owner steering, 2026-10-27)
+
+Separate SDK package semantic version, stable API compatibility version and exact
+generated manifest identity. The current implementation admits selected manifest
+hashes and proves old clients against a new server; it does not yet prove mixed
+old/new replicas behind a hosted endpoint. A compatible regeneration must not
+become a deployment failure merely because its exact hash differs.
+
+Generation should compare retained compatibility baselines and reject accidental
+breaking updates unless explicitly versioned. Existing calls must remain usable
+across compatible SDK updates. Breaking API versions need an explicit retention
+and rollout policy. Generated runtime checks should report typed incompatibility
+or use an explicitly supported fallback. A new SDK cannot supply a missing server
+feature. Support checks must apply to the serving replica, not infer fleet-wide
+availability from a response by one random instance. Never retry ambiguous writes
+as a version-discovery mechanism.
+
+Add executable old/new client against old/new server combinations through a
+mixed-replica endpoint, including compatible schema additions, truly unavailable
+features, retained older SDK behavior and bounded useful errors. Preserve current
+wire validation, application-owned authorization and old-shape projection while
+revising admission. This is required follow-up work, not acceptance of the current
+exact-hash gate as a complete hosted deployment protocol.
+
 - Existing backend acceptance: [standard-library roadmap](../standard-library-roadmap.md),
   [service readiness](service-readiness-plan.md), [continuation state](../agent-progress.md).
 - Existing UI commitments being replaced: [UI vision](../../UI_VISION.md),

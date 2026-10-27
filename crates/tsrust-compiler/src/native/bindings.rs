@@ -156,6 +156,7 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::http::CONTEXTREQUESTMULTIPART,
     crate::stdlib::http::ROUTER,
     crate::stdlib::http::ROUTERCONFIGURE,
+    crate::stdlib::http::ROUTERSTATIC,
     crate::stdlib::http::ROUTERROUTE,
     crate::stdlib::http::ROUTERUSE,
     crate::stdlib::http::ROUTERUSEPATH,
