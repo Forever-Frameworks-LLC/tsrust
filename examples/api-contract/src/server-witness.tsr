@@ -1,7 +1,12 @@
 import { Router } from 'std:http';
 import { Channel } from 'std:futures';
-import { FixtureState, authorize } from './server-policy.tsr';
+import { FixtureState, stopFixture } from './server-policy.tsr';
 import { dispatch } from '../generated-server/index.tsr';
+
+type Ready = {
+  kind: 'ready';
+  address: string;
+};
 
 async function main(): Task<void> {
   const control = new Channel<boolean>(1);
@@ -13,19 +18,12 @@ async function main(): Task<void> {
   });
   app.post('/api', dispatch);
   // Only the fixture runner uses this authenticated orderly shutdown route.
-  app.post('/__fixture_stop', async (context) => {
-    const allowed = await authorize(context);
-    if (!allowed) {
-      return context.text('Denied', 403);
-    }
-
-    await context.env.stop.send(true);
-    return context.text('stopping');
-  });
+  app.post('/__fixture_stop', stopFixture);
   const server = await app.listen('127.0.0.1:0');
-  console.log(JSON.stringify({
+  const ready: Ready = {
     kind: 'ready', address: server.address()
-  }));
+  };
+  console.log(JSON.stringify(ready));
   try {
     await control.receive();
   } finally {

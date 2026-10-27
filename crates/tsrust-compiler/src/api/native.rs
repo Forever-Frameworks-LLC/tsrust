@@ -64,7 +64,10 @@ impl CheckedApi {
             dispatch.push_str(&format!("if(header.operation==={name}){{\nif(!({accepted})){{return _failure(c,'api-incompatible','This operation is incompatible with the calling API client',409);}}\nconst decoded=s.object({{operation:s.literal({name}),input:{}()}}).safeParseJson(body);\nif(!decoded.success){{return _failure(c,'api-validation','Invalid operation arguments',400);}}\ntry{{\n", input.schema));
             let mut arguments = Vec::new();
             if endpoint.selection.context { arguments.push("c".into()); }
-            if operation.input != Schema::Void { arguments.push(format!("{}(decoded.data.input)", input.adapt)); }
+            if operation.input != Schema::Void {
+                dispatch.push_str("const input=decoded;\n");
+                arguments.push(format!("{}(input.data.input)", input.adapt));
+            }
             let call = format!("{}{}_operation{index}({});", if operation.output == Schema::Void { "" } else { "const result=" }, if endpoint.asynchronous { "await " } else { "" }, arguments.join(","));
             dispatch.push_str(&call);
             dispatch.push_str(&format!("\nconst encoded=JSON.stringify({},{});\nconst checked={}().safeParseJson(encoded);\nif(!checked.success){{return _failure(c,'api-result','Operation returned invalid API data',500);}}\n", if operation.output == Schema::Void { "null" } else { "result" }, options.max_response_bytes, output.schema));

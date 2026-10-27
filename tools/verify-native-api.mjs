@@ -86,10 +86,11 @@ try {
   }
   assert.deepEqual(await api.data.rows([task]), [task]);
   assert.deepEqual(await api.data.rows([]), []);
-  for (const item of [undefined, task]) {
-    const nested = { rows: [task], pair: [task, 3], item, maybe: null, variant: { kind: 'a', value: 7 } };
+  for (const item of [undefined, task]) for (const enabled of [undefined, false, true]) for (const maybe of [null, task]) for (const variant of [{ kind: 'a', value: 7 }, { kind: 'b', text: 'Nested union' }]) {
+    const nested = { rows: [task], pair: [task, 3], item, enabled, maybe, variant };
     const expected = { ...nested };
     if (item === undefined) delete expected.item;
+    if (enabled === undefined) delete expected.enabled;
     assert.deepEqual(await api.data.nested(nested), expected);
   }
   const request = async (body, extra = {}) => fetch(base + '/api', { method: 'POST', headers: { ...headers, 'content-type': 'application/json', 'x-tsrust-contract': current.contractId, ...extra }, body, signal: AbortSignal.timeout(5000) });

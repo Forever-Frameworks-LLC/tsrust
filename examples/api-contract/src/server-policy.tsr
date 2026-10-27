@@ -1,4 +1,4 @@
-import { Context } from 'std:http';
+import { Context, Response } from 'std:http';
 import { Sender } from 'std:futures';
 
 export type FixtureState = {
@@ -11,4 +11,14 @@ export type FixtureContext = Context<FixtureState>;
 // A diagnostic fixture credential only; never use this policy in a real app.
 export async function authorize(context: ReadOnly<FixtureContext>): Task<boolean> {
   return context.req.header('authorization') === 'Bearer api-fixture-only';
+}
+
+export async function stopFixture(context: Mutable<FixtureContext>): Task<Response> {
+  const allowed = await authorize(context);
+  if (!allowed) {
+    return context.text('Denied', 403);
+  }
+
+  await context.env.stop.send(true);
+  return context.text('stopping');
 }

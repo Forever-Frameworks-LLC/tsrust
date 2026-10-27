@@ -1,18 +1,85 @@
-# Generated native dispatch (in progress)
+# Generated native dispatch
 
 Implementation starts from accepted source/evidence checkpoints `f729211` and
 `7b1871db`. The HTTP client and SQLite repository pass their focused acceptance;
-this section is not yet accepted. Session `90197` completed with all nine focused
-contract tests passing. No build/test processes from this section remain live.
+this section now passes focused Windows native acceptance. Shared compiler/editor blockers are accepted
+at `96220939` with fifty focused cases and the actual SDK verifier passing; see
+[inference evidence](async-inferred-factories.md). Current generator materialization
+rebuild/contract batch `76390` completed with nine passing cases, output
+`target/api-native-materialization-focused.log`. Actual native execution rerun
+`62237` completed successfully, output `target/api-native-dispatch-execution.log`.
 
-## Implemented, not yet batch-validated
+## Accepted Windows evidence
+
+`node tools/verify-native-api.mjs` generates and stale-checks separate public and
+private packages, proves private owner edits block replacement without changing
+the public marker, checks absence of private policy/source in the client, builds
+the native executable and calls it through the real generated HTTP transport.
+Current fixture identity is
+`b6faac184c48bf84e624c2dffad74144e8e90806ba4a03210c0d0d6287c7cbc1`;
+retained v1 identity is
+`09a4eb5a9b63f5c13b61484f6f3e45916ecd167c1f9b8fc702a8d8bb54401acc`.
+
+Passed runtime coverage includes named sync/async dispatch, private borrowed
+Context state, auth before business execution, strict input/result DTOs,
+record/array/tuple/union materialization, optional record/boolean absence and
+presence (including false), null/present records, both discriminator branches,
+literal `__proto__` data keys, finite numbers beyond 64-bit integer storage,
+safe-integer rejection, old-client result projection, incompatible operation
+rejection, media/protocol failures, unselected operation rejection, sanitized
+private exceptions, typed readiness and authorized orderly shutdown with exit 0.
+No server process from this fixture remains live.
+
+The SQLite task service's separate verifier is next. TLS, production signal
+handling, cancellation, frontend/package targets, full family regressions and
+performance measurements remain pending. Installed compiler/LSP binaries are not
+refreshed by this acceptance. No CI, release, publication or analytics import ran.
+
+Earlier diagnostic notes below are retained history and are superseded by this
+current acceptance summary, not a queue to repeat failed probes.
+
+## Current materialization repair
+
+The complete disposable handler preview now passes ordinary strict project
+checking (`target/api-native-owned-elements-preview.log`). Its changes have been
+admitted to the source generator, with actual generated/native execution pending:
+
+- Tuple transforms bind decoded members before generic materialization, and
+  tuple/object adapters bind source fields before nested generic calls. This
+  supplies checked argument types without casts or weakened return contracts.
+- Optional adapters use ordinary if/return branches so their generic target keeps
+  the complete optional context. Helpers are deduplicated by child adapter.
+- Array iteration borrows elements, so adapters explicitly clone each element
+  into a local before reconstructing nominal DTO fields. This has an extra copy
+  cost, not a measured performance claim. No consuming iterator/runtime is added.
+- Dispatch moves the successfully narrowed decode outcome to a local before
+  consuming nested owned input fields. Existing context/resource checks remain.
+
+The real native verifier now covers absent/present optional records and booleans
+(including false), null/present nullable records and both nested discriminator
+branches. The fixture adds one optional boolean to its private Nested DTO; the
+retained v1 public compatibility contract is unchanged. The expanded matrix is
+pending execution. Both whole-project formatting passes report zero changes and
+zero fingerprint updates after these edits.
+
+The first real native verifier reached a previously uncompiled fixture entry.
+Its anonymous async stop callback failed error-contract resolution and its
+anonymous readiness JSON could not infer its generic argument. The fixture now
+uses a named async stop handler and a named Ready record, retaining auth and
+Channel-based orderly drain. Entry checking passes in
+`target/api-native-named-stop-check.log`. These are fixture source adaptations;
+no catch contract, shared-state guard or compiler check was disabled. The task
+fixture separately uses a named helper with a readonly retained sender; its
+production entry does not contain a test stop route.
+
+## Dispatcher implementation
 
 - `Selection.context` is opt-in and defaults false. `CheckedApi` keeps one checked
   manifest plus private endpoint/async facts. An explicitly hidden first parameter
   must be a required borrowed native HTTP Context, identified by native type id
   and read/mutate mode. Owned contexts and arbitrary resources reject. The public
-  manifest remains independent of private context and source paths. New API
-  integration witnesses cover these requirements but have not run yet.
+  manifest remains independent of private context and source paths. Nine API
+  integration cases covering these boundaries pass at the shared compiler checkpoint.
 - `api/native_codecs.rs` composes the existing `std:schema` constructors and
   generates ordinary checked generic materialization functions. No new runtime,
   unchecked type assertion or new schema built-in is intended. It is now wired
@@ -52,7 +119,7 @@ not a backend-source archive. The fixture runner also checks that owner edits in
 private output prevent either output marker from changing, and drains the test
 server through an authenticated fixture-only control route.
 
-## Current batched verification
+## Earlier batched verification
 
 - `cargo check --offline --locked -p tsrust-compiler --bin tsrust --test api_contract`
   passes in completed session `43655`, output `target/api-native-metadata-check.log`.
@@ -74,7 +141,7 @@ server through an authenticated fixture-only control route.
   before either private/client fixture output is replaced. No native handler
   acceptance is claimed. Output: `target/api-native-server.log`.
 
-## Current repair, before another compiler build
+## Earlier repair before shared inference fixes
 
 The first virtual handler fails at `input: _tsrustSchema0()` with
 `Builtin object fields must be printable values`. A typed local probe confirms
