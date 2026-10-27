@@ -1,5 +1,12 @@
 # Active roadmap: native backend application platform
 
+The owner's 2026-10-27 reset supersedes the prototype-first sequence below.
+Follow [the production implementation baseline](plans/production-application-baseline.md):
+clean up, then build actual CLI-generated minimal greeting apps, validate visible
+dev mode and editor diagnostics, and add each production target/integration through
+that path. Task applications remain integration fixtures. All original acceptance
+requirements remain; working examples do not establish a working generator.
+
 Owner-approved pivot, 2026-10-26. Follow [the prototype goal](agent-goal.md),
 [pivot plan](plans/backend-platform-pivot.md) and
 [template/package decisions](plans/backend-platform-packages.md).

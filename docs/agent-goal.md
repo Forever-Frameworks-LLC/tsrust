@@ -1,8 +1,15 @@
-# Goal: working Tsrust backend application prototype
+# Goal: production Tsrust backend application implementation
 
 Owner-approved direction: 2026-10-26. Use this file as the continuation goal.
 
-Build a working prototype in which I author backend logic in Tsrust's
+Owner reset, 2026-10-27: clean up prototype-driven work and build the real production
+implementation from the CLI outward. Follow
+[the production baseline](plans/production-application-baseline.md) for ordering.
+Keep all acceptance requirements below; task apps remain integration examples.
+Default new apps use a basic landing page and typed "greet server" bridge. Fresh
+CLI generation, visible dev mode and editor diagnostics are required evidence.
+
+Build the application implementation in which I author backend logic in Tsrust's
 TypeScript-style language, compile it to native code, and consume it through
 generated named TypeScript API calls from React web, Electron desktop and Expo
 mobile. Keep Tsrust as the backend language. Use React/Vite and shadcn for web
@@ -98,6 +105,17 @@ renderer/embedded parity and the old docs application are frozen, not passed.
     documentation and generated agent guidance.
 
 ## Completion and working rules
+
+The default CLI-generated product is a basic landing page and typed "greet server"
+bridge, similar in scope to a Tauri starter. Keep the SQLite task apps as richer
+integration examples, not the default scaffold. For major template, CLI or SDK
+generation changes, generate fresh projects through the actual CLI, inspect every
+selected target/configuration and file placement, and run the generated projects
+in visible development mode. Source-copy tests supplement this proof but do not
+replace it. During template changes keep development errors observable in real
+time. Check editor/LSP diagnostics and generated-project type/build diagnostics;
+resolve affected problems as work proceeds and record any unavailable editor
+evidence explicitly. Do not control the owner's editor or disrupt their typing.
 
 Implement coherent sections across compiler/runtime, editor, client generation,
 templates, examples and focused witnesses before batch validation. Formatting

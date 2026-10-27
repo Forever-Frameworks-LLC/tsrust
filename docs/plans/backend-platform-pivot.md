@@ -1,5 +1,11 @@
 # Tsrust backend application platform pivot
 
+Current direction: the owner's 2026-10-27 cleanup/production reset is defined in
+[the production baseline](production-application-baseline.md). Implement real CLI
+scaffolding before further task-demo expansion. Default apps are minimal greeting
+landing pages; verify fresh generated output, visible dev mode and editor errors.
+Accepted backend/SDK foundations and all required acceptance scope are retained.
+
 Date: 2026-10-26. Status: owner-approved pivot; roadmap reconciliation and the
 first backend dependency-isolation section are in progress. The working prototype
 is not implemented. Follow [the executable prototype goal](../agent-goal.md) and

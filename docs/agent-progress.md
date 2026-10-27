@@ -1,6 +1,37 @@
 # Agent continuation state
 
-## Current section: editable desktop header and API bootstrap acceptance
+## Current priority: cleanup and production CLI baseline
+
+Owner reset: stop prototype polish and work from square one on actual production
+implementation. docs/plans/production-application-baseline.md is the active order;
+docs/agent-goal.md retains the complete required scope. Minimal greeting landing
+apps must come from actual CLI generation, with visible dev mode and compiler,
+frontend and editor diagnostics. Keep task apps as integration examples and retain
+accepted backend/SDK work. Do not delete/archive legacy or owner source.
+
+Source baseline is b20c4162. A new Forge dev witness attempted normal pnpm start:
+prestart SDK/native build and backend readiness succeeded, but renderer remained
+empty and a reload aborted. Packaged checks remain accepted, dev is NOT accepted.
+The attempted exact-entry navigation exception did not repair the failure and was
+reverted; the unsuccessful untracked witness was removed. Concise current failure
+log: target/desktop-dev-acceptance.log. No compiler source changed. Failed temporary
+desktop-dev-* consumers were verified within target and removed with native
+PowerShell. The owned interactive prototype main PID 40128 closed gracefully;
+its data target/desktop-interactive is preserved. Do not restart it just to resume.
+
+Current CLI new_cli.rs only creates console or legacy --ui projects. There is no
+production React/Electron/Expo scaffold command yet. Start with the real project
+configuration/CLI/backend+web greeting slice, then desktop dev/packaging, then
+Expo and remaining integrations. Do not claim source-copy acceptance proves CLI
+creation. Keep owner docs/src/main.tsr, .agents/ and examples/windows-setup/wut.
+
+Next executable work: inspect cli/new_cli.rs, project_config.rs, api_cli.rs and the
+existing new-project tests, implement the minimal actual app generation/config
+slice with focused regression witnesses, then rebuild one compiler consumer and
+generate a fresh visible development project. Use one Cargo target/job with
+CARGO_INCREMENTAL=0. No push/release/publication or physical editor control.
+
+## Earlier section: editable desktop header and API bootstrap acceptance
 
 The implementation-stage notes below are superseded by
 docs/milestones/task-desktop.md. Actual Windows packaged Electron/native SQLite
