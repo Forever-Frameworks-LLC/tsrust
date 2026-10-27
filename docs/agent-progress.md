@@ -126,7 +126,7 @@ rebuilt. Settle the remaining inference issue before another costly build; do no
 bypass checking, cast DTOs, or claim native acceptance. No sessions remain live.
 Native dispatch acceptance and installed compiler refresh remain pending.
 
-Latest source checkpoint is `d3f5854f`, explicitly preserving native API work with
+Native dispatcher implementation checkpoint is `d3f5854f`, explicitly preserving native API work with
 pending acceptance. The factory failure now has a canonical reproducer: typed JSON
 decode before an inferred opaque factory in an async function; no condition is
 needed. A guarded shared scheduling repair and compiler/native/ownership/editor
@@ -150,10 +150,44 @@ with the rebuilt CLI. Actual server generation advances to nested tuple adapter
 inference failure. Disposable target previews investigate tuple/scalar/record
 materialization; no emitter adaptation has been admitted. Typed JSON alone rejects
 multiple-shape unions, so it cannot replace the full contract. See milestone logs.
-No test/build sessions remain live. Whole-project formatting passed twice
+Checkpoint `57fdd547` preserves this state before the next receiver edit. The
+shared `schema_receiver` now requests an unchecked inferred named receiver before
+recognizing schema methods, using the existing capture preparation and scheduling
+guards. Canonical native regression adds direct stripped-object and literal
+factory outcomes. Batch `31563` completed: nine API passes and a literal-typed
+strictEqual fixture failure; the equality now uses a boolean assertion without
+changing its value requirement. Warm rerun `28546` passes all five named/native
+cases. Editor cases pass fourteen; completion succeeds but hover omits the
+inferred top-level function result. A checked project result lookup now feeds
+existing type spelling/function-result help. The nested union inference failure
+also reduces independently of schema: union injection drops generic result
+context. A heap-driver preparation continuation now preserves that context before
+normal conversion; native single-evaluation and checked-editor witnesses are added.
+This combined candidate is unaccepted. Batch `23159` stopped at LSP compile-time
+privacy errors, before tests. Hover enrichment was moved into the existing
+SourceIndex implementation module; fields/helpers remain private. Rerun `20107`
+passes nine API cases; its union native fixture required cloning a borrowed array
+element before inspection. Batch `92757` then passes four generic-flow and five
+named/native cases; the new editor fixture required canonicalizing its SourceId
+before workspace insertion. The editor-only rerun passes its contextual generic
+case plus all fifteen schema editing cases. Actual SDK verifier also passes.
+See the milestone's current acceptance table/log paths. Recursive-callable repeat
+`4178` completed with all sixteen passing, output
+`target/api-contextual-recursive-acceptance.log`. Fifty focused cases plus the
+actual SDK verifier now pass. No test/build sessions remain live. Format/checkpoint
+this accepted section before editing the generator.
+One shared target/job/cache, incremental off. Whole-project formatting passed twice
 with zero changes/fingerprint updates; run again before the next checkpoint.
-Installed
-compiler/LSP remain at the prior accepted versions; desktop control stays off.
+Installed compiler/LSP remain at the prior accepted versions; desktop control stays off.
+
+Development-only `tools/api-client-tests` now has an exact npm lock for TanStack
+5.105.0/React 19.3.1/TypeScript 7.0.2 with disabled install scripts, zero npm
+advisory findings, seven verified signatures and three attestations. Its existing
+plain-client consumer passes TypeScript 7 positive/negative checks. Wrapper
+implementation/runtime acceptance remain pending; see the package plan and
+fixture README. The TanStack key hash needs a witness for allowed `__proto__`
+fields; schema-ordered serialized keys can preserve those without a custom hash.
+This independent dependency/consumer work is checkpointed at `fef78903`.
 
 The original Windows/Table continuation below is historical and frozen where UI
 specific; retain its completed results and unresolved platform limitations.

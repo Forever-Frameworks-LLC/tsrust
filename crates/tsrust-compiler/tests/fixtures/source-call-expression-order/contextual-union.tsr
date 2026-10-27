@@ -1,0 +1,76 @@
+import { strictEqual } from 'std:testing';
+
+type First = {
+  kind: 'first';
+  value: int;
+};
+
+type Second = {
+  kind: 'second';
+  text: string;
+};
+
+type Box = {
+  variant: First | Second;
+};
+
+type Counter = {
+  calls: int;
+};
+
+function choose<T>(first: boolean): T {
+  if (first) {
+    return {
+      kind: 'first', value: 7
+    };
+  }
+
+  return {
+    kind: 'second', text: 'ready'
+  };
+}
+
+function identity<T>(value: T): T {
+  return value;
+}
+
+function flag(counter: Mutable<Counter>, first: boolean): boolean {
+  counter.calls++;
+  return first;
+}
+
+function direct(first: boolean): First | Second {
+  return choose(first);
+}
+
+function main() {
+  const counter: Counter = {
+    calls: 0
+  };
+  const first: Box = {
+    variant: choose(flag(counter, true))
+  };
+  strictEqual(counter.calls, 1);
+  if (first.variant.kind !== 'first') {
+    throw 'Generic record field lost its contextual union';
+  }
+
+  strictEqual(first.variant.value, 7);
+  const rows: (First | Second)[] = [];
+  rows.push(choose(flag(counter, false)));
+  strictEqual(counter.calls, 2);
+  const second = clone(rows[0]);
+  if (second.kind !== 'second') {
+    throw 'Generic array argument lost its contextual union';
+  }
+
+  strictEqual(second.text, 'ready');
+  const returned = direct(false);
+  if (returned.kind !== 'second') {
+    throw 'Generic return lost its contextual union';
+  }
+
+  strictEqual(returned.text, 'ready');
+  const nullable: string | null = identity('input wins');
+  strictEqual(nullable, 'input wins');
+}

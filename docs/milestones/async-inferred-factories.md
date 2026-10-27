@@ -1,8 +1,32 @@
 # Inferred factories after async generic decoding
 
-Status: compiler repair from `d3f5854f` passes named-inference and recursive-callable
-acceptance; editor fixture portability is being repaired. The complete native API
-handler remains unaccepted.
+Status: shared factory/receiver/contextual-union fixes pass 34 focused compiler
+and editor cases plus the actual generated SDK verifier. All sixteen affected
+recursive-callable cases also pass. The
+complete native API handler remains unaccepted.
+
+## Current focused acceptance
+
+- API contracts: nine pass, `target/api-contextual-receiver-repair.log`.
+- Generic expression flow: four pass, including native contextual union values,
+  argument side effects exactly once and invalid discriminator rejection,
+  `target/api-contextual-receiver-acceptance.log`.
+- Named inference: five pass, including native direct schema factory outcomes,
+  tuple pipelines, retained refinements and resource transfer rejection, same log.
+- Editor: new contextual generic result case passes and all fifteen schema
+  editing cases pass, `target/api-contextual-editor-acceptance.log`. Completion,
+  narrowing, concrete generic signature and inferred factory hover are checked.
+- Actual SDK/HTTP verifier passes, `target/api-contextual-sdk-acceptance.log`.
+- Recursive-callable repeat: sixteen pass, completed session `4178`, output
+  `target/api-contextual-recursive-acceptance.log`.
+
+The native union witness explicitly clones an array's borrowed element before
+reading its discriminator. The first version failed at that borrowed access;
+an owned-element reduction checked successfully, then the canonical native
+witness passed. The new editor fixture also required canonicalizing its virtual
+source ID via the existing file-URI conversion before workspace insertion.
+These repairs preserve compiler ownership/URI requirements rather than changing
+production validation. No full-family benchmark/regression claim is made.
 
 ## Reproducer and cause
 
@@ -96,6 +120,102 @@ expose the same direct schema-receiver bug and nested union result inference.
 Replacing materialization with typed JSON decoding is not a valid solution:
 typed JSON explicitly rejects multiple-shape unions. Keep the full union contract.
 No preview adaptation has been admitted to the production generator.
+
+## Direct receiver candidate after checkpoint 57fdd547
+
+The shared schema-method recognizer now prepares an unchecked inferred named
+receiver before reading its return type. It uses ordinary named capture
+preparation and scheduling, avoids local shadows/active visits/recursive edges,
+and does not evaluate a source receiver twice. Both throwing parse and safe
+outcome methods share this recognition. The canonical native fixture now includes
+direct stripped-object and literal factories as well as its prior tuple and
+captured refinement cases. The existing new editor witness remains unchanged.
+
+Candidate acceptance is running in session `31563`, output
+`target/api-inferred-receiver-focused.log`:
+
+```sh
+cargo test --offline --locked -p tsrust-compiler -p tsrust-lsp \
+  --test api_contract --test named_result_inference --test schema_editing \
+  -- --test-threads=1
+```
+
+One Cargo job, incremental disabled, shared target/native cache. Poll this live
+handle; the sixteen recursive-callable passes remain recorded. Formatting after
+the receiver edit changed one fixture and then zero files; fingerprints stayed
+unchanged. Installed compiler/LSP binaries remain at their accepted versions.
+
+## Next isolated failure: generic contextual union
+
+The generated nested union materializer failure reduces independently of schema
+handling. `target/api-contextual-union-repro.tsr` calls `choose<T>(first:boolean):T`
+inside a record field whose type is a two-record union; inference rejects T.
+The same source with explicit `choose<A|B>` checks successfully. Before evidence:
+`target/api-contextual-union-before.log` and
+`target/api-contextual-union-explicit.log`.
+
+`continuations/prelude.rs::prepare_injection_work` removes a multi-shape union
+from the child result context before generic call preparation. This prevents an
+otherwise ordinary contextual result variable from binding. The next candidate
+should prepare generic calls with the complete union context on the existing
+heap driver, then perform ordinary conversion from the concrete result. Do not
+introduce nested host-recursive preparation, skip final union validation, or
+change input-established generic payloads merely to match a result union.
+
+Canonical pending witness:
+`tests/fixtures/source-call-expression-order/contextual-union.tsr`, registered in
+`generic_call_expression_flow.rs`. It covers record fields, array arguments,
+direct returns, input-established nullable identity and argument mutation exactly
+once; an additional negative case rejects an absent discriminator. Both formatting
+passes complete (one changed file, then zero; zero fingerprint updates).
+This witness was added after receiver batch `31563` started and was not selected
+by it. That batch completed: nine API cases passed, four named-inference cases
+passed, and the expanded factory fixture failed at generic strictEqual on a
+literal-typed result. Replacing only that equality call in a disposable reduction
+with direct equality checks successfully; the canonical fixture now asserts the
+same equality as a boolean through strictEqual. This does not establish generic
+strictEqual support for literal-typed arguments.
+
+Warm rerun `28546` completed: all five native/named-inference cases passed. Editor
+tests passed fourteen and the new case reached hover with correct completion, but
+hover remained `function rule()` without its inferred result. Standalone source
+indexing already applies inferred top-level results; checked project indexing
+only applied local-function results. The candidate exposes a checked module/name
+lookup returning ProjectType, then reuses existing project type spelling and
+apply_function_result for unannotated top-level symbols. No linked display-name
+parsing or second compiler analysis is used for this result.
+
+The generic driver candidate now prepares a named generic call with its complete
+union result context before ordinary injection. A dedicated continuation resumes
+ordinary conversion after the callee is concrete. Argument preparation stays on
+the existing heap driver; source arguments are not evaluated during preparation.
+Inputs still establish generic payloads before result context, and normal union
+membership/ownership checks remain in place. A new checked-editor witness tests
+narrowed completion and the concrete generic signature.
+
+Session `23159` is live, `target/api-contextual-receiver-focused.log`:
+
+```sh
+cargo test --offline --locked -p tsrust-compiler -p tsrust-lsp \
+  --test api_contract --test named_result_inference \
+  --test generic_call_expression_flow --test schema_editing \
+  --test contextual_generic_results -- --test-threads=1
+```
+
+This combined candidate is not accepted. One shared target/job, incremental off,
+shared native cache. Latest whole-project formatting passed twice with zero files
+or fingerprints changed. Poll this handle, then retain passes and repair only
+affected failures before returning to actual generated dispatch. The generator
+still needs the tuple/local-value materialization repairs proved in disposable
+previews; do not infer native dispatch acceptance from compiler regression passes.
+
+Batch `23159` stopped at LSP compilation: hover enrichment attempted to access
+SourceIndex's private symbols/helpers from project_intelligence. It ran no tests.
+The enrichment now lives in `local_function_intelligence.rs` behind one
+pub(crate) method, preserving the private implementation boundary. Rerun session
+`20107` is live with the same package/target selection, output
+`target/api-contextual-receiver-repair.log`. The compiler source is unchanged
+between these two batches; do not start a duplicate rebuild.
 
 One shared Cargo target/job, `CARGO_INCREMENTAL=0`, shared native cache, normal
 private-temp permission. Poll the editor handle instead of restarting the passed

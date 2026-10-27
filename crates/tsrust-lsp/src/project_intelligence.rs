@@ -70,6 +70,7 @@ impl ProjectIndex {
             source.checked_control_labels=labels.iter().filter(|(span,definition)|span.source==*id && definition.source==*id).map(|(span,definition)|(span.span,definition.span)).collect();
             source.apply_project_checked_facts(&analysis.graph, id, &facts, &index.indices);
             source.apply_project_local_functions(&analysis.graph, id, &local_functions, &index.indices);
+            source.apply_project_function_results(analysis, id, &index.indices);
             source.mark_checked();
             index.indices.insert(id.clone(), source);
         }

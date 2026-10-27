@@ -9,6 +9,16 @@ function integerRule() {
   return s.int().min(0);
 }
 
+function objectRule() {
+  return s.object({
+    operation: s.string()
+  }).strip();
+}
+
+function literalRule() {
+  return s.literal('count');
+}
+
 function labelRule(expected: string) {
   return s.string().refine(value => value === expected);
 }
@@ -33,6 +43,18 @@ async function verify(body: string): Task<void> {
   // This generic instantiation precedes the first inferred opaque factory call.
   const header = JSON.parse<Header>(body);
   strictEqual(header.operation, 'count');
+  const projected = objectRule().safeParseJson(body);
+  if (!projected.success) {
+    throw 'Direct object factory lost its public schema outcome';
+  }
+
+  strictEqual(projected.data.operation, 'count');
+  const literal = literalRule().safeParseJson('"count"');
+  if (!literal.success) {
+    throw 'Direct literal factory lost its public schema outcome';
+  }
+
+  strictEqual(literal.data === 'count', true);
   const result = s.object({
     operation: s.literal('count'), input: integerRule(), pair: pairRule()
   }).safeParseJson(body);
