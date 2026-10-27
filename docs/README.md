@@ -9,6 +9,7 @@ these guides distinguish supported behavior from planned work.
 - [Install the CLI and editor](content/getting-started/installation.md)
 - [Understand project structure](content/getting-started/project-structure.md)
 - [Use the CLI](guides/project-cli.md)
+- [Inspect and prepare native build tools](guides/tooling/machine-setup.md)
 - [Explore the standard library](guides/language/standard-library.md)
 - [Understand string semantics](guides/language/string-semantics.md)
 - [Use collections](guides/collections.md)

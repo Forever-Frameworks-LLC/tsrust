@@ -1,5 +1,75 @@
 # Agent continuation state
 
+## Latest accepted section: doctor and explicit pinned-toolchain setup
+
+See milestones/machine-toolchain-setup.md: unit 1/1, CLI integration 2/2 and actual
+Windows doctor --native JSON all pass. Unit and CLI sessions in exec 48141 are now
+terminal. The integration build took 10m31s; remove embedded vendoring/enable shared
+Cargo sources next rather than continuing broad CLI rebuild loops. No live setup
+network acquisition, global toolchain/default mutation, installed binary replacement
+or full runtime/compiler/LSP matrix occurred. The 16 authoring-only UI dependency
+warnings remain open and are not being concealed by this acceptance claim.
+
+Unfinished LSP tracing is deliberately separate: crates/tsrust-lsp/src/main.rs has
+opt-in TSRUST_LSP_TRACE_TIMINGS stage logging; tools/verify-application-editor.mjs
+supports ordinary projects, records timeout counters and accepts an explicit bounded
+diagnostic deadline. Neither is accepted yet. Current LSP build exec session 4699
+logs target/lsp-trace-build-current.log; poll it before running traced docs analysis.
+An installed-LSP foreground-only isolation probe (rootUri null) is live as session
+85098, logging target/docs-editor-foreground-current.log. Preserve both handles;
+do not restart based on elapsed observation waits. Earlier workspace-mode docs
+probes failed at 15s and 120s, while the direct compiler check passed in 22117ms.
+The owner's existing LSP/editor is untouched. No agent-owned UI/server is running.
+
+## In progress: explicit machine preparation (not yet committed)
+
+Documentation organization milestone is 8904fb8a. Its link verification checked all
+333 relocated documents with zero new broken relative links; formatting changed
+zero files/fingerprints. Protected owner edits remain .gitignore, docs/src/main.tsr
+and untracked .agents/.
+
+Implemented setup_cli.rs and main dispatch/help: doctor [--json] [--native] reports
+pinned rustc/Cargo and explicitly unchecked application dependencies; its optional
+native probe performs an offline minimal host compile/link/run. setup --toolchain
+requires an interactive confirmation or --yes, delegates exact-pin/minimal-profile
+installation to the existing rustup with --no-self-update, and never selects a global
+default. It deliberately does not yet prepare application source caches, install
+rustup/linkers or update CLI/LSP. New guide: guides/tooling/machine-setup.md. No live
+network/toolchain installation has been run for acceptance. Source-cache migration
+and production install/update remain required, not implemented by this section.
+
+Current gate: target/setup-toolchain-current.log. Bin unit test 1/1 passed after
+4m56s compilation. Integration invocation is still live as exec session 48141;
+it waited on the shared Cargo build lock and has now resumed compiler compilation.
+Poll the same session; do not duplicate or kill the other consumer. Source src/types/unions.rs len() was only used by cfg(test)
+analysis cases; restricted it to cfg(test) to remove the observed dead-code warning.
+The first test build predates that edit; warning-free post-edit acceptance is pending.
+
+Extended tools/verify-application-editor.mjs to support ordinary projects without
+API configuration and inject a harmless in-memory type error independent of an
+operation signature. Existing generated-client cases still require recheck. The
+installed LSP docs entry produced no diagnostic publication within 15s or an explicit
+120s window. A focused counter probe confirmed its event loop still answers requests,
+with no observed diagnostic notifications and no stderr; this is not a clean editor
+result. All three owned LSP test sessions are terminal (19476, 20831, 39988). Log:
+target/docs-editor-current.log. Do not repeat timeout widening; compare direct-entry
+compiler latency and trace project scheduling/analysis next. Direct entry check (session 84209, terminal) passed with zero diagnostics in
+22117 ms, target/docs-entry-check-current.log. Both recursive and direct compiler
+checks therefore pass while LSP publication fails. The added counter observation
+(session 39988, terminal) showed no published diagnostics and a responsive event
+loop. Trace foreground scheduling versus workspace discovery/analysis instead of
+repeating the same check or widening timeouts. Preserve the owner's running LSP/editor.
+
+The resumed build also reports 16 existing tsrust-ui authoring-only dead-code
+warnings (CSS/theme renderer consumers disabled by the backend feature profile).
+These are genuine current build warnings, not proof of the owner's exact editor
+Problems list. They need feature-boundary cleanup; do not blanket-suppress them.
+No milestone commit until the setup CLI integration and affected checks pass.
+No installed tool replacement has occurred. No server/UI window is running from
+this section. The reported native docs stack overflow and roughly 40 VS Code
+Problems remain unresolved. The exact Problems list is unavailable because there
+is no exposed/configured VS Code MCP connector in this session.
+
 ## Current section: documentation organization and reported startup failure
 
 The owner requires finished, validated sections before milestone commits, clean

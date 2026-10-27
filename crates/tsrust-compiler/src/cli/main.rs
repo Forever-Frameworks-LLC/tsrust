@@ -26,6 +26,7 @@ mod new_cli;
 mod application_scaffold;
 mod ui_cli;
 mod cache_cli;
+mod setup_cli;
 mod docs_cli;
 mod api_cli;
 mod http_client;
@@ -58,6 +59,8 @@ Usage:
   tsrust docs content [--cwd directory]
   tsrust api generate [--config file | --description file | --url HTTPS_URL] [--language typescript|rust] [--out directory] [--header-env Header=ENV] [--check]
   tsrust cache <info|clean>
+  tsrust doctor [--json] [--native]
+  tsrust setup --toolchain [--yes]
   tsrust dev [--target native|web] [--port 4317] [--release] [--verbose] [--color auto|always|never] [-- program-arguments]
   tsrust run [input.tsr] [--release] [-- program-arguments]
   tsrust test [files/directories] [options]
@@ -71,6 +74,8 @@ Commands:
   packages Show resolved versions, effective features and available bindings
   remove   Validate dependency removal without rewriting adapters
   bindings Resolve and vendor declared Rust dependencies
+  doctor   Inspect pinned tools; --native also tests the host compiler and linker offline
+  setup    Explicitly install the pinned Rust toolchain without changing defaults
   docs     Compile checked documentation content and exact example/API data offline
   api      Generate a checked named TypeScript client without adopting frontend tooling
   dev      Watch a configured native program or web UI
@@ -202,6 +207,8 @@ fn run() -> Result<u8, String> {
     if command=="docs" {return docs_cli::run(args);}
     if command=="api" {return api_cli::run(args);}
     if command=="cache" {return cache_cli::run(args);}
+    if command=="doctor" {return setup_cli::doctor(args);}
+    if command=="setup" {return setup_cli::setup(args);}
     if command=="ui" {return ui_cli::run(args);}
     if command=="new" {return new_cli::run(args);}
     let (arguments,program_arguments)=split_program_arguments(&command,args.collect());
