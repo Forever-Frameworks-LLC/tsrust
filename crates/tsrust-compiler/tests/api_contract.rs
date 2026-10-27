@@ -120,20 +120,43 @@ fn package_metadata_is_portable_and_has_no_runtime_dependencies() {
     assert!(files["http.d.ts"].contains("typeof globalThis.fetch"));
     assert!(!files["index.d.ts"].contains("HeadersInit"));
     assert!(!files["index.js"].contains("from './http.js'"));
-    assert_eq!(package["exports"]["./react-query"]["types"], "./react-query.d.ts");
-    assert_eq!(package["peerDependenciesMeta"]["@tanstack/react-query"]["optional"], true);
-    assert_eq!(package["peerDependenciesMeta"]["react"]["optional"], true);
-    assert_eq!(package["peerDependenciesMeta"]["@tanstack/query-core"]["optional"], true);
-    assert_eq!(package["exports"]["./query"]["types"], "./query.d.ts");
-    assert!(files["query.js"].contains("from '@tanstack/query-core'"));
-    assert!(!files["query.js"].contains("@tanstack/react-query"));
-    assert!(!files["query.d.ts"].contains("@tanstack/react-query"));
-    assert!(files["react-query.js"].contains("from './query.js'"));
-    assert!(!files["index.d.ts"].contains("@tanstack"));
-    assert!(!files["wire.js"].contains("@tanstack"));
-    assert!(files["react-query.d.ts"].contains("MutationOperation<Client[\"value\"]") || files["react-query.d.ts"].contains("QueryOperation<Client[\"value\"]"));
+    assert!(package.get("peerDependencies").is_none());
+    assert!(package["exports"].get("./query").is_none());
+    assert!(package["exports"].get("./react-query").is_none());
+    for (path, source) in &files {
+        assert!(!source.contains("@tanstack"), "Unexpected framework dependency in {path}");
+        assert!(!path.starts_with("react-query") && !path.starts_with("query."));
+    }
     for name in ["../bad", "Name", "@scope/../bad", "@/bad"] { assert!(manifest.client_package(name, "0.1.0").is_err()); }
     assert!(manifest.client_package("api", "01.0.0").is_err());
+}
+
+#[test]
+fn saved_http_description_generates_identical_client_without_source() {
+    use tsrust_compiler::api::HttpDescription;
+    let checked = project("export function value():int{return 7;}", "value");
+    let manifest = Manifest::from_project(&checked, &[select("value", "value")]).unwrap();
+    let files = manifest.client_package("@example/api", "0.1.0").unwrap();
+    let text = files["http-api.json"].clone();
+    drop(checked);
+    drop(manifest);
+    let description = HttpDescription::parse(&text).unwrap();
+    assert_eq!(description.typescript_package().unwrap(), files);
+    let openapi = description.openapi().unwrap();
+    assert_eq!(openapi["openapi"], "3.1.1");
+    let post = &openapi["paths"]["/"]["post"];
+    assert_eq!(post["requestBody"]["content"]["application/json"]["schema"]["oneOf"][0]["properties"]["operation"]["const"], "value");
+    assert_eq!(post["requestBody"]["content"]["application/json"]["schema"]["oneOf"][0]["properties"]["input"]["type"], "null");
+    assert_eq!(post["responses"]["200"]["content"]["application/json"]["schema"]["anyOf"][0]["properties"]["value"]["maximum"], 9_007_199_254_740_991_i64);
+    assert_eq!(openapi["x-tsrust-http"]["protocol"], "tsrust-http");
+    assert!(!text.contains("operations.tsr"));
+    let mut invalid: serde_json::Value = serde_json::from_str(&text).unwrap();
+    invalid["protocol"] = "unknown".into();
+    assert!(HttpDescription::parse(&invalid.to_string()).is_err());
+    invalid["protocol"] = "tsrust-http".into();
+    invalid["history"]["releases"][0]["manifest"]["operations"][0]["name"] = "constructor.bad".into();
+    assert!(HttpDescription::parse(&invalid.to_string()).is_err());
+    assert!(HttpDescription::parse(&" ".repeat(1_048_577)).is_err());
 }
 
 fn object(fields: &[(&str, Schema)], required: &[&str]) -> Schema {

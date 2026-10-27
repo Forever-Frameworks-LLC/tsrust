@@ -4,7 +4,7 @@ pub(super) const AGENT_GUIDANCE:&str=include_str!("project-agents.md");
 
 pub fn run(args:impl Iterator<Item=String>)->Result<u8,String> {
     let mut args=args;let mut ui=false;let mut application=false;let mut requested=None;let mut targets=vec![];
-    while let Some(arg)=args.next(){match arg.as_str(){"--app" if !application=>application=true,"--ui" if !ui=>ui=true,"--target"=>targets.push(args.next().ok_or("--target requires a target name")?),_ if !arg.starts_with('-') && requested.is_none()=>requested=Some(arg),_=>return Err("Usage: tsrust new <name-or-path> [--app [--target web|backend] | --ui [--target native|web]...]".into())}}
+    while let Some(arg)=args.next(){match arg.as_str(){"--app" if !application=>application=true,"--ui" if !ui=>ui=true,"--target"=>targets.push(args.next().ok_or("--target requires a target name")?),_ if !arg.starts_with('-') && requested.is_none()=>requested=Some(arg),_=>return Err("Usage: tsrust new <name-or-path> [--app [--target backend] | --ui [--target native|web]...]".into())}}
     if ui && application {return Err("--app and legacy --ui are mutually exclusive".into());}
     if !ui && !application && !targets.is_empty(){return Err("--target requires --app or --ui".into());}
     if application {super::application_scaffold::validate_targets(&targets)?;}
@@ -14,7 +14,7 @@ pub fn run(args:impl Iterator<Item=String>)->Result<u8,String> {
         match destination(&requested) {Ok(root)=>break root,Err(error) if guided=>eprintln!("{error}"),Err(error)=>return Err(error)}
     };
     if guided && !ui && !application {
-        let Some(kind)=super::interactive_cli::choose("Project type",&["Backend + React web application","Console application","Legacy UI application"])? else{return Ok(0);};application=kind==0;ui=kind==2;
+        let Some(kind)=super::interactive_cli::choose("Project type",&["Backend HTTP application","Console application","Legacy UI application"])? else{return Ok(0);};application=kind==0;ui=kind==2;
     }
     if application {return super::application_scaffold::create(&root,&targets);}
     let name=root.file_name().and_then(|value|value.to_str()).unwrap();

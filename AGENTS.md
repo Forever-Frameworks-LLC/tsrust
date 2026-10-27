@@ -2,6 +2,17 @@
 
 ## Active product direction — 2026-10-26
 
+Owner reset, 2026-10-27: the backend-only direction in
+`docs/plans/backend-only-reset.md` supersedes the React/Electron/Expo requirements
+in this section. Remove introduced frontend integrations from the active product;
+users bring their own UI and call HTTP APIs. Preserve original Tsrust UI history
+for potential later revival, outside normal backend dependencies. Prioritize HTTP
+contract-based TypeScript/Rust SDKs, explicit Rust setup/shared Cargo caches,
+portable vendored export and Windows/macOS/Linux installation/self-update. The
+previous automated goal is paused; direct requested cleanup work is authorized.
+
+The earlier pivot below is retained context, not current frontend acceptance:
+
 The owner approved the backend application platform pivot. Follow
 `docs/agent-goal.md` and `docs/plans/backend-platform-pivot.md` for active scope.
 Keep Tsrust as the native backend compiler; use React/Vite with shadcn for web

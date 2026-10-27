@@ -1,6 +1,7 @@
 //! Explicit checked API contracts. Ordinary exports never publish an operation.
 mod typescript;
-mod react_query;
+mod description;
+pub use description::HttpDescription;
 mod native_codecs;
 mod compatibility;
 mod versioning;

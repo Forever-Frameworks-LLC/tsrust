@@ -1,216 +1,71 @@
 # Goal: Tsrust backend framework, HTTP SDKs and distribution
 
-## Controlling owner reset — 2026-10-27
+Owner-approved replacement direction, 2026-10-27. The owner authorized continuation
+of this goal after aligning it with backend-only scope. This supersedes the earlier
+React/Electron/Expo application prototype objective. Follow
+[the backend-only reset](plans/backend-only-reset.md) and
+[Rust setup and dependency distribution](plans/rust-setup-and-dependency-distribution.md).
+Historical application-platform plans and acceptance remain evidence, not active UI
+requirements. No React, Electron, Expo, TanStack or frontend package-manager
+orchestration work is required. Users bring their own UI and call HTTP APIs.
 
-The owner paused the previous automated goal and replaced its product scope.
-Follow [the backend-only reset](plans/backend-only-reset.md). The React/Electron/
-Expo, npm template, TanStack adapter and managed frontend work below is superseded
-historical context, not required acceptance. Remove introduced UI integrations from
-the active product; users bring their own UI and call HTTP APIs. Preserve original
-Tsrust UI source/history for possible later work, but exclude it from normal backend
-installation/build dependencies. Returning to that UI is not current implementation
-scope. Preserve owner edits, native compiler/LSP correctness and benchmark privacy.
+## Required outcomes, in order
 
-Required outcomes: a clean native backend framework; SDK generation from an HTTP
-API description with initial TypeScript and Rust output plus OpenAPI export; normal
-Cargo cache development with explicit preparation and portable vendored export;
-reliable Windows/macOS/Linux installation and self-service latest-version update
-checking/updating. No public release is authorized. The earlier automated goal
-remains paused until explicitly resumed; direct requested work follows this reset.
+1. Complete backend-only cleanup. Remove introduced frontend templates, adapters,
+   dependency graphs, task UI examples, verification tools and active documentation
+   references. Retain native backend compiler/LSP, independent SDK/HTTP transport,
+   checked dispatch, API compatibility, authorization, resources, SQLite and useful
+   arbitrary-client static serving. Preserve original Tsrust UI source/history for
+   possible later revival, outside ordinary backend build/install dependencies.
+   Preserve owner-created applications and unrelated edits. Prove fresh CLI backend
+   generation, native execution and editor agreement without a frontend toolchain.
+2. Generate SDKs from a validated HTTP API description, fetched from a running
+   service or read from a saved file, without the original backend source tree.
+   Initial outputs are TypeScript and Rust, plus OpenAPI specification export.
+   Reuse one checked contract and existing wire/version machinery. Keep named calls,
+   input/response validation, configurable authentication/transport, structured
+   errors and safe rolling-deployment compatibility. No mandatory UI/cache library.
+   Define supported OpenAPI mapping/import scope explicitly. Test both generated
+   languages against a real native service, saved/live descriptions, invalid input,
+   failures, authorization and compatible/incompatible replica versions.
+3. Migrate ordinary native development from mandatory vendor copies to Cargo's
+   shared registry/Git cache, exact locks and explicit preparation/resolution.
+   Inventory dependency consumers before changing them. Provide actionable,
+   machine-readable doctor and explicit setup using rustup/Cargo. Preserve global
+   toolchains/defaults/configuration. Routine check/emit/build/dev never install or
+   download silently. Preserve toolchain-free compiler operations. Keep portable
+   offline source exports with runtime sources, manifests/locks, vendors, notices
+   and prerequisite metadata; prove relocated offline builds and native parity.
+4. Deliver reliable prebuilt CLI/LSP installation on Windows, macOS and Linux,
+   and explicit latest-stable update checking/updating. Pair compiler and LSP;
+   validate trusted release metadata, host architecture and artifact integrity;
+   stage replacement with interruption/failure recovery and Windows locked-binary
+   handling. Respect package-manager-owned installations. Test isolated installs,
+   no-update, bad artifacts, rollback and tooling-free tool/app execution. Record
+   platform/architecture execution separately; local mocks do not prove all OSes.
 
-## Superseded application-platform goal and retained evidence
+## Acceptance and work rules
 
-Owner-approved direction: 2026-10-26. Use this file as the continuation goal.
+Use AGENTS.md, docs/development-workflow.md, the project development/Ponytail/Caveman
+skills and current docs/agent-progress.md. One agent writes this tree. Inspect Git
+status and preserve owner edits. Keep local source checkpoints before risky changes
+and after accepted sections; run whole-project formatting, token/idempotence checks
+and formatted-source behavior as required. Use one Cargo target, one build job and
+CARGO_INCREMENTAL=0. Add focused witnesses during implementation and batch affected
+validation after coherent sections; complete compiler/LSP regressions and matched
+performance at meaningful backend milestones. Preserve exact evidence, SQLite
+analytics privacy, historical measurements and resource/ownership guarantees.
 
-Owner addition, 2026-10-27: implement the
-[Rust setup and dependency distribution plan](plans/rust-setup-and-dependency-distribution.md).
-Prebuilt compiler/LSP distribution, explicit machine preparation and dependency
-resolution, normal shared Cargo caches with locked/offline builds, retained portable
-vendored exports and tooling-free application deployment are required. Start with
-dependency-path inventory; preserve toolchain-free operations and prohibit implicit
-downloads in routine compiler/build/dev commands. Acceptance remains pending and
-must distinguish implemented behavior from unexecuted platform/distribution checks.
+Do not control the owner's editor or stop their processes. Use terminal/files and
+browser automation where applicable. Keep generated backend review projects under
+D:/ai_dev/tsrust/generated-projects without overwriting previous owner projects.
+Stop owned servers after testing. Keep editor diagnostics and installed consumers
+current only after rebuilt tools are validated. Native deployment requires no
+Tsrust/Rust/Cargo/repository/cache; document real OS runtime prerequisites.
 
-Owner reset, 2026-10-27: clean up prototype-driven work and build the real production
-implementation from the CLI outward. Follow
-[the production baseline](plans/production-application-baseline.md) for ordering.
-Keep all acceptance requirements below; task apps remain integration examples.
-Default new apps use a basic landing page and typed "greet server" bridge. Fresh
-CLI generation, visible dev mode and editor diagnostics are required evidence.
-
-Build the application implementation in which I author backend logic in Tsrust's
-TypeScript-style language, compile it to native code, and consume it through
-generated named TypeScript API calls from React web, Electron desktop and Expo
-mobile. Keep Tsrust as the backend language. Use React/Vite and shadcn for web
-and desktop, Electron Forge with its Vite plugin for desktop packaging, Expo and
-React Native Reusables for mobile, and TanStack Query behind a thin generated
-wrapper with named calls/hooks. Electron Forge's Vite plugin is explicitly accepted.
-
-Read AGENTS.md, docs/agent-progress.md,
-docs/plans/backend-platform-pivot.md and docs/plans/backend-platform-packages.md.
-Use the local development, Ponytail and Caveman guidance, except that the owner's
-pivot supersedes old instructions to finish the universal UI and avoid React.
-Continue from current source and accepted backend evidence. Do not restart the
-compiler, finish arbitrary TypeScript/npm compatibility, or build another frontend
-framework. Preserve old UI source, owner edits and historical acceptance in place.
-Do not delete or archive it merely to clean up the tree. Table, custom components,
-renderer/embedded parity and the old docs application are frozen, not passed.
-
-## Finite prototype acceptance
-
-1. Isolate the active compiler/LSP/backend path from the legacy UI runtime while
-   retaining authoring compatibility and explicit legacy UI builds. Trace direct,
-   embedded-source and vendored dependency paths. Record remaining coupling.
-2. Build a native Tsrust SQLite-backed task-list service with list/create/update/
-   delete operations, validated inputs, structured public failures and an explicit
-   application-owned access policy. Expose only declared operations. Reuse existing
-   HTTP, async, schema, SQL and resource contracts instead of parallel runtimes.
-3. Derive one checked operation manifest and generate deterministic TypeScript
-   clients, declarations and runtime codecs. Ordinary calls look like
-   `api.tasks.list(args)` and `api.tasks.create(args)`, with a framework-independent
-   Query Core options entry, generated React hooks layered above it, and typed
-   TanStack query/mutation options. No string command names, manual
-   query keys, duplicated DTOs or handwritten transport wrappers are required.
-   Keep the plain client framework-independent. Settle exact spellings with
-   executable TypeScript witnesses and documentation.
-4. Define and test safe wire mappings, null/optional behavior, supported unions,
-   integer limits and unsupported resource rejection. Validate incoming arguments
-   and client responses. Preserve authorization through all transports.
-   Stale generation and incompatible API versions must produce useful failures.
-5. Deliver a usable React/shadcn task-list application with loading, empty/error
-   states, editing/validation and keyboard-accessible controls. The native service
-   can serve production assets; development uses upstream Vite HMR. Keep API
-   routes distinct from SPA navigation fallback.
-6. Package the same web UI with Electron and its native backend. Main/preload
-   exposes only generated allowed operations to an isolated sandboxed renderer.
-   Start with authenticated loopback HTTP behind preload; implement private stdio
-   only if a concrete requirement or measurement justifies it. Prove readiness,
-   startup failure, crash, exit, shutdown/drain and orphan cleanup. A packaged
-   Windows app must work outside the repository without Rust or Node installed.
-   Include optional updater setup and Tsrust-hosted feed/artifact integration
-   using the selected upstream installer/updater; follow the signing, lifecycle
-   and acceptance boundaries in plans/native-targets-and-secure-updates.md.
-7. Build an Expo/React Native Reusables task-list client using the same API over
-   HTTP. Prove it on an Android emulator/device initially. Do not claim iOS
-   acceptance without macOS/simulator/device evidence. A bundled Tsrust mobile
-   runtime and offline synchronization are not prototype requirements.
-8. Add one bounded long-running operation with cancellation and resource cleanup.
-   Distinguish cancellation from rollback or cleanup completion. Subscriptions
-   are a separate follow-up unless a required prototype behavior needs them.
-9. Offer Tsrust convenience commands for setup/import, dev, build/package,
-   component installation and integration upgrades. Generated/imported apps are
-   normal user-owned frontend projects: users can cd into them, install or upgrade
-   dependencies and edit scripts/manifests/locks independently. Respect their
-   toolchain/package manager; a managed toolchain is optional convenience. Tsrust
-   owns initial integration, generated clients and optional migrations for changes
-   affecting Tsrust integration, never unrelated dependency policy. Preview scoped
-   migrations and preserve user edits. Include an editable desktop TitleBar and
-   lib/api.ts/provider bootstrap as application-owned source in
-   initial scaffolds. Components consume named APIs without rebuilding transport,
-   credentials or cache setup. Preserve these files during SDK regeneration and
-   preview integration migrations that touch them. The title bar spans the window
-   while reserving native caption-control safe areas and ordinary drag behavior.
-   Provide configurable static mounts and a source-level API so one backend can
-   serve multiple separately built web apps,
-   with isolated fallbacks and routes. Verify two app mounts coexist with the API.
-10. Support existing projects: configure backend/client-only projects without
-    generating UI, generate/export a client into an explicit folder, pack a
-    versioned standalone npm-compatible client for optional publication, and
-    link/import it from an existing project brought into the workspace. External
-    React, Expo or other TypeScript apps can install the exported package without
-    adopting Tsrust's frontend toolchain. Preserve their package manager, lockfile,
-    scripts and source; Tsrust orchestration is optional during adoption. Actual
-    registry publication requires explicit authorization and credentials. Local
-    pack/import acceptance must not publish anything.
-11. Use researched upstream templates/packages and record exact tested compatible
-    versions, licenses, provenance/integrity and resolved advisory review. Record the
-    tested starter matrix and integration compatibility ranges, preserve user edits
-    and prove one scoped integration migration plus rollback from Git. User-driven
-    dependency additions must keep working without Tsrust adoption/approval.
-12. Verify from a clean generated project and a separate existing-project client
-    consumer. Show an API edit propagating through generation/type checking;
-    preserve compatible older clients for rolling mobile/web updates. Record
-    commands, native output, real UI/package evidence and platform gaps. Update
-    documentation and generated agent guidance.
-
-## Completion and working rules
-
-The default CLI-generated product is a basic landing page and typed "greet server"
-bridge, similar in scope to a Tauri starter. Keep the SQLite task apps as richer
-integration examples, not the default scaffold. For major template, CLI or SDK
-generation changes, generate fresh projects through the actual CLI, inspect every
-selected target/configuration and file placement, and run the generated projects
-in visible development mode. Source-copy tests supplement this proof but do not
-replace it. During template changes keep development errors observable in real
-time. Check editor/LSP diagnostics and generated-project type/build diagnostics;
-resolve affected problems as work proceeds and record any unavailable editor
-evidence explicitly. Do not control the owner's editor or disrupt their typing.
-Place owner-interactive fresh CLI-generated projects under
-`D:/ai_dev/tsrust/generated-projects/` (owner-selected top-level location), with
-clear project names and dev commands. Do not place these previews in target or
-overwrite examples/windows-setup. Preserve owner edits to generated projects.
-The owner approved a streamlined new-project layout: app/, web/ and generated/
-at the same root level, with generated/client and generated/server. app/ includes
-api/, lib/ and tests/ with meaningful starter code; main.tsr remains its entry.
-Keep backend greeting logic in lib/ and exposed API/access/context in api/.
-Consolidate human-authored API settings into the main Tsrust config and keep
-managed integration metadata under generated/. Preserve standalone API configs
-for existing projects and keep generated compatibility history versioned.
-Application `tsrust dev` must start all configured targets by default. In a TTY,
-offer a checklist with configured server/web/desktop targets selected initially;
-explicit --server/--web/--desktop flags select only those targets without a prompt.
-Noninteractive default behavior is all configured targets. Never advertise or
-launch an unconfigured target. Preserve existing legacy dev flags and coordinate
-visible logs, startup errors, hot reload, cancellation and all-child cleanup.
-The owner wants to start dev themselves: stop owned preview servers when finished
-and clearly identify the active generated-project path. Do not leave hidden dev
-servers running or stop owner-started processes.
-New frontends must offer a package-manager choice rather than assume globally
-installed pnpm. Honor selected npm/pnpm/yarn/bun conventions and existing-project
-manager/lockfiles; validate each claimed template choice. Offer a separately
-selected managed local toolchain so a global pnpm installation is unnecessary.
-Dev orchestration uses the selected manager and never silently replaces unrelated
-dependencies or lockfiles. The current pnpm-only starter is an implementation gap.
-The owner reports many VS Code errors and explicitly requires the compiler/LSP
-to stay current and error-free during this work. Verify installed executable
-identity as well as build output, investigate the reported diagnostics, and test
-real generated-project diagnostics. Keep raw pre-generation assets distinct from
-runnable source instead of suppressing valid diagnostics. Update the Tsrust
-service cooperatively where possible without restarting or controlling the editor.
-
-Implement coherent sections across compiler/runtime, editor, client generation,
-templates, examples and focused witnesses before batch validation. Formatting
-with token preservation/idempotence, native behavior, ownership, IntelliSense and
-compiler/editor agreement remain required on affected surfaces. Preserve passing
-evidence; repair and rerun only affected checks.
-
-At the backend-family milestone run appropriate full compiler/LSP regressions and
-matched native versus Node-after-tsc measurements. Keep backend computation,
-serialization, HTTP/IPC overhead and packaged startup measurements separate.
-Native compilation is not a universal speed guarantee. Preserve original samples
-and protocols; distinguish acceptance from unmeasured workloads. SQLite remains
-the canonical benchmark store; publish only the allowlisted export.
-
-The owner requests visible examples while actual web/native/embedded targets are
-being tested, so they can interact with them. Keep a separate interactive preview
-open while automated tests use isolated disposable instances; do not interfere
-with their typing or use physical mouse/keyboard control. Close owned previews
-when that target's testing is finished if appropriate. Continue using file/terminal
-tools and browser automation for verification; editor control remains unauthorized.
-
-One agent writes this tree at a time. Inspect status, preserve unrelated changes,
-use local Git checkpoints before risky edits and after accepted sections, format
-the entire project before source checkpoints, use one Cargo target/job and
-CARGO_INCREMENTAL=0, and prune obsolete outputs before handoff. Keep routine logs
-concise and disposable. No source/binary archive trees are needed.
-
-Continue while useful work remains. Keep docs/agent-progress.md current with source
-identity, exact checks/results, remaining coupling, platform gaps and the next
-executable action. Do not claim completion until all required items have evidence.
-Record missing prerequisites and continue independent work; never invent platform
-passes or silently weaken acceptance.
-
-No timer pushes, release tags, public releases, package publication or recurring
-automations are authorized by this goal. Use remote CI only for a coherent locally
-validated section with a specific platform uncertainty; record exact inputs and
-reuse unchanged evidence. Releases/publication need explicit owner instructions.
+Continue autonomously through all required outcomes. Record implementation,
+acceptance, measurement and pending platform checks separately. Keep progress and
+next executable action current. Do not claim completion without authoritative
+requirement-by-requirement evidence. No timer pushes, public releases, release tags,
+package publication or recurring automation. Remote validation follows the project
+skill's specific-uncertainty decision; release publication needs explicit approval.

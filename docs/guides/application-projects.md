@@ -1,51 +1,56 @@
-# Create an application project
+# Create a backend application
 
-`tsrust new hello --app` creates a native greeting API and a React/Vite/shadcn web
-project. `tsrust new hello --app --target backend` creates the same checked API
-without a frontend or JavaScript dependency installation. The default application
-target is web; explicit desktop/mobile selections are rejected until implemented.
-An existing destination is never replaced. Creation does not install packages.
-
-The generated layout is:
+`tsrust new hello --app` creates a native greeting HTTP API and a checked,
+framework-independent TypeScript client. The optional `--target backend` is
+accepted; frontend targets are rejected. Bring your own UI and call the API.
+Creation never overwrites an existing destination or installs dependencies.
 
 ```text
 hello/
-  tsrust.config.json
-  tsrust.api.json
-  tsrust.integration.json  Initial template version and editable-file hashes
-  app/                 Native entry, public access policy and greeting operation
-    generated-api/     Checked native dispatcher and ownership marker
-  packages/api/        Checked SDK, codecs and compatibility history
-  tests/               Native greeting assertions
-  web/                 When web is selected: normal editable frontend project
-    src/lib/api.ts      Application-owned API and query bootstrap
-    src/components/ui/  Local editable upstream shadcn components
+  tsrust.config.json       Build entry and explicit API operation settings
+  app/
+    main.tsr               Native HTTP server entry
+    api/                   Operations, context and access policy
+    lib/                   Reusable backend logic
+    tests/                 Native assertions
+  generated/
+    client/                SDK, codecs and compatibility history
+    server/                Native dispatcher
+    .tsrust-integration.json
 ```
 
-Run `tsrust dev` at the project root. In a second terminal, run `pnpm install`
-and `pnpm dev` from web. Visit http://127.0.0.1:5173 and choose **Greet server**.
-The native API listens on loopback port 4318; Vite proxies /api. Both ports are
-explicit and can be edited in source/configuration. Development does not configure
-a public deployment or automatically serve the production assets.
+Run `tsrust dev` at the project root. The starter listens on loopback port 4318.
+Read app/api/access.tsr before adding sensitive operations: the greeting is
+explicitly public. Authentication remains application policy.
 
-The greeting operation is deliberately public. Read app/access.tsr before adding
-protected operations; authentication remains application policy. No token prompt
-or bundled secret is required for a public greeting. Put an application's HTTP/
-auth provider in web/src/lib/api.ts when required. Components use the named client
-and generated query adapter rather than assembling transports or command names.
-
-After editing an API signature, run `tsrust api generate`. It preserves ordinary
-application files and checks ownership of generated output. Commit the regenerated
-SDK, dispatcher and compatibility history. API generation is an explicit step in
-this initial integration; coordinated regeneration/dev orchestration is pending.
-
+After changing a contract, run `tsrust api generate` and inspect the generated
+SDK, dispatcher and compatibility history. Generated ownership guards preserve
+custom edits; ordinary app files remain yours. API regeneration is explicit.
 Run `tsrust check`, `tsrust test` and `tsrust format --check` for backend source.
-Run `pnpm build` in web for frontend types and production assets. Review compiler,
-TypeScript and editor errors during development. Manage frontend dependencies and
-scripts normally; importing an existing frontend and scoped migration commands
-remain separate required work.
+Keep compiler and editor diagnostics visible.
 
-The existing `tsrust new hello` console scaffold is retained. `--ui` explicitly
-selects the frozen legacy renderer. It is not the React/Electron/Expo application
-path. This first application command does not claim full production readiness or
-desktop/mobile, updater, migration and deployment acceptance.
+The TypeScript package exposes plain named calls and a configurable HTTP transport,
+without React, TanStack or runtime package dependencies. Its package.json is ESM
+metadata; backend development does not require npm or Node installation.
+The starter explicitly mounts GET /api/description and GET /api/openapi.json,
+using the same application access policy as dispatch. Existing applications opt
+in by mounting the generated describe/openapi handlers themselves. The OpenAPI
+document describes the actual single POST endpoint; configure its server URL and
+application authentication policy for deployment.
+
+SDK generation also emits http-api.json and openapi.json. A separate directory
+can regenerate the TypeScript SDK without backend source:
+
+```text
+tsrust api generate --description http-api.json --out sdk
+```
+
+Descriptions are limited to 1 MiB and validated before output changes. Existing
+generated output retains ownership guards and compatibility history protection.
+Fetching descriptions directly by URL and Rust output remain pending; this file
+does not claim those options exist.
+
+`tsrust new hello` retains the console scaffold. Original Tsrust UI source and
+explicit legacy commands remain historical compatibility pending dependency
+isolation; they are outside the active backend product. See the backend-only reset
+for cleanup, distribution and self-update acceptance still pending.

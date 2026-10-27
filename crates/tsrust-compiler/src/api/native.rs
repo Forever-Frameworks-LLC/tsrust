@@ -153,6 +153,26 @@ export async function dispatch(c:Mutable<_ApiContext>):Task<Response>{{
   }}catch{{return _failure(c,'api-validation','Invalid API request',400);}}
 }}
 "#, text(&current), options.max_response_bytes, options.max_request_bytes));
+        if let Some(history) = history {
+            let description = super::HttpDescription::new(history.clone())?;
+            for (name, body) in [
+                ("describe", serde_json::to_string(&description)),
+                ("openapi", serde_json::to_string(&description.openapi()?)),
+            ] {
+                let body = body.map_err(|error| error.to_string())?;
+                if body.len() > 1_048_576 { return Err("Public HTTP description exceeds 1 MiB".into()); }
+                // Metadata is opt-in at the application router and shares the
+                // application's authorization policy; generation never exposes it.
+                source.push_str(&format!(r#"
+export async function {name}(c:Mutable<_ApiContext>):Task<Response>{{
+  try{{const allowed=await _authorize(c);if(!allowed){{return _failure(c,'api-denied','Access denied',403);}}}}
+  catch{{return _failure(c,'api-internal','Application access policy failed',500);}}
+  if(c.req.method()!=='GET'){{return _failure(c,'api-method','API descriptions require GET',405);}}
+  return _send(c,{},200);
+}}
+"#, text(&body)));
+            }
+        }
         Ok(source)
     }
 }

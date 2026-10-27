@@ -4,6 +4,12 @@ Owner-requested roadmap addition, 2026-10-27. Status: planned; implementation
 and platform acceptance remain pending. This extends the active backend platform
 goal without replacing the current application layout and dev-orchestration work.
 
+The subsequent [backend-only reset](backend-only-reset.md) removes frontend
+orchestration prerequisites and adds reliable cross-platform installation and
+explicit latest-version check/update. The dependency migration here remains
+required. Original Tsrust UI is retained source, outside normal backend distribution;
+React/Electron/Expo tooling is no longer part of installer acceptance.
+
 ## Product contract
 
 Distribute Tsrust and its LSP as prebuilt binaries through the established release

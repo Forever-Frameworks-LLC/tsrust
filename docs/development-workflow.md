@@ -2,6 +2,12 @@
 
 ## Active backend pivot scope
 
+The owner's 2026-10-27 backend-only reset supersedes the frontend acceptance below.
+Follow agent-goal.md and plans/backend-only-reset.md: retain compiler/LSP/native
+backend, remove introduced UI integrations, generate independent HTTP-described
+TypeScript/Rust SDKs and OpenAPI, then complete setup/cache/install/update flows.
+Original UI source/history stays preserved outside normal backend dependencies.
+
 The owner's 2026-10-26 [prototype goal](agent-goal.md) supersedes universal UI
 completion priorities. Preserve frozen UI source/evidence, and run its focused
 compatibility checks when changing shared boundaries; do not treat it as an active

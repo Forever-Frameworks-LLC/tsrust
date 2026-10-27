@@ -1,6 +1,97 @@
 # Agent continuation state
 
+## Latest accepted backend foundation — 2026-10-27
+
+Owner explicitly authorized direct continuation without automated-goal management,
+then supplied a replacement goal attachment matching docs/agent-goal.md. Attachment
+ff4ed6f2-4419-4108-886b-fdbac9889081/goal-objective.md was read. Do not revisit old
+goal metadata limitations as a blocker. Continue backend cleanup, live HTTP/Rust
+SDKs and setup/install/update.
+
+See milestones/backend-only-http-sdk.md for exact scoped acceptance. Sessions
+9989, 72719 and 20765 are terminal. API tests 11/11 passed; scaffold failed only
+under sandbox filesystem access, escalated affected rerun 3/3 passed. Fresh project
+generated-projects/backend-http passed check, native greeting test 1/1, server build,
+real HTTP description/OpenAPI and detached named-client calls. Real LSP diagnostics
+and deliberate error/repair passed. Offline detached package/type/owner-edit checks
+passed. Owned server was stopped. No installed tool replacement, broad regressions
+or measurements claimed. Original UI authoring/build-source coupling still pending.
+Next checkpoint this accepted foundation, then implement bounded authenticated live
+description fetch and typed Rust SDK output using the same validated wire contract.
+
 ## Controlling reset — backend only
+
+Latest owner explicitly authorized continuation after goal alignment. agent-goal.md
+has been replaced with only the backend cleanup, HTTP-described TypeScript/Rust SDK,
+OpenAPI and cross-platform setup/install/update outcomes. The stored app goal still
+has the old objective and paused status; current goal tools cannot edit or resume
+it. Do not falsely mark the old goal complete or create a competing goal. Continue
+the direct authorized implementation and report that metadata limitation honestly.
+
+Further cleanup removed tracked examples/backend-tasks/{web,native,mobile} files,
+framework/query/UI verification scripts, and React/TanStack development dependencies
+from the plain SDK fixture. Owner-generated apps and ignored local dependencies
+were not deleted. Plain package/type/HTTP witnesses were adapted to named calls;
+node --check passes for verify-api-package.mjs and verify-task-http.mjs. Retained
+native Electron-specific desktop source adapters still need removal. The pending
+Cargo suite has not acquired the lock; session 36934 remains live. No tests passed
+are claimed from that wait. Installed compiler/LSP have not been replaced.
+
+Subsequent state: retired Electron-specific desktop.tsr/desktop-parent.rs are
+removed too. After authoritative process inspection found no executable running
+from the retired examples, their known node_modules/.vite/out/resources/dist
+outputs were deleted with checked workspace paths; owner generated-projects stay
+untouched. Cleanup session 15139 completed successfully. Broad read-only search
+session 86330 was cancelled; it is not an active build.
+
+The pending suite acquired its lock and is compiling (last observed compiler
+rustc PID 11096, about 1080 MiB; owner's next check waits for the same target).
+HTTP SDK foundation changes are now implemented but unvalidated: new
+api/description.rs exports validated HttpDescription, packages emit http-api.json
+and OpenAPI 3.1.1 openapi.json, and api generate --description FILE --out DIR
+regenerates the independent TS package without source. Description input is bounded
+and uses existing ownership/snapshot checks; local history cannot be discarded.
+Versioned native generation adds opt-in authorized GET describe/openapi handlers;
+the backend starter explicitly mounts them. Tests cover detached regeneration,
+malformed contracts and initial OpenAPI wire schema. Live URL fetching and Rust
+output are still pending. Source changed after this Cargo run began: after it exits,
+rerun only affected suites against the settled source before claiming acceptance.
+Do not replace installed consumers with an unvalidated build. Next: poll session
+36934, repair failures, settle focused validation and fresh backend CLI generation,
+then checkpoint and continue live HTTP/Rust SDK work and installation migration.
+
+Latest verification update: session 36934 exited 101 because the library compilation
+had read the pre-description source, while api_contract.rs subsequently included
+the new HttpDescription import. This is not a current-source acceptance result.
+The settled-source affected suite is now session 9989, logging
+target/backend-only-tests-current.log, same compiler package/tests/offline/job/target
+settings. Do not change compiler/test/template source while it compiles. Preserve
+the first failure evidence and poll this exact session. Whole-project formatting
+and diff whitespace checks pass; JS verifier syntax checks pass. No current native,
+SDK or fresh-generation acceptance is claimed until the affected suite finishes.
+
+Checkpoint 19d2b7be preserves prior layout work and the written reset, excluding
+owner edits. Backend-only cleanup is now in progress: --app defaults to backend,
+web/desktop/mobile targets reject, application web templates/lock are removed,
+generated TS packages no longer emit query/React adapters or peer dependencies.
+The independent client/HTTP transport and compatibility machinery remain. Starter
+guidance and application guide describe app/{api,lib,tests}, generated/{client,server}.
+Original UI source and owner generated-projects are untouched. Remaining cleanup
+includes frontend task examples, verification tools and old active docs; do not
+describe the whole repository as frontend-free yet.
+
+Dependency-path findings are in plans/backend-distribution-inventory.md. Runtime
+build currently materializes vendor and forces a private CARGO_HOME; compiler
+build.rs embeds native sources. Do not change only Cargo source replacement and
+claim shared-cache support. SDK HTTP-description/Rust/OpenAPI and installers/update
+remain pending implementation.
+
+Focused cargo test -p tsrust-compiler --test application_scaffold --test api_contract
+--offline is live in session 36934, logging target/backend-only-tests.log. It is
+waiting for the owner's VS Code Cargo check (40152/36504 at last authoritative
+inspection); do not stop the editor or restart the tests on observation timeout.
+CARGO_INCREMENTAL=0, jobs=1, shared target. Whole-project formatter passed with
+zero changes; source tests are not yet accepted. Re-poll the same session next.
 
 Owner paused the automated goal and explicitly replaced frontend platform scope
 with backend cleanup, HTTP-described TypeScript/Rust SDKs and cross-platform

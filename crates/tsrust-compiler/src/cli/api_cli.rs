@@ -211,19 +211,44 @@ impl OutputPlan {
 
 pub(super) fn run(args: impl Iterator<Item = String>) -> Result<u8, String> {
     let mut args = args;
-    if args.next().as_deref() != Some("generate") { return Err("Usage: tsrust api generate [--config tsrust.api.json] [--out directory] [--check]".into()); }
+    if args.next().as_deref() != Some("generate") { return Err("Usage: tsrust api generate [--config tsrust.api.json | --description file --out directory] [--check]".into()); }
     let mut config = None;
+    let mut description = None;
     let mut output = None;
     let mut check = false;
     while let Some(argument) = args.next() {
         match argument.as_str() {
             "--config" if config.is_none() => config = Some(PathBuf::from(args.next().ok_or("--config requires a file")?)),
+            "--description" if description.is_none() => description = Some(PathBuf::from(args.next().ok_or("--description requires a saved HTTP API description")?)),
             "--out" if output.is_none() => output = Some(PathBuf::from(args.next().ok_or("--out requires a directory")?)),
             "--check" if !check => check = true,
             _ => return Err(format!("Unknown or repeated API generation option: {argument}")),
         }
     }
     let cwd = std::env::current_dir().map_err(|error| error.to_string())?;
+    if let Some(description) = description {
+        if config.is_some() { return Err("--description and --config are mutually exclusive".into()); }
+        let output = output.ok_or("--description requires an explicit --out directory")?;
+        let description = cwd.join(description);
+        if fs::metadata(&description).map_err(|error| error.to_string())?.len() > 1_048_576 {
+            return Err("HTTP API description exceeds 1 MiB".into());
+        }
+        let inputs = Candidate::new(BTreeMap::new())?;
+        let id = inputs.resolve(None, description.to_str().ok_or("Description path must be UTF-8")?)?;
+        let value = tsrust_compiler::api::HttpDescription::parse(&inputs.read(&id)?)?;
+        let output = normalize(&cwd.join(output))?;
+        let mut retained = value.history.clone();
+        retained.merge(&owned_history(&output, &inputs, &value.history.package_name)?)?;
+        if retained != value.history {
+            return Err("HTTP API description omits retained local SDK history; use a separate output directory or a complete description".into());
+        }
+        let plan = prepare_package(&output, value.typescript_package()?, check)?;
+        inputs.unchanged()?;
+        plan.unchanged()?;
+        if !check { plan.apply()?; }
+        println!("{} TypeScript SDK from HTTP API description", if check { "Verified" } else { "Generated" });
+        return Ok(0);
+    }
     let path = if let Some(config) = config { cwd.join(config) } else { discover_config(&cwd)? };
     let path = fs::canonicalize(path).map_err(|error| error.to_string())?;
     let root = path.parent().ok_or("API config needs a parent directory")?;

@@ -1,4 +1,4 @@
-# Active roadmap: native backend application platform
+# Active roadmap: backend framework, HTTP SDKs and distribution
 
 **Superseded by the owner's backend-only reset, 2026-10-27.** Follow
 [backend-only cleanup, HTTP SDKs and distribution](plans/backend-only-reset.md).

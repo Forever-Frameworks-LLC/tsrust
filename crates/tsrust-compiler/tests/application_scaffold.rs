@@ -2,14 +2,15 @@ mod support;
 use std::fs;
 
 #[test]
-fn new_application_generates_checked_editable_web_and_native_contracts() {
+fn new_application_generates_checked_editable_backend_contracts() {
     let directory = support::TempDirectory::new();
     let created = support::run(support::cli().current_dir(&directory.0).args(["new", "hello-app", "--app"]), 40);
     support::success(&created);
     let root = directory.0.join("hello-app");
-    for path in ["app/main.tsr", "app/api/access.tsr", "app/api/operations.tsr", "app/lib/greeting.tsr", "app/tests/greet.test.tsr", "generated/server/index.tsr", "generated/client/package.json", "generated/client/compatibility.json", "pnpm-lock.yaml", "web/src/App.tsx", "web/src/lib/api.ts", "web/components.json", "web/LICENSE-shadcn.txt", "AGENTS.md"] {
+    for path in ["app/main.tsr", "app/api/access.tsr", "app/api/operations.tsr", "app/lib/greeting.tsr", "app/tests/greet.test.tsr", "generated/server/index.tsr", "generated/client/package.json", "generated/client/compatibility.json", "AGENTS.md"] {
         assert!(root.join(path).is_file(), "Missing {path}");
     }
+    for path in ["web", "native", "mobile", "node_modules", "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml"] { assert!(!root.join(path).exists(), "Unexpected frontend output {path}"); }
     assert!(!root.join("src").exists(), "No legacy renderer scaffold");
     assert!(!root.join("packages").exists());
     assert!(!root.join("tests").exists());
@@ -19,15 +20,22 @@ fn new_application_generates_checked_editable_web_and_native_contracts() {
     assert!(!root.join("mobile").exists());
     assert!(!root.join("web/node_modules").exists(), "No implicit package installation");
     let integration: serde_json::Value = serde_json::from_slice(&fs::read(root.join("generated/.tsrust-integration.json")).unwrap()).unwrap();
-    assert_eq!(integration["targets"], serde_json::json!(["web"]));
-    assert!(integration["initialFiles"]["web/src/lib/api.ts"].as_str().is_some_and(|hash| hash.len() == 64));
+    assert_eq!(integration["targets"], serde_json::json!(["backend"]));
+    assert!(integration["initialFiles"]["app/lib/greeting.tsr"].as_str().is_some_and(|hash| hash.len() == 64));
     for path in ["app/main.tsr", "app/api/operations.tsr", "app/api/access.tsr", "app/lib/greeting.tsr", "app/tests/greet.test.tsr"] {
         let source = fs::read_to_string(root.join(path)).unwrap();
         assert_eq!(source, support::format_round_trip(&source));
     }
     support::success(&support::run(support::cli().current_dir(&root).arg("check"), 40));
     support::success(&support::run(support::cli().current_dir(&root).args(["api", "generate", "--check"]), 40));
-    let bootstrap = root.join("web/src/lib/api.ts");
+    // An external consumer has only the saved description, no backend sources.
+    let external = directory.0.join("external");
+    fs::create_dir(&external).unwrap();
+    fs::copy(root.join("generated/client/http-api.json"), external.join("api.json")).unwrap();
+    support::success(&support::run(support::cli().current_dir(&external).args(["api", "generate", "--description", "api.json", "--out", "sdk"]), 40));
+    support::success(&support::run(support::cli().current_dir(&external).args(["api", "generate", "--description", "api.json", "--out", "sdk", "--check"]), 40));
+    assert_eq!(fs::read(root.join("generated/client/index.js")).unwrap(), fs::read(external.join("sdk/index.js")).unwrap());
+    let bootstrap = root.join("app/lib/greeting.tsr");
     let customized = format!("{}\n// Owner customization\n", fs::read_to_string(&bootstrap).unwrap());
     fs::write(&bootstrap, &customized).unwrap();
     support::success(&support::run(support::cli().current_dir(&root).args(["api", "generate"]), 40));
@@ -40,7 +48,7 @@ fn new_application_generates_checked_editable_web_and_native_contracts() {
 #[test]
 fn application_choices_reject_before_writes_and_backend_has_no_frontend() {
     let directory = support::TempDirectory::new();
-    for args in [vec!["new", "bad", "--app", "--ui"], vec!["new", "bad", "--app", "--app"], vec!["new", "bad", "--app", "--target", "desktop"], vec!["new", "bad", "--app", "--target", "web", "--target", "backend"], vec!["new", "bad", "--app", "--target"]] {
+    for args in [vec!["new", "bad", "--app", "--ui"], vec!["new", "bad", "--app", "--app"], vec!["new", "bad", "--app", "--target", "desktop"], vec!["new", "bad", "--app", "--target", "web"], vec!["new", "bad", "--app", "--target", "web", "--target", "backend"], vec!["new", "bad", "--app", "--target"]] {
         assert!(!support::run(support::cli().current_dir(&directory.0).args(args), 20).status.success());
         assert!(fs::read_dir(&directory.0).unwrap().next().is_none());
     }

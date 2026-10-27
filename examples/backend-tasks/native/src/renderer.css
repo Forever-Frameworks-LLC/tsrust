@@ -1,7 +1,0 @@
-@import "../../web/src/index.css";
-@source "../../web/src";
-
-.desktop-titlebar { position: sticky; top: 0; z-index: 50; background: white; color: #171717; border-bottom: 1px solid #e5e5e5; user-select: none; app-region: drag; }
-.desktop-titlebar-content { display: flex; align-items: center; gap: 9px; height: 100%; padding-inline: 16px; margin-left: env(titlebar-area-x, 0px); width: env(titlebar-area-width, 100%); box-sizing: border-box; font-size: 13px; font-weight: 500; }
-.desktop-titlebar button, .desktop-titlebar a, .desktop-titlebar input { app-region: no-drag; }
-#root > main { min-height: calc(100svh - 44px); }

@@ -191,12 +191,12 @@ pub(super) fn command() -> Result<Option<Vec<String>>, String> {
     loop {
         let mut categories = Vec::new();
         if project.is_some() { categories.extend([("Development", "Watch, run and build this application"), ("Quality", "Type checks, tests and formatting")]); }
-        categories.extend([("UI", "Browse legacy offline components and add editable source"), ("Project", "Create a backend/web, console or legacy UI application"), ("Help", "Command reference and examples"), ("Exit", "Return to your shell")]);
+        categories.extend([("UI", "Browse legacy offline components and add editable source"), ("Project", "Create a backend or console application"), ("Help", "Command reference and examples"), ("Exit", "Return to your shell")]);
         let Some(category) = select("What would you like to do?", &categories, false)? else { return Ok(None); };
         let selection = match categories[category].0 {
             "Development" => action("Development", &[("Start development", "tsrust dev", &["dev"]), ("Run once", "tsrust run", &["run"]), ("Build executable", "tsrust build", &["build"])])?,
             "Quality" => action("Quality", &[("Check types", "tsrust check", &["check"]), ("Run tests", "tsrust test", &["test"]), ("Check formatting", "tsrust format --check", &["format", "--check"])])?,
-            "Project" => action("Project", &[("Create a project", "Choose a destination, application type and UI targets", &["new"])])?,
+            "Project" => action("Project", &[("Create a project", "Choose a destination and application type", &["new"])])?,
             "UI" => loop {
                 let Some(choice) = select("UI", &[("Browse components", "Search current offline components and inspect details"), ("Add components", "Select several and install editable source together"), ("Consolidate license notices", "Move full component notices into attributions/"), ("Back", "Return to categories")], false)? else { return Ok(None); };
                 if choice == 3 { break Some(Vec::new()); }

@@ -40,7 +40,7 @@ use std::process::{Command, ExitCode};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tsrust_compiler::RUST_BACKEND_VERSION;
 
-const USAGE: &str = "tsrust — native TypeScript-style programs
+const USAGE: &str = "tsrust â€” native TypeScript-style programs
 
 Usage:
   tsrust                       Open the interactive command menu in a terminal
@@ -51,11 +51,11 @@ Usage:
   tsrust packages [--project directory]
   tsrust remove <crate> [--dry-run]
   tsrust bindings resolve <file.bindings.json> [--offline]
-  tsrust new [name-or-path] [--app [--target web|backend] | --ui [--target native|web]...]
+  tsrust new [name-or-path] [--app [--target backend] | --ui [--target native|web]...]
   tsrust ui <list --bundled|init|add name...> [--cwd directory] [--path directory] [--target native|web]... [--dry-run]
   tsrust ui attributions [--cwd directory] [--dry-run]
   tsrust docs content [--cwd directory]
-  tsrust api generate [--config tsrust.api.json] [--out directory] [--check]
+  tsrust api generate [--config tsrust.api.json | --description file --out directory] [--check]
   tsrust cache <info|clean>
   tsrust dev [--target native|web] [--port 4317] [--release] [--verbose] [--color auto|always|never] [-- program-arguments]
   tsrust run [input.tsr] [--release] [-- program-arguments]
@@ -120,7 +120,7 @@ fn styled(text: &str, code: &str, color: bool) -> String {
 fn print_help() {
     let color = color_enabled(std::io::stdout().is_terminal());
     for line in USAGE.lines() {
-        if line.ends_with(':') || line.starts_with("tsrust —") { println!("{}", styled(line,"1;36",color)); }
+        if line.ends_with(':') || line.starts_with("tsrust â€”") { println!("{}", styled(line,"1;36",color)); }
         else { println!("{line}"); }
     }
 }
@@ -167,7 +167,7 @@ mod argument_tests {
     use super::*;
     #[test]
     fn run_arguments_preserve_order_empty_values_and_option_spelling() {
-        let input=["main.tsr","--release","--","--help","","two words","--color=invalid","--","λ"];
+        let input=["main.tsr","--release","--","--help","","two words","--color=invalid","--","Î»"];
         let (compiler,program)=split_program_arguments("run",input.map(str::to_owned).to_vec());
         assert_eq!(compiler,["main.tsr","--release"]);
         let mut child=Command::new("program");child.args(&program);

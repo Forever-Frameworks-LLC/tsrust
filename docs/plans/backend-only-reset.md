@@ -1,9 +1,12 @@
 # Backend-only reset
 
-Owner direction, 2026-10-27. This supersedes React/Vite/shadcn, Electron/Forge,
+Owner direction, 2026-10-27; continuation explicitly authorized after goal alignment.
+This supersedes React/Vite/shadcn, Electron/Forge,
 Expo/RNR, TanStack wrappers, frontend package-manager selection, frontend migration
 and multi-target UI orchestration requirements in earlier plans. The previous
-automated goal is paused. This document governs directly requested cleanup work.
+automated goal metadata still needs replacement/resumption in the app: available
+agent goal tools cannot edit the objective or resume a paused goal. This document
+and agent-goal.md govern the owner's directly authorized ongoing work.
 
 ## Implementation order
 

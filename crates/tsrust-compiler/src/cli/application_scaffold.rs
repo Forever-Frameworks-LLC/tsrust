@@ -3,15 +3,14 @@ use std::{collections::BTreeMap, fs, io::Write, path::Path};
 use sha2::{Digest, Sha256};
 
 pub(super) fn validate_targets(targets: &[String]) -> Result<(), String> {
-    if targets.len() > 1 || targets.first().is_some_and(|target| !matches!(target.as_str(), "web" | "backend")) {
-        return Err("Application targets currently supported: web (default) or backend. Select one; desktop/mobile integration is not implemented yet.".into());
+    if targets.len() > 1 || targets.first().is_some_and(|target| target != "backend") {
+        return Err("Applications are backend-only. Omit --target or select backend; bring your own UI and call the HTTP API.".into());
     }
     Ok(())
 }
 
 pub(super) fn create(root: &Path, targets: &[String]) -> Result<u8, String> {
     validate_targets(targets)?;
-    let web = targets.first().is_none_or(|target| target == "web");
     let name = root.file_name().and_then(|value| value.to_str()).ok_or("Project name must be UTF-8")?;
     let mut files: BTreeMap<&str, String> = BTreeMap::new();
     // Raw assets use .template so editor services do not treat pre-generation
@@ -31,22 +30,7 @@ pub(super) fn create(root: &Path, targets: &[String]) -> Result<u8, String> {
         "operations":[{"name":"greet","module":"app/api/operations.tsr","export":"greet","kind":"mutation"}]});
     let config = serde_json::json!({"schemaVersion":1,"name":name,"build":{"entry":"app/main.tsr","output":format!("target/{name}{}",std::env::consts::EXE_SUFFIX)},"api":api});
     files.insert(super::project_config::FILE, format!("{}\n", serde_json::to_string_pretty(&config).unwrap()));
-    files.insert(".gitignore", "/target/\n**/node_modules/\n**/dist/\n*.tsbuildinfo\n.env.local\n".into());
-    if web {
-        let workspace = serde_json::json!({"name":name.to_ascii_lowercase(),"private":true,"version":"0.1.0","packageManager":"pnpm@12.3.4","scripts":{"api":"tsrust api generate","dev:backend":"tsrust dev","dev:web":"pnpm --dir web dev","build:web":"pnpm --dir web build"}});
-        files.insert("package.json", format!("{}\n",serde_json::to_string_pretty(&workspace).unwrap()));
-        files.insert("pnpm-workspace.yaml", "packages:\n  - web\n  - generated/client\nnodeLinker: hoisted\n".into());
-        template!("pnpm-lock.yaml");
-        template!("web/package.json"); template!("web/tsconfig.json"); template!("web/vite.config.ts");
-        template!("web/index.html"); template!("web/components.json"); template!("web/LICENSE-vite.txt"); template!("web/LICENSE-shadcn.txt");
-        template!("web/public/Geist-OFL.txt");
-        template!("web/public/icon.svg");
-        template!("web/src/main.tsx"); template!("web/src/App.tsx"); template!("web/src/index.css"); template!("web/src/lib/api.ts"); template!("web/src/lib/utils.ts");
-        template!("web/src/components/ui/button.tsx"); template!("web/src/components/ui/input.tsx"); template!("web/src/components/ui/card.tsx");
-        template!("web/src/components/ui/field.tsx"); template!("web/src/components/ui/label.tsx"); template!("web/src/components/ui/separator.tsx");
-    } else {
-        files.insert("README.md", "# Tsrust backend\n\nThe public greeting API listens on loopback port 4318.\n\nRun `tsrust dev`, `tsrust check`, `tsrust test`, and `tsrust api generate`.\nThe checked client is in generated/client; import or export it into any frontend.\nNo frontend toolchain or dependency install is required for this target.\nRead AGENTS.md and app/api/access.tsr before exposing sensitive operations.\nPut reusable backend logic in app/lib and its tests in app/tests.\n".into());
-    }
+    files.insert(".gitignore", "/target/\n.env.local\n".into());
     // Validate and format every Tsrust template before creating the destination.
     for (path, source) in &mut files {
         if path.ends_with(".tsr") {
@@ -54,7 +38,7 @@ pub(super) fn create(root: &Path, targets: &[String]) -> Result<u8, String> {
         }
     }
     let hashes: BTreeMap<&str, String> = files.iter().map(|(path, source)| (*path, Sha256::digest(source.as_bytes()).iter().map(|byte| format!("{byte:02x}")).collect())).collect();
-    let integration = serde_json::json!({"schemaVersion":1,"template":if web {"application-web"} else {"application-backend"},"integrationVersion":"0.2.0","targets":if web {vec!["web"]} else {vec!["backend"]},"initialFiles":hashes});
+    let integration = serde_json::json!({"schemaVersion":1,"template":"application-backend","integrationVersion":"0.2.0","targets":["backend"],"initialFiles":hashes});
     files.insert("generated/.tsrust-integration.json", format!("{}\n",serde_json::to_string_pretty(&integration).unwrap()));
     // Exclusive creation prevents overwriting files, directories and symlinks.
     fs::create_dir(root).map_err(|error| format!("Cannot create {}: {error}. Existing projects are never overwritten.",root.display()))?;
@@ -71,6 +55,5 @@ pub(super) fn create(root: &Path, targets: &[String]) -> Result<u8, String> {
     };
     write().map_err(|error| format!("Application creation failed: {error}. Partial files remain in {}; inspect them before retrying with a new destination.",root.display()))?;
     println!("Created {} with a checked public greeting API.\nBackend: cd {} then tsrust dev",root.display(),root.display());
-    if web { println!("Web: cd web, pnpm install, then pnpm dev. No dependencies were installed automatically."); }
     Ok(0)
 }

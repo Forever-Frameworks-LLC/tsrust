@@ -1,13 +1,9 @@
 # Native task backend
 
-The React/shadcn app is in [web](web/README.tsrust.md). The native service can
-serve its production build at `/web/` alongside the API. Build the app with
-`TSRUST_WEB_BASE=/web/`, then set `TASK_WEB_ROOT` to the absolute `web/dist` folder
-when starting the backend. Set `TASK_ORIGIN` to the service's HTTP(S) origin for
-same-origin browser requests. Unset the build base variable for root-path Vite
-development. `TASK_ADMIN_ROOT` optionally mounts a second independently built app
-at `/admin/`; build that app for `/admin/` too. No JavaScript server is needed for
-native production asset serving.
+Bring your own frontend or other HTTP client. The native service can serve
+arbitrary read-only static assets at /web/ and /admin/ when TASK_WEB_ROOT and
+TASK_ADMIN_ROOT are explicitly configured. Set TASK_ORIGIN for the allowed browser
+origin. No UI framework or frontend toolchain is supplied by this example.
 
 [web-mounts.tsr](web-mounts.tsr) exposes `WebMount` and `mountWeb` for source-level
 configuration of other non-overlapping prefixes. Each mount has its own public
@@ -67,7 +63,7 @@ analytics. See [HTTP evidence](../../docs/milestones/task-http.md).
 
 Task writes use parameterized SQL and atomic `RETURNING` results. Listing uses a
 positive limit of at most 100 and an exclusive nonnegative id cursor. Titles are
-trimmed and must contain 1–200 UTF-8 bytes, matching Tsrust string length and the
+trimmed and must contain 1â€“200 UTF-8 bytes, matching Tsrust string length and the
 SQLite constraint. For example, fifty rocket emoji fit and fifty-one reject.
 Web/mobile validation must count UTF-8 bytes rather than UTF-16 string units.
 Positive ids stay in the JavaScript-safe
