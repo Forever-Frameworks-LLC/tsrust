@@ -37,11 +37,12 @@ assert.equal(await createClient(transport).math.count(4), 5);
 `;
 const querySource = `${consumerSource}
 import { createReactClient } from '@example/query-api/react-query';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, skipToken } from '@tanstack/react-query';
 import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
 const cache = new QueryClient({ defaultOptions: { queries: { gcTime: Infinity } } });
 const api = createReactClient(transport, { scope: 'external/user' });
+assert.equal(api.math.count.queryOptions(skipToken).queryFn,skipToken,'React skip tokens survive a separate Query Core installation');
 assert.equal(await cache.fetchQuery(api.math.count.queryOptions(4)), 5);
 function Probe() { const result = api.math.count.useQuery(4); return createElement('span', null, result.data); }
 assert.equal(renderToString(createElement(QueryClientProvider, { client: cache }, createElement(Probe))), '<span>5</span>');
@@ -69,12 +70,65 @@ try {
   command(process.execPath, ['consumer.mjs'], plain);
 
   const deps = JSON.parse(fs.readFileSync(path.join(fixture, 'package.json'))).devDependencies;
+  const core = app('core-only-consumer', { devDependencies: { '@tanstack/query-core': deps['@tanstack/query-core'], typescript: deps.typescript } });
+  npm([...install, tarball], core);
+  assert.ok(!fs.existsSync(path.join(core, 'node_modules/react')));
+  assert.ok(!fs.existsSync(path.join(core, 'node_modules/@tanstack/react-query')));
+  const coreSource = `import assert from 'node:assert/strict';
+import {QueryClient,QueryObserver,MutationObserver} from '@tanstack/query-core';
+import {createQueryClient} from '@example/query-api/query';
+let calls=0;
+const api=createQueryClient({async request(operation,input){calls++;return {ok:true,value:input+1};}},{scope:'core/user'});
+const cache=new QueryClient({defaultOptions:{queries:{gcTime:Infinity}}});
+const options=api.math.count.queryOptions(4,{staleTime:Infinity});
+assert.equal(await cache.query(options),5);assert.equal(await cache.query(options),5);assert.equal(calls,1);
+await Promise.all([cache.query(api.math.count.queryOptions(5)),cache.query(api.math.count.queryOptions(5))]);assert.equal(calls,2,'concurrent requests deduplicate upstream');
+assert.equal(api.math.count.useQuery,undefined);
+let release,started;
+const ready=new Promise(resolve=>{started=resolve;});
+const stale=createQueryClient({async request(){started();return {ok:true,value:await new Promise(resolve=>{release=resolve;})};}},{scope:'stale/user'});
+const staleOptions=stale.math.count.queryOptions(8,{staleTime:0});
+cache.setQueryData(staleOptions.queryKey,1);
+assert.equal(await cache.ensureQueryData({...staleOptions,revalidateIfStale:true}),1,'SWR returns stale value before the background request completes');
+await ready;release(9);
+await cache.query(staleOptions);assert.equal(cache.getQueryData(staleOptions.queryKey),9);
+const observer=new QueryObserver(cache,options);assert.equal(observer.getCurrentResult().data,5);
+let writes=0;
+const mutations=createQueryClient({async request(operation,input){writes++;return {ok:true,value:{kind:'task',id:1,title:input.title,completed:false}};}},{scope:'core/user'});
+const mutation=new MutationObserver(cache,mutations.tasks.create.mutationOptions());
+assert.equal((await mutation.mutate({title:'Core mutation'})).title,'Core mutation');assert.equal(writes,1);
+assert.equal(cache.getQueryState(options.queryKey).isInvalidated,true);
+cache.clear();
+`;
+  fs.writeFileSync(path.join(core, 'consumer.mjs'), coreSource);
+  command(process.execPath, ['consumer.mjs'], core);
+  fs.writeFileSync(path.join(core, 'consumer.mts'), `import {QueryClient} from '@tanstack/query-core';
+import {createQueryClient} from '@example/query-api/query';
+const api=createQueryClient({async request(){return {ok:true,value:5};}},{scope:'core/user'});
+const cache=new QueryClient();
+const result:number=await cache.query(api.math.count.queryOptions(4));
+const selected:string=await cache.query(api.math.count.queryOptions(4,{select:value=>String(value)}));
+const cached:number|undefined=cache.getQueryData(api.math.count.queryOptions(4).queryKey);
+// @ts-expect-error Query inputs preserve compiler types.
+api.math.count.queryOptions('bad');
+// @ts-expect-error Core clients have no React hooks.
+api.math.count.useQuery(4);
+// @ts-expect-error Generated cache keys cannot be overridden.
+api.math.count.queryOptions(4,{queryKey:['wrong']});
+void [result,selected,cached];
+`);
+  command(process.execPath, ['node_modules/typescript/bin/tsc', 'consumer.mts', '--strict', '--noEmit', '--module', 'NodeNext', '--target', 'ES2022', '--lib', 'ES2022,DOM'], core);
   const existing = app('existing-consumer', { scripts: { check: 'node consumer.mjs', owner: 'echo owner-script' }, devDependencies: deps, ownerSetting: { retained: true } });
   const ownerSource = '// Existing application source stays byte-identical.\n';
   fs.writeFileSync(path.join(existing, 'owner.ts'), ownerSource);
   fs.writeFileSync(path.join(existing, '.npmrc'), 'save-exact=true\n');
   fs.writeFileSync(path.join(existing, 'consumer.mjs'), querySource);
   npm([...install, tarball], existing);
+  // A dependency manager need not deduplicate compatible peers. Exercise a real
+  // second Query Core module instance with its own unique skip-token symbol.
+  const nestedCore = path.join(existing, 'node_modules/@example/query-api/node_modules/@tanstack/query-core');
+  fs.mkdirSync(path.dirname(nestedCore), { recursive: true });
+  fs.cpSync(path.join(existing, 'node_modules/@tanstack/query-core'), nestedCore, { recursive: true });
   // Remove generation inputs: installed consumers must be self-contained.
   assert.equal(path.dirname(fs.realpathSync(output)), fs.realpathSync(directory));
   fs.rmSync(output, { recursive: true, force: true });

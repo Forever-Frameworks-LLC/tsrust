@@ -123,6 +123,12 @@ fn package_metadata_is_portable_and_has_no_runtime_dependencies() {
     assert_eq!(package["exports"]["./react-query"]["types"], "./react-query.d.ts");
     assert_eq!(package["peerDependenciesMeta"]["@tanstack/react-query"]["optional"], true);
     assert_eq!(package["peerDependenciesMeta"]["react"]["optional"], true);
+    assert_eq!(package["peerDependenciesMeta"]["@tanstack/query-core"]["optional"], true);
+    assert_eq!(package["exports"]["./query"]["types"], "./query.d.ts");
+    assert!(files["query.js"].contains("from '@tanstack/query-core'"));
+    assert!(!files["query.js"].contains("@tanstack/react-query"));
+    assert!(!files["query.d.ts"].contains("@tanstack/react-query"));
+    assert!(files["react-query.js"].contains("from './query.js'"));
     assert!(!files["index.d.ts"].contains("@tanstack"));
     assert!(!files["wire.js"].contains("@tanstack"));
     assert!(files["react-query.d.ts"].contains("MutationOperation<Client[\"value\"]") || files["react-query.d.ts"].contains("QueryOperation<Client[\"value\"]"));

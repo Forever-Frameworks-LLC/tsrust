@@ -31,8 +31,9 @@ renderer/embedded parity and the old docs application are frozen, not passed.
    HTTP, async, schema, SQL and resource contracts instead of parallel runtimes.
 3. Derive one checked operation manifest and generate deterministic TypeScript
    clients, declarations and runtime codecs. Ordinary calls look like
-   `api.tasks.list(args)` and `api.tasks.create(args)`, with generated React hooks
-   and typed TanStack query/mutation options. No string command names, manual
+   `api.tasks.list(args)` and `api.tasks.create(args)`, with a framework-independent
+   Query Core options entry, generated React hooks layered above it, and typed
+   TanStack query/mutation options. No string command names, manual
    query keys, duplicated DTOs or handwritten transport wrappers are required.
    Keep the plain client framework-independent. Settle exact spellings with
    executable TypeScript witnesses and documentation.

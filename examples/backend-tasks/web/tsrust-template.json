@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "integrationVersion": "0.1.0",
+  "integrationVersion": "0.2.0",
   "componentRegistry": "https://ui.shadcn.com/r",
   "base": "base",
   "style": "base-nova",
@@ -30,5 +30,5 @@
   "testedPlatform": "windows-x64",
   "node": "24.19.0",
   "packageManager": "pnpm@12.3.4",
-  "evidence": "../../../docs/milestones/task-web.md"
+  "evidence": "../../../docs/milestones/query-core-adapter.md"
 }

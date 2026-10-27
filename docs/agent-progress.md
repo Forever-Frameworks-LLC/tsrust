@@ -1,6 +1,58 @@
 # Agent continuation state
 
-## Current section: framework-independent query adapter next
+## Current section: query adapter accepted; desktop integration next
+
+Working from evidence checkpoint `47bb2375`. Extracted the generated shared
+options/key/validation/invalidation runtime into an optional /query entry backed
+by Query Core, with React reduced to hook composition. Plain/HTTP clients remain
+cache-independent. Added explicit optional Query Core peer and direct pinned
+5.105.0 dependencies to the SDK fixture and task web app. Core declarations derive
+from the same checked operations. React translates unique skip tokens across
+separate compatible dependency installations instead of assuming deduplication.
+
+Focused acceptance passes. Expanded package witness covers a detached
+core-only consumer with no React, cache reuse/deduplication, stale-while-revalidate,
+observer/mutation invalidation, inferred cache/selection types, forbidden overrides,
+and a React consumer with a separate actual Query Core module instance. Existing
+React/query checks pass too. Query Core host AbortSignal/timer typings are
+documented; the plain package still needs no DOM types or framework dependencies.
+Rust api_contract batch passes all 10 tests, log target/api-core-contract.log
+(8m25s build). Existing full React/TanStack runtime/type/cache acceptance passes,
+target/api-core-query.log. The first expanded package attempt passed core-only
+checks but exposed the earlier compiled asset's missing late skip-token repair.
+The final source-current CLI build passes (8m09s), and the affected complete
+package matrix passes, including the real duplicate-module React case. Logs:
+target/api-core-cli-build.log and target/api-core-package.log. Plain/HTTP SDK
+acceptance also passes against the final CLI, target/api-core-client.log.
+Task SDK regenerated; source and installed web SDK runtime hashes agree. Web
+production build, clean external frozen install/build/owner dependency additions,
+and actual native-served headless React CRUD/drain all pass. Logs:
+target/api-core-web-build.log, target/api-core-web-clean.log and
+target/api-core-native-web.log. See docs/milestones/query-core-adapter.md.
+All owned builds, browser/server tests and temporary consumers are terminal.
+Whole-project formatting passes twice with zero files/fingerprints changed;
+protected owner docs hash is unchanged and git diff --check passes. Logs:
+target/api-core-format-first.log and target/api-core-format-second.log.
+Local source checkpoint and installed CLI refresh follow acceptance.
+The full prototype goal remains active and incomplete.
+
+The apparent starter lock discrepancy was a reading mistake: pnpm 12 uses two
+YAML documents, with environment/package-manager entries first and the application
+graph in the second. The tracked file already held the full graph; no restoration
+or policy relaxation was needed. Pinned pnpm 12.3.4 added only the intended three
+Query Core importer lines. Offline supply-chain checking initially lacked full
+registry metadata; normal online metadata fetching passed all 438 entries.
+Log target/api-core-web-lock.log. Source:
+https://github.com/pnpm/pnpm.io/blob/main/docs/lockfile.md.
+Clean external adoption passes for the adapter change. Protected owner files
+remain untouched; no other dependency version was upgraded.
+
+Read-only next-section research: npm metadata reports Forge Vite/create-electron-app
+8.0.1 (Node >=22.13.0) and Electron 45.0.0 (Node >=22.12.0); installed Node 24.19.0
+satisfies those declared ranges. No desktop package/template was installed or
+admitted. Existing official Forge Vite and Electron isolation/security references
+were refreshed; exact mutually compatible desktop graph, provenance/advisories,
+sandboxed bridge and packaged Windows lifecycle proof still remain required.
 
 Accepted SDK source checkpoint: `89471f0c`. Installed CLI atomically refreshed
 and hash-matched to the debug build; task main source check and generated API

@@ -28,6 +28,9 @@ generation and `pnpm install --no-frozen-lockfile` to refresh that copy. Changes
 to API types then appear in the normal TypeScript build. Regeneration does not
 rewrite this project's manifest, scripts, source or dependency policy. The exact
 version pins and lockfile record the initial tested matrix; users may change them.
+The React integration explicitly installs @tanstack/query-core alongside
+@tanstack/react-query. The SDK's optional /query entry shares the checked keys,
+options and invalidation behavior without React; the React entry adds hooks.
 
 ```sh
 pnpm build

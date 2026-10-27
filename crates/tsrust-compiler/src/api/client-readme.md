@@ -35,11 +35,35 @@ Older API majors remain usable only while the application retains compatible
 handlers or migrations. An SDK cannot implement behavior absent from an older
 replica. Arrange deployment/routing accordingly when introducing new features.
 
+## Optional framework-independent cache entry
+
+Import createQueryClient from `<package>/query` and install the optional
+`@tanstack/query-core` peer (tested 5.105.0, supported major 5 from that version).
+It requires no React. Query Core's types need host AbortSignal/timer declarations,
+provided by browser libs or Node typings. The plain client and HTTP adapter remain
+independent of the cache package. Supply a backend/principal scope as below.
+
+```ts
+import { QueryClient } from '@tanstack/query-core';
+import { createQueryClient } from '<package>/query';
+const cache = new QueryClient();
+const api = createQueryClient(transport, { scope: JSON.stringify([backendURL, userId]) });
+const rows = await cache.query(api.tasks.list.queryOptions(input, { staleTime: 30000 }));
+```
+
+Generated options work with upstream QueryClient/QueryObserver/MutationObserver.
+For stale-while-revalidate in Query Core 5, use ensureQueryData with the generated
+options and revalidateIfStale:true; this upstream method is deprecated for the
+next major, so keep integration upgrades explicit. Observers also support stale
+background refetches. No second cache, hashing engine or retry loop is introduced.
+Direct named calls remain uncached promises; caching is explicit through Query Core.
+
 ## Optional React/TanStack entry
 
 Applications using React and TanStack Query can import createReactClient from
 `<package>/react-query`. The framework peers are optional: plain and HTTP clients
-do not import them. This entry currently requires TanStack Query 5.105.0 or later
+do not import them. The React entry layers hooks on the same `/query` runtime;
+install its Query Core peer too. This entry currently requires TanStack Query 5.105.0 or later
 within major 5, and the upstream-supported React 18/19 peers. The development
 fixture tests TanStack 5.105.0 and React 19.3.1.
 

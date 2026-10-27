@@ -241,6 +241,44 @@ Run [the example](../../examples/api-contract/README.md) and
 codecs, type inference and owner-edit protection. The verification uses existing
 repository Node/TypeScript development tools; it installs no template packages.
 
+## Optional framework-independent query adapter
+
+The `/query` export supplies createQueryClient without importing React. Install
+the optional @tanstack/query-core peer, supported from 5.105.0 through major 5.
+The plain and HTTP entries still import no cache or framework dependency.
+Use the application's upstream cache, with generated named options:
+
+```ts
+import { QueryClient } from '@tanstack/query-core';
+import { createQueryClient } from '@example/api/query';
+const cache = new QueryClient();
+const api = createQueryClient(transport, { scope: JSON.stringify([backendURL, userId]) });
+const tasks = await cache.query(api.tasks.list.queryOptions(input, { staleTime: 30000 }));
+```
+
+Query operations expose key and queryOptions; mutations expose mutationOptions.
+They work with QueryClient, QueryObserver and MutationObserver without a UI
+framework. Direct named calls remain ordinary uncached promises. Upstream owns
+cache policy, request deduplication, observer state and resource lifecycle.
+Query Core 5 supports stale-while-revalidate through ensureQueryData with generated
+options and revalidateIfStale:true; that method is deprecated for the next major,
+so a future major integration migration must account for it. Observers can also
+return existing data while refetching in the background.
+
+Keys include caller-supplied service/principal scope, versioned contract identity,
+operation and validated normalized input. Secrets, cancellation signals and cache
+policy do not enter keys. Scope changes must accompany principal/service changes.
+Queries/mutations default to no retries. Acknowledged mutations invalidate their
+scope, while refresh errors remain query errors. Special JSON data fields retain
+the same serialization and structural-sharing protection as the React adapter.
+Host AbortSignal/timer typings are required by upstream Query Core: use browser
+library types or Node declarations. Plain clients still require no DOM types.
+
+The pinned implementation follows upstream's
+[QueryClient API](https://tanstack.com/query/latest/docs/framework/react/reference/classes/QueryClient)
+and the installed 5.105.0 package sources. It introduces no parallel cache engine.
+Focused acceptance passes; see the [query-core milestone](../milestones/query-core-adapter.md).
+
 ## Optional named TanStack adapter
 
 The generator supplies a separate `/react-query` entry. Actual generated
