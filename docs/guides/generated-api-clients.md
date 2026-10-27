@@ -200,11 +200,11 @@ Run [the example](../../examples/api-contract/README.md) and
 codecs, type inference and owner-edit protection. The verification uses existing
 repository Node/TypeScript development tools; it installs no template packages.
 
-## Optional named TanStack adapter (under validation)
+## Optional named TanStack adapter
 
-The generator now implements a separate `/react-query` entry. Actual CLI/package
-acceptance is pending; the runtime and declarations pass the staged upstream
-fixture described in [adapter evidence](../milestones/generated-query-adapter.md).
+The generator supplies a separate `/react-query` entry. Actual generated
+runtime/declarations and native task integration pass the upstream witnesses
+described in [adapter evidence](../milestones/generated-query-adapter.md).
 The plain and HTTP entries share the same wire checks without importing React.
 React/TanStack peers are optional in package metadata and must be resolvable in
 applications that use this entry.
@@ -236,3 +236,37 @@ Result schemas containing `__proto__` default to structuralSharing:false so
 refetches preserve those fields in stored data. Explicit true rejects for those
 schemas; other schemas retain ordinary upstream sharing, and custom sharing
 functions remain an explicit application choice.
+
+## Ordinary local package adoption
+
+Generate into an explicit folder, then use the application's package manager:
+
+```sh
+tsrust api generate --config tsrust.api.json --out ./dist/client
+cd dist/client
+npm pack --ignore-scripts
+cd /path/to/existing-app
+npm install /path/to/client/example-query-api-0.1.0.tgz --ignore-scripts
+```
+
+The tarball filename follows the configured npm package name/version. Inspect
+`npm pack --json --ignore-scripts` before sharing. Its allowlist includes runtime,
+declarations, contract, README and license; generated ownership markers and
+unrelated files are excluded. Generated packages are private by default; local
+packing works without publication. Consumers need no compiler, backend source or
+generated-directory symlink. Plain users need no React/TanStack installation.
+Applications using `/react-query` install its peers normally in their own project.
+
+For an npm workspace, include the generated package directory in the root's
+`workspaces`, declare its configured name/version in the consuming app's normal
+dependencies and run `npm install`. Hoisted application peers resolve from the
+linked generated package. A raw sibling symlink outside a workspace may resolve
+peers from the source directory instead; use a tarball or npm's `--install-links`
+for an installed copy. Other package managers need their own workspace peer
+acceptance; do not copy npm-specific settings into their projects automatically.
+
+`node tools/verify-api-package.mjs` checks isolated external plain/React consumers,
+TypeScript errors/inference, npm workspace resolution and an owner-installed
+dependency without rewriting existing scripts/source/configuration. It uses only
+cached pinned upstream packages and never publishes. This proves ordinary npm
+adoption; dedicated Tsrust export/pack/setup convenience commands remain pending.

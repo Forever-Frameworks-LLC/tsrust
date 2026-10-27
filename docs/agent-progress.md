@@ -1,6 +1,17 @@
 # Agent continuation state
 
-## Current section: generated TanStack adapter
+## Current section: npm package/workspace adoption
+
+Generated TanStack adapter accepted at local checkpoint `c5f07a8a`. New
+`tools/verify-api-package.mjs` passes detached tarball plain/React/TypeScript
+consumers, exact public allowlisting, owner dependency additions and npm workspace
+peer resolution. External consumers run after deleting the source generated
+directory. Log: `target/api-package-acceptance.log`, npm CLI 11.17.0; no publication.
+See `docs/milestones/api-package-adoption.md`. Temporary consumers are cleaned.
+Next: ordinary user-owned React/Vite starter and integration convenience commands;
+dedicated export/pack commands and pnpm/Expo/Electron matrices are still pending.
+
+## Accepted section: generated TanStack adapter
 
 Backend/dispatch checkpoints `9c9d6454` and `2c460146` pass native correctness.
 The next section implements optional `/react-query`, sharing wire checks while
