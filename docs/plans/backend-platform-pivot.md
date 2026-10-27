@@ -7,6 +7,12 @@ is not implemented. Follow [the executable prototype goal](../agent-goal.md) and
 
 ## Product decision
 
+Follow-up: [native targets and secure updates](native-targets-and-secure-updates.md)
+records the owner's later Slint/LVGL and optional Slint desktop direction, plus
+automatic update setup through a Tsrust-hosted service. Its priority/questions
+register governs those future decisions; the current Electron/Expo goal remains
+active, and the old universal UI implementation stays frozen.
+
 Keep Tsrust as the backend language and native compiler. Application authors use
 TypeScript-style syntax with Tsrust's documented ownership, numeric and async
 semantics. React supplies web presentation, Electron supplies the desktop shell,

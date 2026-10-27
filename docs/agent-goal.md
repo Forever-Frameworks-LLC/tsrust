@@ -51,6 +51,9 @@ renderer/embedded parity and the old docs application are frozen, not passed.
    only if a concrete requirement or measurement justifies it. Prove readiness,
    startup failure, crash, exit, shutdown/drain and orphan cleanup. A packaged
    Windows app must work outside the repository without Rust or Node installed.
+   Include optional updater setup and Tsrust-hosted feed/artifact integration
+   using the selected upstream installer/updater; follow the signing, lifecycle
+   and acceptance boundaries in plans/native-targets-and-secure-updates.md.
 7. Build an Expo/React Native Reusables task-list client using the same API over
    HTTP. Prove it on an Android emulator/device initially. Do not claim iOS
    acceptance without macOS/simulator/device evidence. A bundled Tsrust mobile

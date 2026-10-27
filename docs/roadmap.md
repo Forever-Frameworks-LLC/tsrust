@@ -4,6 +4,12 @@ Owner-approved pivot, 2026-10-26. Follow [the prototype goal](agent-goal.md),
 [pivot plan](plans/backend-platform-pivot.md) and
 [template/package decisions](plans/backend-platform-packages.md).
 
+The owner's 2026-10-27 follow-up adds optional automated desktop-update setup and
+a later Slint/LVGL target track. See [native targets and secure updates](plans/native-targets-and-secure-updates.md)
+for priority, SDK/renderer boundaries, signing/installer/hardware gates and the
+persisted questions register. Finish the active Electron/Expo prototype first;
+Slint desktop and embedded Linux/MCU support are later gated phases.
+
 Tsrust remains the native backend compiler. Presentation uses React/Vite + shadcn
 for web/Electron and Expo + React Native Reusables for mobile. Electron Forge's
 Vite plugin is accepted. Generate named API calls and a thin TanStack Query wrapper.
@@ -18,7 +24,8 @@ clients; a backend may serve multiple explicitly configured web application moun
    TypeScript client for a SQLite-backed task service.
 3. Deliver the React/shadcn web application, query wrapper and web asset serving.
 4. Package the shared UI and native backend with Electron Forge/Vite and prove
-   process lifecycle and renderer isolation on Windows.
+   process lifecycle and renderer isolation on Windows. Plan optional updater
+   setup with a Tsrust-hosted read-only feed and upstream installer/verifier.
 5. Prove an Expo/RNR Android client and backwards-compatible deployed API changes.
 6. Complete optional target orchestration, scoped integration migrations, client export
    integration, a cancellable task, upgrade/rollback proof and milestone review.
@@ -29,7 +36,8 @@ Native compute, serialization and transport costs remain separate measurements.
 Exact versions/security review must be recorded when a template is admitted.
 
 Universal GPU/browser UI, Table/component expansion, custom routing/hydration,
-embedded rendering and the Tsrust UI docs application are frozen. Pending checks
+the old embedded renderer and the Tsrust UI docs application are frozen. A later
+embedded target will evaluate upstream Slint/LVGL rather than revive that renderer. Pending checks
 are not passed; their records below are historical, not the active work queue.
 Compiler language features remain eligible when the backend prototype needs them.
 

@@ -1,6 +1,49 @@
 # Agent continuation state
 
-## Current section: query adapter accepted; desktop integration next
+## Current section: Electron lifecycle/bridge/package implementation
+
+Owner follow-ups are captured in
+docs/plans/native-targets-and-secure-updates.md, linked from the roadmap, pivot
+and active goal. It records optional automated desktop-update setup through a
+Tsrust-hosted read-only feed, later Slint desktop/embedded and LVGL evaluation,
+renderer-independent SDK generation, target-specific signing/boot trust,
+priority/acceptance gates and an explicit questions register. Embedded Linux and
+MCU/no_std are separate later profiles. No revival of the frozen UI renderer.
+The current ZIP-only desktop configuration cannot claim installed auto-updates;
+the plan prioritizes revisiting Squirrel/MSIX packaging before update support.
+
+Desktop source is now written but NOT validated/accepted: desktop.tsr and a small
+application-owned Rust parent-pipe guard, native/src backend supervisor, named
+preload/renderer bridge and custom-scheme asset/security/lifecycle entry, Forge
+Vite/fuses/ZIP configs, backend build script and shared Tasks connection injection.
+No compiler builtin was added. Normal shutdown uses authenticated HTTP and waits
+for server shutdown; parent-pipe EOF/error exits an orphan with code 74, without
+claiming graceful drain after a hard parent crash. Renderer receives no endpoint,
+credential or raw IPC/process/filesystem object. Actual lifecycle/security/package
+tests remain to be implemented and run before source acceptance.
+
+Exact dependencies installed with scripts disabled via pnpm 12.3.4: Forge/template
+8.0.1, Electron 45.0.0, fuses 2.1.3 and the existing pinned Vite/React/Query stack.
+Official Forge Vite template tarball integrity was checked; its MIT notice is
+preserved in native/LICENSE-template. Template-vite-typescript latest is 7.11.2;
+Forge 8 uses template-vite with TypeScript by default. Native pnpm lock is written.
+Resolved advisory audit reports zero findings, target/desktop-audit.json (bounded
+advisory evidence, not security certification). Electron's installer was reviewed
+and run separately with its package-supplied checksums; download completes with
+exit 0, target/desktop-electron-download.log. No Electron app window has launched.
+No Cargo/native build is currently running. Target/forge-template-input contains
+the disposable admission tarball/metadata; remove it once durable provenance is
+recorded. Preserve one Cargo target/job and CARGO_INCREMENTAL=0 for the next build.
+
+Next: finish native supervisor/parent-EOF and headless packaged Electron witnesses,
+format/check/typecheck/build this coherent section, repair affected failures, then
+prove CRUD, no privileged renderer access, failure/crash/quit/orphan handling and
+external packaged execution without Node/Rust. Add optional updater integration
+after lifecycle is sound, using the persisted U1-U4 decision register. Do not
+publish, install real release trust roots or claim signing/update success without
+actual evidence. Keep owner docs/src/main.tsr, .agents/ and windows-setup/wut intact.
+
+## Accepted query adapter baseline
 
 Accepted source checkpoint: `67cb812c`. Installed CLI atomically refreshed and
 hash-matched; installed generated task API stale check passes, log
