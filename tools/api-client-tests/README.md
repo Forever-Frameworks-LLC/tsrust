@@ -40,3 +40,13 @@ run that check. This consumer uses only ES2022 types, without DOM globals.
 Repeat advisory and signature checks when updating this lockfile. Keep package
 upgrades and their integration acceptance explicit; users' application dependency
 management remains independent of this development fixture.
+
+The adapter witness additionally uses react-dom 19.3.1, @types/react-dom 19.3.0
+and its resolved scheduler dependency for real server-rendered hook execution.
+These packages have MIT licenses. Installation kept scripts disabled and reported
+zero known vulnerabilities across eleven audited entries; registry verification
+passed ten signatures and five attestations. Run `node tools/verify-api-query.mjs`
+from the repository root after building the updated compiler. The verifier uses
+real TanStack QueryClient/QueryObserver/mutations, React hooks through React DOM
+server rendering, and positive/negative upstream TypeScript inference witnesses.
+This does not replace later browser/mobile application acceptance.

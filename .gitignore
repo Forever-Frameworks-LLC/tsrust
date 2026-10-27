@@ -39,3 +39,4 @@ __pycache__/
 /editors/vscode/LICENSE
 /dist/
 /tools/api-client-tests/node_modules/
+/tools/api-client-tests/.tmp-*/

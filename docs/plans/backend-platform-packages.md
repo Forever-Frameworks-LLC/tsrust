@@ -66,6 +66,34 @@ research, and no blanket security claim is made.
 
 ## User ownership and Tsrust integration
 
+### Workspace peer resolution research (2026-10-27)
+
+The optional generated React adapter must resolve the consuming application's
+React/TanStack peers, including when frontend projects use different supported
+React versions. A raw sibling-directory import is not enough evidence of a valid
+workspace installation. Test the chosen package-manager linking mode and one
+packed external consumer before accepting shared-package integration.
+
+[pnpm workspaces](https://pnpm.io/workspaces/) documents opt-in
+`injectWorkspacePackages` for hard-linked local dependencies. Its
+[12.15.0 release notes](https://pnpm.io/blog/releases/12.15.0) include fixes for
+injected dependencies whose consuming projects provide different peers and for
+refreshing modified injected packages. This is a candidate linking strategy,
+not a tested default or permission to rewrite existing projects' settings.
+
+[Expo's monorepo guide](https://docs.expo.dev/guides/monorepos/) supports ordinary
+workspace managers and automatic Metro setup, and identifies duplicate React
+instances as a runtime error. Isolated dependency support starts with SDK 54;
+choose actual template/SDK versions and verify native/module resolution rather
+than copying old monorepo overrides. Its illustrative dependency versions are
+not an accepted starter matrix.
+
+[shadcn's current Vite guide](https://ui.shadcn.com/docs/installation/vite)
+provides both a scaffold path and existing-project integration. The
+[official Forge Vite TypeScript template](https://www.electronforge.io/templates/vite-%2B-typescript)
+remains the desktop starting point already approved by the owner. Preserve
+upstream configuration and user-owned scripts, then add the narrow Tsrust bridge.
+
 ### Initial generated-wrapper development fixture
 
 `tools/api-client-tests` pins TanStack React Query/query-core 5.105.0, React

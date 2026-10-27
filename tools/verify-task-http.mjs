@@ -29,15 +29,21 @@ if (!process.argv.includes('--run-only')) {
   command(['check', path.join(example, 'main.tsr')]);
   command(['build', path.join(example, 'http-witness.tsr'), '-o', executable]);
 }
-const { createClient, contractId } = await import(pathToFileURL(path.join(example, 'generated-client/index.js')));
-const { createHttpTransport } = await import(pathToFileURL(path.join(example, 'generated-client/http.js')));
+const clientDirectory = process.env.TSRUST_TASK_CLIENT_DIR || path.join(example, 'generated-client');
+const { createClient, contractId } = await import(pathToFileURL(path.join(clientDirectory, 'index.js')));
+const { createHttpTransport } = await import(pathToFileURL(path.join(clientDirectory, 'http.js')));
+let createReactClient, QueryClient, QueryObserver;
+if (process.env.TSRUST_TASK_QUERY === '1') {
+  ({ createReactClient } = await import(pathToFileURL(path.join(clientDirectory, 'react-query.js'))));
+  ({ QueryClient, QueryObserver } = await import(pathToFileURL(path.join(root, 'tools/api-client-tests/node_modules/@tanstack/react-query/build/modern/index.js'))));
+}
 const directory = fs.mkdtempSync(path.join(root, 'target/task-http-'));
 const databasePath = path.join(directory, 'task data.sqlite');
 const childEnvironment = { ...environment, TASK_TEST_DATABASE_URL: `sqlite:${databasePath.replaceAll('\\', '/')}?mode=rwc`, TASK_TEST_MIGRATIONS: path.join(example, 'migrations'), TASK_TEST_TOKEN: token };
 
 async function service(verify) {
   const child = spawn(executable, [], { cwd: directory, env: childEnvironment, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
-  let output = '', errors = '', base;
+  let output = '', errors = '', base, query;
   child.stdout.setEncoding('utf8');
   child.stderr.setEncoding('utf8');
   child.stderr.on('data', chunk => { errors += chunk; });
@@ -63,8 +69,13 @@ async function service(verify) {
   try {
     base = await bounded(ready, 15000, `Task HTTP readiness timed out: ${errors}`);
     const api = createClient(createHttpTransport({ url: base + '/api', headers }));
-    await verify(api, base);
+    if (createReactClient) query = {
+      api: createReactClient(createHttpTransport({ url: base + '/api', headers }), { scope: `native-task/${base}/fixture-user` }),
+      cache: new QueryClient({ defaultOptions: { queries: { gcTime: Infinity }, mutations: { gcTime: Infinity } } }),
+    };
+    await verify(api, base, query);
   } finally {
+    query?.cache.clear();
     if (child.exitCode === null && base) {
       try {
         const stop = await fetch(base + '/__fixture_stop', { method: 'POST', headers, signal: AbortSignal.timeout(5000) });
@@ -81,7 +92,7 @@ async function service(verify) {
 
 try {
   let saved;
-  await service(async (api, base) => {
+  await service(async (api, base, query) => {
     assert.deepEqual(await api.tasks.list({ after: 0, limit: 100 }), { kind: 'page', items: [] });
     const item = await api.tasks.create({ title: '  Persistent task  ' });
     assert.equal(item.kind, 'task');
@@ -128,6 +139,21 @@ try {
     const wrongOrigin = await fetch(base + '/api', { method: 'OPTIONS', headers: { origin: 'http://untrusted.invalid', 'access-control-request-method': 'POST' }, signal: AbortSignal.timeout(5000) });
     assert.equal(wrongOrigin.status, 403);
     assert.equal(wrongOrigin.headers.get('access-control-allow-origin'), null);
+    if (query) {
+      const options = query.api.tasks.list.queryOptions({ after: 0, limit: 100 }, { staleTime: Infinity });
+      assert.deepEqual(await query.cache.fetchQuery(options), { kind: 'page', items: [saved] });
+      const observer = new QueryObserver(query.cache, options);
+      const unsubscribe = observer.subscribe(() => {});
+      const mutate = (operation, input) => query.cache.getMutationCache().build(query.cache, operation.mutationOptions()).execute(input);
+      try {
+        const created = await mutate(query.api.tasks.create, { title: 'Native query integration' });
+        assert.deepEqual(query.cache.getQueryData(options.queryKey), { kind: 'page', items: [saved, created] });
+        const updated = await mutate(query.api.tasks.update, { id: created.id, title: 'Query cache refreshed', completed: true });
+        assert.deepEqual(query.cache.getQueryData(options.queryKey), { kind: 'page', items: [saved, updated] });
+        await mutate(query.api.tasks.delete, { id: created.id });
+        assert.deepEqual(query.cache.getQueryData(options.queryKey), { kind: 'page', items: [saved] });
+      } finally { unsubscribe(); }
+    }
   });
   assert.ok(fs.statSync(databasePath).size > 0);
   await service(async api => {
@@ -135,7 +161,7 @@ try {
     assert.deepEqual(await api.tasks.delete({ id: saved.id }), { kind: 'deleted', id: saved.id });
     assert.deepEqual(await api.tasks.list({ after: 0, limit: 100 }), { kind: 'page', items: [] });
   });
-  console.log('Task HTTP: generated named CRUD, validation, access policy/CORS, parameterized SQL, orderly drain and process-restart SQLite persistence passed.');
+  console.log(`Task HTTP: generated named CRUD, validation, access policy/CORS, parameterized SQL, orderly drain and process-restart SQLite persistence${createReactClient ? ', plus real TanStack query/mutation invalidation' : ''} passed.`);
 } finally {
   assert.equal(path.dirname(fs.realpathSync(directory)), fs.realpathSync(path.join(root, 'target')));
   assert.ok(path.basename(directory).startsWith('task-http-'));

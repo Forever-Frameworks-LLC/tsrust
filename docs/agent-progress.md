@@ -1,5 +1,37 @@
 # Agent continuation state
 
+## Current section: generated TanStack adapter
+
+Backend/dispatch checkpoints `9c9d6454` and `2c460146` pass native correctness.
+The next section implements optional `/react-query`, sharing wire checks while
+keeping plain/HTTP entries framework-independent. Named callable operations gain
+typed options/hooks; keys use backend/principal scope, contract identity and
+schema-ordered serialized copied input. Mutations refresh only their scope,
+refresh failure does not change write acknowledgement, retries default false,
+and upstream skipToken/query cancellation are preserved. See
+`docs/milestones/generated-query-adapter.md` for exact scope and pending checks.
+
+The actual generated package passes the real TanStack/React DOM SSR/TypeScript
+witness (`target/api-query-acceptance.log`). Native task integration also passes
+(`target/task-query-acceptance.log`): named mutation options refresh an active
+query after create/update/delete, against the retained accepted native executable.
+The first api_contract rebuild `60088` passed nine cases. A stronger refetch
+witness then exposed upstream structural sharing dropping stored `__proto__`
+fields; a schema-targeted default now disables that sharing, retaining normal
+sharing for other schemas. Staged runtime/SSR/types pass after the repair and
+separating queryOptions arguments from the hook's optional QueryClient argument.
+Repair rebuild `40498` completed, exit 0, nine contract/metadata cases pass,
+output `target/api-query-sharing-repair.log`, one Cargo target/job and incremental
+disabled. Both actual generation verifiers pass; the native task verifier reused
+the accepted executable through `--run-only`.
+The native task verifier only loads framework dependencies in that explicit mode.
+Unchanged plain/HTTP runtime and owner-edit regression passes with the first
+rebuilt CLI in `target/api-query-plain-regression.log`; preserve that evidence.
+Refreshed current and retained clients also pass native dispatch/rolling-version
+checks (`target/api-query-native-regression.log`). Next: final formatting, local
+adapter checkpoint, then ordinary frontend package/workspace adoption. Do not rerun
+old inference investigations. Preserve owner docs source and `.agents/`.
+
 ## Active owner direction: backend platform pivot (2026-10-26)
 
 The owner approved [the backend pivot](plans/backend-platform-pivot.md).

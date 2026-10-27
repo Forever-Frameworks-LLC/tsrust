@@ -1,5 +1,6 @@
 //! Explicit checked API contracts. Ordinary exports never publish an operation.
 mod typescript;
+mod react_query;
 mod native_codecs;
 mod compatibility;
 mod native;

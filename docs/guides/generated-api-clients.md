@@ -199,3 +199,40 @@ Run [the example](../../examples/api-contract/README.md) and
 `node tools/verify-api-client.mjs` with the current compiler to check named calls,
 codecs, type inference and owner-edit protection. The verification uses existing
 repository Node/TypeScript development tools; it installs no template packages.
+
+## Optional named TanStack adapter (under validation)
+
+The generator now implements a separate `/react-query` entry. Actual CLI/package
+acceptance is pending; the runtime and declarations pass the staged upstream
+fixture described in [adapter evidence](../milestones/generated-query-adapter.md).
+The plain and HTTP entries share the same wire checks without importing React.
+React/TanStack peers are optional in package metadata and must be resolvable in
+applications that use this entry.
+
+```ts
+const api = createReactClient(transport, { scope: JSON.stringify([backendURL, userId]) });
+const tasks = api.tasks.list.useQuery({ after: 0, limit: 100 });
+const createTask = api.tasks.create.useMutation();
+await createTask.mutateAsync({ title: 'Ship prototype' });
+```
+
+The task backend returns tagged domain results; inspect `tasks.data.kind` and
+mutation result kinds separately from protocol/network errors. `queryOptions`
+and `mutationOptions` also work with ordinary TanStack APIs. Select results,
+mutation variables/context and cache data retain generated types. Use upstream
+skipToken when query input is unavailable. Generated hooks return conservative
+possibly-undefined data; callers can pass options to upstream useQuery for its
+initialData overloads.
+
+The application supplies its QueryClient/Provider and a stable transport/client.
+Scope identifies backend and principal without containing credentials. Contract
+identity and normalized copied input are added to keys automatically. Mutations
+invalidate only that client scope after an acknowledged response; refresh failure
+does not change write acknowledgement. Default retries are false, with ordinary
+explicit retry options available. Direct promise calls preserve plain-client
+behavior and do not invalidate/cache by themselves. Query functions/keys/hash
+functions and mutation functions/keys remain generated ownership boundaries.
+Result schemas containing `__proto__` default to structuralSharing:false so
+refetches preserve those fields in stored data. Explicit true rejects for those
+schemas; other schemas retain ordinary upstream sharing, and custom sharing
+functions remain an explicit application choice.

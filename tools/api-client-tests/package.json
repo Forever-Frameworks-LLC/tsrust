@@ -3,12 +3,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check:plain": "tsc plain-client.ts --strict --noEmit --module NodeNext --target ES2022 --lib ES2022"
+    "check:plain": "tsc plain-client.ts --strict --noEmit --module NodeNext --target ES2022 --lib ES2022",
+    "check:query": "node ../verify-api-query.mjs"
   },
   "devDependencies": {
     "@tanstack/react-query": "5.105.0",
     "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
     "react": "19.3.1",
+    "react-dom": "19.3.1",
     "typescript": "7.0.2"
   }
 }
