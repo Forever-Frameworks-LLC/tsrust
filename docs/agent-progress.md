@@ -1,5 +1,78 @@
 # Agent continuation state
 
+## Owner correction — asynchronous HTTP and request body API
+
+The owner explicitly rejected synchronous HTTP. Replace the in-progress generated
+Rust blocking adapter with async reqwest, awaitable named methods and async custom
+transports; also replace blocking CLI HTTP acquisition with async I/O and a terminal
+runtime boundary. Remove reqwest's blocking feature from compiler/generated SDK
+dependencies. Existing native Tsrust HTTP server is already async. Do not describe
+the old synchronous SDK as the accepted final direction.
+
+Session 33816 completed the identifier regression (Rust tests 2/2 passed) and
+created generated-projects/backend-sdk, emitted generated/rust-client, checked the
+backend and executed its greeting test 1/1. It was cancelled through Ctrl+C during
+native build after the async correction. It is terminal exit 1; authoritative
+inspection found no matching owned pipeline CLI/Cargo/node process. Preserve its
+completed evidence in target/rust-sdk-identifiers.log. Earlier HTTP wire tests
+passed in live-http-rust-sdk-http-recheck.log, after fixing only the Cargo consumer
+package alias; those synchronous runtime results are historical groundwork.
+
+Code review found an OpenAPI endpoint mismatch: generated paths uses / while the
+starter mounts /api. The live verifier now derives its RPC endpoint from OpenAPI
+so this cannot pass by comparing two generated copies of the same wrong document.
+Fix the default path to /api, document custom-mount limitations and rerun actual
+OpenAPI-derived calls during async acceptance. Current source has not fixed it yet.
+
+Owner also asked for req.json/form/multipart/XML. Source inspection confirms async
+c.req.form(), c.req.multipart(), c.req.text() and body streaming already exist;
+typed request json is missing. HTTP runtime context methods are request_text,
+request_form and request_multipart; analysis/http.rs maps req fields to contextual
+intrinsics and emit/http.rs awaits them. Add JSON through existing typed JSON/schema
+validation with bounded single-consumption semantics, compiler/native/editor tests,
+builtins.json documentation and matched support as required. Track XML as separate
+parser-backed work. Do not reinvent form/multipart or claim they are missing.
+Next checkpoint current groundwork before async conversion, then implement the
+coherent async/JSON section and batch affected validation. Keep installed tools and
+owner processes untouched until validated.
+
+## Current live HTTP / Rust SDK section
+
+Accepted baseline is checkpoint 9b0f42ce. Owner requested continued direct work;
+the replacement goal attachment was read and matches the backend-only objective.
+Do not wait for automated-goal tooling or ask the owner to resume it.
+
+Implementation in progress: api generate --url obtains a bounded JSON description
+over HTTPS (HTTP only loopback), without redirects/retries, using per-header values
+from --header-env Header=ENV. Reuses pinned reqwest 0.13.5 with blocking/rustls;
+Cargo.lock adds the already-resolved futures-channel feature edge. --language rust
+works from saved/live descriptions, writes an ordinary optional-HTTP Rust crate,
+typed DTOs/named namespace calls, strict wire validation, retained compatibility
+profiles and structured errors. Optional nullable fields have a custom present
+deserializer so explicit null is not dropped. Rust tuple support is explicitly
+limited to 16 elements; larger tuples reject generation. Default HTTP is blocking,
+bounded/no retry/no redirects; custom Transport and credential providers are exposed.
+No client-side cache/UI dependency. No installer/updater crate admitted yet.
+
+Focused coherent validation is live session 32568, log
+target/live-http-rust-sdk-tests.log: api_contract, application_scaffold and
+api_rust_client. Generated Rust must parse, run custom-transport codec assertions
+without HTTP, and compile with default HTTP enabled, using explicit offline lock
+resolution and shared target/jobs=1/incremental=0. Source was settled before this
+run; leave compiler/test/template code unchanged until it exits. Poll this handle,
+not an old session. tools/verify-backend-http-sdk.mjs now includes live URL/auth,
+redirect/size/insecure URL rejection and real Rust HTTP calls; run it after the
+new CLI is validated. It uses the already-built backend-http service from the
+accepted baseline and stops all owned servers. JS syntax and whitespace checks pass.
+
+Pending repair: a help-text replacement Python snippet failed under the escalated
+host's cp1252 default encoding before changing help text. Use explicit UTF-8 for
+any subsequent Python reads/writes; update CLI help with --url/--language/header-env
+after the active build exits. Do not restart merely because the compile is slow.
+Next: inspect exact test results, repair affected failures/help, run real HTTP/Rust
+witness, fresh review output and checkpoints; then doctor/setup/cache migration and
+paired install/update. Distribution research is in backend-distribution-inventory.md.
+
 ## Latest accepted backend foundation — 2026-10-27
 
 Owner explicitly authorized direct continuation without automated-goal management,

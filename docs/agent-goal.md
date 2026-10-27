@@ -11,6 +11,14 @@ orchestration work is required. Users bring their own UI and call HTTP APIs.
 
 ## Required outcomes, in order
 
+Owner clarifications: HTTP I/O must be asynchronous, including generated Rust
+clients/custom transports and CLI HTTP acquisition; do not offer a blocking HTTP
+adapter as the default. Normal terminal commands may wait at their runtime boundary,
+but network operations use async clients. Also audit request body readers: retain
+async text/form/multipart/stream APIs, add checked typed JSON decoding with existing
+limits/ownership and complete compiler/LSP documentation, and track XML separately
+as parser-backed support rather than an unchecked cast from text.
+
 1. Complete backend-only cleanup. Remove introduced frontend templates, adapters,
    dependency graphs, task UI examples, verification tools and active documentation
    references. Retain native backend compiler/LSP, independent SDK/HTTP transport,

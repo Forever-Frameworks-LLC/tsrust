@@ -35,6 +35,19 @@ fn new_application_generates_checked_editable_backend_contracts() {
     support::success(&support::run(support::cli().current_dir(&external).args(["api", "generate", "--description", "api.json", "--out", "sdk"]), 40));
     support::success(&support::run(support::cli().current_dir(&external).args(["api", "generate", "--description", "api.json", "--out", "sdk", "--check"]), 40));
     assert_eq!(fs::read(root.join("generated/client/index.js")).unwrap(), fs::read(external.join("sdk/index.js")).unwrap());
+    support::success(&support::run(support::cli().current_dir(&external).args(["api", "generate", "--description", "api.json", "--language", "rust", "--out", "rust-sdk"]), 40));
+    assert!(external.join("rust-sdk/src/lib.rs").is_file());
+    assert!(!external.join("rust-sdk/package.json").exists());
+    support::success(&support::run(support::cli().current_dir(&external).args(["api", "generate", "--description", "api.json", "--language", "rust", "--out", "rust-sdk", "--check"]), 40));
+    let rust_source = external.join("rust-sdk/src/lib.rs");
+    let customized_rust = format!("{}\n// Owner customization\n", fs::read_to_string(&rust_source).unwrap());
+    fs::write(&rust_source, &customized_rust).unwrap();
+    assert!(!support::run(support::cli().current_dir(&external).args(["api", "generate", "--description", "api.json", "--language", "rust", "--out", "rust-sdk"]), 40).status.success());
+    assert_eq!(fs::read_to_string(&rust_source).unwrap(), customized_rust);
+    for args in [vec!["api","generate","--language","python"],vec!["api","generate","--header-env","Authorization=TOKEN"],vec!["api","generate","--url","http://example.com/api","--description","api.json","--out","bad"]] {
+        assert!(!support::run(support::cli().current_dir(&external).args(args), 40).status.success());
+        assert!(!external.join("bad").exists());
+    }
     let bootstrap = root.join("app/lib/greeting.tsr");
     let customized = format!("{}\n// Owner customization\n", fs::read_to_string(&bootstrap).unwrap());
     fs::write(&bootstrap, &customized).unwrap();

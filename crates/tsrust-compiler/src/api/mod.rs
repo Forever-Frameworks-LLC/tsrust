@@ -1,6 +1,7 @@
 //! Explicit checked API contracts. Ordinary exports never publish an operation.
 mod typescript;
 mod description;
+mod rust_client;
 pub use description::HttpDescription;
 mod native_codecs;
 mod compatibility;

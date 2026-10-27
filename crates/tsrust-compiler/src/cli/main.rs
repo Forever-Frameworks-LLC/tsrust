@@ -28,6 +28,7 @@ mod ui_cli;
 mod cache_cli;
 mod docs_cli;
 mod api_cli;
+mod http_client;
 mod docs_model;
 mod format_cli;
 mod check_cli;
@@ -55,7 +56,7 @@ Usage:
   tsrust ui <list --bundled|init|add name...> [--cwd directory] [--path directory] [--target native|web]... [--dry-run]
   tsrust ui attributions [--cwd directory] [--dry-run]
   tsrust docs content [--cwd directory]
-  tsrust api generate [--config tsrust.api.json | --description file --out directory] [--check]
+  tsrust api generate [--config file | --description file | --url HTTPS_URL] [--language typescript|rust] [--out directory] [--header-env Header=ENV] [--check]
   tsrust cache <info|clean>
   tsrust dev [--target native|web] [--port 4317] [--release] [--verbose] [--color auto|always|never] [-- program-arguments]
   tsrust run [input.tsr] [--release] [-- program-arguments]

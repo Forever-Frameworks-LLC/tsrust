@@ -41,6 +41,11 @@ impl HttpDescription {
             current.sdk_version.as_deref().ok_or("Missing SDK version")?, &self.history)
     }
 
+    pub fn rust_package(&self) -> Result<BTreeMap<String, String>, String> {
+        let current = self.current()?;
+        super::rust_client::package(&current.manifest, &self.history)
+    }
+
     /// Describe the existing single-endpoint JSON RPC protocol, not invented REST routes.
     /// The application supplies the actual server URL and authentication policy.
     pub fn openapi(&self) -> Result<serde_json::Value, String> {

@@ -56,7 +56,59 @@ maintained implementations before choosing the updater trust mechanism; no custo
 signing protocol or production trust keys have been introduced. Installer layout,
 Windows replacement and permission handling still require implementation/tests.
 
+Further upstream installer/update research, 2026-10-27:
+
+- [cargo-dist configuration](https://axodotdev.github.io/cargo-dist/book/reference/config.html)
+  offers shell/PowerShell installation and an optional updater; package-manager
+  installations are upgraded by their package manager.
+- [axoupdater](https://github.com/axodotdev/axoupdater/blob/main/README.md) can be
+  embedded as a library and uses cargo-dist install receipts. Adopting it would
+  require reconciling existing packaging/installation with those receipts; it is
+  not a drop-in replacement for the current manual PATH distribution.
+- [self_update](https://docs.rs/self_update/latest/self_update/index.html) offers
+  release backends, checksums and optional archive signatures. Its
+  [signature interface](https://docs.rs/self_update/latest/self_update/update/fn.verify_signature.html)
+  uses Ed25519 verifying keys and supports a key-rotation overlap. These features
+  do not by themselves prove transactional replacement of Tsrust plus a locked LSP.
+
+No installer/updater crate is admitted yet. Prefer upstream installation and
+replacement mechanisms, then add only Tsrust's pairing/ownership policy. Validate
+paired replacement, failure recovery, metadata trust and Windows LSP locks before
+choosing the integration. Do not weaken verification to unsigned installation
+merely because the current release workflow publishes only checksums. Do not create
+production signing keys or trigger a release as part of local acceptance.
+
+Setup implementation must keep installed-tools, cached-sources and proven-native
+build readiness distinct. rustup's supported installation path should preserve the
+owner's default toolchain and existing Cargo configuration. Explicit setup may
+prepare a supported toolchain and graph; routine compilation must not fetch. When
+moving to the real shared Cargo home, account for config/profile/wrapper inputs in
+native cache identity rather than accidentally reusing artifacts produced with a
+different configuration. Platform prerequisite checks remain separate from fetching
+sources. Missing rustup/linkers/SDKs need actionable platform-specific instructions.
+
 ## Next coherent implementation
+
+The completed direct materialization search found only runtime_build.rs,
+package_export.rs and tests/native_dependency_bundle.rs consuming materialize;
+build.rs produces native_dependency_files.rs. Binding resolution is in
+cli/rust_bindings.rs, with contract/cache identities in project/rust_dependencies.rs.
+Bindings currently declare exact registry versions, not arbitrary Git URL syntax;
+do not expand that syntax merely to migrate Cargo's cache. Runtime overlays require
+matching manifests/locks and a shared cache lock before copying vendor sources.
+
+One compatibility guarantee needs an explicit migration decision: package_export.rs
+currently promises export without invoking Cargo/rustc because the executable embeds
+all vendor sources. Removing that embedding must not silently replace this with a
+networking/toolchain-dependent export. Preferred approach to investigate: ordinary
+runtime materialization writes only manifests/locks/runtime sources and uses the
+real Cargo home; explicit portable preparation can use Cargo vendor once into a
+versioned optional cache, from which exports copy/validate sources without invoking
+Rust. An unprepared portable export reports the exact preparation command. Keep
+this separate from normal setup/build caches and document any changed prerequisite.
+Do not write a replacement Cargo vendor implementation or silently vendor during
+ordinary development. Preserve existing portable/binding ownership and relocation
+tests, including exact notices, before changing their guarantees.
 
 Finish frontend removal and affected backend/API regressions. Then enumerate all
 bundle consumers and exact supported dependency profiles; implement doctor and
