@@ -1,5 +1,9 @@
 # Tsrust backend application platform pivot
 
+Historical direction, superseded by the owner's backend-only reset in
+[backend-only-reset.md](backend-only-reset.md). React/Electron/Expo and frontend
+orchestration requirements below are retained context, not the active work queue.
+
 Current direction: the owner's 2026-10-27 cleanup/production reset is defined in
 [the production baseline](production-application-baseline.md). Implement real CLI
 scaffolding before further task-demo expansion. Default apps are minimal greeting

@@ -1,5 +1,9 @@
 # Production application baseline
 
+Historical UI-oriented baseline, superseded by
+[the backend-only reset](backend-only-reset.md). Default applications now contain
+only a native backend and independent SDKs. Frontend targets below are not required.
+
 Owner direction, 2026-10-27: stop extending hand-built prototypes, clean up, and
 build the actual production implementation from the CLI outward. This changes
 implementation order, not the required backend/web/desktop/mobile, SDK, lifecycle,

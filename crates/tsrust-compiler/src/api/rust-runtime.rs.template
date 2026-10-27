@@ -8,20 +8,22 @@ impl ApiError {
     pub fn new(code: &str, message: &str) -> Self { Self { code:code.into(), message:message.into(), operation:String::new(), api_version:0 } }
     pub fn is_compatibility(&self) -> bool { matches!(self.code.as_str(), "api-incompatible" | "api-operation") }
 }
-pub struct Request<'a> {
-    pub operation: &'a str, pub input: Value, pub api_version: u32,
-    pub operation_contract: &'a str, pub contract_id: &'a str,
+pub struct Request {
+    pub operation: String, pub input: Value, pub api_version: u32,
+    pub operation_contract: String, pub contract_id: String,
 }
-pub trait Transport { fn request(&self, request: Request<'_>) -> Result<Value, ApiError>; }
-impl<F> Transport for F where F: Fn(Request<'_>) -> Result<Value, ApiError> {
-    fn request(&self, request: Request<'_>) -> Result<Value, ApiError> { self(request) }
+pub trait Transport: Sync {
+    fn request(&self, request: Request) -> impl std::future::Future<Output = Result<Value, ApiError>> + Send;
+}
+impl<F, Fut> Transport for F where F: Fn(Request) -> Fut + Sync, Fut: std::future::Future<Output = Result<Value, ApiError>> + Send {
+    fn request(&self, request: Request) -> impl std::future::Future<Output = Result<Value, ApiError>> + Send { self(request) }
 }
 pub struct Client<T> { transport: T, manifest: Value, protocol: Value }
 impl<T: Transport> Client<T> {
     pub fn new(transport: T) -> Self {
         Self { transport, manifest:serde_json::from_str(MANIFEST).expect("generated manifest"), protocol:serde_json::from_str(PROTOCOL).expect("generated protocol") }
     }
-    fn call<I: Serialize, O: serde::de::DeserializeOwned>(&self, index: usize, input: &I) -> Result<O, ApiError> {
+    async fn call<I: Serialize + Sync, O: serde::de::DeserializeOwned>(&self, index: usize, input: &I) -> Result<O, ApiError> {
         let operation = &self.manifest["operations"][index];
         let name = operation["name"].as_str().expect("generated operation name");
         let api_version = self.protocol["apiVersion"].as_u64().expect("generated API version") as u32;
@@ -32,9 +34,9 @@ impl<T: Transport> Client<T> {
         for profile in self.protocol["profiles"][name].as_array().expect("generated profiles") {
             if checked(&profile["input"], &input, 0).is_ok() { contract = profile["contractId"].as_str().expect("generated profile"); break; }
         }
-        let request = Request { operation:name, input, api_version,
-            operation_contract:self.protocol["operations"][name].as_str().expect("generated operation identity"), contract_id:contract };
-        let response = self.transport.request(request).map_err(annotate)?;
+        let request = Request { operation:name.into(), input, api_version,
+            operation_contract:self.protocol["operations"][name].as_str().expect("generated operation identity").into(), contract_id:contract.into() };
+        let response = self.transport.request(request).await.map_err(annotate)?;
         if response["ok"] == false {
             if let (Some(code), Some(message)) = (response["error"]["code"].as_str(), response["error"]["message"].as_str()) {
                 return Err(annotate(ApiError::new(code, message)));
@@ -95,8 +97,8 @@ pub use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 #[cfg(feature = "http")]
 pub struct HttpTransport {
     endpoint: reqwest::Url,
-    client: reqwest::blocking::Client,
-    headers: Box<dyn Fn() -> Result<reqwest::header::HeaderMap, ApiError> + Send + Sync>,
+    client: reqwest::Client,
+    headers: Box<dyn Fn() -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<reqwest::header::HeaderMap, ApiError>> + Send>> + Send + Sync>,
 }
 #[cfg(feature = "http")]
 impl HttpTransport {
@@ -105,36 +107,38 @@ impl HttpTransport {
         if !matches!(endpoint.scheme(), "http" | "https") || endpoint.username() != "" || endpoint.password().is_some() || endpoint.fragment().is_some() {
             return Err(ApiError::new("api-config", "Use an HTTP(S) API URL without credentials or fragment"));
         }
-        let client = reqwest::blocking::Client::builder().redirect(reqwest::redirect::Policy::none())
+        let client = reqwest::Client::builder().redirect(reqwest::redirect::Policy::none())
             .retry(reqwest::retry::never()).timeout(std::time::Duration::from_secs(30))
             .connect_timeout(std::time::Duration::from_secs(5)).build()
             .map_err(|_| ApiError::new("api-config", "Cannot initialize HTTP transport"))?;
-        Ok(Self { endpoint, client, headers:Box::new(|| Ok(reqwest::header::HeaderMap::new())) })
+        Ok(Self { endpoint, client, headers:Box::new(|| Box::pin(async { Ok(reqwest::header::HeaderMap::new()) })) })
     }
-    pub fn with_header_provider(mut self, provider: impl Fn() -> Result<reqwest::header::HeaderMap, ApiError> + Send + Sync + 'static) -> Self {
-        self.headers = Box::new(provider); self
+    pub fn with_header_provider<F, Fut>(mut self, provider: F) -> Self
+    where F: Fn() -> Fut + Send + Sync + 'static, Fut: std::future::Future<Output = Result<reqwest::header::HeaderMap, ApiError>> + Send + 'static {
+        self.headers = Box::new(move || Box::pin(provider())); self
     }
 }
 #[cfg(feature = "http")]
 impl Transport for HttpTransport {
-    fn request(&self, request: Request<'_>) -> Result<Value, ApiError> {
-        use std::io::Read;
-        let headers = (self.headers)()?;
+    async fn request(&self, request: Request) -> Result<Value, ApiError> {
+        let headers = (self.headers)().await?;
         if ["host", "content-length", "transfer-encoding", "connection"].iter().any(|name| headers.contains_key(*name)) {
             return Err(ApiError::new("api-config", "Custom headers cannot override HTTP routing or framing"));
         }
         let media = format!("application/json; tsrust-api={}; tsrust-operation={}", request.api_version, request.operation_contract);
         let body = serde_json::json!({"operation":request.operation,"input":request.input}).to_string();
-        let response = self.client.post(self.endpoint.clone()).headers(headers)
+        let mut response = self.client.post(self.endpoint.clone()).headers(headers)
             .header("accept", "application/json").header("content-type", media).header("x-tsrust-contract", request.contract_id)
-            .body(body).send().map_err(|_| ApiError::new("api-network", "HTTP request failed; completion is unknown"))?;
+            .body(body).send().await.map_err(|_| ApiError::new("api-network", "HTTP request failed; completion is unknown"))?;
         let status = response.status();
         let content = response.headers().get("content-type").and_then(|value| value.to_str().ok()).unwrap_or("");
         if content.split(';').next().unwrap_or("").trim().to_ascii_lowercase() != "application/json" { return Err(ApiError::new("api-protocol", "Expected an application/json response")); }
         if response.content_length().is_some_and(|length| length > 1_048_576) { return Err(ApiError::new("api-protocol", "API response exceeds 1 MiB")); }
         let mut bytes = Vec::new();
-        response.take(1_048_577).read_to_end(&mut bytes).map_err(|_| ApiError::new("api-network", "Cannot read API response; completion is unknown"))?;
-        if bytes.len() > 1_048_576 { return Err(ApiError::new("api-protocol", "API response exceeds 1 MiB")); }
+        while let Some(chunk) = response.chunk().await.map_err(|_| ApiError::new("api-network", "Cannot read API response; completion is unknown"))? {
+            if bytes.len() + chunk.len() > 1_048_576 { return Err(ApiError::new("api-protocol", "API response exceeds 1 MiB")); }
+            bytes.extend_from_slice(&chunk);
+        }
         let value: Value = serde_json::from_slice(&bytes).map_err(|_| ApiError::new("api-protocol", "Malformed API response JSON"))?;
         if !status.is_success() && value["ok"] != false { return Err(ApiError::new("api-protocol", "Non-success HTTP response has no failure envelope")); }
         Ok(value)

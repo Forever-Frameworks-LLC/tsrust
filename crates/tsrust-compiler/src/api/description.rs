@@ -70,7 +70,7 @@ impl HttpDescription {
                 "additionalProperties":false,"properties":{"code":{"type":"string"},"message":{"type":"string"}}}}});
         Ok(json!({"openapi":"3.1.1", "info":{"title":self.history.package_name,"version":current.sdk_version},
             "x-tsrust-http":self,
-            "paths":{"/":{"post":{"operationId":"invoke",
+            "paths":{"/api":{"post":{"operationId":"invoke",
                 "description":"POST to the application-configured API endpoint. Authentication is application-owned. Requests carry x-tsrust-contract plus versioned application/json media parameters; use the included Tsrust description for compatible named clients.",
                 "parameters":[{"name":"x-tsrust-contract","in":"header","required":true,"schema":{"type":"string"},"example":current.manifest.wire_identity(current.api_version)}],
                 "requestBody":{"required":true,"content":{"application/json":{"schema":alternatives("oneOf",requests)}}},

@@ -144,7 +144,7 @@ fn saved_http_description_generates_identical_client_without_source() {
     assert_eq!(description.typescript_package().unwrap(), files);
     let openapi = description.openapi().unwrap();
     assert_eq!(openapi["openapi"], "3.1.1");
-    let post = &openapi["paths"]["/"]["post"];
+    let post = &openapi["paths"]["/api"]["post"];
     assert_eq!(post["requestBody"]["content"]["application/json"]["schema"]["oneOf"][0]["properties"]["operation"]["const"], "value");
     assert_eq!(post["requestBody"]["content"]["application/json"]["schema"]["oneOf"][0]["properties"]["input"]["type"], "null");
     assert_eq!(post["responses"]["200"]["content"]["application/json"]["schema"]["anyOf"][0]["properties"]["value"]["maximum"], 9_007_199_254_740_991_i64);

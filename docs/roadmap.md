@@ -1,5 +1,10 @@
 # Active roadmap: backend framework, HTTP SDKs and distribution
 
+Owner HTTP clarifications: all network I/O is async, including Rust SDKs and CLI
+acquisition. Follow [request body readers](plans/http-request-body-readers.md) for
+checked JSON convenience and contextual streaming after async SDK acceptance;
+reuse existing form/multipart implementations and track XML separately.
+
 **Superseded by the owner's backend-only reset, 2026-10-27.** Follow
 [backend-only cleanup, HTTP SDKs and distribution](plans/backend-only-reset.md).
 Remove introduced frontend integrations; retain native backend/compiler/LSP,

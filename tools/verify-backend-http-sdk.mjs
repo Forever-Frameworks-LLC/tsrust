@@ -1,5 +1,6 @@
 // Exercise the actual CLI-created backend; no frontend toolchain or editor control.
 import assert from 'node:assert/strict';
+import test from 'node:test';
 import fs from 'node:fs';
 import path from 'node:path';
 import net from 'node:net';
@@ -8,7 +9,8 @@ import { spawn, spawnSync, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { pathToFileURL } from 'node:url';
 
-const root = path.resolve(process.argv[2] || 'generated-projects/backend-http');
+test('generated backend serves async TypeScript and Rust SDK clients', {timeout:240000}, async () => {
+const root = path.resolve(process.env.TSRUST_TEST_PROJECT || process.argv[2] || 'generated-projects/backend-http');
 const compiler = path.resolve(process.env.TSRUST || 'target/debug/tsrust.exe');
 const config = JSON.parse(fs.readFileSync(path.join(root, 'tsrust.config.json')));
 const executable = path.resolve(root, config.build.output);
@@ -58,6 +60,7 @@ try {
   await run(compiler, ['api','generate','--url',`${base}/api/description`,'--out','live-sdk']);
   assert.equal(fs.readFileSync(path.join(temporary,'live-sdk/index.js'),'utf8'), fs.readFileSync(path.join(temporary,'sdk/index.js'),'utf8'));
   let redirected = 0, credentialCalls = 0;
+  const parallelReplies = [];
   metadataServer = http.createServer(async (request, response) => {
     if (request.url === '/redirect') { response.writeHead(302,{location:'/would-follow'}); response.end(); return; }
     if (request.url === '/would-follow') redirected++;
@@ -65,11 +68,18 @@ try {
     if (request.headers.authorization !== 'Bearer fixture-access') { response.writeHead(403,{'content-type':'application/json'}); response.end('{}'); return; }
     credentialCalls++;
     response.setHeader('content-type','application/json');
-    if (request.url === '/invoke') {
+    if (request.url === '/invoke' || request.url === '/parallel') {
       let body='';for await (const chunk of request) body += chunk;
       const value=JSON.parse(body);assert.equal(value.operation,'greet');
       assert.match(request.headers['content-type'], /tsrust-api=1; tsrust-operation=[a-f0-9]{64}/);
       assert.match(request.headers['x-tsrust-contract'], /^[a-f0-9]{64}$/);
+      if (request.url === '/parallel') {
+        parallelReplies.push([response, value.input]);
+        // Both calls must arrive before either receives a response. A blocking
+        // client on the witness's single-thread runtime cannot pass this gate.
+        if (parallelReplies.length === 2) for (const [reply, name] of parallelReplies) reply.end(JSON.stringify({ok:true,value:`Hello, ${name}!`}));
+        return;
+      }
       response.end(JSON.stringify({ok:true,value:`Hello, ${value.input.trim()}!`}));return;
     }
     response.end(description);
@@ -91,31 +101,44 @@ try {
   await run(compiler,['api','generate','--description','api.json','--language','rust','--out','rust-saved']);
   assert.equal(fs.readFileSync(path.join(rust,'src/lib.rs'),'utf8'),fs.readFileSync(path.join(temporary,'rust-saved/src/lib.rs'),'utf8'));
   const consumer=path.join(temporary,'rust-consumer');
-  fs.mkdirSync(path.join(consumer,'src'),{recursive:true});
-  fs.writeFileSync(path.join(consumer,'Cargo.toml'),'[package]\nname="tsrust-http-consumer"\nversion="0.1.0"\nedition="2024"\n[workspace]\n[dependencies]\napi={package="tsrust-app-api",path="../rust-sdk"}\n');
-  fs.writeFileSync(path.join(consumer,'src/main.rs'), `use api::{Client,HttpTransport,HeaderMap,HeaderValue};
-fn main()->Result<(),Box<dyn std::error::Error>> {
+  fs.mkdirSync(path.join(consumer,'tests'),{recursive:true});
+  fs.mkdirSync(path.join(consumer,'src'));
+  fs.writeFileSync(path.join(consumer,'src/lib.rs'),'// External application package; integration tests import only the generated SDK.\n');
+  fs.writeFileSync(path.join(consumer,'Cargo.toml'),'[package]\nname="tsrust-http-consumer"\nversion="0.1.0"\nedition="2024"\n[workspace]\n[dependencies]\napi={package="tsrust-app-api",path="../rust-sdk"}\ntokio={version="=1.53.3",features=["rt","time","net"]}\n');
+  fs.writeFileSync(path.join(consumer,'tests/http.rs'), `use api::{Client,HttpTransport,HeaderMap,HeaderValue};
+#[test]
+fn async_http_calls()->Result<(),Box<dyn std::error::Error>> { tokio::runtime::Builder::new_current_thread().enable_all().build()?.block_on(check_http_calls()) }
+async fn check_http_calls()->Result<(),Box<dyn std::error::Error>> {
  let api=Client::new(HttpTransport::new(${JSON.stringify(rpcEndpoint)})?);
- assert_eq!(api.api().greet("  Rust  ".into())?,"Hello, Rust!");
- assert_eq!(api.api().greet("".into())?,"Hello, world!");
- let transport=HttpTransport::new(${JSON.stringify(metadataBase+'/invoke')})?.with_header_provider(|| {
+ assert_eq!(api.api().greet("  Rust  ".into()).await?,"Hello, Rust!");
+ assert_eq!(api.api().greet("".into()).await?,"Hello, world!");
+ let transport=HttpTransport::new(${JSON.stringify(metadataBase+'/invoke')})?.with_header_provider(|| async {
    let mut headers=HeaderMap::new();headers.insert("authorization",HeaderValue::from_static("Bearer fixture-access"));Ok(headers)
  });
- let protected=Client::new(transport);assert_eq!(protected.api().greet("protected".into())?,"Hello, protected!");
- println!("Rust live HTTP named calls passed");Ok(())
+ let protected=Client::new(transport);assert_eq!(protected.api().greet("protected".into()).await?,"Hello, protected!");
+ let transport=HttpTransport::new(${JSON.stringify(metadataBase+'/parallel')})?.with_header_provider(|| async {
+   tokio::task::yield_now().await;
+   let mut headers=HeaderMap::new();headers.insert("authorization",HeaderValue::from_static("Bearer fixture-access"));Ok(headers)
+ });
+ let parallel=std::sync::Arc::new(Client::new(transport));
+ let left={let api=parallel.clone();tokio::spawn(async move {api.api().greet("left".into()).await})};
+ let right={let api=parallel.clone();tokio::spawn(async move {api.api().greet("right".into()).await})};
+ assert_eq!(left.await??,"Hello, left!");assert_eq!(right.await??,"Hello, right!");
+ Ok(())
 }`);
   await run('rustup',['run','1.96.1','cargo','generate-lockfile','--offline'],consumer);
-  const rustRun=await run('rustup',['run','1.96.1','cargo','run','--offline','--locked','--bin','tsrust-http-consumer'],consumer);
-  assert.match(rustRun.stdout,/Rust live HTTP named calls passed/);
-  assert.equal(credentialCalls,2);
-  fs.mkdirSync(path.join(consumer,'src/bin'));
-  fs.writeFileSync(path.join(consumer,'src/bin/reject.rs'), `fn main() {
+  const rustRun=await run('rustup',['run','1.96.1','cargo','test','--offline','--locked','--test','http'],consumer);
+  assert.match(rustRun.stdout,/test result: ok/);
+  assert.equal(credentialCalls,4);
+  assert.equal(parallelReplies.length,2);
+  fs.mkdirSync(path.join(consumer,'src/bin'),{recursive:true});
+  fs.writeFileSync(path.join(consumer,'src/bin/reject.rs'), `async fn witness() {
     let api=api::Client::new(api::HttpTransport::new("http://127.0.0.1:1/api").unwrap());
-    let _=api.api().greet(42);
-    let _:i64=api.api().greet(String::new()).unwrap();
-  }`);
+    let _=api.api().greet(42).await;
+    let _:i64=api.api().greet(String::new()).await.unwrap();
+  }
+  fn main(){} `);
   await assert.rejects(run('rustup',['run','1.96.1','cargo','check','--offline','--locked','--bin','reject'],consumer), error => /E0308/.test(error.stderr));
-  console.log('Fresh backend: live/saved TS and Rust SDK generation, real native named calls, auth header providers, redirect/size/insecure-URL rejection, OpenAPI and input validation passed.');
 } finally {
   if (metadataServer) { metadataServer.closeAllConnections(); await new Promise(resolve => metadataServer.close(resolve)); }
   if (child.exitCode === null) child.kill();
@@ -126,3 +149,5 @@ fn main()->Result<(),Box<dyn std::error::Error>> {
   assert.ok(path.basename(temporary).startsWith('backend-sdk-http-'));
   fs.rmSync(temporary, { recursive: true, force: true });
 }
+
+});

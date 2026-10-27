@@ -19,6 +19,13 @@ async text/form/multipart/stream APIs, add checked typed JSON decoding with exis
 limits/ownership and complete compiler/LSP documentation, and track XML separately
 as parser-backed support rather than an unchecked cast from text.
 
+Use std:testing and the normal tsrust test runner for ordinary Tsrust behavior.
+Retire active executable assertion programs left from before that library. Where
+async registration is missing, implement it in the library rather than maintaining
+an alternative runner. Generated Rust/TypeScript consumers use their normal test
+runners. External-process fixtures remain only for genuine cross-language/process
+boundaries; benchmarks retain their measurement drivers and historical evidence.
+
 1. Complete backend-only cleanup. Remove introduced frontend templates, adapters,
    dependency graphs, task UI examples, verification tools and active documentation
    references. Retain native backend compiler/LSP, independent SDK/HTTP transport,

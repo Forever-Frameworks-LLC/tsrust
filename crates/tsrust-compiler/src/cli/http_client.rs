@@ -1,14 +1,14 @@
 //! Explicit bounded network acquisition; never called by ordinary build/dev.
-use std::{io::Read, time::Duration};
+use std::time::Duration;
 
-pub(super) fn fetch_description(address: &str, headers: &[(String, String)]) -> Result<String, String> {
+pub(super) async fn fetch_description(address: &str, headers: &[(String, String)]) -> Result<String, String> {
     let url = reqwest::Url::parse(address).map_err(|_| "Invalid HTTP description URL")?;
     let loopback = matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "[::1]" | "::1"));
     if url.username() != "" || url.password().is_some() || url.fragment().is_some() || url.query().is_some()
         || !(url.scheme() == "https" || url.scheme() == "http" && loopback) {
         return Err("Use an HTTPS description URL, or HTTP on loopback, without credentials, query or fragment".into());
     }
-    let client = reqwest::blocking::Client::builder()
+    let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none()).retry(reqwest::retry::never())
         .connect_timeout(Duration::from_secs(5)).timeout(Duration::from_secs(30))
         .user_agent(concat!("tsrust/", env!("CARGO_PKG_VERSION")))
@@ -24,7 +24,7 @@ pub(super) fn fetch_description(address: &str, headers: &[(String, String)]) -> 
         value.set_sensitive(true);
         request = request.header(name, value);
     }
-    let response = request.send().map_err(|_| "HTTP description request failed (connection, TLS or timeout); no output was changed")?;
+    let mut response = request.send().await.map_err(|_| "HTTP description request failed (connection, TLS or timeout); no output was changed")?;
     if !response.status().is_success() {
         return Err(format!("HTTP description request returned {}; redirects are not followed", response.status()));
     }
@@ -36,7 +36,9 @@ pub(super) fn fetch_description(address: &str, headers: &[(String, String)]) -> 
         return Err("HTTP API description exceeds 1 MiB".into());
     }
     let mut bytes = Vec::new();
-    response.take(1_048_577).read_to_end(&mut bytes).map_err(|_| "Cannot read HTTP description response")?;
-    if bytes.len() > 1_048_576 { return Err("HTTP API description exceeds 1 MiB".into()); }
+    while let Some(chunk) = response.chunk().await.map_err(|_| "Cannot read HTTP description response")? {
+        if bytes.len() + chunk.len() > 1_048_576 { return Err("HTTP API description exceeds 1 MiB".into()); }
+        bytes.extend_from_slice(&chunk);
+    }
     String::from_utf8(bytes).map_err(|_| "HTTP description must be UTF-8".into())
 }

@@ -1,5 +1,58 @@
 # Agent continuation state
 
+## Latest: async SDK accepted; testing-library-first correction
+
+Owner explicitly rejected synchronous HTTP. That conversion is implemented and
+accepted locally: async named Rust calls/custom transports/header providers, async
+CLI reqwest acquisition, no blocking HTTP feature. See milestones/async-http-sdk.md.
+API tests 11/11 passed; the cold Rust build hit its unchanged 120s limit, direct
+resulting binary passed, and the affected warm rerun passed Rust 2/2 + scaffold 3/3.
+Rust generated checks were then converted to ordinary tests/client.rs + cargo test
+(target/async-sdk-standard-tests.log, 2/2 outer tests passed). HTTP integration now
+uses node:test and an external Rust cargo test package, not standalone success-print
+executables. target/async-sdk-http-normal-tests-final.log: 1/1 passed, including
+real native calls, OpenAPI-derived /api routing, auth refresh providers, byte bounds,
+redirect rejection, wrong Rust types rejected and a single-thread two-request barrier.
+Fresh generated-projects/backend-async passed check, native std:testing greeting
+1/1, native build and real LSP error/repair acceptance. All owned servers stopped.
+Current async SDK tests/generation are complete for this scoped foundation; actual
+Rust old/new replica execution remains pending, alongside the broader objective.
+
+The owner identified pre-std:testing executable assertions as unnecessary outside
+benchmarks. Use std:testing for ordinary Tsrust tests and normal Rust/Node runners
+for generated-language checks. Keep only real process-boundary fixtures and preserve
+historical evidence/benchmark drivers; do not delete compiler rejection regressions
+merely because an old filename says witness. Current test() only accepts sync
+callbacks: actual target/testing-async-audit.log rejects an async callback. Existing
+repository witness already uses std:testing assertions but wraps them in async main.
+Add genuine async test registration/execution (and hooks/cleanup) to std:testing,
+then migrate active backend executable assertions to named tests. This is the next
+coherent compiler/native/LSP/documentation section before request JSON convenience;
+do not keep creating an alternate test runner to work around that missing feature.
+
+Async testing source seams located: stdlib/testing/api.rs declares Function<void>;
+bindings.rs uses NativeType::ProgramVoidCallback; stdlib/testing/program.rs changes
+trusted callback contracts to Program/ProgramReusable. analysis/program_testing.rs
+checks native registration contracts and invocation-time program inputs.
+emit/program_testing.rs and emit/mod.rs::typed_test_registration wrap callback errors;
+runtime/mod.rs stores synchronous TsrTestCallback, executes hooks and catches native
+unwind. CallbackKind::Task is distinct from Program; do not merely accept it without
+awaiting. Preserve module-state lending, typed failures, hook ordering, teardown on
+failure and resource ownership; no nested runtime/blocking HTTP workaround.
+
+Request-reader plan is plans/http-request-body-readers.md. Form/multipart/text and
+owned Request streaming exist; JSON convenience is missing. Contextual body transfer
+currently prevents later c.text(), proven in http-context-body-audit.log. Native
+string length is UTF-8 bytes (confirmed builtins), not JS UTF-16. XML stays separately
+tracked, not falsely implemented. Install/cache/update inventory/research is ready;
+that implementation and original UI source dependency isolation remain pending.
+
+Sessions 7747, 81954 and 12163 are terminal; no build/test is live now. Before the
+async conversion, source checkpoint 0470ac5d preserved synchronous groundwork.
+Next checkpoint this accepted async foundation, then implement async std:testing
+with complete native/editor/docs witnesses using the library's ordinary runner.
+No installed-tool replacement, broad matrix, measurement or remote publication yet.
+
 ## Owner correction — asynchronous HTTP and request body API
 
 The owner explicitly rejected synchronous HTTP. Replace the in-progress generated

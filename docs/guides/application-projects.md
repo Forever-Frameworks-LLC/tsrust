@@ -47,8 +47,29 @@ tsrust api generate --description http-api.json --out sdk
 
 Descriptions are limited to 1 MiB and validated before output changes. Existing
 generated output retains ownership guards and compatibility history protection.
-Fetching descriptions directly by URL and Rust output remain pending; this file
-does not claim those options exist.
+Fetch a description directly, or generate an asynchronous Rust client:
+
+```text
+tsrust api generate --url http://127.0.0.1:4318/api/description --out generated/external-client
+tsrust api generate --url http://127.0.0.1:4318/api/description --language rust --out generated/rust-client
+```
+
+Remote URLs require HTTPS; HTTP is allowed on loopback. Redirects are rejected and
+descriptions are limited to 1 MiB. For a protected description, add
+`--header-env Authorization=API_AUTHORIZATION`; the environment variable contains
+the complete header value. Credentials are resolved for this explicit request and
+are not embedded in the generated SDK. Existing outputs retain ownership guards.
+
+Rust named calls are awaitable, for example `client.api().greet(name).await`.
+The default optional HTTP transport uses async reqwest on the caller's Tokio
+runtime. Custom transports return futures; header providers may await credential
+refresh. There is no blocking HTTP adapter. The Rust generator supports tuples
+up to 16 elements and rejects larger tuples. Client generation installs nothing;
+Rust dependency resolution remains an explicit Cargo operation in the consumer.
+
+OpenAPI describes the starter's POST /api endpoint. When mounting the dispatcher
+elsewhere, adapt the deployment specification's path/server URL and client URL.
+This is checked Tsrust RPC export, not an arbitrary REST/OpenAPI importer.
 
 `tsrust new hello` retains the console scaffold. Original Tsrust UI source and
 explicit legacy commands remain historical compatibility pending dependency

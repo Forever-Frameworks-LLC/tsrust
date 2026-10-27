@@ -254,7 +254,11 @@ pub(super) fn run(args: impl Iterator<Item = String>) -> Result<u8, String> {
         if config.is_some() { return Err("--description and --config are mutually exclusive".into()); }
         let output = output.ok_or("Description generation requires an explicit --out directory")?;
         let inputs = Candidate::new(BTreeMap::new())?;
-        let text = if let Some(url) = url { super::http_client::fetch_description(&url, &headers)? } else {
+        let text = if let Some(url) = url {
+            // The terminal waits for completion; socket/body I/O stays async.
+            let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build().map_err(|_| "Cannot initialize HTTP runtime")?;
+            runtime.block_on(super::http_client::fetch_description(&url, &headers))?
+        } else {
             let description = cwd.join(description.unwrap());
             if fs::metadata(&description).map_err(|error| error.to_string())?.len() > 1_048_576 { return Err("HTTP API description exceeds 1 MiB".into()); }
             let id = inputs.resolve(None, description.to_str().ok_or("Description path must be UTF-8")?)?;

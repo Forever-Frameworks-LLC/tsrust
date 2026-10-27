@@ -1,5 +1,8 @@
 # Backend platform templates and package decisions
 
+Historical frontend package research. The owner removed these integrations from
+the active product; follow [the backend-only reset](backend-only-reset.md).
+
 Researched: 2026-10-26. Status: selected direction, not installed or security
 certification. Resolve exact mutually compatible versions and hashes during the
 template implementation section; do not fabricate a tested version matrix from
