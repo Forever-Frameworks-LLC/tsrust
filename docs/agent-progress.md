@@ -174,8 +174,45 @@ case plus all fifteen schema editing cases. Actual SDK verifier also passes.
 See the milestone's current acceptance table/log paths. Recursive-callable repeat
 `4178` completed with all sixteen passing, output
 `target/api-contextual-recursive-acceptance.log`. Fifty focused cases plus the
-actual SDK verifier now pass. No test/build sessions remain live. Format/checkpoint
-this accepted section before editing the generator.
+actual SDK verifier now pass. This section is checkpointed at `96220939`.
+The next generator section is implemented and pending acceptance: decoded tuple
+members and source fields bind before nested generic calls; deduplicated optional
+adapters preserve result context; array adapters explicitly clone borrowed elements;
+dispatch moves the narrowed decode outcome before consuming nested owned fields.
+The complete disposable handler preview passed strict checking before admission.
+The actual native verifier adds optional boolean/null/record/union branch coverage.
+Batch `76390` completed with all nine API contract cases passing. The actual
+native fixture then exposed source-level issues in its anonymous async stop
+callback and anonymous JSON readiness value. It now uses a named async handler
+and typed Ready value; its entry project check passes without compiler changes.
+Native verifier rerun `62237` completed successfully, output
+`target/api-native-dispatch-execution.log`: real native named dispatch, private
+Context/auth, strict data/materialization, old-client projection and sanitized
+errors pass, including orderly drain/exit 0. Its process is stopped. See
+generated-dispatch evidence. Native dispatch is checkpointed at `2c460146`;
+installed binaries remain unchanged.
+
+The task API generates/stale-checks four operations, and its process/test entries
+pass project checking. The new ordinary Router factory, environment/TLS/signal
+entry and exact-origin POST preflight use existing libraries. A named readonly
+sender helper makes the fixture's shutdown callback reusable. Native task HTTP
+verifier `tools/verify-task-http.mjs` is implemented with CRUD, access/CORS,
+validation, drain and two-process SQLite persistence, but not run yet. See
+`docs/milestones/task-http.md` and the task README for source-check evidence and
+pending TLS/process/package scope. Task verifier `29751` completed successfully,
+output `target/task-http-acceptance.log`: native generated CRUD, validation,
+auth/CORS, SQL parameter data, orderly drain and second-process persistence pass.
+Both processes exit 0 and their temporary database directory is removed. No
+agent-owned test/build process remains live. The accepted task section is now
+committed. Implement the thin generated TanStack adapter using the already
+pinned development fixture. Preserve plain-client independence and backend/user
+cache scope; special wire keys must survive key generation. Full family
+regressions/performance, installed refresh, TLS/signal/package acceptance and the
+remaining full prototype requirements are still pending.
+After acceptance, 25 obsolete target-only diagnostic sources/helper binaries were
+removed (218.9 MiB). Canonical regression fixtures, concise gate logs, current
+native witnesses and the reusable runtime cache remain. Only owner docs source
+and `.agents/` remain unrelated changes; never stage them during continuation.
 One shared target/job/cache, incremental off. Whole-project formatting passed twice
 with zero changes/fingerprint updates; run again before the next checkpoint.
 Installed compiler/LSP remain at the prior accepted versions; desktop control stays off.
