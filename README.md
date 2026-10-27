@@ -2,9 +2,16 @@
 
 > Product direction (2026-10-26): Tsrust is pivoting to native backends with
 > generated named TypeScript clients for React web, Electron and Expo applications.
-> Use [the active roadmap](docs/roadmap.md) and [prototype goal](docs/agent-goal.md).
+> Use [the active roadmap](docs/roadmap.md) and [application goal](docs/agent-goal.md).
 > The custom UI implementation described below is preserved and frozen. Generated
 > clients and managed frontend templates are planned/in progress, not released.
+
+The current source adds `tsrust new hello --app`: a native greeting API, generated
+named SDK and editable React/Vite/shadcn landing page. Use `--target backend` for
+API-only generation. See [application projects](docs/guides/application-projects.md)
+for the actual commands and ownership boundary. Fresh backend/web creation has
+focused acceptance; Electron/Expo scaffolding and coordinated integration
+commands remain in progress. Existing task applications are integration examples.
 
 **Write TypeScript-style code. Ship native programs.**
 

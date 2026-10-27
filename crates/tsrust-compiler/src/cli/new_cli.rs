@@ -3,17 +3,20 @@ use super::project_config::{FILE,valid_name};
 pub(super) const AGENT_GUIDANCE:&str=include_str!("project-agents.md");
 
 pub fn run(args:impl Iterator<Item=String>)->Result<u8,String> {
-    let mut args=args;let mut ui=false;let mut requested=None;let mut targets=vec![];
-    while let Some(arg)=args.next(){match arg.as_str(){"--ui" if !ui=>ui=true,"--target"=>targets.push(args.next().ok_or("--target requires native or web")?),_ if !arg.starts_with('-') && requested.is_none()=>requested=Some(arg),_=>return Err("Usage: tsrust new <name-or-path> [--ui [--target native|web]...]".into())}}
-    if !ui && !targets.is_empty(){return Err("--target requires --ui".into());}
+    let mut args=args;let mut ui=false;let mut application=false;let mut requested=None;let mut targets=vec![];
+    while let Some(arg)=args.next(){match arg.as_str(){"--app" if !application=>application=true,"--ui" if !ui=>ui=true,"--target"=>targets.push(args.next().ok_or("--target requires a target name")?),_ if !arg.starts_with('-') && requested.is_none()=>requested=Some(arg),_=>return Err("Usage: tsrust new <name-or-path> [--app [--target web|backend] | --ui [--target native|web]...]".into())}}
+    if ui && application {return Err("--app and legacy --ui are mutually exclusive".into());}
+    if !ui && !application && !targets.is_empty(){return Err("--target requires --app or --ui".into());}
+    if application {super::application_scaffold::validate_targets(&targets)?;}
     let guided=requested.is_none() && super::interactive_cli::available();
     let root=loop {
         let requested=if guided {let Some(value)=super::interactive_cli::text("Project name or path")? else{return Ok(0);};value}else{requested.take().ok_or("Missing project name. Run tsrust new in a terminal, or pass a name.")?};
         match destination(&requested) {Ok(root)=>break root,Err(error) if guided=>eprintln!("{error}"),Err(error)=>return Err(error)}
     };
-    if guided && !ui {
-        let Some(kind)=super::interactive_cli::choose("Project type",&["Console application","UI application"])? else{return Ok(0);};ui=kind==1;
+    if guided && !ui && !application {
+        let Some(kind)=super::interactive_cli::choose("Project type",&["Backend + React web application","Console application","Legacy UI application"])? else{return Ok(0);};application=kind==0;ui=kind==2;
     }
+    if application {return super::application_scaffold::create(&root,&targets);}
     let name=root.file_name().and_then(|value|value.to_str()).unwrap();
     let target=if ui{Some(super::ui_cli::select_targets(None,&targets,false)?)}else{None};
     if ui {super::verify_backend()?;}

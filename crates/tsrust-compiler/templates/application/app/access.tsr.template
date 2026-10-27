@@ -1,0 +1,9 @@
+import { AppContext } from './context.tsr';
+
+// The starter greeting is deliberately public and has no private data or effects.
+// Replace this application-owned policy before adding protected operations.
+export async function authorize(context: Mutable<AppContext>): Task<boolean> {
+  context.header('cache-control', 'no-store');
+  context.header('x-content-type-options', 'nosniff');
+  return true;
+}

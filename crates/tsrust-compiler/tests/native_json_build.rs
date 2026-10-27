@@ -25,7 +25,7 @@ fn json_runtime_links_automatically_and_survives_application_edits() {
    command.env("CARGO_HOME",dir.0.join("empty-cargo"));
    support::success(&support::run(&mut command,60));prepared.publish();
   }
-  let binary=temporary.join("program");let mut command=backend_command();prepared.link(&mut command);
+  let binary=temporary.join("program");let mut command=backend_command();prepared.link(&mut command).unwrap();
   command.arg("--edition=2024").arg(&prepared.application).arg("-o").arg(&binary);
   support::success(&support::run(&mut command,60));
   let output=support::run(&mut std::process::Command::new(binary),10);support::success(&output);

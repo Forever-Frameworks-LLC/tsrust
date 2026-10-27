@@ -191,7 +191,7 @@ pub(super) fn command() -> Result<Option<Vec<String>>, String> {
     loop {
         let mut categories = Vec::new();
         if project.is_some() { categories.extend([("Development", "Watch, run and build this application"), ("Quality", "Type checks, tests and formatting")]); }
-        categories.extend([("UI", "Browse offline components and add editable source"), ("Project", "Create a console or UI application"), ("Help", "Command reference and examples"), ("Exit", "Return to your shell")]);
+        categories.extend([("UI", "Browse legacy offline components and add editable source"), ("Project", "Create a backend/web, console or legacy UI application"), ("Help", "Command reference and examples"), ("Exit", "Return to your shell")]);
         let Some(category) = select("What would you like to do?", &categories, false)? else { return Ok(None); };
         let selection = match categories[category].0 {
             "Development" => action("Development", &[("Start development", "tsrust dev", &["dev"]), ("Run once", "tsrust run", &["run"]), ("Build executable", "tsrust build", &["build"])])?,

@@ -1,0 +1,16 @@
+import { Router } from 'std:http';
+import { AppState } from './context.tsr';
+import { dispatch } from './generated-api/index.tsr';
+
+async function main(): Task<void> {
+  const app = new Router<AppState>({
+    name: 'Tsrust application'
+  });
+  app.configure({
+    bodyLimit: 65536, maxConnections: 32, maxRequests: 16, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 1000
+  });
+  app.post('/api', dispatch);
+  const server = await app.listen('127.0.0.1:4318');
+  console.log('API ready at http://' + server.address() + '/api');
+  await server.wait();
+}

@@ -1,0 +1,11 @@
+// Editable application bootstrap. SDK regeneration preserves this file.
+import { QueryClient } from '@tanstack/react-query'
+import { createReactClient } from '@app/api/react-query'
+import { createHttpTransport } from '@app/api/http'
+
+export const queryClient = new QueryClient()
+// This starter's greeting is public. Add your application's auth provider here
+// when introducing protected operations; never store secrets in VITE_ values.
+export const api = createReactClient(createHttpTransport({ url: new URL('/api', window.location.origin).href }), {
+  scope: window.location.origin,
+})

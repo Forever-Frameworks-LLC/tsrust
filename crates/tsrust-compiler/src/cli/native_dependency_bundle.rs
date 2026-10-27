@@ -101,7 +101,14 @@ mod artifact_tests {
     #[cfg(all(windows,target_env="msvc"))]
     #[test]
     fn windows_imports_restore_exactly_after_artifact_round_trip_and_preserve_unexpected_bytes(){
-        let temporary=crate::TempDirectory::new().unwrap();let root=&temporary.0;
+        // This source is compiled by both the CLI unit tests and an integration
+        // crate; its witness must not depend on either crate's private helpers.
+        let stamp=std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+        let root=std::env::temp_dir().join(format!("tsrust-import-roundtrip-{}-{stamp}",std::process::id()));
+        fs::create_dir(&root).unwrap();
+        struct Cleanup(std::path::PathBuf);
+        impl Drop for Cleanup {fn drop(&mut self){let _=fs::remove_dir_all(&self.0);}}
+        let _cleanup=Cleanup(root.clone());
         let dependencies=root.join("deps");fs::create_dir(&dependencies).unwrap();
         fs::write(dependencies.join("libwindows_targets-witness.rlib"),b"target metadata").unwrap();
         let library=root.join("libtsrust_runtime.rlib");fs::write(&library,b"runtime").unwrap();

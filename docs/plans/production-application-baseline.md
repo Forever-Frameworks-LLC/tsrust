@@ -24,6 +24,22 @@ starter, with early renderer/preload/Vite diagnostics and bounded child cleanup.
 
 ## Default application
 
+The owner subsequently found the first generated root cluttered. The recommended
+next configuration/layout section keeps app/ and web/ as primary folders. The
+owner approved the recommendation with generated/ at the same root level as app/
+and web/, containing generated/{client,server}. app/ follows common TypeScript
+folder patterns: main.tsr is the entry, api/ holds exposed operations/context/access
+policy, lib/ holds reusable backend logic, and tests/ holds backend tests. Move
+the actual greeting logic into lib/ rather than emitting unused empty directories.
+Consolidate human-authored API settings into tsrust.config.json, and keep managed
+integration bookkeeping under generated/. Preserve the versioned SDK
+compatibility history and generated-output ownership guards. Normal pnpm workspace/
+manifest/lock files remain at the root. Offer editor-only hiding of dependency/
+build artifacts without disabling diagnostics or changing the owner's editor
+preferences. This approved layout is not yet emitted by the CLI; finish the current
+starter checkpoint before implementing the next configuration section. Retain
+legacy standalone API configs and existing-project paths during that change.
+
 Generate a small landing page with a name field and a typed "greet server" call.
 No task database, pagination, token-entry screen or demo-specific DTOs are required
 for the default. Keep editable lib/api.ts/provider setup, desktop TitleBar/config,
@@ -41,6 +57,28 @@ legacy option, with accurate help and docs. Final command spellings are implemen
 and tested together; this plan does not claim new flags already exist.
 
 ## Implementation order and acceptance
+
+Owner follow-ups make manager-aware multi-target dev the next product boundary.
+Add a package-manager choice during creation/import; npm/pnpm/yarn/bun need their
+own valid workspace, lock and command forms, not renamed pnpm files. Preserve
+existing-project tooling. Offer an explicit managed local toolchain option; do
+not require global pnpm. Claim each choice only after an actual fresh CLI project
+and normal package-manager/dev acceptance prove it.
+
+`tsrust dev` runs every configured application target by default. Interactive
+terminals offer a checklist initially selecting all; explicit --server, --web and
+--desktop selectors bypass the checklist and select only those configured kinds.
+Noninteractive default selects all configured targets. Later Expo/other targets
+join through real configuration, never phantom choices. Preserve legacy native/
+web dev behavior for old UI projects. Supervise startup/error logs, selected
+manager commands, native rebuild/SDK regeneration and Vite HMR, with Ctrl+C cleanup
+of all owned descendants and no takeover of existing listeners.
+
+At the owner's request, the previously owned backend/Vite previews (sessions
+44155/4992) were stopped through Ctrl+C and ports 4318/5173 were verified free.
+The owner intends to run their own server. Subsequent temporary QA instances must
+be isolated and closed after verification. Explain the exact project being watched:
+the earlier greeting-web folder differs from the latest greeting-web-locked.
 
 1. Implement the project configuration and actual CLI creation path for a minimal
    backend plus web greeting app. Reuse current SDK generation and native service
@@ -70,6 +108,15 @@ and tested together; this plan does not claim new flags already exist.
 
 For every major template, CLI or SDK generator change, create a fresh CLI project,
 inspect the output and keep visible dev mode running during template verification.
+The owner selected D:/ai_dev/tsrust/generated-projects/ for these interactive
+projects; use clear names and provide runnable dev commands. Do not put them in
+target or overwrite the owner's examples/windows-setup project. Automated disposable
+consumers can still use temporary directories. Preserve owner edits to previews.
+The owner also reports visible VS Code errors. Track installed compiler/LSP hashes,
+resolve affected diagnostics and verify real generated-project LSP error/repair
+behavior. Raw template assets use a non-source suffix; they are not runnable
+projects before generation. Do not disable actual project diagnostics. Refresh
+the Tsrust service cooperatively rather than restarting the owner's editor.
 Fix affected type, runtime and editor problems as they appear. Use LSP protocol/
 diagnostic checks without controlling the owner's editor; record locked/stale
 installed editor images and unavailable platform evidence honestly. Keep generated

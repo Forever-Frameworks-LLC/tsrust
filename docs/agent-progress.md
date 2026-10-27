@@ -1,5 +1,130 @@
 # Agent continuation state
 
+## Current execution: validated starter, Windows test fixes and approved layout
+
+Latest steering supersedes the live-server and live-regression notes below:
+owned backend/Vite sessions 44155/4992 were stopped through Ctrl+C and ports
+4318/5173 verified free. Owner will start their own dev server. Do not restart
+default previews or stop owner processes. A separate short-lived 5187 asset QA
+server was closed too. It caught/proved a Vite allowlist repair for hoisted
+node_modules fonts; source template and unchanged generated Vite configs are fixed.
+The repaired template still requires next fresh CLI generation after rebuilding.
+
+Regression session 72732 is terminal: Windows import round-trip witness passed,
+console creation passed, legacy UI creation/check/format passed but its native
+test exceeded 60s. The chain stopped, so interactive tests and final LSP rebuild
+are still pending. Retain failure evidence; do not describe UI execution as passed.
+The editor currently has its own background workspace Cargo check; preserve it.
+No owned native build remains live at this point. All-target compiler/LSP checking
+has passed; the later native_json_build unwrap needs its affected check.
+
+Owner explicitly approved root generated/ alongside app/ and web/, with real
+app/api, app/lib and app/tests starter code. They also require tsrust dev to start
+all configured targets by default, with an initially-all-selected TTY checklist
+and explicit --server/--web/--desktop selections. Non-TTY default is all configured.
+Package-manager choice is required; the current hardcoded pnpm template is a gap.
+Respect existing managers/lockfiles and offer an optional managed local toolchain.
+See the updated production baseline and active goal. Checkpoint current source
+before this configuration/orchestration change. Preserve owner .gitignore tail,
+docs/src/main.tsr and .agents/. The generated-projects README remains local/ignored.
+
+The section below is retained implementation history. Current baseline is
+409cf3b6 with uncommitted CLI starter/test-configuration work. User-approved next
+layout is app/{api,lib,tests}, root generated/{client,server} and web/. Consolidate
+API settings into tsrust.config.json; keep existing standalone configs working.
+Do not change the current preview in place. Generate a fresh next-layout project
+under the owner-selected D:/ai_dev/tsrust/generated-projects/ after checkpointing.
+
+Actual final current-layout generation: generated-projects/greeting-web-locked.
+Frozen/offline pnpm install and TypeScript/Vite build pass. Native greeting test
+and server build passed on the earlier greeting-web; the locked app's real Tsrust
+dev server serves successful greeting calls. Separate-browser acceptance passes
+typed positive/negative SDK calls, native greeting/empty input, loading, failed
+call/recovery, zero axe violations, mobile overflow and guarded/restored Vite HMR
+without document replacement (target/application-web-browser.log). Screenshot
+target/application-web.png was inspected, and the in-app browser displays the app.
+Keep that user tab deliverable; do not automate over the owner's interactive page.
+
+Live owned dev handles: backend session 44155, Vite session 4992, both PTYs.
+Logs target/application-backend-dev.log and target/application-web-dev.log.
+Ports 4318/5173; verify handles/paths before stopping. Use terminal Ctrl+C for
+owned watchers. The owner may run these projects themselves; do not kill unrelated
+listeners or overwrite their source. Initial-file hashes guard any witness edits.
+
+Compiler/LSP all-target typecheck passes after Windows test harness fixes:
+target/application-rust-check-platform.log. Shared import-library test setup now
+uses its own temporary directory; the POSIX file-backend unit harness is selected
+only for its documented macOS/Linux hosts. Portable JSON reader tests remain
+enabled on Windows. No new Windows file-close support is claimed. A previously
+ignored native JSON linker preparation Result is now unwrapped; its affected
+check remains to run. No production runtime or LSP behavior was changed by these
+test-harness repairs.
+
+Current live regression: exec session 72732, sequential Windows import-library
+witness, existing new-project tests, interactive CLI tests, then LSP rebuild.
+At 13:39 it was compiling the CLI after the compiler library rebuilt. Poll that
+exact handle/logs; do not restart on a timeout. CARGO_INCREMENTAL=0, one job/target.
+Next: finish those checks, check the changed native_json_build target, refresh
+installed tools if rebuilt hashes differ, record evidence, format/idempotence and
+checkpoint. Then implement the approved layout/configuration section.
+
+VS Code was cooperatively moved to the updated normal installed LSP path; PID
+21568 at last observation. Temporary workspace setting and staged executable were
+removed after verifying restart. Installed hashes before this test-only rebuild:
+compiler 127ff721fefa8c730844218f576157296671c0338075c57331639a0dfd764d63;
+LSP 046c8e50e1d867988cb72ecbcc1f6d28b66f36cb8a1a078ba8d43b7a27f596a9.
+Real installed LSP clean/error/repair protocol passes in
+target/application-installed-editor.log. Preserve owner .gitignore additions,
+docs/src/main.tsr and .agents/. The generated-projects README is local/ignored,
+not tracked. No push, release, publication or performance measurement occurred.
+
+## Earlier implementation-stage notes (superseded)
+
+Uncommitted section on 409cf3b6: application_scaffold.rs, new --app web/backend
+choices and guided menu/help, raw assets in compiler/templates/application with
+.template suffix, checked greeting API generation, version/hash integration
+receipt, root pnpm workspace/frozen lock, editable API bootstrap and minimal
+React/shadcn landing page. See docs/milestones/application-scaffold.md. No compiler
+language/runtime or LSP source changes yet. Owner docs/src/main.tsr remains protected.
+
+Owner-selected preview root is D:/ai_dev/tsrust/generated-projects/, not target or
+examples/windows-setup. Root README is tracked; generated app folders stay local.
+greeting-web was created by the actual CLI. Native test/build and real debug LSP
+error/repair checks pass. Its App call was repaired after TypeScript correctly
+reported {name} versus the SDK's string input; original file matched its initial
+hash before editing. The raw template has the same fix. Final fresh generation
+must prove it is emitted. Web production build passes. Root pnpm dependency graph
+was installed with scripts disabled and reports zero advisories, 421 total.
+
+Current build: exec session 69488, sequential focused application_scaffold Cargo
+tests then cargo build -p tsrust-lsp. One Cargo target/job, incremental disabled.
+Earlier repaired creation tests passed (2/2); this last build incorporates raw
+asset separation, frozen workspace lock and corrected frontend call. Do not restart
+based on an observation timeout. Poll that handle/logs. No dev servers were owned
+or listening on 5173/4318 at last check; verify again before starting.
+
+VS Code's actual Tsrust LSP is PID 33996 at C:/Users/skeet/.cargo/bin/tsrust-lsp.exe
+(SHA256 8634b56daad4815cf445278b2a151b96147a69719aa7dcf34b4a7ba299ef30fe).
+Debug image before rebuild is 5bccffaba56857c0106108d3022ebf208d26adfb6e33d3d3810b6a8405f3df18.
+Installed extension tsrust-local.tsrust-0.2.0 supports cooperative server.path
+configuration restarts and bounded recovery. Workspace .vscode/settings.json was
+absent. Do not stop VS Code or owner editor processes. Validate rebuilt LSP before
+refreshing; if an image lock remains, use a staged verified executable and the
+extension's cooperative configuration restart while preserving owner settings.
+Do not disable actual diagnostics. Raw template .template suffixes remove their
+incorrect treatment as runnable projects; real generated source remains checked.
+
+Next: finish live build; generate a fresh greeting-web-locked through the final
+CLI, frozen-install/build, verify native/LSP/client contracts, refresh installed
+compiler/LSP, then start actual backend/Vite dev processes visibly for owner use.
+Run tools/verify-application-web.mjs in a separate browser (it guards/restores only
+unchanged generated App source), inspect screenshot, and checkpoint after required
+format/idempotence and affected regressions. No publication/push or timing claim.
+
+One unintended repository-wide `check --json` was stopped immediately (PID 27772,
+parent 16752); it is not acceptance. The correct disposable backend check passed
+with empty diagnostics. Remove target/application-diagnostic after the gate.
+
 ## Current priority: cleanup and production CLI baseline
 
 Owner reset: stop prototype polish and work from square one on actual production

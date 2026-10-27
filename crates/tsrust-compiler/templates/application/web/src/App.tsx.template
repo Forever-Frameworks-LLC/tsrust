@@ -1,0 +1,25 @@
+import { useState, type FormEvent } from 'react'
+import { api } from '@/lib/api'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+
+export default function App() {
+  const [name, setName] = useState('')
+  const greeting = api.greet.useMutation()
+  function greet(event: FormEvent) {
+    event.preventDefault()
+    greeting.mutate(name)
+  }
+  return <main className="mx-auto flex min-h-svh max-w-xl flex-col justify-center gap-8 px-6 py-16">
+    <header className="flex flex-col gap-3"><h1 className="text-3xl font-semibold tracking-tight">Your app starts here.</h1><p className="text-muted-foreground">React on the screen. Tsrust on the server.</p></header>
+    <Card><CardHeader><CardTitle>Say hello</CardTitle><CardDescription>Make your first typed call to the native backend.</CardDescription></CardHeader>
+      <CardContent><form onSubmit={greet} className="flex flex-col gap-5"><FieldGroup><Field><FieldLabel htmlFor="name">Your name</FieldLabel><Input id="name" autoComplete="given-name" placeholder="Ada" value={name} onChange={event => setName(event.target.value)} disabled={greeting.isPending} /><FieldDescription>Leave this empty for a welcome to everyone.</FieldDescription></Field></FieldGroup>
+        <Button type="submit" disabled={greeting.isPending}>{greeting.isPending ? 'Greeting…' : 'Greet server'}</Button>
+        <p role="status" aria-live="polite">{greeting.isPending ? 'Waiting for the server…' : greeting.data ?? 'Ready when you are.'}</p>
+        {greeting.isError ? <p role="alert" className="text-sm text-destructive">Could not reach the server. Check the backend terminal and try again.</p> : null}
+      </form></CardContent></Card>
+    <footer className="text-sm text-muted-foreground">Edit app/operations.tsr or web/src/App.tsx to make it yours.</footer>
+  </main>
+}

@@ -23,6 +23,7 @@ mod dev_events;
 mod dev_windows;
 mod project_config;
 mod new_cli;
+mod application_scaffold;
 mod ui_cli;
 mod cache_cli;
 mod docs_cli;
@@ -50,7 +51,7 @@ Usage:
   tsrust packages [--project directory]
   tsrust remove <crate> [--dry-run]
   tsrust bindings resolve <file.bindings.json> [--offline]
-  tsrust new [name-or-path] [--ui [--target native|web]...]
+  tsrust new [name-or-path] [--app [--target web|backend] | --ui [--target native|web]...]
   tsrust ui <list --bundled|init|add name...> [--cwd directory] [--path directory] [--target native|web]... [--dry-run]
   tsrust ui attributions [--cwd directory] [--dry-run]
   tsrust docs content [--cwd directory]

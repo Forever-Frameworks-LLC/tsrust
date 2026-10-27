@@ -1,0 +1,9 @@
+// Only functions selected in tsrust.api.json are exposed to clients.
+export function greet(name: string): string {
+  const trimmed = name.trim();
+  if (trimmed === '') {
+    return 'Hello, world!';
+  }
+
+  return 'Hello, ' + trimmed + '!';
+}

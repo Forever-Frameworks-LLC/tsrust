@@ -160,6 +160,7 @@ mod tests {
   assert_eq!(owner.position(),9);
  }
  #[test]
+ #[cfg(any(target_os = "macos", target_os = "linux"))]
  fn file_reader_preserves_read_ahead_across_jsonl_and_byte_reads() {
   use crate::stdlib::fs::runtime::{buffered_fs,fs};
   let path=std::env::temp_dir().join(format!("tsrust-jsonl-borrowed-{}",std::process::id()));
@@ -172,6 +173,7 @@ mod tests {
   input.close().unwrap();std::fs::remove_file(path).unwrap();
  }
  #[test]
+ #[cfg(any(target_os = "macos", target_os = "linux"))]
  fn owned_file_reader_closes_on_eof_error_and_early_drop() {
   use crate::stdlib::fs::runtime::{buffered_fs,fs};
   unsafe extern "C" {fn fcntl(fd:i32,command:i32,...)->i32;}

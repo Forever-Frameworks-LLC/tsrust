@@ -1,0 +1,32 @@
+# Tsrust application
+
+A native Tsrust backend and an editable React/shadcn landing page. The greeting
+operation is deliberately public. There is no database or credential prompt.
+The root pnpm workspace links packages/api directly, so regeneration updates the
+local imported SDK without copying it or reinstalling a published package.
+
+1. Run `tsrust dev` from this directory to start the native API on loopback port 4318.
+2. In another terminal, run `cd web`, `pnpm install`, then `pnpm dev`.
+3. Open http://127.0.0.1:5173 and choose **Greet server**.
+
+The browser uses Vite's same-origin /api proxy. Edit web/vite.config.ts and
+app/main.tsr together to change ports. Binding failure reports a diagnostic;
+neither service silently selects a different port. Development serving is not a
+production deployment. Production web/static orchestration is a separate integration.
+
+Edit app/operations.tsr, then run `tsrust api generate` after changing the API
+contract. The generated SDK is in packages/api, and the native dispatcher is in
+app/generated-api. Their ownership markers prevent overwriting customized output.
+Commit generated API files and compatibility history with the backend changes.
+
+web/src/lib/api.ts is ordinary editable setup; components import its named API.
+It is preserved by SDK regeneration. No handwritten command names or query keys
+are needed. This starter uses a generated mutation hook for the greeting interaction.
+Install dependencies and edit scripts normally from web; Tsrust does not own
+unrelated frontend dependency upgrades. Add shadcn components with its normal CLI.
+tsrust.integration.json records the initial template version and source hashes
+for future scoped migration comparisons. It does not forbid application edits.
+
+Run `tsrust check`, `tsrust test`, and `tsrust format --check` from this root.
+Run `pnpm build` in web for TypeScript and production assets. These checks do not
+replace application-specific auth, deployment, signing or platform acceptance.

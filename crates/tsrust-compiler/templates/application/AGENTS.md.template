@@ -1,0 +1,23 @@
+# Application workflow
+
+Read tsrust.config.json and tsrust.api.json before changing paths or exposed APIs.
+app/ contains native backend source; web/ is a normal user-owned React/Vite project
+when selected. packages/api and app/generated-api are checked generated outputs.
+Only explicitly selected operations are exposed. Read app/access.tsr: the greeting
+is public; do not extend that policy to sensitive operations without implementing
+the application's access controls. Never embed credentials in VITE_ variables.
+
+Use tsrust check, tsrust test and tsrust format --check for backend changes.
+Regenerate with tsrust api generate when contracts change and inspect the diff.
+Do not hand-edit generated codecs or compatibility history to bypass validation.
+Keep SDK package/API versioning and retained client compatibility deliberate.
+
+Use ordinary package-manager commands in web. lib/api.ts and local components are
+editable application code, not generated SDK output. Preserve owner edits and
+lockfiles. Keep dependency upgrades explicit and run pnpm build afterward.
+Check compiler, TypeScript and editor diagnostics; keep dev errors visible.
+
+Run tsrust dev at the root and pnpm dev in web for development. Backend changes
+rebuild through Tsrust; frontend changes use upstream Vite hot reload. Run API
+generation explicitly after contract changes. Stop both owned dev processes when
+finished. Do not publish packages, deploy or change signing trust without permission.

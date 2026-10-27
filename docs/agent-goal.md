@@ -116,6 +116,38 @@ replace it. During template changes keep development errors observable in real
 time. Check editor/LSP diagnostics and generated-project type/build diagnostics;
 resolve affected problems as work proceeds and record any unavailable editor
 evidence explicitly. Do not control the owner's editor or disrupt their typing.
+Place owner-interactive fresh CLI-generated projects under
+`D:/ai_dev/tsrust/generated-projects/` (owner-selected top-level location), with
+clear project names and dev commands. Do not place these previews in target or
+overwrite examples/windows-setup. Preserve owner edits to generated projects.
+The owner approved a streamlined new-project layout: app/, web/ and generated/
+at the same root level, with generated/client and generated/server. app/ includes
+api/, lib/ and tests/ with meaningful starter code; main.tsr remains its entry.
+Keep backend greeting logic in lib/ and exposed API/access/context in api/.
+Consolidate human-authored API settings into the main Tsrust config and keep
+managed integration metadata under generated/. Preserve standalone API configs
+for existing projects and keep generated compatibility history versioned.
+Application `tsrust dev` must start all configured targets by default. In a TTY,
+offer a checklist with configured server/web/desktop targets selected initially;
+explicit --server/--web/--desktop flags select only those targets without a prompt.
+Noninteractive default behavior is all configured targets. Never advertise or
+launch an unconfigured target. Preserve existing legacy dev flags and coordinate
+visible logs, startup errors, hot reload, cancellation and all-child cleanup.
+The owner wants to start dev themselves: stop owned preview servers when finished
+and clearly identify the active generated-project path. Do not leave hidden dev
+servers running or stop owner-started processes.
+New frontends must offer a package-manager choice rather than assume globally
+installed pnpm. Honor selected npm/pnpm/yarn/bun conventions and existing-project
+manager/lockfiles; validate each claimed template choice. Offer a separately
+selected managed local toolchain so a global pnpm installation is unnecessary.
+Dev orchestration uses the selected manager and never silently replaces unrelated
+dependencies or lockfiles. The current pnpm-only starter is an implementation gap.
+The owner reports many VS Code errors and explicitly requires the compiler/LSP
+to stay current and error-free during this work. Verify installed executable
+identity as well as build output, investigate the reported diagnostics, and test
+real generated-project diagnostics. Keep raw pre-generation assets distinct from
+runnable source instead of suppressing valid diagnostics. Update the Tsrust
+service cooperatively where possible without restarting or controlling the editor.
 
 Implement coherent sections across compiler/runtime, editor, client generation,
 templates, examples and focused witnesses before batch validation. Formatting
