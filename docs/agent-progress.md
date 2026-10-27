@@ -1,6 +1,12 @@
 # Agent continuation state
 
-## Current section: SDK compatibility across hosted replicas
+## Current section: framework-independent query adapter next
+
+Accepted SDK source checkpoint: `89471f0c`. Installed CLI atomically refreshed
+and hash-matched to the debug build; task main source check and generated API
+stale-check pass. SHA-256:
+`8b397656b08a1085c3bc584e1fcf7acf9c108be621b1523fef01b09dbc0e8fe1`.
+No installed LSP replacement or active-editor refresh is claimed.
 
 Native static web mounts pass focused acceptance at checkpoint `03f20f0`, from
 baseline `6ceb7ccc`. Whole-project formatting passes twice with zero file/hash
@@ -50,7 +56,7 @@ projection and explicit owned strings, without changing compiler rules.
 Whole-project formatting passes twice: zero files/fingerprints changed, protected
 owner docs hash unchanged. git diff --check passes. Logs:
 `target/api-versioning-format-first.log`, `target/api-versioning-format-second.log`.
-Local SDK source checkpoint and installed CLI refresh are next. All owned builds,
+Local SDK source checkpoint and installed CLI refresh are complete. All owned builds,
 native servers and browser tests are terminal. No owned preview remains running.
 Preserve owner `docs/src/main.tsr`, `.agents/` and `examples/windows-setup/wut/`.
 Next dependency-ready section is the optional framework-independent TanStack

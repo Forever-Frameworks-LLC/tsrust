@@ -1,6 +1,6 @@
 # Versioned SDKs across native server replicas
 
-Accepted focused section from local checkpoint `03f20f0`, 2026-10-27.
+Accepted focused section at `89471f0c`, from local checkpoint `03f20f0`, 2026-10-27.
 This is SDK/native rollout acceptance, not completion of the backend prototype.
 
 ## Behavior
@@ -94,3 +94,8 @@ entry, Electron/Expo targets, convenience commands/migrations, cancellation clea
 full backend-family regressions/measurements and remaining platform acceptance
 stay required by docs/agent-goal.md. Active-editor LSP refresh remains pending
 because its installed image is locked; this section does not claim that refresh.
+
+The installed CLI was atomically refreshed after the source checkpoint, with
+source/installed SHA-256
+`8b397656b08a1085c3bc584e1fcf7acf9c108be621b1523fef01b09dbc0e8fe1`.
+Installed-consumer task main checking and generated API stale checking pass.
