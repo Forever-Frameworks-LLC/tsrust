@@ -1,8 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { createReactClient, type ReactClient } from '@tsrust-example/tasks-api/react-query'
-import { createHttpTransport } from '@tsrust-example/tasks-api/http'
-import type { Client } from '@tsrust-example/tasks-api'
+import { connectApi, defaultApiEndpoint, type ApiSession, type Task } from '@/lib/api'
+import { ApiProvider, useApi } from '@/lib/api-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -11,8 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 
-type Task = Extract<Awaited<ReturnType<Client['tasks']['create']>>, { kind: 'task' }>
-type Session = { api: ReactClient; cache: QueryClient; endpoint: string }
 function titleError(title: string) {
   const bytes = new TextEncoder().encode(title.trim()).length
   return bytes < 1 || bytes > 200 ? 'Use 1 to 200 UTF-8 bytes after trimming.' : undefined
@@ -20,22 +16,16 @@ function titleError(title: string) {
 function Failure({ message }: { message: string }) {
   return <Alert variant="destructive"><AlertTitle>Could not finish</AlertTitle><AlertDescription>{message}</AlertDescription></Alert>
 }
-function Connect({ onConnect }: { onConnect: (session: Session) => void }) {
-  const [endpoint, setEndpoint] = useState(new URL('/api', window.location.href).href)
+function Connect({ onConnect }: { onConnect: (session: ApiSession) => void }) {
+  const [endpoint, setEndpoint] = useState(defaultApiEndpoint)
   const [token, setToken] = useState('')
   const [error, setError] = useState<string>()
   function connect(event: FormEvent) {
     event.preventDefault()
     try {
-      const url = new URL(endpoint)
-      const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
-      if (url.username || url.password || url.hash || url.search || (url.protocol !== 'https:' && !(url.protocol === 'http:' && loopback))) throw new Error('Use an HTTPS API URL, or HTTP on localhost, without credentials, query or fragment.')
-      if (!/^[a-f0-9]{64}$/.test(token)) throw new Error('Use the service’s 64-character lowercase hexadecimal access token.')
-      const cache = new QueryClient()
-      const transport = createHttpTransport({ url: url.href, headers: { authorization: `Bearer ${token}` } })
-      const api = createReactClient(transport, { scope: JSON.stringify([url.href, crypto.randomUUID()]) })
+      const session = connectApi({ endpoint, token })
       setToken('')
-      onConnect({ api, cache, endpoint: url.href })
+      onConnect(session)
     } catch (error) { setError(error instanceof Error ? error.message : 'Check the service connection.') }
   }
   return <Card className="mx-auto w-full max-w-lg"><CardHeader><CardTitle>Connect to your tasks</CardTitle><CardDescription>Use the API address and access token supplied by your service.</CardDescription></CardHeader><CardContent>
@@ -45,7 +35,8 @@ function Connect({ onConnect }: { onConnect: (session: Session) => void }) {
     </FieldGroup>{error ? <Failure message={error} /> : null}<Button type="submit">Connect</Button></form>
   </CardContent></Card>
 }
-function TaskRow({ task, api }: { task: Task; api: ReactClient }) {
+function TaskRow({ task }: { task: Task }) {
+  const api = useApi()
   const update = api.tasks.update.useMutation()
   const remove = api.tasks.delete.useMutation()
   const [editing, setEditing] = useState(false)
@@ -80,7 +71,8 @@ function TaskRow({ task, api }: { task: Task; api: ReactClient }) {
     {error ? <p id={`error-${task.id}`} role="alert" className="text-sm text-destructive">{error}</p> : null}
   </li>
 }
-function TaskList({ api }: { api: ReactClient }) {
+function TaskList() {
+  const api = useApi()
   const [cursors, setCursors] = useState([0])
   const after = cursors[cursors.length - 1]
   const query = api.tasks.list.useQuery({ after, limit: 100 })
@@ -112,15 +104,15 @@ function TaskList({ api }: { api: ReactClient }) {
     <div className="flex items-center justify-between gap-3"><h2 className="font-medium">Task list</h2><Button variant="outline" disabled={query.isFetching} onClick={() => void query.refetch()}>{query.isFetching ? 'Refreshing…' : 'Refresh'}</Button></div>
     {failure ? <Failure message={failure} /> : null}{query.isPending ? <p>Loading tasks…</p> : null}
     {page?.items.length === 0 ? <Empty><EmptyHeader><EmptyTitle>{after === 0 ? 'A clear start' : 'No more tasks'}</EmptyTitle><EmptyDescription>{after === 0 ? 'Add your first task above.' : 'Go back to the previous page.'}</EmptyDescription></EmptyHeader></Empty> : null}
-    {page && page.items.length > 0 ? <ul aria-label="Tasks">{page.items.map(task => <TaskRow key={task.id} task={task} api={api} />)}</ul> : null}
+    {page && page.items.length > 0 ? <ul aria-label="Tasks">{page.items.map(task => <TaskRow key={task.id} task={task} />)}</ul> : null}
     <nav aria-label="Task pages" className="flex items-center justify-between gap-3"><Button variant="outline" disabled={cursors.length === 1 || query.isFetching} onClick={() => setCursors(previous => previous.slice(0, -1))}>Previous page</Button><span className="text-sm text-muted-foreground">Page {cursors.length}</span><Button variant="outline" disabled={!page || page.items.length < 100 || query.isFetching} onClick={() => { if (page?.items.length) setCursors(previous => [...previous, page.items[page.items.length - 1].id]) }}>Next page</Button></nav>
   </CardContent></Card>
 }
-export default function Tasks() {
-  const [session, setSession] = useState<Session>()
+export default function Tasks({ initialSession }: { initialSession?: ApiSession } = {}) {
+  const [session, setSession] = useState<ApiSession | undefined>(initialSession)
   function disconnect() {
-    if (session) { void session.cache.cancelQueries(); session.cache.clear() }
+    session?.dispose()
     setSession(undefined)
   }
-  return <main className="mx-auto flex min-h-svh max-w-3xl flex-col gap-8 px-4 py-10 sm:px-8 sm:py-16"><header className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-sm font-medium text-muted-foreground">Tsrust / Tasks</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">Make room for what matters.</h1></div>{session ? <Button variant="outline" onClick={disconnect}>Disconnect</Button> : null}</header>{session ? <QueryClientProvider client={session.cache}><p className="break-all text-sm text-muted-foreground">Connected to {session.endpoint}</p><TaskList api={session.api} /></QueryClientProvider> : <Connect onConnect={setSession} />}<footer className="text-sm text-muted-foreground">Your work, saved by your service.</footer></main>
+  return <main className="mx-auto flex min-h-svh max-w-3xl flex-col gap-8 px-4 py-10 sm:px-8 sm:py-16"><header className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-sm font-medium text-muted-foreground">Tsrust / Tasks</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">Make room for what matters.</h1></div>{session && !initialSession ? <Button variant="outline" onClick={disconnect}>Disconnect</Button> : null}</header>{session ? <ApiProvider session={session}><p className="break-all text-sm text-muted-foreground">Connected to {session.endpoint}</p><TaskList /></ApiProvider> : <Connect onConnect={setSession} />}<footer className="text-sm text-muted-foreground">Your work, saved by your service.</footer></main>
 }

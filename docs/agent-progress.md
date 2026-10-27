@@ -1,6 +1,39 @@
 # Agent continuation state
 
-## Current section: Electron lifecycle/bridge/package implementation
+## Current section: editable desktop header and API bootstrap acceptance
+
+The implementation-stage notes below are superseded by
+docs/milestones/task-desktop.md. Actual Windows packaged Electron/native SQLite
+CRUD, restart persistence, sandbox/bridge restrictions, startup failure, backend
+crash, clean quit, hard-parent orphan cleanup and bundled Microsoft runtime loading
+have passed. Native typecheck and Forge package pass. Shared web production build
+and all four development browser cases pass after moving setup into editable
+lib/api.ts and ApiProvider/useApi. No compiler builtin changed.
+
+Owner requested an editable standard title bar, then reported the divider stopped
+before native caption controls. TitleBar is now editable application source with
+native control safe areas; native overlay height is 43px under a 44px header,
+leaving the full-width bottom border exposed. Final package witness includes full
+viewport width and overlay bounds. Native lib/app-config.ts owns title/defaults.
+These starter files must be emitted once by future setup/import and preserved by
+SDK regeneration; that convenience command is not implemented yet.
+
+An owner-interactive packaged preview uses target/desktop-interactive for data.
+Discover its current PID in target/desktop-interactive.pid and verify executable
+identity before closing; escalated process inspection is needed for its visibility.
+Do not overwrite package outputs while that preview runs. Automated acceptance
+uses separate disposable package copies and databases. No physical mouse/keyboard
+or editor interaction occurred. Owner docs/src/main.tsr, .agents/ and
+examples/windows-setup/wut remain protected.
+
+Next: finish this source checkpoint after whole-project formatting/idempotence,
+then Forge dev/HMR and final ZIP checks. Clean external web adoption passes,
+including owner dependency addition (target/task-web-bootstrap-clean.log). Optional secure updater
+integration, Expo Android, cancellation/cleanup, convenience commands/migrations,
+full backend-family regressions and matched measurements remain required. Active
+goal is incomplete. No push/release/publication is authorized or performed.
+
+## Earlier Electron implementation-stage notes (superseded)
 
 Owner follow-ups are captured in
 docs/plans/native-targets-and-secure-updates.md, linked from the roadmap, pivot

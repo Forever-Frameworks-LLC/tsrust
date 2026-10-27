@@ -1,0 +1,62 @@
+import { connect } from 'std:sql';
+import { get } from 'std:env';
+import { Channel, Sender } from 'std:futures';
+import { Response } from 'std:http';
+import { watch_parent_pipe } from './desktop-parent.rs';
+import { TaskContext } from './context.tsr';
+import { routes } from './application.tsr';
+import { authorize } from './access.tsr';
+import { isToken, tokenHash } from '../service/security.tsr';
+
+type Ready = {
+  kind: 'ready';
+  address: string;
+  protocol: 'http';
+};
+
+function required(name: string): string {
+  const value = unwrap(get(name));
+  if (value === undefined || value === '') {
+    throw 'Missing desktop backend setting';
+  }
+
+  return value;
+}
+
+async function shutdown(context: Mutable<TaskContext>, stop: ReadOnly<Sender<boolean>>): Task<Response> {
+  const allowed = await authorize(context);
+  if (!allowed) {
+    return context.text('Denied', 403);
+  }
+
+  await stop.send(true);
+  return context.text('stopping');
+}
+
+async function main(): Task<void> {
+  unwrap(watch_parent_pipe());
+  const token = required('TASK_DESKTOP_TOKEN');
+  if (!isToken(token)) {
+    throw 'Invalid desktop backend credential';
+  }
+
+  const control = new Channel<boolean>(1);
+  const stop = control.sender();
+  const pool = await connect(required('TASK_DESKTOP_DATABASE_URL'), 2, 3000);
+  await pool.migrate(required('TASK_DESKTOP_MIGRATIONS'));
+  const app = routes({
+    pool, tokenDigest: tokenHash(token), browserOrigin: 'http://desktop.invalid'
+  });
+  app.post('/__desktop_shutdown', (context) => shutdown(context, stop));
+  const server = await app.listen('127.0.0.1:0');
+  const ready: Ready = {
+    kind: 'ready', address: server.address(), protocol: 'http'
+  };
+  console.log(JSON.stringify(ready));
+  try {
+    await control.receive();
+  } finally {
+    await server.shutdown();
+    control.close();
+  }
+}

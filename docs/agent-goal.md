@@ -68,8 +68,14 @@ renderer/embedded parity and the old docs application are frozen, not passed.
    toolchain/package manager; a managed toolchain is optional convenience. Tsrust
    owns initial integration, generated clients and optional migrations for changes
    affecting Tsrust integration, never unrelated dependency policy. Preview scoped
-   migrations and preserve user edits. Provide configurable static mounts and a
-   source-level API so one backend can serve multiple separately built web apps,
+   migrations and preserve user edits. Include an editable desktop TitleBar and
+   lib/api.ts/provider bootstrap as application-owned source in
+   initial scaffolds. Components consume named APIs without rebuilding transport,
+   credentials or cache setup. Preserve these files during SDK regeneration and
+   preview integration migrations that touch them. The title bar spans the window
+   while reserving native caption-control safe areas and ordinary drag behavior.
+   Provide configurable static mounts and a source-level API so one backend can
+   serve multiple separately built web apps,
    with isolated fallbacks and routes. Verify two app mounts coexist with the API.
 10. Support existing projects: configure backend/client-only projects without
     generating UI, generate/export a client into an explicit folder, pack a
@@ -106,9 +112,12 @@ Native compilation is not a universal speed guarantee. Preserve original samples
 and protocols; distinguish acceptance from unmeasured workloads. SQLite remains
 the canonical benchmark store; publish only the allowlisted export.
 
-The owner requested their computer back after the editor refresh. Continue with
-file/terminal tools and headless verification. Do not resume interactive desktop
-control unless the owner requests it.
+The owner requests visible examples while actual web/native/embedded targets are
+being tested, so they can interact with them. Keep a separate interactive preview
+open while automated tests use isolated disposable instances; do not interfere
+with their typing or use physical mouse/keyboard control. Close owned previews
+when that target's testing is finished if appropriate. Continue using file/terminal
+tools and browser automation for verification; editor control remains unauthorized.
 
 One agent writes this tree at a time. Inspect status, preserve unrelated changes,
 use local Git checkpoints before risky edits and after accepted sections, format
