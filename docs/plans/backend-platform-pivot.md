@@ -319,7 +319,7 @@ wire validation, application-owned authorization and old-shape projection while
 revising admission. This is required follow-up work, not acceptance of the current
 exact-hash gate as a complete hosted deployment protocol.
 
-- Existing backend acceptance: [standard-library roadmap](../standard-library-roadmap.md),
+- Existing backend acceptance: [standard-library roadmap](standard-library-roadmap.md),
   [service readiness](service-readiness-plan.md), [continuation state](../agent-progress.md).
 - Existing UI commitments being replaced: [UI vision](../../UI_VISION.md),
   [documentation/component plan](documentation-and-component-library.md).

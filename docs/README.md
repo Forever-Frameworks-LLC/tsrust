@@ -9,8 +9,8 @@ these guides distinguish supported behavior from planned work.
 - [Install the CLI and editor](content/getting-started/installation.md)
 - [Understand project structure](content/getting-started/project-structure.md)
 - [Use the CLI](guides/project-cli.md)
-- [Explore the standard library](standard-library.md)
-- [Understand string semantics](string-semantics.md)
+- [Explore the standard library](guides/language/standard-library.md)
+- [Understand string semantics](guides/language/string-semantics.md)
 - [Use collections](guides/collections.md)
 - [Work with Rust](guides/rust-packages.md)
 - [Configure UI themes](content/ui/foundations/theming.md)
@@ -45,11 +45,13 @@ describes CI, artifacts and publication.
 | Directory | Contents |
 | --- | --- |
 | [content/](content/) | Markdown displayed by the documentation app |
-| [guides/](guides/) | Practical language, library and tooling guides |
+| [guides/language/](guides/language/) | Language semantics, library behavior and coverage |
+| [guides/tooling/](guides/tooling/) | Editor, packages, deployment and toolchain guides |
+| [guides/](guides/) | Additional practical library and tooling guides |
 | [src/](src/) | Shared documentation UI and executable examples |
 | [plans/](plans/) | Design proposals and implementation plans |
 | [milestones/](milestones/) | Feature acceptance and evidence summaries |
-| [handoffs/](handoffs/) | Continuation notes for active development |
+| [handoffs/](handoffs/) | Current and retained historical continuation notes |
 | [measurements/](measurements/) | Measurement methodology and analysis |
 | [Compiler fixtures](../crates/tsrust-compiler/tests/fixtures/) | Executable examples and rejection witnesses |
 | [Runtime benchmarks](../benchmarks/runtime/) | Matched inputs, independent oracles and drivers |
@@ -57,13 +59,13 @@ describes CI, artifacts and publication.
 
 ## Design and progress
 
-- [Language vision](product-vision.md) and [roadmap](roadmap.md)
-- [Current standard-library roadmap](standard-library-roadmap.md)
-- [Feature coverage](feature-coverage.md)
+- [Language vision](plans/product-vision.md) and [roadmap](roadmap.md)
+- [Current standard-library roadmap](plans/standard-library-roadmap.md)
+- [Feature coverage](guides/language/feature-coverage.md)
 - [UI vision](../UI_VISION.md)
 - [Documentation and component-library plan](plans/documentation-and-component-library.md)
 - [Compiler source layout](guides/compiler-source-layout.md)
-- [Rust toolchain policy](rust-toolchain-policy.md)
+- [Rust toolchain policy](guides/tooling/rust-toolchain-policy.md)
 
 Current behavior guides and accepted evidence describe implemented behavior.
 Plans do not silently settle open decisions. Historical “next” statements can be

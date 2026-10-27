@@ -10,7 +10,7 @@ Strict ordinary escapes include escaped quotes/backslashes, backspace, form feed
 
 Native UTF-8 cannot represent lone surrogates. Escaped pairs decode into their scalar; lone high/low surrogate escapes remain source errors. Legacy octal and non-octal decimal escapes are rejected. Invalid, truncated or out-of-range Unicode escapes report source errors without panicking. Leading zeroes in braced escapes do not introduce a length limit or recursive parsing.
 
-The reference is [ECMAScript ordinary String literals](https://tc39.es/ecma262/multipage/ecmascript-language-lexical-grammar.html#sec-literals-string-literals). Native surrogate rejection follows [the String contract](../string-semantics.md).
+The reference is [ECMAScript ordinary String literals](https://tc39.es/ecma262/multipage/ecmascript-language-lexical-grammar.html#sec-literals-string-literals). Native surrogate rejection follows [the String contract](../guides/language/string-semantics.md).
 
 ## Acceptance
 

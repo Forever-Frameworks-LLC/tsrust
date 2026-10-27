@@ -1,0 +1,9 @@
+# Handoff: exception source-flow red checkpoint
+
+Read AGENTS.md, docs/development-workflow.md, docs/plans/unused-generic-call-validation-plan.md and docs/handoffs/handoff-2026-10-07-source-loops-and-project-format.md first. The accepted generic closer formatter fix is df46aef. This checkpoint adds exception source-flow rejection witnesses and a concrete continuation plan; compiler source is unchanged.
+
+The test generic_call_exceptions has eight invalid known-target calls that are still accepted and six valid controls that pass. Its rejection test is intentionally red. The exact output is retained in SQLite as /private/tmp/tsrust-source-exception-red.log. Begin implementation from that evidence, not a new investigation of the same gap. Follow the exception source-flow section of the validation plan, especially incoming state on failed assignment and distinct finally completion destinations.
+
+Keep all fifteen protected owner fixture changes uncommitted. Their paths remain in the SQLite token proof record documented by the prior handoff. Format the entire project before every source checkpoint with tools/format-project.mjs. The final formatter pass reports zero files and zero hash changes. No new benchmark, timing or broad regression is claimed at this red checkpoint.
+
+Use the existing warm target /private/tmp/tsrust-gate100-editor-target with CARGO_INCREMENTAL=0 and offline locked Cargo. Add implementation, editor diagnostics and native/strict TypeScript cleanup controls, then bounded generic checks, eight depth canaries and untimed matched generic adapter verification. Refresh executable consumers only after verified compiler changes. Full Gate173 remains open for exception/finally, expression ordering, capture effects, stored fields, concrete environment replacement and lifetime/context coverage.

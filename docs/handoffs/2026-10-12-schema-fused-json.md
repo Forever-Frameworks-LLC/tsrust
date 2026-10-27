@@ -50,8 +50,8 @@ Preserve the six unrelated owner documents listed in the pipeline handoff.
 ```text
 Use $caveman. Continue the active Tsrust goal through S21 in
 /Users/seancotter/Desktop/dev/learning/tsrust. Inspect Git status and read AGENTS.md,
-docs/development-workflow.md, docs/standard-library-roadmap.md,
-docs/standard-library-coverage.md, docs/plans/schema-plan.md and
+docs/development-workflow.md, docs/plans/standard-library-roadmap.md,
+docs/guides/language/standard-library-coverage.md, docs/plans/schema-plan.md and
 docs/handoffs/2026-10-12-schema-fused-json.md.
 
 S01–S10 are accepted. Fused safeParseJson has focused acceptance; S11 family timing

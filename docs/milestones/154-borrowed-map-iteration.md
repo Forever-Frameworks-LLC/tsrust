@@ -37,7 +37,7 @@ corrected to the runner's required spelling before final verification.
   for native and node-tsc: runtime/results/2026-10-06T08-39-54-559Z-verify.json.
 - Workload checked before refresh. Debug/compiler/editor and release consumers
   atomically refreshed; hashes in target/editor/map-iteration-consumers.log.
-- Syntax guide: docs/maps.md. No new built-in member is introduced. Source pair,
+- Syntax guide: docs/guides/language/maps.md. No new built-in member is introduced. Source pair,
   source contracts, registration, oracle and all runtime/profiling/report hooks
   are complete. Original manifest retained before acceptance flags change.
 

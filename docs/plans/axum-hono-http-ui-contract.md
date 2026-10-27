@@ -1,6 +1,6 @@
 # Axum-backed Hono-like HTTP and UI contract
 
-Status: owner-requested direction, 2026-10-11; API sketches and sequencing recommendations, no implementation. Complements [HTTP/Hono research](../http-and-hono.md), the [standard-library roadmap](../standard-library-roadmap.md), and [UI feasibility review](ui-feasibility-review.md). Hono-like familiarity is the initial recommendation; source compatibility is not promised. Axum/Tower/Tokio are backend dependencies selected by HTTP use, not exposed Rust interop or a second runtime.
+Status: owner-requested direction, 2026-10-11; API sketches and sequencing recommendations, no implementation. Complements [HTTP/Hono research](../guides/language/http-and-hono.md), the [standard-library roadmap](standard-library-roadmap.md), and [UI feasibility review](ui-feasibility-review.md). Hono-like familiarity is the initial recommendation; source compatibility is not promised. Axum/Tower/Tokio are backend dependencies selected by HTTP use, not exposed Rust interop or a second runtime.
 
 ## Why establish this boundary
 

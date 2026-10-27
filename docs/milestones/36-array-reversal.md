@@ -1,6 +1,6 @@
 # Milestone 36: native array reversal
 
-[Roadmap](../roadmap.md) · [Primitive and collection scope](../primitives-and-collections.md)
+[Roadmap](../roadmap.md) · [Primitive and collection scope](../guides/language/primitives-and-collections.md)
 
 ## Contract
 

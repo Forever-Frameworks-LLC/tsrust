@@ -20,7 +20,7 @@ keys; delete reports removal. clear disposes entries. Explicit clone is supporte
 Maps work in generic functions, returns, records, arrays and union observations.
 Console inspection, String conversion and array join are supported.
 
-See [the guide](../maps.md). Identity keys, live iterators, for-of, keys, values,
+See [the guide](../guides/language/maps.md). Identity keys, live iterators, for-of, keys, values,
 entries and callbacks are not included in this gate. Source copies do not claim
 JavaScript shallow alias identity. Runtime storage keeps one owned key per slot;
 hash buckets contain indices and deleted slots remain tombstones. Churn and

@@ -1,6 +1,6 @@
 # Milestone 26: recursive functions
 
-[Nested records](./25-nested-record-fields.md) · [Compiler workstream](../compiler-and-modules.md) · [Ownership workstream](../ownership-and-memory.md) · [Roadmap](../roadmap.md)
+[Nested records](./25-nested-record-fields.md) · [Compiler workstream](../guides/language/compiler-and-modules.md) · [Ownership workstream](../guides/language/ownership-and-memory.md) · [Roadmap](../roadmap.md)
 
 **Status:** Complete. All 325 regression groups pass, including 16 recursive-function groups. Formatting and Clippy pass.
 
@@ -45,7 +45,7 @@ Parser and combined analysis nesting retain their existing 128-level guards. Com
 
 The [recursive-function suite](../../crates/tsrust-compiler/tests/recursion.rs) covers self/mutual calls, declaration order, scalar recursion, recursive tree reading/mutation, owned string/record/nested-array results, permuted summaries, invalid transfers and overlaps, parent loans, lexical and owned closure captures, callback contracts, ownership restoration, shared iteration, source evaluation order, optimized arithmetic/bounds failures, source depth guards, deep literal processing, deterministic public metadata/Rust output, and CLI frontend operation with an empty executable search path.
 
-The [tree fixture](../../crates/tsrust-compiler/tests/fixtures/recursion/tree.tsr) prints `6` and `9`: shared traversal sums three nodes, exclusive traversal increments each node, and the same owner remains available afterward. The [analysis measurements](../analysis-performance.md) include recursive tree and permuted-parameter workloads separately from native execution.
+The [tree fixture](../../crates/tsrust-compiler/tests/fixtures/recursion/tree.tsr) prints `6` and `9`: shared traversal sums three nodes, exclusive traversal increments each node, and the same owner remains available afterward. The [analysis measurements](../measurements/analysis-performance.md) include recursive tree and permuted-parameter workloads separately from native execution.
 
 Named analysis dependency cycles containing declarations with callback parameters or callable results receive `unsupported` with a related cycle location. Their concrete environment identity, recursive type instantiation, and specialization behavior require a separate contract; this gate does not infer arbitrary recursive environment types. Calling the program entry point, local self-referential callable environments, borrowed results, partial field moves, shared ownership, generics, modules, async, and the Rust language server remain separately scoped work.
 

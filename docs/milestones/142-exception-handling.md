@@ -8,7 +8,7 @@ Try/catch/finally and explicit throw are enabled through checked source executio
 
 Supported arithmetic and array-bound failures use structured runtime errors. Project emission resolves their source filename and byte range to the original module. Uncaught checked errors execute applicable cleanup, report a diagnostic and return unsuccessful process status without a native panic. External native bindings require audited contracts; allocation failure, external termination and native defects are not claimed recoverable.
 
-See [the error-handling guide](../exception-handling.md). Its example produces identical native and independent Node output: failed, cleanup, 4.
+See [the error-handling guide](../guides/language/exception-handling.md). Its example produces identical native and independent Node output: failed, cleanup, 4.
 
 ## Ownership and callable integration
 

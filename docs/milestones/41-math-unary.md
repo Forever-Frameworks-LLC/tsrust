@@ -1,6 +1,6 @@
 # Milestone 41: standard Rust Math transforms
 
-[Roadmap](../roadmap.md) · [Primitive coverage](../feature-coverage.md)
+[Roadmap](../roadmap.md) · [Primitive coverage](../guides/language/feature-coverage.md)
 
 ## Scope
 

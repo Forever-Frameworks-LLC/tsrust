@@ -35,7 +35,7 @@ Every construction still evaluates fresh captured values and applies its transfe
 
 The global 128-specialization bound remains unchanged. Exactly 128 concrete instances compile; a 129th receives `unsupported` before emission or backend execution. The suite also runs all 120 permutations of five distinct owned types. Growing inline and factory-produced wrappers reach a source resource diagnostic rather than causing unbounded monomorphization. Actual source nesting keeps the existing 128-level guards. Concrete owned specializations with ordinary callback parameters inherit milestone 27’s separate per-function 128-vector bound. Pure owned recursion skips ordinary vector traversal because its concrete specialization cache already supplies the bound.
 
-No source-value clones, boxing, type erasure, reference counting, or runtime dispatch are introduced. Template syntax copies, inference passes, and cached concrete bodies remain compiler costs. [Measurements](../analysis-performance.md) separate these frontend costs from native compilation.
+No source-value clones, boxing, type erasure, reference counting, or runtime dispatch are introduced. Template syntax copies, inference passes, and cached concrete bodies remain compiler costs. [Measurements](../measurements/analysis-performance.md) separate these frontend costs from native compilation.
 
 ## Evidence and remaining boundaries
 

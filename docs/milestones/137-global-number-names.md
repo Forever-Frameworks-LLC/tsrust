@@ -12,7 +12,7 @@ Status: focused compiler/native, editor, grammar, guide, catalog documentation, 
 - `NaN` and `Infinity` cannot be assigned to (`name`).
 - A global function used as a value, for example `texts.map(parseInt)` or `typeof parseInt`, is `unsupported`, with advice to wrap the call in an arrow function.
 
-See [the guide](../global-number-names.md).
+See [the guide](../guides/language/global-number-names.md).
 
 ## Implementation
 

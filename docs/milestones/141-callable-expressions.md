@@ -8,7 +8,7 @@ A call may invoke a factory result or an immediately invoked arrow/function expr
 
 Required IIFE parameters may infer a type from an argument with a known type. A spread position may infer a type when every possible contributing source agrees; `undefined` is a valid inferred type. Arguments without an available type hint need an explicit parameter annotation. Conditional alternatives retain the existing same-origin requirement. No implicit clone was added.
 
-See [the syntax guide](../callable-expressions.md). Its assertion example passes the current native compiler and independent Node reference.
+See [the syntax guide](../guides/language/callable-expressions.md). Its assertion example passes the current native compiler and independent Node reference.
 
 ## Implementation and repairs
 

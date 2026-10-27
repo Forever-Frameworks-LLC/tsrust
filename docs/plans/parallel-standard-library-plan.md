@@ -30,7 +30,7 @@ Project-wide formatting runs in the library checkout before every source checkpo
 
 ### P0: inventory and frozen contract
 
-Read `AGENTS.md`, `docs/development-workflow.md`, the latest gate handoff, `docs/standard-library-roadmap.md`, `docs/standard-library-coverage.md`, and the S05/S06 milestone records. Inspect the actual binding, module loader, native build, and catalog plumbing. Confirm which path APIs already exist before adding duplicates.
+Read `AGENTS.md`, `docs/development-workflow.md`, the latest gate handoff, `docs/plans/standard-library-roadmap.md`, `docs/guides/language/standard-library-coverage.md`, and the S05/S06 milestone records. Inspect the actual binding, module loader, native build, and catalog plumbing. Confirm which path APIs already exist before adding duplicates.
 
 Research official Node path documentation and the pinned reference runtime's implementation when edge behavior is ambiguous. Use Node 24.11.1 for differential evidence, not hover text. Write a per-export contract table covering parameters, borrowing, returns, empty input, roots, trailing/repeated separators, dot segments, leading dot filenames, Unicode, and platform behavior. Freeze observable semantics before coding. Rust `Path` behavior is not automatically Node-compatible.
 
@@ -103,7 +103,7 @@ Maintain the following checklist with commit IDs, focused evidence identities, p
 - [x] P2 isAbsolute/normalize accepted (`b57ec2a`).
 - [x] P3 family regressions and benchmark review complete (`db30ab3`, optimized in `48ae800`).
 - [x] SQLite evidence verified; obsolete outputs pruned before handoff.
-- [x] Integration-ready commits and physical handoff supplied in docs/handoff-2026-10-07-lexical-path.md.
+- [x] Integration-ready commits and physical handoff supplied in docs/handoffs/handoff-2026-10-07-lexical-path.md.
 - [ ] Integration owner verifies combined checkout and refreshes live consumers.
 
 ## Ready-to-copy agent prompt

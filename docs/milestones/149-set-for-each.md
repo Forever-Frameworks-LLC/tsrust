@@ -17,7 +17,7 @@ and moving an owned callback input into another owner are rejected. External
 mutable captures are allowed when they do not conflict with source loans.
 Callback errors stop traversal and propagate through catch/finally. Catch values
 can include structured runtime errors; narrow before string-only operations.
-See [the guide](../sets.md). No input implicitly clones.
+See [the guide](../guides/language/sets.md). No input implicitly clones.
 
 ## Repairs
 

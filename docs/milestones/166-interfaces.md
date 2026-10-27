@@ -7,7 +7,7 @@ the closing brace are optional, optional fields and type parameters are allowed.
 `interface Player extends Named, Positioned { ... }` gives the interface the fields of
 each named record type, in written order, followed by its own fields. Bases can be
 interfaces or types declared with a body, declared later in the file, or imported.
-Record types stay distinct by name: a `Player` is not a `Named`. See docs/interfaces.md.
+Record types stay distinct by name: a `Player` is not a `Named`. See docs/guides/language/interfaces.md.
 
 Rejected: duplicate field among inherited and own fields (`duplicate`), an interface
 that extends itself (`recursive-interface`), a base that is not a record type

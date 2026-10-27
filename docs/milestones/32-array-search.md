@@ -1,6 +1,6 @@
 # Milestone 32: read-only primitive array search
 
-[Roadmap](../roadmap.md) · [Array removal](./30-array-removal.md) · [Foundation audit](../foundation-audit.md)
+[Roadmap](../roadmap.md) · [Array removal](./30-array-removal.md) · [Foundation audit](../plans/foundation-audit.md)
 
 **Status:** Complete. Source contracts, edge acceptance, resource checks, and all current comparisons have recorded evidence. Remaining runner performance gaps are tracked in the foundation audit before complex features.
 
@@ -44,7 +44,7 @@ Six basic matched workloads measure both methods on each supported primitive arr
 
 Two further matched workloads construct every array element from external runtime-owned Unicode input. They mix common lowercase values and rare mixed-case values, then query both matching contents and a same-length Unicode miss. Literal interning cannot determine those results.
 
-The [full 35-workload record](../../benchmarks/runtime/results/2026-10-01T06-16-41-224Z.json) and [two dynamic-string comparisons](../../benchmarks/runtime/results/2026-10-01T06-20-37-081Z.json) validate all eight runtime modes on five inputs per workload and retain 27,528 measured batches. All 37 native mean rates exceed Node after tsc. Literal string `indexOf` remains 0.77× Bun and dynamic normalization 0.98× Deno; the [foundation audit](../foundation-audit.md) reviews every comparison and rejected alternative.
+The [full 35-workload record](../../benchmarks/runtime/results/2026-10-01T06-16-41-224Z.json) and [two dynamic-string comparisons](../../benchmarks/runtime/results/2026-10-01T06-20-37-081Z.json) validate all eight runtime modes on five inputs per workload and retain 27,528 measured batches. All 37 native mean rates exceed Node after tsc. Literal string `indexOf` remains 0.77× Bun and dynamic normalization 0.98× Deno; the [foundation audit](../plans/foundation-audit.md) reviews every comparison and rejected alternative.
 
 The [37-workload resource diagnosis](../../benchmarks/runtime/diagnostics/2026-10-01T06-30-12-232Z-native-allocations.json) verifies complete cleanup without increasing any earlier allocation count or byte total. The [primitive memory record](../../benchmarks/runtime/results/2026-10-01T06-09-54-430Z-allocations.json) and [final source/emission proof](../../benchmarks/runtime/diagnostics/2026-10-01T06-41-29-972Z-search-final-proof.json) preserve separate measurement provenance. All 443 workspace regression groups and 18 benchmark/oracle checks pass. JavaScript does not enforce the source loan and transfer diagnostics, so those guarantees have no equivalent runtime throughput ratio.
 
@@ -54,7 +54,7 @@ Owned record/array identity, floating-point values, sparse arrays, coercive offs
 
 ## Subsequent helper optimization
 
-The [full 37-workload retiming](../../benchmarks/runtime/results/2026-10-01T08-14-04-568Z.json) follows shared normalization and immediate-exit string-loop improvements. All native means exceed Node after tsc. Dynamic normalization exceeds Deno 1.17×; literal string `indexOf` remains 0.79× Bun. The [foundation audit](../foundation-audit.md) preserves the earlier snapshots, current allocation evidence, and remaining performance scope. The implementation gate stays complete; its benchmark evidence is updated as the foundation improves.
+The [full 37-workload retiming](../../benchmarks/runtime/results/2026-10-01T08-14-04-568Z.json) follows shared normalization and immediate-exit string-loop improvements. All native means exceed Node after tsc. Dynamic normalization exceeds Deno 1.17×; literal string `indexOf` remains 0.79× Bun. The [foundation audit](../plans/foundation-audit.md) preserves the earlier snapshots, current allocation evidence, and remaining performance scope. The implementation gate stays complete; its benchmark evidence is updated as the foundation improves.
 
 ## Subsequent proven literal storage
 

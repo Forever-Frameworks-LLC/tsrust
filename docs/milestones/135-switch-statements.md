@@ -10,7 +10,7 @@ Each clause ends with `break`, `return` or `continue`, or is the last clause. `c
 
 Two JavaScript forms are rejected with `unsupported` and a message that says what to write: a clause with statements that runs into the next clause, and a `break` inside a nested statement of a clause. A second `default`, a statement before the first label and a missing colon are `syntax` errors. A switch supports at most 120 clauses.
 
-See [the syntax guide](../switch.md).
+See [the syntax guide](../guides/language/switch.md).
 
 ## Implementation
 

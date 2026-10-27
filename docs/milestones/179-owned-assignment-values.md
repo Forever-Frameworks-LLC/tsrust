@@ -11,7 +11,7 @@ the one design choice of this gate to review.
 its value, read in place after the store. No copy is made. Member access, method
 calls and read-only arguments leave the target usable; binding the value moves the
 target, as naming the target would. The target is a `let` variable or a record
-field with a fixed path. The [guide](../assignment-values.md) describes it.
+field with a fixed path. The [guide](../guides/language/assignment-values.md) describes it.
 
 ## Implementation
 

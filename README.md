@@ -51,7 +51,7 @@ Save as `hello.tsr`, then run `tsrust run hello.tsr`.
   navigation and formatting through the LSP and VS Code extension.
 
 See [runnable examples](examples/README.md) and the
-[language and library guide](docs/standard-library.md).
+[language and library guide](docs/guides/language/standard-library.md).
 
 ## Install
 
@@ -131,7 +131,7 @@ x64 and macOS; Windows distribution is not configured yet. Native GPU rendering
 and accessibility still need real desktop checks beyond hosted CI.
 
 Performance depends on the workload. [Benchmark methodology](benchmarks/runtime/README.md)
-and [comparison limits](docs/runtime-comparisons.md) explain the measurements.
+and [comparison limits](docs/measurements/runtime-comparisons.md) explain the measurements.
 The large [historical report](BENCHMARKS.md) is a snapshot, not a claim about every
 current feature.
 
@@ -144,8 +144,8 @@ identities, toolchain versions and general hardware specifications.
 - [Installation and first project](docs/content/getting-started/installation.md)
 - [CLI and project configuration](docs/guides/project-cli.md)
 - [VS Code setup](editors/vscode/README.md)
-- [Language and standard library](docs/standard-library.md)
-- [Ownership](docs/ownership-and-memory.md)
+- [Language and standard library](docs/guides/language/standard-library.md)
+- [Ownership](docs/guides/language/ownership-and-memory.md)
 - [UI direction and implementation scope](UI_VISION.md)
 - [Contributor checks](CONTRIBUTING.md) and [release automation](docs/guides/releases.md)
 

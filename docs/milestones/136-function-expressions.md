@@ -8,7 +8,7 @@ Status: focused compiler/native, editor, guide, current consumer and matched ben
 
 A function expression cannot have a name (`unsupported`, with advice to bind it or declare it at the top level). It needs a block body (`syntax`). A statement that starts with `function` inside a function body is a `syntax` error that explains where declarations belong.
 
-See the new section of [the arrow function guide](../arrow-functions.md).
+See the new section of [the arrow function guide](../guides/language/arrow-functions.md).
 
 ## Implementation
 

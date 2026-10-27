@@ -1,0 +1,9 @@
+# Handoff: expression evaluation-order red checkpoint
+
+Read AGENTS.md, docs/development-workflow.md, docs/plans/unused-generic-call-validation-plan.md and docs/handoffs/handoff-2026-10-07-exception-source-flow.md first. Accepted exception flow is fb4ce3e; the nested generic formatting follow-up is cab1e63. This following checkpoint adds expression-flow witnesses and the concrete evaluator plan. Compiler source is unchanged.
+
+The focused generic_call_expression_flow rejection test is intentionally red: thirteen invalid calls are accepted. Nine formatted precision controls pass. Exact original and expanded outputs are retained in SQLite as /private/tmp/tsrust-expression-flow-red.log and /private/tmp/tsrust-expression-flow-expanded-red.log. Begin implementation of the expression evaluator from this evidence. Follow the plan's rules for callee snapshots, lazy branches, assignment commit order and per-step exceptional states.
+
+Keep the accepted exception graph and formatter token normalization. Full Gate173 remains open for expression ordering, captured effects, stored fields, concrete environment replacement and remaining lifetime/context coverage. The thirteen witnesses are not implementation acceptance, and no new timing, broad regression or benchmark support is claimed at this red checkpoint.
+
+Preserve the fifteen protected owner fixture edits documented by the prior project-formatting handoff. Use explicit Git paths. Format the entire project before every source checkpoint with tools/format-project.mjs. Warm target is /private/tmp/tsrust-gate100-editor-target, CARGO_INCREMENTAL=0, offline locked Cargo. Node is /Users/seancotter/.nvm/versions/node/v24.11.1/bin/node. Add editor and formatted native/strict TypeScript controls, bounded generic checks, eight depth canaries and untimed registered generic adapter verification before acceptance. Store closed evidence in SQLite and verify readback; no archives or source snapshots.

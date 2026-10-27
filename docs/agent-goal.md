@@ -9,6 +9,25 @@ Historical application-platform plans and acceptance remain evidence, not active
 requirements. No React, Electron, Expo, TanStack or frontend package-manager
 orchestration work is required. Users bring their own UI and call HTTP APIs.
 
+## Current owner clarifications
+
+The server is the source of truth: users write and serve their API in app/.
+Publish the checked HTTP description and OpenAPI from that running service, then
+produce independent js-client/ or rust-client/ SDKs at a caller-selected location.
+A normal server must not require users to generate, import or maintain a public
+generated/server tree. Compiler-internal serialization/dispatch lowering may be
+an implementation detail; it must not make client generation a server startup
+prerequisite. Preserve authentication, validation and compatibility when replacing
+the current generated dispatcher. SDK generation must not modify the server.
+
+Before the next milestone, fix the reported docs native stack overflow and identify
+and clear the remaining VS Code diagnostic. Keep affected compiler/LSP diagnostics
+clean, finish the section and its checks before committing, and commit each accepted
+milestone. Organize loose documentation by topic, updating actual consumers and
+links; preserve owner source edits and retained historical evidence. Future UI work
+should start with a finite set of reusable primitives and small composition examples
+before building larger components. UI expansion remains deferred.
+
 ## Required outcomes, in order
 
 Owner clarifications: HTTP I/O must be asynchronous, including generated Rust

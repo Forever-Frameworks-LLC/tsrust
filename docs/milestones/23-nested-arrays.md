@@ -1,6 +1,6 @@
 # Milestone 23: nested arrays
 
-[Owned array elements](./22-owned-array-elements.md) · [Borrowed iteration](./21-for-of.md) · [Collections workstream](../primitives-and-collections.md) · [Roadmap](../roadmap.md)
+[Owned array elements](./22-owned-array-elements.md) · [Borrowed iteration](./21-for-of.md) · [Collections workstream](../guides/language/primitives-and-collections.md) · [Roadmap](../roadmap.md)
 
 **Status:** Complete. The full 283-group regression suite passes, including 12 nested-array groups. Formatting, Clippy, and local documentation links are verified.
 

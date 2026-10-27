@@ -1,8 +1,8 @@
 # Gate 186: tagged Result and exhaustive statement matching
 
 B10/S06 is accepted on 2026-10-10. Source closes at `8d431eed`; the publication
-commit adds this record and updates the ledgers. The [acceptance map](../b10-result-match-acceptance-map.md)
-and [guide](../result-match.md) define the supported scope.
+commit adds this record and updates the ledgers. The [acceptance map](b10-result-match-acceptance-map.md)
+and [guide](../guides/language/result-match.md) define the supported scope.
 
 ## Behavior
 

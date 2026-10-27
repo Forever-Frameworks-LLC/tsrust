@@ -1,6 +1,6 @@
 # Milestone 35: standard Rust uppercase
 
-[Roadmap](../roadmap.md) · [String contract](../string-semantics.md)
+[Roadmap](../roadmap.md) · [String contract](../guides/language/string-semantics.md)
 
 ## Outcome and scope
 

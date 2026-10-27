@@ -1,6 +1,6 @@
 # Milestone 52: array callback traversal
 
-[Roadmap](../roadmap.md) · [Array coverage](../feature-coverage.md)
+[Roadmap](../roadmap.md) · [Array coverage](../guides/language/feature-coverage.md)
 
 ## Scope
 

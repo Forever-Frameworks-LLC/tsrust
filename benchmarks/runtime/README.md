@@ -1,6 +1,6 @@
 # Rust-native runtime comparisons
 
-[SQLite analytics](../storage/README.md#accepted-raw-analytics-and-restoration) · [Historical report](../../BENCHMARKS.md) · [Manifest](./manifest.json) · [Coverage and limits](../../docs/runtime-comparisons.md)
+[SQLite analytics](../storage/README.md#accepted-raw-analytics-and-restoration) · [Historical report](../../BENCHMARKS.md) · [Manifest](./manifest.json) · [Coverage and limits](../../docs/measurements/runtime-comparisons.md)
 
 The current 670 historically measured workload pairs use semantic epoch `rust-native-utf8-v1`. Generated strings are standard `Cow<'static, str>`: valid Unicode, byte length, checked byte slicing, and scalar `charAt`. This contract differs from JavaScript UTF-16 indexing. Earlier raw results remain immutable; current report tables exclude earlier epochs. Retired UTF-16 tools and source snapshots are preserved under [the archive](../../archive/utf16-strings-2026-10-01/benchmark-tools/), and their raw records remain in `results` and `diagnostics`.
 

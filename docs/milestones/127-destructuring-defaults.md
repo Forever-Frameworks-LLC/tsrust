@@ -8,7 +8,7 @@ Declaration, function/arrow parameter, callback and for...of patterns accept def
 
 Parameter initialization includes the pattern before the next parameter default. Later defaults can read earlier destructured names; current/later names are unavailable. Nested arrow defaults retain their own parameter pattern prologue. Generic nullable element defaults preserve null during specialization.
 
-Names follow source access. Readonly parameters and array elements lend, while owning record/tuple positions can move. Fresh fallback owners have persistent local storage for borrowed selections; no implicit clone occurs. Borrowed bindings retain lexical source loans even when absent. Overlapping fallback mutation and transfer of borrowed selections are rejected. See [the guide](../destructuring.md) for executable examples and errors. Rest copying still awaits the owner's decision; classic-for initializer patterns and optional record-field annotations remain unsupported.
+Names follow source access. Readonly parameters and array elements lend, while owning record/tuple positions can move. Fresh fallback owners have persistent local storage for borrowed selections; no implicit clone occurs. Borrowed bindings retain lexical source loans even when absent. Overlapping fallback mutation and transfer of borrowed selections are rejected. See [the guide](../guides/language/destructuring.md) for executable examples and errors. Rest copying still awaits the owner's decision; classic-for initializer patterns and optional record-field annotations remain unsupported.
 
 ## Implementation and evidence
 

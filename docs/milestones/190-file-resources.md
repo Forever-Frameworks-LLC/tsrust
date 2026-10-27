@@ -19,7 +19,7 @@ matched measurements, performance review and installed-consumer refresh remain o
 
 Compiler paths are relative to `crates/tsrust-compiler/src` or its tests directory;
 editor paths are under `crates/tsrust-lsp`. Detailed commands and retained evidence
-are indexed in `docs/b11-resources-bytes-acceptance-map.md`.
+are indexed in `docs/milestones/b11-resources-bytes-acceptance-map.md`.
 
 ## Matched workload protocol
 

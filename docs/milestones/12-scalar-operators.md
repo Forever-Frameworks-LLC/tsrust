@@ -1,6 +1,6 @@
 # Milestone 12: scalar operators
 
-[Retained callbacks](./11-retained-callbacks.md) · [Primitive workstream](../primitives-and-collections.md) · [Roadmap](../roadmap.md)
+[Retained callbacks](./11-retained-callbacks.md) · [Primitive workstream](../guides/language/primitives-and-collections.md) · [Roadmap](../roadmap.md)
 
 **Status:** Complete. This gate supplies numeric updates and boolean conditions before loop ownership analysis. All 162 regression groups pass, including 13 operator groups; formatting, Clippy, and local documentation links are verified.
 

@@ -8,7 +8,7 @@ A label names an enclosing statement. `break name;` leaves it. `continue name;` 
 
 Ordinary ownership rules still apply: an outer owner must be reinitialized before continuing its loop after a transfer. An outer break retains the transferred state at its destination. Loop keys and elements retain their existing access. No implicit clone was added.
 
-See [the guide](../labeled-control.md) for examples, target scope and diagnostics.
+See [the guide](../guides/language/labeled-control.md) for examples, target scope and diagnostics.
 
 ## Implementation
 

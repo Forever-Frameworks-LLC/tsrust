@@ -1320,7 +1320,7 @@ context, routing/middleware, request and response headers, cookie helpers, check
 request-local state and safe shared application state. Authentication, sessions,
 user models and authorization policy belong to application code. The existing
 service authentication example is an application witness, not a framework API or
-a substitute for these primitives. See `docs/http-and-hono.md` and the current
+a substitute for these primitives. See `docs/guides/language/http-and-hono.md` and the current
 scope in `docs/plans/service-readiness-plan.md`. Preserve accepted ownership,
 cancellation and cleanup rules. Finish this API section before further deployment
 verification; reuse completed evidence and batch targeted checks.
@@ -1361,7 +1361,7 @@ its timing milestone remain open. Do not repeat accepted S19/S20 regressions.
 Exact decimals now pass focused macOS acceptance: `std:decimal.parseDecimal`,
 exact bounded arithmetic, checked conversions, explicit cloning and worker
 transport, editor agreement/help, 13 native catalog examples, offline package
-export and matched untimed money checks. See `docs/data-type-coverage.md`.
+export and matched untimed money checks. See `docs/guides/language/data-type-coverage.md`.
 Installed CLI/LSP consumers are refreshed; open decimal examples report no
 problems after the active server restart. SQLite holds `tsrust-decimal-*` evidence.
 Current CLI SHA-256: `e1678a081b74795801123e9da220e818bff42a1a0358ef2c2632fbb97f0fa7d7`.
@@ -1384,7 +1384,7 @@ and editor acceptance. Direct unsupported signatures still reject. SQL domain
 witnesses now pass all three drivers, including exact decimal, date/time, UUID,
 JSON and nullable storage. Pinned Rust/date-fns/Decimal.js declaration inventories
 are recorded. Full data-type family regressions and targeted integration repairs
-now pass; see `docs/data-type-coverage.md` for retained original failures and final
+now pass; see `docs/guides/language/data-type-coverage.md` for retained original failures and final
 evidence. The five accumulated workloads are measured at `b911a378`: 930 samples
 with checksum agreement, exact records and derived summaries in SQLite. Native
 medians are lower in these scoped first baselines. Do not repeat this full pass.
@@ -1420,7 +1420,7 @@ editor and matched-workload acceptance. It preserves original int/number union
 inputs and rejects loss for toInt/toNumber/toFloat32, validates signed/unsigned
 8/16/32/64-bit ranges within int storage, and parses strict exact decimal integers.
 Full u64 above i64::MAX and 128-bit values remain explicitly unsupported. See
-`docs/data-type-coverage.md` for measured workload scope. SQL REAL precision repair
+`docs/guides/language/data-type-coverage.md` for measured workload scope. SQL REAL precision repair
 also passes explicit three-driver acceptance, including precision/underflow
 rejection and unchanged automatic rollback. S19 is next; no new go-ahead is required.
 
@@ -1468,7 +1468,7 @@ was introduced. Closed diagnostic records are byte-verified in
 repairs and interrupted runs. Reuse accepted S18 SQL evidence; SQL/task lifecycle
 code did not change in the resource section.
 
-Continue the [data-type coverage inventory](../data-type-coverage.md), then S19–S21,
+Continue the [data-type coverage inventory](../guides/language/data-type-coverage.md), then S19–S21,
 without another go-ahead. Discovery now includes pinned TypeScript 5.9.3 and a
 bounded standalone rust-analyzer 0.3.3081 run; the latter shuts down after probing
 and does not re-enable the editor extension. The Tsrust inventory handles native
@@ -1544,7 +1544,7 @@ removed test artifacts may need rebuilding. Do not launch a full historical pass
 ## Current handoff — 2026-10-15, after S18 acceptance
 
 This section supersedes all historical “next”, “pending”, consumer-version and build-window
-statements below. Follow the [current roadmap priorities](../standard-library-roadmap.md).
+statements below. Follow the [current roadmap priorities](../plans/standard-library-roadmap.md).
 
 1. Finish checked resource lifetimes for UI, including a real destructor and independent
    non-retaining release audit. Read the roadmap acceptance contract and the B2
@@ -1561,7 +1561,7 @@ statements below. Follow the [current roadmap priorities](../standard-library-ro
    priority work. The owner explicitly authorized continuation, not another planning stop.
 
 S21 now requires practical service readiness, not a minimal demo. Follow the
-[service requirements and coverage methodology](../standard-library-roadmap.md#practical-service-readiness-and-coverage-methodology):
+[service requirements and coverage methodology](../plans/standard-library-roadmap.md#practical-service-readiness-and-coverage-methodology):
 authentication, safe shared state, versioned migrations/recovery, redacted
 observability, scoped HTTP/security contracts and actual Linux/container/offline/
 signal/shutdown acceptance. Defer the polished MVP/demo, not executable witnesses.

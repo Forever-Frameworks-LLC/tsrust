@@ -1,6 +1,6 @@
 # Milestone 40: Number classification
 
-[Roadmap](../roadmap.md) · [Primitive coverage](../feature-coverage.md)
+[Roadmap](../roadmap.md) · [Primitive coverage](../guides/language/feature-coverage.md)
 
 ## Scope
 

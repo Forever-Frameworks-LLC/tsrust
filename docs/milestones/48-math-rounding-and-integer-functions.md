@@ -1,6 +1,6 @@
 # Milestone 48: Math rounding, reductions, integer functions, and constants
 
-[Roadmap](../roadmap.md) · [Number coverage](../feature-coverage.md)
+[Roadmap](../roadmap.md) · [Number coverage](../guides/language/feature-coverage.md)
 
 ## Scope
 

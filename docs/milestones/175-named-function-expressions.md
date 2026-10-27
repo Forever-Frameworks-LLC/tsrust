@@ -10,7 +10,7 @@ is visible only inside that function, so the function can call itself. Nothing i
 declared in the surrounding block. Parameters, defaults, rest, type parameters,
 result annotation or inference, and the rules for variables of the enclosing
 function are those of a nested function declaration used as a value. The
-[guide](../arrow-functions.md#named-function-expressions) describes it.
+[guide](../guides/language/arrow-functions.md#named-function-expressions) describes it.
 
 ## Implementation
 

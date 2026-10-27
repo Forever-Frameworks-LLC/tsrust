@@ -126,7 +126,7 @@ Approved: every native thread handle requires explicit join or detach. The check
 
 ## Rust-module integration design dependency
 
-Implement the design review for the owner-approved [local Rust module direction](../interop-and-targets.md#local-rust-modules-and-native-workers-owner-discussion)
+Implement the design review for the owner-approved [local Rust module direction](../guides/tooling/interop-and-targets.md#local-rust-modules-and-native-workers-owner-discussion)
 before freezing the S12 public worker interface. Importing Rust and running work on
 a thread are separate capabilities. The owner approved automatic default pool management for threaded interop and
 supported package wrappers. Exact syntax remains pending; arbitrary Rust crate

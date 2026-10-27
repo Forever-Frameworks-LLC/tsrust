@@ -30,8 +30,8 @@ Read `AGENTS.md` and:
 - `docs/guides/compiler-source-layout.md`
 - `docs/plans/compiler-nesting-pipeline.md`
 - `docs/handoffs/2026-10-13-s11-acceptance.md`
-- `docs/standard-library-roadmap.md`
-- `docs/standard-library-coverage.md`
+- `docs/plans/standard-library-roadmap.md`
+- `docs/guides/language/standard-library-coverage.md`
 - `docs/plans/schema-plan.md`
 
 S01–S11 are accepted within documented boundaries. Do not reopen their contracts. The owner has authorized tracking previously protected later-work files, but preserve their contents and avoid unrelated edits.

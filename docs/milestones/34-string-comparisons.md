@@ -1,6 +1,6 @@
 # Milestone 34: native string comparisons
 
-[Roadmap](../roadmap.md) · [String semantics](../string-semantics.md)
+[Roadmap](../roadmap.md) · [String semantics](../guides/language/string-semantics.md)
 
 ## Outcome and scope
 

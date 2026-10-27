@@ -1,6 +1,6 @@
 # Milestone 47: string construction and splitting
 
-[Roadmap](../roadmap.md) · [String semantics](../string-semantics.md)
+[Roadmap](../roadmap.md) · [String semantics](../guides/language/string-semantics.md)
 
 ## Scope
 

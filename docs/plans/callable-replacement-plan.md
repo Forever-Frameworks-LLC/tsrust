@@ -1,6 +1,6 @@
 # Callable replacement implementation plan
 
-The callable replacement family is accepted. Source repair checkpoint: ea6bda3. Complete regression evidence plus affected repairs yields 2,325 compiler passes, zero failures, two intentional worker ignores and 358 editor passes. All eight depth canaries and all five refreshed consumers pass. The nineteen-observation workload has reviewed timing evidence, and current-source untimed verification preserves the measured source and generated driver hashes. See docs/milestones/callable-replacement-family.md and docs/handoff-2026-10-08-callable-replacement-family.md. Sections below retain the historical implementation sequence.
+The callable replacement family is accepted. Source repair checkpoint: ea6bda3. Complete regression evidence plus affected repairs yields 2,325 compiler passes, zero failures, two intentional worker ignores and 358 editor passes. All eight depth canaries and all five refreshed consumers pass. The nineteen-observation workload has reviewed timing evidence, and current-source untimed verification preserves the measured source and generated driver hashes. See docs/milestones/callable-replacement-family.md and docs/handoffs/handoff-2026-10-08-callable-replacement-family.md. Sections below retain the historical implementation sequence.
 
 ## Current evidence
 

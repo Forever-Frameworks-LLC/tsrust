@@ -2,8 +2,8 @@
 
 Continue the existing active goal through S21 integrated release acceptance.
 S01–S10 remain accepted. S11 is incomplete. One agent works in this tree.
-Read AGENTS.md, docs/development-workflow.md, docs/standard-library-roadmap.md,
-docs/standard-library-coverage.md and docs/plans/schema-plan.md first.
+Read AGENTS.md, docs/development-workflow.md, docs/plans/standard-library-roadmap.md,
+docs/guides/language/standard-library-coverage.md and docs/plans/schema-plan.md first.
 
 ## Accepted implementation
 

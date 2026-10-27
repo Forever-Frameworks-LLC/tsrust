@@ -4,7 +4,7 @@
 
 Implement `std:path.relative(from: string, to: string): string` through runtime, compiler bindings, native execution, editor assistance, documentation and matched benchmark support. Finish by integrating accepted source, immutable evidence and executable consumers into main. Branch acceptance alone does not complete this goal.
 
-Start from the accepted integrated checkpoint `8b9b372`, or a newer committed base agreed with the main owner. Read AGENTS.md, docs/development-workflow.md, docs/handoff-2026-10-08-stdlib-integration.md, the path contracts and current standard-library roadmap first. Inspect current exports to avoid duplicate work. The main tree currently has uncommitted callable work and fifteen protected owner fixtures; do not touch them.
+Start from the accepted integrated checkpoint `8b9b372`, or a newer committed base agreed with the main owner. Read AGENTS.md, docs/development-workflow.md, docs/handoffs/handoff-2026-10-08-stdlib-integration.md, the path contracts and current standard-library roadmap first. Inspect current exports to avoid duplicate work. The main tree currently has uncommitted callable work and fifteen protected owner fixtures; do not touch them.
 
 ## Scope and prerequisite gate
 

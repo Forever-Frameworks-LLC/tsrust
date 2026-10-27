@@ -1,6 +1,6 @@
 # Milestone 24: arrays in record fields
 
-[Nested arrays](./23-nested-arrays.md) · [Types workstream](../type-system.md) · [Ownership workstream](../ownership-and-memory.md) · [Roadmap](../roadmap.md)
+[Nested arrays](./23-nested-arrays.md) · [Types workstream](../guides/language/type-system.md) · [Ownership workstream](../guides/language/ownership-and-memory.md) · [Roadmap](../roadmap.md)
 
 **Status:** Complete. All 295 regression groups pass, including 12 array-field groups. Formatting and Clippy pass.
 
@@ -56,4 +56,4 @@ Milestone 31 subsequently adds [direct named record field moves and restoration]
 
 ## Foundation follow-up
 
-The subsequent [foundation audit](../foundation-audit.md) replaces automatic recursive clone/destruction with iterative work stacks within each recursive record component. A 100,000-node chain is verified in debug and optimized builds. Records remain movable by field because cleanup belongs to recursive array wrappers. User-written recursive traversal functions still have ordinary native call-stack limits. The original gate evidence above describes its implementation at completion.
+The subsequent [foundation audit](../plans/foundation-audit.md) replaces automatic recursive clone/destruction with iterative work stacks within each recursive record component. A 100,000-node chain is verified in debug and optimized builds. Records remain movable by field because cleanup belongs to recursive array wrappers. User-written recursive traversal functions still have ordinary native call-stack limits. The original gate evidence above describes its implementation at completion.

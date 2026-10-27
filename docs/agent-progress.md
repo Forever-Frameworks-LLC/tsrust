@@ -1,5 +1,53 @@
 # Agent continuation state
 
+## Current section: documentation organization and reported startup failure
+
+The owner requires finished, validated sections before milestone commits, clean
+editor diagnostics, a server-owned API without a public generated/server import,
+and independent js-client/rust-client output from the served contract. These
+clarifications are recorded in agent-goal.md; server-boundary implementation remains
+pending. Future UI work should establish reusable primitives before larger widgets.
+
+Moved 333 loose root documents into existing handoffs, plans, milestones,
+measurements and topic guide directories. docs/ retains only README, roadmap,
+development-workflow, agent-goal and agent-progress. Updated tracked references and
+relative links; no archive directory, source snapshot or historical document deletion.
+The served content/ tree and protected docs/src/main.tsr are untouched. Verification compared all 333 relocated documents against the committed baseline:
+zero newly broken relative links. Whole-project formatting changed zero files and
+zero fingerprints; git diff --check passed. A first verifier unnecessarily traversed
+build output and was stopped; the corrected verifier uses only topic directories.
+Retained benchmark receipts/snapshots remain byte-identical to HEAD.
+
+The current compiler completed `tsrust check docs` successfully. The native startup
+stack overflow is still unresolved: prior native logs reproduce 0xc00000fd; retained
+8 MiB diagnostic executables are not proof of a fix. Existing UI evidence identifies
+large emitted temporary stack frames; investigate generated frames and runtime call
+chains rather than treating a larger stack as acceptance. The owner reports roughly 40 VS Code Problems and requested its MCP connector. No
+VS Code MCP tool is exposed in this session or configured in local Codex; compiler
+success does not establish the Problems panel is clean. Direct diagnostic inventory
+is still pending.
+No replacement compiler build or native UI launch has been started for this section.
+
+## Current checkpoint and installed development compiler
+
+Async SDK + standard Rust/Node test-runner checkpoint: de81e66f. Only protected
+owner changes remained afterward (.gitignore, docs/src/main.tsr and .agents/).
+The validated compiler is now installed at C:/Users/skeet/.cargo/bin/tsrust.exe,
+SHA256 ACDC96F89F3DDC30A1C6245329CBCE3A790B4401FAF70212A4DBF75232C42B30.
+It reports 0.1.0 and successfully checks generated-projects/backend-async, so the
+owner can use normal tsrust dev there. Installation used hash-guarded same-directory
+staging and atomic replacement after checking that the old compiler was not running.
+No owner process was stopped. A staging-path construction error first created a
+temporary root executable; its exact hash/recent creation were checked, it was
+removed, and the corrected staging completed. No pending stage or root copy remains.
+The existing LSP has passed the fresh project's real diagnostics/repair test; it
+has not been rebuilt for this SDK-only change. Rebuild/refresh it with the next
+actual compiler/IntelliSense feature. No test/build/server remains live.
+
+Disposable negative-audit .tsr files were removed from target after preserving
+their concise diagnostics, avoiding stray editor errors. Async std:testing remains
+the next implementation section; request-body readers and distribution follow.
+
 ## Latest: async SDK accepted; testing-library-first correction
 
 Owner explicitly rejected synchronous HTTP. That conversion is implemented and

@@ -167,7 +167,7 @@ replaced. Three queries would remove the remaining gaps.
 - A type diagnostic spells a native type by its linked name:
   `Type "__tsrust_module_native#std:schema#SchemaIssue[]" has no field …`.
 - `Result.payload` follows from the common-field rule for record unions, but
-  `docs/result-match.md` does not mention it and no test reads it. With a
+  `docs/guides/language/result-match.md` does not mention it and no test reads it. With a
   `void` alternative the field does not exist. `console.log(result)` prints
   `{ payload: … }` for both alternatives with no tag. Whether the field is a
   supported surface is the owner's decision. If it is removed, the agreement

@@ -3,7 +3,7 @@
 `name?: Type` declares a record field that a record literal may omit. Its type is
 `Type | undefined`. An omitted field holds `undefined`, the same as writing
 `name: undefined`, and can be assigned later. A field declared as
-`name: Type | undefined` stays required. See docs/optional-fields.md.
+`name: Type | undefined` stays required. See docs/guides/language/optional-fields.md.
 
 A record keeps its fixed shape: an omitted optional field is still a key of the
 record, so printing shows `name: undefined`, `Object.keys` lists it and `"name" in

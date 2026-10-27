@@ -10,7 +10,7 @@ Sources: [TypeScript library declarations](https://github.com/microsoft/TypeScri
 
 1. Add language constructs to `language.json`; standard-library members are extracted automatically.
 2. Update `status.json` with implementation state, actual evidence, and genuine workload IDs. An implemented feature can still have a missing comparison. A paired group identifies registered matched scenarios; checkpoint evidence separately establishes whether those sources have measured execution results.
-3. Run the pinned Node executable with `benchmarks/coverage/update.mjs` from the repository root. It regenerates `inventory.json` and `docs/feature-coverage.md`, checks unique IDs, rejects unknown workload or allocation-probe references, and verifies local evidence paths.
+3. Run the pinned Node executable with `benchmarks/coverage/update.mjs` from the repository root. It regenerates `inventory.json` and `docs/guides/language/feature-coverage.md`, checks unique IDs, rejects unknown workload or allocation-probe references, and verifies local evidence paths.
 4. Review the generated diff. Do not mark an isolated comparison complete because a compound workload contains a similar operation.
 
 ## Acceptance for each operation

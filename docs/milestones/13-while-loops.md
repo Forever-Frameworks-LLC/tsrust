@@ -1,6 +1,6 @@
 # Milestone 13: while loops and iteration ownership
 
-[Scalar operators](./12-scalar-operators.md) · [Ownership workstream](../ownership-and-memory.md) · [Roadmap](../roadmap.md)
+[Scalar operators](./12-scalar-operators.md) · [Ownership workstream](../guides/language/ownership-and-memory.md) · [Roadmap](../roadmap.md)
 
 **Status:** Complete. All 176 regression groups pass, including 14 loop groups. Formatting, Clippy, and local documentation links are verified. This gate covers braced `while` loops, unlabelled `break` and `continue`, and ownership across repeated iterations.
 

@@ -15,7 +15,7 @@ Later source mutation or disposal does not change the snapshot.
 Enum and union key types, generic functions and temporary receivers retain typed
 tuples. Wrong argument counts or incompatible result annotations are static
 errors. This operation returns an array rather than a live iterator. Access and
-ordinary bindings still do not implicitly clone. See [the guide](../sets.md).
+ordinary bindings still do not implicitly clone. See [the guide](../guides/language/sets.md).
 
 ## Implementation and editor
 

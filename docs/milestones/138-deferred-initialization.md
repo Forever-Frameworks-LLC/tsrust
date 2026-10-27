@@ -11,7 +11,7 @@ Status: focused compiler/native, editor, formatter, guide, current consumer and 
 - A type that includes `undefined` starts as `undefined` and can be read at once.
 - A function-typed variable needs an initializer (`unsupported`).
 
-See [the guide](../deferred-initialization.md) for the accepted assignment forms.
+See [the guide](../guides/language/deferred-initialization.md) for the accepted assignment forms.
 
 ## Implementation
 

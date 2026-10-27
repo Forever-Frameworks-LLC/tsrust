@@ -91,9 +91,9 @@ Compiler language features remain eligible when the backend prototype needs them
 
 **Scoped callable records accepted:** [Borrowing callback fields](./milestones/173-scoped-callable-records.md). Record fields declared `ReadOnly<Function<...>>` or `Mutable<Function<...>>` borrow local variables with independent field storage, record parameters, replacement, moves and escape rejection. Whole compiler crate passes except two kept callable-replacement witnesses; editor 339; one matched workload verified untimed. Seven regressions in accepted features and about 30 stale expectations were repaired. Arrays, Maps, Sets and unions of such records stay rejected.
 
-**Gate 173 source-validation progress:** Distinct branch signatures and saved alias sets now retain arity checks and declaration links. Loop, exception and capture effects remain open. See [handoff](./handoff-2026-10-06-distinct-branch-contracts.md).
+**Gate 173 source-validation progress:** Distinct branch signatures and saved alias sets now retain arity checks and declaration links. Loop, exception and capture effects remain open. See [handoff](handoffs/handoff-2026-10-06-distinct-branch-contracts.md).
 
-**Formatter repair accepted:** Recursive `tsrust format` defaults to the working directory, with read-only `--check`, directory exclusions and stable type/assertion spacing. See [formatter handoff](./handoff-2026-10-06-recursive-format.md). Gate 173 remains in progress.
+**Formatter repair accepted:** Recursive `tsrust format` defaults to the working directory, with read-only `--check`, directory exclusions and stable type/assertion spacing. See [formatter handoff](handoffs/handoff-2026-10-06-recursive-format.md). Gate 173 remains in progress.
 
 **Gate 173 in progress:** [Named declaration signatures and inferred results](./milestones/173-nested-function-signatures.md). Nonrecursive omitted results now infer scalar, generic, captured and array types; generic argument hints defer unknown results. Captured optional/default function values now preserve omission, single default evaluation, ownership and signature help. Generic/rest function values and wider context coverage remain open. Matched result/default workloads are registered and verified untimed.
 
@@ -247,7 +247,7 @@ Compiler language features remain eligible when the backend prototype needs them
 
 **Regression repairs before gate 101:** [Callable and depth regression repairs](./milestones/callable-regression-repairs.md) fix forwarded mutable callbacks, nullable callable and capture lowering, lost arrow parameter diagnostics and normal-stack depth, and migrate fixtures that still assumed borrowed callable defaults. Targeted suites only.
 
-**Completed call-spread focused implementation:** [Milestone 100](./milestones/100-call-spread.md) accepts dense homogeneous call spread across current callable and built-in targets, with a verified [guide](./call-spread.md) and thirteen registered comparisons verified untimed. [Evidence](../benchmarks/runtime/diagnostics/gate100-call-spread-implementation.json) lists focused checks and outstanding items. Gate 99 is closed; full regression and accumulated measurements remain deferred to a completed feature-family milestone.
+**Completed call-spread focused implementation:** [Milestone 100](./milestones/100-call-spread.md) accepts dense homogeneous call spread across current callable and built-in targets, with a verified [guide](guides/language/call-spread.md) and thirteen registered comparisons verified untimed. [Evidence](../benchmarks/runtime/diagnostics/gate100-call-spread-implementation.json) lists focused checks and outstanding items. Gate 99 is closed; full regression and accumulated measurements remain deferred to a completed feature-family milestone.
 
 **Closed rest-parameter gate:** [Milestone 99](./milestones/99-rest-parameters.md) has focused acceptance for homogeneous owning rest packs across current callable contexts. [Evidence](../benchmarks/runtime/diagnostics/gate99-rest-parameter-implementation.json) preserves integrated checks and 13 registered comparisons; [Exact archival and gate closure](../benchmarks/runtime/diagnostics/gate99-focused-closure.json) are complete. Full regression and measurements are queued for checkpoint 101.
 
@@ -315,13 +315,13 @@ Compiler language features remain eligible when the backend prototype needs them
 
 # Proposed scope and roadmap
 
-[Documentation index](./README.md) · [Open decisions](./open-decisions.md) · [Original prototype requirements](./core-and-backend-prototypes.md)
+[Documentation index](./README.md) · [Open decisions](plans/open-decisions.md) · [Original prototype requirements](plans/core-and-backend-prototypes.md)
 
 This is a proposed sequence for scoping work, not a commitment to implement every item. The original vision remains a research agenda. Research can run ahead of implementation, especially where desktop use cases expose ownership or async constraints.
 
 **Performance work:** Use standard Rust structures and methods first, with edge tests and accurately matched benchmarks. Historical primitive tuning and UTF-16 comparisons remain archived; the user does not require general JavaScript semantic parity or every engine comparison to be a native win.
 
-**Completed string migration:** [Milestone 33](./milestones/33-native-utf8-strings.md) replaces the earlier UTF-16 implementation with standard Rust UTF-8 strings and methods. Obsolete runtime/cache/storage code is archived outside the crates. Compiler acceptance, equivalent-operation timing, allocation profiles, and primitive memory replay pass. See [string semantics](./string-semantics.md).
+**Completed string migration:** [Milestone 33](./milestones/33-native-utf8-strings.md) replaces the earlier UTF-16 implementation with standard Rust UTF-8 strings and methods. Obsolete runtime/cache/storage code is archived outside the crates. Compiler acceptance, equivalent-operation timing, allocation profiles, and primitive memory replay pass. See [string semantics](guides/language/string-semantics.md).
 
 **Completed numeric compound value gate:** [Milestone 68](./milestones/68-numeric-compound-assignment-values.md) accepts all twelve int and twelve Number compound operators across supported expression contexts. 629 compiler groups and 644 workspace groups pass; one wrapper-only focused repair retains three passes before the exact fourth-group retry. Twenty-four matched rows and seventy-two fully disposed profiles pass; native leads compiled Node on 24/24 rows and the fastest scripting runtime on 24/24. Earlier 410 tables, nine primitive memory tables and auxiliary baselines remain unchanged. Owned results and nullish operations remain pending.
 
@@ -407,7 +407,7 @@ This is a proposed sequence for scoping work, not a commitment to implement ever
 
 **Gate policy:** Prioritize implementation with focused TDD. Finish compiler behavior, LSP integration, diagnostics, verified IntelliSense examples and benchmark readiness as each feature lands. Register matched counterparts, independent oracles, current fingerprints and guards immediately. Do not launch heavy regressions or measurements by gate count. SQLite remains canonical; preserve original evidence and treat implementation acceptance separately from deferred measurements.
 
-**Comprehensive coverage:** The [feature and comparison inventory](./feature-coverage.md) tracks all selected pinned TypeScript standard-library declarations and explicit language constructs, including primitive operations, loops, iterators, generators, decorators, and switch. Implementation and comparison status are independent; missing isolated comparisons stay visible even when a compound workload exercises the feature. Add related methods in coherent gates and update the inventory as they land.
+**Comprehensive coverage:** The [feature and comparison inventory](guides/language/feature-coverage.md) tracks all selected pinned TypeScript standard-library declarations and explicit language constructs, including primitive operations, loops, iterators, generators, decorators, and switch. Implementation and comparison status are independent; missing isolated comparisons stay visible even when a compound workload exercises the feature. Add related methods in coherent gates and update the inventory as they land.
 
 **Regression cadence:** Complete a meaningful feature-family scope across compiler, LSP and benchmark support before heavy checks. Then run complete regressions and matched comparisons, review comparable signals, and optimize. For example, complete the scoped Node built-in array methods before the array milestone run. Preserve completed checks; repair/rerun affected checks and resume only unrun groups. The former five-gate schedule is superseded.
 
@@ -415,7 +415,7 @@ This is a proposed sequence for scoping work, not a commitment to implement ever
 
 **Deliverables:** A product thesis, an agreed decision priority, a minimum language subset, a research register, and independent benchmark specifications. Begin competitive research and identity research; do not finalize a name before the required positioning and feasibility work.
 
-**Workstreams:** [Product vision](./product-vision.md), [principles and boundaries](./principles-and-boundaries.md), [research program](./research-program.md), [competitive landscape](./competitive-landscape.md), [identity](./identity.md), [benchmarks](./benchmarks.md), and [security](./security-and-supply-chain.md).
+**Workstreams:** [Product vision](plans/product-vision.md), [principles and boundaries](plans/principles-and-boundaries.md), [research program](plans/research-program.md), [competitive landscape](plans/competitive-landscape.md), [identity](guides/language/identity.md), [benchmarks](measurements/benchmarks.md), and [security](guides/tooling/security-and-supply-chain.md).
 
 **Exit evidence:** Identify which assumptions need experiments, which decisions block the first prototype, and which remain open. Record provisional choices as reversible experiment constraints. Preserve the original research-package requirement before full language implementation.
 
@@ -423,11 +423,11 @@ This is a proposed sequence for scoping work, not a commitment to implement ever
 
 ## Core proof: ownership and native compilation
 
-**Parallel editor track:** [VS Code foundation E1–E4](./editor-foundation.md) is implemented against the current in-process compiler API; [acceptance evidence](./editor-foundation-acceptance.md) covers the installed local extension. E5 adds source-assisted documentation hover, signature help, completion, navigation, icons and snippets without claiming C4 compiler-proven metadata. Compiler progression must preserve C0 and record editor impact in each gate. Recovery (C1), diagnostic aggregation (C2), cooperative cancellation (C3), source-indexed metadata (C4), and module/project analysis (C5) are separately scoped handoffs; they do not block the bounded first editor release. See the plan for contracts, sequencing and acceptance evidence.
+**Parallel editor track:** [VS Code foundation E1–E4](guides/tooling/editor-foundation.md) is implemented against the current in-process compiler API; [acceptance evidence](milestones/editor-foundation-acceptance.md) covers the installed local extension. E5 adds source-assisted documentation hover, signature help, completion, navigation, icons and snippets without claiming C4 compiler-proven metadata. Compiler progression must preserve C0 and record editor impact in each gate. Recovery (C1), diagnostic aggregation (C2), cooperative cancellation (C3), source-indexed metadata (C4), and module/project analysis (C5) are separately scoped handoffs; they do not block the bounded first editor release. See the plan for contracts, sequencing and acceptance evidence.
 
 **Deliverables:** The original `User`/`normalize` example compiles to a native executable. A second example proves inferred borrowing, a mutation example proves exclusive access, assignment transfers ownership, use after transfer fails, and explicit cloning permits an independent value.
 
-**Workstreams:** [Ownership and memory](./ownership-and-memory.md), [types](./type-system.md), [primitives and collections](./primitives-and-collections.md), [errors](./error-handling.md), [compiler and modules](./compiler-and-modules.md), [standard library](./standard-library.md), [toolchain](./toolchain-and-development.md), and [prototype requirements](./core-and-backend-prototypes.md).
+**Workstreams:** [Ownership and memory](guides/language/ownership-and-memory.md), [types](guides/language/type-system.md), [primitives and collections](guides/language/primitives-and-collections.md), [errors](guides/language/error-handling.md), [compiler and modules](guides/language/compiler-and-modules.md), [standard library](guides/language/standard-library.md), [toolchain](guides/tooling/toolchain-and-development.md), and [prototype requirements](plans/core-and-backend-prototypes.md).
 
 **Exit evidence:** Accepted and rejected source programs establish observable semantics. Diagnostics identify original source locations and explain transfers/access conflicts. Generated Rust compiles. Record compile time and allocation/clone behavior for the supported subset.
 
@@ -439,7 +439,7 @@ This is a proposed sequence for scoping work, not a commitment to implement ever
 
 **Deliverables:** A native `/hello` endpoint, followed by a scoped typed-JSON/validation endpoint and middleware example. Use a restricted Rust wrapper boundary for required native dependencies. Add a database integration as a distinct follow-up slice.
 
-**Workstreams:** [Async/runtime](./async-and-runtime.md), [interop](./interop-and-targets.md), [serialization](./metadata-and-serialization.md), [HTTP/Hono](./http-and-hono.md), [validation](./validation.md), [databases](./databases.md), [deployment](./deployment.md), [migration](./source-migration.md), and [backend ecosystem](./backend-ecosystem.md).
+**Workstreams:** [Async/runtime](guides/language/async-and-runtime.md), [interop](guides/tooling/interop-and-targets.md), [serialization](guides/language/metadata-and-serialization.md), [HTTP/Hono](guides/language/http-and-hono.md), [validation](guides/language/validation.md), [databases](guides/language/databases.md), [deployment](guides/tooling/deployment.md), [migration](guides/tooling/source-migration.md), and [backend ecosystem](plans/backend-ecosystem.md).
 
 **Exit evidence:** Typed parsing rejects invalid input. Original compatibility tests cover the implemented routing and middleware subset. Tests exercise async captures, shared state, cancellation, and cleanup. Measure startup, binary size, memory, latency, throughput, and compile time with documented workloads.
 
@@ -451,7 +451,7 @@ This is a proposed sequence for scoping work, not a commitment to implement ever
 
 **Deliverables:** A separate `Html` type, JSX component composition, dynamic-value escaping, and a native response writer. Scope streaming and async components as later increments within this phase.
 
-**Workstreams:** [Server HTML](./server-html.md), [HTTP/Hono](./http-and-hono.md), [migration](./source-migration.md), and [benchmarks](./benchmarks.md).
+**Workstreams:** [Server HTML](guides/language/server-html.md), [HTTP/Hono](guides/language/http-and-hono.md), [migration](guides/tooling/source-migration.md), and [benchmarks](measurements/benchmarks.md).
 
 **Exit evidence:** Original rendering tests cover nested components, dynamic text, attributes, and explicitly trusted markup. Confirm source diagnostics and observable output for the selected syntax. Measure the original HTML workload.
 
@@ -461,7 +461,7 @@ This is a proposed sequence for scoping work, not a commitment to implement ever
 
 **Deliverables:** A content-addressed package-store prototype shared by two projects, dependency identity and lockfile rules, and an inspection-only npm analyzer. Grow native packages only when a demonstrated workload requires them.
 
-**Workstreams:** [Packages/registry](./packages-and-registry.md), [npm analysis/porting](./npm-analysis-and-porting.md), [security](./security-and-supply-chain.md), and [backend ecosystem](./backend-ecosystem.md).
+**Workstreams:** [Packages/registry](guides/tooling/packages-and-registry.md), [npm analysis/porting](plans/npm-analysis-and-porting.md), [security](guides/tooling/security-and-supply-chain.md), and [backend ecosystem](plans/backend-ecosystem.md).
 
 **Exit evidence:** Demonstrate shared physical storage, reproducible dependency resolution, offline behavior, and integrity checks. Analyzer reports point to unsupported constructs and state their analysis limits. A successful inspection must not imply proven semantic equivalence.
 
@@ -473,7 +473,7 @@ This is a proposed sequence for scoping work, not a commitment to implement ever
 
 **Deliverables:** Research rendering and accessibility early. Implement the original counter only after the ownership, capture, async, and reactive models support it. Then scope the user manager and shared server/desktop example as separate milestones.
 
-**Workstreams:** [Architecture](./desktop-architecture.md), [reactivity/ownership](./desktop-reactivity.md), [controls/accessibility](./desktop-controls.md), [async/platform integration](./desktop-async-and-platform.md), [tooling/benchmarks](./desktop-tooling-and-benchmarks.md), and [prototypes/shared code](./desktop-prototypes-and-shared-code.md).
+**Workstreams:** [Architecture](plans/desktop-architecture.md), [reactivity/ownership](plans/desktop-reactivity.md), [controls/accessibility](plans/desktop-controls.md), [async/platform integration](plans/desktop-async-and-platform.md), [tooling/benchmarks](plans/desktop-tooling-and-benchmarks.md), and [prototypes/shared code](plans/desktop-prototypes-and-shared-code.md).
 
 **Exit evidence:** The counter opens a real OS window, updates the affected text binding, uses no browser engine or tracing GC, and releases associated resources on close. Inspection identifies the binding updated. Later examples prove dynamic lists, component cancellation, input, validation, and shared domain code.
 
@@ -830,7 +830,7 @@ Finite replacement carriers and point-specific checked invocation now preserve s
 The family regression milestone covers 2,325 compiler passes after affected publication repairs with zero failures and two intentional subprocess-worker ignores, plus 358 editor passes. Original interrupted recursion evidence and repaired checks remain in SQLite. The nineteen-observation replacement workload has 186 execution samples and a reviewed native median advantage of approximately 10.02 on this machine. All five consumers rebuilt from ea6bda3 pass combined CLI/native/checked-editor smoke. Imported assertions and stored native aliases preserve point-sensitive contracts. Broader scoped aggregate composition remains separate work. See milestones/callable-replacement-family.md.
 
 
-**Path relative integrated:** Borrowed arguments, owned results, checked cwd failures and complete editor assistance are accepted. Combined regressions pass 2,350 compiler and 362 editor tests; all five consumers pass smoke tests. The current matched workload measures native throughput at 0.183× Node with four allocations and one reallocation per operation. Immutable SQLite evidence and protected owner fixtures are preserved. See [the handoff](handoff-2026-10-08-path-relative.md).
+**Path relative integrated:** Borrowed arguments, owned results, checked cwd failures and complete editor assistance are accepted. Combined regressions pass 2,350 compiler and 362 editor tests; all five consumers pass smoke tests. The current matched workload measures native throughput at 0.183× Node with four allocations and one reallocation per operation. Immutable SQLite evidence and protected owner fixtures are preserved. See [the handoff](handoffs/handoff-2026-10-08-path-relative.md).
 
 Gate 181 accepts truthiness in conditions, negation and fixed-path logical assignment. Compiler, editor, project assertions and matched native/Node checks pass. Timing remains deferred. Scoped aggregate composition (B5) is next; see the compiler completion ledger.
 
@@ -856,14 +856,14 @@ installation, invocation, definite clearing, relay/early-return release and type
 callback failures. Editor behavior and a 21-observation matched workload are checked
 without timing. Recursive retained-store summaries, broader branches/loops and
 replacement completeness remain open. See
-[the nullable-store handoff](handoff-2026-10-09-b7-nullable-callback-stores.md).
+[the nullable-store handoff](handoffs/handoff-2026-10-09-b7-nullable-callback-stores.md).
 
 
 The next B7 checkpoint supports nullable replacement by distinct readonly/mutable
 callback environments, exact old-input release, nested relays and input aliases.
 Borrowed and capture-free branch alternatives both survive native conversion.
 New-input conflicts and skipped-replacement conflicts remain source diagnostics.
-The caller-transport family remains in progress; see [the replacement handoff](handoff-2026-10-09-b7-callback-replacement.md).
+The caller-transport family remains in progress; see [the replacement handoff](handoffs/handoff-2026-10-09-b7-callback-replacement.md).
 
 
 B7 now includes exact direct installation of equal-type owner instances: independent
@@ -894,7 +894,7 @@ B8 is accepted at gate 184 as a reconciliation without source changes. The gener
 
 B14 is closed by owner decision on 2026-10-10. Fallthrough between non-empty `switch` cases stays rejected with guidance; empty cases still share the next body. The inventory row carries `policy`. No compiler source changed.
 
-B9 (S04 project editor) is accepted at gate 185. Quick fixes can edit closed files while the disk text equals the checked text. Imported help survives unfinished strings, comments, bodies and imports, and import braces complete the exports of the named module. The gate also repairs a stack overflow that had aborted two compiler suites unnoticed since gate 182. See [the record](milestones/185-project-editor.md), [the map](b9-project-editor-acceptance-map.md) and [the guide](project-editor.md). B10 is next in the ledger.
+B9 (S04 project editor) is accepted at gate 185. Quick fixes can edit closed files while the disk text equals the checked text. Imported help survives unfinished strings, comments, bodies and imports, and import braces complete the exports of the named module. The gate also repairs a stack overflow that had aborted two compiler suites unnoticed since gate 182. See [the record](milestones/185-project-editor.md), [the map](milestones/b9-project-editor-acceptance-map.md) and [the guide](guides/tooling/project-editor.md). B10 is next in the ledger.
 
 
 B10/S06 is accepted at gate 186: tagged Result, exhaustive statement match, explicit
@@ -902,7 +902,7 @@ typed propagation, owned/readonly/mutable payloads, cleanup and complete editor 
 Compiler coverage is 2,754 passes; editor coverage is 472, with no failures or aborted
 suites. The seven-observation workload has uncontended matched timing and exact
 SQLite evidence. See [the record](milestones/186-result-match.md),
-[the map](b10-result-match-acceptance-map.md) and [the guide](result-match.md).
+[the map](milestones/b10-result-match-acceptance-map.md) and [the guide](guides/language/result-match.md).
 B11/S07 resources and bytes is the next dependency row; general discriminated unions
 and advanced match forms remain separate.
 
@@ -913,7 +913,7 @@ storage; editor help includes hidden native payloads. The matched six-observatio
 byte workload passes five native/Node-after-tsc cases untimed. Wider owned byte
 operations, borrowed views and resource lifecycle remain gates 188–190; S07 is not
 accepted or measured. See [the record](milestones/187-native-byte-foundation.md) and
-[the guide](native-bytes.md).
+[the guide](guides/language/native-bytes.md).
 
 
 Gate 188 owned-byte operations are accepted with focused compiler/native/editor and

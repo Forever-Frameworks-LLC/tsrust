@@ -8,8 +8,8 @@ in progress. Installed CLI/editor consumers remain at the accepted S10 checkpoin
 
 - `AGENTS.md`
 - `docs/development-workflow.md`
-- `docs/standard-library-roadmap.md`
-- `docs/standard-library-coverage.md`
+- `docs/plans/standard-library-roadmap.md`
+- `docs/guides/language/standard-library-coverage.md`
 - `docs/plans/schema-plan.md`
 
 Use one agent. The latest user override is section-batched validation: implement
@@ -78,7 +78,7 @@ Preserve unrelated untracked owner documents: `UI_VISION.md` and plans
 ```text
 Use $caveman. Continue Tsrust in /Users/seancotter/Desktop/dev/learning/tsrust toward the existing roadmap through S21 integrated release acceptance. Keep the full active goal; do not mark it complete while required work remains.
 
-Inspect Git status, then read AGENTS.md, docs/handoffs/2026-10-12-schema-unions.md, docs/development-workflow.md, docs/standard-library-roadmap.md, docs/standard-library-coverage.md and docs/plans/schema-plan.md. Implementation checkpoint: 92df22f7.
+Inspect Git status, then read AGENTS.md, docs/handoffs/2026-10-12-schema-unions.md, docs/development-workflow.md, docs/plans/standard-library-roadmap.md, docs/guides/language/standard-library-coverage.md and docs/plans/schema-plan.md. Implementation checkpoint: 92df22f7.
 
 S01–S10 are accepted. Public ordered/discriminated unions now have focused native/editor/example checks and untimed matched workloads. S11 remains incomplete. Preserve approved contracts and owner files. Reconcile source and SQLite evidence; do not treat internal prototypes as public completion.
 

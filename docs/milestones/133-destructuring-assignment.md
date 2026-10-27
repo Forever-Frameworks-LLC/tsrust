@@ -12,7 +12,7 @@ A destructuring assignment is a statement and may be an update expression of a c
 
 A record literal accepts shorthand properties: `{ x, y, label }` is `{ x: x, y: y, label: label }`. The record pattern form of assignment uses the same shorthand.
 
-See the two new sections of [the syntax guide](../destructuring.md).
+See the two new sections of [the syntax guide](../guides/language/destructuring.md).
 
 ## Implementation
 

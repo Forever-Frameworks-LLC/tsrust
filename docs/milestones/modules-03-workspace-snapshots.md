@@ -1,6 +1,6 @@
 # S04 increment: project input snapshots
 
-Status: S04 is accepted at gate 185 on 2026-10-10. See [the gate record](185-project-editor.md) and [the acceptance map](../b9-project-editor-acceptance-map.md). The sections below are the history of the increments; each "remaining" list describes the state at that increment.
+Status: S04 is accepted at gate 185 on 2026-10-10. See [the gate record](185-project-editor.md) and [the acceptance map](b9-project-editor-acceptance-map.md). The sections below are the history of the increments; each "remaining" list describes the state at that increment.
 
 ## Implemented contract
 

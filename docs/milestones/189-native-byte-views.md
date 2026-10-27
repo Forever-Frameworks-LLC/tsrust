@@ -23,7 +23,7 @@ performance review and final consumer refresh remain pending.
 Paths in this table are relative to the compiler/LSP source and test directories
 unless explicitly identified as runtime benchmark files. The detailed chronological
 commands, failures, repairs and evidence references remain in
-`docs/b11-resources-bytes-acceptance-map.md`.
+`docs/milestones/b11-resources-bytes-acceptance-map.md`.
 
 ## Evidence reviewed
 

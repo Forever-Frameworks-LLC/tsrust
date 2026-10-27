@@ -1,6 +1,6 @@
 # Milestone 01 amendment: integer values
 
-[Ownership proof](./01-ownership-proof.md) · [Primitive workstream](../primitives-and-collections.md) · [Original prototype](../core-and-backend-prototypes.md#core-52)
+[Ownership proof](./01-ownership-proof.md) · [Primitive workstream](../guides/language/primitives-and-collections.md) · [Original prototype](../plans/core-and-backend-prototypes.md#core-52)
 
 **Status:** Implemented and tested as a provisional experiment on September 30, 2026. These rules extend the ownership proof enough to run the original numeric `User`/`normalize` example. They do not settle the full numeric type system.
 

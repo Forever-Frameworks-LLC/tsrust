@@ -3,7 +3,7 @@
 Status: accepted. Nested named functions read and change the variables of their
 enclosing functions, natively and under the existing ownership rules. The sections
 below are the chronological record; where an early section says a part is pending,
-the acceptance section at the end is current. The [guide](../nested-functions.md)
+the acceptance section at the end is current. The [guide](../guides/language/nested-functions.md)
 describes the language behavior.
 
 The focused nested_function_captures suite separates this stage from owned escape.

@@ -15,7 +15,7 @@ be assigned implicitly. Explicit `Number` and `String` conversion exposes values
 Enum values work in record fields, arrays, callbacks, generics, unions and imported
 aliases. `typeof` follows the backing value category. The namespace remains static;
 reverse lookup, runtime enum objects, runtime initializers and `const enum` are
-unsupported. See [the guide](../enums.md).
+unsupported. See [the guide](../guides/language/enums.md).
 
 ## Implementation and repairs
 

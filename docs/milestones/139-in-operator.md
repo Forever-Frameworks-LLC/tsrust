@@ -8,7 +8,7 @@ Status: focused acceptance complete. Full regressions and measurements remain de
 
 `for (const key in value)` and `for (let key in value)` enumerate a snapshot of `Object.keys(value)`. Keys are borrowed strings; use `clone(key)` to store an owned copy. Neither binding can be reassigned under the existing borrowed-iteration rules. Records retain constructor key order. Arrays and tuples enumerate positions, strings enumerate UTF-16 positions, and numbers/booleans enumerate no keys. Source mutation after collection does not change the snapshot. Named bindings, single statement bodies, break and continue work; destructuring and an existing variable as the iteration binding are unsupported.
 
-See [the guide](../in-operator.md). Ordinary access does not clone. A local binding named `Object` does not change either syntax operation.
+See [the guide](../guides/language/in-operator.md). Ordinary access does not clone. A local binding named `Object` does not change either syntax operation.
 
 ## Implementation and repairs
 

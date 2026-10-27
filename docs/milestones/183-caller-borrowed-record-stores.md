@@ -11,7 +11,7 @@ cannot borrow a local of the installing function. No implicit clone, shared capt
 cell, lifetime cast or new callable kind is used.
 
 The complete status of every form is in
-[the acceptance map](../b7-caller-borrowed-acceptance-map.md): supported forms,
+[the acceptance map](b7-caller-borrowed-acceptance-map.md): supported forms,
 conservative forms that keep an input borrowed longer than necessary, and forms that
 receive a source diagnostic. The plan's acceptance sequence is covered. Abstract
 installer invocation, stores into captured records and a held installer with a mutable
@@ -28,8 +28,8 @@ captured source are diagnosed, not supported; they are listed as possible later 
   generated Rust was rejected.
 - `installer_value_uses.rs` reports abstract uses of installers as source errors.
 - Other defects repaired at this gate are listed in
-  `docs/handoff-2026-10-10-b7-captured-receiver-native.md` and
-  `docs/handoff-2026-10-10-b7-accepted.md`.
+  `docs/handoffs/handoff-2026-10-10-b7-captured-receiver-native.md` and
+  `docs/handoffs/handoff-2026-10-10-b7-accepted.md`.
 
 ## Correctness evidence
 
