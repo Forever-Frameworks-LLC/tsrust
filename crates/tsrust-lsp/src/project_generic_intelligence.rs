@@ -114,6 +114,10 @@ impl SourceIndex {
                 let source=current.0.as_bytes().iter().map(|byte|format!("{byte:02x}")).collect::<String>();
                 let flavor=if *retained {"retained_"}else{""};
                 let owner=format!("__tsrust_private_schema_{flavor}{source}_{identity}");
+                // Checked structural identities are immutable within this project
+                // revision. Reuse a completed expansion instead of walking the
+                // same nested fields for each projection and parameter fact.
+                if self.generic_display_names.get(&owner).is_some_and(|display| display != "self") { return Some(owner); }
                 self.generic_display_names.insert(owner.clone(), "self".into());
                 let fields=fields.iter().map(|(name,optional,ty)|Some((name.clone(),*optional,self.project_type_spelling(graph,current,ty,dependencies)?))).collect::<Option<Vec<_>>>()?;
                 let display=format!("{{ {} }}",fields.iter().map(|(name,optional,ty)|format!("{name}{}: {};",if *optional {"?"}else{""},self.display_type(ty))).collect::<Vec<_>>().join(" "));
@@ -235,7 +239,21 @@ impl SourceIndex {
         facts: &ProjectCheckedTypeFacts,
         dependencies: &std::collections::BTreeMap<SourceId, SourceIndex>,
     ) {
+        // Other declarations are already checked in their owning dependency
+        // index. Their fields are imported on demand when a checked value names
+        // that type; copying every unrelated record into every module is quadratic
+        // for generated documentation loaders.
+        let mut visible_sources = std::collections::BTreeSet::from([current.clone()]);
+        visible_sources.extend(graph.modules[current].imports.iter().filter_map(|import|import.target.clone()));
+        visible_sources.extend(self.foreign_definitions.values().filter_map(|location|location["uri"].as_str())
+            .filter_map(|uri|crate::project_diagnostics::source_id(uri).ok()));
         for (owner,name,location,ty,optional) in &facts.record_fields {
+            // Imported data already has complete compiler-derived schema symbols,
+            // including expanded property help. Reapplying nominal facts would
+            // replace those shapes with private JsonData implementation names.
+            if graph.modules.get(&location.source).is_some_and(|module|module.data.is_some()) { continue; }
+            if let ProjectType::Named { declaration: Some(declaration), .. } = owner
+                && !visible_sources.contains(&declaration.source) { continue; }
             let Some(owner)=self.project_type_spelling(graph,current,owner,dependencies) else{continue;};
             let Some(ty)=self.project_type_spelling(graph,current,ty,dependencies) else{continue;};
             let signature=format!("{name}{}: {}",if *optional{"?"}else{""},self.display_type(&ty));

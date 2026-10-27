@@ -7,14 +7,17 @@ import { pathToFileURL } from 'node:url';
 
 const root = path.resolve(process.argv[2] || 'target/application-preview');
 const executable = path.resolve(process.env.TSRUST_LSP_SERVER || 'target/debug/tsrust-lsp.exe');
+const diagnosticTimeoutMs = Number(process.env.TSRUST_EDITOR_DIAGNOSTIC_TIMEOUT_MS || 15000);
+assert.ok(Number.isInteger(diagnosticTimeoutMs) && diagnosticTimeoutMs >= 1000 && diagnosticTimeoutMs <= 300000);
 const projectConfig = JSON.parse(fs.readFileSync(path.join(root, 'tsrust.config.json'), 'utf8'));
-const apiConfig = projectConfig.api || JSON.parse(fs.readFileSync(path.join(root, 'tsrust.api.json'), 'utf8'));
+const standaloneApi = path.join(root, 'tsrust.api.json');
+const apiConfig = projectConfig.api || (fs.existsSync(standaloneApi) ? JSON.parse(fs.readFileSync(standaloneApi, 'utf8')) : null);
 const child = spawn(executable, [], { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
 let pending = Buffer.alloc(0), sequence = 0, errors = '';
 const requests = new Map(), diagnostics = new Map();
 const exited = new Promise((resolve, reject) => { child.once('error', reject); child.once('close', resolve); });
-const timeout = setTimeout(() => child.kill(), 60000);
-child.stderr.on('data', chunk => { errors += chunk; });
+const timeout = setTimeout(() => child.kill(), Math.max(60000, diagnosticTimeoutMs * 4));
+child.stderr.on('data', chunk => { errors += chunk; if (process.env.TSRUST_LSP_TRACE_TIMINGS) process.stderr.write(chunk); });
 child.stdout.on('data', chunk => {
   pending = Buffer.concat([pending, chunk]);
   while (true) {
@@ -40,22 +43,25 @@ async function request(method, params) {
   send(method, params, id); return response;
 }
 async function result(uri, version) {
-  for (let attempt = 0; attempt < 150; attempt++) {
+  const deadline = Date.now() + diagnosticTimeoutMs;
+  while (Date.now() < deadline) {
     if (child.exitCode !== null) throw new Error(`LSP exited: ${errors}`);
     const value = diagnostics.get(uri); if (value && value.version === version) return value.diagnostics;
     await new Promise(resolve => setTimeout(resolve, 100));
   }
-  throw new Error(`No LSP diagnostics for version ${version}: ${errors}`);
+  const observed = [...diagnostics].map(([uri, value]) => ({ uri, version: value.version, count: value.diagnostics.length }));
+  const counters = await request('tsrust/counters', {});
+  throw new Error(`No LSP diagnostics for version ${version}: ${JSON.stringify({ observed, counters, stderr: errors })}`);
 }
 try {
   await request('initialize', { rootUri: pathToFileURL(root).href, capabilities: {}, initializationOptions: { debounceMs: 0 } });
   send('initialized', {});
-  for (const relative of [projectConfig.build.entry, apiConfig.entry]) {
+  for (const relative of [...new Set([projectConfig.build.entry, ...(apiConfig ? [apiConfig.entry] : [])])]) {
     const file = path.join(root, relative), uri = pathToFileURL(file).href, source = fs.readFileSync(file, 'utf8');
     send('textDocument/didOpen', { textDocument: { uri, languageId: 'tsrust', version: 1, text: source } });
     assert.deepEqual(await result(uri, 1), [], `${relative} has editor diagnostics`);
-    if (relative === apiConfig.entry) {
-      const invalid = source.replace('): string', '): int'); assert.notEqual(invalid, source);
+    if (relative === (apiConfig?.entry || projectConfig.build.entry)) {
+      const invalid = source + '\nfunction _tsrustEditorDiagnosticProbe(): int { return "invalid"; }\n';
       send('textDocument/didChange', { textDocument: { uri, version: 2 }, contentChanges: [{ text: invalid }] });
       assert.ok((await result(uri, 2)).some(value => value.severity === 1), 'LSP must report an actual type error');
       send('textDocument/didChange', { textDocument: { uri, version: 3 }, contentChanges: [{ text: source }] });
@@ -66,7 +72,7 @@ try {
   }
   await request('shutdown', null); send('exit');
   assert.equal(await exited, 0, errors);
-  console.log('Generated application editor: real LSP entry/operation diagnostics clean; deliberate type error reported and cleared after repair; disk source preserved.');
+  console.log('Application editor: real LSP entry/operation diagnostics clean; deliberate type error reported and cleared after repair; disk source preserved.');
 } finally {
   clearTimeout(timeout);
   if (child.exitCode === null) { child.kill(); await exited; }

@@ -59,13 +59,20 @@ mod inherited_help_tests {
 }
 impl ProjectIndex {
     pub fn checked(analysis: &tsrust_compiler::project::ProjectAnalysis) -> Self {
+        let trace = std::env::var_os("TSRUST_LSP_TRACE_TIMINGS").is_some();
+        let started = std::time::Instant::now();
         let mut index = Self::build(&analysis.graph);
+        if trace { eprintln!("[index] build={}ms modules={}", started.elapsed().as_millis(), analysis.graph.order.len()); }
+        let started = std::time::Instant::now();
         let labels=analysis.checked_control_labels();
         let facts = analysis.checked_type_facts();
         let local_functions = analysis.checked_local_functions();
+        if trace { eprintln!("[index] facts={}ms", started.elapsed().as_millis()); }
+        let started = std::time::Instant::now();
         for id in &analysis.graph.order {
             // Data has no executable body; its complete declarations come from the checked schema.
             if analysis.graph.modules[id].data.is_some(){index.indices.get_mut(id).expect("indexed data source").mark_checked();continue;}
+            let module_started = std::time::Instant::now();
             let mut source = index.indices.remove(id).expect("indexed project source");
             source.checked_control_labels=labels.iter().filter(|(span,definition)|span.source==*id && definition.source==*id).map(|(span,definition)|(span.span,definition.span)).collect();
             source.apply_project_checked_facts(&analysis.graph, id, &facts, &index.indices);
@@ -73,8 +80,12 @@ impl ProjectIndex {
             source.apply_project_function_results(analysis, id, &index.indices);
             source.mark_checked();
             index.indices.insert(id.clone(), source);
+            if trace && module_started.elapsed().as_millis() >= 500 { eprintln!("[index] apply-module={}ms source={}", module_started.elapsed().as_millis(), id.0); }
         }
+        if trace { eprintln!("[index] apply={}ms", started.elapsed().as_millis()); }
+        let started = std::time::Instant::now();
         index.refresh_references();
+        if trace { eprintln!("[index] references={}ms", started.elapsed().as_millis()); }
         index
     }
     pub fn new(graph: &ProjectGraph) -> Self {
@@ -84,9 +95,11 @@ impl ProjectIndex {
         index
     }
     fn build(graph: &ProjectGraph) -> Self {
+        let trace = std::env::var_os("TSRUST_LSP_TRACE_TIMINGS").is_some();
         let mut indices = BTreeMap::new();
         let mut declarations: BTreeMap<SourceId, SourceIndex> = BTreeMap::new();
         for id in &graph.order {
+            let started = std::time::Instant::now();
             let module = &graph.modules[id];
             let text_asset=module.data.is_some()&&std::path::Path::new(&id.0).extension().is_some_and(|value|value=="txt");
             let (mut declaration,mut index)=if text_asset {let schema=module.data.as_ref().unwrap().schema();(SourceIndex::text_asset(&module.source.text,&schema),SourceIndex::text_asset(&module.source.text,&schema))}else{(SourceIndex::with_entry_help(&module.declaration_source,false),SourceIndex::with_entry_help(module.checked_source(),id==&graph.entry))};
@@ -151,6 +164,7 @@ impl ProjectIndex {
             declarations.insert(id.clone(), declaration);
             index.finish_imports();
             indices.insert(id.clone(), index);
+            if trace && started.elapsed().as_millis() >= 500 { eprintln!("[index] module={}ms source={}", started.elapsed().as_millis(), id.0); }
         }
         Self {
             indices,

@@ -123,7 +123,11 @@ fn run(
             let result = catch_unwind(AssertUnwindSafe(|| {
                 if let Some(workspace) = &workspace {
                     let entry = tsrust_lsp::project_diagnostics::source_id(&snapshot.uri)?;
+                    let trace = std::env::var_os("TSRUST_LSP_TRACE_TIMINGS").is_some();
+                    let started = Instant::now();
                     let result = workspace.check_with_diagnostics(&entry);
+                    if trace { eprintln!("[analysis] check={}ms", started.elapsed().as_millis()); }
+                    let started = Instant::now();
                     let index = match &result {
                         Ok(analysis) => Some(tsrust_lsp::project_intelligence::ProjectIndex::checked(analysis)),
                         Err(_) => {
@@ -134,6 +138,8 @@ fn run(
                                 })
                         }
                     };
+                    if trace { eprintln!("[analysis] index={}ms", started.elapsed().as_millis()); }
+                    let started = Instant::now();
                     let errors = match result {Ok(analysis)=>analysis.warnings(),Err(errors)=>errors};
                     let error = errors.first();
                     let actions = error
@@ -143,8 +149,10 @@ fn run(
                             )
                         })
                         .transpose()?;
-                    tsrust_lsp::project_diagnostics::convert_all(workspace, &errors)
-                        .map(|buckets| DiagnosticBatch::Project(buckets, index, actions))
+                    let converted = tsrust_lsp::project_diagnostics::convert_all(workspace, &errors)
+                        .map(|buckets| DiagnosticBatch::Project(buckets, index, actions));
+                    if trace { eprintln!("[analysis] diagnostics={}ms", started.elapsed().as_millis()); }
+                    converted
                 } else {
                     checker(&snapshot.text, &snapshot.uri).map(DiagnosticBatch::Single)
                 }
