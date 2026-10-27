@@ -1,0 +1,35 @@
+import { Router } from 'std:http';
+import { Channel } from 'std:futures';
+import { FixtureState, authorize } from './server-policy.tsr';
+import { dispatch } from '../generated-server/index.tsr';
+
+async function main(): Task<void> {
+  const control = new Channel<boolean>(1);
+  const app = new Router<FixtureState>({
+    stop: control.sender(), increment: 10
+  });
+  app.configure({
+    bodyLimit: 65536, maxConnections: 8, maxRequests: 8, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 1000
+  });
+  app.post('/api', dispatch);
+  // Only the fixture runner uses this authenticated orderly shutdown route.
+  app.post('/__fixture_stop', async (context) => {
+    const allowed = await authorize(context);
+    if (!allowed) {
+      return context.text('Denied', 403);
+    }
+
+    await context.env.stop.send(true);
+    return context.text('stopping');
+  });
+  const server = await app.listen('127.0.0.1:0');
+  console.log(JSON.stringify({
+    kind: 'ready', address: server.address()
+  }));
+  try {
+    await control.receive();
+  } finally {
+    await server.shutdown();
+    control.close();
+  }
+}

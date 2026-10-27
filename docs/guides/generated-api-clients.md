@@ -134,6 +134,67 @@ do not require exact hash equality for additive rolling upgrades. Hosted transpo
 limits, application authorization, public error projection, compatibility checks
 and query adapters remain separate prototype acceptance requirements.
 
+## Private native dispatch (implementation in progress)
+
+The next generator version adds optional private source output. These changes
+are not yet accepted or installed; use the existing client-only configuration
+until the native dispatch milestone passes.
+
+```json
+{
+  "server": {
+    "output": "app/generated-api",
+    "context": { "module": "app/context.tsr", "export": "TaskContext" },
+    "authorize": { "module": "app/access.tsr", "export": "authorize" },
+    "compatible": ["contracts/v1.json"],
+    "maxRequestBytes": 65536,
+    "maxResponseBytes": 65536
+  }
+}
+```
+
+Add this optional member to the ordinary API config, and add `"context": true`
+only to operations whose first parameter is a borrowed native HTTP Context.
+That parameter is private; the remaining zero/one plain-data argument is the wire
+input. An arbitrary pool/resource or an owned Context cannot be hidden this way.
+Context roles do not alter the public contract identity. Application state and
+policy stay in backend modules. An authorize hook must return `Task<boolean>`
+from the configured Context; it runs before request decoding or operation calls.
+Returning true is the application's explicit access decision. Configure Router
+body/concurrency/time limits too: the generated decoder's post-read size guard
+does not replace HTTP admission limits.
+
+The private output contains `index.tsr`; register its `dispatch` export on the
+application Router. It requires POST, JSON MIME, a declared operation and an
+accepted contract hash. Schemas derive from the checked functions. Generic
+materialization uses ordinary checked specialization, never an assertion of
+unknown JSON as a DTO. Invalid arguments/results, policy denial and backend
+exceptions produce bounded public error messages. Typed domain-result unions
+remain ordinary successful data. Neither failure nor cancellation asserts rollback.
+
+The private output must be separate from the public package. Generation checks
+the complete virtual handler before replacing outputs, pins checked input/config
+versions and preflights ownership for both destinations. Both destinations have
+independent generated hash markers/locks; edits are preserved. Replacements are
+individually atomic and retryable, not a filesystem-wide transaction. `--check`
+writes nothing. An explicit `--out` changes the client destination while a configured
+private server keeps its own destination. Omit `server` for client-only adoption.
+
+Retain public `manifest.json` versions as application compatibility policy inputs.
+The generator checks old inputs still fit the new operation and new outputs can
+be projected into the old strict shape, recursively. This permits added optional
+inputs and new output fields without making old clients accept unknown fields.
+Removed operations, changed query/mutation roles, newly required inputs and unsafe
+output changes reject per operation with `api-incompatible`. Unrecognized client
+hashes reject too. Compatibility checks concern supported wire shapes; they do
+not prove unchanged business semantics. Keep immutable contract versions rather
+than editing an old policy input to describe a different client.
+
+The HTTP encoder retains platform JSON escaping and marks unsafe integral JS
+numbers as decimal floating-point tokens. Thus finite values such as 1e20 do not
+overflow native bare-integer JSON storage. Numeric text in strings/keys stays
+unchanged. Safe integer DTOs retain their stricter limit.
+
 Run [the example](../../examples/api-contract/README.md) and
 `node tools/verify-api-client.mjs` with the current compiler to check named calls,
 codecs, type inference and owner-edit protection. The verification uses existing

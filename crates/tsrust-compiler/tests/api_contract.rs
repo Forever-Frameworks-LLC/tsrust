@@ -16,7 +16,7 @@ fn project(source: &str, names: &str) -> ProjectAnalysis {
     check_graph(load_project(&provider, "main.tsr").unwrap()).unwrap_or_else(|error| panic!("{}", error.message))
 }
 
-fn select(name: &str, export: &str) -> Selection { Selection { name: name.into(), export: export.into(), module: "operations.tsr".into(), kind: Kind::Query } }
+fn select(name: &str, export: &str) -> Selection { Selection { name: name.into(), export: export.into(), module: "operations.tsr".into(), kind: Kind::Query, context: false } }
 
 #[test]
 fn checked_contracts_preserve_optional_nullable_literals_and_order() {
@@ -68,6 +68,44 @@ fn async_operations_describe_eventual_plain_results() {
 }
 
 #[test]
+fn explicitly_selected_native_context_stays_out_of_public_contracts() {
+    let checked = project("import {Context} from 'std:http';export async function count(context:Mutable<Context>,input:int):Task<int>{return input+context.req.method().length;}", "count");
+    let mut selection = select("count", "count");
+    assert!(Manifest::from_project(&checked, &[selection.clone()]).is_err(), "context is never hidden implicitly");
+    selection.context = true;
+    let api = CheckedApi::from_project(&checked, &[selection]).unwrap();
+    assert_eq!(api.manifest.operations[0].input, Schema::Integer);
+    assert_eq!(api.manifest.operations[0].output, Schema::Integer);
+    let plain = project("export async function count(input:int):Task<int>{return input;}", "count");
+    assert_eq!(api.manifest.identity(), Manifest::from_project(&plain, &[select("count", "count")]).unwrap().identity());
+    for contents in api.manifest.client_package("api", "0.1.0").unwrap().values() {
+        assert!(!contents.contains("std:http"));
+        assert!(!contents.contains("Mutable<Context>"));
+    }
+    let zero = project("import {Context} from 'std:http';export function ping(context:ReadOnly<Context>):string{return context.req.method();}", "ping");
+    let mut selection = select("ping", "ping");
+    selection.context = true;
+    assert_eq!(Manifest::from_project(&zero, &[selection]).unwrap().operations[0].input, Schema::Void);
+}
+
+#[test]
+fn context_selection_cannot_hide_owned_contexts_or_arbitrary_resources() {
+    for source in [
+        "import {Context} from 'std:http';export function value(context:Owned<Context>):int{return 1;}",
+        "import {Pool} from 'std:sql';export function value(pool:ReadOnly<Pool>):int{return 1;}",
+        "export function value(input:int):int{return input;}",
+        "type FakeContext={value:int;};export function value(input:ReadOnly<FakeContext>):int{return input.value;}",
+        "export function value():int{return 1;}",
+    ] {
+        let checked = project(source, "value");
+        let mut selection = select("value", "value");
+        selection.context = true;
+        let error = Manifest::from_project(&checked, &[selection]).err().unwrap();
+        assert!(error.contains("Context"), "{error}");
+    }
+}
+
+#[test]
 fn package_metadata_is_portable_and_has_no_runtime_dependencies() {
     let project = project("export function value():int{return 7;}", "value");
     let manifest = Manifest::from_project(&project, &[select("value", "value")]).unwrap();
@@ -84,4 +122,61 @@ fn package_metadata_is_portable_and_has_no_runtime_dependencies() {
     assert!(!files["index.js"].contains("from './http.js'"));
     for name in ["../bad", "Name", "@scope/../bad", "@/bad"] { assert!(manifest.client_package(name, "0.1.0").is_err()); }
     assert!(manifest.client_package("api", "01.0.0").is_err());
+}
+
+fn object(fields: &[(&str, Schema)], required: &[&str]) -> Schema {
+    Schema::Object { properties: fields.iter().map(|(name, shape)| (name.to_string(), shape.clone())).collect(), required: required.iter().map(|name| name.to_string()).collect() }
+}
+
+#[test]
+fn rolling_contracts_require_safe_inputs_and_projectable_outputs() {
+    let old_input = object(&[("title", Schema::String)], &["title"]);
+    let old_output = object(&[("id", Schema::Integer), ("title", Schema::String)], &["id", "title"]);
+    let old = Operation { name: "tasks.create".into(), kind: Kind::Mutation, input: old_input.clone(), output: old_output.clone() };
+    let mut current = old.clone();
+    current.input = object(&[("title", Schema::String), ("completed", Schema::Boolean)], &["title"]);
+    current.output = object(&[("id", Schema::Integer), ("title", Schema::String), ("completed", Schema::Boolean)], &["id", "title", "completed"]);
+    assert!(current.supports_previous(&old), "optional new inputs and projected new output fields are compatible");
+    let compatible = current.clone();
+    current.input = object(&[("title", Schema::String), ("completed", Schema::Boolean)], &["title", "completed"]);
+    assert!(!current.supports_previous(&old), "new required input is incompatible");
+    current = compatible.clone();
+    current.output = object(&[("id", Schema::Number), ("title", Schema::String)], &["id", "title"]);
+    assert!(!current.supports_previous(&old), "old safe integer outputs cannot accept arbitrary numbers");
+    current = compatible.clone();
+    current.output = object(&[("id", Schema::Integer), ("title", Schema::String)], &["id"]);
+    assert!(!current.supports_previous(&old), "old required output cannot become optional");
+    current = compatible.clone(); current.kind = Kind::Query;
+    assert!(!current.supports_previous(&old));
+    let old_nested = Operation { output: object(&[("item", old_output)], &["item"]), ..old.clone() };
+    let current_nested = Operation { output: object(&[("item", compatible.output)], &["item"]), ..old.clone() };
+    assert!(current_nested.supports_previous(&old_nested), "projection applies recursively");
+    let old_optional = Operation { input: object(&[("title", Schema::String), ("extra", Schema::Boolean)], &["title"]), ..old.clone() };
+    assert!(!old.supports_previous(&old_optional), "old optional fields may still be supplied; removing one is breaking");
+    let old_literal = Operation { input: Schema::Literal { value: serde_json::json!("a") }, output: Schema::String, ..old.clone() };
+    let new_literal = Operation { input: Schema::String, output: Schema::Literal { value: serde_json::json!("b") }, ..old };
+    assert!(new_literal.supports_previous(&old_literal), "wider inputs and narrower outputs are safe");
+}
+
+#[test]
+fn retained_manifests_reject_malformed_shapes_and_namespace_conflicts() {
+    let operation = Operation { name: "value".into(), kind: Kind::Query, input: Schema::Void, output: Schema::String };
+    let mut manifest = Manifest { schema_version: 1, operations: vec![operation.clone()] };
+    manifest.validate().unwrap();
+    let round_trip: Manifest = serde_json::from_str(&serde_json::to_string(&manifest).unwrap()).unwrap();
+    assert_eq!(manifest, round_trip);
+    for shape in [
+        object(&[("a", Schema::String)], &["missing"]),
+        object(&[("a", Schema::String)], &["a", "a"]),
+        Schema::Union { members: vec![] },
+        Schema::Array { items: Box::new(Schema::Void) },
+        Schema::Literal { value: serde_json::json!({"not":"literal"}) },
+        Schema::Literal { value: serde_json::json!(9007199254740993_u64) },
+    ] {
+        manifest.operations[0].output = shape;
+        assert!(manifest.validate().is_err());
+    }
+    manifest.operations = vec![operation.clone(), Operation { name: "value.child".into(), ..operation }];
+    assert!(manifest.validate().is_err());
+    assert!(serde_json::from_str::<Manifest>(r#"{"schemaVersion":1,"operations":[],"extra":true}"#).is_err());
 }

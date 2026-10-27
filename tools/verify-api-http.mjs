@@ -14,8 +14,9 @@ export async function verifyHttp(directory) {
   const server = createServer(async (request, response) => {
     const chunks = [];
     for await (const chunk of request) chunks.push(chunk);
-    const body = JSON.parse(Buffer.concat(chunks).toString());
-    requests.push({ url: request.url, headers: request.headers, body });
+    const raw = Buffer.concat(chunks).toString();
+    const body = JSON.parse(raw);
+    requests.push({ url: request.url, headers: request.headers, body, raw });
     response.setHeader('content-type', 'application/json; charset=utf-8');
     if (request.url === '/redirect') {
       response.writeHead(307, { location: '/api' });
@@ -39,7 +40,7 @@ export async function verifyHttp(directory) {
       };
       slowStarted();
     } else {
-      const value = body.operation === 'tasks.create'
+      const value = body.operation === 'data.echo' ? body.input : body.operation === 'tasks.create'
         ? { kind: 'task', id: 1, title: body.input.title, completed: false }
         : body.input + 1;
       response.end(JSON.stringify({ ok: true, value }));
@@ -62,6 +63,13 @@ export async function verifyHttp(directory) {
     assert.equal(requests[0].headers.accept, 'application/json');
     assert.deepEqual(requests[0].body, { operation: 'math.count', input: 1 });
     assert.equal((await api.tasks.create({ title: 'Ship \u{1f680}' })).title, 'Ship \u{1f680}');
+    const numericText = '100000000000000000000 " 9007199254740992 \\ 1e20';
+    for (const ratio of [1e20, -1e20, Number.MAX_SAFE_INTEGER + 1, Number.MAX_VALUE, 0.125]) {
+      const rich = { pair: [2, numericText], ratio, enabled: true, variant: { kind: 'a', value: 3 } };
+      assert.deepEqual(await api.data.echo(rich), rich);
+      assert.equal(requests.at(-1).body.input.pair[1], numericText, 'numeric text is not rewritten');
+      if (ratio === 1e20) assert.match(requests.at(-1).raw, /"ratio":100000000000000000000\.0/);
+    }
     await rejects(client('/denied').math.count(1), 'denied');
     await rejects(client('/html').math.count(1), 'api-http');
     await rejects(client('/invalid').math.count(1), 'api-protocol');

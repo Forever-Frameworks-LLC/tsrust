@@ -2,14 +2,27 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeMap, fs, path::{Component, Path, PathBuf}};
-use tsrust_compiler::{api::{Manifest, Selection}, project::{FileSourceProvider, SourceProvider, load_project, check_graph}};
+use tsrust_compiler::{api::{CheckedApi, Manifest, NativeImport, NativeServer, Selection}, project::{SourceId, SourceProvider, load_project, check_graph}};
+use super::package_validation::{Candidate, normalize};
 
 const CONFIG: &str = "tsrust.api.json";
 const MARKER: &str = ".tsrust-api.json";
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-struct Config { schema_version: u32, entry: String, output: String, package: Package, operations: Vec<Selection> }
+struct Config { schema_version: u32, entry: String, output: String, package: Package, operations: Vec<Selection>, #[serde(default)] server: Option<Server> }
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct Server {
+    output: String, context: Import, authorize: Import,
+    #[serde(default)] compatible: Vec<String>,
+    #[serde(default = "byte_limit")] max_request_bytes: u32,
+    #[serde(default = "byte_limit")] max_response_bytes: u32,
+}
+fn byte_limit() -> u32 { 65536 }
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Import { module: String, export: String }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Package { name: String, version: String }
@@ -65,23 +78,27 @@ fn atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
 struct OutputLock(PathBuf);
 impl Drop for OutputLock { fn drop(&mut self) { let _ = fs::remove_file(&self.0); } }
 
-fn write_package(output: &Path, files: &BTreeMap<String, String>, check: bool) -> Result<(), String> {
+struct OutputPlan { output: PathBuf, files: BTreeMap<String, String>, next: Marker, observed: BTreeMap<String, Option<String>>, _lock: Option<OutputLock> }
+fn prepare_package(output: &Path, files: BTreeMap<String, String>, check: bool) -> Result<OutputPlan, String> {
     safe_output(output)?;
-    let _lock = if check { None } else {
+    let lock = if check { None } else {
         fs::create_dir_all(output).map_err(|error| error.to_string())?;
         let lock = output.join(".tsrust-api.lock");
         fs::OpenOptions::new().write(true).create_new(true).open(&lock).map_err(|error| format!("Cannot lock API output (another generator or stale lock may exist): {error}"))?;
         Some(OutputLock(lock))
     };
-    let previous = regular(&output.join(MARKER))?.map(|bytes| serde_json::from_slice::<Marker>(&bytes).map_err(|error| format!("Invalid generated API marker: {error}"))).transpose()?;
+    let marker = regular(&output.join(MARKER))?;
+    let mut observed = BTreeMap::from([(MARKER.to_owned(), marker.as_deref().map(hash))]);
+    let previous = marker.map(|bytes| serde_json::from_slice::<Marker>(&bytes).map_err(|error| format!("Invalid generated API marker: {error}"))).transpose()?;
     if previous.as_ref().is_some_and(|marker| marker.schema_version != 1) { return Err("Unsupported generated API marker version".into()); }
     if previous.is_none() && output.exists() && fs::read_dir(output).map_err(|error| error.to_string())?
         .any(|entry| entry.map_or(true, |entry| entry.file_name() != ".tsrust-api.lock")) {
         return Err("API output must be empty or previously generated; existing application files are preserved".into());
     }
     let next = Marker { schema_version: 1, files: files.iter().map(|(name, contents)| (name.clone(), hash(contents.as_bytes()))).collect() };
-    for (name, contents) in files {
+    for (name, contents) in &files {
         let current = regular(&output.join(name))?;
+        observed.insert(name.clone(), current.as_deref().map(hash));
         if check {
             if current.as_deref() != Some(contents.as_bytes()) { return Err(format!("Generated API is stale: {name}; run tsrust api generate")); }
         } else if let Some(bytes) = current {
@@ -93,14 +110,27 @@ fn write_package(output: &Path, files: &BTreeMap<String, String>, check: bool) -
     }
     if check {
         if previous.as_ref().map(|marker| &marker.files) != Some(&next.files) { return Err("Generated API marker is stale; run tsrust api generate".into()); }
-        return Ok(());
     }
+    Ok(OutputPlan { output: output.to_owned(), files, next, observed, _lock: lock })
+}
+
+impl OutputPlan {
+ fn unchanged(&self) -> Result<(), String> {
+    safe_output(&self.output)?;
+    for (name, before) in &self.observed {
+        if &regular(&self.output.join(name))?.as_deref().map(hash) != before { return Err(format!("Generated API output {name} changed during validation; nothing applied to this output")); }
+    }
+    Ok(())
+ }
+ fn apply(&self) -> Result<(), String> {
     // All contracts and owner-edit checks complete before the first replacement.
     // A failed partial write is recoverable: preflight accepts old or planned bytes.
-    for (name, contents) in files {
-        if regular(&output.join(name))?.as_deref() != Some(contents.as_bytes()) { atomic(&output.join(name), contents.as_bytes())?; }
+    self.unchanged()?;
+    for (name, contents) in &self.files {
+        if regular(&self.output.join(name))?.as_deref() != Some(contents.as_bytes()) { atomic(&self.output.join(name), contents.as_bytes())?; }
     }
-    atomic(&output.join(MARKER), format!("{}\n", serde_json::to_string_pretty(&next).map_err(|error| error.to_string())?).as_bytes())
+    atomic(&self.output.join(MARKER), format!("{}\n", serde_json::to_string_pretty(&self.next).map_err(|error| error.to_string())?).as_bytes())
+ }
 }
 
 pub(super) fn run(args: impl Iterator<Item = String>) -> Result<u8, String> {
@@ -121,22 +151,65 @@ pub(super) fn run(args: impl Iterator<Item = String>) -> Result<u8, String> {
     let path = if let Some(config) = config { cwd.join(config) } else {
         cwd.ancestors().map(|root| root.join(CONFIG)).find(|path| path.is_file()).ok_or("No tsrust.api.json found; pass --config for an existing project")?
     };
+    let path = fs::canonicalize(path).map_err(|error| error.to_string())?;
     let root = path.parent().ok_or("API config needs a parent directory")?;
-    let config: Config = serde_json::from_slice(&fs::read(&path).map_err(|error| format!("{}: {error}", path.display()))?).map_err(|error| format!("{}: {error}", path.display()))?;
+    let inputs = Candidate::new(BTreeMap::new())?;
+    let config_source = inputs.read(&SourceId(path.to_string_lossy().into_owned()))?;
+    let config: Config = serde_json::from_str(&config_source).map_err(|error| format!("{}: {error}", path.display()))?;
     if config.schema_version != 1 { return Err("API configuration schemaVersion must be 1".into()); }
     let entry = root.join(relative(&config.entry)?);
     let output = output.map(|path| cwd.join(path)).unwrap_or(root.join(relative(&config.output)?));
+    safe_output(&output)?;
+    let output = normalize(&output)?;
     let mut selections = config.operations;
     for selection in &mut selections {
         let path = root.join(relative(&selection.module)?);
-        selection.module = FileSourceProvider.resolve(None, path.to_str().ok_or("API source path must be UTF-8")?)?.0;
+        selection.module = inputs.resolve(None, path.to_str().ok_or("API source path must be UTF-8")?)?.0;
     }
-    let graph = load_project(&FileSourceProvider, entry.to_str().ok_or("API entry must be UTF-8")?).map_err(|error| error.message)?;
+    let graph = load_project(&inputs, entry.to_str().ok_or("API entry must be UTF-8")?).map_err(|error| error.message)?;
     let project = check_graph(graph).map_err(|error| error.message)?;
-    let manifest = Manifest::from_project(&project, &selections)?;
-    let files = manifest.client_package(&config.package.name, &config.package.version)?;
-    write_package(&output, &files, check)?;
-    println!("{} API client: {} operations, contract {}", if check { "Verified" } else { "Generated" }, manifest.operations.len(), manifest.identity());
+    let api = CheckedApi::from_project(&project, &selections)?;
+    let files = api.manifest.client_package(&config.package.name, &config.package.version)?;
+    let mut packages = vec![(output.clone(), files)];
+    let mut native_inputs = None;
+    if let Some(server) = config.server {
+        let directory = root.join(relative(&server.output)?);
+        safe_output(&directory)?;
+        let directory = normalize(&directory)?;
+        if directory.starts_with(&output) || output.starts_with(&directory) { return Err("Private server output and public client output must be separate directories".into()); }
+        let resolve = |import: Import| -> Result<NativeImport, String> {
+            let path = root.join(relative(&import.module)?);
+            Ok(NativeImport { module: inputs.resolve(None, path.to_str().ok_or("API import path must be UTF-8")?)?.0, export: import.export })
+        };
+        let context = resolve(server.context)?;
+        let authorize = resolve(server.authorize)?;
+        let mut previous = Vec::new();
+        for retained in server.compatible {
+            let path = root.join(relative(&retained)?);
+            let id = inputs.resolve(None, path.to_str().ok_or("Retained manifest path must be UTF-8")?)?;
+            previous.push(serde_json::from_str::<Manifest>(&inputs.read(&id)?).map_err(|error| format!("Invalid retained API manifest: {error}"))?);
+        }
+        let entry = directory.join("index.tsr");
+        let options = NativeServer { context, authorize, previous, max_request_bytes: server.max_request_bytes, max_response_bytes: server.max_response_bytes };
+        let source = api.native_source(&entry, &options)?;
+        let source = tsrust_compiler::format(&source).map_err(|error| error.message)?;
+        if tsrust_compiler::format(&source).map_err(|error| error.message)? != source { return Err("Generated API source formatting is not stable".into()); }
+        let id = SourceId(entry.to_string_lossy().into_owned());
+        let candidate = Candidate::new(BTreeMap::from([(id, source.clone())]))?;
+        let render = |error| tsrust_compiler::project_cli::InputDiagnostic::Project(error).render_with_provider(&entry.to_string_lossy(), &source, false, &candidate);
+        let graph = load_project(&candidate, entry.to_str().ok_or("API server path must be UTF-8")?).map_err(&render)?;
+        check_graph(graph).map_err(render)?;
+        native_inputs = Some(candidate);
+        packages.push((directory, BTreeMap::from([("index.tsr".into(), source)])));
+    }
+    // Acquire all output locks and finish ownership checks before replacing either
+    // side. Source snapshots also remain pinned through the complete preflight.
+    let plans = packages.into_iter().map(|(output, files)| prepare_package(&output, files, check)).collect::<Result<Vec<_>, _>>()?;
+    inputs.unchanged()?;
+    if let Some(candidate) = native_inputs { candidate.unchanged()?; }
+    for plan in &plans { plan.unchanged()?; }
+    if !check { for plan in &plans { plan.apply()?; } }
+    println!("{} API client{}: {} operations, contract {}", if check { "Verified" } else { "Generated" }, if plans.len() > 1 { " and private native dispatch" } else { "" }, api.manifest.operations.len(), api.manifest.identity());
     Ok(0)
 }
 

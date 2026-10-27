@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 1,
+  "operations": [
+    {
+      "name": "data.echo",
+      "kind": "mutation",
+      "input": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "pair": {
+            "type": "tuple",
+            "items": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "ratio": {
+            "type": "number"
+          },
+          "variant": {
+            "type": "union",
+            "members": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "literal",
+                    "value": "a"
+                  },
+                  "value": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "value"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "literal",
+                    "value": "b"
+                  },
+                  "text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "text"
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "enabled",
+          "pair",
+          "ratio",
+          "variant"
+        ]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "pair": {
+            "type": "tuple",
+            "items": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "ratio": {
+            "type": "number"
+          },
+          "variant": {
+            "type": "union",
+            "members": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "literal",
+                    "value": "a"
+                  },
+                  "value": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "value"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "literal",
+                    "value": "b"
+                  },
+                  "text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "text"
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "enabled",
+          "pair",
+          "ratio",
+          "variant"
+        ]
+      }
+    },
+    {
+      "name": "data.roundTrip",
+      "kind": "mutation",
+      "input": {
+        "type": "object",
+        "properties": {
+          "__proto__": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "__proto__"
+        ]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "__proto__": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "__proto__"
+        ]
+      }
+    },
+    {
+      "name": "math.count",
+      "kind": "query",
+      "input": {
+        "type": "integer"
+      },
+      "output": {
+        "type": "integer"
+      }
+    },
+    {
+      "name": "meta.marker",
+      "kind": "query",
+      "input": {
+        "type": "void"
+      },
+      "output": {
+        "type": "literal",
+        "value": "__TSRUST_API_ID__"
+      }
+    },
+    {
+      "name": "tasks.create",
+      "kind": "mutation",
+      "input": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "completed": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "literal",
+            "value": "task"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "completed",
+          "id",
+          "kind",
+          "title"
+        ]
+      }
+    },
+    {
+      "name": "tasks.list",
+      "kind": "query",
+      "input": {
+        "type": "object",
+        "properties": {
+          "completed": {
+            "type": "boolean"
+          },
+          "search": {
+            "type": "union",
+            "members": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "search"
+        ]
+      },
+      "output": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "completed": {
+              "type": "boolean"
+            },
+            "id": {
+              "type": "integer"
+            },
+            "kind": {
+              "type": "literal",
+              "value": "task"
+            },
+            "title": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "completed",
+            "id",
+            "kind",
+            "title"
+          ]
+        }
+      }
+    }
+  ]
+}

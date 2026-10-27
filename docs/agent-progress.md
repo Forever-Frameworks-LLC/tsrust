@@ -103,6 +103,29 @@ retain strict tuple/union support rather than asserting unknown JSON as DTOs.
 Application-owned auth, server-side validation/error projection and compatibility
 come before claiming the end-to-end task service accepted.
 
+Current in-progress dispatch edits start from `7b1871db`: opt-in native Context
+selection/private CheckedApi endpoint facts, `api/native_codecs.rs`, task Context/
+operation/access modules and provisional server config, plus large finite HTTP
+number-token preservation. These changes are not batch-validated or checkpointed.
+See [dispatch implementation state](milestones/generated-native-dispatch.md) for
+resolved tuple/nominal-type probes and the concrete next integration steps.
+Tuple composition passed native execution in completed session `67060`; no build
+handles remain live from that probe. Do not confuse it with complete acceptance.
+The native handler/compatibility/CLI integration and full fixture runner are now
+implemented. Rust bin/API-test metadata checking passes (session `43655`);
+current HTTP source-runtime numeric cases, formatting/idempotence and Node syntax
+checks pass. Focused API session `90197` completed: all nine tests pass, log
+`target/api-native-contract-focused.log`. Complete actual client verification
+also passes (`target/api-native-client.log`). Native verifier stops safely at
+virtual source checking (`target/api-native-server.log`): a schema factory is
+observed as void in the full generated handler, though a small standalone factory
+works. Disposable target preview/linked consumer enables fast source reductions.
+See the dispatch evidence for paths, exact diagnostics and next reduction step.
+Plain-V adapters and typed protocol-envelope repairs are now in source but not
+rebuilt. Settle the remaining inference issue before another costly build; do not
+bypass checking, cast DTOs, or claim native acceptance. No sessions remain live.
+Native dispatch acceptance and installed compiler refresh remain pending.
+
 The original Windows/Table continuation below is historical and frozen where UI
 specific; retain its completed results and unresolved platform limitations.
 

@@ -26,3 +26,5 @@ Native CRUD and validation pass, including UTF-8 byte boundaries, SQL-looking
 parameter values, cursor ordering and persistence across executable restarts.
 See [acceptance evidence](../../docs/milestones/task-repository.md). HTTP access
 policy and generated dispatch remain pending.
+The new `server`/`context` configuration and operation/access modules are under
+implementation; the installed compiler cannot generate this server yet.

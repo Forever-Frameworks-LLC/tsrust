@@ -1,0 +1,23 @@
+import { TaskContext } from './context.tsr';
+import { matchesToken } from '../service/security.tsr';
+
+// One application-owned bearer credential controls this single-user prototype.
+// A remote deployment must use TLS; desktop loopback credentials stay in preload.
+export async function authorize(context: Mutable<TaskContext>): Task<boolean> {
+  const origin = context.req.header('origin');
+  if (origin !== undefined) {
+    if (origin !== context.env.browserOrigin) {
+      return false;
+    }
+
+    context.header('access-control-allow-origin', clone(origin));
+    context.header('vary', 'Origin');
+  }
+
+  const authorization = context.req.header('authorization');
+  if (authorization === undefined || !authorization.startsWith('Bearer ')) {
+    return false;
+  }
+
+  return matchesToken(authorization.slice(7), context.env.tokenDigest);
+}

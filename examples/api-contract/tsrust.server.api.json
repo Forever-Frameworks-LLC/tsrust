@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "entry": "src/server-operations.tsr",
+  "output": "generated-server-client",
+  "package": { "name": "@example/tasks-api-v2", "version": "0.2.0" },
+  "server": {
+    "output": "generated-server",
+    "context": { "module": "src/server-policy.tsr", "export": "FixtureContext" },
+    "authorize": { "module": "src/server-policy.tsr", "export": "authorize" },
+    "compatible": ["contracts/v1.json"]
+  },
+  "operations": [
+    { "name": "tasks.list", "module": "src/server-operations.tsr", "export": "listV2", "kind": "query" },
+    { "name": "tasks.create", "module": "src/operations.tsr", "export": "create", "kind": "mutation" },
+    { "name": "meta.marker", "module": "src/operations.tsr", "export": "marker", "kind": "query" },
+    { "name": "math.count", "module": "src/operations.tsr", "export": "count", "kind": "query" },
+    { "name": "data.roundTrip", "module": "src/operations.tsr", "export": "roundTrip", "kind": "mutation" },
+    { "name": "data.echo", "module": "src/operations.tsr", "export": "echo", "kind": "mutation" },
+    { "name": "context.count", "module": "src/server-operations.tsr", "export": "privateCount", "kind": "query", "context": true },
+    { "name": "data.nested", "module": "src/server-operations.tsr", "export": "echoNested", "kind": "mutation" },
+    { "name": "data.rows", "module": "src/server-operations.tsr", "export": "echoRows", "kind": "mutation" },
+    { "name": "fixture.unsafeInteger", "module": "src/server-operations.tsr", "export": "unsafeInteger", "kind": "query" },
+    { "name": "fixture.privateFailure", "module": "src/server-operations.tsr", "export": "privateFailure", "kind": "query" }
+  ]
+}

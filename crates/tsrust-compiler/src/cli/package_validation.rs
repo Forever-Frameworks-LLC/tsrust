@@ -41,8 +41,15 @@ impl SourceProvider for Candidate {
 pub(crate) fn read_optional(path:&Path)->Result<Option<String>,String>{match fs::read_to_string(path){Ok(text)=>Ok(Some(text)),Err(error) if error.kind()==std::io::ErrorKind::NotFound=>Ok(None),Err(error)=>Err(format!("{}: {error}",path.display()))}}
 pub(crate) fn normalize(path:&Path)->Result<PathBuf,String>{
  if path.exists(){return fs::canonicalize(path).map_err(|error|error.to_string());}
- let parent=path.parent().ok_or("Path requires a parent directory")?;
- Ok(fs::canonicalize(parent).map_err(|error|error.to_string())?.join(path.file_name().ok_or("Missing filename")?))
+ // Virtual generated imports can traverse parents which do not exist yet.
+ // Keep existing-path canonicalization (including symlink semantics) unchanged.
+ let mut lexical=PathBuf::new();
+ for part in path.components(){match part{std::path::Component::CurDir=>{},std::path::Component::ParentDir=>{if !lexical.pop(){return Err("Path escapes its filesystem root".into());}},part=>lexical.push(part.as_os_str())}}
+ let mut ancestor=lexical.as_path();let mut missing=Vec::new();
+ while !ancestor.exists(){missing.push(ancestor.file_name().ok_or("Path requires an existing ancestor")?.to_owned());ancestor=ancestor.parent().ok_or("Path requires an existing ancestor")?;}
+ let mut normalized=fs::canonicalize(ancestor).map_err(|error|error.to_string())?;
+ for name in missing.into_iter().rev(){normalized.push(name);}
+ Ok(normalized)
 }
 pub(crate) fn validate(provider:&Candidate,root:&Path,manifest:&Path,temporary:&Path)->Result<(usize,Vec<String>),String>{
  let backend=crate::verify_backend()?;

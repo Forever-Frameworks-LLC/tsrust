@@ -1,5 +1,9 @@
 //! Explicit checked API contracts. Ordinary exports never publish an operation.
 mod typescript;
+mod native_codecs;
+mod compatibility;
+mod native;
+pub use native::{NativeImport, NativeServer};
 use crate::{analysis::CheckedProgram, project::{ProjectAnalysis, SourceId}, syntax::{CallbackKind, Type}};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, HashSet};
@@ -11,14 +15,17 @@ pub struct Selection {
     pub module: String,
     pub export: String,
     pub kind: Kind,
+    /// Explicitly hide the first borrowed native HTTP Context from wire data.
+    #[serde(default)]
+    pub context: bool,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum Kind { Query, Mutation }
 
-#[derive(Clone, Debug, Serialize, PartialEq)]
-#[serde(tag = "type", rename_all = "camelCase")]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum Schema {
     String, Integer, Number, Boolean, Null, Void,
     Literal { value: serde_json::Value },
@@ -28,7 +35,8 @@ pub enum Schema {
     Union { members: Vec<Schema> },
 }
 
-#[derive(Clone, Debug, Serialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct Operation {
     pub name: String,
     pub kind: Kind,
@@ -36,11 +44,22 @@ pub struct Operation {
     pub output: Schema,
 }
 
-#[derive(Clone, Debug, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Manifest {
     pub schema_version: u32,
     pub operations: Vec<Operation>,
+}
+
+/// Checked public contracts plus private dispatch facts from the same functions.
+pub struct CheckedApi {
+    pub manifest: Manifest,
+    endpoints: BTreeMap<String, Endpoint>,
+}
+
+struct Endpoint {
+    selection: Selection,
+    asynchronous: bool,
 }
 
 fn valid_segment(name: &str) -> bool {
@@ -54,8 +73,27 @@ impl Manifest {
     /// Select zero-argument functions or one required data argument. Async results
     /// are unwrapped to their eventual value. No request is dispatched here.
     pub fn from_project(project: &ProjectAnalysis, selections: &[Selection]) -> Result<Self, String> {
+        Ok(CheckedApi::from_project(project, selections)?.manifest)
+    }
+
+    /// Stable identity of wire contracts, independent of file paths/package version.
+    pub fn identity(&self) -> String {
+        use sha2::{Digest, Sha256};
+        Sha256::digest(serde_json::to_vec(self).expect("API manifest serialization")).iter().map(|byte| format!("{byte:02x}")).collect()
+    }
+
+    /// Generate an ordinary dependency-free ESM package with declarations.
+    /// The returned files have no server source, absolute paths or framework imports.
+    pub fn client_package(&self, name: &str, version: &str) -> Result<BTreeMap<String, String>, String> {
+        typescript::package(self, name, version)
+    }
+}
+
+impl CheckedApi {
+    pub fn from_project(project: &ProjectAnalysis, selections: &[Selection]) -> Result<Self, String> {
         let mut names = BTreeSet::new();
         let mut operations = Vec::new();
+        let mut endpoints = BTreeMap::new();
         for selection in selections {
             let fail = |message: String| format!("API operation {:?}: {message}", selection.name);
             if selection.name.len() > 200 || !selection.name.split('.').all(valid_segment) {
@@ -73,9 +111,19 @@ impl Manifest {
             let function = program.functions.iter().find(|function| function.name == linked && !function.specialization)
                 .ok_or_else(|| fail("export is not a checked named function".into()))?;
             if function.template { return Err(fail("generic operations need an explicit concrete wrapper function".into())); }
-            if function.parameter_count > 1 { return Err(fail("use one request record argument, or no arguments".into())); }
+            let private_count = usize::from(selection.context);
+            if selection.context {
+                let context = function.bindings.first().filter(|_| function.parameter_count > 0)
+                    .ok_or_else(|| fail("context:true requires a first borrowed native HTTP Context parameter".into()))?;
+                if !matches!(context.ty, Type::Record(id) if program.records[id].native_type == Some(crate::native_signatures::NativeTypeId::HttpContext))
+                    || !matches!(context.mode, crate::Mode::Read | crate::Mode::Mutate)
+                    || context.rest || context.omission.is_omittable() {
+                    return Err(fail("context:true requires a required ReadOnly<Context> or Mutable<Context>; arbitrary resources and owned contexts cannot be hidden".into()));
+                }
+            }
+            if function.parameter_count > 1 + private_count { return Err(fail("use one request record argument, or no arguments, after any explicitly selected Context".into())); }
             let mut builder = Builder { program, active: HashSet::new() };
-            let input = if let Some(parameter) = function.bindings.iter().take(function.parameter_count).next() {
+            let input = if let Some(parameter) = function.bindings.iter().take(function.parameter_count).nth(private_count) {
                 if parameter.rest || parameter.omission.is_omittable() { return Err(fail("rest/default/optional parameters need a required request-record wrapper".into())); }
                 builder.schema(parameter.input_ty.unwrap_or(parameter.ty), false, 0).map_err(&fail)?
             } else { Schema::Void };
@@ -85,6 +133,7 @@ impl Manifest {
                 ty => ty,
             };
             let output = builder.schema(result, true, 0).map_err(&fail)?;
+            endpoints.insert(selection.name.clone(), Endpoint { selection: selection.clone(), asynchronous: result != function.result });
             operations.push(Operation { name: selection.name.clone(), kind: selection.kind, input, output });
         }
         for name in &names {
@@ -95,19 +144,7 @@ impl Manifest {
             }
         }
         operations.sort_by(|left, right| left.name.cmp(&right.name));
-        Ok(Self { schema_version: 1, operations })
-    }
-
-    /// Stable identity of wire contracts, independent of file paths/package version.
-    pub fn identity(&self) -> String {
-        use sha2::{Digest, Sha256};
-        Sha256::digest(serde_json::to_vec(self).expect("API manifest serialization")).iter().map(|byte| format!("{byte:02x}")).collect()
-    }
-
-    /// Generate an ordinary dependency-free ESM package with declarations.
-    /// The returned files have no server source, absolute paths or framework imports.
-    pub fn client_package(&self, name: &str, version: &str) -> Result<BTreeMap<String, String>, String> {
-        typescript::package(self, name, version)
+        Ok(Self { manifest: Manifest { schema_version: 1, operations }, endpoints })
     }
 }
 
