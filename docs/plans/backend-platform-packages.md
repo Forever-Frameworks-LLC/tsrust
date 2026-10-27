@@ -66,6 +66,27 @@ research, and no blanket security claim is made.
 
 ## User ownership and Tsrust integration
 
+### Initial generated-wrapper development fixture
+
+`tools/api-client-tests` pins TanStack React Query/query-core 5.105.0, React
+19.3.1, @types/react 19.3.0 and TypeScript 7.0.2 in a private npm fixture. Its
+lockfile records exact transitive/platform integrity. Admission on Windows x64
+with Node 24.19.0/npm 12.0.2 used disabled install scripts, zero known npm advisory
+findings, seven verified registry signatures and three verified attestations.
+The TypeScript CLI runs and the existing plain generated SDK passes its positive
+and negative declaration consumer using ES2022 without DOM types. See the fixture
+README for license/source observations and repeatable commands. These packages
+are development-test inputs, not an accepted web/Electron/Expo template matrix;
+generated wrapper runtime/hooks remain pending.
+
+The installed query-core default object-key hash sorts fields through an ordinary
+object accumulator. The wire contract permits a literal `__proto__` data field,
+so generated query keys must preserve it. Prefer the existing validated,
+schema-ordered wire input serialized as a key string (with explicit backend/user
+scope and contract identity) over passing raw input objects to that accumulator.
+Verify cache isolation, optional/null normalization, special keys, cancellation,
+invalidation and actual upstream inference before accepting the adapter.
+
 Owner clarification, 2026-10-26: generated and imported frontend applications are
 ordinary user-owned projects. Users may cd into any frontend directory, install
 or upgrade packages, edit manifests/locks/scripts, change bundlers, or manage the

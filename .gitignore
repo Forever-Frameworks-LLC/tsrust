@@ -38,3 +38,4 @@ __pycache__/
 # Copied from the root license while packaging the editor.
 /editors/vscode/LICENSE
 /dist/
+/tools/api-client-tests/node_modules/
