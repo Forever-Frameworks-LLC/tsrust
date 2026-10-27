@@ -71,37 +71,48 @@ the canonical new binary. No workspace/editor settings were changed. This local
 consumer refresh does not implement trusted production self-update or prove zero
 Problems in the owner's current editor.
 
-## Distribution work next
+## Shared-source family accepted; distribution next
 
-Immediate full-tree checkpoint requested by owner: backend_sources.rs now contains
-small metadata materialization, namespace validation and hashed Cargo config/env
-provenance. Build/dev executable cache keys call its application_identity helper.
-Runtime preparation and setup are not yet connected to the new metadata; several
-helpers are consequently unused until that integration is finished. No source-cache
-acceptance tests or compiler build have run for these partial edits. This checkpoint
-records unfinished work explicitly; it is not an accepted implementation milestone.
+See milestones/shared-backend-sources.md. Backend dependency profile is connected
+and tested: normal compiler-owned backends use the shared Cargo home with a small
+locked/offline workspace, no vendor copy and no private Cargo home. Explicit setup
+--dependencies [--yes|--offline] delegates source preparation to Cargo. UI and custom
+binding builds retain the original vendor protocol. Config/env digests cover nested
+and optional TOML includes; the parser is the existing locked toml_edit package,
+added as a direct parse-only dependency without changing package versions. Config
+inputs are checked again before cache publication. Raw secrets/configs are not stored.
 
+Accepted: scaffold 3/3, setup 2/2, shared-source 3/3, nested/optional/table config
+regression 1/1; changed tools-free executable deployment case rerun passed. Actual
+source setup --offline succeeded. CLI-created generated-projects/backend-shared-cache
+passed native HTTP build, live/saved TS/Rust HTTP SDK acceptance and installed-LSP
+clean/error/repair. Its workspace has no vendor or private Cargo home. The server
+was stopped by its test. No frontend toolchain was needed. Passing earlier gates
+were reused; first repaired digest-format compile error and JSON fixture inference
+failure are recorded in the milestone. The new CLI is target/debug/tsrust.exe;
+refresh the installed consumer only after the source checkpoint and hash checks.
 
-Prepared untracked crates/tsrust-compiler/backend-dependencies/{Cargo.toml,Cargo.lock,
-src/lib.rs}. Cargo pruned the seeded original lock offline from 531 to 266 packages;
-all retained versions, sources and checksums match the original closure. Offline
---locked --all-features metadata succeeds and contains no wgpu, winit, vello, parley
-or taffy. This profile is NOT YET CONNECTED to setup or native builds. The owner requested
-an immediate full-tree checkpoint, so these in-progress sources are included;
-do not claim runtime integration or acceptance is complete.
-Disposable metadata is reduced to target/backend-dependency-metadata-current.json.
+All new sessions are terminal: 16056 (compile failure), 95736 (scaffold passed,
+fixture failed), 68763 (repaired source/setup/config family passed), 96505 (table
+include passed), 78444 (deployed executable passed), 62796 (HTTP build passed),
+72536 (HTTP SDK passed). No owned server/build/test is live. Current evidence logs
+are listed in the milestone. The fresh review project is ignored by the owner's
+existing generated-projects rule; do not force-add build/review artifacts as source
+snapshots. Commit all tracked/untracked source changes at the accepted milestone;
+there are no responsibility-based exclusions.
 
-Next implement a coherent shared-source family: explicit dependency preparation,
-normal locked/offline Cargo builds against the real shared Cargo home, config/env
-provenance in artifact cache keys, a separate legacy UI path, and removal of mandatory
-CLI vendor embedding. Preserve portable offline exports (explicit prepared vendor
-packs can be reused without invoking Rust during export), exact binding locks,
-notices, relocated rebuilds, artifact packing and Windows import-library restoration.
-Normal check/emit/build/dev must never silently install or fetch. The last ordinary
-CLI integration build took 10m31s, so stop rebuilding the same giant payload for
-small CLI edits. Inventory is plans/backend-distribution-inventory.md. After that,
-implement trusted paired CLI/LSP installation and latest-stable update with Windows
-locked-binary handling, ownership and failure recovery; no publication as a test loop.
+Next remove mandatory CLI vendor embedding and build-script vendoring. Preserve
+portable offline exports via explicit prepared source packs, exact lock/notice
+validation, relocated rebuilds and Windows import-library restoration. Migrate
+binding source preparation to shared registry/Git caches too. Keep one warm Cargo
+target, no silent downloads or toolchain installs in normal build/dev, and add
+backend runtime preparation progress while touching the build pipeline. The last
+CLI compile still took roughly 8 minutes; do not make repeated small payload builds
+into a continuation loop. Inventory: plans/backend-distribution-inventory.md.
+After that, implement trusted paired CLI/LSP installation/update, package-manager
+ownership and interrupted/locked Windows replacement. Native docs stack overflow,
+16 authoring-only UI warnings and real macOS/Linux execution remain open; no whole
+editor or full objective completion claim is justified.
 
 ## Other required backend work retained
 

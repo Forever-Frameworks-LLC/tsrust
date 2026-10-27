@@ -4,7 +4,7 @@ use serde_json::{Value, json};
 use tsrust_compiler::RUST_BACKEND_VERSION;
 
 const DOCTOR_USAGE: &str = "Usage: tsrust doctor [--json] [--native]";
-const SETUP_USAGE: &str = "Usage: tsrust setup --toolchain [--yes]";
+const SETUP_USAGE: &str = "Usage: tsrust setup [--toolchain] [--dependencies] [--offline] [--yes]";
 
 fn flags(args: impl Iterator<Item=String>, allowed: &[&str], usage: &str) -> Result<Vec<String>, String> {
     let mut flags = Vec::new();
@@ -85,19 +85,39 @@ fn install_command() -> Command {
 }
 
 pub(super) fn setup(args: impl Iterator<Item=String>) -> Result<u8, String> {
-    let flags = flags(args, &["--toolchain", "--yes"], SETUP_USAGE)?;
-    if !flags.iter().any(|a| a == "--toolchain") { return Err(SETUP_USAGE.into()); }
-    if !flags.iter().any(|a| a == "--yes") {
+    let flags = flags(args, &["--toolchain", "--dependencies", "--offline", "--yes"], SETUP_USAGE)?;
+    let toolchain=flags.iter().any(|a|a=="--toolchain");
+    let dependencies=flags.iter().any(|a|a=="--dependencies");
+    let offline=flags.iter().any(|a|a=="--offline");
+    if !toolchain && !dependencies { return Err(SETUP_USAGE.into()); }
+    if offline && toolchain { return Err("--offline prepares cached dependencies only; omit --toolchain".into()); }
+    if !offline && !flags.iter().any(|a| a == "--yes") {
         if !io::stdin().is_terminal() { return Err("Toolchain setup may download files. Pass --yes for unattended setup.".into()); }
-        eprint!("Install Rust {RUST_BACKEND_VERSION} (minimal profile) using rustup? [y/N] ");
+        eprint!("Prepare the selected Rust toolchain/dependency sources (downloads may be required)? [y/N] ");
         io::stderr().flush().map_err(|e| e.to_string())?;
         let mut answer = String::new(); io::stdin().read_line(&mut answer).map_err(|e| e.to_string())?;
         if !matches!(answer.trim().to_ascii_lowercase().as_str(), "y" | "yes") { return Err("Setup cancelled; no toolchain installation started".into()); }
     }
-    let status = install_command().status().map_err(|e| format!("Cannot invoke rustup: {e}. Install rustup from https://rustup.rs first; setup does not run downloaded installer scripts."))?;
-    if !status.success() { return Err("Pinned toolchain installation failed; rerun tsrust doctor for current state".into()); }
+    if toolchain {
+        let status = install_command().status().map_err(|e| format!("Cannot invoke rustup: {e}. Install rustup from https://rustup.rs first; setup does not run downloaded installer scripts."))?;
+        if !status.success() { return Err("Pinned toolchain installation failed; rerun tsrust doctor for current state".into()); }
+    }
     super::verify_backend()?;
-    println!("Pinned Rust {RUST_BACKEND_VERSION} is available. Run tsrust doctor --native to test host linking. Application dependency preparation is separate.");
+    if dependencies {
+        let temporary=super::TempDirectory::new().map_err(|e|e.to_string())?;
+        let package=temporary.0.join("backend-sources");
+        super::backend_sources::materialize(&package)?;
+        let root=super::backend_sources::build_root()?;
+        fs::create_dir_all(&root).map_err(|e|e.to_string())?;
+        let mut command=super::backend_cargo_command();
+        command.current_dir(root).args(["fetch","--locked","--manifest-path"]).arg(package.join("Cargo.toml"))
+            .env("CARGO_HOME",super::backend_sources::cargo_home()?);
+        if offline{command.arg("--offline");}
+        let status=command.status().map_err(|e|e.to_string())?;
+        if !status.success(){return Err("Backend source preparation failed; existing shared Cargo sources were preserved. Rerun setup --dependencies --yes with network access, or provide a populated Cargo home for --offline.".into());}
+        println!("Locked backend sources are available in the shared Cargo cache. No project vendor directory was created.");
+    }
+    println!("Pinned Rust {RUST_BACKEND_VERSION} is available. Run tsrust doctor --native to test host linking.");
     Ok(0)
 }
 

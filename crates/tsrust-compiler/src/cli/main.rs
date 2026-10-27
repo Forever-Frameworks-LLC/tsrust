@@ -61,7 +61,7 @@ Usage:
   tsrust api generate [--config file | --description file | --url HTTPS_URL] [--language typescript|rust] [--out directory] [--header-env Header=ENV] [--check]
   tsrust cache <info|clean>
   tsrust doctor [--json] [--native]
-  tsrust setup --toolchain [--yes]
+  tsrust setup [--toolchain] [--dependencies] [--offline] [--yes]
   tsrust dev [--target native|web] [--port 4317] [--release] [--verbose] [--color auto|always|never] [-- program-arguments]
   tsrust run [input.tsr] [--release] [-- program-arguments]
   tsrust test [files/directories] [options]
@@ -76,7 +76,7 @@ Commands:
   remove   Validate dependency removal without rewriting adapters
   bindings Resolve and vendor declared Rust dependencies
   doctor   Inspect pinned tools; --native also tests the host compiler and linker offline
-  setup    Explicitly install the pinned Rust toolchain without changing defaults
+  setup    Explicitly prepare pinned Rust tools or shared backend dependency sources
   docs     Compile checked documentation content and exact example/API data offline
   api      Generate a checked named TypeScript client without adopting frontend tooling
   dev      Watch a configured native program or web UI
@@ -419,7 +419,7 @@ fn run() -> Result<u8, String> {
         let mut prepared=runtime_build::Prepared::new(&rust,&backend_identity,&cache_root,&directory.0,release)?;
         if let Some(mut runtime)=prepared.command.take() {
             let result=runtime.output().map_err(|e|e.to_string())?;
-            if !result.status.success(){return Err(format!("Runtime compilation failed:\n{}",String::from_utf8_lossy(&result.stderr)));}
+            if !result.status.success(){return Err(prepared.compilation_error(&String::from_utf8_lossy(&result.stderr)));}
             prepared.publish();
         }
         if env::var("TSRUST_BUILD_TIMINGS").as_deref()==Ok("1"){eprintln!("[build] runtime={}",prepared.state);}
@@ -454,7 +454,7 @@ fn run() -> Result<u8, String> {
             return Err(format!("{explanation}\n{}", stderr.trim()));
         }
         // Cache failure must not turn a successful native build into a failure.
-        let _ = cache.publish(&executable);
+        if backend_sources::unchanged(shared_inputs.as_deref(), &cache_root) { let _ = cache.publish(&executable); }
     }
     if env::var("TSRUST_BUILD_TIMINGS").as_deref()==Ok("1") {
         eprintln!("[build] check={:.1}ms emit={:.1}ms backend={:.1}ms cache={} ({:.1}ms) native+link={:.1}ms",check_elapsed.as_secs_f64()*1000.0,emit_elapsed.as_secs_f64()*1000.0,backend_elapsed.as_secs_f64()*1000.0,if reused {"hit"}else{"miss"},cache_elapsed.as_secs_f64()*1000.0,if reused {0.0}else{native_started.elapsed().as_secs_f64()*1000.0});

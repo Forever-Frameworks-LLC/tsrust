@@ -18,6 +18,7 @@ path = "src/cli/main.rs"
 # Retain legacy authoring checks without linking the frozen renderer runtime.
 tsrust-ui = { path = "../tsrust-ui", default-features = false }
 sha2 = { version = "=0.11.1" }
+toml_edit = { version = "=0.25.17", default-features = false, features = ["parse"] }
 subtle = { version = "=2.6.1" }
 syn = { version = "=3.0.6", features = ["full", "visit"] }
 proc-macro2 = { version = "=1.0.107", features = ["span-locations"] }

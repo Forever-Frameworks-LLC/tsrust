@@ -4510,6 +4510,7 @@ dependencies = [
  "syn 3.0.6",
  "tokio",
  "tokio-rustls",
+ "toml_edit",
  "tower-http",
  "tsrust-ui",
  "uuid",
