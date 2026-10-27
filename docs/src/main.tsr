@@ -3,6 +3,6 @@ import { Page } from './app/page';
 
 function main() {
   unwrap(run(Page(), 'Tsrust documentation', {
-    width: 1100, height: 780, minWidth: 480, minHeight: 360, titlebar: 'custom'
+    width: 1100, height: 780, minWidth: 480, minHeight: 360
   }));
 }

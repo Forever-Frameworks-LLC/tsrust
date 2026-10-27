@@ -6,13 +6,12 @@ Follow agent-goal.md, plans/backend-only-reset.md and
 plans/rust-setup-and-dependency-distribution.md. Backend-only direction supersedes
 frontend integration work. The complete objective remains open; do not mark it done.
 No releases, pushes, tags, package publication or automated recurrence is authorized.
-One agent writes this tree; preserve owner edits in .gitignore, docs/src/main.tsr
-and untracked .agents/. Never stage those paths or stop owner processes.
+One agent writes this tree. The owner explicitly requested committing the entire
+working tree, including .gitignore, docs/src/main.tsr and .agents/. Preserve their
+semantics; do not keep excluding them from checkpoints. Never stop owner processes.
 
 Accepted checkpoints: 8904fb8a organized 333 loose documentation files with no new
-broken links; 514cb10a added doctor and explicit pinned-toolchain setup. The current
-editor section is described in milestones/docs-project-indexing.md and is ready for
-its own checkpoint after required whole-project formatting. Source checkpoints use
+broken links; 514cb10a added doctor and explicit pinned-toolchain setup. The editor section is accepted in 0c5270b9; see milestones/docs-project-indexing.md. Source checkpoints use
 node tools/format-project.mjs with the current verified TSRUST; maintain one Cargo
 target, CARGO_INCREMENTAL=0 and one build job. No full matrix is justified after each
 routine edit. Keep analytics in SQLite; do not import current-gate logs or snapshots.
@@ -57,21 +56,39 @@ exact minimal-profile/no-self-update arguments, success and failure handling. No
 live toolchain installation, global defaults/configuration change or network setup
 was performed. Application dependency readiness is explicitly unchecked.
 
-The installed LSP before this editor section is SHA256
-046c8e50e1d867988cb72ecbcc1f6d28b66f36cb8a1a078ba8d43b7a27f596a9.
-The newly validated LSP is target/debug/tsrust-lsp.exe. Refresh only with verified
-source/destination hashes and without stopping the owner's editor/server. If Windows
-locks replacement, preserve the running installation and report deferred adoption;
-do not silently claim the live editor has loaded the repair.
+The validated LSP is now installed at C:/Users/skeet/.cargo/bin/tsrust-lsp.exe,
+SHA256 E5966160755F0EF19B5E245348150DD0B9640413238902E7EB8595F15600D41B.
+The installed executable passed the backend-async clean/error/repair probe as well
+(target/installed-backend-editor-current.log). Windows allowed hash-guarded staging
+and rename/replacement without stopping the owner's running LSP or editor. The old
+mapped image remains at
+C:/Users/skeet/.cargo/bin/tsrust-lsp-running-0a62d1de9bc945a680da390dec72ad54.exe,
+SHA256 046c8e50e1d867988cb72ecbcc1f6d28b66f36cb8a1a078ba8d43b7a27f596a9.
+Delete that exact old binary only after confirming its process has exited and its
+hash is unchanged; do not stop the process for cleanup. The live owner session has
+NOT automatically adopted the repair: a user-initiated LSP restart/reopen will load
+the canonical new binary. No workspace/editor settings were changed. This local
+consumer refresh does not implement trusted production self-update or prove zero
+Problems in the owner's current editor.
 
 ## Distribution work next
+
+Immediate full-tree checkpoint requested by owner: backend_sources.rs now contains
+small metadata materialization, namespace validation and hashed Cargo config/env
+provenance. Build/dev executable cache keys call its application_identity helper.
+Runtime preparation and setup are not yet connected to the new metadata; several
+helpers are consequently unused until that integration is finished. No source-cache
+acceptance tests or compiler build have run for these partial edits. This checkpoint
+records unfinished work explicitly; it is not an accepted implementation milestone.
+
 
 Prepared untracked crates/tsrust-compiler/backend-dependencies/{Cargo.toml,Cargo.lock,
 src/lib.rs}. Cargo pruned the seeded original lock offline from 531 to 266 packages;
 all retained versions, sources and checksums match the original closure. Offline
 --locked --all-features metadata succeeds and contains no wgpu, winit, vello, parley
-or taffy. This profile is NOT YET CONNECTED to setup or native builds; do not commit
-or claim it is the active runtime path until integration/acceptance is complete.
+or taffy. This profile is NOT YET CONNECTED to setup or native builds. The owner requested
+an immediate full-tree checkpoint, so these in-progress sources are included;
+do not claim runtime integration or acceptance is complete.
 Disposable metadata is reduced to target/backend-dependency-metadata-current.json.
 
 Next implement a coherent shared-source family: explicit dependency preparation,

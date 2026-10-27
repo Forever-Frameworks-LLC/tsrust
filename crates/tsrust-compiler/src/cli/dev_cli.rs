@@ -128,10 +128,13 @@ mod platform {
         let binary=files.0.join(if cfg!(windows){"program.exe"}else{"program"});
         let features=frontend.features.join(",");
         let cache_root=std::env::var_os("TSRUST_CACHE_DIR").map(PathBuf::from).unwrap_or_else(||root.join("target/tsrust-native"));
-        let cache=tsrust_compiler::native_cache::NativeCache::new(&cache_root,&[
+        let shared_inputs=crate::backend_sources::application_identity(&frontend.rust,&cache_root)?;
+        let mut cache_parts:Vec<&[u8]>=vec![
             b"native-cache-abi-4-ui-dev-profile",crate::native_dependency_bundle::IDENTITY.as_bytes(),backend_identity.as_bytes(),env!("CARGO_PKG_VERSION").as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),
             if release{b"release"}else{b"debug"},b"edition=2024;overflow-checks=on",frontend.rust.as_bytes(),&frontend.identity,features.as_bytes(),
-        ]);
+        ];
+        if let Some(inputs)=&shared_inputs {cache_parts.push(inputs.as_bytes());}
+        let cache=tsrust_compiler::native_cache::NativeCache::new(&cache_root,&cache_parts);
         let cache_started=Instant::now();let reused=cache.try_copy_to(&binary);let cache_elapsed=cache_started.elapsed();
         let native_started=Instant::now();
         if !reused {

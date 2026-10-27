@@ -27,6 +27,7 @@ mod application_scaffold;
 mod ui_cli;
 mod cache_cli;
 mod setup_cli;
+mod backend_sources;
 mod docs_cli;
 mod api_cli;
 mod http_client;
@@ -394,9 +395,8 @@ fn run() -> Result<u8, String> {
         graph_identity.extend_from_slice(source.as_bytes());
     }
     let features = native_features.join(",");
-    let cache = tsrust_compiler::native_cache::NativeCache::new(
-        &cache_root,
-        &[
+    let shared_inputs = backend_sources::application_identity(&rust, &cache_root)?;
+    let mut cache_parts: Vec<&[u8]> = vec![
             b"native-cache-abi-4-ui-dev-profile",
             native_dependency_bundle::IDENTITY.as_bytes(),
             backend_identity.as_bytes(),
@@ -408,8 +408,9 @@ fn run() -> Result<u8, String> {
             rust.as_bytes(),
             &graph_identity,
             features.as_bytes(),
-        ],
-    );
+        ];
+    if let Some(inputs) = &shared_inputs { cache_parts.push(inputs.as_bytes()); }
+    let cache = tsrust_compiler::native_cache::NativeCache::new(&cache_root, &cache_parts);
     let cache_started=std::time::Instant::now();
     let reused = cache.copy_to(&executable);
     let cache_elapsed=cache_started.elapsed();
