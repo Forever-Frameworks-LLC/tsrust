@@ -5,6 +5,13 @@ certification. Resolve exact mutually compatible versions and hashes during the
 template implementation section; do not fabricate a tested version matrix from
 documentation. The owner explicitly accepts Electron Forge's Vite plugin.
 
+Update 2026-10-27: the first actual web example now has focused native-service
+browser and clean external-build acceptance. See [web evidence](../milestones/task-web.md)
+and `examples/backend-tasks/web/tsrust-template.json` for exact tested versions,
+source hashes, licensing and advisory limits. Other platform templates remain
+pending. Named TanStack adapters and standalone npm consumers are also accepted
+in their separate milestone records; the initial research below retains context.
+
 ## Selection
 
 Prefer upstream, narrowly composed templates over an opinionated full-stack

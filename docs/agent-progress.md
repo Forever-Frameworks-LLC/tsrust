@@ -1,6 +1,19 @@
 # Agent continuation state
 
-## Current section: npm package/workspace adoption
+## Current section: React/Vite task web app
+
+Implemented and focused-validated `examples/backend-tasks/web`, official pinned
+Vite + shadcn Base UI/Nova, normal pnpm project with installed generated API.
+Actual native SQLite browser CRUD, keyboard, validation, accessibility, states,
+pagination and production preview pass. Headless HMR and external clean frozen
+install/build plus user dependency addition pass. See `docs/milestones/task-web.md`
+for exact commands, licenses, advisory result, retained failures/repairs and gaps.
+Installed CLI atomically refreshed; task API stale-check passes, matching debug
+SHA-256 `55a253932ef52ba1cbc5a367ffdb2f8ddd50bb1e3ac5094b2513eb6f4f14b762`.
+No computer control. Next: native static serving and two mounts with isolated
+fallbacks/API routes; dedicated setup/export/pack and other targets remain pending.
+
+## Accepted section: npm package/workspace adoption
 
 Generated TanStack adapter accepted at local checkpoint `c5f07a8a`. New
 `tools/verify-api-package.mjs` passes detached tarball plain/React/TypeScript
