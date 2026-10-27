@@ -1,0 +1,6 @@
+import { greet as greeting } from '../lib/greeting.tsr';
+
+// Only functions selected by tsrust.config.json api.operations are exposed.
+export function greet(name: string): string {
+  return greeting(name);
+}

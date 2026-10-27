@@ -7,6 +7,8 @@ import { pathToFileURL } from 'node:url';
 
 const root = path.resolve(process.argv[2] || 'target/application-preview');
 const executable = path.resolve(process.env.TSRUST_LSP_SERVER || 'target/debug/tsrust-lsp.exe');
+const projectConfig = JSON.parse(fs.readFileSync(path.join(root, 'tsrust.config.json'), 'utf8'));
+const apiConfig = projectConfig.api || JSON.parse(fs.readFileSync(path.join(root, 'tsrust.api.json'), 'utf8'));
 const child = spawn(executable, [], { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
 let pending = Buffer.alloc(0), sequence = 0, errors = '';
 const requests = new Map(), diagnostics = new Map();
@@ -48,11 +50,11 @@ async function result(uri, version) {
 try {
   await request('initialize', { rootUri: pathToFileURL(root).href, capabilities: {}, initializationOptions: { debounceMs: 0 } });
   send('initialized', {});
-  for (const relative of ['app/main.tsr', 'app/operations.tsr']) {
+  for (const relative of [projectConfig.build.entry, apiConfig.entry]) {
     const file = path.join(root, relative), uri = pathToFileURL(file).href, source = fs.readFileSync(file, 'utf8');
     send('textDocument/didOpen', { textDocument: { uri, languageId: 'tsrust', version: 1, text: source } });
     assert.deepEqual(await result(uri, 1), [], `${relative} has editor diagnostics`);
-    if (relative.endsWith('operations.tsr')) {
+    if (relative === apiConfig.entry) {
       const invalid = source.replace('): string', '): int'); assert.notEqual(invalid, source);
       send('textDocument/didChange', { textDocument: { uri, version: 2 }, contentChanges: [{ text: invalid }] });
       assert.ok((await result(uri, 2)).some(value => value.severity === 1), 'LSP must report an actual type error');

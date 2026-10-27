@@ -1,4 +1,4 @@
-import { greet } from '../app/operations.tsr';
+import { greet } from '../lib/greeting.tsr';
 import { test, strictEqual } from 'std:testing';
 
 test('greeting trims input and welcomes an empty name', (): void => {

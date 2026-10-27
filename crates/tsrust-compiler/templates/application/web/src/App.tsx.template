@@ -20,6 +20,6 @@ export default function App() {
         <p role="status" aria-live="polite">{greeting.isPending ? 'Waiting for the server…' : greeting.data ?? 'Ready when you are.'}</p>
         {greeting.isError ? <p role="alert" className="text-sm text-destructive">Could not reach the server. Check the backend terminal and try again.</p> : null}
       </form></CardContent></Card>
-    <footer className="text-sm text-muted-foreground">Edit app/operations.tsr or web/src/App.tsx to make it yours.</footer>
+    <footer className="text-sm text-muted-foreground">Edit app/lib/greeting.tsr or web/src/App.tsx to make it yours.</footer>
   </main>
 }

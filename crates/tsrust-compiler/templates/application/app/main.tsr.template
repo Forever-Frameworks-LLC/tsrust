@@ -1,6 +1,6 @@
 import { Router } from 'std:http';
-import { AppState } from './context.tsr';
-import { dispatch } from './generated-api/index.tsr';
+import { AppState } from './api/context.tsr';
+import { dispatch } from '../generated/server/index.tsr';
 
 async function main(): Task<void> {
   const app = new Router<AppState>({

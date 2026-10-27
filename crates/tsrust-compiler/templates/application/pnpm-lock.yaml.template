@@ -109,7 +109,7 @@ importers:
 
   .: {}
 
-  packages/api:
+  generated/client:
     dependencies:
       '@tanstack/query-core':
         specifier: '>=5.105.0 <6'
@@ -125,7 +125,7 @@ importers:
     dependencies:
       '@app/api':
         specifier: workspace:*
-        version: link:../packages/api
+        version: link:../generated/client
       '@base-ui/react':
         specifier: 1.9.0
         version: 1.9.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)

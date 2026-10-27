@@ -5,6 +5,14 @@ build the actual production implementation from the CLI outward. This changes
 implementation order, not the required backend/web/desktop/mobile, SDK, lifecycle,
 security, migration, editor or measurement scope in docs/agent-goal.md.
 
+The [Rust setup/distribution workstream](rust-setup-and-dependency-distribution.md)
+adds explicit doctor/setup and application dependency resolution, cached locked/offline
+native builds and portable vendored exports. Finish the current coherent layout
+section, inventory dependency paths, then settle preparation/readiness before
+production build/dev integration. Dev preflight must report missing prerequisites
+without hidden rustup, Cargo or frontend-tool downloads. This does not remove the
+user's package-manager choice or authorize managing unrelated global configuration.
+
 ## Reset boundary
 
 Keep accepted compiler/LSP/backend, checked operation manifest, codecs, compatible

@@ -8,6 +8,43 @@ use super::package_validation::{Candidate, normalize};
 const CONFIG: &str = "tsrust.api.json";
 const MARKER: &str = ".tsrust-api.json";
 
+fn inline_config(value: &serde_json::Value) -> Result<Config, String> {
+    let mut object = value.as_object().cloned().ok_or("api must be an object")?;
+    if object.get("schemaVersion").is_some_and(|version| version.as_u64() != Some(1)) {
+        return Err("api.schemaVersion must be 1 when provided".into());
+    }
+    object.insert("schemaVersion".into(), 1.into());
+    serde_json::from_value(serde_json::Value::Object(object)).map_err(|error| format!("Invalid api configuration: {error}"))
+}
+
+pub(super) fn validate_inline(value: &serde_json::Value) -> Result<(), String> {
+    let config = inline_config(value)?;
+    relative(&config.entry)?; relative(&config.output)?;
+    for operation in &config.operations { relative(&operation.module)?; }
+    if let Some(server) = &config.server {
+        relative(&server.output)?; relative(&server.context.module)?; relative(&server.authorize.module)?;
+    }
+    Ok(())
+}
+
+fn discover_config(cwd: &Path) -> Result<PathBuf, String> {
+    for root in cwd.ancestors() {
+        let standalone = root.join(CONFIG);
+        let project = root.join(super::project_config::FILE);
+        let inline = if project.is_file() {
+            let text = fs::read_to_string(&project).map_err(|error| error.to_string())?;
+            let value: serde_json::Value = serde_json::from_str(&text).map_err(|error| format!("{}: {error}",project.display()))?;
+            value.get("api").is_some()
+        } else { false };
+        if inline && standalone.is_file() {
+            return Err("Both tsrust.config.json api settings and tsrust.api.json exist; select one explicitly with --config".into());
+        }
+        if inline { return Ok(project); }
+        if standalone.is_file() { return Ok(standalone); }
+    }
+    Err("No API configuration found; add api settings to tsrust.config.json or pass --config for a standalone API configuration".into())
+}
+
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct Config { schema_version: u32, entry: String, output: String, package: Package, operations: Vec<Selection>, #[serde(default = "api_version")] api_version: u32, #[serde(default)] compatible: Vec<String>, #[serde(default)] server: Option<Server> }
@@ -187,14 +224,16 @@ pub(super) fn run(args: impl Iterator<Item = String>) -> Result<u8, String> {
         }
     }
     let cwd = std::env::current_dir().map_err(|error| error.to_string())?;
-    let path = if let Some(config) = config { cwd.join(config) } else {
-        cwd.ancestors().map(|root| root.join(CONFIG)).find(|path| path.is_file()).ok_or("No tsrust.api.json found; pass --config for an existing project")?
-    };
+    let path = if let Some(config) = config { cwd.join(config) } else { discover_config(&cwd)? };
     let path = fs::canonicalize(path).map_err(|error| error.to_string())?;
     let root = path.parent().ok_or("API config needs a parent directory")?;
     let inputs = Candidate::new(BTreeMap::new())?;
     let config_source = inputs.read(&SourceId(path.to_string_lossy().into_owned()))?;
-    let config: Config = serde_json::from_str(&config_source).map_err(|error| format!("{}: {error}", path.display()))?;
+    let value: serde_json::Value = serde_json::from_str(&config_source).map_err(|error| format!("{}: {error}", path.display()))?;
+    let config: Config = if path.file_name().is_some_and(|name| name == super::project_config::FILE) {
+        super::project_config::parse(root,&config_source)?;
+        inline_config(value.get("api").ok_or("No api settings in tsrust.config.json")?)?
+    } else { serde_json::from_value(value).map_err(|error| format!("{}: {error}",path.display()))? };
     if config.schema_version != 1 { return Err("API configuration schemaVersion must be 1".into()); }
     let entry = root.join(relative(&config.entry)?);
     let canonical_output = normalize(&root.join(relative(&config.output)?))?;

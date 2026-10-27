@@ -1,5 +1,21 @@
 # Active roadmap: native backend application platform
 
+**Superseded by the owner's backend-only reset, 2026-10-27.** Follow
+[backend-only cleanup, HTTP SDKs and distribution](plans/backend-only-reset.md).
+Remove introduced frontend integrations; retain native backend/compiler/LSP,
+generate TypeScript and Rust SDKs from HTTP descriptions, and prioritize explicit
+Rust preparation, cache-based builds and Windows/macOS/Linux installation/update.
+Earlier React/Electron/Expo targets below are historical, not the active queue.
+
+The owner's 2026-10-27 Rust distribution request is tracked in
+[Rust setup and dependency distribution](plans/rust-setup-and-dependency-distribution.md).
+Ship prebuilt CLI/LSP tools, provide explicit doctor/setup and dependency resolution,
+use shared Cargo caches for normal locked/offline native builds, and retain vendor
+sources for portable offline exports. Inventory and setup contracts precede the
+build-path migration; all migration acceptance is pending. Routine dev/build must
+never silently fetch tools or dependencies. This is required production installation
+work alongside the application baseline, not a claim that new commands exist.
+
 The owner's 2026-10-27 reset supersedes the prototype-first sequence below.
 Follow [the production implementation baseline](plans/production-application-baseline.md):
 clean up, then build actual CLI-generated minimal greeting apps, validate visible

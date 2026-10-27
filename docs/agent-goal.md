@@ -1,6 +1,35 @@
-# Goal: production Tsrust backend application implementation
+# Goal: Tsrust backend framework, HTTP SDKs and distribution
+
+## Controlling owner reset — 2026-10-27
+
+The owner paused the previous automated goal and replaced its product scope.
+Follow [the backend-only reset](plans/backend-only-reset.md). The React/Electron/
+Expo, npm template, TanStack adapter and managed frontend work below is superseded
+historical context, not required acceptance. Remove introduced UI integrations from
+the active product; users bring their own UI and call HTTP APIs. Preserve original
+Tsrust UI source/history for possible later work, but exclude it from normal backend
+installation/build dependencies. Returning to that UI is not current implementation
+scope. Preserve owner edits, native compiler/LSP correctness and benchmark privacy.
+
+Required outcomes: a clean native backend framework; SDK generation from an HTTP
+API description with initial TypeScript and Rust output plus OpenAPI export; normal
+Cargo cache development with explicit preparation and portable vendored export;
+reliable Windows/macOS/Linux installation and self-service latest-version update
+checking/updating. No public release is authorized. The earlier automated goal
+remains paused until explicitly resumed; direct requested work follows this reset.
+
+## Superseded application-platform goal and retained evidence
 
 Owner-approved direction: 2026-10-26. Use this file as the continuation goal.
+
+Owner addition, 2026-10-27: implement the
+[Rust setup and dependency distribution plan](plans/rust-setup-and-dependency-distribution.md).
+Prebuilt compiler/LSP distribution, explicit machine preparation and dependency
+resolution, normal shared Cargo caches with locked/offline builds, retained portable
+vendored exports and tooling-free application deployment are required. Start with
+dependency-path inventory; preserve toolchain-free operations and prohibit implicit
+downloads in routine compiler/build/dev commands. Acceptance remains pending and
+must distinguish implemented behavior from unexecuted platform/distribution checks.
 
 Owner reset, 2026-10-27: clean up prototype-driven work and build the real production
 implementation from the CLI outward. Follow

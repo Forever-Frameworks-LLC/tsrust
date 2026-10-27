@@ -1,5 +1,31 @@
 # Agent continuation state
 
+## Controlling reset — backend only
+
+Owner paused the automated goal and explicitly replaced frontend platform scope
+with backend cleanup, HTTP-described TypeScript/Rust SDKs and cross-platform
+installation/self-update. See [the reset plan](plans/backend-only-reset.md) and the
+new controlling section of agent-goal.md. Do not continue React/Electron/Expo,
+TanStack or npm orchestration implementation from older notes. Preserve original
+Tsrust UI source for potential later revival and exclude it from ordinary backend
+dependencies. Current unvalidated layout edits and owner changes remain intact.
+Next action: required formatting and local checkpoint, then inventory introduced UI
+consumers/dependencies and remove them as a coherent backend-only section. The
+automated goal remains paused; direct requested work is authorized by this reset.
+
+## Rust distribution roadmap addition — 2026-10-27
+
+The owner's attachment is persisted in
+[the Rust setup/distribution plan](plans/rust-setup-and-dependency-distribution.md),
+linked from the active goal, roadmap and production baseline. It records product
+boundaries, ordered implementation, located source seams, pending acceptance and
+open decisions. Full inventory and implementation remain pending; no setup commands
+or cache migration are claimed implemented. Finish the coherent starter layout
+section, then inventory and define explicit preparation before native dev integration.
+Do not silently download Rust/dependencies during routine commands. Latest source
+checkpoint is d37ef82d; approved layout/inline API changes are still unvalidated
+in the working tree. Preserve owner .gitignore, docs/src/main.tsr and .agents/ edits.
+
 ## Current execution: validated starter, Windows test fixes and approved layout
 
 Latest steering supersedes the live-server and live-regression notes below:

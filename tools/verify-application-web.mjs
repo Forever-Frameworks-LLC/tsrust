@@ -13,7 +13,8 @@ const { chromium } = await import(pathToFileURL(path.join(repository, 'examples/
 const { default: AxeBuilder } = await import(pathToFileURL(path.join(repository, 'examples/backend-tasks/web/node_modules/@axe-core/playwright/dist/index.mjs')));
 const source = path.join(project, 'web/src/App.tsx');
 const original = fs.readFileSync(source, 'utf8');
-const receipt = JSON.parse(fs.readFileSync(path.join(project, 'tsrust.integration.json'), 'utf8'));
+const receiptFile = fs.existsSync(path.join(project, 'generated/.tsrust-integration.json')) ? 'generated/.tsrust-integration.json' : 'tsrust.integration.json';
+const receipt = JSON.parse(fs.readFileSync(path.join(project, receiptFile), 'utf8'));
 assert.equal(createHash('sha256').update(original).digest('hex'), receipt.initialFiles['web/src/App.tsx'], 'Use a fresh CLI project for source-edit acceptance; preserve owner customizations');
 const typesFile = path.join(project, 'web/src/api-contract-check.ts');
 const typesSource = `// Compile-only witness; never imported by the application.\nimport { api } from './lib/api'\napi.greet('Ada')\n// @ts-expect-error the native parameter is a string, not an object\napi.greet({ name: 'Ada' })\n// @ts-expect-error numbers are rejected\napi.greet(42)\n// @ts-expect-error undeclared operations are unavailable\napi.missing()\n`;
