@@ -6,7 +6,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const compiler = process.env.TSRUST || path.join(root, 'target/debug/tsrust' + (process.platform === 'win32' ? '.exe' : ''));
-const executable = path.join(root, 'target/native-api-witness' + (process.platform === 'win32' ? '.exe' : ''));
+const executable = path.join(root, 'target/native-api-versioned-witness' + (process.platform === 'win32' ? '.exe' : ''));
 const example = path.join(root, 'examples/api-contract');
 const config = path.join(example, 'tsrust.server.api.json');
 const environment = { ...process.env, CARGO_INCREMENTAL: '0', CARGO_BUILD_JOBS: '1', CARGO_TARGET_DIR: process.env.CARGO_TARGET_DIR || path.join(root, 'target'), TSRUST_CACHE_DIR: process.env.TSRUST_CACHE_DIR || path.join(root, 'target/tsrust-native') };
@@ -93,7 +93,7 @@ try {
     if (enabled === undefined) delete expected.enabled;
     assert.deepEqual(await api.data.nested(nested), expected);
   }
-  const request = async (body, extra = {}) => fetch(base + '/api', { method: 'POST', headers: { ...headers, 'content-type': 'application/json', 'x-tsrust-contract': current.contractId, ...extra }, body, signal: AbortSignal.timeout(5000) });
+  const request = async (body, extra = {}) => fetch(base + '/api', { method: 'POST', headers: { ...headers, 'content-type': 'application/json', 'x-tsrust-contract': current.wireContractId, ...extra }, body, signal: AbortSignal.timeout(5000) });
   for (const [body, extra, status, code] of [
     ['{', {}, 400, 'api-validation'],
     ['{}', {}, 400, 'api-validation'],

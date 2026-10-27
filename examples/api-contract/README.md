@@ -18,8 +18,8 @@ directories and edited generated files are preserved.
 
 Named calls use `createClient(transport)` and validate plain inputs/results. The
 transport returns `{ok:true,value}` or `{ok:false,error:{code,message}}`. A generated
-HTTP/desktop adapter and TanStack wrapper are subsequent sections; application
-authors will not need handwritten transports in the finished starter.
+HTTP adapter and optional TanStack wrapper are generated alongside the plain
+client. Desktop integration remains part of the prototype work.
 
 Operations currently accept no argument or one required plain-data argument.
 Integers use safe JavaScript numbers; finite numbers, strings, booleans, null,
@@ -27,4 +27,9 @@ literal types, arrays, tuples, data records and unions have explicit codecs.
 Optional record fields omit undefined and remain distinct from null. Native
 handles, functions, implicit serialization of collections and recursive wire
 types reject. Use explicit plain-data projections for those values. The API
-hash identifies exact contracts; it is not a rolling-compatibility policy.
+hash identifies exact contracts; it is not itself a rolling-compatibility policy.
+Versioned generation now retains checked SDK baselines and explicit API majors;
+its retained-baseline mixed-replica acceptance passes. The server witness uses API v2
+because its required revision result cannot be provided by an older v1 replica.
+See [the client guide](../../docs/guides/generated-api-clients.md) for the policy
+and [current evidence](../../docs/agent-progress.md) before claiming rollout support.

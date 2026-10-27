@@ -186,3 +186,46 @@ fn retained_manifests_reject_malformed_shapes_and_namespace_conflicts() {
     assert!(manifest.validate().is_err());
     assert!(serde_json::from_str::<Manifest>(r#"{"schemaVersion":1,"operations":[],"extra":true}"#).is_err());
 }
+
+#[test]
+fn versioned_sdk_baselines_protect_both_sides_of_a_replica_rollout() {
+    let old = Manifest { schema_version: 1, operations: vec![Operation {
+        name: "tasks.list".into(), kind: Kind::Query,
+        input: object(&[("after", Schema::Integer)], &["after"]),
+        output: object(&[("id", Schema::Integer)], &["id"]),
+    }] };
+    let history = ApiHistory::new("@example/api").advance("@example/api", "1.0.0", 1, &old).unwrap();
+    assert_eq!(history.advance("@example/api", "1.0.0", 1, &old).unwrap(), history);
+    let mut added = old.clone();
+    added.operations.push(Operation { name: "health".into(), kind: Kind::Query, input: Schema::Void, output: Schema::Boolean });
+    assert!(history.advance("@example/api", "1.1.0", 1, &added).is_ok());
+    assert!(history.advance("@example/api", "1.0.0", 1, &added).unwrap_err().contains("SDK version"));
+    let mut optional = old.clone();
+    optional.operations[0].input = object(&[("after", Schema::Integer), ("search", Schema::String)], &["after"]);
+    optional.operations[0].output = object(&[("id", Schema::Integer), ("revision", Schema::Integer)], &["id"]);
+    assert!(history.advance("@example/api", "1.1.0", 1, &optional).is_ok());
+    let mut required = optional.clone();
+    required.operations[0].output = object(&[("id", Schema::Integer), ("revision", Schema::Integer)], &["id", "revision"]);
+    assert!(required.operations[0].supports_previous(&old.operations[0]));
+    assert!(!required.operations[0].accepts_previous_result(&old.operations[0]));
+    assert!(history.advance("@example/api", "1.1.0", 1, &required).unwrap_err().contains("older replicas"));
+    assert!(history.advance("@example/api", "1.1.0", 2, &required).unwrap_err().contains("SDK major"));
+    assert!(history.advance("@example/api", "2.0.0", 2, &required).is_ok());
+    let mut removed = old.clone(); removed.operations.clear();
+    assert!(history.advance("@example/api", "1.1.0", 1, &removed).unwrap_err().contains("remove operation"));
+    let unchanged = history.advance("@example/api", "1.0.1", 1, &old).unwrap();
+    assert_eq!(unchanged.releases.len(), 1, "unchanged wire schemas are not accumulated as snapshots");
+    assert_eq!(unchanged.sdk_releases.len(), 2, "SDK version references remain immutable without duplicating schemas");
+    assert!(unchanged.advance("@example/api", "1.0.0", 1, &old).is_err());
+    assert!(history.advance("@other/api", "1.1.0", 1, &old).is_err());
+    for invalid in ["1.0", "01.0.0", "1.0.0-extra", "4294967296.0.0"] { assert!(history.advance("@example/api", invalid, 1, &old).is_err()); }
+    let round_trip: ApiHistory = serde_json::from_str(&serde_json::to_string(&history).unwrap()).unwrap();
+    assert_eq!(round_trip, history);
+    assert_ne!(old.wire_identity(1), old.wire_identity(2), "identical schemas in different API majors are distinct");
+    assert_eq!(old.wire_identity(1), old.identity(), "legacy API v1 identities remain usable");
+    let mut merged = history.clone(); merged.merge(&unchanged).unwrap();
+    assert_eq!(merged, unchanged);
+    let conflicting = ApiHistory::new("@example/api").advance("@example/api", "1.0.0", 1, &added).unwrap();
+    assert!(merged.merge(&conflicting).is_err());
+    assert_eq!(merged, unchanged, "failed merges do not replace history");
+}

@@ -18,6 +18,14 @@ export class ApiError extends Error {
   }
 }
 
+export class ApiCompatibilityError extends ApiError {
+  constructor(code, message, operation, apiVersion) {
+    super(code, message, operation);
+    this.name = 'ApiCompatibilityError';
+    this.apiVersion = apiVersion;
+  }
+}
+
 export function plain(value) {
   return value !== null && typeof value === 'object' &&
     (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);

@@ -1,8 +1,9 @@
 # Checked named API clients
 
-Status: first compiler/client foundation passes focused acceptance. This does not yet
-provide the finished HTTP/SQLite service, Electron adapter, TanStack wrapper or
-frontend templates from the [prototype goal](../agent-goal.md).
+Status: plain clients, native HTTP/SQLite dispatch, the optional TanStack adapter
+and the React task app pass their focused milestones. Versioned SDK rollout
+support below passes its retained-baseline replica matrix. Electron/mobile and
+the complete [prototype goal](../agent-goal.md) remain incomplete.
 
 Declare the operations to expose in a separate `tsrust.api.json`. Keeping this
 configuration separate allows backend/client-only adoption without changing an
@@ -11,6 +12,7 @@ existing frontend's package manager, lockfile, scripts or directory layout.
 ```json
 {
   "schemaVersion": 1,
+  "apiVersion": 1,
   "entry": "app/main.tsr",
   "output": "packages/api",
   "package": { "name": "@example/api", "version": "0.1.0" },
@@ -107,10 +109,11 @@ const api = createClient(createHttpTransport({
 const count = await api.math.count(1, { signal: controller.signal });
 ```
 
-This is the client side of the protocol; generated native dispatch is pending.
 Each call posts `{operation,input}` as JSON to the configured endpoint and sends
-`x-tsrust-contract` with the calling client's contract hash. The server must make
-its own compatibility and application authorization decisions. Headers are resolved
+`x-tsrust-contract` with a selected checked wire-profile identity. JSON Content-Type
+parameters carry the requested API major, current operation fingerprint and SDK
+artifact fingerprint. This adds no new CORS header names. The server retains
+application authorization responsibility. Headers are resolved
 for each call so credential changes take effect; the adapter sets its protocol
 headers after application headers. Cookies are omitted and redirects reject.
 Use HTTPS for remote credentials. Loopback HTTP is available for the desktop bridge.
@@ -129,16 +132,56 @@ mobile Fetch behavior remain service/platform acceptance requirements.
 Fetch status checking, JSON content types, credentials and cancellation follow
 [the Fetch API documentation](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch).
 
-The contract hash describes exact wire shape. It is not a compatibility policy:
-do not require exact hash equality for additive rolling upgrades. Hosted transport
-limits, application authorization, public error projection, compatibility checks
-and query adapters remain separate prototype acceptance requirements.
+## Versioned SDKs and mixed server replicas
 
-## Private native dispatch (implementation in progress)
+`package.version` identifies an SDK release and retains an immutable wire-contract
+reference. `apiVersion` is a positive
+API compatibility major, defaulting to 1. `contractId` identifies the exact checked
+manifest. `wireContractId` includes the API major, while preserving legacy v1
+identities. Consequently an identical DTO schema in API v2 cannot accidentally
+pass a pre-versioning API v1 server's hash admission check.
 
-The next generator version adds optional private source output. These changes
-are not yet accepted or installed; use the existing client-only configuration
-until the native dispatch milestone passes.
+Generated compatibility.json retains deduplicated checked schemas and immutable
+SDK release references. Keep it with generated output. Generation reads canonical
+history even when exporting with --out, merges destination history, and checks
+compatibility before replacing public/private outputs. Changed schemas require a
+new SDK version. Within one API major, released inputs remain accepted and old
+replica results must satisfy the new SDK. Optional result additions can work;
+required new fields must use an explicit API major or remain optional during
+rollout. A new API major requires a new SDK major. Business semantics still need
+application review; schema containment cannot prove them.
+
+These checks preserve release-to-contract identity, not an npm registry's release
+immutability or every generated runtime byte. Regeneration with a newer Tsrust
+compiler can update runtime code without changing DTOs. Select a new package
+version before publishing any changed package, including runtime-only changes.
+Generation does not publish or silently change package versions for the owner.
+
+Known published baselines can be imported with top-level `compatible`, a list of
+relative manifest.json or compatibility.json paths. Legacy server.compatible
+remains supported. A fresh selected client can omit methods from foreign server
+baselines, but subsequent releases cannot silently remove its own published calls.
+Existing owned pre-metadata packages bootstrap from their manifest/package version.
+
+Before I/O, the HTTP adapter selects a retained profile whose input codec accepts
+the actual supplied arguments and whose output is accepted by the current SDK.
+Modern dispatchers recognize retained per-operation fingerprints independently
+of unrelated selected methods. Strict response codecs and old-client projections
+remain in force. The adapter never strips arguments or retries requests to find
+support. Common calls can survive mixed replicas; newly supplied arguments or new
+operations can require newer servers. ApiCompatibilityError extends ApiError,
+preserves api-incompatible/api-operation codes and reports the requested API major.
+Do not infer fleet-wide capabilities from one replica or retry ambiguous writes.
+Retain older handlers or migrations for as long as older API majors must work.
+
+The real old/new native server and browser matrix is
+`node tools/verify-api-replicas.mjs`. It passes the scoped
+[SDK milestone](../milestones/sdk-versioning.md); see
+[current evidence](../agent-progress.md) for remaining prototype work.
+
+## Private native dispatch
+
+Optional private source output connects checked operations to the native Router.
 
 ```json
 {
@@ -180,15 +223,13 @@ individually atomic and retryable, not a filesystem-wide transaction. `--check`
 writes nothing. An explicit `--out` changes the client destination while a configured
 private server keeps its own destination. Omit `server` for client-only adoption.
 
-Retain public `manifest.json` versions as application compatibility policy inputs.
-The generator checks old inputs still fit the new operation and new outputs can
-be projected into the old strict shape, recursively. This permits added optional
-inputs and new output fields without making old clients accept unknown fields.
-Removed operations, changed query/mutation roles, newly required inputs and unsafe
-output changes reject per operation with `api-incompatible`. Unrecognized client
-hashes reject too. Compatibility checks concern supported wire shapes; they do
-not prove unchanged business semantics. Keep immutable contract versions rather
-than editing an old policy input to describe a different client.
+Retained baselines check that old inputs fit the new operation and new outputs
+can be projected into the old strict shape, recursively. Versioned SDK history
+also checks the reverse result direction for old replicas. Unknown operation
+shapes reject with api-incompatible before invocation, even when their names
+exist. Keep immutable contract versions rather than changing an old policy input
+to describe a different client. Neither hash matching nor containment establishes
+unchanged application semantics.
 
 The HTTP encoder retains platform JSON escaping and marks unsafe integral JS
 numbers as decimal floating-point tokens. Thus finite values such as 1e20 do not

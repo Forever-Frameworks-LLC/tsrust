@@ -2,7 +2,10 @@
 
 ## Current section: SDK compatibility across hosted replicas
 
-Native static web mounts now pass focused acceptance from baseline `6ceb7ccc`.
+Native static web mounts pass focused acceptance at checkpoint `03f20f0`, from
+baseline `6ceb7ccc`. Whole-project formatting passes twice with zero file/hash
+changes; benchmark source/protocol registration passes. Disposable benchmark
+executable was removed after its untimed acceptance.
 See `docs/milestones/static-web-mounts.md` for exact source, retained failures and
 repairs, licenses, checks and consumer-refresh limit. Seven affected compiler/
 runtime cases pass, plus retained editor help, Router typing-speed/agreement and
@@ -21,12 +24,39 @@ owner editor processes or use computer control. Rebuilt debug LSP passes headles
 acceptance; active-editor refresh/live diagnostics remain pending. Debug SHA-256
 `5bccffaba56857c0106108d3022ebf208d26adfb6e33d3d3810b6a8405f3df18`.
 
-Next: final whole-project format/idempotence and local static checkpoint, then
-implement the owner's SDK compatibility/versioning steering below. Native servers,
-Cargo builds and browser checks are terminal; no owned preview is left running.
-Preserve owner `docs/src/main.tsr`, `.agents/` and newly observed
-`examples/windows-setup/wut/`. No full compiler/LSP family pass, performance
-measurement, desktop/mobile packaging, remote CI or publication is claimed.
+SDK compatibility now passes focused acceptance from pre-change checkpoint
+`03f20f0`. See `docs/milestones/sdk-versioning.md` for policy, exact commands,
+executable identities, fixture repair and remaining scope. ApiHistory preserves
+immutable release-to-wire references and deduplicated schemas; canonical/export
+history is pinned and ownership checked. Generation rejects accidental
+same-major breaks in both rollout directions. Clients select a checked input
+profile before one request, without removing arguments or retrying writes.
+Native dispatch recognizes retained per-operation shapes and preserves strict
+result validation/projection. JSON media parameters add no new CORS header names.
+Different API majors have distinct wire/cache identities even with identical DTOs.
+
+Passed evidence: all 10 api_contract tests; CLI rebuild; plain SDK/HTTP/TypeScript
+and owner guards; TanStack/React and major-isolated cache; detached npm packages
+and owner dependency edits; virtual dispatch checking; actual old/new replica
+and headless browser matrix; separate native API-contract regression. Logs are
+`target/api-versioning-{contract,cli-build,client,query,package,dispatch,replicas,native}.log`.
+The replica matrix includes optional request/results, strict old-SDK projection,
+subset/unrelated methods, rejected writes without effects, authorization, exact
+request counts/no retry, legacy browser CORS and orderly drain. Temporary sources,
+configs, consumers and SQLite data are removed; canonical task dispatch restored.
+The initial enrichment fixture ownership failure was repaired with a borrowed
+projection and explicit owned strings, without changing compiler rules.
+
+Whole-project formatting passes twice: zero files/fingerprints changed, protected
+owner docs hash unchanged. git diff --check passes. Logs:
+`target/api-versioning-format-first.log`, `target/api-versioning-format-second.log`.
+Local SDK source checkpoint and installed CLI refresh are next. All owned builds,
+native servers and browser tests are terminal. No owned preview remains running.
+Preserve owner `docs/src/main.tsr`, `.agents/` and `examples/windows-setup/wut/`.
+Next dependency-ready section is the optional framework-independent TanStack
+query-core entry with React layered above it, then the remaining prototype goal.
+No full compiler/LSP family pass, performance measurement, Electron/mobile
+packaging, remote CI or publication is claimed. The full goal remains active.
 
 Owner discussion: SDK generation should remain framework/language independent.
 Recommended follow-up is an optional framework-independent JS query entry backed
@@ -37,18 +67,12 @@ settings and secrets stay out of keys. Additional language generators are an
 extension path, not a claim that every language is implemented. Complete the
 current static section before changing the generated adapter architecture.
 
-Owner also identified replica-rollout hazards in exact manifest-hash admission.
-Next SDK section must separate artifact identity, SDK semantic version and stable
-API compatibility version. Compare retained baselines during generation, prevent
-accidental breaking updates, preserve existing calls and add actual mixed-replica
-acceptance. Current old-client/new-server proof is directional, not a rolling-fleet
-guarantee. New clients cannot assume new capabilities on old replicas. Capability
-handling must be valid for the replica actually serving each request; do not infer
-fleet-wide support from one random replica or retry ambiguous writes. Compatible
-manifest hash changes should not alone cause runtime rejection. Explicitly version
-breaking behavior and define deployment/fallback policy; do not promise arbitrary
-new features work on old servers. Prioritize this owner steering before expanding
-query adapter/framework targets after the static checkpoint.
+The owner's replica-rollout concern is covered by the SDK milestone above.
+Compatibility is scoped to checked retained baselines and does not establish
+business semantics or fleet-wide support for new features. New operations and
+supplied new arguments can require newer replicas; retain handlers/migrations
+for older API majors. Publication requires a new package version for runtime-only
+changes too: schema identity checks do not police registry artifact immutability.
 
 ## Accepted section: React/Vite task web app
 

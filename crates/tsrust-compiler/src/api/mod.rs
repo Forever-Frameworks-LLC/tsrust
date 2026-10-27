@@ -3,6 +3,8 @@ mod typescript;
 mod react_query;
 mod native_codecs;
 mod compatibility;
+mod versioning;
+pub use versioning::{ApiHistory, ApiRelease, SdkReleaseIdentity};
 mod native;
 pub use native::{NativeImport, NativeServer};
 use crate::{analysis::CheckedProgram, project::{ProjectAnalysis, SourceId}, syntax::{CallbackKind, Type}};
@@ -70,6 +72,16 @@ fn valid_segment(name: &str) -> bool {
 }
 
 impl Manifest {
+    /// API majors remain distinct even when data shapes happen to be identical.
+    pub fn wire_identity(&self, api_version: u32) -> String {
+        if api_version == 1 { return self.identity(); }
+        use sha2::{Digest, Sha256};
+        Sha256::digest(serde_json::to_vec(&(api_version, self)).expect("API wire serialization")).iter().map(|byte| format!("{byte:02x}")).collect()
+    }
+
+    pub fn client_package_versioned(&self, name: &str, version: &str, history: &ApiHistory) -> Result<BTreeMap<String, String>, String> {
+        typescript::package_versioned(self, name, version, history)
+    }
     /// Resolve an explicit allowlist against a successfully checked project.
     /// Select zero-argument functions or one required data argument. Async results
     /// are unwrapped to their eventual value. No request is dispatched here.
@@ -87,6 +99,13 @@ impl Manifest {
     /// The returned files have no server source, absolute paths or framework imports.
     pub fn client_package(&self, name: &str, version: &str) -> Result<BTreeMap<String, String>, String> {
         typescript::package(self, name, version)
+    }
+}
+
+impl Operation {
+    pub fn wire_identity(&self, api_version: u32) -> String {
+        use sha2::{Digest, Sha256};
+        Sha256::digest(serde_json::to_vec(&(api_version, self)).expect("API operation serialization")).iter().map(|byte| format!("{byte:02x}")).collect()
     }
 }
 

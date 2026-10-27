@@ -5,7 +5,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 export async function verifyHttp(directory) {
-  const { createClient, ApiError, contractId } = await import(pathToFileURL(path.join(directory, 'index.js')));
+  const { createClient, ApiError, contractId, apiVersion } = await import(pathToFileURL(path.join(directory, 'index.js')));
   const { createHttpTransport } = await import(pathToFileURL(path.join(directory, 'http.js')));
   const requests = [];
   let finishSlow;
@@ -61,6 +61,8 @@ export async function verifyHttp(directory) {
     assert.equal(requests[1].headers.authorization, 'Bearer second');
     assert.equal(requests[0].headers['x-tsrust-contract'], contractId);
     assert.equal(requests[0].headers.accept, 'application/json');
+    assert.match(requests[0].headers['content-type'], new RegExp(`^application/json; tsrust-api=${apiVersion}; tsrust-operation=[a-f0-9]{64}; tsrust-client=${contractId}$`));
+    assert.equal(Object.keys(requests[0].headers).some(name => /^x-tsrust-(api|operation|client)/.test(name)), false, 'metadata introduces no new CORS header names');
     assert.deepEqual(requests[0].body, { operation: 'math.count', input: 1 });
     assert.equal((await api.tasks.create({ title: 'Ship \u{1f680}' })).title, 'Ship \u{1f680}');
     const numericText = '100000000000000000000 " 9007199254740992 \\ 1e20';

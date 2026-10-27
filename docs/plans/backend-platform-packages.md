@@ -223,6 +223,49 @@ explicitly authorized.
 
 ## Named calls and hooks
 
+### SDK/API versioning research (2026-10-27)
+
+The owner's hosted-replica concern takes priority over further framework adapters.
+[Azure's API guidelines](https://github.com/microsoft/api-guidelines/blob/vNext/azure/Guidelines.md#api-versioning)
+provide a useful precedent: clients select an API version on each request, while
+existing customer workloads remain compatible. Its organizational review/approval
+rules are Azure-specific and do not add an approval flow to this repository.
+[OpenAPI 3.1.1](https://spec.openapis.org/oas/v3.1.1.html#info-object) also separates
+description metadata from the specification version; adopting a description
+format alone would not solve fleet compatibility or lifecycle policy.
+
+Implementation must distinguish package semantic version, supported API/wire
+version and exact schema fingerprint. The current checked manifest already
+provides per-operation input/output shapes, query/mutation role and directional
+compatibility analysis. Reuse that work rather than a new RPC runtime. Current
+whole-manifest hash admission is insufficient for hosted rolling replicas.
+
+Before choosing the final wire spelling, settle these with executable witnesses:
+
+- Adding an unrelated operation or regenerating a client subset must not break an
+  unchanged call against an older compatible replica.
+- Old SDK/new server and new SDK/old server are distinct compatibility directions.
+  A required new output field cannot be assumed present on an older replica.
+- Additive optional inputs may be safe when omitted but require new capability
+  when supplied. Never drop arguments silently to manufacture compatibility.
+- Preserve old SDK strict output projection during protocol migration. A modern
+  forward-compatible response codec may ignore unknown object fields only while
+  validating every declared field and retaining server-side strict validation.
+- Compare versioned baselines automatically during generation; accidental breaking
+  changes in a compatible update must fail before overwriting generated output.
+- Support decisions must hold for each serving replica. Do not cache a global
+  capability claim learned from one instance or retry an ambiguous write.
+- Test legacy pre-change clients/servers separately from old/new API contracts
+  implemented by the future version-aware dispatcher. Do not hide migration gaps
+  by calling two new-protocol implementations the entire old-server matrix.
+
+Stable API versions with automatically tracked operation requirements, or safely
+selected retained wire profiles, are candidate implementations. Exact artifact
+fingerprints remain useful diagnostics/cache identity, not an authorization rule.
+Compatibility is about checked wire guarantees; unchanged business semantics still
+need application acceptance. Additional language generation is an extension path,
+not a claim that all languages are implemented by the current TypeScript SDK.
+
 Proposed generated surface, to settle with executable TypeScript witnesses:
 
 ```ts

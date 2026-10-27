@@ -12,6 +12,29 @@ using the host Fetch API and its types. It posts JSON, omits cookies, rejects
 redirects and forwards AbortSignal. Cancellation does not prove rollback or
 backend cleanup completion. Ordinary named calls do not add caching or retries.
 
+## Versioned APIs and rolling deployments
+
+The npm package version identifies an SDK release. `apiVersion` identifies its
+explicit API compatibility major; `contractId` identifies the exact manifest, and
+`wireContractId` also distinguishes different API majors with identical schemas.
+Generation retains checked baselines in compatibility.json and rejects accidental
+breaking changes within one API major. Keep that generated metadata in version
+control with the package. New required result fields require a new API major;
+optional additions can preserve existing clients and older replicas.
+
+The HTTP adapter selects a known safe request profile before sending each call.
+Common operations can keep working when unrelated operations change or the SDK
+selects a smaller operation set. Arguments are never silently removed and writes
+are never retried to discover server support. ApiCompatibilityError reports an
+unsupported operation or incompatible contract, preserves its public error code,
+and includes the requested API major. A new operation or supplied new argument
+can still require a newer server. Baseline checks cannot establish business
+semantics, deployment-wide capabilities or support on unknown historical servers.
+
+Older API majors remain usable only while the application retains compatible
+handlers or migrations. An SDK cannot implement behavior absent from an older
+replica. Arrange deployment/routing accordingly when introducing new features.
+
 ## Optional React/TanStack entry
 
 Applications using React and TanStack Query can import createReactClient from

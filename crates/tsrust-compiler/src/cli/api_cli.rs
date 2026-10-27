@@ -2,7 +2,7 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeMap, fs, path::{Component, Path, PathBuf}};
-use tsrust_compiler::{api::{CheckedApi, Manifest, NativeImport, NativeServer, Selection}, project::{SourceId, SourceProvider, load_project, check_graph}};
+use tsrust_compiler::{api::{ApiHistory, CheckedApi, Manifest, NativeImport, NativeServer, Selection}, project::{SourceId, SourceProvider, load_project, check_graph}};
 use super::package_validation::{Candidate, normalize};
 
 const CONFIG: &str = "tsrust.api.json";
@@ -10,7 +10,8 @@ const MARKER: &str = ".tsrust-api.json";
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-struct Config { schema_version: u32, entry: String, output: String, package: Package, operations: Vec<Selection>, #[serde(default)] server: Option<Server> }
+struct Config { schema_version: u32, entry: String, output: String, package: Package, operations: Vec<Selection>, #[serde(default = "api_version")] api_version: u32, #[serde(default)] compatible: Vec<String>, #[serde(default)] server: Option<Server> }
+fn api_version() -> u32 { 1 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct Server {
@@ -29,6 +30,44 @@ struct Package { name: String, version: String }
 #[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct Marker { schema_version: u32, files: BTreeMap<String, String> }
+
+fn owned_history(output: &Path, inputs: &Candidate, name: &str) -> Result<ApiHistory, String> {
+    safe_output(output)?;
+    let read = |file: &str| -> Result<Option<String>, String> {
+        let path = output.join(file);
+        let Some(bytes) = regular(&path)? else { return Ok(None); };
+        let id = inputs.resolve(None, path.to_str().ok_or("API history paths must be UTF-8")?)?;
+        let text = inputs.read(&id)?;
+        if text.as_bytes() != bytes { return Err("API history changed while reading".into()); }
+        Ok(Some(text))
+    };
+    let Some(marker) = read(MARKER)? else { return Ok(ApiHistory::new(name)); };
+    let marker: Marker = serde_json::from_str(&marker).map_err(|error| format!("Invalid API ownership marker: {error}"))?;
+    if marker.schema_version != 1 { return Err("Unsupported API ownership marker".into()); }
+    let checked = |file: &str| -> Result<Option<String>, String> {
+        let text = read(file)?;
+        if let Some(text) = &text {
+            if marker.files.get(file) != Some(&hash(text.as_bytes())) { return Err(format!("Generated API file {file} has user edits; preserve them before reading compatibility history")); }
+        } else if marker.files.contains_key(file) { return Err(format!("Generated API history file {file} is missing")); }
+        Ok(text)
+    };
+    if let Some(text) = checked("compatibility.json")? {
+        let history: ApiHistory = serde_json::from_str(&text).map_err(|error| format!("Invalid API compatibility history: {error}"))?;
+        history.validate()?;
+        if history.package_name != name { return Err("API history belongs to another package; use a separate output".into()); }
+        return Ok(history);
+    }
+    let mut history = ApiHistory::new(name);
+    if let Some(text) = checked("manifest.json")? {
+        let manifest: Manifest = serde_json::from_str(&text).map_err(|error| format!("Invalid previous API manifest: {error}"))?;
+        let package = checked("package.json")?.ok_or("Previous API output needs its package metadata")?;
+        let package: serde_json::Value = serde_json::from_str(&package).map_err(|error| error.to_string())?;
+        if package["name"].as_str() != Some(name) { return Err("Previous API output belongs to another package".into()); }
+        let version = package["version"].as_str().ok_or("Previous SDK version is missing")?;
+        history = history.advance(name, version, 1, &manifest)?;
+    }
+    Ok(history)
+}
 
 fn relative(value: &str) -> Result<&Path, String> {
     let path = Path::new(value);
@@ -158,7 +197,8 @@ pub(super) fn run(args: impl Iterator<Item = String>) -> Result<u8, String> {
     let config: Config = serde_json::from_str(&config_source).map_err(|error| format!("{}: {error}", path.display()))?;
     if config.schema_version != 1 { return Err("API configuration schemaVersion must be 1".into()); }
     let entry = root.join(relative(&config.entry)?);
-    let output = output.map(|path| cwd.join(path)).unwrap_or(root.join(relative(&config.output)?));
+    let canonical_output = normalize(&root.join(relative(&config.output)?))?;
+    let output = output.map(|path| cwd.join(path)).unwrap_or(canonical_output.clone());
     safe_output(&output)?;
     let output = normalize(&output)?;
     let mut selections = config.operations;
@@ -169,7 +209,27 @@ pub(super) fn run(args: impl Iterator<Item = String>) -> Result<u8, String> {
     let graph = load_project(&inputs, entry.to_str().ok_or("API entry must be UTF-8")?).map_err(|error| error.message)?;
     let project = check_graph(graph).map_err(|error| error.message)?;
     let api = CheckedApi::from_project(&project, &selections)?;
-    let files = api.manifest.client_package(&config.package.name, &config.package.version)?;
+    let mut history = owned_history(&canonical_output, &inputs, &config.package.name)?;
+    if output != canonical_output { history.merge(&owned_history(&output, &inputs, &config.package.name)?)?; }
+    let mut baselines = config.compatible;
+    if let Some(server) = &config.server { baselines.extend(server.compatible.iter().cloned()); }
+    for retained in baselines {
+        let path = root.join(relative(&retained)?);
+        let id = inputs.resolve(None, path.to_str().ok_or("Retained contract path must be UTF-8")?)?;
+        let text = inputs.read(&id)?;
+        let value: serde_json::Value = serde_json::from_str(&text).map_err(|error| format!("Invalid retained API baseline: {error}"))?;
+        if value.get("releases").is_some() {
+            let retained: ApiHistory = serde_json::from_value(value).map_err(|error| format!("Invalid retained API history: {error}"))?;
+            retained.validate()?;
+            for release in retained.releases { history.retain(release.api_version, release.manifest)?; }
+        } else {
+            history.retain(1, serde_json::from_value::<Manifest>(value).map_err(|error| format!("Invalid retained API manifest: {error}"))?)?;
+        }
+    }
+    history = (if config.server.is_some() { history.advance(&config.package.name, &config.package.version, config.api_version, &api.manifest) }
+        else { history.advance_client(&config.package.name, &config.package.version, config.api_version, &api.manifest) })
+        .map_err(|error| if check { format!("Generated API is stale: {error}") } else { error })?;
+    let files = api.manifest.client_package_versioned(&config.package.name, &config.package.version, &history)?;
     let mut packages = vec![(output.clone(), files)];
     let mut native_inputs = None;
     if let Some(server) = config.server {
@@ -183,15 +243,9 @@ pub(super) fn run(args: impl Iterator<Item = String>) -> Result<u8, String> {
         };
         let context = resolve(server.context)?;
         let authorize = resolve(server.authorize)?;
-        let mut previous = Vec::new();
-        for retained in server.compatible {
-            let path = root.join(relative(&retained)?);
-            let id = inputs.resolve(None, path.to_str().ok_or("Retained manifest path must be UTF-8")?)?;
-            previous.push(serde_json::from_str::<Manifest>(&inputs.read(&id)?).map_err(|error| format!("Invalid retained API manifest: {error}"))?);
-        }
         let entry = directory.join("index.tsr");
-        let options = NativeServer { context, authorize, previous, max_request_bytes: server.max_request_bytes, max_response_bytes: server.max_response_bytes };
-        let source = api.native_source(&entry, &options)?;
+        let options = NativeServer { context, authorize, previous: Vec::new(), max_request_bytes: server.max_request_bytes, max_response_bytes: server.max_response_bytes };
+        let source = api.native_source_versioned(&entry, &options, &history)?;
         let source = tsrust_compiler::format(&source).map_err(|error| error.message)?;
         if tsrust_compiler::format(&source).map_err(|error| error.message)? != source { return Err("Generated API source formatting is not stable".into()); }
         let id = SourceId(entry.to_string_lossy().into_owned());

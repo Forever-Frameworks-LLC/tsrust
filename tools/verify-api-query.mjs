@@ -166,6 +166,23 @@ const wrong:string|undefined=api.tasks.list.useQuery({search:null},{select:rows=
 void [original,selected,failure,direct,marker,wrong];
 `);
   command(process.execPath, [path.join(fixture, 'node_modules/typescript/bin/tsc'), path.join(directory, 'consumer.mts'), '--strict', '--noEmit', '--module', 'NodeNext', '--target', 'ES2022', '--lib', 'ES2022,DOM']);
+  if (!staged) {
+    const originalConfig = path.join(root, 'examples/api-contract/tsrust.query.api.json');
+    const majorConfig = path.join(path.dirname(originalConfig), `.tsrust-query-major-${process.pid}.json`);
+    const configuration = JSON.parse(fs.readFileSync(originalConfig));
+    configuration.apiVersion = 2; configuration.package.version = '1.0.0';
+    fs.writeFileSync(majorConfig, JSON.stringify(configuration), { flag: 'wx' });
+    try {
+      const majorClient = path.join(directory, 'major-client');
+      command(compiler, ['api', 'generate', '--config', majorConfig, '--out', majorClient]);
+      const metadata = await import(pathToFileURL(path.join(majorClient, 'index.js')));
+      const { createReactClient: createMajorClient } = await import(pathToFileURL(path.join(majorClient, 'react-query.js')));
+      assert.equal(metadata.contractId, contractId, 'the public DTO schema is identical');
+      assert.notEqual(metadata.wireContractId, contractId, 'the API major has distinct wire identity');
+      const next = createMajorClient(transport, { scope: 'backend-one/user-one' });
+      assert.notDeepEqual(next.tasks.list.key({ search: null }), api.tasks.list.key({ search: null }), 'different API majors cannot share cached results');
+    } finally { fs.unlinkSync(majorConfig); }
+  }
   console.log(`${staged ? 'Staged' : 'Generated'} API Query: scoped/special keys, copied inputs, cache/invalidation, mutation context, no retries, abort, real React hooks and upstream TypeScript inference passed.`);
 } finally {
   cache?.clear();

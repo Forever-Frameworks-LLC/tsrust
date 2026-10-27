@@ -73,6 +73,12 @@ impl Manifest {
 }
 
 impl Operation {
+    /// A new SDK can decode responses from the retained replica without inventing
+    /// missing fields or weakening the checked public result type.
+    pub fn accepts_previous_result(&self, previous: &Operation) -> bool {
+        self.name == previous.name && self.kind == previous.kind
+            && accepts(&previous.output, &self.output, false)
+    }
     /// An old caller's inputs still work and new results can be safely projected
     /// to that caller's strict output shape. Application semantics remain its own.
     pub fn supports_previous(&self, previous: &Operation) -> bool {
