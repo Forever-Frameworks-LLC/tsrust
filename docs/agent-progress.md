@@ -2,6 +2,12 @@
 
 ## Current section: query adapter accepted; desktop integration next
 
+Accepted source checkpoint: `67cb812c`. Installed CLI atomically refreshed and
+hash-matched; installed generated task API stale check passes, log
+target/api-core-installed.log. CLI SHA-256:
+`2f93465f31973a3d4e2dc4941634ac49dc569a6ecab321d7ac0667df33c28589`.
+No editor process was interrupted; active installed LSP refresh remains pending.
+
 Working from evidence checkpoint `47bb2375`. Extracted the generated shared
 options/key/validation/invalidation runtime into an optional /query entry backed
 by Query Core, with React reduced to hook composition. Plain/HTTP clients remain
@@ -33,7 +39,7 @@ All owned builds, browser/server tests and temporary consumers are terminal.
 Whole-project formatting passes twice with zero files/fingerprints changed;
 protected owner docs hash is unchanged and git diff --check passes. Logs:
 target/api-core-format-first.log and target/api-core-format-second.log.
-Local source checkpoint and installed CLI refresh follow acceptance.
+Local source checkpoint and installed CLI refresh are complete.
 The full prototype goal remains active and incomplete.
 
 The apparent starter lock discrepancy was a reading mistake: pnpm 12 uses two
@@ -111,14 +117,14 @@ owner docs hash unchanged. git diff --check passes. Logs:
 Local SDK source checkpoint and installed CLI refresh are complete. All owned builds,
 native servers and browser tests are terminal. No owned preview remains running.
 Preserve owner `docs/src/main.tsr`, `.agents/` and `examples/windows-setup/wut/`.
-Next dependency-ready section is the optional framework-independent TanStack
-query-core entry with React layered above it, then the remaining prototype goal.
+The framework-independent TanStack query entry is accepted above. The next
+dependency-ready section is Electron lifecycle/bridge/package integration.
 No full compiler/LSP family pass, performance measurement, Electron/mobile
 packaging, remote CI or publication is claimed. The full goal remains active.
 
 Owner discussion: SDK generation should remain framework/language independent.
-Recommended follow-up is an optional framework-independent JS query entry backed
-by TanStack query-core, with React hooks layered above it. Plain calls already
+That follow-up is now implemented as the optional framework-independent JS query
+entry backed by TanStack query-core, with React hooks layered above it. Plain calls
 have no React/cache dependency. Cache identity should include service/principal,
 contract, operation and normalized response-changing inputs; policy/signals/retry
 settings and secrets stay out of keys. Additional language generators are an

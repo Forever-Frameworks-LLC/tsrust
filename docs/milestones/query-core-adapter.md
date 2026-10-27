@@ -1,6 +1,6 @@
 # Framework-independent generated query adapter
 
-Focused acceptance passes from `47bb2375`, 2026-10-27. The full application
+Focused acceptance passes at `67cb812c`, from `47bb2375`, 2026-10-27. The full application
 prototype remains incomplete; see docs/agent-goal.md.
 
 ## Behavior and boundary
@@ -90,6 +90,9 @@ package rerun passed. No input validation or test assertion was weakened.
 
 Whole-project formatting passes twice with zero file/fingerprint changes; the
 protected owner docs source hash is unchanged. Logs target/api-core-format-first.log
-and target/api-core-format-second.log. git diff --check passes. Local source
-checkpoint/installed consumer refresh follow acceptance. Full backend-family regression/measurement, Electron/mobile,
+and target/api-core-format-second.log. git diff --check passes. The installed CLI
+is hash-matched to the source-current debug build and its task API stale check
+passes, target/api-core-installed.log. SHA-256:
+`2f93465f31973a3d4e2dc4941634ac49dc569a6ecab321d7ac0667df33c28589`.
+Full backend-family regression/measurement, Electron/mobile,
 convenience commands/migrations and cancellation cleanup remain required.
