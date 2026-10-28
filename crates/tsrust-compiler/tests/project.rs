@@ -655,7 +655,7 @@ fn native_registry_imports_resolve_without_disk_modules_or_implicit_features() {
         &entry[import.bindings[0].span.start..import.bindings[0].span.end],
         "basename"
     );
-    assert_eq!(memory.reads.borrow().len(), 1);
+    assert_eq!(*memory.reads.borrow(),BTreeMap::from([("main.tsr".into(),1),("tsrust.config.json".into(),1)]));
     let features = tsrust_compiler::native_bindings::selected_features(
         graph
             .modules

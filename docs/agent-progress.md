@@ -1001,3 +1001,22 @@ verified in extension.ts maxRestartCount=4 and installed vscode-languageclient
 DefaultErrorHandler.closed: fifth exit within three minutes stops recovery; manual
 restart creates a fresh client/history. Public page now separates repeated-exit
 recovery from symptom-based memory reporting. No long-session memory test claimed.
+
+## Provider repairs accepted; catalog and cache checks running
+
+Session 14197 completed: generic_default_void 3, native_declarations 64, project
+95 and project_scaling 1 tests pass (163 total); one opt-in timing test remains
+ignored. These repair inaccurate test providers/read accounting without changing
+production config validation or native/compiler assertions.
+
+HTTP full catalog acceptance started once in session 40520 after adding the 17
+verified example records; log /tmp/tsrust-http-catalog-full-repair.log. Preserve it.
+Windows run 40721046040 has advanced to paired installer/shared-cache acceptance.
+Original full suite 79249 is still running schema families.
+
+Cache failures traced to explicit retained policy in compiler-to-roadmap-continuation.md:
+runtime artifacts no longer have implicit size/count quotas (c0eeb633). Updated
+four stale tests to assert retained artifacts, concurrent private-copy integrity,
+large-artifact availability and abandoned-staging cleanup with legacy preservation.
+Production cache policy unchanged. Focused cache_retention check session 80013,
+/tmp/tsrust-cache-retention-repair.log, pending; do not call accepted yet.

@@ -43,7 +43,8 @@ fn generic_default_scope_preserves_linked_native_imports() {
                 .then(|| SourceId(path.into()))
                 .ok_or_else(|| "unexpected source".into())
         }
-        fn read(&self, _: &SourceId) -> Result<String, String> {
+        fn read(&self, id: &SourceId) -> Result<String, String> {
+            if id.0 != "main.tsr" { return Err(format!("Missing source {}",id.0)); }
             Ok(self.0.into())
         }
     }
