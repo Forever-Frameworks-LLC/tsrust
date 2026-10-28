@@ -7,7 +7,7 @@ import tempfile
 import tomllib
 
 
-def probe(root, verbatim):
+def probe(root, verbatim, llvm):
     root.mkdir(parents=True)
     (root / 'src').mkdir()
     (root / 'Cargo.toml').write_text(
@@ -22,12 +22,14 @@ def probe(root, verbatim):
                '--manifest-path', str(root / 'Cargo.toml'), '--target-dir', target]
     env = {key: value for key, value in os.environ.items()
            if not key.startswith('CARGO_PROFILE_')}
+    if llvm:
+        env['CARGO_ENCODED_RUSTFLAGS'] = '-Clinker-flavor=lld-link'
     env['CARGO_INCREMENTAL'] = '0'
     env['CARGO_BUILD_JOBS'] = '1'
     result = subprocess.run(command, cwd=root, env=env, text=True,
                             capture_output=True, timeout=90)
     print(json.dumps({'root': str(root), 'targetCharacters': len(target),
-                      'verbatim': verbatim, 'exitCode': result.returncode}), flush=True)
+                      'verbatim': verbatim, 'llvm': llvm, 'exitCode': result.returncode}), flush=True)
     if result.returncode:
         print((result.stdout + result.stderr)[-24000:], flush=True)
     return result.returncode == 0
@@ -41,9 +43,12 @@ if __name__ == '__main__':
     with tempfile.TemporaryDirectory(prefix='tsrust-linker-') as scratch:
         for deep in (False, True):
             for verbatim in (False, True):
-                root = Path(scratch) / f'{deep}-{verbatim}'
-                if deep:
-                    while len(str(root)) < 180:
-                        root /= 'nested-workspace'
-                results.append(probe(root, verbatim))
+                for llvm in (False, True):
+                    root = Path(scratch) / f'{deep}-{verbatim}-{llvm}'
+                    if deep:
+                        while len(str(root)) < 180:
+                            root /= 'nested-workspace'
+                    passed = probe(root, verbatim, llvm)
+                    if llvm or not deep:
+                        results.append(passed)
     raise SystemExit(0 if all(results) else 1)
