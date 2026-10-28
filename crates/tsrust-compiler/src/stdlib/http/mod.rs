@@ -90,7 +90,7 @@ pub(crate) fn prepare(program:&mut crate::syntax::Program)->Result<(),crate::Dia
    }
   }Ok(())
  })?;}
- if used{crate::native_binding_types::prepare(&mut program.records,crate::native_bindings::lookup("std:json","stringify").unwrap(),crate::Span::default())?;for id in [NativeTypeId::HttpRouter,NativeTypeId::HttpContext,NativeTypeId::HttpContextNext]{crate::native_type_resolution::intern(&mut program.records,id,crate::Span::default())?;}for binding in OPERATIONS{crate::native_binding_types::prepare(&mut program.records,binding,crate::Span::default())?;}}
+ if used{crate::native_binding_types::prepare(&mut program.records,crate::native_bindings::lookup("std:json","parse").unwrap(),crate::Span::default())?;crate::native_binding_types::prepare(&mut program.records,crate::native_bindings::lookup("std:json","stringify").unwrap(),crate::Span::default())?;for id in [NativeTypeId::HttpRouter,NativeTypeId::HttpContext,NativeTypeId::HttpContextNext]{crate::native_type_resolution::intern(&mut program.records,id,crate::Span::default())?;}for binding in OPERATIONS{crate::native_binding_types::prepare(&mut program.records,binding,crate::Span::default())?;}}
  Ok(())
 }
 #[cfg(test)]mod tests {
@@ -110,12 +110,13 @@ pub(crate) fn method(identity:Option<NativeTypeId>,member:&str)->Option<&'static
     (Some(NativeTypeId::HttpServer),"wait")=>"__wait",(Some(NativeTypeId::HttpServer),"address")=>"__address",(Some(NativeTypeId::HttpServer),"shutdown")=>"__shutdown",
     (Some(NativeTypeId::HttpClient),"send")=>"__send",(Some(NativeTypeId::HttpNext),"run")=>"__next",
     (Some(NativeTypeId::HttpBody),"next")=>"__bodyNext",(Some(NativeTypeId::HttpBody),"text")=>"__bodyText",
+    (Some(NativeTypeId::HttpRequest),"json")=>"__requestJson",
     (Some(NativeTypeId::HttpRequest),"form")=>"__form",(Some(NativeTypeId::HttpRequest),"multipart")=>"__multipart",
     (Some(NativeTypeId::HttpRequest),"method")=>"__method",(Some(NativeTypeId::HttpRequest),"url")=>"__url",(Some(NativeTypeId::HttpRequest),"param")=>"__param",(Some(NativeTypeId::HttpRequest),"query")=>"__query",(Some(NativeTypeId::HttpRequest),"queries")=>"__queries",(Some(NativeTypeId::HttpResponse),"status")=>"__status",
     (Some(NativeTypeId::HttpRequest),"header")=>"__requestHeader",(Some(NativeTypeId::HttpRequest),"setHeader")=>"__requestSetHeader",(Some(NativeTypeId::HttpRequest),"body")=>"__requestBody",(Some(NativeTypeId::HttpRequest),"text")=>"__requestText",
     (Some(NativeTypeId::HttpResponse),"header")=>"__responseHeader",(Some(NativeTypeId::HttpResponse),"setHeader")=>"__responseSetHeader",(Some(NativeTypeId::HttpResponse),"body")=>"__responseBody",(Some(NativeTypeId::HttpResponse),"text")=>"__responseText",_=>return None,
    })}
-pub(crate) fn asynchronous(name:&str)->bool{matches!(name,"__contextRequestForm"|"__contextRequestMultipart"|"__contextRequestText"|"__routerListen"|"__contextNext"|"__form"|"__multipart"|"__listen"|"__wait"|"__shutdown"|"__send"|"__next"|"__bodyNext"|"__bodyText"|"__requestText"|"__responseText")}
+pub(crate) fn asynchronous(name:&str)->bool{matches!(name,"__requestJson"|"__contextRequestForm"|"__contextRequestMultipart"|"__contextRequestText"|"__routerListen"|"__contextNext"|"__form"|"__multipart"|"__listen"|"__wait"|"__shutdown"|"__send"|"__next"|"__bodyNext"|"__bodyText"|"__requestText"|"__responseText")}
 
 pub(crate) fn public_unwrapped(name:&str)->bool{matches!(name,"text"|"html"|"json"|"stream"|"streamChannel"|"request")}
 
@@ -140,4 +141,18 @@ fn defaults(program:&mut crate::syntax::Program)->Result<(),crate::Diagnostic>{
  for (_,annotation) in &mut program.interface_argument_checks{visit(annotation)?;}
  for (_,arguments) in &mut program.call_type_arguments{for argument in arguments{visit(argument)?;}}
  crate::source_walk::body(&mut program.module_bindings,&mut visit,&mut |_|Ok(()))
+}
+
+/// Compose the ordinary bounded body task with checked JSON parsing.
+pub(crate) fn parse_request_json(expression:&mut crate::syntax::Expr){
+ use crate::syntax::{Expr,ExprKind,StmtKind};
+ let ExprKind::Match{body,..}=&mut expression.kind else{unreachable!()};
+ let StmtKind::Expr(yielded)=&mut body.last_mut().unwrap().kind else{unreachable!()};
+ let ExprKind::Call(_,args)=&mut yielded.kind else{unreachable!()};
+ let ExprKind::Unary{value:closure,..}=&mut args[0].kind else{unreachable!()};
+ let ExprKind::Closure{body,..}=&mut closure.kind else{unreachable!()};
+ let StmtKind::Return(Some(value))=&mut body.last_mut().unwrap().kind else{unreachable!()};
+ let span=value.span;
+ let parsed=Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name("@native:std:json#parse".into()),span)),vec![value.clone()]),span);
+ *value=crate::stdlib::futures::unwrap(parsed);
 }

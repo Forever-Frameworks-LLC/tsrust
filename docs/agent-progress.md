@@ -11,24 +11,21 @@ agreement/completion matrices, editor consistency and stdio. Clippy correctness
 lints passed; legacy warnings remain. No release or Windows acceptance is implied.
 PR #2 remains open awaiting review. Continue on codex/language-cli-docs-polish.
 
-First dependency-ready section is final async registration acceptance. Existing
-crates/tsrust-compiler/tests/testing_async.rs has eleven focused compiler/native/
-CLI tests; crates/tsrust-lsp/tests/testing_async.rs has three editor witnesses.
-Neither target was selected by ordinary PR CI. Preserve previously completed
-synchronous/runtime evidence; validate the pending final source before dependent
-request-reader work. Hardware authorization was requested; no local build/test
-has resumed. A manual async_acceptance mode in the existing CI workflow selects the eleven
-compiler/native/CLI cases, three LSP cases and backend all-target diagnostics on
-ubuntu-24.04, macos-15 and windows-2022. Ordinary PR CI remains unchanged. This
-hosted run resolves the unverified final handoff source and Windows execution;
-local build/test validation is prohibited. Last equivalent async run was the
-interrupted hardware-stop run; green CI 40663277431 excluded these targets.
-Focused workflow checkpoint c5b3d4a9 was pushed once. CI run 40672007920 was
-manually dispatched with async_acceptance=true and confirms that exact SHA.
-Linux job 122760868408 passed all three steps. Windows 122760867985 and macOS
-122760868454 passed compiler/native registration and are running editor checks.
-Re-poll this run; do not restart it merely because a turn ends.
-No local build/test or public release was run. Acceptance remains pending.
+Async registration acceptance is complete on c5b3d4a9. Hosted CI run
+40672007920 passed on Linux (122760868408), Windows (122760867985), and macOS
+(122760868454). Each passed all 11 focused compiler/native/CLI tests, all 3 LSP
+witnesses, and backend all-target diagnostics without warnings. Ordinary PR CI did
+not cover these targets; this separate run closes their pending handoff evidence.
+No performance measurement or package/install acceptance is implied.
+
+The owner clarified that this is a different computer. The old fan restriction
+applies to the previous machine; bounded local validation can resume here. This
+Mac is arm64 with 8 GiB RAM, 8 logical CPUs and 57 GiB free disk. Use one Cargo job,
+CARGO_INCREMENTAL=0 and the existing target. Disable dev debug symbols to reduce
+resource use. Initial offline all-target check stopped before compilation because
+http-range-header was absent from the local Cargo cache. Locked host dependencies
+were fetched; backend all-target checking then passed in 2m11s with no warnings.
+Keep checks focused and inspect resource pressure.
 
 ## Windows package validation prepared
 
@@ -44,8 +41,12 @@ initialize response, hover capability and successful shutdown outside the source
 tree; all four package jobs pass both executable paths. It reuses the existing
 framed stdio smoke pattern from check-service.mjs. This checks actual executable
 startup rather than only manifest bytes. Existing CLI-only smoke calls still work.
-These changes are not yet executed or accepted. Wait for the current async run
-before dispatching package validation; preserve its original results. Package
+These changes are not yet executed or accepted. Async acceptance is green, so
+package validation was dispatched from f225ddc3 as run 40675476340. The owner
+then requested conserving GitHub usage; this four-platform run is confirmed
+cancelled. Use local validation by default. Batch only necessary
+Windows/Linux evidence into a targeted hosted run after local acceptance. Do not
+restart the cancelled run or repeat already-passed async jobs. Package
 smokes are not paired installer/update or locked-LSP acceptance.
 
 ## Request-body section in progress
@@ -55,12 +56,40 @@ that reuses take_request_body. It returns the existing bounded Stream, keeps req
 metadata and response helpers usable, and rejects repeated/mixed body acquisition.
 An async std:testing loopback fixture, compiler CLI test, runtime mixed-read witness,
 LSP help/completion witness, builtins documentation and HTTP guide accompany it.
-No local build/test was run; implementation is not accepted yet. Finish checked
-JSON request decoding, failure/limit controls and matched benchmark support before
-the coherent request-reader validation. Do not treat this checkpoint as the whole
-body-reader gate. Existing JSON namespace adapters already provide checked typed
-decode and owned JsonValue parsing; reuse those mechanisms rather than adding a
-parser. HTTP prepare runs before futures, JSON namespace and generic specialization.
+Checked Request.json():Task<JsonValue> now composes the existing bounded text
+reader with the existing strict JSON parser. It preserves HttpError and JsonError,
+returns owned data, and uses schema.parse(await req.json()) for typed DTOs rather
+than unchecked generic casts. Its docs, editor signature witness, native async
+fixture, invalid argument/type/ownership witnesses and matched request-readers
+benchmark sources are present. The benchmark retains 3 processes, 8 warmups,
+31 samples and 128 paired requests; source/oracle registration passed. Timing is
+not yet measured. Remaining acceptance includes current compiler/native/editor
+results, malformed/limits/form/multipart controls and matched untimed execution.
+
+Backend all-target check passed locally with debug symbols disabled. Initial
+focused test session 76323 hit sandbox loopback denial; it was stopped after
+preserving the completed build. Session 30028 resumed with localhost access:
+six existing compiler context tests passed; two new reader tests exposed the
+missing Context body registry entry. After that repair, session 56129 passed
+native contextual streaming, JSON rejection witnesses and the contextual stream
+LSP witness. JSON execution exposed a clone(error.code) emitter panic: a record
+parameter optimization attempted to walk common union fields as concrete record
+storage. The shared optimization now accepts only direct record-field chains;
+normal union-field emission handles other expressions. A dedicated data_unions
+native witness covers cloning both alternatives without consuming their owners.
+
+Session 44170 currently rebuilds/runs only request_json and the new common-union
+clone witness; log /tmp/tsrust-body-union-repair.log. Do not restart this handle on
+a turn boundary. JSON fixture also distinguishes parser errors from typed schema
+validation errors. Remaining checks: this repair, JSON LSP/signature/catalog
+example, runtime mixed/form/multipart controls, and matched native untimed reader
+execution. Preserve completed HTTP/async evidence instead of restarting all suites.
+
+Node-after-tsc request-readers verification passed 128 JSON/stream pairs with
+checksum 5376 using localhost access. Benchmark registration and all six local
+distribution tests passed. No timed measurements or package execution are claimed.
+One rustc process used about 285 MiB RSS during compilation; target reached 1 GiB.
+These are resource observations, not a long-lived memory audit.
 
 ## CI merge repair — 2026-10-28
 

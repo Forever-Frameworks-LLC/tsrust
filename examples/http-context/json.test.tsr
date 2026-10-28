@@ -1,0 +1,114 @@
+import { Router, Client, request } from 'std:http';
+import { s } from 'std:schema';
+import { kind } from 'std:json';
+import { test, strictEqual } from 'std:testing';
+
+test('owned requests return checked JSON and schema validation stays typed', async () => {
+  const input = request('POST', 'http://localhost/', '{"name":"héllo"}');
+  const value = await input.json();
+  strictEqual(kind(value), 'object');
+  const schema = s.object({
+    name: s.string().min(1)
+  });
+  const decoded = schema.parse(value);
+  strictEqual(decoded.name, 'héllo');
+  const wrongShape = request('POST', 'http://localhost/', '{"name":42}');
+  const wrongValue = await wrongShape.json();
+  let rejected = false;
+  try {
+    schema.parse(wrongValue);
+  } catch (error) {
+    rejected = true;
+    strictEqual(error.issues.length, 1);
+  }
+
+  strictEqual(rejected, true);
+});
+
+test('malformed request JSON preserves parser errors', async () => {
+  const input = request('POST', 'http://localhost/', '{');
+  let failed = false;
+  try {
+    await input.json();
+  } catch (error) {
+    failed = true;
+    strictEqual(error.code, 'unexpected-end');
+  }
+
+  strictEqual(failed, true);
+});
+
+test('context JSON leaves metadata and responses usable and consumes once', async () => {
+  const app = new Router();
+  app.post('/echo', async (c) => {
+    const value = await c.req.json();
+    const schema = s.object({
+      name: s.string()
+    });
+    const decoded = schema.parse(value);
+    strictEqual(c.req.method(), 'POST');
+    let consumed = false;
+    try {
+      await c.req.text();
+    } catch (error) {
+      consumed = true;
+      strictEqual(error.code, 'body');
+    }
+
+    strictEqual(consumed, true);
+    return c.text(decoded.name, 202);
+  });
+  const server = await app.listen('127.0.0.1:0');
+  try {
+    const client = new Client();
+    const response = await client.send(request('POST', 'http://' + server.address() + '/echo', '{"name":"héllo"}'));
+    strictEqual(response.status(), 202);
+    strictEqual(await response.text(), 'héllo');
+  } finally {
+    await server.shutdown();
+  }
+});
+
+test('context JSON failures consume once and byte limits count UTF-8', async () => {
+  const app = new Router();
+  app.configure({
+    bodyLimit: 4, maxConnections: 8, maxRequests: 8, requestTimeoutMs: 30000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 5000, requestsPerSecond: 0
+  });
+  app.post('/', async (c) => {
+    let failure = '';
+    try {
+      await c.req.json();
+    } catch (error) {
+      failure = clone(error.code);
+    }
+
+    let consumed = false;
+    try {
+      c.req.body();
+    } catch (error) {
+      consumed = true;
+      strictEqual(error.code, 'body');
+    }
+
+    strictEqual(consumed, true);
+    return c.text(failure);
+  });
+  const server = await app.listen('127.0.0.1:0');
+  try {
+    const client = new Client();
+    const url = 'http://' + server.address() + '/';
+    const malformed = await client.send(request('POST', url, '{'));
+    strictEqual(await malformed.text(), 'unexpected-end');
+    const empty = await client.send(request('POST', url, ''));
+    strictEqual(await empty.text(), 'unexpected-end');
+    const exact = await client.send(request('POST', url, '"é"'));
+    strictEqual(await exact.text(), '');
+    const trailing = await client.send(request('POST', url, '1 1'));
+    strictEqual(await trailing.text(), 'trailing-data');
+    const oversized = await client.send(request('POST', url, '"éa"'));
+    strictEqual(oversized.status(), 413);
+    strictEqual(await oversized.text(), 'Payload Too Large');
+  } finally {
+    await server.shutdown();
+  }
+});

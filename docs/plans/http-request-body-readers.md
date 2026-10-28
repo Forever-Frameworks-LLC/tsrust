@@ -75,6 +75,14 @@ decoded view must not outlive the body storage. Generated RPC dispatch may retai
 its specialized raw JSON codec path when necessary for ownership/performance;
 ordinary routes should not need manual text-to-JSON plumbing.
 
+Implementation decision, 2026-10-28: Request.json() returns owned JsonValue and
+accepts no type arguments. Typed DTOs use the existing schema.parse(await req.json())
+composition. This preserves checked schema failures and avoids unchecked generic
+casts or body-backed views. Compiler rejection witnesses cover generic arguments,
+wrong result types, request reuse and context mutation while a read is pending;
+native witnesses cover successful DTO validation and rejected shapes. Acceptance
+remains pending until the current reader suite and matched checks pass.
+
 Keep byte limits, UTF-8/media handling, malformed input and consumed-body errors
 explicit. All readers consume the body once, including failure behavior; metadata
 and response helpers remain usable. Test repeated/mixed reads, malformed/oversized

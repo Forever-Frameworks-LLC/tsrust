@@ -11395,6 +11395,19 @@
       "inferredSignature": "function body(): Body"
     },
     {
+      "name": "json",
+      "signature": "json(): Task<JsonValue>",
+      "parameters": [],
+      "documentation": "Reads a request body as strict UTF-8 and parses checked, owned JSON. No arguments or type arguments. Returns a lazy Task<JsonValue>; use schema.parse(await input.json()) for a validated typed record. Content-Type does not change parsing. Empty, malformed or trailing input throws JsonError with its code, message and byte offset. Body/UTF-8 failures throw HttpError. Reads enforce the configured request byte limit (1048576 bytes by default); JSON also limits input to 16777216 bytes, depth to 64 and entries/nodes to 1000000.\n\n```tsrust\nconst schema = s.object({name: s.string()});\nconst value = schema.parse(await c.req.json());\nreturn c.text(value.name); // hello for {\"name\":\"hello\"}\n```\n\nA contextual read consumes the body once when polled, including parse failures. Later body readers throw HttpError code body; metadata and response helpers remain usable.\n\nOwnership: an owned Request transfers into the task at construction. For c.req, the task borrows the Context until settled or disposed. The decoded JsonValue owns its data and does not borrow body storage.",
+      "examples": [
+        {
+          "source": "import {request} from 'std:http';import {kind} from 'std:json';async function main():Task<void>{const input=request('POST','http://localhost/','{\"name\":\"hello\"}');const value=await input.json();console.log(kind(value));}",
+          "output": "object\n"
+        }
+      ],
+      "inferredSignature": "function json(): Task<JsonValue>"
+    },
+    {
       "name": "text",
       "signature": "text(): Task<string>",
       "parameters": [],

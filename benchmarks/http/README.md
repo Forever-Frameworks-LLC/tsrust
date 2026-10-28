@@ -1,5 +1,16 @@
 # HTTP loopback
 
+`--readers` selects paired JSON/schema and contextual stream request handling.
+Each of 128 iterations posts `{"value":40}` and the two-byte UTF-8 string `é`,
+checks both responses, and contributes 40 + 2 to the independent 5376 checksum.
+Native routes use checked `req.json()` plus a schema and `req.body()` plus text
+collection, retaining their Context for responses. Node uses strict UTF-8,
+JSON.parse and an explicit integer/shape check. Both enforce a 1 MiB body limit.
+The workload measures the combined loopback stack, not parser-only throughput.
+Run `node benchmarks/http/run.mjs --readers --verify` for one untimed batch;
+measurement retains three processes, eight warmups and 31 samples. Current source
+identities are in readers-manifest.json. No timed measurement is claimed yet.
+
 Run with Node v24.11.1 first on PATH and TSRUST pointing at the verified compiler:
 
 ```

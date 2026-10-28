@@ -21,10 +21,12 @@ The finite completion checklist below carries forward the backend-only handoff.
 Audit current evidence before changing accepted behavior. Do not interpret polish
 as arbitrary TypeScript compatibility or revival of deferred UI work.
 
-- [ ] Accept pending async std:testing registration: compiler/native ownership,
+- [x] Accept pending async std:testing registration: compiler/native ownership,
   factory outputs, shared multi-file state, real HTTP execution, failures/teardown,
   project cache reuse and all three focused LSP tests. Ordinary PR CI did not run
-  the testing_async integration targets, so its green result does not close this.
+  the testing_async integration targets. Hosted run 40672007920 on c5b3d4a9
+  subsequently passed all 11 compiler/native cases, 3 LSP cases and all-target
+  diagnostics on Linux, macOS and Windows.
 - [ ] Complete request-body JSON decoding and contextual body streaming with
   limits, one-consumption behavior, error handling, docs and editor agreement.
 - [ ] Close remaining generated TypeScript/Rust SDK authorization and compatible/
@@ -41,9 +43,10 @@ as arbitrary TypeScript compatibility or revival of deferred UI work.
   evidence, review regressions, and reconcile the checklist with authoritative
   results. Unexecuted platform checks and legacy lint debt stay explicit.
 
-Local builds/tests remain prohibited by the hardware handoff until the owner
-confirms the fan issue is resolved and authorizes resumption. Source work and
-justified hosted validation can proceed. No recurring automation is required.
+The owner clarified that this is a different computer; the earlier fan stop does
+not apply here. Resume bounded local validation with one Cargo job, incremental
+compilation disabled and resource checks. Use hosted jobs for platform evidence.
+No recurring automation is required.
 
 ## Current owner clarifications
 

@@ -1,5 +1,27 @@
 mod support;
 #[test]
+fn request_json_decoding_and_context_ownership_execute(){
+ let directory=support::TempDirectory::new();
+ let source=support::format_round_trip(include_str!("../../../examples/http-context/json.test.tsr"));
+ support::success(&support::run(support::cli().arg("test").arg(directory.source(&source)),600));
+}
+#[test]
+fn request_json_rejects_unchecked_targets_arguments_and_reused_requests(){
+ for source in [
+  "import {Request} from 'std:http';async function read(input:Request):Task<void>{await input.json(1);}function main(){}",
+  "import {Request} from 'std:http';async function read(input:Request):Task<void>{await input.json<string>();}function main(){}",
+  "import {Request} from 'std:http';async function read(input:Request):Task<void>{const value:string=await input.json();}function main(){}",
+  "import {Request} from 'std:http';async function read(input:Request):Task<void>{await input.json();input.body();}function main(){}",
+  "import {Context} from 'std:http';async function read(c:Mutable<Context>):Task<void>{const pending=c.req.json();c.status(201);await pending;}function main(){}",
+ ]{
+  let directory=support::TempDirectory::new();let file=directory.source(&support::format_round_trip(source));
+  let output=support::run(support::cli().arg("check").arg(file),30);
+  assert!(!output.status.success(),"accepted {source}");
+  let error=String::from_utf8_lossy(&output.stderr);
+  assert!(!error.contains("panicked")&&!error.contains("error[import]")&&!error.contains("error[syntax]"),"{error}");
+ }
+}
+#[test]
 fn contextual_body_stream_preserves_metadata_and_response_helpers(){
  let directory=support::TempDirectory::new();
  let source=support::format_round_trip(include_str!("../../../examples/http-context/body-stream.test.tsr"));
