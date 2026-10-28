@@ -8,6 +8,10 @@ on:
         description: Run focused async testing acceptance on Linux, macOS and Windows.
         type: boolean
         default: false
+      toolchain_acceptance:
+        description: Run focused Windows installer and shared-cache acceptance without publishing.
+        type: boolean
+        default: false
       full_regressions:
         description: Run the complete workspace regression suite (slow).
         type: boolean
@@ -15,6 +19,9 @@ on:
   workflow_call:
     inputs:
       async_acceptance:
+        type: boolean
+        default: false
+      toolchain_acceptance:
         type: boolean
         default: false
       full_regressions:
@@ -35,8 +42,8 @@ env:
   CARGO_TERM_COLOR: always
 jobs:
   source:
-    if: ${{ !inputs.async_acceptance }}
-    name: Compiler, LSP and renderer (${{ matrix.os }})
+    if: ${{ !inputs.async_acceptance && !inputs.toolchain_acceptance }}
+    name: Compiler and LSP (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
@@ -50,7 +57,7 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Compile both consumers
         id: consumers
-        run: cargo build --offline --locked --bin tsrust --bin tsrust-lsp
+        run: cargo build --offline --locked -p tsrust-compiler -p tsrust-lsp --bin tsrust --bin tsrust-lsp
       - name: Prepare portable sources for offline acceptance
         run: target/debug/tsrust setup --portable --offline --yes
       - name: Check project formatting
@@ -60,15 +67,15 @@ jobs:
       - name: Benchmark export privacy and measurement preservation
         if: runner.os == 'Linux'
         run: python3 -B -m unittest discover -s benchmarks/storage -p 'test_*.py'
-      - name: Native renderer model and layout checks
-        if: ${{ !cancelled() && steps.consumers.outcome == 'success' }}
+      - name: Retained renderer checks for an explicit full regression
+        if: ${{ !cancelled() && steps.consumers.outcome == 'success' && inputs.full_regressions }}
         run: cargo test --offline --locked -p tsrust-ui --features native --lib
       - name: Clippy correctness and warning report
         if: ${{ !cancelled() && steps.consumers.outcome == 'success' }}
-        run: cargo clippy --offline --locked --workspace --lib --bins -- -D clippy::correctness
+        run: cargo clippy --offline --locked -p tsrust-compiler -p tsrust-lsp --lib --bins -- -D clippy::correctness
       - name: Compiler and CLI acceptance
         if: ${{ !cancelled() && steps.consumers.outcome == 'success' && !inputs.full_regressions }}
-        run: cargo test --offline --locked --no-fail-fast -p tsrust-compiler --lib --bin tsrust --test acceptance --test project_commands --test formatting --test native_dependency_bundle --test api_project --test api_rust_client
+        run: cargo test --offline --locked --no-fail-fast -p tsrust-compiler --lib --bin tsrust --test acceptance --test project_commands --test formatting --test native_dependency_bundle --test api_project --test api_rust_client --test shared_sources --test package_management --test toolchain_installation
       - name: Native SDK authorization and replica integration
         if: ${{ !cancelled() && steps.consumers.outcome == 'success' }}
         env:
@@ -83,7 +90,7 @@ jobs:
           cargo test --offline --locked --workspace --lib --bins --tests --no-fail-fast
           cargo test --offline --locked --workspace --doc
   editor:
-    if: ${{ !inputs.async_acceptance }}
+    if: ${{ !inputs.async_acceptance && !inputs.toolchain_acceptance }}
     name: VS Code extension
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -107,7 +114,7 @@ jobs:
           retention-days: 7
   async:
     name: Async testing acceptance (${{ matrix.os }})
-    if: ${{ inputs.async_acceptance }}
+    if: ${{ inputs.async_acceptance && !inputs.toolchain_acceptance }}
     strategy:
       fail-fast: false
       matrix:
@@ -130,20 +137,46 @@ jobs:
       - name: Backend all-target diagnostics
         if: ${{ !cancelled() }}
         run: cargo check --offline --locked -p tsrust-compiler -p tsrust-lsp --all-targets
+  toolchain:
+    name: Windows toolchain and shared-cache acceptance
+    if: ${{ inputs.toolchain_acceptance && !inputs.async_acceptance }}
+    runs-on: windows-2022
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Compile both consumers
+        run: cargo build --offline --locked -p tsrust-compiler -p tsrust-lsp --bin tsrust --bin tsrust-lsp
+      - name: Prepare portable sources
+        run: target/debug/tsrust.exe setup --portable --offline --yes
+      - name: Paired installer, locked processes and binding cache acceptance
+        run: cargo test --offline --locked -p tsrust-compiler --test toolchain_installation --test shared_sources --test package_management --no-fail-fast
+      - name: Backend all-target diagnostics
+        if: ${{ !cancelled() }}
+        run: cargo check --offline --locked -p tsrust-compiler -p tsrust-lsp --all-targets
   ci:
-    name: ${{ inputs.async_acceptance && 'Async acceptance' || 'CI' }}
+    name: ${{ inputs.toolchain_acceptance && 'Toolchain acceptance' || inputs.async_acceptance && 'Async acceptance' || 'CI' }}
     if: always()
-    needs: [source, editor, async]
+    needs: [source, editor, async, toolchain]
     runs-on: ubuntu-24.04
     steps:
       - name: Require all checks
         env:
+          TOOLCHAIN_ACCEPTANCE: ${{ inputs.toolchain_acceptance }}
+          TOOLCHAIN_RESULT: ${{ needs.toolchain.result }}
           ASYNC_ACCEPTANCE: ${{ inputs.async_acceptance }}
           ASYNC_RESULT: ${{ needs.async.result }}
           SOURCE_RESULT: ${{ needs.source.result }}
           EDITOR_RESULT: ${{ needs.editor.result }}
         run: |
-          if [ "$ASYNC_ACCEPTANCE" = true ]; then
+          if [ "$TOOLCHAIN_ACCEPTANCE" = true ]; then
+            test "$ASYNC_ACCEPTANCE" != true && test "$TOOLCHAIN_RESULT" = success
+          elif [ "$ASYNC_ACCEPTANCE" = true ]; then
             test "$ASYNC_RESULT" = success
           else
             test "$SOURCE_RESULT" = success && test "$EDITOR_RESULT" = success

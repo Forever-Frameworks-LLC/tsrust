@@ -7,6 +7,7 @@ these guides distinguish supported behavior from planned work.
 ## Build an application
 
 - [Install the CLI and editor](content/getting-started/installation.md)
+- [Managed CLI/LSP installation and updates](guides/toolchain-installation.md)
 - [Understand project structure](content/getting-started/project-structure.md)
 - [Use the CLI](guides/project-cli.md)
 - [Inspect and prepare native build tools](guides/tooling/machine-setup.md)

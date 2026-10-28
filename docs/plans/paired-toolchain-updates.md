@@ -1,6 +1,8 @@
 # Paired toolchain installation and updates
 
-Implementation contract, 2026-10-28. Not yet implemented or accepted. This closes
+Implementation contract, 2026-10-28. Implemented with focused macOS acceptance in
+[the milestone](../milestones/paired-toolchain-installation.md); Windows/Linux and
+published-release execution remain pending. This addresses
 outcome 4 of backend-only-reset.md; it does not introduce a package manager or
 background update service.
 
