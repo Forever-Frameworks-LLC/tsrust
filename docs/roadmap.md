@@ -869,7 +869,7 @@ B8 is accepted at gate 184 as a reconciliation without source changes. The gener
 
 B14 is closed by owner decision on 2026-10-10. Fallthrough between non-empty `switch` cases stays rejected with guidance; empty cases still share the next body. The inventory row carries `policy`. No compiler source changed.
 
-B9 (S04 project editor) is accepted at gate 185. Quick fixes can edit closed files while the disk text equals the checked text. Imported help survives unfinished strings, comments, bodies and imports, and import braces complete the exports of the named module. The gate also repairs a stack overflow that had aborted two compiler suites unnoticed since gate 182. See [the record](milestones/185-project-editor.md), [the map](milestones/b9-project-editor-acceptance-map.md) and [the guide](guides/tooling/project-editor.md). B10 is next in the ledger.
+B9 (S04 project editor) is accepted at gate 185. Quick fixes can edit closed files while the disk text equals the checked text. Imported help survives unfinished strings, comments, bodies and imports, and import braces complete the exports of the named module. The gate also repairs a stack overflow that had aborted two compiler suites unnoticed since gate 182. See [the record](milestones/185-project-editor.md), [the map](milestones/b9-project-editor-acceptance-map.md) and [the guide](../website/src/content/docs/start/editor.md#edit-imports-and-unsaved-dependencies). B10 is next in the ledger.
 
 
 B10/S06 is accepted at gate 186: tagged Result, exhaustive statement match, explicit

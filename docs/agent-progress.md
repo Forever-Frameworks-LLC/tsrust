@@ -2092,3 +2092,20 @@ page checklist. Fresh-platform setup acceptance also remains pending. Next: revi
 this subsection with the remaining editor/setup migration batch, then continue the
 finite remaining-guide inventory. CI 40761578381 remains live in compiler/CLI
 acceptance; no duplicate workflow or release was started.
+
+## Editor reference consolidation
+
+Merged the project-editor user guide into start/editor.md, removing obsolete
+named-import-only/open-files-only claims. Current source project_actions.rs verifies
+whole-project overlays, eight-transfer clone limit, versioned open-file edits and
+closed-input comparisons; workspace_scan.rs covers unopened workspace files.
+Added quick-fix usage and the closed-file comparison/application race limitation.
+Kept implementation/history in editor-quick-fixes.md with explicit historical status;
+updated active roadmap/tooling links to the canonical public source. Historical
+literal path references remain historical rather than invented current links.
+Rendered review of these new editor subsections and the preceding linker subsection
+is the next bounded acceptance task. Existing macOS editor E2E and platform results
+remain valid; no behavior changed and no broad rerun is needed for this migration.
+CI 40761578381 remains live in compiler/CLI acceptance. No new hosted dispatch.
+
+Editor/linker migration acceptance: 25-page build, built links/anchors and six distribution tests pass. Added editor and linker sections reviewed at 390px and 1440px; quick-fix prose split into purpose-specific subsections. No document overflow and keyboard skip navigation passes on both pages. Existing runtime/editor evidence reused; platform and acquisition checks remain pending. CI 40761578381 is still in compiler/CLI acceptance; no new dispatch. Next: continue the finite remaining-guide migration inventory.

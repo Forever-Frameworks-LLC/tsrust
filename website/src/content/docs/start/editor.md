@@ -81,6 +81,50 @@ and unopened source. Unsupported syntax or an unfinished declaration can still
 limit recovery; an absent answer is not proof that an API does not exist.
 Report a reproducible compiler/editor disagreement as a bug.
 
+## Edit imports and unsaved dependencies
+
+The language server uses open-buffer text instead of disk contents, including
+unsaved imported files. Workspace discovery also checks unopened source files.
+Files outside the workspace are checked when opened. Deleted files and removed
+workspace folders have their old diagnostics cleared.
+
+For import-name completion, write the module path first, then complete names
+between the braces. Names already listed in that import are omitted; after `as`,
+you supply the new local name. Supported import forms follow the
+[module guide](../../language/modules/), including default exports and live bindings.
+
+Help can remain available while a function body, import or string is unfinished.
+It describes recovered declarations, not proof that the incomplete program checks.
+An unfinished template or block comment can hide later text from import help.
+
+## Apply a checked quick fix
+
+Use the diagnostic lightbulb or VS Code's Quick Fix command: `Cmd+.` on macOS,
+`Ctrl+.` on Windows/Linux. Available fixes include missing punctuation and explicit
+clones before supported transfers of strings, arrays or records.
+
+### Understand clone fixes
+
+A clone fix copies data and may allocate; its title says so. It preserves the
+original value for later use rather than creating an alias. Multiple successive
+transfers can produce one combined fix, limited to eight transfer sites.
+Callable consumption and unsupported partial-field moves do not receive clone fixes.
+
+### When a fix is unavailable
+
+The edited project must pass checking before a fix is offered. Unrelated errors
+can therefore suppress an otherwise plausible fix. There is no speculative
+method-name replacement or fix-all operation. Select a fix deliberately: passing
+checks does not establish that the change matches your intent.
+
+### Apply edits to current files
+
+A project fix may change more than one file. Open files carry their buffer versions
+so stale edits can be rejected. For closed files, the server compares the disk text
+with the checked text before offering the fix. Another program can still change a
+closed file between that comparison and the editor applying the edit. Open the file
+first when another tool is writing to it.
+
 ## Fix a missing executable
 
 An `ENOENT` startup warning means a configured path no longer exists. Check both

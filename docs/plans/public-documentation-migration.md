@@ -112,10 +112,10 @@ feature-coverage evidence to reduce the inventory.
 | `tooling/deployment.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `tooling/editor-commands.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `tooling/editor-foundation.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `tooling/editor-quick-fixes.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `tooling/editor-quick-fixes.md` | User instructions moved to start/editor; implementation and acceptance retained with historical limits labeled. | Source reconciliation and 390px/1440px rendered review complete |
 | `tooling/interop-and-targets.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `tooling/missing-linker-diagnostic.md` | User recovery moved into tools/rust-setup; original acceptance evidence retained and labeled historical. Active editor link updated. | Source reconciliation complete; changed public section rendered review pending |
-| `tooling/project-editor.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `tooling/missing-linker-diagnostic.md` | User recovery moved into tools/rust-setup; original acceptance evidence retained and labeled historical. Active editor link updated. | Source reconciliation and 390px/1440px rendered review complete |
+| `tooling/project-editor.md` | Merged into start/editor; removed stale named-import-only and open-files-only limits, updated active links, removed duplicate. | Source reconciliation and 390px/1440px rendered review complete |
 | `tooling/toolchain-and-development.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `compiler-source-layout.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
 | `documentation-content.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
