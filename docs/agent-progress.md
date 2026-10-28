@@ -1,5 +1,25 @@
 # Agent continuation state
 
+## Active polish continuation — 2026-10-28
+
+Owner requested a sustained goal covering language, CLI, docs and Windows support
+after CI succeeds. Goal is active; the finite checklist is in agent-goal.md.
+Baseline 5b09ec80 passed hosted CI run 40663277431 on Linux/macOS plus VS Code.
+Both platforms passed 1290 compiler library tests (8 existing ignores), selected
+CLI integration suites, 162 renderer tests, LSP library/binary tests, the complete
+agreement/completion matrices, editor consistency and stdio. Clippy correctness
+lints passed; legacy warnings remain. No release or Windows acceptance is implied.
+PR #2 remains open awaiting review. Continue on codex/language-cli-docs-polish.
+
+First dependency-ready section is final async registration acceptance. Existing
+crates/tsrust-compiler/tests/testing_async.rs has eleven focused compiler/native/
+CLI tests; crates/tsrust-lsp/tests/testing_async.rs has three editor witnesses.
+Neither target was selected by ordinary PR CI. Preserve previously completed
+synchronous/runtime evidence; validate the pending final source before dependent
+request-reader work. Hardware authorization was requested; no local build/test
+has resumed. Next: prepare the smallest hosted async/platform acceptance workflow
+or use local bounded validation only after the owner explicitly lifts the stop.
+
 ## CI merge repair — 2026-10-28
 
 User requested CI repair for PR #2. Starting source: 6a766051. Hosted run

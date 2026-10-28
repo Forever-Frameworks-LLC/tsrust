@@ -1,4 +1,4 @@
-# Goal: Tsrust backend framework, HTTP SDKs and distribution
+# Goal: Tsrust language, CLI, documentation and platform polish
 
 Owner-approved replacement direction, 2026-10-27. The owner authorized continuation
 of this goal after aligning it with backend-only scope. This supersedes the earlier
@@ -8,6 +8,42 @@ React/Electron/Expo application prototype objective. Follow
 Historical application-platform plans and acceptance remain evidence, not active UI
 requirements. No React, Electron, Expo, TanStack or frontend package-manager
 orchestration work is required. Users bring their own UI and call HTTP APIs.
+
+## Continuation mandate — 2026-10-28
+
+The owner requested autonomous continuation after PR #2 CI succeeds, completing
+language, CLI and documentation polish with Windows support explicitly required.
+CI run 40663277431 passed all four checks on commit 5b09ec80. The PR remains open
+for review; this continuation does not authorize merging or publishing a release.
+Work continues on codex/language-cli-docs-polish from that tested source.
+
+The finite completion checklist below carries forward the backend-only handoff.
+Audit current evidence before changing accepted behavior. Do not interpret polish
+as arbitrary TypeScript compatibility or revival of deferred UI work.
+
+- [ ] Accept pending async std:testing registration: compiler/native ownership,
+  factory outputs, shared multi-file state, real HTTP execution, failures/teardown,
+  project cache reuse and all three focused LSP tests. Ordinary PR CI did not run
+  the testing_async integration targets, so its green result does not close this.
+- [ ] Complete request-body JSON decoding and contextual body streaming with
+  limits, one-consumption behavior, error handling, docs and editor agreement.
+- [ ] Close remaining generated TypeScript/Rust SDK authorization and compatible/
+  incompatible replica execution requirements against a real native service.
+- [ ] Finish ordinary binding dependency migration while retaining exact offline
+  portable exports and shared-cache integrity.
+- [ ] Complete paired CLI/LSP install, doctor, setup, update checks, replacement,
+  rollback and recovery. Execute Windows native compiler/test/dev/editor and
+  installation/update paths, including locked binaries; separately verify macOS
+  and Linux. Add Windows hosted validation and non-publishing package validation.
+- [ ] Reconcile supported language behavior, CLI help, guides and runnable examples;
+  verify behavioral examples and complete required IntelliSense documentation.
+- [ ] Complete remaining feature-family regressions and matched performance
+  evidence, review regressions, and reconcile the checklist with authoritative
+  results. Unexecuted platform checks and legacy lint debt stay explicit.
+
+Local builds/tests remain prohibited by the hardware handoff until the owner
+confirms the fan issue is resolved and authorizes resumption. Source work and
+justified hosted validation can proceed. No recurring automation is required.
 
 ## Current owner clarifications
 
