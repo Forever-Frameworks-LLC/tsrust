@@ -61,7 +61,7 @@ feature-coverage evidence to reduce the inventory.
 | `language/assignment-values.md` | Migrated to website language/assignment-values; removed duplicate and updated Markdown links | Source, exact native examples, focused compiler/editor tests and full responsive review accepted |
 | `language/borrowed-optional-fallback.md` | Migrated to canonical site language/borrowed-optional-fallback | Accepted: four complete examples, compiler/editor and rejection witnesses, full responsive/keyboard review; duplicate removed and links migrated. |
 | `language/call-spread.md` | Migrated to canonical site language/call-spread | Accepted: complete source audit, 8 executable examples, focused compiler/editor checks and full390px/1440px/keyboard review. Corrected source families, ordering and ownership; duplicate removed and incoming links migrated. |
-| `language/callable-arrays.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/callable-arrays.md` | Split into canonical site language/callable-arrays and language/callable-array-methods | Accepted:11 complete executable examples, current source contracts and rejection witnesses, compiler19/editor6 checks and full390px/1440px/keyboard review. Removed duplicate and migrated incoming link. |
 | `language/callable-expressions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/callable-fields.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/callable-locals.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
