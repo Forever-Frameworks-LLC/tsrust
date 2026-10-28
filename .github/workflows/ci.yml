@@ -4,6 +4,9 @@ on:
     branches: [stag]
   workflow_dispatch:
     inputs:
+      windows_linker_probe:
+        type: boolean
+        default: false
       async_acceptance:
         description: Run focused async testing acceptance on Linux, macOS and Windows.
         type: boolean
@@ -18,6 +21,9 @@ on:
         default: false
   workflow_call:
     inputs:
+      windows_linker_probe:
+        type: boolean
+        default: false
       async_acceptance:
         type: boolean
         default: false
@@ -43,7 +49,7 @@ env:
   CARGO_TERM_COLOR: always
 jobs:
   source:
-    if: ${{ !inputs.async_acceptance && !inputs.toolchain_acceptance }}
+    if: ${{ !inputs.windows_linker_probe && !inputs.async_acceptance && !inputs.toolchain_acceptance }}
     name: Compiler and LSP (${{ matrix.os }})
     strategy:
       fail-fast: false
@@ -93,7 +99,7 @@ jobs:
           cargo test --offline --locked --workspace --lib --bins --tests --no-fail-fast
           cargo test --offline --locked --workspace --doc
   editor:
-    if: ${{ !inputs.async_acceptance && !inputs.toolchain_acceptance }}
+    if: ${{ !inputs.windows_linker_probe && !inputs.async_acceptance && !inputs.toolchain_acceptance }}
     name: VS Code extension
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -117,7 +123,7 @@ jobs:
           retention-days: 7
   async:
     name: Async testing acceptance (${{ matrix.os }})
-    if: ${{ inputs.async_acceptance && !inputs.toolchain_acceptance }}
+    if: ${{ !inputs.windows_linker_probe && inputs.async_acceptance && !inputs.toolchain_acceptance }}
     strategy:
       fail-fast: false
       matrix:
@@ -142,7 +148,7 @@ jobs:
         run: cargo check --offline --locked -p tsrust-compiler -p tsrust-lsp --all-targets
   toolchain:
     name: Windows toolchain and shared-cache acceptance
-    if: ${{ inputs.toolchain_acceptance && !inputs.async_acceptance }}
+    if: ${{ !inputs.windows_linker_probe && inputs.toolchain_acceptance && !inputs.async_acceptance }}
     runs-on: windows-2022
     timeout-minutes: 90
     defaults:
@@ -164,14 +170,32 @@ jobs:
       - name: Backend all-target diagnostics
         if: ${{ !cancelled() }}
         run: cargo check --offline --locked -p tsrust-compiler -p tsrust-lsp --all-targets
+  linker:
+    if: ${{ inputs.windows_linker_probe }}
+    runs-on: windows-2022
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install repository Rust toolchain
+        shell: pwsh
+        run: |
+          $version = python -c 'import tomllib; print(tomllib.load(open("rust-toolchain.toml", "rb"))["toolchain"]["channel"])'
+          rustup toolchain install $version --profile minimal --no-self-update
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Compare ordinary and extended paths
+        run: python tools/check-windows-linker.py
   ci:
-    name: ${{ inputs.toolchain_acceptance && 'Toolchain acceptance' || inputs.async_acceptance && 'Async acceptance' || 'CI' }}
+    name: ${{ inputs.windows_linker_probe && 'Windows linker probe' || inputs.toolchain_acceptance && 'Toolchain acceptance' || inputs.async_acceptance && 'Async acceptance' || 'CI' }}
     if: always()
-    needs: [source, editor, async, toolchain]
+    needs: [source, editor, async, toolchain, linker]
     runs-on: ubuntu-24.04
     steps:
       - name: Require all checks
         env:
+          LINKER_PROBE: ${{ inputs.windows_linker_probe }}
+          LINKER_RESULT: ${{ needs.linker.result }}
           TOOLCHAIN_ACCEPTANCE: ${{ inputs.toolchain_acceptance }}
           TOOLCHAIN_RESULT: ${{ needs.toolchain.result }}
           ASYNC_ACCEPTANCE: ${{ inputs.async_acceptance }}
@@ -179,7 +203,9 @@ jobs:
           SOURCE_RESULT: ${{ needs.source.result }}
           EDITOR_RESULT: ${{ needs.editor.result }}
         run: |
-          if [ "$TOOLCHAIN_ACCEPTANCE" = true ]; then
+          if [ "$LINKER_PROBE" = true ]; then
+            test "$LINKER_RESULT" = success
+          elif [ "$TOOLCHAIN_ACCEPTANCE" = true ]; then
             test "$ASYNC_ACCEPTANCE" != true && test "$TOOLCHAIN_RESULT" = success
           elif [ "$ASYNC_ACCEPTANCE" = true ]; then
             test "$ASYNC_RESULT" = success
