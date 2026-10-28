@@ -42,7 +42,7 @@ content is not accepted merely because its original file existed.
 | `start/installation.md` | Pending | Verify facts, examples and reading flow. |
 | `start/project-structure.md` | Pending | Verify facts, examples and reading flow. |
 | `start/quickstart.md` | Pending | Verify facts, examples and reading flow. |
-| `tools/cli.md` | Pending | Verify facts, examples and reading flow. |
+| `tools/cli.md` | Source review in progress | Confirmed interactive categories, ASCII name/100-character limit, config defaults and explicit-path semantics. Added headings around dev output/cache. Watcher and full example acceptance remain pending. |
 | `tools/install-and-update.md` | Pending | Verify facts, examples and reading flow. |
 | `tools/rust-setup.md` | Pending | Verify facts, examples and reading flow. |
-| `tools/testing.md` | Pending | Verify facts, examples and reading flow. |
+| `tools/testing.md` | Source/example review complete; full responsive review pending | testing/discovery.rs, CLI main/project_config and reporter runtime. Native greeting passes; changed expectation fails with both values. Initial narrow preview is readable and highlighted. |

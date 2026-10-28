@@ -12,7 +12,8 @@ dependency sources explicitly using [machine setup](../rust-setup/).
 
 Run `tsrust` without arguments in a terminal to open the interactive command menu.
 The launcher groups actions into Development, Quality, UI and Project screens,
-with help and exit alongside them. Development and Quality appear inside projects.
+with help and exit alongside them. The UI screen contains retained legacy tooling;
+it is outside the current backend workflow. Development and Quality appear inside projects.
 Use arrow keys and Enter, or the displayed Back item to return to categories.
 Esc or Ctrl+C cancels. A compact wordmark, color, action hints and workspace context
 provide terminal presentation without changing the commands themselves.
@@ -33,7 +34,8 @@ tsrust dev
 
 `new` creates source, a test, README, `.gitignore` and `tsrust.config.json`. It refuses
 existing destinations. Use a name beginning with a letter, followed by letters,
-digits, hyphens or underscores. A destination path is allowed if its parent exists.
+digits, hyphens or underscores, with a maximum of 100 ASCII characters.
+A destination path is allowed if its parent exists.
 
 `dev` builds and starts the program, watches project source and config changes, and
 restarts after each successful build. Build errors leave the last working program
@@ -55,10 +57,11 @@ tsrust build
 
 ## Project configuration
 
-These commands find the nearest `tsrust.config.json`, including from nested
-folders. Build/run/emit use its entry when you omit a file; build uses its output.
+Commands with omitted inputs use the nearest `tsrust.config.json`, including from
+nested folders. `check`, `format` and `test` default to that project root.
+Build/run/emit use its entry when you omit a file; build uses its output.
 Configured run and dev use the project root as their working directory. Explicit
-file commands continue to work without config.
+input paths remain relative to your current directory and work without config.
 
 ```json
 {
@@ -87,6 +90,8 @@ in-memory state. The template has a `main` function, but the language does not r
 
 See [testing](../testing/) for test discovery, output and failure reporting.
 
+## Read development output
+
 Dev output defaults to one watching message and a build/rebuild duration, followed
 by program output. Successful program exits are silent; failed builds and nonzero
 exits remain visible. Dev status uses cyan for information, green for successful
@@ -97,6 +102,8 @@ Program output is unchanged. `tsrust dev --verbose` adds process IDs, temporary 
 paths and successful exit messages, plus checking, emission, backend verification,
 cache lookup, runtime preparation, persistent dependency workspace paths, runtime
 build/publication and combined native compilation/linking timings.
+
+## Build caching and watcher fallback
 
 Dev shares the validated project cache at `target/tsrust-native` across edits and
 sessions. Each running executable remains a private copy, so builds cannot overwrite
