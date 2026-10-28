@@ -1,6 +1,46 @@
 # Agent continuation state
 
-## Current continuation — callable field pages accepted and migrated
+## Current continuation — arrow/function/expression call guides accepted
+
+Previous checkpointc903e14a. Audited arrow-functions and callable-expressions against
+syntax/expression_work.rs closure/function parsing, named-function fixtures,
+contextual_expression_callee/contextual_spread_callee and aggregate capture facts.
+Split arrow/function expression tasks into language/arrow-functions and
+language/function-expressions; migrated language/callable-expressions. Corrected
+stale conditional-origin prohibition: distinct declared owned arrows select and
+invoke successfully. Kept verified named-expression parameter-default limitation.
+Replaced context-dependent top-level snippets with complete main programs and
+clarified owners versus capture loans. Removed two duplicate guides, migrated
+incoming links and named/function-expression anchors in nested guide, coverage
+and milestones136/141/175. No compiler changes.
+
+Nine final exact complete examples format/check/native pass: arrow3 outputs
+ALICE|BOB|CHARLIE;2,3 2,3 5;PAT/7. Function expressions2 outputs10/4/BA and
+120/3,2,1/1,4,9. Call expressions4 outputs12 4;12 1,2;1/5;8. Shortened conditional
+example after visual review to select separately declared arrows; reran only that
+changed example. Focused compiler contextual_arrows4/function_expressions2/
+named_function_expressions3/callable_expression3 pass
+(/tmp/tsrust-function-doc-contracts.log), including name/default/syntax/type and
+capture/arity/inference rejections. Editor contextual1/function2/call-expression2
+pass (/tmp/tsrust-function-doc-editor.log). All commands completed.
+
+Entire three pages reviewed at390px/1440px. No document overflow, highlighted and
+focusable overflowing code, keyboard scroll40px, skip/previous/next/section links
+pass. Revised capture paragraph/mobile and conditional example/both widths reviewed.
+58-page build and internal links/anchors pass (/tmp/tsrust-function-doc-site.log).
+Whole-project formatter before checkpoint. Viewport reset; tab4 retained on selected
+callable alternatives. No full regressions, timings, hosted CI, push or release.
+
+Next: audit nested-functions in bounded sections. It is615 lines and mixes nested
+declarations/captures, retained callback arrays, generic callable context/transport,
+owned/scoped selection, single-use call scopes, generic replacement and mutable
+factories. Split into digestible tasks after tracing current source; preserve all
+current contracts and historical evidence. Its link to named function expressions
+already migrates, but the guide itself is not accepted. Remaining finite language/
+library inventories and platform setup, Windows/Linux editor fixture/acquisition,
+and actual Pages deployment remain pending. Goal active; prior evidence retained.
+
+## Prior continuation — callable field pages accepted and migrated
 
 Previous checkpointbf417a22. Completed callable-fields source audit and split into
 site language/callable-fields and language/borrowed-callable-fields. Traced owned

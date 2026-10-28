@@ -38,7 +38,7 @@ A function-body declaration also cannot replace a parameter of that function.
 A closure parameter or a declaration in a nested block may shadow the name.
 Function declarations require a braced body and cannot be a lone unbraced if/loop
 body. A named function expression is a value with a private name; see
-[function expressions](arrow-functions.md#named-function-expressions).
+[function expressions](https://forever-frameworks-llc.github.io/tsrust/language/function-expressions/#give-an-expression-a-private-recursive-name).
 
 ## Variables of the enclosing function
 
