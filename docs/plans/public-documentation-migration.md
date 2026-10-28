@@ -109,7 +109,7 @@ feature-coverage evidence to reduce the inventory.
 | `rust-packages.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `schema-diagnostics.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `sqlite.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `tooling/deployment.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `tooling/deployment.md` | Current guidance moved to backend/deployment; original vision and core-33 anchor retained in place. | Source and 390px/1440px presentation reviewed; release-command execution remains pending |
 | `tooling/editor-commands.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `tooling/editor-foundation.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `tooling/editor-quick-fixes.md` | User instructions moved to start/editor; implementation and acceptance retained with historical limits labeled. | Source reconciliation and 390px/1440px rendered review complete |

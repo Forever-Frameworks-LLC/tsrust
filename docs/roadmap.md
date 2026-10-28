@@ -414,7 +414,7 @@ This is a proposed sequence for scoping work, not a commitment to implement ever
 
 **Deliverables:** A native `/hello` endpoint, followed by a scoped typed-JSON/validation endpoint and middleware example. Use a restricted Rust wrapper boundary for required native dependencies. Add a database integration as a distinct follow-up slice.
 
-**Workstreams:** [Async/runtime](guides/language/async-and-runtime.md), [interop](guides/tooling/interop-and-targets.md), [serialization](guides/language/metadata-and-serialization.md), [HTTP/Hono](guides/language/http-and-hono.md), [validation](guides/language/validation.md), [databases](guides/language/databases.md), [deployment](guides/tooling/deployment.md), [migration](guides/tooling/source-migration.md), and [backend ecosystem](plans/backend-ecosystem.md).
+**Workstreams:** [Async/runtime](guides/language/async-and-runtime.md), [interop](guides/tooling/interop-and-targets.md), [serialization](guides/language/metadata-and-serialization.md), [HTTP/Hono](guides/language/http-and-hono.md), [validation](guides/language/validation.md), [databases](guides/language/databases.md), [deployment](../website/src/content/docs/backend/deployment.md), [migration](guides/tooling/source-migration.md), and [backend ecosystem](plans/backend-ecosystem.md).
 
 **Exit evidence:** Typed parsing rejects invalid input. Original compatibility tests cover the implemented routing and middleware subset. Tests exercise async captures, shared state, cancellation, and cleanup. Measure startup, binary size, memory, latency, throughput, and compile time with documented workloads.
 

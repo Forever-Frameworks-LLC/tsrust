@@ -1,35 +1,9 @@
-# Native deployment
+# Deployment research and original vision
 
-[Documentation index](../../README.md) · [Proposed roadmap](../../roadmap.md) · [Source section map](../../plans/section-map.md)
+Current user instructions: [Deploy a native backend](../../../website/src/content/docs/backend/deployment.md).
 
-## Build and run a backend
-
-From a configured backend project:
-
-```sh
-tsrust check
-tsrust test
-tsrust build --release -o target/server
-# Windows output: target/server.exe
-```
-
-Build on the destination OS/architecture with the pinned native tools and prepared
-sources described in [machine setup](../../../website/src/content/docs/tools/rust-setup.md). These commands do not
-provide a cross-compilation switch. Copy the produced executable and any
-application-owned configuration or assets to the deployment environment. Native
-execution needs no Tsrust compiler, Cargo, Node or JavaScript runtime.
-
-A native executable is not necessarily statically linked. Its OS libraries,
-external native dependencies, TLS trust material and application files still need
-to be present. Validate the actual artifact in the destination image or machine;
-`doctor --native` checks the build host, not deployment compatibility. Keep secrets
-in deployment configuration rather than source or generated client packages.
-
-The [backend starter](../../../website/src/content/docs/backend/applications.md) listens on loopback by default.
-Choose production binding, authentication, TLS termination and process supervision
-for your deployment. API description and OpenAPI endpoints use application policy;
-review that policy before exposing them publicly. Generate independent clients
-from the checked contract and retain compatibility baselines for rolling updates.
+The material below preserves the original deployment proposals; it is not a claim
+that static linking or every destination environment is supported.
 
 ## Original vision sections
 

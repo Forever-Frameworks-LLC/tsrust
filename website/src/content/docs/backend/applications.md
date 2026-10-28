@@ -69,6 +69,8 @@ For rolling deployments, retain prior checked contracts and list them in
 `api.apiVersion` for an intentionally breaking API major. Review
 [compatibility rules](../api-compatibility/) before changing a public contract.
 
+For release builds and destination checks, see [deployment](../deployment/).
+
 ## Generate a client
 
 Keep the service running and use a second terminal:
