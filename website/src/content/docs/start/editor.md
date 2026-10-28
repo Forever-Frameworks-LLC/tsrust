@@ -68,6 +68,16 @@ See [installation](../installation/).
 - Completion and navigation work with project imports and unsaved source.
 - Quick fixes appear only when the proposed edit passes the relevant check.
 
+### Run tasks
+
+Run File saves the current document and executes it with the source file's directory
+as its working directory. A cancelled save prevents execution. Stop a running
+program with VS Code's task controls. The terminal keeps output after exit by
+default; `tsrust.run.closeOnSuccess` closes it after a successful run when enabled.
+Use `tsrust.run.release` for optimized native execution. Both settings default to
+`false`. Arguments are passed directly to the process, so spaces and shell
+characters in filenames are not interpreted as shell commands.
+
 ## Save actions and diagnostics
 
 `tsrust.checkOnSave` and `tsrust.formatOnSave` enable explicit save actions.
