@@ -48,6 +48,14 @@ pub(crate) fn export(root:&Path,rust:&str,web_only:bool,notices:&[(std::path::Pa
    let path=root.join(path);fs::create_dir_all(path.parent().unwrap())?;fs::write(path,bytes)?;
   }
   fs::write(root.join("rust-toolchain.toml"),format!("[toolchain]\nchannel = {:?}\nprofile = \"minimal\"\n",tsrust_compiler::RUST_BACKEND_VERSION))?;
+  let prerequisites=serde_json::json!({"schemaVersion":1,"compilerVersion":env!("CARGO_PKG_VERSION"),
+   "rustToolchain":tsrust_compiler::RUST_BACKEND_VERSION,"dependencySources":if dependencies{"vendor"}else{"none"},
+   "exportHost":{"os":std::env::consts::OS,"architecture":std::env::consts::ARCH},
+   "buildTarget":if web_only{Some("wasm32-unknown-unknown")}else{None},
+   "buildPrerequisites":{"windows":"Rust MSVC target and matching Visual Studio C++ build tools/Windows SDK",
+    "macos":"Rust target and Xcode command-line build tools","linux":"Rust target, system linker and C/C++ build tools for native dependencies"},
+   "targetPolicy":"A null buildTarget uses Cargo's selected host target. Cross-compilation requires its target libraries, linker and platform SDK; exportHost does not certify target execution."});
+  fs::write(root.join("tsrust-export.json"),serde_json::to_vec_pretty(&prerequisites).map_err(io::Error::other)?)?;
   fs::write(root.join(".gitignore"),"/target/\n")?;
   fs::write(root.join("README.md"),format!("# Exported Tsrust program\n\nRequires the installed Rust {} toolchain. From this directory:\n\n```sh\ncargo build --offline --locked\n./target/debug/program\n# Optimized build, retaining checked integer overflow:\ncargo build --offline --locked --release\n./target/release/program\n```\n\nThe package can be moved independently of the Tsrust project and compiler.\nNative dependency sources and their license files, when needed, are included\nin vendor/. No dependency download, external library path or manual --extern\nflag is required. Rust itself must already be installed for offline builds.\nThe executable name is program; change the [[bin]] name in Cargo.toml if needed.\n\nRun Cargo from this directory so it discovers .cargo/config.toml. From another\ndirectory, pass both --manifest-path and --config with paths into this package.\nDebug and release profiles preserve integer overflow checks. The exported executable preserves the compiler-generated entrypoint and behavior.\n",tsrust_compiler::RUST_BACKEND_VERSION))?;
   Ok(())

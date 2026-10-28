@@ -1,15 +1,18 @@
 //! Clipboard operations belong to a control, never a global UI owner.
 use crate::Node;
+#[cfg_attr(not(any(test,feature="native",all(target_arch="wasm32",feature="ui-web"))),expect(dead_code,reason="Headless nodes retain clipboard ownership; platform renderers consume value/serial/error"))]
 pub(crate) struct Copy {pub value:String,pub pending:bool,pub serial:u64,pub error:String}
 pub fn button(value:String,class_name:String)->Result<Node,String>{
     let mut node=Node::button_children(vec![],class_name,false,None)?;node.text="Copy".into();
     node.copy=Some(Copy{value,pending:false,serial:0,error:String::new()});Ok(node)
 }
 impl Node {
+    #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
     pub(crate) fn begin_copy(&mut self)->Option<(u64,String)>{
         if self.is_disabled(){return None;}
         let copy=self.copy.as_mut()?;copy.serial=copy.serial.checked_add(1).expect("Clipboard request serial exhausted");copy.pending=true;copy.error.clear();self.text="Copying…".into();Some((copy.serial,copy.value.clone()))
     }
+    #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
     pub(crate) fn finish_copy(&mut self,serial:u64,result:Result<(),String>){
         let Some(copy)=&mut self.copy else{return;};if !copy.pending||copy.serial!=serial{return;}
         copy.pending=false;copy.error=result.err().unwrap_or_default();self.text=if copy.error.is_empty(){"Copied"}else{"Copy failed. Try again."}.into();

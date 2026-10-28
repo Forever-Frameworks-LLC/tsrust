@@ -6,7 +6,7 @@ mod custom_spacing;
 mod edges;
 mod text;
 pub use text::WhiteSpace;
-#[cfg(any(all(test, feature = "runtime"),feature="native"))]
+#[cfg(feature="native")]
 pub(crate) use structural::scoped_at_width as resolved_scoped_node_at_width;
 #[cfg(all(test, feature = "runtime"))]
 pub(crate) use structural::resolved as resolved_node;
@@ -99,6 +99,7 @@ fn resolved_with_variables(classes:&str,theme:&Theme,mode:&str,variables:&std::c
  rules.into_iter().map(|((state,_),value)|(state,value)).collect()
 }
 // Keep semantic references in browser CSS so nested theme scopes inherit correctly.
+#[cfg(any(test,feature="runtime"))]
 pub(crate) fn css(classes:&str,theme:&Theme,mode:&str,id:u64,scope:&str)->String {
  structural::css(classes,theme,mode,id,scope)
 }
@@ -279,6 +280,7 @@ pub fn completion_tokens(prefix:&str)->Vec<String> {
 }
 
 /// Inline text has typography, not independent layout boxes on either renderer.
+#[cfg(any(test,feature="runtime"))]
 pub(crate) fn validate_inline(classes:&str)->Result<(),String> {
  validate(classes)?;
  if resolved(classes,&Theme::default(),"light").iter().any(|(_,value)|!matches!(value,Utility::Tracking(_)|Utility::Balance(_)|Utility::WhiteSpace(_)|Utility::Underline(_)|Utility::UnderlineOffset(_)|Utility::FontSize(_)|Utility::Weight(_)|Utility::DefaultLeading(_)|Utility::Leading(_)|Utility::FontFamily(_)|Utility::Foreground(_))) {

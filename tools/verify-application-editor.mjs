@@ -5,13 +5,15 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
-const root = path.resolve(process.argv[2] || 'target/application-preview');
+const target = path.resolve(process.argv[2] || 'target/application-preview');
+const standalone = fs.statSync(target).isFile();
+const root = standalone ? path.dirname(target) : target;
 const executable = path.resolve(process.env.TSRUST_LSP_SERVER || 'target/debug/tsrust-lsp.exe');
 const diagnosticTimeoutMs = Number(process.env.TSRUST_EDITOR_DIAGNOSTIC_TIMEOUT_MS || 15000);
 assert.ok(Number.isInteger(diagnosticTimeoutMs) && diagnosticTimeoutMs >= 1000 && diagnosticTimeoutMs <= 300000);
-const projectConfig = JSON.parse(fs.readFileSync(path.join(root, 'tsrust.config.json'), 'utf8'));
+const projectConfig = standalone ? {build: {entry: path.basename(target)}} : JSON.parse(fs.readFileSync(path.join(root, 'tsrust.config.json'), 'utf8'));
 const standaloneApi = path.join(root, 'tsrust.api.json');
-const apiConfig = projectConfig.api || (fs.existsSync(standaloneApi) ? JSON.parse(fs.readFileSync(standaloneApi, 'utf8')) : null);
+const apiConfig = standalone ? null : projectConfig.api || (fs.existsSync(standaloneApi) ? JSON.parse(fs.readFileSync(standaloneApi, 'utf8')) : null);
 const child = spawn(executable, [], { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
 let pending = Buffer.alloc(0), sequence = 0, errors = '';
 const requests = new Map(), diagnostics = new Map();
@@ -61,18 +63,28 @@ try {
     send('textDocument/didOpen', { textDocument: { uri, languageId: 'tsrust', version: 1, text: source } });
     assert.deepEqual(await result(uri, 1), [], `${relative} has editor diagnostics`);
     if (relative === (apiConfig?.entry || projectConfig.build.entry)) {
+      const facade = standalone && source.includes("from 'std:ui-runtime'");
       const invalid = source + '\nfunction _tsrustEditorDiagnosticProbe(): int { return "invalid"; }\n';
       send('textDocument/didChange', { textDocument: { uri, version: 2 }, contentChanges: [{ text: invalid }] });
-      assert.ok((await result(uri, 2)).some(value => value.severity === 1), 'LSP must report an actual type error');
+      const rejected = await result(uri, 2);
+      assert.ok(rejected.some(value => value.severity === 1), 'LSP must report the changed source');
+      if (facade) assert.ok(rejected.some(value => value.code === 'module-native'), 'Modified facades must retain the private-runtime guard');
       send('textDocument/didChange', { textDocument: { uri, version: 3 }, contentChanges: [{ text: source }] });
       assert.deepEqual(await result(uri, 3), [], 'Editor diagnostics must clear after repair');
       assert.equal(fs.readFileSync(file, 'utf8'), source, 'Protocol edits must not change owner files');
+      if (facade) {
+        const offset = source.indexOf('export type Node') + 'export type '.length;
+        const prefix = source.slice(0, offset);
+        const position = {line: prefix.split('\n').length - 1, character: prefix.split('\n').at(-1).length};
+        const hover = await request('textDocument/hover', {textDocument: {uri}, position});
+        assert.ok(hover?.contents, 'The physical facade document must retain checked cursor assistance');
+      }
     }
     send('textDocument/didClose', { textDocument: { uri } });
   }
   await request('shutdown', null); send('exit');
   assert.equal(await exited, 0, errors);
-  console.log('Application editor: real LSP entry/operation diagnostics clean; deliberate type error reported and cleared after repair; disk source preserved.');
+  console.log('Editor: real LSP diagnostics clean; changed source rejected and cleared after repair; disk source preserved.');
 } finally {
   clearTimeout(timeout);
   if (child.exitCode === null) { child.kill(); await exited; }

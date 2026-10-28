@@ -30,7 +30,7 @@ try {
   fs.writeFileSync(path.join(directory, 'json.tsr'), "import {parse,kind} from 'std:json';function main(){match(parse('null')){Ok(value)=>{console.log(kind(value));},Err(error)=>{throw error.message;}}}\n");
   run('format', 'json.tsr');
   assert.equal(run('run', 'json.tsr'), 'null\n');
-  console.log('Distributed CLI: scaffold, check, format, native run, tests and bundled JSON passed.');
+  console.log('Distributed CLI: scaffold, check, format, native run, tests and shared-cache JSON passed.');
 } finally {
   assert.equal(path.dirname(path.resolve(directory)), path.resolve(os.tmpdir()));
   assert.ok(path.basename(directory).startsWith('tsrust-release-smoke-'));

@@ -118,6 +118,7 @@ fn tls_rejects_bad_configuration_and_drains_stalled_handshakes(){
  tsrust_native_futures::block_on(async{
   for (cert,key) in [("",TLS_KEY),("not PEM",TLS_KEY),(TLS_CERT,"bad key"),(TLS_CERT,include_str!("../../../tests/fixtures/tls/mismatch.key"))]{
    let result=App::new().listen_tls("127.0.0.1:0",cert,key).await;assert!(matches!(result,Err(Error{code:"tls",..})));
+   assert!(matches!(Router::new().listen_tls("127.0.0.1:0",cert,key).await,Err(Error{code:"tls",..})));
   }
   assert!(Client::with_ca("").is_err());assert!(Client::with_ca("not PEM").is_err());assert!(Client::with_ca("-----BEGIN CERTIFICATE-----\nYWJj\n-----END CERTIFICATE-----").is_err());
   let server=App::new().listen_tls("127.0.0.1:0",TLS_CERT,TLS_KEY).await.unwrap();let address=server.address();
@@ -338,4 +339,89 @@ fn producer_channel_backpressure_end_and_disposal(){
   assert!(Response::stream_channel(channel,199,|bytes:Vec<u8>|bytes).is_err());
   assert!(matches!(sender.send::<()>(vec![1]).await,Err(tsrust_native_futures::Failure::Closed)));
  });
+}
+
+    #[test]
+    fn static_configuration_is_atomic_and_streamed_routes_preserve_policy() {
+        let root=std::env::temp_dir().join(format!("tsrust-http-static-{}-{}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+        std::fs::create_dir(&root).unwrap();
+        struct Cleanup(std::path::PathBuf);impl Drop for Cleanup{fn drop(&mut self){let _=std::fs::remove_dir_all(&self.0);}}
+        let directory=Cleanup(root);
+        std::fs::write(directory.0.join("index.html"), "<h1>web</h1>").unwrap();
+        std::fs::write(directory.0.join("file.txt"), "native file").unwrap();
+        let root = directory.0.to_str().unwrap();
+        let mut app = tsrust_native_http::Router::new();
+        app.use_middleware(|context,next|Box::pin(async move{
+            context.header("x-before","entry").unwrap();
+            context.header("x-content-type-options","nosniff").unwrap();
+            next.run(context).await;
+            context.header("x-after","exit").unwrap();
+            None
+        }));
+        app.route("GET","/raw",|_|Box::pin(async{Some(tsrust_native_http::Response::text("raw response".into(),200).unwrap())})).unwrap();
+        for (prefix, fallback) in [("/", ""), ("/bad/", ""), ("/web", "../secret.html"), ("/web", "missing.html"), ("/web", "file.txt")] {
+            assert_eq!(app.serve_static(prefix, root, fallback).unwrap_err().code, "static");
+        }
+        app.serve_static("/web", root, "index.html").unwrap();
+        assert!(app.serve_static("/web/nested", root, "").is_err());
+        assert!(app.serve_static("/web", root, "").is_err());
+        app.serve_static("/second", root, "").unwrap();
+        tsrust_native_futures::block_on(async {
+            let server = app.listen("127.0.0.1:0").await.unwrap();
+            let client = tsrust_native_http::Client::new().unwrap();
+            for (path, accept, status, body) in [
+                ("/web/file.txt", "*/*", 200, "native file"),
+                ("/raw", "*/*", 200, "raw response"),
+                ("/web/projects", "text/html", 200, "<h1>web</h1>"),
+                ("/web/projects", "text/html;q=0", 404, "Not Found"),
+                ("/second/projects", "text/html", 404, "Not Found"),
+                ("/web/missing.js", "text/html", 404, "Not Found"),
+                ("/api", "text/html", 404, "Not Found"),
+            ] {
+                let mut request = tsrust_native_http::Request::new("GET", &format!("http://{}{path}", server.address()), String::new()).unwrap();
+                request.set_header("accept", accept).unwrap();
+                let response = client.send(request).await.unwrap();
+                assert_eq!(response.status(), status, "{path}");
+                assert_eq!(response.header("x-before").unwrap().as_deref(),Some("entry"),"{path}");
+                assert_eq!(response.header("x-after").unwrap().as_deref(),Some("exit"),"{path}");
+                assert_eq!(response.header("x-content-type-options").unwrap().as_deref(),Some("nosniff"),"{path}");
+                assert_eq!(response.text_body().await.unwrap(), body, "{path}");
+            }
+            server.shutdown().await;
+        });
+    }
+
+#[test]
+fn context_body_readers_consume_once_and_preserve_response_status(){
+ tsrust_native_futures::block_on(async{
+  let mut app=Router::new();assert!(app.configure([0,1,1,1,1,1,0]).is_err());
+  app.configure([1048576,128,128,30000,5000,5000,0]).unwrap();
+  app.route("POST","/text",|context|Box::pin(async move{
+   context.status(202).unwrap();let value=context.request_text().await.unwrap();
+   assert_eq!(context.request_text().await.unwrap_err().code,"body");Some(context.text(value,None).unwrap())
+  })).unwrap();
+  app.route("POST","/form",|context|Box::pin(async move{
+   let fields=context.request_form().await.unwrap();assert_eq!(fields[0].name,"name");
+   Some(context.text(fields[0].value.clone(),None).unwrap())
+  })).unwrap();
+  app.route("POST","/multipart",|context|Box::pin(async move{
+   let parts=context.request_multipart().await.unwrap();assert_eq!(parts[0].name,"name");
+   Some(context.text(String::from_utf8(parts[0].data.clone()).unwrap(),None).unwrap())
+  })).unwrap();
+  let server=app.listen("127.0.0.1:0").await.unwrap();let client=Client::new().unwrap();
+  for (path,body,content_type,status) in [("text","hello","text/plain",202),("form","name=hello","application/x-www-form-urlencoded",200),("multipart","--boundary\r\nContent-Disposition: form-data; name=\"name\"\r\n\r\nhello\r\n--boundary--\r\n","multipart/form-data; boundary=boundary",200)]{
+   let mut request=Request::new("POST",&format!("http://{}/{path}",server.address()),body.into()).unwrap();request.set_header("content-type",content_type).unwrap();
+   let response=client.send(request).await.unwrap();assert_eq!(response.status(),status);assert_eq!(response.text_body().await.unwrap(),"hello");
+  }
+  server.shutdown().await;
+ });
+}
+
+#[test]
+fn request_queries_preserve_repetition_empty_values_and_undecodable_bytes(){
+ let request=Request::new("GET","http://localhost/?a=one+two&a=%C3%A9&empty=&bad=%FF",String::new()).unwrap();
+ assert_eq!(request.query("a").as_deref(),Some("one two"));
+ assert_eq!(request.queries("a"),Some(vec!["one two".into(),"é".into()]));
+ assert_eq!(request.query("empty").as_deref(),Some(""));assert_eq!(request.query("missing"),None);
+ assert_eq!(request.queries("missing"),None);assert_eq!(request.query("bad").as_deref(),Some("%FF"));
 }

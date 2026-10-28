@@ -65,10 +65,16 @@ fn portable_export_remains_toolchain_free_and_rebuilds_after_relocation_offline(
     fs::write(&source,support::format_round_trip("import {fromInt} from 'std:json';function main(){console.log(JSON.stringify(fromInt(7)));}")).unwrap();
     let exported=directory.0.join("exported");let relocated=directory.0.join("relocated");
     let home=directory.0.join("empty-cargo");
+    // Preparation is explicit and precedes the toolchain-free export. The test
+    // runner supplies TSRUST_SOURCE_PACK_DIR so the later empty Cargo home does
+    // not also change the location of the prepared portable pack.
     support::success(&support::run(support::cli().current_dir(&directory.0).arg("emit").arg(&source)
         .args(["--package","-o"]).arg(&exported).env("PATH",directory.0.join("no-tools"))
-        .env("RUSTUP_HOME",directory.0.join("no-rustup")).env("CARGO_HOME",&home),40));
+        .env("RUSTUP_HOME",directory.0.join("no-rustup")).env("CARGO_HOME",&home),120));
     assert!(exported.join("vendor").is_dir());
+    let metadata:serde_json::Value=serde_json::from_slice(&fs::read(exported.join("tsrust-export.json")).unwrap()).unwrap();
+    assert_eq!(metadata["schemaVersion"],1);assert_eq!(metadata["rustToolchain"],tsrust_compiler::RUST_BACKEND_VERSION);
+    assert_eq!(metadata["dependencySources"],"vendor");assert!(metadata["buildTarget"].is_null());
     fs::rename(&exported,&relocated).unwrap();
     let output=support::run(Command::new("rustup").args(["run",tsrust_compiler::RUST_BACKEND_VERSION,"cargo","run","--offline","--locked"])
         .arg("--manifest-path").arg(relocated.join("Cargo.toml")).arg("--config").arg(relocated.join(".cargo/config.toml"))

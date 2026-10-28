@@ -167,6 +167,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
 
         .replace("feature=\"native\"","not(target_arch=\"wasm32\")")
         .replace("feature = \"runtime\"", "feature = \"ui\"")
+        .replace("feature=\"runtime\"", "feature = \"ui\"")
         .replace("feature = \"acceptance\"","feature = \"ui-acceptance\"");
     format!("mod tsrust_native_ui {{\n{body}\n#[cfg(all(target_arch=\"wasm32\",feature=\"ui-web\"))] pub use browser::{{run,run_configured}};\n}}\n")
 }

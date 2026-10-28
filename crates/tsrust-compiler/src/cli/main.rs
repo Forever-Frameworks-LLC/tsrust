@@ -61,7 +61,7 @@ Usage:
   tsrust api generate [--config file | --description file | --url HTTPS_URL] [--language typescript|rust] [--out directory] [--header-env Header=ENV] [--check]
   tsrust cache <info|clean>
   tsrust doctor [--json] [--native]
-  tsrust setup [--toolchain] [--dependencies] [--offline] [--yes]
+  tsrust setup [--toolchain] [--dependencies] [--portable] [--offline] [--yes]
   tsrust dev [--target native|web] [--port 4317] [--release] [--verbose] [--color auto|always|never] [-- program-arguments]
   tsrust run [input.tsr] [--release] [-- program-arguments]
   tsrust test [files/directories] [options]

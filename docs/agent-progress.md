@@ -1,138 +1,121 @@
 # Agent continuation state
 
-## Direction and checkpoints
+## Goal and source state
 
-Follow agent-goal.md, plans/backend-only-reset.md and
-plans/rust-setup-and-dependency-distribution.md. Backend-only direction supersedes
-frontend integration work. The complete objective remains open; do not mark it done.
-No releases, pushes, tags, package publication or automated recurrence is authorized.
-One agent writes this tree. The owner explicitly requested committing the entire
-working tree, including .gitignore, docs/src/main.tsr and .agents/. Preserve their
-semantics; do not keep excluding them from checkpoints. Never stop owner processes.
+Read the complete objective at
+C:/Users/skeet/.codex/attachments/ff4ed6f2-4419-4108-886b-fdbac9889081/goal-objective.md
+before goal continuation. Follow agent-goal.md, plans/backend-only-reset.md and
+plans/rust-setup-and-dependency-distribution.md. Goal remains incomplete and active.
+One agent writes this tree. No pushes, tags, releases, publication or recurrence.
+No owner editor/process control. Commit every source change, with no authorship-
+based exclusions, after acceptance and whole-project formatting. Respect gitignore.
 
-Accepted checkpoints: 8904fb8a organized 333 loose documentation files with no new
-broken links; 514cb10a added doctor and explicit pinned-toolchain setup. The editor section is accepted in 0c5270b9; see milestones/docs-project-indexing.md. Source checkpoints use
-node tools/format-project.mjs with the current verified TSRUST; maintain one Cargo
-target, CARGO_INCREMENTAL=0 and one build job. No full matrix is justified after each
-routine edit. Keep analytics in SQLite; do not import current-gate logs or snapshots.
+Last full-tree checkpoint: 2d3a6e09 (shared backend sources). ef39be55 included owner
+configuration/.agents/docs changes as explicitly requested. All current changes
+remain uncommitted: finish them, then git add -A. See
+milestones/portable-source-packs-and-editor-agreement.md for this section's actual
+implementation, evidence and limitations. No archive/source snapshot was created.
+Keep one target, CARGO_INCREMENTAL=0, CARGO_BUILD_JOBS=1. Current CLI/LSP target tools
+are validated in the affected cases; installed consumers still need guarded refresh.
 
-## Current editor acceptance
+## Accepted current section
 
-The installed LSP stalled beyond 120s on docs while the compiler entry checked in
-22117ms. Workspace-disabled reproduction ruled out scanning alone. Local timings
-showed compiler checking finished near 17s and checked-fact application blocked
-publication after declaration indexing. The new index avoids applying unrelated
-named-record facts to every loader, reuses completed structural expansions and
-preserves expanded JSON property help. Reverted a line-table experiment after it
-failed to fix the stall. Baseline confirmed three fixture/JSON failures already
-existed; Windows virtual URIs, obsolete whitespace expectation and JSON help are
-now corrected without weakening production URI checks.
+Compiler build.rs/build-dependencies/vendor include_bytes payload removed. Ordinary
+backend builds use shared Cargo sources; explicit setup --portable creates/validates
+an optional exact Cargo vendor pack. Source export is toolchain-free after explicit
+preparation, with vendors, licenses, lock/toolchain/config/prerequisite metadata.
+TSRLIB3 retains pinned Windows imports; TSRLIB2 remains readable. Backend dev reports
+runtime preparation. Retained UI code remains intact; generated runtime feature
+rewriting recognizes both spaced and compact predicates. Bindings are not migrated.
 
-198 affected cases pass: project intelligence 178, interfaces 3, schema editing 15,
-text imports 2. Actual local LSP docs clean/error/repair and backend-async entry/API
-clean/error/repair pass, disk files untouched. The first docs publication is still
-about 75 seconds for 1668 modules; this is a diagnostic observation, not a benchmark.
-No whole-editor Problems claim: owner reports about 40, and no VS Code MCP tool is
-exposed/configured here. The 16 authoring-only UI build warnings and native docs
-0xc00000fd stack overflow remain open. No diagnostic suppression or indexing quota
-was added. The verifier's default publication deadline remains 15s; docs explicitly
-uses 120s. Opt-in TSRUST_LSP_TRACE_TIMINGS emits only local stage observations.
+The supplied 43 Rust diagnostics exposed an integration test's incomplete copied
+CLI root and partial-fixture/renderer-disabled warnings. Tests now use real CLI
+entrypoints and standard assertion APIs, feature consumers match helpers, and
+ownership/parsed metadata remain retained under narrow explained expectations.
+No global diagnostic suppression. New stdlib HTTP coverage preserves single body
+consumption, response status, static serving, TLS/configuration and query behavior.
 
-All owned sessions are terminal, including setup 48141; LSP builds 4699/6663;
-regression sessions 49121/63164/73386/64824/45957/4597; docs probes
-19476/20831/39988/85098/14845/49425/13764/84850/7355. Do not poll or restart them.
-The owner's installed LSP process is unrelated and must remain running. No owned
-server or UI window is live. Logs: target/lsp-project-help-current.log,
-target/docs-editor-visible-facts-current.log, target/backend-editor-current.log.
+The remaining Tsrust module-native at stdlib/ui/api.tsr is repaired through shared
+project::bundled_entry context in FileSourceProvider and LSP snapshots. Only the
+canonical compiler-development UI facade path AND exact bundled bytes receive
+logical std:ui context. Copies, modified buffers and imported user modules retain
+normal private-binding checks. The guard is unchanged. LSP entry aliases preserve
+physical cursor assistance and snapshot invalidation. Real protocol clean/modified-
+private-error/repair/Node-hover passes without changing owner disk bytes.
 
-## Installed tools
+Accepted: packaging 6/6, edited public links 1/1; native bundle/import/artifacts 3/3;
+pack setup/tamper/failure cleanup 2/2; toolchain setup 2/2; shared cache/deployment 2/2;
+portable relocated offline export and metadata 1/1 (65.93s); UI unit 106/106; HTTP
+runtime 20/20; exact env backend Rust tests 2/2; date 3/3; cache 12/12; nonduplicated
+HTTP static signatures/ownership 1/1; actual CLI UI content 1/1 (97.16s); current CLI
+JSON/runtime/artifact 4/4; bundled original/copy/modified facade 2/2 and real LSP probe.
+Full backend compiler/LSP all-target check on final shared helper source passed:
+zero warnings/errors, terminal successful JSON build-finished, 1m56s. Full workspace
+initial/final earlier passed zero warnings/errors, 106 UI tests; latest refresh below.
 
-Validated CLI is installed at C:/Users/skeet/.cargo/bin/tsrust.exe, SHA256
-626C0008849B3A075B8D3501460C693D2214549B9F6C9346FEC9064F610B6DEF.
-Installed doctor --json passed. Its setup unit 1/1 and CLI integration 2/2 passed;
-actual doctor --native --json found Rust/Cargo 1.96.1 and compiled/linked/executed a
-minimal host program without network. Setup process fixtures prove explicit consent,
-exact minimal-profile/no-self-update arguments, success and failure handling. No
-live toolchain installation, global defaults/configuration change or network setup
-was performed. Application dependency readiness is explicitly unchecked.
+Keep repaired failures explicit: first portable copy hit old 40s deadline, now 120s
+and complete parity passed. Added env assertion wrongly included argv[0]; fixed to
+skip executable and exact runtime/tests passed under standard rustc --test in an
+owned temporary wrapper, removed after execution. New JSON fixture corrected to
+existing strictEqual before next run. Passed gates were preserved. No full compiler/
+LSP regression or matched benchmark matrix was restarted; no analytics import.
 
-The validated LSP is now installed at C:/Users/skeet/.cargo/bin/tsrust-lsp.exe,
-SHA256 E5966160755F0EF19B5E245348150DD0B9640413238902E7EB8595F15600D41B.
-The installed executable passed the backend-async clean/error/repair probe as well
-(target/installed-backend-editor-current.log). Windows allowed hash-guarded staging
-and rename/replacement without stopping the owner's running LSP or editor. The old
-mapped image remains at
-C:/Users/skeet/.cargo/bin/tsrust-lsp-running-0a62d1de9bc945a680da390dec72ad54.exe,
-SHA256 046c8e50e1d867988cb72ecbcc1f6d28b66f36cb8a1a078ba8d43b7a27f596a9.
-Delete that exact old binary only after confirming its process has exited and its
-hash is unchanged; do not stop the process for cleanup. The live owner session has
-NOT automatically adopted the repair: a user-initiated LSP restart/reopen will load
-the canonical new binary. No workspace/editor settings were changed. This local
-consumer refresh does not implement trusted production self-update or prove zero
-Problems in the owner's current editor.
+## Final validation complete
 
-## Shared-source family accepted; distribution next
+31756 is terminal. Both final diagnostic configurations succeeded, zero warnings/
+errors; both streams were parsed and require successful build-finished records.
+Direct CLI check of original stdlib/ui/api.tsr passed. Current CLI created
+ generated-projects/backend-portable-sources --app. Initial SDK verifier invocation
+preceded its required build and could not spawn the absent executable; no backend
+behavior failed. 79277 then built the fresh backend successfully. Resumed 93724
+passed actual native HTTP/TS/Rust SDK acceptance (41.27s) and real project LSP
+clean/error/repair. The owned server/LSP were stopped by their verifiers. Its runtime
+workspace has no vendor directory or private Cargo home. No owned service is live.
 
-See milestones/shared-backend-sources.md. Backend dependency profile is connected
-and tested: normal compiler-owned backends use the shared Cargo home with a small
-locked/offline workspace, no vendor copy and no private Cargo home. Explicit setup
---dependencies [--yes|--offline] delegates source preparation to Cargo. UI and custom
-binding builds retain the original vendor protocol. Config/env digests cover nested
-and optional TOML includes; the parser is the existing locked toml_edit package,
-added as a direct parse-only dependency without changing package versions. Config
-inputs are checked again before cache publication. Raw secrets/configs are not stored.
+All current sessions are terminal, including 31756/79277/93724/42871/95836/56242.
+Do not poll/restart them. Logs: target/backend-editor-rust-diagnostics-accepted-current.jsonl
+and matching check log; editor-rust-diagnostics-accepted-current.jsonl and matching
+check log; bundled-facade-compiler-current.log; portable-backend-scaffold-current.log;
+portable-backend-build-current.log; portable-backend-http-sdk-current.log;
+portable-backend-editor-current.log. The milestone contains exact other accepted
+counts/failures. No matched performance or analytics import was performed.
 
-Accepted: scaffold 3/3, setup 2/2, shared-source 3/3, nested/optional/table config
-regression 1/1; changed tools-free executable deployment case rerun passed. Actual
-source setup --offline succeeded. CLI-created generated-projects/backend-shared-cache
-passed native HTTP build, live/saved TS/Rust HTTP SDK acceptance and installed-LSP
-clean/error/repair. Its workspace has no vendor or private Cargo home. The server
-was stopped by its test. No frontend toolchain was needed. Passing earlier gates
-were reused; first repaired digest-format compile error and JSON fixture inference
-failure are recorded in the milestone. The new CLI is target/debug/tsrust.exe;
-refresh the installed consumer only after the source checkpoint and hash checks.
+## Next executable actions
 
-All new sessions are terminal: 16056 (compile failure), 95736 (scaffold passed,
-fixture failed), 68763 (repaired source/setup/config family passed), 96505 (table
-include passed), 78444 (deployed executable passed), 62796 (HTTP build passed),
-72536 (HTTP SDK passed). No owned server/build/test is live. Current evidence logs
-are listed in the milestone. The fresh review project is ignored by the owner's
-existing generated-projects rule; do not force-add build/review artifacts as source
-snapshots. Commit all tracked/untracked source changes at the accepted milestone;
-there are no responsibility-based exclusions.
+All coherent section checks passed; preserve them. Run node tools/format-project.mjs with
+TSRUST=D:/ai_dev/tsrust/target/debug/tsrust.exe, require stable/token-preserving result,
+then commit the full working tree (guard staged diff --check before committing).
+No source checkpoint is accepted before this coherent section passes.
 
-Next remove mandatory CLI vendor embedding and build-script vendoring. Preserve
-portable offline exports via explicit prepared source packs, exact lock/notice
-validation, relocated rebuilds and Windows import-library restoration. Migrate
-binding source preparation to shared registry/Git caches too. Keep one warm Cargo
-target, no silent downloads or toolchain installs in normal build/dev, and add
-backend runtime preparation progress while touching the build pipeline. The last
-CLI compile still took roughly 8 minutes; do not make repeated small payload builds
-into a continuation loop. Inventory: plans/backend-distribution-inventory.md.
-After that, implement trusted paired CLI/LSP installation/update, package-manager
-ownership and interrupted/locked Windows replacement. Native docs stack overflow,
-16 authoring-only UI warnings and real macOS/Linux execution remain open; no whole
-editor or full objective completion claim is justified.
+After commit, refresh installed tools with expected-old-hash guards and same-directory
+staging. Never stop owner processes. CLI old SHA256:
+626C0008849B3A075B8D3501460C693D2214549B9F6C9346FEC9064F610B6DEF;
+LSP old SHA256: E5966160755F0EF19B5E245348150DD0B9640413238902E7EB8595F15600D41B.
+Paths C:/Users/skeet/.cargo/bin/{tsrust.exe,tsrust-lsp.exe}. Revalidate actual hashes/
+processes; do not overwrite unexpected changes. An old loaded LSP may need rename
+before replacement; preserve mapped images and owner processes. Existing mapped old
+image tsrust-lsp-running-0a62d1de9bc945a680da390dec72ad54.exe has SHA256
+046c8e50e1d867988cb72ecbcc1f6d28b66f36cb8a1a078ba8d43b7a27f596a9;
+delete it only if no process still loads it and hash matches. The owner adopts new
+LSP code through their own Tsrust: Restart Language Server command (verified in
+editors/vscode/package.json, tsrust.restartServer). Do not ask before testing/install.
 
-## Other required backend work retained
+Prune obsolete compiler-owned target/debug/build/tsrust-compiler-* vendor payloads
+and obsolete enormous executable consumers, validating absolute paths/process
+ownership first. Keep the current prepared portable pack and warm Cargo target;
+preserve owner review projects, historical analytics and original UI source.
 
-The server should own its API in app/, expose its description/OpenAPI, and let users
-independently generate js-client/ or rust-client/ anywhere. Replace the public
-generated/server prerequisite with a checked server API facility; compiler-internal
-lowering is acceptable. Current scaffold still uses the old generated server tree.
-Do not present moving/renaming that tree as the architectural correction.
+## Remaining required goal work
 
-Async SDK section de81e66f is accepted; see milestones/async-http-sdk.md and
-milestones/backend-only-http-sdk.md. Fresh review app is generated-projects/backend-async.
-Actual Rust old/new replica execution remains pending; TypeScript replica coverage
-is prior evidence. HTTP I/O remains async throughout. Preserve original UI source,
-owner review apps and historical evidence; no archive directories or snapshots.
-Future UI work starts with a finite set of reusable primitives before larger widgets.
-
-After distribution/server-boundary work, return to async std:testing registration
-(no unawaited callbacks or nested blocking runtimes), migrate pre-library executable
-assertions to normal tests, and implement checked HTTP JSON body readers. Text/form/
-multipart/owned streaming exist; contextual body transfer and response use need
-ownership repair. XML needs an upstream parser-backed plan. See
-plans/http-request-body-readers.md. Preserve meaningful compiler rejection cases,
-actual process-boundary fixtures and benchmark drivers.
+Native docs startup stack overflow (0xc00000fd) is unresolved; do not claim the
+compiler/editor repair fixes it. Prioritize the actual startup repair before UI
+expansion. Server API must belong to app/ and serve description/OpenAPI, allowing
+independent js-client/rust-client generation anywhere. Current scaffold still imports
+generated/server; do not disguise a rename as the needed architectural correction.
+Ordinary binding graphs still need shared registry/Git cache migration. Finish Rust
+replica execution, checked typed JSON/contextual body readers and async std:testing.
+Trusted paired prebuilt install/latest-stable update, integrity/host/ownership,
+interruption/locked Windows recovery and actual macOS/Linux validation remain open.
+No whole-editor-panel claim is possible: current built Rust and LSP protocol evidence
+is authoritative, while the owner's already running server needs their restart.
+Use project-local remote-validation rules; never publish a release to test install.

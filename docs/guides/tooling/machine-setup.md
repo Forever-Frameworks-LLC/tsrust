@@ -64,12 +64,32 @@ target/tsrust-native) apply to backend support builds. The pinned toolchain and
 compiler-owned runtime profiles remain explicit. Existing global defaults and
 configuration files are never rewritten.
 
-Portable source exports continue to carry their vendors and can be generated without
-Rust installed, then rebuilt after relocation with an empty registry cache. Retained
-UI builds and resolved custom binding graphs still use the legacy vendor path. The
-CLI still embeds the portable legacy bundle; eliminating that payload and migrating
-binding graphs are separate unfinished steps. These commands are not yet a CLI/LSP
-installer or self-update flow.
+Portable export sources are optional and explicitly prepared, independently of normal
+backend development:
+
+```sh
+tsrust setup --portable --yes
+# Prepare entirely from existing Cargo sources, without network access:
+tsrust setup --portable --offline
+```
+
+This invokes upstream `cargo vendor --locked --versioned-dirs` once into a staged,
+versioned source pack. The pack retains the full legacy export closure, including
+original UI dependencies, for compatibility. Normal compiler builds neither vendor
+nor embed that payload. Setup validates the exact manifest/lock, Cargo package
+identities and all vendor file checksums before publishing the pack by rename.
+Existing modified packs are preserved and rejected; failed staging is removed.
+
+Packs live under CARGO_HOME/tsrust/source-packs, or TSRUST_SOURCE_PACK_DIR when set.
+Set that variable to a persistent directory if exporting with a different Cargo home.
+`emit --package` copies verified sources and licenses from the prepared pack without
+invoking Cargo, Rust or the network. An unprepared export reports the setup command.
+The resulting package includes its manifest, lock, runtime sources, toolchain pin,
+Cargo offline configuration, notices and build instructions; it can be relocated
+and rebuilt with an empty registry cache. Plain programs need no source pack.
+Retained UI builds and custom binding overlays use the prepared pack too; migrating
+ordinary binding builds to shared sources remains unfinished. These commands are
+not yet a CLI/LSP installer or production self-update flow.
 
 The [rustup profile documentation](https://rust-lang.github.io/rustup/concepts/profiles.html)
 defines the minimal profile. Its [basic usage documentation](https://rust-lang.github.io/rustup/basics.html)
@@ -80,3 +100,6 @@ configuration discovery and nested/optional includes. Tsrust uses the already lo
 toml_edit parser to inspect those include paths; Cargo still parses and applies the
 build configuration itself. [cargo fetch](https://doc.rust-lang.org/cargo/commands/cargo-fetch.html)
 provides explicit source acquisition before offline use.
+
+[Cargo vendor](https://doc.rust-lang.org/cargo/commands/cargo-vendor.html) defines
+locked/offline preparation and versioned directories.

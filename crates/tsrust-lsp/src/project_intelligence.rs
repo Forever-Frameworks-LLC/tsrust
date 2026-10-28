@@ -9,6 +9,7 @@ use tsrust_compiler::project::{ProjectGraph, SourceId};
 
 pub struct ProjectIndex {
     indices: BTreeMap<SourceId, SourceIndex>,
+    entry_aliases: BTreeMap<SourceId,SourceId>,
     references: BTreeMap<String, Vec<(Value, bool)>>,
     /// The validated module graph of this index, for checks of a repaired module.
     graph: ProjectGraph,
@@ -168,12 +169,18 @@ impl ProjectIndex {
         }
         Self {
             indices,
+            entry_aliases: BTreeMap::new(),
             references: BTreeMap::new(),
             graph: graph.clone(),
         }
     }
     pub fn contains(&self, id: &SourceId) -> bool {
-        self.indices.contains_key(id)
+        self.indices.contains_key(self.entry_aliases.get(id).unwrap_or(id))
+    }
+    pub(crate) fn alias_entry(&mut self,physical:SourceId,logical:SourceId) {
+        if logical==self.graph.entry && self.indices.contains_key(&logical) && physical!=logical {
+            self.entry_aliases.insert(physical,logical);
+        }
     }
     fn refresh_references(&mut self) {
         self.references.clear();
@@ -194,7 +201,8 @@ impl ProjectIndex {
         params: &Value,
         uri: &str,
     ) -> Option<Result<Value, String>> {
-        let id = source_id(uri).ok()?;
+        let physical = source_id(uri).ok()?;
+        let id=self.entry_aliases.get(&physical).unwrap_or(&physical).clone();
         if self.graph.modules.get(&id).is_some_and(|module|module.rust.is_some()){return None;}
         if method=="textDocument/definition" {
             let index=self.indices.get(&id)?;

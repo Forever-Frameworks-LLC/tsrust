@@ -91,8 +91,10 @@ impl ProjectSession {
         };
         self.indices.remove(&id);
         if self.workspace.current(input)
-            && let Some(index) = index
+            && let Some(mut index) = index
         {
+            use tsrust_compiler::project::SourceProvider;
+            if let Ok(logical)=input.resolve(None,&id.0){index.alias_entry(id.clone(),logical);}
             self.indices.insert(id, (input.retained(), index));
         }
     }

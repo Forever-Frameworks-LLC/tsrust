@@ -4,7 +4,7 @@ use serde_json::{Value, json};
 use tsrust_compiler::RUST_BACKEND_VERSION;
 
 const DOCTOR_USAGE: &str = "Usage: tsrust doctor [--json] [--native]";
-const SETUP_USAGE: &str = "Usage: tsrust setup [--toolchain] [--dependencies] [--offline] [--yes]";
+const SETUP_USAGE: &str = "Usage: tsrust setup [--toolchain] [--dependencies] [--portable] [--offline] [--yes]";
 
 fn flags(args: impl Iterator<Item=String>, allowed: &[&str], usage: &str) -> Result<Vec<String>, String> {
     let mut flags = Vec::new();
@@ -85,11 +85,12 @@ fn install_command() -> Command {
 }
 
 pub(super) fn setup(args: impl Iterator<Item=String>) -> Result<u8, String> {
-    let flags = flags(args, &["--toolchain", "--dependencies", "--offline", "--yes"], SETUP_USAGE)?;
+    let flags = flags(args, &["--toolchain", "--dependencies", "--portable", "--offline", "--yes"], SETUP_USAGE)?;
     let toolchain=flags.iter().any(|a|a=="--toolchain");
     let dependencies=flags.iter().any(|a|a=="--dependencies");
+    let portable=flags.iter().any(|a|a=="--portable");
     let offline=flags.iter().any(|a|a=="--offline");
-    if !toolchain && !dependencies { return Err(SETUP_USAGE.into()); }
+    if !toolchain && !dependencies && !portable { return Err(SETUP_USAGE.into()); }
     if offline && toolchain { return Err("--offline prepares cached dependencies only; omit --toolchain".into()); }
     if !offline && !flags.iter().any(|a| a == "--yes") {
         if !io::stdin().is_terminal() { return Err("Toolchain setup may download files. Pass --yes for unattended setup.".into()); }
@@ -116,6 +117,12 @@ pub(super) fn setup(args: impl Iterator<Item=String>) -> Result<u8, String> {
         let status=command.status().map_err(|e|e.to_string())?;
         if !status.success(){return Err("Backend source preparation failed; existing shared Cargo sources were preserved. Rerun setup --dependencies --yes with network access, or provide a populated Cargo home for --offline.".into());}
         println!("Locked backend sources are available in the shared Cargo cache. No project vendor directory was created.");
+    }
+    if portable {
+        let root=super::backend_sources::build_root()?;fs::create_dir_all(&root).map_err(|e|e.to_string())?;
+        let mut cargo=super::backend_cargo_command();cargo.current_dir(root);
+        let path=super::native_dependency_bundle::prepare(cargo,offline).map_err(|e|e.to_string())?;
+        println!("Verified portable source pack: {}",path.display());
     }
     println!("Pinned Rust {RUST_BACKEND_VERSION} is available. Run tsrust doctor --native to test host linking.");
     Ok(0)

@@ -48,6 +48,7 @@ pub(crate) fn current_kind(href:&str)->Option<&'static str>{
     let path=current.split('#').next()?;
     if path==href{Some("page")}else if href!="/"&&path.strip_prefix(href).is_some_and(|rest|rest.starts_with('/')){Some("location")}else{None}
 }
+#[cfg(any(test,feature="native"))]
 pub(crate) fn is_current(href:&str)->bool{current_kind(href).is_some()}
 pub fn navigate(path:&str)->Result<(),String>{let path=checked_path(path)?;let owner=active()?;push(&owner,&path)?;(owner.write)(path)}
 pub fn traverse(forward:bool)->Result<(),String>{

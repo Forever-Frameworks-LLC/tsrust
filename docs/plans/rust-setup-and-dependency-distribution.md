@@ -1,8 +1,11 @@
 # Rust setup and dependency distribution
 
-Owner-requested roadmap addition, 2026-10-27. Status: planned; implementation
-and platform acceptance remain pending. This extends the active backend platform
-goal without replacing the current application layout and dev-orchestration work.
+Owner-requested roadmap addition, 2026-10-27. Status: partially implemented and
+accepted on Windows; full distribution/platform acceptance remains open. Doctor,
+explicit pinned-toolchain/source setup and ordinary shared-cache backend builds
+are implemented. See ../milestones/shared-backend-sources.md and ../agent-progress.md
+for exact evidence; optional portable packs and all binding/install/update work
+are not implied complete by those results. This follows the backend-only direction.
 
 The subsequent [backend-only reset](backend-only-reset.md) removes frontend
 orchestration prerequisites and adds reliable cross-platform installation and
@@ -26,8 +29,7 @@ against prepared caches and give actionable setup/resolution instructions when
 prerequisites are missing. Do not copy a vendor tree into every ordinary project
 or installation. Preserve binding validation and dependency ownership boundaries.
 
-Portable offline source export retains vendoring. Compiled backends and packaged
-Electron apps run without Tsrust, Cargo, Rust, this repository or developer caches;
+Portable offline source export retains vendoring. Compiled backends run without Tsrust, Cargo, Rust, this repository or developer caches;
 document actual platform runtime requirements separately.
 
 ## Priority and implementation sequence
@@ -93,7 +95,9 @@ toolchain guidance is not proof that doctor/setup already exist.
 
 ## Acceptance matrix
 
-All rows are pending for this migration. Use isolated temporary homes/caches;
+Rows define completion criteria; implementation and platform evidence are recorded
+in the linked milestones/current progress. Do not reset completed evidence or treat
+partial Windows checks as whole-platform acceptance. Use isolated temporary homes/caches;
 never delete or mutate the owner's caches to simulate missing prerequisites.
 
 | Witness | Required evidence |
@@ -107,7 +111,7 @@ never delete or mutate the owner's caches to simulate missing prerequisites.
 | Missing/stale graph | Missing cache and dependency edits fail with the exact explicit resolution instruction, without downloading. |
 | Portable source | Export relocates and rebuilds offline with compatible platform tools and complete notices/metadata. |
 | Behavioral equivalence | Cached and vendored builds pass the same independent native behavior oracle. |
-| Deployment | Native backend and packaged Electron app run without repository, toolchain or developer cache. |
+| Deployment | Native backend runs without repository, toolchain or developer cache. |
 
 Preserve completed checks and original evidence. Separate implementation acceptance
 from pending platform/distribution validation. Run whole-project formatting and
@@ -132,4 +136,4 @@ decision before any necessary remote check; public release needs owner authoriza
 - Does existing portable export need an explicit mode/version marker to preserve
   older exports and distinguish cached development from vendor source packages?
 - Is an optional private Rust toolchain justified after normal rustup integration
-  works? Keep it separate from optional managed Node/package-manager preparation.
+  works? Do not introduce a separate package manager or unrelated frontend toolchain.

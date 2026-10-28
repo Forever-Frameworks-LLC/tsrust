@@ -1,73 +1,43 @@
 # Active roadmap: backend framework, HTTP SDKs and distribution
 
-Owner HTTP clarifications: all network I/O is async, including Rust SDKs and CLI
-acquisition. Follow [request body readers](plans/http-request-body-readers.md) for
-checked JSON convenience and contextual streaming after async SDK acceptance;
-reuse existing form/multipart implementations and track XML separately.
+Follow [the goal](agent-goal.md), [backend-only reset](plans/backend-only-reset.md)
+and [Rust distribution plan](plans/rust-setup-and-dependency-distribution.md).
+Tsrust is the native backend compiler/framework. Users bring their own UI and call
+HTTP APIs. Frontend templates, orchestration and UI expansion are outside active
+scope; preserve original UI source and historical acceptance in place.
 
-**Superseded by the owner's backend-only reset, 2026-10-27.** Follow
-[backend-only cleanup, HTTP SDKs and distribution](plans/backend-only-reset.md).
-Remove introduced frontend integrations; retain native backend/compiler/LSP,
-generate TypeScript and Rust SDKs from HTTP descriptions, and prioritize explicit
-Rust preparation, cache-based builds and Windows/macOS/Linux installation/update.
-Earlier React/Electron/Expo targets below are historical, not the active queue.
+Accepted Windows foundations include backend-only CLI scaffolding, independent
+HTTP-described TypeScript/async Rust clients and OpenAPI, pinned-toolchain doctor/
+setup, and ordinary shared-Cargo-cache backend builds. See
+[machine setup](guides/tooling/machine-setup.md),
+[async HTTP SDK acceptance](milestones/async-http-sdk.md) and
+[shared backend sources](milestones/shared-backend-sources.md).
+These results do not establish complete backend, installation or update acceptance.
 
-The owner's 2026-10-27 Rust distribution request is tracked in
-[Rust setup and dependency distribution](plans/rust-setup-and-dependency-distribution.md).
-Ship prebuilt CLI/LSP tools, provide explicit doctor/setup and dependency resolution,
-use shared Cargo caches for normal locked/offline native builds, and retain vendor
-sources for portable offline exports. Inventory and setup contracts precede the
-build-path migration; all migration acceptance is pending. Routine dev/build must
-never silently fetch tools or dependencies. This is required production installation
-work alongside the application baseline, not a claim that new commands exist.
+1. Keep compiler/LSP/editor agreement clean. Finish the current all-target diagnostic
+   and portable-source section; repair native docs startup stack overflow. Before
+   each accepted milestone, complete affected checks and commit the full source tree.
+2. Let the server own its API in app/, serve the checked description/OpenAPI, and
+   generate independent js-client/ or rust-client/ anywhere. Remove the public
+   generated/server prerequisite. Preserve auth, validation, structured failures
+   and rolling-deployment compatibility; finish actual Rust replica coverage.
+3. Finish [checked request-body readers](plans/http-request-body-readers.md) and
+   async std:testing registration. Keep all HTTP I/O async; reuse form/multipart
+   readers and defer XML until a checked upstream parser is chosen.
+4. Finish shared-source dependency distribution: optional prepared portable packs
+   replace embedded vendors, while ordinary binding graphs also migrate to Cargo's
+   shared sources. Retain exact locks, ownership, complete notices/prerequisites,
+   relocation/offline parity and tooling-free deployment. Normal commands never
+   install or download silently.
+5. Deliver prebuilt paired CLI/LSP installation and explicit latest-stable checking/
+   updating. Verify trusted metadata, host/architecture and bytes; preserve package-
+   manager ownership, recover interrupted/failed replacement and handle locked
+   Windows binaries. Record real Windows/macOS/Linux execution separately.
 
-The owner's 2026-10-27 reset supersedes the prototype-first sequence below.
-Follow [the production implementation baseline](plans/production-application-baseline.md):
-clean up, then build actual CLI-generated minimal greeting apps, validate visible
-dev mode and editor diagnostics, and add each production target/integration through
-that path. Task applications remain integration fixtures. All original acceptance
-requirements remain; working examples do not establish a working generator.
-
-Owner-approved pivot, 2026-10-26. Follow [the prototype goal](agent-goal.md),
-[pivot plan](plans/backend-platform-pivot.md) and
-[template/package decisions](plans/backend-platform-packages.md).
-
-The owner's 2026-10-27 follow-up adds optional automated desktop-update setup and
-a later Slint/LVGL target track. See [native targets and secure updates](plans/native-targets-and-secure-updates.md)
-for priority, SDK/renderer boundaries, signing/installer/hardware gates and the
-persisted questions register. Finish the active Electron/Expo prototype first;
-Slint desktop and embedded Linux/MCU support are later gated phases.
-
-Tsrust remains the native backend compiler. Presentation uses React/Vite + shadcn
-for web/Electron and Expo + React Native Reusables for mobile. Electron Forge's
-Vite plugin is accepted. Generate named API calls and a thin TanStack Query wrapper.
-Starter/imported frontends remain ordinary user-owned projects with unrestricted
-normal dependency management. Tsrust supplies optional orchestration and scoped
-integration migrations. Existing projects can import/export/pack/publish generated
-clients; a backend may serve multiple explicitly configured web application mounts.
-
-1. Reconcile scope and isolate legacy UI runtime dependencies from compiler/LSP
-   builds; preserve all old UI source and evidence in place.
-2. Generate one checked operation manifest, HTTP dispatcher and validated named
-   TypeScript client for a SQLite-backed task service.
-3. Deliver the React/shadcn web application, query wrapper and web asset serving.
-4. Package the shared UI and native backend with Electron Forge/Vite and prove
-   process lifecycle and renderer isolation on Windows. Plan optional updater
-   setup with a Tsrust-hosted read-only feed and upstream installer/verifier.
-5. Prove an Expo/RNR Android client and backwards-compatible deployed API changes.
-6. Complete optional target orchestration, scoped integration migrations, client export
-   integration, a cancellable task, upgrade/rollback proof and milestone review.
-
-Each section requires focused compiler/native/editor/client acceptance. Reserve
-full regressions and measurements for the coherent backend-family milestone.
-Native compute, serialization and transport costs remain separate measurements.
-Exact versions/security review must be recorded when a template is admitted.
-
-Universal GPU/browser UI, Table/component expansion, custom routing/hydration,
-the old embedded renderer and the Tsrust UI docs application are frozen. A later
-embedded target will evaluate upstream Slint/LVGL rather than revive that renderer. Pending checks
-are not passed; their records below are historical, not the active work queue.
-Compiler language features remain eligible when the backend prototype needs them.
+Use [current progress](agent-progress.md) for live sessions, completed checks and
+next executable actions. Reserve full compiler/LSP regressions and matched
+performance measurements for coherent backend-family milestones. Pending tests,
+platforms and installation trust are never described as complete.
 
 ## Retained historical roadmap and acceptance
 

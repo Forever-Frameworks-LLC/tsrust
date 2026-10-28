@@ -89,6 +89,7 @@ impl Data {
   Self::Root(value)=>{let mut attrs=value.paint.attributes();attrs.extend([("viewBox",value.view_box.clone()),("width",value.width.to_string()),("height",value.height.to_string()),("preserveAspectRatio",value.preserve_aspect_ratio.clone()),("xmlns","http://www.w3.org/2000/svg".into())]);attrs},
   Self::Path(value)=>{let mut attrs=value.paint.attributes();attrs.push(("d",value.d.clone()));attrs},
  }}
+ #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
  pub(crate) fn refresh(&mut self)->Result<usize,String>{if let Self::Path(value)=self{if let Some(binding)=&mut value.binding{let next=binding()?;if next!=value.d{let parsed=geometry(&next)?;value.geometry=parsed;value.d=next;return Ok(1);}}}Ok(0)}
 }
 impl Node {
@@ -109,6 +110,13 @@ impl Node {
   for (policy,expected) in [("xMidYMid meet",[0.,50.,200.,150.]),("xMinYMin meet",[0.,0.,200.,100.]),("xMaxYMax meet",[0.,100.,200.,200.]),("xMidYMid slice",[-100.,0.,300.,200.]),("none",[0.,0.,200.,200.])]{
    let root=Root::parse(&format!("{{\"viewBox\":\"10 20 40 20\",\"width\":200,\"height\":200,\"preserveAspectRatio\":\"{policy}\"}}")).unwrap();let matrix=root.transform(200.,200.).unwrap();let a=matrix*kurbo::Point::new(10.,20.);let b=matrix*kurbo::Point::new(50.,40.);assert_eq!([a.x,a.y,b.x,b.y],expected,"{policy}");println!("{}",serde_json::json!({"case":"vector-viewport","policy":policy,"width":200.,"height":200.,"corners":[a.x,a.y,b.x,b.y]}));
   }
+ }
+ #[test]fn paints_resolve_against_the_current_scoped_theme(){
+  let theme=Theme::default();let current=theme.color("dark","foreground").unwrap();
+  assert_eq!(color("none",current,&theme,"dark").unwrap(),None);
+  assert_eq!(color("currentColor",current,&theme,"dark").unwrap(),Some(current));
+  assert_eq!(color("primary",current,&theme,"dark").unwrap(),Some(theme.color("dark","primary").unwrap()));
+  assert!(color("url(secret)",current,&theme,"dark").is_err());
  }
  #[test]fn geometry_and_paint_reject_instead_of_emitting_invalid_svg(){
   for data in ["M0", "M0 0 L NaN 1","M0 0 L1e100 1","M0 0 X2 2", "<script/>", "M0 0 ?", "M0 0 A0.000001 2 0 0 1 10 10"]{assert!(Node::svg_path(data,String::new(),"{}").is_err(),"{data}");}

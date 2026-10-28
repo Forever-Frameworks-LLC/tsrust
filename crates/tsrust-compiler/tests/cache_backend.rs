@@ -36,7 +36,9 @@ fn releasing_cache_read_allows_expiration_and_drops_value_once(){
  assert!(cache.insert(1,Value(drops.clone()),Some(Duration::from_secs(1))).is_ok());
  {let borrowed=cache.get(&1).unwrap();assert_eq!(borrowed.0.get(),0);}
  now.set(now.get()+Duration::from_secs(1));assert_eq!(cache.len(),0);assert_eq!(drops.get(),1);
- assert!(cache.get(&1).is_none());drop(cache);assert_eq!(drops.get(),1);
+ assert!(cache.get(&1).is_none());
+ assert!(cache.insert(2,Value(drops.clone()),None).is_ok());cache.clear();assert_eq!(cache.len(),0);assert_eq!(drops.get(),2);
+ drop(cache);assert_eq!(drops.get(),2);
 }
 
 #[test]

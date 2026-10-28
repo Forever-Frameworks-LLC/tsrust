@@ -12,6 +12,7 @@ fn attribute(value:&str)->Option<(&str,&str)> {
  (matches!(key,"slot"|"size"|"variant"|"orientation"|"state") && name(value)).then_some((key,value))
 }
 #[derive(Clone,Copy)]
+#[cfg_attr(not(any(test,feature="runtime")),expect(dead_code,reason="Authoring validates selectors; retained predicate operands are consumed only by renderers"))]
 pub(super) enum Predicate<'a> { Data(&'a str,&'a str), HasData(&'a str,&'a str), InData(&'a str,&'a str), GroupData(&'a str,&'a str,&'a str), Class(&'a str), Dark, MinWidth(u16), Invalid, Current, Anchor, HasExpanded }
 impl<'a> Predicate<'a> {
  fn parse(text:&'a str)->Option<Self> {
@@ -33,6 +34,7 @@ impl<'a> Predicate<'a> {
   fn expanded(node:&Node)->bool{node.visible_children().any(|child|child.semantics.expanded=="true"||expanded(child))}
   match self {Self::HasExpanded=>expanded(node),Self::Anchor=>node.tag()=="a",Self::Data(k,v)=>data(node,k,v),Self::HasData(k,v)=>has(node,k,v),Self::InData(k,v)=>ancestors.iter().any(|parent|data(parent,k,v)),Self::GroupData(k,v,group)=>ancestors.iter().any(|parent|parent.class_name.split_whitespace().any(|class|class.strip_prefix("group/")==Some(group)) && data(parent,k,v)),Self::Class(class)=>node.class_name.split_whitespace().any(|token|token==class),Self::Dark|Self::MinWidth(_)=>true,Self::Invalid=>node.semantics.invalid=="true",Self::Current=>super::super::navigation::is_current(&node.semantics.href)}
  }
+#[cfg(any(test,feature="runtime"))]
  fn selector(self,scope:&str)->String {
   match self {
    Self::HasExpanded=>":where(:has([aria-expanded=\"true\"]))".into(),Self::Anchor=>":where(a)".into(),Self::Dark|Self::MinWidth(_)=>String::new(),Self::Invalid=>":where([aria-invalid=\"true\"])".into(),Self::Current=>":where([aria-current=\"page\"],[aria-current=\"location\"])".into(),
@@ -48,10 +50,12 @@ impl<'a> Predicate<'a> {
 #[derive(Clone,Copy)]
 enum Descendant {Svg,DefaultSvg,DirectLink,Row,LastRow,DirectLastRow}
 impl Descendant {
+#[cfg(any(test,feature="runtime"))]
  fn css(self)->&'static str{match self{Self::Row=>" :where(tr)",Self::LastRow=>" :where(tr:last-child)",Self::DirectLastRow=>" > :where(tr:last-child)",Self::Svg=>" :where(svg)",Self::DefaultSvg=>" :where(svg:not([class*='size-']))",Self::DirectLink=>" > :where(a)"}}
  #[cfg(any(all(test, feature = "runtime"),feature="native"))]
  fn matches(self,node:&Node,direct:bool,ancestors:&[&Node])->bool{let last=||ancestors.last().and_then(|parent|parent.visible_children().last()).is_some_and(|child|std::ptr::eq(child,node));match self{Self::Row=>node.tag()=="tr",Self::LastRow=>node.tag()=="tr"&&last(),Self::DirectLastRow=>direct&&node.tag()=="tr"&&last(),Self::Svg=>node.kind==super::super::Kind::Svg,Self::DefaultSvg=>node.kind==super::super::Kind::Svg&&!node.class_name.contains("size-"),Self::DirectLink=>direct&&node.tag()=="a"}}
 }
+#[cfg_attr(not(any(test,feature="runtime")),expect(dead_code,reason="Authoring validates the shared grammar; rendering consumes descendant/predicate metadata"))]
 pub(super) struct Parts<'a> {pub state:State,pub token:&'a str,pub placeholder:bool,descendant:Option<Descendant>,predicates:Vec<Predicate<'a>>}
 pub(super) fn parts(class:&str)->Result<Parts<'_>,String> {
  let mut start=0;let mut depth=0usize;let mut prefixes=Vec::new();
@@ -101,6 +105,7 @@ pub(crate) fn scoped_at_width(node:&Node,ancestors:&[&Node],theme:&Theme,mode:&s
 }
 #[cfg(any(all(test, feature = "runtime"),feature="native"))]
 fn state_name(state:State)->&'static str {match state{State::Base=>"",State::Hover=>"hover",State::Focus=>"focus",State::Active=>"active",State::Disabled=>"disabled"}}
+#[cfg(any(test,feature="runtime"))]
 pub(super) fn css(classes:&str,theme:&Theme,mode:&str,id:u64,scope:&str)->String {
  let mut output=String::new();let scope=if scope.is_empty(){String::new()}else{format!("{scope} ")};
  // States override base properties, preserving the existing shared merge contract.
@@ -125,12 +130,14 @@ pub(super) fn css(classes:&str,theme:&Theme,mode:&str,id:u64,scope:&str)->String
  }
  output
 }
+#[cfg(any(test,feature="runtime"))]
 fn descendant_size(parsed:&Parts<'_>)->Option<String>{
  parsed.descendant?;let size=parsed.token.strip_prefix("size-")?;
  let length=match size {"px"=>"1px".into(),"2"=>"var(--ui-spacing-sm)".into(),"4"=>"var(--ui-spacing-md)".into(),"6"=>"var(--ui-spacing-lg)".into(),"1"=>"calc(var(--ui-spacing-sm)/2)".into(),"3"=>"calc((var(--ui-spacing-sm) + var(--ui-spacing-md))/2)".into(),_=>format!("calc(var(--ui-spacing-md)/4*{size})")};
  Some(format!("width:{length};height:{length}"))
 }
 // Resolve semantic colors in the enclosing live scope, including late-mounted content.
+#[cfg(any(test,feature="runtime"))]
 fn semantic_color(token:&str,placeholder:bool)->Option<String>{
  let (base,opacity)=super::opacity_token(token).unwrap_or((token,1.));
  let (property,key)=base.split_once('-')?;

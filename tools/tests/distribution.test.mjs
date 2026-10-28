@@ -53,6 +53,11 @@ test('packaging preserves bytes, source versions, notices and executable permiss
   assert.equal(fs.readFileSync(path.join(output, 'LICENSE'), 'utf8'), fs.readFileSync(path.join(root, 'LICENSE'), 'utf8'));
   assert.equal(fs.readFileSync(path.join(output, 'attributions/dependencies/example-1.0.0/licenses/MIT.txt'), 'utf8'), 'dependency license fixture\n');
   assert.ok(!fs.existsSync(path.join(output, 'attributions/dependencies/example-1.0.0/lib.rs')));
+  const readme = fs.readFileSync(path.join(output, 'README.md'), 'utf8');
+  assert.match(readme, /tsrust setup --dependencies --yes/);
+  assert.match(readme, /tsrust setup --portable --yes/);
+  assert.ok(!readme.includes('sources are bundled in tsrust'));
+  assert.ok(!readme.includes('Web UI additionally needs'));
 }));
 
 test('packaging never replaces existing destinations and removes incomplete output', () => temporary(directory => {

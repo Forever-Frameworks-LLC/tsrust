@@ -145,6 +145,7 @@ mod platform {
                 let runtime_started=Instant::now();
                 if verbose{if let Some(directory)=command.get_current_dir(){eprintln!("[build] dependency-workspace={}",directory.display());}}
                 if frontend.features.contains(&"ui") { report(Status::Info,"Preparing native UI renderer (runtime cache miss)."); }
+                else { report(Status::Info,"Preparing native runtime (offline; runtime cache miss)."); }
                 let errors=files.0.join("runtime.stderr");
                 command.stdout(std::process::Stdio::null()).stderr(std::fs::File::create(&errors).map_err(|e|e.to_string())?);
                 let mut compiler=Process::spawn(&mut command)?;

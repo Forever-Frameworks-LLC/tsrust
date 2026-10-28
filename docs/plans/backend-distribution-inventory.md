@@ -116,3 +116,14 @@ explicit preparation against isolated caches before switching ordinary builds.
 Keep portable export intact until cached/vendor parity is executed. Installer and
 updater implementation must use prebuilt artifacts rather than requiring Cargo
 to install Tsrust. Cross-platform execution remains pending.
+
+## Source payload migration in progress
+
+Checkpoint 2d3a6e09 accepted ordinary backend shared-cache builds. The next section
+removes compiler build.rs and its build dependencies, eliminating implicit Cargo
+vendoring and include_bytes source payloads. Explicit setup --portable creates an
+optional staged source pack using Cargo vendor; exports validate/copy it without
+Rust or network access. Original UI source and portable dependency metadata remain
+in place. Binding runtime overlays still need their separate shared-cache migration.
+See the current agent progress for acceptance rather than the initial inventory's
+historical descriptions above. Installer/signature/paired-update work remains open.

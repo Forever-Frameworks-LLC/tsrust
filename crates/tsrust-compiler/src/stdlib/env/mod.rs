@@ -21,6 +21,7 @@ mod tests {
     #[test]
     fn environment_child() {
         if std::env::var_os("TSRUST_ENV_CHILD").is_none(){return;}
+        assert_eq!(args(),Ok(std::env::args().skip(1).collect::<Vec<_>>()));
         assert_eq!(get("TSRUST_MISSING"),Ok(None));
         assert_eq!(get("TSRUST_EMPTY"),Ok(Some(String::new())));
         let mut value=get("TSRUST_TEXT").unwrap().unwrap();

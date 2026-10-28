@@ -17,6 +17,12 @@ pub(super) fn resolve(token:&str)->Option<Utility> {Some(match token {
  "underline-offset-0"=>Utility::UnderlineOffset(Some(0.)),"underline-offset-1"=>Utility::UnderlineOffset(Some(1.)),"underline-offset-2"=>Utility::UnderlineOffset(Some(2.)),"underline-offset-4"=>Utility::UnderlineOffset(Some(4.)),"underline-offset-8"=>Utility::UnderlineOffset(Some(8.)),_=>return None})}
 #[cfg(test)]mod tests {
  use super::*;
+ #[cfg(feature="runtime")]
+ #[test]fn whitespace_collapse_and_wrap_are_independent(){
+  for (value,collapse,wrap) in [(WhiteSpace::Normal,true,true),(WhiteSpace::NoWrap,true,false),(WhiteSpace::Pre,false,false),(WhiteSpace::PreWrap,false,true)]{
+   assert_eq!(value.collapses(),collapse);assert_eq!(value.wraps(),wrap);
+  }
+ }
  #[cfg(feature = "runtime")]
  #[test]fn anchor_palette_predicate_matches_links_only(){
   let theme=crate::theme::Theme::default();let classes="[a]:hover:bg-primary/80";let plain=crate::Node::view(vec![],classes.into()).unwrap();let link=crate::navigation::link(vec![],classes.into(),"/docs").unwrap();

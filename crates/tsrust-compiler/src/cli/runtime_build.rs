@@ -49,7 +49,7 @@ impl Prepared {
   let shared=crate::backend_sources::shared(runtime)?;
   let dependency_identity=if shared{crate::backend_sources::IDENTITY}else{bundle::IDENTITY};
   let shared_inputs=if shared{Some(crate::backend_sources::identity(root)?)}else{None};
-  let mut cache_parts:Vec<&[u8]>=vec![b"runtime-dependencies-abi-3-ui-profile",dependency_identity.as_bytes(),backend.as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),if release{b"release"}else{b"debug"},runtime.as_bytes()];
+  let mut cache_parts:Vec<&[u8]>=vec![b"runtime-dependencies-abi-4-import-libraries",dependency_identity.as_bytes(),backend.as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),if release{b"release"}else{b"debug"},runtime.as_bytes()];
   if let Some(inputs)=&shared_inputs{cache_parts.push(inputs.as_bytes());}
   let cache=NativeCache::runtime(&root.join("runtime"),&cache_parts);
   let packed=temporary.join("runtime-artifacts");let restored=temporary.join("dependencies");

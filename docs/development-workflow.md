@@ -51,6 +51,25 @@ reserved for meaningful feature-family milestones.
 
 When backend witnesses can share a native compilation, compile them together in isolated modules with their original assertions and run them in one executable. Keep case identity in generated source so failures remain attributable. Preserve evaluation-order, ownership, failure and output assertions; batching must not reduce coverage.
 
+## Rust editor agreement at milestones
+
+For changes to CLI helpers or shared Rust source, include every compiler/LSP target
+in the milestone check, including integration tests that import those helpers:
+
+```sh
+cargo check --offline -p tsrust-compiler -p tsrust-lsp --all-targets
+```
+
+Do not infer editor cleanliness from a few selected test binaries. Inspect both
+errors and warnings. When retained UI/shared authoring code changes, also check the
+workspace/all-target configuration and run the affected UI contracts. Keep the
+backend-only check separate: workspace feature unification can enable the retained
+UI runtime and conceal authoring-only warnings. These are compilation/diagnostic
+checks, not a reason to restart the full executable regression or benchmark matrix.
+Preserve callbacks, source payload APIs and ownership when correcting warnings;
+align renderer helpers with their actual feature consumers and exercise missing
+runtime behavior through the existing test harnesses.
+
 ## Formatting acceptance
 
 Run `node tools/format-project.mjs` before every source checkpoint, not only after

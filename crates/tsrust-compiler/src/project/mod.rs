@@ -28,6 +28,20 @@ pub trait SourceProvider {
     fn read(&self, id: &SourceId) -> Result<String, String>;
 }
 
+/// An unmodified compiler-development facade uses the same module context as
+/// its bundled std import. Never infer trust from a basename or directory layout:
+/// require this tool's canonical implementation path and exact bundled bytes.
+/// Call only for an entry; imported user files retain normal private-binding checks.
+pub fn bundled_entry(provider:&impl SourceProvider,id:&SourceId)->Option<SourceId> {
+    static UI:std::sync::LazyLock<PathBuf>=std::sync::LazyLock::new(||{
+        let path=Path::new(env!("CARGO_MANIFEST_DIR")).join("src/stdlib/ui/api.tsr");
+        std::fs::canonicalize(&path).unwrap_or(path)
+    });
+    if Path::new(&id.0)!=UI.as_path(){return None;}
+    let logical=SourceId("std:ui".into());
+    (provider.read(id).ok()?.as_str()==bundled_source(&logical)?).then_some(logical)
+}
+
 pub struct FileSourceProvider;
 impl SourceProvider for FileSourceProvider {
     fn resolve(&self, importer: Option<&SourceId>, path: &str) -> Result<SourceId, String> {
@@ -50,7 +64,8 @@ impl SourceProvider for FileSourceProvider {
         let identity = canonical
             .to_str()
             .ok_or("Source path must be valid UTF-8.")?;
-        Ok(SourceId(identity.to_owned()))
+        let id=SourceId(identity.to_owned());
+        Ok(if importer.is_none(){bundled_entry(self,&id).unwrap_or(id)}else{id})
     }
     fn read(&self, id: &SourceId) -> Result<String, String> {
         if let Some(source) = crate::stdlib::source(&id.0) {
