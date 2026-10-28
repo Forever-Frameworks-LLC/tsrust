@@ -26,11 +26,11 @@ A fallback may retain an absent variant, such as `int | null` from an `int | nul
 
 A statically nonnullable input selects its existing type even when the unreachable fallback has another type. Statically null or undefined input selects the fallback type.
 
-A selected callable keeps its parameter, return and invocation contract. Nullable callable storage is also supported under the [callable ownership rules](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/docs/guides/language/nullable-callables.md).
+A selected callable keeps its parameter, return and invocation contract. Nullable callable storage is also supported under the [callable ownership rules](/tsrust/language/nullable-callables/).
 
 ## Combine operators explicitly
 
-Use parentheses when combining `??` with `&&` or `||`. [Nullish assignment `??=`](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/docs/guides/language/nullish-assignment.md) is accepted with its own destination and readonly-result rules. [Optional chaining](/tsrust/language/optional-chaining/) is accepted with lazy continuous-chain and scoped ownership rules. String content and existing integer, Number and collection limits remain unchanged.
+Use parentheses when combining `??` with `&&` or `||`. [Nullish assignment `??=`](/tsrust/language/nullish-assignment/) is accepted with its own destination and readonly-result rules. [Optional chaining](/tsrust/language/optional-chaining/) is accepted with lazy continuous-chain and scoped ownership rules. String content and existing integer, Number and collection limits remain unchanged.
 
 ## Select arrays and records
 

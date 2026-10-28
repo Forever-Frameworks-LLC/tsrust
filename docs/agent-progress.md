@@ -1,6 +1,30 @@
 # Agent continuation state
 
-## Current continuation — nullable callable content correction
+## Current continuation — nullable assignment site drafts ready for review
+
+Previous turn progressed at6a4fb7e8. Added canonical site drafts for nullish-assignment
+and nullable-callables with sidebar entries and related optional/coalescing links.
+Updated incoming links from completed optional guides to local canonical routes.
+Simplified implementation-heavy editor wording and separated dense borrowing prose.
+Reviewed direct_callback_stores.rs and checked_callable_storage.rs: callback transport
+uses the ordinary checked contracts and concrete storage registration; no general
+replacement/escape exemption was introduced.
+
+Site build45pages passes (/tmp/tsrust-nullable-site.log); internal same-site links
+and fragments pass. Compared extracted code blocks byte-for-byte against the already
+executed guide sources: all seven assignment and five callable examples preserved.
+Retained prior native/format/compiler and focused replacement/lifetime/type evidence;
+no repeat tests for unchanged examples. All validation commands finished.
+
+Next mandatory action: inspect both entire pages at390/1440, keyboard/overflow and
+navigation; repair presentation as needed, then remove old guides/migrate incoming
+Markdown links and mark audit rows accepted. These pages remain drafts, not accepted.
+Full-project formatter/diff check before checkpoint. Platform setup, updated Windows/
+Linux editor fixture/acquisition and actual Pages deployment remain pending. No push,
+hosted CI, release, benchmark or full regression run. Goal active; one writer.
+
+
+## Prior continuation — nullable callable content correction
 
 Previous turn progressed atff0f24c4. Audited nullable-callables against current
 nullable_caller_callback_stores witnesses. Qualified its overbroad warning about
