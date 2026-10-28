@@ -109,9 +109,12 @@ A stable `typeof value === "boolean"` guard permits boolean access, including
 copying the payload into a local or returning it. The original JSON storage stays
 unchanged. String guards enable borrowed `StringView` locals and returns as described below.
 Numeric values still require checked scalar extraction;
-there is no implicit rounding of exact JSON integers. `Array.isArray(value)` inspects whether the contained JSON value is an array.
+there is no implicit rounding of exact JSON integers.
+
+`Array.isArray(value)` inspects whether the contained JSON value is an array.
 `value === null` (and reversed/negated comparisons) recognizes contained JSON null
-without confusing it with undefined. Both operations borrow their inputs. The imported `kind` function distinguishes all six JSON categories.
+without confusing it with undefined. Both operations borrow their inputs.
+The imported `kind` function distinguishes all six JSON categories.
 
 ## Reading nested values
 
@@ -155,6 +158,10 @@ function readFlag(text: string): boolean {
     return value;
   }
   return false;
+}
+
+function main() {
+  console.log(readFlag("true"), readFlag("42")); // true false
 }
 ```
 

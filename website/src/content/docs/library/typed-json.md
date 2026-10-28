@@ -65,8 +65,8 @@ function main() {
 
 Direct common string-member lookup on a literal union is not yet implemented;
 `String(status)` explicitly obtains an owned string without changing its text.
-For typed JSONC/JSONL literal results, use ordinary Result matching. Nested generic
-inference through `unwrap(parseJsonc<Status>(...))` remains a separate limitation.
+Typed JSONC/JSONL literal results use the same Result handling as other decoded
+values: match `Ok` and `Err`, or use `unwrap` when failure should propagate.
 
 ## Preserve raw JSON fields
 
@@ -101,11 +101,11 @@ are useful for assembling a `JsonValue`, but ordinary data does not require them
 Object literals currently require a named record annotation:
 
 ```tsrust
- type Item = { name: string; count: int; };
- function main() {
-   const item: Item = { name: 'hello', count: 42 };
-   console.log(JSON.stringify(item));
- }
+type Item = { name: string; count: int; };
+function main() {
+  const item: Item = { name: 'hello', count: 42 };
+  console.log(JSON.stringify(item));
+}
 ```
 
 The result is `{"count":42,"name":"hello"}`. Ordinary object keys are sorted;

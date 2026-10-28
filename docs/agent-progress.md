@@ -1320,3 +1320,41 @@ union spread failure. Do not restart completed full-run groups. Known generated
 AGENTS files remain preserved until original run terminal.
 Site build and links/anchors/assets across23 pages PASS; whole-project formatter
 and format check PASS. Trimmed final Markdown blank line identified by diff check.
+
+
+## Spread repair and JSON documentation continuation
+
+20fcf28e is the accepted HTTP documentation checkpoint. Current source repair:
+array_spread_context preserves known nonliteral array storage when spreading into
+union-valued positions; per-element checking/conversion remains responsible for
+union injection. Existing borrowed whole-array widening restrictions stay intact.
+Added exact-large-int/copy-source reuse and owned-string array-spread witness in
+array_union_widening. Existing data_unions cases cover read/mutate borrowed slots.
+LSP call_spread failure was stale expected spacing (...tail:Entry[] versus current
+...tail: Entry[]); corrected expectation without changing signature behavior.
+Focused compiler36668 running data_unions/array_union_widening/array_literal_spread/
+call_spread; /tmp/tsrust-spread-repair.log. Not accepted yet. Do not launch another
+Cargo consumer until it finishes. Then run affected LSP call_spread and determine
+remaining compiler/editor agreement coverage from original79249, not a full restart.
+Original79249 still live in checker_agreement; process88262 observed active55%CPU,
+13MiB RSS after8min. Repair rustc94534 active100%CPU,139MiB RSS after2min. Neither
+observation indicates a hung/dead process. Windows40731485167 still live at poll.
+JSON docs: all six json.md and four typed-json.md blocks formatted idempotently and
+executed with exact expected output in14769 (terminal PASS). Made readFlag complete
+and fixed encoding-block indentation. Removed stale nested unwrap(parseJsonc<Status>)
+limitation: explicit compiler check and native execution PASS true. Literal-union
+.length still rejects, so that distinct limitation remains documented. Full rendered
+coverage remains pending. Scratch /tmp/tsrust-json-doc-audit. These prose changes
+need site validation and checkpoint after current source acceptance.
+Dev_aliases original failures diagnosed as stale text expectations: log says previous
+application remains running; tests await previous program remains running. Underlying
+process-preservation assertions still need execution after updating wording.
+
+Compiler36668 terminal PASS: array_literal_spread11, array_union_widening3,
+call_spread13, data_unions17. Borrow/mutate union failures repaired; ordinary
+whole-array widening rejection controls still pass. LSP1167 running affected
+call_spread, log /tmp/tsrust-spread-lsp-repair.log; no additional Cargo checks yet.
+Original checker_agreement3 PASS527.89s, now completion_matrix. Preserve evidence;
+this is the original mixed-consumer milestone, not exact-head proof.
+Whole formatter, format-check, site build and23-page link checks PASS for JSON docs.
+Checkpoint JSON prose/evidence separately while source repair awaits editor acceptance.
