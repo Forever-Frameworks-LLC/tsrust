@@ -36,10 +36,14 @@ Shape errors include a UTF-8 byte offset.
 
 ### Preserve numeric precision
 
-`int` rejects fractional and out-of-range values. `number` rejects signed or
-unsigned 64-bit integer payloads that would lose precision, and preserves floating
-negative zero. Integer tokens outside signed or unsigned 64-bit JSON storage reject with
-`integer-range`. Decimal and exponent tokens use finite floating-point parsing. Use `int` for exact signed 64-bit arithmetic. The errors are
+| Target or input | Behavior |
+| --- | --- |
+| `int` | Exact signed 64-bit values; rejects fractional or out-of-range values. |
+| `number` | Rejects signed or unsigned 64-bit integer payloads that would lose precision; preserves floating negative zero. |
+| Integer token outside signed or unsigned 64-bit storage | Rejects with `integer-range`. |
+| Decimal or exponent token | Uses finite floating-point parsing. |
+
+Use `int` for exact signed 64-bit arithmetic. Numeric conversion errors are
 `integer-fractional`, `integer-range` and `number-precision`.
 
 Ordinary decoded values own their storage independently of the input. Decoding

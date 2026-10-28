@@ -1558,3 +1558,25 @@ source-build link. No viewport override applied. Do not mark page fully audited.
 - Landing-page content/presentation row also complete: existing native Hello
   evidence, full desktop/mobile inspection, keyboard scrolling and navigation to
   quickstart. Browser viewport override reset.
+
+### Typed JSON / JSON Lines presentation and HTTP hover repair
+
+- Completed full 390px/1440px presentation review of typed-json and json-files:
+  all sections, tables, highlighted examples and footer; no document overflow,
+  overflowing code is focusable, and keyboard skip/next navigation works. Numeric
+  conversion and writer cleanup now use reference tables. Existing native example
+  evidence retained; exact JSONC page snippet additionally prints hello (6691 PASS).
+  Site build, all 23-page links/anchors/assets, whole-project formatter, format
+  idempotence check and diff whitespace check pass. Viewport override reset.
+- Native backend catalog continuation 76019 is terminal FAILED after 658.50s:
+  std:http.ServerOptions lacked a hover code fence. Inventory found the same gap
+  in FormField and MultipartPart, and no other backend fence/array omissions.
+  Added concise complete examples, observable fields/limits and ownership notes
+  for all three. Existing shared HTTP witness retained; new exact hover examples
+  added to native catalog assertions. All three compile and are formatted.
+- Native continuation now exec 46373, resume std:http, loopback authorized,
+  log /tmp/tsrust-backend-catalog-native-http.log. It is compiling; do not restart
+  or overlap another Cargo consumer. Earlier standalone families remain accepted;
+  accumulated primitive batch still runs after remaining standalone examples.
+- Pending editor/catalog edits remain uncommitted until coherent acceptance.
+  Retained UI examples still have separate known gaps; no full-suite green claim.

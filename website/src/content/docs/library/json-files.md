@@ -120,12 +120,16 @@ function main() {
 
 ### Flush and close the writer
 
-`flushJsonl(writer)` reports buffered output failures while retaining ownership.
-`closeJsonlWriter(writer)` consumes the writer, flushes and closes it. All calls
-return Result with JsonlError. A write/flush failure is terminal for later
-write/flush calls. Close still attempts cleanup: a new close failure takes
-precedence, otherwise the prior failure is returned again. Drop also closes but
-cannot report errors. None of these operations requests durable storage sync.
+| Operation | Behavior |
+| --- | --- |
+| `flushJsonl(writer)` | Reports buffered output failures and retains the writer. |
+| `closeJsonlWriter(writer)` | Consumes the writer, flushes and closes it. |
+| Scope exit | Releases the writer but cannot report errors. |
+
+Explicit flush and close return `Result` with `JsonlError`. A write/flush failure
+is terminal for later write/flush calls. Close still attempts cleanup: a new close
+failure takes precedence, otherwise the prior failure is returned again. None of
+these operations requests durable storage sync.
 
 Writer errors use offset zero, not an output byte location. The line field is
 the current record for write and the next-record counter for flush/close; a flush
