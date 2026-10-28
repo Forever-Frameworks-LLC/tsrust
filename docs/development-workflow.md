@@ -51,6 +51,21 @@ reserved for meaningful feature-family milestones.
 
 When backend witnesses can share a native compilation, compile them together in isolated modules with their original assertions and run them in one executable. Keep case identity in generated source so failures remain attributable. Preserve evaluation-order, ownership, failure and output assertions; batching must not reduce coverage.
 
+## Offline package-management test preparation
+
+The binding/package-management tests use exact crate versions beyond the runtime
+lock (including an explicit old-to-new update witness). Before running those
+groups on a clean machine, prepare their separate locked source closure:
+
+```sh
+cargo fetch --locked --manifest-path crates/tsrust-compiler/tests/dependencies/Cargo.toml
+```
+
+Tests continue to execute offline. Do not replace the version-update witness with
+whatever version happens to be cached. Keep `TSRUST_SOURCE_PACK_DIR` fixed across
+portable setup and tests that deliberately replace `CARGO_HOME`; CI uses
+`target/portable-source-packs` under the checkout.
+
 ## Rust editor agreement at milestones
 
 For changes to CLI helpers or shared Rust source, include every compiler/LSP target
