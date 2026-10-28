@@ -98,7 +98,7 @@ feature-coverage evidence to reduce the inventory.
 | `language/scalar-unary-plus.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/scoped-callable-transport.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/sets.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/statement-bodies.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/statement-bodies.md` | Migrated to website language/statement-bodies; removed duplicate and updated milestone link | Source, exact native example and full 390px/1440px presentation accepted |
 | `language/string-concatenation.md` | Merged into language/strings; old duplicate removed and Markdown links updated. | Source, examples and 390px/1440px rendered review complete |
 | `language/string-indexing.md` | Merged into language/strings; old duplicate removed and Markdown links updated. | Source, examples and 390px/1440px rendered review complete |
 | `language/string-iteration.md` | Merged into language/strings; old duplicate removed and Markdown links updated. | Source, examples and 390px/1440px rendered review complete |

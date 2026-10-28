@@ -8,7 +8,7 @@ The body of `if`, `else`, `while`, `do`, classic `for` and `for...of` can be one
 
 A `const` or `let` declaration and an empty statement are rejected as bodies with `syntax` errors that say what to write. A body without braces counts toward the nesting limit of 128. Loop-header names stay scoped to the loop. A destructuring assignment can be a body.
 
-See [the syntax guide](../guides/language/statement-bodies.md).
+See [the syntax guide](../../website/src/content/docs/language/statement-bodies.md).
 
 ## Implementation
 
