@@ -106,12 +106,12 @@ feature-coverage evidence to reduce the inventory.
 | `language/switch.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/type-aliases.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/type-assertions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `rust-packages.md` | Moved to tools/rust-packages; current shared-cache behavior corrected in the regex example, history retained in package-cli-acceptance. | Source and responsive presentation reviewed; package command sequence passes locally; exact portable-export example pending |
+| `rust-packages.md` | Moved to tools/rust-packages; current shared-cache behavior corrected in the regex example, history retained in package-cli-acceptance. | Source and responsive presentation reviewed; package commands and relocated offline portable example pass locally |
 | `schema-diagnostics.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `sqlite.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `tooling/deployment.md` | Current guidance moved to backend/deployment; original vision and core-33 anchor retained in place. | Source and 390px/1440px presentation reviewed; release-command execution remains pending |
-| `tooling/editor-commands.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `tooling/editor-foundation.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `tooling/editor-commands.md` | Retained implementation/acceptance history with current-guide pointers; run settings moved into start/editor. | Source reconciliation complete; added editor paragraph rendering pending |
+| `tooling/editor-foundation.md` | Original plan and handoffs retained with explicit historical scope; current capability/installation/monitoring claims no longer implied. | Historical status and current-guide links reconciled |
 | `tooling/editor-quick-fixes.md` | User instructions moved to start/editor; implementation and acceptance retained with historical limits labeled. | Source reconciliation and 390px/1440px rendered review complete |
 | `tooling/interop-and-targets.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `tooling/missing-linker-diagnostic.md` | User recovery moved into tools/rust-setup; original acceptance evidence retained and labeled historical. Active editor link updated. | Source reconciliation and 390px/1440px rendered review complete |

@@ -2159,3 +2159,26 @@ This is not portable-export execution; that exact page example remains pending.
 The 27-page build and links pass. Existing CI 40761578381 confirmed live in compiler
 and CLI acceptance; no redundant run. Next: finish portable example acceptance,
 then remaining finite language-guide inventory and outstanding platform smoke.
+
+## Portable package example accepted
+
+Current regex binding was prepared with bindings resolve --portable --offline,
+without changing its bytes. emit main.tsr --package succeeded with PATH and
+RUSTUP_HOME unavailable; export includes regex license. Renamed the export and
+ran pinned Cargo offline/locked with an empty CARGO_HOME and the single shared
+repository target. Stdout exactly matches Found 314 at byte 6. The first scratch
+harness assertion combined generated-code warnings with stdout; separate captures
+and the focused rerun pass (session 15205 terminal exit 0). Temporary exports
+automatically removed. Script/log /tmp/tsrust-package-portable-doc.* are disposable.
+Package page now has complete content/presentation/example evidence; platform
+release/package acquisition checks remain separately pending.
+
+While that ran, labeled editor-commands.md/editor-foundation.md as retained
+implementation history so obsolete single-file limits and historical automation
+status are not current claims. Kept all historical text, and linked current guides.
+Moved still-useful run-task settings/defaults, working directory and direct process
+argument behavior into start/editor.md, checked against extension.ts/package.json.
+New run-task paragraph rendering remains pending. 27-page build and link checks
+pass; whole-project formatter changed zero files. CI 40761578381 still confirmed
+live this turn; no push/dispatch. Next: render added editor paragraph, then continue
+the remaining finite language-guide inventory and outstanding platform evidence.
