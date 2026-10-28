@@ -6,8 +6,8 @@ checks. Preserve their completed evidence and resume them after this pipeline wo
 ## Required flow
 
 - Feature PRs target `stag`. Run unit/integration/editor checks on Linux, not a
-  release-build matrix. Passing tests and one approval permit merging. For a PR
-  authored by Cotter45, the owner may merge without another person's approval;
+  release-build matrix. Passing tests and one approval permit merging. Only Cotter45 may bypass the review requirement, including when reviewing and
+  merging another author's PR. The owner accepted this native actor-based bypass;
   tests remain required.
 - A `stag` to `main` PR builds release artifacts on Linux, Windows and macOS.
   Preserve both currently configured macOS architectures unless explicitly changed.
@@ -35,9 +35,37 @@ bypass. There is no stag branch. Release tags currently restrict creation to
 maintainers/admins. Workflows and rules must be migrated together without leaving
 main open or enabling publication from an unvalidated feature branch.
 
-Still required: staging CI triggers, promotion artifact/gate/merge/publication
-workflow, exact owner-authored review exception, compatible tag permissions,
-branch/rules migration, retargeting the existing backend PR, local policy tests,
-and documentation. Changes are not live and no release has been authorized for
-immediate publication merely to test this setup. Future successful promotions
-are explicitly authorized to publish automatically by the owner's requested flow.
+Local implementation now separates staging tests, read-only promotion builds and
+trusted default-branch publication. The publisher checks the run, PR head/base,
+merge parents, archive manifests and final merged tree before publishing. It can
+resume after a merge or partial draft upload without replacing a published release.
+All 14 focused local policy and packaging tests passed; they cover stale sources, failed/manual runs,
+artifact substitution, tag collisions and merge refusal.
+
+Still required: deploy the workflows to main, create stag, migrate branch and tag
+rules, and retarget the backend PR. The default-branch publisher must exist before
+the first promotion run; merely adding it in the promotion PR cannot activate it.
+Keep the existing main protections until that bootstrap has passed CI. Main must
+then require Release gate with strict up-to-date checks and allow merge commits;
+stag must require CI plus the separate owner-bypass review rule. Both branches
+remain protected against deletion and force pushes.
+
+GitHub rejected a disabled creation-rule proposal with Integration 15368:
+`Actor GitHub Actions integration must be part of the ruleset source or owner
+organization` (HTTP 422). No rule was created or changed. Pending owner choice:
+remove the creation restriction while preserving immutable existing tags/releases,
+or configure a separate installed GitHub App for publication. Do not store the
+owner's personal token in Actions. The existing tag restriction stays active until
+that decision and the workflow bootstrap are complete.
+
+The owner has been asked whether to merge already-green PR #2 as the one-time
+bootstrap. This is separate from their authorized future stag-to-main automatic
+promotions. After it lands, the pipeline-only PR can run required CI by manual
+dispatch against its exact head (the new CI PR trigger targets stag). Its Release
+preflight rejects the non-stag source before platform builds. Keep current main
+CI protection until that bootstrap PR passes and merges; then migrate the rules.
+No hosted validation was started for the local pipeline implementation.
+
+Changes are not live and no release has been authorized for immediate publication
+merely to test this setup. Future successful promotions are explicitly authorized
+to publish automatically by the owner's requested flow.

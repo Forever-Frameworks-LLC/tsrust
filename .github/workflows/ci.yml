@@ -1,8 +1,7 @@
 name: CI
 on:
-  push:
-    branches: [main]
   pull_request:
+    branches: [stag]
   workflow_dispatch:
     inputs:
       async_acceptance:
@@ -41,7 +40,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-15]
+        os: [ubuntu-24.04]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
     steps:
@@ -57,7 +56,7 @@ jobs:
       - name: Check project formatting
         run: target/debug/tsrust format . --check --color never
       - name: Check release tooling and public documentation
-        run: node --test tools/tests/distribution.test.mjs
+        run: node --test tools/tests/distribution.test.mjs tools/tests/release-policy.test.cjs
       - name: Benchmark export privacy and measurement preservation
         if: runner.os == 'Linux'
         run: python3 -B -m unittest discover -s benchmarks/storage -p 'test_*.py'
@@ -90,7 +89,8 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24.11.1
-          package-manager-cache: false
+          cache: npm
+          cache-dependency-path: editors/vscode/package-lock.json
       - run: npm --prefix editors/vscode ci
       - run: npm --prefix editors/vscode test
       - run: npm --prefix editors/vscode run package
