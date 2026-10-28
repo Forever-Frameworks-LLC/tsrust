@@ -1,6 +1,33 @@
 # Agent continuation state
 
-## Current continuation — spread guides accepted and migrated
+## Current continuation — Array.from guide accepted and migrated
+
+Spread guides checkpointed797a289e. Completed Array.from audit against rewriting
+in analysis/mod.rs, sets/maps receiver hints, transform.rs and ordered map native
+operations. Original guide omitted OrderedMap and overgeneralized readonly item
+access: reusable stored callable elements can be invoked by a concrete mapper
+through Mutable<Function<...>>. Added explicit supported source/call shape,
+copy independence, order, UTF8/scalar boundaries, default/rest tuples, failure
+recovery and callable section. Removed duplicate and migrated coverage links.
+
+Seven exact complete examples format/check/native pass:1 9; a2|b4 2; a1|z3 1 9;
+A|é|🙂 1,2,4 7 then0 2;11 1;1 then1;7,9 7. Direct Deque/Heap/OrderedSet inputs
+reject with source type diagnostic. Compiler array_from3/collections2 pass
+(/tmp/tsrust-array-from-doc-contracts.log), ordered map Array.from2 pass
+(/tmp/tsrust-array-from-ordered-doc.log), LSP Array.from2 pass
+(/tmp/tsrust-array-from-doc-editor.log). Full390px/1440px rendered review passes;
+zero mobile document overflow, highlighted/focusable code, keyboard scroll40px,
+skip/previous/next/section navigation.50-page build and internal links/anchors
+pass (/tmp/tsrust-array-from-doc-site.log). Whole-project formatter before checkpoint.
+All commands completed; no compiler changes or hosted runs.
+
+Next: continue finite migration with callable-arrays and array/collection method
+guides, source/example/rendered acceptance for every page. Current compiler
+all-targets milestone evidence retained. Platform setup, Windows/Linux editor
+fixture/acquisition and actual Pages deployment remain pending. Goal active;
+no broad suite, timing, push or release this section.
+
+## Prior continuation — spread guides accepted and migrated
 
 Previous checkpoint cc619a19. Completed spread audit against spread_calls.rs,
 array_spread_work.rs, spread_emit.rs and ordered_key_runtime.rs. Added missing
