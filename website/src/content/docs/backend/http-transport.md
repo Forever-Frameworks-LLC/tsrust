@@ -3,36 +3,47 @@ title: HTTP clients, streams and HTTPS
 description: Configure transport limits, manage server lifetime and use verified TLS.
 ---
 
-## Owned-request App
+Use `Client` to call HTTP services and `Router` to expose routes. This page covers
+transport behavior shared by Router and the older owned-request `App` API.
+Start with [HTTP routing](../http/) for request handlers.
 
-`std:http` uses Axum for routing and Tokio for asynchronous I/O. Create an `App`,
-register named async handlers, then await `app.listen('127.0.0.1:3000')`.
-Listening consumes the app; registration cannot change while it serves.
-For a standalone service, await `server.wait()` to keep its scope alive; see
-[server](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/examples/http/server.tsr). Cancelling that waiting task requests
-shutdown and its async owner drains cleanup. Process termination is not a promise
-of graceful cleanup; use explicit shutdown or task cancellation when coordinating
-a controlled stop.
+## HTTP clients
 
-See [loopback](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/examples/http/loopback.tsr) for middleware, route parameters,
-JSON, body streaming and shutdown; see [validated bodies](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/examples/http/validated-body.tsr)
-for schema validation and explicit 400 responses.
+A `Client` reuses connections. Await `client.send(request(method, url, text))`;
+HTTP error statuses remain responses, while I/O failures throw `HttpError`.
 
-Handlers take an owned `Request` and return `Task<Response>`. Middleware takes
-`Request` and `Next`. It can return early or await `next.run(request)` once, then
-change response headers. Middleware runs in registration order and unwinds in
-reverse order, including missing routes and wrong methods. All `use` calls apply
-to every route regardless of registration order. Handlers may own read-only retained configuration and supported concurrent
-pools/clients/senders. Each request retains that owner across await. Mutable or
-consuming captures, caller loans, program state, local caches and request resources
-are rejected. See [retained state](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/examples/http-state/README.md).
+The client requires an absolute HTTP or HTTPS URL without embedded credentials.
+Automatic redirects, environment proxies, cookie storage and decompression are
+disabled. You can still set a `Cookie` request header explicitly.
 
-`get`, `post`, `put`, `patch`, `delete`, `head`, `options` and `route` register
-literal paths with optional `:name` segments. Literal paths outrank parameters.
-`input.param('name')` returns `string | undefined`. Duplicate routes and conflicting
-parameter names throw `HttpError`. GET reserves HEAD. Catch-all paths and route
-groups are not implemented. Missing routes return 404; wrong methods return 405.
-Unhandled application errors become a generic 500 without exposing their payload.
+The total
+request deadline is 30 seconds; use the existing task timeout for a shorter one.
+A timeout while sending throws code `timeout`; other transport failures use `request`.
+Invalid URLs throw code `url` before a request is sent.
+Reading the response body can also fail after `send` succeeds.
+
+The task retains a client borrow until settled. The response owns its body.
+
+Save this complete loopback example as `main.tsr`, then run `tsrust run main.tsr`.
+It starts a local server on a free port, prints `200` and `Hello`, then shuts down:
+
+```tsrust
+import { Router, Client, request } from 'std:http';
+
+async function main(): Task<void> {
+  const app = new Router();
+  app.get('/', c => c.text('Hello'));
+  const server = await app.listen('127.0.0.1:0');
+  try {
+    const client = new Client();
+    const response = await client.send(request('GET', 'http://' + server.address() + '/', ''));
+    console.log(response.status());
+    console.log(await response.text());
+  } finally {
+    await server.shutdown();
+  }
+}
+```
 
 ## Responses and body streams
 
@@ -56,15 +67,6 @@ leaves `c` usable for `return c.text(value)`. The stream inherits the configured
 request byte limit. See the executable
 [context streaming test](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/examples/http-context/body-stream.test.tsr).
 
-## HTTP clients
-
-A `Client` reuses connections. Await `client.send(request(method, url, text))`;
-HTTP error statuses remain responses, while I/O failures throw `HttpError`.
-The client requires an absolute HTTP or HTTPS URL without embedded credentials.
-Redirects, environment proxies, cookies and decompression are disabled. The total
-request deadline is 30 seconds; use the existing task timeout for a shorter one.
-The task retains a client borrow until settled. The response owns its body.
-
 ## Listener lifecycle
 
 Listening requires an explicit IP and port; port zero selects a free port. The
@@ -79,7 +81,8 @@ Cancellation does not promise to execute source `finally` blocks.
 ## Listener limits
 
 Both `Router.configure(options)` and `App.configure(options)` set limits before
-`listen` consumes the application. All seven integer fields are required:
+`listen` consumes the application. If you do not call `configure`, the defaults below apply. When you do call it,
+all seven integer fields are required:
 
 | Field | Default | Accepted range |
 | --- | --- | --- |
@@ -92,6 +95,8 @@ Both `Router.configure(options)` and `App.configure(options)` set limits before
 | `requestsPerSecond` | 0 (disabled) | 0..1000000 |
 
 Invalid fields throw `HttpError` code `options` without changing configuration.
+### What happens when a limit is reached
+
 Connections beyond capacity remain in the OS backlog. Concurrent handler overload
 returns 503. The global fixed one-second arrival window returns 429 with
 `Retry-After: 1` when exhausted. It is not a per-user or distributed limiter;
@@ -123,9 +128,13 @@ before the socket binds. TLS negotiates HTTP/1.1 or HTTP/2.
 
 `new Client()` verifies public HTTPS certificates using default trust roots.
 `new Client({ ca: pem })` trusts only the supplied nonempty PEM CA bundle for that
-client. Hostname, certificate chain and validity checks remain mandatory. A failed
-handshake makes `send` throw `HttpError` code `request`; configuration errors do not
+client. Hostname, certificate chain and validity checks remain mandatory. A certificate-verification
+failure makes `send` throw `HttpError` code `request`; configuration errors do not
 include certificate or private-key contents in messages.
+
+The following is a fragment inside an async function. `app` is a configured
+Router or App; `certificatePem`, `privateKeyPem` and `privateCaPem` are strings
+loaded from your certificate files, and `Client` is imported from `std:http`.
 
 ```tsrust
 const server = await app.listen('127.0.0.1:8443', {
@@ -144,3 +153,40 @@ Run `tsrust run examples/http/https.tsr` from the repository root for a complete
 local example. Its checked-in credentials are public test fixtures, never deployment
 credentials. Mutual TLS, certificate reload, ACME, and disabling certificate verification
 are not supported.
+
+## Use the owned-request App API
+
+`std:http` uses Axum for routing and Tokio for asynchronous I/O. Create an `App`,
+register named async handlers, then await `app.listen('127.0.0.1:3000')`.
+Listening consumes the app; registration cannot change while it serves.
+For a standalone service, await `server.wait()` to keep its scope alive; see
+[server](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/examples/http/server.tsr). Cancelling that waiting task requests
+shutdown and its async owner drains cleanup. Process termination is not a promise
+of graceful cleanup; use explicit shutdown or task cancellation when coordinating
+a controlled stop.
+
+See [loopback](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/examples/http/loopback.tsr) for middleware, route parameters,
+JSON, body streaming and shutdown; see [validated bodies](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/examples/http/validated-body.tsr)
+for schema validation and explicit 400 responses.
+
+### Handlers and middleware
+
+Handlers take an owned `Request` and return `Task<Response>`. Middleware takes
+`Request` and `Next`. It can return early or await `next.run(request)` once, then
+change response headers. Middleware runs in registration order and unwinds in
+reverse order, including missing routes and wrong methods. All `use` calls apply
+to every route regardless of registration order.
+
+Handlers may own read-only retained configuration and supported concurrent
+pools/clients/senders. Each request retains that owner across await. Mutable or
+consuming captures, caller loans, program state, local caches and request resources
+are rejected. See [retained state](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/examples/http-state/README.md).
+
+### Route matching
+
+`get`, `post`, `put`, `patch`, `delete`, `head`, `options` and `route` register
+literal paths with optional `:name` segments. Literal paths outrank parameters.
+`input.param('name')` returns `string | undefined`. Duplicate routes and conflicting
+parameter names throw `HttpError`. GET reserves HEAD. Catch-all paths and route
+groups are not implemented. Missing routes return 404; wrong methods return 405.
+Unhandled application errors become a generic 500 without exposing their payload.

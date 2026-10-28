@@ -1293,3 +1293,30 @@ directory fsync and deep executable spawn; both repaired and local witnesses pas
 Use existing ci.yml toolchain_acceptance only on the new checkpoint, no release,
 no simultaneous push-triggered PR run. Windows installer8 and all-target diagnostics
 passed the prior run, but actual repaired Windows paths still require execution.
+
+Windows repaired acceptance dispatched once at9b658857: run40731485167,
+https://github.com/Forever-Frameworks-LLC/tsrust/actions/runs/40731485167 . Confirmed
+in_progress at exact head9b6588570a283b14e8d61b5e4892ca33afbe7136. Track this run;
+40724567590 is terminal failure and must not be treated as live. No release or
+PR update performed. All local repair sessions in this handoff are terminal;
+original full regression79249 remains the separate ongoing milestone run.
+
+
+## HTTP transport and static-guide audit continuation
+
+Static guide exact server witness75629 terminal PASS: index, query-preserving307,
+HTML fallback and Accept exclusions, missing assets, prefix boundary, traversal400,
+range206 and HEAD. Scratch /tmp/tsrust-static-doc-audit; owned server stopped.
+HTTP transport runtime client/limits/dispatch/route/TLS source reviewed. Moved old
+App API after shared tasks; split dense client paragraph, clarified cookie storage
+versus explicit headers, transport timeout/request versus invalid-URL errors,
+configure defaults versus required complete options, and TLS fragment prerequisites.
+Added complete local client/server example;59823 terminal PASS exact200/Hello,
+formatter idempotence verified. Narrow opening screenshot inspected; full-page
+responsive/keyboard review still pending. No page row prematurely marked complete.
+Windows40731485167 remains in_progress; no new remote run. Original79249 reached
+LSP tests; call_spread has one failure requiring diagnosis alongside compiler data
+union spread failure. Do not restart completed full-run groups. Known generated
+AGENTS files remain preserved until original run terminal.
+Site build and links/anchors/assets across23 pages PASS; whole-project formatter
+and format check PASS. Trimmed final Markdown blank line identified by diff check.
