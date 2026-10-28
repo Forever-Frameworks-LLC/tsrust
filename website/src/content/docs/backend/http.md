@@ -35,27 +35,63 @@ route groups and automatic typed route parameters are not supported.
 
 ## Read request bodies
 
-`c.req` exposes request headers, parameters, method and URL. `await c.req.text()`,
-`form()` and `multipart()` consume the body once while preserving metadata;
-repeated body reads throw. `c.req.body()` transfers the unread stream without
-performing I/O and preserves the context for metadata and response helpers.
-The stream owns its body; acquiring it counts as the single read, even if the
-stream is dropped or later fails. A subsequent `body()`, `text()`, `form()` or
-`multipart()` throws `HttpError` code `body`.
-`await c.req.json()` parses checked, owned `JsonValue` data and also consumes once,
-including on failure. Use `schema.parse(await c.req.json())` for a typed DTO;
-`json()` accepts no arguments or type arguments and does not make unchecked casts.
-It parses regardless of Content-Type. Empty, malformed or trailing JSON throws
-`JsonError` with a code, message and byte offset. Body and UTF-8 failures retain
-their `HttpError` type. In addition to the request byte limit, JSON enforces its
-16 MiB input, depth 64, and 1000000 entry/node limits. The
-[JSON request test](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/examples/http-context/json.test.tsr) demonstrates schema
-validation and a response after reading. `c.json(value)` remains the response helper.
-`c.text`, `html` and `json` create responses to return; `c.header` changes response
-headers before or after downstream work. `c.res` is read-only: after `await next()`
-it exposes the current response status and headers. Before a response returns,
-its status is 404. Unhandled handler errors become a generic 500 before middleware
-unwinds. There is no custom onError callback or response-body replacement API yet.
+Request metadata stays available after reading a context request body. Choose one
+body reader; calling another reader afterward throws `HttpError` code `body`,
+even if the first read failed or its stream was dropped.
+
+| Operation | Use it for |
+| --- | --- |
+| `await c.req.text()` | Read the body as UTF-8 text. |
+| `await c.req.json()` | Parse checked, owned `JsonValue` data. |
+| `await c.req.form()` | Read URL-encoded form fields. |
+| `await c.req.multipart()` | Read multipart fields and file parts. |
+| `c.req.body()` | Transfer the unread stream without performing I/O. |
+
+### Validate a JSON body
+
+`json()` parses JSON syntax; a schema checks the application's expected shape.
+The following route accepts `{"name":"Ada"}` and responds with `Ada` and status 202:
+
+```tsrust
+app.post('/echo', async (c) => {
+  const value = await c.req.json();
+  const schema = s.object({ name: s.string() });
+  const decoded = schema.parse(value);
+  return c.text(decoded.name, 202);
+});
+```
+
+Add `import { s } from 'std:schema';` alongside the Router import in the server
+example above. The [complete request test](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/examples/http-context/json.test.tsr)
+also demonstrates malformed data, schema rejection and repeated-read failures.
+
+`c.req.json()` accepts no arguments or type arguments and parses regardless of
+Content-Type. It does not cast unchecked input to a DTO.
+
+| Failure | Error |
+| --- | --- |
+| Empty, malformed or trailing JSON | `JsonError` with code, message and UTF-8 byte offset |
+| Body transport or invalid UTF-8 | `HttpError` |
+| A second body read | `HttpError` code `body` |
+| Valid JSON with the wrong schema shape | Schema validation error |
+
+The request byte limit applies first. JSON additionally enforces a 16 MiB input
+limit, depth 64, 1,000,000 entries per collection and 1,000,000 total values.
+See [listener limits](../http-transport/#listener-limits) to configure the request
+budget. Handle errors in your route when clients need a specific error response;
+unhandled errors become a generic 500.
+
+## Return a response
+
+Return `c.text(value)`, `c.html(value)` or `c.json(value)` from a handler.
+`c.json(value)` serializes a response; it is separate from `c.req.json()`, which
+reads request data. Use `c.header` to change response headers before or after
+`await next()`.
+
+After `await next()`, read-only `c.res` exposes the response status and headers.
+Before a response returns its status is 404. Unhandled handler errors become a
+500 before middleware unwinds. Custom `onError` callbacks and replacing the
+response body through `c.res` are not supported.
 
 ## Application and request state
 
@@ -72,8 +108,8 @@ caller loans, local resources and detached context work are rejected.
 `getCookie(c, name)` returns the first valid matching cookie, percent-decoded with
 literal plus signs. Malformed escapes remain literal. `setCookie(c, name, value,
 options?)` appends a separate Set-Cookie header, with Path=/ by default and encoded
-UTF-8 values. Options include domain, maxAge (0..34560000 seconds), secure, httpOnly,
-sameSite and partitioned. `deleteCookie` writes an empty value with Max-Age=0;
+UTF-8 values. Options include `domain`, `maxAge` (0..34560000 seconds), `secure`, `httpOnly`,
+`sameSite` and `partitioned`. `deleteCookie` writes an empty value with Max-Age=0;
 match the original path/domain. Invalid attributes throw. Secure/Host cookie
 prefix constraints and Partitioned's Secure requirement are checked. Expires,
 Priority and signed-cookie helpers are unsupported. Authentication, session expiry
