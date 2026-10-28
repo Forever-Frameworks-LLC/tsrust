@@ -1,0 +1,5 @@
+{
+  "schemaVersion": 1,
+  "name": "api-contract",
+  "build": { "entry": "src/main.tsr", "output": "target/api-contract" }
+}

@@ -6,19 +6,26 @@ license = "MIT"
 repository = "https://github.com/Forever-Frameworks-LLC/tsrust"
 publish = false
 
+[[example]]
+name = "static"
+required-features = ["runtime"]
+
 [features]
-ui-web = ["dep:wasm-bindgen", "dep:js-sys", "dep:web-sys", "dep:wasm-bindgen-futures"]
-default = []
+# Compiler/LSP consumers disable defaults and retain only style/theme authoring.
+# Default and explicit renderer builds preserve the frozen runtime.
+ui-web = ["runtime", "dep:wasm-bindgen", "dep:js-sys", "dep:web-sys", "dep:wasm-bindgen-futures"]
+default = ["runtime"]
+runtime = ["dep:url", "dep:kurbo", "dep:svgtypes"]
 acceptance = ["native"]
-native = ["dep:winit", "dep:vello", "dep:taffy", "dep:parley", "dep:pollster", "dep:accesskit", "dep:accesskit_winit", "dep:arboard"]
+native = ["runtime", "dep:winit", "dep:vello", "dep:taffy", "dep:parley", "dep:pollster", "dep:accesskit", "dep:accesskit_winit", "dep:arboard"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-url = "=2.5.8"
+url = { version = "=2.5.8", optional = true }
 color = "=0.3.3"
-kurbo = "=0.13.1"
-svgtypes = "=0.16.1"
+kurbo = { version = "=0.13.1", optional = true }
+svgtypes = { version = "=0.16.1", optional = true }
 winit = { version = "=0.30.13", optional = true }
 vello = { version = "=0.11.0", optional = true }
 taffy = { version = "=0.15.0", optional = true }

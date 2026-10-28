@@ -100,17 +100,19 @@ impl Cache {
     let preferred=configured.values().flatten().filter(|id|files.contains(*id)).cloned().collect::<BTreeSet<_>>();
     let ordered=preferred.iter().cloned().chain(files.iter().filter(|id|!preferred.contains(*id)).cloned());
     let mut covered=BTreeSet::new();
+    let mut used=BTreeSet::new();
     let mut errors=Vec::new();
     for file in ordered {
         if interrupted(){return Ok(None);}
         if covered.contains(&file) && !tsrust_compiler::project::is_test_entry(&file.0) {continue;}
+        used.insert(file.clone());
         if !self.entries.get(&file).is_some_and(|entry|job.input.can_reuse(&entry.input)) {
             let input=job.input.fresh();
             let (errors,modules)=match input.check_with_diagnostics(&file) {
                 Ok(analysis)=>(vec![],analysis.graph.modules.keys().cloned().collect()),
                 Err(errors)=>(errors,BTreeSet::new()),
             };
-            self.entries.insert(file.clone(),Entry{input,errors,modules});
+            self.entries.insert(file.clone(),Entry{input:input.retained(),errors,modules});
             self.checked+=1;
         }
         let entry=&self.entries[&file];
@@ -126,9 +128,44 @@ impl Cache {
         diagnostics.sort_by_key(|error|(error.range.start.line,error.range.start.character,error.range.end.line,error.range.end.character));
         diagnostics.dedup();
     }
+    // A configured graph can supersede formerly independent entries after a
+    // repair. Interrupted scans keep completed work until a full scan succeeds.
+    self.entries.retain(|id,_|used.contains(id));
     Ok(Some(buckets))
 }
 
 }
 
 pub fn check(job:&Job)->Result<Buckets,String> {Cache::default().check(job)}
+
+#[cfg(test)]
+mod retention_tests {
+    use super::*;
+    #[test]
+    fn repaired_configured_graph_releases_superseded_independent_entries() {
+        let root = std::env::temp_dir().join(format!("tsrust-scan-retention-{}-{}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+        std::fs::create_dir(&root).unwrap();
+        struct Scratch(PathBuf);
+        impl Drop for Scratch {fn drop(&mut self){std::fs::remove_dir_all(&self.0).unwrap();}}
+        let scratch = Scratch(root.canonicalize().unwrap());
+        let write = |name: &str, source: &str| {
+            let formatted = tsrust_compiler::format(source).unwrap();
+            assert_eq!(tsrust_compiler::format(&formatted).unwrap(),formatted);
+            std::fs::write(scratch.0.join(name),formatted).unwrap();
+        };
+        std::fs::write(scratch.0.join("tsrust.config.json"),r#"{"schemaVersion":1,"name":"retention","build":{"entry":"entry.tsr","output":"app"}}"#).unwrap();
+        write("entry.tsr","import {value} from './library.tsr';function main(){console.log(value());}");
+        write("library.tsr","export function value():int{return 'bad';}");
+        let workspace = crate::workspace::Workspace::default();
+        let mut cache = Cache::default();
+        let job = || Job {revision:1,roots:vec![scratch.0.clone()],input:workspace.snapshot()};
+        assert!(cache.check(&job()).unwrap().values().any(|errors|!errors.is_empty()));
+        assert_eq!(cache.entries.len(),2);
+        write("library.tsr","export function value():int{return 7;}");
+        assert!(cache.check(&job()).unwrap().values().all(Vec::is_empty));
+        assert_eq!(cache.entries.len(),1,"successful graph replaces covered independent results");
+        assert_eq!(cache.checked_entries(),1);
+        assert!(cache.check(&job()).unwrap().values().all(Vec::is_empty));
+        assert_eq!(cache.checked_entries(),0);
+    }
+}

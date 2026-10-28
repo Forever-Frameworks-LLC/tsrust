@@ -57,10 +57,10 @@ fn generic_inherited_members_use_substituted_compiler_types() {
 #[test]
 fn imported_generic_inheritance_has_project_member_types() {
     use tsrust_lsp::{project_diagnostics::source_id,project_intelligence::ProjectIndex,workspace::Workspace};
-    let uri="file:///generic-inheritance/main.tsr";
+    let uri=if cfg!(windows){"file:///C:/generic-inheritance/main.tsr"}else{"file:///generic-inheritance/main.tsr"};
     let source="import {Base as Imported} from './base.tsr'; interface Item extends Imported<string>{count:int;} function main(){const item:Item={value:\"ok\",count:2};console.log(item.value);}";
     let mut workspace=Workspace::default();
-    workspace.open(source_id("file:///generic-inheritance/base.tsr").unwrap(),1,"export interface Base<T>{value:T;}".into());
+    workspace.open(source_id(if cfg!(windows){"file:///C:/generic-inheritance/base.tsr"}else{"file:///generic-inheritance/base.tsr"}).unwrap(),1,"export interface Base<T>{value:T;}".into());
     let entry=source_id(uri).unwrap();workspace.open(entry.clone(),1,source.into());
     let checked=workspace.snapshot().check(&entry).unwrap();let index=ProjectIndex::checked(&checked);
     let hover=index.request("textDocument/hover",&json!({"position":position(source,source.find("value);").unwrap())}),uri).unwrap().unwrap();

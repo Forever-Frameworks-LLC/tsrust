@@ -6,10 +6,27 @@ pub(crate) const REGISTRY: &str = "@program-test-registry";
 
 pub(crate) fn operation(name: &str) -> Option<&str> {
     let name = name.strip_prefix("@native:std:testing-runtime#")?;
-    matches!(name, "invokeRegistration" | "registerTest" | "registerHook" | "runTests" | "finishTests" | "beginSuite" | "endSuite" | "beginFile").then_some(name)
+    matches!(name, "invokeSuite" | "invokeRegistration" | "registerTest" | "registerHook" | "runTests" | "finishTests" | "beginSuite" | "endSuite" | "beginFile").then_some(name)
 }
 
-pub(crate) fn executes(name: &str) -> bool { matches!(name, "invokeRegistration" | "runTests" | "finishTests") }
+pub(crate) fn executes(name: &str) -> bool { matches!(name, "invokeSuite" | "invokeRegistration" | "runTests" | "finishTests") }
+
+/// Immediate suite registration carries the caller's available program inputs,
+/// rather than capturing every test file through a shared facade function.
+pub(crate) fn lower_suites(program:&mut Program,names:&std::collections::BTreeMap<String,String>)->Result<(),Diagnostic>{
+    let suites=["describe","suite"].into_iter().filter_map(|name|names.get(name)).collect::<Vec<_>>();
+    let mut visit=|value:&mut Expr|{
+        if let ExprKind::Call(callee,args) = &mut value.kind
+            && let ExprKind::Name(name)=&mut callee.kind
+            && suites.contains(&&*name) {
+            if args.len()!=2 {return Err(Diagnostic::new("arity","Suite registration expects a name and callback.",value.span));}
+            *name="@native:std:testing-runtime#invokeSuite".into();
+        }
+        Ok(())
+    };
+    for function in &mut program.functions {crate::source_walk::function_body(function,&mut |_|Ok(()),&mut visit)?;}
+    crate::source_walk::body(&mut program.module_bindings,&mut |_|Ok(()),&mut visit)
+}
 
 /// Only the trusted standard-library source receives this internal contract.
 pub(crate) fn facade(program: &mut Program) {
@@ -68,29 +85,36 @@ pub(crate) fn lower(program: &mut Program) -> Result<(), Diagnostic> {
         StmtKind::Let { name, .. } => Some(name.clone()), _ => None,
     }).collect::<Vec<_>>();
     let mut used = false;
-    let mut visit = |expression: &mut Expr| {
+    let mut visit = |expression: &mut Expr,available:&[Token]| {
         let ExprKind::Call(callee, arguments) = &mut expression.kind else { return Ok(()); };
         let ExprKind::Name(name) = &callee.kind else { return Ok(()); };
         let Some(operation) = operation(name) else { return Ok(()); };
         used = true;
         arguments.push(Expr::new(ExprKind::Name(REGISTRY.into()), expression.span));
         if executes(operation) {
-            arguments.extend(globals.iter().map(|name| Expr::new(ExprKind::Name(name.text.clone()), expression.span)));
+            arguments.extend(available.iter().map(|name| Expr::new(ExprKind::Name(name.text.clone()), expression.span)));
         }
         Ok(())
     };
     for function in &mut program.functions {
-        crate::source_walk::function_body(function, &mut |_| Ok(()), &mut visit)?;
+        crate::source_walk::function_body(function, &mut |_| Ok(()), &mut |expression|visit(expression,&globals))?;
     }
-    // Initializers keep their original order. A registry operation in an
-    // initializer is diagnosed by the ordinary lexical readiness checks.
-    crate::source_walk::body(&mut program.module_bindings, &mut |_| Ok(()), &mut visit)?;
+    // Initializers keep their original order. Test files open their file scope
+    // before registration, while their data lives in the program owner.
+    let mut available=Vec::new();
+    for statement in &mut program.module_bindings {
+        crate::source_walk::body(std::slice::from_mut(statement),&mut |_|Ok(()),&mut |expression|visit(expression,&available))?;
+        if let StmtKind::Let{name,..}=&statement.kind {available.push(name.clone());}
+    }
     if !used { return Ok(()); }
     let end = program.functions.iter().map(|function| function.scope_span.end)
         .chain(program.module_bindings.iter().map(|statement| statement.span.end)).max().unwrap_or(0);
     let span = Span::new(end + 1, end + 1);
     crate::native_binding_types::prepare(&mut program.records, &super::bindings::CREATE_REGISTRY, span)?;
-    program.module_bindings.push(Stmt { labels: Vec::new(), control_target: None, span,
+    let insertion=program.module_bindings.iter().position(|statement|matches!(&statement.kind,
+        StmtKind::Expr(Expr{kind:ExprKind::Call(callee,_),..}) if matches!(&callee.kind,
+            ExprKind::Name(name) if operation(name)==Some("beginFile")))).unwrap_or(program.module_bindings.len());
+    program.module_bindings.insert(insertion,Stmt { labels: Vec::new(), control_target: None, span,
         kind: StmtKind::Let { rebindable: false, name: Token { text: REGISTRY.into(), kind: TokenKind::Symbol, span }, annotation: None,
             value: Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name("@native:std:testing-runtime#createRegistry".into()), span)), Vec::new()), span), binding: None }
     });

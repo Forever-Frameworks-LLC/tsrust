@@ -42,7 +42,7 @@ impl ProjectSession {
         if self.workspace.current(input)
             && let Some(actions) = actions
         {
-            self.actions.insert(id, (input.clone(), actions));
+            self.actions.insert(id, (input.retained(), actions));
         }
     }
     pub fn code_actions(
@@ -91,9 +91,11 @@ impl ProjectSession {
         };
         self.indices.remove(&id);
         if self.workspace.current(input)
-            && let Some(index) = index
+            && let Some(mut index) = index
         {
-            self.indices.insert(id, (input.clone(), index));
+            use tsrust_compiler::project::SourceProvider;
+            if let Ok(logical)=input.resolve(None,&id.0){index.alias_entry(id.clone(),logical);}
+            self.indices.insert(id, (input.retained(), index));
         }
     }
     /// A project index built from the current text of every source it read

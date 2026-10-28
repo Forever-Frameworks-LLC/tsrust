@@ -170,7 +170,7 @@ fn diagnostic(
             .collect(),
     }
 }
-fn symbol(module: usize, name: &str) -> String {
+pub(crate) fn symbol(module: usize, name: &str) -> String {
     format!("{}{module}_{name}", crate::type_aliases::LINKED_PREFIX)
 }
 
@@ -201,6 +201,7 @@ pub(crate) fn check_graph_cached(graph:ProjectGraph,cache:&mut crate::project_se
 }
 fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Option<&mut Vec<ProjectDiagnostic>>, mut cache:Option<&mut crate::project_session::ProjectSession>) -> Result<ProjectAnalysis, ProjectDiagnostic> {
     let mut programs = BTreeMap::new();
+    let mut test_prefix_lengths = BTreeMap::new();
     let mut globals: BTreeMap<SourceId, BTreeMap<String, String>> = BTreeMap::new();
     let mut segments = vec![];
     let mut offset = 1;
@@ -270,6 +271,10 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
             let registration = program.functions.iter_mut().find(|function| function.name.text == "main").expect("synthetic test registration");
             registration.name.text = "@testRegistration".into();
             registration.body.pop(); // Execution follows all files' registration, in one registry.
+            // Test-file declarations must outlive registration: hooks and tests
+            // share these owners, rather than moving registrar-local snapshots.
+            test_prefix_lengths.insert(id.clone(),program.module_bindings.len());
+            program.module_bindings.append(&mut registration.body);
         }
         for function in &program.functions {
             if [
@@ -380,6 +385,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         unresolved_bases: Vec::new(),
     };
     let mut closure_id = 0;
+    let mut test_initializers = BTreeMap::new();
     for (module, id) in graph.order.iter().enumerate() {
         let mut names = globals[id].clone();
         for import in &graph.modules[id].imports {
@@ -529,12 +535,17 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         linked.local_capture_plans.extend(program.local_capture_plans);
         linked.call_type_arguments.extend(program.call_type_arguments);
         linked.interface_argument_checks.extend(program.interface_argument_checks);
-        linked.module_bindings.extend(program.module_bindings);
+        if entries.contains(id) {
+            let initialization=program.module_bindings.split_off(test_prefix_lengths[id]);
+            linked.module_bindings.extend(program.module_bindings); // Existing exported/dependency initialization stays in graph order.
+            test_initializers.insert(id.clone(),initialization);
+        }
+        else {linked.module_bindings.extend(program.module_bindings);}
         linked.records.extend(program.records);
         linked.functions.extend(program.functions);
     }
     if !entries.is_empty() {
-        let mut entry = crate::syntax::parse_module("", true, Default::default(), Default::default()).expect("empty synthetic entry").functions.pop().unwrap();
+        let entry = crate::syntax::parse_module("", true, Default::default(), Default::default()).expect("empty synthetic entry").functions.pop().unwrap();
         let mut body = Vec::new();
         for id in entries {
             let segment = segments.iter().find(|(source, _, _)| source == id).expect("test source segment");
@@ -542,15 +553,12 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
             body.push(Stmt { labels: Vec::new(), control_target: None, span, kind: StmtKind::Expr(Expr::new(ExprKind::Call(
                 Box::new(Expr::new(ExprKind::Name("@native:std:testing-runtime#beginFile".into()), span)), vec![Expr::new(ExprKind::String(id.0.clone()), span)]
             ), span)) });
-            body.push(Stmt { labels: Vec::new(), control_target: None, span, kind: StmtKind::Expr(Expr::new(ExprKind::Call(
-                Box::new(Expr::new(ExprKind::Name(globals[id]["@testRegistration"].clone()), span)), Vec::new()
-            ), span)) });
+            body.extend(test_initializers.remove(id).expect("linked test initialization"));
             body.push(Stmt { labels: Vec::new(), control_target: None, span, kind: StmtKind::Expr(Expr::new(ExprKind::Call(
                 Box::new(Expr::new(ExprKind::Name("@native:std:testing-runtime#endSuite".into()), span)), Vec::new()
             ), span)) });
         }
-        body.append(&mut entry.body);
-        entry.body = body;
+        linked.module_bindings.extend(body);
         linked.functions.push(entry);
     }
     if let Some(names) = globals.get(&SourceId("std:ui".into())) {
@@ -559,6 +567,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
             .map_err(|value| diagnostic(&graph, &segments, value))?;
     }
     if let Some(names) = globals.get(&SourceId("std:testing".into())) {
+        crate::stdlib::testing::program::lower_suites(&mut linked,names).map_err(|value| diagnostic(&graph, &segments, value))?;
         crate::stdlib::testing::program::omit_unused_facades(&mut linked, names).map_err(|value| diagnostic(&graph, &segments, value))?;
     }
     crate::callables::module_state::lower(&mut linked).map_err(|value| diagnostic(&graph, &segments, value))?;

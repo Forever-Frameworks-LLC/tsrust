@@ -1,6 +1,6 @@
 # Milestone 44: array map and filter
 
-[Roadmap](../roadmap.md) · [Primitive coverage](../feature-coverage.md)
+[Roadmap](../roadmap.md) · [Primitive coverage](../guides/language/feature-coverage.md)
 
 ## Scope
 

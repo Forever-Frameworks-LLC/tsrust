@@ -2,7 +2,7 @@
 
 Status: focused implementation accepted. Full regression and accumulated performance comparisons remain queued for checkpoint 101.
 
-The [optional and default parameter guide](../optional-default-parameters.md) documents examples verified with the integrated compiler and native execution. [Acceptance evidence](../../benchmarks/runtime/diagnostics/gate98-optional-default-implementation.json) binds the compiler/editor integration, focused checks, exact native outputs and retained original failures.
+The [optional and default parameter guide](../guides/language/optional-default-parameters.md) documents examples verified with the integrated compiler and native execution. [Acceptance evidence](../../benchmarks/runtime/diagnostics/gate98-optional-default-implementation.json) binds the compiler/editor integration, focused checks, exact native outputs and retained original failures.
 
 ## Required behavior
 

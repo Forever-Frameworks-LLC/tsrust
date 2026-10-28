@@ -1,5 +1,12 @@
 # Universal UI vision
 
+> Active scope update, 2026-10-26: the owner approved the
+> [backend platform pivot](docs/plans/backend-platform-pivot.md). This document
+> preserves the universal UI design and historical decisions. Its unfinished
+> renderer/component/embedded obligations are frozen, not active prerequisites.
+> Presentation now uses React/Vite + shadcn on web/Electron and Expo + React
+> Native Reusables on mobile. Follow [the prototype goal](docs/agent-goal.md).
+
 Status: product direction refined with the owner on 2026-10-11; the checked `.tsrx` component and paired interactive counter foundation is implemented. The current compiler handoff records accepted behavior. Broader API examples below remain design sketches unless covered by that acceptance.
 
 The [feasibility review](docs/plans/ui-feasibility-review.md#follow-up-review-after-app-directory-and-loader-decisions) preserves the original research and unresolved contracts. Its historical first-task sequencing is superseded by the current compiler handoff. State ownership and bounded browser/native counters now have focused acceptance; text input, dynamic trees, routing and navigation remain unfinished. Review recommendations remain distinct from owner-approved decisions.
@@ -64,7 +71,7 @@ Current development includes:
 * Async/await has not yet been implemented.
 * Named-component JSX and `.tsrx` tooling are accepted. Generated static `std:ui` trees now produce semantic HTML and native GPU output. The bounded paired counter now has component-owned integer state, retained handlers and reactive Text children. State is referenced directly in JSX and arrow callbacks; get/set are state primitives, while arithmetic belongs to application handlers. No public lifetime-attachment or handle helpers are required. Browser input/disposal and native presentation/event-path witnesses pass. General reactive properties, dynamic trees, input/IME and async UI remain open.
 * The owner selected WebAssembly for the paired counter on 2026-10-18. This bounded choice reuses checked Rust handlers; it is not a permanent browser-backend commitment.
-Use the [standard-library roadmap](docs/standard-library-roadmap.md), latest acceptance records and actual source rather than historical progress paragraphs to establish current support. Existing closure support is not proof of a shared reactive-state contract.
+Use the [standard-library roadmap](docs/plans/standard-library-roadmap.md), latest acceptance records and actual source rather than historical progress paragraphs to establish current support. Existing closure support is not proof of a shared reactive-state contract.
 Do not assume JSX, closures, generics, reactive state, complex module resolution, or other language features are working until you verify their implementations.
 The TypeScript-to-Rust compiler is the foundation of this project. The UI framework must be designed to work with its architecture, not require a completely separate language implementation.
 Before proposing implementation work, inspect:

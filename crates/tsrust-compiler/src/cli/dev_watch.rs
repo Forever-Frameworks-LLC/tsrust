@@ -1,5 +1,5 @@
 //! Reuse unchanged source contents while retaining exact byte comparisons.
-use std::{collections::BTreeMap, fs, io::Read, os::unix::fs::MetadataExt, path::{Path,PathBuf}, sync::Arc};
+use std::{collections::BTreeMap, fs, io::Read, path::{Path,PathBuf}, sync::Arc};
 
 #[derive(Clone,Debug)]
 pub(crate) struct Contents(Arc<[u8]>);
@@ -12,12 +12,21 @@ impl Eq for Contents {}
 pub(crate) struct Inputs {pub files:BTreeMap<PathBuf,Contents>,pub failures:BTreeMap<PathBuf,String>,pub resolutions:BTreeMap<(Option<tsrust_compiler::project::SourceId>,String),Result<tsrust_compiler::project::SourceId,String>>}
 impl std::ops::Deref for Inputs {type Target=BTreeMap<PathBuf,Contents>;fn deref(&self)->&Self::Target{&self.files}}
 pub(crate) type Fingerprint=Result<Inputs,String>;
+#[cfg(unix)] use std::os::unix::fs::MetadataExt;
+#[cfg(windows)] pub(crate) use crate::dev_windows::Stamp;
+#[cfg(unix)]
 #[derive(Clone,PartialEq,Eq)]
 pub(crate) struct Stamp { device:u64,inode:u64,length:u64,modified:(i64,i64),changed:(i64,i64) }
+#[cfg(unix)]
 impl From<fs::Metadata> for Stamp {
     fn from(m:fs::Metadata)->Self {
         Self{device:m.dev(),inode:m.ino(),length:m.len(),modified:(m.mtime(),m.mtime_nsec()),changed:(m.ctime(),m.ctime_nsec())}
     }
+}
+#[cfg(unix)]
+impl Stamp {
+ pub(crate) fn read(path:&Path)->std::io::Result<Self>{fs::metadata(path).map(Self::from)}
+ fn file(file:&fs::File)->std::io::Result<Self>{file.metadata().map(Self::from)}
 }
 #[derive(Default)]
 pub(crate) struct Watcher {
@@ -46,7 +55,7 @@ impl Watcher {
                 }
             }
         }
-        let dependencies_changed=self.dependencies.iter().any(|(path,old)|std::fs::metadata(path).ok().map(Stamp::from)!=*old);
+        let dependencies_changed=self.dependencies.iter().any(|(path,old)|Stamp::read(path).ok()!=*old);
         if let Some(events)=&mut self.events {
             let reconcile=events.changed().and_then(|changed| {
                 let changed=changed||dependencies_changed;
@@ -74,14 +83,14 @@ impl Watcher {
         let mut values=BTreeMap::new();
         for path in files {
             let error=|e:std::io::Error|format!("{}: {e}",path.display());
-            let stamp=Stamp::from(fs::metadata(&path).map_err(error)?);
+            let stamp=Stamp::read(&path).map_err(error)?;
             let unchanged=self.entries.get(&path).is_some_and(|(old,_)|old==&stamp);
             if !unchanged {
                 let mut file=fs::File::open(&path).map_err(error)?;
-                let before=Stamp::from(file.metadata().map_err(error)?);
+                let before=Stamp::file(&file).map_err(error)?;
                 let mut bytes=Vec::new();file.read_to_end(&mut bytes).map_err(error)?;
-                let after=Stamp::from(file.metadata().map_err(error)?);
-                let current=Stamp::from(fs::metadata(&path).map_err(error)?);
+                let after=Stamp::file(&file).map_err(error)?;
+                let current=Stamp::read(&path).map_err(error)?;
                 if before!=stamp || after!=stamp || current!=stamp {
                     return Err(format!("{} changed while reading; retrying",path.display()));
                 }
@@ -92,8 +101,8 @@ impl Watcher {
         }
         self.entries.retain(|path,_|values.contains_key(path));
         let (inputs,mut dependencies)=crate::dev_dependencies::capture(root,values)?;
-        let manifest=root.join("target/docs-content/inputs.json");if inputs.contains_key(&manifest){dependencies.insert(manifest.clone(),fs::metadata(&manifest).ok().map(Stamp::from));}
-        if self.entries.iter().any(|(path,(stamp,_))|fs::metadata(path).ok().map(Stamp::from).as_ref()!=Some(stamp)){return Err("Source changed during dependency capture; retrying".into());}
+        let manifest=root.join("target/docs-content/inputs.json");if inputs.contains_key(&manifest){dependencies.insert(manifest.clone(),Stamp::read(&manifest).ok());}
+        if self.entries.iter().any(|(path,(stamp,_))|Stamp::read(path).ok().as_ref()!=Some(stamp)){return Err("Source changed during dependency capture; retrying".into());}
         self.dependencies=dependencies;
         Ok(inputs)
     }

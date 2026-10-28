@@ -4,7 +4,7 @@ Status: focused compiler/native, editor, documentation and benchmark acceptance 
 
 ## Behavior
 
-`const` and `let` declarations and `for...of` headers accept array and record patterns, with nesting, skipped positions and renamed fields. The user guide is [Destructuring](../destructuring.md).
+`const` and `let` declarations and `for...of` headers accept array and record patterns, with nesting, skipped positions and renamed fields. The user guide is [Destructuring](../guides/language/destructuring.md).
 
 The owner chose the ownership rule: a pattern follows the access of its source, and nothing is cloned.
 

@@ -2,6 +2,15 @@ use std::sync::{Arc, atomic::{AtomicUsize,Ordering}};
 struct DropCount(Arc<AtomicUsize>);
 impl Drop for DropCount{fn drop(&mut self){self.0.fetch_add(1,Ordering::SeqCst);}}
 #[test]
+fn terminal_test_boundary_drives_a_borrowed_non_send_future(){
+    let value=std::rc::Rc::new(std::cell::Cell::new(0));
+    testing_scope(||testing_await(async {
+        assert!(yield_now::<()>().await.is_ok());
+        value.set(7);
+    }));
+    assert_eq!(value.get(),7);
+}
+#[test]
 fn cancel_waits_for_nested_owned_resources_and_preserves_completed_results(){
     block_on(async {
         let drops=Arc::new(AtomicUsize::new(0));let count=drops.clone();

@@ -4,9 +4,9 @@ use super::Utility;
 pub enum WhiteSpace { Normal, NoWrap, Pre, #[default] PreWrap }
 impl WhiteSpace {
  pub(crate) fn css(self)->&'static str {match self{Self::Normal=>"normal",Self::NoWrap=>"nowrap",Self::Pre=>"pre",Self::PreWrap=>"pre-wrap"}}
- #[cfg(any(test,feature="native"))]
+ #[cfg(any(all(test, feature = "runtime"),feature="native"))]
  pub(crate) fn collapses(self)->bool {matches!(self,Self::Normal|Self::NoWrap)}
- #[cfg(any(test,feature="native"))]
+ #[cfg(any(all(test, feature = "runtime"),feature="native"))]
  pub(crate) fn wraps(self)->bool {matches!(self,Self::Normal|Self::PreWrap)}
 }
 pub(super) fn tokens()->Vec<String> {["text-balance","text-wrap-auto","tracking-tight","tracking-normal","whitespace-normal","whitespace-nowrap","whitespace-pre","whitespace-pre-wrap","underline","no-underline","underline-offset-auto","underline-offset-0","underline-offset-1","underline-offset-2","underline-offset-4","underline-offset-8"].map(str::to_owned).to_vec()}
@@ -17,6 +17,13 @@ pub(super) fn resolve(token:&str)->Option<Utility> {Some(match token {
  "underline-offset-0"=>Utility::UnderlineOffset(Some(0.)),"underline-offset-1"=>Utility::UnderlineOffset(Some(1.)),"underline-offset-2"=>Utility::UnderlineOffset(Some(2.)),"underline-offset-4"=>Utility::UnderlineOffset(Some(4.)),"underline-offset-8"=>Utility::UnderlineOffset(Some(8.)),_=>return None})}
 #[cfg(test)]mod tests {
  use super::*;
+ #[cfg(feature="runtime")]
+ #[test]fn whitespace_collapse_and_wrap_are_independent(){
+  for (value,collapse,wrap) in [(WhiteSpace::Normal,true,true),(WhiteSpace::NoWrap,true,false),(WhiteSpace::Pre,false,false),(WhiteSpace::PreWrap,false,true)]{
+   assert_eq!(value.collapses(),collapse);assert_eq!(value.wraps(),wrap);
+  }
+ }
+ #[cfg(feature = "runtime")]
  #[test]fn anchor_palette_predicate_matches_links_only(){
   let theme=crate::theme::Theme::default();let classes="[a]:hover:bg-primary/80";let plain=crate::Node::view(vec![],classes.into()).unwrap();let link=crate::navigation::link(vec![],classes.into(),"/docs").unwrap();
   assert!(super::super::resolved_node(&plain,&[],&theme,"light").is_empty());let values=super::super::resolved_node(&link,&[],&theme,"light");assert!(values.iter().any(|(state,value)|*state==super::super::State::Hover&&matches!(value,Utility::Background(color)if (color.alpha()-0.8).abs()<0.00001)));

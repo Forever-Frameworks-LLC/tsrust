@@ -242,7 +242,7 @@ and field-level provenance remain the next implementation work; source construct
 is not accepted by this prerequisite.
 
 Concrete direct scoped record construction is implemented in the current work-in-progress
-checkpoint. Read docs/handoff-2026-10-07-scoped-record-layout-in-progress.md for verified
+checkpoint. Read docs/handoffs/handoff-2026-10-07-scoped-record-layout-in-progress.md for verified
 behavior and outstanding lifetime, nested-layout, nullable-absence and acceptance work.
 The complete record gate remains open.
 

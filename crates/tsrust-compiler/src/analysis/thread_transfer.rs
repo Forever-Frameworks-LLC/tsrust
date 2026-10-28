@@ -121,7 +121,7 @@ mod tests {
   struct Input<'a>(&'a str);
   impl crate::project::SourceProvider for Input<'_> {
    fn resolve(&self,_:Option<&crate::project::SourceId>,path:&str)->Result<crate::project::SourceId,String>{Ok(crate::project::SourceId(path.into()))}
-   fn read(&self,_:&crate::project::SourceId)->Result<String,String>{Ok(self.0.into())}
+   fn read(&self,id:&crate::project::SourceId)->Result<String,String>{if id.0=="thread-test.tsr" {Ok(self.0.into())} else {Err(format!("Missing source: {}",id.0))}}
   }
   let graph=crate::project::load_project(&Input(source),"thread-test.tsr").unwrap();
   let checked=crate::project::check_graph(graph).unwrap();let program=&checked.analysis.program;

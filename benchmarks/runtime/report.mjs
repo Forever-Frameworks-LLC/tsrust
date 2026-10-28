@@ -260,7 +260,7 @@ export function buildReport(records, {semanticEpoch} = {}) {
  const lines = ['# Benchmarks', '',
   `Current semantic epoch: **${cell(currentEpoch)}**. Results from earlier contracts remain in the history and are excluded from these current tables.`, '',
   'Latest results. Execution: ops/s using each workload’s stated operation count. Avg: arithmetic mean of sample rates. Memory: B/KiB/MiB; allocation counts remain counts.', '',
-  '[Methodology and limits](./docs/runtime-comparisons.md) · [Sources and reproduction](./benchmarks/runtime/README.md) · [Foundation audit](./docs/foundation-audit.md) · [Run history](#run-records)', '',
+  '[Methodology and limits](./docs/measurements/runtime-comparisons.md) · [Sources and reproduction](./benchmarks/runtime/README.md) · [Foundation audit](./docs/plans/foundation-audit.md) · [Run history](#run-records)', '',
   '## Contents', ''];
  const groups = reportCategories.map(category=>({
   ...category,

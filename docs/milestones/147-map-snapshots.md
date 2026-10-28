@@ -20,7 +20,7 @@ annotations are static errors. No access or binding starts implicitly cloning.
 These operations return arrays rather than JavaScript live iterators. Owned copies
 do not claim shallow alias identity. The matched TypeScript workload calls the
 real Map methods and explicitly materializes their iterators with Array.from.
-See [the guide](../maps.md). Borrowed Map for-of, callbacks, live iterators and
+See [the guide](../guides/language/maps.md). Borrowed Map for-of, callbacks, live iterators and
 collection-family measurements remain later work.
 
 ## Implementation and editor

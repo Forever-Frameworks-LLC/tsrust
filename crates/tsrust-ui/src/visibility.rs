@@ -1,6 +1,7 @@
 //! Rectangle visibility reports transitions without owning renderer resources.
 use crate::{Kind,Node};
 
+#[cfg_attr(not(any(test,feature="native",all(target_arch="wasm32",feature="ui-web"))),expect(dead_code,reason="Headless nodes retain callback ownership; platform renderers consume observation state"))]
 pub(crate) struct Observation {
     previous:Option<bool>,
     changed:Box<dyn FnMut(bool)->Result<(),String>>,
@@ -10,11 +11,13 @@ impl Node {
         if self.kind!=Kind::View{return Err("Visibility handlers require View".into());}
         self.visibility=Some(Observation{previous:None,changed:Box::new(changed)});Ok(self)
     }
+    #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
     pub(crate) fn observed_nodes(&self,visible_only:bool,ids:&mut Vec<u64>) {
         if visible_only && self.collapsed{return;}
         if self.visibility.is_some(){ids.push(self.identity.get());}
         for child in &self.children{child.observed_nodes(visible_only,ids);}
     }
+    #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
     pub(crate) fn visibility_changed(&mut self,target:u64,visible:bool)->Result<bool,String> {
         if self.identity.get()==target {
             if let Some(observer)=&mut self.visibility {
@@ -34,6 +37,7 @@ mod tests {
     #[test]fn observation_reports_initial_state_transitions_and_releases_captures(){
         let seen=Rc::new(RefCell::new(Vec::new()));let output=seen.clone();let weak=Rc::downgrade(&output);
         let mut node=Node::view(vec![],String::new()).unwrap().with_visibility(move|visible|{output.borrow_mut().push(visible);Ok(())}).unwrap();node.ensure_identities();let id=node.identity.get();
+        let mut ids=Vec::new();node.observed_nodes(true,&mut ids);assert_eq!(ids,[id]);
         for value in [false,false,true,true,false]{node.visibility_changed(id,value).unwrap();}
         assert_eq!(*seen.borrow(),[false,true,false]);drop(seen);assert!(weak.upgrade().is_some());drop(node);assert!(weak.upgrade().is_none());
     }

@@ -136,6 +136,23 @@ fn disk_stamp(id: &SourceId) -> Option<DiskStamp> {
     })
 }
 impl WorkspaceSnapshot {
+    /// A compiler-development facade opened as a document is the immutable
+    /// bundled module, not an application importing private runtime bindings.
+    /// Both canonical location and exact snapshot bytes must match. Copies and
+    /// modified buffers remain ordinary user modules under the compiler's guard.
+    fn entry_identity(&self, importer: Option<&SourceId>, id: SourceId) -> Result<SourceId,String> {
+        if importer.is_some(){return Ok(id);}
+        Ok(tsrust_compiler::project::bundled_entry(self,&id).unwrap_or(id))
+    }
+    /// Retain only inputs actually observed by a completed analysis. Active jobs
+    /// still need every open buffer for resolution; cached results do not.
+    pub(crate) fn retained(&self) -> Self {
+        let mut retained = self.clone();
+        let observed = self.observed.borrow();
+        retained.open.retain(|id, _| observed.contains(id));
+        retained.revisions.retain(|id, _| observed.contains(id));
+        retained
+    }
     fn disk_current(&self) -> bool {
         self.consistent.get() && self.disk
             .borrow()
@@ -210,6 +227,9 @@ fn normalize(path: &Path) -> Result<PathBuf, String> {
     Ok(result)
 }
 impl SourceProvider for WorkspaceSnapshot {
+    fn generated(&self,source:&tsrust_compiler::project::SourceFile){
+        self.read.borrow_mut().insert(source.id.clone(),Arc::new(source.text.clone()));
+    }
     fn resolve(&self, importer: Option<&SourceId>, path: &str) -> Result<SourceId, String> {
         let key = (importer.cloned(), path.to_owned());
         if let Some(result) = self.resolved.borrow().get(&key) {
@@ -260,9 +280,9 @@ impl WorkspaceSnapshot {
         } else {tsrust_compiler::project_resolution::discover(Path::new(path),|path|self.read_config(path))?;vec![PathBuf::from(path)]};
         for candidate in &candidates {
             let id=self.observe_path(candidate)?;
-            if self.open.contains_key(&id) {return Ok(id);}
+            if self.open.contains_key(&id) {return self.entry_identity(importer,id);}
             match std::fs::metadata(&id.0) {
-                Ok(metadata) if metadata.is_file()=>return Ok(id),
+                Ok(metadata) if metadata.is_file()=>return self.entry_identity(importer,id),
                 Ok(_)=>{},Err(error) if error.kind()==std::io::ErrorKind::NotFound=>{},
                 Err(error)=>return Err(format!("{}: {error}",id.0)),
             }
@@ -275,7 +295,7 @@ impl WorkspaceSnapshot {
         let normalized=normalize(path)?;
         let lexical=SourceId(normalized.to_str().ok_or("Source path must be valid UTF-8.")?.into());
         self.observed.borrow_mut().insert(lexical.clone());
-        let canonical=std::fs::canonicalize(&normalized).unwrap_or(normalized);
+        let canonical=crate::project_diagnostics::canonical_path(&normalized);
         let id=SourceId(canonical.to_str().ok_or("Source path must be valid UTF-8.")?.into());
         self.observed.borrow_mut().insert(id.clone());
         // A changed disk file does not override an open buffer. A lexical
@@ -309,6 +329,33 @@ impl WorkspaceSnapshot {
 mod scan_input_tests {
     use super::*;
     #[test]
+    fn retained_analysis_releases_unrelated_revisions_without_losing_dependency_guards() {
+        let root = std::env::temp_dir();
+        let dependency = SourceId(root.join("tsrust-retained-dependency.tsr").to_str().unwrap().into());
+        let unrelated = SourceId(root.join("tsrust-retained-unrelated.tsr").to_str().unwrap().into());
+        let mut workspace = Workspace::default();
+        workspace.open(dependency.clone(), 1, "export function value():int{return 7;}".into());
+        workspace.open(unrelated.clone(), 1, "old unrelated buffer".repeat(4096));
+        let active = workspace.snapshot();
+        let old = Arc::downgrade(&active.open[&unrelated].text);
+        active.read(&dependency).unwrap();
+        let retained = active.retained();
+        assert_eq!(retained.open_sources(), vec![dependency.clone()]);
+        assert_eq!(retained.version(&dependency), Some(1));
+        assert_eq!(retained.sources()[&dependency].as_str(), "export function value():int{return 7;}");
+        workspace.change(&unrelated, 2, "new unrelated buffer".into());
+        assert!(old.upgrade().is_some(), "active analysis still owns its immutable inputs");
+        drop(active);
+        assert!(old.upgrade().is_none(), "cached analysis must release unrelated old text");
+        assert!(workspace.current(&retained));
+        assert!(workspace.snapshot().can_reuse(&retained));
+        workspace.close(&dependency);
+        assert!(!workspace.current(&retained));
+        assert!(!workspace.snapshot().can_reuse(&retained));
+        workspace.open(dependency.clone(), 1, "export function value():int{return 9;}".into());
+        assert!(!workspace.current(&retained), "reopening the same version has a new generation");
+    }
+    #[test]
     fn disk_config_creation_and_rewrite_invalidate_without_watch_notifications() {
         struct Scratch(PathBuf);
         impl Drop for Scratch {fn drop(&mut self){let _=std::fs::remove_dir_all(&self.0);}}
@@ -336,9 +383,10 @@ mod scan_input_tests {
         workspace.open(config.clone(),1,r#"{"paths":{"@/*":"./src/*"}}"#.into());
         workspace.open(entry.clone(),1,"import {greet} from '@/components';function main(){console.log(greet());}".into());
         workspace.open(dependency.clone(),1,"export function greet():string{return 'hello';}".into());
-        let snapshot=workspace.snapshot();snapshot.check(&entry).unwrap();
+        let snapshot=workspace.snapshot();let checked=snapshot.check(&entry).unwrap();
         assert_eq!(snapshot.resolve(Some(&entry),"@/components").unwrap(),dependency);
-        assert!(!snapshot.sources().contains_key(&config));
+        assert!(!checked.graph.modules.contains_key(&config),"configuration is not a source module");
+        assert_eq!(snapshot.sources()[&config].as_str(),r#"{"paths":{"@/*":"./src/*"}}"#);
         assert!(workspace.register(entry.clone(),&snapshot));
         assert!(workspace.affected(&config).contains(&entry));
         workspace.change(&config,2,r#"{"paths":{"@/*":"./missing/*"}}"#.into());

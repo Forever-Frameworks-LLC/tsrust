@@ -146,9 +146,10 @@ impl InputDiagnostic {
         match self {
             Self::Single(diagnostic) => diagnostic.render_terminal(path, source, color),
             Self::Project(diagnostic) => {
-                let text = provider
-                    .read(&diagnostic.location.source)
-                    .unwrap_or_default();
+                let text = provider.read(&diagnostic.location.source).or_else(|original|{
+                    let Some(config)=crate::api::project::config_for_virtual(&diagnostic.location.source) else{return Err(original);};
+                    crate::api::project::source(provider,&config).map(|built|built.source.text).map_err(|e|e.message)
+                }).unwrap_or_default();
                 let mut result = Diagnostic::new(
                     diagnostic.code,
                     &diagnostic.message,

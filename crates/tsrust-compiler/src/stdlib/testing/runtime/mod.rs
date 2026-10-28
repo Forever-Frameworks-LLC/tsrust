@@ -5,7 +5,7 @@ fn tsrust_testing_style(text: &str, code: &str) -> std::string::String {
     if color { format!("\x1b[{code}m{text}\x1b[0m") } else { text.to_owned() }
 }
 type TsrTestCallback = Box<dyn for<'p> FnMut(&mut TsrTestContext<'p>, &mut TsrTestRegistry) -> Result<(), std::string::String>>;
-// Bundled synchronous registry and failure boundaries, included in generated programs.
+// Bundled registry and failure boundaries, included in generated programs.
 enum TsrTestEntry {
     Test { name: std::string::String, callback: TsrTestCallback },
     Suite(usize),
@@ -50,6 +50,12 @@ fn tsrust_testing_begin_suite_result(registry: &mut TsrTestRegistry, name:&Strin
     if TSR_TEST_RUNNING.with(|running|running.get()) {return Err("describe() cannot register suites while a test is running".to_owned());}
     tsrust_testing_open_scope(registry,name,true);
     Ok(())
+}
+fn tsrust_testing_suite<R>(registry:&mut TsrTestRegistry,name:&String,body:impl FnOnce(&mut TsrTestRegistry)->R)->Result<R,std::string::String> {
+    tsrust_testing_scope(registry,|registry| {
+        tsrust_testing_begin_suite_result(registry,name)?;
+        Ok(body(registry))
+    })
 }
 fn tsrust_testing_end_suite_result(registry: &mut TsrTestRegistry)->Result<(),std::string::String> {
     if registry.current.len()<=1 {return Err("No suite registration is active".to_owned());}
@@ -185,7 +191,7 @@ fn tsrust_testing_run_tests_result(active: &mut TsrTestRegistry, program: &mut T
     let mut registry = std::mem::take(active);
     let started = std::time::Instant::now();
     let mut counts = TsrTestCounts::default();
-    tsrust_testing_run_suite(&mut registry, 0, &mut Vec::new(), &mut Vec::new(), None, &mut counts, program, active);
+    tsrust_testing_run_in_scope(||tsrust_testing_run_suite(&mut registry, 0, &mut Vec::new(), &mut Vec::new(), None, &mut counts, program, active));
     if tsrust_testing_pretty() {
         if !counts.failures.is_empty() {
             println!("\n {}",tsrust_testing_style("Failed Tests","1;31"));

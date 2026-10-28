@@ -1,6 +1,6 @@
 # Milestone 22: owned array elements
 
-[Scalar arrays](./20-scalar-arrays.md) · [Borrowed iteration](./21-for-of.md) · [Collections workstream](../primitives-and-collections.md) · [Roadmap](../roadmap.md)
+[Scalar arrays](./20-scalar-arrays.md) · [Borrowed iteration](./21-for-of.md) · [Collections workstream](../guides/language/primitives-and-collections.md) · [Roadmap](../roadmap.md)
 
 **Status:** Complete. [Milestone 23](./23-nested-arrays.md) subsequently adds nested arrays; the scope below records this gate's original boundary. The full 271-group regression suite passes, including 12 owned-element groups. Formatting, Clippy, and local documentation links are verified.
 

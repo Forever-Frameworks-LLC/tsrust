@@ -1,8 +1,47 @@
 # Development requirements
 
+## Active product direction — 2026-10-26
+
+Owner reset, 2026-10-27: the backend-only direction in
+`docs/plans/backend-only-reset.md` supersedes the React/Electron/Expo requirements
+in this section. Remove introduced frontend integrations from the active product;
+users bring their own UI and call HTTP APIs. Preserve original Tsrust UI history
+for potential later revival, outside normal backend dependencies. Prioritize HTTP
+contract-based TypeScript/Rust SDKs, explicit Rust setup/shared Cargo caches,
+portable vendored export and Windows/macOS/Linux installation/self-update. The
+previous automated goal is paused; direct requested cleanup work is authorized.
+
+The earlier pivot below is retained context, not current frontend acceptance:
+
+The owner approved the backend application platform pivot. Follow
+`docs/agent-goal.md` and `docs/plans/backend-platform-pivot.md` for active scope.
+Keep Tsrust as the native backend compiler; use React/Vite with shadcn for web
+and Electron, Expo with React Native Reusables for mobile, and named generated
+clients/hooks over TanStack Query. Electron Forge's Vite plugin is owner-approved.
+Frontend projects remain user-owned: users can manage dependencies and scripts
+directly. Tsrust supplies setup/import, optional orchestration, generated clients
+and scoped integration migrations. Support existing/external projects and multiple
+web mounts without forcing one layout or package manager.
+Preserve the old UI source and acceptance history in place. Universal rendering,
+Table/component expansion and embedded UI are frozen, not prototype prerequisites.
+This direction supersedes old UI continuation priorities and the local skill's
+prohibition on introducing React. Backend acceptance, ownership, editor agreement
+and analytics/privacy requirements remain in force.
+
+## Local agent continuation
+
+For autonomous continuation, read `.agents/skills/tsrust-development/SKILL.md`
+and `docs/agent-goal.md`. Use project-local Ponytail for implementation decisions
+and Caveman for concise chat updates; retain full technical detail in durable
+evidence. These preferences never weaken the acceptance requirements below.
+Routine checkpoints are local Git commits. Do not push on a timer, create release
+tags for testing, or use published releases as a development loop. Follow the
+remote-validation decision in the project skill before triggering GitHub Actions.
+
+
 Use [the development workflow](docs/development-workflow.md) for feature acceptance.
 
-One agent works in this tree at a time. Use Git commits as source checkpoints before risky edits and after accepted gates. Inspect status first and preserve unrelated changes. Do not create archive directories or file snapshots. The owner deleted historical archives. Keep SQLite as the durable analytics store: import and verify closed loose records, then remove the verified copies. Retain only concise current-gate logs outside SQLite. Rebuild executable consumers from commits when needed. Reuse one Cargo target, disable incremental compilation with CARGO_INCREMENTAL=0, and prune obsolete build/test/native outputs before handoff rather than accumulating them across gates.
+One agent works in this tree at a time. Use Git commits as source checkpoints before risky edits and after accepted gates. Inspect status first and preserve unrelated changes. Do not create archive directories or file snapshots. The owner deleted historical archives. Keep SQLite as the durable analytics store. Public `benchmarks/measurements.sqlite` contains only indexed benchmark measurements and allowlisted provenance; export it with `benchmarks/storage/public.py`. The legacy ignored `benchmarks/records.sqlite` contains mixed historical evidence and must not be published. Do not import routine command logs, source snapshots or session receipts into analytics. Preserve existing historical records; retain only concise disposable current-gate logs. Rebuild executable consumers from commits when needed. Reuse one Cargo target, disable incremental compilation with CARGO_INCREMENTAL=0, and prune obsolete build/test/native outputs before handoff rather than accumulating them across gates.
 
 - Format the entire project before every source checkpoint with `node tools/format-project.mjs`, using the current verified compiler via `TSRUST` when needed. Keep formatting opinionated and automatic. Verify token preservation, idempotence and formatted-source behavior; do not restrict formatting to newly edited files. The command refreshes benchmark source fingerprints only after proving code tokens unchanged. Preserve protected owner edits and never treat formatting as permission to change their semantics.
 - Prioritize implementation and batch validation by complete sections. Add focused regression witnesses while implementing, but defer running checks and tests until the coherent section is complete across compiler, native behavior, editor, examples and benchmark support. Run an earlier check only when a specific uncertainty blocks implementation. After section validation, repair failures and rerun only affected checks. Do not run the whole compiler, LSP or benchmark matrix after routine edits or individual gates.

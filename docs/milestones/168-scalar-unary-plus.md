@@ -3,7 +3,7 @@
 Unary plus accepts scalar inputs and scalar unions through the existing reserved
 Number conversion. Numeric unary plus retains its int/number behavior. Number also
 accepts scalar unions, including enums, and borrows the active payload. Arrays,
-records and functions remain type errors. See [Scalar unary plus](../scalar-unary-plus.md).
+records and functions remain type errors. See [Scalar unary plus](../guides/language/scalar-unary-plus.md).
 
 The lowering helper runs before checked expression dispatch and returns before
 recursive checking. Numeric operands retain their original expression form and

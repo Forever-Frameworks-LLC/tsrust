@@ -1,0 +1,31 @@
+import { list, create, marker, count, roundTrip, echo } from './operations.tsr';
+import { strictEqual } from 'std:testing';
+
+async function main(): Task<void> {
+  const tasks = list({
+    search: null
+  });
+  strictEqual(tasks.length, 1);
+  strictEqual(tasks[0].id, 7);
+  const task = create({
+    title: 'Keep projects user-owned'
+  });
+  strictEqual(task.id, 8);
+  strictEqual(task.title, 'Keep projects user-owned');
+  const expectedMarker: '__TSRUST_API_ID__' = '__TSRUST_API_ID__';
+  strictEqual(marker(), expectedMarker);
+  strictEqual(await count(4), 5);
+  const data = roundTrip({
+    __proto__: 'plain data'
+  });
+  strictEqual(data.__proto__, 'plain data');
+  const rich = echo({
+    pair: [2, 'two'], ratio: 1.25, enabled: true, variant: {
+      kind: 'a', value: 3
+    }
+  });
+  strictEqual(rich.pair[0], 2);
+  strictEqual(rich.ratio, 1.25);
+  strictEqual(rich.enabled, true);
+  console.log('API contract native witness passed');
+}

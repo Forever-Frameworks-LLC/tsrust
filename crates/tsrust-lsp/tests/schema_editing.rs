@@ -1,6 +1,11 @@
 use serde_json::{json,Value};
 use tsrust_lsp::intelligence::SourceIndex;
 
+fn fixture_uri(name: &str) -> String {
+    let path = std::env::current_dir().unwrap().join(name);
+    tsrust_lsp::project_diagnostics::file_uri(&tsrust_compiler::project::SourceId(path.to_str().unwrap().into())).unwrap().to_string()
+}
+
 fn request(source:&str,needle:&str,method:&str)->Value {
     let offset=source.find(needle).unwrap()+needle.len()-usize::from(method=="textDocument/hover");
     let prefix=&source[..offset];
@@ -44,7 +49,7 @@ fn chained_global_schema_keeps_completion_with_options_and_constraints() {
     let result=request(source,"\ngreeting.","textDocument/completion");
     assert!(result.as_array().unwrap().iter().any(|item|item["label"]=="safeParse"),"{result}");
     use tsrust_lsp::{workspace::Workspace,project_diagnostics::source_id,project_intelligence::ProjectIndex};
-    let uri="file:///schema-editing.tsr";
+    let uri=fixture_uri("schema-editing.tsr");let uri=uri.as_str();
     let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.into());
     let graph=tsrust_compiler::project::load_project_headers(&workspace.snapshot(),&source_id(uri).unwrap().0).unwrap();
     let offset=source.find("\ngreeting.").unwrap()+"\ngreeting.".len();let prefix=&source[..offset];
@@ -66,7 +71,7 @@ fn throwing_parse_completes_and_infers_direct_output() {
 fn throwing_parse_catch_exposes_validation_issues() {
     let source="import {s} from 'std:schema';const schema=s.string();function main(){try{schema.parse('');}catch(error){console.log(error.issues);}}";
     use tsrust_lsp::{workspace::Workspace,project_diagnostics::source_id,project_intelligence::ProjectIndex};
-    let uri="file:///schema-parse-catch.tsr";
+    let uri=fixture_uri("schema-parse-catch.tsr");let uri=uri.as_str();
     let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.into());
     let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
     let offset=source.find("error.issues").unwrap()+"error.issues".len()-1;
@@ -109,7 +114,7 @@ fn recursive_builder_completes_with_aliases_and_explains_self() {
 fn recursive_checked_outputs_keep_nested_members_and_bounded_hover() {
     use tsrust_lsp::{workspace::Workspace,project_diagnostics::source_id,project_intelligence::ProjectIndex};
     let source="import {s} from 'std:schema';const tree=s.recursive(self=>s.object({value:s.int(),children:s.array(self)}));function main(){{const outcome0=tree.safeParseJson('{\"value\":1,\"children\":[]}');if(outcome0.success){const value=outcome0.data;console.log(value.children[0].value);}else{const error=outcome0.error;console.log('invalid');}}}";
-    let uri="file:///recursive-schema-editing.tsr";
+    let uri=fixture_uri("recursive-schema-editing.tsr");let uri=uri.as_str();
     let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.into());
     let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
     let index=ProjectIndex::checked(&checked);
@@ -136,7 +141,7 @@ fn recursive_named_and_array_outputs_keep_member_completion() {
          "{const outcome0=schema.safeParseJson('[[]]');if(outcome0.success){const value=outcome0.data;console.log(value[0].length);}else{const error=outcome0.error;}}", "value[0].", "length"),
     ] {
         let source=format!("import {{s}} from 'std:schema';{definition}function main(){{{body}}}");
-        let uri="file:///recursive-output-editing.tsr";
+        let uri=fixture_uri("recursive-output-editing.tsr");let uri=uri.as_str();
         let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());
         let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
         let index=ProjectIndex::checked(&checked);
@@ -154,7 +159,7 @@ fn recursive_schema_completion_recovers_before_following_statement() {
     use tsrust_lsp::{workspace::Workspace,project_diagnostics::source_id,project_intelligence::ProjectIndex};
     for suffix in ["\nconsole.log('next');}","}"] {
         let source=format!("import {{s}} from 'std:schema';const tree=s.recursive(self=>s.object({{value:s.int(),children:s.array(self)}}));function main(){{tree.{suffix}");
-        let uri="file:///recursive-unfinished.tsr";
+        let uri=fixture_uri("recursive-unfinished.tsr");let uri=uri.as_str();
         let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());
         let graph=tsrust_compiler::project::load_project_headers(&workspace.snapshot(),&source_id(uri).unwrap().0).unwrap();
         let offset=source.find("tree.").unwrap()+"tree.".len();
@@ -169,7 +174,7 @@ fn recursive_schema_completion_recovers_before_following_statement() {
 fn recursive_union_root_keeps_common_fields_and_finite_hover() {
     use tsrust_lsp::{workspace::Workspace,project_diagnostics::source_id,project_intelligence::ProjectIndex};
     let source="import {s} from 'std:schema';const schema=s.recursive(self=>s.union([s.object({kind:s.literal('leaf'),value:s.int()}),s.object({kind:s.literal('branch'),children:s.array(self)})]));function main(){{const outcome0=schema.safeParseJson('{\"kind\":\"leaf\",\"value\":1}');if(outcome0.success){const value=outcome0.data;console.log(value.kind);}else{const error=outcome0.error;}}}";
-    let uri="file:///recursive-union-editing.tsr";
+    let uri=fixture_uri("recursive-union-editing.tsr");let uri=uri.as_str();
     let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.into());
     let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
     let index=ProjectIndex::checked(&checked);
@@ -181,4 +186,25 @@ fn recursive_union_root_keeps_common_fields_and_finite_hover() {
     let hover=index.request("textDocument/hover",&json!({"position":{"line":0,"character":offset}}),uri).unwrap().unwrap().to_string();
     assert!(hover.contains("children")&&hover.contains("kind"),"{hover}");
     assert!(!hover.contains("__tsrust_private_")&&hover.len()<12000,"{hover}");
+}
+
+#[test]
+fn async_generic_decode_keeps_inferred_factory_results_in_editor_facts() {
+    use tsrust_lsp::{workspace::Workspace,project_diagnostics::source_id,project_intelligence::ProjectIndex};
+    let source="import {s} from 'std:schema';type Header={operation:string;};function rule(){return s.object({operation:s.string(),title:s.string()});}async function verify(body:string):Task<void>{const header=JSON.parse<Header>(body);const parsed=rule().safeParseJson(body);if(parsed.success){console.log(parsed.data.title);}}async function main():Task<void>{await verify('{\"operation\":\"test\",\"title\":\"ready\"}');}";
+    let source=tsrust_compiler::format(source).unwrap();
+    assert_eq!(tsrust_compiler::format(&source).unwrap(),source);
+    let uri=fixture_uri("async-schema-factory.tsr");let uri=uri.as_str();
+    let id=source_id(uri).unwrap();
+    let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.clone());
+    let checked=workspace.snapshot().check(&id).unwrap();
+    let index=ProjectIndex::checked(&checked);
+    let offset=source.find("parsed.data.title").unwrap()+"parsed.data.".len();
+    let prefix=&source[..offset];
+    let items=index.request("textDocument/completion",&json!({"position":{"line":prefix.matches('\n').count(),"character":prefix.rsplit('\n').next().unwrap().encode_utf16().count()}}),uri).unwrap().unwrap();
+    for field in ["operation","title"] { assert!(items.as_array().unwrap().iter().any(|item|item["label"]==field),"{items}"); }
+    let offset=source.find("rule().safeParseJson").unwrap()+2;
+    let prefix=&source[..offset];
+    let hover=index.request("textDocument/hover",&json!({"position":{"line":prefix.matches('\n').count(),"character":prefix.rsplit('\n').next().unwrap().encode_utf16().count()}}),uri).unwrap().unwrap().to_string();
+    assert!(hover.contains("Schema")&&!hover.contains(": void"),"{hover}");
 }

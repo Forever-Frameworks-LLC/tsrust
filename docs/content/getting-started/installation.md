@@ -50,7 +50,7 @@ rustup toolchain install 1.96.1 --profile minimal
 
 Use Xcode Command Line Tools on macOS, or the distribution's C build tools on
 Linux. Building GPU applications on Linux also requires native development
-libraries; see [contributor setup](../../../CONTRIBUTING.md).
+libraries; see [contributor setup](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/CONTRIBUTING.md).
 
 ## Build from source
 
@@ -72,8 +72,49 @@ native dependency source graphs. Put both executables from `target/release` on
 Download the release's `.vsix` file and use **Extensions → Install from VSIX** in
 VS Code. The VSIX does not embed the Rust server: keep `tsrust` and `tsrust-lsp`
 on `PATH`. The extension also searches `~/.cargo/bin` and beside configured
-companion executables. See [VS Code setup](../../../editors/vscode/README.md) for
+companion executables. See [VS Code setup](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/editors/vscode/README.md) for
 explicit paths and local packaging.
+
+## Windows source installation
+
+Use the MSVC Rust host (`x86_64-pc-windows-msvc`) and Visual Studio's **Desktop
+development with C++** workload, including a Windows SDK. The linker must be
+available to Rust. The native application smoke check exercises the linker rather
+than assuming that finding `cargo` proves the complete toolchain works.
+
+From this checkout in PowerShell, install both development consumers together in
+the standard Cargo executable directory:
+
+```powershell
+$env:CARGO_INCREMENTAL = '0'
+$env:CARGO_BUILD_JOBS = '1'
+cargo fetch --locked
+cargo fetch --locked --manifest-path crates/tsrust-compiler/native-dependencies/Cargo.toml
+cargo install --path crates/tsrust-compiler --bin tsrust --locked --debug --target-dir target
+cargo install --path crates/tsrust-lsp --bin tsrust-lsp --locked --debug --target-dir target
+tsrust --version
+```
+
+`--debug` installs a development build and reuses the shared target. Omit it when
+an optimized local installation is needed; a release-profile build is not a public
+release. Cargo installs `tsrust.exe` and `tsrust-lsp.exe` in
+`$HOME\.cargo\bin`. Rustup normally adds this directory to the user PATH; open a
+new terminal after changing PATH. Do not rename away the `.exe` suffix.
+
+Package the local editor extension with `npm ci`, `npm test` and `npm run package`
+from `editors/vscode`, then install its VSIX using VS Code's **Install from VSIX**.
+The extension discovers both Cargo-installed executables without workspace-specific
+paths and supplies the default formatter for `.tsr` and `.tsrx` files. Explicit
+user formatter choices still take precedence.
+
+Run `tsrust dev` from a configured project to rebuild and restart after edits.
+Windows uses native directory notifications and owns compiler/program descendants
+through Windows Job Objects. Failed builds keep the previous application running;
+a successful rebuild replaces it. Press Ctrl+C or Ctrl+Break to stop the supervisor
+and its descendants. Set `TSRUST_DEV_WATCH=poll` to request polling when native
+notifications are unavailable or unsuitable, such as on some network filesystems.
+Browser UI builds additionally need the web prerequisites described below.
+Native GPU-window setup requires its own platform prerequisites and validation.
 
 The current LSP has an unresolved excessive-memory report during long workspace
 sessions. Use small workspaces and stop the language server if memory grows.
@@ -142,3 +183,20 @@ tsrust format --check
 
 Checks and editor analysis are read-only. See [project structure](project-structure.md)
 and [theming](../ui/foundations/theming.md) for configuration and customization.
+
+## Agent guidance and terminal presentation
+
+`tsrust new` writes a project `AGENTS.md` with commands, ownership expectations,
+UI entry conventions and verification steps. Component installation adds an
+`AGENTS.md` index in the configured component directory and a versioned reference
+for each installed component. References contain imports, checked public
+signatures, props and available behavioral documentation. Read the local source
+after customization. Existing owner guides are preserved; new component links
+append to the directory index. Dry runs do not write these files.
+
+The arrow-key launcher appears in an interactive terminal. An explicit `TERM=dumb`
+selects numbered prompts; redirected input prints help without prompting. Remove
+an accidentally inherited `TERM=dumb` in a normal Windows terminal and start a
+new terminal. The Windows setup example clears that inherited setting in its
+workspace terminal environment. The branded header is printed when the terminal
+is wide enough, including short terminal panels; visible menu rows adapt to height.

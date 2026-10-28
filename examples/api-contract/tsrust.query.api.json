@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "entry": "src/operations.tsr",
+  "output": "generated-query",
+  "package": { "name": "@example/query-api", "version": "0.1.0" },
+  "operations": [
+    { "name": "tasks.list", "module": "src/operations.tsr", "export": "list", "kind": "query" },
+    { "name": "tasks.create", "module": "src/operations.tsr", "export": "create", "kind": "mutation" },
+    { "name": "meta.marker", "module": "src/operations.tsr", "export": "marker", "kind": "query" },
+    { "name": "math.count", "module": "src/operations.tsr", "export": "count", "kind": "query" },
+    { "name": "data.inspectKeys", "module": "src/operations.tsr", "export": "roundTrip", "kind": "query" },
+    { "name": "data.echo", "module": "src/operations.tsr", "export": "echo", "kind": "mutation" }
+  ]
+}

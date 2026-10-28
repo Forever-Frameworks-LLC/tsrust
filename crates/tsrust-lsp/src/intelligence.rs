@@ -2511,7 +2511,8 @@ impl SourceIndex {
         let ty = self.written_type(&self.receiver_type_end(end, 0));
         for wrapper in ["ReadOnly<", "Mutable<", "Owned<"] {
             if let Some(inner) = ty.strip_prefix(wrapper).and_then(|value| value.strip_suffix('>'))
-                && self.native_type_aliases.contains_key(inner.split_once('<').map_or(inner, |(name, _)| name.trim())) {
+                && (self.native_type_aliases.contains_key(inner.split_once('<').map_or(inner, |(name, _)| name.trim()))
+                    || self.is_record_declaration(inner.split_once('<').map_or(inner, |(name, _)| name.trim()))) {
                 return inner.into();
             }
         }
@@ -3091,7 +3092,8 @@ impl SourceIndex {
         for _ in 0..=bases.len() {
             let mut added=false;
             for (owner,bases) in &bases {for base in bases {
-                let Ok(annotation)=tsrust_compiler::type_syntax::parse(base) else{continue;};
+                let base=self.written_type(base);
+                let Ok(annotation)=tsrust_compiler::type_syntax::parse(&base) else{continue;};
                 use tsrust_compiler::type_syntax::ValueAnnotationKind;
                 let (base_name,bindings):(String,std::collections::BTreeMap<String,String>)=match annotation.into_kind(){
                     ValueAnnotationKind::Named(name)=>(name.text,Default::default()),

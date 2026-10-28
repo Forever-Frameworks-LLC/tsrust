@@ -104,5 +104,5 @@ for (const category of categories) {
   lines.push(`| \`${(row.display ?? row.id).replaceAll('|', '\\|')}\` | ${row.implementation} | ${row.comparison} | ${note} |`);
  }
 }
-fs.writeFileSync(path.join(root, 'docs/feature-coverage.md'), lines.join('\n') + '\n');
+fs.writeFileSync(path.join(root, 'docs/guides/language/feature-coverage.md'), lines.join('\n') + '\n');
 console.log(`Coverage updated: ${entries.length} operations across ${categories.length} families; unique IDs and comparison references verified.`);

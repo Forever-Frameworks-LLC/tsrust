@@ -1,0 +1,51 @@
+import { Filter, Item, VariantA, VariantB, list, create, marker, count, roundTrip, echo } from './operations.tsr';
+import { FixtureContext } from './server-policy.tsr';
+
+export type ItemV2 = {
+  kind: 'task';
+  id: int;
+  title: string;
+  completed: boolean;
+  revision: int;
+};
+
+export function listV2(input: Filter): ItemV2[] {
+  const result: ItemV2[] = [];
+  const items = list(input);
+  for (const item of items) {
+    result.push({
+      kind: 'task', id: item.id, title: clone(item.title), completed: item.completed, revision: 1
+    });
+  }
+
+  return result;
+}
+
+export async function privateCount(context: ReadOnly<FixtureContext>, input: int): Task<int> {
+  return input + context.env.increment;
+}
+
+type Nested = {
+  rows: Item[];
+  pair: [Item, int];
+  item?: Item;
+  enabled?: boolean;
+  maybe: Item | null;
+  variant: VariantA | VariantB;
+};
+
+export function echoNested(input: Nested): Nested {
+  return input;
+}
+
+export function echoRows(input: Item[]): Item[] {
+  return input;
+}
+
+export function unsafeInteger(): int {
+  return 9007199254740992;
+}
+
+export function privateFailure(): int {
+  throw 'private backend SQL detail';
+}

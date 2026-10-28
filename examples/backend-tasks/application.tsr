@@ -1,0 +1,19 @@
+import { Router } from 'std:http';
+import { Application } from './context.tsr';
+import { preflight } from './access.tsr';
+import { dispatch } from './generated-server/index.tsr';
+
+export function routes(application: Owned<Application>): Router<Application> {
+  const app = new Router<Application>(application);
+  app.configure({
+    bodyLimit: 65536, maxConnections: 32, maxRequests: 16, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 1000
+  });
+  app.use(async (context, next) => {
+    context.header('cache-control', 'no-store');
+    context.header('x-content-type-options', 'nosniff');
+    await next();
+  });
+  app.options('/api', preflight);
+  app.post('/api', dispatch);
+  return app;
+}

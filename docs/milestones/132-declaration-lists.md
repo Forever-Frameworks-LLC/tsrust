@@ -10,7 +10,7 @@ The initializer of a classic `for` loop accepts a declaration list, and its upda
 
 Each declarator keeps the ownership rules it has as its own declaration. The comma is a separator in these two positions only; a general comma expression is still unavailable.
 
-See [the syntax guide](../declaration-lists.md).
+See [the syntax guide](../guides/language/declaration-lists.md).
 
 ## Implementation
 

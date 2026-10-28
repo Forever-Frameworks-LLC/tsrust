@@ -1,5 +1,16 @@
 mod support;
 
+#[test]
+fn contextual_union_results_keep_generic_inference_and_single_evaluation() {
+    let source = support::format_round_trip(include_str!("fixtures/source-call-expression-order/contextual-union.tsr"));
+    let directory = support::TempDirectory::new();
+    let output = support::run(support::cli().arg("run").arg(directory.source(&source)), 120);
+    support::success(&output);
+    assert!(output.stdout.is_empty());
+    let invalid = support::format_round_trip("type First={kind:'first';value:int;};type Second={kind:'second';text:string;};function bad<T>():T{return {kind:'other',value:1};}function main(){const value:First|Second=bad();}");
+    assert!(tsrust_compiler::check(&invalid).is_err(), "Union result inference must still reject an invalid variant");
+}
+
 const DECLARATIONS: &str = "function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}function accept<T>(first:T,second:T):T{return first;}";
 fn source(body: &str) -> String {
     format!("{DECLARATIONS}function unused<T>(flag:boolean,value:T):T{{{body}}}function main(){{}}")

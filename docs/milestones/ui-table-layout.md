@@ -1,5 +1,22 @@
 # Paired Table implementation
 
+Windows continuation, 2026-10-26: the memory investigation has bounded ownership,
+scan and protocol evidence at local checkpoint `7b18073a`; required editor agreement
+acceptance is still running. A read-only `ui add table --cwd docs --dry-run --json`
+found generated host separators rejected by the installer's strict portable-path
+guard. The prerequisite repair normalizes only generated component, versioned and
+attribution paths before validation/lock serialization. Authored config/catalog
+validation stays strict. This repair is implemented but unvalidated. No Table
+source, lock registration, browser or native acceptance is implied.
+
+The installer prerequisite subsequently passes its generated-path, versioned
+installation/idempotence/owner-source and Kbd-upgrade witnesses. Its production CLI
+was not refreshed before the owner requested cleanup. The exact Table editor checks
+remain open: colSpan lacks inherited behavioral documentation. A focused compiler
+check found the old multi-import fixture illegally redeclared an inherited field;
+valid documentation cases and a separate duplicate-field rejection now preserve
+the existing language boundary. Their corrected focused unit remains unrun.
+
 This section is in validation. It is not accepted until generated-native, editor
 and actual browser checks complete. Reuse the earlier theme, ownership, window,
 navigation and Markdown evidence; no full regression or benchmark run is implied.
@@ -50,3 +67,52 @@ from their actual source, keeps compiler-provided types, and preserves explicitl
 declared field documentation. The new regression covers multiple imports,
 generic inheritance and an explicit local override. These repairs are awaiting
 their focused acceptance; earlier passing model evidence remains retained.
+
+## Windows inherited editor help, 2026-10-26
+
+After Windows native linking checkpoint 37a48cfb, the remaining null header hover
+was traced to ownership-wrapped record receivers. Shared lookup now unwraps known
+records, preserving callable ownership. The Table-only missing documentation then
+traced to imported generic aliases in inheritance bases; the existing written-type
+resolver now re-expands those bases after imports finish. No built-in docs were
+invented and no compiler rule changed.
+
+The formatted multi-file unit passes both header and checked indices for renamed
+generic aliases, ReadOnly/Mutable/Owned receivers, original definitions and local
+versus inherited help. A separate illegal inherited redeclaration still rejects.
+The real ui_content batch retains four passing protocol cases. Its failed Table
+case passes after the alias repair, with documented colSpan range, expected
+inherited prop completion, rowSpan diagnostic and zero consistency counters.
+Concise logs are target/table-inherited-help-resumed.log,
+target/table-editor-protocol.log and target/table-editor-protocol-repair.log.
+Whole-project formatting/token guards and format-check pass unchanged. This accepts
+the focused editor repair; generated-native, installation/documentation execution
+and actual browser acceptance remain pending.
+
+## Windows generated-native construction acceptance
+
+The shared spacing scale omitted 10 despite the pinned Table's h-10 default.
+Adding the missing scale token preserves its source and supports default 40px
+and custom 50px dimensions through the shared CSS/native rules. Four layout tests
+pass, including token registration, resolved dimensions and existing all-token
+coverage. Two installation-page links escaped the docs project root; they now
+use the actual external repository documents, preserving link traversal guards.
+The keyboard and Table documentation native executables pass after that repair.
+
+The compiler content batch retains four passing cases: semantic content/offline
+installation, keyboard reference, Table documentation and native renderer bundle.
+Its only remaining failure was nested-table rejection in the actual editable
+components. Labeled original assertions identified it; initial reactive class
+binding checked utility spelling but skipped structural validation after the
+semantic tag was already applied. with_class_binding now invokes the existing
+shared validator before returning. Eight selected model checks pass, including
+rejected bound rows/tables and evaluator-capture disposal.
+
+The exact generated-native Table witness subsequently passes in 31.55s after
+an 11m20s compiler rebuild. Span/HTML checks, capture retention, exact single
+release, invalid span and nested-table rejection remain intact. Log:
+target/table-ownership-structure-repair.log. No cold dependency replay or unchanged
+full regression was used. The new formatted table-interaction.tsrx entry imports
+the real three documentation examples, adds a theme toggle and narrow overflow
+container; check passes and it is registered for formatting acceptance. Actual
+browser/window Table interaction and the complete paired section remain pending.

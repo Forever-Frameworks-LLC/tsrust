@@ -190,7 +190,7 @@ Use $caveman for concise communication. Work in
 
 Read AGENTS.md, docs/handoffs/2026-10-13-s11-acceptance.md,
 docs/development-workflow.md, docs/guides/compiler-source-layout.md,
-docs/standard-library-roadmap.md, docs/standard-library-coverage.md and
+docs/plans/standard-library-roadmap.md, docs/guides/language/standard-library-coverage.md and
 relevant plans. Inspect Git status first and preserve the listed owner files.
 Reconcile source and SQLite evidence rather than trusting stale summaries.
 

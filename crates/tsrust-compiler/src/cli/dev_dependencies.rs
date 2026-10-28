@@ -4,7 +4,7 @@ use tsrust_compiler::project::{SourceId,SourceProvider,FileSourceProvider};
 use crate::dev_watch::{Contents,Inputs,Stamp};
 struct Provider {invalid:Cell<bool>,inputs:RefCell<Inputs>,observed:RefCell<BTreeMap<PathBuf,Option<Stamp>>>}
 impl Provider {
- fn observe(&self,path:&Path)->Option<Stamp>{let stamp=std::fs::metadata(path).ok().map(Stamp::from);self.observed.borrow_mut().insert(path.to_owned(),stamp.clone());stamp}
+ fn observe(&self,path:&Path)->Option<Stamp>{let stamp=Stamp::read(path).ok();self.observed.borrow_mut().insert(path.to_owned(),stamp.clone());stamp}
  fn file(&self,path:&Path)->Result<Option<String>,String>{
   let before=self.observe(path);
   if let Some(contents)=self.inputs.borrow().files.get(path){return String::from_utf8(contents.bytes().to_vec()).map(Some).map_err(|error|error.to_string());}
@@ -48,7 +48,7 @@ pub(crate) fn capture(root:&Path,files:BTreeMap<PathBuf,Contents>)->Result<(Inpu
   let _=tsrust_compiler::project::load_project_headers(&provider,entry.to_str().ok_or("Source path must be valid UTF-8.")?);
  }
  if provider.invalid.get(){return Err("Dependency changed during capture; retrying".into());}
- for(path,stamp)in provider.observed.borrow().iter(){if std::fs::metadata(path).ok().map(Stamp::from)!=*stamp{return Err(format!("{} changed during dependency capture",path.display()));}}
+ for(path,stamp)in provider.observed.borrow().iter(){if Stamp::read(path).ok()!=*stamp{return Err(format!("{} changed during dependency capture",path.display()));}}
  // Native events already cover ordinary in-root paths. Poll only dependencies
  // outside that tree (including excluded directories reached through imports).
  let observed=provider.observed.into_inner().into_iter().filter(|(path,_)|{

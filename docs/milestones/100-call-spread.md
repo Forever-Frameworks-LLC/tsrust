@@ -35,7 +35,7 @@ Include supported built-in and native method call sites. Fixed, optional and var
 
 ## Focused acceptance
 
-The staged compiler, editor and registration work was integrated into the main tree, repaired and checked there. The user guide is [call-spread.md](../call-spread.md).
+The staged compiler, editor and registration work was integrated into the main tree, repaired and checked there. The user guide is [call-spread.md](../guides/language/call-spread.md).
 
 Implementation: source `...` arguments parse as call-only spread nodes. `spread_calls.rs` and `spread_builtins.rs` plan each call once into ordered segments, selected argument slots and an optional rest destination; `spread_emit.rs` and `spread_builtin_emit.rs` lower the plan to native slices, iterators and vectors with a runtime supplied count. Supplied counts use `CallArgumentCount`, so dynamic cardinality reaches concrete, abstract, materialized and finite-family dispatch.
 

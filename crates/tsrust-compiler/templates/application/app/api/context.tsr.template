@@ -1,0 +1,7 @@
+import { Context } from 'std:http';
+
+export type AppState = {
+  name: string;
+};
+
+export type AppContext = Context<AppState>;

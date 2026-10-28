@@ -1,0 +1,8 @@
+{
+  "build": {
+    "entry": "src/main.tsr",
+    "output": "target/windows-setup.exe"
+  },
+  "name": "windows-setup",
+  "schemaVersion": 1
+}

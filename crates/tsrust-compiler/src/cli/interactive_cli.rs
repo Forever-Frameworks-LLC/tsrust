@@ -40,8 +40,8 @@ pub(super) fn launcher(arguments: &[String]) -> Result<bool, String> {
 fn header() -> Result<(), String> {
     if !rich() || HEADER.swap(true, Ordering::Relaxed) { return Ok(()); }
     cliclack::set_theme(DefaultTheme);
-    let (height, width) = console::Term::stderr().size();
-    if width >= 40 && height >= 20 {
+    let (_, width) = console::Term::stderr().size();
+    if width >= 40 {
         eprintln!();
         for line in ["▀█▀ █▀▀ █▀█ █ █ █▀▀ ▀█▀", " █  ▀▀█ █▀▄ █ █ ▀▀█  █ ", " ▀  ▀▀▀ ▀ ▀ ▀▀▀ ▀▀▀  ▀ "] {
             eprintln!("  {}", console::Style::new().for_stderr().cyan().bold().apply_to(line));
@@ -61,6 +61,8 @@ fn prompt_result<T>(result: io::Result<T>) -> Result<Option<T>, String> {
 struct PromptInput {
     #[cfg(unix)]
     original: libc::termios,
+    #[cfg(windows)]
+    original: (windows_sys::Win32::Foundation::HANDLE,u32),
 }
 impl PromptInput {
     fn enter() -> io::Result<Self> {
@@ -75,13 +77,25 @@ impl PromptInput {
             if libc::tcsetattr(0, libc::TCSADRAIN, &raw) != 0 { return Err(io::Error::last_os_error()); }
             original
         };
-        Ok(Self { #[cfg(unix)] original })
+        #[cfg(windows)]
+        // SAFETY: borrow the current console input handle for this prompt only.
+        // Restore its exact mode on every normal cancellation/error return.
+        let original=unsafe {
+            use windows_sys::Win32::System::Console::*;
+            let input=GetStdHandle(STD_INPUT_HANDLE);let mut mode=0;
+            if GetConsoleMode(input,&mut mode)==0{return Err(io::Error::last_os_error());}
+            if SetConsoleMode(input,mode&!(ENABLE_PROCESSED_INPUT|ENABLE_LINE_INPUT|ENABLE_ECHO_INPUT))==0{return Err(io::Error::last_os_error());}
+            (input,mode)
+        };
+        Ok(Self { #[cfg(any(unix,windows))] original })
     }
 }
 impl Drop for PromptInput {
     fn drop(&mut self) {
         #[cfg(unix)]
         unsafe { libc::tcsetattr(0, libc::TCSADRAIN, &self.original); }
+        #[cfg(windows)]
+        unsafe { windows_sys::Win32::System::Console::SetConsoleMode(self.original.0,self.original.1); }
         let _ = console::Term::stderr().show_cursor();
     }
 }
@@ -177,12 +191,12 @@ pub(super) fn command() -> Result<Option<Vec<String>>, String> {
     loop {
         let mut categories = Vec::new();
         if project.is_some() { categories.extend([("Development", "Watch, run and build this application"), ("Quality", "Type checks, tests and formatting")]); }
-        categories.extend([("UI", "Browse offline components and add editable source"), ("Project", "Create a console or UI application"), ("Help", "Command reference and examples"), ("Exit", "Return to your shell")]);
+        categories.extend([("UI", "Browse legacy offline components and add editable source"), ("Project", "Create a backend or console application"), ("Help", "Command reference and examples"), ("Exit", "Return to your shell")]);
         let Some(category) = select("What would you like to do?", &categories, false)? else { return Ok(None); };
         let selection = match categories[category].0 {
             "Development" => action("Development", &[("Start development", "tsrust dev", &["dev"]), ("Run once", "tsrust run", &["run"]), ("Build executable", "tsrust build", &["build"])])?,
             "Quality" => action("Quality", &[("Check types", "tsrust check", &["check"]), ("Run tests", "tsrust test", &["test"]), ("Check formatting", "tsrust format --check", &["format", "--check"])])?,
-            "Project" => action("Project", &[("Create a project", "Choose a destination, application type and UI targets", &["new"])])?,
+            "Project" => action("Project", &[("Create a project", "Choose a destination and application type", &["new"])])?,
             "UI" => loop {
                 let Some(choice) = select("UI", &[("Browse components", "Search current offline components and inspect details"), ("Add components", "Select several and install editable source together"), ("Consolidate license notices", "Move full component notices into attributions/"), ("Back", "Return to categories")], false)? else { return Ok(None); };
                 if choice == 3 { break Some(Vec::new()); }

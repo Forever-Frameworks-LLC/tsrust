@@ -9,7 +9,7 @@ pub(super) fn record(text:&str)->Result<Attribution,String> {
  let name=if text==include_str!("../../../../attributions/shadcn-MIT.txt"){"shadcn-MIT.txt".to_owned()}
  else if text==include_str!("../../../../attributions/tsrust-MIT.txt"){"tsrust-MIT.txt".to_owned()}
  else {format!("notice-{digest}.txt")};
- Ok(Attribution{path:PathBuf::from("attributions").join(name),sha256:digest})
+ Ok(Attribution{path:portable_generated_path(&PathBuf::from("attributions").join(name))?,sha256:digest})
 }
 pub(super) fn ensure(root:&Path,notice:&Attribution,text:&str,files:&mut BTreeMap<PathBuf,Vec<u8>>,messages:&mut Vec<String>)->Result<(),String> {
  let path=no_symlinks(root,&notice.path)?;

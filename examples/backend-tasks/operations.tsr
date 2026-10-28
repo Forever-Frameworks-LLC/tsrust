@@ -1,0 +1,18 @@
+import { TaskContext } from './context.tsr';
+import { ListInput, CreateInput, UpdateInput, DeleteInput, Page, Item, Deleted, Failure, list as listTasks, create as createTask, update as updateTask, remove as deleteTask } from './repository.tsr';
+
+export async function list(context: ReadOnly<TaskContext>, input: ListInput): Task<Page | Failure> {
+  return await listTasks(context.env.pool, input);
+}
+
+export async function create(context: ReadOnly<TaskContext>, input: CreateInput): Task<Item | Failure> {
+  return await createTask(context.env.pool, input);
+}
+
+export async function update(context: ReadOnly<TaskContext>, input: UpdateInput): Task<Item | Failure> {
+  return await updateTask(context.env.pool, input);
+}
+
+export async function remove(context: ReadOnly<TaskContext>, input: DeleteInput): Task<Deleted | Failure> {
+  return await deleteTask(context.env.pool, input);
+}

@@ -123,6 +123,7 @@ enum ExpressionState {
     GenericReceiver,
     BuiltinReceiver { literals: bool },
     GenericCall,
+    ContextualGenericCall,
     Adapter,
     Deferred { origin: usize, conditional: Option<(super::call::CallCompletion, bool)> },
     Transform(Box<transform::State>),
@@ -949,6 +950,14 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             start_invocation(analyzer, context, task, false, true)
         }
         ExpressionState::BuiltinReceiver { literals } => resume_builtin_receiver(analyzer, contexts.get(task.context), task, literals, completion),
+        ExpressionState::ContextualGenericCall => {
+            let Completion::Generic(value, result) = completion.expect("contextual generic preparation") else { unreachable!() };
+            *task.expression.value() = *value;
+            if let Err(error) = result { return finish_expression(analyzer, contexts.get(task.context), task, Err(error)); }
+            // The concrete callee now has its real result. Resume ordinary
+            // expression conversion, including union membership and ownership.
+            step_expression(analyzer, contexts, task, None)
+        }
         ExpressionState::GenericCall => {
             let Completion::Generic(value, result) = completion.expect("call generic preparation") else { unreachable!() };
             *task.expression.value() = *value;
@@ -1095,7 +1104,7 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             let context = contexts.get(task.context);
             let ExprKind::Call(_, args) = &mut task.expression.value().kind else { unreachable!("argument parent") };
             args[index] = *argument.into_child();
-            let result = result.and_then(|actual| analyzer.finish_argument(&mut args[index], &mut call.arguments, frame, actual));
+            let result = result.and_then(|actual| analyzer.finish_argument(context, &mut args[index], &mut call.arguments, frame, actual));
             match result {
                 Ok(()) => schedule_argument(analyzer, context, task, call),
                 Err(error) => finish_expression(analyzer, context, task, Err(error)),
@@ -1334,6 +1343,20 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             debug_assert!(completion.is_none());
             let context = contexts.get(task.context);
             let expr = task.expression.value();
+            // Union injection otherwise removes the whole result context before
+            // generic inference can bind it. Preparation runs on the same heap
+            // driver and never evaluates source arguments.
+            if matches!(task.expected, Some(Type::Union(_)))
+                && matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind,
+                    ExprKind::Name(name) if !context.names.contains_key(name) && !context.pending_names.contains(name)
+                        && analyzer.generic_functions.template(name).is_some()))
+            {
+                let span = expr.span;
+                let value = Box::new(std::mem::replace(expr, Expr::new(ExprKind::Undefined, span)));
+                let child = Task::Generic(Box::new(generic::GenericTask::new(value, std::rc::Rc::new(context.clone()), task.expected)));
+                task.state = ExpressionState::ContextualGenericCall;
+                return Step::Push(Task::Expression(task), child);
+            }
             if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Name(name) if name == "@match:yield")) {
                 return matching::schedule_yield(analyzer, context, task);
             }

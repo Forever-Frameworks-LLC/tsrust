@@ -17,7 +17,7 @@ the shared debug CLI has current S11 work for development checks.
 ## Mandatory workflow
 
 Read `AGENTS.md`, `docs/development-workflow.md`,
-`docs/standard-library-roadmap.md`, `docs/standard-library-coverage.md` and
+`docs/plans/standard-library-roadmap.md`, `docs/guides/language/standard-library-coverage.md` and
 `docs/plans/schema-plan.md`. Apply the user's caveman skill for concise chat;
 write normal prose in source, documentation and commits.
 

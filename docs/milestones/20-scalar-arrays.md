@@ -1,6 +1,6 @@
 # Milestone 20: owned scalar arrays
 
-[Scalar operators](./12-scalar-operators.md) · [While loops](./13-while-loops.md) · [Collections workstream](../primitives-and-collections.md) · [Roadmap](../roadmap.md)
+[Scalar operators](./12-scalar-operators.md) · [While loops](./13-while-loops.md) · [Collections workstream](../guides/language/primitives-and-collections.md) · [Roadmap](../roadmap.md)
 
 **Status:** Complete. [Milestone 22](./22-owned-array-elements.md) subsequently extends arrays to owned strings and records; the scope below records this gate's original boundary. [Milestone 21](./21-for-of.md) subsequently adds borrowed for-of iteration; the scope below records the milestone 20 boundary. The full 249-group regression suite passes, including 12 scalar array groups. Formatting, Clippy, and local documentation links are verified.
 

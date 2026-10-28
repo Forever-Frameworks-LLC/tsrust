@@ -1,0 +1,11 @@
+import { Context } from 'std:http';
+import { Pool } from 'std:sql';
+import { Bytes } from 'std:bytes';
+
+export type Application = {
+  pool: Pool;
+  tokenDigest: Bytes;
+  browserOrigin: string;
+};
+
+export type TaskContext = Context<Application>;

@@ -7,7 +7,11 @@ commands. The Rust language server shares the compiler's analysis library.
 Tsrust and this extension are experimental. The current language server has an
 unresolved report of excessive memory use in long workspace sessions. Avoid large
 workspace scans until resolved; stop or disable the extension for the workspace
-if memory grows. Unexpected server termination does not trigger a restart loop.
+if memory grows. Unexpected exits use bounded recovery: up to four automatic
+restarts within the language client's three-minute failure window. A fifth exit
+stops recovery and leaves the cause in **Output → Tsrust**. Use **Tsrust: Restart
+Language Server** to reset the budget after inspecting repeated failures. Recovery
+does not establish that the underlying exit or memory issue is resolved.
 
 ## Install
 
@@ -35,6 +39,12 @@ Use user settings to share paths across projects. Open a `.tsr` or `.tsrx` file
 in a trusted workspace. **View → Output → Tsrust** shows startup and protocol
 errors. Run **Tsrust: Restart Language Server** after replacing its executable;
 **Developer: Reload Window** reloads extension updates.
+
+On Windows, Cargo installs `tsrust.exe` and `tsrust-lsp.exe` under
+`%USERPROFILE%\.cargo\bin`; keep the `.exe` suffixes. The same automatic discovery
+works in a fresh project without custom paths. Paths containing spaces or Unicode
+are supported. The extension supplies the Tsrust default formatter without
+overwriting explicit user settings.
 
 Checking and formatting require no external Rust compiler. **Run File** and
 native builds require Rustup, the pinned Rust backend and a system linker.

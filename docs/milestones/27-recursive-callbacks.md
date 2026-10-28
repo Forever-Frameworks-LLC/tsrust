@@ -1,6 +1,6 @@
 # Milestone 27: recursive callback parameters
 
-[Recursive data functions](./26-recursive-functions.md) · [Callback contracts](./04-synchronous-callbacks.md) · [Single-use callbacks](./05-single-use-callbacks.md) · [Compiler workstream](../compiler-and-modules.md) · [Roadmap](../roadmap.md)
+[Recursive data functions](./26-recursive-functions.md) · [Callback contracts](./04-synchronous-callbacks.md) · [Single-use callbacks](./05-single-use-callbacks.md) · [Compiler workstream](../guides/language/compiler-and-modules.md) · [Roadmap](../roadmap.md)
 
 **Status:** Complete. All 339 regression groups pass, including 14 recursive-callback groups. Formatting and Clippy pass.
 
@@ -38,7 +38,7 @@ The suite compiles and runs exactly 128 distinct callback environments, rejects 
 
 ## Evidence and remaining boundaries
 
-The [recursive-callback suite](../../crates/tsrust-compiler/tests/recursive_callbacks.rs) verifies tree traversal, reusable state and operand order, self/mutual forwarding and aliases, single-use owned/borrowed environments, exact scalar/read/mutate/consume arguments, stable data transfer effects, later-operand overlaps, capture conflicts, shared iteration, fresh arrow/factory replacement, type-vector limits, source depth guards, deterministic public metadata and Rust output, and CLI checking/emission with an empty executable search path. Existing suites continue checking arithmetic, bounds, transfers, and native behavior. [Analysis measurements](../analysis-performance.md) record callback workloads separately from native compilation.
+The [recursive-callback suite](../../crates/tsrust-compiler/tests/recursive_callbacks.rs) verifies tree traversal, reusable state and operand order, self/mutual forwarding and aliases, single-use owned/borrowed environments, exact scalar/read/mutate/consume arguments, stable data transfer effects, later-operand overlaps, capture conflicts, shared iteration, fresh arrow/factory replacement, type-vector limits, source depth guards, deterministic public metadata and Rust output, and CLI checking/emission with an empty executable search path. Existing suites continue checking arithmetic, bounds, transfers, and native behavior. [Analysis measurements](../measurements/analysis-performance.md) record callback workloads separately from native compilation.
 
 Cycles containing owned callback parameters or callable results still receive `unsupported` with a related cycle location. Recursive retention and growing owned environment types require a separate contract. Non-owned callback captures, local self-referential environments, callable-valued callback signature results, shared aliases, partial field moves, shared ownership, source generics, modules, async, and the Rust language server remain separately scoped. The compiler does not prove termination, enforce a runtime recursion depth, or guarantee tail-call optimization.
 

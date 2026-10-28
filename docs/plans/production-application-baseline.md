@@ -1,0 +1,140 @@
+# Production application baseline
+
+Historical UI-oriented baseline, superseded by
+[the backend-only reset](backend-only-reset.md). Default applications now contain
+only a native backend and independent SDKs. Frontend targets below are not required.
+
+Owner direction, 2026-10-27: stop extending hand-built prototypes, clean up, and
+build the actual production implementation from the CLI outward. This changes
+implementation order, not the required backend/web/desktop/mobile, SDK, lifecycle,
+security, migration, editor or measurement scope in docs/agent-goal.md.
+
+The [Rust setup/distribution workstream](rust-setup-and-dependency-distribution.md)
+adds explicit doctor/setup and application dependency resolution, cached locked/offline
+native builds and portable vendored exports. Finish the current coherent layout
+section, inventory dependency paths, then settle preparation/readiness before
+production build/dev integration. Dev preflight must report missing prerequisites
+without hidden rustup, Cargo or frontend-tool downloads. This does not remove the
+user's package-manager choice or authorize managing unrelated global configuration.
+
+## Reset boundary
+
+Keep accepted compiler/LSP/backend, checked operation manifest, codecs, compatible
+SDK versioning, plain client, Query Core/React adapters and static mount support.
+Preserve historical evidence and the frozen UI in place. Keep the task applications
+as integration fixtures; they are not the default product or a substitute for CLI
+generation acceptance. Preserve owner edits and ordinary project/package ownership.
+Do not archive source, rewrite Git history or discard accepted work as cleanup.
+
+Remove disposable failed test consumers and stop finished owned previews. Revert
+unverified experimental fixes instead of checkpointing them as production changes.
+Keep concise failure evidence when it identifies actual remaining behavior. The
+attempted Forge dev witness reproduced an empty renderer/navigation failure;
+packaged acceptance does not prove dev mode. The attempted exact-origin navigation
+workaround did not fix it and was removed. Diagnose again in the real generated
+starter, with early renderer/preload/Vite diagnostics and bounded child cleanup.
+
+## Default application
+
+The owner subsequently found the first generated root cluttered. The recommended
+next configuration/layout section keeps app/ and web/ as primary folders. The
+owner approved the recommendation with generated/ at the same root level as app/
+and web/, containing generated/{client,server}. app/ follows common TypeScript
+folder patterns: main.tsr is the entry, api/ holds exposed operations/context/access
+policy, lib/ holds reusable backend logic, and tests/ holds backend tests. Move
+the actual greeting logic into lib/ rather than emitting unused empty directories.
+Consolidate human-authored API settings into tsrust.config.json, and keep managed
+integration bookkeeping under generated/. Preserve the versioned SDK
+compatibility history and generated-output ownership guards. Normal pnpm workspace/
+manifest/lock files remain at the root. Offer editor-only hiding of dependency/
+build artifacts without disabling diagnostics or changing the owner's editor
+preferences. This approved layout is not yet emitted by the CLI; finish the current
+starter checkpoint before implementing the next configuration section. Retain
+legacy standalone API configs and existing-project paths during that change.
+
+Generate a small landing page with a name field and a typed "greet server" call.
+No task database, pagination, token-entry screen or demo-specific DTOs are required
+for the default. Keep editable lib/api.ts/provider setup, desktop TitleBar/config,
+upstream components, normal manifests/scripts/locks and documented integration
+ownership. Do not hide an app's authentication policy in the SDK or make a demo
+credential form a universal bootstrap requirement. A public greeting operation
+must be explicitly declared public and must not imply other operations are public.
+
+Use the owner's app/, web/, native/ and mobile/ layout for newly created application
+projects, adding an explicitly configured generated client package. Existing
+projects can retain their own paths and tools. Select targets explicitly; missing
+choices must not silently create legacy renderer code. Backend/client-only use
+must not pull in a UI toolchain. Retain legacy scaffolding only through its explicit
+legacy option, with accurate help and docs. Final command spellings are implemented
+and tested together; this plan does not claim new flags already exist.
+
+## Implementation order and acceptance
+
+Owner follow-ups make manager-aware multi-target dev the next product boundary.
+Add a package-manager choice during creation/import; npm/pnpm/yarn/bun need their
+own valid workspace, lock and command forms, not renamed pnpm files. Preserve
+existing-project tooling. Offer an explicit managed local toolchain option; do
+not require global pnpm. Claim each choice only after an actual fresh CLI project
+and normal package-manager/dev acceptance prove it.
+
+`tsrust dev` runs every configured application target by default. Interactive
+terminals offer a checklist initially selecting all; explicit --server, --web and
+--desktop selectors bypass the checklist and select only those configured kinds.
+Noninteractive default selects all configured targets. Later Expo/other targets
+join through real configuration, never phantom choices. Preserve legacy native/
+web dev behavior for old UI projects. Supervise startup/error logs, selected
+manager commands, native rebuild/SDK regeneration and Vite HMR, with Ctrl+C cleanup
+of all owned descendants and no takeover of existing listeners.
+
+At the owner's request, the previously owned backend/Vite previews (sessions
+44155/4992) were stopped through Ctrl+C and ports 4318/5173 were verified free.
+The owner intends to run their own server. Subsequent temporary QA instances must
+be isolated and closed after verification. Explain the exact project being watched:
+the earlier greeting-web folder differs from the latest greeting-web-locked.
+
+1. Implement the project configuration and actual CLI creation path for a minimal
+   backend plus web greeting app. Reuse current SDK generation and native service
+   contracts. Validate choices before writes, never overwrite an existing project,
+   and report partial failures accurately. Dependency installation is an explicit
+   observable step; preserve ordinary package-manager commands and owner edits.
+2. Generate a fresh project through the built CLI. Inspect paths, selected targets,
+   public/auth policy, generated package imports, versions and editable integration
+   files. Run check/format/test, frontend types/build and editor diagnostics. Start
+   visible dev mode and prove greeting, loading/errors, backend and frontend edits,
+   clean restart/shutdown and observable diagnostics. A source copy is insufficient.
+3. Add desktop to that same generation/configuration path using the admitted Forge
+   Vite integration. Resolve the dev-loading failure before calling the target
+   accepted. Prove editable full-width header, native caption safe areas, named-only
+   sandbox bridge, startup/crash/drain/orphan handling and external packaging. Run
+   a newly generated app visibly in dev mode while the owner can interact.
+4. Add Expo/RNR through the same boundary, with a real Android device/emulator
+   witness, normal dependency ownership and SDK imports. Do not substitute Expo web
+   for native Android acceptance or claim iOS without its platform evidence.
+5. Complete existing-project import/client export, configured multi-web serving,
+   optional orchestration, component installation and scoped integration migration
+   preview/rollback. Exercise real CLI choices and preserved user customizations.
+6. Complete optional upstream signed update setup/feed integration and bounded
+   long-operation cancellation/cleanup. Keep signing/platform/hardware decisions
+   in native-targets-and-secure-updates.md. Finish backend-family regressions and
+   matched performance review before production-readiness claims.
+
+For every major template, CLI or SDK generator change, create a fresh CLI project,
+inspect the output and keep visible dev mode running during template verification.
+The owner selected D:/ai_dev/tsrust/generated-projects/ for these interactive
+projects; use clear names and provide runnable dev commands. Do not put them in
+target or overwrite the owner's examples/windows-setup project. Automated disposable
+consumers can still use temporary directories. Preserve owner edits to previews.
+The owner also reports visible VS Code errors. Track installed compiler/LSP hashes,
+resolve affected diagnostics and verify real generated-project LSP error/repair
+behavior. Raw template assets use a non-source suffix; they are not runnable
+projects before generation. Do not disable actual project diagnostics. Refresh
+the Tsrust service cooperatively rather than restarting the owner's editor.
+Fix affected type, runtime and editor problems as they appear. Use LSP protocol/
+diagnostic checks without controlling the owner's editor; record locked/stale
+installed editor images and unavailable platform evidence honestly. Keep generated
+agent guidance accurate about real commands and supported behavior.
+
+Each accepted vertical slice gets its own local source checkpoint after whole-
+project formatting and affected checks. Do not add unrelated dependency upgrades,
+new runtime frameworks or speculative abstractions. No release/publication or
+remote CI is authorized by this reset.

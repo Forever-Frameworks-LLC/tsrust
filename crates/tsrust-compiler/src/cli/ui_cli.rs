@@ -5,6 +5,8 @@ use sha2::{Digest,Sha256};
 use tsrust_compiler::ui_project::{Config,Targets,safe_relative};
 #[path = "ui_attributions.rs"]
 mod attributions;
+#[path = "ui_agent_guidance.rs"]
+mod agents;
 const ABI:&str=tsrust_compiler::ui_project::RUNTIME_ABI;
 const CATALOG:&str="bundled-2026-10-20";
 #[derive(Clone,Debug,Deserialize,Serialize,PartialEq,Eq,PartialOrd,Ord)]
@@ -50,12 +52,18 @@ fn current_request(request:&str,variant:&str,items:&[Item])->Result<Identity,Str
  if version.is_some_and(|version|version!=item.version){return Err(format!("Only {}@{} is supported for new installations; existing project files are preserved",item.name,item.version));}
  Ok(identity(item))
 }
+// Only generated paths use this conversion; authored config/catalog paths still
+// pass safe_relative before composition. Lock paths stay portable across hosts.
+pub(super) fn portable_generated_path(path:&Path)->Result<PathBuf,String> {
+ let path=PathBuf::from(path.to_str().ok_or("Invalid generated UI path")?.replace('\\',"/"));
+ safe_relative(&path)?;Ok(path)
+}
 fn versioned_path(path:&Path,version:&str)->Result<PathBuf,String> {
  let number=version_number(version)?;
  let suffix=if number[1..]==[0,0]{number[0].to_string()}else{version.replace('.',"-")};
  let stem=path.file_stem().and_then(|stem|stem.to_str()).ok_or("Invalid bundled component filename")?;
  let name=match path.extension().and_then(|value|value.to_str()){Some(extension)=>format!("{stem}-v{suffix}.{extension}"),None=>format!("{stem}-v{suffix}")};
- Ok(path.with_file_name(name))
+ portable_generated_path(&path.with_file_name(name))
 }
 fn placements(root:&Path,config:&Config,items:&[Item],lock:&Lock,destination:&Path)->Result<BTreeMap<(Identity,String),PathBuf>,String> {
  let mut paths=BTreeMap::new();
@@ -68,7 +76,7 @@ fn placements(root:&Path,config:&Config,items:&[Item],lock:&Lock,destination:&Pa
    safe_relative(Path::new(&file.path))?;
    let path=if let Some(installed)=installed {installed.files[index].path.clone()}else{match file.destination.as_str(){
     "theme"=>config.theme_destination().to_owned(),
-    "components"=>{let path=target.join(&file.path);if other || no_symlinks(root,&path)?.exists(){versioned_path(&path,&item.version)?}else{path}},
+    "components"=>{let path=portable_generated_path(&target.join(&file.path))?;if other || no_symlinks(root,&path)?.exists(){versioned_path(&path,&item.version)?}else{path}},
     _=>return Err("Unsupported bundled destination".into()),
    }};
    no_symlinks(root,&path)?;paths.insert((id.clone(),file.path.clone()),path);
@@ -105,7 +113,8 @@ fn resolve(request:&Identity,items:&[Item],resolved:&mut Vec<Item>,active:&mut V
 }
 fn no_symlinks(root:&Path,relative:&Path)->Result<PathBuf,String> {
  safe_relative(relative)?;let mut current=root.to_owned();
- for part in relative.components() {current.push(part);match fs::symlink_metadata(&current) {Ok(metadata) if metadata.file_type().is_symlink()=>return Err(format!("UI installation refuses symlink: {}",current.display())),Ok(_)=>{},Err(e) if e.kind()==std::io::ErrorKind::NotFound=>{},Err(e)=>return Err(e.to_string())}}
+ let mut parts=relative.components().peekable();
+ while let Some(part)=parts.next() {current.push(part);match fs::symlink_metadata(&current) {Ok(metadata) if metadata.file_type().is_symlink()=>return Err(format!("UI installation refuses symlink: {}",current.display())),Ok(metadata) if parts.peek().is_some()&&!metadata.is_dir()=>return Err(format!("UI path parent must be a directory: {}",current.display())),Ok(_)=>{},Err(e) if e.kind()==std::io::ErrorKind::NotFound=>{},Err(e)=>return Err(e.to_string())}}
  Ok(current)
 }
 fn read_lock(root:&Path,config:&Config)->Result<(Lock,Option<Vec<u8>>),String> {
@@ -156,7 +165,9 @@ fn plan_from_catalog(root:&Path,config:&Config,requests:&[Identity],destination:
   lock.installed.push(Installed{identity:id,destination:target.to_owned(),catalog:CATALOG.into(),payload_sha256:hash(&payload),compiler_sha256:compiler_hash.into(),compiler_version:env!("CARGO_PKG_VERSION").into(),compiler_api:item.compiler_api,runtime_abi:ABI.into(),rust:tsrust_compiler::RUST_BACKEND_VERSION.into(),license:item.license.clone(),license_text:None,attribution:Some(attribution),dependencies:item.dependencies.clone(),files:locked});
  }
  let bytes=if lock.installed.len()==installed_before {previous.clone().unwrap_or_default()}else {let mut bytes=serde_json::to_vec_pretty(&lock).map_err(|e|e.to_string())?;bytes.push(b'\n');bytes};
- Ok(Plan{files:files.into_iter().collect(),updates:vec![],directories:vec![PathBuf::from("src/app"),destination.to_owned()],lock_path:config.lock.clone(),previous,lock:bytes,messages})
+ let mut plan=Plan{files:files.into_iter().collect(),updates:vec![],directories:vec![PathBuf::from("src/app"),destination.to_owned()],lock_path:config.lock.clone(),previous,lock:bytes,messages};
+ agents::plan(root,config,destination,&resolved,&paths,&mut plan)?;
+ Ok(plan)
 }
 fn read_optional(path:&Path)->Result<Option<Vec<u8>>,String> {
  match fs::read(path){Ok(bytes)=>Ok(Some(bytes)),Err(e) if e.kind()==std::io::ErrorKind::NotFound=>Ok(None),Err(e)=>Err(format!("{}: {e}",path.display()))}
@@ -344,6 +355,14 @@ fn print_plan(plan:&Plan,json:bool){if json {println!("{}",serde_json::json!({"o
 
 #[cfg(test)]mod tests {
  use super::*;
+ #[test]fn generated_paths_stay_portable_without_relaxing_authored_path_validation(){
+  let path=portable_generated_path(&Path::new("src/components/ui").join("table.tsrx")).unwrap();
+  assert_eq!(path.to_str().unwrap(),"src/components/ui/table.tsrx");
+  assert_eq!(versioned_path(&path,"2.0.0").unwrap().to_str().unwrap(),"src/components/ui/table-v2.tsrx");
+  let notice=attributions::record(include_str!("../../../../attributions/shadcn-MIT.txt")).unwrap();
+  assert_eq!(notice.path.to_str().unwrap(),"attributions/shadcn-MIT.txt");
+  for path in ["../escape",r"src\controls","/absolute"] {assert!(safe_relative(Path::new(path)).is_err(),"{path}");}
+ }
  fn scratch()->PathBuf {let path=std::env::temp_dir().join(format!("tsrust-ui-installer-{}-{}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));fs::create_dir(&path).unwrap();path}
  #[test]fn versioned_offline_install_preserves_owned_source_and_lock() {
   let root=scratch();let config=Config::default();let request=|version:&str|Identity{name:"button".into(),version:version.into(),variant:"default".into()};

@@ -1,6 +1,6 @@
 # Milestone 33: native UTF-8 strings
 
-[Roadmap](../roadmap.md) · [String contract](../string-semantics.md) · [Benchmarks](../../BENCHMARKS.md)
+[Roadmap](../roadmap.md) · [String contract](../guides/language/string-semantics.md) · [Benchmarks](../../BENCHMARKS.md)
 
 The earlier JavaScript UTF-16 contract is superseded by the user's native Rust direction. Its implementation, experiments, tests, and documentation are archived outside the active crates.
 

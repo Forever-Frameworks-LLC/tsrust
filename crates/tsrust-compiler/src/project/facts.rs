@@ -112,6 +112,18 @@ pub struct ProjectCheckedTypeFacts {
 }
 
 impl ProjectAnalysis {
+    /// Read one checked top-level result through its module binding identity.
+    pub fn checked_function_result(&self, source: &crate::project::SourceId, name: &str) -> Option<ProjectType> {
+        let position = self.graph.order.iter().position(|id| id == source)?;
+        let linked = if source == &self.graph.entry && name == "main" { "main".into() }
+            else { crate::project_link::symbol(position, name) };
+        let function = self.analysis.program.functions.iter()
+            .find(|function| function.name == linked && !function.template && !function.specialization)?;
+        let names = self.analysis.program.records.iter().enumerate()
+            .map(|(id, record)| (record.name.text.as_str(), id)).collect();
+        self.project_type(function.result, &names)
+    }
+
     pub fn checked_local_functions(&self) -> Vec<ProjectLocalFunctionInfo> {
         if self.analysis.program.local_declarations.is_empty() { return Vec::new(); }
         let functions = self.analysis.program.functions.iter().filter(|function| !function.template)
@@ -521,7 +533,8 @@ fn project_metadata_keeps_conflicts_and_suppresses_unknown_shared_spans() {
         ) -> Result<crate::project::SourceId, String> {
             Ok(crate::project::SourceId("main.tsr".into()))
         }
-        fn read(&self, _: &crate::project::SourceId) -> Result<String, String> {
+        fn read(&self, id: &crate::project::SourceId) -> Result<String, String> {
+            if id.0 != "main.tsr" { return Err(format!("Missing source: {}", id.0)); }
             Ok("function main() {}".into())
         }
     }
@@ -573,7 +586,8 @@ fn project_generic_facts_do_not_select_a_known_result_over_an_abstract_variant()
         ) -> Result<crate::project::SourceId, String> {
             Ok(crate::project::SourceId("main.tsr".into()))
         }
-        fn read(&self, _: &crate::project::SourceId) -> Result<String, String> {
+        fn read(&self, id: &crate::project::SourceId) -> Result<String, String> {
+            if id.0 != "main.tsr" { return Err(format!("Missing source: {}", id.0)); }
             Ok("function identity<T>(value:T):T{return value;}function main(){identity(1);identity(1.5);}".into())
         }
     }

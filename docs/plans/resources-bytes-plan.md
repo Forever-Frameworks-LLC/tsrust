@@ -219,7 +219,7 @@ matched workload and remaining alias/storage coverage. Installed consumers remai
 
 ## Continuation prompt
 
-Continue B11/S07 from docs/handoff-2026-10-10-gate187-accepted.md. Gate 187 is accepted:
+Continue B11/S07 from docs/handoffs/handoff-2026-10-10-gate187-accepted.md. Gate 187 is accepted:
 native identities/imports/aliases, recursive callable signatures, fromArray/length,
 native Result and aggregate storage, editor help and the matched workload all have
 focused evidence. Do not redo them. Gate 188 at/set access and mutation are implemented with focused evidence. Next
@@ -595,7 +595,7 @@ compiler-source collector; previous profile metadata omitted nested standard-lib
 files. Historical records remain unchanged. Both harnesses fingerprint the collector.
 
 Views remain pending. The current callback-oriented record views and ViewUnion do not
-represent returned native slice lifetimes. docs/native-byte-views-implementation.md
+represent returned native slice lifetimes. docs/milestones/native-byte-views-implementation.md
 records the integration route: native return provenance, source loan propagation,
 lifetime-bearing record/union ABI, typed readable/mutable byte contracts, safe return/
 storage/capture rules, zero-copy controls and matched view workloads. The retained

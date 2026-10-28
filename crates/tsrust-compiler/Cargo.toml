@@ -15,8 +15,10 @@ name = "tsrust"
 path = "src/cli/main.rs"
 
 [dependencies]
-tsrust-ui = { path = "../tsrust-ui" }
+# Retain legacy authoring checks without linking the frozen renderer runtime.
+tsrust-ui = { path = "../tsrust-ui", default-features = false }
 sha2 = { version = "=0.11.1" }
+toml_edit = { version = "=0.25.17", default-features = false, features = ["parse"] }
 subtle = { version = "=2.6.1" }
 syn = { version = "=3.0.6", features = ["full", "visit"] }
 proc-macro2 = { version = "=1.0.107", features = ["span-locations"] }
@@ -27,15 +29,14 @@ pulldown-cmark = { version = "=0.13.4", default-features = false }
 cliclack = "=0.5.6"
 console = "=0.16.6"
 flate2 = "=1.1.10"
+reqwest = { version = "=0.13.5", default-features = false, features = ["rustls"] }
+tokio = { version = "=1.53.3", features = ["rt", "time", "net"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_Diagnostics_ToolHelp", "Win32_System_JobObjects", "Win32_System_Threading"] }
 
 [target.'cfg(unix)'.dependencies]
 libc = "=0.2.183"
-
-# Resolve the entire bundled source closure before the build script runs.
-# This also makes ordinary online builds prepare a later offline vendor step.
-[build-dependencies]
-serde = { version = "=1.0.229", features = ["derive"] }
-serde_json = { version = "=1.0.151", features = ["raw_value"] }
 
 [dev-dependencies]
 uuid = { version = "=1.28.0", default-features = false, features = ["std"] }
@@ -48,6 +49,7 @@ sqlx = { version = "=0.9.0", default-features = false, features = ["runtime-toki
 rusqlite = { version = "=0.39.0", features = ["bundled", "hooks", "extra_check"] }
 matchit = { version = "=0.8.4" }
 axum = { version = "=0.8.9", default-features = false, features = ["http1", "http2", "tokio", "multipart"] }
+tower-http = { version = "=0.6.11", default-features = false, features = ["fs"] }
 tokio-rustls = { version = "=0.26.6", default-features = false, features = ["aws_lc_rs", "tls12"] }
 reqwest = { version = "=0.13.5", default-features = false, features = ["rustls", "stream", "http2"] }
 http-body = "=1.1.0"

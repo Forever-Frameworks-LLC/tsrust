@@ -15,7 +15,7 @@ The language server is planned as another Rust application using this same analy
 
 The workspace has no external crates. Build with `cargo build --offline`; check library behavior with `cargo test --offline`.
 
-Rust 1.96.1 is pinned for repository builds and generated-program compilation. Native builds require Rustup and that installed release. The CLI explicitly selects and verifies the backend, regardless of working directory or ambient toolchain overrides. Missing backends produce setup instructions without an implicit download. See the [toolchain policy](../../docs/rust-toolchain-policy.md).
+Rust 1.96.1 is pinned for repository builds and generated-program compilation. Native builds require Rustup and that installed release. The CLI explicitly selects and verifies the backend, regardless of working directory or ambient toolchain overrides. Missing backends produce setup instructions without an implicit download. See the [toolchain policy](../../docs/guides/tooling/rust-toolchain-policy.md).
 
 `tsrust_compiler::check(source: &str)` returns either an `Analysis` or a structured `Diagnostic`. It runs entirely in process and does not read files, invoke `rustc`, or generate Rust text. A successful `Analysis` provides:
 
@@ -216,7 +216,7 @@ The analyzer tracks whole bindings. Different fields of one record are not indep
 
 The compiler suites run under `cargo test --offline`. Run the full regression once per gate after implementation settles; use focused checks during development. If it fails, retain passed suites and resume unrun suites after an affected-case repair. Their shared case expectations live in `tests/support/corpus.rs`; the source/reference pairs live in `tests/fixtures/ownership/`. CLI discovery uses Cargo's test binary path, so it does not assume a particular build directory. Shared helpers retain the former runner's 10-second execution and 60-second compilation timeouts.
 
-Run the [analysis baseline](../../docs/analysis-performance.md) with:
+Run the [analysis baseline](../../docs/measurements/analysis-performance.md) with:
 
 ```sh
 cargo run --offline --release --example analyze_bench
@@ -226,7 +226,7 @@ cargo run --offline --release --example recursive_callback_bench
 
 This measures in-process frontend work separately from Rust emission and native builds. It is a small synthetic baseline, not an editor latency or production throughput claim.
 
-The [editor foundation](../../docs/editor-foundation.md) now supplies document/version management, UTF-16 position conversion, and single-file diagnostics through this API. Partial-parse recovery, multiple diagnostics, cooperative cancellation, semantic indexing, and project/incremental invalidation remain separate compiler handoffs C1–C5. The current API reanalyzes a whole source file and returns its first error. A formal soundness proof, sustained fuzzing, allocation profiling, general initialization inference across loops, general callback/async lifetimes, module interfaces, and native debug source maps are not implemented.
+The [editor foundation](../../docs/guides/tooling/editor-foundation.md) now supplies document/version management, UTF-16 position conversion, and single-file diagnostics through this API. Partial-parse recovery, multiple diagnostics, cooperative cancellation, semantic indexing, and project/incremental invalidation remain separate compiler handoffs C1–C5. The current API reanalyzes a whole source file and returns its first error. A formal soundness proof, sustained fuzzing, allocation profiling, general initialization inference across loops, general callback/async lifetimes, module interfaces, and native debug source maps are not implemented.
 
 `tests/array_search.rs` adds 15 groups covering read-only search, signed extremes, exact Unicode contents, receiver/needle loans, temporary ownership, mixed operand order, partial fields, closures/callbacks/factories, mutation/clone invariants, and a differential storage/resource model. This milestone historically passed 449 regression groups; subsequent gate records contain current acceptance evidence.
 
@@ -310,4 +310,4 @@ conservative; replacement between distinct callable environments is restricted.
 directory. `tsrust format src` selects a directory; `tsrust format --check` reports
 changes without writing. Discovery skips `.git`, `node_modules`, `target` and
 symlinks. One explicit file still prints formatted text unless `--write` or
-`--check` is supplied. See docs/editor-commands.md for error and formatting behavior.
+`--check` is supplied. See docs/guides/tooling/editor-commands.md for error and formatting behavior.

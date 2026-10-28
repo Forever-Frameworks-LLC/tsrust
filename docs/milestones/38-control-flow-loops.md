@@ -1,6 +1,6 @@
 # Milestone 38: blocks and additional loops
 
-[Roadmap](../roadmap.md) · [Feature coverage](../feature-coverage.md)
+[Roadmap](../roadmap.md) · [Feature coverage](../guides/language/feature-coverage.md)
 
 ## Behavior
 

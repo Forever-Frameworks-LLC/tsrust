@@ -6017,7 +6017,7 @@
     },
     {
       "name": "test",
-      "signature": "test(name: string, callback: Owned<Function<void>>): void",
+      "signature": "test(name: string, callback: Owned<Function<void>> | Owned<Function<Task<void>>>): void",
       "parameters": [
         {
           "label": "name",
@@ -6025,20 +6025,24 @@
         },
         {
           "label": "callback",
-          "documentation": "Owned reusable synchronous zero-argument callback returning void."
+          "documentation": "Required owned reusable zero-argument callback returning void or Task<void>. The environment transfers into the registry; each returned task is awaited before the phase continues."
         }
       ],
-      "documentation": "Registers a synchronous named test and returns void. The callback runs when runTests is called, in registration order. Names may repeat. Registration during test execution is an error. Wrong arity or callback types are compile-time errors. Ownership: the name is borrowed and copied into the registry; the callback transfers into the registry. Module storage is borrowed only while the callback runs, including access through called functions. Borrowed local captures and borrowed callback inputs cannot escape into the registry.\n\n```tsrust\nimport {test,expect,runTests} from \"std:testing\";function main(){test(\"sample\",():void=>{expect(3).toBe(3);});console.log(runTests());}\n// PASS sample; 1 passed, 0 failed, 0 skipped; 0; \n```",
+      "documentation": "Registers a named test with a synchronous or asynchronous callback and returns void. The callback runs when runTests is called, in registration order. Names may repeat. Registration during test execution is an error. Wrong arity or callback types are compile-time errors.\n\n```tsrust\nimport {test,expect,runTests} from \"std:testing\";function main(){test(\"sample\",():void=>{expect(3).toBe(3);});console.log(runTests());}\n// PASS sample; 1 passed, 0 failed, 0 skipped; 0; \n```\n\nThe required zero-argument callback may return void or Task<void>. Callback expressions are evaluated during registration; the callback body runs later. A returned task is awaited before teardown and the next test. Assertions, thrown values and native failures after await fail this test while later tests continue. A non-void task result, an already constructed task, wrong argument counts and escaped local loans are compile-time errors. There are no options or timeout arguments.\n\n```tsrust\nimport {test,strictEqual,runTests} from \"std:testing\";import {delay} from \"std:futures\";function main(){test(\"async\",async()=>{await delay(0);strictEqual(7,7);});strictEqual(runTests(),0);}\n// PASS async; 1 passed, 0 failed, 0 skipped\n```\n\nOwnership: the name is borrowed and copied into the registry; the callback transfers into the registry. Module storage is borrowed only while the callback runs, including access through called functions. Borrowed local captures and borrowed callback inputs cannot escape into the registry.",
       "examples": [
         {
           "source": "import {test,expect,runTests} from \"std:testing\";function main(){test(\"sample\",():void=>{expect(3).toBe(3);});console.log(runTests());}",
           "output": "PASS sample\n1 passed, 0 failed, 0 skipped\n0\n"
+        },
+        {
+          "source": "import {test,strictEqual,runTests} from \"std:testing\";import {delay} from \"std:futures\";function main(){test(\"async\",async()=>{await delay(0);strictEqual(7,7);});strictEqual(runTests(),0);}",
+          "output": "PASS async\n1 passed, 0 failed, 0 skipped\n"
         }
       ]
     },
     {
       "name": "it",
-      "signature": "it(name: string, callback: Owned<Function<void>>): void",
+      "signature": "it(name: string, callback: Owned<Function<void>> | Owned<Function<Task<void>>>): void",
       "parameters": [
         {
           "label": "name",
@@ -6046,14 +6050,18 @@
         },
         {
           "label": "callback",
-          "documentation": "Owned reusable synchronous zero-argument callback returning void."
+          "documentation": "Required owned reusable zero-argument callback returning void or Task<void>. The environment transfers into the registry; each returned task is awaited before the phase continues."
         }
       ],
-      "documentation": "Registers a synchronous named test and returns void. The callback runs when runTests is called, in registration order. Names may repeat. Registration during test execution is an error. Wrong arity or callback types are compile-time errors. This is an alias of test. Ownership: the name is borrowed and copied into the registry; the callback transfers into the registry. Module storage is borrowed only while the callback runs, including access through called functions. Borrowed local captures and borrowed callback inputs cannot escape into the registry.\n\n```tsrust\nimport {it,expect,runTests} from \"std:testing\";function main(){it(\"sample\",():void=>{expect(3).toBe(3);});console.log(runTests());}\n// PASS sample; 1 passed, 0 failed, 0 skipped; 0; \n```",
+      "documentation": "Registers a named test with a synchronous or asynchronous callback and returns void. The callback runs when runTests is called, in registration order. Names may repeat. Registration during test execution is an error. Wrong arity or callback types are compile-time errors. This is an alias of test.\n\n```tsrust\nimport {it,expect,runTests} from \"std:testing\";function main(){it(\"sample\",():void=>{expect(3).toBe(3);});console.log(runTests());}\n// PASS sample; 1 passed, 0 failed, 0 skipped; 0; \n```\n\nThe required zero-argument callback may return void or Task<void>. Callback expressions are evaluated during registration; the callback body runs later. A returned task is awaited before teardown and the next test. Assertions, thrown values and native failures after await fail this test while later tests continue. A non-void task result, an already constructed task, wrong argument counts and escaped local loans are compile-time errors. There are no options or timeout arguments.\n\n```tsrust\nimport {it,test,strictEqual,runTests} from \"std:testing\";import {delay} from \"std:futures\";function main(){it(\"async\",async()=>{await delay(0);strictEqual(7,7);});strictEqual(runTests(),0);}\n// PASS async; 1 passed, 0 failed, 0 skipped\n```\n\nOwnership: the name is borrowed and copied into the registry; the callback transfers into the registry. Module storage is borrowed only while the callback runs, including access through called functions. Borrowed local captures and borrowed callback inputs cannot escape into the registry.",
       "examples": [
         {
           "source": "import {it,expect,runTests} from \"std:testing\";function main(){it(\"sample\",():void=>{expect(3).toBe(3);});console.log(runTests());}",
           "output": "PASS sample\n1 passed, 0 failed, 0 skipped\n0\n"
+        },
+        {
+          "source": "import {it,test,strictEqual,runTests} from \"std:testing\";import {delay} from \"std:futures\";function main(){it(\"async\",async()=>{await delay(0);strictEqual(7,7);});strictEqual(runTests(),0);}",
+          "output": "PASS async\n1 passed, 0 failed, 0 skipped\n"
         }
       ]
     },
@@ -6061,11 +6069,15 @@
       "name": "runTests",
       "signature": "runTests(): int",
       "parameters": [],
-      "documentation": "Runs registered synchronous tests in registration order, consumes the pending registry, prints each result and a summary, and returns the sum of failing tests and failed beforeAll/afterAll hooks. Failed assertions stop that test; later tests continue. Empty registries return zero. Recursive execution and execution during suite registration are errors. Errors from beforeEach/afterEach count as one failing test; beforeAll/afterAll errors appear separately in the summary and also cause failure. No arguments are accepted. Ownership: pending callbacks are consumed.\n\n```tsrust\nimport {test,expect,runTests} from \"std:testing\";function main(){test(\"sample\",():void=>{expect(3).toBe(3);});console.log(runTests());}\n// PASS sample; 1 passed, 0 failed, 0 skipped; 0; \n```",
+      "documentation": "Runs registered tests in registration order, consumes the pending registry, prints each result and a summary, and returns the sum of failing tests and failed beforeAll/afterAll hooks. Failed assertions stop that test; later tests continue. Empty registries return zero. Recursive execution is an error. No arguments are accepted.\n\n```tsrust\nimport {test,expect,runTests} from \"std:testing\";function main(){test(\"sample\",():void=>{expect(3).toBe(3);});console.log(runTests());}\n// PASS sample; 1 passed, 0 failed, 0 skipped; 0; \n```\n\nEach asynchronous test and hook is awaited before the next phase begins. Setup resources remain available through tests and teardown. Run-owned child tasks and asynchronous cleanup settle before this function returns; unrelated tasks in an enclosing application scope remain active. The return value is an int after the run finishes.\n\n```tsrust\nimport {runTests,test,strictEqual} from \"std:testing\";import {delay} from \"std:futures\";function main(){test(\"async\",async()=>{await delay(0);strictEqual(7,7);});strictEqual(runTests(),0);}\n// PASS async; 1 passed, 0 failed, 0 skipped\n```\n\nOwnership: pending callbacks are consumed.",
       "examples": [
         {
           "source": "import {test,expect,runTests} from \"std:testing\";function main(){test(\"sample\",():void=>{expect(3).toBe(3);});console.log(runTests());}",
           "output": "PASS sample\n1 passed, 0 failed, 0 skipped\n0\n"
+        },
+        {
+          "source": "import {runTests,test,strictEqual} from \"std:testing\";import {delay} from \"std:futures\";function main(){test(\"async\",async()=>{await delay(0);strictEqual(7,7);});strictEqual(runTests(),0);}",
+          "output": "PASS async\n1 passed, 0 failed, 0 skipped\n"
         }
       ]
     },
@@ -6082,7 +6094,7 @@
           "documentation": "Mutably borrowed reusable synchronous zero-argument callback returning void; runs during registration."
         }
       ],
-      "documentation": "Groups synchronous tests under a named suite. The zero-argument void callback runs immediately to register its tests and nested suites; test bodies run later, in source order. Returns void. Names may repeat or be empty. Calling describe during test execution is an error. Options, timeouts and async callbacks are unsupported and rejected by arity/type checks.\n\n@param name - Displayed suite name, prefixed to descendant test names.\n@param callback - Reusable synchronous registration callback.\n\n```tsrust\nimport {describe,test,expect,runTests} from \"std:testing\";\nfunction main(){describe(\"math\",():void=>{test(\"sum\",():void=>{expect(2+3).toBe(5);});});console.log(runTests());}\n// PASS math > sum\n// 1 passed, 0 failed, 0 skipped\n// 0\n```\n\nOwnership: the name is borrowed and copied into the registry. The callback is mutably borrowed only during registration; each registered test transfers its own callback into the registry.",
+      "documentation": "Groups tests under a named suite. The zero-argument void callback runs immediately to register its tests and nested suites; test bodies run later, in source order. Returns void. Names may repeat or be empty. Calling describe during test execution is an error. Options, timeouts and async suite-registration callbacks are unsupported and rejected by arity/type checks.\n\n@param name - Displayed suite name, prefixed to descendant test names.\n@param callback - Reusable synchronous registration callback.\n\n```tsrust\nimport {describe,test,expect,runTests} from \"std:testing\";\nfunction main(){describe(\"math\",():void=>{test(\"sum\",():void=>{expect(2+3).toBe(5);});});console.log(runTests());}\n// PASS math > sum\n// 1 passed, 0 failed, 0 skipped\n// 0\n```\n\nOwnership: the name is borrowed and copied into the registry. The callback is mutably borrowed only during registration; each registered test transfers its own callback into the registry.\n\nRegistered test and hook callbacks may be asynchronous; the suite-registration callback runs synchronously.",
       "examples": [
         {
           "source": "import {describe,test,expect,runTests} from \"std:testing\";function main(){describe(\"math\",():void=>{test(\"sum\",():void=>{expect(2+3).toBe(5);});});console.log(runTests());}",
@@ -6103,7 +6115,7 @@
           "documentation": "Mutably borrowed reusable synchronous zero-argument callback returning void; runs during registration."
         }
       ],
-      "documentation": "Groups synchronous tests under a named suite. The zero-argument void callback runs immediately to register its tests and nested suites; test bodies run later, in source order. Returns void. Names may repeat or be empty. Calling suite during test execution is an error. Options, timeouts and async callbacks are unsupported and rejected by arity/type checks.\n\n@param name - Displayed suite name, prefixed to descendant test names.\n@param callback - Reusable synchronous registration callback.\n\n```tsrust\nimport {suite,test,expect,runTests} from \"std:testing\";\nfunction main(){suite(\"math\",():void=>{test(\"sum\",():void=>{expect(2+3).toBe(5);});});console.log(runTests());}\n// PASS math > sum\n// 1 passed, 0 failed, 0 skipped\n// 0\n```\n\nOwnership: the name is borrowed and copied into the registry. The callback is mutably borrowed only during registration; each registered test transfers its own callback into the registry.\n\nThis is an alias of describe.",
+      "documentation": "Groups tests under a named suite. The zero-argument void callback runs immediately to register its tests and nested suites; test bodies run later, in source order. Returns void. Names may repeat or be empty. Calling suite during test execution is an error. Options, timeouts and async suite-registration callbacks are unsupported and rejected by arity/type checks.\n\n@param name - Displayed suite name, prefixed to descendant test names.\n@param callback - Reusable synchronous registration callback.\n\n```tsrust\nimport {suite,test,expect,runTests} from \"std:testing\";\nfunction main(){suite(\"math\",():void=>{test(\"sum\",():void=>{expect(2+3).toBe(5);});});console.log(runTests());}\n// PASS math > sum\n// 1 passed, 0 failed, 0 skipped\n// 0\n```\n\nOwnership: the name is borrowed and copied into the registry. The callback is mutably borrowed only during registration; each registered test transfers its own callback into the registry.\n\nThis is an alias of describe.\n\nRegistered test and hook callbacks may be asynchronous; the suite-registration callback runs synchronously.",
       "examples": [
         {
           "source": "import {suite,test,expect,runTests} from \"std:testing\";function main(){suite(\"math\",():void=>{test(\"sum\",():void=>{expect(2+3).toBe(5);});});console.log(runTests());}",
@@ -6113,14 +6125,14 @@
     },
     {
       "name": "beforeAll",
-      "signature": "beforeAll(callback: Owned<Function<void>>): void",
+      "signature": "beforeAll(callback: Owned<Function<void>> | Owned<Function<Task<void>>>): void",
       "parameters": [
         {
           "label": "callback",
-          "documentation": "Owned reusable synchronous zero-argument callback returning void; its environment transfers into the hook registry."
+          "documentation": "Required owned reusable zero-argument callback returning void or Task<void>. The environment transfers into the registry; each returned task is awaited before the phase continues."
         }
       ],
-      "documentation": "Registers a synchronous setup callback for the current suite, including descendants, or the current file at top level. Runs once in registration order before tests in that scope. A failed setup stops later setup hooks, blocks descendant test bodies, reports those tests as failed, and still runs teardown for the scope whose setup was attempted. Scopes with no tests do not run hooks. Takes one owned reusable zero-argument callback returning void; returns void and changes the pending hook registry. There are no optional arguments or defaults. Registration during test or hook execution is an error. Wrong arity or callback types are compile-time errors. Context parameters, cleanup return values, timeouts and async callbacks are unsupported.\n\n@param callback - Owned reusable synchronous zero-argument callback returning void.\n\n```tsrust\nimport {beforeAll,test,runTests} from \"std:testing\";function main(){beforeAll(():void=>{console.log(\"hook\");});test(\"sample\",():void=>{});console.log(runTests());}\n// hook\n// PASS sample\n// 1 passed, 0 failed, 0 skipped\n// 0\n```\n\nOwnership: the callback transfers into the registry and is released when the registry is consumed. Owned mutable captures persist across hook invocations. Module storage is borrowed only while each hook runs, so hooks and tests can read or update the same module state in execution order. Borrowed local captures and borrowed callback inputs cannot escape into the registry.\n\nHooks and tests can share module state:\n\n```tsrust\nimport {beforeAll,test,strictEqual,runTests} from \"std:testing\";let count=0;function main(){beforeAll(():void=>{count=7;});test(\"shared state\",():void=>{strictEqual(count,7);count=8;});runTests();strictEqual(count,8);}\n// PASS shared state; 1 passed, 0 failed, 0 skipped\n```",
+      "documentation": "Registers a setup callback for the current suite, including descendants, or the current file at top level. Runs once in registration order before tests in that scope. A failed setup stops later setup hooks, blocks descendant test bodies, reports those tests as failed, and still runs teardown for the scope whose setup was attempted. Scopes with no tests do not run hooks. Takes one owned reusable zero-argument callback returning void or Task<void>; returns void and changes the pending hook registry. There are no optional arguments or defaults. Registration during test or hook execution is an error. Wrong arity or callback types are compile-time errors. Context parameters, cleanup return values and timeouts are unsupported.\n\n@param callback - Owned reusable zero-argument callback returning void or Task<void>. Each returned task is awaited.\n\n```tsrust\nimport {beforeAll,test,runTests} from \"std:testing\";function main(){beforeAll(():void=>{console.log(\"hook\");});test(\"sample\",():void=>{});console.log(runTests());}\n// hook\n// PASS sample\n// 1 passed, 0 failed, 0 skipped\n// 0\n```\n\n\n\nHooks and tests can share module state:\n\n```tsrust\nimport {beforeAll,test,strictEqual,runTests} from \"std:testing\";\nlet count=0;\nfunction main(){beforeAll(():void=>{count=7;});test(\"shared state\",():void=>{strictEqual(count,7);count=8;});runTests();strictEqual(count,8);}\n// PASS shared state; 1 passed, 0 failed, 0 skipped\n```\n\nThe required zero-argument callback may return void or Task<void>. Each returned task completes before the next hook or test. Owned captures persist across repeated hook invocations; module storage is borrowed for the complete invocation, including suspension. Failures after await follow the same setup-blocking or teardown-continuation rules described above. Callback expressions run during registration. A non-void task result, an already constructed task and escaped local loans are compile-time errors.\n\n```tsrust\nimport {beforeAll,test,strictEqual,runTests} from \"std:testing\";import {delay} from \"std:futures\";function main(){beforeAll(async()=>{await delay(0);strictEqual(7,7);});test(\"async\",async()=>{await delay(0);});strictEqual(runTests(),0);}\n// PASS async; 1 passed, 0 failed, 0 skipped\n```\n\nOwnership: the callback transfers into the registry and is released when the registry is consumed. Owned mutable captures persist across hook invocations. Module storage is borrowed only while each hook runs, so hooks and tests can read or update the same module state in execution order. Borrowed local captures and borrowed callback inputs cannot escape into the registry.",
       "examples": [
         {
           "source": "import {beforeAll,test,runTests} from \"std:testing\";function main(){beforeAll(():void=>{console.log(\"hook\");});test(\"sample\",():void=>{});console.log(runTests());}",
@@ -6129,91 +6141,115 @@
         {
           "source": "import {beforeAll,test,strictEqual,runTests} from \"std:testing\";let count=0;function main(){beforeAll(():void=>{count=7;});test(\"shared state\",():void=>{strictEqual(count,7);count=8;});runTests();strictEqual(count,8);}",
           "output": "PASS shared state\n1 passed, 0 failed, 0 skipped\n"
+        },
+        {
+          "source": "import {beforeAll,test,strictEqual,runTests} from \"std:testing\";import {delay} from \"std:futures\";function main(){beforeAll(async()=>{await delay(0);strictEqual(7,7);});test(\"async\",async()=>{await delay(0);});strictEqual(runTests(),0);}",
+          "output": "PASS async\n1 passed, 0 failed, 0 skipped\n"
         }
       ]
     },
     {
       "name": "afterAll",
-      "signature": "afterAll(callback: Owned<Function<void>>): void",
+      "signature": "afterAll(callback: Owned<Function<void>> | Owned<Function<Task<void>>>): void",
       "parameters": [
         {
           "label": "callback",
-          "documentation": "Owned reusable synchronous zero-argument callback returning void; its environment transfers into the hook registry."
+          "documentation": "Required owned reusable zero-argument callback returning void or Task<void>. The environment transfers into the registry; each returned task is awaited before the phase continues."
         }
       ],
-      "documentation": "Registers a synchronous teardown callback for the current suite, including descendants, or the current file at top level. Runs once after the scope finishes, in reverse registration order. It also runs after a failed beforeAll in that scope. All teardown hooks are attempted even if earlier teardown fails. Hook failures are reported after the phase and make runTests and the test command fail. Descendant scopes blocked before setup do not run their hooks; scopes with no tests do not run hooks. Takes one owned reusable zero-argument callback returning void; returns void and changes the pending hook registry. There are no optional arguments or defaults. Registration during test or hook execution is an error. Wrong arity or callback types are compile-time errors. Context parameters, cleanup return values, timeouts and async callbacks are unsupported.\n\n@param callback - Owned reusable synchronous zero-argument callback returning void.\n\n```tsrust\nimport {afterAll,test,runTests} from \"std:testing\";function main(){afterAll(():void=>{console.log(\"hook\");});test(\"sample\",():void=>{});console.log(runTests());}\n// PASS sample\n// hook\n// 1 passed, 0 failed, 0 skipped\n// 0\n```\n\nOwnership: the callback transfers into the registry and is released when the registry is consumed. Owned mutable captures persist across hook invocations. Module storage is borrowed only while each hook runs, so hooks and tests can read or update the same module state in execution order. Borrowed local captures and borrowed callback inputs cannot escape into the registry.",
+      "documentation": "Registers a teardown callback for the current suite, including descendants, or the current file at top level. Runs once after the scope finishes, in reverse registration order. It also runs after a failed beforeAll in that scope. All teardown hooks are attempted even if earlier teardown fails. Hook failures are reported after the phase and make runTests and the test command fail. Descendant scopes blocked before setup do not run their hooks; scopes with no tests do not run hooks. Takes one owned reusable zero-argument callback returning void or Task<void>; returns void and changes the pending hook registry. There are no optional arguments or defaults. Registration during test or hook execution is an error. Wrong arity or callback types are compile-time errors. Context parameters, cleanup return values and timeouts are unsupported.\n\n@param callback - Owned reusable zero-argument callback returning void or Task<void>. Each returned task is awaited.\n\n```tsrust\nimport {afterAll,test,runTests} from \"std:testing\";function main(){afterAll(():void=>{console.log(\"hook\");});test(\"sample\",():void=>{});console.log(runTests());}\n// PASS sample\n// hook\n// 1 passed, 0 failed, 0 skipped\n// 0\n```\n\nThe required zero-argument callback may return void or Task<void>. Each returned task completes before the next hook or test. Owned captures persist across repeated hook invocations; module storage is borrowed for the complete invocation, including suspension. Failures after await follow the same setup-blocking or teardown-continuation rules described above. Callback expressions run during registration. A non-void task result, an already constructed task and escaped local loans are compile-time errors.\n\n```tsrust\nimport {afterAll,test,strictEqual,runTests} from \"std:testing\";import {delay} from \"std:futures\";function main(){afterAll(async()=>{await delay(0);strictEqual(7,7);});test(\"async\",async()=>{await delay(0);});strictEqual(runTests(),0);}\n// PASS async; 1 passed, 0 failed, 0 skipped\n```\n\nOwnership: the callback transfers into the registry and is released when the registry is consumed. Owned mutable captures persist across hook invocations. Module storage is borrowed only while each hook runs, so hooks and tests can read or update the same module state in execution order. Borrowed local captures and borrowed callback inputs cannot escape into the registry.",
       "examples": [
         {
           "source": "import {afterAll,test,runTests} from \"std:testing\";function main(){afterAll(():void=>{console.log(\"hook\");});test(\"sample\",():void=>{});console.log(runTests());}",
           "output": "PASS sample\nhook\n1 passed, 0 failed, 0 skipped\n0\n"
+        },
+        {
+          "source": "import {afterAll,test,strictEqual,runTests} from \"std:testing\";import {delay} from \"std:futures\";function main(){afterAll(async()=>{await delay(0);strictEqual(7,7);});test(\"async\",async()=>{await delay(0);});strictEqual(runTests(),0);}",
+          "output": "PASS async\n1 passed, 0 failed, 0 skipped\n"
         }
       ]
     },
     {
       "name": "beforeEach",
-      "signature": "beforeEach(callback: Owned<Function<void>>): void",
+      "signature": "beforeEach(callback: Owned<Function<void>> | Owned<Function<Task<void>>>): void",
       "parameters": [
         {
           "label": "callback",
-          "documentation": "Owned reusable synchronous zero-argument callback returning void; its environment transfers into the hook registry."
+          "documentation": "Required owned reusable zero-argument callback returning void or Task<void>. The environment transfers into the registry; each returned task is awaited before the phase continues."
         }
       ],
-      "documentation": "Registers a synchronous setup callback before every test in the current suite and its descendants, or the current file at top level. Ancestor setup runs before nested setup; multiple hooks in a scope run in registration order. The callback is reused across tests and retains its owned mutable state. A failure stops later setup and skips the test body, but afterEach callbacks still run for the full test scope chain. Scopes with no tests do not run hooks. Takes one owned reusable zero-argument callback returning void; returns void and changes the pending hook registry. There are no optional arguments or defaults. Registration during test or hook execution is an error. Wrong arity or callback types are compile-time errors. Context parameters, cleanup return values, timeouts and async callbacks are unsupported.\n\n@param callback - Owned reusable synchronous zero-argument callback returning void.\n\n```tsrust\nimport {beforeEach,test,runTests} from \"std:testing\";function main(){beforeEach(():void=>{console.log(\"hook\");});test(\"sample\",():void=>{});console.log(runTests());}\n// hook\n// PASS sample\n// 1 passed, 0 failed, 0 skipped\n// 0\n```\n\nOwnership: the callback transfers into the registry and is released when the registry is consumed. Owned mutable captures persist across hook invocations. Module storage is borrowed only while each hook runs, so hooks and tests can read or update the same module state in execution order. Borrowed local captures and borrowed callback inputs cannot escape into the registry.",
+      "documentation": "Registers a setup callback before every test in the current suite and its descendants, or the current file at top level. Ancestor setup runs before nested setup; multiple hooks in a scope run in registration order. The callback is reused across tests and retains its owned mutable state. A failure stops later setup and skips the test body, but afterEach callbacks still run for the full test scope chain. Scopes with no tests do not run hooks. Takes one owned reusable zero-argument callback returning void or Task<void>; returns void and changes the pending hook registry. There are no optional arguments or defaults. Registration during test or hook execution is an error. Wrong arity or callback types are compile-time errors. Context parameters, cleanup return values and timeouts are unsupported.\n\n@param callback - Owned reusable zero-argument callback returning void or Task<void>. Each returned task is awaited.\n\n```tsrust\nimport {beforeEach,test,runTests} from \"std:testing\";function main(){beforeEach(():void=>{console.log(\"hook\");});test(\"sample\",():void=>{});console.log(runTests());}\n// hook\n// PASS sample\n// 1 passed, 0 failed, 0 skipped\n// 0\n```\n\nThe required zero-argument callback may return void or Task<void>. Each returned task completes before the next hook or test. Owned captures persist across repeated hook invocations; module storage is borrowed for the complete invocation, including suspension. Failures after await follow the same setup-blocking or teardown-continuation rules described above. Callback expressions run during registration. A non-void task result, an already constructed task and escaped local loans are compile-time errors.\n\n```tsrust\nimport {beforeEach,test,strictEqual,runTests} from \"std:testing\";import {delay} from \"std:futures\";function main(){beforeEach(async()=>{await delay(0);strictEqual(7,7);});test(\"async\",async()=>{await delay(0);});strictEqual(runTests(),0);}\n// PASS async; 1 passed, 0 failed, 0 skipped\n```\n\nOwnership: the callback transfers into the registry and is released when the registry is consumed. Owned mutable captures persist across hook invocations. Module storage is borrowed only while each hook runs, so hooks and tests can read or update the same module state in execution order. Borrowed local captures and borrowed callback inputs cannot escape into the registry.",
       "examples": [
         {
           "source": "import {beforeEach,test,runTests} from \"std:testing\";function main(){beforeEach(():void=>{console.log(\"hook\");});test(\"sample\",():void=>{});console.log(runTests());}",
           "output": "hook\nPASS sample\n1 passed, 0 failed, 0 skipped\n0\n"
+        },
+        {
+          "source": "import {beforeEach,test,strictEqual,runTests} from \"std:testing\";import {delay} from \"std:futures\";function main(){beforeEach(async()=>{await delay(0);strictEqual(7,7);});test(\"async\",async()=>{await delay(0);});strictEqual(runTests(),0);}",
+          "output": "PASS async\n1 passed, 0 failed, 0 skipped\n"
         }
       ]
     },
     {
       "name": "afterEach",
-      "signature": "afterEach(callback: Owned<Function<void>>): void",
+      "signature": "afterEach(callback: Owned<Function<void>> | Owned<Function<Task<void>>>): void",
       "parameters": [
         {
           "label": "callback",
-          "documentation": "Owned reusable synchronous zero-argument callback returning void; its environment transfers into the hook registry."
+          "documentation": "Required owned reusable zero-argument callback returning void or Task<void>. The environment transfers into the registry; each returned task is awaited before the phase continues."
         }
       ],
-      "documentation": "Registers a synchronous teardown callback after every test in the current suite and its descendants, or the current file at top level. Nested teardown runs before ancestor teardown; multiple hooks in a scope run in reverse registration order. The callback is reused across tests and retains its owned mutable state. Teardown still runs after a test assertion or beforeEach fails. All teardown callbacks are attempted; their errors join the test errors, and the test counts as one failure. Tests blocked by beforeAll do not run beforeEach or afterEach. Scopes with no tests do not run hooks. Takes one owned reusable zero-argument callback returning void; returns void and changes the pending hook registry. There are no optional arguments or defaults. Registration during test or hook execution is an error. Wrong arity or callback types are compile-time errors. Context parameters, cleanup return values, timeouts and async callbacks are unsupported.\n\n@param callback - Owned reusable synchronous zero-argument callback returning void.\n\n```tsrust\nimport {afterEach,test,runTests} from \"std:testing\";function main(){afterEach(():void=>{console.log(\"hook\");});test(\"sample\",():void=>{});console.log(runTests());}\n// hook\n// PASS sample\n// 1 passed, 0 failed, 0 skipped\n// 0\n```\n\nOwnership: the callback transfers into the registry and is released when the registry is consumed. Owned mutable captures persist across hook invocations. Module storage is borrowed only while each hook runs, so hooks and tests can read or update the same module state in execution order. Borrowed local captures and borrowed callback inputs cannot escape into the registry.",
+      "documentation": "Registers a teardown callback after every test in the current suite and its descendants, or the current file at top level. Nested teardown runs before ancestor teardown; multiple hooks in a scope run in reverse registration order. The callback is reused across tests and retains its owned mutable state. Teardown still runs after a test assertion or beforeEach fails. All teardown callbacks are attempted; their errors join the test errors, and the test counts as one failure. Tests blocked by beforeAll do not run beforeEach or afterEach. Scopes with no tests do not run hooks. Takes one owned reusable zero-argument callback returning void or Task<void>; returns void and changes the pending hook registry. There are no optional arguments or defaults. Registration during test or hook execution is an error. Wrong arity or callback types are compile-time errors. Context parameters, cleanup return values and timeouts are unsupported.\n\n@param callback - Owned reusable zero-argument callback returning void or Task<void>. Each returned task is awaited.\n\n```tsrust\nimport {afterEach,test,runTests} from \"std:testing\";function main(){afterEach(():void=>{console.log(\"hook\");});test(\"sample\",():void=>{});console.log(runTests());}\n// hook\n// PASS sample\n// 1 passed, 0 failed, 0 skipped\n// 0\n```\n\nThe required zero-argument callback may return void or Task<void>. Each returned task completes before the next hook or test. Owned captures persist across repeated hook invocations; module storage is borrowed for the complete invocation, including suspension. Failures after await follow the same setup-blocking or teardown-continuation rules described above. Callback expressions run during registration. A non-void task result, an already constructed task and escaped local loans are compile-time errors.\n\n```tsrust\nimport {afterEach,test,strictEqual,runTests} from \"std:testing\";import {delay} from \"std:futures\";function main(){afterEach(async()=>{await delay(0);strictEqual(7,7);});test(\"async\",async()=>{await delay(0);});strictEqual(runTests(),0);}\n// PASS async; 1 passed, 0 failed, 0 skipped\n```\n\nOwnership: the callback transfers into the registry and is released when the registry is consumed. Owned mutable captures persist across hook invocations. Module storage is borrowed only while each hook runs, so hooks and tests can read or update the same module state in execution order. Borrowed local captures and borrowed callback inputs cannot escape into the registry.",
       "examples": [
         {
           "source": "import {afterEach,test,runTests} from \"std:testing\";function main(){afterEach(():void=>{console.log(\"hook\");});test(\"sample\",():void=>{});console.log(runTests());}",
           "output": "hook\nPASS sample\n1 passed, 0 failed, 0 skipped\n0\n"
+        },
+        {
+          "source": "import {afterEach,test,strictEqual,runTests} from \"std:testing\";import {delay} from \"std:futures\";function main(){afterEach(async()=>{await delay(0);strictEqual(7,7);});test(\"async\",async()=>{await delay(0);});strictEqual(runTests(),0);}",
+          "output": "PASS async\n1 passed, 0 failed, 0 skipped\n"
         }
       ]
     },
     {
       "name": "before",
-      "signature": "before(callback: Owned<Function<void>>): void",
+      "signature": "before(callback: Owned<Function<void>> | Owned<Function<Task<void>>>): void",
       "parameters": [
         {
           "label": "callback",
-          "documentation": "Owned reusable synchronous zero-argument callback returning void; its environment transfers into the hook registry."
+          "documentation": "Required owned reusable zero-argument callback returning void or Task<void>. The environment transfers into the registry; each returned task is awaited before the phase continues."
         }
       ],
-      "documentation": "Registers a synchronous setup callback for the current suite, including descendants, or the current file at top level. Runs once in registration order before tests in that scope. A failed setup stops later setup hooks, blocks descendant test bodies, reports those tests as failed, and still runs teardown for the scope whose setup was attempted. Scopes with no tests do not run hooks. This is an alias of beforeAll. Takes one owned reusable zero-argument callback returning void; returns void and changes the pending hook registry. There are no optional arguments or defaults. Registration during test or hook execution is an error. Wrong arity or callback types are compile-time errors. Context parameters, cleanup return values, timeouts and async callbacks are unsupported.\n\n@param callback - Owned reusable synchronous zero-argument callback returning void.\n\n```tsrust\nimport {before,test,runTests} from \"std:testing\";function main(){before(():void=>{console.log(\"hook\");});test(\"sample\",():void=>{});console.log(runTests());}\n// hook\n// PASS sample\n// 1 passed, 0 failed, 0 skipped\n// 0\n```\n\nOwnership: the callback transfers into the registry and is released when the registry is consumed. Owned mutable captures persist across hook invocations. Module storage is borrowed only while each hook runs, so hooks and tests can read or update the same module state in execution order. Borrowed local captures and borrowed callback inputs cannot escape into the registry.",
+      "documentation": "Registers a setup callback for the current suite, including descendants, or the current file at top level. Runs once in registration order before tests in that scope. A failed setup stops later setup hooks, blocks descendant test bodies, reports those tests as failed, and still runs teardown for the scope whose setup was attempted. Scopes with no tests do not run hooks. This is an alias of beforeAll. Takes one owned reusable zero-argument callback returning void or Task<void>; returns void and changes the pending hook registry. There are no optional arguments or defaults. Registration during test or hook execution is an error. Wrong arity or callback types are compile-time errors. Context parameters, cleanup return values and timeouts are unsupported.\n\n@param callback - Owned reusable zero-argument callback returning void or Task<void>. Each returned task is awaited.\n\n```tsrust\nimport {before,test,runTests} from \"std:testing\";function main(){before(():void=>{console.log(\"hook\");});test(\"sample\",():void=>{});console.log(runTests());}\n// hook\n// PASS sample\n// 1 passed, 0 failed, 0 skipped\n// 0\n```\n\nThe required zero-argument callback may return void or Task<void>. Each returned task completes before the next hook or test. Owned captures persist across repeated hook invocations; module storage is borrowed for the complete invocation, including suspension. Failures after await follow the same setup-blocking or teardown-continuation rules described above. Callback expressions run during registration. A non-void task result, an already constructed task and escaped local loans are compile-time errors.\n\n```tsrust\nimport {before,test,strictEqual,runTests} from \"std:testing\";import {delay} from \"std:futures\";function main(){before(async()=>{await delay(0);strictEqual(7,7);});test(\"async\",async()=>{await delay(0);});strictEqual(runTests(),0);}\n// PASS async; 1 passed, 0 failed, 0 skipped\n```\n\nOwnership: the callback transfers into the registry and is released when the registry is consumed. Owned mutable captures persist across hook invocations. Module storage is borrowed only while each hook runs, so hooks and tests can read or update the same module state in execution order. Borrowed local captures and borrowed callback inputs cannot escape into the registry.",
       "examples": [
         {
           "source": "import {before,test,runTests} from \"std:testing\";function main(){before(():void=>{console.log(\"hook\");});test(\"sample\",():void=>{});console.log(runTests());}",
           "output": "hook\nPASS sample\n1 passed, 0 failed, 0 skipped\n0\n"
+        },
+        {
+          "source": "import {before,test,strictEqual,runTests} from \"std:testing\";import {delay} from \"std:futures\";function main(){before(async()=>{await delay(0);strictEqual(7,7);});test(\"async\",async()=>{await delay(0);});strictEqual(runTests(),0);}",
+          "output": "PASS async\n1 passed, 0 failed, 0 skipped\n"
         }
       ]
     },
     {
       "name": "after",
-      "signature": "after(callback: Owned<Function<void>>): void",
+      "signature": "after(callback: Owned<Function<void>> | Owned<Function<Task<void>>>): void",
       "parameters": [
         {
           "label": "callback",
-          "documentation": "Owned reusable synchronous zero-argument callback returning void; its environment transfers into the hook registry."
+          "documentation": "Required owned reusable zero-argument callback returning void or Task<void>. The environment transfers into the registry; each returned task is awaited before the phase continues."
         }
       ],
-      "documentation": "Registers a synchronous teardown callback for the current suite, including descendants, or the current file at top level. Runs once after the scope finishes, in reverse registration order. It also runs after a failed beforeAll in that scope. All teardown hooks are attempted even if earlier teardown fails. Hook failures are reported after the phase and make runTests and the test command fail. Descendant scopes blocked before setup do not run their hooks; scopes with no tests do not run hooks. This is an alias of afterAll. Takes one owned reusable zero-argument callback returning void; returns void and changes the pending hook registry. There are no optional arguments or defaults. Registration during test or hook execution is an error. Wrong arity or callback types are compile-time errors. Context parameters, cleanup return values, timeouts and async callbacks are unsupported.\n\n@param callback - Owned reusable synchronous zero-argument callback returning void.\n\n```tsrust\nimport {after,test,runTests} from \"std:testing\";function main(){after(():void=>{console.log(\"hook\");});test(\"sample\",():void=>{});console.log(runTests());}\n// PASS sample\n// hook\n// 1 passed, 0 failed, 0 skipped\n// 0\n```\n\nOwnership: the callback transfers into the registry and is released when the registry is consumed. Owned mutable captures persist across hook invocations. Module storage is borrowed only while each hook runs, so hooks and tests can read or update the same module state in execution order. Borrowed local captures and borrowed callback inputs cannot escape into the registry.",
+      "documentation": "Registers a teardown callback for the current suite, including descendants, or the current file at top level. Runs once after the scope finishes, in reverse registration order. It also runs after a failed beforeAll in that scope. All teardown hooks are attempted even if earlier teardown fails. Hook failures are reported after the phase and make runTests and the test command fail. Descendant scopes blocked before setup do not run their hooks; scopes with no tests do not run hooks. This is an alias of afterAll. Takes one owned reusable zero-argument callback returning void or Task<void>; returns void and changes the pending hook registry. There are no optional arguments or defaults. Registration during test or hook execution is an error. Wrong arity or callback types are compile-time errors. Context parameters, cleanup return values and timeouts are unsupported.\n\n@param callback - Owned reusable zero-argument callback returning void or Task<void>. Each returned task is awaited.\n\n```tsrust\nimport {after,test,runTests} from \"std:testing\";function main(){after(():void=>{console.log(\"hook\");});test(\"sample\",():void=>{});console.log(runTests());}\n// PASS sample\n// hook\n// 1 passed, 0 failed, 0 skipped\n// 0\n```\n\nThe required zero-argument callback may return void or Task<void>. Each returned task completes before the next hook or test. Owned captures persist across repeated hook invocations; module storage is borrowed for the complete invocation, including suspension. Failures after await follow the same setup-blocking or teardown-continuation rules described above. Callback expressions run during registration. A non-void task result, an already constructed task and escaped local loans are compile-time errors.\n\n```tsrust\nimport {after,test,strictEqual,runTests} from \"std:testing\";import {delay} from \"std:futures\";function main(){after(async()=>{await delay(0);strictEqual(7,7);});test(\"async\",async()=>{await delay(0);});strictEqual(runTests(),0);}\n// PASS async; 1 passed, 0 failed, 0 skipped\n```\n\nOwnership: the callback transfers into the registry and is released when the registry is consumed. Owned mutable captures persist across hook invocations. Module storage is borrowed only while each hook runs, so hooks and tests can read or update the same module state in execution order. Borrowed local captures and borrowed callback inputs cannot escape into the registry.",
       "examples": [
         {
           "source": "import {after,test,runTests} from \"std:testing\";function main(){after(():void=>{console.log(\"hook\");});test(\"sample\",():void=>{});console.log(runTests());}",
           "output": "PASS sample\nhook\n1 passed, 0 failed, 0 skipped\n0\n"
+        },
+        {
+          "source": "import {after,test,strictEqual,runTests} from \"std:testing\";import {delay} from \"std:futures\";function main(){after(async()=>{await delay(0);strictEqual(7,7);});test(\"async\",async()=>{await delay(0);});strictEqual(runTests(),0);}",
+          "output": "PASS async\n1 passed, 0 failed, 0 skipped\n"
         }
       ]
     }
@@ -13769,7 +13805,33 @@
         "output": "ok\n"
       }
     ]
-  }
+  },
+{
+  "name": "serveStatic",
+  "signature": "serveStatic(prefix: string, directory: string, fallback?: string): void",
+  "parameters": [
+    {
+      "label": "prefix: string",
+      "documentation": "Non-root URL prefix such as /web or /tools/admin. Use literal ASCII alphanumeric, hyphen or underscore segments, without a trailing slash. Static mount prefixes cannot overlap."
+    },
+    {
+      "label": "directory: string",
+      "documentation": "Existing deployment-owned directory of public assets. Relative paths resolve at registration. Keep the directory read-only while serving; do not use an upload or source directory."
+    },
+    {
+      "label": "fallback?: string",
+      "documentation": "Optional relative .html file within this root, such as index.html. Omitted or empty disables SPA fallback. It must exist at registration."
+    }
+  ],
+  "documentation": "Serves public files under one isolated URL prefix for GET and HEAD. Mutates router registration and returns no value. Files stream with MIME types, byte ranges and conditional date requests; HEAD keeps response headers without a body. /web redirects to /web/ so relative assets resolve correctly. Directories can serve index.html but never list their contents.\n\nAn optional SPA fallback applies only to missing extensionless paths with an explicit acceptable text/html Accept value. Missing assets such as .js return 404. Other methods, other prefixes and /api are unaffected when mounted at /web. Matching uses registration order; put protected application routes before a mount. Overlapping static prefixes are rejected.\n\nInvalid prefixes, missing roots, invalid or outside-root fallback paths throw HttpError with code static before registering a layer. Requests reject malformed escapes, dot/hidden segments, encoded separators, controls, Windows device/alternate-stream names and double encoding. Canonical path checks reject symlink escapes with 404. URL queries do not select files. Filesystem failures never return local paths. Public roots are trusted deployment inputs: local writers must not race file resolution or replace directory ancestors. This does not sandbox an adversarial filesystem writer.\n\n```tsrust\napp.serveStatic('/web', 'web/dist', 'index.html');\napp.serveStatic('/admin', 'admin/dist', 'index.html');\n```\n\nGET /web/projects with Accept: text/html returns web/dist/index.html. GET /admin/missing.js returns 404 instead of either app's HTML. Build each frontend with its matching public base path. Relative files resolve against the mount's directory, not the request or later working directory. Cache policy, CSP, access control and public asset selection remain application-owned.\n\nOwnership: mutates Router, borrows and copies the three configuration strings, and retains no caller loan. Response bodies own their open-file streams until completion or cancellation.",
+  "inferredSignature": "function serveStatic(prefix: string, directory: string, fallback?: string): void",
+  "examples": [
+    {
+      "source": "import {Router} from 'std:http';function configure(app:Mutable<Router>,root:string){app.serveStatic('/web',root,'index.html');app.serveStatic('/public',root);}function main(){console.log('ok');}",
+      "output": "ok\n"
+    }
+  ]
+}
 ],
 "HttpContext": [
   {

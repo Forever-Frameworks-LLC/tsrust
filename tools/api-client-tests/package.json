@@ -1,0 +1,11 @@
+{
+  "name": "@tsrust-dev/api-client-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check:plain": "tsc plain-client.ts --strict --noEmit --module NodeNext --target ES2022 --lib ES2022"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2"
+  }
+}

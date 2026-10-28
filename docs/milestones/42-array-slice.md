@@ -1,6 +1,6 @@
 # Milestone 42: owned array slicing
 
-[Roadmap](../roadmap.md) · [Primitive coverage](../feature-coverage.md)
+[Roadmap](../roadmap.md) · [Primitive coverage](../guides/language/feature-coverage.md)
 
 ## Scope
 

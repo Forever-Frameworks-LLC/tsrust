@@ -14,7 +14,15 @@ const run = (...args) => execFileSync(compiler, args, {
 });
 try {
   assert.match(run('--version'), /^tsrust \d+\.\d+\.\d+/);
-  run('new', 'hello');
+  const created = run('new', 'hello');
+  const agentGuide = fs.readFileSync(path.join(directory, 'hello/AGENTS.md'), 'utf8');
+  for (const command of ['tsrust check', 'tsrust test', 'tsrust format', 'tsrust dev']) assert.ok(agentGuide.includes(command));
+  assert.ok(agentGuide.includes('ui.components') && agentGuide.includes('AGENTS.md'));
+  const startCommand = 'tsrust dev';
+  assert.ok(created.includes(`Run \`${startCommand}\``), created);
+  assert.ok(fs.readFileSync(path.join(directory, 'hello/README.md'), 'utf8').includes(`Run \`${startCommand}\``));
+  const config = JSON.parse(fs.readFileSync(path.join(directory, 'hello/tsrust.config.json')));
+  assert.equal(config.build.output, `target/hello${process.platform === 'win32' ? '.exe' : ''}`);
   run('check', 'hello');
   run('format', 'hello', '--check');
   assert.equal(run('run', 'hello/src/main.tsr'), 'Hello from hello!\n');
@@ -22,7 +30,9 @@ try {
   fs.writeFileSync(path.join(directory, 'json.tsr'), "import {parse,kind} from 'std:json';function main(){match(parse('null')){Ok(value)=>{console.log(kind(value));},Err(error)=>{throw error.message;}}}\n");
   run('format', 'json.tsr');
   assert.equal(run('run', 'json.tsr'), 'null\n');
-  console.log('Distributed CLI: scaffold, check, format, native run, tests and bundled JSON passed.');
+  console.log('Distributed CLI: scaffold, check, format, native run, tests and shared-cache JSON passed.');
 } finally {
+  assert.equal(path.dirname(path.resolve(directory)), path.resolve(os.tmpdir()));
+  assert.ok(path.basename(directory).startsWith('tsrust-release-smoke-'));
   fs.rmSync(directory, {recursive: true, force: true});
 }

@@ -1,0 +1,83 @@
+import { s } from 'std:schema';
+import { strictEqual } from 'std:testing';
+
+type Header = {
+  operation: string;
+};
+
+function integerRule() {
+  return s.int().min(0);
+}
+
+function objectRule() {
+  return s.object({
+    operation: s.string()
+  }).strip();
+}
+
+function literalRule() {
+  return s.literal('count');
+}
+
+function labelRule(expected: string) {
+  return s.string().refine(value => value === expected);
+}
+
+function pairRule() {
+  return s.array(s.union([s.int(), s.string()])).refine(values => values.length === 2).refine(values => {
+    const first = s.int().safeParseJson(JSON.stringify(values[0]));
+    if (!first.success) {
+      return false;
+    }
+
+    const second = s.string().safeParseJson(JSON.stringify(values[1]));
+    if (!second.success) {
+      return false;
+    }
+
+    return true;
+  }).transform((values: (int | string)[]): [int, string] => [s.int().parse(JSON.parse(JSON.stringify(values[0]))), s.string().parse(JSON.parse(JSON.stringify(values[1])))]);
+}
+
+async function verify(body: string): Task<void> {
+  // This generic instantiation precedes the first inferred opaque factory call.
+  const header = JSON.parse<Header>(body);
+  strictEqual(header.operation, 'count');
+  const projected = objectRule().safeParseJson(body);
+  if (!projected.success) {
+    throw 'Direct object factory lost its public schema outcome';
+  }
+
+  strictEqual(projected.data.operation, 'count');
+  const literal = literalRule().safeParseJson('"count"');
+  if (!literal.success) {
+    throw 'Direct literal factory lost its public schema outcome';
+  }
+
+  strictEqual(literal.data === 'count', true);
+  const result = s.object({
+    operation: s.literal('count'), input: integerRule(), pair: pairRule()
+  }).safeParseJson(body);
+  if (!result.success) {
+    throw 'Factory schema rejected valid JSON';
+  }
+
+  strictEqual(result.data.input, 3);
+  strictEqual(result.data.pair[0], 2);
+  strictEqual(result.data.pair[1], 'two');
+  const labels = labelRule('retained');
+  const accepted = labels.safeParseJson('"retained"');
+  if (!accepted.success) {
+    throw 'Factory lost captured owner';
+  }
+
+  const rejected = labels.safeParseJson('"different"');
+  if (rejected.success) {
+    throw 'Factory dropped its refinement';
+  }
+}
+
+async function main(): Task<void> {
+  await verify('{"operation":"count","input":3,"pair":[2,"two"]}');
+  console.log('Async inferred schema factories passed');
+}

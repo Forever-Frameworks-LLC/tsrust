@@ -12,6 +12,8 @@ fn enabled()->bool{true}
 pub fn reserved(name:&str)->bool {
  [
         "arboard",
+        "color",
+        "url",
         "winit",
         "vello",
         "kurbo",
@@ -22,7 +24,7 @@ pub fn reserved(name:&str)->bool {
         "accesskit",
         "accesskit_winit",
         "futures-core",
-        "sha2","subtle","uuid","getrandom","chrono-tz","chrono","bigdecimal","sqlx","rusqlite","axum","matchit","tokio-rustls","reqwest","http-body","http-body-util","hyper-util","tokio","rayon","serde","serde_json","libsqlite3-sys","tsrust_runtime",
+        "sha2","subtle","uuid","getrandom","chrono-tz","chrono","bigdecimal","sqlx","rusqlite","axum","tower-http","matchit","tokio-rustls","reqwest","http-body","http-body-util","hyper-util","tokio","rayon","serde","serde_json","libsqlite3-sys","tsrust_runtime",
     ].contains(&name)
 }
 #[derive(Clone,Debug,Deserialize,Serialize)]

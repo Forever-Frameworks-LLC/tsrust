@@ -2,6 +2,13 @@
 
 ## Current analytics policy
 
+Public comparisons use [the benchmark-only dataset](./PUBLIC_DATA.md),
+`../measurements.sqlite`. It contains no archived logs or source files. The
+ignored `../records.sqlite` is a legacy mixed evidence archive with local paths;
+do not publish it. The owner's October 26, 2026 direction ends routine imports
+of logs, source snapshots and session receipts. The migration history below
+describes existing retained evidence, not the public dataset or current log policy.
+
 SQLite is the persistent analytics source of truth. Accepted raw run records must retain their original bytes and source/toolchain identities; queryable timing and allocation summaries are derived data. Closed loose records can be removed only after exact import, verification and restoration are proved. Active checks may continue using loose temporary files.
 
 At completed feature-family milestones, review correctness and matched native versus Node-after-tsc performance before optimization or further dependencies. Focused implementation and benchmark readiness take priority between these milestones; gate counts do not trigger heavy runs. Preserve other runtimes as context. Compare equivalent operation counts and measurement scopes, keep min/average/max throughput and individual samples, and normalize allocation metrics. A slower measurement is an investigation signal rather than proof of a compiler bug.

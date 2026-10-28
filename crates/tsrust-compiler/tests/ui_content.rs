@@ -48,11 +48,11 @@ import {Table,TableHeader,TableBody,TableFooter,TableRow,TableHead,TableCell,Tab
 import {trackedResource,resourceId,releaseCount,strictEqual} from 'std:testing';
 function main(){
  const owner=trackedResource();const id=resourceId(owner);
- {const table=<Table id="owned-table" className={{evaluate:()=>{strictEqual(releaseCount(resourceId(owner)),0);return 'text-base';}}}><TableCaption>Invoices</TableCaption><TableHeader><TableRow><TableHead scope="col">Invoice</TableHead><TableHead scope="col">Amount</TableHead></TableRow></TableHeader><TableBody><TableRow data-state="selected"><TableHead scope="row">One</TableHead><TableCell>$10</TableCell></TableRow></TableBody><TableFooter><TableRow><TableCell colSpan={2}>Total $10</TableCell></TableRow></TableFooter></Table>;
- const html=document(table,'Table');for(const text of ['<table','<thead','<tbody','<tfoot','<caption','colspan="2"','scope="row"','data-state="selected"','data-slot="table-container"']){strictEqual(html.includes(text),true,text);}strictEqual(releaseCount(id),0);}
- strictEqual(releaseCount(id),1);
- let rejected=false;try{const bad=<TableCell colSpan={0}>Bad</TableCell>;}catch{rejected=true;}strictEqual(rejected,true);
- let nested=false;try{const bad=<Table><TableBody><TableRow><TableCell><Table/></TableCell></TableRow></TableBody></Table>;}catch{nested=true;}strictEqual(nested,true);
+ {const table=<Table id="owned-table" className={{evaluate:()=>{strictEqual(releaseCount(resourceId(owner)),0,"evaluator capture alive");return 'text-base';}}}><TableCaption>Invoices</TableCaption><TableHeader><TableRow><TableHead scope="col">Invoice</TableHead><TableHead scope="col">Amount</TableHead></TableRow></TableHeader><TableBody><TableRow data-state="selected"><TableHead scope="row">One</TableHead><TableCell>$10</TableCell></TableRow></TableBody><TableFooter><TableRow><TableCell colSpan={2}>Total $10</TableCell></TableRow></TableFooter></Table>;
+ const html=document(table,'Table');for(const text of ['<table','<thead','<tbody','<tfoot','<caption','colspan="2"','scope="row"','data-state="selected"','data-slot="table-container"']){strictEqual(html.includes(text),true,text);}strictEqual(releaseCount(id),0,"table retains evaluator capture");}
+ strictEqual(releaseCount(id),1,"table releases evaluator capture once");
+ let rejected=false;try{const bad=<TableCell colSpan={0}>Bad</TableCell>;}catch{rejected=true;}strictEqual(rejected,true,"zero cell span rejects");
+ let nested=false;try{const bad=<Table><TableBody><TableRow><TableCell><Table/></TableCell></TableRow></TableBody></Table>;}catch{nested=true;}strictEqual(nested,true,"nested table rejects");
  console.log('Current table passed');
 }"#;
  let path=dir.0.join("inspect.tsrx");std::fs::write(&path,support::format_round_trip(source)).unwrap();let output=support::run(support::cli().arg("run").arg(&path),180);support::success(&output);assert_eq!(output.stdout,b"Current table passed\n");
@@ -62,7 +62,7 @@ function main(){
 #[test]
 fn table_documentation_keeps_formatted_paired_examples_executable(){
  let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs");
- for relative in ["src/acceptance/table-documentation.tsr","src/examples/table-layouts.tsrx","src/components/ui/table.tsrx"]{let source=std::fs::read_to_string(root.join(relative)).unwrap();assert_eq!(source,support::format_round_trip(&source));}
+ for relative in ["src/acceptance/table-documentation.tsr","src/acceptance/table-interaction.tsrx","src/examples/table-layouts.tsrx","src/components/ui/table.tsrx"]{let source=std::fs::read_to_string(root.join(relative)).unwrap();assert_eq!(source,support::format_round_trip(&source));}
  let output=support::run(support::cli().arg("run").arg(root.join("src/acceptance/table-documentation.tsr")),180);support::success(&output);assert_eq!(output.stdout,b"Table documentation passed\n");
 }
 

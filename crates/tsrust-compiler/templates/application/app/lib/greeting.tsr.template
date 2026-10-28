@@ -1,0 +1,9 @@
+// Ordinary backend logic can be reused without depending on the HTTP layer.
+export function greet(name: string): string {
+  const trimmed = name.trim();
+  if (trimmed === '') {
+    return 'Hello, world!';
+  }
+
+  return 'Hello, ' + trimmed + '!';
+}

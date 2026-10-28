@@ -1,6 +1,6 @@
 # Milestone 14: mutable local bindings
 
-[While loops](./13-while-loops.md) · [Ownership workstream](../ownership-and-memory.md) · [Roadmap](../roadmap.md)
+[While loops](./13-while-loops.md) · [Ownership workstream](../guides/language/ownership-and-memory.md) · [Roadmap](../roadmap.md)
 
 **Status:** Complete. All 187 regression groups pass, including 11 mutable binding groups. Formatting, Clippy, and local documentation links are verified. This gate adds initialized `let` bindings for integers, booleans, strings, and nominal records, with exact-type replacement and ownership reinitialization.
 

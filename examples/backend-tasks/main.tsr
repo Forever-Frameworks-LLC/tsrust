@@ -1,0 +1,96 @@
+import { Router, Server, TlsOptions } from 'std:http';
+import { connect } from 'std:sql';
+import { get } from 'std:env';
+import { readFile } from 'std:fs';
+import { toUtf8 } from 'std:bytes';
+import { SignalListener, listen, receive } from 'std:signals';
+import { Application } from './context.tsr';
+import { routes } from './application.tsr';
+import { mountConfiguredWeb } from './web-mounts.tsr';
+import { isToken, tokenHash } from '../service/security.tsr';
+
+type Ready = {
+  kind: 'ready';
+  address: string;
+  protocol: 'http' | 'https';
+};
+
+function required(name: string): string {
+  const value = unwrap(get(name));
+  if (value === undefined || value === '') {
+    throw 'Missing required task service setting: ' + name;
+  }
+
+  return value;
+}
+
+function browserOrigin(): string {
+  const origin = required('TASK_ORIGIN');
+  if (!origin.startsWith('https://') && !origin.startsWith('http://')) {
+    throw 'TASK_ORIGIN must be an HTTP or HTTPS origin';
+  }
+
+  const authority = origin.slice(origin.startsWith('https://') ? 8 : 7);
+  if (authority === '' || authority.includes('/') || authority.includes('\\') || authority.includes('@') || authority.includes('?') || authority.includes('#') || authority.includes(' ') || authority.includes('\t') || authority.includes('\r') || authority.includes('\n')) {
+    throw 'TASK_ORIGIN must contain only scheme and authority, without a trailing slash';
+  }
+
+  return origin;
+}
+
+function tlsOptions(): TlsOptions | undefined {
+  const cert = unwrap(get('TASK_TLS_CERT'));
+  const key = unwrap(get('TASK_TLS_KEY'));
+  if (cert === undefined && key === undefined) {
+    return undefined;
+  }
+
+  if (cert === undefined || key === undefined) {
+    throw 'Set both TASK_TLS_CERT and TASK_TLS_KEY';
+  }
+
+  return {
+    cert: unwrap(toUtf8(unwrap(readFile(cert)))), key: unwrap(toUtf8(unwrap(readFile(key))))
+  };
+}
+
+async function start(app: Owned<Router<Application>>, address: string, tls: TlsOptions | undefined): Task<Server> {
+  if (tls === undefined) {
+    return await app.listen(address);
+  }
+
+  return await app.listen(address, tls);
+}
+
+async function main(): Task<void> {
+  const token = required('TASK_TOKEN');
+  if (!isToken(token)) {
+    throw 'TASK_TOKEN must contain 64 lowercase hexadecimal characters';
+  }
+
+  const origin = browserOrigin();
+  const address = required('TASK_ADDRESS');
+  const tls = tlsOptions();
+  const protocol: 'http' | 'https' = tls === undefined ? 'http' : 'https';
+  if (tls === undefined && !address.startsWith('127.0.0.1:') && !address.startsWith('[::1]:')) {
+    throw 'Cleartext task service must bind loopback; configure TLS for another address';
+  }
+
+  const signals: SignalListener = unwrap(listen());
+  const pool = await connect(required('TASK_DATABASE_URL'), 4, 3000);
+  await pool.migrate(required('TASK_MIGRATIONS'));
+  const app = routes({
+    pool, tokenDigest: tokenHash(token), browserOrigin: origin
+  });
+  mountConfiguredWeb(app);
+  const server = await start(app, address, tls);
+  const ready: Ready = {
+    kind: 'ready', address: server.address(), protocol
+  };
+  console.log(JSON.stringify(ready));
+  try {
+    await receive(signals);
+  } finally {
+    await server.shutdown();
+  }
+}

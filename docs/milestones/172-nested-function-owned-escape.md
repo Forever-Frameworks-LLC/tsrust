@@ -185,7 +185,7 @@ record gate (commit 5c5cc68).
 | Callback failures | `retained.tsr`, `unused_throwing_named_factory_emits_its_checked_error_contract` |
 | Recursive group lifetime | `retained.tsr` |
 | No shared capture cells, no implicit clone | generated code of the fixtures; `dead_inner_declarations_*` for unused bodies |
-| Editor and guide | hover and navigation witnesses in the editor crate (339 pass); `docs/nested-functions.md` |
+| Editor and guide | hover and navigation witnesses in the editor crate (339 pass); `docs/guides/language/nested-functions.md` |
 | Matched workload | `nested_function_owned_escape`, native and Node-after-tsc verified untimed again in `2026-10-07T23-32-57-916Z-verify.json` (SQLite) |
 
 One correction belongs to gate 171 rather than this gate: the project test

@@ -8,19 +8,29 @@ mod package_validation;
 mod rust_binding_packages;
 mod package_export;
 mod native_dependency_bundle;
-#[cfg(unix)]
+#[cfg(any(unix,windows))]
 mod dev_frontend;
-#[cfg(unix)]
+#[cfg(any(unix,windows))]
 mod dev_dependencies;
-#[cfg(unix)]
+#[cfg(any(unix,windows))]
 mod dev_watch;
 #[cfg(unix)]
 mod dev_events;
+#[cfg(windows)]
+#[path="dev_windows_events.rs"]
+mod dev_events;
+#[cfg(windows)]
+mod dev_windows;
 mod project_config;
 mod new_cli;
+mod application_scaffold;
 mod ui_cli;
 mod cache_cli;
+mod setup_cli;
+mod backend_sources;
 mod docs_cli;
+mod api_cli;
+mod http_client;
 mod docs_model;
 mod format_cli;
 mod check_cli;
@@ -33,7 +43,7 @@ use std::process::{Command, ExitCode};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tsrust_compiler::RUST_BACKEND_VERSION;
 
-const USAGE: &str = "tsrust — native TypeScript-style programs
+const USAGE: &str = "tsrust â€” native TypeScript-style programs
 
 Usage:
   tsrust                       Open the interactive command menu in a terminal
@@ -44,11 +54,14 @@ Usage:
   tsrust packages [--project directory]
   tsrust remove <crate> [--dry-run]
   tsrust bindings resolve <file.bindings.json> [--offline]
-  tsrust new [name-or-path] [--ui [--target native|web]...]
+  tsrust new [name-or-path] [--app [--target backend] | --ui [--target native|web]...]
   tsrust ui <list --bundled|init|add name...> [--cwd directory] [--path directory] [--target native|web]... [--dry-run]
   tsrust ui attributions [--cwd directory] [--dry-run]
   tsrust docs content [--cwd directory]
+  tsrust api generate [--config file | --description file | --url HTTPS_URL] [--language typescript|rust] [--out directory] [--header-env Header=ENV] [--check]
   tsrust cache <info|clean>
+  tsrust doctor [--json] [--native]
+  tsrust setup [--toolchain] [--dependencies] [--portable] [--offline] [--yes]
   tsrust dev [--target native|web] [--port 4317] [--release] [--verbose] [--color auto|always|never] [-- program-arguments]
   tsrust run [input.tsr] [--release] [-- program-arguments]
   tsrust test [files/directories] [options]
@@ -62,7 +75,10 @@ Commands:
   packages Show resolved versions, effective features and available bindings
   remove   Validate dependency removal without rewriting adapters
   bindings Resolve and vendor declared Rust dependencies
+  doctor   Inspect pinned tools; --native also tests the host compiler and linker offline
+  setup    Explicitly prepare pinned Rust tools or shared backend dependency sources
   docs     Compile checked documentation content and exact example/API data offline
+  api      Generate a checked named TypeScript client without adopting frontend tooling
   dev      Watch a configured native program or web UI
   new      Create a project with source, tests and configuration
   check    Check files/directories recursively; defaults to the current directory
@@ -111,7 +127,7 @@ fn styled(text: &str, code: &str, color: bool) -> String {
 fn print_help() {
     let color = color_enabled(std::io::stdout().is_terminal());
     for line in USAGE.lines() {
-        if line.ends_with(':') || line.starts_with("tsrust —") { println!("{}", styled(line,"1;36",color)); }
+        if line.ends_with(':') || line.starts_with("tsrust â€”") { println!("{}", styled(line,"1;36",color)); }
         else { println!("{line}"); }
     }
 }
@@ -158,7 +174,7 @@ mod argument_tests {
     use super::*;
     #[test]
     fn run_arguments_preserve_order_empty_values_and_option_spelling() {
-        let input=["main.tsr","--release","--","--help","","two words","--color=invalid","--","λ"];
+        let input=["main.tsr","--release","--","--help","","two words","--color=invalid","--","Î»"];
         let (compiler,program)=split_program_arguments("run",input.map(str::to_owned).to_vec());
         assert_eq!(compiler,["main.tsr","--release"]);
         let mut child=Command::new("program");child.args(&program);
@@ -190,7 +206,10 @@ fn run() -> Result<u8, String> {
     if command=="bindings" {return rust_bindings::resolve(args);}
     if command=="dev" {return dev_cli::run(args);}
     if command=="docs" {return docs_cli::run(args);}
+    if command=="api" {return api_cli::run(args);}
     if command=="cache" {return cache_cli::run(args);}
+    if command=="doctor" {return setup_cli::doctor(args);}
+    if command=="setup" {return setup_cli::setup(args);}
     if command=="ui" {return ui_cli::run(args);}
     if command=="new" {return new_cli::run(args);}
     let (arguments,program_arguments)=split_program_arguments(&command,args.collect());
@@ -356,7 +375,7 @@ fn run() -> Result<u8, String> {
     let run_project = if command == "run" { project_config::discover()? } else { None };
     let cache_root = match env::var_os("TSRUST_CACHE_DIR") {
         Some(path) => PathBuf::from(path),
-        None if command == "test" || (command == "run" && run_project.is_none()) => directory.0.join("cache"),
+        None if command == "run" && run_project.is_none() => directory.0.join("cache"),
         None => run_project.map(|project| project.root).unwrap_or(env::current_dir().map_err(|error| error.to_string())?)
             .join("target/tsrust-native"),
     };
@@ -376,9 +395,9 @@ fn run() -> Result<u8, String> {
         graph_identity.extend_from_slice(source.as_bytes());
     }
     let features = native_features.join(",");
-    let cache = tsrust_compiler::native_cache::NativeCache::new(
-        &cache_root,
-        &[
+    let optimization = runtime_build::application_optimization(release,native_features.contains(&"ui-native"));
+    let shared_inputs = backend_sources::application_identity(&rust, &cache_root)?;
+    let mut cache_parts: Vec<&[u8]> = vec![
             b"native-cache-abi-4-ui-dev-profile",
             native_dependency_bundle::IDENTITY.as_bytes(),
             backend_identity.as_bytes(),
@@ -390,8 +409,10 @@ fn run() -> Result<u8, String> {
             rust.as_bytes(),
             &graph_identity,
             features.as_bytes(),
-        ],
-    );
+            optimization.as_bytes(),
+        ];
+    if let Some(inputs) = &shared_inputs { cache_parts.push(inputs.as_bytes()); }
+    let cache = tsrust_compiler::native_cache::NativeCache::new(&cache_root, &cache_parts);
     let cache_started=std::time::Instant::now();
     let reused = cache.copy_to(&executable);
     let cache_elapsed=cache_started.elapsed();
@@ -400,20 +421,16 @@ fn run() -> Result<u8, String> {
         let mut prepared=runtime_build::Prepared::new(&rust,&backend_identity,&cache_root,&directory.0,release)?;
         if let Some(mut runtime)=prepared.command.take() {
             let result=runtime.output().map_err(|e|e.to_string())?;
-            if !result.status.success(){return Err(format!("Runtime compilation failed:\n{}",String::from_utf8_lossy(&result.stderr)));}
+            if !result.status.success(){return Err(prepared.compilation_error(&String::from_utf8_lossy(&result.stderr)));}
             prepared.publish();
         }
         if env::var("TSRUST_BUILD_TIMINGS").as_deref()==Ok("1"){eprintln!("[build] runtime={}",prepared.state);}
-        let mut command=backend_command();prepared.link(&mut command);
+        let mut command=backend_command();prepared.link(&mut command)?;
         let result = command
             .arg("--edition=2024")
             .args([
                 "-C",
-                if release {
-                    "opt-level=3"
-                } else {
-                    "opt-level=0"
-                },
+                optimization,
             ])
             .args(["-C", "overflow-checks=on"])
             .arg(&prepared.application)
@@ -435,7 +452,7 @@ fn run() -> Result<u8, String> {
             return Err(format!("{explanation}\n{}", stderr.trim()));
         }
         // Cache failure must not turn a successful native build into a failure.
-        let _ = cache.publish(&executable);
+        if backend_sources::unchanged(shared_inputs.as_deref(), &cache_root) { let _ = cache.publish(&executable); }
     }
     if env::var("TSRUST_BUILD_TIMINGS").as_deref()==Ok("1") {
         eprintln!("[build] check={:.1}ms emit={:.1}ms backend={:.1}ms cache={} ({:.1}ms) native+link={:.1}ms",check_elapsed.as_secs_f64()*1000.0,emit_elapsed.as_secs_f64()*1000.0,backend_elapsed.as_secs_f64()*1000.0,if reused {"hit"}else{"miss"},cache_elapsed.as_secs_f64()*1000.0,if reused {0.0}else{native_started.elapsed().as_secs_f64()*1000.0});

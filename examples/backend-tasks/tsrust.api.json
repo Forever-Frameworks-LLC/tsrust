@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "entry": "operations.tsr",
+  "output": "generated-client",
+  "package": { "name": "@tsrust-example/tasks-api", "version": "0.1.0" },
+  "server": {
+    "output": "generated-server",
+    "context": { "module": "context.tsr", "export": "TaskContext" },
+    "authorize": { "module": "access.tsr", "export": "authorize" }
+  },
+  "operations": [
+    { "name": "tasks.list", "module": "operations.tsr", "export": "list", "kind": "query", "context": true },
+    { "name": "tasks.create", "module": "operations.tsr", "export": "create", "kind": "mutation", "context": true },
+    { "name": "tasks.update", "module": "operations.tsr", "export": "update", "kind": "mutation", "context": true },
+    { "name": "tasks.delete", "module": "operations.tsr", "export": "remove", "kind": "mutation", "context": true }
+  ]
+}

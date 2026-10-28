@@ -1,7 +1,7 @@
 # Caller-borrowing stores through record parameters (B7)
 
 Status: accepted at gate 183. See `docs/milestones/183-caller-borrowed-record-stores.md`
-and `docs/b7-caller-borrowed-acceptance-map.md`. B5/gate 182 is accepted at `00214a1`.
+and `docs/milestones/b7-caller-borrowed-acceptance-map.md`. B5/gate 182 is accepted at `00214a1`.
 Read the completion ledger and B5 acceptance handoff before implementation.
 
 ## Current implementation progress
@@ -14,7 +14,7 @@ resolves a closure's captured owners where the closure was constructed and hands
 environment to whoever holds the value. Readonly captured sources through one, two and
 three layers, plain and nullable fields, and two independent sources through one
 receiver have native witnesses. Mutable captured sources through a held receiver keep
-the earlier restriction. Details: `docs/handoff-2026-10-10-b7-captured-receiver-native.md`.
+the earlier restriction. Details: `docs/handoffs/handoff-2026-10-10-b7-captured-receiver-native.md`.
 
 The latest focused checkpoint adds transitive hidden-source borrowing through locally
 constructed installer closures, including three-layer calls and conditional old-owner

@@ -16,7 +16,7 @@ Read:
 - [Lifetime contract](../../experiments/ui-tsrust-owner-handles/CONTRACT.md), [identity contract](../../experiments/ui-tsrust-owner-handles/IDENTITY.md), [review](../../experiments/ui-tsrust-owner-handles/REVIEW.md), and current provenance.
 - H01–H19 in `matrix.json`, R01–R19 in `resource-matrix.json`, I01–I20 in `identity-matrix.json`, existing harness, demo, owner and witnesses.
 - Current native adapter implementations and tests, including supported custom resource/drop boundaries. Older adapter plans are historical, not evidence of current support.
-- [Standard-library roadmap](../standard-library-roadmap.md), current compiler handoff, and S18 worker's current ownership/build window.
+- [Standard-library roadmap](standard-library-roadmap.md), current compiler handoff, and S18 worker's current ownership/build window.
 
 Planning baseline: main `49704b4f46050e420238148fe9804d9f9483e151`, containing UI merge `bea68611514760a9d3f6a13d1d73f289f3023447` and dependency `66dd80d87c0af9a009981c3ed72a6d310a2463f0`. Installed compiler at planning time has SHA256 `12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89`. Reverify at dispatch; S18 is active and may change tools. Never copy uncommitted S18 source into the UI worktree.
 

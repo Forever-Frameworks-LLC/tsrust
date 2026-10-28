@@ -121,6 +121,7 @@
     },
     "configurationDefaults": {
       "[tsrust]": {
+        "editor.defaultFormatter": "tsrust-local.tsrust",
         "editor.tabSize": 2,
         "editor.insertSpaces": true
       }
@@ -132,11 +133,11 @@
       }
     ],
     "menus": {
-      "editor/title": [
+      "editor/title/run": [
         {
           "command": "tsrust.runFile",
           "when": "resourceLangId == tsrust && isWorkspaceTrusted",
-          "group": "navigation"
+          "group": "navigation@-1"
         }
       ],
       "editor/context": [

@@ -10,13 +10,26 @@ use tsrust_compiler::project::{ProjectDiagnostic, SourceId, SourceLocation};
 /// Local file URI to canonical identity; new unsaved files use normalized absolute paths.
 pub fn source_id(uri: &str) -> Result<SourceId, String> {
     let path = source_path_id(uri)?;
-    let canonical = std::fs::canonicalize(&path.0).unwrap_or_else(|_| PathBuf::from(&path.0));
+    let canonical = canonical_path(Path::new(&path.0));
     Ok(SourceId(
         canonical
             .to_str()
             .ok_or("Source path must be valid UTF-8.")?
             .into(),
     ))
+}
+/// New unsaved files keep the canonical identity of their existing ancestor.
+/// This also preserves Windows verbatim-drive prefixes used by discovered roots.
+pub(crate) fn canonical_path(path: &Path) -> PathBuf {
+    if let Ok(canonical) = std::fs::canonicalize(path) {
+        return canonical;
+    }
+    for ancestor in path.ancestors().skip(1) {
+        if let Ok(base) = std::fs::canonicalize(ancestor) {
+            return base.join(path.strip_prefix(ancestor).expect("path ancestor"));
+        }
+    }
+    path.to_owned()
 }
 /// Normalized URI path before filesystem canonicalization, retained for rename/watch events.
 pub fn source_path_id(uri: &str) -> Result<SourceId, String> {
@@ -51,6 +64,8 @@ pub fn source_path_id(uri: &str) -> Result<SourceId, String> {
     if path.contains('\0') {
         return Err("File URI must not contain a null byte.".into());
     }
+    #[cfg(windows)]
+    let path = path.strip_prefix('/').filter(|value| value.as_bytes().get(1) == Some(&b':')).unwrap_or(&path);
     let mut normalized = PathBuf::new();
     for component in Path::new(&path).components() {
         match component {
@@ -79,8 +94,19 @@ pub fn file_uri(id: &SourceId) -> Result<Uri, String> {
     if !Path::new(&id.0).is_absolute() || id.0.contains('\0') {
         return Err("Source identity must be an absolute local path.".into());
     }
+    #[cfg(windows)]
+    let path = {
+        let path = id.0.replace('\\', "/");
+        let path = path.strip_prefix("//?/").unwrap_or(&path);
+        if path.starts_with("//") {
+            return Err("Remote file URI authorities are not supported.".into());
+        }
+        format!("/{path}")
+    };
+    #[cfg(not(windows))]
+    let path = &id.0;
     let mut uri = String::from("file://");
-    for byte in id.0.bytes() {
+    for byte in path.bytes() {
         if byte.is_ascii_alphanumeric() || b"/-._~:".contains(&byte) {
             uri.push(char::from(byte));
         } else {

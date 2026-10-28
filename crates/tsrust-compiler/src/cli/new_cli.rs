@@ -1,18 +1,22 @@
 use std::{fs,path::PathBuf};
 use super::project_config::{FILE,valid_name};
+pub(super) const AGENT_GUIDANCE:&str=include_str!("project-agents.md");
 
 pub fn run(args:impl Iterator<Item=String>)->Result<u8,String> {
-    let mut args=args;let mut ui=false;let mut requested=None;let mut targets=vec![];
-    while let Some(arg)=args.next(){match arg.as_str(){"--ui" if !ui=>ui=true,"--target"=>targets.push(args.next().ok_or("--target requires native or web")?),_ if !arg.starts_with('-') && requested.is_none()=>requested=Some(arg),_=>return Err("Usage: tsrust new <name-or-path> [--ui [--target native|web]...]".into())}}
-    if !ui && !targets.is_empty(){return Err("--target requires --ui".into());}
+    let mut args=args;let mut ui=false;let mut application=false;let mut requested=None;let mut targets=vec![];
+    while let Some(arg)=args.next(){match arg.as_str(){"--app" if !application=>application=true,"--ui" if !ui=>ui=true,"--target"=>targets.push(args.next().ok_or("--target requires a target name")?),_ if !arg.starts_with('-') && requested.is_none()=>requested=Some(arg),_=>return Err("Usage: tsrust new <name-or-path> [--app [--target backend] | --ui [--target native|web]...]".into())}}
+    if ui && application {return Err("--app and legacy --ui are mutually exclusive".into());}
+    if !ui && !application && !targets.is_empty(){return Err("--target requires --app or --ui".into());}
+    if application {super::application_scaffold::validate_targets(&targets)?;}
     let guided=requested.is_none() && super::interactive_cli::available();
     let root=loop {
         let requested=if guided {let Some(value)=super::interactive_cli::text("Project name or path")? else{return Ok(0);};value}else{requested.take().ok_or("Missing project name. Run tsrust new in a terminal, or pass a name.")?};
         match destination(&requested) {Ok(root)=>break root,Err(error) if guided=>eprintln!("{error}"),Err(error)=>return Err(error)}
     };
-    if guided && !ui {
-        let Some(kind)=super::interactive_cli::choose("Project type",&["Console application","UI application"])? else{return Ok(0);};ui=kind==1;
+    if guided && !ui && !application {
+        let Some(kind)=super::interactive_cli::choose("Project type",&["Backend HTTP application","Console application","Legacy UI application"])? else{return Ok(0);};application=kind==0;ui=kind==2;
     }
+    if application {return super::application_scaffold::create(&root,&targets);}
     let name=root.file_name().and_then(|value|value.to_str()).unwrap();
     let target=if ui{Some(super::ui_cli::select_targets(None,&targets,false)?)}else{None};
     if ui {super::verify_backend()?;}
@@ -35,14 +39,17 @@ pub fn run(args:impl Iterator<Item=String>)->Result<u8,String> {
         fs::write(root.join(path),formatted).map_err(|e|e.to_string())?;
     }
     fs::write(root.join(".gitignore"),"/target/\n").map_err(|e|e.to_string())?;
-    fs::write(root.join("README.md"),format!("# {name}\n\nRun `tsrust dev` to rebuild and restart on source changes.\n\n- `tsrust run`: run once.\n- `tsrust build`: build the configured binary.\n- `tsrust check`: check project sources.\n- `tsrust test`: run project tests.\n- `tsrust format`: format project sources.\n\nThe nearest `{FILE}` defines the project root, entry and output.\nA `main` entrypoint is optional; this template includes one to print a greeting.\n")).map_err(|e|e.to_string())?;
+    fs::write(root.join("AGENTS.md"),AGENT_GUIDANCE).map_err(|e|e.to_string())?;
+    let console_start="Run `tsrust dev` to rebuild and restart on source changes.";
+    let ui_start="Run `tsrust dev` to open the native UI and restart after edits.";
+    fs::write(root.join("README.md"),format!("# {name}\n\n{console_start}\n\nRead `AGENTS.md` for project workflow and agent instructions.\n\n- `tsrust run`: run once.\n- `tsrust build`: build the configured binary.\n- `tsrust check`: check project sources.\n- `tsrust test`: run project tests.\n- `tsrust format`: format project sources.\n\nThe nearest `{FILE}` defines the project root, entry and output.\nA `main` entrypoint is optional; this template includes one to print a greeting.\n")).map_err(|e|e.to_string())?;
     if ui {
         super::ui_cli::install_defaults(&root,&ui_config)?;
-        fs::write(root.join("README.md"), format!("# {name}\n\nRun `tsrust dev` to open the native UI and restart after edits.\n\n`tsrust.config.json` declares `src/main.tsr` as the executable entry. That visible bootstrap mounts `Page` from `src/app/page.tsrx`, the root screen convention. Put application state and handlers in components, or import them from ordinary source modules.\n\n`tsrust check`, `tsrust test` and `tsrust format --check` validate this project. `tsrust build` writes the configured executable.\n\nEdit `ui.theme` in `tsrust.config.json` for paired light/dark tokens and spacing, radius and text sizes. Select mode in `src/main.tsr`. Edit `src/components/ui/button.tsrx` and `card.tsrx` directly. The UI paths live in the `ui` field of `tsrust.config.json`. Commit the source, theme and `ui-components.lock.json` together.\n\n`tsrust ui list --bundled` lists one current offline version per component. `tsrust ui add` selects several components with Space and installs them together with Enter. `tsrust ui add button card --dry-run` previews the installation without prompting. Re-adding preserves customized files and lock bytes. Upgrades use versioned filenames such as `card-v3.tsrx`; existing source and application imports stay intact. Newly installed dependencies import the recorded versioned file. `--path` selects an alternate component directory. Installation never downloads dependencies.\n\nThis scaffold implements one root page. Nested route discovery, layouts, loaders, navigation and async UI remain unfinished; naming another file does not wire it into this explicit bootstrap.\n")).map_err(|e|e.to_string())?;
+        fs::write(root.join("README.md"), format!("# {name}\n\n{ui_start}\n\nRead `AGENTS.md` for project workflow. The configured component directory contains an `AGENTS.md` index and per-component API references.\n\n`tsrust.config.json` declares `src/main.tsr` as the executable entry. That visible bootstrap mounts `Page` from `src/app/page.tsrx`, the root screen convention. Put application state and handlers in components, or import them from ordinary source modules.\n\n`tsrust check`, `tsrust test` and `tsrust format --check` validate this project. `tsrust build` writes the configured executable.\n\nEdit `ui.theme` in `tsrust.config.json` for paired light/dark tokens and spacing, radius and text sizes. Select mode in `src/main.tsr`. Edit `src/components/ui/button.tsrx` and `card.tsrx` directly. The UI paths live in the `ui` field of `tsrust.config.json`. Commit the source, theme and `ui-components.lock.json` together.\n\n`tsrust ui list --bundled` lists one current offline version per component. `tsrust ui add` selects several components with Space and installs them together with Enter. `tsrust ui add button card --dry-run` previews the installation without prompting. Re-adding preserves customized files and lock bytes. Upgrades use versioned filenames such as `card-v3.tsrx`; existing source and application imports stay intact. Newly installed dependencies import the recorded versioned file. `--path` selects an alternate component directory. Installation never downloads dependencies.\n\nThis scaffold implements one root page. Nested route discovery, layouts, loaders, navigation and async UI remain unfinished; naming another file does not wire it into this explicit bootstrap.\n")).map_err(|e|e.to_string())?;
     }
     if target.as_ref().is_some_and(|t|!t.native){
-        let readme=root.join("README.md");let text=fs::read_to_string(&readme).map_err(|e|e.to_string())?.replace("Run `tsrust dev` to open the native UI and restart after edits.","This project selects the web target. Use the bounded Wasm web builder; native dev/run is disabled. A general web dev server is not implemented yet.");let text=text.replace("`tsrust build` writes the configured executable.","Use the bounded Wasm builder for browser output; `tsrust emit --package` exports web support without enabling native GPU dependencies.");fs::write(readme,text).map_err(|e|e.to_string())?;
-        println!("Created {}. Web UI selected; use the bounded Wasm web builder. Native dev/run is disabled.",root.display());
+        let readme=root.join("README.md");let text=fs::read_to_string(&readme).map_err(|e|e.to_string())?.replace(ui_start,"This project selects the web target. Build with `tsrust build --target web` after installing the web prerequisites. Native dev/run is disabled.");let text=text.replace("`tsrust build` writes the configured executable.","Use `tsrust build --target web` for browser output; `tsrust emit --package` exports web support without enabling native GPU dependencies.");fs::write(readme,text).map_err(|e|e.to_string())?;
+        println!("Created {}. Web UI selected; use `tsrust build --target web` after installing web prerequisites. Native dev/run is disabled.",root.display());
     }else{println!("Created {}.\nRun `tsrust dev` from that directory.",root.display());}
     Ok(0)
 }

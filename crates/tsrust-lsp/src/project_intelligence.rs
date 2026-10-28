@@ -9,27 +9,84 @@ use tsrust_compiler::project::{ProjectGraph, SourceId};
 
 pub struct ProjectIndex {
     indices: BTreeMap<SourceId, SourceIndex>,
+    entry_aliases: BTreeMap<SourceId,SourceId>,
     references: BTreeMap<String, Vec<(Value, bool)>>,
     /// The validated module graph of this index, for checks of a repaired module.
     graph: ProjectGraph,
 }
+
+#[cfg(test)]
+mod inherited_help_tests {
+    use super::*;
+    #[test]
+    fn imported_inherited_fields_keep_help_in_header_and_checked_indices() {
+        let root = crate::project_diagnostics::canonical_path(&std::env::temp_dir().join("tsrust-inherited-help"));
+        let mut workspace = crate::workspace::Workspace::default();
+        let sources = [
+            ("base.tsr", "export interface Base<T>{/** Base value contract. */value:T;}export type Alias<T>=Base<T>;"),
+            ("leaf.tsr", "import {Alias as RenamedBase} from './base';export interface Middle<T> extends RenamedBase<T>{}export interface Leaf extends Middle<string>{}export interface Override{/** Local value contract. */value:string;}"),
+            ("main.tsr", "import {Leaf,Override,Middle} from './leaf';function inspect(base:ReadOnly<Leaf>,own:ReadOnly<Override>,generic:ReadOnly<Middle<string>>,mutable:Mutable<Leaf>,owned:Owned<Leaf>){const first=base.value;const second=own.value;const third=generic.value;const fourth=clone(mutable.value);const fifth=owned.value;}function main(){}"),
+        ];
+        let mut text = String::new();
+        for (name, source) in sources {
+            let formatted = tsrust_compiler::format(source).unwrap();
+            assert_eq!(tsrust_compiler::format(&formatted).unwrap(), formatted);
+            if name == "main.tsr" { text = formatted.clone(); }
+            workspace.open(SourceId(root.join(name).to_str().unwrap().into()), 1, formatted);
+        }
+        let entry = SourceId(root.join("main.tsr").to_str().unwrap().into());
+        let analysis = workspace.snapshot().check_with_diagnostics(&entry).unwrap();
+        let uri = file_uri(&entry).unwrap();
+        for (phase, index) in [("headers", ProjectIndex::new(&analysis.graph)), ("checked", ProjectIndex::checked(&analysis))] {
+            for (needle, expected, excluded) in [("base.value", "Base value contract", "Local value contract"), ("own.value", "Local value contract", "Base value contract"), ("generic.value", "Base value contract", "Local value contract"), ("mutable.value", "Base value contract", "Local value contract"), ("owned.value", "Base value contract", "Local value contract")] {
+                let at = text.find(needle).unwrap() + needle.find('.').unwrap() + 2;
+                let start = text[..at].rfind('\n').map_or(0, |offset| offset + 1);
+                let params = serde_json::json!({"textDocument":{"uri":uri},"position":{"line":text[..at].matches('\n').count(),"character":text[start..at].encode_utf16().count()}});
+                let result = index.request("textDocument/hover", &params, uri.as_str()).unwrap().unwrap();
+                assert!(result.to_string().contains(expected) && !result.to_string().contains(excluded), "{phase} {needle}: {result}; fields: {:?}", analysis.checked_type_facts().record_fields);
+                let definition=index.request("textDocument/definition",&params,uri.as_str()).unwrap().unwrap();
+                let target=if needle=="own.value"{"leaf.tsr"}else{"base.tsr"};
+                assert_eq!(definition["uri"],file_uri(&SourceId(root.join(target).to_str().unwrap().into())).unwrap().as_str(),"{phase} {needle}: {definition}");
+            }
+        }
+        // Redeclaring an inherited field is a compiler rejection, not a legal
+        // way to override its documentation. Keep that boundary explicit.
+        let invalid = tsrust_compiler::format("import {Base} from './base';export interface Middle<T> extends Base<T>{}export interface Override extends Middle<string>{/** Local value contract. */value:string;}").unwrap();
+        assert_eq!(tsrust_compiler::format(&invalid).unwrap(),invalid);
+        let leaf = SourceId(root.join("leaf.tsr").to_str().unwrap().into());
+        workspace.change(&leaf, 2, invalid);
+        assert!(workspace.snapshot().check_with_diagnostics(&leaf).err().unwrap().iter().any(|error|error.code=="duplicate" && error.message.contains("value")));
+    }
+}
 impl ProjectIndex {
     pub fn checked(analysis: &tsrust_compiler::project::ProjectAnalysis) -> Self {
+        let trace = std::env::var_os("TSRUST_LSP_TRACE_TIMINGS").is_some();
+        let started = std::time::Instant::now();
         let mut index = Self::build(&analysis.graph);
+        if trace { eprintln!("[index] build={}ms modules={}", started.elapsed().as_millis(), analysis.graph.order.len()); }
+        let started = std::time::Instant::now();
         let labels=analysis.checked_control_labels();
         let facts = analysis.checked_type_facts();
         let local_functions = analysis.checked_local_functions();
+        if trace { eprintln!("[index] facts={}ms", started.elapsed().as_millis()); }
+        let started = std::time::Instant::now();
         for id in &analysis.graph.order {
             // Data has no executable body; its complete declarations come from the checked schema.
             if analysis.graph.modules[id].data.is_some(){index.indices.get_mut(id).expect("indexed data source").mark_checked();continue;}
+            let module_started = std::time::Instant::now();
             let mut source = index.indices.remove(id).expect("indexed project source");
             source.checked_control_labels=labels.iter().filter(|(span,definition)|span.source==*id && definition.source==*id).map(|(span,definition)|(span.span,definition.span)).collect();
             source.apply_project_checked_facts(&analysis.graph, id, &facts, &index.indices);
             source.apply_project_local_functions(&analysis.graph, id, &local_functions, &index.indices);
+            source.apply_project_function_results(analysis, id, &index.indices);
             source.mark_checked();
             index.indices.insert(id.clone(), source);
+            if trace && module_started.elapsed().as_millis() >= 500 { eprintln!("[index] apply-module={}ms source={}", module_started.elapsed().as_millis(), id.0); }
         }
+        if trace { eprintln!("[index] apply={}ms", started.elapsed().as_millis()); }
+        let started = std::time::Instant::now();
         index.refresh_references();
+        if trace { eprintln!("[index] references={}ms", started.elapsed().as_millis()); }
         index
     }
     pub fn new(graph: &ProjectGraph) -> Self {
@@ -39,9 +96,11 @@ impl ProjectIndex {
         index
     }
     fn build(graph: &ProjectGraph) -> Self {
+        let trace = std::env::var_os("TSRUST_LSP_TRACE_TIMINGS").is_some();
         let mut indices = BTreeMap::new();
         let mut declarations: BTreeMap<SourceId, SourceIndex> = BTreeMap::new();
         for id in &graph.order {
+            let started = std::time::Instant::now();
             let module = &graph.modules[id];
             let text_asset=module.data.is_some()&&std::path::Path::new(&id.0).extension().is_some_and(|value|value=="txt");
             let (mut declaration,mut index)=if text_asset {let schema=module.data.as_ref().unwrap().schema();(SourceIndex::text_asset(&module.source.text,&schema),SourceIndex::text_asset(&module.source.text,&schema))}else{(SourceIndex::with_entry_help(&module.declaration_source,false),SourceIndex::with_entry_help(module.checked_source(),id==&graph.entry))};
@@ -106,15 +165,22 @@ impl ProjectIndex {
             declarations.insert(id.clone(), declaration);
             index.finish_imports();
             indices.insert(id.clone(), index);
+            if trace && started.elapsed().as_millis() >= 500 { eprintln!("[index] module={}ms source={}", started.elapsed().as_millis(), id.0); }
         }
         Self {
             indices,
+            entry_aliases: BTreeMap::new(),
             references: BTreeMap::new(),
             graph: graph.clone(),
         }
     }
     pub fn contains(&self, id: &SourceId) -> bool {
-        self.indices.contains_key(id)
+        self.indices.contains_key(self.entry_aliases.get(id).unwrap_or(id))
+    }
+    pub(crate) fn alias_entry(&mut self,physical:SourceId,logical:SourceId) {
+        if logical==self.graph.entry && self.indices.contains_key(&logical) && physical!=logical {
+            self.entry_aliases.insert(physical,logical);
+        }
     }
     fn refresh_references(&mut self) {
         self.references.clear();
@@ -135,7 +201,8 @@ impl ProjectIndex {
         params: &Value,
         uri: &str,
     ) -> Option<Result<Value, String>> {
-        let id = source_id(uri).ok()?;
+        let physical = source_id(uri).ok()?;
+        let id=self.entry_aliases.get(&physical).unwrap_or(&physical).clone();
         if self.graph.modules.get(&id).is_some_and(|module|module.rust.is_some()){return None;}
         if method=="textDocument/definition" {
             let index=self.indices.get(&id)?;

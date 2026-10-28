@@ -1,6 +1,6 @@
 # Milestone 46: array callback predicates and index search
 
-[Roadmap](../roadmap.md) · [Primitive coverage](../feature-coverage.md)
+[Roadmap](../roadmap.md) · [Primitive coverage](../guides/language/feature-coverage.md)
 
 ## Scope
 

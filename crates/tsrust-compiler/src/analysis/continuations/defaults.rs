@@ -24,7 +24,7 @@ impl Analyzer {
         DefaultFrame{mode,expected:hint,declared:expected,prior,supplied_flow,argument}
     }
     pub(in crate::analysis) fn finish_default_work(&mut self,context:&mut Context,value:&mut Expr,frame:DefaultFrame,actual:Type)->Result<(),Diagnostic>{
-        let actual=if let Some(argument)=frame.argument{self.finish_parameter_argument(value,argument,actual)?}else{actual};
+        let actual=if let Some(argument)=frame.argument{self.finish_parameter_argument(context,value,argument,actual)?}else{actual};
         self.require(actual,Some(frame.declared),value.span)?;
         for(binding,supplied)in context.bindings.iter_mut().zip(frame.prior){supplied.join(Availability::of(binding)).restore(binding);}
         context.flow=crate::flow::join(&frame.supplied_flow,&context.flow);

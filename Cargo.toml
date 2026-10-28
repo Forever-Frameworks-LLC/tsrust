@@ -1,5 +1,6 @@
 [workspace]
 members = ["crates/tsrust-compiler", "crates/tsrust-lsp", "crates/tsrust-ui"]
+default-members = ["crates/tsrust-compiler", "crates/tsrust-lsp"]
 resolver = "3"
 
 # Interactive checking and dev rebuilds need optimized compiler code, with debug checks retained.

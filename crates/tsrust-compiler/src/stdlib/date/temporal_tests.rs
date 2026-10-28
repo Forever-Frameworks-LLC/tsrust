@@ -37,3 +37,13 @@ fn temporal_values_preserve_precision_and_resolve_dst_explicitly(){
  assert!(local_date(&instant("0001-01-01T00:00:00Z"),&fixed_offset(-3600).unwrap()).is_err());
  assert_eq!(compare_times(&time("01:00:00"),&time("02:00:00")),-1);assert_eq!(compare_instants(&earlier,&later),-1);assert!(now().is_ok());
 }
+
+#[test]
+fn floor_second_preserves_the_second_before_and_after_epoch(){
+ use tsrust_native_date::*;
+ for (value,expected,nanos) in [("1969-12-31T23:59:59.999Z","1969-12-31T23:59:59Z",999_000_000),("2024-01-01T00:00:00.123Z","2024-01-01T00:00:00Z",123_000_000)]{
+  let value=parse_iso(value).unwrap();let floor=start_of_second(&value);
+  assert_eq!(format_iso(&floor),expected);assert_eq!(duration_to_nanoseconds(&difference(&value,&floor).unwrap()),nanos);
+  assert_eq!(format_iso(&start_of_second(&floor)),expected);
+ }
+}

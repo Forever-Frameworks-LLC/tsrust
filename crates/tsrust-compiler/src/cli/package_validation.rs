@@ -41,8 +41,15 @@ impl SourceProvider for Candidate {
 pub(crate) fn read_optional(path:&Path)->Result<Option<String>,String>{match fs::read_to_string(path){Ok(text)=>Ok(Some(text)),Err(error) if error.kind()==std::io::ErrorKind::NotFound=>Ok(None),Err(error)=>Err(format!("{}: {error}",path.display()))}}
 pub(crate) fn normalize(path:&Path)->Result<PathBuf,String>{
  if path.exists(){return fs::canonicalize(path).map_err(|error|error.to_string());}
- let parent=path.parent().ok_or("Path requires a parent directory")?;
- Ok(fs::canonicalize(parent).map_err(|error|error.to_string())?.join(path.file_name().ok_or("Missing filename")?))
+ // Virtual generated imports can traverse parents which do not exist yet.
+ // Keep existing-path canonicalization (including symlink semantics) unchanged.
+ let mut lexical=PathBuf::new();
+ for part in path.components(){match part{std::path::Component::CurDir=>{},std::path::Component::ParentDir=>{if !lexical.pop(){return Err("Path escapes its filesystem root".into());}},part=>lexical.push(part.as_os_str())}}
+ let mut ancestor=lexical.as_path();let mut missing=Vec::new();
+ while !ancestor.exists(){missing.push(ancestor.file_name().ok_or("Path requires an existing ancestor")?.to_owned());ancestor=ancestor.parent().ok_or("Path requires an existing ancestor")?;}
+ let mut normalized=fs::canonicalize(ancestor).map_err(|error|error.to_string())?;
+ for name in missing.into_iter().rev(){normalized.push(name);}
+ Ok(normalized)
 }
 pub(crate) fn validate(provider:&Candidate,root:&Path,manifest:&Path,temporary:&Path)->Result<(usize,Vec<String>),String>{
  let backend=crate::verify_backend()?;
@@ -70,7 +77,7 @@ fn compile(source:&str,backend:&str,root:&Path,execute:Option<&Path>)->Result<()
  fs::create_dir(root).map_err(|error|error.to_string())?;
  let mut prepared=crate::runtime_build::Prepared::new(source,backend,&root.parent().unwrap().join("runtime-cache"),root,false)?;
  if let Some(mut command)=prepared.command.take(){let output=command.output().map_err(|error|error.to_string())?;if !output.status.success(){return Err(format!("Candidate Rust dependency build failed:\n{}",String::from_utf8_lossy(&output.stderr)));}prepared.publish();}
- let executable=root.join("program");let mut command=crate::backend_command();prepared.link(&mut command);
+ let executable=root.join("program");let mut command=crate::backend_command();prepared.link(&mut command)?;
  let output=command.args(["--edition=2024","-C","overflow-checks=on"]).arg(&prepared.application).arg("-o").arg(&executable).output().map_err(|error|error.to_string())?;
  if !output.status.success(){return Err(format!("Candidate adapter/caller compilation failed:\n{}",String::from_utf8_lossy(&output.stderr)));}
  if let Some(project)=execute{let output=std::process::Command::new(&executable).current_dir(project).env("TSRUST_TEST_REPORTER","pretty").env("TSRUST_COLOR","never").output().map_err(|error|error.to_string())?;print!("{}",String::from_utf8_lossy(&output.stdout));if !output.status.success(){return Err(format!("Candidate project tests failed:\n{}\n{}",String::from_utf8_lossy(&output.stdout),String::from_utf8_lossy(&output.stderr)));}}

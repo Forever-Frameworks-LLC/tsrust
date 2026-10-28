@@ -3,7 +3,8 @@ const temp=fs.mkdtempSync(path.join(os.tmpdir(),'tsrust-discovery-'));
 test.after(()=>fs.rmSync(temp,{recursive:true,force:true}));
 require('esbuild').buildSync({entryPoints:['src/executables.ts'],bundle:true,platform:'node',format:'cjs',outfile:path.join(temp,'resolver.cjs')});
 const {resolveExecutable}=require(path.join(temp,'resolver.cjs'));
-function executable(file){fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,'#!/bin/sh\nexit 0\n',{mode:0o755});return file;}
+const suffix=process.platform==='win32'?'.exe':'';
+function executable(file){file+=suffix;fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,'#!/bin/sh\nexit 0\n',{mode:0o755});return file;}
 test('new projects discover Cargo executables without workspace settings',async()=>{
  const home=path.join(temp,'home'),file=executable(path.join(home,'.cargo/bin/tsrust-lsp'));
  assert.equal(await resolveExecutable('tsrust-lsp',{home,envPath:''}),file);
@@ -18,6 +19,11 @@ test('absolute PATH entries work; relative entries and directories are excluded'
  const home=path.join(temp,'empty'),file=executable(path.join(temp,'path/tsrust'));
  assert.equal(await resolveExecutable('tsrust',{home,envPath:path.dirname(file)}),file);
  await assert.rejects(resolveExecutable('tsrust',{home,envPath:'.'}));
- fs.mkdirSync(path.join(temp,'directory/tsrust'),{recursive:true});
+ fs.mkdirSync(path.join(temp,'directory','tsrust'+suffix),{recursive:true});
  await assert.rejects(resolveExecutable('tsrust',{home,envPath:path.join(temp,'directory')}));
+});
+
+test('discovery preserves spaces and Unicode in installation paths',async()=>{
+ const home=path.join(temp,'home with spaces','café'),file=executable(path.join(home,'.cargo/bin/tsrust-lsp'));
+ assert.equal(await resolveExecutable('tsrust-lsp',{home,envPath:''}),file);
 });

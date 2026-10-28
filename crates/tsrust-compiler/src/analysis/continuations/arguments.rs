@@ -37,11 +37,18 @@ impl Analyzer {
     pub(in crate::analysis) fn parameter_argument(&mut self, context: &mut Context, argument: &mut Expr, contract: ArgumentContract, loans: &Loans) -> Result<Type, Diagnostic> {
         let frame = self.prepare_parameter_argument(context, argument, contract);
         let actual = self.expression(context, argument, frame.mode, loans, frame.expected)?;
-        self.finish_parameter_argument(argument, frame, actual)
+        self.finish_parameter_argument(context, argument, frame, actual)
     }
 
     pub(super) fn prepare_parameter_argument(&self, context: &Context, argument: &Expr, contract: ArgumentContract) -> ArgumentFrame {
         let mut frame = ArgumentFrame { mode: contract.mode, expected: Some(contract.ty), contract, adaptation: Adaptation::Plain };
+        // A known factory keeps its Task result while being evaluated. Adapt
+        // only after evaluation, rather than contextualizing that result as void.
+        if matches!(contract.ty,Type::Callback(id) if self.callables.callbacks[id].kind==CallbackKind::Program)
+            && let Some(hint)=self.expression_type_hint(context,argument)
+            && self.checked_generic_callable_shape(hint).is_some_and(|(params,result)|params.is_empty() && self.is_task_type(result)) {
+            frame.expected=Some(hint);
+        }
         if contract.mode == Mode::Mutate
             && let Type::Union(id) = contract.ty && !id.copy
             && (contract.omission.is_omittable() || self.unions.payload(contract.ty).is_none()) {
@@ -62,7 +69,8 @@ impl Analyzer {
         frame
     }
 
-    pub(super) fn finish_parameter_argument(&mut self, argument: &mut Expr, frame: ArgumentFrame, actual: Type) -> Result<Type, Diagnostic> {
+    pub(super) fn finish_parameter_argument(&mut self, context:&Context, argument: &mut Expr, frame: ArgumentFrame, actual: Type) -> Result<Type, Diagnostic> {
+        let actual=self.testing_callback_adapter(context,argument,actual,Some(frame.contract.ty))?;
         if let Type::Callback(id) = frame.contract.ty
             && matches!(self.callables.callbacks[id].kind, CallbackKind::Program | CallbackKind::ProgramReusable)
             && let Type::Closure(origin) = actual {
@@ -111,9 +119,9 @@ impl Analyzer {
         Some((index, self.prepare_parameter_argument(context, arg, contract)))
     }
 
-    pub(super) fn finish_argument(&mut self, arg: &mut Expr, frame: &mut Arguments, argument: ArgumentFrame, actual: Type) -> Result<(), Diagnostic> {
+    pub(super) fn finish_argument(&mut self, context:&Context, arg: &mut Expr, frame: &mut Arguments, argument: ArgumentFrame, actual: Type) -> Result<(), Diagnostic> {
         let contract = argument.contract;
-        let actual = self.finish_parameter_argument(arg, argument, actual)?;
+        let actual = self.finish_parameter_argument(context, arg, argument, actual)?;
         self.require(actual, Some(contract.ty), arg.span)?;
         if !actual.is_copy() {
             // Child work has released its shared loan reference before resuming

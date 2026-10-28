@@ -99,10 +99,20 @@ impl Analyzer {
         visible.dedup();
         let mut context = capture_context::project(outer, &visible);
         context.http_retained_state = self.http_handler_origins.contains(&origin);
+        context.program_retained_state=self.program_callback_sites.get(&span.start)==Some(&CallbackKind::Program)
+            || matches!(contextual,Some(Type::Callback(id)) if self.callables.callbacks[id].kind==CallbackKind::Program);
         capture_context::retain_module_references(&mut context, &self.program.module_owner_bindings);
         // Preserve lexical aliases as well as binding declaration names. Adapter
         // wrappers introduce a private alias to avoid parameter-name shadowing.
         context.names = outer.names.iter().map(|(name, slot)| (name.clone(), visible.binary_search(slot).expect("visible name"))).collect();
+        if context.program_retained_state {
+            // A pure declared function name constructs a fresh environment at
+            // each use. Do not turn it into a consumed factory capture merely
+            // because a nested task passes that function to an owning API.
+            context.names.retain(|name,slot| !matches!(context.bindings[*slot].ty,Type::Closure(id)
+                if self.closures[id].captures.is_empty() && self.closures[id].program_captures.is_empty()
+                    && matches!(self.closures[id].forward,Some(ClosureForward::Function(index)) if self.function_names.get(name)==Some(&index))));
+        }
         context.caller_error_origins = outer.caller_error_origins.clone();
         if self.task_sources.contains(&origin) {
             context.task_body = true;
@@ -306,6 +316,11 @@ impl Analyzer {
                         return Err(Diagnostic::new("module-state-consume", "A callback cannot consume program-owned module storage; use explicit clone().", usage));
                     }
                     access.max(Mode::Read)
+                } else if escapes && self.task_sources.contains(&origin) && outer.program_retained_state && outer_id<outer.capture_boundary {
+                    // Awaiting a reusable factory lends its retained environment,
+                    // including scalar writes, instead of moving or resetting it.
+                    if binding.ty.is_copy(){if access==Mode::Mutate{Mode::Mutate}else{Mode::Copy}}
+                    else{access.max(Mode::Read)}
                 } else if binding.ty.is_copy() {
                     if access == Mode::Mutate && !escapes {
                         Mode::Mutate
@@ -411,6 +426,9 @@ impl Analyzer {
             ));
         }
         let borrowed = lifetime_count != 0;
+        // A capture-free task factory retains its ordinary callable ABI even
+        // when registered as a test. Only real invocation loans need context.
+        let program_scoped=program_scoped && !(self.is_task_type(result) && program_captures.is_empty());
         let key = ClosureKey {
             program_scoped,
             origin,
@@ -494,7 +512,7 @@ impl Analyzer {
             self.validated_closures.insert(id);
         }
         self.closures.push(CheckedClosure {
-                program_scoped, program_captures,
+                program_async: false, program_scoped, program_captures,
             polymorphic: method_template,
             methods: Vec::new(),
             forward: None,

@@ -1,6 +1,6 @@
 # Milestone 37: standard string search
 
-[Roadmap](../roadmap.md) · [Native string contract](../string-semantics.md)
+[Roadmap](../roadmap.md) · [Native string contract](../guides/language/string-semantics.md)
 
 ## Implementation contract
 

@@ -47,6 +47,21 @@ fn nested_portable_tables_fail_before_either_adapter_can_disagree(){
 }
 
 #[test]
+fn bound_table_classes_validate_structure_and_release_rejected_captures(){
+    use std::{cell::Cell,rc::Rc};
+    struct Probe(Rc<Cell<usize>>);
+    impl Drop for Probe{fn drop(&mut self){self.0.set(self.0.get()+1);}}
+    let drops=Rc::new(Cell::new(0));let capture=Probe(drops.clone());
+    let inner=Node::view(vec![],"table".into()).unwrap().with_semantics(r#"{"tag":"table"}"#).unwrap();
+    let outer=Node::view(vec![Child::Node(inner)],String::new()).unwrap().with_semantics(r#"{"tag":"table"}"#).unwrap();
+    let result=outer.with_class_binding(move||{let _=&capture;Ok("table".into())});
+    assert!(result.err().unwrap().contains("Nested portable tables"));assert_eq!(drops.get(),1);
+    let child=Node::view(vec![],String::new()).unwrap();
+    let row=Node::view(vec![Child::Node(child)],String::new()).unwrap().with_semantics(r#"{"tag":"tr"}"#).unwrap();
+    assert!(row.with_class_binding(||Ok("table-row".into())).err().unwrap().contains("table-cell children"));
+}
+
+#[test]
 fn malformed_portable_rows_reject_at_shared_construction(){
     let child=Node::view(vec![],String::new()).unwrap();
     let row=Node::view(vec![Child::Node(child)],"table-row".into()).unwrap().with_semantics(r#"{"tag":"tr"}"#);

@@ -1,5 +1,22 @@
 # Development and acceptance workflow
 
+## Active backend pivot scope
+
+The owner's 2026-10-27 backend-only reset supersedes the frontend acceptance below.
+Follow agent-goal.md and plans/backend-only-reset.md: retain compiler/LSP/native
+backend, remove introduced UI integrations, generate independent HTTP-described
+TypeScript/Rust SDKs and OpenAPI, then complete setup/cache/install/update flows.
+Original UI source/history stays preserved outside normal backend dependencies.
+
+The owner's 2026-10-26 [prototype goal](agent-goal.md) supersedes universal UI
+completion priorities. Preserve frozen UI source/evidence, and run its focused
+compatibility checks when changing shared boundaries; do not treat it as an active
+component/rendering milestone. Backend-family full regressions select compiler
+and LSP packages explicitly. `--workspace` still includes the retained UI crate.
+Frontend/client/template acceptance follows the new goal and includes normal
+user-owned dependency edits, scoped integration migrations, standalone clients and
+multiple web app mounts.
+
 Use the [compiler source layout](guides/compiler-source-layout.md) when adding or
 relocating compiler modules.
 
@@ -33,6 +50,25 @@ or source checkpoint does not trigger testing. Full regressions and timing remai
 reserved for meaningful feature-family milestones.
 
 When backend witnesses can share a native compilation, compile them together in isolated modules with their original assertions and run them in one executable. Keep case identity in generated source so failures remain attributable. Preserve evaluation-order, ownership, failure and output assertions; batching must not reduce coverage.
+
+## Rust editor agreement at milestones
+
+For changes to CLI helpers or shared Rust source, include every compiler/LSP target
+in the milestone check, including integration tests that import those helpers:
+
+```sh
+cargo check --offline -p tsrust-compiler -p tsrust-lsp --all-targets
+```
+
+Do not infer editor cleanliness from a few selected test binaries. Inspect both
+errors and warnings. When retained UI/shared authoring code changes, also check the
+workspace/all-target configuration and run the affected UI contracts. Keep the
+backend-only check separate: workspace feature unification can enable the retained
+UI runtime and conceal authoring-only warnings. These are compilation/diagnostic
+checks, not a reason to restart the full executable regression or benchmark matrix.
+Preserve callbacks, source payload APIs and ownership when correcting warnings;
+align renderer helpers with their actual feature consumers and exercise missing
+runtime behavior through the existing test harnesses.
 
 ## Formatting acceptance
 
@@ -103,9 +139,9 @@ and toolchain identities, protocols and sample counts. Markdown reports are opti
 exports. Do not retime unaffected workloads for presentation or replay history
 solely because a new feature landed.
 
-At a full milestone, run tests and doctest drivers in separate Cargo invocations:
-`RUST_TEST_THREADS=1 cargo test --workspace --lib --bins --tests --no-fail-fast`,
-then `cargo test --workspace --doc`. Relocated offline package witnesses rebuild
+At a full backend milestone, run tests and doctest drivers in separate Cargo invocations:
+`RUST_TEST_THREADS=1 cargo test -p tsrust-compiler -p tsrust-lsp --lib --bins --tests --no-fail-fast`,
+then `cargo test -p tsrust-compiler -p tsrust-lsp --doc`. Relocated offline package witnesses rebuild
 vendored dependencies in the shared target; the second invocation refreshes the
 workspace dependency artifacts before rustdoc uses them. Keep the existing single
 build job and disabled incremental compilation. This does not trigger a full pass
@@ -113,6 +149,22 @@ for individual packages or repairs; retain completed evidence and rerun affected
 checks only.
 
 ## Analytics purpose and storage
+
+The owner's October 26, 2026 privacy direction supersedes the historical policy
+of importing every closed log into SQLite. `benchmarks/measurements.sqlite` is
+the shareable benchmark-only database. It contains indexed accepted samples,
+allocation counters, summaries, source/proof hashes, toolchain versions and
+general hardware specifications. Generate it with `benchmarks/storage/public.py`;
+never copy the mixed archive into a public release. See
+[the public dataset contract](../benchmarks/storage/PUBLIC_DATA.md).
+
+`benchmarks/records.sqlite` is the ignored legacy evidence store. It includes
+historical logs, source snapshots and local paths. Preserve these existing
+records locally, but stop importing routine logs, source snapshots and session
+receipts. Raw measured records and their acceptance proofs remain local inputs
+for exact verification and future benchmark exports. Current command logs are
+disposable after their result is recorded. The historical retention instructions
+below describe existing records, not permission to accumulate new unrelated logs.
 
 At completed feature-family milestones, use correctness checks and matched performance measurements to review the completed foundation before optimization or further dependencies. Routine checkpoint timing should compare generated native execution against Node after TypeScript compilation. The broader runtime matrix remains available for optional comparison; preserve its existing measurements as context. A universal runtime win is not an acceptance requirement.
 
@@ -205,16 +257,18 @@ work with its evidence references. A clean checkpoint before a risky change repl
 discard another agent's changes. Do not create archive directories or snapshots;
 the owner deleted the historical archives.
 
-Generated executables, run artifacts and the canonical SQLite analytics store are
-ignored by Git. Rebuild binaries from the relevant source commit when needed. Preserve analytics evidence in SQLite, not duplicate loose trees; a source commit
+Generated executables, run artifacts and the legacy SQLite evidence store are
+ignored by Git. The benchmark-only measurements database may be shared. Rebuild binaries from the relevant source commit when needed. Preserve analytics evidence in SQLite, not duplicate loose trees; a source commit
 is not its backup. Import and verify closed records before removing their loose copies. Do not create archive
 directories or snapshots.
 
 
 ## Generated-file retention
 
-SQLite is the durable home for closed benchmark records and diagnostic evidence.
-Import original bytes, verify hashes and database integrity, then remove loose copies.
+SQLite is the durable home for benchmark measurements. Historical diagnostic
+evidence remains in the local mixed archive; do not add routine logs or source
+snapshots. For measured records, import original bytes, verify hashes and
+database integrity, then remove loose copies.
 When a path already names different immutable bytes, preserve the new version under
 an explicit content-addressed SQLite record path; never overwrite historical data.
 Do not create filesystem archives, source snapshots or duplicate evidence trees.

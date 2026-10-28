@@ -1,0 +1,5 @@
+import { greeting } from '../src/greeting.tsr';
+import { test, strictEqual } from 'std:testing';
+test('greets by project name', (): void => {
+  strictEqual(greeting(), "Hello from windows-setup!");
+});

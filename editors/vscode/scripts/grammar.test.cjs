@@ -33,7 +33,7 @@ test('real TextMate tokenization covers lexer syntax and multiline state', async
     ['const c=-Infinity; const e=NaN; const a=parseInt("4")+parseFloat("1.5"); const b=isNaN(a)||isFinite(e); const d=Number.isNaN(a);', [['parseInt','support.function'],['parseFloat','support.function'],['isNaN','support.function'],['isFinite','support.function'],['NaN','constant.language'],['Infinity','constant.language']]],
     ['const n:null=null; const u=undefined; const t=typeof n; const v=void 0; Boolean(u); Array.isArray([]);', [['null','constant.language'],['undefined','constant.language'],['typeof','keyword.operator'],['void','keyword.operator'],['Boolean','support.class'],['Array','support.class']]],
     ['function main() { let n: number = .5e-2; }', [['function', 'storage.type'], ['main', 'entity.name.function'], ['number', 'support.type.primitive'], ['.5e-2', 'constant.numeric']]],
-    ['const message = "😀 \\" hello"; // owned', [['\\"', 'constant.character.escape'], ['// owned', 'comment.line']]],
+    ['const message = "ðŸ˜€ \\" hello"; // owned', [['\\"', 'constant.character.escape'], ['// owned', 'comment.line']]],
     ['const action: Mutable<Function<string, [user: ReadOnly<User>, text: Owned<string>]>> = make;', [['Mutable', 'support.type.builtin'], ['Function', 'support.type.builtin'], ['ReadOnly', 'support.type.builtin'], ['Owned', 'support.type.builtin'], ['string', 'support.type.primitive']]],
     ['const last: Once<Function<int>> = finish; const Function = 1;', [['Once', 'support.type.builtin'], ['int', 'support.type.primitive']]],
     ['try { throw 1; } catch (error) { switch (error) { case 1: break; default: } } finally { }', [['try', 'keyword.control'], ['throw', 'keyword.control'], ['catch', 'keyword.control'], ['switch', 'keyword.control'], ['case', 'keyword.control'], ['default', 'keyword.control'], ['finally', 'keyword.control']]],
@@ -128,6 +128,19 @@ test('real TextMate tokenization covers lexer syntax and multiline state', async
     const label = line.includes('Welcome') ? 'Welcome' : 'Invitation';
     assert.deepEqual(scopeAt(result, line, label), ['source.tsrust', 'string.template.tsrust']);
     assert.ok(!result.tokens.at(-1).scopes.includes('string.template.tsrust'));
+  }
+  const sqlRow = "console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);";
+  const sqlTokens = grammar.tokenizeLine(sqlRow);
+  for (const method of ['int', 'text']) {
+    assert.ok(scopeAt(sqlTokens, sqlRow, method).includes('entity.name.function.tsrust'));
+    assert.ok(!scopeAt(sqlTokens, sqlRow, method).includes('support.type.primitive.tsrust'));
+  }
+  assert.ok(scopeAt(sqlTokens, sqlRow, 'row').includes('meta.embedded.line.tsrust'));
+  for (const label of ["'id'", "'name'"]) assert.ok(scopeAt(sqlTokens, sqlRow, label).includes('string.quoted.single.tsrust'));
+  const plainRow = "console.log('row.int(id)');";
+  assert.ok(scopeAt(grammar.tokenizeLine(plainRow), plainRow, 'row').includes('string.quoted.single.tsrust'));
+  for (const line of ['row . int(1);', 'const reader = row.int;']) {
+    assert.ok(!scopeAt(grammar.tokenizeLine(line), line, 'int').includes('support.type.primitive.tsrust'));
   }
   // Braces in records, blocks, strings and comments must not end interpolation.
   const nested = 'const text = `outer ${format({value: `inner ${1 + 2}`}, "}", /* } */ 3)} tail`; const after = 4;';

@@ -80,8 +80,8 @@ Protected unrelated owner files remain untracked and unchanged:
 Use $caveman. Continue the existing active Tsrust goal through S21 integrated
 release acceptance in /Users/seancotter/Desktop/dev/learning/tsrust. Inspect Git
 status and read AGENTS.md, docs/handoffs/2026-10-12-schema-pipelines.md,
-docs/development-workflow.md, docs/standard-library-roadmap.md,
-docs/standard-library-coverage.md and docs/plans/schema-plan.md.
+docs/development-workflow.md, docs/plans/standard-library-roadmap.md,
+docs/guides/language/standard-library-coverage.md and docs/plans/schema-plan.md.
 
 S01–S10 are accepted. S11 pipeline focused acceptance is complete; family acceptance
 and timing are not. Continue fused typed JSON decoding, the remaining S11 surface,

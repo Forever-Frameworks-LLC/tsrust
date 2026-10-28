@@ -12,7 +12,7 @@ The names share one binding for the whole loop; they are not created again per i
 
 Behavior review found three limits that are not specific to patterns and were left for later gates: one declarator per declaration (`let a = 1, b = 2` is a syntax error everywhere), no comma expression in the update clause (`i++, j++`), and no destructuring assignment to existing names.
 
-See [the syntax guide](../destructuring.md).
+See [the syntax guide](../guides/language/destructuring.md).
 
 ## Implementation
 

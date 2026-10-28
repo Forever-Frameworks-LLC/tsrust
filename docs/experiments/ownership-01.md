@@ -14,7 +14,7 @@ From the project root:
 cargo test --offline -p tsrust-compiler --test witnesses
 ```
 
-Requirements: Rustup with the [pinned Rust toolchain](../rust-toolchain-policy.md) installed. The suite needs no external packages or network access after toolchain setup. Native executables are created in a temporary directory and removed after the run. The witness suite also checks that every fixture has exactly one entry in the typed case inventory.
+Requirements: Rustup with the [pinned Rust toolchain](../guides/tooling/rust-toolchain-policy.md) installed. The suite needs no external packages or network access after toolchain setup. Native executables are created in a temporary directory and removed after the run. The witness suite also checks that every fixture has exactly one entry in the typed case inventory.
 
 ## Recorded result
 

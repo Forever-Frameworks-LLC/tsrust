@@ -4,3 +4,29 @@
 # Testing
 
 Use assertions on observed values and independent cleanup counts. Resource observation belongs to std:testing; no separate testing-resources module is needed.
+
+Tests and hooks accept synchronous callbacks returning `void` and asynchronous
+callbacks returning `Task<void>`. Run a `*.test.tsr` file with `tsrust test`.
+Each returned task finishes before the next hook or test. Suite registration
+through `describe` or `suite` stays synchronous.
+
+```tsrust
+import { beforeAll, test, strictEqual } from 'std:testing';
+import { delay } from 'std:futures';
+
+let ready = false;
+beforeAll(async () => {
+  await delay(0);
+  ready = true;
+});
+test('async setup', async () => {
+  await delay(0);
+  strictEqual(ready, true);
+});
+```
+
+Failed assertions and thrown values after `await` fail the current test. Teardown
+still runs and later tests continue. Owned captures persist between repeated hook
+invocations; module state is borrowed for the entire invocation, including awaits.
+Passing a constructed task instead of a callback, returning a non-void task result,
+or retaining borrowed local data in the registry is rejected.

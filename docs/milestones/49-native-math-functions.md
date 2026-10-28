@@ -1,6 +1,6 @@
 # Milestone 49: native transcendental, power, and magnitude functions
 
-[Roadmap](../roadmap.md) · [Number coverage](../feature-coverage.md)
+[Roadmap](../roadmap.md) · [Number coverage](../guides/language/feature-coverage.md)
 
 ## Scope
 

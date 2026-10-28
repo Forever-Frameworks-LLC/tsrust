@@ -1,5 +1,11 @@
 # Tsrust compiler completion: sustained execution handoff
 
+> Active scope, 2026-10-26: the [backend platform pivot](backend-platform-pivot.md)
+> prioritizes compiler work needed by native services and generated clients.
+> Historical inventories below remain evidence, not an obligation to finish
+> arbitrary TypeScript/npm or universal UI compatibility before the
+> [working prototype](../agent-goal.md).
+
 ## Owner request and execution goal
 
 The owner wants one agent to attempt to finish the remaining compiler in one sustained run. Work through the entire remaining compiler scope, using small, testable modules and accepted checkpoints. Do not stop merely because one gate or family finishes. One sustained run does not mean one giant patch or skipping verification. Do not promise completion before auditing what remains.
@@ -12,13 +18,13 @@ Repository: /Users/seancotter/Desktop/dev/learning/tsrust.
 
 Read AGENTS.md and docs/development-workflow.md first, then:
 
-- docs/handoff-2026-10-08-resumable-summaries-accepted.md
+- docs/handoffs/handoff-2026-10-08-resumable-summaries-accepted.md
 - docs/plans/resumable-callable-summaries-plan.md
 - docs/milestones/resumable-callable-summaries.md
-- docs/handoff-2026-10-08-named-declaration-family.md
-- docs/roadmap.md and docs/feature-coverage.md
+- docs/handoffs/handoff-2026-10-08-named-declaration-family.md
+- docs/roadmap.md and docs/guides/language/feature-coverage.md
 - benchmarks/coverage/language.json, inventory.json, status.json and checkpoints.json
-- docs/standard-library-roadmap.md and docs/standard-library-coverage.md
+- docs/plans/standard-library-roadmap.md and docs/guides/language/standard-library-coverage.md
 - docs/plans/nested-function-declarations-plan.md
 - The latest integration handoff produced by the merging agent.
 
@@ -129,7 +135,7 @@ Run bounded affected checks per gate, all eight depth canaries after shared disp
 # Requirement ledger (audited 2026-10-08, baseline 5120aad)
 
 Baseline reconciliation: the merge owner returned main with
-`docs/handoff-2026-10-08-path-relative.md`. HEAD is 5120aad, not a724dbc. Combined
+`docs/handoffs/handoff-2026-10-08-path-relative.md`. HEAD is 5120aad, not a724dbc. Combined
 acceptance there is 2,350 compiler and 362 editor checks with no failures. The latest
 numbered milestone is 174; new gates start at 175. The fifteen protected owner
 fixtures match the list above.
@@ -170,10 +176,10 @@ chaining, `in`) already had accepted rows under other identifiers.
 | B4 | Caught runtime error passed to generic `strictEqual` | named family handoff | repaired before this plan: the internal runtime error record is registered for generic specialization ([record](../milestones/caught-generic-assertions.md)); eleven assertion shapes re-verified | accepted; gate 177 adds witnesses |
 | B5 | Scoped aggregate composition: arrays, Maps, nullable replacement and parameter transport of records with borrowing callbacks | scoped aggregate plan; lead 1 | scoped forms supported; family regressions and timing pending; mixed-record unions assigned to D2 by owner | accepted: gate 182 ([record](../milestones/182-scoped-aggregate-composition.md)); mixed-record unions remain in D2 |
 | B6 | Fallible borrowing callback fields behind record parameters | record gate limit; lead 2 | failures propagate with typed handlers; `error-effect` only when no record of the type is constructed | accepted: gate 180 ([record](../milestones/180-fallible-record-callbacks.md)) |
-| B7 | Callbacks stored through a record parameter that borrow from the caller | record gate limit | data and callback inputs, relays, replacement and clearing, branch, loop and exception-region stores, installer closures called directly or through captured closures; abstract installer invocation and captured-record stores are diagnosed | accepted: gate 183 ([record](../milestones/183-caller-borrowed-record-stores.md), [map](../b7-caller-borrowed-acceptance-map.md)) |
+| B7 | Callbacks stored through a record parameter that borrow from the caller | record gate limit | data and callback inputs, relays, replacement and clearing, branch, loop and exception-region stores, installer closures called directly or through captured closures; abstract installer invocation and captured-record stores are diagnosed | accepted: gate 183 ([record](../milestones/183-caller-borrowed-record-stores.md), [map](../milestones/b7-caller-borrowed-acceptance-map.md)) |
 | B8 | Generic adapter compile time (specialization worklist, state joins) | named family handoff | adapter workload checks in 2.4 s release and 10.4 s debug after resumable summaries; earlier 55 s and 120 s limits no longer reached | accepted: gate 184 ([record](../milestones/184-generic-adapter-compile-time.md)); shared binding storage is optional later work |
-| B9 | S04 project editor: unsaved imports, invalidation, rename/removal, stale results | standard library roadmap | unsaved and closed dependencies, invalidation, cross-file assistance, guarded fixes for open and closed files, help in incomplete sources, import name completion | accepted: gate 185 ([record](../milestones/185-project-editor.md), [map](../b9-project-editor-acceptance-map.md)) |
-| B10 | S06 type foundations: tagged Result, exhaustiveness, typed propagation | standard library roadmap | typed Ok/Err, exhaustive statement match, explicit propagation, owned/readonly/mutable payloads and editor parity | accepted: gate 186 ([record](../milestones/186-result-match.md), [map](../b10-result-match-acceptance-map.md)) |
+| B9 | S04 project editor: unsaved imports, invalidation, rename/removal, stale results | standard library roadmap | unsaved and closed dependencies, invalidation, cross-file assistance, guarded fixes for open and closed files, help in incomplete sources, import name completion | accepted: gate 185 ([record](../milestones/185-project-editor.md), [map](../milestones/b9-project-editor-acceptance-map.md)) |
+| B10 | S06 type foundations: tagged Result, exhaustiveness, typed propagation | standard library roadmap | typed Ok/Err, exhaustive statement match, explicit propagation, owned/readonly/mutable payloads and editor parity | accepted: gate 186 ([record](../milestones/186-result-match.md), [map](../milestones/b10-result-match-acceptance-map.md)) |
 | B11 | S07 resources and bytes: opaque handles, close, drop, views | standard library roadmap; gates 187–188 native owned bytes | in progress | gates 189–190 pending |
 | B12 | S12 thread prerequisites: transferred captures, Send-like checks | standard library roadmap | pending | incomplete |
 | B13 | S13 async compiler: `async`/`await`, async main, suspend-safe loans | standard library roadmap | `unsupported` at declaration | incomplete |

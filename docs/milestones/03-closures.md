@@ -1,6 +1,6 @@
 # Milestone 03: closure captures and escaping lifetimes
 
-[Ownership workstream](../ownership-and-memory.md#core-42) · [Branch rules](./02-control-flow.md) · [Lowering experiment](../experiments/closures-01.md)
+[Ownership workstream](../guides/language/ownership-and-memory.md#core-42) · [Branch rules](./02-control-flow.md) · [Lowering experiment](../experiments/closures-01.md)
 
 **Status:** Gates 03a, 03b, and 03c are complete on September 30, 2026. The source compiler implements the bounded subset below; its rules and syntax remain provisional. No upcoming feature blocks this milestone.
 

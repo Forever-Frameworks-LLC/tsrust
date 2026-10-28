@@ -24,6 +24,7 @@ struct ArenaState {
 pub(crate) struct UnionArena(RefCell<ArenaState>);
 
 impl UnionArena {
+    #[cfg(test)]
     pub(crate) fn len(&self) -> usize { self.0.borrow().types.len() }
     pub(crate) fn from_snapshot(types:Vec<UnionType>)->Self {
         let identities=types.iter().enumerate().filter(|(_,union)|!union.recursive).map(|(index,union)| {

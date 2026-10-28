@@ -1,5 +1,18 @@
 # Tsrust
 
+> Product direction (2026-10-26): Tsrust is pivoting to native backends with
+> generated named TypeScript clients for React web, Electron and Expo applications.
+> Use [the active roadmap](docs/roadmap.md) and [application goal](docs/agent-goal.md).
+> The custom UI implementation described below is preserved and frozen. Generated
+> clients and managed frontend templates are planned/in progress, not released.
+
+The current source adds `tsrust new hello --app`: a native greeting API, generated
+named SDK and editable React/Vite/shadcn landing page. Use `--target backend` for
+API-only generation. See [application projects](docs/guides/application-projects.md)
+for the actual commands and ownership boundary. Fresh backend/web creation has
+focused acceptance; Electron/Expo scaffolding and coordinated integration
+commands remain in progress. Existing task applications are integration examples.
+
 **Write TypeScript-style code. Ship native programs.**
 
 Tsrust is an experimental language and compiler with familiar TypeScript syntax,
@@ -38,7 +51,7 @@ Save as `hello.tsr`, then run `tsrust run hello.tsr`.
   navigation and formatting through the LSP and VS Code extension.
 
 See [runnable examples](examples/README.md) and the
-[language and library guide](docs/standard-library.md).
+[language and library guide](docs/guides/language/standard-library.md).
 
 ## Install
 
@@ -118,17 +131,21 @@ x64 and macOS; Windows distribution is not configured yet. Native GPU rendering
 and accessibility still need real desktop checks beyond hosted CI.
 
 Performance depends on the workload. [Benchmark methodology](benchmarks/runtime/README.md)
-and [comparison limits](docs/runtime-comparisons.md) explain the measurements.
+and [comparison limits](docs/measurements/runtime-comparisons.md) explain the measurements.
 The large [historical report](BENCHMARKS.md) is a snapshot, not a claim about every
 current feature.
+
+Individual timing samples and allocation counters are available in the
+[benchmark-only SQLite dataset](benchmarks/storage/PUBLIC_DATA.md), with source
+identities, toolchain versions and general hardware specifications.
 
 ## Explore
 
 - [Installation and first project](docs/content/getting-started/installation.md)
 - [CLI and project configuration](docs/guides/project-cli.md)
 - [VS Code setup](editors/vscode/README.md)
-- [Language and standard library](docs/standard-library.md)
-- [Ownership](docs/ownership-and-memory.md)
+- [Language and standard library](docs/guides/language/standard-library.md)
+- [Ownership](docs/guides/language/ownership-and-memory.md)
 - [UI direction and implementation scope](UI_VISION.md)
 - [Contributor checks](CONTRIBUTING.md) and [release automation](docs/guides/releases.md)
 

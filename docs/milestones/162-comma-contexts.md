@@ -47,7 +47,7 @@ source limits. The parser canaries remain part of the retained acceptance eviden
   (34 checks); the other 24 checks retain the completed parser/guard evidence.
 - Editor: two focused checks pass for inferred length/result hover, comma receivers,
   selected typeof labels and idempotent checked formatting. This syntax/context gate
-  adds no built-in catalog entry. The guide is docs/comma-contexts.md.
+  adds no built-in catalog entry. The guide is docs/guides/language/comma-contexts.md.
 - Native receiver and guard fixtures use std:testing and pass pinned Node reference
   assertions. They check prefix order, mutation, copies, mapping, selected guards and
   a copied comparison whose original field becomes null during RHS evaluation.

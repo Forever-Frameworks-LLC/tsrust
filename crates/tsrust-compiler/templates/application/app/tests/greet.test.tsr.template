@@ -1,0 +1,7 @@
+import { greet } from '../lib/greeting.tsr';
+import { test, strictEqual } from 'std:testing';
+
+test('greeting trims input and welcomes an empty name', (): void => {
+  strictEqual(greet('  Ada  '), 'Hello, Ada!');
+  strictEqual(greet(''), 'Hello, world!');
+});

@@ -110,7 +110,7 @@ mod terminal {
         terminal.answer("Project name or path", &["missing/hello", ENTER]);
         terminal.answer("Parent directory does not exist", &["hello", ENTER]);
         assert!(!root.0.join("hello").exists());
-        terminal.answer("Project type", &[ENTER]);
+        terminal.answer("Project type", &[DOWN, ENTER]);
         terminal.finish();
         assert!(terminal.text.contains("native applications"));
         assert!(terminal.text.contains("▀█▀"));

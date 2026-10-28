@@ -18,6 +18,12 @@ use std::collections::{BTreeMap, BTreeSet};
 use support::session::Session;
 use tsrust_lsp::{project_diagnostics::source_id, workspace::Workspace};
 
+fn virtual_uri(directory: &str) -> String {
+    tsrust_lsp::project_diagnostics::file_uri(&tsrust_compiler::project::SourceId(
+        std::env::temp_dir().join(directory).join("main.tsr").to_str().unwrap().into(),
+    )).unwrap().to_string()
+}
+
 const PRELUDE: &str = "import {ReactiveValue,LazyChildren,Child,TextBinding,SvgProps,PathProps,Node,Computed,Reactive,ViewRenderProps,ButtonRenderProps,InputTarget,InputChangeEvent,TextFieldProps,InputProps,TextareaProps,ReactiveInputValue,Signal,ThemeConfig,ThemeTypography,ThemeRadius,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {CryptoError} from 'std:crypto';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
 
 /// A receiver `x` of one type inside `probe`.
@@ -154,11 +160,17 @@ const ABSENT: &str = "zzqqabsent";
 
 fn prelude(parameter: &str) -> String {
     let annotation=parameter.split_once(':').map(|(_,ty)|ty.trim()).unwrap_or(parameter);
-    let annotation=annotation.strip_prefix("ReadOnly<").unwrap_or(annotation);
+    let annotation=["ReadOnly<","Owned<","Mutable<"].iter().find_map(|prefix|annotation.strip_prefix(prefix)).unwrap_or(annotation);
     let family=annotation.split('<').next().unwrap_or(annotation).trim_end_matches('>');
     let ui=PRELUDE.lines().next().unwrap();
     if family=="LazyChildrenProps" {return format!("{ui}\ninterface LazyChildrenProps{{children?:LazyChildren;}}\n");}
-    if ui.split_once('{').unwrap().1.split_once('}').unwrap().0.split(',').any(|name|name==family){return format!("{ui}\n");}
+    // Keep every probe, but only load the module that declares its receiver.
+    for import in PRELUDE.lines().filter(|line|line.starts_with("import ")) {
+        let names=import.split_once('{').unwrap().1.split_once('}').unwrap().0;
+        if names.split(',').any(|name|name.split_whitespace().last()==Some(family)) {
+            return format!("{import}\n");
+        }
+    }
     // Only the resource row needs the bundled testing implementation in every probe.
     let testing = if parameter.contains("TrackedResource") { "import {TrackedResource} from 'std:testing';\n" } else { "" };
     let numeric=if parameter.contains("NumericError"){ "import {NumericError} from 'std:numeric';\n" }else{""};
@@ -167,13 +179,14 @@ fn prelude(parameter: &str) -> String {
     let decimal=if parameter.contains("Decimal"){ "import {Decimal,DecimalError} from 'std:decimal';\n" }else{""};
     let cache=if parameter.contains("Cache"){ "import {LruCache,CacheEntry,CacheInsertError} from 'std:cache';\n" }else{""};
     let inherited=if parameter.contains("InheritedItem"){ "interface Parent<T>{value:T;} interface InheritedItem extends Parent<string>{count:int;}\n" }else{""};
-    format!("{inherited}{cache}{uuid}{date}{decimal}{numeric}{testing}{PRELUDE}")
+    let local_types=PRELUDE.lines().filter(|line|line.starts_with("type ")).collect::<Vec<_>>().join("\n");
+    format!("{inherited}{cache}{uuid}{date}{decimal}{numeric}{testing}{local_types}\n")
 }
 
 fn diagnostic(body: &str, parameter: &str) -> Option<(String, String)> {
     let prelude = prelude(parameter);
     let source = format!("{prelude}function probe({parameter}) {{\n  {body}\n}}\nfunction main() {{}}\n");
-    let entry = source_id("file:///tsrust-agreement/main.tsr").unwrap();
+    let entry = source_id(&virtual_uri("tsrust-agreement")).unwrap();
     let mut workspace = Workspace::default();
     workspace.open(entry.clone(), 1, source);
     workspace.snapshot().check_with_diagnostics(&entry).err().map(|errors| (errors[0].code.to_owned(), errors[0].message.clone()))
@@ -215,9 +228,9 @@ fn field_type(name: &str, parameter: &str) -> Option<String> {
 // Missing-member diagnostics call every callable "closure". Compare its checked
 // contract with a checked declaration of the displayed type instead.
 fn callable_field_agrees(receiver:&Receiver,name:&str,shown:&str)->bool {
- use tsrust_compiler::project::{ProjectType,SourceId};
+ use tsrust_compiler::project::ProjectType;
  let source=format!("{} interface DisplayedContract {{ member:{shown}; }} function probe({}){{}} function main(){{}}",prelude(receiver.parameter),receiver.parameter);
- let entry=SourceId("/tsrust-agreement-callable/main.tsr".into());let mut workspace=Workspace::default();workspace.open(entry.clone(),1,source.clone());
+ let entry=source_id(&virtual_uri("tsrust-agreement-callable")).unwrap();let mut workspace=Workspace::default();workspace.open(entry.clone(),1,source.clone());
  let analysis=match workspace.snapshot().check_with_diagnostics(&entry){Ok(analysis)=>analysis,Err(errors)=>{eprintln!("{}.{}: displayed contract did not check: {errors:?}",receiver.ty,name);return false;}};let facts=analysis.checked_type_facts();
  let find=|owner:&str,field:&str|facts.record_fields.iter().find(|(ty,n,_,_,_)|n==field && matches!(ty,ProjectType::Named{name,..} if name==owner)).map(|(_,_,_,ty,_)|ty);
  let parameter=source.find("function probe(").unwrap()+"function probe(".len();
@@ -344,7 +357,8 @@ fn completion_offers_the_fields_the_checker_accepts_and_no_method_it_rejects() {
 fn generic_prop_callback_details_keep_public_nominal_names() {
     use tsrust_lsp::project_intelligence::ProjectIndex;
     let source=format!("{PRELUDE}function probe(x:ReadOnly<ViewProps>){{if(x.render===undefined){{}}}}function main(){{}}");
-    let uri="file:///tsrust-prop-details/main.tsr";
+    let uri=virtual_uri("tsrust-prop-details");
+    let uri=uri.as_str();
     let entry=source_id(uri).unwrap();
     let mut workspace=Workspace::default();
     workspace.open(entry.clone(),1,source.clone());

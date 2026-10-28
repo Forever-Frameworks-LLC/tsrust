@@ -6,18 +6,22 @@ pub(crate) fn report(status:Status,message:impl std::fmt::Display) {
     let code=match status {Status::Info=>"1;36",Status::Success=>"1;32",Status::Warning=>"1;33",Status::Error=>"1;31"};
     eprintln!("{}",crate::styled(&format!("[dev] {message}"),code,crate::color_enabled(std::io::stderr().is_terminal())));
 }
-#[cfg(unix)]
+#[cfg(any(unix,windows))]
 mod platform {
     use super::{report,Status};
-    use std::{path::{Path,PathBuf},process::{Child,Command},sync::atomic::{AtomicBool,Ordering},time::{Duration,Instant}};
-    use std::os::unix::process::CommandExt;
+    use std::{path::{Path,PathBuf},process::Command,sync::atomic::Ordering,time::{Duration,Instant}};
+    #[cfg(unix)] use std::{os::unix::process::CommandExt,process::Child,sync::atomic::AtomicBool};
+    #[cfg(windows)] use crate::dev_windows::{Process,Signals,STOP};
     use crate::{dev_watch::{Fingerprint,Watcher},project_config,TempDirectory};
-    static STOP:AtomicBool=AtomicBool::new(false);
-    unsafe extern "C" {fn signal(number:i32,handler:usize)->usize;fn kill(pid:i32,signal:i32)->i32;}
+    #[cfg(unix)]
+    mod unix {
+        use super::*;
+    pub(super) static STOP:AtomicBool=AtomicBool::new(false);
+    unsafe extern "C" {fn signal(number:i32,handler:usize)->usize;pub(super) fn kill(pid:i32,signal:i32)->i32;}
     extern "C" fn stop(_:i32) {STOP.store(true,Ordering::Relaxed);}
-    struct Signals {interrupt:usize,terminate:usize}
+    pub(super) struct Signals {interrupt:usize,terminate:usize}
     impl Signals {
-        fn install()->Result<Self,String> {
+        pub(super) fn install()->Result<Self,String> {
             STOP.store(false,Ordering::Relaxed);
             // SAFETY: the handler only stores to a lock-free atomic flag. Restore
             // both previous dispositions when this supervisor returns.
@@ -31,13 +35,13 @@ mod platform {
         }
     }
     impl Drop for Signals {fn drop(&mut self){unsafe {signal(2,self.interrupt);signal(15,self.terminate);}}}
-    struct Process {child:Child,stopped:bool}
+    pub(super) struct Process {pub(super) child:Child,stopped:bool}
     impl Process {
-        fn spawn(command:&mut Command)->Result<Self,String> {
+        pub(super) fn spawn(command:&mut Command)->Result<Self,String> {
             command.process_group(0);
             Ok(Self{child:command.spawn().map_err(|e|e.to_string())?,stopped:false})
         }
-        fn stop(&mut self) {
+        pub(super) fn stop(&mut self) {
             if self.stopped{return;}
             self.stopped=true;
             let group=-(self.child.id() as i32);
@@ -54,6 +58,8 @@ mod platform {
         }
     }
     impl Drop for Process {fn drop(&mut self){self.stop();}}
+    }
+    #[cfg(unix)] use unix::{Process,Signals,STOP};
     struct Running {process:Process,_files:TempDirectory}
     fn wait_for_build(process:&mut Process,root:&Path,expected:&Fingerprint,watcher:&mut Watcher)->Result<Option<std::process::ExitStatus>,String> {
         let mut last_input_check=Instant::now();
@@ -119,13 +125,17 @@ mod platform {
         let Some(status)=wait_for_build(&mut probe,root,expected,watcher)? else{return Ok(None);};
         let backend_identity=crate::validate_backend_output(std::process::Output{status,stdout:std::fs::read(probe_out).map_err(|e|e.to_string())?,stderr:std::fs::read(probe_err).map_err(|e|e.to_string())?})?;
         let backend_elapsed=backend_started.elapsed();
-        let binary=files.0.join("program");
+        let binary=files.0.join(if cfg!(windows){"program.exe"}else{"program"});
         let features=frontend.features.join(",");
+        let optimization=crate::runtime_build::application_optimization(release,frontend.features.contains(&"ui-native"));
         let cache_root=std::env::var_os("TSRUST_CACHE_DIR").map(PathBuf::from).unwrap_or_else(||root.join("target/tsrust-native"));
-        let cache=tsrust_compiler::native_cache::NativeCache::new(&cache_root,&[
+        let shared_inputs=crate::backend_sources::application_identity(&frontend.rust,&cache_root)?;
+        let mut cache_parts:Vec<&[u8]>=vec![
             b"native-cache-abi-4-ui-dev-profile",crate::native_dependency_bundle::IDENTITY.as_bytes(),backend_identity.as_bytes(),env!("CARGO_PKG_VERSION").as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),
-            if release{b"release"}else{b"debug"},b"edition=2024;overflow-checks=on",frontend.rust.as_bytes(),&frontend.identity,features.as_bytes(),
-        ]);
+            if release{b"release"}else{b"debug"},b"edition=2024;overflow-checks=on",frontend.rust.as_bytes(),&frontend.identity,features.as_bytes(),optimization.as_bytes(),
+        ];
+        if let Some(inputs)=&shared_inputs {cache_parts.push(inputs.as_bytes());}
+        let cache=tsrust_compiler::native_cache::NativeCache::new(&cache_root,&cache_parts);
         let cache_started=Instant::now();let reused=cache.try_copy_to(&binary);let cache_elapsed=cache_started.elapsed();
         let native_started=Instant::now();
         if !reused {
@@ -136,30 +146,32 @@ mod platform {
                 let runtime_started=Instant::now();
                 if verbose{if let Some(directory)=command.get_current_dir(){eprintln!("[build] dependency-workspace={}",directory.display());}}
                 if frontend.features.contains(&"ui") { report(Status::Info,"Preparing native UI renderer (runtime cache miss)."); }
+                else { report(Status::Info,"Preparing native runtime (offline; runtime cache miss)."); }
                 let errors=files.0.join("runtime.stderr");
                 command.stdout(std::process::Stdio::null()).stderr(std::fs::File::create(&errors).map_err(|e|e.to_string())?);
                 let mut compiler=Process::spawn(&mut command)?;
                 let Some(status)=wait_for_build(&mut compiler,root,expected,watcher)? else{return Ok(None);};
-                if !status.success(){return Err(format!("Runtime compilation failed:\n{}",std::fs::read_to_string(errors).unwrap_or_default()));}
+                if !status.success(){return Err(prepared.compilation_error(&std::fs::read_to_string(errors).unwrap_or_default()));}
                 prepared.publish();
                 if verbose{eprintln!("[build] runtime-build+publish={:.1}ms",runtime_started.elapsed().as_secs_f64()*1000.);}
             }
             if verbose{eprintln!("[build] runtime={}",prepared.state);}
             // A file avoids pipe backpressure while the supervisor watches edits.
             let errors=files.0.join("backend.stderr");
-            let mut command=crate::backend_command();prepared.link(&mut command);
-            command.current_dir(root).arg("--edition=2024").args(["-C",if release{"opt-level=3"}else{"opt-level=0"}]).args(["-C","overflow-checks=on"]).arg(&prepared.application).arg("-o").arg(&binary)
+            let mut command=crate::backend_command();prepared.link(&mut command)?;
+            command.current_dir(root).arg("--edition=2024").args(["-C",optimization]).args(["-C","overflow-checks=on"]).arg(&prepared.application).arg("-o").arg(&binary)
                 .stdout(std::process::Stdio::null()).stderr(std::fs::File::create(&errors).map_err(|e|e.to_string())?);
             let mut compiler=Process::spawn(&mut command)?;
             let Some(status)=wait_for_build(&mut compiler,root,expected,watcher)? else{return Ok(None);};
             if !status.success(){return Err(format!("Native build failed:\n{}",std::fs::read_to_string(errors).unwrap_or_default()));}
-            let _=cache.try_publish(&binary);
+            if crate::backend_sources::unchanged(shared_inputs.as_deref(),&cache_root){let _=cache.try_publish(&binary);}
         }
         if verbose {eprintln!("[build] check={:.1}ms emit={:.1}ms backend={:.1}ms cache={} ({:.1}ms) native+link={:.1}ms",frontend.check.as_secs_f64()*1000.0,frontend.emit.as_secs_f64()*1000.0,backend_elapsed.as_secs_f64()*1000.0,if reused{"hit"}else{"miss"},cache_elapsed.as_secs_f64()*1000.0,if reused{0.0}else{native_started.elapsed().as_secs_f64()*1000.0});}
         Ok(Some(Artifact::Native(files,binary)))
     }
-    #[cfg(test)]
+    #[cfg(all(test,unix))]
     mod tests {
+        use super::unix::kill;
         use super::*;
         #[test]
         fn stopping_a_process_group_reaps_its_shell_and_descendant() {
@@ -201,7 +213,8 @@ mod platform {
         if target=="native" && port.is_some(){return Err("--port applies only to --target web".into());}
         if target=="web" && !program_args.is_empty(){return Err("Web dev does not accept native program arguments".into());}
         let _signals=Signals::install()?;
-        let root=project.root;
+        // Source discovery uses canonical identities, including Windows extended paths.
+        let root=std::fs::canonicalize(&project.root).map_err(|e|e.to_string())?;
         let mut web=if target=="web"{Some(crate::dev_web::Web::new(&root,port.unwrap_or(4317))?)}else{None};
         report(Status::Info,format_args!("Watching {}. Press Ctrl+C to stop.",root.display()));
         let worker=crate::dev_frontend::Worker::new()?;
@@ -254,6 +267,6 @@ mod platform {
         drop(running);report(Status::Info,"Stopped.");Ok(0)
     }
 }
-#[cfg(unix)] pub use platform::run;
-#[cfg(not(unix))]
+#[cfg(any(unix,windows))] pub use platform::run;
+#[cfg(not(any(unix,windows)))]
 pub fn run(_:impl Iterator<Item=String>)->Result<u8,String> {Err("dev process supervision currently supports macOS and Linux".into())}

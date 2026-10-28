@@ -72,6 +72,7 @@ impl Theme {
             return ResolvedColor::parse(value).map_err(|error|format!("UI theme {mode}.{key}: {error}"));
         }
     }
+    #[cfg(feature="runtime")]
     pub(crate) fn variables(&self,mode:&str)->String {
         let mut result=String::new();
         for key in COLORS {let color=self.color(mode,key).expect("validated theme");result.push_str(&format!("--ui-{key}:{};",color.css()));}
@@ -145,4 +146,5 @@ impl Theme {
 }
 
 /// Shared checked literal paint boundary; token lookup remains scoped.
+#[cfg(feature="runtime")]
 pub(crate) fn literal_color(value:&str)->Result<ResolvedColor,String>{ResolvedColor::parse(value)}

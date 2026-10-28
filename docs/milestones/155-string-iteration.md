@@ -14,7 +14,7 @@ borrowed by the body. There is no source clone or full character array snapshot.
 This allocation is necessary for the current Cow<'static,str> string ABI; a dynamic
 borrowed substring cannot satisfy existing readonly string parameter types. Native
 strings represent well-formed UTF-8 Unicode scalar values; character length still
-counts UTF-8 bytes. See docs/string-iteration.md for examples and ownership rules.
+counts UTF-8 bytes. See docs/guides/language/string-iteration.md for examples and ownership rules.
 
 Editor iteration inference exposes the character type and string methods. No new
 built-in member is introduced. A stale rejection for iterating "Pat" is now a

@@ -7,7 +7,22 @@ use tsrust_lsp::{
     workspace::Workspace,
 };
 fn id(name: &str) -> SourceId {
-    SourceId(format!("/tsrust diagnostics/{name}.tsr"))
+    SourceId(std::env::temp_dir().canonicalize().unwrap().join("tsrust diagnostics")
+        .join(format!("{name}.tsr")).to_str().unwrap().into())
+}
+#[cfg(windows)]
+#[test]
+fn windows_local_file_uris_roundtrip_drive_and_canonical_paths() {
+    use tsrust_lsp::project_diagnostics::source_path_id;
+    for path in [r"D:\tsrust diagnostics\café%#?.tsr", r"\\?\D:\tsrust diagnostics\café%#?.tsr"] {
+        let uri = file_uri(&SourceId(path.into())).unwrap();
+        assert_eq!(uri.as_str(), "file:///D:/tsrust%20diagnostics/caf%C3%A9%25%23%3F.tsr");
+        assert_eq!(source_path_id(uri.as_str()).unwrap().0, r"D:\tsrust diagnostics\café%#?.tsr");
+    }
+    let root = std::env::current_dir().unwrap().canonicalize().unwrap();
+    let id = SourceId(root.to_str().unwrap().into());
+    assert_eq!(source_id(file_uri(&id).unwrap().as_str()).unwrap(), id);
+    assert!(file_uri(&SourceId(r"\\server\share\main.tsr".into())).is_err());
 }
 #[test]
 fn file_uri_roundtrip_handles_spaces_unicode_percent_and_path_normalization() {
@@ -17,11 +32,11 @@ fn file_uri_roundtrip_handles_spaces_unicode_percent_and_path_normalization() {
         assert_eq!(source_id(uri.as_str()).unwrap(), id);
     }
     assert_eq!(
-        source_id("file:///tsrust%20diagnostics/sub/../main.tsr").unwrap(),
+        source_id(file_uri(&id("sub/../main")).unwrap().as_str()).unwrap(),
         id("main")
     );
     assert_eq!(
-        source_id("file://localhost/tsrust%20diagnostics/main.tsr").unwrap(),
+        source_id(&file_uri(&id("main")).unwrap().as_str().replacen("file:///", "file://localhost/", 1)).unwrap(),
         id("main")
     );
     for uri in [

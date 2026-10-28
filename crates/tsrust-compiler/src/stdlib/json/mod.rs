@@ -7,7 +7,8 @@ include!("runtime/parser.rs");
 include!("runtime/operations.rs");
 #[cfg(test)]
 mod lines;
-#[cfg(test)]
+// This writer harness imports the same platform-specific consuming file backend.
+#[cfg(all(test, any(target_os = "macos", target_os = "linux")))]
 mod writer;
 pub(crate) mod lines_emit;
 

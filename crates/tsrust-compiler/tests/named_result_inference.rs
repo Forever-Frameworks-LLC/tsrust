@@ -44,3 +44,28 @@ fn recursive_functions_infer_their_result_from_an_independent_return() {
         assert_eq!(error.code, code, "{source}: {}", error.message);
     }
 }
+
+#[test]
+fn async_generic_decoding_resolves_inferred_native_and_pipeline_factories() {
+    let source = support::format_round_trip(include_str!("fixtures/named-result-inference/async-schema-factory.tsr"));
+    let directory = support::TempDirectory::new();
+    let output = support::run(support::cli().arg("run").arg(directory.source(&source)), 120);
+    support::success(&output);
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "Async inferred schema factories passed\n");
+}
+
+#[test]
+fn inferred_factory_discovery_keeps_resource_move_errors() {
+    let source = support::format_round_trip(r#"
+import {trackedResource,closeResource,resourceId} from 'std:testing';
+type Header={operation:string;};
+function bad(){const resource=trackedResource();closeResource(resource);return resource;}
+async function verify(body:string):Task<void>{const header=JSON.parse<Header>(body);const resource=bad();console.log(resourceId(resource));}
+async function main():Task<void>{await verify('{"operation":"bad"}');}
+"#);
+    let directory = support::TempDirectory::new();
+    let output = support::run(support::cli().arg("check").arg(directory.source(&source)), 30);
+    assert!(!output.status.success());
+    let errors = String::from_utf8_lossy(&output.stderr);
+    assert!(errors.contains("error[transferred]") && errors.contains("Value transferred here."), "{errors}");
+}

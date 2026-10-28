@@ -1,0 +1,68 @@
+export type Filter = {
+  search: string | null;
+  completed?: boolean;
+};
+
+export type Create = {
+  title: string;
+};
+
+export type Item = {
+  kind: 'task';
+  id: int;
+  title: string;
+  completed: boolean;
+};
+
+export function list(input: Filter): Item[] {
+  return [{
+    kind: 'task', id: 7, title: 'Ship prototype', completed: false
+  }];
+}
+
+export function create(input: Create): Item {
+  return {
+    kind: 'task', id: 8, title: input.title, completed: false
+  };
+}
+
+export function marker(): '__TSRUST_API_ID__' {
+  return '__TSRUST_API_ID__';
+}
+
+export async function count(input: int): Task<int> {
+  return input + 1;
+}
+
+export function serverOnly(): string {
+  return 'This function is exported but is not an exposed API operation';
+}
+
+export type DataKeys = {
+  __proto__: string;
+};
+
+export function roundTrip(input: DataKeys): DataKeys {
+  return input;
+}
+
+export type VariantA = {
+  kind: 'a';
+  value: int;
+};
+
+export type VariantB = {
+  kind: 'b';
+  text: string;
+};
+
+export type RichData = {
+  pair: [int, string];
+  ratio: number;
+  enabled: boolean;
+  variant: VariantA | VariantB;
+};
+
+export function echo(input: RichData): RichData {
+  return input;
+}

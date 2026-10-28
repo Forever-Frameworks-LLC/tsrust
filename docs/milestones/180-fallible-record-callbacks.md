@@ -11,7 +11,7 @@ callback that fails. The failure propagates through the function, its relays and
 its callers with a typed error, and `try`, `catch` and `finally` work inside the
 function and around its calls. The error type of a handler is the union of what the
 callbacks of every constructed record of that type can raise.
-The [guide](../callable-fields.md#failures-of-a-field-callback) describes it.
+The [guide](../guides/language/callable-fields.md#failures-of-a-field-callback) describes it.
 
 ## Implementation
 

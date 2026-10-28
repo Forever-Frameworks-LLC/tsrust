@@ -1,6 +1,6 @@
 # Milestone 50: Number bitwise operators and exponentiation
 
-[Roadmap](../roadmap.md) · [Number coverage](../feature-coverage.md)
+[Roadmap](../roadmap.md) · [Number coverage](../guides/language/feature-coverage.md)
 
 ## Scope
 

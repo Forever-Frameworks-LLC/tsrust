@@ -189,7 +189,11 @@ def ingest(database, root, proof_path, expected_proof_sha):
 
 
 def checkpoint(database, raw_sha=None):
-    db = store.connect(database)
+    try:
+        db = store.connect(database)
+    except ValueError:
+        import public
+        db = public.connect(database)
     try:
         if raw_sha is None:
             row = db.execute("SELECT raw_sha FROM analytics_runs WHERE kind='execution' ORDER BY timestamp DESC,raw_sha DESC LIMIT 1").fetchone()

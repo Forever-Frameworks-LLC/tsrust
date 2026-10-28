@@ -1,5 +1,11 @@
 # Documentation application and complete component library
 
+> Frozen by the owner's 2026-10-26 [backend platform pivot](backend-platform-pivot.md).
+> Retain source, owner edits and historical acceptance. Remaining custom
+> component/rendering work is retired from active prototype scope, not accepted.
+> Use upstream shadcn on React web/Electron and React Native Reusables on Expo.
+> Preserve authored reference material when replacing documentation presentation.
+
 Status: active implementation plan, 2026-10-19. The owner requested this plan
 before expanding the documentation application. Unchecked steps are required
 work, not optional follow-ups. This is an iterative project; do not describe the

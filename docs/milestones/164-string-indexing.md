@@ -9,7 +9,7 @@ transport as an array index out of bounds: catchable inside `try`, and outside a
 `try` the program stops with `string index out of range at source bytes a..b`. This
 follows the owner's direction to stay consistent with arrays; JavaScript gives
 `undefined` there. A string cannot be assigned through a position (`unsupported`).
-See docs/string-indexing.md.
+See docs/guides/language/string-indexing.md.
 
 ## Implementation
 

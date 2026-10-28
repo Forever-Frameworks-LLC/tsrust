@@ -2,7 +2,20 @@
 use super::*;
 impl Analyzer {
     #[inline(never)]
-    fn schema_receiver(&self, context: &Context, base: &Expr) -> bool {
+    fn schema_receiver(&mut self, context: &Context, base: &Expr) -> Result<bool, Diagnostic> {
+        // A method on a first-use inferred factory must inspect its real return
+        // type before deciding whether to expose the public schema outcome.
+        // Checking the body here does not evaluate the receiver at runtime.
+        if let ExprKind::Call(callee, _) = &base.kind
+            && let ExprKind::Name(name) = &callee.kind
+            && !context.names.contains_key(name) && !context.pending_names.contains(name)
+            && let Some(&index) = self.function_names.get(name)
+            && self.signatures[index].inferred_result && self.checked[index].is_none()
+            && !self.visiting[index] && !self.active_recursive_functions.contains(&index)
+        {
+            self.named_captures.prepare(index, context, &self.program)?;
+            self.function(index)?;
+        }
         let known = matches!(self.expression_type_hint(context, base), Some(Type::Record(id))
             if self.program.records[id].native_type == Some(crate::native_signatures::NativeTypeId::Schema)
                 || self.schema_pipelines.types(id).is_some());
@@ -15,7 +28,7 @@ impl Analyzer {
         }
         let constructing = matches!(&root.kind, ExprKind::Name(name)
             if name.starts_with("@schema:") || name.starts_with("@native:std:schema#"));
-        known || constructing
+        Ok(known || constructing)
     }
 
     /// safeParse and safeParseJson present `{ success, data }` or `{ success, error }`.
@@ -25,7 +38,7 @@ impl Analyzer {
         let ExprKind::Call(callee, _) = &expr.kind else { return Ok(None); };
         let ExprKind::Field(base, method) = &callee.kind else { return Ok(None); };
         if !matches!(method.as_str(), "safeParse" | "safeParseJson") || self.raw_schema_results.contains(&expr.span) { return Ok(None); }
-        if !self.schema_receiver(context, base) { return Ok(None); }
+        if !self.schema_receiver(context, base)? { return Ok(None); }
         let mut validation = expr.clone();
         self.raw_schema_results.insert(expr.span);
         let result = self.expression(context, &mut validation, Mode::Consume, loans, None);
@@ -51,7 +64,7 @@ impl Analyzer {
     pub(in crate::analysis) fn schema_parse_call(&mut self, context: &mut Context, expr: &mut Expr, loans: &Loans, expected: Option<Type>) -> Result<Option<Type>, Diagnostic> {
         let ExprKind::Call(callee, _) = &expr.kind else { return Ok(None); };
         let ExprKind::Field(base, method) = &callee.kind else { return Ok(None); };
-        if method != "parse" || !self.schema_receiver(context, base) { return Ok(None); }
+        if method != "parse" || !self.schema_receiver(context, base)? { return Ok(None); }
         let mut validation = expr.clone();
         let ExprKind::Call(callee, args) = &mut validation.kind else { unreachable!() };
         if args.len() != 1 { return Err(Diagnostic::new("arity", "parse expects one input value.", expr.span)); }

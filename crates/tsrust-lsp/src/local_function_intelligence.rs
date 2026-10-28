@@ -50,6 +50,25 @@ impl SourceIndex {
         }
     }
 
+    pub(crate) fn apply_project_function_results(
+        &mut self,
+        analysis: &tsrust_compiler::project::ProjectAnalysis,
+        current: &tsrust_compiler::project::SourceId,
+        dependencies: &std::collections::BTreeMap<tsrust_compiler::project::SourceId, SourceIndex>,
+    ) {
+        let functions = self.symbols.iter().filter(|symbol| symbol.scope == 0
+            && symbol.ty.is_empty() && symbol.signature.starts_with("function "))
+            .map(|symbol| symbol.name.clone()).collect::<Vec<_>>();
+        for name in functions {
+            if let Some(result) = analysis.checked_function_result(current, &name)
+                .and_then(|ty| self.project_type_spelling(&analysis.graph, current, &ty, dependencies))
+                && result != "void"
+            {
+                self.apply_function_result(&name, &result);
+            }
+        }
+    }
+
     pub(super) fn document_outline(&self) -> Value {
         let eligible = |symbol: &Symbol| {
             symbol.owner.is_none()

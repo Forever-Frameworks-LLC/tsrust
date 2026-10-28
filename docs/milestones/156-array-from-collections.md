@@ -23,7 +23,7 @@ against the gate155 consumer and corrected in the focused native fixture.
 Editor results recognize collection copies, mapped output types and grouped union
 arrays. Hover and parameter help show the checked result type. The Array.from
 catalog entry and Array namespace summary document all sources, arguments, result
-ownership, errors, examples and native differences. Syntax guide: docs/array-from.md.
+ownership, errors, examples and native differences. Syntax guide: docs/guides/language/array-from.md.
 
 ## Focused evidence
 

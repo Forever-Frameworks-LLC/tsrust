@@ -18,7 +18,27 @@ impl Analyzer {
     }
 
     pub(super) fn function_request_ready(&mut self, index: usize) -> Result<bool, Diagnostic> {
-        if self.discovering_results || self.checked[index].is_some() { return Ok(true); }
+        if self.checked[index].is_some() { return Ok(true); }
+        if self.discovering_results {
+            // A newly instantiated generic (for example typed JSON decoding)
+            // can revisit an async body before a later data factory is checked.
+            // Its omitted result is unknown, not void. Context-independent
+            // factories can be checked normally, without caller environments.
+            if self.signatures[index].result == Type::Void
+                && self.inferred_result_context_is_closed(index)
+                && !self.visiting[index]
+                && !self.active_recursive_functions.contains(&index)
+            {
+                let effects = self.effects_only;
+                self.discovering_results = false;
+                self.effects_only = false;
+                let checked = self.function(index);
+                self.effects_only = effects;
+                self.discovering_results = true;
+                checked?;
+            }
+            return Ok(true);
+        }
         if self.active_recursive_functions.contains(&index) {
             if self.signatures[index].inferred_result && !self.provisional_results.contains_key(&index) {
                 return Err(self.missing_recursive_result(index));
@@ -27,6 +47,13 @@ impl Analyzer {
         }
         if self.visiting[index] { return self.prepare_function_body(index).map(|_| true); }
         Ok(false)
+    }
+
+    fn inferred_result_context_is_closed(&self, index: usize) -> bool {
+        self.signatures[index].inferred_result
+            && !self.named_captures.needs_context(index) && !self.templates.contains_key(&index)
+            && self.program.functions[index].parameter_initializers.iter().all(|initializer| matches!(initializer, ParameterInitializer::Required))
+            && self.signatures[index].body_params.iter().all(|ty| matches!(ty, Type::Int | Type::Number | Type::Boolean | Type::String))
     }
 
     fn recursive_summary_is_complete(&self, index: usize, data_types: &mut HashMap<Type, bool>) -> bool {
@@ -40,9 +67,7 @@ impl Analyzer {
             // These contexts contain only the declared scalar parameters.
             // Defaults, destructuring, captures and concrete environments still
             // require a suspended full function context, not a guessed seed.
-            return !self.named_captures.needs_context(index) && !self.templates.contains_key(&index)
-                && self.program.functions[index].parameter_initializers.iter().all(|initializer| matches!(initializer, ParameterInitializer::Required))
-                && signature.body_params.iter().all(|ty| matches!(ty, Type::Int | Type::Number | Type::Boolean | Type::String));
+            return self.inferred_result_context_is_closed(index);
         }
         self.dependency_data_type(signature.result, data_types)
     }
@@ -258,6 +283,15 @@ impl Analyzer {
         self.visiting[index] = true;
         self.function_stack.push(index);
         self.depth += 1;
+        // Result discovery can now finish a closed inferred factory and its
+        // helpers before run() captures retry sources. Preserve bodies eligible
+        // for callback/error-contract rechecking before consuming them.
+        if let Some(sources) = &mut self.discovery_body_sources
+            && (self.signatures[index].params.iter().any(|ty| matches!(ty, Type::Record(_)))
+                || return_type_inference::has_exception_region(&self.program.functions[index].body))
+        {
+            sources.entry(index).or_insert_with(|| self.program.functions[index].body.clone());
+        }
         let body = std::mem::take(&mut self.program.functions[index].body);
         let (context, parameters) = self.reserve_function_parameters(index)?;
         let result_type = self.signatures[index].result;

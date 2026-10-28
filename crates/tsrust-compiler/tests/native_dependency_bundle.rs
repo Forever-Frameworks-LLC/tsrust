@@ -1,5 +1,6 @@
 mod support;
 #[path = "../src/cli/native_dependency_bundle.rs"]
+#[expect(dead_code, reason = "This integration crate exercises materialization/artifacts; explicit setup is exercised through the CLI integration tests")]
 mod native_dependency_bundle;
 
 #[test]

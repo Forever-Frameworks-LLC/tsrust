@@ -21,7 +21,7 @@ or transfer during iteration is rejected. clone explicitly copies the collection
 
 Sets work in record fields, arrays, generic functions, return values and union
 observations. Console display, explicit String conversion and array join support
-Set values. See [the guide](../sets.md). Object/array/function identity keys,
+Set values. See [the guide](../guides/language/sets.md). Object/array/function identity keys,
 constructor aliases, entries, callbacks, set algebra and live iterators remain
 unsupported. This gate does not claim the complete JavaScript Set API.
 

@@ -1,6 +1,6 @@
 # Milestone 01: ownership proof
 
-[Roadmap](../roadmap.md) · [Ownership workstream](../ownership-and-memory.md) · [Experiment](../experiments/ownership-01.md)
+[Roadmap](../roadmap.md) · [Ownership workstream](../guides/language/ownership-and-memory.md) · [Experiment](../experiments/ownership-01.md)
 
 **Status:** Complete for the bounded subset, including the [integer amendment](./01-integer-subset.md). The experimental rules below are provisional and restricted to this milestone. They do not settle the full language design or satisfy the complete research program.
 
@@ -67,7 +67,7 @@ The compiler prints an inspectable contract summary through `check` and `check -
 
 ## String and output behavior
 
-For the experiment, `trim()` and `toLowerCase()` read their inputs and return independently usable string values. The original lowering and handwritten witnesses materialize owned buffers and may allocate intermediates. The later [primitive optimization](../primitive-performance.md) preserves source ownership while sharing immutable static literal bytes and precomputed normalization results. Dynamic owned inputs still produce independent buffers; allocation is a representation choice, not a promise of the source API.
+For the experiment, `trim()` and `toLowerCase()` read their inputs and return independently usable string values. The original lowering and handwritten witnesses materialize owned buffers and may allocate intermediates. The later [primitive optimization](../measurements/primitive-performance.md) preserves source ownership while sharing immutable static literal bytes and precomputed normalization results. Dynamic owned inputs still produce independent buffers; allocation is a representation choice, not a promise of the source API.
 
 The original ownership fixtures validate ASCII string transforms. Primitive storage regressions additionally preserve Rust Unicode trim/lower behavior, including expanding case mappings; this does not establish full JavaScript Unicode compatibility. Literal escaping and UTF-8 diagnostic positions have separate test coverage. [Milestone 33](./33-native-utf8-strings.md) now uses native Rust UTF-8 byte length/slicing and scalar charAt, with Rust whitespace. Case conversion keeps the pinned Unicode 17 tables; complete contextual conversion equivalence across Unicode versions and bracket indexing remain separately scoped. `console.log(string)` reads the value and appends a newline.
 
@@ -111,7 +111,7 @@ The accepted corpus is compiled from `.tsr` inputs into generated Rust and nativ
 
 This supports the feasibility of inferred argument access for direct acyclic calls and straight-line owned values. It does not establish general inference soundness, control-flow behavior, closure capture semantics, allocation cost, or competitive performance.
 
-The compiler and verification suites are Rust, organized under `crates/tsrust-compiler/`. The 17 original acceptance groups are preserved. With backend pinning checks and the integer amendment, the Cargo suite reached 37 groups at completion of this milestone: 19 original acceptance, eight integer acceptance, eight analysis/pin, and two witness/inventory. Original corpus assertions use one typed case inventory. Rust 1.96.1 is [pinned for both compilation stages](../rust-toolchain-policy.md). The future language server will share the Rust analysis library. See the [analysis performance baseline](../analysis-performance.md) for a bounded measurement, not a claim of production readiness.
+The compiler and verification suites are Rust, organized under `crates/tsrust-compiler/`. The 17 original acceptance groups are preserved. With backend pinning checks and the integer amendment, the Cargo suite reached 37 groups at completion of this milestone: 19 original acceptance, eight integer acceptance, eight analysis/pin, and two witness/inventory. Original corpus assertions use one typed case inventory. Rust 1.96.1 is [pinned for both compilation stages](../guides/tooling/rust-toolchain-policy.md). The future language server will share the Rust analysis library. See the [analysis performance baseline](../measurements/analysis-performance.md) for a bounded measurement, not a claim of production readiness.
 
 The [integer acceptance evidence](./01-integer-subset.md#acceptance-evidence) completes the original numeric example and verifies copy behavior and field access. [Milestone 02](./02-control-flow.md) now implements the scoped branch experiment and brings the suite to 48 groups. Next scope closure captures and escaping lifetimes with new accepted/rejected examples before implementation. Async follows once those lifetime contracts are understood.
 

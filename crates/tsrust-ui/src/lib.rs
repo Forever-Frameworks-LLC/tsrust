@@ -2,46 +2,72 @@
 //! Synchronous handlers mutate explicitly owned state through weak handles.
 
 #[cfg(feature = "native")]
+#[cfg(feature = "runtime")]
 mod native;
 #[cfg(all(target_arch="wasm32",feature="ui-web"))]
+#[cfg(feature = "runtime")]
 pub mod browser;
+#[cfg(feature = "runtime")]
 mod state;
+#[cfg(feature = "runtime")]
 mod computed;
+#[cfg(feature = "runtime")]
 mod identity;
+#[cfg(feature = "runtime")]
 pub use identity::use_id;
+#[cfg(feature = "runtime")]
 mod vector;
 #[cfg(any(test,feature="native"))]
+#[cfg(feature = "runtime")]
 mod table;
+#[cfg(feature = "runtime")]
 pub mod navigation;
+#[cfg(feature = "runtime")]
 mod branch;
 #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
+#[cfg(feature = "runtime")]
 mod window;
 #[cfg(test)]
+#[cfg(feature = "runtime")]
 mod application_tests;
 #[cfg(test)]
+#[cfg(feature = "runtime")]
 mod empty_style_tests;
 #[cfg(test)]
+#[cfg(feature = "runtime")]
 mod table_semantics_tests;
 #[cfg(test)]
+#[cfg(feature = "runtime")]
 mod reactive_semantics_tests;
+#[cfg(feature = "runtime")]
 mod editable;
+#[cfg(feature = "runtime")]
 mod visibility;
+#[cfg(feature = "runtime")]
 pub mod clipboard;
+#[cfg(feature = "runtime")]
 pub(crate) use editable::{ValueBinding,ChangeHandler};
+#[cfg(feature = "runtime")]
 pub use state::{Signal,TextBinding};
+#[cfg(feature = "runtime")]
 pub use computed::Computed;
 pub mod style;
 pub mod theme;
+#[cfg(feature = "runtime")]
 mod web;
 #[cfg(feature = "native")]
+#[cfg(feature = "runtime")]
 pub use native::run;
 #[cfg(feature = "native")]
+#[cfg(feature = "runtime")]
 pub use native::run_configured;
 #[cfg(feature = "acceptance")]
 #[doc(hidden)]
+#[cfg(feature = "runtime")]
 pub use native::verify_window;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg(feature = "runtime")]
 pub enum Kind {
     View,
     Text,
@@ -53,12 +79,16 @@ pub enum Kind {
     SvgPath,
 }
 
+#[cfg(feature = "runtime")]
 pub enum TextPart { Literal(String), Signal(TextBinding) }
 /// Owned child content. Text parts are grouped without cloning their state references.
+#[cfg(feature = "runtime")]
+#[expect(clippy::large_enum_variant, reason = "Owned nodes move directly into the child vector without a separate allocation")]
 pub enum Child { Node(Node), Text(TextPart) }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, serde::Deserialize)]
 #[serde(default, deny_unknown_fields, rename_all="camelCase")]
+#[cfg(feature = "runtime")]
 pub(crate) struct Semantics {
     pub tag: String,
     pub href:String,
@@ -82,6 +112,7 @@ pub(crate) struct Semantics {
     pub tab_index:Option<i64>,
 }
 
+#[cfg(feature = "runtime")]
 pub struct Node {
     depth: usize,
     identity:std::cell::Cell<u64>,
@@ -112,9 +143,10 @@ pub struct Node {
     vector:Option<Box<vector::Data>>,
 }
 
+#[cfg(feature = "runtime")]
 impl Node {
     pub fn with_class_binding(mut self,mut evaluate:impl FnMut()->Result<String,String>+'static)->Result<Self,String>{
-        let value=evaluate()?;self.check_class(&value)?;self.class_name=value;self.class_binding=Some(Box::new(evaluate));Ok(self)
+        let value=evaluate()?;self.check_class(&value)?;self.class_name=value;self.validate_structure()?;self.class_binding=Some(Box::new(evaluate));Ok(self)
     }
     pub fn with_variant_binding(mut self,mut evaluate:impl FnMut()->Result<String,String>+'static)->Result<Self,String>{
         let value=evaluate()?;Self::check_variant(&value)?;self.semantics.variant=value;self.variant_binding=Some(Box::new(evaluate));Ok(self)
@@ -176,7 +208,7 @@ impl Node {
         value.href=self.semantics.href.clone();
         if self.variant_binding.is_some(){value.variant=self.semantics.variant.clone();}
         let prior=std::mem::replace(&mut self.semantics,value);
-        if validate_structure {if let Err(error)=self.validate_structure(){self.semantics=prior;return Err(error);}}
+        if validate_structure && let Err(error)=self.validate_structure(){self.semantics=prior;return Err(error);}
         Ok(prior!=self.semantics)
     }
     fn has_enabled_controls(&self)->bool {!self.collapsed && (self.enabled_control() || self.children.iter().any(Self::has_enabled_controls))}
@@ -422,15 +454,18 @@ impl Node {
             text,
             children,
             vector:None,parts: Vec::new(), disabled:None, visibility:None, copy:None, press: None, class_binding:None,variant_binding:None,semantic_binding:None,state: Vec::new(), editable:None, read_only:None,collapsed:false,hidden:None,
-        };if matches!(kind,Kind::Svg|Kind::SvgPath){node.check_class(&node.class_name)?;}if kind!=Kind::Svg && node.children.iter().any(|child|child.kind==Kind::SvgPath){return Err("Path requires an enclosing Svg".into());}Ok(node)
+        };if matches!(kind,Kind::Svg|Kind::SvgPath){node.check_class(&node.class_name)?;}
+        if kind!=Kind::Svg && node.children.iter().any(|child|child.kind==Kind::SvgPath){return Err("Path requires an enclosing Svg".into());}Ok(node)
     }
 }
 
+#[cfg(feature = "runtime")]
 pub fn document(root: &Node, title: &str) -> String {
     web::document(root, title)
 }
 
 #[cfg(test)]
+#[cfg(feature = "runtime")]
 mod tests {
     use super::*;
     #[test]
@@ -464,6 +499,7 @@ mod tests {
 }
 
 #[cfg(test)]
+#[cfg(feature = "runtime")]
 mod interaction_tests {
     use super::*;
     #[test]
@@ -505,6 +541,7 @@ mod interaction_tests {
     }
 }
 
+#[cfg(feature = "runtime")]
 #[cfg(test)]mod condition_tests {
  use super::*;
  #[test]fn disabled_expression_refreshes_after_actions_and_prevents_dispatch() {
@@ -526,6 +563,7 @@ mod interaction_tests {
 }
 
 #[cfg(test)]
+#[cfg(feature = "runtime")]
 mod semantics_tests {
     use super::*;
     fn text(value: &str) -> Node { Node::new(Kind::Text, String::new(), value.into(), vec![]).unwrap() }
@@ -561,6 +599,7 @@ mod semantics_tests {
 }
 
 #[cfg(test)]
+#[cfg(feature = "runtime")]
 mod composition_tests {
     use super::*;
     fn literal(value:&str)->Child {Child::Text(TextPart::Literal(value.into()))}
@@ -600,6 +639,7 @@ mod composition_tests {
 }
 
 #[cfg(test)]
+#[cfg(feature = "runtime")]
 mod scalar_binding_tests {
  use super::*;
  #[test]
@@ -617,6 +657,7 @@ mod scalar_binding_tests {
 }
 
 #[cfg(test)]
+#[cfg(feature = "runtime")]
 mod editable_semantics_tests {
  use super::*;
  #[test]
@@ -635,6 +676,7 @@ mod editable_semantics_tests {
 }
 
 #[cfg(test)]
+#[cfg(feature = "runtime")]
 mod editable_cleanup_tests {
  use super::*;
  use std::{cell::RefCell,rc::Rc};
@@ -653,6 +695,7 @@ mod editable_cleanup_tests {
  }
 }
 #[cfg(test)]
+#[cfg(feature = "runtime")]
 mod editable_event_tests {
  use super::*;
  #[test]
@@ -662,6 +705,7 @@ mod editable_event_tests {
  }
 }
 
+#[cfg(feature = "runtime")]
 #[cfg(test)]mod inline_content_tests{
  use super::*;
  #[test]fn rich_text_rejects_block_controls_boxes_and_keeps_reactive_children(){

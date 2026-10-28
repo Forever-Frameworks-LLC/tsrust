@@ -1,7 +1,7 @@
 # Implementation plans
 
 Design and implementation plans live here. Their detailed progress sections are historical;
-use the [standard-library roadmap](../standard-library-roadmap.md) and accepted
+use the [standard-library roadmap](standard-library-roadmap.md) and accepted
 [family evidence](../milestones/) for current status. Public behavior belongs in the topic guides.
 
 - [callable environments plan](callable-environments-plan.md)
