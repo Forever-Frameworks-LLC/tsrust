@@ -59,7 +59,7 @@ feature-coverage evidence to reduce the inventory.
 | `language/array-literal-spread.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/arrow-functions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/assignment-values.md` | Migrated to website language/assignment-values; removed duplicate and updated Markdown links | Source, exact native examples, focused compiler/editor tests and full responsive review accepted |
-| `language/borrowed-optional-fallback.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/borrowed-optional-fallback.md` | Migrated to canonical site language/borrowed-optional-fallback | Accepted: four complete examples, compiler/editor and rejection witnesses, full responsive/keyboard review; duplicate removed and links migrated. |
 | `language/call-spread.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/callable-arrays.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/callable-expressions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |

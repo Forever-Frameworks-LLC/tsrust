@@ -1,6 +1,37 @@
 # Agent continuation state
 
-## Current continuation — interfaces and optional fields accepted
+## Current continuation — borrowed optional fallback guide accepted
+
+Previous turn progressed at71a4b2fa. Migrated borrowed-optional-fallback into a
+canonical site guide with separate selection, lexical lifetime, computed fallback,
+clone and bounds sections. Replaced incomplete clone fragment with a full assertion
+example; added scoped-source and stable-computed-fallback programs. Removed old
+guide and migrated incoming Markdown links, including site destructuring link.
+
+All four exact complete examples format/check/execute with expected output. Existing
+borrowed_optional_fallback compiler2 and intelligence editor1 tests pass. Independent
+absent-source mutation and fresh-owner fallback checks reject with view-conflict
+and borrowed-view respectively. Traced checked borrowed optional transfer handling
+in analysis/continuations/prelude.rs and current fixtures. Logs:
+/tmp/tsrust-fallback-doc-compiler.log and /tmp/tsrust-fallback-doc-editor.log.
+No compiler changes, timing or platform claims. All processes completed.
+
+Full390px/1440px rendered page review passes: highlighted focusable code, zero
+mobile document overflow, keyboard scroll40px, skip/section navigation. Viewport
+reset; tab4 retained on fallback page. Site build41pages and same-site links/anchors
+pass (/tmp/tsrust-fallback-doc-site.log). Audit and migration rows accepted.
+Full formatter/diff check required before source checkpoint.
+
+Also corrected the optional-chaining guide's obsolete blanket claim that nullable
+callable storage is unsupported; linked its existing ownership-contract guide.
+That broader guide is NOT accepted yet. Next: audit/migrate optional-chaining and
+nullish-coalescing with precise short-circuit, narrowing, ownership and error rules.
+Remaining platform setup, updated Windows/Linux editor fixture/acquisition and
+actual Pages deployment remain pending. No push, hosted CI or release this section.
+Goal remains active. One writer, shared target, jobs1/incremental0.
+
+
+## Prior continuation — interfaces and optional fields accepted
 
 Previous turn progressed at3c3c62f2. Migrated interfaces and optional-fields to
 canonical site pages; removed duplicate guides and updated coverage links. Corrected

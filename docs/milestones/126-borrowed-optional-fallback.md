@@ -6,7 +6,7 @@ Status: focused implementation, native execution, editor, documentation and matc
 
 A borrowed optional string field can select a string literal fallback without cloning: `const label = item?.label ?? "none"`. This includes loop elements and indexed nullable record array elements. Null/undefined chooses the fallback; a present empty string remains empty. The literal has static text storage. The selected value remains a readonly borrow, and source loans remain lexical. Transfer and source mutation are rejected; explicit clone() provides independent ownership.
 
-Fresh allocated fallback owners still require a separately named stable source before borrowing. This repair does not implicitly clone, allocate a selected owner, change general union member access or change bounds behavior. See [the syntax guide](../guides/language/borrowed-optional-fallback.md).
+Fresh allocated fallback owners still require a separately named stable source before borrowing. This repair does not implicitly clone, allocate a selected owner, change general union member access or change bounds behavior. See [the syntax guide](../../website/src/content/docs/language/borrowed-optional-fallback.md).
 
 ## Implementation and evidence
 

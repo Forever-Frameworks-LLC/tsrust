@@ -70,4 +70,4 @@ function main() {
 
 An owning coalescing result transfers an owned nullable input under the existing ownership contract; the old input cannot then be reused. Explicitly clone the input first when it must remain available. A scoped readonly input cannot become an owning result implicitly; readonly uses retain its existing loan restrictions. Copy results are snapshots, and callable invocation contracts remain in force.
 
-Borrowed optional string fields can select a string literal fallback without cloning. See [borrowed optional fallbacks](borrowed-optional-fallback.md) for the current source-loan and independent-owner rules.
+Borrowed optional string fields can select a string literal fallback without cloning. See [borrowed optional fallbacks](../../../website/src/content/docs/language/borrowed-optional-fallback.md) for the current source-loan and independent-owner rules.
