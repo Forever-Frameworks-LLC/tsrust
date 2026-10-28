@@ -1580,3 +1580,21 @@ source-build link. No viewport override applied. Do not mark page fully audited.
   accumulated primitive batch still runs after remaining standalone examples.
 - Pending editor/catalog edits remain uncommitted until coherent acceptance.
   Retained UI examples still have separate known gaps; no full-suite green claim.
+
+### Modules, application and static-file page acceptance
+
+- Complete desktop/mobile (1440px/390px) review of modules, applications and
+  static-files, including full content, tables, highlighted code, focusable code
+  overflow and keyboard skip/next navigation; no document overflow. Prior exact
+  starter/SDK/static-server evidence reused rather than rerunning those suites.
+- Fixed the alias walkthrough: retain both the default and named greeting imports
+  used by the initial consumer. Exact revised files check and execute with Hello
+  twice (/tmp/tsrust-alias-doc-output.log). Rechecked alias precedence and bounded
+  data parsing against project/resolution.rs and project/data/module.rs.
+- Corrected static fallback wording: runtime checks file extensions, not semantic
+  asset type. Extensionless assets explicitly accepting HTML may receive fallback.
+  Separated invalid-path responses from deployment containment assumptions.
+- Whole-project formatter, idempotent format check, site build and all 23-page
+  links/anchors/assets pass. Browser viewport reset. Native catalog 46373 still
+  live after compilation; preserve its std:http continuation and log. No new
+  hosted jobs or releases initiated.

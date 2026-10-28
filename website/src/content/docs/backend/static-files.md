@@ -47,19 +47,22 @@ HTTP methods continue to later application routes.
 | `/web/` or an existing directory | Serve its `index.html` when present; no directory listing. |
 | Existing file under `/web/` | Serve the file. |
 | Missing extensionless path with `Accept: text/html` | Serve the configured fallback, if enabled and HTML is acceptable. |
-| Missing script, font or image path | 404; never the HTML fallback. |
+| Missing path with a file extension, such as `.js`, `.woff2` or `.png` | 404; never the HTML fallback. |
 | `/api`, `/admin` or `/webish` | Outside this mount. |
 
 An absent Accept header or only `*/*` does not request the HTML fallback.
-`text/html;q=0` also disables it. This keeps missing asset requests from receiving
-an HTML page they cannot use.
+`text/html;q=0` also disables it. The extension check keeps typical missing asset
+requests from receiving an HTML page they cannot use. An extensionless asset path
+can receive the fallback if the request explicitly accepts HTML.
 
 ## Invalid paths and deployment safety
 
 Invalid configuration throws HttpError code `static` before registration.
 Malformed path escapes, hidden/dot segments, encoded separators, controls,
 double encoding and unsafe Windows path forms return 400. Resolved paths outside
-the root, including outside-root symlinks, return 404. Roots are trusted read-only deployment assets: concurrent
+the root, including outside-root symlinks, return 404.
+
+Roots are trusted read-only deployment assets: concurrent
 local filesystem writers are outside this containment contract. Never mount
 uploads, source, credentials or a directory with adversarial writers. Public
 selection, cache/CSP headers and any access policy remain application-owned.

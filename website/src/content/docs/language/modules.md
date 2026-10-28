@@ -84,8 +84,10 @@ Add `paths` to `tsrust.config.json` to map imports relative to that configuratio
 { "paths": { "@/*": "./src/*" } }
 ```
 
-For example, move `greeting.tsr` into `src/` and change its consumer to
-`import greet from "@/greeting";`. The alias resolves under `src/` using the
+Using the first greeting module and consumer above, move `greeting.tsr` into
+`src/` and replace the consumer's import with
+`import greet, { greeting } from "@/greeting";`. Both calls remain unchanged.
+The alias resolves under `src/` using the
 candidate order above. Exact mappings take priority over wildcard
 mappings; the longest matching wildcard prefix wins. Invalid or ambiguous mappings
 are diagnosed. Alias and relative paths to the same file retain one module identity.
