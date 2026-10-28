@@ -1,6 +1,28 @@
 # Agent continuation state
 
-## Current continuation — optional operator guides accepted
+## Current continuation — nullish assignment content correction
+
+Previous turn progressed at076df7fc. Audited nullish-assignment against current
+prepare/finish_nullish_assignment_work in continuations/assignment.rs. Found an
+obsolete prohibition on nullable array destinations: (int|null)[] elements accept
+??= under normal indexed-place checks. Corrected it and added a complete native
+example proving absent replacement and present preservation (7 2 7,2).
+Reorganized existing guide into destination, flow, borrowing and chain sections.
+
+All seven exact guide examples pass format --write/--check, compiler checks and
+native output assertions. Focused nullish_assignment_types_loans_spans_and_normal_depth
+regression passes (/tmp/tsrust-nullish-assignment-doc.log). All processes ended.
+No implementation changes or new measurement/platform claims. Migration row is
+in progress: remaining source review, site migration and full responsive/keyboard
+review are still required. Full formatter/diff check before checkpoint.
+
+Next: complete this guide and nullable-callables as a coherent nullable-assignment
+section, then remaining finite guide inventory. Current Windows/Linux editor
+fixture/acquisition, setup and actual Pages deployment remain pending. Goal active;
+no hosted CI/push/release or full regressions this section.
+
+
+## Prior continuation — optional operator guides accepted
 
 Previous turn progressed at84d74305. Finished entire optional-chaining and
 nullish-coalescing rendered reviews at390/1440. Both have highlighted examples,
