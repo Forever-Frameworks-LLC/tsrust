@@ -1,6 +1,45 @@
 # Agent continuation state
 
-## Current continuation — nested capture and parameter pages accepted
+## Current continuation — generic value basics accepted
+
+Previous checkpointfc868da7. Audited/migrated generic concrete-context and deferred
+value basics from nested-functions into site generic-function-contexts and
+generic-function-values. Traced generic_function_values contextual preparation,
+generics/functions/value_signatures constraints/substitution, deferred source
+origins/invocations, generic_value_adapters and original default/rest forwarding.
+Removed stale blanket claim that generic alias parameter help and polymorphic
+callback adaptation are unsupported. Documented concrete signature versus per-call
+generic inference, owner transfer versus readonly arrays, expected-result-only
+inference and independent factories sharing one environment across types.
+Added verified mutable view versus owned scalar capture example (outer stays2
+after owned calls). Preserve distinctions from generic adapters retaining an
+existing environment; advanced adapter/selection sections remain in original.
+
+Seven exact programs format/check/native pass: contexts4 outputs7/text;0/7 1;2/2;
+7/3. Values3 outputs7/text/2 2/3,4;11/21/12;7 text. Shortened final output and
+reran only it after visual review. Compiler generic_function_values17 and
+signatures2 pass (/tmp/tsrust-generic-doc-contracts.log), including mismatch,
+arity, owner/capture consumption, result constraints, independent state/disposal,
+default/rest and patterns. Editor contextual_generic3/deferred_generic_alias6/
+result1/captured1/imported2 pass (/tmp/tsrust-generic-doc-editor.log). No compiler
+changes, timings or full-suite reruns.
+
+Entire two pages390px/1440px reviewed: highlighted code, no document overflow,
+focusable overflowing code, ArrowRight40px, skip/section/adjacent navigation pass.
+Split editor paragraph and shortened final example reviewed both widths.63-page
+build and internal links/anchors pass (/tmp/tsrust-generic-doc-site.log).
+Whole-project formatter before checkpoint. Viewport reset and tab4 retained.
+No hostedCI, push, release or platform executions.
+
+Next: remaining advanced nested guide, now starting Adapt existing generic
+environments. Audit concrete adapters (owned/Mutable/fresh factories/traversal),
+source-flow/assignment-result callees, lexical type scopes, owned/scoped selection,
+single-use call scopes, generic replacement and mutable factory arrays. Split
+into task pages and preserve supported current behavior; old limitations may be
+stale. Migration stays partial. Remaining finite docs inventory and Windows/Linux
+acquisition/editor and actual Pages deployment evidence remain pending. Goalactive.
+
+## Prior continuation — nested capture and parameter pages accepted
 
 Previous checkpoint799de274. Audited/migrated nested guide's enclosing bindings,
 captured values, owner-return factories, inferred callback arrays and captured
