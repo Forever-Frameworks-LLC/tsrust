@@ -106,13 +106,26 @@ In PowerShell, use the call operator for a quoted executable path:
 If highlighting works but diagnostics do not, inspect **Output → Tsrust**.
 Highlighting is supplied by the extension and does not prove the server started.
 
-## Repeated exits or high memory use
+## Recover from repeated server exits
 
-Tsrust and this extension are experimental. The current language server has an
-unresolved report of excessive memory use in long workspace sessions. Avoid large
-workspace scans until resolved; stop or disable the extension for the workspace
-if memory grows. Unexpected exits use bounded recovery: up to four automatic
-restarts within the language client's three-minute failure window. A fifth exit
-stops recovery and leaves the cause in **Output → Tsrust**. Use **Tsrust: Restart
-Language Server** to reset the budget after inspecting repeated failures. Recovery
-does not establish that the underlying exit or memory issue is resolved.
+Open **View → Output → Tsrust** and inspect the error before restarting.
+The extension automatically restarts the server after an unexpected exit. If
+five exits occur within three minutes, it stops automatic recovery; the first
+four exits can trigger restarts.
+
+After addressing the error, run **Tsrust: Restart Language Server**. This starts
+a new client and resets its restart history. Restarting restores service but
+does not fix the cause of a crash.
+
+## Investigate growing memory use
+
+If the language server's memory keeps growing during your session, save your work
+and disable the extension for that workspace. Include your OS, CLI/LSP versions,
+workspace size, reproduction steps and relevant **Output → Tsrust** messages when
+reporting the issue. Remove credentials and private source from shared logs.
+
+Earlier investigations led to fixes that release unrelated editor-buffer
+snapshots and superseded workspace-scan entries. Those fixes have focused tests
+and a bounded Windows protocol probe. Long-running macOS sessions have not yet
+been verified, so the historical memory report is not considered conclusively
+resolved across platforms.

@@ -19,6 +19,28 @@ content is not accepted merely because its original file existed.
   page audited. Preserve existing completed native evidence without rerunning the
   entire compiler suite for prose edits.
 
+## Completion standard
+
+Every public page requires both a complete content audit and a presentation audit.
+A partial review, migration, successful build or checked example cannot close its row.
+For each page, review every paragraph, table row, code block, callout and link:
+
+- Trace factual claims to current implementation or applicable acceptance evidence.
+  Treat historical incidents as historical; check for subsequent repairs before
+  describing them as current defects. State remaining uncertainty precisely.
+- Execute complete examples and commands where their output or side effects matter.
+  Label intentional fragments and provide their prerequisites. Verify warnings,
+  defaults, version requirements, platform claims and recovery instructions.
+- Review the page as a reader: clear purpose, useful ordering, manageable sections,
+  consistent terminology, meaningful links and no unsupported blanket warnings.
+- Inspect the rendered page at desktop and narrow widths, including code/table
+  overflow, highlighting, navigation and keyboard access. Record any unavailable
+  check as pending. Do not substitute source review for rendered inspection.
+
+Final acceptance requires every row to have complete content and presentation
+coverage, with no unresolved inaccurate claim. Evidence must identify what was
+checked; "100%" is not a substitute for that evidence.
+
 ## Page checklist
 
 | Page | Status | Evidence / remaining work |
@@ -38,7 +60,7 @@ content is not accepted merely because its original file existed.
 | `library/overview.md` | Pending | Verify facts, examples and reading flow. |
 | `library/typed-json.md` | Source review in progress | Corrected overflow and JsonRaw support against json_typed.rs/json_raw.rs and builtin catalog. Added shape table and raw-field example; example executed with exact preserved output. Remaining examples and rendered review pending. |
 | `project/status.md` | Pending | Verify facts, examples and reading flow. |
-| `start/editor.md` | Source review in progress | VS Code manifest minimum, executables.ts discovery order, extension.ts configuration/restart behavior checked. Separated stale-path and memory recovery from onboarding. Full editor/platform execution remains pending. |
+| `start/editor.md` | Source review in progress | VS Code manifest minimum, executables.ts discovery order, extension.ts configuration/restart behavior checked. Separated stale-path recovery from onboarding. Replaced stale blanket memory warning with landed retention fixes and explicit long-session macOS uncertainty; verified restart window against installed language-client code. Full editor/platform execution and rendered review remain pending. |
 | `start/installation.md` | Source review in progress | Verified archive naming, current exact Rust pin and executable paths; made extraction conditional on checksum success and separated installation/update tasks. Fresh-platform instructions remain pending. |
 | `start/project-structure.md` | Source review complete; rendered review pending | File list, build entry/output and explicit API configuration match application_scaffold.rs and starter templates; independently created starter passes check/test/format. |
 | `start/quickstart.md` | Source/example review in progress | Exact hello snippet checks and executes with TypeScript + Rust output. Fresh --app project check/test/format pass. Live HTTP description and both SDK commands pass; rendered review pending. |

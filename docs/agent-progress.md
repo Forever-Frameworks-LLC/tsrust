@@ -959,3 +959,45 @@ source-provider mocks reading tsrust.config.json as Tsrust source (ui-config),
 project and project_scaling read counts increased by the configuration probe,
 runtime_cache_cli theme case and rust_bridge locked dependency case. Inspect
 full failure contexts before repairs; don't weaken source-read invariants blindly.
+
+
+## Source-provider regression repair in progress
+
+The graph loader probes optional ancestor tsrust.config.json through SourceProvider.
+Native declaration and generic-default test providers incorrectly returned main.tsr
+text for every identity. Fixed the five mock reads to reject absent identities;
+production configuration validation is unchanged. Native import test now asserts
+exactly one main read and one missing-config probe, rather than counting identities
+as modules. Fanout workload counts successful module reads (still exactly once per
+module) separately from absent optional config. Focused suites running in session
+14197, /tmp/tsrust-provider-regression-repair.log: generic_default_void 3 pass;
+native_declarations progressing, project/project_scaling queued. Do not restart.
+
+HTTP catalog failure separately traced to 17 entries without executable examples.
+Added a shared complete witness covering configured limits, form names/values and
+multipart name/fileName/contentType/data length. All HTTP entries now have nonempty
+well-shaped example arrays. Witness compiler check passes; exact native execution
+runs in session 96291, /tmp/tsrust-http-catalog-repair.log. Not yet accepted or
+checkpointed. Temporary source /tmp/tsrust-http-catalog-repair.tsr matches catalog.
+Original broad regression 79249 continues independently; preserve its results.
+
+HTTP shared witness 96291 completed successfully with exact expected output.
+All 17 added example records share this verified source/output. Provider suite
+14197 still running; preserve its log and completed tests.
+
+## Owner requires exhaustive content and presentation audit
+
+Owner explicitly requires every public page to receive a complete factual and
+presentation audit, not sampled checks. Expanded the public-documentation-content-
+audit plan with paragraph/table/code/callout/link coverage and separate rendered
+acceptance. No existing in-progress row is promoted to complete.
+
+The editor memory warning was stale: current workspace.rs retains only observed
+snapshots; workspace_scan.rs removes superseded entries. The recorded Windows
+investigation reports 890 requests/43 samples with bounded memory, not a long-lived
+macOS proof. Removed the blanket avoid-scans recommendation and distinguished
+landed fixes from unverified long-session macOS behavior. Restart policy remains
+verified in extension.ts maxRestartCount=4 and installed vscode-languageclient
+DefaultErrorHandler.closed: fifth exit within three minutes stops recovery; manual
+restart creates a fresh client/history. Public page now separates repeated-exit
+recovery from symptom-based memory reporting. No long-session memory test claimed.
