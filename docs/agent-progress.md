@@ -2109,3 +2109,18 @@ remain valid; no behavior changed and no broad rerun is needed for this migratio
 CI 40761578381 remains live in compiler/CLI acceptance. No new hosted dispatch.
 
 Editor/linker migration acceptance: 25-page build, built links/anchors and six distribution tests pass. Added editor and linker sections reviewed at 390px and 1440px; quick-fix prose split into purpose-specific subsections. No document overflow and keyboard skip navigation passes on both pages. Existing runtime/editor evidence reused; platform and acquisition checks remain pending. CI 40761578381 is still in compiler/CLI acceptance; no new dispatch. Next: continue the finite remaining-guide migration inventory.
+
+## Deployment documentation migration
+
+Moved current deployment guidance to website/src/content/docs/backend/deployment.md
+and linked it from backend onboarding/sidebar/roadmap. Retained original vision
+and core-33 anchor in docs/guides/tooling/deployment.md, explicitly historical.
+Traced CLI release/output parsing and application scaffold address/routes/access.
+Separated shell commands, listener/access, runtime files, destination verification
+and API rollout. Site now builds 26 pages; links/anchors/assets pass. Full 390px
+and 1440px presentation reviewed, keyboard skip and code scrolling pass. Exact
+release-build command sequence still requires platform execution; destination
+compatibility is never inferred from doctor. No runtime behavior changed.
+Existing CI 40761578381 was confirmed live in Compiler and CLI acceptance this
+turn; no push, dispatch or release. Next: continue Rust-package/collection guide
+consolidation, then batch unpushed docs and outstanding platform smoke validation.
