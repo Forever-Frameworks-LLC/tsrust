@@ -157,7 +157,7 @@ reviewable site and the selected provider's access requirements.
 ## Acceptance checklist
 
 - [x] GitHub Pages selected with documented limits; repository is public and administrator access verified. Pages activation remains an implementation step.
-- [ ] Reproducible clean install and static production build; no Rust/compiler prerequisite.
+- [x] Reproducible clean install and static production build; no Rust/compiler prerequisite. Documentation run 40748887897 at 86435b8846badcfaf836af9c36da3fa56379f3a6 passed npm ci, production build, website-tool tests and generated links. The workflow uses Node/Python only; production deployment was correctly skipped for the PR.
 - [ ] Complete installation → first native program → first backend → editor journey.
 - [ ] Every published page reviewed for current supported behavior and runnable examples.
 - [ ] Logical sidebar, working search, stable routes, mobile/desktop and keyboard checks.

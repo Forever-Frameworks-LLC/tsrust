@@ -2,11 +2,12 @@
 
 ## Current continuation — public documentation audit
 
-Latest accepted checkpoint is 7612c271 (HTTP reader timing baseline). Current work
+Latest accepted checkpoint is d23dbf20 (hover repair and tooling-guide audit);
+7612c271 retains the HTTP reader timing baseline. Current work
 repairs retained editor compatibility while completing the public-doc audit. The
 page-by-page checklist is [the public content audit](plans/public-documentation-content-audit.md).
 
-Uncommitted: the ExampleCard fixture now includes CodeBlock, generated token model
+Accepted at d23dbf20: the ExampleCard fixture now includes CodeBlock, generated token model
 and theme config; the gallery uses kbd-v2/button-v3 and correct source paths. Both
 focused LSP fixtures pass. Card hover exposed a real shared documentation panic:
 layout::resolve parsed p-(--panel) as numeric spacing while selecting positioning
@@ -36,6 +37,28 @@ Existing remote head is 86435b8846badcfaf836af9c36da3fa56379f3a6 on draft PR #4.
 Linux 40748887685 remains in Compiler and CLI acceptance; extension passed.
 Windows 40748893795 reached paired installer/locked-process/cache acceptance.
 Docs 40748887897 passed. No new hosted run, push, merge or release in this section.
+
+## Retained native compatibility follow-up
+
+Saved interactive_cli followup evidence confirms 7/7 PTY tests pass; cli_presentation
+3/3, project_commands 11/11 and repaired dev_aliases 3/3 are retained, not rerun.
+The public CLI audit now cites those concrete results. Documentation CI 40748887897
+was rechecked at 86435b88: npm ci, static build, tool tests and links pass, with no
+Rust build and no production deployment. Marked that specific site-plan item complete.
+
+Native assertion messages exposed stale HTML expectations: color rules now preserve
+CSS theme references and opacity uses color-mix. Updated layout assertions check
+both background:var(--ui-primary) and the exact light/dark custom properties; color
+assertions retain source values, theme alpha and the half-opacity utility. Both
+formatted native tests pass (2/2, 71.95s); rejection cases remain unchanged.
+The retained docs fixture now checks its actual headline, workspace status and
+View source control, and its Rust wrapper expects the current success message.
+Exec 48836 completed: grid/color pass; docs failed on the historical Documentation
+label. Replaced that assertion with the current accessible Main navigation label,
+keeping both documentation links. Exec 58491 passes the affected docs case (1/1, 84.18s), including whole fixture
+format/idempotence, native assertions and emitted renderer checks. Evidence:
+/tmp/tsrust-retained-native-docs-fixed.log. No local Cargo consumer remains running. Earlier
+layout/color diagnostic invocations completed with the identified assertion failures.
 
 ## Owner priority: public documentation site
 
