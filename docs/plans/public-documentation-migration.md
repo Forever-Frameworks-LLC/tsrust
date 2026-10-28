@@ -35,3 +35,137 @@ The moved guides have no authored heading IDs or linked internal anchors to
 rename. External links and behavior contracts are retained. Their existing
 commands have focused compiler/installer/cache evidence; migration itself requires
 site rendering and repository-link checks, not another compiler matrix.
+
+## Remaining source inventory — 2026-10-28
+
+The rows below exhaust the remaining `docs/guides/**/*.md` files at checkpoint
+715d651c. They are migration decisions to finish, not evidence that their prose is
+correct. “Current/mixed” requires a paragraph-level review: migrate useful public
+instructions into the existing topic or a focused new page; preserve any historical
+portion and update its active inbound links. Do not publish milestone narratives.
+A short redirect guide should disappear after its authoritative destination moves.
+
+Operational/research files stay in the repository, but their current claims and
+public entry links still require reconciliation. A research label does not make an
+inaccurate implementation claim acceptable. Do not delete retained UI consumers or
+feature-coverage evidence to reduce the inventory.
+
+| Remaining guide (relative to docs/guides) | Required disposition | Status |
+| --- | --- | --- |
+| `async-sql.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `collections.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `diagnostic-suppression.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/array-from.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/array-literal-spread.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/arrow-functions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/assignment-values.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/borrowed-optional-fallback.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/call-spread.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/callable-arrays.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/callable-expressions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/callable-fields.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/callable-locals.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/comma-contexts.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/comma-expressions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/declaration-lists.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/deferred-initialization.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/destructuring.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/enums.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/exception-handling.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/global-number-names.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/http-and-hono.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/in-operator.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/interfaces.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/labeled-control.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/logical-operators.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/map-group-by.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/maps.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/native-bytes.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/native-files.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/nested-functions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/non-null-assertions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/nullable-callables.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/nullish-assignment.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/nullish-coalescing.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/numeric-literals.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/numeric-string-conversion.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/optional-chaining.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/optional-default-parameters.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/optional-fields.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/recursive-records.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/rest-parameters.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/result-match.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/scalar-unary-plus.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/scoped-callable-transport.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/sets.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/statement-bodies.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/string-concatenation.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/string-indexing.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/string-iteration.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/string-semantics.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/switch.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/type-aliases.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/type-assertions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `rust-packages.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `schema-diagnostics.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `sqlite.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `tooling/deployment.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `tooling/editor-commands.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `tooling/editor-foundation.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `tooling/editor-quick-fixes.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `tooling/interop-and-targets.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `tooling/missing-linker-diagnostic.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `tooling/project-editor.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `tooling/toolchain-and-development.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `compiler-source-layout.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
+| `documentation-content.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
+| `language/compiler-and-modules.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
+| `language/data-type-coverage.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
+| `language/diagnostic-improvements.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
+| `language/feature-coverage.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
+| `language/standard-library-coverage.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
+| `language/standard-library.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
+| `releases.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
+| `resource-lifetimes.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
+| `tooling/retained-ui-setup.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
+| `tooling/rust-toolchain-policy.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
+| `ui-applications.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
+| `language/async-and-runtime.md` | Retain labeled research; reconcile any implemented-scope lead and links | Pending |
+| `language/databases.md` | Retain labeled research; reconcile any implemented-scope lead and links | Pending |
+| `language/error-handling.md` | Retain labeled research; reconcile any implemented-scope lead and links | Pending |
+| `language/identity.md` | Retain labeled research; reconcile any implemented-scope lead and links | Pending |
+| `language/metadata-and-serialization.md` | Retain labeled research; reconcile any implemented-scope lead and links | Pending |
+| `language/ownership-and-memory.md` | Retain labeled research; reconcile any implemented-scope lead and links | Pending |
+| `language/primitives-and-collections.md` | Retain labeled research; reconcile any implemented-scope lead and links | Pending |
+| `language/server-html.md` | Retain labeled research; reconcile any implemented-scope lead and links | Pending |
+| `language/type-system.md` | Retain labeled research; reconcile any implemented-scope lead and links | Pending |
+| `language/validation.md` | Retain labeled research; reconcile any implemented-scope lead and links | Pending |
+| `tooling/packages-and-registry.md` | Retain labeled research; reconcile any implemented-scope lead and links | Pending |
+| `tooling/security-and-supply-chain.md` | Retain labeled research; reconcile any implemented-scope lead and links | Pending |
+| `tooling/source-migration.md` | Retain labeled research; reconcile any implemented-scope lead and links | Pending |
+
+### Retained content consumers
+
+`docs/content/` is still consumed by the original documentation UI and authored
+content/compiler fixtures. Its metadata-only API pages are not a second handwritten
+API catalog: keep the validated builtins source canonical. Before removing a page,
+inspect `docs/tsrust.config.json`, the content generator and documentation_content
+acceptance. In particular, `language/switch.md`, `language/type-aliases.md` and
+`language/text-imports.md` contain substantive public explanations that still need
+reviewed canonical site destinations. The switch/type-alias guide stubs above point
+there. Preserve UI-only pages, executable example references and metadata coverage.
+Do not equate the 25 current site pages with completion of the repository migration.
+
+### Execution order
+
+1. Finish active entry-point destinations: collections, string semantics, Rust
+   packages, deployment and editor operations. Reuse existing page sections where
+   they remain digestible.
+2. Migrate language reference by coherent families: values/types, functions and
+   ownership, expressions/control flow, strings/collections, then database/schema
+   operations. Verify complete examples with current consumers; retain accepted
+   rejection/runtime evidence and repair only affected failures.
+3. Reconcile retained research/developer leads and every active inbound link;
+   remove superseded public copies only after their consumers are updated.
+4. Finish platform/package acceptance and production-host verification already
+   listed in the site plan. Never close those rows using local Markdown checks.

@@ -2064,3 +2064,17 @@ Existing unrelated module/data/alias acceptance remains retained. Public audit r
 records the missed claim and correction rather than hiding that follow-up.
 CI 40761578381 at remote 61ee67a4 has advanced to Compiler and CLI acceptance;
 extension/docs jobs passed. Local migrations remain unpushed to avoid duplicate CI.
+
+## Finite remaining documentation inventory
+
+Inventoried all 91 remaining docs/guides Markdown files after 715d651c:
+65 current/mixed migration candidates, 13 operational/evidence/UI references and
+13 explicitly labeled research documents. Every path has a pending disposition in
+public-documentation-migration.md. Classification is triage, not content acceptance.
+Also identified retained authored switch/type-alias/text-import pages whose content
+consumers must be preserved while their public explanation moves. Existing site
+page acceptance alone is insufficient to close the owner's repository migration.
+Next coherent section: collections/string/Rust-package entry points and deployment/
+editor instructions, then language families; avoid inventing placeholder site pages.
+CI 40761578381 remains live in Compiler and CLI acceptance. No duplicate hosted
+run, release, source behavior change or benchmark run was started for this inventory.
