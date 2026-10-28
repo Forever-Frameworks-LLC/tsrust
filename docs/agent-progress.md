@@ -1598,3 +1598,37 @@ source-build link. No viewport override applied. Do not mark page fully audited.
   links/anchors/assets pass. Browser viewport reset. Native catalog 46373 still
   live after compilation; preserve its std:http continuation and log. No new
   hosted jobs or releases initiated.
+
+### Backend editor/catalog acceptance checkpoint
+
+- Native backend catalog continuation 46373 PASSED: 279.49s execution after
+  2m19 compilation, /tmp/tsrust-backend-catalog-native-http.log. Combined with
+  earlier accepted standalone families (76019 reached std:http, prior repaired
+  run reached HttpApp), this completes backend standalone examples and the final
+  accumulated primitive batch without restarting passed work.
+- Accepted catalog repairs: HTTP text default, complete CryptoError/signals and
+  ServerOptions/FormField/MultipartPart hover examples; HTTP examples preserve
+  the existing shared transport witness. Backend compiler-witness pass 18037 and
+  exact added hover programs/native catalog supply current compiler evidence.
+- Accepted declared callback-label/optional-call signature repairs retain focused
+  15-test pass 59722. Canonical temp roots retain environment/file/time/native
+  thread passes from 28047. Test source provider no longer returns Tsrust source
+  as arbitrary project configuration. Backend and retained-UI catalog wrappers
+  preserve default-suite assertions while exposing separate acceptance scopes.
+- Removed only the proposed unaccepted UiSignal examples and UiComputed/UiSignal
+  witness registration from this patch: direct native execution requires retained
+  UI setup. Their prior catalog baseline and separate known UI debt remain intact;
+  no UI feature expansion or full retained-suite green claim.
+- Final compiler/LSP all-target check 89217 PASSED in 58.56s, no warnings/errors,
+  /tmp/tsrust-editor-final-diagnostics.log. No Cargo validation remains live.
+- README and generated package README now match the editor guide's retention-fix
+  evidence and unverified long macOS sessions. Distribution tests 70684: 6 PASS;
+  checked generated archive readmes and repository entry links. Windows acceptance
+  40731485167 re-read SUCCESS at 9b658857; installation milestone updated with
+  exact platform/source scope. Linux and real-LSP-across-update acceptance remain
+  pending: existing tests separately exercise a held executable fixture and real
+  LSP startup, not a live protocol session spanning update.
+- Whole-project formatting/idempotence, site build and 23-page links pass. Transport
+  guide has a source-reviewed limit-response table; full rendered review pending.
+  Next: finish remaining public-page audits, then close installation live-LSP update
+  witness and remaining platform/milestone/performance work. No hosted run launched.

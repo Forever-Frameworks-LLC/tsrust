@@ -120,8 +120,10 @@ Async test registration has executed on Linux, macOS and Windows. Broader instal
 and release-platform acceptance is recorded separately in the
 [paired installation milestone](docs/milestones/paired-toolchain-installation.md)
 and [active goal](docs/agent-goal.md). Configuration is not proof that a platform
-has passed. The LSP still has an unresolved report of excessive memory use in long
-sessions; use smaller workspaces until that issue is resolved.
+has passed. LSP retention fixes release unrelated editor-buffer snapshots and
+superseded workspace-scan entries. Long-running macOS sessions remain unverified;
+see the [editor troubleshooting guide](website/src/content/docs/start/editor.md#investigate-growing-memory-use)
+for current evidence and reporting steps.
 
 Performance depends on the workload. Read the [measurement protocol](benchmarks/runtime/README.md)
 and [comparison limits](docs/measurements/runtime-comparisons.md). The

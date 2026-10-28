@@ -425,7 +425,10 @@ impl SourceIndex {
             }
             let signature=format!("{name}{}: {ty}",if *optional{"?"}else{""});
             if let Some(symbol)=self.symbols.iter_mut().find(|symbol|symbol.kind==8 && symbol.owner.as_deref()==Some(owner.as_str()) && symbol.name==*name){
-                symbol.ty=ty.clone();symbol.signature=signature;
+                // Checked callable storage may share parameter labels across equivalent shapes.
+                if !self.declared_record_fields.contains(&(owner.clone(),name.clone())) || !contains_callable_annotation(&symbol.ty) {
+                    symbol.ty=ty.clone();symbol.signature=signature;
+                }
             }else{
                 self.symbols.push(Symbol{name:name.clone(),kind:8,span,extent:span,scope:0,ty:ty.clone(),signature,docs:String::new(),parameters:Vec::new(),owner:Some(owner.clone())});
             }
@@ -3940,7 +3943,17 @@ impl SourceIndex {
                 let checked_callable = self
                     .checked_view(if indices == 0 { callee } else { open - 1 })
                     .filter(|ty| callable_annotation(ty).is_some());
-                if let Some(ty) = checked_callable {
+                let declared_payload = if indices == 0
+                    && s.owner.as_ref().is_some_and(|owner| self.declared_record_fields.contains(&(owner.clone(), s.name.clone())))
+                    && (checked_callable.is_some() || self.text(open - 1) == "?.")
+                {
+                    nonnullable_assertion_type(&s.ty)
+                } else {
+                    String::new()
+                };
+                if callable_annotation(&declared_payload).is_some() {
+                    callable_type = &declared_payload;
+                } else if let Some(ty) = checked_callable {
                     callable_type = ty;
                 } else {
                     for _ in 0..indices {
@@ -3980,7 +3993,7 @@ impl SourceIndex {
                         } else {
                             checked_callable.map_or_else(
                                 || self.display_type(&s.signature),
-                                |ty| format!("{}: {}", s.name, self.display_type(ty)),
+                                |_| format!("{}: {}", s.name, self.display_type(callable_type)),
                             )
                         };
                         (signature, parameters)

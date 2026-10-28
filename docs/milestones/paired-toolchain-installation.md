@@ -1,7 +1,7 @@
-# Paired toolchain installation — focused macOS acceptance
+# Paired toolchain installation — focused platform acceptance
 
-2026-10-28, macOS arm64. Implementation is locally accepted; Windows/Linux
-execution and published-release installation remain pending. No release was
+2026-10-28. Focused macOS arm64 and Windows x64 acceptance is recorded below;
+Linux execution and published-release installation remain pending. No release was
 published to obtain this evidence. Follow plans/paired-toolchain-updates.md for
 remaining platform acceptance and guides/toolchain-installation.md for usage.
 
@@ -64,11 +64,22 @@ Do not import them into benchmark analytics. No performance claim is made.
 
 ## Pending
 
-Execute the prepared Windows installer/shared-cache job, including owned job and
-locked-executable behavior; execute the new Linux acceptance through staging CI.
+Execute the new Linux acceptance through staging CI.
 The current process fixture demonstrates platform file/process behavior, while
 the separate real consumer witness verifies actual CLI/LSP startup. Neither a
 macOS pass nor suffix-only fixtures prove Windows behavior. Published artifact
 acquisition remains unexecuted because no stable release exists. Full backend
 regressions, matched performance and the wider documentation audit remain separate
 goal requirements.
+
+## Windows follow-up acceptance
+
+The Windows toolchain/shared-cache job passed at
+`9b6588570a283b14e8d61b5e4892ca33afbe7136`:
+[run 40731485167](https://github.com/Forever-Frameworks-LLC/tsrust/actions/runs/40731485167).
+It builds both consumers, prepares portable sources, runs all installer,
+shared-source and package-management tests, and checks every compiler/LSP target.
+This includes the locked-process installation witness and the repaired deep-path
+and directory-sync cases. The job and aggregate Toolchain acceptance check both
+completed successfully. This result covers that source commit, not subsequent
+local editor/documentation changes; it did not publish a release.

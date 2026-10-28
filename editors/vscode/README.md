@@ -6,7 +6,7 @@ language server are installed separately; Marketplace publication is not configu
 
 [Editor setup, commands and troubleshooting](../../website/src/content/docs/start/editor.md)
 contains the canonical user guide, including executable discovery, Windows paths
-and known long-session memory limitations.
+and the current long-session memory verification status.
 
 ## Build locally
 

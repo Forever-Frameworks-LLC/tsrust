@@ -206,6 +206,12 @@ Each hover description must include:
 
 Do not substitute generic implementation descriptions for behavior. Follow current compiler semantics rather than copying JavaScript documentation. Keep catalog signatures, parameter labels and descriptions consistent with compiler arity/type rules and actual editor responses.
 
+Catalog compiler/native acceptance in `tests/intelligence.rs` has separate
+`backend_catalog_*` and `retained_ui_catalog_*` tests. Both remain in the default
+suite, with unchanged assertions. Backend-only work can select the backend tests;
+record retained UI failures separately rather than expanding the product scope or
+claiming the complete suite passes. Every family belongs to one of the two groups.
+
 Keep executable example source and expected stdout in each entry's `examples` array where applicable. Check examples with the current compiler and execute generated native code when output matters. Reuse focused acceptance fixtures for boundary/error examples when practical. Include the changed catalog entry identities, checked examples, native outputs and affected editor protocol checks in gate evidence. Prose review is still required: a schema or a passing example alone cannot prove all semantic claims.
 
 Preserve existing editor fixes and unrelated changes. If those files change during a regression, retain the original run and supplement it with affected checks on the current editor source.
