@@ -56,11 +56,11 @@ feature-coverage evidence to reduce the inventory.
 | `collections.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `diagnostic-suppression.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/array-from.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/array-literal-spread.md` | Audit and migrate current guidance; preserve any embedded history | In progress: corrected incomplete native-collection source list; four complete examples format/check/execute and focused native-collection regression passes. Site migration and rendered review pending. |
+| `language/array-literal-spread.md` | Migrated to canonical site language/array-literal-spread | Accepted: complete source audit, 5 executable examples, focused compiler/editor checks and full390px/1440px/keyboard review. Corrected source families, ordering and ownership; duplicate removed and incoming links migrated. |
 | `language/arrow-functions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/assignment-values.md` | Migrated to website language/assignment-values; removed duplicate and updated Markdown links | Source, exact native examples, focused compiler/editor tests and full responsive review accepted |
 | `language/borrowed-optional-fallback.md` | Migrated to canonical site language/borrowed-optional-fallback | Accepted: four complete examples, compiler/editor and rejection witnesses, full responsive/keyboard review; duplicate removed and links migrated. |
-| `language/call-spread.md` | Audit and migrate current guidance; preserve any embedded history | In progress: corrected explicit undefined default selection; eight complete examples format/check/execute, nullable selected-slot regression passes. Remaining source audit and site/rendered migration pending. |
+| `language/call-spread.md` | Migrated to canonical site language/call-spread | Accepted: complete source audit, 8 executable examples, focused compiler/editor checks and full390px/1440px/keyboard review. Corrected source families, ordering and ownership; duplicate removed and incoming links migrated. |
 | `language/callable-arrays.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/callable-expressions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/callable-fields.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
