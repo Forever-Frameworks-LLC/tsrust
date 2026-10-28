@@ -11,6 +11,43 @@ semantics preserved, then express the request-reader/native backend cases as nor
 tests. Rust SDK cases use cargo test; HTTP cross-language checks use node:test and
 only the minimum external server fixture. Keep benchmark drivers separate.
 
+## Async testing implementation boundary
+
+Implement async callbacks inside the existing registry, suite traversal and error
+reporter. A registered callback owns its environment; an invocation lends mutable
+program/registry references to a future whose lifetime ends before invocation
+returns. Do not require shared program state to be Send, cloned, or static.
+Use the existing multithreaded native async runtime at the synchronous terminal
+runner boundary. One scope must cover setup, all tests and teardown; creating a
+runtime for each callback would invalidate beforeAll resources. Reuse the existing
+runtime with a child scope when runTests executes from async main; drain that child
+before returning without cancelling unrelated application jobs. Pure synchronous tests
+must retain their dependency-free runtime path.
+
+The runtime implementation lives in stdlib/testing/runtime/async.rs and the
+stdlib/futures runtime. Compiler registration adaptation is a separate pending
+part of this section; these internals alone do not make public test/it/hooks accept
+async functions. Preserve ordinary synchronous callbacks and typed error rendering.
+Check inline async arrows, named functions, aliases and typed callback values;
+evaluate callback expressions during registration, and do not change a reusable
+factory's Task return type elsewhere in the program. Suite registration stays
+synchronous. Reject wrong task result types, escaping local loans and registration
+or recursive execution during an awaited test. Keep completion, hover, signatures,
+CLI multi-file execution and builtins.json aligned before public acceptance.
+
+Focused runtime controls must prove awaited failure/panic reporting, continued
+teardown/next-test execution, resource lifetime across callbacks, non-Send borrowed
+state, actual async network I/O, child-task cleanup and existing-scope reuse.
+Native generated-program controls cover both pure synchronous tests and a runner
+called from async main. These controls do not replace public compiler/LSP/native
+async callback acceptance or the remaining HTTP SDK/body work.
+
+Runtime foundation acceptance, 2026-10-28: six runner cases plus twelve reused/new
+futures controls passed (18/18). Generated native synchronous/async-main boundary
+regression passed for both variants. Backend and workspace all-target checks had
+zero warnings/errors. See agent-progress.md for source/consumer evidence and
+repaired fixture/sandbox issues. Public async callback registration remains pending.
+
 ## Existing behavior verified in source
 
 - Request.text and contextual c.req.text asynchronously read bounded UTF-8 text.

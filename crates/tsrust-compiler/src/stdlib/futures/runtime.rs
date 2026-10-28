@@ -114,6 +114,25 @@ mod tsrust_native_futures {
             result
         })
     }
+    // The terminal test runner is synchronous; callbacks still poll native async
+    // I/O on the application's runtime. Keep one scope for the whole run so an
+    // awaited beforeAll can start resources used by later tests and teardown.
+    pub fn testing_scope<R>(body:impl FnOnce()->R)->R {
+        if SCOPE.try_with(|_|()).is_ok() {
+            let scope=Scope::group();
+            testing_await(async {
+                let result=SCOPE.scope(scope.clone(),async {body()}).await;
+                scope.drain(true).await;
+                result
+            })
+        }
+        else { block_on(async { body() }) }
+    }
+    pub fn testing_await<F:Future>(future:F)->F::Output {
+        let scope=SCOPE.with(Arc::clone);
+        let runtime=tokio::runtime::Handle::current();
+        tokio::task::block_in_place(||runtime.block_on(SCOPE.scope(scope,future)))
+    }
     pub async fn delay<E>(milliseconds:i64)->Result<(),Failure<E>> {
         if !(0..=31536000000).contains(&milliseconds){return Err(Failure::Range);}
         tokio::time::sleep(Duration::from_millis(milliseconds as u64)).await;Ok(())

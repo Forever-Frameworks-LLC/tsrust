@@ -5,7 +5,7 @@ fn tsrust_testing_style(text: &str, code: &str) -> std::string::String {
     if color { format!("\x1b[{code}m{text}\x1b[0m") } else { text.to_owned() }
 }
 type TsrTestCallback = Box<dyn for<'p> FnMut(&mut TsrTestContext<'p>, &mut TsrTestRegistry) -> Result<(), std::string::String>>;
-// Bundled synchronous registry and failure boundaries, included in generated programs.
+// Bundled registry and failure boundaries, included in generated programs.
 enum TsrTestEntry {
     Test { name: std::string::String, callback: TsrTestCallback },
     Suite(usize),
@@ -185,7 +185,7 @@ fn tsrust_testing_run_tests_result(active: &mut TsrTestRegistry, program: &mut T
     let mut registry = std::mem::take(active);
     let started = std::time::Instant::now();
     let mut counts = TsrTestCounts::default();
-    tsrust_testing_run_suite(&mut registry, 0, &mut Vec::new(), &mut Vec::new(), None, &mut counts, program, active);
+    tsrust_testing_run_in_scope(||tsrust_testing_run_suite(&mut registry, 0, &mut Vec::new(), &mut Vec::new(), None, &mut counts, program, active));
     if tsrust_testing_pretty() {
         if !counts.failures.is_empty() {
             println!("\n {}",tsrust_testing_style("Failed Tests","1;31"));

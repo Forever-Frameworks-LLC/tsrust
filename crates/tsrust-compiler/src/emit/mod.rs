@@ -2390,7 +2390,8 @@ impl Emitter<'_> {
         }
         let has_heap=self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::Heap | crate::native_signatures::NativeTypeId::OrderedSet | crate::native_signatures::NativeTypeId::OrderedMap)));
         if has_heap { output.push_str(include_str!("../stdlib/collections/ordered_runtime.rs")); output.push_str(include_str!("../stdlib/collections/ordered_key_runtime.rs")); }
-        if !self.program.task_origins.is_empty() || self.program.callback_contracts.iter().any(|contract|contract.kind==CallbackKind::Task) || self.program.records.iter().any(|record|record.native_type.is_some_and(|id|matches!(crate::native_types::declaration(id).module,"std:http"|"std:sql"))) { output.push_str(include_str!("async_runtime.rs")); output.push_str(crate::stdlib::futures::RUNTIME); }
+        let asynchronous_runtime = !self.program.task_origins.is_empty() || self.program.callback_contracts.iter().any(|contract|contract.kind==CallbackKind::Task) || self.program.records.iter().any(|record|record.native_type.is_some_and(|id|matches!(crate::native_types::declaration(id).module,"std:http"|"std:sql")));
+        if asynchronous_runtime { output.push_str(include_str!("async_runtime.rs")); output.push_str(crate::stdlib::futures::RUNTIME); }
         self.set_types(&mut output);
         self.map_types(&mut output);
         if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)) {
@@ -3134,6 +3135,8 @@ impl Emitter<'_> {
             crate::native_bindings::BINDINGS[id].features.contains(&"testing-runner")
         }) {
             output.push_str(include_str!("../stdlib/testing/runtime/mod.rs"));
+            if asynchronous_runtime { output.push_str(include_str!("../stdlib/testing/runtime/async.rs")); }
+            else { output.push_str("fn tsrust_testing_run_in_scope<R>(body:impl FnOnce()->R)->R {body()}\n"); }
             if self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].name == "registerHook") {
                 output.push_str(include_str!("../stdlib/testing/runtime/hooks.rs"));
             }

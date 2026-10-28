@@ -1,6 +1,24 @@
 mod support;
 
 #[test]
+fn runner_runtime_boundary_preserves_sync_programs_and_existing_async_main() {
+    for (source, asynchronous, expected) in [
+        ("import {test,expect,runTests} from 'std:testing';function main(){test('boundary',():void=>{expect(7).toBe(7);});expect(runTests()).toBe(0);}", false,
+         "PASS boundary\n1 passed, 0 failed, 0 skipped\n"),
+        ("import {test,expect,runTests} from 'std:testing';import {delay} from 'std:futures';async function main():Task<void>{await delay(1);test('boundary',():void=>{expect(7).toBe(7);});expect(runTests()).toBe(0);}", true,
+         "PASS boundary\n1 passed, 0 failed, 0 skipped\n"),
+    ] {
+        let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+        let checked=tsrust_compiler::project::check_graph(tsrust_compiler::project::load_project(&tsrust_compiler::project::FileSourceProvider,path.to_str().unwrap()).unwrap()).unwrap();
+        let emitted=checked.emit_rust();
+        assert_eq!(emitted.contains("mod tsrust_native_futures {"),asynchronous);
+        assert_eq!(emitted.contains("trait TsrTestAsyncCallback"),asynchronous);
+        let output=support::run(support::cli().env("TSRUST_COLOR","never").env("TSRUST_TEST_REPORTER","plain").arg("run").arg(path),120);
+        support::success(&output);assert_eq!(String::from_utf8(output.stdout).unwrap(),expected);
+    }
+}
+
+#[test]
 fn node_assert_strict_exports_accept_values_and_optional_messages() {
     let directory = support::TempDirectory::new();
     let path = directory.source(r#"

@@ -1,5 +1,76 @@
 # Agent continuation state
 
+## Async test runtime boundary accepted — 2026-10-28
+
+The facade diagnostic follow-up verified the installed LSP against the exact
+original UI file using uppercase and lowercase Windows drive paths. Both real
+protocol probes passed clean/modified-private-error/repair/hover without disk
+edits or owner process control. No new source repair was required for that report.
+
+Async test runtime foundation is accepted after 14400a34. Registered async
+environments lend program/registry references to invocation-scoped futures; they
+reuse the existing registry, hook traversal, panic/typed-failure reporter and counts.
+One runtime scope covers a run. Calls from async main use a drained child scope on
+the same runtime, preserving unrelated application jobs. Synchronous-only programs
+keep an identity runner boundary and do not gain async dependencies. No public
+async test/it/hook signature is implemented or accepted yet; compiler adaptation,
+ownership/effects, editor documentation and CLI integration remain required.
+
+Final-source bundled runtime controls are now a small standalone Rust integration
+target, tests/testing_runtime.rs, to avoid rebuilding the compiler's large unit
+test executable for runtime-fixture edits. Its current source was compiled with
+standard rustc --test against the existing exact Tokio dependency. Six runner tests passed:
+borrowed non-Send state/setup lifetime, async socket setup/use/teardown, awaited
+errors and panics, failure-child cleanup, failed teardown continuation, and nested
+runtime child cleanup without cancelling unrelated jobs. The sandbox denied the
+loopback connection (10013); the same executable passed outside it, no rebuild.
+The fixture also reuses the existing eleven futures controls and adds a direct
+borrowed non-Send boundary control: final source 18/18 passed in 0.10s. The first
+backend all-target check found two host-test dead-code warnings for the new helpers;
+the direct boundary control exercises them in the ordinary futures unit module,
+without suppressing those diagnostics. The repaired backend all-target JSON check
+passed, zero warnings/errors, successful build-finished (20.59s). An initial fixture
+annotation used Result<(),()> instead of Result<(),Failure<()>>;
+corrected before the final-source run. Initial earlier compiler-unit snapshot 4/4
+also passed; it is intermediate evidence, not the final six-case source identity.
+
+Native generated-program check session 45623 completed successfully: cargo test
+--offline --locked -p tsrust-compiler --test
+testing_library runner_runtime_boundary_preserves_sync_programs_and_existing_async_main
+-- --test-threads=1. Log target/testing-runtime-native-current.log. It checks emitted
+dependency selection and native behavior for synchronous main and async main with
+normal std:testing calls; 1/1 regression, both variants passed in 23.53s after the
+6m17s CLI build. Native implementation is unchanged by the subsequent host-test
+warning repair. Sessions 45623,45439,47464 and direct fixture 84031 are terminal.
+Final backend/workspace diagnostic session 38533 is terminal. Both JSON streams
+have successful build-finished and zero warnings/errors; workspace took 2m07s.
+Do not poll/restart terminal sessions. Final runtime log:
+target/testing-async-runtime-final-current.log. Whole-project formatter passed with
+0 changed files/fingerprints; rerun before the accepted checkpoint. The affected
+installed CLI was hash-guarded, staged and replaced; --version and the existing
+backend-owned-api project check passed. Current CLI SHA256:
+4AC11C0C96D2D5A4C8B36E42D1DE40F5318F46363F5841B609FA3FB03D680445.
+No live CLI owner remained; the verified old rollback file was removed. No owner
+process was stopped. LSP checking/signatures are
+unchanged by this runtime-only section; its installed prior accepted version remains
+current for that public analysis contract. Rebuild/refresh both for the pending
+public async registration section. Installed LSP remains
+3E641BFF4E10862CC62A145F28140ED16990CA058B2D243A00E81F390D04553E.
+Goal remains active and incomplete. No remote release, full regression/performance
+matrix or analytics import occurred. Removed 451178192 bytes of obsolete intermediate
+compiler-test executable/symbols and the disposable main-boundary check source,
+after absolute-path/reparse/live-process checks. Current runtime fixture executable,
+warm caches, source pack and owner review projects remain.
+
+Next executable action: implement checked async registration/argument adaptation
+against the accepted lending runtime. Preserve named/aliased/typed factory calls,
+registration-time expression evaluation, module-state invocation loans and typed
+errors. Do not silently change a callback's Task result at other uses or accept
+async suite registration. Finish compiler/LSP/native CLI acceptance and built-in
+documentation together before claiming public async test/hooks. Then migrate
+ordinary HTTP reader examples to std:testing, complete remaining live TS/Rust SDK
+auth/replica acceptance, binding shared-cache work and trusted paired distribution.
+
 ## Goal and source state
 
 Read the complete objective at
