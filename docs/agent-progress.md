@@ -1,6 +1,28 @@
 # Agent continuation state
 
-## Current continuation — optional/default parameter content audit
+## Current continuation — rest parameter content correction
+
+Previous turn progressed atcf735b08. Corrected rest-parameters homogeneous-only
+wording: supported checked union/nullable array element types work. Added a complete
+(int|string|null)[] pack example; join renders null as empty text (1,two,). Converted
+existing fences to tsrust, added run instructions and linked supported array/iterable
+spread rather than implying those features are unavailable.
+
+All four exact examples pass format --write/--check, compiler checks and native
+output. Focused rest_optional_adapter_array_callbacks_use_the_real_supplied_tuple
+passes (/tmp/tsrust-rest-doc-callbacks.log), retaining omission/padding behavior.
+Parser rest_initializer confirms no optional/default rest declaration. All commands
+completed. No compiler/runtime change, timing, platform or full-suite claim.
+Full formatter/diff check before checkpoint.
+
+Next: finish parameter source/ownership review as needed, migrate optional/default
+and rest guides into the site, then complete390/1440 rendered/keyboard acceptance
+and canonical link cleanup. Both migration rows remain in progress. Remaining
+Windows/Linux editor/acquisition, setup and actual Pages deployment remain pending.
+Goal active; no hosted CI/push/release this section.
+
+
+## Prior continuation — optional/default parameter content audit
 
 Previous turn progressed ate4b97e75. Removed obsolete gate98/checkpoint101 status
 from optional-default-parameters and corrected future-feature wording for already
