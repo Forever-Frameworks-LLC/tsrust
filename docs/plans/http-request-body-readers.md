@@ -46,7 +46,9 @@ Runtime foundation acceptance, 2026-10-28: six runner cases plus twelve reused/n
 futures controls passed (18/18). Generated native synchronous/async-main boundary
 regression passed for both variants. Backend and workspace all-target checks had
 zero warnings/errors. See agent-progress.md for source/consumer evidence and
-repaired fixture/sandbox issues. Public async callback registration remains pending.
+repaired fixture/sandbox issues. Public async callback registration subsequently
+passed hosted run 40672007920 on c5b3d4a9: eleven compiler/native/CLI tests, three
+LSP tests and all-target diagnostics on Windows, Linux and macOS.
 
 ## Existing behavior verified in source
 

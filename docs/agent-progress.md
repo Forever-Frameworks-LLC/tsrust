@@ -78,12 +78,21 @@ storage. The shared optimization now accepts only direct record-field chains;
 normal union-field emission handles other expressions. A dedicated data_unions
 native witness covers cloning both alternatives without consuming their owners.
 
-Session 44170 currently rebuilds/runs only request_json and the new common-union
-clone witness; log /tmp/tsrust-body-union-repair.log. Do not restart this handle on
-a turn boundary. JSON fixture also distinguishes parser errors from typed schema
-validation errors. Remaining checks: this repair, JSON LSP/signature/catalog
-example, runtime mixed/form/multipart controls, and matched native untimed reader
-execution. Preserve completed HTTP/async evidence instead of restarting all suites.
+Session 44170 completed: the clone panic is fixed. Its standalone clone witness
+used the parser-only harness despite importing std:testing; it now uses the project
+CLI path. The JSON fixture's final limit assertion incorrectly expected header-time
+413 for the client's streamed body. Native execution confirms the handler catches
+HttpError limit and retains the consumed-body state, then returns its explicit 200
+response. Corrected the witness to assert both status and error body. All four
+JSON tests passed through target/debug/tsrust test. JSON LSP hover/signature help
+also passed. The test success helper now includes stdout so std:testing assertion
+failures remain visible beside stderr.
+
+Session 61375 currently runs only the remaining common-union clone regression,
+context_body_readers runtime control (including form/multipart), and JSON catalog
+examples. Log: /tmp/tsrust-body-final-controls.log. Reuse this handle. Remaining
+after it: matched native untimed reader benchmark, final affected diagnostics and
+evidence reconciliation. Preserve completed HTTP/async evidence.
 
 Node-after-tsc request-readers verification passed 128 JSON/stream pairs with
 checksum 5376 using localhost access. Benchmark registration and all six local

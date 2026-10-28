@@ -106,8 +106,8 @@ test('context JSON failures consume once and byte limits count UTF-8', async () 
     const trailing = await client.send(request('POST', url, '1 1'));
     strictEqual(await trailing.text(), 'trailing-data');
     const oversized = await client.send(request('POST', url, '"éa"'));
-    strictEqual(oversized.status(), 413);
-    strictEqual(await oversized.text(), 'Payload Too Large');
+    strictEqual(oversized.status(), 200);
+    strictEqual(await oversized.text(), 'limit');
   } finally {
     await server.shutdown();
   }

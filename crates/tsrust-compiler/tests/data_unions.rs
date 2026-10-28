@@ -3,7 +3,7 @@ use support::{execute,reject};
 
 #[test]
 fn common_union_fields_clone_without_record_parameter_storage_assumptions(){
- execute(r#"
+ let source=r#"
 import {strictEqual} from 'std:testing';
 type First={code:string;offset:int;};
 type Second={code:string;retry:boolean;};
@@ -14,7 +14,10 @@ function main(){
  strictEqual(copyCode(first),'first');strictEqual(copyCode(second),'second');
  strictEqual(first.code,'first');strictEqual(second.code,'second');
 }
-"#, "",None);
+"#;
+ let directory=support::TempDirectory::new();
+ let file=directory.source(&support::format_round_trip(source));
+ support::success(&support::run(support::cli().arg("run").arg(file),60));
 }
 
 #[test]
