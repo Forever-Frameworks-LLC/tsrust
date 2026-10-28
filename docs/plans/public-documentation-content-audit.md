@@ -33,10 +33,10 @@ content is not accepted merely because its original file existed.
 | `backend/static-files.md` | Source review complete; rendered/native example review pending | StaticMount::new/respond/resolve and Router::serve_static in HTTP runtime; clarified 307/400/404, Accept fallback and prerequisites; standalone server example passes compiler check. |
 | `index.md` | Pending | Verify facts, examples and reading flow. |
 | `language/modules.md` | Pending | Verify facts, examples and reading flow. |
-| `library/json-files.md` | Pending | Verify facts, examples and reading flow. |
-| `library/json.md` | Pending | Verify facts, examples and reading flow. |
+| `library/json-files.md` | Source review in progress | Replaced incomplete reader snippet with complete open/read/EOF/close example; executed with Ada and Grace output. Split writer cleanup. Writer example and rendered review pending. |
+| `library/json.md` | Source review in progress | Corrected integer overflow and raw serialization claims against runtime/parser.rs and json_scalar_backend.rs; separated errors, resource limits and parsing rules. Remaining examples and rendered review pending. |
 | `library/overview.md` | Pending | Verify facts, examples and reading flow. |
-| `library/typed-json.md` | Pending | Verify facts, examples and reading flow. |
+| `library/typed-json.md` | Source review in progress | Corrected overflow and JsonRaw support against json_typed.rs/json_raw.rs and builtin catalog. Added shape table and raw-field example; example executed with exact preserved output. Remaining examples and rendered review pending. |
 | `project/status.md` | Pending | Verify facts, examples and reading flow. |
 | `start/editor.md` | Source review in progress | VS Code manifest minimum, executables.ts discovery order, extension.ts configuration/restart behavior checked. Separated stale-path and memory recovery from onboarding. Full editor/platform execution remains pending. |
 | `start/installation.md` | Source review in progress | Verified archive naming, current exact Rust pin and executable paths; made extraction conditional on checksum success and separated installation/update tasks. Fresh-platform instructions remain pending. |

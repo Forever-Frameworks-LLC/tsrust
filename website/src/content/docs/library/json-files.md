@@ -3,6 +3,9 @@ title: JSONC and JSON Lines
 description: Read commented JSON and stream bounded records with explicit errors and cleanup.
 ---
 
+Use JSONC for documents with comments and JSON Lines for a file containing one
+JSON value per line. Import these functions explicitly from `std:json`.
+
 ## Decode typed JSONC
 
 Import `parseJsonc` from `std:json` and supply a target type to decode directly:
@@ -33,14 +36,42 @@ constructs one owned value directly; previous values remain valid after later
 reads or after closing the reader. `undefined` means EOF. A decoded JSON null
 remains null, including when the requested target is `null`.
 
+Create `records.jsonl` in your working directory:
+
+```json
+{"name":"Ada"}
+{"name":"Grace"}
+```
+
+Save this as `read-records.tsr` and run `tsrust run read-records.tsr` from that
+same directory. It prints `Ada` followed by `Grace`:
+
 ```tsrust
-match (readJsonl<Item>(reader)) {
-  Ok(item) => {
-    if (item !== undefined) { console.log(item.name); }
-  },
-  Err(error) => { console.log(error.code, error.line, error.offset); }
+import {openJsonl, readJsonl, closeJsonl} from 'std:json';
+type Item = { name: string; };
+function main() {
+  match (openJsonl('records.jsonl')) {
+    Ok(reader) => {
+      while (true) {
+        match (readJsonl<Item>(reader)) {
+          Ok(item) => {
+            if (item === undefined) { break; }
+            console.log(item.name);
+          },
+          Err(error) => { throw error.message; }
+        }
+      }
+      match (closeJsonl(reader)) {
+        Ok(_) => {},
+        Err(error) => { throw error.message; }
+      }
+    },
+    Err(error) => { throw error.message; }
+  }
 }
 ```
+
+### Handle reader errors and cleanup
 
 The reader mutably borrows for each call. Its opening limits apply per record.
 Shape errors, malformed input and I/O errors are terminal: the file is released
@@ -61,6 +92,8 @@ It borrows the value and mutably borrows the writer. Encoding uses the same
 rules as JSON.stringify and stages the complete bounded record before output.
 Encoding rejection writes no prefix of that record; I/O failure can leave a
 prefix and offers no rollback. Successful records end with exactly one LF.
+
+### Flush and close the writer
 
 `flushJsonl(writer)` reports buffered output failures while retaining ownership.
 `closeJsonlWriter(writer)` consumes the writer, flushes and closes it. All calls

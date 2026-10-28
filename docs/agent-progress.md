@@ -762,3 +762,149 @@ stale claims that borrowed string locals/returns and typed JSONC/JSONL were pend
 Preserved numeric precision, budget, ownership and terminal file-error contracts.
 Site build/link acceptance covers 23 pages. No additional native matrix was
 launched for moved prose; the original full regression is retained.
+
+## Retained reference coverage repairs
+
+Restored catalog references for HttpRequest.json, HttpRouter.serveStatic and six
+already-existing std:ui declarations (LazyChildren, Svg, Path, SvgProps, PathProps,
+useId). Updated the coverage counts. The authored-content regression now compares
+published strings Markdown with its exact current source instead of requiring
+removed historical benchmark prose. A complete independent comparison of every
+non-excluded receiver's names and counts passes. Focused Rust reference test is
+building in session 84016, log /tmp/tsrust-doc-reference-repair.log; preserve it.
+Whole-project formatting and whitespace checks passed. Full authored-content
+execution remains to rerun after this repair.
+
+The original full milestone remains live in 79249 and has reached JSON tests.
+Additional captured failing groups: cache_retention (four), data_unions (two
+spread cases), dev_aliases (two; earlier notes incorrectly called this
+dev_dependencies), and interactive_cli (four terminal cases). Alongside previously
+recorded exception_handling, generic_default_void, documentation_content and HTTP
+failures, these require diagnosis and affected reruns. Do not claim all failures
+are catalog-only or restart the full suite. Preserve its original log.
+
+## Public syntax highlighting repair
+
+Starlight now maps tsrust/tsr fences to TypeScript and tsrx to TSX through its
+built-in Shiki aliases. Cleared only the generated Astro data-store cache to
+invalidate previously plain rendered blocks. Production HTTP HTML and live
+preview both contain 14 distinct token styles. Whole-project formatting and
+whitespace checks pass. Preview now runs at http://127.0.0.1:4322/tsrust/ (Astro
+managed process 69081); the old 4321 URL was unavailable during verification.
+Pending reference-repair edits were preserved separately.
+
+## Owner-requested full public content audit
+
+The owner reports dense and incorrect public pages. Added a page-by-page audit
+checklist in plans/public-documentation-content-audit.md and made it an explicit
+goal acceptance requirement. HTTP routing/body guidance now separates readers,
+schema example, errors and responses. Static serving now has a standalone server,
+prerequisites and request-result table grounded in StaticMount runtime behavior.
+Both complete examples pass the current compiler check; site build, 23-page link
+checks and whole-project formatting pass. Rendered and native example audit is
+still pending; other pages remain explicitly unchecked. Do not treat a migrated
+page or green build as factual acceptance.
+
+Focused reference repair session 84016 completed successfully: one test passed,
+five filtered out. Full authored-content execution is still pending, and its
+related source edits remain separate from the current public-page audit commit.
+
+## CLI/testing content-audit batch
+
+Testing page now provides an executable first test, discovery selection table,
+error/log interpretation and shell-specific reporter instructions. Verified
+selection against testing/discovery.rs and nearest-root behavior in project_config.
+The exact greeting test passes natively; changing its expected string fails with
+both expected and received values. CLI docs now include ASCII/100-character name
+limits, distinguish omitted defaults from explicit cwd-relative inputs, identify
+legacy UI menu scope and split development output/cache detail. Site build and
+23-page links pass; whole-project formatting/check and diff whitespace pass.
+IAB tab 4 showed the testing page with highlighted example and readable initial
+narrow layout. Full responsive/keyboard audit is still pending. Original full
+backend test session 79249 was confirmed live; no duplicate full run launched.
+
+## Installation/editor audit and terminal PR CI
+
+Reviewed extension executable resolution, configuration/restart handling and its
+manifest (VS Code >=1.100.0). Split onboarding from stale-path/memory recovery,
+added Windows quoted-path invocation and explicit lookup order. Installation now
+states exact Rust 1.96.1 selection, shows platform prerequisites, clarifies putting
+the unpacked CLI on PATH before managed installation, and makes extraction
+conditional on successful checksum validation. Source review is not yet complete
+fresh-platform/editor acceptance; audit rows remain in progress.
+
+Linux PR4 CI 40705410644 is terminal failure. Log saved at
+/tmp/tsrust-pr4-linux-failure.log. Package management 5 pass/2 fail: offline regex
+missing, and explicit unicode-ident 1.0.27 unavailable alongside cached 1.0.26.
+Shared sources 2 pass/2 fail: the same version mismatch plus the portable pack
+lookup after deliberately clearing Cargo home. Installer 7/7 passes. These match
+known Windows preparation gaps; fix them together before any hosted rerun.
+No duplicate workflow was dispatched. Original local full suite remains separate.
+
+## Linux/Windows offline preparation repair
+
+Added a fetch-only tests/dependencies Cargo manifest and exact lock containing
+regex 1.12.2 and unicode-ident 1.0.27 plus their closure. CI's ordinary and Windows
+toolchain jobs fetch it before offline acceptance; release jobs are unchanged.
+Workflow-level TSRUST_SOURCE_PACK_DIR now points to checkout target/portable-source-packs
+so setup and the test's intentionally empty Cargo home agree on pack location.
+Fetched this manifest from an empty /tmp/tsrust-binding-dependency-audit Cargo home,
+then fetched again offline/locked successfully. This addresses diagnosed missing
+sources without removing test coverage or enabling network in normal builds.
+Windows long-path linker failures still require investigation. No hosted rerun yet.
+
+## Bounded Windows linker investigation
+
+Failure log shows link.exe LNK1181 for '.obj' while linking crossbeam-utils build
+scripts under extended-length target paths. Path length versus verbatim syntax
+is not yet established. Prepared tools/check-windows-linker.py: four dependency-free
+Cargo library/build-script builds across short/deep and ordinary/verbatim target
+paths. Exact repository Rust pin; each subprocess bounded to 90 seconds, all
+scratch paths cleaned. The manual CI windows_linker_probe input runs only this
+8-minute-bounded Windows job plus its distinctly named result; ordinary required
+CI and installer jobs do not run and cannot be satisfied by the probe check.
+Python syntax and workflow routing assertions pass. This narrow hosted check is
+justified because this Mac cannot execute MSVC. No compiler behavior is changed
+on this hypothesis. Remove the diagnostic workflow input after root cause is
+proved and the production regression is in place.
+
+Windows path probe dispatched once at fae9372db849f7df800c50b58ea7f5c1395c350d:
+run 40717738716, confirmed in progress. Non-PR branch push triggered no duplicate
+PR CI. Track this exact run before changing the hypothesis or launching another.
+
+## Windows path differential result
+
+Probe run 40717738716 completed: ordinary/verbatim short targets (85/88 chars)
+both pass; ordinary/verbatim deep targets (203/206 chars plus Cargo's output suffix)
+both fail MSVC output linking with LNK1104. This establishes a path-depth issue
+independent of verbatim syntax, but differs from original dependency failure's
+LNK1181. Next controlled probe adds Rust's bundled LLVM/MSVC linker flavor on the
+same paths. Preserve normal project/cache locations; do not shorten test fixtures
+or claim the original package failures repaired without affected acceptance.
+Local publication repair session 77834 is still building; keep its log and handle.
+
+Bundled-linker differential dispatched once at 4008dbcf, run 40718381475.
+Previous run is terminal and retained; this run changes the linker input, not a
+retry of identical work. The publication repair 77834 has advanced to native
+dependency compilation; original full regression 79249 has reached relocated
+native/HTTP package export tests. Neither was restarted.
+
+
+## Public JSON guide factual audit
+
+Corrected oversized integer rounding claims: integer tokens outside signed/unsigned
+64-bit storage reject with integer-range. Corrected the exclusion of JsonRaw from
+typed decoding and blanket key-sorting claims; raw fragments preserve source text.
+Added decoding rules/resource limit tables and task headings. JSON Lines now has a
+complete file fixture and open/read/EOF/close example. Extracted exact published
+raw-field and reader snippets into /tmp/tsrust-json-doc-audit and executed both
+with current target/debug/tsrust: exact raw text and Ada/Grace output passed.
+Astro production build and all 23-page link/anchor/asset checks pass. CUA browser
+inspection failed with browser.user unavailable even after reacquiring listed IAB
+tab 4; rendered review remains pending. No hosted validation dispatched.
+
+Windows linker policy unit test session 51768 completed successfully (1 test).
+Production Windows acceptance remains pending. Original full regression 79249
+advanced through object_entries to operators; do not restart. Publication repair
+77834 failed at obsolete ButtonProps source path: config selects button-v3.tsrx,
+while the test still selects button.tsrx. Repair this specific assertion next.

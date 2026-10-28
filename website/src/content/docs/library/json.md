@@ -4,8 +4,8 @@ description: Parse bounded JSON, handle errors and borrow nested values.
 ---
 
 Use the global JSON namespace for bounded parsing and serialization. Parsed data
-is an owned `JsonValue` by default. An explicit type argument requests checked
-decoding into that owned type.
+is an owned `JsonValue` by default. Supply an explicit type argument for
+[checked typed decoding](../typed-json/), including source-backed `JsonRaw` fields.
 
 ```tsrust
 function main() {
@@ -18,6 +18,8 @@ function main() {
   }
 }
 ```
+
+## Handle parsing errors
 
 `JSON.parse(text, limits?)` and `JSON.stringify(value, maxBytes?)` throw structured
 `JsonError`. Errors retain `code`, `message` and a UTF-8 byte `offset`. Normal typed
@@ -41,14 +43,25 @@ Import `JsonValue`, `JsonError` or `JsonLimits` from `std:json` when explicit ty
 annotations are useful. Existing `std:json.parse` and `std:json.stringify` continue
 to return Results.
 
-Default parsing budgets are 16777216 input bytes, 64 container levels, 1000000
-entries per collection and 1000000 total values. A limits record must supply all
-four nonnegative integer fields: `maxBytes`, `maxDepth`, `maxEntries`, `maxNodes`.
-Depth cannot exceed 64. Serialization defaults to 16777216 output bytes; a
-negative output limit fails with `invalid-limits`.
+## Set resource limits
+
+The optional `JsonLimits` record must supply all four fields:
+
+| Field | Default | Meaning |
+| --- | --- | --- |
+| `maxBytes` | 16777216 | Maximum input size in UTF-8 bytes. |
+| `maxDepth` | 64 | Maximum nested container levels; cannot exceed 64. |
+| `maxEntries` | 1000000 | Maximum entries in one collection. |
+| `maxNodes` | 1000000 | Maximum total values. |
+
+All fields must be nonnegative integers. Serialization has a separate output
+limit of 16777216 bytes by default; a negative limit reports `invalid-limits`.
+
+## Know the parsing rules
 
 Parsing is strict JSON. Duplicate keys keep the last value while counting every
-entry toward limits. Serialization sorts object keys and emits compact JSON.
+entry toward limits. Serialization sorts ordinary object keys and emits compact JSON.
+[Raw JSON fragments](../typed-json/#preserve-raw-json-fields) retain their original text.
 No reviver, replacer or unchecked generic decoding is supported. JSONC and JSONL
 operations remain explicit imports from `std:json`. Typed JSON/JSONC file imports
 are separate build-time data modules; see [modules](../../language/modules/).
@@ -66,8 +79,9 @@ result; the input is consumed even when its kind is wrong.
 `asInt` requires an integral value within the signed 64-bit range. `asNumber`
 rejects integer-backed values that cannot be represented exactly as floating point.
 It preserves floating negative zero; integer extraction converts negative zero to
-zero. Extraction cannot restore precision already lost while parsing a decimal or
-an integer beyond the backend's 64-bit range. Extraction errors have offset zero.
+zero. Decimal and exponent tokens use floating-point parsing; extraction cannot
+restore precision lost there. Integer tokens outside signed or unsigned 64-bit
+JSON storage are rejected with `integer-range`, rather than rounded. Extraction errors have offset zero.
 
 ```tsrust
 import {asInt} from "std:json";
@@ -98,7 +112,6 @@ Numeric values still require checked scalar extraction;
 there is no implicit rounding of exact JSON integers. `Array.isArray(value)` inspects whether the contained JSON value is an array.
 `value === null` (and reversed/negated comparisons) recognizes contained JSON null
 without confusing it with undefined. Both operations borrow their inputs. The imported `kind` function distinguishes all six JSON categories.
-
 
 ## Reading nested values
 
@@ -135,7 +148,6 @@ Views cannot be constructed or cloned. Missing and error branches carry no child
 loan; a present JSON null still retains its owner. Boolean guards permit boolean payload access. String guards permit a borrowed `StringView`. Other category checks do not expose
 direct property or index operations on the wrapper.
 
-
 ```tsrust
 function readFlag(text: string): boolean {
   const value = JSON.parse(text);
@@ -150,7 +162,6 @@ function readFlag(text: string): boolean {
 fields, including optional JsonValue and JsonView. Replacing or mutating the
 source invalidates the proof. A loop must recheck the category after a change;
 a proof from a path that does not reach the use cannot justify access.
-
 
 ## Borrowed string reads after a guard
 
@@ -184,6 +195,5 @@ moving or replacing the owner.
 consumes an owned JsonValue and moves its string storage; a borrowed view cannot
 be consumed by that operation. Neither a guard nor a view enables every ordinary
 string method or implicit conversion to an owned string.
-
 
 See [typed decoding and encoding](../typed-json/) or [JSONC and JSON Lines](../json-files/).
