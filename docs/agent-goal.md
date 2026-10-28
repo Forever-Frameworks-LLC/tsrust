@@ -1,5 +1,11 @@
 # Goal: Tsrust language, CLI, documentation and platform polish
 
+Owner handoff, 2026-10-28: Codex continuation stopped for transfer to Claude;
+completion is not claimed. Read [the current handoff](handoffs/2026-10-28-claude-handoff.md).
+The owner's latest docs direction prioritizes language/stdlib reference and a
+consolidated interactive guide instead of many indexed how-to articles.
+
+
 Owner-approved replacement direction, 2026-10-27. The owner authorized continuation
 of this goal after aligning it with backend-only scope. This supersedes the earlier
 React/Electron/Expo application prototype objective. Follow

@@ -1,0 +1,157 @@
+# Tsrust handoff to Claude — 2026-10-28
+
+The owner requested this handoff and stopped Codex continuation. The goal is
+unfinished. This document supersedes the next-step instructions at the top of
+`docs/agent-progress.md`; its older entries remain historical evidence.
+
+## Start here
+
+Repository: `/Users/seancotter/Desktop/dev/learning/tsrust`.
+Branch: `codex/language-cli-docs-polish`.
+Last implementation/docs checkpoint before this handoff: `ec92fbc75e28ed21092ac647f4e60783300ec1be`.
+The handoff itself is a separate documentation-only checkpoint. No push or release
+was performed during cleanup.
+
+Read `AGENTS.md`, `docs/development-workflow.md`, `docs/agent-goal.md`, then this
+handoff. Use `docs/agent-progress.md` to locate detailed evidence, rather than
+repeating its old continuation instructions. It is long and includes superseded
+plans. Inspect current source/status before acting.
+
+## Most recent owner correction — highest immediate priority
+
+The owner said:
+
+> im basically just seeing a lot of example how to documents appearing instead of
+> actual documentation of the std lib and how the language works - it would be
+> better to have an interactive guide of how tos than to just have a bunch of
+> articles hogging up the search results
+
+The current site over-fragments language topics into many small walkthroughs,
+especially callable/generic features. Do not continue producing those articles.
+Their verified facts/examples are reusable evidence, not an approved final docs
+architecture. The initial `docs/plans/public-documentation-site.md` already proposed
+broad language-reference topics; implementation drifted from that intent.
+
+The requested direction is:
+
+- Make language semantics and standard-library API reference the primary docs.
+- Consolidate how-tos into an interactive guided learning experience; do not index
+  every tutorial step as another competing reference article.
+- Keep examples within reference entries where they explain an operation, without
+  making examples the whole documentation model.
+- Plan the revised structure in Markdown, then implement it incrementally. Preserve
+  useful audited contracts and migrate links/anchors safely. No empty placeholders.
+- Every page still needs factual and presentation review. Reorganization does not
+  establish correctness, and a successful build does not establish a completed audit.
+
+No revised navigation, consolidated reference, interactive guide or API-reference
+generator has been implemented. Codex stopped after inspecting options. The
+information-architecture skill was read, but no `.design` artifacts were created.
+
+Useful implementation facts: Astro 7.4.2, Starlight 0.42.7; site configuration is
+`website/astro.config.mjs`, content is `website/src/content/docs/`. Installed
+Starlight schema supports frontmatter `pagefind: false`. Reuse its navigation,
+styles and accessibility instead of adding another framework. Do not hide useful
+reference content before its replacement exists. Preserve old URLs through the
+migration, then remove superseded public source copies.
+
+`crates/tsrust-lsp/src/builtins.json` has 103 groups / 894 entries, including
+signatures, parameter documentation, behavior, ownership and examples. It is a
+useful canonical source for a synchronized stdlib reference. Some group keys are
+internal names; do not expose them as public types without mapping them. The
+existing library overview lists 23 public module names, but detailed API reference
+coverage is still incomplete. `std:path` (7 exports) and `std:env` (3 entries) were
+only inspected as possible starting points; no generation work was done.
+
+## Full goal and remaining work
+
+Finish the finite backend-only language/CLI/docs/platform polish from PR #2. Do
+not expand into native UI or arbitrary TypeScript compatibility. The original fan
+stop was explicitly lifted: the owner is using a different computer.
+
+- Async testing registration and HTTP body/SDK work have substantial accepted
+  evidence in `docs/agent-goal.md` and the progress record; preserve that evidence.
+- Shared dependency caches and paired CLI/LSP installation/update have implemented
+  workflows and focused macOS/Linux/Windows evidence. Remaining distribution
+  checks must be reconciled, not assumed complete.
+- Windows and Linux installer/locked-binary checks passed previously. The newer
+  isolated editor UTF-16 fixture and fresh toolchain smoke/acquisition paths still
+  need their outstanding platform executions. Exact release-build commands and
+  actual published acquisition remain unproven where marked pending.
+- GitHub Pages was selected and configured, but a successful production deployment
+  and public URLs remain pending. Local preview/build is not deployment evidence.
+- Complete the finite remaining docs inventory in the migration/audit plans, using
+  the corrected reference/learning architecture. Old pending/unsupported claims
+  often contradict newer compiler behavior; check source before copying them.
+- Retain completed family correctness/performance records. Do not restart full
+  matrices or timing protocols after routine documentation changes.
+
+A reported LSP retention issue was repaired and a bounded 30-minute macOS stress
+check passed. The old blanket warning was removed. This is not proof of every
+possible long-session behavior. HTTP performance evidence and original SQLite
+records already exist; no new measurements were taken during recent docs edits.
+
+The last retained nested-function guide still contains unaudited owned/scoped
+selection, single-use call scopes, generic replacement and mutable factory arrays.
+Its source-flow paragraph was investigated, but is not a mandate for another page.
+Other language/library/operational inventory remains pending too.
+
+## GitHub and release constraints
+
+Original PR #2 was bootstrapped with owner approval. Last recorded draft delivery
+PR is https://github.com/Forever-Frameworks-LLC/tsrust/pull/4, base `stag`, remote
+branch `codex/backend-polish-staging`. Last recorded remote head was
+`61ee67a44152437848a53d0fea6499e7ffec56ec`; its tree matched local `1b375f06`.
+Later local work, including the recent docs commits, has not been pushed.
+These are last-recorded values, not a fresh remote-state check. Revalidate before
+any push. Do not force-push or trigger duplicate CI runs.
+
+Owner-approved policy: branch-to-stag PRs run tests and require one review, with
+owner review bypass; stag-to-main promotion compiles macOS/Linux/Windows artifacts,
+then auto-merges/publishes if successful. New tags may be created by repository
+writers; existing tags/releases must remain immutable. Prefer caching, minimal
+permissions and dependable artifact reuse. Avoid unnecessary GitHub Actions usage.
+No concrete new release version was selected; do not invent one or publish a new
+release as part of this handoff.
+
+## Validation and cleanup state
+
+Recent accepted docs evidence is indexed in
+`docs/plans/public-documentation-content-audit.md` and
+`docs/plans/public-documentation-migration.md`. Their content-audit acceptance does
+not mean the owner approved the fragmented article architecture.
+
+The unfinished `language/callable-control-flow.md` article was deleted; its sidebar
+addition and source-guide edits were reverted. No unfinished implementation remains.
+Before deletion its two intentional rejection examples returned `arity`, and two
+native examples printed `4 1` / `7` and `7 1`. Focused compiler flow checks passed
+15 tests and editor diagnostics passed 4. Disposable logs, if still present:
+`/tmp/tsrust-flow-doc-contracts.log` and `/tmp/tsrust-flow-doc-editor.log`. These are
+optional current-run evidence, not durable analytics or required deliverables.
+
+Cleanup rebuilt the restored 66-page site successfully (`npm --prefix website run
+build`), removing the deleted article from generated output. The last full internal
+link/anchor pass on that same committed site also passed. The agent-started docs
+preview on port 4322 was stopped, its browser tab closed and viewport override reset.
+No known compiler/test job is running. Restart preview if needed with
+`npm --prefix website run dev -- --host 127.0.0.1 --port 4322`.
+
+198 disposable native program cache entries (274 MiB) were pruned from
+`target/tsrust-native/v2`; root lock files, shared native runtime cache and Cargo
+target were preserved. Native programs rebuild when needed. Source, owner edits,
+retained UI, fixtures and historical evidence were not removed.
+
+## Working rules
+
+One agent in this tree at a time. Inspect status first. Use the existing Cargo
+target, `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1`, and focused section-level checks.
+Do not touch the owner's VS Code instance. Format the entire project before each
+source checkpoint with `TSRUST="$PWD/target/debug/tsrust" node tools/format-project.mjs`.
+Keep native behavior, diagnostics, IntelliSense and examples consistent when code
+changes. No new heavy suite for prose alone.
+
+No source snapshots/archive directories. SQLite remains canonical analytics;
+never publish ignored `benchmarks/records.sqlite`. Public measurements must use
+`benchmarks/storage/public.py` and its provenance allowlist. Preserve original
+records and distinguish unmeasured work from measured work. Keep the handoff and
+finite acceptance checklist current; do not claim completion from partial evidence.

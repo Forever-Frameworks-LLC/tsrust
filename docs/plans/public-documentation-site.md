@@ -1,5 +1,12 @@
 # Public documentation site: Starlight migration
 
+Owner correction, 2026-10-28: prioritize language semantics and a standard-library
+API reference. Consolidate how-tos into an interactive learning guide, keeping its
+individual steps from crowding reference search results. The current fragmented
+article implementation needs restructuring; its completed factual reviews remain
+useful evidence. See [the handoff](../handoffs/2026-10-28-claude-handoff.md).
+
+
 Status: owner requested 2026-10-28; plan first, implementation next. The owner selected GitHub Pages after reviewing its size/bandwidth limits. This plan
 extends the active language/CLI/docs polish goal; it does not revive the original
 Tsrust UI product. Audience: developers installing Tsrust, learning its ownership

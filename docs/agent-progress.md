@@ -1,6 +1,16 @@
 # Agent continuation state
 
-## Current continuation — lexical generic scopes and assignment calls accepted
+## Owner handoff to Claude — 2026-10-28
+
+Codex continuation stopped at the owner's request. Read
+[the Claude handoff](handoffs/2026-10-28-claude-handoff.md) first. It supersedes
+older next-step instructions below. The owner rejected the proliferation of how-to
+articles: prioritize language semantics and stdlib API reference, with how-tos
+consolidated into an interactive learning guide and appropriate search indexing.
+That reorganization is not implemented. Unfinished callable-flow article changes
+were removed; prior committed evidence remains. The overall goal is unfinished.
+
+## Prior continuation — lexical generic scopes and assignment calls accepted
 
 Previous checkpoint7afd65a3. Audited/migrated enclosing generic parameter and
 callable-transport paragraphs into site lexical-generic-functions. Traced
