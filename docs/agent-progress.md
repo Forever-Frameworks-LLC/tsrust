@@ -2,7 +2,8 @@
 
 ## Current continuation — public documentation audit
 
-Latest accepted checkpoint is b747784e (Pages configuration evidence);
+Latest accepted checkpoint is 1b375f06 (bounded memory guidance);
+b747784e records Pages configuration evidence;
 57c1e6c2 contains CRLF documentation extraction;
 062d7e74 records Linux acceptance/cleanup;
 b5b685ae contains canonical docs package smoke;
@@ -1997,3 +1998,13 @@ compiler/editor/doc-tooling repairs; the previous equivalent baseline runs at
 86435b88 passed, but predate these repairs. No additional manual Windows run or
 release compilation is warranted for unchanged installer/cache code. Record the
 exact source checkpoint and compact remote commit after creation.
+
+## Batched PR update sent
+
+PR #4 now targets stag at 61ee67a44152437848a53d0fea6499e7ffec56ec, a normal
+child of 86435b88. Its tree 9ee7812e5d972742509303af2538855b18148c36 equals
+local checkpoint 1b375f0675f8a3a0f7b7d59d9c42c7b5d716f8fe exactly. Normal push
+succeeded; no force, merge, tag or publication. Updated the PR title/body to the
+final backend/tooling/docs scope and explicit remaining acceptance. Documentation run 40761578389 passed at the new head; deployment was correctly
+skipped for a PR. CI 40761578381 is running compiler/LSP and VS Code checks.
+Inspect that run before proceeding; do not dispatch duplicates.
