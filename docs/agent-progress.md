@@ -752,3 +752,13 @@ content also has two failures: HttpRequest reference map count 11 versus 12 and
 an assertion expecting historical trim measurement prose in public docs. Repair
 these as a coherent catalog/documentation section after preserving the run.
 Linux PR run 40705410644 remains in progress; no new hosted run was requested.
+
+## JSON documentation migration
+
+Moved json.md into library/json, typed-json and json-files, separating dynamic
+inspection, checked codecs and JSONC/JSON Lines. Removed the duplicate guide.
+Reviewed string projection/view and literal decoding regression sources; corrected
+stale claims that borrowed string locals/returns and typed JSONC/JSONL were pending.
+Preserved numeric precision, budget, ownership and terminal file-error contracts.
+Site build/link acceptance covers 23 pages. No additional native matrix was
+launched for moved prose; the original full regression is retained.

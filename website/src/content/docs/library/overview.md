@@ -28,6 +28,9 @@ Strings, arrays, maps, sets and other built-in types also expose methods without
 module imports. Supported method names and argument contracts are explicit;
 JavaScript's prototype and runtime coercion behavior are not general fallbacks.
 
+Start with [JSON parsing and inspection](../json/), [typed JSON](../typed-json/)
+or [JSONC and JSON Lines](../json-files/).
+
 ## Read the exact contract
 
 Use completion, hover and parameter help in [VS Code](../../start/editor/). The

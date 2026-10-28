@@ -15,7 +15,7 @@ export default defineConfig({
       { label: 'Start here', items: [{ label: 'Overview', slug: '' }, 'start/installation', 'start/quickstart', 'start/editor', 'start/project-structure'] },
       { label: 'Language', items: ['language/modules'] },
       { label: 'Build backends', items: ['backend/applications', 'backend/http', 'backend/static-files', 'backend/http-transport', 'backend/api-clients', 'backend/authorization', 'backend/api-compatibility'] },
-      { label: 'Standard library', items: ['library/overview'] },
+      { label: 'Standard library', items: ['library/overview', 'library/json', 'library/typed-json', 'library/json-files'] },
       { label: 'Tools', items: ['tools/cli', 'tools/testing', 'tools/rust-setup', 'tools/install-and-update'] },
       { label: 'Project', items: ['project/status'] },
     ],
