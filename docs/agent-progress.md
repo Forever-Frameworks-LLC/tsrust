@@ -2196,3 +2196,14 @@ iteration and 3x/x12/ready:true. Script/log /tmp/tsrust-string-doc-check.* dispo
 temporary sources removed. Rendered review of this page and the prior editor run-task
 paragraph remains pending. No broad test suite or new hosted run started. Next:
 complete these rendered reviews, then continue the finite language guide inventory.
+
+## String/editor presentation acceptance
+
+Completed whole string-page review at 390px/1440px: readable position-unit table,
+highlighted examples, no document overflow and keyboard skip/code scrolling.
+Reviewed the added editor run-task paragraph at both widths; section navigation
+and inline settings fit. Both earlier rendered-review gaps are closed. Reused
+accepted native examples; no behavior changed and no broad rerun. CI 40761578381
+has advanced to LSP transport and compiler agreement; no new run or push.
+Next: continue remaining finite language-guide inventory while the same CI run
+finishes, then reconcile its result and batch outstanding platform evidence.
