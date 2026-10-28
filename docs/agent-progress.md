@@ -1258,3 +1258,38 @@ is live. Deep-path shared_sources test passes locally in12073; portable relocati
 and remaining shared case still run. Avoid launching further Cargo validation while
 these and original79249 are active: portable export cases refresh shared target
 dependency artifacts and concurrent follow-up builds can pay recompilation cost.
+
+
+## Follow-up repair results and serial scheduling
+
+12073 terminal: package_management7 PASS; shared_sources4 PASS including deep-path,
+one portable relocation timeout120s during overlapping target compilation. No
+compiler diagnostic reported. Process inspection found only current owned test/build
+trees, no orphaned compiler population. Avoid overlapping Cargo consumers: the
+relocation case and compiler rebuild both use the shared target. Original79249
+continues retained UI witnesses; do not restart it.
+Temporal50889 terminal PASS: all32 date examples execute with exact catalog output.
+UI compiler API case23201 terminal PASS: supported1..11 and rejected0/12 preserved.
+Portable relocation alone now runs the already-compiled shared_sources executable,
+log /tmp/tsrust-portable-relocation-repair.log (record returned handle next turn).
+No further build should be started until it finishes.
+JSON Lines guide now has a complete writer/close example. Extracted code formatted
+idempotently, executed successfully, and output.jsonl exactly equals one Ada record
+plus LF in /tmp/tsrust-json-doc-audit. Initial format invocation emitted stdout;
+corrected harness writes that output before checking formatting. No source defect.
+Untracked docs/AGENTS.md and three docs/src/components/ui/*AGENTS.md appeared during
+ui_empty's repository-root installation test. They are generated guidance matching
+the template; preserve until original regression is terminal, then clean only these
+known test outputs. No user file removed or source snapshot created.
+
+
+Portable relocation96496 terminal PASS29.53s when run without another compiler
+build. Local package7/shared5 coverage is now complete, retaining the original
+contention timeout as evidence. Site build,23-page links, whole-project formatting
+and format-check pass. Checkpoint Windows directory-sync/deep-path fixes, the two
+accepted stale-assertion repairs and JSON Lines writer example together.
+Remote validation rationale: last Windows40724567590 failed exactly new-adapter
+directory fsync and deep executable spawn; both repaired and local witnesses pass.
+Use existing ci.yml toolchain_acceptance only on the new checkpoint, no release,
+no simultaneous push-triggered PR run. Windows installer8 and all-target diagnostics
+passed the prior run, but actual repaired Windows paths still require execution.

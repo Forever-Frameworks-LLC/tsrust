@@ -134,11 +134,11 @@ fn native_build_and_portable_export_link_at_deep_paths() {
     fs::create_dir_all(&deep).unwrap();
     let executable=deep.join(format!("direct{}",std::env::consts::EXE_SUFFIX));
     support::success(&support::run(support::cli().arg("build").arg(&source).arg("-o").arg(&executable),120));
-    let output=support::run(&mut Command::new(&executable),30);support::success(&output);assert_eq!(String::from_utf8_lossy(&output.stdout).trim(),"42");
+    let output=support::run(&mut Command::new(fs::canonicalize(&executable).unwrap()),30);support::success(&output);assert_eq!(String::from_utf8_lossy(&output.stdout).trim(),"42");
     let exported=directory.0.join("exported");
     support::success(&support::run(support::cli().arg("emit").arg(&source).args(["--package","-o"]).arg(&exported),30));
     let target=deep.join("cargo-target");
     support::success(&support::run(Command::new("rustup").args(["run",tsrust_compiler::RUST_BACKEND_VERSION,"cargo","build","--offline","--locked"])
         .current_dir(&exported).env("CARGO_TARGET_DIR",&target).env("CARGO_INCREMENTAL","0"),120));
-    let output=support::run(&mut Command::new(target.join(format!("debug/program{}",std::env::consts::EXE_SUFFIX))),30);support::success(&output);assert_eq!(String::from_utf8_lossy(&output.stdout).trim(),"42");
+    let output=support::run(&mut Command::new(fs::canonicalize(target.join(format!("debug/program{}",std::env::consts::EXE_SUFFIX))).unwrap()),30);support::success(&output);assert_eq!(String::from_utf8_lossy(&output.stdout).trim(),"42");
 }

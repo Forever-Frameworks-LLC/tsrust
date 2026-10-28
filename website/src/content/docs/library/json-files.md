@@ -93,6 +93,31 @@ rules as JSON.stringify and stages the complete bounded record before output.
 Encoding rejection writes no prefix of that record; I/O failure can leave a
 prefix and offers no rollback. Successful records end with exactly one LF.
 
+Save this as `write-records.tsr` and run `tsrust run write-records.tsr`. It creates
+or truncates `output.jsonl` in the working directory and writes one line,
+`{"name":"Ada"}`, followed by a newline:
+
+```tsrust
+import {createJsonl, writeJsonl, closeJsonlWriter} from 'std:json';
+type Item = { name: string; };
+function main() {
+  const item: Item = { name: 'Ada' };
+  match (createJsonl('output.jsonl')) {
+    Ok(writer) => {
+      match (writeJsonl(writer, item)) {
+        Ok(_) => {},
+        Err(error) => { throw error.message; }
+      }
+      match (closeJsonlWriter(writer)) {
+        Ok(_) => {},
+        Err(error) => { throw error.message; }
+      }
+    },
+    Err(error) => { throw error.message; }
+  }
+}
+```
+
 ### Flush and close the writer
 
 `flushJsonl(writer)` reports buffered output failures while retaining ownership.
