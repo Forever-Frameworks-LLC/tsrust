@@ -86,7 +86,7 @@ feature-coverage evidence to reduce the inventory.
 | `language/non-null-assertions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/nullable-callables.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/nullish-assignment.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/nullish-coalescing.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/nullish-coalescing.md` | Audit and migrate current guidance; preserve any embedded history | In progress: six exact examples format/check/execute; corrected callable and literal-union wording, added behavioral sections. Literal fallback regression passes. Site migration and rendered review remain pending. |
 | `language/numeric-literals.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/numeric-string-conversion.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/optional-chaining.md` | Audit and migrate current guidance; preserve any embedded history | Pending |

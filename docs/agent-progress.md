@@ -1,6 +1,29 @@
 # Agent continuation state
 
-## Current continuation — borrowed optional fallback guide accepted
+## Current continuation — coalescing content checkpoint
+
+Previous turn progressed at45bff918. Reorganized the existing nullish-coalescing
+guide into result typing, operator composition, collections, absent-branch facts,
+independent strings, callables and ownership sections. Corrected overbroad
+single-payload wording: compatible literal unions work. Clarified callable storage
+support and linked its contract guide. No source/runtime changes.
+
+All six exact examples pass format --write/--check, compiler checking and native
+execution with expected output. Focused nullish_coalescing literal_fallback test
+verifies accepted literal alternatives and rejects new/incompatible alternatives;
+log /tmp/tsrust-coalescing-doc.log. This is content progress only: site migration,
+remaining source contract review and rendered desktop/mobile/keyboard acceptance
+remain pending. Migration row stays in progress; no site audit acceptance claimed.
+Full-project formatter and diff check must pass before checkpoint.
+
+Next: finish optional-chaining/nullish-coalescing migration together with exact
+short-circuit and ownership evidence; retain prior checked examples. Platform
+setup, updated Windows/Linux editor fixture/acquisition and actual Pages deployment
+remain pending. No hosted CI/push/release, full regressions or timings this section.
+Goal active; one writer, shared Cargo target, jobs1/incremental0.
+
+
+## Prior continuation — borrowed optional fallback guide accepted
 
 Previous turn progressed at71a4b2fa. Migrated borrowed-optional-fallback into a
 canonical site guide with separate selection, lexical lifetime, computed fallback,
