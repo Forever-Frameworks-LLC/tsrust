@@ -15,7 +15,7 @@ these guides distinguish supported behavior from planned work.
 - [Explore the standard library](../website/src/content/docs/library/overview.md)
 - [Understand string semantics](guides/language/string-semantics.md)
 - [Use collections](guides/collections.md)
-- [Work with Rust](guides/rust-packages.md)
+- [Work with Rust](../website/src/content/docs/tools/rust-packages.md)
 - [Set up VS Code](../editors/vscode/README.md)
 
 ## Run the documentation app
