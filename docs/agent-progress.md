@@ -2078,3 +2078,17 @@ Next coherent section: collections/string/Rust-package entry points and deployme
 editor instructions, then language families; avoid inventing placeholder site pages.
 CI 40761578381 remains live in Compiler and CLI acceptance. No duplicate hosted
 run, release, source behavior change or benchmark run was started for this inventory.
+
+## Linker guidance consolidation
+
+Moved current missing-linker recovery into tools/rust-setup.md and updated the
+editor command guide link. Kept original acceptance logs/baseline references in
+the existing missing-linker-diagnostic.md with an explicit historical label; no
+archive, copied snapshot or historical record deletion. Traced actual CLI error
+classification and Unix missing-linker/generated-rejection controls. Current Linux
+CI already executes those acceptance cases; do not rerun a whole suite for prose.
+The added subsection still needs rendered review, explicitly recorded in the
+page checklist. Fresh-platform setup acceptance also remains pending. Next: review
+this subsection with the remaining editor/setup migration batch, then continue the
+finite remaining-guide inventory. CI 40761578381 remains live in compiler/CLI
+acceptance; no duplicate workflow or release was started.
