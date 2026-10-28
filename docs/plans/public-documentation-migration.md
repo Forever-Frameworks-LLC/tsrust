@@ -24,6 +24,8 @@ and retained UI content are not automatically published.
 | docs/guides/json.md | website/src/content/docs/library/json.md, typed-json.md and json-files.md | Split dynamic values, typed codecs and file formats; removed stale pending-codec claim and internal milestone prose; old copy removed. |
 | CONTRIBUTING.md | Repository contribution entry point | Retained operational; setup dependency graphs and stag/main CI behavior reconciled with workflows. Public onboarding remains in the site. |
 | docs/guides/tooling/rust-toolchain-policy.md | Developer pin/upgrade policy | Retained operational; links user setup and managed-install instructions to canonical site sources. Removed stale dependency-free and unimplemented CLI/LSP distribution claims. |
+| crates/tsrust-compiler/README.md | Compiler crate entry point | Replaced obsolete LSP/dependency/recovery claims and chronological feature dump with source-checked API/layout guidance and canonical guide/milestone links; historical source remains in Git. |
+| docs/guides/language/compiler-and-modules.md | Retained architecture research | Current implementation lead corrected; original planning explicitly separated from implemented editor behavior. |
 | Remaining docs/guides/ | Language/backend/library/tools destinations in the site plan | Review and map individually before moving. |
 
 The moved guides have no authored heading IDs or linked internal anchors to

@@ -2,7 +2,8 @@
 
 ## Current continuation — public documentation audit
 
-Latest accepted checkpoint is 110a8e29 (contributor/toolchain documentation);
+Latest accepted checkpoint is a92ba656 (macOS memory probe); 110a8e29 records
+contributor/toolchain documentation;
 eb3918f9 records macOS editor acceptance; ec0db552
 records regression/Windows evidence; e33f4674
 contains retained native fixtures and d23dbf20
@@ -42,6 +43,21 @@ Linux 40748887685 reached LSP transport and compiler agreement; extension passed
 Windows 40748893795 succeeded at 86435b88: installer/process 8/8, shared-source
 5/5 and package-management 7/7, including the new live-LSP update witness.
 Docs 40748887897 passed. No new hosted run, push, merge or release in this section.
+
+## Compiler entry-point cleanup
+
+Replaced the obsolete compiler README with a concise source-checked crate/API guide.
+Removed false claims that LSP, UTF-16 positions and recovery are unimplemented and
+that the workspace has no dependencies. Historical feature evidence remains in
+existing milestones/Git; no archive or snapshot was created. Corrected the linked
+architecture guide's implementation lead while preserving its labeled research.
+A read-only scan passes 177 local destinations across 48 maintained entry-point/
+reference files, excluding historical benchmark/experiment records and packaged
+agent skills. Extended the existing distribution link guard to both edited guides.
+All 14 distribution/release-policy tests pass; the whole-project formatter changes
+zero files/fingerprints and git diff --check is clean.
+The macOS --soak process remains tracked by exec session 20376; do not restart it
+merely because observation expires. Sustained acceptance remains pending.
 
 ## macOS memory validation
 
