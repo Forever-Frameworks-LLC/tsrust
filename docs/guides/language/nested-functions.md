@@ -11,33 +11,15 @@ Optional/default/rest behavior for stored captured functions now lives in
 Concrete specialization and unannotated generic values now live in
 [Specialize a generic function value](https://forever-frameworks-llc.github.io/tsrust/language/generic-function-contexts/)
 and [Keep function values generic](https://forever-frameworks-llc.github.io/tsrust/language/generic-function-values/).
-The adapter, selection and replacement sections below are still being audited.
+The source-flow, lexical-scope, selection and replacement sections below are still being audited.
 
 Adapting existing generic environments now lives in
 [Adapt an existing generic callback](https://forever-frameworks-llc.github.io/tsrust/language/generic-value-adapters/).
 
-## Adapt fresh and selected factories
+Fresh/selected construction, inferred results, aggregate destinations and nullable
+owning callbacks now live in [Adapt fresh generic factory results](https://forever-frameworks-llc.github.io/tsrust/language/fresh-generic-factories/).
 
-A concrete owned callback can select between factories returning different generic
-function environments. For example, `const action: Function<int, [value: int]> =
-(flag ? firstFactory : secondFactory)();` constructs only the selected environment.
-Subsequent calls use that environment's retained state. Array traversal also
-accepts such selected factory calls when their generic signatures match its input
-and result requirements. A borrowed facade cannot outlive a fresh temporary owner.
-The selected-factories and selected-traversal fixtures demonstrate these cases.
-
-Factory selection may be nested, such as `(flag ? (otherFlag ? firstFactory :
-secondFactory) : thirdFactory)()`. Only predicates on the selected path execute.
-The resulting concrete adapter retains the selected factory environment.
-
-A generic function returned by a factory may omit its result annotation. A
-concrete callback annotation or traversal input supplies its argument types; the
-compiler then checks the function body to infer its result. For example,
-`function select<T>(value: T) { return value; }` retains the value's concrete type
-when adapted for an integer array's map operation. Inference does not weaken an
-explicit result contract or execute default initializers early. Fresh factory
-results can also initialize typed record fields and callable arrays directly.
-
+## Track callable contracts through source flow
 
 Known callable argument counts are checked even inside generic declarations that
 are not instantiated. Loops retain contracts from previous iterations and from

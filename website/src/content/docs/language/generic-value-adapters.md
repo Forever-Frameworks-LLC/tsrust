@@ -133,3 +133,6 @@ Hover and signature help show the selected concrete signature and parameter
 access. Definitions on an adapter's source alias navigate to that alias's binding.
 This differs from creating a new specialization directly from the
 [original generic declaration](/tsrust/language/generic-function-contexts/).
+
+For a direct factory call or a selected factory expression, continue with
+[fresh generic factory results](/tsrust/language/fresh-generic-factories/).
