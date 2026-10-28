@@ -1,6 +1,33 @@
 # Agent continuation state
 
-## Current continuation — arrow/function/expression call guides accepted
+## Current continuation — nested declaration section accepted
+
+Previous checkpoint5b8e2d05. Split declaration scope, forward calls, recursive
+result inference and editor navigation out of615-line nested-functions guide into
+site language/nested-functions. Traced local_functions/local_function_values,
+analysis/return_type_inference and source fixtures. Three exact programs pass
+format/write/check, compiler check and native outputs6;20/10;6 120. Compiler
+nested_function_declarations9 pass (/tmp/tsrust-nested-declaration-contracts.log);
+editor nested_named_function2 pass (/tmp/tsrust-nested-declaration-editor.log).
+No compiler changes. Corrected old remaining guide's claim that any callback
+parameter transfers captures: scoped borrowed contracts differ from retained
+owning environments. Corrected supplied non-undefined arguments skipping defaults.
+
+Full page390px/1440px reviewed, highlighted examples and no document overflow.
+Split dense inference prose into paragraphs and cases and reviewed revision.
+Overflowing mobile code tab0/ArrowRight40px; skip/section/next/previous links pass.
+59-page build plus internal links/anchors checked. Whole-project formatter before
+checkpoint. No full regressions, performance, hosted CI, push or platform runs.
+
+Next: remaining nested guide captures and factories first, then generic values,
+adaptation, owned/scoped selection, single-use call scopes, generic replacement
+and mutable factories. Declaration section is accepted; remaining guide is not.
+Keep migration partial until every remaining paragraph/example/claim is checked,
+restructured and rendered. Do not delete advanced current contracts or historical
+provenance. Remaining inventory, platform/acquisition and Pages deployment work
+in prior continuation stays pending; goal active.
+
+## Prior continuation — arrow/function/expression call guides accepted
 
 Previous checkpointc903e14a. Audited arrow-functions and callable-expressions against
 syntax/expression_work.rs closure/function parsing, named-function fixtures,

@@ -82,7 +82,7 @@ feature-coverage evidence to reduce the inventory.
 | `language/maps.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/native-bytes.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/native-files.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/nested-functions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/nested-functions.md` | Declaration section migrated to canonical site language/nested-functions; audit remainder in sections | Partial: declaration scope/inference/editor guidance accepted with3 exact programs, compiler9/editor2 checks and complete390px/1440px/keyboard review. Corrected overbroad capture-transfer wording and non-undefined default wording in remaining guide. Capture/factory/generic/selection sections still pending; retain original until all are accepted. |
 | `language/non-null-assertions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/nullable-callables.md` | Migrated to canonical site language/nullable-callables | Accepted: source audit, exact executable examples and focused regression evidence; full responsive/keyboard review complete, duplicate removed and links migrated. |
 | `language/nullish-assignment.md` | Migrated to canonical site language/nullish-assignment | Accepted: source audit, exact executable examples and focused regression evidence; full responsive/keyboard review complete, duplicate removed and links migrated. |

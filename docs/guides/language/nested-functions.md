@@ -1,44 +1,8 @@
 # Nested named functions
 
-A named function may be declared inside a function or an explicit block. Its name
-is available throughout that block, including before the declaration. Nested
-blocks may declare the same name without changing the enclosing declaration.
-A declaration does not leak outside its block. A function named main inside another
-function is an ordinary local function; only the file entry function runs implicitly.
-
-```tsr
-function main() {
-    console.log(double(3)); // 6
-
-    function double(value: int): int {
-        return value + value;
-    }
-}
-```
-
-Capture-free declarations support self recursion, mutual recursion and use as
-callable values. Parameter and result annotations use ordinary declaration syntax.
-Basic generic, default and rest signatures share the top-level implementation.
-A nonrecursive declaration can omit its result annotation. The compiler infers
-its result from checked return expressions, including scalar, generic, captured and
-array values. All return paths must agree on a type, and a function returning a
-value must return on every reaching path. A function that calls itself, directly
-or through another function, takes its result type from a return that does not
-depend on that call: a base case such as `return 1`, one branch of a conditional,
-or an arithmetic operand of a known type. Every other return must agree with it.
-When no return is independent of the recursion, or the independent value comes only
-from a local variable, write the result type. A body without
-value returns remains void; main remains the void program entry.
-The native fixtures in tests/fixtures/nested-function-declarations verify forward
-calls, factorial, mutually recursive even/odd functions, block shadowing, Array.map
-callbacks and generic/default/rest signatures with assertions.
-
-A declaration conflicts with another declaration of the same name in its block.
-A function-body declaration also cannot replace a parameter of that function.
-A closure parameter or a declaration in a nested block may shadow the name.
-Function declarations require a braced body and cannot be a lone unbraced if/loop
-body. A named function expression is a value with a private name; see
-[function expressions](https://forever-frameworks-llc.github.io/tsrust/language/function-expressions/#give-an-expression-a-private-recursive-name).
+Declaration scope, forward calls, result inference and recursive declarations now
+live in [Declare nested functions](https://forever-frameworks-llc.github.io/tsrust/language/nested-functions/).
+The capture and generic-value sections below are still being audited.
 
 ## Variables of the enclosing function
 
@@ -130,9 +94,11 @@ function main() {
 
 While such a value is alive it holds the variables its function uses, as an arrow
 function would: in the example, `counts` cannot be read until the block that
-declares `run` ends. A callable handed to a callback parameter of a declared
-function, or returned from the enclosing function, takes ownership of the variables
-it needs; they are no longer available afterwards.
+declares `run` ends. Passing a callable does not by itself establish that its captures transfer.
+The receiving contract and whether the callable is retained determine the checked
+access: scoped borrowed calls can lend captures for the call, while an escaping
+owned callable must retain the owners it needs. A returned owning callable transfers
+its captured owners; the original bindings are then unavailable.
 
 Functions with optional, default or rest parameters and generic functions can be
 used as values too; the sections below describe each form.
@@ -207,7 +173,7 @@ no borrow to an outer call and cannot block ownership transfer of its argument.
 
 A captured named function can be assigned, passed or returned with optional or
 default parameters. Omitting an argument or supplying undefined runs a default
-exactly once in the original function. A supplied argument skips that default,
+exactly once in the original function. A supplied non-undefined argument skips that default,
 including its side effects and possible failure. Without a default, an optional
 parameter receives undefined. Existing arity and type checks remain in effect.
 
