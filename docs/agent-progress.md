@@ -1,5 +1,30 @@
 # Agent continuation state
 
+## Current continuation — public documentation audit
+
+Accepted local source is bc3c43aa. Earlier chronological entries below retain
+historical process states; they are not instructions to poll or restart those
+jobs. No Cargo test is currently running. The page-by-page acceptance checklist
+is [the public content audit](plans/public-documentation-content-audit.md).
+
+The editor guide's historical blanket memory warning has been replaced with
+landed retention fixes and the precise remaining long-session macOS uncertainty.
+Rechecked restart semantics against extension.ts and installed language-client
+9.0.1: four automatic restarts, then no restart on a fifth exit within three
+minutes; the explicit restart command constructs a new client. Mobile section
+navigation and desktop skip/next-page keyboard navigation pass in the live guide.
+Overflowing code receives tabindex=0 after resize handling; actual horizontal
+keyboard scrolling was not established by this observation. Keep editor/platform
+execution and that interaction pending rather than closing the page.
+
+Reviewed saved Linux PR run 40705410644: package/shared-source failures concern
+the offline regex/version closure and portable-source location. The current
+workflow includes the later dependency-manifest fetch and fixed source-pack path.
+Latest Windows run 40731485167 passed at 9b658857; the newer live-LSP update
+witness still requires Linux/Windows execution. No new hosted run, push, merge
+or release was performed during this review. Batch remaining remote validation
+after recording its exact source identity and local acceptance.
+
 ## Owner priority: public documentation site
 
 The owner requested a Markdown-first plan and prioritized implementation of an
