@@ -2,7 +2,7 @@
 
 ## Current continuation — public documentation audit
 
-Accepted local source is e7103537. Earlier chronological entries below retain
+Accepted local executable/public-doc source is e7103537; evidence checkpoints follow. Earlier chronological entries below retain
 historical process states; they are not instructions to poll or restart those
 jobs. No Cargo test is currently running. The page-by-page acceptance checklist
 is [the public content audit](plans/public-documentation-content-audit.md).
@@ -1763,3 +1763,19 @@ source-build link. No viewport override applied. Do not mark page fully audited.
   on the same staging branch for Windows; it skips Linux/editor duplicate jobs.
   PR and branch dispatch have distinct concurrency refs. The PR docs workflow
   builds only; neither validation publishes a release or deploys production docs.
+
+### Platform batch submitted
+
+- PR #4 advanced normally to 86435b8846badcfaf836af9c36da3fa56379f3a6.
+  Its tree was verified identical to e7103537; owner checkout stayed on
+  codex/language-cli-docs-polish and no branch was force-pushed.
+- Linux PR CI 40748887685 and focused Windows dispatch 40748893795 are confirmed
+  IN PROGRESS on that exact head. Windows correctly skips Linux/editor jobs.
+  Documentation PR build 40748887897 was queued. Poll these existing runs;
+  do not dispatch duplicates. No merge, release or production deployment occurred.
+- The exact CLI argument example executes and prints 2 with first and "two words"
+  arguments. Formatting/idempotence and formatted execution also PASS
+  in session 23182, with the same exact output. No local test remains running.
+- Browser connection was stale on this continuation. No new HTTP keyboard
+  acceptance was established; retain the previous desktop/mobile visual checks
+  and the new complete native example result separately.
