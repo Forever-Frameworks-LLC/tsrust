@@ -7,10 +7,11 @@ function main() {
   strictEqual(config.ui.theme.light.primary, 'oklch(0.6 0.12 260 / 0.8)');
   strictEqual(config.ui.theme.light.accent, '@card-foreground');
   const html = document(Screen(), 'Colors');
-  strictEqual(html.includes('color(srgb '), true);
-  strictEqual(html.includes(' / 0.4)'), true);
-  strictEqual(html.includes('box-shadow:'), true);
-  strictEqual(html.includes('outline:2px solid'), true);
-  strictEqual(html.includes('Continue'), true);
+  strictEqual(html.includes('color(srgb '), true, 'Expected presence of color(srgb ');
+  strictEqual(html.includes(' / 0.8)'), true, 'Theme retains primary alpha before utility opacity');
+  strictEqual(html.includes('background:color-mix(in srgb,var(--ui-primary) 50%,transparent)'), true, 'Primary background combines theme alpha with half opacity');
+  strictEqual(html.includes('box-shadow:'), true, 'Expected presence of box-shadow:');
+  strictEqual(html.includes('outline:2px solid'), true, 'Expected presence of outline:2px solid');
+  strictEqual(html.includes('Continue'), true, 'Expected presence of Continue');
   console.log('UI colors passed');
 }

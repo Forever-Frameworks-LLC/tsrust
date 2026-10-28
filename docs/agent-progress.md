@@ -2,28 +2,182 @@
 
 ## Current continuation — public documentation audit
 
-Accepted local source is bc3c43aa. Earlier chronological entries below retain
-historical process states; they are not instructions to poll or restart those
-jobs. No Cargo test is currently running. The page-by-page acceptance checklist
-is [the public content audit](plans/public-documentation-content-audit.md).
+Latest accepted checkpoint is b747784e (Pages configuration evidence);
+57c1e6c2 contains CRLF documentation extraction;
+062d7e74 records Linux acceptance/cleanup;
+b5b685ae contains canonical docs package smoke;
+f1c3784f contains compiler entry-point cleanup;
+a92ba656 contains the macOS memory probe; 110a8e29 records
+contributor/toolchain documentation;
+eb3918f9 records macOS editor acceptance; ec0db552
+records regression/Windows evidence; e33f4674
+contains retained native fixtures and d23dbf20
+contains the hover repair and tooling-guide audit;
+7612c271 retains the HTTP reader timing baseline. Current work
+repairs retained editor compatibility while completing the public-doc audit. The
+page-by-page checklist is [the public content audit](plans/public-documentation-content-audit.md).
 
-The editor guide's historical blanket memory warning has been replaced with
-landed retention fixes and the precise remaining long-session macOS uncertainty.
-Rechecked restart semantics against extension.ts and installed language-client
-9.0.1: four automatic restarts, then no restart on a fifth exit within three
-minutes; the explicit restart command constructs a new client. Mobile section
-navigation and desktop skip/next-page keyboard navigation pass in the live guide.
-Overflowing code receives tabindex=0 after resize handling; actual horizontal
-keyboard scrolling was not established by this observation. Keep editor/platform
-execution and that interaction pending rather than closing the page.
+Accepted at d23dbf20: the ExampleCard fixture now includes CodeBlock, generated token model
+and theme config; the gallery uses kbd-v2/button-v3 and correct source paths. Both
+focused LSP fixtures pass. Card hover exposed a real shared documentation panic:
+layout::resolve parsed p-(--panel) as numeric spacing while selecting positioning
+help. documentation now uses the existing layout::offset query; all 23 style tests
+pass, including every variable-padding/gap prefix and metadata/responsive variants.
+The real LSP no longer crashes. Its stale overflow-hidden assertion now checks the
+current clipping/focus-reveal contract, and the formatted/idempotent fixture passes
+(1 test, 1.83s; /tmp/tsrust-retained-card-help-fixed.log). Server-test stderr is
+inherited to expose crashes. The earlier failure log remains diagnostic context.
 
-Reviewed saved Linux PR run 40705410644: package/shared-source failures concern
-the offline regex/version closure and portable-source location. The current
-workflow includes the later dependency-manifest fetch and fixed source-pack path.
-Latest Windows run 40731485167 passed at 9b658857; the newer live-LSP update
-witness still requires Linux/Windows execution. No new hosted run, push, merge
-or release was performed during this review. Batch remaining remote validation
-after recording its exact source identity and local acceptance.
+Backend compiler/LSP all-targets passes (2m18s), then workspace all-targets passes
+(1m06s), with no errors or warnings. Both used one Cargo job and incremental disabled;
+logs are /tmp/tsrust-hover-backend-check.log and /tmp/tsrust-hover-workspace-check.log.
+No Cargo check or test remains running from this section. No full regression or
+benchmark rerun was started for these focused repairs.
+
+CLI and managed-update pages now split dense prose into command purposes, verbose
+output and interruption/verification outcomes. Rendered mobile/desktop review,
+keyboard navigation and code scrolling completed for those pages; source-install
+page rendered review and editor-guide horizontal keyboard scrolling also completed.
+Production-preview 404 recovery passes: unknown nested route, search result and
+sidebar keyboard navigation. Build produces 23 pages; all same-site links/anchors
+pass. Whole-project formatter changed zero files/fingerprints. Keep fresh-platform,
+published-acquisition and interactive execution requirements open in the tracker.
+
+Existing remote head is 86435b8846badcfaf836af9c36da3fa56379f3a6 on draft PR #4.
+Linux 40748887685 completed SUCCESS at 86435b88, including live LSP update,
+installer 7/7, shared sources 5/5, packages 7/7, native SDK replica integration and
+complete checker/completion agreement, consistency and stdio. Aggregate CI passed.
+Windows 40748893795 succeeded at 86435b88: installer/process 8/8, shared-source
+5/5 and package-management 7/7, including the new live-LSP update witness.
+Docs 40748887897 passed. No new hosted run, push, merge or release in this section.
+
+## Hosting configuration verification
+
+GitHub Pages API confirms build_type=workflow and HTTPS enforced at the expected
+/tsrust/ project URL. The github-pages environment has custom branch protection
+allowing only main. Deployment history is empty; direct public HEAD returns 404.
+Corrected the site checklist: hosting is configured, but no deployment is accepted.
+All 23 pages already have local responsive/keyboard inspection recorded in the
+content audit; marked that presentation/navigation item complete without claiming
+all outstanding platform examples or public-host recovery are accepted. No setting
+was changed and no deployment was triggered.
+
+## Build-output cleanup
+
+After process inspection showed no local Cargo/rustc/test executable running,
+removed 32 older test executables sharing source identities with newer retained
+builds (575,105,312 logical bytes). Grouping uses Cargo dep-info source paths so
+compiler/LSP tests with identical names remain distinct. Preserved newest tests,
+all dependency libraries, CLI/LSP consumers, source packs and the live memory probe.
+No source, owner data or SQLite history changed. Older test variants can be rebuilt
+from commits; no rebuild was started merely to repopulate the cache.
+
+## Documentation examples in package acceptance
+
+Extended existing smoke-toolchain.mjs rather than creating another build/workflow.
+It verifies explicit offline setup and doctor --native, reads exact quickstart and
+testing snippets from canonical Markdown, checks formatting, executes the platform
+reporter shell command and requires the intentional greeting failure to show both
+values. Complete local macOS smoke passes with current debug CLI/LSP; disposable
+log /tmp/tsrust-docs-toolchain-smoke.log. This is not release-package acceptance or
+fresh-machine setup proof. Windows/PowerShell and Linux execution remain pending;
+the existing release validation's four platform jobs already invoke this smoke.
+No hosted dispatch/push/publication was needed for the local implementation.
+Follow-up review found LF-only code-fence extraction would fail on CRLF Windows
+checkouts. Normalize both Markdown inputs before extraction. All four actual
+program/shell blocks extract byte-identically from LF and CRLF witnesses; syntax
+checking passes. Native behavior is unchanged, so no native rerun is warranted.
+
+## Compiler entry-point cleanup
+
+Replaced the obsolete compiler README with a concise source-checked crate/API guide.
+Removed false claims that LSP, UTF-16 positions and recovery are unimplemented and
+that the workspace has no dependencies. Historical feature evidence remains in
+existing milestones/Git; no archive or snapshot was created. Corrected the linked
+architecture guide's implementation lead while preserving its labeled research.
+A read-only scan passes 177 local destinations across 48 maintained entry-point/
+reference files, excluding historical benchmark/experiment records and packaged
+agent skills. Extended the existing distribution link guard to both edited guides.
+All 14 distribution/release-policy tests pass; the whole-project formatter changes
+zero files/fingerprints and git diff --check is clean.
+The macOS --soak process (20376) completed successfully; see the current memory
+section below. It must not be restarted merely to reproduce a passing transcript.
+
+## macOS memory validation
+
+Extended the existing bounded probe with actual physical footprint, reported peak,
+swapped/compressed memory, RSS and system-pressure counters. One temporary LSP;
+no owner workspace or processes controlled. The short probe passes 890 requests
+in 43.6s, with 34 samples, normal exit and no stderr. Maximum footprint 15,794,656
+bytes; sampled swapped/compressed maximum 3,457,024 bytes; system free 35–41%.
+The [memory investigation](milestones/lsp-memory-investigation.md) records limits
+and the exact binary hash. Added explicit --soak for a 30-minute workload with a
+31-minute hard stop. The sustained macOS probe completed in 1,801,653 ms: 38,926 requests, 526 cycles,
+1,427 samples, no stderr/error and normal exit. Peak physical footprint 16,826,872
+bytes; maximum sampled swapped/compressed 15,581,184; system free 26–56%.
+Observed usage fell between cycles. This bounded small-workspace result does not
+prove arbitrary large-workspace/multi-hour stability. Public editor/package guidance
+now states those limits. No local probe process remains. No Rust build,
+performance benchmark or duplicate hosted run was needed.
+
+## Repository entry-point audit
+
+CONTRIBUTING now matches separate workspace/backend/portable/binding dependency
+preparation, explicit portable source setup, stag PR checks, opt-in retained UI
+regressions and separate platform release/promotion. Clippy documentation matches
+the correctness gate while retaining other warnings as visible debt. Rust policy
+now distinguishes backend/native-UI profiles, explicit setup and managed CLI/LSP
+acquisition from unimplemented Rust binary bundling. Removed the stale dependency-free
+claim and dead loose-evidence link; historical records are unchanged. Local links
+and anchors pass. Existing distribution/release-policy tests pass all 14 cases;
+whole-project formatting changes zero files/fingerprints. No native rebuild or
+new hosted run is needed for these prose corrections.
+
+## Isolated macOS editor audit
+
+Current recovery integration passes: four automatic restarts, bounded fifth stop,
+manual reset and current-text diagnostics. Full editor integration also passes:
+native run/check tasks, formatter/save actions, quick fixes, imports and navigation,
+completion/hover/signature agreement, missing-server recovery and diagnostic ranges.
+The test fixture contained mojibake instead of emoji; repaired it with explicit
+JavaScript Unicode escapes and a surrogate-pair assertion. Actual UTF-16 diagnostic
+range checking passes. Logs: /tmp/tsrust-macos-editor-recovery.log and
+/tmp/tsrust-macos-editor-integration.log. Both runners exit 0. No owner VS Code
+profile was controlled. Neither check proves long-session memory stability.
+Repaired fixture execution on Windows/Linux remains pending. No Rust rebuild,
+full regression rerun or new hosted workflow was needed for this section.
+
+## Regression reconciliation
+
+The [26-target reconciliation](milestones/backend-polish-regression-reconciliation.md)
+records original failures and accepted focused repairs without claiming one green
+full run. The isolated table renderer build passes (1 test, 80.55s). Both retained
+UI catalog checks still fail on historical documentation coverage: 59 entries lack
+fenced examples and 49 lack executable examples. Keep these visible under deferred
+UI scope; backend catalog tests pass. No UI feature expansion or duplicate hosted
+run is warranted. Remaining public-page/platform checks stay open.
+
+## Retained native compatibility follow-up
+
+Saved interactive_cli followup evidence confirms 7/7 PTY tests pass; cli_presentation
+3/3, project_commands 11/11 and repaired dev_aliases 3/3 are retained, not rerun.
+The public CLI audit now cites those concrete results. Documentation CI 40748887897
+was rechecked at 86435b88: npm ci, static build, tool tests and links pass, with no
+Rust build and no production deployment. Marked that specific site-plan item complete.
+
+Native assertion messages exposed stale HTML expectations: color rules now preserve
+CSS theme references and opacity uses color-mix. Updated layout assertions check
+both background:var(--ui-primary) and the exact light/dark custom properties; color
+assertions retain source values, theme alpha and the half-opacity utility. Both
+formatted native tests pass (2/2, 71.95s); rejection cases remain unchanged.
+The retained docs fixture now checks its actual headline, workspace status and
+View source control, and its Rust wrapper expects the current success message.
+Exec 48836 completed: grid/color pass; docs failed on the historical Documentation
+label. Replaced that assertion with the current accessible Main navigation label,
+keeping both documentation links. Exec 58491 passes the affected docs case (1/1, 84.18s), including whole fixture
+format/idempotence, native assertions and emitted renderer checks. Evidence:
+/tmp/tsrust-retained-native-docs-fixed.log. No local Cargo consumer remains running. Earlier
+layout/color diagnostic invocations completed with the identified assertion failures.
 
 ## Owner priority: public documentation site
 
@@ -1736,3 +1890,110 @@ source-build link. No viewport override applied. Do not mark page fully audited.
   site build and all 23-page links/anchors/assets pass; git diff --check clean.
   No hosted jobs or releases started. Next: remaining documentation acceptance,
   batched Linux/Windows pipeline validation and backend performance requirements.
+
+### HTTP native example and batched remote validation
+
+- Exact combined HTTP guide server formatted and built with the current CLI in
+  the shared target; native assertions pass for GET Hello, both middleware
+  headers, POST JSON Ada/status 202 and malformed/schema-error status 500.
+  Build log: /tmp/tsrust-doc-http-native.log. Initial sandbox execution failed
+  to bind and was terminal; the permitted loopback execution passed. The owned
+  server was terminated in finally. Remaining page keyboard checks stay open.
+- Remote candidate source is e710353763061899c8e92628375be26a667048e2,
+  including the accepted bc3c43aa live-LSP update witness. This evidence-only
+  checkpoint does not change its executable or public-doc inputs. Reconcile
+  that exact candidate tree as a normal child of PR head
+  4df6609649f80e2ce6bb45142a69d73d86814f28, without force push or checkout switch.
+- Local acceptance: 15 scoped editor cases, complete backend catalog compiler/
+  native examples, clean backend all-target diagnostics, both affected installer
+  cases, native SDK authorization/replica checks, whole-project formatting and
+  the 23-page site build/link check. Required full milestone/performance and
+  incomplete page audits remain pending; PR stays draft.
+- Hosted uncertainty: Linux offline dependency closure after the diagnosed
+  package/shared-source fixes, and Windows execution of the new real-LSP session
+  across update. Last equivalent Linux PR run 40705410644 failed before those
+  fixes; Windows 40731485167 passed older source 9b658857. No run exists for this
+  candidate. Use automatic PR CI on Linux plus one manual toolchain_acceptance
+  on the same staging branch for Windows; it skips Linux/editor duplicate jobs.
+  PR and branch dispatch have distinct concurrency refs. The PR docs workflow
+  builds only; neither validation publishes a release or deploys production docs.
+
+### Platform batch submitted
+
+- PR #4 advanced normally to 86435b8846badcfaf836af9c36da3fa56379f3a6.
+  Its tree was verified identical to e7103537; owner checkout stayed on
+  codex/language-cli-docs-polish and no branch was force-pushed.
+- Linux PR CI 40748887685 and focused Windows dispatch 40748893795 are confirmed
+  IN PROGRESS on that exact head. Windows correctly skips Linux/editor jobs.
+  Documentation PR build 40748887897 was queued. Poll these existing runs;
+  do not dispatch duplicates. No merge, release or production deployment occurred.
+- The exact CLI argument example executes and prints 2 with first and "two words"
+  arguments. Formatting/idempotence and formatted execution also PASS
+  in session 23182, with the same exact output. No local test remains running.
+- Browser connection was stale on this continuation. No new HTTP keyboard
+  acceptance was established; retain the previous desktop/mobile visual checks
+  and the new complete native example result separately.
+
+### Setup guide and HTTP presentation acceptance
+
+- Documentation PR run 40748887897 completed SUCCESS. Linux 40748887685 and
+  Windows 40748893795 remain IN PROGRESS; Linux extension job passed. No new
+  hosted runs were started. Keep polling those IDs rather than restarting them.
+- Current macOS doctor --native --json passes: pinned Rust 1.96.1, successful
+  compile/link/execute, unmanaged installation, application dependencies unchecked,
+  no network. Exact report: /tmp/tsrust-doc-doctor-native.json. Explicit
+  setup --dependencies --offline passes using shared cached sources, with no
+  project vendor directory; /tmp/tsrust-doc-setup-offline.log.
+- Rechecked setup_cli.rs flags, consent, exit conditions and native probe. Setup
+  guide now presents exit codes in a table, splits source-pack choices, and omits
+  parser implementation detail. Full 390px/1440px rendered review passes: readable
+  sections/table, highlighted code, no page overflow, skip/next navigation and
+  focusable code scrolling (ArrowRight 40px). Fresh-machine setup stays pending.
+- Closed HTTP guide audit: prior complete source/desktop/mobile review plus exact
+  native example now supplemented by keyboard skip/next-page navigation and
+  horizontal code scrolling (40px). Temporary viewport override reset.
+- Local site build and links/anchors/assets pass for all 23 pages. Initial build
+  attempted Astro telemetry preferences outside the sandbox; retry with
+  ASTRO_TELEMETRY_DISABLED=1 passed. Use that environment for future local builds.
+  No Rust suite was rerun for these prose/layout changes.
+
+### HTTP request-reader milestone timing accepted
+
+- Original protocol/hash/oracle guard passes. Timed session 2471 completed PASS
+  on clean bb035b01: 93 native plus 93 Node-after-tsc samples, all checksum 5376,
+  3 processes/8 warmups/31 samples, 256 requests per batch. Optimized native
+  build completed under the existing 300s bound with one build job. No rerun.
+- Median native 11.560791 ms versus Node 20.662167 ms (1.787 ratio); mean
+  per-sample throughput ratio 1.771. New matching baseline, not evidence of a
+  historical speedup or isolated server throughput. Detailed scope and process
+  medians recorded in plans/http-request-body-readers.md.
+- Imported only raw measurement and its acceptance proof into private SQLite;
+  verified exact decoded restoration and indexed 186 samples. Public export now
+  contains 70 runs/86,622 timings/825 allocation samples; historical rows remain.
+  Removed only the two verified imported loose records. No logs/snapshots imported.
+- Export initially failed on non-hash descriptive oracleInputs; public.py now
+  omits that unallowlisted object, still rejecting malformed declared hashes.
+  Added the exact reader measurement scope to the allowlist. Five public-storage
+  tests pass, including new scope/sample-preservation and private-oracle controls.
+  Re-export completed through public.py; PUBLIC_DATA.md reports its new identity.
+- Linux 40748887685 and Windows 40748893795 last confirmed building consumers;
+  docs run 40748887897 is green. No new hosted dispatch or push. Continue those
+  runs, remaining page audits and unrepaired retained-compatibility regressions;
+  keep the full goal active.
+
+## Memory guidance acceptance and batched remote validation
+
+The completed 30-minute macOS probe supports the revised public editor and packaged
+README guidance; it does not establish large-workspace or multi-hour stability.
+The changed paragraph is readable in the local preview. The final static build
+and link/anchor checker pass all 23 pages; all 14 distribution/release-policy tests
+pass. Whole-project formatting changes zero files or benchmark fingerprints.
+
+Next remote validation batches the accepted local milestone into one normal child
+of PR #4 head 86435b8846badcfaf836af9c36da3fa56379f3a6, preserving its history.
+The push triggers the existing Linux PR CI and documentation workflow once.
+The unresolved remote question is hosted Linux acceptance of the accumulated
+compiler/editor/doc-tooling repairs; the previous equivalent baseline runs at
+86435b88 passed, but predate these repairs. No additional manual Windows run or
+release compilation is warranted for unchanged installer/cache code. Record the
+exact source checkpoint and compact remote commit after creation.

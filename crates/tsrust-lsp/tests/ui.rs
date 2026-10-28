@@ -175,8 +175,9 @@ fn extended_jsx_forwarding_metadata_and_structural_help_are_checked() {
 fn card_parts_spacing_typography_and_radius_help_follow_owned_sources() {
  let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-compiler/src/ui-catalog/components-3.0.0.json")).unwrap();let card=catalog[0]["files"][0]["content"].as_str().unwrap();
  let source="import {Card,CardHeader,CardTitle} from './card';import {View,ThemeRadius} from 'std:ui';function main(){const card=<Card size=\"sm\"><CardHeader><CardTitle>Title</CardTitle></CardHeader></Card>;const n=<View className=\"[--panel:--spacing(4)] p-(--panel) text-sm font-medium rounded-xl overflow-hidden\"/>;}";
+ let formatted=tsrust_compiler::format(source).unwrap();assert_eq!(tsrust_compiler::format(&formatted).unwrap(),formatted);let source=formatted.as_str();
  let mut session=support::session::Session::start(&[("card.tsrx",card)]);session.open("main.tsrx",source);let diagnostics=session.wait_for_diagnostics("main.tsrx");session.settle();assert_eq!(diagnostics.as_array().unwrap().len(),0,"{diagnostics}");
- for (needle,expected) in [("CardHeader><","Header grid"),("p-(--panel)","missing variable"),("text-sm","14px/20px"),("rounded-xl","radius.xl"),("overflow-hidden","pointer targets")] {
+ for (needle,expected) in [("<CardHeader>","Header grid"),("p-(--panel)","missing variable"),("text-sm","14px/20px"),("rounded-xl","radius.xl"),("overflow-hidden","clips to the rounded padding box and permits focus reveal but no wheel scrolling")] {
   let help=session.hover("main.tsrx",source,source.find(needle).unwrap()+3).unwrap_or_default();assert!(help.to_lowercase().contains(&expected.to_lowercase()),"{needle}: {help}");
  }
 }
@@ -213,8 +214,9 @@ fn typed_json_literal_union_help_and_inference_agree(){
 fn documentation_example_card_keeps_owned_children_and_source_props_in_editor(){
  let card=include_str!("../../../docs/src/components/docs/example-card.tsrx");
  let button=include_str!("../../../docs/src/components/ui/button.tsrx");let surface=include_str!("../../../docs/src/components/ui/card.tsrx");let textarea=include_str!("../../../docs/src/components/ui/textarea.tsrx");
- let source="import {ExampleCard} from './components/docs/example-card';import {Text,Node} from 'std:ui';function Page():Node{return (<ExampleCard id=\"example\" title=\"Example\" description=\"Live preview\" source=\"example.tsrx\" code=\"export function Example(){}\"><Text>Live child</Text></ExampleCard>);}function main(){}";
- let mut session=support::session::Session::start(&[("components/docs/example-card.tsrx",card),("components/ui/button.tsrx",button),("components/ui/card.tsrx",surface),("components/ui/textarea.tsrx",textarea)]);session.open("main.tsrx",source);let diagnostics=session.wait_for_diagnostics("main.tsrx");session.settle();assert!(diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
+ let source="import {ExampleCard} from './src/components/docs/example-card';import {Text,Node} from 'std:ui';function Page():Node{return (<ExampleCard id=\"example\" title=\"Example\" description=\"Live preview\" source=\"example.tsrx\" code=\"export function Example(){}\" tokens={[]}><Text>Live child</Text></ExampleCard>);}function main(){}";
+ let formatted=tsrust_compiler::format(source).unwrap();assert_eq!(tsrust_compiler::format(&formatted).unwrap(),formatted);let source=formatted.as_str();
+ let mut session=support::session::Session::start(&[("src/components/docs/example-card.tsrx",card),("src/components/ui/button.tsrx",button),("src/components/ui/card.tsrx",surface),("src/components/ui/textarea.tsrx",textarea),("src/components/docs/code-block.tsrx",include_str!("../../../docs/src/components/docs/code-block.tsrx")),("target/docs-content/catalog.tsr",tsrust_compiler::documentation::MODEL_SOURCE),("tsrust.config.json",include_str!("../../../docs/tsrust.config.json"))]);session.open("main.tsrx",source);let diagnostics=session.wait_for_diagnostics("main.tsrx");session.settle();assert!(diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
  let hover=session.hover("main.tsrx",source,source.find("code=\"").unwrap()+1).unwrap_or_default();assert!(hover.contains("string"),"{hover}");
  let broken=source.replace("code=\"export function Example(){}\"","code={true}");session.change("main.tsrx",&broken);let diagnostics=session.wait_for_diagnostics("main.tsrx");assert!(!diagnostics.as_array().unwrap().is_empty(),"{diagnostics}");
 }
@@ -263,22 +265,24 @@ fn visibility_and_external_links_offer_matching_help_and_diagnostics(){
 #[test]
 fn local_component_gallery_examples_keep_checked_props_and_change_help() {
  let files=[
-  ("components/ui/button.tsrx",include_str!("../../../docs/src/components/ui/button.tsrx")),
-  ("components/ui/card.tsrx",include_str!("../../../docs/src/components/ui/card.tsrx")),
-  ("components/ui/input.tsrx",include_str!("../../../docs/src/components/ui/input.tsrx")),
-  ("components/ui/textarea.tsrx",include_str!("../../../docs/src/components/ui/textarea.tsrx")),
-  ("components/ui/label.tsrx",include_str!("../../../docs/src/components/ui/label.tsrx")),
-  ("components/ui/kbd.tsrx",include_str!("../../../docs/src/components/ui/kbd.tsrx")),
-  ("components/ui/separator.tsrx",include_str!("../../../docs/src/components/ui/separator.tsrx")),
-  ("examples/card-layout.tsrx",include_str!("../../../docs/src/examples/card-layout.tsrx")),
-  ("examples/card-project.tsrx",include_str!("../../../docs/src/examples/card-project.tsrx")),
-  ("examples/input-states.tsrx",include_str!("../../../docs/src/examples/input-states.tsrx")),
-  ("examples/multiline-draft.tsrx",include_str!("../../../docs/src/examples/multiline-draft.tsrx")),
-  ("examples/field-labels.tsrx",include_str!("../../../docs/src/examples/field-labels.tsrx")),
-  ("examples/keyboard-shortcuts.tsrx",include_str!("../../../docs/src/examples/keyboard-shortcuts.tsrx")),
-  ("examples/section-dividers.tsrx",include_str!("../../../docs/src/examples/section-dividers.tsrx")),
+  ("src/components/ui/button.tsrx",include_str!("../../../docs/src/components/ui/button.tsrx")),
+  ("src/components/ui/card.tsrx",include_str!("../../../docs/src/components/ui/card.tsrx")),
+  ("src/components/ui/input.tsrx",include_str!("../../../docs/src/components/ui/input.tsrx")),
+  ("src/components/ui/textarea.tsrx",include_str!("../../../docs/src/components/ui/textarea.tsrx")),
+  ("src/components/ui/label.tsrx",include_str!("../../../docs/src/components/ui/label.tsrx")),
+  ("src/components/ui/kbd-v2.tsrx",include_str!("../../../docs/src/components/ui/kbd-v2.tsrx")),
+  ("src/components/ui/separator.tsrx",include_str!("../../../docs/src/components/ui/separator.tsrx")),
+  ("src/examples/card-layout.tsrx",include_str!("../../../docs/src/examples/card-layout.tsrx")),
+  ("src/examples/card-project.tsrx",include_str!("../../../docs/src/examples/card-project.tsrx")),
+  ("src/examples/input-states.tsrx",include_str!("../../../docs/src/examples/input-states.tsrx")),
+  ("src/examples/multiline-draft.tsrx",include_str!("../../../docs/src/examples/multiline-draft.tsrx")),
+  ("src/examples/field-labels.tsrx",include_str!("../../../docs/src/examples/field-labels.tsrx")),
+  ("src/examples/keyboard-shortcuts.tsrx",include_str!("../../../docs/src/examples/keyboard-shortcuts.tsrx")),
+  ("src/examples/section-dividers.tsrx",include_str!("../../../docs/src/examples/section-dividers.tsrx")),
  ];
- let mut session=support::session::Session::start(&files);
+ let mut fixture=files.to_vec();
+ fixture.extend([("src/components/ui/button-v3.tsrx",include_str!("../../../docs/src/components/ui/button-v3.tsrx")),("tsrust.config.json",include_str!("../../../docs/tsrust.config.json"))]);
+ let mut session=support::session::Session::start(&fixture);
  for (file,source) in &files[7..] {
   session.open(file,source);let diagnostics=session.wait_for_diagnostics(file);session.settle();
   assert!(diagnostics.as_array().unwrap().is_empty(),"{file}: {diagnostics}");

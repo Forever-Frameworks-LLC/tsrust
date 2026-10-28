@@ -57,7 +57,7 @@ impl Session {
         let mut child = Command::new(server)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::null())
+            .stderr(Stdio::inherit())
             .spawn()
             .unwrap();
         let stdin = child.stdin.take();

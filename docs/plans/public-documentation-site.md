@@ -156,11 +156,11 @@ reviewable site and the selected provider's access requirements.
 
 ## Acceptance checklist
 
-- [x] GitHub Pages selected with documented limits; repository is public and administrator access verified. Pages activation remains an implementation step.
-- [ ] Reproducible clean install and static production build; no Rust/compiler prerequisite.
+- [x] GitHub Pages selected with documented limits; repository is public and administrator access verified. API recheck on 2026-10-28 confirms workflow builds, HTTPS enforcement and a github-pages environment allowing only branch main. Deployment history is empty and the public project URL returns HTTP 404; configuration is complete but publication is not.
+- [x] Reproducible clean install and static production build; no Rust/compiler prerequisite. Documentation run 40748887897 at 86435b8846badcfaf836af9c36da3fa56379f3a6 passed npm ci, production build, website-tool tests and generated links. The workflow uses Node/Python only; production deployment was correctly skipped for the PR.
 - [ ] Complete installation → first native program → first backend → editor journey.
 - [ ] Every published page reviewed for current supported behavior and runnable examples.
-- [ ] Logical sidebar, working search, stable routes, mobile/desktop and keyboard checks.
+- [x] Logical sidebar, working search, stable routes, mobile/desktop and keyboard checks. All 23 rendered pages have desktop/narrow review recorded in the public content audit; search and custom-404 recovery pass in the production preview. This does not substitute for checking the deployed URL.
 - [ ] Migration map covers public source pages, old anchors and retained consumers.
 - [ ] Duplicate migrated Markdown removed; internal evidence and owner files preserved.
 - [ ] Active repository links and site links resolve, including anchors and base paths.

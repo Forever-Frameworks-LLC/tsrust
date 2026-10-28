@@ -26,6 +26,7 @@ tsrust toolchain install --root /absolute/path/to/new/tsrust
 
 The parent directory must exist and the destination must be new. Installation
 never adopts an existing directory or overwrites a package-manager installation.
+
 Add the new directory's `bin` directory to PATH. Configure both executable paths
 in [VS Code](../../start/editor/#locate-the-compiler-and-language-server) to the
 managed `bin/tsrust` and `bin/tsrust-lsp` launchers; on Windows, both end in `.exe`.
@@ -63,14 +64,17 @@ the CLI or language server.
 ### Running processes and interrupted updates
 
 Versions live in separate directories. One atomic installation record selects the
-pair. A running compiler or editor server stays on its original executable; new
-launches select the committed version. Restart the editor server after an update.
-The installer does not stop editor processes or overwrite running Windows files.
-An incomplete download or failed verification leaves the selected pair unchanged.
-A verified stage left by interruption can be reused, and incomplete owned stages
-are discarded on the next attempt. The prior pair remains available for rollback.
-Older unused directories are removed when possible; a locked directory can remain
-until it can be removed safely. Do not manually edit installation records.
+pair. Restart the editor server after an update so it uses the new version.
+
+- **Already running:** a compiler or editor server stays on its original executable.
+  New launches select the committed version. Installation does not stop editor
+  processes or overwrite running Windows files.
+- **Download or verification fails:** the selected pair stays unchanged.
+- **Installation is interrupted:** a verified stage can be reused; incomplete owned
+  stages are discarded on the next attempt. The prior pair remains available for rollback.
+- **An old directory is locked:** cleanup leaves it until it can be removed safely.
+
+Do not manually edit installation records.
 
 ## Verify the installed pair
 
@@ -90,9 +94,14 @@ launcher.
 
 The trust boundary is verified HTTPS to the fixed official GitHub repository and
 GitHub's immutable-release metadata and asset digest. A checksum hosted alongside
-an arbitrary archive is insufficient. Archives must match the host and clean
-release manifest; links, traversal, duplicate paths, missing notices and modified
-files are rejected. Both staged consumers must report their manifest versions.
+an arbitrary archive is insufficient.
+
+Before switching versions, installation verifies:
+
+- The archive matches the host and clean release manifest.
+- Entries contain no links, traversal, duplicate paths, missing notices or modified files.
+- Both staged executables report the versions declared in their manifest.
+
 This is not independent code signing or macOS notarization. See GitHub's
 [release API](https://docs.github.com/en/rest/releases/releases) and the
 [release guide](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/docs/guides/releases.md) for publication and platform limitations.

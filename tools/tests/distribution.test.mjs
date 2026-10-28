@@ -126,7 +126,7 @@ test('release preflight accepts exact versions and rejects mismatches and dirty 
 }));
 
 test('public entry-point documentation links resolve within the checkout', () => {
-  for (const relative of ['README.md', 'CONTRIBUTING.md', 'SECURITY.md', 'examples/README.md', 'docs/README.md', 'docs/guides/releases.md', 'editors/vscode/README.md']) {
+  for (const relative of ['README.md', 'CONTRIBUTING.md', 'SECURITY.md', 'examples/README.md', 'docs/README.md', 'docs/guides/releases.md', 'editors/vscode/README.md', 'crates/tsrust-compiler/README.md', 'docs/guides/language/compiler-and-modules.md']) {
     const filename = path.join(root, relative);
     const text = fs.readFileSync(filename, 'utf8').replace(/```[\s\S]*?```/g, '');
     for (const [, link] of text.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)) {

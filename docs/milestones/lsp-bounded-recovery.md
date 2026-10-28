@@ -48,3 +48,28 @@ compiler/editor matrix, benchmark, CI, registry publication or public release ra
 Current logs under `target/lsp-recovery-*.log` are disposable diagnostics, not
 analytics inputs. The historical long-lived memory report and actual cause of the
 two observed exits remain unresolved.
+
+
+## macOS documentation-audit acceptance — 2026-10-28
+
+The current recovery integration passes in a temporary workspace/profile using the
+installed macOS VS Code executable and the current `target/debug/tsrust-lsp`.
+Four automatic restarts, stopped fifth recovery, explicit manual restart and
+current-text diagnostics all pass; the runner exits 0. Its process selection is
+restricted to direct LSP children of its own extension host. No owner workspace,
+settings or normal editor processes were controlled. Expected stream-close errors
+occur while deliberately terminating the test servers; they are not hidden.
+Disposable log: `/tmp/tsrust-macos-editor-recovery.log`.
+
+The full isolated editor integration also passes, including actual check/run tasks,
+formatting and format-on-save, compiler-backed quick fixes, unsaved imports,
+hover/signatures/completions, definitions/references, outline, missing-server
+recovery and current-text diagnostics. Review found mojibake in the Unicode fixture;
+it now creates a real U+1F600 surrogate pair and U+00E9 from explicit JavaScript
+escapes, with an assertion that the fixture has more UTF-16 units than code points.
+The diagnostic range still selects exactly `true` after those characters. Both
+module and standard-library native task checks pass. Disposable log:
+`/tmp/tsrust-macos-editor-integration.log`; runner exits 0.
+
+These are short interactive acceptance tests, not long-session memory measurements.
+The repaired surrogate-pair fixture has not yet been re-executed on Windows/Linux.

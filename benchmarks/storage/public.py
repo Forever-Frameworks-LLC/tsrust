@@ -31,6 +31,7 @@ SCOPES = {'direct-rust-reference', 'execution-only',
           'in-process-128-insert-transaction', 'in-process-matching',
           'in-process-worker-lifecycle', 'native-allocation-profile',
           'runtime-execution', 'runtime-startup-compilation',
+          'loopback JSON/schema and contextual streaming requests; excludes startup/build',
           'verified-https-http2-request-batch'}
 
 
@@ -102,7 +103,7 @@ def metadata(value):
         inputs = value.get(key)
         if isinstance(inputs, list):
             out[key] = [digest(item[1] if isinstance(item, list) else item) for item in inputs]
-        elif isinstance(inputs, dict):
+        elif isinstance(inputs, dict) and 'sha256' in inputs:
             out[key] = {'sha256': digest(inputs['sha256'])}
             commit = inputs.get('sourceCommit')
             if isinstance(commit, str) and re.fullmatch(r'[0-9a-f]{40}', commit):

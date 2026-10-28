@@ -1,313 +1,84 @@
-# Rust compiler and analysis library
+# Compiler and analysis library
 
-[Project README](../../README.md) · [Ownership rules](../../docs/milestones/01-ownership-proof.md) · [Branch rules](../../docs/milestones/02-control-flow.md)
+This crate provides the `tsrust` command and the `tsrust_compiler` Rust library.
+It checks Tsrust source and generates Rust; the pinned Rust backend compiles that
+output into native applications. The implemented [language server](../tsrust-lsp/)
+uses this same library for diagnostics and editor intelligence.
 
-The compiler implementation and its test suites are Rust. “Bootstrap” describes the early stage of the implementation; it does not describe a separate runtime. This workspace member provides both the compiler library and the `tsrust` binary.
+For application development, start with [installation](../../website/src/content/docs/start/installation.md),
+[the CLI guide](../../website/src/content/docs/tools/cli.md) and
+[modules](../../website/src/content/docs/language/modules.md).
+This README covers the compiler crate rather than duplicating the language reference.
 
-There are two compilation stages:
+## Build and test
 
-1. Our Rust application, `tsrust`, analyzes `.tsr` source and emits `.rs` source.
-2. The external Rust compiler, `rustc`, turns that generated `.rs` source into a native executable.
-
-The language server is planned as another Rust application using this same analysis library. It is not implemented yet. Sharing the analyzer prevents the editor and command-line compiler from independently implementing different language rules.
-
-## Workspace and library API
-
-The workspace has no external crates. Build with `cargo build --offline`; check library behavior with `cargo test --offline`.
-
-Rust 1.96.1 is pinned for repository builds and generated-program compilation. Native builds require Rustup and that installed release. The CLI explicitly selects and verifies the backend, regardless of working directory or ambient toolchain overrides. Missing backends produce setup instructions without an implicit download. See the [toolchain policy](../../docs/guides/tooling/rust-toolchain-policy.md).
-
-`tsrust_compiler::check(source: &str)` returns either an `Analysis` or a structured `Diagnostic`. It runs entirely in process and does not read files, invoke `rustc`, or generate Rust text. A successful `Analysis` provides:
-
-- `contracts()`: inferred parameter access, in deterministic name order.
-- `emit_rust()`: generated Rust for the checked source.
-- `closures()`: creation spans, enclosing functions, escape classification, invocation contracts, per-capture storage/access metadata, per-parameter inferred access, one-based lexical depth, and a `template` flag for checked owned-callback templates.
-- `to_json()`: the CLI's machine-readable check result.
-
-The library retains the checked syntax tree, so emission reuses analysis. The frontend moves ordinary function bodies into analysis. Owned-callback functions retain syntax templates for bounded cached specialization by concrete environment type. Concrete data-result specializations are checked iteratively; callable-result specializations remain eager to resolve their returned environment. Source arrow types are cached by capture layout and callable contracts, independently of unused outer type parameters. Symbol lookup uses maps and resolved bindings use IDs. These are implementation choices, not a performance guarantee.
-
-## Pipeline and modules
-
-- `syntax/`: UTF-8-aware tokenization, string decoding, source ranges, parsing, and syntax nodes.
-- `analysis/`: name/type resolution, record and call checks, callee-first analysis and recursive access inference, binding availability, argument conflicts, and parameter contracts.
-- `diagnostic.rs`: structured errors, related ranges, text formatting, and JSON serialization.
-- `emit/`: Rust generation from the checked AST with generated identifiers.
-- `lib.rs`: reusable in-process analysis entry point.
-- `main.rs`: file/CLI handling and optional native compilation/execution.
-
-Every function is checked, including unused functions. Callees are analyzed before callers, independent of declaration order. Recursive data calls infer stable access summaries before fresh definitive ownership checking; callable-result cycles resolve one concrete origin before definitive checking. The analyzer currently returns the first diagnostic; editor error recovery is future work.
-
-## CLI
-
-After `cargo build --offline`, run:
+Follow [contributor setup](../../CONTRIBUTING.md#set-up) to prepare the pinned Rust
+toolchain, linker and locked dependencies. From the repository root:
 
 ```sh
-./target/debug/tsrust check input.tsr
-./target/debug/tsrust check input.tsr --json
-./target/debug/tsrust emit input.tsr
-./target/debug/tsrust emit input.tsr -o output.rs
-./target/debug/tsrust build input.tsr -o output
-./target/debug/tsrust run input.tsr
+CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 cargo build --offline --locked \
+  -p tsrust-compiler -p tsrust-lsp --bin tsrust --bin tsrust-lsp
 ```
 
-`check` and `emit` never invoke Rust's compiler or Rustup. Invalid source is rejected before any backend invocation. `check --json` returns `ok`, inferred `contracts` and a `closures` array on success, and `diagnostics`. Text checks also display closure contracts and argument access. Closure text checks and JSON also report one-based lexical `depth` and distinguish abstract `template` environments from concrete specializations. Only concrete environments are emitted; `contracts()` reports each source declaration once. The JSON `closures[].parameters` array contains each argument’s name and inferred `access`, also available through `ClosureInfo.parameters` in the library. Capture spans identify the first body use; closure spans identify creation. Diagnostic ranges use zero-based, half-open UTF-8 byte offsets and one-based line/Unicode-scalar column values. LSP position-encoding conversion is future work.
+The workspace has external dependencies; offline builds require explicit source
+preparation first. The compiler and LSP can check source without an external Rust
+compiler. Native build/run commands require the exact backend release recorded by
+`RUST_BACKEND_VERSION`, currently Rust 1.96.1. See the
+[toolchain policy](../../docs/guides/tooling/rust-toolchain-policy.md).
 
-The tool refuses to overwrite its source with `--output`. `build` requires an explicit output path. Build intermediates and `run` executables use temporary directories and are removed afterward. `emit` can retain generated Rust for inspection. Rust rejection after successful source checking is reported as a compiler defect.
+Use the [development workflow](../../docs/development-workflow.md) to select affected
+checks and meaningful milestone regressions. Do not run the complete suite after
+every routine edit. Compiler integration targets live in [tests/](tests/);
+shared formatting/native helpers live in [tests/support/](tests/support/).
 
-## Deliberate subset boundaries
+## Library entry points
 
-- Declared functions can be bound, moved, returned and captured as callable values, including callback-consuming targets. Zero-capture forwarding descriptors preserve exact inferred argument access and use static dispatch without environment allocation. Nested callable annotations, inline consumers and argument-dependent returned factories retain concrete callback origins and ownership contracts. [Milestone 55](../../docs/milestones/55-higher-order-function-values.md) records one 577-group regression, 24 matched comparisons and 72 zero-final-disposal profiles. [Milestone 54](../../docs/milestones/54-declared-function-values.md) preserves the earlier declared-value measurements.
-- Array `fill` and `copyWithin` support all current dense leaves and ranks through standard Rust slices. Bounds are integers; both return void. Owned copies remain independent. [Milestone 56](../../docs/milestones/56-array-fill-copy-within.md) records one 581-group regression, sixteen comparisons and 48 fully disposed allocation profiles.
-- Array `toReversed` and `with` return fresh owned arrays across every current dense leaf and rank, including recursive records. The source remains available; negative `with` indices count from the end, and invalid indices fail after argument evaluation. Native descendants copy independently. [Milestone 57](../../docs/milestones/57-array-copying-updates.md) records one 585-group regression, sixteen comparisons and 48 fully disposed allocation profiles.
-- Array `toSpliced` returns a fresh owned array across current dense leaves and ranks. Signed starts and deletion counts clamp; omitted bounds preserve standard copying semantics. Retained descendants copy independently, deleted descendants are skipped before cloning, and inserted owners transfer into the result. [Milestone 58](../../docs/milestones/58-array-to-spliced.md) records one 589-group regression, eight comparisons retaining whole result arrays without an extra clone, and 24 fully disposed allocation profiles.
-- Primitive array `lastIndexOf` supports int, Number, boolean and UTF8 strings through standard Rust reverse iteration. Bounds normalize safely, NaN never matches and signed zero compares equal. Receiver and needle owners remain available. [Milestone 59](../../docs/milestones/59-array-last-index-of.md) records one 593-group regression, eight comparisons retaining every index and 24 fully disposed allocation profiles.
-- String `lastIndexOf` returns the greatest matching UTF8 byte start at or before a clamped position, preserving overlaps. Default position is byte length, negative positions clamp to zero, selected positions must be character boundaries and empty needles return that position. Receiver and needle remain borrowed. [Milestone 60](../../docs/milestones/60-string-last-index-of.md) records one 597-group regression, four comparisons with Unicode coordinate translation timed and twelve fully disposed allocation profiles.
-- Native `int.toString(radix?: int): string` formats every signed-i64 value in radix 2–36, default 10. Decimal uses standard Rust formatting; arbitrary radices use unsigned magnitude and standard character/String methods. Lowercase digits, a leading minus and independent owned UTF-8 results preserve receiver reuse. Receiver and radix evaluate once in order. Invalid radices report source bytes. [Milestone 73](../../docs/milestones/73-integer-formatting.md) covers contexts, editor discovery, matched safe-integer comparisons and disposal; floating Number formatting remains separate.
-- Native `number.toFixed(fractionDigits?: int)`, `number.toExponential(fractionDigits?: int)` and `number.toPrecision(precision?: int)` return UTF-8 strings through standard Rust formatting. Fraction digits range from 0–100; significant precision ranges from 1–100. Strict number receivers and integer arguments evaluate once in order; range failures preserve source locations. Halfway rounding follows Rust ties-to-even, with documented native shortest-digit choices. Standard String buffers avoid intermediate result allocations. [Milestone 74](../../docs/milestones/74-number-decimal-formatting.md) covers contexts, editor support, disposal and six shared-domain comparisons. Floating arbitrary-radix `toString` remains pending.
-- `Number.parseFloat(text: string): number` borrows one strict string argument and parses its longest signed decimal or case-sensitive Infinity prefix after ECMAScript leading whitespace. Incomplete exponents roll back; invalid starts return NaN. Standard Rust float parsing preserves signed zero, rounding, overflow and underflow without copying the input. [Milestone 75](../../docs/milestones/75-number-prefix-parsing.md) covers zero parser allocations, contexts, diagnostics, editor support, matched comparisons and disposal. Existing whole-string `Number(text)` conversion remains separate.
-- Zero-argument String `isWellFormed()` evaluates and borrows its receiver once, then returns true because every native string is valid UTF-8. Receiver effects, traps and temporary disposal remain observable even when the result is unused. `toWellFormed()` reuses standard Cow::clone: static text remains borrowed, nonempty owned text copies independently, and owned empty text needs no allocation. Lone surrogates and JavaScript coercion are outside the native representation. [Milestone 76](../../docs/milestones/76-native-string-well-formedness.md) records four focused groups, editor support, one full regression, four whole-workload comparisons and disposal.
-- Primitive zero-argument `valueOf()` preserves String/Boolean/Number values; `int.valueOf()` is the native i64 extension. String `toString()` preserves text and Boolean `toString()` returns static true/false text. Receivers evaluate once under current loans and remain reusable. Scalar copies preserve complete native f64/i64 bits; String results use standard Cow::clone, sharing static text and independently copying owned storage. No primitive wrappers, boxing or numeric formatting are introduced. [Milestone 72](../../docs/milestones/72-primitive-identity.md) records 645 compiler groups, editor discovery, eight comparisons and natural typed output arrays.
-- String `substring(start: int, end?: int)` clamps supplied bounds to zero/byte length and swaps reversed endpoints; omitted end is byte length. Receiver and bounds evaluate once left to right under receiver loans. Empty ranges return static empty text before boundary access, even at equal interior bytes. Full ranges use standard Cow::clone; valid partial static text stays borrowed and owned text copies independently. Nonempty endpoints must be UTF-8 scalar boundaries, with source-byte diagnostics on failure. Existing String.slice relative offsets remain unchanged. [Milestone 71](../../docs/milestones/71-string-substring.md) records 641 compiler groups, editor discovery and six comparisons with Unicode counterpart endpoint setup timed.
-- String `concat(...strings)` accepts zero or variadic strict String operands. `padStart(target: int, filler?: string)` and `padEnd` use native UTF-8 byte targets and default space filler; negative/short targets and empty filler are no-ops. A partial filler prefix must end at a Unicode scalar boundary. Receiver and arguments are borrowed once, left to right, including no-ops; later arguments cannot invalidate earlier loans. Changed results use one checked fallible output reservation. No-ops use standard Cow::clone: borrowed static text stays borrowed, owned receiver storage is copied independently. Existing Array.concat context remains valid. [Milestone 70](../../docs/milestones/70-string-concat-padding.md) records 637 compiler groups, editor discovery and ten comparisons with Unicode counterpart target mapping timed.
-- String `trimStart`/`trimEnd` and `trimLeft`/`trimRight` aliases use standard Rust directional whitespace trimming. U+0085 trims and U+FEFF remains. Static Cow results can borrow; owned results are independent, and receiver storage stays reusable. [Milestone 61](../../docs/milestones/61-string-trim-sides.md) records one 601-group regression, eight comparisons and twenty-four fully disposed allocation profiles.
+The public entry points and types are defined in [src/lib.rs](src/lib.rs).
 
-- Record types are nominal within a file and contain owned string/array/record and copied `number`/`int`/`boolean` fields. No implicit structural conversion is implemented.
-- Parameters require annotations. Functions returning a value require explicit return types; omitted return types mean `void`.
-- Local initialized `const` and `let` bindings may infer their type. Record literals need a named expected type from an annotation, parameter, or return context.
-- `let` permits replacement of local scalars, strings, and records with exactly the same type. The right-hand side evaluates once against current availability before ownership is restored. A moved binding can receive a fresh value but cannot be read until restored. `const` bindings and parameters cannot be rebound. See the [mutable binding gate](../../docs/milestones/14-mutable-bindings.md).
-- Replacing a binding is forbidden while a closure holds a capture loan. Read-only scalar captures remain copied snapshots. Writable local scalar captures borrow exclusively, while escaping writable scalar captures update private copied fields. Closures can replace inherited `let` bindings or their own local `let` bindings. Captured const/parameter replacement remains unsupported. Callable `let` bindings support same-origin replacement under milestone 16. See the [capture replacement gate](../../docs/milestones/15-capture-replacement.md).
-- Duplicate declarations, locals, parameters, and fields are errors. `clone`, `console`, `Number`, and `Math` are reserved value/function names.
-- Identifiers are ASCII. Strings are double-quoted with JSON-style escapes, including validated Unicode surrogate pairs. Simple statements require semicolons. Braced `if`/`else` and `else if` chains, standalone blocks, and pre-test loops do not. `do...while` requires a trailing semicolon. Statements after all preceding paths return, break, or continue out of the current block are rejected.
-- For-of supports const/let iteration bindings over scalar, string, and record arrays. The iterable evaluates once; named arrays hold a shared loan for the loop, and temporaries stay alive. Scalar elements copy into fresh bindings; owned elements are shared borrows and cannot move, mutate, rebind, or escape through retention. Break/continue and ownership joins share the established loop rules. See the [for-of gate](../../docs/milestones/21-for-of.md).
-- `number[]` uses ordinary Rust vectors except where the compiler proves a local literal can retain fixed storage. Owned `int[]`, `boolean[]`, `string[]`, and named-record array values lower to private native storage with bounded inline, vector, and proven read-only literal representations. Literals infer one exact homogeneous element type; empty literals need context. Named, indexed, and record-field arrays support checked index reads/writes, read-only length, push returning void, ordered removal returning the exact element type, and explicit cloning. Scalar elements copy; owned elements move into arrays and borrow on indexing. Arrays move. Indexed record fields support updates. Ordinary access is inferred; callable signatures require explicit owned argument access. See the [scalar array gate](../../docs/milestones/20-scalar-arrays.md).
-- Proven local scalar array literals can lower to standard Rust fixed arrays when operations preserve their length and ownership. Growth, escape or an inconclusive storage proof retains ordinary storage. A bounded source analysis establishes eligibility; there is no runtime conversion heuristic. See [milestone 45](../../docs/milestones/45-fixed-number-arrays.md).
-- `remove(index)` moves one scalar, string, record, or nested-array element out and preserves remaining order. It mutates the root owner without cloning or consuming the array. Named arrays evaluate the index before final mutation; mixed field/index paths retain parent selection loans. Invalid indices fail with the removal call's source range. Removal is linear in the number of shifted elements. See the [removal gate](../../docs/milestones/30-array-removal.md).
-- Dense number, integer, boolean, and string arrays support read-only `includes`/`indexOf` with optional signed offsets. String content equality is exact; root loans protect receiver and needle through arguments. Literal/cloned/returned arrays retain temporary ownership. Record/array identity is rejected. See the [search gate](../../docs/milestones/32-array-search.md).
-- Arrays support owned `slice` with zero through two int bounds, standard in-place `reverse` returning void, and temporary indexing that transfers owned elements without implicit clones. `map` and `filter` support reusable typed callbacks over current array leaves and ranks. `some`, `every`, `findIndex`, and `findLastIndex` short-circuit in source order and preserve readonly receiver/element loans; index misses return int -1. See milestones [42](../../docs/milestones/42-array-slice.md), [43](../../docs/milestones/43-temporary-array-indexing.md), [44](../../docs/milestones/44-array-map-filter.md), and [46](../../docs/milestones/46-array-predicates.md).
-- `reduce` and `reduceRight` support zero through four callback arguments: accumulator, value, original int index and readonly source. Optional initial values can use an independent current data type. Without one, an independent first/last seed is copied or cloned and skipped; empty input fails after receiver/callback evaluation. Reusable environments can consume an owned accumulator argument while source values remain readonly. See [milestone 51](../../docs/milestones/51-array-reduction.md).
-- `forEach` visits all current data leaves and ranks in ascending original-index order, with zero through three callback arguments (value, int index, readonly source). Any valid callback return is ignored and an owned result is dropped after its invocation. The traversal returns void; receiver and callback evaluate once, including empty sources. See [milestone 52](../../docs/milestones/52-array-for-each.md).
-- `concat` returns a fresh array of the receiver's exact type. Arguments are same-rank arrays or non-array scalar elements; empty literals receive receiver context. Receiver and arguments evaluate once, left to right. Standard Rust copying creates independent owned descendants, unlike JavaScript reference sharing. Safe fixed array sources remain eligible; scalar record arguments use the ordinary record layout. See [milestone 53](../../docs/milestones/53-array-concat.md).
-- Nested array types such as `int[][]` and `User[][]` match rank and nominal leaf type exactly. Rows move into owned vectors and borrow on indexing or iteration. Indexed rows support push, length, writes, and mutable arguments. Parent loans protect selections during later operands; explicit cloning creates independent nested storage. Array type rank is bounded at 128. See the [nested array gate](../../docs/milestones/23-nested-arrays.md).
-- Array record fields support exact leaf/rank types, forward references, and self/mutually recursive record arrays through vector indirection. Mixed field/index paths support reads, mutation, arguments, and iteration. Loans conservatively protect the root record; explicit cloning creates independent field storage. Milestone 25 subsequently adds direct record fields, and milestone 31 adds direct named field moves and restoration. See the [array-field gate](../../docs/milestones/24-array-record-fields.md).
-- Direct named-record fields lower inline without boxing. Forward references resolve before layout checking. Iterative cached graph validation rejects direct cycles, more than 128 inline record levels, and conservative inline storage above 1 GiB. Arrays break layout cycles. Nested literals, updates, cloning, captures, and callback arguments preserve exact types and root-owner loans. See the [nested-record gate](../../docs/milestones/25-nested-record-fields.md).
-- Direct named string/record/array field paths transfer individual fields without cloning. Missing fields block overlapping/whole-record access with related source transfers, while siblings remain usable. Exact field/parent assignment and whole let replacement restore storage; joins and loop edges preserve availability. Field consumption infers a consuming root parameter or environment invocation. Borrowed indexed/iteration elements cannot transfer fields. Existing loans/capture storage still protect whole roots. See the [field move gate](../../docs/milestones/31-record-field-moves.md).
-- Self/mutual recursion supports scalar, string, record, and array parameters/results. Bounded monotone access inference resolves recursive contracts before final ownership, loan, capture, and callable-access checks. Acyclic analysis retains its existing path. Milestone 27 also supports ordinary reusable and single-use callback parameters. Milestone 28 extends owned callback parameters through bounded cached specialization. Milestone 29 adds callable-result cycles with one resolved environment origin; mixed origins and recursively embedded environment storage remain unsupported. No termination or tail-call guarantee is provided. See the [recursive function gate](../../docs/milestones/26-recursive-functions.md).
-- `int` is a signed 64-bit value with checked decimal literals and copy semantics. Integer parameters lower by value; integer fields can be copied or returned. See the [integer rules](../../docs/milestones/01-integer-subset.md). Arithmetic is defined by the [scalar operator gate](../../docs/milestones/12-scalar-operators.md).
-- `number` lowers to Rust `f64` with standard IEEE arithmetic and `PartialEq`/`PartialOrd`: NaN never equals itself and is unordered, infinities propagate, and signed zero is preserved. Decimal/scientific literals infer number; integer spellings use number only in a number context, including signed literals beyond `i64`. Existing nonliteral int expressions do not implicitly convert. Number fields, parameters, returns, and captures copy; `number[]` uses ordinary `Vec<f64>` storage except for proven local fixed literals, and higher ranks use nested vectors, with independent cloning and standard slice reversal. Array search uses native equality, so NaN never matches.
-- `Number()` returns positive zero. One argument accepts int (Rust cast), number (identity), boolean (zero/one), or a borrowed string evaluated once without cloning. String conversion uses `str.trim()` and `parse::<f64>()`: empty trimmed input is zero, invalid input is NaN, and signed zero is preserved. Rust whitespace/parser rules apply; JavaScript object coercion and hexadecimal-string parsing are not implemented. `Number.isNaN`, `isFinite`, `isInteger`, and `isSafeInteger` accept one typed number and return boolean through standard Rust predicates. `Math.abs`, `floor`, `ceil`, `trunc`, and `sqrt` accept one typed number and return number through standard f64 methods. `round`, `sign`, `fround`, `min`, `max`, `clz32`, and `imul`, sixteen Math/Number constants, and all 22 deterministic transcendental/power/magnitude functions are also implemented. Arguments evaluate once in source order. Standard Rust f64 methods retain platform-dependent precision, with documented bounded benchmark criteria; remaining methods stay separately tracked.
-- `boolean` values copy, lower to Rust `bool`, and print `true` or `false`. Conditions require `boolean`; `!`, `&&`, and `||` do not coerce values. Logical operators short-circuit at runtime. Comparisons and strict equality (`===`, `!==`) return booleans.
-- Integer `+`, `-`, `*`, `/`, `%`, and unary `-` use explicit checked operations in every build profile. Overflow and division/remainder errors produce fatal runtime failures with operator source byte ranges. Division truncates toward zero. Ordering requires two numbers, two integers, or two strings; equality also accepts two booleans. String comparison borrows operands once in source order and uses Rust UTF-8 content equality and lexical ordering. Matching String/String addition borrows operands once, left to right, and returns independent owned UTF-8 storage using standard capacity allocation and push_str. Chains retain their real intermediate results. All twelve int and all twelve Number compound statements, plus matching String/String +=, are supported for existing named targets under their respective native integer and Number contracts. Target selection and bounds occur once before RHS effects; the old value is read first, the result computed and then committed. Numeric old values are copied; strings borrow their old value and RHS, including self-append, and construct an independent owned result. Existing loans, partial transfers and const/parameter restrictions remain enforced. Nullish assignment, owned ordinary and compound assignment results, mixed-type coercion and aggregate identity comparison remain unsupported. [Milestone 63](../../docs/milestones/63-compound-assignment.md) records compiler and matched runtime acceptance. [Milestone 62](../../docs/milestones/62-string-addition.md) records compiler and matched runtime acceptance. See [milestone 34](../../docs/milestones/34-string-comparisons.md) for acceptance status.
-- Numeric prefix/postfix `++` and `--` support existing mutable names, fields and indices in full expression contexts, statements and for clauses. Selection and old-value reads happen once; checked int or IEEE Number arithmetic completes before commit, then prefix returns new and postfix returns saved old. Existing type, capture, partial-transfer and loan rules remain enforced. Postfix syntax excludes intervening line terminators, including comments. Scalar updates allocate nothing; benchmark result arrays retain real output costs. [Milestone 64](../../docs/milestones/64-update-expressions.md) records 613 distinct Rust groups and eight matched comparisons.
-- Int unary `+` is identity; `~`, `&`, `|`, `^`, `<<`, `>>`, `>>>` and `**`, plus the seven binary compound forms, use native signed i64 semantics. Checked shifts require counts 0..63 while allowing discarded bits. Arithmetic right shift preserves sign; logical right shift uses u64 bits and casts back to i64, including unchanged negative bits at count zero. Exponents must fit u32; checked power rejects overflow, and `0 ** 0` is 1. Failures retain operator source byte ranges. Explicit int context or a concrete int name/call/field/index/update anchor selects int, including nested container, return and closure contexts. Mixed typed int/Number operands require explicit conversion. Existing target/old-value/RHS order, successful computation before commit, strict types and loans remain enforced. [Milestone 65](../../docs/milestones/65-native-int-operators.md) records 617 distinct regression groups and sixteen matched comparisons. `tests/int_operators.rs` covers O0/O3 semantics, contexts, order, checked traps, zero scalar allocation and disposal.
-- All twelve int and twelve Number compound assignments return the exact successfully committed scalar in supported expression contexts, statements and for clauses. Target type drives strict RHS contextual typing. Low precedence and right-associated chains compose with ordinary/logical assignment and updates. Target/indices, bounds and old scalar snapshot occur once before RHS; existing standard checked i64 or IEEE/32-bit/power operations complete before commit. Saved indices reacquire the final destination after permitted RHS mutation; incoming/ancestor/index-evaluation loans and capture, parameter, iteration and partial-field restrictions remain enforced. Scalar operations allocate no heap storage; retained benchmark arrays incur real output costs. Standalone String += remains supported; owned compound values remain pending. [Milestone 68](../../docs/milestones/68-numeric-compound-assignment-values.md) records 629 distinct compiler groups and twenty-four matched comparisons.
-- Strict-boolean `predicate ? consequent : alternate` evaluates the predicate once and only the selected branch. Both branches require compatible exact current value types and receive contextual literal types; nested conditionals associate to the right and branches accept assignment expressions. Owned availability joins conservatively, while borrowed results protect every possible source root through their consumer. Conditional field/index selection uses owning temporaries; read-only lengths and borrowed arguments retain loans. Same-origin callable results preserve invocation, capture and escape contracts, including single-use callbacks. Selected temporary owners are created lazily and dropped after the consumer or for-of loop. No implicit clone, shared ownership or new container is inserted. Truthiness, heterogeneous unions, nullish types and new callable representations remain unsupported. [Milestone 69](../../docs/milestones/69-conditional-expressions.md) records 633 compiler groups and ten instrumented comparisons.
-- Ordinary `=` returns the committed int, Number or boolean in every supported expression context, with low precedence and right-associated chains. The selected target type contextualizes the RHS without coercing concrete mixed types. Select target/indices and check bounds once before RHS evaluation; no old value is read. A standard Rust scalar local holds the successful RHS, then saved indices reacquire the destination for commit and exact returned copy. Number IEEE bits, incoming/parent loans, unconditional ownership effects and existing name, capture, parameter, iteration and partial-field rules remain preserved. Scalar statements and for clauses use this same contract and discard the copy. Standalone owned assignment retains its existing final-bounds order; nested owned results remain unsupported. [Milestone 67](../../docs/milestones/67-scalar-assignment-values.md) records 625 distinct compiler groups, three matched comparisons, zero scalar allocations and normal/unwind owner disposal.
-- Strict-boolean `&&=` and `||=` return values in supported expression contexts, statements and classic-for clauses. Target/index selection and bounds occur once before the old boolean is copied. RHS evaluation and commit happen only on the selected branch; skipped evaluation returns the old value. RHS failures preserve their effects without an outer commit. Standard Rust boolean locals and if blocks preserve inherited/selected-parent loans, conditional ownership joins, capture rules and existing const, parameter and iteration restrictions. Mutable names and permitted fields/indices remain governed by those existing rules; no truthiness coercion or nullish support is added. [Milestone 66](../../docs/milestones/66-boolean-logical-assignment.md) records 621 distinct Rust groups, two matched comparisons, zero scalar allocations and normal/unwind disposal.
-- Number `&`, `|`, `^`, `~`, `<<`, `>>`, `>>>` and `**` retain Number defaults for literal-only syntax; explicit Number context retains the Number contract. Int context or concrete int anchors select native int instead, and concrete mixed types never coerce implicitly. Standard Number u32/i32 operations still use truncated modulo-2^32 inputs and low-five-bit shift counts; results return f64. Number power retains the guarded standard Rust Math path. Power associates right and requires parentheses around a unary base in both domains. Both operands evaluate once, left to right, before conversion or guards. See [milestone 50](../../docs/milestones/50-number-operators.md).
-- Operators follow documented precedence and evaluate operands once in source order. Scalar operand access ends when copied, while enclosing loans remain active. Both short-circuit operands are statically checked; a possible right-side transfer makes its binding unavailable afterward, even with literal conditions. Those effects also contribute to inferred parameter and capture contracts.
-- Branch arms have local scope. Ownership availability merges only from continuing arms; access contracts include both arms, even when a condition is a literal. Every result-returning function must return on all paths. See the [branch rules](../../docs/milestones/02-control-flow.md).
-- Braced `while` loops require boolean conditions and support nearest-loop `break`/`continue`. Bindings available at loop entry must be available on normal or explicit continuing edges; a transferred `let` binding can be reinitialized before those edges. Transfers on break/return paths are valid; after-loop availability includes condition effects and break exits but excludes function returns. Locals and their loans end with each iteration. Literal conditions do not relax checking or establish guaranteed return coverage. See the [while-loop gate](../../docs/milestones/13-while-loops.md).
-- Loop frames check each continuing edge against entry availability and accumulate break states. The entry invariant requires initially available bindings to remain available on every back edge. One body analysis suffices for this conservative rule even with explicit local reinitialization; it does not infer initialization from a previous iteration. Classic `for` supports one optional initializer, condition, and update; updates use assignments or expressions. Continuing paths run the update before the next condition. `do...while` executes at least once and evaluates its condition on continuing paths. Both skip tails on `break` or `return`. Standalone blocks scope values and captures, and `else if` preserves ordinary branch joins. Active names cannot be shadowed. Source labels, consuming iteration, and termination analysis remain unsupported. See [the control-flow gate](../../docs/milestones/38-control-flow-loops.md).
-- Explicitly typed arrow bodies with zero or more scalar, string, or record parameters support local captures and callable factory results. Local read/mutate captures borrow until their binding block ends; returned environments own records/strings and copy scalars. Invocation consumes a closure only if its body consumes an owned capture. Named returns are classified before creation effects. See the [closure milestone](../../docs/milestones/03-closures.md).
-- Replacement marks capture access even when the old value is never read. Local writable captures hold mutable references; escaping environments own strings/records and copy scalars. The checked representation distinguishes references from values so scalar loads and whole-binding stores use the correct dereference. Consuming the old captured value during replacement keeps invocation single-use, even when reinitialized.
-- The emitter uses concrete environment structs and static `call` methods with read, mutable, or owning receivers. Returned structs contain no capture references, so their types cannot retain an input borrow. Closure storage needs no inserted boxing, trait objects, reference counting, or repair clones. String operations retain their normal costs.
-- Recursive callable results discover concrete origins before definitive checking, independently of branch/declaration order. Declared shapes permit provisional local invocation but cannot become returned origins or captures. Normal checking refreshes bodies and validates every path, then iterative cleanup removes discovery-only metadata. Captured binding names keep arrow types stable when provisional local bindings are deferred. See the [recursive callable result gate](../../docs/milestones/29-recursive-callable-results.md).
-- Recursive owned/owned-once parameters preserve transfer, capture, and invocation rights with non-callable results. Data-result specialization bodies drain iteratively, with a global 128-specialization limit. Matching source arrow capture layouts and contracts share native types while each construction applies fresh values, transfers, and loans. Mixed ordinary parameters retain the per-function callback vector guard. See the [recursive owned callback gate](../../docs/milestones/28-recursive-owned-callbacks.md).
-- Recursive reusable/ordinary single-use parameters support aliases, exact argument contracts, and replacement by fresh closed arrows or factory results. Definitive typed-call traversal bounds each recursive callback function to 128 distinct concrete environment type vectors; repeated captured values and erased lifetimes do not add types. Parameters still cannot be captured. See the [recursive callback gate](../../docs/milestones/27-recursive-callbacks.md).
-- Reusable callback parameters use annotations such as `action: (n: int, enabled: boolean) => Result`; zero arguments remain valid. The annotation promises synchronous, non-escaping reuse. Named closures, inline arrows, and factory results are accepted when invocation does not consume captures and the result type matches. Invoking a parameter infers `mutate`; an unused parameter infers `read`. Forwarding propagates the callee's access contract. The emitter uses a generated trait with generic parameters and static dispatch. See the [callback gate](../../docs/milestones/04-synchronous-callbacks.md).
-- Single-use callback parameters use annotations such as `action: once (n: int) => Result` and always expose `consume`, even when unused. Passing transfers the environment; invoking or forwarding transfers the parameter binding. Branch joins enforce at most one use on each path. Concrete reusable or consuming closures satisfy the annotation, but reusable and single-use parameter contracts cannot be interchanged. `once` is contextual, so existing identifiers remain valid. See the [single-use gate](../../docs/milestones/05-single-use-callbacks.md).
-- Scalar closure arguments copy; owned closure arguments infer read/mutate/consume access from arrow bodies. Callback and factory-result signatures require explicit access on owned arguments, for example `(user: read User) => string`. Exact modes, types, and arity must match; signature parameter names do not affect compatibility. Scalars reject modifiers, and arrow bodies infer access rather than accepting modifiers. Nested callable arrow parameters use explicit callback contracts; `void` argument types remain unsupported. See the [owned argument gate](../../docs/milestones/07-owned-closure-arguments.md).
-- Receiver access begins before left-to-right argument evaluation. Receiver and borrowed argument loans stay active through the call, rejecting overlapping exclusive/consuming access. Fully computed owned results release their input loans. Argument access is separate from captures: consuming a fresh argument does not make the closure environment single-use. Generic trait bounds quantify borrowed argument lifetimes independently of capture lifetimes and each other.
-- Inline callback capture loans last through later argument evaluation and the call, then end at call completion. Passing a named closure preserves its block-scoped capture loans. Ordinary reusable and `once` callback parameters can be moved into local bindings, invoked, or forwarded synchronously. Explicit owned parameters can also be captured by returned wrappers or returned directly. Shared aliases and non-owned callback escapes remain rejected.
-- Arrow bodies can create local closures, call them directly, and pass them to synchronous callbacks. Ordinary factory results can also be created and invoked locally. Inner capture effects propagate through outer captures and parameter contracts. Milestones 09 and 10 additionally permit captured concrete callable bindings and callable-valued arrow results. Each invocation creates fresh local environments. See the [nested local gate](../../docs/milestones/08-nested-local-closures.md).
-- Captured concrete callable environments infer read/mutate/consume access and retain lexical loans. Each reference and nested environment lifetime is independent in generated Rust; a returned environment cannot contain a borrowed callable, even through owned fields. See the [callable capture gate](../../docs/milestones/09-callable-captures.md).
-- Recursive callable result annotations work on ordinary functions and arrow bodies. Each result resolves to one owned environment origin. Returned captures propagate transfers to enclosing captures or fresh invocation parameters. See the [callable result gate](../../docs/milestones/10-callable-results.md).
-- Explicit `owned (...) => Result` and `owned once (...) => Result` callback parameters transfer fully owned environments, including when unused. They may be retained in returned wrappers. Inline arrows own their captures; named borrowed environments are rejected. Invocation and argument contracts remain exact. An `owned once` wrapper stays single-use even when passed a reusable concrete callback. See the [retained callback gate](../../docs/milestones/11-retained-callbacks.md).
-- Owned-callback declarations are checked as templates, even when unused. Calls specialize by ordered owned environment types, cache the result, and emit concrete structs/functions. At most 128 specializations are allowed per analysis; source diagnostics report excess. No runtime type erasure or allocation is introduced for specialization.
-- Callable `let` bindings can receive fresh factory results or moved named environments of the same concrete type. Assignment can restore a consumed binding and may invoke the old environment while computing the replacement. `callable-origin` rejects different environments even if signatures match. Loans still block conflicting replacement, and loop back edges require restoration. No boxing, dynamic dispatch, or cloning is inserted. See the [mutable callable gate](../../docs/milestones/16-mutable-callables.md).
-- Concrete callable declaration moves preserve environment identity, invocation/argument contracts, and lexical capture loans. Return chains preserve the original escape origin. The source becomes unavailable; its `let` binding can be restored independently. See the [declaration move gate](../../docs/milestones/17-callable-moves.md).
-- All callback contracts support declaration moves and same-parameter local restoration. Reusable moves transfer the local borrow; owned moves preserve retention rights. Single-use restrictions survive concrete specialization. See the [callback move gate](../../docs/milestones/18-callback-moves.md).
-- Owned callback parameters and moved locals can return directly through matching callable result annotations. Cached concrete wrappers preserve declared single-use invocation when necessary, with no allocation or duplicated closure body. Abstract template returns retain argument origins and validate compatible forwarding of the returned value. See the [callback return gate](../../docs/milestones/19-callback-returns.md).
-- Shared callable aliases, non-owned callback returns, callable fields/globals, mixed-origin return branches and borrowed data results remain unsupported. Nested callable parameters/results and owned callback forwarding preserve each concrete returned origin; a bound consumer can be called with distinct callback origins. Synchronous borrowed callback arguments may be forwarded while returning an independent owned callable result.
-- Explicit `Owned<T[]>` parameter patterns transfer selected elements without cloning. Skipped positions remain skipped; defaults run only for missing/undefined positions, and explicit rest keeps its independent-copy contract. Nested record/array patterns follow ownership through their hidden holders. Readonly parameter patterns and ordinary indexing still borrow owned elements. Missing required positions remain range errors.
-- Whole record/string values and direct named owned fields can move. Partial records keep available siblings; whole-record use requires restoration. Borrowed returns remain rejected. `clone` accepts strings, records, and arrays. Indexing borrows owned elements; `remove(index)` transfers an element out while retaining the array.
-- Field replacement may read or temporarily mutate the same record while evaluating its right-hand side, but may not consume the assignment target.
-- Borrowed arguments remain active while later arguments are evaluated. Nested calls cannot mutate or consume a binding already borrowed by an earlier argument. Copied scalar arguments and fully evaluated owned temporaries do not retain the input access used to compute them.
-- Strings use standard Rust `Cow<'static, str>`: borrowed literals and owned UTF-8 results. Length counts bytes, slice checks byte boundaries, and charAt iterates scalars. Trim/lowercase/uppercase use native Rust methods; composed trim/lower can emit one direct standard transform. Readonly includes, startsWith, endsWith and indexOf borrow their operands; positions follow the native byte contract. Repeat, string-pattern replace/replaceAll and split return independent owned output. Replacement templates preserve dollar, match, original prefix and original suffix substitutions. Empty-pattern replacement and empty-separator split use Unicode scalar boundaries; split limits wrap modulo 2^32. No implicit clone repairs ownership errors.
-- Parser block/expression/type-annotation nesting, expression-tree depth, environment lifetime complexity, and combined recursive analysis have explicit prototype limits of 128. These bounds produce diagnostics rather than permitting unbounded recursive processing, including deeply nested calls to other functions.
+| API | Purpose |
+| --- | --- |
+| `check(&str)` | Parse and check standalone source in process; returns `Analysis` or the first strict `Diagnostic`. It does not invoke Rust or load a project from disk. |
+| `diagnostics(&str)` | Collect recoverable source diagnostics without exposing a recovered tree to code generation. Successful analysis returns its warnings. |
+| `Analysis::emit_rust()` | Generate Rust from successfully checked source. |
+| `Analysis::emit_rust_with_native_features()` | Generate Rust and report selected native binding features. |
+| `Analysis::contracts()` | Return inferred parameter-access contracts. |
+| `Analysis::closures()` | Inspect capture storage/access, invocation, escape and parameter contracts. |
+| `Analysis::generic_records()` | Inspect materialized generic-record provenance and structured type arguments. |
+| `Analysis::warnings()` | Return warnings from the checked program. |
+| `Analysis::to_json()` | Serialize the analysis summary. This does not substitute for project diagnostics. |
 
-The analyzer tracks whole bindings. Different fields of one record are not independently borrowable in this subset.
+For imports and project analysis, use the [project APIs](src/project/mod.rs) and
+[`ProjectSession`](src/project/session.rs). The session retains parsed inputs and
+invalidates dependencies; standalone `check` is not a project loader. Source spans
+use half-open UTF-8 byte offsets. The LSP converts these to editor positions,
+including UTF-16 surrogate pairs, and checks current unsaved text.
 
-## Accuracy, performance, and editor work
+Recovery diagnostics are editor feedback, not permission to execute invalid code.
+Strict checking must succeed before ordinary emission or native compilation.
 
-`tests/analysis.rs` covers inferred contracts, related diagnostic spans, UTF-8 positions, escape decoding, nesting limits, and deterministic malformed-input smoke tests. `tests/acceptance.rs` invokes the Rust CLI and independently compiles its generated output. It also removes `rustc` from `PATH` to verify backend-independent checking. `tests/witnesses.rs` validates the handwritten Rust references and fixture inventory.
+## Source layout
 
-`tests/integers.rs` checks numeric bounds, copy contracts, typed fields, record ownership, and the original numeric example through native execution.
+- [syntax/](src/syntax/) owns tokenization, parsing and source syntax.
+- [analysis/](src/analysis/) owns type/access checking and inferred contracts.
+- [project/](src/project/) owns module loading and project sessions.
+- [emit/](src/emit/) generates Rust from checked programs.
+- [stdlib/](src/stdlib/) supplies compiler-owned library declarations and runtime support.
+- [cli/](src/cli/) implements commands, native builds, setup and paired toolchain installation.
 
-`tests/control_flow.rs` checks both branch outcomes, boolean copy behavior, local scopes, return coverage, condition effects, conflicts, and a 16-case ownership-join matrix.
+See the [source layout guide](../../docs/guides/compiler-source-layout.md) for
+feature-specific modules and shared boundaries.
 
-`tests/closures.rs` checks all 15 closure source cases and additional contract, branch, scope, escape, diagnostic, and backend-independent behavior. `tests/closure_witnesses.rs` independently verifies 16 handwritten Rust witnesses. Source expectations and backend outcomes remain separate in `tests/support/closure_corpus.rs`, including the deliberate difference at the lexical loan boundary.
+## Behavior and acceptance evidence
 
-`tests/callbacks.rs` verifies synchronous reuse, direct and forwarded contracts, callback result types, temporary capture lifetimes, argument conflicts, escape rejection, and backend-independent checks. Accepted cases compare exact native output; rejected cases compare library and CLI diagnostics.
+[Language guides](../../docs/guides/language/) describe individual supported
+features and explicitly marked research. Current public guidance lives in
+[the documentation source](../../website/src/content/docs/). Compiler-owned
+IntelliSense signatures and executable examples are maintained in
+[the LSP catalog](../tsrust-lsp/src/builtins.json).
 
-`tests/single_use_callbacks.rs` covers owned callback transfer, read/mutable/consuming environments, unused parameters, single-use forwarding, repeated-use diagnostics, branch exits and joins, contextual syntax, and backend-independent checking.
-
-`tests/closure_arguments.rs` checks scalar parameter declarations, callback/factory signature compatibility, argument order, nested receiver conflicts, capture independence, grouping syntax, branch ownership, and backend-independent diagnostics. Accepted cases compile generated Rust and compare exact output.
-
-`tests/owned_closure_arguments.rs` checks inferred owned argument access, exact public contracts, independent argument/capture lifetimes, alias conflicts, argument evaluation order, factory and forwarding behavior, branch joins, metadata, and backend-independent diagnostics.
-
-`tests/nested_closures.rs` verifies nested local calls and callbacks, typed inner arguments, ancestor capture propagation, outer parameter access, returned outer environments, local factory results, lexical loans, branch joins, concrete declaration moves and callback escape rejection, nesting metadata, depth limits, and backend-independent diagnostics.
-
-`tests/callable_captures.rs` checks captured callable access, transitive ownership, independent lifetimes, and borrowed-escape diagnostics. `tests/callable_results.rs` checks recursive result annotations, owned environments from fresh arguments, named returns, nested factories, and invalid result origins.
-
-`tests/retained_callbacks.rs` checks owned reusable/single-use retention, state and environment independence, exact contracts, owned arguments, forwarding, local loans, template validation, metadata, deterministic specialization caching, specialization limits, and backend-independent analysis. Its runnable example is `tests/fixtures/callbacks/retained.tsr`.
-
-`tests/conditional_expressions.rs` checks lazy effects, exact scalar bits, expression contexts, ownership joins and loans, compatible callable origins, selected temporary lifetimes, unrelated fixed storage, normal-stack limits and normal/unwind disposal at O0/O3. Failed focused source and fixture repairs remain recorded; the full workspace regression passes once.
-
-`tests/primitive_identity.rs` checks six primitive methods, strict arity/types, receiver effects, inferred/captured contracts, selected temporary lifetimes, fixed storage, signed i64 extremes, exact f64 bits, Unicode/NUL/FEFF contents, Cow costs and normal/unwind disposal at O0/O3. Three initial focused groups remain accepted while one authored order fixture was repaired; all four groups and the sole full regression pass.
-
-`tests/string_substring.rs` checks clamp/swap/default/extreme bounds, strict typing, complete Unicode contents, equal interior empty ranges, borrowed source/order effects, captured and selected temporaries, normal-stack limits, standard Cow costs and normal/unwind disposal at O0/O3. All four focused groups pass first attempt; editor changes precede the single full regression.
-
-`tests/string_concat_padding.rs` checks strict arities/types, UTF-8 widths and filler boundaries, once-only borrowed effects, clone type inference, conditional temporary lifetimes, contextual Array.concat, normal-stack limits, one-reservation construction, Cow no-ops and normal/unwind disposal at O0/O3. Three first-pass groups remain accepted through narrow affected-group repairs and Unicode augmentation.
-
-`tests/operators.rs` checks precedence, every scalar operator, signed literals, evaluation order, short-circuit effects, conditional ownership, enclosing loans, closure integration, operator spans, malformed input, deep-expression limits, and backend-independent checks. Runtime failures are verified at optimization levels 0 and 3 with backend overflow checks both enabled and disabled.
-
-`tests/string_operators.rs` checks string equality and ordering across ASCII, Unicode, NUL, prefixes, and empty values. It verifies single evaluation, source order, read contracts, captured-reference coercion, fields, arrays, iteration, and conflicts during right operand evaluation. Native execution runs at optimization levels 0 and 3.
-
-`tests/loops.rs` checks zero/repeated iterations, condition evaluation, nested targets, loop-local values and loans, transfers at back edges and exits, callbacks, callable returns, source scope/control errors, return coverage, nesting limits, and backend independence. A 36-cell branch matrix checks the differences between normal continuation, continue, break, and return paths.
-
-`tests/mutable_bindings.rs` checks scalar updates, exact-type replacement, right-hand-side evaluation, self-transfer/reinitialization, branch restoration, loop invariants, condition and break joins, capture loans, owned/scalar capture storage, closure-local updates, unsupported declarations, and backend independence.
-
-`tests/capture_replacement.rs` verifies write-only and read/write scalar captures, whole string/record replacement, local loans, private escaped state, retained callbacks, nested propagation, consuming replacement, loop behavior, const/type boundaries, and backend independence.
-
-`tests/mutable_callables.rs` checks exact environment identity, replacement state, named moves, self-assignment, single-use restoration, right-hand-side invocation, forwarding, capture loans, local/owned captured replacements, branch/loop joins, source diagnostics, and backend independence.
-
-`tests/callable_moves.rs` checks declaration chains, moved-source diagnostics, mutability, invocation/argument contracts, lexical loans, returned origins, captures, branch/loop joins, callback forwarding, and backend-independent analysis.
-
-`tests/callback_moves.rs` checks moved callback borrows and values, caller ownership, argument contracts, single-use invocation, owned retention, captures, local restoration, branch/loop joins, forwarding conflicts, and specialization.
-
-`tests/callback_returns.rs` checks direct owned returns, single-use restrictions, exact signatures, move/branch/loop origins, forwarding templates, nested factories, retained state, wrapper caching, and backend-independent analysis.
-
-`tests/arrays.rs` checks scalar array inference, ownership, cloning, mutation, captures, callback contracts, evaluation order, branch/loop joins, native bounds failures across optimization levels, parser depth limits, and backend-independent diagnostics.
-
-`tests/for_of.rs` checks borrowed iteration, evaluation order, temporaries, binding scope, nested control flow, loans, captures, ownership joins, depth limits, and backend-independent diagnostics.
-
-`tests/owned_arrays.rs` checks owned strings and records in arrays, exact nominal types, element moves, indexed borrowing and field updates, explicit clone independence, shared iteration, capture lifetime restrictions, callback contracts, whole-array loans, evaluation order, ownership joins, native bounds checks, and backend-independent analysis. See the [owned element gate](../../docs/milestones/22-owned-array-elements.md).
-
-`tests/nested_arrays.rs` checks exact ranks and nominal leaves, row ownership and cloning, nested indexing/mutation, parent selection loans, iteration, captures, callbacks, evaluation and bounds failure order, ownership joins, 100-level native reads/writes, the 128-dimension type boundary, and backend-independent analysis.
-
-`tests/array_fields.rs` checks exact field types, moves and cloning, root-owner contracts and loans, iteration, captures, callbacks, mixed storage paths, recursive record arrays, evaluation order, bounds failure timing, depth guards, and backend-independent analysis.
-
-`tests/nested_records.rs` checks contextual nested literals, exact nominal identity, inline layouts and cycle diagnostics, moves/reinitialization, clone independence, root-owner loans, captures, callbacks, iteration, operand order, optimized bounds failures, deep native access, layout guards, and frontend operation without the backend.
-
-`tests/recursion.rs` checks scalar and owned recursion, mutual declaration order, permuted fixed-point access, transfers, loans, captures, callback contracts, provisional lifetime guards, loops/iteration, evaluation order, optimized runtime failures, deep syntax copies, source guards, deterministic metadata, and backend-independent checking.
-
-`tests/recursive_callbacks.rs` verifies tree traversal, self/mutual forwarding, aliases, single-use owned/borrowed environments, exact argument access, data ownership, loans, iteration, fresh arrows/factory results, repeated concrete types, finite permutations, exactly 128 native types, excessive vectors, unused generic declarations, concrete closure roots, source guards, deterministic metadata, and backend-independent checking.
-
-`tests/recursive_owned_callbacks.rs` verifies self/mutual owned forwarding, aliases, retained mutable state, single-use environments, local wrappers, callbacks invoking recursion, exact argument access, data effects, captures, shared iteration, loop joins, mixed ordinary/owned parameters, factory/inline replacement, canonical environment types, 120 concrete permutations, exactly 128 specializations, excess/growing environments, inherited borrowed vector limits, source guards, deterministic metadata, and backend-independent checking.
-
-`tests/recursive_callable_results.rs` verifies eager/lazy factories, branch/declaration order, aliases, owned captures and invocation, all callback contracts, nested callable results, exact arguments, stable capture effects, loans, mixed/missing origins, recursive storage, specialization/source guards, definitive metadata, and frontend-only CLI operation.
-
-`tests/array_removal.rs` checks exact result types, ordered scalar/owned extraction, independent moves, nested fields and recursive records, receiver evaluation, final-length bounds checks, selection/argument/capture/iteration loans, all callback contracts, recursion, branch/loop ownership, deep native paths, type guards, optimized failure ranges, deterministic metadata, and frontend-only CLI operation.
-
-`tests/field_moves.rs` checks exact owned field results, scalar copying, sibling access, partial-transfer locations, parent/field restoration, right-hand evaluation, branch joins, loop edges, whole capture storage, consuming invocation, all callback access rules, recursive functions/owned callbacks/callable factories, detached argument loans, borrowed element restrictions, stable mixed storage, optimized bounds failures, 100-level native access, deterministic metadata, and backend-independent CLI operation.
-
-`tests/numbers.rs` covers decimal/scientific/contextual literals, IEEE arithmetic and ordering, precision and signed-zero bits, ordinary number arrays and records, captures and callbacks, float search equality, and explicit conversion with exact evaluation, borrowing, type, and arity checks at optimization levels 0 and 3. The [compiler acceptance record](../../benchmarks/runtime/diagnostics/2026-10-02T01-29-22-000Z-native-number-compiler-acceptance.json) preserves the single full attempt, two numeric-receiver fixture corrections, scoped continuation covering 509 unique groups, unchanged compiler logic, focused checks, doctests, formatting, Clippy, and release build. Matched native and TypeScript comparisons are recorded in the top-level [benchmark report](../../BENCHMARKS.md).
-
-The compiler suites run under `cargo test --offline`. Run the full regression once per gate after implementation settles; use focused checks during development. If it fails, retain passed suites and resume unrun suites after an affected-case repair. Their shared case expectations live in `tests/support/corpus.rs`; the source/reference pairs live in `tests/fixtures/ownership/`. CLI discovery uses Cargo's test binary path, so it does not assume a particular build directory. Shared helpers retain the former runner's 10-second execution and 60-second compilation timeouts.
-
-Run the [analysis baseline](../../docs/measurements/analysis-performance.md) with:
-
-```sh
-cargo run --offline --release --example analyze_bench
-cargo run --offline --release --example recursion_bench
-cargo run --offline --release --example recursive_callback_bench
-```
-
-This measures in-process frontend work separately from Rust emission and native builds. It is a small synthetic baseline, not an editor latency or production throughput claim.
-
-The [editor foundation](../../docs/guides/tooling/editor-foundation.md) now supplies document/version management, UTF-16 position conversion, and single-file diagnostics through this API. Partial-parse recovery, multiple diagnostics, cooperative cancellation, semantic indexing, and project/incremental invalidation remain separate compiler handoffs C1–C5. The current API reanalyzes a whole source file and returns its first error. A formal soundness proof, sustained fuzzing, allocation profiling, general initialization inference across loops, general callback/async lifetimes, module interfaces, and native debug source maps are not implemented.
-
-`tests/array_search.rs` adds 15 groups covering read-only search, signed extremes, exact Unicode contents, receiver/needle loans, temporary ownership, mixed operand order, partial fields, closures/callbacks/factories, mutation/clone invariants, and a differential storage/resource model. This milestone historically passed 449 regression groups; subsequent gate records contain current acceptance evidence.
-
-### Nested callable contracts in generic factory values
-
-A fresh generic function environment can receive a concrete function annotation
-whose arguments or result are themselves functions. The adapter keeps the original
-captured state across calls. Nested signatures retain argument access, optional
-positions, rest parameters and invocation ownership. A readonly callback argument
-borrows its environment; passing it does not transfer the caller's owner. A
-single-use result cannot satisfy a reusable function result contract.
-
-For example, a factory returning `invoke<T>(action: Function<T, [value: T]>,
-value: T): T` can acquire the type `Function<int, [action: Function<int,
-[value: int]>, value: int]>`. Calling that value twice invokes the same captured
-factory environment twice. Nested `void` results are supported, and optional
-callback positions do not infer the omission-added `undefined` as the generic
-payload. Defaults remain the declared callback's responsibility; adapters forward
-omission and rest arguments without evaluating a second default.
-
-A nullable callable annotation can also receive a fresh generic environment.
-Optional invocation returns `undefined` when the callable is absent and skips
-invocation arguments in that case. When present, repeated calls share the retained
-factory state. Selected factories can have different concrete result types when
-both results fit the requested union contract: a factory returning `T` and another
-returning `T[]` can receive `Function<int | int[], [value: int]>`. Arguments infer
-`T` before checking whether the requested result admits that concrete type. This
-does not permit incompatible parameter types or convert single-use results into
-reusable callbacks.
-
-A generic payload can itself be a callable. For example, captured
-`identity<T>(value: T): T` can receive
-`Function<Function<int, [value: int]>, [value: Function<int, [value: int]>]>`.
-It returns the supplied callable with its original environment and argument
-contract. Different concrete payload signatures can use the same factory state.
-Readonly and mutable payloads borrow the caller's environment; a `Once` payload
-retains its single-use restriction. Passing a borrowed string argument where a
-consuming argument is required remains a type error. Adapters do not clone captures
-or evaluate defaults a second time.
-
-A retained generic value also accepts explicit type arguments: after
-`const identity = make()`, call `identity<int>(7)` or
-`identity<Function<int, [value: int]>>((value: int): int => value + 1)`.
-The callable payload example returns the supplied function, so invoking it with 7
-returns 8. Explicit and inferred calls use the same captured factory environment.
-The supplied type arguments constrain the call: `identity<int>("wrong")` is a type
-error. Defaults and rest arguments follow the original declaration's contract;
-explicit application does not restore transferred arguments or consumed captures.
-
-Optional generic invocation uses `action?.<int>(value)`. If the callable is absent,
-the call returns `undefined` and does not evaluate `value`. Present calls specialize
-the original generic declaration and retain the same captured environment. A fresh
-factory can be selected against `undefined` or `null` before invocation. For example,
-`const action = enabled ? make() : undefined; const result = action?.<int>(7);`
-returns 7 when present and undefined when absent for an identity factory. Result
-context can also solve zero-argument generic calls, such as
-`const values: int[] | undefined = empty?.()`.
-
-Optional invocation retains ownership checks. A named optional receiver borrows its
-source and cannot consume that source's captured owner. A fresh owning factory result
-can be invoked once and transfer a consuming capture. Invocation failure leaves a
-reusable environment's state at the point reached before the failure.
-
-
-Unused generic declarations validate explicit type-argument and static value-argument
-counts for known declarations, immutable aliases and concrete callback contracts.
-Errors state expected/supplied counts and include the original callable declaration.
-Unknown spread lengths remain deferred; known positions still establish a lower bound.
-For example, a one-argument callable rejects `alias(value, value, ...tail)` because
-it supplies at least two arguments. Closure callback parameters retain optional/rest
-contracts. Unknown mutable alias flow and broader source validation remain open.
-
-Unused generic bodies receive source call-count checks for known aliases, callbacks
-and selections. Straight-line direct assignments retain the current callable
-contract, and saved aliases retain their initialization contract. These checks do
-not replace concrete type or ownership validation. Blocks and branches retain current and saved callable contracts on completing
-paths. Differing contract joins and loop/exception/expression flow remain
-conservative; replacement between distinct callable environments is restricted.
-
-`tsrust format` recursively rewrites changed `.tsr` project files under the current
-directory. `tsrust format src` selects a directory; `tsrust format --check` reports
-changes without writing. Discovery skips `.git`, `node_modules`, `target` and
-symlinks. One explicit file still prints formatted text unless `--write` or
-`--check` is supplied. See docs/guides/tooling/editor-commands.md for error and formatting behavior.
+[Milestones](../../docs/milestones/) retain historical acceptance, including the
+original ownership/control-flow proofs and later feature families. Their test
+counts describe those checkpoints, not the current complete suite.
+[Benchmark documentation](../../BENCHMARKS.md) distinguishes measurements from
+correctness acceptance. The [public dataset contract](../../benchmarks/storage/PUBLIC_DATA.md)
+defines shareable measurements; historical private logs must not be published.

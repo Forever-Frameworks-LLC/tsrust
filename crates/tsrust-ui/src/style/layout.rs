@@ -90,7 +90,7 @@ pub(super) fn resolve(token:&str,theme:&Theme)->Option<Vec<Utility>> {
     None
 }
 
-fn offset(token:&str,theme:&Theme)->Option<Vec<Utility>> {
+pub(super) fn offset(token:&str,theme:&Theme)->Option<Vec<Utility>> {
     let (token,sign)=token.strip_prefix('-').map_or((token,1.),|token|(token,-1.));
     for (prefix,sides) in [("inset-x-",&[1,3][..]),("inset-y-",&[0,2][..]),("inset-",&[0,1,2,3][..]),("top-",&[0][..]),("right-",&[1][..]),("bottom-",&[2][..]),("left-",&[3][..])] {
         let Some(size)=token.strip_prefix(prefix) else{continue;};
