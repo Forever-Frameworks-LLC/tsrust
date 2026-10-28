@@ -15,6 +15,7 @@ and retained UI content are not automatically published.
 | docs/guides/modules.md | website/src/content/docs/language/modules.md → /language/modules/ | Moved; old copy removed; inbound Markdown links updated. |
 | docs/guides/async-tasks.md | website/src/content/docs/language/async.md → /language/async/ | Moved; removed obsolete S13/S14 future-tense claims and benchmark protocol from user guidance. Runtime operations are covered by the futures page below. |
 | docs/guides/tokio-tasks.md | website/src/content/docs/library/futures.md → /library/futures/ | Moved; runtime operations split into tasks, limits and error tables. Retained executable examples and historical acceptance; updated inbound guide link. |
+| docs/guides/module-state.md | website/src/content/docs/language/modules.md#share-module-state | Merged into module guide; removed duplicate, corrected obsolete default/global export restrictions and updated inbound plan link. |
 | New site overview | website/src/content/docs/index.md → / | Reviewed initial page. |
 | New quickstart | website/src/content/docs/start/quickstart.md → /start/quickstart/ | Reviewed initial journey; installation and editor detail still pending. |
 | New public status | website/src/content/docs/project/status.md → /project/status/ | Current product scope; internal milestone details stay in repository. |
