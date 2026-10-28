@@ -2,7 +2,8 @@
 
 ## Current continuation — public documentation audit
 
-Latest accepted checkpoint is ec0db552 (regression/Windows evidence); e33f4674
+Latest accepted checkpoint is eb3918f9 (macOS editor acceptance); ec0db552
+records regression/Windows evidence; e33f4674
 contains retained native fixtures and d23dbf20
 contains the hover repair and tooling-guide audit;
 7612c271 retains the HTTP reader timing baseline. Current work
@@ -40,6 +41,19 @@ Linux 40748887685 reached LSP transport and compiler agreement; extension passed
 Windows 40748893795 succeeded at 86435b88: installer/process 8/8, shared-source
 5/5 and package-management 7/7, including the new live-LSP update witness.
 Docs 40748887897 passed. No new hosted run, push, merge or release in this section.
+
+## Repository entry-point audit
+
+CONTRIBUTING now matches separate workspace/backend/portable/binding dependency
+preparation, explicit portable source setup, stag PR checks, opt-in retained UI
+regressions and separate platform release/promotion. Clippy documentation matches
+the correctness gate while retaining other warnings as visible debt. Rust policy
+now distinguishes backend/native-UI profiles, explicit setup and managed CLI/LSP
+acquisition from unimplemented Rust binary bundling. Removed the stale dependency-free
+claim and dead loose-evidence link; historical records are unchanged. Local links
+and anchors pass. Existing distribution/release-policy tests pass all 14 cases;
+whole-project formatting changes zero files/fingerprints. No native rebuild or
+new hosted run is needed for these prose corrections.
 
 ## Isolated macOS editor audit
 
