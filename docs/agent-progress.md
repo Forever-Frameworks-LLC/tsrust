@@ -1,6 +1,29 @@
 # Agent continuation state
 
-## Current continuation — optional chaining and coalescing site drafts
+## Current continuation — optional operator source review completed
+
+Previous turn progressed at409948f2. Reviewed current continuations/coalesce.rs
+prepare/right/finish paths and optional.rs branch preparation against both site
+drafts. Confirmed static branch result selection, contextual literal alternatives,
+borrowed fresh-fallback rejection, source availability/flow joins and the exact
+one-present-payload restriction on optional hops. Replaced the overbroad union
+wording and implementation-heavy editor caching text with observable hover and
+completion behavior; replaced internal Consume terminology with ownership wording.
+
+Existing optional_chaining precise_errors_and_normal_depth test passes (one test,
+/tmp/tsrust-optional-doc-contracts.log). Three independent CLI witnesses reject
+parenthesized nullable member access (type), mixed present record payload access
+(unsupported), and optional assignment (unsupported). Existing exact12-example
+and focused editor evidence retained unchanged. All processes completed.
+
+Next mandatory step: rendered desktop/mobile/keyboard review of both entire pages,
+then link validation, removal of superseded guides and incoming-link migration.
+Neither page is audit-accepted yet. No platform/build/benchmark/hosted CI changes.
+Full formatter/diff check before checkpoint. Larger platform and deployment items
+remain pending; goal active.
+
+
+## Prior continuation — optional chaining and coalescing site drafts
 
 Previous turn progressed at24612a75. Added canonical site drafts for optional-chaining
 and nullish-coalescing, plus sidebar entries. Optional chaining now has separate
