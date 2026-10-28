@@ -1,6 +1,43 @@
 # Agent continuation state
 
-## Current continuation — existing generic adapters accepted
+## Current continuation — fresh generic factories accepted
+
+Previous checkpointec11ba23. Audited/migrated fresh/selected factory construction,
+nested predicates, inferred generic results, aggregate destinations and nullable
+owning callbacks into site fresh-generic-factories. Traced generic_expression_adapters
+nullable/fresh/traversal preparation, owning selected contexts and call distribution.
+Replaced fixture narration with complete examples. Current selected factory locals
+with nested callable results reject: an attempted clearer selection local produced
+callable-layout at right. Documented this exact current limit, retained inline
+selection and shortened the example with a named predicate helper. No compiler
+changes or expansion into unsupported nested callable storage.
+
+Four final exact programs format/check/native pass:10/11/12/20/21/22/3,4;
+left 1/2/2 1;11/21/22;1/2/true. Reran changed selection only after visual repair.
+Original longer nested-selection witness remains covered by existing focused test.
+Compiler12 exact checks pass (/tmp/tsrust-fresh-doc-contracts.log): factory-call
+context, construction/callback failure disposal, temporary-borrow rejection,
+selected result/borrow rejection, selected-only drops, selected traversal,
+borrowed parameter retention rejection, nested predicate evaluation, aggregate
+storage, inferred result and explicit mismatch, nullable fresh state. Editor5
+exact checks pass (/tmp/tsrust-fresh-doc-editor.log): navigation, aliases, concrete
+argument/result inference and nullable absence. All commands completed.
+
+Full390px/1440px reviewed; highlighted/focusable code, no document overflow,
+selected block reduced1103px to740px scroll width; ArrowRight40px, skip/section/
+previous/next links pass. Whole-project formatter before checkpoint.65-page build
+and internal links/anchors pass (/tmp/tsrust-fresh-doc-site.log). Viewport reset,
+tab4 retained. No full regressions, timings, hostedCI, push/release/platform runs.
+
+Next: remaining nested guide now starts Track callable contracts through source
+flow (not yet accepted). Audit arity across loops/cleanup and assignment-result
+callees, then lexical generic scopes/transport, owned/scoped selection, single-use
+call scopes, generic replacement and mutable factory arrays. Keep migration
+partial until all current claims/examples and rendered sections are accepted.
+Other finite docs inventory and Windows/Linux acquisition/editor and Pages
+production evidence remain pending. Goal active; historical evidence preserved.
+
+## Prior continuation — existing generic adapters accepted
 
 Previous checkpoint8f417a94. Audited/migrated existing generic adapter paragraph
 into site generic-value-adapters: borrow/resume/transfer one environment, contextual
