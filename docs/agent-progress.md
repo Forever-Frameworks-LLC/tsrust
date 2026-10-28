@@ -1,6 +1,30 @@
 # Agent continuation state
 
-## Current continuation — nullish assignment content correction
+## Current continuation — nullable callable content correction
+
+Previous turn progressed atff0f24c4. Audited nullable-callables against current
+nullable_caller_callback_stores witnesses. Qualified its overbroad warning about
+replacing distinct borrowed origins: readonly nullable fields can retain different
+compatible callback environments. Added complete replacement example and retained
+argument/invocation/lifetime compatibility restrictions, including callee-local
+capture escape. Split invocation, access, optional calls, assignment and conversion
+into behavioral sections. No compiler/runtime changes.
+
+All five exact examples pass format --write/--check, compiler checks and native
+execution. Focused readonly_nullable_replacement and nullable_store_cannot_escape
+regressions pass one each; logs /tmp/tsrust-nullable-doc-replacement.log and
+/tmp/tsrust-nullable-doc-lifetime.log. Independent String(action) without a strict
+absence guard rejects with unsupported; guarded exact example prints null.
+All validation processes completed. No full suite, timing or hosted execution.
+
+Migration row remains in progress. Next: finish source review and migrate both
+nullable-callables and nullish-assignment into site pages, review at390/1440 with
+keyboard/overflow checks, then migrate links/remove duplicate guides. Full formatter
+and diff check before checkpoint. Remaining platform setup, Windows/Linux editor
+fixture/acquisition and Pages deployment still pending. Goal active.
+
+
+## Prior continuation — nullish assignment content correction
 
 Previous turn progressed at076df7fc. Audited nullish-assignment against current
 prepare/finish_nullish_assignment_work in continuations/assignment.rs. Found an
