@@ -1358,3 +1358,24 @@ Original checker_agreement3 PASS527.89s, now completion_matrix. Preserve evidenc
 this is the original mixed-consumer milestone, not exact-head proof.
 Whole formatter, format-check, site build and23-page link checks PASS for JSON docs.
 Checkpoint JSON prose/evidence separately while source repair awaits editor acceptance.
+
+
+## Spread accepted; CLI regression repairs under validation
+
+LSP1167 terminal PASS both call_spread cases, including native examples and protocol
+signatures. Compiler44 focused tests passed previously. Whole-project formatter,
+format-check and diff-check pass; checkpoint spread source/witness/spacing repair.
+CLI repairs now pending: dev_aliases matches current application wording and keeps
+PID survival/replacement checks; rust_bridge backend binding fixture uses schema2
+like current package creation (schema1 legacy-lock unit coverage retained).
+Runtime-cache theme fixture now explicitly installs required tokens before build.
+Interactive CLI banner respects minimum20-row terminal height; existing narrow
+terminal assertion retained. Multiselect witnesses now reach button/card at current
+catalog positions4/5; catalog count/unique identities updated8->13, preserving
+component/version/output assertions. No new UI implementation or feature expansion.
+CLI46125 running dev_aliases/rust_bridge/runtime_cache_cli/interactive_cli,
+/tmp/tsrust-cli-fixture-repair.log. Selected both compiler/LSP packages to preserve
+milestone feature unification and reduce dependency rebuild churn. Await completion
+before any further Cargo consumer. Original79249 continues completion_matrix.
+Windows40731485167 last observed in paired installer/binding acceptance; compile
+both consumers and portable-source preparation succeeded. No new hosted run.

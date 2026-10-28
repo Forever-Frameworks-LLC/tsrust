@@ -295,7 +295,7 @@ fn call_spread_protocol_preserves_types_and_conservative_supplied_positions() {
         help["signatures"][0]["parameters"][1]["label"]
             .as_str()
             .unwrap()
-            .contains("...tail:Entry[]"),
+            .contains("...tail: Entry[]"),
         "{help}"
     );
     assert!(help.get("activeParameter").is_none(), "{help}");

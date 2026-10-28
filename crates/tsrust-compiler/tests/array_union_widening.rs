@@ -31,3 +31,15 @@ fn widening_rejects_implicit_borrow_mutable_variance_loss_and_reuse() {
         assert!(check(source).is_err(), "{source}");
     }
 }
+
+#[test]
+fn spread_widens_selected_elements_without_widening_source_storage() {
+    support::execute(r#"
+function main(){
+ const source=[9007199254740993];const mixed:(int|string)[]=[...source,"tail"];
+ console.log(mixed[0],mixed[1],source[0]);
+ const words=["first"];const owned:(string|boolean)[]=[...words,true];
+ console.log(owned[0],owned[1]);
+}
+"#, "9007199254740993 tail 9007199254740993\nfirst true\n", None);
+}
