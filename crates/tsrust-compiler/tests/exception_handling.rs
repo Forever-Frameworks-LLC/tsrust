@@ -71,6 +71,7 @@ fn native_runner_reports_result_errors_and_continues() {
 type String=std::borrow::Cow<'static,str>;
 struct TsrTestContext<'p>(std::marker::PhantomData<&'p ()>);
 trait ProgramCallback<A,R>{{fn invoke_program(&mut self,args:A,program:&mut TsrTestContext<'_>,registry:&mut TsrTestRegistry)->R;}}
+fn tsrust_testing_run_in_scope<R>(body:impl FnOnce()->R)->R {{body()}}
 {runtime}
 {registration}
 fn main(){{

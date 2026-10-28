@@ -1067,3 +1067,24 @@ bind failure was not reproduced with socket permission. Deep-path repair 36444
 passes locally (1.49s), including direct and exported-package execution. Both
 repairs are accepted locally. Next hosted run changes the diagnosed test compile
 errors from terminal run 40721046040; use only existing toolchain_acceptance.
+
+Windows repaired-test acceptance dispatched once at 90382caa: run 40724567590.
+Track this exact run; previous 40721046040 is terminal.
+
+## Exception runner repair and registration defect
+
+Standalone Rust runtime harness in exception_handling omitted the synchronous
+run-in-scope adapter that emit/mod.rs emits for non-async programs. Added the same
+identity adapter. Focused native_runner_reports_result_errors_and_continues passes
+(session 70715, /tmp/tsrust-exception-runner-repair.log, 0.31s), preserving typed
+failure reporting, later-test continuation and callback-before-program disposal.
+
+prepared_test_entry_guards_file_registration_scope remains a real compiler issue:
+project/link.rs appends synthetic endSuite after test initialization, and
+callables/module_state.rs appends the generated main invocation. A registration
+body that unconditionally throws makes this synthetic tail unreachable, so the
+checker rejects valid cleanup execution before emission. Do not rewrite the
+witness to avoid the unconditional throw or globally weaken unreachable diagnostics.
+Repair generated registration/entry completion handling while preserving module
+storage visibility and ordinary user unreachable-code diagnostics. The original
+failing witness and full-run evidence remain intact.
