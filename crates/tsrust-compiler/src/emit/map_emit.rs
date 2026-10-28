@@ -137,7 +137,7 @@ mod ordered_tests {
         struct Source(String);
         impl crate::project::SourceProvider for Source {
             fn resolve(&self,_:Option<&crate::project::SourceId>,path:&str)->Result<crate::project::SourceId,String>{Ok(crate::project::SourceId(path.into()))}
-            fn read(&self,_:&crate::project::SourceId)->Result<String,String>{Ok(self.0.clone())}
+            fn read(&self,id:&crate::project::SourceId)->Result<String,String>{if id.0=="ordered-map.tsr" {Ok(self.0.clone())} else {Err(format!("Missing source: {}",id.0))}}
         }
         let source=format!("import {{OrderedMap}} from 'std:collections';\n{}",source.replace("Map<","OrderedMap<"));
         let source=crate::format(&source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);

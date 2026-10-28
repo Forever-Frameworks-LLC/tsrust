@@ -1,5 +1,21 @@
 # Agent continuation state
 
+## CI merge repair — 2026-10-28
+
+User requested CI repair for PR #2. Starting source: 6a766051. Hosted run
+40646298855 failed the same eleven compiler library tests on Linux and macOS.
+Repair fixture providers to reject missing configuration files, preserve the
+specialized OrderedMap type-name expectation, and reserve bundled color/url pins.
+Existing failing tests remain the regression witnesses; no checks are removed.
+
+Local whole-project formatting with the installed verified compiler changed zero
+files and fingerprints; the second formatting check and git diff --check passed.
+Local compilation/tests remain stopped per the hardware handoff below. Push this
+coherent repair to the existing PR for the ordinary CI workflow: hosted compilation
+and Linux/macOS test behavior cannot be validated locally under that restriction.
+The previous equivalent run is the failed run above; no duplicate manual dispatch
+or release tag is needed. Hosted acceptance is pending.
+
 ## Hardware stop and checkpoint — 2026-10-28
 
 The owner requested a clean wrap-up, commit and push, then explicitly stopped

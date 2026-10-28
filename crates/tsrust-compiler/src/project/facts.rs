@@ -533,7 +533,8 @@ fn project_metadata_keeps_conflicts_and_suppresses_unknown_shared_spans() {
         ) -> Result<crate::project::SourceId, String> {
             Ok(crate::project::SourceId("main.tsr".into()))
         }
-        fn read(&self, _: &crate::project::SourceId) -> Result<String, String> {
+        fn read(&self, id: &crate::project::SourceId) -> Result<String, String> {
+            if id.0 != "main.tsr" { return Err(format!("Missing source: {}", id.0)); }
             Ok("function main() {}".into())
         }
     }
@@ -585,7 +586,8 @@ fn project_generic_facts_do_not_select_a_known_result_over_an_abstract_variant()
         ) -> Result<crate::project::SourceId, String> {
             Ok(crate::project::SourceId("main.tsr".into()))
         }
-        fn read(&self, _: &crate::project::SourceId) -> Result<String, String> {
+        fn read(&self, id: &crate::project::SourceId) -> Result<String, String> {
+            if id.0 != "main.tsr" { return Err(format!("Missing source: {}", id.0)); }
             Ok("function identity<T>(value:T):T{return value;}function main(){identity(1);identity(1.5);}".into())
         }
     }

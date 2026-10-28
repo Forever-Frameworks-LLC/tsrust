@@ -12,6 +12,8 @@ fn enabled()->bool{true}
 pub fn reserved(name:&str)->bool {
  [
         "arboard",
+        "color",
+        "url",
         "winit",
         "vello",
         "kurbo",

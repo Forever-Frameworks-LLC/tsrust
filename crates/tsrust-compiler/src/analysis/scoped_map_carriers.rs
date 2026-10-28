@@ -232,6 +232,6 @@ mod ordered_identity_tests {
         assert_eq!(analyzer.program.records[specialized].application.as_ref().unwrap().resolved_arguments,[Type::Int,Type::String]);
         assert_eq!(analyzer.scoped_map_value_instance(ordered,Type::String),specialized);
         assert_eq!(analyzer.unions.named_type(specialized),Type::Map(specialized));
-        assert_eq!(analyzer.type_name(Type::Map(specialized)),"OrderedMap");
+        assert_eq!(analyzer.type_name(Type::Map(specialized)),"OrderedMap<int, string>");
     }
 }
