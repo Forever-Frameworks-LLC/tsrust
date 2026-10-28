@@ -2,7 +2,8 @@
 
 ## Current continuation — public documentation audit
 
-Latest accepted checkpoint is d23dbf20 (hover repair and tooling-guide audit);
+Latest accepted checkpoint is e33f4674 (retained native fixtures); d23dbf20
+contains the hover repair and tooling-guide audit;
 7612c271 retains the HTTP reader timing baseline. Current work
 repairs retained editor compatibility while completing the public-doc audit. The
 page-by-page checklist is [the public content audit](plans/public-documentation-content-audit.md).
@@ -34,9 +35,20 @@ pass. Whole-project formatter changed zero files/fingerprints. Keep fresh-platfo
 published-acquisition and interactive execution requirements open in the tracker.
 
 Existing remote head is 86435b8846badcfaf836af9c36da3fa56379f3a6 on draft PR #4.
-Linux 40748887685 remains in Compiler and CLI acceptance; extension passed.
-Windows 40748893795 reached paired installer/locked-process/cache acceptance.
+Linux 40748887685 reached LSP transport and compiler agreement; extension passed.
+Windows 40748893795 succeeded at 86435b88: installer/process 8/8, shared-source
+5/5 and package-management 7/7, including the new live-LSP update witness.
 Docs 40748887897 passed. No new hosted run, push, merge or release in this section.
+
+## Regression reconciliation
+
+The [26-target reconciliation](milestones/backend-polish-regression-reconciliation.md)
+records original failures and accepted focused repairs without claiming one green
+full run. The isolated table renderer build passes (1 test, 80.55s). Both retained
+UI catalog checks still fail on historical documentation coverage: 59 entries lack
+fenced examples and 49 lack executable examples. Keep these visible under deferred
+UI scope; backend catalog tests pass. No UI feature expansion or duplicate hosted
+run is warranted. Remaining public-page/platform checks stay open.
 
 ## Retained native compatibility follow-up
 

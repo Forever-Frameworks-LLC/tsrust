@@ -65,9 +65,8 @@ Do not import them into benchmark analytics. No performance claim is made.
 ## Pending
 
 Execute the new Linux acceptance through staging CI.
-The live-LSP update witness below has macOS acceptance; execute that new witness
-on Windows and Linux as well. The earlier Windows fixture/startup pass does not
-cover the newly added interactive protocol sequence. Published artifact
+The live-LSP update witness below has macOS and Windows acceptance; execute it
+on Linux as well. Published artifact
 acquisition remains unexecuted because no stable release exists. Full backend
 regressions, matched performance and the wider documentation audit remain separate
 goal requirements.
@@ -96,4 +95,13 @@ selection and old-server continuity, not execution of a future released LSP.
 
 Focused test 24646 passed in 19.16 seconds after a 5m22 dependency/compiler build,
 with no warnings or errors. Disposable log: /tmp/tsrust-live-lsp-update.log.
-Windows/Linux execution of this new protocol witness remains pending.
+Windows execution also passed at `86435b8846badcfaf836af9c36da3fa56379f3a6`:
+[run 40748893795](https://github.com/Forever-Frameworks-LLC/tsrust/actions/runs/40748893795).
+The job and aggregate Toolchain acceptance both succeeded. Installer/process tests
+passed 8/8 (39.45s), shared-source tests 5/5 (219.12s), and package-management tests
+7/7 (332.51s). Both consumers built and backend all-target checking passed.
+The installer witness source is unchanged in local checkpoint e33f4674. This proves
+the live protocol sequence and locked-process behavior on Windows, but not the
+website's fresh-machine PowerShell setup commands or published artifact acquisition.
+Linux execution remains pending. Disposable log:
+`/tmp/tsrust-windows-live-lsp-acceptance.log`.
