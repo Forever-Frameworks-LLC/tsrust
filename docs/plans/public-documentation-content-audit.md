@@ -24,9 +24,9 @@ content is not accepted merely because its original file existed.
 | Page | Status | Evidence / remaining work |
 | --- | --- | --- |
 | `404.md` | Pending | Verify facts, examples and reading flow. |
-| `backend/api-clients.md` | Pending | Verify facts, examples and reading flow. |
+| `backend/api-clients.md` | Source review in progress | Corrected mandatory --out for URL/saved-description generation against api_cli.rs. Separated source configuration and generated output; full wire-contract and rendered audit pending. |
 | `backend/api-compatibility.md` | Pending | Verify facts, examples and reading flow. |
-| `backend/applications.md` | Pending | Verify facts, examples and reading flow. |
+| `backend/applications.md` | Source review in progress | Reorganized into create/run, access policy, checks, client generation and OpenAPI scope. Checked application_scaffold.rs, starter templates and api_cli.rs. Live starter description, TypeScript/Rust SDK generation and saved-description regeneration pass; rendered review pending. |
 | `backend/authorization.md` | Pending | Verify facts, examples and reading flow. |
 | `backend/http-transport.md` | Pending | Verify facts, examples and reading flow. |
 | `backend/http.md` | Source review complete; rendered review pending | HTTP runtime, builtin catalog and examples/http-context/json.test.tsr; combined route example passes compiler check. Split readers/errors/responses. |
@@ -40,8 +40,8 @@ content is not accepted merely because its original file existed.
 | `project/status.md` | Pending | Verify facts, examples and reading flow. |
 | `start/editor.md` | Source review in progress | VS Code manifest minimum, executables.ts discovery order, extension.ts configuration/restart behavior checked. Separated stale-path and memory recovery from onboarding. Full editor/platform execution remains pending. |
 | `start/installation.md` | Source review in progress | Verified archive naming, current exact Rust pin and executable paths; made extraction conditional on checksum success and separated installation/update tasks. Fresh-platform instructions remain pending. |
-| `start/project-structure.md` | Pending | Verify facts, examples and reading flow. |
-| `start/quickstart.md` | Pending | Verify facts, examples and reading flow. |
+| `start/project-structure.md` | Source review complete; rendered review pending | File list, build entry/output and explicit API configuration match application_scaffold.rs and starter templates; independently created starter passes check/test/format. |
+| `start/quickstart.md` | Source/example review in progress | Exact hello snippet checks and executes with TypeScript + Rust output. Fresh --app project check/test/format pass. Live HTTP description and both SDK commands pass; rendered review pending. |
 | `tools/cli.md` | Source review in progress | Confirmed interactive categories, ASCII name/100-character limit, config defaults and explicit-path semantics. Added headings around dev output/cache. Watcher and full example acceptance remain pending. |
 | `tools/install-and-update.md` | Pending | Verify facts, examples and reading flow. |
 | `tools/rust-setup.md` | Pending | Verify facts, examples and reading flow. |

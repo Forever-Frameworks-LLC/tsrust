@@ -17,14 +17,13 @@ tsrust api generate --url http://127.0.0.1:4318/api/description --language rust 
 
 Use `--description http-api.json` instead of --url for a saved description, without
 backend source. The same checked description exports OpenAPI. SDK generation does
-not change application source, register operations or start a server. Optional
-api.output configures a client export destination; otherwise --out is required.
+not change application source, register operations or start a server. URL and saved-description generation always require `--out`. For source-based
+generation, `api.output` can supply the default destination.
 Optional server.output retains explicit legacy dispatcher export, which new
 applications do not use. Keep deployment compatibility baselines application-owned
 rather than depending on a generated client directory.
 
-For source-based SDK export without HTTP, the retained separate configuration also
-works:
+## Generate from source configuration
 
 Declare the operations to expose in a separate `tsrust.api.json`. Keeping this
 configuration separate allows backend/client-only adoption without changing an
@@ -62,7 +61,9 @@ backslashes; use portable forward slashes. An explicit output flag is relative t
 the current directory and can select a standalone destination. Initial package
 versions use ordinary `major.minor.patch`; prerelease versions are a later addition.
 
-The output contains JavaScript ESM, TypeScript declarations, a manifest, package
+## Understand generated output
+
+The TypeScript output contains JavaScript ESM, TypeScript declarations, a manifest, package
 metadata and the generated runtime's MIT notice. It has no install scripts or
 framework dependencies. No backend bodies, source paths, credentials, database
 dependencies or source-tree imports are copied into it. The package is private

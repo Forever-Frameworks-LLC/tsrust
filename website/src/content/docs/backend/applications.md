@@ -3,85 +3,99 @@ title: Create a backend application
 description: Create a native HTTP service with server-owned operations and explicit access policy.
 ---
 
-`tsrust new hello --app` creates a native greeting HTTP API. The optional `--target backend` is
-accepted; frontend targets are rejected. Bring your own UI and call the API.
-Creation never overwrites an existing destination or installs dependencies.
+Create a service with a greeting operation, then generate clients independently
+for the applications that call it. You need the CLI and
+[prepared native build tools](../../tools/rust-setup/).
 
-```text
-hello/
-  tsrust.config.json       Build entry and explicit API operation settings
-  app/
-    main.tsr               Native HTTP server entry
-    api/                   Operations, context and access policy
-    lib/                   Reusable backend logic
-    tests/                 Native assertions
+## Create and run the service
+
+```sh
+tsrust new hello --app
+cd hello
+tsrust dev
 ```
 
-Run `tsrust dev` at the project root. The starter listens on loopback port 4318.
-Read app/api/access.tsr before adding sensitive operations: the greeting is
-explicitly public. Authentication remains application policy.
+The starter listens on `127.0.0.1:4318`. Creation refuses an existing destination
+and does not install dependencies. `--target backend` is optional; frontend
+targets are rejected.
 
-The server owns its API in app/. Its explicit api settings select operations,
-context, access policy and retained compatibility baselines. app/main.tsr imports
-`dispatch`, `describe` and `openapi` from `api:server`. The compiler checks those
-handlers and supplies their source in memory; it writes no dispatcher directory.
-Client generation is never required to check, build or run the service.
+| File | Purpose |
+| --- | --- |
+| `app/main.tsr` | HTTP routes, server limits and listening address. |
+| `app/api/operations.tsr` | Exported operation implementations. |
+| `app/api/context.tsr` | Application request context. |
+| `app/api/access.tsr` | Authorization policy. |
+| `app/lib/greeting.tsr` | Reusable greeting logic. |
+| `app/tests/greet.test.tsr` | Native assertions. |
+| `tsrust.config.json` | Build entry and selected API operations. |
 
-Run `tsrust check`, `tsrust test` and `tsrust format --check` for backend source.
-After changing a contract, review its description and retain prior checked contract
-baselines under app/ as needed for rolling deployments. List those paths in
-api.compatible, bump package.version for releases, and change apiVersion for an
-intentionally breaking API major. Ordinary exports remain private unless selected.
+Use `tsrust new hello` without `--app` for a console project.
 
-Generate an independent TypeScript or Rust SDK from the running service, or from a
-saved description. Choose its location explicitly: js-client/, rust-client/, an
-external project or a directory for later publication. No SDK output is created by
-the backend scaffold, and generating an SDK never modifies the server.
+## Review access before deployment
 
-The TypeScript package exposes plain named calls and a configurable HTTP transport,
-without React, TanStack or runtime package dependencies. Its package.json is ESM
-metadata; backend development does not require npm or Node installation.
-The starter explicitly mounts GET /api/description and GET /api/openapi.json,
-using the same application access policy as dispatch. Existing applications opt
-in with api settings and mount the api:server describe/openapi handlers themselves. The OpenAPI
-document describes the actual single POST endpoint; configure its server URL and
-application authentication policy for deployment.
+The starter authorization function returns `true`: its greeting API is public.
+Replace `app/api/access.tsr` before adding protected operations. Authentication
+and deployment policy remain your responsibility.
 
-SDK generation also emits http-api.json and openapi.json. A separate directory
-can regenerate the TypeScript SDK without backend source:
+The `api` configuration explicitly selects operations, context and authorization.
+Ordinary function exports do not automatically become API operations. The server
+imports `dispatch`, `describe` and `openapi` from `api:server`; the compiler checks
+and supplies those handlers in memory. Checking and running the service need no
+generated client or checked-in dispatcher.
 
-```text
-tsrust api generate --description http-api.json --out sdk
+The starter mounts these routes:
+
+| Route | Purpose |
+| --- | --- |
+| `POST /api` | Dispatch a selected operation. |
+| `GET /api/description` | Return the checked description used by SDK generation. |
+| `GET /api/openapi.json` | Return the OpenAPI document. |
+
+Description and OpenAPI handlers use the same application access policy as
+dispatch. See [authorization](../authorization/) for protected services.
+
+## Check changes
+
+From the project root:
+
+```sh
+tsrust check
+tsrust test
+tsrust format --check
 ```
 
-Descriptions are limited to 1 MiB and validated before output changes. Existing
-generated output retains ownership guards and compatibility history protection.
-Fetch a description directly, or generate an asynchronous Rust client:
+For rolling deployments, retain prior checked contracts and list them in
+`api.compatible`. Update `api.package.version` for SDK releases; change
+`api.apiVersion` for an intentionally breaking API major. Review
+[compatibility rules](../api-compatibility/) before changing a public contract.
 
-```text
+## Generate a client
+
+Keep the service running and use a second terminal:
+
+```sh
 tsrust api generate --url http://127.0.0.1:4318/api/description --out js-client
 tsrust api generate --url http://127.0.0.1:4318/api/description --language rust --out rust-client
 ```
 
-Remote URLs require HTTPS; HTTP is allowed on loopback. Redirects are rejected and
-descriptions are limited to 1 MiB. For a protected description, add
-`--header-env Authorization=API_AUTHORIZATION`; the environment variable contains
-the complete header value. Credentials are resolved for this explicit request and
-are not embedded in the generated SDK. Existing outputs retain ownership guards.
+Both commands require an explicit output directory. Generation writes client
+files without changing the server or installing packages. Backend development
+does not require Node or npm. The TypeScript client uses named asynchronous calls;
+the Rust client uses awaitable calls and an optional async HTTP transport.
 
-Rust named calls are awaitable, for example `client.api().greet(name).await`.
-The default optional HTTP transport uses async reqwest on the caller's Tokio
-runtime. Custom transports return futures; header providers may await credential
-refresh. There is no blocking HTTP adapter. The Rust generator supports tuples
-up to 16 elements and rejects larger tuples. Client generation installs nothing;
-Rust dependency resolution remains an explicit Cargo operation in the consumer.
+A generated `http-api.json` can be used later without the running service or its
+source:
 
-OpenAPI describes the starter's POST /api endpoint. When mounting the dispatcher
-elsewhere, adapt the deployment specification's path/server URL and client URL.
-This is checked Tsrust RPC export, not an arbitrary REST/OpenAPI importer.
+```sh
+tsrust api generate --description js-client/http-api.json --out another-client
+```
 
-`tsrust new hello` retains the console scaffold. Original Tsrust UI source and
-explicit legacy commands remain historical compatibility outside the active backend
-product. Ordinary backend and schema 2 binding builds use shared Cargo sources;
-see [machine setup](../../tools/rust-setup/). For paired CLI/LSP acquisition and
-rollback, see [managed installation](../../tools/install-and-update/).
+Remote description URLs require HTTPS; loopback HTTP is allowed. Redirects are
+rejected and descriptions are limited to 1 MiB. For protected descriptions and
+consumer setup, see [independent API clients](../api-clients/).
+
+## Understand OpenAPI scope
+
+OpenAPI describes the service's single `POST /api` RPC endpoint. If you mount the
+dispatcher elsewhere, update the deployment specification's path/server URL and
+client endpoint. This export does not import arbitrary REST/OpenAPI services.

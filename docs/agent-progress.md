@@ -934,3 +934,28 @@ shared sources (including the new deep-path regression), paired installation and
 all targets on Windows. Last equivalent acceptance 40705140781 failed before
 these linker/offline-source repairs; the probes establish the changed hypothesis.
 No production Windows pass is claimed until that affected workflow succeeds.
+
+Windows production acceptance dispatched once at 86c334a8: run 40721046040.
+Track this exact run; do not duplicate dispatch. Publication repair checkpoint
+fab4ab4a is accepted. Original full suite 79249 remains live at project_commands;
+project suite has one failure among 95 tests, awaiting final failure inventory.
+
+
+## Backend onboarding documentation audit
+
+Reorganized applications into create/run, access policy, checks, SDK generation
+and OpenAPI scope, against application_scaffold.rs, actual templates and api_cli.rs.
+Fixed API client guide: URL/saved-description generation requires explicit --out;
+configured output defaults apply only to source-based generation. Exact quickstart
+hello snippet checks and prints TypeScript + Rust. Fresh /tmp/tsrust-onboarding-doc-audit/
+hello-api passes check, test and format. Started that owned server, fetched its
+405-byte description, generated TypeScript and Rust SDKs, regenerated TypeScript
+from js-client/http-api.json; all pass. Server and owned process group stopped.
+Production site build and 23-page link/anchor/asset checks pass. Browser review
+still unavailable/pending. No broad regression restart or new hosted dispatch.
+Windows 40721046040 last confirmed running Compile both consumers.
+Original full regression remains live; newly observed failures include native
+source-provider mocks reading tsrust.config.json as Tsrust source (ui-config),
+project and project_scaling read counts increased by the configuration probe,
+runtime_cache_cli theme case and rust_bridge locked dependency case. Inspect
+full failure contexts before repairs; don't weaken source-read invariants blindly.
