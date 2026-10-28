@@ -1,6 +1,40 @@
 # Agent continuation state
 
-## Current continuation — switch audit accepted
+## Current continuation — type aliases and text imports accepted
+
+Previous turn made progress with switch checkpoint be24e9c2. This section migrates
+type aliases and text imports into two digestible canonical guides (32 site pages).
+Retained docs/content pages preserve metadata/routes and link to canonical sources;
+obsolete type-alias guide stub removed, active feature-coverage link and generic
+support wording corrected. No compiler source change, dependency or owner edit.
+
+Acceptance: all four complete example scenarios pass formatting/idempotence,
+compiler checking and exact native output. Existing compiler alias/generic/text
+integration targets pass 13 tests; matching LSP targets pass 7 including support
+controls. Logs: /tmp/tsrust-alias-text-compiler.log and
+/tmp/tsrust-alias-text-lsp.log. Initial extraction mistakenly used print-only format;
+corrected to --write, then --check passes. No compiler defect involved.
+
+Command execution caught an incorrect new prose command, `tsrust dev main.tsr`:
+dev needs a configured project and rejects positional filenames. Corrected guide
+now states both prerequisites. A bounded real configured watcher observed first
+and second text-file versions and shut down cleanly. No watcher remains running.
+
+Full 390px/1440px rendered review covers both pages and the corrected watcher
+paragraph. Tables fit, code is highlighted and keyboard-scrollable (40px), mobile
+document widths match 390px, skip and next-page keyboard navigation pass. Browser
+tab 4 remains on the text-import guide; viewport reset. Final 32-page build and internal links/anchors pass. Whole-project formatter
+changed zero files and zero fingerprints. Local checkpoint is ready. No GitHub action/push,
+release, full regression or timing run was triggered. Prior switch all-target
+acceptance remains valid because this section changes only docs/site navigation.
+
+Next: continue finite migration with values/types and collections; platform setup,
+new Windows/Linux editor fixture, fresh acquisition and actual Pages deployment
+remain open. Reuse existing accepted evidence. No concrete release version is
+authorized. Keep one writer, one Cargo target, jobs=1 and incremental disabled.
+Do not touch owner VS Code.
+
+## Prior continuation — switch audit accepted
 
 Current section builds on WIP checkpoint 6d4e4527. No owner changes were present
 at section start. Public site has 30 pages; per-page acceptance and the finite
