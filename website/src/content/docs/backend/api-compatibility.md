@@ -27,14 +27,23 @@ schemas in different API majors therefore have different wire identities.
 ## Decide whether a change is compatible
 
 Generated `compatibility.json` retains deduplicated checked schemas and immutable
-SDK release references. Keep it with generated output. Generation reads canonical
-history even when exporting with `--out`, merges destination history, and checks
-compatibility before replacing public/private outputs. Changed schemas require a
-new SDK version. Within one API major, released inputs remain accepted and old
-replica results must satisfy the new SDK. Optional result additions can work;
-required new fields must use an explicit API major or remain optional during
-rollout. A new API major requires a new SDK major. Business semantics still need
-application review; schema containment cannot prove them.
+SDK release references. Keep it with generated output.
+
+For source-based generation, the compiler reads canonical history even when using
+`--out` and merges destination history before replacing output files. Generation
+from an HTTP description uses the history carried by that description. It rejects
+a description that omits history already retained by the destination SDK.
+
+| Change | Requirement |
+| --- | --- |
+| Change a checked schema | Choose a new SDK version. |
+| Keep the same API major | The server must still accept released inputs, and older replica results must satisfy the new SDK. |
+| Add an optional result field | Can remain compatible when older replicas omit it. |
+| Require a new result field | Use a new API major, or keep the field optional during rollout. |
+| Raise the API major | Raise the SDK major as well. |
+
+Business semantics still need application review; schema containment cannot prove
+them.
 
 ## Publish a changed SDK
 
@@ -59,13 +68,23 @@ Existing owned pre-metadata packages bootstrap from their manifest/package versi
 
 ## Roll out across mixed replicas
 
-Before I/O, the HTTP adapter selects a retained profile whose input codec accepts
-the actual supplied arguments and whose output is accepted by the current SDK.
-Modern dispatchers recognize retained per-operation fingerprints independently
-of unrelated selected methods. Strict response codecs and old-client projections
-remain in force. The adapter never strips arguments or retries requests to find
-support. Common calls can survive mixed replicas; newly supplied arguments or new
-operations can require newer servers. `ApiCompatibilityError` extends `ApiError`,
-preserves `api-incompatible` / `api-operation` codes and reports the requested API major.
-Do not infer fleet-wide capabilities from one replica or retry ambiguous writes.
-Retain older handlers or migrations for as long as older API majors must work.
+Both generated clients select a retained profile before I/O. Its input codec must
+accept the actual supplied arguments, and its output must be accepted by the
+current SDK. Modern dispatchers also recognize retained per-operation fingerprints,
+independently of unrelated selected methods.
+
+Strict response codecs and old-client projections remain in force. The clients
+never strip supplied arguments or retry requests to find support. Common calls
+can survive mixed replicas; newly supplied arguments or new operations can require
+newer servers.
+
+### Handle a compatibility failure
+
+- **TypeScript/JavaScript:** `ApiCompatibilityError` extends `ApiError` and
+  includes the requested `apiVersion`.
+- **Rust:** `ApiError` includes `api_version`; `is_compatibility()` identifies
+  compatibility failures.
+
+Both retain the `api-incompatible` and `api-operation` codes. Do not infer fleet-wide
+capabilities from one replica or retry ambiguous writes. Retain older handlers or
+migrations for as long as older API majors must work.

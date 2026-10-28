@@ -1522,3 +1522,39 @@ source-build link. No viewport override applied. Do not mark page fully audited.
   overflowing code. PowerShell command execution remains explicitly pending.
 - Current browser viewport override reset after checks. Local preview remains at
   http://127.0.0.1:4322/tsrust/. Unaccepted editor/catalog work remains separate.
+
+
+### Catalog acceptance scope separation
+
+- Split exhaustive catalog compiler/native checks into backend and retained UI test
+  wrappers over the same assertion bodies. Both groups remain ordinary tests in
+  the default suite; every family is assigned exactly once. No assertions removed
+  or ignored. This follows backend-only-reset.md without adding new UI product scope.
+- Current backend catalog compiler check: exec 18037, log
+  /tmp/tsrust-backend-catalog-check.log. Last process observation confirmed rustc
+  active at ~99% CPU and ~218 MiB RSS, one job. Do not restart while live.
+- Next: after that result, resume backend native catalog examples at HttpApp with
+  loopback permission (prior sandbox bind failed), then repair only actual backend
+  failures. Retained UI gaps stay separately visible in default full-suite results.
+
+- Backend compiler-witness catalog now passes (18037 terminal 0). Native example
+  continuation is running as exec 76019 with loopback permission, resume family
+  HttpApp, log /tmp/tsrust-backend-catalog-native.log. Preserve earlier accepted
+  families; this does not rerun the full compiler/LSP regression suite.
+
+### API compatibility and library overview audit acceptance
+
+- Compatibility guide now distinguishes JavaScript ApiCompatibilityError from
+  Rust ApiError::is_compatibility(), and source-history merge from HTTP-description
+  history omission rejection. Source trace and existing passing contract/Rust SDK
+  tests support the claims. Mobile rendering caught a clipped error table; replaced
+  it with SDK-specific bullets and checked the repair.
+- Compatibility and library overview rows now complete: full 390px/1440px visual
+  review, keyboard navigation, no document overflow, and focusable library code
+  scroll verified (ArrowRight advances 40px). Existing basename native result reused.
+- Final site build and 23-page link/anchor check pass after the presentation repair.
+  Backend native catalog exec 76019 remains running; no duplicate Cargo validation
+  started. Process inspection confirms progress through duration examples.
+- Landing-page content/presentation row also complete: existing native Hello
+  evidence, full desktop/mobile inspection, keyboard scrolling and navigation to
+  quickstart. Browser viewport override reset.
