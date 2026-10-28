@@ -1,6 +1,43 @@
 # Agent continuation state
 
-## Current continuation — destructuring content audit in progress
+## Current continuation — destructuring guide migration accepted
+
+Previous turn progressed at d04419c8. This section completes the guide migration
+into three canonical pages: language/destructuring, pattern-defaults-rest and
+record-spread-assignment. Removed the duplicate guide, migrated relative Markdown
+links and corrected contradictory current feature-coverage restrictions. Historical
+milestone narrative is preserved. Site now contains 38 pages.
+
+Found and corrected another stale claim: optional record fields are supported.
+Updated exact example uses text?: string and an omitted constructor field. Clarified
+cloneability/opaque-native restrictions and the no-spread written-array assignment
+optimization; named assignment sources are read in place. Split dense prose into
+behavioral sections. Traced syntax/mod.rs, declaration_work.rs, owned_array_patterns,
+destructuring_rest and object_spread implementations and focused fixture contracts.
+
+All 16 displayed snippets pass format/check/native execution (15 complete programs,
+one explicitly labeled fragment checked with Point and a caller). Updated optional
+example separately rerun successfully. Compiler defaults16/rest24/nested3/assignment2
+and optional3 all pass (48 tests); editor intelligence destructur filter passes8.
+Prior d04419c8 destructuring/declaration14 retained. Logs:
+/tmp/tsrust-pattern-doc-compiler.log, /tmp/tsrust-pattern-doc-editor.log,
+/tmp/tsrust-pattern-doc-optional.log, /tmp/tsrust-pattern-doc-site.log.
+All processes ended successfully. No compiler changes or new timing/platform claim.
+
+Full three-page rendered review at390/1440: highlighted code, readable sections,
+no mobile document overflow; keyboard code scroll30/40/40px, skip/next/section
+navigation pass. Initial reload observed tabindex -1 before client resize handling;
+settled code has tabindex0 and scroll40. Viewport reset; tab4 retained on spread
+page. Final38-page build and internal same-site links/anchors pass. Audit rows accepted.
+
+Next: continue finite language guide migration (optional fields/interfaces or
+remaining ownership/operator topics). Full formatter/diff check before checkpoint.
+Platform setup, updated Windows/Linux editor fixture/acquisition and actual Pages
+deployment remain pending. No hosted CI, push, release, full suite or benchmark run.
+Goal remains active; one writer, shared Cargo target, jobs1/incremental0.
+
+
+## Prior continuation — destructuring content audit in progress
 
 Started from clean a00d03ee. Corrected two stale restrictions in the existing
 language/destructuring guide: explicit Owned<T[]> parameter patterns can transfer

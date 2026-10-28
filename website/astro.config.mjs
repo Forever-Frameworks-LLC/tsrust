@@ -14,7 +14,7 @@ export default defineConfig({
     customCss: ['./src/styles/custom.css'],
     sidebar: [
       { label: 'Start here', items: [{ label: 'Overview', slug: '' }, 'start/installation', 'start/quickstart', 'start/editor', 'start/project-structure'] },
-      { label: 'Language', items: ['language/declarations', 'language/modules', 'language/type-aliases', 'language/text-imports', 'language/async', 'language/strings', 'language/assignment-values', 'language/comma-expressions', 'language/statement-bodies', 'language/switch'] },
+      { label: 'Language', items: ['language/declarations', 'language/destructuring', 'language/pattern-defaults-rest', 'language/record-spread-assignment', 'language/modules', 'language/type-aliases', 'language/text-imports', 'language/async', 'language/strings', 'language/assignment-values', 'language/comma-expressions', 'language/statement-bodies', 'language/switch'] },
       { label: 'Build backends', items: ['backend/applications', 'backend/http', 'backend/static-files', 'backend/http-transport', 'backend/api-clients', 'backend/authorization', 'backend/api-compatibility', 'backend/deployment'] },
       { label: 'Standard library', items: ['library/overview', 'library/json', 'library/typed-json', 'library/json-files', 'library/futures'] },
       { label: 'Tools', items: ['tools/cli', 'tools/testing', 'tools/rust-setup', 'tools/install-and-update', 'tools/rust-packages'] },
