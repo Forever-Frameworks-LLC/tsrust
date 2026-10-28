@@ -1,8 +1,17 @@
-# Rust packages
+---
+title: Use Rust packages
+description: Add Rust adapters, select features and validate dependency changes.
+---
 
 Use the CLI to manage dependencies. Do not edit generated binding JSON or generated
 Cargo.toml files. Public Rust functions and owned structs/enums define the source API;
 package configuration only selects Cargo dependencies and features.
+
+## Add a dependency
+
+Start with an existing project at `./app` and
+[prepared native build tools](../rust-setup/). These commands can fetch registry
+sources; use `--offline` when the needed sources are already cached.
 
 ```sh
 tsrust add regex@1.12.2 --project ./app
@@ -16,28 +25,27 @@ crates become available to custom public Rust declarations; adding a dependency 
 not bind its entire API. Existing Rust adapters are never overwritten. The CLI prints
 available exports and states explicitly when no bindings exist.
 
-Import the generated module in source:
+For a source file beside `native.bindings.json`, import the adapter exports:
 
 ```ts
 import { Search, search } from './native.bindings.json';
 ```
 
-If a project already has one *.bindings.json file, commands select it automatically.
+## Select the project and adapter
+
+If a project already has one `*.bindings.json` file, commands select it automatically.
 Use --bindings relative/path.bindings.json when several exist. --source ./adapter.rs
 selects an adapter when creating a configuration. --project selects the root whose
 callers and tests are validated; otherwise the nearest configured project or current
 directory is used.
 
-## Features and versions
+## Change features
 
 ```sh
 tsrust features regex --enable unicode --project ./app
 tsrust features regex --disable unicode --project ./app
 tsrust features regex --features std,perf --no-default-features --project ./app
 tsrust features regex --default-features --project ./app
-tsrust update regex --dry-run --project ./app
-tsrust update regex --to 1.13.1 --project ./app
-tsrust remove regex --project ./app
 ```
 
 --features replaces the explicit feature set; --enable and --disable modify that
@@ -45,6 +53,17 @@ set. Defaults are controlled separately. Cargo unifies features across dependenc
 disabling an explicit feature does not necessarily disable its effective feature.
 Inspection shows effective features and dependency requests. Conflicting options are
 rejected. An empty --features argument clears the explicit set.
+
+## Preview and update versions
+
+```sh
+tsrust update regex --dry-run --project ./app
+```
+
+This previews a compatible update without publishing it. Remove `--dry-run` to
+apply the validated change. To select a particular published version, use
+`tsrust update regex --to VERSION --project ./app`, replacing `VERSION` with the
+exact version you intend to use.
 
 Add without a version lets Cargo select its stable release. Repeated add preserves
 an existing version unless another exact version is supplied. Update without --to
@@ -56,7 +75,16 @@ serde and serde_json pins cannot be overridden through project package commands.
 Every modifying command supports --dry-run and --offline. Previews still compile
 and run tests, then discard the candidate. --offline prevents registry access and
 requires suitable locally cached sources; it does not mean "skip validation".
-`tsrust bindings resolve path.bindings.json` explicitly fetches the exact locked
+
+## Restore locked sources
+
+For the generated configuration above:
+
+```sh
+tsrust bindings resolve app/native.bindings.json
+```
+
+This explicitly fetches the exact locked
 sources into Cargo's shared cache. Add `--offline` to require already-cached sources.
 Ordinary check/emit/build/dev commands never download or create vendor copies.
 Native builds reuse compiled support for the same locked graph and account for
@@ -67,7 +95,11 @@ are preserved without inferring a format from their incidental package contents.
 Unknown versions fail before resolution. New package commands create version 2;
 commands on an existing version 1 file preserve its format and exact graph.
 
-For a relocated offline source export, prepare its source pack explicitly:
+## Export a portable source package
+
+From the project directory, prepare its source pack explicitly. Replace
+`path.bindings.json` and `main.tsr` below with your binding configuration and entry
+file:
 
 ```sh
 tsrust bindings resolve path.bindings.json --portable --offline
@@ -81,13 +113,30 @@ binding graph requires a matching source pack. Keep the same Cargo home or set
 TSRUST_SOURCE_PACK_DIR explicitly when exporting without the toolchain. The exported
 package includes its own vendor directory and can rebuild offline after relocation.
 
-## Validation and publication
+## Remove an unused dependency
 
-Before applying a change, the CLI resolves through Cargo, shows all added/removed
-package versions, compiles the real adapter (even if unused), checks and natively
-compiles project callers, and runs discovered .test.tsr/.spec.tsr files. Tests run
+```sh
+tsrust remove regex --project ./app
+```
+
+Removal undergoes the same validation as an update. First remove the dependency's
+uses from your Rust adapter and project source; otherwise compilation rejects the
+change. Use `--dry-run` to preview removal.
+
+## What validation changes
+
+Before applying a change, the CLI:
+
+1. Resolves through Cargo and shows added and removed package versions.
+2. Compiles the real Rust adapter, even when no caller uses it.
+3. Checks and natively compiles project callers.
+4. Runs discovered `.test.tsr` and `.spec.tsr` files.
+
+Tests run
 with the project root as their working directory. Their normal I/O effects are not
 rolled back; the package CLI itself never rewrites caller or test source files.
+
+### Failed changes and concurrent edits
 
 A failed resolution, adapter build, caller check or test leaves published dependency
 configuration and custom adapters unchanged. Changed source inputs abort publication.
@@ -98,6 +147,8 @@ source and compiled caches may retain work from those explicit commands; publish
 configuration and adapters do not change. Historical vendor directories are preserved
 but ordinary builds no longer consume them.
 
+### Limits of validation
+
 Compilation detects incompatible Rust APIs and source ownership/type changes. Tests
 check exercised behavior; neither SemVer nor successful compilation proves untested
 behavior. Zero test files are reported explicitly. Validation covers the current
@@ -107,7 +158,3 @@ arbitrary automatic crate-to-language mappings are outside this workflow.
 One program uses one managed dependency configuration. Independent configurations
 can coexist under a project root and are selected with --bindings. Callers mixing
 different dependency configurations are rejected before publication.
-
-Offline integration acceptance uses cached regex 1.12.2, proc-macro2 1.0.107 and
-unicode-ident 1.0.26/1.0.27 sources. The CLI's --offline behavior is tested against
-that fixed warm set; missing sources fail without changing the project.

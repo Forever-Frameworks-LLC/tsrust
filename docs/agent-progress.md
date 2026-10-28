@@ -2124,3 +2124,22 @@ compatibility is never inferred from doctor. No runtime behavior changed.
 Existing CI 40761578381 was confirmed live in Compiler and CLI acceptance this
 turn; no push, dispatch or release. Next: continue Rust-package/collection guide
 consolidation, then batch unpushed docs and outstanding platform smoke validation.
+
+## Rust package guide and example audit in progress
+
+Moved rust-packages user guidance to website tools/rust-packages with task headings,
+removed invented future version example, updated active inbound links, and corrected
+regex README shared-cache versus explicit portable-vendor behavior. Retained old
+acceptance observations with an explicit historical label. The 27-page build and
+links pass; rendering review is pending (browser handle expired).
+Actual package inspection found examples/rust-regex/regex.bindings.json still used
+schemaVersion 1 with an obsolete small lock. Version 1 attempted UI dependencies;
+version 2 correctly selects backend but still rejects the obsolete lock under
+--locked. Changed only schemaVersion to 2, then started the actual package CLI
+add regex@1.12.2 --offline to resolve/validate/publish a current backend lock.
+Session 94071 completed successfully: real adapter/callers compiled and two tests passed before publication. Log /tmp/tsrust-package-doc-repair.log. Original
+legacy adjacent lock is retained. Next: collect terminal result, rerun packages,
+features, exact regex execution and tests; inspect native lock changes, finish
+page rendering, whole-project formatter and source checkpoint. No new hosted run.
+
+Follow-up package inspection and feature listing pass offline; native regex example prints Found 314 at byte 6 and both tests pass. Lock comparison preserves every original package version, declared regex pin/features and adapter path; adds the current backend optional dependency closure (248 packages). Legacy adjacent lock untouched. Rendering and remaining page command variants still pending.
