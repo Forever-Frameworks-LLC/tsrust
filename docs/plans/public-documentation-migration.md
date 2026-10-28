@@ -20,6 +20,7 @@ and retained UI content are not automatically published.
 | docs/content/getting-started/project-structure.md | website/src/content/docs/start/project-structure.md → /start/project-structure/ | Moved; old copy removed; retained UI consumers updated. |
 | editors/vscode/README.md | website/src/content/docs/start/editor.md → /start/editor/ plus short extension README | User guidance moved; package build/test instructions retained in the extension README. |
 | docs/guides/language/standard-library.md | New website/src/content/docs/library/overview.md → /library/overview/ | Old file explicitly historical; active entry points use current module map and compiler-owned IntelliSense guidance. |
+| docs/guides/http.md | website/src/content/docs/backend/http.md, static-files.md and http-transport.md | Split routing/body ownership, public assets and transport; corrected stale TLS/producer/configuration claims; old copy removed. |
 | Remaining docs/guides/ | Language/backend/library/tools destinations in the site plan | Review and map individually before moving. |
 
 The moved guides have no authored heading IDs or linked internal anchors to

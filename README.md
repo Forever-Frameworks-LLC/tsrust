@@ -132,7 +132,7 @@ live in the [benchmark-only SQLite dataset](benchmarks/storage/PUBLIC_DATA.md).
 
 - [Language and standard library](website/src/content/docs/library/overview.md)
 - [Ownership](docs/guides/language/ownership-and-memory.md)
-- [HTTP behavior](docs/guides/http.md) and [Rust packages](docs/guides/rust-packages.md)
+- [HTTP behavior](website/src/content/docs/backend/http.md) and [Rust packages](docs/guides/rust-packages.md)
 - [VS Code setup](editors/vscode/README.md)
 - [Contributor checks](CONTRIBUTING.md) and [release automation](docs/guides/releases.md)
 

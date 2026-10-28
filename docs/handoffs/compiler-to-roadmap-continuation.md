@@ -1833,7 +1833,7 @@ networking and a blocking-work adapter were not added in S14.
 S15 is accepted: Axum routes/middleware, owned request/response/body/continuation/
 server, reusable Reqwest clients, validated bodies, demand-driven forwarding,
 disconnect and bounded graceful shutdown. See [acceptance](../plans/http-acceptance.md)
-and [guide](../guides/http.md). Source af0cbba8 includes the final async disposal
+and [guide](../../website/src/content/docs/backend/http.md). Source af0cbba8 includes the final async disposal
 repair; release CLI and both LSP paths are refreshed and VS Code restarted.
 
 Consolidated acceptance: 4,111 compiler tests and 700 editor tests pass, seven

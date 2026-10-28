@@ -7,7 +7,8 @@ expandable Astro Starlight site, migration/removal of duplicate public Markdown,
 and links from repository entry points to actual hosted documentation. See
 plans/public-documentation-site.md. The owner selected GitHub Pages after reviewing its limits. Repository public
 visibility and administrator access are verified. The website/ Starlight foundation
-is being implemented locally; production hosting has not yet been activated.
+is being implemented locally. Pages hosting is configured, but no production
+deployment has run.
 
 Preserve live work: local full backend regressions are running in exec session
 79249 at source 643b06ca, log /tmp/tsrust-backend-milestone.log. Windows repaired
@@ -23,8 +24,7 @@ a lockfile, explicit sidebar, a small accent stylesheet, and reviewed overview,
 quickstart, status and 404 pages. The second production build passes without the
 initial missing-collection/404 warnings. Search index and sitemap are generated.
 Browser verification at the /tsrust/ base confirms search results and navigation
-to the quickstart backend anchor; narrow-screen rendering is readable. No hosting
-settings or production deployment have been changed yet. Preview exec session
+to the quickstart backend anchor; narrow-screen rendering is readable. Pages hosting is now configured (see setup below); no production deployment has run. Preview exec session
 42599 serves 127.0.0.1:4321; close only this owned session when no longer needed.
 
 Next migrate installation/editor/project guidance with the tracked old-file/route
@@ -734,3 +734,21 @@ from disk. It was not fabricated/restored or counted as healthy; historical-link
 maintenance remains separate from current API link acceptance. Current Node
 verification scripts pass syntax checks. No source-code or runtime failure remains
 in this accepted section. Keep the full remaining goal open.
+
+## HTTP documentation migration
+
+Split the public HTTP guide into backend/http (Router and request bodies),
+backend/static-files, and backend/http-transport (App, clients, streams, limits
+and TLS). Removed the old copy and repaired inbound Markdown links. Corrected
+stale claims that producer streams, TLS and configurable limits were unavailable;
+limits and producer ownership were checked against the current builtin catalog
+and runtime. Existing example source links remain available in GitHub.
+
+Production site build and rendered-link check pass for 20 pages; all six
+distribution tests pass. The original local full regression remains active in
+79249; do not restart it. HTTP finished 12 passed, one failed, one ignored: the
+catalog test unwraps an absent examples array at tests/http.rs:29. Documentation
+content also has two failures: HttpRequest reference map count 11 versus 12 and
+an assertion expecting historical trim measurement prose in public docs. Repair
+these as a coherent catalog/documentation section after preserving the run.
+Linux PR run 40705410644 remains in progress; no new hosted run was requested.
