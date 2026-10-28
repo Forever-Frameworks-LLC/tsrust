@@ -1,6 +1,30 @@
 # Agent continuation state
 
-## Current continuation — rest parameter content correction
+## Current continuation — parameter site drafts ready
+
+Previous turn progressed at53f96476. Reviewed function_parameters.rs owning rest
+initialization, continuations/defaults.rs checked default access/flow joins and
+analysis/mod.rs actual supplied callback tuple validation. Added site drafts for
+optional/default and rest parameters, sidebar entries and canonical related links.
+All eight previously executed examples are byte-identical to accepted guide source.
+Source compiler diagnostic still says homogeneous in one rest-type rejection;
+checker accepts supported union arrays as verified, and public guide says so.
+
+Focused LSP earlier-parameter default scope and owning-rest help tests pass one
+each (/tmp/tsrust-parameter-site-editor.log, /tmp/tsrust-rest-site-editor.log).
+Final47-page site build passes (/tmp/tsrust-parameter-site.log); new pages' local
+route links exist. All commands finished. No native reexecution for unchanged
+examples, compiler changes, timing or platform claims.
+
+Next mandatory step: full390/1440 presentation/keyboard review of both pages,
+then remove duplicate guides, migrate incoming links and run full site link/anchor
+check. Migration rows remain in progress; no page acceptance yet. Full formatter
+and diff check before checkpoint. Remaining platform setup, Windows/Linux editor
+fixture/acquisition and actual Pages deployment stay open. Goal active; no push,
+hosted CI, release or full regression run.
+
+
+## Prior continuation — rest parameter content correction
 
 Previous turn progressed atcf735b08. Corrected rest-parameters homogeneous-only
 wording: supported checked union/nullable array element types work. Added a complete
