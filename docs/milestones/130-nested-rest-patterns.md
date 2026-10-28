@@ -8,7 +8,7 @@ An array rest target may itself be an array or object pattern. Rest is copied on
 
 The outer rest target must remain last and cannot have a default or trailing comma. The existing nesting limit of32 remains enforced across rest targets. Record rest still requires an identifier. Ordinary selection access and lexical borrow lifetimes are unchanged; the explicit rest copy does not introduce implicit clones elsewhere.
 
-See [the syntax guide](../guides/language/destructuring.md).
+See [the syntax guide](../../website/src/content/docs/language/destructuring.md).
 
 ## Evidence
 
