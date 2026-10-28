@@ -84,8 +84,8 @@ feature-coverage evidence to reduce the inventory.
 | `language/native-files.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/nested-functions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/non-null-assertions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/nullable-callables.md` | Audit and migrate current guidance; preserve any embedded history | In progress: qualified obsolete borrowed-origin replacement warning; five exact examples format/check/execute, replacement and lifetime-escape regressions pass. Site draft and links built; rendered review and final link migration pending. |
-| `language/nullish-assignment.md` | Audit and migrate current guidance; preserve any embedded history | In progress: corrected obsolete nullable-array destination restriction; seven exact examples format/check/execute, focused type/loan regression passes. Site draft and links built; remaining source and rendered review/final migration pending. |
+| `language/nullable-callables.md` | Migrated to canonical site language/nullable-callables | Accepted: source audit, exact executable examples and focused regression evidence; full responsive/keyboard review complete, duplicate removed and links migrated. |
+| `language/nullish-assignment.md` | Migrated to canonical site language/nullish-assignment | Accepted: source audit, exact executable examples and focused regression evidence; full responsive/keyboard review complete, duplicate removed and links migrated. |
 | `language/nullish-coalescing.md` | Migrated to canonical site language/nullish-coalescing | Accepted: source audit, six exact executable examples, focused regressions and full responsive/keyboard review. Duplicate removed and links migrated. |
 | `language/numeric-literals.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/numeric-string-conversion.md` | Audit and migrate current guidance; preserve any embedded history | Pending |

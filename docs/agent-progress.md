@@ -1,6 +1,24 @@
 # Agent continuation state
 
-## Current continuation — nullable assignment site drafts ready for review
+## Current continuation — nullable assignment guides accepted
+
+Previous turn progressed ate766389b. Finished full nullish-assignment and
+nullable-callables review at390/1440: highlighted code, readable sections, no
+mobile document overflow, keyboard scrolling40px and skip/previous/next navigation.
+Added six behavioral headings to assignment examples, reviewed desktop entire
+page and changed mobile anchor/sections. Section navigation works. Viewport reset;
+tab4 retained on assignment. Prior12 exact examples and focused source/regression
+evidence remain unchanged; no repeat native tests for presentation-only edits.
+
+Removed both superseded guides and migrated incoming Markdown links. Audit and
+migration rows accepted. Final45-page build/internal link check, full-project
+formatter and diff check before checkpoint. Next: continue remaining finite guide
+inventory, especially optional/default parameters and rest parameters. Platform
+setup, updated Windows/Linux editor fixture/acquisition and Pages deployment remain
+pending. No hosted CI/push/release, benchmarks or full regressions. Goal active.
+
+
+## Prior continuation — nullable assignment site drafts ready for review
 
 Previous turn progressed at6a4fb7e8. Added canonical site drafts for nullish-assignment
 and nullable-callables with sidebar entries and related optional/coalescing links.
