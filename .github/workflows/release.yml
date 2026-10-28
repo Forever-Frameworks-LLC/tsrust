@@ -127,7 +127,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
   gate:
-    name: Release gate
+    name: ${{ github.event_name == 'pull_request' && 'Release gate' || 'Package validation' }}
     if: always()
     needs: [preflight, build, editor]
     runs-on: ubuntu-24.04

@@ -797,7 +797,8 @@ fn visit(
         } else if crate::stdlib::source(&import.path).is_some() {
             SourceId(import.path.clone())
         } else {
-            provider.resolve(Some(&id), &import.path)
+            let config = crate::api::project::config_for_virtual(&id);
+            provider.resolve(Some(config.as_ref().unwrap_or(&id)), &import.path)
                 .map_err(|message| error(&id, "module-load", message, import.span))?
         };
         if import.path!=crate::api::project::IMPORT && crate::api::project::config_for_virtual(&target).is_some(){

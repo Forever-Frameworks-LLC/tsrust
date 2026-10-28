@@ -69,3 +69,8 @@ No hosted validation was started for the local pipeline implementation.
 Changes are not live and no release has been authorized for immediate publication
 merely to test this setup. Future successful promotions are explicitly authorized
 to publish automatically by the owner's requested flow.
+
+Optional async-only checks report Async acceptance; manually dispatched release
+builds report Package validation. Neither may satisfy a protected PR gate.
+Staging CI also runs native SDK authorization/replica integration and the
+compiler/LSP API-project regressions; bootstrap must include their source fix.

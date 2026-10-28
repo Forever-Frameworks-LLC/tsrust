@@ -32,8 +32,12 @@ as arbitrary TypeScript compatibility or revival of deferred UI work.
   Focused native/compiler/catalog controls, HTTP receiver agreement and both
   typing-speed rows pass; native/Node untimed readers each produce 5376.
   Backend all-target diagnostics are clean. Timings remain a milestone task.
-- [ ] Close remaining generated TypeScript/Rust SDK authorization and compatible/
+- [x] Close remaining generated TypeScript/Rust SDK authorization and compatible/
   incompatible replica execution requirements against a real native service.
+  The native SDK replica witness passes on macOS arm64 with old/new generated
+  clients, protected metadata, denied operations, missing-operation/API-major
+  compatibility errors and no mutation effects for rejected calls. Prior saved/
+  live description and typed-model evidence remains in server-owned-api.md.
 - [ ] Finish ordinary binding dependency migration while retaining exact offline
   portable exports and shared-cache integrity.
 - [ ] Complete paired CLI/LSP install, doctor, setup, update checks, replacement,

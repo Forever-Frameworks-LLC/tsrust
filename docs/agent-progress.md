@@ -3,7 +3,7 @@
 ## Current priority: staged CI/release flow
 
 Owner now requests feature PRs into stag with tests and one approval (owner's own
-PRs need no second reviewer), then stag-to-main release builds on all supported
+PRs need no second reviewer; only Cotter45 may bypass reviews on any PR), then stag-to-main release builds on all supported
 platforms, automatic merge and publication of those same artifacts. Cache/reuse
 is explicitly requested to reduce time and Actions usage. Follow
 plans/staged-release-pipeline.md. No live branch/rules changes have been made.
@@ -31,15 +31,29 @@ loop), 3 matrix tests (two HTTP rows), 1 HTTP catalog test, and all-target check
 with zero warnings/errors in 48s. Logs: /tmp/tsrust-readers-editor-agreement.log and
 /tmp/tsrust-readers-all-targets.log. Preserve prior native/JSON catalog checks.
 
-Next SDK section: tools/verify-sdk-native-replicas.mjs adds a self-contained native
-old/new service fixture and generated Rust/TypeScript consumers. It checks real
-authorization, shared operations, new-operation rejection, wrong API-major refusal,
-async credentials and no mutation effects on rejected calls. Syntax check passed; execution exposed a fresh macOS scaffold failure: imports
-from the virtual target/tsrust-api/server.tsr traverse nonexistent directories.
-Repair compiler-owned source resolution before retrying this witness. Log:
-/tmp/tsrust-sdk-native-replicas.log. No SDK acceptance is claimed yet. Temporary
-services/projects are owned by the fixture and cleaned up; no retained binary or
-owner application is required. This supplements accepted legacy JS replica evidence.
+Native SDK replica acceptance now passes on macOS arm64 (167s). The fixture
+creates old/new CLI applications, compiles real services, generates saved-description
+TypeScript clients and authenticated live-description Rust clients, and checks both
+languages against both replicas. Protected metadata, wrong/missing credentials,
+new-operation rejection, wrong API-major refusal, async Rust credentials and rejected
+mutation effects are covered. All owned services and temporary projects were removed.
+Log: /tmp/tsrust-sdk-native-replicas.log. Details: milestones/server-owned-api.md.
+
+The fixture exposed a Unix fresh-scaffold bug: virtual API imports traversed absent
+target directories. Virtual imports now resolve relative to the actual config path;
+normal disk imports and virtual source identities are preserved. Compiler api_project
+4/4 and LSP api_project 1/1 passed. Both local consumers were rebuilt and exercised.
+Final backend all-target diagnostics passed in 52s with no warnings/errors; log:
+/tmp/tsrust-sdk-final-diagnostics.log. Whole-project formatting changed zero files
+and the idempotence check passed. No hosted tests were launched. There are no
+running validation sessions or remaining temporary SDK fixture directories.
+
+Current CI changes add these regressions to staging coverage and keep optional
+async/package status names distinct from mandatory PR gate names. Pipeline deployment
+still awaits the owner's two choices; do not change active protections prematurely.
+Next dependency-ready implementation: ordinary Rust binding shared-cache migration,
+then trusted paired install/update. Backend-family full regression and reader timing
+remain required milestone work; platform/install acceptance is not inferred here.
 
 ## Active polish continuation — 2026-10-28
 

@@ -44,6 +44,8 @@ measurement. Artifacts expire after seven days.
 Builds use locked dependencies, one Cargo job, one test thread, disabled incremental
 compilation and explicit timeouts. Local development uses local checks by default.
 The standard suite is selected acceptance, not the entire regression matrix.
+Manual async-only and package-only runs use distinct status names, so they cannot
+satisfy the required CI or Release gate checks.
 Manual `full_regressions: true` runs the broader workspace suite at milestones;
 performance benchmarks and database-service checks do not run automatically.
 

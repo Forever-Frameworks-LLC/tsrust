@@ -70,6 +70,7 @@ pub(crate) fn source(provider:&impl SourceProvider,config_id:&SourceId)->Result<
  let authorize=NativeImport{module:resolve(&server.authorize.module)?.0,export:server.authorize.export};
  let id=identity(config_id);
  let options=NativeServer{context,authorize,previous:vec![],max_request_bytes:server.max_request_bytes,max_response_bytes:server.max_response_bytes};
- let text=api.native_source_versioned(Path::new(&id.0),&options,&history).map_err(|e|error(config_id,e))?;
+ // Virtual dispatch has no directory on disk; its imports use the config's directory.
+ let text=api.native_source_versioned(Path::new(&config_id.0),&options,&history).map_err(|e|error(config_id,e))?;
  Ok(ServerSource{source:SourceFile{id,text},operations:checked.graph})
 }
