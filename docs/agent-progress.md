@@ -1671,3 +1671,43 @@ source-build link. No viewport override applied. Do not mark page fully audited.
   23-page links/anchors/assets pass. Viewport reset. No hosted runs or releases.
   Next: remaining installation/editor/tooling page acceptance, actual live LSP
   spanning an update, then pending platform and backend milestone measurements.
+
+### Live language server across toolchain update — acceptance running
+
+- Extended the existing real consumer installer test instead of adding a new
+  package/harness dependency. Initialize an actual installed LSP without Rustup
+  or PATH tools, update to a version-reporting fixture pair, prove new launches
+  select that pair, and request hover for a newly opened formatted document from
+  the original server. Then verify clean shutdown, rollback and existing doctor
+  tamper checks. Shared Running guard retains owned-process cleanup on failure.
+- Protocol responses are parsed from complete Content-Length frames with bounded
+  waits; incomplete frames wait for more bytes. Hover position comes from the
+  idempotently formatted source. Windows uses a drive-qualified document URI.
+- Focused Cargo test session 24646 is STILL RUNNING, most recently confirmed live
+  after a 30-second wait. /tmp/tsrust-live-lsp-update.log shows dependency rebuild
+  followed by tsrust-compiler compilation. Do not restart it or claim acceptance.
+  One target, CARGO_INCREMENTAL=0, CARGO_BUILD_JOBS=1. No hosted run started.
+- Whole-project formatting/idempotence pass. Plan corrected to acknowledge the
+  earlier Windows installer acceptance while keeping this new protocol test's
+  platform coverage pending. Edits remain uncommitted until focused acceptance.
+- Next: poll 24646, inspect result, repair only if needed; run the existing held
+  fixture test affected by the shared guard, record macOS result and checkpoint.
+  Windows/Linux execution of the new witness remains a later batched requirement.
+
+### Live LSP update acceptance complete on macOS
+
+- Session 24646 completed PASS: real consumer/update/hover/shutdown/rollback and
+  tampered-file doctor witness, 19.16s after 5m22 compilation. Process inspection
+  confirmed Cargo/rustc continued during the dependency build; no restart used.
+- Session 87203 PASS: existing held-fixture update/rollback test, 2.90s with the
+  extracted shared Running cleanup guard. No Cargo test remains live.
+- Milestone and plan now distinguish the actual old-LSP protocol continuity from
+  the successor version-reporting fixture. New live-session sequence still needs
+  Windows/Linux execution; earlier Windows installer checks remain accepted for
+  their original source scope. No published-artifact acquisition claim.
+- CLI guide corrected watcher input coverage using dev_events.rs and
+  dev_dependencies.rs. Its complete rendered acceptance remains pending.
+- Whole-project formatter/idempotence pass, zero source/fingerprint changes;
+  site build and all 23-page links/anchors/assets pass; git diff --check clean.
+  No hosted jobs or releases started. Next: remaining documentation acceptance,
+  batched Linux/Windows pipeline validation and backend performance requirements.

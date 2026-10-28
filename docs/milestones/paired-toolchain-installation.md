@@ -65,9 +65,9 @@ Do not import them into benchmark analytics. No performance claim is made.
 ## Pending
 
 Execute the new Linux acceptance through staging CI.
-The current process fixture demonstrates platform file/process behavior, while
-the separate real consumer witness verifies actual CLI/LSP startup. Neither a
-macOS pass nor suffix-only fixtures prove Windows behavior. Published artifact
+The live-LSP update witness below has macOS acceptance; execute that new witness
+on Windows and Linux as well. The earlier Windows fixture/startup pass does not
+cover the newly added interactive protocol sequence. Published artifact
 acquisition remains unexecuted because no stable release exists. Full backend
 regressions, matched performance and the wider documentation audit remain separate
 goal requirements.
@@ -83,3 +83,17 @@ This includes the locked-process installation witness and the repaired deep-path
 and directory-sync cases. The job and aggregate Toolchain acceptance check both
 completed successfully. This result covers that source commit, not subsequent
 local editor/documentation changes; it did not publish a release.
+
+## Live LSP update acceptance on macOS
+
+The real consumer test now initializes an installed LSP, updates the selected
+pair, verifies new launches select version 1.1.0 fixtures, then opens a newly
+formatted document and obtains its integer hover from the still-running original
+LSP. It shuts down cleanly, rolls back to the original real pair, and retains the
+existing doctor/tampered-file checks. PATH and Rustup home remain empty for the
+managed consumers. The successor pair is a version-reporting fixture; this proves
+selection and old-server continuity, not execution of a future released LSP.
+
+Focused test 24646 passed in 19.16 seconds after a 5m22 dependency/compiler build,
+with no warnings or errors. Disposable log: /tmp/tsrust-live-lsp-update.log.
+Windows/Linux execution of this new protocol witness remains pending.

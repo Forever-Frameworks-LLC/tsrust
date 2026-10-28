@@ -80,13 +80,14 @@ include/exclude paths and compilation targets are not supported yet.
 
 ## Watch files and reuse builds
 
-The watcher reads `.tsr` files below the project root and excludes `.git`,
-`node_modules`, `target` and symlinks. The resolved import closure is also captured; dependencies outside that tree or
+The watcher tracks source and build inputs below the project root, including
+`.tsr`, `.tsrx`, Rust files, JSON/JSONC configuration, text files and lockfiles.
+It excludes `.git`, `node_modules`, `target` and symlinks from that scan.
+The resolved import closure is also captured; dependencies outside that tree or
 inside excluded directories are reconciled by metadata polling.
 Development binaries are temporary; `build` writes the named output. A program that
 exits normally runs again on the next change. Restarting does not preserve its
 in-memory state. The template has a `main` function, but the language does not require it.
-
 
 See [testing](../testing/) for test discovery, output and failure reporting.
 
