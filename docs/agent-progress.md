@@ -1158,3 +1158,21 @@ Full backend session 79249 remains live, now at ui_alert. ui suite: 16 pass/3 fa
 (colors/rings/theme, compiler API contract, shared grid/custom theme); preserve
 original log for diagnosis. Windows40724567590 still running paired installer/cache
 acceptance after consumer builds and source preparation pass. No new hosted runs.
+
+
+## Native setup and managed installation guide audit
+
+Split both guides into reader tasks. Corrected doctor exit semantics: managed
+integrity errors also fail the command; unmanaged status alone does not. Clarified
+that toolchain check performs network metadata lookup without replacing/downloading
+the pair, rollback requires a retained verified pair, and editor settings should
+select both managed launchers. Removed stale macOS-only gate narrative in favor of
+an explicit release-availability prerequisite; published acquisition remains open.
+Traced setup_cli, toolchain_cli/install/release, backend_sources and portable_sources.
+Local doctor --json passes: required/current Rust1.96.1, unmanaged, no network,
+native/application dependencies unchecked. No installation/download was invoked.
+Source-pack location and setup prerequisite prose now match implementation.
+Rendered inspection and fresh/platform acquisition are still pending. Site build and all 23-page link/anchor/asset checks pass; whole-project
+formatting and format-check pass with no changes. Unaccepted generated-continuation
+production edits remain untouched. Existing full run79249 is live in retained UI
+integration groups; Windows40724567590 still runs paired installer/cache acceptance.
