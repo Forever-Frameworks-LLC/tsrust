@@ -126,7 +126,13 @@ and saved descriptions and exercised with real TypeScript/Rust consumers.
 
 ## Required remaining work
 
-Finish formatting, the full-tree checkpoint and guarded consumer refresh. Preserve old running owner processes. Prune obsolete
+Source checkpoint 0ea3d7e3 includes every source change after formatting. Validated
+CLI/LSP development consumers were hash-guard staged into the installed paths and
+the installed facade protocol passed. Owner processes and mapped images were
+preserved; their editor needs its own language-server restart to adopt new code.
+Obsolete compiler vendor/build payload directories and large stale executable
+consumers were pruned with explicit path/process guards. This does not implement
+a production installer or authenticated updater. Preserve old running owner processes. Prune obsolete
 compiler-owned vendor/build payloads with validated absolute paths. Native docs
 startup stack overflow, server-owned API registration, ordinary binding shared-cache
 migration, Rust replica compatibility proof, typed body helpers/async std:testing,

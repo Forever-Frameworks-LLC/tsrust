@@ -8,14 +8,16 @@ scope; preserve original UI source and historical acceptance in place.
 
 Accepted Windows foundations include backend-only CLI scaffolding, independent
 HTTP-described TypeScript/async Rust clients and OpenAPI, pinned-toolchain doctor/
-setup, and ordinary shared-Cargo-cache backend builds. See
+setup, and ordinary shared-Cargo-cache backend builds. Optional prepared portable packs
+and the reported Rust/editor diagnostic repair are also accepted; see
+[portable source packs and editor agreement](milestones/portable-source-packs-and-editor-agreement.md). See
 [machine setup](guides/tooling/machine-setup.md),
 [async HTTP SDK acceptance](milestones/async-http-sdk.md) and
 [shared backend sources](milestones/shared-backend-sources.md).
 These results do not establish complete backend, installation or update acceptance.
 
 1. Keep compiler/LSP/editor agreement clean. Finish the current all-target diagnostic
-   and portable-source section; repair native docs startup stack overflow. Before
+   agreement; repair native docs startup stack overflow. Before
    each accepted milestone, complete affected checks and commit the full source tree.
 2. Let the server own its API in app/, serve the checked description/OpenAPI, and
    generate independent js-client/ or rust-client/ anywhere. Remove the public

@@ -10,13 +10,13 @@ One agent writes this tree. No pushes, tags, releases, publication or recurrence
 No owner editor/process control. Commit every source change, with no authorship-
 based exclusions, after acceptance and whole-project formatting. Respect gitignore.
 
-Last full-tree checkpoint: 2d3a6e09 (shared backend sources). ef39be55 included owner
-configuration/.agents/docs changes as explicitly requested. All current changes
-remain uncommitted: finish them, then git add -A. See
+Latest accepted source milestone: 0ea3d7e3, separating optional portable source packs
+and repairing reported editor diagnostics. Previous milestone 2d3a6e09 accepted
+shared backend sources. ef39be55 included owner
+configuration/.agents/docs changes as explicitly requested. All source changes were included in 0ea3d7e3; no authorship-based exclusions. See
 milestones/portable-source-packs-and-editor-agreement.md for this section's actual
 implementation, evidence and limitations. No archive/source snapshot was created.
-Keep one target, CARGO_INCREMENTAL=0, CARGO_BUILD_JOBS=1. Current CLI/LSP target tools
-are validated in the affected cases; installed consumers still need guarded refresh.
+Keep one target, CARGO_INCREMENTAL=0, CARGO_BUILD_JOBS=1. Current CLI/LSP target and installed tools are validated in the affected cases.
 
 ## Accepted current section
 
@@ -80,30 +80,43 @@ portable-backend-build-current.log; portable-backend-http-sdk-current.log;
 portable-backend-editor-current.log. The milestone contains exact other accepted
 counts/failures. No matched performance or analytics import was performed.
 
-## Next executable actions
+## Installed consumers and cleanup accepted
 
-All coherent section checks passed; preserve them. Run node tools/format-project.mjs with
-TSRUST=D:/ai_dev/tsrust/target/debug/tsrust.exe, require stable/token-preserving result,
-then commit the full working tree (guard staged diff --check before committing).
-No source checkpoint is accepted before this coherent section passes.
+After the source checkpoint, both installed development consumers were staged in
+C:/Users/skeet/.cargo/bin with expected-old/new hash guards and rollback preservation.
+No owner process was stopped. CLI SHA256:
+1AE19C92087663BE504646F1ABBA219842666BA18263A8D087469C25D3F0A9AC;
+LSP SHA256: 53A93B85E008A4C0795709ECEEF311C34723D33E4D9894BCED265A2343DD8F15.
+Installed CLI --version/check of the original facade passed; installed LSP real
+clean/modified-private-error/repair/hover protocol passed
+(target/installed-bundled-facade-editor-current.log). Final CLI size 40812544 bytes,
+LSP 26595840 bytes. This local development refresh is not production trusted update.
 
-After commit, refresh installed tools with expected-old-hash guards and same-directory
-staging. Never stop owner processes. CLI old SHA256:
-626C0008849B3A075B8D3501460C693D2214549B9F6C9346FEC9064F610B6DEF;
-LSP old SHA256: E5966160755F0EF19B5E245348150DD0B9640413238902E7EB8595F15600D41B.
-Paths C:/Users/skeet/.cargo/bin/{tsrust.exe,tsrust-lsp.exe}. Revalidate actual hashes/
-processes; do not overwrite unexpected changes. An old loaded LSP may need rename
-before replacement; preserve mapped images and owner processes. Existing mapped old
-image tsrust-lsp-running-0a62d1de9bc945a680da390dec72ad54.exe has SHA256
-046c8e50e1d867988cb72ecbcc1f6d28b66f36cb8a1a078ba8d43b7a27f596a9;
-delete it only if no process still loads it and hash matches. The owner adopts new
-LSP code through their own Tsrust: Restart Language Server command (verified in
-editors/vscode/package.json, tsrust.restartServer). Do not ask before testing/install.
+Owner LSP PID 30920 was left running and may still use the old image. Preserved
+image C:/Users/skeet/.cargo/bin/tsrust-lsp-running-eacf50ae86934295a698c4ef91b43db4.exe
+has expected SHA256 E5966160755F0EF19B5E245348150DD0B9640413238902E7EB8595F15600D41B.
+Also preserve the earlier tsrust-lsp-running-0a62d1de9bc945a680da390dec72ad54.exe,
+SHA256 046c8e50e1d867988cb72ecbcc1f6d28b66f36cb8a1a078ba8d43b7a27f596a9,
+until mapped process ownership/exit is proven. Do not delete either merely because
+the canonical new file has another hash. The owner was told to use their own
+Tsrust: Restart Language Server command (tsrust.restartServer) to adopt the repair.
+Do not control their editor or stop/restart their process for cleanup.
 
-Prune obsolete compiler-owned target/debug/build/tsrust-compiler-* vendor payloads
-and obsolete enormous executable consumers, validating absolute paths/process
-ownership first. Keep the current prepared portable pack and warm Cargo target;
-preserve owner review projects, historical analytics and original UI source.
+Whole-project formatting before source checkpoint: 0 files changed, 0 fingerprints,
+clean diff check. Obsolete owned target/debug/build/tsrust-compiler-* payload dirs
+removed: 10. Old executable/symbol files removed: 8 (executable bytes 2012523520),
+including the stale compiler unit executable with the earlier env test assertion.
+All deletion targets were checked absolute paths within target, rejected reparse
+traversal and skipped active executable owners. Current prepared source pack, warm
+Cargo target, review projects and owner mapped images were preserved. No live
+owned server or tool process remains. The acceptance milestone records failures/
+repairs separately; passing gates were not restarted.
+
+This documentation-only checkpoint is prepared after required whole-project format
+and link checks. Next prioritize the unresolved native docs stack overflow
+before UI expansion; continue server-owned API and remaining distribution work as
+specified below. Read exact current source/evidence; do not restart accepted gates
+unless new code, failures or an unresolved uncertainty justifies it.
 
 ## Remaining required goal work
 
