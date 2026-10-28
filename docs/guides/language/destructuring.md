@@ -74,9 +74,31 @@ function main() {
 
 A destructured parameter with no stated access is read: its names borrow the argument, and the caller keeps the value. State `Owned<Point>` to let the names move out; the call then consumes its argument.
 
+### Take elements from an owned array parameter
+
+An `Owned<T[]>` parameter pattern can transfer selected elements, including nested
+array elements, without cloning them. The caller gives up the array. A plain
+`T[]` or `ReadOnly<T[]>` parameter pattern still borrows its owned elements.
+
+After native setup, save this complete example as `main.tsr` and run
+`tsrust run main.tsr`. It prints `owner`:
+
+```tsrust
+function head([first]: Owned<string[]>): string {
+  return first;
+}
+
+function main() {
+  console.log(head(["owner", "extra"]));
+}
+```
+
+Skipped positions and defaults keep their original positions. A rest binding
+still explicitly copies the remaining elements; ordinary selected elements move.
+
 ## Arrays
 
-Array positions follow indexing. A copied element is copied. An owned element is borrowed for reading, and the array cannot be changed while the name is in scope.
+In a local declaration, array positions follow indexing. A copied element is copied. An owned element is borrowed for reading, and the array cannot be changed while the name is in scope. The explicit `Owned<T[]>` parameter pattern above is different: it can transfer its selected elements.
 
 ```ts
 function main() {
@@ -122,7 +144,7 @@ function main() {
 }
 ```
 
-Defaults preserve source access. Copied values are copied, owning record/tuple positions can transfer, and array elements or readonly parameters remain borrowed. A freshly allocated fallback has local storage lasting through the borrowed binding's scope; it is not cloned. A default cannot mutate the same array while a selected value borrows it. Source loans remain lexical, even when the fallback is selected. Use an inner block to end the loan, or explicit clone() when independent ownership is needed.
+Defaults preserve source access. Copied values are copied, owning record/tuple positions can transfer, and ordinary array selections or readonly parameters remain borrowed. Explicit owned parameter patterns can transfer selected array elements. A freshly allocated fallback has local storage lasting through the borrowed binding's scope; it is not cloned. A default cannot mutate the same array while a selected value borrows it. Source loans remain lexical, even when the fallback is selected. Use an inner block to end the loan, or explicit clone() when independent ownership is needed.
 
 Declared record fields that may hold undefined use an explicit union such as `text: string | undefined`; optional `text?` field annotations remain unsupported. Destructuring defaults do not remove other alternatives from a union and do not provide implicit coercion.
 
@@ -185,7 +207,7 @@ A spread source is borrowed while copying; copying finishes before evaluating th
 
 An array rest target may itself be an array or object pattern. The rest copy is created once, then its pattern binds positions or properties under the ordinary access rules. For example, `const [first, ...[second, ...others]] = words` copies the tail, binds its first position as second, and explicitly copies its remaining positions as others. `const [...{ length }] = words` binds the copied array's length. Tuple rest targets retain each remaining position type.
 
-Nested target positions may have defaults. The outer rest target still must be last, with no default or trailing comma. Pattern nesting keeps the existing limit of32. Record rest continues to require a single identifier target.
+Nested target positions may have defaults. The outer rest target still must be last, with no default or trailing comma. Pattern nesting keeps the existing limit of 32. Record rest continues to require a single identifier target.
 
 ```tsrust
 import { strictEqual } from "std:testing";
@@ -221,7 +243,23 @@ Use `let` for names that the update clause or body changes. Defaults, rest and n
 
 Access follows the source. A named source keeps the positions that were copied or not taken. A rest name is an independent copy, so `for (const [first, ...tail] = words; tail.length < 2; tail.push("c"))` changes only `tail`. A name that borrows an array element keeps the array loaned until the loop ends; the array can be changed again after the loop.
 
-The names share one binding for the whole loop. They are not created again for each iteration. A name cannot repeat a name of the enclosing scope. One pattern declaration is accepted; declare other loop variables before the loop.
+The names share one binding for the whole loop. They are not created again for each iteration. A name cannot repeat a name of the enclosing scope. A declaration list can mix patterns and ordinary names under one `const` or `let`
+keyword. Initializers run left to right. Run this complete example separately;
+it prints `3`:
+
+```tsrust
+function main() {
+  let total = 0;
+  for (let [i, end] = [0, 3], step = 1; i < end; i += step) {
+    total += i;
+  }
+
+  console.log(total);
+}
+```
+
+See [declarations](../../../website/src/content/docs/language/declarations.md) for
+initialization, scope and declaration-list errors.
 
 ## Assignment to existing places
 

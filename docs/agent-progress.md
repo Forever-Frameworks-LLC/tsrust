@@ -1,6 +1,31 @@
 # Agent continuation state
 
-## Current continuation — declarations guide accepted
+## Current continuation — destructuring content audit in progress
+
+Started from clean a00d03ee. Corrected two stale restrictions in the existing
+language/destructuring guide: explicit Owned<T[]> parameter patterns can transfer
+selected elements, including nested patterns; classic-for initializers accept
+mixed pattern/name declaration lists. Qualified ordinary-array borrowing/default
+language and corrected the nesting-limit spacing. No compiler behavior changes.
+
+Traced analysis/owned_array_patterns.rs and prepare_parameter_pattern in
+analysis/mod.rs, plus destructuring and declaration_lists fixtures. Two new exact
+complete documentation examples pass format --write/--check, compiler checking
+and native execution, with owner and 3 output respectively. Existing integration
+targets destructuring (12) and declaration_lists (2) pass all 14 tests; log is
+/tmp/tsrust-destructuring-audit.log. Commands ended successfully. No hosted work,
+full suite, timing or new platform validation was run.
+
+This is a partial content checkpoint, not page acceptance. Next: finish auditing
+the defaults, rest, spread and assignment sections; split into digestible canonical
+site pages, migrate links, execute complete examples, and review all rendered
+sections at 390px/1440px with keyboard navigation. Migration row remains in progress.
+Prior 35-page site acceptance is unchanged. Full-project formatter and diff check
+must pass before this checkpoint. Remaining platform and Pages deployment work
+from prior continuation remains open. Goal remains active.
+
+
+## Prior continuation — declarations guide accepted
 
 Previous turn made progress at a0a2a126. This section merges declaration-lists and
 deferred-initialization into language/declarations (35 site pages). Removed both
