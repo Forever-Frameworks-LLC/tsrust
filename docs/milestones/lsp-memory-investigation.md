@@ -173,3 +173,32 @@ zero fingerprints changed. The initial missing-TypeScript formatter failure is
 not a pass. A second whole-project formatter pass again changed zero files and
 fingerprints; `tsrust format . --check --color=never` also passes. Table
 acceptance and runtime performance measurements have not resumed.
+
+## macOS bounded probe — 2026-10-28
+
+The existing probe now supports macOS counters without changing the Windows
+counter path or its limits. It uses one isolated LSP and the same 24-entry,
+512 KiB unrelated-buffer revision, dependency invalidation, formatting and
+close/reopen workload. macOS sampling uses `footprint` JSON for physical footprint,
+kernel peak and swapped/compressed bytes, `ps` for RSS and `memory_pressure -Q`
+for system free percentage. Missing/invalid counters fail the probe. Samples are
+process-specific; the system pressure counter is explicitly system-wide.
+
+On this 8 GiB Mac, stop conditions are physical footprint >=1 GiB, growth >=512 MiB,
+swapped/compressed memory >=256 MiB, or system free memory below 20%. The normal
+probe retains its 120-second deadline. `--soak` repeats the same workload for at
+least 30 minutes, with a 31-minute hard stop. These limits guard the diagnostic;
+they do not cap the server or replace an investigation of growth.
+
+The initial macOS run passed all 890 requests in 43,638 ms with 34 samples,
+zero stderr and normal exit. First/last physical footprint was
+2,326,984/15,794,656 bytes; the reported process peak was 15,794,656 bytes.
+Maximum sampled swapped/compressed memory was 3,457,024 bytes (final 3,194,880).
+RSS ranged from 8,880,128 to 26,705,920 bytes. System free percentage stayed
+35–41%. These are diagnostic observations, not a benchmark or long-session proof.
+Tested LSP SHA-256:
+`5e5de5b448885901110c6f43cab3855899ad4615da906f244be13808ea70ecf4`.
+The probe now records the tested binary hash in subsequent output automatically.
+Current disposable output is `target/lsp-memory-probe.json`; the next run replaces
+it after completion. This summary preserves the short-run result without adding
+routine logs to SQLite. The sustained macOS run remains pending.

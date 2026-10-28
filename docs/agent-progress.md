@@ -2,7 +2,8 @@
 
 ## Current continuation — public documentation audit
 
-Latest accepted checkpoint is eb3918f9 (macOS editor acceptance); ec0db552
+Latest accepted checkpoint is 110a8e29 (contributor/toolchain documentation);
+eb3918f9 records macOS editor acceptance; ec0db552
 records regression/Windows evidence; e33f4674
 contains retained native fixtures and d23dbf20
 contains the hover repair and tooling-guide audit;
@@ -41,6 +42,18 @@ Linux 40748887685 reached LSP transport and compiler agreement; extension passed
 Windows 40748893795 succeeded at 86435b88: installer/process 8/8, shared-source
 5/5 and package-management 7/7, including the new live-LSP update witness.
 Docs 40748887897 passed. No new hosted run, push, merge or release in this section.
+
+## macOS memory validation
+
+Extended the existing bounded probe with actual physical footprint, reported peak,
+swapped/compressed memory, RSS and system-pressure counters. One temporary LSP;
+no owner workspace or processes controlled. The short probe passes 890 requests
+in 43.6s, with 34 samples, normal exit and no stderr. Maximum footprint 15,794,656
+bytes; sampled swapped/compressed maximum 3,457,024 bytes; system free 35–41%.
+The [memory investigation](milestones/lsp-memory-investigation.md) records limits
+and the exact binary hash. Added explicit --soak for a 30-minute workload with a
+31-minute hard stop. Sustained macOS evidence is not yet accepted. No Rust build,
+performance benchmark or duplicate hosted run was needed.
 
 ## Repository entry-point audit
 
