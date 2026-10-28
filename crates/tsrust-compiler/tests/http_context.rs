@@ -1,5 +1,11 @@
 mod support;
 #[test]
+fn contextual_body_stream_preserves_metadata_and_response_helpers(){
+ let directory=support::TempDirectory::new();
+ let source=support::format_round_trip(include_str!("../../../examples/http-context/body-stream.test.tsr"));
+ support::success(&support::run(support::cli().arg("test").arg(directory.source(&source)),600));
+}
+#[test]
 fn hono_context_order_closures_and_short_circuit_execute(){
  let directory=support::TempDirectory::new();
  let source=support::format_round_trip(include_str!("../../../examples/http-context/main.tsr"));

@@ -29,7 +29,7 @@ impl Analyzer {
    let Some(mut name)=crate::stdlib::http::method(identity,member)else{return Ok(None);};
    let mut receiver=(**base).clone();
    if name=="__routerUse" && args.first().is_some_and(|arg|matches!(arg.kind,ExprKind::String(_)) || self.expression_type_hint(context,arg)==Some(Type::String)){name="__routerUsePath";}
-   if matches!(name,"__requestText"|"__form"|"__multipart") && let ExprKind::Field(context_base,field)=&base.kind && field=="req" && matches!(self.expression_type_hint(context,context_base),Some(Type::Record(id)) if self.program.records[id].native_type==Some(NativeTypeId::HttpContext)) {name=match name{"__form"=>"__contextRequestForm","__multipart"=>"__contextRequestMultipart",_=>"__contextRequestText"};receiver=(**context_base).clone();}
+   if matches!(name,"__requestBody"|"__requestText"|"__form"|"__multipart") && let ExprKind::Field(context_base,field)=&base.kind && field=="req" && matches!(self.expression_type_hint(context,context_base),Some(Type::Record(id)) if self.program.records[id].native_type==Some(NativeTypeId::HttpContext)) {name=match name{"__requestBody"=>"__contextRequestBody","__form"=>"__contextRequestForm","__multipart"=>"__contextRequestMultipart",_=>"__contextRequestText"};receiver=(**context_base).clone();}
    if matches!(name,"__route"|"__routerRoute")&&member!="route" {args.insert(0,Expr::new(ExprKind::String(member.to_uppercase()),callee.span));}
    if name=="__contextJson" && !args.is_empty(){let value=args.remove(0);let span=expression.span;let encode=Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name("@json:encode".into()),span)),vec![value,Expr::new(ExprKind::Integer("1048576".into()),span)]),span);args.insert(0,crate::stdlib::futures::unwrap(encode));}
    args.insert(0,receiver);let args=std::mem::take(args);let span=expression.span;
@@ -42,7 +42,7 @@ impl Analyzer {
     }
    }else{
     *expression=crate::stdlib::http::call(name,args,span);
-    if matches!(name,"__routerStatic"|"__routerConfigure"|"__routerRoute"|"__routerUsePath"|"__contextText"|"__contextHtml"|"__contextJson"|"__contextHeader"|"__contextStatus"|"__configure"|"__route"|"__requestHeader"|"__requestSetHeader"|"__responseHeader"|"__responseSetHeader"){*expression=crate::stdlib::futures::unwrap(expression.clone());}
+    if matches!(name,"__contextRequestBody"|"__routerStatic"|"__routerConfigure"|"__routerRoute"|"__routerUsePath"|"__contextText"|"__contextHtml"|"__contextJson"|"__contextHeader"|"__contextStatus"|"__configure"|"__route"|"__requestHeader"|"__requestSetHeader"|"__responseHeader"|"__responseSetHeader"){*expression=crate::stdlib::futures::unwrap(expression.clone());}
    }
    return self.expression(context,expression,if name=="__contextGet"{Mode::Read}else{Mode::Consume},loans,expected).map(Some);
   }

@@ -11385,7 +11385,7 @@
       "name": "body",
       "signature": "body(): Body",
       "parameters": [],
-      "documentation": "Transfers the unread body into a streaming reader. No arguments. Reading is lazy; this call performs no I/O. The cumulative read limit is 1048576 bytes.\n\n```tsrust\nconst body = input.body();\n```\n\nOwnership: consumes the request; body cannot be read twice.",
+      "documentation": "Transfers the unread request body into a streaming reader without performing I/O. No arguments. Reads enforce the configured request byte limit (1048576 bytes by default); exceeding it throws HttpError code limit instead of returning truncated data. For c.req.body(), metadata and Context response helpers remain usable. A second or mixed contextual body read throws HttpError code body, even after a failed read.\n\n```tsrust\nconst body = c.req.body();\nconst value = await body.text(); // \"hello\" for a hello request body\nreturn c.text(value);\n```\n\nOwnership: consumes an owned Request. On c.req, mutably borrows the Context only while transferring its body; the returned Body owns the stream.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const input=request(\"POST\",\"http://localhost/\",\"hello\");const body=input.body();console.log('ok');}",

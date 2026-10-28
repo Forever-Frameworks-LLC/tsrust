@@ -48,6 +48,20 @@ These changes are not yet executed or accepted. Wait for the current async run
 before dispatching package validation; preserve its original results. Package
 smokes are not paired installer/update or locked-LSP acceptance.
 
+## Request-body section in progress
+
+Contextual streaming now lowers c.req.body() through a mutable Context operation
+that reuses take_request_body. It returns the existing bounded Stream, keeps request
+metadata and response helpers usable, and rejects repeated/mixed body acquisition.
+An async std:testing loopback fixture, compiler CLI test, runtime mixed-read witness,
+LSP help/completion witness, builtins documentation and HTTP guide accompany it.
+No local build/test was run; implementation is not accepted yet. Finish checked
+JSON request decoding, failure/limit controls and matched benchmark support before
+the coherent request-reader validation. Do not treat this checkpoint as the whole
+body-reader gate. Existing JSON namespace adapters already provide checked typed
+decode and owned JsonValue parsing; reuse those mechanisms rather than adding a
+parser. HTTP prepare runs before futures, JSON namespace and generic specialization.
+
 ## CI merge repair — 2026-10-28
 
 User requested CI repair for PR #2. Starting source: 6a766051. Hosted run
