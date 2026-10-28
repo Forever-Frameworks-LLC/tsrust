@@ -2,25 +2,26 @@
 
 [Documentation index](../../README.md) · [Proposed roadmap](../../roadmap.md) · [Source section map](../../plans/section-map.md)
 
-## Workstream scope
+## Current tools
 
-**Editor implementation plan:** [VS Code foundation](editor-foundation.md) scopes highlighting and unsaved single-file diagnostics against the current analysis API. Its C0–C5 handoff matrix records compiler obligations and capabilities that must wait. Whole-file first-error diagnostics can ship before recovery, aggregation or incremental analysis.
+Use [the project CLI](../project-cli.md) for check, format, test, build and watched
+native development. The [VS Code extension](../../../editors/vscode/README.md)
+uses the shared compiler analysis for project diagnostics, completion, navigation,
+hover, parameter help and validated fixes. See [project editor behavior](project-editor.md)
+for its supported boundaries; the original single-file foundation plan below is
+historical evidence, not a current feature limit.
 
-**Implemented editor foundation:** `crates/tsrust-lsp` is a Rust language server sharing the compiler's [in-process analysis library](../../../crates/tsrust-compiler/README.md). The locally installable [VS Code extension](../../../editors/vscode/README.md) provides file icons, highlighting, unsaved syntax/type/ownership diagnostics, source documentation hover, argument help, autocomplete and same-file navigation, alongside document versions, UTF-16 position conversion and stale-result suppression. Whole-file first-error checking remains the bounded contract; recovery, diagnostic aggregation, cooperative cancellation, semantic metadata and project analysis are deferred under C1–C5. See [acceptance evidence](../../milestones/editor-foundation-acceptance.md).
+Repository and generated native builds use [the pinned Rust toolchain](rust-toolchain-policy.md).
+[Machine setup](machine-setup.md) prepares tools and shared dependency sources
+explicitly. [Managed installation](../toolchain-installation.md) selects verified
+CLI/LSP pairs atomically and supports explicit update and rollback; its platform
+acceptance is recorded separately from implementation.
 
-**Toolchain decision:** [Pin Rust 1.96.1 for both compilation stages](rust-toolchain-policy.md). Repository builds use `rust-toolchain.toml`; native `tsrust` builds explicitly select that release through Rustup. Installer-managed distribution is future work.
-
-**Native profiles:** `tsrust build <input.tsr> --release -o <output>` and `tsrust run <input.tsr> --release` compile generated Rust at optimization level 3. The default is optimization level 0. Both enable overflow checks. The compiler executable's Cargo profile is independent of the generated program's profile; the CLI acceptance suite checks backend selection, exact flags, native output, and checked failures in both profiles.
-
-**Status:** Unresolved design/research. The grouping and phase below are proposed planning aids, not approved language semantics.
-
-**Proposed phase:** Core proof; ongoing.
-
-**Scope:** Scope CLI commands, editor/debugger integration, toolchain pinning, and iteration speed.
-
-**Planning deliverable:** A minimal check/build/run workflow and measured compile/edit latency; later tooling backlog.
-
-**Dependencies to coordinate:** [compiler-and-modules](../language/compiler-and-modules.md)
+`tsrust build <input.tsr> --release -o <output>` and `tsrust run <input.tsr> --release`
+compile generated Rust at optimization level 3; the default is level 0. Both retain
+overflow checks. The compiler executable’s own Cargo profile is independent of the
+generated program’s profile. Native caches reuse compatible dependencies and
+artifacts; changing source still requires the affected native compilation.
 
 ## Original vision sections
 

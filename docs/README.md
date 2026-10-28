@@ -8,6 +8,7 @@ these guides distinguish supported behavior from planned work.
 
 - [Install the CLI and editor](content/getting-started/installation.md)
 - [Managed CLI/LSP installation and updates](guides/toolchain-installation.md)
+- [Create a backend HTTP application](guides/application-projects.md)
 - [Understand project structure](content/getting-started/project-structure.md)
 - [Use the CLI](guides/project-cli.md)
 - [Inspect and prepare native build tools](guides/tooling/machine-setup.md)
@@ -15,13 +16,12 @@ these guides distinguish supported behavior from planned work.
 - [Understand string semantics](guides/language/string-semantics.md)
 - [Use collections](guides/collections.md)
 - [Work with Rust](guides/rust-packages.md)
-- [Configure UI themes](content/ui/foundations/theming.md)
-- [Browse component reference pages](content/ui/components/)
 - [Set up VS Code](../editors/vscode/README.md)
 
 ## Run the documentation app
 
-This directory is also a standalone UI project, with a shared web/native page.
+This directory retains the original standalone UI project, with a shared web/native page.
+It is outside the active backend product scope.
 `tsrust.config.json` declares the targets and theme. `src/main.tsr` mounts
 `src/app/page.tsrx`; editable components live under `src/components/ui/`.
 
@@ -33,9 +33,12 @@ tsrust dev --target native
 ```
 
 The landing page is at `/`; documentation starts at `/docs`. Install the
-[web prerequisites](content/getting-started/installation.md) first. The current
+[retained UI prerequisites](guides/tooling/retained-ui-setup.md) first. The current
 native custom titlebar requires macOS. The app and component library remain
 in development; a page destination does not imply a finished implementation.
+
+Retained UI references: [themes](content/ui/foundations/theming.md) and
+[components](content/ui/components/).
 
 ## Contribute
 

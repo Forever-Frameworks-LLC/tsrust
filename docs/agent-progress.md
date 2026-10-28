@@ -1,30 +1,46 @@
 # Agent continuation state
 
-## Current priority: approved staged pipeline bootstrap
+## Current priority: polish acceptance on the installed staged pipeline
 
-Owner approved merging PR #2 and allowing new release tags while keeping existing
-tags/releases immutable. PR #2 merged as caf5284b; its tree exactly equals green
-5b09ec80. Duplicate main push CI 40686837879 is terminal cancelled. Bootstrap PR #3
-is open from codex/staged-release-bootstrap, now at
-321bfe6e7ecbc53e284e93d98c8823b7a0fb5c3a after its PR-trigger repair.
-Its isolated commit contains staged workflows/cache, publisher/policy tests, packaged
-LSP smoke and the accepted virtual API fix/native SDK witness. No unfinished binding
-or HTTP language changes were included. It was built with a temporary Git index;
-this working tree and its branch were preserved. PR #3 is attached to the chat.
+PR #2 merged as caf5284b. Bootstrap PR #3 passed required PR CI 40694096077
+at 321bfe6e and merged as 0b6444292ee5c120efa16b4ea78237fcf793a052.
+The earlier manual run was green but lacked the required PR merge-commit status;
+no protection was weakened. Release preflight rejected the non-stag bootstrap and
+skipped all platform builds. No release was published.
 
-Manual bootstrap CI 40687353147 passed on d6769698, but GitHub rejected the merge
-because CI was attached to the branch commit while protected checks were expected
-on the PR merge commit. No protection was weakened. Isolated bootstrap commit
-321bfe6e7ecbc53e284e93d98c8823b7a0fb5c3a adds a main PR trigger guarded to this
-bootstrap branch only. PR CI 40694096077 is running; VS Code passed. Release run
-40694096126 rejects the non-stag bootstrap before all expensive release builds.
-The local polish branch still has the intended stag-only CI. Preserve that when
-reconciling the bootstrap, removing its one-time main trigger in the first polish
-PR. After required PR CI passes, merge PR #3 with the approved review bypass,
-create stag at main, install strict up-to-date CI/review rules on stag, strict
-Release gate on main with merge commits, and immutable existing tags with new
-creation allowed. Payloads are /tmp/tsrust-{stage,main,review,tags}-rule-next.json.
-Do not publish for bootstrap.
+Created stag at the bootstrap merge and installed/read back the approved rules:
+stag rule 26047191 requires strict CI with no bypass; review rule 25884267 requires
+one approval with only Cotter45 (80602015) allowed PR review bypass. Main rule
+25884039 requires strict Release gate with no bypass and merge commits only.
+Tag rule 25884041 permits new v* tags but denies updates/deletion/non-fast-forward
+with no bypass. Repository immutable releases is enabled. Merge commits and squash
+are enabled. Preserve local stag-only CI on reconciliation, removing the one-time
+bootstrap main trigger in the first polish PR.
+
+Windows toolchain/cache run 40700593542 at cc268923 is still in progress. Its
+compiler/LSP build and portable preparation passed; installer/cache acceptance is
+running. Do not launch a duplicate run. Documentation audit is in progress locally.
+Reconcile the accepted polish tree onto stag after its clean checkpoint, preserving
+all current edits and prior evidence. Linux installer/cache acceptance follows in
+the mandatory feature PR CI; do not publish merely to test release plumbing.
+
+## Documentation and first-run content acceptance
+
+Public entry points now describe backend-only scaffolding, independent SDKs,
+shared Cargo sources, paired installation and Windows prerequisites. Original UI
+setup moved to guides/tooling/retained-ui-setup.md; historical roadmap and vision
+remain intact. Editor setup explains explicit stale-path ENOENT recovery. CLI help
+now names both SDK languages and fixes its corrupted title punctuation.
+
+A fresh docs content build exposed virtual publication import resolution through
+an absent target/docs-content directory. PublicationInputs now resolves normalized
+imports from virtual modules before touching the filesystem; ordinary disk module
+resolution remains unchanged. Its focused first-run witness passes. The actual
+content build passes: 166 pages, 36 checked examples, 1002 API declarations offline.
+Existing CLI help witness and all six distribution/public-link tests pass. README’s
+native example prints exactly TypeScript + Rust. Whole-project formatting/check and
+diff whitespace checks pass with zero source/fingerprint changes. Disposable log:
+/tmp/tsrust-docs-check.log. No timing or full milestone acceptance is inferred.
 
 ## Local work while bootstrap CI runs
 
@@ -47,7 +63,8 @@ Whole-project formatting/check passed with zero changes. Session 21763 completed
 successfully: both binding schema unit controls passed (30 matched library tests
 total), schema 2 LSP signature/hover/definition/edit invalidation passed, and backend
 all-target diagnostics finished without errors or warnings (73s). Logs:
-/tmp/tsrust-binding-schema.log and /tmp/tsrust-binding-final-check.log. This section is accepted locally at 97340657; nothing from it was pushed.
+/tmp/tsrust-binding-schema.log and /tmp/tsrust-binding-final-check.log. This section is accepted at 97340657 and included in the subsequent Windows
+acceptance push.
 Preserve previously passed unrelated API/LSP checks. Full milestone, platform and
 paired installer/update acceptance remain open. The next implementation contract
 is plans/paired-toolchain-updates.md: versioned pairs and one atomic selection
@@ -61,14 +78,23 @@ development tooling; seven installer tests pass (final 15.84s), including rollba
 interruption reuse, file/version integrity and a running old executable; backend
 all-target diagnostics are clean; 14 policy/distribution tests pass. The live HTTPS
 check correctly reports no stable release. See milestones/paired-toolchain-installation.md.
-A focused Windows toolchain_acceptance input is prepared, not dispatched. Ordinary
+The paired installer checkpoint is cc268923ac0b0db34eb30267463cdac86da83408.
+It was pushed to codex/language-cli-docs-polish. Focused Windows acceptance run
+40700593542 is live on that exact head: only the Windows job runs; ordinary source,
+editor and async jobs are skipped. Inspect that run, retain passed groups, and
+repair/rerun only failed groups. Ordinary
 Linux staging CI now covers installer/shared-source/package tests; renderer execution
 is restricted to an explicit full regression, and consumer builds select backend
-packages explicitly. No public release or remote installer job was launched.
-Whole-project formatting/check passed with zero changes; this section is ready
-for a local checkpoint. Await bootstrap PR CI before merging/migrating the live pipeline. Then reconcile this
+packages explicitly. No public release was launched. The single Windows job above is the only new
+hosted installer/cache run.
+Whole-project formatting/check passed with zero changes before cc268923. Await
+bootstrap PR CI 40694096077 (last verified live in LSP agreement) before merging/
+migrating the live pipeline. Then reconcile this
 polish branch with bootstrapped main, preserve its stag-only CI, and execute the
-necessary Windows acceptance once. The broad goal remains active.
+Windows acceptance result without dispatching a duplicate. Next independent work:
+audit active language/CLI/install docs against implemented commands, then run the
+required backend-family regression/performance milestone once implementation and
+documentation are coherent. The broad goal remains active.
 
 HTTP reader acceptance is complete at 98ddde67: native/Node checksum 5376,
 HTTP-specific compiler/editor agreement, catalog examples and clean all-target

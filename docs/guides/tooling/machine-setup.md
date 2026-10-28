@@ -87,9 +87,13 @@ invoking Cargo, Rust or the network. An unprepared export reports the setup comm
 The resulting package includes its manifest, lock, runtime sources, toolchain pin,
 Cargo offline configuration, notices and build instructions; it can be relocated
 and rebuilt with an empty registry cache. Plain programs need no source pack.
-Retained UI builds and custom binding overlays use the prepared pack too; migrating
-ordinary binding builds to shared sources remains unfinished. These commands are
-not yet a CLI/LSP installer or production self-update flow.
+Retained UI builds use the prepared legacy pack. New custom binding graphs use
+schema 2 and Cargo’s shared sources; schema 1 retains its legacy dependency graph.
+Resolve binding dependencies explicitly before offline builds. Binding portable
+exports validate and include their exact locked graph.
+
+CLI/LSP acquisition is separate: see [managed installation and updates](../toolchain-installation.md).
+Doctor reports managed-pair ownership and integrity independently of Rust readiness.
 
 The [rustup profile documentation](https://rust-lang.github.io/rustup/concepts/profiles.html)
 defines the minimal profile. Its [basic usage documentation](https://rust-lang.github.io/rustup/basics.html)

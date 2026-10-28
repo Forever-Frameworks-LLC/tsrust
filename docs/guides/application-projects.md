@@ -78,6 +78,7 @@ elsewhere, adapt the deployment specification's path/server URL and client URL.
 This is checked Tsrust RPC export, not an arbitrary REST/OpenAPI importer.
 
 `tsrust new hello` retains the console scaffold. Original Tsrust UI source and
-explicit legacy commands remain historical compatibility pending dependency
-isolation; they are outside the active backend product. See the backend-only reset
-for cleanup, distribution and self-update acceptance still pending.
+explicit legacy commands remain historical compatibility outside the active backend
+product. Ordinary backend and schema 2 binding builds use shared Cargo sources;
+see [machine setup](tooling/machine-setup.md). For paired CLI/LSP acquisition and
+rollback, see [managed installation](toolchain-installation.md).

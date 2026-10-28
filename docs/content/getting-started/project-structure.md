@@ -3,39 +3,70 @@
 -->
 # Project structure
 
-A UI project has an explicit bootstrap, application source and editable local components. Configuration lives in `tsrust.config.json`.
+`tsrust new hello --app` creates a backend application with explicit configuration:
 
 ```text
-src/
+app/
   main.tsr
-  app/
-    page.tsrx
-  components/
-    ui/
-      button.tsrx
+  api/
+    operations.tsr
+    context.tsr
+    access.tsr
+  lib/
+    greeting.tsr
+  tests/
+    greet.test.tsr
 tsrust.config.json
-ui-components.lock.json
-attributions/
+AGENTS.md
+README.md
 ```
 
 ## Entrypoint and targets
 
-`build.entry` names the bootstrap, usually `src/main.tsr`. That bootstrap creates the root page and calls `run`. The root page convention is `src/app/page.tsrx`; it does not replace the explicit entrypoint.
+`build.entry` names `app/main.tsr`; `build.output` names the native executable.
+Paths are relative to the configuration directory. The explicit `api` section
+selects operations, context and access policy. Ordinary exports stay private
+unless selected. The starter greeting is explicitly public; review its access
+policy before adding sensitive operations.
 
-`ui.target.web`, `ui.target.native` and `ui.target.embedded` are independent booleans. Embedded rendering is not implemented by selecting the flag. The current checked paired slice supports web and native.
+The server imports dispatch, description and OpenAPI handlers from `api:server`.
+The compiler validates and supplies them in memory. Running the backend does not
+require client generation or a checked-in generated dispatcher.
+
+## Independent clients
+
+Generate a TypeScript or asynchronous Rust SDK from the running service's HTTP
+description, or a saved description, into a caller-selected directory. Examples
+are `js-client/`, `rust-client/` or an external consumer project. These are outputs,
+not required backend source directories. Generation does not modify the server
+or install frontend packages. Bring your own UI and call the HTTP API.
+
+See the [backend application guide](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/docs/guides/application-projects.md)
+for commands, access policy, retained compatibility contracts and OpenAPI scope.
+
+## Console projects
+
+`tsrust new hello` creates `src/main.tsr`, a test under `tests/`, project
+configuration and guidance. The explicit executable entry remains authoritative;
+there is no implicit component or function-name entry discovery.
+
+## Build and cache ownership
+
+`target/` holds disposable build outputs. Ordinary native compilation uses shared
+Cargo dependency sources and locked, offline generated workspaces. Source/setup
+commands are explicit. Binding configuration, exact locks and Rust adapters remain
+application-owned. Portable exports contain independently verified sources, notices
+and offline Cargo configuration and can be relocated for rebuilding.
 
 ## Editable components
 
-`ui.components` normally points at `src/components/ui`. Installed source is yours to change. The lock records installation provenance; it does not make component files immutable.
-
-Shared third-party notices live under `attributions/`. Short references in component files point at those notices. Preserve the notices when distributing adapted source.
+The original UI source layout and editable-component ownership rules are retained
+in the [UI setup guide](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/docs/guides/tooling/retained-ui-setup.md).
+They are outside the active backend scaffold and are not created by `--app`.
 
 ## Documentation content
 
-This documentation project keeps authored Markdown under `content/` and actual examples under `src/examples/`. A checked content build produces ignored files under `target/docs-content/`.
-
-```text
-tsrust docs content
-```
-
-The generated typed module owns a checked content snapshot. It does not read Markdown, execute fences or fetch packages in the browser. Edit the original Markdown/example/component files and rebuild; generated files are not another authoring source.
+The retained documentation application keeps Markdown under `content/` and examples
+under `src/examples/`. `tsrust docs content` validates the authored inputs and
+produces ignored output under `target/docs-content/`. Generated files are not a
+second authoring source. Backend projects do not need this documentation UI.

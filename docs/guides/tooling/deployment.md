@@ -2,17 +2,34 @@
 
 [Documentation index](../../README.md) · [Proposed roadmap](../../roadmap.md) · [Source section map](../../plans/section-map.md)
 
-## Workstream scope
+## Build and run a backend
 
-**Status:** Unresolved design/research. The grouping and phase below are proposed planning aids, not approved language semantics.
+From a configured backend project:
 
-**Proposed phase:** Backend proof.
+```sh
+tsrust check
+tsrust test
+tsrust build --release -o target/server
+# Windows output: target/server.exe
+```
 
-**Scope:** Define executable deployment and runtime resource requirements.
+Build on the destination OS/architecture with the pinned native tools and prepared
+sources described in [machine setup](machine-setup.md). These commands do not
+provide a cross-compilation switch. Copy the produced executable and any
+application-owned configuration or assets to the deployment environment. Native
+execution needs no Tsrust compiler, Cargo, Node or JavaScript runtime.
 
-**Planning deliverable:** A deployment checklist validated against a produced native server binary.
+A native executable is not necessarily statically linked. Its OS libraries,
+external native dependencies, TLS trust material and application files still need
+to be present. Validate the actual artifact in the destination image or machine;
+`doctor --native` checks the build host, not deployment compatibility. Keep secrets
+in deployment configuration rather than source or generated client packages.
 
-**Dependencies to coordinate:** [toolchain-and-development](toolchain-and-development.md), [interop-and-targets](interop-and-targets.md), [async-and-runtime](../language/async-and-runtime.md)
+The [backend starter](../application-projects.md) listens on loopback by default.
+Choose production binding, authentication, TLS termination and process supervision
+for your deployment. API description and OpenAPI endpoints use application policy;
+review that policy before exposing them publicly. Generate independent clients
+from the checked contract and retain compatibility baselines for rolling updates.
 
 ## Original vision sections
 

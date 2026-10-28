@@ -46,7 +46,7 @@ use std::process::{Command, ExitCode};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tsrust_compiler::RUST_BACKEND_VERSION;
 
-const USAGE: &str = "tsrust â€” native TypeScript-style programs
+const USAGE: &str = "tsrust — native TypeScript-style programs
 
 Usage:
   tsrust                       Open the interactive command menu in a terminal
@@ -84,7 +84,7 @@ Commands:
   toolchain Install, check, update or roll back the verified prebuilt CLI/LSP pair
   setup    Explicitly prepare pinned Rust tools or shared backend dependency sources
   docs     Compile checked documentation content and exact example/API data offline
-  api      Generate a checked named TypeScript client without adopting frontend tooling
+  api      Generate checked TypeScript or async Rust clients from an API description
   dev      Watch a configured native program or web UI
   new      Create a project with source, tests and configuration
   check    Check files/directories recursively; defaults to the current directory
@@ -133,7 +133,7 @@ fn styled(text: &str, code: &str, color: bool) -> String {
 fn print_help() {
     let color = color_enabled(std::io::stdout().is_terminal());
     for line in USAGE.lines() {
-        if line.ends_with(':') || line.starts_with("tsrust â€”") { println!("{}", styled(line,"1;36",color)); }
+        if line.ends_with(':') || line.starts_with("tsrust —") { println!("{}", styled(line,"1;36",color)); }
         else { println!("{line}"); }
     }
 }
