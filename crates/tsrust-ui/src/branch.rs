@@ -77,7 +77,7 @@ impl Node {
     pub fn route(path:&str,exact:bool,present:impl FnMut()->Result<Option<Node>,String>+'static)->Result<Self,String> {
         let predicate=super::navigation::route_predicate(path,exact)?;
         let mut node=Self::branch(predicate,present,||Ok(None))?;
-        let branch=node.branch.as_mut().expect("route branch");branch.retained=true;node.collapsed=!branch.selected;
+        let branch=node.branch.as_mut().expect("route branch");branch.retained=true;node.collapsed= !branch.selected;
         if branch.initialized {branch.present=Box::new(||Ok(None));}
         Ok(node)
     }
@@ -88,7 +88,7 @@ impl Node {
         if selected==branch.selected{return Ok(0);}
         branch.selected=selected;
         if branch.retained {
-            self.collapsed=!selected;
+            self.collapsed= !selected;
             if !selected || branch.initialized {return Ok(1);}
             branch.initialized=true;
         }else{self.children.clear();}
@@ -100,7 +100,7 @@ impl Node {
         Ok(1)
     }
     pub(crate) fn inherit_branch_theme(&mut self) {
-        if self.branch.is_some(){if let Some(child)=self.children.first_mut(){if child.theme.is_none()||child.theme_inherited{child.theme=self.theme.clone();child.theme_inherited=child.theme.is_some();child.inherit_branch_theme();}}}
+        if self.branch.is_some() && let Some(child)=self.children.first_mut() && (child.theme.is_none()||child.theme_inherited){child.theme=self.theme.clone();child.theme_inherited=child.theme.is_some();child.inherit_branch_theme();}
     }
     pub(crate) fn visible_root(&self)->Option<&Node> {
         if self.collapsed{None}else if self.branch.is_some(){self.children.first().and_then(Self::visible_root)}else if self.anonymous_text&&self.text.is_empty(){None}else{Some(self)}

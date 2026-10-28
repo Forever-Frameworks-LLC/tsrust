@@ -1,7 +1,9 @@
 //! Component state has one strong owner; bindings and captures use weak references.
 use std::{cell::RefCell, rc::{Rc, Weak}};
 
-pub struct Signal<T = i64>(Reference<T>,Option<Rc<dyn std::any::Any>>,Option<Rc<dyn Fn(&T)->Result<T,String>>>);
+type SetValue<T> = Rc<dyn Fn(&T)->Result<T,String>>;
+
+pub struct Signal<T = i64>(Reference<T>,Option<Rc<dyn std::any::Any>>,Option<SetValue<T>>);
 pub struct TextBinding(Box<dyn Fn() -> Result<String,String>>);
 impl TextBinding {
     pub fn value(&self) -> Result<String,String> { (self.0)() }

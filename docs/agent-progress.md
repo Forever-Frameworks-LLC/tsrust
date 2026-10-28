@@ -42,6 +42,13 @@ module without removing any receiver/member comparison; emit progress with
 independent failures become visible earlier. This diagnosed follow-up supersedes
 the active run; local compilation/tests remain stopped for the hardware handoff.
 
+Run 40659558222 passed the macOS native renderer checks. Linux renderer compilation
+requires Fontconfig headers; shared setup now installs libfontconfig1-dev. Clippy
+reported twelve retained UI diagnostics. Repair ambiguous whitespace, nested guards,
+static format calls and the signal callback type; retain the owned Child layout with
+a documented local lint expectation to avoid changing generated-code APIs or adding
+per-node allocations. Hosted validation remains pending; no local build was run.
+
 ## Hardware stop and checkpoint — 2026-10-28
 
 The owner requested a clean wrap-up, commit and push, then explicitly stopped

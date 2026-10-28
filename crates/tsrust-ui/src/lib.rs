@@ -83,6 +83,7 @@ pub enum Kind {
 pub enum TextPart { Literal(String), Signal(TextBinding) }
 /// Owned child content. Text parts are grouped without cloning their state references.
 #[cfg(feature = "runtime")]
+#[expect(clippy::large_enum_variant, reason = "Owned nodes move directly into the child vector without a separate allocation")]
 pub enum Child { Node(Node), Text(TextPart) }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, serde::Deserialize)]
@@ -207,7 +208,7 @@ impl Node {
         value.href=self.semantics.href.clone();
         if self.variant_binding.is_some(){value.variant=self.semantics.variant.clone();}
         let prior=std::mem::replace(&mut self.semantics,value);
-        if validate_structure {if let Err(error)=self.validate_structure(){self.semantics=prior;return Err(error);}}
+        if validate_structure && let Err(error)=self.validate_structure(){self.semantics=prior;return Err(error);}
         Ok(prior!=self.semantics)
     }
     fn has_enabled_controls(&self)->bool {!self.collapsed && (self.enabled_control() || self.children.iter().any(Self::has_enabled_controls))}
@@ -453,7 +454,8 @@ impl Node {
             text,
             children,
             vector:None,parts: Vec::new(), disabled:None, visibility:None, copy:None, press: None, class_binding:None,variant_binding:None,semantic_binding:None,state: Vec::new(), editable:None, read_only:None,collapsed:false,hidden:None,
-        };if matches!(kind,Kind::Svg|Kind::SvgPath){node.check_class(&node.class_name)?;}if kind!=Kind::Svg && node.children.iter().any(|child|child.kind==Kind::SvgPath){return Err("Path requires an enclosing Svg".into());}Ok(node)
+        };if matches!(kind,Kind::Svg|Kind::SvgPath){node.check_class(&node.class_name)?;}
+        if kind!=Kind::Svg && node.children.iter().any(|child|child.kind==Kind::SvgPath){return Err("Path requires an enclosing Svg".into());}Ok(node)
     }
 }
 
