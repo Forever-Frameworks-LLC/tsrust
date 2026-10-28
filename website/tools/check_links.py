@@ -42,10 +42,12 @@ def check(root):
             target = (root / unquote(url.path[len(origin.path):])).resolve()
             if not target.is_relative_to(root):
                 raise ValueError(f'{file}: link escapes output: {link}')
-            if page.canonical and url.path == urlparse(page.canonical).path:
-                target = file
-            elif target.is_dir():
+            if target.is_dir():
                 target /= 'index.html'
+            # A page without its own route (404.html) may link to its canonical
+            # URL. Redirect pages are canonical to an existing target instead.
+            if not target.is_file() and page.canonical and url.path == urlparse(page.canonical).path:
+                target = file
             if not target.is_file():
                 raise ValueError(f'{file}: missing target: {link}')
             if url.fragment and target in pages and unquote(url.fragment) not in pages[target].ids:

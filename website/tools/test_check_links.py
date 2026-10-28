@@ -14,7 +14,14 @@ class Links(unittest.TestCase):
             prefix = '<link rel="canonical" href="https://example.com/docs/"><link href="/docs/style.css">'
             (root / 'index.html').write_text(prefix + '<a href="guide/#hello">Guide</a>')
             (root / '404.html').write_text('<link rel="canonical" href="https://example.com/docs/404/"><h1 id="top">Missing</h1><a href="/docs/404/#top">Top</a>')
-            self.assertEqual(check(root), 3)
+            redirect = '<meta http-equiv="refresh" content="0;url=/docs/guide/#hello"><link rel="canonical" href="https://example.com/docs/guide/#hello"><a href="/docs/guide/#hello">Moved</a>'
+            (root / 'old').mkdir()
+            (root / 'old/index.html').write_text(redirect)
+            self.assertEqual(check(root), 4)
+            (root / 'old/index.html').write_text(redirect.replace('#hello', '#absent'))
+            with self.assertRaises(ValueError):
+                check(root)
+            (root / 'old/index.html').write_text(redirect)
             for broken in ('guide/#absent', 'missing/', '/outside/', '%2e%2e/private'):
                 with self.subTest(link=broken):
                     (root / 'index.html').write_text(prefix + f'<a href="{broken}">Broken</a>')

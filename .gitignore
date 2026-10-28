@@ -47,3 +47,6 @@ __pycache__/
 /website/node_modules/
 /website/.astro/
 /website/dist/
+
+# Generated from crates/tsrust-lsp/src/builtins.json before every docs build.
+/website/src/content/docs/reference/

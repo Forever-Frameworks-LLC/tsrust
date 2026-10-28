@@ -213,7 +213,7 @@ initialization, scope and declaration-list errors.
 - Transferring a borrowed name is a `borrowed-place` error. Changing or transferring the source while a borrowed name is in scope is a `view-conflict` error; put the borrow in an inner block, or `clone()` the part.
 - An array rest name must be last and cannot have a default or trailing comma. A pattern declaration is not accepted in the update clause of a classic `for` loop.
 
-Borrowed optional string fields can use a string literal fallback without cloning: `const label = item?.label ?? "none";`. See [borrowed optional fallbacks](/tsrust/language/borrowed-optional-fallback/) for ownership and lexical source loans.
+Borrowed optional string fields can use a string literal fallback without cloning: `const label = item?.label ?? "none";`. See [borrowed text with a fallback](/tsrust/language/optional-values/#borrowed-text-with-a-fallback) for ownership and lexical source loans.
 
 ## Related guides
 

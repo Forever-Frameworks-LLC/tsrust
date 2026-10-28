@@ -4,8 +4,9 @@
   "type": "module",
   "engines": { "node": ">=22.23.4" },
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
+    "reference": "node tools/generate-api-reference.mjs",
+    "dev": "npm run reference && astro dev",
+    "build": "npm run reference && astro build",
     "preview": "astro preview"
   },
   "dependencies": {

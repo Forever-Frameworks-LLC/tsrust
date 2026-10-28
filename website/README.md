@@ -16,6 +16,12 @@ Tsrust compiler, database or server-side runtime. The production URL and `/tsrus
 base path are configured once in `astro.config.mjs`. Generated files belong in
 ignored `dist/`; commit source and `package-lock.json` only.
 
+`npm run dev` and `npm run build` first run `tools/generate-api-reference.mjs`, which
+renders the standard-library and built-in reference into the ignored
+`src/content/docs/reference/` from `../crates/tsrust-lsp/src/builtins.json`. Edit
+API documentation in that catalog, not in generated pages. A new catalog group must
+be mapped in the generator before the build succeeds.
+
 Add reviewed Markdown to `src/content/docs/`, supply `title` and `description`, and
 add its route to the explicit sidebar. Keep links relative within the site and
 verify the built output under the project base path. Do not add placeholder pages
