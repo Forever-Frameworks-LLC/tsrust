@@ -650,6 +650,10 @@ impl Parser<'_> {
         let mut tested = Vec::new();
         for (values, default, body, at) in clauses {
             if default {
+                // A shared default body is also selected by its case labels in source order.
+                if !values.is_empty() {
+                    tested.push((values, body.clone(), at));
+                }
                 default_body = Some(body);
             } else {
                 tested.push((values, body, at));
