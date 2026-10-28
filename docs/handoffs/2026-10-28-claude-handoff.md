@@ -155,3 +155,24 @@ never publish ignored `benchmarks/records.sqlite`. Public measurements must use
 `benchmarks/storage/public.py` and its provenance allowlist. Preserve original
 records and distinguish unmeasured work from measured work. Keep the handoff and
 finite acceptance checklist current; do not claim completion from partial evidence.
+
+## Claude progress — 2026-10-28
+
+Architecture recorded in `docs/plans/documentation-architecture.md` (reference
+first, one interactive Learn track per journey, chapter merge table and rules).
+
+- Standard-library and built-in reference: `website/tools/generate-api-reference.mjs`
+  renders all 103 catalog groups (minus frozen `std:ui` and the internal testing
+  runtime) into 28 generated pages before every `dev`/`build`. Output is ignored
+  by Git. The docs workflow now also triggers on `builtins.json` changes.
+- First language chapter merged: `language/optional-values/` replaces
+  borrowed-optional-fallback, optional-chaining, nullish-coalescing and
+  nullish-assignment. Old routes redirect to chapter anchors. All ten examples ran
+  with the current debug compiler with matching output; five rejection claims
+  were checked with `tsrust check`.
+- Link checker now validates redirect pages against their destination anchor
+  (unit test added). Site build: 91 pages + redirects; link/anchor check passed.
+
+Not done: remaining nine chapter merges, the first Learn track, folding library
+guides and backend how-tos into tracks, and the CI/installation/platform/deployment
+reconciliation listed above. Nothing was pushed; no GitHub run was triggered.
