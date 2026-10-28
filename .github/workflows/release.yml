@@ -72,7 +72,7 @@ jobs:
         run: cargo build --offline --locked --release --bin tsrust --bin tsrust-lsp
       - name: Collect locked dependency notices
         run: cargo vendor --offline --locked --versioned-dirs --sync crates/tsrust-compiler/native-dependencies/Cargo.toml --sync crates/tsrust-compiler/backend-dependencies/Cargo.toml target/release-vendor > /dev/null
-      - name: Package and test the distributed CLI
+      - name: Package and test the distributed CLI and LSP
         env:
           RELEASE_TAG: ${{ needs.preflight.outputs.tag }}
           EXE_SUFFIX: ${{ runner.os == 'Windows' && '.exe' || '' }}
@@ -83,7 +83,7 @@ jobs:
           mkdir -p dist
           node tools/package-toolchain.mjs "target/release/tsrust$EXE_SUFFIX" "target/release/tsrust-lsp$EXE_SUFFIX" "$RUST_TARGET" "dist/$package" target/release-vendor
           node -e 'const m=JSON.parse(require("node:fs").readFileSync(process.argv[1]));if(m.sourceTreeDirty||m.distribution!=="release")process.exit(1)' "dist/$package/manifest.json"
-          node tools/smoke-toolchain.mjs "dist/$package/bin/tsrust$EXE_SUFFIX"
+          node tools/smoke-toolchain.mjs "dist/$package/bin/tsrust$EXE_SUFFIX" "dist/$package/bin/tsrust-lsp$EXE_SUFFIX"
           tar -czf "dist/$package.tar.gz" -C dist "$package"
           rm -rf "dist/$package" target/release-vendor
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

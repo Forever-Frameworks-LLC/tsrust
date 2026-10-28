@@ -72,7 +72,8 @@ Performance benchmarks do not run automatically or overwrite accepted evidence.
 
 Dispatch the Release workflow manually against a branch or commit. It derives the
 package version from Cargo.toml, checks source cleanliness, runs packaging tests,
-builds both optimized consumers and runs the distributed CLI smoke on Linux,
+builds both optimized consumers and runs the distributed CLI smoke plus LSP
+initialization, capability and clean-shutdown assertions on Linux,
 macOS ARM/Intel and Windows x64. Archives remain temporary Actions artifacts;
 manual dispatch never creates a tag or publishes a GitHub release. This focused
 package check does not repeat the full CI gate and is not release authorization.

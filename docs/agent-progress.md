@@ -25,8 +25,9 @@ local build/test validation is prohibited. Last equivalent async run was the
 interrupted hardware-stop run; green CI 40663277431 excluded these targets.
 Focused workflow checkpoint c5b3d4a9 was pushed once. CI run 40672007920 was
 manually dispatched with async_acceptance=true and confirms that exact SHA.
-All three jobs are live: Windows 122760867985, Linux 122760868408, macOS
-122760868454. Re-poll this run; do not restart it merely because a turn ends.
+Linux job 122760868408 passed all three steps. Windows 122760867985 and macOS
+122760868454 passed compiler/native registration and are running editor checks.
+Re-poll this run; do not restart it merely because a turn ends.
 No local build/test or public release was run. Acceptance remains pending.
 
 ## Windows package validation prepared
@@ -38,6 +39,11 @@ smokes, and retain temporary Actions artifacts. The publish job requires a v* ta
 push; manual dispatch cannot publish. Tag-triggered runs retain the existing CI
 prerequisite. Notice collection includes all three locked dependency closures.
 Release guide reflects the backend source-pack design and four configured hosts.
+The distribution smoke now optionally accepts the packaged LSP and checks its
+initialize response, hover capability and successful shutdown outside the source
+tree; all four package jobs pass both executable paths. It reuses the existing
+framed stdio smoke pattern from check-service.mjs. This checks actual executable
+startup rather than only manifest bytes. Existing CLI-only smoke calls still work.
 These changes are not yet executed or accepted. Wait for the current async run
 before dispatching package validation; preserve its original results. Package
 smokes are not paired installer/update or locked-LSP acceptance.
