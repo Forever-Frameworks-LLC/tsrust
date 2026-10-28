@@ -2029,3 +2029,20 @@ CI 40761578381 at remote 61ee67a4 was still running setup; extension and docs jo
 passed. This local documentation section is not pushed; batch later rather than
 cancelling the current mandatory run. Next: finish current public-guide migration
 and await required remote/platform acceptance without duplicating completed work.
+
+## Runtime reference migration accepted
+
+Migrated docs/guides/tokio-tasks.md into library/futures.md, linking the async
+language page and the existing historical handoff to the canonical source.
+The page separates starting jobs, timer/deadline limits, groups, cancellation,
+channels and failure codes. Traced runtime.rs and preserved ownership restrictions.
+All four exact examples format/check/execute successfully with expected output;
+no Rust implementation or original fixture changed. Temporary native projects
+were removed. Complete 390px/1440px visual review passes after replacing a cramped
+timer table with bullets. Keyboard skip and overflowing-code scrolling pass.
+Static build and links pass for 25 pages; six distribution tests pass. Content and
+presentation acceptance now covers 18 pages; seven platform/acquisition rows remain
+open. The current CI run remains separate from these unpushed documentation edits.
+No duplicate CI dispatch or release occurred. Continue remaining guide migration
+and platform acceptance; do not treat the growing site count as completion of the
+full migration inventory.
