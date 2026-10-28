@@ -43,3 +43,17 @@ function main(){
 }
 "#, "9007199254740993 tail 9007199254740993\nfirst true\n", None);
 }
+
+#[test]
+fn union_of_owned_arrays_widens_each_selected_carrier() {
+    support::execute(r#"
+function widen(values:int[]|string[]):(int|string)[]{return values;}
+function coalesce(values:(int|string)[]|undefined):(int|string)[]{return values??[];}
+function main(){
+ const numbers=widen([9007199254740993]);console.log(numbers[0]);
+ const words=widen(["owned".repeat(1)]);console.log(words[0]);
+ const absent=coalesce(undefined);console.log(absent.length);
+ const present=coalesce([7,"text"]);console.log(present[0],present[1]);
+}
+"#, "9007199254740993\nowned\n0\n7 text\n", None);
+}

@@ -1399,3 +1399,55 @@ Formatter56047 terminal PASS and format-check PASS. Checkpoint accepted banner,
 interactive/dev/binding test corrections; keep cache/catalog changes uncommitted
 until current execution completes. Do not remove generated AGENTS until original
 full regression is terminal. No remote push/release this turn.
+
+
+## Milestone terminal; array-carrier emission repair
+
+Original79249 terminal101 after completing compiler/LSP lib/bin/integration run.
+Keep /tmp/tsrust-backend-milestone.log as original mixed-consumer evidence; no restart.
+Completion matrix finished; remaining LSP failed targets include http, intelligence,
+native_environment_catalog, native_file_catalog, native_threads, native_time_catalog,
+ui, plus already-repaired call_spread/collections_catalog. Full failed-target list
+is at log end. Current intelligence failures include real declared-parameter-label
+loss (amount -> value; other -> input) and nested call selection, not merely spacing;
+do not weaken these assertions. Other intelligence catalog failures come from its
+mock returning Tsrust source for arbitrary paths including tsrust.config.json.
+Fixed mock to serve only /std-example.tsr; pending focused validation. Canonicalized
+four additional catalog temp roots matching accepted collections fix; pending native
+examples. Restored missing1048576 default detail in HttpRequest.text documentation,
+keeping configured-limit wording; affected HTTP LSP check pending.
+
+79888 terminal: theme-cache FAIL now reaches genuine emitter panic; collections
+catalog PASS all33 entries/examples; backend all-target check PASS warning/error-free
+in1m13s. Known test-generated four untracked AGENTS files removed only after original
+run terminated. Tracked/owner files untouched.
+
+Emitter investigation: temporary probe build46674 terminalPASS2m31s; reproduced in
+Text props.children??[] and reduced independently to returning int[]|string[] as
+(int|string)[]. Checker accepts the conversion but record_carrier_conversion lacked
+Union->Array dispatch. Temporary probe print removed from source (emit/mod.rs clean).
+Added selected-union-payload conversion reusing union_move_payload and array element
+conversion; added exact large int, owning string and optional fallback witnesses.
+52772 running array_union_widening and runtime_cache_cli with compiler/LSP package
+unification, /tmp/tsrust-union-carrier-repair.log. Not accepted yet. No further Cargo
+consumer until terminal; then validate LSP catalog/mock/HTTP repairs and source
+all-target checks as affected. Theme-cache scratch /tmp/tsrust-theme-cache-repro.
+Windows40731485167 still in_progress at final poll; no dispatch/push/release.
+
+
+## Array carrier accepted; editor declaration repair under validation
+
+52772 terminal PASS: array_union_widening4 (including union-of-arrays precision/
+ownership/fallback regression) and runtime_cache_cli4 (including actual theme edit
+runtime reuse). The emitter union dispatch fixes the reduced backend-only case and
+retained UI cache witness; no UI API change. Whole-project formatter/format-check
+39998 PASS; checkpoint these changes plus already-passed collections path fix.
+Editor source correction preserves explicit declared callable record field labels
+when applying equivalent checked storage facts and when choosing signature help;
+shared structural interning must not rename amount/other to another origin's labels.
+Existing declaration-name assertions retained. 28047 running affected LSP intelligence,
+HTTP and four native catalog suites, /tmp/tsrust-editor-repair.log. Includes mock
+source-path closure, canonical temp roots and restored HTTP default-byte documentation.
+Do not launch another Cargo consumer until this batch finishes. Follow failures
+without weakening contracts; all-target diagnostic supplement remains needed after
+these final source repairs. Last accepted all-target check predates carrier/LSP edits.
