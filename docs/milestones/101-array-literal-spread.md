@@ -45,7 +45,7 @@ unchanged. Untimed proof:
 `benchmarks/runtime/results/2026-10-04T16-28-49-150Z-verify.json`;
 `target/editor/gate101-paired-verify.log` and `gate101-registration.log`.
 
-The guide is [array-literal-spread.md](../guides/language/array-literal-spread.md). Coverage is
+The guide is [array-literal-spread.md](https://forever-frameworks-llc.github.io/tsrust/language/array-literal-spread/). Coverage is
 registered under syntax.spreadArray and regenerated without measurement claims.
 A partial checkpoint regression ran under the previous policy, reached its 15-minute
 bound, and resumed only unrun groups. The user then superseded fixed five-gate

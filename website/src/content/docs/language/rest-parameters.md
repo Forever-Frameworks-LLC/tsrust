@@ -63,7 +63,7 @@ An optional or defaulted fixed callback slot beyond the supplied tuple remains o
 
 ## Current boundaries
 
-[Call spread](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/docs/guides/language/call-spread.md) expands arrays into rest and fixed parameters. Array-literal spread and supported iterable expansion have their own [spread rules](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/docs/guides/language/array-literal-spread.md). Rest parameters collect arguments into an array rather than inferring a heterogeneous tuple. Mixed and nullable elements follow the checked array element type. Borrowed callable environments cannot become owning rest-array elements.
+[Call spread](/tsrust/language/call-spread/) expands arrays into rest and fixed parameters. Array-literal spread and supported iterable expansion have their own [spread rules](/tsrust/language/array-literal-spread/). Rest parameters collect arguments into an array rather than inferring a heterogeneous tuple. Mixed and nullable elements follow the checked array element type. Borrowed callable environments cannot become owning rest-array elements.
 
 ## Collect a union element type
 

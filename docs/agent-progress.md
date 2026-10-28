@@ -1,6 +1,34 @@
 # Agent continuation state
 
-## Current continuation — array spread source-list correction
+## Current continuation — spread guides accepted and migrated
+
+Previous checkpoint cc619a19. Completed spread audit against spread_calls.rs,
+array_spread_work.rs, spread_emit.rs and ordered_key_runtime.rs. Added missing
+OrderedMap family, distinguished ascending OrderedSet/OrderedMap, insertion-ordered
+Map and unspecified Heap order, and clarified immutable ordered-key argument
+access. Migrated call-spread and array-literal-spread to canonical site pages;
+removed duplicates, migrated incoming Markdown links, refreshed current coverage.
+Split dense count/type/source contracts and fixed raw Set<string> Markdown markup.
+
+All13 complete examples canonical format/idempotence pass; retained12 prior exact
+native outputs, new exact OrderedSet/OrderedMap example prints1,3 2 and a z.
+Compiler iterable_array_spread2/iterable_call_spread3 pass, including Map ownership
+rejection and catchable runtime counts/finally (/tmp/tsrust-spread-doc-contracts.log).
+Ordered Map sorted owning spread1 passes (/tmp/tsrust-spread-ordered-doc.log).
+LSP iterable spread4 plus shared-support2 pass (/tmp/tsrust-spread-doc-editor.log).
+Full390px/1440px pages visually reviewed; no document overflow, highlighted and
+focusable code, keyboard scroll40px, skip/previous/next/section navigation pass.
+Viewport reset; tab4 retained on array spread native-collection anchor.
+49-page build and internal links/anchors pass (/tmp/tsrust-spread-doc-site.log).
+Whole-project formatter:0 files,0 fingerprints. All commands completed.
+
+Next: continue finite migration with array-from and collection/array guide families,
+trace each claim to current code before source/example/rendered acceptance. Current
+compiler all-targets milestone evidence retained; no source changes, broad suite,
+timings, hosted CI, push or release this section. Platform setup, Windows/Linux
+editor fixture/acquisition and actual Pages deployment remain pending. Goal active.
+
+## Prior continuation — array spread source-list correction
 
 Previous turn progressed ata8c4e3ec. Reviewed array_spread_work.rs access selection
 and accepted-source checking plus spread_calls.rs native_spread_source whitelist.

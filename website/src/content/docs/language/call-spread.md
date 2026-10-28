@@ -1,10 +1,13 @@
-# Call spread
+---
+title: Expand sources into call arguments
+description: Supply checked arguments from arrays, strings and collections.
+---
 
 ## Expand an iterable into arguments
 
-`...values` in a call argument list expands a dense array, string, Set, Map, Deque, Heap or OrderedSet into individual arguments, in iteration order. A call can mix ordinary arguments and any number of spread arguments. An empty source supplies no arguments.
+`...values` in a call argument list expands a dense array, string, Set, Map, Deque, Heap, OrderedSet or OrderedMap into individual arguments, in iteration order. A call can mix ordinary arguments and any number of spread arguments. An empty source supplies no arguments.
 
-After native setup, save each complete example separately as `main.tsr` and run
+After [native setup](/tsrust/tools/rust-setup/), save each complete example separately as `main.tsr` and run
 `tsrust run main.tsr`. Comments show expected output.
 
 ```tsrust
@@ -40,7 +43,9 @@ function main() {
 }
 ```
 
-`area(...[3, 4, 5])` is rejected with an `arity` error. Calling `area(...short)` with a one-element source throws a structured TypeError with code `call-arity`, message `expanded call arity outside checked contract` and the source byte range of the call. A catch handler can recover, and finally runs normally. The count check happens after all arguments evaluate and before the target, its defaults or its body run. Extra arguments are never dropped.
+`area(...[3, 4, 5])` is rejected with an `arity` error. Calling `area(...short)` with a one-element source throws a structured TypeError with code `call-arity`, message `expanded call arity outside checked contract` and the source byte range of the call. A catch handler can recover, and finally runs normally.
+
+The count check happens after all arguments evaluate and before the target, its defaults or its body run. Extra arguments are never dropped.
 
 Every element that could reach a parameter must satisfy that parameter's type. A source that could reach parameters of incompatible types is rejected at the spread expression.
 
@@ -133,11 +138,11 @@ A built-in with a fixed argument count keeps that count: `list.push(...[2, 3])` 
 
 Spread calls work through named functions, generic and imported functions, closures, callable parameters, record fields holding callables, and nullable callables. Use `?.(...)` for an optional call, or narrow a nullable callable with `!== null` or `!== undefined` before calling it. A `Once<Function<...>>` callable cannot be invoked through `?.`; narrow it first.
 
-## Current boundaries
+## Supported targets and boundaries
 
-Supported sources are dense arrays, strings, Sets, Maps, Deques, Heaps and OrderedSets. Named functions, methods and callable expressions keep their existing checked contracts. Generic inference uses expanded element types rather than the source collection type. Sparse slots and arbitrary iterator objects are unsupported. Heterogeneous tuple arrays and declared union elements retain ordinary parameter compatibility rules.
+Supported sources are dense arrays, strings, Sets, Maps, Deques, Heaps, OrderedSets and OrderedMaps. Named functions, methods and callable expressions keep their existing checked contracts. Generic inference uses expanded element types rather than the source collection type. Sparse slots and arbitrary iterator objects are unsupported. Heterogeneous tuple arrays and declared union elements retain ordinary parameter compatibility rules.
 
-## String and collection arguments
+## String arguments
 
 Strings construct owning Unicode scalar character strings, including supplementary
 characters. The source stays available, even when a parameter consumes its
@@ -155,21 +160,33 @@ function main() {
 }
 ```
 
+## Collection arguments
+
 Sets supply insertion-ordered keys. Maps supply borrowed stored key/value tuples
 for readonly parameters, including tuples with noncloneable values. A consuming
 parameter or owning rest array transfers owning collection elements. Scalars copy.
 The aggregate access required by reachable parameters governs the whole source,
 as with array call spread. No implicit clone is added.
 
-Mutable borrowing of stored Set keys or Map entry tuples is rejected, because
-changing keys would invalidate collection lookup. Explicitly copy to an array
+Mutable borrowing of stored Set, Heap or OrderedSet keys and Map or OrderedMap
+entry tuples is rejected because changing keys would invalidate lookup or ordering. Explicitly copy to an array
 first when a detached mutable snapshot is wanted and its elements can be copied.
 Readonly owning inputs cannot transfer; readonly scalar Sets can supply copies.
 
+### Iteration order
+
+Deque supplies front-to-back values. OrderedSet supplies ascending keys and
+OrderedMap supplies entries in ascending key order. Heap spread order is
+unspecified; use repeated `pop()` when descending order is needed. OrderedMap
+entries follow the same borrowing and transfer rules as Map entries.
+
+### Built-in and contextual arguments
+
 Expected parameter types can supply types for empty collection constructors.
-String.raw additionally accepts string and Set<string> spread substitutions; it
+`String.raw` additionally accepts string and `Set<string>` spread substitutions; it
 keeps its existing explicit output-copy behavior and preserves source values.
-Code constructors and variadic Math operations accept compatible Set elements.
+`String.fromCharCode`, `String.fromCodePoint` and variadic Math operations accept
+compatible Set elements.
 Optional calls with absent targets skip sources; source failures skip later
 arguments, and completion follows ordinary catch/finally rules.
 
@@ -190,3 +207,5 @@ function main() {
 
 This does not make `undefined` acceptable for a required `int` parameter without
 a default. Nor does a skipped default create an extra rest element.
+
+See [array-literal spread](/tsrust/language/array-literal-spread/) for building an owning array and [rest parameters](/tsrust/language/rest-parameters/) for collecting arguments.

@@ -1,11 +1,14 @@
-# Array-literal spread
+---
+title: Build arrays with spread
+description: Combine array, string and collection elements into an owning array.
+---
 
 Use `...values` inside an array literal to append every source element in order.
 Ordinary elements can appear before, between and after spreads. Each source must
-be a supported dense array, string, Set, Map, Deque, Heap or OrderedSet. The result owns its elements and can be
+be a supported dense array, string, Set, Map, Deque, Heap, OrderedSet or OrderedMap. The result owns its elements and can be
 mutated independently.
 
-After native setup, save each complete example separately as `main.tsr` and run
+After [native setup](/tsrust/tools/rust-setup/), save each complete example separately as `main.tsr` and run
 `tsrust run main.tsr`. Comments show expected output.
 
 ```tsrust
@@ -21,6 +24,8 @@ Each segment evaluates once, from left to right. A spread captures its elements
 before the next segment evaluates. Later mutation of a scalar source therefore
 cannot change elements already added to the result. Empty spreads add no elements;
 the compiler still evaluates their source expression.
+
+## Copy or transfer elements
 
 Scalar elements are copied. Owned strings, records, nested arrays and stored
 function environments transfer into the result. The source of an owning spread
@@ -38,11 +43,14 @@ const empty: int[] = [...[]];
 }
 ```
 
+## Choose the result element type
+
 The result must have one supported declared element type. Context supplies the
-empty element type and callable storage contract where needed. Number context
-accepts integer literals; typed int values do not implicitly become Number values.
-Homogeneous null[] and undefined[] and declared union elements work. Sparse
-slots and arbitrary iterator objects are unsupported. Narrow
+empty element type and callable storage contract where needed. `number` context
+accepts integer literals; typed `int` values do not implicitly become `number` values.
+Homogeneous `null[]` and `undefined[]` and declared union elements work.
+
+Sparse slots and arbitrary iterator objects are unsupported. Narrow
 nullable array sources before spreading them. Existing array rank and native
 capacity limits apply. Allocation can fail.
 
@@ -88,11 +96,11 @@ of typed values is added. `Array.of(...source)` follows these same rules. Functi
 spread accepts these sources under the target parameter access contracts. Arbitrary iterator objects are
 not supported.
 
-## Native collection sources
+## Native collection order
 
-`Deque`, `Heap` and `OrderedSet` from `std:collections` are also accepted spread
-sources. Scalar elements copy; owned elements transfer under their collection's
-checked access contract. This example prints `1,2 2`:
+`Deque`, `Heap`, `OrderedSet` and `OrderedMap` from `std:collections` are also accepted spread
+sources. Deque, Heap and OrderedSet scalar elements copy; owned elements transfer.
+OrderedMap entries transfer even when their fields are scalar. This example prints `1,2 2`:
 
 ```tsrust
 import { Deque } from "std:collections";
@@ -106,5 +114,26 @@ function main() {
 }
 ```
 
-The Deque contributes front-to-back sequence order. Use the collection's iteration
-contract for other sources; a spread does not sort its elements.
+Deque contributes front-to-back sequence order. OrderedSet contributes ascending
+keys; OrderedMap contributes entries in ascending key order. Heap spread order is
+unspecified. Use repeated `pop()` when descending heap order is needed.
+OrderedMap entries transfer like ordinary Map entries, including scalar pairs.
+
+
+```tsrust
+import { OrderedMap, OrderedSet } from "std:collections";
+
+function main() {
+  const keys = new OrderedSet<int>();
+  keys.add(3);
+  keys.add(1);
+  console.log([...keys].join(","), keys.size); // 1,3 2
+  const values = new OrderedMap<string, int>();
+  values.set("z", 2);
+  values.set("a", 1);
+  const entries = [...values];
+  console.log(entries[0][0], entries[1][0]); // a z
+}
+```
+
+See [call spread](/tsrust/language/call-spread/) for passing elements to fixed, optional or rest parameters.
