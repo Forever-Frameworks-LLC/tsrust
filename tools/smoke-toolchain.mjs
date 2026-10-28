@@ -51,7 +51,7 @@ try {
   run('format', 'json.tsr');
   assert.equal(run('run', 'json.tsr'), 'null\n');
   const docs = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../website/src/content/docs');
-  const quickstart = fs.readFileSync(path.join(docs, 'start/quickstart.md'), 'utf8').match(/```typescript\n([\s\S]*?)```/)?.[1];
+  const quickstart = fs.readFileSync(path.join(docs, 'start/quickstart.md'), 'utf8').replace(/\r\n/g, '\n').match(/```typescript\n([\s\S]*?)```/)?.[1];
   assert.ok(quickstart, 'Quickstart program must exist');
   fs.writeFileSync(path.join(directory, 'quickstart.tsr'), quickstart);
   run('check', 'quickstart.tsr');
@@ -59,7 +59,7 @@ try {
   run('format', 'quickstart.tsr', '--check');
   assert.equal(run('run', 'quickstart.tsr'), 'TypeScript + Rust\n');
 
-  const testing = fs.readFileSync(path.join(docs, 'tools/testing.md'), 'utf8');
+  const testing = fs.readFileSync(path.join(docs, 'tools/testing.md'), 'utf8').replace(/\r\n/g, '\n');
   const greeting = testing.match(/```tsrust\n([\s\S]*?)```/)?.[1];
   assert.ok(greeting, 'Testing guide program must exist');
   const testDirectory = path.join(directory, 'documented-tests');

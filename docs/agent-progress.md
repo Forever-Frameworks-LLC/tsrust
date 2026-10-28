@@ -2,7 +2,8 @@
 
 ## Current continuation — public documentation audit
 
-Latest accepted checkpoint is b5b685ae (canonical docs package smoke);
+Latest accepted checkpoint is 062d7e74 (Linux acceptance/cleanup);
+b5b685ae contains canonical docs package smoke;
 f1c3784f contains compiler entry-point cleanup;
 a92ba656 contains the macOS memory probe; 110a8e29 records
 contributor/toolchain documentation;
@@ -69,6 +70,10 @@ log /tmp/tsrust-docs-toolchain-smoke.log. This is not release-package acceptance
 fresh-machine setup proof. Windows/PowerShell and Linux execution remain pending;
 the existing release validation's four platform jobs already invoke this smoke.
 No hosted dispatch/push/publication was needed for the local implementation.
+Follow-up review found LF-only code-fence extraction would fail on CRLF Windows
+checkouts. Normalize both Markdown inputs before extraction. All four actual
+program/shell blocks extract byte-identically from LF and CRLF witnesses; syntax
+checking passes. Native behavior is unchanged, so no native rerun is warranted.
 
 ## Compiler entry-point cleanup
 
