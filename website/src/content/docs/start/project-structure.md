@@ -17,9 +17,12 @@ app/
   tests/
     greet.test.tsr
 tsrust.config.json
+.gitignore
 AGENTS.md
 README.md
 ```
+
+The generated `.gitignore` excludes `/target/` and `.env.local`.
 
 ## Entrypoint and targets
 

@@ -1473,3 +1473,52 @@ source-build link. No viewport override applied. Do not mark page fully audited.
   inspected at 390px and 1440px with highlighting and no document overflow.
   Remaining per-page acceptance stays open in the content-audit checklist.
 - Restarted the stopped local docs preview on port 4322 (Astro telemetry disabled).
+
+
+### Declared callback help and catalog continuation
+
+- Previous turn made progress: documentation checkpoint 64248d78, responsive review
+  evidence and successful Windows result. Current work remains on the same tree.
+- Fixed optional declared callback help by selecting its non-null callable payload
+  only for checked or optional invocation; uses existing annotation parsing helper.
+  All 15 scoped intelligence cases pass (/tmp/tsrust-editor-scoped-repair.log).
+- Catalog witness now registers SharedLruCache, UiComputed and UiSignal. Added paired
+  signal get/set snapshot example. These changes are not accepted yet: the current
+  catalog witness reaches missing examples in std-module entries (line 830), including
+  std:testing fail, CryptoError, std:signals and retained std:ui entries. Preserve the
+  strict example checks; supply correct witnesses rather than skipping gaps.
+- Last catalog process 2835 is terminal 101 after compilation. No Cargo test remains
+  running from this turn. Native example resumption from HttpApp remains pending;
+  prior bind failure may be sandbox-related, so use authorized loopback permissions.
+- Module alias documentation now reuses greeting.tsr. Alias + relative import checks
+  pass; missing export rejects as module-private. Docs build and 23-page links pass.
+- Pending: finish catalog examples, rerun affected catalog tests, all-target diagnostics,
+  inspect misleading callable-label-only hover narrowing, then checkpoint editor fixes.
+
+
+### Backend catalog gap acceptance
+
+- Added complete formatted examples to CryptoError and all four std:signals entries.
+  Their exact catalog source compiles and runs natively: Range and done respectively
+  (/tmp/tsrust-catalog-gap-native.log). The signal example awaits a zero-timeout
+  receive, handles unsupported targets and does not require an external signal.
+- Correction: std:testing fail already has an intentionally empty examples array;
+  it is not a missing-array failure. Retained std:ui entries are the remaining
+  missing-array catalog gap. Do not claim the entire catalog test passes.
+- Started backend compiler/LSP all-target diagnostics as exec session 16718;
+  consult the live tool handle and /tmp/tsrust-editor-all-targets.log before continuing.
+  No full executable regression or benchmark rerun was started.
+
+
+### Public page acceptance and compiler diagnostics
+
+- Backend compiler/LSP all-target diagnostic check (16718) completed successfully,
+  no warnings or errors (/tmp/tsrust-editor-all-targets.log). No Cargo job remains
+  running from this validation.
+- Status and project-structure pages now have complete content/presentation audit
+  rows: full desktop/mobile inspection, keyboard navigation and checked links.
+  Scaffold trace found an omitted .gitignore; tree and exact exclusions corrected.
+- Testing guide full desktop/mobile presentation checked, including focusable
+  overflowing code. PowerShell command execution remains explicitly pending.
+- Current browser viewport override reset after checks. Local preview remains at
+  http://127.0.0.1:4322/tsrust/. Unaccepted editor/catalog work remains separate.

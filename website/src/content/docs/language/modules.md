@@ -63,7 +63,6 @@ Imports resolve to the original function declaration. Default aliases introduce 
 wrapper, allocation, implicit cloning or change to ownership, generic inference,
 or entrypoint selection. Only the selected entry module's main runs automatically.
 
-
 ## Resolve source paths
 
 For an extensionless import such as `./greeting`, the compiler tries these paths
@@ -85,8 +84,9 @@ Add `paths` to `tsrust.config.json` to map imports relative to that configuratio
 { "paths": { "@/*": "./src/*" } }
 ```
 
-`import greet from "@/components"` resolves under `src/` using the candidate
-order above. Exact mappings take priority over wildcard
+For example, move `greeting.tsr` into `src/` and change its consumer to
+`import greet from "@/greeting";`. The alias resolves under `src/` using the
+candidate order above. Exact mappings take priority over wildcard
 mappings; the longest matching wildcard prefix wins. Invalid or ambiguous mappings
 are diagnosed. Alias and relative paths to the same file retain one module identity.
 
