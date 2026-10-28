@@ -2,7 +2,7 @@
 
 ## Expand an iterable into arguments
 
-`...values` in a call argument list expands a dense array, string, Set or Map into individual arguments, in iteration order. A call can mix ordinary arguments and any number of spread arguments. An empty source supplies no arguments.
+`...values` in a call argument list expands a dense array, string, Set, Map, Deque, Heap or OrderedSet into individual arguments, in iteration order. A call can mix ordinary arguments and any number of spread arguments. An empty source supplies no arguments.
 
 After native setup, save each complete example separately as `main.tsr` and run
 `tsrust run main.tsr`. Comments show expected output.
@@ -135,7 +135,7 @@ Spread calls work through named functions, generic and imported functions, closu
 
 ## Current boundaries
 
-Supported sources are dense arrays, strings, Sets and Maps. Named functions, methods and callable expressions keep their existing checked contracts. Generic inference uses expanded element types rather than the source collection type. Sparse slots and arbitrary iterator objects are unsupported. Heterogeneous tuple arrays and declared union elements retain ordinary parameter compatibility rules.
+Supported sources are dense arrays, strings, Sets, Maps, Deques, Heaps and OrderedSets. Named functions, methods and callable expressions keep their existing checked contracts. Generic inference uses expanded element types rather than the source collection type. Sparse slots and arbitrary iterator objects are unsupported. Heterogeneous tuple arrays and declared union elements retain ordinary parameter compatibility rules.
 
 ## String and collection arguments
 

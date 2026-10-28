@@ -2,14 +2,19 @@
 
 Use `...values` inside an array literal to append every source element in order.
 Ordinary elements can appear before, between and after spreads. Each source must
-be a supported dense array, string, Set or Map. The result owns its elements and can be
+be a supported dense array, string, Set, Map, Deque, Heap or OrderedSet. The result owns its elements and can be
 mutated independently.
 
+After native setup, save each complete example separately as `main.tsr` and run
+`tsrust run main.tsr`. Comments show expected output.
+
 ```tsrust
-const source = [1, 2];
-const values = [0, ...source, 3];
-console.log(values.join("|"), "length:", source.length);
+function main() {
+  const source = [1, 2];
+  const values = [0, ...source, 3];
+  console.log(values.join("|"), "length:", source.length);
 // prints 0|1|2|3 length: 2
+}
 ```
 
 Each segment evaluates once, from left to right. A spread captures its elements
@@ -24,11 +29,13 @@ Unlike JavaScript reference sharing, this transfer does not leave two mutable
 owners for the same element.
 
 ```tsrust
-const text = ["a", "b"];
-const moved = [...text, "c"];
-console.log(moved.join("|")); // prints a|b|c
+function main() {
+  const text = ["a", "b"];
+  const moved = [...text, "c"];
+  console.log(moved.join("|")); // prints a|b|c
 const empty: int[] = [...[]];
-console.log(empty.length); // prints 0
+  console.log(empty.length); // prints 0
+}
 ```
 
 The result must have one supported declared element type. Context supplies the
@@ -44,8 +51,6 @@ Reusable stored functions can be invoked through the resulting array. Extract a
 Once function with `remove` before invoking it; existing single-call restrictions
 still apply. Object spread and tuple types follow their own checked contracts.
 
-The executable examples are checked and executed at O0/O3 in
-`crates/tsrust-compiler/tests/fixtures/array-literal-spread/language-examples.tsr`.
 
 ## String and collection sources
 
@@ -55,13 +60,15 @@ marks remain separate elements. Indexing and length on each character string
 retain the native UTF-8 byte rules.
 
 ```tsrust
-const source = String("Aé🙂");
-const characters = [...source];
-console.log(characters.join("|"), source);
+function main() {
+  const source = String("Aé🙂");
+  const characters = [...source];
+  console.log(characters.join("|"), source);
 // prints A|é|🙂 Aé🙂
 const keys = new Set<int>([3, 1, 3]);
-console.log([...keys].join(","), keys.size);
+  console.log([...keys].join(","), keys.size);
 // prints 3,1 2
+}
 ```
 
 Sets contribute values in insertion order. Scalar keys copy, so the source can be
@@ -80,3 +87,24 @@ array elements accept compatible string/Set items; no implicit numeric widening
 of typed values is added. `Array.of(...source)` follows these same rules. Function-call
 spread accepts these sources under the target parameter access contracts. Arbitrary iterator objects are
 not supported.
+
+## Native collection sources
+
+`Deque`, `Heap` and `OrderedSet` from `std:collections` are also accepted spread
+sources. Scalar elements copy; owned elements transfer under their collection's
+checked access contract. This example prints `1,2 2`:
+
+```tsrust
+import { Deque } from "std:collections";
+
+function main() {
+  const source = new Deque<int>();
+  source.pushBack(2);
+  source.pushFront(1);
+  const values = [...source];
+  console.log(values.join(","), source.size);
+}
+```
+
+The Deque contributes front-to-back sequence order. Use the collection's iteration
+contract for other sources; a spread does not sort its elements.

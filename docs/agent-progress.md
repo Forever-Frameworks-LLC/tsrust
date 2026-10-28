@@ -1,6 +1,29 @@
 # Agent continuation state
 
-## Current continuation — call spread default correction
+## Current continuation — array spread source-list correction
+
+Previous turn progressed ata8c4e3ec. Reviewed array_spread_work.rs access selection
+and accepted-source checking plus spread_calls.rs native_spread_source whitelist.
+Both call and array spread also support Deque, Heap and OrderedSet; corrected the
+incomplete four-family lists. Array guide now has complete main programs and a
+Deque front/back order plus scalar source-reuse example. Removed compiler fixture
+provenance from user-facing guidance; retained all semantic contracts.
+
+Four exact array guide programs pass format --write/--check, compiler checking and
+native expected output. Focused collections native_collection_spread_preserves_copy_
+borrow_and_move passes (/tmp/tsrust-array-spread-doc.log), covering Deque/Heap
+copy/borrow/move behavior. OrderedSet acceptance traced to current shared whitelist;
+no new platform/performance claim. All commands completed. No compiler changes.
+Full-project formatter and diff check before checkpoint.
+
+Next: finish spread source audit (Map ownership, runtime count failures and ordered
+collection iteration), migrate call and array spread site pages and complete full
+390/1440/keyboard reviews. Migration rows remain in progress. Platform setup,
+Windows/Linux editor fixture/acquisition and actual Pages deployment remain open.
+Goal active; no hosted CI/push/release or full regressions this section.
+
+
+## Prior continuation — call spread default correction
 
 Previous turn progressed at1f8426bd. Audited call-spread guide against selected-slot
 contracts in spread_calls.rs and count failure in spread_emit.rs. Corrected a false
