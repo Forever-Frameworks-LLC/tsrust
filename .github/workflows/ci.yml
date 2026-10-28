@@ -1,16 +1,22 @@
 name: CI
 on:
-  push:
-    branches: [main]
   pull_request:
+    branches: [stag]
   workflow_dispatch:
     inputs:
+      async_acceptance:
+        description: Run focused async testing acceptance on Linux, macOS and Windows.
+        type: boolean
+        default: false
       full_regressions:
         description: Run the complete workspace regression suite (slow).
         type: boolean
         default: false
   workflow_call:
     inputs:
+      async_acceptance:
+        type: boolean
+        default: false
       full_regressions:
         type: boolean
         default: false
@@ -29,11 +35,12 @@ env:
   CARGO_TERM_COLOR: always
 jobs:
   source:
+    if: ${{ !inputs.async_acceptance }}
     name: Compiler, LSP and renderer (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-15]
+        os: [ubuntu-24.04]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
     steps:
@@ -49,7 +56,7 @@ jobs:
       - name: Check project formatting
         run: target/debug/tsrust format . --check --color never
       - name: Check release tooling and public documentation
-        run: node --test tools/tests/distribution.test.mjs
+        run: node --test tools/tests/distribution.test.mjs tools/tests/release-policy.test.cjs
       - name: Benchmark export privacy and measurement preservation
         if: runner.os == 'Linux'
         run: python3 -B -m unittest discover -s benchmarks/storage -p 'test_*.py'
@@ -61,16 +68,22 @@ jobs:
         run: cargo clippy --offline --locked --workspace --lib --bins -- -D clippy::correctness
       - name: Compiler and CLI acceptance
         if: ${{ !cancelled() && steps.consumers.outcome == 'success' && !inputs.full_regressions }}
-        run: cargo test --offline --locked --no-fail-fast -p tsrust-compiler --lib --bin tsrust --test acceptance --test project_commands --test formatting --test native_dependency_bundle
+        run: cargo test --offline --locked --no-fail-fast -p tsrust-compiler --lib --bin tsrust --test acceptance --test project_commands --test formatting --test native_dependency_bundle --test api_project --test api_rust_client
+      - name: Native SDK authorization and replica integration
+        if: ${{ !cancelled() && steps.consumers.outcome == 'success' }}
+        env:
+          TSRUST: ${{ github.workspace }}/target/debug/tsrust
+        run: node --test tools/verify-sdk-native-replicas.mjs
       - name: LSP transport and compiler agreement
         if: ${{ !cancelled() && steps.consumers.outcome == 'success' && !inputs.full_regressions }}
-        run: cargo test --offline --locked --no-fail-fast -p tsrust-lsp --lib --bin tsrust-lsp --test stdio --test checker_agreement --test completion_matrix --test editor_consistency -- --nocapture
+        run: cargo test --offline --locked --no-fail-fast -p tsrust-lsp --lib --bin tsrust-lsp --test stdio --test checker_agreement --test completion_matrix --test editor_consistency --test api_project -- --nocapture
       - name: Complete regressions
         if: ${{ inputs.full_regressions }}
         run: |
           cargo test --offline --locked --workspace --lib --bins --tests --no-fail-fast
           cargo test --offline --locked --workspace --doc
   editor:
+    if: ${{ !inputs.async_acceptance }}
     name: VS Code extension
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -81,7 +94,8 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24.11.1
-          package-manager-cache: false
+          cache: npm
+          cache-dependency-path: editors/vscode/package-lock.json
       - run: npm --prefix editors/vscode ci
       - run: npm --prefix editors/vscode test
       - run: npm --prefix editors/vscode run package
@@ -91,14 +105,46 @@ jobs:
           path: editors/vscode/*.vsix
           if-no-files-found: error
           retention-days: 7
+  async:
+    name: Async testing acceptance (${{ matrix.os }})
+    if: ${{ inputs.async_acceptance }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Compiler and native async registration
+        run: cargo test --offline --locked --no-fail-fast -p tsrust-compiler --test testing_async -- --nocapture
+      - name: Async editor contracts
+        if: ${{ !cancelled() }}
+        run: cargo test --offline --locked --no-fail-fast -p tsrust-lsp --test testing_async -- --nocapture
+      - name: Backend all-target diagnostics
+        if: ${{ !cancelled() }}
+        run: cargo check --offline --locked -p tsrust-compiler -p tsrust-lsp --all-targets
   ci:
-    name: CI
+    name: ${{ inputs.async_acceptance && 'Async acceptance' || 'CI' }}
     if: always()
-    needs: [source, editor]
+    needs: [source, editor, async]
     runs-on: ubuntu-24.04
     steps:
       - name: Require all checks
         env:
+          ASYNC_ACCEPTANCE: ${{ inputs.async_acceptance }}
+          ASYNC_RESULT: ${{ needs.async.result }}
           SOURCE_RESULT: ${{ needs.source.result }}
           EDITOR_RESULT: ${{ needs.editor.result }}
-        run: test "$SOURCE_RESULT" = success && test "$EDITOR_RESULT" = success
+        run: |
+          if [ "$ASYNC_ACCEPTANCE" = true ]; then
+            test "$ASYNC_RESULT" = success
+          else
+            test "$SOURCE_RESULT" = success && test "$EDITOR_RESULT" = success
+          fi

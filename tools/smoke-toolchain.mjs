@@ -4,8 +4,9 @@ import os from 'node:os';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-const [input] = process.argv.slice(2);
-if (!input || process.argv.length !== 3) throw Error('Usage: node tools/smoke-toolchain.mjs CLI');
+import {pathToFileURL} from 'node:url';
+const [input, editor] = process.argv.slice(2);
+if (!input || process.argv.length > 4) throw Error('Usage: node tools/smoke-toolchain.mjs CLI [LSP]');
 const compiler = path.resolve(input);
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'tsrust-release-smoke-'));
 const run = (...args) => execFileSync(compiler, args, {
@@ -13,6 +14,22 @@ const run = (...args) => execFileSync(compiler, args, {
   env: {...process.env, TSRUST_CACHE_DIR: path.join(directory, 'cache')},
 });
 try {
+  if (editor) {
+    const messages = [
+      {jsonrpc: '2.0', id: 1, method: 'initialize', params: {processId: null, rootUri: pathToFileURL(directory).href, capabilities: {}}},
+      {jsonrpc: '2.0', method: 'initialized', params: {}},
+      {jsonrpc: '2.0', id: 2, method: 'shutdown', params: null},
+      {jsonrpc: '2.0', method: 'exit', params: null},
+    ].map(message => {
+      const body = JSON.stringify(message);
+      return `Content-Length: ${Buffer.byteLength(body)}\r\n\r\n${body}`;
+    }).join('');
+    const output = execFileSync(path.resolve(editor), [], {cwd: directory, input: messages, encoding: 'utf8', timeout: 30000});
+    const responses = output.split(/Content-Length: \d+\r\n\r\n/).slice(1).map(body => JSON.parse(body));
+    assert.ok(responses.find(message => message.id === 1)?.result?.capabilities?.hoverProvider, output);
+    assert.deepEqual(responses.find(message => message.id === 2), {jsonrpc: '2.0', id: 2, result: null});
+    console.log('Distributed LSP: initialize, capabilities and clean shutdown passed.');
+  }
   assert.match(run('--version'), /^tsrust \d+\.\d+\.\d+/);
   const created = run('new', 'hello');
   const agentGuide = fs.readFileSync(path.join(directory, 'hello/AGENTS.md'), 'utf8');

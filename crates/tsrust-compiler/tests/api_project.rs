@@ -24,6 +24,7 @@ fn server_dispatch_is_checked_in_memory_without_client_outputs_and_refreshes_aft
  let first=session.check(&FileSourceProvider,&entry).unwrap();
  let virtual_id=SourceId(fs::canonicalize(&dir.0).unwrap().join("target/tsrust-api/server.tsr").to_string_lossy().into_owned());
  let original=first.graph.modules[&virtual_id].source.text.clone();
+ assert!(original.contains("from \"./app/api/context.tsr\""),"Virtual imports must not traverse nonexistent target directories");
  assert!(original.contains("export async function dispatch"));assert!(original.contains("export async function describe"));
  assert!(!dir.0.join("target").exists());assert!(!dir.0.join("generated").exists());
  let path=dir.0.join("app/api/operations.tsr");
