@@ -160,11 +160,17 @@ const ABSENT: &str = "zzqqabsent";
 
 fn prelude(parameter: &str) -> String {
     let annotation=parameter.split_once(':').map(|(_,ty)|ty.trim()).unwrap_or(parameter);
-    let annotation=annotation.strip_prefix("ReadOnly<").unwrap_or(annotation);
+    let annotation=["ReadOnly<","Owned<","Mutable<"].iter().find_map(|prefix|annotation.strip_prefix(prefix)).unwrap_or(annotation);
     let family=annotation.split('<').next().unwrap_or(annotation).trim_end_matches('>');
     let ui=PRELUDE.lines().next().unwrap();
     if family=="LazyChildrenProps" {return format!("{ui}\ninterface LazyChildrenProps{{children?:LazyChildren;}}\n");}
-    if ui.split_once('{').unwrap().1.split_once('}').unwrap().0.split(',').any(|name|name==family){return format!("{ui}\n");}
+    // Keep every probe, but only load the module that declares its receiver.
+    for import in PRELUDE.lines().filter(|line|line.starts_with("import ")) {
+        let names=import.split_once('{').unwrap().1.split_once('}').unwrap().0;
+        if names.split(',').any(|name|name.split_whitespace().last()==Some(family)) {
+            return format!("{import}\n");
+        }
+    }
     // Only the resource row needs the bundled testing implementation in every probe.
     let testing = if parameter.contains("TrackedResource") { "import {TrackedResource} from 'std:testing';\n" } else { "" };
     let numeric=if parameter.contains("NumericError"){ "import {NumericError} from 'std:numeric';\n" }else{""};
@@ -173,7 +179,8 @@ fn prelude(parameter: &str) -> String {
     let decimal=if parameter.contains("Decimal"){ "import {Decimal,DecimalError} from 'std:decimal';\n" }else{""};
     let cache=if parameter.contains("Cache"){ "import {LruCache,CacheEntry,CacheInsertError} from 'std:cache';\n" }else{""};
     let inherited=if parameter.contains("InheritedItem"){ "interface Parent<T>{value:T;} interface InheritedItem extends Parent<string>{count:int;}\n" }else{""};
-    format!("{inherited}{cache}{uuid}{date}{decimal}{numeric}{testing}{PRELUDE}")
+    let local_types=PRELUDE.lines().filter(|line|line.starts_with("type ")).collect::<Vec<_>>().join("\n");
+    format!("{inherited}{cache}{uuid}{date}{decimal}{numeric}{testing}{local_types}\n")
 }
 
 fn diagnostic(body: &str, parameter: &str) -> Option<(String, String)> {

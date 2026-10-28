@@ -31,6 +31,17 @@ CI now collects independent downstream failures after a test failure, retaining
 failed job status, so later LSP/renderer/Clippy failures are visible in one run.
 No local builds/tests were started. Hosted validation of this repair is pending.
 
+Run 40652900740 on 9993eb31 passed compiler/CLI acceptance on both platforms.
+The live Linux LSP log exposed one stale config-input assertion: loaded config
+bytes now belong in diagnostic snapshots, but not in the module graph. The repaired
+witness checks both properties and retains edit invalidation assertions.
+The agreement test performs roughly 107 x 730 member probes and was still running
+after 30 minutes in its LSP step. Restrict each probe's imports to its receiver's
+module without removing any receiver/member comparison; emit progress with
+--nocapture. Run renderer and Clippy before these lengthy agreement tests so
+independent failures become visible earlier. This diagnosed follow-up supersedes
+the active run; local compilation/tests remain stopped for the hardware handoff.
+
 ## Hardware stop and checkpoint — 2026-10-28
 
 The owner requested a clean wrap-up, commit and push, then explicitly stopped

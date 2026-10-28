@@ -383,9 +383,10 @@ mod scan_input_tests {
         workspace.open(config.clone(),1,r#"{"paths":{"@/*":"./src/*"}}"#.into());
         workspace.open(entry.clone(),1,"import {greet} from '@/components';function main(){console.log(greet());}".into());
         workspace.open(dependency.clone(),1,"export function greet():string{return 'hello';}".into());
-        let snapshot=workspace.snapshot();snapshot.check(&entry).unwrap();
+        let snapshot=workspace.snapshot();let checked=snapshot.check(&entry).unwrap();
         assert_eq!(snapshot.resolve(Some(&entry),"@/components").unwrap(),dependency);
-        assert!(!snapshot.sources().contains_key(&config));
+        assert!(!checked.graph.modules.contains_key(&config),"configuration is not a source module");
+        assert_eq!(snapshot.sources()[&config].as_str(),r#"{"paths":{"@/*":"./src/*"}}"#);
         assert!(workspace.register(entry.clone(),&snapshot));
         assert!(workspace.affected(&config).contains(&entry));
         workspace.change(&config,2,r#"{"paths":{"@/*":"./missing/*"}}"#.into());
