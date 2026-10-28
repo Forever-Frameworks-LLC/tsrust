@@ -4,7 +4,7 @@ mod support;
 #[allow(dead_code)]#[path="../src/cli/toolchain_release.rs"]mod toolchain_release;
 #[allow(dead_code)]#[path="../src/cli/toolchain_install.rs"]mod toolchain_install;
 #[cfg(windows)]#[allow(dead_code)]#[path="../src/cli/dev_windows.rs"]mod dev_windows;
-use std::{collections::BTreeMap,fs,path::Path,process::{Command,Stdio}};
+use std::{collections::BTreeMap,fs,io::Write,path::Path,process::{Command,Stdio},time::{Duration,Instant}};
 use toolchain_release::{Release,Manifest,FileRecord,digest};
 
 fn fixture(root:&Path,version:&str)->(Release,Vec<u8>){
@@ -24,6 +24,9 @@ fn archive(version:&str,lsp_version:&str,compiler:Vec<u8>,server:Vec<u8>)->(Rele
  let bytes=archive.into_inner().unwrap().finish().unwrap();
  (Release{version:version.into(),target:manifest.target,name:name.clone(),url:format!("https://github.com/Forever-Frameworks-LLC/tsrust/releases/download/v{version}/{name}"),sha256:digest(&bytes),bytes:bytes.len() as u64},bytes)
 }
+struct Running(std::process::Child);
+impl Drop for Running{fn drop(&mut self){let _=self.0.kill();let _=self.0.wait();}}
+
 fn launcher()->std::path::PathBuf{env!("CARGO_BIN_EXE_tsrust").into()}
 fn run(root:&Path,name:&str)->String{
  let output=support::run(Command::new(root.join("bin").join(format!("{name}{}",std::env::consts::EXE_SUFFIX))).arg("--version").env("PATH",root.join("no-tools")).env("RUSTUP_HOME",root.join("no-rust")),20);
@@ -40,10 +43,48 @@ fn run(root:&Path,name:&str)->String{
  let source=scratch.0.join("main.tsr");fs::write(&source,support::format_round_trip("function main(){console.log(42);}")).unwrap();
  let mut cli=Command::new(root.join("bin").join(format!("tsrust{}",std::env::consts::EXE_SUFFIX)));cli.env("PATH",scratch.0.join("no-tools")).env("RUSTUP_HOME",scratch.0.join("no-rust"));
  support::success(&support::run(cli.args(["check"]).arg(&source),20));
- let frames=[serde_json::json!({"jsonrpc":"2.0","id":1,"method":"initialize","params":{"processId":null,"rootUri":null,"capabilities":{}}}),serde_json::json!({"jsonrpc":"2.0","method":"initialized","params":{}}),serde_json::json!({"jsonrpc":"2.0","id":2,"method":"shutdown","params":null}),serde_json::json!({"jsonrpc":"2.0","method":"exit","params":null})].into_iter().map(|value|{let body=value.to_string();format!("Content-Length: {}\r\n\r\n{body}",body.len())}).collect::<String>();
- let input=scratch.0.join("requests");fs::write(&input,frames).unwrap();
- let output=support::run(Command::new(root.join("bin").join(format!("tsrust-lsp{}",std::env::consts::EXE_SUFFIX))).stdin(fs::File::open(input).unwrap()).env("PATH",scratch.0.join("no-tools")).env("RUSTUP_HOME",scratch.0.join("no-rust")),30);
- support::success(&output);let text=String::from_utf8(output.stdout).unwrap();assert!(text.contains("\"hoverProvider\":true"),"{text}");assert!(text.contains("\"id\":2"),"{text}");
+ let log=scratch.0.join("live-lsp.log");
+ let mut running=Running(Command::new(root.join("bin").join(format!("tsrust-lsp{}",std::env::consts::EXE_SUFFIX)))
+  .stdin(Stdio::piped()).stdout(fs::File::create(&log).unwrap()).stderr(Stdio::inherit())
+  .env("PATH",scratch.0.join("no-tools")).env("RUSTUP_HOME",scratch.0.join("no-rust")).spawn().unwrap());
+ let mut input=running.0.stdin.take().unwrap();
+ let mut send=|value:serde_json::Value|{let body=value.to_string();write!(input,"Content-Length: {}\r\n\r\n{body}",body.len()).unwrap();input.flush().unwrap();};
+ let response=|id:i32|{
+  let deadline=Instant::now()+Duration::from_secs(20);
+  loop{
+   let bytes=fs::read(&log).unwrap();let mut remaining=bytes.as_slice();
+   while let Some(end)=remaining.windows(4).position(|part|part==b"\r\n\r\n"){
+    let headers=std::str::from_utf8(&remaining[..end]).unwrap();
+    let length:usize=headers.lines().find_map(|line|line.strip_prefix("Content-Length: ")).unwrap().parse().unwrap();
+    let body=&remaining[end+4..];if body.len()<length{break;}
+    let value:serde_json::Value=serde_json::from_slice(&body[..length]).unwrap();
+    if value["id"]==id{assert!(value.get("error").is_none(),"{value}");return value["result"].clone();}
+    remaining=&body[length..];
+   }
+   assert!(Instant::now()<deadline,"No LSP response {id}: {}",String::from_utf8_lossy(&bytes));
+   std::thread::sleep(Duration::from_millis(10));
+  }
+ };
+ send(serde_json::json!({"jsonrpc":"2.0","id":1,"method":"initialize","params":{"processId":null,"rootUri":null,"capabilities":{}}}));
+ assert_eq!(response(1)["capabilities"]["hoverProvider"],true);
+ send(serde_json::json!({"jsonrpc":"2.0","method":"initialized","params":{}}));
+ let (next,next_bytes)=fixture(&scratch.0,"1.1.0");
+ let lock=toolchain_install::lock(&root).unwrap();toolchain_install::update(&root,&next,&next_bytes).unwrap();drop(lock);
+ assert_eq!(run(&root,"tsrust"),"tsrust 1.1.0");assert_eq!(run(&root,"tsrust-lsp"),"tsrust-lsp 1.1.0");
+ assert!(running.0.try_wait().unwrap().is_none(),"update stopped the initialized server");
+ let document=support::format_round_trip("function main() { const answer: int = 42; console.log(answer); }");
+ let prefix=&document[..document.find("answer").unwrap()];
+ let position=serde_json::json!({"line":prefix.bytes().filter(|b|*b==b'\n').count(),"character":prefix.rsplit('\n').next().unwrap().encode_utf16().count()});
+ let uri=if cfg!(windows){"file:///C:/installation-update.tsr"}else{"file:///installation-update.tsr"};
+ send(serde_json::json!({"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":uri,"languageId":"tsrust","version":1,"text":document}}}));
+ send(serde_json::json!({"jsonrpc":"2.0","id":2,"method":"textDocument/hover","params":{"textDocument":{"uri":uri},"position":position}}));
+ assert!(response(2)["contents"].to_string().contains("int"),"old server must analyze new documents after update");
+ send(serde_json::json!({"jsonrpc":"2.0","id":3,"method":"shutdown","params":null}));assert!(response(3).is_null());
+ send(serde_json::json!({"jsonrpc":"2.0","method":"exit","params":null}));drop(input);
+ let deadline=Instant::now()+Duration::from_secs(10);
+ loop{if let Some(status)=running.0.try_wait().unwrap(){assert!(status.success());break;}assert!(Instant::now()<deadline,"LSP did not exit after shutdown");std::thread::sleep(Duration::from_millis(10));}
+ let lock=toolchain_install::lock(&root).unwrap();toolchain_install::rollback(&root).unwrap();drop(lock);
+ assert_eq!(run(&root,"tsrust-lsp"),format!("tsrust-lsp {lsp_version}"));
  let managed_cli=root.join("bin").join(format!("tsrust{}",std::env::consts::EXE_SUFFIX));
  let doctor=||support::run(Command::new(&managed_cli).args(["doctor","--json"]).env("PATH",scratch.0.join("no-tools")).env("CARGO_HOME",scratch.0.join("no-cargo")).env("RUSTUP_HOME",scratch.0.join("no-rust")),20);
  let output=doctor();let report:serde_json::Value=serde_json::from_slice(&output.stdout).unwrap();assert_eq!(report["installation"]["status"],"ok");assert_eq!(report["toolchainReady"],false);
@@ -58,7 +99,6 @@ fn run(root:&Path,name:&str)->String{
  assert_eq!(run(&root,"tsrust"),"tsrust 1.0.0");assert_eq!(run(&root,"tsrust-lsp"),"tsrust-lsp 1.0.0");
  let log=scratch.0.join("running.log");
  let child=Command::new(root.join("bin").join(format!("tsrust-lsp{}",std::env::consts::EXE_SUFFIX))).arg("--hold").stdout(fs::File::create(&log).unwrap()).stderr(Stdio::null()).spawn().unwrap();
- struct Running(std::process::Child);impl Drop for Running{fn drop(&mut self){let _=self.0.kill();let _=self.0.wait();}}
  let mut running=Running(child);let deadline=std::time::Instant::now()+std::time::Duration::from_secs(10);
  while !fs::read_to_string(&log).unwrap().contains("holding"){assert!(std::time::Instant::now()<deadline,"launcher did not start its child");assert!(running.0.try_wait().unwrap().is_none());std::thread::sleep(std::time::Duration::from_millis(10));}
  let lock=toolchain_install::lock(&root).unwrap();assert!(toolchain_install::lock(&root).is_err());toolchain_install::update(&root,&second,&b).unwrap();drop(lock);

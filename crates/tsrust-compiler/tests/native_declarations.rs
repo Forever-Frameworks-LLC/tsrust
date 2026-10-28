@@ -47,7 +47,8 @@ fn strict_and_tolerant_graphs_keep_native_type_aliases() {
         fn resolve(&self, _: Option<&SourceId>, path: &str) -> Result<SourceId, String> {
             Ok(SourceId(path.into()))
         }
-        fn read(&self, _: &SourceId) -> Result<String, String> {
+        fn read(&self, id: &SourceId) -> Result<String, String> {
+            if id.0 != "main.tsr" { return Err(format!("Missing source {}",id.0)); }
             Ok("import { Bytes as Buffer, ByteError as Failure } from \"std:bytes\"; function main() {}".into())
         }
     }
@@ -118,7 +119,8 @@ fn checked_source(source: &str) -> Result<tsrust_compiler::project::ProjectAnaly
     struct Provider<'a>(&'a str);
     impl SourceProvider for Provider<'_> {
         fn resolve(&self, _: Option<&SourceId>, path: &str) -> Result<SourceId, String> { Ok(SourceId(path.into())) }
-        fn read(&self, _: &SourceId) -> Result<String, String> { Ok(self.0.into()) }
+        fn read(&self, id: &SourceId) -> Result<String, String> {
+            if id.0 != "main.tsr" { return Err(format!("Missing source {}",id.0)); } Ok(self.0.into()) }
     }
     let formatted = support::format_round_trip(source);
     check_graph(load_project(&Provider(&formatted), "main.tsr")?)
@@ -327,7 +329,8 @@ fn schema_namespace_import_alias_respects_parameter_shadowing() {
     struct Provider;
     impl SourceProvider for Provider {
         fn resolve(&self, _: Option<&SourceId>, path: &str) -> Result<SourceId, String> { Ok(SourceId(path.into())) }
-        fn read(&self, _: &SourceId) -> Result<String, String> {
+        fn read(&self, id: &SourceId) -> Result<String, String> {
+            if id.0 != "main.tsr" { return Err(format!("Missing source {}",id.0)); }
             Ok(support::format_round_trip("import { s as schema } from 'std:schema'; function identity(schema: int): int { return schema; } function main() { console.log(identity(7)); }"))
         }
     }
@@ -346,7 +349,8 @@ fn schema_string_constructor_infers_output_and_rejects_wrong_schema_type() {
     struct Provider(&'static str);
     impl SourceProvider for Provider {
         fn resolve(&self, _: Option<&SourceId>, path: &str) -> Result<SourceId, String> { Ok(SourceId(path.into())) }
-        fn read(&self, _: &SourceId) -> Result<String, String> { Ok(support::format_round_trip(self.0)) }
+        fn read(&self, id: &SourceId) -> Result<String, String> {
+            if id.0 != "main.tsr" { return Err(format!("Missing source {}",id.0)); } Ok(support::format_round_trip(self.0)) }
     }
     for (source, valid) in [
         ("import {s, Schema} from 'std:schema'; function make():Schema<string>{return s.string();} function main(){const value=make();}", true),

@@ -35,6 +35,9 @@ test('generated SDKs preserve auth and compatibility across native replicas', {t
     `);
     fs.writeFileSync(path.join(project, 'app/api/access.tsr'), `import {AppContext} from './context.tsr';
     export async function authorize(context: Mutable<AppContext>): Task<boolean> {
+      if (context.req.header('authorization') === 'Bearer fixture-throw') {
+        throw 'private-policy-secret';
+      }
       return context.req.header('authorization') === 'Bearer fixture-access';
     }
     `);
@@ -59,6 +62,24 @@ test('generated SDKs preserve auth and compatibility across native replicas', {t
     const denied = await fetch(endpoint + '/description', {signal: AbortSignal.timeout(5000)});
     assert.equal(denied.status, 403);
     assert.equal((await denied.json()).error.code, 'api-denied');
+    for (const suffix of ['', '/description', '/openapi.json']) {
+      for (const [authorization, status, code] of [
+        ['Bearer wrong', 403, 'api-denied'],
+        ['Bearer fixture-throw', 500, 'api-internal'],
+      ]) {
+        const response = await fetch(endpoint + suffix, {
+          method: suffix ? 'GET' : 'POST',
+          headers: {authorization, 'content-type': 'application/json'},
+          ...(suffix ? {} : {body: '{'}),
+          signal: AbortSignal.timeout(5000),
+        });
+        assert.equal(response.status, status, `${name}${suffix}: policy must run before body decoding`);
+        const error = await response.json();
+        assert.equal(error.error.code, code);
+        assert.ok(!JSON.stringify(error).includes('private-policy-secret'));
+      }
+    }
+    assert.ok(!record.stdout.includes('effect:'), 'denied or throwing policies must not invoke operations');
     const response = await fetch(endpoint + '/description', {headers: {authorization: 'Bearer fixture-access'}, signal: AbortSignal.timeout(5000)});
     assert.equal(response.status, 200);
     return {endpoint, description: await response.json(), record};

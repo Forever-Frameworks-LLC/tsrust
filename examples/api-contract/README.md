@@ -31,5 +31,5 @@ hash identifies exact contracts; it is not itself a rolling-compatibility policy
 Versioned generation now retains checked SDK baselines and explicit API majors;
 its retained-baseline mixed-replica acceptance passes. The server witness uses API v2
 because its required revision result cannot be provided by an older v1 replica.
-See [the client guide](../../docs/guides/generated-api-clients.md) for the policy
+See [the client guide](../../website/src/content/docs/backend/api-clients.md) for the policy
 and [current evidence](../../docs/agent-progress.md) before claiming rollout support.

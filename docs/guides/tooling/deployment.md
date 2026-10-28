@@ -14,7 +14,7 @@ tsrust build --release -o target/server
 ```
 
 Build on the destination OS/architecture with the pinned native tools and prepared
-sources described in [machine setup](machine-setup.md). These commands do not
+sources described in [machine setup](../../../website/src/content/docs/tools/rust-setup.md). These commands do not
 provide a cross-compilation switch. Copy the produced executable and any
 application-owned configuration or assets to the deployment environment. Native
 execution needs no Tsrust compiler, Cargo, Node or JavaScript runtime.
@@ -25,7 +25,7 @@ to be present. Validate the actual artifact in the destination image or machine;
 `doctor --native` checks the build host, not deployment compatibility. Keep secrets
 in deployment configuration rather than source or generated client packages.
 
-The [backend starter](../application-projects.md) listens on loopback by default.
+The [backend starter](../../../website/src/content/docs/backend/applications.md) listens on loopback by default.
 Choose production binding, authentication, TLS termination and process supervision
 for your deployment. API description and OpenAPI endpoints use application policy;
 review that policy before exposing them publicly. Generate independent clients

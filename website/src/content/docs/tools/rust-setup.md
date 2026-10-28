@@ -1,7 +1,12 @@
-# Inspect and prepare native build tools
+---
+title: Prepare native build tools
+description: Inspect your host and explicitly prepare Rust and shared dependency sources.
+---
 
 `tsrust check` and ordinary Rust source emission do not need Rust installed.
 Native build, run, test and dev use Tsrust's exact pinned Rust toolchain.
+
+## Inspect this machine
 
 ```sh
 tsrust doctor
@@ -14,8 +19,11 @@ identifies the host OS/architecture, required Rust version, and available pinned
 rustc/Cargo. `--native` additionally compiles, links and executes a tiny program
 in an automatically removed temporary directory. This checks host build tools,
 not application dependencies or every optional runtime feature. Those remain
-explicitly unchecked. Exit status is zero when the requested tool checks pass,
-one when they fail. It does not certify that every application is ready to build.
+explicitly unchecked. Exit status is zero when the Rust tool checks and any requested native probe
+pass, provided the managed installation has no integrity error. It is one when
+these checks fail. An unmanaged CLI is not itself an integrity error. It does not certify that every application is ready to build.
+
+## Install the pinned Rust toolchain
 
 Install [rustup](https://rustup.rs) first if it is missing, then explicitly prepare
 the pinned compiler:
@@ -34,7 +42,15 @@ platform SDKs/linkers. Windows requires the appropriate Visual Studio C++ build
 tools; macOS requires its command-line build tools; Linux requires the platform
 C toolchain and linker. Run `doctor --native` to test the actual host combination.
 
-Prepare compiler-owned backend dependency sources explicitly:
+On Windows MSVC hosts, native builds use the LLVM linker bundled with the pinned
+Rust toolchain to support deep output paths. Visual Studio C++ build tools and
+Windows SDK libraries are still required. Exported packages include the same
+Windows-only linker setting; macOS and Linux retain their platform linkers.
+
+## Prepare sources for normal backend builds
+
+After installing the pinned toolchain, prepare compiler-owned backend dependency
+sources explicitly:
 
 ```sh
 tsrust setup --dependencies --yes
@@ -48,6 +64,8 @@ Source preparation delegates to `cargo fetch --locked`. The backend profile excl
 legacy rendering dependencies. Ordinary backend builds use Cargo's shared home,
 exact locks and `--offline`; they create no vendor copy or private Cargo home.
 A missing source produces a setup instruction rather than an automatic download.
+### Reuse cached builds
+
 The compiler hashes Cargo configuration (including nested and optional includes)
 and environment inputs into artifact keys;
 configuration changes invalidate executable/runtime artifacts while the stable Cargo
@@ -58,11 +76,13 @@ responsibility.
 
 `--offline` applies to dependency preparation and cannot be combined with toolchain
 installation. Offline preparation needs no download consent. The shared Cargo home
-follows CARGO_HOME, otherwise the normal user .cargo directory. Its configuration
-and ancestor configuration of TSRUST_CACHE_DIR (by default the project's
-target/tsrust-native) apply to backend support builds. The pinned toolchain and
+follows `CARGO_HOME`, otherwise the normal user `.cargo` directory. Its configuration
+and ancestor configuration of `TSRUST_CACHE_DIR` (by default the project's
+`target/tsrust-native`) apply to backend support builds. The pinned toolchain and
 compiler-owned runtime profiles remain explicit. Existing global defaults and
 configuration files are never rewritten.
+
+## Prepare sources for portable export
 
 Portable export sources are optional and explicitly prepared, independently of normal
 backend development:
@@ -80,7 +100,8 @@ nor embed that payload. Setup validates the exact manifest/lock, Cargo package
 identities and all vendor file checksums before publishing the pack by rename.
 Existing modified packs are preserved and rejected; failed staging is removed.
 
-Packs live under CARGO_HOME/tsrust/source-packs, or TSRUST_SOURCE_PACK_DIR when set.
+Packs live under `tsrust/source-packs` inside the resolved Cargo home.
+`TSRUST_SOURCE_PACK_DIR` overrides that location.
 Set that variable to a persistent directory if exporting with a different Cargo home.
 `emit --package` copies verified sources and licenses from the prepared pack without
 invoking Cargo, Rust or the network. An unprepared export reports the setup command.
@@ -92,8 +113,12 @@ schema 2 and Cargo’s shared sources; schema 1 retains its legacy dependency gr
 Resolve binding dependencies explicitly before offline builds. Binding portable
 exports validate and include their exact locked graph.
 
-CLI/LSP acquisition is separate: see [managed installation and updates](../toolchain-installation.md).
+## Install the CLI and editor server separately
+
+CLI/LSP acquisition is separate: see [managed installation and updates](../install-and-update/).
 Doctor reports managed-pair ownership and integrity independently of Rust readiness.
+
+## Related tool documentation
 
 The [rustup profile documentation](https://rust-lang.github.io/rustup/concepts/profiles.html)
 defines the minimal profile. Its [basic usage documentation](https://rust-lang.github.io/rustup/basics.html)

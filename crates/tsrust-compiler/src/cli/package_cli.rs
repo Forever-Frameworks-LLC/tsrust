@@ -115,7 +115,17 @@ pub(crate) fn run(command:&str,args:impl Iterator<Item=String>)->Result<u8,Strin
  provider.unchanged()?;
  if read_optional(&path)?!=previous || read_optional(&native)?!=old_source || legacy && read_optional(&Bindings::lock_path(&path))?!=old_lock{return Err("Package inputs changed during validation; nothing applied.".into());}
  let mut created=false;
- if old_source.is_none(){let mut file=fs::OpenOptions::new().write(true).create_new(true).open(&native).map_err(|error|error.to_string())?;if let Err(error)=file.write_all(native_source.as_bytes()).and_then(|_|file.sync_all()).and_then(|_|fs::File::open(native.parent().unwrap())?.sync_all()){drop(file);let _=fs::remove_file(&native);return Err(error.to_string());}created=true;}
+ if old_source.is_none(){
+  let mut file=fs::OpenOptions::new().write(true).create_new(true).open(&native).map_err(|error|error.to_string())?;
+  let write=(||{
+   file.write_all(native_source.as_bytes())?;file.sync_all()?;
+   // Directory fsync is Unix-specific; Windows rejects opening a directory as a file.
+   #[cfg(unix)]fs::File::open(native.parent().unwrap())?.sync_all()?;
+   Ok::<(),std::io::Error>(())
+  })();
+  if let Err(error)=write{drop(file);let _=fs::remove_file(&native);return Err(error.to_string());}
+  created=true;
+ }
  if let Err(error)=publish(&path,&encoded){if created{let _=fs::remove_file(&native);}return Err(error);}
  println!("Applied {command} {name}. Import bindings from {}",path.display());Ok(0)
 }
@@ -144,7 +154,7 @@ fn report(metadata:&Value,binding:&Bindings,old:Option<&str>){
  if let Some(old)=old {let before=lock_packages(old);let after=lock_packages(binding.lockfile.as_deref().unwrap_or(""));for (name,version) in before.difference(&after){println!("- {name} {version}");}for (name,version) in after.difference(&before){println!("+ {name} {version}");}}
 }
 
-pub(crate) fn publish(path:&Path,text:&str)->Result<(),String>{let staged=path.with_extension(format!("json-pending-{}",std::process::id()));let mut created=false;let result=(||{let mut file=fs::OpenOptions::new().write(true).create_new(true).open(&staged).map_err(|error|error.to_string())?;created=true;file.write_all(text.as_bytes()).and_then(|_|file.sync_all()).map_err(|error|error.to_string())?;fs::rename(&staged,path).map_err(|error|error.to_string())?;if let Err(error)=fs::File::open(path.parent().unwrap()).and_then(|file|file.sync_all()){eprintln!("Configuration committed, but directory sync failed: {error}");}Ok(())})();if created && result.is_err(){let _=fs::remove_file(staged);}result}
+pub(crate) fn publish(path:&Path,text:&str)->Result<(),String>{let staged=path.with_extension(format!("json-pending-{}",std::process::id()));let mut created=false;let result=(||{let mut file=fs::OpenOptions::new().write(true).create_new(true).open(&staged).map_err(|error|error.to_string())?;created=true;file.write_all(text.as_bytes()).and_then(|_|file.sync_all()).map_err(|error|error.to_string())?;drop(file);fs::rename(&staged,path).map_err(|error|error.to_string())?;#[cfg(unix)]if let Err(error)=fs::File::open(path.parent().unwrap()).and_then(|file|file.sync_all()){eprintln!("Configuration committed, but directory sync failed: {error}");}Ok(())})();if created && result.is_err(){let _=fs::remove_file(staged);}result}
 
 fn lock_packages(text:&str)->std::collections::BTreeSet<(String,String)>{
  text.split("[[package]]").filter_map(|block|{let get=|key:&str|block.lines().find_map(|line|line.strip_prefix(key).and_then(|text|serde_json::from_str::<String>(text).ok()));Some((get("name = ")?,get("version = ")?))}).collect()

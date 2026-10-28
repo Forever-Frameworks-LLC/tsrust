@@ -1,6 +1,12 @@
 //! Shared runtime build preparation; callers own subprocess supervision.
 use std::{fs,path::{Path,PathBuf},process::Command};
 use tsrust_compiler::{native_cache::NativeCache,native_runtime};
+// MSVC link.exe rejects deep output paths; Rust's bundled LLVM linker supports them.
+pub(crate) const MSVC_LINKER_FLAG:&str="-Clinker-flavor=lld-link";
+pub(crate) fn exported_linker_config()->String {
+ format!("\n[target.'cfg(all(target_os = \"windows\", target_env = \"msvc\"))']\nrustflags = [{:?}]\n",MSVC_LINKER_FLAG)
+}
+
 fn artifact_override(key:&str)->bool {
  key.starts_with("CARGO_PROFILE_") || (key.starts_with("CARGO_BUILD_") && key!="CARGO_BUILD_JOBS") || key.starts_with("CARGO_TARGET_") || matches!(key,"RUSTFLAGS"|"CARGO_ENCODED_RUSTFLAGS"|"RUSTC"|"RUSTC_WRAPPER"|"RUSTC_WORKSPACE_WRAPPER")
 }
@@ -83,6 +89,7 @@ impl Prepared {
   // those would change artifacts without changing the verified cache identity.
   // The job limit only controls scheduling, so retain the caller's memory bound.
   for (name,_) in std::env::vars_os() {if artifact_override(&name.to_string_lossy()) {command.env_remove(name);}}
+  if cfg!(all(windows,target_env="msvc")){command.env("CARGO_ENCODED_RUSTFLAGS",MSVC_LINKER_FLAG);}
   if runtime.contains("pub mod tsrust_native_threads {") || runtime.contains("pub use rayon;") { command.args(["--features", "threads"]); }
   if runtime.contains("pub mod tsrust_native_futures {") {command.args(["--features","async"]);}
   if runtime.contains("pub mod tsrust_native_http {"){command.args(["--features","http"]);}
@@ -161,4 +168,14 @@ pub(crate) fn profiles(native_ui: bool) -> &'static str {
    let binary=temporary.join("program");let mut command=crate::backend_command();prepared.link(&mut command).unwrap();let output=command.arg("--edition=2024").arg(&prepared.application).arg("-o").arg(&binary).output().unwrap();assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));assert!(Command::new(binary).status().unwrap().success());
   }
  }
+}
+
+#[test]
+fn exported_linker_policy_is_valid_toml_and_windows_msvc_only() {
+ let text=format!("[net]\noffline = true\n{}",exported_linker_config());
+ let config=text.parse::<toml_edit::DocumentMut>().unwrap();
+ assert_eq!(config["net"]["offline"].as_bool(),Some(true));
+ assert!(config.get("build").is_none());
+ let targets=config["target"].as_table().unwrap();assert_eq!(targets.len(),1);
+ assert_eq!(targets["cfg(all(target_os = \"windows\", target_env = \"msvc\"))"]["rustflags"][0].as_str(),Some(MSVC_LINKER_FLAG));
 }

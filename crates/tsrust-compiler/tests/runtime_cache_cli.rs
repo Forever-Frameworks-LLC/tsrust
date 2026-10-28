@@ -32,7 +32,8 @@ fn repeated_project_runs_reuse_default_persistent_cache() {
 #[test]
 fn project_theme_edits_reuse_runtime_support() {
  let dir=support::TempDirectory::new();let root=&dir.0;let cache=root.join("cache");
- fs::write(root.join("tsrust.config.json"),r#"{"ui":{"theme":"ui.theme.json","components":"components/ui","lock":"ui.lock.json"}}"#).unwrap();
+ fs::write(root.join("tsrust.config.json"),r#"{"schemaVersion":1,"name":"theme-cache","build":{"entry":"main.tsrx","output":"program"},"ui":{"theme":"ui.theme.json","components":"components/ui","lock":"ui.lock.json"}}"#).unwrap();
+ support::success(&support::run(support::cli().current_dir(root).args(["ui","add","tokens@1.0.0","--target","native","--offline"]),30));
  let source="import {withTheme,Text,document} from 'std:ui';import theme from './ui.theme.json';function main(){console.log(document(withTheme(<Text>Theme</Text>,theme),'UI'));}";
  let entry=root.join("main.tsrx");fs::write(&entry,support::format_round_trip(source)).unwrap();let binary=root.join("program");
  for (index,color) in ["#123456","#654321"].iter().enumerate() {

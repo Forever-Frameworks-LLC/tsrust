@@ -7,7 +7,7 @@ Rust backend. Build command-line tools and HTTP services without a JavaScript
 runtime in the deployed program. Generate independent TypeScript or asynchronous
 Rust SDKs from a checked HTTP API description, and bring your own frontend.
 
-[Get started](docs/content/getting-started/installation.md) ·
+[Get started](website/src/content/docs/start/installation.md) ·
 [Documentation](docs/README.md) · [Examples](examples/README.md) ·
 [Releases](https://github.com/Forever-Frameworks-LLC/tsrust/releases) ·
 [Contributing](CONTRIBUTING.md)
@@ -42,7 +42,7 @@ framework integrations and UI expansion are outside the active backend scope.
 Official release archives contain the paired CLI/LSP, source identity, hashes and
 notices. Targets are Linux x64/glibc, Windows x64/MSVC, macOS ARM64 and macOS x64.
 The VS Code extension is a separate VSIX. If no stable release is available, use
-the source build below. See [installation](docs/content/getting-started/installation.md)
+the source build below. See [installation](website/src/content/docs/start/installation.md)
 for verification, platform prerequisites and editor configuration.
 
 Once a stable release exists, an official CLI can create a managed installation:
@@ -53,7 +53,7 @@ tsrust toolchain install --root /absolute/path/to/new/tsrust
 
 Add that directory's `bin` to PATH. Explicit `toolchain check`, `toolchain update`
 and `toolchain rollback` manage the verified pair; existing package-manager
-installations are preserved. See the [managed installation guide](docs/guides/toolchain-installation.md)
+installations are preserved. See the [managed installation guide](website/src/content/docs/tools/install-and-update.md)
 for trust, recovery and the exact platform acceptance status.
 
 For a source build:
@@ -105,9 +105,9 @@ tsrust format --check
 tsrust build --release
 ```
 
-See [backend applications](docs/guides/application-projects.md),
-[project structure](docs/content/getting-started/project-structure.md) and
-[CLI commands](docs/guides/project-cli.md).
+See [backend applications](website/src/content/docs/backend/applications.md),
+[project structure](website/src/content/docs/start/project-structure.md) and
+[CLI commands](website/src/content/docs/tools/cli.md).
 
 ## Status and boundaries
 
@@ -120,8 +120,10 @@ Async test registration has executed on Linux, macOS and Windows. Broader instal
 and release-platform acceptance is recorded separately in the
 [paired installation milestone](docs/milestones/paired-toolchain-installation.md)
 and [active goal](docs/agent-goal.md). Configuration is not proof that a platform
-has passed. The LSP still has an unresolved report of excessive memory use in long
-sessions; use smaller workspaces until that issue is resolved.
+has passed. LSP retention fixes release unrelated editor-buffer snapshots and
+superseded workspace-scan entries. Long-running macOS sessions remain unverified;
+see the [editor troubleshooting guide](website/src/content/docs/start/editor.md#investigate-growing-memory-use)
+for current evidence and reporting steps.
 
 Performance depends on the workload. Read the [measurement protocol](benchmarks/runtime/README.md)
 and [comparison limits](docs/measurements/runtime-comparisons.md). The
@@ -130,9 +132,9 @@ live in the [benchmark-only SQLite dataset](benchmarks/storage/PUBLIC_DATA.md).
 
 ## Explore
 
-- [Language and standard library](docs/guides/language/standard-library.md)
+- [Language and standard library](website/src/content/docs/library/overview.md)
 - [Ownership](docs/guides/language/ownership-and-memory.md)
-- [HTTP behavior](docs/guides/http.md) and [Rust packages](docs/guides/rust-packages.md)
+- [HTTP behavior](website/src/content/docs/backend/http.md) and [Rust packages](docs/guides/rust-packages.md)
 - [VS Code setup](editors/vscode/README.md)
 - [Contributor checks](CONTRIBUTING.md) and [release automation](docs/guides/releases.md)
 

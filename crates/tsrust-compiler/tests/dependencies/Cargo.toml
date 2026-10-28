@@ -1,0 +1,15 @@
+[package]
+name = "tsrust-test-dependencies"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[lib]
+path = "lib.rs"
+
+# Offline package-management witnesses need versions outside the runtime lock.
+[dependencies]
+regex = "=1.12.2"
+unicode-ident = "=1.0.27"

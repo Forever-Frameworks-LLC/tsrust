@@ -123,3 +123,22 @@ fn binding_sources_are_shared_and_portable_preparation_is_explicit_and_verified(
     let corrupt=export();assert!(!corrupt.status.success());assert!(String::from_utf8_lossy(&corrupt.stderr).contains("checksum"));assert!(!exported.exists());
     fs::write(license,original).unwrap();
 }
+
+#[test]
+fn native_build_and_portable_export_link_at_deep_paths() {
+    let directory=support::TempDirectory::new();
+    let source=directory.0.join("main.tsr");
+    fs::write(&source,support::format_round_trip("function main(){console.log(42);}")).unwrap();
+    let mut deep=directory.0.join("space and unicode é");
+    while deep.as_os_str().len()<270 {deep=deep.join("nested-workspace");}
+    fs::create_dir_all(&deep).unwrap();
+    let executable=deep.join(format!("direct{}",std::env::consts::EXE_SUFFIX));
+    support::success(&support::run(support::cli().arg("build").arg(&source).arg("-o").arg(&executable),120));
+    let output=support::run(&mut Command::new(fs::canonicalize(&executable).unwrap()),30);support::success(&output);assert_eq!(String::from_utf8_lossy(&output.stdout).trim(),"42");
+    let exported=directory.0.join("exported");
+    support::success(&support::run(support::cli().arg("emit").arg(&source).args(["--package","-o"]).arg(&exported),30));
+    let target=deep.join("cargo-target");
+    support::success(&support::run(Command::new("rustup").args(["run",tsrust_compiler::RUST_BACKEND_VERSION,"cargo","build","--offline","--locked"])
+        .current_dir(&exported).env("CARGO_TARGET_DIR",&target).env("CARGO_INCREMENTAL","0"),120));
+    let output=support::run(&mut Command::new(fs::canonicalize(target.join(format!("debug/program{}",std::env::consts::EXE_SUFFIX))).unwrap()),30);support::success(&output);assert_eq!(String::from_utf8_lossy(&output.stdout).trim(),"42");
+}

@@ -34,6 +34,15 @@ impl Analyzer {
             // become visible after an invalid initializer is skipped.
             if !self.program.diagnostic_skips.is_empty() && self.skip_diagnostic_statement(stmt) {continue;}
 
+            // Each test file has its own source reachability; runtime failure still exits the owner.
+            if matches!(&stmt.kind, StmtKind::Expr(Expr { kind: ExprKind::Call(callee, _), .. })
+                if matches!(&callee.kind, ExprKind::Name(name) if name == "@native:std:testing-runtime#beginFile")) {
+                frame.exited=false;
+            }
+            if frame.exited && self.program.generated_continuations.contains(&stmt.span.start) {
+                stmt.kind=StmtKind::Block(Vec::new());
+                continue;
+            }
             if frame.exited {
                 return Err(Diagnostic::new(
                     "unsupported",

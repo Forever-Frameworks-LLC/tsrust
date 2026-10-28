@@ -1,8 +1,9 @@
 # Paired toolchain installation and updates
 
-Implementation contract, 2026-10-28. Implemented with focused macOS acceptance in
-[the milestone](../milestones/paired-toolchain-installation.md); Windows/Linux and
-published-release execution remain pending. This addresses
+Implementation contract, 2026-10-28. Implemented with focused macOS and Windows
+acceptance in [the milestone](../milestones/paired-toolchain-installation.md).
+Linux and published-release acquisition remain pending. The live-LSP update
+witness passes on macOS; its Windows/Linux execution remains pending. This addresses
 outcome 4 of backend-only-reset.md; it does not introduce a package manager or
 background update service.
 

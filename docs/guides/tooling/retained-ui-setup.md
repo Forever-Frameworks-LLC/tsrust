@@ -5,7 +5,7 @@ available for existing projects. They are outside the active backend product;
 new applications bring their own UI and call the native HTTP API. These are retained
 setup instructions, not a new UI completeness or platform-validation claim.
 
-First follow [CLI installation](../../content/getting-started/installation.md).
+First follow [CLI installation](../../../website/src/content/docs/start/installation.md).
 Original UI builds use the optional full source pack; prepare it explicitly:
 
 ```sh
@@ -97,3 +97,41 @@ tsrust docs content
 ```
 
 The generated typed module owns a checked content snapshot. It does not read Markdown, execute fences or fetch packages in the browser. Edit the original Markdown/example/component files and rebuild; generated files are not another authoring source.
+
+## Interactive UI commands and entry behavior
+
+The interactive launcher also retains original UI commands outside the active
+backend scope. `tsrust new` asks for a destination and project type. `tsrust new --ui`
+asks for the destination and UI targets. The destination must be new and its parent
+must exist; invalid answers retry before creating files. `tsrust ui` offers add/list,
+and `tsrust ui add` lets you select several current components with Space, then
+install them together with Enter. Target selection follows before any writes.
+These prompts require terminal input and stderr.
+`ui add --json`, `--yes` and `--dry-run` never prompt; pass component names
+and target flags for scripts, for example `tsrust ui add button card --target native`.
+An optional `@version` must match the current bundled version. Older versions are
+not offered for new installation; existing installed source remains supported.
+`tsrust ui list --bundled` groups components and foundations in a terminal;
+redirected text and `--json` preserve their plain machine-readable output.
+All catalog views show one current version per component and source variant.
+Upgrades preserve the old file and create a versioned filename such as
+`card-v3.tsrx`. Newly installed bundled dependencies import their recorded file.
+Existing application imports and customized components are never rewritten.
+
+
+
+These original commands remain compatibility support outside the active backend
+product. See this retained UI guide.
+
+`tsrust new counter --ui` generates `src/app/page.tsrx`, exporting `Page`, and an
+explicit `src/main.tsr` bootstrap that imports and mounts it. `build.entry` continues
+to identify that executable file in `tsrust.config.json`; the component name is not
+an implicit executable entrypoint. This is the first root-page convention from
+UI_VISION.md. Nested discovery, layouts, loaders and navigation are pending.
+
+The native UI development runtime uses optimized renderer dependencies without
+Cargo dependency debug symbols. Application arithmetic remains checked in dev and
+release. The first native support compilation can be expensive; subsequent edits
+reuse the exact runtime artifact when the runtime/toolchain/profile are unchanged.
+`tsrust dev --verbose` reports frontend work, runtime cache status and native build
+time so a cache miss can be distinguished from application checking.

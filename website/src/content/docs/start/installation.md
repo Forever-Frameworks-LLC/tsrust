@@ -1,7 +1,7 @@
-<!-- tsrust-docs
-{"id":"installation","group":"getting-started","order":10,"status":"ready","targets":["web","native"]}
--->
-# Installation
+---
+title: Install Tsrust
+description: Install the paired CLI and language server on macOS, Linux or Windows.
+---
 
 Tsrust provides a native backend CLI and language server. The language is
 experimental; language and library APIs may change. Checking, formatting and
@@ -19,20 +19,27 @@ it. Releases also contain SHA256SUMS. For example, after downloading the matchin
 archive and checksum file from that official release:
 
 ```sh
-grep 'tsrust-v0.1.0-aarch64-apple-darwin.tar.gz$' SHA256SUMS | shasum -a 256 --check
-tar -xzf tsrust-v0.1.0-aarch64-apple-darwin.tar.gz
+grep 'tsrust-v0.1.0-aarch64-apple-darwin.tar.gz$' SHA256SUMS | shasum -a 256 --check &&
+  tar -xzf tsrust-v0.1.0-aarch64-apple-darwin.tar.gz
 ```
 
 Substitute the actual version and target. Linux uses `sha256sum --check`; Windows
 can calculate the selected archive's SHA-256 with `Get-FileHash -Algorithm SHA256`
-in PowerShell. A checksum from an untrusted source does not authenticate an archive.
+in PowerShell, then compare the returned hash with the official digest before
+extracting. Stop if verification fails. A checksum from an untrusted source does
+not authenticate an archive.
 The binaries are not independently code-signed or notarized. Linux archives target
 a glibc system compatible with Ubuntu 24.04; Alpine/musl and Linux ARM archives are
 not provided.
 
-Keep the archive's license, attributions and manifest. You may put its `bin`
-directory on PATH as an unmanaged installation, or use its CLI to create a managed
-pair in a new directory whose parent already exists:
+## Choose an installation directory
+
+Keep the archive's license, attributions and manifest. Add its extracted `bin`
+directory to PATH to use the unpacked pair. Restart your terminal if your PATH
+change is not visible, then check `tsrust --version` and `tsrust-lsp --version`.
+
+For managed updates and rollback, use that unpacked CLI to install a pair in a
+**new directory whose parent already exists**:
 
 ```sh
 tsrust toolchain install --root /absolute/path/to/new/tsrust
@@ -41,6 +48,8 @@ tsrust toolchain install --root /absolute/path/to/new/tsrust
 Add the new directory's `bin` to PATH. The command never overwrites an existing
 installation, changes shell profiles, or installs Rust. On Windows the executables
 are `tsrust.exe` and `tsrust-lsp.exe`; preserve their suffixes.
+
+## Check, update or roll back
 
 ```sh
 tsrust toolchain check --json
@@ -53,15 +62,25 @@ stages a complete pair before switching one installation record. Running tools
 remain on their original versions; restart the editor server to select the new
 pair. Rollback selects the retained verified pair offline. Package-manager-owned
 installations receive upgrade guidance instead of being overwritten. See the
-[managed installation guide](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/docs/guides/toolchain-installation.md)
+[managed installation guide](../../tools/install-and-update/)
 for trust, recovery and platform acceptance.
 
 ## Install the native backend
 
-Native build, run, test and dev require [Rustup](https://rustup.rs/), **Rust 1.96.1**
-and a host linker/C toolchain. Use Xcode Command Line Tools on macOS, a C toolchain
-on Linux, or Visual Studio's Desktop development with C++ workload and Windows SDK
-on Windows. The compiler does not install these implicitly.
+Native build, run, test and dev currently select **Rust 1.96.1 exactly**, through
+[Rustup](https://rustup.rs/). A newer default Rust installation does not replace
+that selected toolchain. Setup keeps the pin alongside your other Rust versions
+without changing the global default.
+
+You also need host build tools:
+
+| Platform | Required host tools |
+| --- | --- |
+| macOS | Xcode Command Line Tools |
+| Linux | C compiler and system linker |
+| Windows | Visual Studio Desktop development with C++ workload and Windows SDK |
+
+Tsrust does not install these platform SDKs or linkers implicitly.
 
 After installing rustup, prepare the pinned tools and shared dependency sources:
 
@@ -127,21 +146,8 @@ and its descendants. `TSRUST_DEV_WATCH=poll` requests the polling fallback.
 
 ## Install editor support
 
-Install the release's VSIX through VS Code's Extensions → Install from VSIX.
-The VSIX does not contain the language server. Keep the paired executables on PATH
-or configure their explicit paths. The extension also searches the normal Cargo
-bin directory and beside a configured companion executable.
-
-An explicit workspace/user path takes precedence over discovery. If VS Code
-reports ENOENT for a deleted development build, update that setting to the current
-`tsrust-lsp` and matching `tsrust`, or remove the stale overrides. Then run
-**Tsrust: Restart Language Server**. Highlighting alone does not mean analysis is
-running. See [VS Code setup](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/editors/vscode/README.md).
-
-For a source-built extension, run `npm ci`, `npm test` and `npm run package` from
-`editors/vscode`, then install the resulting VSIX. Existing explicit formatter
-choices are preserved. The LSP has an unresolved long-session memory report; use
-smaller workspaces until it is resolved.
+Follow [VS Code setup](../editor/) for the VSIX, executable discovery and recovery
+from stale development paths. The extension requires the separate CLI/LSP pair.
 
 ## Create a project
 
@@ -165,20 +171,7 @@ tsrust test
 tsrust format --check
 ```
 
-See [project structure](project-structure.md) and the
-[backend application guide](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/docs/guides/application-projects.md).
+See [project structure](../project-structure/) and the
+[backend application guide](../../backend/applications/).
 `tsrust new` writes a project AGENTS.md describing its commands and ownership
 boundaries. Existing owner projects are never overwritten.
-
-## Browser prerequisites
-
-Original UI tooling remains outside the active backend product. Its preserved
-[UI setup guide](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/docs/guides/tooling/retained-ui-setup.md)
-contains Wasm, native GPU and documentation-app prerequisites. Backend development
-and independent SDK generation require none of those tools.
-
-## Add components offline
-
-The same retained guide documents the original editable component catalog and its
-explicit commands. A backend project does not install components or adopt a
-frontend framework.

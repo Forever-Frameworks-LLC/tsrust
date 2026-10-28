@@ -9,7 +9,7 @@ Axum-backed `std:http` provides App routes/middleware, owned Request/Response/Bo
 Next/Server, a reusable Reqwest Client, and text/html/json/request/stream helpers.
 Named async handlers pass directly. Typed body validation uses the existing schema
 API. Standalone services await Server.wait(); controlled shutdown consumes Server.
-See [HTTP guide](../guides/http.md) and [examples](../../examples/http).
+See [HTTP guide](../../website/src/content/docs/backend/http.md) and [examples](../../examples/http).
 
 Fixed limits are 1 MiB cumulative body reads/forwarding, 128 server connections,
 a 30-second client deadline and five-second graceful shutdown. Streaming forwards

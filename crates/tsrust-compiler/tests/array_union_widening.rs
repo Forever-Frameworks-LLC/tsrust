@@ -31,3 +31,29 @@ fn widening_rejects_implicit_borrow_mutable_variance_loss_and_reuse() {
         assert!(check(source).is_err(), "{source}");
     }
 }
+
+#[test]
+fn spread_widens_selected_elements_without_widening_source_storage() {
+    support::execute(r#"
+function main(){
+ const source=[9007199254740993];const mixed:(int|string)[]=[...source,"tail"];
+ console.log(mixed[0],mixed[1],source[0]);
+ const words=["first"];const owned:(string|boolean)[]=[...words,true];
+ console.log(owned[0],owned[1]);
+}
+"#, "9007199254740993 tail 9007199254740993\nfirst true\n", None);
+}
+
+#[test]
+fn union_of_owned_arrays_widens_each_selected_carrier() {
+    support::execute(r#"
+function widen(values:int[]|string[]):(int|string)[]{return values;}
+function coalesce(values:(int|string)[]|undefined):(int|string)[]{return values??[];}
+function main(){
+ const numbers=widen([9007199254740993]);console.log(numbers[0]);
+ const words=widen(["owned".repeat(1)]);console.log(words[0]);
+ const absent=coalesce(undefined);console.log(absent.length);
+ const present=coalesce([7,"text"]);console.log(present[0],present[1]);
+}
+"#, "9007199254740993\nowned\n0\n7 text\n", None);
+}

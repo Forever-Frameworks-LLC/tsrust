@@ -41,7 +41,7 @@ impl Drop for Directory {
 fn thread_catalog_examples_check_and_execute() {
     let path = std::env::temp_dir().join(format!("tsrust-thread-catalog-{}-{}", std::process::id(), std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
     std::fs::create_dir(&path).unwrap();
-    let directory = Directory(path);
+    let directory = Directory(std::fs::canonicalize(path).unwrap());
     let catalog: serde_json::Value = serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
     let entries = catalog["std:threads"].as_array().unwrap();
     assert_eq!(entries.len(), 18);

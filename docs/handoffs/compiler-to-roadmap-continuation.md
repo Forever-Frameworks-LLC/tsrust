@@ -967,7 +967,7 @@ cancellation, EOF, invalid-answer retries, source/format checks and unattended
 guards. Prompt unit coverage and existing help/usage checks pass. Whole-project
 formatting changes zero files/fingerprints. Native rendering, SQL and full-family
 regressions are reused rather than rerun. Evidence uses `tsrust-interactive-cli-*`
-in canonical SQLite. See [the project CLI guide](../guides/project-cli.md).
+in canonical SQLite. See [the project CLI guide](../../website/src/content/docs/tools/cli.md).
 
 ## Current HTTP editor correction — 2026-10-18
 
@@ -1833,7 +1833,7 @@ networking and a blocking-work adapter were not added in S14.
 S15 is accepted: Axum routes/middleware, owned request/response/body/continuation/
 server, reusable Reqwest clients, validated bodies, demand-driven forwarding,
 disconnect and bounded graceful shutdown. See [acceptance](../plans/http-acceptance.md)
-and [guide](../guides/http.md). Source af0cbba8 includes the final async disposal
+and [guide](../../website/src/content/docs/backend/http.md). Source af0cbba8 includes the final async disposal
 repair; release CLI and both LSP paths are refreshed and VS Code restarted.
 
 Consolidated acceptance: 4,111 compiler tests and 700 editor tests pass, seven

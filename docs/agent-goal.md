@@ -51,6 +51,12 @@ as arbitrary TypeScript compatibility or revival of deferred UI work.
   and Linux. Add Windows hosted validation and non-publishing package validation.
 - [ ] Reconcile supported language behavior, CLI help, guides and runnable examples;
   verify behavioral examples and complete required IntelliSense documentation.
+- [ ] Migrate public documentation to Astro Starlight following
+  [the public documentation plan](plans/public-documentation-site.md). Prioritize
+  the plan, digestible expandable sections, reviewed content migration, removal of
+  superseded public Markdown, repository link migration and an automatically
+  deployed free static host. Preserve internal/historical evidence and retained UI
+  consumers. The owner selected GitHub Pages after reviewing its limits.
 - [ ] Complete remaining feature-family regressions and matched performance
   evidence, review regressions, and reconcile the checklist with authoritative
   results. Unexecuted platform checks and legacy lint debt stay explicit.
@@ -156,3 +162,12 @@ next executable action current. Do not claim completion without authoritative
 requirement-by-requirement evidence. No timer pushes, public releases, release tags,
 package publication or recurring automation. Remote validation follows the project
 skill's specific-uncertainty decision; release publication needs explicit approval.
+
+## Owner content-audit requirement — 2026-10-28
+
+Audit every public documentation page for factual accuracy against current code
+and examples, and replace dense prose with clear task-based explanations. Track
+page-level source, example and rendered acceptance in
+[the content audit](plans/public-documentation-content-audit.md). Migration and a
+green site build alone do not satisfy this requirement. Preserve claims about
+unchecked behavior as pending rather than treating existing prose as authoritative.

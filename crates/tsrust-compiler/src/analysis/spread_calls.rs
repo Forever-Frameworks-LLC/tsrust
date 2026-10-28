@@ -19,6 +19,9 @@ impl Analyzer {
     pub(super) fn array_spread_context(&mut self,value:&Expr,guessed:Option<Type>,element:Option<Type>)->Result<Option<Type>,Diagnostic>{
         if matches!(value.kind,ExprKind::SetConstructor(_,Some(_))|ExprKind::MapConstructor(_,Some(_))){return Ok(None);}
         let Some(element)=element else{return Ok(None);};
+        // Spread converts selected elements, not the borrowed source array's storage.
+        if matches!(element,Type::Union(_)) && matches!(guessed,Some(Type::Array(_))) && !matches!(value.kind,ExprKind::Array(_)) {return Ok(guessed);}
+
         let family=match &value.kind {ExprKind::SetConstructor(_,None)=>Some("Set"),ExprKind::MapConstructor(_,None)=>Some("Map"),_=>None};
         if let Some(family)=family {
             let arguments=if family=="Set" {vec![element]}else if let Type::Record(id)=element {

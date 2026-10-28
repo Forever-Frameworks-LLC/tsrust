@@ -1,0 +1,65 @@
+name: Documentation
+on:
+  pull_request:
+    branches: [stag]
+    paths: ['website/**', '.github/workflows/docs.yml']
+  push:
+    branches: [main]
+    paths: ['website/**', '.github/workflows/docs.yml']
+  workflow_dispatch:
+  # A merge made with GITHUB_TOKEN does not trigger a push workflow.
+  workflow_run:
+    workflows: [Promote and publish]
+    types: [completed]
+permissions:
+  contents: read
+concurrency:
+  group: docs-${{ github.event_name == 'pull_request' && github.ref || 'production' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+env:
+  ASTRO_TELEMETRY_DISABLED: '1'
+jobs:
+  build:
+    if: >-
+      github.event_name == 'pull_request' ||
+      (github.ref == 'refs/heads/main' &&
+       (github.event_name != 'workflow_run' ||
+        (github.event.workflow_run.conclusion == 'success' &&
+         github.event.workflow_run.head_repository.full_name == github.repository &&
+         github.event.workflow_run.path == '.github/workflows/promote.yml')))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.ref || 'main' }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.11.1
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+      - run: npm --prefix website ci --ignore-scripts --no-fund --no-audit
+      - run: npm --prefix website run build
+      - run: python3 -m unittest discover -s website/tools
+      - run: python3 website/tools/check_links.py website/dist
+      - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        if: github.event_name != 'pull_request'
+        with:
+          path: website/dist
+          retention-days: 1
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish verified static site
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
