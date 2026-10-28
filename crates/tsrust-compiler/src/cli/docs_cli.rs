@@ -219,8 +219,8 @@ pub(super) fn prepare_entry(entry:&Path)->Result<(),String>{
 }
 pub(super) fn prepare_root(root:&Path)->Result<(),String>{
     let path=root.join(super::project_config::FILE);
-    let text=fs::read_to_string(path).map_err(|error|error.to_string())?;
-    let value:Value=serde_json::from_str(&text).map_err(|error|error.to_string())?;
+    let text=fs::read_to_string(&path).map_err(|error|format!("{}: {error}",path.display()))?;
+    let value:Value=serde_json::from_str(&text).map_err(|error|format!("{}: {error}",path.display()))?;
     if value.get("documentation").is_some(){build(root)?;}Ok(())
 }
 fn build(root:&Path)->Result<String,String>{

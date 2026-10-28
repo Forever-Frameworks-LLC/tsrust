@@ -42,6 +42,7 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup
       - name: Compile both consumers
+        id: consumers
         run: cargo build --offline --locked --bin tsrust --bin tsrust-lsp
       - name: Prepare portable sources for offline acceptance
         run: target/debug/tsrust setup --portable --offline --yes
@@ -53,19 +54,21 @@ jobs:
         if: runner.os == 'Linux'
         run: python3 -B -m unittest discover -s benchmarks/storage -p 'test_*.py'
       - name: Compiler and CLI acceptance
-        if: ${{ !inputs.full_regressions }}
-        run: cargo test --offline --locked -p tsrust-compiler --lib --bin tsrust --test acceptance --test project_commands --test formatting --test native_dependency_bundle
+        if: ${{ !cancelled() && steps.consumers.outcome == 'success' && !inputs.full_regressions }}
+        run: cargo test --offline --locked --no-fail-fast -p tsrust-compiler --lib --bin tsrust --test acceptance --test project_commands --test formatting --test native_dependency_bundle
       - name: LSP transport and compiler agreement
-        if: ${{ !inputs.full_regressions }}
-        run: cargo test --offline --locked -p tsrust-lsp --lib --bin tsrust-lsp --test stdio --test checker_agreement --test completion_matrix --test editor_consistency
+        if: ${{ !cancelled() && steps.consumers.outcome == 'success' && !inputs.full_regressions }}
+        run: cargo test --offline --locked --no-fail-fast -p tsrust-lsp --lib --bin tsrust-lsp --test stdio --test checker_agreement --test completion_matrix --test editor_consistency
       - name: Complete regressions
         if: ${{ inputs.full_regressions }}
         run: |
           cargo test --offline --locked --workspace --lib --bins --tests --no-fail-fast
           cargo test --offline --locked --workspace --doc
       - name: Native renderer model and layout checks
+        if: ${{ !cancelled() && steps.consumers.outcome == 'success' }}
         run: cargo test --offline --locked -p tsrust-ui --features native --lib
       - name: Clippy
+        if: ${{ !cancelled() && steps.consumers.outcome == 'success' }}
         run: cargo clippy --offline --locked --workspace --lib --bins -- -D warnings
   editor:
     name: VS Code extension

@@ -22,6 +22,15 @@ CI now prepares it offline after building the CLI, and shared setup fetches the
 backend lock closure as well as workspace/portable closures. The first repair
 run 40649937242 is superseded by this diagnosed clean-runner preparation fix.
 
+Hosted run 40650084489 on e77b0ce5 passed Linux compiler library (1290 tests),
+CLI unit (55), acceptance (25), formatting (29) and offline bundle (2) checks.
+Project commands exposed five later failures: four stale Button v2 expectations
+and a malformed-config diagnostic missing its path. Updated the fixtures for v3
+and current dev wording; restored filename context in docs preparation errors.
+CI now collects independent downstream failures after a test failure, retaining
+failed job status, so later LSP/renderer/Clippy failures are visible in one run.
+No local builds/tests were started. Hosted validation of this repair is pending.
+
 ## Hardware stop and checkpoint — 2026-10-28
 
 The owner requested a clean wrap-up, commit and push, then explicitly stopped
