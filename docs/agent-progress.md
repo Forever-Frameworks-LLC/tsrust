@@ -1,6 +1,43 @@
 # Agent continuation state
 
-## Current continuation — local callable guide accepted; field corrections underway
+## Current continuation — callable field pages accepted and migrated
+
+Previous checkpointbf417a22. Completed callable-fields source audit and split into
+site language/callable-fields and language/borrowed-callable-fields. Traced owned
+storage/dispatch/layout, record_call_capture_release.rs, concrete record/map
+containers and discover_record_callbacks. Further stale warning found: readonly
+field records with self-contained captures can return. Capture-free check and
+copied-scalar factory native7 pass; genuine local array borrow escape remains
+rejected. Nested callable parameter/result signatures reject callable-layout.
+Unknown field error payload rejects error-effect. Replaced broad lifetime warning
+with actual capture lifetime rule. Removed duplicate, migrated all incoming
+Markdown links and old borrowing/failure anchors (milestones173/180, coverage and
+local-callable site page). No compiler changes.
+
+Eleven final complete exact examples format/check/native pass:5 owned,6 borrowed.
+Owned outputs3/6;3;Pat/Sam;3;7 0. Borrowed readonly replacement3/10/8/0; mutable
+capture2/2; caller install3/4; containers3/3/3; scalar factory7; typed errors4 1007.
+After initial10-example pass, split readonly and mutable tasks, reran only two
+changed examples; replaced dense error ternary with branches and reran that example.
+Compiler source4 (/tmp/tsrust-field-doc-owned.log), generic1/conditional2/capture
+replacement2/unknown error1 (/tmp/tsrust-field-doc-contracts.log) pass. LSP field4
+and imported field3 pass (/tmp/tsrust-field-doc-editor.log). Prior caller store1 and
+container witnesses retained. All commands completed.
+
+Both complete pages reviewed at390px/1440px. Revised mutable task and error branches
+rechecked; no document overflow, highlighted code, focusable overflowing examples,
+keyboard scroll40px, skip/previous/next/section navigation pass.55-page build and
+internal links/anchors pass (/tmp/tsrust-field-doc-site.log). Whole-project formatter
+before checkpoint. Viewport reset; tab4 retained on the owned-field parameter section. No full regressions, timings,
+hosted CI, push or release. Historical SQLite and owner edits unchanged.
+
+Next: continue finite migration with arrow-functions, callable-expressions and
+nested-functions, checking current callable/capture contracts. Remaining docs include
+control flow, collections/library and developer/reference inventories. Platform setup,
+Windows/Linux editor fixture/acquisition and actual Pages deployment remain pending.
+Goal active; retain previous platform and compiler milestone evidence.
+
+## Prior continuation — local callable guide accepted; field corrections underway
 
 Previous checkpointfd2a0a89 accepted callable array storage/method pages (11 exact
 examples, compiler19/editor6 checks, responsive/keyboard and52-page build/links).

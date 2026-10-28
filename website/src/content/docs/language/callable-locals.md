@@ -136,7 +136,7 @@ Returning `ReadOnly` or `Mutable` callable types is rejected because their borro
 
 ## Replace and select environments
 
-These local annotations validate a concrete origin; they do not introduce arbitrary replacement between different local closure origins. [Owned callable record fields](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/docs/guides/language/callable-fields.md) provide storage and replacement between compatible environments. [Callable arrays](/tsrust/language/callable-arrays/) support construction, indexed reusable calls, replacement and explicit removal. [Nullable callable storage](/tsrust/language/nullable-callables/) also has checked ownership and invocation rules. Callable values do not acquire implicit clone or shared ownership behavior.
+These local annotations validate a concrete origin; they do not introduce arbitrary replacement between different local closure origins. [Owned callable record fields](/tsrust/language/callable-fields/) provide storage and replacement between compatible environments. [Callable arrays](/tsrust/language/callable-arrays/) support construction, indexed reusable calls, replacement and explicit removal. [Nullable callable storage](/tsrust/language/nullable-callables/) also has checked ownership and invocation rules. Callable values do not acquire implicit clone or shared ownership behavior.
 
 
 A conditional expression can select compatible owned environments into one checked
