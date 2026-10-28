@@ -1,6 +1,27 @@
 # Agent continuation state
 
-## Current continuation — nullable assignment guides accepted
+## Current continuation — optional/default parameter content audit
+
+Previous turn progressed ate4b97e75. Removed obsolete gate98/checkpoint101 status
+from optional-default-parameters and corrected future-feature wording for already
+supported rest, patterns and nullable arrays. Converted all four fragments into
+independently runnable programs with explicit main and invocation instructions.
+Current driver/parameters.rs confirms default initialization followed by its pattern
+before advancing to the next parameter. No compiler/runtime changes.
+
+Four exact programs pass format --write/--check, compiler checks and native output:
+7 7 0; 5 5 null; 3/21/1,2,11; 7. Focused scope/arity/once diagnostic regression
+passes (/tmp/tsrust-parameter-doc-contracts.log). All commands completed. No timing,
+platform or full-suite claim. Full formatter/diff check before source checkpoint.
+
+Next: finish callback/ownership/type source review, audit rest parameters alongside,
+then migrate coherent parameter guides and review complete390/1440 layouts and
+keyboard navigation. Migration row remains in progress; no page acceptance claimed.
+Remaining platform setup, updated Windows/Linux editor fixture/acquisition and
+actual Pages deployment remain open. No push, hosted CI or release. Goal active.
+
+
+## Prior continuation — nullable assignment guides accepted
 
 Previous turn progressed ate766389b. Finished full nullish-assignment and
 nullable-callables review at390/1440: highlighted code, readable sections, no
