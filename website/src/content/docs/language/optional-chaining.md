@@ -11,7 +11,7 @@ Parentheses end a continuous chain. `value?.text.length` skips both accesses whe
 
 ## Preserve checked errors
 
-Indices and arguments retain their ordinary strict types and ranges. Reached array accesses still check bounds; reached String operations keep their UTF-8 byte/scalar contracts and boundary errors. Optional access does not catch failures in a reached operation or evaluated argument. An optional hop needs one proven present payload type. Narrow a union with several present types before selecting a member. Callable access and invocation contracts still apply. Optional chaining does not add coercion, arbitrary mixed-union operations, optional assignment targets or prototype lookup. Nullable callable storage and optional invocation are supported under their [callable ownership contracts](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/docs/guides/language/nullable-callables.md).
+Indices and arguments retain their ordinary strict types and ranges. Reached array accesses still check bounds; reached String operations keep their UTF-8 byte/scalar contracts and boundary errors. Optional access does not catch failures in a reached operation or evaluated argument. An optional hop needs one proven present payload type. Narrow a union with several present types before selecting a member. Callable access and invocation contracts still apply. Optional chaining does not add coercion, arbitrary mixed-union operations, optional assignment targets or prototype lookup. Nullable callable storage and optional invocation are supported under their [callable ownership contracts](/tsrust/language/nullable-callables/).
 
 ## Editor help
 
