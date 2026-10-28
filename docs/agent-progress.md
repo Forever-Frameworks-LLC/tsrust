@@ -1,59 +1,60 @@
 # Agent continuation state
 
-## Current priority: staged CI/release flow
+## Current priority: approved staged pipeline bootstrap
 
-Owner now requests feature PRs into stag with tests and one approval (owner's own
-PRs need no second reviewer; only Cotter45 may bypass reviews on any PR), then stag-to-main release builds on all supported
-platforms, automatic merge and publication of those same artifacts. Cache/reuse
-is explicitly requested to reduce time and Actions usage. Follow
-plans/staged-release-pipeline.md. No live branch/rules changes have been made.
-Pinned Rust caching is prepared locally; original setup had no cache.
+Owner approved merging PR #2 and allowing new release tags while keeping existing
+tags/releases immutable. PR #2 merged as caf5284b; its tree exactly equals green
+5b09ec80. Duplicate main push CI 40686837879 is terminal cancelled. Bootstrap PR #3
+is open from codex/staged-release-bootstrap at d6769698096eaf782cd5ab8c9d2095800f8e9dad.
+Its isolated commit contains staged workflows/cache, publisher/policy tests, packaged
+LSP smoke and the accepted virtual API fix/native SDK witness. No unfinished binding
+or HTTP language changes were included. It was built with a temporary Git index;
+this working tree and its branch were preserved. PR #3 is attached to the chat.
 
-Pipeline source checkpoint 1ca135b1 passes 14 local packaging/promotion-policy
-checks and YAML parsing. No hosted jobs were started. GitHub rejected the proposed
-Actions tag-creation bypass with HTTP 422; no rule changed. Owner choices remain
-pending for PR #2 bootstrap merging and tag creation permissions. Preserve live
-protections while awaiting them; see the pipeline plan for exact migration order.
+Required bootstrap CI 40687353147 is running on that exact head. VS Code passed;
+Linux source checks remain running. Release run 40687329217 rejected the non-stag
+bootstrap in preflight as designed; all platform/editor release builds were skipped.
+Only CI is currently required on main. After it succeeds, merge PR #3 using the
+approved owner bypass, create stag at main, move test/review rules to stag, configure
+strict Release gate on main with merge commits, and remove only tag-creation
+restriction while retaining immutable tags. Do not publish a release for bootstrap.
+See plans/staged-release-pipeline.md for the live migration sequence.
 
-Request-reader native/Node untimed verification passed on 1ca135b1 with the clean
-source tree: 128 JSON/schema + UTF-8 stream pairs per engine, checksum 5376 each.
-CLI SHA256 2b9239d26a636b509ced7a6ba86eaefe6ea6fefec571e92759eb949139be29c1;
-source hashes remain pinned in benchmarks/http/readers-manifest.json. No timing
-samples were recorded or imported. The disposable verification JSON was removed
-after recording this result.
+## Local work while bootstrap CI runs
 
-Final reader agreement now covers Request/Context/Body, two new owned/contextual
-request typing-speed rows, HTTP catalog reachability and backend all-target
-checking. The initial unrestricted agreement run was explicitly stopped before
-finishing because it included unrelated UI receivers; it is not passing evidence.
-Focused session 39115 completed successfully: 3 checker tests (filtered receiver
-loop), 3 matrix tests (two HTTP rows), 1 HTTP catalog test, and all-target check
-with zero warnings/errors in 48s. Logs: /tmp/tsrust-readers-editor-agreement.log and
-/tmp/tsrust-readers-all-targets.log. Preserve prior native/JSON catalog checks.
+Binding-cache migration passed backend all-target checking without diagnostics on
+its initial implementation. Initial focused acceptance passed package management
+7/7, compiler Rust bridge 6/6, compiler API project 4/4, LSP Rust bridge 6/6 and LSP
+API project 1/1. Two shared-source tests passed; two require a repaired rerun: the
+new witness used the wrong timing environment variable, and the existing portable
+witness lacked its prepared source-pack directory. The standard portable pack is
+now prepared under target/portable-source-packs; reuse it.
 
-Native SDK replica acceptance now passes on macOS arm64 (167s). The fixture
-creates old/new CLI applications, compiles real services, generates saved-description
-TypeScript clients and authenticated live-description Rust clients, and checks both
-languages against both replicas. Protected metadata, wrong/missing credentials,
-new-operation rejection, wrong API-major refusal, async Rust credentials and rejected
-mutation effects are covered. All owned services and temporary projects were removed.
-Log: /tmp/tsrust-sdk-native-replicas.log. Details: milestones/server-owned-api.md.
+The owner emphasized secure, efficient, reliable and maintainable design rather
+than preserving existing structure by default. Binding schema 2 now explicitly
+selects the backend graph; schema 1 preserves the legacy graph. No lock-content
+heuristics determine compatibility. The timing witness uses TSRUST_BUILD_TIMINGS.
+Session 81947 completed successfully: package management 7/7 (124s), shared
+sources 4/4 (71s), including cache reuse, missing-source guidance, relocated
+offline exports and corrupted-pack rejection. Log: /tmp/tsrust-binding-recheck.log.
+Whole-project formatting/check passed with zero changes. Session 21763 completed
+successfully: both binding schema unit controls passed (30 matched library tests
+total), schema 2 LSP signature/hover/definition/edit invalidation passed, and backend
+all-target diagnostics finished without errors or warnings (73s). Logs:
+/tmp/tsrust-binding-schema.log and /tmp/tsrust-binding-final-check.log. This section is accepted locally; nothing from it was pushed. Source checkpoint
+before it is e9dd2fe7.
+Preserve previously passed unrelated API/LSP checks. Full milestone, platform and
+paired installer/update acceptance remain open. The next implementation contract
+is plans/paired-toolchain-updates.md: versioned pairs and one atomic selection
+record avoid overwriting running binaries. It is a plan, not implementation or
+platform evidence.
 
-The fixture exposed a Unix fresh-scaffold bug: virtual API imports traversed absent
-target directories. Virtual imports now resolve relative to the actual config path;
-normal disk imports and virtual source identities are preserved. Compiler api_project
-4/4 and LSP api_project 1/1 passed. Both local consumers were rebuilt and exercised.
-Final backend all-target diagnostics passed in 52s with no warnings/errors; log:
-/tmp/tsrust-sdk-final-diagnostics.log. Whole-project formatting changed zero files
-and the idempotence check passed. No hosted tests were launched. There are no
-running validation sessions or remaining temporary SDK fixture directories.
-
-Current CI changes add these regressions to staging coverage and keep optional
-async/package status names distinct from mandatory PR gate names. Pipeline deployment
-still awaits the owner's two choices; do not change active protections prematurely.
-Next dependency-ready implementation: ordinary Rust binding shared-cache migration,
-then trusted paired install/update. Backend-family full regression and reader timing
-remain required milestone work; platform/install acceptance is not inferred here.
+HTTP reader acceptance is complete at 98ddde67: native/Node checksum 5376,
+HTTP-specific compiler/editor agreement, catalog examples and clean all-target
+checking. Native SDK acceptance/fresh Unix scaffold fix is complete at e9dd2fe7:
+compiler API-project 4/4, LSP API-project 1/1, real Rust/TypeScript replica test and
+zero-warning all-target diagnostics. Preserve those results; do not repeat them
+for unrelated binding changes. Their temporary projects/processes were removed.
 
 ## Active polish continuation — 2026-10-28
 
@@ -64,7 +65,8 @@ Both platforms passed 1290 compiler library tests (8 existing ignores), selected
 CLI integration suites, 162 renderer tests, LSP library/binary tests, the complete
 agreement/completion matrices, editor consistency and stdio. Clippy correctness
 lints passed; legacy warnings remain. No release or Windows acceptance is implied.
-PR #2 remains open awaiting review. Continue on codex/language-cli-docs-polish.
+PR #2 subsequently merged with owner authorization; continue local polish on
+codex/language-cli-docs-polish while the isolated bootstrap PR #3 runs.
 
 Async registration acceptance is complete on c5b3d4a9. Hosted CI run
 40672007920 passed on Linux (122760868408), Windows (122760867985), and macOS
@@ -82,7 +84,10 @@ http-range-header was absent from the local Cargo cache. Locked host dependencie
 were fetched; backend all-target checking then passed in 2m11s with no warnings.
 Keep checks focused and inspect resource pressure.
 
-## Windows package validation prepared
+## Windows package validation — historical preparation
+
+This section records the earlier pre-bootstrap workflow; the staged flow above
+supersedes its tag-triggered publication behavior.
 
 Release workflow changes add x86_64-pc-windows-msvc packaging with explicit .exe
 inputs and Bash commands, plus a manual artifact-only validation path. Manual

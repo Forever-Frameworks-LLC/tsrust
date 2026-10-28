@@ -2,8 +2,11 @@
 use std::{fs, io, path::Path};
 #[path="portable_sources.rs"]
 mod sources;
-pub(crate) fn prepare(cargo: std::process::Command, offline: bool) -> io::Result<std::path::PathBuf> {sources::prepare(cargo,offline)}
-pub(crate) fn materialize(root: &Path) -> io::Result<()> {sources::materialize(root)}
+pub(crate) fn prepare(cargo: std::process::Command, offline: bool) -> io::Result<std::path::PathBuf> {sources::prepare(cargo,offline,sources::MANIFEST,sources::LOCK)}
+pub(crate) fn materialize(root: &Path) -> io::Result<()> {sources::materialize(root,sources::MANIFEST,sources::LOCK)}
+
+pub(crate) fn prepare_binding(cargo: std::process::Command, offline: bool, package: &tsrust_compiler::project::rust::dependencies::Package) -> io::Result<std::path::PathBuf> {sources::prepare(cargo,offline,&package.manifest,&package.lock)}
+pub(crate) fn materialize_binding(root: &Path, package: &tsrust_compiler::project::rust::dependencies::Package) -> io::Result<()> {sources::materialize(root,&package.manifest,&package.lock)}
 
 // Lockfile package checksums bind the vendored source closure. The manifest binds
 // selected features; increment the protocol when build settings change.
@@ -42,7 +45,7 @@ pub(crate) fn restore_import_libraries(root:&Path)->io::Result<usize> {
         let home=sources::cargo_home()?;
         let registry=home.join("registry/src");
         if registry.is_dir(){for entry in fs::read_dir(registry)?{let entry=entry?;if entry.file_type()?.is_dir(){candidates.push(entry.path().join(&package).join("lib").join(name));}}}
-        candidates.push(sources::location()?.join("vendor").join(&package).join("lib").join(name));
+        candidates.push(sources::location(sources::MANIFEST,sources::LOCK)?.join("vendor").join(&package).join("lib").join(name));
         let bytes=candidates.iter().find_map(|candidate|fs::read(candidate).ok().filter(|bytes|verify(bytes)))
             .ok_or_else(||io::Error::other("Pinned Windows imports are absent; run `tsrust setup --dependencies --yes` or prepare a portable source pack"))?;
         match fs::OpenOptions::new().write(true).create_new(true).open(&path){

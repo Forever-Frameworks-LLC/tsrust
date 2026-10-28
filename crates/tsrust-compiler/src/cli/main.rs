@@ -53,7 +53,7 @@ Usage:
   tsrust features <crate> [--enable feature,... | --disable feature,... | --features feature,...]
   tsrust packages [--project directory]
   tsrust remove <crate> [--dry-run]
-  tsrust bindings resolve <file.bindings.json> [--offline]
+  tsrust bindings resolve <file.bindings.json> [--offline] [--portable]
   tsrust new [name-or-path] [--app [--target backend] | --ui [--target native|web]...]
   tsrust ui <list --bundled|init|add name...> [--cwd directory] [--path directory] [--target native|web]... [--dry-run]
   tsrust ui attributions [--cwd directory] [--dry-run]

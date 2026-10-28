@@ -8,7 +8,7 @@ checks. Preserve their completed evidence and resume them after this pipeline wo
 - Feature PRs target `stag`. Run unit/integration/editor checks on Linux, not a
   release-build matrix. Passing tests and one approval permit merging. Only Cotter45 may bypass the review requirement, including when reviewing and
   merging another author's PR. The owner accepted this native actor-based bypass;
-  tests remain required.
+  tests remain required against the current staging base.
 - A `stag` to `main` PR builds release artifacts on Linux, Windows and macOS.
   Preserve both currently configured macOS architectures unless explicitly changed.
   No arbitrary branch may use this promotion path.
@@ -47,24 +47,23 @@ rules, and retarget the backend PR. The default-branch publisher must exist befo
 the first promotion run; merely adding it in the promotion PR cannot activate it.
 Keep the existing main protections until that bootstrap has passed CI. Main must
 then require Release gate with strict up-to-date checks and allow merge commits;
-stag must require CI plus the separate owner-bypass review rule. Both branches
+stag must require up-to-date CI plus the separate owner-bypass review rule. Both branches
 remain protected against deletion and force pushes.
 
-GitHub rejected a disabled creation-rule proposal with Integration 15368:
-`Actor GitHub Actions integration must be part of the ruleset source or owner
-organization` (HTTP 422). No rule was created or changed. Pending owner choice:
-remove the creation restriction while preserving immutable existing tags/releases,
-or configure a separate installed GitHub App for publication. Do not store the
-owner's personal token in Actions. The existing tag restriction stays active until
-that decision and the workflow bootstrap are complete.
+The owner authorized the bootstrap and tag-policy migration on 2026-10-28.
+PR #2 merged as caf5284b, with exactly the previously tested source tree. Its
+redundant main push CI was cancelled to conserve Actions usage. This bootstrap PR
+contains only the staged pipeline, packaged-LSP smoke and accepted API scaffold/
+SDK regression changes; unfinished language/cache work is excluded.
 
-The owner has been asked whether to merge already-green PR #2 as the one-time
-bootstrap. This is separate from their authorized future stag-to-main automatic
-promotions. After it lands, the pipeline-only PR can run required CI by manual
-dispatch against its exact head (the new CI PR trigger targets stag). Its Release
-preflight rejects the non-stag source before platform builds. Keep current main
-CI protection until that bootstrap PR passes and merges; then migrate the rules.
-No hosted validation was started for the local pipeline implementation.
+Run required CI by manual dispatch on this bootstrap PR's exact head (the new
+PR trigger targets stag). Release preflight rejects this non-stag source before
+platform builds. Keep current main protections until bootstrap CI passes and the
+PR merges. Then create stag at main, move CI/review requirements to stag, require
+strict Release gate on main and enable merge commits. GitHub rejected its built-in
+Actions identity as a tag-creation bypass actor, so the owner authorized removing
+the creation restriction while retaining immutable existing tags/releases. Writers
+may create new tags; automation must never overwrite a tag or published release.
 
 Changes are not live and no release has been authorized for immediate publication
 merely to test this setup. Future successful promotions are explicitly authorized

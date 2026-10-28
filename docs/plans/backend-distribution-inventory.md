@@ -1,3 +1,20 @@
+# Current binding-cache migration — implementation pending validation
+
+The 2026-10-28 section migrates ordinary dependency-bearing Rust bindings to Cargo's
+shared sources and stable per-graph native workspaces. Package add/update/features
+validate real adapters/callers/tests before atomic publication, without vendoring.
+Binding markers carry manifest/lock/crate names rather than machine-local vendor
+paths. SchemaVersion 2 fixes new graphs to backend inputs; schemaVersion 1 retains the
+legacy full-runtime manifest explicitly, without lock-content heuristics. Explicit bindings resolve --portable reuses the existing source-pack
+producer and checksum verifier with the selected graph. Exports stay toolchain-free.
+
+Affected consumers: project binding serialization, explicit resolve/package commands,
+package candidate compilation, runtime selection/identity/workspaces, portable pack
+materialization/export, CLI help, package documentation and focused regressions.
+Validation must prove no vendor copies in normal builds, cache hits, offline failure
+with an empty Cargo home, legacy locks, atomic failed/preview edits, and relocated
+portable parity/tamper rejection. No new timing or platform acceptance is claimed.
+
 # Backend distribution inventory
 
 Current audit: 2026-10-28, source c5b3d4a9. Follow the backend-only reset and

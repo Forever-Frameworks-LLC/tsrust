@@ -53,29 +53,30 @@ pub(crate) fn normalize(path:&Path)->Result<PathBuf,String>{
 }
 pub(crate) fn validate(provider:&Candidate,root:&Path,manifest:&Path,temporary:&Path)->Result<(usize,Vec<String>),String>{
  let backend=crate::verify_backend()?;
+ let cache=match std::env::var_os("TSRUST_CACHE_DIR"){Some(path)=>crate::absolute(Path::new(&path))?,None=>root.join("target/tsrust-native")};
  let files=tsrust_compiler::source_discovery::discover(&[root.to_owned()])?;
  let mut session=tsrust_compiler::project_session::ProjectSession::default();
  // Compile even an unused adapter: source checks alone do not check Rust bodies.
  let graph=tsrust_compiler::project::load_project(provider,manifest.to_str().ok_or("Non-UTF8 manifest")?).map_err(|error|format!("{}: {}",error.code,error.message))?;
  let exports=graph.modules[&graph.entry].exports.keys().cloned().collect::<Vec<_>>();
  let adapter=tsrust_compiler::project::check_graph(graph).map_err(|error|format!("{}: {}",error.code,error.message))?;
- compile(&adapter.emit_rust(),&backend,&temporary.join("adapter"),None)?;
+ compile(&adapter.emit_rust(),&backend,&cache,&temporary.join("adapter"),None)?;
  for (index,path) in files.iter().enumerate() {
   let source=provider.read(&SourceId(path.to_string_lossy().into_owned()))?;
   let analysis=tsrust_compiler::project_cli::check_input_cached_with_provider(path,&source,&mut session,provider).map_err(|error|error.render(&path.to_string_lossy(),&source,false))?;
-  compile(&analysis.emit_rust(),&backend,&temporary.join(format!("caller-{index}")),None)?;
+  compile(&analysis.emit_rust(),&backend,&cache,&temporary.join(format!("caller-{index}")),None)?;
  }
  let tests=tsrust_compiler::project_cli::discover_test_inputs_optional(&[root.to_owned()])?;
  if !tests.is_empty(){
   let analysis=tsrust_compiler::project_cli::check_test_inputs_with_provider(&tests,provider).map_err(|error|error.render("tests","",false))?;
-  compile(&analysis.emit_rust(),&backend,&temporary.join("tests"),Some(root))?;
+  compile(&analysis.emit_rust(),&backend,&cache,&temporary.join("tests"),Some(root))?;
  }
  if tsrust_compiler::source_discovery::discover(&[root.to_owned()])?!=files{return Err("Project files changed during validation; nothing applied.".into());}
  provider.unchanged()?;Ok((tests.len(),exports))
 }
-fn compile(source:&str,backend:&str,root:&Path,execute:Option<&Path>)->Result<(),String>{
+fn compile(source:&str,backend:&str,cache:&Path,root:&Path,execute:Option<&Path>)->Result<(),String>{
  fs::create_dir(root).map_err(|error|error.to_string())?;
- let mut prepared=crate::runtime_build::Prepared::new(source,backend,&root.parent().unwrap().join("runtime-cache"),root,false)?;
+ let mut prepared=crate::runtime_build::Prepared::new(source,backend,cache,root,false)?;
  if let Some(mut command)=prepared.command.take(){let output=command.output().map_err(|error|error.to_string())?;if !output.status.success(){return Err(format!("Candidate Rust dependency build failed:\n{}",String::from_utf8_lossy(&output.stderr)));}prepared.publish();}
  let executable=root.join("program");let mut command=crate::backend_command();prepared.link(&mut command)?;
  let output=command.args(["--edition=2024","-C","overflow-checks=on"]).arg(&prepared.application).arg("-o").arg(&executable).output().map_err(|error|error.to_string())?;

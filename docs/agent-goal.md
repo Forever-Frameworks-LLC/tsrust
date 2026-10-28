@@ -13,8 +13,10 @@ orchestration work is required. Users bring their own UI and call HTTP APIs.
 
 The owner requested autonomous continuation after PR #2 CI succeeds, completing
 language, CLI and documentation polish with Windows support explicitly required.
-CI run 40663277431 passed all four checks on commit 5b09ec80. The PR remains open
-for review; this continuation does not authorize merging or publishing a release.
+CI run 40663277431 passed all four checks on commit 5b09ec80. The owner later
+authorized the bootstrap merge: PR #2 merged as caf5284b with the identical tree.
+The staged pipeline is authorized to publish successful stag-to-main promotions;
+bootstrap itself must not publish a release.
 Work continues on codex/language-cli-docs-polish from that tested source.
 
 The finite completion checklist below carries forward the backend-only handoff.
@@ -38,8 +40,11 @@ as arbitrary TypeScript compatibility or revival of deferred UI work.
   clients, protected metadata, denied operations, missing-operation/API-major
   compatibility errors and no mutation effects for rejected calls. Prior saved/
   live description and typed-model evidence remains in server-owned-api.md.
-- [ ] Finish ordinary binding dependency migration while retaining exact offline
-  portable exports and shared-cache integrity.
+- [x] Finish ordinary binding dependency migration while retaining exact offline
+  portable exports and shared-cache integrity. Focused macOS acceptance passes:
+  package transactions 7/7, shared/portable sources 4/4, schema controls, schema 2
+  editor help and backend all-target diagnostics. Platform execution remains part
+  of the distribution milestone.
 - [ ] Complete paired CLI/LSP install, doctor, setup, update checks, replacement,
   rollback and recovery. Execute Windows native compiler/test/dev/editor and
   installation/update paths, including locked binaries; separately verify macOS

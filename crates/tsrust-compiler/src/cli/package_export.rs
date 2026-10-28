@@ -4,14 +4,16 @@ use std::{fs,io,path::Path};
 pub(crate) fn export(root:&Path,rust:&str,web_only:bool,notices:&[(std::path::PathBuf,Vec<u8>)])->io::Result<()> {
  let dependencies=tsrust_compiler::native_runtime::separate(rust).dependencies;
  if dependencies {
-  crate::native_dependency_bundle::materialize(root)?;
+  let packages=crate::rust_binding_packages::packages(rust).map_err(io::Error::other)?;
+  if let Some(binding)=crate::rust_binding_packages::checked(&packages).map_err(io::Error::other)? {
+   crate::native_dependency_bundle::materialize_binding(root,binding)?;
+  }else{crate::native_dependency_bundle::materialize(root)?;}
  }else{
   fs::create_dir(root)?;
  }
  // Only this call's newly created tree can be cleaned up on failure. Existing
  // directories and symlinks fail above, before any caller-owned files are touched.
  let result=(|| {
-  if dependencies {let packages=crate::rust_binding_packages::packages(rust).map_err(io::Error::other)?;crate::rust_binding_packages::overlay(root,&packages).map_err(io::Error::other)?;}
   if !dependencies {fs::create_dir(root.join("src"))?;fs::create_dir(root.join(".cargo"))?;}
   let (mut manifest,lock)=if dependencies {
    fs::remove_file(root.join("src/lib.rs"))?;
