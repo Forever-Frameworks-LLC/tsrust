@@ -1,4 +1,6 @@
 mod support;
+#[cfg(windows)]#[path="../src/cli/temp_directory.rs"]mod temp_directory;
+#[cfg(windows)]use temp_directory::TempDirectory;
 #[allow(dead_code)]#[path="../src/cli/toolchain_release.rs"]mod toolchain_release;
 #[allow(dead_code)]#[path="../src/cli/toolchain_install.rs"]mod toolchain_install;
 #[cfg(windows)]#[allow(dead_code)]#[path="../src/cli/dev_windows.rs"]mod dev_windows;

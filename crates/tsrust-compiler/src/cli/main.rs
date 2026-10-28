@@ -43,7 +43,8 @@ use std::fs;
 use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode};
-use std::time::{SystemTime, UNIX_EPOCH};
+mod temp_directory;
+use temp_directory::TempDirectory;
 use tsrust_compiler::RUST_BACKEND_VERSION;
 
 const USAGE: &str = "tsrust — native TypeScript-style programs
@@ -135,34 +136,6 @@ fn print_help() {
     for line in USAGE.lines() {
         if line.ends_with(':') || line.starts_with("tsrust —") { println!("{}", styled(line,"1;36",color)); }
         else { println!("{line}"); }
-    }
-}
-
-struct TempDirectory(PathBuf);
-impl TempDirectory {
-    fn new() -> std::io::Result<Self> {
-        let stamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_nanos();
-        for attempt in 0..100 {
-            let path =
-                env::temp_dir().join(format!("tsrust-{}-{stamp}-{attempt}", std::process::id()));
-            match fs::create_dir(&path) {
-                Ok(()) => return Ok(Self(path)),
-                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
-                Err(error) => return Err(error),
-            }
-        }
-        Err(std::io::Error::new(
-            std::io::ErrorKind::AlreadyExists,
-            "Could not create a private build directory",
-        ))
-    }
-}
-impl Drop for TempDirectory {
-    fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.0);
     }
 }
 

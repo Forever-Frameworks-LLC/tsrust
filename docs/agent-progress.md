@@ -17,9 +17,14 @@ with no bypass. Repository immutable releases is enabled. Merge commits and squa
 are enabled. Preserve local stag-only CI on reconciliation, removing the one-time
 bootstrap main trigger in the first polish PR.
 
-Windows toolchain/cache run 40700593542 at cc268923 is still in progress. Its
-compiler/LSP build and portable preparation passed; installer/cache acceptance is
-running. Do not launch a duplicate run. Documentation audit is in progress locally.
+Windows toolchain/cache run 40700593542 at cc268923 completed failed. Compiler/LSP
+build and portable preparation passed. Both test compilation and all-target checking
+failed because the included dev_windows unit test referenced crate::TempDirectory
+which the integration harness did not define; no installer/cache tests ran. The
+existing CLI temporary-directory helper is now shared unchanged with that harness.
+Local installer acceptance passes 7/7 (15.37s), and backend all-target diagnostics
+pass cleanly. The repaired Windows job must still execute. Documentation audit
+was checkpointed at 800b10bf.
 Reconcile the accepted polish tree onto stag after its clean checkpoint, preserving
 all current edits and prior evidence. Linux installer/cache acceptance follows in
 the mandatory feature PR CI; do not publish merely to test release plumbing.
