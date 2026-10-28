@@ -26,12 +26,23 @@ async function main(): Task<void> {
 }
 ```
 
+## Match routes and run middleware
+
 Matching callbacks run in registration order and unwind in reverse order around
 `await next()`. Route registration accepts multiple callbacks. A returned response
-short-circuits downstream work. Literal paths, `:name` segments and terminal `/*`
-scopes are supported; `*` matches every path. GET also handles HEAD. Unmatched
-paths and methods return 404. Optional/regex segments, nested router mounting,
-route groups and automatic typed route parameters are not supported.
+short-circuits downstream work.
+
+| Pattern or request | Behavior |
+| --- | --- |
+| Literal path | Matches that path. |
+| `:name` segment | Matches a named path segment. |
+| Terminal `/*` | Matches a path scope. |
+| `*` | Matches every path. |
+| HEAD request | Uses the matching GET route. |
+| Unmatched path or method | Returns 404. |
+
+Optional/regex segments, nested router mounting, route groups and automatic typed
+route parameters are not supported.
 
 ## Read request bodies
 
@@ -61,6 +72,7 @@ app.post('/echo', async (c) => {
 });
 ```
 
+Register this route **before** calling `app.listen`, which consumes the router.
 Add `import { s } from 'std:schema';` alongside the Router import in the server
 example above. The [complete request test](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/examples/http-context/json.test.tsr)
 also demonstrates malformed data, schema rejection and repeated-read failures.
@@ -95,29 +107,55 @@ response body through `c.res` are not supported.
 
 ## Application and request state
 
+### Share application state
+
 `Router<State, Variables>` owns application state once. `c.env` exposes it read-only;
-use supported concurrent handles for pool/cache/channel operations. `Variables`
-is a record declaring literal keys for `c.set` and `c.get`. A new request starts
-empty. Setting consumes a value and releases any replaced value. Getting returns
-undefined when absent; scalar values copy and other values borrow Context for the
-containing scope. End that scope before mutating Context. Arbitrary string keys,
-caller loans, local resources and detached context work are rejected.
+use supported concurrent handles for pool/cache/channel operations.
+
+### Store request-local values
+
+`Variables` is a record declaring literal keys for `c.set` and `c.get`. Each request
+starts with no stored values.
+
+- `c.set` consumes a value and releases any previous value for that key.
+- `c.get` returns `undefined` when the key is absent.
+- Scalar values copy; other values borrow Context for the containing scope.
+  End that scope before mutating Context.
+
+Arbitrary string keys, caller loans, local resources and detached context work are
+rejected.
 
 ## Cookies
 
-`getCookie(c, name)` returns the first valid matching cookie, percent-decoded with
-literal plus signs. Malformed escapes remain literal. `setCookie(c, name, value,
-options?)` appends a separate Set-Cookie header, with Path=/ by default and encoded
-UTF-8 values. Options include `domain`, `maxAge` (0..34560000 seconds), `secure`, `httpOnly`,
-`sameSite` and `partitioned`. `deleteCookie` writes an empty value with Max-Age=0;
-match the original path/domain. Invalid attributes throw. Secure/Host cookie
-prefix constraints and Partitioned's Secure requirement are checked. Expires,
-Priority and signed-cookie helpers are unsupported. Authentication, session expiry
-and duplicate-cookie policy belong to application code.
+Import `getCookie`, `setCookie` and `deleteCookie` from `std:http` as needed.
+
+| Helper | Behavior |
+| --- | --- |
+| `getCookie(c, name)` | Returns the first valid matching cookie, or `undefined` when absent. Percent-decodes the value; plus signs stay literal and malformed escapes remain literal. |
+| `setCookie(c, name, value, options?)` | Appends a separate Set-Cookie response header and percent-encodes the UTF-8 value. |
+| `deleteCookie(c, name, options?)` | Writes an empty value with Max-Age=0. Match the original path and domain. |
+
+### Cookie options
+
+| Option | Accepted values and default |
+| --- | --- |
+| `path` | An absolute cookie path; defaults to `/`. |
+| `domain` | Optional domain; omitted by default. |
+| `maxAge` | Integer seconds from 0 through 34560000. Omit for a session cookie; 0 requests deletion. |
+| `secure` | Boolean, defaults to false. |
+| `httpOnly` | Boolean, defaults to false. |
+| `sameSite` | `Strict`, `Lax` or `None` (lowercase also accepted); omitted by default. |
+| `partitioned` | Boolean, defaults to false; requires `secure: true`. |
+
+Invalid attributes throw `HttpError` with code `cookie`. Names prefixed with
+`__Secure-` require `secure: true`. Names prefixed with `__Host-` additionally require
+`path: '/'` and no domain. Expires, Priority and signed-cookie helpers are unsupported.
+
+Authentication, session expiry and duplicate-cookie policy belong to application
+code.
 
 See [context middleware](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/examples/http-context/main.tsr),
 [application/request state](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/examples/http-state/router.tsr) and
 [service routes](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/examples/service/main.tsr) for executable examples.
-
 
 Continue with [static files](../static-files/) or [clients, streaming and HTTPS](../http-transport/).

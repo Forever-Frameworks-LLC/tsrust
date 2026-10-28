@@ -55,7 +55,7 @@ original output stream. Suite setup/teardown output has its own scope label.
 
 ## Control terminal output
 
-Use `tsrust test --color never` for plain colors, or select `auto` or `always`.
+Use `tsrust test --color never` to disable ANSI color, or select `auto` or `always`.
 To use the compact line reporter, set `TSRUST_TEST_REPORTER=plain` in the process
 environment before launching the command. For example:
 

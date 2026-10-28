@@ -1451,3 +1451,25 @@ source-path closure, canonical temp roots and restored HTTP default-byte documen
 Do not launch another Cargo consumer until this batch finishes. Follow failures
 without weakening contracts; all-target diagnostic supplement remains needed after
 these final source repairs. Last accepted all-target check predates carrier/LSP edits.
+
+Status-page rendered audit: current587px preview entire page inspected top/bottom;
+no visible content overflow, clear headings/list/footer. Keyboard Tab selects Skip
+to content; Return then Tab focuses first content heading; following Tabs reach
+source-build instructions. Desktop/smaller mobile review pending. CUA tab4 reset/
+rebound this turn after stale browser.user error; currently status#_top, focus on
+source-build link. No viewport override applied. Do not mark page fully audited.
+
+
+### Documentation audit and acceptance follow-up
+
+- Windows run 40731485167 at 9b658857 completed successfully. This closes that
+  paired installer/binding acceptance run, not later local-source platform coverage.
+- Editor repair batch: HTTP, environment/file/time catalogs and all 12 native thread
+  checks pass. Intelligence: 326 pass; three remain (HTTP example listener bind,
+  SharedLruCache witness registration, nested/optional declared signature help).
+  Preserve completed evidence in /tmp/tsrust-editor-repair.log; no full rerun.
+- HTTP guide now separates route matching, state ownership and cookie options;
+  defaults/constraints traced to runtime. Entire HTTP and editor pages visually
+  inspected at 390px and 1440px with highlighting and no document overflow.
+  Remaining per-page acceptance stays open in the content-audit checklist.
+- Restarted the stopped local docs preview on port 4322 (Astro telemetry disabled).
