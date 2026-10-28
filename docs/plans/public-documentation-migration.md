@@ -58,15 +58,15 @@ feature-coverage evidence to reduce the inventory.
 | `language/array-from.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/array-literal-spread.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/arrow-functions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/assignment-values.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/assignment-values.md` | Migrated to website language/assignment-values; removed duplicate and updated Markdown links | Source, exact native examples, focused compiler/editor tests and full responsive review accepted |
 | `language/borrowed-optional-fallback.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/call-spread.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/callable-arrays.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/callable-expressions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/callable-fields.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/callable-locals.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/comma-contexts.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/comma-expressions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/comma-contexts.md` | Migrated to website language/comma-expressions; removed duplicate and updated Markdown links | Source, exact native examples, focused compiler/editor tests and full responsive review accepted |
+| `language/comma-expressions.md` | Migrated to website language/comma-expressions; removed duplicate and updated Markdown links | Source, exact native examples, focused compiler/editor tests and full responsive review accepted |
 | `language/declaration-lists.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/deferred-initialization.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/destructuring.md` | Audit and migrate current guidance; preserve any embedded history | Pending |

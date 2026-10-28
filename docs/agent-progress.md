@@ -1,6 +1,40 @@
 # Agent continuation state
 
-## Current continuation — type aliases and text imports accepted
+## Current continuation — assignment and comma guides accepted
+
+Previous turn made progress at 76ed7369 (alias/text migration). Current section
+migrates assignment-values and combines comma-expressions/comma-contexts into two
+canonical pages. Public site now has 34 pages. Removed the three superseded guides;
+updated relative Markdown links in feature coverage and the assignment milestone.
+Historical prose remains retained. No compiler, dependency or owner change.
+
+Source audit found the comma guide's owned replacement restriction was obsolete.
+Current assignment lowering reads stable targets after storing, and owning uses
+can transfer them. Corrected that claim and qualified method calls as non-consuming
+where the target remains usable. Split both pages into behavior, examples and
+ownership/limitations; five exact scenarios pass format idempotence, compiler
+checks and native expected output. Compiler scalar/owned assignment and comma/
+context integration targets pass 20 tests; two editor targets pass 2 tests.
+Logs: /tmp/tsrust-expression-doc-compiler.log and
+/tmp/tsrust-expression-doc-lsp.log. Commands completed; no validation left running.
+
+Full 390px/1440px presentation reviewed for both pages: readable sections,
+highlighting, no mobile document overflow, focusable code scrolls 40px with
+ArrowRight, keyboard skip and next-page navigation work. Tab 4 remains on the
+comma guide and viewport is reset. Final site build and internal links/anchors
+pass across 34 pages (/tmp/tsrust-expression-doc-site.log). Audit and migration
+rows updated. Whole-project formatter changed zero files and zero fingerprints;
+diff check passes. Local checkpoint is ready.
+
+Next: continue the finite migration inventory (declarations/deferred initialization,
+then values/types or collections). Keep fresh-platform setup, current Windows/Linux
+editor fixture, acquisition and actual Pages deployment open. No remote push,
+workflow dispatch, release, full-suite or performance run this section. Prior
+all-target acceptance remains valid for docs-only changes. Keep one writer and
+one Cargo target, jobs=1/incremental disabled; do not touch owner VS Code.
+
+
+## Prior continuation — type aliases and text imports accepted
 
 Previous turn made progress with switch checkpoint be24e9c2. This section migrates
 type aliases and text imports into two digestible canonical guides (32 site pages).
