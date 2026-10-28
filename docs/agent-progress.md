@@ -23,9 +23,11 @@ ubuntu-24.04, macos-15 and windows-2022. Ordinary PR CI remains unchanged. This
 hosted run resolves the unverified final handoff source and Windows execution;
 local build/test validation is prohibited. Last equivalent async run was the
 interrupted hardware-stop run; green CI 40663277431 excluded these targets.
-No equivalent three-platform async acceptance run exists. Push the coherent
-workflow checkpoint once, then dispatch CI with async_acceptance=true against
-that exact branch and record the resulting commit/run. No public release needed.
+Focused workflow checkpoint c5b3d4a9 was pushed once. CI run 40672007920 was
+manually dispatched with async_acceptance=true and confirms that exact SHA.
+All three jobs are live: Windows 122760867985, Linux 122760868408, macOS
+122760868454. Re-poll this run; do not restart it merely because a turn ends.
+No local build/test or public release was run. Acceptance remains pending.
 
 ## CI merge repair — 2026-10-28
 
