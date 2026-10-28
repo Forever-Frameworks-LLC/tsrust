@@ -90,7 +90,7 @@ feature-coverage evidence to reduce the inventory.
 | `language/numeric-literals.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/numeric-string-conversion.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/optional-chaining.md` | Migrated to canonical site language/optional-chaining | Accepted: source audit, six exact executable examples, focused regressions and full responsive/keyboard review. Duplicate removed and links migrated. |
-| `language/optional-default-parameters.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/optional-default-parameters.md` | Audit and migrate current guidance; preserve any embedded history | In progress: removed obsolete checkpoint/future-feature framing; four complete examples format/check/execute, focused scope/arity/once diagnostics pass. Remaining callback/source review, site migration and rendered acceptance pending. |
 | `language/optional-fields.md` | Migrated to canonical site language/optional-fields | Accepted: source audit, exact executable examples, focused regression evidence and full responsive/keyboard review complete. Removed duplicate guide and migrated links. |
 | `language/recursive-records.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/rest-parameters.md` | Audit and migrate current guidance; preserve any embedded history | Pending |

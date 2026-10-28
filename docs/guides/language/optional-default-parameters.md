@@ -1,17 +1,20 @@
 # Optional and default parameters
 
-Status: gate 98 has focused implementation acceptance. These examples pass the integrated compiler and generated native execution at O0 and O3. Full regression and performance measurements remain queued for checkpoint 101. See [the gate evidence](../../milestones/98-optional-default-parameters.md).
-
 ## Optional arguments
 
 `value?: T` accepts a value of type `T`, omission, or explicit `undefined`. Inside the function, the value has type `T | undefined`. Narrow it or use a nullish operation before an operation that requires `T`.
 
-```ts
+After native setup, save each complete example separately as `main.tsr` and run
+`tsrust run main.tsr`. Comments show the expected output.
+
+```tsrust
 function show(value?: int): string {
-    return String(value ?? 7);
+  return String(value ?? 7);
 }
-// Inside main:
-console.log(show(), show(undefined), show(0)); // 7 7 0
+
+function main() {
+  console.log(show(), show(undefined), show(0)); // 7 7 0
+}
 ```
 
 An optional marker does not permit `null` unless the declared type includes it. Optional parameters cannot precede required parameters. Extra arguments remain errors.
@@ -20,13 +23,14 @@ An optional marker does not permit `null` unless the declared type includes it. 
 
 `value: T = expression` evaluates the default only when the argument is omitted or explicitly `undefined`. A supplied `null`, zero, false, or empty string does not trigger a default. The initializer must satisfy the declared type.
 
-```ts
+```tsrust
 function pick(value: int | null = 5): int | null {
-    return value;
+  return value;
 }
-// Inside main:
-console.log(String(pick()), String(pick(undefined)), String(pick(null)));
-// 5 5 null
+
+function main() {
+  console.log(String(pick()), String(pick(undefined)), String(pick(null))); // 5 5 null
+}
 ```
 
 The accepted call type includes `undefined`, but the initialized body type excludes it when neither the declared type nor the default retains it. An explicit `T | undefined` declaration retains that union; flow analysis may narrow an initialized occurrence when its value is known to be present. Defaults can call functions and construct strings, arrays, records, or supported callable values. Existing access and origin checks still apply.
@@ -37,20 +41,22 @@ Callable type annotations describe omission with `?`. Initializer expressions be
 
 The callee and supplied arguments evaluate once, in source order, before defaults. Reached defaults then evaluate once, in parameter order. Earlier initialized parameters are available to later defaults. The current parameter, later parameters, and body-local declarations are unavailable in a default. Existing duplicate and reserved binding-name restrictions still apply.
 
-```ts
+```tsrust
 function mark(trace: int[], value: int): int {
-    trace.push(value);
-    return value;
+  trace.push(value);
+  return value;
 }
-function add(trace: int[], left: int = mark(trace, 1),
-             right: int = mark(trace, left + 1)): int {
-    return left + right;
+
+function add(trace: int[], left: int = mark(trace, 1), right: int = mark(trace, left + 1)): int {
+  return left + right;
 }
-// Inside main:
-const trace: int[] = [];
-console.log(add(trace));     // 3
-console.log(add(trace, 10)); // 21
-console.log(trace.join(",")); // 1,2,11
+
+function main() {
+  const trace: int[] = [];
+  console.log(add(trace)); // 3
+  console.log(add(trace, 10)); // 21
+  console.log(trace.join(",")); // 1,2,11
+}
 ```
 
 The second call skips the `left` initializer. Its `right` initializer sees the supplied value `10`.
@@ -59,12 +65,14 @@ The second call skips the `left` initializer. Its `right` initializer sees the s
 
 A default may precede a required parameter, but its position still needs an argument. Pass `undefined` to select that default.
 
-```ts
+```tsrust
 function choose(first: int = 5, required: int): int {
-    return first + required;
+  return first + required;
 }
-// Inside main:
-console.log(choose(undefined, 2)); // 7
+
+function main() {
+  console.log(choose(undefined, 2)); // 7
+}
 ```
 
 `choose(2)` is an arity error. A callable value representing this function has a required first slot accepting `int | undefined`, rather than an optional slot before a required slot. Forwarding invokes the selected function's default; the wrapper does not initialize that default itself.
@@ -77,4 +85,4 @@ Defaults preserve ordinary ownership rules. A skipped initializer creates no own
 
 ## Current boundaries
 
-Defaults do not add JavaScript coercions or change native string, integer, or collection behavior. Strings retain UTF-8 semantics and ordinary native integer limits apply. Parameter rebinding remains prohibited; mutable access permits supported receiver mutation, not assignment to the parameter binding. Rest parameters, destructuring, heterogeneous unions, and nullable array elements belong to later gates.
+Defaults do not add JavaScript coercions or change native string, integer, or collection behavior. Strings retain UTF-8 semantics and ordinary native integer limits apply. Parameter rebinding remains prohibited; mutable access permits supported receiver mutation, not assignment to the parameter binding. Rest parameters, destructuring patterns and nullable array elements are supported under their own type and ownership rules. Defaults do not relax those rules. See [rest parameters](rest-parameters.md), [pattern defaults](../../../website/src/content/docs/language/pattern-defaults-rest.md) and [nullable assignment](../../../website/src/content/docs/language/nullish-assignment.md).
