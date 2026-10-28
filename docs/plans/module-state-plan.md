@@ -86,7 +86,7 @@ measurement on both sides. No performance acceptance is claimed.
 This is focused globals acceptance, not S11 or release acceptance. Diagnostic-option
 drafts at `8d47c02b` remain unfinished. Installed-consumer refresh follows the source
 checkpoint; then resume S11. Full family regressions and measurement remain due at
-the S11 milestone. See [module variables](../guides/module-state.md) for usage.
+the S11 milestone. See [module variables](../../website/src/content/docs/language/modules.md#share-module-state) for usage.
 
 ## Consumer integration follow-up
 

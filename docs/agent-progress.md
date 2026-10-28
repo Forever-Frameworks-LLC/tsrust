@@ -2046,3 +2046,21 @@ open. The current CI run remains separate from these unpushed documentation edit
 No duplicate CI dispatch or release occurred. Continue remaining guide migration
 and platform acceptance; do not treat the growing site count as completion of the
 full migration inventory.
+
+## Module-state migration and factual correction
+
+Cross-guide review found the previously audited modules page still claimed exported
+module variables were unsupported and defaults required functions. project/mod.rs
+accepts local module binding defaults, confirmed by module_state.rs diamond import
+witness. Corrected both claims and merged docs/guides/module-state.md into the
+canonical modules page, updating its inbound plan link. Removed stale async/thread
+roadmap wording; module declarations still grant no thread-safety permission.
+
+Exact two-file live/default import example prints 1 then 3; standalone borrowed
+callback prints 1. Both pass format-write/check, compiler checks and native execution.
+No compiler source changed and temporary projects were removed. Changed sections
+are readable at 390px/1440px, no desktop overflow; keyboard skip reaches #_top.
+Existing unrelated module/data/alias acceptance remains retained. Public audit row
+records the missed claim and correction rather than hiding that follow-up.
+CI 40761578381 at remote 61ee67a4 has advanced to Compiler and CLI acceptance;
+extension/docs jobs passed. Local migrations remain unpushed to avoid duplicate CI.

@@ -3,7 +3,7 @@ title: Import and export modules
 description: Use named and default exports, source imports and checked data modules.
 ---
 
-A source module can expose named declarations and one default function. Source
+A source module can expose named declarations and one default export. Source
 imports accept explicit `.tsr` paths, extensionless files and directory `index.tsr`
 files. JSON and JSONC data imports require an explicit extension.
 
@@ -54,14 +54,84 @@ A named default declaration keeps its name inside its module. It does not also
 publish a named export; use the first form when both exports are needed.
 `import { default as greet } from "./greeting.tsr";` is also supported.
 
-Source default exports currently accept function declarations or a local function name.
-Arbitrary expressions, exported global variables and re-export statements remain
-unsupported. Each module permits one default export. Missing defaults, duplicate
+Source default exports accept function declarations or the name of a local function
+or module binding. Arbitrary expressions and re-export statements remain unsupported. Each module permits one default export. Missing defaults, duplicate
 exports and conflicting local import names are diagnosed.
 
-Imports resolve to the original function declaration. Default aliases introduce no
+Function imports resolve to the original declaration. Default aliases introduce no
 wrapper, allocation, implicit cloning or change to ownership, generic inference,
 or entrypoint selection. Only the selected entry module's main runs automatically.
+
+## Share module state
+
+Module variables initialize once, after their module dependencies, in declaration
+order. Imported bindings remain live: callers observe later changes made by the
+exporting module. An importer cannot reassign the imported binding itself.
+
+Save this as `state.tsr`:
+
+```tsrust
+export const settings = { retries: 3 };
+export let requests = 0;
+
+export function recordRequest() {
+  requests++;
+}
+
+export default settings;
+```
+
+Replace `main.tsr` with:
+
+```tsrust
+import settings, { requests, recordRequest } from './state.tsr';
+
+function main() {
+  recordRequest();
+  console.log(requests);
+  const local = clone(settings);
+  local.retries = 9;
+  console.log(settings.retries);
+}
+```
+
+Run `tsrust run main.tsr`; it prints `1`, then `3`. Both imports refer to the
+original module storage. `const` prevents rebinding, not field mutation; `let`
+permits rebinding within its declaring module. Neither creates an implicit clone.
+Use `clone` when you need an independent owned value.
+
+### Initialization and access
+
+An initializer may call functions, but they cannot read a later binding before it
+initializes. An initialization failure prevents `main` from running. Initialization
+also runs for an entry file without `main`.
+
+Functions borrow module storage according to their access, including indirect
+access through other functions. Active loans prevent conflicting mutations or
+consumption. A function cannot leave program-owned storage consumed.
+Module variables do not automatically acquire locks or permission to cross threads.
+
+### Callbacks retain live state
+
+A callback accessing module storage borrows the live owner; it does not take a
+private copy of scalar globals. Replace `main.tsr` with this standalone example:
+
+```tsrust
+let completed = 0;
+
+function apply(action: Mutable<Function<void, []>>) {
+  action();
+}
+
+function main() {
+  apply(() => { completed++; });
+  console.log(completed);
+}
+```
+
+This prints `1`. The borrowing callback contract permits access to the module
+owner. An owned `Function` contract rejects this borrowed capture. Choose the
+contract according to how the callback is used; do not silently snapshot state.
 
 ## Resolve source paths
 
