@@ -2,7 +2,8 @@
 
 ## Current continuation — public documentation audit
 
-Latest accepted checkpoint is 062d7e74 (Linux acceptance/cleanup);
+Latest accepted checkpoint is 57c1e6c2 (CRLF documentation extraction);
+062d7e74 records Linux acceptance/cleanup;
 b5b685ae contains canonical docs package smoke;
 f1c3784f contains compiler entry-point cleanup;
 a92ba656 contains the macOS memory probe; 110a8e29 records
@@ -48,6 +49,17 @@ complete checker/completion agreement, consistency and stdio. Aggregate CI passe
 Windows 40748893795 succeeded at 86435b88: installer/process 8/8, shared-source
 5/5 and package-management 7/7, including the new live-LSP update witness.
 Docs 40748887897 passed. No new hosted run, push, merge or release in this section.
+
+## Hosting configuration verification
+
+GitHub Pages API confirms build_type=workflow and HTTPS enforced at the expected
+/tsrust/ project URL. The github-pages environment has custom branch protection
+allowing only main. Deployment history is empty; direct public HEAD returns 404.
+Corrected the site checklist: hosting is configured, but no deployment is accepted.
+All 23 pages already have local responsive/keyboard inspection recorded in the
+content audit; marked that presentation/navigation item complete without claiming
+all outstanding platform examples or public-host recovery are accepted. No setting
+was changed and no deployment was triggered.
 
 ## Build-output cleanup
 
