@@ -1,7 +1,7 @@
 name: CI
 on:
   pull_request:
-    branches: [stag]
+    branches: [stag, main] # main is only for the one-time bootstrap below
   workflow_dispatch:
     inputs:
       async_acceptance:
@@ -35,7 +35,7 @@ env:
   CARGO_TERM_COLOR: always
 jobs:
   source:
-    if: ${{ !inputs.async_acceptance }}
+    if: ${{ !inputs.async_acceptance && (github.event_name != 'pull_request' || github.base_ref == 'stag' || github.head_ref == 'codex/staged-release-bootstrap') }}
     name: Compiler, LSP and renderer (${{ matrix.os }})
     strategy:
       fail-fast: false
@@ -83,7 +83,7 @@ jobs:
           cargo test --offline --locked --workspace --lib --bins --tests --no-fail-fast
           cargo test --offline --locked --workspace --doc
   editor:
-    if: ${{ !inputs.async_acceptance }}
+    if: ${{ !inputs.async_acceptance && (github.event_name != 'pull_request' || github.base_ref == 'stag' || github.head_ref == 'codex/staged-release-bootstrap') }}
     name: VS Code extension
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -132,7 +132,7 @@ jobs:
         run: cargo check --offline --locked -p tsrust-compiler -p tsrust-lsp --all-targets
   ci:
     name: ${{ inputs.async_acceptance && 'Async acceptance' || 'CI' }}
-    if: always()
+    if: ${{ always() && (github.event_name != 'pull_request' || github.base_ref == 'stag' || github.head_ref == 'codex/staged-release-bootstrap') }}
     needs: [source, editor, async]
     runs-on: ubuntu-24.04
     steps:
