@@ -17,8 +17,15 @@ CLI tests; crates/tsrust-lsp/tests/testing_async.rs has three editor witnesses.
 Neither target was selected by ordinary PR CI. Preserve previously completed
 synchronous/runtime evidence; validate the pending final source before dependent
 request-reader work. Hardware authorization was requested; no local build/test
-has resumed. Next: prepare the smallest hosted async/platform acceptance workflow
-or use local bounded validation only after the owner explicitly lifts the stop.
+has resumed. A manual async_acceptance mode in the existing CI workflow selects the eleven
+compiler/native/CLI cases, three LSP cases and backend all-target diagnostics on
+ubuntu-24.04, macos-15 and windows-2022. Ordinary PR CI remains unchanged. This
+hosted run resolves the unverified final handoff source and Windows execution;
+local build/test validation is prohibited. Last equivalent async run was the
+interrupted hardware-stop run; green CI 40663277431 excluded these targets.
+No equivalent three-platform async acceptance run exists. Push the coherent
+workflow checkpoint once, then dispatch CI with async_acceptance=true against
+that exact branch and record the resulting commit/run. No public release needed.
 
 ## CI merge repair — 2026-10-28
 
