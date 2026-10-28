@@ -13,15 +13,10 @@ Concrete specialization and unannotated generic values now live in
 and [Keep function values generic](https://forever-frameworks-llc.github.io/tsrust/language/generic-function-values/).
 The adapter, selection and replacement sections below are still being audited.
 
-## Adapt existing generic environments
+Adapting existing generic environments now lives in
+[Adapt an existing generic callback](https://forever-frameworks-llc.github.io/tsrust/language/generic-value-adapters/).
 
-An existing generic function value can also be assigned to a concrete callable
-annotation. A `Mutable<Function<...>>` view borrows its environment until the view
-leaves scope. A default owned `Function<...>` value transfers that environment;
-the original value then becomes unavailable. Adapters preserve captured state
-rather than constructing another factory instance. The executable examples in
-crates/tsrust-compiler/tests/fixtures/generic-value-adapters cover concrete contracts, map callbacks and
-record/array storage. Some other callback and nullable contexts remain unsupported.
+## Adapt fresh and selected factories
 
 A concrete owned callback can select between factories returning different generic
 function environments. For example, `const action: Function<int, [value: int]> =
