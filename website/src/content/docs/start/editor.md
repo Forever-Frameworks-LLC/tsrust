@@ -124,8 +124,7 @@ and disable the extension for that workspace. Include your OS, CLI/LSP versions,
 workspace size, reproduction steps and relevant **Output → Tsrust** messages when
 reporting the issue. Remove credentials and private source from shared logs.
 
-Earlier investigations led to fixes that release unrelated editor-buffer
-snapshots and superseded workspace-scan entries. Those fixes have focused tests
-and a bounded Windows protocol probe. Long-running macOS sessions have not yet
-been verified, so the historical memory report is not considered conclusively
-resolved across platforms.
+Known retention defects have been fixed. Focused tests, a bounded Windows protocol
+probe and a 30-minute macOS stress run pass. Those checks do not establish memory
+stability for every workspace or multi-hour session; report sustained growth using
+the details above.

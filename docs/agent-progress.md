@@ -2,7 +2,8 @@
 
 ## Current continuation — public documentation audit
 
-Latest accepted checkpoint is 57c1e6c2 (CRLF documentation extraction);
+Latest accepted checkpoint is b747784e (Pages configuration evidence);
+57c1e6c2 contains CRLF documentation extraction;
 062d7e74 records Linux acceptance/cleanup;
 b5b685ae contains canonical docs package smoke;
 f1c3784f contains compiler entry-point cleanup;
@@ -99,8 +100,8 @@ reference files, excluding historical benchmark/experiment records and packaged
 agent skills. Extended the existing distribution link guard to both edited guides.
 All 14 distribution/release-policy tests pass; the whole-project formatter changes
 zero files/fingerprints and git diff --check is clean.
-The macOS --soak process remains tracked by exec session 20376; do not restart it
-merely because observation expires. Sustained acceptance remains pending.
+The macOS --soak process (20376) completed successfully; see the current memory
+section below. It must not be restarted merely to reproduce a passing transcript.
 
 ## macOS memory validation
 
@@ -111,7 +112,12 @@ in 43.6s, with 34 samples, normal exit and no stderr. Maximum footprint 15,794,6
 bytes; sampled swapped/compressed maximum 3,457,024 bytes; system free 35–41%.
 The [memory investigation](milestones/lsp-memory-investigation.md) records limits
 and the exact binary hash. Added explicit --soak for a 30-minute workload with a
-31-minute hard stop. Sustained macOS evidence is not yet accepted. No Rust build,
+31-minute hard stop. The sustained macOS probe completed in 1,801,653 ms: 38,926 requests, 526 cycles,
+1,427 samples, no stderr/error and normal exit. Peak physical footprint 16,826,872
+bytes; maximum sampled swapped/compressed 15,581,184; system free 26–56%.
+Observed usage fell between cycles. This bounded small-workspace result does not
+prove arbitrary large-workspace/multi-hour stability. Public editor/package guidance
+now states those limits. No local probe process remains. No Rust build,
 performance benchmark or duplicate hosted run was needed.
 
 ## Repository entry-point audit
@@ -1974,3 +1980,20 @@ source-build link. No viewport override applied. Do not mark page fully audited.
   docs run 40748887897 is green. No new hosted dispatch or push. Continue those
   runs, remaining page audits and unrepaired retained-compatibility regressions;
   keep the full goal active.
+
+## Memory guidance acceptance and batched remote validation
+
+The completed 30-minute macOS probe supports the revised public editor and packaged
+README guidance; it does not establish large-workspace or multi-hour stability.
+The changed paragraph is readable in the local preview. The final static build
+and link/anchor checker pass all 23 pages; all 14 distribution/release-policy tests
+pass. Whole-project formatting changes zero files or benchmark fingerprints.
+
+Next remote validation batches the accepted local milestone into one normal child
+of PR #4 head 86435b8846badcfaf836af9c36da3fa56379f3a6, preserving its history.
+The push triggers the existing Linux PR CI and documentation workflow once.
+The unresolved remote question is hosted Linux acceptance of the accumulated
+compiler/editor/doc-tooling repairs; the previous equivalent baseline runs at
+86435b88 passed, but predate these repairs. No additional manual Windows run or
+release compilation is warranted for unchanged installer/cache code. Record the
+exact source checkpoint and compact remote commit after creation.
