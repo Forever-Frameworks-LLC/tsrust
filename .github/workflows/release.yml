@@ -66,6 +66,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
+        with:
+          cache-key: release
       - name: Packaging and documentation tests
         run: node --test tools/tests/distribution.test.mjs
       - name: Compile optimized consumers

@@ -1,5 +1,19 @@
 # Agent continuation state
 
+## Current priority: staged CI/release flow
+
+Owner now requests feature PRs into stag with tests and one approval (owner's own
+PRs need no second reviewer), then stag-to-main release builds on all supported
+platforms, automatic merge and publication of those same artifacts. Cache/reuse
+is explicitly requested to reduce time and Actions usage. Follow
+plans/staged-release-pipeline.md. No live branch/rules changes have been made.
+Pinned Rust caching is prepared locally; original setup had no cache.
+
+Reader session 61375 completed successfully: context-body runtime/form/multipart
+control, common-union clone regression and JSON catalog examples each passed.
+The four JSON native tests and JSON editor help had already passed. Preserve these
+results. Matched native benchmark verification remains pending; no timing started.
+
 ## Active polish continuation — 2026-10-28
 
 Owner requested a sustained goal covering language, CLI, docs and Windows support
