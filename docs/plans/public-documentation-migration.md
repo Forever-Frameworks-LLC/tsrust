@@ -67,8 +67,8 @@ feature-coverage evidence to reduce the inventory.
 | `language/callable-locals.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/comma-contexts.md` | Migrated to website language/comma-expressions; removed duplicate and updated Markdown links | Source, exact native examples, focused compiler/editor tests and full responsive review accepted |
 | `language/comma-expressions.md` | Migrated to website language/comma-expressions; removed duplicate and updated Markdown links | Source, exact native examples, focused compiler/editor tests and full responsive review accepted |
-| `language/declaration-lists.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/deferred-initialization.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/declaration-lists.md` | Merged into website language/declarations; removed duplicate and updated Markdown links | Source, examples, focused tests and full responsive review accepted |
+| `language/deferred-initialization.md` | Merged into website language/declarations; removed duplicate and updated Markdown links | Source, examples, focused tests and full responsive review accepted |
 | `language/destructuring.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/enums.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/exception-handling.md` | Audit and migrate current guidance; preserve any embedded history | Pending |

@@ -1,6 +1,39 @@
 # Agent continuation state
 
-## Current continuation — assignment and comma guides accepted
+## Current continuation — declarations guide accepted
+
+Previous turn made progress at a0a2a126. This section merges declaration-lists and
+deferred-initialization into language/declarations (35 site pages). Removed both
+superseded guides and updated Markdown links in coverage and historical milestones.
+Corrected stale claims that all declarators need initializers and comma expressions
+are unavailable. Non-optional callable variables still require initializers;
+optional callable types admitting undefined do not. No compiler or owner changes.
+
+Four exact page examples pass format idempotence, compiler checks and native
+assertions. Independent optional-callable witness prints true. Each loop form
+(while/for/for-of/do-while) rejects an after-loop unassigned read. Existing integration
+targets declaration_lists/uninitialized_let pass 4/4; exception-flow unit tests pass
+5/5; stdio named_capture diagnostics pass 3/3. Initial unit-test filter matched zero
+because the module is exception_completion_tests, not tests; corrected filter ran
+all five. Logs: /tmp/tsrust-declarations-doc.log, /tmp/tsrust-declarations-flow.log,
+/tmp/tsrust-declarations-editor.log. All validation commands completed.
+
+Full page reviewed at 390px/1440px, including corrected branch-exit wording. Table
+and sections readable, syntax highlighted, no mobile document overflow, code scrolls
+40px by keyboard, skip and section anchors work. Tab 4 is on declarations; viewport
+reset. Final build has 35 pages and internal links/anchors pass. Source and migration
+audit rows accepted. Whole-project formatter changed zero files and fingerprints;
+diff check passes. Local checkpoint is ready.
+
+Next: continue finite guide migration, preferably destructuring and related pattern
+forms together. Platform setup/current Windows-Linux editor fixture/acquisition and
+actual Pages deployment remain open. No push, workflow, release, full-suite or timing
+run this section. Reuse prior all-target compilation evidence for docs-only changes.
+One writer, one Cargo target, jobs=1 and incremental disabled. Owner's earlier
+hardware pause is lifted on this computer; do not touch owner VS Code.
+
+
+## Prior continuation — assignment and comma guides accepted
 
 Previous turn made progress at 76ed7369 (alias/text migration). Current section
 migrates assignment-values and combines comma-expressions/comma-contexts into two
