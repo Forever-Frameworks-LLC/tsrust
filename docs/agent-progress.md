@@ -2,7 +2,8 @@
 
 ## Current continuation — public documentation audit
 
-Latest accepted checkpoint is e33f4674 (retained native fixtures); d23dbf20
+Latest accepted checkpoint is ec0db552 (regression/Windows evidence); e33f4674
+contains retained native fixtures and d23dbf20
 contains the hover repair and tooling-guide audit;
 7612c271 retains the HTTP reader timing baseline. Current work
 repairs retained editor compatibility while completing the public-doc audit. The
@@ -39,6 +40,20 @@ Linux 40748887685 reached LSP transport and compiler agreement; extension passed
 Windows 40748893795 succeeded at 86435b88: installer/process 8/8, shared-source
 5/5 and package-management 7/7, including the new live-LSP update witness.
 Docs 40748887897 passed. No new hosted run, push, merge or release in this section.
+
+## Isolated macOS editor audit
+
+Current recovery integration passes: four automatic restarts, bounded fifth stop,
+manual reset and current-text diagnostics. Full editor integration also passes:
+native run/check tasks, formatter/save actions, quick fixes, imports and navigation,
+completion/hover/signature agreement, missing-server recovery and diagnostic ranges.
+The test fixture contained mojibake instead of emoji; repaired it with explicit
+JavaScript Unicode escapes and a surrogate-pair assertion. Actual UTF-16 diagnostic
+range checking passes. Logs: /tmp/tsrust-macos-editor-recovery.log and
+/tmp/tsrust-macos-editor-integration.log. Both runners exit 0. No owner VS Code
+profile was controlled. Neither check proves long-session memory stability.
+Repaired fixture execution on Windows/Linux remains pending. No Rust rebuild,
+full regression rerun or new hosted workflow was needed for this section.
 
 ## Regression reconciliation
 
