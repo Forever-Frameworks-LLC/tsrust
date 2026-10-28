@@ -1,6 +1,43 @@
 # Agent continuation state
 
-## Current continuation — nested declaration section accepted
+## Current continuation — nested capture and parameter pages accepted
+
+Previous checkpoint799de274. Audited/migrated nested guide's enclosing bindings,
+captured values, owner-return factories, inferred callback arrays and captured
+optional/default/rest sections into site nested-function-captures and
+captured-function-parameters. Traced lexical capture plans, named_capture_context/
+access, local_function_values wrappers and escape_work. Corrected retained owners
+versus scoped loans; direct owner transfers are not restored when a call ends.
+Removed fixture narration and supplied complete main programs with expected output.
+Deleted accepted duplicate sections; retained generic guide remainder. Migrated
+incoming function-expression/milestone171 and relevant coverage links. No compiler
+changes. Header/link updates to existing declaration page checked in navigation.
+
+Eight final exact programs format/check/native pass: captures5 outputs5 2,2,1;
+3;11,12/1 2/2;Pat;11 21 12. Parameter3 outputs13/15/18/2;1,3/11 3;10 15/19.
+Shortened final factory output after mobile review and reran only changed program.
+Compiler nested_function_captures20/owned_escape11 pass
+(/tmp/tsrust-capture-doc-contracts.log); captured_function_defaults7/rest5 pass
+(/tmp/tsrust-capture-param-doc-contracts.log). Editor capture1/default1/rest1 pass
+(/tmp/tsrust-capture-doc-editor.log,/tmp/tsrust-capture-param-doc-editor.log).
+Includes negative readiness/const/conflicting-view/borrowed-escape/once invocation
+and default failure/arity/type witnesses plus independent-state/drop behavior.
+
+Entire two pages reviewed390px/1440px, highlighted/focusable overflow code, zero
+document overflow, ArrowRight40px, skip/section/previous/next links pass. Dense
+loan explanation split and shorter final example visually reviewed.61-page build
+and internal links/anchors pass (/tmp/tsrust-capture-doc-site.log). Whole-project
+formatter before checkpoint. No full regressions, timings, hostedCI, push/release.
+
+Next: generic remainder in docs/guides/language/nested-functions.md. Audit concrete
+contexts, deferred polymorphism, adapters/lexical type scopes, owned/scoped
+selection, single-use call scopes, generic replacement and mutable factory arrays.
+Old unsupported/pending claims may be stale; verify rather than copy. Migration
+stays partial until every remaining paragraph/example is accepted. Remaining
+inventory/platform/acquisition/Pages work from prior continuation stays pending.
+Goal active; historical evidence preserved.
+
+## Prior continuation — nested declaration section accepted
 
 Previous checkpoint5b8e2d05. Split declaration scope, forward calls, recursive
 result inference and editor navigation out of615-line nested-functions guide into

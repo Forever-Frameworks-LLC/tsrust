@@ -104,7 +104,5 @@ help show checked source signatures. Definitions and references follow the selec
 binding when a name is shadowed, and the document outline nests local functions
 under their enclosing function.
 
-A nested function may also capture enclosing variables or be used as a callable
-value. Those uses follow the same ownership and capture checks as
-[arrow callbacks](/tsrust/language/arrow-functions/) and
-[local callable contracts](/tsrust/language/callable-locals/).
+Continue with [captured state and callback factories](/tsrust/language/nested-function-captures/)
+for enclosing bindings, stored callback loans and returned environments.

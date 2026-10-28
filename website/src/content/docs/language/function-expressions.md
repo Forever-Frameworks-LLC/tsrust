@@ -45,7 +45,7 @@ has no trailing `=>` between its signature and body.
 A statement beginning with `function` and a name declares a nested function.
 An anonymous `function` at the start of a statement is a `syntax` error: use the
 expression where a value is expected. See
-[nested declarations](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/docs/guides/language/nested-functions.md).
+[nested declarations](/tsrust/language/nested-functions/).
 
 ## Give an expression a private recursive name
 
