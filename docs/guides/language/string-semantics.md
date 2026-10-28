@@ -1,4 +1,11 @@
-# Native Rust string contract
+# Native string implementation history
+
+Current user guidance: [Work with strings](../../../website/src/content/docs/language/strings.md).
+
+This document retains original contracts and milestone observations. Later changes
+supersede some entries, including scalar concatenation and template conversions.
+Use the current guide and compiler-backed API help for supported behavior; historical
+benchmark and representation notes below remain evidence for their checkpoints.
 
 [Documentation index](../../README.md) · [String milestone](../../milestones/33-native-utf8-strings.md)
 
