@@ -84,7 +84,7 @@ feature-coverage evidence to reduce the inventory.
 | `language/native-files.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/nested-functions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/non-null-assertions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/nullable-callables.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/nullable-callables.md` | Audit and migrate current guidance; preserve any embedded history | In progress: qualified obsolete borrowed-origin replacement warning; five exact examples format/check/execute, replacement and lifetime-escape regressions pass. Site migration and rendered review pending. |
 | `language/nullish-assignment.md` | Audit and migrate current guidance; preserve any embedded history | In progress: corrected obsolete nullable-array destination restriction; seven exact examples format/check/execute, focused type/loan regression passes. Source review and site/rendered migration pending. |
 | `language/nullish-coalescing.md` | Migrated to canonical site language/nullish-coalescing | Accepted: source audit, six exact executable examples, focused regressions and full responsive/keyboard review. Duplicate removed and links migrated. |
 | `language/numeric-literals.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
