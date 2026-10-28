@@ -3,6 +3,9 @@ title: Find a standard-library API
 description: Choose a built-in module and use compiler-backed editor help for its exact contract.
 ---
 
+Start with the [global functions and types](../globals/), such as `clone`, `Result`,
+`unwrap` and `Task`; they need no import and appear in almost every file.
+
 Tsrust provides built-in modules for native programs. Import supported declarations
 using a `std:` module name. Built-in availability does not imply compatibility with
 Node packages or every JavaScript API of the same name.
@@ -29,7 +32,7 @@ Use named imports for the declarations you need. See
 | Serve or call HTTP APIs | [`std:http`](../../reference/library/http/) |
 | Work with SQLite or pooled databases | [`std:sqlite`](../../reference/library/sqlite/), [`std:sql`](../../reference/library/sql/) |
 | Schedule async work or use threads | [`std:futures`](../../reference/library/futures/), [`std:threads`](../../reference/library/threads/) |
-| Represent recoverable results | [`std:result`](../../reference/library/result/) |
+| Represent recoverable results | Global [`Result`, `Ok`, `Err` and `unwrap`](../globals/#result-ok-and-err) — no import |
 | Test native behavior | [`std:testing`](../../reference/library/testing/) |
 | Use native collections and caches | [`std:collections`](../../reference/library/collections/), [`std:cache`](../../reference/library/cache/) |
 | Work with clocks and calendar values | [`std:time`](../../reference/library/time/), [`std:date`](../../reference/library/date/) |
