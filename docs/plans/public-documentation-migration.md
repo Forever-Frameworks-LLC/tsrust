@@ -75,7 +75,7 @@ feature-coverage evidence to reduce the inventory.
 | `language/global-number-names.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/http-and-hono.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/in-operator.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/interfaces.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/interfaces.md` | Migrated to canonical site language/interfaces | Accepted: source audit, exact executable examples, focused regression evidence and full responsive/keyboard review complete. Removed duplicate guide and migrated links. |
 | `language/labeled-control.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/logical-operators.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/map-group-by.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
@@ -91,7 +91,7 @@ feature-coverage evidence to reduce the inventory.
 | `language/numeric-string-conversion.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/optional-chaining.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/optional-default-parameters.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/optional-fields.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/optional-fields.md` | Migrated to canonical site language/optional-fields | Accepted: source audit, exact executable examples, focused regression evidence and full responsive/keyboard review complete. Removed duplicate guide and migrated links. |
 | `language/recursive-records.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/rest-parameters.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/result-match.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
