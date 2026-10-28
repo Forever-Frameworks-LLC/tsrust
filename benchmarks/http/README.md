@@ -9,7 +9,9 @@ JSON.parse and an explicit integer/shape check. Both enforce a 1 MiB body limit.
 The workload measures the combined loopback stack, not parser-only throughput.
 Run `node benchmarks/http/run.mjs --readers --verify` for one untimed batch;
 measurement retains three processes, eight warmups and 31 samples. Current source
-identities are in readers-manifest.json. No timed measurement is claimed yet.
+identities are in readers-manifest.json. Both native and Node-after-tsc passed
+the untimed batch on macOS arm64 at source 1ca135b1, checksum 5376 each.
+No timed measurement is claimed yet.
 
 Run with Node v24.11.1 first on PATH and TSRUST pointing at the verified compiler:
 

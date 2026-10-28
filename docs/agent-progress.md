@@ -9,10 +9,37 @@ is explicitly requested to reduce time and Actions usage. Follow
 plans/staged-release-pipeline.md. No live branch/rules changes have been made.
 Pinned Rust caching is prepared locally; original setup had no cache.
 
-Reader session 61375 completed successfully: context-body runtime/form/multipart
-control, common-union clone regression and JSON catalog examples each passed.
-The four JSON native tests and JSON editor help had already passed. Preserve these
-results. Matched native benchmark verification remains pending; no timing started.
+Pipeline source checkpoint 1ca135b1 passes 14 local packaging/promotion-policy
+checks and YAML parsing. No hosted jobs were started. GitHub rejected the proposed
+Actions tag-creation bypass with HTTP 422; no rule changed. Owner choices remain
+pending for PR #2 bootstrap merging and tag creation permissions. Preserve live
+protections while awaiting them; see the pipeline plan for exact migration order.
+
+Request-reader native/Node untimed verification passed on 1ca135b1 with the clean
+source tree: 128 JSON/schema + UTF-8 stream pairs per engine, checksum 5376 each.
+CLI SHA256 2b9239d26a636b509ced7a6ba86eaefe6ea6fefec571e92759eb949139be29c1;
+source hashes remain pinned in benchmarks/http/readers-manifest.json. No timing
+samples were recorded or imported. The disposable verification JSON was removed
+after recording this result.
+
+Final reader agreement now covers Request/Context/Body, two new owned/contextual
+request typing-speed rows, HTTP catalog reachability and backend all-target
+checking. The initial unrestricted agreement run was explicitly stopped before
+finishing because it included unrelated UI receivers; it is not passing evidence.
+Focused session 39115 completed successfully: 3 checker tests (filtered receiver
+loop), 3 matrix tests (two HTTP rows), 1 HTTP catalog test, and all-target check
+with zero warnings/errors in 48s. Logs: /tmp/tsrust-readers-editor-agreement.log and
+/tmp/tsrust-readers-all-targets.log. Preserve prior native/JSON catalog checks.
+
+Next SDK section: tools/verify-sdk-native-replicas.mjs adds a self-contained native
+old/new service fixture and generated Rust/TypeScript consumers. It checks real
+authorization, shared operations, new-operation rejection, wrong API-major refusal,
+async credentials and no mutation effects on rejected calls. Syntax check passed; execution exposed a fresh macOS scaffold failure: imports
+from the virtual target/tsrust-api/server.tsr traverse nonexistent directories.
+Repair compiler-owned source resolution before retrying this witness. Log:
+/tmp/tsrust-sdk-native-replicas.log. No SDK acceptance is claimed yet. Temporary
+services/projects are owned by the fixture and cleaned up; no retained binary or
+owner application is required. This supplements accepted legacy JS replica evidence.
 
 ## Active polish continuation — 2026-10-28
 
@@ -63,7 +90,7 @@ Windows/Linux evidence into a targeted hosted run after local acceptance. Do not
 restart the cancelled run or repeat already-passed async jobs. Package
 smokes are not paired installer/update or locked-LSP acceptance.
 
-## Request-body section in progress
+## Request-body section — focused acceptance complete
 
 Contextual streaming now lowers c.req.body() through a mutable Context operation
 that reuses take_request_body. It returns the existing bounded Stream, keeps request
@@ -77,8 +104,8 @@ than unchecked generic casts. Its docs, editor signature witness, native async
 fixture, invalid argument/type/ownership witnesses and matched request-readers
 benchmark sources are present. The benchmark retains 3 processes, 8 warmups,
 31 samples and 128 paired requests; source/oracle registration passed. Timing is
-not yet measured. Remaining acceptance includes current compiler/native/editor
-results, malformed/limits/form/multipart controls and matched untimed execution.
+not yet measured. Focused compiler/native/editor, malformed/limits/form/multipart
+controls and matched untimed execution are complete; see the current summary above.
 
 Backend all-target check passed locally with debug symbols disabled. Initial
 focused test session 76323 hit sandbox loopback denial; it was stopped after
@@ -102,11 +129,10 @@ JSON tests passed through target/debug/tsrust test. JSON LSP hover/signature hel
 also passed. The test success helper now includes stdout so std:testing assertion
 failures remain visible beside stderr.
 
-Session 61375 currently runs only the remaining common-union clone regression,
+Session 61375 completed successfully: common-union clone regression,
 context_body_readers runtime control (including form/multipart), and JSON catalog
-examples. Log: /tmp/tsrust-body-final-controls.log. Reuse this handle. Remaining
-after it: matched native untimed reader benchmark, final affected diagnostics and
-evidence reconciliation. Preserve completed HTTP/async evidence.
+examples passed. Log: /tmp/tsrust-body-final-controls.log. Matched native/Node
+untimed verification subsequently passed; current remaining checks are above.
 
 Node-after-tsc request-readers verification passed 128 JSON/stream pairs with
 checksum 5376 using localhost access. Benchmark registration and all six local

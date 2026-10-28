@@ -27,8 +27,11 @@ as arbitrary TypeScript compatibility or revival of deferred UI work.
   the testing_async integration targets. Hosted run 40672007920 on c5b3d4a9
   subsequently passed all 11 compiler/native cases, 3 LSP cases and all-target
   diagnostics on Linux, macOS and Windows.
-- [ ] Complete request-body JSON decoding and contextual body streaming with
+- [x] Complete request-body JSON decoding and contextual body streaming with
   limits, one-consumption behavior, error handling, docs and editor agreement.
+  Focused native/compiler/catalog controls, HTTP receiver agreement and both
+  typing-speed rows pass; native/Node untimed readers each produce 5376.
+  Backend all-target diagnostics are clean. Timings remain a milestone task.
 - [ ] Close remaining generated TypeScript/Rust SDK authorization and compatible/
   incompatible replica execution requirements against a real native service.
 - [ ] Finish ordinary binding dependency migration while retaining exact offline
