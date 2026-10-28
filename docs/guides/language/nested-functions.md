@@ -11,7 +11,7 @@ Optional/default/rest behavior for stored captured functions now lives in
 Concrete specialization and unannotated generic values now live in
 [Specialize a generic function value](https://forever-frameworks-llc.github.io/tsrust/language/generic-function-contexts/)
 and [Keep function values generic](https://forever-frameworks-llc.github.io/tsrust/language/generic-function-values/).
-The source-flow, lexical-scope, selection and replacement sections below are still being audited.
+The source-flow, selection and replacement sections below are still being audited.
 
 Adapting existing generic environments now lives in
 [Adapt an existing generic callback](https://forever-frameworks-llc.github.io/tsrust/language/generic-value-adapters/).
@@ -35,49 +35,10 @@ enter handlers before destination assignments commit. Expression writes and
 captured effects remain part of the source-flow audit.
 
 
-A named callable assignment can be invoked immediately, for example
-`(action = action)<int>(7)`. Replacement happens before arguments are evaluated,
-and invocation uses the stored callable's existing read, mutate or once contract.
-Self-assignment retains captured state. Replacing the receiver during an argument
-is rejected while invocation borrows it; a once call consumes it. This creates no
-implicit clone. Assignment results escaping as owned values and record/array
-assignment callees retain their existing restrictions.
-
-Nested declarations can name their enclosing function's type parameters. Each
-concrete outer call supplies that lexical type environment without adding explicit
-type arguments to the nested declaration. A nested function's own type parameters
-shadow enclosing parameters with the same name. Explicit and inferred calls,
-recursive peers, saved function values and module imports retain the same rule.
-Escaped functions retain their original owned captures; a consuming call transfers
-those values once. Failure disposes the original capture without an implicit clone.
-
-A generic callable can pass through another generic function without losing its
-own type parameters. For example, a factory can retain a callable and return a
-selector that transfers it to the caller:
-
-```tsr
-function identity<T>(value: T): T { return value; }
-function retain<A>(action: A) {
-    function select() { return action; }
-    return select;
-}
-function main() {
-    const select = retain(identity);
-    const saved = select();
-    console.log(saved<int>(7), saved<string>("Pat"));
-    // 7 Pat
-}
-```
-
-The returned callable keeps its original parameter counts, type relationships and
-capture ownership. Different factory calls retain independent environments. A
-selector that returns its owned captured callable transfers that callable when
-invoked; it cannot return the same owned value a second time. Calls to the
-transferred callable can use different type arguments if its capture access allows
-reuse. A callable that consumes a captured owner still permits only one call.
-Borrowed environments cannot escape through this factory. Returning a callable
-uses the existing ownership rules and does not copy its captured owners.
-
+Named assignment invocation now lives in
+[Call a named assignment result](https://forever-frameworks-llc.github.io/tsrust/language/callable-expressions/#call-a-named-assignment-result).
+Lexical type inheritance and callable transport through factories now live in
+[Use enclosing generic types](https://forever-frameworks-llc.github.io/tsrust/language/lexical-generic-functions/).
 
 ## Selecting owned functions
 

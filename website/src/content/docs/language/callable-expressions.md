@@ -90,6 +90,38 @@ function main() {
 This selection differs from reassigning an annotated local to a different origin;
 see [local callable annotations](/tsrust/language/callable-locals/#replace-and-select-environments).
 
+## Call a named assignment result
+
+Assigning a named callable and invoking that result replaces its storage before
+argument evaluation. Self-assignment keeps the existing environment. A replacement
+uses the new environment's ordinary read, mutable or single-use call contract.
+
+```tsrust
+function make(start: int) {
+  let calls = start;
+  function select<T>(value: T): T {
+    calls += 1;
+    console.log(calls);
+    return value;
+  }
+
+  return select;
+}
+
+function main() {
+  let action = make(10);
+  (action = action) < int >(7); // 11
+  (action = make(20)) < string >("text"); // 21
+}
+```
+
+Replacing that receiver again while evaluating an argument is rejected when the
+invocation borrows it. A consuming invocation still transfers its captures once;
+self-assignment does not restore them.
+
+This call form does not create an independent owned copy of an assignment result. Other destinations and escaping assignment
+results retain their [assignment ownership rules](/tsrust/language/assignment-values/).
+
 ## Preserve captured ownership and borrows
 
 Calling a fresh expression does not implicitly clone captures or arguments. A
