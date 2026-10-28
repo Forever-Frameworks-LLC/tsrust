@@ -1,6 +1,43 @@
 # Agent continuation state
 
-## Current continuation — callable array storage and method guides accepted
+## Current continuation — local callable guide accepted; field corrections underway
+
+Previous checkpointfd2a0a89 accepted callable array storage/method pages (11 exact
+examples, compiler19/editor6 checks, responsive/keyboard and52-page build/links).
+Local callable guide now migrated and accepted. Five exact complete examples pass
+format/check/native:3/3/7;1 2/3/5;3/4;7;7. Compiler callable_locals6 pass
+(/tmp/tsrust-local-callable-doc-contracts.log); LSP annotated help1 passes
+(/tmp/tsrust-local-callable-doc-editor.log). Current annotated reassignment rejects
+callable-origin, borrowed factory result rejects callback-escape; compatible owned
+conditional selection executes. Conditional carrier source preserves compatible
+owned alternatives. Split dense paragraphs and added lexical scope/selection
+examples; compact F annotation table fixes narrow behavior column. Entire390px/
+1440px page reviewed, revised table reviewed both widths; zero document overflow,
+highlighted/focusable code, keyboard scroll40px, skip/previous/next/section links
+pass.53-page build and internal links/anchors pass
+(/tmp/tsrust-local-callable-doc-site.log). Duplicate removed. Viewport reset;
+tab4 retained on local guide. Whole-project formatter before checkpoint.
+
+Field guide remains in progress. Its stale restrictions were false: checked concrete
+borrowing records execute in arrays, local Map values populated with set, and nullable
+record values (three exact temporary check/native witnesses print3). A Map constructor
+from a pair-array attempts to clone these noncloneable values and still rejects;
+that failure does not prohibit local Map storage. Source scoped_record_containers.rs
+and scoped_map_carriers.rs traced. Caller callback parameters may be stored with
+retained caller loans; callback_input_alias_retains_original_owner1 passes
+(/tmp/tsrust-callable-field-doc-input.log). Corrected blanket container/nullable-
+replacement/callback-input/direct-array/conditional restrictions in the old guide,
+without calling its whole audit complete. Retained prior nullable replacement
+acceptance; source_field_contract_and_ownership_errors contains nested-callable and recursive
+layout rejection witnesses; rerun those when completing the field section. No new platform/performance claims.
+
+Next: finish callable-fields source and exact-example audit, split owned/borrowing
+field tasks as useful, migrate and complete rendered acceptance. Then remaining
+finite language/library migration. Windows/Linux editor fixture/acquisition, platform
+setup commands and actual Pages deployment remain pending. Goal active. All commands
+finished; no compiler changes, broad suite, timings, hosted CI, push or release.
+
+## Prior continuation — callable array storage and method guides accepted
 
 Previous checkpoint879023df. Audited callable-arrays against inferred storage,
 checked callable storage and transform/sorting/reduction continuations. Split

@@ -73,7 +73,7 @@ Each field keeps its own borrow. Sibling fields of one record, and fields of nes
 
 Replacing a field ends the borrow of the old callback when the old callback can no longer be reached. A replacement in only one branch, or in a loop body that may not run, keeps the old borrow, because the old callback may still be in the field.
 
-A function can take such a record as `ReadOnly<Holder>` to call its fields, or as `Mutable<Holder>` to call `Mutable` fields and replace callbacks. A callback stored through a record parameter must not borrow from the function that stores it: it can capture numbers and booleans, which are copied, but not a parameter or local of that function. Storing a callback parameter there is rejected for the same reason.
+A function can take such a record as `ReadOnly<Holder>` to call its fields, or as `Mutable<Holder>` to call `Mutable` fields and replace callbacks. A callback stored through a record parameter must not retain a callee-local owner beyond that call. Eligible caller-owned callback parameters can be stored or wrapped in the field; their original caller loans remain active while the stored callback is reachable. Scalar captures such as numbers and booleans copy. A borrowed input cannot become an owning result merely by being wrapped in a callback.
 
 A record that holds a borrowing callback cannot be returned, thrown or stored where it would outlive the borrowed variables. These uses report `callback-escape`.
 
@@ -104,12 +104,11 @@ function main() {
 
 The error that a handler receives from a field call has every type that a callback of any constructed record of that type can raise. In the example both a string and a number reach `guarded`, so the handler narrows with `typeof`. Records constructed anywhere in the program count, also in functions written after the handler. If the program constructs no record of the type, the failures of its callback field are unknown and a handler that names the error reports `error-effect`.
 
-Current limits of borrowing fields:
+Checked concrete borrowing records can be stored in local arrays, Map values, tuples and nullable record values while preserving the original capture loans. This does not admit arbitrary declaration-only container layouts or make the records cloneable. Set keys retain their ordinary supported-key restrictions.
 
-- An array, `Map`, `Set` or union type cannot hold such a record. Tuples can.
-- A field declared `ReadOnly<Function<...>> | null` (or optional) can be created and read, but not replaced.
+Nullable or optional borrowing callback fields support checked replacement as well as creation and reading. See [nullable callable storage](https://forever-frameworks-llc.github.io/tsrust/language/nullable-callables/) for replacement and invocation rules.
 
-Current limitations: callable signatures containing other callable parameter/result types require further native layout support. Recursive by-value record/environment cycles require indirection support and currently report `callable-layout`. Direct arrays of callable values and joins of unannotated callable locals are separate integration steps. These limitations do not prevent replacing a field with distinct compatible environment origins.
+Current limitations: callable signatures containing other callable parameter/result types require further native layout support. Recursive by-value record/environment cycles require indirection support and currently report `callable-layout`. [Direct arrays of callable values](https://forever-frameworks-llc.github.io/tsrust/language/callable-arrays/) and compatible conditional callable selection are supported under their checked contracts. Reassignment of an annotated local still requires its concrete origin to agree. These limitations do not prevent replacing a field with distinct compatible environment origins.
 
 Unused callable record declarations compile without creating an environment. Imported records retain private nominal parameter/result types; importing a record does not make those private type names visible in the caller.
 
