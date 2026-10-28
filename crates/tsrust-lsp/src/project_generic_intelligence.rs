@@ -85,10 +85,16 @@ impl SourceIndex {
                         ))
                     })
                     .collect::<Option<Vec<_>>>()?;
+                let result=self.project_type_spelling(graph, current, result, dependencies)?;
+                if *ownership==CallableOwnership::Program && parameters.is_empty() && result=="void" {
+                    // The private registered-callback boundary accepts both
+                    // source signatures without widening ordinary Function<void>.
+                    return Some("Owned<Function<void>> | Owned<Function<Task<void>>>".into());
+                }
                 Some(tsrust_compiler::type_syntax::function_type_text(
                     prefix,
                     &parameters,
-                    &self.project_type_spelling(graph, current, result, dependencies)?,
+                    &result,
                 ))
             }
             ProjectType::StructuralReference { identity, retained } => {

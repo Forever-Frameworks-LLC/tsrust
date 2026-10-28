@@ -1,0 +1,30 @@
+import { afterEach, afterAll, test, strictEqual } from 'std:testing';
+import { delay } from 'std:futures';
+
+let finished = 0;
+
+afterEach(async () => {
+  await delay(0);
+  finished += 1;
+});
+
+afterAll(async () => {
+  await delay(0);
+  strictEqual(finished, 3);
+  console.log('cleanup done');
+});
+
+test('throw', async () => {
+  await delay(0);
+  throw 'awaited failure';
+});
+
+test('assertion', async () => {
+  await delay(0);
+  strictEqual(1, 2);
+});
+
+test('later', async () => {
+  await delay(0);
+  console.log('later body');
+});

@@ -375,7 +375,7 @@ fn run() -> Result<u8, String> {
     let run_project = if command == "run" { project_config::discover()? } else { None };
     let cache_root = match env::var_os("TSRUST_CACHE_DIR") {
         Some(path) => PathBuf::from(path),
-        None if command == "test" || (command == "run" && run_project.is_none()) => directory.0.join("cache"),
+        None if command == "run" && run_project.is_none() => directory.0.join("cache"),
         None => run_project.map(|project| project.root).unwrap_or(env::current_dir().map_err(|error| error.to_string())?)
             .join("target/tsrust-native"),
     };

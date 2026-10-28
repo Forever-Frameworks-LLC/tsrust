@@ -2066,7 +2066,9 @@ impl Emitter<'_> {
             if closure.program_scoped {
                 if !matches!(checked.kind, CallbackKind::Program | CallbackKind::ProgramReusable) { continue; }
                 let separator = if forwarded.is_empty() { "" } else { ", " };
-                let body = convert(format!("self.call({forwarded}{separator}program,registry)"));
+                let call=format!("self.call({forwarded}{separator}program,registry)");
+                let call=if closure.program_async{"tsrust_native_futures::testing_await(TsrTestAsyncCallback::invoke_async(self,program,registry))".into()}else{call};
+                let body = convert(call);
                 let _ = writeln!(output, "impl{impl_lifetimes} ProgramCallback<{arguments},{result}> for Closure{index}{lifetime}{forwarded_where} {{ fn invoke_program(&mut self,args:{arguments},program:&mut TsrTestContext<'_>,registry:&mut TsrTestRegistry)->{result}{{{body}}} }}");
                 continue;
             }
@@ -2552,7 +2554,7 @@ impl Emitter<'_> {
             }
         }
         for (index, closure) in self.program.closures.iter().enumerate() {
-            let asynchronous=if self.program.task_origins.contains(&index){"async "}else{""};
+            let asynchronous=if self.program.task_origins.contains(&index) || closure.program_async{"async "}else{""};
             let task_await=if asynchronous.is_empty(){""}else{".await"};
             if closure.function.template {
                 continue;
@@ -2636,7 +2638,11 @@ impl Emitter<'_> {
                 .map_or_else(||receiver.to_owned(),|lifetime|format!("&{lifetime} mut self"));
             let receiver=signature.and_then(|signature|signature.receiver).map_or(receiver,|mode|format!("&'native_receiver {}self",if mode==Mode::Mutate {"mut "}else{""}));
             let mut parameters = signature.map_or(parameters, |signature| format!(", {}", signature.params));
-            if closure.program_scoped { parameters.push_str(", test_program: &mut TsrTestContext<'_>, test_registry: &mut TsrTestRegistry"); }
+            let program_factory=closure.program_scoped && self.program.task_type(closure.function.result);
+            if closure.program_scoped {
+                parameters.push_str(if program_factory{", test_program: TsrTestContext<'_>, test_registry: &mut TsrTestRegistry"}
+                    else{", test_program: &mut TsrTestContext<'_>, test_registry: &mut TsrTestRegistry"});
+            }
             let call_generics = signature.map_or(call_generics, |signature| signature.generics.clone());
             let replacement_where = signature.map_or_else(String::new, |signature| signature.replacement_where.clone());
             let native_result = signature.map_or(native_result, |signature| match &result_layout {
@@ -2647,12 +2653,12 @@ impl Emitter<'_> {
             // implicit &self lifetime chosen by Rust method elision.
             let task_argument_loan = signature.is_none()
                 && self.program.task_type(closure.function.result)
-                && native_result.contains("'_")
-                && closure.parameters.iter().any(|&id| matches!(closure.function.bindings[id].mode,Mode::Read|Mode::Mutate));
+                && (native_result.contains("'_") || program_factory)
+                && (closure.program_scoped || closure.parameters.iter().any(|&id| matches!(closure.function.bindings[id].mode,Mode::Read|Mode::Mutate)));
             let (receiver,parameters,call_generics,native_result) = if task_argument_loan {
-                let parameters=parameters.replace(": &", ": &'task ");
+                let parameters=parameters.replace(": &", ": &'task ").replace("TsrTestContext<'_>","TsrTestContext<'task>");
                 let call_generics=if call_generics.is_empty(){"<'task>".into()}else{format!("<'task,{}",&call_generics[1..])};
-                let receiver=if closure.captures.iter().any(|capture|capture.storage==Mode::Consume){receiver.replace('&',"&'task ")}else{receiver};
+                let receiver=if closure.captures.iter().any(|capture|capture.storage==Mode::Consume || capture.storage==Mode::Copy && capture.access==Mode::Mutate){receiver.replace('&',"&'task ")}else{receiver};
                 (receiver,parameters,call_generics,native_result.replace("'_","'task"))
             } else {(receiver,parameters,call_generics,native_result)};
             let _ = writeln!(
@@ -2827,17 +2833,28 @@ impl Emitter<'_> {
                 arguments.into_iter().filter(|value|!value.is_empty()).collect::<Vec<_>>().join(", ")
             }, |(target,_)|self.forwarded_record_trait_arguments(*target,&forwarded));
             if closure.program_scoped {
+                // A task factory lends context to its returned task. Its
+                // registered adapter awaits that task before releasing loans;
+                // a non-lending ProgramCallback<R> cannot express this ABI.
+                if self.program.task_type(closure.function.result) {continue;}
                 let separator = if forwarded.is_empty() { "" } else { ", " };
-                let _ = writeln!(output, "impl{impl_lifetimes} ProgramCallback<{arguments}, {native_result}> for Closure{index}{lifetime}{forwarded_trait_where} {{ fn invoke_program(&mut self, args:{arguments}, program:&mut TsrTestContext<'_>, registry:&mut TsrTestRegistry)->{native_result} {{self.call({forwarded}{separator}program,registry)}} }}");
+                let call=format!("self.call({forwarded}{separator}program,registry)");
+                if closure.program_async {
+                    debug_assert!(params.is_empty());
+                    let _=writeln!(output,"impl{impl_lifetimes} TsrTestAsyncCallback for Closure{index}{lifetime}{forwarded_trait_where} {{type Output={native_result};fn invoke_async<'a,'p:'a>(&'a mut self,program:&'a mut TsrTestContext<'p>,registry:&'a mut TsrTestRegistry)->std::pin::Pin<Box<dyn std::future::Future<Output=Self::Output>+'a>>{{Box::pin({call})}}}}");
+                }
+                let call=if closure.program_async{"tsrust_native_futures::testing_await(TsrTestAsyncCallback::invoke_async(self,program,registry))".into()}else{call};
+                let _ = writeln!(output, "impl{impl_lifetimes} ProgramCallback<{arguments}, {native_result}> for Closure{index}{lifetime}{forwarded_trait_where} {{ fn invoke_program(&mut self, args:{arguments}, program:&mut TsrTestContext<'_>, registry:&mut TsrTestRegistry)->{native_result} {{{call}}} }}");
                 self.callback_result_adapters(&mut output,index,&params,&arguments,&forwarded,&impl_lifetimes,&lifetime,&native_result);
                 continue;
             }
-            // HTTP retains this receiver while polling its borrowed task. The
-            // ordinary callback traits cannot express a result borrowing self.
+            // Retained HTTP and test factories keep this receiver alive while
+            // polling its borrowed task. Ordinary callback traits cannot
+            // express a result borrowing self, including copied scalar writes.
             if let Type::Closure(result)=closure.function.result
                 && self.program.task_origins.contains(&result)
                 && self.program.closures[result].borrowed
-                && closure.captures.iter().any(|capture|capture.storage==Mode::Consume) {continue;}
+                && closure.captures.iter().any(|capture|capture.storage==Mode::Consume || capture.storage==Mode::Copy && capture.access==Mode::Mutate) {continue;}
             if self.callback_traits || self.program.task_origins.contains(&index) {
                 let result = native_result.clone();
                 let task_trait=if asynchronous.is_empty(){"OnceCallback"}else{"TaskCallback"};
@@ -3640,10 +3657,13 @@ impl Emitter<'_> {
         let _controls=self.control_targets.callable_boundary();
         let pending=self.completion_body_frame(fun,body,id,error_name,contract,runtime,true);
         let normal=if fun.result==Type::Void {"Ok(())"}else{"unreachable!(\"checked non-void callable cannot fall through\")"};
-        let suite_scope=crate::error_effects::checked_expressions(fun).iter().any(|expression|matches!(expression.target,Some(CallTarget::NativeBinding(id)) if crate::native_bindings::BINDINGS[id].module=="std:testing-runtime" && matches!(crate::native_bindings::BINDINGS[id].name,"beginSuite"|"beginFile")));
+        let suite_scope=crate::error_effects::checked_expressions(fun).iter().any(|expression|matches!(expression.target,Some(CallTarget::NativeBinding(id)) if crate::native_bindings::BINDINGS[id].module=="std:testing-runtime" && matches!(crate::native_bindings::BINDINGS[id].name,"invokeSuite"|"beginSuite"|"beginFile")));
         let result = format!("{{ match {pending} {{ TsrCompletion::Normal(())=>{normal}, TsrCompletion::Return(value)=>Ok(value), TsrCompletion::Throw(error)=>Err(error), TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"checked control cannot escape its callable\") }} }}");
-        if suite_scope {
-            let slot = fun.bindings.iter().position(|binding| self.test_registry_type(binding.ty)).expect("registry capture");
+        // A program owner initializes its registry inside this body. Only
+        // borrowed invocation inputs exist before the body starts and can be
+        // passed to a surrounding restoration scope.
+        if suite_scope && let Some(slot) = fun.bindings.iter().position(|binding|
+            self.test_registry_type(binding.ty) && (binding.parameter || binding.capture_reference)) {
             format!("tsrust_testing_scope({}, |value{slot}| {result})", self.binding(fun, slot, Mode::Mutate))
         } else { result }
     }

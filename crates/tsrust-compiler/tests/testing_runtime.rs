@@ -34,6 +34,7 @@ mod runtime {
     impl Drop for DropCount { fn drop(&mut self) { self.0.fetch_add(1,Ordering::SeqCst); } }
     struct Action { name:&'static str, calls:Rc<Cell<usize>> }
     impl TsrTestAsyncCallback for Action {
+        type Output=Result<(),std::string::String>;
         fn invoke_async<'a,'p:'a>(&'a mut self,program:&'a mut TsrTestContext<'p>,registry:&'a mut TsrTestRegistry)
             ->std::pin::Pin<Box<dyn std::future::Future<Output=Result<(),std::string::String>>+'a>> {
             Box::pin(async move {

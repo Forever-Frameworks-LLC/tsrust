@@ -125,6 +125,7 @@ mod generic_call_work;
 mod polymorphic_argument_hints;
 mod optional_chain;
 mod rest_calls;
+mod testing_callbacks;
 mod spread_calls;
 mod spread_call_work;
 mod array_spread_work;
@@ -252,6 +253,8 @@ pub struct ProgramCapture {
 }
 
 pub struct CheckedClosure {
+    /// Awaiting adapter at the private test invocation boundary; never a source Task.
+    pub program_async: bool,
     pub program_scoped: bool,
     /// Borrowed only during invocation through the private registry contract.
     pub program_captures: Vec<ProgramCapture>,
@@ -456,6 +459,7 @@ type CallbackMetadata = (Option<Mode>, bool, Option<CallbackKind>);
 #[derive(Clone)]
 struct Context {
     http_retained_state: bool,
+    program_retained_state: bool,
     task_body: bool,
     task_owned_inputs: Option<Box<HashSet<usize>>>,
     block_result_type: Type,
@@ -550,6 +554,7 @@ impl Context {
             native_shadowed_bindings: None,
             task_owned_inputs: None,
             http_retained_state: false,
+            program_retained_state: false,
             task_body: false,
             native_view_results: None,
             native_view_function_returns: None,
@@ -848,6 +853,7 @@ struct Analyzer {
     closure_types: HashMap<ClosureKey, usize>,
     once_returns: HashMap<usize, usize>,
     rest_adapters: HashMap<(Type,Type,Mode),usize>,
+    testing_adapters: HashMap<(Type,Type),usize>,
     abstract_returns: HashMap<usize, usize>,
     function_values: HashMap<usize, usize>,
     deferred_generic_values: HashMap<usize, deferred_generic_values::Source>,
@@ -1714,6 +1720,7 @@ impl Analyzer {
             closure_types: HashMap::new(),
             once_returns: HashMap::new(),
             rest_adapters: HashMap::new(),
+            testing_adapters: HashMap::new(),
             abstract_returns: HashMap::new(),
             function_values: HashMap::new(),
             deferred_generic_values: HashMap::new(),
@@ -2041,7 +2048,7 @@ impl Analyzer {
                 .collect();
             let origin = self.closures.len();
             self.closures.push(CheckedClosure {
-                program_scoped: false, program_captures: Vec::new(),
+                program_async: false, program_scoped: false, program_captures: Vec::new(),
                 polymorphic: false,
                 methods: Vec::new(),
                 forward: Some(ClosureForward::Native(id)),
@@ -2201,7 +2208,7 @@ impl Analyzer {
         } else {
             let id = self.closures.len();
             self.closures.push(CheckedClosure {
-                program_scoped: false, program_captures: Vec::new(),
+                program_async: false, program_scoped: false, program_captures: Vec::new(),
                 polymorphic: false,
                 methods: Vec::new(),
                 forward: Some(ClosureForward::Function(index)),
@@ -2365,7 +2372,7 @@ impl Analyzer {
             self.validated_closures.insert(id);
         }
         self.closures.push(CheckedClosure {
-                program_scoped: false, program_captures: Vec::new(),
+                program_async: false, program_scoped: false, program_captures: Vec::new(),
             polymorphic: false,
             methods: Vec::new(),
             forward: Some(ClosureForward::Abstract(contract)),
@@ -2440,7 +2447,7 @@ impl Analyzer {
         );
         let id = self.closures.len();
         let wrapper = CheckedClosure {
-            program_scoped: false, program_captures: Vec::new(),
+            program_async: false, program_scoped: false, program_captures: Vec::new(),
             polymorphic: inner.polymorphic,
             methods: Vec::new(),
             forward: Some(ClosureForward::Once(origin)),
@@ -3136,7 +3143,7 @@ impl Analyzer {
             .collect::<Vec<_>>();
         let id = self.closures.len();
         self.closures.push(CheckedClosure {
-                program_scoped: false, program_captures: Vec::new(),
+                program_async: false, program_scoped: false, program_captures: Vec::new(),
             polymorphic: false,
             methods: Vec::new(),
             forward: None,
@@ -5030,7 +5037,10 @@ impl Analyzer {
     ) -> Result<Type, Diagnostic> {
         expr.json_string_view=result.is_ok() && (self.json_string_proof(context,expr).is_some() || self.is_string_view(context,expr));
         let result = match result {
-            Ok(actual)=>self.rest_callable_adapter(context,expr,actual,expected,mode),
+            Ok(actual)=>{
+                let actual=self.testing_callback_adapter(context,expr,actual,expected)?;
+                self.rest_callable_adapter(context,expr,actual,expected,mode)
+            },
             Err(error)=>Err(error),
         };
         let result = if result

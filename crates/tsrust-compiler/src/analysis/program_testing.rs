@@ -43,6 +43,15 @@ impl Analyzer {
         let mut contracts = binding.parameters.iter().map(|parameter| {
             Ok(ArgumentContract { ty: self.native_parameter_type(parameter.ty)?, mode: parameter.access, omission: crate::ParameterOmission::Required, rest: false })
         }).collect::<Result<Vec<_>, Diagnostic>>()?;
+        // A registered task factory remains callable outside the runner. It
+        // constructs a lazy task with the same explicit program loans; it does
+        // not become a void suite-registration callback at those other uses.
+        let factory=if binding.name=="invokeRegistration" {
+            arguments.first().and_then(|arg|self.expression_type_hint(context,arg)).and_then(|ty|match ty{
+                Type::Closure(origin) if self.is_task_type(self.closures[origin].function.result)=>Some((origin,self.closures[origin].function.result)),_=>None,
+            })
+        }else{None};
+        if let Some((origin,_))=factory {contracts[0].ty=Type::Closure(origin);contracts[0].mode=self.closures[origin].invocation;}
         contracts.push(ArgumentContract { ty: Type::Record(registry), mode: Mode::Mutate, omission: crate::ParameterOmission::Required, rest: false });
         let mut declarations = Vec::new();
         let mut retained = Vec::new();
@@ -57,9 +66,19 @@ impl Analyzer {
         }
         arguments.extend(retained);
         self.check_call_arguments(context, arguments, &contracts, loans)?;
+        if factory.is_some() {
+            for (argument,contract) in arguments.iter().zip(&contracts) {
+                if matches!(contract.mode,Mode::Read|Mode::Mutate) {
+                    for root in Self::loan_roots(argument,contract.mode) {
+                        let loan=(root,contract.mode,expression.span);
+                        if !context.capture_loans.contains(&loan){context.capture_loans.push(loan);}
+                    }
+                }
+            }
+        }
         expression.capture_slots = Some(declarations.into_boxed_slice());
         expression.target = Some(CallTarget::NativeBinding(id));
-        let result = native_type(binding.result, &self.program.records);
+        let result = factory.map_or_else(||native_type(binding.result, &self.program.records),|(_,result)|result);
         expression.ty = Some(result);
         Ok(result)
     }

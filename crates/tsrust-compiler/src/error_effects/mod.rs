@@ -792,14 +792,16 @@ fn native_effect(target:CallTarget,value:&Expr,effects:&ErrorEffects)->FailureSe
     match target {
         Callback(_)=>value.callback_contract().and_then(|id|effects.callback_errors.get(&id).cloned()).unwrap_or_else(FailureSet::unknown),
         ConditionalCallback(id)=>effects.callback_errors.get(&id).cloned().unwrap_or_else(FailureSet::unknown),
-        NativeBinding(id) if crate::native_bindings::BINDINGS[id].name == "invokeRegistration" && crate::native_bindings::BINDINGS[id].module == "std:testing-runtime" => {
-            let callback = match &value.kind { ExprKind::Call(_, args) => args.first().and_then(|value| value.ty), _ => None };
-            match callback {
+        NativeBinding(id) if matches!(crate::native_bindings::BINDINGS[id].name,"invokeRegistration"|"invokeSuite") && crate::native_bindings::BINDINGS[id].module == "std:testing-runtime" => {
+            let suite=crate::native_bindings::BINDINGS[id].name=="invokeSuite";
+            let callback = match &value.kind { ExprKind::Call(_, args) => args.get(usize::from(suite)).and_then(|value| value.ty), _ => None };
+            let callback=match callback {
                 Some(Type::Closure(id)) => effects.closure_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
                 Some(Type::Callback(id)) => effects.callback_errors.get(&id).cloned().unwrap_or_else(FailureSet::unknown),
                 Some(Type::StoredCallable(id) | Type::BorrowedCallable(id)) => effects.storage_errors.get(&id).cloned().unwrap_or_else(FailureSet::unknown),
                 _ => FailureSet::unknown(),
-            }
+            };
+            if suite {callback|FailureSet::runtime()}else{callback}
         }
         NativeBinding(id)=>native_binding_effect(id),
         ClosureMethod(method)=>{

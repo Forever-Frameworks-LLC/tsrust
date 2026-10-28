@@ -108,3 +108,12 @@ pub(crate) const INVOKE_REGISTRATION: NativeBinding = NativeBinding {
     parameters: &[NativeParameter { name: "callback", ty: NativeType::ProgramReusableVoidCallback, access: Mode::Mutate, optional: false, rest: false }],
     result: NativeType::Void, backend: NativeBackend::Bundled { symbol: "@compiler-invoke-registration" }, features: &["testing", "testing-runner"],
 };
+
+pub(crate) const INVOKE_SUITE: NativeBinding = NativeBinding {
+    returned_borrow: None, module: "std:testing-runtime", name: "invokeSuite",
+    parameters: &[
+        NativeParameter { name: "name", ty: NativeType::String, access: Mode::Read, optional: false, rest: false },
+        NativeParameter { name: "callback", ty: NativeType::ProgramReusableVoidCallback, access: Mode::Mutate, optional: false, rest: false },
+    ],
+    result: NativeType::Void, backend: NativeBackend::Bundled { symbol: "@compiler-invoke-suite" }, features: &["testing", "testing-runner"],
+};

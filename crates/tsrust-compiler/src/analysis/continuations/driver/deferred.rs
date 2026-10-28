@@ -124,7 +124,7 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task:
                     let Completion::Expression(value, result) = completion.take().expect("deferred argument") else { unreachable!() };
                     let ExprKind::Call(_, args) = &mut task.expression.kind else { unreachable!() };
                     args[index] = *value.into_child();
-                    analyzer.finish_argument(&mut args[index], task.arguments.as_mut().unwrap(), frame, result?)?;
+                    analyzer.finish_argument(context, &mut args[index], task.arguments.as_mut().unwrap(), frame, result?)?;
                     task.phase = Phase::Arguments;
                 }
                 Phase::Arguments => {

@@ -1,5 +1,62 @@
 # Agent continuation state
 
+## Hardware stop and checkpoint — 2026-10-28
+
+The owner requested a clean wrap-up, commit and push, then explicitly stopped
+further testing because the CPU fan failed. Stop local builds/tests. Do not
+resume them without the owner's authorization after the hardware issue is resolved.
+The final validation session 4462 was terminated immediately; read-only process
+inspection confirmed its Cargo/compiler descendants (16492, 25792, 30772) exited.
+This checkpoint preserves all pending source changes; public async registration
+is not accepted and no prototype CLI/LSP was installed.
+
+Completed evidence: diagnostic check 20317 passed with zero warnings/errors before
+the final repairs; source then advanced. Native batch 58103 passed nineteen cases.
+The later 56668 run passed 8/11, including awaited failure/continued teardown and
+the default project cache miss/hit regression. HTTP exceeded the 180s cold-build
+limit while Cargo was still compiling dependencies; no HTTP runtime pass is claimed.
+The batch's new mixed retained-scalar/module-state case reproduced the missing
+self receiver lifetime. Multi-file registration exposed ambiguous ProgramCallback
+Result selection after scoped suite lowering. Final source ties retained self to
+the task loan, selects each callback's canonical output/error ABI explicitly, and
+allows 600s for the cold HTTP fixture. These final repairs remain unverified.
+
+The already-built synchronous testing executable passed 60/60 in 47.31s
+(target/testing-sync-current.log). Its snapshot precedes the last receiver/output
+annotation repairs. Final-source compiler/LSP async execution, the three-case editor
+suite, final all-target diagnostics, HTTP execution and installation are pending.
+Session 4462 log: target/testing-async-accepted-source-current.log (interrupted;
+the filename is a proposed gate name, not an acceptance claim). Sessions 56668,
+58103, 86057, 20317 and formatter 25270 are terminal. No live build remains.
+
+Whole-project formatting last passed with the installed verified compiler:
+0 changed files and 0 fingerprint changes. Subsequent edits changed Rust/test
+strings and Markdown, not on-disk Tsrust files. No additional formatting, compilation
+or tests were run after the hardware stop. The backend-only/HTTP SDK/distribution
+objective remains incomplete. Resume from these failures and preserve completed
+evidence rather than restarting the full regression/performance matrix.
+
+## Pending async registration implementation
+
+The checkpoint connects test/it/hooks through analysis/testing_callbacks.rs.
+A checked adapter owns the original factory, awaits Task<void> at invocation,
+and preserves the factory's ordinary result type at other uses. Existing
+ownership/environment checks remain active. Retained environments lend owned
+captures and scalar writes across await; module state is supplied at invocation.
+The native lending callback trait retains a typed associated Output for errors.
+
+Conventional test files lift shared declarations into the program owner while
+preserving requested file initialization/registration order. Immediate suites
+receive caller-available context slots and restore their registry depth on all
+exit paths. Compiler/LSP documentation and the standard testing guide describe
+void or Task<void> test/hook callbacks; suite callbacks remain synchronous.
+Focused fixtures cover named/aliased/typed factories, retained state, negative
+loans/results, CLI HTTP/failures/cache reuse, multi-file order and editor help.
+
+Final acceptance is pending exactly as recorded in the hardware-stop section.
+The installed CLI/LSP remain the previously accepted versions below. Do not
+install target/debug prototypes or describe these changes as production ready.
+
 ## Async test runtime boundary accepted — 2026-10-28
 
 The facade diagnostic follow-up verified the installed LSP against the exact

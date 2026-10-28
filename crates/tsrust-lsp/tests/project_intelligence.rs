@@ -1139,7 +1139,7 @@ fn conventional_testing_entry_supports_top_level_matcher_editor_help() {
     workspace.open(id.clone(),1,entry.into());
     let checked=workspace.snapshot().check(&id).unwrap();
     let index=ProjectIndex::checked(&checked);
-    for (needle,method,expected) in [("toBe","textDocument/hover","Object.is"),("3);","textDocument/signatureHelp","expected: int"),("test('sum'","textDocument/hover","Registers a synchronous named test")] {
+    for (needle,method,expected) in [("toBe","textDocument/hover","Object.is"),("3);","textDocument/signatureHelp","expected: int"),("test('sum'","textDocument/hover","Registers a named test")] {
         let offset=entry.rfind(needle).unwrap();
         let result=index.request(method,&json!({"position":{"line":0,"character":entry[..offset].encode_utf16().count()}}),uri).unwrap().unwrap();
         assert!(result.to_string().contains(expected),"{result}");
@@ -1152,7 +1152,7 @@ fn bundled_suite_registration_supplies_borrowed_callback_help() {
     let uri=fixture_uri!("/tsrust-intelligence/sum.test.tsr");
     let id=source_id(uri).unwrap();let mut workspace=Workspace::default();workspace.open(id.clone(),1,entry.into());
     let checked=workspace.snapshot().check(&id).unwrap();let index=ProjectIndex::checked(&checked);
-    for (needle,method,expected) in [("group('math'","textDocument/hover","Groups synchronous tests"),("():void=>","textDocument/signatureHelp","Mutable<Function<void>>")] {
+    for (needle,method,expected) in [("group('math'","textDocument/hover","Groups tests"),("():void=>","textDocument/signatureHelp","Mutable<Function<void>>")] {
         let offset=entry.find(needle).unwrap();
         let result=index.request(method,&json!({"position":{"line":0,"character":entry[..offset].encode_utf16().count()}}),uri).unwrap().unwrap();
         assert!(result.to_string().contains(expected),"{result}");
@@ -1165,7 +1165,7 @@ fn bundled_each_hook_editor_help_tracks_owned_reusable_callbacks() {
     let uri=fixture_uri!("/tsrust-intelligence/hooks.test.tsr");
     let id=source_id(uri).unwrap();let mut workspace=Workspace::default();workspace.open(id.clone(),1,entry.into());
     let checked=workspace.snapshot().check(&id).unwrap();let index=ProjectIndex::checked(&checked);
-    for (needle,method,expected) in [("setup(()","textDocument/hover","Registers a synchronous setup callback before every test"),("():void=>{});test","textDocument/signatureHelp","Owned<Function<void>>")] {
+    for (needle,method,expected) in [("setup(()","textDocument/hover","Registers a setup callback before every test"),("():void=>{});test","textDocument/signatureHelp","Owned<Function<void>>")] {
         let offset=entry.find(needle).unwrap();
         let result=index.request(method,&json!({"position":{"line":0,"character":entry[..offset].encode_utf16().count()}}),uri).unwrap().unwrap();
         assert!(result.to_string().contains(expected),"{result}");
@@ -3099,7 +3099,7 @@ fn unused_testing_import_keeps_public_hover_without_runtime_owner() {
     let mut workspace=Workspace::default();workspace.open(id.clone(),1,entry.into());
     let checked=workspace.snapshot().check(&id).unwrap();
     let index=ProjectIndex::checked(&checked);
-    for (needle,expected) in [("test,", "Registers a synchronous named test"),("beforeAll}","Registers a synchronous setup callback")] {
+    for (needle,expected) in [("test,", "Registers a named test"),("beforeAll}","Registers a setup callback")] {
         let offset=entry.find(needle).unwrap();
         let result=index.request("textDocument/hover",&json!({"position":{"line":0,"character":entry[..offset].encode_utf16().count()}}),uri).unwrap().unwrap();
         assert!(result.to_string().contains(expected),"{result}");

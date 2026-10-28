@@ -1170,6 +1170,10 @@ impl<'p> Emitter<'p> {
                     .map(|(_arg, &_id)| rendered.next().expect("queued argument"))
                     .collect::<Vec<_>>();
                 arguments.extend(self.closure_owner_arguments(fun, id, args, binding));
+                if closure.program_scoped {
+                    let context=if self.program.task_type(closure.function.result){self.test_factory_context()}else{"test_program".into()};
+                    arguments.extend([context,"test_registry".into()]);
+                }
                 let args = arguments.join(", ");
                 let call = if fun.bindings[binding].callback_invocation == Some(Mode::Consume) {
                     let args = if args.is_empty() {

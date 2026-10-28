@@ -51,6 +51,12 @@ fn tsrust_testing_begin_suite_result(registry: &mut TsrTestRegistry, name:&Strin
     tsrust_testing_open_scope(registry,name,true);
     Ok(())
 }
+fn tsrust_testing_suite<R>(registry:&mut TsrTestRegistry,name:&String,body:impl FnOnce(&mut TsrTestRegistry)->R)->Result<R,std::string::String> {
+    tsrust_testing_scope(registry,|registry| {
+        tsrust_testing_begin_suite_result(registry,name)?;
+        Ok(body(registry))
+    })
+}
 fn tsrust_testing_end_suite_result(registry: &mut TsrTestRegistry)->Result<(),std::string::String> {
     if registry.current.len()<=1 {return Err("No suite registration is active".to_owned());}
     tsrust_testing_end_suite(registry);

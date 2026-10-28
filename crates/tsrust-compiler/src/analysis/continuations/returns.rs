@@ -30,7 +30,7 @@ impl Analyzer {
         // An absent nullable record holds no callback instance to escape.
         let absent_record = self.nullable_scoped_record_declaration(actual).is_some()
             && value.as_ref().is_some_and(|value| matches!(&value.kind, ExprKind::Inject { value, .. } if matches!(value.kind, ExprKind::Null | ExprKind::Undefined)));
-        if (facts.unknown || facts.scoped && self.borrows_local_storage(actual)) && !absent_record && !(self.is_task_type(actual) && context.capture_loans.iter().all(|(root,access,_)|(context.bindings[*root].parameter && !context.task_owned_inputs.as_ref().is_some_and(|owned|owned.contains(root))) || (context.http_retained_state && *root<context.capture_boundary && *access==Mode::Read))) {
+        if (facts.unknown || facts.scoped && self.borrows_local_storage(actual)) && !absent_record && !(self.is_task_type(actual) && context.capture_loans.iter().all(|(root,access,_)|(context.bindings[*root].parameter && !context.task_owned_inputs.as_ref().is_some_and(|owned|owned.contains(root))) || (context.http_retained_state && *root<context.capture_boundary && *access==Mode::Read) || (context.program_retained_state && *root<context.capture_boundary && matches!(access,Mode::Read|Mode::Mutate)))) {
             return Err(Diagnostic::new("callback-escape","A returned value cannot contain a callable that borrows local storage.",span));
         }
         let converted =

@@ -1104,7 +1104,7 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             let context = contexts.get(task.context);
             let ExprKind::Call(_, args) = &mut task.expression.value().kind else { unreachable!("argument parent") };
             args[index] = *argument.into_child();
-            let result = result.and_then(|actual| analyzer.finish_argument(&mut args[index], &mut call.arguments, frame, actual));
+            let result = result.and_then(|actual| analyzer.finish_argument(context, &mut args[index], &mut call.arguments, frame, actual));
             match result {
                 Ok(()) => schedule_argument(analyzer, context, task, call),
                 Err(error) => finish_expression(analyzer, context, task, Err(error)),

@@ -1,0 +1,33 @@
+import { beforeAll, afterAll, test, strictEqual } from 'std:testing';
+import { App, Client, Server, Request, Response, request, text } from 'std:http';
+
+const servers: Server[] = [];
+let base = '';
+
+async function greeting(input: Request): Task<Response> {
+  return text('hello from async testing');
+}
+
+beforeAll(async () => {
+  const app = new App();
+  app.get('/greet', greeting);
+  const server = await app.listen('127.0.0.1:0');
+  base = 'http://' + server.address();
+  servers.push(server);
+});
+
+afterAll(async () => {
+  const server = servers.pop();
+  if (server !== undefined) {
+    await server.shutdown();
+  }
+
+  strictEqual(servers.length, 0);
+});
+
+test('native HTTP', async () => {
+  const client = new Client();
+  const response = await client.send(request('GET', base + '/greet', ''));
+  strictEqual(response.status(), 200);
+  strictEqual(await response.text(), 'hello from async testing');
+});

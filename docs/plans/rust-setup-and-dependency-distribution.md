@@ -76,25 +76,35 @@ before claiming production installation readiness. Do not delay writing focused
 witnesses until the end, but batch their execution after coherent implementation.
 Do not build a custom package manager, dependency mirror or toolchain manager.
 
-## Located source paths; full inventory pending
+## Dependency consumer inventory — refreshed 2026-10-28
 
-These are investigation entry points, not a completed dependency audit:
+The source paths below were inspected after the accepted shared-backend/portable
+source work. Ordinary backend builds already avoid mandatory vendor copies.
+Bindings remain the explicit exception to migrate; do not repeat the completed
+ordinary-backend migration or remove the portable export producer.
 
 | Area | Current source to inspect | Migration question |
 | --- | --- | --- |
 | Toolchain detection | `crates/tsrust-compiler/src/cli/main.rs`, `verify_backend`, `RUST_BACKEND_VERSION` | Preserve check/emit without Rust; diagnose the exact supported toolchain. |
-| Mandatory dependency materialization | `cli/native_dependency_bundle.rs` under the compiler source | Identify embedded files, vendor source replacement and offline Cargo configuration. |
-| Runtime compilation | `cli/runtime_build.rs`, `cli/native_workspace.rs` | Separate portable materialization from ordinary cached builds; retain identity, locks and artifact reuse. |
-| User bindings | `cli/rust_binding_packages.rs`, `cli/rust_bindings.rs`, `cli/package_validation.rs` | Preserve exact graphs, binding validation, cache locks and ownership. |
-| Source export | `cli/package_cli.rs`, `cli/package_export.rs` | Keep portable vendor/notices/relocation guarantees and add prerequisite metadata. |
+| Ordinary backend sources | `cli/backend_sources.rs`, `backend-dependencies/Cargo.toml`, `backend-dependencies/Cargo.lock` | Implemented: shared Cargo home, pinned graph, offline private support configuration, configuration/environment cache identity. `shared()` excludes original UI and dependency-bearing bindings. |
+| Portable materialization | `cli/native_dependency_bundle.rs`, `cli/portable_sources.rs` | Explicit portable preparation produces a separate source pack. Export verifies pinned metadata and Cargo package/file checksums before copying; ordinary shared backend builds do not require it. |
+| Runtime compilation | `cli/runtime_build.rs`, `cli/native_workspace.rs` | Implemented for ordinary backends: locked/offline builds, stable dependency target across runtime revisions, serialized private workspace and cached artifacts. Binding packages currently bypass this stable workspace and retain the vendor path. |
+| User bindings | `project/rust_dependencies.rs`, `cli/rust_binding_packages.rs`, `cli/rust_bindings.rs`, `cli/package_validation.rs` | Pending: resolution still runs Cargo vendor and stores a per-graph vendor directory; runtime/export overlays copy it. Preserve exact dependency/features validation, locks, cache concurrency and export completeness when separating cached development from portable vendoring. |
+| Source export | `cli/package_cli.rs`, `cli/package_export.rs` | Implemented portable export still materializes vendors, applies binding overlays, emits standalone runtime/application sources, lock/configuration, notices and prerequisite metadata. Retain this path while migrating ordinary binding builds. |
 | Build-time bundling and tests | Compiler build.rs removed; cli/portable_sources.rs and native dependency/package/offline tests | Ordinary builds use shared sources; optional exact portable packs preserve export notices and relocation. |
 | Distribution | `tools/package-toolchain.mjs`, `tools/check-release.mjs`, `tools/tests/distribution.test.mjs`, `.github/workflows/release.yml` | Inventory supported artifacts/install paths without triggering publication. |
 
-Initial inspection found ordinary runtime builds materialize the bundled vendor
-sources and use offline/locked Cargo; portable export also materializes the bundle.
-Binding packages overlay manifests, locks and vendor sources. Inventory must verify
-all consumers before removing mandatory bundling from ordinary paths. Existing
-toolchain guidance is not proof that doctor/setup already exist.
+`cli/setup_cli.rs` now implements `doctor [--json] [--native]` and explicit setup
+for toolchains, shared dependencies and portable sources. Doctor distinguishes
+toolchain readiness, an executed native link/run probe, and unchecked application
+dependencies. These commands do not prove every target, binding graph or platform
+ready. Remaining work must preserve their explicit preparation boundary.
+
+The binding migration must update the package marker/graph representation,
+resolution, runtime selection/materialization, artifact identity and source export
+together. Normal builds must fail with explicit resolution guidance when shared
+sources are absent; they must not fall back to implicit fetching or mandatory
+vendoring. Portable export must continue working independently after relocation.
 
 ## Release/update integration findings — 2026-10-27
 
