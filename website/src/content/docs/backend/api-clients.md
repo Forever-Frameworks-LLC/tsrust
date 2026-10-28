@@ -16,8 +16,12 @@ tsrust api generate --url http://127.0.0.1:4318/api/description --language rust 
 ```
 
 Use `--description http-api.json` instead of `--url` for a saved description, without
-backend source. The same checked description exports OpenAPI. SDK generation does
-not change application source, register operations or start a server. URL and saved-description generation always require `--out`. For source-based
+backend source. The same checked description exports OpenAPI.
+
+SDK generation does
+not change application source, register operations or start a server.
+
+URL and saved-description generation always require `--out`. For source-based
 generation, `api.output` can supply the default destination.
 Optional `api.server.output` retains explicit legacy dispatcher export, which new
 applications do not use. Keep deployment compatibility baselines application-owned
@@ -61,6 +65,8 @@ tsrust api generate --config tsrust.api.json --check
 tsrust api generate --config tsrust.api.json --out ./client-package
 ```
 
+### Paths and configuration selection
+
 Without `--config`, the CLI searches upward for API configuration. If the same
 directory has both inline `api` settings and `tsrust.api.json`, it requires an
 explicit selection. Configured
@@ -78,6 +84,8 @@ framework dependencies. No backend bodies, source paths, credentials, database
 dependencies or source-tree imports are copied into it. The package is private
 by default. Review the generated files, package metadata and your own licensing
 before enabling publication; generation/check/build never publishes anything.
+
+### Regenerate safely
 
 Existing nonempty application directories are not adopted as generated output.
 Only previously generated files whose recorded hashes still match, or already
@@ -170,6 +178,7 @@ supply `headers` as an object or an async function returning headers. For exampl
 requires your own `currentToken` function. Pass `{ signal: controller.signal }`
 as the second call argument when using an application-owned `AbortController`.
 
+### Request headers and credentials
 
 Each call posts `{operation,input}` as JSON to the configured endpoint and sends
 `x-tsrust-contract` with a selected checked wire-profile identity. JSON Content-Type
@@ -180,17 +189,24 @@ headers after application headers. Cookies are omitted and redirects reject.
 Use HTTPS for remote credentials. Loopback HTTP is available for the desktop bridge.
 URLs containing embedded credentials or fragments reject during construction.
 
+### Errors and cancellation
+
 Non-2xx responses can carry the same structured public failure envelope. A success
 envelope on a failing HTTP status rejects. HTML, invalid JSON and invalid output
 data reject with protocol/HTTP/validation errors. Host network exception details
 are replaced with an `api-network` error; cancellation uses `api-cancelled`.
 There are no automatic retries, including mutations. Cancellation requests abort
-through the host Fetch API; it does not prove rollback or backend cleanup. Supply `fetch` explicitly for a
-host-specific adapter or testing. Response text is read before parsing; this client
+through the host Fetch API; it does not prove rollback or backend cleanup.
+
+Supply `fetch` explicitly for a host-specific adapter or testing.
+
+### Response size
+
+Response text is read before parsing; this client
 does not impose a streaming memory limit. Backend request/response bounds and
 mobile Fetch behavior remain service/platform acceptance requirements.
 
-Fetch status checking, JSON content types, credentials and cancellation follow
+For host Fetch usage, see
 [the Fetch API documentation](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch).
 
 ## Ordinary local package adoption
@@ -213,12 +229,13 @@ unrelated files are excluded. Generated packages are private by default; local
 packing works without publication. Consumers need no compiler, backend source or
 generated-directory symlink. Generated plain SDKs have no framework or cache peers.
 
+### Workspace consumers
+
 For an npm workspace, include the generated package directory in the root's
 workspaces and declare its configured name/version in the consuming application's
 normal dependencies. Users own their package manager, scripts and dependencies.
 Other package managers use their ordinary package/workspace workflows; SDK
 export never installs packages or rewrites the consuming application's files.
-
 
 ## Use the Rust client
 

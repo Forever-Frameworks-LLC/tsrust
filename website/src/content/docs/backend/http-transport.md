@@ -16,8 +16,7 @@ The client requires an absolute HTTP or HTTPS URL without embedded credentials.
 Automatic redirects, environment proxies, cookie storage and decompression are
 disabled. You can still set a `Cookie` request header explicitly.
 
-The total
-request deadline is 30 seconds; use the existing task timeout for a shorter one.
+The total request deadline is 30 seconds; use the existing task timeout for a shorter one.
 A timeout while sending throws code `timeout`; other transport failures use `request`.
 Invalid URLs throw code `url` before a request is sent.
 Reading the response body can also fail after `send` succeeds.
@@ -47,12 +46,16 @@ async function main(): Task<void> {
 
 ## Responses and body streams
 
+### Construct a response
+
 `text(value, status = 200)`, `json(value, status = 200)` and
 `html(value, status = 200)` construct responses. JSON uses the existing checked
 serialization rules; give record values a type before serialization. HTML is an
 explicit raw-content escape hatch, without escaping. Use text for untrusted plain
 text. Status accepts 200 through 599. Transport framing headers cannot be set by
 application code.
+
+### Read or forward a body
 
 Reading `request.text()` or `response.text()` consumes its receiver. `body()`
 transfers the single body capability. Await `body.next()` for `Bytes | undefined`,
@@ -61,6 +64,8 @@ does not collect the entire body first. Body reads and forwarding enforce a
 cumulative byte limit, including chunked messages. The default is 1 MiB;
 listener request bodies use the configured `bodyLimit`. A limit error does not return
 truncated successful data. Errors after response headers cannot change the status.
+
+### Keep the request context usable
 
 Inside a route, `const body = c.req.body(); const value = await body.text();`
 leaves `c` usable for `return c.text(value)`. The stream inherits the configured
@@ -84,26 +89,31 @@ Both `Router.configure(options)` and `App.configure(options)` set limits before
 `listen` consumes the application. If you do not call `configure`, the defaults below apply. When you do call it,
 all seven integer fields are required:
 
-| Field | Default | Accepted range |
-| --- | --- | --- |
-| `bodyLimit` | 1048576 bytes | 1..67108864 |
-| `maxConnections` | 128 | 1..65536 |
-| `maxRequests` | 128 | 1..65536 |
-| `requestTimeoutMs` | 30000 | 1..3600000 |
-| `shutdownTimeoutMs` | 5000 | 1..3600000 |
-| `handshakeTimeoutMs` | 5000 | 1..3600000 |
-| `requestsPerSecond` | 0 (disabled) | 0..1000000 |
+| Field | Default and accepted values |
+| --- | --- |
+| `bodyLimit` | Default: 1048576 bytes. Range: 1 to 67108864 bytes. |
+| `maxConnections` | Default: 128. Range: 1 to 65536. |
+| `maxRequests` | Default: 128. Range: 1 to 65536. |
+| `requestTimeoutMs` | Default: 30000 ms. Range: 1 to 3600000 ms. |
+| `shutdownTimeoutMs` | Default: 5000 ms. Range: 1 to 3600000 ms. |
+| `handshakeTimeoutMs` | Default: 5000 ms. Range: 1 to 3600000 ms. |
+| `requestsPerSecond` | Default: 0 (disabled). Range: 0 to 1000000. |
 
 Invalid fields throw `HttpError` code `options` without changing configuration.
+
 ### What happens when a limit is reached
 
-Connections beyond capacity remain in the OS backlog. Concurrent handler overload
-returns 503. The global fixed one-second arrival window returns 429 with
-`Retry-After: 1` when exhausted. It is not a per-user or distributed limiter;
-up to twice the rate can cross a window boundary. Handler deadlines return 504
-and request cooperative cancellation; response streaming after handler completion
-is outside that deadline. Oversized Content-Length returns 413; streaming reads
-reject once their cumulative byte budget is exhausted.
+| Limit | Observable behavior |
+| --- | --- |
+| Connection capacity | Extra connections remain in the OS backlog. |
+| Concurrent handlers | Overload returns 503. |
+| Requests per second | Exhausting the global fixed one-second arrival window returns 429 with `Retry-After: 1`. |
+| Handler deadline | Returns 504 and requests cooperative cancellation. |
+| Request body bytes | Oversized Content-Length returns 413; streaming reads reject when their cumulative byte budget is exhausted. |
+
+The arrival limit is not per-user or distributed; up to twice the rate can cross
+a window boundary. Response streaming after handler completion is outside the
+handler deadline.
 
 ## Application-produced streams
 

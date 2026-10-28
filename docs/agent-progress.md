@@ -1632,3 +1632,19 @@ source-build link. No viewport override applied. Do not mark page fully audited.
   guide has a source-reviewed limit-response table; full rendered review pending.
   Next: finish remaining public-page audits, then close installation live-LSP update
   witness and remaining platform/milestone/performance work. No hosted run launched.
+
+### Transport and API-client page audit closure
+
+- Completed full 390px/1440px presentation review of HTTP transport and API-client
+  guides, retaining their prior source and exact native/SDK example acceptance.
+  Transport limits table clipped ranges at 390px; changed to two columns and
+  verified every value fits. Split body handling and client configuration,
+  regeneration, credentials, errors, response-size limits and workspace adoption
+  into focused sections. Keyboard code scrolling, skip/section/next navigation
+  work; no document overflow. Temporary viewport reset.
+- Whole-project formatter and idempotent check pass with zero changed sources or
+  fingerprints. Site build and links/anchors/assets across all 23 pages pass.
+  No Rust suite, hosted job or release started for these prose/layout edits.
+- Public audit tracker now closes these two rows; remaining page/platform checks
+  stay explicit. Next: finish JSON, authorization and onboarding page reviews;
+  installer real-LSP-across-update witness remains pending and was not edited.
