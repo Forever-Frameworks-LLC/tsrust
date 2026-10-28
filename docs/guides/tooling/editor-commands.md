@@ -75,7 +75,7 @@ The language server resolves project imports and unsaved dependency buffers for 
 
 ## Missing native linker
 
-Build/run reports a missing native linker as an environment setup failure and includes the backend error, rather than calling it a compiler defect. Finding rustup under the Cargo home is independent of finding the platform linker on PATH. See [missing linker diagnostics](missing-linker-diagnostic.md) for setup and focused acceptance evidence.
+Build/run reports a missing native linker as an environment setup failure and includes the backend error, rather than calling it a compiler defect. Finding rustup under the Cargo home is independent of finding the platform linker on PATH. See [native build setup](../../../website/src/content/docs/tools/rust-setup.md#repair-a-missing-native-linker) for recovery instructions.
 
 
 Contributor checkpoints run `node tools/format-project.mjs` to format the entire

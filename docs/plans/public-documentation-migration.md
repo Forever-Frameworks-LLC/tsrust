@@ -114,7 +114,7 @@ feature-coverage evidence to reduce the inventory.
 | `tooling/editor-foundation.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `tooling/editor-quick-fixes.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `tooling/interop-and-targets.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `tooling/missing-linker-diagnostic.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `tooling/missing-linker-diagnostic.md` | User recovery moved into tools/rust-setup; original acceptance evidence retained and labeled historical. Active editor link updated. | Source reconciliation complete; changed public section rendered review pending |
 | `tooling/project-editor.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `tooling/toolchain-and-development.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `compiler-source-layout.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |

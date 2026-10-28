@@ -53,6 +53,26 @@ Rust toolchain to support deep output paths. Visual Studio C++ build tools and
 Windows SDK libraries are still required. Exported packages include the same
 Windows-only linker setting; macOS and Linux retain their platform linkers.
 
+## Repair a missing native linker
+
+Finding Rustup does not prove that the platform linker and SDK are available.
+For a native build error containing **Native linker unavailable**, inspect the
+backend error immediately below it for the missing linker name.
+
+1. Install or repair the host build tools listed in
+   [installation](../../start/installation/#install-the-native-backend).
+2. Restore the required tool directories to the environment used by your terminal
+   or editor. Restart that terminal or editor after changing its environment.
+3. Run `tsrust doctor --native`, then retry the build from that same environment.
+
+Tsrust does not install platform SDKs or linkers automatically. Checking and
+ordinary Rust emission still work without a linker. A failed native compilation
+does not publish a new executable to the build cache.
+
+The missing-linker diagnostic applies when Rust explicitly reports that its linker
+was not found. Other backend failures retain their details; do not treat every
+linking or generated-code error as a missing-tool problem.
+
 ## Prepare sources for normal backend builds
 
 After installing the pinned toolchain, prepare compiler-owned backend dependency
