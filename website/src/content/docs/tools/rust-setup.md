@@ -37,6 +37,11 @@ platform SDKs/linkers. Windows requires the appropriate Visual Studio C++ build
 tools; macOS requires its command-line build tools; Linux requires the platform
 C toolchain and linker. Run `doctor --native` to test the actual host combination.
 
+On Windows MSVC hosts, native builds use the LLVM linker bundled with the pinned
+Rust toolchain to support deep output paths. Visual Studio C++ build tools and
+Windows SDK libraries are still required. Exported packages include the same
+Windows-only linker setting; macOS and Linux retain their platform linkers.
+
 Prepare compiler-owned backend dependency sources explicitly:
 
 ```sh

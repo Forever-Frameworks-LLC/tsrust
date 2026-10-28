@@ -460,7 +460,11 @@ fn run() -> Result<u8, String> {
     Ok(0)
 }
 
-fn backend_command() -> Command { backend_tool("rustc") }
+fn backend_command() -> Command {
+    let mut command=backend_tool("rustc");
+    if cfg!(all(windows,target_env="msvc")){command.arg(runtime_build::MSVC_LINKER_FLAG);}
+    command
+}
 fn backend_cargo_command() -> Command { backend_tool("cargo") }
 fn backend_tool(tool:&str) -> Command {
     let executable = format!("rustup{}", env::consts::EXE_SUFFIX);
@@ -513,7 +517,9 @@ fn validate_backend_output(result:std::process::Output)->Result<String,String> {
             version.trim()
         ));
     }
-    Ok(version.trim().to_owned())
+    let mut identity=version.trim().to_owned();
+    if cfg!(all(windows,target_env="msvc")){identity.push_str(";");identity.push_str(runtime_build::MSVC_LINKER_FLAG);}
+    Ok(identity)
 }
 
 fn absolute(path: &Path) -> Result<PathBuf, String> {

@@ -908,3 +908,29 @@ Production Windows acceptance remains pending. Original full regression 79249
 advanced through object_entries to operators; do not restart. Publication repair
 77834 failed at obsolete ButtonProps source path: config selects button-v3.tsrx,
 while the test still selects button.tsrx. Repair this specific assertion next.
+
+## Retained publication repair accepted
+
+The configured authored ButtonProps declaration is selected from apiSources,
+not an obsolete hardcoded filename. Exact current string-page source replaces
+an assertion about obsolete measurement prose. Reference metadata includes the
+existing HTTP JSON/static methods and six retained UI declarations. Reference
+map check passed previously; repaired native publication check 66400 now passes
+(1 test, 77.97s), retaining inherited fields, exact examples and native catalog
+execution. Whole-project formatter reports no changes and format check passes.
+
+## Windows linker production validation
+
+Bundled LLVM probe 40718381475 passed all short/deep ordinary/verbatim cases;
+MSVC failed both deep cases. Production policy now selects Rust's bundled
+lld-link for Windows MSVC direct and dependency compilation, includes it in
+Windows backend/cache identity, and exports a Windows-only Cargo target setting.
+Doctor uses the same backend command. Added a Windows deep-path executable and
+portable-export regression. Removed the temporary probe script/workflow input.
+Local policy unit passes, actual exported TOML has the scoped flag and retains
+offline mode, and compiler/LSP all-target check 97253 passes without warnings.
+The existing toolchain_acceptance workflow will validate package management,
+shared sources (including the new deep-path regression), paired installation and
+all targets on Windows. Last equivalent acceptance 40705140781 failed before
+these linker/offline-source repairs; the probes establish the changed hypothesis.
+No production Windows pass is claimed until that affected workflow succeeds.

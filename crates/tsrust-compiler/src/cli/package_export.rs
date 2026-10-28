@@ -43,6 +43,8 @@ pub(crate) fn export(root:&Path,rust:&str,web_only:bool,notices:&[(std::path::Pa
   manifest.push_str(crate::runtime_build::profiles(rust.contains("mod tsrust_native_ui {") && rust.contains("use vello::")));
   fs::write(root.join("Cargo.toml"),manifest)?;fs::write(root.join("Cargo.lock"),lock)?;
   if !dependencies {fs::write(root.join(".cargo/config.toml"),"[net]\noffline = true\n")?;}
+  let config=root.join(".cargo/config.toml");
+  let mut settings=fs::read_to_string(&config)?;settings.push_str(&crate::runtime_build::exported_linker_config());fs::write(config,settings)?;
   fs::write(root.join("src/main.rs"),rust)?;
   for (path,bytes) in notices {
    tsrust_compiler::ui_project::safe_relative(path).map_err(io::Error::other)?;
