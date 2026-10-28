@@ -99,10 +99,10 @@ feature-coverage evidence to reduce the inventory.
 | `language/scoped-callable-transport.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/sets.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/statement-bodies.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/string-concatenation.md` | Merged into language/strings; old duplicate removed and Markdown links updated. | Source/examples pass; rendering pending |
-| `language/string-indexing.md` | Merged into language/strings; old duplicate removed and Markdown links updated. | Source/examples pass; rendering pending |
-| `language/string-iteration.md` | Merged into language/strings; old duplicate removed and Markdown links updated. | Source/examples pass; rendering pending |
-| `language/string-semantics.md` | Retained original representation/measurement history with explicit superseded-contract label; current usage moved to language/strings. | Core source/examples pass; rendering pending |
+| `language/string-concatenation.md` | Merged into language/strings; old duplicate removed and Markdown links updated. | Source, examples and 390px/1440px rendered review complete |
+| `language/string-indexing.md` | Merged into language/strings; old duplicate removed and Markdown links updated. | Source, examples and 390px/1440px rendered review complete |
+| `language/string-iteration.md` | Merged into language/strings; old duplicate removed and Markdown links updated. | Source, examples and 390px/1440px rendered review complete |
+| `language/string-semantics.md` | Retained original representation/measurement history with explicit superseded-contract label; current usage moved to language/strings. | Core source, examples and 390px/1440px rendered review complete |
 | `language/switch.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/type-aliases.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/type-assertions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
@@ -110,7 +110,7 @@ feature-coverage evidence to reduce the inventory.
 | `schema-diagnostics.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `sqlite.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `tooling/deployment.md` | Current guidance moved to backend/deployment; original vision and core-33 anchor retained in place. | Source and 390px/1440px presentation reviewed; release-command execution remains pending |
-| `tooling/editor-commands.md` | Retained implementation/acceptance history with current-guide pointers; run settings moved into start/editor. | Source reconciliation complete; added editor paragraph rendering pending |
+| `tooling/editor-commands.md` | Retained implementation/acceptance history with current-guide pointers; run settings moved into start/editor. | Source reconciliation and added editor paragraph 390px/1440px rendering complete |
 | `tooling/editor-foundation.md` | Original plan and handoffs retained with explicit historical scope; current capability/installation/monitoring claims no longer implied. | Historical status and current-guide links reconciled |
 | `tooling/editor-quick-fixes.md` | User instructions moved to start/editor; implementation and acceptance retained with historical limits labeled. | Source reconciliation and 390px/1440px rendered review complete |
 | `tooling/interop-and-targets.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
