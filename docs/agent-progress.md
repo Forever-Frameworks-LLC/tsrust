@@ -5,10 +5,9 @@
 The owner requested a Markdown-first plan and prioritized implementation of an
 expandable Astro Starlight site, migration/removal of duplicate public Markdown,
 and links from repository entry points to actual hosted documentation. See
-plans/public-documentation-site.md. GitHub Pages is preferred conditionally, with
-Cloudflare/Netlify alternatives; the owner has been asked to choose after receiving
-Pages' actual size/bandwidth limits. Site implementation can proceed independently
-of that answer, but hosting activation must respect the choice.
+plans/public-documentation-site.md. The owner selected GitHub Pages after reviewing its limits. Repository public
+visibility and administrator access are verified. The website/ Starlight foundation
+is being implemented locally; production hosting has not yet been activated.
 
 Preserve live work: local full backend regressions are running in exec session
 79249 at source 643b06ca, log /tmp/tsrust-backend-milestone.log. Windows repaired
@@ -16,6 +15,24 @@ acceptance is run 40705140781 at the same source. Draft staging PR #4 has commit
 4df6609649f80e2ce6bb45142a69d73d86814f28, whose tree exactly equals 643b06ca;
 local checkpoint branch/history remains intact. Do not restart live jobs or push
 routine docs iterations to that PR while its CI is running.
+
+## Starlight foundation in progress
+
+website/ now contains pinned Astro 7.4.2, Starlight 0.42.7 and markdown-remark 7.3.4,
+a lockfile, explicit sidebar, a small accent stylesheet, and reviewed overview,
+quickstart, status and 404 pages. The second production build passes without the
+initial missing-collection/404 warnings. Search index and sitemap are generated.
+Browser verification at the /tsrust/ base confirms search results and navigation
+to the quickstart backend anchor; narrow-screen rendering is readable. No hosting
+settings or production deployment have been changed yet. Preview exec session
+42599 serves 127.0.0.1:4321; close only this owned session when no longer needed.
+
+Next migrate installation/editor/project guidance with the tracked old-file/route
+map, then reviewed language/backend/library sections; eliminate superseded copies
+and adapt retained content consumers and link checks before deleting files. Add the
+protected static Pages workflow and verify actual public URLs before changing
+repository links to assume deployment exists. Do not call the initial pages a
+complete documentation migration. Plan checkpoint: 2e88ea9d.
 
 ## Current priority: polish acceptance on the installed staged pipeline
 

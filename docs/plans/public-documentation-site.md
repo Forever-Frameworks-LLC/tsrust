@@ -1,7 +1,6 @@
 # Public documentation site: Starlight migration
 
-Status: owner requested 2026-10-28; plan first, implementation next. Hosting choice
-is pending the owner's response to the documented GitHub Pages limits. This plan
+Status: owner requested 2026-10-28; plan first, implementation next. The owner selected GitHub Pages after reviewing its size/bandwidth limits. This plan
 extends the active language/CLI/docs polish goal; it does not revive the original
 Tsrust UI product. Audience: developers installing Tsrust, learning its ownership
 and language rules, building native backends, and maintaining deployed services.
@@ -136,8 +135,7 @@ Pages; artifact/cache storage still has separate limits. Sources checked 2026-10
 [Pages limits](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits)
 and [Actions billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions).
 
-Pending host choice, build provider-neutral static output. If GitHub Pages is
-selected, use the repository project URL initially and official Pages upload/deploy
+Build provider-neutral static output. For the selected GitHub Pages host, use the repository project URL initially and official Pages upload/deploy
 Actions pinned to reviewed commits. Build PRs with read-only permissions and no
 production secrets. Only the deployment job gets pages:write/id-token:write through
 the github-pages environment. Publish accepted main content; cancel superseded docs
@@ -158,7 +156,7 @@ reviewable site and the selected provider's access requirements.
 
 ## Acceptance checklist
 
-- [ ] Host selected with documented limits and actual access verified.
+- [x] GitHub Pages selected with documented limits; repository is public and administrator access verified. Pages activation remains an implementation step.
 - [ ] Reproducible clean install and static production build; no Rust/compiler prerequisite.
 - [ ] Complete installation → first native program → first backend → editor journey.
 - [ ] Every published page reviewed for current supported behavior and runnable examples.

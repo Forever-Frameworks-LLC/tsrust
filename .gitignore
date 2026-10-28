@@ -42,3 +42,8 @@ __pycache__/
 /tools/api-client-tests/.tmp-*/
 
 /generated-projects/*
+
+# Static public documentation build products.
+/website/node_modules/
+/website/.astro/
+/website/dist/
