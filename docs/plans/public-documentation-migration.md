@@ -103,7 +103,7 @@ feature-coverage evidence to reduce the inventory.
 | `language/string-indexing.md` | Merged into language/strings; old duplicate removed and Markdown links updated. | Source, examples and 390px/1440px rendered review complete |
 | `language/string-iteration.md` | Merged into language/strings; old duplicate removed and Markdown links updated. | Source, examples and 390px/1440px rendered review complete |
 | `language/string-semantics.md` | Retained original representation/measurement history with explicit superseded-contract label; current usage moved to language/strings. | Core source, examples and 390px/1440px rendered review complete |
-| `language/switch.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/switch.md` | Canonical website language/switch; removed guide stub; preserved retained catalog metadata/route as a link | Compiler regression repair and acceptance in progress |
 | `language/type-aliases.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/type-assertions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `rust-packages.md` | Moved to tools/rust-packages; current shared-cache behavior corrected in the regex example, history retained in package-cli-acceptance. | Source and responsive presentation reviewed; package commands and relocated offline portable example pass locally |

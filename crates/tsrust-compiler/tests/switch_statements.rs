@@ -89,3 +89,39 @@ fn switch_keeps_static_contracts() {
         support::reject(source, code);
     }
 }
+
+#[test]
+fn switch_default_groups_keep_case_order_and_short_circuiting() {
+    let source = r#"import { strictEqual } from "std:testing";
+function record(trace: int[], value: int): int { trace.push(value); return value; }
+function select(value: int, trace: int[]): string {
+    switch (value) {
+        case record(trace, 1):
+        default:
+        case record(trace, 2):
+            return "shared";
+        case record(trace, 1):
+            return "later duplicate";
+        case record(trace, 3):
+            return "three";
+    }
+}
+function main() {
+    const first: int[] = [];
+    strictEqual(select(1, first), "shared");
+    strictEqual(first.join(","), "1");
+    const second: int[] = [];
+    strictEqual(select(2, second), "shared");
+    strictEqual(second.join(","), "1,2");
+    const later: int[] = [];
+    strictEqual(select(3, later), "three");
+    strictEqual(later.join(","), "1,2,1,3");
+    const missing: int[] = [];
+    strictEqual(select(9, missing), "shared");
+    strictEqual(missing.join(","), "1,2,1,3");
+}"#;
+    let directory = support::TempDirectory::new();
+    let output = support::run(support::cli().arg("run").arg(directory.source(source)), 60);
+    support::success(&output);
+    assert!(output.stdout.is_empty());
+}
