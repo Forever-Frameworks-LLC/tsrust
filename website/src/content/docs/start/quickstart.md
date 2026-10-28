@@ -6,7 +6,7 @@ description: Check and run a small Tsrust program, then create a backend service
 You need the `tsrust` CLI on your PATH. Official distributions pair it with
 `tsrust-lsp`, the editor language server. Get the matching archive from
 [GitHub Releases](https://github.com/Forever-Frameworks-LLC/tsrust/releases), or use
-the repository's source-build instructions while no stable release is available.
+[source-build instructions](../installation/#build-from-source) while no stable release is available.
 
 ## Prepare native development
 

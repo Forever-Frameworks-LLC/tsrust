@@ -14,9 +14,9 @@ and retained UI content are not automatically published.
 | New site overview | website/src/content/docs/index.md → / | Reviewed initial page. |
 | New quickstart | website/src/content/docs/start/quickstart.md → /start/quickstart/ | Reviewed initial journey; installation and editor detail still pending. |
 | New public status | website/src/content/docs/project/status.md → /project/status/ | Current product scope; internal milestone details stay in repository. |
-| docs/content/getting-started/installation.md | Planned /start/installation/ | Pending retained-content consumer migration before removal. |
-| docs/content/getting-started/project-structure.md | Planned /start/project-structure/ | Pending retained-content consumer migration before removal. |
-| editors/vscode/README.md | Planned /start/editor/ plus short extension README | Retain package-specific entry point; move full public guidance. |
+| docs/content/getting-started/installation.md | website/src/content/docs/start/installation.md → /start/installation/ | Moved; old copy removed; retained UI consumers updated. |
+| docs/content/getting-started/project-structure.md | website/src/content/docs/start/project-structure.md → /start/project-structure/ | Moved; old copy removed; retained UI consumers updated. |
+| editors/vscode/README.md | website/src/content/docs/start/editor.md → /start/editor/ plus short extension README | User guidance moved; package build/test instructions retained in the extension README. |
 | Remaining docs/guides/ | Language/backend/library/tools destinations in the site plan | Review and map individually before moving. |
 
 The moved guides have no authored heading IDs or linked internal anchors to

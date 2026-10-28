@@ -1,7 +1,7 @@
-<!-- tsrust-docs
-{"id":"project-structure","group":"getting-started","order":20,"status":"ready","targets":["web","native"]}
--->
-# Project structure
+---
+title: Understand your project
+description: Find backend source, configuration, clients and disposable build outputs.
+---
 
 `tsrust new hello --app` creates a backend application with explicit configuration:
 
@@ -41,7 +41,7 @@ are `js-client/`, `rust-client/` or an external consumer project. These are outp
 not required backend source directories. Generation does not modify the server
 or install frontend packages. Bring your own UI and call the HTTP API.
 
-See the [backend application guide](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/website/src/content/docs/backend/applications.md)
+See the [backend application guide](../../backend/applications/)
 for commands, access policy, retained compatibility contracts and OpenAPI scope.
 
 ## Console projects
@@ -57,16 +57,3 @@ Cargo dependency sources and locked, offline generated workspaces. Source/setup
 commands are explicit. Binding configuration, exact locks and Rust adapters remain
 application-owned. Portable exports contain independently verified sources, notices
 and offline Cargo configuration and can be relocated for rebuilding.
-
-## Editable components
-
-The original UI source layout and editable-component ownership rules are retained
-in the [UI setup guide](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/docs/guides/tooling/retained-ui-setup.md).
-They are outside the active backend scaffold and are not created by `--app`.
-
-## Documentation content
-
-The retained documentation application keeps Markdown under `content/` and examples
-under `src/examples/`. `tsrust docs content` validates the authored inputs and
-produces ignored output under `target/docs-content/`. Generated files are not a
-second authoring source. Backend projects do not need this documentation UI.

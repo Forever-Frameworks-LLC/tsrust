@@ -5,7 +5,7 @@ available for existing projects. They are outside the active backend product;
 new applications bring their own UI and call the native HTTP API. These are retained
 setup instructions, not a new UI completeness or platform-validation claim.
 
-First follow [CLI installation](../../content/getting-started/installation.md).
+First follow [CLI installation](../../../website/src/content/docs/start/installation.md).
 Original UI builds use the optional full source pack; prepare it explicitly:
 
 ```sh

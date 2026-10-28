@@ -1,7 +1,7 @@
-<!-- tsrust-docs
-{"id":"installation","group":"getting-started","order":10,"status":"ready","targets":["web","native"]}
--->
-# Installation
+---
+title: Install Tsrust
+description: Install the paired CLI and language server on macOS, Linux or Windows.
+---
 
 Tsrust provides a native backend CLI and language server. The language is
 experimental; language and library APIs may change. Checking, formatting and
@@ -53,7 +53,7 @@ stages a complete pair before switching one installation record. Running tools
 remain on their original versions; restart the editor server to select the new
 pair. Rollback selects the retained verified pair offline. Package-manager-owned
 installations receive upgrade guidance instead of being overwritten. See the
-[managed installation guide](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/website/src/content/docs/tools/install-and-update.md)
+[managed installation guide](../../tools/install-and-update/)
 for trust, recovery and platform acceptance.
 
 ## Install the native backend
@@ -127,21 +127,8 @@ and its descendants. `TSRUST_DEV_WATCH=poll` requests the polling fallback.
 
 ## Install editor support
 
-Install the release's VSIX through VS Code's Extensions → Install from VSIX.
-The VSIX does not contain the language server. Keep the paired executables on PATH
-or configure their explicit paths. The extension also searches the normal Cargo
-bin directory and beside a configured companion executable.
-
-An explicit workspace/user path takes precedence over discovery. If VS Code
-reports ENOENT for a deleted development build, update that setting to the current
-`tsrust-lsp` and matching `tsrust`, or remove the stale overrides. Then run
-**Tsrust: Restart Language Server**. Highlighting alone does not mean analysis is
-running. See [VS Code setup](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/editors/vscode/README.md).
-
-For a source-built extension, run `npm ci`, `npm test` and `npm run package` from
-`editors/vscode`, then install the resulting VSIX. Existing explicit formatter
-choices are preserved. The LSP has an unresolved long-session memory report; use
-smaller workspaces until it is resolved.
+Follow [VS Code setup](../editor/) for the VSIX, executable discovery and recovery
+from stale development paths. The extension requires the separate CLI/LSP pair.
 
 ## Create a project
 
@@ -165,20 +152,7 @@ tsrust test
 tsrust format --check
 ```
 
-See [project structure](project-structure.md) and the
-[backend application guide](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/website/src/content/docs/backend/applications.md).
+See [project structure](../project-structure/) and the
+[backend application guide](../../backend/applications/).
 `tsrust new` writes a project AGENTS.md describing its commands and ownership
 boundaries. Existing owner projects are never overwritten.
-
-## Browser prerequisites
-
-Original UI tooling remains outside the active backend product. Its preserved
-[UI setup guide](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/docs/guides/tooling/retained-ui-setup.md)
-contains Wasm, native GPU and documentation-app prerequisites. Backend development
-and independent SDK generation require none of those tools.
-
-## Add components offline
-
-The same retained guide documents the original editable component catalog and its
-explicit commands. A backend project does not install components or adopt a
-frontend framework.

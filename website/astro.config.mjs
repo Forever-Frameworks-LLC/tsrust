@@ -12,7 +12,7 @@ export default defineConfig({
     editLink: { baseUrl: 'https://github.com/Forever-Frameworks-LLC/tsrust/edit/main/website/' },
     customCss: ['./src/styles/custom.css'],
     sidebar: [
-      { label: 'Start here', items: [{ label: 'Overview', slug: '' }, 'start/quickstart'] },
+      { label: 'Start here', items: [{ label: 'Overview', slug: '' }, 'start/installation', 'start/quickstart', 'start/editor', 'start/project-structure'] },
       { label: 'Build backends', items: ['backend/applications', 'backend/api-clients', 'backend/authorization', 'backend/api-compatibility'] },
       { label: 'Tools', items: ['tools/rust-setup', 'tools/install-and-update'] },
       { label: 'Project', items: ['project/status'] },

@@ -1,15 +1,15 @@
 # Tsrust documentation
 
-Start with [installation](content/getting-started/installation.md), then create a
+Start with [installation](../website/src/content/docs/start/installation.md), then create a
 project and work through an [example](../examples/README.md). Tsrust is experimental;
 these guides distinguish supported behavior from planned work.
 
 ## Build an application
 
-- [Install the CLI and editor](content/getting-started/installation.md)
+- [Install the CLI and editor](../website/src/content/docs/start/installation.md)
 - [Managed CLI/LSP installation and updates](../website/src/content/docs/tools/install-and-update.md)
 - [Create a backend HTTP application](../website/src/content/docs/backend/applications.md)
-- [Understand project structure](content/getting-started/project-structure.md)
+- [Understand project structure](../website/src/content/docs/start/project-structure.md)
 - [Use the CLI](guides/project-cli.md)
 - [Inspect and prepare native build tools](../website/src/content/docs/tools/rust-setup.md)
 - [Explore the standard library](guides/language/standard-library.md)

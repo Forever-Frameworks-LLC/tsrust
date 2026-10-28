@@ -52,6 +52,41 @@ whitespace checks pass with zero changed sources/fingerprints. Existing local fu
 regressions (79249) and Windows/Linux runs (40705140781/40705410644) remain live;
 do not infer completion or restart them. No docs deployment has been published.
 
+## Onboarding migration and Pages setup
+
+Installation and project structure now live under website/src/content/docs/start/;
+their old content pages were removed and retained UI links updated. Full editor
+setup moved to start/editor.md; the extension README retains packaging/tests and a
+canonical-guide link. Retained docs content builds 164 pages with all 36 checked
+examples and 1002 API declarations. No example coverage was removed.
+
+The static site clean-installs offline from its lockfile and builds 13 pages.
+website/tools/check_links.py validates rendered links, anchors and assets using the
+root canonical URL; its focused tests cover subpaths, anchors, missing files,
+traversal and the static 404 canonical form. It found and prompted repair of a
+missing favicon. All rendered checks and six distribution tests pass. Starlight
+currently reports a route-priority warning for its custom 404 page, whose built
+404.html is present and checked. No deployed-site acceptance is claimed.
+
+Prepared .github/workflows/docs.yml: read-only PR builds, pinned Actions, npm cache,
+no lifecycle scripts, link checks, one-day Pages artifact and separate deployment
+permissions. Main-only workflow dispatch/push and successful trusted Promote and
+publish completion support token-created merges without relying on push events.
+YAML and permission-boundary assertions pass. Pages is enabled for Actions at
+https://forever-frameworks-llc.github.io/tsrust/ with HTTPS; github-pages environment
+allows only branch main (policy 64675143). No production workflow has run yet.
+
+Windows run 40705140781 is terminal failed, but all eight installer tests passed
+(36.23s), including owned-job descendant cleanup, real CLI/LSP startup, recovery,
+locked running pair update and rollback. Backend all-target diagnostics passed. Package management: 1 pass/6 failures;
+shared sources: 2 pass/2 failures. Failures include link.exe LNK1181 on long runtime
+workspace paths (root cause not yet established), absent offline regex/unicode-ident versions, and source-pack
+location under a deliberately empty Cargo home. Preserve installer evidence; repair
+and rerun only failed groups. Log: /tmp/tsrust-windows-toolchain-repair-failure.log.
+Local milestone session 79249 continues with a dev_dependencies watcher failure;
+preserve completed groups and investigate its captured diagnostic after completion.
+Linux PR CI 40705410644 remains running. Do not launch duplicate runs.
+
 ## Current priority: polish acceptance on the installed staged pipeline
 
 PR #2 merged as caf5284b. Bootstrap PR #3 passed required PR CI 40694096077

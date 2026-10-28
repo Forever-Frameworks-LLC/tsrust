@@ -7,6 +7,7 @@ ownership rules are in [the plan](../docs/plans/public-documentation-site.md).
 npm ci
 npm run dev
 npm run build
+python3 tools/check_links.py dist
 npm run preview
 ```
 

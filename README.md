@@ -7,7 +7,7 @@ Rust backend. Build command-line tools and HTTP services without a JavaScript
 runtime in the deployed program. Generate independent TypeScript or asynchronous
 Rust SDKs from a checked HTTP API description, and bring your own frontend.
 
-[Get started](docs/content/getting-started/installation.md) ·
+[Get started](website/src/content/docs/start/installation.md) ·
 [Documentation](docs/README.md) · [Examples](examples/README.md) ·
 [Releases](https://github.com/Forever-Frameworks-LLC/tsrust/releases) ·
 [Contributing](CONTRIBUTING.md)
@@ -42,7 +42,7 @@ framework integrations and UI expansion are outside the active backend scope.
 Official release archives contain the paired CLI/LSP, source identity, hashes and
 notices. Targets are Linux x64/glibc, Windows x64/MSVC, macOS ARM64 and macOS x64.
 The VS Code extension is a separate VSIX. If no stable release is available, use
-the source build below. See [installation](docs/content/getting-started/installation.md)
+the source build below. See [installation](website/src/content/docs/start/installation.md)
 for verification, platform prerequisites and editor configuration.
 
 Once a stable release exists, an official CLI can create a managed installation:
@@ -106,7 +106,7 @@ tsrust build --release
 ```
 
 See [backend applications](website/src/content/docs/backend/applications.md),
-[project structure](docs/content/getting-started/project-structure.md) and
+[project structure](website/src/content/docs/start/project-structure.md) and
 [CLI commands](docs/guides/project-cli.md).
 
 ## Status and boundaries
