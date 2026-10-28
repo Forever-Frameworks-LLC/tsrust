@@ -1,6 +1,38 @@
 # Agent continuation state
 
-## Current continuation — generic value basics accepted
+## Current continuation — existing generic adapters accepted
+
+Previous checkpoint8f417a94. Audited/migrated existing generic adapter paragraph
+into site generic-value-adapters: borrow/resume/transfer one environment, contextual
+array traversal, record/array storage and preserved parameter/editor contracts.
+Traced generic_value_adapters checked shape/substitution/lexical forwarding and
+owned escape selection. Replaced fixture narration with complete runnable programs
+and concrete failure rules. Removed blanket unsupported callback/nullable warning:
+current source tests cover multiple such cases, with fresh factory details still
+pending. No claim that every combination is supported. Added canonical links from
+generic-value page, coverage and retained advanced guide. No compiler changes.
+
+Three exact programs format/check/native pass:11/12/13;11/12/3,4/13;11/21/22.
+Focused compiler generic_value_adapters12 pass
+(/tmp/tsrust-adapter-doc-contracts.log), covering borrowing, transfer, mismatch,
+consumed callbacks, storage/traversal, default/rest and disposal. Editor adapter2
+pass (/tmp/tsrust-adapter-doc-editor.log), concrete signature/alias and default/rest.
+Full390px/1440px page reviewed: highlighted/focusable code, no document overflow,
+ArrowRight40px, skip/section/previous/next navigation. Revised default wording
+explicitly excludes undefined; traversal loan claim scoped to its example.
+64-page build and internal links/anchors pass (/tmp/tsrust-adapter-doc-site.log).
+Whole-project formatter before checkpoint. Viewport reset; tab4 retained.
+No full regressions, measurements, hostedCI, push/release or platform runs.
+
+Next: advanced guide now starts Adapt fresh and selected factories. Audit selected
+factory construction/predicates, fresh traversal/aggregate/nullable contexts and
+omitted results with exact examples; then source-flow/assignment-result callees,
+lexical generic scopes, owned/scoped selection, single-use scopes, replacement and
+mutable factory arrays. Migration remains partial. Other finite inventory and
+platform/acquisition/Pages evidence from prior continuation stays pending.
+Goal active; historical evidence preserved.
+
+## Prior continuation — generic value basics accepted
 
 Previous checkpointfc868da7. Audited/migrated generic concrete-context and deferred
 value basics from nested-functions into site generic-function-contexts and

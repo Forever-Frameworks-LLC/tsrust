@@ -110,6 +110,5 @@ Signature help at a checked call shows the concrete types and access: the string
 array. Definitions navigate back to the source declaration.
 
 Use a [concrete callable context](/tsrust/language/generic-function-contexts/) when
-a stored value should accept a fixed signature. Supported concrete adapters can
-also retain an existing generic environment; their borrowing and transfer rules
-still apply.
+a stored value should accept a fixed signature. [Concrete adapters](/tsrust/language/generic-value-adapters/) can also retain an
+existing generic environment; their borrowing and transfer rules still apply.
