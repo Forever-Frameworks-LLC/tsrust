@@ -2,7 +2,7 @@
 
 The repository description can be:
 
-> A TypeScript-style language with inferred ownership, a Rust backend, native services and shared web/desktop UI.
+> A TypeScript-style language with inferred ownership, a Rust backend, native backend services and independent HTTP SDKs.
 
 The source repository is intended for
 `https://github.com/Forever-Frameworks-LLC/tsrust`. Links use that address; creating
@@ -58,7 +58,7 @@ before calling this release pipeline verified.
 dispatch and release calls. Linux x64 and macOS ARM run selected compiler/CLI
 acceptance, LSP transport and checker agreement, renderer model checks, Clippy and
 project formatting. A separate job tests and packages the VS Code extension.
-Builds use the committed toolchain and both lockfiles, one Cargo job, one test
+Builds use the committed toolchain and locked dependency graphs, one Cargo job, one test
 thread and disabled incremental compilation. Jobs have explicit timeouts. Build
 outputs are not cached; uploaded artifacts expire after seven days.
 
@@ -67,6 +67,24 @@ with `full_regressions: true` at a milestone to run all default workspace test
 and doctest targets. Database service tests remain opt-in. Hosted model checks
 cannot replace real GPU, browser, window and assistive-technology acceptance.
 Performance benchmarks do not run automatically or overwrite accepted evidence.
+
+## Validate packages without publishing
+
+Dispatch the Release workflow manually against a branch or commit. It derives the
+package version from Cargo.toml, checks source cleanliness, runs packaging tests,
+builds both optimized consumers and runs the distributed CLI smoke on Linux,
+macOS ARM/Intel and Windows x64. Archives remain temporary Actions artifacts;
+manual dispatch never creates a tag or publishes a GitHub release. This focused
+package check does not repeat the full CI gate and is not release authorization.
+Tag-triggered releases still require the complete CI gate before building.
+
+The Windows artifact path is configured but remains pending native package
+validation until a hosted run is recorded. Do not infer Windows release readiness
+from suffix-only packaging fixtures or earlier local development installs.
+
+For focused async language acceptance, dispatch CI with `async_acceptance: true`.
+It runs compiler/native async registration, editor contracts and backend all-target
+diagnostics on Windows, macOS and Linux. It does not replace the default CI matrix.
 
 ## Prepare a version
 
@@ -104,15 +122,17 @@ The build matrix compiles optimized CLI and LSP executables on their host runner
 | Ubuntu 24.04 x64 | `x86_64-unknown-linux-gnu` |
 | macOS 15 ARM | `aarch64-apple-darwin` |
 | macOS 15 Intel | `x86_64-apple-darwin` |
+| Windows Server 2022 x64 | `x86_64-pc-windows-msvc` |
 
 Each archive contains the two consumers, an MIT license, upstream notices,
-version/source metadata and per-file SHA-256 digests. Native dependency sources
-remain embedded in the compiler. The package tool collects notices from the
-workspace and native dependency closures using `cargo vendor --locked`.
+version/source metadata and per-file SHA-256 digests. Dependency sources are not
+embedded in the executables. Explicit setup prepares shared compilation sources
+or optional portable export packs. The package tool collects notices from the
+workspace, backend and portable dependency closures using `cargo vendor --locked`.
 
 The packaged CLI runs a fresh project outside the checkout: scaffold, check,
 format, native execution, tests and bundled JSON. Only after all hosts pass does
-publication create a GitHub Release containing three archives, one VSIX and
+publication create a GitHub Release containing four archives, one VSIX and
 `SHA256SUMS`. GitHub also provides the tagged source archives. Tags with a
 prerelease suffix create prereleases; ordinary semantic version tags create
 regular releases. Existing releases are never overwritten automatically.
@@ -139,7 +159,8 @@ notarize or generate build attestations. Do not claim those properties.
 
 Native application compilation still requires Rustup with Rust 1.96.1 and a
 system linker. Linux binaries are built on Ubuntu 24.04 with glibc; Alpine/musl,
-Windows and Linux ARM archives are not provided. macOS unsigned executable policy
+Linux ARM archives are not provided. Windows x64 packages require MSVC/Windows
+SDK build tools for native application compilation. macOS unsigned executable policy
 may require local approval. No `curl | sh` installer, registry publication or
 Marketplace upload is configured.
 

@@ -29,6 +29,19 @@ All three jobs are live: Windows 122760867985, Linux 122760868408, macOS
 122760868454. Re-poll this run; do not restart it merely because a turn ends.
 No local build/test or public release was run. Acceptance remains pending.
 
+## Windows package validation prepared
+
+Release workflow changes add x86_64-pc-windows-msvc packaging with explicit .exe
+inputs and Bash commands, plus a manual artifact-only validation path. Manual
+runs derive the version from the clean source, run packaging tests and native CLI
+smokes, and retain temporary Actions artifacts. The publish job requires a v* tag
+push; manual dispatch cannot publish. Tag-triggered runs retain the existing CI
+prerequisite. Notice collection includes all three locked dependency closures.
+Release guide reflects the backend source-pack design and four configured hosts.
+These changes are not yet executed or accepted. Wait for the current async run
+before dispatching package validation; preserve its original results. Package
+smokes are not paired installer/update or locked-LSP acceptance.
+
 ## CI merge repair — 2026-10-28
 
 User requested CI repair for PR #2. Starting source: 6a766051. Hosted run
