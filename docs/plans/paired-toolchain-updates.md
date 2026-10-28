@@ -69,3 +69,18 @@ process remains usable. Execute that witness on Windows as well as macOS/Linux;
 fixtures alone cannot establish OS replacement semantics. Reuse the existing
 non-publishing platform validation and package smoke once implementation is ready.
 No public release is created merely to test the updater.
+
+
+## Documentation smoke integration
+
+`tools/smoke-toolchain.mjs`, already used by all four package jobs, now verifies
+explicit offline dependency setup and native doctor, then reads the actual
+quickstart/testing examples from canonical site Markdown. It formats and executes
+them, runs the documented POSIX shell or Windows PowerShell reporter command, and
+checks the documented failing greeting reports both expected and received values.
+All work stays in an isolated temporary project/cache and is removed afterward.
+The completed smoke passes on macOS with the current debug consumers; this is
+local behavior evidence, not a release-package or fresh-machine claim. Windows and
+Linux execution of the new documentation branch remain pending. No new workflow
+or duplicate compiler build was introduced; the existing non-publishing package
+validation can exercise it when the coherent platform section is ready.

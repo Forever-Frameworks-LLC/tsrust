@@ -2,7 +2,8 @@
 
 ## Current continuation — public documentation audit
 
-Latest accepted checkpoint is a92ba656 (macOS memory probe); 110a8e29 records
+Latest accepted checkpoint is f1c3784f (compiler entry-point cleanup);
+a92ba656 contains the macOS memory probe; 110a8e29 records
 contributor/toolchain documentation;
 eb3918f9 records macOS editor acceptance; ec0db552
 records regression/Windows evidence; e33f4674
@@ -43,6 +44,18 @@ Linux 40748887685 reached LSP transport and compiler agreement; extension passed
 Windows 40748893795 succeeded at 86435b88: installer/process 8/8, shared-source
 5/5 and package-management 7/7, including the new live-LSP update witness.
 Docs 40748887897 passed. No new hosted run, push, merge or release in this section.
+
+## Documentation examples in package acceptance
+
+Extended existing smoke-toolchain.mjs rather than creating another build/workflow.
+It verifies explicit offline setup and doctor --native, reads exact quickstart and
+testing snippets from canonical Markdown, checks formatting, executes the platform
+reporter shell command and requires the intentional greeting failure to show both
+values. Complete local macOS smoke passes with current debug CLI/LSP; disposable
+log /tmp/tsrust-docs-toolchain-smoke.log. This is not release-package acceptance or
+fresh-machine setup proof. Windows/PowerShell and Linux execution remain pending;
+the existing release validation's four platform jobs already invoke this smoke.
+No hosted dispatch/push/publication was needed for the local implementation.
 
 ## Compiler entry-point cleanup
 
