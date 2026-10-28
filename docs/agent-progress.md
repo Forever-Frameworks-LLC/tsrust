@@ -1,56 +1,60 @@
 # Agent continuation state
 
-## Current continuation — switch audit and parser repair
+## Current continuation — switch audit accepted
 
-Previous goal turn made progress: d1fdccae migrated and accepted statement-body
-content, exact native example and full mobile/desktop presentation. Current work
-builds on that clean checkpoint. No owner changes were present at section start.
+Current section builds on WIP checkpoint 6d4e4527. No owner changes were present
+at section start. Public site has 30 pages; per-page acceptance and the finite
+migration inventory remain authoritative. Newer work is local, not the remote PR.
 
-Public site now has 30 pages. Since 1b375f06, async/futures/modules, strings,
-Rust packages, deployment and editor sections have been migrated or reconciled;
-see the page-by-page audit and finite migration inventory for actual acceptance.
-Package commands and portable export were executed; the regex example schema/lock
-was repaired through the real offline package CLI, preserving prior versions.
-Those commits are local; do not equate them with the remote PR head.
+Switch lowering now keeps one shared default body, retaining grouped labels in
+source order without exponential nested AST growth. Copyable named subjects are
+snapshotted before case evaluation. Noncopy named subjects use a scoped checked
+alias: comparisons prevent case-side mutation, while selected bodies can mutate
+or consume the subject. Snapshot narrowing reaches the original variable only
+while its source-stability marker survives writes. Scope cleanup removes aliases
+and snapshot markers. Regression witnesses cover grouping, evaluation order,
+mutation, ownership, narrowing, inline functions and nested body counts.
 
-The switch audit found that case labels grouped with default were discarded.
-A native before-fix witness failed. statement_work.rs now retains those comparisons;
-three switch integration tests pass, including the new independent order,
-short-circuit, duplicate-label and fallback assertions. Both canonical page examples
-pass idempotent formatting, compiler check and native execution. Compiler/LSP
-all-targets passes without warnings (4m27s including target-lock wait); log:
-/tmp/tsrust-switch-all-targets.log. Switch benchmark registration/oracle tests pass
-2/2; no timing or full-regression rerun. Build and same-site absolute links/anchors
-pass across 30 pages. Full 390px/1440px review and keyboard scrolling/skip pass.
+Completed current-source validation:
+- Parser nesting tests: 14/14 pass (/tmp/tsrust-switch-parser-check.log).
+- Native/compiler switch tests: 5/5 pass in 2.09s after compilation
+  (/tmp/tsrust-switch-repair-final.log).
+- All three exact switch page code blocks pass formatting checks, compiler checks
+  and native assertions with empty stdout. Temporary example files removed.
+- Full prior 390px/1440px review retained; changed matching/ownership sections
+  inspected at both widths. Mobile code scrolls 40px with ArrowRight, document
+  width/scrollWidth 390/390. Snapshot narrowing wording now explicitly requires an
+  unchanged original variable. Site build and absolute internal links/anchors pass
+  across 30 pages. Final prose-only rebuild and links/anchors pass across all 30 pages.
+- Whole-project formatter changed 0 files and 0 fingerprints; diff check passes.
+- Prior switch benchmark registration/oracle tests 2/2 retained; no timing rerun.
 
-NOT ACCEPTED YET: a second native witness proves named-subject mutation in a case
-expression changes later comparisons. /tmp/tsrust-switch-subject-audit.tsr contains
-`switch(value) { case (value = 2): ...; case 1: ...; }` with value initially 1;
-it fails the expected one branch. Preserve this as a regression while repairing
-subject stabilization without breaking union narrowing or ownership. The page now
-explicitly describes this current limitation; review that added warning visually.
-Also review grouped-default body duplication before accepting the parser repair:
-the current minimal fix clones the shared body, so nested groups may amplify AST
-size. Prefer a lowering that retains one body rather than adding arbitrary caps.
-These are active implementation work, not accepted compatibility restrictions.
+Live LSP switch test passes (2 tests including the shared excerpt control, 0.95s).
+Compiler/LSP all-targets check passes without warnings in 56.44s. Logs:
+/tmp/tsrust-switch-lsp-check.log and /tmp/tsrust-switch-all-targets-final.log.
+Session 95720 completed successfully; no validation command remains running.
+Switch content and migration rows are accepted. No full regression or timing run.
 
-Retained docs/content/language/switch.md keeps its catalog metadata/route and links
-to the canonical site source; removed the obsolete guides wrapper and updated
-current feature/milestone inbound links. Preserve deferred UI metadata consumers.
+Retained docs/content/language/switch.md keeps catalog metadata/route and links to
+canonical site source. Obsolete guide wrapper removed in prior checkpoint; current
+migration notes now reflect that fact. Preserve deferred UI metadata consumers.
 
-Remote PR #4 remains draft at 61ee67a44152437848a53d0fea6499e7ffec56ec
-(branch codex/backend-polish-staging, base stag). Current read of run 40761578381:
-Compiler and LSP job remains in_progress; extension succeeded, optional Windows and
-async jobs skipped. No new push, dispatch, merge or release. The last successful
-Windows/Linux installer/cache evidence at 86435b88 remains reusable for unchanged
-inputs. New Unicode VS Code E2E on Windows/Linux, package docs smoke on those
-platforms, fresh acquisition, release-command execution and actual Pages deployment
-remain pending. No concrete release version is authorized.
+Remote draft PR #4 remains at 61ee67a44152437848a53d0fea6499e7ffec56ec
+(branch codex/backend-polish-staging, base stag). CI run 40761578381 completed
+SUCCESS: Compiler/LSP, extension and aggregate CI pass; optional Windows and async
+jobs skipped. That result does not cover newer local commits. No new push, dispatch,
+merge or release. Existing Windows/Linux installer/cache evidence at 86435b88 is
+reusable for unchanged inputs. New Unicode VS Code E2E on Windows/Linux, package
+docs smoke there, fresh acquisition, release-command execution and actual Pages
+deployment remain pending. No concrete release version is authorized.
 
-Next: finish the two switch lowering concerns, add focused witnesses, rerun only
-affected checks; then accept this guide and resume finite language migrations.
-Use one Cargo target, jobs=1 and incremental disabled. Local build pause was lifted
-by the owner because this is a different computer. Do not touch owner VS Code.
+Next: resume finite language migrations, starting with type aliases and then text
+imports. Read-only preflight inspected compiler/LSP type_aliases and
+compiler generic_type_aliases witnesses; no alias files were edited or tests run.
+Preserve the current 30-page acceptance, and finish pending platform/acquisition/
+deployment checks separately. Use one Cargo target, jobs=1 and incremental disabled.
+Local build pause was lifted by owner because this is a different computer.
+Do not touch owner VS Code.
 
 
 ## Prior continuation evidence — public documentation audit

@@ -739,6 +739,7 @@ fn step_block<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: Bloc
             return Ok(BlockAction::Done(exited));
         };
         let stmt = &mut task.body.statements()[index];
+        if analyzer.switch_subject_alias(context, stmt)? { return Ok(BlockAction::Continue); }
         match &mut stmt.kind {
             StmtKind::Try(region) if context.exception_environment.is_some() && context.completion_frame.is_some() => {
                 let active = context.exception_environment.as_ref().expect("exception environment");

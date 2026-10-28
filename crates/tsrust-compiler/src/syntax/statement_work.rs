@@ -634,35 +634,34 @@ impl Parser<'_> {
                 ));
             }
         }
-        // A named discriminant is compared in place; any other value is held once.
-        let mut held = None;
-        let subject = if matches!(discriminant.kind, ExprKind::Name(_)) {
-            discriminant
-        } else {
-            let holder = self.pattern_holder();
-            let name = Expr::new(ExprKind::Name(holder.text.clone()), discriminant.span);
-            held = Some(statement(StmtKind::Let { rebindable: false, name: holder, annotation: None, value: discriminant, binding: None }, span));
-            name
-        };
+        let mut holder = self.pattern_holder();
+        if matches!(discriminant.kind, ExprKind::Name(_)) {
+            holder.text = holder.text.replacen("pattern#", "switch#", 1);
+        }
+        let subject = Expr::new(ExprKind::Name(holder.text.clone()), discriminant.span);
+        let held = statement(StmtKind::Let {
+            rebindable: false, name: holder, annotation: None, value: discriminant, binding: None,
+        }, span);
         // Build the chain from the last clause back; default is the final else.
         let mut default_body = None;
         let mut chain: Vec<Stmt> = Vec::new();
         let mut tested = Vec::new();
-        for (values, default, body, at) in clauses {
+        let shared_default = clauses.iter().position(|(values, default, _, _)| *default && !values.is_empty());
+        let matched = shared_default.map(|_| self.pattern_holder());
+        for (index, (values, default, body, at)) in clauses.into_iter().enumerate() {
             if default {
-                // A shared default body is also selected by its case labels in source order.
                 if !values.is_empty() {
-                    tested.push((values, body.clone(), at));
+                    tested.push((index, values, None, at));
                 }
                 default_body = Some(body);
             } else {
-                tested.push((values, body, at));
+                tested.push((index, values, Some(body), at));
             }
         }
         if let Some(body) = default_body {
             chain = body;
         }
-        for (values, body, at) in tested.into_iter().rev() {
+        for (index, values, body, at) in tested.into_iter().rev() {
             let mut condition: Option<Expr> = None;
             for value in values {
                 let value_span = value.span;
@@ -683,20 +682,35 @@ impl Parser<'_> {
                     ),
                 });
             }
-            let condition = condition.expect("case clause has a value");
-            chain = vec![statement(StmtKind::If { condition, then_body: body, else_body: chain }, at)];
+            let mut condition = condition.expect("case clause has a value");
+            if let Some(body) = body {
+                if shared_default.is_some_and(|shared| index > shared) {
+                    let flag = matched.as_ref().expect("shared default flag");
+                    let not_matched = Expr::new(ExprKind::Binary {
+                        op: BinaryOp::Equal, operator: at,
+                        left: Box::new(Expr::new(ExprKind::Name(flag.text.clone()), at)),
+                        right: Box::new(Expr::new(ExprKind::Boolean(false), at)),
+                    }, at);
+                    condition = Expr::new(ExprKind::Binary {
+                        op: BinaryOp::And, operator: at,
+                        left: Box::new(not_matched), right: Box::new(condition),
+                    }, at);
+                }
+                chain = vec![statement(StmtKind::If { condition, then_body: body, else_body: chain }, at)];
+            } else {
+                // A matching shared label skips later comparisons and reaches the one fallback body.
+                chain.insert(0, statement(StmtKind::Let {
+                    rebindable: false, name: matched.clone().expect("shared default flag"),
+                    annotation: None, value: condition, binding: None,
+                }, at));
+            }
         }
         // The statements built here need no second break check when an
         // enclosing switch validates its own clause.
         self.validated_switches.insert(span.start);
         self.validated_switches.extend(chain.iter().filter(|lowered| matches!(lowered.kind, StmtKind::If { .. })).map(|lowered| lowered.span.start));
-        machine.statements.push(match held {
-            Some(first) => {
-                self.pending.append(&mut chain);
-                first
-            }
-            None => statement(StmtKind::Block(chain), span),
-        });
+        chain.insert(0, held);
+        machine.statements.push(statement(StmtKind::Block(chain), span));
         Ok(())
     }
 
