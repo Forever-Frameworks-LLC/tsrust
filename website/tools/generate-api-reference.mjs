@@ -51,7 +51,6 @@ const modules = [
     Thread: 'Thread', ScopedThread: 'ScopedThread', ThreadPool: 'ThreadPool', Channel: 'Channel', Sender: 'Sender',
     TaskContext: 'TaskContext',
   } },
-  { module: 'std:result', summary: 'Helpers for recoverable Result values.' },
   { module: 'std:testing', summary: 'Register tests, hooks and assertions for `tsrust test`.', members: {
     Expectation: 'Expectation', 'Negated expectation': 'NegatedExpectation',
   } },
@@ -69,6 +68,8 @@ const modules = [
   { module: 'std:crypto', summary: 'Secure random bytes, SHA-256 and constant-time comparison.' },
   { module: 'std:os', summary: 'Inspect the host platform, architecture and byte order.' },
   { module: 'std:signals', summary: 'Receive process termination signals for graceful shutdown.' },
+  // unwrap is global; this module only keeps an older import spelling working.
+  { module: 'std:result', summary: 'Compatibility import of the global `unwrap`; new code needs no import.' },
 ];
 
 // Members available without imports, grouped by what a reader looks for.
@@ -168,7 +169,7 @@ builtins.forEach(({ slug, title, summary, groups }, index) => {
   for (const [owner, [group, prefix]] of Object.entries(groups)) {
     sections.push(`## ${owner}`, '', ...catalog[group].map((item) => entry(item, prefix)), '');
   }
-  pages.push(page({ title, description: summary, slug: `builtins/${slug}`, order: index + 1, intro: `${summary} These are available in every module without an import.`, sections}));
+  pages.push(page({ title, description: summary, slug: `builtins/${slug}`, order: index + 1, intro: `${summary} These are available in every module without an import.${slug === 'globals' ? ' For an introduction to the most common ones, see [global functions and types](../../../library/globals/).' : ''}`, sections}));
 });
 
 rmSync(outputRoot, { recursive: true, force: true });

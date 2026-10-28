@@ -25,6 +25,7 @@ export default defineConfig({
       { label: 'Build backends', items: ['backend/applications', 'backend/http', 'backend/static-files', 'backend/http-transport', 'backend/api-clients', 'backend/authorization', 'backend/api-compatibility', 'backend/deployment'] },
       { label: 'Standard library', items: [
         'library/overview',
+        'library/globals',
         { label: 'Modules', collapsed: true, items: [{ autogenerate: { directory: 'reference/library' } }] },
         { label: 'Built-in types', collapsed: true, items: [{ autogenerate: { directory: 'reference/builtins' } }] },
         { label: 'Guides', collapsed: true, items: ['library/json', 'library/typed-json', 'library/json-files', 'library/futures'] },
