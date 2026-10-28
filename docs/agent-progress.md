@@ -2,28 +2,40 @@
 
 ## Current continuation — public documentation audit
 
-Accepted local executable/public-doc source is e7103537; evidence checkpoints follow. Earlier chronological entries below retain
-historical process states; they are not instructions to poll or restart those
-jobs. No Cargo test is currently running. The page-by-page acceptance checklist
-is [the public content audit](plans/public-documentation-content-audit.md).
+Latest accepted checkpoint is 7612c271 (HTTP reader timing baseline). Current work
+repairs retained editor compatibility while completing the public-doc audit. The
+page-by-page checklist is [the public content audit](plans/public-documentation-content-audit.md).
 
-The editor guide's historical blanket memory warning has been replaced with
-landed retention fixes and the precise remaining long-session macOS uncertainty.
-Rechecked restart semantics against extension.ts and installed language-client
-9.0.1: four automatic restarts, then no restart on a fifth exit within three
-minutes; the explicit restart command constructs a new client. Mobile section
-navigation and desktop skip/next-page keyboard navigation pass in the live guide.
-Overflowing code receives tabindex=0 after resize handling; actual horizontal
-keyboard scrolling was not established by this observation. Keep editor/platform
-execution and that interaction pending rather than closing the page.
+Uncommitted: the ExampleCard fixture now includes CodeBlock, generated token model
+and theme config; the gallery uses kbd-v2/button-v3 and correct source paths. Both
+focused LSP fixtures pass. Card hover exposed a real shared documentation panic:
+layout::resolve parsed p-(--panel) as numeric spacing while selecting positioning
+help. documentation now uses the existing layout::offset query; all 23 style tests
+pass, including every variable-padding/gap prefix and metadata/responsive variants.
+The real LSP no longer crashes. Its stale overflow-hidden assertion now checks the
+current clipping/focus-reveal contract, and the formatted/idempotent fixture passes
+(1 test, 1.83s; /tmp/tsrust-retained-card-help-fixed.log). Server-test stderr is
+inherited to expose crashes. The earlier failure log remains diagnostic context.
 
-Reviewed saved Linux PR run 40705410644: package/shared-source failures concern
-the offline regex/version closure and portable-source location. The current
-workflow includes the later dependency-manifest fetch and fixed source-pack path.
-Latest Windows run 40731485167 passed at 9b658857; the newer live-LSP update
-witness still requires Linux/Windows execution. No new hosted run, push, merge
-or release was performed during this review. Batch remaining remote validation
-after recording its exact source identity and local acceptance.
+Backend compiler/LSP all-targets passes (2m18s), then workspace all-targets passes
+(1m06s), with no errors or warnings. Both used one Cargo job and incremental disabled;
+logs are /tmp/tsrust-hover-backend-check.log and /tmp/tsrust-hover-workspace-check.log.
+No Cargo check or test remains running from this section. No full regression or
+benchmark rerun was started for these focused repairs.
+
+CLI and managed-update pages now split dense prose into command purposes, verbose
+output and interruption/verification outcomes. Rendered mobile/desktop review,
+keyboard navigation and code scrolling completed for those pages; source-install
+page rendered review and editor-guide horizontal keyboard scrolling also completed.
+Production-preview 404 recovery passes: unknown nested route, search result and
+sidebar keyboard navigation. Build produces 23 pages; all same-site links/anchors
+pass. Whole-project formatter changed zero files/fingerprints. Keep fresh-platform,
+published-acquisition and interactive execution requirements open in the tracker.
+
+Existing remote head is 86435b8846badcfaf836af9c36da3fa56379f3a6 on draft PR #4.
+Linux 40748887685 remains in Compiler and CLI acceptance; extension passed.
+Windows 40748893795 reached paired installer/locked-process/cache acceptance.
+Docs 40748887897 passed. No new hosted run, push, merge or release in this section.
 
 ## Owner priority: public documentation site
 

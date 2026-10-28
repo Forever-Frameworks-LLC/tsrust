@@ -15,8 +15,7 @@ The launcher groups actions into Development, Quality, UI and Project screens,
 with help and exit alongside them. The UI screen contains retained legacy tooling;
 it is outside the current backend workflow. Development and Quality appear inside projects.
 Use arrow keys and Enter, or the displayed Back item to return to categories.
-Esc or Ctrl+C cancels. A compact wordmark, color, action hints and workspace context
-provide terminal presentation without changing the commands themselves.
+Esc or Ctrl+C cancels.
 
 `NO_COLOR` and `--color never` disable colors; `--color always` explicitly enables
 them. For example, `tsrust --color never` opens the launcher without color. Narrow
@@ -32,7 +31,7 @@ cd hello
 tsrust dev
 ```
 
-`new` creates source, a test, README, `.gitignore` and `tsrust.config.json`. It refuses
+`new` creates source, a test, README, `AGENTS.md`, `.gitignore` and `tsrust.config.json`. It refuses
 existing destinations. Use a name beginning with a letter, followed by letters,
 digits, hyphens or underscores, with a maximum of 100 ASCII characters.
 A destination path is allowed if its parent exists.
@@ -44,16 +43,16 @@ builds or `--` to pass arguments to the program. macOS, Linux and Windows have n
 
 ## Check and run
 
-Run commands once:
+| Command | Purpose |
+| --- | --- |
+| `tsrust check` | Check the project's source. |
+| `tsrust format --check` | Report formatting differences without rewriting files. |
+| `tsrust test` | Build and run discovered tests. |
+| `tsrust run` | Build and run the configured entry. |
+| `tsrust build` | Write a native executable at the configured output path. |
 
-```sh
-tsrust check
-tsrust format --check
-tsrust test
-tsrust run
-tsrust run -- --port 3000
-tsrust build
-```
+Use `tsrust run -- --port 3000` to forward arguments. Your program must interpret
+them; the CLI does not add a server or a port setting.
 
 ## Project configuration
 
@@ -85,6 +84,7 @@ The watcher tracks source and build inputs below the project root, including
 It excludes `.git`, `node_modules`, `target` and symlinks from that scan.
 The resolved import closure is also captured; dependencies outside that tree or
 inside excluded directories are reconciled by metadata polling.
+
 Development binaries are temporary; `build` writes the named output. A program that
 exits normally runs again on the next change. Restarting does not preserve its
 in-memory state. The template has a `main` function, but the language does not require it.
@@ -95,23 +95,33 @@ See [testing](../testing/) for test discovery, output and failure reporting.
 
 Dev output defaults to one watching message and a build/rebuild duration, followed
 by program output. Successful program exits are silent; failed builds and nonzero
-exits remain visible. Dev status uses cyan for information, green for successful
+exits remain visible.
+
+Dev status uses cyan for information, green for successful
 builds, red for failures and yellow for watcher fallback warnings. Colors enable
 automatically on a supported stderr terminal; redirected output, `NO_COLOR` and
 `TERM=dumb` stay plain. Override with `--color auto|always|never` before `--`.
-Program output is unchanged. `tsrust dev --verbose` adds process IDs, temporary binary
-paths and successful exit messages, plus checking, emission, backend verification,
-cache lookup, runtime preparation, persistent dependency workspace paths, runtime
-build/publication and combined native compilation/linking timings.
+Program output is unchanged.
+
+Use `tsrust dev --verbose` when diagnosing a slow build or process failure. It adds:
+
+- Process IDs, temporary binary paths and successful exit messages.
+- Checking, emission, backend verification and cache lookup timings.
+- Runtime preparation, dependency workspace paths and runtime build/publication timings.
+- Combined native compilation and linking timings.
 
 ## Build caching and watcher fallback
 
 Dev shares the validated project cache at `target/tsrust-native` across edits and
 sessions. Each running executable remains a private copy, so builds cannot overwrite
 its inode. Identical source/toolchain/options reuse an artifact; a new source version
-still needs native compilation. The watcher uses native filesystem notifications on macOS, Linux and Windows. Notifications
+still needs native compilation.
+
+The watcher uses native filesystem notifications on macOS, Linux and Windows. Notifications
 trigger reconciliation of source contents; idle polls do not scan the source tree.
-Unchanged file contents remain cached. Native setup/runtime failures print a message
+Unchanged file contents remain cached.
+
+Native watcher setup/runtime failures print a message
 and fall back to metadata polling. Set `TSRUST_DEV_WATCH=poll` to force that fallback.
 macOS uses one descriptor per watched file/directory, so descriptor exhaustion also
 falls back visibly.
