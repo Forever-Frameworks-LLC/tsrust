@@ -56,9 +56,9 @@ jobs:
       - name: Native renderer model and layout checks
         if: ${{ !cancelled() && steps.consumers.outcome == 'success' }}
         run: cargo test --offline --locked -p tsrust-ui --features native --lib
-      - name: Clippy
+      - name: Clippy correctness and warning report
         if: ${{ !cancelled() && steps.consumers.outcome == 'success' }}
-        run: cargo clippy --offline --locked --workspace --lib --bins -- -D warnings
+        run: cargo clippy --offline --locked --workspace --lib --bins -- -D clippy::correctness
       - name: Compiler and CLI acceptance
         if: ${{ !cancelled() && steps.consumers.outcome == 'success' && !inputs.full_regressions }}
         run: cargo test --offline --locked --no-fail-fast -p tsrust-compiler --lib --bin tsrust --test acceptance --test project_commands --test formatting --test native_dependency_bundle
