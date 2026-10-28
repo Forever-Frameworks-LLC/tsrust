@@ -369,7 +369,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
     }
     let mut linked = Program {
         diagnostic_first: None,
-        diagnostic_skips: Default::default(),
+        diagnostic_skips: Default::default(), generated_continuations: Default::default(),
         diagnostic_contracts: Default::default(),
         unresolved_local_function: None,
         local_declarations: Vec::new(),
@@ -554,7 +554,9 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
                 Box::new(Expr::new(ExprKind::Name("@native:std:testing-runtime#beginFile".into()), span)), vec![Expr::new(ExprKind::String(id.0.clone()), span)]
             ), span)) });
             body.extend(test_initializers.remove(id).expect("linked test initialization"));
-            body.push(Stmt { labels: Vec::new(), control_target: None, span, kind: StmtKind::Expr(Expr::new(ExprKind::Call(
+            let continuation=segments.iter().map(|(_,start,length)|start+length).max().unwrap_or(0)+1+linked.generated_continuations.len();
+            linked.generated_continuations.insert(continuation);
+            body.push(Stmt { labels: Vec::new(), control_target: None, span:Span::new(continuation,continuation), kind: StmtKind::Expr(Expr::new(ExprKind::Call(
                 Box::new(Expr::new(ExprKind::Name("@native:std:testing-runtime#endSuite".into()), span)), Vec::new()
             ), span)) });
         }

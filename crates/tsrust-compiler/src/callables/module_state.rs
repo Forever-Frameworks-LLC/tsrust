@@ -33,7 +33,9 @@ pub(crate) fn lower(program: &mut Program) -> Result<(), Diagnostic> {
     }
     let mut owner = if let Some(mut entry) = entry {
         let arguments = entry.params.iter().map(|(name, _, _)| Expr::new(ExprKind::Name(name.text.clone()), name.span)).collect();
-        body.push(Stmt { labels: Vec::new(), control_target: None, span: entry.name.span,
+        let continuation=span.end+1;
+        program.generated_continuations.insert(continuation);
+        body.push(Stmt { labels: Vec::new(), control_target: None, span: Span::new(continuation,continuation),
             kind: StmtKind::Return(Some(Expr::new(ExprKind::Call(
                 Box::new(Expr::new(ExprKind::Name("main".into()), entry.name.span)), arguments), entry.name.span))) });
         entry.body = body;

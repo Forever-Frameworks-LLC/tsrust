@@ -248,18 +248,33 @@ fn single_use_stored_callback_rejects_reusable_test_registration() {
 }
 
 #[test]
-fn prepared_test_entry_guards_file_registration_scope() {
+fn prepared_test_entry_runs_cleanup_and_stops_registration() {
     let directory=support::TempDirectory::new();
-    let path=directory.0.join("cleanup.test.tsr");
-    std::fs::write(&path,"try{throw 'registration failed';}finally{console.log('file cleanup');}").unwrap();
+    let path=directory.0.join("a.test.tsr");
+    std::fs::write(&path,support::format_round_trip("try{throw 'registration failed';}finally{console.log('file cleanup');}")).unwrap();
     let emitted=support::run(support::cli().arg("emit").arg(&path),60);
     support::success(&emitted);
-    let rust=String::from_utf8_lossy(&emitted.stdout);
-    assert!(rust.contains("tsrust_testing_scope(&mut *value"),"prepared file entry has no registration scope guard");
-    let output=support::run(support::cli().arg("test").arg(&path),60);
+    for multiple in [false,true] {
+        if multiple {
+            std::fs::write(directory.0.join("b.test.tsr"),support::format_round_trip("import {test,strictEqual} from 'std:testing';console.log('later registration');test('later',()=>{strictEqual(1,1);});")).unwrap();
+        }
+        let output=support::run(support::cli().arg("test").arg(if multiple {&directory.0} else {&path}),60);
+        assert!(!output.status.success());
+        assert_eq!(String::from_utf8_lossy(&output.stdout),"file cleanup\n");
+        let stderr=String::from_utf8_lossy(&output.stderr);
+        assert!(stderr.contains("Uncaught registration failed"),"{stderr}");
+        assert!(!stderr.contains("panicked"),"{stderr}");
+    }
+}
+
+#[test]
+fn generated_entry_tail_does_not_hide_unreachable_user_statements() {
+    let directory=support::TempDirectory::new();
+    let path=directory.0.join("unreachable.test.tsr");
+    std::fs::write(&path,support::format_round_trip("throw 'registration failed';console.log('unreachable user code');")).unwrap();
+    let output=support::run(support::cli().arg("check").arg(&path),30);
     assert!(!output.status.success());
-    assert_eq!(String::from_utf8_lossy(&output.stdout),"file cleanup\n");
-    assert!(!String::from_utf8_lossy(&output.stderr).contains("panicked"));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("unreachable"));
 }
 
 #[test]

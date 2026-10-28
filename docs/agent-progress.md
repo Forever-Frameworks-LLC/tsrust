@@ -1176,3 +1176,85 @@ Rendered inspection and fresh/platform acquisition are still pending. Site build
 formatting and format-check pass with no changes. Unaccepted generated-continuation
 production edits remain untouched. Existing full run79249 is live in retained UI
 integration groups; Windows40724567590 still runs paired installer/cache acceptance.
+
+
+## Registration boundary repair continuation
+
+Reproduced native single-file cleanup: exact stdout file cleanup, stderr Uncaught
+registration failed, exit1. The missing emitted borrowed scope assertion is stale:
+callable_result_body explicitly excludes the owner-local registry, which is
+initialized and disposed inside the program owner. Suite borrowed-restoration
+coverage remains intact. Replaced this assertion with stronger observable single/
+multi-file checks (exact cleanup, uncaught error, no later registration execution).
+Two-file reproduction exposed checker reachability leaking from one linked test
+file into the next. Added a reset only at the trusted beginFile native marker;
+ordinary source after an exit remains rejected. Generated tail elision remains.
+Full exception_handling validation session76376 is live, log
+/tmp/tsrust-registration-tail-repair.log; recompiling compiler after restored
+shared dependency artifacts. Do not start another copy. No acceptance yet.
+Ordinary module initializer witness (initialize throws in try/finally, constant
+initializer calls it, main consumes constant) executes cleanup and exits before
+main with expected stderr. A raw top-level try is intentionally unsupported outside
+test files; the first exploratory witness was rejected accordingly.
+Windows40724567590 installer/cache step failed; all-target diagnostics still live.
+Attempted --log-failed reports logs unavailable until terminal, so no failure cause
+or rerun yet. Full original run79249 continues retained UI tests. New failures:
+temporal_values catalog count expected31/actual32, ui compiler API expects11 to be
+unsupported but COMPILER_API is11, three native retained-UI equality witnesses.
+These have not been repaired or rerun; preserve the full log and completed groups.
+Next: inspect76376 result, then affected testing_async/library/runtime and backend
+all-target diagnostics; record terminal Windows cause when logs become available.
+
+
+## Registration acceptance and diagnosed Windows repairs
+
+Session76376 terminal PASS: all22 exception_handling tests, including exact
+single/two-file cleanup and no later initialization. Affected session73030 terminal:
+testing_library60 pass, testing_async10 pass/1 denied listener bind, testing_runtime17
+pass/1 explicit PermissionDenied loopback bind. Only these two setup tests rerun
+with socket access in4094, /tmp/tsrust-registration-socket-repair.log. Existing
+completed assertions retained; no full-suite restart.
+Windows40724567590 terminal FAIL. /tmp/tsrust-windows-toolchain-repair.log has8
+installer tests PASS,6/7 package tests pass,4/5 shared-source tests pass. Curated
+regex completes native test/adapter validation then errors Access denied: new
+adapter publication unconditionally opens parent directory as File for fsync.
+Repaired package_cli to retain write/file sync and cleanup but Unix-gate directory
+fsync, matching toolchain_install. Also Unix-gated post-publish directory sync and
+closed staged file before rename. This is not yet Windows accepted.
+Deep-path build succeeded but test process spawn fails Windows code3 at harness
+line81. Canonicalize direct/exported executable paths before Command::new so
+Windows receives extended absolute paths; keep deep Unicode path and both native
+output assertions. Local package_management/shared_sources session12073 queued/running,
+/tmp/tsrust-windows-local-repair.log. Do not start a duplicate.
+Both repair sections remain uncommitted pending affected results and compiler/LSP
+all-target diagnostics. Current source differs from original full-milestone binary;
+retain original full-run results as mixed-consumer evidence, not exact-head proof.
+
+
+## Current repair checks
+
+Socket rerun4094 terminal PASS: one async HTTP lifecycle witness plus two runtime
+setup witnesses (the name filter also selected the already-passing non-Send shared
+runtime case). All affected registration groups now pass with earlier completed
+checks retained. Windows40724567590 backend all-target diagnostics separately
+confirmed PASS; installer8 passed, only package/shared cases failed as diagnosed.
+Local package/shared12073 remains live, curated regex now PASS locally, remaining
+cases ongoing. All-target check60570 log reports Finished dev1m46s, no diagnostics;
+confirm terminal handle before recording full completion.
+Two stale full-milestone assertions repaired: temporal catalog has32 examples,
+including startOfSecond, not31; retained UI COMPILER_API11 is supported,12 rejected.
+Only expectation constants changed; native exact-output and earlier-version checks
+remain. Temporal single-case validation started, log
+/tmp/tsrust-temporal-catalog-repair.log (capture returned handle in next summary).
+UI compiler_api single-case execution still pending. No source checkpoint yet.
+
+
+All-target60570 terminal PASS, warning/error-free. Registration repair is accepted
+locally: exception22, testing_library60, testing_async11 and testing_runtime18 with
+the socket-denied failures replaced by the targeted successful rerun. Checkpoint
+only registration source/tests plus handoff; Windows package/shared edits and
+stale milestone-test assertions remain separate pending work. Temporal session50889
+is live. Deep-path shared_sources test passes locally in12073; portable relocation
+and remaining shared case still run. Avoid launching further Cargo validation while
+these and original79249 are active: portable export cases refresh shared target
+dependency artifacts and concurrent follow-up builds can pay recompilation cost.
