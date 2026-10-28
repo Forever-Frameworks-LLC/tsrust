@@ -395,6 +395,7 @@ fn run() -> Result<u8, String> {
         graph_identity.extend_from_slice(source.as_bytes());
     }
     let features = native_features.join(",");
+    let optimization = runtime_build::application_optimization(release,native_features.contains(&"ui-native"));
     let shared_inputs = backend_sources::application_identity(&rust, &cache_root)?;
     let mut cache_parts: Vec<&[u8]> = vec![
             b"native-cache-abi-4-ui-dev-profile",
@@ -408,6 +409,7 @@ fn run() -> Result<u8, String> {
             rust.as_bytes(),
             &graph_identity,
             features.as_bytes(),
+            optimization.as_bytes(),
         ];
     if let Some(inputs) = &shared_inputs { cache_parts.push(inputs.as_bytes()); }
     let cache = tsrust_compiler::native_cache::NativeCache::new(&cache_root, &cache_parts);
@@ -428,11 +430,7 @@ fn run() -> Result<u8, String> {
             .arg("--edition=2024")
             .args([
                 "-C",
-                if release {
-                    "opt-level=3"
-                } else {
-                    "opt-level=0"
-                },
+                optimization,
             ])
             .args(["-C", "overflow-checks=on"])
             .arg(&prepared.application)

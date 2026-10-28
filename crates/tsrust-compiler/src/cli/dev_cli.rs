@@ -127,11 +127,12 @@ mod platform {
         let backend_elapsed=backend_started.elapsed();
         let binary=files.0.join(if cfg!(windows){"program.exe"}else{"program"});
         let features=frontend.features.join(",");
+        let optimization=crate::runtime_build::application_optimization(release,frontend.features.contains(&"ui-native"));
         let cache_root=std::env::var_os("TSRUST_CACHE_DIR").map(PathBuf::from).unwrap_or_else(||root.join("target/tsrust-native"));
         let shared_inputs=crate::backend_sources::application_identity(&frontend.rust,&cache_root)?;
         let mut cache_parts:Vec<&[u8]>=vec![
             b"native-cache-abi-4-ui-dev-profile",crate::native_dependency_bundle::IDENTITY.as_bytes(),backend_identity.as_bytes(),env!("CARGO_PKG_VERSION").as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),
-            if release{b"release"}else{b"debug"},b"edition=2024;overflow-checks=on",frontend.rust.as_bytes(),&frontend.identity,features.as_bytes(),
+            if release{b"release"}else{b"debug"},b"edition=2024;overflow-checks=on",frontend.rust.as_bytes(),&frontend.identity,features.as_bytes(),optimization.as_bytes(),
         ];
         if let Some(inputs)=&shared_inputs {cache_parts.push(inputs.as_bytes());}
         let cache=tsrust_compiler::native_cache::NativeCache::new(&cache_root,&cache_parts);
@@ -158,7 +159,7 @@ mod platform {
             // A file avoids pipe backpressure while the supervisor watches edits.
             let errors=files.0.join("backend.stderr");
             let mut command=crate::backend_command();prepared.link(&mut command)?;
-            command.current_dir(root).arg("--edition=2024").args(["-C",if release{"opt-level=3"}else{"opt-level=0"}]).args(["-C","overflow-checks=on"]).arg(&prepared.application).arg("-o").arg(&binary)
+            command.current_dir(root).arg("--edition=2024").args(["-C",optimization]).args(["-C","overflow-checks=on"]).arg(&prepared.application).arg("-o").arg(&binary)
                 .stdout(std::process::Stdio::null()).stderr(std::fs::File::create(&errors).map_err(|e|e.to_string())?);
             let mut compiler=Process::spawn(&mut command)?;
             let Some(status)=wait_for_build(&mut compiler,root,expected,watcher)? else{return Ok(None);};

@@ -118,6 +118,23 @@ impl Prepared {
  }if let Some(library)=&self.library {command.arg("--extern").arg(format!("tsrust_runtime={}",library.display()));}Ok(())}
 }
 
+/// Match the native UI support profile in application code as well. Large retained
+/// component compositions otherwise keep every debug temporary on the Windows
+/// main thread stack, even while the separately built renderer is optimized.
+/// Overflow checks remain enabled independently at both compiler call sites.
+pub(crate) fn application_optimization(release:bool,native_ui:bool)->&'static str {
+ if release {"opt-level=3"} else if native_ui {"opt-level=1"} else {"opt-level=0"}
+}
+
+#[cfg(test)] mod application_profile_tests {
+ #[test] fn native_ui_development_matches_support_without_changing_backend_or_release(){
+  use super::application_optimization;
+  assert_eq!(application_optimization(false,true),"opt-level=1");
+  assert_eq!(application_optimization(false,false),"opt-level=0");
+  for ui in [false,true]{assert_eq!(application_optimization(true,ui),"opt-level=3");}
+ }
+}
+
 /// UI rendering must remain responsive in development; omit bulky dependency debug symbols.
 pub(crate) fn profiles(native_ui: bool) -> &'static str {
  if native_ui {"\n[profile.dev]\noverflow-checks = true\nincremental = false\ndebug = false\nopt-level = 1\n[profile.dev.package.\"*\"]\nopt-level = 2\ndebug = false\n[profile.release]\noverflow-checks = true\nincremental = false\n"}

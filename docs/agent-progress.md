@@ -113,16 +113,15 @@ owned server or tool process remains. The acceptance milestone records failures/
 repairs separately; passing gates were not restarted.
 
 This documentation-only checkpoint is prepared after required whole-project format
-and link checks. Next prioritize the unresolved native docs stack overflow
-before UI expansion; continue server-owned API and remaining distribution work as
+and link checks. The docs startup profile repair below is now accepted. Continue server-owned API
+and remaining distribution work as
 specified below. Read exact current source/evidence; do not restart accepted gates
 unless new code, failures or an unresolved uncertainty justifies it.
 
 ## Remaining required goal work
 
-Native docs startup stack overflow (0xc00000fd) is unresolved; do not claim the
-compiler/editor repair fixes it. Prioritize the actual startup repair before UI
-expansion. Server API must belong to app/ and serve description/OpenAPI, allowing
+Native docs startup profile repair is accepted below; UI expansion remains frozen.
+Server API must belong to app/ and serve description/OpenAPI, allowing
 independent js-client/rust-client generation anywhere. Current scaffold still imports
 generated/server; do not disguise a rename as the needed architectural correction.
 Ordinary binding graphs still need shared registry/Git cache migration. Finish Rust
@@ -132,3 +131,31 @@ interruption/locked Windows recovery and actual macOS/Linux validation remain op
 No whole-editor-panel claim is possible: current built Rust and LSP protocol evidence
 is authoritative, while the owner's already running server needs their restart.
 Use project-local remote-validation rules; never publish a release to test install.
+
+## Docs startup profile accepted — 2026-10-27
+
+Previous goal continuation was progress: implemented the shared native UI application
+profile, added its regression, verified both all-target diagnostic configurations,
+rebuilt the CLI, executed formatted backend assertions and actual docs dev, and
+inspected a rendered native preview. See milestones/native-docs-development-profile.md
+for root-cause evidence, commands, repaired experiment failures and limitations.
+
+Both CLI and dev select UI application development opt-level=1, matching existing
+support; backend stays 0, release 3, overflow checks remain enabled. Cache identity
+includes optimization. The default stack reserve remains unchanged. Controlled
+preview rendered and navigated, closed with exit 0. Current CLI docs dev built in
+217391ms, launched PID 36060; its window was inventoried. Temporary-app capture
+approval timed out, so no workaround/input was attempted. Ctrl+C stopped our session;
+window inventory confirmed both owned previews closed. No owner process was stopped.
+
+Profile unit 1/1 passed. Backend compiler/LSP and workspace all-target checks both
+success, zero warnings/errors. Current CLI build succeeded. Formatted-source backend
+smoke passed outside sandbox after its native temp archive rename was denied inside.
+Final whole-project format: 0 files, 0 fingerprints; clean diff check. Installed LSP
+exact-facade clean/error/repair/hover probe passed again in the diagnostic follow-up.
+No whole-editor-panel claim. No full regression/performance matrix or analytics import.
+Sessions 18880,42516,66465,84107,86997,94962 are terminal; do not poll/restart them.
+
+Next: checkpoint all accepted source changes, refresh installed CLI with guarded
+replacement, prune disposable diagnostic emit/assembly artifacts, then implement
+server-owned API registration and independent client generation as specified above.
