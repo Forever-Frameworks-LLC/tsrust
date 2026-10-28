@@ -83,5 +83,4 @@ function main() {
 ## Related guides
 
 - [Use optional and default parameters](/tsrust/language/optional-default-parameters/)
-- [Collect rest arguments](/tsrust/language/rest-parameters/)
 - [Pattern defaults and rest](/tsrust/language/pattern-defaults-rest/)
