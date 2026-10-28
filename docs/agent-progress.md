@@ -1,6 +1,44 @@
 # Agent continuation state
 
-## Current continuation — fresh generic factories accepted
+## Current continuation — lexical generic scopes and assignment calls accepted
+
+Previous checkpoint7afd65a3. Audited/migrated enclosing generic parameter and
+callable-transport paragraphs into site lexical-generic-functions. Traced
+lexical_generic_scopes inherited/shadowed identities and lexical_instances;
+polymorphic_argument_hints uses preparation context, checked annotations preserve
+origin/declaration identity, and inference keeps it. Explicit type arity excludes
+inherited parameters. Captures and transported generic values retain checked
+ownership. Added named assignment-result call task to existing callable-expressions,
+tracing stage_assignment_callee replacement-before-borrow and normal assignment
+loan/escape rules. No compiler changes. Removed accepted source sections; source
+flow loops/cleanup remain pending rather than claiming acceptance from these checks.
+
+Four lexical exact programs format/check/native pass:7 owned;7:inner;7 owned;7 Pat.
+Added assignment program format/check/native prints11/21. Repeated selector call
+rejects with closure-consumed. Focused compiler lexical/transport9, assignment3
+and imported lexical project1 pass (/tmp/tsrust-lexical-doc-contracts.log), including
+shadowing/arity, explicit/inferred calls, saved/recursive helpers and O0/O3 captured
+owner disposal/failure/borrow rejection. Editor lexical/transport/assignment3 pass
+(/tmp/tsrust-lexical-doc-editor.log). Earlier call-expression examples retained.
+
+Full lexical page and added assignment section390px/1440px reviewed: highlighted
+code, no document overflow, focusable code scrolls40px with ArrowRight, section/
+skip/adjacent links work. Split assignment ownership and lexical editor paragraphs;
+revised layouts reviewed both widths.66-page build/internal links/anchors pass
+(/tmp/tsrust-lexical-doc-site.log). Whole-project formatter before checkpoint.
+Viewport reset, tab4 retained on lexical page. No full regressions, timings,
+hostedCI, push/release or platform runs.
+
+Next: remaining nested guide still starts callable source flow: known arity across
+uninstantiated generics, loop joins/updates/labels and cleanup/failed assignment.
+Then owned/scoped conditional selection (old polymorphic pending claim may be
+stale), single-use call scopes, generic replacement and mutable factory arrays.
+Source-flow tests localized in generic_value_adapters around525-710 and
+src/generics/call_validation/branch_flow; retain broad clause until fully audited.
+Migration partial; other finite inventory and Windows/Linux acquisition/editor
+and actual Pages production evidence remain pending. Goal active.
+
+## Prior continuation — fresh generic factories accepted
 
 Previous checkpointec11ba23. Audited/migrated fresh/selected factory construction,
 nested predicates, inferred generic results, aggregate destinations and nullable
