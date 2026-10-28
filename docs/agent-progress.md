@@ -1779,3 +1779,26 @@ source-build link. No viewport override applied. Do not mark page fully audited.
 - Browser connection was stale on this continuation. No new HTTP keyboard
   acceptance was established; retain the previous desktop/mobile visual checks
   and the new complete native example result separately.
+
+### Setup guide and HTTP presentation acceptance
+
+- Documentation PR run 40748887897 completed SUCCESS. Linux 40748887685 and
+  Windows 40748893795 remain IN PROGRESS; Linux extension job passed. No new
+  hosted runs were started. Keep polling those IDs rather than restarting them.
+- Current macOS doctor --native --json passes: pinned Rust 1.96.1, successful
+  compile/link/execute, unmanaged installation, application dependencies unchecked,
+  no network. Exact report: /tmp/tsrust-doc-doctor-native.json. Explicit
+  setup --dependencies --offline passes using shared cached sources, with no
+  project vendor directory; /tmp/tsrust-doc-setup-offline.log.
+- Rechecked setup_cli.rs flags, consent, exit conditions and native probe. Setup
+  guide now presents exit codes in a table, splits source-pack choices, and omits
+  parser implementation detail. Full 390px/1440px rendered review passes: readable
+  sections/table, highlighted code, no page overflow, skip/next navigation and
+  focusable code scrolling (ArrowRight 40px). Fresh-machine setup stays pending.
+- Closed HTTP guide audit: prior complete source/desktop/mobile review plus exact
+  native example now supplemented by keyboard skip/next-page navigation and
+  horizontal code scrolling (40px). Temporary viewport override reset.
+- Local site build and links/anchors/assets pass for all 23 pages. Initial build
+  attempted Astro telemetry preferences outside the sandbox; retry with
+  ASTRO_TELEMETRY_DISABLED=1 passed. Use that environment for future local builds.
+  No Rust suite was rerun for these prose/layout changes.

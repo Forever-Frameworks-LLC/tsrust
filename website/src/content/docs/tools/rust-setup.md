@@ -19,9 +19,15 @@ identifies the host OS/architecture, required Rust version, and available pinned
 rustc/Cargo. `--native` additionally compiles, links and executes a tiny program
 in an automatically removed temporary directory. This checks host build tools,
 not application dependencies or every optional runtime feature. Those remain
-explicitly unchecked. Exit status is zero when the Rust tool checks and any requested native probe
-pass, provided the managed installation has no integrity error. It is one when
-these checks fail. An unmanaged CLI is not itself an integrity error. It does not certify that every application is ready to build.
+explicitly unchecked.
+
+| Exit status | Meaning |
+| --- | --- |
+| `0` | Rust tool checks and any requested native probe pass, with no managed-installation integrity error. |
+| `1` | A requested readiness check or managed-installation integrity check failed. |
+
+An unmanaged CLI is not itself an integrity error. A successful doctor result
+does not certify that every application is ready to build.
 
 ## Install the pinned Rust toolchain
 
@@ -64,6 +70,7 @@ Source preparation delegates to `cargo fetch --locked`. The backend profile excl
 legacy rendering dependencies. Ordinary backend builds use Cargo's shared home,
 exact locks and `--offline`; they create no vendor copy or private Cargo home.
 A missing source produces a setup instruction rather than an automatic download.
+
 ### Reuse cached builds
 
 The compiler hashes Cargo configuration (including nested and optional includes)
@@ -107,11 +114,16 @@ Set that variable to a persistent directory if exporting with a different Cargo 
 invoking Cargo, Rust or the network. An unprepared export reports the setup command.
 The resulting package includes its manifest, lock, runtime sources, toolchain pin,
 Cargo offline configuration, notices and build instructions; it can be relocated
-and rebuilt with an empty registry cache. Plain programs need no source pack.
-Retained UI builds use the prepared legacy pack. New custom binding graphs use
-schema 2 and Cargo’s shared sources; schema 1 retains its legacy dependency graph.
-Resolve binding dependencies explicitly before offline builds. Binding portable
-exports validate and include their exact locked graph.
+and rebuilt with an empty registry cache.
+
+### Choose which sources to prepare
+
+- Plain programs need no source pack.
+- Retained UI builds use the prepared legacy pack.
+- New custom binding graphs use schema 2 and Cargo’s shared sources; schema 1
+  retains its legacy dependency graph. Resolve binding dependencies explicitly
+  before offline builds. Binding portable exports validate and include their
+  exact locked graph.
 
 ## Install the CLI and editor server separately
 
@@ -125,9 +137,8 @@ defines the minimal profile. Its [basic usage documentation](https://rust-lang.g
 documents invocation-scoped `--no-self-update`.
 
 [Cargo configuration](https://doc.rust-lang.org/cargo/reference/config.html) defines
-configuration discovery and nested/optional includes. Tsrust uses the already locked
-toml_edit parser to inspect those include paths; Cargo still parses and applies the
-build configuration itself. [cargo fetch](https://doc.rust-lang.org/cargo/commands/cargo-fetch.html)
+configuration discovery and nested/optional includes. Cargo parses and applies
+the build configuration. [cargo fetch](https://doc.rust-lang.org/cargo/commands/cargo-fetch.html)
 provides explicit source acquisition before offline use.
 
 [Cargo vendor](https://doc.rust-lang.org/cargo/commands/cargo-vendor.html) defines
