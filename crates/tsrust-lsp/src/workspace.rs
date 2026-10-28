@@ -227,6 +227,9 @@ fn normalize(path: &Path) -> Result<PathBuf, String> {
     Ok(result)
 }
 impl SourceProvider for WorkspaceSnapshot {
+    fn generated(&self,source:&tsrust_compiler::project::SourceFile){
+        self.read.borrow_mut().insert(source.id.clone(),Arc::new(source.text.clone()));
+    }
     fn resolve(&self, importer: Option<&SourceId>, path: &str) -> Result<SourceId, String> {
         let key = (importer.cloned(), path.to_owned());
         if let Some(result) = self.resolved.borrow().get(&key) {

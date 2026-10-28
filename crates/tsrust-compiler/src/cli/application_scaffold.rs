@@ -1,6 +1,5 @@
 //! Application-owned starter source. SDK generation owns only its marked outputs.
 use std::{collections::BTreeMap, fs, io::Write, path::Path};
-use sha2::{Digest, Sha256};
 
 pub(super) fn validate_targets(targets: &[String]) -> Result<(), String> {
     if targets.len() > 1 || targets.first().is_some_and(|target| target != "backend") {
@@ -24,9 +23,9 @@ pub(super) fn create(root: &Path, targets: &[String]) -> Result<u8, String> {
     template!("app/tests/greet.test.tsr");
     template!("AGENTS.md");
     template!("README.md");
-    let api = serde_json::json!({"entry":"app/api/operations.tsr","output":"generated/client",
+    let api = serde_json::json!({"entry":"app/api/operations.tsr",
         "package":{"name":"@app/api","version":"0.1.0"},
-        "server":{"output":"generated/server","context":{"module":"app/api/context.tsr","export":"AppContext"},"authorize":{"module":"app/api/access.tsr","export":"authorize"}},
+        "server":{"context":{"module":"app/api/context.tsr","export":"AppContext"},"authorize":{"module":"app/api/access.tsr","export":"authorize"}},
         "operations":[{"name":"greet","module":"app/api/operations.tsr","export":"greet","kind":"mutation"}]});
     let config = serde_json::json!({"schemaVersion":1,"name":name,"build":{"entry":"app/main.tsr","output":format!("target/{name}{}",std::env::consts::EXE_SUFFIX)},"api":api});
     files.insert(super::project_config::FILE, format!("{}\n", serde_json::to_string_pretty(&config).unwrap()));
@@ -37,9 +36,6 @@ pub(super) fn create(root: &Path, targets: &[String]) -> Result<u8, String> {
             *source = tsrust_compiler::format(source).map_err(|error| format!("Cannot format starter {path}: {}",error.message))?;
         }
     }
-    let hashes: BTreeMap<&str, String> = files.iter().map(|(path, source)| (*path, Sha256::digest(source.as_bytes()).iter().map(|byte| format!("{byte:02x}")).collect())).collect();
-    let integration = serde_json::json!({"schemaVersion":1,"template":"application-backend","integrationVersion":"0.2.0","targets":["backend"],"initialFiles":hashes});
-    files.insert("generated/.tsrust-integration.json", format!("{}\n",serde_json::to_string_pretty(&integration).unwrap()));
     // Exclusive creation prevents overwriting files, directories and symlinks.
     fs::create_dir(root).map_err(|error| format!("Cannot create {}: {error}. Existing projects are never overwritten.",root.display()))?;
     let write = || -> Result<(), String> {
@@ -49,8 +45,10 @@ pub(super) fn create(root: &Path, targets: &[String]) -> Result<u8, String> {
             let mut file = fs::OpenOptions::new().write(true).create_new(true).open(destination).map_err(|error| error.to_string())?;
             file.write_all(source.as_bytes()).map_err(|error| error.to_string())?;
         }
-        let config = fs::canonicalize(root.join(super::project_config::FILE)).map_err(|error| error.to_string())?;
-        super::api_cli::run(["generate".into(), "--config".into(), config.to_string_lossy().into_owned()].into_iter())?;
+        let entry=root.join("app/main.tsr");
+        let source=fs::read_to_string(&entry).map_err(|e|e.to_string())?;
+        tsrust_compiler::project_cli::check_input(&entry,&source)
+            .map_err(|e|e.render(&entry.to_string_lossy(),&source,false))?;
         Ok(())
     };
     write().map_err(|error| format!("Application creation failed: {error}. Partial files remain in {}; inspect them before retrying with a new destination.",root.display()))?;

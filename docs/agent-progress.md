@@ -171,3 +171,47 @@ SDK generation must be an independent consumer and never modify the server. Curr
 application_scaffold still calls api generate and app/main imports generated/server;
 api::CheckedApi/native_source_versioned is the existing checked dispatch to reuse.
 Do not treat moving generated output into app/ as the architectural correction.
+
+## Server-owned API section accepted — checkpoint/install pending
+
+This continuation made concrete progress: closed nearest-config policy fallthrough
+and source/fact consistency gaps, completed compiler/editor/native HTTP acceptance,
+and exercised actual dev hot reload. See milestones/server-owned-api.md for exact
+implementation, controls, repaired fixture/sandbox failures and practical limits.
+Full objective remains open; no goal completion or whole-editor-panel claim.
+
+Fresh CLI review project: generated-projects/backend-owned-api. Server owns app/
+operations/context/auth and imports api:server. No generated/client or server tree,
+SDK package or integration marker is created. Explicit legacy server export remains
+available for existing projects. Independent TS/Rust SDK export never changes server.
+Bootstrap carries the exact checked operation graph into final lowering; conflicting
+preloaded input fails api-input-changed. Denied nearest config fails closed. LSP
+retains derived source without creating physical files or disk invalidation inputs.
+
+Accepted current source: focused compiler/scaffold/editor/facade 10/10; formatted
+fixture follow-up 5/5. Backend and workspace all-target JSON streams each successful,
+zero diagnostics; final affected backend refresh passed. Normal CLI/LSP build and
+cached normal refresh passed. Whole-project format remains 0 files/fingerprints.
+Actual project native build and std:testing 1/1 passed; check/emit passed without
+Rust/Cargo on PATH, with no UI runtime in emitted code. Normal and relocated
+executable HTTP SDK acceptance passed, live/saved TS and async Rust clients, with
+no source/tool/cache files in deployment cwd. Host still has original tools/source;
+do not claim an uninstalled-toolchain OS image or all-platform deployment.
+
+Windows native dev passed HTTP, invalid-edit preservation, repaired hot reload
+(5334ms), original source restoration and owned supervisor/child cleanup. Real
+project and UI-facade LSP clean/error/repair probes passed. No owned service is live.
+Sessions 14676,84958,40951,99629,68416,9410,47871,10841,49851,23961 are terminal.
+Do not restart or poll them. Current logs are target/api-server-*-current.*; retain
+concise evidence, prune emitted diagnostic sources and superseded test consumers.
+
+Current normal target hashes:
+CLI 6726391A5BCCA08216D8A16AADD997191C1B7AC624B3EDC44FF90FCE4B4402EC;
+LSP 3E641BFF4E10862CC62A145F28140ED16990CA058B2D243A00E81F390D04553E.
+Installed consumers still precede this section (CLI 90D6BB34..., LSP 53A93B85...).
+Next: required whole-project format and all-file source checkpoint, guarded paired
+installed refresh with rollback preservation and installed protocol checks, safe
+cleanup, then remaining HTTP SDK/body/testing and distribution work. Preserve owner
+mapped LSP images/processes; installation does not imply their editor adopted it.
+No full executable regression/performance matrix, analytics import or remote release
+was run. Keep those broader family/platform requirements open as the goal requires.

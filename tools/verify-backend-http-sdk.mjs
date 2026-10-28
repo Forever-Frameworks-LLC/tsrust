@@ -21,12 +21,21 @@ await new Promise((resolve, reject) => {
   probe.once('error', reject);
   probe.listen(4318, '127.0.0.1', () => probe.close(resolve));
 });
-const child = spawn(executable, [], { cwd: root, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+const temporary = fs.mkdtempSync(path.resolve('target/backend-sdk-http-'));
+const deployment = path.join(temporary, 'deployment');
+fs.mkdirSync(deployment);
+const deployedExecutable = path.join(deployment, path.basename(executable));
+fs.copyFileSync(executable, deployedExecutable);
+if (process.platform !== 'win32') fs.chmodSync(deployedExecutable, 0o755);
+// Exercise the compiled service with no source files in its working directory
+// or usable developer tool/cache environment. SDK consumers retain normal tools.
+const serviceEnvironment = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^(path$|cargo|rust|tsrust)/i.test(key)));
+Object.assign(serviceEnvironment, {PATH:'', CARGO_HOME:path.join(deployment,'absent-cargo'), RUSTUP_HOME:path.join(deployment,'absent-rustup'), TSRUST_CACHE_DIR:path.join(deployment,'absent-cache')});
+const child = spawn(deployedExecutable, [], { cwd: deployment, env:serviceEnvironment, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
 let output = '', errors = '';
 child.stdout.on('data', value => { output += value; });
 child.stderr.on('data', value => { errors += value; });
-const exited = new Promise(resolve => { child.once('error', error => resolve({ error })); child.once('exit', (code, signal) => resolve({ code, signal })); });
-const temporary = fs.mkdtempSync(path.resolve('target/backend-sdk-http-'));
+const exited = new Promise(resolve => { child.once('error', error => resolve({ error })); child.once('close', (code, signal) => resolve({ code, signal })); });
 const execute = promisify(execFile);
 const run = (file, args, cwd = temporary, extra = {}) => execute(file, args, { cwd, windowsHide:true, timeout:180000, maxBuffer:8 * 1024 * 1024, env:{ ...process.env, CARGO_INCREMENTAL:'0', CARGO_BUILD_JOBS:'1', CARGO_TARGET_DIR:path.resolve('target'), ...extra } });
 let metadataServer;
@@ -37,20 +46,26 @@ try {
     assert.ok(Date.now() < deadline, `Backend readiness timeout: ${errors}`);
     await new Promise(resolve => setTimeout(resolve, 50));
   }
+  assert.deepEqual(fs.readdirSync(deployment), [path.basename(executable)], 'Deployed backend must not create or require source/toolchain/cache files');
   const response = await fetch(`${base}/api/description`, { signal: AbortSignal.timeout(5000) });
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('cache-control'), 'no-store');
   const description = await response.text();
-  assert.deepEqual(JSON.parse(description), JSON.parse(fs.readFileSync(path.join(root, 'generated/client/http-api.json'))));
+  const contract=JSON.parse(description);
+  assert.equal(contract.protocol, 'tsrust-http');
+  assert.equal(contract.history.releases.at(-1).manifest.operations[0].name, 'greet');
+  assert.equal(fs.existsSync(path.join(root, 'generated')), false, 'Server must not require generated SDK or dispatch files');
   const specification = await fetch(`${base}/api/openapi.json`, { signal: AbortSignal.timeout(5000) });
   assert.equal(specification.status, 200);
   const openapi = await specification.json();
-  assert.deepEqual(openapi, JSON.parse(fs.readFileSync(path.join(root, 'generated/client/openapi.json'))));
+  assert.deepEqual(openapi['x-tsrust-http'], contract);
   const rpcEndpoint = new URL(Object.keys(openapi.paths)[0], base).href;
   fs.writeFileSync(path.join(temporary, 'api.json'), description);
   const generated = spawnSync(compiler, ['api', 'generate', '--description', 'api.json', '--out', 'sdk'], { cwd: temporary, encoding: 'utf8', windowsHide: true, timeout: 30000 });
   assert.ifError(generated.error);
   assert.equal(generated.status, 0, generated.stderr);
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(temporary, 'sdk/http-api.json'))), contract);
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(temporary, 'sdk/openapi.json'))), openapi);
   const { createClient } = await import(pathToFileURL(path.join(temporary, 'sdk/index.js')));
   const { createHttpTransport } = await import(pathToFileURL(path.join(temporary, 'sdk/http.js')));
   const api = createClient(createHttpTransport({ url: rpcEndpoint }));

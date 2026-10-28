@@ -1,8 +1,23 @@
 # Tsrust backend
 
 The public greeting HTTP API listens on loopback port 4318.
-Run tsrust dev, tsrust check, tsrust test and tsrust api generate.
+Run tsrust dev, tsrust check and tsrust test.
 Source is in app/api and app/lib; tests are in app/tests.
-Generated client and dispatcher are in generated/client and generated/server.
+The api settings in tsrust.config.json select checked public operations and the
+application-owned authorization policy. api:server supplies their compiler-owned
+HTTP dispatch, description and OpenAPI handlers in memory. No generated server or
+client directory is needed to build, check or start this service.
+
+Start the service, then generate an independent client wherever you need it:
+
+    tsrust api generate --url http://127.0.0.1:4318/api/description --out js-client
+    tsrust api generate --url http://127.0.0.1:4318/api/description --language rust --out rust-client
+
+A saved description works with --description api.json instead of --url.
+Retain previous checked manifests or compatibility histories in app/ and list their
+relative paths in api.compatible when deploying compatible API revisions. Bump the
+API package version for releases and the API major for intentionally breaking wire
+changes. SDK generation never changes the service's operations or dispatch.
+
 Bring your own UI. No frontend toolchain or dependency installation is required.
 Read AGENTS.md and app/api/access.tsr before exposing sensitive operations.

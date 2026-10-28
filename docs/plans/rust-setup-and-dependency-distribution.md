@@ -4,8 +4,11 @@ Owner-requested roadmap addition, 2026-10-27. Status: partially implemented and
 accepted on Windows; full distribution/platform acceptance remains open. Doctor,
 explicit pinned-toolchain/source setup and ordinary shared-cache backend builds
 are implemented. See ../milestones/shared-backend-sources.md and ../agent-progress.md
-for exact evidence; optional portable packs and all binding/install/update work
-are not implied complete by those results. This follows the backend-only direction.
+for exact evidence. Optional exact portable packs, relocated offline source export,
+Windows import-library restoration and removal of the compiler vendor payload are
+now accepted in [portable sources and editor agreement](../milestones/portable-source-packs-and-editor-agreement.md).
+Binding-cache migration and production install/update remain open. This follows
+the backend-only direction.
 
 The subsequent [backend-only reset](backend-only-reset.md) removes frontend
 orchestration prerequisites and adds reliable cross-platform installation and
@@ -84,7 +87,7 @@ These are investigation entry points, not a completed dependency audit:
 | Runtime compilation | `cli/runtime_build.rs`, `cli/native_workspace.rs` | Separate portable materialization from ordinary cached builds; retain identity, locks and artifact reuse. |
 | User bindings | `cli/rust_binding_packages.rs`, `cli/rust_bindings.rs`, `cli/package_validation.rs` | Preserve exact graphs, binding validation, cache locks and ownership. |
 | Source export | `cli/package_cli.rs`, `cli/package_export.rs` | Keep portable vendor/notices/relocation guarantees and add prerequisite metadata. |
-| Build-time bundling and tests | `crates/tsrust-compiler/build.rs`, native dependency/package/offline tests | Distinguish binary build dependencies from user application dependencies. |
+| Build-time bundling and tests | Compiler build.rs removed; cli/portable_sources.rs and native dependency/package/offline tests | Ordinary builds use shared sources; optional exact portable packs preserve export notices and relocation. |
 | Distribution | `tools/package-toolchain.mjs`, `tools/check-release.mjs`, `tools/tests/distribution.test.mjs`, `.github/workflows/release.yml` | Inventory supported artifacts/install paths without triggering publication. |
 
 Initial inspection found ordinary runtime builds materialize the bundled vendor
@@ -92,6 +95,22 @@ sources and use offline/locked Cargo; portable export also materializes the bund
 Binding packages overlay manifests, locks and vendor sources. Inventory must verify
 all consumers before removing mandatory bundling from ordinary paths. Existing
 toolchain guidance is not proof that doctor/setup already exist.
+
+## Release/update integration findings — 2026-10-27
+
+Read-only local inspection confirms the current release workflow selects Linux x64,
+macOS ARM64 and macOS x64, with no Windows artifact job. Toolchain manifest schema 2
+already records host target, separate compiler/LSP versions, source commit and each
+file's hash/size. Published SHA256SUMS detect corruption; the package README explicitly
+does not claim distributor authenticity, code signing or notarization. Preserve
+these distinctions when implementing paired installation and latest-stable updates.
+No workflow, release, remote policy or signing trust was changed by this inspection.
+
+Required remaining decisions: establish authenticated release metadata before code
+replacement; add isolated Windows packaging/execution and corresponding macOS/Linux
+acceptance without public release publication; define package-manager ownership and
+interruption/locked-process recovery. The development CLI's guarded local refresh
+is acceptance of a local consumer, not proof of this production update mechanism.
 
 ## Acceptance matrix
 

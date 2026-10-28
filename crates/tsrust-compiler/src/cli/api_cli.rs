@@ -1,31 +1,16 @@
 //! Export plain checked contracts without adopting or rewriting frontend tooling.
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{collections::BTreeMap, fs, path::{Component, Path, PathBuf}};
-use tsrust_compiler::{api::{ApiHistory, CheckedApi, Manifest, NativeImport, NativeServer, Selection}, project::{SourceId, SourceProvider, load_project, check_graph}};
+use std::{collections::BTreeMap, fs, path::{Path, PathBuf}};
+use tsrust_compiler::{api::{ApiHistory, CheckedApi, Manifest, NativeImport, NativeServer}, project::{SourceId, SourceProvider, load_project, check_graph}};
 use super::package_validation::{Candidate, normalize};
 
 const CONFIG: &str = "tsrust.api.json";
 const MARKER: &str = ".tsrust-api.json";
 
-fn inline_config(value: &serde_json::Value) -> Result<Config, String> {
-    let mut object = value.as_object().cloned().ok_or("api must be an object")?;
-    if object.get("schemaVersion").is_some_and(|version| version.as_u64() != Some(1)) {
-        return Err("api.schemaVersion must be 1 when provided".into());
-    }
-    object.insert("schemaVersion".into(), 1.into());
-    serde_json::from_value(serde_json::Value::Object(object)).map_err(|error| format!("Invalid api configuration: {error}"))
-}
-
-pub(super) fn validate_inline(value: &serde_json::Value) -> Result<(), String> {
-    let config = inline_config(value)?;
-    relative(&config.entry)?; relative(&config.output)?;
-    for operation in &config.operations { relative(&operation.module)?; }
-    if let Some(server) = &config.server {
-        relative(&server.output)?; relative(&server.context.module)?; relative(&server.authorize.module)?;
-    }
-    Ok(())
-}
+use tsrust_compiler::api::configuration::{Configuration as Config,Import,relative};
+fn inline_config(value:&serde_json::Value)->Result<Config,String>{Config::inline(value)}
+pub(super) fn validate_inline(value:&serde_json::Value)->Result<(),String>{inline_config(value).map(|_|())}
 
 fn discover_config(cwd: &Path) -> Result<PathBuf, String> {
     for root in cwd.ancestors() {
@@ -45,25 +30,6 @@ fn discover_config(cwd: &Path) -> Result<PathBuf, String> {
     Err("No API configuration found; add api settings to tsrust.config.json or pass --config for a standalone API configuration".into())
 }
 
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-struct Config { schema_version: u32, entry: String, output: String, package: Package, operations: Vec<Selection>, #[serde(default = "api_version")] api_version: u32, #[serde(default)] compatible: Vec<String>, #[serde(default)] server: Option<Server> }
-fn api_version() -> u32 { 1 }
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-struct Server {
-    output: String, context: Import, authorize: Import,
-    #[serde(default)] compatible: Vec<String>,
-    #[serde(default = "byte_limit")] max_request_bytes: u32,
-    #[serde(default = "byte_limit")] max_response_bytes: u32,
-}
-fn byte_limit() -> u32 { 65536 }
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Import { module: String, export: String }
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Package { name: String, version: String }
 #[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct Marker { schema_version: u32, files: BTreeMap<String, String> }
@@ -104,14 +70,6 @@ fn owned_history(output: &Path, inputs: &Candidate, name: &str) -> Result<ApiHis
         history = history.advance(name, version, 1, &manifest)?;
     }
     Ok(history)
-}
-
-fn relative(value: &str) -> Result<&Path, String> {
-    let path = Path::new(value);
-    if value.is_empty() || value.contains('\\') || path.components().any(|part| !matches!(part, Component::Normal(_))) {
-        return Err(format!("API configuration path {value:?} must be relative without '.', '..' or backslashes"));
-    }
-    Ok(path)
 }
 
 fn hash(bytes: &[u8]) -> String { Sha256::digest(bytes).iter().map(|byte| format!("{byte:02x}")).collect() }
@@ -293,7 +251,9 @@ pub(super) fn run(args: impl Iterator<Item = String>) -> Result<u8, String> {
     } else { serde_json::from_value(value).map_err(|error| format!("{}: {error}",path.display()))? };
     if config.schema_version != 1 { return Err("API configuration schemaVersion must be 1".into()); }
     let entry = root.join(relative(&config.entry)?);
-    let canonical_output = normalize(&root.join(relative(&config.output)?))?;
+    config.validate()?;
+    let canonical_output = if let Some(path)=&config.output {normalize(&root.join(relative(path)?))?}
+        else {normalize(&cwd.join(output.as_ref().ok_or("SDK generation requires --out when api.output is omitted")?))?};
     let output = output.map(|path| cwd.join(path)).unwrap_or(canonical_output.clone());
     safe_output(&output)?;
     let output = normalize(&output)?;
@@ -328,8 +288,8 @@ pub(super) fn run(args: impl Iterator<Item = String>) -> Result<u8, String> {
     let files = api.manifest.client_package_versioned(&config.package.name, &config.package.version, &history)?;
     let mut packages = vec![(output.clone(), files)];
     let mut native_inputs = None;
-    if let Some(server) = config.server {
-        let directory = root.join(relative(&server.output)?);
+    if let Some(server) = config.server.filter(|server|server.output.is_some()) {
+        let directory = root.join(relative(server.output.as_deref().expect("filtered legacy server output"))?);
         safe_output(&directory)?;
         let directory = normalize(&directory)?;
         if directory.starts_with(&output) || output.starts_with(&directory) { return Err("Private server output and public client output must be separate directories".into()); }

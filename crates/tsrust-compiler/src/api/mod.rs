@@ -1,4 +1,6 @@
 //! Explicit checked API contracts. Ordinary exports never publish an operation.
+pub mod configuration;
+pub(crate) mod project;
 mod typescript;
 mod description;
 mod rust_client;

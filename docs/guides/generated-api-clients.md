@@ -1,9 +1,27 @@
 # Checked named API clients
 
-Status: plain clients, native HTTP/SQLite dispatch, the optional TanStack adapter
-and the React task app pass their focused milestones. Versioned SDK rollout
-support below passes its retained-baseline replica matrix. Electron/mobile and
-the complete [prototype goal](../agent-goal.md) remain incomplete.
+The backend is the API source of truth. New applications select their public
+operations and authorization in tsrust.config.json and import compiler-owned
+handlers from `api:server`; checking and running never require generated clients
+or dispatcher files. See [backend applications](application-projects.md).
+
+Generate independent TypeScript or asynchronous Rust SDKs from a live service:
+
+```sh
+tsrust api generate --url http://127.0.0.1:4318/api/description --out js-client
+tsrust api generate --url http://127.0.0.1:4318/api/description --language rust --out rust-client
+```
+
+Use `--description http-api.json` instead of --url for a saved description, without
+backend source. The same checked description exports OpenAPI. SDK generation does
+not change application source, register operations or start a server. Optional
+api.output configures a client export destination; otherwise --out is required.
+Optional server.output retains explicit legacy dispatcher export, which new
+applications do not use. Keep deployment compatibility baselines application-owned
+rather than depending on a generated client directory.
+
+For source-based SDK export without HTTP, the retained separate configuration also
+works:
 
 Declare the operations to expose in a separate `tsrust.api.json`. Keeping this
 configuration separate allows backend/client-only adoption without changing an
@@ -157,6 +175,11 @@ compiler can update runtime code without changing DTOs. Select a new package
 version before publishing any changed package, including runtime-only changes.
 Generation does not publish or silently change package versions for the owner.
 
+The server retains its own baseline files under application-owned paths, referenced
+by api.compatible. It never needs the generated client's compatibility.json directory
+to start. Copy a reviewed release baseline into the app when retaining it for a
+rollout; the served description includes the configured history.
+
 Known published baselines can be imported with top-level `compatible`, a list of
 relative manifest.json or compatibility.json paths. Legacy server.compatible
 remains supported. A fresh selected client can omit methods from foreign server
@@ -177,16 +200,16 @@ Retain older handlers or migrations for as long as older API majors must work.
 The real old/new native server and browser matrix is
 `node tools/verify-api-replicas.mjs`. It passes the scoped
 [SDK milestone](../milestones/sdk-versioning.md); see
-[current evidence](../agent-progress.md) for remaining prototype work.
+[current evidence](../agent-progress.md) for remaining backend acceptance.
 
-## Private native dispatch
+## Compiler-owned native dispatch
 
-Optional private source output connects checked operations to the native Router.
+In tsrust.config.json api settings, declare the private context and access policy.
+The compiler connects checked operations to the native Router in memory.
 
 ```json
 {
   "server": {
-    "output": "app/generated-api",
     "context": { "module": "app/context.tsr", "export": "TaskContext" },
     "authorize": { "module": "app/access.tsr", "export": "authorize" },
     "compatible": ["contracts/v1.json"],
@@ -196,7 +219,7 @@ Optional private source output connects checked operations to the native Router.
 }
 ```
 
-Add this optional member to the ordinary API config, and add `"context": true`
+Add this server member to the project API settings, and add `"context": true`
 only to operations whose first parameter is a borrowed native HTTP Context.
 That parameter is private; the remaining zero/one plain-data argument is the wire
 input. An arbitrary pool/resource or an owned Context cannot be hidden this way.
@@ -207,13 +230,24 @@ Returning true is the application's explicit access decision. Configure Router
 body/concurrency/time limits too: the generated decoder's post-read size guard
 does not replace HTTP admission limits.
 
-The private output contains `index.tsr`; register its `dispatch` export on the
-application Router. It requires POST, JSON MIME, a declared operation and an
+Import dispatch, describe and openapi from `api:server`, then register them on the
+application Router. Checking, building and dev create no dispatcher source file
+and read no client output directory. Operation facts and executable handlers share
+the checked source graph; inconsistent independently loaded inputs fail with a
+retry diagnostic. Unreadable nearest project configuration fails instead of
+selecting a parent project's access policy. Dispatch requires POST, JSON MIME, a declared operation and an
 accepted contract hash. Schemas derive from the checked functions. Generic
 materialization uses ordinary checked specialization, never an assertion of
 unknown JSON as a DTO. Invalid arguments/results, policy denial and backend
 exceptions produce bounded public error messages. Typed domain-result unions
 remain ordinary successful data. Neither failure nor cancellation asserts rollback.
+
+### Explicit legacy source export
+
+Existing projects that require a physical dispatcher can opt into server.output,
+such as app/generated-api, when explicitly running tsrust api generate. This
+retained export mode is independent of normal api:server compilation and is not
+used by new backend scaffolds.
 
 The private output must be separate from the public package. Generation checks
 the complete virtual handler before replacing outputs, pins checked input/config
@@ -241,81 +275,6 @@ Run [the example](../../examples/api-contract/README.md) and
 codecs, type inference and owner-edit protection. The verification uses existing
 repository Node/TypeScript development tools; it installs no template packages.
 
-## Optional framework-independent query adapter
-
-The `/query` export supplies createQueryClient without importing React. Install
-the optional @tanstack/query-core peer, supported from 5.105.0 through major 5.
-The plain and HTTP entries still import no cache or framework dependency.
-Use the application's upstream cache, with generated named options:
-
-```ts
-import { QueryClient } from '@tanstack/query-core';
-import { createQueryClient } from '@example/api/query';
-const cache = new QueryClient();
-const api = createQueryClient(transport, { scope: JSON.stringify([backendURL, userId]) });
-const tasks = await cache.query(api.tasks.list.queryOptions(input, { staleTime: 30000 }));
-```
-
-Query operations expose key and queryOptions; mutations expose mutationOptions.
-They work with QueryClient, QueryObserver and MutationObserver without a UI
-framework. Direct named calls remain ordinary uncached promises. Upstream owns
-cache policy, request deduplication, observer state and resource lifecycle.
-Query Core 5 supports stale-while-revalidate through ensureQueryData with generated
-options and revalidateIfStale:true; that method is deprecated for the next major,
-so a future major integration migration must account for it. Observers can also
-return existing data while refetching in the background.
-
-Keys include caller-supplied service/principal scope, versioned contract identity,
-operation and validated normalized input. Secrets, cancellation signals and cache
-policy do not enter keys. Scope changes must accompany principal/service changes.
-Queries/mutations default to no retries. Acknowledged mutations invalidate their
-scope, while refresh errors remain query errors. Special JSON data fields retain
-the same serialization and structural-sharing protection as the React adapter.
-Host AbortSignal/timer typings are required by upstream Query Core: use browser
-library types or Node declarations. Plain clients still require no DOM types.
-
-The pinned implementation follows upstream's
-[QueryClient API](https://tanstack.com/query/latest/docs/framework/react/reference/classes/QueryClient)
-and the installed 5.105.0 package sources. It introduces no parallel cache engine.
-Focused acceptance passes; see the [query-core milestone](../milestones/query-core-adapter.md).
-
-## Optional named TanStack adapter
-
-The generator supplies a separate `/react-query` entry. Actual generated
-runtime/declarations and native task integration pass the upstream witnesses
-described in [adapter evidence](../milestones/generated-query-adapter.md).
-The plain and HTTP entries share the same wire checks without importing React.
-React/TanStack peers are optional in package metadata and must be resolvable in
-applications that use this entry.
-
-```ts
-const api = createReactClient(transport, { scope: JSON.stringify([backendURL, userId]) });
-const tasks = api.tasks.list.useQuery({ after: 0, limit: 100 });
-const createTask = api.tasks.create.useMutation();
-await createTask.mutateAsync({ title: 'Ship prototype' });
-```
-
-The task backend returns tagged domain results; inspect `tasks.data.kind` and
-mutation result kinds separately from protocol/network errors. `queryOptions`
-and `mutationOptions` also work with ordinary TanStack APIs. Select results,
-mutation variables/context and cache data retain generated types. Use upstream
-skipToken when query input is unavailable. Generated hooks return conservative
-possibly-undefined data; callers can pass options to upstream useQuery for its
-initialData overloads.
-
-The application supplies its QueryClient/Provider and a stable transport/client.
-Scope identifies backend and principal without containing credentials. Contract
-identity and normalized copied input are added to keys automatically. Mutations
-invalidate only that client scope after an acknowledged response; refresh failure
-does not change write acknowledgement. Default retries are false, with ordinary
-explicit retry options available. Direct promise calls preserve plain-client
-behavior and do not invalidate/cache by themselves. Query functions/keys/hash
-functions and mutation functions/keys remain generated ownership boundaries.
-Result schemas containing `__proto__` default to structuralSharing:false so
-refetches preserve those fields in stored data. Explicit true rejects for those
-schemas; other schemas retain ordinary upstream sharing, and custom sharing
-functions remain an explicit application choice.
-
 ## Ordinary local package adoption
 
 Generate into an explicit folder, then use the application's package manager:
@@ -333,19 +292,10 @@ The tarball filename follows the configured npm package name/version. Inspect
 declarations, contract, README and license; generated ownership markers and
 unrelated files are excluded. Generated packages are private by default; local
 packing works without publication. Consumers need no compiler, backend source or
-generated-directory symlink. Plain users need no React/TanStack installation.
-Applications using `/react-query` install its peers normally in their own project.
+generated-directory symlink. Generated plain SDKs have no framework or cache peers.
 
 For an npm workspace, include the generated package directory in the root's
-`workspaces`, declare its configured name/version in the consuming app's normal
-dependencies and run `npm install`. Hoisted application peers resolve from the
-linked generated package. A raw sibling symlink outside a workspace may resolve
-peers from the source directory instead; use a tarball or npm's `--install-links`
-for an installed copy. Other package managers need their own workspace peer
-acceptance; do not copy npm-specific settings into their projects automatically.
-
-`node tools/verify-api-package.mjs` checks isolated external plain/React consumers,
-TypeScript errors/inference, npm workspace resolution and an owner-installed
-dependency without rewriting existing scripts/source/configuration. It uses only
-cached pinned upstream packages and never publishes. This proves ordinary npm
-adoption; dedicated Tsrust export/pack/setup convenience commands remain pending.
+workspaces and declare its configured name/version in the consuming application's
+normal dependencies. Users own their package manager, scripts and dependencies.
+Other package managers use their ordinary package/workspace workflows; SDK
+export never installs packages or rewrites the consuming application's files.

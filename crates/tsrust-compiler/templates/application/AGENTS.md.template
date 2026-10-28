@@ -3,11 +3,12 @@
 Read tsrust.config.json and app/api/access.tsr before changing exposed operations.
 app/api holds HTTP operations, context and application-owned authorization.
 app/lib holds reusable logic; app/tests holds backend tests.
-generated/client and generated/server are checked generated outputs.
+api:server is compiler-owned in-memory dispatch, not a generated source directory.
 The greeting is public; sensitive operations require explicit access controls.
 
 Run tsrust check, tsrust test and tsrust format --check for backend changes.
-Regenerate with tsrust api generate after contract changes and inspect the diff.
+Keep api settings and retained app-owned compatibility baselines current.
+Generate independent SDKs from the running service or a saved HTTP description.
 Never hand-edit generated codecs or compatibility history to bypass validation.
 Use tsrust dev for native backend development. Bring your own UI and call the API.
 No frontend package manager is required. Preserve owner edits and existing clients.

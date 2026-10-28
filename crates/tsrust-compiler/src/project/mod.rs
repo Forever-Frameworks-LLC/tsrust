@@ -26,6 +26,9 @@ pub struct SourceFile {
 pub trait SourceProvider {
     fn resolve(&self, importer: Option<&SourceId>, path: &str) -> Result<SourceId, String>;
     fn read(&self, id: &SourceId) -> Result<String, String>;
+    /// Retain exact compiler-owned source for diagnostics; it is not a disk input.
+    fn generated(&self, _source:&SourceFile) {}
+
 }
 
 /// An unmodified compiler-development facade uses the same module context as
@@ -607,7 +610,7 @@ pub fn load_project(
     provider: &impl SourceProvider,
     entry: &str,
 ) -> Result<ProjectGraph, ProjectDiagnostic> {
-    load_graph(provider, entry, true, None)
+    load_graph(provider, entry, true, None, true)
 }
 
 /// Check normally, then collect independent semantic errors or module syntax errors.
@@ -642,16 +645,20 @@ pub fn load_project_headers(
     provider: &impl SourceProvider,
     entry: &str,
 ) -> Result<ProjectGraph, ProjectDiagnostic> {
-    load_graph(provider, entry, false, None)
+    load_graph(provider, entry, false, None, true)
 }
 pub(crate) fn load_project_cached(provider:&impl SourceProvider,entry:&str,cache:&mut HeaderCache)->Result<ProjectGraph,ProjectDiagnostic> {
-    load_graph(provider,entry,true,Some(cache))
+    load_graph(provider,entry,true,Some(cache),true)
+}
+pub(crate) fn load_api_operations(provider:&impl SourceProvider,entry:&str)->Result<ProjectGraph,ProjectDiagnostic>{
+    load_graph(provider,entry,true,None,false)
 }
 fn load_graph(
     provider: &impl SourceProvider,
     entry: &str,
     declarations: bool,
     mut cache:Option<&mut HeaderCache>,
+    allow_api:bool,
 ) -> Result<ProjectGraph, ProjectDiagnostic> {
     let entry = provider.resolve(None, entry).map_err(|message| {
         // Keep entry coordinates available when configuration fails before traversal.
@@ -663,6 +670,9 @@ fn load_graph(
             Span::default(),
         )
     })?;
+    if crate::api::project::config_for_virtual(&entry).is_some(){
+        return Err(error(&entry,"api-import","Import compiler-owned dispatch using api:server; it cannot be an operation entry.",Span::default()));
+    }
     if declarations && !entry.0.starts_with("std:") {
         for root in Path::new(&entry.0).parent().unwrap_or(Path::new(".")).ancestors() {
             let config=SourceId(root.join("tsrust.config.json").to_string_lossy().into_owned());
@@ -688,6 +698,8 @@ fn load_graph(
         &mut chain,
         declarations,
         &mut cache,
+        allow_api,
+        &mut BTreeMap::new(),
     )?;
     let mut package:Option<&rust::dependencies::Package>=None;
     for (id,module) in &graph.modules {
@@ -706,9 +718,12 @@ fn visit(
     chain: &mut Vec<(SourceId, Span)>,
     declarations: bool,
     cache:&mut Option<&mut HeaderCache>,
+    allow_api:bool,
+    generated:&mut BTreeMap<SourceId,String>,
 ) -> Result<(), ProjectDiagnostic> {
     active.insert(id.clone());
-    let text = if let Some(source) = crate::stdlib::source(&id.0) {
+    let text = if let Some(source)=generated.get(&id){source.clone()}
+    else if let Some(source) = crate::stdlib::source(&id.0) {
         source.to_owned()
     } else {
         provider.read(&id)
@@ -759,12 +774,35 @@ fn visit(
             }
             continue;
         }
-        let target = if crate::stdlib::source(&import.path).is_some() {
+        let target = if import.path==crate::api::project::IMPORT {
+            if !allow_api{return Err(error(&id,"api-cycle","API operation modules cannot import api:server, directly or indirectly.",import.span));}
+            let config=crate::api::project::discover(provider,&id)?;
+            let mut built=crate::api::project::source(provider,&config)?;
+            // Wire facts and executable handlers must use identical source bytes
+            // and resolutions. Do not reread the operation closure after deriving
+            // its manifest, or mix it with an earlier independently loaded copy.
+            for target in built.operations.order {
+                let module=built.operations.modules.remove(&target).expect("operation graph module");
+                if let Some(current)=graph.modules.get(&target){
+                    if current.source.text!=module.source.text
+                        || !current.imports.iter().map(|import|&import.target).eq(module.imports.iter().map(|import|&import.target)) {
+                        return Err(error(&id,"api-input-changed","API inputs changed while checking the application; retry against a stable source snapshot.",import.span));
+                    }
+                }else{
+                    graph.order.push(target.clone());graph.modules.insert(target,module);
+                }
+            }
+            provider.generated(&built.source);
+            let target=built.source.id.clone();generated.insert(target.clone(),built.source.text);target
+        } else if crate::stdlib::source(&import.path).is_some() {
             SourceId(import.path.clone())
         } else {
             provider.resolve(Some(&id), &import.path)
                 .map_err(|message| error(&id, "module-load", message, import.span))?
         };
+        if import.path!=crate::api::project::IMPORT && crate::api::project::config_for_virtual(&target).is_some(){
+            return Err(error(&id,"api-import","Import compiler-owned dispatch using api:server.",import.span));
+        }
         if active.contains(&target) {
             let mut diagnostic = error(
                 &id,
@@ -796,7 +834,7 @@ fn visit(
                 ));
             }
             chain.push((id.clone(), import.span));
-            visit(provider, target.clone(), graph, active, chain, declarations, cache)?;
+            visit(provider, target.clone(), graph, active, chain, declarations, cache, allow_api, generated)?;
             chain.pop();
         }
         let dependency = &graph.modules[&target];

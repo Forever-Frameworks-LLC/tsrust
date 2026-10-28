@@ -1,7 +1,6 @@
 # Create a backend application
 
-`tsrust new hello --app` creates a native greeting HTTP API and a checked,
-framework-independent TypeScript client. The optional `--target backend` is
+`tsrust new hello --app` creates a native greeting HTTP API. The optional `--target backend` is
 accepted; frontend targets are rejected. Bring your own UI and call the API.
 Creation never overwrites an existing destination or installs dependencies.
 
@@ -13,28 +12,35 @@ hello/
     api/                   Operations, context and access policy
     lib/                   Reusable backend logic
     tests/                 Native assertions
-  generated/
-    client/                SDK, codecs and compatibility history
-    server/                Native dispatcher
-    .tsrust-integration.json
 ```
 
 Run `tsrust dev` at the project root. The starter listens on loopback port 4318.
 Read app/api/access.tsr before adding sensitive operations: the greeting is
 explicitly public. Authentication remains application policy.
 
-After changing a contract, run `tsrust api generate` and inspect the generated
-SDK, dispatcher and compatibility history. Generated ownership guards preserve
-custom edits; ordinary app files remain yours. API regeneration is explicit.
+The server owns its API in app/. Its explicit api settings select operations,
+context, access policy and retained compatibility baselines. app/main.tsr imports
+`dispatch`, `describe` and `openapi` from `api:server`. The compiler checks those
+handlers and supplies their source in memory; it writes no dispatcher directory.
+Client generation is never required to check, build or run the service.
+
 Run `tsrust check`, `tsrust test` and `tsrust format --check` for backend source.
-Keep compiler and editor diagnostics visible.
+After changing a contract, review its description and retain prior checked contract
+baselines under app/ as needed for rolling deployments. List those paths in
+api.compatible, bump package.version for releases, and change apiVersion for an
+intentionally breaking API major. Ordinary exports remain private unless selected.
+
+Generate an independent TypeScript or Rust SDK from the running service, or from a
+saved description. Choose its location explicitly: js-client/, rust-client/, an
+external project or a directory for later publication. No SDK output is created by
+the backend scaffold, and generating an SDK never modifies the server.
 
 The TypeScript package exposes plain named calls and a configurable HTTP transport,
 without React, TanStack or runtime package dependencies. Its package.json is ESM
 metadata; backend development does not require npm or Node installation.
 The starter explicitly mounts GET /api/description and GET /api/openapi.json,
 using the same application access policy as dispatch. Existing applications opt
-in by mounting the generated describe/openapi handlers themselves. The OpenAPI
+in with api settings and mount the api:server describe/openapi handlers themselves. The OpenAPI
 document describes the actual single POST endpoint; configure its server URL and
 application authentication policy for deployment.
 
@@ -50,8 +56,8 @@ generated output retains ownership guards and compatibility history protection.
 Fetch a description directly, or generate an asynchronous Rust client:
 
 ```text
-tsrust api generate --url http://127.0.0.1:4318/api/description --out generated/external-client
-tsrust api generate --url http://127.0.0.1:4318/api/description --language rust --out generated/rust-client
+tsrust api generate --url http://127.0.0.1:4318/api/description --out js-client
+tsrust api generate --url http://127.0.0.1:4318/api/description --language rust --out rust-client
 ```
 
 Remote URLs require HTTPS; HTTP is allowed on loopback. Redirects are rejected and
