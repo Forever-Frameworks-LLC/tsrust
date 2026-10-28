@@ -41,14 +41,36 @@ function main() {
 
 ## Match cases in order
 
-Case expressions run in source order and stop at the first match. Later case
-expressions are not evaluated. Non-name subject expressions are evaluated once.
+The subject is selected before case expressions run. Case expressions run in
+source order and stop at the first match. Later case expressions are not evaluated.
+Changing a copyable subject variable from a case expression does not change the
+value being matched:
 
-:::caution[Keep the subject stable]
-The current compiler compares a named subject in place. Assigning to that name
-inside a case expression can change later comparisons. Avoid changing the subject
-from case expressions. This behavior is under repair.
-:::
+```tsrust
+import { strictEqual } from "std:testing";
+
+function main() {
+  let value = 1;
+  let selected = "none";
+  switch (value) {
+    case(value = 2):
+      selected = "two";
+      break;
+    case 1:
+      selected = "one";
+      break;
+  }
+
+  strictEqual(value, 2);
+  strictEqual(selected, "one");
+}
+```
+
+Prefer simple case expressions when side effects would make the order hard to
+follow. Owned values, such as strings, are read without an implicit copy or
+ownership transfer. A case expression cannot mutate or replace an owned subject
+while comparing it. The selected body may mutate or consume it under the normal
+ownership rules.
 
 ### Compare compatible values
 
@@ -57,8 +79,8 @@ compatible with `===`. Numeric, boolean and string cases are supported, along wi
 enum values and supported unions. Cases may also check `null` or `undefined`;
 there is no coercion between those two values.
 
-When the value is a union variable, a matching case narrows it inside the clause.
-For example, `case "go": value.toUpperCase();` can use the string methods.
+When the value is a union variable and has not changed during matching, a matching
+case narrows it inside the clause. For example, `case "go": value.toUpperCase();` can use the string methods.
 
 ### Share a body between labels
 

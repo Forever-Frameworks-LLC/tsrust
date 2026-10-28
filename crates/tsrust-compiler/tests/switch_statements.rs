@@ -83,6 +83,9 @@ fn switch_keeps_static_contracts() {
         ("function main() { const n = 1; switch (n) { n; } }", "syntax"),
         ("function main() { const n = 1; switch (n) { case 1 break; } }", "syntax"),
         ("function main() { const n = 1; switch (n) { case \"a\": break; } }", "type"),
+        ("function main() { switch (1) { case \"a\": default: break; } }", "type"),
+        ("function main() { let word = \"x\".repeat(1); switch (word) { case (word = \"y\"): break; default: break; } }", "conflicting-access"),
+        ("function main() { let n: int | boolean = true; switch (n) { case (n = 7): break; case true: const wrong: boolean = n; break; } }", "type"),
         ("function f(n: int): int { switch (n) { case 1: return 1; } } function main() {}", "type"),
         ("function main() { const n = 1; switch (n) { case 1: const a = 1; break; case 2: console.log(a); break; } }", "name"),
     ] {
@@ -124,4 +127,70 @@ function main() {
     let output = support::run(support::cli().arg("run").arg(directory.source(source)), 60);
     support::success(&output);
     assert!(output.stdout.is_empty());
+}
+
+#[test]
+fn switch_snapshots_copy_subjects_and_preserves_owned_subject_uses() {
+    let source = r#"import { strictEqual } from "std:testing";
+function consume(value: string): int { return value.length; }
+function main() {
+    let value = 1;
+    let result = "none";
+    switch (value) {
+        case (value = 2): result = "two"; break;
+        case 1: result = "one"; break;
+    }
+    strictEqual(value, 2);
+    strictEqual(result, "one");
+    let mixed: int | boolean = true;
+    let seen = 0;
+    switch (mixed) {
+        case (mixed = 7): seen = -1; break;
+        case true: seen = 1; break;
+    }
+    strictEqual(seen, 1);
+    strictEqual(mixed, 7);
+    const stable: int | boolean = seen > 0 ? 1 : false;
+    switch (stable) {
+        case 1: strictEqual(stable + 1, 2); break;
+        default: break;
+    }
+    let inline = 0;
+    switch ((function pick(): int { return 2; })()) {
+        case (function one(): int { return 1; })(): inline = 1; break;
+        default: inline = 2;
+    }
+    strictEqual(inline, 2);
+    let word = "go".repeat(1);
+    switch (word) {
+        case "go": word = "stop"; break;
+        default: word = "other";
+    }
+    strictEqual(word, "stop");
+    const owned = "owned".repeat(1);
+    switch (owned) {
+        case "owned": strictEqual(consume(owned), 5); break;
+        default: strictEqual(consume(owned), 5);
+    }
+    const union: int | string = seen > 0 ? "x" : 1;
+    switch (union) {
+        case "x": strictEqual(union.toUpperCase(), "X"); break;
+        default: break;
+    }
+}"#;
+    let directory = support::TempDirectory::new();
+    let output = support::run(support::cli().arg("run").arg(directory.source(source)), 60);
+    support::success(&output);
+    assert!(output.stdout.is_empty());
+}
+
+#[test]
+fn nested_shared_default_bodies_do_not_expand_exponentially() {
+    let mut body = "console.log(42);".to_owned();
+    for _ in 0..16 {
+        body = format!("switch (1) {{ case 1: default: {{ {body} break; }} case 2: break; }}");
+    }
+    let directory = support::TempDirectory::new();
+    let output = support::run(support::cli().arg("check").arg(directory.source(&format!("function main() {{ {body} }}"))), 30);
+    support::success(&output);
 }
