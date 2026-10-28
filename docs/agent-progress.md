@@ -10,13 +10,13 @@ One agent writes this tree. No pushes, tags, releases, publication or recurrence
 No owner editor/process control. Commit every source change, with no authorship-
 based exclusions, after acceptance and whole-project formatting. Respect gitignore.
 
-Latest accepted source milestone: 0ea3d7e3, separating optional portable source packs
-and repairing reported editor diagnostics. Previous milestone 2d3a6e09 accepted
-shared backend sources. ef39be55 included owner
-configuration/.agents/docs changes as explicitly requested. All source changes were included in 0ea3d7e3; no authorship-based exclusions. See
-milestones/portable-source-packs-and-editor-agreement.md for this section's actual
-implementation, evidence and limitations. No archive/source snapshot was created.
-Keep one target, CARGO_INCREMENTAL=0, CARGO_BUILD_JOBS=1. Current CLI/LSP target and installed tools are validated in the affected cases.
+Latest accepted source milestone: e61fed53, compiler-owned API dispatch and independent
+SDK generation; see milestones/server-owned-api.md. cc8a0024 accepted the docs startup
+profile repair; 0ea3d7e3 accepted portable source packs/editor repair; 2d3a6e09 accepted
+shared backend sources. ef39be55 included owner configuration/.agents/docs edits.
+All source changes were included at their checkpoints; no authorship exclusions.
+Keep one target, CARGO_INCREMENTAL=0, CARGO_BUILD_JOBS=1. Current installed consumers
+are the accepted API pair recorded below. Full backend/distribution goal is open.
 
 ## Accepted current section
 
@@ -121,9 +121,9 @@ unless new code, failures or an unresolved uncertainty justifies it.
 ## Remaining required goal work
 
 Native docs startup profile repair is accepted below; UI expansion remains frozen.
-Server API must belong to app/ and serve description/OpenAPI, allowing
-independent js-client/rust-client generation anywhere. Current scaffold still imports
-generated/server; do not disguise a rename as the needed architectural correction.
+Server-owned API integration is accepted below: app/ and in-memory api:server supply
+HTTP descriptions/OpenAPI; independent js-client/rust-client outputs need no server
+source. Keep source/input snapshot agreement while completing the remaining work.
 Ordinary binding graphs still need shared registry/Git cache migration. Finish Rust
 replica execution, checked typed JSON/contextual body readers and async std:testing.
 Trusted paired prebuilt install/latest-stable update, integrity/host/ownership,
@@ -164,15 +164,11 @@ Pruned 346247105 bytes of disposable diagnostics and 110564134 bytes of obsolete
 crashing docs cache, plus unused old CLI rollback copy after live-owner/hash checks.
 Keep current docs cache c332a85856722893, runtime caches and prepared source pack.
 
-Next executable action: inspect shared project/provider and checked API generation
-boundaries, then replace the public generated/server prerequisite with compiler-
-owned dispatch integration. App source/configuration owns the operations and auth;
-SDK generation must be an independent consumer and never modify the server. Current
-application_scaffold still calls api generate and app/main imports generated/server;
-api::CheckedApi/native_source_versioned is the existing checked dispatch to reuse.
-Do not treat moving generated output into app/ as the architectural correction.
+The subsequent server-owned API section below completed that architectural step;
+its accepted source and installed-consumer state supersede the old generated/server
+prerequisite. Keep legacy explicit exports only for existing-project compatibility.
 
-## Server-owned API section accepted — checkpoint/install pending
+## Server-owned API section accepted — e61fed53 and installed pair
 
 This continuation made concrete progress: closed nearest-config policy fallthrough
 and source/fact consistency gaps, completed compiler/editor/native HTTP acceptance,
@@ -208,10 +204,31 @@ concise evidence, prune emitted diagnostic sources and superseded test consumers
 Current normal target hashes:
 CLI 6726391A5BCCA08216D8A16AADD997191C1B7AC624B3EDC44FF90FCE4B4402EC;
 LSP 3E641BFF4E10862CC62A145F28140ED16990CA058B2D243A00E81F390D04553E.
-Installed consumers still precede this section (CLI 90D6BB34..., LSP 53A93B85...).
-Next: required whole-project format and all-file source checkpoint, guarded paired
-installed refresh with rollback preservation and installed protocol checks, safe
-cleanup, then remaining HTTP SDK/body/testing and distribution work. Preserve owner
-mapped LSP images/processes; installation does not imply their editor adopted it.
+Both installed consumers now match these target hashes. Installed CLI version and
+review-project check passed; installed project LSP clean/error/repair/dispatch-hover
+and original-facade clean/error/repair/hover passed. Source checkpoint e61fed53 includes
+all accepted files. Post-install cleanup removed 1048397368 bytes of superseded
+consumers/diagnostics. Authoritative CIM inventory found zero live compiler/LSP
+processes; four old mapped-image/rollback backups were then hash-checked and removed.
+No owner process was stopped. Current variants, caches, review apps and source pack
+remain. Whole-editor-panel adoption is not inferred from installed protocol checks.
+
+Next executable action: complete remaining HTTP SDK/body/testing work. Inspect
+plans/http-request-body-readers.md and std:testing async registration, preserving the
+accepted server-owned API baseline and ready native/Node fixtures. Actual Rust old/
+new native replica coverage and auth must remain explicit. Then ordinary binding
+shared-cache migration and production paired install/check/update with required
+Windows/macOS/Linux execution. Full family regressions/measurement remain tracked;
+do not restart passed focused gates without changed inputs or a specific concern.
 No full executable regression/performance matrix, analytics import or remote release
 was run. Keep those broader family/platform requirements open as the goal requires.
+
+Post-install evidence: CLI/project check and both installed LSP probes passed;
+project probe now asserts hover on api:server dispatch as well as diagnostics.
+New/changed relative documentation links since 58d07d79 passed 8/8. A broader
+whole-roadmap scan encountered the unchanged historical link
+../benchmarks/runtime/diagnostics/gate100-call-spread-implementation.json, absent
+from disk. It was not fabricated/restored or counted as healthy; historical-link
+maintenance remains separate from current API link acceptance. Current Node
+verification scripts pass syntax checks. No source-code or runtime failure remains
+in this accepted section. Keep the full remaining goal open.

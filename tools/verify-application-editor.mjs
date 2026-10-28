@@ -72,6 +72,14 @@ try {
       send('textDocument/didChange', { textDocument: { uri, version: 3 }, contentChanges: [{ text: source }] });
       assert.deepEqual(await result(uri, 3), [], 'Editor diagnostics must clear after repair');
       assert.equal(fs.readFileSync(file, 'utf8'), source, 'Protocol edits must not change owner files');
+      if (!standalone && relative === projectConfig.build.entry && source.includes("'api:server'")) {
+        const offset = source.indexOf('dispatch');
+        assert.ok(offset >= 0, 'The backend scaffold imports its checked dispatcher');
+        const prefix = source.slice(0, offset);
+        const position = {line: prefix.split('\n').length - 1, character: prefix.split('\n').at(-1).length};
+        const hover = await request('textDocument/hover', {textDocument: {uri}, position});
+        assert.ok(hover?.contents, 'In-memory API handlers must retain checked cursor assistance');
+      }
       if (facade) {
         const offset = source.indexOf('export type Node') + 'export type '.length;
         const prefix = source.slice(0, offset);

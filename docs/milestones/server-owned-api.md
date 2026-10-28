@@ -106,3 +106,27 @@ async std:testing, ordinary binding shared-cache migration, trusted paired prebu
 installation/latest-stable update and actual required OS/architecture execution.
 Preserve original UI source/history outside ordinary backend dependencies. Native
 UI expansion stays deferred and future component work should begin with primitives.
+
+## Installed consumers and cleanup
+
+Source checkpoint e61fed53 includes all accepted files, without authorship-based
+exclusions. Both development consumers were staged with expected-old/new SHA256
+guards and rollback preservation, then independently verified at their installed
+paths. Current installed CLI SHA256:
+6726391A5BCCA08216D8A16AADD997191C1B7AC624B3EDC44FF90FCE4B4402EC.
+Installed LSP SHA256:
+3E641BFF4E10862CC62A145F28140ED16990CA058B2D243A00E81F390D04553E.
+CLI version/project check passed. Installed real LSP project clean/error/repair and
+API dispatcher hover passed; original facade clean/error/repair/hover passed too.
+The verification tool now explicitly checks cursor assistance on api:server handlers.
+This is a guarded development refresh, not the pending production updater.
+
+The replacement command's final empty Get-Process inventory produced shell status 1
+after successful hash-guarded moves. Independent installed hash and protocol checks
+confirmed successful replacement; it was not classified as an update failure.
+Subsequent authoritative CIM inventory found zero compiler/LSP consumers. Only then
+were four obsolete CLI/LSP image backups, including previously mapped owner images,
+removed after exact hash checks. No owner process was stopped. Source/test cleanup
+removed 1,048,397,368 bytes of superseded executables/symbols and diagnostic emitted
+sources, preserving current accepted variants, warm project caches, source pack,
+review applications and concise logs. No archive directories were created.

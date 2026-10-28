@@ -20,10 +20,12 @@ an implementation detail; it must not make client generation a server startup
 prerequisite. Preserve authentication, validation and compatibility when replacing
 the current generated dispatcher. SDK generation must not modify the server.
 
-Before the next milestone, fix the reported docs native stack overflow and identify
-and clear the remaining VS Code diagnostic. Keep affected compiler/LSP diagnostics
-clean, finish the section and its checks before committing, and commit each accepted
-milestone. Organize loose documentation by topic, updating actual consumers and
+The reported docs stack overflow and bundled-facade diagnostic are repaired in the
+accepted [docs profile](milestones/native-docs-development-profile.md) and
+[editor agreement](milestones/portable-source-packs-and-editor-agreement.md) sections.
+[Server-owned API integration](milestones/server-owned-api.md) is also accepted;
+remaining requirements below stay open. Keep affected compiler/LSP diagnostics clean,
+finish each section and its checks before committing, and commit each accepted section. Organize loose documentation by topic, updating actual consumers and
 links; preserve owner source edits and retained historical evidence. Future UI work
 should start with a finite set of reusable primitives and small composition examples
 before building larger components. UI expansion remains deferred.

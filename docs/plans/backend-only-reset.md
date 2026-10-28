@@ -74,5 +74,10 @@ and agent-goal.md govern the owner's directly authorized ongoing work.
 - Is periodic update notification wanted? Default to explicit checks; do not add
   background network traffic or telemetry without a product decision.
 
-Status: reset persisted; removal, SDK expansion and installer/update implementation
-are pending. Existing UI acceptance is historical evidence, not new product scope.
+Status: backend scaffolding/cleanup foundations, shared backend sources/portable
+exports and [server-owned API integration](../milestones/server-owned-api.md) are
+accepted in the recorded Windows scope. The fresh server requires no generated
+client or dispatcher directory; live/saved TS and async Rust SDK consumers and
+native dev hot reload passed. Complete Rust native replica/auth coverage, checked
+body readers/async testing, binding-cache migration and production install/update
+remain open. Existing UI acceptance is historical evidence, not new product scope.

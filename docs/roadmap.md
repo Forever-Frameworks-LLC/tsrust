@@ -14,21 +14,25 @@ and the reported Rust/editor diagnostic repair are also accepted; see
 [machine setup](guides/tooling/machine-setup.md),
 [async HTTP SDK acceptance](milestones/async-http-sdk.md) and
 [shared backend sources](milestones/shared-backend-sources.md).
-These results do not establish complete backend, installation or update acceptance.
+The [native docs development profile](milestones/native-docs-development-profile.md)
+repairs the reported stack overflow. [Server-owned API integration](milestones/server-owned-api.md)
+now supplies in-memory dispatch with no SDK prerequisite, fresh CLI/native dev and
+relocated-executable TS/Rust SDK acceptance. Both installed consumers and real LSP
+probes are current. These results do not establish complete backend, installation
+or update acceptance.
 
-1. Keep compiler/LSP/editor agreement clean. Finish the current all-target diagnostic
-   agreement; repair native docs startup stack overflow. Before
-   each accepted milestone, complete affected checks and commit the full source tree.
-2. Let the server own its API in app/, serve the checked description/OpenAPI, and
-   generate independent js-client/ or rust-client/ anywhere. Remove the public
-   generated/server prerequisite. Preserve auth, validation, structured failures
-   and rolling-deployment compatibility; finish actual Rust replica coverage.
+1. Keep accepted compiler/LSP/editor agreement and repaired docs startup clean.
+   Complete affected checks before each full-source checkpoint and keep installed
+   consumers current after validation.
+2. Preserve accepted server-owned app/ API and independent SDK generation. Finish
+   actual Rust old/new native replica and protected-service coverage, retaining
+   auth, validation, bounded structured failures and rolling-deployment safety.
 3. Finish [checked request-body readers](plans/http-request-body-readers.md) and
    async std:testing registration. Keep all HTTP I/O async; reuse form/multipart
    readers and defer XML until a checked upstream parser is chosen.
-4. Finish shared-source dependency distribution: optional prepared portable packs
-   replace embedded vendors, while ordinary binding graphs also migrate to Cargo's
-   shared sources. Retain exact locks, ownership, complete notices/prerequisites,
+4. Finish shared-source dependency distribution: ordinary binding graphs must also
+   migrate to Cargo's shared sources. Optional prepared portable packs already replace
+   embedded vendors for the accepted backend/export section. Retain exact locks, ownership, complete notices/prerequisites,
    relocation/offline parity and tooling-free deployment. Normal commands never
    install or download silently.
 5. Deliver prebuilt paired CLI/LSP installation and explicit latest-stable checking/
