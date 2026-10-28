@@ -1,6 +1,35 @@
 # Agent continuation state
 
-## Current continuation — Array.from guide accepted and migrated
+## Current continuation — callable array storage and method guides accepted
+
+Previous checkpoint879023df. Audited callable-arrays against inferred storage,
+checked callable storage and transform/sorting/reduction continuations. Split
+into language/callable-arrays and callable-array-methods site pages; removed
+old duplicate and migrated incoming callable-locals link. Clarified first-element
+inference, whole-array result transfer and once extraction. Replaced historical
+in-progress narratives with direct current supported forms and limits. Updated
+stale callable-locals editor/nullable-storage clause without marking that whole
+guide accepted; its full source/rendered audit remains pending.
+
+All11 complete exact examples format/check/native pass:5 storage,6 methods.
+Compiler callable_fields callable_array17 pass (/tmp/tsrust-callable-array-doc-
+contracts.log), reductions2 pass (/tmp/tsrust-callable-array-doc-reductions.log).
+Current comparator, forwarded declaration and abstract mutable visitor inputs
+reject. LSP local/indexed/inferred help5 plus imported nominal/unsaved help1 pass
+(/tmp/tsrust-callable-array-doc-editor.log and imports.log). Full390px/1440px
+rendered pages reviewed; readable predicate table, zero mobile document overflow,
+highlighted/focusable examples, keyboard scroll40px and skip/previous/next/section
+navigation pass.52-page build and internal links/anchors pass
+(/tmp/tsrust-callable-array-doc-site.log). All commands completed. No compiler
+changes, broad suites, timings, hosted CI, push or release. Whole-project formatter
+before checkpoint. Viewport reset and tab4 retained.
+
+Next: audit callable-locals and callable-fields, then remaining finite language/
+library migration. Platform setup, Windows/Linux editor fixture/acquisition and
+actual Pages deployment remain pending; goal active and prior platform evidence
+retained without broad new claims.
+
+## Prior continuation — Array.from guide accepted and migrated
 
 Spread guides checkpointed797a289e. Completed Array.from audit against rewriting
 in analysis/mod.rs, sets/maps receiver hints, transform.rs and ordered map native
