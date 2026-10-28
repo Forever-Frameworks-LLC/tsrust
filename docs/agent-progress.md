@@ -1088,3 +1088,49 @@ witness to avoid the unconditional throw or globally weaken unreachable diagnost
 Repair generated registration/entry completion handling while preserving module
 storage visibility and ordinary user unreachable-code diagnostics. The original
 failing witness and full-run evidence remain intact.
+
+## Generated continuation repair under validation
+
+Implemented private Program.generated_continuations metadata. Project linker marks
+synthetic endSuite statements with coordinates beyond linked source; module-state
+lowering marks the synthesized entry call beyond the owner span. During block
+analysis, only those generated statements become empty blocks after a definite
+exit; ordinary source still receives unreachable-code diagnostics. Updated all
+three Program construction sites. Added a rejection witness for a user statement
+after unconditional registration throw; original cleanup witness is unchanged.
+
+Full affected exception_handling suite runs in session 93090, log
+/tmp/tsrust-registration-tail-repair.log, currently compiling compiler after shared
+dependency artifacts were refreshed. No result yet; do not mark repair accepted.
+Changes remain uncommitted. Next inspect this result, repair any issue, and cover
+multi-file registration/ordinary module owner behavior before acceptance; no broad
+unreachable-code suppression is intended. All-target compiler/LSP diagnostics and
+focused testing registration/async agreement are required for this production
+change. Original full suite 79249 remains separate; do not restart it.
+Windows 40724567590 last confirmed running consumer compilation.
+
+
+## Authorization and versioning documentation audit continuation
+
+Reworked authorization into configuration, access decisions, context, limits,
+errors, retained contracts and legacy export. Traced configuration.rs/native.rs,
+mod.rs, api_cli.rs and scaffold paths. Corrected hash-only admission claim:
+versioned per-operation fingerprints also qualify. Added exact API byte ranges
+and explicit fragment prerequisites. Compatibility page now separates version
+choice/publication/baselines/rollout and documents version parser restrictions
+(no prerelease/build metadata, no leading zeroes). Runtime adapter review remains.
+Site build and all 23-page link/anchor/asset checks pass. Desktop opening/closing
+sections and 390px authorization error table render without document overflow;
+whole-page keyboard/middle-section acceptance still pending. Viewport restored.
+CUA string tab ID '4' works; browser.tabs.get('4') exposes direct documented
+Playwright API and avoids the stale wrapper issue within the turn.
+
+Registration session 93090 is terminal: 21 pass, one fails. The original prepared
+file witness now emits but lacks its expected borrowed registration-scope guard.
+Do not describe generated-continuation repair as accepted; production edits remain
+uncommitted. Inspect owner registry scope versus borrowed invocation restoration
+before changing either implementation or assertion. Multi-file/ordinary module
+initialization and all-target diagnostics remain pending.
+Original backend milestone 79249 remains active, reached tokio_tasks; preserve it.
+Windows 40724567590 passed CLI/LSP compilation and portable preparation and is
+running paired-install/cache tests. No additional hosted run dispatched.
