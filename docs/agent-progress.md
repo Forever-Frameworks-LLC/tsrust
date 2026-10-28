@@ -1,6 +1,25 @@
 # Agent continuation state
 
-## Current continuation — optional operator source review completed
+## Current continuation — optional operator guides accepted
+
+Previous turn progressed at84d74305. Finished entire optional-chaining and
+nullish-coalescing rendered reviews at390/1440. Both have highlighted examples,
+no mobile document overflow, keyboard code scrolling40px, skip and next navigation.
+Coalescing section anchor works; split dense result-type explanation into readable
+paragraphs and rechecked changed section on mobile. Viewport reset; tab4 retained.
+
+Retained prior source audit and twelve exact executable examples; no code/example
+semantic changes or reason to repeat native checks. Removed two superseded guides
+and migrated incoming Markdown links. Audit and migration rows accepted. Final
+site build/link check and full-project formatter/diff check before checkpoint.
+
+Next: continue finite migration with nullish-assignment and nullable-callables,
+then remaining language/CLI guides. Platform setup, updated Windows/Linux editor
+fixture/acquisition and actual Pages deployment remain pending. No push, hosted CI,
+release, full suites or benchmark run. Goal active; shared target, one writer.
+
+
+## Prior continuation — optional operator source review completed
 
 Previous turn progressed at409948f2. Reviewed current continuations/coalesce.rs
 prepare/right/finish paths and optional.rs branch preparation against both site

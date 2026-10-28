@@ -20,7 +20,13 @@ function main() {
 
 ## Choose a compatible result type
 
-The result has a checked native type. A nullable payload and its fallback must have compatible checked types. Compatible literal-union fallbacks are supported: for example, a `"horizontal" | "vertical" | undefined` value may fall back to `"horizontal"`. The operator does not accept arbitrary new payload alternatives or coerce typed `int` and `Number` values. A fallback may retain an absent variant, such as `int | null` from an `int | null | undefined` input followed by `?? null`. A statically nonnullable input selects its existing type even when the unreachable fallback has another type. Statically null or undefined input selects the fallback type. A selected callable keeps its parameter, return and invocation contract. Nullable callable storage is also supported under the [callable ownership rules](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/docs/guides/language/nullable-callables.md).
+The result has a checked native type. A nullable payload and its fallback must have compatible checked types. Compatible literal-union fallbacks are supported: for example, a `"horizontal" | "vertical" | undefined` value may fall back to `"horizontal"`. The operator does not accept arbitrary new payload alternatives or coerce typed `int` and `Number` values.
+
+A fallback may retain an absent variant, such as `int | null` from an `int | null | undefined` input followed by `?? null`.
+
+A statically nonnullable input selects its existing type even when the unreachable fallback has another type. Statically null or undefined input selects the fallback type.
+
+A selected callable keeps its parameter, return and invocation contract. Nullable callable storage is also supported under the [callable ownership rules](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/docs/guides/language/nullable-callables.md).
 
 ## Combine operators explicitly
 
