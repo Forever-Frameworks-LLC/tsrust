@@ -56,7 +56,7 @@ feature-coverage evidence to reduce the inventory.
 | `collections.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `diagnostic-suppression.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/array-from.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/array-literal-spread.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/array-literal-spread.md` | Audit and migrate current guidance; preserve any embedded history | In progress: corrected incomplete native-collection source list; four complete examples format/check/execute and focused native-collection regression passes. Site migration and rendered review pending. |
 | `language/arrow-functions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/assignment-values.md` | Migrated to website language/assignment-values; removed duplicate and updated Markdown links | Source, exact native examples, focused compiler/editor tests and full responsive review accepted |
 | `language/borrowed-optional-fallback.md` | Migrated to canonical site language/borrowed-optional-fallback | Accepted: four complete examples, compiler/editor and rejection witnesses, full responsive/keyboard review; duplicate removed and links migrated. |
