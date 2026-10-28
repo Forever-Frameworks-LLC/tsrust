@@ -55,7 +55,7 @@ feature-coverage evidence to reduce the inventory.
 | `async-sql.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `collections.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `diagnostic-suppression.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/array-from.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/array-from.md` | Migrated to canonical site language/array-from | Accepted: source audit, seven complete executable examples, compiler/editor checks, direct-source rejection witnesses and full responsive/keyboard review. Corrected OrderedMap and reusable callable access; duplicate removed and incoming links migrated. |
 | `language/array-literal-spread.md` | Migrated to canonical site language/array-literal-spread | Accepted: complete source audit, 5 executable examples, focused compiler/editor checks and full390px/1440px/keyboard review. Corrected source families, ordering and ownership; duplicate removed and incoming links migrated. |
 | `language/arrow-functions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/assignment-values.md` | Migrated to website language/assignment-values; removed duplicate and updated Markdown links | Source, exact native examples, focused compiler/editor tests and full responsive review accepted |
