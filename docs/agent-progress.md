@@ -1039,3 +1039,31 @@ record returned session handle separately. Original broad regression remains
 separate and must not be restarted.
 
 HTTP socket-enabled rerun session: 22480. Preserve and poll this exact handle.
+
+
+## Modules guide and Windows regression compile repair
+
+Modules guide now states actual four-candidate .tsr/.tsrx resolution order and
+clarifies alternative default declarations replace the original file and require
+a default-only consumer. Added filenames/run commands and data ownership/type
+sections. Exact named/default, named and anonymous default declarations, and JSONC
+clone examples execute with documented output in /tmp/tsrust-modules-doc-audit.
+Source limits match project/data/module.rs and shape.rs; aliases match resolution.rs.
+Rendered inspection attempted but persisted CUA wrapper again reports browser.user
+unavailable; reset/rebind works within a turn, not across turns. Review pending.
+
+Windows run 40721046040 is terminal failure. Log:
+/tmp/tsrust-windows-production-linker-failure.log. Both errors are in the new
+shared_sources deep-path regression: support::run requires &mut Command.
+Production CLI/LSP builds passed; test compilation prevented runtime acceptance.
+Fixed both calls and removed Windows-only gating, using EXE_SUFFIX so all hosts
+compile/run this portable regression. Focused local check session 36444,
+/tmp/tsrust-deep-path-repair.log, pending. Do not dispatch another Windows run until
+this local check passes. Actual Windows linker runtime repair remains unproven.
+
+HTTP catalog socket-enabled rerun 22480 passes (170.04s), executing all unique
+catalog source/output pairs including the shared 17-entry witness. The earlier
+bind failure was not reproduced with socket permission. Deep-path repair 36444
+passes locally (1.49s), including direct and exported-package execution. Both
+repairs are accepted locally. Next hosted run changes the diagnosed test compile
+errors from terminal run 40721046040; use only existing toolchain_acceptance.

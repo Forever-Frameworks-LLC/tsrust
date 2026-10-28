@@ -10929,21 +10929,39 @@
     "signature": "type ServerOptions = { bodyLimit: int; maxConnections: int; maxRequests: int; requestTimeoutMs: int; shutdownTimeoutMs: int; handshakeTimeoutMs: int; requestsPerSecond: int; }",
     "parameters": [],
     "documentation": "Configuration passed to app.configure. All fields required; see configure for units, bounds and defaults.",
-    "inferredSignature": "function type ServerOptions = { bodyLimit: int; maxConnections: int; maxRequests: int; requestTimeoutMs: int; shutdownTimeoutMs: int; handshakeTimeoutMs: int; requestsPerSecond: int; }"
+    "inferredSignature": "function type ServerOptions = { bodyLimit: int; maxConnections: int; maxRequests: int; requestTimeoutMs: int; shutdownTimeoutMs: int; handshakeTimeoutMs: int; requestsPerSecond: int; }",
+    "examples": [
+      {
+        "source": "import {App, request, ServerOptions, FormField, MultipartPart} from 'std:http';\nimport {length} from 'std:bytes';\nasync function main(): Task<void> {\n  const options: ServerOptions = {bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100};\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit, options.maxConnections, options.maxRequests, options.requestTimeoutMs, options.shutdownTimeoutMs, options.handshakeTimeoutMs, options.requestsPerSecond);\n  const form = request('POST', 'http://localhost/', 'body=one+two');\n  form.setHeader('content-type', 'application/x-www-form-urlencoded');\n  const fields: FormField[] = await form.form();\n  console.log(fields[0].name, fields[0].value);\n  const upload = request('POST', 'http://localhost/', '--x\\r\\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nabc\\r\\n--x--\\r\\n');\n  upload.setHeader('content-type', 'multipart/form-data; boundary=x');\n  const parts: MultipartPart[] = await upload.multipart();\n  console.log(parts[0].name, parts[0].fileName === '../untrusted', parts[0].contentType === 'application/octet-stream', length(parts[0].data));\n}\n",
+        "output": "65536 64 32 5000 5000 3000 100\nbody one two\nattachment true true 3\n"
+      }
+    ]
   },
   {
     "name": "FormField",
     "signature": "type FormField = { name: string; value: string; }",
     "parameters": [],
     "documentation": "One owned, decoded form field. Duplicate names remain separate array elements.",
-    "inferredSignature": "function type FormField = { name: string; value: string; }"
+    "inferredSignature": "function type FormField = { name: string; value: string; }",
+    "examples": [
+      {
+        "source": "import {App, request, ServerOptions, FormField, MultipartPart} from 'std:http';\nimport {length} from 'std:bytes';\nasync function main(): Task<void> {\n  const options: ServerOptions = {bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100};\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit, options.maxConnections, options.maxRequests, options.requestTimeoutMs, options.shutdownTimeoutMs, options.handshakeTimeoutMs, options.requestsPerSecond);\n  const form = request('POST', 'http://localhost/', 'body=one+two');\n  form.setHeader('content-type', 'application/x-www-form-urlencoded');\n  const fields: FormField[] = await form.form();\n  console.log(fields[0].name, fields[0].value);\n  const upload = request('POST', 'http://localhost/', '--x\\r\\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nabc\\r\\n--x--\\r\\n');\n  upload.setHeader('content-type', 'multipart/form-data; boundary=x');\n  const parts: MultipartPart[] = await upload.multipart();\n  console.log(parts[0].name, parts[0].fileName === '../untrusted', parts[0].contentType === 'application/octet-stream', length(parts[0].data));\n}\n",
+        "output": "65536 64 32 5000 5000 3000 100\nbody one two\nattachment true true 3\n"
+      }
+    ]
   },
   {
     "name": "MultipartPart",
     "signature": "type MultipartPart = { name: string; fileName?: string; contentType?: string; data: Bytes; }",
     "parameters": [],
     "documentation": "One owned multipart part. data retains exact bytes. Optional fileName and contentType are untrusted metadata; never use fileName directly as a path.",
-    "inferredSignature": "function type MultipartPart = { name: string; fileName?: string; contentType?: string; data: Bytes; }"
+    "inferredSignature": "function type MultipartPart = { name: string; fileName?: string; contentType?: string; data: Bytes; }",
+    "examples": [
+      {
+        "source": "import {App, request, ServerOptions, FormField, MultipartPart} from 'std:http';\nimport {length} from 'std:bytes';\nasync function main(): Task<void> {\n  const options: ServerOptions = {bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100};\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit, options.maxConnections, options.maxRequests, options.requestTimeoutMs, options.shutdownTimeoutMs, options.handshakeTimeoutMs, options.requestsPerSecond);\n  const form = request('POST', 'http://localhost/', 'body=one+two');\n  form.setHeader('content-type', 'application/x-www-form-urlencoded');\n  const fields: FormField[] = await form.form();\n  console.log(fields[0].name, fields[0].value);\n  const upload = request('POST', 'http://localhost/', '--x\\r\\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nabc\\r\\n--x--\\r\\n');\n  upload.setHeader('content-type', 'multipart/form-data; boundary=x');\n  const parts: MultipartPart[] = await upload.multipart();\n  console.log(parts[0].name, parts[0].fileName === '../untrusted', parts[0].contentType === 'application/octet-stream', length(parts[0].data));\n}\n",
+        "output": "65536 64 32 5000 5000 3000 100\nbody one two\nattachment true true 3\n"
+      }
+    ]
   },
   {
     "name": "getCookie",
@@ -11482,7 +11500,13 @@
       "signature": "multipart(): Task<MultipartPart[]>",
       "parameters": [],
       "documentation": "Collects the request body when awaited. No arguments. Requires multipart/form-data with a valid boundary. Uses the maintained multipart parser, retaining binary bytes, field order and duplicate names. Each part requires a name; fileName and contentType may be undefined. At most 128 parts and the configured total request byte limit, including multipart framing. File names are untrusted metadata, never filesystem paths. Nested multipart and streaming upload-to-disk are unsupported by this collecting helper. Returns an owned MultipartPart[]; malformed content, encoding and size failures throw HttpError.\n\n```tsrust\nconst fields = await input.multipart();\n```\n\nOwnership: consumes the request; returned fields own their data. The body cannot be read again.",
-      "inferredSignature": "function multipart(): Task<MultipartPart[]>"
+      "inferredSignature": "function multipart(): Task<MultipartPart[]>",
+      "examples": [
+        {
+          "source": "import {App, request, ServerOptions, FormField, MultipartPart} from 'std:http';\nimport {length} from 'std:bytes';\nasync function main(): Task<void> {\n  const options: ServerOptions = {bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100};\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit, options.maxConnections, options.maxRequests, options.requestTimeoutMs, options.shutdownTimeoutMs, options.handshakeTimeoutMs, options.requestsPerSecond);\n  const form = request('POST', 'http://localhost/', 'body=one+two');\n  form.setHeader('content-type', 'application/x-www-form-urlencoded');\n  const fields: FormField[] = await form.form();\n  console.log(fields[0].name, fields[0].value);\n  const upload = request('POST', 'http://localhost/', '--x\\r\\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nabc\\r\\n--x--\\r\\n');\n  upload.setHeader('content-type', 'multipart/form-data; boundary=x');\n  const parts: MultipartPart[] = await upload.multipart();\n  console.log(parts[0].name, parts[0].fileName === '../untrusted', parts[0].contentType === 'application/octet-stream', length(parts[0].data));\n}\n",
+          "output": "65536 64 32 5000 5000 3000 100\nbody one two\nattachment true true 3\n"
+        }
+      ]
     },
     {
       "name": "query",
@@ -13508,71 +13532,149 @@
     {
       "name": "name",
       "signature": "name: string",
-      "documentation": "Decoded UTF-8 field name. Empty names are valid; duplicate names remain separate fields.\n\n```tsrust\nfields[0].name; // 'body' for body=hello\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed."
+      "documentation": "Decoded UTF-8 field name. Empty names are valid; duplicate names remain separate fields.\n\n```tsrust\nfields[0].name; // 'body' for body=hello\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
+      "examples": [
+        {
+          "source": "import {App, request, ServerOptions, FormField, MultipartPart} from 'std:http';\nimport {length} from 'std:bytes';\nasync function main(): Task<void> {\n  const options: ServerOptions = {bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100};\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit, options.maxConnections, options.maxRequests, options.requestTimeoutMs, options.shutdownTimeoutMs, options.handshakeTimeoutMs, options.requestsPerSecond);\n  const form = request('POST', 'http://localhost/', 'body=one+two');\n  form.setHeader('content-type', 'application/x-www-form-urlencoded');\n  const fields: FormField[] = await form.form();\n  console.log(fields[0].name, fields[0].value);\n  const upload = request('POST', 'http://localhost/', '--x\\r\\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nabc\\r\\n--x--\\r\\n');\n  upload.setHeader('content-type', 'multipart/form-data; boundary=x');\n  const parts: MultipartPart[] = await upload.multipart();\n  console.log(parts[0].name, parts[0].fileName === '../untrusted', parts[0].contentType === 'application/octet-stream', length(parts[0].data));\n}\n",
+          "output": "65536 64 32 5000 5000 3000 100\nbody one two\nattachment true true 3\n"
+        }
+      ]
     },
     {
       "name": "value",
       "signature": "value: string",
-      "documentation": "Decoded UTF-8 field value. Missing = and empty right-hand sides both produce an empty value; plus signs decode to spaces.\n\n```tsrust\nfields[0].value; // 'one two' for body=one+two\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed."
+      "documentation": "Decoded UTF-8 field value. Missing = and empty right-hand sides both produce an empty value; plus signs decode to spaces.\n\n```tsrust\nfields[0].value; // 'one two' for body=one+two\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
+      "examples": [
+        {
+          "source": "import {App, request, ServerOptions, FormField, MultipartPart} from 'std:http';\nimport {length} from 'std:bytes';\nasync function main(): Task<void> {\n  const options: ServerOptions = {bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100};\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit, options.maxConnections, options.maxRequests, options.requestTimeoutMs, options.shutdownTimeoutMs, options.handshakeTimeoutMs, options.requestsPerSecond);\n  const form = request('POST', 'http://localhost/', 'body=one+two');\n  form.setHeader('content-type', 'application/x-www-form-urlencoded');\n  const fields: FormField[] = await form.form();\n  console.log(fields[0].name, fields[0].value);\n  const upload = request('POST', 'http://localhost/', '--x\\r\\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nabc\\r\\n--x--\\r\\n');\n  upload.setHeader('content-type', 'multipart/form-data; boundary=x');\n  const parts: MultipartPart[] = await upload.multipart();\n  console.log(parts[0].name, parts[0].fileName === '../untrusted', parts[0].contentType === 'application/octet-stream', length(parts[0].data));\n}\n",
+          "output": "65536 64 32 5000 5000 3000 100\nbody one two\nattachment true true 3\n"
+        }
+      ]
     }
   ],
   "HttpMultipartPart": [
     {
       "name": "name",
       "signature": "name: string",
-      "documentation": "Required multipart field name. Missing names reject the request.\n\n```tsrust\nparts[0].name; // 'attachment'\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed."
+      "documentation": "Required multipart field name. Missing names reject the request.\n\n```tsrust\nparts[0].name; // 'attachment'\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
+      "examples": [
+        {
+          "source": "import {App, request, ServerOptions, FormField, MultipartPart} from 'std:http';\nimport {length} from 'std:bytes';\nasync function main(): Task<void> {\n  const options: ServerOptions = {bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100};\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit, options.maxConnections, options.maxRequests, options.requestTimeoutMs, options.shutdownTimeoutMs, options.handshakeTimeoutMs, options.requestsPerSecond);\n  const form = request('POST', 'http://localhost/', 'body=one+two');\n  form.setHeader('content-type', 'application/x-www-form-urlencoded');\n  const fields: FormField[] = await form.form();\n  console.log(fields[0].name, fields[0].value);\n  const upload = request('POST', 'http://localhost/', '--x\\r\\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nabc\\r\\n--x--\\r\\n');\n  upload.setHeader('content-type', 'multipart/form-data; boundary=x');\n  const parts: MultipartPart[] = await upload.multipart();\n  console.log(parts[0].name, parts[0].fileName === '../untrusted', parts[0].contentType === 'application/octet-stream', length(parts[0].data));\n}\n",
+          "output": "65536 64 32 5000 5000 3000 100\nbody one two\nattachment true true 3\n"
+        }
+      ]
     },
     {
       "name": "fileName",
       "signature": "fileName: string | undefined",
-      "documentation": "Optional client-supplied file name, preserved as metadata. It may contain path separators and must never become a filesystem path directly.\n\n```tsrust\nparts[0].fileName; // undefined for a part without filename\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed."
+      "documentation": "Optional client-supplied file name, preserved as metadata. It may contain path separators and must never become a filesystem path directly.\n\n```tsrust\nparts[0].fileName; // undefined for a part without filename\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
+      "examples": [
+        {
+          "source": "import {App, request, ServerOptions, FormField, MultipartPart} from 'std:http';\nimport {length} from 'std:bytes';\nasync function main(): Task<void> {\n  const options: ServerOptions = {bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100};\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit, options.maxConnections, options.maxRequests, options.requestTimeoutMs, options.shutdownTimeoutMs, options.handshakeTimeoutMs, options.requestsPerSecond);\n  const form = request('POST', 'http://localhost/', 'body=one+two');\n  form.setHeader('content-type', 'application/x-www-form-urlencoded');\n  const fields: FormField[] = await form.form();\n  console.log(fields[0].name, fields[0].value);\n  const upload = request('POST', 'http://localhost/', '--x\\r\\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nabc\\r\\n--x--\\r\\n');\n  upload.setHeader('content-type', 'multipart/form-data; boundary=x');\n  const parts: MultipartPart[] = await upload.multipart();\n  console.log(parts[0].name, parts[0].fileName === '../untrusted', parts[0].contentType === 'application/octet-stream', length(parts[0].data));\n}\n",
+          "output": "65536 64 32 5000 5000 3000 100\nbody one two\nattachment true true 3\n"
+        }
+      ]
     },
     {
       "name": "contentType",
       "signature": "contentType: string | undefined",
-      "documentation": "Optional multipart part media type. It is untrusted metadata and does not prove the byte contents.\n\n```tsrust\nparts[0].contentType; // 'application/octet-stream'\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed."
+      "documentation": "Optional multipart part media type. It is untrusted metadata and does not prove the byte contents.\n\n```tsrust\nparts[0].contentType; // 'application/octet-stream'\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
+      "examples": [
+        {
+          "source": "import {App, request, ServerOptions, FormField, MultipartPart} from 'std:http';\nimport {length} from 'std:bytes';\nasync function main(): Task<void> {\n  const options: ServerOptions = {bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100};\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit, options.maxConnections, options.maxRequests, options.requestTimeoutMs, options.shutdownTimeoutMs, options.handshakeTimeoutMs, options.requestsPerSecond);\n  const form = request('POST', 'http://localhost/', 'body=one+two');\n  form.setHeader('content-type', 'application/x-www-form-urlencoded');\n  const fields: FormField[] = await form.form();\n  console.log(fields[0].name, fields[0].value);\n  const upload = request('POST', 'http://localhost/', '--x\\r\\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nabc\\r\\n--x--\\r\\n');\n  upload.setHeader('content-type', 'multipart/form-data; boundary=x');\n  const parts: MultipartPart[] = await upload.multipart();\n  console.log(parts[0].name, parts[0].fileName === '../untrusted', parts[0].contentType === 'application/octet-stream', length(parts[0].data));\n}\n",
+          "output": "65536 64 32 5000 5000 3000 100\nbody one two\nattachment true true 3\n"
+        }
+      ]
     },
     {
       "name": "data",
       "signature": "data: Bytes",
-      "documentation": "Exact owned part bytes, including zero bytes and invalid UTF-8. Use checked toUtf8 only when text is required.\n\n```tsrust\nlength(parts[0].data); // 3 for the bytes abc\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed."
+      "documentation": "Exact owned part bytes, including zero bytes and invalid UTF-8. Use checked toUtf8 only when text is required.\n\n```tsrust\nlength(parts[0].data); // 3 for the bytes abc\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
+      "examples": [
+        {
+          "source": "import {App, request, ServerOptions, FormField, MultipartPart} from 'std:http';\nimport {length} from 'std:bytes';\nasync function main(): Task<void> {\n  const options: ServerOptions = {bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100};\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit, options.maxConnections, options.maxRequests, options.requestTimeoutMs, options.shutdownTimeoutMs, options.handshakeTimeoutMs, options.requestsPerSecond);\n  const form = request('POST', 'http://localhost/', 'body=one+two');\n  form.setHeader('content-type', 'application/x-www-form-urlencoded');\n  const fields: FormField[] = await form.form();\n  console.log(fields[0].name, fields[0].value);\n  const upload = request('POST', 'http://localhost/', '--x\\r\\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nabc\\r\\n--x--\\r\\n');\n  upload.setHeader('content-type', 'multipart/form-data; boundary=x');\n  const parts: MultipartPart[] = await upload.multipart();\n  console.log(parts[0].name, parts[0].fileName === '../untrusted', parts[0].contentType === 'application/octet-stream', length(parts[0].data));\n}\n",
+          "output": "65536 64 32 5000 5000 3000 100\nbody one two\nattachment true true 3\n"
+        }
+      ]
     }
   ],
   "HttpServerOptions": [
     {
       "name": "bodyLimit",
       "signature": "bodyLimit: int",
-      "documentation": "Cumulative request body bytes: 1..67108864; default 1048576. Multipart framing counts toward the limit.\n\n```tsrust\noptions.bodyLimit; // 65536 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed."
+      "documentation": "Cumulative request body bytes: 1..67108864; default 1048576. Multipart framing counts toward the limit.\n\n```tsrust\noptions.bodyLimit; // 65536 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
+      "examples": [
+        {
+          "source": "import {App, request, ServerOptions, FormField, MultipartPart} from 'std:http';\nimport {length} from 'std:bytes';\nasync function main(): Task<void> {\n  const options: ServerOptions = {bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100};\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit, options.maxConnections, options.maxRequests, options.requestTimeoutMs, options.shutdownTimeoutMs, options.handshakeTimeoutMs, options.requestsPerSecond);\n  const form = request('POST', 'http://localhost/', 'body=one+two');\n  form.setHeader('content-type', 'application/x-www-form-urlencoded');\n  const fields: FormField[] = await form.form();\n  console.log(fields[0].name, fields[0].value);\n  const upload = request('POST', 'http://localhost/', '--x\\r\\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nabc\\r\\n--x--\\r\\n');\n  upload.setHeader('content-type', 'multipart/form-data; boundary=x');\n  const parts: MultipartPart[] = await upload.multipart();\n  console.log(parts[0].name, parts[0].fileName === '../untrusted', parts[0].contentType === 'application/octet-stream', length(parts[0].data));\n}\n",
+          "output": "65536 64 32 5000 5000 3000 100\nbody one two\nattachment true true 3\n"
+        }
+      ]
     },
     {
       "name": "maxConnections",
       "signature": "maxConnections: int",
-      "documentation": "Maximum accepted connections: 1..65536; default 128. Additional connections remain in the OS backlog.\n\n```tsrust\noptions.maxConnections; // 64 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed."
+      "documentation": "Maximum accepted connections: 1..65536; default 128. Additional connections remain in the OS backlog.\n\n```tsrust\noptions.maxConnections; // 64 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
+      "examples": [
+        {
+          "source": "import {App, request, ServerOptions, FormField, MultipartPart} from 'std:http';\nimport {length} from 'std:bytes';\nasync function main(): Task<void> {\n  const options: ServerOptions = {bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100};\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit, options.maxConnections, options.maxRequests, options.requestTimeoutMs, options.shutdownTimeoutMs, options.handshakeTimeoutMs, options.requestsPerSecond);\n  const form = request('POST', 'http://localhost/', 'body=one+two');\n  form.setHeader('content-type', 'application/x-www-form-urlencoded');\n  const fields: FormField[] = await form.form();\n  console.log(fields[0].name, fields[0].value);\n  const upload = request('POST', 'http://localhost/', '--x\\r\\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nabc\\r\\n--x--\\r\\n');\n  upload.setHeader('content-type', 'multipart/form-data; boundary=x');\n  const parts: MultipartPart[] = await upload.multipart();\n  console.log(parts[0].name, parts[0].fileName === '../untrusted', parts[0].contentType === 'application/octet-stream', length(parts[0].data));\n}\n",
+          "output": "65536 64 32 5000 5000 3000 100\nbody one two\nattachment true true 3\n"
+        }
+      ]
     },
     {
       "name": "maxRequests",
       "signature": "maxRequests: int",
-      "documentation": "Maximum concurrent handlers: 1..65536; default 128. Excess handler arrivals return 503.\n\n```tsrust\noptions.maxRequests; // 32 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed."
+      "documentation": "Maximum concurrent handlers: 1..65536; default 128. Excess handler arrivals return 503.\n\n```tsrust\noptions.maxRequests; // 32 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
+      "examples": [
+        {
+          "source": "import {App, request, ServerOptions, FormField, MultipartPart} from 'std:http';\nimport {length} from 'std:bytes';\nasync function main(): Task<void> {\n  const options: ServerOptions = {bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100};\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit, options.maxConnections, options.maxRequests, options.requestTimeoutMs, options.shutdownTimeoutMs, options.handshakeTimeoutMs, options.requestsPerSecond);\n  const form = request('POST', 'http://localhost/', 'body=one+two');\n  form.setHeader('content-type', 'application/x-www-form-urlencoded');\n  const fields: FormField[] = await form.form();\n  console.log(fields[0].name, fields[0].value);\n  const upload = request('POST', 'http://localhost/', '--x\\r\\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nabc\\r\\n--x--\\r\\n');\n  upload.setHeader('content-type', 'multipart/form-data; boundary=x');\n  const parts: MultipartPart[] = await upload.multipart();\n  console.log(parts[0].name, parts[0].fileName === '../untrusted', parts[0].contentType === 'application/octet-stream', length(parts[0].data));\n}\n",
+          "output": "65536 64 32 5000 5000 3000 100\nbody one two\nattachment true true 3\n"
+        }
+      ]
     },
     {
       "name": "requestTimeoutMs",
       "signature": "requestTimeoutMs: int",
-      "documentation": "Handler deadline in milliseconds: 1..3600000; default 30000. Expiry requests cancellation and returns 504. Does not bound response streaming after headers.\n\n```tsrust\noptions.requestTimeoutMs; // 5000 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed."
+      "documentation": "Handler deadline in milliseconds: 1..3600000; default 30000. Expiry requests cancellation and returns 504. Does not bound response streaming after headers.\n\n```tsrust\noptions.requestTimeoutMs; // 5000 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
+      "examples": [
+        {
+          "source": "import {App, request, ServerOptions, FormField, MultipartPart} from 'std:http';\nimport {length} from 'std:bytes';\nasync function main(): Task<void> {\n  const options: ServerOptions = {bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100};\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit, options.maxConnections, options.maxRequests, options.requestTimeoutMs, options.shutdownTimeoutMs, options.handshakeTimeoutMs, options.requestsPerSecond);\n  const form = request('POST', 'http://localhost/', 'body=one+two');\n  form.setHeader('content-type', 'application/x-www-form-urlencoded');\n  const fields: FormField[] = await form.form();\n  console.log(fields[0].name, fields[0].value);\n  const upload = request('POST', 'http://localhost/', '--x\\r\\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nabc\\r\\n--x--\\r\\n');\n  upload.setHeader('content-type', 'multipart/form-data; boundary=x');\n  const parts: MultipartPart[] = await upload.multipart();\n  console.log(parts[0].name, parts[0].fileName === '../untrusted', parts[0].contentType === 'application/octet-stream', length(parts[0].data));\n}\n",
+          "output": "65536 64 32 5000 5000 3000 100\nbody one two\nattachment true true 3\n"
+        }
+      ]
     },
     {
       "name": "shutdownTimeoutMs",
       "signature": "shutdownTimeoutMs: int",
-      "documentation": "Connection drain grace in milliseconds: 1..3600000; default 5000. Expiry cancels remaining connections; native non-yielding work remains cooperative.\n\n```tsrust\noptions.shutdownTimeoutMs; // 5000 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed."
+      "documentation": "Connection drain grace in milliseconds: 1..3600000; default 5000. Expiry cancels remaining connections; native non-yielding work remains cooperative.\n\n```tsrust\noptions.shutdownTimeoutMs; // 5000 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
+      "examples": [
+        {
+          "source": "import {App, request, ServerOptions, FormField, MultipartPart} from 'std:http';\nimport {length} from 'std:bytes';\nasync function main(): Task<void> {\n  const options: ServerOptions = {bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100};\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit, options.maxConnections, options.maxRequests, options.requestTimeoutMs, options.shutdownTimeoutMs, options.handshakeTimeoutMs, options.requestsPerSecond);\n  const form = request('POST', 'http://localhost/', 'body=one+two');\n  form.setHeader('content-type', 'application/x-www-form-urlencoded');\n  const fields: FormField[] = await form.form();\n  console.log(fields[0].name, fields[0].value);\n  const upload = request('POST', 'http://localhost/', '--x\\r\\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nabc\\r\\n--x--\\r\\n');\n  upload.setHeader('content-type', 'multipart/form-data; boundary=x');\n  const parts: MultipartPart[] = await upload.multipart();\n  console.log(parts[0].name, parts[0].fileName === '../untrusted', parts[0].contentType === 'application/octet-stream', length(parts[0].data));\n}\n",
+          "output": "65536 64 32 5000 5000 3000 100\nbody one two\nattachment true true 3\n"
+        }
+      ]
     },
     {
       "name": "handshakeTimeoutMs",
       "signature": "handshakeTimeoutMs: int",
-      "documentation": "TLS handshake deadline in milliseconds: 1..3600000; default 5000. Expiry drops the connection.\n\n```tsrust\noptions.handshakeTimeoutMs; // 3000 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed."
+      "documentation": "TLS handshake deadline in milliseconds: 1..3600000; default 5000. Expiry drops the connection.\n\n```tsrust\noptions.handshakeTimeoutMs; // 3000 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
+      "examples": [
+        {
+          "source": "import {App, request, ServerOptions, FormField, MultipartPart} from 'std:http';\nimport {length} from 'std:bytes';\nasync function main(): Task<void> {\n  const options: ServerOptions = {bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100};\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit, options.maxConnections, options.maxRequests, options.requestTimeoutMs, options.shutdownTimeoutMs, options.handshakeTimeoutMs, options.requestsPerSecond);\n  const form = request('POST', 'http://localhost/', 'body=one+two');\n  form.setHeader('content-type', 'application/x-www-form-urlencoded');\n  const fields: FormField[] = await form.form();\n  console.log(fields[0].name, fields[0].value);\n  const upload = request('POST', 'http://localhost/', '--x\\r\\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nabc\\r\\n--x--\\r\\n');\n  upload.setHeader('content-type', 'multipart/form-data; boundary=x');\n  const parts: MultipartPart[] = await upload.multipart();\n  console.log(parts[0].name, parts[0].fileName === '../untrusted', parts[0].contentType === 'application/octet-stream', length(parts[0].data));\n}\n",
+          "output": "65536 64 32 5000 5000 3000 100\nbody one two\nattachment true true 3\n"
+        }
+      ]
     },
     {
       "name": "requestsPerSecond",
       "signature": "requestsPerSecond: int",
-      "documentation": "Global arrival limit per fixed one-second window: 0 disables; otherwise 1..1000000. Default 0. Excess returns 429, and window boundaries can admit twice this count.\n\n```tsrust\noptions.requestsPerSecond; // 100 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed."
+      "documentation": "Global arrival limit per fixed one-second window: 0 disables; otherwise 1..1000000. Default 0. Excess returns 429, and window boundaries can admit twice this count.\n\n```tsrust\noptions.requestsPerSecond; // 100 in the service example\n```\n\nOwnership: borrows the containing record; clone owned fields when an independent value is needed.",
+      "examples": [
+        {
+          "source": "import {App, request, ServerOptions, FormField, MultipartPart} from 'std:http';\nimport {length} from 'std:bytes';\nasync function main(): Task<void> {\n  const options: ServerOptions = {bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100};\n  const app = new App();\n  app.configure(options);\n  console.log(options.bodyLimit, options.maxConnections, options.maxRequests, options.requestTimeoutMs, options.shutdownTimeoutMs, options.handshakeTimeoutMs, options.requestsPerSecond);\n  const form = request('POST', 'http://localhost/', 'body=one+two');\n  form.setHeader('content-type', 'application/x-www-form-urlencoded');\n  const fields: FormField[] = await form.form();\n  console.log(fields[0].name, fields[0].value);\n  const upload = request('POST', 'http://localhost/', '--x\\r\\nContent-Disposition: form-data; name=\"attachment\"; filename=\"../untrusted\"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\nabc\\r\\n--x--\\r\\n');\n  upload.setHeader('content-type', 'multipart/form-data; boundary=x');\n  const parts: MultipartPart[] = await upload.multipart();\n  console.log(parts[0].name, parts[0].fileName === '../untrusted', parts[0].contentType === 'application/octet-stream', length(parts[0].data));\n}\n",
+          "output": "65536 64 32 5000 5000 3000 100\nbody one two\nattachment true true 3\n"
+        }
+      ]
     }
   ]
 ,
