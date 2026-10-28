@@ -2143,3 +2143,19 @@ features, exact regex execution and tests; inspect native lock changes, finish
 page rendering, whole-project formatter and source checkpoint. No new hosted run.
 
 Follow-up package inspection and feature listing pass offline; native regex example prints Found 314 at byte 6 and both tests pass. Lock comparison preserves every original package version, declared regex pin/features and adapter path; adds the current backend optional dependency closure (248 packages). Legacy adjacent lock untouched. Rendering and remaining page command variants still pending.
+
+## Package documentation acceptance continuation
+
+Completed full 390px/1440px rendering review of tools/rust-packages. Converted
+selection options to a list, marked inline options, split existing-format guidance
+and clarified that updates publish a new exact lock while preserving format.
+Keyboard skip and horizontal code scrolling work; no document overflow.
+Isolated temporary project script /tmp/tsrust-package-doc-check.py completed
+successfully: add exact regex, inspection, enable/disable unicode, replace features
+with std/perf plus no-default-features, restore defaults, compatible update preview
+with unchanged-file assertion, offline resolve, and unused removal. Temporary
+project removed automatically. Log /tmp/tsrust-package-doc-check.log is disposable.
+This is not portable-export execution; that exact page example remains pending.
+The 27-page build and links pass. Existing CI 40761578381 confirmed live in compiler
+and CLI acceptance; no redundant run. Next: finish portable example acceptance,
+then remaining finite language-guide inventory and outstanding platform smoke.

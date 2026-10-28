@@ -106,7 +106,7 @@ feature-coverage evidence to reduce the inventory.
 | `language/switch.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/type-aliases.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/type-assertions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `rust-packages.md` | Moved to tools/rust-packages; current shared-cache behavior corrected in the regex example, history retained in package-cli-acceptance. | Source reviewed; rendering and command examples pending |
+| `rust-packages.md` | Moved to tools/rust-packages; current shared-cache behavior corrected in the regex example, history retained in package-cli-acceptance. | Source and responsive presentation reviewed; package command sequence passes locally; exact portable-export example pending |
 | `schema-diagnostics.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `sqlite.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `tooling/deployment.md` | Current guidance moved to backend/deployment; original vision and core-33 anchor retained in place. | Source and 390px/1440px presentation reviewed; release-command execution remains pending |

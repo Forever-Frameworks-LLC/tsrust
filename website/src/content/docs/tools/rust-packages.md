@@ -19,7 +19,7 @@ tsrust packages --project ./app
 tsrust features regex --project ./app
 ```
 
-The first add creates native.bindings.json and native.rs when needed. Regex supplies
+The first add creates `native.bindings.json` and `native.rs` when needed. Regex supplies
 a readable starter adapter exporting Search, SearchResult variants and search. Other
 crates become available to custom public Rust declarations; adding a dependency does
 not bind its entire API. Existing Rust adapters are never overwritten. The CLI prints
@@ -34,10 +34,13 @@ import { Search, search } from './native.bindings.json';
 ## Select the project and adapter
 
 If a project already has one `*.bindings.json` file, commands select it automatically.
-Use --bindings relative/path.bindings.json when several exist. --source ./adapter.rs
-selects an adapter when creating a configuration. --project selects the root whose
-callers and tests are validated; otherwise the nearest configured project or current
-directory is used.
+When several exist, select one explicitly:
+
+- `--bindings relative/path.bindings.json` selects its configuration.
+- `--source ./adapter.rs` selects an adapter when creating a configuration.
+- `--project ./app` selects the root whose callers and tests are validated.
+
+Without `--project`, the nearest configured project or current directory is used.
 
 ## Change features
 
@@ -48,11 +51,11 @@ tsrust features regex --features std,perf --no-default-features --project ./app
 tsrust features regex --default-features --project ./app
 ```
 
---features replaces the explicit feature set; --enable and --disable modify that
+`--features` replaces the explicit feature set; `--enable` and `--disable` modify that
 set. Defaults are controlled separately. Cargo unifies features across dependencies;
 disabling an explicit feature does not necessarily disable its effective feature.
 Inspection shows effective features and dependency requests. Conflicting options are
-rejected. An empty --features argument clears the explicit set.
+rejected. An empty `--features` argument clears the explicit set.
 
 ## Preview and update versions
 
@@ -66,14 +69,14 @@ apply the validated change. To select a particular published version, use
 exact version you intend to use.
 
 Add without a version lets Cargo select its stable release. Repeated add preserves
-an existing version unless another exact version is supplied. Update without --to
+an existing version unless another exact version is supplied. Update without `--to`
 stays within Cargo's compatible range (including the narrower 0.x rules). Breaking
 versions and prereleases require an explicit exact target. Published versions are
 always exact pins, with a complete locked dependency closure. Compiler-owned rayon,
 serde and serde_json pins cannot be overridden through project package commands.
 
-Every modifying command supports --dry-run and --offline. Previews still compile
-and run tests, then discard the candidate. --offline prevents registry access and
+Every modifying command supports `--dry-run` and `--offline`. Previews still compile
+and run tests, then discard the candidate. `--offline` prevents registry access and
 requires suitable locally cached sources; it does not mean "skip validation".
 
 ## Restore locked sources
@@ -89,11 +92,14 @@ sources into Cargo's shared cache. Add `--offline` to require already-cached sou
 Ordinary check/emit/build/dev commands never download or create vendor copies.
 Native builds reuse compiled support for the same locked graph and account for
 Cargo configuration/environment changes. Missing sources require explicit resolution.
-New binding files use schemaVersion 2, whose runtime graph contains backend
+### Existing binding formats
+
+New binding files use `schemaVersion: 2`, whose runtime graph contains backend
 dependencies. Version 1 remains the explicit legacy full-runtime format; its locks
 are preserved without inferring a format from their incidental package contents.
 Unknown versions fail before resolution. New package commands create version 2;
-commands on an existing version 1 file preserve its format and exact graph.
+commands on an existing version 1 file preserve its format. A successful dependency
+change publishes a newly validated exact lock.
 
 ## Export a portable source package
 
@@ -110,7 +116,7 @@ Portable preparation uses Cargo vendor, verifies locked package/file checksums a
 retains licenses. Export then needs neither Cargo nor network access, and fails
 with preparation guidance if the exact pack is absent or changed. Changing the
 binding graph requires a matching source pack. Keep the same Cargo home or set
-TSRUST_SOURCE_PACK_DIR explicitly when exporting without the toolchain. The exported
+`TSRUST_SOURCE_PACK_DIR` explicitly when exporting without the toolchain. The exported
 package includes its own vendor directory and can rebuild offline after relocation.
 
 ## Remove an unused dependency
@@ -142,7 +148,9 @@ A failed resolution, adapter build, caller check or test leaves published depend
 configuration and custom adapters unchanged. Changed source inputs abort publication.
 Concurrent package commands selecting the same configuration serialize. Configuration
 and its Cargo lock are published together in one atomic file generation; legacy
-adjacent lockfiles remain readable and are not deleted during migration. Temporary validation files are removed after failure or preview. Cargo's shared
+adjacent lockfiles remain readable and are not deleted during migration.
+
+Temporary validation files are removed after failure or preview. Cargo's shared
 source and compiled caches may retain work from those explicit commands; published
 configuration and adapters do not change. Historical vendor directories are preserved
 but ordinary builds no longer consume them.
@@ -156,5 +164,5 @@ host, not every platform. Registry crates are supported; git/path dependencies a
 arbitrary automatic crate-to-language mappings are outside this workflow.
 
 One program uses one managed dependency configuration. Independent configurations
-can coexist under a project root and are selected with --bindings. Callers mixing
+can coexist under a project root and are selected with `--bindings`. Callers mixing
 different dependency configurations are rejected before publication.
