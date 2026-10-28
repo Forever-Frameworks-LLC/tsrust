@@ -9,7 +9,7 @@ Rules: top level only; no type parameters (`unsupported`); no self-reference
 (`recursive-alias`); one declaration per name and no built-in names (`duplicate`).
 A type error in a use of an alias is reported at the use. `export type Name = Type;`
 works across modules, including aliases that name unexported types of their own file.
-See docs/guides/language/type-aliases.md.
+See the [current type alias guide](../../website/src/content/docs/language/type-aliases.md).
 
 ## Implementation
 

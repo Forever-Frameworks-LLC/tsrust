@@ -104,7 +104,7 @@ feature-coverage evidence to reduce the inventory.
 | `language/string-iteration.md` | Merged into language/strings; old duplicate removed and Markdown links updated. | Source, examples and 390px/1440px rendered review complete |
 | `language/string-semantics.md` | Retained original representation/measurement history with explicit superseded-contract label; current usage moved to language/strings. | Core source, examples and 390px/1440px rendered review complete |
 | `language/switch.md` | Canonical website language/switch; removed guide stub; preserved retained catalog metadata/route as a link | Content, exact examples, compiler/LSP regressions and responsive presentation accepted |
-| `language/type-aliases.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/type-aliases.md` | Canonical website language/type-aliases; removed guide stub; preserved retained catalog metadata | Content, exact examples, compiler/LSP tests and responsive presentation accepted |
 | `language/type-assertions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `rust-packages.md` | Moved to tools/rust-packages; current shared-cache behavior corrected in the regex example, history retained in package-cli-acceptance. | Source and responsive presentation reviewed; package commands and relocated offline portable example pass locally |
 | `schema-diagnostics.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
@@ -152,7 +152,7 @@ API catalog: keep the validated builtins source canonical. Before removing a pag
 inspect `docs/tsrust.config.json`, the content generator and documentation_content
 acceptance. `language/switch.md` now preserves its catalog route and points to the
 canonical site source. `language/type-aliases.md` and `language/text-imports.md`
-still contain substantive explanations needing reviewed canonical destinations.
+now also preserve metadata while linking to accepted canonical site guides.
 Preserve UI-only pages, executable example references and metadata coverage.
 Do not equate the current site pages with completion of the repository migration.
 

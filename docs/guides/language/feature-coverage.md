@@ -2144,7 +2144,7 @@ Full compiler regression and accumulated performance comparisons run at complete
 
 | Operation | Implementation | Comparison | Scope / evidence |
 | --- | --- | --- | --- |
-| `type.alias` | native variant | paired | type Name = Type; for any written non-generic type, in any declaration order and across modules; expanded where a written type is parsed. No type parameters or self-reference. One matched scenario verified untimed.; [evidence](../../milestones/163-type-aliases.md) · [evidence](type-aliases.md) · [type_aliases](../../../benchmarks/runtime/workloads/type_aliases.tsr) |
+| `type.alias` | native variant | paired | type Name = Type; for written types, including generic applications, in any declaration order and across modules; expanded where a written type is parsed. Generic parameters and defaults are supported; self-reference is rejected. One matched scenario verified untimed.; [evidence](../../milestones/163-type-aliases.md) · [guide](../../../website/src/content/docs/language/type-aliases.md) · [type_aliases](../../../benchmarks/runtime/workloads/type_aliases.tsr) |
 | `type.ambient` | pending | missing |  |
 | `type.any` | policy | missing | Original vision rejects unrestricted escape hatches; track explicit policy instead of silently omitting. |
 | `type.array` | native variant | compile-only | Implemented strict subset; no standalone compile-time comparison for this item. |
