@@ -130,3 +130,39 @@ removed after exact hash checks. No owner process was stopped. Source/test clean
 removed 1,048,397,368 bytes of superseded executables/symbols and diagnostic emitted
 sources, preserving current accepted variants, warm project caches, source pack,
 review applications and concise logs. No archive directories were created.
+
+
+## Native Rust SDK replica acceptance — 2026-10-28
+
+`tools/verify-sdk-native-replicas.mjs` is a self-contained cross-language witness.
+It creates two temporary backend-only applications with the actual CLI, compiles
+both native services, and generates TypeScript SDKs from saved descriptions and
+Rust SDKs from authenticated live descriptions. Version 0.2 retains 0.1 history
+and adds an operation. It requires neither a retained old executable nor an owner
+application. This supplements the earlier pre-versioning JavaScript replica checks;
+it does not claim that the new fixture executes a historical compiler binary.
+
+The witness passed on macOS arm64 in 167 seconds. Both old/new clients call both
+replicas successfully. Protected metadata rejects missing credentials; operation
+calls reject wrong/missing credentials. New operations fail with api-operation on
+the older replica, and wrong API-major requests fail with api-incompatible. Rust
+credentials are supplied asynchronously on a single-thread runtime. TypeScript
+invalid input is rejected locally. Native operation counters prove rejected calls
+have no mutation effects and successful mutations execute once. The fixture cleans
+up both owned processes, SDKs, Cargo projects and native executables.
+
+This acceptance exposed and repaired a Unix fresh-project failure: imports from
+the virtual target/tsrust-api/server.tsr traversed nonexistent directories. Virtual
+imports now use the actual configuration directory; normal file imports and virtual
+diagnostic identities are unchanged. Compiler api_project 4/4 and LSP api_project
+1/1 passed, including no generated disk output, operation/config refresh, private
+API cycle rejection, unreadable configuration policy and mixed-snapshot refusal.
+Both development CLI/LSP consumers were rebuilt before the successful SDK run.
+Final backend all-target diagnostics passed with zero warnings/errors in 52s;
+whole-project formatting and idempotence passed with no source changes.
+
+Staging CI now includes compiler/LSP API-project regressions, Rust SDK model tests
+and this native replica witness. No hosted execution was launched for this section.
+The latest local log is /tmp/tsrust-sdk-native-replicas.log. Backend-family full
+regressions and matched timing remain separate milestone work; Windows/Linux
+execution of this new fixture remains part of platform acceptance.
