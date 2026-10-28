@@ -1,6 +1,27 @@
 # Agent continuation state
 
-## Current continuation — optional and rest parameter guides accepted
+## Current continuation — call spread default correction
+
+Previous turn progressed at1f8426bd. Audited call-spread guide against selected-slot
+contracts in spread_calls.rs and count failure in spread_emit.rs. Corrected a false
+omission-only default rule: explicitly supplied undefined also selects a default.
+Added a complete spread-undefined example, wrapped former top-level string example
+in main and converted fences to tsrust with run instructions. No compiler changes.
+
+All eight complete exact examples pass format --write/--check, compiler checks and
+native output, including ownership, mutable array slot, builtins, Unicode scalars
+and absent optional-call skipping. call_spread_nullable_selected_slots_native passes
+(/tmp/tsrust-call-spread-doc.log). All commands finished. No full suite, timings,
+platform or hosted checks. Full formatter/diff check before checkpoint.
+
+Next: finish full call-spread source audit and array-literal/iterable spread guide
+review, migrate coherent pages, then complete390/1440 rendered/keyboard acceptance.
+Migration remains in progress; no site page acceptance claimed. Remaining platform
+setup, Windows/Linux editor fixture/acquisition and Pages deployment remain pending.
+Goal active; shared target and one writer retained.
+
+
+## Prior continuation — optional and rest parameter guides accepted
 
 Previous turn progressed at818920a8. Finished full optional/default and rest guide
 reviews at390/1440. Both readable with syntax highlighting, no mobile document
