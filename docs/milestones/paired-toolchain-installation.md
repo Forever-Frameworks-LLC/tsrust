@@ -1,7 +1,7 @@
 # Paired toolchain installation — focused platform acceptance
 
 2026-10-28. Focused macOS arm64 and Windows x64 acceptance is recorded below;
-Linux execution and published-release installation remain pending. No release was
+Linux acceptance is recorded below; published-release installation remains pending. No release was
 published to obtain this evidence. Follow plans/paired-toolchain-updates.md for
 remaining platform acceptance and guides/toolchain-installation.md for usage.
 
@@ -64,9 +64,7 @@ Do not import them into benchmark analytics. No performance claim is made.
 
 ## Pending
 
-Execute the new Linux acceptance through staging CI.
-The live-LSP update witness below has macOS and Windows acceptance; execute it
-on Linux as well. Published artifact
+The live-LSP update witness has macOS, Windows and Linux acceptance below. Published artifact
 acquisition remains unexecuted because no stable release exists. Full backend
 regressions, matched performance and the wider documentation audit remain separate
 goal requirements.
@@ -103,5 +101,22 @@ passed 8/8 (39.45s), shared-source tests 5/5 (219.12s), and package-management t
 The installer witness source is unchanged in local checkpoint e33f4674. This proves
 the live protocol sequence and locked-process behavior on Windows, but not the
 website's fresh-machine PowerShell setup commands or published artifact acquisition.
-Linux execution remains pending. Disposable log:
+Linux acceptance is recorded below. Disposable log:
 `/tmp/tsrust-windows-live-lsp-acceptance.log`.
+
+
+## Linux staging acceptance — 2026-10-28
+
+[Run 40748887685](https://github.com/Forever-Frameworks-LLC/tsrust/actions/runs/40748887685)
+completed successfully at `86435b8846badcfaf836af9c36da3fa56379f3a6` on Ubuntu 24.04.
+The unchanged installer witness passes with actual LSP initialization, live update,
+post-update hover and rollback. All 7 Linux installer cases pass (51.49s);
+shared-source tests pass 5/5 (115.57s) and package-management tests 7/7 (191.71s).
+Windows has an additional platform-specific process case, so its count is 8.
+
+The same run passes the bounded compiler/CLI baseline, real native SDK replica
+integration, complete checker agreement and completion matrices, editor consistency
+and stdio. The aggregate CI check succeeds. This is the selected staging baseline,
+not every integration target or a release-package/fresh-download test. Subsequent
+local changes require their own accepted evidence. Current disposable log:
+`/tmp/tsrust-linux-staging-acceptance.log`.

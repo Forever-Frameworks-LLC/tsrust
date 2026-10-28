@@ -2,7 +2,8 @@
 
 ## Current continuation — public documentation audit
 
-Latest accepted checkpoint is f1c3784f (compiler entry-point cleanup);
+Latest accepted checkpoint is b5b685ae (canonical docs package smoke);
+f1c3784f contains compiler entry-point cleanup;
 a92ba656 contains the macOS memory probe; 110a8e29 records
 contributor/toolchain documentation;
 eb3918f9 records macOS editor acceptance; ec0db552
@@ -40,10 +41,22 @@ pass. Whole-project formatter changed zero files/fingerprints. Keep fresh-platfo
 published-acquisition and interactive execution requirements open in the tracker.
 
 Existing remote head is 86435b8846badcfaf836af9c36da3fa56379f3a6 on draft PR #4.
-Linux 40748887685 reached LSP transport and compiler agreement; extension passed.
+Linux 40748887685 completed SUCCESS at 86435b88, including live LSP update,
+installer 7/7, shared sources 5/5, packages 7/7, native SDK replica integration and
+complete checker/completion agreement, consistency and stdio. Aggregate CI passed.
 Windows 40748893795 succeeded at 86435b88: installer/process 8/8, shared-source
 5/5 and package-management 7/7, including the new live-LSP update witness.
 Docs 40748887897 passed. No new hosted run, push, merge or release in this section.
+
+## Build-output cleanup
+
+After process inspection showed no local Cargo/rustc/test executable running,
+removed 32 older test executables sharing source identities with newer retained
+builds (575,105,312 logical bytes). Grouping uses Cargo dep-info source paths so
+compiler/LSP tests with identical names remain distinct. Preserved newest tests,
+all dependency libraries, CLI/LSP consumers, source packs and the live memory probe.
+No source, owner data or SQLite history changed. Older test variants can be rebuilt
+from commits; no rebuild was started merely to repopulate the cache.
 
 ## Documentation examples in package acceptance
 
