@@ -69,12 +69,14 @@ are separate build-time data modules; see [modules](../../language/modules/).
 Local variables named JSON shadow the global namespace. Runtime dependencies are
 selected automatically from checked usage; no per-build linking flags are needed.
 
-## Extracting scalar values
+## Extract scalar values
 
 Import `asBoolean`, `asInt`, `asNumber` and `takeString` from `std:json`.
 Each returns `Result<scalar, JsonError>` without coercion. The first three borrow
 an unchanged value. `takeString` consumes it, moving string storage into the
 result; the input is consumed even when its kind is wrong.
+
+### Number precision
 
 `asInt` requires an integral value within the signed 64-bit range. `asNumber`
 rejects integer-backed values that cannot be represented exactly as floating point.
@@ -116,7 +118,7 @@ there is no implicit rounding of exact JSON integers.
 without confusing it with undefined. Both operations borrow their inputs.
 The imported `kind` function distinguishes all six JSON categories.
 
-## Reading nested values
+## Read nested values
 
 Import `get` for object properties and `at` for array elements from `std:json`.
 Both accept an owner or view and return `Result<JsonView | undefined, JsonError>`.
@@ -146,10 +148,14 @@ null comparisons, `kind`, `asBoolean`, `asInt`, `asNumber` and serialization acc
 views. Serialization returns an independent string. `takeString` requires an
 owned JsonValue.
 
+### View lifetime
+
 A retained view prevents moving or replacing its owner and cannot outlive it.
 Views cannot be constructed or cloned. Missing and error branches carry no child
 loan; a present JSON null still retains its owner. Boolean guards permit boolean payload access. String guards permit a borrowed `StringView`. Other category checks do not expose
 direct property or index operations on the wrapper.
+
+### Narrow after a type check
 
 ```tsrust
 function readFlag(text: string): boolean {
@@ -190,6 +196,8 @@ Reads use the same UTF-8 byte coordinates, clamping, defaults and invalid-bounda
 errors as ordinary Tsrust strings. Length is read-only. Missing optional values do
 not satisfy the string guard. Replacing the source invalidates the proof; loops
 must recheck after replacement. No text buffer is copied for these reads.
+
+### Keep a borrowed string
 
 Inside a string guard, assigning the value to a local infers a borrowed
 `StringView`. A function borrowing a `JsonValue` can return that view while the

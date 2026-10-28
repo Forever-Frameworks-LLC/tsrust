@@ -1648,3 +1648,26 @@ source-build link. No viewport override applied. Do not mark page fully audited.
 - Public audit tracker now closes these two rows; remaining page/platform checks
   stay explicit. Next: finish JSON, authorization and onboarding page reviews;
   installer real-LSP-across-update witness remains pending and was not edited.
+
+### Authorization and JSON audit acceptance
+
+- Extended verify-sdk-native-replicas.mjs with denied and throwing authorization
+  policies on dispatch, description and OpenAPI, malformed-body ordering,
+  exception redaction and no operation side effects. Native TypeScript/Rust
+  replica run 59180 PASS in 187.95s; /tmp/tsrust-sdk-policy-audit.log. Initial
+  sandbox run 16271 could not bind loopback and was terminal before the permitted
+  retry. Restored the unchanged original missing-credential description assertion
+  after diff review; its prior acceptance remains retained alongside the new pass.
+  Owned services and temporary projects cleaned by the existing test finally.
+- Authorization and JSON full 390px/1440px rendered reviews complete: readable
+  tables/configuration, highlighted examples, no document overflow and keyboard
+  skip/section/sidebar/next navigation. JSON number precision, view lifetime and
+  type narrowing now have focused headings. Reused all six exact native JSON
+  examples and source acceptance; parser bounds/error contracts rechecked.
+- Quickstart full desktop/mobile/keyboard presentation review complete; checked
+  project exclusive creation, watcher failure retention and description URL rules
+  in current source. Fresh-platform setup remains pending, so its row stays open.
+- Whole-project formatting and idempotence pass; JavaScript syntax, site build and
+  23-page links/anchors/assets pass. Viewport reset. No hosted runs or releases.
+  Next: remaining installation/editor/tooling page acceptance, actual live LSP
+  spanning an update, then pending platform and backend milestone measurements.
