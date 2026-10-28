@@ -1,6 +1,23 @@
 # Agent continuation state
 
-## Current continuation — parameter site drafts ready
+## Current continuation — optional and rest parameter guides accepted
+
+Previous turn progressed at818920a8. Finished full optional/default and rest guide
+reviews at390/1440. Both readable with syntax highlighting, no mobile document
+overflow, focusable overflowing code and keyboard scrolling40px. Skip and next
+navigation pass; rest union section anchor passes. Removed redundant related-guide
+self-links. Viewport reset; tab4 retained on rest guide. No example semantic change;
+prior eight format/check/native examples and focused compiler/LSP evidence retained.
+
+Removed duplicate guides and migrated incoming Markdown links. Audit/migration rows
+accepted. Final47-page build/link check and full formatter/diff check before local
+checkpoint. Next: continue remaining finite guide inventory, preferably call/array
+spread and iterable expansion together. Windows/Linux editor/acquisition, setup and
+actual Pages deployment still pending. Goal active; no hosted CI/push/release,
+benchmark or full regression run. One writer and shared target retained.
+
+
+## Prior continuation — parameter site drafts ready
 
 Previous turn progressed at53f96476. Reviewed function_parameters.rs owning rest
 initialization, continuations/defaults.rs checked default access/flow joins and
