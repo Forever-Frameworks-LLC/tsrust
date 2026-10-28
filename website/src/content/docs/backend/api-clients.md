@@ -4,7 +4,7 @@ description: Generate checked TypeScript and async Rust clients without coupling
 ---
 
 The backend is the API source of truth. New applications select their public
-operations and authorization in tsrust.config.json and import compiler-owned
+operations and authorization in `tsrust.config.json` and import compiler-owned
 handlers from `api:server`; checking and running never require generated clients
 or dispatcher files. See [backend applications](../applications/).
 
@@ -15,29 +15,35 @@ tsrust api generate --url http://127.0.0.1:4318/api/description --out js-client
 tsrust api generate --url http://127.0.0.1:4318/api/description --language rust --out rust-client
 ```
 
-Use `--description http-api.json` instead of --url for a saved description, without
+Use `--description http-api.json` instead of `--url` for a saved description, without
 backend source. The same checked description exports OpenAPI. SDK generation does
 not change application source, register operations or start a server. URL and saved-description generation always require `--out`. For source-based
 generation, `api.output` can supply the default destination.
-Optional server.output retains explicit legacy dispatcher export, which new
+Optional `api.server.output` retains explicit legacy dispatcher export, which new
 applications do not use. Keep deployment compatibility baselines application-owned
 rather than depending on a generated client directory.
 
 ## Generate from source configuration
 
-Declare the operations to expose in a separate `tsrust.api.json`. Keeping this
-configuration separate allows backend/client-only adoption without changing an
-existing frontend's package manager, lockfile, scripts or directory layout.
+Use the existing `api` settings in `tsrust.config.json`, or create a separate
+`tsrust.api.json` for a client export. The following standalone configuration uses
+the greeting function from the [backend starter](../applications/). Save it at
+the starter project root and select it explicitly with `--config`:
 
 ```json
 {
   "schemaVersion": 1,
   "apiVersion": 1,
-  "entry": "app/main.tsr",
+  "entry": "app/api/operations.tsr",
   "output": "packages/api",
   "package": { "name": "@example/api", "version": "0.1.0" },
   "operations": [
-    { "name": "tasks.list", "module": "app/tasks.tsr", "export": "list", "kind": "query" }
+    {
+      "name": "greet",
+      "module": "app/api/operations.tsr",
+      "export": "greet",
+      "kind": "query"
+    }
   ]
 }
 ```
@@ -50,16 +56,19 @@ kind is explicit metadata, not proof that a query is side-effect-free. Applicati
 access policy remains a server responsibility when dispatch is added.
 
 ```sh
-tsrust api generate
-tsrust api generate --check
-tsrust api generate --config ./service/tsrust.api.json --out ./client-package
+tsrust api generate --config tsrust.api.json
+tsrust api generate --config tsrust.api.json --check
+tsrust api generate --config tsrust.api.json --out ./client-package
 ```
 
-Without `--config`, the CLI finds the nearest ancestor configuration. Configured
+Without `--config`, the CLI searches upward for API configuration. If the same
+directory has both inline `api` settings and `tsrust.api.json`, it requires an
+explicit selection. Configured
 entry/module/output paths are relative to that file and exclude `.`/`..` and
 backslashes; use portable forward slashes. An explicit output flag is relative to
-the current directory and can select a standalone destination. Initial package
-versions use ordinary `major.minor.patch`; prerelease versions are a later addition.
+the current directory and can select a standalone destination. Package
+versions require `major.minor.patch`; prerelease labels and build metadata are
+not supported. See [version rules](../api-compatibility/#choose-version-numbers).
 
 ## Understand generated output
 
@@ -80,13 +89,27 @@ partial replacement can be retried using the old/planned hash checks.
 
 ## Calls and wire values
 
-The initial package exposes `createClient(transport)`, `ApiError`, a frozen
-manifest and an exact contract hash. Named calls follow the selected namespaces:
+The TypeScript package exposes `createClient(transport)`, `ApiError`, a frozen
+manifest and a contract identity. Named calls follow your selected operation
+names: `greet` becomes `api.greet(...)`, while `tasks.list` would become
+`api.tasks.list(...)`.
 
-```ts
-const api = createClient(transport);
-const tasks = await api.tasks.list({ search: null });
+To try the generated starter client without a running server, save this as
+`try-client.mjs` beside `js-client`, then run `node try-client.mjs`:
+
+```js
+import { createClient } from './js-client/index.js';
+
+const api = createClient({
+  async request(operation, input) {
+    if (operation !== 'greet') throw new Error('Unexpected operation');
+    return { ok: true, value: `Hello, ${input}!` };
+  },
+});
+console.log(await api.greet('Ada')); // Hello, Ada!
 ```
+
+This transport is a local demonstration. Use the HTTP adapter to call the service.
 
 A transport implements
 `request(operation, checkedInput, options)` and returns either
@@ -101,40 +124,56 @@ multiple inputs in a request record. Rest/default/optional top-level parameters
 and unresolved generic functions require concrete wrapper functions. Async
 operation signatures describe eventual data, not transportable tasks.
 
-Supported wire values are strings, booleans, finite numbers, JavaScript-safe
-integers, null, checked literals, dense arrays, tuples, plain data records and
-unions. Optional fields omit missing/undefined properties; required fields must
-exist and null remains distinct. Native integers outside plus/minus
-9,007,199,254,740,991 fail validation instead of rounding. Void results use null
-on the wire and become undefined to the caller. Object fields are data properties;
-accessors and unknown keys reject. Special JSON keys remain data without changing
-object prototypes. Recursive/deeper-than-128-level schemas, functions, native
-resources and implicit collection/domain serialization reject; project them into
-explicit supported data before exporting. Strings must contain well-formed Unicode:
-lone UTF-16 surrogates reject before transport because native JSON strings use UTF-8.
-JSON encodes negative zero as zero; it is not a distinct wire value.
+### Supported data
 
-## HTTP transport
+| Value | Contract |
+| --- | --- |
+| Strings | Well-formed Unicode; lone UTF-16 surrogates reject before transport. |
+| Booleans and null | Preserved; null is distinct from a missing field. |
+| Numbers | Finite values only. JSON encodes negative zero as zero. |
+| Native integers | Must fit ±9,007,199,254,740,991; larger values reject instead of rounding. |
+| Arrays and tuples | Dense arrays; tuple length and each element are checked. |
+| Plain records | Declared data properties only; accessors and unknown keys reject. |
+| Optional fields | Missing or undefined properties are omitted. Required fields must exist. |
+| Literals and unions | Values must satisfy a declared alternative. |
+| Void results | Encoded as null, returned as undefined by the TypeScript client. |
+
+Special JSON keys remain data without changing object prototypes. Recursive or
+deeper-than-128-level schemas, functions and native resources are rejected.
+Collections and domain objects need explicit conversion to supported data;
+there is no implicit serialization for them.
+
+## Call the service over HTTP
 
 The separate `@example/api/http` export uses the host Fetch API. The plain package
-entry still requires no DOM types or Fetch globals. HTTP consumers need their
-browser/React Native Fetch type declarations. Pass an absolute endpoint URL:
+entry still requires no DOM types or Fetch globals. TypeScript HTTP consumers need their
+host's Fetch type declarations, whether supplied by browser, Node or React Native
+tooling. Pass an absolute endpoint URL:
 
-```ts
-import { createClient } from '@example/api';
-import { createHttpTransport } from '@example/api/http';
+With the starter listening on port 4318, save this as `try-http.mjs` beside
+`js-client` and run it with a Node version that provides Fetch:
+
+```js
+import { createClient } from './js-client/index.js';
+import { createHttpTransport } from './js-client/http.js';
 
 const api = createClient(createHttpTransport({
   url: 'http://127.0.0.1:4318/api',
-  headers: async () => ({ authorization: `Bearer ${await currentToken()}` }),
 }));
-const count = await api.math.count(1, { signal: controller.signal });
+console.log(await api.greet('Ada')); // Hello, Ada!
 ```
+
+For an installed package, use its configured name, such as `@example/api` and
+`@example/api/http`, instead of relative file imports. Protected services can
+supply `headers` as an object or an async function returning headers. For example,
+`headers: async () => ({ authorization: 'Bearer ' + await currentToken() })`
+requires your own `currentToken` function. Pass `{ signal: controller.signal }`
+as the second call argument when using an application-owned `AbortController`.
+
 
 Each call posts `{operation,input}` as JSON to the configured endpoint and sends
 `x-tsrust-contract` with a selected checked wire-profile identity. JSON Content-Type
-parameters carry the requested API major, current operation fingerprint and SDK
-artifact fingerprint. This adds no new CORS header names. The server retains
+parameters carry the requested API major, current operation fingerprint and current checked manifest identity. This adds no new CORS header names. The server retains
 application authorization responsibility. Headers are resolved
 for each call so credential changes take effect; the adapter sets its protocol
 headers after application headers. Cookies are omitted and redirects reject.
@@ -163,9 +202,10 @@ tsrust api generate --config tsrust.api.json --out ./dist/client
 cd dist/client
 npm pack --ignore-scripts
 cd /path/to/existing-app
-npm install /path/to/client/example-query-api-0.1.0.tgz --ignore-scripts
+npm install /path/to/project/dist/client/example-api-0.1.0.tgz --ignore-scripts
 ```
 
+Replace the absolute paths above with your project and consumer paths.
 The tarball filename follows the configured npm package name/version. Inspect
 `npm pack --json --ignore-scripts` before sharing. Its allowlist includes runtime,
 declarations, contract, README and license; generated ownership markers and
@@ -179,6 +219,20 @@ normal dependencies. Users own their package manager, scripts and dependencies.
 Other package managers use their ordinary package/workspace workflows; SDK
 export never installs packages or rewrites the consuming application's files.
 
+
+## Use the Rust client
+
+The Rust export contains `Cargo.toml`, owned DTO types and asynchronous named
+calls. Add it as a normal Cargo path dependency in your consumer. Its default
+`http` feature supplies `HttpTransport`; disable default features when providing
+a custom transport. Run HTTP calls inside your application's Tokio runtime.
+Generation does not fetch Cargo dependencies.
+
+Read the generated `README.md` and `src/lib.rs` for the package name and exact
+operation types. Optional fields use `Option`; nullable unions preserve explicit
+null separately. The Rust generator currently rejects tuples longer than 16
+elements. Do not assume the TypeScript SDK's Fetch behavior describes the Rust
+transport's limits.
 
 ## Next steps
 

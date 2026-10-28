@@ -1134,3 +1134,27 @@ initialization and all-target diagnostics remain pending.
 Original backend milestone 79249 remains active, reached tokio_tasks; preserve it.
 Windows 40724567590 passed CLI/LSP compilation and portable preparation and is
 running paired-install/cache tests. No additional hosted run dispatched.
+
+
+## Independent client guide audit
+
+Replaced mismatched tasks.list/math.count snippets with actual starter greet calls.
+The guide now gives runnable try-client.mjs (custom transport) and try-http.mjs
+(Fetch), both extracted verbatim into /tmp/tsrust-onboarding-doc-audit/hello-api
+and executed with exact Hello, Ada! output. HTTP used the existing starter native
+binary e2165bc306af06cb; the owned server was stopped in a finally block.
+Standalone source JSON now selects app/api/operations.tsr greet from the starter;
+exact generate and --check commands pass. Documented dual inline/standalone config
+ambiguity and required --config selection. Corrected npm tarball filename and
+protocol manifest identity wording; added a wire-values table and Rust consumer
+constraints. npm pack --json --ignore-scripts yields example-api-0.1.0.tgz with
+13 expected files, no generated ownership markers. No package published.
+Traced api/{mod.rs,wire.js,client.js,http.js,typescript.rs,rust_client.rs} and
+cli/api_cli.rs. Site build and 23-page links/anchors/assets pass.
+Rendered page review is still pending: the direct browser tab handle also reports
+browser.user unavailable across turns. A fresh reset/rebind was not attempted this
+turn; don't count the failed navigation as visual acceptance.
+Full backend session 79249 remains live, now at ui_alert. ui suite: 16 pass/3 fail
+(colors/rings/theme, compiler API contract, shared grid/custom theme); preserve
+original log for diagnosis. Windows40724567590 still running paired installer/cache
+acceptance after consumer builds and source preparation pass. No new hosted runs.
