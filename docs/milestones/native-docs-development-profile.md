@@ -67,3 +67,21 @@ API registration without a public generated/server prerequisite, remaining HTTP
 SDK/body/testing work, binding cache migration and trusted installation/update
 acceptance across the required platforms. This startup milestone does not prove
 those unrelated requirements or the owner's entire live VS Code Problems panel.
+
+## Installed consumer and retention
+
+Source checkpoint: cc8a0024, all changes included. Validated development CLI installed
+with expected-old/staged/new SHA256 guards and a rollback copy. Installed CLI hash:
+90D6BB34FD06398096F0A61ADA139AC3B91C6781C3198712A79E15F8543829BF.
+Installed --version and check of the original stdlib/ui/api.tsr passed. LSP was not
+changed by this CLI-only repair; retain its previously validated installed hash
+53A93B85E008A4C0795709ECEEF311C34723D33E4D9894BCED265A2343DD8F15.
+This guarded development refresh is not the pending production update mechanism.
+
+Pruned 346,247,105 bytes of disposable emitted source/assembly/helper/experimental
+binary/log outputs. Removed the superseded crashing docs executable cache (110,564,134
+bytes) after checking resolved paths, reparse ancestry/members and live executable
+owners. Removed the old CLI rollback copy after the installed check and live-owner
+check. Preserved current executable cache c332a85856722893, native support caches,
+source pack, concise evidence, generated review apps and mapped owner LSP images.
+No archive directories or analytics imports were created.

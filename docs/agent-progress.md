@@ -156,6 +156,18 @@ exact-facade clean/error/repair/hover probe passed again in the diagnostic follo
 No whole-editor-panel claim. No full regression/performance matrix or analytics import.
 Sessions 18880,42516,66465,84107,86997,94962 are terminal; do not poll/restart them.
 
-Next: checkpoint all accepted source changes, refresh installed CLI with guarded
-replacement, prune disposable diagnostic emit/assembly artifacts, then implement
-server-owned API registration and independent client generation as specified above.
+Source checkpoint cc8a0024 includes all changes. Guarded installed CLI refresh passed
+--version and exact original facade check; current installed SHA256 is
+90D6BB34FD06398096F0A61ADA139AC3B91C6781C3198712A79E15F8543829BF.
+LSP remains the already verified 53A93B85... version; owner mapped images preserved.
+Pruned 346247105 bytes of disposable diagnostics and 110564134 bytes of obsolete
+crashing docs cache, plus unused old CLI rollback copy after live-owner/hash checks.
+Keep current docs cache c332a85856722893, runtime caches and prepared source pack.
+
+Next executable action: inspect shared project/provider and checked API generation
+boundaries, then replace the public generated/server prerequisite with compiler-
+owned dispatch integration. App source/configuration owns the operations and auth;
+SDK generation must be an independent consumer and never modify the server. Current
+application_scaffold still calls api generate and app/main imports generated/server;
+api::CheckedApi/native_source_versioned is the existing checked dispatch to reuse.
+Do not treat moving generated output into app/ as the architectural correction.
