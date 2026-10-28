@@ -15,6 +15,11 @@ A stable nullable target is absent inside its fallback. Its successful assignmen
 
 Editor hover and completion use the checked result type, including fields and methods available on the selected value. The existing nullable domain and strict int/Number distinction apply. Nullable array elements are valid indexed destinations. Each reached index retains its ordinary bounds checks. Optional-chain assignment targets and coercive assignment remain unsupported; a fallback must fit the destination type.
 
+After [native setup](/tsrust/tools/rust-setup/), run each complete example separately
+as `main.tsr` with `tsrust run main.tsr`. Expected output follows each example.
+
+## Keep zero, false and empty text
+
 ```tsrust
 function main() {
   let count: int | null = 0;
@@ -26,6 +31,8 @@ function main() {
 ```
 
 Prints `0 false 0`.
+
+## Initialize and clone a string
 
 ```tsrust
 function makeText(value: null): string {
@@ -42,6 +49,8 @@ function main() {
 
 Prints `é é 2`.
 
+## Initialize an array
+
 ```tsrust
 function main() {
   let values: int[] | undefined = undefined;
@@ -51,6 +60,8 @@ function main() {
 ```
 
 Prints `1|2 2`.
+
+## Initialize a record
 
 ```tsrust
 type Row = {
@@ -68,6 +79,8 @@ function main() {
 
 Prints `7 7`.
 
+## Retain a null fallback
+
 ```tsrust
 function main() {
   let value: int | null | undefined = undefined;
@@ -78,6 +91,8 @@ function main() {
 ```
 
 Prints `null 4`.
+
+## Initialize a record field
 
 ```tsrust
 type Holder = {
