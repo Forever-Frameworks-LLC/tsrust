@@ -1818,7 +1818,7 @@ thread ownership/cancellation rules when integrating Tokio.
 S14 adds owned scheduling with `Task.start()`, required Job settlement, cancellation,
 deadlines, delay/yield, race/allSettled and bounded asynchronous channels. Compiler,
 runtime and editor acceptance passes; see [Tokio acceptance](../plans/tokio-tasks-acceptance.md)
-and [usage guide](../guides/tokio-tasks.md). The active editor was restarted with
+and [usage guide](../../website/src/content/docs/library/futures.md). The active editor was restarted with
 current Task documentation and no open-document diagnostics.
 
 Keep `await yield()` as settled. No external pause/resume or priority API was

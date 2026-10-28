@@ -89,7 +89,7 @@ This prints `42`. A task borrowing local data can be awaited locally, but cannot
 be started across workers. A started job must be awaited or transferred to an
 owner that settles it; requesting cancellation alone does not settle it.
 
-The runtime also provides timers, deadlines, task groups and channels. Consult
+The runtime also provides [timers, task groups and channels](../../library/futures/). Consult
 IntelliSense for the `Task`, `Job` and `std:futures` operation contracts. These
 are Tsrust APIs, not JavaScript `Promise` compatibility.
 
