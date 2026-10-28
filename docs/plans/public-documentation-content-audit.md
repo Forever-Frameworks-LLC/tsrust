@@ -45,7 +45,7 @@ checked; "100%" is not a substitute for that evidence.
 
 | Page | Status | Evidence / remaining work |
 | --- | --- | --- |
-| `404.md` | Pending | Verify facts, examples and reading flow. |
+| `404.md` | Content review complete; rendered review pending | Recovery copy and issue destination are appropriate; search/sidebar interaction and actual unknown-route behavior still pending. |
 | `backend/api-clients.md` | Source review in progress | Corrected mandatory --out for URL/saved-description generation against api_cli.rs. Separated source configuration and generated output; full wire-contract and rendered audit pending. |
 | `backend/api-compatibility.md` | Pending | Verify facts, examples and reading flow. |
 | `backend/applications.md` | Source review in progress | Reorganized into create/run, access policy, checks, client generation and OpenAPI scope. Checked application_scaffold.rs, starter templates and api_cli.rs. Live starter description, TypeScript/Rust SDK generation and saved-description regeneration pass; rendered review pending. |
@@ -53,13 +53,13 @@ checked; "100%" is not a substitute for that evidence.
 | `backend/http-transport.md` | Pending | Verify facts, examples and reading flow. |
 | `backend/http.md` | Source review complete; rendered review pending | HTTP runtime, builtin catalog and examples/http-context/json.test.tsr; combined route example passes compiler check. Split readers/errors/responses. |
 | `backend/static-files.md` | Source review complete; rendered/native example review pending | StaticMount::new/respond/resolve and Router::serve_static in HTTP runtime; clarified 307/400/404, Accept fallback and prerequisites; standalone server example passes compiler check. |
-| `index.md` | Pending | Verify facts, examples and reading flow. |
+| `index.md` | Source/example review complete; rendered review pending | Hello example verified through quickstart native execution; scope matches backend scaffold and independent SDK walkthrough. Removed migration-planning prose. |
 | `language/modules.md` | Pending | Verify facts, examples and reading flow. |
 | `library/json-files.md` | Source review in progress | Replaced incomplete reader snippet with complete open/read/EOF/close example; executed with Ada and Grace output. Split writer cleanup. Writer example and rendered review pending. |
 | `library/json.md` | Source review in progress | Corrected integer overflow and raw serialization claims against runtime/parser.rs and json_scalar_backend.rs; separated errors, resource limits and parsing rules. Remaining examples and rendered review pending. |
-| `library/overview.md` | Pending | Verify facts, examples and reading flow. |
+| `library/overview.md` | Source/example review complete; presentation review in progress | All 23 module names exist in catalog and implementation registry; basename example executes as documented. Narrow 587px layout/highlighting and table wrapping inspected; desktop/keyboard review pending. |
 | `library/typed-json.md` | Source review in progress | Corrected overflow and JsonRaw support against json_typed.rs/json_raw.rs and builtin catalog. Added shape table and raw-field example; example executed with exact preserved output. Remaining examples and rendered review pending. |
-| `project/status.md` | Pending | Verify facts, examples and reading flow. |
+| `project/status.md` | Source review complete; rendered review pending | Scope matches backend-only plan; four release targets verified against release.yml. Clarified pinned source-commit adoption when releases are absent. |
 | `start/editor.md` | Source review in progress | VS Code manifest minimum, executables.ts discovery order, extension.ts configuration/restart behavior checked. Separated stale-path recovery from onboarding. Replaced stale blanket memory warning with landed retention fixes and explicit long-session macOS uncertainty; verified restart window against installed language-client code. Full editor/platform execution and rendered review remain pending. |
 | `start/installation.md` | Source review in progress | Verified archive naming, current exact Rust pin and executable paths; made extraction conditional on checksum success and separated installation/update tasks. Fresh-platform instructions remain pending. |
 | `start/project-structure.md` | Source review complete; rendered review pending | File list, build entry/output and explicit API configuration match application_scaffold.rs and starter templates; independently created starter passes check/test/format. |

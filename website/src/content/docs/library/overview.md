@@ -7,6 +7,18 @@ Tsrust provides built-in modules for native programs. Import supported declarati
 using a `std:` module name. Built-in availability does not imply compatibility with
 Node packages or every JavaScript API of the same name.
 
+## Import an operation
+
+```tsrust
+import {basename} from 'std:path';
+function main() {
+  console.log(basename('/reports/today.json')); // today.json
+}
+```
+
+Use named imports for the declarations you need. See
+[modules and imports](../../language/modules/) for project files and aliases.
+
 ## Choose a module
 
 | Task | Module |
@@ -39,9 +51,9 @@ defaults, errors, return values, mutation and ownership. Check the behavior of t
 specific operation before assuming a byte offset is a character index, an input is
 copied, or a returned value can be reused after transfer.
 
-The compiler-owned IntelliSense catalog is maintained with implementation changes.
-Public reference pages will expand by module from that authoritative data rather
-than maintaining a competing handwritten API catalog.
+The linked guides cover selected APIs. For operations without a reference page,
+use editor help and the repository examples; check your program with the same
+compiler version you use to build it.
 
 ## Learn by building
 

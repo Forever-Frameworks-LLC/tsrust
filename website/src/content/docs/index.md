@@ -33,5 +33,5 @@ Tsrust is not a compiler for arbitrary existing TypeScript, React or Node packag
 Ownership, checked arithmetic and documented string indexing rules matter when
 porting code. Read [project status](./project/status/) before adopting it.
 
-These docs are being reviewed and migrated section by section. Published pages
-explain supported behavior; the sidebar grows as complete guidance becomes ready.
+Continue with [HTTP services](./backend/http/), [standard-library APIs](./library/overview/)
+or [project tests](./tools/testing/).

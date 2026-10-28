@@ -1020,3 +1020,22 @@ four stale tests to assert retained artifacts, concurrent private-copy integrity
 large-artifact availability and abandoned-staging cleanup with legacy preservation.
 Production cache policy unchanged. Focused cache_retention check session 80013,
 /tmp/tsrust-cache-retention-repair.log, pending; do not call accepted yet.
+
+
+## Overview/status audit and browser recovery
+
+Verified all 23 listed module names against current catalog/implementation; added
+basename example that executes with today.json output. Homepage removes internal
+migration prose. Status allows pinned source commits while releases are absent;
+four platform targets match release.yml. Content audit rows updated without
+claiming rendered completion. CUA reset repaired browser.user errors; fresh docsTab
+binds IAB tab 4. Overview inspected at natural 587px width: highlighted code and
+wrapped module table readable. Desktop/keyboard/whole-page checks remain pending.
+
+Cache_retention session 80013 passes all four repaired policy tests. HTTP catalog
+40520 failed after 90.25s with Cannot bind HTTP listener, not missing examples.
+Rerun with local socket access uses /tmp/tsrust-http-catalog-socket-repair.log;
+record returned session handle separately. Original broad regression remains
+separate and must not be restarted.
+
+HTTP socket-enabled rerun session: 22480. Preserve and poll this exact handle.

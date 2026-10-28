@@ -30,7 +30,9 @@ They are outside the active backend scope and are not the renderer for this site
 
 ## Adoption
 
-Use a pinned release for a project, retain API compatibility baselines for rolling
+Use a pinned release or a specific source commit for a project. If no release
+assets are available, follow the [source-build instructions](../../start/installation/#build-from-source).
+Retain [API compatibility baselines](../../backend/api-compatibility/) for rolling
 deployments, and test against your actual operating system and native dependencies.
 Report reproducible problems through
 [GitHub Issues](https://github.com/Forever-Frameworks-LLC/tsrust/issues).
