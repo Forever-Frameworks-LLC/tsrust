@@ -89,7 +89,7 @@ feature-coverage evidence to reduce the inventory.
 | `language/nullish-coalescing.md` | Audit and migrate current guidance; preserve any embedded history | In progress: six exact examples format/check/execute; corrected callable and literal-union wording, added behavioral sections. Literal fallback regression passes. Site migration and rendered review remain pending. |
 | `language/numeric-literals.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/numeric-string-conversion.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/optional-chaining.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/optional-chaining.md` | Audit and migrate current guidance; preserve any embedded history | In progress: site draft structured into behavior sections; six exact examples format/check/execute, focused editor test and site build pass. Remaining source and rendered review pending; old guide retained until acceptance. |
 | `language/optional-default-parameters.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/optional-fields.md` | Migrated to canonical site language/optional-fields | Accepted: source audit, exact executable examples, focused regression evidence and full responsive/keyboard review complete. Removed duplicate guide and migrated links. |
 | `language/recursive-records.md` | Audit and migrate current guidance; preserve any embedded history | Pending |

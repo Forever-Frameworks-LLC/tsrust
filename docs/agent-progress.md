@@ -1,6 +1,29 @@
 # Agent continuation state
 
-## Current continuation — coalescing content checkpoint
+## Current continuation — optional chaining and coalescing site drafts
+
+Previous turn progressed at24612a75. Added canonical site drafts for optional-chaining
+and nullish-coalescing, plus sidebar entries. Optional chaining now has separate
+sections for chain boundaries, errors, editor help and each executable behavior.
+Traced optional_chain.rs extraction: receiver spine only, grouped chains excluded,
+selected source held once. Existing guides remain until final acceptance/migration.
+
+All six exact optional-chain examples pass format --write/--check, compiler checks
+and native output (field, lazy index, lazy argument, continuous field chain, borrowed
+selection and retained null). Existing coalescing six-example evidence retained from
+24612a75; no example semantic changes. Intelligence optional_chain_editor_views
+focused test passes (/tmp/tsrust-optional-doc-editor.log); final43-page build passes
+(/tmp/tsrust-optional-doc-site.log). All validation processes completed.
+
+This checkpoint is draft progress, not page acceptance. Next: finish source audit,
+review both entire pages at390/1440 with keyboard/overflow checks, validate links,
+then remove old guides and migrate incoming links. Keep migration rows in progress.
+No platform, benchmark, full-suite or hosted validation this section. Full formatter
+and diff check required before checkpoint. Platform setup, updated Windows/Linux
+editor fixture/acquisition and actual Pages deployment still pending. Goal active.
+
+
+## Prior continuation — coalescing content checkpoint
 
 Previous turn progressed at45bff918. Reorganized the existing nullish-coalescing
 guide into result typing, operator composition, collections, absent-branch facts,
