@@ -13,6 +13,7 @@ and retained UI content are not automatically published.
 | docs/guides/generated-api-clients.md | website/src/content/docs/backend/api-clients.md → /backend/api-clients/, /backend/authorization/, /backend/api-compatibility/ | Split by client generation, access policy and compatibility; old copy removed; inbound Markdown links updated. |
 | docs/guides/project-cli.md | website/src/content/docs/tools/cli.md and tools/testing.md → /tools/cli/, /tools/testing/ | CLI/reporting split; old copy removed; original UI instructions moved to retained UI setup. |
 | docs/guides/modules.md | website/src/content/docs/language/modules.md → /language/modules/ | Moved; old copy removed; inbound Markdown links updated. |
+| docs/guides/async-tasks.md | website/src/content/docs/language/async.md → /language/async/ | Moved; removed obsolete S13/S14 future-tense claims and benchmark protocol from user guidance. Existing runtime operation reference remains in tokio-tasks.md pending its own migration. |
 | New site overview | website/src/content/docs/index.md → / | Reviewed initial page. |
 | New quickstart | website/src/content/docs/start/quickstart.md → /start/quickstart/ | Reviewed initial journey; installation and editor detail still pending. |
 | New public status | website/src/content/docs/project/status.md → /project/status/ | Current product scope; internal milestone details stay in repository. |
