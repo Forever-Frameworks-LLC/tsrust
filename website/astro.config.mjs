@@ -13,8 +13,10 @@ export default defineConfig({
     customCss: ['./src/styles/custom.css'],
     sidebar: [
       { label: 'Start here', items: [{ label: 'Overview', slug: '' }, 'start/installation', 'start/quickstart', 'start/editor', 'start/project-structure'] },
+      { label: 'Language', items: ['language/modules'] },
       { label: 'Build backends', items: ['backend/applications', 'backend/api-clients', 'backend/authorization', 'backend/api-compatibility'] },
-      { label: 'Tools', items: ['tools/rust-setup', 'tools/install-and-update'] },
+      { label: 'Standard library', items: ['library/overview'] },
+      { label: 'Tools', items: ['tools/cli', 'tools/testing', 'tools/rust-setup', 'tools/install-and-update'] },
       { label: 'Project', items: ['project/status'] },
     ],
   })],

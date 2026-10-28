@@ -1,4 +1,7 @@
-# Module exports and imports
+---
+title: Import and export modules
+description: Use named and default exports, source imports and checked data modules.
+---
 
 A source module can expose named declarations and one default function. Source
 imports accept explicit `.tsr` paths, extensionless files and directory `index.tsr`

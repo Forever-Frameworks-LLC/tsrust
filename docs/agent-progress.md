@@ -87,6 +87,25 @@ Local milestone session 79249 continues with a dev_dependencies watcher failure;
 preserve completed groups and investigate its captured diagnostic after completion.
 Linux PR CI 40705410644 remains running. Do not launch duplicate runs.
 
+## CLI and module documentation migration
+
+Moved project-cli.md into the public tools/cli page and split test reporting into
+tools/testing. Original UI command details are retained in the UI setup guide.
+Moved modules.md to language/modules. Old copies are removed and inbound Markdown
+links repaired. Added a current standard-library module overview grounded in the
+compiler-owned builtin catalog; explicitly marked the old mixed proposal guide as
+historical and moved active README/index links to the new overview. The site has
+17 built pages; rendered links/anchors/assets and all six distribution/link tests
+pass. No additional compiler test matrix was launched for this prose migration.
+
+The full backend run remains active. Captured failures now include dev_dependencies
+watcher timing/behavior, exception_handling's direct generated test runner missing
+tsrust_testing_run_in_scope and prepared registration cleanup reachability,
+generic_default_void's mock provider returning invalid project configuration, and
+http_catalog_examples_check_and_execute (diagnostic pending suite completion).
+These are not yet repaired or classified as implementation versus fixture defects.
+Preserve the pass log and rerun only affected targets after the original completes.
+
 ## Current priority: polish acceptance on the installed staged pipeline
 
 PR #2 merged as caf5284b. Bootstrap PR #3 passed required PR CI 40694096077

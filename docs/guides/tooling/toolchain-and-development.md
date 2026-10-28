@@ -4,7 +4,7 @@
 
 ## Current tools
 
-Use [the project CLI](../project-cli.md) for check, format, test, build and watched
+Use [the project CLI](../../../website/src/content/docs/tools/cli.md) for check, format, test, build and watched
 native development. The [VS Code extension](../../../editors/vscode/README.md)
 uses the shared compiler analysis for project diagnostics, completion, navigation,
 hover, parameter help and validated fixes. See [project editor behavior](project-editor.md)

@@ -107,7 +107,7 @@ tsrust build --release
 
 See [backend applications](website/src/content/docs/backend/applications.md),
 [project structure](website/src/content/docs/start/project-structure.md) and
-[CLI commands](docs/guides/project-cli.md).
+[CLI commands](website/src/content/docs/tools/cli.md).
 
 ## Status and boundaries
 
@@ -130,7 +130,7 @@ live in the [benchmark-only SQLite dataset](benchmarks/storage/PUBLIC_DATA.md).
 
 ## Explore
 
-- [Language and standard library](docs/guides/language/standard-library.md)
+- [Language and standard library](website/src/content/docs/library/overview.md)
 - [Ownership](docs/guides/language/ownership-and-memory.md)
 - [HTTP behavior](docs/guides/http.md) and [Rust packages](docs/guides/rust-packages.md)
 - [VS Code setup](editors/vscode/README.md)

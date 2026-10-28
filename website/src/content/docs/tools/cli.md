@@ -1,9 +1,14 @@
-# Create and develop a Tsrust project
+---
+title: Use the project CLI
+description: Create, check, run and develop native Tsrust projects.
+---
 
 Create a backend service with `tsrust new hello --app`, or a console program with
-`tsrust new hello`. See [backend applications](../../website/src/content/docs/backend/applications.md) for server
+`tsrust new hello`. See [backend applications](../../backend/applications/) for server
 operations and independent TypeScript/Rust SDKs. Prepare native tools and shared
-dependency sources explicitly using [machine setup](../../website/src/content/docs/tools/rust-setup.md).
+dependency sources explicitly using [machine setup](../rust-setup/).
+
+## Interactive commands
 
 Run `tsrust` without arguments in a terminal to open the interactive command menu.
 The launcher groups actions into Development, Quality, UI and Project screens,
@@ -12,35 +17,13 @@ Use arrow keys and Enter, or the displayed Back item to return to categories.
 Esc or Ctrl+C cancels. A compact wordmark, color, action hints and workspace context
 provide terminal presentation without changing the commands themselves.
 
-Selection lists have blank space before and after their options. Individual rows
-stay compact; short terminals scroll the list. The UI browser filters current components as you type, shows source,
-dependency and license details, and returns to browsing without closing the
-launcher. Installation is an explicit action. Native/web targets use Space to
-toggle one or both choices, then Enter to confirm; nothing is selected implicitly.
-
 `NO_COLOR` and `--color never` disable colors; `--color always` explicitly enables
 them. For example, `tsrust --color never` opens the launcher without color. Narrow
 terminals omit the wordmark and scroll longer selections. `TERM=dumb` uses numbered
 prompts with `q`/EOF cancellation. When stdin or stderr is not a terminal, bare
 invocation prints help and exits successfully instead of waiting for input.
 
-The interactive launcher also retains original UI commands outside the active
-backend scope. `tsrust new` asks for a destination and project type. `tsrust new --ui`
-asks for the destination and UI targets. The destination must be new and its parent
-must exist; invalid answers retry before creating files. `tsrust ui` offers add/list,
-and `tsrust ui add` lets you select several current components with Space, then
-install them together with Enter. Target selection follows before any writes.
-These prompts require terminal input and stderr.
-`ui add --json`, `--yes` and `--dry-run` never prompt; pass component names
-and target flags for scripts, for example `tsrust ui add button card --target native`.
-An optional `@version` must match the current bundled version. Older versions are
-not offered for new installation; existing installed source remains supported.
-`tsrust ui list --bundled` groups components and foundations in a terminal;
-redirected text and `--json` preserve their plain machine-readable output.
-All catalog views show one current version per component and source variant.
-Upgrades preserve the old file and create a versioned filename such as
-`card-v3.tsrx`. Newly installed bundled dependencies import their recorded file.
-Existing application imports and customized components are never rewritten.
+## Create a project
 
 ```sh
 tsrust new hello
@@ -57,7 +40,9 @@ restarts after each successful build. Build errors leave the last working progra
 running. Ctrl+C stops the watcher and its processes. Use `--release` for optimized
 builds or `--` to pass arguments to the program. macOS, Linux and Windows have native watcher/process support.
 
-You can also run commands once:
+## Check and run
+
+Run commands once:
 
 ```sh
 tsrust check
@@ -67,6 +52,8 @@ tsrust run
 tsrust run -- --port 3000
 tsrust build
 ```
+
+## Project configuration
 
 These commands find the nearest `tsrust.config.json`, including from nested
 folders. Build/run/emit use its entry when you omit a file; build uses its output.
@@ -88,6 +75,8 @@ Config paths are relative to the config directory. Unknown settings are rejected
 Formatting currently retains the standard two-space rules. Configurable formatting,
 include/exclude paths and compilation targets are not supported yet.
 
+## Watch files and reuse builds
+
 The watcher reads `.tsr` files below the project root and excludes `.git`,
 `node_modules`, `target` and symlinks. The resolved import closure is also captured; dependencies outside that tree or
 inside excluded directories are reconciled by metadata polling.
@@ -96,19 +85,7 @@ exits normally runs again on the next change. Restarting does not preserve its
 in-memory state. The template has a `main` function, but the language does not require it.
 
 
-`tsrust test` groups results by file, marks passing and failing tests, shows failure
-sections and reports file/test totals. Durations measure test execution, excluding
-compilation. Strict equality failures show expected and received values; object
-comparison still uses identity, even when printed contents look alike. Console output from each test and its per-test hooks appears
-below that test's result, with stdout/stderr labels and the original source file,
-line and column. Imported helpers point to their own source files. Multiline output
-is indented beneath its source location. Test names are not repeated beside stream
-labels; suite setup/teardown output retains its separate scope label. Output remains
-on its original stream; logs are retained when a test fails. Colors follow
-terminal support and `--color auto|always|never`. Set `TSRUST_TEST_REPORTER=plain` for
-the compact line reporter used by older scripts. Direct `runTests()` calls retain
-that compact output unless the pretty reporter is selected through the environment.
-
+See [testing](../testing/) for test discovery, output and failure reporting.
 
 Dev output defaults to one watching message and a build/rebuild duration, followed
 by program output. Successful program exits are silent; failed builds and nonzero
@@ -129,8 +106,9 @@ trigger reconciliation of source contents; idle polls do not scan the source tre
 Unchanged file contents remain cached. Native setup/runtime failures print a message
 and fall back to metadata polling. Set `TSRUST_DEV_WATCH=poll` to force that fallback.
 macOS uses one descriptor per watched file/directory, so descriptor exhaustion also
-falls back visibly. The dev-loop milestone includes retained frontend state and separate native runtime
-compilation; see [its acceptance and remaining limits](../plans/dev-loop-performance-plan.md).
+falls back visibly.
+
+## Pass program arguments
 
 `run` accepts program arguments after `--`, with either a configured entry or an
 explicit source: `tsrust run src/main.tsr -- --port 3000`. Arguments after the
@@ -155,20 +133,3 @@ non-Unicode arguments with `EnvError` code `NotUnicode`; no lossy replacement or
 partial result is returned. The CLI's own command-line parser currently expects
 Unicode input. Flag interpretation belongs to application code.
 
-## Retained UI project entry
-
-These original commands remain compatibility support outside the active backend
-product. See [retained UI setup](tooling/retained-ui-setup.md).
-
-`tsrust new counter --ui` generates `src/app/page.tsrx`, exporting `Page`, and an
-explicit `src/main.tsr` bootstrap that imports and mounts it. `build.entry` continues
-to identify that executable file in `tsrust.config.json`; the component name is not
-an implicit executable entrypoint. This is the first root-page convention from
-UI_VISION.md. Nested discovery, layouts, loaders and navigation are pending.
-
-The native UI development runtime uses optimized renderer dependencies without
-Cargo dependency debug symbols. Application arithmetic remains checked in dev and
-release. The first native support compilation can be expensive; subsequent edits
-reuse the exact runtime artifact when the runtime/toolchain/profile are unchanged.
-`tsrust dev --verbose` reports frontend work, runtime cache status and native build
-time so a cache miss can be distinguished from application checking.

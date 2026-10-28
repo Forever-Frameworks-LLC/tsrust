@@ -48,7 +48,7 @@ Parsing is strict JSON. Duplicate keys keep the last value while counting every
 entry toward limits. Serialization sorts object keys and emits compact JSON.
 No reviver, replacer or unchecked generic decoding is supported. JSONC and JSONL
 operations remain explicit imports from `std:json`. Typed JSON/JSONC file imports
-are separate build-time data modules; see [modules](modules.md).
+are separate build-time data modules; see [modules](../../website/src/content/docs/language/modules.md).
 
 Local variables named JSON shadow the global namespace. Runtime dependencies are
 selected automatically from checked usage; no per-build linking flags are needed.

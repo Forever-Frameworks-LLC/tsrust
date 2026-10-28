@@ -967,7 +967,7 @@ cancellation, EOF, invalid-answer retries, source/format checks and unattended
 guards. Prompt unit coverage and existing help/usage checks pass. Whole-project
 formatting changes zero files/fingerprints. Native rendering, SQL and full-family
 regressions are reused rather than rerun. Evidence uses `tsrust-interactive-cli-*`
-in canonical SQLite. See [the project CLI guide](../guides/project-cli.md).
+in canonical SQLite. See [the project CLI guide](../../website/src/content/docs/tools/cli.md).
 
 ## Current HTTP editor correction — 2026-10-18
 
