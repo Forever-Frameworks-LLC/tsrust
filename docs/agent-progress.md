@@ -1802,3 +1802,27 @@ source-build link. No viewport override applied. Do not mark page fully audited.
   attempted Astro telemetry preferences outside the sandbox; retry with
   ASTRO_TELEMETRY_DISABLED=1 passed. Use that environment for future local builds.
   No Rust suite was rerun for these prose/layout changes.
+
+### HTTP request-reader milestone timing accepted
+
+- Original protocol/hash/oracle guard passes. Timed session 2471 completed PASS
+  on clean bb035b01: 93 native plus 93 Node-after-tsc samples, all checksum 5376,
+  3 processes/8 warmups/31 samples, 256 requests per batch. Optimized native
+  build completed under the existing 300s bound with one build job. No rerun.
+- Median native 11.560791 ms versus Node 20.662167 ms (1.787 ratio); mean
+  per-sample throughput ratio 1.771. New matching baseline, not evidence of a
+  historical speedup or isolated server throughput. Detailed scope and process
+  medians recorded in plans/http-request-body-readers.md.
+- Imported only raw measurement and its acceptance proof into private SQLite;
+  verified exact decoded restoration and indexed 186 samples. Public export now
+  contains 70 runs/86,622 timings/825 allocation samples; historical rows remain.
+  Removed only the two verified imported loose records. No logs/snapshots imported.
+- Export initially failed on non-hash descriptive oracleInputs; public.py now
+  omits that unallowlisted object, still rejecting malformed declared hashes.
+  Added the exact reader measurement scope to the allowlist. Five public-storage
+  tests pass, including new scope/sample-preservation and private-oracle controls.
+  Re-export completed through public.py; PUBLIC_DATA.md reports its new identity.
+- Linux 40748887685 and Windows 40748893795 last confirmed building consumers;
+  docs run 40748887897 is green. No new hosted dispatch or push. Continue those
+  runs, remaining page audits and unrepaired retained-compatibility regressions;
+  keep the full goal active.

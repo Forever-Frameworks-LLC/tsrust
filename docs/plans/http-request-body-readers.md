@@ -127,3 +127,31 @@ source 1ca135b1: 128 JSON/schema + stream pairs each produced checksum 5376.
 Source identities and the independent oracle remain in readers-manifest.json;
 verification records no timing samples. Full backend milestone regressions,
 performance measurements and additional platform execution remain separate.
+
+## Request-reader timing baseline — 2026-10-28
+
+Measured clean source bb035b01001d0305162db9b66f524d447d4c4413 with the
+registered native/Node-after-tsc counterparts and unchanged independent checksum
+5376. Three processes per engine, eight warmup batches and 31 measured batches
+per process produce 93 samples per engine. Each batch contains 128 JSON/schema
+requests and 128 contextual stream requests. All 186 observed checksums pass.
+
+Native median is 11.560791 ms per 256-request batch; Node median is 20.662167 ms,
+a 1.787 ratio of medians. Native process medians are 11.552834, 11.591834 and
+11.595042 ms; Node process medians are 20.422917, 20.899500 and 20.554416 ms.
+Mean per-sample throughput is 22,312.62 versus 12,599.00 requests/second, a
+1.771 native/Node ratio. This measures the combined sequential loopback
+client/server and decoding workload, excluding startup/build. It is not isolated
+server throughput, multicore capacity or evidence that native wins all workloads.
+There is no earlier timed matching reader epoch; no historical regression or
+optimization gain is established. Earlier untimed correctness remains separate.
+
+Original raw record SHA256:
+`805437d9c4cdb0d400901045cc6910cb76a77fe274cbfd9cabf42b72ca0d6e58`.
+Its exact bytes and acceptance proof are retained in private records.sqlite at
+`benchmarks/http/request-readers-2026-10-28T18-57-43.507Z.json` and its
+`-proof.json` sibling. Exact decoded restoration was verified before removing
+loose copies. All samples are indexed and exported through storage/public.py to
+measurements.sqlite, preserving prior rows and excluding raw input/proof contents.
+No allocation profile was measured. Remaining full regression/platform acceptance
+is not implied by this completed timing baseline.

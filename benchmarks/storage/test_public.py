@@ -73,6 +73,9 @@ class PublicTests(unittest.TestCase):
 
     def test_unknown_metadata_is_omitted_and_malformed_hashes_fail(self):
         self.assertEqual(public.metadata({'machine': {'cpu': 'private-laptop'}, 'logs': 'private-log'}), {})
+        self.assertEqual(public.metadata({'oracleInputs': {'json': 'private-input', 'batch': 128}}), {})
+        with self.assertRaises(ValueError):
+            public.metadata({'oracleInputs': {'sha256': 'private-input'}})
         with self.assertRaises(ValueError):
             public.metadata({'compilerInputs': [['local.rs', '/Users/private-person']]})
         values = public.metadata({'release': {'sourceCommit': 'a'*40, 'runtimeSourceSha256': 'b'*64,
@@ -82,6 +85,22 @@ class PublicTests(unittest.TestCase):
         self.assertEqual(public.metadata(values), values)
         self.assertEqual(values['releaseSourceCommit'], 'a'*40)
         self.assertNotIn('private', json.dumps(values))
+
+    def test_request_reader_scope_preserves_samples_without_allowing_arbitrary_scope(self):
+        self.ingest()
+        scope = 'loopback JSON/schema and contextual streaming requests; excludes startup/build'
+        with store.connect(self.db, writable=True) as source:
+            source.execute('UPDATE analytics_runs SET measurement_scope=?', (scope,))
+        output = self.root/'readers.sqlite'
+        public.export(self.db, output)
+        with public.connect(output) as target:
+            self.assertEqual(target.execute('SELECT DISTINCT measurement_scope FROM analytics_runs').fetchall(), [(scope,)])
+            self.assertEqual(target.execute('SELECT count(*) FROM analytics_samples').fetchone()[0], 8)
+        with store.connect(self.db, writable=True) as source:
+            source.execute('UPDATE analytics_runs SET measurement_scope=?', ('private local path /Users/example',))
+        with self.assertRaises(ValueError):
+            public.export(self.db, self.root/'rejected.sqlite')
+        self.assertFalse((self.root/'rejected.sqlite').exists())
 
     def test_bundled_dataset_has_only_public_measurements(self):
         with public.connect(Path(__file__).parents[1]/'measurements.sqlite') as db:
