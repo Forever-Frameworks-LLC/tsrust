@@ -113,5 +113,4 @@ all replacements: concrete origins and checked storage compatibility still matte
 
 ## Related guides
 
-- [Use optional chaining](/tsrust/language/optional-chaining/)
-- [Choose a nullish fallback](/tsrust/language/nullish-coalescing/)
+- [Optional values: chaining, fallbacks and assignment](/tsrust/language/optional-values/)

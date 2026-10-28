@@ -23,22 +23,26 @@ Use named imports for the declarations you need. See
 
 | Task | Module |
 | --- | --- |
-| Read arguments and environment variables | `std:env` |
-| Work with paths, files and bytes | `std:path`, `std:fs`, `std:bytes` |
-| Parse JSON and validate shapes | `std:json`, `std:schema` |
-| Serve or call HTTP APIs | `std:http` |
-| Work with SQLite or pooled databases | `std:sqlite`, `std:sql` |
-| Schedule async work or use threads | `std:futures`, `std:threads` |
-| Represent recoverable results | `std:result` |
-| Test native behavior | `std:testing` |
-| Use native collections and caches | `std:collections`, `std:cache` |
-| Work with clocks and calendar values | `std:time`, `std:date` |
-| Use numeric, decimal, UUID or cryptographic operations | `std:numeric`, `std:decimal`, `std:uuid`, `std:crypto` |
-| Inspect the host and handle process signals | `std:os`, `std:signals` |
+| Read arguments and environment variables | [`std:env`](../../reference/library/env/) |
+| Work with paths, files and bytes | [`std:path`](../../reference/library/path/), [`std:fs`](../../reference/library/fs/), [`std:bytes`](../../reference/library/bytes/) |
+| Parse JSON and validate shapes | [`std:json`](../../reference/library/json/), [`std:schema`](../../reference/library/schema/) |
+| Serve or call HTTP APIs | [`std:http`](../../reference/library/http/) |
+| Work with SQLite or pooled databases | [`std:sqlite`](../../reference/library/sqlite/), [`std:sql`](../../reference/library/sql/) |
+| Schedule async work or use threads | [`std:futures`](../../reference/library/futures/), [`std:threads`](../../reference/library/threads/) |
+| Represent recoverable results | [`std:result`](../../reference/library/result/) |
+| Test native behavior | [`std:testing`](../../reference/library/testing/) |
+| Use native collections and caches | [`std:collections`](../../reference/library/collections/), [`std:cache`](../../reference/library/cache/) |
+| Work with clocks and calendar values | [`std:time`](../../reference/library/time/), [`std:date`](../../reference/library/date/) |
+| Use numeric, decimal, UUID or cryptographic operations | [`std:numeric`](../../reference/library/numeric/), [`std:decimal`](../../reference/library/decimal/), [`std:uuid`](../../reference/library/uuid/), [`std:crypto`](../../reference/library/crypto/) |
+| Inspect the host and handle process signals | [`std:os`](../../reference/library/os/), [`std:signals`](../../reference/library/signals/) |
 
 Strings, arrays, maps, sets and other built-in types also expose methods without
-module imports. Supported method names and argument contracts are explicit;
-JavaScript's prototype and runtime coercion behavior are not general fallbacks.
+module imports: see [strings](../../reference/builtins/strings/),
+[arrays and tuples](../../reference/builtins/arrays/),
+[numbers](../../reference/builtins/numbers/), [Map and Set](../../reference/builtins/map-and-set/)
+and [globals, `Object`, `JSON` and `console`](../../reference/builtins/globals/).
+Supported method names and argument contracts are explicit; JavaScript's prototype
+and runtime coercion behavior are not general fallbacks.
 
 Start with [JSON parsing and inspection](../json/), [typed JSON](../typed-json/)
 or [JSONC and JSON Lines](../json-files/).
@@ -51,9 +55,9 @@ defaults, errors, return values, mutation and ownership. Check the behavior of t
 specific operation before assuming a byte offset is a character index, an input is
 copied, or a returned value can be reused after transfer.
 
-The linked guides cover selected APIs. For operations without a reference page,
-use editor help and the repository examples; check your program with the same
-compiler version you use to build it.
+Each module page lists every public operation and type with its signature,
+parameters, behavior, errors and ownership. The pages are generated from the same
+catalog as editor help, so the two always agree for a given compiler version.
 
 ## Learn by building
 

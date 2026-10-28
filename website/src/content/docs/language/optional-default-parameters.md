@@ -88,7 +88,7 @@ Defaults preserve ordinary ownership rules. A skipped initializer creates no own
 
 ## Current boundaries
 
-Defaults do not add JavaScript coercions or change native string, integer, or collection behavior. Strings retain UTF-8 semantics and ordinary native integer limits apply. Parameter rebinding remains prohibited; mutable access permits supported receiver mutation, not assignment to the parameter binding. Rest parameters, destructuring patterns and nullable array elements are supported under their own type and ownership rules. Defaults do not relax those rules. See [rest parameters](/tsrust/language/rest-parameters/), [pattern defaults](/tsrust/language/pattern-defaults-rest/) and [nullable assignment](/tsrust/language/nullish-assignment/).
+Defaults do not add JavaScript coercions or change native string, integer, or collection behavior. Strings retain UTF-8 semantics and ordinary native integer limits apply. Parameter rebinding remains prohibited; mutable access permits supported receiver mutation, not assignment to the parameter binding. Rest parameters, destructuring patterns and nullable array elements are supported under their own type and ownership rules. Defaults do not relax those rules. See [rest parameters](/tsrust/language/rest-parameters/), [pattern defaults](/tsrust/language/pattern-defaults-rest/) and [nullish assignment](/tsrust/language/optional-values/#nullish-assignment).
 
 ## Related guides
 
