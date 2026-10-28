@@ -51,6 +51,12 @@ as arbitrary TypeScript compatibility or revival of deferred UI work.
   and Linux. Add Windows hosted validation and non-publishing package validation.
 - [ ] Reconcile supported language behavior, CLI help, guides and runnable examples;
   verify behavioral examples and complete required IntelliSense documentation.
+- [ ] Migrate public documentation to Astro Starlight following
+  [the public documentation plan](plans/public-documentation-site.md). Prioritize
+  the plan, digestible expandable sections, reviewed content migration, removal of
+  superseded public Markdown, repository link migration and an automatically
+  deployed free static host. Preserve internal/historical evidence and retained UI
+  consumers. Hosting choice awaits acknowledgement of GitHub Pages limits.
 - [ ] Complete remaining feature-family regressions and matched performance
   evidence, review regressions, and reconcile the checklist with authoritative
   results. Unexecuted platform checks and legacy lint debt stay explicit.

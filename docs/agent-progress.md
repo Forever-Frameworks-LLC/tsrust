@@ -1,5 +1,22 @@
 # Agent continuation state
 
+## Owner priority: public documentation site
+
+The owner requested a Markdown-first plan and prioritized implementation of an
+expandable Astro Starlight site, migration/removal of duplicate public Markdown,
+and links from repository entry points to actual hosted documentation. See
+plans/public-documentation-site.md. GitHub Pages is preferred conditionally, with
+Cloudflare/Netlify alternatives; the owner has been asked to choose after receiving
+Pages' actual size/bandwidth limits. Site implementation can proceed independently
+of that answer, but hosting activation must respect the choice.
+
+Preserve live work: local full backend regressions are running in exec session
+79249 at source 643b06ca, log /tmp/tsrust-backend-milestone.log. Windows repaired
+acceptance is run 40705140781 at the same source. Draft staging PR #4 has commit
+4df6609649f80e2ce6bb45142a69d73d86814f28, whose tree exactly equals 643b06ca;
+local checkpoint branch/history remains intact. Do not restart live jobs or push
+routine docs iterations to that PR while its CI is running.
+
 ## Current priority: polish acceptance on the installed staged pipeline
 
 PR #2 merged as caf5284b. Bootstrap PR #3 passed required PR CI 40694096077
