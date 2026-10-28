@@ -1,6 +1,39 @@
 # Agent continuation state
 
-## Current continuation — destructuring guide migration accepted
+## Current continuation — interfaces and optional fields accepted
+
+Previous turn progressed at3c3c62f2. Migrated interfaces and optional-fields to
+canonical site pages; removed duplicate guides and updated coverage links. Corrected
+the stale generic-base restriction in both guide and coverage: type arguments,
+imported bases and aliases are supported. Nominal type identity remains explicit.
+Added complete generic/alias inheritance and quoted-key examples, labeled the
+projection fragment with prerequisites, and used readable section titles.
+
+Source audit traced syntax interface_declaration/inherit_interface_fields and
+analysis fill_omitted_optional_fields. Six snippets pass format/idempotence/check
+and native output: five complete programs and one fragment with stated context.
+Interfaces7 and quoted-property3 compiler regressions pass; stdio formatting1 and
+quoted-member completion1 editor tests pass. Prior optional_fields3 evidence at
+3c3c62f2 retained because implementation unchanged. Logs:
+/tmp/tsrust-record-doc-compiler.log, /tmp/tsrust-record-doc-quoted.log,
+/tmp/tsrust-record-doc-editor.log, /tmp/tsrust-record-doc-quoted-editor.log.
+All validation processes finished successfully.
+
+Both complete pages reviewed at390/1440, with revised optional-field heading
+rechecked on mobile. Highlighting, focusable overflowing code, keyboard scroll40px,
+skip/next/section navigation and zero mobile document overflow pass. Viewport reset;
+tab4 retained on optional fields. Final40-page build and same-site links/anchors
+pass (/tmp/tsrust-record-doc-site.log). Audit and migration rows accepted.
+Full-project formatter and diff check required before local checkpoint.
+
+Next: continue remaining finite guide migration, especially ownership and nullable
+operators. Keep current platform setup, updated Windows/Linux editor fixture and
+fresh acquisition checks, plus actual Pages deployment pending. No push, hosted
+CI, release, timing or full suite this section. Goal active; one writer, shared
+Cargo target, jobs1/incremental0. No compiler/runtime changes.
+
+
+## Prior continuation — destructuring guide migration accepted
 
 Previous turn progressed at d04419c8. This section completes the guide migration
 into three canonical pages: language/destructuring, pattern-defaults-rest and
