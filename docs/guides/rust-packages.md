@@ -56,9 +56,30 @@ serde and serde_json pins cannot be overridden through project package commands.
 Every modifying command supports --dry-run and --offline. Previews still compile
 and run tests, then discard the candidate. --offline prevents registry access and
 requires suitable locally cached sources; it does not mean "skip validation".
-`tsrust bindings resolve path.bindings.json --offline` restores the currently locked
-vendor closure after cloning when Cargo's source cache is warm. Ordinary builds and
-exports remain offline and locked.
+`tsrust bindings resolve path.bindings.json` explicitly fetches the exact locked
+sources into Cargo's shared cache. Add `--offline` to require already-cached sources.
+Ordinary check/emit/build/dev commands never download or create vendor copies.
+Native builds reuse compiled support for the same locked graph and account for
+Cargo configuration/environment changes. Missing sources require explicit resolution.
+New binding files use schemaVersion 2, whose runtime graph contains backend
+dependencies. Version 1 remains the explicit legacy full-runtime format; its locks
+are preserved without inferring a format from their incidental package contents.
+Unknown versions fail before resolution. New package commands create version 2;
+commands on an existing version 1 file preserve its format and exact graph.
+
+For a relocated offline source export, prepare its source pack explicitly:
+
+```sh
+tsrust bindings resolve path.bindings.json --portable --offline
+tsrust emit main.tsr --package -o exported
+```
+
+Portable preparation uses Cargo vendor, verifies locked package/file checksums and
+retains licenses. Export then needs neither Cargo nor network access, and fails
+with preparation guidance if the exact pack is absent or changed. Changing the
+binding graph requires a matching source pack. Keep the same Cargo home or set
+TSRUST_SOURCE_PACK_DIR explicitly when exporting without the toolchain. The exported
+package includes its own vendor directory and can rebuild offline after relocation.
 
 ## Validation and publication
 
@@ -72,9 +93,10 @@ A failed resolution, adapter build, caller check or test leaves published depend
 configuration and custom adapters unchanged. Changed source inputs abort publication.
 Concurrent package commands selecting the same configuration serialize. Configuration
 and its Cargo lock are published together in one atomic file generation; legacy
-adjacent lockfiles remain readable and are not deleted during migration. Newly staged
-unpublished caches are removed after failure or preview. Accepted vendor generations
-remain available for builds already using them.
+adjacent lockfiles remain readable and are not deleted during migration. Temporary validation files are removed after failure or preview. Cargo's shared
+source and compiled caches may retain work from those explicit commands; published
+configuration and adapters do not change. Historical vendor directories are preserved
+but ordinary builds no longer consume them.
 
 Compilation detects incompatible Rust APIs and source ownership/type changes. Tests
 check exercised behavior; neither SemVer nor successful compilation proves untested

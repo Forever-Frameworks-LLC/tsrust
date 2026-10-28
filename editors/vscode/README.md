@@ -35,6 +35,16 @@ an executable and is never silently ignored. For a custom installation:
 }
 ```
 
+For a [managed installation](../../docs/guides/toolchain-installation.md), configure
+both paths to the stable launchers under its `bin` directory. On Windows, include
+`.exe`. The launchers select the installed compiler/server pair together.
+
+An `ENOENT` startup warning means a configured path no longer exists. Check both
+user and workspace settings for stale build paths such as `target/editor/debug`.
+Correct the path to the installed executable, or remove the override to use
+discovery. The extension deliberately reports invalid explicit settings instead
+of silently running another installation.
+
 Use user settings to share paths across projects. Open a `.tsr` or `.tsrx` file
 in a trusted workspace. **View → Output → Tsrust** shows startup and protocol
 errors. Run **Tsrust: Restart Language Server** after replacing its executable;
@@ -71,9 +81,9 @@ and unopened source. Unsupported syntax or an unfinished declaration can still
 limit recovery; an absent answer is not proof that an API does not exist.
 Report a reproducible compiler/editor disagreement as a bug.
 
-UI projects have an explicit bootstrap at `src/main.tsr` and root component at
+Retained UI projects have an explicit bootstrap at `src/main.tsr` and root component at
 `src/app/page.tsrx`. Open the project root for config-aware diagnostics and JSX
-completion. See [project structure](../../docs/content/getting-started/project-structure.md).
+completion. See [retained UI setup](../../docs/guides/tooling/retained-ui-setup.md).
 
 ## Build locally
 
@@ -81,8 +91,7 @@ From the repository root, with Node.js 24, npm and the pinned Rust toolchain:
 
 ```sh
 cargo fetch --locked
-cargo fetch --locked --manifest-path crates/tsrust-compiler/native-dependencies/Cargo.toml
-CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 cargo build --offline --locked --release --bin tsrust --bin tsrust-lsp
+CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 cargo build --offline --locked --release -p tsrust-compiler -p tsrust-lsp --bin tsrust --bin tsrust-lsp
 npm --prefix editors/vscode ci
 npm --prefix editors/vscode run package
 code --install-extension editors/vscode/tsrust-0.2.0.vsix --force

@@ -310,5 +310,5 @@ pub(super) fn http_result(analyzer:&Analyzer,receiver:Option<Type>,member:&str,a
  if let Some(operation)=crate::stdlib::sql::method(identity,member){if crate::stdlib::sql::asynchronous(operation)!=awaited{return None;}let binding=crate::native_bindings::lookup("std:sql",operation).ok()?;let ty=native_type(binding.result,&analyzer.program.records);return Some(if awaited{unwrapped(analyzer,ty).unwrap_or(ty)}else{ty});}
  let operation=crate::stdlib::http::method(identity,member)?;
  if crate::stdlib::http::asynchronous(operation)!=awaited{return None;}
- let binding=crate::native_bindings::lookup("std:http",operation).ok()?;if binding.result==crate::native_bindings::NativeType::ObservedValue{return None;}let ty=native_type(binding.result,&analyzer.program.records);Some(unwrapped(analyzer,ty).unwrap_or(ty))
+ let binding=if operation=="__requestJson"{crate::native_bindings::lookup("std:json","parse").ok()?}else{crate::native_bindings::lookup("std:http",operation).ok()?};if binding.result==crate::native_bindings::NativeType::ObservedValue{return None;}let ty=native_type(binding.result,&analyzer.program.records);Some(unwrapped(analyzer,ty).unwrap_or(ty))
 }

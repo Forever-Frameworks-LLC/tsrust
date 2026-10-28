@@ -24,21 +24,20 @@ or update acceptance.
 1. Keep accepted compiler/LSP/editor agreement and repaired docs startup clean.
    Complete affected checks before each full-source checkpoint and keep installed
    consumers current after validation.
-2. Preserve accepted server-owned app/ API and independent SDK generation. Finish
-   actual Rust old/new native replica and protected-service coverage, retaining
-   auth, validation, bounded structured failures and rolling-deployment safety.
-3. Finish [checked request-body readers](plans/http-request-body-readers.md) and
-   async std:testing registration. Keep all HTTP I/O async; reuse form/multipart
-   readers and defer XML until a checked upstream parser is chosen.
-4. Finish shared-source dependency distribution: ordinary binding graphs must also
-   migrate to Cargo's shared sources. Optional prepared portable packs already replace
-   embedded vendors for the accepted backend/export section. Retain exact locks, ownership, complete notices/prerequisites,
-   relocation/offline parity and tooling-free deployment. Normal commands never
-   install or download silently.
-5. Deliver prebuilt paired CLI/LSP installation and explicit latest-stable checking/
-   updating. Verify trusted metadata, host/architecture and bytes; preserve package-
-   manager ownership, recover interrupted/failed replacement and handle locked
-   Windows binaries. Record real Windows/macOS/Linux execution separately.
+2. Preserve accepted server-owned app/ API and independent SDK generation. Native
+   old/new Rust and TypeScript replicas now cover protected services, authorization,
+   structured failures and rolling-deployment compatibility.
+3. Checked request-body readers and async std:testing registration have focused
+   compiler/native/editor acceptance. Keep all HTTP I/O async; defer XML until a
+   checked upstream parser is chosen. Request-body matched timing remains pending.
+4. Shared-source distribution includes ordinary schema 2 binding graphs, exact
+   locks and optional validated portable exports. Schema 1 preserves its legacy
+   graph. Normal commands never install or download silently.
+5. Paired CLI/LSP install, check, update and rollback are implemented with trusted
+   metadata, bounded archive validation, immutable version directories and atomic
+   pair selection. Package-manager ownership and recovery have focused macOS
+   evidence. Complete Windows/Linux and actual published-artifact acceptance before
+   claiming cross-platform distribution complete.
 
 Use [current progress](agent-progress.md) for live sessions, completed checks and
 next executable actions. Reserve full compiler/LSP regressions and matched

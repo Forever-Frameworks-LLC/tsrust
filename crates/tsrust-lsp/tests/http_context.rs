@@ -1,5 +1,15 @@
 mod support;
 #[test]
+fn contextual_stream_help_preserves_context_contract(){
+ let source="import {Router} from 'std:http';function main(){const app=new Router();app.post('/',async(c)=>{const body=c.req.body();const value=await body.text();return c.text(value);});}";
+ let mut session=support::session::Session::start(&[]);session.open("main.tsr",source);session.settle();
+ let offset=source.find("c.req.body()").unwrap()+6;
+ let hover=session.hover("main.tsr",source,offset).unwrap_or_default();
+ for expected in ["body()", "Context response helpers", "Ownership", "1048576"]{assert!(hover.contains(expected),"{hover}");}
+ let completion=session.completion("main.tsr",source,offset).unwrap();
+ assert!(completion.iter().any(|value|value=="body"),"{completion:?}");
+}
+#[test]
 fn static_mount_completion_and_help() {
  let source="import {Router} from 'std:http';function main(){const app=new Router();app.serveStatic('/web','dist','index.html');}";
  let mut session=support::session::Session::start(&[]);session.open("main.tsr",source);session.settle();

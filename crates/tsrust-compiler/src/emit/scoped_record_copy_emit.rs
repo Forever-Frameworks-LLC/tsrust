@@ -2,6 +2,12 @@
 use super::*;
 impl Emitter<'_> {
     fn parameter_record_source(&self,fun:&CheckedFunction,value:&Expr)->Option<(usize,usize,Vec<usize>)> {
+        let mut root=value;
+        loop {match &root.kind {
+            ExprKind::Name(_)=>break,
+            ExprKind::Field(base,_) if matches!(base.ty,Some(Type::Record(_)))=>root=base,
+            _=>return None,
+        }}
         let(root,steps)=self.storage_steps(value);let id=root.binding?;
         let mut record=self.record_parameter_layout(fun,id)?.record;
         let mut path=Vec::new();

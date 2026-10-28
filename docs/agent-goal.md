@@ -1,4 +1,4 @@
-# Goal: Tsrust backend framework, HTTP SDKs and distribution
+# Goal: Tsrust language, CLI, documentation and platform polish
 
 Owner-approved replacement direction, 2026-10-27. The owner authorized continuation
 of this goal after aligning it with backend-only scope. This supersedes the earlier
@@ -8,6 +8,57 @@ React/Electron/Expo application prototype objective. Follow
 Historical application-platform plans and acceptance remain evidence, not active UI
 requirements. No React, Electron, Expo, TanStack or frontend package-manager
 orchestration work is required. Users bring their own UI and call HTTP APIs.
+
+## Continuation mandate — 2026-10-28
+
+The owner requested autonomous continuation after PR #2 CI succeeds, completing
+language, CLI and documentation polish with Windows support explicitly required.
+CI run 40663277431 passed all four checks on commit 5b09ec80. The owner later
+authorized the bootstrap merge: PR #2 merged as caf5284b with the identical tree.
+The staged pipeline is authorized to publish successful stag-to-main promotions;
+bootstrap itself must not publish a release.
+Work continues on codex/language-cli-docs-polish from that tested source.
+
+The finite completion checklist below carries forward the backend-only handoff.
+Audit current evidence before changing accepted behavior. Do not interpret polish
+as arbitrary TypeScript compatibility or revival of deferred UI work.
+
+- [x] Accept pending async std:testing registration: compiler/native ownership,
+  factory outputs, shared multi-file state, real HTTP execution, failures/teardown,
+  project cache reuse and all three focused LSP tests. Ordinary PR CI did not run
+  the testing_async integration targets. Hosted run 40672007920 on c5b3d4a9
+  subsequently passed all 11 compiler/native cases, 3 LSP cases and all-target
+  diagnostics on Linux, macOS and Windows.
+- [x] Complete request-body JSON decoding and contextual body streaming with
+  limits, one-consumption behavior, error handling, docs and editor agreement.
+  Focused native/compiler/catalog controls, HTTP receiver agreement and both
+  typing-speed rows pass; native/Node untimed readers each produce 5376.
+  Backend all-target diagnostics are clean. Timings remain a milestone task.
+- [x] Close remaining generated TypeScript/Rust SDK authorization and compatible/
+  incompatible replica execution requirements against a real native service.
+  The native SDK replica witness passes on macOS arm64 with old/new generated
+  clients, protected metadata, denied operations, missing-operation/API-major
+  compatibility errors and no mutation effects for rejected calls. Prior saved/
+  live description and typed-model evidence remains in server-owned-api.md.
+- [x] Finish ordinary binding dependency migration while retaining exact offline
+  portable exports and shared-cache integrity. Focused macOS acceptance passes:
+  package transactions 7/7, shared/portable sources 4/4, schema controls, schema 2
+  editor help and backend all-target diagnostics. Platform execution remains part
+  of the distribution milestone.
+- [ ] Complete paired CLI/LSP install, doctor, setup, update checks, replacement,
+  rollback and recovery. Execute Windows native compiler/test/dev/editor and
+  installation/update paths, including locked binaries; separately verify macOS
+  and Linux. Add Windows hosted validation and non-publishing package validation.
+- [ ] Reconcile supported language behavior, CLI help, guides and runnable examples;
+  verify behavioral examples and complete required IntelliSense documentation.
+- [ ] Complete remaining feature-family regressions and matched performance
+  evidence, review regressions, and reconcile the checklist with authoritative
+  results. Unexecuted platform checks and legacy lint debt stay explicit.
+
+The owner clarified that this is a different computer; the earlier fan stop does
+not apply here. Resume bounded local validation with one Cargo job, incremental
+compilation disabled and resource checks. Use hosted jobs for platform evidence.
+No recurring automation is required.
 
 ## Current owner clarifications
 

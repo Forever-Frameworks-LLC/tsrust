@@ -6,14 +6,15 @@ project-specific setup. Native execution requires the pinned Rust backend.
 | Build | Start here |
 | --- | --- |
 | A console project | `tsrust new hello`, then `cd hello && tsrust run` |
+| A backend HTTP application | `tsrust new hello --app`; see [the guide](../docs/guides/application-projects.md) |
 | Tests and assertions | [testing/](testing/) |
 | HTTP routing and request state | [http-context/](http-context/) and [http-state/](http-state/) |
 | An integrated service | [service/](service/) |
 | SQL values and migrations | [sql-domain-values/](sql-domain-values/) and [sql-migrations/](sql-migrations/) |
 | A cache or queue | [cache/](cache/) and [work-queue/](work-queue/) |
 | Rust bindings | [rust-data-boundaries/](rust-data-boundaries/) and [rust-regex/](rust-regex/) |
-| A reactive UI | [ui-application/](ui-application/) and [ui-composition/](ui-composition/) |
-| The shared docs application | [../docs/](../docs/) |
+| Retained reactive UI | [ui-application/](ui-application/) and [ui-composition/](ui-composition/) |
+| Retained shared docs application | [../docs/](../docs/) |
 
 Examples demonstrate scoped supported behavior. They are not blanket compatibility
 claims for TypeScript, Hono or shadcn. Some require databases, a graphical desktop,

@@ -32,7 +32,20 @@ route groups and automatic typed route parameters are not supported.
 
 `c.req` exposes request headers, parameters, method and URL. `await c.req.text()`,
 `form()` and `multipart()` consume the body once while preserving metadata;
-repeated body reads throw. The context's body cannot be moved into detached work.
+repeated body reads throw. `c.req.body()` transfers the unread stream without
+performing I/O and preserves the context for metadata and response helpers.
+The stream owns its body; acquiring it counts as the single read, even if the
+stream is dropped or later fails. A subsequent `body()`, `text()`, `form()` or
+`multipart()` throws `HttpError` code `body`.
+`await c.req.json()` parses checked, owned `JsonValue` data and also consumes once,
+including on failure. Use `schema.parse(await c.req.json())` for a typed DTO;
+`json()` accepts no arguments or type arguments and does not make unchecked casts.
+It parses regardless of Content-Type. Empty, malformed or trailing JSON throws
+`JsonError` with a code, message and byte offset. Body and UTF-8 failures retain
+their `HttpError` type. In addition to the request byte limit, JSON enforces its
+16 MiB input, depth 64, and 1000000 entry/node limits. The
+[JSON request test](../../examples/http-context/json.test.tsr) demonstrates schema
+validation and a response after reading. `c.json(value)` remains the response helper.
 `c.text`, `html` and `json` create responses to return; `c.header` changes response
 headers before or after downstream work. `c.res` is read-only: after `await next()`
 it exposes the current response status and headers. Before a response returns,
@@ -139,6 +152,11 @@ or `body.text()` for strict UTF-8. `stream(body)` forwards frames on demand; it
 does not collect the entire body first. Body reads and forwarding enforce a
 cumulative 1 MiB limit, including chunked messages. A limit error does not return
 truncated successful data. Errors after response headers cannot change the status.
+
+Inside a route, `const body = c.req.body(); const value = await body.text();`
+leaves `c` usable for `return c.text(value)`. The stream inherits the configured
+request byte limit. See the executable
+[context streaming test](../../examples/http-context/body-stream.test.tsr).
 
 A `Client` reuses connections. Await `client.send(request(method, url, text))`;
 HTTP error statuses remain responses, while I/O failures throw `HttpError`.

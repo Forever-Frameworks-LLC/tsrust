@@ -116,7 +116,8 @@ pub fn run(command: &mut Command, seconds: u64) -> Output {
 pub fn success(output: &Output) {
     assert!(
         output.status.success(),
-        "{}",
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
     );
 }

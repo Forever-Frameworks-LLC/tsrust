@@ -1,5 +1,10 @@
 # Create and develop a Tsrust project
 
+Create a backend service with `tsrust new hello --app`, or a console program with
+`tsrust new hello`. See [backend applications](application-projects.md) for server
+operations and independent TypeScript/Rust SDKs. Prepare native tools and shared
+dependency sources explicitly using [machine setup](tooling/machine-setup.md).
+
 Run `tsrust` without arguments in a terminal to open the interactive command menu.
 The launcher groups actions into Development, Quality, UI and Project screens,
 with help and exit alongside them. Development and Quality appear inside projects.
@@ -19,7 +24,8 @@ terminals omit the wordmark and scroll longer selections. `TERM=dumb` uses numbe
 prompts with `q`/EOF cancellation. When stdin or stderr is not a terminal, bare
 invocation prints help and exits successfully instead of waiting for input.
 
-`tsrust new` asks for a destination and console/UI project type. `tsrust new --ui`
+The interactive launcher also retains original UI commands outside the active
+backend scope. `tsrust new` asks for a destination and project type. `tsrust new --ui`
 asks for the destination and UI targets. The destination must be new and its parent
 must exist; invalid answers retry before creating files. `tsrust ui` offers add/list,
 and `tsrust ui add` lets you select several current components with Space, then
@@ -49,7 +55,7 @@ digits, hyphens or underscores. A destination path is allowed if its parent exis
 `dev` builds and starts the program, watches project source and config changes, and
 restarts after each successful build. Build errors leave the last working program
 running. Ctrl+C stops the watcher and its processes. Use `--release` for optimized
-builds or `--` to pass arguments to the program. macOS and Linux are supported.
+builds or `--` to pass arguments to the program. macOS, Linux and Windows have native watcher/process support.
 
 You can also run commands once:
 
@@ -83,7 +89,8 @@ Formatting currently retains the standard two-space rules. Configurable formatti
 include/exclude paths and compilation targets are not supported yet.
 
 The watcher reads `.tsr` files below the project root and excludes `.git`,
-`node_modules`, `target` and symlinks. Changes to external imports are not watched.
+`node_modules`, `target` and symlinks. The resolved import closure is also captured; dependencies outside that tree or
+inside excluded directories are reconciled by metadata polling.
 Development binaries are temporary; `build` writes the named output. A program that
 exits normally runs again on the next change. Restarting does not preserve its
 in-memory state. The template has a `main` function, but the language does not require it.
@@ -117,7 +124,7 @@ build/publication and combined native compilation/linking timings.
 Dev shares the validated project cache at `target/tsrust-native` across edits and
 sessions. Each running executable remains a private copy, so builds cannot overwrite
 its inode. Identical source/toolchain/options reuse an artifact; a new source version
-still needs native compilation. The watcher uses native filesystem notifications on macOS and Linux. Notifications
+still needs native compilation. The watcher uses native filesystem notifications on macOS, Linux and Windows. Notifications
 trigger reconciliation of source contents; idle polls do not scan the source tree.
 Unchanged file contents remain cached. Native setup/runtime failures print a message
 and fall back to metadata polling. Set `TSRUST_DEV_WATCH=poll` to force that fallback.
@@ -130,7 +137,7 @@ explicit source: `tsrust run src/main.tsr -- --port 3000`. Arguments after the
 separator are passed directly to the executable, without shell interpretation.
 Flags such as `--help` and `--release` after the separator belong to the program;
 compiler options belong before it. Empty arguments, spaces and Unicode are
-preserved. This does not add a language API for reading process arguments.
+preserved.
 
 Read forwarded arguments with `std:env.args()`:
 
@@ -148,7 +155,10 @@ non-Unicode arguments with `EnvError` code `NotUnicode`; no lossy replacement or
 partial result is returned. The CLI's own command-line parser currently expects
 Unicode input. Flag interpretation belongs to application code.
 
-## UI project entry
+## Retained UI project entry
+
+These original commands remain compatibility support outside the active backend
+product. See [retained UI setup](tooling/retained-ui-setup.md).
 
 `tsrust new counter --ui` generates `src/app/page.tsrx`, exporting `Page`, and an
 explicit `src/main.tsr` bootstrap that imports and mounts it. `build.entry` continues

@@ -1,5 +1,216 @@
 # Agent continuation state
 
+## Current priority: polish acceptance on the installed staged pipeline
+
+PR #2 merged as caf5284b. Bootstrap PR #3 passed required PR CI 40694096077
+at 321bfe6e and merged as 0b6444292ee5c120efa16b4ea78237fcf793a052.
+The earlier manual run was green but lacked the required PR merge-commit status;
+no protection was weakened. Release preflight rejected the non-stag bootstrap and
+skipped all platform builds. No release was published.
+
+Created stag at the bootstrap merge and installed/read back the approved rules:
+stag rule 26047191 requires strict CI with no bypass; review rule 25884267 requires
+one approval with only Cotter45 (80602015) allowed PR review bypass. Main rule
+25884039 requires strict Release gate with no bypass and merge commits only.
+Tag rule 25884041 permits new v* tags but denies updates/deletion/non-fast-forward
+with no bypass. Repository immutable releases is enabled. Merge commits and squash
+are enabled. Preserve local stag-only CI on reconciliation, removing the one-time
+bootstrap main trigger in the first polish PR.
+
+Windows toolchain/cache run 40700593542 at cc268923 completed failed. Compiler/LSP
+build and portable preparation passed. Both test compilation and all-target checking
+failed because the included dev_windows unit test referenced crate::TempDirectory
+which the integration harness did not define; no installer/cache tests ran. The
+existing CLI temporary-directory helper is now shared unchanged with that harness.
+Local installer acceptance passes 7/7 (15.37s), and backend all-target diagnostics
+pass cleanly. The repaired Windows job must still execute. Documentation audit
+was checkpointed at 800b10bf.
+Reconcile the accepted polish tree onto stag after its clean checkpoint, preserving
+all current edits and prior evidence. Linux installer/cache acceptance follows in
+the mandatory feature PR CI; do not publish merely to test release plumbing.
+
+## Documentation and first-run content acceptance
+
+Public entry points now describe backend-only scaffolding, independent SDKs,
+shared Cargo sources, paired installation and Windows prerequisites. Original UI
+setup moved to guides/tooling/retained-ui-setup.md; historical roadmap and vision
+remain intact. Editor setup explains explicit stale-path ENOENT recovery. CLI help
+now names both SDK languages and fixes its corrupted title punctuation.
+
+A fresh docs content build exposed virtual publication import resolution through
+an absent target/docs-content directory. PublicationInputs now resolves normalized
+imports from virtual modules before touching the filesystem; ordinary disk module
+resolution remains unchanged. Its focused first-run witness passes. The actual
+content build passes: 166 pages, 36 checked examples, 1002 API declarations offline.
+Existing CLI help witness and all six distribution/public-link tests pass. README’s
+native example prints exactly TypeScript + Rust. Whole-project formatting/check and
+diff whitespace checks pass with zero source/fingerprint changes. Disposable log:
+/tmp/tsrust-docs-check.log. No timing or full milestone acceptance is inferred.
+
+## Local work while bootstrap CI runs
+
+Binding-cache migration passed backend all-target checking without diagnostics on
+its initial implementation. Initial focused acceptance passed package management
+7/7, compiler Rust bridge 6/6, compiler API project 4/4, LSP Rust bridge 6/6 and LSP
+API project 1/1. Two shared-source tests passed; two require a repaired rerun: the
+new witness used the wrong timing environment variable, and the existing portable
+witness lacked its prepared source-pack directory. The standard portable pack is
+now prepared under target/portable-source-packs; reuse it.
+
+The owner emphasized secure, efficient, reliable and maintainable design rather
+than preserving existing structure by default. Binding schema 2 now explicitly
+selects the backend graph; schema 1 preserves the legacy graph. No lock-content
+heuristics determine compatibility. The timing witness uses TSRUST_BUILD_TIMINGS.
+Session 81947 completed successfully: package management 7/7 (124s), shared
+sources 4/4 (71s), including cache reuse, missing-source guidance, relocated
+offline exports and corrupted-pack rejection. Log: /tmp/tsrust-binding-recheck.log.
+Whole-project formatting/check passed with zero changes. Session 21763 completed
+successfully: both binding schema unit controls passed (30 matched library tests
+total), schema 2 LSP signature/hover/definition/edit invalidation passed, and backend
+all-target diagnostics finished without errors or warnings (73s). Logs:
+/tmp/tsrust-binding-schema.log and /tmp/tsrust-binding-final-check.log. This section is accepted at 97340657 and included in the subsequent Windows
+acceptance push.
+Preserve previously passed unrelated API/LSP checks. Full milestone, platform and
+paired installer/update acceptance remain open. The next implementation contract
+is plans/paired-toolchain-updates.md: versioned pairs and one atomic selection
+record avoid overwriting running binaries. Implementation now exists locally in toolchain_cli.rs, toolchain_release.rs and
+toolchain_install.rs, with versioned immutable pairs, authenticated metadata,
+bounded archive validation, launcher dispatch, atomic selection/rollback, and
+interruption/ownership/locked-process fixtures. Added tar 0.4.46 without optional
+xattr (and filetime 0.2.29); locked host dependencies fetched. LSP --version and
+doctor/help/docs are wired. Focused local acceptance now passes: both real consumers build and run without
+development tooling; seven installer tests pass (final 15.84s), including rollback,
+interruption reuse, file/version integrity and a running old executable; backend
+all-target diagnostics are clean; 14 policy/distribution tests pass. The live HTTPS
+check correctly reports no stable release. See milestones/paired-toolchain-installation.md.
+The paired installer checkpoint is cc268923ac0b0db34eb30267463cdac86da83408.
+It was pushed to codex/language-cli-docs-polish. Focused Windows acceptance run
+40700593542 is live on that exact head: only the Windows job runs; ordinary source,
+editor and async jobs are skipped. Inspect that run, retain passed groups, and
+repair/rerun only failed groups. Ordinary
+Linux staging CI now covers installer/shared-source/package tests; renderer execution
+is restricted to an explicit full regression, and consumer builds select backend
+packages explicitly. No public release was launched. The single Windows job above is the only new
+hosted installer/cache run.
+Whole-project formatting/check passed with zero changes before cc268923. Await
+bootstrap PR CI 40694096077 (last verified live in LSP agreement) before merging/
+migrating the live pipeline. Then reconcile this
+polish branch with bootstrapped main, preserve its stag-only CI, and execute the
+Windows acceptance result without dispatching a duplicate. Next independent work:
+audit active language/CLI/install docs against implemented commands, then run the
+required backend-family regression/performance milestone once implementation and
+documentation are coherent. The broad goal remains active.
+
+HTTP reader acceptance is complete at 98ddde67: native/Node checksum 5376,
+HTTP-specific compiler/editor agreement, catalog examples and clean all-target
+checking. Native SDK acceptance/fresh Unix scaffold fix is complete at e9dd2fe7:
+compiler API-project 4/4, LSP API-project 1/1, real Rust/TypeScript replica test and
+zero-warning all-target diagnostics. Preserve those results; do not repeat them
+for unrelated binding changes. Their temporary projects/processes were removed.
+
+## Active polish continuation — 2026-10-28
+
+Owner requested a sustained goal covering language, CLI, docs and Windows support
+after CI succeeds. Goal is active; the finite checklist is in agent-goal.md.
+Baseline 5b09ec80 passed hosted CI run 40663277431 on Linux/macOS plus VS Code.
+Both platforms passed 1290 compiler library tests (8 existing ignores), selected
+CLI integration suites, 162 renderer tests, LSP library/binary tests, the complete
+agreement/completion matrices, editor consistency and stdio. Clippy correctness
+lints passed; legacy warnings remain. No release or Windows acceptance is implied.
+PR #2 subsequently merged with owner authorization; continue local polish on
+codex/language-cli-docs-polish while the isolated bootstrap PR #3 runs.
+
+Async registration acceptance is complete on c5b3d4a9. Hosted CI run
+40672007920 passed on Linux (122760868408), Windows (122760867985), and macOS
+(122760868454). Each passed all 11 focused compiler/native/CLI tests, all 3 LSP
+witnesses, and backend all-target diagnostics without warnings. Ordinary PR CI did
+not cover these targets; this separate run closes their pending handoff evidence.
+No performance measurement or package/install acceptance is implied.
+
+The owner clarified that this is a different computer. The old fan restriction
+applies to the previous machine; bounded local validation can resume here. This
+Mac is arm64 with 8 GiB RAM, 8 logical CPUs and 57 GiB free disk. Use one Cargo job,
+CARGO_INCREMENTAL=0 and the existing target. Disable dev debug symbols to reduce
+resource use. Initial offline all-target check stopped before compilation because
+http-range-header was absent from the local Cargo cache. Locked host dependencies
+were fetched; backend all-target checking then passed in 2m11s with no warnings.
+Keep checks focused and inspect resource pressure.
+
+## Windows package validation — historical preparation
+
+This section records the earlier pre-bootstrap workflow; the staged flow above
+supersedes its tag-triggered publication behavior.
+
+Release workflow changes add x86_64-pc-windows-msvc packaging with explicit .exe
+inputs and Bash commands, plus a manual artifact-only validation path. Manual
+runs derive the version from the clean source, run packaging tests and native CLI
+smokes, and retain temporary Actions artifacts. The publish job requires a v* tag
+push; manual dispatch cannot publish. Tag-triggered runs retain the existing CI
+prerequisite. Notice collection includes all three locked dependency closures.
+Release guide reflects the backend source-pack design and four configured hosts.
+The distribution smoke now optionally accepts the packaged LSP and checks its
+initialize response, hover capability and successful shutdown outside the source
+tree; all four package jobs pass both executable paths. It reuses the existing
+framed stdio smoke pattern from check-service.mjs. This checks actual executable
+startup rather than only manifest bytes. Existing CLI-only smoke calls still work.
+These changes are not yet executed or accepted. Async acceptance is green, so
+package validation was dispatched from f225ddc3 as run 40675476340. The owner
+then requested conserving GitHub usage; this four-platform run is confirmed
+cancelled. Use local validation by default. Batch only necessary
+Windows/Linux evidence into a targeted hosted run after local acceptance. Do not
+restart the cancelled run or repeat already-passed async jobs. Package
+smokes are not paired installer/update or locked-LSP acceptance.
+
+## Request-body section — focused acceptance complete
+
+Contextual streaming now lowers c.req.body() through a mutable Context operation
+that reuses take_request_body. It returns the existing bounded Stream, keeps request
+metadata and response helpers usable, and rejects repeated/mixed body acquisition.
+An async std:testing loopback fixture, compiler CLI test, runtime mixed-read witness,
+LSP help/completion witness, builtins documentation and HTTP guide accompany it.
+Checked Request.json():Task<JsonValue> now composes the existing bounded text
+reader with the existing strict JSON parser. It preserves HttpError and JsonError,
+returns owned data, and uses schema.parse(await req.json()) for typed DTOs rather
+than unchecked generic casts. Its docs, editor signature witness, native async
+fixture, invalid argument/type/ownership witnesses and matched request-readers
+benchmark sources are present. The benchmark retains 3 processes, 8 warmups,
+31 samples and 128 paired requests; source/oracle registration passed. Timing is
+not yet measured. Focused compiler/native/editor, malformed/limits/form/multipart
+controls and matched untimed execution are complete; see the current summary above.
+
+Backend all-target check passed locally with debug symbols disabled. Initial
+focused test session 76323 hit sandbox loopback denial; it was stopped after
+preserving the completed build. Session 30028 resumed with localhost access:
+six existing compiler context tests passed; two new reader tests exposed the
+missing Context body registry entry. After that repair, session 56129 passed
+native contextual streaming, JSON rejection witnesses and the contextual stream
+LSP witness. JSON execution exposed a clone(error.code) emitter panic: a record
+parameter optimization attempted to walk common union fields as concrete record
+storage. The shared optimization now accepts only direct record-field chains;
+normal union-field emission handles other expressions. A dedicated data_unions
+native witness covers cloning both alternatives without consuming their owners.
+
+Session 44170 completed: the clone panic is fixed. Its standalone clone witness
+used the parser-only harness despite importing std:testing; it now uses the project
+CLI path. The JSON fixture's final limit assertion incorrectly expected header-time
+413 for the client's streamed body. Native execution confirms the handler catches
+HttpError limit and retains the consumed-body state, then returns its explicit 200
+response. Corrected the witness to assert both status and error body. All four
+JSON tests passed through target/debug/tsrust test. JSON LSP hover/signature help
+also passed. The test success helper now includes stdout so std:testing assertion
+failures remain visible beside stderr.
+
+Session 61375 completed successfully: common-union clone regression,
+context_body_readers runtime control (including form/multipart), and JSON catalog
+examples passed. Log: /tmp/tsrust-body-final-controls.log. Matched native/Node
+untimed verification subsequently passed; current remaining checks are above.
+
+Node-after-tsc request-readers verification passed 128 JSON/stream pairs with
+checksum 5376 using localhost access. Benchmark registration and all six local
+distribution tests passed. No timed measurements or package execution are claimed.
+One rustc process used about 285 MiB RSS during compilation; target reached 1 GiB.
+These are resource observations, not a long-lived memory audit.
+
 ## CI merge repair — 2026-10-28
 
 User requested CI repair for PR #2. Starting source: 6a766051. Hosted run

@@ -28,7 +28,7 @@ fn binding_manifest_exposes_owned_data_and_tracks_rust_edits(){
  let entry=SourceId("/rust-bindings/main.tsr".into());
  let source="import {Request,read} from './api.bindings.json';function main(){const request:Request={text:'hello'};const answer=read(request);console.log(answer.text);}";
  let mut workspace=Workspace::default();workspace.open(entry.clone(),1,source.into());
- workspace.open(SourceId("/rust-bindings/api.bindings.json".into()),1,r#"{"schemaVersion":1,"source":"./api.rs","dependencies":{}}"#.into());
+ workspace.open(SourceId("/rust-bindings/api.bindings.json".into()),1,r#"{"schemaVersion":2,"source":"./api.rs","dependencies":{}}"#.into());
  workspace.open(SourceId("/rust-bindings/api.bindings.lock".into()),1,"version = 4".into());
  let rust=SourceId("/rust-bindings/api.rs".into());
  workspace.open(rust.clone(),1,"pub struct Request{pub text:String}\n/// Read the owned request.\npub fn read(value:Request)->Request{value}".into());

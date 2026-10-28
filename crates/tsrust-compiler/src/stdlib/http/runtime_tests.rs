@@ -404,12 +404,21 @@ fn context_body_readers_consume_once_and_preserve_response_status(){
    let fields=context.request_form().await.unwrap();assert_eq!(fields[0].name,"name");
    Some(context.text(fields[0].value.clone(),None).unwrap())
   })).unwrap();
+  app.route("POST","/stream",|context|Box::pin(async move{
+   let body=context.request_body().unwrap();
+   assert_eq!(context.request_body().err().unwrap().code,"body");
+   assert_eq!(context.request_text().await.unwrap_err().code,"body");
+   assert_eq!(context.field0.method(),"POST");
+   assert_eq!(context.field0.header("content-type").unwrap().as_deref(),Some("text/plain"));
+   let value=body.text().await.unwrap();
+   Some(context.text(value,None).unwrap())
+  })).unwrap();
   app.route("POST","/multipart",|context|Box::pin(async move{
    let parts=context.request_multipart().await.unwrap();assert_eq!(parts[0].name,"name");
    Some(context.text(String::from_utf8(parts[0].data.clone()).unwrap(),None).unwrap())
   })).unwrap();
   let server=app.listen("127.0.0.1:0").await.unwrap();let client=Client::new().unwrap();
-  for (path,body,content_type,status) in [("text","hello","text/plain",202),("form","name=hello","application/x-www-form-urlencoded",200),("multipart","--boundary\r\nContent-Disposition: form-data; name=\"name\"\r\n\r\nhello\r\n--boundary--\r\n","multipart/form-data; boundary=boundary",200)]{
+  for (path,body,content_type,status) in [("stream","hello","text/plain",200),("text","hello","text/plain",202),("form","name=hello","application/x-www-form-urlencoded",200),("multipart","--boundary\r\nContent-Disposition: form-data; name=\"name\"\r\n\r\nhello\r\n--boundary--\r\n","multipart/form-data; boundary=boundary",200)]{
    let mut request=Request::new("POST",&format!("http://{}/{path}",server.address()),body.into()).unwrap();request.set_header("content-type",content_type).unwrap();
    let response=client.send(request).await.unwrap();assert_eq!(response.status(),status);assert_eq!(response.text_body().await.unwrap(),"hello");
   }

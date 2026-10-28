@@ -57,6 +57,7 @@ pub(crate) const CONTEXTJSON:NativeBinding=NativeBinding{name:"__contextJson",..
 pub(crate) const CONTEXTHEADER:NativeBinding=NativeBinding{module:"std:http",name:"__contextHeader",parameters:&[NativeParameter{name:"value",ty:NativeType::ObservedValue,access:Mode::Mutate,optional:false,rest:false},NativeParameter{name:"name",ty:NativeType::Structured(&Signature::String),access:Mode::Read,optional:false,rest:false},NativeParameter{name:"text",ty:NativeType::Structured(&Signature::String),access:Mode::Read,optional:false,rest:false}],result:NativeType::Structured(&Signature::Result(&Signature::Void,&Signature::Named(NativeTypeId::HttpError))),returned_borrow:None,backend:NativeBackend::Bundled{symbol:"http_intrinsic"},features:&["http"]};
 pub(crate) const CONTEXTSTATUS:NativeBinding=NativeBinding{module:"std:http",name:"__contextStatus",parameters:&[NativeParameter{name:"context",ty:NativeType::ObservedValue,access:Mode::Mutate,optional:false,rest:false},NativeParameter{name:"status",ty:NativeType::Structured(&Signature::Int),access:Mode::Read,optional:false,rest:false}],result:NativeType::Structured(&Signature::Result(&Signature::Void,&Signature::Named(NativeTypeId::HttpError))),returned_borrow:None,backend:NativeBackend::Bundled{symbol:"http_intrinsic"},features:&["http"]};
 pub(crate) const CONTEXTREQUESTTEXT:NativeBinding=NativeBinding{module:"std:http",name:"__contextRequestText",parameters:&[NativeParameter{name:"value",ty:NativeType::ObservedValue,access:Mode::Mutate,optional:false,rest:false}],result:NativeType::Structured(&Signature::Result(&Signature::String,&Signature::Named(NativeTypeId::HttpError))),returned_borrow:None,backend:NativeBackend::Bundled{symbol:"http_intrinsic"},features:&["http"]};
+pub(crate) const CONTEXTREQUESTBODY:NativeBinding=NativeBinding{name:"__contextRequestBody",result:NativeType::Structured(&Signature::Result(&Signature::Named(NativeTypeId::HttpBody),&Signature::Named(NativeTypeId::HttpError))),..CONTEXTREQUESTTEXT};
 pub(crate) const CONTEXTREQUESTFORM:NativeBinding=NativeBinding{name:"__contextRequestForm",result:FORM.result,..CONTEXTREQUESTTEXT};
 pub(crate) const CONTEXTREQUESTMULTIPART:NativeBinding=NativeBinding{name:"__contextRequestMultipart",result:MULTIPART.result,..CONTEXTREQUESTTEXT};
 pub(crate) const CONTEXTGET:NativeBinding=NativeBinding{module:"std:http",name:"__contextGet",parameters:&[NativeParameter{name:"context",ty:NativeType::ObservedValue,access:Mode::Read,optional:false,rest:false},NativeParameter{name:"key",ty:NativeType::String,access:Mode::Read,optional:false,rest:false}],result:NativeType::ObservedValue,returned_borrow:None,backend:NativeBackend::Bundled{symbol:"http_intrinsic"},features:&["http"]};
@@ -66,7 +67,7 @@ pub(crate) const SETCOOKIE:NativeBinding=NativeBinding{name:"__setCookie",parame
 pub(crate) const DELETECOOKIE:NativeBinding=NativeBinding{name:"__deleteCookie",parameters:&[SETCOOKIE.parameters[0],SETCOOKIE.parameters[1],SETCOOKIE.parameters[3]],..SETCOOKIE};
 pub(crate) const PUBLIC_SETCOOKIE:NativeBinding=NativeBinding{name:"setCookie",..SETCOOKIE};
 pub(crate) const PUBLIC_DELETECOOKIE:NativeBinding=NativeBinding{name:"deleteCookie",..DELETECOOKIE};
-pub(crate) const OPERATIONS:&[NativeBinding]=&[GETCOOKIE,SETCOOKIE,DELETECOOKIE,CONTEXTGET,CONTEXTSET,CONTEXTREQUESTTEXT,CONTEXTREQUESTFORM,CONTEXTREQUESTMULTIPART,ROUTER,ROUTERCONFIGURE,ROUTERSTATIC,ROUTERROUTE,ROUTERUSE,ROUTERUSEPATH,ROUTERLISTEN,CONTEXTTEXT,CONTEXTNEXT,CONTEXTHTML,CONTEXTJSON,CONTEXTHEADER,CONTEXTSTATUS,FORM,MULTIPART,APP,CONFIGURE,CLIENT,REQUEST,TEXT,HTML,JSON,STREAM,STREAMCHANNEL,ROUTE,USE,FALLBACK,LISTEN,SHUTDOWN,WAIT,ADDRESS,NEXT,SEND,BODYNEXT,BODYTEXT,REQUESTHEADER,REQUESTSETHEADER,REQUESTBODY,REQUESTTEXT,RESPONSEHEADER,RESPONSESETHEADER,RESPONSEBODY,RESPONSETEXT,METHOD,URL,PARAM,QUERY,QUERIES,STATUS];
+pub(crate) const OPERATIONS:&[NativeBinding]=&[GETCOOKIE,SETCOOKIE,DELETECOOKIE,CONTEXTGET,CONTEXTSET,CONTEXTREQUESTBODY,CONTEXTREQUESTTEXT,CONTEXTREQUESTFORM,CONTEXTREQUESTMULTIPART,ROUTER,ROUTERCONFIGURE,ROUTERSTATIC,ROUTERROUTE,ROUTERUSE,ROUTERUSEPATH,ROUTERLISTEN,CONTEXTTEXT,CONTEXTNEXT,CONTEXTHTML,CONTEXTJSON,CONTEXTHEADER,CONTEXTSTATUS,FORM,MULTIPART,APP,CONFIGURE,CLIENT,REQUEST,TEXT,HTML,JSON,STREAM,STREAMCHANNEL,ROUTE,USE,FALLBACK,LISTEN,SHUTDOWN,WAIT,ADDRESS,NEXT,SEND,BODYNEXT,BODYTEXT,REQUESTHEADER,REQUESTSETHEADER,REQUESTBODY,REQUESTTEXT,RESPONSEHEADER,RESPONSESETHEADER,RESPONSEBODY,RESPONSETEXT,METHOD,URL,PARAM,QUERY,QUERIES,STATUS];
 pub(crate) fn call(name:&str,args:Vec<crate::syntax::Expr>,span:crate::Span)->crate::syntax::Expr{
  use crate::syntax::{Expr,ExprKind};Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name(format!("@native:std:http#{name}")),span)),args),span)
 }
@@ -89,7 +90,7 @@ pub(crate) fn prepare(program:&mut crate::syntax::Program)->Result<(),crate::Dia
    }
   }Ok(())
  })?;}
- if used{crate::native_binding_types::prepare(&mut program.records,crate::native_bindings::lookup("std:json","stringify").unwrap(),crate::Span::default())?;for id in [NativeTypeId::HttpRouter,NativeTypeId::HttpContext,NativeTypeId::HttpContextNext]{crate::native_type_resolution::intern(&mut program.records,id,crate::Span::default())?;}for binding in OPERATIONS{crate::native_binding_types::prepare(&mut program.records,binding,crate::Span::default())?;}}
+ if used{crate::native_binding_types::prepare(&mut program.records,crate::native_bindings::lookup("std:json","parse").unwrap(),crate::Span::default())?;crate::native_binding_types::prepare(&mut program.records,crate::native_bindings::lookup("std:json","stringify").unwrap(),crate::Span::default())?;for id in [NativeTypeId::HttpRouter,NativeTypeId::HttpContext,NativeTypeId::HttpContextNext]{crate::native_type_resolution::intern(&mut program.records,id,crate::Span::default())?;}for binding in OPERATIONS{crate::native_binding_types::prepare(&mut program.records,binding,crate::Span::default())?;}}
  Ok(())
 }
 #[cfg(test)]mod tests {
@@ -109,12 +110,13 @@ pub(crate) fn method(identity:Option<NativeTypeId>,member:&str)->Option<&'static
     (Some(NativeTypeId::HttpServer),"wait")=>"__wait",(Some(NativeTypeId::HttpServer),"address")=>"__address",(Some(NativeTypeId::HttpServer),"shutdown")=>"__shutdown",
     (Some(NativeTypeId::HttpClient),"send")=>"__send",(Some(NativeTypeId::HttpNext),"run")=>"__next",
     (Some(NativeTypeId::HttpBody),"next")=>"__bodyNext",(Some(NativeTypeId::HttpBody),"text")=>"__bodyText",
+    (Some(NativeTypeId::HttpRequest),"json")=>"__requestJson",
     (Some(NativeTypeId::HttpRequest),"form")=>"__form",(Some(NativeTypeId::HttpRequest),"multipart")=>"__multipart",
     (Some(NativeTypeId::HttpRequest),"method")=>"__method",(Some(NativeTypeId::HttpRequest),"url")=>"__url",(Some(NativeTypeId::HttpRequest),"param")=>"__param",(Some(NativeTypeId::HttpRequest),"query")=>"__query",(Some(NativeTypeId::HttpRequest),"queries")=>"__queries",(Some(NativeTypeId::HttpResponse),"status")=>"__status",
     (Some(NativeTypeId::HttpRequest),"header")=>"__requestHeader",(Some(NativeTypeId::HttpRequest),"setHeader")=>"__requestSetHeader",(Some(NativeTypeId::HttpRequest),"body")=>"__requestBody",(Some(NativeTypeId::HttpRequest),"text")=>"__requestText",
     (Some(NativeTypeId::HttpResponse),"header")=>"__responseHeader",(Some(NativeTypeId::HttpResponse),"setHeader")=>"__responseSetHeader",(Some(NativeTypeId::HttpResponse),"body")=>"__responseBody",(Some(NativeTypeId::HttpResponse),"text")=>"__responseText",_=>return None,
    })}
-pub(crate) fn asynchronous(name:&str)->bool{matches!(name,"__contextRequestForm"|"__contextRequestMultipart"|"__contextRequestText"|"__routerListen"|"__contextNext"|"__form"|"__multipart"|"__listen"|"__wait"|"__shutdown"|"__send"|"__next"|"__bodyNext"|"__bodyText"|"__requestText"|"__responseText")}
+pub(crate) fn asynchronous(name:&str)->bool{matches!(name,"__requestJson"|"__contextRequestForm"|"__contextRequestMultipart"|"__contextRequestText"|"__routerListen"|"__contextNext"|"__form"|"__multipart"|"__listen"|"__wait"|"__shutdown"|"__send"|"__next"|"__bodyNext"|"__bodyText"|"__requestText"|"__responseText")}
 
 pub(crate) fn public_unwrapped(name:&str)->bool{matches!(name,"text"|"html"|"json"|"stream"|"streamChannel"|"request")}
 
@@ -139,4 +141,18 @@ fn defaults(program:&mut crate::syntax::Program)->Result<(),crate::Diagnostic>{
  for (_,annotation) in &mut program.interface_argument_checks{visit(annotation)?;}
  for (_,arguments) in &mut program.call_type_arguments{for argument in arguments{visit(argument)?;}}
  crate::source_walk::body(&mut program.module_bindings,&mut visit,&mut |_|Ok(()))
+}
+
+/// Compose the ordinary bounded body task with checked JSON parsing.
+pub(crate) fn parse_request_json(expression:&mut crate::syntax::Expr){
+ use crate::syntax::{Expr,ExprKind,StmtKind};
+ let ExprKind::Match{body,..}=&mut expression.kind else{unreachable!()};
+ let StmtKind::Expr(yielded)=&mut body.last_mut().unwrap().kind else{unreachable!()};
+ let ExprKind::Call(_,args)=&mut yielded.kind else{unreachable!()};
+ let ExprKind::Unary{value:closure,..}=&mut args[0].kind else{unreachable!()};
+ let ExprKind::Closure{body,..}=&mut closure.kind else{unreachable!()};
+ let StmtKind::Return(Some(value))=&mut body.last_mut().unwrap().kind else{unreachable!()};
+ let span=value.span;
+ let parsed=Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name("@native:std:json#parse".into()),span)),vec![value.clone()]),span);
+ *value=crate::stdlib::futures::unwrap(parsed);
 }

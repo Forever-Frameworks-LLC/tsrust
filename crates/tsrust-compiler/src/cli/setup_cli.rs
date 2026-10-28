@@ -55,11 +55,12 @@ pub(super) fn doctor(args: impl Iterator<Item=String>) -> Result<u8, String> {
             Err(error) => json!({"status":"error", "message":error}),
         }
     } else { json!({"status":"unchecked", "message":"Run tsrust doctor --native after preparing the pinned tools"}) };
-    let ok = tools_ok && native["status"] != "error";
+    let installation=super::toolchain_cli::readiness();
+    let ok = tools_ok && native["status"] != "error" && installation["status"]!="error";
     let report = json!({"schemaVersion":1,"compilerVersion":env!("CARGO_PKG_VERSION"),
         "host":{"os":std::env::consts::OS,"architecture":std::env::consts::ARCH},
         "requiredRust":RUST_BACKEND_VERSION,"tools":{"rustc":rustc,"cargo":cargo},
-        "toolchainReady":tools_ok,"nativeProbe":native,
+        "toolchainReady":tools_ok,"nativeProbe":native,"installation":installation,
         "applicationDependencies":{"status":"unchecked","message":"This probe does not resolve or validate an application's dependency graph"},
         "remediation":"Install rustup if absent; run tsrust setup --toolchain --yes. Platform linker/build tools must be installed separately.",
         "networkUsed":false});
@@ -71,6 +72,7 @@ pub(super) fn doctor(args: impl Iterator<Item=String>) -> Result<u8, String> {
             println!("{name}: {} — {}", tool["status"].as_str().unwrap(), tool["version"].as_str().or(tool["message"].as_str()).unwrap_or("unknown"));
         }
         println!("Native probe: {}", report["nativeProbe"]);
+        println!("CLI/LSP installation: {}",report["installation"]);
         println!("Application dependencies: unchecked. check/emit need no Rust toolchain.");
         if !ok { println!("{}", report["remediation"].as_str().unwrap()); }
     }

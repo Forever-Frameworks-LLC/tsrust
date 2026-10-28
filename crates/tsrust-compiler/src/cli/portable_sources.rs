@@ -15,10 +15,10 @@ pub(super) fn cargo_home() -> io::Result<PathBuf> {
         .ok_or_else(||error("Cannot locate Cargo home; set CARGO_HOME"))?;
     Ok(if home.is_absolute(){home}else{std::env::current_dir()?.join(home)})
 }
-pub(super) fn location() -> io::Result<PathBuf> {
+pub(super) fn location(manifest: &str, lock: &str) -> io::Result<PathBuf> {
     let base=match std::env::var_os("TSRUST_SOURCE_PACK_DIR") {Some(path)=>PathBuf::from(path),None=>cargo_home()?.join("tsrust/source-packs")};
     let base=if base.is_absolute(){base}else{std::env::current_dir()?.join(base)};
-    Ok(base.join(digest(format!("portable-source-pack-1\n{}\n{LIB}\n{CONFIG}",super::IDENTITY).as_bytes())))
+    Ok(base.join(digest(format!("portable-source-pack-1\nnative-dependencies-1\n{manifest}{lock}\n{LIB}\n{CONFIG}").as_bytes())))
 }
 fn regular(path: &Path, directory: bool) -> io::Result<()> {
     let metadata=fs::symlink_metadata(path)?;
@@ -33,8 +33,8 @@ fn files(root: &Path, directory: &Path, result: &mut Vec<PathBuf>) -> io::Result
     }
     Ok(())
 }
-fn packages() -> io::Result<BTreeMap<String,String>> {
-    let document=LOCK.parse::<toml_edit::DocumentMut>().map_err(|e|error(e.to_string()))?;
+fn packages(lock: &str) -> io::Result<BTreeMap<String,String>> {
+    let document=lock.parse::<toml_edit::DocumentMut>().map_err(|e|error(e.to_string()))?;
     let mut packages=BTreeMap::new();
     for package in document["package"].as_array_of_tables().ok_or_else(||error("Invalid pinned source lock"))? {
         if let Some(source)=package.get("source").and_then(|v|v.as_str()) {
@@ -48,13 +48,13 @@ fn packages() -> io::Result<BTreeMap<String,String>> {
 
 /// Verify Cargo's pinned package identities and every vendor file checksum before
 /// copying. Cargo remains the vendor producer; packs contain no executable hooks.
-fn visit(root: &Path, mut copy: impl FnMut(&Path,&[u8])->io::Result<()>) -> io::Result<()> {
+fn visit(root: &Path, manifest: &str, lock: &str, mut copy: impl FnMut(&Path,&[u8])->io::Result<()>) -> io::Result<()> {
     regular(root,true)?;
-    for (relative,expected) in [("Cargo.toml",MANIFEST),("Cargo.lock",LOCK),("src/lib.rs",LIB),(".cargo/config.toml",CONFIG)] {
+    for (relative,expected) in [("Cargo.toml",manifest),("Cargo.lock",lock),("src/lib.rs",LIB),(".cargo/config.toml",CONFIG)] {
         let path=root.join(relative);regular(path.parent().unwrap(),true)?;regular(&path,false)?;
         let bytes=fs::read(path)?;if bytes!=expected.as_bytes(){return Err(error(format!("Prepared source metadata changed: {relative}")));}copy(Path::new(relative),&bytes)?;
     }
-    let vendor=root.join("vendor");regular(&vendor,true)?;let mut expected=packages()?;
+    let vendor=root.join("vendor");regular(&vendor,true)?;let mut expected=packages(lock)?;
     for entry in fs::read_dir(&vendor)? {
         let entry=entry?;let name=entry.file_name().into_string().map_err(|_|error("Non-UTF8 vendor package"))?;
         let checksum=expected.remove(&name).ok_or_else(||error(format!("Unexpected vendor package: {name}")))?;
@@ -79,31 +79,31 @@ fn visit(root: &Path, mut copy: impl FnMut(&Path,&[u8])->io::Result<()>) -> io::
     if !expected.is_empty(){return Err(error("Prepared source pack is incomplete"));}Ok(())
 }
 
-pub(super) fn materialize(root: &Path) -> io::Result<()> {
-    let source=location()?;
-    if !source.exists(){return Err(error("Portable sources are not prepared. Run `tsrust setup --portable --yes` (or --offline with cached sources); export itself never invokes Cargo or downloads."));}
+pub(super) fn materialize(root: &Path, manifest: &str, lock: &str) -> io::Result<()> {
+    let source=location(manifest,lock)?;
+    if !source.exists(){return Err(error("Portable sources are not prepared. Run `tsrust setup --portable --yes` (or --offline with cached sources); For bindings, run `tsrust bindings resolve <file.bindings.json> --portable` with the same Cargo home/source-pack directory. Export itself never invokes Cargo or downloads."));}
     fs::create_dir(root)?;
-    let result=visit(&source,|relative,bytes|{let path=root.join(relative);fs::create_dir_all(path.parent().unwrap())?;fs::write(path,bytes)});
+    let result=visit(&source,manifest,lock,|relative,bytes|{let path=root.join(relative);fs::create_dir_all(path.parent().unwrap())?;fs::write(path,bytes)});
     if result.is_err(){let _=fs::remove_dir_all(root);}result
 }
 
-pub(super) fn prepare(mut cargo: Command, offline: bool) -> io::Result<PathBuf> {
-    let destination=location()?;
-    if destination.exists(){visit(&destination,|_,_|Ok(()))?;return Ok(destination);}
+pub(super) fn prepare(mut cargo: Command, offline: bool, manifest: &str, lock: &str) -> io::Result<PathBuf> {
+    let destination=location(manifest,lock)?;
+    if destination.exists(){visit(&destination,manifest,lock,|_,_|Ok(()))?;return Ok(destination);}
     let parent=destination.parent().unwrap();fs::create_dir_all(parent)?;
     let stamp=std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_err(|e|error(e.to_string()))?.as_nanos();
     let staging=parent.join(format!(".preparing-{}-{stamp}",std::process::id()));fs::create_dir(&staging)?;
     let result=(|| {
         fs::create_dir(staging.join("src"))?;fs::create_dir(staging.join(".cargo"))?;
-        fs::write(staging.join("Cargo.toml"),MANIFEST)?;fs::write(staging.join("Cargo.lock"),LOCK)?;fs::write(staging.join("src/lib.rs"),LIB)?;
+        fs::write(staging.join("Cargo.toml"),manifest)?;fs::write(staging.join("Cargo.lock"),lock)?;fs::write(staging.join("src/lib.rs"),LIB)?;
         // Config is written after Cargo finishes so setup may explicitly fetch.
         cargo.args(["vendor","--locked","--versioned-dirs","--manifest-path"]).arg(staging.join("Cargo.toml")).arg(staging.join("vendor"))
             .env("CARGO_HOME",cargo_home()?).stdout(std::process::Stdio::null());
         if offline{cargo.arg("--offline");}
         if !cargo.status()?.success(){return Err(error("Portable source preparation failed; existing source packs were preserved"));}
         fs::write(staging.join(".cargo/config.toml"),CONFIG)?;
-        visit(&staging,|_,_|Ok(()))?;
-        if destination.exists(){visit(&destination,|_,_|Ok(()))?;}else{fs::rename(&staging,&destination)?;}
+        visit(&staging,manifest,lock,|_,_|Ok(()))?;
+        if destination.exists(){visit(&destination,manifest,lock,|_,_|Ok(()))?;}else{fs::rename(&staging,&destination)?;}
         Ok(destination)
     })();
     // Only the exclusively created staging directory is owned by this call.

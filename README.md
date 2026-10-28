@@ -1,28 +1,14 @@
 # Tsrust
 
-> Product direction (2026-10-26): Tsrust is pivoting to native backends with
-> generated named TypeScript clients for React web, Electron and Expo applications.
-> Use [the active roadmap](docs/roadmap.md) and [application goal](docs/agent-goal.md).
-> The custom UI implementation described below is preserved and frozen. Generated
-> clients and managed frontend templates are planned/in progress, not released.
+**Write TypeScript-style code. Ship native backends.**
 
-The current source adds `tsrust new hello --app`: a native greeting API, generated
-named SDK and editable React/Vite/shadcn landing page. Use `--target backend` for
-API-only generation. See [application projects](docs/guides/application-projects.md)
-for the actual commands and ownership boundary. Fresh backend/web creation has
-focused acceptance; Electron/Expo scaffolding and coordinated integration
-commands remain in progress. Existing task applications are integration examples.
-
-**Write TypeScript-style code. Ship native programs.**
-
-Tsrust is an experimental language and compiler with familiar TypeScript syntax,
-inferred ownership and a Rust backend. Build command-line tools, HTTP services
-and reactive interfaces without a JavaScript runtime in the generated native
-program.
+Tsrust is an experimental language and compiler with inferred ownership and a
+Rust backend. Build command-line tools and HTTP services without a JavaScript
+runtime in the deployed program. Generate independent TypeScript or asynchronous
+Rust SDKs from a checked HTTP API description, and bring your own frontend.
 
 [Get started](docs/content/getting-started/installation.md) ·
-[Documentation](docs/README.md) ·
-[Examples](examples) ·
+[Documentation](docs/README.md) · [Examples](examples/README.md) ·
 [Releases](https://github.com/Forever-Frameworks-LLC/tsrust/releases) ·
 [Contributing](CONTRIBUTING.md)
 
@@ -33,62 +19,84 @@ function main() {
 }
 ```
 
-Save as `hello.tsr`, then run `tsrust run hello.tsr`.
+Save as `hello.tsr`, then run `tsrust run hello.tsr`. It prints `TypeScript + Rust`.
 
 ## What you can build
 
-- **Native tools.** Checked integers, strings, collections, files, processes,
-  async tasks and explicit resource cleanup.
-- **Services.** Hono-style routing and middleware over Axum, HTTP clients,
-  validation, SQLite and pooled PostgreSQL/MySQL/SQLite access. Authentication
-  policy stays in application code.
-- **Interfaces.** Reactive `.tsrx` components for browser WebAssembly and a
-  custom-drawn GPU desktop renderer. Themes and editable local components install
-  from the bundled offline catalog.
-- **Rust integration.** Import supported functions and types from `.rs` files
-  without introducing a JavaScript bridge.
-- **Editor tooling.** Shared compiler diagnostics, completion, hover, signatures,
-  navigation and formatting through the LSP and VS Code extension.
+- Native tools with checked integers, collections, files, processes, async tasks
+  and explicit resource cleanup.
+- HTTP services with routing, middleware, request-body readers, validation,
+  SQLite and pooled PostgreSQL/MySQL/SQLite access. Authentication is application policy.
+- Independent named TypeScript/Rust clients and OpenAPI documents from the running
+  service or a saved description. Client generation never modifies the server.
+- Rust adapters with checked function/type boundaries and explicitly resolved,
+  locked Cargo dependencies.
 
-See [runnable examples](examples/README.md) and the
-[language and library guide](docs/guides/language/standard-library.md).
+The compiler and language server share diagnostics, completion, hover, signatures,
+navigation and formatting. Original UI source and explicit UI commands are
+[retained separately](docs/guides/tooling/retained-ui-setup.md); frontend templates,
+framework integrations and UI expansion are outside the active backend scope.
 
 ## Install
 
-Download the archive for your host from
-[GitHub Releases](https://github.com/Forever-Frameworks-LLC/tsrust/releases).
-Releases include `tsrust`, `tsrust-lsp`, source identity, checksums and notices.
-Put both executables on `PATH`. The VS Code extension is a separate `.vsix` asset.
+Official release archives contain the paired CLI/LSP, source identity, hashes and
+notices. Targets are Linux x64/glibc, Windows x64/MSVC, macOS ARM64 and macOS x64.
+The VS Code extension is a separate VSIX. If no stable release is available, use
+the source build below. See [installation](docs/content/getting-started/installation.md)
+for verification, platform prerequisites and editor configuration.
 
-Native compilation requires **Rustup with Rust 1.96.1** and a system linker.
-Checking, formatting and Rust emission do not require the Rust backend. This is
-not a self-contained Rust installation. See [installation](docs/content/getting-started/installation.md)
-for source builds, archive verification and web prerequisites.
+Once a stable release exists, an official CLI can create a managed installation:
 
-Until a release is published, build from this repository:
+```sh
+tsrust toolchain install --root /absolute/path/to/new/tsrust
+```
+
+Add that directory's `bin` to PATH. Explicit `toolchain check`, `toolchain update`
+and `toolchain rollback` manage the verified pair; existing package-manager
+installations are preserved. See the [managed installation guide](docs/guides/toolchain-installation.md)
+for trust, recovery and the exact platform acceptance status.
+
+For a source build:
 
 ```sh
 git clone https://github.com/Forever-Frameworks-LLC/tsrust.git
 cd tsrust
 cargo fetch --locked
-cargo fetch --locked --manifest-path crates/tsrust-compiler/native-dependencies/Cargo.toml
-CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 cargo build --offline --locked --release --bin tsrust --bin tsrust-lsp
+CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 cargo build --offline --locked --release -p tsrust-compiler -p tsrust-lsp --bin tsrust --bin tsrust-lsp
 ```
 
-The executables are in `target/release/`. The repository pins its Rust toolchain;
-Rustup installs it on the first Cargo invocation if needed. Keep these executables
-on `PATH` to use the commands below.
+Put both executables from `target/release/` on PATH. The repository pins Rust
+1.96.1; Rustup may install that toolchain on first Cargo use. Checking, formatting
+and ordinary Rust emission need no external Rust compiler. Native build/run/test/dev
+require the pinned Rust toolchain and host linker. Prepare their sources explicitly:
+
+```sh
+tsrust setup --toolchain --dependencies --yes
+tsrust doctor --native
+```
+
+Normal builds run offline against shared Cargo sources. Portable source exports
+use a separately prepared, verified source pack; they are optional for ordinary
+development. Deployed native programs need neither Tsrust nor Rust/Cargo.
 
 ## Start a project
 
 ```sh
-tsrust new hello
+tsrust new hello --app
 cd hello
 tsrust dev
 ```
 
-Run `tsrust` without arguments for the interactive launcher. Explicit commands work
-in scripts:
+The backend starter listens on loopback port 4318. Server source and policy live
+under `app/`; no frontend project or public SDK is created. In another terminal:
+
+```sh
+tsrust api generate --url http://127.0.0.1:4318/api/description --out js-client
+tsrust api generate --url http://127.0.0.1:4318/api/description --language rust --out rust-client
+```
+
+Use `tsrust new hello` for a console project. Run `tsrust` for the interactive
+launcher, or use explicit commands in scripts:
 
 ```sh
 tsrust check
@@ -97,61 +105,39 @@ tsrust format --check
 tsrust build --release
 ```
 
-For a UI project, choose targets explicitly:
-
-```sh
-tsrust new counter --ui --target native --target web
-cd counter
-tsrust ui add button card --offline
-tsrust dev --target native
-# Or, after installing the web prerequisites:
-tsrust dev --target web --port 4317
-```
-
-`src/main.tsr` is the executable entrypoint. The UI scaffold imports its root
-`Page` from `src/app/page.tsrx`. Your configuration and editable components belong
-to your project. See [project structure](docs/content/getting-started/project-structure.md).
+See [backend applications](docs/guides/application-projects.md),
+[project structure](docs/content/getting-started/project-structure.md) and
+[CLI commands](docs/guides/project-cli.md).
 
 ## Status and boundaries
 
-Tsrust is **experimental**, with changing language and library APIs. It is not a
-compiler for arbitrary existing TypeScript, Node packages or React applications.
-Source uses `.tsr` and `.tsrx`; JavaScript compatibility is deliberate and partial.
+Language and library APIs can change. Tsrust does not compile arbitrary existing
+TypeScript, Node packages or React applications. Ownership checks reject invalid
+transfers and conflicting access; strings use documented UTF-8 byte semantics;
+integer overflow is checked in development and release programs.
 
-Ownership checks reject invalid transfers and conflicting access. Strings use
-UTF-8 byte positions where documented. Integer overflow is checked in both debug
-and release programs. These semantics can differ from JavaScript; consult the
-[behavior guides](docs/README.md), rather than assuming drop-in compatibility.
+Async test registration has executed on Linux, macOS and Windows. Broader installer
+and release-platform acceptance is recorded separately in the
+[paired installation milestone](docs/milestones/paired-toolchain-installation.md)
+and [active goal](docs/agent-goal.md). Configuration is not proof that a platform
+has passed. The LSP still has an unresolved report of excessive memory use in long
+sessions; use smaller workspaces until that issue is resolved.
 
-The UI component library and paired documentation app are still under development.
-The current LSP has an unresolved report of excessive memory use during long
-sessions; avoid opening very large workspaces until that issue is resolved.
-macOS has the most development coverage. CI and release workflows target Linux
-x64 and macOS; Windows distribution is not configured yet. Native GPU rendering
-and accessibility still need real desktop checks beyond hosted CI.
-
-Performance depends on the workload. [Benchmark methodology](benchmarks/runtime/README.md)
-and [comparison limits](docs/measurements/runtime-comparisons.md) explain the measurements.
-The large [historical report](BENCHMARKS.md) is a snapshot, not a claim about every
-current feature.
-
-Individual timing samples and allocation counters are available in the
-[benchmark-only SQLite dataset](benchmarks/storage/PUBLIC_DATA.md), with source
-identities, toolchain versions and general hardware specifications.
+Performance depends on the workload. Read the [measurement protocol](benchmarks/runtime/README.md)
+and [comparison limits](docs/measurements/runtime-comparisons.md). The
+[historical report](BENCHMARKS.md) is a snapshot. Shareable samples and provenance
+live in the [benchmark-only SQLite dataset](benchmarks/storage/PUBLIC_DATA.md).
 
 ## Explore
 
-- [Installation and first project](docs/content/getting-started/installation.md)
-- [CLI and project configuration](docs/guides/project-cli.md)
-- [VS Code setup](editors/vscode/README.md)
 - [Language and standard library](docs/guides/language/standard-library.md)
 - [Ownership](docs/guides/language/ownership-and-memory.md)
-- [UI direction and implementation scope](UI_VISION.md)
+- [HTTP behavior](docs/guides/http.md) and [Rust packages](docs/guides/rust-packages.md)
+- [VS Code setup](editors/vscode/README.md)
 - [Contributor checks](CONTRIBUTING.md) and [release automation](docs/guides/releases.md)
 
 ## License
 
 [MIT](LICENSE), Copyright © 2026 Forever Frameworks LLC.
-Third-party components and dependencies retain their own licenses. See
-[attributions](attributions/README.md); distribution archives also include
-applicable dependency notices.
+Third-party dependencies retain their own licenses; preserve
+[attributions](attributions/README.md) and the notices included in distribution archives.

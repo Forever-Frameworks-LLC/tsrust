@@ -11385,7 +11385,7 @@
       "name": "body",
       "signature": "body(): Body",
       "parameters": [],
-      "documentation": "Transfers the unread body into a streaming reader. No arguments. Reading is lazy; this call performs no I/O. The cumulative read limit is 1048576 bytes.\n\n```tsrust\nconst body = input.body();\n```\n\nOwnership: consumes the request; body cannot be read twice.",
+      "documentation": "Transfers the unread request body into a streaming reader without performing I/O. No arguments. Reads enforce the configured request byte limit (1048576 bytes by default); exceeding it throws HttpError code limit instead of returning truncated data. For c.req.body(), metadata and Context response helpers remain usable. A second or mixed contextual body read throws HttpError code body, even after a failed read.\n\n```tsrust\nconst body = c.req.body();\nconst value = await body.text(); // \"hello\" for a hello request body\nreturn c.text(value);\n```\n\nOwnership: consumes an owned Request. On c.req, mutably borrows the Context only while transferring its body; the returned Body owns the stream.",
       "examples": [
         {
           "source": "import {App,Client,Request,Response,Body,Next,text,html,json,request,stream} from 'std:http';async function handle(input:Request):Task<Response>{return text('ok');}async function main():Task<void>{const input=request(\"POST\",\"http://localhost/\",\"hello\");const body=input.body();console.log('ok');}",
@@ -11393,6 +11393,19 @@
         }
       ],
       "inferredSignature": "function body(): Body"
+    },
+    {
+      "name": "json",
+      "signature": "json(): Task<JsonValue>",
+      "parameters": [],
+      "documentation": "Reads a request body as strict UTF-8 and parses checked, owned JSON. No arguments or type arguments. Returns a lazy Task<JsonValue>; use schema.parse(await input.json()) for a validated typed record. Content-Type does not change parsing. Empty, malformed or trailing input throws JsonError with its code, message and byte offset. Body/UTF-8 failures throw HttpError. Reads enforce the configured request byte limit (1048576 bytes by default); JSON also limits input to 16777216 bytes, depth to 64 and entries/nodes to 1000000.\n\n```tsrust\nconst schema = s.object({name: s.string()});\nconst value = schema.parse(await c.req.json());\nreturn c.text(value.name); // hello for {\"name\":\"hello\"}\n```\n\nA contextual read consumes the body once when polled, including parse failures. Later body readers throw HttpError code body; metadata and response helpers remain usable.\n\nOwnership: an owned Request transfers into the task at construction. For c.req, the task borrows the Context until settled or disposed. The decoded JsonValue owns its data and does not borrow body storage.",
+      "examples": [
+        {
+          "source": "import {request} from 'std:http';import {kind} from 'std:json';async function main():Task<void>{const input=request('POST','http://localhost/','{\"name\":\"hello\"}');const value=await input.json();console.log(kind(value));}",
+          "output": "object\n"
+        }
+      ],
+      "inferredSignature": "function json(): Task<JsonValue>"
     },
     {
       "name": "text",

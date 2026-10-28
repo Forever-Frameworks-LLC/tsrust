@@ -7,7 +7,8 @@ are implemented. See ../milestones/shared-backend-sources.md and ../agent-progre
 for exact evidence. Optional exact portable packs, relocated offline source export,
 Windows import-library restoration and removal of the compiler vendor payload are
 now accepted in [portable sources and editor agreement](../milestones/portable-source-packs-and-editor-agreement.md).
-Binding-cache migration and production install/update remain open. This follows
+Binding-cache migration has focused macOS acceptance; production install/update
+and cross-platform distribution acceptance remain open. This follows
 the backend-only direction.
 
 The subsequent [backend-only reset](backend-only-reset.md) removes frontend
@@ -80,17 +81,17 @@ Do not build a custom package manager, dependency mirror or toolchain manager.
 
 The source paths below were inspected after the accepted shared-backend/portable
 source work. Ordinary backend builds already avoid mandatory vendor copies.
-Bindings remain the explicit exception to migrate; do not repeat the completed
-ordinary-backend migration or remove the portable export producer.
+Binding migration has focused local acceptance (see agent-progress.md); do not
+repeat ordinary-backend migration or remove the portable export producer.
 
 | Area | Current source to inspect | Migration question |
 | --- | --- | --- |
 | Toolchain detection | `crates/tsrust-compiler/src/cli/main.rs`, `verify_backend`, `RUST_BACKEND_VERSION` | Preserve check/emit without Rust; diagnose the exact supported toolchain. |
-| Ordinary backend sources | `cli/backend_sources.rs`, `backend-dependencies/Cargo.toml`, `backend-dependencies/Cargo.lock` | Implemented: shared Cargo home, pinned graph, offline private support configuration, configuration/environment cache identity. `shared()` excludes original UI and dependency-bearing bindings. |
+| Ordinary backend sources | `cli/backend_sources.rs`, `backend-dependencies/Cargo.toml`, `backend-dependencies/Cargo.lock` | Implemented: shared Cargo home, pinned graph, offline private support configuration, configuration/environment cache identity. Dependency-bearing bindings also use shared Cargo sources; unbound original UI retains its portable path. |
 | Portable materialization | `cli/native_dependency_bundle.rs`, `cli/portable_sources.rs` | Explicit portable preparation produces a separate source pack. Export verifies pinned metadata and Cargo package/file checksums before copying; ordinary shared backend builds do not require it. |
-| Runtime compilation | `cli/runtime_build.rs`, `cli/native_workspace.rs` | Implemented for ordinary backends: locked/offline builds, stable dependency target across runtime revisions, serialized private workspace and cached artifacts. Binding packages currently bypass this stable workspace and retain the vendor path. |
-| User bindings | `project/rust_dependencies.rs`, `cli/rust_binding_packages.rs`, `cli/rust_bindings.rs`, `cli/package_validation.rs` | Pending: resolution still runs Cargo vendor and stores a per-graph vendor directory; runtime/export overlays copy it. Preserve exact dependency/features validation, locks, cache concurrency and export completeness when separating cached development from portable vendoring. |
-| Source export | `cli/package_cli.rs`, `cli/package_export.rs` | Implemented portable export still materializes vendors, applies binding overlays, emits standalone runtime/application sources, lock/configuration, notices and prerequisite metadata. Retain this path while migrating ordinary binding builds. |
+| Runtime compilation | `cli/runtime_build.rs`, `cli/native_workspace.rs` | Implemented for ordinary backends: locked/offline builds, stable dependency target across runtime revisions, serialized private workspace and cached artifacts. Binding graphs now select stable workspaces by their exact manifest/lock identity. |
+| User bindings | `project/rust_dependencies.rs`, `cli/rust_binding_packages.rs`, `cli/rust_bindings.rs`, `cli/package_validation.rs` | Explicit resolution fetches locked shared sources; optional --portable prepares the existing checksummed pack format. Schema 1 retains its legacy runtime graph; new schema 2 selects backend dependencies. Native validation and atomic package changes remain required. |
+| Source export | `cli/package_cli.rs`, `cli/package_export.rs` | Portable export verifies and materializes the selected full graph directly, including binding dependencies, then emits standalone runtime/application sources, locks/configuration, notices and prerequisite metadata. It never invokes Cargo or downloads. |
 | Build-time bundling and tests | Compiler build.rs removed; cli/portable_sources.rs and native dependency/package/offline tests | Ordinary builds use shared sources; optional exact portable packs preserve export notices and relocation. |
 | Distribution | `tools/package-toolchain.mjs`, `tools/check-release.mjs`, `tools/tests/distribution.test.mjs`, `.github/workflows/release.yml` | Inventory supported artifacts/install paths without triggering publication. |
 

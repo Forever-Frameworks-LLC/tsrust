@@ -3,54 +3,86 @@
 -->
 # Installation
 
-Tsrust includes a CLI, a language server and an offline catalog of editable UI
-components. It is experimental; language and library APIs may change.
+Tsrust provides a native backend CLI and language server. The language is
+experimental; language and library APIs may change. Checking, formatting and
+ordinary Rust emission work without a Rust installation.
 
 ## Download a release
 
-Open [GitHub Releases](https://github.com/Forever-Frameworks-LLC/tsrust/releases)
-and choose the archive matching your host. Download `SHA256SUMS` alongside it.
-Release archives are configured for Linux x64, macOS Apple Silicon and macOS
-Intel. Until the first release is published, use the source build below.
+Choose the archive for your host from
+[GitHub Releases](https://github.com/Forever-Frameworks-LLC/tsrust/releases):
+Linux x64/glibc, Windows x64/MSVC, macOS Apple Silicon or macOS Intel.
+If no stable release has been published, use the source build below.
 
-Verify the selected archive's checksum before extraction. For example, on macOS:
+Verify the archive against the digest on the official release/API before extracting
+it. Releases also contain SHA256SUMS. For example, after downloading the matching
+archive and checksum file from that official release:
 
 ```sh
 grep 'tsrust-v0.1.0-aarch64-apple-darwin.tar.gz$' SHA256SUMS | shasum -a 256 --check
 tar -xzf tsrust-v0.1.0-aarch64-apple-darwin.tar.gz
 ```
 
-Substitute the version and target you downloaded. On Linux use `sha256sum --check`.
-Put both files from the extracted `bin/` directory on your `PATH`. You can keep
-them together in a directory such as `~/.local/bin`:
+Substitute the actual version and target. Linux uses `sha256sum --check`; Windows
+can calculate the selected archive's SHA-256 with `Get-FileHash -Algorithm SHA256`
+in PowerShell. A checksum from an untrusted source does not authenticate an archive.
+The binaries are not independently code-signed or notarized. Linux archives target
+a glibc system compatible with Ubuntu 24.04; Alpine/musl and Linux ARM archives are
+not provided.
+
+Keep the archive's license, attributions and manifest. You may put its `bin`
+directory on PATH as an unmanaged installation, or use its CLI to create a managed
+pair in a new directory whose parent already exists:
 
 ```sh
-mkdir -p ~/.local/bin
-cp tsrust-v0.1.0-aarch64-apple-darwin/bin/tsrust ~/.local/bin/
-cp tsrust-v0.1.0-aarch64-apple-darwin/bin/tsrust-lsp ~/.local/bin/
-export PATH="$HOME/.local/bin:$PATH"
-tsrust --version
+tsrust toolchain install --root /absolute/path/to/new/tsrust
 ```
 
-Add that PATH setting to your shell profile to retain it. Keep the extracted
-license and attributions with any redistributed copy. Archives include a
-`manifest.json` recording source commit, both consumer versions and file hashes.
-Checksums detect corruption; these binaries are not code-signed or notarized.
-Linux archives require a glibc system compatible with Ubuntu 24.04, not Alpine.
+Add the new directory's `bin` to PATH. The command never overwrites an existing
+installation, changes shell profiles, or installs Rust. On Windows the executables
+are `tsrust.exe` and `tsrust-lsp.exe`; preserve their suffixes.
+
+```sh
+tsrust toolchain check --json
+tsrust toolchain update
+tsrust toolchain rollback
+```
+
+Check is read-only. Update verifies the official immutable stable release and
+stages a complete pair before switching one installation record. Running tools
+remain on their original versions; restart the editor server to select the new
+pair. Rollback selects the retained verified pair offline. Package-manager-owned
+installations receive upgrade guidance instead of being overwritten. See the
+[managed installation guide](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/docs/guides/toolchain-installation.md)
+for trust, recovery and platform acceptance.
 
 ## Install the native backend
 
-Checking, formatting and emitting Rust need no external Rust compiler. Building
-and running native programs require [Rustup](https://rustup.rs/), **Rust 1.96.1**
-and a system linker/C toolchain. Tsrust does not download them implicitly.
+Native build, run, test and dev require [Rustup](https://rustup.rs/), **Rust 1.96.1**
+and a host linker/C toolchain. Use Xcode Command Line Tools on macOS, a C toolchain
+on Linux, or Visual Studio's Desktop development with C++ workload and Windows SDK
+on Windows. The compiler does not install these implicitly.
+
+After installing rustup, prepare the pinned tools and shared dependency sources:
 
 ```sh
-rustup toolchain install 1.96.1 --profile minimal
+tsrust setup --toolchain --dependencies --yes
+tsrust doctor --native
+tsrust doctor --json
 ```
 
-Use Xcode Command Line Tools on macOS, or the distribution's C build tools on
-Linux. Building GPU applications on Linux also requires native development
-libraries; see [contributor setup](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/CONTRIBUTING.md).
+Setup preserves global Rust defaults and unrelated configuration. Normal builds
+use locked Cargo sources offline; missing sources produce an explicit setup
+instruction. Doctor reports CLI/LSP installation integrity separately from Rust,
+Cargo and linker readiness. A native probe proves a small host compile/link/run,
+not every application dependency or target. Use `setup --dependencies --offline`
+when the needed sources are already cached.
+
+Portable source exports are optional. Prepare their exact source pack with
+`tsrust setup --portable --yes`; binding exports use
+`tsrust bindings resolve file.bindings.json --portable`. Neither ordinary builds
+nor `emit --package` silently download sources. Deployed native applications need
+no Tsrust, Rust, Cargo, repository or developer cache.
 
 ## Build from source
 
@@ -58,145 +90,95 @@ libraries; see [contributor setup](https://github.com/Forever-Frameworks-LLC/tsr
 git clone https://github.com/Forever-Frameworks-LLC/tsrust.git
 cd tsrust
 cargo fetch --locked
-cargo fetch --locked --manifest-path crates/tsrust-compiler/native-dependencies/Cargo.toml
-CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 cargo build --offline --locked --release --bin tsrust --bin tsrust-lsp
+CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 cargo build --offline --locked --release -p tsrust-compiler -p tsrust-lsp --bin tsrust --bin tsrust-lsp
+export PATH="$PWD/target/release:$PATH"
 ```
 
-The repository pins Rust and its dependencies. Rustup can install the pinned
-compiler on first use. The two fetch commands prepare the workspace and bundled
-native dependency source graphs. Put both executables from `target/release` on
-`PATH`. No Node runtime is needed by the generated native application.
-
-## Install editor support
-
-Download the release's `.vsix` file and use **Extensions → Install from VSIX** in
-VS Code. The VSIX does not embed the Rust server: keep `tsrust` and `tsrust-lsp`
-on `PATH`. The extension also searches `~/.cargo/bin` and beside configured
-companion executables. See [VS Code setup](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/editors/vscode/README.md) for
-explicit paths and local packaging.
+The workspace pins its Rust toolchain and dependencies. Rustup may install the pin
+on first Cargo use. The fetch prepares compiler/LSP build dependencies; application
+runtime sources are prepared separately by `tsrust setup --dependencies --yes`.
+No Node runtime is needed by the compiler or deployed native application.
 
 ## Windows source installation
 
-Use the MSVC Rust host (`x86_64-pc-windows-msvc`) and Visual Studio's **Desktop
-development with C++** workload, including a Windows SDK. The linker must be
-available to Rust. The native application smoke check exercises the linker rather
-than assuming that finding `cargo` proves the complete toolchain works.
-
-From this checkout in PowerShell, install both development consumers together in
-the standard Cargo executable directory:
+Use the `x86_64-pc-windows-msvc` Rust host and installed Visual Studio C++/Windows
+SDK tools. From the checkout in PowerShell:
 
 ```powershell
 $env:CARGO_INCREMENTAL = '0'
 $env:CARGO_BUILD_JOBS = '1'
 cargo fetch --locked
-cargo fetch --locked --manifest-path crates/tsrust-compiler/native-dependencies/Cargo.toml
-cargo install --path crates/tsrust-compiler --bin tsrust --locked --debug --target-dir target
-cargo install --path crates/tsrust-lsp --bin tsrust-lsp --locked --debug --target-dir target
+cargo build --offline --locked --release -p tsrust-compiler -p tsrust-lsp --bin tsrust --bin tsrust-lsp
+$env:PATH = "$PWD\target\release;$env:PATH"
 tsrust --version
+tsrust-lsp --version
+tsrust setup --dependencies --yes
+tsrust doctor --native
 ```
 
-`--debug` installs a development build and reuses the shared target. Omit it when
-an optimized local installation is needed; a release-profile build is not a public
-release. Cargo installs `tsrust.exe` and `tsrust-lsp.exe` in
-`$HOME\.cargo\bin`. Rustup normally adds this directory to the user PATH; open a
-new terminal after changing PATH. Do not rename away the `.exe` suffix.
+These PATH settings apply to the current terminal. Persist your chosen PATH using
+the operating system or shell configuration. If installing with `cargo install`
+instead, keep both consumers together and use Cargo for their upgrades; they are
+not owned by the managed updater.
 
-Package the local editor extension with `npm ci`, `npm test` and `npm run package`
-from `editors/vscode`, then install its VSIX using VS Code's **Install from VSIX**.
-The extension discovers both Cargo-installed executables without workspace-specific
-paths and supplies the default formatter for `.tsr` and `.tsrx` files. Explicit
-user formatter choices still take precedence.
+Windows dev uses native directory notifications and owned Job Objects. Failed
+builds preserve the previous application. Ctrl+C or Ctrl+Break stops the supervisor
+and its descendants. `TSRUST_DEV_WATCH=poll` requests the polling fallback.
 
-Run `tsrust dev` from a configured project to rebuild and restart after edits.
-Windows uses native directory notifications and owns compiler/program descendants
-through Windows Job Objects. Failed builds keep the previous application running;
-a successful rebuild replaces it. Press Ctrl+C or Ctrl+Break to stop the supervisor
-and its descendants. Set `TSRUST_DEV_WATCH=poll` to request polling when native
-notifications are unavailable or unsuitable, such as on some network filesystems.
-Browser UI builds additionally need the web prerequisites described below.
-Native GPU-window setup requires its own platform prerequisites and validation.
+## Install editor support
 
-The current LSP has an unresolved excessive-memory report during long workspace
-sessions. Use small workspaces and stop the language server if memory grows.
+Install the release's VSIX through VS Code's Extensions → Install from VSIX.
+The VSIX does not contain the language server. Keep the paired executables on PATH
+or configure their explicit paths. The extension also searches the normal Cargo
+bin directory and beside a configured companion executable.
+
+An explicit workspace/user path takes precedence over discovery. If VS Code
+reports ENOENT for a deleted development build, update that setting to the current
+`tsrust-lsp` and matching `tsrust`, or remove the stale overrides. Then run
+**Tsrust: Restart Language Server**. Highlighting alone does not mean analysis is
+running. See [VS Code setup](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/editors/vscode/README.md).
+
+For a source-built extension, run `npm ci`, `npm test` and `npm run package` from
+`editors/vscode`, then install the resulting VSIX. Existing explicit formatter
+choices are preserved. The LSP has an unresolved long-session memory report; use
+smaller workspaces until it is resolved.
 
 ## Create a project
 
 ```sh
-tsrust new hello
+tsrust new hello --app
 cd hello
-tsrust run
+tsrust dev
 ```
 
-Run `tsrust` in a terminal for the interactive launcher. For UI, select targets
-explicitly:
-
-```sh
-tsrust new my-app --ui --target native --target web
-cd my-app
-tsrust dev --target native
-```
-
-Pass target flags for repeatable scripts. In a terminal, the CLI can ask for
-missing target choices interactively. Selecting web does not enable native or
-embedded implicitly. Native execution requires a graphical desktop and supported
-GPU. Custom native titlebars currently require macOS; other desktop platforms
-use the native titlebar.
-
-## Browser prerequisites
-
-Web UI uses WebAssembly and the same checked component source. Install these
-additional tools explicitly:
-
-```sh
-rustup target add wasm32-unknown-unknown --toolchain 1.96.1
-cargo +1.96.1 install wasm-bindgen-cli --version 0.2.129 --locked
-tsrust dev --target web --port 4317
-```
-
-Web development watches source and Markdown, reuses the compiler session and Wasm
-workspace, and reloads browsers after successful builds. Failed builds keep the
-previous application available. Dependencies compile offline after setup.
-
-## Add components offline
-
-```sh
-tsrust ui add button card input --offline
-```
-
-The bundled catalog needs no registry or package-manager download. The first
-installation creates missing UI configuration and source directories. Importing
-a component alone does not create setup: follow the diagnostic's `tsrust ui add`
-command. The catalog is still being completed; inspect `tsrust ui list --bundled`
-for the actual available components.
-
-Installation preserves existing source. A conflicting upgrade gets a versioned
-filename such as `card-v3.tsrx`; newly installed bundled dependencies use the
-selected file. Existing application imports stay under your control.
+The starter is a native greeting HTTP API on loopback port 4318. Source and access
+policy live in `app/`; no frontend project, SDK or public dispatcher directory is
+created. Generate independent TypeScript/Rust clients explicitly from its checked
+HTTP description. Use `tsrust new hello` for a console project. Bare `tsrust` opens
+the interactive launcher in a terminal and prints help for redirected input.
 
 ## Check the project
 
 ```sh
-tsrust check src
+tsrust check
 tsrust test
 tsrust format --check
 ```
 
-Checks and editor analysis are read-only. See [project structure](project-structure.md)
-and [theming](../ui/foundations/theming.md) for configuration and customization.
+See [project structure](project-structure.md) and the
+[backend application guide](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/docs/guides/application-projects.md).
+`tsrust new` writes a project AGENTS.md describing its commands and ownership
+boundaries. Existing owner projects are never overwritten.
 
-## Agent guidance and terminal presentation
+## Browser prerequisites
 
-`tsrust new` writes a project `AGENTS.md` with commands, ownership expectations,
-UI entry conventions and verification steps. Component installation adds an
-`AGENTS.md` index in the configured component directory and a versioned reference
-for each installed component. References contain imports, checked public
-signatures, props and available behavioral documentation. Read the local source
-after customization. Existing owner guides are preserved; new component links
-append to the directory index. Dry runs do not write these files.
+Original UI tooling remains outside the active backend product. Its preserved
+[UI setup guide](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/docs/guides/tooling/retained-ui-setup.md)
+contains Wasm, native GPU and documentation-app prerequisites. Backend development
+and independent SDK generation require none of those tools.
 
-The arrow-key launcher appears in an interactive terminal. An explicit `TERM=dumb`
-selects numbered prompts; redirected input prints help without prompting. Remove
-an accidentally inherited `TERM=dumb` in a normal Windows terminal and start a
-new terminal. The Windows setup example clears that inherited setting in its
-workspace terminal environment. The branded header is printed when the terminal
-is wide enough, including short terminal panels; visible menu rows adapt to height.
+## Add components offline
+
+The same retained guide documents the original editable component catalog and its
+explicit commands. A backend project does not install components or adopt a
+frontend framework.

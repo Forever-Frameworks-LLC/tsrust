@@ -2,6 +2,25 @@ mod support;
 use support::{execute,reject};
 
 #[test]
+fn common_union_fields_clone_without_record_parameter_storage_assumptions(){
+ let source=r#"
+import {strictEqual} from 'std:testing';
+type First={code:string;offset:int;};
+type Second={code:string;retry:boolean;};
+function choose(first:boolean):First|Second{return first?{code:'first'.repeat(1),offset:1}:{code:'second'.repeat(1),retry:false};}
+function copyCode(value:ReadOnly<First|Second>):string{return clone(value.code);}
+function main(){
+ const first=choose(true);const second=choose(false);
+ strictEqual(copyCode(first),'first');strictEqual(copyCode(second),'second');
+ strictEqual(first.code,'first');strictEqual(second.code,'second');
+}
+"#;
+ let directory=support::TempDirectory::new();
+ let file=directory.source(&support::format_round_trip(source));
+ support::success(&support::run(support::cli().arg("run").arg(file),60));
+}
+
+#[test]
 fn data_unions_preserve_primitive_tags_and_canonical_transport() {
  execute(r#"
 function choose(flag:boolean):int|string {return flag?7:"text".repeat(1);}

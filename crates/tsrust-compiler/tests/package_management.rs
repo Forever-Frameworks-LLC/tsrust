@@ -11,9 +11,11 @@ fn package_changes_validate_tests_and_preserve_failed_or_preview_generations(){
  fs::write(dir.0.join("answer.test.tsr"),support::format_round_trip("import {test,strictEqual} from 'std:testing';import {answer} from './native.bindings.json';test('answer',()=>{strictEqual(answer(),42);});")).unwrap();
  // proc-macro2 is already in the pinned compiler toolchain's Cargo cache.
  let output=package(&dir.0,"add",&["proc-macro2@1.0.107"]);support::success(&output);
- let manifest=dir.0.join("native.bindings.json");let accepted=fs::read(&manifest).unwrap();let value:serde_json::Value=serde_json::from_slice(&accepted).unwrap();assert!(value["lockfile"].as_str().unwrap().contains("proc-macro2"));assert!(!dir.0.join("native.bindings.lock").exists());
- let cache_root=dir.0.join("target/tsrust-native/bindings");let generations=||fs::read_dir(&cache_root).unwrap().filter_map(Result::ok).filter(|entry|entry.path().is_dir()).count();let before=generations();
- let output=package(&dir.0,"features",&["proc-macro2","--features","span-locations","--dry-run"]);support::success(&output);assert_eq!(fs::read(&manifest).unwrap(),accepted);assert_eq!(generations(),before,"preview must remove unpublished vendor generations");
+ let manifest=dir.0.join("native.bindings.json");let accepted=fs::read(&manifest).unwrap();let value:serde_json::Value=serde_json::from_slice(&accepted).unwrap();assert_eq!(value["schemaVersion"],2);assert!(value["lockfile"].as_str().unwrap().contains("proc-macro2"));assert!(!dir.0.join("native.bindings.lock").exists());
+ assert!(!dir.0.join("target/tsrust-native/bindings").exists(),"ordinary package changes must not vendor sources");
+ assert!(!value["lockfile"].as_str().unwrap().contains("name = \"vello\""),"new binding graphs must exclude retained UI dependencies");
+ let output=package(&dir.0,"features",&["proc-macro2","--features","span-locations","--dry-run"]);support::success(&output);assert_eq!(fs::read(&manifest).unwrap(),accepted);
+ assert!(!dir.0.join("target/tsrust-native/bindings").exists(),"dry runs must not create vendor generations");
  fs::write(dir.0.join("answer.test.tsr"),"import {test,strictEqual} from 'std:testing';test('fails',()=>{strictEqual(1,2);});").unwrap();
  let output=package(&dir.0,"features",&["proc-macro2","--enable","span-locations"]);assert!(!output.status.success());assert_eq!(fs::read(&manifest).unwrap(),accepted);
  fs::remove_file(dir.0.join("answer.test.tsr")).unwrap();

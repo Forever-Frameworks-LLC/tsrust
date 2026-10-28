@@ -8,7 +8,7 @@ checks. Preserve their completed evidence and resume them after this pipeline wo
 - Feature PRs target `stag`. Run unit/integration/editor checks on Linux, not a
   release-build matrix. Passing tests and one approval permit merging. Only Cotter45 may bypass the review requirement, including when reviewing and
   merging another author's PR. The owner accepted this native actor-based bypass;
-  tests remain required.
+  tests remain required against the current staging base.
 - A `stag` to `main` PR builds release artifacts on Linux, Windows and macOS.
   Preserve both currently configured macOS architectures unless explicitly changed.
   No arbitrary branch may use this promotion path.
@@ -47,7 +47,7 @@ rules, and retarget the backend PR. The default-branch publisher must exist befo
 the first promotion run; merely adding it in the promotion PR cannot activate it.
 Keep the existing main protections until that bootstrap has passed CI. Main must
 then require Release gate with strict up-to-date checks and allow merge commits;
-stag must require CI plus the separate owner-bypass review rule. Both branches
+stag must require up-to-date CI plus the separate owner-bypass review rule. Both branches
 remain protected against deletion and force pushes.
 
 The owner authorized the bootstrap and tag-policy migration on 2026-10-28.
