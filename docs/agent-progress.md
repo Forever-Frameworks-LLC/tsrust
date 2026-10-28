@@ -16,6 +16,12 @@ and Linux/macOS test behavior cannot be validated locally under that restriction
 The previous equivalent run is the failed run above; no duplicate manual dispatch
 or release tag is needed. Hosted acceptance is pending.
 
+Follow-up source inspection found that package/export tests call materialize, which
+now requires an explicitly prepared portable source pack. Fresh runners have none.
+CI now prepares it offline after building the CLI, and shared setup fetches the
+backend lock closure as well as workspace/portable closures. The first repair
+run 40649937242 is superseded by this diagnosed clean-runner preparation fix.
+
 ## Hardware stop and checkpoint — 2026-10-28
 
 The owner requested a clean wrap-up, commit and push, then explicitly stopped

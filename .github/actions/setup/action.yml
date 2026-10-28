@@ -1,5 +1,5 @@
 name: Set up Tsrust build
-description: Install the repository toolchain and fetch both locked source closures.
+description: Install the repository toolchain and fetch the locked workspace, backend and portable source closures.
 runs:
   using: composite
   steps:
@@ -22,4 +22,5 @@ runs:
       shell: bash
       run: |
         cargo fetch --locked
+        cargo fetch --locked --manifest-path crates/tsrust-compiler/backend-dependencies/Cargo.toml
         cargo fetch --locked --manifest-path crates/tsrust-compiler/native-dependencies/Cargo.toml

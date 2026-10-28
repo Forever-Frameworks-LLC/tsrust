@@ -43,6 +43,8 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Compile both consumers
         run: cargo build --offline --locked --bin tsrust --bin tsrust-lsp
+      - name: Prepare portable sources for offline acceptance
+        run: target/debug/tsrust setup --portable --offline --yes
       - name: Check project formatting
         run: target/debug/tsrust format . --check --color never
       - name: Check release tooling and public documentation
