@@ -38,8 +38,8 @@ content is not accepted merely because its original file existed.
 | `library/overview.md` | Pending | Verify facts, examples and reading flow. |
 | `library/typed-json.md` | Pending | Verify facts, examples and reading flow. |
 | `project/status.md` | Pending | Verify facts, examples and reading flow. |
-| `start/editor.md` | Pending | Verify facts, examples and reading flow. |
-| `start/installation.md` | Pending | Verify facts, examples and reading flow. |
+| `start/editor.md` | Source review in progress | VS Code manifest minimum, executables.ts discovery order, extension.ts configuration/restart behavior checked. Separated stale-path and memory recovery from onboarding. Full editor/platform execution remains pending. |
+| `start/installation.md` | Source review in progress | Verified archive naming, current exact Rust pin and executable paths; made extraction conditional on checksum success and separated installation/update tasks. Fresh-platform instructions remain pending. |
 | `start/project-structure.md` | Pending | Verify facts, examples and reading flow. |
 | `start/quickstart.md` | Pending | Verify facts, examples and reading flow. |
 | `tools/cli.md` | Source review in progress | Confirmed interactive categories, ASCII name/100-character limit, config defaults and explicit-path semantics. Added headings around dev output/cache. Watcher and full example acceptance remain pending. |

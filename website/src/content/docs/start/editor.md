@@ -7,16 +7,9 @@ Editor support for `.tsr` and `.tsrx`: syntax highlighting, compiler diagnostics
 completion, documentation hover, argument help, navigation, formatting and run
 commands. The Rust language server shares the compiler's analysis library.
 
-Tsrust and this extension are experimental. The current language server has an
-unresolved report of excessive memory use in long workspace sessions. Avoid large
-workspace scans until resolved; stop or disable the extension for the workspace
-if memory grows. Unexpected exits use bounded recovery: up to four automatic
-restarts within the language client's three-minute failure window. A fifth exit
-stops recovery and leaves the cause in **Output → Tsrust**. Use **Tsrust: Restart
-Language Server** to reset the budget after inspecting repeated failures. Recovery
-does not establish that the underlying exit or memory issue is resolved.
-
 ## Install
+
+Use VS Code 1.100.0 or newer.
 
 Download the `.vsix` asset from
 [GitHub Releases](https://github.com/Forever-Frameworks-LLC/tsrust/releases) and
@@ -27,9 +20,17 @@ The extension bundles its JavaScript client and third-party notices. It does
 **not** include `tsrust` or `tsrust-lsp`; install both from the matching toolchain
 archive or build them from source.
 
-The extension finds executables beside an explicitly configured companion first,
-then in `~/.cargo/bin` and absolute PATH entries. A configured path must point to
-an executable and is never silently ignored. For a custom installation:
+## Locate the compiler and language server
+
+An explicit path takes priority and must be an absolute path to an executable.
+If a tool has no explicit path, the extension searches in this order:
+
+1. Beside the explicitly configured companion executable, when provided.
+2. `~/.cargo/bin`.
+3. Absolute directories in PATH.
+
+A broken explicit setting stops that tool's discovery; it is never silently
+ignored. For a custom installation:
 
 ```json
 {
@@ -41,12 +42,6 @@ an executable and is never silently ignored. For a custom installation:
 For a [managed installation](../../tools/install-and-update/), configure
 both paths to the stable launchers under its `bin` directory. On Windows, include
 `.exe`. The launchers select the installed compiler/server pair together.
-
-An `ENOENT` startup warning means a configured path no longer exists. Check both
-user and workspace settings for stale build paths such as `target/editor/debug`.
-Correct the path to the installed executable, or remove the override to use
-discovery. The extension deliberately reports invalid explicit settings instead
-of silently running another installation.
 
 Use user settings to share paths across projects. Open a `.tsr` or `.tsrx` file
 in a trusted workspace. **View → Output → Tsrust** shows startup and protocol
@@ -63,7 +58,7 @@ Checking and formatting require no external Rust compiler. **Run File** and
 native builds require Rustup, the pinned Rust backend and a system linker.
 See [installation](../installation/).
 
-## Use
+## Work in the editor
 
 - **Tsrust: Run File** saves and executes the current file. The editor play
   button invokes the same command.
@@ -72,6 +67,8 @@ See [installation](../installation/).
 - Hover and signature help explain supported APIs, argument contracts and errors.
 - Completion and navigation work with project imports and unsaved source.
 - Quick fixes appear only when the proposed edit passes the relevant check.
+
+## Save actions and diagnostics
 
 `tsrust.checkOnSave` and `tsrust.formatOnSave` enable explicit save actions.
 Live diagnostics already run while typing. `tsrust.analysis.debounceMs` adjusts
@@ -83,3 +80,39 @@ Open buffers override disk contents. Project diagnostics include dependencies
 and unopened source. Unsupported syntax or an unfinished declaration can still
 limit recovery; an absent answer is not proof that an API does not exist.
 Report a reproducible compiler/editor disagreement as a bug.
+
+## Fix a missing executable
+
+An `ENOENT` startup warning means a configured path no longer exists. Check both
+user and workspace settings for stale build paths such as `target/editor/debug`.
+Correct the path to the installed executable, or remove the override to use
+discovery. The extension deliberately reports invalid explicit settings instead
+of silently running another installation.
+
+Check both paths from a terminal before restarting the server:
+
+```sh
+/absolute/path/to/tsrust --version
+/absolute/path/to/tsrust-lsp --version
+```
+
+In PowerShell, use the call operator for a quoted executable path:
+
+```powershell
+& 'C:\path\to\tsrust.exe' --version
+& 'C:\path\to\tsrust-lsp.exe' --version
+```
+
+If highlighting works but diagnostics do not, inspect **Output → Tsrust**.
+Highlighting is supplied by the extension and does not prove the server started.
+
+## Repeated exits or high memory use
+
+Tsrust and this extension are experimental. The current language server has an
+unresolved report of excessive memory use in long workspace sessions. Avoid large
+workspace scans until resolved; stop or disable the extension for the workspace
+if memory grows. Unexpected exits use bounded recovery: up to four automatic
+restarts within the language client's three-minute failure window. A fifth exit
+stops recovery and leaves the cause in **Output → Tsrust**. Use **Tsrust: Restart
+Language Server** to reset the budget after inspecting repeated failures. Recovery
+does not establish that the underlying exit or memory issue is resolved.

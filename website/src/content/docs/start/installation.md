@@ -19,20 +19,27 @@ it. Releases also contain SHA256SUMS. For example, after downloading the matchin
 archive and checksum file from that official release:
 
 ```sh
-grep 'tsrust-v0.1.0-aarch64-apple-darwin.tar.gz$' SHA256SUMS | shasum -a 256 --check
-tar -xzf tsrust-v0.1.0-aarch64-apple-darwin.tar.gz
+grep 'tsrust-v0.1.0-aarch64-apple-darwin.tar.gz$' SHA256SUMS | shasum -a 256 --check &&
+  tar -xzf tsrust-v0.1.0-aarch64-apple-darwin.tar.gz
 ```
 
 Substitute the actual version and target. Linux uses `sha256sum --check`; Windows
 can calculate the selected archive's SHA-256 with `Get-FileHash -Algorithm SHA256`
-in PowerShell. A checksum from an untrusted source does not authenticate an archive.
+in PowerShell, then compare the returned hash with the official digest before
+extracting. Stop if verification fails. A checksum from an untrusted source does
+not authenticate an archive.
 The binaries are not independently code-signed or notarized. Linux archives target
 a glibc system compatible with Ubuntu 24.04; Alpine/musl and Linux ARM archives are
 not provided.
 
-Keep the archive's license, attributions and manifest. You may put its `bin`
-directory on PATH as an unmanaged installation, or use its CLI to create a managed
-pair in a new directory whose parent already exists:
+## Choose an installation directory
+
+Keep the archive's license, attributions and manifest. Add its extracted `bin`
+directory to PATH to use the unpacked pair. Restart your terminal if your PATH
+change is not visible, then check `tsrust --version` and `tsrust-lsp --version`.
+
+For managed updates and rollback, use that unpacked CLI to install a pair in a
+**new directory whose parent already exists**:
 
 ```sh
 tsrust toolchain install --root /absolute/path/to/new/tsrust
@@ -41,6 +48,8 @@ tsrust toolchain install --root /absolute/path/to/new/tsrust
 Add the new directory's `bin` to PATH. The command never overwrites an existing
 installation, changes shell profiles, or installs Rust. On Windows the executables
 are `tsrust.exe` and `tsrust-lsp.exe`; preserve their suffixes.
+
+## Check, update or roll back
 
 ```sh
 tsrust toolchain check --json
@@ -58,10 +67,20 @@ for trust, recovery and platform acceptance.
 
 ## Install the native backend
 
-Native build, run, test and dev require [Rustup](https://rustup.rs/), **Rust 1.96.1**
-and a host linker/C toolchain. Use Xcode Command Line Tools on macOS, a C toolchain
-on Linux, or Visual Studio's Desktop development with C++ workload and Windows SDK
-on Windows. The compiler does not install these implicitly.
+Native build, run, test and dev currently select **Rust 1.96.1 exactly**, through
+[Rustup](https://rustup.rs/). A newer default Rust installation does not replace
+that selected toolchain. Setup keeps the pin alongside your other Rust versions
+without changing the global default.
+
+You also need host build tools:
+
+| Platform | Required host tools |
+| --- | --- |
+| macOS | Xcode Command Line Tools |
+| Linux | C compiler and system linker |
+| Windows | Visual Studio Desktop development with C++ workload and Windows SDK |
+
+Tsrust does not install these platform SDKs or linkers implicitly.
 
 After installing rustup, prepare the pinned tools and shared dependency sources:
 
