@@ -1,9 +1,9 @@
 # Create and develop a Tsrust project
 
 Create a backend service with `tsrust new hello --app`, or a console program with
-`tsrust new hello`. See [backend applications](application-projects.md) for server
+`tsrust new hello`. See [backend applications](../../website/src/content/docs/backend/applications.md) for server
 operations and independent TypeScript/Rust SDKs. Prepare native tools and shared
-dependency sources explicitly using [machine setup](tooling/machine-setup.md).
+dependency sources explicitly using [machine setup](../../website/src/content/docs/tools/rust-setup.md).
 
 Run `tsrust` without arguments in a terminal to open the interactive command menu.
 The launcher groups actions into Development, Quality, UI and Project screens,

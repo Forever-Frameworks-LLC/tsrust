@@ -12,7 +12,7 @@ the repository's source-build instructions while no stable release is available.
 
 Checking source needs no external Rust compiler. Running, building and testing a
 native program require the pinned Rust toolchain, dependency sources and a host
-linker. Install Rustup and your platform's C/C++ build tools, then explicitly run:
+linker. Install Rustup and your platform's C/C++ build tools, then explicitly run (see [native tool setup](../../tools/rust-setup/) for details):
 
 ```sh
 tsrust setup --toolchain --dependencies --yes

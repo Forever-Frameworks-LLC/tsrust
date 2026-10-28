@@ -53,7 +53,7 @@ stages a complete pair before switching one installation record. Running tools
 remain on their original versions; restart the editor server to select the new
 pair. Rollback selects the retained verified pair offline. Package-manager-owned
 installations receive upgrade guidance instead of being overwritten. See the
-[managed installation guide](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/docs/guides/toolchain-installation.md)
+[managed installation guide](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/website/src/content/docs/tools/install-and-update.md)
 for trust, recovery and platform acceptance.
 
 ## Install the native backend
@@ -166,7 +166,7 @@ tsrust format --check
 ```
 
 See [project structure](project-structure.md) and the
-[backend application guide](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/docs/guides/application-projects.md).
+[backend application guide](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/website/src/content/docs/backend/applications.md).
 `tsrust new` writes a project AGENTS.md describing its commands and ownership
 boundaries. Existing owner projects are never overwritten.
 

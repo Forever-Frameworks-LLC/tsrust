@@ -53,7 +53,7 @@ tsrust toolchain install --root /absolute/path/to/new/tsrust
 
 Add that directory's `bin` to PATH. Explicit `toolchain check`, `toolchain update`
 and `toolchain rollback` manage the verified pair; existing package-manager
-installations are preserved. See the [managed installation guide](docs/guides/toolchain-installation.md)
+installations are preserved. See the [managed installation guide](website/src/content/docs/tools/install-and-update.md)
 for trust, recovery and the exact platform acceptance status.
 
 For a source build:
@@ -105,7 +105,7 @@ tsrust format --check
 tsrust build --release
 ```
 
-See [backend applications](docs/guides/application-projects.md),
+See [backend applications](website/src/content/docs/backend/applications.md),
 [project structure](docs/content/getting-started/project-structure.md) and
 [CLI commands](docs/guides/project-cli.md).
 

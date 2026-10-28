@@ -13,6 +13,8 @@ export default defineConfig({
     customCss: ['./src/styles/custom.css'],
     sidebar: [
       { label: 'Start here', items: [{ label: 'Overview', slug: '' }, 'start/quickstart'] },
+      { label: 'Build backends', items: ['backend/applications', 'backend/api-clients', 'backend/authorization', 'backend/api-compatibility'] },
+      { label: 'Tools', items: ['tools/rust-setup', 'tools/install-and-update'] },
       { label: 'Project', items: ['project/status'] },
     ],
   })],

@@ -11,7 +11,7 @@ HTTP-described TypeScript/async Rust clients and OpenAPI, pinned-toolchain docto
 setup, and ordinary shared-Cargo-cache backend builds. Optional prepared portable packs
 and the reported Rust/editor diagnostic repair are also accepted; see
 [portable source packs and editor agreement](milestones/portable-source-packs-and-editor-agreement.md). See
-[machine setup](guides/tooling/machine-setup.md),
+[machine setup](../website/src/content/docs/tools/rust-setup.md),
 [async HTTP SDK acceptance](milestones/async-http-sdk.md) and
 [shared backend sources](milestones/shared-backend-sources.md).
 The [native docs development profile](milestones/native-docs-development-profile.md)

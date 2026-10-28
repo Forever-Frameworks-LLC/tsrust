@@ -1,7 +1,10 @@
-# Install and update the CLI/LSP pair
+---
+title: Install and update the CLI/LSP pair
+description: Install, verify, update and roll back a managed Tsrust toolchain.
+---
 
 Implemented with focused macOS acceptance; Windows/Linux acceptance remains open
-in [the milestone](../milestones/paired-toolchain-installation.md).
+in [the milestone](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/docs/milestones/paired-toolchain-installation.md).
 Do not treat these commands as a published release until the staged release flow
 has produced an immutable stable release.
 
@@ -56,7 +59,7 @@ release manifest; links, traversal, duplicate paths, missing notices and modifie
 files are rejected. Both staged consumers must report their manifest versions.
 This is not independent code signing or macOS notarization. See GitHub's
 [release API](https://docs.github.com/en/rest/releases/releases) and the
-[release guide](releases.md) for publication and platform limitations.
+[release guide](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/docs/guides/releases.md) for publication and platform limitations.
 
 Supported release hosts are Linux x64/glibc, Windows x64/MSVC, macOS ARM64 and macOS
 x64. Installation and updates do not install Rust, Cargo or platform build tools.

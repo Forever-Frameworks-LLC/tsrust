@@ -7,11 +7,11 @@ these guides distinguish supported behavior from planned work.
 ## Build an application
 
 - [Install the CLI and editor](content/getting-started/installation.md)
-- [Managed CLI/LSP installation and updates](guides/toolchain-installation.md)
-- [Create a backend HTTP application](guides/application-projects.md)
+- [Managed CLI/LSP installation and updates](../website/src/content/docs/tools/install-and-update.md)
+- [Create a backend HTTP application](../website/src/content/docs/backend/applications.md)
 - [Understand project structure](content/getting-started/project-structure.md)
 - [Use the CLI](guides/project-cli.md)
-- [Inspect and prepare native build tools](guides/tooling/machine-setup.md)
+- [Inspect and prepare native build tools](../website/src/content/docs/tools/rust-setup.md)
 - [Explore the standard library](guides/language/standard-library.md)
 - [Understand string semantics](guides/language/string-semantics.md)
 - [Use collections](guides/collections.md)

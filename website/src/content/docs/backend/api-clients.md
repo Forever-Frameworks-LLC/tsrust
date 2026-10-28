@@ -1,9 +1,12 @@
-# Checked named API clients
+---
+title: Generate independent API clients
+description: Generate checked TypeScript and async Rust clients without coupling them to server source.
+---
 
 The backend is the API source of truth. New applications select their public
 operations and authorization in tsrust.config.json and import compiler-owned
 handlers from `api:server`; checking and running never require generated clients
-or dispatcher files. See [backend applications](application-projects.md).
+or dispatcher files. See [backend applications](../applications/).
 
 Generate independent TypeScript or asynchronous Rust SDKs from a live service:
 
@@ -150,131 +153,6 @@ mobile Fetch behavior remain service/platform acceptance requirements.
 Fetch status checking, JSON content types, credentials and cancellation follow
 [the Fetch API documentation](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch).
 
-## Versioned SDKs and mixed server replicas
-
-`package.version` identifies an SDK release and retains an immutable wire-contract
-reference. `apiVersion` is a positive
-API compatibility major, defaulting to 1. `contractId` identifies the exact checked
-manifest. `wireContractId` includes the API major, while preserving legacy v1
-identities. Consequently an identical DTO schema in API v2 cannot accidentally
-pass a pre-versioning API v1 server's hash admission check.
-
-Generated compatibility.json retains deduplicated checked schemas and immutable
-SDK release references. Keep it with generated output. Generation reads canonical
-history even when exporting with --out, merges destination history, and checks
-compatibility before replacing public/private outputs. Changed schemas require a
-new SDK version. Within one API major, released inputs remain accepted and old
-replica results must satisfy the new SDK. Optional result additions can work;
-required new fields must use an explicit API major or remain optional during
-rollout. A new API major requires a new SDK major. Business semantics still need
-application review; schema containment cannot prove them.
-
-These checks preserve release-to-contract identity, not an npm registry's release
-immutability or every generated runtime byte. Regeneration with a newer Tsrust
-compiler can update runtime code without changing DTOs. Select a new package
-version before publishing any changed package, including runtime-only changes.
-Generation does not publish or silently change package versions for the owner.
-
-The server retains its own baseline files under application-owned paths, referenced
-by api.compatible. It never needs the generated client's compatibility.json directory
-to start. Copy a reviewed release baseline into the app when retaining it for a
-rollout; the served description includes the configured history.
-
-Known published baselines can be imported with top-level `compatible`, a list of
-relative manifest.json or compatibility.json paths. Legacy server.compatible
-remains supported. A fresh selected client can omit methods from foreign server
-baselines, but subsequent releases cannot silently remove its own published calls.
-Existing owned pre-metadata packages bootstrap from their manifest/package version.
-
-Before I/O, the HTTP adapter selects a retained profile whose input codec accepts
-the actual supplied arguments and whose output is accepted by the current SDK.
-Modern dispatchers recognize retained per-operation fingerprints independently
-of unrelated selected methods. Strict response codecs and old-client projections
-remain in force. The adapter never strips arguments or retries requests to find
-support. Common calls can survive mixed replicas; newly supplied arguments or new
-operations can require newer servers. ApiCompatibilityError extends ApiError,
-preserves api-incompatible/api-operation codes and reports the requested API major.
-Do not infer fleet-wide capabilities from one replica or retry ambiguous writes.
-Retain older handlers or migrations for as long as older API majors must work.
-
-The real old/new native server and browser matrix is
-`node tools/verify-api-replicas.mjs`. It passes the scoped
-[SDK milestone](../milestones/sdk-versioning.md); see
-[current evidence](../agent-progress.md) for remaining backend acceptance.
-
-## Compiler-owned native dispatch
-
-In tsrust.config.json api settings, declare the private context and access policy.
-The compiler connects checked operations to the native Router in memory.
-
-```json
-{
-  "server": {
-    "context": { "module": "app/context.tsr", "export": "TaskContext" },
-    "authorize": { "module": "app/access.tsr", "export": "authorize" },
-    "compatible": ["contracts/v1.json"],
-    "maxRequestBytes": 65536,
-    "maxResponseBytes": 65536
-  }
-}
-```
-
-Add this server member to the project API settings, and add `"context": true`
-only to operations whose first parameter is a borrowed native HTTP Context.
-That parameter is private; the remaining zero/one plain-data argument is the wire
-input. An arbitrary pool/resource or an owned Context cannot be hidden this way.
-Context roles do not alter the public contract identity. Application state and
-policy stay in backend modules. An authorize hook must return `Task<boolean>`
-from the configured Context; it runs before request decoding or operation calls.
-Returning true is the application's explicit access decision. Configure Router
-body/concurrency/time limits too: the generated decoder's post-read size guard
-does not replace HTTP admission limits.
-
-Import dispatch, describe and openapi from `api:server`, then register them on the
-application Router. Checking, building and dev create no dispatcher source file
-and read no client output directory. Operation facts and executable handlers share
-the checked source graph; inconsistent independently loaded inputs fail with a
-retry diagnostic. Unreadable nearest project configuration fails instead of
-selecting a parent project's access policy. Dispatch requires POST, JSON MIME, a declared operation and an
-accepted contract hash. Schemas derive from the checked functions. Generic
-materialization uses ordinary checked specialization, never an assertion of
-unknown JSON as a DTO. Invalid arguments/results, policy denial and backend
-exceptions produce bounded public error messages. Typed domain-result unions
-remain ordinary successful data. Neither failure nor cancellation asserts rollback.
-
-### Explicit legacy source export
-
-Existing projects that require a physical dispatcher can opt into server.output,
-such as app/generated-api, when explicitly running tsrust api generate. This
-retained export mode is independent of normal api:server compilation and is not
-used by new backend scaffolds.
-
-The private output must be separate from the public package. Generation checks
-the complete virtual handler before replacing outputs, pins checked input/config
-versions and preflights ownership for both destinations. Both destinations have
-independent generated hash markers/locks; edits are preserved. Replacements are
-individually atomic and retryable, not a filesystem-wide transaction. `--check`
-writes nothing. An explicit `--out` changes the client destination while a configured
-private server keeps its own destination. Omit `server` for client-only adoption.
-
-Retained baselines check that old inputs fit the new operation and new outputs
-can be projected into the old strict shape, recursively. Versioned SDK history
-also checks the reverse result direction for old replicas. Unknown operation
-shapes reject with api-incompatible before invocation, even when their names
-exist. Keep immutable contract versions rather than changing an old policy input
-to describe a different client. Neither hash matching nor containment establishes
-unchanged application semantics.
-
-The HTTP encoder retains platform JSON escaping and marks unsafe integral JS
-numbers as decimal floating-point tokens. Thus finite values such as 1e20 do not
-overflow native bare-integer JSON storage. Numeric text in strings/keys stays
-unchanged. Safe integer DTOs retain their stricter limit.
-
-Run [the example](../../examples/api-contract/README.md) and
-`node tools/verify-api-client.mjs` with the current compiler to check named calls,
-codecs, type inference and owner-edit protection. The verification uses existing
-repository Node/TypeScript development tools; it installs no template packages.
-
 ## Ordinary local package adoption
 
 Generate into an explicit folder, then use the application's package manager:
@@ -299,3 +177,9 @@ workspaces and declare its configured name/version in the consuming application'
 normal dependencies. Users own their package manager, scripts and dependencies.
 Other package managers use their ordinary package/workspace workflows; SDK
 export never installs packages or rewrites the consuming application's files.
+
+
+## Next steps
+
+- [Configure authorization and dispatch](../authorization/) on the server.
+- [Retain compatible SDK contracts](../api-compatibility/) for rolling deployments.

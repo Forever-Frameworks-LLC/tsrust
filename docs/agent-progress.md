@@ -34,6 +34,24 @@ protected static Pages workflow and verify actual public URLs before changing
 repository links to assume deployment exists. Do not call the initial pages a
 complete documentation migration. Plan checkpoint: 2e88ea9d.
 
+## Public guide migration acceptance
+
+Moved four existing guides into canonical Starlight Markdown and removed the old
+copies: native tool preparation, managed installation, backend application setup,
+and generated API clients. The long client guide is split into generation,
+authorization and rolling-compatibility pages. Public API guidance no longer
+includes internal test-run/milestone narrative. Inbound Markdown links now resolve
+to the new source paths while production publication remains pending. The migration
+map is docs/plans/public-documentation-migration.md. Historical milestone prose is
+preserved; one historical Markdown link target changed to retain resolution.
+
+The site builds 10 HTML pages including 404. All generated same-site links/anchors
+and fenced JSON examples pass an independent Python HTMLParser/JSON check. All six
+distribution/public-entry-link tests pass. Whole-project formatting/check and diff
+whitespace checks pass with zero changed sources/fingerprints. Existing local full
+regressions (79249) and Windows/Linux runs (40705140781/40705410644) remain live;
+do not infer completion or restart them. No docs deployment has been published.
+
 ## Current priority: polish acceptance on the installed staged pipeline
 
 PR #2 merged as caf5284b. Bootstrap PR #3 passed required PR CI 40694096077

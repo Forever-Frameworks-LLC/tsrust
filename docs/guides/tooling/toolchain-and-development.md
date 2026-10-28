@@ -12,8 +12,8 @@ for its supported boundaries; the original single-file foundation plan below is
 historical evidence, not a current feature limit.
 
 Repository and generated native builds use [the pinned Rust toolchain](rust-toolchain-policy.md).
-[Machine setup](machine-setup.md) prepares tools and shared dependency sources
-explicitly. [Managed installation](../toolchain-installation.md) selects verified
+[Machine setup](../../../website/src/content/docs/tools/rust-setup.md) prepares tools and shared dependency sources
+explicitly. [Managed installation](../../../website/src/content/docs/tools/install-and-update.md) selects verified
 CLI/LSP pairs atomically and supports explicit update and rollback; its platform
 acceptance is recorded separately from implementation.
 

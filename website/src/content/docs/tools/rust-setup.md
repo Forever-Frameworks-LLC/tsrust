@@ -1,4 +1,7 @@
-# Inspect and prepare native build tools
+---
+title: Prepare native build tools
+description: Inspect your host and explicitly prepare Rust and shared dependency sources.
+---
 
 `tsrust check` and ordinary Rust source emission do not need Rust installed.
 Native build, run, test and dev use Tsrust's exact pinned Rust toolchain.
@@ -92,7 +95,7 @@ schema 2 and Cargo’s shared sources; schema 1 retains its legacy dependency gr
 Resolve binding dependencies explicitly before offline builds. Binding portable
 exports validate and include their exact locked graph.
 
-CLI/LSP acquisition is separate: see [managed installation and updates](../toolchain-installation.md).
+CLI/LSP acquisition is separate: see [managed installation and updates](../install-and-update/).
 Doctor reports managed-pair ownership and integrity independently of Rust readiness.
 
 The [rustup profile documentation](https://rust-lang.github.io/rustup/concepts/profiles.html)

@@ -1,0 +1,49 @@
+---
+title: Version API contracts safely
+description: Retain checked contracts for old clients and mixed server replicas.
+---
+
+`package.version` identifies an SDK release and retains an immutable wire-contract
+reference. `apiVersion` is a positive
+API compatibility major, defaulting to 1. `contractId` identifies the exact checked
+manifest. `wireContractId` includes the API major, while preserving legacy v1
+identities. Consequently an identical DTO schema in API v2 cannot accidentally
+pass a pre-versioning API v1 server's hash admission check.
+
+Generated compatibility.json retains deduplicated checked schemas and immutable
+SDK release references. Keep it with generated output. Generation reads canonical
+history even when exporting with --out, merges destination history, and checks
+compatibility before replacing public/private outputs. Changed schemas require a
+new SDK version. Within one API major, released inputs remain accepted and old
+replica results must satisfy the new SDK. Optional result additions can work;
+required new fields must use an explicit API major or remain optional during
+rollout. A new API major requires a new SDK major. Business semantics still need
+application review; schema containment cannot prove them.
+
+These checks preserve release-to-contract identity, not an npm registry's release
+immutability or every generated runtime byte. Regeneration with a newer Tsrust
+compiler can update runtime code without changing DTOs. Select a new package
+version before publishing any changed package, including runtime-only changes.
+Generation does not publish or silently change package versions for the owner.
+
+The server retains its own baseline files under application-owned paths, referenced
+by api.compatible. It never needs the generated client's compatibility.json directory
+to start. Copy a reviewed release baseline into the app when retaining it for a
+rollout; the served description includes the configured history.
+
+Known published baselines can be imported with top-level `compatible`, a list of
+relative manifest.json or compatibility.json paths. Legacy server.compatible
+remains supported. A fresh selected client can omit methods from foreign server
+baselines, but subsequent releases cannot silently remove its own published calls.
+Existing owned pre-metadata packages bootstrap from their manifest/package version.
+
+Before I/O, the HTTP adapter selects a retained profile whose input codec accepts
+the actual supplied arguments and whose output is accepted by the current SDK.
+Modern dispatchers recognize retained per-operation fingerprints independently
+of unrelated selected methods. Strict response codecs and old-client projections
+remain in force. The adapter never strips arguments or retries requests to find
+support. Common calls can survive mixed replicas; newly supplied arguments or new
+operations can require newer servers. ApiCompatibilityError extends ApiError,
+preserves api-incompatible/api-operation codes and reports the requested API major.
+Do not infer fleet-wide capabilities from one replica or retry ambiguous writes.
+Retain older handlers or migrations for as long as older API majors must work.

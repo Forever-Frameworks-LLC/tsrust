@@ -35,7 +35,7 @@ an executable and is never silently ignored. For a custom installation:
 }
 ```
 
-For a [managed installation](../../docs/guides/toolchain-installation.md), configure
+For a [managed installation](../../website/src/content/docs/tools/install-and-update.md), configure
 both paths to the stable launchers under its `bin` directory. On Windows, include
 `.exe`. The launchers select the installed compiler/server pair together.
 

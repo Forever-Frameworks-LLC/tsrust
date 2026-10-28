@@ -1,4 +1,7 @@
-# Create a backend application
+---
+title: Create a backend application
+description: Create a native HTTP service with server-owned operations and explicit access policy.
+---
 
 `tsrust new hello --app` creates a native greeting HTTP API. The optional `--target backend` is
 accepted; frontend targets are rejected. Bring your own UI and call the API.
@@ -80,5 +83,5 @@ This is checked Tsrust RPC export, not an arbitrary REST/OpenAPI importer.
 `tsrust new hello` retains the console scaffold. Original Tsrust UI source and
 explicit legacy commands remain historical compatibility outside the active backend
 product. Ordinary backend and schema 2 binding builds use shared Cargo sources;
-see [machine setup](tooling/machine-setup.md). For paired CLI/LSP acquisition and
-rollback, see [managed installation](toolchain-installation.md).
+see [machine setup](../../tools/rust-setup/). For paired CLI/LSP acquisition and
+rollback, see [managed installation](../../tools/install-and-update/).
