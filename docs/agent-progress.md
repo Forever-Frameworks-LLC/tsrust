@@ -2008,3 +2008,24 @@ succeeded; no force, merge, tag or publication. Updated the PR title/body to the
 final backend/tooling/docs scope and explicit remaining acceptance. Documentation run 40761578389 passed at the new head; deployment was correctly
 skipped for a PR. CI 40761578381 is running compiler/LSP and VS Code checks.
 Inspect that run before proceeding; do not dispatch duplicates.
+
+## Remaining public-guide migration: lazy async tasks
+
+Migrated docs/guides/async-tasks.md to website/src/content/docs/language/async.md
+and added it to the existing Language sidebar. The old guide incorrectly described
+Tokio scheduling/cancellation as future S14 work. Replaced milestone/benchmark
+narrative with task-based sections, current started-job behavior, native setup
+prerequisites and exact file/run instructions. The detailed tokio-tasks.md guide
+still requires its own migration; no benchmark or example sources were removed.
+No inbound links or executable consumers referenced the removed guide.
+
+Both exact Markdown examples pass format-write/check, compiler check and native
+execution with the current compiler, producing created/Hello Ada and 42. Temporary
+projects were removed. Whole-page 390px/1440px review passes, with syntax coloring,
+keyboard-scrolling code, no document overflow and working skip-to-content. Static
+site now contains 24 pages; 17 content/presentation rows are complete, seven retain
+platform/acquisition requirements. Existing 23-page evidence remains valid.
+CI 40761578381 at remote 61ee67a4 was still running setup; extension and docs jobs
+passed. This local documentation section is not pushed; batch later rather than
+cancelling the current mandatory run. Next: finish current public-guide migration
+and await required remote/platform acceptance without duplicating completed work.
