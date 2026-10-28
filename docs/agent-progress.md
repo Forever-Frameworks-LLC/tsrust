@@ -1379,3 +1379,23 @@ milestone feature unification and reduce dependency rebuild churn. Await complet
 before any further Cargo consumer. Original79249 continues completion_matrix.
 Windows40731485167 last observed in paired installer/binding acceptance; compile
 both consumers and portable-source preparation succeeded. No new hosted run.
+
+
+CLI46125 terminal: dev_aliases3 PASS (recovery/replacement/shutdown and cache reuse);
+interactive4 PASS/3 FAIL, all remaining failures stale button2 references. Current
+catalog button3 confirmed; repaired expected version and no-target invocation.
+Followup21519 terminal: interactive7 PASS, rust_bridge compiler6 PASS and LSP6 PASS;
+runtime_cache3 PASS/1 FAIL because the fixture's partial config lacks schema/name/build.
+Added full schema1 theme-cache project configuration. Cache fixture now installs
+required tokens explicitly, preserving original runtime miss/hit and color checks.
+LSP original collections_catalog failed SourceId /var versus canonical /private/var;
+canonicalized its temporary directory, preserving every catalog/output assertion.
+Sequential repair79888 now runs only theme-cache case, then collections_catalog,
+then backend all-target diagnostics. Logs /tmp/tsrust-theme-cache-repair.log,
+/tmp/tsrust-collections-catalog-repair.log, /tmp/tsrust-cli-all-targets.log. Inspect
+each result separately (shell continues after a failed group); no blanket final-exit
+claim. No other new Cargo consumer. Original79249 still completion_matrix.
+Formatter56047 terminal PASS and format-check PASS. Checkpoint accepted banner,
+interactive/dev/binding test corrections; keep cache/catalog changes uncommitted
+until current execution completes. Do not remove generated AGENTS until original
+full regression is terminal. No remote push/release this turn.
