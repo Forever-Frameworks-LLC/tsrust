@@ -2,7 +2,7 @@
 
 ## Current continuation — public documentation audit
 
-Accepted local source is bc3c43aa. Earlier chronological entries below retain
+Accepted local source is e7103537. Earlier chronological entries below retain
 historical process states; they are not instructions to poll or restart those
 jobs. No Cargo test is currently running. The page-by-page acceptance checklist
 is [the public content audit](plans/public-documentation-content-audit.md).
@@ -1736,3 +1736,30 @@ source-build link. No viewport override applied. Do not mark page fully audited.
   site build and all 23-page links/anchors/assets pass; git diff --check clean.
   No hosted jobs or releases started. Next: remaining documentation acceptance,
   batched Linux/Windows pipeline validation and backend performance requirements.
+
+### HTTP native example and batched remote validation
+
+- Exact combined HTTP guide server formatted and built with the current CLI in
+  the shared target; native assertions pass for GET Hello, both middleware
+  headers, POST JSON Ada/status 202 and malformed/schema-error status 500.
+  Build log: /tmp/tsrust-doc-http-native.log. Initial sandbox execution failed
+  to bind and was terminal; the permitted loopback execution passed. The owned
+  server was terminated in finally. Remaining page keyboard checks stay open.
+- Remote candidate source is e710353763061899c8e92628375be26a667048e2,
+  including the accepted bc3c43aa live-LSP update witness. This evidence-only
+  checkpoint does not change its executable or public-doc inputs. Reconcile
+  that exact candidate tree as a normal child of PR head
+  4df6609649f80e2ce6bb45142a69d73d86814f28, without force push or checkout switch.
+- Local acceptance: 15 scoped editor cases, complete backend catalog compiler/
+  native examples, clean backend all-target diagnostics, both affected installer
+  cases, native SDK authorization/replica checks, whole-project formatting and
+  the 23-page site build/link check. Required full milestone/performance and
+  incomplete page audits remain pending; PR stays draft.
+- Hosted uncertainty: Linux offline dependency closure after the diagnosed
+  package/shared-source fixes, and Windows execution of the new real-LSP session
+  across update. Last equivalent Linux PR run 40705410644 failed before those
+  fixes; Windows 40731485167 passed older source 9b658857. No run exists for this
+  candidate. Use automatic PR CI on Linux plus one manual toolchain_acceptance
+  on the same staging branch for Windows; it skips Linux/editor duplicate jobs.
+  PR and branch dispatch have distinct concurrency refs. The PR docs workflow
+  builds only; neither validation publishes a release or deploys production docs.
