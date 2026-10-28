@@ -2182,3 +2182,17 @@ New run-task paragraph rendering remains pending. 27-page build and link checks
 pass; whole-project formatter changed zero files. CI 40761578381 still confirmed
 live this turn; no push/dispatch. Next: render added editor paragraph, then continue
 the remaining finite language-guide inventory and outstanding platform evidence.
+
+## String documentation consolidation
+
+Added language/strings.md and sidebar entry; merged indexing, iteration and scalar
+concatenation guides, updated their Markdown links and removed duplicates. Retained
+string-semantics.md representation/benchmark history with a clear superseded-contract
+label; its two-string-only addition claim is no longer current guidance. Updated
+active README/roadmap entrypoints. Traced emitter string_index, runtime strings and
+existing accepted fixtures. Five exact page examples pass formatting/idempotence,
+compiler check and native output: 9/emoji/b/euro, caught range, k/missing, Unicode
+iteration and 3x/x12/ready:true. Script/log /tmp/tsrust-string-doc-check.* disposable;
+temporary sources removed. Rendered review of this page and the prior editor run-task
+paragraph remains pending. No broad test suite or new hosted run started. Next:
+complete these rendered reviews, then continue the finite language guide inventory.

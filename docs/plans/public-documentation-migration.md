@@ -99,10 +99,10 @@ feature-coverage evidence to reduce the inventory.
 | `language/scoped-callable-transport.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/sets.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/statement-bodies.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/string-concatenation.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/string-indexing.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/string-iteration.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/string-semantics.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/string-concatenation.md` | Merged into language/strings; old duplicate removed and Markdown links updated. | Source/examples pass; rendering pending |
+| `language/string-indexing.md` | Merged into language/strings; old duplicate removed and Markdown links updated. | Source/examples pass; rendering pending |
+| `language/string-iteration.md` | Merged into language/strings; old duplicate removed and Markdown links updated. | Source/examples pass; rendering pending |
+| `language/string-semantics.md` | Retained original representation/measurement history with explicit superseded-contract label; current usage moved to language/strings. | Core source/examples pass; rendering pending |
 | `language/switch.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/type-aliases.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
 | `language/type-assertions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |

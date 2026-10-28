@@ -5,7 +5,7 @@ including unions containing only string, int, number, boolean, null and undefine
 Conversion follows String(), with once-only left-to-right evaluation and borrowed
 sources. Arrays, records and functions remain type errors. Numeric addition and
 string result annotations do not independently request conversion. This is defined
-concatenation, not coercive comparison. See [String concatenation](../guides/language/string-concatenation.md).
+concatenation, not coercive comparison. See [String concatenation](../../website/src/content/docs/language/strings.md).
 
 The analyzer wraps the scalar operand in an existing String conversion call before
 ordinary argument checking. A separate non-inlined helper keeps state outside the

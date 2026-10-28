@@ -13,7 +13,7 @@ these guides distinguish supported behavior from planned work.
 - [Use the CLI](../website/src/content/docs/tools/cli.md)
 - [Inspect and prepare native build tools](../website/src/content/docs/tools/rust-setup.md)
 - [Explore the standard library](../website/src/content/docs/library/overview.md)
-- [Understand string semantics](guides/language/string-semantics.md)
+- [Understand string semantics](../website/src/content/docs/language/strings.md)
 - [Use collections](guides/collections.md)
 - [Work with Rust](../website/src/content/docs/tools/rust-packages.md)
 - [Set up VS Code](../editors/vscode/README.md)
