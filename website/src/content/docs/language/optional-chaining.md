@@ -11,11 +11,11 @@ Parentheses end a continuous chain. `value?.text.length` skips both accesses whe
 
 ## Preserve checked errors
 
-Indices and arguments retain their ordinary strict types and ranges. Reached array accesses still check bounds; reached String operations keep their UTF-8 byte/scalar contracts and boundary errors. Optional access does not catch failures in a reached operation or evaluated argument. Native dense array families, canonical single-payload nullable types and callable contracts remain in effect. Optional chaining does not add coercion, arbitrary mixed-union operations, optional assignment targets or prototype lookup. Nullable callable storage and optional invocation are supported under their [callable ownership contracts](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/docs/guides/language/nullable-callables.md).
+Indices and arguments retain their ordinary strict types and ranges. Reached array accesses still check bounds; reached String operations keep their UTF-8 byte/scalar contracts and boundary errors. Optional access does not catch failures in a reached operation or evaluated argument. An optional hop needs one proven present payload type. Narrow a union with several present types before selecting a member. Callable access and invocation contracts still apply. Optional chaining does not add coercion, arbitrary mixed-union operations, optional assignment targets or prototype lookup. Nullable callable storage and optional invocation are supported under their [callable ownership contracts](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/docs/guides/language/nullable-callables.md).
 
 ## Editor help
 
-The editor uses compiler-checked whole-expression results and successful-hop payload facts, cached once per document revision. Incomplete named/direct-field `value?.` help uses a readonly check of the unchanged prefix; absent-only, unknown, conflicting specializations and rejected prefixes stay conservative. This optional help never authorizes ordinary `value.` access.
+Hover shows the checked result type of the whole expression. Completion after `value?.` offers members when the receiver has a known valid payload. Unknown or invalid receivers may have no suggestions. A suggestion after `?.` does not establish that ordinary `value.` access is safe.
 
 After [native setup](/tsrust/tools/rust-setup/), run each complete example
 separately as `main.tsr` with `tsrust run main.tsr`.
@@ -126,6 +126,6 @@ Expected stdout: `empty false`.
 
 ## Understand ownership
 
-Copy selections are snapshots. Existing owned fields or indexed values can produce scoped readonly views: reading the source remains allowed, while conflicting mutation, moves, escaping returns and captures follow its checked loans. An explicit canonical nullable annotation can preserve the same scoped readonly view; it does not create an owner. Such views cannot escape through a return or Consume argument. Use `clone` for an independent owner. Fresh receivers may transfer selected values, and methods creating new storage return owned results; no implicit owner duplication is added.
+Copy selections are snapshots. Existing owned fields or indexed values can produce scoped readonly views: reading the source remains allowed, while conflicting mutation, moves, escaping returns and captures follow its checked loans. An explicit canonical nullable annotation can preserve the same scoped readonly view; it does not create an owner. Such views cannot escape through a return or an argument that consumes ownership. Use `clone()` for an independent owner. Fresh receivers may transfer selected values, and methods creating new storage return owned results; no implicit owner duplication is added.
 
 Borrowed optional string fields can select a string literal fallback without cloning. See [borrowed optional fallbacks](/tsrust/language/borrowed-optional-fallback/) for the current source-loan and independent-owner rules.
