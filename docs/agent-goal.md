@@ -4,7 +4,8 @@
 
 The owner approved this plan and asked for continuous autonomous work on it:
 
-1. **Ship stable 0.1.0.** PR #6 (`codex/language-cli-docs-polish` → `stag`)
+1. **Ship stable 0.1.0.** Done 2026-10-29: `v0.1.0` published (PR #7); managed
+   install, check, update and rollback verified against it (see the handoff). PR #6 (`codex/language-cli-docs-polish` → `stag`)
    needs the owner's bypass merge (agents cannot approve their own PRs). Then
    open `stag` → `main`; Release and Promote publish `v0.1.0` and deploy Pages.
    Smoke-test a release archive, then `tsrust toolchain install --root`,
