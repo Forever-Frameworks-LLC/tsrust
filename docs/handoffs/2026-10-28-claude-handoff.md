@@ -207,11 +207,23 @@ then, including this documentation restructure, are unpushed.
   now accepts `MAJOR.MINOR.PATCH-rc.N` (ordered before the stable version);
   update discovery still considers only stable releases, so self-update from a
   published release still needs a stable release to verify.
-- PR #4 (`codex/backend-polish-staging` → `stag`) carries this branch's tree
-  exactly (replayed onto the PR base; tree a9e7d3b6 at the time of replay) and
-  passed CI (run 40825722089). It is ready for review. Merging needs the owner's
-  review or owner bypass; the agent's bypass merge was blocked.
-- Next: merge PR #4, open a non-draft `stag` → `main` PR. The Release workflow
-  builds four platforms; on success Promote merges, publishes the prerelease and
-  the Documentation workflow deploys GitHub Pages. Then download a release
-  archive, install it and run `tsrust --version`, `doctor` and a native program.
+- PR #4 (`codex/backend-polish-staging` → `stag`) was merged by the owner with
+  the review bypass (squash commit cf4e729c). Authors cannot approve their own
+  PRs; the bypass is the owner's path for agent-opened PRs.
+- PR #5 (`stag` → `main`) built all four targets and the extension (Release run
+  40861023720). Promote (run 40864132322) merged it and published the
+  `v0.1.0-rc.1` prerelease with four archives, `tsrust-0.2.0.vsix` and
+  `SHA256SUMS`. The Documentation workflow (run 40864208241) deployed
+  https://forever-frameworks-llc.github.io/tsrust/.
+- Release smoke test on macOS arm64: the archive matched `SHA256SUMS`;
+  `tsrust --version` printed `0.1.0-rc.1`, `tsrust-lsp --version` printed
+  `0.2.0`; `doctor` and `doctor --native` passed; `tsrust run` executed a native
+  program correctly. `tsrust toolchain install --root` refused as designed: "No
+  published stable official toolchain is available yet".
+- Pages smoke test: the home page, Learn, Language, globals guide, generated
+  globals and `std:sql` reference returned 200; the old
+  `reference/builtins/globals/` path redirects to `reference/globals/functions/`.
+- Still open: managed install and self-update need the first stable release.
+  Linux, Windows and Intel macOS archives were built and checked in CI, not
+  installed by hand. This handoff commit is local only and reaches `stag` with
+  the next PR.
