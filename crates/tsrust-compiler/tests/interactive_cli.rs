@@ -16,6 +16,22 @@ fn redirected_bare_command_prints_help_without_prompting_or_writing() {
     }
 }
 
+#[cfg(not(feature = "legacy-ui"))]
+#[test]
+fn release_build_omits_frozen_ui_commands_without_writing() {
+    let root = support::TempDirectory::new();
+    let help = support::run(support::cli().arg("--help").current_dir(&root.0), 10);
+    support::success(&help);
+    let text = String::from_utf8(help.stdout).unwrap();
+    assert!(!text.contains("tsrust ui") && !text.contains("--ui") && !text.contains("--target native|web"), "{text}");
+    for args in [vec!["ui", "list", "--bundled"], vec!["ui", "add", "button@3.0.0", "--target", "native"], vec!["new", "counter", "--ui"], vec!["dev", "--target", "web"]] {
+        let output = support::run(support::cli().args(&args).current_dir(&root.0).stdin(std::process::Stdio::null()), 10);
+        assert!(!output.status.success(), "{args:?}");
+        assert!(String::from_utf8_lossy(&output.stderr).contains("frozen legacy UI"), "{args:?}");
+        assert_eq!(std::fs::read_dir(&root.0).unwrap().count(), 0);
+    }
+}
+
 #[cfg(unix)]
 mod terminal {
     use super::support;
@@ -99,13 +115,15 @@ mod terminal {
 
     const DOWN: &str = "\x1b[B";
     const ENTER: &str = "\r";
+    #[cfg_attr(not(feature = "legacy-ui"), allow(dead_code))]
     const CANCEL: &str = "\x03";
 
     #[test]
     fn keyboard_categories_create_and_check_a_project() {
         let root = support::TempDirectory::new();
         let mut terminal = Terminal::start(&root.0, &[]);
-        terminal.answer("What would you like to do?", &[DOWN, ENTER]);
+        // The legacy UI category precedes Project only in legacy-ui builds.
+        terminal.answer("What would you like to do?", if cfg!(feature = "legacy-ui") { &[DOWN, ENTER][..] } else { &[ENTER][..] });
         terminal.answer("Create a project", &[ENTER]);
         terminal.answer("Project name or path", &["missing/hello", ENTER]);
         terminal.answer("Parent directory does not exist", &["hello", ENTER]);
@@ -132,6 +150,7 @@ mod terminal {
         assert_eq!(std::fs::read(project.join("tsrust.config.json")).unwrap(), bytes);
     }
 
+    #[cfg(feature = "legacy-ui")]
     #[test]
     fn searchable_catalog_has_details_and_returns_to_categories_without_writes() {
         let root = support::TempDirectory::new();
@@ -149,6 +168,7 @@ mod terminal {
         assert_eq!(std::fs::read_dir(&root.0).unwrap().count(), 0);
     }
 
+    #[cfg(feature = "legacy-ui")]
     #[test]
     fn guided_ui_multiselect_installs_current_components_in_one_transaction() {
         let root = support::TempDirectory::new();
@@ -183,6 +203,7 @@ mod terminal {
         })
     }
 
+    #[cfg(feature = "legacy-ui")]
     #[test]
     fn cancellation_color_policy_and_narrow_terminals_restore_terminal_state() {
         for (args,env,width,height,expected_color) in [
@@ -212,6 +233,7 @@ mod terminal {
         terminal.answer("q to cancel",&["q\n"]);terminal.finish();assert!(!terminal.text.contains('\x1b'));
     }
 
+    #[cfg(feature = "legacy-ui")]
     #[test]
     fn catalog_output_is_styled_only_for_people_and_json_remains_clean() {
         let root=support::TempDirectory::new();let mut terminal=Terminal::start(&root.0,&["ui","list","--bundled"]);terminal.finish();
@@ -224,6 +246,7 @@ mod terminal {
         support::success(&output);assert!(String::from_utf8_lossy(&output.stdout).contains("button@3.0.0 --variant default (MIT)"));assert!(!output.stdout.contains(&27));
     }
 
+    #[cfg(feature = "legacy-ui")]
     #[test]
     fn batch_selection_cancels_without_writes_and_scrolls_in_short_terminals() {
         for (width,height) in [(100,32),(40,12)] {

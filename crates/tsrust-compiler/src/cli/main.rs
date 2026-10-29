@@ -24,6 +24,10 @@ mod dev_windows;
 mod project_config;
 mod new_cli;
 mod application_scaffold;
+#[cfg(feature = "legacy-ui")]
+mod ui_cli;
+#[cfg(not(feature = "legacy-ui"))]
+#[path = "ui_disabled.rs"]
 mod ui_cli;
 mod cache_cli;
 mod setup_cli;
@@ -58,9 +62,7 @@ Usage:
   tsrust packages [--project directory]
   tsrust remove <crate> [--dry-run]
   tsrust bindings resolve <file.bindings.json> [--offline] [--portable]
-  tsrust new [name-or-path] [--app [--target backend] | --ui [--target native|web]...]
-  tsrust ui <list --bundled|init|add name...> [--cwd directory] [--path directory] [--target native|web]... [--dry-run]
-  tsrust ui attributions [--cwd directory] [--dry-run]
+  tsrust new [name-or-path] [--app [--target backend]]
   tsrust docs content [--cwd directory]
   tsrust api generate [--config file | --description file | --url HTTPS_URL] [--language typescript|rust] [--out directory] [--header-env Header=ENV] [--check]
   tsrust cache <info|clean>
@@ -68,7 +70,7 @@ Usage:
   tsrust toolchain install --root NEW_DIRECTORY
   tsrust toolchain check [--json] | update | rollback
   tsrust setup [--toolchain] [--dependencies] [--portable] [--offline] [--yes]
-  tsrust dev [--target native|web] [--port 4317] [--release] [--verbose] [--color auto|always|never] [-- program-arguments]
+  tsrust dev [--release] [--verbose] [--color auto|always|never] [-- program-arguments]
   tsrust run [input.tsr] [--release] [-- program-arguments]
   tsrust test [files/directories] [options]
   tsrust format [files/directories] [--check | --write]
@@ -86,7 +88,7 @@ Commands:
   setup    Explicitly prepare pinned Rust tools or shared backend dependency sources
   docs     Compile checked documentation content and exact example/API data offline
   api      Generate checked TypeScript or async Rust clients from an API description
-  dev      Watch a configured native program or web UI
+  dev      Rebuild and restart the configured program on source changes
   new      Create a project with source, tests and configuration
   check    Check files/directories recursively; defaults to the current directory
   format   Format all .tsr project files; one explicit file prints source
@@ -131,9 +133,19 @@ fn color_enabled(terminal: bool) -> bool {
 fn styled(text: &str, code: &str, color: bool) -> String {
     if color { format!("\x1b[{code}m{text}\x1b[0m") } else { text.to_owned() }
 }
+#[cfg(feature = "legacy-ui")]
+const LEGACY_UI_USAGE: &str = "
+Legacy UI (frozen; built with the legacy-ui feature):
+  tsrust new [name-or-path] --ui [--target native|web]...
+  tsrust ui <list --bundled|init|add name...> [--cwd directory] [--path directory] [--target native|web]... [--dry-run]
+  tsrust ui attributions [--cwd directory] [--dry-run]
+  tsrust dev [--target native|web] [--port 4317]";
+#[cfg(not(feature = "legacy-ui"))]
+const LEGACY_UI_USAGE: &str = "";
+
 fn print_help() {
     let color = color_enabled(std::io::stdout().is_terminal());
-    for line in USAGE.lines() {
+    for line in USAGE.lines().chain(LEGACY_UI_USAGE.lines()) {
         if line.ends_with(':') || line.starts_with("tsrust —") { println!("{}", styled(line,"1;36",color)); }
         else { println!("{line}"); }
     }

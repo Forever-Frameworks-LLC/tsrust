@@ -26,6 +26,7 @@ fn old_string_props_and_generic_alias_inheritance_stay_compatible(){
  let directory=support::TempDirectory::new();let source="import {View,ViewProps,Node} from 'std:ui';interface Props extends ViewProps{caption:string;}function Panel(props:Props):Node{const classes='p-2 '+(props.className??'');const caption=props.caption;props.caption='';return (<View {...props} className={classes}>{caption}</View>);}function main(){const node=<Panel caption=\"Still valid\"/>;}";let path=directory.0.join("main.tsrx");fs::write(&path,support::format_round_trip(source)).unwrap();support::success(&support::run(support::cli().arg("check").arg(path),30));
 }
 
+#[cfg(feature = "legacy-ui")]
 #[test]
 fn reactive_catalog_examples_execute_with_the_documented_output(){
  let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();let directory=support::TempDirectory::new();let mut seen=std::collections::BTreeSet::new();

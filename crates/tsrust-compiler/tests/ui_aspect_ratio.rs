@@ -1,3 +1,5 @@
+//! Frozen legacy UI coverage; runs only in legacy-ui builds.
+#![cfg(feature = "legacy-ui")]
 mod support;
 #[test]
 fn aspect_ratio_offline_source_and_formatted_native_construction_have_checked_failures(){

@@ -7,6 +7,7 @@ use tsrust_compiler::ui_project::{Config,Targets,safe_relative};
 mod attributions;
 #[path = "ui_agent_guidance.rs"]
 mod agents;
+pub(super) const UNAVAILABLE:&str="UI commands are unavailable in this build.";
 const ABI:&str=tsrust_compiler::ui_project::RUNTIME_ABI;
 const CATALOG:&str="bundled-2026-10-20";
 #[derive(Clone,Debug,Deserialize,Serialize,PartialEq,Eq,PartialOrd,Ord)]

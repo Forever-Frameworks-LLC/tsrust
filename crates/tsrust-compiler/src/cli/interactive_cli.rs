@@ -144,6 +144,7 @@ pub(super) fn select(title: &str, choices: &[(&str, &str)], searchable: bool) ->
 pub(super) fn choose(title: &str, choices: &[&str]) -> Result<Option<usize>, String> {
     select(title, &choices.iter().map(|label| (*label, "")).collect::<Vec<_>>(), false)
 }
+#[cfg_attr(not(feature = "legacy-ui"), allow(dead_code))]
 fn multiple_from(input:&mut impl BufRead,output:&mut impl Write,title:&str,choices:&[(&str,&str)])->Result<Option<Vec<usize>>,String> {
     writeln!(output,"{title}\n").map_err(|e|e.to_string())?;
     for (index,(label,hint)) in choices.iter().enumerate(){writeln!(output,"  {}) {label}  {hint}",index+1).map_err(|e|e.to_string())?;}
@@ -157,6 +158,7 @@ fn multiple_from(input:&mut impl BufRead,output:&mut impl Write,title:&str,choic
         writeln!(output,"Choose at least one number from 1 to {}, or q to cancel.",choices.len()).map_err(|e|e.to_string())?;
     }
 }
+#[cfg_attr(not(feature = "legacy-ui"), allow(dead_code))]
 pub(super) fn multiselect(title:&str,choices:&[(&str,&str)])->Result<Option<Vec<usize>>,String> {
     if !rich(){return multiple_from(&mut io::stdin().lock(),&mut io::stderr().lock(),title,choices);}
     header()?;
@@ -164,6 +166,7 @@ pub(super) fn multiselect(title:&str,choices:&[(&str,&str)])->Result<Option<Vec<
     for (index,(label,hint)) in choices.iter().enumerate(){prompt=prompt.item(index,label,hint);}
     prompt_result(interact_selection(||prompt.interact()))
 }
+#[cfg_attr(not(feature = "legacy-ui"), allow(dead_code))]
 pub(super) fn targets() -> Result<Vec<String>, String> {
     header()?;
     interact_selection(|| cliclack::multiselect("UI targets  ·  ↑↓ move, Space toggle, Enter confirm")
@@ -191,7 +194,8 @@ pub(super) fn command() -> Result<Option<Vec<String>>, String> {
     loop {
         let mut categories = Vec::new();
         if project.is_some() { categories.extend([("Development", "Watch, run and build this application"), ("Quality", "Type checks, tests and formatting")]); }
-        categories.extend([("UI", "Browse legacy offline components and add editable source"), ("Project", "Create a backend or console application"), ("Help", "Command reference and examples"), ("Exit", "Return to your shell")]);
+        if cfg!(feature = "legacy-ui") { categories.push(("UI", "Browse legacy offline components and add editable source")); }
+        categories.extend([("Project", "Create a backend or console application"), ("Help", "Command reference and examples"), ("Exit", "Return to your shell")]);
         let Some(category) = select("What would you like to do?", &categories, false)? else { return Ok(None); };
         let selection = match categories[category].0 {
             "Development" => action("Development", &[("Start development", "tsrust dev", &["dev"]), ("Run once", "tsrust run", &["run"]), ("Build executable", "tsrust build", &["build"])])?,

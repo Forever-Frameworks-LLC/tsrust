@@ -201,6 +201,7 @@ fn extended_jsx_props_move_resources_and_ignore_only_excess_spread_fields() {
     ]{std::fs::write(&path,source).unwrap();assert!(load_project(&FileSourceProvider,path.to_str().unwrap()).and_then(check_graph).is_err(),"{source}");}
 }
 
+#[cfg(feature = "legacy-ui")]
 #[test]
 fn nova_card_content_source_is_local_complete_and_native_executable() {
  let catalog:serde_json::Value=serde_json::from_str(include_str!("../src/ui-catalog/components-3.0.0.json")).unwrap();let source=catalog[0]["files"][0]["content"].as_str().unwrap();
@@ -216,6 +217,7 @@ fn nova_card_content_source_is_local_complete_and_native_executable() {
 
 }
 
+#[cfg(feature = "legacy-ui")]
 #[test]
 fn retained_route_documented_example_runs_formatted_and_rejects_bad_contracts(){
  let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();let example=&catalog["std:ui"].as_array().unwrap().iter().find(|entry|entry["name"]=="Route").unwrap()["examples"][0];

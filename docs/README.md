@@ -21,7 +21,9 @@ these guides distinguish supported behavior from planned work.
 ## Run the documentation app
 
 This directory retains the original standalone UI project, with a shared web/native page.
-It is outside the active backend product scope.
+It is outside the active backend product scope. Its commands need a compiler built
+with the frozen `legacy-ui` feature
+(`cargo build -p tsrust-compiler --features legacy-ui`); release builds omit them.
 `tsrust.config.json` declares the targets and theme. `src/main.tsr` mounts
 `src/app/page.tsrx`; editable components live under `src/components/ui/`.
 

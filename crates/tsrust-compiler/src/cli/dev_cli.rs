@@ -201,15 +201,17 @@ mod platform {
                 "--verbose" if !verbose=>verbose=true,
                 "--color"=>{let mode=args.next().ok_or("--color requires auto, always or never")?;if !matches!(mode.as_str(),"auto"|"always"|"never"){return Err("--color requires auto, always or never".into());}},
                 _ if arg.starts_with("--color=")=>{if !matches!(&arg[8..],"auto"|"always"|"never"){return Err("--color requires auto, always or never".into());}},
-                _=>return Err(format!("Unknown or repeated dev option: {arg}. Usage: tsrust dev [--target native|web] [--port 4317] [--release] [--verbose] [--color auto|always|never] [-- program-arguments]")),
+                _=>return Err(format!("Unknown or repeated dev option: {arg}. Usage: tsrust dev [--release] [--verbose] [--color auto|always|never] [-- program-arguments]")),
             }
         }
+        if target.as_deref()==Some("web") && !cfg!(feature="legacy-ui"){return Err(format!("dev --target web: {}",crate::ui_cli::UNAVAILABLE));}
         crate::ui_cli::check_default_setup()?;
         let project=project_config::discover()?.ok_or("dev needs tsrust.config.json; create a project with `tsrust new <name>`")?;
         let target=match target {Some(target)=>target,None=>{
             let targets=tsrust_compiler::ui_project::configured_targets(&project.entry,crate::dev_web::read_optional)?;
             if targets.is_some_and(|targets|targets.web&&!targets.native){"web".into()}else{"native".into()}
         }};
+        if target=="web" && !cfg!(feature="legacy-ui"){return Err(format!("dev --target web: {}",crate::ui_cli::UNAVAILABLE));}
         if target=="native" && port.is_some(){return Err("--port applies only to --target web".into());}
         if target=="web" && !program_args.is_empty(){return Err("Web dev does not accept native program arguments".into());}
         let _signals=Signals::install()?;

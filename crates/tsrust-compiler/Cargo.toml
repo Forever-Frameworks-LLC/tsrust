@@ -14,6 +14,11 @@ path = "src/lib.rs"
 name = "tsrust"
 path = "src/cli/main.rs"
 
+[features]
+# Frozen original UI commands (`tsrust ui`, `new --ui`, `dev --target web`) and
+# their bundled component catalog. Release builds leave this disabled.
+legacy-ui = []
+
 [dependencies]
 # Retain legacy authoring checks without linking the frozen renderer runtime.
 tsrust-ui = { path = "../tsrust-ui", default-features = false }

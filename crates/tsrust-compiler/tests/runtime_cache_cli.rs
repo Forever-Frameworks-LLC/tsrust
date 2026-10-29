@@ -29,6 +29,7 @@ fn repeated_project_runs_reuse_default_persistent_cache() {
  }
 }
 
+#[cfg(feature = "legacy-ui")]
 #[test]
 fn project_theme_edits_reuse_runtime_support() {
  let dir=support::TempDirectory::new();let root=&dir.0;let cache=root.join("cache");
