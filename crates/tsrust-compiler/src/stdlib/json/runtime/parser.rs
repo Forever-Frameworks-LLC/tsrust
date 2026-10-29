@@ -65,13 +65,13 @@ pub fn parse(input: &[u8], limits: Limits) -> Result<Value, Error> {
     // Keep Serde's own recursion guard enabled as a second independent bound.
     if limits.depth > 64 { return Err(failure("invalid-limits", 0)); }
     if let Err(error) = std::str::from_utf8(input) { return Err(failure("invalid-utf8", error.valid_up_to())); }
-    let mut budget = Budget { limits, nodes: 0, failed: None };
+    let mut budget = Budget { limits, nodes: 0, failed: None, saw_float: false };
     let mut decoder = serde_json::Deserializer::from_slice(input);
     let value = serde::de::DeserializeSeed::deserialize(
         Seed { budget: &mut budget, depth: 0, permitted: true }, &mut decoder
     ).map_err(|error| located(input, error, budget.failed))?;
     decoder.end().map_err(|error| located(input, error, Some("trailing-data")))?;
-    validate_integer_tokens(input)?;
+    if budget.saw_float { validate_integer_tokens(input)?; }
     Ok(value)
 }
 
@@ -161,7 +161,9 @@ fn normalize_jsonc(input: &[u8], limits: Limits, trailing_comma: bool) -> Result
 }
 
 pub fn invalid_limits() -> Error { failure("invalid-limits",0) }
-struct Budget { limits: Limits, nodes: usize, failed: Option<&'static str> }
+// `saw_float` records any number serde delivered as f64: an integer token too
+// large for i64/u64 arrives that way, so only then do tokens need re-checking.
+struct Budget { limits: Limits, nodes: usize, failed: Option<&'static str>, saw_float: bool }
 impl Budget {
     fn fail(&mut self, code: &'static str) -> &'static str { self.failed = Some(code); message(code) }
 }
@@ -184,6 +186,7 @@ impl<'de> serde::de::Visitor<'de> for Seed<'_> {
     fn visit_i64<E: serde::de::Error>(self, value: i64) -> Result<Value, E> { Ok(Value::from(value)) }
     fn visit_u64<E: serde::de::Error>(self, value: u64) -> Result<Value, E> { Ok(Value::from(value)) }
     fn visit_f64<E: serde::de::Error>(self, value: f64) -> Result<Value, E> {
+        self.budget.saw_float = true;
         serde_json::Number::from_f64(value).map(Value::Number).ok_or_else(|| E::custom("JSON number must be finite"))
     }
     fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<Value, E> { Ok(Value::String(value.to_owned())) }

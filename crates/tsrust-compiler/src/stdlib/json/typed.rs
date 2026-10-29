@@ -192,7 +192,7 @@ pub(super) fn validate_depth(input:&[u8],limits:Limits)->Result<usize,Error>{
  if input.len()>limits.bytes{return Err(failure("byte-limit",limits.bytes));}
  if limits.depth>64{return Err(super::invalid_limits());}
  if let Err(error)=std::str::from_utf8(input){return Err(failure("invalid-utf8",error.valid_up_to()));}
- let mut budget=Budget{limits,nodes:0,failed:None};
+ let mut budget=Budget{limits,nodes:0,failed:None,saw_float:false};
  let mut decoder=serde_json::Deserializer::from_slice(input);
  let mut maximum=0;
  serde::de::DeserializeSeed::deserialize(ValidateSeed{budget:&mut budget,maximum:&mut maximum,depth:0,permitted:true},&mut decoder).map_err(|error|located(input,error,budget.failed))?;

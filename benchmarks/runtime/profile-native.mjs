@@ -1,4 +1,5 @@
 import {assertModuleStateSource} from './module-state-contract.mjs';
+import {prepareNativeDependencies} from './native-dependencies.mjs';
 import {assertMonotonicTimeSource} from './monotonic-time-contract.mjs';
 import {environmentFor,assertEnvironmentSource} from './environment-contract.mjs';
 import {assertCollectionSource} from './collections-contract.mjs';
@@ -337,7 +338,10 @@ for (const workload of workloads) {
  const nativeSource = path.join(build, `${workload.id}.rs`);
  const executable = path.join(build, workload.id);
  fs.writeFileSync(nativeSource, instrumented);
- run(['rustup', 'run', pins.rust, 'rustc', '--edition=2024', '-C', 'opt-level=3', '-C', 'overflow-checks=on', '-A', 'warnings', nativeSource, '-o', executable]);
+ // JSON-using programs link the same prepared serde/serde_json as timed runs.
+ const compiler=compilerExecutable(root, root);
+ const dependencies=prepareNativeDependencies({emitted,compiler,source:sourcePath,build,rustVersion:pins.rust,targetDirectory:path.dirname(path.dirname(compiler)),env:process.env});
+ run(['rustup', 'run', pins.rust, 'rustc', ...dependencies.args, '--edition=2024', '-C', 'opt-level=3', '-C', 'overflow-checks=on', '-A', 'warnings', nativeSource, '-o', executable]);
  const samples = Array.from({length: 3}, () => JSON.parse(run([executable, workload.iterations, ...(workload.inputText === undefined ? [] : [nativeFileInput(workload)])],environmentFor(workload))));
  for (const sample of samples) if (sample.checksum !== expectedChecksum(workload.id, workload.iterations, 7, workload.inputText) || sample.liveBytesAfterDrop !== 0) throw new Error(`Invalid profile: ${workload.id}`);
  rows.push({...(isCopying(workload)?{copyingABI:reductionABI,tsSha256:hash(higherTS)}:isRange(workload)?{rangeABI:reductionABI,tsSha256:hash(higherTS)}:isHigher(workload)?{higherABI:reductionABI,tsSha256:hash(higherTS)}:isDeclared(workload)?{declaredABI:reductionABI}:isConcat(workload)?{concatABI:reductionABI}:isReduction(workload)?{reductionABI}:reductionABI?{workloadABI:reductionABI}:{}),workload: workload.id, iterations: workload.iterations, seed: 7, sourceSha256: hash(source), emittedSha256: hash(emitted), instrumentedSha256: hash(instrumented), samples});

@@ -266,7 +266,22 @@ performance milestone and put the measurements in the docs.
   manifest-prefix hashes broken by fingerprint refreshes). Neither affects
   measurement.
 
-## Optimization log (branch `codex/optimize-native-hot-paths`)
+## v0.1.0 published — 2026-10-29
+
+- PR #6 (owner bypass merge) into `stag`; PR #7 `stag` → `main` built all four
+  targets and the extension (Release run 40930352738); Promote (run
+  40934384351) merged it and published `v0.1.0` as a regular release; the
+  Documentation workflow redeployed Pages (performance page live).
+- Archive check (macOS arm64): checksum OK; attributions hold only the Tsrust
+  license and dependency notices (no UI notice); help has no `tsrust ui`;
+  `tsrust 0.1.0` / `tsrust-lsp 0.2.0`; `doctor` OK.
+- Managed install against the published release: `toolchain install --root`
+  selected 0.1.0 and its LSP; `check` reports no newer release; `update` changes
+  nothing; `rollback` refuses (no previous version); `doctor` reports a managed,
+  intact pair. A console project runs and tests, and a backend project checks.
+- Still unverified: updating across two real releases (needs a second release),
+  and hand installation on Linux, Windows and Intel macOS (CI smoke only).
+
 
 Baseline: the 0.1.0 run in `benchmarks/measurements.sqlite`. Every "after" is a
 quiet-machine run (runner load guard, limit = half the logical CPUs).
@@ -280,8 +295,10 @@ quiet-machine run (runner load guard, limit = half the logical CPUs).
 | Receiver moves extended to `slice()` (plain `Vec` only) and `toSorted()`; closures only block locals they capture | Tested (75 suites); no benchmark workload has a dead `slice()`/`toSorted()` receiver, so unmeasured | Yes |
 | String search: first-byte scan for haystacks ≤ 64 bytes (`indexOf`, `lastIndexOf`, `includes`) | `indexOf` 2.45–2.72×, `lastIndexOf` 1.05–1.74×, `includes` 1.26–1.32×, JSON string projection 12.3× (0.33× → 4.1× of Node). A plain byte-window scan was tried first: 0.43–0.63× on `includes`/default `lastIndexOf` (slice compare at every position), so it was replaced | Yes |
 | mimalloc as global allocator (owner approved trying it; then paused) | Schema pipeline 1.85× with mimalloc, `record_mutation` 0.91×. Profiles showed time inside macOS `free()`, but this Mac has 8 GB RAM with ~7.4 GB swap in use and ~3 GB compressed, which inflates allocator cost. Not adopted: a dependency in every program needs evidence from a clean machine. Dependency changes reverted; the harness keeps an experimental `--allocator-rlib` option | No |
+| Dynamic `JSON.parse` re-scans integer tokens only when serde produced a float (only an integer too large for i64/u64 arrives that way) | JSON workloads up to 1.32× (`string_reads`, `refinement`, `typeof`, `scalars`); 54 JSON/schema workloads median 1.00×; `native_json_raw` 0.84× re-measured alone at 0.99× and does not use the parser | Yes |
+| Parity engine `rust-hand` (hand-written Rust in `benchmarks/runtime/parity/`) | `native_schema_int_bounds`: generated 0.34× → 0.40× of hand-written. Per iteration: generated 2 allocations vs 1; the rest is parse overhead (UTF-8 re-check, budgeted seed, typed decode parses twice) and issue conversion | Tooling |
 | `dynamic_unicode_uppercase` investigated | Node reaches ~3 ns per 20-char Unicode `toUpperCase`, i.e. it reuses the loop-invariant result; native does the real conversion (~75 ns, std ASCII fast path already). Benchmark-design artifact, not a conversion gap | n/a |
 
 Measurement caveat: every local number, including the 0.1.0 baseline, comes from a memory-starved Mac (8 GB RAM, heavy swap). Code-level wins (fewer copies, faster search) reduce work on any machine, but magnitudes need confirming on a clean runner before publishing or adopting dependencies.
 
-Next targets: add workloads with dead `slice()`/`toSorted()` receivers; `with()`/`toSpliced()` moves (need element assignment across array wrappers); JSON/schema decoding (group median 0.78×); record construction (records group 0.51×); `String.at`.
+Next targets: typed JSON decode parses each document twice (validate, then decode); skip UTF-8 re-validation for inputs that are already strings; add more `parity/` programs; add workloads with dead `slice()`/`toSorted()` receivers; `with()`/`toSpliced()` moves (need element assignment across array wrappers); JSON/schema decoding (group median 0.78×); record construction (records group 0.51×); `String.at`.
