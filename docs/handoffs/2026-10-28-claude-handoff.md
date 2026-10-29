@@ -265,3 +265,18 @@ performance milestone and put the measurements in the docs.
   harness unit tests are stale (hard-coded `target/editor/debug/tsrust`, frozen
   manifest-prefix hashes broken by fingerprint refreshes). Neither affects
   measurement.
+
+## Optimization log (branch `codex/optimize-native-hot-paths`)
+
+Baseline: the 0.1.0 run in `benchmarks/measurements.sqlite`. Every "after" is a
+quiet-machine run (runner load guard, limit = half the logical CPUs).
+
+| Change | Result | Kept |
+| --- | --- | --- |
+| Runner waits for load < CPUs/2 before each timed process; records max load | Desktop apps alone keep load near 3–4 on this M3; a limit of 2 never starts | Yes |
+| `String(stringEnum)` borrows the static member text; whole numbers below 2^53 format as integers | `enum_values` 6.65M → 17.3M ops/s (2.6×; 0.14× → 0.35× of Node); other number workloads within noise | Yes (cc2dc382) |
+| Left-nested string `+` appends to the fresh left temporary (exact `reserve_exact` growth) | `string_add_chained_*` 23.2M → 22.8M, `string_concatenation`/`interfaces` unchanged: allocation, not intermediate copying, dominates short strings; V8 uses ropes | No (reverted) |
+| `dynamic_unicode_uppercase` investigated | Node reaches ~3 ns per 20-char Unicode `toUpperCase`, i.e. it reuses the loop-invariant result; native does the real conversion (~75 ns, std ASCII fast path already). Benchmark-design artifact, not a conversion gap | n/a |
+
+Next targets: JSON/schema decoding (group median 0.78×), record construction and
+copies (records group 0.51×), recursive array copies, `String.at`.
