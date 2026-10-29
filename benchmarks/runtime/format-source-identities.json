@@ -480,6 +480,502 @@
       "originalSha256": "fc5f3870ce2ed214b44353e2f65e960b1e2cafabcd6944811968c9fbc10253b2",
       "formattedSha256": "6dfd5e4a53ebfba798944db189bee9b7d195bd7930e1dd20e5c832ecbfec1eea",
       "tokenSha256": "ac531c065c4cf478ae4ed964436fa3c9ee37b3d61f6cec33bc2b1565d6ff2020"
+    },
+    {
+      "workload": "higher_declared_reusable_int",
+      "path": "benchmarks/runtime/workloads/higher_declared_reusable_int.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "637588b176c653f16c9e54eb7553ed5b351cf4589d7bc1269173673833e8f1fd",
+      "formattedSha256": "2c15cb6f54fec6dd0b7359e778176b0d957a09bfa887a1c011f1672403235f37",
+      "tokenSha256": "a22d6b17a527f7c24f8124f2060ee5628d895bd4c848c5803693add4c1185bfd"
+    },
+    {
+      "workload": "higher_inline_reusable_int",
+      "path": "benchmarks/runtime/workloads/higher_inline_reusable_int.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "6a53321e3ef9c68034fa725cf01d8910f9459bb67e8f67d424643babddf96f01",
+      "formattedSha256": "fb12d4a079896f7d4c02a13ba18f579f5a26b7f97ee5b5322ee6e4243bed83b3",
+      "tokenSha256": "1ef53a08a30473a36630930e96752c76e3b3b7ed5cf4efc7ceb8cae8f13b3a7a"
+    },
+    {
+      "workload": "higher_declared_once_int",
+      "path": "benchmarks/runtime/workloads/higher_declared_once_int.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "f62f5002591ea5c2138186cf16eb5bb017199b3b8546c34a2f64235692bb22e4",
+      "formattedSha256": "af9f8f8ce973590fea269f7ee2eb33cfe1ef4917b228ace260d5761d8ec4a4ac",
+      "tokenSha256": "ef17b0d41b12f1d264ad9c977bd771b0b34e1a645089da5f0554f7326321ea05"
+    },
+    {
+      "workload": "higher_inline_once_int",
+      "path": "benchmarks/runtime/workloads/higher_inline_once_int.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "b17126ba3aa619b006a8e588c5c211de6f8df819362a12ade9d505895d517dda",
+      "formattedSha256": "2f09f70119fbd5bcc7a236c2db120f4cec18446ca55cf5aebb2e0095102f69a1",
+      "tokenSha256": "36d5f9fb0e48efcdde6ac7d53043f3141b6706b4a77d1b578ce2fc8f865bb0e6"
+    },
+    {
+      "workload": "higher_declared_owned_int",
+      "path": "benchmarks/runtime/workloads/higher_declared_owned_int.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "f279dc8e682420e8078bc0e7175be699c2265a501bc47f6c8ff7bfb7ae173c5f",
+      "formattedSha256": "ee83b18d216b965e6e47c96cc1c4289c58e1baea9ec5c73b6103a6fdaa0f29c6",
+      "tokenSha256": "470c490c8bea5224ba59d6b021bbe2e00e6d3394fd66f40eaa5f6a7db3e40ca5"
+    },
+    {
+      "workload": "higher_inline_owned_int",
+      "path": "benchmarks/runtime/workloads/higher_inline_owned_int.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "762fbb0847f0f32975f2fe2ebd7b275b9e685109c8eedc03431e5a312eb5db7e",
+      "formattedSha256": "b6b2ea494a1d12ef4c8541d5e7478d935e2390cc7bcf4ba0faa19468984fecd9",
+      "tokenSha256": "2a0f188f3d01e25e92620b95106c6f19b78426505d4fab7c55d28b41c1018a35"
+    },
+    {
+      "workload": "higher_distinct_origins_int",
+      "path": "benchmarks/runtime/workloads/higher_distinct_origins_int.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "e741ad5dbf6a7613034065fb94a80ca4d2d8097651ab44bafdcf0f85ea2b5cf4",
+      "formattedSha256": "53a7baec29c5d82247914922e9094c485c8a772b68d50a1051db9158ce29d0de",
+      "tokenSha256": "53d17f56a6a69797d21a618a668453f3de9faa9e6c42e104091eb1d69bc1f960"
+    },
+    {
+      "workload": "higher_multiple_callbacks_int",
+      "path": "benchmarks/runtime/workloads/higher_multiple_callbacks_int.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "0f0c742e6b1b92af2704b3bb3c8125390a4d1d0ebf3bb6148b2ff9cba3612e5e",
+      "formattedSha256": "7723f25079182e18c0c66cab4f722815a1bc5626f7d232f461f308b6d6fd7e5f",
+      "tokenSha256": "a4997a1e624c4113a0910e1da31dd09e6c3fb493f2ffbd5f842846e7f3724430"
+    },
+    {
+      "workload": "higher_borrowed_declared_factory_int",
+      "path": "benchmarks/runtime/workloads/higher_borrowed_declared_factory_int.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "b192f7b7514465af34eb05f7650f1faa160ca33c8e79191680d5e97afd015473",
+      "formattedSha256": "77cfb0550520b6faa791737eed7cdb4ac252e396a1a9a478d747abac8b75f53c",
+      "tokenSha256": "0510713283d3878bc025f65763181ba182809aa92306dcde2b32fc873e0127be"
+    },
+    {
+      "workload": "higher_borrowed_inline_factory_int",
+      "path": "benchmarks/runtime/workloads/higher_borrowed_inline_factory_int.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "8a2995f3bd1ae58ffe207c375adc05f695a038d11979b5859b80939024dd2fd0",
+      "formattedSha256": "33598b2e464dd32c4bb9593295f24e9bcca81c892aa3d62436aa40a0174359cd",
+      "tokenSha256": "c1fe1ebdb0cad1a1fdeb3040bee7ea122591eec80a7302e4734ed30e318abb4c"
+    },
+    {
+      "workload": "higher_nested_consumer_int",
+      "path": "benchmarks/runtime/workloads/higher_nested_consumer_int.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "c51f163463a8d14b8399054c3d01e9a93c44d8cd4126f05cc523e0f5c83a876c",
+      "formattedSha256": "210043cda503aa5f2b5fe22ad58fdef048b3b79dd26373c465fe1724f7918025",
+      "tokenSha256": "9ee4c5f5726668f52a2da728048d98ccf30a4f3901e0f25d75bd70f05f354599"
+    },
+    {
+      "workload": "higher_owned_once_nested_int",
+      "path": "benchmarks/runtime/workloads/higher_owned_once_nested_int.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "4def3d345699ae3ad364cdc0c3ff0697ec37bc368965d0438ed3c440ce4f6901",
+      "formattedSha256": "01c110a9d824c3a1eac4e81f8dadfb024433fa2128015917e1c75400fa7e32fb",
+      "tokenSha256": "29c301cb7d1fa4d8b4ae2b739a33e3df828f1a2f2fd86c4cb1b9ddc60ebe13c6"
+    },
+    {
+      "workload": "higher_number_reusable",
+      "path": "benchmarks/runtime/workloads/higher_number_reusable.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "6f22494b6685b75507575f078ff06e08264706e43caa404a847d9b81faacceb7",
+      "formattedSha256": "2670f56ebffeb1d7f30a2a9970ef47a4bee8410d3bf19595fe790ea7f881a927",
+      "tokenSha256": "6319c367c4761e97f5e9b2ee42d7af01ec57790903be48d146688cab3d359777"
+    },
+    {
+      "workload": "higher_boolean_reusable",
+      "path": "benchmarks/runtime/workloads/higher_boolean_reusable.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "b4198e0ebcb104ffff4bbfb36c87c6f05d7dafd401c9b7cabed1410461c9bd35",
+      "formattedSha256": "9be7e2cd4066c09e4cddf84f3d0be25e536f6284446b5486028cc59471fc204e",
+      "tokenSha256": "c5a2f5ab26155547599c1c5f5e29e78de5b82831cff8fc51cd278209445e0c12"
+    },
+    {
+      "workload": "higher_owned_callback_return_string",
+      "path": "benchmarks/runtime/workloads/higher_owned_callback_return_string.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "19bfadc0d70d95b0d23a2b587d2f698ad1a50b1e134bd24569ff82ab28c9cc17",
+      "formattedSha256": "104d86e27a09fa655a4b805b7121cb1ddf4ebbec70be268af7e12a7feaa168b8",
+      "tokenSha256": "8f14f8e1d8d81566b29bb42e75831057d7b1bda1668989d7ef647c149072cedf"
+    },
+    {
+      "workload": "higher_captured_factory_string",
+      "path": "benchmarks/runtime/workloads/higher_captured_factory_string.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "c2a3d73f7a473bcbbc3e286aea72cad535bf0789c4c06a04c651b4b037ae7e26",
+      "formattedSha256": "57a1bb9a9386af5d98b9889361b26f1961c760443116793288410b767c9d8dd2",
+      "tokenSha256": "7310bd3d335a4cdc8d22e2eff253246dc804d119c7de0b95e48316043e3db2da"
+    },
+    {
+      "workload": "higher_read_string",
+      "path": "benchmarks/runtime/workloads/higher_read_string.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "1f62ee4df58518d244ed7a5be5c301c8f1db53e8f33b4dfed83fdf2e9ae597e5",
+      "formattedSha256": "4685be25f24f4a31a4947e1212f85d3f7b25d239a7902b923b440f7454b83e4d",
+      "tokenSha256": "f90b415533187e81a7e71bd3da7e1df7ab5d5b6813345adfdb101fe6715774e0"
+    },
+    {
+      "workload": "higher_consume_string",
+      "path": "benchmarks/runtime/workloads/higher_consume_string.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "387112b93f981af6cc62c35d01eea895980e794f4581e36de903debcc6713f15",
+      "formattedSha256": "aa7b5508a27b017a320d323d37449812d53390f0ad875c18e3224f88a8dcf2ac",
+      "tokenSha256": "caf1302ab4f6e8291ae865b474c12acfe7b257005a76385e164e603c23eebeec"
+    },
+    {
+      "workload": "higher_mutate_array",
+      "path": "benchmarks/runtime/workloads/higher_mutate_array.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "d76befc59680afffa89023913dc4b3bae0e19e8e71bdf88f5f8c0dad802b7ede",
+      "formattedSha256": "9ddc7a555aed62442d4e216a2ccfaaabd4b9a5160cf5406ea294d14834ec35cb",
+      "tokenSha256": "66b5c6887a68694c58406847b4a243108e19dbd566de5e420f8cedbf80cf2d66"
+    },
+    {
+      "workload": "higher_owned_record",
+      "path": "benchmarks/runtime/workloads/higher_owned_record.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "eed6e5b3f2949e04fbf7cbffbe16976c8ddab11b6dc9f868d08c05bc7fe3d818",
+      "formattedSha256": "7a194279ec7bb3adc8ef4faa09caf07a9c16a1a4b6f38f68e3c84ed555e6003d",
+      "tokenSha256": "a7604fcdb1f4bbf49102ec572f866fc6908b8c77cb47594b8c1cdfc2220e0839"
+    },
+    {
+      "workload": "higher_deep_array",
+      "path": "benchmarks/runtime/workloads/higher_deep_array.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "1a98a82776ac6920a427e0c833428c4898007dbe5a0da32879876844f400dee6",
+      "formattedSha256": "e32a2a11edaa25fe4f398293ac5e5e50639943e5545d3f1c28504f9d3ecda1ee",
+      "tokenSha256": "0471ca09318c5f054070533c56fe90a6f781b7ac2b35d5bef3c08961892d0a77"
+    },
+    {
+      "workload": "higher_recursive_tree",
+      "path": "benchmarks/runtime/workloads/higher_recursive_tree.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "f3bae581c6d1e21cf97c7aaa2316bf88ef6029386fa9622b3aa68a60198b3684",
+      "formattedSha256": "cf5ffa0c2cdf76723dcb8f7517b7a6043426096f36b852b0378b99d70f3f09f2",
+      "tokenSha256": "554db3c9efb519e95adb5298942e636df649442780fddc8a92893f4bc8a14d79"
+    },
+    {
+      "workload": "array_fill_int",
+      "path": "benchmarks/runtime/workloads/array_fill_int.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "366e6f1329ebc0908a2fa10c56d72d99823b69340723388f61c28391adecc2b9",
+      "formattedSha256": "8265bac9194e53a8481ecaaeb454b37854478885f3fbbe416538c709199b77ef",
+      "tokenSha256": "6440c15750eb7123741bc61939c88ea96992056f601c346adca6b7f43ec64d5f"
+    },
+    {
+      "workload": "array_fill_number",
+      "path": "benchmarks/runtime/workloads/array_fill_number.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "1495f61591dac0d1db784a3294b37555b77a155e2cc6f6db7f3da390563db70f",
+      "formattedSha256": "f5fe43fd31fa9a26ac60da6d62062352d7d02daa2ac4963a1e221003f402624d",
+      "tokenSha256": "dff63dd49188afceb34b970812223e92d3162e884250c5ec45313d0cf18d8049"
+    },
+    {
+      "workload": "array_fill_boolean",
+      "path": "benchmarks/runtime/workloads/array_fill_boolean.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "8df5d0a8ca0143c36acdecd0208fd5aa7b9a376b5a1546569536734615be58bc",
+      "formattedSha256": "4e896f91d574745deb731b875c3fa7e5798f3435f68384bbd35dec30c3f8b8fc",
+      "tokenSha256": "c4ef23d224ace3a634e237ba2e6b4fb530ac4baf7842e3491fc97340c131dcdf"
+    },
+    {
+      "workload": "array_fill_string",
+      "path": "benchmarks/runtime/workloads/array_fill_string.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "8a2903e1ff6be9ab2559401533b4cf185229f4fa9afe3aaa4a71b96a29c32185",
+      "formattedSha256": "8a9881d4e64d8c16c6a040afe46106ce78a8de37a66879d66dd24e2f8b8a4474",
+      "tokenSha256": "ce80128384b26ee20a9ed2888a1de0c035df13a0d997f185552540189eb9ceb3"
+    },
+    {
+      "workload": "array_fill_nested",
+      "path": "benchmarks/runtime/workloads/array_fill_nested.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "c886cbe00a247c2763b576df6e39ae8e88c715b0de2503d9d198cd76ac795f3b",
+      "formattedSha256": "bd743b3927fa9ef2493c167c2cd39889810bdb92b1f8628d80d22812b8ceba64",
+      "tokenSha256": "f9b78c5bfda518757b9ac1cfbbf44b5398f52b1b86e5b7620b728a1f24d9ebe8"
+    },
+    {
+      "workload": "array_fill_record",
+      "path": "benchmarks/runtime/workloads/array_fill_record.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "776351d91edac7ef27672a0d343e9041624333524748a954ea4a7cf9641e156b",
+      "formattedSha256": "4237d036310f2a19a1632400e790369040dd5520fd9210b33f67d255ef10005a",
+      "tokenSha256": "857a5be30837d5a5c59e6e776bf20189e0b282bc894927ee16fd76d35feab24b"
+    },
+    {
+      "workload": "array_fill_deep",
+      "path": "benchmarks/runtime/workloads/array_fill_deep.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "c03a73b631be3e2e609db5b24b72301b8e8d21e700c977aea842ebdcc3aacb4d",
+      "formattedSha256": "6da51b5b527946d4e717ecc38f22a306994952c6d183e5a2da472f9870093c5e",
+      "tokenSha256": "b97e89787412316538fce8894b58a7b4837fe84667245d8059919aa8c90f56f6"
+    },
+    {
+      "workload": "array_fill_recursive",
+      "path": "benchmarks/runtime/workloads/array_fill_recursive.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "2b31a2ab90605de0dfc9a958b035d9054d0e9c820dbd41ef8aab5288c7f725a4",
+      "formattedSha256": "530dc9e254b75a0f43ea9a30e6cad34db9c5a807d0484d11882c1a5c674fa3e8",
+      "tokenSha256": "5747742008a84fbf563fdab288c3ca80c560887cc5f5440c767c61bad9e0e0a1"
+    },
+    {
+      "workload": "array_copy_within_int",
+      "path": "benchmarks/runtime/workloads/array_copy_within_int.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "74463ea67a520e241dbe4820e3ffac42a03e9ac65c52e0bd7d427dc957e1e774",
+      "formattedSha256": "1bd9d63487881b9ff32ab4b7e827972dbbd6a85f7b3c238370e02d249bbfcf8f",
+      "tokenSha256": "d110af982668aaf4fb59ebd46afd09033048fae0ac86fab55f7b46b88a04a678"
+    },
+    {
+      "workload": "array_copy_within_number",
+      "path": "benchmarks/runtime/workloads/array_copy_within_number.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "d89ca22800bb8f222d55b3d6e2e8db906c80cb0b48ea1ed9c261b1febf0d53d7",
+      "formattedSha256": "983d31aea6e660d3a3decc098f07b0ec9313c1d0d018cdb8144cfc0b70484c70",
+      "tokenSha256": "a0933be5fe85332c67b65e3b097436555ea1daaca1c88d5cede8a2e157354f5e"
+    },
+    {
+      "workload": "array_copy_within_boolean",
+      "path": "benchmarks/runtime/workloads/array_copy_within_boolean.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "9fd7da3cd8cbebcaccbf820d7fce80d1f5f9a22f51d51f4a672962ed39388471",
+      "formattedSha256": "ccaea5740f774c1838e7ad0a86f011eae8e50ef6d8e187d6d5810a72361cab18",
+      "tokenSha256": "600bab1ab898d5c1d802cba092fc3318de600dc003065f5b2904b0671db9965a"
+    },
+    {
+      "workload": "array_copy_within_string",
+      "path": "benchmarks/runtime/workloads/array_copy_within_string.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "aeda8f95a373ce97fba26c65ad40e41314fa5ed2edab18846cce393637dc0630",
+      "formattedSha256": "ac455aa391d86996cb880733b6f3d99c86455ccd9c8514f432405a02668cfa4b",
+      "tokenSha256": "739fe4f1ecac093e81d5362a62ec3ed68633ccc0430c4dee0c237f823d84478a"
+    },
+    {
+      "workload": "array_copy_within_nested",
+      "path": "benchmarks/runtime/workloads/array_copy_within_nested.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "78844e2c77bdb1fc91fb5fd7e86460ea282307996390cced24056c5382958ab6",
+      "formattedSha256": "989c63ba3d59324b7536edb2e28b80cd2bcb3e3b026bd36ee52cb3247db7c223",
+      "tokenSha256": "6565978f5c8309060691cff3e8de20beb4615a20b3fb55d962e063b7f2cf69c9"
+    },
+    {
+      "workload": "array_copy_within_record",
+      "path": "benchmarks/runtime/workloads/array_copy_within_record.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "b5f938ae504e914d29818f3890e904904ac329c145ccfcb234515bb8643529c9",
+      "formattedSha256": "f4eda49729d7b7169c842df64abe19b6ad79d99343b770b79123e87e48820728",
+      "tokenSha256": "517368f6bea022eba7e1dcf582aee3f6e3cd97b0ec905929483b8bc3dd55e6a1"
+    },
+    {
+      "workload": "array_copy_within_deep",
+      "path": "benchmarks/runtime/workloads/array_copy_within_deep.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "25803f8de18e2f16542fdb364517f9708fc2f12ee2f37895bc67eea2cae8759d",
+      "formattedSha256": "535edd17c9979412015b219b40ab7fb260c5bbc40aa92421a4328ecd86e1a4e8",
+      "tokenSha256": "de0c9a2a9cc59f4eba9dbbe6671ba9b88a9fc5cbc443b82e6de1d05af2a728b7"
+    },
+    {
+      "workload": "array_copy_within_recursive",
+      "path": "benchmarks/runtime/workloads/array_copy_within_recursive.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "63b6cd4cc4ea98ba6b4cf858e08300595f287462215afaecaee7e42ecc8f59aa",
+      "formattedSha256": "6afab4366566f2d57daf6d8f89e29dc53a46b5462fe2767b2b1ae7644d907b00",
+      "tokenSha256": "c909c101df78dfbdaf722c45a38937ed62fd104a3d8a4fc106546085ba29f287"
+    },
+    {
+      "workload": "array_to_reversed_int",
+      "path": "benchmarks/runtime/workloads/array_to_reversed_int.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "2bbff3f6abeea94e28ea237726173b43fb2e45c0f27f3bab6b113f67f98af1fb",
+      "formattedSha256": "88134cf8f5db15cae26f5676ae3601b4111b1b3faddb7fb47612df162761e8b0",
+      "tokenSha256": "7e02acb7e7ccf79004e79e2e27a585cad472fa826b94539f88999937b2f65e04"
+    },
+    {
+      "workload": "array_to_reversed_number",
+      "path": "benchmarks/runtime/workloads/array_to_reversed_number.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "a8cb3ef39ae6539390869c53f4592417828de99282e080a9d0871360516de4cf",
+      "formattedSha256": "c89ae27a726a09377e661d03929ff24ffd6a944c9e78da77f9d2402b43e857be",
+      "tokenSha256": "7bd87e3a93810b39ee1b804c79d6c3acb0124dd74a67c669ddb94182e35e08b9"
+    },
+    {
+      "workload": "array_to_reversed_boolean",
+      "path": "benchmarks/runtime/workloads/array_to_reversed_boolean.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "a28b8e19233d693671c009887e0df6a96bb9c71958699ed489dacf34d5e57d2a",
+      "formattedSha256": "f75ee193124da28c53b7885a200146c78513f60e5317f7b830e5e45572b4015f",
+      "tokenSha256": "e403b10749d97aaa62ae198c405f9b0f00b57020470e2e7423f82732a0928d06"
+    },
+    {
+      "workload": "array_to_reversed_string",
+      "path": "benchmarks/runtime/workloads/array_to_reversed_string.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "3989eb896f9bb2fab679a44ce85e156e00c1e7ea9870bab9ca44b1a622fb1c17",
+      "formattedSha256": "0790ee01d67a8af997b06217acfde579422e08238d507d86d5ac459130672eb9",
+      "tokenSha256": "6be043f6d4295fb5655c24aec71389ee10f87f4b88eb9623a26730f9b2696ee5"
+    },
+    {
+      "workload": "array_to_reversed_nested",
+      "path": "benchmarks/runtime/workloads/array_to_reversed_nested.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "02af74591511973269bdf17b1455352079a0d95de4884ac3b5702861ad7f5464",
+      "formattedSha256": "a857487d66752d15140ed6f2d68f7f652b0d1142d42f1db26bcd17128c688fd7",
+      "tokenSha256": "c357cddabefebb4569a65e24b07fa80a6982c3d747738bff8e8282b1150b32ab"
+    },
+    {
+      "workload": "array_to_reversed_record",
+      "path": "benchmarks/runtime/workloads/array_to_reversed_record.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "89ac1a030b5e8d3380fdc398a7573aa5387f92ddb8e93a673c6f828bc5d4c752",
+      "formattedSha256": "0cba1bdd22ca735d6fd7b128f6a7539f8759caf5dd398dea5ece0db3a68a37e0",
+      "tokenSha256": "dd4d073e17997e59e94242400c7dfcd05bdb538e7bd4aaed1f12fd2ef3fa2dc6"
+    },
+    {
+      "workload": "array_to_reversed_deep",
+      "path": "benchmarks/runtime/workloads/array_to_reversed_deep.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "2e70580b008aa944359b0a3ccb148cfb27a91598cccb336234381042128682af",
+      "formattedSha256": "63420592aba0da0151efeb2fb86c9e926e45f17a1dbb776aec9083a0612d4c35",
+      "tokenSha256": "28a82a73e0d3cc7a035fbee0dc7ba3e6c6d931c824334c98d3b79732c75169eb"
+    },
+    {
+      "workload": "array_to_reversed_recursive",
+      "path": "benchmarks/runtime/workloads/array_to_reversed_recursive.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "1d7e6088bfa561b6c4c75e29e0e850741057e0352bcf8638fe31ecc8680c8376",
+      "formattedSha256": "4d3d49542fd05fc8c972daabd0927fa8372ad10a1fc541ae363b117eed094bc3",
+      "tokenSha256": "62cf6d7eeda748bbd58a983ba9c7d3743d6c6fc2cbb02b5691500f678edb6684"
+    },
+    {
+      "workload": "array_with_int",
+      "path": "benchmarks/runtime/workloads/array_with_int.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "fc6a99f284b185ca95c013cb5fc2becbf31cca05ec8dac82ef48396dde6f062b",
+      "formattedSha256": "abbc8df034596bb70cdbbe43fbf7b1a1beca99bc74d1d4d196c9086f14cc8f79",
+      "tokenSha256": "9d9bdf492939e4a1e2b1553e0284ff44651b99f5ad847ff0d233ca777cf93105"
+    },
+    {
+      "workload": "array_with_number",
+      "path": "benchmarks/runtime/workloads/array_with_number.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "a8240946d9b6a33f144b1fcfb13066a20c10871dc69e21b26eea1d4d82008ad6",
+      "formattedSha256": "c8374ca4b9e15ccb25cad471cbfe80ad5f8639627d516109b00ea18721096f87",
+      "tokenSha256": "e8f5e17fab97d22c70f05a4c359c7231626f2687344c3393fe801566b6f04bb9"
+    },
+    {
+      "workload": "array_with_boolean",
+      "path": "benchmarks/runtime/workloads/array_with_boolean.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "051937bc2ee5b50b307f26931841fcf97b350d8db20269ae9fca2cbed2d4eebc",
+      "formattedSha256": "8df6d722604c5d916df32f9a566e125a621e64307721e633cd2245364596b973",
+      "tokenSha256": "30760a50213069dcd20e0fb42cbc52c49710684bc0bc21a225eb55ac8fa5ff21"
+    },
+    {
+      "workload": "array_with_string",
+      "path": "benchmarks/runtime/workloads/array_with_string.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "9641e7f485e38fd1c28f23536d172a9c1e4d5322d0c0a2775f17c9e175f64319",
+      "formattedSha256": "b8332c55dc344f3f6751f436417d3eadc8244211d0d6e0b788a2272c34d6386e",
+      "tokenSha256": "49183bc18bcaa1cb125f139f096b32c3877239887d3bfbde17556acfccde6f59"
+    },
+    {
+      "workload": "array_with_nested",
+      "path": "benchmarks/runtime/workloads/array_with_nested.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "04886a6714305d92c6dfbff51589d6940750947d624452a42735c0e36aec12f1",
+      "formattedSha256": "312096273fc2e6d80bfab02a5eb90d1e34b6278bef798ed849fe05ba0a2c391f",
+      "tokenSha256": "01e446644ccc84986126b8df4ed1658076d9eaca07ab5fad79c7b8e39ad5e7f5"
+    },
+    {
+      "workload": "array_with_record",
+      "path": "benchmarks/runtime/workloads/array_with_record.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "e149643f3ce992f143d6e219bd7ab614ad8a733678a9f64b032663f340e46519",
+      "formattedSha256": "edd2fb44b4f15792545013d747a96ef5a16462440ff905ec12a6442e1fce552c",
+      "tokenSha256": "53808a03c3a6dec7b8a91fcb8ccc0ca5be551b67cde042b2e7bbe511649bb661"
+    },
+    {
+      "workload": "array_with_deep",
+      "path": "benchmarks/runtime/workloads/array_with_deep.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "780a86d2053eae21b9cdbeb639c6cabbd0d7c5aaf953c5907bd240f16cf58ff4",
+      "formattedSha256": "4185ce40c465a261a40b98921a799405a5eba3f5a31b51970ad081a70a4ff7fd",
+      "tokenSha256": "11a6218ae96e9dad25517c18366e653efbfe60d3020600b782aa0f04823c1ee9"
+    },
+    {
+      "workload": "array_with_recursive",
+      "path": "benchmarks/runtime/workloads/array_with_recursive.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "afb384ce664572a0e1aabea855dc58593c95679dc3da265ac2aeca41d826bd1d",
+      "formattedSha256": "40e8c8855dee1ce3092f32a7ae492b57f9091604996faa19090d3b33cbd5bc2e",
+      "tokenSha256": "4f7bff88ea3b009bb87773d71460f8886f071135666faeb7a49d4ea0e99584bd"
+    },
+    {
+      "workload": "array_to_spliced_int",
+      "path": "benchmarks/runtime/workloads/array_to_spliced_int.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "f297934d468a35b9441f641a27d6f63991d8036e6139f139da49602fff2ac272",
+      "formattedSha256": "9ee84a0e55cd52c02ff0e925d21327fb8b4d9a9feb13bd2e18cef5ea21a42572",
+      "tokenSha256": "1081655e8c6ca1458a6943737babba82edd119d285545ee6d2540e8936974550"
+    },
+    {
+      "workload": "array_to_spliced_number",
+      "path": "benchmarks/runtime/workloads/array_to_spliced_number.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "c65ee9d12e1a81dc39a77ed99fc0ea4751d4bfdf0aed90673e715001ee0d7938",
+      "formattedSha256": "1f99c3fddaf8c15379e272959a1aaf101ff5855caf30b13edf325e150369610c",
+      "tokenSha256": "8dfa7fe62cab2f27dd49acd667a81a264e4e5aa732953da05eb24d767dfe4c57"
+    },
+    {
+      "workload": "array_to_spliced_boolean",
+      "path": "benchmarks/runtime/workloads/array_to_spliced_boolean.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "5d8410149aba11e0db6281b57510fe0099c4516e39946ac284cc16190270a3f7",
+      "formattedSha256": "cf1b0949af69084b9045959600e746399220da871ef36b039175c2040d744b97",
+      "tokenSha256": "ede4d7e856e41d8de60cff328777bcf4603e217eadcf4270abe3e5a302a7db99"
+    },
+    {
+      "workload": "array_to_spliced_string",
+      "path": "benchmarks/runtime/workloads/array_to_spliced_string.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "8d16dd4d0785121fb6117657b3ca914056c22b54c8d6bfe4390c94194846afc4",
+      "formattedSha256": "49373886950d27fcdfa7342db17258be24ebed4da6f22907b7ba2172523bd0e2",
+      "tokenSha256": "8780ef95b7d64ca1e70617d48c63f3810785599b3d617556136d85d0ad55b420"
+    },
+    {
+      "workload": "array_to_spliced_nested",
+      "path": "benchmarks/runtime/workloads/array_to_spliced_nested.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "cd642c34fa559de7132124e0740b12290ab90997181503e154bb557c911b503c",
+      "formattedSha256": "551be62127d4dace0a7479aaff043d9771b8ce71f4cb7fff1d1d4857fa8b1bf0",
+      "tokenSha256": "b00eb3d6b5f6ec8f4da52d172ab152298409c2d8f01ac0907fe509a811553b3f"
+    },
+    {
+      "workload": "array_to_spliced_record",
+      "path": "benchmarks/runtime/workloads/array_to_spliced_record.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "70f606deb0ddce3b39889c032c1df254d1bdde895d06b6ea8c5e18c4668a4f7c",
+      "formattedSha256": "058bfba7b9d08631475a3af67a79e711700486425c243136e0b54d2326910f82",
+      "tokenSha256": "a7e097168e08d7666d11e9ba45e09c971706ecd5f51fcbdf181ca50ec2153737"
+    },
+    {
+      "workload": "array_to_spliced_deep",
+      "path": "benchmarks/runtime/workloads/array_to_spliced_deep.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "fef9f355a5924aa91d00d9977d74bedb166bbcd42e08d69f3be6f990edd490d2",
+      "formattedSha256": "152c813cd274733a6f435207f82e8baeeaf0bb9ef59c6103c10a5fc023a77829",
+      "tokenSha256": "3c1ba9d5f5b9638cde580e9657b70ab1493091af0ce33ece4c2f4e2ce1faf7a5"
+    },
+    {
+      "workload": "array_to_spliced_recursive",
+      "path": "benchmarks/runtime/workloads/array_to_spliced_recursive.tsr",
+      "baselineCommit": "801d4d7",
+      "originalSha256": "ea96d5e174d56a71e9fe3f79f8631f14797d065e467efc7afe9ba43eb82c892e",
+      "formattedSha256": "e50bb75939ef3f0deefdfc06e9226283f2acdadd701ed6f381338df4dfaa4ab0",
+      "tokenSha256": "9346dffc8e0882f32629f75ded058ea30de062c6673179b98887bdee39963ee9"
     }
   ]
 }

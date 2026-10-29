@@ -158,6 +158,7 @@ fn run_forwards_program_options_after_separator_with_explicit_and_configured_inp
     assert!(String::from_utf8(output.stderr).unwrap().contains("Unknown or repeated option"));
 }
 
+#[cfg(feature = "legacy-ui")]
 #[test]
 fn new_ui_scaffolds_an_explicit_bootstrap_and_root_page() {
     let dir=support::TempDirectory::new();
@@ -176,6 +177,7 @@ fn new_ui_scaffolds_an_explicit_bootstrap_and_root_page() {
     assert_eq!(fs::read(root.join("src/app/page.tsrx")).unwrap(),original);
 }
 
+#[cfg(feature = "legacy-ui")]
 #[test]
 fn ui_add_bootstraps_inline_config_and_source_layout_without_init() {
  let dir=support::TempDirectory::new();let root=dir.0.join("first-ui");fs::create_dir(&root).unwrap();
@@ -192,6 +194,7 @@ fn ui_add_bootstraps_inline_config_and_source_layout_without_init() {
  assert_eq!(fs::read(root.join("tsrust.config.json")).unwrap(),before);assert_eq!(fs::read(root.join("ui-components.lock.json")).unwrap(),lock);
 }
 
+#[cfg(feature = "legacy-ui")]
 #[test]
 fn ui_imports_report_explicit_setup_without_writing() {
  let dir=support::TempDirectory::new();let root=dir.0.join("import-ui");fs::create_dir_all(root.join("src")).unwrap();
@@ -205,6 +208,7 @@ fn ui_imports_report_explicit_setup_without_writing() {
  support::success(&support::run(support::cli().current_dir(&root).args(["check"]),20));
 }
 
+#[cfg(feature = "legacy-ui")]
 #[test]
 fn ui_web_only_target_is_explicit_and_cannot_launch_native(){
  let dir=support::TempDirectory::new();let root=dir.0.join("web-ui");fs::create_dir(&root).unwrap();
@@ -215,6 +219,7 @@ fn ui_web_only_target_is_explicit_and_cannot_launch_native(){
  let package=root.join("export");support::success(&support::run(support::cli().current_dir(&root).args(["emit","--package","-o"]).arg(&package),30));let manifest=fs::read_to_string(package.join("Cargo.toml")).unwrap();let defaults=manifest.lines().find(|line|line.starts_with("default =")).unwrap();assert!(defaults.contains("ui-web") && !defaults.contains("ui-native"),"{defaults}");
 }
 
+#[cfg(feature = "legacy-ui")]
 #[test]
 fn ui_batch_upgrades_preserve_owned_files_and_check_versioned_imports() {
  let dir=support::TempDirectory::new();let root=&dir.0;let components=root.join("src/components/ui");fs::create_dir_all(&components).unwrap();

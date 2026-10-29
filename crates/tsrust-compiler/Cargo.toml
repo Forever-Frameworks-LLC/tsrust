@@ -1,6 +1,6 @@
 [package]
 name = "tsrust-compiler"
-version = "0.1.0-rc.1"
+version = "0.1.0"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/Forever-Frameworks-LLC/tsrust"
@@ -13,6 +13,11 @@ path = "src/lib.rs"
 [[bin]]
 name = "tsrust"
 path = "src/cli/main.rs"
+
+[features]
+# Frozen original UI commands (`tsrust ui`, `new --ui`, `dev --target web`) and
+# their bundled component catalog. Release builds leave this disabled.
+legacy-ui = []
 
 [dependencies]
 # Retain legacy authoring checks without linking the frozen renderer runtime.

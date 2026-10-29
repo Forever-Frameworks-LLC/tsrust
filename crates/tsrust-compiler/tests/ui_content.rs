@@ -1,4 +1,5 @@
 mod support;
+#[cfg(feature = "legacy-ui")]
 #[test]
 fn semantic_content_sources_execute_natively_and_offline_install_as_editable_files(){
  let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/ui-content");
@@ -8,6 +9,7 @@ fn semantic_content_sources_execute_natively_and_offline_install_as_editable_fil
  for item in catalog.as_array().unwrap(){let name=item["name"].as_str().unwrap();let source=support::format_round_trip(item["files"][0]["content"].as_str().unwrap());let installed=std::fs::read_to_string(dir.0.join(format!("src/components/ui/{name}.tsrx"))).unwrap();assert!(installed.starts_with("// License: MIT. See ../../../attributions/shadcn-MIT.txt."));let current:serde_json::Value=serde_json::from_str(include_str!("../src/ui-catalog/kbd-2.0.0.json")).unwrap();let current=if name=="kbd"{support::format_round_trip(current[0]["files"][0]["content"].as_str().unwrap())}else{source.clone()};assert_eq!(installed.split_once("import ").unwrap().1,current.split_once("import ").unwrap().1);assert_eq!(std::fs::read_to_string(root.join(format!("src/components/ui/{name}.tsrx"))).unwrap(),source);}
  let lock=std::fs::read(dir.0.join("ui-components.lock.json")).unwrap();let output=support::run(support::cli().args(["ui","add","kbd","separator"]).current_dir(&dir.0),30);support::success(&output);assert_eq!(std::fs::read(dir.0.join("ui-components.lock.json")).unwrap(),lock);
 }
+#[cfg(feature = "legacy-ui")]
 #[test]
 fn separator_children_unknown_orientation_and_unsupported_props_reject(){
  let dir=support::TempDirectory::new();let output=support::run(support::cli().args(["ui","add","kbd","separator","--target","native"]).current_dir(&dir.0),30);support::success(&output);
@@ -16,6 +18,7 @@ fn separator_children_unknown_orientation_and_unsupported_props_reject(){
  }
 }
 
+#[cfg(feature = "legacy-ui")]
 #[test]
 fn current_keycaps_preserve_semantics_and_owned_bindings(){
  let dir=support::TempDirectory::new();support::success(&support::run(support::cli().args(["ui","add","kbd","--target","native","--target","web","--offline"]).current_dir(&dir.0),30));
@@ -40,6 +43,7 @@ fn keyboard_reference_keeps_nested_markdown_and_paired_examples_executable(){
  let output=support::run(support::cli().arg("run").arg(root.join("src/acceptance/keyboard-documentation.tsr")),180);support::success(&output);assert_eq!(output.stdout,b"Keyboard documentation passed\n");
 }
 
+#[cfg(feature = "legacy-ui")]
 #[test]
 fn current_table_exports_keep_spans_scope_and_owned_children(){
  let dir=support::TempDirectory::new();support::success(&support::run(support::cli().args(["ui","add","table","--target","native","--target","web","--offline"]).current_dir(&dir.0),30));
@@ -66,6 +70,7 @@ fn table_documentation_keeps_formatted_paired_examples_executable(){
  let output=support::run(support::cli().arg("run").arg(root.join("src/acceptance/table-documentation.tsr")),180);support::success(&output);assert_eq!(output.stdout,b"Table documentation passed\n");
 }
 
+#[cfg(feature = "legacy-ui")]
 #[test]
 fn table_native_renderer_bundle_inlines_its_layout_helpers(){
  let dir=support::TempDirectory::new();support::success(&support::run(support::cli().args(["ui","add","table","--target","native","--offline"]).current_dir(&dir.0),30));

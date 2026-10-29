@@ -209,7 +209,8 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
                 }
                 // `name?: type` marks an optional parameter, not a conditional.
                 "?" if real.get(i + 1).is_none_or(|next| next.text != ":") => questions.push(nesting),
-                ":" if questions.last() == Some(&nesting) => {
+                // `(): T =>` inside a branch annotates an arrow result, not the conditional.
+                ":" if questions.last() == Some(&nesting) && !arrow_result_colon(&real, i) => {
                     questions.pop();
                     conditional_colon[i] = true;
                 }
@@ -400,6 +401,26 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
         ));
     }
     Ok(output)
+}
+
+/// Whether the colon at `at` follows `)` and annotates an arrow result: the
+/// tokens after it reach `=>` before a separator at the same bracket depth.
+fn arrow_result_colon(real: &[crate::syntax::Token], at: usize) -> bool {
+    if at == 0 || real[at - 1].text != ")" { return false; }
+    let mut depth = 0usize;
+    for token in &real[at + 1..] {
+        if token.kind != TokenKind::Symbol { continue; }
+        match token.text.as_str() {
+            "(" | "[" | "{" | "<" => depth += 1,
+            ")" | "]" | "}" if depth == 0 => return false,
+            ")" | "]" | "}" | ">" => depth = depth.saturating_sub(1),
+            ">>" => depth = depth.saturating_sub(2),
+            "=>" if depth == 0 => return true,
+            "," | ";" | ":" | "?" | "=" if depth == 0 => return false,
+            _ => {}
+        }
+    }
+    false
 }
 
 #[cfg(test)]

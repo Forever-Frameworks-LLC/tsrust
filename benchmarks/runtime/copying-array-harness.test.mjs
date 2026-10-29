@@ -13,7 +13,7 @@ test('copying runtime preparation selects one source ABI guard',()=>{
  for(const row of rows){
   const source=fs.readFileSync(new URL('workloads/'+row.id+'.tsr',import.meta.url),'utf8');
   const ts=fs.readFileSync(new URL('workloads/'+row.id+'.ts',import.meta.url),'utf8');
-  const context={w:row,source,ts,isCopying,assertCopyingSource,assertCopyingTSSource,isRange:()=>false,isHigher:()=>false,isDeclared:()=>false,isConcat:()=>false,isReduction:()=>false};
+  const context={w:row,lexicalPathIds:[],osIdentityIds:[],pathJoinIds:[],pathRelativeIds:[],source,ts,isCopying,assertCopyingSource,assertCopyingTSSource,isRange:()=>false,isHigher:()=>false,isDeclared:()=>false,isConcat:()=>false,isReduction:()=>false};
   assert.doesNotThrow(()=>vm.runInNewContext(actualProductionGuards,{...context, containsCodeSnippet}),row.id);
   assert.throws(()=>vm.runInNewContext(actualProductionGuards,{containsCodeSnippet, ...context,source:source+' '}),row.id);
  }

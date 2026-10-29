@@ -877,7 +877,7 @@ typed propagation, owned/readonly/mutable payloads, cleanup and complete editor 
 Compiler coverage is 2,754 passes; editor coverage is 472, with no failures or aborted
 suites. The seven-observation workload has uncontended matched timing and exact
 SQLite evidence. See [the record](milestones/186-result-match.md),
-[the map](milestones/b10-result-match-acceptance-map.md) and [the guide](guides/language/result-match.md).
+[the map](milestones/b10-result-match-acceptance-map.md) and [the guide](https://forever-frameworks-llc.github.io/tsrust/language/errors/#match).
 B11/S07 resources and bytes is the next dependency row; general discriminated unions
 and advanced match forms remain separate.
 
@@ -888,7 +888,7 @@ storage; editor help includes hidden native payloads. The matched six-observatio
 byte workload passes five native/Node-after-tsc cases untimed. Wider owned byte
 operations, borrowed views and resource lifecycle remain gates 188–190; S07 is not
 accepted or measured. See [the record](milestones/187-native-byte-foundation.md) and
-[the guide](guides/language/native-bytes.md).
+[the guide](https://forever-frameworks-llc.github.io/tsrust/reference/library/bytes/).
 
 
 Gate 188 owned-byte operations are accepted with focused compiler/native/editor and

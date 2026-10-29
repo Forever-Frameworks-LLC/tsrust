@@ -1,5 +1,7 @@
 # UI application ownership and offline components
 
+Retained original UI documentation. The UI is frozen outside the backend release; its commands need a `legacy-ui` build.
+
 ## Live mode, retained visibility and native headers
 
 `withTheme(node, config.ui.theme, mode)` accepts `light`, `dark`, or a

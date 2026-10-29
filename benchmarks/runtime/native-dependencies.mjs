@@ -27,7 +27,11 @@ export function prepareNativeDependencies({emitted,compiler,source,build,rustVer
  const scratch=fs.mkdtempSync(path.join(build,'package-'));
  const packageRoot=path.join(scratch,'source');
  const target=targetDirectory??(env.CARGO_TARGET_DIR?path.resolve(env.CARGO_TARGET_DIR):path.join(build,'native-dependencies'));
- const childEnv={...env,CARGO_HOME:path.join(scratch,'cargo-home'),CARGO_TARGET_DIR:target,CARGO_INCREMENTAL:'0'};
+ // Export reads prepared portable sources from the caller's Cargo home; the
+ // isolated build home below must not hide them.
+ const callerHome=env.CARGO_HOME?path.resolve(env.CARGO_HOME):path.join(process.env.HOME??'','.cargo');
+ const sourcePacks=env.TSRUST_SOURCE_PACK_DIR??path.join(callerHome,'tsrust','source-packs');
+ const childEnv={...env,CARGO_HOME:path.join(scratch,'cargo-home'),CARGO_TARGET_DIR:target,CARGO_INCREMENTAL:'0',TSRUST_SOURCE_PACK_DIR:sourcePacks};
  // Do not inherit profile overrides, wrappers or flags that change measured code.
  for(const key of Object.keys(childEnv))if(key==='RUSTFLAGS'||key==='CARGO_ENCODED_RUSTFLAGS'||key==='RUSTC'||key.startsWith('RUSTC_')||key.startsWith('CARGO_PROFILE_')||key.startsWith('CARGO_BUILD_')||key.startsWith('CARGO_TARGET_')&&key!=='CARGO_TARGET_DIR')delete childEnv[key];
  const run=(command,args,cwd)=>{

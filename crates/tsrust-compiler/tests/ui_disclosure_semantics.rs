@@ -1,3 +1,5 @@
+//! Frozen legacy UI coverage; runs only in legacy-ui builds.
+#![cfg(feature = "legacy-ui")]
 mod support;
 use std::{fs,path::Path};
 

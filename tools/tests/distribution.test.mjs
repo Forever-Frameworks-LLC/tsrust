@@ -53,6 +53,8 @@ test('packaging preserves bytes, source versions, notices and executable permiss
   assert.equal(fs.readFileSync(path.join(output, 'LICENSE'), 'utf8'), fs.readFileSync(path.join(root, 'LICENSE'), 'utf8'));
   assert.equal(fs.readFileSync(path.join(output, 'attributions/dependencies/example-1.0.0/licenses/MIT.txt'), 'utf8'), 'dependency license fixture\n');
   assert.ok(!fs.existsSync(path.join(output, 'attributions/dependencies/example-1.0.0/lib.rs')));
+  assert.ok(fs.existsSync(path.join(output, 'attributions/tsrust-MIT.txt')));
+  assert.ok(!fs.existsSync(path.join(output, 'attributions/shadcn-MIT.txt')), 'Legacy UI notices stay out of backend releases');
   const readme = fs.readFileSync(path.join(output, 'README.md'), 'utf8');
   assert.match(readme, /tsrust setup --dependencies --yes/);
   assert.match(readme, /tsrust setup --portable --yes/);

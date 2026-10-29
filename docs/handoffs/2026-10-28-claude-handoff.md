@@ -177,22 +177,91 @@ Not done: remaining nine chapter merges, the first Learn track, folding library
 guides and backend how-tos into tracks, and the CI/installation/platform/deployment
 reconciliation listed above. Nothing was pushed; no GitHub run was triggered.
 
-## Distribution, CI and deployment reconciliation — 2026-10-28
+## Distribution, CI and deployment reconciliation — 2026-10-28 (rows updated 2026-10-29)
 
 Checked against workflow source and read-only `gh` queries; no run was triggered.
 
 | Requirement | Current state | Evidence |
 | --- | --- | --- |
-| Release artifacts for macOS, Linux, Windows | Workflow builds `x86_64-unknown-linux-gnu`, `aarch64-apple-darwin`, `x86_64-apple-darwin`, `x86_64-pc-windows-msvc`. Never executed; no release exists. | `.github/workflows/release.yml` matrix; `gh release list` empty |
+| Release artifacts for macOS, Linux, Windows | All four targets built and smoke-tested; `v0.1.0-rc.1` published as a prerelease (updated 2026-10-29). | Release run 40861023720, Promote run 40864132322 |
 | Windows paired install, locked binaries, shared caches | Passed on hosted Windows. An earlier failure (40724567590, 90382caa) was fixed by 9b658857. | Runs 40731485167 (9b658857), 40748893795 (86435b88) |
 | Async testing on three platforms | Passed. | Run 40672007920 (c5b3d4a9) |
 | PR CI on the staging branch | Linux compiler/LSP, VS Code extension and docs build passed for PR head 61ee67a4. | Runs 40761578381, 40761578389 |
 | macOS | Local focused acceptance only (see `docs/agent-goal.md`). | Local evidence |
-| GitHub Pages | Configured (`build_type: workflow`, public URL reserved) with zero deployments. Deploy runs only on `main` after promotion. | `gh api repos/.../pages`, empty deployments list |
-| Install/self-update from a published release | Pending: needs a release, which needs owner authorization. | — |
-| Windows editor UTF-16 fixture | CI now has a dispatch-only `editor_acceptance` mode that runs the VS Code integration and recovery suites (including the surrogate-pair fixture) on Linux and Windows. Not yet run: needs a push and an owner-approved dispatch. | `.github/workflows/ci.yml` job `editor_integration` |
+| GitHub Pages | Deployed at https://forever-frameworks-llc.github.io/tsrust/ (updated 2026-10-29). | Documentation run 40864208241 |
+| Install/self-update from a published release | rc.1 archive installed by hand on macOS arm64 (version, doctor, native run). Managed install and self-update need the first stable release: pending `v0.1.0`. | See the release-candidate status section |
+| Windows editor UTF-16 fixture | Passed on Linux and Windows (updated 2026-10-29). | Editor acceptance run 40816862762 |
 
 Remote branch `codex/backend-polish-staging` (PR #4, draft, base `stag`) is still at
 61ee67a4. Local history is not a descendant of it (the PR branch was rebuilt
 from the same trees), so compare trees before any push. All local commits since
 then, including this documentation restructure, are unpushed.
+
+## Release candidate status — 2026-10-29
+
+- Editor acceptance passed on Linux and Windows (CI run 40816862762), including
+  the surrogate-pair UTF-16 diagnostic fixture.
+- The five package-export tests pass locally once `tsrust setup --portable
+  --offline --yes` has prepared source packs.
+- Owner chose a pre-release. Version is `0.1.0-rc.1`. The toolchain installer
+  now accepts `MAJOR.MINOR.PATCH-rc.N` (ordered before the stable version);
+  update discovery still considers only stable releases, so self-update from a
+  published release still needs a stable release to verify.
+- PR #4 (`codex/backend-polish-staging` → `stag`) was merged by the owner with
+  the review bypass (squash commit cf4e729c). Authors cannot approve their own
+  PRs; the bypass is the owner's path for agent-opened PRs.
+- PR #5 (`stag` → `main`) built all four targets and the extension (Release run
+  40861023720). Promote (run 40864132322) merged it and published the
+  `v0.1.0-rc.1` prerelease with four archives, `tsrust-0.2.0.vsix` and
+  `SHA256SUMS`. The Documentation workflow (run 40864208241) deployed
+  https://forever-frameworks-llc.github.io/tsrust/.
+- Release smoke test on macOS arm64: the archive matched `SHA256SUMS`;
+  `tsrust --version` printed `0.1.0-rc.1`, `tsrust-lsp --version` printed
+  `0.2.0`; `doctor` and `doctor --native` passed; `tsrust run` executed a native
+  program correctly. `tsrust toolchain install --root` refused as designed: "No
+  published stable official toolchain is available yet".
+- Pages smoke test: the home page, Learn, Language, globals guide, generated
+  globals and `std:sql` reference returned 200; the old
+  `reference/builtins/globals/` path redirects to `reference/globals/functions/`.
+- Still open: managed install and self-update need the first stable release.
+  Linux, Windows and Intel macOS archives were built and checked in CI, not
+  installed by hand. This handoff commit is local only and reaches `stag` with
+  the next PR.
+
+## 0.1.0 milestone — 2026-10-29
+
+Owner direction: no rc.2; finish the work, then publish `0.1.0`; run the
+performance milestone and put the measurements in the docs.
+
+- **Legacy UI out of the release CLI.** `tsrust ui`, `new --ui`, `dev --target
+  web` and the UI menu are behind the `legacy-ui` Cargo feature (off in release
+  builds). The bundled component catalog and `shadcn-MIT.txt` are not in the
+  archive. Compiler `std:ui` support and the `tsrust-ui` crate remain, frozen.
+  UI CLI tests run only with `--features legacy-ui`.
+- **Docs inventory finished.** New chapters `language/operators` and
+  `language/errors`; numbers, enums and recursive records in `language/types`;
+  `for...in` and labels in `language/control-flow`; diagnostic suppression in
+  `tools/cli`. 24 retained guides merged or deleted; research and developer
+  guides labeled. See `docs/plans/documentation-architecture.md`.
+- **Defects fixed on the way** (each with a regression test): formatter spacing
+  for `c ? (): T => a : b`; misleading diagnostics for non-boolean `||=` on an
+  array element and for rebinding a borrowed-view `let`; `setup --portable`
+  failing on a damaged cached pack (now rebuilt and replaced); benchmark
+  harness hiding prepared source packs behind its isolated Cargo home; three
+  benchmark policies rejecting formatting-only source changes (now use
+  registered token-identical proofs).
+- **Performance milestone.** All 930 workloads measured native vs Node after
+  tsc (3 × 31 samples, 175,620 samples), 880 profiled. Native faster on 613
+  (median 1.52×). Median native change vs earlier measurements 1.00×; no
+  regression beyond noise. Evidence: `benchmarks/storage/release-0.1.0-analytics/`.
+  The public page `project/performance` is generated from
+  `benchmarks/measurements.sqlite` at docs build time; publish a different run by
+  editing `website/tools/performance-runs.json`.
+- **Optimization targets** (native slower than Node): JSON/schema decoding,
+  record/object copies, Unicode case conversion, `String.at`, recursive array
+  copies, enum and interface records.
+- **Known pre-existing issues, not fixed:** `store.py verify` rejects old
+  absolute-path log records already in `records.sqlite`; about 55 benchmark
+  harness unit tests are stale (hard-coded `target/editor/debug/tsrust`, frozen
+  manifest-prefix hashes broken by fingerprint refreshes). Neither affects
+  measurement.

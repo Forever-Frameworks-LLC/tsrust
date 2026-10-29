@@ -1,5 +1,37 @@
 # Goal: Tsrust language, CLI, documentation and platform polish
 
+## Active owner direction — 2026-10-29 (supersedes the ordering below)
+
+The owner approved this plan and asked for continuous autonomous work on it:
+
+1. **Ship stable 0.1.0.** PR #6 (`codex/language-cli-docs-polish` → `stag`)
+   needs the owner's bypass merge (agents cannot approve their own PRs). Then
+   open `stag` → `main`; Release and Promote publish `v0.1.0` and deploy Pages.
+   Smoke-test a release archive, then `tsrust toolchain install --root`,
+   `toolchain check`, `update` and `rollback` against the published stable
+   release. Record results in the handoff.
+2. **Optimize existing behavior** where native is slower than Node after tsc
+   (see `project/performance` and `benchmarks/storage/release-0.1.0-analytics/`):
+   JSON and schema decoding, record copies, Unicode case conversion,
+   `String.at`, recursive array copies, enum and interface records. Change
+   compiler output only with regression tests; measure before and after.
+3. **Fill standard-library gaps** against Node and Rust std, most-used backend
+   APIs first, each with IntelliSense documentation, examples and benchmarks.
+4. **Rust packages with generated bindings and full IntelliSense.** Generate the
+   adapter from the crate's public API: rustdoc JSON on the pinned toolchain
+   (RUSTC_BOOTSTRAP) with a source-parsing fallback. Bind plain functions,
+   structs, enums, methods, `String`/`Vec`/`Option`/`Result` and simple borrows;
+   report skipped items (generics, traits, lifetime-bound returns, closures,
+   async, macro-only APIs) and emit an editable stub for them. Doc comments
+   become hover text. Raise design questions with the owner before large commitments.
+
+Measurement rules: time benchmarks only on a quiet machine. The runner must
+check load before each chunk; never build, test or run CI-like work locally
+while timing. Run heavy regression suites on GitHub (dispatch
+`full_regressions`), not locally during measurements. Publish results through
+the SQLite dataset and the generated performance page.
+
+
 Owner handoff, 2026-10-28: Codex continuation stopped for transfer to Claude;
 completion is not claimed. Read [the current handoff](handoffs/2026-10-28-claude-handoff.md).
 The owner's latest docs direction prioritizes language/stdlib reference and a

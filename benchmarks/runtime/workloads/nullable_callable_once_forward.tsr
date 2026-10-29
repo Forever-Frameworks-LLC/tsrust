@@ -20,7 +20,7 @@ function workload(n: int, seed: int, input: string): int[][] {
     const beforeFactories = trace.factories;
     const observed: int[] = [];
     const offset = (i + seed) % 11;
-    const action: (Once<Function<int, [input: int, trace: Mutable<Trace>]>>) | null | undefined = tag === 0 ? (callValue: int, callTrace: Trace) : int => {
+    const action: (Once<Function<int, [input: int, trace: Mutable<Trace>]>>) | null | undefined = tag === 0 ? (callValue: int, callTrace: Trace): int => {
       callTrace.calls = callTrace.calls + 1;
       return (callValue + offset + 5) % 1009;
     }

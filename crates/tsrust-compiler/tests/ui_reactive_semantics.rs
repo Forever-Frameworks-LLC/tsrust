@@ -9,6 +9,7 @@ fn reactive_semantics_execute_formatted_gallery_and_documented_example(){
  let output=support::run(support::cli().arg("run").arg(root.join("src/acceptance/reactive-semantics.tsr")),180);support::success(&output);assert_eq!(output.stdout,format!("{}Reactive semantics passed\n",example["output"].as_str().unwrap()).as_bytes());
 }
 
+#[cfg(feature = "legacy-ui")]
 #[test]
 fn metadata_factories_release_captures_and_installed_buttons_forward_props(){
  let directory=support::TempDirectory::new();support::success(&support::run(support::cli().args(["ui","add","button","--offline","--target","native"]).current_dir(&directory.0),30));

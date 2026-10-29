@@ -252,3 +252,11 @@ fn main() {
         success(&support::run(&mut std::process::Command::new(binary), 10));
     }
 }
+
+#[test]
+fn rebinding_a_borrowed_link_view_names_the_borrow() {
+    let error = support::reject("type Chain={value:int;next?:Chain;};function sum(chain:ReadOnly<Chain>):int{let total=chain.value;let current=chain.next;while(current!==undefined){total+=current.value;current=current.next;}return total;}function main(){}", "unsupported");
+    assert!(error.message.contains("borrowed view"), "{}", error.message);
+    let error = support::reject("function main(){const value=1;value=2;}", "unsupported");
+    assert!(error.message.contains("Only let bindings"), "{}", error.message);
+}

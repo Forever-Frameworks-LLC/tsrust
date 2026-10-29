@@ -89,7 +89,11 @@ pub(super) fn materialize(root: &Path, manifest: &str, lock: &str) -> io::Result
 
 pub(super) fn prepare(mut cargo: Command, offline: bool, manifest: &str, lock: &str) -> io::Result<PathBuf> {
     let destination=location(manifest,lock)?;
-    if destination.exists(){visit(&destination,manifest,lock,|_,_|Ok(()))?;return Ok(destination);}
+    // An existing pack that fails verification is reported, never overwritten.
+    if destination.exists(){
+        visit(&destination,manifest,lock,|_,_|Ok(())).map_err(|e|error(format!("Prepared source pack {} does not verify: {e}. It was left unchanged; remove that directory and run `tsrust setup --portable` again.",destination.display())))?;
+        return Ok(destination);
+    }
     let parent=destination.parent().unwrap();fs::create_dir_all(parent)?;
     let stamp=std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_err(|e|error(e.to_string()))?.as_nanos();
     let staging=parent.join(format!(".preparing-{}-{stamp}",std::process::id()));fs::create_dir(&staging)?;

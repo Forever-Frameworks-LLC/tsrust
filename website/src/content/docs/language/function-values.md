@@ -95,6 +95,42 @@ This prints `1 2`, `3` and `5` on separate lines. Each counter call changes its 
 
 `Once` applies even to a capture-free function: a second invocation produces `closure-consumed`. An environment that consumes its captures requires a once signature; labeling it reusable produces `callback-once`. Returning an owned captured payload from a generic local, for example `const action: Once<Function<T>> = (): T => { return value; };`, retains its concrete nominal result type.
 
+A function that only invokes its `Once` callback can accept a callback that borrows
+the caller's values. Returning or storing the callback instead requires it to own
+its captures:
+
+```tsrust
+function run(action: Once<Function<string>>): string {
+  return action();
+}
+
+function retain(action: Once<Function<string>>): Once<Function<string>> {
+  return action;
+}
+
+function main() {
+  const values = [1];
+  const text = "Pat";
+  console.log(run((): string => {
+    console.log(values.length);
+    return text;
+  }));
+  console.log(values.length); // values remains available after run
+
+  const savedText = "Sam";
+  const saved = retain((): string => savedText);
+  console.log(saved());
+}
+// prints: 1
+// prints: Pat
+// prints: 1
+// prints: Sam
+```
+
+The compiler checks the body of `run` and everything it forwards the callback to
+before admitting the borrow. An unknown destination, such as a callback parameter
+of another callback, keeps the owning requirement.
+
 ### End a borrowing scope
 
 Borrowed captures keep the existing enclosing-block loan lifetime. Calling a borrowed local does not shorten that compiler lifetime. Put the borrowed callable in a smaller block when its owner must be mutated afterward. An owned annotation cannot retain borrowed storage from an external scope or a borrowed array element without an explicit ownership operation.
@@ -148,7 +184,7 @@ a different concrete origin:
 ```tsrust
 function main() {
   const flag = true;
-  const action = flag ? () : int => 7: (): int => 9;
+  const action = flag ? (): int => 7 : (): int => 9;
   console.log(action()); // 7
 }
 ```
@@ -244,7 +280,7 @@ type Handler = {
 function main() {
   const flag = true;
   const handler: Handler = {
-    run: flag ? (value: int) : int => value + 1: (value: int): int => value * 2
+    run: flag ? (value: int): int => value + 1 : (value: int): int => value * 2
   };
   console.log(handler.run(2)); // 3
 }
@@ -664,6 +700,55 @@ Signature help for indexed local arrays and record fields preserves declared
 parameter names. Field documentation, argument descriptions and chained result
 help remain available. Imported record fields preserve their nominal parameter
 types, declaration navigation and unsaved declaration updates.
+
+### Transfer reusable factories with shift and pop
+
+`shift()!` and `pop()!` move a callable out of the array; the `!` assertion throws
+when the array is empty. Indexing only lends the element. A moved factory stays
+reusable when every completed call restores the captured value it hands out, and
+each instance keeps its own state:
+
+```tsrust
+function one<T>(value: T): T {
+  return value;
+}
+
+function two<T>(value: T, other: T): T {
+  return other;
+}
+
+function factory<A>(initial: A) {
+  let action = initial;
+  return (restore: boolean) => {
+    const previous = action;
+    if (restore) {
+      action = one;
+    } else {
+      action = two;
+    }
+
+    return previous;
+  };
+}
+
+function main() {
+  const instances = [factory(one)];
+  instances.push(factory(one));
+  const first = instances.shift()!;
+  const second = instances.shift()!;
+  const original = first(false);
+  const independent = second(true);
+  const changed = first(true);
+  console.log(original<int>(1), independent<int>(2), changed<int>(3, 9));
+}
+// prints: 1 2 9
+```
+
+The first call to `first` returns its original one-argument callback and installs
+`two`; calling it again returns `two`. `second` is unaffected. A path that throws
+before restoring the capture, or lacks a restoring branch, makes the factory
+single-use. Reinserted callbacks keep their updates, and a factory that captures
+another factory keeps that child's state per instance.
 
 ### Choose methods that preserve ownership
 

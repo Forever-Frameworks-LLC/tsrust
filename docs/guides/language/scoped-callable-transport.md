@@ -1,5 +1,7 @@
 # Scoped callable transport
 
+Developer reference for advanced callable-transport cases. The supported patterns are documented in the public [function values](https://forever-frameworks-llc.github.io/tsrust/language/function-values/) chapter.
+
 ## Replacing a captured array element
 
 A dense local array can hold records whose callbacks borrow different values.

@@ -42,7 +42,8 @@ try {
       else if (entry.isFile() && (notice || entry.name === 'Cargo.toml')) copy(source, to);
     }
   }
-  notices(path.join(root, 'attributions'), 'attributions', true);
+  // Bundled UI component notices belong to the legacy-ui build, not the backend release.
+  copy(path.join(root, 'attributions', 'tsrust-MIT.txt'), 'attributions/tsrust-MIT.txt');
   if (vendor) {
     const crates = fs.readdirSync(vendor, {withFileTypes: true});
     if (!crates.length) throw Error('Vendored dependency directory is empty.');

@@ -2,9 +2,11 @@
   "name": "tsrust-documentation",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22.23.4" },
+  "engines": {
+    "node": ">=22.23.4"
+  },
   "scripts": {
-    "reference": "node tools/generate-api-reference.mjs",
+    "reference": "node tools/generate-api-reference.mjs && node --no-warnings tools/generate-performance.mjs",
     "dev": "npm run reference && astro dev",
     "build": "npm run reference && astro build",
     "preview": "astro preview"

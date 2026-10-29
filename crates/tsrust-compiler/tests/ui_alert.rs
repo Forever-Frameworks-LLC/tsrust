@@ -1,6 +1,7 @@
 mod support;
 use std::{fs,path::Path};
 
+#[cfg(feature = "legacy-ui")]
 #[test]
 fn alert_offline_installation_requires_its_compiler_contract_and_preserves_local_edits(){
  let directory=support::TempDirectory::new();let add=||support::run(support::cli().args(["ui","add","alert","--offline","--target","web","--target","native"]).current_dir(&directory.0),30);support::success(&add());
@@ -15,6 +16,7 @@ fn alert_composition_metadata_and_positioning_execute_after_formatting(){
  let root=Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs");let entry=root.join("src/acceptance/alerts.tsrx");let source=fs::read_to_string(&entry).unwrap();assert_eq!(source,support::format_round_trip(&source));let result=support::run(support::cli().arg("run").arg(entry),180);support::success(&result);assert_eq!(result.stdout,b"Alert composition passed\n");
 }
 
+#[cfg(feature = "legacy-ui")]
 #[test]
 fn reactive_alert_installation_preserves_prior_source_and_imports(){
  let directory=support::TempDirectory::new();let old=include_str!("../../../docs/src/components/ui/alert.tsrx");fs::create_dir_all(directory.0.join("src/components/ui")).unwrap();fs::write(directory.0.join("src/components/ui/alert.tsrx"),old).unwrap();let application="import {Alert} from './src/components/ui/alert';function main(){const node=<Alert/>;}";fs::write(directory.0.join("main.tsrx"),application).unwrap();

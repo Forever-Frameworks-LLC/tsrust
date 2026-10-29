@@ -3973,11 +3973,14 @@ impl Analyzer {
             Self::check_element_access(&context.bindings[id], Mode::Mutate, target.span)?;
         }
         if !context.bindings[id].rebindable {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "Only let bindings can be reassigned; const bindings and parameters cannot be rebound.",
-                target.span,
-            ));
+            let binding = &context.bindings[id];
+            // A let that holds a borrowed view of other storage is readonly too.
+            let message = if binding.borrowed_place.is_some() || binding.borrowed_element.is_some() || !binding.view_roots.is_empty() {
+                "This binding is a borrowed view of other storage and cannot be rebound, even when declared with let. Recurse over the structure, or use clone(...) for an independent owner."
+            } else {
+                "Only let bindings can be reassigned; const bindings and parameters cannot be rebound."
+            };
+            return Err(Diagnostic::new("unsupported", message, target.span));
         }
         Self::check_native_view_place(context, id, &[], Mode::Mutate, target.span)?;
         // Replacement needs no old value, but cannot invalidate an outstanding loan.

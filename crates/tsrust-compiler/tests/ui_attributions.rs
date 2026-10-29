@@ -1,3 +1,5 @@
+//! Frozen legacy UI coverage; runs only in legacy-ui builds.
+#![cfg(feature = "legacy-ui")]
 mod support;
 #[test]
 fn attribution_migration_is_offline_readable_and_preserves_notices_in_exported_packages() {

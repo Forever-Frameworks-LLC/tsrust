@@ -1,6 +1,6 @@
 ---
 title: "Control flow"
-description: "Statement bodies, else branches, loop scope and switch."
+description: "Statement bodies, else branches, loop scope, switch, for...in and labels."
 ---
 
 `if`, `else` and loops accept a braced block or a single statement, and an `else` belongs to the nearest unmatched `if`. Names declared in a loop header are scoped to the loop. `switch` evaluates its subject once, compares it with each `case` in source order using `===`, and runs the first matching clause; adjacent labels share one clause, and `default` runs only when no case matches.
@@ -183,3 +183,89 @@ Two JavaScript forms are not available, and each has a message that says what to
 Each clause is its own block. A name declared in one clause is not visible in another. To return from every branch of the switch, provide a returning `default` clause, as in the example. Without one, handle the unmatched path after the switch.
 
 A switch supports at most 120 clauses.
+
+## for...in
+
+`for (const key in value)` visits the keys of a record, tuple, array or string as
+strings, in the order `Object.keys(value)` returns them: field names in declaration
+order for a record, and `"0"`, `"1"`, ... for the others.
+
+```tsrust
+type Point = {
+  x: int;
+  y: int;
+};
+
+function main() {
+  const point: Point = {
+    x: 1, y: 2
+  };
+  const keys: string[] = [];
+  for (const key in point) {
+    keys.push(clone(key));
+  }
+
+  let indices = "";
+  for (const index in[5, 6, 7]) {
+    indices += index;
+  }
+
+  console.log(keys.join(","), indices);
+}
+// prints: x,y 012
+```
+
+- Declare the key with `const` or `let`. A destructuring pattern or an existing
+  variable in that place is `unsupported`.
+- The keys are collected once before the first iteration; changing the source
+  during the loop does not change them.
+- Each key borrows the collected string and cannot be reassigned. Use `clone(key)`
+  to keep an owned copy.
+- To read array elements, use `for...of` or an `int` index instead.
+- Numbers and booleans have no keys. [`in`](../operators/#the-in-operator) tests
+  a single key.
+
+## Labels
+
+A label names a statement so that a nested `break` can leave it. A label on a loop
+also lets a nested `continue` start that loop's next iteration.
+
+```tsrust
+function main() {
+  let total = 0;
+  let updates = 0;
+  outer: for (let i = 0; i < 3; i++, updates++) {
+    for (let j = 0; j < 2; j++) {
+      if (i === 1) continue outer;
+      if (i === 2) break outer;
+      total += 1;
+    }
+  }
+
+  let chosen: int;
+  done: {
+    chosen = 7;
+    break done;
+  }
+
+  console.log(total, updates, chosen);
+}
+// prints: 2 2 7
+```
+
+`continue outer` skips the rest of the outer body and runs the outer loop's update
+(`i++, updates++`) before its condition. Updates of the loops it leaves do not
+run. `break outer` leaves the loop without running its update.
+
+- Blocks, `if`, loops and other statements can be labeled, and one statement can
+  carry several labels (`first: second: while (...)`), up to 32.
+- Without a name, `break` and `continue` target the nearest loop; a labeled block
+  does not capture them.
+- A label is visible only inside its statement and the same function. An unknown
+  target, or `continue` naming a block, is `loop-control`. Reusing an active label
+  is `duplicate`. A label directly before `let`, `const`, `type` or a function
+  declaration is `syntax`.
+- Labels have their own namespace; a variable can share a label's name.
+- A deferred variable must be assigned on every path that reaches its use,
+  including paths that leave a labeled block. Moving an outer owner before
+  `continue` is rejected unless every continuing path reinitializes it.
