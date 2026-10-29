@@ -44,7 +44,8 @@ env:
   CARGO_BUILD_JOBS: '1'
   RUST_TEST_THREADS: '1'
   CARGO_TARGET_DIR: ${{ github.workspace }}/target
-  TSRUST_SOURCE_PACK_DIR: ${{ github.workspace }}/target/portable-source-packs
+  # Outside target/ so a partially restored build cache never holds a pack.
+  TSRUST_SOURCE_PACK_DIR: ${{ github.workspace }}/../portable-source-packs
   CARGO_PROFILE_DEV_DEBUG: '0'
   CARGO_PROFILE_TEST_DEBUG: '0'
   CARGO_TERM_COLOR: always
@@ -57,12 +58,16 @@ jobs:
       matrix:
         os: [ubuntu-24.04]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 120
+    # The complete workspace suite runs single-threaded and needs more time.
+    timeout-minutes: ${{ inputs.full_regressions && 330 || 120 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
+      - name: Install benchmark runtime packages for Node comparison tests
+        if: ${{ inputs.full_regressions }}
+        run: npm --prefix benchmarks/runtime ci --ignore-scripts --no-audit --no-fund
       - name: Prepare locked offline binding-test dependencies
         run: cargo fetch --locked --manifest-path crates/tsrust-compiler/tests/dependencies/Cargo.toml
       - name: Compile both consumers

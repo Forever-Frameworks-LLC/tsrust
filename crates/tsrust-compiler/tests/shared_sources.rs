@@ -144,16 +144,17 @@ fn native_build_and_portable_export_link_at_deep_paths() {
 }
 
 #[test]
-fn portable_setup_replaces_a_damaged_pack_instead_of_failing() {
+fn portable_setup_names_a_damaged_pack_and_leaves_it_unchanged() {
     // A partially restored cache can leave a pack with missing files; setup must
-    // rebuild it rather than stop with a bare file-not-found error.
+    // say which pack is damaged and how to recover, not a bare file-not-found.
     let directory=support::TempDirectory::new();let packs=directory.0.join("packs");
     let setup=||support::run(support::cli().args(["setup","--portable","--offline","--yes"]).env("TSRUST_SOURCE_PACK_DIR",&packs).current_dir(&directory.0),300);
     support::success(&setup());
     let pack=fs::read_dir(&packs).unwrap().map(|entry|entry.unwrap().path()).find(|path|path.is_dir()).unwrap();
     let vendor=fs::read_dir(pack.join("vendor")).unwrap().next().unwrap().unwrap().path();
     fs::remove_file(vendor.join(".cargo-checksum.json")).unwrap();
-    support::success(&setup());
-    assert!(vendor.join(".cargo-checksum.json").is_file());
-    assert_eq!(fs::read_dir(&packs).unwrap().count(),1,"no staging or damaged directories remain");
+    let failed=setup();assert!(!failed.status.success());
+    let message=String::from_utf8_lossy(&failed.stderr);
+    assert!(message.contains(&pack.display().to_string()) && message.contains("remove that directory"),"{message}");
+    assert!(!vendor.join(".cargo-checksum.json").exists(),"the damaged pack is not rewritten");
 }

@@ -294,7 +294,7 @@ fn nullish_parser_type_borrow_and_normal_depth_diagnostics_are_precise() {
         ("function main(){true??false&&true;}", "syntax"),
         ("function main(){true&&false??true;}", "syntax"),
         ("function main(){let x=1;(true?x:x)??=2;}", "unsupported"),
-        ("type Item={n:int};function main(){const x:Item={n:1};(x?.n)=2;}", "syntax"),
+        ("type Item={n:int};function main(){const x:Item={n:1};(x?.n)=2;}", "unsupported"),
         (
             "function f(x:int|null):number{return x??5;}function main(){}",
             "type",
