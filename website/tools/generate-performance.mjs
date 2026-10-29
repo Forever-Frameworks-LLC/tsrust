@@ -126,7 +126,9 @@ are timed together, so a rate is not the cost of one isolated operation.
 ## Method
 
 - **Native**: the Tsrust compiler emits Rust, built with the pinned Rust
-  toolchain at optimization level 3 with integer overflow checks enabled.
+  toolchain at optimization level 3. That is the Rust compiler's highest speed
+  setting, the same one \`tsrust build --release\` uses. Integer overflow checks
+  stay enabled, so the measured programs keep their safety checks.
 - **Node.js**: the matching TypeScript program is compiled once with \`tsc\` and
   run with the pinned Node.js version. JIT warm-up runs before timing.
 - Each engine runs ${config.processes} separate processes with ${config.warmups} warm-up
