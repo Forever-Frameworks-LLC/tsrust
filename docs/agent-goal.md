@@ -55,6 +55,10 @@ as arbitrary TypeScript compatibility or revival of deferred UI work.
   rollback and recovery. Execute Windows native compiler/test/dev/editor and
   installation/update paths, including locked binaries; separately verify macOS
   and Linux. Add Windows hosted validation and non-publishing package validation.
+  2026-10-28 reconciliation: Windows hosted toolchain acceptance passed in runs
+  40731485167 (9b658857) and 40748893795 (86435b88): toolchain_installation,
+  shared_sources and package_management, including locked processes. Remaining:
+  install and self-update from a published release (none exists or is authorized).
 - [ ] Reconcile supported language behavior, CLI help, guides and runnable examples;
   verify behavioral examples and complete required IntelliSense documentation.
 - [ ] Migrate public documentation to Astro Starlight following

@@ -3110,6 +3110,8 @@ impl Emitter<'_> {
             || output.contains("tsr_number_parse_int(")
             || output.contains("tsr_number_from_text(")
             || output.contains("tsr_string_normalize(")
+            || output.contains("tsr_string_from_code_units(")
+            || output.contains("tsr_string_from_code_points(")
             || output.contains("tsr_array_locale(")
             || output.contains("tsr_array_join(")
         {

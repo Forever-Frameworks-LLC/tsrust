@@ -62,7 +62,7 @@ stages a complete pair before switching one installation record. Running tools
 remain on their original versions; restart the editor server to select the new
 pair. Rollback selects the retained verified pair offline. Package-manager-owned
 installations receive upgrade guidance instead of being overwritten. See the
-[managed installation guide](../../tools/install-and-update/)
+[managed installation guide](/tsrust/tools/install-and-update/)
 for trust, recovery and platform acceptance.
 
 ## Install the native backend
@@ -146,7 +146,7 @@ and its descendants. `TSRUST_DEV_WATCH=poll` requests the polling fallback.
 
 ## Install editor support
 
-Follow [VS Code setup](../editor/) for the VSIX, executable discovery and recovery
+Follow [VS Code setup](/tsrust/start/editor/) for the VSIX, executable discovery and recovery
 from stale development paths. The extension requires the separate CLI/LSP pair.
 
 ## Create a project
@@ -171,7 +171,7 @@ tsrust test
 tsrust format --check
 ```
 
-See [project structure](../project-structure/) and the
-[backend application guide](../../backend/applications/).
+See [project structure](/tsrust/start/project-structure/) and the
+[backend application guide](/tsrust/learn/first-service/#create-the-service).
 `tsrust new` writes a project AGENTS.md describing its commands and ownership
 boundaries. Existing owner projects are never overwritten.

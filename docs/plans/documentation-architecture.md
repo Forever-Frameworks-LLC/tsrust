@@ -1,6 +1,6 @@
 # Documentation architecture: reference first, guided learning second
 
-Status: owner-directed 2026-10-28, implementation in progress. Supersedes the
+Status: owner-directed 2026-10-28; structure implemented 2026-10-28. Supersedes the
 page-per-feature drift in the Language section of the public site. The routes,
 page contract and hosting decisions in
 [public-documentation-site.md](public-documentation-site.md) still apply except
@@ -37,7 +37,7 @@ route redirects to the chapter anchor.
 | --- | --- |
 | `language/declarations/` | declarations, assignment-values, comma-expressions |
 | `language/types/` | type-aliases, interfaces, optional-fields |
-| `language/optional-values/` (done) | borrowed-optional-fallback, optional-chaining, nullish-coalescing, nullish-assignment |
+| `language/optional-values/` | borrowed-optional-fallback, optional-chaining, nullish-coalescing, nullish-assignment |
 | `language/patterns/` | destructuring, pattern-defaults-rest, record-spread-assignment |
 | `language/functions/` | arrow-functions, function-expressions, callable-expressions, optional-default-parameters, rest-parameters, call-spread, nested-functions, nested-function-captures, captured-function-parameters |
 | `language/function-values/` | callable-locals, callable-fields, borrowed-callable-fields, callable-arrays, callable-array-methods, nullable-callables |
@@ -99,10 +99,40 @@ futures, threads).
 ## Progress
 
 - [x] Generated standard-library and built-in reference (28 pages, 103 catalog groups).
-- [x] Library overview links each module to its reference page.
-- [x] `language/optional-values/` merged from four pages; examples and rejection
-      diagnostics (`borrowed-view`, `view-conflict`, `??` with `&&`, `??=` type)
-      re-verified with the current debug compiler; old routes redirect.
-- [ ] Remaining language chapters (merge one at a time; see table).
-- [ ] Learn track: first service.
-- [ ] Fold remaining library guides and backend how-tos into Learn tracks.
+      JSDoc `@param`/`@returns` paragraphs render as parameter and return lists.
+- [x] Catalog code fences formatted with the project formatter; `tools/format-project.mjs`
+      keeps them formatted.
+- [x] Library overview links each module; hand-written
+      [global functions and types](../../website/src/content/docs/library/globals.md) page.
+      `std:result` documented as a compatibility import of the global `unwrap`.
+- [x] All language chapters merged (41 feature pages into 12 chapters). 138 chapter
+      examples ran with the current debug compiler, including three multi-file
+      examples with their companion files.
+- [x] Learn tracks: `learn/first-service` (eight backend guides as steps) and
+      `learn/data` (three JSON guides). `library/futures` folded into
+      `language/async`. Step navigation in `website/public/learn.js` with
+      per-browser progress; pages read top to bottom without JavaScript.
+- [x] Every absorbed route redirects to its new anchor; link checker validates
+      redirect targets.
+
+## Next: per-entry reference audit
+
+Owner direction 2026-10-28: every method or section needs its own relevant
+example where possible, and the whole reference needs a factual audit.
+
+Automated checks completed so far:
+
+- All 351 complete programs in catalog documentation type-check.
+- All 273 documented `std:` exports import successfully.
+- Built-in examples (strings, arrays, numbers, Map/Set, globals) produce their
+  commented output; this found and fixed a compiler defect where
+  `String.fromCharCode`/`fromCodePoint` alone omitted their runtime helper.
+- The generator shows each example once per page, links repeats to the first
+  occurrence, and lists identical inherited methods (for example schema
+  `optional`/`nullable`) once.
+
+Remaining: 98 entries have no example of their own (40 schema type methods,
+16 `std:threads`, 14 `std:json`, 8 `Router` verbs, plus cache, fs, testing,
+signals, console timers). Write a specific, verified example for each in
+`builtins.json`, then review every entry's prose against compiler source
+module by module. Track progress per module here.

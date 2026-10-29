@@ -102,7 +102,7 @@ function main() {
 - `?.` does not catch a failure in a reached operation or an evaluated argument.
 - Optional chains are not assignment targets.
 - Nullable callable storage and optional invocation follow the
-  [callable ownership rules](../nullable-callables/).
+  [callable ownership rules](../function-values/#nullable-callables).
 
 ## Nullish fallback
 
@@ -317,6 +317,6 @@ does not mean that plain `value.` access is safe.
 
 ## Related
 
-- [Optional record fields](../optional-fields/)
-- [Pattern defaults and rest](../pattern-defaults-rest/)
-- [Nullable callables](../nullable-callables/)
+- [Optional record fields](../types/#optional-fields)
+- [Pattern defaults and rest](../patterns/#defaults-and-rest)
+- [Nullable callables](../function-values/#nullable-callables)

@@ -176,3 +176,23 @@ first, one interactive Learn track per journey, chapter merge table and rules).
 Not done: remaining nine chapter merges, the first Learn track, folding library
 guides and backend how-tos into tracks, and the CI/installation/platform/deployment
 reconciliation listed above. Nothing was pushed; no GitHub run was triggered.
+
+## Distribution, CI and deployment reconciliation — 2026-10-28
+
+Checked against workflow source and read-only `gh` queries; no run was triggered.
+
+| Requirement | Current state | Evidence |
+| --- | --- | --- |
+| Release artifacts for macOS, Linux, Windows | Workflow builds `x86_64-unknown-linux-gnu`, `aarch64-apple-darwin`, `x86_64-apple-darwin`, `x86_64-pc-windows-msvc`. Never executed; no release exists. | `.github/workflows/release.yml` matrix; `gh release list` empty |
+| Windows paired install, locked binaries, shared caches | Passed on hosted Windows. An earlier failure (40724567590, 90382caa) was fixed by 9b658857. | Runs 40731485167 (9b658857), 40748893795 (86435b88) |
+| Async testing on three platforms | Passed. | Run 40672007920 (c5b3d4a9) |
+| PR CI on the staging branch | Linux compiler/LSP, VS Code extension and docs build passed for PR head 61ee67a4. | Runs 40761578381, 40761578389 |
+| macOS | Local focused acceptance only (see `docs/agent-goal.md`). | Local evidence |
+| GitHub Pages | Configured (`build_type: workflow`, public URL reserved) with zero deployments. Deploy runs only on `main` after promotion. | `gh api repos/.../pages`, empty deployments list |
+| Install/self-update from a published release | Pending: needs a release, which needs owner authorization. | — |
+| Windows editor UTF-16 fixture | Not found in any hosted job's test list; still unverified on Windows. | ci.yml job definitions |
+
+Remote branch `codex/backend-polish-staging` (PR #4, draft, base `stag`) is still at
+61ee67a4. Local history is not a descendant of it (the PR branch was rebuilt
+from the same trees), so compare trees before any push. All local commits since
+then, including this documentation restructure, are unpushed.

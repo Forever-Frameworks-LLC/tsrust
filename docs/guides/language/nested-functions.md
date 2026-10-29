@@ -1,23 +1,23 @@
 # Nested named functions
 
 Declaration scope, forward calls, result inference and recursive declarations now
-live in [Declare nested functions](https://forever-frameworks-llc.github.io/tsrust/language/nested-functions/).
+live in [Declare nested functions](https://forever-frameworks-llc.github.io/tsrust/language/functions/#nested-functions).
 
 Captured state, direct calls, stored callback loans and returned factories now live
-in [Capture state in nested functions](https://forever-frameworks-llc.github.io/tsrust/language/nested-function-captures/).
-Array storage also has a [dedicated guide](https://forever-frameworks-llc.github.io/tsrust/language/callable-arrays/).
+in [Capture state in nested functions](https://forever-frameworks-llc.github.io/tsrust/language/functions/#captures).
+Array storage also has a [dedicated guide](https://forever-frameworks-llc.github.io/tsrust/language/function-values/#callable-arrays).
 Optional/default/rest behavior for stored captured functions now lives in
-[Preserve parameters in captured callbacks](https://forever-frameworks-llc.github.io/tsrust/language/captured-function-parameters/).
+[Preserve parameters in captured callbacks](https://forever-frameworks-llc.github.io/tsrust/language/functions/#parameters-of-captured-functions).
 Concrete specialization and unannotated generic values now live in
-[Specialize a generic function value](https://forever-frameworks-llc.github.io/tsrust/language/generic-function-contexts/)
-and [Keep function values generic](https://forever-frameworks-llc.github.io/tsrust/language/generic-function-values/).
+[Specialize a generic function value](https://forever-frameworks-llc.github.io/tsrust/language/generics/#specialization)
+and [Keep function values generic](https://forever-frameworks-llc.github.io/tsrust/language/generics/#generic-function-values).
 The source-flow, selection and replacement sections below are still being audited.
 
 Adapting existing generic environments now lives in
-[Adapt an existing generic callback](https://forever-frameworks-llc.github.io/tsrust/language/generic-value-adapters/).
+[Adapt an existing generic callback](https://forever-frameworks-llc.github.io/tsrust/language/generics/#adapting-existing-generic-values).
 
 Fresh/selected construction, inferred results, aggregate destinations and nullable
-owning callbacks now live in [Adapt fresh generic factory results](https://forever-frameworks-llc.github.io/tsrust/language/fresh-generic-factories/).
+owning callbacks now live in [Adapt fresh generic factory results](https://forever-frameworks-llc.github.io/tsrust/language/generics/#fresh-generic-factories).
 
 ## Track callable contracts through source flow
 
@@ -36,9 +36,9 @@ captured effects remain part of the source-flow audit.
 
 
 Named assignment invocation now lives in
-[Call a named assignment result](https://forever-frameworks-llc.github.io/tsrust/language/callable-expressions/#call-a-named-assignment-result).
+[Call a named assignment result](https://forever-frameworks-llc.github.io/tsrust/language/functions/#call-a-named-assignment-result).
 Lexical type inheritance and callable transport through factories now live in
-[Use enclosing generic types](https://forever-frameworks-llc.github.io/tsrust/language/lexical-generic-functions/).
+[Use enclosing generic types](https://forever-frameworks-llc.github.io/tsrust/language/generics/#enclosing-type-parameters).
 
 ## Selecting owned functions
 
