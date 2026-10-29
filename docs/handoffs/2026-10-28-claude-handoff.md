@@ -196,3 +196,22 @@ Remote branch `codex/backend-polish-staging` (PR #4, draft, base `stag`) is stil
 61ee67a4. Local history is not a descendant of it (the PR branch was rebuilt
 from the same trees), so compare trees before any push. All local commits since
 then, including this documentation restructure, are unpushed.
+
+## Release candidate status — 2026-10-29
+
+- Editor acceptance passed on Linux and Windows (CI run 40816862762), including
+  the surrogate-pair UTF-16 diagnostic fixture.
+- The five package-export tests pass locally once `tsrust setup --portable
+  --offline --yes` has prepared source packs.
+- Owner chose a pre-release. Version is `0.1.0-rc.1`. The toolchain installer
+  now accepts `MAJOR.MINOR.PATCH-rc.N` (ordered before the stable version);
+  update discovery still considers only stable releases, so self-update from a
+  published release still needs a stable release to verify.
+- PR #4 (`codex/backend-polish-staging` → `stag`) carries this branch's tree
+  exactly (replayed onto the PR base; tree a9e7d3b6 at the time of replay) and
+  passed CI (run 40825722089). It is ready for review. Merging needs the owner's
+  review or owner bypass; the agent's bypass merge was blocked.
+- Next: merge PR #4, open a non-draft `stag` → `main` PR. The Release workflow
+  builds four platforms; on success Promote merges, publishes the prerelease and
+  the Documentation workflow deploys GitHub Pages. Then download a release
+  archive, install it and run `tsrust --version`, `doctor` and a native program.
