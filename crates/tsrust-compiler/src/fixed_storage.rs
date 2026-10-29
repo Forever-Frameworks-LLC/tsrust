@@ -1363,7 +1363,7 @@ pub(crate) fn visit_function_expressions(function: &CheckedFunction, visit: &mut
     visit_expressions(&function.body, visit);
 }
 
-fn visit_expression(expr: &Expr, visit: &mut impl FnMut(&Expr)) {
+pub(crate) fn visit_expression(expr: &Expr, visit: &mut impl FnMut(&Expr)) {
     let mut work = vec![expr];
     while let Some(expr) = work.pop() {
         visit(expr);

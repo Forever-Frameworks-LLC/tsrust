@@ -1,4 +1,5 @@
 mod declaration_scope;
+mod receiver_moves;
 mod runtime_support_ids;
 #[cfg(test)]
 mod statement_work_tests;
@@ -169,6 +170,7 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
     let native_views=native_view_emit::Shapes::new(program);
     let native_record_fields=native_view_record_parameters::Index::new(program,&native_views);
     let mut emitter = Emitter {
+        receiver_moves: RefCell::default(),
         work_functions:owned_work::Arena::default(),
         work_regions:owned_work::Arena::default(),
         borrowed_capture_alternatives,
@@ -256,6 +258,8 @@ pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str
 }
 
 struct Emitter<'a> {
+    /// Copying calls in the function being emitted whose dead receiver may be moved.
+    receiver_moves: RefCell<HashSet<(usize, usize)>>,
     work_functions:owned_work::Arena<CheckedFunction>,
     work_regions:owned_work::Arena<ExceptionRegion>,
     borrowed_lifetime_alternatives: borrowed_payload_emit::Alternatives,
@@ -3014,7 +3018,9 @@ impl Emitter<'_> {
                 let _=writeln!(output,"    {body}");
             } else {
                 self.parameter_initialization(&mut output, fun);
+                *self.receiver_moves.borrow_mut() = receiver_moves::eligible(fun);
                 self.initialized_function_body(&mut output, fun, 1);
+                self.receiver_moves.borrow_mut().clear();
             }
             if async_entry {output.push_str("})\n");}
             output.push_str("}\n\n");
@@ -4920,6 +4926,10 @@ impl Emitter<'_> {
         let Type::Array(element) = array_type else {
             unreachable!("checked array")
         };
+        // toReversed() on a dead local reverses that storage in place.
+        if args.is_empty() && self.moves_receiver(base, span) {
+            return format!("{{ let mut reversed_array = {}; reversed_array.reverse(); reversed_array }}", self.expr(fun, base, Mode::Consume));
+        }
         let receiver = self.expr(fun, base, Mode::Read);
         let literal =
             self.expression_shape(base) == Some(crate::fixed_storage::Shape::LiteralStrings);
@@ -5229,6 +5239,11 @@ impl Emitter<'_> {
             write!(code, "{call}; }}").unwrap();
         }
         code
+    }
+
+    /// Whether this copying call may consume its receiver (see `receiver_moves`).
+    fn moves_receiver(&self, base: &Expr, call: crate::diagnostic::Span) -> bool {
+        self.expression_shape(base).is_none() && self.receiver_moves.borrow().contains(&(call.start, call.end))
     }
 
     fn array_reverse(&self, fun: &CheckedFunction, base: &Expr) -> String {
@@ -6502,6 +6517,9 @@ impl Emitter<'_> {
         let Type::Array(element) = result else {
             unreachable!()
         };
+        if args.is_empty() && self.moves_receiver(base, span) {
+            return self.expr(fun, base, Mode::Consume);
+        }
         let receiver = self.expr(fun, base, Mode::Read);
         let mut output = format!("{{ let concat_array = {receiver}; ");
         for (index, argument) in args.iter().enumerate() {
