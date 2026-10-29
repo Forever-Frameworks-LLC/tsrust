@@ -593,18 +593,43 @@ pub fn tsr_string_ends_with(value: &str, needle: &str, position: Option<i64>) ->
 
 pub fn tsr_string_includes(value: &str, needle: &str, position: Option<i64>) -> bool {
     let start = string_search_position(value.len(), position, 0);
-    value
+    let tail = value
         .get(start..)
-        .expect("string search position is not on a UTF-8 boundary")
-        .contains(needle)
+        .expect("string search position is not on a UTF-8 boundary");
+    tsr_find(tail, needle).is_some()
+}
+
+// Short haystacks: a direct byte-window scan avoids building a two-way searcher
+// on every call. A valid UTF-8 needle cannot start with a continuation byte, so
+// every byte match begins on a character boundary.
+const SHORT_SEARCH: usize = 64;
+
+fn tsr_find(haystack: &str, needle: &str) -> Option<usize> {
+    let (bytes, wanted) = (haystack.as_bytes(), needle.as_bytes());
+    let Some(&first) = wanted.first() else { return Some(0) };
+    if bytes.len() > SHORT_SEARCH {
+        return haystack.find(needle);
+    }
+    let last = bytes.len().checked_sub(wanted.len())?;
+    (0..=last).find(|&start| bytes[start] == first && &bytes[start..start + wanted.len()] == wanted)
+}
+
+fn tsr_rfind(haystack: &str, needle: &str) -> Option<usize> {
+    let (bytes, wanted) = (haystack.as_bytes(), needle.as_bytes());
+    let Some(&first) = wanted.first() else { return Some(bytes.len()) };
+    if bytes.len() > SHORT_SEARCH {
+        return haystack.rfind(needle);
+    }
+    let last = bytes.len().checked_sub(wanted.len())?;
+    (0..=last).rev().find(|&start| bytes[start] == first && &bytes[start..start + wanted.len()] == wanted)
 }
 
 pub fn tsr_string_index_of(value: &str, needle: &str, position: Option<i64>) -> i64 {
     let start = string_search_position(value.len(), position, 0);
-    value
+    let tail = value
         .get(start..)
-        .expect("string search position is not on a UTF-8 boundary")
-        .find(needle)
+        .expect("string search position is not on a UTF-8 boundary");
+    tsr_find(tail, needle)
         .map_or(-1, |offset| {
             i64::try_from(start + offset).expect("string search index exceeds int range")
         })
@@ -622,7 +647,7 @@ pub fn tsr_string_last_index_of(value: &str, needle: &str, position: Option<i64>
     // Bound match starts, retaining an entire match that begins at position.
     // Only the internal endpoint is rounded; the selected boundary is checked.
     let end = value.floor_char_boundary(position.saturating_add(needle.len()).min(value.len()));
-    value[..end].rfind(needle).map_or(-1, |offset| {
+    tsr_rfind(&value[..end], needle).map_or(-1, |offset| {
         i64::try_from(offset).expect("string search index exceeds int range")
     })
 }
