@@ -9,13 +9,20 @@ const ARCHIVE_LIMIT:u64=256*1024*1024;
 const EXPANDED_LIMIT:u64=1024*1024*1024;
 pub(super) fn digest(bytes:&[u8])->String{Sha256::digest(bytes).iter().map(|b|format!("{b:02x}")).collect()}
 pub(super) fn hash(value:&str)->bool{value.len()==64&&value.bytes().all(|b|b.is_ascii_digit()||(b'a'..=b'f').contains(&b))}
-pub(super) fn version(value:&str)->Result<[u64;3],String>{
- let fields=value.split('.').collect::<Vec<_>>();
- if fields.len()!=3{return Err("Expected a stable semantic version".into());}
- let mut result=[0;3];for (index,field) in fields.iter().enumerate(){
-  if field.is_empty()||field.len()>1&&field.starts_with('0')||!field.bytes().all(|b|b.is_ascii_digit()){return Err("Expected a stable semantic version".into());}
-  result[index]=field.parse().map_err(|_|"Version component is too large")?;
- }Ok(result)
+/// Orders MAJOR.MINOR.PATCH and MAJOR.MINOR.PATCH-rc.N; a release candidate
+/// sorts before its stable version. Other prerelease forms are rejected.
+pub(super) fn version(value:&str)->Result<[u64;4],String>{
+ let invalid=||"Expected a semantic version such as 1.2.3 or 1.2.3-rc.1".to_string();
+ let number=|field:&str|->Result<u64,String>{
+  if field.is_empty()||field.len()>1&&field.starts_with('0')||!field.bytes().all(|b|b.is_ascii_digit()){return Err(invalid());}
+  field.parse().map_err(|_|"Version component is too large".to_string())
+ };
+ let (core,candidate)=match value.split_once('-'){Some((core,pre))=>(core,Some(pre.strip_prefix("rc.").ok_or_else(invalid)?)),None=>(value,None)};
+ let fields=core.split('.').collect::<Vec<_>>();
+ if fields.len()!=3{return Err(invalid());}
+ let mut result=[0,0,0,u64::MAX];for (index,field) in fields.iter().enumerate(){result[index]=number(field)?;}
+ if let Some(candidate)=candidate{result[3]=number(candidate)?;if result[3]==u64::MAX{return Err(invalid());}}
+ Ok(result)
 }
 pub(super) fn host()->Result<&'static str,String>{match(std::env::consts::OS,std::env::consts::ARCH){
  ("macos","aarch64")=>Ok("aarch64-apple-darwin"),("macos","x86_64")=>Ok("x86_64-apple-darwin"),
@@ -151,6 +158,11 @@ pub(super) fn unpack(root:&Path,release:&Release,bytes:&[u8])->Result<Manifest,S
   for (key,bad) in [("draft",true),("prerelease",true),("immutable",false)]{let mut v=value.clone();v[key]=bad.into();assert!(parse(&v).is_err());}
   for (key,bad) in [("digest",""),("browser_download_url","https://example.invalid/tool.tar.gz"),("state","new")]{let mut v=value.clone();v["assets"][0][key]=bad.into();assert!(parse(&v).is_err());}
   let mut v=value.clone();v["assets"].as_array_mut().unwrap().push(value["assets"][0].clone());assert!(parse(&v).is_err());
+ }
+ #[test]fn release_candidates_sort_before_their_stable_version(){
+  assert!(version("1.2.3-rc.1").unwrap()<version("1.2.3-rc.2").unwrap());assert!(version("1.2.3-rc.2").unwrap()<version("1.2.3").unwrap());
+  assert!(version("1.2.2").unwrap()<version("1.2.3-rc.1").unwrap());
+  for v in ["1.2.3-rc","1.2.3-rc.","1.2.3-rc.01","1.2.3-alpha.1","1.2.3-rc.1.2"]{assert!(version(v).is_err(),"{v}");}
  }
  #[test]fn versions_paths_and_redirects_are_closed(){for v in ["1.2","01.2.3","1.2.3-beta","1.2.3+build","-1.2.3"]{assert!(version(v).is_err());}assert!(version("1.10.0").unwrap()>version("1.9.9").unwrap());
   for path in ["../bin/tsrust","/bin/tsrust","bin\\tsrust","C:/bin","bin/AUX.txt","bin/name.","bin/name ","bin/a:b","bin//a"]{assert!(!safe_path(path),"{path}");}
