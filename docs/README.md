@@ -14,14 +14,16 @@ these guides distinguish supported behavior from planned work.
 - [Inspect and prepare native build tools](../website/src/content/docs/tools/rust-setup.md)
 - [Explore the standard library](../website/src/content/docs/library/overview.md)
 - [Understand string semantics](../website/src/content/docs/language/strings.md)
-- [Use collections](guides/collections.md)
+- [Use collections](https://forever-frameworks-llc.github.io/tsrust/reference/library/collections/)
 - [Work with Rust](../website/src/content/docs/tools/rust-packages.md)
 - [Set up VS Code](../editors/vscode/README.md)
 
 ## Run the documentation app
 
 This directory retains the original standalone UI project, with a shared web/native page.
-It is outside the active backend product scope.
+It is outside the active backend product scope. Its commands need a compiler built
+with the frozen `legacy-ui` feature
+(`cargo build -p tsrust-compiler --features legacy-ui`); release builds omit them.
 `tsrust.config.json` declares the targets and theme. `src/main.tsr` mounts
 `src/app/page.tsrx`; editable components live under `src/components/ui/`.
 

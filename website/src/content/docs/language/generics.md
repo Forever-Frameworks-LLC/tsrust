@@ -44,6 +44,56 @@ Generic constraints remain checked. For example, a function whose two parameters
 share type `T` cannot receive incompatible types for them. Required arguments must
 still be supplied, and a result annotation cannot contradict the inferred type.
 
+### Replace a value with another generic declaration
+
+A mutable local holding a capture-free generic declaration can be reassigned to
+another one. Each call is checked against every declaration that can reach it, and
+a saved copy keeps the declaration it held:
+
+```tsrust
+function first<T>(value: T): T {
+  return value;
+}
+
+function second<T>(left: T, right: T): T {
+  return right;
+}
+
+function choose(flag: boolean): int {
+  let action = first;
+  const saved = action;
+  action = first;
+  if (flag) {
+    action = second;
+  }
+
+  if (flag) {
+    return saved<int>(3) + action<int>(4, 7);
+  }
+
+  return saved<int>(3) + action<int>(4);
+}
+
+function main() {
+  console.log(choose(false), choose(true)); // 7 10
+}
+```
+
+- The checker follows assignments through branches, loops, labeled exits and
+  `try`/`catch`/`finally`. A call that some reachable declaration cannot accept is
+  rejected: calling `action<int>(i)` after a branch that may assign `second` reports
+  `arity`.
+- When one reachable declaration reads an argument (`ReadOnly<T[]>`) and another
+  takes it (`Owned<T[]>`), the call moves the argument: later use of the variable
+  reports `transferred`. Signature help shows the stronger requirement. Omitted
+  defaults use the selected declaration's initializer.
+- Callback arguments must have the same signature and ownership contract in every
+  reachable declaration.
+- Reassigning inside a loop so that a later iteration calls the new declaration is
+  rejected with `callable-layout`. Select the declaration before the loop instead.
+- Assignment never clones an owned callable. After moving a value into another
+  local, assign the mutable local again before calling it.
+
 ### Share one captured environment across calls
 
 A returned generic callback keeps one environment across its concrete invocations.

@@ -1,6 +1,6 @@
 ---
-title: "Type aliases and interfaces"
-description: "Name types with aliases, declare record types with interfaces and use optional fields."
+title: "Types"
+description: "Type aliases, interfaces, optional fields, numbers, enums and recursive records."
 ---
 
 Tsrust types are checked at compile time and have a fixed native layout. `type` gives an existing type another name without creating a wrapper. `interface` and object-shaped `type` declarations both define record types; records have a fixed set of fields, and optional fields (`name?: T`) may be left out of a literal without changing that shape. Optional values (`null` and `undefined`) are covered in [optional values](../optional-values/).
@@ -236,7 +236,9 @@ This fragment assumes a `player: Player` from the first example. `slice(0)`
 creates a separate string so `player.name` remains available:
 
 ```tsrust
-const named: Named = { name: player.name.slice(0) };
+const named: Named = {
+  name: player.name.slice(0)
+};
 ```
 
 ### Unsupported declarations
@@ -365,3 +367,116 @@ or printing the record.
 ### Require a field that can be undefined
 
 A field declared as `name: Type | undefined` is required: every literal must write it, possibly as `undefined`. Only `name?: Type` may be omitted.
+
+## Numbers
+
+Tsrust has two numeric types. `int` is a signed 64-bit integer; `number` is a
+64-bit floating-point value as in JavaScript. A whole literal such as `7` is an
+`int` unless the context expects `number`; a fraction or exponent such as `7.0`
+or `1e3` is a `number`. Integer division truncates, and integer overflow or
+division by zero throws a [`RangeError`](../errors/#run-time-failures).
+
+```tsrust
+function main() {
+  const mask = 0b1010_0011;
+  const permissions = 0o7_7;
+  const code = 0xDE_AD;
+  const amount: number = 1_234.5_6e+0_1;
+  console.log(mask, permissions, code, amount);
+  console.log(7 / 2, 7.0 / 2, typeof 7, -0x8000_0000_0000_0000);
+}
+// prints: 163 63 57005 12345.6
+// prints: 3 3.5 number -9223372036854775808
+```
+
+- Decimal, binary (`0b`), octal (`0o`) and hexadecimal (`0x`) literals may use `_`
+  between digits; prefix letters may be uppercase. A separator cannot start or end
+  a digit run, repeat, or touch a prefix, decimal point or exponent: `1__0`,
+  `0x_FF`, `1_.0`, `1e_2` and `0_1` are syntax errors. `0b102` and `0xGG` are
+  invalid, and suffixes such as BigInt `n` are not supported.
+- A whole literal outside the `int` range is rejected unless the context expects
+  `number`, where it rounds to the nearest double: `const big: number =
+  0xffff_ffff_ffff_ffff` holds `18446744073709552000`.
+- `typeof` reports `"number"` for both types. Conversions between them are
+  explicit: `Number(value)` or `as number` widens an `int`, and `Math.trunc` or
+  `parseInt` produce whole numbers as `number`. See
+  [operators and conversions](../operators/#unary-plus-and-number-conversion).
+- The formatter preserves literal spelling, including case and separators.
+
+## Enums
+
+An enum names a closed set of constant values. Each declaration is a distinct type:
+members of another enum and raw numbers or strings cannot be assigned to it.
+
+```tsrust
+enum Phase {
+  Ready, Busy = 4, Done,
+}
+
+enum Label {
+  Short = "s", Long = "long",
+}
+
+function main() {
+  const phase: Phase = Phase.Done;
+  console.log(Number(phase), String(Label.Long), phase === Phase.Done);
+  console.log(typeof phase, typeof Label.Short);
+}
+// prints: 5 long true
+// prints: number string
+```
+
+- Numeric members start at `0`; an omitted value is the previous value plus one.
+  Initializers are constant expressions and may refer to earlier members; bitwise
+  constants follow 32-bit JavaScript rules.
+- String members need explicit values. One enum cannot mix numeric and string
+  members.
+- Members are readonly and copied on access. Equality compares underlying values,
+  so two members with the same value are equal. `Number(value)` and `String(value)`
+  convert explicitly.
+- An enum is a static namespace, not a run-time object. Reverse lookup
+  (`Phase[5]`), computed member names, run-time initializers and `const enum` are
+  not supported.
+
+## Recursive records
+
+A record can contain its own type through a nullable link or an array. A required
+field of the record's own type would have infinite size and is rejected with
+`recursive-layout`.
+
+```tsrust
+type Chain = {
+  value: int;
+  next?: Chain;
+};
+
+function sum(chain: ReadOnly<Chain>): int {
+  const rest = chain.next;
+  return chain.value + (rest === undefined ? 0 : sum(rest));
+}
+
+function main() {
+  const chain: Chain = {
+    value: 1, next: {
+      value: 2, next: {
+        value: 3
+      }
+    }
+  };
+  const copy = clone(chain);
+  console.log(sum(chain), sum(copy), chain.next?.next?.value ?? 0);
+}
+// prints: 6 6 3
+```
+
+- `next?: Chain`, `next: Chain | undefined`, `next: Chain | null` and `children:
+  Chain[]` all break the cycle. A cycle through several record types needs such a
+  link somewhere along it.
+- A present link owns one heap allocation; an absent one allocates nothing. Moving
+  a link transfers it without copying. `clone(record)` makes a deep copy when every
+  contained value is cloneable. Dropping and cloning deep structures do not use
+  recursion, so long chains do not overflow the stack.
+- Reading `chain.next` into a local gives a borrowed view, which cannot be rebound
+  to walk the chain; recurse as above, or `clone` the link.
+- A recursive record that stores callable fields is rejected with
+  `callable-layout`.

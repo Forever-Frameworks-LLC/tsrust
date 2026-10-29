@@ -1,0 +1,256 @@
+{
+  "milestone": "release-0.1.0",
+  "proof": {
+    "path": "runtime/diagnostics/2026-10-29T14-03-03-000Z-release-0.1.0-runtime-proof.json",
+    "sha256": "7a3e6fd4bac908f22768dc779e9bfb9538fd0dad00b3538b16120905746158d4"
+  },
+  "indexed": [
+    {
+      "path": "runtime/results/2026-10-29T12-36-12-992Z.json",
+      "sha256": "75f35d3f022b873a11e1680a5d9e30b309e3943acb9424f13967c5dba330d38b",
+      "kind": "execution",
+      "workloads": 60,
+      "samples": 11160
+    },
+    {
+      "path": "runtime/results/2026-10-29T12-38-25-123Z.json",
+      "sha256": "71fe4199c18a601aa97cbab5e5e64b384eece53121b6a80ecbd7b4cd3ae05e15",
+      "kind": "execution",
+      "workloads": 60,
+      "samples": 11160
+    },
+    {
+      "path": "runtime/results/2026-10-29T12-39-49-993Z.json",
+      "sha256": "35997af753f60668b34b92e2ab24bfd335e7612be5d411a8829c8f1c3a11e8d2",
+      "kind": "execution",
+      "workloads": 60,
+      "samples": 11160
+    },
+    {
+      "path": "runtime/results/2026-10-29T12-41-03-664Z.json",
+      "sha256": "791c0d1659d444d74edddc71c1f54400e188311591c4ca561320844ea725c48d",
+      "kind": "execution",
+      "workloads": 60,
+      "samples": 11160
+    },
+    {
+      "path": "runtime/results/2026-10-29T12-45-14-041Z.json",
+      "sha256": "d1ed8080d64d088fba0817be07f445c7d3c5fdc641f0acbb0d18d9d4479abd9f",
+      "kind": "execution",
+      "workloads": 39,
+      "samples": 7254
+    },
+    {
+      "path": "runtime/results/2026-10-29T12-47-10-495Z.json",
+      "sha256": "8236a5291fe0c81fb204e9c373a6a490addd6d570eb05ac76feab6f04f50d6b3",
+      "kind": "execution",
+      "workloads": 17,
+      "samples": 3162
+    },
+    {
+      "path": "runtime/results/2026-10-29T12-47-59-093Z.json",
+      "sha256": "0d11a06110d5833c47056fa3172d35cc92ed1adf63fa752388504b4fda03401c",
+      "kind": "execution",
+      "workloads": 60,
+      "samples": 11160
+    },
+    {
+      "path": "runtime/results/2026-10-29T12-48-54-519Z.json",
+      "sha256": "f262332e5a9cd4172912d40638245190985205f3531b6f892e0a68aa28184306",
+      "kind": "execution",
+      "workloads": 60,
+      "samples": 11160
+    },
+    {
+      "path": "runtime/results/2026-10-29T12-50-02-319Z.json",
+      "sha256": "e44bfc5fb4672f6a255931f7d8cc488b938791b0fdc1c26c4f5c3ae121783120",
+      "kind": "execution",
+      "workloads": 60,
+      "samples": 11160
+    },
+    {
+      "path": "runtime/results/2026-10-29T12-52-26-002Z.json",
+      "sha256": "b5c67f6b18e929d08ad8474cee9b49005dcd19faf8f63f13210f7a22a07bbf0a",
+      "kind": "execution",
+      "workloads": 60,
+      "samples": 11160
+    },
+    {
+      "path": "runtime/results/2026-10-29T12-54-06-970Z.json",
+      "sha256": "98a11407c8a2a33587a1f082dde5a114b7dc928f3c2c975adf9070fb9de0daff",
+      "kind": "execution",
+      "workloads": 60,
+      "samples": 11160
+    },
+    {
+      "path": "runtime/results/2026-10-29T12-55-25-259Z.json",
+      "sha256": "dd29bc43a3a6ec3d135de0c46865bd1e8289b2d383bcb705f813fc3f262b53a5",
+      "kind": "execution",
+      "workloads": 60,
+      "samples": 11160
+    },
+    {
+      "path": "runtime/results/2026-10-29T12-57-31-195Z.json",
+      "sha256": "098287dca0c653f8588f717fc2de982fa0950250f5808c6bb7b6de01c087ed52",
+      "kind": "execution",
+      "workloads": 60,
+      "samples": 11160
+    },
+    {
+      "path": "runtime/results/2026-10-29T13-29-51-666Z.json",
+      "sha256": "cae21d0e66a78f63b2fb266712f4e30080b338499e2eae0e82333c919f367075",
+      "kind": "execution",
+      "workloads": 64,
+      "samples": 11904
+    },
+    {
+      "path": "runtime/results/2026-10-29T13-32-17-333Z.json",
+      "sha256": "afe3215975d4b17eb50d9546330ab29837f87479aa4d728f7e7aec2b5230a9c1",
+      "kind": "execution",
+      "workloads": 60,
+      "samples": 11160
+    },
+    {
+      "path": "runtime/results/2026-10-29T13-43-30-522Z.json",
+      "sha256": "ed3bad6d8606920ad15c4c4a639f67eed6be4a923a3e47c0504c3d10e0bc801a",
+      "kind": "execution",
+      "workloads": 60,
+      "samples": 11160
+    },
+    {
+      "path": "runtime/results/2026-10-29T13-50-46-523Z.json",
+      "sha256": "b9ab5bbfbdb90462823a63c162c44ba72271b2da49328c71b1224928569caf3f",
+      "kind": "execution",
+      "workloads": 30,
+      "samples": 5580
+    },
+    {
+      "path": "runtime/diagnostics/2026-10-29T13-51-46-337Z-native-allocations.json",
+      "sha256": "d940e0bb348c48fc74f91628c7c5ac7dfa34da792e763b2465a31f732ceab297",
+      "kind": "profile",
+      "workloads": 60,
+      "samples": 180
+    },
+    {
+      "path": "runtime/diagnostics/2026-10-29T13-52-26-972Z-native-allocations.json",
+      "sha256": "a0984aa16e0c7caab5a05abdd0e7abcd1717435f1398bb15e05d8ece77158dc3",
+      "kind": "profile",
+      "workloads": 60,
+      "samples": 180
+    },
+    {
+      "path": "runtime/diagnostics/2026-10-29T13-53-05-181Z-native-allocations.json",
+      "sha256": "fc460b99d41d59c91fd8d49e35e651f3ad225c03c59be35cfbb7f996f4b50b0a",
+      "kind": "profile",
+      "workloads": 60,
+      "samples": 180
+    },
+    {
+      "path": "runtime/diagnostics/2026-10-29T13-53-29-169Z-native-allocations.json",
+      "sha256": "b51fcfd2847879e7bf3569b8ee770539c1e635b09afd1118fd947646fcc259db",
+      "kind": "profile",
+      "workloads": 60,
+      "samples": 180
+    },
+    {
+      "path": "runtime/diagnostics/2026-10-29T13-53-51-126Z-native-allocations.json",
+      "sha256": "a2dee77e65a7da2dd47d30930604d16a3d58d35fa794b25b9fcdd2dd74e2404f",
+      "kind": "profile",
+      "workloads": 60,
+      "samples": 180
+    },
+    {
+      "path": "runtime/diagnostics/2026-10-29T13-54-11-814Z-native-allocations.json",
+      "sha256": "643af028de23646db718a6fe886ef02f924d267ae6e76f3dd67a1839389f80d5",
+      "kind": "profile",
+      "workloads": 60,
+      "samples": 180
+    },
+    {
+      "path": "runtime/diagnostics/2026-10-29T13-54-33-793Z-native-allocations.json",
+      "sha256": "fd2dfd2c2d94b4dd1f711f7b7a7c8dfe3c229cb782370376cc5e08fb3c451e95",
+      "kind": "profile",
+      "workloads": 60,
+      "samples": 180
+    },
+    {
+      "path": "runtime/diagnostics/2026-10-29T13-55-01-116Z-native-allocations.json",
+      "sha256": "21125a6da4e25502db359d9f096ab9eaf8b62c1e32099e2be4b2f3165890d1ae",
+      "kind": "profile",
+      "workloads": 60,
+      "samples": 180
+    },
+    {
+      "path": "runtime/diagnostics/2026-10-29T13-55-43-385Z-native-allocations.json",
+      "sha256": "b23440b95c780423eb0f06e06b5083fc154d6dc6519c5cb8c66264e5ea882c5a",
+      "kind": "profile",
+      "workloads": 60,
+      "samples": 180
+    },
+    {
+      "path": "runtime/diagnostics/2026-10-29T13-56-08-822Z-native-allocations.json",
+      "sha256": "45605017725299fe6311cb80c5a97671dd023fc2c095be278146da2de3aff25f",
+      "kind": "profile",
+      "workloads": 60,
+      "samples": 180
+    },
+    {
+      "path": "runtime/diagnostics/2026-10-29T13-56-36-452Z-native-allocations.json",
+      "sha256": "43fde4fcef2f8fd1c9b0171a0c4267e29e0fc120d0b68abd67256821b9aae4e7",
+      "kind": "profile",
+      "workloads": 60,
+      "samples": 180
+    },
+    {
+      "path": "runtime/diagnostics/2026-10-29T13-57-11-096Z-native-allocations.json",
+      "sha256": "4f6b2602c66a9723c6293086dfacf8b7732626c4e381ed3bc86550b49cdcab1a",
+      "kind": "profile",
+      "workloads": 60,
+      "samples": 180
+    },
+    {
+      "path": "runtime/diagnostics/2026-10-29T13-57-54-499Z-native-allocations.json",
+      "sha256": "04448d668ad972f051f17f50d688b971907d54ed52cb45390a7269d2acd638c1",
+      "kind": "profile",
+      "workloads": 60,
+      "samples": 180
+    },
+    {
+      "path": "runtime/diagnostics/2026-10-29T14-02-49-758Z-native-allocations.json",
+      "sha256": "5b407d5f0d1c2039519937f9224e9c08d9c237537ed35fdaa9d6791218643129",
+      "kind": "profile",
+      "workloads": 100,
+      "samples": 300
+    }
+  ],
+  "restoration": {
+    "records": 31,
+    "byteExactRestored": 31
+  },
+  "publicExport": {
+    "bytes": 62464000,
+    "sha256": "9a784b48e751aa32ed334cf63b36ed4f94e727911f39356bb5cd4f383330c622"
+  },
+  "review": {
+    "compared": 930,
+    "nativeFaster": 613,
+    "medianNativeOverNode": 1.52,
+    "geometricMeanNativeOverNode": 1.59,
+    "historyCompared": 259,
+    "medianNativeNewOverPrevious": 1.0,
+    "largestNativeDrop": [
+      "std_os_platform",
+      0.85
+    ],
+    "decision": "No regression beyond ordinary variation (largest 15% on microsecond-scale workloads). Native-slower groups (JSON/schema, records/objects; Unicode case conversion, string at, recursive copies, enum/interface records) are recorded as optimization targets, not release blockers."
+  },
+  "excluded": {
+    "overlappedChunksRemeasured": [
+      "chunk 14",
+      "chunk 15",
+      "chunk 16"
+    ],
+    "profileSkipped": 50
+  },
+  "knownArchiveIssue": "store.py verify rejects pre-existing absolute-path log records in records.sqlite (present before this import); the new records restore byte-exactly."
+}

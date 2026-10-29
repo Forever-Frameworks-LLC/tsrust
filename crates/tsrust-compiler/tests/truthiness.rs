@@ -16,9 +16,11 @@ fn logical_assignment_results_preserve_move_and_type_diagnostics() {
         ("function main(){const text=\"\";text||=\"y\";}", "unsupported"),
         ("function main(){let text=\"\";text||=1;}", "type"),
         ("function main(){console.log(!console.log(1));}", "type"),
+        ("function main(){const names=[\"\",\"b\"];names[0]||=\"a\";}", "unsupported"),
     ] {
         let error = tsrust_compiler::check(source).err().unwrap_or_else(|| panic!("Expected {code}: {source}"));
         assert_eq!(error.code, code, "{source}: {}", error.message);
+        if source.contains("names[0]") { assert!(error.message.contains("variable or record field target"), "{}", error.message); }
     }
 }
 

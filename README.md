@@ -1,145 +1,136 @@
 # Tsrust
 
-**Write TypeScript-style code. Ship native backends.**
+**What if TypeScript compiled to Rust?**
 
-Tsrust is an experimental language and compiler with inferred ownership and a
-Rust backend. Build command-line tools and HTTP services without a JavaScript
-runtime in the deployed program. Generate independent TypeScript or asynchronous
-Rust SDKs from a checked HTTP API description, and bring your own frontend.
-
-[Get started](website/src/content/docs/start/installation.md) ·
-[Documentation](docs/README.md) · [Examples](examples/README.md) ·
-[Releases](https://github.com/Forever-Frameworks-LLC/tsrust/releases) ·
-[Contributing](CONTRIBUTING.md)
+Tsrust is a small language that looks and feels like TypeScript but compiles to
+native code through Rust. You write familiar syntax (types, arrow functions,
+template strings, `map` and `filter`) and get a standalone executable with no
+JavaScript runtime inside it. Instead of a garbage collector, the compiler works
+out who owns each value and checks that you never use something after giving it
+away, much like Rust does, but mostly without making you write the annotations.
 
 ```ts
+type Pet = {
+  name: string;
+  age: int;
+};
+
+function describe(pet: ReadOnly<Pet>): string {
+  return `${pet.name} is ${pet.age}`;
+}
+
 function main() {
-  const languages = ['TypeScript', 'Rust'];
-  console.log(languages.join(' + '));
+  const pets: Pet[] = [];
+  pets.push({
+    name: "Biscuit", age: 3
+  });
+  pets.push({
+    name: "Pickle", age: 7
+  });
+  const grownUps = pets.filter((pet) => pet.age > 5);
+  console.log(pets.map(describe).join(", "));
+  console.log(`${grownUps.length} grown-up`);
 }
 ```
 
-Save as `hello.tsr`, then run `tsrust run hello.tsr`. It prints `TypeScript + Rust`.
+Save that as `pets.tsr` and run `tsrust run pets.tsr`:
 
-## What you can build
-
-- Native tools with checked integers, collections, files, processes, async tasks
-  and explicit resource cleanup.
-- HTTP services with routing, middleware, request-body readers, validation,
-  SQLite and pooled PostgreSQL/MySQL/SQLite access. Authentication is application policy.
-- Independent named TypeScript/Rust clients and OpenAPI documents from the running
-  service or a saved description. Client generation never modifies the server.
-- Rust adapters with checked function/type boundaries and explicitly resolved,
-  locked Cargo dependencies.
-
-The compiler and language server share diagnostics, completion, hover, signatures,
-navigation and formatting. Original UI source and explicit UI commands are
-[retained separately](docs/guides/tooling/retained-ui-setup.md); frontend templates,
-framework integrations and UI expansion are outside the active backend scope.
-
-## Install
-
-Official release archives contain the paired CLI/LSP, source identity, hashes and
-notices. Targets are Linux x64/glibc, Windows x64/MSVC, macOS ARM64 and macOS x64.
-The VS Code extension is a separate VSIX. If no stable release is available, use
-the source build below. See [installation](website/src/content/docs/start/installation.md)
-for verification, platform prerequisites and editor configuration.
-
-Once a stable release exists, an official CLI can create a managed installation:
-
-```sh
-tsrust toolchain install --root /absolute/path/to/new/tsrust
+```text
+Biscuit is 3, Pickle is 7
+1 grown-up
 ```
 
-Add that directory's `bin` to PATH. Explicit `toolchain check`, `toolchain update`
-and `toolchain rollback` manage the verified pair; existing package-manager
-installations are preserved. See the [managed installation guide](website/src/content/docs/tools/install-and-update.md)
-for trust, recovery and the exact platform acceptance status.
+📖 **Documentation:** https://forever-frameworks-llc.github.io/tsrust/
 
-For a source build:
+## A friendly warning
 
-```sh
-git clone https://github.com/Forever-Frameworks-LLC/tsrust.git
-cd tsrust
-cargo fetch --locked
-CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 cargo build --offline --locked --release -p tsrust-compiler -p tsrust-lsp --bin tsrust --bin tsrust-lsp
-```
+This is a hobby project, built for fun and curiosity. **Please don't use it in
+production.** The language, the standard library and the tools can all change
+without notice, and there are certainly bugs nobody has found yet.
 
-Put both executables from `target/release/` on PATH. The repository pins Rust
-1.96.1; Rustup may install that toolchain on first Cargo use. Checking, formatting
-and ordinary Rust emission need no external Rust compiler. Native build/run/test/dev
-require the pinned Rust toolchain and host linker. Prepare their sources explicitly:
+It's also an experiment in a different way of building software: nearly all of
+the code, tests and documentation were written by AI coding agents. A human sets
+the direction and reviews the results; the agents do the work in small,
+milestone-sized steps. Every step has to pass its own checks before it counts:
+
+- a large compiler and editor test suite, run locally and in CI,
+- runnable examples in the docs that are executed and compared with their output,
+- matched benchmarks against the same programs on Node.js, kept in a SQLite
+  database so regressions show up, and
+- a written handoff after each milestone so the next agent picks up where the
+  last one stopped.
+
+Those guardrails catch a lot, but not everything. Treat Tsrust as something to
+play with and learn from, not something to bet a business on.
+
+## What it feels like
+
+- **TypeScript syntax, native results.** `int` and `number` are separate types,
+  strings are UTF-8, integer overflow is checked, and the output is an ordinary
+  executable.
+- **Ownership without the ceremony.** Values are moved or borrowed automatically.
+  When you really need a copy, `clone(value)` says so out loud. Mistakes are
+  compile errors with explanations, not crashes.
+- **Errors you can see.** `try`/`catch` works the way you'd expect, and
+  `Result<T, E>` with `match` is there when you want failures as values.
+- **Batteries for small backends.** HTTP routing and middleware, JSON and schema
+  validation, SQLite and SQL pools, files, async tasks and testing come built in.
+  You can generate TypeScript or Rust clients for your API from its description.
+- **A real editor experience.** The VS Code extension uses the same compiler for
+  diagnostics, completion, hover and formatting.
+
+Tsrust is not a TypeScript replacement: it doesn't run existing TypeScript, Node
+packages or frontend frameworks. It's its own small language that borrows
+TypeScript's look.
+
+Curious how fast it is? The [performance page](https://forever-frameworks-llc.github.io/tsrust/project/performance/)
+compares 930 workloads with the same programs on Node.js. Native wins most of
+them, but not all, and the page shows both.
+
+## Try it
+
+Download the archive for your platform from
+[Releases](https://github.com/Forever-Frameworks-LLC/tsrust/releases), check it
+against `SHA256SUMS`, and put the two programs in `bin/` on your `PATH`. Compiling
+programs also needs [Rust](https://rustup.rs) 1.96.1 and a system linker:
 
 ```sh
 tsrust setup --toolchain --dependencies --yes
 tsrust doctor --native
 ```
 
-Normal builds run offline against shared Cargo sources. Portable source exports
-use a separately prepared, verified source pack; they are optional for ordinary
-development. Deployed native programs need neither Tsrust nor Rust/Cargo.
-
-## Start a project
+Then make something:
 
 ```sh
-tsrust new hello --app
+tsrust new hello        # a small console program
 cd hello
-tsrust dev
+tsrust run
 ```
 
-The backend starter listens on loopback port 4318. Server source and policy live
-under `app/`; no frontend project or public SDK is created. In another terminal:
+Or try a tiny web service with `tsrust new service --app` and `tsrust dev`. The
+[first-service guide](https://forever-frameworks-llc.github.io/tsrust/learn/first-service/)
+walks through it step by step. Running `tsrust` on its own opens an interactive
+menu.
+
+Prefer building from source?
 
 ```sh
-tsrust api generate --url http://127.0.0.1:4318/api/description --out js-client
-tsrust api generate --url http://127.0.0.1:4318/api/description --language rust --out rust-client
+git clone https://github.com/Forever-Frameworks-LLC/tsrust.git
+cd tsrust
+cargo build --locked --release -p tsrust-compiler -p tsrust-lsp --bin tsrust --bin tsrust-lsp
 ```
 
-Use `tsrust new hello` for a console project. Run `tsrust` for the interactive
-launcher, or use explicit commands in scripts:
+The programs land in `target/release/`.
 
-```sh
-tsrust check
-tsrust test
-tsrust format --check
-tsrust build --release
-```
+## Learn more
 
-See [backend applications](website/src/content/docs/learn/first-service.md),
-[project structure](website/src/content/docs/start/project-structure.md) and
-[CLI commands](website/src/content/docs/tools/cli.md).
-
-## Status and boundaries
-
-Language and library APIs can change. Tsrust does not compile arbitrary existing
-TypeScript, Node packages or React applications. Ownership checks reject invalid
-transfers and conflicting access; strings use documented UTF-8 byte semantics;
-integer overflow is checked in development and release programs.
-
-Async test registration has executed on Linux, macOS and Windows. Broader installer
-and release-platform acceptance is recorded separately in the
-[paired installation milestone](docs/milestones/paired-toolchain-installation.md)
-and [active goal](docs/agent-goal.md). Configuration is not proof that a platform
-has passed. LSP retention fixes release unrelated editor-buffer snapshots and
-superseded workspace-scan entries. Long-running macOS sessions remain unverified;
-see the [editor troubleshooting guide](website/src/content/docs/start/editor.md#investigate-growing-memory-use)
-for current evidence and reporting steps.
-
-Performance depends on the workload. Read the [measurement protocol](benchmarks/runtime/README.md)
-and [comparison limits](docs/measurements/runtime-comparisons.md). The
-[historical report](BENCHMARKS.md) is a snapshot. Shareable samples and provenance
-live in the [benchmark-only SQLite dataset](benchmarks/storage/PUBLIC_DATA.md).
-
-## Explore
-
-- [Language and standard library](website/src/content/docs/library/overview.md)
-- [Ownership](docs/guides/language/ownership-and-memory.md)
-- [HTTP behavior](website/src/content/docs/learn/first-service.md) and [Rust packages](website/src/content/docs/tools/rust-packages.md)
-- [VS Code setup](editors/vscode/README.md)
-- [Contributor checks](CONTRIBUTING.md) and [release automation](docs/guides/releases.md)
+- [Installation](https://forever-frameworks-llc.github.io/tsrust/start/installation/) and [editor setup](https://forever-frameworks-llc.github.io/tsrust/start/editor/)
+- [The language](https://forever-frameworks-llc.github.io/tsrust/language/declarations/), chapter by chapter
+- [Standard library reference](https://forever-frameworks-llc.github.io/tsrust/library/overview/)
+- [Examples](examples/README.md) in this repository
+- [Contributing](CONTRIBUTING.md), [developer docs](docs/README.md) and [release process](docs/guides/releases.md)
 
 ## License
 
-[MIT](LICENSE), Copyright © 2026 Forever Frameworks LLC.
-Third-party dependencies retain their own licenses; preserve
-[attributions](attributions/README.md) and the notices included in distribution archives.
+[MIT](LICENSE), Copyright © 2026 Forever Frameworks LLC. Third-party
+dependencies keep their own licenses; their notices ship in the release archives.

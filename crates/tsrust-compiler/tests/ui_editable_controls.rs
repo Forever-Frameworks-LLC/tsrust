@@ -15,6 +15,7 @@ fn editable_values_and_callback_boundaries_reject_unsupported_types() {
 fn native_field_factories_are_private_to_the_ui_facade() {
  let dir=support::TempDirectory::new();let source=support::format_round_trip("import {input} from 'std:ui-runtime';function main(){}" );let path=dir.source(&source);let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success());
 }
+#[cfg(feature = "legacy-ui")]
 #[test]
 fn nova_text_controls_install_offline_as_editable_source_with_exact_catalog_identity() {
  let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/ui-inputs");let catalog:serde_json::Value=serde_json::from_str(include_str!("../src/ui-catalog/components-3.0.0.json")).unwrap();let dir=support::TempDirectory::new();

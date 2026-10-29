@@ -110,7 +110,10 @@ impl Analyzer {
             }
             Kind::Scalar if !ty.is_copy() => return Err(Diagnostic::new("unsupported",
                 "The value of an assignment to an array element or a computed place is supported only for int, number and boolean. Assign in its own statement, then read the place.", operator)),
-            Kind::Logical => self.require(ty, Some(Type::Boolean), operator)?,
+            // Non-boolean `||=`/`&&=` is rewritten earlier for fixed paths only.
+            Kind::Logical if self.require(ty, Some(Type::Boolean), operator).is_err() => return Err(Diagnostic::new("unsupported",
+                "Logical assignment to a non-boolean value needs a variable or record field target. Read the array element or computed place into a variable, update it, then store it.", operator)),
+            Kind::Logical => {},
             Kind::Compound { op, allow_owned } => {
                 if !matches!(ty, Type::Int | Type::Number | Type::String) || (ty == Type::String && op != BinaryOp::Add) {
                     return Err(Diagnostic::new("type", "Compound assignment requires the matching implemented int, number, or string operator.", operator));

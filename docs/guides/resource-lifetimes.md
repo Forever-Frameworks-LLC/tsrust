@@ -1,5 +1,7 @@
 # Checked resource observation
 
+Developer reference for the `std:testing` lifetime-acceptance resource.
+
 `std:testing` provides a narrow synthetic native resource for lifetime
 acceptance. It does not generalize the external Rust data bridge. Exported Rust
 records implementing `Drop` remain rejected because field projection would lose

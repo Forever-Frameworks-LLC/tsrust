@@ -7,10 +7,10 @@ for public guidance; historical “pending” statements below are not current s
 [Documentation index](../../README.md) · [Proposed roadmap](../../roadmap.md) · [Source section map](../../plans/section-map.md)
 
 Implemented resources and byte operations are documented in [native bytes and
-views](native-bytes.md) and [owned file reads](native-files.md). S07 evidence is
+views](https://forever-frameworks-llc.github.io/tsrust/reference/library/bytes/) and [owned file reads](https://forever-frameworks-llc.github.io/tsrust/reference/library/fs/). S07 evidence is
 in the [family acceptance record](../../milestones/s07-resources-bytes.md). The broader
 workstream proposals below do not imply implementation of later roadmap families.
-The initial [collection guide](../collections.md) covers the deque methods now
+The initial [collection guide](https://forever-frameworks-llc.github.io/tsrust/reference/library/collections/) covers the deque methods now
 implemented while S08 remains in progress.
 
 ## Workstream scope

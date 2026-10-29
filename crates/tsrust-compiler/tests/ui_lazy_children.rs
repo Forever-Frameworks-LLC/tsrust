@@ -1,5 +1,8 @@
 mod support;
-use std::{fs,path::Path};
+use std::fs;
+#[cfg(feature = "legacy-ui")]
+use std::path::Path;
+#[cfg(feature = "legacy-ui")]
 #[test]
 fn deferred_children_preserve_order_owned_factories_and_independent_release(){
  let directory=support::TempDirectory::new();support::success(&support::run(support::cli().args(["ui","add","tokens","--offline","--target","native"]).current_dir(&directory.0),30));
@@ -16,6 +19,7 @@ fn lazy_child_factories_reject_reused_nodes_and_consumed_once_callbacks(){
   ("import {View,Node,LazyChildren} from 'std:ui';interface Props{children:LazyChildren;}function Panel(props:Props):Node{return <View children={props.children()}/>;}function main(){const node=<Panel children={()=>[<View/>]}><View/></Panel>;}","children"),
  ]{let path=directory.0.join("failure.tsrx");fs::write(&path,source).unwrap();let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success(),"{source}");let error=String::from_utf8_lossy(&output.stderr);assert!(error.to_lowercase().contains(wanted),"{source}\n{error}");}
 }
+#[cfg(feature = "legacy-ui")]
 #[test]
 fn lazy_children_documented_example_executes_after_formatting(){
  let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();let entry=catalog["std:ui"].as_array().unwrap().iter().find(|entry|entry["name"]=="LazyChildren").unwrap();let example=&entry["examples"][0];let directory=support::TempDirectory::new();support::success(&support::run(support::cli().args(["ui","add","tokens","--offline","--target","native"]).current_dir(&directory.0),30));let path=directory.0.join("main.tsrx");fs::write(&path,support::format_round_trip(example["source"].as_str().unwrap())).unwrap();let output=support::run(support::cli().arg("run").arg(path),180);support::success(&output);assert_eq!(output.stdout,example["output"].as_str().unwrap().as_bytes());

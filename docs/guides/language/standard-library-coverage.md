@@ -145,8 +145,8 @@ Public integration is verified on macOS; explicit-platform helpers cover POSIX/W
 
 S07 is accepted on macOS: typed owned bytes, checked mutation/copy/UTF-8 operations,
 real borrowed views, recursive view storage and callbacks, and owned read-only file
-open/read/close with deterministic cleanup. [Byte/view behavior](native-bytes.md)
-and [file behavior](native-files.md) describe supported boundaries. This is not
+open/read/close with deterministic cleanup. [Byte/view behavior](https://forever-frameworks-llc.github.io/tsrust/reference/library/bytes/)
+and [file behavior](https://forever-frameworks-llc.github.io/tsrust/reference/library/fs/) describe supported boundaries. This is not
 general Uint8Array, Node filesystem or buffered-stream compatibility; broader
 S09 host operations remain pending.
 
