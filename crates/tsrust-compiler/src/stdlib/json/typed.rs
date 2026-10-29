@@ -174,8 +174,8 @@ pub fn decode_borrowed<'de,T:serde::Deserialize<'de>>(input:&'de [u8],limits:Lim
 pub fn decode_seed<'de,S:serde::de::DeserializeSeed<'de>>(
  input:&'de [u8],limits:Limits,seed:S,
 )->Result<S::Value,Error>{
- validate(input,limits)?;
- super::validate_integer_tokens(input)?;
+ // Only an integer token too large for i64/u64 reaches a visitor as f64.
+ if validate_floats(input,limits)?.1{super::validate_integer_tokens(input)?;}
  let mut decoder=serde_json::Deserializer::from_slice(input);
  let value=seed.deserialize(&mut decoder).map_err(|error|{
   let text=error.to_string();
@@ -189,6 +189,10 @@ pub(super) fn validate(input:&[u8],limits:Limits)->Result<(),Error>{
  validate_depth(input,limits).map(|_|())
 }
 pub(super) fn validate_depth(input:&[u8],limits:Limits)->Result<usize,Error>{
+ validate_floats(input,limits).map(|(maximum,_)|maximum)
+}
+/// Validate the document and report its maximum depth and whether any number was a float.
+fn validate_floats(input:&[u8],limits:Limits)->Result<(usize,bool),Error>{
  if input.len()>limits.bytes{return Err(failure("byte-limit",limits.bytes));}
  if limits.depth>64{return Err(super::invalid_limits());}
  if let Err(error)=std::str::from_utf8(input){return Err(failure("invalid-utf8",error.valid_up_to()));}
@@ -197,7 +201,7 @@ pub(super) fn validate_depth(input:&[u8],limits:Limits)->Result<usize,Error>{
  let mut maximum=0;
  serde::de::DeserializeSeed::deserialize(ValidateSeed{budget:&mut budget,maximum:&mut maximum,depth:0,permitted:true},&mut decoder).map_err(|error|located(input,error,budget.failed))?;
  decoder.end().map_err(|error|located(input,error,Some("trailing-data")))?;
- Ok(maximum)
+ Ok((maximum,budget.saw_float))
 }
 struct ValidateSeed<'a>{budget:&'a mut Budget,maximum:&'a mut usize,depth:usize,permitted:bool}
 impl<'de> serde::de::DeserializeSeed<'de> for ValidateSeed<'_>{
@@ -216,7 +220,7 @@ impl<'de> serde::de::Visitor<'de> for ValidateSeed<'_>{
  fn visit_bool<E:serde::de::Error>(self,_:bool)->Result<(),E>{Ok(())}
  fn visit_i64<E:serde::de::Error>(self,_:i64)->Result<(),E>{Ok(())}
  fn visit_u64<E:serde::de::Error>(self,_:u64)->Result<(),E>{Ok(())}
- fn visit_f64<E:serde::de::Error>(self,_:f64)->Result<(),E>{Ok(())}
+ fn visit_f64<E:serde::de::Error>(self,_:f64)->Result<(),E>{self.budget.saw_float=true;Ok(())}
  fn visit_str<E:serde::de::Error>(self,_:&str)->Result<(),E>{Ok(())}
  fn visit_seq<A:serde::de::SeqAccess<'de>>(self,mut sequence:A)->Result<(),A::Error>{
   use serde::de::Error;
