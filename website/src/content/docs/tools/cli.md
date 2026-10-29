@@ -4,9 +4,9 @@ description: Create, check, run and develop native Tsrust projects.
 ---
 
 Create a backend service with `tsrust new hello --app`, or a console program with
-`tsrust new hello`. See [backend applications](../../backend/applications/) for server
+`tsrust new hello`. See [backend applications](/tsrust/learn/first-service/#create-the-service) for server
 operations and independent TypeScript/Rust SDKs. Prepare native tools and shared
-dependency sources explicitly using [machine setup](../rust-setup/).
+dependency sources explicitly using [machine setup](/tsrust/tools/rust-setup/).
 
 ## Interactive commands
 
@@ -89,7 +89,7 @@ Development binaries are temporary; `build` writes the named output. A program t
 exits normally runs again on the next change. Restarting does not preserve its
 in-memory state. The template has a `main` function, but the language does not require it.
 
-See [testing](../testing/) for test discovery, output and failure reporting.
+See [testing](/tsrust/tools/testing/) for test discovery, output and failure reporting.
 
 ## Read development output
 

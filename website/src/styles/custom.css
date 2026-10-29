@@ -9,3 +9,43 @@
   --sl-color-accent: #944020;
   --sl-color-accent-high: #54230f;
 }
+
+/* Learn tracks: step navigation added by public/learn.js. */
+.learn-nav {
+  margin-block: 1.5rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 0.5rem;
+  background: var(--sl-color-gray-6);
+}
+.learn-nav ol { margin: 0.5rem 0; padding-inline-start: 1.5rem; }
+.learn-nav li { margin-block: 0.25rem; }
+.learn-nav a { color: var(--sl-color-gray-2); text-decoration: none; }
+.learn-nav a:hover { color: var(--sl-color-white); text-decoration: underline; }
+.learn-nav a[aria-current='step'] { color: var(--sl-color-accent-high); font-weight: 600; }
+.learn-nav li.learn-done::marker { content: '✓  '; color: var(--sl-color-accent); }
+.learn-progress { margin: 0; font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); }
+.learn-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-block: 2rem 1rem;
+  padding-block-start: 1rem;
+  border-block-start: 1px solid var(--sl-color-gray-5);
+}
+.learn-controls .learn-next { margin-inline-start: auto; }
+.learn-nav button,
+.learn-controls button {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--sl-color-gray-4);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--sl-color-white);
+  font: inherit;
+  font-size: var(--sl-text-sm);
+  cursor: pointer;
+}
+.learn-controls .learn-complete { background: var(--sl-color-accent-low); border-color: var(--sl-color-accent); }
+.learn-controls .learn-complete[aria-pressed='true'] { background: var(--sl-color-accent); color: var(--sl-color-black); }
+.learn-nav button:focus-visible,
+.learn-controls button:focus-visible { outline: 2px solid var(--sl-color-accent-high); outline-offset: 2px; }

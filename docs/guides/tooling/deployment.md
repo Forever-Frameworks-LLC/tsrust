@@ -1,6 +1,6 @@
 # Deployment research and original vision
 
-Current user instructions: [Deploy a native backend](../../../website/src/content/docs/backend/deployment.md).
+Current user instructions: [Deploy a native backend](../../../website/src/content/docs/learn/first-service.md).
 
 The material below preserves the original deployment proposals; it is not a claim
 that static linking or every destination environment is supported.

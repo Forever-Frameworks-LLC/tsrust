@@ -44,7 +44,7 @@ are `js-client/`, `rust-client/` or an external consumer project. These are outp
 not required backend source directories. Generation does not modify the server
 or install frontend packages. Bring your own UI and call the HTTP API.
 
-See the [backend application guide](../../backend/applications/)
+See the [backend application guide](/tsrust/learn/first-service/#create-the-service)
 for commands, access policy, retained compatibility contracts and OpenAPI scope.
 
 ## Console projects

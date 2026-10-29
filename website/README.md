@@ -22,6 +22,10 @@ renders the standard-library and built-in reference into the ignored
 API documentation in that catalog, not in generated pages. A new catalog group must
 be mapped in the generator before the build succeeds.
 
+Learn tracks (`src/content/docs/learn/`) load `public/learn.js`, which turns each
+level-2 heading after the `data-learn-track` marker into a step. Add a step as a
+new `##` section; do not create separate how-to pages.
+
 Add reviewed Markdown to `src/content/docs/`, supply `title` and `description`, and
 add its route to the explicit sidebar. Keep links relative within the site and
 verify the built output under the project base path. Do not add placeholder pages

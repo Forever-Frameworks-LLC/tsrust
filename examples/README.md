@@ -6,7 +6,7 @@ project-specific setup. Native execution requires the pinned Rust backend.
 | Build | Start here |
 | --- | --- |
 | A console project | `tsrust new hello`, then `cd hello && tsrust run` |
-| A backend HTTP application | `tsrust new hello --app`; see [the guide](../website/src/content/docs/backend/applications.md) |
+| A backend HTTP application | `tsrust new hello --app`; see [the guide](../website/src/content/docs/learn/first-service.md) |
 | Tests and assertions | [testing/](testing/) |
 | HTTP routing and request state | [http-context/](http-context/) and [http-state/](http-state/) |
 | An integrated service | [service/](service/) |

@@ -105,7 +105,7 @@ tsrust format --check
 tsrust build --release
 ```
 
-See [backend applications](website/src/content/docs/backend/applications.md),
+See [backend applications](website/src/content/docs/learn/first-service.md),
 [project structure](website/src/content/docs/start/project-structure.md) and
 [CLI commands](website/src/content/docs/tools/cli.md).
 
@@ -134,7 +134,7 @@ live in the [benchmark-only SQLite dataset](benchmarks/storage/PUBLIC_DATA.md).
 
 - [Language and standard library](website/src/content/docs/library/overview.md)
 - [Ownership](docs/guides/language/ownership-and-memory.md)
-- [HTTP behavior](website/src/content/docs/backend/http.md) and [Rust packages](website/src/content/docs/tools/rust-packages.md)
+- [HTTP behavior](website/src/content/docs/learn/first-service.md) and [Rust packages](website/src/content/docs/tools/rust-packages.md)
 - [VS Code setup](editors/vscode/README.md)
 - [Contributor checks](CONTRIBUTING.md) and [release automation](docs/guides/releases.md)
 

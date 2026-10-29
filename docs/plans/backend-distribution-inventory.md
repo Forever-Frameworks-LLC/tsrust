@@ -37,6 +37,9 @@ unexecuted platform behavior.
   consumer versions. Its README already describes backend/shared-cache setup.
   The release workflow still lacks a Windows artifact job; production paired
   installation, self-update and locked-binary recovery remain unfinished.
+  (Superseded 2026-10-28: release.yml now builds x86_64-pc-windows-msvc on
+  windows-2022, and hosted runs 40731485167/40748893795 passed Windows paired
+  installation and locked-process tests. Published acquisition remains pending.)
 - `tsrust update <crate>` is the existing dependency-upgrade command. Preserve
   that interface when adding explicit compiler/LSP update checking and updating.
 - CI run 40663277431 passed the selected Linux/macOS suites. Focused async run
