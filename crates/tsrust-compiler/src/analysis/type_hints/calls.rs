@@ -79,7 +79,9 @@ fn regular<'a>(analyzer:&Analyzer,context:&Context,expr:&'a Expr,work:&mut Vec<W
         query(work,Frame::Result(Flavor::Wrapped),callee);return;
     }
     if let ExprKind::Name(name)=&callee.kind{
-        if name=="@native:std:result#unwrap" && arguments.len()==1 {query(work,Frame::Unwrap,&arguments[0]);return;}
+        // The global unwrap and the std:result import share one result hint.
+        let global_unwrap=name=="unwrap"&&!context.names.contains_key(name)&&!context.pending_names.contains(name)&&!analyzer.function_names.contains_key(name);
+        if (name=="@native:std:result#unwrap"||global_unwrap) && arguments.len()==1 {query(work,Frame::Unwrap,&arguments[0]);return;}
         if let Some((_,binding))=crate::native_bindings::by_symbol(name){
             if binding.module=="std:ui-runtime" && binding.name=="handle" && arguments.len()==1{query(work,Frame::Own,&arguments[0]);return;}
             *value=if matches!(binding.module,"std:threads"|"std:result"|"std:futures") || matches!(binding.result,crate::native_bindings::NativeType::SharedCallback|crate::native_bindings::NativeType::ObservedValue){None}else{Some(native_type(binding.result,&analyzer.program.records))};return;

@@ -65,3 +65,21 @@ fn json_view_catalog_examples_execute() {
   }
  }
 }
+
+// A native argument with typed alternatives must see through the global
+// unwrap and a non-null assertion to select the JsonView alternative.
+#[test]
+fn global_unwrap_selects_the_json_view_alternative_inline() {
+    let source = r#"
+import {parse,get,asInt} from 'std:json';
+function main(){
+ const owner=unwrap(parse('{"a":7}'));
+ console.log(unwrap(asInt(unwrap(get(owner,'a'))!)));
+}
+"#;
+    let directory = support::TempDirectory::new();
+    let path = directory.source(&support::format_round_trip(source));
+    let output = support::run(support::cli().arg("run").arg(path), 90);
+    support::success(&output);
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "7\n");
+}
