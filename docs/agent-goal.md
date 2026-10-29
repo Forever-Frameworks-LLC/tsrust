@@ -10,7 +10,14 @@ The owner approved this plan and asked for continuous autonomous work on it:
    Smoke-test a release archive, then `tsrust toolchain install --root`,
    `toolchain check`, `update` and `rollback` against the published stable
    release. Record results in the handoff.
-2. **Optimize existing behavior** where native is slower than Node after tsc
+2. **Optimize the generated Rust** (owner, 2026-10-29): make emitted code as close
+   as possible to what a careful person would write by hand. Parity with
+   hand-written Rust is the stretch target ("excellent"), not a requirement.
+   Prefer removing work in generated code (copies, clones, temporaries, checks
+   that can be proven unnecessary) over adding dependencies. Do not adopt a
+   dependency on the strength of measurements from this memory-starved Mac
+   (8 GB RAM, heavy swap); confirm on a clean machine first. Start with the
+   cases where native is slower than Node after tsc
    (see `project/performance` and `benchmarks/storage/release-0.1.0-analytics/`):
    JSON and schema decoding, record copies, Unicode case conversion,
    `String.at`, recursive array copies, enum and interface records. Change
