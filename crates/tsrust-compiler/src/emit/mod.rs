@@ -3173,15 +3173,15 @@ impl Emitter<'_> {
         if self.program.records.iter().any(|r|matches!(r.native_type,Some(crate::native_signatures::NativeTypeId::UiNode|crate::native_signatures::NativeTypeId::UiComputed|crate::native_signatures::NativeTypeId::UiSignal|crate::native_signatures::NativeTypeId::UiTextBinding))){output.push_str(&crate::stdlib::ui::runtime(self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:ui-runtime" && crate::native_bindings::BINDINGS[id].name=="run")));}
         for &id in self.native_bindings.borrow().iter() {
             let binding = &crate::native_bindings::BINDINGS[id];
-            if binding.module == "std:date" {output.push_str(&crate::stdlib::date::emit::bridge(self.program,binding));}
-            if binding.module == "std:crypto" {output.push_str(&crate::stdlib::crypto::emit::bridge(self.program,binding));}
-            if binding.module == "std:uuid" {output.push_str(&crate::stdlib::uuid::emit::bridge(self.program,binding));}
-            if binding.module == "std:decimal" {output.push_str(&crate::stdlib::decimal::emit::bridge(self.program,binding));}
-            if binding.module == "std:numeric" { output.push_str(&crate::stdlib::numeric::emit::bridge(self.program, binding));
+            if binding.module == "std:date" {output.push_str(&crate::stdlib::date::emit::bridge(self.program,binding,&self.record_runtime.ordered));}
+            if binding.module == "std:crypto" {output.push_str(&crate::stdlib::crypto::emit::bridge(self.program,binding,&self.record_runtime.ordered));}
+            if binding.module == "std:uuid" {output.push_str(&crate::stdlib::uuid::emit::bridge(self.program,binding,&self.record_runtime.ordered));}
+            if binding.module == "std:decimal" {output.push_str(&crate::stdlib::decimal::emit::bridge(self.program,binding,&self.record_runtime.ordered));}
+            if binding.module == "std:numeric" { output.push_str(&crate::stdlib::numeric::emit::bridge(self.program, binding, &self.record_runtime.ordered));
             }
             if binding.module == "std:ui-runtime" {
                 output.push_str(&crate::stdlib::ui::emit::bridge(self.program,binding)); }
-            if binding.module == "std:env" { output.push_str(&crate::stdlib::env::emit::bridge(self.program,binding)); }
+            if binding.module == "std:env" { output.push_str(&crate::stdlib::env::emit::bridge(self.program,binding,&self.record_runtime.ordered)); }
             if binding.module == "std:time" { output.push_str(crate::stdlib::time::RUNTIME); }
             if binding.module == "std:os" {
                 output.push_str(&crate::stdlib::os::bridge(binding.name));
@@ -8880,7 +8880,12 @@ impl Emitter<'_> {
                 CallTarget::Number => match args.first() {
                     None => "0.0f64".into(),
                     Some(argument) => match argument.ty.expect("checked Number argument").scalar_base() {
-                        Type::Union(union) | Type::BorrowedUnion(union) => self.union_observation(union, &self.expr(fun, argument, Mode::Read), CallTarget::Number),
+                        Type::Union(union) | Type::BorrowedUnion(union) => {
+                            // Copy unions are matched by reference, as in value_builtin_call.
+                            let value = self.expr(fun, argument, Mode::Read);
+                            let value = if Type::Union(union).is_copy() { format!("&({value})") } else { value };
+                            self.union_observation(union, &value, CallTarget::Number)
+                        }
                         Type::Null => format!(
                             "{{ let _ = {}; 0.0f64 }}",
                             self.expr(fun, argument, Mode::Copy)

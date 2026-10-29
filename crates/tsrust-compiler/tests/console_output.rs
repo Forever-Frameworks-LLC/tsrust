@@ -237,3 +237,27 @@ fn count_reset_requires_string_labels_without_resetting_numeric_labels() {
     let source=support::format_round_trip(r#"function main(){console.count(1);console.countReset(1);console.count(1);console.countReset("1");console.count(1);console.count();console.countReset(undefined);console.count();}"#);
     native(&source,"1: 1\n1: 2\n1: 1\ndefault: 1\ndefault: 1\n","Count for '1' does not exist\n");
 }
+
+// Native bridges that build Result and error records must include the key order
+// console inspection adds; Rust previously rejected the generated initializers.
+#[test]
+fn console_inspects_native_bridge_results() {
+    let source = r#"
+import { toInt } from 'std:numeric';
+import { get } from 'std:env';
+import { parseISO, toUnixSeconds } from 'std:date';
+function main() {
+  console.log(toInt(2.5));
+  console.log(get('A=B'));
+  console.log(toUnixSeconds(unwrap(parseISO('2024-03-01T12:00:00Z'))));
+}
+"#;
+    let directory = support::TempDirectory::new();
+    let path = directory.source(&support::format_round_trip(source));
+    let output = support::run(support::cli().arg("run").arg(path), 120);
+    support::success(&output);
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "{ payload: { code: 'Fraction', message: 'Integer conversion requires a whole number' } }\n{ payload: { code: 'InvalidName', message: \"Environment names must be nonempty and contain neither '=' nor NUL\" } }\n{ payload: 1709294400 }\n"
+    );
+}

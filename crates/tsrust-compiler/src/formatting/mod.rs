@@ -218,15 +218,26 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
             }
         }
     }
-    // Only commas separating direct interface fields end a line. Commas in
-    // inherited type lists, generic arguments and tuple/function types stay tight.
+    // Only commas separating direct interface or `type X = { ... }` record fields
+    // end a line. Commas in inherited type lists, generic arguments and
+    // tuple/function types stay tight.
     let mut interface_field_comma = vec![false; real.len()];
     for (i, token) in real.iter().enumerate() {
-        if token.kind != TokenKind::Name || token.text != "interface" {
+        let record_alias = token.kind == TokenKind::Name && token.text == "type"
+            && i.checked_sub(1).is_none_or(|before| matches!(real[before].text.as_str(), ";" | "}" | "export"));
+        if token.kind != TokenKind::Name || (token.text != "interface" && !record_alias) {
             continue;
         }
-        let Some(open) = (i + 1..real.len()).find(|&at| real[at].text == "{") else {
-            continue;
+        let open = if record_alias {
+            // The record body must directly follow `=`; other aliases are type expressions.
+            let Some(equals) = (i + 1..real.len()).find(|&at| real[at].text == "=" && !generic(real[at].span.start)) else { continue; };
+            if real.get(equals + 1).is_none_or(|next| next.text != "{") { continue; }
+            equals + 1
+        } else {
+            let Some(open) = (i + 1..real.len()).find(|&at| real[at].text == "{") else {
+                continue;
+            };
+            open
         };
         let close = closing(open);
         let mut nesting = 0usize;

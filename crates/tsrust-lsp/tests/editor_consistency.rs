@@ -209,7 +209,7 @@ fn data_error_property_examples_reach_live_hover(){
  for (module,ty) in [("std:sql","SqlError"),("std:sqlite","SqliteError")]{
   let text=format!("import {{{ty}}} from '{module}';function inspect(error:ReadOnly<{ty}>):void{{console.log(error.code);console.log(error.message);}}function main(){{}}");
   let mut session=Session::start(&[]);session.open("main.tsr",&text);session.settle();
-  for member in ["code","message"]{let offset=text.rfind(&format!("error.{member}")).unwrap()+7;let hover=session.hover("main.tsr",&text,offset).unwrap_or_default();assert!(hover.contains("Missing column")&&hover.contains("Ownership"),"{ty}.{member}: {hover}");}
+  for member in ["code","message"]{let offset=text.rfind(&format!("error.{member}")).unwrap()+7;let hover=session.hover("main.tsr",&text,offset).unwrap_or_default();assert!(hover.contains("```tsrust")&&hover.contains(&format!("error.{member}"))&&hover.contains("Ownership"),"{ty}.{member}: {hover}");}
  }
 }
 

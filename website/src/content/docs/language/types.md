@@ -182,7 +182,7 @@ function main() {
 ### Fields
 
 - A field is `name: Type` or, for a field that a literal may omit, `name?: Type` (see [optional record fields](/tsrust/language/types/#optional-fields)).
-- Fields end with `;` or `,`. The separator after the last field is optional, and so is a `;` after the closing brace.
+- Fields end with `;` or `,`. The separator after the last field is optional, and so is a `;` after the closing brace. The same rules apply to a record declared as `type Name = { ... }`.
 - An interface can have type parameters: `interface Box<T> { value: T; }`.
 
 ### Inherit fields

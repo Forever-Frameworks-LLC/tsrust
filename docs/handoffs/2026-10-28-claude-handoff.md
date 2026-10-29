@@ -190,7 +190,7 @@ Checked against workflow source and read-only `gh` queries; no run was triggered
 | macOS | Local focused acceptance only (see `docs/agent-goal.md`). | Local evidence |
 | GitHub Pages | Configured (`build_type: workflow`, public URL reserved) with zero deployments. Deploy runs only on `main` after promotion. | `gh api repos/.../pages`, empty deployments list |
 | Install/self-update from a published release | Pending: needs a release, which needs owner authorization. | — |
-| Windows editor UTF-16 fixture | Not found in any hosted job's test list; still unverified on Windows. | ci.yml job definitions |
+| Windows editor UTF-16 fixture | CI now has a dispatch-only `editor_acceptance` mode that runs the VS Code integration and recovery suites (including the surrogate-pair fixture) on Linux and Windows. Not yet run: needs a push and an owner-approved dispatch. | `.github/workflows/ci.yml` job `editor_integration` |
 
 Remote branch `codex/backend-polish-staging` (PR #4, draft, base `stag`) is still at
 61ee67a4. Local history is not a descendant of it (the PR branch was rebuilt

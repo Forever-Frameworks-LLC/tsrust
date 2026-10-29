@@ -2384,9 +2384,12 @@ impl Parser<'_> {
                         callable_declaration: None,
                         optional,
                     });
-                    self.expect(";")?;
+                    // Same separators as interfaces: `;` or `,`, optional after the last field.
+                    if !self.accept(";") && !self.accept(",") && !self.is("}") {
+                        self.expect(";")?;
+                    }
                 }
-                self.expect(";")?;
+                self.accept(";");
                 program.records.push(Record {
                     native_type: None, map_definition: None, set_definition: None,                    enum_definition: None,literal_definition:None,
                     name,

@@ -72,19 +72,34 @@ const modules = [
   { module: 'std:result', summary: 'Compatibility import of the global `unwrap`; new code needs no import.' },
 ];
 
-// Members available without imports, grouped by what a reader looks for.
-// Each group is [catalog group, heading prefix]; prefixes keep anchors unique.
+// Members available without imports. Built-in types hold methods of values and
+// the static helpers named after those types; globals hold free-standing names
+// and namespaces. Each group is [catalog group, heading prefix, names?]; the
+// optional names select part of a catalog group, and prefixes keep anchors unique.
+const FUNCTIONS = ['clone', 'Ok', 'Err', 'unwrap', 'Number', 'String', 'Boolean', 'parseInt', 'parseFloat', 'isNaN', 'isFinite'];
+const TYPES = ['Result', 'Task', 'Function', 'ReadOnly', 'Mutable', 'Owned', 'Once'];
+const VALUES = ['null', 'undefined', 'NaN', 'Infinity', 'typeof', 'void'];
 const builtins = [
-  { slug: 'strings', title: 'Strings', summary: 'String methods and properties, and the String namespace.', groups: { 'string methods': ['string', 'string'], String: ['StringConstructor', 'String'] } },
-  { slug: 'arrays', title: 'Arrays and tuples', summary: 'Array methods, the Array namespace and tuple length.', groups: { 'Array methods': ['Array', 'array'], 'Array namespace': ['ArrayConstructor', 'Array'], Tuple: ['Tuple', 'tuple'] } },
-  { slug: 'numbers', title: 'Numbers, ints and booleans', summary: 'Number and int methods, the Number namespace, Math and boolean methods.', groups: { 'number methods': ['number', 'number'], 'int methods': ['int', 'int'], 'Number namespace': ['Number', 'Number'], Math: ['Math', 'Math'], 'boolean methods': ['boolean', 'boolean'] } },
-  { slug: 'map-and-set', title: 'Map and Set', summary: 'Built-in hash maps and sets.', groups: { Map: ['Map', 'map'], 'Map namespace': ['MapConstructor', 'Map'], Set: ['Set', 'set'] } },
-  { slug: 'globals', title: 'Globals, Object, JSON and console', summary: 'Global functions and types, Object helpers, the JSON namespace and console output.', groups: { Globals: ['globals', ''], Object: ['Object', 'Object'], JSON: ['JSON', 'JSON'], console: ['console', 'console'] } },
+  { dir: 'builtins', slug: 'strings', title: 'Strings', summary: 'String methods and properties, and static String helpers.', groups: { 'string methods': ['string', 'string'], 'Static String helpers': ['StringConstructor', 'String'] } },
+  { dir: 'builtins', slug: 'arrays', title: 'Arrays and tuples', summary: 'Array methods, static Array helpers and tuple length.', groups: { 'Array methods': ['Array', 'array'], 'Static Array helpers': ['ArrayConstructor', 'Array'], 'Array namespace': ['globals', 'Array', ['Array']], Tuple: ['Tuple', 'tuple'] } },
+  { dir: 'builtins', slug: 'numbers', title: 'Numbers, ints and booleans', summary: 'Methods on number, int and boolean values.', groups: { 'number methods': ['number', 'number'], 'int methods': ['int', 'int'], 'boolean methods': ['boolean', 'boolean'] } },
+  { dir: 'builtins', slug: 'map-and-set', title: 'Map and Set', summary: 'Built-in hash maps and sets.', groups: { 'Map constructor': ['globals', 'Map', ['Map']], Map: ['Map', 'map'], 'Static Map helpers': ['MapConstructor', 'Map'], 'Set constructor': ['globals', 'Set', ['Set']], Set: ['Set', 'set'] } },
+  { dir: 'globals', slug: 'functions', title: 'Global functions', summary: 'clone, Result constructors, unwrap, conversions and number parsing.', groups: { Functions: ['globals', '', FUNCTIONS] } },
+  { dir: 'globals', slug: 'types', title: 'Global types', summary: 'Result, Task, Function and the ownership wrappers ReadOnly, Mutable, Owned and Once.', groups: { Types: ['globals', '', TYPES] } },
+  { dir: 'globals', slug: 'values-and-operators', title: 'Values and operators', summary: 'null, undefined, NaN, Infinity, typeof and void.', groups: { 'Values and operators': ['globals', '', VALUES] } },
+  { dir: 'globals', slug: 'console', title: 'console', summary: 'Write to standard output and standard error, count, time and group output.', groups: { console: ['console', 'console'] } },
+  { dir: 'globals', slug: 'json', title: 'JSON', summary: 'Parse and serialize JSON text, with optional checked typed decoding.', groups: { JSON: ['JSON', 'JSON'] } },
+  { dir: 'globals', slug: 'math', title: 'Math', summary: 'Mathematical constants and functions on numbers.', groups: { Math: ['Math', 'Math'] } },
+  { dir: 'globals', slug: 'number', title: 'Number', summary: 'Number constants and static checks such as Number.isInteger.', groups: { Number: ['Number', 'Number'] } },
+  { dir: 'globals', slug: 'object', title: 'Object', summary: 'Inspect record fields and compare values with Object helpers.', groups: { 'Object namespace': ['globals', 'Object', ['Object']], Object: ['Object', 'Object'] } },
 ];
 
 const claimed = new Set([...excluded, ...modules.map((entry) => entry.module)]);
 for (const entry of modules) for (const group of Object.values(entry.members ?? {})) claimed.add(group);
 for (const page of builtins) for (const [group] of Object.values(page.groups)) claimed.add(group);
+const globalsUsed = builtins.flatMap((page) => Object.values(page.groups).filter(([group]) => group === 'globals').flatMap(([, , names]) => names ?? []));
+const globalsMissing = catalog.globals.map((item) => item.name).filter((name) => globalsUsed.filter((used) => used === name).length !== 1);
+if (globalsMissing.length) throw new Error(`Each global must appear on exactly one reference page: ${globalsMissing.join(', ')}`);
 const missing = Object.keys(catalog).filter((group) => !claimed.has(group));
 const unknown = [...claimed].filter((group) => !(group in catalog));
 if (missing.length || unknown.length) {
@@ -231,14 +246,20 @@ modules.forEach(({ module, summary, members = {} }, index) => {
   const intro = `${summary}\n\n${code(`import { ${functions.concat(types).slice(0, 3).map((item) => item.name).filter((item) => /^[A-Za-z_$][\w$]*$/.test(item)).join(', ')} } from '${module}';`)}`;
   pages.push(page({ title: module, description: summary, slug: `library/${name}`, order: index + 1, intro, sections}));
 });
-builtins.forEach(({ slug, title, summary, groups }, index) => {
+builtins.forEach(({ dir, slug, title, summary, groups }, index) => {
   const sections = [];
   shown = new Map();
   rendered = new Map();
-  for (const [owner, [group, prefix]] of Object.entries(groups)) {
-    sections.push(`## ${owner}`, '', ...catalog[group].map((item) => entry(item, prefix)), '');
+  for (const [owner, [group, prefix, names]] of Object.entries(groups)) {
+    const items = names ? names.map((name) => catalog[group].find((item) => item.name === name)) : catalog[group];
+    // A single-section page needs no repeated section heading.
+    if (Object.keys(groups).length > 1) sections.push(`## ${owner}`, '');
+    sections.push(...items.map((item) => entry(item, prefix)), '');
   }
-  pages.push(page({ title, description: summary, slug: `builtins/${slug}`, order: index + 1, intro: `${summary} These are available in every module without an import.${slug === 'globals' ? ' For an introduction to the most common ones, see [global functions and types](../../../library/globals/).' : ''}`, sections}));
+  const intro = dir === 'globals'
+    ? `${summary} These names are available in every module without an import. The [global functions and types](../../../library/globals/) guide introduces the most common ones.`
+    : `${summary} These methods are available on every value of the type without an import.`;
+  pages.push(page({ title, description: summary, slug: `${dir}/${slug}`, order: index + 1, intro, sections }));
 });
 
 rmSync(outputRoot, { recursive: true, force: true });
