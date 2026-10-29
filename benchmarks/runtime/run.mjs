@@ -158,6 +158,7 @@ import {validateApproximatePointProbe,validateApproximateMeasurement} from './ap
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import {waitForQuietMachine, DEFAULT_LIMIT as quietLoadLimit} from './quiet-machine.mjs';
 import crypto from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {performance} from 'node:perf_hooks';
@@ -178,6 +179,8 @@ const pins = JSON.parse(fs.readFileSync(path.join(here, 'versions.json')));
 const plan = measurementPlan(process.argv, manifest);
 const verify = plan.verify;
 const select = process.argv.find(a => a.startsWith('--only='))?.slice(7);
+// Timed processes wait for a quiet machine unless explicitly allowed otherwise.
+const allowBusy = process.argv.includes('--allow-busy'), loadSamples = [];
 const selections = select?.split(',');
 const workloads = manifest.workloads.filter(w => !selections || selections.includes(w.id));
 if (!workloads.length || selections?.some(id => !manifest.workloads.some(w => w.id === id))) throw new Error(`Unknown workload: ${select}`);
@@ -471,6 +474,7 @@ if (!verify) {
  for (let processIndex = 0; processIndex < plan.processes; processIndex++) {
   for (const w of rotated(workloads, processIndex)) {
    for (const engine of rotated(engines(w.id), processIndex)) {
+    if (!allowBusy) loadSamples.push(waitForQuietMachine());
     const data = execute(engine, w.iterations, manifest.seed, plan.warmups, plan.samples, w.inputText,w);
     if(!isApproximate(w)){
     if (isCopying(w)) validateCopyingObservation(data,{checksum:references.get(w.id),exactBits:exactReferences.get(w.id)},w);
@@ -492,6 +496,7 @@ const compilerInputs = compilerSourceInputs(path.join(root, 'crates/tsrust-compi
 for(const loaded of approximateReferences.values())assertApproximateArtifactsUnchanged(loaded);
 const result = {
  schemaVersion: 1, measurementScope: plan.measurementScope, measuredEngines: plan.engineIDs, measurementPlanSha256: hash(fs.readFileSync(path.join(here,'measurement-plan.mjs'))), semanticEpoch: manifest.semanticEpoch, timestamp: new Date().toISOString(), verifiedOnly: verify,
+ quietMachine: {allowBusy, loadLimit: quietLoadLimit, maxOneMinuteLoad: loadSamples.length ? Math.max(...loadSamples) : null},
  machine: {platform: os.platform(), release: os.release(), architecture: os.arch(), cpu: os.cpus()[0]?.model, logicalCPUs: os.cpus().length, totalMemoryBytes: os.totalmem()},
  versions, nodeComponents: process.versions, manifest, sources, compilerInputs,
  oracleSha256: hash(fs.readFileSync(path.join(here, 'oracle.mjs'))), adapterSha256: hash(fs.readFileSync(path.join(here, 'adapters.mjs'))), harnessSha256: hash(fs.readFileSync(fileURLToPath(import.meta.url))), driverTSSha256: hash(driverTS), driverRSSha256: hash(driverRS), lockSha256: hash(fs.readFileSync(path.join(here, 'package-lock.json'))),
