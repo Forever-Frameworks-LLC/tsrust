@@ -433,3 +433,11 @@ fn empty_delimiters_stay_tight_without_losing_comments_or_behavior() {
     }
     support::execute("function noop(){}function main(){const values:int[]=[];noop();console.log(values.length);}", "0\n", None);
 }
+
+#[test]
+fn record_type_declaration_commas_end_lines_like_interfaces() {
+    let source = "type Point = { x: int, y: [int, string], f: (a: int, b: int) => int }\ninterface Pair { a: int, b: int }\nfunction main() {}\n";
+    let result = format(source).unwrap();
+    assert_eq!(result, "type Point = {\n  x: int,\n  y: [int, string],\n  f: (a: int, b: int) => int\n}\n\ninterface Pair {\n  a: int,\n  b: int\n}\n\nfunction main() {}\n");
+    assert_eq!(format(&result).unwrap(), result);
+}

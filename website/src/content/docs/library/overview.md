@@ -43,7 +43,8 @@ Strings, arrays, maps, sets and other built-in types also expose methods without
 module imports: see [strings](/tsrust/reference/builtins/strings/),
 [arrays and tuples](/tsrust/reference/builtins/arrays/),
 [numbers](/tsrust/reference/builtins/numbers/), [Map and Set](/tsrust/reference/builtins/map-and-set/)
-and [globals, `Object`, `JSON` and `console`](/tsrust/reference/builtins/globals/).
+and the [globals](/tsrust/reference/globals/functions/): global functions and types,
+`console`, `JSON`, `Math`, `Number` and `Object`.
 Supported method names and argument contracts are explicit; JavaScript's prototype
 and runtime coercion behavior are not general fallbacks.
 

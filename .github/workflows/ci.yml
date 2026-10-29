@@ -12,6 +12,10 @@ on:
         description: Run focused Windows installer and shared-cache acceptance without publishing.
         type: boolean
         default: false
+      editor_acceptance:
+        description: Run the VS Code extension integration and recovery suites on Linux and Windows.
+        type: boolean
+        default: false
       full_regressions:
         description: Run the complete workspace regression suite (slow).
         type: boolean
@@ -22,6 +26,9 @@ on:
         type: boolean
         default: false
       toolchain_acceptance:
+        type: boolean
+        default: false
+      editor_acceptance:
         type: boolean
         default: false
       full_regressions:
@@ -43,7 +50,7 @@ env:
   CARGO_TERM_COLOR: always
 jobs:
   source:
-    if: ${{ !inputs.async_acceptance && !inputs.toolchain_acceptance }}
+    if: ${{ !inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.editor_acceptance }}
     name: Compiler and LSP (${{ matrix.os }})
     strategy:
       fail-fast: false
@@ -93,7 +100,7 @@ jobs:
           cargo test --offline --locked --workspace --lib --bins --tests --no-fail-fast
           cargo test --offline --locked --workspace --doc
   editor:
-    if: ${{ !inputs.async_acceptance && !inputs.toolchain_acceptance }}
+    if: ${{ !inputs.async_acceptance && !inputs.toolchain_acceptance && !inputs.editor_acceptance }}
     name: VS Code extension
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -164,10 +171,47 @@ jobs:
       - name: Backend all-target diagnostics
         if: ${{ !cancelled() }}
         run: cargo check --offline --locked -p tsrust-compiler -p tsrust-lsp --all-targets
+  editor_integration:
+    name: VS Code integration (${{ matrix.os }})
+    if: ${{ inputs.editor_acceptance && !inputs.async_acceptance && !inputs.toolchain_acceptance }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Compile both consumers
+        run: cargo build --offline --locked -p tsrust-compiler -p tsrust-lsp --bin tsrust --bin tsrust-lsp
+      - name: Put the compiler on PATH for editor tasks
+        run: echo "$GITHUB_WORKSPACE/target/debug" >> "$GITHUB_PATH"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.11.1
+          cache: npm
+          cache-dependency-path: editors/vscode/package-lock.json
+      - run: npm --prefix editors/vscode ci
+      # The suite includes the surrogate-pair UTF-16 diagnostic range fixture.
+      - name: Editor integration suite
+        run: |
+          if [ "$RUNNER_OS" = Linux ]; then xvfb-run -a npm --prefix editors/vscode run test:integration; else npm --prefix editors/vscode run test:integration; fi
+      - name: Language server recovery suite
+        if: ${{ !cancelled() }}
+        env:
+          TSRUST_VSCODE_SUITE: recovery
+        run: |
+          if [ "$RUNNER_OS" = Linux ]; then xvfb-run -a npm --prefix editors/vscode run test:integration; else npm --prefix editors/vscode run test:integration; fi
   ci:
-    name: ${{ inputs.toolchain_acceptance && 'Toolchain acceptance' || inputs.async_acceptance && 'Async acceptance' || 'CI' }}
+    name: ${{ inputs.toolchain_acceptance && 'Toolchain acceptance' || inputs.async_acceptance && 'Async acceptance' || inputs.editor_acceptance && 'Editor acceptance' || 'CI' }}
     if: always()
-    needs: [source, editor, async, toolchain]
+    needs: [source, editor, async, toolchain, editor_integration]
     runs-on: ubuntu-24.04
     steps:
       - name: Require all checks
@@ -178,11 +222,15 @@ jobs:
           ASYNC_RESULT: ${{ needs.async.result }}
           SOURCE_RESULT: ${{ needs.source.result }}
           EDITOR_RESULT: ${{ needs.editor.result }}
+          EDITOR_ACCEPTANCE: ${{ inputs.editor_acceptance }}
+          EDITOR_INTEGRATION_RESULT: ${{ needs.editor_integration.result }}
         run: |
           if [ "$TOOLCHAIN_ACCEPTANCE" = true ]; then
             test "$ASYNC_ACCEPTANCE" != true && test "$TOOLCHAIN_RESULT" = success
           elif [ "$ASYNC_ACCEPTANCE" = true ]; then
             test "$ASYNC_RESULT" = success
+          elif [ "$EDITOR_ACCEPTANCE" = true ]; then
+            test "$EDITOR_INTEGRATION_RESULT" = success
           else
             test "$SOURCE_RESULT" = success && test "$EDITOR_RESULT" = success
           fi

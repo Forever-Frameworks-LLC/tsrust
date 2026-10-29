@@ -1,5 +1,6 @@
 use crate::{analysis::CheckedProgram,native_bindings::{NativeBinding,NativeBackend,NativeType},native_signatures::{Signature,NativeTypeId},syntax::Type};
-pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding)->String {
+pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding,ordered:&std::collections::HashSet<usize>)->String {
+ let order=|id|crate::records::runtime::declaration_order_suffix(program,ordered,id);
  let bytes=program.records.iter().position(|r|r.native_type==Some(NativeTypeId::Bytes));
  let NativeBackend::Bundled{symbol}=binding.backend;
  let mut parameters=Vec::new();let mut arguments=Vec::new();
@@ -18,7 +19,8 @@ pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding)->String {
  let [ok,err]=crate::result_identity::variants(&program.records,members).unwrap();let tag=|id|members.iter().position(|ty|*ty==Type::Record(id)).unwrap();
  let error=program.records.iter().position(|r|r.native_type==Some(NativeTypeId::CryptoError)).unwrap();
  let value=format!("Record{}{{bytes:value}}",bytes.unwrap());
- (format!("Union{}",result.index()),format!("match {call}{{Ok(value)=>Union{result}::V{ok_tag}(Record{ok}{{field0:{value}}}),Err((code,message))=>Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(code),field1:String::Borrowed(message)}}}})}}",result=result.index(),ok_tag=tag(ok),err_tag=tag(err)))
+ let (ok_order,err_order,error_order)=(order(ok),order(err),order(error));
+ (format!("Union{}",result.index()),format!("match {call}{{Ok(value)=>Union{result}::V{ok_tag}(Record{ok}{{field0:{value}{ok_order}}}),Err((code,message))=>Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(code),field1:String::Borrowed(message){error_order}}}{err_order}}})}}",result=result.index(),ok_tag=tag(ok),err_tag=tag(err)))
  },_=>unreachable!()};
  format!("fn {symbol}({})->{ty}{{{body}}}\n",parameters.join(","))
 }

@@ -5,7 +5,7 @@ description: The names available in every file without an import — clone, Resu
 
 These names are available in every module without an import. Most Tsrust files
 use several of them. Each section explains when to reach for the name; the
-[globals reference](../../reference/builtins/globals/) lists every global with its
+[globals reference](../../reference/globals/functions/) lists every global with its
 full contract.
 
 | Name | Use it to |
@@ -234,12 +234,15 @@ For checked conversion that reports errors instead of `NaN`, use
 
 `console.log`, `console.info` and `console.debug` write to standard output;
 `console.warn` and `console.error` write to standard error. Arguments are separated
-by spaces. See [console](../../reference/builtins/globals/#console) for the other
+by spaces. See [console](../../reference/globals/console/) for the other
 methods.
 
 ## More globals
 
-`typeof`, `NaN`, `Infinity`, `isNaN`, `isFinite`, the `Object` helpers and the `JSON`
-namespace are listed in the [globals reference](../../reference/builtins/globals/).
+The reference lists every global: [functions](../../reference/globals/functions/),
+[types](../../reference/globals/types/), [values and operators](../../reference/globals/values-and-operators/)
+such as `typeof` and `NaN`, and the [`console`](../../reference/globals/console/),
+[`JSON`](../../reference/globals/json/), [`Math`](../../reference/globals/math/),
+[`Number`](../../reference/globals/number/) and [`Object`](../../reference/globals/object/) namespaces.
 Built-in methods on strings, arrays, numbers, maps and sets are in the
 [built-in types](../../reference/builtins/strings/) reference.

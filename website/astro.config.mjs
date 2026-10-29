@@ -19,6 +19,7 @@ export default defineConfig({
     '/library/typed-json/': '/tsrust/learn/data/#decode-and-encode-typed-json',
     '/library/json-files/': '/tsrust/learn/data/#jsonc-and-json-lines',
     '/library/futures/': '/tsrust/language/async/#scheduling-and-channels',
+    '/reference/builtins/globals/': '/tsrust/reference/globals/functions/',
     '/language/borrowed-optional-fallback/': '/tsrust/language/optional-values/#borrowed-text-with-a-fallback',
     '/language/optional-chaining/': '/tsrust/language/optional-values/#optional-chaining',
     '/language/nullish-coalescing/': '/tsrust/language/optional-values/#nullish-fallback',
@@ -70,7 +71,7 @@ export default defineConfig({
       { label: 'Language', items: ['language/declarations', 'language/types', 'language/optional-values', 'language/patterns', 'language/functions', 'language/function-values', 'language/generics', 'language/arrays', 'language/control-flow', 'language/modules', 'language/strings', 'language/async'] },
       { label: 'Standard library', items: [
         'library/overview',
-        'library/globals',
+        { label: 'Globals', collapsed: false, items: [{ label: 'Introduction', slug: 'library/globals' }, { autogenerate: { directory: 'reference/globals' } }] },
         { label: 'Modules', collapsed: true, items: [{ autogenerate: { directory: 'reference/library' } }] },
         { label: 'Built-in types', collapsed: true, items: [{ autogenerate: { directory: 'reference/builtins' } }] },
       ] },

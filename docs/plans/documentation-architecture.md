@@ -22,7 +22,7 @@ reference for most of its 23 modules.
 | --- | --- | --- |
 | Start here | Install, first program, editor, project layout | Short task pages (unchanged) |
 | Language | Rules of the language | About ten chapter-sized reference pages |
-| Standard library | Every public module and built-in type | Generated reference plus overview |
+| Standard library | Globals, every public module and built-in type | Generated reference plus overview and a globals introduction |
 | Learn | How-tos as one guided, interactive track | One page per track with step navigation; steps are not separate search results |
 | Build backends | Operating a service: HTTP, auth, deployment | Task pages until folded into Learn tracks |
 | Tools, Project | CLI, testing, installation, status | Unchanged |
@@ -131,8 +131,46 @@ Automated checks completed so far:
   occurrence, and lists identical inherited methods (for example schema
   `optional`/`nullable`) once.
 
-Remaining: 98 entries have no example of their own (40 schema type methods,
-16 `std:threads`, 14 `std:json`, 8 `Router` verbs, plus cache, fs, testing,
-signals, console timers). Write a specific, verified example for each in
-`builtins.json`, then review every entry's prose against compiler source
-module by module. Track progress per module here.
+Progress 2026-10-28:
+
+- Every reference entry now has its own example (98 added, each run with the
+  current debug compiler; outputs are recorded as `// prints:` comments).
+  Router verb entries now name their HTTP method; `route()` documents its
+  seven accepted methods.
+- Defects found and fixed with regression tests: `String.fromCharCode`/
+  `fromCodePoint` runtime gate; nullable `unwrap` results rejected by annotated
+  destinations; global `unwrap` not seen by native argument-alternative hints.
+- Every error code named in catalog prose exists in compiler/runtime source, and
+  every numeric limit or default cited in a module's prose appears in that
+  module's source (e.g. schema issue limits 64/32/1024).
+- Placeholder examples (`function main() {}`) on 15 type entries replaced with
+  working ones; per-operation ownership notes written for std:date,
+  std:decimal, std:numeric and Heap instead of one copied note.
+- A third defect fixed: console inspection of Results from std:env,
+  std:numeric, std:date, std:uuid, std:decimal and std:crypto bridges failed
+  Rust code generation (missing record key order).
+- Prose reviewed against source: std:env, std:os, std:crypto, std:time,
+  std:numeric, std:uuid, std:signals, std:decimal, std:bytes, std:collections,
+  std:path (POSIX behavior; Windows-specific claims unverified locally), HTTP
+  server limits/status codes, SQL and SQLite connection defaults.
+- Globals moved out of "Built-in types" into their own Standard library section:
+  global functions, global types, values and operators, console, JSON, Math,
+  Number and Object. Built-in types now hold only value methods and the static
+  helpers named after a type (Array, String, Map, Set). Every globals entry was
+  reviewed: typeof rewritten (an unrelated union/ownership passage removed);
+  null/undefined corrected (union arrays such as `(int | null)[]` are supported);
+  clone now lists Sets; String(null) wording; unwrap has a Result example;
+  JSON.stringify's JsonRaw/JSONL sentences placed in context.
+- A fourth defect fixed: `Number(x)` on a copy union such as `int | undefined`
+  failed Rust code generation.
+- Known limitations surfaced (documented behavior, not changed): reading
+  `.success` directly on a `safeParse(...)` call result needs a binding first;
+  refinement paths need literal indices; inline `asString(...)` views need named
+  storage.
+
+Remaining: whole-catalog output check for older `Expected output:` examples,
+signature/arity check against native bindings, then prose review of the
+remaining modules against source (std:http, std:sql, std:sqlite, std:fs,
+std:bytes, std:json, std:schema, std:futures, std:threads, std:date,
+std:decimal, std:uuid, std:collections, std:cache, std:testing, std:signals,
+std:path, built-ins).
