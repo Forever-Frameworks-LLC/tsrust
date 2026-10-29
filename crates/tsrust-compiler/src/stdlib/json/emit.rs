@@ -25,7 +25,7 @@ pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding,ordered:&std
  let error=record(NativeTypeId::JsonError);
  let (parameters,call,payload)=if matches!(binding.name,"parse"|"parseJsonc") {
   let limits=record(NativeTypeId::JsonLimits);
-  let (parser,option)=if binding.name=="parseJsonc" {("parse_jsonc",",allow_trailing_comma.unwrap_or(false)")}else{("parse","")};
+  let (parser,option)=if binding.name=="parseJsonc" {("parse_jsonc",",allow_trailing_comma.unwrap_or(false)")}else{("parse_valid_utf8","")};
   (format!("text:&String,{}limits:Option<&Record{limits}>",if binding.name=="parseJsonc" {"allow_trailing_comma:Option<bool>,"} else {""}),
    format!("(|| {{let (bytes,depth,entries,nodes)=if let Some(limits)=limits {{(limits.field0,limits.field1,limits.field2,limits.field3)}} else {{(16*1024*1024,64,1_000_000,1_000_000)}}; let convert=|value:i64|usize::try_from(value).map_err(|_|tsrust_native_json::invalid_limits());tsrust_native_json::{parser}(text.as_ref().as_bytes(),tsrust_native_json::Limits{{bytes:convert(bytes)?,depth:convert(depth)?,entries:convert(entries)?,nodes:convert(nodes)?}}{option})}})()"),
    format!("Record{value}{{value}}"))

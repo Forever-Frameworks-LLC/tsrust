@@ -61,10 +61,16 @@ fn located(input: &[u8], error: serde_json::Error, code: Option<&'static str>) -
     failure(code, start.saturating_add(error.column().saturating_sub(1)).min(input.len()))
 }
 pub fn parse(input: &[u8], limits: Limits) -> Result<Value, Error> {
+    if let Err(error) = std::str::from_utf8(input) {
+        if input.len() <= limits.bytes && limits.depth <= 64 { return Err(failure("invalid-utf8", error.valid_up_to())); }
+    }
+    parse_valid_utf8(input, limits)
+}
+/// `parse` for input already known to be valid UTF-8, such as a string's bytes.
+pub fn parse_valid_utf8(input: &[u8], limits: Limits) -> Result<Value, Error> {
     if input.len() > limits.bytes { return Err(failure("byte-limit", limits.bytes)); }
     // Keep Serde's own recursion guard enabled as a second independent bound.
     if limits.depth > 64 { return Err(failure("invalid-limits", 0)); }
-    if let Err(error) = std::str::from_utf8(input) { return Err(failure("invalid-utf8", error.valid_up_to())); }
     let mut budget = Budget { limits, nodes: 0, failed: None, saw_float: false };
     let mut decoder = serde_json::Deserializer::from_slice(input);
     let value = serde::de::DeserializeSeed::deserialize(
