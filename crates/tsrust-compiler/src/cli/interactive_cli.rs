@@ -40,8 +40,8 @@ pub(super) fn launcher(arguments: &[String]) -> Result<bool, String> {
 fn header() -> Result<(), String> {
     if !rich() || HEADER.swap(true, Ordering::Relaxed) { return Ok(()); }
     cliclack::set_theme(DefaultTheme);
-    let (_, width) = console::Term::stderr().size();
-    if width >= 40 {
+    let (height, width) = console::Term::stderr().size();
+    if width >= 40 && height >= 20 {
         eprintln!();
         for line in ["▀█▀ █▀▀ █▀█ █ █ █▀▀ ▀█▀", " █  ▀▀█ █▀▄ █ █ ▀▀█  █ ", " ▀  ▀▀▀ ▀ ▀ ▀▀▀ ▀▀▀  ▀ "] {
             eprintln!("  {}", console::Style::new().for_stderr().cyan().bold().apply_to(line));

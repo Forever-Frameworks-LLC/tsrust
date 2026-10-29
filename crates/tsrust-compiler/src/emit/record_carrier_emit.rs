@@ -84,6 +84,16 @@ impl Emitter<'_> {
             (Type::StoredCallable(source),Type::StoredCallable(target))
                 if self.program.stored_contracts.scoped_native_family(target).is_some()
                     && self.program.stored_contracts.origins(source).is_some_and(|origins|origins.is_empty())=>format!("match {value}{{}}"),
+            (Type::Union(source), target @ Type::Array(_)) => {
+                let arms = self.program.unions[source.index()].members.iter().enumerate()
+                    .map(|(tag, &member)| {
+                        let payload = self.union_move_payload(source, member, "payload");
+                        format!("Union{}::V{tag}(payload)=>{}", source.index(),
+                            self.record_carrier_conversion(member, target, &payload))
+                    }).collect::<Vec<_>>().join(",");
+                format!("{{let array_carrier: {} = {value};match array_carrier{{{arms}}}}}",
+                    self.native_type(Type::Union(source)))
+            }
             (Type::Array(source), Type::Array(target)) => {
                 let converted =
                     self.record_carrier_conversion(source.ty(), target.ty(), "record_array_item");

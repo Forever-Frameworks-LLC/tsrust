@@ -20,15 +20,17 @@ result strings, logs, source snapshots, executable paths, hostnames, usernames,
 addresses, serial numbers and OS kernel build identifiers are excluded.
 Historical detailed workload protocols remain in repository sources and reports.
 
-This export covers the **69 already indexed accepted runs**, including
-**86,436 timing samples and 825 allocation samples**. It does not claim that
+This export covers the **70 already indexed accepted runs**, including
+**86,622 timing samples and 825 allocation samples**. It does not claim that
 every older file in the legacy archive has been indexed. Unindexed history
 remains local until its measurement and acceptance structure can be verified.
 No measurements have been discarded from that archive or retimed for this export.
 
-The October 26, 2026 snapshot is 37,199,872 bytes. SHA256:
-`d0d26725ac3dfc9a631766a3865f13c6c208760d08a46e6c3877ce41494ef5f3`.
-All 49 indexed execution comparisons match the original checkpoint queries.
+The October 28, 2026 snapshot is 37,285,888 bytes. SHA256:
+`9ddf5e9be9ec6daa5ce70f8f4cda36e3495d7b3459a8cc54696c4f277382624f`.
+All 50 indexed execution comparisons retain their original checkpoint queries.
+The latest addition contains 186 HTTP request-reader samples, preserving the
+three-process, eight-warmup, 31-sample-per-process protocol for each engine.
 The storage suite covers privacy exclusions, exact sample preservation,
 failed-export cleanup, no-overwrite behavior and the bundled database contract.
 

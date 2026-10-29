@@ -102,6 +102,7 @@ impl Emitter<'_>{
    "__shutdown"=>format!("{{({receiver}).shutdown().await;Ok::<_,tsrust_native_http::Error>(())}}"),
    "__contextRequestForm"=>format!("({receiver}).request_form().await"),
    "__contextRequestMultipart"=>format!("({receiver}).request_multipart().await"),
+   "__contextRequestBody"=>format!("({receiver}).request_body()"),
    "__contextRequestText"=>format!("({receiver}).request_text().await"),
    "__contextNext"=>format!("{{({}).run({receiver}).await;Ok::<_,tsrust_native_http::Error>(())}}",values[1]),
    "getCookie"=>format!("({receiver}).cookie({})",values[1]),

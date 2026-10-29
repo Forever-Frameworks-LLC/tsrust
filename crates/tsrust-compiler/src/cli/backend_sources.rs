@@ -7,7 +7,7 @@ pub(crate) const LOCK: &str = include_str!("../../backend-dependencies/Cargo.loc
 pub(crate) const IDENTITY: &str = concat!("shared-backend-sources-2\n", include_str!("../../backend-dependencies/Cargo.toml"), include_str!("../../backend-dependencies/Cargo.lock"));
 
 pub(crate) fn shared(source: &str) -> Result<bool, String> {
-    Ok(!source.contains("pub mod tsrust_native_ui {") && super::rust_binding_packages::packages(source)?.is_empty())
+    Ok(!source.contains("pub mod tsrust_native_ui {") || !super::rust_binding_packages::packages(source)?.is_empty())
 }
 
 pub(crate) fn cargo_home() -> Result<PathBuf, String> {
@@ -25,14 +25,16 @@ pub(crate) fn build_root() -> Result<PathBuf, String> {
     super::absolute(&root)
 }
 
-pub(crate) fn materialize(root: &Path) -> Result<(), String> {
+pub(crate) fn materialize(root: &Path) -> Result<(), String> { materialize_with(root, MANIFEST, LOCK) }
+
+pub(crate) fn materialize_with(root: &Path, manifest: &str, lock: &str) -> Result<(), String> {
     // Exclusive root creation: cleanup owns only this newly created directory.
     fs::create_dir(root).map_err(|e|e.to_string())?;
     let result = (|| -> Result<(), String> {
         fs::create_dir(root.join("src")).map_err(|e|e.to_string())?;
         fs::create_dir(root.join(".cargo")).map_err(|e|e.to_string())?;
-        fs::write(root.join("Cargo.toml"), MANIFEST).map_err(|e|e.to_string())?;
-        fs::write(root.join("Cargo.lock"), LOCK).map_err(|e|e.to_string())?;
+        fs::write(root.join("Cargo.toml"), manifest).map_err(|e|e.to_string())?;
+        fs::write(root.join("Cargo.lock"), lock).map_err(|e|e.to_string())?;
         fs::write(root.join("src/lib.rs"), include_str!("../../backend-dependencies/src/lib.rs")).map_err(|e|e.to_string())?;
         fs::write(root.join(".cargo/config.toml"), "[net]\noffline = true\n").map_err(|e|e.to_string())?;
         Ok(())
@@ -41,13 +43,13 @@ pub(crate) fn materialize(root: &Path) -> Result<(), String> {
     result
 }
 
-pub(crate) fn validate(root: &Path) -> Result<(), String> {
+pub(crate) fn validate(root: &Path, lock: &str) -> Result<(), String> {
     for path in [root.to_owned(),root.join("src"),root.join(".cargo"),root.join("Cargo.toml"),root.join("Cargo.lock"),root.join("src/lib.rs"),root.join(".cargo/config.toml")] {
         if fs::symlink_metadata(&path).map_err(|e|e.to_string())?.file_type().is_symlink() {
             return Err(format!("Shared backend support cannot traverse a symlink: {}", path.display()));
         }
     }
-    if fs::read(root.join("Cargo.lock")).map_err(|e|e.to_string())? != LOCK.as_bytes()
+    if fs::read(root.join("Cargo.lock")).map_err(|e|e.to_string())? != lock.as_bytes()
         || fs::read_to_string(root.join(".cargo/config.toml")).map_err(|e|e.to_string())? != "[net]\noffline = true\n" {
         return Err("Shared backend support metadata was modified; preserved it. Remove the affected private runtime workspace before retrying.".into());
     }

@@ -13,6 +13,7 @@ in [.github/actions/setup/action.yml](.github/actions/setup/action.yml).
 
 ```sh
 cargo fetch --locked
+cargo fetch --locked --manifest-path crates/tsrust-compiler/backend-dependencies/Cargo.toml
 cargo fetch --locked --manifest-path crates/tsrust-compiler/native-dependencies/Cargo.toml
 export CARGO_INCREMENTAL=0
 export CARGO_BUILD_JOBS=1
@@ -22,9 +23,23 @@ cargo build --offline --locked --bin tsrust --bin tsrust-lsp
 npm --prefix editors/vscode ci
 ```
 
-The two Cargo fetches prepare separate locked dependency graphs. Subsequent
-builds can run offline. The compiler embeds native library sources when built;
-it does not fetch packages silently during ordinary application compilation.
+The three Cargo fetches prepare the workspace, backend and retained portable
+source graphs. Subsequent builds can run offline. Ordinary application compilation
+does not fetch packages silently. Before binding/package-management tests, prepare
+their additional locked graph:
+
+```sh
+cargo fetch --locked --manifest-path crates/tsrust-compiler/tests/dependencies/Cargo.toml
+```
+
+Before tests that export portable sources, prepare their pack explicitly:
+
+```sh
+export TSRUST_SOURCE_PACK_DIR="$PWD/target/portable-source-packs"
+"$CARGO_TARGET_DIR/debug/tsrust" setup --portable --offline
+```
+
+Keep that source-pack path fixed for tests that isolate `CARGO_HOME`.
 
 ## Make a change
 
@@ -47,7 +62,7 @@ Before a source checkpoint, format the entire project with the built compiler:
 ```sh
 TSRUST="$CARGO_TARGET_DIR/debug/tsrust" node tools/format-project.mjs
 "$CARGO_TARGET_DIR/debug/tsrust" format . --check
-cargo clippy --offline --locked --workspace --lib --bins -- -D warnings
+cargo clippy --offline --locked -p tsrust-compiler -p tsrust-lsp --lib --bins -- -D clippy::correctness
 ```
 
 Formatting verifies token preservation and refreshes pinned benchmark source
@@ -56,11 +71,18 @@ idempotence and behavior checks through the shared test helpers.
 
 ## CI and broader checks
 
-Pull requests and pushes to `main` run compiler/CLI acceptance, LSP transport and
-compiler agreement, native renderer model tests, Clippy, project formatting,
-distribution checks and VS Code extension tests. The workflow is deliberately a
-bounded baseline, not every compiler integration target or a performance run.
-See [CI](.github/workflows/ci.yml).
+Pull requests targeting `stag` run the Linux compiler/CLI acceptance, native SDK
+integration, LSP transport and compiler agreement, Clippy correctness checks,
+formatting, distribution/privacy checks and VS Code extension tests. Other Clippy
+warnings are reported rather than treated as accepted cleanup. Retained renderer
+checks run only with explicit full regressions. The default workflow is a bounded
+baseline, not every compiler integration target or a performance run.
+
+Promotion PRs from `stag` to `main` use the separate [release workflow](.github/workflows/release.yml)
+to build and validate macOS, Linux and Windows packages. Successful protected
+promotion can merge and publish through [promotion automation](.github/workflows/promote.yml).
+Manual async and Windows toolchain acceptance modes do not publish releases.
+See [CI](.github/workflows/ci.yml) for the exact selected targets.
 
 Run full regressions at feature-family milestones or with the CI workflow's
 `full_regressions` dispatch input:

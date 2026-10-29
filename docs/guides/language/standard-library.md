@@ -1,4 +1,8 @@
-# Standard library
+# Historical standard-library planning
+
+This file preserves early proposals and scoped acceptance notes. Use the
+[current library overview](../../../website/src/content/docs/library/overview.md)
+for public guidance; historical “pending” statements below are not current status.
 
 [Documentation index](../../README.md) · [Proposed roadmap](../../roadmap.md) · [Source section map](../../plans/section-map.md)
 

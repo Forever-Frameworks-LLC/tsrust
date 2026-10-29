@@ -1,0 +1,26 @@
+import { Router, Client, request } from 'std:http';
+import { test, strictEqual } from 'std:testing';
+
+test('request streaming preserves context metadata and response helpers', async () => {
+  const app = new Router();
+  app.post('/echo', async (c) => {
+    const body = c.req.body();
+    const value = await body.text();
+    strictEqual(c.req.method(), 'POST');
+    strictEqual(c.req.header('x-input'), 'preserved');
+    c.header('x-response', 'preserved');
+    return c.text(value, 202);
+  });
+  const server = await app.listen('127.0.0.1:0');
+  try {
+    const client = new Client();
+    const input = request('POST', 'http://' + server.address() + '/echo', 'héllo');
+    input.setHeader('x-input', 'preserved');
+    const response = await client.send(input);
+    strictEqual(response.status(), 202);
+    strictEqual(response.header('x-response'), 'preserved');
+    strictEqual(await response.text(), 'héllo');
+  } finally {
+    await server.shutdown();
+  }
+});

@@ -1,4 +1,13 @@
-# Tsrust commands, formatting and clone fixes
+# Editor command implementation and acceptance history
+
+Current user instructions: [Set up VS Code](../../../website/src/content/docs/start/editor.md),
+[project CLI](../../../website/src/content/docs/tools/cli.md) and
+[native build setup](../../../website/src/content/docs/tools/rust-setup.md).
+
+The sections below retain implementation plans and acceptance observations from
+their original checkpoints. Capability limits, installation paths, monitoring
+status and pending tasks describe those checkpoints, not the current product.
+Use the current guides above for supported behavior.
 
 `tsrust run` and the editor play button keep generated Rust, the executable and default cache in a private system temporary directory, removed when the command finishes (including ordinary errors). They leave no build artifacts beside the source. Force-killing the compiler or shutting down the system can interrupt cleanup. `build -o` preserves the requested executable and caches successful artifacts in `target/tsrust-native` under the working directory. Set `TSRUST_CACHE_DIR` to explicitly retain a reusable cache for either command; that directory is not automatically removed. Checks still run before reuse, and the pinned backend is verified. Source graph, generated Rust, native features, backend identity and optimization options invalidate old artifacts. Missing or corrupt cache entries rebuild; cache write failure does not invalidate a successful build. Remove the cache directory to clear it. This is a local artifact cache, not a package download mechanism.
 
@@ -75,7 +84,7 @@ The language server resolves project imports and unsaved dependency buffers for 
 
 ## Missing native linker
 
-Build/run reports a missing native linker as an environment setup failure and includes the backend error, rather than calling it a compiler defect. Finding rustup under the Cargo home is independent of finding the platform linker on PATH. See [missing linker diagnostics](missing-linker-diagnostic.md) for setup and focused acceptance evidence.
+Build/run reports a missing native linker as an environment setup failure and includes the backend error, rather than calling it a compiler defect. Finding rustup under the Cargo home is independent of finding the platform linker on PATH. See [native build setup](../../../website/src/content/docs/tools/rust-setup.md#repair-a-missing-native-linker) for recovery instructions.
 
 
 Contributor checkpoints run `node tools/format-project.mjs` to format the entire

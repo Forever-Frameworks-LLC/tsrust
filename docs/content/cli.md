@@ -7,5 +7,5 @@ Run `tsrust` in a terminal to open the interactive command menu. Explicit comman
 
 - [Project commands](/cli/commands)
 - [Development and troubleshooting](/cli/development)
-- [Configuration](/getting-started/project-structure)
+- [Configuration](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/website/src/content/docs/start/project-structure.md)
 - [Offline components](/ui/foundations/installation)

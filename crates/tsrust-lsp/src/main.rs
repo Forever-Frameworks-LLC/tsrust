@@ -452,6 +452,10 @@ fn publish_project(
     )
 }
 fn main() {
+    if std::env::args_os().skip(1).eq([std::ffi::OsString::from("--version")]) {
+        println!("tsrust-lsp {}",env!("CARGO_PKG_VERSION"));
+        return;
+    }
     let (connection, _io_threads) = Connection::stdio();
     let code = match run(connection, diagnostics) {
         Ok(code) => code,

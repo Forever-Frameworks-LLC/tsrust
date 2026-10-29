@@ -44,11 +44,10 @@ impl SourceProvider for Workload {
         }
     }
     fn read(&self, id: &SourceId) -> Result<String, String> {
+        let source=self.sources.get(&id.0).ok_or("Missing source")?;
+        // Count module reads; an absent optional project configuration is not a module.
         self.reads.set(self.reads.get() + 1);
-        self.sources
-            .get(&id.0)
-            .cloned()
-            .ok_or("Missing source".into())
+        Ok(source.clone())
     }
 }
 #[test]

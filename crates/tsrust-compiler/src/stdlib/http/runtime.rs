@@ -78,6 +78,7 @@ mod tsrust_native_http {
             *request.inner.body_mut()=body;*request.inner.headers_mut()=self.field0.inner.headers().clone();request.limit=self.field0.limit;
             Ok(request)
         }
+        pub fn request_body(&mut self)->Result<Stream,Error>{Ok(self.take_request_body()?.body())}
         pub async fn request_text(&mut self)->Result<String,Error>{self.take_request_body()?.text().await}
         pub async fn request_form(&mut self)->Result<Vec<FormField>,Error>{self.take_request_body()?.form().await}
         pub async fn request_multipart(&mut self)->Result<Vec<MultipartPart>,Error>{self.take_request_body()?.multipart().await}

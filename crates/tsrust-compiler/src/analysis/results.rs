@@ -1,7 +1,7 @@
 //! Consume a Result and propagate its original owned error payload.
 use super::*;
 impl Analyzer {
-    pub(super) fn result_call(&mut self, context: &mut Context, expression: &mut Expr, loans: &Loans, expected: Option<Type>) -> Result<Option<Type>, Diagnostic> {
+    pub(super) fn result_call(&mut self, context: &mut Context, expression: &mut Expr, loans: &Loans, _expected: Option<Type>) -> Result<Option<Type>, Diagnostic> {
         let ExprKind::Call(callee, arguments) = &mut expression.kind else { return Ok(None); };
         let ExprKind::Name(name) = &callee.kind else { return Ok(None); };
         if !(name == "unwrap" && !context.names.contains_key(name) && !self.function_names.contains_key(name)) && !crate::native_bindings::by_symbol(name).is_some_and(|(_, binding)| binding.module == "std:result" && binding.name == "unwrap") { return Ok(None); }
@@ -26,7 +26,6 @@ impl Analyzer {
         if super::threads::contains_handle(error, &self.program.records, &|id| self.unions.members(id)) {
             return Err(Diagnostic::new("thread-lifecycle", "Result propagation cannot throw a thread owner; settle it explicitly in the Err branch.", expression.span));
         }
-        self.require(output, expected, expression.span)?;
         expression.ty = Some(output);
         expression.target = Some(CallTarget::ResultUnwrap(error));
         Ok(Some(output))

@@ -1,18 +1,9 @@
-# Native deployment
+# Deployment research and original vision
 
-[Documentation index](../../README.md) · [Proposed roadmap](../../roadmap.md) · [Source section map](../../plans/section-map.md)
+Current user instructions: [Deploy a native backend](../../../website/src/content/docs/learn/first-service.md).
 
-## Workstream scope
-
-**Status:** Unresolved design/research. The grouping and phase below are proposed planning aids, not approved language semantics.
-
-**Proposed phase:** Backend proof.
-
-**Scope:** Define executable deployment and runtime resource requirements.
-
-**Planning deliverable:** A deployment checklist validated against a produced native server binary.
-
-**Dependencies to coordinate:** [toolchain-and-development](toolchain-and-development.md), [interop-and-targets](interop-and-targets.md), [async-and-runtime](../language/async-and-runtime.md)
+The material below preserves the original deployment proposals; it is not a claim
+that static linking or every destination environment is supported.
 
 ## Original vision sections
 

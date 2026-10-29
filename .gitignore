@@ -42,3 +42,11 @@ __pycache__/
 /tools/api-client-tests/.tmp-*/
 
 /generated-projects/*
+
+# Static public documentation build products.
+/website/node_modules/
+/website/.astro/
+/website/dist/
+
+# Generated from crates/tsrust-lsp/src/builtins.json before every docs build.
+/website/src/content/docs/reference/

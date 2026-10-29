@@ -12,7 +12,7 @@ Fixed-record object spread copies source fields and merges surrounding ordinary 
 
 Rest and record spread explicitly request copying. Ordinary bindings/fields do not gain implicit clones. Native nested owners copy independently, following existing slice/clone semantics; JavaScript shallow rest/spread shares nested references. Object-spread sources must be fixed records. Primitive, array, tuple, string, nullable and union sources are unsupported. Dynamic property names, symbols and nested rest targets are not implemented. Mixed-alternative default sorting remains unsupported by owner decision.
 
-See [the syntax guide](../guides/language/destructuring.md) for examples and diagnostics.
+See [the syntax guide](../../website/src/content/docs/language/destructuring.md) for examples and diagnostics.
 
 ## Focused evidence
 

@@ -90,6 +90,12 @@ pub(crate) fn borrows_receiver(value:&crate::syntax::Expr)->bool {
     if *id<usize::MAX/2{return false;}
     let [statement]=body.as_slice() else{return false;};
     let StmtKind::Return(Some(value))=&statement.kind else{return false;};
+    // Request JSON parsing wraps the same borrowed body read without extending its loan.
+    let value=if let ExprKind::Call(_,args)=&value.kind
+        && let Some(crate::syntax::Expr{kind:ExprKind::Call(callee,inputs),..})=args.first()
+        && matches!(&callee.kind,ExprKind::Name(name) if name=="@native:std:json#parse"){
+        let Some(value)=inputs.first()else{return false;};value
+    }else{value};
     let ExprKind::Call(_,arguments)=&value.kind else{return false;};
     let Some(crate::syntax::Expr{kind:ExprKind::Call(callee,inputs),..})=arguments.first()else{return false;};
     !matches!(inputs.first().map(|value|&value.kind),Some(ExprKind::Name(name)) if name.starts_with("future#"))

@@ -55,7 +55,8 @@ impl SourceProvider for PublicationInputs {
   let candidate=if Path::new(path).is_absolute(){PathBuf::from(path)}else if path.starts_with("./")||path.starts_with("../"){Path::new(&importer.ok_or("Relative generated import needs an importer")?.0).parent().unwrap().join(path)}else{return FileSourceProvider.resolve(importer,path);};
   let mut normalized=PathBuf::new();for part in candidate.components(){match part{std::path::Component::CurDir=>{},std::path::Component::ParentDir=>{normalized.pop();},other=>normalized.push(other.as_os_str())}}
   for candidate in [normalized.clone(),normalized.with_extension("tsr"),normalized.with_extension("tsrx"),normalized.join("index.tsr"),normalized.join("index.tsrx")] {let id=SourceId(candidate.to_string_lossy().into_owned());if self.files.contains_key(&id){return Ok(id);}}
-  FileSourceProvider.resolve(importer,path)
+  // Virtual publication directories need not exist while their imports are checked.
+  if importer.is_some_and(|id|self.files.contains_key(id)){FileSourceProvider.resolve(None,normalized.to_str().ok_or("Generated import path must be UTF-8")?)}else{FileSourceProvider.resolve(importer,path)}
  }
  fn read(&self,id:&SourceId)->Result<String,String>{self.files.get(id).cloned().map(Ok).unwrap_or_else(||FileSourceProvider.read(id))}
 }
@@ -283,6 +284,17 @@ fn build(root:&Path)->Result<String,String>{
 
 #[cfg(test)]mod tests{
  use super::*;
+ #[test]
+ fn virtual_publication_resolves_examples_before_output_exists(){
+  let temp=crate::TempDirectory::new().unwrap();let root=temp.0.canonicalize().unwrap();
+  fs::create_dir(root.join("src")).unwrap();fs::write(root.join("src/example.tsr"),"export const value=1;").unwrap();
+  let entry=SourceId(root.join("target/docs-content/catalog.tsr").to_string_lossy().into_owned());
+  let provider=PublicationInputs{entry:entry.clone(),files:BTreeMap::from([(entry.clone(),"import {value} from '../../src/example.tsr';".into())])};
+  let resolved=provider.resolve(Some(&entry),"../../src/example.tsr").unwrap();
+  assert_eq!(resolved.0,root.join("src/example.tsr").to_string_lossy());
+  assert!(provider.read(&resolved).unwrap().contains("value=1"));
+  assert!(!root.join("target").exists());
+ }
  #[test]
  #[cfg(any(unix,windows))]
  fn dev_publication_must_match_the_exact_snapshot_after_content_changes(){

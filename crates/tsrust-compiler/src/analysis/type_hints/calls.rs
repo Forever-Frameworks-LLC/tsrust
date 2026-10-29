@@ -79,7 +79,9 @@ fn regular<'a>(analyzer:&Analyzer,context:&Context,expr:&'a Expr,work:&mut Vec<W
         query(work,Frame::Result(Flavor::Wrapped),callee);return;
     }
     if let ExprKind::Name(name)=&callee.kind{
-        if name=="@native:std:result#unwrap" && arguments.len()==1 {query(work,Frame::Unwrap,&arguments[0]);return;}
+        // The global unwrap and the std:result import share one result hint.
+        let global_unwrap=name=="unwrap"&&!context.names.contains_key(name)&&!context.pending_names.contains(name)&&!analyzer.function_names.contains_key(name);
+        if (name=="@native:std:result#unwrap"||global_unwrap) && arguments.len()==1 {query(work,Frame::Unwrap,&arguments[0]);return;}
         if let Some((_,binding))=crate::native_bindings::by_symbol(name){
             if binding.module=="std:ui-runtime" && binding.name=="handle" && arguments.len()==1{query(work,Frame::Own,&arguments[0]);return;}
             *value=if matches!(binding.module,"std:threads"|"std:result"|"std:futures") || matches!(binding.result,crate::native_bindings::NativeType::SharedCallback|crate::native_bindings::NativeType::ObservedValue){None}else{Some(native_type(binding.result,&analyzer.program.records))};return;
@@ -310,5 +312,5 @@ pub(super) fn http_result(analyzer:&Analyzer,receiver:Option<Type>,member:&str,a
  if let Some(operation)=crate::stdlib::sql::method(identity,member){if crate::stdlib::sql::asynchronous(operation)!=awaited{return None;}let binding=crate::native_bindings::lookup("std:sql",operation).ok()?;let ty=native_type(binding.result,&analyzer.program.records);return Some(if awaited{unwrapped(analyzer,ty).unwrap_or(ty)}else{ty});}
  let operation=crate::stdlib::http::method(identity,member)?;
  if crate::stdlib::http::asynchronous(operation)!=awaited{return None;}
- let binding=crate::native_bindings::lookup("std:http",operation).ok()?;if binding.result==crate::native_bindings::NativeType::ObservedValue{return None;}let ty=native_type(binding.result,&analyzer.program.records);Some(unwrapped(analyzer,ty).unwrap_or(ty))
+ let binding=if operation=="__requestJson"{crate::native_bindings::lookup("std:json","parse").ok()?}else{crate::native_bindings::lookup("std:http",operation).ok()?};if binding.result==crate::native_bindings::NativeType::ObservedValue{return None;}let ty=native_type(binding.result,&analyzer.program.records);Some(unwrapped(analyzer,ty).unwrap_or(ty))
 }

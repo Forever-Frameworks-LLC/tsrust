@@ -82,7 +82,7 @@ jobs:
       - name: Packaging and documentation tests
         run: node --test tools/tests/distribution.test.mjs
       - name: Compile optimized consumers
-        run: cargo build --offline --locked --release --bin tsrust --bin tsrust-lsp
+        run: cargo build --offline --locked --release -p tsrust-compiler -p tsrust-lsp --bin tsrust --bin tsrust-lsp
       - name: Collect locked dependency notices
         run: cargo vendor --offline --locked --versioned-dirs --sync crates/tsrust-compiler/native-dependencies/Cargo.toml --sync crates/tsrust-compiler/backend-dependencies/Cargo.toml target/release-vendor > /dev/null
       - name: Package and test the distributed CLI and LSP

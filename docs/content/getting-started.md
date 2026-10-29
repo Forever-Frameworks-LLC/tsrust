@@ -5,8 +5,8 @@
 
 Install the compiler, create a project and choose its targets explicitly.
 
-- [Installation](/getting-started/installation)
-- [Project structure](/getting-started/project-structure)
+- [Installation](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/website/src/content/docs/start/installation.md)
+- [Project structure](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/website/src/content/docs/start/project-structure.md)
 - [Language](/language)
 - [CLI](/cli)
 - [Services](/framework)

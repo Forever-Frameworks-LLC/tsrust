@@ -1,26 +1,27 @@
 # Tsrust documentation
 
-Start with [installation](content/getting-started/installation.md), then create a
+Start with [installation](../website/src/content/docs/start/installation.md), then create a
 project and work through an [example](../examples/README.md). Tsrust is experimental;
 these guides distinguish supported behavior from planned work.
 
 ## Build an application
 
-- [Install the CLI and editor](content/getting-started/installation.md)
-- [Understand project structure](content/getting-started/project-structure.md)
-- [Use the CLI](guides/project-cli.md)
-- [Inspect and prepare native build tools](guides/tooling/machine-setup.md)
-- [Explore the standard library](guides/language/standard-library.md)
-- [Understand string semantics](guides/language/string-semantics.md)
+- [Install the CLI and editor](../website/src/content/docs/start/installation.md)
+- [Managed CLI/LSP installation and updates](../website/src/content/docs/tools/install-and-update.md)
+- [Create a backend HTTP application](../website/src/content/docs/learn/first-service.md)
+- [Understand project structure](../website/src/content/docs/start/project-structure.md)
+- [Use the CLI](../website/src/content/docs/tools/cli.md)
+- [Inspect and prepare native build tools](../website/src/content/docs/tools/rust-setup.md)
+- [Explore the standard library](../website/src/content/docs/library/overview.md)
+- [Understand string semantics](../website/src/content/docs/language/strings.md)
 - [Use collections](guides/collections.md)
-- [Work with Rust](guides/rust-packages.md)
-- [Configure UI themes](content/ui/foundations/theming.md)
-- [Browse component reference pages](content/ui/components/)
+- [Work with Rust](../website/src/content/docs/tools/rust-packages.md)
 - [Set up VS Code](../editors/vscode/README.md)
 
 ## Run the documentation app
 
-This directory is also a standalone UI project, with a shared web/native page.
+This directory retains the original standalone UI project, with a shared web/native page.
+It is outside the active backend product scope.
 `tsrust.config.json` declares the targets and theme. `src/main.tsr` mounts
 `src/app/page.tsrx`; editable components live under `src/components/ui/`.
 
@@ -32,9 +33,12 @@ tsrust dev --target native
 ```
 
 The landing page is at `/`; documentation starts at `/docs`. Install the
-[web prerequisites](content/getting-started/installation.md) first. The current
+[retained UI prerequisites](guides/tooling/retained-ui-setup.md) first. The current
 native custom titlebar requires macOS. The app and component library remain
 in development; a page destination does not imply a finished implementation.
+
+Retained UI references: [themes](content/ui/foundations/theming.md) and
+[components](content/ui/components/).
 
 ## Contribute
 

@@ -1,14 +1,9 @@
-# Missing native linker diagnostic
+# Missing native linker diagnostic: retained acceptance
 
-`build` and `run` require both the pinned Rust backend and the platform's native linker. The compiler can find rustup under the Cargo home even when the editor or shell omits that directory from PATH. Finding rustup does not make a missing native linker available.
-
-When Rust reports that its selected linker was not found, Tsrust now reports:
-
-> Native linker unavailable. Install the platform build tools and ensure the linker is on PATH. check/emit do not require a linker.
-
-The diagnostic includes Rust's actual backend error, including the linker name. No executable is produced or cached after the failure. Install the platform build tools or restore the linker directory to PATH before retrying. The compiler does not download or install those tools. `check` and `emit` still work without a native linker.
-
-Other generated-code rejections retain the compiler-defect message and now include the backend's error details. A missing linker is recognized from Rust's explicit `error: linker ... not found` diagnostic, rather than from every failure that mentions linking; genuine generated-code errors are not relabeled as setup failures.
+This record preserves the original diagnostic-repair evidence. Current user
+instructions are in [native build setup](../../../website/src/content/docs/tools/rust-setup.md#repair-a-missing-native-linker).
+The historical paths and case counts below describe that acceptance checkpoint,
+not the current suite or available build outputs.
 
 ## Evidence
 

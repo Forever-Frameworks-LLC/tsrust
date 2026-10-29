@@ -11,7 +11,7 @@ HTTP-described TypeScript/async Rust clients and OpenAPI, pinned-toolchain docto
 setup, and ordinary shared-Cargo-cache backend builds. Optional prepared portable packs
 and the reported Rust/editor diagnostic repair are also accepted; see
 [portable source packs and editor agreement](milestones/portable-source-packs-and-editor-agreement.md). See
-[machine setup](guides/tooling/machine-setup.md),
+[machine setup](../website/src/content/docs/tools/rust-setup.md),
 [async HTTP SDK acceptance](milestones/async-http-sdk.md) and
 [shared backend sources](milestones/shared-backend-sources.md).
 The [native docs development profile](milestones/native-docs-development-profile.md)
@@ -24,21 +24,20 @@ or update acceptance.
 1. Keep accepted compiler/LSP/editor agreement and repaired docs startup clean.
    Complete affected checks before each full-source checkpoint and keep installed
    consumers current after validation.
-2. Preserve accepted server-owned app/ API and independent SDK generation. Finish
-   actual Rust old/new native replica and protected-service coverage, retaining
-   auth, validation, bounded structured failures and rolling-deployment safety.
-3. Finish [checked request-body readers](plans/http-request-body-readers.md) and
-   async std:testing registration. Keep all HTTP I/O async; reuse form/multipart
-   readers and defer XML until a checked upstream parser is chosen.
-4. Finish shared-source dependency distribution: ordinary binding graphs must also
-   migrate to Cargo's shared sources. Optional prepared portable packs already replace
-   embedded vendors for the accepted backend/export section. Retain exact locks, ownership, complete notices/prerequisites,
-   relocation/offline parity and tooling-free deployment. Normal commands never
-   install or download silently.
-5. Deliver prebuilt paired CLI/LSP installation and explicit latest-stable checking/
-   updating. Verify trusted metadata, host/architecture and bytes; preserve package-
-   manager ownership, recover interrupted/failed replacement and handle locked
-   Windows binaries. Record real Windows/macOS/Linux execution separately.
+2. Preserve accepted server-owned app/ API and independent SDK generation. Native
+   old/new Rust and TypeScript replicas now cover protected services, authorization,
+   structured failures and rolling-deployment compatibility.
+3. Checked request-body readers and async std:testing registration have focused
+   compiler/native/editor acceptance. Keep all HTTP I/O async; defer XML until a
+   checked upstream parser is chosen. Request-body matched timing remains pending.
+4. Shared-source distribution includes ordinary schema 2 binding graphs, exact
+   locks and optional validated portable exports. Schema 1 preserves its legacy
+   graph. Normal commands never install or download silently.
+5. Paired CLI/LSP install, check, update and rollback are implemented with trusted
+   metadata, bounded archive validation, immutable version directories and atomic
+   pair selection. Package-manager ownership and recovery have focused macOS
+   evidence. Complete Windows/Linux and actual published-artifact acceptance before
+   claiming cross-platform distribution complete.
 
 Use [current progress](agent-progress.md) for live sessions, completed checks and
 next executable actions. Reserve full compiler/LSP regressions and matched
@@ -223,7 +222,7 @@ platforms and installation trust are never described as complete.
 
 **Regression repairs before gate 101:** [Callable and depth regression repairs](./milestones/callable-regression-repairs.md) fix forwarded mutable callbacks, nullable callable and capture lowering, lost arrow parameter diagnostics and normal-stack depth, and migrate fixtures that still assumed borrowed callable defaults. Targeted suites only.
 
-**Completed call-spread focused implementation:** [Milestone 100](./milestones/100-call-spread.md) accepts dense homogeneous call spread across current callable and built-in targets, with a verified [guide](guides/language/call-spread.md) and thirteen registered comparisons verified untimed. [Evidence](../benchmarks/runtime/diagnostics/gate100-call-spread-implementation.json) lists focused checks and outstanding items. Gate 99 is closed; full regression and accumulated measurements remain deferred to a completed feature-family milestone.
+**Completed call-spread focused implementation:** [Milestone 100](./milestones/100-call-spread.md) accepts dense homogeneous call spread across current callable and built-in targets, with a verified [guide](https://forever-frameworks-llc.github.io/tsrust/language/call-spread/) and thirteen registered comparisons verified untimed. [Evidence](../benchmarks/runtime/diagnostics/gate100-call-spread-implementation.json) lists focused checks and outstanding items. Gate 99 is closed; full regression and accumulated measurements remain deferred to a completed feature-family milestone.
 
 **Closed rest-parameter gate:** [Milestone 99](./milestones/99-rest-parameters.md) has focused acceptance for homogeneous owning rest packs across current callable contexts. [Evidence](../benchmarks/runtime/diagnostics/gate99-rest-parameter-implementation.json) preserves integrated checks and 13 registered comparisons; [Exact archival and gate closure](../benchmarks/runtime/diagnostics/gate99-focused-closure.json) are complete. Full regression and measurements are queued for checkpoint 101.
 
@@ -297,7 +296,7 @@ This is a proposed sequence for scoping work, not a commitment to implement ever
 
 **Performance work:** Use standard Rust structures and methods first, with edge tests and accurately matched benchmarks. Historical primitive tuning and UTF-16 comparisons remain archived; the user does not require general JavaScript semantic parity or every engine comparison to be a native win.
 
-**Completed string migration:** [Milestone 33](./milestones/33-native-utf8-strings.md) replaces the earlier UTF-16 implementation with standard Rust UTF-8 strings and methods. Obsolete runtime/cache/storage code is archived outside the crates. Compiler acceptance, equivalent-operation timing, allocation profiles, and primitive memory replay pass. See [string semantics](guides/language/string-semantics.md).
+**Completed string migration:** [Milestone 33](./milestones/33-native-utf8-strings.md) replaces the earlier UTF-16 implementation with standard Rust UTF-8 strings and methods. Obsolete runtime/cache/storage code is archived outside the crates. Compiler acceptance, equivalent-operation timing, allocation profiles, and primitive memory replay pass. See [string semantics](../website/src/content/docs/language/strings.md).
 
 **Completed numeric compound value gate:** [Milestone 68](./milestones/68-numeric-compound-assignment-values.md) accepts all twelve int and twelve Number compound operators across supported expression contexts. 629 compiler groups and 644 workspace groups pass; one wrapper-only focused repair retains three passes before the exact fourth-group retry. Twenty-four matched rows and seventy-two fully disposed profiles pass; native leads compiled Node on 24/24 rows and the fastest scripting runtime on 24/24. Earlier 410 tables, nine primitive memory tables and auxiliary baselines remain unchanged. Owned results and nullish operations remain pending.
 
@@ -415,7 +414,7 @@ This is a proposed sequence for scoping work, not a commitment to implement ever
 
 **Deliverables:** A native `/hello` endpoint, followed by a scoped typed-JSON/validation endpoint and middleware example. Use a restricted Rust wrapper boundary for required native dependencies. Add a database integration as a distinct follow-up slice.
 
-**Workstreams:** [Async/runtime](guides/language/async-and-runtime.md), [interop](guides/tooling/interop-and-targets.md), [serialization](guides/language/metadata-and-serialization.md), [HTTP/Hono](guides/language/http-and-hono.md), [validation](guides/language/validation.md), [databases](guides/language/databases.md), [deployment](guides/tooling/deployment.md), [migration](guides/tooling/source-migration.md), and [backend ecosystem](plans/backend-ecosystem.md).
+**Workstreams:** [Async/runtime](guides/language/async-and-runtime.md), [interop](guides/tooling/interop-and-targets.md), [serialization](guides/language/metadata-and-serialization.md), [HTTP/Hono](guides/language/http-and-hono.md), [validation](guides/language/validation.md), [databases](guides/language/databases.md), [deployment](../website/src/content/docs/backend/deployment.md), [migration](guides/tooling/source-migration.md), and [backend ecosystem](plans/backend-ecosystem.md).
 
 **Exit evidence:** Typed parsing rejects invalid input. Original compatibility tests cover the implemented routing and middleware subset. Tests exercise async captures, shared state, cancellation, and cleanup. Measure startup, binary size, memory, latency, throughput, and compile time with documented workloads.
 
@@ -870,7 +869,7 @@ B8 is accepted at gate 184 as a reconciliation without source changes. The gener
 
 B14 is closed by owner decision on 2026-10-10. Fallthrough between non-empty `switch` cases stays rejected with guidance; empty cases still share the next body. The inventory row carries `policy`. No compiler source changed.
 
-B9 (S04 project editor) is accepted at gate 185. Quick fixes can edit closed files while the disk text equals the checked text. Imported help survives unfinished strings, comments, bodies and imports, and import braces complete the exports of the named module. The gate also repairs a stack overflow that had aborted two compiler suites unnoticed since gate 182. See [the record](milestones/185-project-editor.md), [the map](milestones/b9-project-editor-acceptance-map.md) and [the guide](guides/tooling/project-editor.md). B10 is next in the ledger.
+B9 (S04 project editor) is accepted at gate 185. Quick fixes can edit closed files while the disk text equals the checked text. Imported help survives unfinished strings, comments, bodies and imports, and import braces complete the exports of the named module. The gate also repairs a stack overflow that had aborted two compiler suites unnoticed since gate 182. See [the record](milestones/185-project-editor.md), [the map](milestones/b9-project-editor-acceptance-map.md) and [the guide](../website/src/content/docs/start/editor.md#edit-imports-and-unsaved-dependencies). B10 is next in the ledger.
 
 
 B10/S06 is accepted at gate 186: tagged Result, exhaustive statement match, explicit

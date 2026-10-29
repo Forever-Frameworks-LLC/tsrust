@@ -2,11 +2,11 @@
 
 [Documentation index](../../README.md) · [Proposed roadmap](../../roadmap.md) · [Source section map](../../plans/section-map.md)
 
-## Workstream scope
+## Current implementation and retained planning
 
-**Implementation decision:** The compiler is written in Rust; the future language server will also use Rust. They share the [analysis library](../../../crates/tsrust-compiler/README.md). `tsrust` translates `.tsr` to `.rs`; `rustc` compiles that output into a native executable. Python is not part of the compilation pipeline. The language server is not implemented yet.
+**Implementation decision:** The compiler and implemented language server are written in Rust. They share the [analysis library](../../../crates/tsrust-compiler/README.md). `tsrust` translates `.tsr` to `.rs`; `rustc` compiles that output into a native executable. Python is not part of the compilation pipeline. The language server provides project diagnostics, recovery, completion and navigation using the shared compiler. See [editor setup](../../../website/src/content/docs/start/editor.md).
 
-**Status:** Unresolved design/research. The grouping and phase below are proposed planning aids, not approved language semantics.
+**Planning status:** The workstream framing below is retained research. It does not describe missing current compiler/editor functionality; use the linked implementation and editor guides for current behavior.
 
 **Proposed phase:** Core proof.
 

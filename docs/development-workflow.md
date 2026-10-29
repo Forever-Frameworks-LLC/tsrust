@@ -51,6 +51,21 @@ reserved for meaningful feature-family milestones.
 
 When backend witnesses can share a native compilation, compile them together in isolated modules with their original assertions and run them in one executable. Keep case identity in generated source so failures remain attributable. Preserve evaluation-order, ownership, failure and output assertions; batching must not reduce coverage.
 
+## Offline package-management test preparation
+
+The binding/package-management tests use exact crate versions beyond the runtime
+lock (including an explicit old-to-new update witness). Before running those
+groups on a clean machine, prepare their separate locked source closure:
+
+```sh
+cargo fetch --locked --manifest-path crates/tsrust-compiler/tests/dependencies/Cargo.toml
+```
+
+Tests continue to execute offline. Do not replace the version-update witness with
+whatever version happens to be cached. Keep `TSRUST_SOURCE_PACK_DIR` fixed across
+portable setup and tests that deliberately replace `CARGO_HOME`; CI uses
+`target/portable-source-packs` under the checkout.
+
 ## Rust editor agreement at milestones
 
 For changes to CLI helpers or shared Rust source, include every compiler/LSP target
@@ -190,6 +205,12 @@ Each hover description must include:
 6. A short ownership note after the behavioral explanation.
 
 Do not substitute generic implementation descriptions for behavior. Follow current compiler semantics rather than copying JavaScript documentation. Keep catalog signatures, parameter labels and descriptions consistent with compiler arity/type rules and actual editor responses.
+
+Catalog compiler/native acceptance in `tests/intelligence.rs` has separate
+`backend_catalog_*` and `retained_ui_catalog_*` tests. Both remain in the default
+suite, with unchanged assertions. Backend-only work can select the backend tests;
+record retained UI failures separately rather than expanding the product scope or
+claiming the complete suite passes. Every family belongs to one of the two groups.
 
 Keep executable example source and expected stdout in each entry's `examples` array where applicable. Check examples with the current compiler and execute generated native code when output matters. Reuse focused acceptance fixtures for boundary/error examples when practical. Include the changed catalog entry identities, checked examples, native outputs and affected editor protocol checks in gate evidence. Prose review is still required: a schema or a passing example alone cannot prove all semantic claims.
 

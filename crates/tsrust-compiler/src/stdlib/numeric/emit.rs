@@ -1,6 +1,7 @@
 use crate::{analysis::CheckedProgram,native_bindings::{NativeBinding,NativeBackend,NativeType},native_signatures::NativeTypeId,syntax::Type};
 pub(crate) const RUNTIME:&str=include_str!("runtime.rs");
-pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding)->String {
+pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding,ordered:&std::collections::HashSet<usize>)->String {
+ let order=|id|crate::records::runtime::declaration_order_suffix(program,ordered,id);
  let NativeType::Structured(signature)=binding.result else {unreachable!()};
  let Type::Union(result)=crate::native_binding_types::resolve(&program.records,signature).expect("numeric result") else {unreachable!()};
  let members=&program.unions[result.index()].members;
@@ -21,5 +22,6 @@ pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding)->String {
  "checkUnsigned"=>("value:i64,bits:i64".into(),"tsrust_numeric::check_unsigned(value,bits)".into()),
  "parseInt"=>("text:&String".into(),"tsrust_numeric::parse_int(text.as_ref())".into()),_=>unreachable!()};
  let NativeBackend::Bundled{symbol}=binding.backend;
- format!("fn {symbol}({parameters})->Union{result}{{match {call}{{Ok(value)=>Union{result}::V{ok_tag}(Record{ok}{{field0:value}}),Err((code,message))=>Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(code),field1:String::Borrowed(message)}}}})}}}}",result=result.index(),ok_tag=tag(ok),err_tag=tag(err))
+ let (ok_order,err_order,error_order)=(order(ok),order(err),order(error));
+ format!("fn {symbol}({parameters})->Union{result}{{match {call}{{Ok(value)=>Union{result}::V{ok_tag}(Record{ok}{{field0:value{ok_order}}}),Err((code,message))=>Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(code),field1:String::Borrowed(message){error_order}}}{err_order}}})}}}}",result=result.index(),ok_tag=tag(ok),err_tag=tag(err))
 }

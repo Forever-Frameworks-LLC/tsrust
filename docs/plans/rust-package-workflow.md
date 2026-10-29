@@ -1,7 +1,7 @@
 # Rust package workflow requirements
 
 The package-management CLI implements the workflow described in
-[package commands](../guides/rust-packages.md). The accepted bridge provides
+[package commands](../../website/src/content/docs/tools/rust-packages.md). The accepted bridge provides
 explicit Rust declarations, dependency resolution and owned data adapters. Its JSON
 manifest is dependency configuration, not a second handwritten signature language.
 

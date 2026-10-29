@@ -159,7 +159,7 @@ pub fn documentation(class:&str)->String {
   ("Controls inherited text flow or adds a local underline. whitespace-normal collapses spaces, tabs and segment breaks and allows wrapping; whitespace-nowrap collapses them and prevents soft wraps. whitespace-pre preserves whitespace and hard breaks without soft wraps; whitespace-pre-wrap preserves whitespace with soft wrapping, the project default. No text value or editable value is mutated. Selection uses displayed text. Input and Textarea keep their editing whitespace rules. underline/no-underline adds/removes this element's underline; ancestor decorations remain. underline-offset-auto uses font metrics; -0/1/2/4/8 uses that many logical pixels below the baseline, independent of theme spacing. Later matching classes win per property. Native font metrics and rasterization can differ from browser fonts. No ownership change.",format!("<Text className=\"{class}\">Ready to ship</Text>"))
  }else if layout::aspect(token).is_some() {
   ("Sets a preferred width/height ratio on a layout box; inline text runs have no separate ratio box. aspect-square uses 1, aspect-video uses 16/9, aspect-[W/H] and aspect-[R] accept finite positive numbers, and aspect-auto removes the preference. Invalid, zero, negative, nonfinite or native-overflow/underflow ratios reject. Both targets normalize the ratio to f32 logical layout precision. A definite width with automatic height derives height; two explicit dimensions win. Min/max dimensions constrain the result. Children can overflow unless clipping/scrolling is requested. No accessibility role or ownership change. Later matching aspect classes win.",format!("<View className=\"w-64 {class}\" />"))
- }else if matches!(token,"relative"|"absolute") || layout::resolve(token,&default).is_some_and(|values|values.iter().any(|value|matches!(value,Utility::Inset(_,_)))) {
+ }else if matches!(token,"relative"|"absolute") || layout::offset(token,&default).is_some() {
   ("Positions a layout box within its immediate UI parent. Every UI box establishes a containing block. relative keeps normal flow; absolute removes the box from flow. top/right/bottom/left and inset/inset-x/inset-y set sides independently; auto clears a side. Spacing uses project tokens, fractions/full use the parent's corresponding dimension, and a leading minus negates a numeric/fraction offset. Later matching classes win independently per side. A definite parent size is needed for predictable percentage placement. Inline text descendants reject box utilities. Paint order, clipping and keyboard order remain source order; z-index, fixed/sticky positioning and transforms are unsupported. No ownership change.","<View className=\"relative w-64 h-32\"><View className=\"absolute top-2 right-2 w-8 h-8\" /></View> // 8px from the parent's top/right at default spacing".to_string())
  }else if matches!(token,"opacity-0"|"opacity-50"|"opacity-100"|"outline-none"|"cursor-auto"|"cursor-text"|"cursor-not-allowed"|"select-none"|"pointer-events-none"|"pointer-events-auto"|"field-sizing-content") {
   ("opacity-0/50/100 selects whole-subtree paint opacity 0/0.5/1 without changing layout, focus or accessibility. outline-none removes the fallback focus outline; supply a visible focus ring when using it. cursor-auto/text/not-allowed chooses the pointer cursor. pointer-events-none/auto removes/restores pointer targeting and is inherited; keyboard focus stays available. select-none prevents selection of static content, while editable fields keep editing selection. field-sizing-content makes Textarea height follow wrapped content/placeholder subject to min/max bounds; other nodes ignore it. No function arguments. Later matching classes override the same property.",format!("<Input className=\"{class}\" aria-label=\"Name\" />"))
@@ -200,6 +200,18 @@ pub fn documentation(class:&str)->String {
 
 #[cfg(test)] mod layout_tests {
  use super::*;
+ #[test] fn spacing_variable_documentation_keeps_its_own_resolution() {
+  for prefix in ["p","px","py","pt","pr","pb","pl","gap","gap-x","gap-y"] {
+   for variant in ["","md:","data-[size=sm]:"] {
+    let class=format!("{variant}{prefix}-(--panel)");
+    let help=documentation(&class);
+    assert!(help.contains("inherited numeric spacing variable"),"{class}: {help}");
+    assert!(help.contains("var(--panel,0px)"),"{class}: {help}");
+   }
+  }
+  assert!(documentation("[--panel:--spacing(4)]").contains("--panel:16px"));
+  assert!(documentation("p-(--)").is_empty());
+ }
  #[test] fn table_header_height_uses_the_shared_spacing_scale() {
   assert!(tokens().iter().any(|token|token=="h-10"));
   let mut theme=Theme::default();

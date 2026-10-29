@@ -21,9 +21,11 @@ omits Cargo's bin directory. The same pinned backend is used in every case.
 
 The backend version is compiled into the CLI as `RUST_BACKEND_VERSION`. A test checks that it agrees with the repository pin. This ensures an installed CLI retains its backend requirement when run outside this repository.
 
-Generated programs have two explicit compilation profiles. `tsrust build/run` defaults to `-C opt-level=0`; `--release` selects `-C opt-level=3`. Both pass `-C overflow-checks=on`. These settings are independent of the Cargo profile used to build the compiler executable. The release profile matches the runtime benchmark optimization level and preserves the language's checked arithmetic and bounds behavior. `check` and `emit` do not accept `--release`, since they do not compile a native program.
+Backend programs have two explicit compilation profiles. `tsrust build/run` defaults to `-C opt-level=0`; `--release` selects `-C opt-level=3`. Both pass `-C overflow-checks=on`. These settings are independent of the Cargo profile used to build the compiler executable. The release profile matches the runtime benchmark optimization level and preserves the language's checked arithmetic and bounds behavior. `check` and `emit` do not accept `--release`, since they do not compile a native program.
 
-The [profile integration proof](../../../benchmarks/runtime/diagnostics/2026-10-01T21-40-05-681Z-cli-release-profile-proof.json) records all 22 passing CLI acceptance tests, formatting, Clippy, and the release compiler build. Fresh emission and adapter checks for all 50 runtime workloads match the published production run exactly. This CLI change supplies optimized native builds; it does not create new throughput measurements or resolve the remaining slice-storage gaps.
+The retained native UI has a separate development profile (application level 1
+and dependency level 2). It is outside the active backend product scope; do not
+infer its settings from the backend defaults.
 
 Rustup's repository toolchain file selects a default, but explicit command-line and environment overrides can take precedence. The backend therefore uses an explicit versioned command instead of relying on the current working directory. See the [official Rustup override documentation](https://rust-lang.github.io/rustup/overrides.html).
 
@@ -31,17 +33,15 @@ Cargo's `rust-version` field expresses a minimum supported version; it is not an
 
 ## Setup and verification
 
-Contributors need Rustup and the pinned toolchain:
+Contributors need Rustup, the pinned toolchain, a platform linker and the locked
+dependency sources. Follow [contributor setup](../../../CONTRIBUTING.md#set-up)
+for separate workspace/backend/portable graphs and targeted checks. Offline builds
+require those sources to be prepared; this is not a dependency-free workspace.
 
-```sh
-rustup toolchain install 1.96.1 --profile minimal --component rustfmt --component clippy
-rustup show active-toolchain
-cargo test --offline
-cargo fmt --all --check
-cargo clippy --offline --all-targets -- -D warnings
-```
-
-The install command may need network access. Once the toolchain and components are installed, this dependency-free workspace can build and test offline. Rustup itself may install missing components when a contributor invokes Cargo under the repository pin; that is separate from the `tsrust` CLI, which never requests installation.
+Rustup may install missing tools when invoked under the repository pin. Ordinary
+`tsrust check`, `emit`, `build` and `run` do not install tools or fetch sources.
+Explicit `tsrust setup` can prepare the pinned toolchain and dependencies with
+consent; see [native-tool setup](../../../website/src/content/docs/tools/rust-setup.md).
 
 Tests cover agreement between the two pins, compilation outside the repository with conflicting directory/environment overrides, and missing-backend errors. Native acceptance and handwritten-witness checks also select the pinned Rust release explicitly.
 
@@ -57,12 +57,14 @@ Upgrade Rust intentionally alongside a compiler change:
 
 The release pin also fixes the associated Rust standard library for the selected target. It does not alone make builds bit-for-bit reproducible: OS SDKs, system linkers/libraries, target settings, build flags, and future dependencies must also be controlled. Keep `Cargo.lock` with the source.
 
-## Bundling: planned distribution work
+## Distribution boundaries
 
-Do not vendor compiler binaries into this source repository. For the prototype, reuse Rustup's versioned installations. This avoids building a downloader, update mechanism, and platform-specific distribution system before the language is proven.
+The [managed installer](../../../website/src/content/docs/tools/install-and-update.md)
+installs and updates a verified CLI/LSP pair. It does not install Rust or change
+Rustup defaults. `tsrust setup --toolchain --yes` explicitly prepares the pinned
+backend through Rustup; a system linker/SDK remains a separate prerequisite.
 
-For an end-user release, prefer an installer-managed backend associated with each `tsrust` release. It could reuse a verified compatible installation or download a versioned backend to an application-managed directory. Offline distributions could include the same artifacts. The CLI would resolve that managed compiler directly rather than require users to manage Rustup.
-
-That work must define artifact checksums/provenance, supported host and target combinations, standard-library/sysroot contents, linker/SDK requirements, redistribution notices, offline packaging, rollback, and cache cleanup. Bundling only the `rustc` executable would not provide a complete native toolchain.
-
-Bundling is not implemented. The current contract requires Rustup for native builds; the compiler, analyzer, and tests remain Rust applications.
+Bundling Rust binaries/sysroots into a Tsrust-managed toolchain is not implemented.
+Portable source packs contain verified build inputs and notices, not Rust compiler
+binaries. Keep those two distribution concerns separate. Shipping only `rustc`
+would not provide a complete native toolchain.

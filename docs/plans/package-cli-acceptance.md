@@ -1,10 +1,18 @@
 # Package CLI acceptance
 
 Implemented commands: add, update, features, packages and remove. Public usage and
-transaction limits are documented in [Rust packages](../guides/rust-packages.md).
+transaction limits are documented in [Rust packages](../../website/src/content/docs/tools/rust-packages.md).
 Package operations create/update configuration; no handwritten JSON or Cargo.toml
 is required. The regex example is migrated by the actual CLI and gains two executable
 acceptance tests.
+
+## Historical acceptance scope
+
+The records below describe their original source checkpoint, including its former
+vendoring behavior. Current ordinary builds use shared Cargo sources; portable
+vendoring is explicit. Offline integration fixtures retain regex 1.12.2,
+proc-macro2 1.0.107 and unicode-ident 1.0.26/1.0.27. Do not infer current behavior
+from the historical vendoring observations below.
 
 ## Focused source checks
 

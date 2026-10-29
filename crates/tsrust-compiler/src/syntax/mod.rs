@@ -1775,6 +1775,8 @@ pub struct FunctionApplication {
 pub struct Program {
     pub(crate) diagnostic_first: Option<Span>,
     pub(crate) diagnostic_skips: std::collections::HashSet<usize>,
+    /// Compiler-generated continuation statements may be omitted after definite exit.
+    pub(crate) generated_continuations: std::collections::HashSet<usize>,
     /// Diagnostic replay: declared-result functions whose failed return was skipped.
     pub(crate) diagnostic_contracts: std::collections::HashSet<usize>,
     pub(crate) unresolved_local_function: Option<Token>,
@@ -2311,6 +2313,7 @@ impl Parser<'_> {
         let mut program = Program {
             diagnostic_first: None,
             diagnostic_skips: Default::default(),
+            generated_continuations: Default::default(),
             diagnostic_contracts: Default::default(),
             unresolved_local_function: None,
             local_declarations: Vec::new(),
@@ -2381,9 +2384,12 @@ impl Parser<'_> {
                         callable_declaration: None,
                         optional,
                     });
-                    self.expect(";")?;
+                    // Same separators as interfaces: `;` or `,`, optional after the last field.
+                    if !self.accept(";") && !self.accept(",") && !self.is("}") {
+                        self.expect(";")?;
+                    }
                 }
-                self.expect(";")?;
+                self.accept(";");
                 program.records.push(Record {
                     native_type: None, map_definition: None, set_definition: None,                    enum_definition: None,literal_definition:None,
                     name,
