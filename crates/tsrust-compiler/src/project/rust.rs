@@ -151,7 +151,7 @@ pub(super) fn bindings(provider:&impl SourceProvider,source:SourceFile)->Result<
   let lock=SourceFile{text:provider.read(&lock_id).map_err(fail)?,id:lock_id};(lock.text.clone(),vec![native.clone(),lock])
  };
  let mut module=module(native)?;
- module.rust.as_mut().unwrap().package=Some(binding.package(Path::new(&source.id.0),lock));
+ module.rust.as_mut().unwrap().package=Some(binding.package(lock));
  module.source=source;
  Ok((module,std::mem::take(&mut inputs)))
 }

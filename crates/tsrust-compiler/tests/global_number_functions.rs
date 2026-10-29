@@ -83,3 +83,14 @@ fn global_number_names_keep_static_contracts() {
         support::reject(source, code);
     }
 }
+
+// Copy unions are matched by reference; Rust previously rejected `*payload`
+// against a by-value match for Number(int | undefined).
+#[test]
+fn number_converts_copy_union_values() {
+    support::execute(
+        "function f(): int | undefined { return undefined; }\nfunction g(): int | null { return 4; }\nfunction main() {\n  const missing = f();\n  console.log(Number(missing), Number(g()));\n}\n",
+        "NaN 4\n",
+        None,
+    );
+}

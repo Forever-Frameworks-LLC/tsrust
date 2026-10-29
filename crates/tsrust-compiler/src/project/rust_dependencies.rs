@@ -28,11 +28,11 @@ pub fn reserved(name:&str)->bool {
     ].contains(&name)
 }
 #[derive(Clone,Debug,Deserialize,Serialize)]
-pub struct Package {pub manifest:String,pub lock:String,pub vendor:PathBuf,pub crates:Vec<String>}
+pub struct Package {pub manifest:String,pub lock:String,pub crates:Vec<String>}
 impl Bindings {
  pub fn parse(text:&str)->Result<Self,String>{
   let value:Self=serde_json::from_str(text).map_err(|error|error.to_string())?;
-  if value.schema_version!=1 || !value.source.ends_with(".rs"){return Err("Bindings require schemaVersion 1 and a relative .rs source.".into());}
+  if !matches!(value.schema_version,1|2) || !value.source.ends_with(".rs"){return Err("Bindings require schemaVersion 1 (legacy) or 2 (backend) and a relative .rs source.".into());}
   if Path::new(&value.source).is_absolute(){return Err("Binding source must be relative.".into());}
   for (name,dependency) in &value.dependencies {
    if name.is_empty() || !name.bytes().all(|byte|byte.is_ascii_alphanumeric() || b"_-".contains(&byte)) || syn::parse_str::<syn::Ident>(&name.replace('-',"_")).is_err() || reserved(name) {return Err(format!("Invalid or reserved dependency name {name}."));}
@@ -42,12 +42,13 @@ impl Bindings {
  }
  pub fn manifest(&self)->String {
   let dependencies=self.dependencies.iter().map(|(name,dependency)|format!("{name} = {{ version = {:?}, features = [{}], default-features = {} }}\n",dependency.version,dependency.features.iter().map(|feature|format!("{feature:?}")).collect::<Vec<_>>().join(","),dependency.default_features)).collect::<String>();
-  include_str!("../../native-dependencies/Cargo.toml").replace("\n[features]",&format!("\n{dependencies}\n[features]"))
+  // The schema fixes the runtime graph; never infer it from incidental lock contents.
+  let base=if self.schema_version==1{include_str!("../../native-dependencies/Cargo.toml")}else{include_str!("../../backend-dependencies/Cargo.toml")};
+  base.replace("\n[features]",&format!("\n{dependencies}\n[features]"))
  }
  pub fn lock_path(path:&Path)->PathBuf{path.with_extension("lock")}
- pub fn package(&self,path:&Path,lock:String)->Package {
-  use std::hash::{Hash,Hasher};let manifest=self.manifest();let mut hash=std::collections::hash_map::DefaultHasher::new();manifest.hash(&mut hash);lock.hash(&mut hash);
-  Package{manifest,lock,vendor:path.parent().unwrap().join("target/tsrust-native/bindings").join(format!("{:016x}",hash.finish())).join("vendor"),crates:self.dependencies.keys().map(|name|name.replace('-',"_")).collect()}
+ pub fn package(&self,lock:String)->Package {
+  Package{manifest:self.manifest(),lock,crates:self.dependencies.keys().map(|name|name.replace('-',"_")).collect()}
  }
 }
 pub const MARKER:&str="// tsrust-binding-package ";
@@ -58,10 +59,19 @@ pub const MARKER:&str="// tsrust-binding-package ";
   for line in section.lines().filter(|line|!line.trim().is_empty()) {let name=line.split_once('=').unwrap().0.trim();assert!(reserved(name),"unprotected runtime dependency {name}");}
  }
 
+ #[test]fn binding_graphs_are_path_independent_and_preserve_legacy_locks(){
+  let binding=Bindings::parse(r#"{"schemaVersion":2,"source":"./adapter.rs","dependencies":{}}"#).unwrap();
+  assert!(!binding.manifest().contains("vello ="));
+  let mut legacy_binding=binding.clone();legacy_binding.schema_version=1;
+  let legacy=legacy_binding.package(include_str!("../../native-dependencies/Cargo.lock").into());
+  assert!(legacy.manifest.contains("vello ="));
+  assert!(!serde_json::to_string(&legacy).unwrap().contains("vendor"));
+ }
+
  #[test]fn binding_dependencies_are_explicit_exact_and_closed(){
   let value=Bindings::parse(r#"{"schemaVersion":1,"source":"./adapter.rs","dependencies":{"regex":{"version":"=1.12.2","features":["unicode"],"defaultFeatures":false}}}"#).unwrap();
   assert!(value.manifest().contains("regex = { version = \"=1.12.2\", features = [\"unicode\"], default-features = false }"));
   for version in ["=1","=1.2","=","=1.2.x"]{let mut invalid=value.clone();invalid.dependencies.get_mut("regex").unwrap().version=version.into();assert!(Bindings::parse(&serde_json::to_string(&invalid).unwrap()).is_err());}
-  for text in [r#"{"schemaVersion":2,"source":"./a.rs","dependencies":{}}"#,r#"{"schemaVersion":1,"source":"./a.rs","dependencies":{"regex":{"version":"1"}}}"#,r#"{"schemaVersion":1,"source":"./a.rs","dependencies":{"regex":{"version":"=1","path":"../escape"}}}"#]{assert!(Bindings::parse(text).is_err());}
+  for text in [r#"{"schemaVersion":3,"source":"./a.rs","dependencies":{}}"#,r#"{"schemaVersion":1,"source":"./a.rs","dependencies":{"regex":{"version":"1"}}}"#,r#"{"schemaVersion":1,"source":"./a.rs","dependencies":{"regex":{"version":"=1","path":"../escape"}}}"#]{assert!(Bindings::parse(text).is_err());}
  }
 }

@@ -1,6 +1,12 @@
 //! Shared runtime build preparation; callers own subprocess supervision.
 use std::{fs,path::{Path,PathBuf},process::Command};
 use tsrust_compiler::{native_cache::NativeCache,native_runtime};
+// MSVC link.exe rejects deep output paths; Rust's bundled LLVM linker supports them.
+pub(crate) const MSVC_LINKER_FLAG:&str="-Clinker-flavor=lld-link";
+pub(crate) fn exported_linker_config()->String {
+ format!("\n[target.'cfg(all(target_os = \"windows\", target_env = \"msvc\"))']\nrustflags = [{:?}]\n",MSVC_LINKER_FLAG)
+}
+
 fn artifact_override(key:&str)->bool {
  key.starts_with("CARGO_PROFILE_") || (key.starts_with("CARGO_BUILD_") && key!="CARGO_BUILD_JOBS") || key.starts_with("CARGO_TARGET_") || matches!(key,"RUSTFLAGS"|"CARGO_ENCODED_RUSTFLAGS"|"RUSTC"|"RUSTC_WRAPPER"|"RUSTC_WORKSPACE_WRAPPER")
 }
@@ -46,6 +52,7 @@ impl Prepared {
   use crate::native_dependency_bundle as bundle;
   let absolute_root=crate::absolute(root)?;let root=absolute_root.as_path();
   let packages=crate::rust_binding_packages::packages(runtime)?;
+  let binding=crate::rust_binding_packages::checked(&packages)?;
   let shared=crate::backend_sources::shared(runtime)?;
   let dependency_identity=if shared{crate::backend_sources::IDENTITY}else{bundle::IDENTITY};
   let shared_inputs=if shared{Some(crate::backend_sources::identity(root)?)}else{None};
@@ -58,20 +65,18 @@ impl Prepared {
    return Ok(Self{application,library:Some(restored.join("libtsrust_runtime.rlib")),command:None,state:"hit",shared_sources:shared,source_snapshot:shared_inputs.map(|inputs|(root.to_owned(),inputs)),cache:Some(cache),opportunistic,dependencies:Some(restored),packed:Some(packed),_workspace:None});
   }
   let native_ui=runtime.contains("pub mod tsrust_native_ui {") && runtime.contains("use vello::");
-  let identity=serde_json::to_vec(&("native-build-workspace-1",dependency_identity,backend,std::env::consts::OS,std::env::consts::ARCH,release,profiles(native_ui))).map_err(|e|e.to_string())?;
-  // Resolved binding overlays retain their own source/cache protocol. Ordinary
-  // backend dependencies use shared Cargo sources and one stable target across
-  // runtime revisions. The retained UI and binding export paths still use vendors.
-  let workspace=if packages.is_empty(){crate::native_workspace::Workspace::acquire(root,&identity,opportunistic)?}else{None};
+  let mut identity=serde_json::to_vec(&("native-build-workspace-1",dependency_identity,backend,std::env::consts::OS,std::env::consts::ARCH,release,profiles(native_ui))).map_err(|e|e.to_string())?;
+  if let Some(binding)=binding{identity.extend(serde_json::to_vec(&(&binding.manifest,&binding.lock)).map_err(|e|e.to_string())?);}
+  let workspace=crate::native_workspace::Workspace::acquire(root,&identity,opportunistic)?;
   let build_root=workspace.as_ref().map(|workspace|workspace.root.as_path()).unwrap_or(temporary);
   let package=build_root.join("native-support");
+  let (input_manifest,input_lock)=binding.map_or((crate::backend_sources::MANIFEST,crate::backend_sources::LOCK),|p|(p.manifest.as_str(),p.lock.as_str()));
   if workspace.is_none() || !package.exists(){
-   if shared{crate::backend_sources::materialize(&package)?;}else{bundle::materialize(&package).map_err(|e|e.to_string())?;}
+   if shared{crate::backend_sources::materialize_with(&package,input_manifest,input_lock)?;}else{bundle::materialize(&package).map_err(|e|e.to_string())?;}
   }
-  if shared{crate::backend_sources::validate(&package)?;}
-  crate::rust_binding_packages::overlay(&package,&packages)?;
+  if shared{crate::backend_sources::validate(&package,input_lock)?;}
   let manifest=package.join("Cargo.toml");
-  let mut text=if shared{crate::backend_sources::MANIFEST.to_owned()}else if packages.is_empty(){include_str!("../../native-dependencies/Cargo.toml").to_owned()}else{fs::read_to_string(&manifest).map_err(|e|e.to_string())?};
+  let mut text=if shared{input_manifest.to_owned()}else{include_str!("../../native-dependencies/Cargo.toml").to_owned()};
   text.push_str("\n[lib]\nname = \"tsrust_runtime\"\n");
   text.push_str(profiles(native_ui));
   crate::native_workspace::write_changed(&manifest,text)?;crate::native_workspace::write_changed(&package.join("src/lib.rs"),runtime)?;
@@ -84,6 +89,7 @@ impl Prepared {
   // those would change artifacts without changing the verified cache identity.
   // The job limit only controls scheduling, so retain the caller's memory bound.
   for (name,_) in std::env::vars_os() {if artifact_override(&name.to_string_lossy()) {command.env_remove(name);}}
+  if cfg!(all(windows,target_env="msvc")){command.env("CARGO_ENCODED_RUSTFLAGS",MSVC_LINKER_FLAG);}
   if runtime.contains("pub mod tsrust_native_threads {") || runtime.contains("pub use rayon;") { command.args(["--features", "threads"]); }
   if runtime.contains("pub mod tsrust_native_futures {") {command.args(["--features","async"]);}
   if runtime.contains("pub mod tsrust_native_http {"){command.args(["--features","http"]);}
@@ -108,7 +114,7 @@ impl Prepared {
    if crate::native_dependency_bundle::pack(library,dependencies,packed).is_err(){return;}packed
   }else{library};let _=if self.opportunistic{cache.try_publish(artifact)}else{cache.publish(artifact)};}}
  pub fn compilation_error(&self,detail:&str)->String {
-  let hint=if self.shared_sources && (detail.contains("offline") || detail.contains("no matching package")) {"\nPrepare missing sources explicitly with `tsrust setup --dependencies --yes`, or use `--offline` with a populated Cargo home. Native builds never fetch sources."}else{""};
+  let hint=if self.shared_sources && (detail.contains("offline") || detail.contains("no matching package")) {"\nPrepare missing sources explicitly with `tsrust setup --dependencies --yes`, or use `--offline` with a populated Cargo home. For binding dependencies, run `tsrust bindings resolve <file.bindings.json>` instead. Native builds never fetch sources."}else{""};
   format!("Runtime compilation failed:\n{detail}{hint}")
  }
  pub fn link(&self,command:&mut Command)->Result<(),String> {if let Some(dependencies)=&self.dependencies {
@@ -162,4 +168,14 @@ pub(crate) fn profiles(native_ui: bool) -> &'static str {
    let binary=temporary.join("program");let mut command=crate::backend_command();prepared.link(&mut command).unwrap();let output=command.arg("--edition=2024").arg(&prepared.application).arg("-o").arg(&binary).output().unwrap();assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));assert!(Command::new(binary).status().unwrap().success());
   }
  }
+}
+
+#[test]
+fn exported_linker_policy_is_valid_toml_and_windows_msvc_only() {
+ let text=format!("[net]\noffline = true\n{}",exported_linker_config());
+ let config=text.parse::<toml_edit::DocumentMut>().unwrap();
+ assert_eq!(config["net"]["offline"].as_bool(),Some(true));
+ assert!(config.get("build").is_none());
+ let targets=config["target"].as_table().unwrap();assert_eq!(targets.len(),1);
+ assert_eq!(targets["cfg(all(target_os = \"windows\", target_env = \"msvc\"))"]["rustflags"][0].as_str(),Some(MSVC_LINKER_FLAG));
 }

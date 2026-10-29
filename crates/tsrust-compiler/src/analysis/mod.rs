@@ -493,6 +493,7 @@ struct Context {
     selected_access: HashMap<usize, Mode>,
     flow: crate::flow::Facts,
     constant_absence: HashMap<usize,Type>,
+    switch_sources: HashMap<usize, (crate::flow::Place, crate::flow::Place)>,
     keep_flow: Vec<crate::flow::Place>,
     /// Singleton recursive payloads are guaranteed by type, not a flow guard.
     unconditional_projections: HashSet<(UnionId, Type)>,
@@ -569,6 +570,7 @@ impl Context {
             selected_access: HashMap::new(),
             flow: HashMap::new(),
             constant_absence: HashMap::new(),
+            switch_sources: HashMap::new(),
             keep_flow: Vec::new(),
             unconditional_projections: HashSet::new(),
             mutation_place: None,
@@ -5469,11 +5471,19 @@ impl Analyzer {
     }
 
     fn condition_outcomes(context: &Context, expr: &Expr) -> crate::flow::Outcomes {
-        context
-            .condition_flows
-            .get(&(expr.span.start, expr.span.end))
-            .cloned()
-            .unwrap_or_else(|| (context.flow.clone(), context.flow.clone()))
+        let mut outcomes = context.condition_flows.get(&(expr.span.start, expr.span.end))
+            .cloned().unwrap_or_else(|| (context.flow.clone(), context.flow.clone()));
+        for flow in [&mut outcomes.0, &mut outcomes.1] {
+            for (&snapshot, (source, marker)) in &context.switch_sources {
+                // Source writes invalidate the marker, so a snapshot never narrows a changed value.
+                if flow.contains_key(marker) {
+                    if let Some(fact) = flow.get(&crate::flow::Place { root: snapshot, fields: Vec::new() }).cloned() {
+                        flow.insert(source.clone(), fact);
+                    }
+                }
+            }
+        }
+        outcomes
     }
 
     fn remember_guard(

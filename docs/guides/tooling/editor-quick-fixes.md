@@ -1,6 +1,9 @@
-# Compiler-backed editor quick fixes
+# Compiler-backed quick fixes: implementation and retained acceptance
 
-The editor offers **Insert missing ;**, **Insert missing )**, **Insert missing ]** and **Insert missing }** for parser diagnostics with an exact insertion location. Place the cursor on the diagnostic and use VS Code's lightbulb or **Cmd+.**. A fix preserves intervening whitespace/comments and edits the unsaved document.
+Current user instructions are in [VS Code quick fixes](../../../website/src/content/docs/start/editor.md#apply-a-checked-quick-fix).
+The records below describe implementation and historical acceptance. Their pending
+union fixtures, warnings and gate numbers are historical observations, not current
+product status; use the active regression reconciliation for current acceptance.
 
 ## Plan and implementation
 

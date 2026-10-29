@@ -17,6 +17,16 @@ fn aliased_http_members_complete(){
  let result=request(source,"input.","textDocument/completion").to_string();assert!(result.contains("setHeader")&&result.contains("param")&&result.contains("text"),"{result}");
 }
 #[test]
+fn request_json_help_and_signature_keep_response_json_distinct(){
+ let source="import {Request,Context} from 'std:http';async function inspect(input:Request,c:Mutable<Context>):Task<void>{const value=await input.json();c.json(value);}";
+ let hover=request(source,"input.json","textDocument/hover").to_string();
+ for expected in ["Task<JsonValue>","schema.parse", "JsonError", "Ownership"]{assert!(hover.contains(expected),"{hover}");}
+ let signature=request(source,"input.json(","textDocument/signatureHelp");
+ assert_eq!(signature["signatures"][0]["parameters"].as_array().unwrap().len(),0);
+ let response=request(source,"c.json","textDocument/hover").to_string();
+ assert!(response.contains("Response"),"{response}");
+}
+#[test]
 fn tls_options_and_certificate_checks_are_documented(){
  let source="import {App,Client,TlsOptions} from 'std:http';async function main():Task<void>{const app=new App();const client=new Client({ca:'pem'});const tls:TlsOptions={cert:'pem',key:'pem'};const server=await app.listen('127.0.0.1:0',tls);await server.shutdown();}";
  let client=request(source,"new Client(","textDocument/signatureHelp");assert!(client["signatures"][0]["parameters"][0]["label"].as_str().unwrap().contains("ClientOptions"));

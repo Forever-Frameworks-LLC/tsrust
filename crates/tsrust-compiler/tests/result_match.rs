@@ -478,3 +478,15 @@ function main() {
     support::success(&output);
     assert!(output.stdout.is_empty());
 }
+
+// An annotated nullable destination supplies only its payload as a hint; the
+// unwrapped value must still be accepted as the full nullable type.
+#[test]
+fn unwrap_assigns_a_nullable_payload_to_an_annotated_destination() {
+    support::execute(
+        "function find(found: boolean): Result<int | undefined, string> { return found ? Ok(4) : Ok(undefined); }\nfunction main() {\n  let value: int | undefined = unwrap(find(true));\n  console.log(String(value));\n  value = unwrap(find(false));\n  console.log(String(value));\n}\n",
+        "4\nundefined\n",
+        None,
+    );
+    support::reject("function main() { const r: Result<int, string> = Ok(1); const s: string = unwrap(r); }", "type");
+}

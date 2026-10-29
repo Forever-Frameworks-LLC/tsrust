@@ -1,0 +1,67 @@
+import { Router, Client, request } from 'std:http';
+import { s } from 'std:schema';
+import { fromUtf8, length } from 'std:bytes';
+import { monotonicNow } from 'std:time';
+
+function routes(): Router {
+  const app = new Router();
+  app.post('/json', async (c) => {
+    const schema = s.object({
+      value: s.int()
+    });
+    const value = schema.parse(await c.req.json());
+    if (value.value !== 40 || c.req.method() !== 'POST') {
+      throw 'JSON mismatch';
+    }
+
+    return c.text(String(value.value));
+  });
+  app.post('/stream', async (c) => {
+    const body = c.req.body();
+    const value = await body.text();
+    if (value !== 'é' || c.req.method() !== 'POST') {
+      throw 'Stream mismatch';
+    }
+
+    return c.text(String(length(unwrap(fromUtf8(value)))));
+  });
+  return app;
+}
+
+async function batch(client: ReadOnly<Client>, url: ReadOnly<string>): Task<int> {
+  let sum = 0;
+  for (let index = 0; index < 128; index++) {
+    const json = await client.send(request('POST', url + 'json', '{"value":40}'));
+    if (json.status() !== 200 || await json.text() !== '40') {
+      throw 'JSON response mismatch';
+    }
+
+    const stream = await client.send(request('POST', url + 'stream', 'é'));
+    if (stream.status() !== 200 || await stream.text() !== '2') {
+      throw 'Stream response mismatch';
+    }
+
+    sum += 40 + 2;
+  }
+
+  return sum;
+}
+
+async function main(): Task<void> {
+  const app = routes();
+  const server = await app.listen('127.0.0.1:0');
+  const client = new Client();
+  const url = 'http://' + server.address() + '/';
+  for (let warmup = 0; warmup < 8; warmup++) {
+    await batch(client, url);
+  }
+
+  for (let sample = 0; sample < 31; sample++) {
+    const start = monotonicNow();
+    const sum = await batch(client, url);
+    console.log(sum);
+    console.log(monotonicNow() - start);
+  }
+
+  await server.shutdown();
+}

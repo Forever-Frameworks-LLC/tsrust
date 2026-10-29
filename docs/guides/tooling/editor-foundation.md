@@ -1,4 +1,13 @@
-# VS Code editor foundation implementation plan
+# Editor foundation plan and historical handoffs
+
+Current user instructions: [Set up VS Code](../../../website/src/content/docs/start/editor.md),
+[project CLI](../../../website/src/content/docs/tools/cli.md) and
+[native build setup](../../../website/src/content/docs/tools/rust-setup.md).
+
+The sections below retain implementation plans and acceptance observations from
+their original checkpoints. Capability limits, installation paths, monitoring
+status and pending tasks describe those checkpoints, not the current product.
+Use the current guides above for supported behavior.
 
 Status: E1–E4 implemented; E5 source assistance added in version 0.2.0 on October 2, 2026. Compiler handoffs C1–C5 remain deferred. See [acceptance evidence](../../milestones/editor-foundation-acceptance.md).
 

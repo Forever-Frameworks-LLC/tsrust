@@ -12,6 +12,22 @@ pub(super) struct Declaration {
 }
 
 impl Analyzer {
+    pub(super) fn switch_subject_alias(&mut self, context: &mut Context, stmt: &mut Stmt) -> Result<bool, Diagnostic> {
+        let StmtKind::Let { name, value, .. } = &mut stmt.kind else { return Ok(false); };
+        if !name.text.starts_with("switch#") || !matches!(value.kind, ExprKind::Name(_))
+            || !self.expression_type_hint(context, value).is_some_and(|ty| !ty.is_copy()) {
+            return Ok(false);
+        }
+        // Owned subjects are read for each comparison; its loan forbids case-side mutation.
+        // An alias avoids both an implicit clone and a loan extending into the selected body.
+        self.expression(context, value, Mode::Read, &Loans::new(), None)?;
+        let source = Self::root_binding(value).expect("named switch subject");
+        context.names.insert(name.text.clone(), source);
+        context.lexical_scopes.last_mut().expect("switch block").insert(name.text.clone());
+        stmt.kind = StmtKind::Block(Vec::new());
+        Ok(true)
+    }
+
     pub(super) fn prepare_declaration(&mut self, context: &mut Context, name: &Token, annotation: &Option<crate::type_syntax::ValueAnnotation>, value: &mut Expr, binding: &mut Option<usize>) -> Result<Option<Box<Declaration>>, Diagnostic> {
         let expected = annotation
             .as_ref()
@@ -146,6 +162,14 @@ impl Analyzer {
         }
         if !context.bindings[id].rebindable && let Some(ty)=crate::flow::sentinel(value) {
             context.constant_absence.insert(id,ty);
+        }
+        if name.text.starts_with("switch#") {
+            if let Some(source) = crate::flow::place(value, &context.names) {
+                let mut marker = source.clone();
+                marker.fields.push(format!("\0switch:{id}"));
+                context.flow.insert(marker.clone(), crate::flow::Fact { members: vec![Type::Void], origin: None });
+                context.switch_sources.insert(id, (source, marker));
+            }
         }
         *binding = Some(id);
         Ok(())

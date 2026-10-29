@@ -14,7 +14,7 @@ fn temporal_documentation_examples_execute_as_one_native_program(){
    functions.push_str(&format!("function example{count}(){body}\n"));calls.push_str(&format!("example{count}();"));expected.push_str(example["output"].as_str().unwrap());count+=1;
   }
  }
- assert_eq!(count,31);let source=format!("import {{{}}} from 'std:date';{functions}function main(){{{calls}}}",imports.into_iter().collect::<Vec<_>>().join(","));
+ assert_eq!(count,32);let source=format!("import {{{}}} from 'std:date';{functions}function main(){{{calls}}}",imports.into_iter().collect::<Vec<_>>().join(","));
  let directory=support::TempDirectory::new();let source=support::format_round_trip(&source);let output=support::run(support::cli().arg("run").arg(directory.source(&source)),180);support::success(&output);assert_eq!(output.stdout,expected.as_bytes());
 }
 #[test]

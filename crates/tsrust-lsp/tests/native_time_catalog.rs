@@ -10,7 +10,7 @@ impl Drop for Directory {
 fn every_monotonic_time_catalog_example_checks_and_executes() {
     let path = std::env::temp_dir().join(format!("tsrust-time-catalog-{}-{}", std::process::id(), std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
     std::fs::create_dir(&path).unwrap();
-    let directory = Directory(path);
+    let directory = Directory(std::fs::canonicalize(path).unwrap());
     let catalog: serde_json::Value = serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
     let entries = catalog["std:time"].as_array().unwrap();
     assert_eq!(entries.len(), 1);

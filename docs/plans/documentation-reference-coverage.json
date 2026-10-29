@@ -35,7 +35,7 @@
     },
     "std:ui": {
       "route": "/docs/ui/foundations/reference",
-      "members": 50
+      "members": 56
     },
     "UiSignal": {
       "route": "/docs/ui/foundations/reference",
@@ -227,7 +227,7 @@
     },
     "HttpRouter": {
       "route": "/docs/framework/routing",
-      "members": 11
+      "members": 12
     },
     "HttpApp": {
       "route": "/docs/framework/routing",
@@ -247,7 +247,7 @@
     },
     "HttpRequest": {
       "route": "/docs/framework/request-response",
-      "members": 11
+      "members": 12
     },
     "HttpResponse": {
       "route": "/docs/framework/request-response",

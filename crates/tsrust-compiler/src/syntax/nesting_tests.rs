@@ -307,7 +307,9 @@ fn a_hidden_declaration_follows_the_statement_that_holds_its_expression() {
     assert_eq!((names(then_body), names(else_body)), (vec!["expression".to_owned()], vec!["expression".to_owned()]));
 
     let body = main_statements("function main(){for(const x of (function items():int[]{return [1];})()){a();}switch((function pick():int{return 1;})()){case (function one():int{return 1;})():a();break;default:b();}}");
-    assert_eq!(names(&body), ["for-of", "function items", "let pattern", "function pick", "function one", "if"]);
+    assert_eq!(names(&body), ["for-of", "function items", "block", "function pick", "function one"]);
+    let StmtKind::Block(switch) = &body[2].kind else { panic!("switch scope") };
+    assert_eq!(names(switch), ["let pattern", "if"]);
 
     // The loop tests its condition inside the block that scopes the loop.
     let body = main_statements("function main(){for(let i=(function start():int{return 0;})();(function below():boolean{return false;})();i+=(function step():int{return 1;})()){a();}}");
@@ -383,4 +385,30 @@ fn wide_declarations_and_parameters_use_the_grammar_scheduler() {
         assert_eq!(error.code, "syntax");
         assert_eq!(&source[error.span.start..error.span.end], ")");
     }
+}
+
+#[test]
+fn shared_switch_default_has_one_body_at_every_nesting_level() {
+    let mut source = "console.log(42);".to_owned();
+    for _ in 0..8 {
+        source = format!("switch(1){{case 1:default:{{{source}break;}}case 2:break;}}");
+    }
+    let body = main_statements(&format!("function main(){{{source}}}"));
+    let mut pending: Vec<_> = body.iter().collect();
+    let mut expressions = 0;
+    let mut statements = 0;
+    while let Some(statement) = pending.pop() {
+        statements += 1;
+        match &statement.kind {
+            StmtKind::Block(body) => pending.extend(body),
+            StmtKind::If { then_body, else_body, .. } => {
+                pending.extend(then_body);
+                pending.extend(else_body);
+            }
+            StmtKind::Expr(_) => expressions += 1,
+            _ => {}
+        }
+    }
+    assert_eq!(expressions, 1, "one source body must remain one lowered body");
+    assert!(statements < 80, "lowering must remain linear: {statements} statements");
 }

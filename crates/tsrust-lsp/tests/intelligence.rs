@@ -718,7 +718,16 @@ fn nested_call_commas_and_utf16_positions() {
 }
 
 #[test]
-fn every_catalog_entry_has_a_current_compiler_witness() {
+fn backend_catalog_entries_have_current_compiler_witnesses() {
+    every_catalog_entry_has_a_current_compiler_witness(false);
+}
+
+#[test]
+fn retained_ui_catalog_entries_have_current_compiler_witnesses() {
+    every_catalog_entry_has_a_current_compiler_witness(true);
+}
+
+fn every_catalog_entry_has_a_current_compiler_witness(retained_ui: bool) {
     for (ty, literal, method, result) in [
         ("string", "\"x\"", "valueOf", "string"),
         ("string", "\"x\"", "toString", "string"),
@@ -816,6 +825,9 @@ fn every_catalog_entry_has_a_current_compiler_witness() {
     }
     let catalog: Value = serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
     for (family, entries) in catalog.as_object().unwrap() {
+        if (family == "std:ui" || family.starts_with("Ui")) != retained_ui {
+            continue;
+        }
         for entry in entries.as_array().unwrap() {
             let method = entry["name"].as_str().unwrap();
             if family.starts_with("std:") {
@@ -834,7 +846,7 @@ fn every_catalog_entry_has_a_current_compiler_witness() {
             }
             // Matcher and native collection families provide complete-program
             // examples with their required imports and receiver construction.
-            if family.starts_with("Schema") || family.starts_with("Http") || family.starts_with("Sql") || matches!(family.as_str(), "LruCache" | "CacheEntry" | "CacheInsertError" | "schemaBuilder" | "ValidationContext" | "Expectation" | "NegatedExpectation" | "Deque" | "Heap" | "OrderedSet" | "OrderedMap" | "JSON" | "Channel" | "Sender" | "TaskContext" | "Thread" | "ScopedThread" | "ThreadPool" | "TaskMethods" | "Job" | "AsyncChannel" | "AsyncSender") {
+            if family.starts_with("Schema") || family.starts_with("Http") || family.starts_with("Sql") || matches!(family.as_str(), "LruCache" | "SharedLruCache" | "CacheEntry" | "CacheInsertError" | "schemaBuilder" | "ValidationContext" | "Expectation" | "NegatedExpectation" | "Deque" | "Heap" | "OrderedSet" | "OrderedMap" | "JSON" | "Channel" | "Sender" | "TaskContext" | "Thread" | "ScopedThread" | "ThreadPool" | "TaskMethods" | "Job" | "AsyncChannel" | "AsyncSender") {
                 let examples = entry["examples"].as_array().unwrap();
                 assert!(!examples.is_empty(), "{family}.{method} needs a witness example");
                 for example in examples {
@@ -1711,7 +1723,16 @@ impl CatalogExampleSource {
 }
 
 #[test]
-fn documented_builtin_examples_match_native_output() {
+fn backend_catalog_examples_match_native_output() {
+    documented_builtin_examples_match_native_output(false);
+}
+
+#[test]
+fn retained_ui_catalog_examples_match_native_output() {
+    documented_builtin_examples_match_native_output(true);
+}
+
+fn documented_builtin_examples_match_native_output(retained_ui: bool) {
     // File examples document a four-byte input; keep it outside the owner workspace.
     struct ExampleDirectory(std::path::PathBuf);
     impl Drop for ExampleDirectory {
@@ -1731,6 +1752,9 @@ fn documented_builtin_examples_match_native_output() {
     let mut expected = String::new();
     let mut expected_stderr = String::new();
     for (family, entries) in catalog.as_object().unwrap() {
+        if (family == "std:ui" || family.starts_with("Ui")) != retained_ui {
+            continue;
+        }
         for entry in entries.as_array().unwrap() {
             let docs = entry["documentation"].as_str().unwrap();
             assert!(
@@ -3899,8 +3923,9 @@ fn checked_std_example(source: &str) -> tsrust_compiler::project::ProjectAnalysi
         fn resolve(&self, _: Option<&SourceId>, path: &str) -> Result<SourceId, String> {
             Ok(SourceId(path.into()))
         }
-        fn read(&self, _: &SourceId) -> Result<String, String> {
-            Ok(self.0.into())
+        fn read(&self, id: &SourceId) -> Result<String, String> {
+            if id.0 == "/std-example.tsr" { Ok(self.0.into()) }
+            else { Err(format!("Missing fixture source: {}", id.0)) }
         }
     }
     check_graph(load_project(&Input(source), "/std-example.tsr").unwrap()).unwrap()
@@ -8692,7 +8717,7 @@ fn scoped_nested_and_absent_record_fields_keep_declared_signature_help() {
     assert!(tsrust_compiler::check(source).is_ok());
     for token in ["4);", "3)??"] {
         let help = ask(source, "textDocument/signatureHelp", token, 0);
-        assert!(help["signatures"][0]["parameters"][0]["label"].as_str().unwrap().contains("amount"), "{help}");
+        assert!(help["signatures"][0]["parameters"][0]["label"].as_str().unwrap_or("").contains("amount"), "{token}: {help}");
     }
     let hover = ask(source, "textDocument/hover", "run(4)", 0);
     assert!(!hover.is_null());

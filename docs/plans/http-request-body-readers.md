@@ -46,7 +46,9 @@ Runtime foundation acceptance, 2026-10-28: six runner cases plus twelve reused/n
 futures controls passed (18/18). Generated native synchronous/async-main boundary
 regression passed for both variants. Backend and workspace all-target checks had
 zero warnings/errors. See agent-progress.md for source/consumer evidence and
-repaired fixture/sandbox issues. Public async callback registration remains pending.
+repaired fixture/sandbox issues. Public async callback registration subsequently
+passed hosted run 40672007920 on c5b3d4a9: eleven compiler/native/CLI tests, three
+LSP tests and all-target diagnostics on Windows, Linux and macOS.
 
 ## Existing behavior verified in source
 
@@ -75,6 +77,14 @@ decoded view must not outlive the body storage. Generated RPC dispatch may retai
 its specialized raw JSON codec path when necessary for ownership/performance;
 ordinary routes should not need manual text-to-JSON plumbing.
 
+Implementation decision, 2026-10-28: Request.json() returns owned JsonValue and
+accepts no type arguments. Typed DTOs use the existing schema.parse(await req.json())
+composition. This preserves checked schema failures and avoids unchecked generic
+casts or body-backed views. Compiler rejection witnesses cover generic arguments,
+wrong result types, request reuse and context mutation while a read is pending;
+native witnesses cover successful DTO validation and rejected shapes. Focused
+acceptance is complete as recorded below; timed measurement remains separate.
+
 Keep byte limits, UTF-8/media handling, malformed input and consumed-body errors
 explicit. All readers consume the body once, including failure behavior; metadata
 and response helpers remain usable. Test repeated/mixed reads, malformed/oversized
@@ -93,3 +103,55 @@ namespace/tree representation, limits and entity policy before selecting an
 upstream parser. Do not claim XML support or introduce an unchecked text cast.
 Generic REST/OpenAPI import, new encodings and a universal body-decoding framework
 are not implied by this request. No XML runtime acceptance is claimed.
+
+
+## Focused request-reader acceptance — 2026-10-28
+
+Contextual streaming and checked JSON readers are accepted on the current macOS
+arm64 development host. Native tests cover successful schema decoding, rejected
+shapes, malformed/empty/trailing JSON, UTF-8 byte limits and consumed-body errors;
+context metadata and response construction remain usable. Existing mixed
+text/form/multipart controls, owned/contextual stream fixtures, compiler rejection
+witnesses and the common-union clone regression passed. JSON catalog examples were
+compiled and executed; HTTP help/signature tests passed.
+
+The final editor checks passed Request/Context/Body compiler agreement, HTTP
+catalog reachability, and owned/contextual request completion in settled,
+immediate, paced and syntax-error modes. The complete backend all-target check
+finished with no warnings or errors. The first unrestricted agreement invocation
+was stopped before completion to exclude unrelated UI work; it is not evidence of
+a full editor matrix pass.
+
+Matched native and Node-after-tsc request-readers verification passed on clean
+source 1ca135b1: 128 JSON/schema + stream pairs each produced checksum 5376.
+Source identities and the independent oracle remain in readers-manifest.json;
+verification records no timing samples. Full backend milestone regressions,
+performance measurements and additional platform execution remain separate.
+
+## Request-reader timing baseline — 2026-10-28
+
+Measured clean source bb035b01001d0305162db9b66f524d447d4c4413 with the
+registered native/Node-after-tsc counterparts and unchanged independent checksum
+5376. Three processes per engine, eight warmup batches and 31 measured batches
+per process produce 93 samples per engine. Each batch contains 128 JSON/schema
+requests and 128 contextual stream requests. All 186 observed checksums pass.
+
+Native median is 11.560791 ms per 256-request batch; Node median is 20.662167 ms,
+a 1.787 ratio of medians. Native process medians are 11.552834, 11.591834 and
+11.595042 ms; Node process medians are 20.422917, 20.899500 and 20.554416 ms.
+Mean per-sample throughput is 22,312.62 versus 12,599.00 requests/second, a
+1.771 native/Node ratio. This measures the combined sequential loopback
+client/server and decoding workload, excluding startup/build. It is not isolated
+server throughput, multicore capacity or evidence that native wins all workloads.
+There is no earlier timed matching reader epoch; no historical regression or
+optimization gain is established. Earlier untimed correctness remains separate.
+
+Original raw record SHA256:
+`805437d9c4cdb0d400901045cc6910cb76a77fe274cbfd9cabf42b72ca0d6e58`.
+Its exact bytes and acceptance proof are retained in private records.sqlite at
+`benchmarks/http/request-readers-2026-10-28T18-57-43.507Z.json` and its
+`-proof.json` sibling. Exact decoded restoration was verified before removing
+loose copies. All samples are indexed and exported through storage/public.py to
+measurements.sqlite, preserving prior rows and excluding raw input/proof contents.
+No allocation profile was measured. Remaining full regression/platform acceptance
+is not implied by this completed timing baseline.

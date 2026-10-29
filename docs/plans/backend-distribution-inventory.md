@@ -1,7 +1,60 @@
+# Current binding-cache migration — implementation pending validation
+
+The 2026-10-28 section migrates ordinary dependency-bearing Rust bindings to Cargo's
+shared sources and stable per-graph native workspaces. Package add/update/features
+validate real adapters/callers/tests before atomic publication, without vendoring.
+Binding markers carry manifest/lock/crate names rather than machine-local vendor
+paths. SchemaVersion 2 fixes new graphs to backend inputs; schemaVersion 1 retains the
+legacy full-runtime manifest explicitly, without lock-content heuristics. Explicit bindings resolve --portable reuses the existing source-pack
+producer and checksum verifier with the selected graph. Exports stay toolchain-free.
+
+Affected consumers: project binding serialization, explicit resolve/package commands,
+package candidate compilation, runtime selection/identity/workspaces, portable pack
+materialization/export, CLI help, package documentation and focused regressions.
+Validation must prove no vendor copies in normal builds, cache hits, offline failure
+with an empty Cargo home, legacy locks, atomic failed/preview edits, and relocated
+portable parity/tamper rejection. No new timing or platform acceptance is claimed.
+
 # Backend distribution inventory
 
-Initial source inventory, 2026-10-27. This is investigation evidence, not migration
-acceptance. Follow the backend-only reset and Rust setup/distribution plan.
+Current audit: 2026-10-28, source c5b3d4a9. Follow the backend-only reset and
+Rust setup/distribution plan. Inspection proves the mechanisms below, not their
+unexecuted platform behavior.
+
+## Current mechanisms and remaining work
+
+- Compiler build.rs has been removed. The CLI no longer embeds the vendor source
+  closure. Ordinary backend runtime builds select backend_sources.rs, use the
+  shared Cargo home and exact backend lock, and remain locked/offline.
+- portable_sources.rs prepares optional vendor packs explicitly and validates
+  package identities and file checksums. Unprepared export gives the explicit
+  `tsrust setup --portable --yes` instruction; export does not download sources.
+- Dependency-bearing bindings still select the vendor path. rust_bindings.rs
+  invokes Cargo vendor during explicit resolution, and rust_binding_packages.rs
+  copies that graph into runtime/export workspaces. This is the remaining cache
+  migration, not a reason to repeat the accepted ordinary-backend migration.
+- package-toolchain.mjs handles Windows executable suffixes and records both
+  consumer versions. Its README already describes backend/shared-cache setup.
+  The release workflow still lacks a Windows artifact job; production paired
+  installation, self-update and locked-binary recovery remain unfinished.
+  (Superseded 2026-10-28: release.yml now builds x86_64-pc-windows-msvc on
+  windows-2022, and hosted runs 40731485167/40748893795 passed Windows paired
+  installation and locked-process tests. Published acquisition remains pending.)
+- `tsrust update <crate>` is the existing dependency-upgrade command. Preserve
+  that interface when adding explicit compiler/LSP update checking and updating.
+- CI run 40663277431 passed the selected Linux/macOS suites. Focused async run
+  40672007920 adds actual Windows execution but remains pending. Neither run
+  establishes release-installation or self-update acceptance.
+
+See [shared backend sources](../milestones/shared-backend-sources.md),
+[portable sources and editor agreement](../milestones/portable-source-packs-and-editor-agreement.md)
+and [current progress](../agent-progress.md) for evidence and open checks.
+
+## Historical source inventory — 2026-10-27
+
+The following records the pre-migration mechanisms and original research. Claims
+about an embedded payload and private Cargo home describe that earlier source,
+not the current implementation above.
 
 | Dependency class | Current mechanism | Required change / preserved guarantee |
 | --- | --- | --- |
@@ -12,7 +65,7 @@ acceptance. Follow the backend-only reset and Rust setup/distribution plan.
 | Portable source | package_export materializes dependency bundle with source replacement and notices | Keep vendoring, relocation/offline rebuild and compatible-toolchain requirement; add explicit target/prerequisite metadata. |
 | Installation artifacts | package-toolchain.mjs copies already built CLI/LSP, hashes files, records source/toolchain/versions, copies notices | Retain matched compiler/LSP pair and notices; inspect artifact validation before installing/updating. |
 
-## Mandatory-vendor coupling located
+## Historical mandatory-vendor coupling located
 
 - `crates/tsrust-compiler/build.rs` runs Cargo vendor offline/locked over
   native-dependencies and embeds vendor files plus Cargo.toml/lock/src into the CLI.
@@ -31,7 +84,7 @@ acceptance. Follow the backend-only reset and Rust setup/distribution plan.
 - Source export and resolved bindings also consume bundled/vendor sources. They
   must be disentangled from ordinary runtime preparation, not globally disabled.
 
-## Installation and update gaps
+## Historical installation and update gaps
 
 The inspected release workflow currently lists Linux x64, macOS ARM64 and macOS
 x64 artifact jobs. Windows installation acceptance is not established by that

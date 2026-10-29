@@ -94,3 +94,14 @@ fn exported_aliases_expand_in_importing_modules() {
         assert!(String::from_utf8_lossy(&output.stderr).contains(&format!("error[{code}]")), "{body}: {}", String::from_utf8_lossy(&output.stderr));
     }
 }
+
+// Record type declarations accept the same field separators as interfaces:
+// `;` or `,`, with the last separator and a trailing `;` optional.
+#[test]
+fn record_type_declarations_accept_interface_field_separators() {
+    support::execute(
+        "type Point = { x: int, y: int }\ntype Named = {\n  name: string\n};\ninterface Pair { a: int, b: int }\nfunction main() {\n  const p: Point = { x: 1, y: 2 };\n  const n: Named = { name: \"n\" };\n  const q: Pair = { a: 3, b: 4 };\n  console.log(p.x + p.y, n.name, q.a + q.b);\n}\n",
+        "3 n 7\n",
+        None,
+    );
+}

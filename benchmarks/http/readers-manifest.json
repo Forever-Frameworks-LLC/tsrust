@@ -1,0 +1,16 @@
+{
+  "id": "request-readers",
+  "semanticEpoch": "request-readers-v1",
+  "expected": 5376,
+  "protocol": {
+    "processes": 3,
+    "warmups": 8,
+    "samples": 31,
+    "iterations": 128,
+    "requestsPerIteration": 2
+  },
+  "sources": {
+    "tsr": "582e2cd5f23f7281d63314104faaa80f472f5ce9534bdf514f7f3236bc5c18b4",
+    "ts": "a7e0be03c343ca79d7f795528acd679bc0fc52ce537764535dbf37f8cc660cdb"
+  }
+}

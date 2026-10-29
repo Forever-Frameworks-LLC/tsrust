@@ -1,13 +1,15 @@
 <!-- tsrust-docs
 {"id":"introduction","group":"getting-started","order":0,"status":"partial","targets":["web","native"],"examples":["counter"]}
 -->
-# Build with Tsrust
+# Retained UI documentation
 
-Write checked TypeScript-style application code, compose editable UI components and use Rust-backed services. This documentation shares its application source between browser and native targets.
+This retained application demonstrates the original browser/native UI and checked
+examples. Current backend documentation is maintained separately in the public
+Starlight site. UI expansion is outside the active backend product scope.
 
 ## Start with the application
 
-[Install the tools](getting-started/installation.md), then read [project structure](getting-started/project-structure.md). The project configuration defines its entrypoint, targets and theme explicitly.
+[Install the tools](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/website/src/content/docs/start/installation.md), then read [project structure](https://github.com/Forever-Frameworks-LLC/tsrust/blob/main/website/src/content/docs/start/project-structure.md). The project configuration defines its entrypoint, targets and theme explicitly.
 
 ## Learn through working examples
 

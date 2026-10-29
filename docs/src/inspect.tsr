@@ -4,13 +4,13 @@ import { Page } from './app/page';
 
 function main() {
   const html = document(Page(), 'Tsrust');
-  strictEqual(html.includes('Stay expressive.'), true);
-  strictEqual(html.includes('href="/docs"'), true);
-  strictEqual(html.includes('Documentation'), true);
-  strictEqual(html.includes('href="/docs/getting-started/installation"'), true);
-  strictEqual(html.includes('Count: 0'), true);
-  strictEqual(html.includes('Show source'), true);
-  strictEqual(html.includes('103 page destinations'), false);
-  strictEqual(html.includes('100vh'), true);
+  strictEqual(html.includes('Write TypeScript.'), true, 'Expected presence of Write TypeScript.');
+  strictEqual(html.includes('href="/docs"'), true, 'Expected presence of href="/docs"');
+  strictEqual(html.includes('aria-label="Main navigation"'), true, 'Home page exposes its main navigation');
+  strictEqual(html.includes('href="/docs/getting-started/installation"'), true, 'Expected presence of href="/docs/getting-started/installation"');
+  strictEqual(html.includes('Your workspace is ready.'), true, 'Expected presence of Your workspace is ready.');
+  strictEqual(html.includes('View source'), true, 'Expected presence of View source');
+  strictEqual(html.includes('103 page destinations'), false, 'Expected absence of 103 page destinations');
+  strictEqual(html.includes('100vh'), true, 'Expected presence of 100vh');
   console.log('Documentation home and links passed');
 }

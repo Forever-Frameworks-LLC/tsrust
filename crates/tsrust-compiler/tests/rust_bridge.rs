@@ -133,7 +133,7 @@ fn data_boundaries_reject_private_recursive_and_borrowed_layouts(){
 #[test]
 fn declared_binding_packages_resolve_offline_track_inputs_and_fail_on_lock_drift(){
  let dir=support::TempDirectory::new();let manifest=dir.0.join("api.bindings.json");
- std::fs::write(&manifest,r#"{"schemaVersion":1,"source":"./api.rs","dependencies":{}}"#).unwrap();
+ std::fs::write(&manifest,r#"{"schemaVersion":2,"source":"./api.rs","dependencies":{}}"#).unwrap();
  std::fs::write(dir.0.join("api.rs"),"pub struct Reply{pub value:i64}pub fn reply()->Reply{Reply{value:42}}").unwrap();
  let path=dir.source(&support::format_round_trip("import {reply} from './api.bindings.json';import {strictEqual} from 'std:testing';function main(){strictEqual(reply().value,42);}"));
  assert!(!support::run(support::cli().arg("check").arg(&path),30).status.success());

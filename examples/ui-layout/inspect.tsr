@@ -4,19 +4,21 @@ import { strictEqual } from 'std:testing';
 
 function main() {
   const light = document(Screen(false), 'Light');
-  strictEqual(light.includes('display:grid'), true);
-  strictEqual(light.includes('grid-template-columns:repeat(2,minmax(0,1fr))'), true);
-  strictEqual(light.includes('padding-left:20px'), true);
-  strictEqual(light.includes('row-gap:20px'), true);
-  strictEqual(light.includes('grid-row-end:span 2'), true);
-  strictEqual(light.includes('height:40px'), true);
-  strictEqual(light.includes('background:#2563eb'), true);
+  strictEqual(light.includes('display:grid'), true, 'Expected presence of display:grid');
+  strictEqual(light.includes('grid-template-columns:repeat(2,minmax(0,1fr))'), true, 'Expected presence of grid-template-columns:repeat(2,minmax(0,1fr))');
+  strictEqual(light.includes('padding-left:20px'), true, 'Expected presence of padding-left:20px');
+  strictEqual(light.includes('row-gap:20px'), true, 'Expected presence of row-gap:20px');
+  strictEqual(light.includes('grid-row-end:span 2'), true, 'Expected presence of grid-row-end:span 2');
+  strictEqual(light.includes('height:40px'), true, 'Expected presence of height:40px');
+  strictEqual(light.includes('background:var(--ui-primary)'), true, 'Primary background must use its enclosing theme');
+  strictEqual(light.includes('--ui-primary:#2563eb'), true, 'Light theme keeps its primary color');
   const dark = document(Screen(true), 'Dark');
-  strictEqual(dark.includes('background:#60a5fa'), true);
+  strictEqual(dark.includes('background:var(--ui-primary)'), true, 'Dark background must use its enclosing theme');
+  strictEqual(dark.includes('--ui-primary:#60a5fa'), true, 'Dark theme keeps its primary color');
   const leaf = Text({
     className: 'w-64 pl-3', children: ['Sized text']
   });
-  strictEqual(document(leaf, 'Leaf').includes('width:256px'), true);
+  strictEqual(document(leaf, 'Leaf').includes('width:256px'), true, 'Expected presence of width:256px');
   let rejected = false;
   try {
     const invalid = Text({

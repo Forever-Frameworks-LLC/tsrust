@@ -96,7 +96,7 @@ pub(crate) fn program(value: &Value, identity: &str) -> Result<crate::syntax::Pr
     let lowered = lower(value, identity)?;
     let span = value.span;
     Ok(Program {
-        diagnostic_first: None, diagnostic_skips: Default::default(), diagnostic_contracts: Default::default(), unresolved_local_function: None,
+        diagnostic_first: None, diagnostic_skips: Default::default(), generated_continuations: Default::default(), diagnostic_contracts: Default::default(), unresolved_local_function: None,
         local_declarations: vec![], local_capture_plans: vec![], interface_argument_checks: vec![], type_argument_checks: vec![], call_type_arguments: vec![],
         module_bindings: vec![],
         module_owner_bindings: vec![],

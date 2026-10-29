@@ -12,6 +12,15 @@ fn string_from_code_point_and_char_code_build_text_from_numbers() {
     );
 }
 
+// A program whose only text comes from these calls must still receive the
+// string runtime that defines their helpers.
+#[test]
+fn string_from_codes_alone_emit_their_runtime_helpers() {
+    execute("function main() { console.log(String.fromCharCode(72, 105), String.fromCharCode(55357, 56832)); }", "Hi \u{1F600}\n", None);
+    execute("function main() { const codes = [72, 105]; console.log(String.fromCharCode(...codes)); }", "Hi\n", None);
+    execute("function main() { console.log(String.fromCodePoint(128512)); }", "\u{1F600}\n", None);
+}
+
 #[test]
 fn string_from_codes_require_int_arguments_and_return_a_string() {
     for (source, code) in [

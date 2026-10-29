@@ -31,6 +31,9 @@ mod backend_sources;
 mod docs_cli;
 mod api_cli;
 mod http_client;
+mod toolchain_cli;
+mod toolchain_install;
+mod toolchain_release;
 mod docs_model;
 mod format_cli;
 mod check_cli;
@@ -40,10 +43,11 @@ use std::fs;
 use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode};
-use std::time::{SystemTime, UNIX_EPOCH};
+mod temp_directory;
+use temp_directory::TempDirectory;
 use tsrust_compiler::RUST_BACKEND_VERSION;
 
-const USAGE: &str = "tsrust â€” native TypeScript-style programs
+const USAGE: &str = "tsrust — native TypeScript-style programs
 
 Usage:
   tsrust                       Open the interactive command menu in a terminal
@@ -53,7 +57,7 @@ Usage:
   tsrust features <crate> [--enable feature,... | --disable feature,... | --features feature,...]
   tsrust packages [--project directory]
   tsrust remove <crate> [--dry-run]
-  tsrust bindings resolve <file.bindings.json> [--offline]
+  tsrust bindings resolve <file.bindings.json> [--offline] [--portable]
   tsrust new [name-or-path] [--app [--target backend] | --ui [--target native|web]...]
   tsrust ui <list --bundled|init|add name...> [--cwd directory] [--path directory] [--target native|web]... [--dry-run]
   tsrust ui attributions [--cwd directory] [--dry-run]
@@ -61,6 +65,8 @@ Usage:
   tsrust api generate [--config file | --description file | --url HTTPS_URL] [--language typescript|rust] [--out directory] [--header-env Header=ENV] [--check]
   tsrust cache <info|clean>
   tsrust doctor [--json] [--native]
+  tsrust toolchain install --root NEW_DIRECTORY
+  tsrust toolchain check [--json] | update | rollback
   tsrust setup [--toolchain] [--dependencies] [--portable] [--offline] [--yes]
   tsrust dev [--target native|web] [--port 4317] [--release] [--verbose] [--color auto|always|never] [-- program-arguments]
   tsrust run [input.tsr] [--release] [-- program-arguments]
@@ -74,11 +80,12 @@ Commands:
   features Inspect or change Cargo features; --features replaces the explicit set
   packages Show resolved versions, effective features and available bindings
   remove   Validate dependency removal without rewriting adapters
-  bindings Resolve and vendor declared Rust dependencies
-  doctor   Inspect pinned tools; --native also tests the host compiler and linker offline
+  bindings Prepare shared Rust dependency sources; --portable also prepares an export pack
+  doctor   Inspect the CLI/LSP pair and pinned tools; --native tests the host linker offline
+  toolchain Install, check, update or roll back the verified prebuilt CLI/LSP pair
   setup    Explicitly prepare pinned Rust tools or shared backend dependency sources
   docs     Compile checked documentation content and exact example/API data offline
-  api      Generate a checked named TypeScript client without adopting frontend tooling
+  api      Generate checked TypeScript or async Rust clients from an API description
   dev      Watch a configured native program or web UI
   new      Create a project with source, tests and configuration
   check    Check files/directories recursively; defaults to the current directory
@@ -127,36 +134,8 @@ fn styled(text: &str, code: &str, color: bool) -> String {
 fn print_help() {
     let color = color_enabled(std::io::stdout().is_terminal());
     for line in USAGE.lines() {
-        if line.ends_with(':') || line.starts_with("tsrust â€”") { println!("{}", styled(line,"1;36",color)); }
+        if line.ends_with(':') || line.starts_with("tsrust —") { println!("{}", styled(line,"1;36",color)); }
         else { println!("{line}"); }
-    }
-}
-
-struct TempDirectory(PathBuf);
-impl TempDirectory {
-    fn new() -> std::io::Result<Self> {
-        let stamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_nanos();
-        for attempt in 0..100 {
-            let path =
-                env::temp_dir().join(format!("tsrust-{}-{stamp}-{attempt}", std::process::id()));
-            match fs::create_dir(&path) {
-                Ok(()) => return Ok(Self(path)),
-                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
-                Err(error) => return Err(error),
-            }
-        }
-        Err(std::io::Error::new(
-            std::io::ErrorKind::AlreadyExists,
-            "Could not create a private build directory",
-        ))
-    }
-}
-impl Drop for TempDirectory {
-    fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.0);
     }
 }
 
@@ -187,6 +166,7 @@ mod argument_tests {
 }
 
 fn run() -> Result<u8, String> {
+    if let Some(code)=toolchain_install::dispatch()?{return Ok(code);}
     let arguments=env::args().skip(1).collect::<Vec<_>>();
     interactive_cli::colors();
     let arguments=if interactive_cli::launcher(&arguments)? {
@@ -209,6 +189,7 @@ fn run() -> Result<u8, String> {
     if command=="api" {return api_cli::run(args);}
     if command=="cache" {return cache_cli::run(args);}
     if command=="doctor" {return setup_cli::doctor(args);}
+    if command=="toolchain" {return toolchain_cli::run(args);}
     if command=="setup" {return setup_cli::setup(args);}
     if command=="ui" {return ui_cli::run(args);}
     if command=="new" {return new_cli::run(args);}
@@ -479,7 +460,11 @@ fn run() -> Result<u8, String> {
     Ok(0)
 }
 
-fn backend_command() -> Command { backend_tool("rustc") }
+fn backend_command() -> Command {
+    let mut command=backend_tool("rustc");
+    if cfg!(all(windows,target_env="msvc")){command.arg(runtime_build::MSVC_LINKER_FLAG);}
+    command
+}
 fn backend_cargo_command() -> Command { backend_tool("cargo") }
 fn backend_tool(tool:&str) -> Command {
     let executable = format!("rustup{}", env::consts::EXE_SUFFIX);
@@ -532,7 +517,9 @@ fn validate_backend_output(result:std::process::Output)->Result<String,String> {
             version.trim()
         ));
     }
-    Ok(version.trim().to_owned())
+    let mut identity=version.trim().to_owned();
+    if cfg!(all(windows,target_env="msvc")){identity.push_str(";");identity.push_str(runtime_build::MSVC_LINKER_FLAG);}
+    Ok(identity)
 }
 
 fn absolute(path: &Path) -> Result<PathBuf, String> {
