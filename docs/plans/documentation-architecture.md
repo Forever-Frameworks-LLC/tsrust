@@ -168,9 +168,12 @@ Progress 2026-10-28:
   refinement paths need literal indices; inline `asString(...)` views need named
   storage.
 
-Remaining: whole-catalog output check for older `Expected output:` examples,
-signature/arity check against native bindings, then prose review of the
-remaining modules against source (std:http, std:sql, std:sqlite, std:fs,
-std:bytes, std:json, std:schema, std:futures, std:threads, std:date,
-std:decimal, std:uuid, std:collections, std:cache, std:testing, std:signals,
-std:path, built-ins).
+Completed 2026-10-29: whole-catalog output check (455 programs), signature
+check against native bindings, and prose review of every module and built-in
+against running programs and source. Corrections from the final pass:
+HttpContext sentences that only described their snippet, error codes for
+status/header failures, discriminatedUnion's missing-tag code
+(`missing-field`), JSON treatment of `undefined` array elements, and
+uncatchable UTF-8 boundary failures for byte-offset string methods.
+
+Not verifiable locally: Windows-specific std:path behavior.
