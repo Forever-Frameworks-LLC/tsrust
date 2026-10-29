@@ -1,7 +1,7 @@
 export const engineIDs = Object.freeze(['native','node-tsc','node-ts','tsx','ts-node-check','ts-node-transpile','bun','deno']);
 export function measurementPlan(argv, manifest) {
  for (const arg of argv.filter(arg=>arg.startsWith('--'))) {
-  if(arg!=='--verify'&&arg!=='--execution-only'&&!arg.startsWith('--engines=')&&!arg.startsWith('--only=')) {
+  if(arg!=='--verify'&&arg!=='--execution-only'&&arg!=='--allow-busy'&&!arg.startsWith('--engines=')&&!arg.startsWith('--only=')&&!arg.startsWith('--allocator-rlib=')) {
    throw new Error(`Unknown runtime option ${arg}; use --verify for correctness without timing`);
   }
  }

@@ -181,6 +181,9 @@ const verify = plan.verify;
 const select = process.argv.find(a => a.startsWith('--only='))?.slice(7);
 // Timed processes wait for a quiet machine unless explicitly allowed otherwise.
 const allowBusy = process.argv.includes('--allow-busy'), loadSamples = [];
+// Experimental: link a prebuilt mimalloc rlib as every native program's global
+// allocator. Results record it, so these runs never mix with system-allocator runs.
+const allocatorRlib = process.argv.find(arg => arg.startsWith('--allocator-rlib='))?.slice('--allocator-rlib='.length);
 const selections = select?.split(',');
 const workloads = manifest.workloads.filter(w => !selections || selections.includes(w.id));
 if (!workloads.length || selections?.some(id => !manifest.workloads.some(w => w.id === id))) throw new Error(`Unknown workload: ${select}`);
@@ -393,10 +396,12 @@ function prepare(w) {
  const emitted = run([compiler], ['emit', path.join(here, w.source ?? `workloads/${w.id}.tsr`)]).stdout;
  const nativeDependencies=prepareNativeDependencies({emitted,compiler,source:path.join(here,w.source??`workloads/${w.id}.tsr`),build,rustVersion:pins.rust,targetDirectory:path.dirname(path.dirname(compiler)),env});
  const reductionABI=assertABI(emitted, w,{source});
- const instrumented = emitted.replace('fn main()', 'fn source_main()') + '\n' + adaptRustDriver(driverRS, w,{emitted,source});
+ const allocatorHeader = allocatorRlib ? '#[global_allocator]\nstatic TSRUST_BENCH_ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;\n' : '';
+ const instrumented = emitted.replace('fn main()', 'fn source_main()') + '\n' + adaptRustDriver(driverRS, w,{emitted,source}) + '\n' + allocatorHeader;
  fs.writeFileSync(path.join(build, `${w.id}.rs`), instrumented);
  fs.writeFileSync(path.join(build, `${w.id}.ts`), ts + '\n' + adaptTSDriver(driverTS, w));
- const nativeCommand = [...rustc, ...nativeDependencies.args, '--edition=2024', '-C', 'opt-level=3', '-C', 'overflow-checks=on', '-A', 'warnings', path.join(build, `${w.id}.rs`), '-o', path.join(build, w.id)];
+ const allocatorArgs = allocatorRlib ? ['--extern', `mimalloc=${allocatorRlib}`, '-L', `dependency=${path.dirname(allocatorRlib)}`] : [];
+ const nativeCommand = [...rustc, ...nativeDependencies.args, ...allocatorArgs, '--edition=2024', '-C', 'opt-level=3', '-C', 'overflow-checks=on', '-A', 'warnings', path.join(build, `${w.id}.rs`), '-o', path.join(build, w.id)];
  fs.writeFileSync(path.join(build, `${w.id}.json`), JSON.stringify({extends: path.join(here, 'tsconfig.json'), files: [path.join(build, `${w.id}.ts`)], compilerOptions: {outDir: build, ...dataOptions, ...(w.family==='testing-assertions'?{typeRoots:[path.join(here,'node_modules/@types')]}:{})}}));
  const tsCommand = [...tsc, '--project', path.join(build, `${w.id}.json`)];
  // Prime normal filesystem/tool caches. Compiler bootstrap and downloads are excluded.
@@ -496,6 +501,7 @@ const compilerInputs = compilerSourceInputs(path.join(root, 'crates/tsrust-compi
 for(const loaded of approximateReferences.values())assertApproximateArtifactsUnchanged(loaded);
 const result = {
  schemaVersion: 1, measurementScope: plan.measurementScope, measuredEngines: plan.engineIDs, measurementPlanSha256: hash(fs.readFileSync(path.join(here,'measurement-plan.mjs'))), semanticEpoch: manifest.semanticEpoch, timestamp: new Date().toISOString(), verifiedOnly: verify,
+ nativeAllocator: allocatorRlib ? {kind: 'mimalloc', rlibSha256: hash(fs.readFileSync(allocatorRlib))} : {kind: 'system'},
  quietMachine: {allowBusy, loadLimit: quietLoadLimit, maxOneMinuteLoad: loadSamples.length ? Math.max(...loadSamples) : null},
  machine: {platform: os.platform(), release: os.release(), architecture: os.arch(), cpu: os.cpus()[0]?.model, logicalCPUs: os.cpus().length, totalMemoryBytes: os.totalmem()},
  versions, nodeComponents: process.versions, manifest, sources, compilerInputs,
