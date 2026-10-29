@@ -66,6 +66,26 @@ pub fn parse(input: &[u8], limits: Limits) -> Result<Value, Error> {
     }
     parse_valid_utf8(input, limits)
 }
+/// `JSON.parse(text)` without limits: plain serde_json. Integers keep Rust's
+/// exactness: a token too large for i64/u64 reaches serde as f64, so only when
+/// the value holds a float are integer tokens re-checked and rejected.
+#[allow(dead_code)] // Called by generated programs, not by the compiler itself.
+pub fn parse_plain(text: &str) -> Result<Value, Error> {
+    let mut decoder = serde_json::Deserializer::from_str(text);
+    let value = <Value as serde::Deserialize>::deserialize(&mut decoder).map_err(|error| located(text.as_bytes(), error, None))?;
+    decoder.end().map_err(|error| located(text.as_bytes(), error, Some("trailing-data")))?;
+    if holds_float(&value) { validate_integer_tokens(text.as_bytes())?; }
+    Ok(value)
+}
+// Recursion is bounded by serde_json's 128-level nesting limit; no allocation.
+fn holds_float(value: &Value) -> bool {
+    match value {
+        Value::Number(number) => number.is_f64(),
+        Value::Array(items) => items.iter().any(holds_float),
+        Value::Object(entries) => entries.values().any(holds_float),
+        _ => false,
+    }
+}
 /// `parse` for input already known to be valid UTF-8, such as a string's bytes.
 pub fn parse_valid_utf8(input: &[u8], limits: Limits) -> Result<Value, Error> {
     if input.len() > limits.bytes { return Err(failure("byte-limit", limits.bytes)); }

@@ -1,5 +1,14 @@
 # Goal: Tsrust language, CLI, documentation and platform polish
 
+## Top-level directive (owner, 2026-10-29)
+
+**We are not rewriting JavaScript in Rust; we are making Rust as easy to write as
+TypeScript.** Familiar TypeScript/JavaScript call shapes and names for the API;
+Rust's semantics, accuracy and performance underneath (exact integers, UTF-8
+strings, no silent rounding, no JS quirks). Generated code should look like what a
+careful Rust programmer writes; extras (limits, validation passes, copies) are
+opt-in or belong to another layer.
+
 ## Active owner direction — 2026-10-29 (supersedes the ordering below)
 
 The owner approved this plan and asked for continuous autonomous work on it:

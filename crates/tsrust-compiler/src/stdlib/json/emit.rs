@@ -26,8 +26,10 @@ pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding,ordered:&std
  let (parameters,call,payload)=if matches!(binding.name,"parse"|"parseJsonc") {
   let limits=record(NativeTypeId::JsonLimits);
   let (parser,option)=if binding.name=="parseJsonc" {("parse_jsonc",",allow_trailing_comma.unwrap_or(false)")}else{("parse_valid_utf8","")};
+  // Without limits JSON.parse is plain serde_json, like JavaScript's JSON.parse.
+  let (plain,close)=if binding.name=="parse" {("if limits.is_none() {tsrust_native_json::parse_plain(text.as_ref())} else {","}")}else{("","")};
   (format!("text:&String,{}limits:Option<&Record{limits}>",if binding.name=="parseJsonc" {"allow_trailing_comma:Option<bool>,"} else {""}),
-   format!("(|| {{let (bytes,depth,entries,nodes)=if let Some(limits)=limits {{(limits.field0,limits.field1,limits.field2,limits.field3)}} else {{(16*1024*1024,64,1_000_000,1_000_000)}}; let convert=|value:i64|usize::try_from(value).map_err(|_|tsrust_native_json::invalid_limits());tsrust_native_json::{parser}(text.as_ref().as_bytes(),tsrust_native_json::Limits{{bytes:convert(bytes)?,depth:convert(depth)?,entries:convert(entries)?,nodes:convert(nodes)?}}{option})}})()"),
+   format!("{plain}(|| {{let (bytes,depth,entries,nodes)=if let Some(limits)=limits {{(limits.field0,limits.field1,limits.field2,limits.field3)}} else {{(16*1024*1024,64,1_000_000,1_000_000)}}; let convert=|value:i64|usize::try_from(value).map_err(|_|tsrust_native_json::invalid_limits());tsrust_native_json::{parser}(text.as_ref().as_bytes(),tsrust_native_json::Limits{{bytes:convert(bytes)?,depth:convert(depth)?,entries:convert(entries)?,nodes:convert(nodes)?}}{option})}})(){close}"),
    format!("Record{value}{{value}}"))
  }else if matches!(binding.name,"fromArray"|"fromEntries") {
   let limits=record(NativeTypeId::JsonBuildLimits);

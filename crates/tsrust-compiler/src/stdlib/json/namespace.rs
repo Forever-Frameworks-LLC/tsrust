@@ -139,7 +139,7 @@ fn throwing_adapter(program: &mut Program, name: &str) -> Result<Function, Diagn
     }else if name=="writeJsonl" {
         "function adapter<T>(writer:Mutable<JsonlWriter>,value:T):Result<void,JsonlError>{return backend(writer,value);}"
     }else if name == "parse" {
-        "function adapter(text:string,limits:JsonLimits={maxBytes:16777216,maxDepth:64,maxEntries:1000000,maxNodes:1000000}):JsonValue {match(backend(text,limits)){Ok(value)=>{return value;},Err(error)=>{throw error;}}}"
+        "function adapter(text:string,limits?:JsonLimits):JsonValue {if(limits===undefined){match(backend(text)){Ok(value)=>{return value;},Err(error)=>{throw error;}}}match(backend(text,limits)){Ok(value)=>{return value;},Err(error)=>{throw error;}}}"
     } else if name == "tryStringify" {
         "function adapter<T>(value:T,maxBytes:int=16777216):Result<string,JsonError> {return backend(value,maxBytes);}"
     } else {

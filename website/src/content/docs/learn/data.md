@@ -58,9 +58,12 @@ to return Results.
 
 ### Set resource limits
 
-The optional `JsonLimits` record must supply all four fields:
+Dynamic `JSON.parse(text)` is unbounded apart from nesting (128 levels) unless you
+pass limits; HTTP request bodies are already capped by the server's `bodyLimit`.
+Typed `JSON.parse<T>(text)` applies the defaults below when you omit limits. The
+optional `JsonLimits` record must supply all four fields:
 
-| Field | Default | Meaning |
+| Field | Typed default | Meaning |
 | --- | --- | --- |
 | `maxBytes` | 16777216 | Maximum input size in UTF-8 bytes. |
 | `maxDepth` | 64 | Maximum nested container levels; cannot exceed 64. |
