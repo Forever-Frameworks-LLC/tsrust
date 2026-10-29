@@ -76,7 +76,7 @@ export default defineConfig({
         { label: 'Built-in types', collapsed: true, items: [{ autogenerate: { directory: 'reference/builtins' } }] },
       ] },
       { label: 'Tools', items: ['tools/cli', 'tools/testing', 'tools/rust-setup', 'tools/install-and-update', 'tools/rust-packages'] },
-      { label: 'Project', items: ['project/status'] },
+      { label: 'Project', items: ['project/status', 'project/performance'] },
     ],
   })],
 });
