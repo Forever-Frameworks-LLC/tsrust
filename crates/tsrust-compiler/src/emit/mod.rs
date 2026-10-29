@@ -3018,7 +3018,7 @@ impl Emitter<'_> {
                 let _=writeln!(output,"    {body}");
             } else {
                 self.parameter_initialization(&mut output, fun);
-                *self.receiver_moves.borrow_mut() = receiver_moves::eligible(fun);
+                *self.receiver_moves.borrow_mut() = receiver_moves::eligible(fun, &self.program.closures);
                 self.initialized_function_body(&mut output, fun, 1);
                 self.receiver_moves.borrow_mut().clear();
             }
@@ -5099,14 +5099,21 @@ impl Emitter<'_> {
         base: &Expr,
         args: &[Expr],
         copying: bool,
+        call: crate::diagnostic::Span,
     ) -> String {
         let array_type = base.ty.expect("checked sorting receiver");
+        // toSorted() on a dead local sorts that storage in place.
+        let moved = copying && self.moves_receiver(base, call);
         let Type::Array(element) = array_type else {
             unreachable!()
         };
         let temporary = Self::temporary_at_receiver(base);
         let mut code = String::from("{ ");
-        let receiver = if copying {
+        let receiver = if moved {
+            let receiver = self.expr(fun, base, Mode::Consume);
+            write!(code, "let mut sorting_copy = {receiver}; ").unwrap();
+            "sorting_copy".to_owned()
+        } else if copying {
             let receiver = self.expr(fun, base, Mode::Read);
             write!(code, "let sorting_source = {receiver}; ").unwrap();
             "sorting_source".to_owned()
@@ -5199,7 +5206,12 @@ impl Emitter<'_> {
                 _ => unreachable!("checked default sort"),
             }
         };
-        if copying {
+        if moved {
+            let call = if fallible {
+                self.registered_traversal_call(format!("sorting_copy.tsr_try_sort({compare})"), &args[0])
+            } else { format!("sorting_copy.tsr_sort({compare})") };
+            write!(code, "{call}; sorting_copy }}").unwrap();
+        } else if copying {
             let literal =
                 self.expression_shape(base) == Some(crate::fixed_storage::Shape::LiteralStrings);
             let values = if literal {
@@ -6613,7 +6625,16 @@ impl Emitter<'_> {
         format!("{{ let entries_source = {receiver}; let mut entries = <{result}>::from([]); for (entries_index,entries_value) in {iterator}.enumerate() {{ entries.push(Record{pair} {{ field0: i64::try_from(entries_index).expect(\"entries index exceeds int range\"), field1: {value} }}); }} entries }}")
     }
 
-    fn array_slice(&self, fun: &CheckedFunction, base: &Expr, args: &[Expr]) -> String {
+    fn array_slice(&self, fun: &CheckedFunction, base: &Expr, args: &[Expr], call: crate::diagnostic::Span) -> String {
+        let plain_vec = |ty: Type| !numeric_array(ty) && !inline_array(ty)
+            && !matches!(ty, Type::Array(ArrayElement::Record(index, 0)) if self.record_runtime.recursive(index) || self.small_record(index));
+        // slice() of a dead plain Vec local keeps that storage, trimming both ends.
+        if plain_vec(base.ty.expect("checked array slice")) && self.moves_receiver(base, call) {
+            let start = args.first().map_or_else(|| "0i64".into(), |arg| self.expr(fun, arg, Mode::Copy));
+            let end = args.get(1).map_or_else(|| "None".into(), |arg| format!("Some({})", self.expr(fun, arg, Mode::Copy)));
+            let array = self.expr(fun, base, Mode::Consume);
+            return format!("{{ let mut slice_array = {array}; let slice_from: i64 = {start}; let slice_to: Option<i64> = {end}; let slice_start = tsr_search_start(slice_array.len(), slice_from); let slice_end = slice_to.map_or(slice_array.len(), |end| tsr_search_start(slice_array.len(), end)).max(slice_start); slice_array.truncate(slice_end); slice_array.drain(..slice_start); slice_array }}");
+        }
         let array = self.expr(fun, base, Mode::Read);
         let start = args
             .first()
@@ -9255,7 +9276,7 @@ impl Emitter<'_> {
                     let ExprKind::Field(base, _) = &callee.kind else {
                         unreachable!()
                     };
-                    self.array_slice(fun, base, args)
+                    self.array_slice(fun, base, args, expr.span)
                 }
                 CallTarget::ArrayToSpliced => {
                     let ExprKind::Field(base, _) = &callee.kind else {
@@ -9301,6 +9322,7 @@ impl Emitter<'_> {
                         base,
                         args,
                         expr.target == Some(CallTarget::ArrayToSorted),
+                        expr.span,
                     )
                 }
                 CallTarget::ArrayReverse => {

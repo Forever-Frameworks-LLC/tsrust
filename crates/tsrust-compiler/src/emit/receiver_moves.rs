@@ -4,25 +4,34 @@
 //! nothing reads it afterwards. A call qualifies only when its receiver is a
 //! `const` owned array local that the function references exactly once, from a
 //! later statement of the same statement list (so the same loop iteration), with
-//! no `match` body in between, and the function has no closures or local
-//! functions that could capture it. Anything else keeps the copy.
+//! no `match` body in between, and no closure captures it (a local function
+//! anywhere in the function disables the move). Anything else keeps the copy.
 use std::collections::{HashMap, HashSet};
-use crate::analysis::CheckedFunction;
+use crate::analysis::{CheckedClosure, CheckedFunction};
 use crate::fixed_storage::{visit_expression, visit_function_expressions, visit_statements};
 use crate::syntax::{CallTarget, Expr, ExprKind, Stmt, StmtKind, Type};
 
-/// Spans of `concat()` and `toReversed()` calls that may consume their receiver.
-pub(super) fn eligible(fun: &CheckedFunction) -> HashSet<(usize, usize)> {
+/// Spans of `concat()`, `toReversed()`, `toSorted()` and `slice()` calls that may consume their receiver.
+pub(super) fn eligible(fun: &CheckedFunction, closures: &[CheckedClosure]) -> HashSet<(usize, usize)> {
     let mut result = HashSet::new();
     let mut nested = false;
     visit_statements(&fun.body, &mut |stmt| nested |= matches!(stmt.kind, StmtKind::LocalFunction(_)));
     let mut references: HashMap<usize, usize> = HashMap::new();
+    let mut captured = HashSet::new();
     visit_function_expressions(fun, &mut |expr| {
-        nested |= matches!(expr.kind, ExprKind::Closure { .. } | ExprKind::Selected { .. });
+        nested |= matches!(expr.kind, ExprKind::Selected { .. });
+        // A closure's body is not visited here; its captures name the outer bindings it uses.
+        if let ExprKind::Closure { id, .. } = expr.kind {
+            match closures.get(id) {
+                Some(closure) => captured.extend(closure.captures.iter().map(|capture| capture.outer)),
+                None => nested = true,
+            }
+        }
         if let (ExprKind::Name(_), Some(id)) = (&expr.kind, expr.binding) {
             *references.entry(id).or_default() += 1;
         }
     });
+    references.retain(|id, _| !captured.contains(id));
     if nested {
         return result;
     }
@@ -78,7 +87,7 @@ fn single_use(stmt: &Stmt, id: usize) -> Option<Option<(usize, usize)>> {
             if let ExprKind::Call(callee, args) = &value.kind
                 && let ExprKind::Field(base, _) = &callee.kind
                 && matches!(base.kind, ExprKind::Name(_)) && base.binding == Some(id)
-                && (value.target == Some(CallTarget::ArrayConcat) && args.is_empty() || value.target == Some(CallTarget::ArrayToReversed) && args.is_empty())
+                && (matches!(value.target, Some(CallTarget::ArrayConcat | CallTarget::ArrayToReversed)) && args.is_empty() || matches!(value.target, Some(CallTarget::ArrayToSorted | CallTarget::ArraySlice)))
             {
                 call = Some((value.span.start, value.span.end));
             }

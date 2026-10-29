@@ -10,6 +10,10 @@ fn dead_const_receivers_move_instead_of_copying() {
     let rust = emitted(source);
     assert!(!rust.contains("concat_array"), "a dead receiver of concat() is moved");
     assert!(rust.contains("reversed_array.reverse()"), "a dead receiver of toReversed() is reversed in place");
+    // A closure that captures something else does not prevent the move.
+    let other = emitted("function f(values:int[]):int{const copy=values.slice(0);const count=():int=>values.length;return copy.concat().length+count();}function main(){console.log(f([1,2]));}");
+    assert!(!other.contains("concat_array"), "an unrelated capture keeps the move");
+    support::execute(&support::format_round_trip("function f(values:int[]):int{const copy=values.slice(0);const count=():int=>values.length;return copy.concat().length+count();}function main(){console.log(f([1,2]));}"), "4\n", None);
     support::execute(&support::format_round_trip(source), "2 b 3 4,3,2\n", None);
 }
 
@@ -20,8 +24,8 @@ fn live_captured_rebindable_or_loop_carried_receivers_keep_copying() {
         "function f(values:int[]):int{const copy=values.slice(0);const other=copy.concat();return copy.length+other.length;}function main(){console.log(f([1,2]));}",
         // Declared outside the loop that copies it.
         "function f(values:int[]):int{const copy=values.slice(0);let total=0;for(let i=0;i<2;i++){total+=copy.concat().length;}return total;}function main(){console.log(f([1,2]));}",
-        // A closure in the function could capture it.
-        "function f(values:int[]):int{const copy=values.slice(0);const count=():int=>values.length;return copy.concat().length+count();}function main(){console.log(f([1,2]));}",
+        // A closure captures the local itself.
+        "function f(values:int[]):int{const copy=values.slice(0);const count=():int=>copy.length;return copy.concat().length+count();}function main(){console.log(f([1,2]));}",
         // A let binding may be reassigned.
         "function f(values:int[]):int{let copy=values.slice(0);return copy.concat().length;}function main(){console.log(f([1,2]));}",
     ] {
@@ -29,4 +33,13 @@ fn live_captured_rebindable_or_loop_carried_receivers_keep_copying() {
         assert!(rust.contains("concat_array"), "receiver must still be copied: {source}");
         support::execute(&support::format_round_trip(source), if source.contains("let copy") { "2\n" } else { "4\n" }, None);
     }
+}
+
+#[test]
+fn dead_receivers_of_slice_and_to_sorted_keep_exact_results() {
+    let source = "function byLength(a:ReadOnly<string[]>,b:ReadOnly<string[]>):int{return b.length-a.length;}function tail(rows:string[][],from:int,to:int):string[][]{const copy=rows.slice(0);return copy.slice(from,to);}function sorted(rows:string[][]):string[][]{const copy=rows.slice(0);return copy.toSorted(byLength);}function show(rows:string[][]):string{return rows.map((row:ReadOnly<string[]>):string=>row.join(\"+\")).join(\",\");}function main(){const rows:string[][]=[[\"a\"],[\"é\",\"b\",\"c\"],[\"d\",\"e\"]];console.log(show(tail(rows,1,3)),show(tail(rows,-2,10)),show(tail(rows,5,1)).length,show(sorted(rows)),show(rows));}";
+    let rust = emitted(source);
+    assert!(rust.contains("slice_array.drain(..slice_start)"), "slice() of a dead local trims its storage");
+    assert!(rust.contains("let mut sorting_copy = value"), "toSorted() of a dead local sorts it in place");
+    support::execute(&support::format_round_trip(source), "é+b+c,d+e é+b+c,d+e 0 é+b+c,d+e,a a,é+b+c,d+e\n", None);
 }
