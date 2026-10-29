@@ -224,6 +224,8 @@ const driverTS = fs.readFileSync(path.join(here, 'driver.ts'), 'utf8');
 const driverRS = fs.readFileSync(path.join(here, 'driver.rs'), 'utf8');
 const engines = (id) => [
  {id: 'native', command: [path.join(build, id)]},
+ // Hand-written Rust for the same workload, when parity/<id>.rs exists.
+ {id: 'rust-hand', command: [path.join(build, `${id}-hand`)]},
  {id: 'node-tsc', command: [process.execPath, path.join(build, `${id}.js`)]},
  {id: 'node-ts', command: [process.execPath, path.join(build, `${id}.ts`)]},
  {id: 'tsx', command: [...tsx, '--tsconfig', path.join(here, 'tsconfig.json'), path.join(build, `${id}.ts`)]},
@@ -231,8 +233,8 @@ const engines = (id) => [
  {id: 'ts-node-transpile', command: [...tsnode, '--transpileOnly', '--project', path.join(here, 'tsconfig.json'), path.join(build, `${id}.ts`)]},
  {id: 'bun', command: ['bun', 'run', path.join(build, `${id}.ts`)]},
  {id: 'deno', command: [deno, 'run', '--no-config', '--no-check', '--no-remote', '--no-npm', path.join(build, `${id}.ts`)]}
-].filter(engine=>plan.engineIDs.includes(engine.id));
-const compilation = [], execution = [], sources = [];
+].filter(engine=>plan.engineIDs.includes(engine.id)&&(engine.id!=='rust-hand'||fs.existsSync(path.join(here,'parity',`${id}.rs`))));
+const compilation = [], execution = [], sources = [], handSources = new Map();
 const approximateReferences=new Map(),approximateProbes=new Map(),approximateCorrectness=[];
 function prepare(w) {
  const source = fs.readFileSync(path.join(here, w.source ?? `workloads/${w.id}.tsr`), 'utf8');
@@ -406,6 +408,13 @@ function prepare(w) {
  const tsCommand = [...tsc, '--project', path.join(build, `${w.id}.json`)];
  // Prime normal filesystem/tool caches. Compiler bootstrap and downloads are excluded.
  run(nativeCommand); run(tsCommand);
+ const handSourcePath = path.join(here, 'parity', `${w.id}.rs`);
+ if (plan.engineIDs.includes('rust-hand') && fs.existsSync(handSourcePath)) {
+  const hand = fs.readFileSync(handSourcePath, 'utf8');
+  fs.writeFileSync(path.join(build, `${w.id}-hand.rs`), hand.replace('fn main()', 'fn source_main()') + '\n' + adaptRustDriver(driverRS, w, {emitted: hand, source}) + '\n' + allocatorHeader);
+  run([...rustc, ...nativeDependencies.args, ...allocatorArgs, '--edition=2024', '-C', 'opt-level=3', '-C', 'overflow-checks=on', '-A', 'warnings', path.join(build, `${w.id}-hand.rs`), '-o', path.join(build, `${w.id}-hand`)]);
+  handSources.set(w.id, hash(hand));
+ }
  if(isApproximate(w)){
   const loaded=approximateReferences.get(w.id),probe=approximatePointProbeSources(emitted,ts,w,loaded.reference),id=w.id+'_points';
   fs.writeFileSync(path.join(build,id+'.rs'),probe.rs);fs.writeFileSync(path.join(build,id+'.ts'),probe.ts);
@@ -501,6 +510,7 @@ const compilerInputs = compilerSourceInputs(path.join(root, 'crates/tsrust-compi
 for(const loaded of approximateReferences.values())assertApproximateArtifactsUnchanged(loaded);
 const result = {
  schemaVersion: 1, measurementScope: plan.measurementScope, measuredEngines: plan.engineIDs, measurementPlanSha256: hash(fs.readFileSync(path.join(here,'measurement-plan.mjs'))), semanticEpoch: manifest.semanticEpoch, timestamp: new Date().toISOString(), verifiedOnly: verify,
+ handWrittenRust: Object.fromEntries([...handSources].map(([id, sha256]) => [id, {source: `parity/${id}.rs`, sha256}])),
  nativeAllocator: allocatorRlib ? {kind: 'mimalloc', rlibSha256: hash(fs.readFileSync(allocatorRlib))} : {kind: 'system'},
  quietMachine: {allowBusy, loadLimit: quietLoadLimit, maxOneMinuteLoad: loadSamples.length ? Math.max(...loadSamples) : null},
  machine: {platform: os.platform(), release: os.release(), architecture: os.arch(), cpu: os.cpus()[0]?.model, logicalCPUs: os.cpus().length, totalMemoryBytes: os.totalmem()},
