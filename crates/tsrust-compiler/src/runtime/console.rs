@@ -70,6 +70,10 @@ fn tsr_console_number(value: f64, negative_zero: bool) -> std::string::String {
         }
         .into();
     }
+    // Whole numbers below 2^53 print as their exact integer digits in JavaScript.
+    if value.fract() == 0.0 && value.abs() < 9007199254740992.0 {
+        return (value as i64).to_string();
+    }
     if !(1e-6..1e21).contains(&value.abs()) {
         let mut text = format!("{value:e}");
         tsr_number_tie(value, &mut text, 0);

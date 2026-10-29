@@ -1108,6 +1108,7 @@ impl Emitter<'_> {
                         Type::Map(_) => "String::Borrowed(\"[object Map]\")".into(),
                         Type::Record(_) => "String::Borrowed(\"[object Object]\")".into(),
                         Type::Array(_) => "tsr_array_join(payload.iter(), \",\")".into(),
+                        Type::Enum(_, crate::syntax::EnumKind::String) if target==CallTarget::StringConversion => "String::Borrowed(payload.tsr_value())".into(),
                         other => format!(
                             "String::Owned(({}).label())",
                             self.console_value("payload", *other, "0", false)
@@ -1609,6 +1610,8 @@ impl Emitter<'_> {
                         };
                         format!("tsr_array_join({iterator}, \",\")")
                     }
+                    // A string enum member is a static string: borrow it without copying.
+                    Some(Type::Enum(_, crate::syntax::EnumKind::String)) => "String::Borrowed(builtin_argument_0.tsr_value())".into(),
                     Some(kind) => {
                         let reference = if kind.is_copy() {
                             "&builtin_argument_0"
