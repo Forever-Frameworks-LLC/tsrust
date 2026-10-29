@@ -54,6 +54,26 @@ builds or `--` to pass arguments to the program. macOS, Linux and Windows have n
 Use `tsrust run -- --port 3000` to forward arguments. Your program must interpret
 them; the CLI does not add a server or a port setting.
 
+### Hide a reported diagnostic
+
+A `// @tsrust ignore - reason` comment hides diagnostics located in the next
+statement or declaration from `tsrust check` and the editor:
+
+```tsrust
+function main() {
+  // @tsrust ignore - intentional negative fixture for ownership checks
+  const value: int = "wrong";
+}
+```
+
+- The reason after `-` is required; without it the comment is ordinary text.
+- The directive covers the whole next node, including nested bodies, and nothing
+  else. Blank lines and comments may sit in between. There is no file-wide form.
+- A directive before an `import` does not hide errors inside the imported file.
+- Suppression changes reporting only. `build`, `run`, `test`, `emit` and `dev`
+  still reject the program, so a passing `check` with ignored errors does not
+  mean the program builds.
+
 ## Project configuration
 
 Commands with omitted inputs use the nearest `tsrust.config.json`, including from

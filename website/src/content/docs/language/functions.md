@@ -640,6 +640,40 @@ function main() {
 This selection differs from reassigning an annotated local to a different origin;
 see [local callable annotations](/tsrust/language/function-values/#replace-and-select-environments).
 
+#### Select functions that borrow local data
+
+Alternatives that borrow local variables can be selected too. The chosen function
+keeps its original captures, and repeated calls update the captured variable. Keep
+the selection in an inner block when later code needs the variables again; the
+selection cannot outlive them or move into an owning callback contract.
+
+```tsrust
+function main() {
+  let left = 0;
+  let right = 10;
+  {
+    const first = (): int => {
+      left += 1;
+      return left;
+    };
+    const second = (): int => {
+      right += 2;
+      return right;
+    };
+    const selected = false ? first : second;
+    console.log(selected(), selected()); // 12 14
+  }
+
+  console.log(left, right); // 0 14
+}
+```
+
+Only the chosen alternative runs, with its own argument defaults and failures.
+Readonly selections can be lent to `ReadOnly<Function<...>>` parameters and mutable
+ones to `Mutable<Function<...>>`. Selection never clones captured data or creates
+shared mutation cells. Selecting between consuming borrowed alternatives or between
+polymorphic (unannotated generic) alternatives is not supported.
+
 ### Call a named assignment result
 
 Assigning a named callable and invoking that result replaces its storage before

@@ -8,7 +8,7 @@ function workload(n: int, seed: int): int {
   while (i < n) {
     const base = i + seed;
     const handler: Handler = {
-      run: i % 2 === 0 ? (value: int) : int => {
+      run: i % 2 === 0 ? (value: int): int => {
         return base + value;
       }
 
@@ -17,7 +17,7 @@ function workload(n: int, seed: int): int {
       }
     };
     checksum = checksum + handler.run(i);
-    handler.run = i % 3 === 0 ? (value: int) : int => {
+    handler.run = i % 3 === 0 ? (value: int): int => {
       return value * 2;
     }
 

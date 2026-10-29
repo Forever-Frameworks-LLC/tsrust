@@ -52,9 +52,9 @@ feature-coverage evidence to reduce the inventory.
 
 | Remaining guide (relative to docs/guides) | Required disposition | Status |
 | --- | --- | --- |
-| `async-sql.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `collections.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `diagnostic-suppression.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `async-sql.md` | Deleted 2026-10-29; std:sql reference (audited per entry) covers it. |
+| `collections.md` | Deleted 2026-10-29; std:collections Deque/Heap reference covers it. |
+| `diagnostic-suppression.md` | Merged into tools/cli#hide-a-reported-diagnostic (check passes, build still rejects; verified). |
 | `language/array-from.md` | Migrated to canonical site language/array-from | Accepted: source audit, seven complete executable examples, compiler/editor checks, direct-source rejection witnesses and full responsive/keyboard review. Corrected OrderedMap and reusable callable access; duplicate removed and incoming links migrated. |
 | `language/array-literal-spread.md` | Migrated to canonical site language/array-literal-spread | Accepted: complete source audit, 5 executable examples, focused compiler/editor checks and full390px/1440px/keyboard review. Corrected source families, ordering and ownership; duplicate removed and incoming links migrated. |
 | `language/arrow-functions.md` | Split into canonical site language/arrow-functions and language/function-expressions | Accepted: five exact executable examples, parser/checker source, compiler9/editor3 checks and full390px/1440px/keyboard review. Converted context-dependent snippets into complete programs; duplicate removed and incoming links/anchors migrated. |
@@ -70,34 +70,34 @@ feature-coverage evidence to reduce the inventory.
 | `language/declaration-lists.md` | Merged into website language/declarations; removed duplicate and updated Markdown links | Source, examples, focused tests and full responsive review accepted |
 | `language/deferred-initialization.md` | Merged into website language/declarations; removed duplicate and updated Markdown links | Source, examples, focused tests and full responsive review accepted |
 | `language/destructuring.md` | Split into language/destructuring, pattern-defaults-rest and record-spread-assignment | Accepted: source claims, 16 snippets, affected compiler/editor checks and full responsive/keyboard reviews complete. Removed superseded guide and migrated Markdown links. |
-| `language/enums.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/exception-handling.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/global-number-names.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/http-and-hono.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/in-operator.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/enums.md` | Merged into language/types#enums; example verified. |
+| `language/exception-handling.md` | Merged into language/errors (try/catch/finally, thrown values, run-time failures); examples verified. |
+| `language/global-number-names.md` | Deleted 2026-10-29; reference/globals/functions documents each global. |
+| `language/http-and-hono.md` | Retained workstream research with a current-guide pointer; not public documentation. |
+| `language/in-operator.md` | Merged into language/operators#the-in-operator and control-flow#forin; examples verified. |
 | `language/interfaces.md` | Migrated to canonical site language/interfaces | Accepted: source audit, exact executable examples, focused regression evidence and full responsive/keyboard review complete. Removed duplicate guide and migrated links. |
-| `language/labeled-control.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/logical-operators.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/map-group-by.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/maps.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/native-bytes.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/native-files.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/nested-functions.md` | Eight canonical site pages cover declarations/captures/parameters/generic values/adapters/factories/lexical scopes; assignment calls merged into call-expression guide | Partial: lexical page4 and added assignment example format/check/native pass; compiler13/editor3 plus selector-consumption negative witness. Full new page and changed call-expression section390px/1440px/keyboard review and66-page build/link check pass. Prior pages retain evidence. Source flow, owned/scoped selection, single-use scopes/replacement and mutable factories remain pending. |
-| `language/non-null-assertions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/labeled-control.md` | Merged into language/control-flow#labels; example verified. |
+| `language/logical-operators.md` | Merged into language/operators; stale "mixed payloads unsupported" claim removed (union results compile). Computed-target diagnostic clarified in the compiler. |
+| `language/map-group-by.md` | Deleted 2026-10-29; Map.groupBy reference entry covers it. |
+| `language/maps.md` | Deleted 2026-10-29; Map reference covers it. |
+| `language/native-bytes.md` | Deleted 2026-10-29; std:bytes reference covers it. |
+| `language/native-files.md` | Deleted 2026-10-29; std:fs reference covers it. |
+| `language/nested-functions.md` | Eight canonical site pages cover declarations/captures/parameters/generic values/adapters/factories/lexical scopes; assignment calls merged into call-expression guide | Partial: lexical page4 and added assignment example format/check/native pass; compiler13/editor3 plus selector-consumption negative witness. Full new page and changed call-expression section390px/1440px/keyboard review and66-page build/link check pass. Prior pages retain evidence. 2026-10-29: the remainder was verified and merged, and the source guide deleted. Scoped borrowed selection went to functions (call expressions); `Once` borrowing callers and factory transfer through `shift()!`/`pop()!` went to function values; generic replacement and source-flow checks went to generics. All five guide programs and the merged examples ran with the current compiler. A loop-carried generic replacement is rejected with `callable-layout`, now documented as a limit. Strongest-access moves were verified with `ReadOnly`/`Owned` arms. |
+| `language/non-null-assertions.md` | Merged into language/operators#non-null-assertion; failure is catchable (verified). |
 | `language/nullable-callables.md` | Migrated to canonical site language/nullable-callables | Accepted: source audit, exact executable examples and focused regression evidence; full responsive/keyboard review complete, duplicate removed and links migrated. |
 | `language/nullish-assignment.md` | Migrated to canonical site language/nullish-assignment | Accepted: source audit, exact executable examples and focused regression evidence; full responsive/keyboard review complete, duplicate removed and links migrated. Merged 2026-10-28 into `language/optional-values` (redirected); see [documentation architecture](documentation-architecture.md). |
 | `language/nullish-coalescing.md` | Migrated to canonical site language/nullish-coalescing | Accepted: source audit, six exact executable examples, focused regressions and full responsive/keyboard review. Duplicate removed and links migrated. Merged 2026-10-28 into `language/optional-values` (redirected); see [documentation architecture](documentation-architecture.md). |
-| `language/numeric-literals.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/numeric-string-conversion.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/numeric-literals.md` | Merged into language/types#numbers; examples verified. |
+| `language/numeric-string-conversion.md` | Merged into language/operators#unary-plus-and-number-conversion. |
 | `language/optional-chaining.md` | Migrated to canonical site language/optional-chaining | Accepted: source audit, six exact executable examples, focused regressions and full responsive/keyboard review. Duplicate removed and links migrated. Merged 2026-10-28 into `language/optional-values` (redirected); see [documentation architecture](documentation-architecture.md). |
 | `language/optional-default-parameters.md` | Migrated to canonical site language/optional-default-parameters | Accepted: source audit, four exact executable examples, focused regression/editor evidence and full responsive/keyboard review. Duplicate removed and incoming links migrated. |
 | `language/optional-fields.md` | Migrated to canonical site language/optional-fields | Accepted: source audit, exact executable examples, focused regression evidence and full responsive/keyboard review complete. Removed duplicate guide and migrated links. |
-| `language/recursive-records.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/recursive-records.md` | Merged into language/types#recursive-records; borrowed-link rebind diagnostic clarified in the compiler. |
 | `language/rest-parameters.md` | Migrated to canonical site language/rest-parameters | Accepted: source audit, four exact executable examples, focused regression/editor evidence and full responsive/keyboard review. Duplicate removed and incoming links migrated. |
-| `language/result-match.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/scalar-unary-plus.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/scoped-callable-transport.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `language/sets.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/result-match.md` | Merged into language/errors#result-values and #match (literal, named-record and borrowed matches verified). |
+| `language/scalar-unary-plus.md` | Merged into language/operators#unary-plus-and-number-conversion. |
+| `language/scoped-callable-transport.md` | Retained developer reference for advanced callable-transport edge cases; the public chapters cover the supported patterns. |
+| `language/sets.md` | Deleted 2026-10-29; Set reference covers it. |
 | `language/statement-bodies.md` | Migrated to website language/statement-bodies; removed duplicate and updated milestone link | Source, exact native example and full 390px/1440px presentation accepted |
 | `language/string-concatenation.md` | Merged into language/strings; old duplicate removed and Markdown links updated. | Source, examples and 390px/1440px rendered review complete |
 | `language/string-indexing.md` | Merged into language/strings; old duplicate removed and Markdown links updated. | Source, examples and 390px/1440px rendered review complete |
@@ -105,44 +105,44 @@ feature-coverage evidence to reduce the inventory.
 | `language/string-semantics.md` | Retained original representation/measurement history with explicit superseded-contract label; current usage moved to language/strings. | Core source, examples and 390px/1440px rendered review complete |
 | `language/switch.md` | Canonical website language/switch; removed guide stub; preserved retained catalog metadata/route as a link | Content, exact examples, compiler/LSP regressions and responsive presentation accepted |
 | `language/type-aliases.md` | Canonical website language/type-aliases; removed guide stub; preserved retained catalog metadata | Content, exact examples, compiler/LSP tests and responsive presentation accepted |
-| `language/type-assertions.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `language/type-assertions.md` | Merged into language/operators#as-and-satisfies; example verified. |
 | `rust-packages.md` | Moved to tools/rust-packages; current shared-cache behavior corrected in the regex example, history retained in package-cli-acceptance. | Source and responsive presentation reviewed; package commands and relocated offline portable example pass locally |
-| `schema-diagnostics.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `sqlite.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `schema-diagnostics.md` | Deleted 2026-10-29; std:schema reference covers it. |
+| `sqlite.md` | Deleted 2026-10-29; std:sqlite reference covers it. |
 | `tooling/deployment.md` | Current guidance moved to backend/deployment; original vision and core-33 anchor retained in place. | Source and 390px/1440px presentation reviewed; release-command execution remains pending |
 | `tooling/editor-commands.md` | Retained implementation/acceptance history with current-guide pointers; run settings moved into start/editor. | Source reconciliation and added editor paragraph 390px/1440px rendering complete |
 | `tooling/editor-foundation.md` | Original plan and handoffs retained with explicit historical scope; current capability/installation/monitoring claims no longer implied. | Historical status and current-guide links reconciled |
 | `tooling/editor-quick-fixes.md` | User instructions moved to start/editor; implementation and acceptance retained with historical limits labeled. | Source reconciliation and 390px/1440px rendered review complete |
-| `tooling/interop-and-targets.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
+| `tooling/interop-and-targets.md` | Retained workstream research with a current-guide pointer; not public documentation. |
 | `tooling/missing-linker-diagnostic.md` | User recovery moved into tools/rust-setup; original acceptance evidence retained and labeled historical. Active editor link updated. | Source reconciliation and 390px/1440px rendered review complete |
 | `tooling/project-editor.md` | Merged into start/editor; removed stale named-import-only and open-files-only limits, updated active links, removed duplicate. | Source reconciliation and 390px/1440px rendered review complete |
-| `tooling/toolchain-and-development.md` | Audit and migrate current guidance; preserve any embedded history | Pending |
-| `compiler-source-layout.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
-| `documentation-content.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
-| `language/compiler-and-modules.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
-| `language/data-type-coverage.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
-| `language/diagnostic-improvements.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
-| `language/feature-coverage.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
-| `language/standard-library-coverage.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
-| `language/standard-library.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
-| `releases.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
-| `resource-lifetimes.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
-| `tooling/retained-ui-setup.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
-| `tooling/rust-toolchain-policy.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
-| `ui-applications.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Pending |
-| `language/async-and-runtime.md` | Retain labeled research; reconcile any implemented-scope lead and links | Pending |
-| `language/databases.md` | Retain labeled research; reconcile any implemented-scope lead and links | Pending |
-| `language/error-handling.md` | Retain labeled research; reconcile any implemented-scope lead and links | Pending |
-| `language/identity.md` | Retain labeled research; reconcile any implemented-scope lead and links | Pending |
-| `language/metadata-and-serialization.md` | Retain labeled research; reconcile any implemented-scope lead and links | Pending |
-| `language/ownership-and-memory.md` | Retain labeled research; reconcile any implemented-scope lead and links | Pending |
-| `language/primitives-and-collections.md` | Retain labeled research; reconcile any implemented-scope lead and links | Pending |
-| `language/server-html.md` | Retain labeled research; reconcile any implemented-scope lead and links | Pending |
-| `language/type-system.md` | Retain labeled research; reconcile any implemented-scope lead and links | Pending |
-| `language/validation.md` | Retain labeled research; reconcile any implemented-scope lead and links | Pending |
-| `tooling/packages-and-registry.md` | Retain labeled research; reconcile any implemented-scope lead and links | Pending |
-| `tooling/security-and-supply-chain.md` | Retain labeled research; reconcile any implemented-scope lead and links | Pending |
-| `tooling/source-migration.md` | Retain labeled research; reconcile any implemented-scope lead and links | Pending |
+| `tooling/toolchain-and-development.md` | Retained workstream research with a current-guide pointer; not public documentation. |
+| `compiler-source-layout.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Reconciled 2026-10-29: audience labeled; releases.md updated for the completed hosted pipeline. |
+| `documentation-content.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Reconciled 2026-10-29: audience labeled; releases.md updated for the completed hosted pipeline. |
+| `language/compiler-and-modules.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Reconciled 2026-10-29: audience labeled; releases.md updated for the completed hosted pipeline. |
+| `language/data-type-coverage.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Reconciled 2026-10-29: audience labeled; releases.md updated for the completed hosted pipeline. |
+| `language/diagnostic-improvements.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Reconciled 2026-10-29: audience labeled; releases.md updated for the completed hosted pipeline. |
+| `language/feature-coverage.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Reconciled 2026-10-29: audience labeled; releases.md updated for the completed hosted pipeline. |
+| `language/standard-library-coverage.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Reconciled 2026-10-29: audience labeled; releases.md updated for the completed hosted pipeline. |
+| `language/standard-library.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Reconciled 2026-10-29: audience labeled; releases.md updated for the completed hosted pipeline. |
+| `releases.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Reconciled 2026-10-29: audience labeled; releases.md updated for the completed hosted pipeline. |
+| `resource-lifetimes.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Reconciled 2026-10-29: audience labeled; releases.md updated for the completed hosted pipeline. |
+| `tooling/retained-ui-setup.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Reconciled 2026-10-29: audience labeled; releases.md updated for the completed hosted pipeline. |
+| `tooling/rust-toolchain-policy.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Reconciled 2026-10-29: audience labeled; releases.md updated for the completed hosted pipeline. |
+| `ui-applications.md` | Retain developer/evidence/UI purpose; reconcile current claims and links | Reconciled 2026-10-29: audience labeled; releases.md updated for the completed hosted pipeline. |
+| `language/async-and-runtime.md` | Retain labeled research; reconcile any implemented-scope lead and links | Reconciled 2026-10-29: status label present; not public documentation. |
+| `language/databases.md` | Retain labeled research; reconcile any implemented-scope lead and links | Reconciled 2026-10-29: status label present; not public documentation. |
+| `language/error-handling.md` | Retain labeled research; reconcile any implemented-scope lead and links | Reconciled 2026-10-29: status label present; not public documentation. |
+| `language/identity.md` | Retain labeled research; reconcile any implemented-scope lead and links | Reconciled 2026-10-29: status label present; not public documentation. |
+| `language/metadata-and-serialization.md` | Retain labeled research; reconcile any implemented-scope lead and links | Reconciled 2026-10-29: status label present; not public documentation. |
+| `language/ownership-and-memory.md` | Retain labeled research; reconcile any implemented-scope lead and links | Reconciled 2026-10-29: status label present; not public documentation. |
+| `language/primitives-and-collections.md` | Retain labeled research; reconcile any implemented-scope lead and links | Reconciled 2026-10-29: status label present; not public documentation. |
+| `language/server-html.md` | Retain labeled research; reconcile any implemented-scope lead and links | Reconciled 2026-10-29: status label present; not public documentation. |
+| `language/type-system.md` | Retain labeled research; reconcile any implemented-scope lead and links | Reconciled 2026-10-29: status label present; not public documentation. |
+| `language/validation.md` | Retain labeled research; reconcile any implemented-scope lead and links | Reconciled 2026-10-29: status label present; not public documentation. |
+| `tooling/packages-and-registry.md` | Retain labeled research; reconcile any implemented-scope lead and links | Reconciled 2026-10-29: status label present; not public documentation. |
+| `tooling/security-and-supply-chain.md` | Retain labeled research; reconcile any implemented-scope lead and links | Reconciled 2026-10-29: status label present; not public documentation. |
+| `tooling/source-migration.md` | Retain labeled research; reconcile any implemented-scope lead and links | Reconciled 2026-10-29: status label present; not public documentation. |
 
 ### Retained content consumers
 

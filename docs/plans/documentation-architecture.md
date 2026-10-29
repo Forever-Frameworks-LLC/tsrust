@@ -177,3 +177,15 @@ status/header failures, discriminatedUnion's missing-tag code
 uncatchable UTF-8 boundary failures for byte-offset string methods.
 
 Not verifiable locally: Windows-specific std:path behavior.
+
+Completed 2026-10-29 (retained guide inventory): the last 24 user-facing guides
+were merged or deleted. New chapters: `language/operators` (truthiness, logical
+selection and assignment, non-null assertion, `in`, unary plus/Number, `as`/
+`satisfies`) and `language/errors` (try/catch/finally, thrown values, run-time
+failures, Result and `match`). `language/types` gained numbers, enums and
+recursive records; `language/control-flow` gained `for...in` and labels;
+`tools/cli` gained diagnostic suppression. The nested-function remainder went to
+functions, function values and generics. Every new example ran with the current
+compiler. Two misleading diagnostics and one formatter defect found on the way
+were fixed with regression tests. Library-only guides were deleted where the
+audited reference covers them. Research and developer guides stay, labeled.

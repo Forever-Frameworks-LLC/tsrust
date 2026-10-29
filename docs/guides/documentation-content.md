@@ -1,5 +1,7 @@
 # Checked documentation content
 
+Retained original UI documentation app tooling; outside the backend release.
+
 The documentation project uses one build-time content source for web and native.
 `tsrust docs content --cwd docs` reads the `documentation` section of
 `tsrust.config.json`, validates authored Markdown, examples and public declarations,

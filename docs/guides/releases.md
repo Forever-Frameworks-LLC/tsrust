@@ -24,11 +24,10 @@ PR and publishes those exact artifacts. It checks the current head/base and veri
 that the merged source tree matches the built tree. Main requires an up-to-date
 release gate and permits merge commits to retain staging ancestry.
 
-These workflow files require a one-time live migration. Until
-[the migration checklist](../plans/staged-release-pipeline.md) is complete, the
-existing main CI/review rules remain authoritative. The publisher must already
-be present on the default branch before the first promotion finishes. Source
-configuration alone is not proof that the hosted release path has passed.
+The hosted path has run end to end: `v0.1.0-rc.1` was built by Release run
+40861023720, merged and published by Promote run 40864132322, and its Pages site
+deployed by run 40864208241. [The migration checklist](../plans/staged-release-pipeline.md)
+records the original setup.
 
 ## Caching and cost
 
@@ -76,9 +75,9 @@ manual dispatch never creates a tag or publishes a GitHub release. This focused
 package check does not repeat the full CI gate and is not release authorization.
 Manual validation never merges a PR; pushing a tag does not trigger this workflow.
 
-The Windows artifact path is configured but remains pending native package
-validation until a hosted run is recorded. Do not infer Windows release readiness
-from suffix-only packaging fixtures or earlier local development installs.
+The Windows x64 archive was built and passed the packaged CLI/LSP smoke in the
+`v0.1.0-rc.1` promotion. Hand installation of the Windows, Linux and Intel macOS
+archives is not separately recorded.
 
 For focused async language acceptance, dispatch CI with `async_acceptance: true`.
 It runs compiler/native async registration, editor contracts and backend all-target
@@ -87,8 +86,7 @@ diagnostics on Windows, macOS and Linux. It does not replace the default CI matr
 ## Prepare a version
 
 1. Complete the intended feature section and its affected acceptance. Resolve or
-   explicitly disclose known issues in the release notes. The current LSP memory
-   report and unverified Table work remain release limitations, not accepted fixes.
+   explicitly disclose known issues in the release notes.
 2. Update `crates/tsrust-compiler/Cargo.toml` and its `Cargo.lock` entry. A tag must
    exactly equal that version prefixed with `v`, including any prerelease suffix.
    LSP and extension versions are independent; update them when their behavior

@@ -68,7 +68,7 @@ export default defineConfig({
     sidebar: [
       { label: 'Start here', items: [{ label: 'Overview', slug: '' }, 'start/installation', 'start/quickstart', 'start/editor', 'start/project-structure'] },
       { label: 'Learn', items: ['learn/first-service', 'learn/data'] },
-      { label: 'Language', items: ['language/declarations', 'language/types', 'language/optional-values', 'language/patterns', 'language/functions', 'language/function-values', 'language/generics', 'language/arrays', 'language/control-flow', 'language/modules', 'language/strings', 'language/async'] },
+      { label: 'Language', items: ['language/declarations', 'language/types', 'language/optional-values', 'language/operators', 'language/patterns', 'language/functions', 'language/function-values', 'language/generics', 'language/arrays', 'language/control-flow', 'language/errors', 'language/modules', 'language/strings', 'language/async'] },
       { label: 'Standard library', items: [
         'library/overview',
         { label: 'Globals', collapsed: false, items: [{ label: 'Introduction', slug: 'library/globals' }, { autogenerate: { directory: 'reference/globals' } }] },

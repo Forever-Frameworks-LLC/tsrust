@@ -441,3 +441,13 @@ fn record_type_declaration_commas_end_lines_like_interfaces() {
     assert_eq!(result, "type Point = {\n  x: int,\n  y: [int, string],\n  f: (a: int, b: int) => int\n}\n\ninterface Pair {\n  a: int,\n  b: int\n}\n\nfunction main() {}\n");
     assert_eq!(format(&result).unwrap(), result);
 }
+
+#[test]
+fn arrow_result_annotations_inside_conditionals_keep_type_colons_tight() {
+    let source = "function main() {\n  const flag = true;\n  const action = flag ? (): int => 7 : (): int => 9;\n  const pick = flag ? (value: int): Map<string, int> => new Map() : (value: int): Map<string, int> => new Map();\n  const plain = flag ? (1) : 2;\n  console.log(action(), pick(1).size, plain);\n}\n";
+    let result = format(source).unwrap();
+    assert!(result.contains("flag ? (): int => 7 : (): int => 9;"), "{result}");
+    assert!(result.contains("flag ? (value: int): Map<string, int> => new Map() : (value: int): Map<string, int> => new Map();"), "{result}");
+    assert!(result.contains("flag ? (1) : 2;"), "{result}");
+    assert_eq!(format(&result).unwrap(), result);
+}
