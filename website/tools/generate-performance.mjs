@@ -110,9 +110,9 @@ const slower = ordered.filter(([, entries]) => middle(entries.map(ratio)) < 1).m
 page += slower.length
   ? `\nNative code is not uniformly faster. In ${slower.join(' and ')}, the median workload runs slower than on Node.js: those programs are dominated by owned record and string copies and by checked decoding, which Node.js handles with shared references and a tuned JIT. They are current optimization targets.\n\n`
   : '\n';
-page += 'Each group lists every workload, slowest ratio first.\n\n';
+page += 'Each group lists every workload, slowest ratio first. Speeds are operations per second, abbreviated: k is thousands, M is millions and G is billions, so `5.35 M` is about 5,350,000 operations per second. The ratio column is the one to compare.\n\n';
 for (const [group, entries] of ordered) {
-  page += `### ${group}\n\n<details>\n<summary>${entries.length} workloads</summary>\n\n| Workload | Native | Node.js | Ratio |\n| --- | ---: | ---: | ---: |\n`;
+  page += `### ${group}\n\n<details>\n<summary>${entries.length} workloads</summary>\n\n| Workload | Native (ops/s) | Node.js (ops/s) | Ratio |\n| --- | ---: | ---: | ---: |\n`;
   for (const row of entries.sort((a, b) => ratio(a) - ratio(b))) {
     const label = row.description ? `\`${row.workload}\`: ${cell(row.description)}` : `\`${row.workload}\``;
     page += `| ${label} | ${rate(row.native)} | ${rate(row.node)} | ${ratio(row).toFixed(2)}× |\n`;

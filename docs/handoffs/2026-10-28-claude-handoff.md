@@ -227,3 +227,41 @@ then, including this documentation restructure, are unpushed.
   Linux, Windows and Intel macOS archives were built and checked in CI, not
   installed by hand. This handoff commit is local only and reaches `stag` with
   the next PR.
+
+## 0.1.0 milestone — 2026-10-29
+
+Owner direction: no rc.2; finish the work, then publish `0.1.0`; run the
+performance milestone and put the measurements in the docs.
+
+- **Legacy UI out of the release CLI.** `tsrust ui`, `new --ui`, `dev --target
+  web` and the UI menu are behind the `legacy-ui` Cargo feature (off in release
+  builds). The bundled component catalog and `shadcn-MIT.txt` are not in the
+  archive. Compiler `std:ui` support and the `tsrust-ui` crate remain, frozen.
+  UI CLI tests run only with `--features legacy-ui`.
+- **Docs inventory finished.** New chapters `language/operators` and
+  `language/errors`; numbers, enums and recursive records in `language/types`;
+  `for...in` and labels in `language/control-flow`; diagnostic suppression in
+  `tools/cli`. 24 retained guides merged or deleted; research and developer
+  guides labeled. See `docs/plans/documentation-architecture.md`.
+- **Defects fixed on the way** (each with a regression test): formatter spacing
+  for `c ? (): T => a : b`; misleading diagnostics for non-boolean `||=` on an
+  array element and for rebinding a borrowed-view `let`; `setup --portable`
+  failing on a damaged cached pack (now rebuilt and replaced); benchmark
+  harness hiding prepared source packs behind its isolated Cargo home; three
+  benchmark policies rejecting formatting-only source changes (now use
+  registered token-identical proofs).
+- **Performance milestone.** All 930 workloads measured native vs Node after
+  tsc (3 × 31 samples, 175,620 samples), 880 profiled. Native faster on 613
+  (median 1.52×). Median native change vs earlier measurements 1.00×; no
+  regression beyond noise. Evidence: `benchmarks/storage/release-0.1.0-analytics/`.
+  The public page `project/performance` is generated from
+  `benchmarks/measurements.sqlite` at docs build time; publish a different run by
+  editing `website/tools/performance-runs.json`.
+- **Optimization targets** (native slower than Node): JSON/schema decoding,
+  record/object copies, Unicode case conversion, `String.at`, recursive array
+  copies, enum and interface records.
+- **Known pre-existing issues, not fixed:** `store.py verify` rejects old
+  absolute-path log records already in `records.sqlite`; about 55 benchmark
+  harness unit tests are stale (hard-coded `target/editor/debug/tsrust`, frozen
+  manifest-prefix hashes broken by fingerprint refreshes). Neither affects
+  measurement.
