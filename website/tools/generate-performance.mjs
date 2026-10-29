@@ -33,12 +33,28 @@ for (const raw of config.runs) {
 db.close();
 if (!rows.length) throw Error('No native/node-tsc comparisons in the configured runs');
 
+// Manifest categories grew per feature family; fold them into reader-facing groups.
+const families = [
+  ['Strings', /^(strings)$/, /(^|_)(string|ascii|unicode|text|template|substr|char)/],
+  ['Arrays', /^(arrays|array operations)$/, /(^|_)array|arrays$/],
+  ['Numbers and operators', /^(numbers|operators|booleans)$/, /^(number|math|int|boolean|compound|update|scalar)_/],
+  ['Functions and callbacks', /^(callbacks|closures and callbacks|recursion)$/, /(closure|callback|callable|factory|capture|function|higher)/],
+  ['JSON and schema', /^(json|schema)$/, /(json|schema)/],
+  ['Standard library', /^(bytes|resources|paths|os|environment|time|collections|module-state|testing)$/, /^(native|std)_/],
+  ['Records and objects', /^(records|other)$/, /(record|object|clone|destructur)/],
+];
+const groupOf = (id, workload) => {
+  const category = String(workload?.category ?? '').toLowerCase();
+  for (const [name, categories, ids] of families) if (category && categories.test(category)) return name;
+  for (const [name, , ids] of families) if (ids.test(id)) return name;
+  return 'Core language';
+};
 const groups = new Map();
 for (const row of rows) {
   const workload = workloads.get(row.workload);
-  const group = config.groups[row.workload] ?? workload?.category ?? 'Other';
+  const group = config.groups[row.workload] ?? groupOf(row.workload, workload);
   if (!groups.has(group)) groups.set(group, []);
-  groups.get(group).push({ ...row, description: workload?.description ?? row.workload, unit: workload?.operationUnit });
+  groups.get(group).push({ ...row, description: workload?.description });
 }
 
 const rate = (value) => {
@@ -54,7 +70,6 @@ const median = ratios.length % 2 ? ratios[(ratios.length - 1) / 2] : (ratios[rat
 const faster = ratios.filter((value) => value > 1).length;
 const first = runs[0].metadata;
 const machine = first.machine ?? {};
-const versions = first.versions ?? {};
 const samples = rows[0].native_samples;
 
 let page = `---
@@ -76,20 +91,33 @@ above 1 means the native program was faster.
 | Native faster | ${faster} of ${rows.length} |
 | Median ratio (native ÷ Node.js) | ${median.toFixed(2)}× |
 | Range | ${ratios[0].toFixed(2)}× to ${ratios.at(-1).toFixed(2)}× |
-| Machine | ${cell(machine.cpu ?? 'unrecorded')}, ${machine.logicalCpus ?? machine.availableParallelism ?? '?'} logical CPUs, ${cell(machine.platform ?? '')} |
-| Toolchains | ${cell(versions.rust ?? 'rustc')}; Node.js ${cell(versions.node ?? '')} |
+| Machine | ${cell(machine.cpu ?? 'unrecorded')} (${cell(machine.platform ?? '')} ${cell(machine.architecture ?? '')}) |
+| Toolchains | Rust ${cell(config.rust)}; Node.js ${cell(config.node)}; TypeScript ${cell(config.typescript)} |
 | Samples | ${samples} timed samples per engine and workload |
 | Measured | ${runs.map((run) => run.timestamp.slice(0, 10)).filter((value, index, all) => all.indexOf(value) === index).join(', ')} |
 
-## Results
+## Results by group
 
 `;
-for (const [group, entries] of [...groups].sort(([a], [b]) => a.localeCompare(b))) {
-  page += `### ${group}\n\n| Workload | Native | Node.js | Ratio |\n| --- | ---: | ---: | ---: |\n`;
-  for (const row of entries.sort((a, b) => a.description.localeCompare(b.description))) {
-    page += `| ${cell(row.description)} | ${rate(row.native)} | ${rate(row.node)} | ${ratio(row).toFixed(2)}× |\n`;
+const middle = (values) => { const sorted = [...values].sort((a, b) => a - b); const half = sorted.length >> 1; return sorted.length % 2 ? sorted[half] : (sorted[half - 1] + sorted[half]) / 2; };
+const ordered = [...groups].sort(([a], [b]) => a.localeCompare(b));
+page += '| Group | Workloads | Native faster | Median ratio |\n| --- | ---: | ---: | ---: |\n';
+for (const [group, entries] of ordered) {
+  const values = entries.map(ratio);
+  page += `| [${group}](#${group.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}) | ${entries.length} | ${values.filter((value) => value > 1).length} | ${middle(values).toFixed(2)}× |\n`;
+}
+const slower = ordered.filter(([, entries]) => middle(entries.map(ratio)) < 1).map(([group]) => `the ${group} group`);
+page += slower.length
+  ? `\nNative code is not uniformly faster. In ${slower.join(' and ')}, the median workload runs slower than on Node.js: those programs are dominated by owned record and string copies and by checked decoding, which Node.js handles with shared references and a tuned JIT. They are current optimization targets.\n\n`
+  : '\n';
+page += 'Each group lists every workload, slowest ratio first.\n\n';
+for (const [group, entries] of ordered) {
+  page += `### ${group}\n\n<details>\n<summary>${entries.length} workloads</summary>\n\n| Workload | Native | Node.js | Ratio |\n| --- | ---: | ---: | ---: |\n`;
+  for (const row of entries.sort((a, b) => ratio(a) - ratio(b))) {
+    const label = row.description ? `\`${row.workload}\`: ${cell(row.description)}` : `\`${row.workload}\``;
+    page += `| ${label} | ${rate(row.native)} | ${rate(row.node)} | ${ratio(row).toFixed(2)}× |\n`;
   }
-  page += '\n';
+  page += '\n</details>\n\n';
 }
 page += `Rates are mean operations per second over every timed sample. Each workload
 row is one complete workload: input setup, the operations and result retention

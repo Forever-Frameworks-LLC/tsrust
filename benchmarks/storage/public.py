@@ -195,7 +195,11 @@ def export(database, destination):
         with closing(sqlite3.connect(temporary)) as target:
             target.execute('PRAGMA foreign_keys=ON')
             # Same query schema, with original-record hashes retained as identities only.
-            target.executescript(analytics.SCHEMA.replace(' REFERENCES blobs(sha256)', ''))
+            # WITHOUT ROWID stores rows in their composite primary key instead of a
+            # second copy in an autoindex, roughly halving the published file.
+            schema = analytics.SCHEMA.replace(' REFERENCES blobs(sha256)', '')
+            schema = re.sub(r'(CREATE TABLE IF NOT EXISTS analytics_(?:workloads|samples|summaries|profiles) \((?:[^;]|\n)*?\))\s*;', r'\1 WITHOUT ROWID;', schema)
+            target.executescript(schema)
             target.execute(f'PRAGMA application_id={APPLICATION_ID}')
             target.execute('PRAGMA user_version=1')
             for table in TABLES:

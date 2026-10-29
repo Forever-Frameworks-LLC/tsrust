@@ -20,16 +20,18 @@ result strings, logs, source snapshots, executable paths, hostnames, usernames,
 addresses, serial numbers and OS kernel build identifiers are excluded.
 Historical detailed workload protocols remain in repository sources and reports.
 
-This export covers the **70 already indexed accepted runs**, including
-**86,622 timing samples and 825 allocation samples**. It does not claim that
+This export covers the **101 indexed accepted runs**, including
+**259,602 timing samples** and the allocation samples of their profiles. It does not claim that
 every older file in the legacy archive has been indexed. Unindexed history
 remains local until its measurement and acceptance structure can be verified.
 No measurements have been discarded from that archive or retimed for this export.
 
-The October 28, 2026 snapshot is 37,285,888 bytes. SHA256:
-`9ddf5e9be9ec6daa5ce70f8f4cda36e3495d7b3459a8cc54696c4f277382624f`.
-All 50 indexed execution comparisons retain their original checkpoint queries.
-The latest addition contains 186 HTTP request-reader samples, preserving the
+The October 29, 2026 snapshot is 62,464,000 bytes. SHA256:
+`9a784b48e751aa32ed334cf63b36ed4f94e727911f39356bb5cd4f383330c622`.
+It adds the release 0.1.0 milestone: 17 execution runs measuring every manifest
+workload (930) natively and on Node after tsc, plus 14 allocation profiles covering
+880 workloads. Tables with composite keys are stored `WITHOUT ROWID`, so the
+file no longer duplicates every sample in a primary-key index. The run preserves the
 three-process, eight-warmup, 31-sample-per-process protocol for each engine.
 The storage suite covers privacy exclusions, exact sample preservation,
 failed-export cleanup, no-overwrite behavior and the bundled database contract.
