@@ -177,20 +177,20 @@ Not done: remaining nine chapter merges, the first Learn track, folding library
 guides and backend how-tos into tracks, and the CI/installation/platform/deployment
 reconciliation listed above. Nothing was pushed; no GitHub run was triggered.
 
-## Distribution, CI and deployment reconciliation — 2026-10-28
+## Distribution, CI and deployment reconciliation — 2026-10-28 (rows updated 2026-10-29)
 
 Checked against workflow source and read-only `gh` queries; no run was triggered.
 
 | Requirement | Current state | Evidence |
 | --- | --- | --- |
-| Release artifacts for macOS, Linux, Windows | Workflow builds `x86_64-unknown-linux-gnu`, `aarch64-apple-darwin`, `x86_64-apple-darwin`, `x86_64-pc-windows-msvc`. Never executed; no release exists. | `.github/workflows/release.yml` matrix; `gh release list` empty |
+| Release artifacts for macOS, Linux, Windows | All four targets built and smoke-tested; `v0.1.0-rc.1` published as a prerelease (updated 2026-10-29). | Release run 40861023720, Promote run 40864132322 |
 | Windows paired install, locked binaries, shared caches | Passed on hosted Windows. An earlier failure (40724567590, 90382caa) was fixed by 9b658857. | Runs 40731485167 (9b658857), 40748893795 (86435b88) |
 | Async testing on three platforms | Passed. | Run 40672007920 (c5b3d4a9) |
 | PR CI on the staging branch | Linux compiler/LSP, VS Code extension and docs build passed for PR head 61ee67a4. | Runs 40761578381, 40761578389 |
 | macOS | Local focused acceptance only (see `docs/agent-goal.md`). | Local evidence |
-| GitHub Pages | Configured (`build_type: workflow`, public URL reserved) with zero deployments. Deploy runs only on `main` after promotion. | `gh api repos/.../pages`, empty deployments list |
-| Install/self-update from a published release | Pending: needs a release, which needs owner authorization. | — |
-| Windows editor UTF-16 fixture | CI now has a dispatch-only `editor_acceptance` mode that runs the VS Code integration and recovery suites (including the surrogate-pair fixture) on Linux and Windows. Not yet run: needs a push and an owner-approved dispatch. | `.github/workflows/ci.yml` job `editor_integration` |
+| GitHub Pages | Deployed at https://forever-frameworks-llc.github.io/tsrust/ (updated 2026-10-29). | Documentation run 40864208241 |
+| Install/self-update from a published release | rc.1 archive installed by hand on macOS arm64 (version, doctor, native run). Managed install and self-update need the first stable release: pending `v0.1.0`. | See the release-candidate status section |
+| Windows editor UTF-16 fixture | Passed on Linux and Windows (updated 2026-10-29). | Editor acceptance run 40816862762 |
 
 Remote branch `codex/backend-polish-staging` (PR #4, draft, base `stag`) is still at
 61ee67a4. Local history is not a descendant of it (the PR branch was rebuilt
