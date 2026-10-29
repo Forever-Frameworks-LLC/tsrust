@@ -142,3 +142,18 @@ fn native_build_and_portable_export_link_at_deep_paths() {
         .current_dir(&exported).env("CARGO_TARGET_DIR",&target).env("CARGO_INCREMENTAL","0"),120));
     let output=support::run(&mut Command::new(fs::canonicalize(target.join(format!("debug/program{}",std::env::consts::EXE_SUFFIX))).unwrap()),30);support::success(&output);assert_eq!(String::from_utf8_lossy(&output.stdout).trim(),"42");
 }
+
+#[test]
+fn portable_setup_replaces_a_damaged_pack_instead_of_failing() {
+    // A partially restored cache can leave a pack with missing files; setup must
+    // rebuild it rather than stop with a bare file-not-found error.
+    let directory=support::TempDirectory::new();let packs=directory.0.join("packs");
+    let setup=||support::run(support::cli().args(["setup","--portable","--offline","--yes"]).env("TSRUST_SOURCE_PACK_DIR",&packs).current_dir(&directory.0),300);
+    support::success(&setup());
+    let pack=fs::read_dir(&packs).unwrap().map(|entry|entry.unwrap().path()).find(|path|path.is_dir()).unwrap();
+    let vendor=fs::read_dir(pack.join("vendor")).unwrap().next().unwrap().unwrap().path();
+    fs::remove_file(vendor.join(".cargo-checksum.json")).unwrap();
+    support::success(&setup());
+    assert!(vendor.join(".cargo-checksum.json").is_file());
+    assert_eq!(fs::read_dir(&packs).unwrap().count(),1,"no staging or damaged directories remain");
+}

@@ -89,8 +89,11 @@ pub(super) fn materialize(root: &Path, manifest: &str, lock: &str) -> io::Result
 
 pub(super) fn prepare(mut cargo: Command, offline: bool, manifest: &str, lock: &str) -> io::Result<PathBuf> {
     let destination=location(manifest,lock)?;
-    if destination.exists(){visit(&destination,manifest,lock,|_,_|Ok(()))?;return Ok(destination);}
-    let parent=destination.parent().unwrap();fs::create_dir_all(parent)?;
+    // A pack is content-addressed; one that no longer verifies (for example a
+    // partially restored cache) is replaced by a freshly verified pack.
+    let damaged=destination.exists() && visit(&destination,manifest,lock,|_,_|Ok(())).is_err();
+    if destination.exists() && !damaged{return Ok(destination);}
+    let parent=destination.parent().unwrap().to_owned();fs::create_dir_all(&parent)?;
     let stamp=std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_err(|e|error(e.to_string()))?.as_nanos();
     let staging=parent.join(format!(".preparing-{}-{stamp}",std::process::id()));fs::create_dir(&staging)?;
     let result=(|| {
@@ -103,7 +106,10 @@ pub(super) fn prepare(mut cargo: Command, offline: bool, manifest: &str, lock: &
         if !cargo.status()?.success(){return Err(error("Portable source preparation failed; existing source packs were preserved"));}
         fs::write(staging.join(".cargo/config.toml"),CONFIG)?;
         visit(&staging,manifest,lock,|_,_|Ok(()))?;
-        if destination.exists(){visit(&destination,manifest,lock,|_,_|Ok(()))?;}else{fs::rename(&staging,&destination)?;}
+        if damaged {
+            let aside=parent.join(format!(".damaged-{}-{stamp}",std::process::id()));
+            fs::rename(&destination,&aside)?;fs::rename(&staging,&destination)?;let _=fs::remove_dir_all(&aside);
+        } else if destination.exists(){visit(&destination,manifest,lock,|_,_|Ok(()))?;}else{fs::rename(&staging,&destination)?;}
         Ok(destination)
     })();
     // Only the exclusively created staging directory is owned by this call.
