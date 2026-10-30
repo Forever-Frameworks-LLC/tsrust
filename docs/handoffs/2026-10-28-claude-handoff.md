@@ -370,8 +370,13 @@ Owner direction (2026-10-29): remove limits like the 128-level nesting limit.
   Rust's maximum object size (`isize::MAX`). Generic instantiation instead
   fails when an argument nests deeper than 128 (`INSTANTIATION_DEPTH_LIMIT`),
   which is how polymorphic recursion (`f<T>` calling `f<Box<T>>`) still gets a
-  diagnostic, as in rustc. Kept, matching `recursion_limit`: array rank 128,
-  callable result discovery depth 128.
+  diagnostic, as in rustc. Callback specializations get the same bound:
+  closures inherit the instantiation depth of the body that creates them
+  (`specialization_depths`/`closure_depths`), so wrapping the callback in a
+  new closure on each recursive call fails at depth 128 instead of growing
+  without end (it reached ~30 GB once before the guard existed). Kept,
+  matching `recursion_limit`: array rank 128, callable result discovery
+  depth 128. Commit `0be17d66`.
 - Measured follow-up: `scoped-map-catch` check time is cubic in depth (debug
   compiler: 32 → 0.42 s, 64 → 2.9 s, 80 → 5.5 s) while plain `catch-regions`
   and `cleanup-regions` stay at 0.02 s, so the cost is callback-holding Map
