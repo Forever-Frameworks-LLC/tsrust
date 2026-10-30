@@ -87,6 +87,9 @@ use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::fmt::Write;
 
+/// The tail of an emitted `string.slice(...)` block; appends rewrite it to borrow.
+const SLICE_CALL: &str = "tsr_slice(string_receiver, string_start, string_end) }";
+
 pub fn emit(program: &CheckedProgram) -> String {
     emit_with_native_features(program, "").0
 }
@@ -6112,6 +6115,14 @@ impl Emitter<'_> {
                     sizes.push("24".to_owned());
                     pushes.push_str(&format!("if !tsr_push_whole_number(sink, part{index}) {{ sink.push_str(&(TsrConsoleValue::Number(part{index})).label()); }} "));
                 }
+                // `name.slice(...)` appends the borrowed range, not an owned copy.
+                None if Self::borrowed_slice(operand) && Self::slice_block(value).is_some() => {
+                    let block = Self::slice_block(value).expect("checked slice block");
+                    let range = format!("{}tsr_slice_str(string_receiver, string_start, string_end) }}", &block[..block.len() - SLICE_CALL.len()]);
+                    parts.push_str(&format!("let part{index}: &str = {range}; "));
+                    sizes.push(format!("part{index}.len()"));
+                    pushes.push_str(&format!("sink.push_str(part{index}); "));
+                }
                 None => {
                     parts.push_str(&format!("let part{index}: &String = {value}; "));
                     sizes.push(format!("part{index}.len()"));
@@ -6135,8 +6146,22 @@ impl Emitter<'_> {
         }
         match &value.kind {
             ExprKind::Binary { op: BinaryOp::Add, left, right, .. } if left.ty.map(Type::scalar_base) == Some(Type::String) => Some(vec![left, right]),
+            _ if Self::borrowed_slice(value) => Some(vec![value]),
             _ => None,
         }
+    }
+
+    /// The emitted `slice` block inside a rendered operand, read as `&(block)`.
+    fn slice_block(value: &str) -> Option<&str> {
+        let block = value.strip_prefix("&(").and_then(|inner| inner.strip_suffix(')')).unwrap_or(value);
+        block.ends_with(SLICE_CALL).then_some(block)
+    }
+
+    /// `name.slice(...)` of a local or parameter: its range can be borrowed
+    /// while it is appended, because the receiver outlives the append.
+    fn borrowed_slice(expr: &Expr) -> bool {
+        expr.target == Some(CallTarget::StringSlice)
+            && matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if matches!(base.kind, ExprKind::Name(_))))
     }
 
     /// `text += value` on a local that the right side cannot reach appends in
@@ -9699,7 +9724,7 @@ impl Emitter<'_> {
                                 "tsr_{method}(string_receiver, string_start, string_end, {failure:?})"
                             )
                         } else {
-                            "tsr_slice(string_receiver, string_start, string_end)".into()
+                            SLICE_CALL.trim_end_matches(" }").into()
                         };
                         format!(
                             "{{ let string_receiver = {receiver}; let string_start = {start}; let string_end = {end}; {operation} }}"

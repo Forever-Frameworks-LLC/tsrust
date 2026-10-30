@@ -328,3 +328,19 @@ function main() {
     assert_eq!(rust.matches("tsr_string_reserve(&mut").count(), 3, "{rust}");
     assert_eq!(rust.matches("tsr_string_add(compound_left").count(), 1, "{rust}");
 }
+
+#[test]
+fn appended_slices_of_locals_borrow_their_range() {
+    let source = r#"function main() {
+  const first = "héllo".repeat(1);
+  let text = "";
+  for (let k = 0; k < 2; k++) { text += first.slice(); }
+  text += first.slice(1, 3) + "|" + first.slice(-2);
+  const joined = "<" + first.slice(3) + ">" + first.slice(9) + "!";
+  console.log(text, joined);
+}"#;
+    let analysis = native(source, "héllohélloé|lo <llo>!\n", "", "");
+    let rust = analysis.emit_rust();
+    assert_eq!(rust.matches("tsr_slice_str(string_receiver").count(), 5, "{rust}");
+    assert!(!rust.contains("tsr_slice(string_receiver"), "no owned slice copies are made for appends");
+}

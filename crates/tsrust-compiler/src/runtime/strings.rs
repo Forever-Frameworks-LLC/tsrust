@@ -524,6 +524,17 @@ pub fn string_offset(len: usize, index: i64) -> usize {
     }
 }
 
+/// The range `slice(start, end)` selects, borrowed from `value`.
+pub fn tsr_slice_str(value: &String, start: i64, end: Option<i64>) -> &str {
+    let len = value.len();
+    let start = string_offset(len, start);
+    let end = end.map_or(len, |end| string_offset(len, end));
+    if end <= start {
+        return "";
+    }
+    value.get(start..end).expect("string slice is not on UTF-8 boundaries")
+}
+
 pub fn tsr_slice(value: &String, start: i64, end: Option<i64>) -> String {
     let len = value.len();
     let start = string_offset(len, start);
