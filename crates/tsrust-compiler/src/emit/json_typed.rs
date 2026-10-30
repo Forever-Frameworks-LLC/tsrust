@@ -8,6 +8,8 @@ impl Emitter<'_> {
         args: &[Expr],
     ) -> String {
         let result = expr.ty.unwrap().union().unwrap();
+        // One argument is either a JSONL reader or `JSON.parse<T>(text)` without limits.
+        let reader = args.len() == 1 && args[0].ty != Some(Type::String);
         let members = &self.program.unions[result.index()].members;
         let [ok, err] = crate::result_identity::variants(&self.program.records, members).unwrap();
         let root = self.program.records[ok].fields[0].ty.unwrap();
@@ -16,7 +18,7 @@ impl Emitter<'_> {
             .records
             .iter()
             .position(|record| {
-                record.native_type == Some(if args.len()==1 {crate::native_signatures::NativeTypeId::JsonlError}else{crate::native_signatures::NativeTypeId::JsonError})
+                record.native_type == Some(if reader {crate::native_signatures::NativeTypeId::JsonlError}else{crate::native_signatures::NativeTypeId::JsonError})
             })
             .unwrap();
         let mut types = vec![root];
@@ -179,7 +181,7 @@ impl Emitter<'_> {
             };
             generated.push_str(&format!("struct {declaration}({native});impl<'de> serde::Deserialize<'de> for {declaration}{{fn deserialize<D:serde::Deserializer<'de>>(decoder:D)->Result<Self,D::Error>{{{body}}}}}"));
         }
-        if args.len()==1 {
+        if reader {
             let reader=self.expr(fun,&args[0],Mode::Mutate);
             let optional=root.union().unwrap();
             let absent=self.program.unions[optional.index()].members.iter().position(|ty|*ty==Type::Undefined).unwrap();
@@ -193,6 +195,15 @@ impl Emitter<'_> {
             return format!("{{{generated}let reader={reader};match reader.handle.next_with(tsrust_native_json::typed::decode::<Decode0>){{Ok(value)=>Union{result}::V{ok_tag}(Record{ok}{{field0:match value{{Some(value)=>value.0,None=>Union{optional}::V{absent}(TsrUndefined)}}}}),Err(error)=>Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(error.error.code),field1:String::Borrowed(error.error.message),field2:String::Borrowed(\"read\"),field3:error.line as i64,field4:error.error.offset as i64,field5:match error.os_code{{Some(code)=>Union{os}::V{integer}(i64::from(code)),None=>Union{os}::V{missing}(TsrUndefined)}}}}}})}}}}");
         }
         let text = self.expr(fun, &args[0], Mode::Read);
+        let ok_tag = members.iter().position(|ty| *ty == Type::Record(ok)).unwrap();
+        let err_tag = members.iter().position(|ty| *ty == Type::Record(err)).unwrap();
+        if args.len() == 1 {
+            // No limits: a single serde decode, as a Rust programmer would write it.
+            let union = result.index();
+            return format!(
+                "{{{generated}let text={text};match tsrust_native_json::typed::decode_plain::<Decode0>(text.as_ref().as_bytes()){{Ok(value)=>Union{union}::V{ok_tag}(Record{ok}{{field0:value.0}}),Err(error)=>Union{union}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(error.code),field1:String::Borrowed(error.message),field2:error.offset as i64}}}})}}}}"
+            );
+        }
         let limits = self.expr(fun, args.last().unwrap(), Mode::Read);
         let (decoder,flag)=if args.len()==3 {("decode_jsonc",format!(",{}",self.expr(fun,&args[1],Mode::Copy)))}else{(if self.native_views.contains(root){"decode_borrowed"}else{"decode"},String::new())};
         let ok_tag = members

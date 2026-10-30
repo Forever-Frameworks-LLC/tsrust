@@ -176,6 +176,18 @@ pub fn decode_seed<'de,S:serde::de::DeserializeSeed<'de>>(
 )->Result<S::Value,Error>{
  // Only an integer token too large for i64/u64 reaches a visitor as f64.
  if validate_floats(input,limits)?.1{super::validate_integer_tokens(input)?;}
+ decode_once(input,seed)
+}
+
+/// `JSON.parse<T>(text)` without limits: one serde decode, like hand-written
+/// Rust. The linear integer-token scan keeps over-range integers from being
+/// rounded into number fields. Limits, when wanted, are passed explicitly.
+pub fn decode_plain<'de,T:serde::Deserialize<'de>>(input:&'de [u8])->Result<T,Error>{
+ super::validate_integer_tokens(input)?;
+ decode_once(input,std::marker::PhantomData::<T>)
+}
+
+fn decode_once<'de,S:serde::de::DeserializeSeed<'de>>(input:&'de [u8],seed:S)->Result<S::Value,Error>{
  let mut decoder=serde_json::Deserializer::from_slice(input);
  let value=seed.deserialize(&mut decoder).map_err(|error|{
   let text=error.to_string();
