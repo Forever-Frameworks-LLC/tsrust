@@ -28,29 +28,40 @@ impl<K:TsrSetKey,V,P:TsrMapEntry<K,V>> TsrMap<K,V,P> {
     fn from_values(values:impl IntoIterator<Item=(K,V)>)->Self{
         let mut result=Self::new();for(key,value)in values{result.set(key,value);}result
     }
-    fn query_location<Q:TsrSetQuery<K>>(&self,query:&Q,hash:u64)->Option<usize>{
+    /// Small maps scan their slots: no hashing and no bucket table.
+    fn find<Q:TsrSetQuery<K>>(&self,query:&Q)->Option<usize>{
+        if self.slots.len()<=TSR_SMALL_SLOTS{return self.slots.iter().position(|entry|entry.as_ref().is_some_and(|entry|query.tsr_query_same(entry.key())));}
+        let hash=query.tsr_query_hash();
         self.buckets.get(&hash).and_then(|indices|indices.iter().copied().find(|&index|self.slots[index].as_ref().is_some_and(|entry|query.tsr_query_same(entry.key()))))
     }
     fn set(&mut self,key:K,value:V){
-        let key=key.tsr_normalize();let hash=key.tsr_hash();
-        if let Some(index)=self.query_location(&key,hash){*self.slots[index].as_mut().expect("occupied Map slot").value_mut()=value;return;}
-        let index=self.slots.len();self.slots.push(Some(P::from_pair(key,value)));
-        self.buckets.entry(hash).or_default().push(index);self.length+=1;
+        let key=key.tsr_normalize();
+        if let Some(index)=self.find(&key){*self.slots[index].as_mut().expect("occupied Map slot").value_mut()=value;return;}
+        let index=self.slots.len();
+        let hash=(index>=TSR_SMALL_SLOTS).then(||key.tsr_hash());
+        self.slots.push(Some(P::from_pair(key,value)));self.length+=1;
+        if index==TSR_SMALL_SLOTS{
+            // Leaving the small form: index every live slot once.
+            for (index,entry) in self.slots.iter().enumerate(){if let Some(entry)=entry{self.buckets.entry(entry.key().tsr_hash()).or_default().push(index);}}
+        }else if let Some(hash)=hash{self.buckets.entry(hash).or_default().push(index);}
     }
     fn get(&self,key:impl TsrSetQuery<K>)->Option<&V>{
-        let index=self.query_location(&key,key.tsr_query_hash())?;self.slots[index].as_ref().map(TsrMapEntry::value)
+        let index=self.find(&key)?;self.slots[index].as_ref().map(TsrMapEntry::value)
     }
     fn get_mut(&mut self,key:impl TsrSetQuery<K>)->Option<&mut V>{
-        let index=self.query_location(&key,key.tsr_query_hash())?;self.slots[index].as_mut().map(TsrMapEntry::value_mut)
+        let index=self.find(&key)?;self.slots[index].as_mut().map(TsrMapEntry::value_mut)
     }
     fn into_value(mut self,key:impl TsrSetQuery<K>)->Option<V>{
-        let index=self.query_location(&key,key.tsr_query_hash())?;self.slots[index].take().map(|entry|entry.into_pair().1)
+        let index=self.find(&key)?;self.slots[index].take().map(|entry|entry.into_pair().1)
     }
-    fn has(&self,key:impl TsrSetQuery<K>)->bool{self.query_location(&key,key.tsr_query_hash()).is_some()}
+    fn has(&self,key:impl TsrSetQuery<K>)->bool{self.find(&key).is_some()}
     fn delete(&mut self,key:impl TsrSetQuery<K>)->bool{
-        let hash=key.tsr_query_hash();let Some(index)=self.query_location(&key,hash)else{return false;};
-        if let Some(indices)=self.buckets.get_mut(&hash){indices.retain(|&stored|stored!=index);}
-        if self.buckets.get(&hash).is_some_and(TsrSetBucket::is_empty){self.buckets.remove(&hash);}
+        let Some(index)=self.find(&key)else{return false;};
+        if self.slots.len()>TSR_SMALL_SLOTS{
+            let hash=key.tsr_query_hash();
+            if let Some(indices)=self.buckets.get_mut(&hash){indices.retain(|&stored|stored!=index);}
+            if self.buckets.get(&hash).is_some_and(TsrSetBucket::is_empty){self.buckets.remove(&hash);}
+        }
         self.slots[index].take();self.length-=1;true
     }
     fn clear(&mut self){self.slots.clear();self.buckets.clear();self.length=0;}

@@ -87,3 +87,39 @@ fn map_display_and_string_conversion_preserve_observable_values(){
  support::success(&output);
  assert_eq!(String::from_utf8(output.stdout).unwrap(),"Map(2) { 'a' => 1, 'b' => 2 }\n[object Map]\n[object Map]\n");
 }
+
+
+#[test]
+fn small_and_indexed_collections_agree_across_the_switch() {
+    // Up to 8 slots a Map or Set scans its entries; the 9th builds the hash
+    // index. Results, order and set algebra must not depend on the form.
+    let source = r#"function main() {
+  const out: string[] = [];
+  for (const total of [7, 8, 9, 10, 20]) {
+    const map = new Map<string, int>();
+    for (let i = 0; i < total; i++) { map.set(`k${i}`, i); }
+    map.delete("k1");
+    map.set("k1", 100);
+    map.set("k0", 50);
+    let sum = 0;
+    for (const [key, value] of map) { sum += value; }
+    out.push(`${total}:${map.size}:${map.get("k1") ?? -1}:${map.get(`k${total - 1}`) ?? -1}:${map.has("k1")}:${map.has("zz")}:${sum}`);
+  }
+  const map = new Map<int, int>();
+  for (let i = 0; i < 12; i++) { map.set(i, i * i); }
+  map.clear();
+  map.set(3, 9);
+  out.push(`cleared:${map.size}:${map.get(3) ?? -1}:${map.has(11)}`);
+  const small = new Set<int>([1, 2, 3, 4]);
+  const large = new Set<int>();
+  for (let i = 0; i < 30; i += 2) { large.add(i); }
+  const both = small.intersection(large);
+  const either = large.intersection(small);
+  const only = small.difference(large);
+  const sym = small.symmetricDifference(new Set<int>([3, 4, 5]));
+  out.push(`sets:${[...both].join(",")}|${[...either].join(",")}|${[...only].join(",")}|${[...sym].join(",")}|${small.isSubsetOf(large)}|${new Set<int>([2, 4]).isSubsetOf(large)}|${small.isDisjointFrom(new Set<int>([9]))}`);
+  console.log(out.join(" "));
+}"#;
+    support::execute(&support::format_round_trip(source), "7:7:100:6:true:false:170 8:8:100:7:true:false:177 9:9:100:8:true:false:185 10:10:100:9:true:false:194 20:20:100:19:true:false:339 cleared:1:9:false sets:2,4|2,4|1,3|1,2,5|false|true|true
+", None);
+}
