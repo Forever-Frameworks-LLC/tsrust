@@ -3,7 +3,8 @@
 //!
 //! `const tail = rows.slice(1); return tail.concat();` copies `tail` although
 //! nothing reads it afterwards. A call qualifies only when its receiver is a
-//! `const` owned array (or, for `String`, string) local that the function references exactly once, from a
+//! `const` owned array (or, for `String`, a string local or a string field of a
+//! record local) that the function references exactly once, from a
 //! later statement of the same statement list (so the same loop iteration), with
 //! no `match` body in between, and no closure captures it (a local function
 //! anywhere in the function disables the move). Anything else keeps the copy.
@@ -87,7 +88,7 @@ pub(super) fn eligible(fun: &CheckedFunction, closures: &[CheckedClosure]) -> Ha
 
 fn movable(fun: &CheckedFunction, id: usize) -> bool {
     let binding = &fun.bindings[id];
-    matches!(binding.ty, Type::Array(_) | Type::String) && !binding.parameter && binding.borrowed_element.is_none()
+    matches!(binding.ty, Type::Array(_) | Type::String | Type::Record(_)) && !binding.parameter && binding.borrowed_element.is_none()
         && binding.borrowed_place.is_none() && binding.view_roots.is_empty() && !binding.capture_reference
 }
 
@@ -120,7 +121,10 @@ fn single_use(stmt: &Stmt, id: usize) -> Option<Option<(usize, usize)>> {
             if value.target == Some(CallTarget::StringConversion)
                 && let ExprKind::Call(_, args) = &value.kind
                 && let [argument] = args.as_slice()
-                && matches!(argument.kind, ExprKind::Name(_)) && argument.binding == Some(id) && argument.ty == Some(Type::String)
+                && argument.ty == Some(Type::String)
+                && (matches!(argument.kind, ExprKind::Name(_)) && argument.binding == Some(id)
+                    // `String(record.field)` moves the field out of a dead record local.
+                    || matches!(&argument.kind, ExprKind::Field(base, _) if matches!(base.kind, ExprKind::Name(_)) && base.binding == Some(id) && matches!(base.ty, Some(Type::Record(_)))))
             {
                 call = Some((value.span.start, value.span.end));
             }

@@ -52,3 +52,12 @@ fn string_conversion_of_a_dead_string_local_moves_it() {
     assert_eq!(rust.matches("(*builtin_argument_0).clone()").count(), 1, "{rust}");
     support::execute(&support::format_round_trip(source), "n0,k0,k0,n1,k1,k1,n2,k2,k2\n", None);
 }
+
+#[test]
+fn string_conversion_of_a_dead_record_field_moves_the_field() {
+    let source = "type Pair={name:string;tag:string;n:int;};function main(){const rows:string[]=[];let i=0;while(i<3){const moved:Pair={name:`m${i}`,tag:\"t\",n:i};rows.push(String(moved.name));const kept:Pair={name:`k${i}`,tag:\"u\",n:i};rows.push(String(kept.name));rows.push(kept.tag);i+=1;}console.log(rows.join(\",\"));}";
+    let rust = emitted(source);
+    // `moved` is read once, so its field moves; `kept` is read again, so its field is copied.
+    assert_eq!(rust.matches("(*builtin_argument_0).clone()").count(), 1, "{rust}");
+    support::execute(&support::format_round_trip(source), "m0,k0,u,m1,k1,u,m2,k2,u\n", None);
+}
