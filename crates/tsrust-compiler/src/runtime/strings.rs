@@ -485,6 +485,25 @@ pub fn tsr_string_append(text: &mut String, value: &String, failure: &'static st
     }
 }
 
+/// Make room for `additional` bytes at the end of `text` and return its owned
+/// buffer: a borrowed text becomes one exactly sized owned string, an owned
+/// text reserves with amortized growth.
+pub fn tsr_string_reserve<'a>(text: &'a mut String, additional: usize, failure: &'static str) -> &'a mut std::string::String {
+    let capacity = text.len().checked_add(additional).expect(failure);
+    if let String::Borrowed(borrowed) = text {
+        let mut owned = std::string::String::with_capacity(capacity);
+        owned.push_str(borrowed);
+        *text = String::Owned(owned);
+    }
+    match text {
+        String::Owned(owned) => {
+            owned.reserve(additional);
+            owned
+        }
+        String::Borrowed(_) => unreachable!("borrowed text was made owned"),
+    }
+}
+
 pub fn tsr_string_add(left: &String, right: &String, failure: &'static str) -> String {
     let capacity = left.len().checked_add(right.len()).expect(failure);
     let mut output = std::string::String::with_capacity(capacity);

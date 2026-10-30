@@ -308,3 +308,23 @@ function main() {
     assert_eq!(rust.matches("tsr_string_append(&mut").count(), 4, "{rust}");
     assert_eq!(rust.matches("tsr_string_add(compound_left").count(), 2, "{rust}");
 }
+
+#[test]
+fn compound_append_of_a_sum_appends_each_operand_in_order() {
+    let source = r#"function tag(log: string[], text: string): string { log.push(clone(text)); return text; }
+function main() {
+  const log: string[] = [];
+  let text = "";
+  for (let i = 0; i < 3; i++) { text += tag(log, "a") + String(i); text += "<" + tag(log, "b") + ">" + String(2.5) + "é"; }
+  let other = "start";
+  other += other + "!";
+  let empty = "";
+  empty += "" + "";
+  console.log(text, log.join(","), other, empty.length);
+}"#;
+    let analysis = native(source, "a0<b>2.5éa1<b>2.5éa2<b>2.5é a,b,a,b,a,b startstart! 0\n", "", "");
+    let rust = analysis.emit_rust();
+    // Sums on the right side append their operands; a self-reference keeps the copy.
+    assert_eq!(rust.matches("tsr_string_reserve(&mut").count(), 3, "{rust}");
+    assert_eq!(rust.matches("tsr_string_add(compound_left").count(), 1, "{rust}");
+}

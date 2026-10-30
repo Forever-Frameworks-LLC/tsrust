@@ -263,7 +263,11 @@ impl<'p> Emitter<'p> {
                     _ => (),
                 }
             }
-            if let Some((value, mode)) = value { children.push((value.as_ref(), mode)); discards.push(false); }
+            // `text += a + b` that appends in place renders the operands of its right side.
+            let appended = match &expr.kind { ExprKind::CompoundAssign { target, value, .. } => self.appended_operands(fun, target, value), _ => None };
+            if let Some(operands) = appended {
+                for operand in operands { children.push(Self::chain_operand(operand)); discards.push(false); }
+            } else if let Some((value, mode)) = value { children.push((value.as_ref(), mode)); discards.push(false); }
             return Some(CallFrame { children, rendered: Vec::new(), invocation: None, state: CallState::Assignment { discards, first_temporary: 0 } });
         }
         if let ExprKind::Binary { op, left, right, .. } = &expr.kind

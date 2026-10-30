@@ -4653,17 +4653,17 @@ impl Emitter<'_> {
         } else {
             format!("*({})", selection.shared)
         };
+        let failure = format!("string addition capacity overflow at source bytes {}..{}", span.start, span.end);
+        if let Some(operands) = self.appended_operands(fun, target, value) {
+            let rendered = operands.iter().map(|operand| { let (child, mode) = Self::chain_operand(operand); render(child, mode, false) }).collect::<Vec<_>>();
+            let (parts, capacity, pushes) = Self::string_parts(&operands, &rendered, &failure);
+            return format!(
+                "{{ {}{parts}let sink = tsr_string_reserve(&mut ({}), {capacity}, {failure:?}); {pushes}}}",
+                selection.setup, selection.place
+            );
+        }
         let right = render(value, if string { Mode::Read } else { Mode::Copy }, false);
-        // `text += value` on a local that the right side cannot reach appends in
-        // place, so a loop that builds a string is linear, not quadratic.
-        if string
-            && let ExprKind::Name(_) = target.kind
-            && let Some(id) = target.binding
-            && !fun.bindings[id].parameter
-            && !receiver_moves::mentions(value, id)
-            && receiver_moves::captured(fun, &self.program.closures).is_some_and(|captured| !captured.contains(&id))
-        {
-            let failure = format!("string addition capacity overflow at source bytes {}..{}", span.start, span.end);
+        if self.appends_in_place(fun, target, value) {
             return format!(
                 "{{ {}let compound_right: &String = {right}; tsr_string_append(&mut ({}), compound_right, {failure:?}); }}",
                 selection.setup, selection.place
@@ -6089,34 +6089,66 @@ impl Emitter<'_> {
 
     fn string_chain_code(operands: &[&Expr], rendered: &[String], operator: crate::Span) -> String {
         let failure = format!("string addition capacity overflow at source bytes {}..{}", operator.start, operator.end);
-        let mut code = String::from("{ ");
+        let (parts, capacity, pushes) = Self::string_parts(operands, rendered, &failure);
+        format!("{{ {parts}let mut output = std::string::String::with_capacity({capacity}); {{ let sink = &mut output; {pushes}}} String::Owned(output) }}")
+    }
+
+    /// Bindings for each operand, their total size and the code that appends
+    /// them to `sink: &mut std::string::String`, in operand order.
+    fn string_parts(operands: &[&Expr], rendered: &[String], failure: &str) -> (String, String, String) {
+        let mut parts = String::new();
         let mut sizes = Vec::new();
         let mut pushes = String::new();
         for (index, (operand, value)) in operands.iter().zip(rendered).enumerate() {
             match Self::appended_number(operand).and_then(|argument| argument.ty) {
                 Some(Type::Int) => {
-                    code.push_str(&format!("let part{index}: i64 = {value}; "));
+                    parts.push_str(&format!("let part{index}: i64 = {value}; "));
                     sizes.push("24".to_owned());
-                    pushes.push_str(&format!("tsr_push_int(&mut output, part{index}); "));
+                    pushes.push_str(&format!("tsr_push_int(sink, part{index}); "));
                 }
                 Some(kind) => {
                     let number = if kind == Type::Number { value.clone() } else { format!("({value}).tsr_value()") };
-                    code.push_str(&format!("let part{index}: f64 = {number}; "));
+                    parts.push_str(&format!("let part{index}: f64 = {number}; "));
                     sizes.push("24".to_owned());
-                    pushes.push_str(&format!("if !tsr_push_whole_number(&mut output, part{index}) {{ output.push_str(&(TsrConsoleValue::Number(part{index})).label()); }} "));
+                    pushes.push_str(&format!("if !tsr_push_whole_number(sink, part{index}) {{ sink.push_str(&(TsrConsoleValue::Number(part{index})).label()); }} "));
                 }
                 None => {
-                    code.push_str(&format!("let part{index}: &String = {value}; "));
+                    parts.push_str(&format!("let part{index}: &String = {value}; "));
                     sizes.push(format!("part{index}.len()"));
-                    pushes.push_str(&format!("output.push_str(part{index}); "));
+                    pushes.push_str(&format!("sink.push_str(part{index}); "));
                 }
             }
         }
-        code.push_str(&format!(
-            "let capacity = [{}].into_iter().try_fold(0usize, usize::checked_add).expect({failure:?}); let mut output = std::string::String::with_capacity(capacity); {pushes}String::Owned(output) }}",
-            sizes.join(", ")
-        ));
-        code
+        let capacity = format!("[{}].into_iter().try_fold(0usize, usize::checked_add).expect({failure:?})", sizes.join(", "));
+        (parts, capacity, pushes)
+    }
+
+    /// Operands of the right side of `text += ...` when it appends in place:
+    /// a string addition (`a + b` or a longer chain) appends each operand
+    /// directly instead of building a temporary string first.
+    pub(super) fn appended_operands<'e>(&self, fun: &CheckedFunction, target: &Expr, value: &'e Expr) -> Option<Vec<&'e Expr>> {
+        if !self.appends_in_place(fun, target, value) {
+            return None;
+        }
+        if let Some(operands) = Self::string_addition_chain(value) {
+            return Some(operands);
+        }
+        match &value.kind {
+            ExprKind::Binary { op: BinaryOp::Add, left, right, .. } if left.ty.map(Type::scalar_base) == Some(Type::String) => Some(vec![left, right]),
+            _ => None,
+        }
+    }
+
+    /// `text += value` on a local that the right side cannot reach appends in
+    /// place, so a loop that builds a string is linear, not quadratic.
+    pub(super) fn appends_in_place(&self, fun: &CheckedFunction, target: &Expr, value: &Expr) -> bool {
+        target.ty == Some(Type::String)
+            && matches!(target.kind, ExprKind::Name(_))
+            && target.binding.is_some_and(|id| {
+                !fun.bindings[id].parameter
+                    && !receiver_moves::mentions(value, id)
+                    && receiver_moves::captured(fun, &self.program.closures).is_some_and(|captured| !captured.contains(&id))
+            })
     }
 
     /// `text + String(n)` for a numeric `n`: the digits are written into the
