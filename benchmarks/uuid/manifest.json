@@ -7,7 +7,7 @@
   "counterpart": "uuid-roundtrip.ts",
   "sourceSha256": "5669e044f4832ad938e4f8a920287d15ccedebbb3c06807dcee9788761a2cc9e",
   "counterpartSha256": "f54c6031fbaffe1d79af83ee758051f087f95b60d9954ac108754961b45e408a",
-  "measurementStore": "../records.sqlite",
+  "measurementStore": "../measurements.sqlite",
   "measurementRecord": "benchmarks/uuid/uuid-roundtrip-2026-10-16T03-19-57-174Z.json",
   "measurementSha256": "a0672000ebab511fa809b01f7085c2c7d392335ed952a206c0df8fb817bf69db"
 }

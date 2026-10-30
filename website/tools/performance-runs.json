@@ -1,5 +1,5 @@
 {
-  "comment": "Accepted execution runs shown on the public performance page (release 0.1.0 milestone, every manifest workload, native vs Node after tsc).",
+  "comment": "Execution runs (by run timestamp in benchmarks/measurements.sqlite) shown on the public performance page (release 0.1.0 milestone, every manifest workload, native vs Node after tsc).",
   "rust": "1.96.1",
   "node": "v24.11.1",
   "typescript": "5.9.3",
@@ -7,23 +7,30 @@
   "warmups": 8,
   "samplesPerProcess": 31,
   "runs": [
-    "098287dca0c653f8588f717fc2de982fa0950250f5808c6bb7b6de01c087ed52",
-    "0d11a06110d5833c47056fa3172d35cc92ed1adf63fa752388504b4fda03401c",
-    "35997af753f60668b34b92e2ab24bfd335e7612be5d411a8829c8f1c3a11e8d2",
-    "71fe4199c18a601aa97cbab5e5e64b384eece53121b6a80ecbd7b4cd3ae05e15",
-    "75f35d3f022b873a11e1680a5d9e30b309e3943acb9424f13967c5dba330d38b",
-    "791c0d1659d444d74edddc71c1f54400e188311591c4ca561320844ea725c48d",
-    "8236a5291fe0c81fb204e9c373a6a490addd6d570eb05ac76feab6f04f50d6b3",
-    "98a11407c8a2a33587a1f082dde5a114b7dc928f3c2c975adf9070fb9de0daff",
-    "afe3215975d4b17eb50d9546330ab29837f87479aa4d728f7e7aec2b5230a9c1",
-    "b5c67f6b18e929d08ad8474cee9b49005dcd19faf8f63f13210f7a22a07bbf0a",
-    "b9ab5bbfbdb90462823a63c162c44ba72271b2da49328c71b1224928569caf3f",
-    "cae21d0e66a78f63b2fb266712f4e30080b338499e2eae0e82333c919f367075",
-    "d1ed8080d64d088fba0817be07f445c7d3c5fdc641f0acbb0d18d9d4479abd9f",
-    "dd29bc43a3a6ec3d135de0c46865bd1e8289b2d383bcb705f813fc3f262b53a5",
-    "e44bfc5fb4672f6a255931f7d8cc488b938791b0fdc1c26c4f5c3ae121783120",
-    "ed3bad6d8606920ad15c4c4a639f67eed6be4a923a3e47c0504c3d10e0bc801a",
-    "f262332e5a9cd4172912d40638245190985205f3531b6f892e0a68aa28184306"
+    "2026-10-29T12:36:12.992Z",
+    "2026-10-29T12:38:25.123Z",
+    "2026-10-29T12:39:49.993Z",
+    "2026-10-29T12:41:03.664Z",
+    "2026-10-29T12:45:14.041Z",
+    "2026-10-29T12:47:10.495Z",
+    "2026-10-29T12:47:59.093Z",
+    "2026-10-29T12:48:54.519Z",
+    "2026-10-29T12:50:02.319Z",
+    "2026-10-29T12:52:26.002Z",
+    "2026-10-29T12:54:06.970Z",
+    "2026-10-29T12:55:25.259Z",
+    "2026-10-29T12:57:31.195Z",
+    "2026-10-29T13:29:51.666Z",
+    "2026-10-29T13:32:17.333Z",
+    "2026-10-29T13:43:30.522Z",
+    "2026-10-29T13:50:46.523Z"
   ],
-  "groups": {}
+  "groups": {},
+  "machine": {
+    "architecture": "arm64",
+    "cpu": "Apple M3",
+    "logicalCPUs": 8,
+    "platform": "darwin",
+    "totalMemoryBytes": 8589934592
+  }
 }

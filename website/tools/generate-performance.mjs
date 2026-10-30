@@ -1,6 +1,6 @@
-// Generates the public performance page from the benchmark SQLite dataset.
-// The runs to publish are listed in performance-runs.json by raw SHA-256, so the
-// page changes only when that list or the accepted measurements change.
+// Generates the public performance page from benchmarks/measurements.sqlite.
+// The runs to publish are listed in performance-runs.json by run timestamp, so
+// the page changes only when that list or those measurements change.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,24 +13,25 @@ const manifest = JSON.parse(fs.readFileSync(path.join(root, 'benchmarks/runtime/
 const workloads = new Map(manifest.workloads.map((workload) => [workload.id, workload]));
 const output = path.join(root, 'website/src/content/docs/project/performance.md');
 
+// One row per workload and engine; `history` lists runs as {at, ms, ops, samples}.
 const db = new DatabaseSync(path.join(root, 'benchmarks/measurements.sqlite'), { readOnly: true });
+const runsOf = (engine) => new Map(db.prepare('SELECT workload, history FROM measurements WHERE engine = ?').all(engine)
+  .map(({ workload, history }) => [workload, new Map(JSON.parse(history).map((entry) => [entry.at, entry]))]));
+const nativeRuns = runsOf('native');
+const nodeRuns = runsOf('node-tsc');
+db.close();
 const rows = [];
 const runs = [];
-for (const raw of config.runs) {
-  const run = db.prepare("SELECT timestamp, metadata FROM analytics_runs WHERE raw_sha = ? AND kind = 'execution'").get(raw);
-  if (!run) throw Error(`Run ${raw} is not in benchmarks/measurements.sqlite`);
-  runs.push({ raw, timestamp: run.timestamp, metadata: JSON.parse(run.metadata) });
-  const query = db.prepare(`SELECT w.workload, w.iterations, w.operations_per_iteration,
-      n.avg_ops_per_second AS native, n.samples AS native_samples,
-      j.avg_ops_per_second AS node, j.samples AS node_samples
-    FROM analytics_workloads w
-    JOIN analytics_summaries n USING (raw_sha, workload, source_sha)
-    JOIN analytics_summaries j USING (raw_sha, workload, source_sha)
-    WHERE w.raw_sha = ? AND n.engine = 'native' AND j.engine = 'node-tsc'
-    ORDER BY w.workload`);
-  for (const row of query.all(raw)) rows.push(row);
+for (const at of config.runs) {
+  const before = rows.length;
+  for (const [workload, history] of [...nativeRuns].sort(([a], [b]) => a.localeCompare(b))) {
+    const native = history.get(at);
+    const node = nodeRuns.get(workload)?.get(at);
+    if (native && node) rows.push({ workload, native: native.ops, native_samples: native.samples, node: node.ops, node_samples: node.samples });
+  }
+  if (rows.length === before) throw Error(`Run ${at} is not in benchmarks/measurements.sqlite`);
+  runs.push({ timestamp: at });
 }
-db.close();
 if (!rows.length) throw Error('No native/node-tsc comparisons in the configured runs');
 
 // Manifest categories grew per feature family; fold them into reader-facing groups.
@@ -68,8 +69,7 @@ const cell = (text) => String(text).replaceAll('|', '\\|').replaceAll('<', '&lt;
 const ratios = rows.map(ratio).sort((a, b) => a - b);
 const median = ratios.length % 2 ? ratios[(ratios.length - 1) / 2] : (ratios[ratios.length / 2 - 1] + ratios[ratios.length / 2]) / 2;
 const faster = ratios.filter((value) => value > 1).length;
-const first = runs[0].metadata;
-const machine = first.machine ?? {};
+const machine = config.machine ?? {};
 const samples = rows[0].native_samples;
 
 let page = `---
@@ -146,8 +146,9 @@ every program runs faster natively. Short workloads are sensitive to ordinary
 machine variation, and small ratio differences are not significant. Rows where
 Node.js is faster are kept and reviewed rather than removed.
 
-The raw samples are in \`benchmarks/measurements.sqlite\` in the repository,
-keyed by run and source hash, and can be queried with the standard SQLite tools.
+The measurements are in \`benchmarks/measurements.sqlite\` in the repository:
+one row per workload and engine, with each run's date, median sample time,
+mean speed and sample count. It can be queried with the standard SQLite tools.
 The benchmark runner and every workload source pair are in
 \`benchmarks/runtime\`.
 `;

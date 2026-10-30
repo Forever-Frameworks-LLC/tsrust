@@ -7,7 +7,7 @@
   "counterpart": "decimal-money.ts",
   "sourceSha256": "f29d0e70d9701c0eadfb34ba35427bf3bd3e18fee98fee435fbd25cfa90982a5",
   "counterpartSha256": "eeee82144c2a966812a0858741860b094bf9accc4a664d20ae720b8a5e811a6c",
-  "measurementStore": "../records.sqlite",
+  "measurementStore": "../measurements.sqlite",
   "measurementRecord": "benchmarks/decimal/decimal-money-2026-10-16T03-19-46-182Z.json",
   "measurementSha256": "5aac172bbd3f16632780c202b0bb80e308a63a3edb59458531c6fe7540ab5481"
 }

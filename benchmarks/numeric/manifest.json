@@ -7,7 +7,7 @@
   "counterpart": "numeric-boundaries.ts",
   "sourceSha256": "c09e2554d38ae28b4f6757aeb80a8857e1e29be27735b3ef7a2253faef0abff3",
   "counterpartSha256": "d859f036e031efd8de1cf3998d73584f6ee352150739ea6f216d9f12af7791ab",
-  "measurementStore": "../records.sqlite",
+  "measurementStore": "../measurements.sqlite",
   "measurementRecord": "benchmarks/numeric/numeric-boundaries-2026-10-16T03-19-38-534Z.json",
   "measurementSha256": "d275338041f67ce00c1a2b1d3033569c6b780a331a9349a6639b83cbda8668bc"
 }

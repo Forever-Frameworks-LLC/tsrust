@@ -100,11 +100,10 @@ Database integration is opt-in with `node tools/check-async-sql.mjs --docker`.
 Reuse accepted evidence unless relevant SQL or task-lifecycle behavior changes.
 
 Keep one Cargo target and one build owner, disable incremental compilation, and
-remove obsolete outputs after acceptance. The public
-[measurement database](benchmarks/storage/PUBLIC_DATA.md) contains benchmark data
-and general hardware specifications only. The ignored `benchmarks/records.sqlite`
-is a legacy mixed archive; never upload it. Do not add routine logs or source
-snapshots to analytics, or upload private logs in a pull request.
+remove obsolete outputs after acceptance. `benchmarks/measurements.sqlite` holds
+one row per workload and engine with a short JSON history of run dates and
+timings; add runs with `npm run store:ingest` in `benchmarks/runtime`. Do not add
+routine logs or source snapshots to it, or upload private logs in a pull request.
 
 ## Submit
 

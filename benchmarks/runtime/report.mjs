@@ -306,7 +306,7 @@ export function buildReport(records, {semanticEpoch} = {}) {
   lines.push('', '</details>', '');
   lines.push('');
  }
- lines.push('<a id="run-records"></a>', '', '## Run records', '', 'All true records are retained unchanged. Regenerate this file with `npm run report` in `benchmarks/runtime`; SQLite is canonical; Markdown generation is optional and benchmark runs skip it by default.', '', '| Timestamp (UTC) | Contract | Kind | Raw record |', '| --- | --- | --- | --- |');
+ lines.push('<a id="run-records"></a>', '', '## Run records', '', 'All true records are retained unchanged. Regenerate this file with `npm run report` in `benchmarks/runtime`; Measurements are kept in benchmarks/measurements.sqlite; Markdown generation is optional and benchmark runs skip it by default.', '', '| Timestamp (UTC) | Contract | Kind | Raw record |', '| --- | --- | --- | --- |');
  for (const {data,file} of sorted) lines.push(`| ${cell(data.timestamp)} | ${cell(epoch(data))} | ${data.verifiedOnly ? 'Correctness only' : Array.isArray(data.rows) ? 'Allocations' : data.measurementScope==='execution-only' ? 'Execution only' : 'Runtime / startup / compilation'} | ${rawLink(file)} |`);
  return lines.join('\n') + '\n';
 }
