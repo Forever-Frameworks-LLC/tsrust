@@ -332,7 +332,12 @@ impl<'p> Emitter<'p> {
                     || matches!(right.ty, Some(Type::Null | Type::Undefined))
                     || left.ty.and_then(Type::union).is_some() || right.ty.and_then(Type::union).is_some());
             let mode = if comparison || left.ty.map(Type::scalar_base) == Some(Type::String) { Mode::Read } else { Mode::Copy };
-            return Some(CallFrame { children: vec![(left, mode), (right, mode)], rendered: Vec::new(), invocation: None, state: CallState::Binary });
+            // A numeric `String(n)` appended to text renders only its argument.
+            let right = match Self::appended_number(right).filter(|_| *op == BinaryOp::Add && mode == Mode::Read && !comparison) {
+                Some(argument) => (argument, Mode::Copy),
+                None => (right.as_ref(), mode),
+            };
+            return Some(CallFrame { children: vec![(left, mode), right], rendered: Vec::new(), invocation: None, state: CallState::Binary });
         }
         let structural = match &expr.kind {
             ExprKind::Array(values) | ExprKind::ArrayOf(values, _) => Some((

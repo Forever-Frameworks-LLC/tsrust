@@ -438,6 +438,35 @@ pub fn tsr_string_pad(
     String::Owned(output)
 }
 
+/// Appends decimal digits without a temporary string.
+pub fn tsr_push_int(output: &mut std::string::String, value: i64) {
+    let mut digits = [0u8; 20];
+    let mut index = digits.len();
+    let mut rest = value.unsigned_abs();
+    loop {
+        index -= 1;
+        digits[index] = b'0' + (rest % 10) as u8;
+        rest /= 10;
+        if rest == 0 {
+            break;
+        }
+    }
+    if value < 0 {
+        output.push('-');
+    }
+    output.push_str(std::str::from_utf8(&digits[index..]).expect("ASCII digits"));
+}
+
+/// Whole numbers below 2^53 print as their integer digits. Returns false for
+/// other values, which the caller formats with its own number spelling.
+pub fn tsr_push_whole_number(output: &mut std::string::String, value: f64) -> bool {
+    if value.fract() != 0.0 || value.abs() >= 9007199254740992.0 {
+        return false;
+    }
+    tsr_push_int(output, value as i64);
+    true
+}
+
 pub fn tsr_string_add(left: &String, right: &String, failure: &'static str) -> String {
     let capacity = left.len().checked_add(right.len()).expect(failure);
     let mut output = std::string::String::with_capacity(capacity);

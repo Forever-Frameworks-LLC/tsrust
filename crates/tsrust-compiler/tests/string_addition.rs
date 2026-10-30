@@ -242,3 +242,29 @@ unsafe fn realloc(&self,p:*mut u8,layout:Layout,size:usize)->*mut u8{let q=unsaf
 }
 #[global_allocator]static GLOBAL:Observer=Observer;
 "#;
+
+#[test]
+fn appended_numbers_write_digits_into_the_result_in_operand_order() {
+    let source = r#"enum Phase { Ready, Busy = 4, Half = 2.5 }
+function next(log: string[], value: int): int { log.push(`n${value}`); return value; }
+function tag(log: string[]): string { log.push("left"); return "a"; }
+function main() {
+  const log: string[] = [];
+  const first = tag(log) + String(next(log, -12));
+  const values: number[] = [-0, 2.5, 1e21, 9007199254740992, 0 / 0, -1 / 0];
+  const parts: string[] = [];
+  for (const value of values) { parts.push("v" + String(value)); parts.push(`t${value}`); }
+  const phase: Phase = Phase.Half;
+  console.log(first, log.join(","), parts.join(" "), "p" + String(phase), "i" + String(-9223372036854775807 - 1), `m${9223372036854775807}`);
+}"#;
+    let analysis = native(
+        source,
+        "a-12 left,n-12 v0 t0 v2.5 t2.5 v1e+21 t1e+21 v9007199254740992 t9007199254740992 vNaN tNaN v-Infinity t-Infinity p2.5 i-9223372036854775808 m9223372036854775807\n",
+        "",
+        "",
+    );
+    let rust = analysis.emit_rust();
+    assert!(rust.contains("tsr_push_int(&mut output, number)"), "String(int) appends without a temporary");
+    assert!(rust.contains("tsr_push_whole_number(&mut output, number)"), "String(number) appends without a temporary");
+    assert!(rust.contains("tsr_push_int(&mut template_output, template_value)"), "int interpolation appends digits");
+}

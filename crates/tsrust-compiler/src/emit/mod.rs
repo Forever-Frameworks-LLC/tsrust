@@ -6042,6 +6042,25 @@ impl Emitter<'_> {
         code
     }
 
+    /// `text + String(n)` for a numeric `n`: the digits are written into the
+    /// concatenation buffer, so no temporary string is allocated.
+    pub(super) fn appended_number(expr: &Expr) -> Option<&Expr> {
+        if expr.target != Some(CallTarget::StringConversion) || expr.ty != Some(Type::String) {
+            return None;
+        }
+        let ExprKind::Call(_, args) = &expr.kind else {
+            return None;
+        };
+        let [argument] = args.as_slice() else {
+            return None;
+        };
+        matches!(
+            argument.ty,
+            Some(Type::Int | Type::Number | Type::Enum(_, crate::syntax::EnumKind::Number))
+        )
+        .then_some(argument)
+    }
+
     // Only checked builtin calls qualify; source spelling alone is insufficient.
     fn concat_integer_conversion(expr: &Expr) -> Option<&[Expr]> {
         if expr.target != Some(CallTarget::StringConversion) || expr.ty != Some(Type::String) {
@@ -8133,8 +8152,10 @@ impl Emitter<'_> {
                 // Number text has its own spelling for infinities, zero,
                 // exponent ranges and tied digits.
                 code.push_str(&format!(
-                    "let template_value: f64 = {value}; template_output.push_str(tsr_number_to_string(template_value, 10, \"number text\").as_ref()); "
+                    "let template_value: f64 = {value}; if !tsr_push_whole_number(&mut template_output, template_value) {{ template_output.push_str(tsr_number_to_string(template_value, 10, \"number text\").as_ref()); }} "
                 ));
+            } else if part.ty == Some(Type::Int) {
+                code.push_str(&format!("let template_value: i64 = {value}; tsr_push_int(&mut template_output, template_value); "));
             } else {
                 code.push_str(&format!(
                     "let template_value = {value}; write!(&mut template_output, \"{{}}\", template_value).expect(\"string formatting failed\"); "
@@ -8468,14 +8489,28 @@ impl Emitter<'_> {
         }
         let string = left.ty.map(Type::scalar_base) == Some(Type::String);
         let number = left.ty.map(Type::scalar_base) == Some(Type::Number);
+        let appended = if string && *op == BinaryOp::Add { Self::appended_number(right) } else { None };
         let left = render(left, if string { Mode::Read } else { Mode::Copy });
-        let right = render(right, if string { Mode::Read } else { Mode::Copy });
+        let right = match appended {
+            Some(argument) => render(argument, Mode::Copy),
+            None => render(right, if string { Mode::Read } else { Mode::Copy }),
+        };
         let checked = Self::checked_operator(*op);
         if string && *op == BinaryOp::Add {
             let failure = format!(
                 "string addition capacity overflow at source bytes {}..{}",
                 operator.start, operator.end
             );
+            if let Some(argument) = appended {
+                let push = match argument.ty {
+                    Some(Type::Int) => format!("let number: i64 = {right}; tsr_push_int(&mut output, number);"),
+                    Some(Type::Number) => format!("let number: f64 = {right}; if !tsr_push_whole_number(&mut output, number) {{ output.push_str(&(TsrConsoleValue::Number(number)).label()); }}"),
+                    _ => format!("let number: f64 = ({right}).tsr_value(); if !tsr_push_whole_number(&mut output, number) {{ output.push_str(&(TsrConsoleValue::Number(number)).label()); }}"),
+                };
+                return Ok(format!(
+                    "{{ let string_left: &String = {left}; let mut output = std::string::String::with_capacity(string_left.len().checked_add(24).expect({failure:?})); output.push_str(string_left); {push} String::Owned(output) }}"
+                ));
+            }
             format!(
                 "{{ let string_left: &String = {left}; let string_right: &String = {right}; tsr_string_add(string_left, string_right, {failure:?}) }}"
             )
