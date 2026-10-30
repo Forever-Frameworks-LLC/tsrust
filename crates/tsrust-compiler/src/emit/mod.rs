@@ -4654,6 +4654,21 @@ impl Emitter<'_> {
             format!("*({})", selection.shared)
         };
         let right = render(value, if string { Mode::Read } else { Mode::Copy }, false);
+        // `text += value` on a local that the right side cannot reach appends in
+        // place, so a loop that builds a string is linear, not quadratic.
+        if string
+            && let ExprKind::Name(_) = target.kind
+            && let Some(id) = target.binding
+            && !fun.bindings[id].parameter
+            && !receiver_moves::mentions(value, id)
+            && receiver_moves::captured(fun, &self.program.closures).is_some_and(|captured| !captured.contains(&id))
+        {
+            let failure = format!("string addition capacity overflow at source bytes {}..{}", span.start, span.end);
+            return format!(
+                "{{ {}let compound_right: &String = {right}; tsr_string_append(&mut ({}), compound_right, {failure:?}); }}",
+                selection.setup, selection.place
+            );
+        }
         let result = if string {
             let failure = format!(
                 "string addition capacity overflow at source bytes {}..{}",

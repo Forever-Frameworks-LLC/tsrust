@@ -467,6 +467,24 @@ pub fn tsr_push_whole_number(output: &mut std::string::String, value: f64) -> bo
     true
 }
 
+/// `text += value` in place: a borrowed text becomes one exactly sized owned
+/// string, and an owned text appends into its buffer with amortized growth.
+pub fn tsr_string_append(text: &mut String, value: &String, failure: &'static str) {
+    if value.is_empty() {
+        return;
+    }
+    let capacity = text.len().checked_add(value.len()).expect(failure);
+    match text {
+        String::Owned(owned) => owned.push_str(value),
+        String::Borrowed(borrowed) => {
+            let mut owned = std::string::String::with_capacity(capacity);
+            owned.push_str(borrowed);
+            owned.push_str(value);
+            *text = String::Owned(owned);
+        }
+    }
+}
+
 pub fn tsr_string_add(left: &String, right: &String, failure: &'static str) -> String {
     let capacity = left.len().checked_add(right.len()).expect(failure);
     let mut output = std::string::String::with_capacity(capacity);

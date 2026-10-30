@@ -12,6 +12,31 @@ use crate::analysis::{CheckedClosure, CheckedFunction};
 use crate::fixed_storage::{visit_expression, visit_function_expressions, visit_statements};
 use crate::syntax::{CallTarget, Expr, ExprKind, Stmt, StmtKind, Type};
 
+/// Bindings of `fun` that a closure captures, or `None` when the function has a
+/// local function or an unknown closure, whose effects are not tracked here.
+pub(super) fn captured(fun: &CheckedFunction, closures: &[CheckedClosure]) -> Option<HashSet<usize>> {
+    let mut nested = false;
+    visit_statements(&fun.body, &mut |stmt| nested |= matches!(stmt.kind, StmtKind::LocalFunction(_)));
+    let mut captured = HashSet::new();
+    visit_function_expressions(fun, &mut |expr| {
+        nested |= matches!(expr.kind, ExprKind::Selected { .. });
+        if let ExprKind::Closure { id, .. } = expr.kind {
+            match closures.get(id) {
+                Some(closure) => captured.extend(closure.captures.iter().map(|capture| capture.outer)),
+                None => nested = true,
+            }
+        }
+    });
+    (!nested).then_some(captured)
+}
+
+/// Whether `expr` reads the binding `id` anywhere.
+pub(super) fn mentions(expr: &Expr, id: usize) -> bool {
+    let mut found = false;
+    visit_expression(expr, &mut |value| found |= matches!(value.kind, ExprKind::Name(_)) && value.binding == Some(id));
+    found
+}
+
 /// Spans of `concat()`, `toReversed()`, `toSorted()`, `slice()` and `String()` calls that may consume their receiver.
 pub(super) fn eligible(fun: &CheckedFunction, closures: &[CheckedClosure]) -> HashSet<(usize, usize)> {
     let mut result = HashSet::new();

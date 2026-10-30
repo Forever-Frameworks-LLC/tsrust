@@ -253,7 +253,7 @@ fn diagnostics_and_traps_require_available_targets_and_commit_only_after_success
 }
 
 #[test]
-fn string_updates_allocate_fresh_results_and_dispose_normally_and_on_unwind() {
+fn string_updates_append_in_place_and_dispose_normally_and_on_unwind() {
     let source = "function append(left:string,right:string):string{let target=left;target+=right;return target;}function main(){}";
     let analysis = native(
         source,
@@ -262,9 +262,9 @@ fn string_updates_allocate_fresh_results_and_dispose_normally_and_on_unwind() {
         let hook=std::panic::take_hook();std::panic::set_hook(Box::new(|_|{}));assert!(std::panic::catch_unwind(||panic!("warm")).is_err());let baseline=LIVE.load(Ordering::SeqCst);
         for (a,b,expected) in [("","",""),("","é😀","é😀"),("left","","left"),("a\0","e\u{301}","a\0e\u{301}")] {for owned in [false,true] {
             let left=if owned{String::Owned(a.to_owned())}else{String::Borrowed(a)};let right=if owned{String::Owned(b.to_owned())}else{String::Borrowed(b)};
-            let before=LIVE.load(Ordering::SeqCst);let count=ALLOCATIONS.load(Ordering::SeqCst);let result=std::hint::black_box(function0(left,std::hint::black_box(&right)));
-            assert_eq!(result.as_ref(),expected);assert!(matches!(result,String::Owned(_)));assert_eq!(ALLOCATIONS.load(Ordering::SeqCst)-count,usize::from(!expected.is_empty()));
-            assert_eq!(LIVE.load(Ordering::SeqCst),before-(if owned{a.len() as isize}else{0})+expected.len() as isize);assert_eq!(right.as_ref(),b);
+            let count=ALLOCATIONS.load(Ordering::SeqCst);let result=std::hint::black_box(function0(left,std::hint::black_box(&right)));
+            // The local appends in place: at most one allocation, none for an empty right side.
+            assert_eq!(result.as_ref(),expected);assert!(ALLOCATIONS.load(Ordering::SeqCst)-count<=usize::from(!b.is_empty()));assert_eq!(right.as_ref(),b);
             drop(result);drop(right);assert_eq!(LIVE.load(Ordering::SeqCst)-baseline,0);
             assert!(std::panic::catch_unwind(||{let left=String::Owned(a.to_owned());let right=String::Owned(b.to_owned());let result=function0(left,&right);std::hint::black_box(&result);panic!("dispose operands and result");}).is_err());assert_eq!(LIVE.load(Ordering::SeqCst)-baseline,0);
         }}std::panic::set_hook(hook);

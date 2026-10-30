@@ -285,3 +285,26 @@ function main() {
     assert!(rust.contains("try_fold(0usize, usize::checked_add)"), "chains reserve their total size once");
     assert!(!rust.contains("tsr_string_add(string_left"), "no intermediate copies in a chain");
 }
+
+#[test]
+fn compound_append_to_a_local_reuses_its_buffer() {
+    let source = r#"type Box = { text: string; };
+function main() {
+  let text = "";
+  for (let i = 0; i < 5; i++) { text += String(i); text += ","; }
+  let twice = "ab";
+  twice += twice;
+  let empty = "x";
+  empty += "";
+  const box: Box = { text: "f" };
+  box.text += "g";
+  let joined = "";
+  for (const word of ["é", "z"]) { joined += word; }
+  console.log(text, twice, empty, box.text, joined);
+}"#;
+    let analysis = native(source, "0,1,2,3,4, abab x fg éz\n", "", "");
+    let rust = analysis.emit_rust();
+    // Locals append in place; self-reference and fields keep the copying form.
+    assert_eq!(rust.matches("tsr_string_append(&mut").count(), 4, "{rust}");
+    assert_eq!(rust.matches("tsr_string_add(compound_left").count(), 2, "{rust}");
+}
