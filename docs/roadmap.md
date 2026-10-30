@@ -66,9 +66,9 @@ platforms and installation trust are never described as complete.
 
 **Scoped callable records accepted:** [Borrowing callback fields](./milestones/173-scoped-callable-records.md). Record fields declared `ReadOnly<Function<...>>` or `Mutable<Function<...>>` borrow local variables with independent field storage, record parameters, replacement, moves and escape rejection. Whole compiler crate passes except two kept callable-replacement witnesses; editor 339; one matched workload verified untimed. Seven regressions in accepted features and about 30 stale expectations were repaired. Arrays, Maps, Sets and unions of such records stay rejected.
 
-**Gate 173 source-validation progress:** Distinct branch signatures and saved alias sets now retain arity checks and declaration links. Loop, exception and capture effects remain open. See [handoff](handoffs/handoff-2026-10-06-distinct-branch-contracts.md).
+**Gate 173 source-validation progress:** Distinct branch signatures and saved alias sets now retain arity checks and declaration links. Loop, exception and capture effects remain open. See handoff.
 
-**Formatter repair accepted:** Recursive `tsrust format` defaults to the working directory, with read-only `--check`, directory exclusions and stable type/assertion spacing. See [formatter handoff](handoffs/handoff-2026-10-06-recursive-format.md). Gate 173 remains in progress.
+**Formatter repair accepted:** Recursive `tsrust format` defaults to the working directory, with read-only `--check`, directory exclusions and stable type/assertion spacing. See formatter handoff. Gate 173 remains in progress.
 
 **Gate 173 in progress:** [Named declaration signatures and inferred results](./milestones/173-nested-function-signatures.md). Nonrecursive omitted results now infer scalar, generic, captured and array types; generic argument hints defer unknown results. Captured optional/default function values now preserve omission, single default evaluation, ownership and signature help. Generic/rest function values and wider context coverage remain open. Matched result/default workloads are registered and verified untimed.
 
@@ -805,7 +805,7 @@ Finite replacement carriers and point-specific checked invocation now preserve s
 The family regression milestone covers 2,325 compiler passes after affected publication repairs with zero failures and two intentional subprocess-worker ignores, plus 358 editor passes. Original interrupted recursion evidence and repaired checks remain in SQLite. The nineteen-observation replacement workload has 186 execution samples and a reviewed native median advantage of approximately 10.02 on this machine. All five consumers rebuilt from ea6bda3 pass combined CLI/native/checked-editor smoke. Imported assertions and stored native aliases preserve point-sensitive contracts. Broader scoped aggregate composition remains separate work. See milestones/callable-replacement-family.md.
 
 
-**Path relative integrated:** Borrowed arguments, owned results, checked cwd failures and complete editor assistance are accepted. Combined regressions pass 2,350 compiler and 362 editor tests; all five consumers pass smoke tests. The current matched workload measures native throughput at 0.183× Node with four allocations and one reallocation per operation. Immutable SQLite evidence and protected owner fixtures are preserved. See [the handoff](handoffs/handoff-2026-10-08-path-relative.md).
+**Path relative integrated:** Borrowed arguments, owned results, checked cwd failures and complete editor assistance are accepted. Combined regressions pass 2,350 compiler and 362 editor tests; all five consumers pass smoke tests. The current matched workload measures native throughput at 0.183× Node with four allocations and one reallocation per operation. Immutable SQLite evidence and protected owner fixtures are preserved. See the handoff.
 
 Gate 181 accepts truthiness in conditions, negation and fixed-path logical assignment. Compiler, editor, project assertions and matched native/Node checks pass. Timing remains deferred. Scoped aggregate composition (B5) is next; see the compiler completion ledger.
 
@@ -831,14 +831,14 @@ installation, invocation, definite clearing, relay/early-return release and type
 callback failures. Editor behavior and a 21-observation matched workload are checked
 without timing. Recursive retained-store summaries, broader branches/loops and
 replacement completeness remain open. See
-[the nullable-store handoff](handoffs/handoff-2026-10-09-b7-nullable-callback-stores.md).
+the nullable-store handoff.
 
 
 The next B7 checkpoint supports nullable replacement by distinct readonly/mutable
 callback environments, exact old-input release, nested relays and input aliases.
 Borrowed and capture-free branch alternatives both survive native conversion.
 New-input conflicts and skipped-replacement conflicts remain source diagnostics.
-The caller-transport family remains in progress; see [the replacement handoff](handoffs/handoff-2026-10-09-b7-callback-replacement.md).
+The caller-transport family remains in progress; see the replacement handoff.
 
 
 B7 now includes exact direct installation of equal-type owner instances: independent

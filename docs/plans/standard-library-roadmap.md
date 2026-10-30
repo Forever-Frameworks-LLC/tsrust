@@ -49,7 +49,7 @@ focused native/editor/export acceptance. Explicit Rust adapters and all three SQ
 domain mappings pass focused acceptance. Data-type family regressions and targeted
 integration repairs and all five accumulated measurements pass. Continue S19–S21. Date/time API design follows the owner's date-fns preference.
 See [current data-type coverage](../guides/language/data-type-coverage.md) and the
-[current handoff](../handoffs/compiler-to-roadmap-continuation.md).
+current handoff.
 
 # Modules, native standard library and async roadmap
 
@@ -63,7 +63,7 @@ remain a separate pending checkpoint; no unmeasured workload is described as tim
 See [service readiness](service-readiness-plan.md) for exact boundaries.
 
 
-Current continuation: [compiler foundations through S12–S21](../handoffs/compiler-to-roadmap-continuation.md).
+Current continuation: compiler foundations through S12–S21.
 Current owner priority (2026-10-15): S18 core acceptance is complete. Next deliver
 [checked resource lifetimes for UI](#owner-priority-compiler-dependency-checked-resource-lifetimes-for-ui),
 then [required data-type coverage](#owner-priority-required-data-type-coverage), then
@@ -221,7 +221,7 @@ S01–S18 have accepted capabilities within their documented platform and featur
 | Dev-loop performance: owner priority | S03, S05, new/dev CLI | Filesystem events, retained compiler state, separate native runtime compilation, bounded caches; clean-build equivalence, lifecycle tests, repeated scaling measurements and installed acceptance | accepted on macOS, Linux watcher-module checks accepted; installed lifecycle, full regressions and matched dev-loop measurements retained; [acceptance plan](dev-loop-performance-plan.md) |
 | S09: synchronous host | S07 | Path/fs/env/time foundations, file read/write and buffered streams, size limits, monotonic clock; filesystem sandbox fixtures and cleanup | accepted on macOS: 3,207 compiler and 532 LSP tests pass; nine matched measurements and allocation profiles, final installed checks and editor restart pass; see [host acceptance](../milestones/s09-host-measurements.md) |
 | S10: JSON | S07, S08 | Typed decoding/encoding and explicit JsonValue, correct number/Unicode/property rules, malformed/depth/size errors, JSONC/JSONL, bounded file streaming and allocation baseline; see JSON contract | accepted: see [S10 acceptance](../milestones/s10-json-acceptance.md); full compiler/LSP regressions, matched measurements, optimization review, installed consumers and cleanup complete within documented scope |
-| S11: schemas | S06, S10 | Typed reusable schema API, structured issue paths, safeParse, object/union/optional/refinement/transformation coverage and fused JSON validation; see schema contract | accepted on macOS: inferred reusable schemas, collections/recursion, pipelines, throwing parse, fused validation and scoped Draft 2020-12 export; compiler 3,727 and LSP 645 pass after cleanup; all 31 matched workloads measured separately; consumers refreshed; see [acceptance and handoff](../handoffs/2026-10-13-s11-acceptance.md) and [schema plan](schema-plan.md) |
+| S11: schemas | S06, S10 | Typed reusable schema API, structured issue paths, safeParse, object/union/optional/refinement/transformation coverage and fused JSON validation; see schema contract | accepted on macOS: inferred reusable schemas, collections/recursion, pipelines, throwing parse, fused validation and scoped Draft 2020-12 export; compiler 3,727 and LSP 645 pass after cleanup; all 31 matched workloads measured separately; consumers refreshed; see acceptance and handoff and [schema plan](schema-plan.md) |
 | S12: native threads | S07 | Spawn/join with explicit transferred captures, Send-like restrictions, panic/failure conversion, bounded channels; multicore witness and compile-time invalid sharing tests | accepted within documented scope: dedicated spawn with default cleanup, owned ThreadPool, explicit cancellation, bounded channels and Rust/Rayon bridges; see [pools](worker-pool-cancellation.md), [channels](bounded-worker-channels.md), [bridges](rust-rayon-bridges.md) and [package CLI](package-cli-acceptance.md); external owned resources are the priority dependency above |
 | S13: async compiler | S06, S07 | async functions/await/task result types, async main selection, suspend-safe captures/loans/drop, correct control flow and diagnostics; generated native futures execute | accepted; lazy single-use tasks, suspend-safe ownership, native execution and editor agreement pass; see [async acceptance](async-tasks-acceptance.md) |
 | S14: Tokio tasks | S12, S13 | Runtime bootstrap, explicit .start()/task groups, timers, bounded async channels, cancellation/timeouts and shutdown; blocking work separated; no leaked tasks/resources | accepted; owned scheduling, timers, groups, bounded channels and cancellation cleanup pass compiler/runtime/editor acceptance; see [Tokio acceptance](tokio-tasks-acceptance.md) |
@@ -379,7 +379,7 @@ Pin exact backend versions and features during S05/individual adapter acceptance
 
 ## Accepted lexical path increment
 
-The bounded primitive `std:path` family adds dirname, extname, isAbsolute and normalize alongside basename. Compiler/native execution, imported editor help, executable examples, matched benchmark registration and scoped native/Node-after-tsc measurements are accepted on the library branch. See [family acceptance](../milestones/stdlib-lexical-path.md) and [integration handoff](../handoffs/handoff-2026-10-07-lexical-path.md).
+The bounded primitive `std:path` family adds dirname, extname, isAbsolute and normalize alongside basename. Compiler/native execution, imported editor help, executable examples, matched benchmark registration and scoped native/Node-after-tsc measurements are accepted on the library branch. See [family acceptance](../milestones/stdlib-lexical-path.md) and integration handoff.
 
 Public integration is verified on macOS; explicit-platform helpers cover POSIX/Windows reference behavior. Windows native integration and the advancing combined checkout still require their own checks. This primitive-only increment does not accept filesystem resources, the wider host family, or the rest of the standard library.
 

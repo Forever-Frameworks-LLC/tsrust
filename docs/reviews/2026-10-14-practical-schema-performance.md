@@ -81,7 +81,7 @@ not public feature acceptance. Complete that coherent slice before broadening sc
 Run consolidated compiler/LSP regressions at the next meaningful feature-family
 milestone. Recent focused acceptance remains valid; this review did not run a fresh
 full regression or new compiler scaling suite. The extreme-nesting limits remain
-known and deferred, not fixed. See the [current handoff](../handoffs/compiler-to-roadmap-continuation.md).
+known and deferred, not fixed. See the current handoff.
 
 ## Durable evidence
 

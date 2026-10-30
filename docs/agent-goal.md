@@ -50,7 +50,7 @@ the SQLite dataset and the generated performance page.
 
 
 Owner handoff, 2026-10-28: Codex continuation stopped for transfer to Claude;
-completion is not claimed. Read [the current handoff](handoffs/2026-10-28-claude-handoff.md).
+completion is not claimed. Read [the handoff](agent-progress.md).
 The owner's latest docs direction prioritizes language/stdlib reference and a
 consolidated interactive guide instead of many indexed how-to articles.
 
