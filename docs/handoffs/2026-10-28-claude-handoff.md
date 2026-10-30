@@ -337,6 +337,13 @@ Owner direction (2026-10-29): remove limits like the 128-level nesting limit.
   specialization 128/declaration and 1,024/program, closure environment
   complexity 128, callable result discovery 128 (recursive). Owner may ask to
   raise them.
+- Measured follow-up: `scoped-map-catch` check time is cubic in depth (debug
+  compiler: 32 → 0.42 s, 64 → 2.9 s, 80 → 5.5 s) while plain `catch-regions`
+  and `cleanup-regions` stay at 0.02 s, so the cost is callback-holding Map
+  storage across catch regions in analysis (`map_exception_storage_types`,
+  `scoped_map_carriers`, `map_storage_edges` are the candidates). Profiling is
+  blocked locally: macOS Developer Mode is off, so `sample`/`lldb` hang on an
+  authorization prompt (`sudo DevToolsSecurity -enable` is the owner's call).
 - Follow-up (performance, not limits): `scoped-map-catch`, `-cleanup`,
   `-catch-cleanup` time out at 256 levels and `scoped-map-mixed` at 1,024 in
   ownership analysis; `builtin-string-chains`, `captured-local-functions`,
