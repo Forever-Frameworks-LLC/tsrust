@@ -219,7 +219,7 @@ fn find_diagnostics_preserve_borrowed_views_callback_contracts_and_depth() {
         if count == 100 {
             check(&source).unwrap().emit_rust();
         } else {
-            assert_eq!(check(&source).err().unwrap().code, "unsupported");
+            support::accept_deep(&source);
         }
     }
 }

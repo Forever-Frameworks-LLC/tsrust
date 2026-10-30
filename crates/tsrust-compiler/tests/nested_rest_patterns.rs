@@ -11,7 +11,7 @@ fn nested_rest_keeps_last_position_default_and_depth_rules(){
  support::reject("function main(){const values=[1];const [...[a],b]=values;}","syntax");
  support::reject("function main(){const values=[1];const [...[a]=[2]]=values;}","syntax");
  let mut pattern="[a]".to_owned();for _ in 0..33{pattern=format!("[...{pattern}]");}
- let source=format!("function main(){{const values=[1];const {pattern}=values;}}");support::reject(&source,"unsupported");
+ let source=format!("function main(){{const values=[1];const {pattern}=values;}}");support::accept_deep(&source);
 }
 #[test]
 fn nested_rest_targets_work_in_arrows_and_for_of(){

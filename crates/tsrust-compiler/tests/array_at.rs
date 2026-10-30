@@ -291,7 +291,7 @@ fn at_strict_types_borrowed_view_escapes_conflicts_and_depth() {
         if depth == 100 {
             check(&source).unwrap().emit_rust();
         } else {
-            assert_eq!(check(&source).err().unwrap().code, "unsupported");
+            support::accept_deep(&source);
         }
     }
 }

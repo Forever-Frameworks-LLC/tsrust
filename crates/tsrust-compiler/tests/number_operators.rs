@@ -161,7 +161,7 @@ fn numeric_operator_types_grammar_depth_and_enclosing_loans_remain_checked() {
             if count == 100 {
                 check(&source).unwrap().emit_rust();
             } else {
-                assert_eq!(check(&source).err().unwrap().code, "unsupported");
+                support::accept_deep(&source);
             }
         }
     }

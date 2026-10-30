@@ -302,18 +302,14 @@ fn deep_record_literals_and_storage_paths_compile_with_existing_guards() {
             .message
             .contains("layout nesting")
     );
-    // Recursive arrays keep type layouts finite while deeply nested literals
-    // still exercise the parser/analysis expression guards.
+    // Recursive arrays keep type layouts finite, so deeply nested literals compile.
     let mut value = "{ children: [] }".to_owned();
     for _ in 0..150 {
         value = format!("{{ children: [{value}] }}");
     }
-    reject(
-        &format!(
-            "type Node = {{ children: Node[]; }}; function main() {{ const n: Node = {value}; }}"
-        ),
-        "unsupported",
-    );
+    support::accept_deep(&format!(
+        "type Node = {{ children: Node[]; }}; function main() {{ const n: Node = {value}; }}"
+    ));
 }
 
 #[test]

@@ -201,7 +201,7 @@ fn nullish_assignment_types_loans_spans_and_normal_depth_are_precise() {
         if depth == 100 {
             result.unwrap().emit_rust();
         } else {
-            assert_eq!(result.err().unwrap().code, "unsupported");
+            support::accept_deep(&source);
         }
     }
     let source = "function main(){let x:string|null=null;const alias=x??=\"a\";console.log(alias.length,x.length);}";
