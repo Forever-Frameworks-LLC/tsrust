@@ -9,8 +9,10 @@ use std::collections::BTreeMap;
 pub struct Node<'source> { text: &'source str }
 
 pub fn document(input: &str, limits: Limits) -> Result<Node<'_>, Error> {
-    super::typed::validate(input.as_bytes(), limits)?;
-    super::validate_integer_tokens(input.as_bytes())?;
+    // Integer tokens are re-scanned only when one could have overflowed into a float.
+    if super::typed::validate(input.as_bytes(), limits)? {
+        super::validate_integer_tokens(input.as_bytes())?;
+    }
     Ok(Node { text: input.trim() })
 }
 

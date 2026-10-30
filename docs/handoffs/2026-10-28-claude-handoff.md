@@ -325,6 +325,15 @@ the gap to Node.js is short strings, which V8 keeps inline. A small-string
 optimization (inline storage for short owned strings instead of
 `Cow<'static, str>`) is the structural fix and is an owner design decision.
 
+Schema text decoding (2026-10-30): `schema.safeParseJson(text)` measured about
+1.25× slower than `schema.safeParse(JSON.parse(text))` (300,000 nested-object
+decodes: 0.27 s vs 0.22 s CPU), so fusing the latter into the former would be a
+regression. `source::document` validates the whole document, then each cursor
+re-parses its subtree with serde when a field is read. Skipping the integer
+re-scan without floats changed nothing measurable. The fix is a single-pass
+schema `DeserializeSeed` decoder (as typed `JSON.parse<T>` already uses), which
+replaces the cursor emission in `stdlib/schema`.
+
 Next targets: add more `parity/` programs; add workloads with dead `slice()`/`toSorted()` receivers; `with()`/`toSpliced()` moves (need element assignment across array wrappers); JSON/schema decoding (group median 0.78×); record construction (records group 0.51×); `String.at`.
 
 ## Nesting limits removed — 2026-10-30

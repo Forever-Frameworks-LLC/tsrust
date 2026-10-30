@@ -197,8 +197,10 @@ fn decode_once<'de,S:serde::de::DeserializeSeed<'de>>(input:&'de [u8],seed:S)->R
  decoder.end().map_err(|error|located(input,error,Some("trailing-data")))?;
  Ok(value)
 }
-pub(super) fn validate(input:&[u8],limits:Limits)->Result<(),Error>{
- validate_depth(input,limits).map(|_|())
+/// Validate the document; true when any number was read as a float, the only
+/// way an integer token too large for i64/u64 can appear.
+pub(super) fn validate(input:&[u8],limits:Limits)->Result<bool,Error>{
+ validate_floats(input,limits).map(|(_,saw_float)|saw_float)
 }
 pub(super) fn validate_depth(input:&[u8],limits:Limits)->Result<usize,Error>{
  validate_floats(input,limits).map(|(maximum,_)|maximum)
