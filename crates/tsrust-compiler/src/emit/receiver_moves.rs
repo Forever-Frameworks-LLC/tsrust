@@ -1,8 +1,9 @@
-//! Copying array methods whose receiver is a dead local can move it instead.
+//! Copying array methods and `String(text)` whose receiver is a dead local can
+//! move it instead.
 //!
 //! `const tail = rows.slice(1); return tail.concat();` copies `tail` although
 //! nothing reads it afterwards. A call qualifies only when its receiver is a
-//! `const` owned array local that the function references exactly once, from a
+//! `const` owned array (or, for `String`, string) local that the function references exactly once, from a
 //! later statement of the same statement list (so the same loop iteration), with
 //! no `match` body in between, and no closure captures it (a local function
 //! anywhere in the function disables the move). Anything else keeps the copy.
@@ -11,7 +12,7 @@ use crate::analysis::{CheckedClosure, CheckedFunction};
 use crate::fixed_storage::{visit_expression, visit_function_expressions, visit_statements};
 use crate::syntax::{CallTarget, Expr, ExprKind, Stmt, StmtKind, Type};
 
-/// Spans of `concat()`, `toReversed()`, `toSorted()` and `slice()` calls that may consume their receiver.
+/// Spans of `concat()`, `toReversed()`, `toSorted()`, `slice()` and `String()` calls that may consume their receiver.
 pub(super) fn eligible(fun: &CheckedFunction, closures: &[CheckedClosure]) -> HashSet<(usize, usize)> {
     let mut result = HashSet::new();
     let mut nested = false;
@@ -61,7 +62,7 @@ pub(super) fn eligible(fun: &CheckedFunction, closures: &[CheckedClosure]) -> Ha
 
 fn movable(fun: &CheckedFunction, id: usize) -> bool {
     let binding = &fun.bindings[id];
-    matches!(binding.ty, Type::Array(_)) && !binding.parameter && binding.borrowed_element.is_none()
+    matches!(binding.ty, Type::Array(_) | Type::String) && !binding.parameter && binding.borrowed_element.is_none()
         && binding.borrowed_place.is_none() && binding.view_roots.is_empty() && !binding.capture_reference
 }
 
@@ -88,6 +89,13 @@ fn single_use(stmt: &Stmt, id: usize) -> Option<Option<(usize, usize)>> {
                 && let ExprKind::Field(base, _) = &callee.kind
                 && matches!(base.kind, ExprKind::Name(_)) && base.binding == Some(id)
                 && (matches!(value.target, Some(CallTarget::ArrayConcat | CallTarget::ArrayToReversed)) && args.is_empty() || matches!(value.target, Some(CallTarget::ArrayToSorted | CallTarget::ArraySlice)))
+            {
+                call = Some((value.span.start, value.span.end));
+            }
+            if value.target == Some(CallTarget::StringConversion)
+                && let ExprKind::Call(_, args) = &value.kind
+                && let [argument] = args.as_slice()
+                && matches!(argument.kind, ExprKind::Name(_)) && argument.binding == Some(id) && argument.ty == Some(Type::String)
             {
                 call = Some((value.span.start, value.span.end));
             }

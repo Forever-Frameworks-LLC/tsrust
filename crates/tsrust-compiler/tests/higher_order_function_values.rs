@@ -451,9 +451,8 @@ fn recursion_annotation_depth_and_typed_native_graph_paths_preserve_limits() {
         if depth == 100 {
             check(&source).unwrap().emit_rust();
         } else {
-            reject(&source, "unsupported");
+            support::accept_deep(&source);
         }
-        // Both callback-parameter and callable-result branches are bounded.
         let mut parameter = "int".to_string();
         let mut result = "int".to_string();
         for _ in 0..depth {
@@ -481,8 +480,10 @@ fn recursion_annotation_depth_and_typed_native_graph_paths_preserve_limits() {
             check(&definitions).unwrap().emit_rust();
             reject(&result_source, "unsupported");
         } else {
-            reject(&param_source, "unsupported");
-            reject(&result_source, "unsupported");
+            // Deep annotations have no nesting limit; the self-returning result
+            // is still rejected as a recursive origin.
+            support::accept_deep(&param_source);
+            assert_eq!(support::check_deep(&result_source).unwrap_err().code, "unsupported");
         }
     }
     // Original 128-per-target vector guard is exercised with genuinely distinct

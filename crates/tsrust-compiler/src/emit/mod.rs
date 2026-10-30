@@ -8973,6 +8973,12 @@ impl Emitter<'_> {
                     let text=self.json_text_read(args[0].ty.unwrap(),"json_source");
                     format!("{{let json_source={receiver};let text:&str={text};tsr_length(text)}}")
                 }
+                // `String(text)` of a dead `const` string local moves it (see `receiver_moves`).
+                CallTarget::StringConversion
+                    if args.len() == 1 && args[0].ty == Some(Type::String) && self.moves_receiver(&args[0], expr.span) =>
+                {
+                    self.expr(fun, &args[0], Mode::Consume)
+                }
                 target @ (CallTarget::BooleanConversion
                 | CallTarget::StringConversion
                 | CallTarget::ArrayIsArray) => self.value_builtin_call(fun, target, args),

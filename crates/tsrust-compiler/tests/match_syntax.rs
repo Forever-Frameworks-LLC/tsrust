@@ -1,3 +1,4 @@
+mod support;
 use tsrust_compiler::match_syntax::{parse, Pattern};
 
 #[test]
@@ -62,14 +63,12 @@ fn syntax_preserves_coverage_errors_for_type_checking() {
 }
 
 #[test]
-fn arm_bodies_share_existing_statement_parser_and_depth_limit() {
+fn arm_bodies_share_the_statement_parser_at_any_depth() {
     let prefix = "if (true) {";
     let normal = format!("match (value) {{ Ok(x) => {{ {}consume(x);{} }} }}", prefix.repeat(100), "}".repeat(100));
     parse(&normal).unwrap();
     let deep = format!("match (value) {{ Ok(x) => {{ {}consume(x);{} }} }}", prefix.repeat(140), "}".repeat(140));
-    let error = parse(&deep).unwrap_err();
-    assert_eq!(error.code, "unsupported");
-    assert!(error.message.contains("nesting"));
+    assert!(parse(&deep).is_ok(), "match arm bodies have no nesting limit");
 }
 
 #[test]

@@ -43,3 +43,12 @@ fn dead_receivers_of_slice_and_to_sorted_keep_exact_results() {
     assert!(rust.contains("let mut sorting_copy = value"), "toSorted() of a dead local sorts it in place");
     support::execute(&support::format_round_trip(source), "é+b+c,d+e é+b+c,d+e 0 é+b+c,d+e,a a,é+b+c,d+e\n", None);
 }
+
+#[test]
+fn string_conversion_of_a_dead_string_local_moves_it() {
+    let source = "function main(){const rows:string[]=[];let i=0;while(i<3){const pair:[int,string]=[i,`n${i}`];const [doubled,label]=pair;rows.push(String(label));const kept=`k${doubled}`;rows.push(String(kept));rows.push(kept);i+=1;}console.log(rows.join(\",\"));}";
+    let rust = emitted(source);
+    // `label` is moved; `kept` is read again, so its conversion still copies.
+    assert_eq!(rust.matches("(*builtin_argument_0).clone()").count(), 1, "{rust}");
+    support::execute(&support::format_round_trip(source), "n0,k0,k0,n1,k1,k1,n2,k2,k2\n", None);
+}
