@@ -368,8 +368,14 @@ Owner direction (2026-10-29): remove limits like the 128-level nesting limit.
   and `cleanup-regions` stay at 0.02 s, so the cost is callback-holding Map
   storage across catch regions in analysis (`map_exception_storage_types`,
   `scoped_map_carriers`, `map_storage_edges` are the candidates). Profiling is
-  blocked locally: macOS Developer Mode is off, so `sample`/`lldb` hang on an
-  authorization prompt (`sudo DevToolsSecurity -enable` is the owner's call).
+  profiled (Developer Mode enabled 2026-10-30): `finish_block` →
+  `record_sequence_carriers` runs every carrier pass over the block's whole
+  subtree each time any block finishes, and `scoped_map_entry_epochs` then
+  filters every function binding through `contains_scoped_map_storage` for
+  each statement (`native_inputs`). Work is blocks × statements × bindings.
+  A scalar fast path changed nothing (the bindings are Map/record types). The
+  fix is incremental: process each statement's epochs once instead of
+  re-walking nested blocks from every enclosing block.
 - Known failures before 0.1.0 (also in full run 40909244877, frozen UI):
   `retained_ui_catalog_entries_have_current_compiler_witnesses` and
   `retained_ui_catalog_examples_match_native_output` fail because the
