@@ -44,11 +44,24 @@ trait TsrSetKey: Clone {
     fn tsr_same(&self, other: &Self) -> bool;
     fn tsr_normalize(self) -> Self { self }
 }
+/// One keyed hash per key. The key is random per process, so crafted keys
+/// cannot predict collisions; Map and Set order comes from insertion, not hashes.
 fn tsr_set_hash(tag: u64, value: impl std::hash::Hash) -> u64 {
-    use std::hash::{Hash, Hasher};
-    let mut state = std::collections::hash_map::DefaultHasher::new();
+    use std::hash::{BuildHasher, Hash, Hasher};
+    static KEYS: std::sync::OnceLock<std::collections::hash_map::RandomState> = std::sync::OnceLock::new();
+    let mut state = KEYS.get_or_init(std::collections::hash_map::RandomState::new).build_hasher();
     tag.hash(&mut state); value.hash(&mut state); state.finish()
 }
+/// Bucket tables are keyed by `tsr_set_hash` results, which are already
+/// uniformly mixed, so they are used directly instead of being hashed again.
+#[derive(Default, Clone, Copy)]
+struct TsrSetHashPassThrough(u64);
+impl std::hash::Hasher for TsrSetHashPassThrough {
+    fn finish(&self) -> u64 { self.0 }
+    fn write(&mut self, bytes: &[u8]) { for &byte in bytes { self.0 = self.0.rotate_left(8) ^ u64::from(byte); } }
+    fn write_u64(&mut self, value: u64) { self.0 = value; }
+}
+type TsrSetBuckets = std::collections::HashMap<u64, TsrSetBucket, std::hash::BuildHasherDefault<TsrSetHashPassThrough>>;
 fn tsr_set_number_hash(value: f64) -> u64 {
     tsr_set_hash(0, if value.is_nan() { 0x7ff8000000000000 } else if value == 0.0 { 0 } else { value.to_bits() })
 }
@@ -93,13 +106,13 @@ impl TsrSetKey for TsrUndefined {
 #[derive(Clone)]
 struct TsrSet<T: TsrSetKey> {
     slots: Vec<Option<T>>,
-    buckets: std::collections::HashMap<u64, TsrSetBucket>,
+    buckets: TsrSetBuckets,
     length: usize,
 }
 impl<T: TsrSetKey> TsrSet<T> {
     fn tsr_owned_items(self)->impl Iterator<Item=T>{self.slots.into_iter().flatten()}
 
-    fn new() -> Self { Self { slots: Vec::new(), buckets: std::collections::HashMap::new(), length: 0 } }
+    fn new() -> Self { Self { slots: Vec::new(), buckets: TsrSetBuckets::default(), length: 0 } }
     fn from_values(values: impl IntoIterator<Item=T>) -> Self {
         let mut result = Self::new(); for value in values { result.add(value); } result
     }

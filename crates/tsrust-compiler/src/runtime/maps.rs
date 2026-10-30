@@ -17,14 +17,14 @@ impl<K,V> TsrMapEntry<K,V> for (K,V) {
 #[derive(Clone)]
 struct TsrMap<K:TsrSetKey,V,P:TsrMapEntry<K,V>=(K,V)> {
     slots:Vec<Option<P>>,
-    buckets:std::collections::HashMap<u64,TsrSetBucket>,
+    buckets:TsrSetBuckets,
     length:usize,
     marker:std::marker::PhantomData<(K,V)>,
 }
 impl<K:TsrSetKey,V,P:TsrMapEntry<K,V>> TsrMap<K,V,P> {
     fn tsr_owned_items(self)->impl Iterator<Item=P>{self.slots.into_iter().flatten()}
 
-    fn new()->Self{Self{slots:Vec::new(),buckets:std::collections::HashMap::new(),length:0,marker:std::marker::PhantomData}}
+    fn new()->Self{Self{slots:Vec::new(),buckets:TsrSetBuckets::default(),length:0,marker:std::marker::PhantomData}}
     fn from_values(values:impl IntoIterator<Item=(K,V)>)->Self{
         let mut result=Self::new();for(key,value)in values{result.set(key,value);}result
     }
