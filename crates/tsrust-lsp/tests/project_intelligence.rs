@@ -2123,7 +2123,7 @@ fn json_typeof_hover_explains_runtime_contents_and_refinement_boundary() {
     let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
     let hover=ask(&ProjectIndex::checked(&checked),source,"typeof value","textDocument/hover");
     let docs=hover.to_string();
-    assert!(docs.contains("contained JSON data")&&docs.contains("remains a JsonValue"),"{hover}");
+    assert!(docs.contains("the category of the JSON data it holds")&&docs.contains("Numbers stay JSON values"),"{hover}");
 }
 
 #[test]
@@ -2156,7 +2156,7 @@ fn json_boolean_refinement_checks_and_reports_boolean_local() {
  let uri=fixture_uri!("/tsrust-intelligence/main.tsr");let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());
  let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
  let hover=ask(&index,&source,"result);","textDocument/hover");assert!(hover.to_string().contains("boolean"),"{hover}");
- let hover=ask(&index,&source,"typeof value","textDocument/hover");assert!(hover.to_string().contains("boolean guard"),"{hover}");
+ let hover=ask(&index,&source,"typeof value","textDocument/hover");assert!(hover.to_string().contains("can be copied into a"),"{hover}");
 }
 
 #[test]
@@ -2363,7 +2363,7 @@ fn raw_json_encoding_hover_describes_exact_output() {
  let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
  for needle in ["stringify(raw)","tryStringify(raw)"] {
   let hover=ask(&index,&source,needle,"textDocument/hover");let docs=hover.to_string();
-  for text in ["preserve raw source text exactly","output byte limit","64-container","JSONL"] {assert!(docs.contains(text),"{hover}");}
+  for text in ["original source text exactly","output byte limit","64-container","JSON Lines"] {assert!(docs.contains(text),"{hover}");}
  }
 }
 

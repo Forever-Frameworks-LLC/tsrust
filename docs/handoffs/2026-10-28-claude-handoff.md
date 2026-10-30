@@ -346,6 +346,11 @@ Owner direction (2026-10-29): remove limits like the 128-level nesting limit.
   `scoped_map_carriers`, `map_storage_edges` are the candidates). Profiling is
   blocked locally: macOS Developer Mode is off, so `sample`/`lldb` hang on an
   authorization prompt (`sudo DevToolsSecurity -enable` is the owner's call).
+- Known failures before 0.1.0 (also in full run 40909244877, frozen UI):
+  `retained_ui_catalog_entries_have_current_compiler_witnesses` and
+  `retained_ui_catalog_examples_match_native_output` fail because the
+  `UiComputed`/`UiSignal` catalog entries have no witness arm and no in-text
+  example. Left as is under the backend-only reset; fix only if UI revives.
 - Follow-up (performance, not limits): `scoped-map-catch`, `-cleanup`,
   `-catch-cleanup` time out at 256 levels and `scoped-map-mixed` at 1,024 in
   ownership analysis; `builtin-string-chains`, `captured-local-functions`,
