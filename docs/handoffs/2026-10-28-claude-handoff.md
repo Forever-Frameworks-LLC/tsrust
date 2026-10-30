@@ -315,6 +315,16 @@ Measurement caveat: every local number, including the 0.1.0 baseline, comes from
 | Maps and Sets with at most 8 slots scan their slots instead of hashing; the 9th slot builds the index once (`f43235a6`) | 13 collection workloads, `647bd09f` vs `f43235a6`, load ≤ 3.9: 1.17–1.60×, none slower. `set_algebra` 1.60× (0.54× → 0.88× of Node.js), `map_values` 1.57× (0.45× → 0.73×), `set_for_each` 1.47×, `set_relations` 1.44× (0.73× → 1.03×), `set_entries` 1.40× (0.99× → 1.43×), `map_for_each` 1.35×, `array_from_collections` 1.27×, `map_iteration` 1.22×, `map_group_by` 1.21×, `map_snapshots` 1.17×, `native_schema_collections` 1.17×. Node.js controls 0.93–1.11× | Yes |
 | `String(boolean)` borrows "true"/"false"; `Object.hasOwn` recognizes canonical index keys without formatting the index (`9ca1e25b`) | 10 workloads, `3aad90d0` vs `9ca1e25b`, load ≤ 4: `object_has_own` 3.16× (0.31× → 1.02× of Node.js), `array_splice_boolean` 2.13× (0.59× → 1.32×), `map_values` 1.20× (0.74× → 0.87×); others 0.99–1.03×. `array_splice_int` first read 0.86× but re-timed alone at 0.98× (noise; it does not use either path) | Yes |
 
+Allocation profile (2026-10-30, `profile-native.mjs`): `native_schema_recursive`
+47 allocations per iteration, `native_schema_export` 25, `native_schema_pipeline`
+13, `interfaces` 8, `native_schema_string` 3, `enum_values` 2. Schema paths
+build a dynamic `JSON.parse` tree and then copy it into typed output; fusing
+`schema.safeParse(JSON.parse(text))` into one typed decode must keep the throw
+for malformed JSON. Records now allocate close to hand-written Rust; the rest of
+the gap to Node.js is short strings, which V8 keeps inline. A small-string
+optimization (inline storage for short owned strings instead of
+`Cow<'static, str>`) is the structural fix and is an owner design decision.
+
 Next targets: add more `parity/` programs; add workloads with dead `slice()`/`toSorted()` receivers; `with()`/`toSpliced()` moves (need element assignment across array wrappers); JSON/schema decoding (group median 0.78×); record construction (records group 0.51×); `String.at`.
 
 ## Nesting limits removed — 2026-10-30
