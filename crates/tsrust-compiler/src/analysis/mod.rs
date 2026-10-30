@@ -827,6 +827,10 @@ struct Analyzer {
     unions: crate::unions::UnionArena,
     templates: HashMap<usize, Function>,
     specializations: HashMap<(usize, Vec<Type>), usize>,
+    /// Instantiation depth of each callback specialization, as rustc counts it
+    /// against `recursion_limit`; closures inherit the depth they are created at.
+    specialization_depths: HashMap<usize, usize>,
+    closure_depths: HashMap<usize, usize>,
     original_count: usize,
     record_names: HashMap<String, usize>,
     function_names: HashMap<String, usize>,
@@ -1015,7 +1019,6 @@ enum NativeCallbackTarget {
 struct CallbackCall {
     target: NativeCallbackTarget,
     arguments: Vec<CallbackOrigin>,
-    span: Span,
     /// A context-dependent method is counted per caller witness vector, but
     /// its own outgoing calls have no standalone typed body to traverse.
     leaf: bool,
@@ -1167,7 +1170,6 @@ fn callback_calls(
                         calls.push(CallbackCall {
                             target,
                             arguments,
-                            span: expr.span,
                             leaf: checked.template,
                         });
                     }
@@ -1244,14 +1246,11 @@ fn callback_calls(
 fn validate_callback_instances(
     functions: &[&CheckedFunction],
     closures: &[CheckedClosure],
-    recursive: &HashSet<usize>,
-    definitions: &[Function],
     invocations: &crate::polymorphic_invocation_plans::Registry,
 ) -> Result<(), Diagnostic> {
     let mut calls = HashMap::new();
     let mut visited = HashSet::new();
     let mut pending = Vec::new();
-    let mut counts = HashMap::<NativeCallbackTarget, usize>::new();
     for (id, function) in functions.iter().enumerate() {
         if function.template {
             continue;
@@ -1325,21 +1324,9 @@ fn validate_callback_instances(
                     CallbackOrigin::Family(id) => closures.len() + id,
                 })
                 .collect::<Vec<_>>();
+            // Like rustc, every distinct callback vector is instantiated; the
+            // vectors are finite because origins are source closures.
             if visited.insert((call.target, next.clone())) {
-                let count = counts.entry(call.target).or_default();
-                *count += 1;
-                let guarded = match call.target {
-                    NativeCallbackTarget::Function(id) => recursive.contains(&id),
-                    NativeCallbackTarget::Method(_, _) => true,
-                };
-                if guarded && *count > 128 {
-                    let related = match call.target {
-                        NativeCallbackTarget::Function(id) => definitions[id].name.span,
-                        NativeCallbackTarget::Method(origin, _) => closures[origin].span,
-                    };
-                    return Err(Diagnostic::new("unsupported", "Recursive callback instantiations exceed the prototype limit of 128 per native target.", call.span)
-                        .related(related, "This native function or method requires too many concrete callback path vectors."));
-                }
                 if !call.leaf {
                     pending.push((call.target, next));
                 }
@@ -1700,6 +1687,8 @@ impl Analyzer {
             unions,
             templates,
             specializations: HashMap::new(),
+            specialization_depths: HashMap::new(),
+            closure_depths: HashMap::new(),
             original_count: count,
             program,
             record_names,
@@ -2831,8 +2820,6 @@ impl Analyzer {
             validate_callback_instances(
                 &functions,
                 &self.closures,
-                &self.recursive_callbacks,
-                &self.program.functions,
                 &self.polymorphic_invocations,
             )?;
         }
@@ -3225,7 +3212,7 @@ impl Analyzer {
         if self.depth >= 128 {
             return Err(Diagnostic::new(
                 "unsupported",
-                "Callable result discovery nesting exceeds the prototype limit of 128.",
+                "Callable result discovery nesting exceeds Rust's recursion limit of 128.",
                 body.first().map_or(Span::default(), |s| s.span),
             ));
         }
@@ -3557,16 +3544,26 @@ impl Analyzer {
         if let Some(&id) = self.specializations.get(&key) {
             return Ok((id, false));
         }
-        if self.callable_body_specialization_count()
-            >= 128
-        {
+        // A callback wrapped in a new closure on every recursive call never
+        // reaches a fixed point; rustc rejects it at its recursion limit.
+        let checking = if self.discovering_results { self.discovering_function } else { self.function_stack.last().copied() };
+        let current = checking.and_then(|f| self.specialization_depths.get(&f)).copied().unwrap_or(0);
+        let depth = 1 + key.1.iter()
+            .filter_map(|&ty| match self.unions.payload(ty).unwrap_or(ty) {
+                Type::Closure(closure) => Some(*self.closure_depths.entry(closure).or_insert(current)),
+                _ => None,
+            })
+            .max()
+            .unwrap_or(0);
+        if depth > crate::type_syntax::INSTANTIATION_DEPTH_LIMIT {
             return Err(Diagnostic::new(
                 "unsupported",
-                "Callback origin specialization count exceeds the prototype limit of 128.",
+                "Callback instantiation nests deeper than Rust's recursion limit of 128; each recursive call wraps the callback in a new closure, so instantiation never reaches a fixed point.",
                 span,
             ));
         }
         let id = self.program.functions.len();
+        self.specialization_depths.insert(id, depth);
         // Discovery can call a specialization before its body is checked.
         // Admit its lattice coordinates alongside the new function, as for generics.
         if let Some(modes) = &mut self.assumed_modes
@@ -6676,7 +6673,7 @@ impl Analyzer {
             if matches!(element, Type::Array(_)) {
                 Diagnostic::new(
                     "unsupported",
-                    "Array type nesting exceeds the prototype limit of 128.",
+                    "Array type nesting exceeds Rust's recursion limit of 128.",
                     span,
                 )
             } else {
@@ -7508,7 +7505,7 @@ impl Analyzer {
             if matches!(ty, Type::Array(_)) {
                 Diagnostic::new(
                     "unsupported",
-                    "Array type nesting exceeds the prototype limit of 128.",
+                    "Array type nesting exceeds Rust's recursion limit of 128.",
                     span,
                 )
             } else {

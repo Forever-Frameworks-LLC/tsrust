@@ -296,7 +296,7 @@ fn ordinary_callbacks_remain_non_escaping_during_callable_factory_recursion() {
 }
 
 #[test]
-fn recursive_callable_specialization_limits_reject_growing_return_environments() {
+fn recursive_callable_specializations_count_freely_and_reject_growing_return_environments() {
     let definitions = "function keep(c: Function<int>, n: int): () => int { if (n > 0) { return keep(c, n - 1); } return (): int => { return c(); }; }";
     let calls = (0..128)
         .map(|i| format!("const action{i} = keep((): int => {{ return {i}; }}, 1);"))
@@ -306,13 +306,10 @@ fn recursive_callable_specialization_limits_reject_growing_return_environments()
         "127\n",
         None,
     );
-    let error = reject(
-        &format!(
-            "{definitions} function main() {{ {calls} keep((): int => {{ return 128; }}, 1); }}"
-        ),
-        "unsupported",
-    );
-    assert!(error.message.contains("specialization count"));
+    check(&format!(
+        "{definitions} function main() {{ {calls} keep((): int => {{ return 128; }}, 1); }}"
+    ))
+    .unwrap();
     reject(
         "function keep(c: Function<int>, n: int): () => int { if (n > 0) { return keep((): int => { return c(); }, n - 1); } return (): int => { return c(); }; } function main() { const action = keep((): int => { return 7; }, 2); console.log(action()); }",
         "unsupported",

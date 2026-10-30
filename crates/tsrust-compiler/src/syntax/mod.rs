@@ -2046,7 +2046,7 @@ impl Parser<'_> {
             let token=self.tokens[index].clone();
             if token.kind!=TokenKind::Name || matches!(token.text.as_str(),"int"|"number"|"string"|"boolean"|"void"|"null"|"undefined"|"true"|"false"){return Err(Diagnostic::new("type-parameter","Expected a non-primitive type parameter name.",token.span));}
             if parameters.iter().any(|p|p.name.text==token.text){return Err(Diagnostic::new("duplicate",format!("Type parameter {:?} is already declared.",token.text),token.span));}
-            if parameters.len()>=128{return Err(Diagnostic::new("unsupported","A declaration supports at most 128 type parameters.",token.span));}index+=1;
+            index+=1;
             let default=if self.tokens[index].text=="="{let (value,next)=crate::type_syntax::parse_prefix(&mut self.tokens,index+1,self.depth,self.policy)?;index=next;Some(value)}else{None};
             if default.is_none() && parameters.iter().any(|p|p.default.is_some()){return Err(Diagnostic::new("type-parameter","A required type parameter cannot follow one with a default.",token.span));}
             parameters.push(crate::type_aliases::Parameter{name:crate::type_syntax::TypeName{text:token.text,span:token.span},default});
@@ -2287,13 +2287,6 @@ impl Parser<'_> {
                     token.span,
                 )
                 .related(previous.span, "Previous type parameter here."));
-            }
-            if parameters.len() >= 128 {
-                return Err(Diagnostic::new(
-                    "unsupported",
-                    "A declaration supports at most 128 type parameters.",
-                    token.span,
-                ));
             }
             parameters.push(crate::type_syntax::TypeName {
                 text: token.text,

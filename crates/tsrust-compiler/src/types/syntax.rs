@@ -89,6 +89,35 @@ pub enum ValueAnnotationKind {
     Tuple(Vec<ValueAnnotation>),
 }
 
+/// Rust's default `recursion_limit`, which also bounds how deeply generic
+/// instantiation may nest. Polymorphic recursion such as `f<T>` calling
+/// `f<Box<T>>` stops here, as rustc does; the number of distinct
+/// specializations is not limited.
+pub const INSTANTIATION_DEPTH_LIMIT: usize = 128;
+
+impl ValueAnnotation {
+    /// Deepest nesting of type arguments, measured without recursion.
+    pub fn nesting_depth(&self) -> usize {
+        let mut deepest = 0;
+        let mut pending = vec![(self, 1usize)];
+        while let Some((annotation, depth)) = pending.pop() {
+            deepest = deepest.max(depth);
+            match &annotation.kind {
+                ValueAnnotationKind::Polymorphic { .. } | ValueAnnotationKind::Named(_) | ValueAnnotationKind::Literal(_) => {}
+                ValueAnnotationKind::Callable { parameters, result, .. } => {
+                    pending.push((result, depth + 1));
+                    pending.extend(parameters.iter().map(|parameter| (&parameter.annotation, depth + 1)));
+                }
+                ValueAnnotationKind::Applied { arguments, .. } | ValueAnnotationKind::Union(arguments) | ValueAnnotationKind::Tuple(arguments) => {
+                    pending.extend(arguments.iter().map(|argument| (argument, depth + 1)));
+                }
+                ValueAnnotationKind::Array(value) | ValueAnnotationKind::Group(value) => pending.push((value, depth + 1)),
+            }
+        }
+        deepest
+    }
+}
+
 /// Canonical spelling of a function type. `wrapper` is ReadOnly, Mutable or
 /// Once; parameters are already rendered as `name: Type`.
 pub fn function_type_text(wrapper: Option<&str>, parameters: &[String], result: &str) -> String {
@@ -250,9 +279,6 @@ pub(crate) fn parse_arguments(
                 failed = Some(start);
                 break Err(error);
             }
-        }
-        if arguments.len() > 128 {
-            break Err(Diagnostic::new("generic-limit", "Explicit type argument count exceeds 128.", parser.peek().span));
         }
         if parser.is(",") {
             parser.take();

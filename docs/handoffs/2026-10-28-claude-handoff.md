@@ -358,11 +358,20 @@ Owner direction (2026-10-29): remove limits like the 128-level nesting limit.
   `COMPILER_STACK_BYTES` (1 GiB, virtual) thread, so passes that still recurse
   (for example `in`, checked by synchronous `object_has_own`) reach tens of
   thousands of levels. Tests use `support::check_deep`/`accept_deep`.
-- Kept, as generated-size caps rather than nesting: array rank 128, direct
-  record layout 128, callback origin specialization 128, generic
-  specialization 128/declaration and 1,024/program, closure environment
-  complexity 128, callable result discovery 128 (recursive). Owner may ask to
-  raise them.
+- Owner direction (2026-10-30): "match the rust defaults, if rust doesnt have
+  limits then we shouldnt either". rustc has no count limit on
+  monomorphizations, type parameters, type arguments or record nesting; its
+  only default is `recursion_limit = 128`, which bounds polymorphic
+  instantiation depth and nested-type trait solving. Removed: callback origin
+  specialization counts, per-target callback instance counts, generic
+  specialization counts (128/declaration, 1,024/program), closure environment
+  complexity, direct record layout depth, explicit type argument and type
+  parameter counts. Inline record and callable storage now fail only past
+  Rust's maximum object size (`isize::MAX`). Generic instantiation instead
+  fails when an argument nests deeper than 128 (`INSTANTIATION_DEPTH_LIMIT`),
+  which is how polymorphic recursion (`f<T>` calling `f<Box<T>>`) still gets a
+  diagnostic, as in rustc. Kept, matching `recursion_limit`: array rank 128,
+  callable result discovery depth 128.
 - Measured follow-up: `scoped-map-catch` check time is cubic in depth (debug
   compiler: 32 → 0.42 s, 64 → 2.9 s, 80 → 5.5 s) while plain `catch-regions`
   and `cleanup-regions` stay at 0.02 s, so the cost is callback-holding Map

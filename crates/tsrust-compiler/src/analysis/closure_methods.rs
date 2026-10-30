@@ -30,15 +30,6 @@ impl Analyzer {
             }
             return Ok(PreparedMethod::Ready(method, result));
         }
-        if self.callable_body_specialization_count()
-            >= 128
-        {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "Callback origin specialization count exceeds the prototype limit of 128.",
-                span,
-            ));
-        }
         let mut context = source.context.clone();
         context.effects_only = self.effects_only;
         context.template |= self.discovering_results;

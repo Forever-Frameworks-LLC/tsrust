@@ -96,7 +96,7 @@ fn step<'a>(r: &mut Resolver<'_>, work: Work<'a>, pending: &mut Vec<Work<'a>>, v
             let (leaf, dimensions) = crate::callable_annotations::storage_leaf(value);
             if dimensions == 0 { values.push(Output::ArrayStorage(None)); }
             else {
-                if dimensions > 128 { return Err(Diagnostic::new("unsupported", "Array type nesting exceeds the prototype limit of 128.", value.span)); }
+                if dimensions > 128 { return Err(Diagnostic::new("unsupported", "Array type nesting exceeds Rust's recursion limit of 128.", value.span)); }
                 pending.push(Work::AfterArrayStorage(dimensions)); pending.push(Work::Storage(leaf));
             }
         }

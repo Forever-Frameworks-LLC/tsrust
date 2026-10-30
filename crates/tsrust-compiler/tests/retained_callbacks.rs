@@ -125,7 +125,7 @@ fn template_bodies_are_validated_even_when_unused() {
 }
 
 #[test]
-fn specialization_cache_and_limit_are_deterministic() {
+fn specialization_cache_is_deterministic_without_a_count_limit() {
     let source = "function retain(action: Function<int>): () => int { return (): int => { return action(); }; } function make(): () => int { return (): int => { return 7; }; } function main() { const first = retain(make()); const second = retain(make()); console.log(first()); console.log(second()); }";
     execute(source, "7\n7\n", None);
     let analysis = check(source).unwrap();
@@ -141,10 +141,9 @@ fn specialization_cache_and_limit_are_deterministic() {
     let calls = (0..129)
         .map(|_| "retain((): int => { return 7; });")
         .collect::<String>();
-    reject(
-        &format!("function retain(action: Function<int>) {{}} function main() {{ {calls} }}"),
-        "unsupported",
-    );
+    // Like rustc, distinct closure origins instantiate without a count limit.
+    check(&format!("function retain(action: Function<int>) {{}} function main() {{ {calls} }}"))
+        .unwrap();
 }
 
 #[test]

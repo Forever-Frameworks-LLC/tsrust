@@ -30,7 +30,7 @@ pub(super) fn resolve(root: &crate::type_syntax::ValueAnnotation, allow_void: bo
                 Kind::Array(_) => {
                     let (inner, dimensions) = crate::callable_annotations::storage_leaf(value);
                     if dimensions > 128 {
-                        return Err(Diagnostic::new("unsupported", "Array type nesting exceeds the prototype limit of 128.", value.span));
+                        return Err(Diagnostic::new("unsupported", "Array type nesting exceeds Rust's recursion limit of 128.", value.span));
                     }
                     let depth = (dimensions - 1) as u8;
                     match &inner.kind {
