@@ -149,10 +149,10 @@ runs bounded. If the user changes priorities, stop the heavy continuation and re
 completed evidence. Track focused implementation acceptance and deferred milestone
 measurements separately; never describe unmeasured workloads as measured.
 
-SQLite remains the canonical analytics store. Keep exact original records, source
-and toolchain identities, protocols and sample counts. Markdown reports are optional
-exports. Do not retime unaffected workloads for presentation or replay history
-solely because a new feature landed.
+Measurements live in `benchmarks/measurements.sqlite`: one row per workload and
+engine, with a JSON history of each run's date, median sample time, mean speed and
+sample count. Markdown reports are optional exports. Do not retime unaffected
+workloads for presentation or replay history solely because a new feature landed.
 
 At a full backend milestone, run tests and doctest drivers in separate Cargo invocations:
 `RUST_TEST_THREADS=1 cargo test -p tsrust-compiler -p tsrust-lsp --lib --bins --tests --no-fail-fast`,
@@ -165,21 +165,15 @@ checks only.
 
 ## Analytics purpose and storage
 
-The owner's October 26, 2026 privacy direction supersedes the historical policy
-of importing every closed log into SQLite. `benchmarks/measurements.sqlite` is
-the shareable benchmark-only database. It contains indexed accepted samples,
-allocation counters, summaries, source/proof hashes, toolchain versions and
-general hardware specifications. Generate it with `benchmarks/storage/public.py`;
-never copy the mixed archive into a public release. See
-[the public dataset contract](../benchmarks/storage/PUBLIC_DATA.md).
-
-`benchmarks/records.sqlite` is the ignored legacy evidence store. It includes
-historical logs, source snapshots and local paths. Preserve these existing
-records locally, but stop importing routine logs, source snapshots and session
-receipts. Raw measured records and their acceptance proofs remain local inputs
-for exact verification and future benchmark exports. Current command logs are
-disposable after their result is recorded. The historical retention instructions
-below describe existing records, not permission to accumulate new unrelated logs.
+The owner's October 30, 2026 direction replaced canonical records with a small
+measurement history. `benchmarks/measurements.sqlite` has one table,
+`measurements(workload, engine, history)`; `history` is a JSON array of
+`{at, ms, ops, samples}` entries, oldest first, where entries from the same run
+share `at`. After a benchmark run, add it with `npm run store:ingest` in
+`benchmarks/runtime`; `npm run checkpoint` prints the latest native speed relative
+to Node.js after tsc. Raw files in `benchmarks/runtime/results` are disposable
+once ingested, and the former `benchmarks/records.sqlite` archive was deleted.
+The historical retention instructions below describe past practice only.
 
 At completed feature-family milestones, use correctness checks and matched performance measurements to review the completed foundation before optimization or further dependencies. Routine checkpoint timing should compare generated native execution against Node after TypeScript compilation. The broader runtime matrix remains available for optional comparison; preserve its existing measurements as context. A universal runtime win is not an acceptance requirement.
 

@@ -344,6 +344,17 @@ replaces the cursor emission in `stdlib/schema`.
 
 Next targets: add more `parity/` programs; add workloads with dead `slice()`/`toSorted()` receivers; `with()`/`toSpliced()` moves (need element assignment across array wrappers); JSON/schema decoding (group median 0.78×); record construction (records group 0.51×); `String.at`.
 
+## Measurement store — 2026-10-30
+
+Owner direction: canonical records are not kept. `benchmarks/measurements.sqlite`
+is one table, `measurements(workload, engine, history)`, with a JSON history of
+`{at, ms, ops, samples}` per run (commit `chore(benchmarks): one row per measured
+workload…`). After timing, run `npm run store:ingest` in `benchmarks/runtime`;
+`npm run checkpoint` prints the latest native/Node.js ratios. The ignored
+`benchmarks/records.sqlite` (596 MB) was deleted, and the old analytics/export
+scripts were removed. Raw files in `benchmarks/runtime/results` (ignored, ~0.8 GB)
+are disposable once ingested; `BENCHMARKS.md` is still generated from them.
+
 ## Nesting limits removed — 2026-10-30
 
 Owner direction (2026-10-29): remove limits like the 128-level nesting limit.
