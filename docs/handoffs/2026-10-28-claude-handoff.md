@@ -353,8 +353,10 @@ is one table, `measurements(workload, engine, history)`, with a JSON history of
 workload…`). After timing, run `npm run store:ingest` in `benchmarks/runtime`;
 `npm run checkpoint` prints the latest native/Node.js ratios. The ignored
 `benchmarks/records.sqlite` (596 MB) was deleted, and the old analytics/export
-scripts were removed. Raw files in `benchmarks/runtime/results` (ignored, ~0.8 GB)
-are disposable once ingested; `BENCHMARKS.md` is still generated from them.
+scripts were removed. Raw files in `benchmarks/runtime/results` are disposable
+once ingested; the 128 existing files (881 MB) were ingested and deleted on
+2026-10-30 at the owner's request. Regenerating `BENCHMARKS.md` (`npm run
+report`) now only sees result files written after that.
 
 ## Nesting limits removed — 2026-10-30
 
