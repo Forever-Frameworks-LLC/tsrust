@@ -58,7 +58,7 @@ impl Emitter<'_> {
             let label = statement.span.start;
             let _ = writeln!(output, "{{ let string_source_{label}={iterable_code};");
             let _ = writeln!(output, "'loop_{label}: for string_character_{label} in string_source_{label}.as_ref().chars() {{");
-            let _ = writeln!(output, "    let value{id}=&String::Owned(string_character_{label}.to_string());");
+            let _ = writeln!(output, "    let value{id}=&tsr_char_text(string_character_{label});");
             let suffix = format!("}} }}\n{}", if temporary_scope { format!("}}\n") } else { String::new() });
             return Some(IterationFrame { scope, suffix });
         }

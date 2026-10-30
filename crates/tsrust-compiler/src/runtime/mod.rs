@@ -49,7 +49,7 @@ fn tsr_string_split(value: &String, separator: Option<&String>, limit: Option<i6
         String::Owned(text) => match separator {
             None => vec![value.clone()],
             Some(separator) if separator.is_empty() => text.chars().take(limit)
-                .map(|scalar| String::Owned(scalar.to_string())).collect(),
+                .map(tsr_char_text).collect(),
             Some(separator) => text.split(separator.as_ref()).take(limit)
                 .map(|piece| String::Owned(piece.to_owned())).collect(),
         },

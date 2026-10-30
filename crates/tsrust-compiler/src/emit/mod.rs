@@ -6856,6 +6856,28 @@ impl Emitter<'_> {
         };
         let borrowed = matches!(expr.ty, Some(Type::BorrowedUnion(_)));
         let stable = !Self::temporary_storage(base);
+        // `text.at(index)` is checked as `text.split("").at(index)`; select the
+        // one character directly instead of splitting the whole text.
+        let characters = match &base.kind {
+            ExprKind::Call(callee, args) if !borrowed && args.len() == 1 && matches!(&args[0].kind, ExprKind::String(separator) if separator.is_empty()) => match &callee.kind {
+                ExprKind::Field(text, name) if name == "split" && text.ty == Some(Type::String) => Some(text),
+                _ => None,
+            },
+            _ => None,
+        };
+        let (setup, normalized, selected) = if let Some(text) = characters {
+            (
+                format!("let at_text: &String = &({}); let at_index: i64 = {};", self.expr(fun, text, Mode::Read), self.expr(fun, index, Mode::Copy)),
+                "let at_selected = tsr_string_at(at_text, at_index);".to_owned(),
+                "Some(at_selected)".to_owned(),
+            )
+        } else {
+            self.array_at_selection(fun, base, index, element, borrowed, stable)
+        };
+        Self::array_at_result(self, expr, element, borrowed, &setup, &normalized, &selected)
+    }
+
+    fn array_at_selection(&self, fun: &CheckedFunction, base: &Expr, index: &Expr, element: crate::syntax::ArrayElement, borrowed: bool, stable: bool) -> (String, String, String) {
         let setup = if matches!(base.kind, ExprKind::Conditional { .. })
             && (borrowed || !Self::temporary_at_receiver(base))
         {
@@ -6879,7 +6901,7 @@ impl Emitter<'_> {
                 self.expr(fun, index, Mode::Copy)
             )
         };
-        let normalized = "let at_selected=if at_index>=0 { usize::try_from(at_index).ok().filter(|&i|i<at_array.len()) } else { usize::try_from(at_index.unsigned_abs()).ok().and_then(|distance|at_array.len().checked_sub(distance)).filter(|&i|i<at_array.len()) };";
+        let normalized = "let at_selected=if at_index>=0 { usize::try_from(at_index).ok().filter(|&i|i<at_array.len()) } else { usize::try_from(at_index.unsigned_abs()).ok().and_then(|distance|at_array.len().checked_sub(distance)).filter(|&i|i<at_array.len()) };".to_owned();
         let selected = if element.ty().is_copy() {
             "at_array.get(at_selected).copied()".to_owned()
         } else if borrowed {
@@ -6887,6 +6909,11 @@ impl Emitter<'_> {
         } else {
             "Some(at_array.remove(at_selected))".to_owned()
         };
+        (setup, normalized, selected)
+    }
+
+    /// Wraps the selected element of `at` in its `T | undefined` result.
+    fn array_at_result(&self, expr: &Expr, element: crate::syntax::ArrayElement, borrowed: bool, setup: &str, normalized: &str, selected: &str) -> String {
         let result = match expr.ty.expect("at result") {
             Type::Undefined => "let _=at_selected; TsrUndefined".to_owned(),
             Type::Union(id) | Type::BorrowedUnion(id) => {
@@ -7199,7 +7226,7 @@ impl Emitter<'_> {
         let text = self.expr(fun, base, Mode::Read);
         let position = self.expr(fun, index, Mode::Copy);
         Self::access_wrapped(expr, mode, format!(
-            "(match ({text}, {position}) {{ (indexed_text, indexed_position) => {{ let indexed_text: &String = indexed_text; let indexed_text: &str = &**indexed_text; let indexed_position: i64 = indexed_position; match usize::try_from(indexed_position).ok().and_then(|position| indexed_text.chars().nth(position)) {{ Some(character) => String::Owned(character.to_string()), None => {failed} }} }} }})"
+            "(match ({text}, {position}) {{ (indexed_text, indexed_position) => {{ let indexed_text: &String = indexed_text; let indexed_text: &str = &**indexed_text; let indexed_position: i64 = indexed_position; match usize::try_from(indexed_position).ok().and_then(|position| indexed_text.chars().nth(position)) {{ Some(character) => tsr_char_text(character), None => {failed} }} }} }})"
         ))
     }
 
