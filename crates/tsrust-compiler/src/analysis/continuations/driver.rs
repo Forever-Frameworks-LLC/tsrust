@@ -80,6 +80,11 @@ impl Expression<'_> {
         match self { Self::Root(value) => value, Self::Child(value) => value }
     }
 
+    fn is_binary(&self) -> bool {
+        let value: &Expr = match self { Self::Root(value) => value, Self::Child(value) => value };
+        matches!(value.kind, ExprKind::Binary { .. })
+    }
+
     fn into_child(self) -> Box<Expr> {
         let Self::Child(value) = self else { unreachable!("root expression cannot be returned to a parent") };
         value
@@ -544,7 +549,11 @@ fn drive<'a>(analyzer: &mut Analyzer, context: &mut Context, root: Task<'a>) -> 
     let mut tasks = vec![root];
     let mut completion = None;
     loop {
-        let Some(task) = tasks.pop() else { return completion.expect("root completion") };
+        let Some(task) = tasks.pop() else { *analyzer.chain_hints.borrow_mut() = None; return completion.expect("root completion") };
+        // Shared hints live only while the checker descends into binary operands
+        // without evaluating anything; any other step may change the context.
+        let descending = completion.is_none() && matches!(&task, Task::Expression(task) if matches!(task.state, ExpressionState::Start) && task.expression.is_binary());
+        if descending { analyzer.chain_hints.borrow_mut().get_or_insert_default(); } else { *analyzer.chain_hints.borrow_mut() = None; }
         let step = match task {
             Task::CollectionConstructor(task) => collection_constructor::step(analyzer, contexts.get(task.context), task, completion.take()),
             Task::ObjectSpread(task) => object_spread::step(analyzer, contexts.get(task.context), task, completion.take()),
@@ -916,7 +925,17 @@ fn schedule_conditional_arm<'a>(analyzer: &mut Analyzer, context: &mut Context, 
 fn finish_expression<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: ExpressionTask<'a>, result: Result<Type, Diagnostic>) -> Step<'a> {
     let expr = task.expression.value();
     let result = if let Some(frame) = task.checked.take() { analyzer.finish_checked_expression(context, expr, frame, result) } else { result };
-    let result = analyzer.finish_expression(context, expr, result).map(|mut ty| {
+    let result = analyzer.finish_expression(context, expr, result).and_then(|ty| {
+        // Chains admitted by the parser are confirmed here: one that will not be
+        // emitted flat counts every level, as any other nested operator does.
+        if matches!(expr.kind, ExprKind::Binary { .. }) {
+            expr.depth = crate::chains::checked_depth(expr);
+            if expr.depth > 128 {
+                return Err(Diagnostic::new("unsupported", "Expression nesting exceeds the prototype limit of 128.", expr.span));
+            }
+        }
+        Ok(ty)
+    }).map(|mut ty| {
         for wrapper in task.completion.into_iter().rev() {
             if let Type::Union(union) = wrapper { expr.inject(union); }
             expr.ty = Some(wrapper);

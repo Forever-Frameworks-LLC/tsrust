@@ -1070,7 +1070,8 @@ pub struct Expr {
     /// Slots of the calling body that a direct nested function call passes
     /// as hidden capture arguments, in the callee's hidden parameter order.
     pub(crate) capture_slots: Option<Box<[usize]>>,
-    depth: usize,
+    /// Nesting below this node; flat operator chains add no level (see `chains`).
+    pub(crate) depth: usize,
 }
 
 /// A checked receiver or constructor names one environment or callable contract.
@@ -1419,6 +1420,11 @@ impl Expr {
             | ExprKind::Update { target: value, .. }
             | ExprKind::Inject { value, .. }
             | ExprKind::Project { value, .. } => value.depth,
+            // `a + b + c` may be a flat chain, not nesting: its left operand adds
+            // no level here. The checker confirms the chain once types are known.
+            ExprKind::Binary { op, left, right, .. } if crate::chains::may_continue(*op, left) => {
+                left.depth.saturating_sub(1).max(right.depth)
+            }
             ExprKind::Optional {
                 base: left,
                 body: right,

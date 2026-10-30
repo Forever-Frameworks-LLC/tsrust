@@ -337,6 +337,15 @@ impl<'p> Emitter<'p> {
                 let children = operands.into_iter().map(Self::chain_operand).collect();
                 return Some(CallFrame { children, rendered: Vec::new(), invocation: None, state: CallState::Binary });
             }
+            // A scalar operator chain renders its operands, not the inner nodes.
+            if let Some((first, levels)) = Self::scalar_chain(expr) {
+                let mut children = vec![(first, Mode::Copy)];
+                for level in levels {
+                    let ExprKind::Binary { right, .. } = &level.kind else { unreachable!("chain level") };
+                    children.push((right.as_ref(), Mode::Copy));
+                }
+                return Some(CallFrame { children, rendered: Vec::new(), invocation: None, state: CallState::Binary });
+            }
             // A numeric `String(n)` appended to text renders only its argument.
             let right = match Self::appended_number(right).filter(|_| *op == BinaryOp::Add && mode == Mode::Read && !comparison) {
                 Some(argument) => (argument, Mode::Copy),

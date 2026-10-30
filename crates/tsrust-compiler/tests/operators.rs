@@ -199,6 +199,8 @@ fn unary_and_binary_nesting_are_bounded() {
         format!("{}true", "!".repeat(100)),
         format!("{}1", "1 + ".repeat(100)),
         format!("{}1{}", "-(".repeat(100), ")".repeat(100)),
+        // A flat operator chain is length, not nesting.
+        format!("{}1", "1 + ".repeat(2000)),
     ] {
         let source = format!("function main() {{ console.log({expression}); }}");
         check(&source)
@@ -207,7 +209,7 @@ fn unary_and_binary_nesting_are_bounded() {
     }
     for expression in [
         format!("{}true", "!".repeat(200)),
-        format!("{}1", "1 + ".repeat(200)),
+        format!("{}1{}", "1 + (".repeat(200), ")".repeat(200)),
         format!("{}1{}", "-(".repeat(200), ")".repeat(200)),
     ] {
         reject(

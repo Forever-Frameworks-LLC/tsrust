@@ -36,6 +36,7 @@ mod match_coverage;
 mod error_effects;
 mod diagnostic;
 mod semantic_diagnostics;
+mod chains;
 mod emit;
 mod fixed_storage;
 mod flow;

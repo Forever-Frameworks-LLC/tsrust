@@ -813,6 +813,10 @@ struct Analyzer {
     schema_factories: HashMap<Type,usize>,
     native_borrow_types: bool,
     native_recursive_shapes: std::cell::RefCell<Option<std::rc::Rc<native_view_recursive::Shapes>>>,
+    /// Type hints shared while the checker descends a chain of binary operators.
+    /// Nothing is evaluated during that descent, so a hint computed for an inner
+    /// operand stays valid until the next step that is not part of the descent.
+    chain_hints: std::cell::RefCell<Option<HashMap<*const Expr, Option<Type>>>>,
     threads_enabled: bool,
     named_captures: named_capture_context::Contexts,
     assumed_capture_access: named_capture_access::Lattice,
@@ -1685,6 +1689,7 @@ impl Analyzer {
             schema_factories: HashMap::new(),
             native_borrow_types,
             native_recursive_shapes: Default::default(),
+            chain_hints: Default::default(),
             threads_enabled,
             named_captures,
             program_access: BTreeMap::new(),
