@@ -223,7 +223,7 @@ fn exact_capacity_allocates_only_the_result_and_disposes_normally_and_on_unwind(
             }
         }
         let a=String::Owned("é".repeat(128));let b=String::Owned("😀".repeat(128));let empty=String::Borrowed("");let input=LIVE.load(Ordering::SeqCst);let count=ALLOCATIONS.load(Ordering::SeqCst);
-        let result=std::hint::black_box(function1(&a,&b,&empty));assert_eq!(ALLOCATIONS.load(Ordering::SeqCst)-count,2);assert_eq!(result.len(),768);assert_eq!(LIVE.load(Ordering::SeqCst)-input,768);
+        let result=std::hint::black_box(function1(&a,&b,&empty));assert_eq!(ALLOCATIONS.load(Ordering::SeqCst)-count,1,"a chain reserves its total once");assert_eq!(result.len(),768);assert_eq!(LIVE.load(Ordering::SeqCst)-input,768);
         drop(a);drop(b);assert_eq!(&result[..256],"é".repeat(128));assert_eq!(&result[256..],"😀".repeat(128));drop(result);assert_eq!(LIVE.load(Ordering::SeqCst)-baseline,0);
         std::panic::set_hook(hook);
     "#,
@@ -267,4 +267,21 @@ function main() {
     assert!(rust.contains("tsr_push_int(&mut output, number)"), "String(int) appends without a temporary");
     assert!(rust.contains("tsr_push_whole_number(&mut output, number)"), "String(number) appends without a temporary");
     assert!(rust.contains("tsr_push_int(&mut template_output, template_value)"), "int interpolation appends digits");
+}
+
+#[test]
+fn addition_chains_build_one_buffer_and_evaluate_operands_in_order() {
+    let source = r#"enum Phase { Ready, Half = 2.5 }
+function tag(log: string[], text: string): string { log.push(clone(text)); return text; }
+function num(log: string[], value: int): int { log.push(String(value)); return value; }
+function main() {
+  const log: string[] = [];
+  const joined = tag(log, "a") + String(num(log, -3)) + tag(log, "b") + (tag(log, "c") + tag(log, "d")) + String(2.5) + String(Phase.Half) + "é";
+  const empty = "" + "" + "";
+  console.log(joined, log.join(","), empty.length, "[" + empty + "]" + String(0.5));
+}"#;
+    let analysis = native(source, "a-3bcd2.52.5é a,-3,b,c,d 0 []0.5\n", "", "");
+    let rust = analysis.emit_rust();
+    assert!(rust.contains("try_fold(0usize, usize::checked_add)"), "chains reserve their total size once");
+    assert!(!rust.contains("tsr_string_add(string_left"), "no intermediate copies in a chain");
 }

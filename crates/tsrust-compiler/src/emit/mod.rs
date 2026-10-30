@@ -6042,6 +6042,68 @@ impl Emitter<'_> {
         code
     }
 
+    /// The operands of a chain of string additions such as `a + ":" + b`, in
+    /// order, when it has at least three. The chain becomes one buffer instead
+    /// of one copy per `+`. Walked without recursion for deep chains.
+    pub(super) fn string_addition_chain(expr: &Expr) -> Option<Vec<&Expr>> {
+        let is_add = |expr: &Expr| matches!(&expr.kind, ExprKind::Binary { op: BinaryOp::Add, left, .. } if left.ty.map(Type::scalar_base) == Some(Type::String));
+        if !is_add(expr) {
+            return None;
+        }
+        let mut operands = Vec::new();
+        let mut pending = vec![expr];
+        while let Some(next) = pending.pop() {
+            match &next.kind {
+                ExprKind::Binary { left, right, .. } if is_add(next) => {
+                    pending.push(right);
+                    pending.push(left);
+                }
+                _ => operands.push(next),
+            }
+        }
+        (operands.len() >= 3).then_some(operands)
+    }
+
+    /// Child rendering for one chain operand: numeric `String(n)` renders `n`.
+    pub(super) fn chain_operand(operand: &Expr) -> (&Expr, Mode) {
+        match Self::appended_number(operand) {
+            Some(argument) => (argument, Mode::Copy),
+            None => (operand, Mode::Read),
+        }
+    }
+
+    fn string_chain_code(operands: &[&Expr], rendered: &[String], operator: crate::Span) -> String {
+        let failure = format!("string addition capacity overflow at source bytes {}..{}", operator.start, operator.end);
+        let mut code = String::from("{ ");
+        let mut sizes = Vec::new();
+        let mut pushes = String::new();
+        for (index, (operand, value)) in operands.iter().zip(rendered).enumerate() {
+            match Self::appended_number(operand).and_then(|argument| argument.ty) {
+                Some(Type::Int) => {
+                    code.push_str(&format!("let part{index}: i64 = {value}; "));
+                    sizes.push("24".to_owned());
+                    pushes.push_str(&format!("tsr_push_int(&mut output, part{index}); "));
+                }
+                Some(kind) => {
+                    let number = if kind == Type::Number { value.clone() } else { format!("({value}).tsr_value()") };
+                    code.push_str(&format!("let part{index}: f64 = {number}; "));
+                    sizes.push("24".to_owned());
+                    pushes.push_str(&format!("if !tsr_push_whole_number(&mut output, part{index}) {{ output.push_str(&(TsrConsoleValue::Number(part{index})).label()); }} "));
+                }
+                None => {
+                    code.push_str(&format!("let part{index}: &String = {value}; "));
+                    sizes.push(format!("part{index}.len()"));
+                    pushes.push_str(&format!("output.push_str(part{index}); "));
+                }
+            }
+        }
+        code.push_str(&format!(
+            "let capacity = [{}].into_iter().try_fold(0usize, usize::checked_add).expect({failure:?}); let mut output = std::string::String::with_capacity(capacity); {pushes}String::Owned(output) }}",
+            sizes.join(", ")
+        ));
+        code
+    }
+
     /// `text + String(n)` for a numeric `n`: the digits are written into the
     /// concatenation buffer, so no temporary string is allocated.
     pub(super) fn appended_number(expr: &Expr) -> Option<&Expr> {
@@ -8486,6 +8548,10 @@ impl Emitter<'_> {
                 render(right, Mode::Read),
                 if *op == BinaryOp::Equal { equal } else { format!("!({equal})") }
             ));
+        }
+        if let Some(operands) = Self::string_addition_chain(expr) {
+            let rendered = operands.iter().map(|operand| { let (child, mode) = Self::chain_operand(operand); render(child, mode) }).collect::<Vec<_>>();
+            return Ok(Self::string_chain_code(&operands, &rendered, *operator));
         }
         let string = left.ty.map(Type::scalar_base) == Some(Type::String);
         let number = left.ty.map(Type::scalar_base) == Some(Type::Number);

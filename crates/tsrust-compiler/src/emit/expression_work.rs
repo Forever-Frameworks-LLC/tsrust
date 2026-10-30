@@ -332,6 +332,11 @@ impl<'p> Emitter<'p> {
                     || matches!(right.ty, Some(Type::Null | Type::Undefined))
                     || left.ty.and_then(Type::union).is_some() || right.ty.and_then(Type::union).is_some());
             let mode = if comparison || left.ty.map(Type::scalar_base) == Some(Type::String) { Mode::Read } else { Mode::Copy };
+            // A chain of string additions renders its operands, not the inner `+` nodes.
+            if let Some(operands) = Self::string_addition_chain(expr) {
+                let children = operands.into_iter().map(Self::chain_operand).collect();
+                return Some(CallFrame { children, rendered: Vec::new(), invocation: None, state: CallState::Binary });
+            }
             // A numeric `String(n)` appended to text renders only its argument.
             let right = match Self::appended_number(right).filter(|_| *op == BinaryOp::Add && mode == Mode::Read && !comparison) {
                 Some(argument) => (argument, Mode::Copy),
