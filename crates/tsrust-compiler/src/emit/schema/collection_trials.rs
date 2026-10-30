@@ -43,7 +43,7 @@ impl Emitter<'_>{
         let marker="/*schema_collection_duplicates*/";
         if !generated.contains(marker){
             generated.push_str(marker);
-            generated.push_str("fn tsrust_schema_duplicate<T,K:TsrSetKey>(values:&[T],key:impl Fn(&T)->&K)->Option<usize>{let mut buckets=std::collections::HashMap::<u64,Vec<usize>>::new();for(index,value)in values.iter().enumerate(){let value=key(value);let bucket=buckets.entry(value.tsr_hash()).or_default();if bucket.iter().any(|previous|value.tsr_same(key(&values[*previous]))){return Some(index);}bucket.push(index);}None}");
+            generated.push_str("fn tsrust_schema_duplicate<T,K:TsrSetKey>(values:&[T],key:impl Fn(&T)->&K)->Option<usize>{if values.len()<=8{for index in 1..values.len(){let value=key(&values[index]);if values[..index].iter().any(|previous|value.tsr_same(key(previous))){return Some(index);}}return None;}let mut buckets=std::collections::HashMap::<u64,Vec<usize>>::new();for(index,value)in values.iter().enumerate(){let value=key(value);let bucket=buckets.entry(value.tsr_hash()).or_default();if bucket.iter().any(|previous|value.tsr_same(key(&values[*previous]))){return Some(index);}bucket.push(index);}None}");
         }
         let key=if map{"|value|&value.0"}else{"|value|value"};
         let report="let mut duplicate_path=path.clone();duplicate_path.push(tsrust_schema_issues::Segment::Index(index));issues.push(&duplicate_path,tsrust_schema_issues::Code::Collision,tsrust_schema_issues::Kind::Object,tsrust_schema_issues::Kind::Object);";
