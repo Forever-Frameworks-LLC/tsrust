@@ -1,3 +1,4 @@
+mod support;
 use tsrust_compiler::type_syntax::{ValueAnnotationKind as Kind, parse};
 
 #[test]
@@ -75,24 +76,16 @@ fn annotation_parser_rejects_incomplete_and_expression_syntax() {
 }
 
 #[test]
-fn type_annotation_nesting_is_bounded_without_a_larger_worker_stack() {
-    parse(&format!("int{}", "[]".repeat(128))).unwrap();
-    assert_eq!(
-        parse(&format!("int{}", "[]".repeat(129))).unwrap_err().code,
-        "unsupported"
-    );
+fn type_annotation_nesting_has_no_fixed_limit() {
+    // Parsing is not limited; array rank keeps its limit of 128 in the checker.
+    parse(&format!("int{}", "[]".repeat(129))).unwrap();
     for source in [
-        format!("{}int{}", "Box<".repeat(140), ">".repeat(140)),
-        format!("{}int{}", "(".repeat(140), ")".repeat(140)),
-        format!("int{}", "[]".repeat(140)),
-        format!(
-            "{}int{}{}",
-            "Box<".repeat(70),
-            ">".repeat(70),
-            "[]".repeat(70)
-        ),
+        format!("{}int{}", "Box<".repeat(2000), ">".repeat(2000)),
+        format!("{}int{}", "(".repeat(2000), ")".repeat(2000)),
+        format!("int{}", "[]".repeat(2000)),
+        format!("{}int{}{}", "Box<".repeat(700), ">".repeat(700), "[]".repeat(700)),
     ] {
-        assert_eq!(parse(&source).unwrap_err().code, "unsupported");
+        assert!(parse(&source).is_ok());
     }
 }
 
@@ -173,8 +166,8 @@ fn malformed_and_deep_callable_annotations_are_source_errors() {
     ] {
         assert_eq!(parse(source).unwrap_err().code, "syntax", "{source}");
     }
-    let nested = format!("{}int", "()=>".repeat(140));
-    assert_eq!(parse(&nested).unwrap_err().code, "unsupported");
+    let nested = format!("{}int", "()=>".repeat(2000));
+    assert!(parse(&nested).is_ok());
 }
 
 #[test]

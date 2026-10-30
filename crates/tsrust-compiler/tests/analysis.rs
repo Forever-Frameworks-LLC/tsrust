@@ -1,3 +1,4 @@
+mod support;
 use tsrust_compiler::{Mode, check, line_column};
 
 const RECORD: &str = "type User = { name: string; };\n";
@@ -68,21 +69,19 @@ fn unicode_escapes_are_validated_and_decoded() {
 }
 
 #[test]
-fn pending_public_nesting_limits_return_diagnostics_without_panicking() {
+fn deep_grouping_and_method_chains_have_no_nesting_limit() {
     let source = format!(
         "function main() {{ {}\"x\"{}; }}",
-        "(".repeat(200),
-        ")".repeat(200)
+        "(".repeat(2000),
+        ")".repeat(2000)
     );
-    assert_eq!(check(&source).err().unwrap().code, "unsupported");
+    support::accept_deep(&source);
     let mut nested = "\"x\"".to_owned();
-    for _ in 0..40 {
+    for _ in 0..200 {
         nested = format!("({nested}){}", ".trim()".repeat(10));
     }
-    let source = format!("function main() {{ {nested}; }}");
-    assert_eq!(check(&source).err().unwrap().code, "unsupported");
-    let source = format!("function main() {{ \"x\"{}; }}", ".trim()".repeat(200));
-    assert_eq!(check(&source).err().unwrap().code, "unsupported");
+    support::accept_deep(&format!("function main() {{ {nested}; }}"));
+    support::accept_deep(&format!("function main() {{ \"x\"{}; }}", ".trim()".repeat(2000)));
 }
 
 #[test]

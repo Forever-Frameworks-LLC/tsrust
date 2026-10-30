@@ -173,7 +173,7 @@ fn join_strict_arguments_loans_transfers_and_normal_depth_limits_are_checked() {
         "a[".repeat(200),
         "]".repeat(200)
     );
-    support::reject(&hostile, "unsupported");
+    support::accept_deep(&hostile);
     let deep = format!(
         "function main(){{console.log({}1{}.join());}}",
         "[".repeat(40),

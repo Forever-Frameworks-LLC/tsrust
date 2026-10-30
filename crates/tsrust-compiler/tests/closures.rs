@@ -404,7 +404,7 @@ fn closure_nesting_and_malformed_bodies_are_bounded() {
         "const f = (): void => {".repeat(200),
         "};".repeat(200)
     );
-    reject(&source, "unsupported");
+    support::accept_deep(&source);
     for source in [
         "function main() { const f = (): int => {",
         "function main() { const f = (): => {}; }",

@@ -171,7 +171,7 @@ fn array_text_strict_diagnostics_loans_and_supported_depth_are_preserved() {
         "a[".repeat(200),
         "]".repeat(200)
     );
-    support::reject(&hostile, "unsupported");
+    support::accept_deep(&hostile);
     // Maximum accepted type nesting reaches the scalar just before the old
     // diagnostic array cutoff. Full text must reach the leaf.
     let source = format!(

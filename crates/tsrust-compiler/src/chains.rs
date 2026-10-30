@@ -1,6 +1,6 @@
 //! Operator chains that code generation emits flat, such as `a + b + c` or
-//! `p && q && r`. Their length is not nesting: the checker and emitter walk them
-//! without recursion, so only operands nested inside count toward the limit.
+//! `p && q && r`: one buffer or one running value instead of nested Rust, so
+//! a long chain compiles like a list of statements.
 use crate::syntax::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -29,27 +29,4 @@ pub(crate) fn link(expr: &Expr) -> Option<Family> {
     };
     let scalar = |operand: &Expr| operand.ty.map(Type::scalar_base) == Some(ty);
     (fits && scalar(left) && scalar(right)).then_some(Family::Scalar(ty))
-}
-
-/// Before types are known, the parser admits a left operand that may continue
-/// a chain; the checker confirms it with `checked_depth`.
-pub(crate) fn may_continue(op: BinaryOp, left: &Expr) -> bool {
-    let arithmetic = |op: BinaryOp| matches!(op, BinaryOp::Add | BinaryOp::Subtract | BinaryOp::Multiply | BinaryOp::Divide | BinaryOp::Remainder);
-    let logical = |op: BinaryOp| matches!(op, BinaryOp::And | BinaryOp::Or);
-    matches!(&left.kind, ExprKind::Binary { op: inner, .. } if (arithmetic(op) && arithmetic(*inner)) || (logical(op) && logical(*inner)))
-}
-
-/// Nesting depth of a checked binary node as emitted. A left operand in the same
-/// flat chain adds no level; every other operand adds one.
-pub(crate) fn checked_depth(expr: &Expr) -> usize {
-    let ExprKind::Binary { left, right, .. } = &expr.kind else {
-        return expr.depth;
-    };
-    match link(expr) {
-        Some(family) => {
-            let left = if link(left) == Some(family) { left.depth } else { left.depth + 1 };
-            left.max(right.depth + 1)
-        }
-        None => 1 + left.depth.max(right.depth),
-    }
 }

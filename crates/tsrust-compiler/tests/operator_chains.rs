@@ -78,15 +78,13 @@ function main() {
 }
 
 #[test]
-fn chains_that_are_not_emitted_flat_keep_the_nesting_limit() {
+fn chains_that_are_not_emitted_flat_still_compile() {
     let operands = chain("a", " || ", 300);
     let source = format!(
         "function pick(value: int | undefined): int | undefined {{ return value; }}
-function main() {{ const a = pick(undefined); const result = {operands}; console.log(result); }}"
+function main() {{ const a = pick(3); const result = {operands}; console.log(result); }}"
     );
-    let error = tsrust_compiler::check(&source).err().expect("a nullable || chain is nested selection");
-    assert_eq!(error.code, "unsupported");
-    assert!(error.message.contains("nesting exceeds"), "{}", error.message);
+    support::accept_deep(&source);
 }
 
 #[test]

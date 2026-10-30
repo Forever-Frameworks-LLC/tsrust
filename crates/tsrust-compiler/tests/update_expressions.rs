@@ -219,16 +219,9 @@ fn grammar_diagnostics_bounds_and_checked_traps_preserve_targets() {
     ] {
         assert!(check(source).is_err());
     }
-    for source in [
-        format!("function main(){{let n=1;{}n;}}", "++".repeat(200)),
-        format!(
-            "function main(){{let n=1;{}n++;{} }}",
-            "(".repeat(200),
-            ")".repeat(200)
-        ),
-    ] {
-        assert_eq!(check(&source).err().unwrap().code, "unsupported");
-    }
+    // `++++n` increments a value, not a place; deep grouping has no limit.
+    assert!(check(&format!("function main(){{let n=1;{}n;}}", "++".repeat(200))).is_err());
+    support::accept_deep(&format!("function main(){{let n=1;{}n++{}; }}", "(".repeat(200), ")".repeat(200)));
     native(
         r#"
         type Box={n:int;text:string;};

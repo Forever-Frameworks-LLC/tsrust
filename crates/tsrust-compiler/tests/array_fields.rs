@@ -248,7 +248,7 @@ fn deep_mixed_field_and_index_paths_have_bounded_native_compilation() {
         "type Node = {{ values: int[]; children: Node[]; }}; function main() {{ const node: Node = {{ values: [], children: [] }}; console.log(node{}.values.length); }}",
         ".children[0]".repeat(100)
     );
-    reject(&source, "unsupported");
+    support::accept_deep(&source);
     let source = format!(
         "type Box = {{ items: int{}; }}; function main() {{}}",
         "[]".repeat(129)

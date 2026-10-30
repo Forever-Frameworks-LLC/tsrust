@@ -31,7 +31,7 @@ mod tests {
 #[cfg(test)]
 mod depth_tests {
     #[test]
-    fn nested_named_declaration_depth_preserves_normal_stack_and_source_limit() {
+    fn nested_named_declarations_parse_at_any_depth() {
         let source = format!(
             "function main(){{{}{}{}}}",
             "function next():int{".repeat(32),
@@ -47,9 +47,6 @@ mod depth_tests {
             "return 1;",
             "}".repeat(200)
         );
-        let error = super::super::parse_raw(&source, false, Default::default(), Default::default())
-            .unwrap_err();
-        assert_eq!(error.code, "unsupported");
-        assert!(error.message.contains("128"));
+        assert!(super::super::parse_raw(&source, false, Default::default(), Default::default()).is_ok());
     }
 }

@@ -84,7 +84,8 @@ fn recursive_signatures_and_mixed_origins_are_checked() {
         "function main() {{ const f = (): {}int => {{}}; }}",
         "() => ".repeat(200)
     );
-    reject(&source, "unsupported");
+    // A deep callable annotation parses; the empty body is the only error.
+    assert_ne!(support::check_deep(&source).unwrap_err().code, "unsupported");
 }
 
 #[test]

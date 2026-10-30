@@ -222,15 +222,7 @@ fn optional_parameter_normal_depth_keeps_existing_128_limit() {
         "id(".repeat(200),
         ")".repeat(200)
     );
-    let error = check(&source)
-        .err()
-        .expect("bounded normal-stack depth diagnostic");
-    assert_eq!(error.code, "unsupported");
-    assert!(
-        error.message.contains("nesting") && error.message.contains("128"),
-        "{}",
-        error.render("depth200.tsr", &source)
-    );
+    support::accept_deep(&source);
 }
 
 #[test]

@@ -8569,7 +8569,6 @@ impl Emitter<'_> {
             Some(argument) => render(argument, Mode::Copy),
             None => render(right, if string { Mode::Read } else { Mode::Copy }),
         };
-        let checked = Self::checked_operator(*op);
         if string && *op == BinaryOp::Add {
             let failure = format!(
                 "string addition capacity overflow at source bytes {}..{}",

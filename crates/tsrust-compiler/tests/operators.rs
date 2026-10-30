@@ -194,7 +194,7 @@ fn unsupported_operators_and_missing_operands_have_frontend_diagnostics() {
 }
 
 #[test]
-fn unary_and_binary_nesting_are_bounded() {
+fn unary_and_binary_nesting_have_no_fixed_limit() {
     for expression in [
         format!("{}true", "!".repeat(100)),
         format!("{}1", "1 + ".repeat(100)),
@@ -207,15 +207,13 @@ fn unary_and_binary_nesting_are_bounded() {
             .unwrap_or_else(|error| panic!("{}", error.message))
             .emit_rust();
     }
+    // Deep unary and grouped operators have no nesting limit either.
     for expression in [
-        format!("{}true", "!".repeat(200)),
-        format!("{}1{}", "1 + (".repeat(200), ")".repeat(200)),
-        format!("{}1{}", "-(".repeat(200), ")".repeat(200)),
+        format!("{}true", "!".repeat(2000)),
+        format!("{}1{}", "1 + (".repeat(2000), ")".repeat(2000)),
+        format!("{}1{}", "-(".repeat(2000), ")".repeat(2000)),
     ] {
-        reject(
-            &format!("function main() {{ console.log({expression}); }}"),
-            "unsupported",
-        );
+        support::accept_deep(&format!("function main() {{ console.log({expression}); }}"));
     }
 }
 

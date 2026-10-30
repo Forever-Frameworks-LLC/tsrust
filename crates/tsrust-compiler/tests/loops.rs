@@ -214,7 +214,7 @@ fn loop_nesting_and_combined_analysis_remain_bounded() {
         "while (false) {".repeat(200),
         "}".repeat(200)
     );
-    reject(&source, "unsupported");
+    support::accept_deep(&source);
     let source = format!(
         "function main() {{ {} {} }}",
         "while (false) {".repeat(40),

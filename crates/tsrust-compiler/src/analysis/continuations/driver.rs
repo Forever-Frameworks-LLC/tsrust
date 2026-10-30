@@ -925,17 +925,7 @@ fn schedule_conditional_arm<'a>(analyzer: &mut Analyzer, context: &mut Context, 
 fn finish_expression<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: ExpressionTask<'a>, result: Result<Type, Diagnostic>) -> Step<'a> {
     let expr = task.expression.value();
     let result = if let Some(frame) = task.checked.take() { analyzer.finish_checked_expression(context, expr, frame, result) } else { result };
-    let result = analyzer.finish_expression(context, expr, result).and_then(|ty| {
-        // Chains admitted by the parser are confirmed here: one that will not be
-        // emitted flat counts every level, as any other nested operator does.
-        if matches!(expr.kind, ExprKind::Binary { .. }) {
-            expr.depth = crate::chains::checked_depth(expr);
-            if expr.depth > 128 {
-                return Err(Diagnostic::new("unsupported", "Expression nesting exceeds the prototype limit of 128.", expr.span));
-            }
-        }
-        Ok(ty)
-    }).map(|mut ty| {
+    let result = analyzer.finish_expression(context, expr, result).map(|mut ty| {
         for wrapper in task.completion.into_iter().rev() {
             if let Type::Union(union) = wrapper { expr.inject(union); }
             expr.ty = Some(wrapper);

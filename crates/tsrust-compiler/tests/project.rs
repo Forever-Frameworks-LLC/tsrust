@@ -1027,7 +1027,16 @@ fn structured_annotations_preserve_existing_expression_depth_limits() {
     checked.emit_rust();
     let source = format!("function main(){{const a=[0];console.log({}0{});}}", "a[".repeat(200), "]".repeat(200));
     let memory = Memory::new(&[("main.tsr", &source)]);
-    assert_eq!(load_project(&memory, "main.tsr").err().unwrap().code, "unsupported");
+    // Index chains have no nesting limit in projects either.
+    std::thread::Builder::new()
+        .stack_size(tsrust_compiler::COMPILER_STACK_BYTES)
+        .spawn(move || {
+            let graph = load_project(&memory, "main.tsr").unwrap();
+            tsrust_compiler::project::check_graph(graph).unwrap().emit_rust();
+        })
+        .unwrap()
+        .join()
+        .unwrap();
 }
 
 #[test]

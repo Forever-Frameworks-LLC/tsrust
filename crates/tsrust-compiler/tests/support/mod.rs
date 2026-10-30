@@ -208,3 +208,20 @@ pub fn execute(source: &str, expected: &str, contracts: Option<&[(&str, Mode)]>)
     assert!(result.stderr.is_empty());
     rust
 }
+
+/// Check and emit deeply nested source on a thread with the compiler's stack,
+/// as the CLI and editor do. Source nesting has no fixed limit.
+pub fn check_deep(source: &str) -> Result<String, Diagnostic> {
+    let source = source.to_owned();
+    std::thread::Builder::new()
+        .stack_size(tsrust_compiler::COMPILER_STACK_BYTES)
+        .spawn(move || check(&source).map(|analysis| analysis.emit_rust()))
+        .unwrap()
+        .join()
+        .unwrap()
+}
+
+/// Deeply nested source must check and emit.
+pub fn accept_deep(source: &str) -> String {
+    check_deep(source).unwrap_or_else(|error| panic!("deep source must be accepted: {} ({})", error.message, error.code))
+}

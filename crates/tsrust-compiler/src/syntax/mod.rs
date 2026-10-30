@@ -1070,8 +1070,7 @@ pub struct Expr {
     /// Slots of the calling body that a direct nested function call passes
     /// as hidden capture arguments, in the callee's hidden parameter order.
     pub(crate) capture_slots: Option<Box<[usize]>>,
-    /// Nesting below this node; flat operator chains add no level (see `chains`).
-    pub(crate) depth: usize,
+    depth: usize,
 }
 
 /// A checked receiver or constructor names one environment or callable contract.
@@ -1420,11 +1419,6 @@ impl Expr {
             | ExprKind::Update { target: value, .. }
             | ExprKind::Inject { value, .. }
             | ExprKind::Project { value, .. } => value.depth,
-            // `a + b + c` may be a flat chain, not nesting: its left operand adds
-            // no level here. The checker confirms the chain once types are known.
-            ExprKind::Binary { op, left, right, .. } if crate::chains::may_continue(*op, left) => {
-                left.depth.saturating_sub(1).max(right.depth)
-            }
             ExprKind::Optional {
                 base: left,
                 body: right,
@@ -3444,10 +3438,10 @@ mod exception_syntax_tests {
         assert!(region.catch.is_none());assert!(region.finally.is_some());
     }
     #[test]
-    fn throw_line_break_and_exception_depth_are_bounded() {
+    fn throw_line_break_and_deep_exception_regions_parse() {
         assert_eq!(parse("function main(){throw\n1;}").unwrap_err().code,"syntax");
         let source=format!("function main(){{{}throw 1;{}}}","try{".repeat(200),"}finally{}".repeat(200));
-        assert_eq!(parse(&source).unwrap_err().code,"unsupported");
+        assert!(parse(&source).is_ok());
     }
     #[test]
     fn try_requires_braces_and_a_handler_or_finally() {
@@ -3459,10 +3453,9 @@ mod exception_syntax_tests {
 
 #[cfg(test)]
 #[test]
-fn hostile_default_call_nesting_returns_a_source_error() {
+fn deep_default_call_nesting_parses() {
     let source=format!("function id(value:int):int{{return value;}}function use(value:int={}1{}):int{{return value;}}function main(){{use();}}","id(".repeat(200),")".repeat(200));
-    let error=parse(&source).err().expect("nesting error");
-    assert_eq!(error.code,"unsupported");
+    assert!(parse(&source).is_ok());
 }
 
 mod enum_syntax;
@@ -3490,7 +3483,7 @@ fn explicit_optional_calls_retain_the_optional_receiver_boundary() {
 
 #[cfg(test)]
 #[test]
-fn nested_call_arguments_keep_normal_parser_stack() {
+fn nested_call_arguments_parse_at_any_depth() {
     for depth in [100, 200] {
         let source = format!(
             "function id(value:int):int{{return value;}}function main(){{const action:(Function<int, [value:int]>)|null=id;if(action!==null){{console.log(action({}1{}));}}}}",
@@ -3503,9 +3496,7 @@ fn nested_call_arguments_keep_normal_parser_stack() {
             assert_eq!(crate::format(&formatted).unwrap(), formatted);
             assert!(crate::check(&formatted).is_ok(), "formatted nested calls remain valid");
         } else {
-            let error = result.err().expect("source nesting remains bounded");
-            assert_eq!(error.code, "unsupported");
-            assert!(error.message.contains("128"));
+            assert!(result.is_ok(), "nested call arguments have no nesting limit");
         }
     }
 }

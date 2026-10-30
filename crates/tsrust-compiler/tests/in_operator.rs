@@ -92,7 +92,8 @@ fn in_syntax_is_independent_of_an_object_binding() {
 }
 
 #[test]
-fn in_chains_preserve_expression_depth_limit() {
- let source=format!("type P={{x:int;}};function main(){{const p:P={{x:1}};const a=\"x\"{};}}", " in p".repeat(200));
- support::reject(&source,"unsupported");
+fn deep_in_chains_report_their_key_type() {
+ // `in` returns a boolean, so a chain fails on its second key, at any depth.
+ let source=format!("type P={{x:int;}};function main(){{const p:P={{x:1}};const a=\"x\"{};}}", " in p".repeat(2000));
+ assert_eq!(support::check_deep(&source).unwrap_err().code,"type");
 }

@@ -308,3 +308,35 @@ Measurement caveat: every local number, including the 0.1.0 baseline, comes from
 | `text + String(n)` (int, number or numeric enum) writes the digits into the concatenation buffer instead of formatting a temporary string; template interpolations of int and whole numbers append digits directly (`tsr_push_int`, `tsr_push_whole_number`; other numbers keep their existing spelling) | 18 affected workloads, stashed before vs after, back to back, load ≤ 3.9: median 1.07×, none slower; `enum_values` 1.62× (0.33× → 0.54× of Node.js), `array_from_map_string` 1.54× (0.51× → 0.79×), `interfaces` 1.25×, `function_expressions` 1.23× (0.73× → 0.92×). Node.js controls 0.87–1.06× | Yes |
 
 Next targets: add more `parity/` programs; add workloads with dead `slice()`/`toSorted()` receivers; `with()`/`toSpliced()` moves (need element assignment across array wrappers); JSON/schema decoding (group median 0.78×); record construction (records group 0.51×); `String.at`.
+
+## Nesting limits removed — 2026-10-30
+
+Owner direction (2026-10-29): remove limits like the 128-level nesting limit.
+
+- `d3f85d41`: chains of `+ - * / % && ||` are flat in the checker (shared type
+  hints during descent, linear time) and in emitted Rust (one buffer or one
+  running value); generated programs allow `unused_parens`.
+- Discovery (`benchmarks/compiler/nesting-discovery/run.py --unbounded-parser
+  --breadth-first --start 256 --factor 4`, 60 s/case) over all 80 families found
+  no crash. With the parser bound lifted, families complete to 4,096–1,048,576
+  levels before the case budget. Evidence JSON is session scratch, not imported.
+- rustc's own stack was the remaining ceiling (SIGBUS near 1,000 nested
+  blocks). Tsrust now runs rustc/cargo with `RUST_MIN_STACK=1073741824` unless
+  the user set it (virtual reservation); 16,384 nested blocks then compile.
+  Exported packages document the variable instead of setting Cargo `[env]`,
+  which would also change thread stacks under `cargo run`.
+- `NestingPolicy::CONSUMERS` is unbounded: expression, block, conditional,
+  match, template, type annotation, JSX and destructuring nesting have no limit.
+- The CLI and the LSP analysis worker run the compiler on a
+  `COMPILER_STACK_BYTES` (1 GiB, virtual) thread, so passes that still recurse
+  (for example `in`, checked by synchronous `object_has_own`) reach tens of
+  thousands of levels. Tests use `support::check_deep`/`accept_deep`.
+- Kept, as generated-size caps rather than nesting: array rank 128, direct
+  record layout 128, callback origin specialization 128, generic
+  specialization 128/declaration and 1,024/program, closure environment
+  complexity 128, callable result discovery 128 (recursive). Owner may ask to
+  raise them.
+- Follow-up (performance, not limits): `scoped-map-catch`, `-cleanup`,
+  `-catch-cleanup` time out at 256 levels and `scoped-map-mixed` at 1,024 in
+  ownership analysis; `builtin-string-chains`, `captured-local-functions`,
+  `field-*-cleanup`, `fresh-generic-adapters` time out at 4,096.
