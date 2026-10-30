@@ -1116,6 +1116,7 @@ impl Emitter<'_> {
                         Type::Record(_) => "String::Borrowed(\"[object Object]\")".into(),
                         Type::Array(_) => "tsr_array_join(payload.iter(), \",\")".into(),
                         Type::Enum(_, crate::syntax::EnumKind::String) if target==CallTarget::StringConversion => "String::Borrowed(payload.tsr_value())".into(),
+                        Type::Boolean if target==CallTarget::StringConversion => "String::Borrowed(if *payload { \"true\" } else { \"false\" })".into(),
                         other => format!(
                             "String::Owned(({}).label())",
                             self.console_value("payload", *other, "0", false)
@@ -1619,6 +1620,8 @@ impl Emitter<'_> {
                     }
                     // A string enum member is a static string: borrow it without copying.
                     Some(Type::Enum(_, crate::syntax::EnumKind::String)) => "String::Borrowed(builtin_argument_0.tsr_value())".into(),
+                    // "true" and "false" are static text.
+                    Some(Type::Boolean) => "String::Borrowed(if builtin_argument_0 { \"true\" } else { \"false\" })".into(),
                     Some(kind) => {
                         let reference = if kind.is_copy() {
                             "&builtin_argument_0"
@@ -5083,7 +5086,8 @@ impl Emitter<'_> {
 
     fn object_has_own(&self, fun: &CheckedFunction, args: &[Expr], key_first: bool) -> String {
         let value=self.expr(fun,&args[0],Mode::Read);
-        let bounded=|length:String|format!("own_key_text == \"length\" || own_key_text.parse::<usize>().is_ok_and(|index| index < {length} && index.to_string() == own_key_text)");
+        // A canonical index is all digits with no leading zero, so no index text is formatted for comparison.
+        let bounded=|length:String|format!("own_key_text == \"length\" || ((own_key_text == \"0\" || !own_key_text.starts_with('0')) && own_key_text.bytes().all(|byte| byte.is_ascii_digit()) && own_key_text.parse::<usize>().is_ok_and(|index| index < {length}))");
         let check=match args[0].ty.expect("checked hasOwn receiver") {
             Type::Record(id) if !self.program.records[id].is_tuple()=>{
                 let fields=self.program.records[id].fields.iter().map(|field|format!("{:?}",field.name.text)).collect::<Vec<_>>();
