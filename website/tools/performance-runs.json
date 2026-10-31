@@ -189,6 +189,30 @@
     "compound_number_power": {
       "at": "2026-10-31T10:39:45.847Z",
       "sourceSha256": "7cf62c51394bae74adc74dd227cd079963bcd8a9455865296e72a38a6cd90a23"
+    },
+    "boolean_logical_and_assign": {
+      "at": "2026-10-31T10:45:17.446Z",
+      "sourceSha256": "d4db68161577a127f71272cc8097982824ee9eb072d4889e321cc2c3e7400356"
+    },
+    "boolean_logical_or_assign": {
+      "at": "2026-10-31T10:45:17.446Z",
+      "sourceSha256": "3724d4e20ff18e3b45cd97ef3cae8a47404a4893567be5df5d4fb7e99c482925"
+    },
+    "boolean_assignment_value": {
+      "at": "2026-10-31T10:45:17.446Z",
+      "sourceSha256": "a24533602871a440e1c6172852b45adacc68a39a7c900de96666d3e218d8dd81"
+    },
+    "conditional_boolean_value": {
+      "at": "2026-10-31T10:45:17.446Z",
+      "sourceSha256": "87d003d3768477ec3bcf7c21cdcc6e16e5e9b0a7a4859e7cab5753481df01c66"
+    },
+    "boolean_to_string": {
+      "at": "2026-10-31T10:45:17.446Z",
+      "sourceSha256": "d35b88c03d807d212786a34b87015aeb0d9d1836cd097f969836ed31b2a1b6e2"
+    },
+    "boolean_value_of": {
+      "at": "2026-10-31T10:45:17.446Z",
+      "sourceSha256": "76ca6aef5d3bced147082f6d5f3583b07c4c0007e63eae5efeda7321ed870cec"
     }
   }
 }
