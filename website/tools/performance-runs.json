@@ -45,6 +45,10 @@
     "native_schema_int_bounds": {
       "at": "2026-10-29T23:30:30.072Z",
       "sourceSha256": "0016e8a2a0c20fdc93ffcfe85ff1874b7cd7bc609d02ab8f4abee2427aadd9cd"
+    },
+    "native_schema_json_nested": {
+      "at": "2026-10-31T10:14:54.049Z",
+      "sourceSha256": "ddc0c5b2c4888ea7e05fe062e8e3d9fd822c5ad10e05e0f9407b5945954d91f6"
     }
   }
 }

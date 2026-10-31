@@ -665,17 +665,32 @@ counts, wrap a copy of the generated program with a counting global allocator.
   ms (-2.09%); collections 2.285125→2.321375 (+1.59%); pipeline .636250→.646292
   (+1.58%); discriminator .965583→1.000375 (+3.60%); union .325959→.321500
   (-1.37%). Mixed result fails acceptance; not a proven general improvement.
-  Ingest added five native entries; verify entries and clean raw timing/profile
-  before checkpoint. Do not publish this rejected run.
+  Ingest added five native entries; all entries and SQLite integrity verified.
+  Raw timing/profile removed. Do not publish this rejected run.
 - All candidate validation/measurement sessions terminal. Rust baseline attempt
   63472 ended before timing on harness ABI parameter names; fixed reference
   names to value0/value1/value2. Retry 32691 hit runner's 120-second automatic
   compiler rebuild timeout after source revert. No Rust measurement produced.
-- Child monitor 36545 finished zero (8.8 s, peak 361,024 KiB); PID 59165 exited.
-  Accepted-source explicit release rebuild is LIVE in session 7730 under watchdog; see
-  `/tmp/tsrust-rust-baseline-parent-build.log`. Poll the active build handle before
-  retrying Rust-only nested baseline. Timeout log:
-  `/tmp/tsrust-rust-nested-baseline-repair.log`.
+- Child monitor 36545 finished zero; accepted-source rebuild session 7730
+  finished zero. Rust-only baseline final runner 29812 completed zero in 46.451 s,
+  peak 1,095,200 KiB. All compiler binaries now match accepted source again.
+
+**Nested hand-written Rust baseline — verified, 2026-10-31:**
+- New parity source uses ordinary owned Vecs, typed Serde decoding with unknown
+  field checks, integer bounds and checked addition. No generated Tsrust code.
+- Correctness cases matched independent arithmetic oracle. Rust-only measurement
+  2026-10-31T10:14:54.049Z: 93 samples, max load 3.615, median 1.806333 ms.
+  Stored Tsrust 2.103542 ms / Node 1.845167 ms are reused from accepted
+  2026-10-31T05:27:29.279Z. Small Rust/Node difference is not a broad speed claim.
+- Focused Rust test checks field, integer type and bounds rejection; passed using
+  exact prepared Serde artifacts, sequential watchdog, three threads. Session
+  48952 terminal zero. Ingested and verified the one Rust history entry and SQLite
+  integrity; removed raw result. No native/Node timing rerun.
+- Public baseline config pins timestamp/source hash. Rust coverage now 3/932;
+  remaining 929 workloads need parity references, correctness and one-time timing.
+  Start next with the remaining schema workloads. Current native source clean;
+  no optimization candidate remains. Website build passed; whole-project formatter
+  changed zero files/snippets/fingerprints. No active tool session remains.
 
 **Performance page refresh — owner requested, 2026-10-31:**
 - Updated `website/tools/performance-runs.json` with accepted scalar-union,
@@ -698,24 +713,22 @@ counts, wrap a copy of the generated program with a counting global allocator.
 - Existing `rust-hand` runner and two measured parity sources reused.
   Uncommitted generator change selects Node independently from curated runs,
   enabling native-only refreshes with separate native/Node dates. Website build
-  passed. Owner requested summary label: Rust faster than Node.js, currently
-  1 of 932 (2 measured), calculated from actual throughput. Public
+  passed. Owner requested summary label: Rust faster than Node.js, initially
+  1 of 932 (2 measured); now 1 of 932 (3 measured), calculated from actual throughput. Public
   performance generator now shows hand-written Rust throughput, native/Rust ratio,
-  independent dates and explicit missing coverage (2/932). Baselines pinned by
+  independent dates and explicit missing coverage (now 3/932). Baselines pinned by
   timestamp and parity-source SHA-256; sample counts checked. Website build passed.
   No new Node or Rust timing was run for this page update; no deployment.
 - **Remaining owner request: implement and validate hand-written Rust coverage
-  for the other 930 displayed workloads**, by coherent families with independent
+  for the other 929 displayed workloads**, by coherent families with independent
   result oracles. Start current schema workloads, then remaining families. Do not
   claim all comparisons exist. Added first new source
   `benchmarks/runtime/parity/native_schema_json_nested.rs`: ordinary typed Serde
   decoding with owned Vecs, bounded integers, unknown-field rejection and checked
-  accumulation. Includes focused decoder unit witness. NOT validated or measured
-  yet; after live native runner finishes, run Rust-only correctness/timing and its
-  unit witness using the prepared dependency artifacts. Do not publish until
-  verified and ingested. Current schema candidate remains unaccepted until
-  library validation and native A/B; use stored Node controls, not an automatic
-  new Node timing run. Keep source/protocol provenance for reusable baselines.
+  accumulation. Decoder unit witness, independent oracle and one-time Rust timing
+  passed as recorded above. The mixed schema candidate was rejected and reverted.
+  Reuse stored Node controls; preserve source/protocol provenance for baselines.
+
 
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code
