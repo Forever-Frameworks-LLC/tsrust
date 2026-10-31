@@ -32,9 +32,11 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
 - Owner requested updating docs/compiler, promotion through main and deployment,
   then resuming optimization after deployments start. Staging PR:
   https://github.com/Forever-Frameworks-LLC/tsrust/pull/8.
-- Current pushed head e0fd0169 has CI **41218842078** (standard subset, not full)
-  running; Documentation **41218842260** and VS Code packaging passed. No duplicate
-  manual CI dispatched.
+- Current pushed release proposal is **979b906a**. CI **41219037206** is running
+  (standard subset, not full); Documentation **41219037199** and VS Code
+  packaging passed on this head. Earlier CI 41218842078 was superseded/cancelled
+  automatically when the prepared version proposal was pushed. No duplicate
+  manual CI dispatched. Release notes are in 045efdb7; version proposal 979b906a.
   Main/stag ancestry reconciled against 9981279e/27ca587e; retained the current
   minimal measurement store, owner-directed deleted archives and newer docs.
   Merge checkpoint has exactly the same tree as d9df0009.
@@ -43,7 +45,7 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   Whole-project formatter changed zero files/snippets/fingerprints.
 - Main promotion automatically builds/publishes compiler/LSP/VSIX artifacts and
   deploys Pages. Existing compiler v0.1.0 cannot be reused. Asked owner to approve
-  v0.1.1; local proposal prepares compiler 0.1.1 and independent LSP/VSIX 0.2.1,
+  v0.1.1; the staging proposal prepares compiler 0.1.1 and independent LSP/VSIX 0.2.1,
   matching lockfiles and installation examples. Publication remains pending the
   reply per the project skill. Do not open the automatic-publishing stag-to-main PR until then.
   Local proposal passes locked/offline Cargo metadata, npm version/lock agreement,
