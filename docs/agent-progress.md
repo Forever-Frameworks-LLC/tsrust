@@ -687,7 +687,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   48952 terminal zero. Ingested and verified the one Rust history entry and SQLite
   integrity; removed raw result. No native/Node timing rerun.
 - Public baseline config pins timestamp/source hash. Rust coverage now 3/932;
-  remaining 668 workloads need parity references, correctness and one-time timing.
+  remaining 655 workloads need parity references, correctness and one-time timing.
   Start next with the remaining schema workloads. Current native source clean;
   no optimization candidate remains. Website build passed; whole-project formatter
   changed zero files/snippets/fingerprints. No active tool session remains.
@@ -720,7 +720,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   timestamp and parity-source SHA-256; sample counts checked. Website build passed.
   No new Node or Rust timing was run for this page update; no deployment.
 - **Remaining owner request: implement and validate hand-written Rust coverage
-  for the other 668 displayed workloads**, by coherent families with independent
+  for the other 655 displayed workloads**, by coherent families with independent
   result oracles. Start current schema workloads, then remaining families. Do not
   claim all comparisons exist. Added first new source
   `benchmarks/runtime/parity/native_schema_json_nested.rs`: ordinary typed Serde
@@ -1223,6 +1223,31 @@ counts, wrap a copy of the generated program with a counting global allocator.
   Public source hashes/timestamps pinned. Coverage **264/932**, remaining **668**.
   Math.f16round and random-range references remain open; next complete those and
   remaining global/conversion/literal workloads. Compiler implementation unchanged.
+
+**Rust conversions/literals/numeric arrays — verified, 2026-10-31:**
+- Thirteen references: global number names, numeric literals, comma expressions
+  and contexts, scalar unary plus, numeric string conversion, locale decimal
+  strings, growable/fixed/literal numeric arrays, numeric default/rest arguments,
+  and Math.f16round values. Standard Rust Vec/array mutation, owned strings,
+  optional values, checked integers and f64 operations preserve output and
+  evaluation order. The comma receiver test reads the left operand before reset.
+- Numeric conversion uses standard parsing with explicit corpus whitespace,
+  radix and Infinity rules; bounded wide radix integers round once from u128.
+  Locale grouping rounds shortest decimal text to three decimal places before
+  grouping, preserving the corpus's decimal half-up behavior and negative zero.
+  Binary16 rounding derives spacing from exponent bits and uses Rust's standard
+  ties-to-even operation; no unsafe or generated runtime implementation reused.
+- All thirteen matched independent output oracles and completed 93 samples each:
+  three processes, eight warmups, 31 timed samples. Rust-only run
+  2026-10-31T11:50:51.584Z; medians 0.011375–1.763917 ms,
+  max load 2.100, peak 353,088 KiB.
+  Existing Tsrust/Node measurements reused. Six durable Rust edge tests passed
+  under the sequential watchdog with three threads (compile peak 80,640 KiB).
+- store:ingest added thirteen histories; stored median/sample counts, source
+  hashes and SQLite integrity verified before deleting raw results. Public source
+  hashes/timestamps pinned. Coverage **277/932**, remaining **655**.
+  Math.random remains open; next: array operations and remaining reference families.
+  Compiler implementation unchanged; no optimization speedup claimed.
 
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code

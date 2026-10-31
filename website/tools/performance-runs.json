@@ -1093,6 +1093,58 @@
     "number_exponent": {
       "at": "2026-10-31T11:45:55.450Z",
       "sourceSha256": "daae211b038825b25ff2db6f170139d259c79ff121a4cb67a92f5d9f6e21738b"
+    },
+    "number_array_operations": {
+      "at": "2026-10-31T11:50:51.584Z",
+      "sourceSha256": "0df28b5eb55550fc00bdedfafa2aa73795428aa53d463166bd4a8b8aab579977"
+    },
+    "number_direct_literal_index": {
+      "at": "2026-10-31T11:50:51.584Z",
+      "sourceSha256": "97a3bdc08f9e47ebebe60e0aa65b11495ca6aa1a54e699208b7928a3ff62f6ae"
+    },
+    "number_fixed_local_operations": {
+      "at": "2026-10-31T11:50:51.584Z",
+      "sourceSha256": "f8a104c0b5503271d248a638b6e8ed881ab7a9fe6ba178d4ee2f820a7524ef4b"
+    },
+    "default_parameter_number_value": {
+      "at": "2026-10-31T11:50:51.584Z",
+      "sourceSha256": "bbbc5d60bc62b12f00c89372725251546bf4b687bce0c9ed28828d3926c7c3cf"
+    },
+    "rest_parameter_number_pack": {
+      "at": "2026-10-31T11:50:51.584Z",
+      "sourceSha256": "e99e95130c5cf40cdbcb12058c037e59216fdfc1f9c1103281980928b2e096ad"
+    },
+    "math_f16round_values": {
+      "at": "2026-10-31T11:50:51.584Z",
+      "sourceSha256": "931d0e84bf871659395b631dc74cdb14a63d7078bc353dd27c4fd3f3bd1cc192"
+    },
+    "number_locale_string_decimal": {
+      "at": "2026-10-31T11:50:51.584Z",
+      "sourceSha256": "1b0e0c856bc07f24f9155a4a7a65ebc0f2646476959e585118e9054068839f26"
+    },
+    "global_number_names": {
+      "at": "2026-10-31T11:50:51.584Z",
+      "sourceSha256": "e85d24a45a0ba99d7bacc2d3fa0a968bc3576af9018a479be950a533bbd33d9e"
+    },
+    "numeric_literals": {
+      "at": "2026-10-31T11:50:51.584Z",
+      "sourceSha256": "76af64d67fa613be89bc6cba79f4cb8109a222f2f9268e45b4dc455532fcea39"
+    },
+    "comma_expressions": {
+      "at": "2026-10-31T11:50:51.584Z",
+      "sourceSha256": "29017d0e7ea03f866766b9dc88f829cf98fead044d768e841e12cbd98b1a6320"
+    },
+    "comma_contexts": {
+      "at": "2026-10-31T11:50:51.584Z",
+      "sourceSha256": "6c1e5c2cd2f23cd034807b323fa6a4653648d9da4c6d6f1bc4b09327f6df16d4"
+    },
+    "scalar_unary_plus": {
+      "at": "2026-10-31T11:50:51.584Z",
+      "sourceSha256": "c0b8a1719fcd20acc6b259f8aae29a7c06476655c06a097815ebae4c839e2d65"
+    },
+    "numeric_string_conversion": {
+      "at": "2026-10-31T11:50:51.584Z",
+      "sourceSha256": "7c08dfead0a4975bc7399189e37901f4db99f0406a44ee7e7ecba6b6c86f7d58"
     }
   }
 }
