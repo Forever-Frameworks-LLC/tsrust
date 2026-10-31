@@ -677,8 +677,8 @@ counts, wrap a copy of the generated program with a counting global allocator.
 
 **Hand-written Rust reference expansion — current, 2026-10-31:**
 - Owner requested independent, ordinary Rust comparisons alongside **all 932**
-  public workloads. **612 are measured; 320 remain.** This is ongoing acceptance,
-  not universal hand-written-Rust parity. Next: default/rest parameters and remaining callable/control-flow families; the
+  public workloads. **632 are measured; 300 remain.** This is ongoing acceptance,
+  not universal hand-written-Rust parity. Next: remaining callable/control-flow families; the
   Math.random reference is also still open. No compiler candidate is active.
 - Reuse Node and Rust baselines instead of timing them for every optimization.
   Refresh on workload/protocol/reference-source/toolchain/hardware changes or
@@ -737,8 +737,9 @@ counts, wrap a copy of the generated program with a counting global allocator.
 | Array flat/flatMap/of | 24 | 907bee6c |
 | Array join/toString/locale/lastIndexOf | 21 | d0110399 |
 | Array from/keys/values/entries/basic ownership | 15 | 91059aa6 |
-| Array/call/iterable spread | 25 | This checkpoint; details below |
-| **Total** | **612** | **320 still required** |
+| Array/call/iterable spread | 25 | 259614a6 |
+| Default/rest parameters | 20 | This checkpoint; details below |
+| **Total** | **632** | **300 still required** |
 
 **Reference correctness and interpretation:**
 - Sources are independently authored Rust using standard-library operations and
@@ -773,36 +774,30 @@ counts, wrap a copy of the generated program with a counting global allocator.
   unmeasured Rust rows are not losses. Never label Tsrust simply "Native".
 - Current summary: Tsrust faster than Node.js in **613/932**, median throughput
   ratio **1.52×**, range **0.04×–189.48×**. Hand-written Rust faster than Node.js
-  in **421/932 (612 measured)**. The ratios use mean throughput, not median time.
+  in **426/932 (632 measured)**. The ratios use mean throughput, not median time.
 - Website generation/build passes locally; no deployment, push or CI is implied.
   Full-project formatting has consistently changed zero files/snippets/fingerprints.
 
-**Rust array/call/iterable spread — verified, 2026-10-31:**
-- Twenty-five references cover ten array-literal packs, thirteen call-spread
-  scenarios and array/call iterable spread. Standard Rust Vec ownership transfers,
-  fixed argument binding, boxed heterogeneous repeatable closures, mutable capture
-  closures and unboxed owned FnOnce closures preserve the observed contracts.
-- Source-order spread snapshots before mutation, then expands the new receiver.
-  Optional calls skip argument construction/default evaluation when absent;
-  present empty calls run the fallback once. Once-owned calls transfer captured
-  text into retained results. Math.max preserves empty/NaN/signed-zero semantics.
-- Iterable scenarios preserve insertion order, duplicate-key replacement, Unicode
-  scalar order and raw-template substitution. Tiny ordered collections reuse the
-  documented standard Vec scan approach; no new dependency or product API change.
-- Initial preparation needed an explicit Vec<Item> type in one new record pack;
-  corrected before timing. Final 25 matched independent output oracles and
-  completed 93 samples each (three processes, eight warmups, 31 timed samples),
-  Rust-only run 2026-10-31T12:59:58.478Z; medians 0.017166–2.161083 ms,
-  max load 2.819, watchdog peak 454,864 KiB.
-  Existing Tsrust/Node measurements reused; compiler implementation unchanged.
-- Nine durable Rust edge tests passed under the sequential watchdog with three
-  threads: source snapshots, optional/default counters, owned once/mutable
-  captures, Math.max IEEE values, nullish text, callable order, iterable Unicode/
-  template rules and Map collisions. Compilation peak 117,440 KiB; no stops.
-- store:ingest added twenty-five histories; stored medians/sample counts, source
+**Rust default/rest parameters — verified, 2026-10-31:**
+- Twenty independently authored references cover eight default-parameter and
+  twelve rest-parameter workloads. Standard Option distinguishes missing values
+  from explicit null; owned strings/arrays move into retained results. Dependent
+  defaults resolve left to right. Fn/FnMut/FnOnce preserve borrowed, reusable and
+  once-owned capture behavior; stored function pointers retain function identity.
+- All twenty matched independent result oracles and completed 93 samples each
+  (three processes, eight warmups, 31 timed samples), Rust-only run
+  2026-10-31T13:08:49.696Z; medians 0.003458–0.627291 ms, max load 2.906,
+  watchdog peak 345,152 KiB. Existing Tsrust/Node measurements reused; compiler
+  implementation unchanged. No Node timing rerun.
+- Ten durable parameter_edges.rs tests passed under the watchdog with three
+  threads: null versus missing, supplied empty arrays, dependent defaults,
+  reusable/once-owned captures, stored function defaults, rest argument order,
+  and borrowed read/mutable callbacks. The previous terminal output was lost;
+  after confirming no live process, rerunning the existing test binary passed.
+- store:ingest added twenty histories; stored medians/sample counts, source
   hashes and SQLite integrity verified before raw disposal. Public hashes and
-  timestamps pinned. Coverage **612/932**, remaining **320**. Next: default/rest
-  parameters and remaining callables/control flow; Math.random remains open.
+  timestamps pinned. Coverage **632/932**, remaining **300**. Next: remaining
+  callables/control flow; Math.random remains open.
 
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code

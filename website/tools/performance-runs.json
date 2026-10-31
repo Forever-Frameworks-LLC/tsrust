@@ -2485,6 +2485,86 @@
     "iterable_call_spread": {
       "at": "2026-10-31T12:59:58.478Z",
       "sourceSha256": "1d9e6a887c532a81c383d26bfb9617be565bd231d187e05eabd29b24787b5c7b"
+    },
+    "default_parameter_boolean_value": {
+      "at": "2026-10-31T13:08:49.696Z",
+      "sourceSha256": "3feeb8624f6921ca85e62e772b4d08e4113ddc5e5477798856a3fb59cbf1f395"
+    },
+    "default_parameter_string_value": {
+      "at": "2026-10-31T13:08:49.696Z",
+      "sourceSha256": "1e67df90b2403098c6340d0a0db64b6aa55844143f31eb8b2d368bdb1866853c"
+    },
+    "default_parameter_array_value": {
+      "at": "2026-10-31T13:08:49.696Z",
+      "sourceSha256": "bf7527786ec27b53acab8774c7b90f7e5ab8ae5debee656a1da367d4d02a8e7e"
+    },
+    "default_parameter_record_value": {
+      "at": "2026-10-31T13:08:49.696Z",
+      "sourceSha256": "5fc369052bc842494c927a1f88da7ebc06000109e1d0904ef555261dde38ed49"
+    },
+    "default_parameter_dependent_positions": {
+      "at": "2026-10-31T13:08:49.696Z",
+      "sourceSha256": "7a407425c99f95e6d043aa19c154838f4858fc110023e09fae668ba4a24ba11a"
+    },
+    "default_parameter_owned_reusable_callback": {
+      "at": "2026-10-31T13:08:49.696Z",
+      "sourceSha256": "bea296cbaaee483b0ad568f28cb5b701608172e057dcaea5e6d47cb0e80df697"
+    },
+    "default_parameter_owned_once_callback": {
+      "at": "2026-10-31T13:08:49.696Z",
+      "sourceSha256": "c7f7fe5d87c8d0fffa16f9ae476e753603c9e22731aeb2f8a672cc39838759ae"
+    },
+    "default_parameter_stored_family": {
+      "at": "2026-10-31T13:08:49.696Z",
+      "sourceSha256": "0e44757ab88885f932ea06bf609ae59c0e59da12d2282718b9c30c11b385160c"
+    },
+    "rest_parameter_int_pack": {
+      "at": "2026-10-31T13:08:49.696Z",
+      "sourceSha256": "98e7c54539ee03e198c354af5e7648ceeece4f4591733722c978524dd88a59dc"
+    },
+    "rest_parameter_boolean_pack": {
+      "at": "2026-10-31T13:08:49.696Z",
+      "sourceSha256": "0d94d0e8a1bf0a6a660cc370841848b4865c6f268be02512f0ff7babd2f53fa3"
+    },
+    "rest_parameter_string_pack": {
+      "at": "2026-10-31T13:08:49.696Z",
+      "sourceSha256": "5e865a1593c0ae658af395aae7a340013001cdb9ff1770be1c2e067404f3a0e1"
+    },
+    "rest_parameter_nested_pack": {
+      "at": "2026-10-31T13:08:49.696Z",
+      "sourceSha256": "779a3081df8186ae29f6ebae7c15d5884ba7b617612a15007838fb7c93c2123a"
+    },
+    "rest_parameter_record_pack": {
+      "at": "2026-10-31T13:08:49.696Z",
+      "sourceSha256": "46253ba5a690e5dfe1285eaa52bf2f147420f0b629c979c808e78227476b6770"
+    },
+    "rest_parameter_null_pack": {
+      "at": "2026-10-31T13:08:49.696Z",
+      "sourceSha256": "75e23cf566a69192f4b8d19076141f8975cde0c1c62a071c2adb2cd0f6780f49"
+    },
+    "rest_parameter_undefined_pack": {
+      "at": "2026-10-31T13:08:49.696Z",
+      "sourceSha256": "2b56b7d460ecb8671781411c49a6943a22436a17b58fa74850e55d98b972f287"
+    },
+    "rest_parameter_default_prefix": {
+      "at": "2026-10-31T13:08:49.696Z",
+      "sourceSha256": "a11d7dacdd411b89c4ea24463bfeda1cdee80064d8f834d0886dd4dddd5af9b6"
+    },
+    "rest_parameter_read_callback": {
+      "at": "2026-10-31T13:08:49.696Z",
+      "sourceSha256": "54a0383312fb3bc12d553ffaf932db9371ce644fc6f3478e688459ee7c6c1578"
+    },
+    "rest_parameter_mutate_callback": {
+      "at": "2026-10-31T13:08:49.696Z",
+      "sourceSha256": "120debf854bdb2c5bf2d204d0bf673c2df65eb17b9c53dd094ce71b25d2e6116"
+    },
+    "rest_parameter_owned_once_callback": {
+      "at": "2026-10-31T13:08:49.696Z",
+      "sourceSha256": "758d0199452f2a84ee9bc8276251731280b24e7c0c3dbfbf5a08c8d8ddf2b0bd"
+    },
+    "rest_parameter_owned_callable_pack": {
+      "at": "2026-10-31T13:08:49.696Z",
+      "sourceSha256": "3e361a326916fbef71e7b4d2076850872a15c9213f809d6a3ca18f0dd3cc07f9"
     }
   }
 }
