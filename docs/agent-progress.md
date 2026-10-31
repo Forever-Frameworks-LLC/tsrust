@@ -767,7 +767,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
 | Standard language/string/record/tuple primitives | 13 | 6241c366 |
 | Object enumeration/membership and union arrays | 8 | c6e11476 |
 | Patterns/control/assignments/testing assertions | 13 | 28d30640 |
-| Recursion/environment/clock/import/module state | 5 | This checkpoint; details below |
+| Recursion/environment/clock/import/module state | 5 | 6329bc83; details below |
 | **Total** | **930** | **two still required** |
 
 **Reference correctness and interpretation:**
@@ -806,6 +806,52 @@ counts, wrap a copy of the generated program with a counting global allocator.
   in **625/932 (930 measured)**. The ratios use mean throughput, not median time.
 - Website generation/build passes locally; no deployment, push or CI is implied.
   Full-project formatting has consistently changed zero files/snippets/fingerprints.
+
+**HTTP request benchmarks — verified, 2026-10-31:**
+- Owner requested actual HTTP text, JSON, parsed/transformed JSON, and parsed
+  JSON plus SQLite lookup responses. Added independently authored Tsrust, Node
+  HTTP/node:sqlite, and Rust Axum/serde/SQLx servers in benchmarks/http/requests.*.
+  Four scenarios at one and 16 keep-alive connections yield **eight HTTP cases**,
+  kept separate from the **932 language/library workloads** and their summary.
+- One common Node HTTP client prepares payloads and independent expected response
+  bytes outside timing. Every request checks status, content type and the entire
+  body; malformed JSON/types/Unicode, invalid IDs and missing rows are preflighted.
+  Each batch completes 128 requests. Database setup, builds and startup are
+  excluded; parsing, serialization, queries, transport and response validation
+  are included. This measures end-to-end loopback behavior, not isolated server
+  saturation. All servers bind loopback port zero and shut down gracefully.
+- SQLite uses a private in-memory database with 128 distinct seeded rows and one
+  connection. Tsrust/Rust use asynchronous SQLx; Node uses a synchronous prepared
+  statement. SQLite versions: Tsrust/Rust **3.51.3**, Node **3.50.4**. These are
+  warm reads, with no disk/write throughput claim. The independent Rust server
+  links the same prepared dependencies/features as Tsrust; no dependencies were
+  added. Initial Axum Json feature mismatch was fixed using serde_json encoding
+  and a response header, preserving the existing dependency features. Generated
+  Rust contains no unsafe blocks/functions/implementations.
+- **Four harness tests passed** under the watchdog. All three real servers passed
+  final untimed verification (1,029 requests each), **1.041 seconds**, sampled
+  peak **142,080 KiB**. Node **v24.11.1**, TypeScript **5.9.3**, Rust **1.96.1**.
+- Quiet-machine baseline **2026-10-31T16:02:46.335Z** completed all three engines:
+  three processes each, eight warmups then 31 samples per process/workload
+  (**93 samples per engine/case; 2,232 timed batches total**). Engine order
+  rotates; no busy override. Max load **3.841**, elapsed **89.312 seconds**,
+  sampled watchdog peak **196,736 KiB**; no watchdog stops or correctness failures.
+  Existing language/library Node/Rust baselines were reused, not rerun.
+- Mean requests/second at **16 connections**, Tsrust / Node.js / hand-written Rust:
+  text **47,279 / 48,502 / 48,527**; JSON **49,154 / 48,525 / 50,136**;
+  parsed JSON **46,474 / 46,449 / 46,944**; SQLite JSON
+  **24,886 / 46,516 / 32,220**. The page also shows one-connection results,
+  median 128-request batch times, ratios and per-engine dates. These are new
+  application baselines, not a claimed compiler optimization. SQLite exposes
+  a measurable Tsrust-versus-Rust gap suitable for later profiling.
+- store:ingest added **24 histories**. Stored medians, mean rates, 93-sample
+  counts, source identities, quiet load and SQLite integrity were checked before
+  deleting disposable results. Public selections pin source hashes and the full
+  HTTP protocol. Whole-project formatting and the 66-page website build pass
+  locally; rendered HTTP results verified. No push, deployment or CI.
+- Next: finish the two remaining language/library Rust references
+  (math_random_range and string_normalize_forms), then resume ranked profiling.
+  The optimization goal remains active; HTTP implementation and baseline are complete.
 
 **Rust recursion/host/module references — verified, 2026-10-31:**
 - Five independent references add actual factorial/parity/string/depth/Fibonacci

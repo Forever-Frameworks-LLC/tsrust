@@ -96,6 +96,34 @@ const median = ratios.length % 2 ? ratios[(ratios.length - 1) / 2] : (ratios[rat
 const faster = ratios.filter((value) => value > 1).length;
 const machine = config.machine ?? {};
 const samples = rows[0].native_samples;
+const httpManifest=JSON.parse(fs.readFileSync(path.join(root,'benchmarks/http/requests-manifest.json'),'utf8'));
+if(config.httpBaselines&&config.httpProtocolSha256!==createHash('sha256').update(JSON.stringify({semanticEpoch:httpManifest.semanticEpoch,protocol:httpManifest.protocol,workloads:httpManifest.workloads})).digest('hex'))throw Error('Stale HTTP measurement protocol');
+const httpRows=[];
+for(const workload of httpManifest.workloads){
+  const pins=config.httpBaselines?.[workload.id];if(!pins)continue;
+  const engines={};
+  for(const [engine,history,file] of [['native',nativeRuns,'requests.tsr'],['node-tsc',nodeRuns,'requests.ts'],['rust-hand',rustRuns,'requests.rs']]){
+    const pin=pins[engine],source=fs.readFileSync(path.join(root,'benchmarks/http',file));
+    if(!pin||createHash('sha256').update(source).digest('hex')!==pin.sourceSha256)throw Error(`Stale HTTP source: ${workload.id}/${engine}`);
+    const measured=history.get(workload.id)?.get(pin.at);
+    if(!measured||measured.samples!==httpManifest.protocol.processes*httpManifest.protocol.samples)throw Error(`Missing HTTP measurement: ${workload.id}/${engine}`);
+    engines[engine]={...measured,at:pin.at};
+  }
+  httpRows.push({...workload,engines});
+}
+let httpSection='## HTTP requests\n\n';
+if(!httpRows.length){httpSection+='HTTP request workloads are registered; measured results are not published yet.\n\n';}
+else{
+  httpSection+=`These end-to-end loopback tests use the same Node HTTP client for every server. Each sample completes and validates 128 responses, using either one or 16 keep-alive connections. Payloads are prepared before timing; server startup, builds and database seeding are excluded. Rates include client I/O and complete response validation, so they are not isolated server saturation limits. Rates average requests per second over all samples; batch times are median elapsed milliseconds for 128 requests.\n\n`;
+  httpSection+='| Workload | Connections | Tsrust (req/s) | Node.js (req/s) | Hand-written Rust (req/s) | Tsrust / Node.js | Median batch ms: Tsrust / Node / Rust | Dates: Tsrust / Node / Rust |\n| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |\n';
+  for(const row of httpRows){const n=row.engines.native,j=row.engines['node-tsc'],r=row.engines['rust-hand'];httpSection+=`| ${row.name} | ${row.concurrency} | ${rate(n.ops)} | ${rate(j.ops)} | ${rate(r.ops)} | ${(n.ops/j.ops).toFixed(2)}× | ${n.ms.toFixed(3)} / ${j.ms.toFixed(3)} / ${r.ms.toFixed(3)} | ${n.at.slice(0,10)} / ${j.at.slice(0,10)} / ${r.at.slice(0,10)} |\n`;}
+  httpSection+='\nText responses contain UTF-8 text; JSON responses serialize a record per request. The parse workload validates a posted record and transforms its fields. The database workload parses an ID, performs a parameterized SQLite lookup and serializes the returned row. IDs vary across 128 seeded rows.\n\n';
+  httpSection+='SQLite is in memory and uses one connection. Tsrust and Rust use an asynchronous SQLx pool; Node uses its built-in synchronous prepared SQLite statement. These are warm read queries, with no disk or write-throughput claim.\n\n';
+  if(config.httpSqliteVersions)httpSection+=`SQLite versions: Tsrust ${cell(config.httpSqliteVersions.native)}, Node.js ${cell(config.httpSqliteVersions['node-tsc'])}, Rust ${cell(config.httpSqliteVersions['rust-hand'])}.\n\n`;
+  const dates=[...new Set(httpRows.flatMap(row=>Object.values(row.engines).map(engine=>engine.at.slice(0,10))))];
+  httpSection+=`${httpManifest.protocol.processes*httpManifest.protocol.samples} samples per server/workload, after ${httpManifest.protocol.warmups} warmups in each process. Measured ${dates.join(', ')} on the machine above. Request status, content type and every body byte are checked; malformed input and missing-row cases are verified before timing. Sources and commands: \`benchmarks/http/README.md\`.\n\n`;
+}
+
 
 let page = `---
 title: "Performance"
@@ -121,6 +149,8 @@ covers only measured comparisons; unmeasured workloads are not losses.
 
 ## Summary
 
+This summary covers the language/library workloads. HTTP requests use a separate end-to-end protocol and table below.
+
 | Measure | Value |
 | --- | --- |
 | Workloads compared | ${rows.length} |
@@ -133,7 +163,7 @@ covers only measured comparisons; unmeasured workloads are not losses.
 | Samples | ${samples} timed samples per engine and workload |
 | Measured | ${runs.map((run) => run.timestamp.slice(0, 10)).filter((value, index, all) => all.indexOf(value) === index).join(', ')} |
 
-## Results by group
+${httpSection}## Results by group
 
 `;
 const middle = (values) => { const sorted = [...values].sort((a, b) => a - b); const half = sorted.length >> 1; return sorted.length % 2 ? sorted[half] : (sorted[half - 1] + sorted[half]) / 2; };
@@ -201,7 +231,7 @@ The measurements are in \`benchmarks/measurements.sqlite\` in the repository:
 one row per workload and engine, with each run's date, median sample time,
 mean speed and sample count. It can be queried with the standard SQLite tools.
 The benchmark runner and every workload source pair are in
-\`benchmarks/runtime\`.
+\`benchmarks/runtime\`; HTTP server comparisons are in \`benchmarks/http\`.
 `;
 fs.mkdirSync(path.dirname(output), { recursive: true });
 fs.writeFileSync(output, page);
