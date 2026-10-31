@@ -677,8 +677,8 @@ counts, wrap a copy of the generated program with a counting global allocator.
 
 **Hand-written Rust reference expansion — current, 2026-10-31:**
 - Owner requested independent, ordinary Rust comparisons alongside **all 932**
-  public workloads. **551 are measured; 381 remain.** This is ongoing acceptance,
-  not universal hand-written-Rust parity. Next: remaining array join/search/spread/iterator families; the
+  public workloads. **572 are measured; 360 remain.** This is ongoing acceptance,
+  not universal hand-written-Rust parity. Next: remaining array spread/from/iterator and basic-array families; the
   Math.random reference is also still open. No compiler candidate is active.
 - Reuse Node and Rust baselines instead of timing them for every optimization.
   Refresh on workload/protocol/reference-source/toolchain/hardware changes or
@@ -734,8 +734,9 @@ counts, wrap a copy of the generated program with a counting global allocator.
 | Short-circuit/index/map/filter callbacks | 32 | bf661272 |
 | Ordered reductions/owned accumulators | 28 | d3ede86e |
 | forEach/recursive/discarded callbacks | 16 | 1088bca8 |
-| Array flat/flatMap/of | 24 | This checkpoint; details below |
-| **Total** | **551** | **381 still required** |
+| Array flat/flatMap/of | 24 | 907bee6c |
+| Array join/toString/locale/lastIndexOf | 21 | This checkpoint; details below |
+| **Total** | **572** | **360 still required** |
 
 **Reference correctness and interpretation:**
 - Sources are independently authored Rust using standard-library operations and
@@ -770,33 +771,36 @@ counts, wrap a copy of the generated program with a counting global allocator.
   unmeasured Rust rows are not losses. Never label Tsrust simply "Native".
 - Current summary: Tsrust faster than Node.js in **613/932**, median throughput
   ratio **1.52×**, range **0.04×–189.48×**. Hand-written Rust faster than Node.js
-  in **384/932 (551 measured)**. The ratios use mean throughput, not median time.
+  in **404/932 (572 measured)**. The ratios use mean throughput, not median time.
 - Website generation/build passes locally; no deployment, push or CI is implied.
   Full-project formatting has consistently changed zero files/snippets/fingerprints.
 
-**Rust array flattening/construction — verified, 2026-10-31:**
-- Twenty-four references cover flat/flatMap/Array.of across int, number, boolean,
-  string, nested, record, null and undefined domains. Standard Rust owned Vec
-  construction, into_iter().flatten() and flat_map consume dead local sources
-  while preserving every retained result and independent ownership.
-- Flattening removes exactly one outer array level. flatMap callbacks receive
-  the original index and captured original source length; empty inner-array
-  elements survive at the remaining depth. Array.of builds zero/one/five elements
-  and never interprets a single numeric argument as a length. Numbers retain
-  signed zeros/NaNs/infinities; record and string descriptions own their text.
-- All twenty-four matched independent output oracles and completed 93 samples
+**Rust array joining/locale/reverse search — verified, 2026-10-31:**
+- Twenty-one references: join/toString over six domains, default/bounded
+  lastIndexOf over four domains, and array locale-string values. Standard fmt
+  streaming builds owned joined output from borrowed live prefixes without
+  intermediate per-element strings. Nested arrays keep inner commas; nullish
+  entries render empty fields while their separators remain.
+- Number display spells nonfinite values and normalizes signed zero for ordinary
+  joining. Existing Rust decimal-grouping logic handles the matched locale corpus,
+  where negative zero remains visible. Arrays preserve default object text and
+  nested grouping/separator rules. These are bounded workload references.
+- Reverse search uses rposition on the normalized inclusive prefix. Default and
+  explicit zero differ; negative/extreme i64 bounds cannot overflow. NaN never
+  matches, while signed zeros compare numerically equal, as the source requires.
+- All twenty-one matched independent output oracles and completed 93 samples
   each (three processes, eight warmups, 31 timed samples), Rust-only run
-  2026-10-31T12:35:09.523Z; medians 0.013416–1.956208 ms,
-  max load 2.751, watchdog peak 492,528 KiB.
+  2026-10-31T12:41:57.403Z; medians 0.015291–3.498833 ms,
+  max load 2.089, watchdog peak 298,240 KiB.
   Existing Tsrust/Node measurements reused; compiler implementation unchanged.
-- Six durable Rust edge tests passed under the sequential watchdog with three
-  threads: one-level depth, retained empty inner arrays, callback index/length,
-  factory arity, IEEE values and owned record text after input drop. Compilation
-  peak 83,296 KiB; no watchdog stops.
-- store:ingest added twenty-four histories; stored medians/sample counts, source
+- Seven durable Rust edge tests passed under the sequential watchdog with three
+  threads: nullish/nested separators, ordinary vs locale numeric display, full
+  locale row, extreme reverse bounds, NaN/signed-zero equality and owned output
+  after input drop. Compilation peak 110,944 KiB; no watchdog stops.
+- store:ingest added twenty-one histories; stored medians/sample counts, source
   hashes and SQLite integrity verified before raw disposal. Public hashes and
-  timestamps pinned. Coverage **551/932**, remaining **381**. Next: join/search,
-  spread/iterator families; Math.random reference remains open.
+  timestamps pinned. Coverage **572/932**, remaining **360**. Next: spread/from,
+  iterators and remaining basic arrays; Math.random reference remains open.
 
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code
