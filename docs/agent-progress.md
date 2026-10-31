@@ -23,7 +23,9 @@ Local, not pushed: `5805b423`, `db6ec027` (single handoff), `4bf84f84` (test fix
 `3a625efe` (initial handoff), `6b8f62b1` (completed validation), and
 `260d1781` (Map snapshot classification, 4.32× at depth 80), and
 `cea19c4c` (callable-boundary Map epochs, 8.22× at depth 128), and
-`5083586a` (typed schema restorations, collections 1.11×).
+`5083586a` (typed schema restorations, collections 1.11×),
+`393bceea` (heap-array benchmark control), and `a1fd6a0d` (scalar-union
+array candidate, now accepted by the paired results below).
 The rejected small-string experiment lives on
 `codex/small-string-experiment` (keep for reference; do not merge).
 
@@ -224,7 +226,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
 - Next: profile mixed-type small arrays (`type_aliases`), ranked target 3.
   Further schema allocation work needs a new profile and measured benefit.
 
-**Current experiment — inline scalar-union arrays (not accepted):**
+**Accepted inline scalar-union arrays — 2026-10-30:**
 - Baseline `5083586a`, clean tree. Previous goal turn made progress by committing
   the accepted typed schema restoration optimization.
 - Fresh `type_aliases` allocation profile: 12,289 allocations and nine
@@ -273,10 +275,37 @@ counts, wrap a copy of the generated program with a counting global allocator.
   heap iteration and array methods. It shares the existing protocol, independent
   arithmetic oracle and guarded sources. Both registration/oracle tests and
   untimed native/Node verification pass. No new runtime machinery.
-- Next: checkpoint benchmark support separately (compiler remains 5083586a),
-  checkpoint the candidate for reversible A/B, rebuild/time the parent and
-  candidate on all three workloads, ingest all runs and decide acceptance.
-  Neither the optimization nor its timings are final yet.
+- Final paired comparison rebuilt release compilers from commits: parent
+  `393bceea` contains exactly the `5083586a` compiler plus the new benchmark;
+  candidate `a1fd6a0d` contains the validated storage change and enum text fix.
+  All three workloads used the original eight warmups, 31 samples × three
+  processes (93 samples per engine), system allocator and exact-result oracles.
+  Maximum measured loads were 1.976 / 3.500; the runner waited while candidate
+  post-build load exceeded four. Watchdog peak was 1,862,784 KiB, no stops.
+- Native baseline → candidate medians: union_array_values **0.597458 →
+  0.488333 ms (1.223×)**; union_array_heap **1.239000 → 1.204375 ms
+  (1.029×)**; type_aliases **0.155750 → 0.147333 ms (1.057×)**.
+  Node controls respectively: **0.287000 → 0.290500**, **0.812541 →
+  0.777583**, **0.041000 → 0.038750 ms**. Control-normalized speeds are
+  1.238× / 0.984× / 0.999×. Keep the small-union improvement (also 1.091×
+  in the initial pair); do not claim a reliable speedup for type_aliases or
+  heap arrays. The latter's normalized 1.6% variation is within the control
+  movement; neither repeat native median regressed. Allocation reduction is
+  measured independently, and all affected correctness checks pass.
+- `npm run store:ingest` added all **20** timing entries, including initial
+  slower samples. SQLite integrity returned `ok`; each entry has 93 samples.
+  Raw results/profiles were deleted after checking stored timestamps/counts.
+  Whole-project formatting passed before both checkpoints: token-preserving
+  formatting of the new benchmark, then zero changes on subsequent runs.
+  The new benchmark passed native/Node exact-result verification and both
+  registration/oracle tests. Compiler witnesses include formatted execution.
+- Cleanup removed **204** completed-build objects (**1,168,179,056 bytes**).
+  Each native program-cache root already retains only its latest executable;
+  shared Cargo/runtime dependencies remain. Debug and release compilers both
+  reflect the accepted candidate. No push, CI dispatch, merge or release.
+- Next: profile single-pass schema JSON decoding, ranked target 4. Establish
+  a fresh allocation/CPU profile before changing subtree cursor behavior.
+
 
 
 **Owner rules learned this session:** match Rust's defaults for limits (no count
@@ -304,8 +333,10 @@ optimization log below.
    optimization above. Collection workload is 1.11× faster with 43 rather than
    48 allocations per iteration; retain the rollback/lifetime regressions.
    Move to mixed-type arrays before further schema allocation optimization.
-3. Mixed-type small arrays (`int | string`) use `Vec`; `inline_array` in
-   `storage.rs` allows only int/boolean/string elements (affects `type_aliases`).
+3. Scalar-union arrays: completed safe inline storage above. Small-array
+   scenarios measured 1.09–1.22× faster; type_aliases allocations fell by one
+   per iteration without a reliable timing gain. Heap control also measured.
+   Keep recursive/nested storage and enum text witnesses; move to JSON decoding.
 4. Single-pass schema `DeserializeSeed` decoder for `safeParseJson` (cursors
    re-parse subtrees; 1.25× slower than `safeParse(JSON.parse)`).
 5. Shared string slices (V8 shares; Tsrust copies) need reference-counted
