@@ -2385,6 +2385,106 @@
     "array_from_collections": {
       "at": "2026-10-31T12:50:58.585Z",
       "sourceSha256": "14edb1cf3170e934c8a25fba6d68b10ce2a59c93296aecd4b0a3a7ece3e07e96"
+    },
+    "call_spread_fixed_literal_int": {
+      "at": "2026-10-31T12:59:58.478Z",
+      "sourceSha256": "37913540d07230d247446ffd7001dace16f3833f02f2652bce387e6cb4ad69f8"
+    },
+    "call_spread_dynamic_int": {
+      "at": "2026-10-31T12:59:58.478Z",
+      "sourceSha256": "89f98a56ea2183136ab72d18663c0dd6828dcbef772ce17119de45018e833630"
+    },
+    "call_spread_multiple_mixed_int": {
+      "at": "2026-10-31T12:59:58.478Z",
+      "sourceSha256": "9b620d26c910d49177c2933b33b51b28bcc713c3d3cfc73c1e9c7eac93ee33e6"
+    },
+    "call_spread_math_number": {
+      "at": "2026-10-31T12:59:58.478Z",
+      "sourceSha256": "9a9b519b998178f64607a2ee63c94d53abe032366548fe02e0fa33d7eb5883e2"
+    },
+    "call_spread_boolean_pack": {
+      "at": "2026-10-31T12:59:58.478Z",
+      "sourceSha256": "3563e0838552608d94eb44ad97e13cf73297d1dce9382cceca6465d6e4024ae5"
+    },
+    "call_spread_string_owned": {
+      "at": "2026-10-31T12:59:58.478Z",
+      "sourceSha256": "55217fdf35ef2c0d21017ed2cd754ebb911ada2223ab6d795fc0a36092f3fcc0"
+    },
+    "call_spread_nested_owned": {
+      "at": "2026-10-31T12:59:58.478Z",
+      "sourceSha256": "bef7a4caa1b6ef72b6e843b8938e8484c4104bba02f12ab1dd0233bc12985492"
+    },
+    "call_spread_record_owned": {
+      "at": "2026-10-31T12:59:58.478Z",
+      "sourceSha256": "dd3da115c4bea482df3303d6c6c57a6cab4a88202d5c718c85baaebd505d47f7"
+    },
+    "call_spread_nullish_packs": {
+      "at": "2026-10-31T12:59:58.478Z",
+      "sourceSha256": "b1a05cd9226fd0b42e6a8085e77ef2d03b7140bb1c3f24d1d662c85a006a09c5"
+    },
+    "call_spread_borrowed_string_fixed": {
+      "at": "2026-10-31T12:59:58.478Z",
+      "sourceSha256": "66c6fecc08eddf49a2ba16feb50964b1f3cafcf7a70841d6e73fe9492e498f08"
+    },
+    "call_spread_optional_default_counts": {
+      "at": "2026-10-31T12:59:58.478Z",
+      "sourceSha256": "1c18853617dd9474ae8d9144a6f220da6e46e17112402053024493daa5bc8685"
+    },
+    "call_spread_mutate_callback": {
+      "at": "2026-10-31T12:59:58.478Z",
+      "sourceSha256": "24e86940304eb5943c7d3ef6834226d2f39f46fef74ab8a80212518629ee9be9"
+    },
+    "call_spread_owned_once_optional": {
+      "at": "2026-10-31T12:59:58.478Z",
+      "sourceSha256": "bedd570270e33e60bfa04fb984608398b22004902be663b91bf636aa3e26e4b1"
+    },
+    "array_literal_spread_dynamic_int": {
+      "at": "2026-10-31T12:59:58.478Z",
+      "sourceSha256": "f6517582cece446f18ccb6200404bc63391e1a20bb0aebdfe4a9fdd042bd570f"
+    },
+    "array_literal_spread_multiple_mixed_int": {
+      "at": "2026-10-31T12:59:58.478Z",
+      "sourceSha256": "83751ebd1d1e9528d205d21938deffdf415afc59a544326aa313a5aff78f054a"
+    },
+    "array_literal_spread_boolean_pack": {
+      "at": "2026-10-31T12:59:58.478Z",
+      "sourceSha256": "ea8079c490c826a61d42618fb493fe86963cccefc54a85be6a7c6d54a4f7709e"
+    },
+    "array_literal_spread_string_owned": {
+      "at": "2026-10-31T12:59:58.478Z",
+      "sourceSha256": "f75ee5f3feea76a3b668b3d1393cda5f92d81087aacfa19a2cfb417a4251baae"
+    },
+    "array_literal_spread_nested_owned": {
+      "at": "2026-10-31T12:59:58.478Z",
+      "sourceSha256": "197dc51ab6fe52c1c7acd06bd715bb0d87af22b45c977a304a5cdecb36c362d2"
+    },
+    "array_literal_spread_record_owned": {
+      "at": "2026-10-31T12:59:58.478Z",
+      "sourceSha256": "b9e64e22283d6cad5efd57f4e9015f88fffc7a82c61e9644d5e9758439e9696b"
+    },
+    "array_literal_spread_nullish_packs": {
+      "at": "2026-10-31T12:59:58.478Z",
+      "sourceSha256": "1b6e6ff45a08b9230b041bb464e3622b786d076848c8e79698e47352d654e3b7"
+    },
+    "array_literal_spread_number": {
+      "at": "2026-10-31T12:59:58.478Z",
+      "sourceSha256": "5df8cfb063d034b29af0120767a44254e6a613a06a25659bd43cf5138bc011e1"
+    },
+    "array_literal_spread_callable": {
+      "at": "2026-10-31T12:59:58.478Z",
+      "sourceSha256": "3d0f28f0a2a303781dbe29ef3c0f20238ff377e3cb0e67756a8a3f2858ffe7cf"
+    },
+    "array_literal_spread_source_order": {
+      "at": "2026-10-31T12:59:58.478Z",
+      "sourceSha256": "8437a94f222c1b172388e5fd73c0892861f827bada5ac7a656ea0636b3f1ac98"
+    },
+    "iterable_array_spread": {
+      "at": "2026-10-31T12:59:58.478Z",
+      "sourceSha256": "79441936bf4ee3b07b1a3a0e9fdad9730a9bcb9b34038393d2e1d6112090316d"
+    },
+    "iterable_call_spread": {
+      "at": "2026-10-31T12:59:58.478Z",
+      "sourceSha256": "1d9e6a887c532a81c383d26bfb9617be565bd231d187e05eabd29b24787b5c7b"
     }
   }
 }
