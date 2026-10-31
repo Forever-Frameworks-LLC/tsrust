@@ -648,6 +648,57 @@ counts, wrap a copy of the generated program with a counting global allocator.
   for accepted source. Next optimization requires a fresh profile; investigate
   composite pipeline/collection costs without this lazy sequence allocation.
 
+**Concrete JSON composite restorations — candidate in progress:**
+- Accepted source rebuilt after the rejected sequence experiment: release build
+  session 44268 terminal zero, 207.976 s, peak 1,490,816 KiB. Collection/recursive
+  native + Node correctness verification passed, session 47163, 31.143 s,
+  peak 887,184 KiB. Release binary now represents accepted source `4d1a99d5`.
+- Fresh CPU samples on those accepted executables: 20M iterations each,
+  checksums collections 160,000,007 / recursive 80,000,007. Session 84629
+  terminal zero, 54.776 s, peak 32,704 KiB. Log
+  `/tmp/tsrust-composite-typed-cpu.log`; samples
+  `/tmp/tsrust-native_schema_collections.sample` and recursive equivalent.
+  Recursive sample explicitly shows `Trial::boxed` allocation within sequence
+  callbacks; collection profile retains allocation/free costs in sequence paths.
+- Candidate extends the accepted concrete JSON leaf restoration return type to
+  JSON array and record adapters. Removes their final `.boxed()` only for these
+  inputs, retaining boxes at choices, recursive references, objects and owned
+  collection inputs. Leaves sequence capacity unchanged. Files:
+  `emit/schema/{pipeline_trials,pipeline_array_trials,collection_trials}.rs`.
+  Added `json_record_refinement_restores_entries_before_fallback` witness in
+  schema_pipelines, complementing existing nested array/recursive rollback tests.
+- Initial affected runner 89353 ended 101 in first suite: 16 passed, four
+  generated-code failures (`E0700`), including nested array and record rollback.
+  No watchdog stop. Cause: `sequence` returned an opaque closure capturing the
+  validator type, which contains temporary path/issue borrows. Removing the outer
+  Box exposed that overcapture. Remaining six suites were not started.
+- Root-cause repair follows existing `PairRestoration`: runtime `trial.rs` now
+  returns `SequenceRestoration<R>(Vec<R>)` implementing `Restore<Vec<I>,Vec<O>>`.
+  Keeps exactly the prior eager capacity and rollback behavior, but excludes the
+  finished validator's type from restoration state. No unsafe or lifetime extension.
+- Repaired affected runner session 14345 finished zero: all 71 tests passed,
+  peak 1,688,544 KiB, no watchdog stops. Evidence:
+  `/tmp/tsrust-composite-typed-tests-repair.py`, log
+  `/tmp/tsrust-composite-typed-tests-repair.log`. Seven suites, sequential
+  5 GB/30 min watchdog, three threads, shared target, incremental disabled.
+  Compiler `--lib stdlib::schema` is LIVE in session 18517 under watchdog, log
+  `/tmp/tsrust-composite-typed-lib.log`; poll same handle, do not restart.
+  Candidate not accepted or timed. After library tests pass rebuild release
+  and run five-workload allocation profile + quiet 93-sample native/Node A/B
+  against accepted source. Retain only measured gains without regressions,
+  ingest, format whole project, commit and prune.
+
+**Performance page refresh — owner requested, 2026-10-31:**
+- Updated `website/tools/performance-runs.json` with accepted scalar-union,
+  plain-schema decoder, string-sizing and typed JSON pipeline runs. Excludes
+  rejected sequence-storage experiment and the current unmeasured candidate.
+- Generator now selects the latest curated run per workload instead of counting
+  duplicates; checks sample counts and displays each row's measurement date.
+  Removes unsupported causal claims from the summary. Snapshot: 932 distinct
+  workloads, native faster in 613, median mean-throughput ratio 1.52×.
+- `npm run build` in website passed; generated performance route exists and
+  all 932 workload IDs are unique. Local source/build updated; no deployment.
+
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code
 must not contain `unsafe` (tests assert it); one handoff note only (this file);
@@ -690,7 +741,8 @@ have measured outcomes, but do not claim universal hand-written-Rust parity.
 Advanced composite pipelines, choices and collections still box restoration
 state. Reprofile those boundaries before extending the accepted typed approach.
 Initial required validation and the full later milestone are complete; only run
-affected suites for the next coherent change. No active tool session remains.
+affected suites for the next coherent change. Active candidate/session is recorded
+above; follow that state before starting another job.
 
 ## Most recent owner correction — highest immediate priority
 

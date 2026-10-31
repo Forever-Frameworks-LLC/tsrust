@@ -20,18 +20,24 @@ const runsOf = (engine) => new Map(db.prepare('SELECT workload, history FROM mea
 const nativeRuns = runsOf('native');
 const nodeRuns = runsOf('node-tsc');
 db.close();
-const rows = [];
+const selected = new Map();
 const runs = [];
-for (const at of config.runs) {
-  const before = rows.length;
+for (const at of [...config.runs].sort()) {
+  let matched = 0;
   for (const [workload, history] of [...nativeRuns].sort(([a], [b]) => a.localeCompare(b))) {
     const native = history.get(at);
     const node = nodeRuns.get(workload)?.get(at);
-    if (native && node) rows.push({ workload, native: native.ops, native_samples: native.samples, node: node.ops, node_samples: node.samples });
+    if (native && node) {
+      const expected = config.processes * config.samplesPerProcess;
+      if (native.samples !== expected || node.samples !== expected) throw Error(`Unexpected sample count for ${workload} at ${at}`);
+      selected.set(workload, { workload, at, native: native.ops, native_samples: native.samples, node: node.ops, node_samples: node.samples });
+      matched++;
+    }
   }
-  if (rows.length === before) throw Error(`Run ${at} is not in benchmarks/measurements.sqlite`);
+  if (!matched) throw Error(`Run ${at} is not in benchmarks/measurements.sqlite`);
   runs.push({ timestamp: at });
 }
+const rows = [...selected.values()];
 if (!rows.length) throw Error('No native/node-tsc comparisons in the configured runs');
 
 // Manifest categories grew per feature family; fold them into reader-facing groups.
@@ -83,6 +89,11 @@ compute the same checked result for each workload. Higher operations per second
 is faster; the ratio is native throughput divided by Node.js throughput, so a ratio
 above 1 means the native program was faster.
 
+This snapshot uses the latest accepted measurement selected for each workload.
+Rows carry their measurement date; unchanged workloads retain earlier results.
+Rejected experiments and candidates still in validation are excluded. These
+results compare native execution with Node.js, not hand-written Rust.
+
 ## Summary
 
 | Measure | Value |
@@ -108,14 +119,14 @@ for (const [group, entries] of ordered) {
 }
 const slower = ordered.filter(([, entries]) => middle(entries.map(ratio)) < 1).map(([group]) => `the ${group} group`);
 page += slower.length
-  ? `\nNative code is not uniformly faster. In ${slower.join(' and ')}, the median workload runs slower than on Node.js: those programs are dominated by owned record and string copies and by checked decoding, which Node.js handles with shared references and a tuned JIT. They are current optimization targets.\n\n`
+  ? `\nNative code is not uniformly faster. In ${slower.join(' and ')}, the median workload runs slower than on Node.js: these remain optimization targets. A throughput table alone does not identify the cause of a performance gap.\n\n`
   : '\n';
 page += 'Each group lists every workload, slowest ratio first. Speeds are operations per second, abbreviated: k is thousands, M is millions and G is billions, so `5.35 M` is about 5,350,000 operations per second. The ratio column is the one to compare.\n\n';
 for (const [group, entries] of ordered) {
-  page += `### ${group}\n\n<details>\n<summary>${entries.length} workloads</summary>\n\n| Workload | Native (ops/s) | Node.js (ops/s) | Ratio |\n| --- | ---: | ---: | ---: |\n`;
+  page += `### ${group}\n\n<details>\n<summary>${entries.length} workloads</summary>\n\n| Workload | Native (ops/s) | Node.js (ops/s) | Ratio | Measured |\n| --- | ---: | ---: | ---: | --- |\n`;
   for (const row of entries.sort((a, b) => ratio(a) - ratio(b))) {
     const label = row.description ? `\`${row.workload}\`: ${cell(row.description)}` : `\`${row.workload}\``;
-    page += `| ${label} | ${rate(row.native)} | ${rate(row.node)} | ${ratio(row).toFixed(2)}× |\n`;
+    page += `| ${label} | ${rate(row.native)} | ${rate(row.node)} | ${ratio(row).toFixed(2)}× | ${row.at.slice(0,10)} |\n`;
   }
   page += '\n</details>\n\n';
 }

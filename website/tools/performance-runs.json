@@ -1,5 +1,5 @@
 {
-  "comment": "Execution runs (by run timestamp in benchmarks/measurements.sqlite) shown on the public performance page (release 0.1.0 milestone, every manifest workload, native vs Node after tsc).",
+  "comment": "Curated accepted execution runs from benchmarks/measurements.sqlite. Latest listed timestamp per workload wins; rejected experiments are excluded. Earlier workloads retain their dated baseline.",
   "rust": "1.96.1",
   "node": "v24.11.1",
   "typescript": "5.9.3",
@@ -23,7 +23,11 @@
     "2026-10-29T13:29:51.666Z",
     "2026-10-29T13:32:17.333Z",
     "2026-10-29T13:43:30.522Z",
-    "2026-10-29T13:50:46.523Z"
+    "2026-10-29T13:50:46.523Z",
+    "2026-10-31T03:50:18.254Z",
+    "2026-10-31T05:27:29.279Z",
+    "2026-10-31T08:34:09.285Z",
+    "2026-10-31T09:00:23.547Z"
   ],
   "groups": {},
   "machine": {
