@@ -3,6 +3,25 @@ use super::*;
 use crate::stdlib::schema::pipelines::Operation;
 
 impl Emitter<'_> {
+    // Refinements and non-branching wrappers preserve a JSON leaf's restoration
+    // type. Stop at choices/recursion, where different restoration types meet.
+    fn schema_pipeline_typed_json_restoration(&self, mut id: usize, input: Type, missing: bool) -> bool {
+        if missing || !matches!(input,Type::Record(record) if self.program.records[record].native_type==Some(crate::native_signatures::NativeTypeId::JsonValue)) { return false; }
+        let plans = &self.program.schema_pipelines;
+        loop {
+            if plans.recursive(id).is_some() || plans.reference(id).is_some()
+                || plans.union(id).is_some() || plans.collection(id).is_some()
+                || plans.array(id).is_some() || plans.object(id).is_some() { return false; }
+            if let Some(wrapper) = plans.wrapper(id) {
+                if matches!(wrapper.kind,crate::stdlib::schema::pipelines::WrapperKind::Presence(_)) { return false; }
+                id = wrapper.source;
+            } else if let Some(stage) = plans.get(id) {
+                if stage.operation != Operation::Refine { return false; }
+                id = stage.source;
+            } else { return true; }
+        }
+    }
+
     pub(in crate::emit) fn schema_pipeline_output(&self, id: usize) -> Type {
         self.program.schema_pipelines.types(id).map(|(_, output, _)| output)
             .unwrap_or_else(|| self.program.records[id].application.as_ref().unwrap().resolved_arguments[0])
@@ -131,13 +150,18 @@ impl Emitter<'_> {
             self.schema_json_trial(id,generated,seen,errors);
             let Type::Record(record) = input else { unreachable!() };
             let record = self.native_record_declaration(record);
-            format!("match trial_json{id}(schema,input.value,path,issues,failure){{Trial::Prepared{{value,restoration}}=>Trial::Prepared{{value,restoration:Box::new(move|value|Record{record}{{value:tsrust_schema_trial::Restore::restore(restoration,value)}})}},Trial::Rejected(value)=>Trial::Rejected(Record{record}{{value}}),Trial::Absent=>Trial::Absent,Trial::Committed(value)=>Trial::Committed(value),Trial::Aborted(error)=>Trial::Aborted(error)}}")
+            format!("trial_json{id}(schema,input.value,path,issues,failure).remap_input(|value|Record{record}{{value}})")
         } else {
             let child = self.schema_owned_projection(id,input,generated,seen,errors);
             format!("match prepare_{child}(schema,&input,path,issues,failure,None){{Some(state)=>{{let(value,restoration)=project_{child}(input,state);Trial::Prepared{{value,restoration}}}},None=>match failure.take(){{Some(error)=>Trial::Aborted(error),None=>Trial::Rejected(input)}}}}")
         };
         let roots=self.schema_root_parameters(id);
-        generated.push_str(&format!("fn {name}<'a>({roots}schema:&Record{},input:{raw},path:&mut Vec<tsrust_schema_issues::Segment<'_>>,issues:&mut tsrust_schema_issues::Issues,failure:&mut Option<SchemaFactoryFailure>)->tsrust_schema_trial::Trial<{raw},{native},Box<dyn FnOnce({native})->{raw}+'a>,SchemaFactoryFailure>where {raw}:'a,{native}:'a{{use tsrust_schema_trial::Trial;{body}}}",self.native_record_declaration(id)));
+        let restoration = if self.schema_pipeline_typed_json_restoration(id,input,missing) {
+            format!("impl FnOnce({native})->{raw}+'a+use<'a>")
+        } else {
+            format!("Box<dyn FnOnce({native})->{raw}+'a>")
+        };
+        generated.push_str(&format!("fn {name}<'a>({roots}schema:&Record{},input:{raw},path:&mut Vec<tsrust_schema_issues::Segment<'_>>,issues:&mut tsrust_schema_issues::Issues,failure:&mut Option<SchemaFactoryFailure>)->tsrust_schema_trial::Trial<{raw},{native},{restoration},SchemaFactoryFailure>where {raw}:'a,{native}:'a{{use tsrust_schema_trial::Trial;{body}}}",self.native_record_declaration(id)));
         name
     }
 }

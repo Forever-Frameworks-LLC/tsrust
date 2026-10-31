@@ -570,6 +570,51 @@ counts, wrap a copy of the generated program with a counting global allocator.
   9.334/9.847 s. No active job; cleanup complete. This acceptance checkpoint
   closes ranked target five. Full milestone plus affected string suites are green.
 
+**Accepted typed JSON pipeline restoration — 2026-10-31:**
+- Baseline `1d3eb962`. Allocation/CPU profiles identified JSON pipeline leaf
+  adapters boxing already typed `RestoreJson` state before callbacks. The main
+  pipeline adapter appeared in 391/2,093 sampled stacks including allocator work.
+  Uninstrumented 20M-iteration pipeline/recursive checksums verified 140,000,007
+  and 80,000,007. Recursive sample also showed dynamic JSON/BTreeMap costs.
+- JSON leaves now retain concrete restoration through existing `Trial::remap_input`
+  and `impl FnOnce + use<'a>`. Refinements and supplied non-branching wrappers
+  preserve that type; choices, recursion, presence alternatives, consuming
+  stages and composite adapters retain their existing boxing. No new runtime
+  machinery, unsafe, arbitrary limits, API or IntelliSense behavior change.
+- New chained-refinement witness verifies exact rollback before a consuming
+  fallback and successful reuse. All **70 affected tests passed**: pipelines 19,
+  collections 4, recursive 10, unions 13, diagnostic/default options 11,
+  super-refine 5, decode 8. Three threads, sequential targets, shared Cargo target,
+  incremental disabled; 5,000,000 KiB/1,800 s watchdog. Peak 1,498,528 KiB,
+  no stops. A nonexistent queue entry was corrected without rerunning passes.
+- Three allocation samples over 2,000 iterations, checked checksums/no retained
+  bytes: pipeline **24,000 -> 20,000** (12 -> 10 each), recursive **86,000 ->
+  80,000** (43 -> 40 each); union 10,001, discriminator 30,001, collections
+  86,000 unchanged. Zero reallocations throughout.
+- Fresh quiet A/B against parent, 8 warmups and 31 samples x three processes,
+  93 samples per workload/engine; max load 3.552 baseline/3.741 candidate:
+
+  | Workload | Native parent -> accepted ms | Node parent -> accepted ms |
+  | --- | --- | --- |
+  | pipeline | .687542 -> .636250 (**1.081x**) | .341041 -> .362625 |
+  | recursive | 2.944292 -> 2.840458 (**1.037x**) | 1.346416 -> 1.338250 |
+  | collections | 2.318583 -> 2.285125 | .803125 -> .819959 |
+  | discriminator | .980667 -> .965583 | .532209 -> .542417 |
+  | union | .321000 -> .325959 | .362125 -> .366167 |
+
+  Pipeline native improved 7.46% while its Node control slowed 6.33%; recursive
+  improved 3.53% with Node -0.61%. Union's +1.54% tracks Node +1.12%, within
+  noise; no material control regression. No speed claim for unchanged controls.
+- All 20 entries ingested and verified (93 samples), SQLite integrity clean.
+  Whole-project formatter: zero files/snippets/fingerprints changed; diff clean.
+  Deleted two raw timings, two allocation profiles and 53 obsolete object files
+  (351,826,064 bytes). Native caches already retain one latest build each.
+  Release build 209.432 s, peak 1,510,944 KiB; profile 74.746 s; timing including
+  preparation/quiet wait 178.313 s. Sessions 69994/42876/16299 are terminal.
+- Next: reprofile remaining composite pipeline restoration boundaries before
+  expanding opaque returns. Do not rerun the complete milestone for this routine
+  accepted gate. Keep original rollback/consuming-callback/lifetime witnesses.
+
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code
 must not contain `unsafe` (tests assert it); one handoff note only (this file);
@@ -607,11 +652,10 @@ optimization log below.
    ownership retained: borrow where lifetimes permit, copy independent owned
    strings. No reference-counted sharing or arbitrary size threshold.
 
-**Next continuation:** the five ranked passes above have measured outcomes,
-but do not claim universal hand-written-Rust parity. Advanced schema pipelines,
-choices and collections still use the general decoder. The mixed collections
-sample was insufficient to justify a change; isolate a representative advanced
-schema workload and profile allocation/CPU costs before further implementation.
+**Next continuation:** the ranked passes and typed JSON pipeline restoration
+have measured outcomes, but do not claim universal hand-written-Rust parity.
+Advanced composite pipelines, choices and collections still box restoration
+state. Reprofile those boundaries before extending the accepted typed approach.
 Initial required validation and the full later milestone are complete; only run
 affected suites for the next coherent change. No active tool session remains.
 
