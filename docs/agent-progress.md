@@ -401,6 +401,44 @@ counts, wrap a copy of the generated program with a counting global allocator.
 
 
 
+**Current experiment — direct typed schema decoding (not accepted):**
+- Previous goal turn completed the parser-default repair in `a74da73f`; this
+  turn began with a clean tree on the requested branch. Baseline release binary
+  still contains that accepted compiler. Benchmark-only checkpoint `0a2443b8`
+  adds a four-group/sixteen-integer nested JSON control and matching TypeScript
+  implementation, independent arithmetic oracle, routing, guards and report
+  category. All 36 schema benchmark tests pass. Whole-project formatting proved
+  the new fixture's token preservation and idempotence before checkpointing.
+- Fresh accepted-code profiles: fused 26,000 and collections 86,000 allocations
+  across 2,000 iterations, zero reallocations or retained leaks. The nested
+  profiling attempt exposed that profile-native.mjs always rebuilds Cargo: its
+  internal 120-second build timed out on uncommitted candidate source before
+  recording any profile or timing. Session 93445 is terminal. Its confirmed
+  orphan rustc (PID 68916) exited before the termination request (no such
+  process); no overlapping work is permitted.
+  No nested baseline result is claimed. Next baseline must explicitly check out
+  `0a2443b8` and build release under the external 30-minute watchdog first.
+- Candidate emits callback-free DeserializeSeed visitors for plain scalar,
+  array and object schemas. Typed output is built directly, without per-object
+  BTreeMap indexes or repeated RawValue subtree scans. Fields overwrite their
+  slots on duplicates; unknown/missing fields and unsupported plans fall back.
+  No callback executes during the speculative attempt. Full consumption and
+  exact integer-token checking precede accepting output. Pipelines, choices,
+  recursive/retained outputs and detailed failures retain the existing decoder.
+- New witnesses cover nested arrays, constraints, escaped duplicate keys,
+  invalid earlier/final duplicates, malformed ignored content, large exact
+  integers, source-specific diagnostics and callback order. Runtime helper tests
+  cover trailing data, overflow, precision and negative zero. Generated output
+  is checked for the direct visitor and absence of unsafe. No public API added.
+- Candidate validation has not run yet. Candidate source needs a provisional
+  checkpoint before reversible baseline checkout. Once baseline measurements finish, run
+  `/tmp/tsrust-direct-schema-validation.py`: JSON library tests; compiler
+  schema_decode/collections/pipelines/recursive/unions; LSP schema_editing, one
+  target at a time under the existing 5 GB/30-minute watchdog. Fix failures,
+  then build/profile/time the candidate against the recorded baseline. Retain
+  only measured improvements, ingest results and keep this handoff current.
+
+
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code
 must not contain `unsafe` (tests assert it); one handoff note only (this file);

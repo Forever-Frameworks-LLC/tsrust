@@ -92,7 +92,7 @@ impl<'source> serde::Deserialize<'source> for Node<'source> {
         Ok(Self{text:raw.get()})
     }
 }
-struct Text<'source>(Cow<'source,str>);
+pub struct Text<'source>(pub Cow<'source,str>);
 impl<'source> serde::Deserialize<'source> for Text<'source> {
     fn deserialize<D:serde::Deserializer<'source>>(decoder:D)->Result<Self,D::Error> {
         struct Visitor;

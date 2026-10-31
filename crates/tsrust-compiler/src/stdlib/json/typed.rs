@@ -7,6 +7,15 @@ mod tests {
  use super::*;
  fn limits()->Limits{Limits{bytes:1024,depth:4,entries:3,nodes:12}}
  #[test]
+ fn speculative_schema_seeds_require_complete_exact_input(){
+  let seed=||std::marker::PhantomData::<ExactNumber>;
+  assert_eq!(try_decode_seed("1.5",seed()).unwrap().0,1.5);
+  for input in ["1 trailing","1e400","18446744073709551616","9007199254740993"] {
+   assert!(try_decode_seed(input,seed()).is_none(),"{input}");
+  }
+  assert!(try_decode_seed("-0.0",seed()).unwrap().0.is_sign_negative());
+ }
+ #[test]
  fn validation_reports_structural_depth_with_existing_limits(){
   for (input,depth) in [("null",0),("[]",1),("{}",1),(r#"{"x":[{},[0]],"s":"[\"]"}"#,3)] {
    assert_eq!(validate_depth(input.as_bytes(),limits()).unwrap(),depth);
@@ -185,6 +194,16 @@ pub fn decode_seed<'de,S:serde::de::DeserializeSeed<'de>>(
 pub fn decode_plain<'de,T:serde::Deserialize<'de>>(input:&'de [u8])->Result<T,Error>{
  super::validate_integer_tokens(input)?;
  decode_once(input,std::marker::PhantomData::<T>)
+}
+
+/// Speculative callback-free schema decoding. Only complete, exact input can
+/// produce an accepted result; all failures return to the full issue collector.
+pub fn try_decode_seed<'de,S:serde::de::DeserializeSeed<'de>>(input:&'de str,seed:S)->Option<S::Value>{
+ let mut decoder=serde_json::Deserializer::from_str(input);
+ let value=seed.deserialize(&mut decoder).ok()?;
+ decoder.end().ok()?;
+ super::validate_integer_tokens(input.as_bytes()).ok()?;
+ Some(value)
 }
 
 fn decode_once<'de,S:serde::de::DeserializeSeed<'de>>(input:&'de [u8],seed:S)->Result<S::Value,Error>{
