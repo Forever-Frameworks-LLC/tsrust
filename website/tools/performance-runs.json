@@ -3569,6 +3569,38 @@
     "native_schema_parse": {
       "at": "2026-10-31T15:00:35.116Z",
       "sourceSha256": "042439f6306c088431bfce3d1c71b1ee6f1f7940408f5288c8cf6970cdc4c4b5"
+    },
+    "native_schema_export": {
+      "at": "2026-10-31T15:06:59.407Z",
+      "sourceSha256": "10faf50cdbb9a87db400a53d27ce9064e28d3429b717f73e9d848436c630f1cd"
+    },
+    "native_schema_json_object_strip": {
+      "at": "2026-10-31T15:06:59.407Z",
+      "sourceSha256": "1eb7bf2f262a2395fb8d8478b76f905e780fd902060bedaef4f10a6dfb13c90e"
+    },
+    "native_schema_json_object_retain": {
+      "at": "2026-10-31T15:06:59.407Z",
+      "sourceSha256": "48b5e4ccf80dfe94465037de4b8db6adcb3210d15543dbfbfa0f0d17b7c10076"
+    },
+    "native_schema_json_presence": {
+      "at": "2026-10-31T15:06:59.407Z",
+      "sourceSha256": "d1fa9b494a54a795125bd756a7f7875e5e0379a8eef0d135ad956c8aa40afb81"
+    },
+    "native_schema_json_defaults": {
+      "at": "2026-10-31T15:06:59.407Z",
+      "sourceSha256": "1e1a1f61b212aea97739d395d511e3f7569cfa0fd24be4a2f3a30928473d0446"
+    },
+    "native_schema_json_literal": {
+      "at": "2026-10-31T15:06:59.407Z",
+      "sourceSha256": "30c23b18fef6127261938d6284413f57d61aa450df787c2239fbc57e090539e8"
+    },
+    "native_schema_json_enum": {
+      "at": "2026-10-31T15:06:59.407Z",
+      "sourceSha256": "99e1497de0cab444485dbfd86c6a657675e55c8ff3601c96e9d1cddc4c71e386"
+    },
+    "native_schema_json_declared_enum": {
+      "at": "2026-10-31T15:06:59.407Z",
+      "sourceSha256": "59f15052b90c4cdcb53ff58fceb68af3333f9b7e61c40c7e73234d32a8536063"
     }
   }
 }
