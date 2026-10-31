@@ -19,8 +19,8 @@ code at hand-written-Rust parity. The docs restructuring in the next section is
 still open but is not the current loop's focus.
 
 **Git:** branch `codex/optimize-native-hot-paths`. Pushed through `5793c2b5`.
-Local, not pushed: `5805b423`, `db6ec027` (single handoff), `4bf84f84` (test fix).
-Nothing uncommitted. The rejected small-string experiment lives on
+Local, not pushed: `5805b423`, `db6ec027` (single handoff), `4bf84f84` (test fix),
+`3a625efe` (current handoff). Validation resumed from that clean checkpoint. The rejected small-string experiment lives on
 `codex/small-string-experiment` (keep for reference; do not merge).
 
 **Validation:**
@@ -41,9 +41,25 @@ Nothing uncommitted. The rejected small-string experiment lives on
   still fails locally with `CARGO_TARGET_DIR` set: "Portable sources are not
   prepared. Run `tsrust setup --portable --yes`". Likely machine setup (CI
   prepares portable sources); confirm before treating it as a defect.
-- Next: finish the remaining editor test files and both crates' `--lib` tests
-  locally, then push and, if a hosted check is wanted, dispatch with
-  `-f full_regressions=true`.
+- Validation resumed locally on `3a625efe`: run all 77 current LSP integration
+  targets alphabetically after `completion_matrix`, then both crates' `--lib`
+  targets. The earlier 31/92 and 61-remaining counts do not match the current
+  file inventory, so target names determine coverage. Each Cargo invocation runs
+  alone with `--test-threads=3`, `CARGO_INCREMENTAL=0`, one build job and
+  `CARGO_TARGET_DIR` set to the repository target. A process-group watchdog polls
+  RSS every 0.5 seconds and kills the group above 5,000,000 KiB or 1,800 seconds.
+  Disposable current-run script/results: `/tmp/tsrust-validation-watchdog.py` and
+  `/tmp/tsrust-validation-results.json`. All 77 resumed LSP integration targets
+  passed: 798 tests, zero failures, three existing ignored tests. The catalog
+  target passed in 757.76 seconds; peak RSS across the resumed targets was
+  1,164,768 KiB (including the initial dependency rebuild). Compiler `--lib`
+  passed 1,292 tests with eight existing ignores; LSP `--lib` passed 20 tests.
+  Total resumed validation: 2,110 passed, zero failures, 11 existing ignores,
+  no watchdog stops. Overall peak RSS was 1,611,840 KiB. Compiler library build
+  reported the existing unused `decode_plain` warning in `stdlib/json/typed.rs`.
+  Next: profile `scoped-map-catch` using the existing nesting-discovery generator;
+  depth-32/64/80 inputs are prepared in `/tmp/tsrust-scoped-map-catch-*.tsr`.
+  Remote validation is not needed for this local optimization stage.
 
 **How to run tests safely (8 GB Mac):** a test once grew to 30 GB when a compiler
 limit was removed (non-terminating instantiation). Always run test binaries
