@@ -18,9 +18,13 @@ TypeScript": JS/TS-familiar API, Rust semantics and accuracy underneath, generat
 code at hand-written-Rust parity. The docs restructuring in the next section is
 still open but is not the current loop's focus.
 
-**Git:** branch `codex/optimize-native-hot-paths`; accepted checkpoints through
-`d9df0009` are pushed; `e0fd0169` reconciles published main ancestry without
-changing the source tree. Latest accepted optimization: **2c538120** (normalization scratch reuse, 1.316×),
+**Git:** branch `codex/optimize-native-hot-paths`. Published main **9c294876**
+contains the v0.1.1 source from staging **fa2bd1a9**. Local post-release checkpoints
+are **0a68a4f5** (932 Rust references), **2c538120** (normalization optimization)
+and **ff32ab18** (release-note provenance fix); they are not pushed/published.
+Published main ancestry is reconciled into this working branch without changing
+those accepted source/measurement trees; only this handoff records the merge.
+Latest accepted optimization: **2c538120** (normalization scratch reuse, 1.316×),
 following `28a3409c` (typed JSON pipeline restoration) and `1d3eb962` (single
 replacement sizing acceptance). Earlier
 accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration,
