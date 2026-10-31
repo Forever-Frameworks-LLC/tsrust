@@ -7,7 +7,7 @@ and do not create separate handoff files. Older handoffs and the long
 ## Start here
 
 Repository: `/Users/seancotter/Desktop/dev/learning/tsrust`.
-Branch: `codex/optimize-native-hot-paths` (pushed; full CI dispatched per milestone).
+Branch: `codex/optimize-native-hot-paths` (staging PR #8; see promotion status below).
 Read `AGENTS.md`, `docs/development-workflow.md` and `docs/agent-goal.md`, then
 this note. Inspect current source and `git status` before acting.
 
@@ -18,14 +18,33 @@ TypeScript": JS/TS-familiar API, Rust semantics and accuracy underneath, generat
 code at hand-written-Rust parity. The docs restructuring in the next section is
 still open but is not the current loop's focus.
 
-**Git:** branch `codex/optimize-native-hot-paths`; local checkpoints remain
-unpushed. Latest accepted optimization: `28a3409c` (typed JSON pipeline
+**Git:** branch `codex/optimize-native-hot-paths`; accepted checkpoints through
+`d9df0009` are pushed; `e0fd0169` reconciles published main ancestry without
+changing the source tree. Latest accepted optimization: `28a3409c` (typed JSON pipeline
 restoration), following `1d3eb962` (single replacement sizing acceptance). Earlier
 accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration,
 `610c2bc0` scalar-union arrays, `a74da73f` Rust parser defaults, `a2f94dee`
 plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
+
+**Owner-requested promotion — in progress, 2026-10-31:**
+- Owner requested updating docs/compiler, promotion through main and deployment,
+  then resuming optimization after deployments start. Staging PR:
+  https://github.com/Forever-Frameworks-LLC/tsrust/pull/8.
+- Current pushed head e0fd0169 has CI **41218842078** (standard subset, not full)
+  and Documentation **41218842260** running. No duplicate manual CI dispatched.
+  Main/stag ancestry reconciled against 9981279e/27ca587e; retained the current
+  minimal measurement store, owner-directed deleted archives and newer docs.
+  Merge checkpoint has exactly the same tree as d9df0009.
+- Local readiness: 14 distribution/release-policy tests, 21 storage tests,
+  website link-check tests and links/assets across all 116 generated pages pass.
+  Whole-project formatter changed zero files/snippets/fingerprints.
+- Main promotion automatically builds/publishes compiler/LSP/VSIX artifacts and
+  deploys Pages. Existing compiler v0.1.0 cannot be reused. Asked owner to approve
+  v0.1.1; publication/version-dependent edits remain pending that reply per the
+  project skill. Do not open the automatic-publishing stag-to-main PR until then.
+  No new tag/release or deployment has occurred yet.
 
 **Validation:**
 - GitHub CI dispatched today ran only the default subset, because
