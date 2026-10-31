@@ -65,7 +65,7 @@ mod replacement {
         assert_eq!(selected_text(true), "next-value");
         assert_eq!(nullable_length(false, None), 4);
         assert_eq!(nullable_length(true, None), 0);
-        assert_eq!(nullable_length(true, Some("é🦀".to_owned())), 2);
+        assert_eq!(nullable_length(true, Some("é🦀".to_owned())), 6);
     }
     #[test]
     fn callback_and_captured_errors_propagate_before_addition() {

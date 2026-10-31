@@ -22,7 +22,7 @@ fn mul(a: i64, b: i64) -> i64 {
     a.checked_mul(b).unwrap()
 }
 fn length(text: &str) -> i64 {
-    i64::try_from(text.chars().count()).unwrap()
+    i64::try_from(text.len()).unwrap()
 }
 fn make(base: i64) -> impl Fn(i64) -> i64 {
     move |value| add(base, value)

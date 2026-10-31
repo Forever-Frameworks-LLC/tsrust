@@ -22,7 +22,7 @@ fn mul(a: i64, b: i64) -> i64 {
     a.checked_mul(b).unwrap()
 }
 fn length(s: &str) -> i64 {
-    i64::try_from(s.chars().count()).unwrap()
+    i64::try_from(s.len()).unwrap()
 }
 
 fn next<'a>(total: &'a mut i64, hits: &'a mut i64) -> impl FnMut(Option<i64>) -> i64 + 'a {

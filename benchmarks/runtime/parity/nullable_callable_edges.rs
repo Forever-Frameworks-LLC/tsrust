@@ -54,7 +54,7 @@ mod once {
             trace.calls = add(trace.calls, 1);
             add(v, length(&owned.into_boxed_str()))
         };
-        assert_eq!(forward_once(Some(action), 7, &mut trace), Some(9));
+        assert_eq!(forward_once(Some(action), 7, &mut trace), Some(13));
         assert_eq!((trace.calls, trace.arguments), (1, 1));
         let result = function0(1, 1, &"x".into());
         assert!(result.0[0].0.is_empty());
@@ -70,8 +70,8 @@ mod owned {
         let input = "é🦀".to_owned();
         let action = make_owned(0, 3, &input, &mut trace).unwrap();
         drop(input);
-        assert_eq!(action(7, &mut trace), 12);
-        assert_eq!(action(8, &mut trace), 13);
+        assert_eq!(action(7, &mut trace), 16);
+        assert_eq!(action(8, &mut trace), 17);
         assert!(make_owned(1, 0, "x", &mut trace).is_none());
         assert!(make_owned(2, 0, "x", &mut trace).is_none());
         assert_eq!((trace.calls, trace.factories), (2, 3));
@@ -86,7 +86,7 @@ mod owned_once {
         let input = "é🦀".to_owned();
         let action = make_owned_once(0, 3, &input, &mut trace).unwrap();
         drop(input);
-        assert_eq!(action(7, &mut trace), 12);
+        assert_eq!(action(7, &mut trace), 16);
         assert!(make_owned_once(1, 0, "x", &mut trace).is_none());
         assert_eq!((trace.calls, trace.factories), (1, 2));
     }

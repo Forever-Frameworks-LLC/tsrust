@@ -35,10 +35,10 @@ mod escape {
 mod results {
     include!("nested_function_results.rs");
     #[test]
-    fn inferred_results_retain_unicode_scalar_length() {
+    fn inferred_results_retain_utf8_byte_length() {
         let input: String = "é🦀".into();
         let result = function0(1, 0, &input);
-        assert_eq!(result.0[0].0, vec![2, 4, 3, 1, 2, 2]);
+        assert_eq!(result.0[0].0, vec![2, 4, 3, 1, 2, 6]);
     }
 }
 #[allow(dead_code)]

@@ -16,7 +16,7 @@ fn add(a: i64, b: i64) -> i64 {
     a.checked_add(b).unwrap()
 }
 fn length(s: &str) -> i64 {
-    i64::try_from(s.chars().count()).unwrap()
+    i64::try_from(s.len()).unwrap()
 }
 
 fn empty<T>() -> Vec<T> {
