@@ -789,6 +789,38 @@
     "compound_value_number_shift_right_unsigned": {
       "at": "2026-10-31T11:28:02.044Z",
       "sourceSha256": "aa0390cd92c6d59e534bab4ecfc4394afcf380de48f3ffd127a97831d825bb5f"
+    },
+    "conditional_int_value": {
+      "at": "2026-10-31T11:31:26.759Z",
+      "sourceSha256": "b3b956b13359502261fb2f3aa5a33d5858a35c10906a390e8e058f7aa7e170c8"
+    },
+    "conditional_number_value": {
+      "at": "2026-10-31T11:31:26.759Z",
+      "sourceSha256": "effa86c339dc5a853679d184289e981b7f0a1179f368b719ea432a423f1e8573"
+    },
+    "number_value_of": {
+      "at": "2026-10-31T11:31:26.759Z",
+      "sourceSha256": "be663b75cd43f997545a200307e4cfbb0442a351b8a55f2e7e8043930e356df8"
+    },
+    "int_value_of": {
+      "at": "2026-10-31T11:31:26.759Z",
+      "sourceSha256": "0d5cec691fa513dbf100cbdf573ca973a5f622dd4452f021892a65258a8712a8"
+    },
+    "int_to_string_decimal": {
+      "at": "2026-10-31T11:31:26.759Z",
+      "sourceSha256": "7bd3a4268b9ef12077f62b72d8df812cb615e5b7e453c9b0b4867cc00aca391c"
+    },
+    "int_to_string_binary": {
+      "at": "2026-10-31T11:31:26.759Z",
+      "sourceSha256": "11bb92470886833e8f60200098c41cd90f7835232c1d21a4196deb292d3115ef"
+    },
+    "int_to_string_hex": {
+      "at": "2026-10-31T11:31:26.759Z",
+      "sourceSha256": "92d57c2fdfedb3c9176374a130b61181411f4a7a318f12d159f1edd026a94c68"
+    },
+    "int_to_string_base36": {
+      "at": "2026-10-31T11:31:26.759Z",
+      "sourceSha256": "355927afcbecccefb0acff093f9cef227abb5e30dc3ec32ae90189d8589d950b"
     }
   }
 }
