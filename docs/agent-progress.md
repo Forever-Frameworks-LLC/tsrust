@@ -677,8 +677,8 @@ counts, wrap a copy of the generated program with a counting global allocator.
 
 **Hand-written Rust reference expansion — current, 2026-10-31:**
 - Owner requested independent, ordinary Rust comparisons alongside **all 932**
-  public workloads. **426 are measured; 506 remain.** This is ongoing acceptance,
-  not universal hand-written-Rust parity. Next: remaining callback and concatenation families; the
+  public workloads. **451 are measured; 481 remain.** This is ongoing acceptance,
+  not universal hand-written-Rust parity. Next: remaining callback families; the
   Math.random reference is also still open. No compiler candidate is active.
 - Reuse Node and Rust baselines instead of timing them for every optimization.
   Refresh on workload/protocol/reference-source/toolchain/hardware changes or
@@ -729,8 +729,9 @@ counts, wrap a copy of the generated program with a counting global allocator.
 | Stable array sorting | 28 | 3675fa30 |
 | Range/copying array mutations | 40 | aec6d22a |
 | Array removal/optional selection | 40 | 2ed02865 |
-| Array insertion/splice | 16 | This checkpoint; details below |
-| **Total** | **426** | **506 still required** |
+| Array insertion/splice | 16 | 65ca3406 |
+| Array concatenation | 25 | This checkpoint; details below |
+| **Total** | **451** | **481 still required** |
 
 **Reference correctness and interpretation:**
 - Sources are independently authored Rust using standard-library operations and
@@ -765,33 +766,33 @@ counts, wrap a copy of the generated program with a counting global allocator.
   unmeasured Rust rows are not losses. Never label Tsrust simply "Native".
 - Current summary: Tsrust faster than Node.js in **613/932**, median throughput
   ratio **1.52×**, range **0.04×–189.48×**. Hand-written Rust faster than Node.js
-  in **282/932 (426 measured)**. The ratios use mean throughput, not median time.
+  in **296/932 (451 measured)**. The ratios use mean throughput, not median time.
 - Website generation/build passes locally; no deployment, push or CI is implied.
   Full-project formatting has consistently changed zero files/snippets/fingerprints.
 
-**Rust array insertion/splice — verified, 2026-10-31:**
-- Sixteen references cover unshift/splice across int, number, boolean, string,
-  nested, record, null and undefined types. Standard Vec::splice inserts in
-  argument order and transfers removed owned values into a separate Vec. Outputs
-  retain both lengths, removed values and receiver contents; number outputs retain
-  NaN, infinity and signed zero. Owned record/string descriptions survive inputs.
-- Relative bounds clamp safely, negative delete counts remove zero, omitted
-  deletion removes the tail, and zero-argument splice leaves the receiver intact.
-  No owner/design decision or compiler change was needed.
-- First preparation rejected an extra closing brace in the new Rust helper;
-  corrected before timing/acceptance, with no invalid measurement imported.
-  Final sixteen matched independent output oracles and completed 93 samples each
-  (three processes, eight warmups, 31 timed samples), Rust-only run
-  2026-10-31T12:10:15.910Z; medians 0.152916–2.066750 ms,
-  max load 1.988, watchdog peak 455,968 KiB.
-  Existing Tsrust/Node measurements reused.
+**Rust array concatenation — verified, 2026-10-31:**
+- Twenty-five references: zero-argument and variadic concat across twelve scalar,
+  nested, record, deep and recursive domains, plus the ordered scalar trace.
+  Standard Vec slice copies clone the live immutable base; dead local receiver
+  and argument Vecs transfer owned elements into results. Nested vectors and
+  owned record text/children remain independent across output rows.
+- Scalar-vs-array argument shape is preserved. Nested/deep arrays append only
+  the outer elements; they are not recursively flattened. The ordered witness
+  calls the receiver, array argument and scalar argument once, left-to-right,
+  then observes every concatenated element and the mutable probe trace.
+- All twenty-five matched independent output oracles and completed 93 samples
+  each (three processes, eight warmups, 31 timed samples), Rust-only run
+  2026-10-31T12:13:24.033Z; medians 0.008708–0.171833 ms,
+  max load 2.279, watchdog peak 338,592 KiB.
+  Existing Tsrust/Node measurements reused; compiler implementation unchanged.
 - Five durable Rust edge tests passed under the sequential watchdog with three
-  threads: i64 start/delete extremes, omitted vs zero deletion, argument order,
-  retained IEEE values, and removed/inserted owned labels after input drop.
-- store:ingest added sixteen histories; stored medians/sample counts, source
+  threads: mixed scalar/array/empty order, independent nested zero-argument copies,
+  recursive child/text ownership, receiver/argument evaluation trace and IEEE
+  values across scalar/array arguments. No watchdog stops.
+- store:ingest added twenty-five histories; stored medians/sample counts, source
   hashes and SQLite integrity verified before raw disposal. Public hashes and
-  timestamps pinned. Coverage **426/932**, remaining **506**. Next: remaining
-  callback and concatenation families; Math.random reference remains open.
+  timestamps pinned. Coverage **451/932**, remaining **481**. Next: remaining
+  callback families; Math.random reference remains open.
 
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code
