@@ -677,9 +677,8 @@ counts, wrap a copy of the generated program with a counting global allocator.
 
 **Hand-written Rust reference expansion — current, 2026-10-31:**
 - Owner requested independent, ordinary Rust comparisons alongside **all 932**
-  public workloads. **925 are measured; seven remain.** This is ongoing acceptance,
-  not universal hand-written-Rust parity. Next: recursive_result_inference, environment/time/import/module state,
-  Math.random and normalization.
+  public workloads. **930 are measured; two remain.** This is ongoing acceptance,
+  not universal hand-written-Rust parity. Next: math_random_range and string_normalize_forms.
   All native-json and native-schema workloads now have Rust baselines. No compiler candidate is active.
 - Reuse Node and Rust baselines instead of timing them for every optimization.
   Refresh on workload/protocol/reference-source/toolchain/hardware changes or
@@ -767,8 +766,9 @@ counts, wrap a copy of the generated program with a counting global allocator.
 | Schema object policies/presence/defaults/literals/export | 8 | e94d7def |
 | Standard language/string/record/tuple primitives | 13 | 6241c366 |
 | Object enumeration/membership and union arrays | 8 | c6e11476 |
-| Patterns/control/assignments/testing assertions | 13 | This checkpoint; details below |
-| **Total** | **925** | **seven still required** |
+| Patterns/control/assignments/testing assertions | 13 | 28d30640 |
+| Recursion/environment/clock/import/module state | 5 | This checkpoint; details below |
+| **Total** | **930** | **two still required** |
 
 **Reference correctness and interpretation:**
 - Sources are independently authored Rust using standard-library operations and
@@ -803,52 +803,56 @@ counts, wrap a copy of the generated program with a counting global allocator.
   unmeasured Rust rows are not losses. Never label Tsrust simply "Native".
 - Current summary: Tsrust faster than Node.js in **613/932**, median throughput
   ratio **1.52×**, range **0.04×–189.48×**. Hand-written Rust faster than Node.js
-  in **622/932 (925 measured)**. The ratios use mean throughput, not median time.
+  in **625/932 (930 measured)**. The ratios use mean throughput, not median time.
 - Website generation/build passes locally; no deployment, push or CI is implied.
   Full-project formatting has consistently changed zero files/snippets/fingerprints.
 
-**Rust patterns/control/assertions — verified, 2026-10-31:**
-- Thirteen independent std-only references add destructuring/defaults/rest,
-  nested patterns, for initializers, simultaneous assignments, braceless branches,
-  switch/labeled control, definite assignment, owned assignment results and both
-  testing assertion fixtures. Rust tuples/structs/Option/explicit null variants
-  retain owned data and distinguish null from missing. Rest arrays stay independent;
-  spread count overwrite preserves constructor position. Fallback traces execute
-  only on missing values. Continue/break edges retain loop update and do/while
-  behavior; assignments borrow/read the newly stored owner.
-- Standard Rust assertions execute the scalar/expectation checks, including NaNs,
-  signed zero, negation, numeric ordering/precision and UTF-16 string lengths.
-  Full output oracles and **93 samples per workload** passed (three processes,
-  eight warmups, 31 samples), first Rust-only run
-  **2026-10-31T15:27:03.823Z**, max timing load **2.966**, sampled peak **457,568
-  KiB**, total **18.165 seconds**. No Node/Tsrust timing reruns or product changes.
-- Review caught a reference-only close-comparison shortcut that returned true for
-  equal finite values even when extreme/NaN precision makes the specified
-  tolerance zero/NaN. Keep the infinity special case, evaluate the actual finite
-  tolerance, and add edge witnesses. Remeasured only that reference at
-  **2026-10-31T15:28:00.367Z**, median **0.093833 → 0.123667 ms**, max load
-  **2.048**, sampled peak **348,512 KiB**, 93 samples. This accuracy correction
-  intentionally replaces the faster invalid shortcut; it is not a Tsrust
-  optimization. Other twelve accepted measurements retained. Accepted cohort
-  medians **0.013125–1.082167 ms**; busy override off.
-- Thirteen pattern_control_edges.rs checks passed under the watchdog with three
-  threads: Unicode record/tuple bindings, lazy/null defaults, independent rest/
-  spread order, nested tail defaults, for/continue updates, simultaneous Fibonacci
-  assignment, dangling else/post-test loops, switch narrowing/control, definite
-  initialization, labeled updates/breaks, assignment owner results, assertion
-  checksums and numeric/UTF-16 precision edges. Edge compile peak **175,840 KiB**.
-- store:ingest added **14 histories**. Stored medians/counts, hashes (old helper
-  reconstructed in memory), timing load and SQLite integrity checked before raw
-  disposal. Public pins select corrected source; all 66 website pages build
-  locally. No push/deploy/CI. Coverage **925/932**, **seven remain**:
-  math_random_range, string_normalize_forms, recursive_result_inference,
-  std_env_get, std_time_monotonic_now, native_json_import, native_module_state.
-  Next: the five deterministic remaining programs, then independent random-range
-  evidence and full Unicode normalization. Never precompute corpus outputs.
-- Prior **6241c366/c6e11476** provide 21 standard-language/object/union references
-  and 21 edge checks, including the removed extra cloned-string copy in
-  copied_text. Schemas **aa3a2b32/e94d7def**, JSON **d8c411ae/dde5d289**, files
-  **49d80b96**, paths/OS **dd8c100d** are fully measured. All 932 required.
+**Rust recursion/host/module references — verified, 2026-10-31:**
+- Five independent references add actual factorial/parity/string/depth/Fibonacci
+  recursion, mutable captured steps, std environment reads, process-epoch monotonic
+  clock, typed compiled JSON import data and exclusive module counter state.
+  Standard Rust recursion performs each recursive call; environment reads
+  distinguish missing/present-empty and reject invalid Unicode. LazyLock/Instant
+  supplies actual clock readings in milliseconds. Typed SETTINGS constants mirror
+  the checked imported JSON data; the body reads base and scans all three values,
+  never substitutes a precomputed checksum.
+- Added narrowly scoped moduleStateReferenceABI/driver support for an ordinary
+  Rust function taking &mut i64. One caller counter is initialized outside all
+  warmups/samples and retained across calls. Compiler moduleStateABI and its
+  fallible generated-function guards remain unchanged/strict; references never
+  manufacture compiler function/error wrappers. The adapter forwards reference
+  mode only for that engine path.
+- Five complete independent output checks and **93 samples per workload** passed
+  (three processes, eight warmups, 31 samples), Rust-only run
+  **2026-10-31T15:37:09.263Z**. Medians: recursion **0.569292 ms**, environment
+  **1.973333**, clock **0.531250**, typed import **0.001250**, module counter
+  **0.000750**. Max timing load **2.227**, sampled watchdog peak **328,624 KiB**,
+  total **7.758 seconds**, busy override off. Node/Tsrust baselines reused.
+- **13 harness tests passed**: adapters five, module-state three, typed import
+  one, environment two, monotonic time two. Repaired a new readonly-owner guard
+  witness that initially mutated the wrong parameter. Also fixed two stale
+  registration-test expectations from pending-s09-family to the existing measured
+  manifest status; source/operation/oracle guards retained. Reran only affected
+  checks; no compiler/product changes or additional Node timing.
+- Five host_state_edges.rs checks passed under the watchdog, three threads:
+  recursive base cases/push order/results, real isolated child environment,
+  finite nondecreasing clock reads, pinned compiled import data/array scan,
+  repeated module-owner calls and checked overflow. No unsafe environment mutation
+  or new dependencies. Edge compilation sampled peak **95,680 KiB**.
+- store:ingest added five histories. Stored medians/counts, accepted hashes,
+  timing load and SQLite integrity checked before raw disposal. Public pins
+  refreshed; all 66 website pages build locally. No push/deploy/CI.
+  Coverage **930/932**, **two remain**: math_random_range and string_normalize_forms.
+  Next: inspect installed established Rust RNG/Unicode libraries and add the
+  minimum reference-only dependency preparation if needed. Preserve compiler/
+  Node dependency paths, exact workload work and independent range/normalization
+  edge evidence; never precompute corpus outputs. All 932 required.
+- Prior **28d30640** adds thirteen pattern/control/assertion references and thirteen
+  edge checks; corrected finite close-comparison precision semantics, refreshed
+  only that reference (0.093833 → 0.123667 ms; accuracy fix, not Tsrust speedup).
+  Standard language/objects **6241c366/c6e11476** add 21 references/21 checks;
+  schemas **aa3a2b32/e94d7def**, JSON **d8c411ae/dde5d289**, files **49d80b96**,
+  paths/OS **dd8c100d**. Native-only references stay std-only.
 - Prior composition checkpoint **5ce1bd51** covers the complete 2,985-line fixture
   and 136 observed columns, seven edge tests and 93 samples (18.420917 ms).
   Its public **Tsrust/Rust ratio 0.15×** exposes generated overhead for later

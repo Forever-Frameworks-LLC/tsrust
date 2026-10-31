@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {createHash} from 'node:crypto';
-import {assertModuleStateSource,moduleStateABI,moduleStateDriver} from './module-state-contract.mjs';
+import {assertModuleStateSource,moduleStateABI,moduleStateReferenceABI,moduleStateDriver} from './module-state-contract.mjs';
 import {expectedChecksum} from './oracle.mjs';
+import {adaptRustDriver} from './adapters.mjs';
 import {reportCategory} from './report.mjs';
 const read = path => fs.readFileSync(new URL(path, import.meta.url), 'utf8');
 const rows = JSON.parse(read('./manifest.json')).workloads.filter(row => row.id === 'native_module_state');
@@ -28,4 +29,21 @@ test('module driver retains one exclusive owner outside sample loops', () => {
   assert.ok(driver.indexOf('let mut module_completed') < driver.indexOf('for _ in 0..warmups'));
   assert.match(driver, /&mut module_completed/);
   assert.throws(() => moduleStateABI(emitted.replace('&mut i64', '&i64'), row, source));
+});
+
+test('independent Rust module state uses a persistent exclusive owner without compiler wrappers',()=>{
+  const source=read('./'+row.source),emitted=read('./parity/native_module_state.rs');
+  assert.equal(moduleStateReferenceABI(emitted,row,source).functionName,'function0');
+  const driver=moduleStateDriver(read('./driver.rs'),row,emitted,source,{reference:true});
+  assert.equal((driver.match(/let mut module_completed/g)??[]).length,1);
+  assert.ok(driver.indexOf('let mut module_completed')<driver.indexOf('for _ in 0..warmups'));
+  assert.match(driver,/let benchmark_module_function = function0;/);
+  assert.equal(adaptRustDriver(read('./driver.rs'),row,{emitted,source,reference:true}),driver);
+  assert.throws(()=>adaptRustDriver(read('./driver.rs'),row,{emitted,source}));
+  assert.match(driver,/benchmark_module_function\(n, seed, &mut module_completed\)/);
+  assert.doesNotMatch(driver,/tsr_result_function|TsrFunctionError/);
+  assert.throws(()=>moduleStateABI(emitted,row,source));
+  assert.throws(()=>moduleStateReferenceABI(emitted.replace('value2: &mut i64','value2: &i64'),row,source));
+  assert.throws(()=>moduleStateReferenceABI(emitted.replace(' -> i64 {',' -> bool {'),row,source));
+  assert.throws(()=>moduleStateReferenceABI(emitted+'\n'+emitted,row,source));
 });

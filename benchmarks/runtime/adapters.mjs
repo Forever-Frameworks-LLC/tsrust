@@ -100,7 +100,7 @@ export function rustChecksum(workload, {probe = false,emitted,source,reference=f
  return `fn ${name}(values: ${parameter}) -> i64 { let mut result = 0_i64; ${body} result }`;
 }
 export function adaptRustDriver(driver, workload, {probe = false,emitted,source,reference=false} = {}) {
- if(workload.family==='module-state')return moduleStateDriver(driver,workload,emitted,source);
+ if(workload.family==='module-state')return moduleStateDriver(driver,workload,emitted,source,{reference});
  if(isCopying(workload))verifyCopyingResultABI(emitted,workload,source);
  if(isRange(workload))verifyRangeResultABI(emitted,workload,source);
  if(isHigher(workload))verifyHigherResultABI(emitted,workload,source);

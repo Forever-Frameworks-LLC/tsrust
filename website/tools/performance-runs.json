@@ -3737,6 +3737,26 @@
     "testing_expectation_predicates": {
       "at": "2026-10-31T15:28:00.367Z",
       "sourceSha256": "147bac1505c063721fe54fadcf33790e40bd5ed3fb4c66539b1a4894a1f2fe16"
+    },
+    "recursive_result_inference": {
+      "at": "2026-10-31T15:37:09.263Z",
+      "sourceSha256": "f4811abec9b6795c4416504170efc67fb90fe4a183d829192c64b62e3e2017d7"
+    },
+    "std_env_get": {
+      "at": "2026-10-31T15:37:09.263Z",
+      "sourceSha256": "ba7a7fafb2c94d48aebdc2c496da007750d6c3fa948790234d455725f7e71f10"
+    },
+    "std_time_monotonic_now": {
+      "at": "2026-10-31T15:37:09.263Z",
+      "sourceSha256": "f65352292903dde2c6ecd7a9be4c0c03864f30a1ee01dd44079094b97184e5f4"
+    },
+    "native_json_import": {
+      "at": "2026-10-31T15:37:09.263Z",
+      "sourceSha256": "3752a6def1801fe7b2e25f8b1d92e641c80a416269f453b06f3a83942862d14c"
+    },
+    "native_module_state": {
+      "at": "2026-10-31T15:37:09.263Z",
+      "sourceSha256": "a753caf13bc3d951523cc9d17304e98c9cef77d1c71cbe01b698039d826c8853"
     }
   }
 }
