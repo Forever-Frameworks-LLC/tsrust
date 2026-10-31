@@ -629,6 +629,30 @@
     "string_pad_end_unicode": {
       "at": "2026-10-31T11:21:04.326Z",
       "sourceSha256": "562a5b26c67ea030a9441781221271e613f3d8c141d6ead81af80a336b1678a1"
+    },
+    "string_replace_first_plain": {
+      "at": "2026-10-31T11:24:08.212Z",
+      "sourceSha256": "463cb4df572ce7ef3a12f62243ab8bee923f698337e56658cf249f487260ad77"
+    },
+    "string_replace_first_tokens": {
+      "at": "2026-10-31T11:24:08.212Z",
+      "sourceSha256": "1c6253005036661cddfa2493daa05ca201b0546b64a66105d62e7a75d1eefbdb"
+    },
+    "string_replace_first_empty": {
+      "at": "2026-10-31T11:24:08.212Z",
+      "sourceSha256": "22b5b17f248c8de8f9ce1e5e0e8bcf28e576cc8bfac582d74108e8b73bace222"
+    },
+    "string_replace_all_plain": {
+      "at": "2026-10-31T11:24:08.212Z",
+      "sourceSha256": "1192f2367041d318c51049c8dfb954ab9ba9ffcd6bc32607ef487fd293f40aa9"
+    },
+    "string_replace_all_tokens": {
+      "at": "2026-10-31T11:24:08.212Z",
+      "sourceSha256": "87be23c2e13f31837e0611a8cd3426ee368bb21352caea259b704ccc519a7b6d"
+    },
+    "string_replace_all_empty": {
+      "at": "2026-10-31T11:24:08.212Z",
+      "sourceSha256": "6728dc855ea24a258f3f14de33ae54bfb02f6a28a99f2b6106ffdac6e9c0ed29"
     }
   }
 }
