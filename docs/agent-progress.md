@@ -699,6 +699,25 @@ counts, wrap a copy of the generated program with a counting global allocator.
 - `npm run build` in website passed; generated performance route exists and
   all 932 workload IDs are unique. Local source/build updated; no deployment.
 
+**Owner benchmark direction — 2026-10-31 (supersedes routine Node reruns):**
+- Owner requested hand-written standard Rust comparisons alongside all public
+  workloads and reusable Node/Rust baselines instead of rerunning them for every
+  optimization. Preserve equivalent behavior, ownership, checks and outputs;
+  report actual winners, including Tsrust overhead. Refresh reference baselines
+  on workload/protocol/reference-source/toolchain/hardware changes, or when a
+  noisy close result requires a fresh control. Native parent/candidate A/B stays.
+- Existing `rust-hand` runner and two measured parity sources reused. Public
+  performance generator now shows hand-written Rust throughput, native/Rust ratio,
+  independent dates and explicit missing coverage (2/932). Baselines pinned by
+  timestamp and parity-source SHA-256; sample counts checked. Website build passed.
+  No new Node or Rust timing was run for this page update; no deployment.
+- **Remaining owner request: implement and validate hand-written Rust coverage
+  for the other 930 displayed workloads**, by coherent families with independent
+  result oracles. Start current schema workloads, then remaining families. Do not
+  claim all comparisons exist. Current schema candidate remains unaccepted until
+  library validation and native A/B; use stored Node controls, not an automatic
+  new Node timing run. Keep source/protocol provenance for reusable baselines.
+
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code
 must not contain `unsafe` (tests assert it); one handoff note only (this file);

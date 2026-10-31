@@ -36,5 +36,15 @@
     "logicalCPUs": 8,
     "platform": "darwin",
     "totalMemoryBytes": 8589934592
+  },
+  "rustBaselines": {
+    "declaration_lists": {
+      "at": "2026-10-30T21:19:17.017Z",
+      "sourceSha256": "1c62e070d3247e5c96dc1778eb6330ecf00ec77eb1fbf308ffa2aa841aa88862"
+    },
+    "native_schema_int_bounds": {
+      "at": "2026-10-29T23:30:30.072Z",
+      "sourceSha256": "0016e8a2a0c20fdc93ffcfe85ff1874b7cd7bc609d02ab8f4abee2427aadd9cd"
+    }
   }
 }

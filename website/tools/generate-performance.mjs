@@ -3,6 +3,7 @@
 // the page changes only when that list or those measurements change.
 import fs from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
 
@@ -19,6 +20,7 @@ const runsOf = (engine) => new Map(db.prepare('SELECT workload, history FROM mea
   .map(({ workload, history }) => [workload, new Map(JSON.parse(history).map((entry) => [entry.at, entry]))]));
 const nativeRuns = runsOf('native');
 const nodeRuns = runsOf('node-tsc');
+const rustRuns = runsOf('rust-hand');
 db.close();
 const selected = new Map();
 const runs = [];
@@ -38,6 +40,16 @@ for (const at of [...config.runs].sort()) {
   runs.push({ timestamp: at });
 }
 const rows = [...selected.values()];
+for (const row of rows) {
+  const baseline = config.rustBaselines?.[row.workload];
+  if (!baseline) continue;
+  const source = fs.readFileSync(path.join(root, 'benchmarks/runtime/parity', `${row.workload}.rs`));
+  if (createHash('sha256').update(source).digest('hex') !== baseline.sourceSha256) throw Error(`Stale Rust baseline source: ${row.workload}`);
+  const measurement = rustRuns.get(row.workload)?.get(baseline.at);
+  if (!measurement || measurement.samples !== config.processes * config.samplesPerProcess) throw Error(`Missing Rust baseline: ${row.workload}`);
+  row.rust = measurement.ops;
+  row.rustAt = baseline.at;
+}
 if (!rows.length) throw Error('No native/node-tsc comparisons in the configured runs');
 
 // Manifest categories grew per feature family; fold them into reader-facing groups.
@@ -92,13 +104,15 @@ above 1 means the native program was faster.
 This snapshot uses the latest accepted measurement selected for each workload.
 Rows carry their measurement date; unchanged workloads retain earlier results.
 Rejected experiments and candidates still in validation are excluded. These
-results compare native execution with Node.js, not hand-written Rust.
+results compare native execution with Node.js. Hand-written Rust baselines are
+shown where implemented and measured; a dash means coverage is still missing.
 
 ## Summary
 
 | Measure | Value |
 | --- | --- |
 | Workloads compared | ${rows.length} |
+| Hand-written Rust coverage | ${rows.filter(row => row.rust !== undefined).length} of ${rows.length} |
 | Native faster | ${faster} of ${rows.length} |
 | Median ratio (native ÷ Node.js) | ${median.toFixed(2)}× |
 | Range | ${ratios[0].toFixed(2)}× to ${ratios.at(-1).toFixed(2)}× |
@@ -123,10 +137,10 @@ page += slower.length
   : '\n';
 page += 'Each group lists every workload, slowest ratio first. Speeds are operations per second, abbreviated: k is thousands, M is millions and G is billions, so `5.35 M` is about 5,350,000 operations per second. The ratio column is the one to compare.\n\n';
 for (const [group, entries] of ordered) {
-  page += `### ${group}\n\n<details>\n<summary>${entries.length} workloads</summary>\n\n| Workload | Native (ops/s) | Node.js (ops/s) | Ratio | Measured |\n| --- | ---: | ---: | ---: | --- |\n`;
+  page += `### ${group}\n\n<details>\n<summary>${entries.length} workloads</summary>\n\n| Workload | Native (ops/s) | Node.js (ops/s) | Native / Node | Hand-written Rust (ops/s) | Native / Rust | Native / Node date | Rust date |\n| --- | ---: | ---: | ---: | ---: | ---: | --- | --- |\n`;
   for (const row of entries.sort((a, b) => ratio(a) - ratio(b))) {
     const label = row.description ? `\`${row.workload}\`: ${cell(row.description)}` : `\`${row.workload}\``;
-    page += `| ${label} | ${rate(row.native)} | ${rate(row.node)} | ${ratio(row).toFixed(2)}× | ${row.at.slice(0,10)} |\n`;
+    page += `| ${label} | ${rate(row.native)} | ${rate(row.node)} | ${ratio(row).toFixed(2)}× | ${row.rust === undefined ? "—" : rate(row.rust)} | ${row.rust === undefined ? "—" : (row.native / row.rust).toFixed(2) + "×"} | ${row.at.slice(0,10)} | ${row.rustAt?.slice(0,10) ?? "—"} |\n`;
   }
   page += '\n</details>\n\n';
 }
@@ -149,6 +163,20 @@ are timed together, so a rate is not the cost of one isolated operation.
   and the timed result is verified afterwards.
 - Native strings use UTF-8 semantics. Where a workload depends on string encoding,
   the TypeScript counterpart performs the same UTF-8 work explicitly.
+
+## Reusable reference baselines
+
+Hand-written Rust uses ordinary Rust ownership and standard-library operations,
+with established crates where the workload requires them (for example,
+serde_json for JSON). It must preserve the same observable results, errors and
+safety checks. It is not generated Tsrust output with a different label.
+
+Node.js and hand-written Rust measurements are reusable reference baselines;
+they need not run for every compiler optimization. Refresh them when workload
+semantics, benchmark protocol, reference source, toolchains or hardware change.
+A fresh control may also be needed to resolve noisy or close timing results.
+Dates remain visible because baselines and compiler measurements may be from
+different runs. Missing Rust results are not inferred from Node.js timings.
 
 ## Limits
 
