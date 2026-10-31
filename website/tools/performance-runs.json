@@ -3353,6 +3353,54 @@
     "scoped_record_composition": {
       "at": "2026-10-31T14:31:10.861Z",
       "sourceSha256": "3ac555537df5302345907dea482e0ba9d575476d04e728de819d79c7b475dca2"
+    },
+    "std_path_basename_ascii": {
+      "at": "2026-10-31T14:33:32.402Z",
+      "sourceSha256": "8a933f4fa0c21ec537150e3ca1793497896f8373fdc2c0e1b7fbe38c03557e69"
+    },
+    "std_path_extname_ascii": {
+      "at": "2026-10-31T14:33:32.402Z",
+      "sourceSha256": "e47c43037afa3ee7c05846d660147bf2354065605bd50b8b4b286734b4335d6a"
+    },
+    "std_path_is_absolute_ascii": {
+      "at": "2026-10-31T14:33:32.402Z",
+      "sourceSha256": "adc91ff255f1c7ebc949ef55b5b95e4c015c7215c5149283b4e8a34bf713f9c9"
+    },
+    "std_path_normalize_ascii": {
+      "at": "2026-10-31T14:33:32.402Z",
+      "sourceSha256": "f297cd7c74833bcb9775741ac280914a8b827f4ab451876c6140ec19f65818b4"
+    },
+    "std_os_platform": {
+      "at": "2026-10-31T14:33:32.402Z",
+      "sourceSha256": "f21d3fcbdf96cce7cc822318affc227b285fed6bffe6154557a3ae23723f552e"
+    },
+    "std_os_arch": {
+      "at": "2026-10-31T14:33:32.402Z",
+      "sourceSha256": "f5444d1bee3083123e537deda2d112b65aa7a71bfcb54426b99d9e2a18d097be"
+    },
+    "std_path_join_ascii": {
+      "at": "2026-10-31T14:33:32.402Z",
+      "sourceSha256": "ecf5495319d972fa0d7ac351b5f5a5309df3a6aa0af3f4c7445308d14fa79d11"
+    },
+    "std_path_join_empty_roots": {
+      "at": "2026-10-31T14:33:32.402Z",
+      "sourceSha256": "12dc460332685e70e7d7d15991e228cc97f597e966d675a9efca790df318d9b3"
+    },
+    "std_path_join_many_unicode": {
+      "at": "2026-10-31T14:33:32.402Z",
+      "sourceSha256": "2e26ce0294fe2e9e04882b7469539161be57f4d31b81ed976b3dee0801af2620"
+    },
+    "std_os_endianness": {
+      "at": "2026-10-31T14:33:32.402Z",
+      "sourceSha256": "a6824a6c5850b28924db759a05a305682cb36b6d063de821736b52b4fef04059"
+    },
+    "std_path_relative": {
+      "at": "2026-10-31T14:33:32.402Z",
+      "sourceSha256": "2c6b76dd76d4316d7876c6b9be6f47970b6ea5c3c11ecd954832674beca26126"
+    },
+    "std_path_dirname_ascii": {
+      "at": "2026-10-31T14:34:19.807Z",
+      "sourceSha256": "a95f371f090ac37ab4803c7eff2f6ba9256efe3a220e9e9ed649d3c287b4d59c"
     }
   }
 }
