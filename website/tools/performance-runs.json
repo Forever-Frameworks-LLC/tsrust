@@ -653,6 +653,142 @@
     "string_replace_all_empty": {
       "at": "2026-10-31T11:24:08.212Z",
       "sourceSha256": "6728dc855ea24a258f3f14de33ae54bfb02f6a28a99f2b6106ffdac6e9c0ed29"
+    },
+    "update_int_prefix_increment": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "74f9974674854ebbb8acf9f775a4bd38155b088f372dc33d3c50f0a581386ba7"
+    },
+    "update_int_prefix_decrement": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "e42a33568ea1dd8a0b7f0db8103380eff67e4653d9048d74ef4b5ddd14dc4b68"
+    },
+    "update_int_postfix_increment": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "9644c36fcc619cf7b9a97cc5f6c2406ca9d148b984b5f21c9e4841b9847adcc2"
+    },
+    "update_int_postfix_decrement": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "bddf3d8f001464515593310f84eda8f82ef47e09e851766db00bf41a6509fed0"
+    },
+    "update_number_prefix_increment": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "1630faca508dfa25255d8d4c41a4e57384cf95a49847dcfdd47a51e30fd1a9de"
+    },
+    "update_number_prefix_decrement": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "018b5299afb78a5c0b09f213efbf1483a13ae12103bb35b3c747dd608c6dbac8"
+    },
+    "update_number_postfix_increment": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "5579408149cfce5861fde0538377fd16b90cee9123cabc08019f00596a21f2c7"
+    },
+    "update_number_postfix_decrement": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "f01cf4ef4f34550f89e8bd9b85351614fd34455c538a6c22173a04fc985b481f"
+    },
+    "int_assignment_value": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "2031a963344e8596d7c6e93df294ec8043c83e040a4e8dc086fee4a648807720"
+    },
+    "number_assignment_value": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "aae50d6cee3fb3e6929cf8154b8ebbd699e35d8511bbcc2f6bb049392b9fb857"
+    },
+    "compound_value_int_add": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "2cb2ccd3e947673fba4737cb418417057dee66a8ecbde970b1c22527dc310879"
+    },
+    "compound_value_int_subtract": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "b9ac35b7b09a5e82a446a6b7f5724dbbde2a50c6e3a0731cd0b661bd32e9b0a1"
+    },
+    "compound_value_int_multiply": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "d24d6dca424de06ba631f5d472f7d38cee610eb686ee1951ce22cd050ba365d1"
+    },
+    "compound_value_int_divide": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "a143459056bc554b2db08a59b2d6e93954c146fdb0fb3208f60936d91e3af0b2"
+    },
+    "compound_value_int_remainder": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "bff97ab208b1a18e41a666d57a4d3a4091771c674507c0b630d6d9a51b297977"
+    },
+    "compound_value_int_power": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "4b461cb9e7a62e6c62fbb6d85bb11c4a34da8bc615c9091000e0b7dc2003c799"
+    },
+    "compound_value_int_and": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "371dbda4300599db51cdb880bc1d897c26714aa31185265e319634100f36b0a9"
+    },
+    "compound_value_int_or": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "e17011fb3d6f36ef61e13977a6dc545a32867239126ba5ca3bd436125ed441d4"
+    },
+    "compound_value_int_xor": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "19b100e4fcac9271de4e31403abed1cb9193d7187871f257484ec87664129ddb"
+    },
+    "compound_value_int_shift_left": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "d63ce86ab69b0834ddcd2617c40a3d583255cd949cf2a23286e49578fd31b089"
+    },
+    "compound_value_int_shift_right": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "97f4378de291fb08fa2229dd2674bbfa04c98499927ecd241bc6ba9c05b68cc1"
+    },
+    "compound_value_int_shift_right_unsigned": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "29bc06ca8679e74b5de6fc1ef01a8d0a98302cba33bd32decc298a7e5645be3f"
+    },
+    "compound_value_number_add": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "b44c4f54705f884f00dc28429151304a094d7dba4edff819741e90e041d754ed"
+    },
+    "compound_value_number_subtract": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "5c851cad619cfd3b3fe2a8db09ed518e8a8ec72c72f81ca9a40a4ecf9ee35575"
+    },
+    "compound_value_number_multiply": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "8841ce8c608314c397cee4169e818c602cc522983c5579addfbc37b88c404bf7"
+    },
+    "compound_value_number_divide": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "484e052035ba721254613f5059a5938356af8d23fe868f1591c03a96008cd98a"
+    },
+    "compound_value_number_remainder": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "3e5fb6686deb9334f77effd5e23a98c4cf57c1f0346d7e38e3a5a618bf2b6104"
+    },
+    "compound_value_number_power": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "998d163c2c6ad9f4da6a5fd7937be95feb3cff4e9167ec8dadb093172597fab1"
+    },
+    "compound_value_number_and": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "cd4a8045f3112773c4dfc6b0a94fa59d67b9d04e9502e22e5d80545be2b9553e"
+    },
+    "compound_value_number_or": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "1007f093c61c05a452031a726d644093f154262d024a40610dd7714baf20cdeb"
+    },
+    "compound_value_number_xor": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "0b85c85890a339ed972092a8a408c79d0b9d97be402b8f1a5be0e0a748788bb9"
+    },
+    "compound_value_number_shift_left": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "c942be1e143ef70e7d877520eae2126e35766bb916126417a973d0630b9c9881"
+    },
+    "compound_value_number_shift_right": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "fad480532011f76f838f6217fe67722b7114f61f1f71c1eb1d272793035afa48"
+    },
+    "compound_value_number_shift_right_unsigned": {
+      "at": "2026-10-31T11:28:02.044Z",
+      "sourceSha256": "aa0390cd92c6d59e534bab4ecfc4394afcf380de48f3ffd127a97831d825bb5f"
     }
   }
 }
