@@ -53,6 +53,14 @@
     "native_schema_json_array": {
       "at": "2026-10-31T10:18:15.831Z",
       "sourceSha256": "836b8b702ac3a500110e5f26aa2c4dabde3451bc2b26ff891d69b8fe6482785a"
+    },
+    "native_schema_json_object": {
+      "at": "2026-10-31T10:21:48.205Z",
+      "sourceSha256": "4645d9f69b053129201d467a95a8546f1169a0025eede4144212fa8ea1271e4c"
+    },
+    "native_schema_json_fused": {
+      "at": "2026-10-31T10:21:48.205Z",
+      "sourceSha256": "8d91689f814e0ec8184a61913194bfbd93556287353e7db09edc06c9321048f8"
     }
   }
 }
