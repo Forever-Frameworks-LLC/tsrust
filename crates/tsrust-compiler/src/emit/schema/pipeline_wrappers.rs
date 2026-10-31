@@ -30,7 +30,7 @@ impl Emitter<'_> {
                 let call=self.schema_pipeline_callback_result(family,"schema.field1",errors);
                 // Creating a missing value is not itself a consuming transform.
                 // Preserve the child's commitment if its pipeline consumes it.
-                format!("match {call}{{Err(error)=>Trial::Aborted(error),Ok(input)=>match {child}({child_roots}&schema.field0,input,path,issues,failure).remap_input(|_|TsrUndefined){{Trial::Absent=>unreachable!(\"supplied default trial\"),trial=>trial}}}}")
+                format!("match {call}{{Err(error)=>Trial::Aborted(error),Ok(input)=>match {child}({child_roots}&schema.field0,input,path,issues,failure).remap_input(|_|TsrUndefined).boxed(){{Trial::Absent=>unreachable!(\"supplied default trial\"),trial=>trial}}}}")
             }
             WrapperKind::Default(_)=>{
                 let child=self.schema_pipeline_trial(plan.source,input,generated,seen,errors);
@@ -42,7 +42,7 @@ impl Emitter<'_> {
         let child_roots=self.schema_root_arguments(plan.source);
                 let inject=self.schema_output_injection(source_output,plan.output,"value");
                 let inverse=self.schema_selected_output(source_output,plan.output,"value");
-                let trial=format!("{child}({child_roots}&schema.field0,input,path,issues,failure).inject(|value|{inject},|value|{inverse})");
+                let trial=format!("{child}({child_roots}&schema.field0,input,path,issues,failure).inject(|value|{inject},|value|{inverse}).boxed()");
                 if missing {
                     if added!=Type::Undefined{return trial;}
                     let absent=self.schema_output_injection(Type::Undefined,plan.output,"TsrUndefined");

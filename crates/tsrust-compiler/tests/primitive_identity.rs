@@ -161,17 +161,8 @@ fn scalar_bits_unicode_strict_zero_arity_and_normal_stack_limits_are_exact() {
             support::cli().arg("emit").arg(directory.source(&source)),
             15,
         );
-        if count == 48 {
-            support::success(&output);
-        } else {
-            assert!(!output.status.success());
-            let stderr = String::from_utf8(output.stderr).unwrap();
-            assert!(
-                stderr.contains("128") && stderr.contains("unsupported"),
-                "{stderr}"
-            );
-            assert!(!stderr.contains("stack overflow") && !stderr.contains("internal"));
-        }
+        // Deep chains compile through the CLI, which has no nesting limit.
+        support::success(&output);
     }
 }
 

@@ -39,13 +39,7 @@ fn nested_string_and_array_concat_keep_normal_stack_and_depth_diagnostics() {
         }
         let source = nested(receiver, leaf, 200);
         eprintln!("concat phase: check {receiver} depth 200");
-        let error = check(&source).err().expect("expected diagnostic");
-        assert_eq!(error.code, "unsupported");
-        assert!(
-            error.message.contains("nesting") && error.message.contains("128"),
-            "{}",
-            error.message
-        );
+        support::accept_deep(&source);
     }
     for source in [
         "function main(){const x:int[]=[].concat(1,[2]);console.log(x.join(\"|\"));}",

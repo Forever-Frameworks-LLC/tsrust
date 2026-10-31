@@ -193,12 +193,8 @@ fn unsupported_iteration_forms_and_deep_loops_have_source_diagnostics() {
         "function main() { for (let n = 0; n < 2 n = n + 1) {} }",
         "syntax",
     );
-    let source = format!(
-        "function main() {{ {} {} }}",
-        "for (const n of [1]) {".repeat(200),
-        "}".repeat(200)
-    );
-    reject(&source, "unsupported");
+    let loops: String = (0..200).map(|level| format!("for (const n{level} of [1]) {{")).collect();
+    support::accept_deep(&format!("function main() {{ {loops} {} }}", "}".repeat(200)));
     let loops = (0..100)
         .map(|index| format!("for (const n{index} of [1]) {{"))
         .collect::<String>();

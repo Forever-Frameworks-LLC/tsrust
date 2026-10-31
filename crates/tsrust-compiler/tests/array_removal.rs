@@ -342,7 +342,7 @@ fn deep_storage_and_array_type_guards_apply_to_removal() {
         "type Node = {{ values: int[]; children: Node[]; }}; function main() {{ const node: Node = {{ values: [], children: [] }}; node{}.values.remove(0); }}",
         ".children[0]".repeat(100)
     );
-    reject(&source, "unsupported");
+    support::accept_deep(&source);
     let rank = 100;
     let source = format!(
         "function main() {{ const a: int{} = {}0{}; const row = a.remove(0); console.log(row.length); console.log(a.length); }}",

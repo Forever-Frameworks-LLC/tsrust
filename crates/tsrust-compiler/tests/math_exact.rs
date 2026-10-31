@@ -243,7 +243,7 @@ fn exact_math_static_typing_arity_capture_and_constant_write_diagnostics_are_pre
         if depth == 100 {
             result.unwrap();
         } else {
-            assert_eq!(result.err().unwrap().code, "unsupported");
+            support::accept_deep(&source);
         }
     }
 }

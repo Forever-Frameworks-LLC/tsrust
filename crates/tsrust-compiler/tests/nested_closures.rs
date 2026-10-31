@@ -340,7 +340,7 @@ fn lexical_depth_metadata_and_nesting_limits_are_preserved() {
         "const f = (): void => {".repeat(200),
         "};".repeat(200)
     );
-    reject(&deep, "unsupported");
+    support::accept_deep(&deep);
 }
 
 #[test]

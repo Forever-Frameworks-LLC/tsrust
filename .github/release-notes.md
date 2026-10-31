@@ -1,3 +1,15 @@
+This update improves scoped Map compilation across catch regions and generated
+JSON/schema and string-replacement hot paths. Ordinary JSON parsing follows
+Rust/Serde defaults; explicitly bounded APIs retain their documented limits.
+Generated code continues to use safe Rust with checked integer operations.
+
+The performance page now distinguishes Tsrust, Node.js and independently written
+Rust, with per-engine dates and reused reference baselines. It includes 930 of
+932 language/library Rust comparisons and eight separate HTTP cases: text, JSON,
+parsed/transformed JSON and SQLite-backed JSON, each at one and 16 connections.
+HTTP results include a common client and response validation; SQLite uses warm
+in-memory reads. These measurements do not establish universal speedups.
+
 Build native backend services and tools with TypeScript-style syntax, inferred
 ownership and a Rust backend. This distribution includes the `tsrust` CLI and the
 `tsrust-lsp` language server, plus the separate VS Code extension. Applications

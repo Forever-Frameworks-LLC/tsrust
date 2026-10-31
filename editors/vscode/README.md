@@ -17,7 +17,7 @@ cargo fetch --locked
 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 cargo build --offline --locked --release -p tsrust-compiler -p tsrust-lsp --bin tsrust --bin tsrust-lsp
 npm --prefix editors/vscode ci
 npm --prefix editors/vscode run package
-code --install-extension editors/vscode/tsrust-0.2.0.vsix --force
+code --install-extension editors/vscode/tsrust-0.2.1.vsix --force
 ```
 
 Keep both `target/release` executables on PATH or configure their absolute paths.

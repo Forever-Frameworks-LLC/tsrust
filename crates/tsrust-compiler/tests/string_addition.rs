@@ -223,7 +223,7 @@ fn exact_capacity_allocates_only_the_result_and_disposes_normally_and_on_unwind(
             }
         }
         let a=String::Owned("é".repeat(128));let b=String::Owned("😀".repeat(128));let empty=String::Borrowed("");let input=LIVE.load(Ordering::SeqCst);let count=ALLOCATIONS.load(Ordering::SeqCst);
-        let result=std::hint::black_box(function1(&a,&b,&empty));assert_eq!(ALLOCATIONS.load(Ordering::SeqCst)-count,2);assert_eq!(result.len(),768);assert_eq!(LIVE.load(Ordering::SeqCst)-input,768);
+        let result=std::hint::black_box(function1(&a,&b,&empty));assert_eq!(ALLOCATIONS.load(Ordering::SeqCst)-count,1,"a chain reserves its total once");assert_eq!(result.len(),768);assert_eq!(LIVE.load(Ordering::SeqCst)-input,768);
         drop(a);drop(b);assert_eq!(&result[..256],"é".repeat(128));assert_eq!(&result[256..],"😀".repeat(128));drop(result);assert_eq!(LIVE.load(Ordering::SeqCst)-baseline,0);
         std::panic::set_hook(hook);
     "#,
@@ -242,3 +242,105 @@ unsafe fn realloc(&self,p:*mut u8,layout:Layout,size:usize)->*mut u8{let q=unsaf
 }
 #[global_allocator]static GLOBAL:Observer=Observer;
 "#;
+
+#[test]
+fn appended_numbers_write_digits_into_the_result_in_operand_order() {
+    let source = r#"enum Phase { Ready, Busy = 4, Half = 2.5 }
+function next(log: string[], value: int): int { log.push(`n${value}`); return value; }
+function tag(log: string[]): string { log.push("left"); return "a"; }
+function main() {
+  const log: string[] = [];
+  const first = tag(log) + String(next(log, -12));
+  const values: number[] = [-0, 2.5, 1e21, 9007199254740992, 0 / 0, -1 / 0];
+  const parts: string[] = [];
+  for (const value of values) { parts.push("v" + String(value)); parts.push(`t${value}`); }
+  const phase: Phase = Phase.Half;
+  console.log(first, log.join(","), parts.join(" "), "p" + String(phase), "i" + String(-9223372036854775807 - 1), `m${9223372036854775807}`);
+}"#;
+    let analysis = native(
+        source,
+        "a-12 left,n-12 v0 t0 v2.5 t2.5 v1e+21 t1e+21 v9007199254740992 t9007199254740992 vNaN tNaN v-Infinity t-Infinity p2.5 i-9223372036854775808 m9223372036854775807\n",
+        "",
+        "",
+    );
+    let rust = analysis.emit_rust();
+    assert!(rust.contains("tsr_push_int(&mut output, number)"), "String(int) appends without a temporary");
+    assert!(rust.contains("tsr_push_whole_number(&mut output, number)"), "String(number) appends without a temporary");
+    assert!(rust.contains("tsr_push_int(&mut template_output, template_value)"), "int interpolation appends digits");
+}
+
+#[test]
+fn addition_chains_build_one_buffer_and_evaluate_operands_in_order() {
+    let source = r#"enum Phase { Ready, Half = 2.5 }
+function tag(log: string[], text: string): string { log.push(clone(text)); return text; }
+function num(log: string[], value: int): int { log.push(String(value)); return value; }
+function main() {
+  const log: string[] = [];
+  const joined = tag(log, "a") + String(num(log, -3)) + tag(log, "b") + (tag(log, "c") + tag(log, "d")) + String(2.5) + String(Phase.Half) + "é";
+  const empty = "" + "" + "";
+  console.log(joined, log.join(","), empty.length, "[" + empty + "]" + String(0.5));
+}"#;
+    let analysis = native(source, "a-3bcd2.52.5é a,-3,b,c,d 0 []0.5\n", "", "");
+    let rust = analysis.emit_rust();
+    assert!(rust.contains("try_fold(0usize, usize::checked_add)"), "chains reserve their total size once");
+    assert!(!rust.contains("tsr_string_add(string_left"), "no intermediate copies in a chain");
+}
+
+#[test]
+fn compound_append_to_a_local_reuses_its_buffer() {
+    let source = r#"type Box = { text: string; };
+function main() {
+  let text = "";
+  for (let i = 0; i < 5; i++) { text += String(i); text += ","; }
+  let twice = "ab";
+  twice += twice;
+  let empty = "x";
+  empty += "";
+  const box: Box = { text: "f" };
+  box.text += "g";
+  let joined = "";
+  for (const word of ["é", "z"]) { joined += word; }
+  console.log(text, twice, empty, box.text, joined);
+}"#;
+    let analysis = native(source, "0,1,2,3,4, abab x fg éz\n", "", "");
+    let rust = analysis.emit_rust();
+    // Locals append in place; self-reference and fields keep the copying form.
+    assert_eq!(rust.matches("tsr_string_append(&mut").count(), 4, "{rust}");
+    assert_eq!(rust.matches("tsr_string_add(compound_left").count(), 2, "{rust}");
+}
+
+#[test]
+fn compound_append_of_a_sum_appends_each_operand_in_order() {
+    let source = r#"function tag(log: string[], text: string): string { log.push(clone(text)); return text; }
+function main() {
+  const log: string[] = [];
+  let text = "";
+  for (let i = 0; i < 3; i++) { text += tag(log, "a") + String(i); text += "<" + tag(log, "b") + ">" + String(2.5) + "é"; }
+  let other = "start";
+  other += other + "!";
+  let empty = "";
+  empty += "" + "";
+  console.log(text, log.join(","), other, empty.length);
+}"#;
+    let analysis = native(source, "a0<b>2.5éa1<b>2.5éa2<b>2.5é a,b,a,b,a,b startstart! 0\n", "", "");
+    let rust = analysis.emit_rust();
+    // Sums on the right side append their operands; a self-reference keeps the copy.
+    assert_eq!(rust.matches("tsr_string_reserve(&mut").count(), 3, "{rust}");
+    assert_eq!(rust.matches("tsr_string_add(compound_left").count(), 1, "{rust}");
+}
+
+#[test]
+fn appended_slices_of_locals_borrow_their_range() {
+    let source = r#"function main() {
+  const first = "héllo".repeat(1);
+  let text = "";
+  for (let k = 0; k < 2; k++) { text += first.slice(); }
+  text += first.slice(1, 3) + "|" + first.slice(-2);
+  const joined = "<" + first.slice(3) + ">" + first.slice(9) + "!";
+  console.log(text, joined);
+}"#;
+    let analysis = native(source, "héllohélloé|lo <llo>!\n", "", "");
+    let rust = analysis.emit_rust();
+    assert_eq!(rust.matches("tsr_slice_str(string_receiver").count(), 5, "{rust}");
+    assert!(!rust.contains("tsr_slice(string_receiver"), "no owned slice copies are made for appends");
+}

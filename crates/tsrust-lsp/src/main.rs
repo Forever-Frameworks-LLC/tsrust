@@ -101,9 +101,9 @@ fn run(
     let worker_interrupt=std::sync::Arc::clone(&scan_interrupt);
     // Analysis is synchronous. Dropping this thread's handle permits exit without
     // waiting for an obsolete check. Cooperative interruption is compiler task C3.
-    // Debug compiler frames for nested native calls exceed the default worker
-    // stack. Keep one analysis worker with a bounded 8 MiB stack.
-    std::thread::Builder::new().name("tsrust-analysis".into()).stack_size(8*1024*1024).spawn(move || {
+    // One analysis worker with the compiler's stack, so deeply nested source
+    // checks in the editor as it does on the command line.
+    std::thread::Builder::new().name("tsrust-analysis".into()).stack_size(tsrust_compiler::COMPILER_STACK_BYTES).spawn(move || {
         let mut scan_cache=tsrust_lsp::workspace_scan::Cache::default();
         while let Ok(job) = work.recv() {
             let job = match job {

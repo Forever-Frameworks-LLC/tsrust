@@ -37,7 +37,7 @@ impl Analyzer {
             },
             _=>{},
         }}
-        let inputs=results.iter().filter(|(_,ty)|self.contains_scoped_map_storage(**ty)).map(|(binding,ty)|(*binding,*ty)).collect();
+        let inputs=self.scoped_map_storage_inputs(results);
         context.storage_exits.record_map_native_inputs(statement.span.end,inputs);
         context.storage_exits.record_map_block_epochs(statement.span.start,epochs);
         Ok(())

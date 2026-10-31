@@ -11,6 +11,18 @@ and `satisfies` check a type without changing the value.
 To run an example, save it as `main.tsr` after [native setup](../../tools/rust-setup/)
 and run `tsrust run main.tsr`.
 
+## Long operator chains
+
+Expressions have no fixed nesting or length limit. A chain of `+`, `-`, `*`, `/`,
+`%`, `&&` or `||` over strings, ints, numbers or booleans compiles like a list of
+statements: `a + b + c + ...` builds one string in a single buffer, and
+arithmetic or boolean chains update one running value. Operands still run left
+to right, `&&` and `||` still short-circuit, and each `+` still checks int
+overflow at its own position.
+
+Very deep nesting of other kinds, such as thousands of parentheses or nested
+calls, compiles too, but takes longer to build.
+
 ## Truthiness
 
 `false`, `0`, `NaN`, the empty string, `null` and `undefined` are falsy. Every other

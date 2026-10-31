@@ -31,7 +31,13 @@ impl Emitter<'_> {
         let json_failure=error_value("json",&format!("Record{}{{field0:String::Borrowed(error.code),field1:String::Borrowed(error.message),field2:error.offset as i64{order}}}",self.native_record_declaration(json),order=self.schema_record_order(json)));
         let validation_failure=error_value("validation","tsrust_schema_error(issues)");
         let success=format!("Union{}::V{ok_tag}(Record{ok}{{field0:value{ok_order}}})",result.index());
-        let body=format!("{{{generated}let schema={schema};let text={text};match tsrust_native_json::source::document(text.as_ref(),tsrust_native_json::Limits{{bytes:16*1024*1024,depth:64,entries:1_000_000,nodes:1_000_000}}){{Err(error)=>Ok({json_failure}),Ok(input)=>{{let mut issues=tsrust_schema_issues::Issues::new(64,32,1024);let mut path=Vec::new();let mut failure=None;let validated={validator}(schema,input,&mut path,&mut issues,&mut failure,None,&mut None,&mut false);if let Some(error)=failure{{Err(error)}}else{{Ok(match validated{{Some(value)=>{success},None=>{validation_failure}}})}}}}}}}}",schema=self.expr(fun,&args[0],Mode::Read),text=self.expr(fun,&args[1],Mode::Read));
+        let mut direct_generated=String::from("use tsrust_native_json::typed::serde::{self,Deserialize};");
+        let direct=self.schema_direct_decoder(root,&mut direct_generated,&mut HashSet::new());
+        let (attempt,finish)=if let Some(seed)=direct {
+            generated.push_str(&direct_generated);
+            (format!("if let Some(Some(value))=tsrust_native_json::typed::try_decode_seed(text.as_ref(),{seed}(schema)){{Ok({success})}}else{{"),"}")
+        }else{(String::new(),"")};
+        let body=format!("{{{generated}let schema={schema};let text={text};{attempt}match tsrust_native_json::source::document_plain(text.as_ref()){{Err(error)=>Ok({json_failure}),Ok(input)=>{{let mut issues=tsrust_schema_issues::Issues::new(64,32,1024);let mut path=Vec::new();let mut failure=None;let validated={validator}(schema,input,&mut path,&mut issues,&mut failure,None,&mut None,&mut false);if let Some(error)=failure{{Err(error)}}else{{Ok(match validated{{Some(value)=>{success},None=>{validation_failure}}})}}}}}}{finish}}}",schema=self.expr(fun,&args[0],Mode::Read),text=self.expr(fun,&args[1],Mode::Read));
         if fallible{
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(),&self.program.records);
             let call=self.exception_regions.result_call(&body,&error_name,&errors,&unions,expr.span).expect("schema decoder callback exception transport");

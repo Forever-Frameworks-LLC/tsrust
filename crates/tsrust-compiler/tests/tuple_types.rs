@@ -79,8 +79,8 @@ fn tuple_types_keep_formatter_idempotent_and_bound_annotation_depth() {
  let formatted=tsrust_compiler::format(source).unwrap();
  assert_eq!(tsrust_compiler::format(&formatted).unwrap(),formatted);
  execute(&formatted,"[ 1, 'x' ]\n",None);
- let annotation=format!("{}int{}","[".repeat(129),"]".repeat(129));
- assert_eq!(tsrust_compiler::type_syntax::parse(&annotation).unwrap_err().code,"unsupported");
+ let annotation=format!("{}int{}","[".repeat(2000),"]".repeat(2000));
+ assert!(tsrust_compiler::type_syntax::parse(&annotation).is_ok());
 }
 
 #[test]

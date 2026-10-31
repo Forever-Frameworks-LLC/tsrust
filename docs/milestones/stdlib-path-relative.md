@@ -1,6 +1,6 @@
 # Relative path family acceptance
 
-The bounded family adds only `std:path.relative(from: string, to: string): string`. It borrows both required string arguments, returns owned text and reports required cwd lookup or UTF-8 failures through checked native errors. [The contract](path-relative-contract.md) defines roots, Unicode, drive contexts and platform coverage. Main source, SQLite evidence and all five executable consumers are integrated. See [the committed handoff](../handoffs/handoff-2026-10-08-path-relative.md).
+The bounded family adds only `std:path.relative(from: string, to: string): string`. It borrows both required string arguments, returns owned text and reports required cwd lookup or UTF-8 failures through checked native errors. [The contract](path-relative-contract.md) defines roots, Unicode, drive contexts and platform coverage. Main source, SQLite evidence and all five executable consumers are integrated. See the committed handoff.
 
 Focused acceptance covers direct imports, aliases, stored calls, independent owned arguments/results, exact arity/types, deleted cwd, injected non-UTF-8 conversion and repeated native allocation balance after one-time entry initialization. All 248,832 independently observed POSIX/Windows reference pairs pass. IntelliSense includes completion, hover, both parameter labels, signatures and natively executed examples.
 

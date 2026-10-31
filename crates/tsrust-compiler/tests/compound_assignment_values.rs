@@ -266,8 +266,11 @@ fn strict_types_checked_failures_and_depth_guards_preserve_targets() {
                 "]".repeat(depth)
             ),
         ] {
+            // Index chains have no nesting limit; array rank keeps its limit of 128.
             if depth == 100 {
                 check(&source).unwrap().emit_rust();
+            } else if source.contains("a[a[") {
+                support::accept_deep(&source);
             } else {
                 assert_eq!(check(&source).err().unwrap().code, "unsupported");
             }
@@ -277,7 +280,7 @@ fn strict_types_checked_failures_and_depth_guards_preserve_targets() {
         "function main(){{let n=1;console.log({}1);}}",
         "n+=".repeat(200)
     );
-    assert_eq!(check(&deep).err().unwrap().code, "unsupported");
+    support::accept_deep(&deep);
     let mut source = String::new();
     for (index, operator) in OPERATORS.iter().enumerate() {
         source +=

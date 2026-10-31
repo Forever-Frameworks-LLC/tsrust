@@ -372,7 +372,7 @@ fn narrowing_invalidations_loans_partial_moves_closures_and_depth_are_sound() {
         "a[".repeat(200),
         "]".repeat(200)
     );
-    support::reject(&invalid, "unsupported");
+    support::accept_deep(&invalid);
 }
 
 #[test]

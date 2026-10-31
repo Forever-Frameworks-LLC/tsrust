@@ -22,6 +22,6 @@ impl Emitter<'_> {
         };
         let child=self.schema_pipeline_trial(plan.element,child_input,generated,seen,errors);
         let child_roots=self.schema_root_arguments(plan.element);
-        format!("{setup}tsrust_schema_trial::sequence(items,|index,value|{{path.push(tsrust_schema_issues::Segment::Index(index));let trial={child}({child_roots}&schema.field0,value,path,issues,failure);path.pop();trial}}).inject(|values|{{let mut output=<{output}>::from([]);for value in values{{output.push(value);}}output}},|value|value.tsr_owned_items().collect()).remap_input(|values|{{{inverse}}})")
+        format!("{setup}tsrust_schema_trial::sequence(items,|index,value|{{path.push(tsrust_schema_issues::Segment::Index(index));let trial={child}({child_roots}&schema.field0,value,path,issues,failure);path.pop();trial}}).inject(|values|{{let mut output=<{output}>::from([]);for value in values{{output.push(value);}}output}},|value|value.tsr_owned_items().collect()).remap_input(|values|{{{inverse}}}).boxed()")
     }
 }

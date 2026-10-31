@@ -158,6 +158,7 @@ import {validateApproximatePointProbe,validateApproximateMeasurement} from './ap
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import {waitForQuietMachine, DEFAULT_LIMIT as quietLoadLimit} from './quiet-machine.mjs';
 import crypto from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {performance} from 'node:perf_hooks';
@@ -178,6 +179,11 @@ const pins = JSON.parse(fs.readFileSync(path.join(here, 'versions.json')));
 const plan = measurementPlan(process.argv, manifest);
 const verify = plan.verify;
 const select = process.argv.find(a => a.startsWith('--only='))?.slice(7);
+// Timed processes wait for a quiet machine unless explicitly allowed otherwise.
+const allowBusy = process.argv.includes('--allow-busy'), loadSamples = [];
+// Experimental: link a prebuilt mimalloc rlib as every native program's global
+// allocator. Results record it, so these runs never mix with system-allocator runs.
+const allocatorRlib = process.argv.find(arg => arg.startsWith('--allocator-rlib='))?.slice('--allocator-rlib='.length);
 const selections = select?.split(',');
 const workloads = manifest.workloads.filter(w => !selections || selections.includes(w.id));
 if (!workloads.length || selections?.some(id => !manifest.workloads.some(w => w.id === id))) throw new Error(`Unknown workload: ${select}`);
@@ -218,6 +224,8 @@ const driverTS = fs.readFileSync(path.join(here, 'driver.ts'), 'utf8');
 const driverRS = fs.readFileSync(path.join(here, 'driver.rs'), 'utf8');
 const engines = (id) => [
  {id: 'native', command: [path.join(build, id)]},
+ // Hand-written Rust for the same workload, when parity/<id>.rs exists.
+ {id: 'rust-hand', command: [path.join(build, `${id}-hand`)]},
  {id: 'node-tsc', command: [process.execPath, path.join(build, `${id}.js`)]},
  {id: 'node-ts', command: [process.execPath, path.join(build, `${id}.ts`)]},
  {id: 'tsx', command: [...tsx, '--tsconfig', path.join(here, 'tsconfig.json'), path.join(build, `${id}.ts`)]},
@@ -225,8 +233,8 @@ const engines = (id) => [
  {id: 'ts-node-transpile', command: [...tsnode, '--transpileOnly', '--project', path.join(here, 'tsconfig.json'), path.join(build, `${id}.ts`)]},
  {id: 'bun', command: ['bun', 'run', path.join(build, `${id}.ts`)]},
  {id: 'deno', command: [deno, 'run', '--no-config', '--no-check', '--no-remote', '--no-npm', path.join(build, `${id}.ts`)]}
-].filter(engine=>plan.engineIDs.includes(engine.id));
-const compilation = [], execution = [], sources = [];
+].filter(engine=>plan.engineIDs.includes(engine.id)&&(engine.id!=='rust-hand'||fs.existsSync(path.join(here,'parity',`${id}.rs`))));
+const compilation = [], execution = [], sources = [], handSources = new Map();
 const approximateReferences=new Map(),approximateProbes=new Map(),approximateCorrectness=[];
 function prepare(w) {
  const source = fs.readFileSync(path.join(here, w.source ?? `workloads/${w.id}.tsr`), 'utf8');
@@ -390,14 +398,23 @@ function prepare(w) {
  const emitted = run([compiler], ['emit', path.join(here, w.source ?? `workloads/${w.id}.tsr`)]).stdout;
  const nativeDependencies=prepareNativeDependencies({emitted,compiler,source:path.join(here,w.source??`workloads/${w.id}.tsr`),build,rustVersion:pins.rust,targetDirectory:path.dirname(path.dirname(compiler)),env});
  const reductionABI=assertABI(emitted, w,{source});
- const instrumented = emitted.replace('fn main()', 'fn source_main()') + '\n' + adaptRustDriver(driverRS, w,{emitted,source});
+ const allocatorHeader = allocatorRlib ? '#[global_allocator]\nstatic TSRUST_BENCH_ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;\n' : '';
+ const instrumented = emitted.replace('fn main()', 'fn source_main()') + '\n' + adaptRustDriver(driverRS, w,{emitted,source}) + '\n' + allocatorHeader;
  fs.writeFileSync(path.join(build, `${w.id}.rs`), instrumented);
  fs.writeFileSync(path.join(build, `${w.id}.ts`), ts + '\n' + adaptTSDriver(driverTS, w));
- const nativeCommand = [...rustc, ...nativeDependencies.args, '--edition=2024', '-C', 'opt-level=3', '-C', 'overflow-checks=on', '-A', 'warnings', path.join(build, `${w.id}.rs`), '-o', path.join(build, w.id)];
+ const allocatorArgs = allocatorRlib ? ['--extern', `mimalloc=${allocatorRlib}`, '-L', `dependency=${path.dirname(allocatorRlib)}`] : [];
+ const nativeCommand = [...rustc, ...nativeDependencies.args, ...allocatorArgs, '--edition=2024', '-C', 'opt-level=3', '-C', 'overflow-checks=on', '-A', 'warnings', path.join(build, `${w.id}.rs`), '-o', path.join(build, w.id)];
  fs.writeFileSync(path.join(build, `${w.id}.json`), JSON.stringify({extends: path.join(here, 'tsconfig.json'), files: [path.join(build, `${w.id}.ts`)], compilerOptions: {outDir: build, ...dataOptions, ...(w.family==='testing-assertions'?{typeRoots:[path.join(here,'node_modules/@types')]}:{})}}));
  const tsCommand = [...tsc, '--project', path.join(build, `${w.id}.json`)];
  // Prime normal filesystem/tool caches. Compiler bootstrap and downloads are excluded.
  run(nativeCommand); run(tsCommand);
+ const handSourcePath = path.join(here, 'parity', `${w.id}.rs`);
+ if (plan.engineIDs.includes('rust-hand') && fs.existsSync(handSourcePath)) {
+  const hand = fs.readFileSync(handSourcePath, 'utf8');
+  fs.writeFileSync(path.join(build, `${w.id}-hand.rs`), hand.replace('fn main()', 'fn source_main()') + '\n' + adaptRustDriver(driverRS, w, {emitted: hand, source, reference:true}) + '\n' + allocatorHeader);
+  run([...rustc, ...nativeDependencies.args, ...allocatorArgs, '--edition=2024', '-C', 'opt-level=3', '-C', 'overflow-checks=on', '-A', 'warnings', path.join(build, `${w.id}-hand.rs`), '-o', path.join(build, `${w.id}-hand`)]);
+  handSources.set(w.id, hash(hand));
+ }
  if(isApproximate(w)){
   const loaded=approximateReferences.get(w.id),probe=approximatePointProbeSources(emitted,ts,w,loaded.reference),id=w.id+'_points';
   fs.writeFileSync(path.join(build,id+'.rs'),probe.rs);fs.writeFileSync(path.join(build,id+'.ts'),probe.ts);
@@ -405,7 +422,20 @@ function prepare(w) {
   const nativeProbeCommand=[...rustc,'--edition=2024','-C','opt-level=3','-C','overflow-checks=on','-A','warnings',path.join(build,id+'.rs'),'-o',path.join(build,id)];
   const tsProbeCommand=[...tsc,'--project',path.join(build,id+'.json')];run(nativeProbeCommand);run(tsProbeCommand);
   const probes={sources:{rustSha256:hash(probe.rs),tsSha256:hash(probe.ts),nativeBinarySha256:hash(fs.readFileSync(path.join(build,id))),compiledTSSha256:hash(fs.readFileSync(path.join(build,id+'.js')))},abi:probe.abi,compileCommands:[nativeProbeCommand,tsProbeCommand],engines:{}};
-  for(const engine of engines(id)){const actual=JSON.parse(run(engine.command).stdout);const errors=validateApproximatePointProbe(actual,loaded.reference);probes.engines[engine.id]={command:engine.command,actual,errors};}
+  const probeEngines=engines(id);
+  if(handSources.has(w.id)){
+   const hand=fs.readFileSync(handSourcePath,'utf8');
+   const handProbe=approximatePointProbeSources(hand,ts,w,loaded.reference);
+   const handProbePath=path.join(build,id+'-hand.rs'),handProbeBinary=path.join(build,id+'-hand');
+   fs.writeFileSync(handProbePath,handProbe.rs);
+   const handProbeCommand=[...rustc,...nativeDependencies.args,...allocatorArgs,'--edition=2024','-C','opt-level=3','-C','overflow-checks=on','-A','warnings',handProbePath,'-o',handProbeBinary];
+   run(handProbeCommand);
+   probes.sources.handRustSha256=hash(handProbe.rs);
+   probes.sources.handBinarySha256=hash(fs.readFileSync(handProbeBinary));
+   probes.compileCommands.push(handProbeCommand);
+   probeEngines.push({id:'rust-hand',command:[handProbeBinary]});
+  }
+  for(const engine of probeEngines){const actual=JSON.parse(run(engine.command).stdout);const errors=validateApproximatePointProbe(actual,loaded.reference);probes.engines[engine.id]={command:engine.command,actual,errors};}
   approximateProbes.set(w.id,probes);
  }
  const phases = [
@@ -471,6 +501,7 @@ if (!verify) {
  for (let processIndex = 0; processIndex < plan.processes; processIndex++) {
   for (const w of rotated(workloads, processIndex)) {
    for (const engine of rotated(engines(w.id), processIndex)) {
+    if (!allowBusy) loadSamples.push(waitForQuietMachine());
     const data = execute(engine, w.iterations, manifest.seed, plan.warmups, plan.samples, w.inputText,w);
     if(!isApproximate(w)){
     if (isCopying(w)) validateCopyingObservation(data,{checksum:references.get(w.id),exactBits:exactReferences.get(w.id)},w);
@@ -492,6 +523,9 @@ const compilerInputs = compilerSourceInputs(path.join(root, 'crates/tsrust-compi
 for(const loaded of approximateReferences.values())assertApproximateArtifactsUnchanged(loaded);
 const result = {
  schemaVersion: 1, measurementScope: plan.measurementScope, measuredEngines: plan.engineIDs, measurementPlanSha256: hash(fs.readFileSync(path.join(here,'measurement-plan.mjs'))), semanticEpoch: manifest.semanticEpoch, timestamp: new Date().toISOString(), verifiedOnly: verify,
+ handWrittenRust: Object.fromEntries([...handSources].map(([id, sha256]) => [id, {source: `parity/${id}.rs`, sha256}])),
+ nativeAllocator: allocatorRlib ? {kind: 'mimalloc', rlibSha256: hash(fs.readFileSync(allocatorRlib))} : {kind: 'system'},
+ quietMachine: {allowBusy, loadLimit: quietLoadLimit, maxOneMinuteLoad: loadSamples.length ? Math.max(...loadSamples) : null},
  machine: {platform: os.platform(), release: os.release(), architecture: os.arch(), cpu: os.cpus()[0]?.model, logicalCPUs: os.cpus().length, totalMemoryBytes: os.totalmem()},
  versions, nodeComponents: process.versions, manifest, sources, compilerInputs,
  oracleSha256: hash(fs.readFileSync(path.join(here, 'oracle.mjs'))), adapterSha256: hash(fs.readFileSync(path.join(here, 'adapters.mjs'))), harnessSha256: hash(fs.readFileSync(fileURLToPath(import.meta.url))), driverTSSha256: hash(driverTS), driverRSSha256: hash(driverRS), lockSha256: hash(fs.readFileSync(path.join(here, 'package-lock.json'))),

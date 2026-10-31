@@ -182,15 +182,7 @@ fn nullable_callable_strict_contracts_cloneability_and_normal_depth() {
         "id(".repeat(200),
         ")".repeat(200)
     );
-    let error = check(&too_deep)
-        .err()
-        .expect("bounded normal-stack diagnostic");
-    assert_eq!(error.code, "unsupported");
-    assert!(
-        error.message.contains("nesting") && error.message.contains("128"),
-        "{}",
-        error.message
-    );
+    support::accept_deep(&too_deep);
 }
 
 #[test]

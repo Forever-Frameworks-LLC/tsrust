@@ -109,7 +109,7 @@ impl Diagnostic {
         {
             let (line_number, column) = line_column(source, *span);
             let line = source.lines().nth(line_number - 1).unwrap_or("");
-            let line_start = source[..span.start].rfind('\n').map_or(0, |i| i + 1);
+            let line_start = source.get(..span.start).unwrap_or(source).rfind('\n').map_or(0, |i| i + 1);
             let prefix = source.get(line_start..span.start).unwrap_or("");
             let highlighted = source
                 .get(span.start..span.end)
@@ -151,7 +151,11 @@ impl Diagnostic {
 }
 
 pub fn line_column(source: &str, span: Span) -> (usize, usize) {
-    let prefix = &source[..span.start];
+    // A span from compiler-generated source can lie past the user's file; clamp
+    // it so reporting never panics.
+    let mut start = span.start.min(source.len());
+    while !source.is_char_boundary(start) { start -= 1; }
+    let prefix = &source[..start];
     (
         prefix.bytes().filter(|b| *b == b'\n').count() + 1,
         prefix.rsplit('\n').next().unwrap_or("").chars().count() + 1,

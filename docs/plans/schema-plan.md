@@ -11,8 +11,8 @@ recursion, typed issues/messages, throwing parse, fused JSON validation and scop
 Draft 2020-12 export are complete. Compiler 3,727 passed (three expected ignored),
 LSP 645 passed after cleanup. All 31 matched workloads have preserved measurements;
 40 representative post-cleanup adapter cells pass without timing. Installed CLI and
-both active editor servers are refreshed. See the [acceptance and continuation
-handoff](../handoffs/2026-10-13-s11-acceptance.md) for exact evidence and limitations.
+both active editor servers are refreshed. See the acceptance and continuation
+handoff for exact evidence and limitations.
 Historical implementation entries below retain their original checkpoint status.
 
 ## Required surface and coverage

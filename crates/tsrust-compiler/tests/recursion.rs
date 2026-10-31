@@ -219,11 +219,8 @@ fn speculative_capture_loans_do_not_reject_valid_owned_reinitialization() {
         .replace("return a0;", "return a0.n;")
         .replace("(): A =>", "(): int =>")
         .replace("console.log(result.n)", "console.log(result)");
-    assert!(
-        reject(&read_source, "unsupported")
-            .message
-            .contains("lifetime complexity")
-    );
+    // Like rustc, closure environments have no lifetime-count limit.
+    execute(&read_source, "0\n", None);
 }
 
 #[test]

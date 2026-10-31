@@ -1027,7 +1027,16 @@ fn structured_annotations_preserve_existing_expression_depth_limits() {
     checked.emit_rust();
     let source = format!("function main(){{const a=[0];console.log({}0{});}}", "a[".repeat(200), "]".repeat(200));
     let memory = Memory::new(&[("main.tsr", &source)]);
-    assert_eq!(load_project(&memory, "main.tsr").err().unwrap().code, "unsupported");
+    // Index chains have no nesting limit in projects either.
+    std::thread::Builder::new()
+        .stack_size(tsrust_compiler::COMPILER_STACK_BYTES)
+        .spawn(move || {
+            let graph = load_project(&memory, "main.tsr").unwrap();
+            tsrust_compiler::project::check_graph(graph).unwrap().emit_rust();
+        })
+        .unwrap()
+        .join()
+        .unwrap();
 }
 
 #[test]
@@ -1091,7 +1100,7 @@ fn generic_template_diagnostics_have_stable_declaration_order() {
 }
 
 #[test]
-fn generic_record_specialization_count_boundaries_are_exact() {
+fn generic_record_specializations_have_no_count_limit() {
     fn source(templates: usize, instances: usize, extra: bool) -> String {
         let mut output = String::new();
         for i in 0..=instances {
@@ -1113,15 +1122,11 @@ fn generic_record_specialization_count_boundaries_are_exact() {
         output.push_str("function main(){}");
         output
     }
+    // Like rustc, instance counts are unlimited; only nesting depth is bounded.
     for templates in [1, 8] {
-        let accepted = source(templates,128,false);
-        assert!(tsrust_compiler::check(&accepted).is_ok(),"{templates} templates at budget");
-        let rejected = source(templates,128,true);
-        let error = tsrust_compiler::check(&rejected).err().unwrap();
-        assert_eq!(error.code,"generic-limit","{error:?}");
-        assert!(error.span.start < error.span.end);
-        assert!(error.span.end <= rejected.len());
-        assert!(rejected[error.span.start..error.span.end].contains('<'));
+        for extra in [false, true] {
+            assert!(tsrust_compiler::check(&source(templates,128,extra)).is_ok(),"{templates} templates, extra {extra}");
+        }
     }
 }
 
@@ -1231,7 +1236,7 @@ fn explicit_generic_nullable_record_signatures_use_checked_argument_identity() {
 }
 
 #[test]
-fn generic_function_specialization_count_limits_are_exact() {
+fn generic_function_specializations_have_no_count_limit() {
     fn source(templates:usize,extra:bool)->String {
         let mut source=String::new();
         for i in 0..129 {source.push_str(&format!("type Argument{i}={{value:int;}};"));}
@@ -1251,13 +1256,11 @@ fn generic_function_specialization_count_limits_are_exact() {
         source.push('}');
         source
     }
+    // Like rustc, instance counts are unlimited; only nesting depth is bounded.
     for templates in [1,8] {
-        let accepted=source(templates,false);
-        assert!(tsrust_compiler::check(&accepted).is_ok(),"{templates} templates at limit");
-        let rejected=source(templates,true);
-        let error=tsrust_compiler::check(&rejected).err().unwrap();
-        assert_eq!(error.code,"generic-limit","{error:?}");
-        assert!(error.span.start<error.span.end && error.span.end<=rejected.len());
+        for extra in [false,true] {
+            assert!(tsrust_compiler::check(&source(templates,extra)).is_ok(),"{templates} templates, extra {extra}");
+        }
     }
 }
 
@@ -1269,7 +1272,7 @@ fn inferred_generic_functions_execute_checked_hints_context_and_recursion() {
 }
 
 #[test]
-fn inferred_generic_count_limits_reuse_explicit_instances_at_both_boundaries() {
+fn inferred_generic_instances_reuse_explicit_instances_without_a_count_limit() {
     fn source(templates: usize, extra: bool) -> String {
         let mut source = String::new();
         for i in 0..129 {
@@ -1301,12 +1304,9 @@ fn inferred_generic_count_limits_reuse_explicit_instances_at_both_boundaries() {
         source
     }
     for templates in [1, 8] {
-        let accepted = source(templates, false);
-        assert!(tsrust_compiler::check(&accepted).is_ok(), "{templates} templates at limit");
-        let rejected = source(templates, true);
-        let error = tsrust_compiler::check(&rejected).err().unwrap();
-        assert_eq!(error.code, "generic-limit", "{error:?}");
-        assert!(error.span.start < error.span.end && error.span.end <= rejected.len());
+        for extra in [false, true] {
+            assert!(tsrust_compiler::check(&source(templates, extra)).is_ok(), "{templates} templates, extra {extra}");
+        }
     }
 }
 

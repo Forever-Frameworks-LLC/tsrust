@@ -24,6 +24,7 @@ test('Node checkpoint subset preserves sample counts and explicitly identifies m
  assert.equal(plan.engineIDs.length*plan.processes*plan.samples,186);
  assert.equal(plan.correctnessCases(2048).length*plan.engineIDs.length,10);
  assert.equal(measurementPlan([],manifest).engineIDs.length,8);
+ assert.deepEqual(measurementPlan(['--engines=native,rust-hand'],manifest).engineIDs,['native','rust-hand']);
  for(const argv of [['--engines='],['--engines=missing'],['--engines=native,native'],['--engines=native','--engines=node-tsc']]) assert.throws(()=>measurementPlan(argv,manifest),/engines/);
 });
 test('unknown verification flags cannot silently start measurement',()=>{

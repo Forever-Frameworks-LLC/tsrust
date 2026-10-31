@@ -208,7 +208,8 @@ fn validate_inline_layout_with_indirection(
     let mut depths = vec![0usize; records.len()];
     let mut sizes = vec![0usize; records.len()];
     let alignment = std::mem::align_of::<String>().max(std::mem::align_of::<i64>());
-    const MAX_INLINE_BYTES: usize = 1 << 30;
+    // rustc rejects types larger than isize::MAX bytes; inline records match it.
+    const MAX_INLINE_BYTES: usize = isize::MAX as usize;
     for root in 0..records.len() {
         if states[root] != 0 {
             continue;
@@ -252,17 +253,10 @@ fn validate_inline_layout_with_indirection(
                     .ok_or_else(|| {
                         Diagnostic::new(
                             "unsupported",
-                            "Inline record storage exceeds the prototype limit of 1 GiB.",
+                            "Inline record storage exceeds Rust's maximum object size (isize::MAX bytes).",
                             field.annotation.span,
                         )
                     })?;
-                if depth > 128 {
-                    return Err(Diagnostic::new(
-                        "unsupported",
-                        "Direct record layout nesting exceeds the prototype limit of 128.",
-                        field.annotation.span,
-                    ));
-                }
             }
             depths[id] = depth;
             sizes[id] = size;

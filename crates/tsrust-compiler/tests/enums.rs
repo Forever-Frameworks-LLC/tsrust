@@ -55,3 +55,11 @@ fn enum_constants_stay_immutable_after_copy() {
     assert_eq!(error.code, "unsupported");
     assert!(error.message.contains("Only let"));
 }
+
+#[test]
+fn string_conversion_borrows_string_members_and_formats_whole_numbers_exactly() {
+    let source = support::format_round_trip("enum Label{Short=\"s\",Long=\"long\"}enum Phase{Ready,Busy=4}function pick(flag:boolean):Label|undefined{return flag?Label.Long:undefined;}function main(){const label=Label.Long;console.log(String(label),String(pick(true)),String(Number(Phase.Busy)));console.log(String(-5),String(9007199254740991),String(9007199254740992.0),String(-0.0),String(2.5),String(1e21));}");
+    let rust = tsrust_compiler::check(&source).unwrap().emit_rust();
+    assert!(rust.contains("String::Borrowed(builtin_argument_0.tsr_value())"), "string enum conversion should borrow its static text");
+    support::execute(&source, "long long 4\n-5 9007199254740991 9007199254740992 0 2.5 1e+21\n", None);
+}

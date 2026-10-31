@@ -154,12 +154,8 @@ fn precise_errors_and_normal_depth() {
             "type Node={{n:int;children:Node[];}};function inspect(node:Node|null):int|undefined{{return node{}?.n;}}function main(){{}}",
             "?.children[0]".repeat(depth)
         );
-        let result = check(&source);
-        if depth < 64 {
-            result.unwrap().emit_rust();
-        } else {
-            assert!(result.is_err());
-        }
+        // Optional paths have no nesting limit.
+        support::accept_deep(&source);
     }
     let good = format!(
         "function f(xs:int{}|null):int|undefined{{return xs?.length;}}function main(){{}}",
@@ -170,7 +166,8 @@ fn precise_errors_and_normal_depth() {
         "function f(xs:int{}|null):int|undefined{{return xs?.length;}}function main(){{}}",
         "[]".repeat(128)
     );
-    assert!(check(&too_deep).is_err());
+    // Rank 128 is the array limit; the nullable wrapper adds no nesting limit.
+    assert!(check(&too_deep).is_ok());
 }
 
 #[test]
@@ -303,12 +300,8 @@ fn diagnostic_codes_spans_and_existing_inferred_rank_boundary() {
         "function f(x:int{}|null):int|undefined{{return x?.length;}}function main(){{}}",
         "[]".repeat(128)
     );
-    let error = check(&annotation)
-        .err()
-        .expect("annotation wrapper exceeds existing depth");
-    assert_eq!(error.code, "unsupported");
-    assert!(error.message.contains("128"), "{}", error.message);
-    assert!(error.span.end > error.span.start);
+    // Rank 128 is within the array limit; the nullable wrapper adds no nesting limit.
+    check(&annotation).expect("rank 128 with a nullable wrapper").emit_rust();
 }
 
 #[test]

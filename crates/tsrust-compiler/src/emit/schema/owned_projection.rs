@@ -48,6 +48,11 @@ impl Emitter<'_> {
             if state == "std::convert::Infallible" { return "match state{}".into(); }
             // Copy inputs retain their exact source representation, including an
             // integer converted to a checked floating-point output.
+            // A leaf whose output type is its input type commits `*input`
+            // unchanged, so it restores itself without a captured copy.
+            if input == output && matches!(input, Type::Int | Type::Number | Type::Boolean) {
+                return format!("let value={{{commit}}};(value,Box::new(|value|value))");
+            }
             if input.is_copy() {
                 return format!("let original=input;let value={{{commit}}};(value,Box::new(move|_|original))");
             }

@@ -17,8 +17,8 @@ impl Context<'_> {
         for (variant, payload) in ["Ok", "Err"].into_iter().zip(types.iter().copied()) {
             let key = (format!("Result#{variant}"), types.clone());
             let id = if let Some(&id) = self.instances.get(&key) { id } else {
-                if self.instances.len() >= 1024 || self.counts.get(&key.0).copied().unwrap_or(0) >= 128 {
-                    return Err(Diagnostic::new("generic-limit", "Result specialization exceeds the per-variant (128) or program (1024) limit.", value.span));
+                if arguments.iter().any(|argument| argument.nesting_depth() >= crate::type_syntax::INSTANTIATION_DEPTH_LIMIT) {
+                    return Err(Diagnostic::new("generic-limit", "Generic instantiation nests deeper than Rust's recursion limit of 128; polymorphic recursion such as f<T> calling f<Box<T>> never reaches a fixed point.", value.span));
                 }
                 let id = self.records.len();
                 // `#` cannot appear in a source name. The identity includes both

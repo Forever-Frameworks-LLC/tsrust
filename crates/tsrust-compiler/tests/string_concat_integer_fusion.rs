@@ -139,7 +139,7 @@ undefined
         "\"x\".concat(".repeat(200),
         ")".repeat(200)
     );
-    assert_eq!(check(&source).err().unwrap().code, "unsupported");
+    support::accept_deep(&source);
 }
 
 #[test]

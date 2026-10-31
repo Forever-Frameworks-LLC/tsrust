@@ -104,9 +104,6 @@ impl Analyzer {
             if let Type::Closure(id) = binding.ty { lifetime_count += self.closures[id].lifetime_count; }
             captures.push(Capture { restored:false, outer: outer_id, inner, storage, access, span });
         }
-        if !self.effects_only && lifetime_count > 128 {
-            return Err(Diagnostic::new("unsupported", "Closure environment lifetime complexity exceeds the prototype limit of 128.", span));
-        }
         for capture in &captures {
             let binding = &mut context.bindings[capture.inner];
             binding.capture_reference = match capture.storage {

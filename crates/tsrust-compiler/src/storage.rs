@@ -11,7 +11,7 @@ pub(crate) fn inline_array(value: Type) -> bool {
         Type::Array(
             ArrayElement::Int(0..=1) | ArrayElement::Boolean(0..=1) | ArrayElement::String(0)
         )
-    )
+    ) || matches!(value,Type::Array(ArrayElement::Union(id,0)) if id.scalar_members)
 }
 
 pub(crate) fn numeric_array(value: Type) -> bool {
@@ -43,6 +43,9 @@ pub(crate) fn array_storage_bound(element: ArrayElement) -> usize {
         ArrayElement::Int(0) => numeric(std::mem::size_of::<i64>()),
         ArrayElement::Boolean(0) => numeric(std::mem::size_of::<bool>()),
         ArrayElement::String(0) => inline(string_storage_bound()),
+        // Scalar unions contain at most Cow<str> plus an enum tag. Their
+        // members cannot introduce recursive inline array/record storage.
+        ArrayElement::Union(id,0) if id.scalar_members => inline(string_storage_bound()+alignment),
         ArrayElement::Int(1) => inline(numeric(std::mem::size_of::<i64>())),
         ArrayElement::Boolean(1) => inline(numeric(std::mem::size_of::<bool>())),
         ArrayElement::Record(_, 0) => inline(MAX_INLINE_RECORD_BYTES),

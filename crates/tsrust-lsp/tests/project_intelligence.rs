@@ -1950,7 +1950,7 @@ fn json_editor_contract() {
  let uri=source_id(fixture_uri!("/tsrust-intelligence/main.tsr")).unwrap();let mut workspace=Workspace::default();workspace.open(uri.clone(),1,entry.into());
  let checked=workspace.snapshot().check(&uri).unwrap();let index=ProjectIndex::checked(&checked);
  let hover=ask(&index,entry,"decode('null'","textDocument/hover");let docs=hover["contents"]["value"].as_str().unwrap();
- for text in ["JsonValue","JsonError","JsonLimits","16777216","Ownership:","```tsrust"] {assert!(docs.contains(text),"{hover}");}
+ for text in ["JsonValue","JsonError","JsonLimits","Without limits","Ownership:","```tsrust"] {assert!(docs.contains(text),"{hover}");}
  let help=ask(&index,entry,"'null'","textDocument/signatureHelp");assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),2,"{help}");
  let importing="import { } from 'std:json';";let mut workspace=Workspace::default();workspace.open(uri.clone(),1,importing.into());
  let graph=tsrust_compiler::project::load_project_headers(&workspace.snapshot(),&uri.0).unwrap();let completion=ask(&ProjectIndex::new(&graph),importing," }","textDocument/completion");
@@ -2123,7 +2123,7 @@ fn json_typeof_hover_explains_runtime_contents_and_refinement_boundary() {
     let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
     let hover=ask(&ProjectIndex::checked(&checked),source,"typeof value","textDocument/hover");
     let docs=hover.to_string();
-    assert!(docs.contains("contained JSON data")&&docs.contains("remains a JsonValue"),"{hover}");
+    assert!(docs.contains("the category of the JSON data it holds")&&docs.contains("Numbers stay JSON values"),"{hover}");
 }
 
 #[test]
@@ -2156,7 +2156,7 @@ fn json_boolean_refinement_checks_and_reports_boolean_local() {
  let uri=fixture_uri!("/tsrust-intelligence/main.tsr");let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());
  let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
  let hover=ask(&index,&source,"result);","textDocument/hover");assert!(hover.to_string().contains("boolean"),"{hover}");
- let hover=ask(&index,&source,"typeof value","textDocument/hover");assert!(hover.to_string().contains("boolean guard"),"{hover}");
+ let hover=ask(&index,&source,"typeof value","textDocument/hover");assert!(hover.to_string().contains("can be copied into a"),"{hover}");
 }
 
 #[test]
@@ -2346,7 +2346,7 @@ fn typed_raw_json_hover_documents_input_lifetime() {
  for name in ["parse","tryParse"] {
   let entry=catalog["JSON"].as_array().unwrap().iter().find(|entry|entry["name"]==name).unwrap();
   assert!(entry["documentation"].as_str().unwrap().contains("source text must outlive"));
-  assert!(entry["parameters"][0]["documentation"].as_str().unwrap().starts_with("Required strict JSON document."));
+  assert!(entry["parameters"][0]["documentation"].as_str().unwrap().starts_with("Required strict JSON document"));
  }
  let source=tsrust_compiler::format("import {JsonRaw} from 'std:json';type Envelope={payload:JsonRaw;tag:int;};function main(){const text='{\"payload\":null,\"tag\":7}';const value=JSON.parse<Envelope>(text);}").unwrap();
  let uri=fixture_uri!("/tsrust-intelligence/main.tsr");let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
@@ -2363,7 +2363,7 @@ fn raw_json_encoding_hover_describes_exact_output() {
  let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
  for needle in ["stringify(raw)","tryStringify(raw)"] {
   let hover=ask(&index,&source,needle,"textDocument/hover");let docs=hover.to_string();
-  for text in ["preserve raw source text exactly","output byte limit","64-container","JSONL"] {assert!(docs.contains(text),"{hover}");}
+  for text in ["original source text exactly","output byte limit","64-container","JSON Lines"] {assert!(docs.contains(text),"{hover}");}
  }
 }
 

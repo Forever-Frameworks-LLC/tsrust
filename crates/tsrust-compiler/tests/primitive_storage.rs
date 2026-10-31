@@ -132,8 +132,9 @@ fn inline_record_and_nested_array_layouts_remain_bounded() {
 
 #[test]
 fn record_layout_budget_accounts_for_inline_array_storage() {
+    // Like rustc, inline storage is limited only by Rust's maximum object size.
     let mut source = String::from("type R0 = { values: int[][]; }; ");
-    for index in 1..=25 {
+    for index in 1..=60 {
         source.push_str(&format!(
             "type R{index} = {{ left: R{}; right: R{}; }}; ",
             index - 1,
@@ -143,9 +144,9 @@ fn record_layout_budget_accounts_for_inline_array_storage() {
     source.push_str("function main() {}");
     let diagnostic = tsrust_compiler::check(&source)
         .err()
-        .expect("inline array storage exceeds record budget");
+        .expect("inline array storage exceeds Rust's maximum object size");
     assert_eq!(diagnostic.code, "unsupported");
-    assert!(diagnostic.message.contains("1 GiB"));
+    assert!(diagnostic.message.contains("isize::MAX"), "{}", diagnostic.message);
 }
 
 #[test]

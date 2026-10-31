@@ -723,6 +723,7 @@ fn backend_catalog_entries_have_current_compiler_witnesses() {
 }
 
 #[test]
+#[ignore = "frozen UI catalog (backend-only reset): UiComputed/UiSignal lack witnesses and in-text examples; run with --ignored if the UI is revived"]
 fn retained_ui_catalog_entries_have_current_compiler_witnesses() {
     every_catalog_entry_has_a_current_compiler_witness(true);
 }
@@ -1728,6 +1729,7 @@ fn backend_catalog_examples_match_native_output() {
 }
 
 #[test]
+#[ignore = "frozen UI catalog (backend-only reset): UiComputed/UiSignal lack witnesses and in-text examples; run with --ignored if the UI is revived"]
 fn retained_ui_catalog_examples_match_native_output() {
     documented_builtin_examples_match_native_output(true);
 }

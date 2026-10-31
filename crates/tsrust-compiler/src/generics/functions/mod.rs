@@ -235,10 +235,8 @@ impl Cache {
         if let Some(name) = self.instances.get(&identity) {
             return Ok(name.clone());
         }
-        if self.instances.len() >= 1024
-            || self.counts.get(name).copied().unwrap_or(0) >= 128
-        {
-            return Err(Diagnostic::new("generic-limit","Generic function specialization exceeds its per-declaration (128) or program (1024) limit.",span));
+        if arguments.iter().any(|argument| argument.nesting_depth() > crate::type_syntax::INSTANTIATION_DEPTH_LIMIT) {
+            return Err(Diagnostic::new("generic-limit","Generic instantiation nests deeper than Rust's recursion limit of 128; polymorphic recursion such as f<T> calling f<Box<T>> never reaches a fixed point.",span));
         }
         let concrete = format!("{name}<specialization#{}>", self.instances.len());
         let mut bindings: HashMap<String, ValueAnnotation> = template

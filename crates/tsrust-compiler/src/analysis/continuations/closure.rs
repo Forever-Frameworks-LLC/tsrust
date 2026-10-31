@@ -415,16 +415,8 @@ impl Analyzer {
                     _ => 0,
                 },
             );
-            (total + usize::from(matches!(capture.storage, Mode::Read | Mode::Mutate)) + nested)
-                .min(129)
+            total + usize::from(matches!(capture.storage, Mode::Read | Mode::Mutate)) + nested
         });
-        if !self.effects_only && lifetime_count > 128 {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "Closure environment lifetime complexity exceeds the prototype limit of 128.",
-                span,
-            ));
-        }
         let borrowed = lifetime_count != 0;
         // A capture-free task factory retains its ordinary callable ABI even
         // when registered as a test. Only real invocation loans need context.

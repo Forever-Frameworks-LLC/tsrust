@@ -80,7 +80,7 @@ impl Analyzer {
         if let StmtKind::Loop{condition:Some(condition),post_test:true,tail_reachable:true,..}=&statement.kind {
             // The condition runs after backedge conversion, not in the last
             // body statement's working storage representation.
-            let inputs=results.iter().filter(|(_,ty)|self.contains_scoped_map_storage(**ty)).map(|(binding,ty)|(*binding,*ty)).collect();
+            let inputs=self.scoped_map_storage_inputs(results);
             context.storage_exits.record_map_native_inputs(condition.span.start,inputs);
         }
         context.storage_exits.record_map_iteration_epochs(statement.span,epochs);

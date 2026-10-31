@@ -195,7 +195,7 @@ fn flattening_diagnostics_literal_depth_and_normal_stack_limits_are_precise() {
         "a[".repeat(200),
         "]".repeat(200)
     );
-    assert_eq!(check(&source).err().unwrap().code, "unsupported");
+    support::accept_deep(&source);
     maximum_rank_native();
     let source = format!(
         "function bad(values:int{}){{}}function main(){{}}",

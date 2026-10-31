@@ -70,3 +70,20 @@ test('export guards reject missing document observation with updated fingerprint
   assert.throws(()=>assertSchemaSource(source,{...row,[key]:createHash('sha256').update(source).digest('hex')},kind));
  }
 });
+
+test('nested schema control guards full traversal and arithmetic oracle',()=>{
+ const row=JSON.parse(read('./manifest.json')).workloads.find(row=>row.id==='native_schema_json_nested');
+ assert.equal(reportCategory(row.id),'schema');
+ assert.equal(schemaChecksum(2000,7,row.inputText),7+2000*4*16*17/2);
+ assert.equal(expectedChecksum(row.id,2000,7,row.inputText),1088007);
+ const input=JSON.parse(row.inputText);
+ assert.deepEqual(input.groups.map(group=>group.values),Array.from({length:4},()=>Array.from({length:16},(_,i)=>i+1)));
+ for(const [kind,file] of [['native',row.source],['typescript',row.counterpart]]){
+  const source=read('./'+file);assertSchemaSource(source,row,kind);
+  const changed=source.replace(/checksum\s*\+=\s*item/,'checksum += 1');
+  assert.notEqual(changed,source);
+  const key=kind==='native'?'sourceSha256':'counterpartSha256';
+  assert.throws(()=>assertSchemaSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
+  assert.throws(()=>assertSchemaSource(source,{...row,operationsPerIteration:2},kind));
+ }
+});

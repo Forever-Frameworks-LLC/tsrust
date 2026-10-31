@@ -125,7 +125,7 @@ Before broad coverage claims, expand these family tables into machine-readable i
 
 ## Accepted lexical path increment
 
-The bounded primitive `std:path` family adds dirname, extname, isAbsolute and normalize alongside basename. Compiler/native execution, imported editor help, executable examples, matched benchmark registration and scoped native/Node-after-tsc measurements are accepted on the library branch. See [family acceptance](../../milestones/stdlib-lexical-path.md) and [integration handoff](../../handoffs/handoff-2026-10-07-lexical-path.md).
+The bounded primitive `std:path` family adds dirname, extname, isAbsolute and normalize alongside basename. Compiler/native execution, imported editor help, executable examples, matched benchmark registration and scoped native/Node-after-tsc measurements are accepted on the library branch. See [family acceptance](../../milestones/stdlib-lexical-path.md) and integration handoff.
 
 Public integration is verified on macOS; explicit-platform helpers cover POSIX/Windows reference behavior. Windows native integration and the advancing combined checkout still require their own checks. This primitive-only increment does not accept filesystem resources, the wider host family, or the rest of the standard library.
 
@@ -135,11 +135,11 @@ Public integration is verified on macOS; explicit-platform helpers cover POSIX/W
 
 ## Accepted variadic composition and byte order
 
-`std:path.join(...paths: string[]): string` adds lexical composition through a reusable homogeneous borrowed string rest bridge. Aliases, stored values, array spread, concrete rest Function adaptation, evaluation order and failure cleanup are covered. `std:os.endianness(): string` adds compiled BE/LE metadata with explicit unsupported-selector errors. [The contract](../../milestones/path-join-contract.md) and [handoff](../../handoffs/handoff-2026-10-07-path-join.md) preserve compiler/editor/native acceptance, independent POSIX/Windows reference coverage, scoped composition measurements and constant identity timing limits. Actual native acceptance remains macOS ARM64; main integration and native Windows execution remain separate. No wider path, OS or resource family is accepted.
+`std:path.join(...paths: string[]): string` adds lexical composition through a reusable homogeneous borrowed string rest bridge. Aliases, stored values, array spread, concrete rest Function adaptation, evaluation order and failure cleanup are covered. `std:os.endianness(): string` adds compiled BE/LE metadata with explicit unsupported-selector errors. [The contract](../../milestones/path-join-contract.md) and handoff preserve compiler/editor/native acceptance, independent POSIX/Windows reference coverage, scoped composition measurements and constant identity timing limits. Actual native acceptance remains macOS ARM64; main integration and native Windows execution remain separate. No wider path, OS or resource family is accepted.
 
 ## Relative path increment
 
-`std:path.relative(from: string, to: string): string` adds borrowed-pair lexical resolution with owned results and checked cwd failures. [The contract](../../milestones/path-relative-contract.md) distinguishes host execution from deterministic Windows helper/reference coverage. Combined compiler/editor regressions, native examples and matched measurements are accepted. Source, immutable SQLite evidence and five rebuilt consumers are integrated into main; see [the handoff](../../handoffs/handoff-2026-10-08-path-relative.md). No further path or OS family is included.
+`std:path.relative(from: string, to: string): string` adds borrowed-pair lexical resolution with owned results and checked cwd failures. [The contract](../../milestones/path-relative-contract.md) distinguishes host execution from deterministic Windows helper/reference coverage. Combined compiler/editor regressions, native examples and matched measurements are accepted. Source, immutable SQLite evidence and five rebuilt consumers are integrated into main; see the handoff. No further path or OS family is included.
 
 ## S07 resources and bytes
 
@@ -157,4 +157,4 @@ Coverage tracks these APIs individually and keeps later S08–S21 work pending.
 
 ## S11 accepted scope (2026-10-13)
 
-S11 is accepted on macOS for inferred reusable validation schemas, owned/JSON input, fused text decoding, bounded typed issues, pipelines/collections/recursion and scoped Draft 2020-12 export. Complete compiler/LSP regressions, all 31 matched measurements and consumer refresh are recorded in the [acceptance handoff](../../handoffs/2026-10-13-s11-acceptance.md). H18 extended dialect/import conformance remains pending. Native is slower in 28 of the 31 handwritten-reference workloads; preserve that measured limitation. Compiler nesting architecture is the first next-agent task before S12.
+S11 is accepted on macOS for inferred reusable validation schemas, owned/JSON input, fused text decoding, bounded typed issues, pipelines/collections/recursion and scoped Draft 2020-12 export. Complete compiler/LSP regressions, all 31 matched measurements and consumer refresh are recorded in the acceptance handoff. H18 extended dialect/import conformance remains pending. Native is slower in 28 of the 31 handwritten-reference workloads; preserve that measured limitation. Compiler nesting architecture is the first next-agent task before S12.

@@ -15,7 +15,7 @@ impl Emitter<'_>{
         let child_roots=self.schema_root_arguments(plan.element);
             let trial=format!("tsrust_schema_trial::sequence(input.tsr_owned_items().collect(),|index,value|{{path.push(tsrust_schema_issues::Segment::Index(index));let trial={child}({child_roots}&schema.field0,value,path,issues,failure);path.pop();trial}}).remap_input(|values|<{}>::from_values(values))",self.native_type(input));
             let checked=self.schema_collection_collision_check(&trial,false,generated);
-            return format!("({checked}).inject(|values|<{output}>::from_values(values),|value|value.tsr_owned_items().collect())");
+            return format!("({checked}).inject(|values|<{output}>::from_values(values),|value|value.tsr_owned_items().collect()).boxed()");
         }
         let (key_type,value_type,setup,inverse)=if let Some(map)=&definition.map_definition{
             (map.key,map.value,"let entries=input.tsr_owned_items().map(TsrMapEntry::into_pair).collect::<Vec<_>>();".into(),format!("<{}>::from_values(values)",self.native_type(input)))
@@ -36,14 +36,14 @@ impl Emitter<'_>{
         // introduce collisions. JSON duplicate keys were already resolved.
         let trial=format!("tsrust_schema_trial::sequence(entries,|index,(key,value)|{{{entry}}}).remap_input(|values|{{{inverse}}})");
         let checked=if plan.kind==CollectionKind::Map{self.schema_collection_collision_check(&trial,true,generated)}else{trial};
-        format!("{setup}({checked}).inject(|values|<{output}>::from_values(values),|value|value.tsr_owned_items().map(TsrMapEntry::into_pair).collect())")
+        format!("{setup}({checked}).inject(|values|<{output}>::from_values(values),|value|value.tsr_owned_items().map(TsrMapEntry::into_pair).collect()).boxed()")
     }
 
     fn schema_collection_collision_check(&self,trial:&str,map:bool,generated:&mut String)->String{
         let marker="/*schema_collection_duplicates*/";
         if !generated.contains(marker){
             generated.push_str(marker);
-            generated.push_str("fn tsrust_schema_duplicate<T,K:TsrSetKey>(values:&[T],key:impl Fn(&T)->&K)->Option<usize>{let mut buckets=std::collections::HashMap::<u64,Vec<usize>>::new();for(index,value)in values.iter().enumerate(){let value=key(value);let bucket=buckets.entry(value.tsr_hash()).or_default();if bucket.iter().any(|previous|value.tsr_same(key(&values[*previous]))){return Some(index);}bucket.push(index);}None}");
+            generated.push_str("fn tsrust_schema_duplicate<T,K:TsrSetKey>(values:&[T],key:impl Fn(&T)->&K)->Option<usize>{if values.len()<=8{for index in 1..values.len(){let value=key(&values[index]);if values[..index].iter().any(|previous|value.tsr_same(key(previous))){return Some(index);}}return None;}let mut buckets=std::collections::HashMap::<u64,Vec<usize>>::new();for(index,value)in values.iter().enumerate(){let value=key(value);let bucket=buckets.entry(value.tsr_hash()).or_default();if bucket.iter().any(|previous|value.tsr_same(key(&values[*previous]))){return Some(index);}bucket.push(index);}None}");
         }
         let key=if map{"|value|&value.0"}else{"|value|value"};
         let report="let mut duplicate_path=path.clone();duplicate_path.push(tsrust_schema_issues::Segment::Index(index));issues.push(&duplicate_path,tsrust_schema_issues::Code::Collision,tsrust_schema_issues::Kind::Object,tsrust_schema_issues::Kind::Object);";

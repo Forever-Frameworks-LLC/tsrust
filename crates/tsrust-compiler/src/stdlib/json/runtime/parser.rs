@@ -61,17 +61,43 @@ fn located(input: &[u8], error: serde_json::Error, code: Option<&'static str>) -
     failure(code, start.saturating_add(error.column().saturating_sub(1)).min(input.len()))
 }
 pub fn parse(input: &[u8], limits: Limits) -> Result<Value, Error> {
+    if let Err(error) = std::str::from_utf8(input) {
+        if input.len() <= limits.bytes && limits.depth <= 64 { return Err(failure("invalid-utf8", error.valid_up_to())); }
+    }
+    parse_valid_utf8(input, limits)
+}
+/// `JSON.parse(text)` without limits: plain serde_json. Integers keep Rust's
+/// exactness: a token too large for i64/u64 reaches serde as f64, so only when
+/// the value holds a float are integer tokens re-checked and rejected.
+#[allow(dead_code)] // Called by generated programs, not by the compiler itself.
+pub fn parse_plain(text: &str) -> Result<Value, Error> {
+    let mut decoder = serde_json::Deserializer::from_str(text);
+    let value = <Value as serde::Deserialize>::deserialize(&mut decoder).map_err(|error| located(text.as_bytes(), error, None))?;
+    decoder.end().map_err(|error| located(text.as_bytes(), error, Some("trailing-data")))?;
+    if holds_float(&value) { validate_integer_tokens(text.as_bytes())?; }
+    Ok(value)
+}
+// Recursion is bounded by serde_json's 128-level nesting limit; no allocation.
+fn holds_float(value: &Value) -> bool {
+    match value {
+        Value::Number(number) => number.is_f64(),
+        Value::Array(items) => items.iter().any(holds_float),
+        Value::Object(entries) => entries.values().any(holds_float),
+        _ => false,
+    }
+}
+/// `parse` for input already known to be valid UTF-8, such as a string's bytes.
+pub fn parse_valid_utf8(input: &[u8], limits: Limits) -> Result<Value, Error> {
     if input.len() > limits.bytes { return Err(failure("byte-limit", limits.bytes)); }
     // Keep Serde's own recursion guard enabled as a second independent bound.
     if limits.depth > 64 { return Err(failure("invalid-limits", 0)); }
-    if let Err(error) = std::str::from_utf8(input) { return Err(failure("invalid-utf8", error.valid_up_to())); }
-    let mut budget = Budget { limits, nodes: 0, failed: None };
+    let mut budget = Budget { limits, nodes: 0, failed: None, saw_float: false };
     let mut decoder = serde_json::Deserializer::from_slice(input);
     let value = serde::de::DeserializeSeed::deserialize(
         Seed { budget: &mut budget, depth: 0, permitted: true }, &mut decoder
     ).map_err(|error| located(input, error, budget.failed))?;
     decoder.end().map_err(|error| located(input, error, Some("trailing-data")))?;
-    validate_integer_tokens(input)?;
+    if budget.saw_float { validate_integer_tokens(input)?; }
     Ok(value)
 }
 
@@ -161,7 +187,9 @@ fn normalize_jsonc(input: &[u8], limits: Limits, trailing_comma: bool) -> Result
 }
 
 pub fn invalid_limits() -> Error { failure("invalid-limits",0) }
-struct Budget { limits: Limits, nodes: usize, failed: Option<&'static str> }
+// `saw_float` records any number serde delivered as f64: an integer token too
+// large for i64/u64 arrives that way, so only then do tokens need re-checking.
+struct Budget { limits: Limits, nodes: usize, failed: Option<&'static str>, saw_float: bool }
 impl Budget {
     fn fail(&mut self, code: &'static str) -> &'static str { self.failed = Some(code); message(code) }
 }
@@ -184,6 +212,7 @@ impl<'de> serde::de::Visitor<'de> for Seed<'_> {
     fn visit_i64<E: serde::de::Error>(self, value: i64) -> Result<Value, E> { Ok(Value::from(value)) }
     fn visit_u64<E: serde::de::Error>(self, value: u64) -> Result<Value, E> { Ok(Value::from(value)) }
     fn visit_f64<E: serde::de::Error>(self, value: f64) -> Result<Value, E> {
+        self.budget.saw_float = true;
         serde_json::Number::from_f64(value).map(Value::Number).ok_or_else(|| E::custom("JSON number must be finite"))
     }
     fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<Value, E> { Ok(Value::String(value.to_owned())) }

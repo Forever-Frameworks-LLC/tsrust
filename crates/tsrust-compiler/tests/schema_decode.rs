@@ -95,7 +95,7 @@ fn fused_coercion_rejects_non_json_inputs_during_checking(){
 }
 
 #[test]
-fn fused_limits_precede_callbacks_and_validation_issues_stay_bounded() {
+fn fused_rust_parser_defaults_precede_callbacks_and_validation_issues_stay_bounded() {
     let source=r#"
     import {s} from 'std:schema';
     function forbiddenCallback():int{throw 'Callback ran before document validation';}
@@ -107,9 +107,13 @@ fn fused_limits_precede_callbacks_and_validation_issues_stay_bounded() {
         }}
     }
     function main(){
-      rejectedJson(' '.repeat(16777216)+'0','byte-limit');
-      rejectedJson('['.repeat(65)+'0'+']'.repeat(65),'depth-limit');
-      rejectedJson('['+'0,'.repeat(999999)+'0]','node-limit');
+      rejectedJson('['.repeat(128)+'0'+']'.repeat(128),'invalid-json');
+      rejectedJson('0 trailing','trailing-data');
+      const scalar=s.int();
+      {const large=scalar.safeParseJson(' '.repeat(16777216)+'7');if(!large.success){throw 'Unrequested byte limit';}}
+      const ignored=s.object({count:s.int().default(()=>7)}).strip();
+      {const deep=ignored.safeParseJson('{"ignored":'+'['.repeat(65)+'0'+']'.repeat(65)+'}');if(!deep.success){throw 'Unrequested depth limit';}}
+      {const many=ignored.safeParseJson('{"ignored":['+'0,'.repeat(1000000)+'0]}');if(!many.success){throw 'Unrequested entry or node limit';}}
       const schema=s.array(s.int());
       {const outcome15=schema.safeParseJson('['+'null,'.repeat(80)+'null]');if(outcome15.success){const value=outcome15.data;throw 'Invalid array accepted';}else{const failure=outcome15.error;
           if(failure.kind!=='validation'){throw 'Wrong error domain';}
@@ -122,4 +126,34 @@ fn fused_limits_precede_callbacks_and_validation_issues_stay_bounded() {
     }
     "#;
     assert_eq!(execute(source), "");
+}
+
+#[test]
+fn direct_typed_decoding_preserves_duplicates_fallback_and_callback_order() {
+    let source=r#"
+    import {s} from 'std:schema';
+    function main(){
+      const schema=s.object({rows:s.array(s.object({name:s.string().min(2),values:s.array(s.int().min(0))})),flag:s.boolean(),empty:s.null()});
+      const text='{"rows":[{"name":"x","values":[-1]}],"\\u0072ows":[{"name":"okay","values":[9007199254740993,2]}],"flag":false,"flag":true,"empty":null}';
+      {const result=schema.safeParseJson(text);if(result.success){const value=result.data;if(value.rows[0].name!=='okay'||value.rows[0].values[0]!==9007199254740993||!value.flag){throw 'Wrong direct output';}}else{throw 'Duplicate replacement rejected';}}
+      const scalar=s.object({count:s.int().min(2)});
+      {const result=scalar.safeParseJson('{"count":3,"count":1}');if(result.success){throw 'Last invalid duplicate accepted';}else{const error=result.error;if(error.kind!=='validation'){throw 'Wrong failure domain';}if(error.error.issues[0].code!=='too-small'||error.error.issues[0].observed!=='number'){throw 'Changed source diagnostics';}}}
+      for(const invalid of ['{"count":3} trailing','{"count":"\\ud800","count":3}','{"count":18446744073709551616,"count":3}','{"count":3,"extra":"\\ud800"}']){
+        const result=scalar.safeParseJson(invalid);if(result.success){throw 'Invalid source accepted';}else{const error=result.error;if(error.kind!=='json'){throw 'Invalid source reached schema validation';}}
+      }
+      {const result=scalar.safeParseJson('{"count":3,"extra":'+'['.repeat(128)+'0'+']'.repeat(128)+'}');if(result.success){throw 'Deep ignored input accepted';}else{const error=result.error;if(error.kind!=='json'){throw 'Wrong deep ignored error';}}}
+      const callbacks=s.object({first:s.int().transform(value=>{console.log('first');return value;}),second:s.int().transform(value=>{console.log('second');return value;})});
+      {const result=callbacks.safeParseJson('{"second":2,"first":1}');if(!result.success){throw 'Callbacks rejected';}}
+      const choices=s.union([s.int().refine(value=>{console.log('choice');return value>0;}),s.int()]);
+      {const result=choices.safeParseJson('3');if(!result.success){throw 'Choice rejected';}}
+      console.log('ok');
+    }
+    "#;
+    let directory=support::TempDirectory::new();
+    let path=directory.source(&support::format_round_trip(source));
+    let emitted=support::run(support::cli().arg("emit").arg(&path),60);support::success(&emitted);
+    let rust=String::from_utf8(emitted.stdout).unwrap();
+    assert!(rust.contains("DirectSchema"));assert!(rust.contains("try_decode_seed"));assert!(!rust.contains("unsafe{")&&!rust.contains("unsafe {")&&!rust.contains("unsafe extern"));
+    let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
+    assert_eq!(String::from_utf8(output.stdout).unwrap(),"first\nsecond\nchoice\nok\n");
 }

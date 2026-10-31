@@ -99,14 +99,14 @@ fn growing_recursive_wrapper_types_are_rejected_before_native_compilation() {
             "function call(c: {kind}, n: int): int {{ if (n === 0) {{ return c(); }} return call((): int => {{ return c(); }}, n - 1); }} function main() {{ console.log(call((): int => {{ return 7; }}, 2)); }}"
         );
         let error = reject(&source, "unsupported");
-        assert!(error.message.contains("128"));
+        assert!(error.message.contains("recursion limit of 128"));
         let source = format!(
             "function retain(c: {kind}): () => int {{ return (): int => {{ return c(); }}; }} function call(c: {kind}, n: int): int {{ if (n === 0) {{ return c(); }} return call(retain(c), n - 1); }} function main() {{ console.log(call((): int => {{ return 7; }}, 2)); }}"
         );
         assert!(
             reject(&source, "unsupported")
                 .message
-                .contains("specialization count")
+                .contains("recursion limit of 128")
         );
     }
 }
@@ -263,9 +263,10 @@ fn finite_owned_type_permutations_and_fresh_factory_results_use_cached_functions
 }
 
 #[test]
-fn recursive_owned_specialization_limits_remain_global_and_frontend_only() {
+fn recursive_owned_specializations_have_no_count_limit() {
+    // Like rustc monomorphization, every distinct closure origin instantiates.
     let definitions = "function call(c: Function<int>, n: int): int { if (n === 0) { return c(); } return call(c, n - 1); }";
-    let calls = (0..128)
+    let calls = (0..129)
         .map(|i| format!("call((): int => {{ return {i}; }}, 1);"))
         .collect::<String>();
     let rust = execute(
@@ -273,36 +274,11 @@ fn recursive_owned_specialization_limits_remain_global_and_frontend_only() {
         "",
         None,
     );
-    assert_eq!(rust.matches("fn function").count(), 128);
-    let source = format!(
-        "{definitions} function main() {{ {calls} call((): int => {{ return 128; }}, 1); }}"
-    );
-    assert!(
-        reject(&source, "unsupported")
-            .message
-            .contains("specialization count")
-    );
-    let dir = support::TempDirectory::new();
-    let path = dir.source(&source);
-    let result = support::run(
-        support::cli()
-            .arg("build")
-            .arg(&path)
-            .arg("-o")
-            .arg(dir.0.join("program"))
-            .env("PATH", ""),
-        10,
-    );
-    assert_eq!(result.status.code(), Some(1));
-    assert!(
-        String::from_utf8(result.stderr)
-            .unwrap()
-            .contains("specialization count")
-    );
+    assert_eq!(rust.matches("fn function").count(), 129);
 }
 
 #[test]
-fn recursive_owned_specializations_retain_borrowed_vector_limits() {
+fn recursive_owned_specializations_instantiate_every_borrowed_vector() {
     let width = 7;
     let parameters = (0..width)
         .map(|i| format!("b{i}: Mutable<Function<int>>"))
@@ -339,12 +315,8 @@ fn recursive_owned_specializations_retain_borrowed_vector_limits() {
         if repeated {
             execute(&source, "9\n", None);
         } else {
-            let error = reject(&source, "unsupported");
-            assert_eq!(
-                error.message,
-                "Recursive callback instantiations exceed the prototype limit of 128 per native target."
-            );
-            assert!(!error.related.is_empty());
+            // Seven distinct closures permute into 5,040 instantiations, as in rustc.
+            tsrust_compiler::check(&source).unwrap().emit_rust();
         }
     }
 }
@@ -386,17 +358,14 @@ fn owned_recursive_templates_preserve_source_errors_guards_and_backend_independe
 }
 
 #[test]
-fn recursive_owned_cycles_preserve_compiler_source_depth_guards() {
+fn recursive_owned_cycles_forward_one_callback_at_any_length() {
     for length in [20, 200] {
         let mut source = String::new();
         for i in 0..length {
             source.push_str(&format!("function f{i}(c: Function<int>, n: int): int {{ if (n === 0) {{ return c(); }} return f{}(c, n - 1); }}", (i+1)%length));
         }
         source.push_str("function main() { console.log(f0((): int => { return 7; }, 40)); }");
-        if length == 20 {
-            execute(&source, "7\n", None);
-        } else {
-            reject(&source, "unsupported");
-        }
+        // Long cycles forwarding one callback reuse a single instance, as in rustc.
+        execute(&source, "7\n", None);
     }
 }

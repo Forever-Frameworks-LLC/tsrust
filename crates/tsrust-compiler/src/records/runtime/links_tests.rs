@@ -8,7 +8,7 @@ fn nullable_links_clone_move_and_drop_iteratively() {
     source.push_str(ALLOCATION_OBSERVER);
     for (name, mutual) in [("self_link", false), ("mutual_link", true)] {
         let target = usize::from(mutual);
-        let union = UnionId { index: 0, copy: false };
+        let union = UnionId { index: 0, copy: false, scalar_members:false };
         let records = [
             record(&[Type::Union(union), Type::Record(2)]),
             record(&[if mutual { Type::Record(0) } else { Type::Int }]),
@@ -76,7 +76,7 @@ pub fn run() {{
 "#));
     }
     for (name, mutable) in [("shared_views",false),("exclusive_views",true)] {
-        let union=UnionId{index:0,copy:false};
+        let union=UnionId{index:0,copy:false, scalar_members:false};
         let mut view=record(&[]);
         view.native_type=Some(if mutable {crate::native_signatures::NativeTypeId::ByteViewMut}else{crate::native_signatures::NativeTypeId::ByteView});
         let records=[record(&[Type::Union(union),Type::Record(1)]),view];

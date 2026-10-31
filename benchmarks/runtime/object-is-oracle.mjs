@@ -8,7 +8,7 @@ export function expectedObjectIsValues(id,n,seed,input) {
  for(let i=0;i<n;i++) {
   const mode=(i+seed)%3,base=(i*13+seed)%97;
   // left and right differ by mode/4. Equal operands give +0 and +0, then NaN and NaN.
-  // Unequal operands give opposite signs, then -1 and -1.
+  // Unequal operands give opposite signs, then 1 and 1.
   // base/4 equals base only for zero.
   values.push([mode===0,mode===0,true,mode===1||input.length===0,mode===0,base===0]);
  }

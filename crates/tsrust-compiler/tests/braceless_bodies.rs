@@ -59,7 +59,7 @@ fn single_statement_bodies_keep_scope_and_syntax_contracts() {
     ] {
         support::reject(source, code);
     }
-    // Nesting without braces is bounded like nesting with braces.
+    // Nesting without braces has no fixed limit, like nesting with braces.
     let deep = format!("function main() {{ {} console.log(1); }}", "if (true) ".repeat(200));
-    support::reject(&deep, "unsupported");
+    support::accept_deep(&deep);
 }

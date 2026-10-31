@@ -328,7 +328,7 @@ function main() {
 
 An array rest target may itself be an array or object pattern. The rest copy is created once, then its pattern binds positions or properties under the ordinary access rules. For example, `const [first, ...[second, ...others]] = words` copies the tail, binds its first position as second, and explicitly copies its remaining positions as others. `const [...{ length }] = words` binds the copied array's length. Tuple rest targets retain each remaining position type.
 
-Nested target positions may have defaults. The outer rest target still must be last, with no default or trailing comma. Pattern nesting keeps the existing limit of 32. Record rest continues to require a single identifier target.
+Nested target positions may have defaults. The outer rest target still must be last, with no default or trailing comma. Pattern nesting has no fixed limit. Record rest continues to require a single identifier target.
 
 ```tsrust
 import { strictEqual } from "std:testing";

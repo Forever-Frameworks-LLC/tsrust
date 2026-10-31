@@ -9,7 +9,7 @@ import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 const read=name=>fs.readFileSync(new URL(name,import.meta.url),'utf8');
 const row=JSON.parse(read('./manifest.json')).workloads.find(w=>w.id===monotonicTimeID);
 test('clock workload retains every contract observation and independent oracle',()=>{
- assert.equal(reportCategory(row.id),'time');assert.equal(row.measurementStatus,'pending-s09-family');
+ assert.equal(reportCategory(row.id),'time');assert.equal(row.measurementStatus,'measured-synchronous-host-family');
  assert.equal(expectedMonotonicTimeObservation(3,0).exactBits,'t:[b1,b1,b1]');
  for(const n of [0,1,3,137,20000])for(const seed of [0,7,1000000]){
   const expected=expectedMonotonicTimeObservation(n,seed);assert.deepEqual(expectedExactResult(row.id,n,seed),expected);assert.equal(expectedChecksum(row.id,n,seed),expected.checksum);

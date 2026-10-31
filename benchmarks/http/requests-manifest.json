@@ -1,0 +1,87 @@
+{
+  "semanticEpoch": "http-requests-v1",
+  "protocol": {
+    "processes": 3,
+    "warmups": 8,
+    "samples": 31,
+    "requestsPerBatch": 128,
+    "concurrency": [
+      1,
+      16
+    ],
+    "keepAlive": true,
+    "bodyLimit": 65536,
+    "sqliteRows": 128
+  },
+  "workloads": [
+    {
+      "scenario": "text",
+      "name": "Text response",
+      "method": "GET",
+      "path": "/text",
+      "id": "http_text_c1",
+      "concurrency": 1
+    },
+    {
+      "scenario": "text",
+      "name": "Text response",
+      "method": "GET",
+      "path": "/text",
+      "id": "http_text_c16",
+      "concurrency": 16
+    },
+    {
+      "scenario": "json",
+      "name": "JSON response",
+      "method": "GET",
+      "path": "/json",
+      "id": "http_json_c1",
+      "concurrency": 1
+    },
+    {
+      "scenario": "json",
+      "name": "JSON response",
+      "method": "GET",
+      "path": "/json",
+      "id": "http_json_c16",
+      "concurrency": 16
+    },
+    {
+      "scenario": "parse_json",
+      "name": "Parse JSON → JSON",
+      "method": "POST",
+      "path": "/parse",
+      "id": "http_parse_json_c1",
+      "concurrency": 1
+    },
+    {
+      "scenario": "parse_json",
+      "name": "Parse JSON → JSON",
+      "method": "POST",
+      "path": "/parse",
+      "id": "http_parse_json_c16",
+      "concurrency": 16
+    },
+    {
+      "scenario": "sqlite_json",
+      "name": "Parse JSON → SQLite → JSON",
+      "method": "POST",
+      "path": "/sqlite",
+      "id": "http_sqlite_json_c1",
+      "concurrency": 1
+    },
+    {
+      "scenario": "sqlite_json",
+      "name": "Parse JSON → SQLite → JSON",
+      "method": "POST",
+      "path": "/sqlite",
+      "id": "http_sqlite_json_c16",
+      "concurrency": 16
+    }
+  ],
+  "sources": {
+    "native": "02e23ffd75136596b10bba1ddd7e696e1acdfd4f2c648637085b87ba1e1bbcef",
+    "node-tsc": "10e3334657c3f25cf26ff17f685d07f5ab3287d3d743614bc0d89677f72b0e90",
+    "rust-hand": "75c3ab7ab6d70f61071eb5bffbf1fb5bf35781a1c40db82e5a2ddcb0624808e9"
+  }
+}

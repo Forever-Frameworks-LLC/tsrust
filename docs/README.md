@@ -58,7 +58,6 @@ describes CI, artifacts and publication.
 | [src/](src/) | Shared documentation UI and executable examples |
 | [plans/](plans/) | Design proposals and implementation plans |
 | [milestones/](milestones/) | Feature acceptance and evidence summaries |
-| [handoffs/](handoffs/) | Current and retained historical continuation notes |
 | [measurements/](measurements/) | Measurement methodology and analysis |
 | [Compiler fixtures](../crates/tsrust-compiler/tests/fixtures/) | Executable examples and rejection witnesses |
 | [Runtime benchmarks](../benchmarks/runtime/) | Matched inputs, independent oracles and drivers |
@@ -76,6 +75,7 @@ describes CI, artifacts and publication.
 
 Current behavior guides and accepted evidence describe implemented behavior.
 Plans do not silently settle open decisions. Historical “next” statements can be
-superseded by the current handoff. Original benchmark records live in SQLite;
+superseded by [the handoff](agent-progress.md), the single continuation note.
+Benchmark measurements live in `benchmarks/measurements.sqlite`;
 Markdown reports are optional exports. Full regressions and timing belong at
 meaningful milestones, not after each small edit.

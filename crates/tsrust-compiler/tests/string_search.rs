@@ -196,3 +196,10 @@ fn string_search_checks_types_arity_and_receiver_needle_position_loans() {
         assert_eq!(check(&moved).err().unwrap().code, "transferred");
     }
 }
+
+#[test]
+fn short_and_long_haystack_searches_agree_at_the_switch_over() {
+    // Haystacks of 63-66 bytes straddle the short-search limit; expected byte
+    // offsets were computed independently from the UTF-8 encodings.
+    support::execute(&support::format_round_trip("function main(){const hays:string[]=[\"éééééééééééééééééééééééééééééééx\",\"éééééééééééééééééééééééééééééééé\",\"ééééééééééééééééééééééééééééééééx\",\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaé\",\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaé😀\"];const needles:string[]=[\"x\",\"é\",\"éx\",\"😀\",\"a\",\"\",\"zz\"];for(const h of hays){for(const n of needles){console.log(h.indexOf(n),h.lastIndexOf(n),h.includes(n),h.indexOf(n,2));}}}"), "62 62 true 62\n0 60 true 2\n60 60 true 60\n-1 -1 false -1\n-1 -1 false -1\n0 63 true 2\n-1 -1 false -1\n-1 -1 false -1\n0 62 true 2\n-1 -1 false -1\n-1 -1 false -1\n-1 -1 false -1\n0 64 true 2\n-1 -1 false -1\n64 64 true 64\n0 62 true 2\n62 62 true 62\n-1 -1 false -1\n-1 -1 false -1\n0 65 true 2\n-1 -1 false -1\n-1 -1 false -1\n62 62 true 62\n-1 -1 false -1\n-1 -1 false -1\n0 61 true 2\n0 64 true 2\n-1 -1 false -1\n-1 -1 false -1\n63 63 true 63\n-1 -1 false -1\n65 65 true 65\n0 62 true 2\n0 69 true 2\n-1 -1 false -1\n", None);
+}

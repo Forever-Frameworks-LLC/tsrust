@@ -1,4 +1,57 @@
-# HTTP loopback
+# HTTP request comparisons
+
+The current suite compares **Tsrust**, **Node.js after tsc**, and an independently
+written **Rust Axum/serde/SQLx server**. It runs four scenarios at both **one and
+16 keep-alive connections**:
+
+- GET `/text`: return UTF-8 `héllo 🦀`.
+- GET `/json`: construct and serialize an `{id, label, value}` record per request.
+- POST `/parse`: read/validate a JSON record, append `!` to its label, increment
+  its value and serialize the result. IDs and values vary across the batch.
+- POST `/sqlite`: read/validate a JSON ID, run a parameterized SQLite query, and
+  serialize the row. The private in-memory database contains 128 distinct rows.
+
+One common Node HTTP client drives all three servers. Each batch completes 128
+requests and checks status, content type and the entire response body against an
+independent expected byte sequence. Invalid JSON/types/Unicode, invalid IDs and
+missing database rows are verified before timing. Request payloads, database
+creation/seeding, builds and server startup are outside measurement. Response
+encoding, request parsing, database queries, transport and client verification are
+inside it. These rates measure the complete loopback stack, not an isolated
+server's maximum throughput. The SQLite test uses warm in-memory reads and one
+connection; Tsrust/Rust use SQLx asynchronously, Node uses built-in synchronous
+SQLite with a prepared statement. SQLite versions are recorded per engine.
+
+From the repository root, with Rust 1.96.1 and Node v24.11.1 prepared locally:
+
+```sh
+TSRUST="$PWD/target/debug/tsrust" CARGO_TARGET_DIR="$PWD/target" CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 node benchmarks/http/requests-run.mjs --verify
+TSRUST="$PWD/target/debug/tsrust" CARGO_TARGET_DIR="$PWD/target" CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 node benchmarks/http/requests-run.mjs --prepared
+```
+
+The first command builds release servers offline and verifies real requests.
+`--prepared` reuses servers only when source/compiler identities still match.
+Omit `--prepared` to rebuild. Timing keeps the original **three processes × 31
+samples after eight warmups** (93 samples per engine/workload), rotating server
+order and waiting for a quiet machine. All servers bind only to loopback port
+zero and are shut down after each process. The Rust counterpart links the same
+prepared Axum/Tokio/SQLx/serde artifacts as Tsrust; generated Rust is never
+relabeled as hand-written Rust. Builds share the repository Cargo target.
+
+`requests-manifest.json` pins protocol/source identities. `requests-contract.mjs`
+prepares independent expected responses. Run guards with
+`node --test benchmarks/http/requests.test.mjs`. Measurement JSON is disposable:
+
+```sh
+npm run store:ingest --prefix benchmarks/runtime
+```
+
+Verify the imported medians, all 93 samples, source identities and SQLite
+integrity before removing raw JSON. Accepted HTTP selections live alongside the
+other performance-page selections in `website/tools/performance-runs.json`.
+Language/library summary counts remain separate from these eight HTTP cases.
+
+# Legacy HTTP loopback workloads
 
 `--readers` selects paired JSON/schema and contextual stream request handling.
 Each of 128 iterations posts `{"value":40}` and the two-byte UTF-8 string `é`,
@@ -27,9 +80,9 @@ combined client/server stack, not isolated server throughput or multicore scalin
 The timing protocol is three processes per engine, eight warmups, 31 samples,
 alternating engine order. Verification checks one untimed sample per engine.
 
-Both servers bind port zero and close after sampling. Records include source,
-compiler and harness hashes. Import verified closed records into records.sqlite,
-then remove the loose JSON. Keep original measurements when comparing revisions.
+Both servers bind port zero and close after sampling. The legacy runner emits disposable JSON records. The current comparison runner
+above stores execution measurements in benchmarks/measurements.sqlite; legacy
+records are not silently substituted for the new HTTP protocol.
 
 TLS: `node benchmarks/http/run.mjs --tls --verify` verifies the matched HTTPS
 workload; omit `--verify` for the original 3-process, 8-warmup, 31-sample protocol.

@@ -306,14 +306,8 @@ impl Context<'_> {
         if let Some(&index) = self.instances.get(&key) {
             return Ok((index, None));
         }
-        if self.instances.len() >= 1024
-            || self.counts.get(name).copied().unwrap_or(0) >= 128
-        {
-            return Err(Diagnostic::new(
-                "generic-limit",
-                "Generic record specialization exceeds its per-declaration (128) or program (1024) limit.",
-                span,
-            ));
+        if arguments.iter().any(|argument| argument.nesting_depth() > crate::type_syntax::INSTANTIATION_DEPTH_LIMIT) {
+            return Err(Diagnostic::new("generic-limit", "Generic instantiation nests deeper than Rust's recursion limit of 128; polymorphic recursion such as f<T> calling f<Box<T>> never reaches a fixed point.", span));
         }
         let template = self.templates[name].clone();
         if crate::stdlib::cache::is_cache(template.native_type)
@@ -711,7 +705,7 @@ mod tests {
     }
 
     #[test]
-    fn late_materialization_preserves_consumed_declaration_budget() {
+    fn late_materialization_reuses_instances_and_adds_new_ones() {
         let mut source = "type Box<T>={value:T;};".to_owned();
         for id in 0..128 {
             source.push_str(&format!("type Argument{id}={{value:int;}};type Holder{id}={{value:Box<Argument{id}>;}};"));
@@ -727,10 +721,10 @@ mod tests {
         cache.materialize(&mut existing, &mut program.records, &mut names, &unions, &mut callables).unwrap();
         assert_eq!(program.records.len(), initial);
         let mut next = crate::type_syntax::parse("Box<int>").unwrap();
-        let error = cache.materialize(&mut next, &mut program.records, &mut names, &unions, &mut callables).unwrap_err();
-        assert_eq!(error.code, "generic-limit");
-        assert_eq!(cache.counts["Box"], 128);
-        assert_eq!(program.records.len(), initial);
+        // Like rustc, a template has no instance count limit.
+        cache.materialize(&mut next, &mut program.records, &mut names, &unions, &mut callables).unwrap();
+        assert_eq!(cache.counts["Box"], 129);
+        assert_eq!(program.records.len(), initial + 1);
     }
 
 }

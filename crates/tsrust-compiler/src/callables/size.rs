@@ -4,7 +4,8 @@ use crate::syntax::Type;
 use crate::{Diagnostic, Mode, Span};
 use std::collections::{HashMap, HashSet};
 
-const MAX_INLINE_BYTES: usize = 1 << 30;
+// rustc rejects types larger than isize::MAX bytes; inline callables match it.
+const MAX_INLINE_BYTES: usize = isize::MAX as usize;
 
 pub(crate) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
     if program.stored_contracts.populated().next().is_none()
@@ -56,7 +57,7 @@ pub(crate) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
             let failure = || {
                 Diagnostic::new(
                     "callable-layout",
-                    "Inline callable storage exceeds the prototype limit of 1 GiB.",
+                    "Inline callable storage exceeds Rust's maximum object size (isize::MAX bytes).",
                     span,
                 )
             };
@@ -230,15 +231,16 @@ fn duplicated_capture_layout_rejects_large_inline_storage_but_arrays_are_bounded
         )]));
     crate::callable_layout::validate_storage_layout(program).unwrap();
     validate(program).unwrap();
-    program.records = (0..30)
+    // Doubling past isize::MAX bytes exceeds Rust's maximum object size.
+    program.records = (0..62)
         .map(|id| {
             crate::cloneability::tests::record(&[
-                if id == 29 {
+                if id == 61 {
                     Type::Int
                 } else {
                     Type::Record(id + 1)
                 },
-                if id == 29 {
+                if id == 61 {
                     Type::Int
                 } else {
                     Type::Record(id + 1)
