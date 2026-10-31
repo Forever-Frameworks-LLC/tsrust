@@ -11,6 +11,98 @@ Branch: `codex/optimize-native-hot-paths` (pushed; full CI dispatched per milest
 Read `AGENTS.md`, `docs/development-workflow.md` and `docs/agent-goal.md`, then
 this note. Inspect current source and `git status` before acting.
 
+## Current state — 2026-10-30 (optimization loop; read first)
+
+Active owner direction: optimize toward "making Rust as easy to write as
+TypeScript": JS/TS-familiar API, Rust semantics and accuracy underneath, generated
+code at hand-written-Rust parity. The docs restructuring in the next section is
+still open but is not the current loop's focus.
+
+**Git:** branch `codex/optimize-native-hot-paths`. Pushed through `5793c2b5`.
+Local, not pushed: `5805b423`, `db6ec027` (single handoff), `4bf84f84` (test fix).
+Nothing uncommitted. The rejected small-string experiment lives on
+`codex/small-string-experiment` (keep for reference; do not merge).
+
+**Validation:**
+- GitHub CI dispatched today ran only the default subset, because
+  `gh workflow run CI --ref <branch>` without `-f full_regressions=true` skips the
+  complete `cargo test --workspace` step. Do not call such a run "full".
+  The repository is public, so Actions minutes are free, but the owner now
+  prefers local runs (other projects stopped to free memory).
+- Full local regression (one test binary at a time, memory-guarded) was stopped
+  at the owner's request after 430 of 491 test files (all 399 compiler files
+  plus 31 of 92 editor files; editor files after `completion_matrix`
+  alphabetically were not run, nor the `--lib` unit tests at the end).
+  Results: one real failure, fixed in `4bf84f84` (`primitive_storage` expected
+  the removed 1 GiB inline-record limit). Environment-only failures when test
+  binaries run outside cargo: `native_cache` (passes under `cargo test`),
+  `native_dependency_bundle` and `shared_sources` (need `CARGO_TARGET_DIR`).
+  `shared_sources::portable_export_remains_toolchain_free_and_rebuilds_after_relocation_offline`
+  still fails locally with `CARGO_TARGET_DIR` set: "Portable sources are not
+  prepared. Run `tsrust setup --portable --yes`". Likely machine setup (CI
+  prepares portable sources); confirm before treating it as a defect.
+- Next: finish the remaining editor test files and both crates' `--lib` tests
+  locally, then push and, if a hosted check is wanted, dispatch with
+  `-f full_regressions=true`.
+
+**How to run tests safely (8 GB Mac):** a test once grew to 30 GB when a compiler
+limit was removed (non-terminating instantiation). Always run test binaries
+under a watchdog that kills the whole process group past a memory/time budget,
+e.g. a script that starts the binary with `set -m`, sums RSS for its process
+group with `ps -A -o pgid=,rss=` every 0.5 s, and `kill -9 -$pid` past ~5 GB or
+30 min. Use `--test-threads=3`. Run each binary from its crate directory
+(`crates/tsrust-compiler` or `crates/tsrust-lsp`) or under `cargo test`, and set
+`CARGO_TARGET_DIR=$PWD/target`, or several tests fail for environmental reasons.
+Compiler and editor crates share some test names (for example `api_project`):
+pick binaries per crate, not by name alone. Use bash (zsh does not split
+unquoted variables and mangles `$var:path`).
+
+**How to measure:** time only on a quiet machine (the runner refuses above load
+4). A/B by checking out the baseline commit, running
+`node benchmarks/runtime/run.mjs --only=<id> --engines=native,node-tsc` per
+workload, then the change; compare median sample durations with the Node.js
+control (a control far from 1.0 means the machine moved). Add
+`rust-hand` where `benchmarks/runtime/parity/<id>.rs` exists. Afterwards run
+`npm run store:ingest` in `benchmarks/runtime` (adds runs to
+`benchmarks/measurements.sqlite`); raw result files are disposable after that.
+`npm run checkpoint` prints latest native/Node ratios. For allocations,
+`node benchmarks/runtime/profile-native.mjs --only=<id>`; for per-statement
+counts, wrap a copy of the generated program with a counting global allocator.
+`sample <pid> 3` works (Developer Mode is enabled).
+
+**Owner rules learned this session:** match Rust's defaults for limits (no count
+caps; depth bound only where rustc has `recursion_limit = 128`); generated code
+must not contain `unsafe` (tests assert it); one handoff note only (this file);
+fix defects when found; keep only the latest artifacts; ask the owner only for
+merges or design decisions.
+
+**Measured today (vs Node.js after tsc, M3):** single-character ASCII table and
+direct `text.at(i)` (`string_at_characters` 30×, now 3.7× Node);
+schema small-collection duplicate scan and identity restorations (1.26×);
+`String(int)` via `to_string` (1.04–1.18×); `String(record.field)` moves a dead
+record's field (`interfaces` 1.15×). Rejected with numbers: safe inline
+small-string type (chains up to 47% slower, re-validating UTF-8 without
+`unsafe`); `String(number)` whole-number path (up to 7% slower). Details in the
+optimization log below.
+
+**Ranked next targets:**
+1. Compile time: scoped Maps across catch regions are cubic in nesting depth
+   (debug compiler: 32 levels 0.42 s, 64 → 2.9 s, 80 → 5.5 s).
+   `record_sequence_carriers` (`analysis/record_branch_carriers.rs`, called from
+   `finish_block` in `analysis/continuations/block.rs`) re-walks each block's
+   whole subtree, and `scoped_map_entry_epochs` re-filters every binding per
+   statement. Make it incremental; profile first.
+2. Schema trials: every layer (sequence, pair, remap, inject in
+   `stdlib/schema/runtime/trial.rs`) boxes a `dyn FnOnce` restoration capturing
+   the previous one; generic restorations would remove most of the 9
+   allocations for a one-entry `map.safeParse`.
+3. Mixed-type small arrays (`int | string`) use `Vec`; `inline_array` in
+   `storage.rs` allows only int/boolean/string elements (affects `type_aliases`).
+4. Single-pass schema `DeserializeSeed` decoder for `safeParseJson` (cursors
+   re-parse subtrees; 1.25× slower than `safeParse(JSON.parse)`).
+5. Shared string slices (V8 shares; Tsrust copies) need reference-counted
+   strings: a design decision for the owner.
+
 ## Most recent owner correction — highest immediate priority
 
 The owner said:
