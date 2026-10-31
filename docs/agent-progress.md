@@ -687,7 +687,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   48952 terminal zero. Ingested and verified the one Rust history entry and SQLite
   integrity; removed raw result. No native/Node timing rerun.
 - Public baseline config pins timestamp/source hash. Rust coverage now 3/932;
-  remaining 736 workloads need parity references, correctness and one-time timing.
+  remaining 730 workloads need parity references, correctness and one-time timing.
   Start next with the remaining schema workloads. Current native source clean;
   no optimization candidate remains. Website build passed; whole-project formatter
   changed zero files/snippets/fingerprints. No active tool session remains.
@@ -720,7 +720,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   timestamp and parity-source SHA-256; sample counts checked. Website build passed.
   No new Node or Rust timing was run for this page update; no deployment.
 - **Remaining owner request: implement and validate hand-written Rust coverage
-  for the other 736 displayed workloads**, by coherent families with independent
+  for the other 730 displayed workloads**, by coherent families with independent
   result oracles. Start current schema workloads, then remaining families. Do not
   claim all comparisons exist. Added first new source
   `benchmarks/runtime/parity/native_schema_json_nested.rs`: ordinary typed Serde
@@ -1135,6 +1135,25 @@ counts, wrap a copy of the generated program with a counting global allocator.
   removed. Public hashes/timestamp pinned. Coverage 196/932, remaining 736.
   Next: remaining numeric formatting/parsing and array-method families. No active
   tool jobs or compiler candidate. Documentation build/format checkpoint follows.
+
+**Rust parseFloat family — verified, 2026-10-31:**
+- Six independently written standard Rust references cover decimal, exponent,
+  whitespace, trailing text, nonfinite/invalid and mixed inputs. A decimal-prefix
+  scanner selects the valid prefix; Rust's standard float parser handles rounding,
+  overflow, underflow and signed zero. Input tables and retained output vectors
+  match the existing workload contract.
+- All six matched the independent exact IEEE output oracle. Two durable edge
+  checks passed under the 5,000,000 KiB/1,800-second watchdog with three threads:
+  incomplete exponents, excluded whitespace, signed underflow and subnormal values.
+- Timed only rust-hand: three processes, eight warmups, 31 samples each (93 per
+  workload), maximum load 2.274. Existing Tsrust and Node measurements reused.
+  Run 2026-10-31T11:34:54.348Z; all six stored medians/sample counts and SQLite
+  integrity verified after store:ingest. Disposable raw result removed.
+- Public source hashes/timestamp pinned. Coverage **202/932**, remaining **730**.
+  The performance page explicitly names Tsrust, hand-written Rust and Node.js,
+  explains compilation and reused reference dates, and distinguishes unmeasured
+  Rust cases from losses. No compiler implementation changed.
+  Next: remaining numeric formatting/parsing reference families.
 
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code

@@ -821,6 +821,30 @@
     "int_to_string_base36": {
       "at": "2026-10-31T11:31:26.759Z",
       "sourceSha256": "355927afcbecccefb0acff093f9cef227abb5e30dc3ec32ae90189d8589d950b"
+    },
+    "number_parse_float_decimal": {
+      "at": "2026-10-31T11:34:54.348Z",
+      "sourceSha256": "4e38f7d4ce41a77887d7e34ca6bdca9f50d4b70ed7c22150fb877fde5ed52139"
+    },
+    "number_parse_float_exponent": {
+      "at": "2026-10-31T11:34:54.348Z",
+      "sourceSha256": "a5f87efb728cabde1aab1c297834fa1326463dd23750819c7e6f536cf77572ab"
+    },
+    "number_parse_float_whitespace": {
+      "at": "2026-10-31T11:34:54.348Z",
+      "sourceSha256": "3c1cac4cf716dbd8aa843041c46e871469a1dae4979f30d43d57cae85505d6e3"
+    },
+    "number_parse_float_trailing": {
+      "at": "2026-10-31T11:34:54.348Z",
+      "sourceSha256": "63805ba8f8fb083c8df9bf85a30254a7e8b24d3fdf3acdf314f249f89ae99bba"
+    },
+    "number_parse_float_nonfinite_invalid": {
+      "at": "2026-10-31T11:34:54.348Z",
+      "sourceSha256": "33700002924e805adf434c565ac83d0504615eaad6fda16d836c5faf4e8664b4"
+    },
+    "number_parse_float_mixed": {
+      "at": "2026-10-31T11:34:54.348Z",
+      "sourceSha256": "c08d785b7ef5e4bcb911da86980d372d8e5e7ab31b455fe21180e865eb49915a"
     }
   }
 }
