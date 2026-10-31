@@ -61,6 +61,10 @@
     "native_schema_json_fused": {
       "at": "2026-10-31T10:21:48.205Z",
       "sourceSha256": "8d91689f814e0ec8184a61913194bfbd93556287353e7db09edc06c9321048f8"
+    },
+    "native_schema_recursive": {
+      "at": "2026-10-31T10:24:27.138Z",
+      "sourceSha256": "3ca756e4542eceeb965e06b2717d15f2dd9aba34a7bba73c301322652be50311"
     }
   }
 }
