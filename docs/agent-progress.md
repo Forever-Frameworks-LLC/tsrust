@@ -687,7 +687,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   48952 terminal zero. Ingested and verified the one Rust history entry and SQLite
   integrity; removed raw result. No native/Node timing rerun.
 - Public baseline config pins timestamp/source hash. Rust coverage now 3/932;
-  remaining 929 workloads need parity references, correctness and one-time timing.
+  remaining 928 workloads need parity references, correctness and one-time timing.
   Start next with the remaining schema workloads. Current native source clean;
   no optimization candidate remains. Website build passed; whole-project formatter
   changed zero files/snippets/fingerprints. No active tool session remains.
@@ -720,7 +720,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   timestamp and parity-source SHA-256; sample counts checked. Website build passed.
   No new Node or Rust timing was run for this page update; no deployment.
 - **Remaining owner request: implement and validate hand-written Rust coverage
-  for the other 929 displayed workloads**, by coherent families with independent
+  for the other 928 displayed workloads**, by coherent families with independent
   result oracles. Start current schema workloads, then remaining families. Do not
   claim all comparisons exist. Added first new source
   `benchmarks/runtime/parity/native_schema_json_nested.rs`: ordinary typed Serde
@@ -737,6 +737,19 @@ counts, wrap a copy of the generated program with a counting global allocator.
   compilation path and the independent Rust reference. Ratios name both engines.
 - Rust win count explicitly covers measured comparisons; unmeasured rows are
   not losses. No benchmark values changed and no timings rerun.
+
+**Array-schema hand-written Rust baseline — verified, 2026-10-31:**
+- Added parity/native_schema_json_array.rs using owned serde_json::Value input,
+  ordinary Vec integer output, ordered indexed issues and checked accumulation.
+  Includes success and two-error result observation equivalent to matched workload.
+- Rust-only runner 17550 passed independent checksum cases and 93 timing samples:
+  timestamp 2026-10-31T10:18:15.831Z, median .472625 ms, max load 3.516.
+  Focused integer-type/error-order/empty-array test passed in session 81555,
+  compiled with exact benchmark dependency artifacts. All under watchdog.
+- Ingested one Rust history entry; verified median/sample count and SQLite
+  integrity; removed disposable raw result. Reused Tsrust/Node baselines.
+  Public selection pins parity source SHA-256 and timestamp. Coverage now 4/932,
+  remaining 928. Next: remaining schema parity programs; no compiler candidate.
 
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code

@@ -49,6 +49,10 @@
     "native_schema_json_nested": {
       "at": "2026-10-31T10:14:54.049Z",
       "sourceSha256": "ddc0c5b2c4888ea7e05fe062e8e3d9fd822c5ad10e05e0f9407b5945954d91f6"
+    },
+    "native_schema_json_array": {
+      "at": "2026-10-31T10:18:15.831Z",
+      "sourceSha256": "836b8b702ac3a500110e5f26aa2c4dabde3451bc2b26ff891d69b8fe6482785a"
     }
   }
 }
