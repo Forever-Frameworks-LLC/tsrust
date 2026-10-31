@@ -141,6 +141,7 @@ fn direct_typed_decoding_preserves_duplicates_fallback_and_callback_order() {
       for(const invalid of ['{"count":3} trailing','{"count":"\\ud800","count":3}','{"count":18446744073709551616,"count":3}','{"count":3,"extra":"\\ud800"}']){
         const result=scalar.safeParseJson(invalid);if(result.success){throw 'Invalid source accepted';}else{const error=result.error;if(error.kind!=='json'){throw 'Invalid source reached schema validation';}}
       }
+      {const result=scalar.safeParseJson('{"count":3,"extra":'+'['.repeat(128)+'0'+']'.repeat(128)+'}');if(result.success){throw 'Deep ignored input accepted';}else{const error=result.error;if(error.kind!=='json'){throw 'Wrong deep ignored error';}}}
       const callbacks=s.object({first:s.int().transform(value=>{console.log('first');return value;}),second:s.int().transform(value=>{console.log('second');return value;})});
       {const result=callbacks.safeParseJson('{"second":2,"first":1}');if(!result.success){throw 'Callbacks rejected';}}
       const choices=s.union([s.int().refine(value=>{console.log('choice');return value>0;}),s.int()]);
@@ -152,7 +153,7 @@ fn direct_typed_decoding_preserves_duplicates_fallback_and_callback_order() {
     let path=directory.source(&support::format_round_trip(source));
     let emitted=support::run(support::cli().arg("emit").arg(&path),60);support::success(&emitted);
     let rust=String::from_utf8(emitted.stdout).unwrap();
-    assert!(rust.contains("DirectSchema"));assert!(rust.contains("try_decode_seed"));assert!(!rust.contains("unsafe"));
+    assert!(rust.contains("DirectSchema"));assert!(rust.contains("try_decode_seed"));assert!(!rust.contains("unsafe{")&&!rust.contains("unsafe {")&&!rust.contains("unsafe extern"));
     let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
     assert_eq!(String::from_utf8(output.stdout).unwrap(),"first\nsecond\nchoice\nok\n");
 }

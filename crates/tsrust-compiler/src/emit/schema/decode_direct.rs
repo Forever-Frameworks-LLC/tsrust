@@ -43,12 +43,12 @@ impl Emitter<'_> {
                 let construct=self.schema_output_record(object,&values.join(","));
                 // Every duplicate replaces its slot before validation is accepted.
                 // Unknown fields force replay, including strip/retain policies.
-                format!("struct Fields<'plan>(&'plan Record{record});impl<'de> serde::de::Visitor<'de> for Fields<'_>{{type Value=Option<{native}>;fn expecting(&self,f:&mut std::fmt::Formatter)->std::fmt::Result{{f.write_str(\"an object\")}}fn visit_map<A:serde::de::MapAccess<'de>>(self,mut map:A)->Result<Self::Value,A::Error>{{{fields}let mut known=true;while let Some(key)=map.next_key::<tsrust_native_json::source::Text<'de>>()?{{match key.0.as_ref(){{{arms}_=>{{known=false;let _:serde::de::IgnoredAny=map.next_value()?;}}}}}}if !known||{missing}{{return Ok(None);}}Ok(Some({construct}))}}}}decoder.deserialize_map(Fields(schema))")
+                format!("struct Fields<'plan>(&'plan Record{record});impl<'de> serde::de::Visitor<'de> for Fields<'_>{{type Value=Option<{native}>;fn expecting(&self,f:&mut std::fmt::Formatter)->std::fmt::Result{{f.write_str(\"an object\")}}fn visit_map<A:serde::de::MapAccess<'de>>(self,mut map:A)->Result<Self::Value,A::Error>{{{fields}let mut known=true;while let Some(key)=map.next_key::<tsrust_native_json::source::Text<'de>>()?{{match key.0.as_ref(){{{arms}_=>{{known=false;let _:tsrust_native_json::typed::CheckedIgnored=map.next_value()?;}}}}}}if !known||{missing}{{return Ok(None);}}Ok(Some({construct}))}}}}decoder.deserialize_map(Fields(schema))")
             },
             _=>return None,
         };
         let choices=if self.program.schema_choices.for_output(output).next().is_some() {
-            "if schema.choice.is_some(){let _:serde::de::IgnoredAny=serde::Deserialize::deserialize(decoder)?;return Ok(None);}"
+            "if schema.choice.is_some(){let _:tsrust_native_json::typed::CheckedIgnored=serde::Deserialize::deserialize(decoder)?;return Ok(None);}"
         }else{""};
         generated.push_str(&format!("struct {name}<'plan>(&'plan Record{record});impl<'de> serde::de::DeserializeSeed<'de> for {name}<'_>{{type Value=Option<{native}>;fn deserialize<D:serde::Deserializer<'de>>(self,decoder:D)->Result<Self::Value,D::Error>{{let schema=self.0;{choices}{body}}}}}"));
         Some(name)

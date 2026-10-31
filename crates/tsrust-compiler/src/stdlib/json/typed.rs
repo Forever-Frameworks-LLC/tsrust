@@ -7,6 +7,14 @@ mod tests {
  use super::*;
  fn limits()->Limits{Limits{bytes:1024,depth:4,entries:3,nodes:12}}
  #[test]
+ fn checked_discard_keeps_default_recursion_and_unicode_validation(){
+  for depth in [64,127,128,129] {
+   let input="[".repeat(depth)+"0"+&"]".repeat(depth);
+   assert_eq!(serde_json::from_str::<CheckedIgnored>(&input).is_ok(),serde_json::from_str::<serde_json::Value>(&input).is_ok(),"depth {depth}");
+  }
+  assert!(serde_json::from_str::<CheckedIgnored>(r#"{"ignored":"\ud800"}"#).is_err());
+ }
+ #[test]
  fn speculative_schema_seeds_require_complete_exact_input(){
   let seed=||std::marker::PhantomData::<ExactNumber>;
   assert_eq!(try_decode_seed("1.5",seed()).unwrap().0,1.5);
@@ -194,6 +202,18 @@ pub fn decode_seed<'de,S:serde::de::DeserializeSeed<'de>>(
 pub fn decode_plain<'de,T:serde::Deserialize<'de>>(input:&'de [u8])->Result<T,Error>{
  super::validate_integer_tokens(input)?;
  decode_once(input,std::marker::PhantomData::<T>)
+}
+
+/// Discard a schema value while retaining Serde's recursion and string checks.
+/// IgnoredAny uses a permissive scan; the final boundary checks integer tokens.
+pub struct CheckedIgnored;
+impl<'de> serde::Deserialize<'de> for CheckedIgnored {
+ fn deserialize<D:serde::Deserializer<'de>>(decoder:D)->Result<Self,D::Error>{
+  let mut budget=Budget{limits:Limits{bytes:usize::MAX,depth:usize::MAX,entries:usize::MAX,nodes:usize::MAX},nodes:0,failed:None,saw_float:false};
+  let mut maximum=0;
+  serde::de::DeserializeSeed::deserialize(ValidateSeed::<false>{budget:&mut budget,maximum:&mut maximum,depth:0,permitted:true},decoder)?;
+  Ok(Self)
+ }
 }
 
 /// Speculative callback-free schema decoding. Only complete, exact input can

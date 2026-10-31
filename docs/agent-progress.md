@@ -401,10 +401,10 @@ counts, wrap a copy of the generated program with a counting global allocator.
 
 
 
-**Current experiment — direct typed schema decoding (not accepted):**
+**Accepted plain-schema direct decoding — 2026-10-31:**
 - Previous goal turn completed the parser-default repair in `a74da73f`; this
-  turn began with a clean tree on the requested branch. Baseline release binary
-  still contains that accepted compiler. Benchmark-only checkpoint `0a2443b8`
+  turn began with a clean tree on the requested branch. Benchmark-only
+  checkpoint `0a2443b8`
   adds a four-group/sixteen-integer nested JSON control and matching TypeScript
   implementation, independent arithmetic oracle, routing, guards and report
   category. All 36 schema benchmark tests pass. Whole-project formatting proved
@@ -416,8 +416,15 @@ counts, wrap a copy of the generated program with a counting global allocator.
   recording any profile or timing. Session 93445 is terminal. Its confirmed
   orphan rustc (PID 68916) exited before the termination request (no such
   process); no overlapping work is permitted.
-  No nested baseline result is claimed. Next baseline must explicitly check out
-  `0a2443b8` and build release under the external 30-minute watchdog first.
+  Retried correctly from `0a2443b8`, with an explicit release build under the
+  external watchdog before invoking the profiler/runner. Baseline completed;
+  requested branch restored. Nested profile: 26,000 allocations, no reallocations
+  or retained leaks for 2,000 iterations. Timing file:
+  `results/2026-10-31T04-59-04-347Z.json` (93 samples per workload/engine).
+  Native/Node medians (ms): fused 0.825708/0.670500; nested
+  6.566417/1.823125; ordinary object 0.816333/0.685959; collections
+  2.290833/0.807750. Maximum load 3.772.
+  Peak group RSS 1,458,992 KiB; no watchdog stops.
 - Candidate emits callback-free DeserializeSeed visitors for plain scalar,
   array and object schemas. Typed output is built directly, without per-object
   BTreeMap indexes or repeated RawValue subtree scans. Fields overwrite their
@@ -430,13 +437,49 @@ counts, wrap a copy of the generated program with a counting global allocator.
   integers, source-specific diagnostics and callback order. Runtime helper tests
   cover trailing data, overflow, precision and negative zero. Generated output
   is checked for the direct visitor and absence of unsafe. No public API added.
-- Candidate validation has not run yet. Candidate source needs a provisional
-  checkpoint before reversible baseline checkout. Once baseline measurements finish, run
-  `/tmp/tsrust-direct-schema-validation.py`: JSON library tests; compiler
-  schema_decode/collections/pipelines/recursive/unions; LSP schema_editing, one
-  target at a time under the existing 5 GB/30-minute watchdog. Fix failures,
-  then build/profile/time the candidate against the recorded baseline. Retain
-  only measured improvements, ingest results and keep this handoff current.
+- Candidate checkpoint `680ff0d0` plus the fixes below is accepted. Inspection of Serde's
+  implementation found that IgnoredAny does not enforce its ordinary recursion
+  guard. The candidate now uses CheckedIgnored, reusing our syntax visitor with
+  default guard behavior, for unknown fields and unsupported runtime choices.
+  Added unit/native witnesses for ignored excessive nesting and Unicode.
+- Initial validation: all **64 JSON library tests passed**. schema_decode had
+  seven passes and one failure: the new no-unsafe text assertion found existing
+  JSON Lines unit-test FFI copied into emitted source (under cfg(test)), plus a
+  comment containing the word unsafe. This was not direct-decoder unsafe code.
+  JSON runtime emission now excludes that trailing test-only module; compiler
+  unit tests remain intact. The witness checks actual emitted unsafe block/FFI
+  spellings, allowing comments. No performance acceptance claim yet.
+- Resumed validation passed: schema_decode 8, JSONL owned 6/borrowed 5/writer 5,
+  collections 4, pipelines 18, recursive 10, unions 13, LSP schema_editing 15.
+  Including the completed 64 JSON library tests: **148 passed, zero failures**.
+  One target at a time under the 5 GB/30-minute watchdog, three test threads,
+  shared target and incremental compilation disabled. Peak RSS 1,712,736 KiB;
+  no watchdog stops. No passing suite was restarted.
+- Release build and whole-project formatting passed; zero files, snippets or
+  fingerprints changed. Exact-result checks passed for all four workloads.
+  Allocation profiles over 2,000 iterations: fused **26,000 → 22,000**
+  (13 → 11 each); nested **26,000 → 10,000** (13 → 5 each); collections
+  unchanged at 86,000 (43 each), all with zero reallocations.
+- Paired A/B against `0a2443b8`: eight warmups, 31 samples × three processes,
+  93 samples per workload/engine, system allocator. Runner waited for post-build
+  load below four; candidate maximum measured load 3.984. Watchdog peak
+  1,545,856 KiB; no stops. Native baseline → candidate medians (ms):
+  fused **0.825708 → 0.710917 (1.161×)**; nested **6.566417 → 2.103542
+  (3.122×)**; ordinary object 0.816333 → 0.791583; collections
+  2.290833 → 2.266125. Node controls respectively: 0.670500 → 0.739417,
+  1.823125 → 1.845167, 0.685959 → 0.693417, 0.807750 → 0.828208.
+  Fused Node moved 10.3% slower, so the exact fused speedup is less precise;
+  its movement cannot explain the native gain. Nested Node moved only 1.2%.
+  No native median regressed; no optimization claim for unchanged controls.
+- `npm run store:ingest` added all **16** timing history entries. Verified
+  SQLite integrity (`ok`) and all timestamps/sample counts (93 each), then
+  deleted disposable raw timings/profiles. Cleanup removed 122 completed-build
+  objects (**1,123,992,192 bytes**); both native program-cache roots already
+  keep only their latest executable. Shared dependencies remain.
+- Plain scalar/array/object decoding is accepted; advanced schemas still use
+  the existing decoder. Next profile remaining advanced-schema cost before
+  expanding this optimization. Reference-counted string storage remains an
+  owner design decision. No push, CI dispatch, merge or release.
 
 
 **Owner rules learned this session:** match Rust's defaults for limits (no count
@@ -468,8 +511,9 @@ optimization log below.
    scenarios measured 1.09–1.22× faster; type_aliases allocations fell by one
    per iteration without a reliable timing gain. Heap control also measured.
    Keep recursive/nested storage and enum text witnesses; move to JSON decoding.
-4. Single-pass schema `DeserializeSeed` decoder for `safeParseJson` (cursors
-   re-parse subtrees; 1.25× slower than `safeParse(JSON.parse)`).
+4. Plain-schema `DeserializeSeed` decoding accepted above: nested 3.122×,
+   fused 1.161× faster, fewer allocations. Advanced schemas retain the existing
+   decoder; profile remaining costs before extending the fast path.
 5. Shared string slices (V8 shares; Tsrust copies) need reference-counted
    strings: a design decision for the owner.
 
