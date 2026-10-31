@@ -2565,6 +2565,30 @@
     "rest_parameter_owned_callable_pack": {
       "at": "2026-10-31T13:08:49.696Z",
       "sourceSha256": "3e361a326916fbef71e7b4d2076850872a15c9213f809d6a3ca18f0dd3cc07f9"
+    },
+    "nested_function_declarations": {
+      "at": "2026-10-31T13:14:38.152Z",
+      "sourceSha256": "2cd3d2ac35fe15d3a652bf8b97cba945e6a8a61befdbd1d25c4ff3abe0d50b25"
+    },
+    "nested_function_captures": {
+      "at": "2026-10-31T13:14:38.152Z",
+      "sourceSha256": "3a970c897b91d7d511f4008cc18496859ea17e55bd562e4f87f194fca957a71b"
+    },
+    "nested_function_owned_escape": {
+      "at": "2026-10-31T13:14:38.152Z",
+      "sourceSha256": "275b7138ed4975dc604dc256739ff64a5480d7e2220fbf481871afae55e0833a"
+    },
+    "nested_function_results": {
+      "at": "2026-10-31T13:14:38.152Z",
+      "sourceSha256": "b6145e058055c7791e870b09605e21ccaba56c4b359c7cc69b05d737f5385722"
+    },
+    "nested_function_defaults": {
+      "at": "2026-10-31T13:14:38.152Z",
+      "sourceSha256": "e82b3aea0d875d7c0cf61efe1cf5b9fd51e8be731a841dee78654e8efdc051d4"
+    },
+    "nested_function_rest": {
+      "at": "2026-10-31T13:14:38.152Z",
+      "sourceSha256": "ccbadb89aa3f8569742cd46690e3a32c04d23ef6c6692bf9e51e97a4e2d4ccd1"
     }
   }
 }
