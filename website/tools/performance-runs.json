@@ -69,6 +69,10 @@
     "native_schema_json_union": {
       "at": "2026-10-31T10:26:44.659Z",
       "sourceSha256": "9192e9141a1859862a809c58e8a475a9f9b27e6859d4845bd97d6cd709a17f3b"
+    },
+    "native_schema_json_discriminated_union": {
+      "at": "2026-10-31T10:28:51.948Z",
+      "sourceSha256": "4b338ff802923bb788feba6e611d2f4633d59d5f2523136266e6a997cea9a3b3"
     }
   }
 }
