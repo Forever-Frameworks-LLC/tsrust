@@ -3269,6 +3269,50 @@
     "native_ordered_map": {
       "at": "2026-10-31T13:52:13.497Z",
       "sourceSha256": "3be62da148aaa1c3a8faa1ea7c626992df32196e2ca02b5ba11b88df6953f5b1"
+    },
+    "native_byte_views": {
+      "at": "2026-10-31T13:56:15.031Z",
+      "sourceSha256": "5caadbf83a665b80a421196015e61602db9a296f3ea9696ae94ca8e1ba05e0dc"
+    },
+    "native_byte_views_recursive": {
+      "at": "2026-10-31T13:56:15.031Z",
+      "sourceSha256": "52b12620b8d8fc7fdc6763980dcfb88f9739100f73674e004a3c53f69541e5c8"
+    },
+    "native_byte_views_linked": {
+      "at": "2026-10-31T13:56:15.031Z",
+      "sourceSha256": "812aa3c2f4966f81f3fdb20c8a485ca2acb743713d2095e78128175194fb36d2"
+    },
+    "native_byte_views_callbacks": {
+      "at": "2026-10-31T13:56:15.031Z",
+      "sourceSha256": "7ab83cd9c4a61e666c861df5513c7bfdce9db26e148e5237144b3c8540dc2681"
+    },
+    "native_byte_views_stored_callbacks": {
+      "at": "2026-10-31T13:56:15.031Z",
+      "sourceSha256": "62122d245a65e9473404156fd8ddee6185b9fe40d15bc3188ef4715f0b8f001a"
+    },
+    "native_byte_views_captured_only": {
+      "at": "2026-10-31T13:56:15.031Z",
+      "sourceSha256": "1bc3eaa95ac7d0c73411224433df6abe9014fd713aaedb629904772f5c3792d3"
+    },
+    "native_byte_views_nullable_callbacks": {
+      "at": "2026-10-31T13:56:15.031Z",
+      "sourceSha256": "892e0bba2fd76ec486b8016ab9ae032355de772db370e6b136701b4565ed33cc"
+    },
+    "native_byte_views_parameter_stores": {
+      "at": "2026-10-31T13:56:15.031Z",
+      "sourceSha256": "a961d92e2b748301b415caf80b9eaa8d8abfc962aaff90cb55df3528090623a8"
+    },
+    "native_byte_views_maps": {
+      "at": "2026-10-31T13:56:15.031Z",
+      "sourceSha256": "4f789fe885080815d393d569014156352f3f2f952c5a67c11a34907e4ffbfe97"
+    },
+    "native_byte_views_deque": {
+      "at": "2026-10-31T13:56:15.031Z",
+      "sourceSha256": "507027b0b071404fd967a7ee28880f15056a9dc3c7210d5e387574fbb2570f8c"
+    },
+    "native_byte_views_deque_callbacks": {
+      "at": "2026-10-31T13:56:15.031Z",
+      "sourceSha256": "4b4da17fedce5f04d157c58b82bf3531c9a159e071d71a37be0d6521f7f17191"
     }
   }
 }

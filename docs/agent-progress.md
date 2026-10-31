@@ -677,7 +677,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
 
 **Hand-written Rust reference expansion — current, 2026-10-31:**
 - Owner requested independent, ordinary Rust comparisons alongside **all 932**
-  public workloads. **808 are measured; 124 remain.** This is ongoing acceptance,
+  public workloads. **819 are measured; 113 remain.** This is ongoing acceptance,
   not universal hand-written-Rust parity. Next: collection/native families and remaining scoped records; the
   Math.random reference is also still open. No compiler candidate is active.
 - Reuse Node and Rust baselines instead of timing them for every optimization.
@@ -752,8 +752,9 @@ counts, wrap a copy of the generated program with a counting global allocator.
 | Higher-order owned callback results | 8 | 0d18cc7e |
 | Declared functions/callbacks/owned values | 12 | f3744386 |
 | Ordered Map/Set/grouping/Unicode iteration | 11 | cff3e51c |
-| Native bytes/deque/heap/ordered collections | 10 | This checkpoint; details below |
-| **Total** | **808** | **124 still required** |
+| Native bytes/deque/heap/ordered collections | 10 | fa6d9cea |
+| Borrowed byte-view records/callbacks/containers | 11 | This checkpoint; details below |
+| **Total** | **819** | **113 still required** |
 
 **Reference correctness and interpretation:**
 - Sources are independently authored Rust using standard-library operations and
@@ -788,31 +789,33 @@ counts, wrap a copy of the generated program with a counting global allocator.
   unmeasured Rust rows are not losses. Never label Tsrust simply "Native".
 - Current summary: Tsrust faster than Node.js in **613/932**, median throughput
   ratio **1.52×**, range **0.04×–189.48×**. Hand-written Rust faster than Node.js
-  in **543/932 (808 measured)**. The ratios use mean throughput, not median time.
+  in **554/932 (819 measured)**. The ratios use mean throughput, not median time.
 - Website generation/build passes locally; no deployment, push or CI is implied.
   Full-project formatting has consistently changed zero files/snippets/fingerprints.
 
-**Rust native bytes/deque/heap/ordered collections — verified, 2026-10-31:**
-- Ten independent references cover byte construction/access/growth/copy-append/
-  clone/UTF-8, deep deque cloning, heap iteration/copy/pop and ordered sets/maps.
-  Standard Vec<u8>, checked conversions, str::from_utf8, VecDeque, BinaryHeap,
-  BTreeSet and BTreeMap implement storage and ownership. Small Result helpers
-  preserve observed error codes/offsets and validation order. No unsafe, custom
-  capacity limits or new dependencies; failed mutations leave receivers intact.
-- All ten matched independent result oracles and completed 93 samples each
+**Rust borrowed byte-view records/callbacks/containers — verified, 2026-10-31:**
+- Eleven independent references cover nested/mutable slices, recursive/linked
+  records, owned once callbacks and returned views, stored/capture-only/nullable/
+  replaced callbacks, map stores and deque views/readers. Owners remain live in
+  all measured programs, so ordinary Rust &[u8]/&mut [u8] lifetimes retain views
+  without reference-counted backing storage or unsafe. Owned copies use to_vec.
+  Recursive callback records use boxed FnOnce captures; deque readers share a
+  concrete closure factory. Map keys are unique ascending 0..7, permitting a
+  standard BTreeMap while retaining the workload's observed insertion order.
+- All eleven matched independent result oracles and completed 93 samples each
   (three processes, eight warmups, 31 timed samples), Rust-only run
-  2026-10-31T13:52:13.497Z; medians 0.020292–0.374292 ms, max load 2.363,
-  watchdog peak 346,832 KiB. Compiler unchanged; existing Tsrust/Node measurements
+  2026-10-31T13:56:15.031Z; medians 0.021000–1.504917 ms, max load 2.000,
+  watchdog peak 350,544 KiB. Compiler unchanged; existing Tsrust/Node measurements
   reused. No Node timing rerun or product API changes.
-- Ten durable native_storage_edges.rs tests passed under the sequential watchdog
-  with three threads: byte boundaries/error offsets, index-before-byte validation,
-  atomic append/resize failure, range copies, nested clone isolation, UTF-8 error
-  positions/NUL/BOM/noncharacters, deque ownership, max-heap default and sorted
-  ordered collections including wrapped keys and duplicate replacement.
-- store:ingest added ten histories; stored medians/sample counts, source hashes
-  and SQLite integrity verified before raw disposal. Public hashes/timestamps
-  pinned. Coverage **808/932**, remaining **124**. Next: byte-view ownership and
-  remaining scoped record/value adapters, paths/OS and JSON; Math.random open.
+- Eleven durable byte_view_edges.rs tests passed under the sequential watchdog
+  with three threads: slice pointer identity/mutable aliases and relative errors,
+  independent copies, recursive record moves, once-picker output owner identity,
+  extracted/stored captures, absent terminal callbacks, replaced parameter views,
+  map lifetime after container drop and moved/reused deque views/readers.
+- store:ingest added eleven histories; stored medians/sample counts, source
+  hashes and SQLite integrity verified before raw disposal. Public hashes and
+  timestamps pinned. Coverage **819/932**, remaining **113**. Next: remaining
+  scoped record/value adapters, paths/OS, files and JSON; Math.random open.
 - Harness acceptance retained: f3744386 adds verifyDeclaredReferenceABI for
   independent owned results while the compiler path keeps all declared-target,
   wrapper, capture and no-Clone checks. All 12 declared references passed real
