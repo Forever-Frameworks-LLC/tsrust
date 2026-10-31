@@ -677,7 +677,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
 
 **Hand-written Rust reference expansion — current, 2026-10-31:**
 - Owner requested independent, ordinary Rust comparisons alongside **all 932**
-  public workloads. **819 are measured; 113 remain.** This is ongoing acceptance,
+  public workloads. **824 are measured; 108 remain.** This is ongoing acceptance,
   not universal hand-written-Rust parity. Next: collection/native families and remaining scoped records; the
   Math.random reference is also still open. No compiler candidate is active.
 - Reuse Node and Rust baselines instead of timing them for every optimization.
@@ -753,8 +753,9 @@ counts, wrap a copy of the generated program with a counting global allocator.
 | Declared functions/callbacks/owned values | 12 | f3744386 |
 | Ordered Map/Set/grouping/Unicode iteration | 11 | cff3e51c |
 | Native bytes/deque/heap/ordered collections | 10 | fa6d9cea |
-| Borrowed byte-view records/callbacks/containers | 11 | This checkpoint; details below |
-| **Total** | **819** | **113 still required** |
+| Borrowed byte-view records/callbacks/containers | 11 | b62879ca |
+| Owned Result/errors/cleanup completion | 5 | This checkpoint; details below |
+| **Total** | **824** | **108 still required** |
 
 **Reference correctness and interpretation:**
 - Sources are independently authored Rust using standard-library operations and
@@ -789,33 +790,34 @@ counts, wrap a copy of the generated program with a counting global allocator.
   unmeasured Rust rows are not losses. Never label Tsrust simply "Native".
 - Current summary: Tsrust faster than Node.js in **613/932**, median throughput
   ratio **1.52×**, range **0.04×–189.48×**. Hand-written Rust faster than Node.js
-  in **554/932 (819 measured)**. The ratios use mean throughput, not median time.
+  in **557/932 (824 measured)**. The ratios use mean throughput, not median time.
 - Website generation/build passes locally; no deployment, push or CI is implied.
   Full-project formatting has consistently changed zero files/snippets/fingerprints.
 
-**Rust borrowed byte-view records/callbacks/containers — verified, 2026-10-31:**
-- Eleven independent references cover nested/mutable slices, recursive/linked
-  records, owned once callbacks and returned views, stored/capture-only/nullable/
-  replaced callbacks, map stores and deque views/readers. Owners remain live in
-  all measured programs, so ordinary Rust &[u8]/&mut [u8] lifetimes retain views
-  without reference-counted backing storage or unsafe. Owned copies use to_vec.
-  Recursive callback records use boxed FnOnce captures; deque readers share a
-  concrete closure factory. Map keys are unique ascending 0..7, permitting a
-  standard BTreeMap while retaining the workload's observed insertion order.
-- All eleven matched independent result oracles and completed 93 samples each
+**Rust owned Result/errors/cleanup completion — verified, 2026-10-31:**
+- Five independent references cover conditional owned records, nullable string
+  logic, exception/cleanup completion, callback failures and Result matching.
+  Standard Option/Result, owned closures/records, partial-field moves and Vec
+  operations retain the observed branch counters, cleanup traces, pending return
+  values, return replacement and read/mutate/move behavior. Typed error variants
+  remove unreachable dynamic type branches. The sort witness has the measured
+  nonnegative three-integer domain; its explicit negative error check remains.
+- All five matched independent result oracles and completed 93 samples each
   (three processes, eight warmups, 31 timed samples), Rust-only run
-  2026-10-31T13:56:15.031Z; medians 0.021000–1.504917 ms, max load 2.000,
-  watchdog peak 350,544 KiB. Compiler unchanged; existing Tsrust/Node measurements
+  2026-10-31T14:01:27.523Z; medians 0.037292–1.025166 ms, max load 1.707,
+  watchdog peak 333,072 KiB. Compiler unchanged; existing Tsrust/Node measurements
   reused. No Node timing rerun or product API changes.
-- Eleven durable byte_view_edges.rs tests passed under the sequential watchdog
-  with three threads: slice pointer identity/mutable aliases and relative errors,
-  independent copies, recursive record moves, once-picker output owner identity,
-  extracted/stored captures, absent terminal callbacks, replaced parameter views,
-  map lifetime after container drop and moved/reused deque views/readers.
-- store:ingest added eleven histories; stored medians/sample counts, source
-  hashes and SQLite integrity verified before raw disposal. Public hashes and
-  timestamps pinned. Coverage **819/932**, remaining **113**. Next: remaining
-  scoped record/value adapters, paths/OS, files and JSON; Math.random open.
+- Nine durable completion_result_edges.rs tests passed under the sequential
+  watchdog with three threads: lazy conditional/nullable branches, success/error
+  cleanup, moved field plus sibling callback, return/break/continue/catch traces,
+  cleanup return override, callback error ownership, Result mutation and stored
+  callback state/failures. No unsafe or extra runtime limit was added.
+- store:ingest added five histories; stored medians/sample counts, source hashes
+  and SQLite integrity verified before raw disposal. Public hashes/timestamps
+  pinned. Coverage **824/932**, remaining **108**. Next: the large scoped record/
+  generic-value adapter fixtures (read them in bounded sections), paths/OS, files
+  and JSON; Math.random remains open. The scoped fixtures range to thousands of
+  lines, so a single combined cat truncates; use function/line ranges when tracing.
 - Harness acceptance retained: f3744386 adds verifyDeclaredReferenceABI for
   independent owned results while the compiler path keeps all declared-target,
   wrapper, capture and no-Clone checks. All 12 declared references passed real
