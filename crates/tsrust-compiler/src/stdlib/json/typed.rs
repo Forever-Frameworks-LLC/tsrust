@@ -210,6 +210,15 @@ fn validate_floats(input:&[u8],limits:Limits)->Result<(usize,bool),Error>{
  if input.len()>limits.bytes{return Err(failure("byte-limit",limits.bytes));}
  if limits.depth>64{return Err(super::invalid_limits());}
  if let Err(error)=std::str::from_utf8(input){return Err(failure("invalid-utf8",error.valid_up_to()));}
+ validate_document(input,limits)
+}
+
+/// Schema text is already UTF-8. Use Serde's recursion guard without imposing
+/// byte, entry or node caps when the caller has not requested explicit limits.
+pub(super) fn validate_plain(input:&str)->Result<bool,Error>{
+ validate_document(input.as_bytes(),Limits{bytes:usize::MAX,depth:usize::MAX,entries:usize::MAX,nodes:usize::MAX}).map(|(_,floats)|floats)
+}
+fn validate_document(input:&[u8],limits:Limits)->Result<(usize,bool),Error>{
  let mut budget=Budget{limits,nodes:0,failed:None,saw_float:false};
  let mut decoder=serde_json::Deserializer::from_slice(input);
  let mut maximum=0;

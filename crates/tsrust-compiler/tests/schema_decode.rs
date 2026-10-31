@@ -95,7 +95,7 @@ fn fused_coercion_rejects_non_json_inputs_during_checking(){
 }
 
 #[test]
-fn fused_limits_precede_callbacks_and_validation_issues_stay_bounded() {
+fn fused_rust_parser_defaults_precede_callbacks_and_validation_issues_stay_bounded() {
     let source=r#"
     import {s} from 'std:schema';
     function forbiddenCallback():int{throw 'Callback ran before document validation';}
@@ -107,9 +107,13 @@ fn fused_limits_precede_callbacks_and_validation_issues_stay_bounded() {
         }}
     }
     function main(){
-      rejectedJson(' '.repeat(16777216)+'0','byte-limit');
-      rejectedJson('['.repeat(65)+'0'+']'.repeat(65),'depth-limit');
-      rejectedJson('['+'0,'.repeat(999999)+'0]','node-limit');
+      rejectedJson('['.repeat(128)+'0'+']'.repeat(128),'invalid-json');
+      rejectedJson('0 trailing','trailing-data');
+      const scalar=s.int();
+      {const large=scalar.safeParseJson(' '.repeat(16777216)+'7');if(!large.success){throw 'Unrequested byte limit';}}
+      const ignored=s.object({count:s.int().default(()=>7)}).strip();
+      {const deep=ignored.safeParseJson('{"ignored":'+'['.repeat(65)+'0'+']'.repeat(65)+'}');if(!deep.success){throw 'Unrequested depth limit';}}
+      {const many=ignored.safeParseJson('{"ignored":['+'0,'.repeat(1000000)+'0]}');if(!many.success){throw 'Unrequested entry or node limit';}}
       const schema=s.array(s.int());
       {const outcome15=schema.safeParseJson('['+'null,'.repeat(80)+'null]');if(outcome15.success){const value=outcome15.data;throw 'Invalid array accepted';}else{const failure=outcome15.error;
           if(failure.kind!=='validation'){throw 'Wrong error domain';}

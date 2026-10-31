@@ -16,6 +16,15 @@ pub fn document(input: &str, limits: Limits) -> Result<Node<'_>, Error> {
     Ok(Node { text: input.trim() })
 }
 
+/// Schema decoding follows the underlying Rust parser's default recursion guard.
+/// Complete syntax and integer validation still precede all schema callbacks.
+pub fn document_plain(input:&str)->Result<Node<'_>,Error>{
+    if super::typed::validate_plain(input)? {
+        super::validate_integer_tokens(input.as_bytes())?;
+    }
+    Ok(Node{text:input.trim()})
+}
+
 impl<'source> Node<'source> {
     pub fn text(self) -> &'source str { self.text }
     pub fn kind(self) -> &'static str {
@@ -120,6 +129,21 @@ impl<'source> serde::Deserialize<'source> for Fields<'source> {
 mod tests {
     use super::*;
     fn limits()->Limits {Limits{bytes:4096,depth:8,entries:32,nodes:64}}
+
+    #[test]
+    fn plain_document_matches_serde_recursion_and_checks_discarded_content() {
+        for depth in [64,65,126,127,128,129] {
+            let input="[".repeat(depth)+"0"+&"]".repeat(depth);
+            assert_eq!(document_plain(&input).is_ok(),serde_json::from_str::<serde_json::Value>(&input).is_ok(),"depth {depth}");
+        }
+        for source in [r#"{"x":"\ud800","x":0}"#,r#"{"x":18446744073709551616,"x":0}"#,"1e400","[1] null"] {
+            assert!(document_plain(source).is_err(),"{source}");
+        }
+        let source=r#"{"x":9007199254740993,"escaped":"\u00e9"}"#;
+        let fields=document_plain(source).unwrap().fields().unwrap();
+        assert_eq!(fields["x"].int().unwrap(),9_007_199_254_740_993);
+        assert_eq!(fields["escaped"].string().unwrap(),"é");
+    }
 
     #[test]
     fn fields_borrow_original_source_and_resolve_duplicates_before_validation() {

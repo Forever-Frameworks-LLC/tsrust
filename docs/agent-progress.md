@@ -246,8 +246,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
 - Baseline runtime run `results/2026-10-31T03-16-17-317Z.json`: original eight
   warmups, 31 samples across three processes (93 per workload/engine); maximum
   load 2.361. Native/Node medians: type_aliases 0.147041/0.039000 ms;
-  union_array_values 0.557500/0.294208 ms. Allocation profile and raw timing
-  files remain disposable pending comparison/ingestion.
+  union_array_values 0.557500/0.294208 ms. Those raw profile/timing files were deleted after the ingestion recorded below.
 - First witness used unsupported enum-union includes(); changed it to supported
   iteration. That exposed a real emitter defect: data-union text registrations
   referenced Enum types without emitting their TsrJoinText adapters when an
@@ -270,7 +269,8 @@ counts, wrap a copy of the generated program with a counting global allocator.
   reallocations. Initial timing: union_array_values **0.557500 → 0.510917 ms
   (1.091×)**, Node 0.294208 → 0.287833 ms. type_aliases **0.147041 →
   0.156500 ms**, Node 0.039000 → 0.041291 ms; normalized speed 0.995×.
-  Candidate max load 2.359. This is not yet sufficient for acceptance.
+  Candidate max load 2.359. This initial pair was insufficient for acceptance;
+  the final paired comparison below determined the decision.
 - Added a matched twenty-element union_array_heap control to cover spilling,
   heap iteration and array methods. It shares the existing protocol, independent
   arithmetic oracle and guarded sources. Both registration/oracle tests and
@@ -306,6 +306,55 @@ counts, wrap a copy of the generated program with a counting global allocator.
 - Next: profile single-pass schema JSON decoding, ranked target 4. Establish
   a fresh allocation/CPU profile before changing subtree cursor behavior.
 
+
+**Current section — schema JSON profiling and parser defaults:**
+- Previous goal turn made progress: accepted scalar-union storage and persisted
+  measured results in `610c2bc0`. Tree was clean before this section.
+- Baseline `610c2bc0`: native allocation profiles report 26,000 allocations
+  for native_schema_json_fused and 86,000 for native_schema_collections across
+  2,000 iterations (13/43 per iteration), no reallocations or retained leaks.
+- Fresh baseline timing used release/native programs built before source edits,
+  three processes × 31 samples, eight warmups, Node-after-tsc controls, maximum
+  measured load 3.706 (runner waited for load below four). Native/Node medians:
+  fused 0.876209/0.673375 ms; ordinary JSON object 0.816417/0.671375 ms;
+  collections 2.243541/0.813458 ms. Raw result:
+  `results/2026-10-31T03-54-42-594Z.json`, pending paired timing/ingestion.
+- Three-second CPU sample of baseline generated fused workload collected 2,132
+  samples. Source field BTreeMap construction, RawValue scans, validation and
+  allocation/free paths are visible. Existing field-index cursors reparse each
+  subtree; callbacks require complete syntax validation, last-duplicate-wins
+  resolution and schema field order. Any streaming replacement must preserve
+  those behaviors rather than validating callbacks in source-field order.
+- Found a concrete default-limit defect: schema safeParseJson still imposed
+  16 MiB / depth 64 / one-million-entry/node caps, contrary to owner direction
+  and ordinary JSON.parse's Rust defaults. Fix in progress: reuse the existing
+  syntax validator with unbounded count budgets and Serde's recursion guard;
+  avoid repeating UTF-8 validation for an existing str. Explicit bounded JSON
+  entry points keep their existing behavior. This is a correctness repair,
+  not a claim that the ranked single-pass decoder is implemented.
+- Added native witnesses above the old byte/entry/node/depth caps, malformed
+  input before callbacks, recursion agreement with serde_json, duplicate
+  invalid content, and exact numbers. Updated safeParseJson IntelliSense.
+  Existing issue/path retention budgets remain unchanged.
+- Affected validation complete via `/tmp/tsrust-schema-defaults-validation.py`:
+  JSON library tests 62, compiler schema_decode 7 / collections 4 / recursive 10
+  / unions 13, LSP schema_editing 15: **111 passed, zero failures/ignores**.
+  Shared target, incremental off, one job/target at a time, three test threads,
+  5,000,000 KiB / 1,800-second watchdog. Peak group RSS 2,006,640 KiB; no stops.
+  Catalog examples and native fixtures passed formatted execution.
+- First candidate built/formatted successfully. Native baseline → candidate /
+  repeat medians: fused 0.876209 → 0.860208 / 0.857625 ms; ordinary object
+  0.816417 → 0.827459 / 0.796292 ms; collections 2.243541 → 2.286083 /
+  2.284541 ms. Node baseline → candidate / repeat: fused 0.673375 →
+  0.676667 / 0.665583; object 0.671375 → 0.712459 / 0.664208;
+  collections 0.813458 → 0.806083 / 0.813666 ms. Max loads 3.706 / 3.610 /
+  3.637. The repeated collections ~1.8% slowdown is not dismissed as noise.
+- All 18 run entries were ingested (93 samples each). This correctness repair
+  is checkpointed provisionally, not accepted as a performance improvement.
+  Next: specialize the existing validation visitor at compile time so unlimited
+  parsing does not maintain count/depth budgets. Recheck explicit bounded
+  behavior and plain decoding, then repeat affected timings before acceptance.
+  Single-pass schema decoding remains outstanding after this repair.
 
 
 **Owner rules learned this session:** match Rust's defaults for limits (no count
