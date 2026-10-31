@@ -1,0 +1,38 @@
+import { s } from 'std:schema';
+
+function workload(n: int, seed: int, input: string): int {
+  const schema = s.object({
+    groups: s.array(s.object({
+      values: s.array(s.int().min(0).max(1000))
+    }))
+  });
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    const result = schema.safeParseJson(input);
+    if (result.success) {
+      const value = result.data;
+      if (value.groups.length !== 4) {
+        throw 'Wrong groups';
+      }
+
+      for (const group of value.groups) {
+        if (group.values.length !== 16) {
+          throw 'Wrong values';
+        }
+
+        for (const item of group.values) {
+          checksum += item;
+        }
+      }
+    } else {
+      throw 'Expected nested success';
+    }
+
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {}
