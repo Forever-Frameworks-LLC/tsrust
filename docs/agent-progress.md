@@ -677,7 +677,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
 
 **Hand-written Rust reference expansion — current, 2026-10-31:**
 - Owner requested independent, ordinary Rust comparisons alongside **all 932**
-  public workloads. **737 are measured; 195 remain.** This is ongoing acceptance,
+  public workloads. **751 are measured; 181 remain.** This is ongoing acceptance,
   not universal hand-written-Rust parity. Next: remaining callable/ownership/record families; the
   Math.random reference is also still open. No compiler candidate is active.
 - Reuse Node and Rust baselines instead of timing them for every optimization.
@@ -746,8 +746,9 @@ counts, wrap a copy of the generated program with a counting global allocator.
 | Remaining scalar control/operators | 20 | cc25c212 |
 | String construction/ownership/scalar split | 19 | 8df76859 |
 | String identity/literals/templates/HTML wrappers | 25 | ff52175b |
-| Record ownership/recursive data/retained arrays | 14 | This checkpoint; details below |
-| **Total** | **737** | **195 still required** |
+| Record ownership/recursive data/retained arrays | 14 | f0f8e8cb |
+| Callback contracts/owned callable storage | 14 | This checkpoint; details below |
+| **Total** | **751** | **181 still required** |
 
 **Reference correctness and interpretation:**
 - Sources are independently authored Rust using standard-library operations and
@@ -782,30 +783,32 @@ counts, wrap a copy of the generated program with a counting global allocator.
   unmeasured Rust rows are not losses. Never label Tsrust simply "Native".
 - Current summary: Tsrust faster than Node.js in **613/932**, median throughput
   ratio **1.52×**, range **0.04×–189.48×**. Hand-written Rust faster than Node.js
-  in **490/932 (737 measured)**. The ratios use mean throughput, not median time.
+  in **502/932 (751 measured)**. The ratios use mean throughput, not median time.
 - Website generation/build passes locally; no deployment, push or CI is implied.
   Full-project formatting has consistently changed zero files/snippets/fingerprints.
 
-**Rust record ownership/recursive data/retained arrays — verified, 2026-10-31:**
-- Fourteen independent references cover record mutation, deep copying, partial
-  field restoration, recursive trees/factories/growth/copying, ordered removal,
-  borrowed/mutable/owned arguments, capture replacement, retained numeric rows
-  and generic record pipelines. Standard Rust structs, Vec, Clone and generic
-  Fn/FnMut/FnOnce bounds preserve independently owned values without RC storage.
+**Rust callback contracts/owned callable storage — verified, 2026-10-31:**
+- Fourteen independent references cover local/factory closures, mutable/once
+  contracts, owned forwarding/replacement, recursive callback transfer, generic
+  once factories, conditional/owned callable fields, annotated once locals and
+  mutable/transfer/once/reduction callable-array pipelines. Standard Fn/FnMut/
+  FnOnce bounds, moves and Vec operations preserve capture state and ordering.
+  Heterogeneous record callbacks use Box<dyn Fn>; homogeneous array environments
+  share a closure factory and require no per-callable boxes or RC storage.
 - All fourteen matched independent result oracles and completed 93 samples each
   (three processes, eight warmups, 31 timed samples), Rust-only run
-  2026-10-31T13:31:33.303Z; medians 0.007417–0.729791 ms, max load 2.218,
-  watchdog peak 299,376 KiB. Compiler implementation unchanged; existing Tsrust/
+  2026-10-31T13:34:07.270Z; medians 0.007459–1.485042 ms, max load 2.042,
+  watchdog peak 311,264 KiB. Compiler implementation unchanged; existing Tsrust/
   Node measurements reused. No Node timing rerun or product API changes.
-- Eleven durable record_ownership_edges.rs tests passed under the sequential
-  watchdog with three threads: record mutation order, deep clone isolation,
-  partial-field restoration, mutual recursion, independent recursive factories,
-  read/mutate/move callbacks, replaced captures, recursive removal/copying,
-  independent retained arrays and generic owned-value transfer.
+- Eleven durable callback_ownership_edges.rs tests passed under the sequential
+  watchdog with three threads: capture persistence, forwarded arguments/call
+  counts, owned records/results, replacement, recursion order, mutable mapping,
+  reverse reductions, splice/removal ordering and once transfer consumption.
 - store:ingest added fourteen histories; stored medians/sample counts, source
   hashes and SQLite integrity verified before raw disposal. Public hashes and
-  timestamps pinned. Coverage **737/932**, remaining **195**. Next: remaining
-  callable pipelines and collection/native families; Math.random remains open.
+  timestamps pinned. Coverage **751/932**, remaining **181**. Next: remaining
+  higher-order/declared callbacks and collection/native families; Math.random
+  remains open.
 - Prior correction retained: 8df76859 fixes UTF-8 byte .length in 27 callable/
   nested/generic references and refreshes all their source hashes and Rust runs.
   Those measured length inputs were ASCII, so historical corpus outputs remain

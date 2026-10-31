@@ -2985,6 +2985,62 @@
     "generic_function_record_pipeline": {
       "at": "2026-10-31T13:31:33.303Z",
       "sourceSha256": "8c38df93a280b07dda997bd448f4bdccb258724d21e9c76552ddb1775179f6c0"
+    },
+    "local_closures": {
+      "at": "2026-10-31T13:34:07.270Z",
+      "sourceSha256": "2c6dfd87580bfe4dd4b3da559778bbf1001857463a836ee12a2a02f38a0eba63"
+    },
+    "closure_factory": {
+      "at": "2026-10-31T13:34:07.270Z",
+      "sourceSha256": "a47dfabfec2c1e27541cecfb4f6301fd47a635ae14cf4be50c5d15dcdb1e5ea1"
+    },
+    "callback_contracts": {
+      "at": "2026-10-31T13:34:07.270Z",
+      "sourceSha256": "6c66164a7b08b7c0d876927359280efa5aa6009be54770e4a2ac1e8956a6d062"
+    },
+    "owned_callbacks": {
+      "at": "2026-10-31T13:34:07.270Z",
+      "sourceSha256": "7027422cce9bcb2fe89c13eb94df14b168b739066808d022d2284353b48e936a"
+    },
+    "callable_replacement": {
+      "at": "2026-10-31T13:34:07.270Z",
+      "sourceSha256": "e2b15ad5fe479eae727871d2f95063d97f4a657f799b3ded1d02cdec99a86148"
+    },
+    "recursive_callbacks": {
+      "at": "2026-10-31T13:34:07.270Z",
+      "sourceSha256": "77ac05782ac4bbb68e2fdd0802eebe2cf7a3d230e958b6d942fbca5d788c1d1d"
+    },
+    "once_factory_results": {
+      "at": "2026-10-31T13:34:07.270Z",
+      "sourceSha256": "78b1f6f186ce793662d0c467cbc2048dae5493092114bbef384de8ae64450d3f"
+    },
+    "default_conditional_callable_fields": {
+      "at": "2026-10-31T13:34:07.270Z",
+      "sourceSha256": "fd8c1935d50632b0c7064b3b68560ead0888b74da40d361780e36174e29c5ccf"
+    },
+    "owned_callable_fields": {
+      "at": "2026-10-31T13:34:07.270Z",
+      "sourceSha256": "fac2bba0c2cf9b80d7c0731fcc56773db6fe28cadf324ea2d533672d1e0750b7"
+    },
+    "annotated_once_locals": {
+      "at": "2026-10-31T13:34:07.270Z",
+      "sourceSha256": "31909b5663d2ea25ad49544a0f3e99d8a99c7211e0497866d6c5919d70a84f2c"
+    },
+    "callable_array_mutable_pipeline": {
+      "at": "2026-10-31T13:34:07.270Z",
+      "sourceSha256": "5789fea103a91c679aff39ee8dfb01fd8f7eb2db02966fbb5523e3fd57a4117e"
+    },
+    "callable_array_transfer_pipeline": {
+      "at": "2026-10-31T13:34:07.270Z",
+      "sourceSha256": "6ef560af4a5de4f366e58ded0c8413e431ac4fef89296f160d5411b0b7fba276"
+    },
+    "callable_array_once_transfer": {
+      "at": "2026-10-31T13:34:07.270Z",
+      "sourceSha256": "ef37ed055044996069537400b74c0467c1f4e15e4c0e70eaa00d1c1a3f439022"
+    },
+    "callable_array_reduction_pipeline": {
+      "at": "2026-10-31T13:34:07.270Z",
+      "sourceSha256": "785dac8587a3e0e4bf15e8a7ee47993ab6fcee0dc031671b246b2fdf047b9d0b"
     }
   }
 }
