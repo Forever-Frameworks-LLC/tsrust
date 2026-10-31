@@ -3918,5 +3918,12 @@
       }
     }
   },
-  "cpuProtocolSha256": "6348f2e14b1e8ecc875af5904e0a4e8c270b514be25f135f4e977014b8f88e6e"
+  "cpuProtocolSha256": "6348f2e14b1e8ecc875af5904e0a4e8c270b514be25f135f4e977014b8f88e6e",
+  "cpuHighlight": {
+    "workload": "local_closures",
+    "sourceSha256": "87675eaefd898e11e4c9ca043a39f2044bef6cc841c15d156173f37763545683",
+    "counterpartSha256": "b7708ac89b6b992e596274f9dc7ae0420c508b87d5d17683880f794272f4be76",
+    "iterations": 200000,
+    "seed": 7
+  }
 }

@@ -111,10 +111,10 @@ for(const workload of httpManifest.workloads){
   }
   httpRows.push({...workload,engines});
 }
-let httpSection='## I/O and request overhead\n\n';
+let httpSection='### I/O and request overhead\n\n';
 httpSection+='These small responses mostly measure transport, scheduling and serialization. They are useful context for a backend, but do not demonstrate a CPU-compute advantage. All results remain visible.\n\n<details>\n<summary>Text, JSON and SQLite comparisons</summary>\n\n';
 for(const concurrency of [1,16]){
- httpSection+=`### ${concurrency === 1?'One connection':'16 connections'}\n\nRequests per second; higher is better.\n\n<div class="performance-table">\n\n| Workload | Tsrust | Node.js | Rust |\n| --- | ---: | ---: | ---: |\n`;
+ httpSection+=`#### ${concurrency === 1?'One connection':'16 connections'}\n\nRequests per second; higher is better.\n\n<div class="performance-table">\n\n| Workload | Tsrust | Node.js | Rust |\n| --- | ---: | ---: | ---: |\n`;
  for(const row of httpRows.filter(row=>row.concurrency===concurrency)){const n=row.engines.native,j=row.engines['node-tsc'],r=row.engines['rust-hand'];httpSection+=`| ${row.name} | ${rate(n.ops)} | ${rate(j.ops)} | ${rate(r.ops)} |\n`;}
  httpSection+='\n</div>\n\n';
 }
@@ -140,7 +140,7 @@ if(config.cpuBaselines){
   cpuRows.push({...workload,engines});
  }
 }
-let cpuSection='## CPU work in an HTTP handler\n\n';
+let cpuSection='## HTTP benchmarks\n\n### CPU rendering\n\n';
 cpuSection+='Rendering, simulation and numeric transformations spend time computing rather than waiting for I/O. This example parses a tile ID, renders a **96 × 64 Mandelbrot tile** with up to **256 iterations per pixel**, then returns its checksum and escape count as JSON. All three implementations perform the same arithmetic on varying inputs; an independent Python complex-number oracle checks every response.\n\n';
 if(!cpuRows.length)cpuSection+='CPU request latency and resource measurements are being prepared; no result is claimed yet.\n\n';
 else{
@@ -154,7 +154,7 @@ else{
   return result+'</tbody></table></div>\n\n';
  };
  const single=cpuRows.find(row=>row.concurrency===1),parallel=cpuRows.find(row=>row.concurrency===16);
- cpuSection+='### One connection, one server worker\n\nHigher req/s is better. Lower p99, server CPU per request and peak sampled RSS are better. **Rust means hand-written Rust.**\n\n'+table(single);
+ cpuSection+='#### One connection, one server worker\n\nHigher req/s is better. Lower p99, server CPU per request and peak sampled RSS are better. **Rust means hand-written Rust.**\n\n'+table(single);
  const gain=single.engines.native.ops/single.engines['node-tsc'].ops;
  cpuSection+=`For this kernel, Tsrust throughput is **${gain.toFixed(2)}× Node.js**, close to hand-written Rust. The larger difference is memory: **${(single.engines.native.peakRssBytes/1048576).toFixed(1)} MiB** peak sampled RSS versus **${(single.engines['node-tsc'].peakRssBytes/1048576).toFixed(1)} MiB** for Node.js. This is one workload, not a universal speedup claim.\n\n`;
  if(parallel)cpuSection+=`At 16 connections, observed request p99 was **${parallel.engines.native.requestP99Ms.toFixed(2)} ms** for Tsrust and **${parallel.engines['node-tsc'].requestP99Ms.toFixed(2)} ms** for Node.js.\n\n`;
@@ -167,6 +167,35 @@ else{
 }
 
 
+const highlightPin=config.cpuHighlight;
+const highlight=rows.find(row=>row.workload===highlightPin?.workload);
+if(!highlight||highlight.rust===undefined)throw Error('Missing measured CPU highlight');
+const highlightWorkload=workloads.get(highlight.workload);
+if(highlightWorkload.iterations!==highlightPin.iterations||manifest.seed!==highlightPin.seed)throw Error('CPU highlight measured inputs changed');
+const highlightSource=fs.readFileSync(path.join(root,'benchmarks/runtime',highlightWorkload.source??('workloads/'+highlight.workload+'.tsr')),'utf8');
+const highlightCounterpart=fs.readFileSync(path.join(root,'benchmarks/runtime',highlightWorkload.counterpart??('workloads/'+highlight.workload+'.ts')),'utf8');
+if(createHash('sha256').update(highlightSource).digest('hex')!==highlightPin.sourceSha256||createHash('sha256').update(highlightCounterpart).digest('hex')!==highlightPin.counterpartSha256)throw Error('Stale CPU highlight source');
+const highlightFunction=highlightSource.slice(0,highlightSource.indexOf('\nfunction main()')).trim();
+if(!highlightFunction.startsWith('function workload('))throw Error('CPU highlight function boundary changed');
+const highlightBatch=highlightWorkload.iterations.toLocaleString('en-US');
+let highlightSection='### Selected CPU example: nested callbacks\n\n';
+highlightSection+=`This microbenchmark measures **${highlightBatch} loop iterations**. Each iteration constructs nested callbacks, updates captured state and adds the returned value to a checksum. Tsrust measured **${(highlight.native/highlight.node).toFixed(2)}× Node.js throughput**; hand-written Rust measured **${(highlight.rust/highlight.node).toFixed(2)}×**.\n\n`;
+const highlightCode='This is the actual measured Tsrust function:\n\n'+String.fromCharCode(96).repeat(3)+'tsrust\n'+highlightFunction+'\n'+String.fromCharCode(96).repeat(3)+'\n\n';
+highlightSection+='<div class="performance-table">\n\n| Engine | Batch (ms) | vs Node |\n| --- | ---: | ---: |\n';
+for(const [engine,label,at,value] of [['native','Tsrust',highlight.at,highlight.native],['node-tsc','Node.js',highlight.nodeAt,highlight.node],['rust-hand','Rust',highlight.rustAt,highlight.rust]]){
+ const history=engine==='native'?nativeRuns:engine==='node-tsc'?nodeRuns:rustRuns;
+ const measured=history.get(highlight.workload)?.get(at);
+ if(!measured||measured.samples!==93)throw Error('CPU highlight measurement missing');
+ highlightSection+=`| ${label} | ${measured.ms.toFixed(3)} | ${(value/highlight.node).toFixed(2)}× |\n`;
+}
+highlightSection+='\n</div>\n\nBatch time is the median; throughput ratios use mean iterations per second over all 93 samples. Each batch calls `workload('+highlightWorkload.iterations+', '+manifest.seed+')`, and its complete result is checked against an independent oracle. The TypeScript counterpart uses the same nested callbacks and exact values within its safe-integer range.\n\n';
+highlightSection+=highlightCode;
+highlightSection+='This is a selected callback microbenchmark. Its returned checksum retains the observable result; it does not establish a whole-application speedup. The full results below show the broader distribution, including workloads where Node.js wins. Existing accepted baselines are reused.\n\n';
+const cpuSource=fs.readFileSync(path.join(root,'benchmarks/http/cpu.tsr'),'utf8');
+const renderStart=cpuSource.indexOf('function render('),renderEnd=cpuSource.indexOf('\nasync function main()',renderStart);
+if(renderStart<0||renderEnd<renderStart)throw Error('HTTP render function boundary changed');
+cpuSection+='### The HTTP rendering function\n\n<details>\n<summary>Show the measured rendering function</summary>\n\n'+String.fromCharCode(96).repeat(3)+'tsrust\n'+cpuSource.slice(cpuSource.indexOf('type Output'),cpuSource.indexOf('type Ready')).trim()+'\n\n'+cpuSource.slice(renderStart,renderEnd).trim()+'\n'+String.fromCharCode(96).repeat(3)+'\n\nThe handler parses a JSON tile ID, calls `render(id)` and serializes the returned record. At one connection, its throughput gap is modest; its observed memory and tail-latency differences are reported alongside throughput.\n\n</details>\n\n';
+
 let page = `---
 title: "Performance"
 description: "Measured Tsrust, Node.js and hand-written Rust execution speed."
@@ -174,7 +203,9 @@ description: "Measured Tsrust, Node.js and hand-written Rust execution speed."
 
 Tsrust compiles TypeScript-style code to Rust executables. These measurements compare **Tsrust**, **TypeScript on Node.js**, and independently **hand-written Rust**.
 
-${cpuSection}## Language and library summary
+## Built-in and language microbenchmarks
+
+${highlightSection}### Overall results
 
 This summary covers the language/library workloads, separately from the HTTP examples.
 
@@ -189,7 +220,7 @@ This summary covers the language/library workloads, separately from the HTTP exa
 | Toolchains | Rust ${cell(config.rust)}; Node.js ${cell(config.node)}; TypeScript ${cell(config.typescript)} |
 | Samples | ${samples} timed samples per engine and workload |
 
-${httpSection}## Results by group
+### Results by group
 
 `;
 const middle = (values) => { const sorted = [...values].sort((a, b) => a - b); const half = sorted.length >> 1; return sorted.length % 2 ? sorted[half] : (sorted[half - 1] + sorted[half]) / 2; };
@@ -205,7 +236,7 @@ page += slower.length
   : '\n';
 page += 'Each group lists every workload, slowest ratio first. Speeds are operations per second, abbreviated: k is thousands, M is millions and G is billions, so `5.35 M` is about 5,350,000 operations per second. “vs Node” is Tsrust throughput divided by Node.js throughput; above 1 means Tsrust was faster.\n\n';
 for (const [group, entries] of ordered) {
-  page += `### ${group}\n\n<details>\n<summary>${entries.length} workloads</summary>\n\n<div class="performance-table">\n\n| Workload | Tsrust | Node.js | Rust | vs Node |\n| --- | ---: | ---: | ---: | ---: |\n`;
+  page += `#### ${group}\n\n<details>\n<summary>${entries.length} workloads</summary>\n\n<div class="performance-table">\n\n| Workload | Tsrust | Node.js | Rust | vs Node |\n| --- | ---: | ---: | ---: | ---: |\n`;
   for (const row of entries.sort((a, b) => ratio(a) - ratio(b))) {
     const label=cell(row.workload.replaceAll('_',' '));
     page += `| ${label} | ${rate(row.native)} | ${rate(row.node)} | ${row.rust === undefined ? "—" : rate(row.rust)} | ${ratio(row).toFixed(2)}× |\n`;
@@ -216,7 +247,7 @@ page += `Rates are mean operations per second over every timed sample. Each work
 row is one complete workload: input setup, the operations and result retention
 are timed together, so a rate is not the cost of one isolated operation.
 
-## Method
+${cpuSection}${httpSection}## Method
 
 - **Tsrust**: the Tsrust compiler emits Rust, built with the pinned Rust
   toolchain at optimization level 3. That is the Rust compiler's highest speed

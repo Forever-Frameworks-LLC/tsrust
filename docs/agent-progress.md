@@ -33,9 +33,26 @@ plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
 
-**Current owner request — CPU-first performance page, measured locally:**
-- Owner rejected the wide HTTP table. Removed all visible date columns, combined
-  batch-time cells and redundant ratios. CPU rendering leads; engine/req-s/p99/
+**Current owner request — microbenchmarks first, stronger CPU example:**
+- Follow-up: the Mandelbrot HTTP throughput gap was too modest for the headline.
+  Selected the existing **local_closures** microbenchmark: **15.94× Node throughput
+  for Tsrust**, **16.20× for hand-written Rust**. Shows the exact workload function
+  inline with its 200,000-iteration/seed-7 input and three-engine results.
+  Source/counterpart hashes are pinned in performance-runs.json; source changes
+  fail generation instead of silently keeping old highlight numbers. This is
+  explicitly a selected callback microbenchmark, with overall results/losers kept.
+- All eight full language/library benchmark groups now precede **HTTP benchmarks**.
+  HTTP retains all existing rendering, p99, CPU/RSS and I/O observations; also
+  exposes the actual rendering function and Output type in a collapsed example.
+- Exact displayed function re-executed at n=200000/seed=7: Tsrust, TypeScript and
+  hand-written Rust all returned **20001700007**, agreeing with an independent
+  BigInt oracle. Untimed check under watchdog: **3.098 s**, peak **257,568 KiB**.
+  No timing reruns or new measurement histories were needed. Website **three
+  tests pass**, including exact-code/selected-ratio and section-order guards;
+  66 pages build and 116-page links/assets pass. Desktop screenshot verified
+  section order, compact 3-column comparison and full displayed function.
+- Previously removed all visible date columns, combined
+  batch-time cells and redundant ratios. Secondary HTTP engine/req-s/p99/
   CPU-per-request/RSS is a five-column table, with responsive engine cards on
   narrow screens. Old I/O results remain in collapsed one/16-connection
   four-column tables. All 932 language/library comparisons remain visible in
