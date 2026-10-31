@@ -48,7 +48,7 @@ impl Emitter<'_> {
             let source=self.schema_pipeline_output(plan.body);
             let inject=self.schema_recursive_output(source,output,"value");
             let inverse=self.schema_recursive_output(output,source,"value");
-            format!("let schema_root{id}=schema;{child}({child_roots}&schema.field0,input,path,issues,failure).inject(|value|{inject},|value|{inverse})")
+            format!("let schema_root{id}=schema;{child}({child_roots}&schema.field0,input,path,issues,failure).inject(|value|{inject},|value|{inverse}).boxed()")
         } else if let Some(reference)=self.program.schema_pipelines.reference(id) {
             let root=reference.root;
             let child=self.schema_pipeline_trial_impl(root,input,missing,generated,seen,errors);
@@ -56,7 +56,7 @@ impl Emitter<'_> {
             let source=self.schema_pipeline_output(root);
             let inject=self.schema_output_injection(source,output,"value");
             let inverse=self.schema_selected_output(source,output,"value");
-            format!("{child}({child_roots}schema_root{root},input,path,issues,failure).inject(|value|{inject},|value|{inverse})")
+            format!("{child}({child_roots}schema_root{root},input,path,issues,failure).inject(|value|{inject},|value|{inverse}).boxed()")
         } else if self.program.schema_pipelines.wrapper(id).is_some() {
             self.schema_pipeline_wrapper_trial_body(id,input,missing,generated,seen,errors)
         } else if let Some(plan) = self.program.schema_pipelines.union(id) {
@@ -68,7 +68,7 @@ impl Emitter<'_> {
                 let inject = self.schema_output_injection(child_output, output, "value");
                 let inverse = self.schema_selected_output(child_output, output, "value");
                 let absent = if missing { "{}" } else { "unreachable!(\"supplied union branch trial\")" };
-                let attempt = format!("match {child}({child_roots}&schema.field{branch},input,path,issues,failure).inject(|value|{inject},|value|{inverse}){{Trial::Rejected(restored)=>{{attempted=true;input=restored;}},Trial::Absent=>{absent},Trial::Committed(None)=>return Trial::Committed(None),selected=>{{issues.restore(checkpoint);return selected;}}}}");
+                let attempt = format!("match {child}({child_roots}&schema.field{branch},input,path,issues,failure).inject(|value|{inject},|value|{inverse}).boxed(){{Trial::Rejected(restored)=>{{attempted=true;input=restored;}},Trial::Absent=>{absent},Trial::Committed(None)=>return Trial::Committed(None),selected=>{{issues.restore(checkpoint);return selected;}}}}");
                 if let Some(selector) = &plan.selector {
                     let condition = if json {
                         let tags = selector.tags[branch].iter().map(|tag|self.schema_json_tag_test("value",tag)).collect::<Vec<_>>().join("||");

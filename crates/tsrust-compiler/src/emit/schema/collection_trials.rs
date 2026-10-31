@@ -15,7 +15,7 @@ impl Emitter<'_>{
         let child_roots=self.schema_root_arguments(plan.element);
             let trial=format!("tsrust_schema_trial::sequence(input.tsr_owned_items().collect(),|index,value|{{path.push(tsrust_schema_issues::Segment::Index(index));let trial={child}({child_roots}&schema.field0,value,path,issues,failure);path.pop();trial}}).remap_input(|values|<{}>::from_values(values))",self.native_type(input));
             let checked=self.schema_collection_collision_check(&trial,false,generated);
-            return format!("({checked}).inject(|values|<{output}>::from_values(values),|value|value.tsr_owned_items().collect())");
+            return format!("({checked}).inject(|values|<{output}>::from_values(values),|value|value.tsr_owned_items().collect()).boxed()");
         }
         let (key_type,value_type,setup,inverse)=if let Some(map)=&definition.map_definition{
             (map.key,map.value,"let entries=input.tsr_owned_items().map(TsrMapEntry::into_pair).collect::<Vec<_>>();".into(),format!("<{}>::from_values(values)",self.native_type(input)))
@@ -36,7 +36,7 @@ impl Emitter<'_>{
         // introduce collisions. JSON duplicate keys were already resolved.
         let trial=format!("tsrust_schema_trial::sequence(entries,|index,(key,value)|{{{entry}}}).remap_input(|values|{{{inverse}}})");
         let checked=if plan.kind==CollectionKind::Map{self.schema_collection_collision_check(&trial,true,generated)}else{trial};
-        format!("{setup}({checked}).inject(|values|<{output}>::from_values(values),|value|value.tsr_owned_items().map(TsrMapEntry::into_pair).collect())")
+        format!("{setup}({checked}).inject(|values|<{output}>::from_values(values),|value|value.tsr_owned_items().map(TsrMapEntry::into_pair).collect()).boxed()")
     }
 
     fn schema_collection_collision_check(&self,trial:&str,map:bool,generated:&mut String)->String{

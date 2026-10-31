@@ -48,11 +48,11 @@ impl Emitter<'_> {
             let schema = format!("&schema.field0.field{index}");
             let read = if json {
                 body.push_str(&format!("let(key{index},raw{index})=match values.remove_entry({:?}){{Some((key,value))=>(Some(key),Some(Record{raw_record}{{value}})),None=>(None,None)}};",field.name.text));
-                format!("match raw{index}{{Some(value)=>{child}({child_roots}{schema},value,path,issues,failure).remap_input(Some),None=>{absent}({absent_roots}{schema},TsrUndefined,path,issues,failure).remap_input(|_|None::<{}>)}}",self.native_type(raw))
+                format!("match raw{index}{{Some(value)=>{child}({child_roots}{schema},value,path,issues,failure).remap_input(Some).boxed(),None=>{absent}({absent_roots}{schema},TsrUndefined,path,issues,failure).remap_input(|_|None::<{}>).boxed()}}",self.native_type(raw))
             } else if let Some((position,_)) = provided[index] {
-                format!("{child}({child_roots}{schema},input.field{position},path,issues,failure).remap_input(Some)")
+                format!("{child}({child_roots}{schema},input.field{position},path,issues,failure).remap_input(Some).boxed()")
             } else {
-                format!("{absent}({absent_roots}{schema},TsrUndefined,path,issues,failure).remap_input(|_|None::<{}>)",self.native_type(raw))
+                format!("{absent}({absent_roots}{schema},TsrUndefined,path,issues,failure).remap_input(|_|None::<{}>).boxed()",self.native_type(raw))
             };
             let mut reject = String::from("if committed{return Trial::Committed(None);}");
             if json {

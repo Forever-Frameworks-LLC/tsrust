@@ -21,7 +21,8 @@ still open but is not the current loop's focus.
 **Git:** branch `codex/optimize-native-hot-paths`. Pushed through `5793c2b5`.
 Local, not pushed: `5805b423`, `db6ec027` (single handoff), `4bf84f84` (test fix),
 `3a625efe` (initial handoff), `6b8f62b1` (completed validation), and
-`260d1781` (Map snapshot classification, 4.32× at depth 80).
+`260d1781` (Map snapshot classification, 4.32× at depth 80), and
+`cea19c4c` (callable-boundary Map epochs, 8.22× at depth 128).
 The rejected small-string experiment lives on
 `codex/small-string-experiment` (keep for reference; do not merge).
 
@@ -173,6 +174,55 @@ counts, wrap a copy of the generated program with a counting global allocator.
   compile-time optimization is accepted; further compiler changes need a new
   profile and measured benefit rather than more speculative pass restructuring.
 
+**Accepted typed schema restoration adapters — 2026-10-30:**
+- Baseline `cea19c4c`. Fresh allocation profiling found 96,000 allocations for
+  2,000 collection-workload iterations (48 each). `sequence`, `pair`, `inject`
+  and `remap_input` boxed each intermediate restoration. They now retain typed
+  restoration state; generated function and heterogeneous branch boundaries
+  still erase types. No public signatures, ownership rules or limits changed.
+- Initial native collection tests found an opaque-return lifetime leak in the
+  candidate: `pair` retained the validator type and its temporary mutable path
+  borrow. `PairRestoration<L,R>` now stores only actual rollback state. The
+  new library witness composes all adapters, reuses callback-local state, then
+  rejects a readonly refinement and verifies original payload pointers/values.
+- Final affected validation: **209 passed, zero failures**: all 11 compiler
+  schema integration targets (100), LSP schema editing (15), compiler library
+  `stdlib::schema::` (94). One binary at a time, three test threads, one Cargo
+  job, shared target, incremental disabled; 5,000,000 KiB/1,800-second watchdog.
+  Peak RSS 2,016,624 KiB, no watchdog stops. Only the existing `decode_plain`
+  unused warning appeared. Native fixtures retain formatting round trips.
+- Candidate allocation profile: **86,000 allocations / 2,000 iterations = 43
+  each**, down 10.4%; zero reallocations, correct checksum and zero live bytes
+  after drop. The allocation profiler is diagnostic, separate from timing.
+- A/B keeps the original protocol: eight warmups, 31 samples in each of three
+  processes (93 samples per workload/engine), system allocator, quiet load <4.
+  Initial baseline/candidate maximum load was 3.483/3.864. Native medians in ms:
+  collections **2.502834 to 2.253125 (1.1108×)**, recursive 3.001375 to 2.958833
+  (1.0144×), owned_array 0.411333 to 0.409334 (1.0049×), json_object 0.838459
+  to 0.809334 (1.0360×), json_union 0.326541 to 0.331375 (0.9854×), pipeline
+  0.678959 to 0.696208 (0.9752×). Collections' Node control improved 1.05%.
+- Apparent small regressions were investigated, not discarded. Focused repeat
+  recovered pipeline to 0.674875 ms (1.0061× baseline; Node within 0.1%).
+  json_object repeated at 0.829792 ms; its Node control was 7.3% slower, so no
+  precise speedup is claimed there. json_union repeated at 0.332334 ms, prompting
+  a source checkpoint and fresh rebuild of `cea19c4c`, then the candidate.
+  Paired json_union medians were **0.328250 / 0.322959 ms**, with Node
+  **0.367583 / 0.371667 ms**; maximum loads 3.847/3.779. Its emitted source
+  outside the unused trial module and all **286,144 executable text bytes**
+  were byte-identical between commits; there are no external trial-module
+  references in that workload. The apparent slowdown was measurement variation.
+- `npm run store:ingest` preserved all **34** initial/repeat history entries,
+  including slower samples. SQLite integrity is `ok`; each ingested entry has
+  93 samples. Raw timing/profile files were deleted after verification.
+  Whole-project formatting changed zero files, snippets or fingerprints.
+- Cleanup removed 130 completed-build objects (1,127,130,016 bytes) and 22 old
+  native runtime program-cache entries (2,293,088,437 bytes). Latest executables,
+  root locks and shared Cargo/runtime build dependencies remain. Both current
+  debug and release compilers were built from the accepted candidate source.
+  No push, CI dispatch, merge, release, dependency change or generated unsafe.
+- Next: profile mixed-type small arrays (`type_aliases`), ranked target 3.
+  Further schema allocation work needs a new profile and measured benefit.
+
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code
 must not contain `unsafe` (tests assert it); one handoff note only (this file);
@@ -194,10 +244,10 @@ optimization log below.
    1.403 s in the first A/B, then from a fresh 1.376 s to 0.250 s in the second.
    Depth 128 is now 0.564 s versus 4.631 s on the preceding commit. Keep these
    regressions; proceed to schema trials before further compiler optimization.
-2. Schema trials: every layer (sequence, pair, remap, inject in
-   `stdlib/schema/runtime/trial.rs`) boxes a `dyn FnOnce` restoration capturing
-   the previous one; generic restorations would remove most of the 9
-   allocations for a one-entry `map.safeParse`.
+2. Schema restoration adapters: completed the measured typed-restoration
+   optimization above. Collection workload is 1.11× faster with 43 rather than
+   48 allocations per iteration; retain the rollback/lifetime regressions.
+   Move to mixed-type arrays before further schema allocation optimization.
 3. Mixed-type small arrays (`int | string`) use `Vec`; `inline_array` in
    `storage.rs` allows only int/boolean/string elements (affects `type_aliases`).
 4. Single-pass schema `DeserializeSeed` decoder for `safeParseJson` (cursors
