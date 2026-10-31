@@ -307,7 +307,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   a fresh allocation/CPU profile before changing subtree cursor behavior.
 
 
-**Current section — schema JSON profiling and parser defaults:**
+**Accepted schema JSON parser-default repair — 2026-10-31:**
 - Previous goal turn made progress: accepted scalar-union storage and persisted
   measured results in `610c2bc0`. Tree was clean before this section.
 - Baseline `610c2bc0`: native allocation profiles report 26,000 allocations
@@ -356,7 +356,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   behavior and plain decoding, then repeat affected timings before acceptance.
   Single-pass schema decoding remains outstanding after this repair.
 - Provisional source checkpoint is `11dc24cf`; its 1.8% collections slowdown
-  remains unaccepted. New uncommitted specialization uses one const-generic
+  remains unaccepted. Specialization checkpoint `4cf6c13c` uses one const-generic
   visitor with BOUNDED=true for explicit-limit APIs and false for schema's
   default path. False removes node/entry/depth counter maintenance and checks;
   syntax, float detection, exact integers and Serde recursion remain intact.
@@ -371,9 +371,34 @@ counts, wrap a copy of the generated program with a counting global allocator.
   Fused improves 2.2% over 11dc24cf (4.4% over 610c2bc0); collections remains
   about 1.6% behind the original baseline, despite being marginally faster than
   11dc24cf. All six specialized entries ingested, including this residual signal.
-- Next: fresh baseline/candidate rebuilds from commits on all three controls
-  before accepting the parser repair. No timing signal has been discarded.
-  Keep the current specialization checkpoint provisional until this resolves.
+- Final rebuilt A/B: original `610c2bc0` versus specialized `4cf6c13c`.
+  Fused **0.864458 → 0.832166 ms (1.039×)**; collections **2.311375 →
+  2.281542 ms (1.013×)**. Node controls: fused 0.683500 → 0.708000 ms;
+  collections 0.813042 → 0.810500 ms. Original baseline collections itself
+  moved from 2.243541 to 2.311375 ms across rebuilds (3.0% variation), while
+  specialized repeats stayed at 2.280334 / 2.281542 ms. The earlier residual
+  slowdown did not reproduce in the fresh pair. Accept the parser-default fix
+  and the specialization; claim only a small fused-decoding speed improvement.
+- Unchanged ordinary JSON object control: **0.804375 → 0.824542 ms**; Node
+  **0.672208 → 0.731834 ms**. Its native measurements ranged 0.791625–0.827459
+  across runs, and this workload does not call safeParseJson. Control movement
+  limits precise speed claims; it is not treated as an optimization result.
+  Fresh measured loads max 3.715 / 3.298; watchdog peak 1,942,112 KiB, no stops.
+- `npm run store:ingest` retained all **36** timing entries across six runs,
+  including every slower observation. SQLite integrity `ok`; each entry has
+  93 samples. Raw timings/allocation profile deleted after verification.
+  Whole-project formatting passed with zero changes. Cleanup removed 110
+  completed-build objects (**1,112,962,864 bytes**); native program caches
+  already retain only their latest executable. Current debug/release compilers
+  reflect the accepted specialization; requested branch restored, no remote work.
+- Next: implement direct DeserializeSeed decoding for plain schema outputs,
+  retaining the current decoder for unsupported plans and detailed failure
+  reporting. Fast decoding must execute no callbacks; only accept after full
+  input consumption and exact integer-token checks. Missing/unknown fields,
+  constraints, duplicate replacement, invalid Unicode and nested invalid values
+  must retain existing semantics through fallback. Profile larger nested cases
+  too; this repair does not complete ranked target 4.
+
 
 
 **Owner rules learned this session:** match Rust's defaults for limits (no count
