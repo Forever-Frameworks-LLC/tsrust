@@ -3493,6 +3493,26 @@
     "native_json_raw_encoding": {
       "at": "2026-10-31T14:45:07.009Z",
       "sourceSha256": "45e3512b07dbee4079ab1a1f01244694a20ef23e3639afbbcb2f06f5174463b7"
+    },
+    "native_jsonc_typed": {
+      "at": "2026-10-31T14:50:23.642Z",
+      "sourceSha256": "beaa29e8981b1a10efe1f5674cd1cf0fc443f5be042cd2b428131da6cfb5ce80"
+    },
+    "native_jsonl_typed": {
+      "at": "2026-10-31T14:50:23.642Z",
+      "sourceSha256": "4479a13bef05b1d29a80db43e4947db70637d5d8d86cdb39aefeceef1f5122ce"
+    },
+    "native_jsonl_writer": {
+      "at": "2026-10-31T14:50:23.642Z",
+      "sourceSha256": "97dc4b1b7b7b898d7f09b256a9941bc89da04a0fb51c03bf0fe7c412991c36e1"
+    },
+    "native_jsonl_borrowed": {
+      "at": "2026-10-31T14:50:23.642Z",
+      "sourceSha256": "86473cc349fcdeaa836a3cca87aa4b87d4815bea2479ec9d09833be4ca4d76e5"
+    },
+    "native_jsonl_borrowed_writer": {
+      "at": "2026-10-31T14:50:23.642Z",
+      "sourceSha256": "89c7a7f2b69fee778b87844cb8e01d76c565d262b847cfa2e9b9f4e7cf4bde09"
     }
   }
 }

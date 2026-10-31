@@ -677,9 +677,9 @@ counts, wrap a copy of the generated program with a counting global allocator.
 
 **Hand-written Rust reference expansion — current, 2026-10-31:**
 - Owner requested independent, ordinary Rust comparisons alongside **all 932**
-  public workloads. **864 are measured; 68 remain.** This is ongoing acceptance,
-  not universal hand-written-Rust parity. Next: native JSON/schema and remaining language fixtures; the
-  Math.random reference is also still open. No compiler candidate is active.
+  public workloads. **869 are measured; 63 remain.** This is ongoing acceptance,
+  not universal hand-written-Rust parity. Next: 22 remaining native-schema references and 41 language/other fixtures;
+  Math.random is still open. All native-json workloads now have Rust baselines. No compiler candidate is active.
 - Reuse Node and Rust baselines instead of timing them for every optimization.
   Refresh on workload/protocol/reference-source/toolchain/hardware changes or
   when a noisy close comparison needs a fresh control. Tsrust parent/candidate
@@ -760,8 +760,9 @@ counts, wrap a copy of the generated program with a counting global allocator.
 | Full scoped-record/map composition | 1 | 5ce1bd51 |
 | Paths and OS identity | 12 | dd8c100d |
 | Standard file I/O and buffered readback | 6 | 49d80b96 |
-| JSON values/views/typed records/raw encoding | 17 | This checkpoint; details below |
-| **Total** | **864** | **68 still required** |
+| JSON values/views/typed records/raw encoding | 17 | d8c411ae |
+| JSONC and owned/borrowed JSONL streams | 5 | This checkpoint; details below |
+| **Total** | **869** | **63 still required** |
 
 **Reference correctness and interpretation:**
 - Sources are independently authored Rust using standard-library operations and
@@ -796,45 +797,46 @@ counts, wrap a copy of the generated program with a counting global allocator.
   unmeasured Rust rows are not losses. Never label Tsrust simply "Native".
 - Current summary: Tsrust faster than Node.js in **613/932**, median throughput
   ratio **1.52×**, range **0.04×–189.48×**. Hand-written Rust faster than Node.js
-  in **592/932 (864 measured)**. The ratios use mean throughput, not median time.
+  in **597/932 (869 measured)**. The ratios use mean throughput, not median time.
 - Website generation/build passes locally; no deployment, push or CI is implied.
   Full-project formatting has consistently changed zero files/snippets/fingerprints.
 
-**Rust core JSON references — verified, 2026-10-31:**
-- Seventeen independently authored serde_json references cover roundtrip and
-  namespace parse/encode, scalar extraction, typeof/inspection/refinement,
-  borrowed array/string projection, string reads, five scalar constructions,
-  owned containers with last-write-wins duplicate keys, checked owned records,
-  literal unions, record encoding, borrowed raw validation and raw envelopes.
-- Owned records use ordinary serde derives, Vec<i64>, String, enums and a checked
-  true-only field. Borrowed view workloads parse once outside the loop; owned
-  decoding workloads parse per iteration. UTF-8 byte lengths/indices match Tsrust.
-  RawValue validates without an owned tree; retaining the complete original
-  source slice preserves outer whitespace when the envelope is assembled.
-  No copied compiler implementation, precomputed outputs, custom parser limits,
-  new dependencies, unsafe code or product/compiler changes.
+**Rust JSONC/JSONL references — verified, 2026-10-31:**
+- Five independent references complete the native-json family: typed JSONC,
+  owned JSONL reader/writer and JSONL operations borrowing caller buffers.
+  JSONC independently replaces comments with same-length whitespace, preserving
+  quoted markers, escapes, Unicode and line endings; serde validates typed fields
+  and rejects trailing commas by default. JSONL uses File, 8192-byte BufReader/
+  BufWriter and serde derives. Each iteration performs the actual file operations,
+  two typed input records plus EOF or one encoded record plus newline and flush.
+  Borrowed helpers leave the caller buffer available; consuming close propagates
+  buffered flush failures. No precomputed records/checksums, unsafe or new deps.
 - Full independent output oracles and **93 samples per workload** passed (three
-  processes, eight warmups, 31 timed samples), Rust-only run
-  **2026-10-31T14:45:07.009Z**, medians **0.005167–0.468834 ms**.
-  Preparation plus timing: 352.876 seconds, watchdog sampled peak **1,200,240
-  KiB**. Preparation load decayed before timing; busy-machine override remained
-  off and maximum accepted timing load was **3.797**. No Node timing reruns;
-  existing Tsrust/Node measurements retained. These establish references, not
-  Tsrust speedups.
-- Eleven json_core_edges.rs checks passed with the exact recorded serde artifacts
-  under the watchdog, three threads: nested/default-recursion JSON, scalar kinds,
-  typeof labels, missing/null views, UTF-8 indices/borrowed storage, typed-field
-  rejection, literal/true constraints, scalar encodings, duplicate keys, strict
-  raw validation and unmodified envelope source. Compilation sampled peak
-  **131,248 KiB**; no reference failures or watchdog stops.
-- store:ingest added 17 histories. Stored medians/sample counts, source SHA256,
-  quiet load and SQLite integrity checked before raw disposal. Public selection
-  pinned; all 66 website pages build locally. No deployment, push or CI.
-  Coverage **864/932**, remaining **68**. Next: JSONC/JSONL (five), remaining
-  schema references and language fixtures; Math.random still requires independent
-  range/point evidence. All 932 remain required. Prior file checkpoint **49d80b96**
-  has six real-I/O references and six edge checks; paths/OS **dd8c100d** has twelve
-  references, nine edge checks and corrected/re-measured double-root dirname.
+  processes, eight warmups, 31 samples), Rust-only run
+  **2026-10-31T14:50:23.642Z**. Medians: JSONC **0.375250 ms**, JSONL reader
+  **20.336292**, borrowed reader **20.106417**, writer **59.599959**, borrowed
+  writer **59.060416**. Watchdog sampled peak **1,086,080 KiB**, total preparation
+  and timing **189.605 seconds**. Quiet-machine gate waited for preparation load
+  to decay; maximum accepted timing load **3.691**, busy override off.
+  Existing Node/Tsrust measurements reused; no compiler or product changes.
+- Eight json_stream_edges.rs checks passed under the watchdog with three threads
+  and recorded serde artifacts: quoted/escaped/comment Unicode handling,
+  unterminated comments and default trailing-comma policy, CRLF/final unterminated
+  record/EOF, malformed lines/fields, parent reader reuse, exact buffered newline
+  output, write-error propagation and parent writer reuse after borrowed flush.
+  Edge compilation sampled peak **113,760 KiB**; no failures or watchdog stops.
+- store:ingest added five histories. Stored medians/counts, source SHA256, timing
+  load and SQLite integrity verified before raw disposal. Public source/date pins
+  refreshed; all 66 website pages build locally. No deployment, push or CI.
+  Coverage **869/932**, remaining **63**: **22 native-schema** plus **41 language/
+  other fixtures**. All native-json workloads have references. Next: scalar/schema
+  validators, schema object/export callbacks and remaining language fixtures;
+  Math.random needs independent range/point evidence. All 932 remain required.
+- Prior core JSON checkpoint **d8c411ae** adds seventeen references (including
+  literal unions, typed records, borrowed UTF-8 views and raw source preservation),
+  eleven edge checks and 93 samples per workload. File I/O **49d80b96** has six
+  real-I/O references/six edge checks; paths/OS **dd8c100d** has twelve references,
+  nine edge checks and corrected/re-measured double-root dirname.
 - Prior composition checkpoint **5ce1bd51** covers the complete 2,985-line fixture
   and 136 observed columns, seven edge tests and 93 samples (18.420917 ms).
   Its public **Tsrust/Rust ratio 0.15×** exposes generated overhead for later
