@@ -549,6 +549,26 @@
     "string_last_index_of_bounded_unicode": {
       "at": "2026-10-31T11:10:08.706Z",
       "sourceSha256": "d10a6b9a59c93f9f211b0bfe0c550918aa518ec9057514d7a8e1db7e0035bab8"
+    },
+    "string_char_at": {
+      "at": "2026-10-31T11:13:58.235Z",
+      "sourceSha256": "e3dc3fba7c3cab67ce0523aa190a539237381401d7e2728b088807a017f62188"
+    },
+    "string_char_at_ascii_long": {
+      "at": "2026-10-31T11:13:58.235Z",
+      "sourceSha256": "e3dc3fba7c3cab67ce0523aa190a539237381401d7e2728b088807a017f62188"
+    },
+    "string_char_at_unicode_tail": {
+      "at": "2026-10-31T11:13:58.235Z",
+      "sourceSha256": "578780c61c116777204f2e28f21f1ece663f641b58af485cdf226375a6b41d0a"
+    },
+    "string_char_at_unicode_late": {
+      "at": "2026-10-31T11:13:58.235Z",
+      "sourceSha256": "6f3ba8c6323a8b5cb022fe7a945aab34f63e3c7b794353985ddabf61c6887a13"
+    },
+    "string_char_at_unicode_middle": {
+      "at": "2026-10-31T11:13:58.235Z",
+      "sourceSha256": "0ea9cf6087c64d55bd41f590f5da1a059ba96a28b6acdcd41949ec3aba255a98"
     }
   }
 }
