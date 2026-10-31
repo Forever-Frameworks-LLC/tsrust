@@ -17,6 +17,7 @@ timed samples the run took.
 """
 import argparse
 import json
+import math
 from pathlib import Path
 import sqlite3
 import statistics
@@ -64,14 +65,39 @@ def ingest(db, files):
             continue
         workloads = {w['id']: w for w in data['manifest']['workloads']}
         samples = {}
+        details = {}
         for row in execution:
-            samples.setdefault((row['workload'], row['engine']), []).extend(row['durations'])
+            key = (row['workload'], row['engine'])
+            samples.setdefault(key, []).extend(row['durations'])
+            details.setdefault(key, []).append(row)
         for (workload, engine), durations in samples.items():
             definition = workloads.get(workload)
             if not definition or not durations:
                 continue
             operations = definition['iterations'] * definition.get('operationsPerIteration', 1)
-            added += record(db, workload, engine, entry(data['timestamp'], durations, operations))
+            item = entry(data['timestamp'], durations, operations)
+            rows = details[(workload, engine)]
+            if any('latencies' in row or 'resources' in row for row in rows):
+                latencies = []
+                resources = []
+                for row in rows:
+                    values, resource = row['latencies'], row['resources']
+                    if len(values) != len(row['durations']) * operations or not all(math.isfinite(x) and x >= 0 for x in values):
+                        raise ValueError('Invalid request latency population')
+                    if not (math.isfinite(resource['cpuMs']) and resource['cpuMs'] >= 0 and resource['requests'] > 0 and resource['peakRssBytes'] > 0 and resource['rssSamples'] >= 2):
+                        raise ValueError('Invalid server resource summary')
+                    latencies.extend(values)
+                    resources.append(resource)
+                latencies.sort()
+                requests = sum(x['requests'] for x in resources)
+                item.update(requestP50Ms=round(latencies[math.ceil(len(latencies) * .5) - 1], 6),
+                            requestP99Ms=round(latencies[math.ceil(len(latencies) * .99) - 1], 6),
+                            requestSamples=len(latencies),
+                            cpuMsPerRequest=round(sum(x['cpuMs'] for x in resources) / requests, 6),
+                            resourceRequests=requests,
+                            peakRssBytes=max(x['peakRssBytes'] for x in resources),
+                            rssSamples=sum(x['rssSamples'] for x in resources))
+            added += record(db, workload, engine, item)
     db.commit()
     return added
 

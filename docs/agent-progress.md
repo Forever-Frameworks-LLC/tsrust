@@ -33,6 +33,60 @@ plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
 
+**Current owner request — CPU-first performance page, measured locally:**
+- Owner rejected the wide HTTP table. Removed all visible date columns, combined
+  batch-time cells and redundant ratios. CPU rendering leads; engine/req-s/p99/
+  CPU-per-request/RSS is a five-column table, with responsive engine cards on
+  narrow screens. Old I/O results remain in collapsed one/16-connection
+  four-column tables. All 932 language/library comparisons remain visible in
+  compact groups; timestamps/source pins stay in repository metadata.
+- New independently authored Tsrust/Node/Rust handlers render a 96×64 Mandelbrot
+  tile (up to 256 iterations/pixel), based on varying IDs 1..128. Independent
+  Python complex-number oracle runs outside servers/timing. One process/one
+  executor worker per engine; Tokio worker count fixed to one. No hidden
+  multicore advantage, no unsafe in generated source, no new compiler dependency.
+- Original three-process/eight-warmup/31-sample protocol, 128 requests/batch.
+  Each engine/case has **93 batch samples and 11,904 actual request latencies**.
+  Separate warmed resource pass completes another **11,904 requests** per case:
+  macOS ps CPU time (10 ms resolution), peak sampled RSS (50 ms polling).
+  Individual request p50/p99 never derive from batch durations. Resource polling
+  does not overlap throughput/latency sampling. RSS includes runtime/shared pages,
+  excludes the client; it is not heap usage or guaranteed high-water memory.
+- Initial verify caught JSON field order only; canonicalized Node/Rust/oracle
+  output without weakening byte checks. Corrected three-server live verify
+  passed **32.676 s**, peak **453,216 KiB**, 260 requests per engine. Seven HTTP
+  guards and **22 storage tests** pass. Minimal histories now add only aggregate
+  request p50/p99/count and CPU-ms/request/resource count/peak RSS/sample count.
+- Quiet run **2026-10-31T18:50:04.215Z** completed all six groups, **461.971 s**
+  including initial quiet wait, peak **128,992 KiB**. System indexing initially
+  raised load to 16; waited without bypassing the guard or stopping system tasks.
+  Accepted maximum load **3.413**, busy override false. Nine processes each
+  preflighted 260 requests; every timed/resource response fully checked.
+- **One connection**, Tsrust / Node.js / hand-written Rust: mean req/s
+  **916.465 / 844.806 / 919.633**; p99 ms **1.208792 / 1.286541 / 1.201542**;
+  CPU ms/req **1.022345 / 1.117272 / 1.018145**; peak sampled RSS MiB
+  **8.0 / 62.609375 / 3.703125**. Tsrust is near Rust throughput; sampled RSS
+  is about 7.8× smaller than Node for this kernel, not a universal speed claim.
+- **16 connections**, same one-worker budget: req/s
+  **988.083 / 980.029 / 988.328**; p99 ms **17.451083 / 30.704500 / 19.408291**;
+  CPU ms/req **1.012265 / 1.024866 / 1.011425**; RSS MiB
+  **8.203125 / 65.0 / 3.921875**. Closed-loop same-machine latency includes
+  queueing and is not a production SLA. No prior I/O throughput controls reran.
+- store:ingest added **six histories**; exact medians, mean rates, p50/p99,
+  request/resource populations, CPU/RSS summaries, source/oracle/protocol hashes
+  and SQLite integrity verified before raw results/verify-file cleanup. Public
+  pins are separate from the 932 library workloads; no inflated summary counts.
+- Website builds 66 pages, two website tests pass, links/assets in 116 pages pass.
+  Final visual checks passed: desktop metric table **632 px**, no overflow or
+  date headers; at 390 px mobile, **358 px engine cards** have no horizontal
+  overflow. Screenshots /tmp/tsrust-performance-cpu.jpg and the -mobile.jpg
+  counterpart. Removed both obsolete 675 MiB exported vendor packages, keeping
+  only reusable server executables/client output in the shared target. Existing preview
+  127.0.0.1:4321 is user-owned; do not stop it. No later release/deployment has
+  been requested; the live v0.1.1 page still has the previous layout/results.
+- Next after finishing this checkpoint: resume profiling normalization/table
+  lookups or advanced schema restoration. Published v0.1.1 remains unchanged.
+
 **Owner-requested promotion — published/deployed, 2026-10-31:**
 - Owner explicitly approved **publishing v0.1.1**. Compiler **0.1.1**, independent
   LSP/VSIX **0.2.1**; version 979b906a, notes 045efdb7. Staging PR #8 merged

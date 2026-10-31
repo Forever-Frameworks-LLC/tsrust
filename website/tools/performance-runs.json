@@ -3887,5 +3887,36 @@
     "node-tsc": "3.50.4",
     "rust-hand": "3.51.3"
   },
-  "httpProtocolSha256": "c520a012e342b0ee0c5131850488c1b1b658bb9fda172eac650a215dd1f42f58"
+  "httpProtocolSha256": "c520a012e342b0ee0c5131850488c1b1b658bb9fda172eac650a215dd1f42f58",
+  "cpuBaselines": {
+    "http_cpu_render_c1": {
+      "native": {
+        "at": "2026-10-31T18:50:04.215Z",
+        "sourceSha256": "71036f644011ea7309599897fbc2bba6f25f8f86ad5a9afb3ec75ace1fe5fab9"
+      },
+      "node-tsc": {
+        "at": "2026-10-31T18:50:04.215Z",
+        "sourceSha256": "8a43971b740fff09cdd05adafdab8fb33d43dc43c9a495d31e9de30cd6263b62"
+      },
+      "rust-hand": {
+        "at": "2026-10-31T18:50:04.215Z",
+        "sourceSha256": "4066daca08f2d63d1dd068904d51e3b8ccce61e78ba69525d4dde86593fb53cb"
+      }
+    },
+    "http_cpu_render_c16": {
+      "native": {
+        "at": "2026-10-31T18:50:04.215Z",
+        "sourceSha256": "71036f644011ea7309599897fbc2bba6f25f8f86ad5a9afb3ec75ace1fe5fab9"
+      },
+      "node-tsc": {
+        "at": "2026-10-31T18:50:04.215Z",
+        "sourceSha256": "8a43971b740fff09cdd05adafdab8fb33d43dc43c9a495d31e9de30cd6263b62"
+      },
+      "rust-hand": {
+        "at": "2026-10-31T18:50:04.215Z",
+        "sourceSha256": "4066daca08f2d63d1dd068904d51e3b8ccce61e78ba69525d4dde86593fb53cb"
+      }
+    }
+  },
+  "cpuProtocolSha256": "6348f2e14b1e8ecc875af5904e0a4e8c270b514be25f135f4e977014b8f88e6e"
 }

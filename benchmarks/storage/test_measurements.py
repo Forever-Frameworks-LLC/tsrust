@@ -68,5 +68,19 @@ class MeasurementsTest(unittest.TestCase):
         self.assertEqual(self.history('native'), [{'at': '2026-01-01T00:00:00Z', 'ms': 2.0, 'ops': 20.0, 'samples': 2}])
 
 
+
+class HttpMetricsTest(unittest.TestCase):
+    def test_request_percentiles_and_server_resources_remain_distinct_from_batch_times(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / 'http.json'
+            source.write_text(json.dumps({'timestamp': 'http-run', 'manifest': {'workloads': [{'id': 'cpu', 'iterations': 2}]},
+                'execution': [{'workload': 'cpu', 'engine': 'native', 'durations': [2000, 2000],
+                    'latencies': [1, 2, 3, 100], 'resources': {'cpuMs': 10, 'requests': 4, 'peakRssBytes': 123456, 'rssSamples': 3}}]}))
+            db = measurements.connect(':memory:')
+            self.assertEqual(measurements.ingest(db, [source]), 1)
+            row = json.loads(db.execute('select history from measurements').fetchone()[0])[0]
+            self.assertEqual((row['ms'], row['requestP50Ms'], row['requestP99Ms'], row['requestSamples']), (2000, 2, 100, 4))
+            self.assertEqual((row['cpuMsPerRequest'], row['peakRssBytes'], row['resourceRequests']), (2.5, 123456, 4))
+
 if __name__ == '__main__':
     unittest.main()

@@ -1,3 +1,47 @@
+# CPU work, request latency and server resources
+
+The headline example is a CPU rendering handler: POST a varying ID, compute a
+96 × 64 Mandelbrot tile with up to 256 iterations per pixel, then return the
+checksum/escape count as JSON. Tsrust, TypeScript after tsc, and independently
+written Rust execute the same f64 arithmetic. A Python complex-number oracle
+prepares expected outputs outside timing. Servers never read those oracle outputs.
+
+All engines use one server process and one executor worker. Tokio's worker count
+is fixed with TOKIO_WORKER_THREADS=1; Node executes its JS kernel on one event-loop
+thread. This is a single-worker comparison, not a multicore scaling claim.
+One and 16 keep-alive connections are measured separately with the common client.
+
+The original protocol remains three processes, eight warmup batches and 31 timed
+128-request batches per engine/case. Request start-to-complete-body durations
+supply 11,904 observations for nearest-rank p50/p99. They are not batch percentiles.
+The closed-loop, same-machine client can bottleneck and 16 connections introduce
+queueing; these are benchmark latencies, not production SLA estimates.
+
+A separate warmed 31-batch pass measures server CPU time and RSS. CPU/req is
+total process CPU milliseconds divided by completed requests. macOS ps time has
+10 ms resolution; RSS is sampled every 50 ms. Peak sampled RSS includes server
+runtime/shared pages, excludes the client, and is not heap usage or a guaranteed
+high-water mark. Resource polling never overlaps throughput/latency samples.
+CPU/RSS sampling currently requires macOS. The compiler/server sources remain
+portable. No startup, compilation or oracle preparation is timed.
+
+From the repository root:
+
+```sh
+TSRUST="$PWD/target/debug/tsrust" CARGO_TARGET_DIR="$PWD/target" CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 node benchmarks/http/requests-run.mjs --cpu --verify
+TSRUST="$PWD/target/debug/tsrust" CARGO_TARGET_DIR="$PWD/target" CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 node benchmarks/http/requests-run.mjs --cpu --prepared
+python3 benchmarks/http/cpu-oracle.py --check
+node --test benchmarks/http/cpu.test.mjs
+npm run store:ingest --prefix benchmarks/runtime
+```
+
+Source/protocol/oracle hashes are pinned in cpu-manifest.json. Results retain only
+aggregate request percentiles, sample counts, CPU/request and peak sampled RSS
+alongside existing minimal measurement histories. Raw requests/resource samples
+are disposable after exact import verification. Public selection lives in
+website/tools/performance-runs.json. Existing I/O controls below are reused;
+adding this CPU example does not rerun their baselines.
+
 # HTTP request comparisons
 
 The current suite compares **Tsrust**, **Node.js after tsc**, and an independently

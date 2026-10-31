@@ -1,0 +1,50 @@
+{
+  "semanticEpoch": "http-cpu-render-v1",
+  "protocol": {
+    "processes": 3,
+    "warmups": 8,
+    "samples": 31,
+    "requestsPerBatch": 128,
+    "concurrency": [
+      1,
+      16
+    ],
+    "keepAlive": true,
+    "bodyLimit": 65536,
+    "width": 96,
+    "height": 64,
+    "maxIterations": 256,
+    "serverWorkers": 1,
+    "resourceBatches": 31,
+    "rssSampleMs": 50,
+    "cpuClockResolutionMs": 10,
+    "latency": "request start to complete body; nearest-rank percentiles"
+  },
+  "workloads": [
+    {
+      "id": "http_cpu_render_c1",
+      "scenario": "cpu_render",
+      "name": "CPU rendering",
+      "method": "POST",
+      "path": "/render",
+      "concurrency": 1
+    },
+    {
+      "id": "http_cpu_render_c16",
+      "scenario": "cpu_render",
+      "name": "CPU rendering",
+      "method": "POST",
+      "path": "/render",
+      "concurrency": 16
+    }
+  ],
+  "sources": {
+    "native": "71036f644011ea7309599897fbc2bba6f25f8f86ad5a9afb3ec75ace1fe5fab9",
+    "node-tsc": "8a43971b740fff09cdd05adafdab8fb33d43dc43c9a495d31e9de30cd6263b62",
+    "rust-hand": "4066daca08f2d63d1dd068904d51e3b8ccce61e78ba69525d4dde86593fb53cb"
+  },
+  "oracles": {
+    "oracle": "1b82d577509d220ae33149b07971a6c37de7d2f03a9282287b5988dc60b4edf7",
+    "oracleGenerator": "2a736363ef1fc9ad8c71d6fde8908c87ebfca44adb65b9d1af7f1c25a5794a49"
+  }
+}
