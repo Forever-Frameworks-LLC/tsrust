@@ -357,6 +357,22 @@
     "nullish_assign_record_value": {
       "at": "2026-10-31T10:55:47.311Z",
       "sourceSha256": "60b95e8f4d56c039a6a309415350e7a09b3475f842912139967f4ff98e104d66"
+    },
+    "nullish_nullable_fallback_int": {
+      "at": "2026-10-31T10:57:35.591Z",
+      "sourceSha256": "542430c4bfc756a9af03c6d60b7a173e331ed53879665b216fa176a8e10ccd33"
+    },
+    "nullish_null_undefined_value": {
+      "at": "2026-10-31T10:57:35.591Z",
+      "sourceSha256": "c7b0f2e0269554e5a78d90733942e4075c0354d9435e6635b07c53266632a413"
+    },
+    "nullish_assign_nullable_int_value": {
+      "at": "2026-10-31T10:57:35.591Z",
+      "sourceSha256": "a5b1e91c5fc2b44a4f85edaaf8ed9e70066a2eb696aa4be92c92227d26374d7f"
+    },
+    "nullish_assign_nullable_string_value": {
+      "at": "2026-10-31T10:57:35.591Z",
+      "sourceSha256": "8de1e4706a3de231c45117e88c2d387e008cdee14e939ed0c9e9d9ed49e9a705"
     }
   }
 }
