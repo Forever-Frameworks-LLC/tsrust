@@ -18215,6 +18215,33 @@
       "specification": "One complete union array scenario per iteration: build the mixed array, append one element, total the ints and join the strings by narrowing, search it, read its last element and count its strings. Seven result cells are retained and observed outside timing."
     },
     {
+      "id": "union_array_heap",
+      "family": "union-array-elements",
+      "source": "workloads/union_array_heap.tsr",
+      "counterpart": "workloads/union_array_heap.ts",
+      "result": "string[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One complete union array scenario iteration",
+      "inputText": "dynamic é🙂 text",
+      "category": "other",
+      "measurementStatus": "pending-value-types-milestone",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": true,
+      "measured": false,
+      "sourceSha256": "7cd7f7306342c252c050bd940c55440221c42539579a3a7ebfc13f9543854e3f",
+      "counterpartSha256": "23911743b10b1a0bbc28bb0142c71288d79045e52e159c2c19f9c46f20708b7d",
+      "notes": "Twenty-element scalar-union array control: grow beyond inline capacity, iterate, search, join and filter.",
+      "specification": "Start with int, string and null; append base+1 through base+16, then a string or int tail. Retain every observation."
+    },
+    {
       "id": "object_values_entries",
       "family": "object-values-entries",
       "source": "workloads/object_values_entries.tsr",
