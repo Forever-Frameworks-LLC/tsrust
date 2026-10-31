@@ -2649,6 +2649,30 @@
     "nullable_callable_absent_higher_order_factory": {
       "at": "2026-10-31T13:18:39.238Z",
       "sourceSha256": "683766af065471967ebccec129e1fc30c95bc72a9f64907e906f0abdd7d5e919"
+    },
+    "optional_parameter_read_callback": {
+      "at": "2026-10-31T13:20:46.197Z",
+      "sourceSha256": "3c7d79518926f6eb25c053d6e4d45f221e871f23d9845acc3355465f1eaedb9a"
+    },
+    "optional_parameter_mutate_callback": {
+      "at": "2026-10-31T13:20:46.197Z",
+      "sourceSha256": "495cff4129b9cbb2e54eb0da199977f32ed7955898d55d8f5e9c67da728c7c1f"
+    },
+    "optional_parameter_once_callback": {
+      "at": "2026-10-31T13:20:46.197Z",
+      "sourceSha256": "f0dd16e8c01ed13f66d3476fd62daf83c74bb02e79c6b5a34723ff7b2212d978"
+    },
+    "function_expressions": {
+      "at": "2026-10-31T13:20:46.197Z",
+      "sourceSha256": "4f226953f29809997d74511e4ee401578b5ed01bdae83c5274bf1be3613a2c81"
+    },
+    "callable_expressions": {
+      "at": "2026-10-31T13:20:46.197Z",
+      "sourceSha256": "a9c1165d81afc67ac6da6ff343a4fff8515be058464e2db779e86b75669a23fc"
+    },
+    "named_function_expressions": {
+      "at": "2026-10-31T13:20:46.197Z",
+      "sourceSha256": "1279d89c6265ca25255ba7f5bb1bab4ce2cc6eb59e5eb72750e2f3b5bc79ce82"
     }
   }
 }

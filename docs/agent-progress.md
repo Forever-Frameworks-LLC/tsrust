@@ -677,7 +677,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
 
 **Hand-written Rust reference expansion — current, 2026-10-31:**
 - Owner requested independent, ordinary Rust comparisons alongside **all 932**
-  public workloads. **653 are measured; 279 remain.** This is ongoing acceptance,
+  public workloads. **659 are measured; 273 remain.** This is ongoing acceptance,
   not universal hand-written-Rust parity. Next: remaining callable/control-flow families; the
   Math.random reference is also still open. No compiler candidate is active.
 - Reuse Node and Rust baselines instead of timing them for every optimization.
@@ -741,8 +741,9 @@ counts, wrap a copy of the generated program with a counting global allocator.
 | Default/rest parameters | 20 | e7ab431a |
 | Nested functions/escaping closures | 6 | e2e2d217 |
 | Generic function environments/replacement | 5 | e7bde0f0 |
-| Nullable callable ownership/forwarding/factories | 10 | This checkpoint; details below |
-| **Total** | **653** | **279 still required** |
+| Nullable callable ownership/forwarding/factories | 10 | 5fcd9045 |
+| Optional callbacks/function expressions | 6 | This checkpoint; details below |
+| **Total** | **659** | **273 still required** |
 
 **Reference correctness and interpretation:**
 - Sources are independently authored Rust using standard-library operations and
@@ -777,32 +778,28 @@ counts, wrap a copy of the generated program with a counting global allocator.
   unmeasured Rust rows are not losses. Never label Tsrust simply "Native".
 - Current summary: Tsrust faster than Node.js in **613/932**, median throughput
   ratio **1.52×**, range **0.04×–189.48×**. Hand-written Rust faster than Node.js
-  in **441/932 (653 measured)**. The ratios use mean throughput, not median time.
+  in **441/932 (659 measured)**. The ratios use mean throughput, not median time.
 - Website generation/build passes locally; no deployment, push or CI is implied.
   Full-project formatting has consistently changed zero files/snippets/fingerprints.
 
-**Rust nullable callable ownership/forwarding/factories — verified, 2026-10-31:**
-- Ten independent references cover declared guard/optional calls, borrowed and
-  once-owned forwarding, owned record/once-returned captures, generic coalescing,
-  nullish assignment and present/absent higher-order factories. Standard Option,
-  function pointers, Fn/FnOnce closures and a captured Higher environment preserve
-  ownership, skipped arguments, lazy fallbacks and observed trace counters.
-  Null and undefined are both absent in these workloads; neither is distinguished
-  by their observed contract, so the Rust references use ordinary Option.
-- All ten matched independent result oracles and completed 93 samples each
+**Rust optional callbacks/function expressions — verified, 2026-10-31:**
+- Six independent references cover optional borrowed/mutable/once-owned callbacks,
+  function expressions, chained callable results and named recursive functions.
+  Standard Option and Fn/FnMut/FnOnce preserve omission, capture state and owned
+  return values. Nested callable returns use a boxed inner closure; generic
+  functions and explicit recursive environments preserve named self references.
+- All six matched independent result oracles and completed 93 samples each
   (three processes, eight warmups, 31 timed samples), Rust-only run
-  2026-10-31T13:18:39.238Z; medians 0.025875–0.047792 ms, max load 1.625,
-  watchdog peak 334,816 KiB. Existing Tsrust/Node measurements reused; compiler
+  2026-10-31T13:20:46.197Z; medians 0.030083–0.708958 ms, max load 2.455,
+  watchdog peak 287,024 KiB. Existing Tsrust/Node measurements reused; compiler
   implementation unchanged. No Node timing rerun.
-- Ten durable nullable_callable_edges.rs tests passed under the sequential
-  watchdog with three threads: absent argument/factory gating, reused borrowed
-  captures, consumed once-owned captures, input-independent owned Unicode text,
-  lazy fallback identity, stored assignment and higher-order trace counters.
-  Initial test compilation needed a concrete absent closure type; fixed only the
-  test expression, without changing measured reference sources or timing.
-- store:ingest added ten histories; stored medians/sample counts, source hashes
+- Six durable expression_edges.rs tests passed under the sequential watchdog
+  with three threads: missing callbacks, mutable state across skipped calls,
+  retained once-owned Unicode text, default/rest arguments, sorted owned results,
+  nested closures, callee-before-argument effects and recursive/generic results.
+- store:ingest added six histories; stored medians/sample counts, source hashes
   and SQLite integrity verified before raw disposal. Public hashes/timestamps
-  pinned. Coverage **653/932**, remaining **279**. Next: remaining callables and
+  pinned. Coverage **659/932**, remaining **273**. Next: remaining callables and
   control flow; Math.random remains open.
 
 **Owner rules learned this session:** match Rust's defaults for limits (no count
