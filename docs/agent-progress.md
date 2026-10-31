@@ -18,16 +18,14 @@ TypeScript": JS/TS-familiar API, Rust semantics and accuracy underneath, generat
 code at hand-written-Rust parity. The docs restructuring in the next section is
 still open but is not the current loop's focus.
 
-**Git:** branch `codex/optimize-native-hot-paths`. Pushed through `5793c2b5`.
-Local, not pushed: `5805b423`, `db6ec027` (single handoff), `4bf84f84` (test fix),
-`3a625efe` (initial handoff), `6b8f62b1` (completed validation), and
-`260d1781` (Map snapshot classification, 4.32× at depth 80), and
-`cea19c4c` (callable-boundary Map epochs, 8.22× at depth 128), and
-`5083586a` (typed schema restorations, collections 1.11×),
-`393bceea` (heap-array benchmark control), and `a1fd6a0d` (scalar-union
-array candidate, now accepted by the paired results below).
-The rejected small-string experiment lives on
-`codex/small-string-experiment` (keep for reference; do not merge).
+**Git:** branch `codex/optimize-native-hot-paths`; local checkpoints remain
+unpushed. Latest accepted source: `ab83377b` (single replacement sizing), with
+acceptance and stored repeated A/B results in the following commit. Earlier
+accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration,
+`610c2bc0` scalar-union arrays, `a74da73f` Rust parser defaults, `a2f94dee`
+plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
+The rejected small-string experiment remains on `codex/small-string-experiment`;
+do not merge it. See `git log` for exact latest evidence checkpoint.
 
 **Validation:**
 - GitHub CI dispatched today ran only the default subset, because
@@ -478,8 +476,9 @@ counts, wrap a copy of the generated program with a counting global allocator.
   keep only their latest executable. Shared dependencies remain.
 - Plain scalar/array/object decoding is accepted; advanced schemas still use
   the existing decoder. Next profile remaining advanced-schema cost before
-  expanding this optimization. Reference-counted string storage remains an
-  owner design decision. No push, CI dispatch, merge or release.
+  expanding this optimization. The later owner decision keeps Rust-default
+  string ownership; see the accepted sizing pass below. No push, CI dispatch,
+  merge or release.
 
 
 **Current milestone validation — 2026-10-31 (complete):**
@@ -525,99 +524,51 @@ counts, wrap a copy of the generated program with a counting global allocator.
   changing it. Existing replacement histories contain 93 samples per engine;
   use fresh baseline/current comparisons, not historical times for acceptance.
 
-**String sizing profile — 2026-10-31 (next implementation target):**
-- Validation/test-support checkpoint committed as `1e4d2547`; release build
-  verified under watchdog. Baseline allocation profile completed successfully
-  on ten existing workloads, three samples each, with independent checksums and
-  zero live bytes after drop checked by the harness. Watchdog 6.207 s,
-  peak 283,152 KiB; no runtime change yet.
-- At 2,000 replacement iterations, allocations are 2,003 in every case.
-  Reallocations: first/plain 12; first/tokens 1,012; first/empty-pattern 3,012;
-  all/plain 512; all/tokens 2,512; all/empty-pattern 5,012. Slice ASCII/unicode
-  each have 12 reallocations; variadic concat ASCII/unicode each have eight.
-  This supports experimenting with token replacement capacity rather than
-  adding sizing passes to already preallocated concat or owned slice copying.
-- Disposable diagnostic:
-  `benchmarks/runtime/diagnostics/2026-10-31T08-08-30-021Z-native-allocations.json`.
-  Log `/tmp/tsrust-string-sizing-profile.log`; session 84068 terminal exit zero.
-  No performance acceptance claim or timing ingestion for allocation diagnosis.
-  Next: implement the smallest checked-capacity experiment, validate string
-  suites, profile allocations again, then fresh quiet paired 93-sample timing
-  against `1e4d2547` with all six replacement workloads and Node controls.
-  Keep only measured gains without regressions; preserve plain Rust operations.
+**Accepted single token-replacement sizing — 2026-10-31:**
+- Source checkpoint `ab83377b` is accepted after repeated parent/candidate timing
+  against `1e4d2547`. `.replace()` computes checked byte capacity using the same
+  token parser that writes the result. `.replaceAll()` retains one-pass growth;
+  plain replacements retain Rust's standard operations. Independent owned
+  strings still copy; no shared backing storage, unsafe code or new size limits.
+- Profile first: over 2,000 iterations, first/token reallocations fell 1,012 ->
+  12, first/empty-pattern 3,012 -> 12; allocations remain 2,003. Slice and concat
+  controls unchanged. Three allocation samples each checked independent output
+  checksums and zero live bytes after drop. Allocation profile peak 315,392 KiB.
+- All 14 affected tests passed (string_construction, generic_default_builtins,
+  string_concat_padding, string_substring), including native debug/release output,
+  Unicode/empty/unknown tokens, ownership, operand evaluation and no generated
+  unsafe. Sequential 5,000,000 KiB/1,800 s watchdog, three threads; peak
+  1,602,912 KiB, no stops. Product behavior and IntelliSense unchanged.
+- Fresh repeat A/B, 8 warmups and 31 samples x three processes per workload and
+  engine (93 samples); quiet maxima 2.238 parent/2.292 candidate, limit four:
 
-**String sizing experiment — in progress:**
-- Fresh baseline on parent `1e4d2547` completed before runtime edits: all six
-  replacement workloads, native and Node-after-tsc, original 8 warmups and
-  31 samples across three processes. Quiet limit four, maximum load 1.714.
-  Disposable result `benchmarks/runtime/results/2026-10-31T08-09-49-269Z.json`;
-  log `/tmp/tsrust-string-sizing-baseline.log`, session 2569 terminal zero.
-- Uncommitted candidate in `runtime/strings.rs`: template parser emits pieces
-  through a callback, reused for checked exact-capacity counting and writing.
-  Match iterator is cloned for the counting pass; original iterator writes.
-  Plain replacement still uses Rust. No unsafe, shared storage or new limits.
-  Candidate is NOT accepted: sizing cost may outweigh saved allocations.
-- Affected suites passed in session 94517 (terminal zero) via
-  `/tmp/tsrust-string-sizing-tests.py`: string_construction,
-  generic_default_builtins, string_concat_padding, string_substring. Sequential
-  watchdog, shared target, incremental disabled, three threads. All four
-  targets passed, peak 1,641,728 KiB, no watchdog stops.
-  Candidate release build/profile/timing is now LIVE in session 13599 through
-  `/tmp/tsrust-string-sizing-measure.py`; log
-  `/tmp/tsrust-string-sizing-candidate.log`. Poll that session; do not restart.
-- After tests: build release under watchdog, profile the same ten workloads,
-  time the same six replacement workloads with Node controls, compare all
-  93-sample medians and quiet metadata. Keep only if faster without regressions;
-  otherwise revert this candidate and use evidence for the next choice. Then
-  ingest measured histories, whole-project format, commit measured outcome,
-  and prune disposable artifacts. No candidate timing or acceptance claim yet.
+  | Workload | Native parent -> accepted ms | Node parent -> accepted ms |
+  | --- | --- | --- |
+  | first/plain | .067458 -> .069083 | .075292 -> .076584 |
+  | first/tokens | .113916 -> .115042 | .175542 -> .173291 |
+  | first/empty pattern | .158125 -> .110292 (**1.434x**) | .222584 -> .220042 |
+  | all/plain | .075459 -> .074291 | .191500 -> .190292 |
+  | all/tokens | .257250 -> .251833 | .617792 -> .619875 |
+  | all/empty pattern | .391875 -> .379292 | 1.129583 -> 1.149291 |
 
-**String sizing first A/B — rejected full prepass, narrower candidate live:**
-- Candidate measurement session 13599 finished zero. Release build 209.679 s,
-  peak 1,497,408 KiB; allocation profile 7.263 s; timing 8.798 s. All 14 affected
-  tests passed. Candidate result `2026-10-31T08-17-53-893Z.json` (results dir),
-  profile `2026-10-31T08-17-44-528Z-native-allocations.json` (diagnostics dir).
-  Both runs had 93 samples/engine, quiet maximum 1.714 baseline/3.557 candidate.
-- Native baseline -> candidate ms: first/plain .063750 -> .067875;
-  first/tokens .109375 -> .113166; first/empty .147792 -> .112667;
-  all/plain .070166 -> .074167; all/tokens .235500 -> .265375;
-  all/empty .355708 -> .361833. Corresponding Node deltas: +4.94%, +4.49%,
-  +2.59%, +5.26%, +5.59%, +4.73%. Plain controls show machine drift, but
-  all/tokens regressed 12.69%, beyond its Node control. Reject full prepass.
-- Reallocations fell first/tokens 1,012 -> 12; first/empty 3,012 -> 12;
-  all/tokens 2,512 -> 512; all/empty 5,012 -> 12. Allocation elimination alone
-  is insufficient; the repeated sizing scan costs too much for replaceAll.
-- Revised uncommitted experiment only pre-sizes single replacement (`!all`);
-  replaceAll retains single-pass growth. First/empty's 23.77% improvement makes
-  this worth testing. Session 82166 LIVE runs the same four affected suites;
-  log `/tmp/tsrust-string-sizing-first-tests.log`. After it passes, rerun
-  `/tmp/tsrust-string-sizing-measure.py` with a NEW log, compare against parent
-  and rejected candidate with Node controls. Do not accept before measurements.
-  Earlier in-progress paragraphs are chronological; 82166 is the current handle.
-
-**Single-replacement trial — repeat timing required before acceptance:**
-- Session 82166 finished: 14 affected tests passed, peak 1,602,912 KiB,
-  no watchdog stops. Session 4591 finished release/profile/timing successfully:
-  release 210.114 s, peak 1,658,464 KiB; profile 6.751 s; timing 8.805 s.
-- Candidate result `2026-10-31T08-25-47-951Z.json`; profile
-  `2026-10-31T08-25-38-896Z-native-allocations.json`. Reallocations first/tokens
-  and first/empty now 12 each; replaceAll counts restored to baseline.
-- Native baseline -> single-only ms: first/plain .063750 -> .067959;
-  first/tokens .109375 -> .112875; first/empty .147792 -> .114708 (1.288x);
-  all/plain .070166 -> .075208; all/tokens .235500 -> .246625;
-  all/empty .355708 -> .379625. Node deltas respectively +3.75%, +5.04%,
-  +4.61%, +4.78%, +4.76%, +3.63%. Quiet maxima 1.714 baseline/2.572 trial.
-  All 93 samples per workload/engine verified. First/empty gain is clear,
-  but unchanged plain controls drifted 6.6–7.2%; do not claim no regressions
-  until a fresh paired repetition resolves the uncertainty.
-- Ingested all 36 entries from the baseline and two trials; first 24 verified
-  in SQLite with integrity check. Trial source checkpoint will allow rebuilding
-  parent `1e4d2547` and candidate without source snapshots. NOT accepted yet.
-  Next: switch detached parent, release build then same six-workload timing;
-  switch requested branch back, release build then repeat same timing; always
-  restore branch in finally. Use the same watchdog, quiet gate and 93 samples.
-  Compare Node and unchanged controls; revert if regressions persist. Do not
-  rerun correctness suites unless source changes. Both current runners terminal.
+  Target improvement is 30.25%, with Node control -1.14%. Other native medians
+  range -3.21% to +2.41%; their process medians overlap and do not establish a
+  repeatable regression. No speed claim for unchanged controls or first/tokens.
+  Earlier single-only trial independently showed first/empty 22.39% faster.
+- Rejected full pre-sizing: all/tokens .235500 -> .265375 ms (+12.69%), versus
+  Node +5.59%, despite fewer reallocations. The extra scan was not worthwhile.
+  Retained only the measured single-replacement improvement. Initial broad-run
+  control drift prompted the fresh comparison above rather than early acceptance.
+- All five runs (baseline, rejected full scan, initial single-only candidate,
+  repeated parent and accepted candidate) ingested: 60 minimal workload/engine
+  histories, 93 samples each; verified in SQLite with integrity check. Removed
+  all five disposable timing files and three allocation profiles, 47 obsolete
+  object files (345,268,704 bytes), and six older native build caches.
+  Whole-project formatter: zero files/snippets/fingerprints changed.
+- Repeat runner session 52120 exited zero; requested branch restored. Release
+  rebuilds took 210.060/209.754 s, peaks 1,401,808/1,531,520 KiB; timed passes
+  9.334/9.847 s. No active job; cleanup complete. This acceptance checkpoint
+  closes ranked target five. Full milestone plus affected string suites are green.
 
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code
@@ -651,10 +602,18 @@ optimization log below.
 4. Plain-schema `DeserializeSeed` decoding accepted above: nested 3.122×,
    fused 1.161× faster, fewer allocations. Advanced schemas retain the existing
    decoder; profile remaining costs before extending the fast path.
-5. Owner chose Rust-default string ownership: borrowed slices when lifetimes
-   allow, independent owned strings copy. Do not introduce reference-counted
-   sharing. Profile known-length allocation/sizing opportunities after milestone
-   validation; keep only measured improvements without regressions.
+5. Completed the measured string sizing pass above: single empty-pattern token
+   replacement 1.434x faster; replaceAll pre-sizing rejected. Rust-default
+   ownership retained: borrow where lifetimes permit, copy independent owned
+   strings. No reference-counted sharing or arbitrary size threshold.
+
+**Next continuation:** the five ranked passes above have measured outcomes,
+but do not claim universal hand-written-Rust parity. Advanced schema pipelines,
+choices and collections still use the general decoder. The mixed collections
+sample was insufficient to justify a change; isolate a representative advanced
+schema workload and profile allocation/CPU costs before further implementation.
+Initial required validation and the full later milestone are complete; only run
+affected suites for the next coherent change. No active tool session remains.
 
 ## Most recent owner correction — highest immediate priority
 
