@@ -1,0 +1,11 @@
+// Independent safe Rust Vec removal and optional selection with retained outputs.
+type String=std::borrow::Cow<'static,str>;
+struct Array<T>(Vec<T>);
+impl<T> Array<T>{fn iter(&self)->std::slice::Iter<'_,T>{self.0.iter()}}
+fn relative_index(index:i64,len:usize)->Option<usize>{let index=if index<0{i64::try_from(len).unwrap().checked_add(index)?}else{index};usize::try_from(index).ok().filter(|&index|index<len)}
+fn contents(count:i64,seed:i64)->Vec<i64>{let mut values=Vec::new();if count>0{values.push(seed);}if count>1{values.push(seed.checked_add(1).unwrap());}if count>2{values.push(seed.checked_add(2).unwrap());}values}
+fn describe(value:&i64)->String{String::Owned(value.to_string())}
+fn selection(output:&mut Vec<String>,selected:Option<&i64> ){output.push(String::Borrowed(if selected.is_some(){"number"}else{"undefined"}));output.push(selected.map(describe).unwrap_or(String::Borrowed("undefined")));}
+fn snapshot(output:&mut Vec<String>,values:&[i64],count:usize){output.push(String::Owned(values.len().to_string()));for at in 0..count{output.push(values.get(at).map(describe).unwrap_or(String::Borrowed("<absent>")));}}
+fn function0(value0: i64, value1: i64) -> Array<String> {let mut output=Vec::with_capacity(usize::try_from(value0.checked_mul(9).unwrap()).unwrap());for i in 0..value0{let count=i.checked_add(value1).unwrap()%4;let mut values=contents(count,value1);let mode=i.checked_mul(7).unwrap().checked_add(value1).unwrap()%5;let mut visits=0_i64;let mut trace=0_i64;let mut source_visits=0_i64;let selected=values.iter().enumerate().rev().find(|&(index,value)|{visits=visits.checked_add(1).unwrap();trace=trace.checked_mul(10).unwrap().checked_add(i64::try_from(index).unwrap()).unwrap().checked_add(1).unwrap();source_visits=source_visits.checked_add(i64::try_from(values.len()).unwrap()).unwrap();values.len()==usize::try_from(count).unwrap() && (*value==values[index]) && ((mode==1 && index==0)||(mode==2 && index%2==0)||(mode==3 && index>=1)||mode==4)}).map(|(_,value)|value.clone());selection(&mut output,selected.as_ref());output.extend([String::Owned(values.len().to_string()),String::Owned(visits.to_string()),String::Owned(trace.to_string()),String::Owned(source_visits.to_string())]);for at in 0..3{output.push(values.get(at).map(describe).unwrap_or(String::Borrowed("<absent>")));}}Array(output)}
+fn main(){}
