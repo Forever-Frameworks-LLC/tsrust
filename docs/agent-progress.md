@@ -677,7 +677,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
 
 **Hand-written Rust reference expansion — current, 2026-10-31:**
 - Owner requested independent, ordinary Rust comparisons alongside **all 932**
-  public workloads. **827 are measured; 105 remain.** This is ongoing acceptance,
+  public workloads. **828 are measured; 104 remain.** This is ongoing acceptance,
   not universal hand-written-Rust parity. Next: collection/native families and remaining scoped records; the
   Math.random reference is also still open. No compiler candidate is active.
 - Reuse Node and Rust baselines instead of timing them for every optimization.
@@ -755,8 +755,9 @@ counts, wrap a copy of the generated program with a counting global allocator.
 | Native bytes/deque/heap/ordered collections | 10 | fa6d9cea |
 | Borrowed byte-view records/callbacks/containers | 11 | b62879ca |
 | Owned Result/errors/cleanup completion | 5 | 754255de |
-| Scoped/fallible records/generic value adapters | 3 | This checkpoint; details below |
-| **Total** | **827** | **105 still required** |
+| Scoped/fallible records/generic value adapters | 3 | 8d67d28c |
+| Caller-borrowed callback record stores | 1 | This checkpoint; details below |
+| **Total** | **828** | **104 still required** |
 
 **Reference correctness and interpretation:**
 - Sources are independently authored Rust using standard-library operations and
@@ -791,37 +792,36 @@ counts, wrap a copy of the generated program with a counting global allocator.
   unmeasured Rust rows are not losses. Never label Tsrust simply "Native".
 - Current summary: Tsrust faster than Node.js in **613/932**, median throughput
   ratio **1.52×**, range **0.04×–189.48×**. Hand-written Rust faster than Node.js
-  in **559/932 (827 measured)**. The ratios use mean throughput, not median time.
+  in **560/932 (828 measured)**. The ratios use mean throughput, not median time.
 - Website generation/build passes locally; no deployment, push or CI is implied.
   Full-project formatting has consistently changed zero files/snippets/fingerprints.
 
-**Rust scoped/fallible records/generic value adapters — verified, 2026-10-31:**
-- Three independent references cover scoped callable records, fallible record
-  callbacks and the complete 529-line generic-value adapter workload. Rust
-  generic environment methods keep shared counters across type instantiations;
-  Option, owned values, function pointers and borrowed/boxed Fn/FnMut/FnOnce
-  selections retain defaults, rest packs, nested factory evaluation order,
-  short-circuit argument gating, stable comparator state and scoped owners.
-  Zero-sized polymorphic carriers expose generic Rust methods, rather than
-  counterfeit compiler Closure structs. Typed Result variants keep text/code
-  failures and UTF-8 byte-length behavior.
-- All three matched complete independent output oracles and completed 93 samples
-  each (three processes, eight warmups, 31 timed samples), Rust-only run
-  2026-10-31T14:08:13.239Z; medians 0.212500–0.647416 ms, max load 2.963,
-  watchdog peak 328,816 KiB. Compiler unchanged; existing Tsrust/Node measurements
-  reused. No Node timing rerun or product API changes.
-- Nine durable scoped_generic_edges.rs tests passed under the sequential
-  watchdog with three threads: cross-type capture counts, owned pattern moves,
-  lazy defaults/rest lengths, reducers/predicates/stable comparator state,
-  retained function contracts, rejected misplaced bool payload call, polymorphic
-  carriers, scoped borrow release and text/code errors. Compilation peak
-  125,504 KiB; no watchdog stops.
-- store:ingest added three histories; stored medians/sample counts, source hashes
-  and SQLite integrity verified before raw disposal. Public hashes/timestamps
-  pinned. Coverage **827/932**, remaining **105**. Next: scoped_record_composition
-  (2,985 lines, function ranges listed by rg) and caller_borrowed_record_stores
-  (738 lines), then paths/OS, files and JSON; Math.random remains open. Read those
-  fixtures in bounded ranges; do not replace their work with precomputed outputs.
+**Rust caller-borrowed callback record stores — verified, 2026-10-31:**
+- One independent reference implements the complete 738-line caller-owned store
+  fixture, retaining all 74 observed columns: borrowed callback installation,
+  paired/nested replacement, before/after-install failure, optional stores,
+  effectful conditional installers, closure forwarding, nested/local owners,
+  scoped mutation, owned once transfer and catch/finally selection.
+- Lifetime-bound Box<dyn Fn> callbacks borrow caller owners; Cell<i64> represents
+  the fixture's aliased one-element mutable state without RC backing storage.
+  Owned mutable storage captures a Vec by value with FnMut; once transfers use
+  FnOnce. Typed Result variants preserve observed failure paths. Reference code
+  performs the actual stores/calls/replacements and does not precompute outputs.
+- Complete independent output oracles and 93 samples passed (three processes,
+  eight warmups, 31 timed samples), Rust-only run 2026-10-31T14:14:56.312Z;
+  median 1.529708 ms, max load 2.164, watchdog peak 357,120 KiB.
+  Compiler unchanged; existing Tsrust/Node measurements reused. No Node timing
+  rerun or product API changes.
+- Seven durable caller_store_edges.rs tests passed sequentially under the
+  watchdog with three threads: installation failure order, paired short-circuit
+  errors, immediate captured-owner drops on replacement/clear, independent
+  replacement state, conditional/nested installer effects, owned transfer and
+  catch/finally selection. Compilation peak 100,784 KiB; no watchdog stops.
+- store:ingest added one history; stored median/sample count, source hash and
+  SQLite integrity verified before raw disposal. Public hash/timestamp pinned.
+  Coverage **828/932**, remaining **104**. Next: scoped_record_composition (2,985
+  lines; read function ranges with rg/sed), then paths/OS, files and JSON;
+  Math.random remains open. Do not substitute precomputed rows for fixture work.
 - Harness acceptance retained: f3744386 adds verifyDeclaredReferenceABI for
   independent owned results while the compiler path keeps all declared-target,
   wrapper, capture and no-Clone checks. All 12 declared references passed real

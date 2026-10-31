@@ -3345,6 +3345,10 @@
     "fallible_record_callbacks": {
       "at": "2026-10-31T14:08:13.239Z",
       "sourceSha256": "98c64f79d4816f09adbade83486aa1c1e35d20c921a87658061fc881fafaad4c"
+    },
+    "caller_borrowed_record_stores": {
+      "at": "2026-10-31T14:14:56.312Z",
+      "sourceSha256": "c36af2a6f909cd845a08eb74c752a25837bad6b0729d3f49475808c5ba04373c"
     }
   }
 }
