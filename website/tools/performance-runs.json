@@ -2589,6 +2589,26 @@
     "nested_function_rest": {
       "at": "2026-10-31T13:14:38.152Z",
       "sourceSha256": "ccbadb89aa3f8569742cd46690e3a32c04d23ef6c6692bf9e51e97a4e2d4ccd1"
+    },
+    "generic_function_contexts": {
+      "at": "2026-10-31T13:16:28.813Z",
+      "sourceSha256": "462df3d95ebda72c694f3a265fb265c4a8d45a7c95a2243d749a36ff44693b9c"
+    },
+    "generic_function_deferred": {
+      "at": "2026-10-31T13:16:28.813Z",
+      "sourceSha256": "e6f00422ff8ae0e91752b864cd975947132729def31ee384fc5b090a900ae636"
+    },
+    "generic_function_captures": {
+      "at": "2026-10-31T13:16:28.813Z",
+      "sourceSha256": "5a679f01879470238a0d0083787c2bace070b8f4c1b77dbded04be9f9c8a8f68"
+    },
+    "generic_function_results": {
+      "at": "2026-10-31T13:16:28.813Z",
+      "sourceSha256": "7c12df9fd7803027599251e3abc925629c2b10e1a91d9965bce0bb800f8b9ea9"
+    },
+    "generic_callable_replacement": {
+      "at": "2026-10-31T13:16:28.813Z",
+      "sourceSha256": "d06b5fd0a26b96a9010eb3c2051ad1a64ecdc3453671e1c00269d77ff03f1eb9"
     }
   }
 }
