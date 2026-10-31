@@ -525,6 +525,30 @@
     "string_substr_bounded_unicode": {
       "at": "2026-10-31T11:07:19.320Z",
       "sourceSha256": "121bc5db9bfb0c87a078828f2f94a1b5e4f5cd30b63d4a64b98e41667a8b7cc8"
+    },
+    "string_index_of_ascii": {
+      "at": "2026-10-31T11:10:08.706Z",
+      "sourceSha256": "b6c83c1cd83474280869b41d4d484bef4e1cdedc13fcbc529c7f35a3e3585b4f"
+    },
+    "string_index_of_unicode": {
+      "at": "2026-10-31T11:10:08.706Z",
+      "sourceSha256": "38c58a53dd4fccf02caea759e7f8ede4bb5c4d868555edcedf1ad3d271b3960d"
+    },
+    "string_last_index_of_default_ascii": {
+      "at": "2026-10-31T11:10:08.706Z",
+      "sourceSha256": "f807c914aecbc2109e34c8ced14435cdcd0fcbecb673e0892abd30ea5cae656e"
+    },
+    "string_last_index_of_default_unicode": {
+      "at": "2026-10-31T11:10:08.706Z",
+      "sourceSha256": "bfcad41cda68b8add18d0dc7c900b88624d6238463bd082d79ded17ba32eb596"
+    },
+    "string_last_index_of_bounded_ascii": {
+      "at": "2026-10-31T11:10:08.706Z",
+      "sourceSha256": "8fcfda190edd07148c9a5db49cd55ba7be91976f681dbe6cc870994d6411deba"
+    },
+    "string_last_index_of_bounded_unicode": {
+      "at": "2026-10-31T11:10:08.706Z",
+      "sourceSha256": "d10a6b9a59c93f9f211b0bfe0c550918aa518ec9057514d7a8e1db7e0035bab8"
     }
   }
 }
