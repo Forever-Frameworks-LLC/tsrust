@@ -2145,6 +2145,102 @@
     "array_for_each_discard_callable": {
       "at": "2026-10-31T12:30:32.340Z",
       "sourceSha256": "040162f59ade010587340a6c20dbf44a55dc4e65760824e58d530233761ef6b5"
+    },
+    "array_flat_int": {
+      "at": "2026-10-31T12:35:09.523Z",
+      "sourceSha256": "4b6093db3a633b8b4337a09c0eabafa650cb79ce956db04a9a48b062c571cf8b"
+    },
+    "array_flat_number": {
+      "at": "2026-10-31T12:35:09.523Z",
+      "sourceSha256": "3d9cc9e8244498ab99a144a9095bc968ece3809114c6525507ea78787beed485"
+    },
+    "array_flat_boolean": {
+      "at": "2026-10-31T12:35:09.523Z",
+      "sourceSha256": "2066b25ec1d710eddb6e58d17fceb539777069d2869ee3fd4bf2e9d1560ed77d"
+    },
+    "array_flat_string": {
+      "at": "2026-10-31T12:35:09.523Z",
+      "sourceSha256": "6417930cb362c476b6a7c1ae7020d9d3dcc54751cd029932e61907f9ad6b2147"
+    },
+    "array_flat_nested": {
+      "at": "2026-10-31T12:35:09.523Z",
+      "sourceSha256": "450dff4d069266bdec31d5f76d7058503f5039a41e7b6491eee17a28fbf2e0af"
+    },
+    "array_flat_record": {
+      "at": "2026-10-31T12:35:09.523Z",
+      "sourceSha256": "e2ca8374223ad20cdc047ba631daf15c3dea23a18471b55ae8658e361204191e"
+    },
+    "array_flat_null": {
+      "at": "2026-10-31T12:35:09.523Z",
+      "sourceSha256": "6bd6b518e02006fd614707cdc197da08bdc64a6b061a4db9b36a00ca7ec846b7"
+    },
+    "array_flat_undefined": {
+      "at": "2026-10-31T12:35:09.523Z",
+      "sourceSha256": "391f7917cbe0e6c3a8f939b52e97518aac4b08bce0db16aa7788131b845b740a"
+    },
+    "array_flat_map_int": {
+      "at": "2026-10-31T12:35:09.523Z",
+      "sourceSha256": "cc478537ddd581e237031f5fd001f7f777c31e54bf9111f4ed02d0011e5552d3"
+    },
+    "array_flat_map_number": {
+      "at": "2026-10-31T12:35:09.523Z",
+      "sourceSha256": "83fb07ab6c9adf966925625e5e03d0f4df1ae13b3ab90b5069ce2d2d7ec16e7c"
+    },
+    "array_flat_map_boolean": {
+      "at": "2026-10-31T12:35:09.523Z",
+      "sourceSha256": "ba9e75f1cb5f9f0815ef911450c509bbc979c809a35b6e0fbd351d67d5c294bf"
+    },
+    "array_flat_map_string": {
+      "at": "2026-10-31T12:35:09.523Z",
+      "sourceSha256": "58c2e48c379ef099efb39c9893872f637c9ed3fa6243b413f23eedd483e8e35e"
+    },
+    "array_flat_map_nested": {
+      "at": "2026-10-31T12:35:09.523Z",
+      "sourceSha256": "bfded4b393974db51518da33c383552f92183c1fba86ebe0326643b884e89611"
+    },
+    "array_flat_map_record": {
+      "at": "2026-10-31T12:35:09.523Z",
+      "sourceSha256": "cf33c545d3ef069f24c90ea3dfa5ac3b416e059e00d6e81377ba44fd3d57b5a0"
+    },
+    "array_flat_map_null": {
+      "at": "2026-10-31T12:35:09.523Z",
+      "sourceSha256": "95824c7ee2f95680ce47c73168936f685950e54df91ee297b09a07821889712a"
+    },
+    "array_flat_map_undefined": {
+      "at": "2026-10-31T12:35:09.523Z",
+      "sourceSha256": "fa040d50fdce9b86e8cc10fbdc15f06f499a842ba8fa50812172e9c8545a9c8d"
+    },
+    "array_of_int": {
+      "at": "2026-10-31T12:35:09.523Z",
+      "sourceSha256": "9baeca416825ac09cb1422a95d758d397ff45efed6cc047a0cd39329650ff129"
+    },
+    "array_of_number": {
+      "at": "2026-10-31T12:35:09.523Z",
+      "sourceSha256": "8912230fb847137581487e1079af3f28c07659f5a34c53f0247c5ac91558e1d0"
+    },
+    "array_of_boolean": {
+      "at": "2026-10-31T12:35:09.523Z",
+      "sourceSha256": "de169037d5f0d4c5dd1d3b9e605fa213c935288b7f282796fa38b9dfcb422533"
+    },
+    "array_of_string": {
+      "at": "2026-10-31T12:35:09.523Z",
+      "sourceSha256": "399c5e77fe12255f80a4c16ecc782b5feb8de1e10d693eebd6fc985117eefa01"
+    },
+    "array_of_nested": {
+      "at": "2026-10-31T12:35:09.523Z",
+      "sourceSha256": "6c9129553a5015780a94ee4caf402a75ede2dba9e058b3debbde68f5f72ffc9e"
+    },
+    "array_of_record": {
+      "at": "2026-10-31T12:35:09.523Z",
+      "sourceSha256": "5f331cf2b794540e216e424c0ad0e6b0b7780a297e67f162c621d387cb4ca012"
+    },
+    "array_of_null": {
+      "at": "2026-10-31T12:35:09.523Z",
+      "sourceSha256": "405c08d1f28b5e83dbc16cfc542a0821054d49a24e2a6ca597c997f5e6981455"
+    },
+    "array_of_undefined": {
+      "at": "2026-10-31T12:35:09.523Z",
+      "sourceSha256": "8b7c0742bdc49b71c21998f723cbf39d0de28bbd26de4c00e887ab6c88a9d70d"
     }
   }
 }
