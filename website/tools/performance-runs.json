@@ -593,6 +593,42 @@
     "string_indexing": {
       "at": "2026-10-31T11:17:16.005Z",
       "sourceSha256": "bbb94bc200474731a08fd09a7ec7f358bb58102ee5631b86d851195ade6f101c"
+    },
+    "string_split_normal": {
+      "at": "2026-10-31T11:20:00.568Z",
+      "sourceSha256": "981ee71accad40890064a54d38a1da70888da8fcdb349f45ed68a2e66007a002"
+    },
+    "string_split_limits": {
+      "at": "2026-10-31T11:20:00.568Z",
+      "sourceSha256": "f23d610f13df5595dcd1ab166a59162c67eea9843c1a76bcb64b9c0694c26b80"
+    },
+    "string_split_empty_delimiter": {
+      "at": "2026-10-31T11:20:00.568Z",
+      "sourceSha256": "47e3d2c8643f1f50c5f37a51c14354895ac414dfddcd7f2a5ef0cdc06bdaa854"
+    },
+    "string_pad_start_default": {
+      "at": "2026-10-31T11:21:04.326Z",
+      "sourceSha256": "9298d321a8c7c7bc2cbf8b39fbd9af910969001cc7b37e4d6744da2cbaf98489"
+    },
+    "string_pad_end_default": {
+      "at": "2026-10-31T11:21:04.326Z",
+      "sourceSha256": "ca97dbb1a0a788fda7648119e27458388b00f5a7cca7420a5164b9e95fc3d86d"
+    },
+    "string_pad_start_ascii": {
+      "at": "2026-10-31T11:21:04.326Z",
+      "sourceSha256": "c144b638488b0a84cd4fd1652ebead8633eb15392fe35d77eec0f76bbaae99b1"
+    },
+    "string_pad_end_ascii": {
+      "at": "2026-10-31T11:21:04.326Z",
+      "sourceSha256": "880d8690babee7ab0403f4bed1a4d384c1d1c561314c32cf06515bd8bbec2bcc"
+    },
+    "string_pad_start_unicode": {
+      "at": "2026-10-31T11:21:04.326Z",
+      "sourceSha256": "c9cbeb54a1f3ad4c9d9203b7177ad0a3671f696e181852041fc701cfb51c9674"
+    },
+    "string_pad_end_unicode": {
+      "at": "2026-10-31T11:21:04.326Z",
+      "sourceSha256": "562a5b26c67ea030a9441781221271e613f3d8c141d6ead81af80a336b1678a1"
     }
   }
 }

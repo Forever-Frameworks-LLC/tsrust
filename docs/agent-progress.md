@@ -687,7 +687,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   48952 terminal zero. Ingested and verified the one Rust history entry and SQLite
   integrity; removed raw result. No native/Node timing rerun.
 - Public baseline config pins timestamp/source hash. Rust coverage now 3/932;
-  remaining 793 workloads need parity references, correctness and one-time timing.
+  remaining 784 workloads need parity references, correctness and one-time timing.
   Start next with the remaining schema workloads. Current native source clean;
   no optimization candidate remains. Website build passed; whole-project formatter
   changed zero files/snippets/fingerprints. No active tool session remains.
@@ -720,7 +720,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   timestamp and parity-source SHA-256; sample counts checked. Website build passed.
   No new Node or Rust timing was run for this page update; no deployment.
 - **Remaining owner request: implement and validate hand-written Rust coverage
-  for the other 793 displayed workloads**, by coherent families with independent
+  for the other 784 displayed workloads**, by coherent families with independent
   result oracles. Start current schema workloads, then remaining families. Do not
   claim all comparisons exist. Added first new source
   `benchmarks/runtime/parity/native_schema_json_nested.rs`: ordinary typed Serde
@@ -749,7 +749,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
 - Ingested one Rust history entry; verified median/sample count and SQLite
   integrity; removed disposable raw result. Reused Tsrust/Node baselines.
   Public selection pins parity source SHA-256 and timestamp. Coverage now 4/932,
-  remaining 793. Next: remaining schema parity programs; no compiler candidate.
+  remaining 784. Next: remaining schema parity programs; no compiler candidate.
 
 **Object-schema Rust baselines — verified, 2026-10-31:**
 - Added parity/native_schema_json_object.rs (owned Value validation) and
@@ -762,7 +762,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   witnesses passed sequentially under watchdog, session 29002 terminal zero.
 - Ingested two entries; verified medians/counts and SQLite integrity; removed raw
   result. Public config pins source hashes/timestamps. Coverage now 6/932,
-  remaining 793. Next: remaining schema Rust references. No active tool session.
+  remaining 784. Next: remaining schema Rust references. No active tool session.
 
 **Recursive-schema Rust baseline — verified, 2026-10-31:**
 - Added parity/native_schema_recursive.rs: owned JSON input/tree output,
@@ -772,7 +772,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   Nested-index/type test passed using exact dependency artifacts, session 65036;
   all under sequential watchdog, three test threads. No Tsrust/Node timing rerun.
 - Ingested and verified one entry and SQLite integrity; raw result removed.
-  Public config pins source hash/timestamp. Coverage 7/932, remaining 793.
+  Public config pins source hash/timestamp. Coverage 7/932, remaining 784.
   Next: remaining schema references; no active compiler candidate or tool job.
 
 **Union-schema Rust baseline — verified, 2026-10-31:**
@@ -783,7 +783,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   max load 3.997, timestamp 2026-10-31T10:26:44.659Z, median .203791 ms.
   Sequential watchdog used; Tsrust/Node baselines reused. Ingested and verified
   entry/sample count/SQLite integrity; disposable raw result removed.
-- Public source hash/timestamp pinned. Coverage 8/932, remaining 793. Next:
+- Public source hash/timestamp pinned. Coverage 8/932, remaining 784. Next:
   discriminated-union and remaining schema references; no active tool jobs.
 
 **Tagged-object Rust baseline — verified, 2026-10-31:**
@@ -794,7 +794,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   correctness and 93 samples, max load 3.558, median .674833 ms, timestamp
   2026-10-31T10:28:51.948Z. Sequential watchdog; no Tsrust/Node timing rerun.
 - Ingested/verified one entry and SQLite integrity; raw result removed. Public
-  config pins source hash/timestamp. Coverage 9/932, remaining 793. Next:
+  config pins source hash/timestamp. Coverage 9/932, remaining 784. Next:
   pipeline/collection schema Rust references. No active compiler candidate/job.
 
 **Pipeline Rust baseline — verified, 2026-10-31:**
@@ -805,7 +805,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   max load 3.933, timestamp 2026-10-31T10:31:14.311Z, median .403459 ms.
   Sequential watchdog, three test threads; Tsrust/Node timings reused.
 - Ingested and verified one entry and SQLite integrity; raw result removed.
-  Public source hash/timestamp pinned. Coverage 10/932, remaining 793. Next:
+  Public source hash/timestamp pinned. Coverage 10/932, remaining 784. Next:
   collection and remaining schema Rust references; no active compiler candidate.
 
 **Collection-schema Rust baseline — verified, 2026-10-31:**
@@ -818,7 +818,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   3.688, timestamp 2026-10-31T10:34:25.278Z, median 1.308709 ms. Sequential
   watchdog, three test threads. No Tsrust/Node timing rerun. Ingested and verified
   entry/sample count/SQLite integrity; raw result removed.
-- Public hash/timestamp pinned. Coverage 11/932, remaining 793. Core advanced
+- Public hash/timestamp pinned. Coverage 11/932, remaining 784. Core advanced
   schema comparisons now present; next expand coherent families in batches
   (start integer operators) rather than isolated documentation rebuilds per row.
   No active compiler candidate/tool job; optimization goal remains active.
@@ -839,7 +839,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   checked power overflow, negative exponent, 0**0 and signed powers.
 - Ingested 16 histories; verified every median/sample count, quiet-machine
   condition and SQLite integrity; raw result removed. Public hashes/timestamps
-  pinned. Coverage 27/932, remaining 793. Next: next coherent numeric/operator
+  pinned. Coverage 27/932, remaining 784. Next: next coherent numeric/operator
   family or schema gaps; preserve measured baselines and use native A/B only for
   compiler changes. No active tool jobs or compiler candidate.
 
@@ -854,7 +854,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   zero, infinity, NaN, remainder and power cases. Sequential watchdog/three threads.
 - Ingested eleven histories; verified medians/counts and SQLite integrity; raw
   result removed. Public source hashes/timestamps pinned. Coverage 38/932,
-  remaining 793. Next: boolean/simple operator family and remaining references.
+  remaining 784. Next: boolean/simple operator family and remaining references.
   No active tool job or compiler candidate.
 
 **Boolean Rust family — verified, 2026-10-31:**
@@ -869,7 +869,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   2026-10-31T10:45:17.446Z. Tsrust/Node baselines reused.
 - Ingested six entries; verified all medians/sample counts and SQLite integrity;
   removed raw result. Public source hashes/timestamp pinned. Coverage 44/932,
-  remaining 793. Documentation refresh/checkpoint follows.
+  remaining 784. Documentation refresh/checkpoint follows.
 
 **32-bit number Rust family — verified, 2026-10-31:**
 - Six references: compound_number_and/or/xor/shift_left/shift_right/
@@ -883,7 +883,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   parity/number_word_edges.rs passed (15655): modulo wrapping, fractional values,
   NaN/infinity and signed outputs. Sequential watchdog/three threads.
 - Ingested six histories; verified medians/counts and SQLite integrity; raw result
-  removed. Public source hashes/timestamp pinned. Coverage 50/932, remaining 793.
+  removed. Public source hashes/timestamp pinned. Coverage 50/932, remaining 784.
   Next: explicit conversions, nullable/boolean transport and remaining families.
   No active compiler candidate or tool jobs. Documentation refresh follows.
 
@@ -898,7 +898,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   zero), 93 samples each, timestamp 2026-10-31T10:50:30.390Z. Quiet condition
   verified; no Tsrust/Node timing rerun. Sequential watchdog.
 - Ingested eight histories; verified medians/counts and SQLite integrity; removed
-  raw result. Public hashes/timestamp pinned. Coverage 58/932, remaining 793.
+  raw result. Public hashes/timestamp pinned. Coverage 58/932, remaining 784.
   Next: remaining nullable array/record/transport families. No active tool job or
   compiler candidate. Documentation build/format checkpoint follows.
 
@@ -913,7 +913,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   cases passed and 93 samples/workload, timestamp 2026-10-31T10:52:21.553Z.
   Quiet condition verified. Tsrust/Node measurements reused; sequential watchdog.
 - Ingested seven histories; verified medians/counts/SQLite integrity; raw result
-  removed. Public source hashes/timestamp pinned. Coverage 65/932, remaining 793.
+  removed. Public source hashes/timestamp pinned. Coverage 65/932, remaining 784.
   Next: nullish/optional-chaining or string/reference families. No active jobs or
   compiler candidate. Documentation build/format checkpoint follows.
 
@@ -927,7 +927,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   full-result cases passed; 93 samples each, timestamp 2026-10-31T10:54:05.885Z.
   Quiet condition verified; Tsrust/Node timings reused. Sequential watchdog.
 - Ingested nine histories; verified medians/counts and SQLite integrity; raw result
-  removed. Public hashes/timestamp pinned. Coverage 74/932, remaining 793.
+  removed. Public hashes/timestamp pinned. Coverage 74/932, remaining 784.
   Next: owned nullish/optional array/record/string families. No active tool jobs or
   compiler candidate. Documentation build/format checkpoint follows.
 
@@ -941,7 +941,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   8.324 s, peak 276,112 KiB, timestamp 2026-10-31T10:55:47.311Z. Quiet condition
   verified; sequential watchdog, no Tsrust/Node timing rerun.
 - Ingested six histories; verified medians/counts and SQLite integrity; raw result
-  removed. Public hashes/timestamp pinned. Coverage 80/932, remaining 793.
+  removed. Public hashes/timestamp pinned. Coverage 80/932, remaining 784.
   Next: optional owned access and nullable fallback variants. No active tool job
   or compiler candidate. Documentation build/format checkpoint follows.
 
@@ -955,7 +955,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   6.733 s, peak 268,768 KiB, timestamp 2026-10-31T10:57:35.591Z. Quiet condition
   verified; sequential watchdog. Tsrust/Node timings reused.
 - Ingested four histories; verified medians/counts/SQLite integrity; raw result
-  removed. Public hashes/timestamp pinned. Coverage 84/932, remaining 793.
+  removed. Public hashes/timestamp pinned. Coverage 84/932, remaining 784.
   Next: optional owned string/array/record access family. No active tool jobs or
   compiler candidate. Documentation build/format checkpoint follows.
 
@@ -969,7 +969,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   each, 7.249 s, peak 276,640 KiB, timestamp 2026-10-31T10:59:28.917Z. Quiet
   condition verified; sequential watchdog, no Tsrust/Node timing rerun.
 - Ingested five histories; verified medians/counts/SQLite integrity; raw result
-  removed. Public hashes/timestamp pinned. Coverage 89/932, remaining 793.
+  removed. Public hashes/timestamp pinned. Coverage 89/932, remaining 784.
   Next: numeric/string methods and other missing reference families. No active
   tool jobs or compiler candidate. Documentation build/format checkpoint follows.
 
@@ -984,7 +984,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   peak 306,576 KiB; timestamp 2026-10-31T11:01:51.778Z. Quiet condition verified;
   sequential watchdog. Tsrust/Node measurements reused.
 - Ingested twelve histories; verified medians/counts/SQLite integrity; raw result
-  removed. Public hashes/timestamp pinned. Coverage 101/932, remaining 793.
+  removed. Public hashes/timestamp pinned. Coverage 101/932, remaining 784.
   Next: string search/repetition and remaining families. No active tool job or
   compiler candidate. Documentation build/format checkpoint follows.
 
@@ -998,7 +998,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   verified; sequential watchdog, no Tsrust/Node timing rerun. Three durable UTF-8
   boundary/clamping tests passed (24037), three threads under watchdog.
 - Ingested nine histories; verified medians/counts/SQLite integrity; raw result
-  removed. Public hashes/timestamp pinned. Coverage 110/932, remaining 793.
+  removed. Public hashes/timestamp pinned. Coverage 110/932, remaining 784.
   Next: remaining string indexing/splitting/replacement families. No active tool
   jobs or compiler candidate. Documentation build/format checkpoint follows.
 
@@ -1014,7 +1014,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   in parity/string_slicing_edges.rs passed (3014): swapped/negative/empty ranges
   and invalid UTF-8 interiors, three threads under watchdog.
 - Ingested twelve histories; verified medians/counts/SQLite integrity; raw result
-  removed. Public hashes/timestamp pinned. Coverage 122/932, remaining 793.
+  removed. Public hashes/timestamp pinned. Coverage 122/932, remaining 784.
   Next: string indexing/find/split/replacement reference families. No active tool
   jobs or compiler candidate. Documentation build/format checkpoint follows.
 
@@ -1029,7 +1029,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   in parity/string_find_edges.rs passed (41452): overlap, start bounds, byte
   offsets, extreme coordinates and invalid UTF-8 interiors.
 - Ingested six histories; verified medians/counts/SQLite integrity; raw result
-  removed. Public hashes/timestamp pinned. Coverage 128/932, remaining 793.
+  removed. Public hashes/timestamp pinned. Coverage 128/932, remaining 784.
   Next: scalar string indexing, split/replacement and other missing families.
   No active jobs or compiler candidate. Documentation build/format follows.
 
@@ -1048,7 +1048,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   sequential watchdog, no Tsrust/Node timing rerun. Durable Unicode scalar/NUL/
   combining/negative/oversized test passed (71519), three threads under watchdog.
 - Ingested five histories; verified medians/counts/SQLite integrity; raw result
-  removed. Public hashes/timestamp pinned. Coverage 133/932, remaining 793.
+  removed. Public hashes/timestamp pinned. Coverage 133/932, remaining 784.
   Next: remaining indexing/literal construction and split/replacement families.
   No active jobs or compiler candidate. Documentation build/format follows.
 
@@ -1065,9 +1065,27 @@ counts, wrap a copy of the generated program with a counting global allocator.
   parity/string_indexing_edges.rs passed (45844): relative scalar indexing,
   combining/BMP numeric codes, empty/extreme positions and checked ASCII errors.
 - Ingested six histories; verified medians/counts/SQLite integrity; raw result
-  removed. Public hashes/timestamp pinned. Coverage 139/932, remaining 793.
+  removed. Public hashes/timestamp pinned. Coverage 139/932, remaining 784.
   Next: string split/replacement/padding families. No active jobs or compiler
   candidate. Documentation build/format checkpoint follows.
+
+**Rust split/padding families — verified, 2026-10-31:**
+- Nine references: string_split normal/limits/empty_delimiter, plus pad_start/end
+  default/ASCII/Unicode. Standard split/take with explicit limit-word conversion,
+  scalar iterator for empty delimiter, owned pieces and receiver/separator/limit
+  trace ordering. Default split iterator remains uncapped. Padding uses checked
+  byte target capacity and valid UTF-8 filler prefixes with standard String APIs.
+- Rust-only batches 68551 (split: 6.281 s/302,496 KiB) and 89294 (pad:
+  6.755 s/278,784 KiB) passed all full-output/trace cases and 93 samples each;
+  timestamps 2026-10-31T11:20:00.568Z / 2026-10-31T11:21:04.326Z. Quiet
+  conditions verified; sequential watchdog, no Tsrust/Node timing rerun.
+- Two durable semantic tests in parity/string_split_pad_edges.rs passed (81607):
+  empty fields, truncating limits/wrapping, Unicode scalar split, negative/empty
+  padding and invalid UTF-8 prefix rejection. Three threads under watchdog.
+- Ingested nine histories; verified all medians/counts/SQLite integrity; raw
+  results removed. Public hashes/timestamps pinned. Coverage 148/932, remaining
+  784. Next: string replacement and remaining missing families. No active jobs
+  or compiler candidate. Documentation build/format checkpoint follows.
 
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code
