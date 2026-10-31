@@ -2673,6 +2673,86 @@
     "named_function_expressions": {
       "at": "2026-10-31T13:20:46.197Z",
       "sourceSha256": "1279d89c6265ca25255ba7f5bb1bab4ce2cc6eb59e5eb72750e2f3b5bc79ce82"
+    },
+    "scalar_control": {
+      "at": "2026-10-31T13:23:15.415Z",
+      "sourceSha256": "2a0a8c7c8eb525303519119efc84c99c208a5f4058b7f34bdff6becd1391e996"
+    },
+    "classic_for_control": {
+      "at": "2026-10-31T13:23:15.415Z",
+      "sourceSha256": "dd16a5b334deb3f4004b955428069e96644b91b41d7ac4396e8f3591d2312430"
+    },
+    "do_while_control": {
+      "at": "2026-10-31T13:23:15.415Z",
+      "sourceSha256": "d82eb15426b982326f25c8ffc8ab9f9c63851c6889eacbf5cd44b4aaa9405289"
+    },
+    "else_if_control": {
+      "at": "2026-10-31T13:23:15.415Z",
+      "sourceSha256": "dc847f68ac8edf89c527456143ed50d127d5b2553d5411bf02c058c061ec8ba3"
+    },
+    "int_divide": {
+      "at": "2026-10-31T13:23:15.415Z",
+      "sourceSha256": "c6f0bca783864f305207c6ff974e2242e3298d37f39b657991df9ff60e27fc85"
+    },
+    "int_negate": {
+      "at": "2026-10-31T13:23:15.415Z",
+      "sourceSha256": "da84ed0eca3659ca5b82f736f4a7396fa48980daca992b304c5e9fa16cc5b095"
+    },
+    "int_less_equal": {
+      "at": "2026-10-31T13:23:15.415Z",
+      "sourceSha256": "94ca3d3e3e268827dbd6942c675b19510527ac08c25bc3bf036f7a20544cf56f"
+    },
+    "int_greater_equal": {
+      "at": "2026-10-31T13:23:15.415Z",
+      "sourceSha256": "6abd69d3514d84ad4cb573d474d18f2999546709b9501a47a9f1ca24edeccadb"
+    },
+    "int_not_equal": {
+      "at": "2026-10-31T13:23:15.415Z",
+      "sourceSha256": "ee5b973fe4f845a02b62a71d05d11ac1cea21429d323098d4188a7e4759450f2"
+    },
+    "boolean_equal": {
+      "at": "2026-10-31T13:23:15.415Z",
+      "sourceSha256": "6554d88c36cae26667d5f8570cc3a1a81bfbce701a69cd62422434d034d71a0c"
+    },
+    "boolean_not_equal": {
+      "at": "2026-10-31T13:23:15.415Z",
+      "sourceSha256": "728b3bfae8c117f6cb11ad5e586de7a6b3985ad58fe7bdcb87b1138307b67679"
+    },
+    "boolean_or": {
+      "at": "2026-10-31T13:23:15.415Z",
+      "sourceSha256": "09dae1d16d496a3110307a392cc0822ce58cef75a09676953a1ada06f947be9f"
+    },
+    "boolean_short_circuit": {
+      "at": "2026-10-31T13:23:15.415Z",
+      "sourceSha256": "4b7c84823c04dde63261e8a2418e0bf09ed28faab9ccf10e0dea2d51a0e35156"
+    },
+    "number_and": {
+      "at": "2026-10-31T13:23:15.415Z",
+      "sourceSha256": "c512bb3b733ffa4911731eeb4d7ad0cbaf60b63cc3bce8adfa2a7219286a20a5"
+    },
+    "number_or": {
+      "at": "2026-10-31T13:23:15.415Z",
+      "sourceSha256": "2d778bda13c3200db14b1fe4326b4ce6949aa3d385919dd9be26a7fb5db432c9"
+    },
+    "number_xor": {
+      "at": "2026-10-31T13:23:15.415Z",
+      "sourceSha256": "cf880dd9d6d9bd1d81cb09496a0f463d78dc38d951a3d1500c027cafd7f7cadc"
+    },
+    "number_not": {
+      "at": "2026-10-31T13:23:15.415Z",
+      "sourceSha256": "30574d274db54525b27161eada45339724317586a3cbe1e117b2cb7bbd12d5f4"
+    },
+    "number_shift_left": {
+      "at": "2026-10-31T13:23:15.415Z",
+      "sourceSha256": "9df5e6d30722b6b31184897a18425708a962f7fedbd60e2c4d5e70246315adf3"
+    },
+    "number_shift_right": {
+      "at": "2026-10-31T13:23:15.415Z",
+      "sourceSha256": "d1316423393567ec70a5f793243a5b7c1c08646ad9589427507b4fcf19256b29"
+    },
+    "number_shift_right_unsigned": {
+      "at": "2026-10-31T13:23:15.415Z",
+      "sourceSha256": "78da76335d02d542de5a5bd1219e0bc34f925dd315aff92015e6d33597a02363"
     }
   }
 }

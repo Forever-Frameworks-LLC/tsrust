@@ -677,8 +677,8 @@ counts, wrap a copy of the generated program with a counting global allocator.
 
 **Hand-written Rust reference expansion — current, 2026-10-31:**
 - Owner requested independent, ordinary Rust comparisons alongside **all 932**
-  public workloads. **659 are measured; 273 remain.** This is ongoing acceptance,
-  not universal hand-written-Rust parity. Next: remaining callable/control-flow families; the
+  public workloads. **679 are measured; 253 remain.** This is ongoing acceptance,
+  not universal hand-written-Rust parity. Next: remaining callable/ownership/record families; the
   Math.random reference is also still open. No compiler candidate is active.
 - Reuse Node and Rust baselines instead of timing them for every optimization.
   Refresh on workload/protocol/reference-source/toolchain/hardware changes or
@@ -742,8 +742,9 @@ counts, wrap a copy of the generated program with a counting global allocator.
 | Nested functions/escaping closures | 6 | e2e2d217 |
 | Generic function environments/replacement | 5 | e7bde0f0 |
 | Nullable callable ownership/forwarding/factories | 10 | 5fcd9045 |
-| Optional callbacks/function expressions | 6 | This checkpoint; details below |
-| **Total** | **659** | **273 still required** |
+| Optional callbacks/function expressions | 6 | 5505c5ba |
+| Remaining scalar control/operators | 20 | This checkpoint; details below |
+| **Total** | **679** | **253 still required** |
 
 **Reference correctness and interpretation:**
 - Sources are independently authored Rust using standard-library operations and
@@ -778,29 +779,32 @@ counts, wrap a copy of the generated program with a counting global allocator.
   unmeasured Rust rows are not losses. Never label Tsrust simply "Native".
 - Current summary: Tsrust faster than Node.js in **613/932**, median throughput
   ratio **1.52×**, range **0.04×–189.48×**. Hand-written Rust faster than Node.js
-  in **441/932 (659 measured)**. The ratios use mean throughput, not median time.
+  in **461/932 (679 measured)**. The ratios use mean throughput, not median time.
 - Website generation/build passes locally; no deployment, push or CI is implied.
   Full-project formatting has consistently changed zero files/snippets/fingerprints.
 
-**Rust optional callbacks/function expressions — verified, 2026-10-31:**
-- Six independent references cover optional borrowed/mutable/once-owned callbacks,
-  function expressions, chained callable results and named recursive functions.
-  Standard Option and Fn/FnMut/FnOnce preserve omission, capture state and owned
-  return values. Nested callable returns use a boxed inner closure; generic
-  functions and explicit recursive environments preserve named self references.
-- All six matched independent result oracles and completed 93 samples each
+**Rust remaining scalar control/operators — verified, 2026-10-31:**
+- Twenty independent references cover four scalar loop/branch controls, five
+  integer operators, four boolean operators/evaluation witnesses and seven
+  floating-number bitwise operators. Standard checked i64 arithmetic, integer
+  division, boolean short-circuit evaluation and Rust loops retain trace/order
+  and break/continue behavior. Number bitwise references truncate through i64
+  then keep 32 bits, using standard wrapping shifts and signed/unsigned results.
+- Number conversion is explicitly bounded to the measured finite corpus within
+  (-2^34, 2^34); these are workload programs, not a general JS coercion library.
+- All twenty matched independent result oracles and completed 93 samples each
   (three processes, eight warmups, 31 timed samples), Rust-only run
-  2026-10-31T13:20:46.197Z; medians 0.030083–0.708958 ms, max load 2.455,
-  watchdog peak 287,024 KiB. Existing Tsrust/Node measurements reused; compiler
+  2026-10-31T13:23:15.415Z; medians 0.422041–9.609084 ms, max load 2.057,
+  watchdog peak 316,640 KiB. Existing Tsrust/Node measurements reused; compiler
   implementation unchanged. No Node timing rerun.
-- Six durable expression_edges.rs tests passed under the sequential watchdog
-  with three threads: missing callbacks, mutable state across skipped calls,
-  retained once-owned Unicode text, default/rest arguments, sorted owned results,
-  nested closures, callee-before-argument effects and recursive/generic results.
-- store:ingest added six histories; stored medians/sample counts, source hashes
+- Twelve durable control_operator_edges.rs tests passed under the sequential
+  watchdog with three threads: zero-bound pre/post-test loops, branch selection,
+  all boolean short-circuit traces, fractional/negative 32-bit conversion,
+  signed/unsigned shifts, high-bit wrapping and masked negative/large counts.
+- store:ingest added twenty histories; stored medians/sample counts, source hashes
   and SQLite integrity verified before raw disposal. Public hashes/timestamps
-  pinned. Coverage **659/932**, remaining **273**. Next: remaining callables and
-  control flow; Math.random remains open.
+  pinned. Coverage **679/932**, remaining **253**. Next: remaining callables and
+  ownership/record families; Math.random remains open.
 
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code
