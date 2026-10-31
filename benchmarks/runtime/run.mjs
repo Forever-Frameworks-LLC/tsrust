@@ -411,7 +411,7 @@ function prepare(w) {
  const handSourcePath = path.join(here, 'parity', `${w.id}.rs`);
  if (plan.engineIDs.includes('rust-hand') && fs.existsSync(handSourcePath)) {
   const hand = fs.readFileSync(handSourcePath, 'utf8');
-  fs.writeFileSync(path.join(build, `${w.id}-hand.rs`), hand.replace('fn main()', 'fn source_main()') + '\n' + adaptRustDriver(driverRS, w, {emitted: hand, source}) + '\n' + allocatorHeader);
+  fs.writeFileSync(path.join(build, `${w.id}-hand.rs`), hand.replace('fn main()', 'fn source_main()') + '\n' + adaptRustDriver(driverRS, w, {emitted: hand, source, reference:true}) + '\n' + allocatorHeader);
   run([...rustc, ...nativeDependencies.args, ...allocatorArgs, '--edition=2024', '-C', 'opt-level=3', '-C', 'overflow-checks=on', '-A', 'warnings', path.join(build, `${w.id}-hand.rs`), '-o', path.join(build, `${w.id}-hand`)]);
   handSources.set(w.id, hash(hand));
  }

@@ -6,7 +6,7 @@ import {verifyRangeResultABI,pruneRangeContainers,rangeRecordObserver} from './r
 import {isHigher,assertHigherPolicy} from './higher-order-observation.mjs';
 import {verifyHigherResultABI,pruneHigherContainers,higherRecordObserver} from './higher-order-result-abi.mjs';
 import {isDeclared,assertDeclaredPolicy,validateDeclaredObservation} from './declared-value-observation.mjs';
-import {verifyDeclaredABI,pruneObserverContainers as pruneDeclaredContainers,recordObserver as declaredRecordObserver} from './declared-value-abi.mjs';
+import {verifyDeclaredABI,verifyDeclaredReferenceABI,pruneObserverContainers as pruneDeclaredContainers,recordObserver as declaredRecordObserver} from './declared-value-abi.mjs';
 import {isConcat,assertConcatPolicy} from './concat-observation.mjs';
 import {verifyConcatABI,concatRustObserver} from './concat-abi.mjs';
 import {isApproximate,approximateAdapterSources} from './approximate-harness.mjs';
@@ -27,7 +27,7 @@ export const concatAdapterSources=concatSupport;
 function concatNativeObserver(workload,emitted,source){return concatRustObserver(concatSupport['concat-observation.rs'],verifyConcatABI(emitted,workload,source));}
 const declaredSupport=Object.fromEntries(['declared-value-observation.rs','declared-value-observation.ts','declared-value-observation.mjs','declared-value-abi.mjs','declared-value-boolean-driver.rs','declared-value-driver.ts','declared-value-observer-policy.json'].map(name=>[name,fs.readFileSync(new URL(name,import.meta.url),'utf8')]));
 export const declaredAdapterSources=declaredSupport;
-function declaredNativeObserver(w,emitted,source){const binding=verifyDeclaredABI(emitted,w,source);return pruneDeclaredContainers(declaredSupport['declared-value-observation.rs'],binding)+'\n'+declaredRecordObserver(binding);}
+function declaredNativeObserver(w,emitted,source,reference=false){const binding=(reference?verifyDeclaredReferenceABI:verifyDeclaredABI)(emitted,w,source);return pruneDeclaredContainers(declaredSupport['declared-value-observation.rs'],binding)+'\n'+declaredRecordObserver(binding);}
 const higherSupport=Object.fromEntries(['higher-order-observation.mjs','higher-order-result-abi.mjs','higher-order-observer-policy.json','declared-value-observation.rs','declared-value-observation.ts','declared-value-boolean-driver.rs','declared-value-driver.ts'].map(name=>[name,fs.readFileSync(new URL(name,import.meta.url),'utf8')]));
 export const higherAdapterSources=higherSupport;
 function higherNativeObserver(w,emitted,source){const binding=verifyHigherResultABI(emitted,w,source);return pruneHigherContainers(declaredSupport['declared-value-observation.rs'],binding)+'\n'+higherRecordObserver(binding);}
@@ -81,11 +81,11 @@ function sliceRustObserver(workload, {emitted,source} = {}) {
  }
  return observer;
 }
-export function rustChecksum(workload, {probe = false,emitted,source} = {}) {
+export function rustChecksum(workload, {probe = false,emitted,source,reference=false} = {}) {
  if(isCopying(workload))return copyingNativeObserver(workload,emitted,source);
  if(isRange(workload))return rangeNativeObserver(workload,emitted,source);
  if(isHigher(workload)){verifyHigherResultABI(emitted,workload,source);if(workload.result==='boolean')return 'fn '+(probe?'probe_checksum':'benchmark_checksum')+'(value: '+(probe?'&bool':'bool')+') -> i64 { i64::from('+(probe?'*value':'value')+') }';if(workload.result.endsWith('[]'))return higherNativeObserver(workload,emitted,source);}
- if(isDeclared(workload)){verifyDeclaredABI(emitted,workload,source);if(workload.result==='boolean')return 'fn '+(probe?'probe_checksum':'benchmark_checksum')+'(value: '+(probe?'&bool':'bool')+') -> i64 { i64::from('+(probe?'*value':'value')+') }';if(workload.result.endsWith('[]'))return declaredNativeObserver(workload,emitted,source);}
+ if(isDeclared(workload)){(reference?verifyDeclaredReferenceABI:verifyDeclaredABI)(emitted,workload,source);if(workload.result==='boolean')return 'fn '+(probe?'probe_checksum':'benchmark_checksum')+'(value: '+(probe?'&bool':'bool')+') -> i64 { i64::from('+(probe?'*value':'value')+') }';if(workload.result.endsWith('[]'))return declaredNativeObserver(workload,emitted,source,reference);}
  if(isConcat(workload)){verifyConcatABI(emitted,workload,source);if(workload.result!=='int')return concatNativeObserver(workload,emitted,source);}
  if(isApproximate(workload))throw Error('Approximate protocol has no checksum');
  if(isReductionSchema(workload))return reductionRustObserver(workload,emitted,source);
@@ -99,12 +99,12 @@ export function rustChecksum(workload, {probe = false,emitted,source} = {}) {
  if (workload.result === 'int[][]') body = 'for row in values.iter() { for value in row.iter() { result = (result * 131 + *value) % 1_000_000_007; } result = (result * 131 + 255) % 1_000_000_007; }';
  return `fn ${name}(values: ${parameter}) -> i64 { let mut result = 0_i64; ${body} result }`;
 }
-export function adaptRustDriver(driver, workload, {probe = false,emitted,source} = {}) {
+export function adaptRustDriver(driver, workload, {probe = false,emitted,source,reference=false} = {}) {
  if(workload.family==='module-state')return moduleStateDriver(driver,workload,emitted,source);
  if(isCopying(workload))verifyCopyingResultABI(emitted,workload,source);
  if(isRange(workload))verifyRangeResultABI(emitted,workload,source);
  if(isHigher(workload))verifyHigherResultABI(emitted,workload,source);
- if(isDeclared(workload))verifyDeclaredABI(emitted,workload,source);
+ if(isDeclared(workload))(reference?verifyDeclaredReferenceABI:verifyDeclaredABI)(emitted,workload,source);
  if(isConcat(workload))verifyConcatABI(emitted,workload,source);
  if(isReduction(workload))verifyReductionABI(emitted,workload,source);
  if(isApproximate(workload)){if(probe)throw Error('Approximate profiles require distinct untimed wrapper');return approximateAdapterSources['approximate-driver.rs'];}
@@ -113,12 +113,12 @@ export function adaptRustDriver(driver, workload, {probe = false,emitted,source}
  else if(!probe&&isHigher(workload)&&workload.result==='boolean')driver=declaredSupport['declared-value-boolean-driver.rs'];
  else if(!probe&&isHigher(workload)&&workload.result.endsWith('[]'))driver=higherNativeObserver(workload,emitted,source)+'\n'+sliceSupport['slice-driver.rs'].replace('__FLOATING__','false');
  else if(!probe&&isDeclared(workload)&&workload.result==='boolean')driver=declaredSupport['declared-value-boolean-driver.rs'];
- else if(!probe&&isDeclared(workload)&&workload.result.endsWith('[]'))driver=declaredNativeObserver(workload,emitted,source)+'\n'+sliceSupport['slice-driver.rs'].replace('__FLOATING__','false');
+ else if(!probe&&isDeclared(workload)&&workload.result.endsWith('[]'))driver=declaredNativeObserver(workload,emitted,source,reference)+'\n'+sliceSupport['slice-driver.rs'].replace('__FLOATING__','false');
  else if(!probe&&isConcat(workload)&&workload.result!=='int')driver=concatNativeObserver(workload,emitted,source)+'\n'+sliceSupport['slice-driver.rs'].replace('__FLOATING__',String(workload.resultEncoding==='ieee-f64-tree-v1'));
  else if(!probe&&isReductionSchema(workload))driver=reductionRustObserver(workload,emitted,source)+'\n'+reductionSupport['reduction-driver.rs'];
  else if (!probe && isSliceResult(workload)) driver = sliceRustObserver(workload,{emitted,source}) + '\n' + sliceSupport['slice-driver.rs'].replace('__FLOATING__', String(workload.resultEncoding === 'ieee-f64-tree-v1'));
  else if (!probe && isNumberResult(workload)) driver = numberSupport['number-observation.rs'] + '\n' + numberSupport['number-driver.rs'];
- else if (!probe) driver = driver.replace('fn benchmark_checksum(value: i64) -> i64 { value }', rustChecksum(workload,{emitted,source}));
+ else if (!probe) driver = driver.replace('fn benchmark_checksum(value: i64) -> i64 { value }', rustChecksum(workload,{emitted,source,reference}));
  const declarations = [];
  if (workload.inputText !== undefined) declarations.push(`let input = String::from(arguments[${probe ? 2 : 5}].clone());`);
  if (workload.scalarCoordinates) declarations.push(workload.inputText !== undefined

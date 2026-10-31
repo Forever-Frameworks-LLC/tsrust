@@ -3137,6 +3137,54 @@
     "higher_recursive_tree": {
       "at": "2026-10-31T13:40:53.743Z",
       "sourceSha256": "b82f499caae312aa1cb1e7fceb619154e6a215e1b3157d0b80e4b7cebe9f7417"
+    },
+    "declared_callback_int_reduce": {
+      "at": "2026-10-31T13:45:11.586Z",
+      "sourceSha256": "ad431a984c2cc4bef9eb46377bbec1c31991fafad279fac7d3a6411a4eb956f0"
+    },
+    "declared_callback_number_reduce": {
+      "at": "2026-10-31T13:45:11.586Z",
+      "sourceSha256": "2c406f9b339897d72411cdf1a5de102944416d96a785a9caa04b1bab758259f8"
+    },
+    "declared_callback_boolean_reduce": {
+      "at": "2026-10-31T13:45:11.586Z",
+      "sourceSha256": "7ceb50b366f3ded46197dca38a007e44284e0283cde07d6a633663681f8e7edf"
+    },
+    "declared_callback_string_map": {
+      "at": "2026-10-31T13:45:11.586Z",
+      "sourceSha256": "c8c9401f84df40e038ce79384eac18873d03e75eb3492c4376fa8d0b17058779"
+    },
+    "declared_callback_record_map": {
+      "at": "2026-10-31T13:45:11.586Z",
+      "sourceSha256": "e52f0dd87fd3288db45876f243d39eb388760346c244a4fc9a0894ed80d7228e"
+    },
+    "declared_value_local_reuse": {
+      "at": "2026-10-31T13:45:11.586Z",
+      "sourceSha256": "5f44b3d0eb3f3be1c25ff6d3dcaa098bf74312c3768e31262e70c4d53838678e"
+    },
+    "declared_value_local_move": {
+      "at": "2026-10-31T13:45:11.586Z",
+      "sourceSha256": "95a3237a40b8c356765ec8bf46087f75f3f162b0be4a082c5cb174c969847913"
+    },
+    "declared_value_returned_function": {
+      "at": "2026-10-31T13:45:11.586Z",
+      "sourceSha256": "27c33e7b3aa963187acb8cc37a9b0a1423004175c665bcb15e2ec25597d01587"
+    },
+    "declared_value_factory_target": {
+      "at": "2026-10-31T13:45:11.586Z",
+      "sourceSha256": "c5a12adf2c470b8d1d4077069eb2ba7320e161e4b528af5de89270589a6d6cd7"
+    },
+    "declared_value_global_use": {
+      "at": "2026-10-31T13:45:11.586Z",
+      "sourceSha256": "6183f4b213129bfdf75f8bdcb5b787129f57bb43ea8a25745e156db53a921a67"
+    },
+    "declared_value_bound_capture": {
+      "at": "2026-10-31T13:45:11.586Z",
+      "sourceSha256": "d7a1197fb9189abe5e2d717f9f9d598e1ac7cb5fc3ac12ce0b436aebc481c31c"
+    },
+    "declared_value_owned_tree_move": {
+      "at": "2026-10-31T13:45:11.586Z",
+      "sourceSha256": "f7f78825bd932b878864277c61b6792b73e5a54ed5ffe5a38bbf4051a14b519e"
     }
   }
 }

@@ -677,8 +677,8 @@ counts, wrap a copy of the generated program with a counting global allocator.
 
 **Hand-written Rust reference expansion — current, 2026-10-31:**
 - Owner requested independent, ordinary Rust comparisons alongside **all 932**
-  public workloads. **775 are measured; 157 remain.** This is ongoing acceptance,
-  not universal hand-written-Rust parity. Next: remaining callable/ownership/record families; the
+  public workloads. **787 are measured; 145 remain.** This is ongoing acceptance,
+  not universal hand-written-Rust parity. Next: collection/native families and remaining scoped records; the
   Math.random reference is also still open. No compiler candidate is active.
 - Reuse Node and Rust baselines instead of timing them for every optimization.
   Refresh on workload/protocol/reference-source/toolchain/hardware changes or
@@ -749,8 +749,9 @@ counts, wrap a copy of the generated program with a counting global allocator.
 | Record ownership/recursive data/retained arrays | 14 | f0f8e8cb |
 | Callback contracts/owned callable storage | 14 | f9afd1ec |
 | Higher-order scalar callbacks/factories | 16 | ef303e0d |
-| Higher-order owned callback results | 8 | This checkpoint; details below |
-| **Total** | **775** | **157 still required** |
+| Higher-order owned callback results | 8 | 0d18cc7e |
+| Declared functions/callbacks/owned values | 12 | This checkpoint; details below |
+| **Total** | **787** | **145 still required** |
 
 **Reference correctness and interpretation:**
 - Sources are independently authored Rust using standard-library operations and
@@ -785,37 +786,40 @@ counts, wrap a copy of the generated program with a counting global allocator.
   unmeasured Rust rows are not losses. Never label Tsrust simply "Native".
 - Current summary: Tsrust faster than Node.js in **613/932**, median throughput
   ratio **1.52×**, range **0.04×–189.48×**. Hand-written Rust faster than Node.js
-  in **519/932 (775 measured)**. The ratios use mean throughput, not median time.
+  in **529/932 (787 measured)**. The ratios use mean throughput, not median time.
 - Website generation/build passes locally; no deployment, push or CI is implied.
   Full-project formatting has consistently changed zero files/snippets/fingerprints.
 
-**Rust higher-order owned callback results — verified, 2026-10-31:**
-- Eight independent references cover returned owned callbacks, captured callback
-  factories, borrowed/consumed strings, mutable arrays, owned records, nested
-  arrays and recursive trees. Standard Fn/FnMut/FnOnce bounds, moves and Clone
-  preserve independent owners. The captured factory uses a boxed inner closure;
-  recursive result records use ordinary Vec descendants and nominal observation
-  fields. Replacement witnesses retain dollar-token expansion without unsafe.
-- All eight matched independent result oracles and completed 93 samples each
+**Rust declared functions/callbacks/owned values — verified, 2026-10-31:**
+- Twelve independent references cover declared integer/number/boolean reductions,
+  string/record maps, local reuse/moves, returned functions, captured factories,
+  global/bound function values and owned recursive-tree moves. Standard functions,
+  iterator folds/maps, closures and moves replace compiler-specific wrappers.
+  Read-only prefix folds/maps borrow the source slice; retained result owners
+  remain independent. Replacement factories preserve dollar-token expansion.
+- Harness change: verifyDeclaredReferenceABI binds exact workload source identity,
+  top-level input/result types, owned containers, nominal record fields and
+  recursive result schemas without requiring compiler Closure/wrapper structs.
+  Only the rust-hand driver opts into this path. Existing compiler verification
+  retains all target signatures, capture ownership, wrapper identity and no-Clone
+  requirements. Both paths share the same full-value result observer.
+- All twelve matched independent result oracles and completed 93 samples each
   (three processes, eight warmups, 31 timed samples), Rust-only run
-  2026-10-31T13:40:53.743Z; medians 0.001708–0.014833 ms, max load 3.231,
-  watchdog peak 293,040 KiB. Compiler unchanged; existing Tsrust/Node measurements
+  2026-10-31T13:45:11.586Z; medians 0.001584–0.050459 ms, max load 1.911,
+  watchdog peak 268,464 KiB. Compiler unchanged; existing Tsrust/Node measurements
   reused. No Node timing rerun or product API changes.
-- Eight durable higher_owned_edges.rs tests passed under the sequential watchdog
-  with three threads: returned/captured owners, replacement tokens, borrowed copy
-  isolation, allocation-preserving owned transfer, mutable-array result isolation,
-  record/deep-array copies and independent recursive descendants.
-- store:ingest added eight histories; stored medians/sample counts, source hashes
+- Sequential watchdog checks: 37 JavaScript harness tests passed across declared
+  ABI (3), adapters (5), declared observation (2), declared oracle (17), higher
+  result ABI (4), higher harness (2) and measurement plan (4). New negative cases
+  reject source/signature/ownership/schema mismatches in references and prove the
+  normal compiler path still rejects references missing generated wrappers.
+  Eight declared_function_edges.rs tests passed with three threads: fold order,
+  empty/quarter/boolean identities, retained Unicode/NUL maps, deep record copies,
+  factory effects/tokens and allocation-preserving recursive-tree transfer.
+- store:ingest added twelve histories; stored medians/sample counts, source hashes
   and SQLite integrity verified before raw disposal. Public hashes/timestamps
-  pinned. Coverage **775/932**, remaining **157**.
-- Next executable section: declared-function references. adaptRustDriver currently
-  runs verifyDeclaredABI against both compiler and hand-written sources; it
-  requires compiler-specific function wrappers/Closure structs. Add a separate
-  hand-written result ABI guard that still verifies source/result ownership and
-  actual nominal fields; retain all existing compiler wrapper checks. Then author
-  independent declared callbacks/values, test both guard paths and run references.
-  Do not counterfeit generated wrappers in hand-written Rust. Collection/native
-  families and Math.random remain after the callback families.
+  pinned. Coverage **787/932**, remaining **145**. Next: collection/native families
+  and remaining scoped records/value adapters; Math.random remains open.
 - Prior correction retained: 8df76859 fixes UTF-8 byte .length in 27 callable/
   nested/generic references and refreshes all their source hashes and Rust runs.
   Those measured length inputs were ASCII, so historical corpus outputs remain
