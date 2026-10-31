@@ -22,7 +22,8 @@ still open but is not the current loop's focus.
 Local, not pushed: `5805b423`, `db6ec027` (single handoff), `4bf84f84` (test fix),
 `3a625efe` (initial handoff), `6b8f62b1` (completed validation), and
 `260d1781` (Map snapshot classification, 4.32× at depth 80), and
-`cea19c4c` (callable-boundary Map epochs, 8.22× at depth 128).
+`cea19c4c` (callable-boundary Map epochs, 8.22× at depth 128), and
+`5083586a` (typed schema restorations, collections 1.11×).
 The rejected small-string experiment lives on
 `codex/small-string-experiment` (keep for reference; do not merge).
 
@@ -222,6 +223,61 @@ counts, wrap a copy of the generated program with a counting global allocator.
   No push, CI dispatch, merge, release, dependency change or generated unsafe.
 - Next: profile mixed-type small arrays (`type_aliases`), ranked target 3.
   Further schema allocation work needs a new profile and measured benefit.
+
+**Current experiment — inline scalar-union arrays (not accepted):**
+- Baseline `5083586a`, clean tree. Previous goal turn made progress by committing
+  the accepted typed schema restoration optimization.
+- Fresh `type_aliases` allocation profile: 12,289 allocations and nine
+  reallocations for 2,048 iterations, with correct output/drop accounting.
+  The workload's two-element `int|string` array uses Vec despite the existing
+  safe four-slot Array representation used for homogeneous scalar arrays.
+- Candidate adds immutable scalar-member metadata alongside UnionId's existing
+  Copy property, including snapshot/reinterning paths. Rank-zero arrays of
+  canonical scalar unions use the existing Array representation. Record,
+  collection, callable, recursive and deeper array layouts keep indirection.
+  Conservative aggregate-size accounting includes the scalar union's tag.
+  No new runtime container, dependency, language limit or unsafe code.
+- New witnesses cover snapshot identity and recursive exclusion, plus native
+  clone independence, crossing the four-slot growth boundary, moving arrays
+  through functions, shrinking/mutation, nested-array storage, enum and literal
+  unions. Existing fixtures cover array methods, equality and ownership.
+- Baseline runtime run `results/2026-10-31T03-16-17-317Z.json`: original eight
+  warmups, 31 samples across three processes (93 per workload/engine); maximum
+  load 2.361. Native/Node medians: type_aliases 0.147041/0.039000 ms;
+  union_array_values 0.557500/0.294208 ms. Allocation profile and raw timing
+  files remain disposable pending comparison/ingestion.
+- First witness used unsupported enum-union includes(); changed it to supported
+  iteration. That exposed a real emitter defect: data-union text registrations
+  referenced Enum types without emitting their TsrJoinText adapters when an
+  unrelated array used join(). The emitter now registers both numeric and
+  string enums through their existing scalar text behavior. The native witness
+  covers both enum kinds; the enum acceptance suite joins affected validation.
+- Validation completed via `/tmp/tsrust-union-array-validation.py`: 12 compiler
+  integration targets (union arrays, aliases, nullable/data unions, recursive
+  storage/schema, primitive storage, call/array spread), three LSP targets
+  (type aliases, generic aliases, switch statements), then both full --lib
+  suites because checked union identity is shared across the compiler.
+  One binary at a time, three threads, one Cargo job, shared target,
+  CARGO_INCREMENTAL=0, 5,000,000 KiB/1,800-second process-group watchdog.
+  All 12 compiler integration targets passed (102 tests), all three LSP targets
+  passed (7), compiler --lib passed 1,294 with eight existing ignores, and LSP
+  --lib passed 20: **1,423 passed, zero failures, eight existing ignores**.
+  Peak RSS 1,910,736 KiB, no watchdog stops. The library build reported only the
+  existing unused decode_plain warning.
+- Candidate profile: type_aliases **10,241 allocations** (2,048 fewer), nine
+  reallocations. Initial timing: union_array_values **0.557500 → 0.510917 ms
+  (1.091×)**, Node 0.294208 → 0.287833 ms. type_aliases **0.147041 →
+  0.156500 ms**, Node 0.039000 → 0.041291 ms; normalized speed 0.995×.
+  Candidate max load 2.359. This is not yet sufficient for acceptance.
+- Added a matched twenty-element union_array_heap control to cover spilling,
+  heap iteration and array methods. It shares the existing protocol, independent
+  arithmetic oracle and guarded sources. Both registration/oracle tests and
+  untimed native/Node verification pass. No new runtime machinery.
+- Next: checkpoint benchmark support separately (compiler remains 5083586a),
+  checkpoint the candidate for reversible A/B, rebuild/time the parent and
+  candidate on all three workloads, ingest all runs and decide acceptance.
+  Neither the optimization nor its timings are final yet.
+
 
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code

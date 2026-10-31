@@ -359,7 +359,7 @@ pub(crate) fn validate_storage_layout(program: &CheckedProgram) -> Result<(), cr
     for (id, union) in program.unions.iter().enumerate() {
         let union_id = crate::syntax::UnionId {
             index: u32::try_from(id).expect("checked union index"),
-            copy: false,
+            copy: false, scalar_members:false,
         };
         graph[union_offset + id].extend(union.members.iter().copied().filter(|member| {
             !matches!(member, Type::Record(record) if links.boxed(union_id, *record))
@@ -447,7 +447,7 @@ fn unused_symbolic_nullable_layouts_do_not_alias_live_native_nodes() {
     validate_storage_layout(program).unwrap();
     let nullable = Type::Union(crate::syntax::UnionId {
         index: u32::try_from(index).unwrap(),
-        copy: false,
+        copy: false, scalar_members:false,
     });
     program.records[0].fields[0].ty = Some(nullable);
     // A reachable invalid closure must not alias the following family node.

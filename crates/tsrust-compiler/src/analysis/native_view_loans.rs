@@ -844,7 +844,7 @@ mod tests {
                 value: Box::new(name(&context, result)),
                 union: UnionId {
                     index: 0,
-                    copy: false,
+                    copy: false, scalar_members:false,
                 },
                 narrowed: Type::Record(11),
             },
@@ -935,7 +935,7 @@ mod tests {
                 value: Box::new(name(&context, result)),
                 union: UnionId {
                     index: 0,
-                    copy: false,
+                    copy: false, scalar_members:false,
                 },
                 narrowed: Type::Record(10),
             },

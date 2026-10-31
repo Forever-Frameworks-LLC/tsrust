@@ -328,7 +328,7 @@ impl Emitter<'_> {
         let members=&self.program.unions[id.index()].members;
         if !members.iter().any(|ty|matches!(ty,Type::Null|Type::Undefined)){return None;}
         let present=members.iter().copied().filter(|ty|!matches!(ty,Type::Null|Type::Undefined)).collect::<Vec<_>>();
-        let base=match present.as_slice(){[value]=>Some(*value),[]=>Some(Type::Null),_=>self.program.unions.iter().enumerate().find(|(_,union)|union.members==present).map(|(index,union)|Type::Union(UnionId{index:index.try_into().unwrap(),copy:union.members.iter().all(|member|member.is_copy())}))};
+        let base=match present.as_slice(){[value]=>Some(*value),[]=>Some(Type::Null),_=>self.program.unions.iter().enumerate().find(|(_,union)|union.members==present).map(|(index,union)|Type::Union(UnionId{index:index.try_into().unwrap(),copy:union.members.iter().all(|member|member.is_copy()),scalar_members:!union.recursive && union.members.iter().all(|member|member.is_scalar())}))};
         base.filter(|base|self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)&&record.application.as_ref().is_some_and(|application|application.resolved_arguments==[*base])))
     }
     pub(in crate::emit) fn schema_child(&self,output:Type)->usize {

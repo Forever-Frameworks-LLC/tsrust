@@ -709,6 +709,7 @@ impl Emitter<'_> {
             let id = crate::syntax::UnionId {
                 index: index as u32,
                 copy,
+                scalar_members: !union.recursive && union.members.iter().all(|member|member.is_scalar()),
             };
             let cloneable = cloneability.allows(Type::Union(id), |id| {
                 self.program.unions[id.index()].members.clone()
@@ -3358,6 +3359,13 @@ impl Emitter<'_> {
                         output,
                         "impl TsrJoinText for {name} {{ fn append_join_text(&self, _: &mut std::string::String) {{}} }}"
                     );
+                }
+            }
+            // Union text registrations may reference enum alternatives even
+            // when the join call belongs to another array in the program.
+            for (index,record) in self.program.records.iter().enumerate() {
+                if record.enum_definition.is_some() {
+                    let _=writeln!(output,"impl TsrJoinText for Enum{index} {{ fn append_join_text(&self,output:&mut std::string::String) {{ self.tsr_value().append_join_text(output); }} fn append_locale_text(&self,output:&mut std::string::String) {{ self.tsr_value().append_locale_text(output); }} }}");
                 }
             }
             // A data union writes the text of its active alternative; null

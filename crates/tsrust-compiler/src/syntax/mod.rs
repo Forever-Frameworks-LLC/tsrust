@@ -548,12 +548,13 @@ impl ArrayElement {
     }
 }
 
-/// The copy property is computed when canonical members are interned. The
+/// Copy and scalar-member properties are computed when canonical members are interned. The
 /// identifier carries no runtime payload and remains stable within one program.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct UnionId {
     pub(crate) index: u32,
     pub(crate) copy: bool,
+    pub(crate) scalar_members: bool,
 }
 impl UnionId {
     pub(crate) fn index(self) -> usize {
@@ -576,6 +577,9 @@ impl Type {
             Self::BorrowedUnion(id) => Self::Union(id),
             _ => self,
         }
+    }
+    pub(crate) fn is_scalar(self) -> bool {
+        matches!(self.scalar_base(),Self::Int|Self::Number|Self::Boolean|Self::String|Self::Null|Self::Undefined|Self::Enum(_, _))
     }
     pub fn is_copy(self) -> bool {
         matches!(
