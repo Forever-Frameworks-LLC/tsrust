@@ -28,35 +28,77 @@ plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
 
-**Owner-requested promotion — building, 2026-10-31:**
-- Owner explicitly approved **publishing v0.1.1**, then optimization continuation
-  after deployments are underway. Compiler **0.1.1**, independent LSP/VSIX **0.2.1**;
-  version proposal 979b906a, release notes 045efdb7. Publication is authorized.
-- Staging PR https://github.com/Forever-Frameworks-LLC/tsrust/pull/8 merged as
-  **fa2bd1a9** after **CI 41219037206** and **Documentation 41219037199** passed
-  on 979b906a (CI standard subset, not full). Staging requires squash/linear
-  history, main requires merge commits; initial staging merge-method rejection
-  was resolved using squash, with no policy changes. Owner review bypass only;
-  all required checks passed. Earlier CI 41218842078 was superseded/cancelled.
-- Promotion https://github.com/Forever-Frameworks-LLC/tsrust/pull/9 starts
-  **Release 41226915583** from fa2bd1a9. Preflight and editor packaging passed;
-  Linux x64, Windows x64, macOS ARM and Intel optimized consumer builds are
-  running. On success the trusted pipeline merges the exact validated tree,
-  publishes its existing artifacts, then deploys Pages. Do not manually merge
-  main ahead of the release gate. No new tag/release or deployment verified yet.
+**Owner-requested promotion — published/deployed, 2026-10-31:**
+- Owner explicitly approved **publishing v0.1.1**. Compiler **0.1.1**, independent
+  LSP/VSIX **0.2.1**; version 979b906a, notes 045efdb7. Staging PR #8 merged
+  **fa2bd1a9** after CI **41219037206** and Documentation **41219037199** passed
+  (standard subset, not full). Used staging's squash/linear-history method and
+  authorized owner review bypass; all required checks passed, no policy changes.
+- Promotion https://github.com/Forever-Frameworks-LLC/tsrust/pull/9 merged main
+  **9c294876**. **Release 41226915583 passed** all four platform archive builds,
+  distribution smokes and editor packaging. **Promote and publish 41229001147
+  passed**, publishing https://github.com/Forever-Frameworks-LLC/tsrust/releases/tag/v0.1.1
+  with four archives, VSIX and SHA256SUMS. **Documentation 41229051188 passed**
+  build/deploy. Live public performance page returned HTTP 200 with three-way
+  HTTP results and the frozen release snapshot's **930 Rust references**.
+- Downloaded actual macOS ARM archive/VSIX/checksums and verified GitHub API
+  digests, SHA256SUMS, compiler/LSP/VSIX versions and clean release manifests.
+  Synthetic build source **45e5ae2f** differs from main's final merge SHA; both
+  have exactly the source tree and parents pinned by promotion.json. Do not
+  require identical commit IDs. Actual published pair smoke passed CLI scaffold/native run/shared-cache JSON,
+  documented quickstart/testing/reporters, and LSP initialization/shutdown:
+  **9.325 s**, peak **405,808 KiB**. Scratch verification package is disposable.
+- Trusted publisher uses its pre-merge checkout's release notes. Added the already
+  reviewed optimization intro to the published notes while preserving generated
+  changelog text; assets/tags unchanged. Initial local verification-only attempts
+  hit Python 3.9's missing tar extraction filter and then an incorrect identical
+  merge-SHA assumption; corrected both before published-pair execution. No
+  product/package failure was found by those attempts.
 - Main/stag ancestry was reconciled against 9981279e/27ca587e in e0fd0169;
-  retained current minimal measurements, owner-directed archive removals and
-  newer docs. That checkpoint tree equals d9df0009. Later local evidence-only
-  commits were not pushed just to restart CI; current local source work below
-  is intentionally outside the frozen release proposal.
-- Local readiness: 14 distribution/release-policy tests, 21 storage tests,
-  website link-check tests, links/assets across 116 generated pages, 66-page
-  build, locked/offline Cargo metadata, npm version/lock agreement and clean
-  v0.1.1 release preflight pass. Whole-project formatter changed zero files.
-- Platform builds remain live. Local reference expansion below is now complete:
-  all 932 Rust baselines measured, using existing Node/Tsrust controls. Source
-  code/checkpoint after this promotion remains local until a later delivery.
+  retained minimal measurements, owner-directed archive removals and newer docs.
+  Later local **0a68a4f5** completes **932/932** Rust baselines; the normalization
+  candidate below is also later local work, outside the frozen v0.1.1 release.
+  Do not claim those later local results were already deployed.
 
+**Normalization scratch reuse — accepted locally, 2026-10-31:**
+- Parent **0a68a4f5**; change is after the frozen/published v0.1.1 source. Reuses
+  one growable decomposition scratch Vec per normalization call instead of
+  allocating one for each input scalar. No new limits, unsafe, dependencies or
+  public API changes; owned output/default behavior and Unicode 16 tables remain.
+- Profile first: baseline **2026-10-31T18:09:59.001Z** versus candidate
+  **2026-10-31T18:22:39.956Z**. Each three-sample profile returned the complete
+  oracle checksum and zero live bytes after drop. Allocations **116,157 → 56,321**,
+  reallocations **28,802 → 15,349**, requested bytes **2,383,822 → 2,101,262**;
+  retained bytes **780,086** and peak requested bytes **780,104** unchanged.
+  Watchdog peaks **287,600 / 238,928 KiB**. Removed closed diagnostic JSON after
+  retaining these measurements here; no raw profiles imported into the store.
+- Affected compiler **8 passed**, including **399,300 official Unicode
+  conformance checks** and **1,101,784 identity checks** plus the new repeated
+  mixed-decomposition witness. Compiler test run **197.859 s**, peak
+  **1,337,216 KiB**. LSP hover/help/completion and native documentation examples
+  **2 passed**, **184.321 s**, peak **1,482,848 KiB**. One binary at a time,
+  three threads; release rebuild **211.095 s**, peak **1,545,776 KiB**.
+- Quiet A/B, 93 samples/engine after eight warmups per process, all five result
+  cases retained. Parent **2026-10-31T18:10:28.708Z**: Tsrust **5.793750 ms**,
+  Node **1.366417 ms**. Candidate **2026-10-31T18:25:01.488Z**: Tsrust
+  **4.402167 ms**, Node **1.369583 ms**. Tsrust **1.316× faster**; Node duration
+  **+0.232%**, normalized speedup **1.319×**. Max loads **1.984 / 1.667**;
+  watchdog peaks **227,600 / 231,760 KiB**, elapsed **5.716 / 4.154 s**, no busy
+  override/stops/failures. Only this affected Node control reran; other controls
+  and all hand-written Rust baselines reused.
+- store:ingest added **four histories**. Exact medians, mean rates, counts, source
+  hashes and SQLite integrity verified before deleting disposable results.
+  Candidate selection added to the local performance page; published v0.1.1
+  retains its earlier snapshot. Whole-project formatting/build/checkpoint follow.
+- Separate SQLite HTTP phase profile validated 4,096 responses per mode. Mean
+  acquire/prepare/query microseconds: c1 **7.763 / 7.465 / 8.859**, c16
+  **607.541 / 8.445 / 9.928**. Concurrent latency sums are not elapsed throughput.
+  No SQL runtime change: metadata preparation enforces documented parameter
+  count/type checks; skipping it would change behavior. Closed probes removed.
+- Next: repair release-note provenance in the trusted publisher (it read its
+  pre-merge checkout's older notes; this release's published notes were corrected
+  explicitly). Then profile the remaining normalization table lookup/ordering
+  costs or advanced schema restoration before selecting another candidate.
 
 **Validation:**
 - GitHub CI dispatched today ran only the default subset, because

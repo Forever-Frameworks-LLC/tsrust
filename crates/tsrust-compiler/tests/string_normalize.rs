@@ -96,3 +96,15 @@ fn string_normalize_emits_pinned_tables_and_license_only_when_used() {
  assert!(normalized.contains("COPYRIGHT AND PERMISSION NOTICE"));
  assert!(normalized.contains("Unicode-3.0"));
 }
+
+#[test]
+fn string_normalize_repeated_mixed_decomposition_sequences_keep_each_form_independent() {
+ execute(r#"function main(){
+ const original="Åﬁ①각à̕é😀";
+ for(let i=1;i<=8;i=i+1){
+  const text=original.repeat(i);
+  console.log(text.normalize("NFC")==="Åﬁ①각à̕é😀".repeat(i),text.normalize("NFD")==="Åﬁ①각à̕é😀".repeat(i),text.normalize("NFKC")==="Åfi1각à̕é😀".repeat(i),text.normalize("NFKD")==="Åfi1각à̕é😀".repeat(i));
+ }
+ console.log(original);
+ }"#,&format!("{}Åﬁ①각à̕é😀\n","true true true true\n".repeat(8)),None);
+}

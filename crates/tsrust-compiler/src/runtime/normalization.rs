@@ -3,8 +3,8 @@ fn tsr_normalization_class(code: u32) -> u8 {
     TSR_NORMALIZATION_CCC.binary_search_by_key(&code, |row| row.0)
         .map_or(0, |index| TSR_NORMALIZATION_CCC[index].1)
 }
-fn tsr_normalization_decompose(code: u32, compatibility: bool, output: &mut Vec<u32>) {
-    let mut pending = vec![code];
+fn tsr_normalization_decompose(code: u32, compatibility: bool, output: &mut Vec<u32>, pending: &mut Vec<u32>) {
+    pending.push(code);
     while let Some(code) = pending.pop() {
         if (0xAC00..0xAC00 + 11172).contains(&code) {
             let syllable = code - 0xAC00;
@@ -38,7 +38,8 @@ fn tsr_string_normalize(text: &str, form: Option<&str>, failure: &'static str) -
     };
     if text.is_ascii() { return String::Owned(text.to_owned()); }
     let mut codes = Vec::with_capacity(text.chars().count());
-    for character in text.chars() { tsr_normalization_decompose(character as u32,compatibility,&mut codes); }
+    let mut pending = Vec::new();
+    for character in text.chars() { tsr_normalization_decompose(character as u32,compatibility,&mut codes,&mut pending); }
     let mut start = 0;
     for index in 0..codes.len() {
         if tsr_normalization_class(codes[index]) == 0 {
