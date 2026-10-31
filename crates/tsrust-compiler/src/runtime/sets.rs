@@ -44,11 +44,26 @@ trait TsrSetKey: Clone {
     fn tsr_same(&self, other: &Self) -> bool;
     fn tsr_normalize(self) -> Self { self }
 }
+/// One keyed hash per key. The key is random per process, so crafted keys
+/// cannot predict collisions; Map and Set order comes from insertion, not hashes.
 fn tsr_set_hash(tag: u64, value: impl std::hash::Hash) -> u64 {
-    use std::hash::{Hash, Hasher};
-    let mut state = std::collections::hash_map::DefaultHasher::new();
+    use std::hash::{BuildHasher, Hash, Hasher};
+    static KEYS: std::sync::OnceLock<std::collections::hash_map::RandomState> = std::sync::OnceLock::new();
+    let mut state = KEYS.get_or_init(std::collections::hash_map::RandomState::new).build_hasher();
     tag.hash(&mut state); value.hash(&mut state); state.finish()
 }
+/// Bucket tables are keyed by `tsr_set_hash` results, which are already
+/// uniformly mixed, so they are used directly instead of being hashed again.
+#[derive(Default, Clone, Copy)]
+struct TsrSetHashPassThrough(u64);
+impl std::hash::Hasher for TsrSetHashPassThrough {
+    fn finish(&self) -> u64 { self.0 }
+    fn write(&mut self, bytes: &[u8]) { for &byte in bytes { self.0 = self.0.rotate_left(8) ^ u64::from(byte); } }
+    fn write_u64(&mut self, value: u64) { self.0 = value; }
+}
+/// Collections with at most this many slots scan them instead of hashing.
+const TSR_SMALL_SLOTS: usize = 8;
+type TsrSetBuckets = std::collections::HashMap<u64, TsrSetBucket, std::hash::BuildHasherDefault<TsrSetHashPassThrough>>;
 fn tsr_set_number_hash(value: f64) -> u64 {
     tsr_set_hash(0, if value.is_nan() { 0x7ff8000000000000 } else if value == 0.0 { 0 } else { value.to_bits() })
 }
@@ -93,39 +108,54 @@ impl TsrSetKey for TsrUndefined {
 #[derive(Clone)]
 struct TsrSet<T: TsrSetKey> {
     slots: Vec<Option<T>>,
-    buckets: std::collections::HashMap<u64, TsrSetBucket>,
+    buckets: TsrSetBuckets,
     length: usize,
 }
 impl<T: TsrSetKey> TsrSet<T> {
     fn tsr_owned_items(self)->impl Iterator<Item=T>{self.slots.into_iter().flatten()}
 
-    fn new() -> Self { Self { slots: Vec::new(), buckets: std::collections::HashMap::new(), length: 0 } }
+    fn new() -> Self { Self { slots: Vec::new(), buckets: TsrSetBuckets::default(), length: 0 } }
     fn from_values(values: impl IntoIterator<Item=T>) -> Self {
         let mut result = Self::new(); for value in values { result.add(value); } result
     }
-    fn location(&self, value: &T, hash: u64) -> Option<usize> {
-        self.buckets.get(&hash).and_then(|indices| indices.iter().copied().find(|&index| self.slots[index].as_ref().is_some_and(|stored| stored.tsr_same(value))))
+    fn small(&self) -> bool { self.slots.len() <= TSR_SMALL_SLOTS }
+    /// Candidate slots for `hash`: every slot of a small set, else its bucket.
+    fn candidates(&self, hash: u64) -> impl Iterator<Item=usize> + '_ {
+        let bucket = if self.small() { None } else { self.buckets.get(&hash) };
+        let all = if self.small() { 0..self.slots.len() } else { 0..0 };
+        bucket.into_iter().flat_map(|indices| indices.iter().copied()).chain(all)
     }
     fn add(&mut self, value: T) {
-        let value=value.tsr_normalize(); let hash=value.tsr_hash();
-        if self.location(&value,hash).is_some() { return; }
-        let index=self.slots.len(); self.slots.push(Some(value));
-        self.buckets.entry(hash).or_default().push(index); self.length+=1;
+        let value=value.tsr_normalize();
+        let found = if self.small() { self.slots.iter().any(|stored| stored.as_ref().is_some_and(|stored| stored.tsr_same(&value))) }
+            else { let hash=value.tsr_hash(); self.candidates(hash).any(|index| self.slots[index].as_ref().is_some_and(|stored| stored.tsr_same(&value))) };
+        if found { return; }
+        let index=self.slots.len();
+        let hash=(index>=TSR_SMALL_SLOTS).then(|| value.tsr_hash());
+        self.slots.push(Some(value)); self.length+=1;
+        if index==TSR_SMALL_SLOTS {
+            // Leaving the small form: index every live slot once.
+            for (index, stored) in self.slots.iter().enumerate() { if let Some(stored)=stored { self.buckets.entry(stored.tsr_hash()).or_default().push(index); } }
+        } else if let Some(hash)=hash { self.buckets.entry(hash).or_default().push(index); }
     }
-    fn query_location<Q: TsrSetQuery<T>>(&self, query: &Q, hash: u64) -> Option<usize> {
-        self.buckets.get(&hash).and_then(|indices| indices.iter().copied().find(|&index| self.slots[index].as_ref().is_some_and(|stored| query.tsr_query_same(stored))))
+    fn query_location<Q: TsrSetQuery<T>>(&self, query: &Q) -> Option<usize> {
+        if self.small() { return self.slots.iter().position(|stored| stored.as_ref().is_some_and(|stored| query.tsr_query_same(stored))); }
+        self.candidates(query.tsr_query_hash()).find(|&index| self.slots[index].as_ref().is_some_and(|stored| query.tsr_query_same(stored)))
     }
     fn matches_with<'a,U,F:Fn(&U,&T)->bool>(&'a self,value:&'a U,hash:u64,compare:&'a F)->impl Iterator<Item=&'a T>+'a{
-        self.buckets.get(&hash).into_iter().flat_map(|indices|indices.iter()).filter_map(move |&index|self.slots[index].as_ref().filter(|stored|compare(value,stored)))
+        self.candidates(hash).filter_map(move |index|self.slots[index].as_ref().filter(|stored|compare(value,stored)))
     }
     fn has_with<U, F: Fn(&U, &T) -> bool>(&self, value: &U, hash: u64, compare: &F) -> bool {
-        self.buckets.get(&hash).is_some_and(|indices|indices.iter().any(|&index|self.slots[index].as_ref().is_some_and(|stored|compare(value,stored))))
+        self.candidates(hash).any(|index|self.slots[index].as_ref().is_some_and(|stored|compare(value,stored)))
     }
-    fn has(&self, value: impl TsrSetQuery<T>) -> bool { self.query_location(&value,value.tsr_query_hash()).is_some() }
+    fn has(&self, value: impl TsrSetQuery<T>) -> bool { self.query_location(&value).is_some() }
     fn delete(&mut self, value: impl TsrSetQuery<T>) -> bool {
-        let hash=value.tsr_query_hash(); let Some(index)=self.query_location(&value,hash) else { return false; };
-        if let Some(indices)=self.buckets.get_mut(&hash) { indices.retain(|&stored|stored!=index); }
-        if self.buckets.get(&hash).is_some_and(TsrSetBucket::is_empty) { self.buckets.remove(&hash); }
+        let Some(index)=self.query_location(&value) else { return false; };
+        if !self.small() {
+            let hash=value.tsr_query_hash();
+            if let Some(indices)=self.buckets.get_mut(&hash) { indices.retain(|&stored|stored!=index); }
+            if self.buckets.get(&hash).is_some_and(TsrSetBucket::is_empty) { self.buckets.remove(&hash); }
+        }
         self.slots[index].take(); self.length-=1; true
     }
     fn clear(&mut self) { self.slots.clear(); self.buckets.clear(); self.length=0; }

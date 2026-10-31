@@ -176,8 +176,7 @@ fn strict_types_arity_and_all_prior_operand_loans_reject_invalid_calls() {
             "function main(){{console.log(\"x\"{});}}",
             format!(".{method}").repeat(200)
         );
-        let error = support::reject(&source, "unsupported");
-        assert!(error.message.contains("128"));
+        support::accept_deep(&source);
     }
 }
 

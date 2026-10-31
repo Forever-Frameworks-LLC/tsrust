@@ -27,7 +27,11 @@ impl Analyzer{
         let mut work=vec![root];let mut value=None;let mut borrowed=false;
         // The source and context are immutable for this invocation. Discard the
         // memo when returning; ownership/flow changes require a fresh query.
-        let mut memo:HashMap<*const Expr,Option<Type>>=HashMap::new();
+        // During a chain descent the memo continues from earlier queries, so
+        // each operand of `a + b + c + ...` is hinted once rather than per level.
+        let shared=self.chain_hints.borrow_mut().take();
+        let active=shared.is_some();
+        let mut memo:HashMap<*const Expr,Option<Type>>=shared.unwrap_or_default();
         while let Some(next)=work.pop(){match next{
             Work::Call(frame)=>calls::step(self,context,frame,&mut work,&mut value),
             Work::Publish(expr)=>{memo.insert(expr as *const Expr,value);},
@@ -180,6 +184,7 @@ impl Analyzer{
                 work.push(Work::ArrayNext{values,index:index+1,first:first.or(hint),number});
             },
         }}
+        if active{*self.chain_hints.borrow_mut()=Some(memo);}
         value
     }
     fn pattern_hint_result(&self,value:&Expr,hint:Type)->Option<Type>{

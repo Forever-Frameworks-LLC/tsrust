@@ -263,7 +263,11 @@ impl<'p> Emitter<'p> {
                     _ => (),
                 }
             }
-            if let Some((value, mode)) = value { children.push((value.as_ref(), mode)); discards.push(false); }
+            // `text += a + b` that appends in place renders the operands of its right side.
+            let appended = match &expr.kind { ExprKind::CompoundAssign { target, value, .. } => self.appended_operands(fun, target, value), _ => None };
+            if let Some(operands) = appended {
+                for operand in operands { children.push(Self::chain_operand(operand)); discards.push(false); }
+            } else if let Some((value, mode)) = value { children.push((value.as_ref(), mode)); discards.push(false); }
             return Some(CallFrame { children, rendered: Vec::new(), invocation: None, state: CallState::Assignment { discards, first_temporary: 0 } });
         }
         if let ExprKind::Binary { op, left, right, .. } = &expr.kind
@@ -332,7 +336,26 @@ impl<'p> Emitter<'p> {
                     || matches!(right.ty, Some(Type::Null | Type::Undefined))
                     || left.ty.and_then(Type::union).is_some() || right.ty.and_then(Type::union).is_some());
             let mode = if comparison || left.ty.map(Type::scalar_base) == Some(Type::String) { Mode::Read } else { Mode::Copy };
-            return Some(CallFrame { children: vec![(left, mode), (right, mode)], rendered: Vec::new(), invocation: None, state: CallState::Binary });
+            // A chain of string additions renders its operands, not the inner `+` nodes.
+            if let Some(operands) = Self::string_addition_chain(expr) {
+                let children = operands.into_iter().map(Self::chain_operand).collect();
+                return Some(CallFrame { children, rendered: Vec::new(), invocation: None, state: CallState::Binary });
+            }
+            // A scalar operator chain renders its operands, not the inner nodes.
+            if let Some((first, levels)) = Self::scalar_chain(expr) {
+                let mut children = vec![(first, Mode::Copy)];
+                for level in levels {
+                    let ExprKind::Binary { right, .. } = &level.kind else { unreachable!("chain level") };
+                    children.push((right.as_ref(), Mode::Copy));
+                }
+                return Some(CallFrame { children, rendered: Vec::new(), invocation: None, state: CallState::Binary });
+            }
+            // A numeric `String(n)` appended to text renders only its argument.
+            let right = match Self::appended_number(right).filter(|_| *op == BinaryOp::Add && mode == Mode::Read && !comparison) {
+                Some(argument) => (argument, Mode::Copy),
+                None => (right.as_ref(), mode),
+            };
+            return Some(CallFrame { children: vec![(left, mode), right], rendered: Vec::new(), invocation: None, state: CallState::Binary });
         }
         let structural = match &expr.kind {
             ExprKind::Array(values) | ExprKind::ArrayOf(values, _) => Some((

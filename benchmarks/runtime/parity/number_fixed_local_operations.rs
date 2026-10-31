@@ -1,0 +1,3 @@
+// Independent fixed Rust array copy/reverse and growable retained output.
+fn function0(value0: i64, value1: i64) -> Vec<f64>{let mut output=Vec::with_capacity(usize::try_from(value0.checked_mul(18).unwrap()).unwrap());for i in 0..value0{let mut values=[value1 as f64+i as f64*0.25,-0.0,f64::NAN,f64::INFINITY,f64::NEG_INFINITY,0.5,f64::from_bits(1),f64::MAX];let at=usize::try_from(i.checked_mul(3).unwrap().checked_add(value1).unwrap()%8).unwrap();values[at]=i as f64+0.75;let saved=values;values.reverse();output.extend(saved);output.extend(values);output.push(f64::from(u8::from(values.contains(&0.5))));output.push(values.iter().position(|&v|v==0.0).map(|n|n as f64).unwrap_or(-1.0));}output}
+fn main(){}

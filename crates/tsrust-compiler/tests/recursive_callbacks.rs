@@ -171,42 +171,29 @@ fn permutation_program(width: usize, repeated: bool) -> String {
 }
 
 #[test]
-fn instance_limits_count_concrete_types_and_reject_excessive_permutations() {
+fn instances_follow_concrete_types_without_a_permutation_limit() {
     execute(&permutation_program(7, true), "2\n", None);
     for width in [4, 5] {
         execute(&permutation_program(width, false), "2\n", None);
     }
-    let error = reject(&permutation_program(7, false), "unsupported");
-    assert_eq!(
-        error.message,
-        "Recursive callback instantiations exceed the prototype limit of 128 per native target."
-    );
-    assert!(!error.related.is_empty());
+    // Seven distinct closures permute into 5,040 instantiations, as in rustc.
+    check(&permutation_program(7, false)).unwrap().emit_rust();
     // Concrete closure methods are native roots even when the enclosing value
     // is never invoked. An unused generic declaration has no concrete vector.
     let source = permutation_program(7, false);
     let (definitions, main) = source.split_once("function main() {").unwrap();
     let main = main.trim().strip_suffix('}').unwrap();
     execute(&format!("{definitions} function main() {{}}"), "", None);
-    reject(
-        &format!("{definitions} function main() {{ const run = (): void => {{{main} }}; }}"),
-        "unsupported",
-    );
+    check(&format!("{definitions} function main() {{ const run = (): void => {{{main} }}; }}"))
+        .unwrap()
+        .emit_rust();
     let mut source = String::from(
         "function call(c: Mutable<Function<int>>, n: int): int { if (n === 0) { return c(); } return call(c, n - 1); } function main() {",
     );
     for i in 0..128 {
         source.push_str(&format!("call((): int => {{ return {i}; }}, 1);"));
     }
-    execute(&format!("{source}}}"), "", None);
-    let error = reject(
-        &format!("{source}call((): int => {{ return 128; }}, 1);}}"),
-        "unsupported",
-    );
-    assert_eq!(
-        error.message,
-        "Recursive callback instantiations exceed the prototype limit of 128 per native target."
-    );
+    execute(&format!("{source}call((): int => {{ return 128; }}, 1);}}"), "", None);
     execute(
         "function choose(a: Mutable<Function<int>>, b: Mutable<Function<int>>, n: int): int { if (n === 0) { return a(); } return choose(b, a, n - 1); } function main() { const a = (): int => { return 1; }; const b = (): int => { return 7; }; console.log(choose(a, b, 3)); }",
         "7\n",

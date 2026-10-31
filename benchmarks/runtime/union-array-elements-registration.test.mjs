@@ -33,10 +33,14 @@ test('union array independent results match hand-written cells, the platform and
   ['27','ab','13|ab||14','true','3','14','1'],
   ['53','abab','26|abab||27','true','3','27','1']]);
  // The reasoned cells agree with the platform on every registered case.
- const input='dynamic é🙂 text',all=expectedUnionArrayValues('union_array_values',2048,7,input);
+ const input='dynamic é🙂 text';
+ for(const id of unionArrayIds){const all=expectedUnionArrayValues(id,2048,7,input);
  for(let i=0;i<2048;i++){const base=(i*13+7)%97,mode=(i+7)%3,values=[base,input.repeat(mode),null];
+  if(id==='union_array_heap')for(let extra=1;extra<=16;extra++)values.push(base+extra);
   if(mode===0)values.push('tail');else values.push(base+1);
   let sum=0,text='';for(const value of values){if(typeof value==='number')sum+=value;else if(typeof value==='string')text+=value;}
   assert.deepEqual(all[i],[String(sum),text,values.join('|'),String(values.includes(null)),String(values.indexOf(base+1)),String(values.at(-1)),String(values.filter(value=>typeof value==='string').length)],String(i));}
+ }
+ assert.deepEqual(expectedUnionArrayValues('union_array_heap',1,0,'ab'),[['136','tail','0|||1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|tail','true','3','tail','2']]);
  for(const row of rows){const want=observeSliceTree(expectedUnionArrayValues(row.id,2048,7,row.inputText));assert.deepEqual(expectedUnionArrayObservation(row.id,2048,7,row.inputText),want);assert.deepEqual(expectedExactResult(row.id,2048,7,row.inputText),want);assert.equal(expectedChecksum(row.id,2048,7,row.inputText),want.checksum);}
 });

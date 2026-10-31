@@ -9,7 +9,7 @@
     "report": "node report.mjs",
     "profile:native": "node profile-native.mjs",
     "checkpoint": "node checkpoint.mjs",
-    "store:ingest": "python3 ../storage/analytics.py ingest ../records.sqlite --root ..",
+    "store:ingest": "python3 ../storage/measurements.py ingest",
     "verify:schema-differential": "node verify-schema-differential.mjs"
   },
   "devDependencies": {

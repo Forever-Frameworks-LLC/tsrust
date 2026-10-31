@@ -152,7 +152,7 @@ mod tests {
 
     #[test]
     fn nullable_mutual_cycles_merge_access_but_not_outer_records() {
-        let union = UnionId { index: 0, copy: false };
+        let union = UnionId { index: 0, copy: false, scalar_members:false };
         let records = vec![
             view(NativeTypeId::ByteView),
             view(NativeTypeId::ByteViewMut),

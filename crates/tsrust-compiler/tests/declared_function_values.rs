@@ -349,7 +349,7 @@ fn recursive_data_functions_and_resolved_callable_factory_origins_survive_discov
         if depth == 100 {
             check(&source).unwrap().emit_rust();
         } else {
-            reject(&source, "unsupported");
+            support::accept_deep(&source);
         }
     }
     let analysis = check("function unused():int{return 1;}function main(){}").unwrap();

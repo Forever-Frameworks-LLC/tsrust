@@ -2,6 +2,29 @@
 mod support;
 
 #[test]
+fn chained_json_refinements_restore_input_before_consuming_fallback() {
+    let source = r#"
+    import {s} from 'std:schema';
+    function main(){
+      const checked=s.array(s.int()).refine(values=>values.length>0).refine(values=>values[0]===9);
+      const schema=s.union([
+        checked.transform(values=>0),
+        s.array(s.int()).transform(values=>{values.push(3);return values.length;})
+      ]);
+      const first=schema.safeParse(JSON.parse('[1,2]'));
+      if(first.success){console.log(first.data);}else{throw 'Fallback lost input';}
+      const second=schema.safeParse(JSON.parse('[9]'));
+      if(second.success){console.log(second.data);}else{throw 'Refinement lost input';}
+    }
+    "#;
+    let directory = support::TempDirectory::new();
+    let path = directory.source(&support::format_round_trip(source));
+    let output = support::run(support::cli().arg("run").arg(path), 60);
+    support::success(&output);
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "3\n0\n");
+}
+
+#[test]
 fn coercion_exceptions_propagate_and_skip_later_stages() {
     let source = r#"
     import {s} from 'std:schema';

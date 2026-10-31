@@ -224,7 +224,7 @@ fn nullable_diagnostics_projections_hidden_consumers_moves_and_depth_are_precise
         "a[".repeat(200),
         "]".repeat(200)
     );
-    support::reject(&invalid, "unsupported");
+    support::accept_deep(&invalid);
 }
 
 #[test]

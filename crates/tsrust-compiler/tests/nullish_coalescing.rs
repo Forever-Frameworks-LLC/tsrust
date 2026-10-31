@@ -337,11 +337,11 @@ fn nullish_parser_type_borrow_and_normal_depth_diagnostics_are_precise() {
         "a[".repeat(200),
         "]".repeat(200)
     );
-    assert_eq!(check(&rejected).err().unwrap().code, "unsupported");
+    support::accept_deep(&rejected);
     let accepted_chain = format!("function main(){{console.log({}1);}}", "null??".repeat(100));
     check(&accepted_chain).unwrap().emit_rust();
     let chain = format!("function main(){{console.log({}1);}}", "null??".repeat(200));
-    assert_eq!(check(&chain).err().unwrap().code, "unsupported");
+    support::accept_deep(&chain);
     let source = format!(
         "function f(x:int{}|null):int{}{{return x??Array.of<int{}>();}}function main(){{}}",
         "[]".repeat(127),

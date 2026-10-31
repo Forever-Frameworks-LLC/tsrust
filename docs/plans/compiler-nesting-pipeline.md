@@ -1,7 +1,7 @@
 # Compiler pipeline and continuation ownership
 
 Current source/status and the route back to feature implementation are in the
-[continuation handoff](../handoffs/compiler-to-roadmap-continuation.md), based on
+continuation handoff, based on
 `39aaec7d`. The chronological sections below preserve earlier source states and
 evidence; do not treat an earlier remaining-work list as the current inventory.
 

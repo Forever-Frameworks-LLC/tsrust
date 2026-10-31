@@ -1,16 +1,33 @@
 # Goal: Tsrust language, CLI, documentation and platform polish
 
+## Top-level directive (owner, 2026-10-29)
+
+**We are not rewriting JavaScript in Rust; we are making Rust as easy to write as
+TypeScript.** Familiar TypeScript/JavaScript call shapes and names for the API;
+Rust's semantics, accuracy and performance underneath (exact integers, UTF-8
+strings, no silent rounding, no JS quirks). Generated code should look like what a
+careful Rust programmer writes; extras (limits, validation passes, copies) are
+opt-in or belong to another layer.
+
 ## Active owner direction — 2026-10-29 (supersedes the ordering below)
 
 The owner approved this plan and asked for continuous autonomous work on it:
 
-1. **Ship stable 0.1.0.** PR #6 (`codex/language-cli-docs-polish` → `stag`)
+1. **Ship stable 0.1.0.** Done 2026-10-29: `v0.1.0` published (PR #7); managed
+   install, check, update and rollback verified against it (see the handoff). PR #6 (`codex/language-cli-docs-polish` → `stag`)
    needs the owner's bypass merge (agents cannot approve their own PRs). Then
    open `stag` → `main`; Release and Promote publish `v0.1.0` and deploy Pages.
    Smoke-test a release archive, then `tsrust toolchain install --root`,
    `toolchain check`, `update` and `rollback` against the published stable
    release. Record results in the handoff.
-2. **Optimize existing behavior** where native is slower than Node after tsc
+2. **Optimize the generated Rust** (owner, 2026-10-29): make emitted code as close
+   as possible to what a careful person would write by hand. Parity with
+   hand-written Rust is the stretch target ("excellent"), not a requirement.
+   Prefer removing work in generated code (copies, clones, temporaries, checks
+   that can be proven unnecessary) over adding dependencies. Do not adopt a
+   dependency on the strength of measurements from this memory-starved Mac
+   (8 GB RAM, heavy swap); confirm on a clean machine first. Start with the
+   cases where native is slower than Node after tsc
    (see `project/performance` and `benchmarks/storage/release-0.1.0-analytics/`):
    JSON and schema decoding, record copies, Unicode case conversion,
    `String.at`, recursive array copies, enum and interface records. Change
@@ -33,7 +50,7 @@ the SQLite dataset and the generated performance page.
 
 
 Owner handoff, 2026-10-28: Codex continuation stopped for transfer to Claude;
-completion is not claimed. Read [the current handoff](handoffs/2026-10-28-claude-handoff.md).
+completion is not claimed. Read [the handoff](agent-progress.md).
 The owner's latest docs direction prioritizes language/stdlib reference and a
 consolidated interactive guide instead of many indexed how-to articles.
 

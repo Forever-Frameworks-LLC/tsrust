@@ -76,11 +76,11 @@ impl<I, O, R: Restore<I, O>, E> Trial<I, O, R, E> {
     pub(super) fn inject<'a, N: 'a>(
         self, inject: impl FnOnce(O) -> N,
         project: impl FnOnce(N) -> O + 'a,
-    ) -> Trial<I, N, Box<dyn FnOnce(N) -> I + 'a>, E>
+    ) -> Trial<I, N, impl FnOnce(N) -> I + 'a, E>
     where I: 'a, O: 'a, R: 'a {
         match self {
             Self::Prepared { value, restoration } => Trial::Prepared {
-                value: inject(value), restoration: Box::new(move |value| restoration.restore(project(value))),
+                value: inject(value), restoration: move |value| restoration.restore(project(value)),
             },
             Self::Rejected(input) => Trial::Rejected(input),
             Self::Absent => Trial::Absent,
@@ -93,11 +93,11 @@ impl<I, O, R: Restore<I, O>, E> Trial<I, O, R, E> {
     /// compiler adapter, so it does not commit a user-visible conversion.
     pub(super) fn remap_input<'a, N: 'a>(
         self, wrap: impl FnOnce(I) -> N + 'a,
-    ) -> Trial<N, O, Box<dyn FnOnce(O) -> N + 'a>, E>
+    ) -> Trial<N, O, impl FnOnce(O) -> N + 'a, E>
     where I: 'a, O: 'a, R: 'a {
         match self {
             Self::Prepared { value, restoration } => Trial::Prepared {
-                value, restoration: Box::new(move |value| wrap(restoration.restore(value))),
+                value, restoration: move |value| wrap(restoration.restore(value)),
             },
             Self::Rejected(input) => Trial::Rejected(wrap(input)),
             Self::Absent => Trial::Absent,
@@ -205,13 +205,23 @@ impl<I, O, R: Restore<I, O>, E> Trial<I, O, R, E> {
     }
 }
 
+// Keep only rollback state in the result. An opaque closure return would also
+// capture the validator's type, leaking its temporary path/issue borrows from
+// a collection's FnMut callback even though validation has already finished.
+pub(super) struct PairRestoration<L,R>(L,R);
+impl<K,V,A,B,L:Restore<K,A>,R:Restore<V,B>> Restore<(K,V),(A,B)> for PairRestoration<L,R> {
+    fn restore(self,(left,right):(A,B))->(K,V) {
+        (self.0.restore(left),self.1.restore(right))
+    }
+}
+
 /// Validate a key before its value without cloning either input. A consuming
 /// key callback commits the pair even if the value subsequently rejects.
 pub(super) fn pair<'a, K:'a, V:'a, A:'a, B:'a, RK:Restore<K,A>+'a, RV:Restore<V,B>+'a, E>(
     left:Trial<K,A,RK,E>,
     right:V,
     value:impl FnOnce(V)->Trial<V,B,RV,E>,
-)->Trial<(K,V),(A,B),Box<dyn FnOnce((A,B))->(K,V)+'a>,E>{
+)->Trial<(K,V),(A,B),PairRestoration<RK,RV>,E>{
     let (left,restore_left)=match left{
         Trial::Prepared{value,restoration}=>(value,Some(restoration)),
         Trial::Committed(Some(value))=>(value,None),
@@ -222,7 +232,7 @@ pub(super) fn pair<'a, K:'a, V:'a, A:'a, B:'a, RK:Restore<K,A>+'a, RV:Restore<V,
     };
     match value(right){
         Trial::Prepared{value:right,restoration:restore_right}=>match restore_left{
-            Some(restore_left)=>Trial::Prepared{value:(left,right),restoration:Box::new(move |(left,right)|(restore_left.restore(left),restore_right.restore(right)))},
+            Some(restore_left)=>Trial::Prepared{value:(left,right),restoration:PairRestoration(restore_left,restore_right)},
             None=>Trial::Committed(Some((left,right))),
         },
         Trial::Committed(right)=>Trial::Committed(right.map(|right|(left,right))),
@@ -240,7 +250,7 @@ pub(super) fn pair<'a, K:'a, V:'a, A:'a, B:'a, RK:Restore<K,A>+'a, RV:Restore<V,
 /// any earlier consuming callback makes the whole array committed instead.
 pub(super) fn sequence<'a, I: 'a, O: 'a, R: Restore<I, O> + 'a, E>(
     input: Vec<I>, mut validate: impl FnMut(usize, I) -> Trial<I, O, R, E>,
-) -> Trial<Vec<I>, Vec<O>, Box<dyn FnOnce(Vec<O>) -> Vec<I> + 'a>, E> {
+) -> Trial<Vec<I>, Vec<O>, impl FnOnce(Vec<O>) -> Vec<I> + 'a, E> {
     let mut values = Vec::with_capacity(input.len());
     let mut restores = Vec::with_capacity(input.len());
     let mut committed = false;
@@ -272,8 +282,8 @@ pub(super) fn sequence<'a, I: 'a, O: 'a, R: Restore<I, O> + 'a, E>(
     if committed { Trial::Committed(Some(values)) } else {
         Trial::Prepared {
             value: values,
-            restoration: Box::new(move |values| values.into_iter().zip(restores)
-                .map(|(value, restore)| restore.restore(value)).collect()),
+            restoration: move |values:Vec<O>| values.into_iter().zip(restores)
+                .map(|(value, restore)| restore.restore(value)).collect(),
         }
     }
 }
@@ -456,6 +466,26 @@ mod adapter_tests {
         assert_eq!(accepted.as_ptr(),pointer);
         assert_eq!(prepared("x".into()).refine_issues(|_|Err("callback")).finish(),Err("callback"));
         assert_eq!(prepared("x".into()).transform(Ok).refine_issues(|_|Ok(false)).finish(),Ok(None));
+    }
+    #[test]
+    fn composed_collection_adapters_restore_owned_payloads_after_readonly_rejection() {
+        struct Output(Vec<(String,String)>);
+        let input=vec![(String::from("first"),String::from("one")),(String::from("second"),String::from("two"))];
+        let pointers=input.iter().map(|(key,value)|(key.as_ptr(),value.as_ptr())).collect::<Vec<_>>();
+        let mut visited=Vec::new();
+        let trial=sequence(input,|index,(key,value)|{
+            let trial=pair(prepared(key),value,|value|{visited.push(index);prepared(value)});
+            visited.push(index);
+            trial
+        })
+            .remap_input(Some)
+            .inject(Output,|output|output.0)
+            .boxed()
+            .refine_issues(|output|{assert_eq!(output.0.len(),2);Ok(false)});
+        assert_eq!(visited,vec![0,0,1,1]);
+        let Trial::Rejected(Some(restored))=trial else {panic!("readonly adapters must restore the collection")};
+        assert_eq!(restored.iter().map(|(key,value)|(key.as_ptr(),value.as_ptr())).collect::<Vec<_>>(),pointers);
+        assert_eq!(restored,vec![("first".into(),"one".into()),("second".into(),"two".into())]);
     }
     #[test]
     fn pair_rejection_restores_inputs_unless_key_conversion_committed() {

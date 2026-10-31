@@ -145,8 +145,7 @@ fn unicode_boundaries_empty_interior_ranges_strict_types_and_normal_stack_limits
                 15,
             ));
         } else {
-            let error = support::reject(&source, "unsupported");
-            assert!(error.message.contains("128"));
+            support::accept_deep(&source);
         }
     }
 }

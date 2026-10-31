@@ -21,9 +21,8 @@ Existing paths and running processes from macOS handoffs are historical: discove
 the Windows environment, pinned tools, available memory and linkers locally.
 Do not mark unavailable macOS/Linux/native-desktop checks as passed on Windows.
 
-Start from docs/handoffs/compiler-to-roadmap-continuation.md and
-docs/handoffs/compiler-pause-memory-pressure.md. The old memory pause identifies
-the first investigation, not permission to restart heavy consumers. When the
+docs/agent-progress.md is the single handoff note; keep it current and do not
+create separate handoff files. When the
 owner invokes the continuation goal, investigate memory with bounded resources
 before resuming Table acceptance or broad editor/preview work. Record evidence
 and stop conditions before launching a reproducer. Inspect retention/invalidation

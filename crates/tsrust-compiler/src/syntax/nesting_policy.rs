@@ -1,17 +1,17 @@
 //! Admission policy for nested syntax.
 //!
-//! The parser keeps every suspended grammar position on the heap, so it does
-//! not need a nesting bound for its own safety. Later consumers of the syntax
-//! tree still recurse. `CONSUMERS` keeps the documented source limits for
-//! them at one boundary. `UNBOUNDED` parses the same grammar without limits.
+//! The parser keeps every suspended grammar position on the heap, and the
+//! checker and emitter walk the tree on work stacks, so source nesting needs
+//! no bound. The policy remains as the single place to reintroduce one.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct NestingPolicy {
     limit: usize,
 }
 
 impl NestingPolicy {
-    /// Documented source limits that protect recursive tree consumers.
-    pub(crate) const CONSUMERS: Self = Self { limit: 128 };
+    /// Public entry points. Every consumer of the tree walks it without
+    /// recursion, so source nesting is limited only by memory.
+    pub(crate) const CONSUMERS: Self = Self { limit: usize::MAX };
     /// No nesting limit. Resource use grows with the input only.
     #[allow(dead_code)]
     pub(crate) const UNBOUNDED: Self = Self { limit: usize::MAX };

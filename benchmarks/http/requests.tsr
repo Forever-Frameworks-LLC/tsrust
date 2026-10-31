@@ -1,0 +1,86 @@
+import { Router } from 'std:http';
+import { connect, Pool } from 'std:sql';
+import { listen, receive } from 'std:signals';
+
+type Application = {
+  pool: Pool;
+};
+
+type Payload = {
+  id: int;
+  label: string;
+  value: int;
+};
+
+type Lookup = {
+  id: int;
+};
+
+type Ready = {
+  address: string;
+  sqliteVersion: string;
+};
+
+async function main(): Task<void> {
+  const signals = unwrap(listen());
+  const pool = await connect('sqlite::memory:', 1);
+  await pool.execute('CREATE TABLE items(id INTEGER PRIMARY KEY, label TEXT NOT NULL, value INTEGER NOT NULL)');
+  for (let id = 1; id <= 128; id++) {
+    await pool.execute('INSERT INTO items VALUES (?, ?, ?)', [id, 'row héllo ' + id, id * 3]);
+  }
+
+  const versions = await pool.query('SELECT sqlite_version() AS version');
+  const sqliteVersion = unwrap(versions[0].text('version'));
+  const app = new Router<Application>({
+    pool
+  });
+  app.configure({
+    bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 0
+  });
+  app.get('/text', (c) => c.text('héllo 🦀'));
+  app.get('/json', (c) => {
+    const output: Payload = {
+      id: 7, label: 'héllo 🦀', value: 42
+    };
+    return c.json(output);
+  });
+  app.post('/parse', async (c) => {
+    try {
+      const input = JSON.parse<Payload>(await c.req.text());
+      if (input.id < 1 || input.id > 1000000 || input.value < 0 || input.value > 1000000) return c.text('invalid', 400);
+      const output: Payload = {
+        id: input.id, label: input.label + '!', value: input.value + 1
+      };
+      return c.json(output);
+    } catch (error) {
+      return c.text('invalid', 400);
+    }
+  });
+  app.post('/sqlite', async (c) => {
+    let id = 0;
+    try {
+      const input = JSON.parse<Lookup>(await c.req.text());
+      id = input.id;
+      if (id < 1 || id > 1000000) return c.text('invalid', 400);
+    } catch (error) {
+      return c.text('invalid', 400);
+    }
+
+    const rows = await c.env.pool.query('SELECT id, label, value FROM items WHERE id = ?', [id]);
+    if (rows.length === 0) return c.text('missing', 404);
+    const output: Payload = {
+      id: unwrap(rows[0].int('id')), label: unwrap(rows[0].text('label')), value: unwrap(rows[0].int('value'))
+    };
+    return c.json(output);
+  });
+  const server = await app.listen('127.0.0.1:0');
+  const ready: Ready = {
+    address: server.address(), sqliteVersion
+  };
+  console.log(JSON.stringify(ready));
+  try {
+    await receive(signals);
+  } finally {
+    await server.shutdown();
+  }
+}

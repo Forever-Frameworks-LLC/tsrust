@@ -151,8 +151,14 @@ impl Analyzer {
         self.record_array_carriers(context,body)?;
         self.scoped_array_storage_epochs(context,body)?;
         self.native_view_storage_epochs(context,body)?;
-        let results=context.bindings.iter().enumerate().map(|(id,binding)|(id,binding.ty)).collect();
-        self.scoped_map_entry_epochs(context,body,results)?;
+        // Native Map epochs consume completed ownership facts. Child blocks
+        // still join carriers for subsequent checking, but their native plans
+        // are rebuilt by the enclosing callable; do that subtree walk only once.
+        // A post-check parameter-carrier replay has no active lexical scope.
+        if context.lexical_scopes.len()<=context.callable_scope_depth+1 {
+            let results=context.bindings.iter().enumerate().map(|(id,binding)|(id,binding.ty)).collect();
+            self.scoped_map_entry_epochs(context,body,results)?;
+        }
         self.scoped_deque_carriers(context, body)
     }
     pub(super) fn record_field_type(&self,mut ty:Type,path:&[String])->Option<Type>{

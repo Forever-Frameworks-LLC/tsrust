@@ -283,5 +283,5 @@ fn else_if_chains_retain_branch_ownership_and_bounded_nesting() {
         "function main() {{ if (false) {{}} {} else {{}} }}",
         "else if (false) {} ".repeat(200)
     );
-    assert_eq!(check(&deep).err().unwrap().code, "unsupported");
+    support::accept_deep(&deep);
 }

@@ -174,7 +174,7 @@ fn unshift_strict_types_loans_views_transfers_and_normal_depth_are_preserved() {
         if count == 100 {
             check(&source).unwrap().emit_rust();
         } else {
-            assert_eq!(check(&source).err().unwrap().code, "unsupported");
+            support::accept_deep(&source);
         }
     }
     native(

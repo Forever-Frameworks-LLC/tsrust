@@ -139,7 +139,7 @@ fn throwing_adapter(program: &mut Program, name: &str) -> Result<Function, Diagn
     }else if name=="writeJsonl" {
         "function adapter<T>(writer:Mutable<JsonlWriter>,value:T):Result<void,JsonlError>{return backend(writer,value);}"
     }else if name == "parse" {
-        "function adapter(text:string,limits:JsonLimits={maxBytes:16777216,maxDepth:64,maxEntries:1000000,maxNodes:1000000}):JsonValue {match(backend(text,limits)){Ok(value)=>{return value;},Err(error)=>{throw error;}}}"
+        "function adapter(text:string,limits?:JsonLimits):JsonValue {if(limits===undefined){match(backend(text)){Ok(value)=>{return value;},Err(error)=>{throw error;}}}match(backend(text,limits)){Ok(value)=>{return value;},Err(error)=>{throw error;}}}"
     } else if name == "tryStringify" {
         "function adapter<T>(value:T,maxBytes:int=16777216):Result<string,JsonError> {return backend(value,maxBytes);}"
     } else {
@@ -190,10 +190,11 @@ fn throwing_adapter(program: &mut Program, name: &str) -> Result<Function, Diagn
 fn typed_adapter(program: &mut Program, name: &str) -> Result<Function, Diagnostic> {
     use crate::native_signatures::{NativeTypeId, Signature};
     let result = if name == "parse" { "T" } else { "Result<T,JsonError>" };
+    // Without limits the backend decodes once with serde (see typed::decode_plain).
     let body = if name == "parse" {
-        "const decoded:Result<T,JsonError>=backend(text,limits);match(decoded){Ok(value)=>{return value;},Err(error)=>{throw error;}}"
-    } else { "return backend(text,limits);" };
-    let source = format!("function adapter<T>(text:ReadOnly<string>,limits:ReadOnly<JsonLimits>={{maxBytes:16777216,maxDepth:64,maxEntries:1000000,maxNodes:1000000}}):{result}{{{body}}}");
+        "if(limits===undefined){const plain:Result<T,JsonError>=backend(text);match(plain){Ok(value)=>{return value;},Err(error)=>{throw error;}}}const decoded:Result<T,JsonError>=backend(text,limits);match(decoded){Ok(value)=>{return value;},Err(error)=>{throw error;}}"
+    } else { "if(limits===undefined){return backend(text);}return backend(text,limits);" };
+    let source = format!("function adapter<T>(text:ReadOnly<string>,limits?:ReadOnly<JsonLimits>):{result}{{{body}}}");
     let source=if name=="parseJsonc" {
         "function adapter<T>(text:ReadOnly<string>,allowTrailingComma:boolean=false,limits:ReadOnly<JsonLimits>={maxBytes:16777216,maxDepth:64,maxEntries:1000000,maxNodes:1000000}):Result<T,JsonError>{return backend(text,allowTrailingComma,limits);}".to_owned()
     }else if name=="readJsonlView" {

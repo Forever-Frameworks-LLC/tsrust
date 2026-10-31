@@ -19,6 +19,16 @@ impl Analyzer {
         }
         false
     }
+    /// Bindings often share a type, especially catch parameters. Classify that
+    /// type once per snapshot rather than walking its fields for every binding.
+    /// Keep the cache local: later carrier planning can change record layouts.
+    pub(super) fn scoped_map_storage_inputs(&self, results:&HashMap<usize,Type>) -> std::collections::BTreeMap<usize,Type> {
+        let mut types=HashMap::new();
+        results.iter().filter_map(|(&binding,&ty)| {
+            (*types.entry(ty).or_insert_with(||self.contains_scoped_map_storage(ty))).then_some((binding,ty))
+        }).collect()
+    }
+
     pub(super) fn scoped_map_value_instance(&mut self, id: usize, value: Type) -> usize {
         let key = self.program.records[id].map_definition.as_ref().unwrap().key;
         let family=self.program.records[id].native_type;
@@ -140,6 +150,19 @@ impl Analyzer {
     }
     pub(super) fn retarget_scoped_map_body(&mut self, context:&mut Context, body:&mut [Stmt], results:&HashMap<usize,Type>, constructors:&HashMap<(usize,usize),Type>) -> Result<(),Diagnostic> {
         crate::source_walk::body(body, &mut |_| Ok(()), &mut |value| {
+            // Optional selection stores its payload type separately from the Map
+            // read. Keep that slot and its union aligned after an entry epoch
+            // narrows the callback environment, before retargeting its calls.
+            if let ExprKind::Optional{base,body,slot,union,..}=&mut value.kind
+                && let Some(ty)=self.planned_scoped_map_result(base,results)
+                && let Some(payload)=self.unions.payload(ty.owning())
+            {
+                *union=ty.union();
+                crate::source_walk::expression(body,&mut |selected|{
+                    if matches!(selected.kind,ExprKind::Selected{slot:id,..} if id==*slot){selected.ty=Some(payload);}
+                    Ok(())
+                })?;
+            }
             if let ExprKind::Unary { op: UnaryOp::RecordCarrier, value: inner, .. } = &value.kind
                 && value.ty.is_some_and(|ty| self.contains_scoped_map_storage(ty))
             { value.ty = Some(self.record_value_carrier_type(context, inner, results)?); }
@@ -187,6 +210,7 @@ impl Analyzer {
     pub(super) fn planned_scoped_map_result(&self, value: &Expr, results: &HashMap<usize, Type>) -> Option<Type> {
         match &value.kind {
             ExprKind::Name(_) => results.get(&value.binding?).copied(),
+            ExprKind::Selected { .. } => value.ty,
             ExprKind::Call(callee, _) if matches!(value.target, Some(CallTarget::DequeMethod(DequeMethod::Front | DequeMethod::Back | DequeMethod::At | DequeMethod::PopFront | DequeMethod::PopBack))) => {
                 let ExprKind::Field(base, _) = &callee.kind else { return None; };
                 let Type::Record(id) = self.planned_scoped_map_result(base, results)? else { return None; };

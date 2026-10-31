@@ -266,7 +266,7 @@ fn rest_normal_depth_and_over_limit_keep_the_original_worker_stack() {
     let source = format!(
         "function head(...values:int[]):int{{return values[0];}}function main(){{console.log({expression});}}"
     );
-    rejected(&source, "unsupported", "128");
+    support::accept_deep(&source);
 }
 
 #[test]

@@ -239,10 +239,11 @@ fn sorting_strict_types_loans_capture_contracts_and_normal_depth() {
             "function main(){{const a=[1];a[{}];}}",
             "a[".repeat(count) + "0" + &"]".repeat(count)
         );
+        // Index chains have no nesting limit.
         if count == 100 {
             check(&source).unwrap().emit_rust();
         } else {
-            assert_eq!(check(&source).err().unwrap().code, "unsupported");
+            support::accept_deep(&source);
         }
     }
     assert_eq!(

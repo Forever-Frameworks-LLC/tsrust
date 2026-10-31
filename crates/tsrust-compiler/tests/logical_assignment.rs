@@ -219,12 +219,13 @@ fn conditional_ownership_diagnostics_bounds_and_traps_preserve_contracts() {
         "[".repeat(200),
         "]".repeat(200)
     );
+    // A 200-deep array literal has rank 200; array rank keeps its limit of 128.
     assert_eq!(check(&deep).err().unwrap().code, "unsupported");
     let chain = format!(
         "function main(){{let flag=false;console.log({}true);}}",
         "flag||=".repeat(200)
     );
-    assert_eq!(check(&chain).err().unwrap().code, "unsupported");
+    support::accept_deep(&chain);
     native(
         r#"
         type Box={flag:boolean;};

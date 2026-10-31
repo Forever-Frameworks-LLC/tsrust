@@ -58,9 +58,13 @@ to return Results.
 
 ### Set resource limits
 
-The optional `JsonLimits` record must supply all four fields:
+`JSON.parse(text)` and `JSON.parse<T>(text)` are unbounded apart from nesting (128
+levels) unless you pass limits, so they cost the same as a direct `serde_json` call.
+HTTP request bodies are already capped by the server's `bodyLimit`. For other
+untrusted text, pass a `JsonLimits` record with all four fields. JSONC and JSON
+Lines readers apply the defaults below when you omit limits:
 
-| Field | Default | Meaning |
+| Field | Reader default | Meaning |
 | --- | --- | --- |
 | `maxBytes` | 16777216 | Maximum input size in UTF-8 bytes. |
 | `maxDepth` | 64 | Maximum nested container levels; cannot exceed 64. |

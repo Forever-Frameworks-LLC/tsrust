@@ -41,7 +41,7 @@ whole library as complete after building its shell.
   not become an authentication product.
 
 [UI_VISION.md](../../UI_VISION.md), the
-[current handoff](../handoffs/compiler-to-roadmap-continuation.md) and
+current handoff and
 [development workflow](../development-workflow.md) still govern architecture and
 acceptance. This plan supersedes earlier suggestions that the documentation app,
 remaining UI families or native behavior are optional. Historical acceptance

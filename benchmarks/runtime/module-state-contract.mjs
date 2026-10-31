@@ -24,7 +24,21 @@ export function moduleStateABI(emitted, row, source) {
   return {functionName: matches[0][1], parameters, result: 'i64', fallible: true};
 }
 
-export function moduleStateDriver(driver, row, emitted, source) {
+export function moduleStateReferenceABI(emitted,row,source) {
+  assertModuleStateSource(source,row,'native');
+  const parameters='value0: i64, value1: i64, value2: &mut i64';
+  const matches=[...emitted.matchAll(/fn (function0)\(([^\n)]*)\) -> i64 \{/g)].filter(match=>match[2]===parameters);
+  if(matches.length!==1)throw Error('Module state reference requires one ordinary Rust function with an exclusive counter owner');
+  return {functionName:matches[0][1],parameters,result:'i64',fallible:false};
+}
+export function moduleStateDriver(driver, row, emitted, source, {reference=false}={}) {
+  if(reference) {
+    moduleStateReferenceABI(emitted,row,source);
+    if(!driver.includes('fn main() {')||!/\bfunction0\(/.test(driver))throw Error('Module state driver hooks changed');
+    // Bind the ordinary function as a value so call-site rewriting cannot recurse.
+    const setup=`fn main() {\n    let mut module_completed = 0i64;\n    let benchmark_module_function = function0;\n    let mut benchmark_module_workload = |n: i64, seed: i64| -> i64 {\n        benchmark_module_function(n, seed, &mut module_completed)\n    };`;
+    return driver.replace('fn main() {',setup).replace(/\bfunction0(?=\()/g,'benchmark_module_workload');
+  }
   const {functionName} = moduleStateABI(emitted, row, source);
   if (!driver.includes('fn main() {') || !/\bfunction0\(/.test(driver)) throw Error('Module state driver hooks changed');
   // This scalar-only workload initializes one zero counter. Initialization is

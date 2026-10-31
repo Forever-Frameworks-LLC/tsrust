@@ -497,8 +497,18 @@ fn backend_tool(tool:&str) -> Command {
     let mut command = Command::new(on_path.or(installed).unwrap_or_else(|| executable.into()));
     // No --install: compiling a program never implicitly downloads a toolchain.
     command.args(["run", RUST_BACKEND_VERSION, tool]);
+    // rustc parses and lowers nested code recursively; its default stack stops
+    // near 1,000 nested blocks. Source nesting has no limit, so give rustc's
+    // compiler thread room. The reservation is virtual: only pages in use are
+    // committed. An explicit RUST_MIN_STACK from the user is kept.
+    if env::var_os("RUST_MIN_STACK").is_none() {
+        command.env("RUST_MIN_STACK", BACKEND_STACK_BYTES);
+    }
     command
 }
+
+/// Stack reserved for the backend compiler thread (1 GiB, committed on use).
+const BACKEND_STACK_BYTES: &str = "1073741824";
 
 fn verify_backend() -> Result<String, String> {
     let setup = format!(
@@ -563,7 +573,12 @@ fn restore_pipe_signal() {}
 
 fn main() -> ExitCode {
     restore_pipe_signal();
-    match run() {
+    let worker = std::thread::Builder::new().name("tsrust".into()).stack_size(tsrust_compiler::COMPILER_STACK_BYTES).spawn(run);
+    let result = match worker {
+        Ok(worker) => worker.join().unwrap_or_else(|panic| std::panic::resume_unwind(panic)),
+        Err(_) => run(),
+    };
+    match result {
         Ok(code) => ExitCode::from(code),
         Err(error) => {
             let color = color_enabled(std::io::stderr().is_terminal());

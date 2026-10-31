@@ -138,7 +138,7 @@ impl Emitter<'_> {
             let value = value.expect("rendered Set source");
             let values: Option<String> = match source.ty.expect("checked Set source") {
                 Type::Null | Type::Undefined => None,
-                Type::String => Some("set_source.as_ref().chars().map(|value|String::Owned(value.to_string()))".into()),
+                Type::String => Some("set_source.as_ref().chars().map(tsr_char_text)".into()),
                 Type::Array(_) if self.expression_shape(source) == Some(crate::fixed_storage::Shape::LiteralStrings) => Some("set_source.literal_iter().map(String::Borrowed)".into()),
                 _ => Some("set_source.iter().cloned()".into()),
             };

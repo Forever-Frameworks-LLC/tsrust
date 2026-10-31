@@ -261,7 +261,7 @@ fn array_nesting_is_bounded_before_analysis() {
         "a[".repeat(200),
         "]".repeat(200)
     );
-    reject(&source, "unsupported");
+    support::accept_deep(&source);
 }
 
 #[test]

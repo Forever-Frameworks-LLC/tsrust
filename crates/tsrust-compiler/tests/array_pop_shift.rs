@@ -208,7 +208,7 @@ fn pop_shift_strict_types_live_loans_iteration_and_normal_depth_diagnostics() {
         "a[".repeat(200),
         "]".repeat(200)
     );
-    support::reject(&invalid, "unsupported");
+    support::accept_deep(&invalid);
 }
 
 #[test]

@@ -210,13 +210,6 @@ impl Analyzer {
             });
             let id = self.closures.len();
             let lifetime_count = nested + usize::from(matches!(storage, Mode::Read | Mode::Mutate));
-            if lifetime_count > 128 {
-                return Err(Diagnostic::new(
-                    "unsupported",
-                    "Closure environment lifetime complexity exceeds the prototype limit of 128.",
-                    span,
-                ));
-            }
             let polymorphic = expected_parameters.iter().any(|parameter| {
                 matches!(
                     self.unions.payload(parameter.ty).unwrap_or(parameter.ty),

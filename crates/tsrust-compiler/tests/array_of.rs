@@ -216,7 +216,7 @@ fn constructor_type_arity_transfer_and_normal_depth_guards_are_precise() {
         "a[".repeat(200),
         "]".repeat(200)
     );
-    assert_eq!(check(&source).err().unwrap().code, "unsupported");
+    support::accept_deep(&source);
     let source = format!(
         "function make():int{}{{return Array.of<int{}>();}}function main(){{}}",
         "[]".repeat(128),

@@ -100,7 +100,9 @@ impl Analyzer {
                 }
             }
         }
-        if args.len() != if jsonl {1}else if jsonc {3}else{2} {
+        // `JSON.parse<T>(text)` may omit limits; JSONC and JSONL arities are fixed.
+        let plain = !jsonl && !jsonc && args.len() == 1;
+        if !plain && args.len() != if jsonl {1}else if jsonc {3}else{2} {
             return Err(Diagnostic::new(
                 "arity",
                 "Typed JSON decoding expects text and limits.",
@@ -129,6 +131,7 @@ impl Analyzer {
                 rest: false,
             },
         ];
+        if plain {contracts.truncate(1);}
         if jsonc {contracts.insert(1,ArgumentContract{ty:Type::Boolean,mode:Mode::Copy,omission:crate::ParameterOmission::Required,rest:false});}
         if jsonl {
             let identity=if args.first().and_then(|arg|self.expression_type_hint(context,arg)).is_some_and(|ty|matches!(ty,Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::JsonlReaderView))) {crate::native_signatures::NativeTypeId::JsonlReaderView}else{crate::native_signatures::NativeTypeId::JsonlReader};

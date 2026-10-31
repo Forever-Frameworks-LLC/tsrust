@@ -260,6 +260,8 @@ fn strict_diagnostics_depth_bounds_and_failed_rhs_never_commit_outer_assignment(
         );
     }
     assert!(check("function main(){let text=\"old\";console.log(text+=\"new\");}").is_err());
+    // Deep assignments and index chains have no nesting limit; a 200-deep
+    // array literal still exceeds the array rank limit of 128.
     for source in [
         format!(
             "function main(){{let n=0;console.log({}1);}}",
@@ -270,14 +272,11 @@ fn strict_diagnostics_depth_bounds_and_failed_rhs_never_commit_outer_assignment(
             "a[".repeat(200),
             "]".repeat(200)
         ),
-        format!(
-            "function main(){{const a={}0{};}}",
-            "[".repeat(200),
-            "]".repeat(200)
-        ),
     ] {
-        assert_eq!(check(&source).err().unwrap().code, "unsupported");
+        support::accept_deep(&source);
     }
+    let source = format!("function main(){{const a={}0{};}}", "[".repeat(200), "]".repeat(200));
+    assert_eq!(check(&source).err().unwrap().code, "unsupported");
     for source in [
         format!(
             "function main(){{const a=[0];console.log({}0{});}}",

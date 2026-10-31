@@ -438,6 +438,72 @@ pub fn tsr_string_pad(
     String::Owned(output)
 }
 
+/// Appends decimal digits without a temporary string.
+pub fn tsr_push_int(output: &mut std::string::String, value: i64) {
+    let mut digits = [0u8; 20];
+    let mut index = digits.len();
+    let mut rest = value.unsigned_abs();
+    loop {
+        index -= 1;
+        digits[index] = b'0' + (rest % 10) as u8;
+        rest /= 10;
+        if rest == 0 {
+            break;
+        }
+    }
+    if value < 0 {
+        output.push('-');
+    }
+    output.push_str(std::str::from_utf8(&digits[index..]).expect("ASCII digits"));
+}
+
+/// Whole numbers below 2^53 print as their integer digits. Returns false for
+/// other values, which the caller formats with its own number spelling.
+pub fn tsr_push_whole_number(output: &mut std::string::String, value: f64) -> bool {
+    if value.fract() != 0.0 || value.abs() >= 9007199254740992.0 {
+        return false;
+    }
+    tsr_push_int(output, value as i64);
+    true
+}
+
+/// `text += value` in place: a borrowed text becomes one exactly sized owned
+/// string, and an owned text appends into its buffer with amortized growth.
+pub fn tsr_string_append(text: &mut String, value: &String, failure: &'static str) {
+    if value.is_empty() {
+        return;
+    }
+    let capacity = text.len().checked_add(value.len()).expect(failure);
+    match text {
+        String::Owned(owned) => owned.push_str(value),
+        String::Borrowed(borrowed) => {
+            let mut owned = std::string::String::with_capacity(capacity);
+            owned.push_str(borrowed);
+            owned.push_str(value);
+            *text = String::Owned(owned);
+        }
+    }
+}
+
+/// Make room for `additional` bytes at the end of `text` and return its owned
+/// buffer: a borrowed text becomes one exactly sized owned string, an owned
+/// text reserves with amortized growth.
+pub fn tsr_string_reserve<'a>(text: &'a mut String, additional: usize, failure: &'static str) -> &'a mut std::string::String {
+    let capacity = text.len().checked_add(additional).expect(failure);
+    if let String::Borrowed(borrowed) = text {
+        let mut owned = std::string::String::with_capacity(capacity);
+        owned.push_str(borrowed);
+        *text = String::Owned(owned);
+    }
+    match text {
+        String::Owned(owned) => {
+            owned.reserve(additional);
+            owned
+        }
+        String::Borrowed(_) => unreachable!("borrowed text was made owned"),
+    }
+}
+
 pub fn tsr_string_add(left: &String, right: &String, failure: &'static str) -> String {
     let capacity = left.len().checked_add(right.len()).expect(failure);
     let mut output = std::string::String::with_capacity(capacity);
@@ -456,6 +522,17 @@ pub fn string_offset(len: usize, index: i64) -> usize {
     } else {
         (index as u128).min(len as u128) as usize
     }
+}
+
+/// The range `slice(start, end)` selects, borrowed from `value`.
+pub fn tsr_slice_str(value: &String, start: i64, end: Option<i64>) -> &str {
+    let len = value.len();
+    let start = string_offset(len, start);
+    let end = end.map_or(len, |end| string_offset(len, end));
+    if end <= start {
+        return "";
+    }
+    value.get(start..end).expect("string slice is not on UTF-8 boundaries")
 }
 
 pub fn tsr_slice(value: &String, start: i64, end: Option<i64>) -> String {
@@ -522,13 +599,38 @@ pub fn tsr_substr(value: &String, start: i64, length: Option<i64>, failure: &str
     }
 }
 
+/// Every ASCII character once, so a one-character ASCII string borrows its
+/// text instead of allocating (JavaScript engines cache these the same way).
+const TSR_ASCII: &str = "\u{0}\u{1}\u{2}\u{3}\u{4}\u{5}\u{6}\u{7}\u{8}\u{9}\u{a}\u{b}\u{c}\u{d}\u{e}\u{f}\u{10}\u{11}\u{12}\u{13}\u{14}\u{15}\u{16}\u{17}\u{18}\u{19}\u{1a}\u{1b}\u{1c}\u{1d}\u{1e}\u{1f}\u{20}\u{21}\u{22}\u{23}\u{24}\u{25}\u{26}\u{27}\u{28}\u{29}\u{2a}\u{2b}\u{2c}\u{2d}\u{2e}\u{2f}\u{30}\u{31}\u{32}\u{33}\u{34}\u{35}\u{36}\u{37}\u{38}\u{39}\u{3a}\u{3b}\u{3c}\u{3d}\u{3e}\u{3f}\u{40}\u{41}\u{42}\u{43}\u{44}\u{45}\u{46}\u{47}\u{48}\u{49}\u{4a}\u{4b}\u{4c}\u{4d}\u{4e}\u{4f}\u{50}\u{51}\u{52}\u{53}\u{54}\u{55}\u{56}\u{57}\u{58}\u{59}\u{5a}\u{5b}\u{5c}\u{5d}\u{5e}\u{5f}\u{60}\u{61}\u{62}\u{63}\u{64}\u{65}\u{66}\u{67}\u{68}\u{69}\u{6a}\u{6b}\u{6c}\u{6d}\u{6e}\u{6f}\u{70}\u{71}\u{72}\u{73}\u{74}\u{75}\u{76}\u{77}\u{78}\u{79}\u{7a}\u{7b}\u{7c}\u{7d}\u{7e}\u{7f}";
+
+/// One character as text: ASCII borrows from a static table, other
+/// characters own their UTF-8 bytes.
+#[inline]
+pub fn tsr_char_text(character: char) -> String {
+    let code = character as usize;
+    if code < 128 {
+        String::Borrowed(&TSR_ASCII[code..code + 1])
+    } else {
+        String::Owned(character.to_string())
+    }
+}
+
+/// `text.at(index)`: the character at `index`, counted from the end when
+/// negative; `None` outside the text.
+pub fn tsr_string_at(value: &String, index: i64) -> Option<String> {
+    let character = if index >= 0 {
+        usize::try_from(index).ok().and_then(|index| value.chars().nth(index))
+    } else {
+        usize::try_from(index.unsigned_abs() - 1).ok().and_then(|index| value.chars().rev().nth(index))
+    };
+    character.map(tsr_char_text)
+}
+
 pub fn tsr_char_at(value: &String, index: i64) -> String {
     usize::try_from(index)
         .ok()
         .and_then(|index| value.chars().nth(index))
-        .map_or(String::Borrowed(""), |scalar| {
-            String::Owned(scalar.to_string())
-        })
+        .map_or(String::Borrowed(""), tsr_char_text)
 }
 
 pub fn tsr_trim(value: &String) -> String {
@@ -593,18 +695,43 @@ pub fn tsr_string_ends_with(value: &str, needle: &str, position: Option<i64>) ->
 
 pub fn tsr_string_includes(value: &str, needle: &str, position: Option<i64>) -> bool {
     let start = string_search_position(value.len(), position, 0);
-    value
+    let tail = value
         .get(start..)
-        .expect("string search position is not on a UTF-8 boundary")
-        .contains(needle)
+        .expect("string search position is not on a UTF-8 boundary");
+    tsr_find(tail, needle).is_some()
+}
+
+// Short haystacks: a direct byte-window scan avoids building a two-way searcher
+// on every call. A valid UTF-8 needle cannot start with a continuation byte, so
+// every byte match begins on a character boundary.
+const SHORT_SEARCH: usize = 64;
+
+fn tsr_find(haystack: &str, needle: &str) -> Option<usize> {
+    let (bytes, wanted) = (haystack.as_bytes(), needle.as_bytes());
+    let Some(&first) = wanted.first() else { return Some(0) };
+    if bytes.len() > SHORT_SEARCH {
+        return haystack.find(needle);
+    }
+    let last = bytes.len().checked_sub(wanted.len())?;
+    (0..=last).find(|&start| bytes[start] == first && &bytes[start..start + wanted.len()] == wanted)
+}
+
+fn tsr_rfind(haystack: &str, needle: &str) -> Option<usize> {
+    let (bytes, wanted) = (haystack.as_bytes(), needle.as_bytes());
+    let Some(&first) = wanted.first() else { return Some(bytes.len()) };
+    if bytes.len() > SHORT_SEARCH {
+        return haystack.rfind(needle);
+    }
+    let last = bytes.len().checked_sub(wanted.len())?;
+    (0..=last).rev().find(|&start| bytes[start] == first && &bytes[start..start + wanted.len()] == wanted)
 }
 
 pub fn tsr_string_index_of(value: &str, needle: &str, position: Option<i64>) -> i64 {
     let start = string_search_position(value.len(), position, 0);
-    value
+    let tail = value
         .get(start..)
-        .expect("string search position is not on a UTF-8 boundary")
-        .find(needle)
+        .expect("string search position is not on a UTF-8 boundary");
+    tsr_find(tail, needle)
         .map_or(-1, |offset| {
             i64::try_from(start + offset).expect("string search index exceeds int range")
         })
@@ -622,7 +749,7 @@ pub fn tsr_string_last_index_of(value: &str, needle: &str, position: Option<i64>
     // Bound match starts, retaining an entire match that begins at position.
     // Only the internal endpoint is rounded; the selected boundary is checked.
     let end = value.floor_char_boundary(position.saturating_add(needle.len()).min(value.len()));
-    value[..end].rfind(needle).map_or(-1, |offset| {
+    tsr_rfind(&value[..end], needle).map_or(-1, |offset| {
         i64::try_from(offset).expect("string search index exceeds int range")
     })
 }
@@ -638,7 +765,7 @@ pub fn tsr_string_repeat(value: &String, count: i64, failure: &'static str) -> S
 // String patterns have no captures. Only the four ordinary substitution tokens
 // expand; prefix/suffix always refer to the original source, not built output.
 pub fn string_replacement_template(
-    output: &mut std::string::String,
+    mut emit: impl FnMut(&str),
     source: &str,
     position: usize,
     matched: &str,
@@ -646,21 +773,21 @@ pub fn string_replacement_template(
 ) {
     let mut remainder = template;
     while let Some(dollar) = remainder.find('$') {
-        output.push_str(&remainder[..dollar]);
+        emit(&remainder[..dollar]);
         remainder = &remainder[dollar + 1..];
         match remainder.as_bytes().first() {
-            Some(b'$') => output.push('$'),
-            Some(b'&') => output.push_str(matched),
-            Some(b'`') => output.push_str(&source[..position]),
-            Some(b'\'') => output.push_str(&source[position + matched.len()..]),
+            Some(b'$') => emit("$"),
+            Some(b'&') => emit(matched),
+            Some(b'`') => emit(&source[..position]),
+            Some(b'\'') => emit(&source[position + matched.len()..]),
             _ => {
-                output.push('$');
+                emit("$");
                 continue;
             }
         }
         remainder = &remainder[1..];
     }
-    output.push_str(remainder);
+    emit(remainder);
 }
 
 pub fn tsr_string_replace(value: &String, pattern: &String, replacement: &String, all: bool) -> String {
@@ -672,15 +799,22 @@ pub fn tsr_string_replace(value: &String, pattern: &String, replacement: &String
         });
     }
     let source = value.as_ref();
-    let mut output = std::string::String::with_capacity(source.len());
+    let matches = source.match_indices(pattern.as_ref()).take(if all { usize::MAX } else { 1 });
+    let mut capacity = source.len();
+    if !all {
+        for (position, matched) in matches.clone() {
+            capacity -= matched.len();
+            string_replacement_template(
+                |piece| capacity = capacity.checked_add(piece.len()).expect("capacity overflow"),
+                source, position, matched, replacement.as_ref(),
+            );
+        }
+    }
+    let mut output = std::string::String::with_capacity(capacity);
     let mut end = 0;
-    for (position, matched) in
-        source
-            .match_indices(pattern.as_ref())
-            .take(if all { usize::MAX } else { 1 })
-    {
+    for (position, matched) in matches {
         output.push_str(&source[end..position]);
-        string_replacement_template(&mut output, source, position, matched, replacement.as_ref());
+        string_replacement_template(|piece| output.push_str(piece), source, position, matched, replacement.as_ref());
         end = position + matched.len();
     }
     output.push_str(&source[end..]);

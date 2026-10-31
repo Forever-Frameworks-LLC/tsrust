@@ -301,7 +301,7 @@ fn branch_depth_stays_bounded_while_function_dependencies_use_worklists() {
         "if (true) {".repeat(200),
         "}".repeat(200)
     );
-    reject(&deep, "unsupported");
+    support::accept_deep(&deep);
     let mut source = String::from("function main() {}\n");
     for i in 0..50 {
         source.push_str(&format!(

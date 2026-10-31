@@ -166,7 +166,7 @@ fn template_types_transfers_incoming_loans_and_normal_stack_are_diagnosed() {
         assert_ne!(error.code, "internal");
         assert!(error.span.end > error.span.start);
     }
-    // The original worker stack and depth128 contract stay unchanged.
+    // Nested templates have no nesting limit.
     for count in [48, 200] {
         eprintln!("stage: nested template {count} before");
         let expression = format!("{}\"x\"{}", "`${".repeat(count), "}`".repeat(count));
@@ -174,16 +174,14 @@ fn template_types_transfers_incoming_loans_and_normal_stack_are_diagnosed() {
         if count == 48 {
             assert!(check(&source).is_ok());
         } else {
-            let error = check(&source).err().unwrap();
-            assert_eq!(error.code, "unsupported");
-            assert!(error.message.contains("128"));
+            support::accept_deep(&source);
         }
     }
     eprintln!("stage: nested templates complete; wide template before");
     let wide = format!("function main(){{console.log(`{}`);}}", "${1}".repeat(256));
     assert!(check(&wide).is_ok());
     eprintln!("stage: wide template complete");
-    // Existing hostile indexed-array parsing remains bounded on this same stack.
+    // Deep index chains have no nesting limit.
     for count in [100, 200] {
         eprintln!("stage: nested index {count} before");
         let source = format!(
@@ -197,9 +195,7 @@ fn template_types_transfers_incoming_loans_and_normal_stack_are_diagnosed() {
             analysis.emit_rust();
             eprintln!("stage: nested index {count} emit complete");
         } else {
-            let error = check(&source).err().unwrap();
-            assert_eq!(error.code, "unsupported");
-            assert!(error.message.contains("128"));
+            support::accept_deep(&source);
         }
     }
 }

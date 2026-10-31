@@ -45,12 +45,6 @@ fn reject(source: &str, code: &str) {
     assert_eq!(error.code, code, "{source}\n{}", error.message);
 }
 
-fn reject_message(source: &str, expected: &str) {
-    let error = check(source).err().expect("source must be rejected");
-    assert_eq!(error.code, "unsupported", "{source}\n{}", error.message);
-    assert_eq!(error.message, expected);
-}
-
 // Batched future O0/O3 fixtures. This source proposal has not been executed.
 #[test]
 fn data_ranks_void_and_flat_borrowed_forwarding_remain_reusable() {
@@ -102,9 +96,6 @@ fn data_ranks_void_and_flat_borrowed_forwarding_remain_reusable() {
     // seven outputs each. Each family needs at most six concrete named/method
     // specialization entries (measure, apply, copyValue, copying, and two pass
     // origins); flat inline/arrowCopy callbacks retain ordinary generic bodies.
-    // Successful check() below also enforces the actual shared128 cache guard.
-    let conservative_specialization_bound = cases.len() * 6;
-    assert!(conservative_specialization_bound <= 128);
     let mut source = String::from("type Row={n:int;};type Node={n:int;children:Node[];};\n");
     let mut expected_output = String::new();
     let mut main_calls = String::new();
@@ -451,9 +442,8 @@ fn recursion_annotation_depth_and_typed_native_graph_paths_preserve_limits() {
         if depth == 100 {
             check(&source).unwrap().emit_rust();
         } else {
-            reject(&source, "unsupported");
+            support::accept_deep(&source);
         }
-        // Both callback-parameter and callable-result branches are bounded.
         let mut parameter = "int".to_string();
         let mut result = "int".to_string();
         for _ in 0..depth {
@@ -481,12 +471,13 @@ fn recursion_annotation_depth_and_typed_native_graph_paths_preserve_limits() {
             check(&definitions).unwrap().emit_rust();
             reject(&result_source, "unsupported");
         } else {
-            reject(&param_source, "unsupported");
-            reject(&result_source, "unsupported");
+            // Deep annotations have no nesting limit; the self-returning result
+            // is still rejected as a recursive origin.
+            support::accept_deep(&param_source);
+            assert_eq!(support::check_deep(&result_source).unwrap_err().code, "unsupported");
         }
     }
-    // Original 128-per-target vector guard is exercised with genuinely distinct
-    // closed arrow origins rather than repeated structurally equal contracts.
+    // Like rustc, distinct closed arrow origins instantiate without a count limit.
     for count in [8, 129] {
         let mut body = String::new();
         for n in 0..count {
@@ -495,15 +486,10 @@ fn recursion_annotation_depth_and_typed_native_graph_paths_preserve_limits() {
         let source = format!(
             "function apply(f:Mutable<Function<int, [x:int]>>,n:int):int{{if(n===0){{return f(0);}}return apply(f,n-1);}}function main(){{const c=apply;{body}}}"
         );
-        if count == 8 {
-            check(&source).unwrap().emit_rust();
-        } else {
-            reject(&source, "unsupported");
-        }
+        check(&source).unwrap().emit_rust();
     }
-    // Both caches share the same 128 budget: half named owned callback
-    // specializations and half inline materialized methods. No descriptor call
-    // layer is introduced for named calls, so exactly one slot is used per call.
+    // Named owned callback specializations and inline materialized methods
+    // instantiate per origin without a count limit.
     for count in [128, 129] {
         let mut body = String::new();
         for n in 0..count {
@@ -513,14 +499,7 @@ fn recursion_annotation_depth_and_typed_native_graph_paths_preserve_limits() {
         let source = format!(
             "function named(f:Function<int, [x:int]>):int{{return f(0);}}function main(){{const inline=(f:Function<int, [x:int]>):int=>{{return f(0);}};{body}}}"
         );
-        if count == 128 {
-            check(&source).unwrap().emit_rust();
-        } else {
-            reject_message(
-                &source,
-                "Callback origin specialization count exceeds the prototype limit of 128.",
-            );
-        }
+        check(&source).unwrap().emit_rust();
     }
     // A generic flat argument is reborrowed into one owned-dependent method.
     // The method has one source specialization, but receives distinct closed
@@ -533,14 +512,7 @@ fn recursion_annotation_depth_and_typed_native_graph_paths_preserve_limits() {
         let source = format!(
             "function zero():int{{return 0;}}function bridge(f:Mutable<Function<int, [x:int]>>):int{{const invoke=(action:Mutable<Function<int, [x:int]>>,maker:Function<int>):int=>{{return action(maker());}};return invoke(f,zero);}}function main(){{{body}}}"
         );
-        if count == 128 {
-            check(&source).unwrap().emit_rust();
-        } else {
-            reject_message(
-                &source,
-                "Recursive callback instantiations exceed the prototype limit of 128 per native target.",
-            );
-        }
+        check(&source).unwrap().emit_rust();
     }
     // Repeated visits of the SAME flat witness are deduplicated by typed target
     // and vector, rather than charged as new origins or native instantiations.

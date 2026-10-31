@@ -147,13 +147,13 @@ impl Session {
         }
     }
 
-    /// Wait for a specific publication, including a closed workspace sentinel.
+    /// Wait for the current document version, or a closed workspace sentinel.
     pub fn wait_for_diagnostics(&mut self,name:&str)->Value {
         let uri=self.uri(name);let deadline=Instant::now()+Duration::from_secs(10);
         loop {
             let message=self.messages.recv_timeout(deadline.saturating_duration_since(Instant::now())).expect("server must publish diagnostics before the deadline");
             if let Message::Notification(notification)=message {
-                if notification.method=="textDocument/publishDiagnostics" && notification.params["uri"]==uri {return notification.params["diagnostics"].clone();}
+                if diagnostic_publication_matches(&notification,&uri,self.versions.get(name).copied()) {return notification.params["diagnostics"].clone();}
             }
         }
     }
@@ -193,6 +193,13 @@ impl Session {
         let reply = self.request("textDocument/hover", json!({"textDocument": {"uri": uri}, "position": position(text, offset)}));
         reply.pointer("/contents/value").and_then(Value::as_str).map(str::to_owned)
     }
+}
+
+/// Older publications may still be queued when a test sends a document edit.
+pub fn diagnostic_publication_matches(notification: &Notification, uri: &str, version: Option<i32>) -> bool {
+    notification.method == "textDocument/publishDiagnostics"
+        && notification.params["uri"] == uri
+        && notification.params["version"].as_i64() == version.map(i64::from)
 }
 
 impl Drop for Session {

@@ -262,16 +262,26 @@ fn array_indirection_breaks_layout_cycles_and_shared_type_graphs_are_valid() {
         "true\n",
         None,
     );
-    let mut source = "type R0 = { n: int; };".to_owned();
-    for i in 1..=28 {
-        source.push_str(&format!(
-            "type R{i} = {{ left: R{}; right: R{}; }};",
-            i - 1,
-            i - 1
-        ));
+    // Like rustc, inline records are limited only by Rust's maximum object size.
+    let doubling = |depth: usize| {
+        let mut source = "type R0 = { n: int; };".to_owned();
+        for i in 1..=depth {
+            source.push_str(&format!(
+                "type R{i} = {{ left: R{}; right: R{}; }};",
+                i - 1,
+                i - 1
+            ));
+        }
+        source + "function main() {}"
+    };
+    support::accept_deep(&doubling(28));
+    for depth in [60, 61] {
+        assert!(
+            reject(&doubling(depth), "unsupported")
+                .message
+                .contains("isize::MAX")
+        );
     }
-    source.push_str("function main() {}");
-    assert!(reject(&source, "unsupported").message.contains("1 GiB"));
 }
 
 #[test]
@@ -296,24 +306,17 @@ fn deep_record_literals_and_storage_paths_compile_with_existing_guards() {
         boundary.push_str(&format!("type R{i} = {{ child: R{}; }};", i - 1));
     }
     execute(&format!("{boundary} function main() {{}}"), "", None);
+    // Like rustc, record layout nesting has no depth limit.
     boundary.push_str("type R128 = { child: R127; }; function main() {}");
-    assert!(
-        reject(&boundary, "unsupported")
-            .message
-            .contains("layout nesting")
-    );
-    // Recursive arrays keep type layouts finite while deeply nested literals
-    // still exercise the parser/analysis expression guards.
+    support::accept_deep(&boundary);
+    // Recursive arrays keep type layouts finite, so deeply nested literals compile.
     let mut value = "{ children: [] }".to_owned();
     for _ in 0..150 {
         value = format!("{{ children: [{value}] }}");
     }
-    reject(
-        &format!(
-            "type Node = {{ children: Node[]; }}; function main() {{ const n: Node = {value}; }}"
-        ),
-        "unsupported",
-    );
+    support::accept_deep(&format!(
+        "type Node = {{ children: Node[]; }}; function main() {{ const n: Node = {value}; }}"
+    ));
 }
 
 #[test]

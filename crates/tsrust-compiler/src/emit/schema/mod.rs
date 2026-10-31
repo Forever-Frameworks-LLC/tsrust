@@ -7,6 +7,8 @@ mod schema_collection_trials;
 mod schema_decode;
 #[path = "decode_call.rs"]
 mod schema_decode_call;
+#[path = "decode_direct.rs"]
+mod schema_decode_direct;
 #[path = "decode_input.rs"]
 mod schema_decode_input;
 #[path = "decode_pipelines.rs"]

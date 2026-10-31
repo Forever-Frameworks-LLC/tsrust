@@ -10,8 +10,6 @@ pub(crate) struct Registry {
 }
 
 impl Registry {
-    pub(crate) fn is_empty(&self) -> bool { self.parents.is_empty() }
-
     pub(crate) fn observe(&mut self, previous: usize, replacement: usize) {
         self.parents.entry(previous).or_insert(previous);
         self.parents.entry(replacement).or_insert(replacement);
@@ -35,10 +33,6 @@ impl Registry {
     }
 
     pub(crate) fn contains(&self, origin: usize) -> bool { self.parents.contains_key(&origin) }
-
-    pub(crate) fn canonical_origin(&self, origin: usize) -> usize {
-        self.root(origin).unwrap_or(origin)
-    }
 
     /// Declaration proofs select concrete environments only from this storage.
     /// Repeated references to one declaration retain their distinct payloads.

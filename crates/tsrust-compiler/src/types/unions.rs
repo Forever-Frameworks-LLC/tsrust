@@ -28,7 +28,7 @@ impl UnionArena {
     pub(crate) fn len(&self) -> usize { self.0.borrow().types.len() }
     pub(crate) fn from_snapshot(types:Vec<UnionType>)->Self {
         let identities=types.iter().enumerate().filter(|(_,union)|!union.recursive).map(|(index,union)| {
-            (union.members.clone(),UnionId{index:u32::try_from(index).expect("existing union index"),copy:union.members.iter().all(|member|member.is_copy())})
+            (union.members.clone(),UnionId{index:u32::try_from(index).expect("existing union index"),copy:union.members.iter().all(|member|member.is_copy()),scalar_members:union.members.iter().all(|member|member.is_scalar())})
         }).collect();
         Self(RefCell::new(ArenaState{types,identities,named_types:HashMap::new()}))
     }
@@ -55,7 +55,7 @@ impl UnionArena {
     pub(crate) fn named_type(&self, id: usize) -> Type {
         let arena=self.0.borrow();
         arena.named_types.get(&id).copied().or_else(||arena.types.iter().enumerate().find_map(|(index,union)|
-            (union.recursive_declaration==Some(id)).then_some(Type::Union(UnionId{index:index as u32,copy:false}))))
+            (union.recursive_declaration==Some(id)).then_some(Type::Union(UnionId{index:index as u32,copy:false, scalar_members:false}))))
             .unwrap_or(Type::Record(id))
     }
     pub(crate) fn is_recursive(&self,id:UnionId)->bool {
@@ -84,7 +84,7 @@ impl UnionArena {
         let mut arena=self.0.borrow_mut();
         let index=u32::try_from(arena.types.len()).map_err(|_|Diagnostic::new("unsupported","Program union type limit exceeded.",span))?;
         arena.types.push(UnionType{recursive:true,recursive_declaration:None,members:Vec::new()});
-        Ok(Type::Union(UnionId{index,copy:false}))
+        Ok(Type::Union(UnionId{index,copy:false,scalar_members:false}))
     }
 
     /// Resolve a reserved slot once. Structural productivity and native layout
@@ -142,6 +142,7 @@ impl UnionArena {
                     UnionId {
                         index: u32::try_from(index).expect("existing union index"),
                         copy: union.members.iter().all(|member| member.is_copy()),
+                        scalar_members: union.members.iter().all(|member|member.is_scalar()),
                     },
                 )
             })
@@ -202,6 +203,7 @@ impl UnionArena {
                 Diagnostic::new("unsupported", "Program union type limit exceeded.", span)
             })?,
             copy: members.iter().all(|ty| ty.is_copy()),
+            scalar_members: members.iter().all(|ty|ty.is_scalar()),
         };
         arena.types.push(UnionType {
             recursive: false,
@@ -423,5 +425,32 @@ mod resumed_arena_tests {
         let Type::Union(id)=added else {panic!("union");};
         assert_eq!(id.index(),2);
         assert_eq!(resumed.snapshot().len(),3);
+    }
+}
+
+#[cfg(test)]
+mod scalar_array_storage_tests {
+    use super::*;
+    use crate::syntax::ArrayElement;
+    #[test]
+    fn scalar_union_storage_metadata_survives_snapshots_and_keeps_recursive_indirection() {
+        let arena=UnionArena::default();
+        let span=Span::default();
+        let scalar=arena.intern([Type::Int,Type::String,Type::Null],span).unwrap();
+        let id=scalar.union().unwrap();
+        let array=Type::Array(ArrayElement::Union(id,0));
+        assert!(crate::storage::inline_array(array));
+        assert!(!scalar.is_copy());
+        assert!(!crate::storage::inline_array(Type::Array(ArrayElement::Union(id,1))));
+        assert!(crate::storage::array_storage_bound(ArrayElement::Union(id,0))>std::mem::size_of::<Vec<()>>());
+        let resumed=UnionArena::from_snapshot(arena.snapshot());
+        assert_eq!(resumed.intern([Type::Null,Type::Int,Type::String],span).unwrap(),scalar);
+        for payload in [Type::Record(0),Type::Array(ArrayElement::Int(0)),Type::Closure(0)] {
+            let union=resumed.intern([payload,Type::Null],span).unwrap().union().unwrap();
+            assert!(!crate::storage::inline_array(Type::Array(ArrayElement::Union(union,0))));
+        }
+        let recursive=resumed.reserve_recursive(span).unwrap().union().unwrap();
+        resumed.bind_recursive(recursive,vec![Type::Int,Type::Null],span).unwrap();
+        assert!(!crate::storage::inline_array(Type::Array(ArrayElement::Union(recursive,0))));
     }
 }

@@ -212,12 +212,12 @@ fn call_spread_arity_sources_and_loans_are_checked() {
 }
 
 #[test]
-fn call_spread_normal_depth_and_original_limit() {
+fn call_spread_compiles_at_any_depth() {
     for depth in [100,200] {
         let expression=format!("{}head(...[1]){}","head(".repeat(depth-1),")".repeat(depth-1));
         let source=format!("function head(value:int):int{{return value;}}function main(){{console.log({expression});}}");
         if depth==100 {let analysis=check(&source).unwrap_or_else(|error|panic!("{}",error.render("input.tsr",&source)));assert!(analysis.emit_rust().contains("expanded call arity"));}
-        else {let error=check(&source).err().expect("200 levels reject");assert_eq!(error.code,"unsupported");assert!(error.message.contains("128"));}
+        else {support::accept_deep(&source);}
     }
 }
 

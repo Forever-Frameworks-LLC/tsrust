@@ -48,8 +48,6 @@ An empty statement is not a body. `if (ready) ;` is a `syntax` error; write `{}`
 
 ### Scope and nesting
 
-A body without braces counts toward the nesting limit of 128, like a block.
-
 Names declared in a loop header are scoped to the loop whether or not its body has braces. A destructuring assignment can be a body: `if (a < b) [a, b] = [b, a];`.
 
 ## switch

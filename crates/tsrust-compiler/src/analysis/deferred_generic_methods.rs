@@ -1,36 +1,7 @@
 //! Materialize checked generic bodies without checking source arguments again.
 use super::*;
-type BodyProfile<'a> = (usize, Option<&'a str>, &'a [Type]);
 
 impl Analyzer {
-    fn deferred_body_profile<'a>(&'a self, origin: usize, types: &'a [Type]) -> BodyProfile<'a> {
-        let source = self.deferred_generic_values.get(&origin);
-        let empty = source.is_some_and(|source| source.identities.is_empty()) && self.closures[origin].captures.is_empty();
-        let group = if empty { self.polymorphic_storage.canonical_origin(origin) } else { origin };
-        (group, source.map(|source| source.declaration.as_str()), types)
-    }
-
-    fn deferred_body_profiles(&self) -> HashSet<BodyProfile<'_>> {
-        self.closure_specializations.keys().filter(|(_, _, effects, discovery)| !effects && !discovery)
-            .map(|(origin, types, _, _)| self.deferred_body_profile(*origin, types)).collect()
-    }
-
-    #[inline(never)]
-    pub(super) fn callable_body_specialization_count(&self) -> usize {
-        if self.polymorphic_storage.is_empty() {
-            return self.specializations.len() + self.closure_specializations.keys()
-                .filter(|(_, _, effects, discovery)| !effects && !discovery).count();
-        }
-        self.specializations.len() + self.deferred_body_profiles().len()
-    }
-
-    fn deferred_method_fits_budget(&self, origin: usize, types: &[Type]) -> bool {
-        if self.polymorphic_storage.is_empty() { return self.callable_body_specialization_count() < 128; }
-        let mut profiles = self.deferred_body_profiles();
-        profiles.insert(self.deferred_body_profile(origin, types));
-        self.specializations.len() + profiles.len() <= 128
-    }
-
     #[inline(never)]
     #[allow(clippy::too_many_arguments)]
     #[cfg(test)]
@@ -77,9 +48,6 @@ impl Analyzer {
         let key = (origin, types, self.effects_only, self.discovering_results);
         if let Some(&method) = self.closure_specializations.get(&key) {
             return Ok(method);
-        }
-        if !self.deferred_method_fits_budget(origin, &key.1) {
-            return Err(Diagnostic::new("unsupported", "Callback origin specialization count exceeds the prototype limit of 128.", span));
         }
         let checked = self.checked[function].as_ref().ok_or_else(|| Self::pending_result(span))?;
         let method = self.closures[origin].methods.len();

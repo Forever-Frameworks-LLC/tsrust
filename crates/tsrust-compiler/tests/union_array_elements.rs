@@ -81,3 +81,39 @@ fn union_array_elements_keep_static_contracts() {
         support::reject(source, code);
     }
 }
+
+#[test]
+fn scalar_union_arrays_spill_clone_and_move_without_losing_tags() {
+    let rust=execute(r#"
+      type Value=int|string|null;
+      enum Label { Ready="ready", Later="later" }
+      enum Count { One=1, Two=2.5 }
+      type Flag="ready"|"later";
+      function grow(values:Value[]):Value[]{values.push('tail');return values;}
+      function main(){
+        const values:Value[]=[1,'two'.repeat(2),null,4];
+        const saved=clone(values);
+        const grown=grow(values);
+        grown[1]='new';
+        console.log(saved.join('|'));
+        console.log(grown.pop());
+        console.log(grown.shift());
+        grown.unshift(7);
+        grown.splice(1,1,'last');
+        console.log(grown.join('|'));
+        const nested:Value[][]=[saved,grown];
+        console.log(nested.length,nested[1].length);
+        const enums:(Label|null)[]=[Label.Ready,null];
+        enums.push(Label.Later);
+        for(const value of enums){if(value!==null){console.log(value);}}
+        const numbers:(Count|null)[]=[Count.One,null,Count.Two];
+        for(const value of numbers){if(value!==null){console.log(value);}}
+        const flags:Flag[]=['ready'];
+        flags.push('later');
+        console.log(flags.join('|'));
+      }
+    "#,"1|twotwo||4\ntail\n1\n7|last||4\n2 4\nready\nlater\n1\n2.5\nready|later\n",None);
+    assert!(rust.contains("Array<Union"));
+    assert!(rust.contains("Vec<Array<Union"));
+    assert!(!rust.contains("unsafe"));
+}

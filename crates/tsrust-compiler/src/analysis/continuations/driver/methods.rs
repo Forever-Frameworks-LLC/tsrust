@@ -65,10 +65,10 @@ mod tests {
     }
 
     #[test]
-    fn specialization_budget_reports_diagnostic_instead_of_stack_overflow() {
-        let source = chain(16, false);
-        let error = crate::check(&source).err().expect("existing specialization budget");
-        assert_eq!(error.code, "unsupported");
-        assert_eq!(error.message, "Callback origin specialization count exceeds the prototype limit of 128.");
+    fn long_callback_chains_specialize_without_a_count_limit() {
+        // Like rustc, each distinct callback origin is specialized; there is no
+        // count limit. A 40-step chain needs several hundred specializations.
+        let source = chain(40, false);
+        crate::check(&source).unwrap_or_else(|error| panic!("{}", error.message)).emit_rust();
     }
 }

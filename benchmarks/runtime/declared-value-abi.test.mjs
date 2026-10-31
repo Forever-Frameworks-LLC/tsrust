@@ -15,3 +15,25 @@ test('source mismatches and emitted ownership/schema/witness mismatches fail clo
  const row=rows.find(r=>r.result==='Row[][]'),s=source(row),text=specimen(row);for(const changed of [text.replace('field1:String','field1:i64'),text.replace('field2:Vec<i64>','field2:Vec<f64>'),text.replace('field2:Vec<i64>','field2:Vec<i64>,field3:bool,field4:i64')])assert.throws(()=>verifyDeclaredABI(changed,row,s));
  const tree=rows.find(r=>r.result==='Node[]'),ts=source(tree),native=specimen(tree);assert.throws(()=>verifyDeclaredABI(native.replace('Vec<Record9>','Vec<i64>'),tree,ts));assert.throws(()=>verifyDeclaredABI(native.replace('field2:RecordArray9','field2:Vec<i64>'),tree,ts));
  const factory=rows.find(r=>r.id==='declared_value_factory_target'),fsrc=source(factory),ft=specimen(factory);assert.throws(()=>verifyDeclaredABI(ft.replace('capture0:String','capture0:&String'),factory,fsrc));assert.throws(()=>verifyDeclaredABI(ft.replace('value1:&String','value1:String'),factory,fsrc));});
+
+test('independent references bind owned results without compiler callback wrappers',async()=>{
+ const {verifyDeclaredReferenceABI}=await import('./declared-value-abi.mjs');
+ const {adaptRustDriver}=await import('./adapters.mjs');
+ const driver=fs.readFileSync(new URL('driver.rs',import.meta.url),'utf8');
+ for(const row of rows){
+  const s=source(row),text=specimen(row),reference=text.slice(0,text.indexOf('\nfn function',text.indexOf('fn function0')+1))+'\nfn main(){}\n';
+  const binding=verifyDeclaredReferenceABI(reference,row,s);
+  assert.equal(binding.protocol,'hand-written-declared-result-abi-v1');
+  assert.deepEqual(binding.targets,[]);
+  assert.throws(()=>verifyDeclaredABI(reference,row,s));
+  assert.throws(()=>adaptRustDriver(driver,row,{emitted:reference,source:s}));
+  assert.doesNotThrow(()=>adaptRustDriver(driver,row,{emitted:reference,source:s,reference:true}));
+  assert.throws(()=>verifyDeclaredReferenceABI(reference,row,s+' '));
+  assert.throws(()=>verifyDeclaredReferenceABI(reference.replace('value0:i64','value0:f64'),row,s));
+  assert.throws(()=>verifyDeclaredReferenceABI(reference.replace('fn function0','fn function9'),row,s));
+  assert.throws(()=>verifyDeclaredReferenceABI(reference.replace('fn main(){}','fn function0(value0:i64,value1:i64)->i64{0}\nfn main(){}'),row,s));
+  if(row.result.endsWith('[]'))assert.throws(()=>verifyDeclaredReferenceABI(reference.replace('-> Vec<','-> &Vec<'),row,s));
+  if(row.recordSchemas?.Row)for(const changed of [reference.replace('field1:String','field1:i64'),reference.replace('field2:Vec<i64>','field2:Vec<f64>')])assert.throws(()=>verifyDeclaredReferenceABI(changed,row,s));
+  if(row.recordSchemas?.Node)assert.throws(()=>verifyDeclaredReferenceABI(reference.replace('Vec<Record9>','Vec<i64>'),row,s));
+ }
+});

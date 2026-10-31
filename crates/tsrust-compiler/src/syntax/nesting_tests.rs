@@ -75,9 +75,9 @@ fn suspended_scopes_of_every_grammar_family_stay_on_the_heap() {
     for source in &sources {
         let functions = functions(source);
         drop(functions);
-        // The public entry keeps the documented admission bound.
-        let bounded = parse_raw(source, false, Default::default(), Default::default());
-        assert_eq!(bounded.err().map(|error| error.code), Some("unsupported"), "{}", &source[..source.len().min(96)]);
+        // The public entry has no nesting limit either.
+        let public = parse_raw(source, false, Default::default(), Default::default());
+        assert!(public.is_ok(), "{}", &source[..source.len().min(96)]);
     }
 }
 
@@ -193,7 +193,7 @@ fn deep_annotations_keep_spans_access_wrappers_and_packed_closers() {
         let annotation = parse_with(&source, NestingPolicy::UNBOUNDED).unwrap();
         assert_eq!(annotation.span, Span::new(0, source.len()));
         assert_eq!(annotation.clone(), annotation);
-        assert_eq!(crate::type_syntax::parse(&source).unwrap_err().code, "unsupported");
+        assert!(crate::type_syntax::parse(&source).is_ok(), "public parsing has no nesting limit");
     }
     let arrays = format!("int{}", "[]".repeat(layers));
     assert!(matches!(parse_with(&arrays, NestingPolicy::UNBOUNDED).unwrap().kind, Kind::Array(_)));
