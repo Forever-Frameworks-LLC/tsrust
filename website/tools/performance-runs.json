@@ -3685,6 +3685,58 @@
     "data_union_values": {
       "at": "2026-10-31T15:19:02.403Z",
       "sourceSha256": "08d5aaa535ddb89ec4d979d3ae195531ff6bbdff2daf5a7751a923f8e2c3b250"
+    },
+    "destructuring_patterns": {
+      "at": "2026-10-31T15:27:03.823Z",
+      "sourceSha256": "b03d631d10f822088392c908f08ebc9f0f2e7f4b89ee2dc9df61917c483e2a64"
+    },
+    "destructuring_defaults": {
+      "at": "2026-10-31T15:27:03.823Z",
+      "sourceSha256": "313396e664b44425bd42380ec52c38f368aa6f52dba9a57964eb8be023eb58bc"
+    },
+    "testing_scalar_assertions": {
+      "at": "2026-10-31T15:27:03.823Z",
+      "sourceSha256": "e51975fbe93a90e0514163caac0c1a7e3930d44af89eb4fc98d86fd5a1e9c270"
+    },
+    "destructuring_rest": {
+      "at": "2026-10-31T15:27:03.823Z",
+      "sourceSha256": "160a07565b1978dc501b542729d4ed63044226ac42fd065c2bf0504f5dd817fa"
+    },
+    "nested_rest_patterns": {
+      "at": "2026-10-31T15:27:03.823Z",
+      "sourceSha256": "e51d4b00972599893366202f5f177386aa7695a24f64f63ff0ae3029b00f0c41"
+    },
+    "for_pattern_initializers": {
+      "at": "2026-10-31T15:27:03.823Z",
+      "sourceSha256": "0f7e43d4b31f58c3f0af07536b1bc9c5847a19650642cb67e2d24e7fbc21dcbf"
+    },
+    "destructuring_assignment": {
+      "at": "2026-10-31T15:27:03.823Z",
+      "sourceSha256": "266ea2c1df11e916dfb653baa00d7c45138bdca6b9a2343c8ba1cf0e48668b00"
+    },
+    "braceless_bodies": {
+      "at": "2026-10-31T15:27:03.823Z",
+      "sourceSha256": "c64f9970d6b4c39e714eacd397df438252b6635d263a769a337a6d794d676e92"
+    },
+    "switch_statements": {
+      "at": "2026-10-31T15:27:03.823Z",
+      "sourceSha256": "f94f3ec5511b7013f9e3fb7b69def97f8baac93ac24d366263908f3b5a6e2fc4"
+    },
+    "deferred_initialization": {
+      "at": "2026-10-31T15:27:03.823Z",
+      "sourceSha256": "e5348a8d22d530161649defa4f9b380aecc75e0c44796c3ebeb4afda109cde4f"
+    },
+    "labeled_control": {
+      "at": "2026-10-31T15:27:03.823Z",
+      "sourceSha256": "d1e62938356dde028369d33d5104f777e5500a67a788485bde9731b3fa7ce28c"
+    },
+    "owned_assignment_values": {
+      "at": "2026-10-31T15:27:03.823Z",
+      "sourceSha256": "7b9e822597534890207c7281195f28ac8760af820ce2d0ed682f6f45b160da7d"
+    },
+    "testing_expectation_predicates": {
+      "at": "2026-10-31T15:28:00.367Z",
+      "sourceSha256": "147bac1505c063721fe54fadcf33790e40bd5ed3fb4c66539b1a4894a1f2fe16"
     }
   }
 }
