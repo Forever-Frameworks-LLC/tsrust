@@ -3105,6 +3105,38 @@
     "higher_boolean_reusable": {
       "at": "2026-10-31T13:38:05.653Z",
       "sourceSha256": "8ee91860792dfdfda26091f4ba3d0c664c77329cf88380e9651743e384647f9a"
+    },
+    "higher_owned_callback_return_string": {
+      "at": "2026-10-31T13:40:53.743Z",
+      "sourceSha256": "a1e335f52c3612e5ac4f61eeb8b06b8333e01d750743a257d7bf7e0d3ab34507"
+    },
+    "higher_captured_factory_string": {
+      "at": "2026-10-31T13:40:53.743Z",
+      "sourceSha256": "d6485cf0b5fbfd0b2f1e1188e7766c4582d670cc51a6e44e485a5ed7d70ea427"
+    },
+    "higher_read_string": {
+      "at": "2026-10-31T13:40:53.743Z",
+      "sourceSha256": "0507d67e7aa202b96715295742300b96335086832e9e2a08bb6925190ced730c"
+    },
+    "higher_consume_string": {
+      "at": "2026-10-31T13:40:53.743Z",
+      "sourceSha256": "faccb9e9003cf902f067093fe55cff747bdd3fa1f32c4d4c10bbb07a5844a969"
+    },
+    "higher_mutate_array": {
+      "at": "2026-10-31T13:40:53.743Z",
+      "sourceSha256": "cf98b6951c32e1165270dc1f401a32973b9350091e35f10a29fcfc2ecd164894"
+    },
+    "higher_owned_record": {
+      "at": "2026-10-31T13:40:53.743Z",
+      "sourceSha256": "1bb3d933408f602246c227ee4ec62bd7bc275b9ef1bc7df32366321022a794d4"
+    },
+    "higher_deep_array": {
+      "at": "2026-10-31T13:40:53.743Z",
+      "sourceSha256": "74941bf7b9558ec06b99f095f7975b80f457235f4b1b949564fdbd4d462525db"
+    },
+    "higher_recursive_tree": {
+      "at": "2026-10-31T13:40:53.743Z",
+      "sourceSha256": "b82f499caae312aa1cb1e7fceb619154e6a215e1b3157d0b80e4b7cebe9f7417"
     }
   }
 }
