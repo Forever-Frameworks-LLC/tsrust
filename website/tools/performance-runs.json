@@ -3425,6 +3425,74 @@
     "native_file_buffered_write_read": {
       "at": "2026-10-31T14:36:47.539Z",
       "sourceSha256": "794d9269ced49e7fc775b43badf90e82c3366a8df7afa81238d8f652667f039f"
+    },
+    "native_json_literal_union": {
+      "at": "2026-10-31T14:45:07.009Z",
+      "sourceSha256": "5bb028a798ee8804340e302fa884e7c8199f954464cc3f82178313407cb858be"
+    },
+    "native_json_roundtrip": {
+      "at": "2026-10-31T14:45:07.009Z",
+      "sourceSha256": "b4f6013b6d37016c652f8756d319e7c57e3de1374a25e22e788b08f2e0124f74"
+    },
+    "native_json_namespace": {
+      "at": "2026-10-31T14:45:07.009Z",
+      "sourceSha256": "b4f6013b6d37016c652f8756d319e7c57e3de1374a25e22e788b08f2e0124f74"
+    },
+    "native_json_scalars": {
+      "at": "2026-10-31T14:45:07.009Z",
+      "sourceSha256": "5f615bfe142d1c292d5972e85cfb4f9156cf202d8e0999ca012659325c83b230"
+    },
+    "native_json_typeof": {
+      "at": "2026-10-31T14:45:07.009Z",
+      "sourceSha256": "480a775b4afbb5ad18abf7fea2597a5563ce4ba2ecee30df67c8dcae0a0047e4"
+    },
+    "native_json_inspection": {
+      "at": "2026-10-31T14:45:07.009Z",
+      "sourceSha256": "ba1cde7ae3a051c3661f25c2629f38a9b0017917a768ce8c67a70517bbf6e585"
+    },
+    "native_json_views": {
+      "at": "2026-10-31T14:45:07.009Z",
+      "sourceSha256": "9f3487d6923872d4b041320542d10a46644b1c901725a35dc27072ace0681907"
+    },
+    "native_json_refinement": {
+      "at": "2026-10-31T14:45:07.009Z",
+      "sourceSha256": "e8e011ad5de33426e09d47f4dd8aae6692c19d889f4647d321deb42cc4ba3802"
+    },
+    "native_json_string_reads": {
+      "at": "2026-10-31T14:45:07.009Z",
+      "sourceSha256": "019074482b8727e356d06a97d22956f19e414673ebfd6c7676f8ba69fa663689"
+    },
+    "native_json_string_views": {
+      "at": "2026-10-31T14:45:07.009Z",
+      "sourceSha256": "51e31cf77eec57d99dfbaacbdbad7159e41e860eedf7a153f84eff59038baaf3"
+    },
+    "native_json_string_projection": {
+      "at": "2026-10-31T14:45:07.009Z",
+      "sourceSha256": "51e31cf77eec57d99dfbaacbdbad7159e41e860eedf7a153f84eff59038baaf3"
+    },
+    "native_json_construction": {
+      "at": "2026-10-31T14:45:07.009Z",
+      "sourceSha256": "9dfec3b8c93fab7121da2937570327112be80d5cd88f2fbc36e8fc32b00bd6f8"
+    },
+    "native_json_containers": {
+      "at": "2026-10-31T14:45:07.009Z",
+      "sourceSha256": "f7ef2c8bbc57f0b0c8494932828697b3c7c816e2eee50a106acfb68a2d44f758"
+    },
+    "native_json_typed": {
+      "at": "2026-10-31T14:45:07.009Z",
+      "sourceSha256": "6b522b1aa16a566d096dc55c8cad423bd3a5764786a7d287e8a94fbcf9bae3c4"
+    },
+    "native_json_encoding": {
+      "at": "2026-10-31T14:45:07.009Z",
+      "sourceSha256": "2f7960ef51957423cda9022d2207e38578148c1b8976a143c5a3994792a6d9ff"
+    },
+    "native_json_raw": {
+      "at": "2026-10-31T14:45:07.009Z",
+      "sourceSha256": "316ebfcac458b349aa64de8b48b12ffa94a76796ce698839c6b0d5b6f8eee33d"
+    },
+    "native_json_raw_encoding": {
+      "at": "2026-10-31T14:45:07.009Z",
+      "sourceSha256": "45e3512b07dbee4079ab1a1f01244694a20ef23e3639afbbcb2f06f5174463b7"
     }
   }
 }
