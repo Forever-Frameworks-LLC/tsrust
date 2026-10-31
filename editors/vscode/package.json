@@ -2,7 +2,7 @@
   "name": "tsrust",
   "displayName": "Tsrust",
   "description": "Tsrust diagnostics, documentation hover, autocomplete, signatures and source navigation.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "tsrust-local",
   "license": "MIT",
   "engines": {
