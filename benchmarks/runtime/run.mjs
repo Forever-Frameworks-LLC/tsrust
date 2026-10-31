@@ -422,7 +422,20 @@ function prepare(w) {
   const nativeProbeCommand=[...rustc,'--edition=2024','-C','opt-level=3','-C','overflow-checks=on','-A','warnings',path.join(build,id+'.rs'),'-o',path.join(build,id)];
   const tsProbeCommand=[...tsc,'--project',path.join(build,id+'.json')];run(nativeProbeCommand);run(tsProbeCommand);
   const probes={sources:{rustSha256:hash(probe.rs),tsSha256:hash(probe.ts),nativeBinarySha256:hash(fs.readFileSync(path.join(build,id))),compiledTSSha256:hash(fs.readFileSync(path.join(build,id+'.js')))},abi:probe.abi,compileCommands:[nativeProbeCommand,tsProbeCommand],engines:{}};
-  for(const engine of engines(id)){const actual=JSON.parse(run(engine.command).stdout);const errors=validateApproximatePointProbe(actual,loaded.reference);probes.engines[engine.id]={command:engine.command,actual,errors};}
+  const probeEngines=engines(id);
+  if(handSources.has(w.id)){
+   const hand=fs.readFileSync(handSourcePath,'utf8');
+   const handProbe=approximatePointProbeSources(hand,ts,w,loaded.reference);
+   const handProbePath=path.join(build,id+'-hand.rs'),handProbeBinary=path.join(build,id+'-hand');
+   fs.writeFileSync(handProbePath,handProbe.rs);
+   const handProbeCommand=[...rustc,...nativeDependencies.args,...allocatorArgs,'--edition=2024','-C','opt-level=3','-C','overflow-checks=on','-A','warnings',handProbePath,'-o',handProbeBinary];
+   run(handProbeCommand);
+   probes.sources.handRustSha256=hash(handProbe.rs);
+   probes.sources.handBinarySha256=hash(fs.readFileSync(handProbeBinary));
+   probes.compileCommands.push(handProbeCommand);
+   probeEngines.push({id:'rust-hand',command:[handProbeBinary]});
+  }
+  for(const engine of probeEngines){const actual=JSON.parse(run(engine.command).stdout);const errors=validateApproximatePointProbe(actual,loaded.reference);probes.engines[engine.id]={command:engine.command,actual,errors};}
   approximateProbes.set(w.id,probes);
  }
  const phases = [

@@ -953,6 +953,146 @@
     "number_to_string_radix": {
       "at": "2026-10-31T11:42:48.171Z",
       "sourceSha256": "de193c399adfcfdd8c7e6dc08ea46609425ea194c79e06c0aea66db816a20414"
+    },
+    "math_abs": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "3acc3fa1b2d3d768ae294c82f227697231697b8c963dfc71c77845ba7d6d5aa0"
+    },
+    "math_floor": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "37e01f98de5044fa656f03a074a3b041909adc13ac6c0440ba9dbc0e24bdd59d"
+    },
+    "math_ceil": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "1411fa36cbd95b934bfea64bd45c4aa354cb5eb6b1dbab9f5555916e60b03168"
+    },
+    "math_trunc": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "56a2c16a335923c13acac6264edc1f1c588941e68f0ef42fed560439d837fc25"
+    },
+    "math_sqrt": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "8bd15128f6c5b80888c47c76149542412b4e7d8ef85672fed05f129175a2cee6"
+    },
+    "math_round": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "ead6f57fc90bae3e745056cc588cfd28659e05cbba28f4041088e8ee2fe4a670"
+    },
+    "math_sign": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "7d49f46c624db550c83851ffc67a8a3df2cb2f89b087f303af01cc76484daa60"
+    },
+    "math_fround": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "5141e5f75d9ba444008a9ca8110dabe704d48526426de5455e4b957dc0690eb9"
+    },
+    "math_min": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "4b25ae5a8f3268a0775e408a4aad25c3489fe2979fc5f91371c5e3ab18ad8452"
+    },
+    "math_max": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "ffd6af8f80ea02f26485b8604aa531cd45682e786d323e7e7b4aaf9c6a806226"
+    },
+    "math_clz32": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "09a0c463a6a8051ddde452455ef48b2da4450a04b43e11852a33b91acbed01c5"
+    },
+    "math_imul": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "e9063ec33211c1c5ecc7046e2ed6432e2828ad7cccb845bb8a9e9b820e9a7ad8"
+    },
+    "math_acos": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "6e60cd681453168e3f9928420f76878d6c397e04681b441b0c7738c15437e09c"
+    },
+    "math_acosh": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "6f4b9ee196faa76e1315bea901309be917d1393c4415362db2f6e3671349606c"
+    },
+    "math_asin": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "3fa7a0946618a19da7e28453981678238f574ad4e56ce9a22f4cda689f4db7cf"
+    },
+    "math_asinh": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "1329b23ceea45a2c0d10f98b3d9bc4ad4d7e7e4cb05756f1ffd099456e088680"
+    },
+    "math_atan": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "e724e762e680b2533682dd4d71b39c3e0072d4b6653849f53757b52645e50dfc"
+    },
+    "math_atanh": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "9cdb08c530c8cea2d495abb60e540d7a0f4b2a6df0d654ad91175c9b78d96e89"
+    },
+    "math_cbrt": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "57d535395ce96b151ce97fed2d7abcc2434fe20362078a52783186d092a17817"
+    },
+    "math_cos": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "f4879469f10b83ce8fbc0d77f7c824765e025a92b1408a2ed496a21526706071"
+    },
+    "math_cosh": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "e4304a8caa7d4ce2a7e974755f9d52e280d1d5d273f45b7c13fbe5a852e85428"
+    },
+    "math_exp": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "054f7839e20223abe6ae5cc3c669c7b63e1116e6ba6ef4a586d1b567e0e307a9"
+    },
+    "math_expm1": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "5688086ecd9a37c136b5a26fbab07e1223e87de6efe8ff546414e8cd630f377d"
+    },
+    "math_log": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "912e45f033e68132b5d8a4a3a57e8a40cfbb0dcb384fa6f55a43070edd94d561"
+    },
+    "math_log10": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "129c835eca41eaaaada99a7f6ab349d5a86e841147b73761cc3b6aa5c7b22740"
+    },
+    "math_log1p": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "94a9f830d05ed7ec4ef12cf2a8d6500a7f19fcbdf98a757ab8c000e56810e054"
+    },
+    "math_log2": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "fbeada7c2763522b6aeba6f2f36f58b9736c01c074e7f07b302eede3f3597832"
+    },
+    "math_sin": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "8fd31b092e0c72c7fdef68935578ff2f705e83acf438df6e617d1f5b4be99fcd"
+    },
+    "math_sinh": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "45c0c67e9c09d30b8c76bc7a07f61394d6d4f60aba290192823891cfd5776748"
+    },
+    "math_tan": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "2318c717d89fa29e3beafb8f2f7c37370a3b9fb5cba3302333f8195891287924"
+    },
+    "math_tanh": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "2297743f9b517650a5213fbc339c2c4d0b992eb49d3f4ea80d2a45ee3114d6ff"
+    },
+    "math_atan2": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "664b0d9d5c1f48736d9c0f21ffcfe5efeff8182d245be06cd876a59870bdb5d0"
+    },
+    "math_pow": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "daae211b038825b25ff2db6f170139d259c79ff121a4cb67a92f5d9f6e21738b"
+    },
+    "math_hypot": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "eea91744b2d513323cb8a198f0b12a0779b3d622d870be31eac1abe1c2933ac9"
+    },
+    "number_exponent": {
+      "at": "2026-10-31T11:45:55.450Z",
+      "sourceSha256": "daae211b038825b25ff2db6f170139d259c79ff121a4cb67a92f5d9f6e21738b"
     }
   }
 }

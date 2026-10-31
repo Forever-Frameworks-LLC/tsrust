@@ -687,7 +687,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   48952 terminal zero. Ingested and verified the one Rust history entry and SQLite
   integrity; removed raw result. No native/Node timing rerun.
 - Public baseline config pins timestamp/source hash. Rust coverage now 3/932;
-  remaining 703 workloads need parity references, correctness and one-time timing.
+  remaining 668 workloads need parity references, correctness and one-time timing.
   Start next with the remaining schema workloads. Current native source clean;
   no optimization candidate remains. Website build passed; whole-project formatter
   changed zero files/snippets/fingerprints. No active tool session remains.
@@ -720,7 +720,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   timestamp and parity-source SHA-256; sample counts checked. Website build passed.
   No new Node or Rust timing was run for this page update; no deployment.
 - **Remaining owner request: implement and validate hand-written Rust coverage
-  for the other 703 displayed workloads**, by coherent families with independent
+  for the other 668 displayed workloads**, by coherent families with independent
   result oracles. Start current schema workloads, then remaining families. Do not
   claim all comparisons exist. Added first new source
   `benchmarks/runtime/parity/native_schema_json_nested.rs`: ordinary typed Serde
@@ -1195,6 +1195,34 @@ counts, wrap a copy of the generated program with a counting global allocator.
   hashes and SQLite integrity verified before deleting raw results. Public source
   hashes/timestamps pinned. Coverage **229/932**, remaining **703**.
   Next: remaining numeric/global conversion, literals and array references.
+
+**Rust exact/approximate math family — verified, 2026-10-31:**
+- Thirty-five independent references: twelve exact Math workloads, twenty-two
+  approximate Math methods and number exponentiation. Standard f64 operations,
+  checked integer bookkeeping and the original ordered accumulations are used.
+  Explicit helpers preserve Math.round positive-tie behavior, signed zeros,
+  NaN propagation and modulo-2^32 conversion. Four durable Rust edge tests passed.
+- Fixed missing hand-written Rust approximate point-probe support in run.mjs.
+  The runner builds a separate probe from each actual parity source, checks its
+  function1 signature, validates every operation against the existing independent
+  directed-MPFR reference and requires that engine's accepted probe before scalar
+  timing. Probe source/binary hashes and compile commands remain in disposable
+  results until validation/import. No numerical allowance or protocol was widened.
+- Real Rust-only acceptance: **920 operation probes, 115 approximate scalar
+  correctness cases**, and exact workload oracles passed. All 35 completed 93
+  samples (three processes, eight warmups, 31 timed samples), run
+  2026-10-31T11:45:55.450Z; medians 0.271834–1.066375 ms,
+  load at most 3.102, peak 426,560 KiB.
+  Existing Tsrust/Node timings reused; no Node point probes or timings executed.
+- Affected Node harness suites passed sequentially under the watchdog:
+  approximate-harness (4), approximate-scalar (1 test file), measurement-plan (4).
+  Four Rust edge tests passed with three threads. The report regenerated and
+  revalidated all actual measured results, including the Rust MPFR observations.
+- store:ingest added all 35 histories; median/sample counts, source hashes,
+  point-probe provenance and SQLite integrity verified before deleting raw result.
+  Public source hashes/timestamps pinned. Coverage **264/932**, remaining **668**.
+  Math.f16round and random-range references remain open; next complete those and
+  remaining global/conversion/literal workloads. Compiler implementation unchanged.
 
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code
