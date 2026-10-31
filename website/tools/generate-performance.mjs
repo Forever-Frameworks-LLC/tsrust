@@ -24,15 +24,22 @@ const rustRuns = runsOf('rust-hand');
 db.close();
 const selected = new Map();
 const runs = [];
+const selectedNode = new Map();
+for (const at of [...config.runs].sort()) {
+  for (const [workload, history] of nodeRuns) {
+    const measurement = history.get(at);
+    if (measurement) selectedNode.set(workload, { ...measurement, at });
+  }
+}
 for (const at of [...config.runs].sort()) {
   let matched = 0;
   for (const [workload, history] of [...nativeRuns].sort(([a], [b]) => a.localeCompare(b))) {
     const native = history.get(at);
-    const node = nodeRuns.get(workload)?.get(at);
+    const node = selectedNode.get(workload);
     if (native && node) {
       const expected = config.processes * config.samplesPerProcess;
       if (native.samples !== expected || node.samples !== expected) throw Error(`Unexpected sample count for ${workload} at ${at}`);
-      selected.set(workload, { workload, at, native: native.ops, native_samples: native.samples, node: node.ops, node_samples: node.samples });
+      selected.set(workload, { workload, at, nodeAt: node.at, native: native.ops, native_samples: native.samples, node: node.ops, node_samples: node.samples });
       matched++;
     }
   }
@@ -112,7 +119,7 @@ shown where implemented and measured; a dash means coverage is still missing.
 | Measure | Value |
 | --- | --- |
 | Workloads compared | ${rows.length} |
-| Hand-written Rust coverage | ${rows.filter(row => row.rust !== undefined).length} of ${rows.length} |
+| Rust faster than Node.js | ${rows.filter(row => row.rust !== undefined && row.rust > row.node).length} of ${rows.length} (${rows.filter(row => row.rust !== undefined).length} measured) |
 | Native faster | ${faster} of ${rows.length} |
 | Median ratio (native ÷ Node.js) | ${median.toFixed(2)}× |
 | Range | ${ratios[0].toFixed(2)}× to ${ratios.at(-1).toFixed(2)}× |
@@ -137,10 +144,10 @@ page += slower.length
   : '\n';
 page += 'Each group lists every workload, slowest ratio first. Speeds are operations per second, abbreviated: k is thousands, M is millions and G is billions, so `5.35 M` is about 5,350,000 operations per second. The ratio column is the one to compare.\n\n';
 for (const [group, entries] of ordered) {
-  page += `### ${group}\n\n<details>\n<summary>${entries.length} workloads</summary>\n\n| Workload | Native (ops/s) | Node.js (ops/s) | Native / Node | Hand-written Rust (ops/s) | Native / Rust | Native / Node date | Rust date |\n| --- | ---: | ---: | ---: | ---: | ---: | --- | --- |\n`;
+  page += `### ${group}\n\n<details>\n<summary>${entries.length} workloads</summary>\n\n| Workload | Native (ops/s) | Node.js (ops/s) | Native / Node | Hand-written Rust (ops/s) | Native / Rust | Native date | Node date | Rust date |\n| --- | ---: | ---: | ---: | ---: | ---: | --- | --- | --- |\n`;
   for (const row of entries.sort((a, b) => ratio(a) - ratio(b))) {
     const label = row.description ? `\`${row.workload}\`: ${cell(row.description)}` : `\`${row.workload}\``;
-    page += `| ${label} | ${rate(row.native)} | ${rate(row.node)} | ${ratio(row).toFixed(2)}× | ${row.rust === undefined ? "—" : rate(row.rust)} | ${row.rust === undefined ? "—" : (row.native / row.rust).toFixed(2) + "×"} | ${row.at.slice(0,10)} | ${row.rustAt?.slice(0,10) ?? "—"} |\n`;
+    page += `| ${label} | ${rate(row.native)} | ${rate(row.node)} | ${ratio(row).toFixed(2)}× | ${row.rust === undefined ? "—" : rate(row.rust)} | ${row.rust === undefined ? "—" : (row.native / row.rust).toFixed(2) + "×"} | ${row.at.slice(0,10)} | ${row.nodeAt.slice(0,10)} | ${row.rustAt?.slice(0,10) ?? "—"} |\n`;
   }
   page += '\n</details>\n\n';
 }

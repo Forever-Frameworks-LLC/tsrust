@@ -648,45 +648,34 @@ counts, wrap a copy of the generated program with a counting global allocator.
   for accepted source. Next optimization requires a fresh profile; investigate
   composite pipeline/collection costs without this lazy sequence allocation.
 
-**Concrete JSON composite restorations — candidate in progress:**
-- Accepted source rebuilt after the rejected sequence experiment: release build
-  session 44268 terminal zero, 207.976 s, peak 1,490,816 KiB. Collection/recursive
-  native + Node correctness verification passed, session 47163, 31.143 s,
-  peak 887,184 KiB. Release binary now represents accepted source `4d1a99d5`.
-- Fresh CPU samples on those accepted executables: 20M iterations each,
-  checksums collections 160,000,007 / recursive 80,000,007. Session 84629
-  terminal zero, 54.776 s, peak 32,704 KiB. Log
-  `/tmp/tsrust-composite-typed-cpu.log`; samples
-  `/tmp/tsrust-native_schema_collections.sample` and recursive equivalent.
-  Recursive sample explicitly shows `Trial::boxed` allocation within sequence
-  callbacks; collection profile retains allocation/free costs in sequence paths.
-- Candidate extends the accepted concrete JSON leaf restoration return type to
-  JSON array and record adapters. Removes their final `.boxed()` only for these
-  inputs, retaining boxes at choices, recursive references, objects and owned
-  collection inputs. Leaves sequence capacity unchanged. Files:
-  `emit/schema/{pipeline_trials,pipeline_array_trials,collection_trials}.rs`.
-  Added `json_record_refinement_restores_entries_before_fallback` witness in
-  schema_pipelines, complementing existing nested array/recursive rollback tests.
-- Initial affected runner 89353 ended 101 in first suite: 16 passed, four
-  generated-code failures (`E0700`), including nested array and record rollback.
-  No watchdog stop. Cause: `sequence` returned an opaque closure capturing the
-  validator type, which contains temporary path/issue borrows. Removing the outer
-  Box exposed that overcapture. Remaining six suites were not started.
-- Root-cause repair follows existing `PairRestoration`: runtime `trial.rs` now
-  returns `SequenceRestoration<R>(Vec<R>)` implementing `Restore<Vec<I>,Vec<O>>`.
-  Keeps exactly the prior eager capacity and rollback behavior, but excludes the
-  finished validator's type from restoration state. No unsafe or lifetime extension.
-- Repaired affected runner session 14345 finished zero: all 71 tests passed,
-  peak 1,688,544 KiB, no watchdog stops. Evidence:
-  `/tmp/tsrust-composite-typed-tests-repair.py`, log
-  `/tmp/tsrust-composite-typed-tests-repair.log`. Seven suites, sequential
-  5 GB/30 min watchdog, three threads, shared target, incremental disabled.
-  Compiler `--lib stdlib::schema` is LIVE in session 18517 under watchdog, log
-  `/tmp/tsrust-composite-typed-lib.log`; poll same handle, do not restart.
-  Candidate not accepted or timed. After library tests pass rebuild release
-  and run five-workload allocation profile + quiet 93-sample native/Node A/B
-  against accepted source. Retain only measured gains without regressions,
-  ingest, format whole project, commit and prune.
+**Concrete JSON composite restorations — rejected, 2026-10-31:**
+- Profiled accepted collection/recursive workloads, 20M iterations each, exact
+  checksums 160,000,007/80,000,007; 54.776 s, peak 32,704 KiB. Recursive samples
+  showed boxed restoration allocation inside sequence callbacks.
+- Tried concrete closure returns for JSON arrays/records. Initial four E0700
+  failures exposed validator-type overcapture in sequence's opaque return;
+  candidate used SequenceRestoration like existing PairRestoration. Repaired
+  candidate passed 71 integration + 94 schema library tests (165 total), peak
+  1,718,560 KiB. No watchdog stops. Source and added witness now reverted.
+- Release build 215.344 s/1,823,328 KiB; allocation profiles 75.073 s. Recursive
+  allocations 40→38/iteration; collections 43, pipeline 10, union/discriminator
+  unchanged. Native-only timing completed, 93 samples each, max load 3.511;
+  result `results/2026-10-31T10-06-12-839Z.json`, no Node rerun.
+- Against accepted baseline 2026-10-31T09:00:23.547Z: recursive 2.840458→2.781000
+  ms (-2.09%); collections 2.285125→2.321375 (+1.59%); pipeline .636250→.646292
+  (+1.58%); discriminator .965583→1.000375 (+3.60%); union .325959→.321500
+  (-1.37%). Mixed result fails acceptance; not a proven general improvement.
+  Ingest added five native entries; verify entries and clean raw timing/profile
+  before checkpoint. Do not publish this rejected run.
+- All candidate validation/measurement sessions terminal. Rust baseline attempt
+  63472 ended before timing on harness ABI parameter names; fixed reference
+  names to value0/value1/value2. Retry 32691 hit runner's 120-second automatic
+  compiler rebuild timeout after source revert. No Rust measurement produced.
+- Child monitor 36545 finished zero (8.8 s, peak 361,024 KiB); PID 59165 exited.
+  Accepted-source explicit release rebuild is LIVE in session 7730 under watchdog; see
+  `/tmp/tsrust-rust-baseline-parent-build.log`. Poll the active build handle before
+  retrying Rust-only nested baseline. Timeout log:
+  `/tmp/tsrust-rust-nested-baseline-repair.log`.
 
 **Performance page refresh — owner requested, 2026-10-31:**
 - Updated `website/tools/performance-runs.json` with accepted scalar-union,
@@ -706,7 +695,11 @@ counts, wrap a copy of the generated program with a counting global allocator.
   report actual winners, including Tsrust overhead. Refresh reference baselines
   on workload/protocol/reference-source/toolchain/hardware changes, or when a
   noisy close result requires a fresh control. Native parent/candidate A/B stays.
-- Existing `rust-hand` runner and two measured parity sources reused. Public
+- Existing `rust-hand` runner and two measured parity sources reused.
+  Uncommitted generator change selects Node independently from curated runs,
+  enabling native-only refreshes with separate native/Node dates. Website build
+  passed. Owner requested summary label: Rust faster than Node.js, currently
+  1 of 932 (2 measured), calculated from actual throughput. Public
   performance generator now shows hand-written Rust throughput, native/Rust ratio,
   independent dates and explicit missing coverage (2/932). Baselines pinned by
   timestamp and parity-source SHA-256; sample counts checked. Website build passed.
@@ -714,7 +707,13 @@ counts, wrap a copy of the generated program with a counting global allocator.
 - **Remaining owner request: implement and validate hand-written Rust coverage
   for the other 930 displayed workloads**, by coherent families with independent
   result oracles. Start current schema workloads, then remaining families. Do not
-  claim all comparisons exist. Current schema candidate remains unaccepted until
+  claim all comparisons exist. Added first new source
+  `benchmarks/runtime/parity/native_schema_json_nested.rs`: ordinary typed Serde
+  decoding with owned Vecs, bounded integers, unknown-field rejection and checked
+  accumulation. Includes focused decoder unit witness. NOT validated or measured
+  yet; after live native runner finishes, run Rust-only correctness/timing and its
+  unit witness using the prepared dependency artifacts. Do not publish until
+  verified and ingested. Current schema candidate remains unaccepted until
   library validation and native A/B; use stored Node controls, not an automatic
   new Node timing run. Keep source/protocol provenance for reusable baselines.
 
