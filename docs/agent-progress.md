@@ -677,8 +677,9 @@ counts, wrap a copy of the generated program with a counting global allocator.
 
 **Hand-written Rust reference expansion — current, 2026-10-31:**
 - Owner requested independent, ordinary Rust comparisons alongside **all 932**
-  public workloads. **891 are measured; 41 remain.** This is ongoing acceptance,
-  not universal hand-written-Rust parity. Next: the 41 remaining language/other fixtures; Math.random is still open.
+  public workloads. **904 are measured; 28 remain.** This is ongoing acceptance,
+  not universal hand-written-Rust parity. Next: the 28 remaining language/other fixtures; Math.random and normalization
+  are still open.
   All native-json and native-schema workloads now have Rust baselines. No compiler candidate is active.
 - Reuse Node and Rust baselines instead of timing them for every optimization.
   Refresh on workload/protocol/reference-source/toolchain/hardware changes or
@@ -763,8 +764,9 @@ counts, wrap a copy of the generated program with a counting global allocator.
 | JSON values/views/typed records/raw encoding | 17 | d8c411ae |
 | JSONC and owned/borrowed JSONL streams | 5 | dde5d289 |
 | Scalar schemas/refinement/owned arrays/parse | 14 | aa3a2b32; also refreshes integer bounds |
-| Schema object policies/presence/defaults/literals/export | 8 | This checkpoint; details below |
-| **Total** | **891** | **41 still required** |
+| Schema object policies/presence/defaults/literals/export | 8 | e94d7def |
+| Standard language/string/record/tuple primitives | 13 | This checkpoint; details below |
+| **Total** | **904** | **28 still required** |
 
 **Reference correctness and interpretation:**
 - Sources are independently authored Rust using standard-library operations and
@@ -799,50 +801,48 @@ counts, wrap a copy of the generated program with a counting global allocator.
   unmeasured Rust rows are not losses. Never label Tsrust simply "Native".
 - Current summary: Tsrust faster than Node.js in **613/932**, median throughput
   ratio **1.52×**, range **0.04×–189.48×**. Hand-written Rust faster than Node.js
-  in **613/932 (891 measured)**. The ratios use mean throughput, not median time.
+  in **616/932 (904 measured)**. The ratios use mean throughput, not median time.
 - Website generation/build passes locally; no deployment, push or CI is implied.
   Full-project formatting has consistently changed zero files/snippets/fingerprints.
 
-**Rust schema objects/literals/export — verified, 2026-10-31:**
-- Eight independently authored references complete native-schema coverage:
-  strip/retain objects, optional/nullable presence, default-on-missing fields,
-  string literals/enums, declared numeric enum and JSON Schema export.
-  Parsed Value storage moves into typed records or retained maps. Missing/null
-  are distinct; all sibling diagnostics and strict unknown fields retain schema
-  order, full expected/observed kinds, owned field paths and truncation flags.
-  Default factories run only for missing values and their results are validated.
-- Literal/enum validators move accepted string storage and check numeric precision
-  before selecting declared members. Export uses an ordinary Rust enum model;
-  each loop builds actual schema-node JSON trees and serializes both documents.
-  It does not return precomputed documents, outputs or checksums. No unsafe code,
-  new dependencies, compiler/product changes or Tsrust speedup claim.
+**Rust standard language primitives — verified, 2026-10-31:**
+- Thirteen independent std-only references add optional integer guards, Object.is,
+  UTF-16/code-point construction, default Unicode case conversion, raw templates,
+  enums, generic aliases, optional record fields, flattened interfaces, truthiness,
+  tuple copies/mapping, type assertions and mixed string concatenation.
+- Rust Option/enums/structs/tuples/Vec/String retain actual calls, assignments,
+  owned copies, tuple mapping and source data. Identity compares NaNs/signed zero
+  explicitly and rejects lossy integer comparisons. Standard UTF-16 conversion
+  preserves surrogate pairs, wrapping code units and replacement for unpaired
+  units. Raw templates construct/interleave segments and perform substitutions.
+  Tuple length/Array.isArray probes are compile-time facts for the chosen tuple
+  representation, documented in the reference; output rows are not precomputed.
+  Corrected an Object.is oracle comment (nonzero x/x is 1); no oracle behavior,
+  measurement protocol or product/compiler changes. No new dependencies/unsafe.
 - Full independent output oracles and **93 samples per workload** passed (three
   processes, eight warmups, 31 samples), Rust-only run
-  **2026-10-31T15:06:59.407Z**. Medians: export **1.127833 ms**, strip **0.620542**,
-  retain **0.628875**, presence **0.645542**, defaults **0.687000**, literal
-  **0.161625**, enum **0.159833**, declared enum **0.077667**.
-  Watchdog sampled peak **877,712 KiB**, preparation/timing **214.761 seconds**;
-  quiet gate waited for build load to decay, maximum timing load **3.607**,
-  busy override off. Existing Node/Tsrust baselines reused.
-- Eight schema_object_edges.rs tests passed with exact recorded serde artifacts,
-  watchdog and three threads: strip/minimum diagnostics, retained map storage,
-  optional/missing/null and strict unknown fields, defaults versus explicit null,
-  literal string moves, every enum member and mismatch, numeric precision, and
-  configurable JSON Schema bounds/nested node/root metadata. Edge compilation
-  sampled peak **137,392 KiB**; no failures or watchdog stops.
-- store:ingest added eight histories. Stored medians/counts, source SHA256,
-  timing load and SQLite integrity verified before raw disposal. Public source/
-  date pins refreshed; all 66 website pages build locally. No push/deploy/CI.
-  Coverage **891/932**, remaining **41**; verified zero missing references in
-  native-json/native-schema. Next: optional_parameter_int_guard, object_is_values,
-  remaining string/record/control fixtures, imports/environment/time/module state.
-  Math.random still needs independent range/point evidence. All 932 required.
-- Prior scalar checkpoint **aa3a2b32** added fourteen references/14 edge tests and
-  refreshed native_schema_int_bounds to construct/check complete observed issue
-  metadata (its old implementation checked only code/path). All fifteen measured
-  93 samples, accepted Rust-only run 2026-10-31T15:00:35.116Z. Native-only
-  references stay std-only. JSON core **d8c411ae** and streams **dde5d289** supply
-  22 references/19 edge tests; files **49d80b96**, paths/OS **dd8c100d**.
+  **2026-10-31T15:12:41.034Z**, medians **0.003208–0.731709 ms**. Watchdog sampled
+  peak **360,752 KiB**, total **77.176 seconds**, max accepted timing load **3.721**,
+  busy override off. Existing Node/Tsrust controls reused.
+- Thirteen language_std_edges.rs checks passed under the watchdog with three
+  threads: omitted/explicit-none call counts, NaN payloads and signed zero,
+  precision, UTF-16/range endpoints, Unicode case expansion/context, raw-template
+  missing/excess inserts, enum numbering, union tags, optional/inherited fields,
+  logical assignments/loops, independent tuple copies, widening and concatenation
+  order. Edge compilation sampled peak **116,176 KiB**; no failures/stops.
+- store:ingest added 13 histories. Stored medians/counts, source SHA256, timing
+  load and SQLite integrity checked before raw disposal. Public source/date pins
+  refreshed; all 66 website pages build locally. No push/deploy/CI.
+  Coverage **904/932**, remaining **28**. Next: object key/value/entry order,
+  unions/heap arrays, destructuring/rest/assignment and control fixtures; then
+  assertions, recursive/owned-assignment results, environment/time/import/module
+  state. Math.random needs independent range/point evidence; normalization needs
+  an independent full Unicode implementation (never precomputed corpus outputs).
+  All 932 required; all native-json/native-schema already have references.
+- Prior schemas **aa3a2b32/e94d7def** add 22 references/22 edge checks and refresh
+  integer bounds with complete observed diagnostic metadata. Core/stream JSON
+  **d8c411ae/dde5d289** supply 22 references/19 checks; files **49d80b96**, paths/OS
+  **dd8c100d**. Native-only references stay std-only.
 - Prior composition checkpoint **5ce1bd51** covers the complete 2,985-line fixture
   and 136 observed columns, seven edge tests and 93 samples (18.420917 ms).
   Its public **Tsrust/Rust ratio 0.15×** exposes generated overhead for later

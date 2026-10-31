@@ -3601,6 +3601,58 @@
     "native_schema_json_declared_enum": {
       "at": "2026-10-31T15:06:59.407Z",
       "sourceSha256": "59f15052b90c4cdcb53ff58fceb68af3333f9b7e61c40c7e73234d32a8536063"
+    },
+    "optional_parameter_int_guard": {
+      "at": "2026-10-31T15:12:41.034Z",
+      "sourceSha256": "7731b9539666d5f94f2ec2aadf97c2126c6620e226b87cc048f1e8cec4869483"
+    },
+    "object_is_values": {
+      "at": "2026-10-31T15:12:41.034Z",
+      "sourceSha256": "0047fe6a46c528b293c9405aac4644ba67af2adb7e8e9cb3ca6a19e8448a23a6"
+    },
+    "string_from_codes_text": {
+      "at": "2026-10-31T15:12:41.034Z",
+      "sourceSha256": "5e2778de82bb3d4ba249f24c5a6cab6a701564278cd82adbd5acf5c11b01ab32"
+    },
+    "string_locale_case_text": {
+      "at": "2026-10-31T15:12:41.034Z",
+      "sourceSha256": "126517df12eb925f605738f4cc1523be5ed563f977c6c0305195e3b2e70608e5"
+    },
+    "string_raw_segments": {
+      "at": "2026-10-31T15:12:41.034Z",
+      "sourceSha256": "02659f32c39d745aa5185a871fc72bbe944a16552e2f02c162e7b9009d88548a"
+    },
+    "tuple_types_values": {
+      "at": "2026-10-31T15:12:41.034Z",
+      "sourceSha256": "f250a6dd75072d783f7792a638233a4854ab3a8c80230cc4b1c1afad85f9f850"
+    },
+    "type_assertions": {
+      "at": "2026-10-31T15:12:41.034Z",
+      "sourceSha256": "e30e73bfa8a5b86e19d02fb0436e7929d6483c3d6c0a93a0a26f84364a2bd7fd"
+    },
+    "enum_values": {
+      "at": "2026-10-31T15:12:41.034Z",
+      "sourceSha256": "a1be286ce3f0a4368a95798200e4da439f6dbb8f15ec5ecd84a832a3146e00d5"
+    },
+    "type_aliases": {
+      "at": "2026-10-31T15:12:41.034Z",
+      "sourceSha256": "adb423148c1bddb78284966d264843af20654e928e63e2f6f12619b41e159998"
+    },
+    "optional_fields": {
+      "at": "2026-10-31T15:12:41.034Z",
+      "sourceSha256": "a8b1db13f26ffc3717cf40c77151def64abdfc523aba55e18f631a2508e19591"
+    },
+    "interfaces": {
+      "at": "2026-10-31T15:12:41.034Z",
+      "sourceSha256": "9f32fdd56de5dbfa3fdde18eba1eca581ba2b6b569fb88485aa682ba1b1a0e75"
+    },
+    "string_concatenation": {
+      "at": "2026-10-31T15:12:41.034Z",
+      "sourceSha256": "47a50d2294ab620698561cf87f09438958438e815bb2cf7b6bca67db72687e95"
+    },
+    "truthiness": {
+      "at": "2026-10-31T15:12:41.034Z",
+      "sourceSha256": "3e68ab26a841c4bc0d1a7d7f11a200a9a34a82b7908d83885823526202916afc"
     }
   }
 }
