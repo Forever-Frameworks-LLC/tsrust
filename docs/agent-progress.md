@@ -687,7 +687,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   48952 terminal zero. Ingested and verified the one Rust history entry and SQLite
   integrity; removed raw result. No native/Node timing rerun.
 - Public baseline config pins timestamp/source hash. Rust coverage now 3/932;
-  remaining 710 workloads need parity references, correctness and one-time timing.
+  remaining 703 workloads need parity references, correctness and one-time timing.
   Start next with the remaining schema workloads. Current native source clean;
   no optimization candidate remains. Website build passed; whole-project formatter
   changed zero files/snippets/fingerprints. No active tool session remains.
@@ -720,7 +720,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   timestamp and parity-source SHA-256; sample counts checked. Website build passed.
   No new Node or Rust timing was run for this page update; no deployment.
 - **Remaining owner request: implement and validate hand-written Rust coverage
-  for the other 710 displayed workloads**, by coherent families with independent
+  for the other 703 displayed workloads**, by coherent families with independent
   result oracles. Start current schema workloads, then remaining families. Do not
   claim all comparisons exist. Added first new source
   `benchmarks/runtime/parity/native_schema_json_nested.rs`: ordinary typed Serde
@@ -1175,6 +1175,26 @@ counts, wrap a copy of the generated program with a counting global allocator.
   Coverage **222/932**, remaining **710**. Numeric formatting still needs
   independent references with exact rounding/notation; this batch does not claim
   those methods are covered. Next: remaining numeric formatting/conversion cases.
+
+**Rust numeric formatting family — verified, 2026-10-31:**
+- Seven independent references: toFixed default/2, toExponential default/2,
+  toPrecision default/5, and numeric radix strings. Standard Rust formatting
+  handles the measured float corpus; explicit notation thresholds, exponent signs,
+  zero normalization and nonfinite text match its outputs. These are workload
+  references, not a general JavaScript formatting implementation: Rust's default
+  tie rounding differs outside this corpus. Radix formatting matches values below
+  98 in eighths; all measured even radices produce exact finite fractions.
+- All seven matched complete independent output oracles and completed 93 samples
+  each (three processes, eight warmups, 31 timed samples). Rust-only runs
+  2026-10-31T11:42:10.294Z and 2026-10-31T11:42:48.171Z. Existing Tsrust/Node
+  measurements reused. Watchdog peaks 274,240/211,120 KiB, no watchdog stops.
+- Three durable formatting edge tests passed under the sequential memory/time
+  watchdog with three threads: zero/nonfinite text, notation thresholds and
+  subnormals, exact positive/negative fractional radix text. No compiler change.
+- store:ingest added all seven histories; stored medians/sample counts, source
+  hashes and SQLite integrity verified before deleting raw results. Public source
+  hashes/timestamps pinned. Coverage **229/932**, remaining **703**.
+  Next: remaining numeric/global conversion, literals and array references.
 
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code

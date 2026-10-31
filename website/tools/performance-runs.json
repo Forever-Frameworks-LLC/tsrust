@@ -925,6 +925,34 @@
     "number_parse_int_radix": {
       "at": "2026-10-31T11:40:26.434Z",
       "sourceSha256": "91995b5132266d020826b1c6a4782f7e872bc7854ef7e637a7f47a5d79f13773"
+    },
+    "number_to_fixed_default": {
+      "at": "2026-10-31T11:42:10.294Z",
+      "sourceSha256": "82ac5caa4904dba54e92d18e6538c37b411519e848e6c2b7b2be1aac972f8ba1"
+    },
+    "number_to_fixed_2": {
+      "at": "2026-10-31T11:42:10.294Z",
+      "sourceSha256": "d462976b5e23d129cd1f4d1c976d9596f59d09b499e0e2f3f7f533711087e77b"
+    },
+    "number_to_exponential_default": {
+      "at": "2026-10-31T11:42:10.294Z",
+      "sourceSha256": "6b1109a99203e8a52d0cb75b892a8838d6a46f3de5dd9b9234300193c4d7777f"
+    },
+    "number_to_exponential_2": {
+      "at": "2026-10-31T11:42:10.294Z",
+      "sourceSha256": "e79aeb1c240677302393545917599ceb4edea5ab6f9e48ea1f17f67122d4b11d"
+    },
+    "number_to_precision_default": {
+      "at": "2026-10-31T11:42:10.294Z",
+      "sourceSha256": "bd0827a80e7571b798418f5fdda91470c8bf17efdd1d7033a616bd0ad22f6206"
+    },
+    "number_to_precision_5": {
+      "at": "2026-10-31T11:42:10.294Z",
+      "sourceSha256": "188568b101b250e3b2ca028d318ded88cf3eedfb01de99ffd9f213f6a699530c"
+    },
+    "number_to_string_radix": {
+      "at": "2026-10-31T11:42:48.171Z",
+      "sourceSha256": "de193c399adfcfdd8c7e6dc08ea46609425ea194c79e06c0aea66db816a20414"
     }
   }
 }
