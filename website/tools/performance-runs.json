@@ -3185,6 +3185,50 @@
     "declared_value_owned_tree_move": {
       "at": "2026-10-31T13:45:11.586Z",
       "sourceSha256": "f7f78825bd932b878864277c61b6792b73e5a54ed5ffe5a38bbf4051a14b519e"
+    },
+    "set_values": {
+      "at": "2026-10-31T13:48:37.117Z",
+      "sourceSha256": "f777b344a14dd18718c00cbdb62d8339267fa43e39f725f8a0109e0a9e608a61"
+    },
+    "map_values": {
+      "at": "2026-10-31T13:48:37.117Z",
+      "sourceSha256": "d16e9ba1318ebce46ac55fdbe0e06c9239ccd7e167b9e65a17fd127921fd567a"
+    },
+    "map_snapshots": {
+      "at": "2026-10-31T13:48:37.117Z",
+      "sourceSha256": "2ac01644b534b5c7d543a1302f04a41b65649acd560f400fa4fea5e43f19c7b6"
+    },
+    "set_entries": {
+      "at": "2026-10-31T13:48:37.117Z",
+      "sourceSha256": "6c637946d8b94e615527b8737347f36290f1c9d1c18f71c3e618795ab6e4a8bd"
+    },
+    "set_for_each": {
+      "at": "2026-10-31T13:48:37.117Z",
+      "sourceSha256": "f3c64aeccae1495c9ec658382e5e25915d438512774454ab7cdfa2d6e20b60a5"
+    },
+    "map_for_each": {
+      "at": "2026-10-31T13:48:37.117Z",
+      "sourceSha256": "b06cacfb255baf6daad8a170124b8b11d50ab1a68585d2794d53542a9282ff29"
+    },
+    "set_relations": {
+      "at": "2026-10-31T13:48:37.117Z",
+      "sourceSha256": "16aa305474e707dbdc6692879696631ddb2f274284a1fc604298d75b4c829d54"
+    },
+    "set_algebra": {
+      "at": "2026-10-31T13:48:37.117Z",
+      "sourceSha256": "15e6734ff3dc7e236c2dee23e08354d312f2e57ea5038b0734dd6da783c43f02"
+    },
+    "map_iteration": {
+      "at": "2026-10-31T13:48:37.117Z",
+      "sourceSha256": "dee9385ae3940100be1701251342c2446cb6aae821b98d93b1acf10320ab454a"
+    },
+    "string_iteration": {
+      "at": "2026-10-31T13:48:37.117Z",
+      "sourceSha256": "040e91c7948f5f96bdb684c655677e23ad9624eb5f28d34b8102587285ea55fe"
+    },
+    "map_group_by": {
+      "at": "2026-10-31T13:48:37.117Z",
+      "sourceSha256": "7c48c37e3ea6c55bfd672454fc402a6c370a257d7e2fdbff109fa731f3db9539"
     }
   }
 }
