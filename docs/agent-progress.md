@@ -525,6 +525,100 @@ counts, wrap a copy of the generated program with a counting global allocator.
   changing it. Existing replacement histories contain 93 samples per engine;
   use fresh baseline/current comparisons, not historical times for acceptance.
 
+**String sizing profile — 2026-10-31 (next implementation target):**
+- Validation/test-support checkpoint committed as `1e4d2547`; release build
+  verified under watchdog. Baseline allocation profile completed successfully
+  on ten existing workloads, three samples each, with independent checksums and
+  zero live bytes after drop checked by the harness. Watchdog 6.207 s,
+  peak 283,152 KiB; no runtime change yet.
+- At 2,000 replacement iterations, allocations are 2,003 in every case.
+  Reallocations: first/plain 12; first/tokens 1,012; first/empty-pattern 3,012;
+  all/plain 512; all/tokens 2,512; all/empty-pattern 5,012. Slice ASCII/unicode
+  each have 12 reallocations; variadic concat ASCII/unicode each have eight.
+  This supports experimenting with token replacement capacity rather than
+  adding sizing passes to already preallocated concat or owned slice copying.
+- Disposable diagnostic:
+  `benchmarks/runtime/diagnostics/2026-10-31T08-08-30-021Z-native-allocations.json`.
+  Log `/tmp/tsrust-string-sizing-profile.log`; session 84068 terminal exit zero.
+  No performance acceptance claim or timing ingestion for allocation diagnosis.
+  Next: implement the smallest checked-capacity experiment, validate string
+  suites, profile allocations again, then fresh quiet paired 93-sample timing
+  against `1e4d2547` with all six replacement workloads and Node controls.
+  Keep only measured gains without regressions; preserve plain Rust operations.
+
+**String sizing experiment — in progress:**
+- Fresh baseline on parent `1e4d2547` completed before runtime edits: all six
+  replacement workloads, native and Node-after-tsc, original 8 warmups and
+  31 samples across three processes. Quiet limit four, maximum load 1.714.
+  Disposable result `benchmarks/runtime/results/2026-10-31T08-09-49-269Z.json`;
+  log `/tmp/tsrust-string-sizing-baseline.log`, session 2569 terminal zero.
+- Uncommitted candidate in `runtime/strings.rs`: template parser emits pieces
+  through a callback, reused for checked exact-capacity counting and writing.
+  Match iterator is cloned for the counting pass; original iterator writes.
+  Plain replacement still uses Rust. No unsafe, shared storage or new limits.
+  Candidate is NOT accepted: sizing cost may outweigh saved allocations.
+- Affected suites passed in session 94517 (terminal zero) via
+  `/tmp/tsrust-string-sizing-tests.py`: string_construction,
+  generic_default_builtins, string_concat_padding, string_substring. Sequential
+  watchdog, shared target, incremental disabled, three threads. All four
+  targets passed, peak 1,641,728 KiB, no watchdog stops.
+  Candidate release build/profile/timing is now LIVE in session 13599 through
+  `/tmp/tsrust-string-sizing-measure.py`; log
+  `/tmp/tsrust-string-sizing-candidate.log`. Poll that session; do not restart.
+- After tests: build release under watchdog, profile the same ten workloads,
+  time the same six replacement workloads with Node controls, compare all
+  93-sample medians and quiet metadata. Keep only if faster without regressions;
+  otherwise revert this candidate and use evidence for the next choice. Then
+  ingest measured histories, whole-project format, commit measured outcome,
+  and prune disposable artifacts. No candidate timing or acceptance claim yet.
+
+**String sizing first A/B — rejected full prepass, narrower candidate live:**
+- Candidate measurement session 13599 finished zero. Release build 209.679 s,
+  peak 1,497,408 KiB; allocation profile 7.263 s; timing 8.798 s. All 14 affected
+  tests passed. Candidate result `2026-10-31T08-17-53-893Z.json` (results dir),
+  profile `2026-10-31T08-17-44-528Z-native-allocations.json` (diagnostics dir).
+  Both runs had 93 samples/engine, quiet maximum 1.714 baseline/3.557 candidate.
+- Native baseline -> candidate ms: first/plain .063750 -> .067875;
+  first/tokens .109375 -> .113166; first/empty .147792 -> .112667;
+  all/plain .070166 -> .074167; all/tokens .235500 -> .265375;
+  all/empty .355708 -> .361833. Corresponding Node deltas: +4.94%, +4.49%,
+  +2.59%, +5.26%, +5.59%, +4.73%. Plain controls show machine drift, but
+  all/tokens regressed 12.69%, beyond its Node control. Reject full prepass.
+- Reallocations fell first/tokens 1,012 -> 12; first/empty 3,012 -> 12;
+  all/tokens 2,512 -> 512; all/empty 5,012 -> 12. Allocation elimination alone
+  is insufficient; the repeated sizing scan costs too much for replaceAll.
+- Revised uncommitted experiment only pre-sizes single replacement (`!all`);
+  replaceAll retains single-pass growth. First/empty's 23.77% improvement makes
+  this worth testing. Session 82166 LIVE runs the same four affected suites;
+  log `/tmp/tsrust-string-sizing-first-tests.log`. After it passes, rerun
+  `/tmp/tsrust-string-sizing-measure.py` with a NEW log, compare against parent
+  and rejected candidate with Node controls. Do not accept before measurements.
+  Earlier in-progress paragraphs are chronological; 82166 is the current handle.
+
+**Single-replacement trial — repeat timing required before acceptance:**
+- Session 82166 finished: 14 affected tests passed, peak 1,602,912 KiB,
+  no watchdog stops. Session 4591 finished release/profile/timing successfully:
+  release 210.114 s, peak 1,658,464 KiB; profile 6.751 s; timing 8.805 s.
+- Candidate result `2026-10-31T08-25-47-951Z.json`; profile
+  `2026-10-31T08-25-38-896Z-native-allocations.json`. Reallocations first/tokens
+  and first/empty now 12 each; replaceAll counts restored to baseline.
+- Native baseline -> single-only ms: first/plain .063750 -> .067959;
+  first/tokens .109375 -> .112875; first/empty .147792 -> .114708 (1.288x);
+  all/plain .070166 -> .075208; all/tokens .235500 -> .246625;
+  all/empty .355708 -> .379625. Node deltas respectively +3.75%, +5.04%,
+  +4.61%, +4.78%, +4.76%, +3.63%. Quiet maxima 1.714 baseline/2.572 trial.
+  All 93 samples per workload/engine verified. First/empty gain is clear,
+  but unchanged plain controls drifted 6.6–7.2%; do not claim no regressions
+  until a fresh paired repetition resolves the uncertainty.
+- Ingested all 36 entries from the baseline and two trials; first 24 verified
+  in SQLite with integrity check. Trial source checkpoint will allow rebuilding
+  parent `1e4d2547` and candidate without source snapshots. NOT accepted yet.
+  Next: switch detached parent, release build then same six-workload timing;
+  switch requested branch back, release build then repeat same timing; always
+  restore branch in finally. Use the same watchdog, quiet gate and 93 samples.
+  Compare Node and unchanged controls; revert if regressions persist. Do not
+  rerun correctness suites unless source changes. Both current runners terminal.
+
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code
 must not contain `unsafe` (tests assert it); one handoff note only (this file);

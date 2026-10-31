@@ -765,7 +765,7 @@ pub fn tsr_string_repeat(value: &String, count: i64, failure: &'static str) -> S
 // String patterns have no captures. Only the four ordinary substitution tokens
 // expand; prefix/suffix always refer to the original source, not built output.
 pub fn string_replacement_template(
-    output: &mut std::string::String,
+    mut emit: impl FnMut(&str),
     source: &str,
     position: usize,
     matched: &str,
@@ -773,21 +773,21 @@ pub fn string_replacement_template(
 ) {
     let mut remainder = template;
     while let Some(dollar) = remainder.find('$') {
-        output.push_str(&remainder[..dollar]);
+        emit(&remainder[..dollar]);
         remainder = &remainder[dollar + 1..];
         match remainder.as_bytes().first() {
-            Some(b'$') => output.push('$'),
-            Some(b'&') => output.push_str(matched),
-            Some(b'`') => output.push_str(&source[..position]),
-            Some(b'\'') => output.push_str(&source[position + matched.len()..]),
+            Some(b'$') => emit("$"),
+            Some(b'&') => emit(matched),
+            Some(b'`') => emit(&source[..position]),
+            Some(b'\'') => emit(&source[position + matched.len()..]),
             _ => {
-                output.push('$');
+                emit("$");
                 continue;
             }
         }
         remainder = &remainder[1..];
     }
-    output.push_str(remainder);
+    emit(remainder);
 }
 
 pub fn tsr_string_replace(value: &String, pattern: &String, replacement: &String, all: bool) -> String {
@@ -799,15 +799,22 @@ pub fn tsr_string_replace(value: &String, pattern: &String, replacement: &String
         });
     }
     let source = value.as_ref();
-    let mut output = std::string::String::with_capacity(source.len());
+    let matches = source.match_indices(pattern.as_ref()).take(if all { usize::MAX } else { 1 });
+    let mut capacity = source.len();
+    if !all {
+        for (position, matched) in matches.clone() {
+            capacity -= matched.len();
+            string_replacement_template(
+                |piece| capacity = capacity.checked_add(piece.len()).expect("capacity overflow"),
+                source, position, matched, replacement.as_ref(),
+            );
+        }
+    }
+    let mut output = std::string::String::with_capacity(capacity);
     let mut end = 0;
-    for (position, matched) in
-        source
-            .match_indices(pattern.as_ref())
-            .take(if all { usize::MAX } else { 1 })
-    {
+    for (position, matched) in matches {
         output.push_str(&source[end..position]);
-        string_replacement_template(&mut output, source, position, matched, replacement.as_ref());
+        string_replacement_template(|piece| output.push_str(piece), source, position, matched, replacement.as_ref());
         end = position + matched.len();
     }
     output.push_str(&source[end..]);
