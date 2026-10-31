@@ -677,7 +677,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
 
 **Hand-written Rust reference expansion — current, 2026-10-31:**
 - Owner requested independent, ordinary Rust comparisons alongside **all 932**
-  public workloads. **723 are measured; 209 remain.** This is ongoing acceptance,
+  public workloads. **737 are measured; 195 remain.** This is ongoing acceptance,
   not universal hand-written-Rust parity. Next: remaining callable/ownership/record families; the
   Math.random reference is also still open. No compiler candidate is active.
 - Reuse Node and Rust baselines instead of timing them for every optimization.
@@ -745,8 +745,9 @@ counts, wrap a copy of the generated program with a counting global allocator.
 | Optional callbacks/function expressions | 6 | 5505c5ba |
 | Remaining scalar control/operators | 20 | cc25c212 |
 | String construction/ownership/scalar split | 19 | 8df76859 |
-| String identity/literals/templates/HTML wrappers | 25 | This checkpoint; details below |
-| **Total** | **723** | **209 still required** |
+| String identity/literals/templates/HTML wrappers | 25 | ff52175b |
+| Record ownership/recursive data/retained arrays | 14 | This checkpoint; details below |
+| **Total** | **737** | **195 still required** |
 
 **Reference correctness and interpretation:**
 - Sources are independently authored Rust using standard-library operations and
@@ -781,30 +782,30 @@ counts, wrap a copy of the generated program with a counting global allocator.
   unmeasured Rust rows are not losses. Never label Tsrust simply "Native".
 - Current summary: Tsrust faster than Node.js in **613/932**, median throughput
   ratio **1.52×**, range **0.04×–189.48×**. Hand-written Rust faster than Node.js
-  in **480/932 (723 measured)**. The ratios use mean throughput, not median time.
+  in **490/932 (737 measured)**. The ratios use mean throughput, not median time.
 - Website generation/build passes locally; no deployment, push or CI is implied.
   Full-project formatting has consistently changed zero files/snippets/fingerprints.
 
-**Rust string identity/literals/templates/HTML wrappers — verified, 2026-10-31:**
-- Twenty-five independent references cover eight ASCII/Unicode string identity
-  and well-formed conversions, two quoted literal corpora, two template forms
-  and thirteen HTML wrappers. Standard Rust String clones preserve independent
-  owners, UTF-8 type validity removes redundant validation, and format!/replace
-  preserve interpolation and wrapper text. HTML attribute escaping replaces only
-  double quotes; body text, ampersands, NUL and Unicode are retained unchanged.
-- All 25 matched independent result oracles and completed 93 samples each
+**Rust record ownership/recursive data/retained arrays — verified, 2026-10-31:**
+- Fourteen independent references cover record mutation, deep copying, partial
+  field restoration, recursive trees/factories/growth/copying, ordered removal,
+  borrowed/mutable/owned arguments, capture replacement, retained numeric rows
+  and generic record pipelines. Standard Rust structs, Vec, Clone and generic
+  Fn/FnMut/FnOnce bounds preserve independently owned values without RC storage.
+- All fourteen matched independent result oracles and completed 93 samples each
   (three processes, eight warmups, 31 timed samples), Rust-only run
-  2026-10-31T13:29:25.178Z; medians 0.001875–0.201750 ms, max load 2.194,
-  watchdog peak 334,336 KiB. Compiler implementation unchanged; existing Tsrust/
+  2026-10-31T13:31:33.303Z; medians 0.007417–0.729791 ms, max load 2.218,
+  watchdog peak 299,376 KiB. Compiler implementation unchanged; existing Tsrust/
   Node measurements reused. No Node timing rerun or product API changes.
-- Twenty durable string_form_edges.rs tests passed under the sequential watchdog
-  with three threads: independent retained owners, valid noncharacters/NUL,
-  decoded quote/unknown/continuation escapes, exact primitive template formats,
-  literal interpolation markers and all thirteen wrappers/attribute behavior.
-- store:ingest added 25 histories; stored medians/sample counts, source hashes
-  and SQLite integrity verified before raw disposal. Public hashes/timestamps
-  pinned. Coverage **723/932**, remaining **209**. Next: remaining callables and
-  ownership/record families; Math.random remains open.
+- Eleven durable record_ownership_edges.rs tests passed under the sequential
+  watchdog with three threads: record mutation order, deep clone isolation,
+  partial-field restoration, mutual recursion, independent recursive factories,
+  read/mutate/move callbacks, replaced captures, recursive removal/copying,
+  independent retained arrays and generic owned-value transfer.
+- store:ingest added fourteen histories; stored medians/sample counts, source
+  hashes and SQLite integrity verified before raw disposal. Public hashes and
+  timestamps pinned. Coverage **737/932**, remaining **195**. Next: remaining
+  callable pipelines and collection/native families; Math.random remains open.
 - Prior correction retained: 8df76859 fixes UTF-8 byte .length in 27 callable/
   nested/generic references and refreshes all their source hashes and Rust runs.
   Those measured length inputs were ASCII, so historical corpus outputs remain

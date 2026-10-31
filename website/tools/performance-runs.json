@@ -2929,6 +2929,62 @@
     "string_html_sup": {
       "at": "2026-10-31T13:29:25.178Z",
       "sourceSha256": "616b01347d3d8c68a58c8f8b427ef2d0d4fbd3c9f04f55c6e7b83bfac1d9d279"
+    },
+    "record_mutation": {
+      "at": "2026-10-31T13:31:33.303Z",
+      "sourceSha256": "69f44e9135332d5814d4004657898018b5ebc686a745c63670f92a858f95a010"
+    },
+    "deep_clone": {
+      "at": "2026-10-31T13:31:33.303Z",
+      "sourceSha256": "7a7446fc1b8597c564bb4063d24b12f138d59c9f973e71dd678e5b8a3013c219"
+    },
+    "field_restore": {
+      "at": "2026-10-31T13:31:33.303Z",
+      "sourceSha256": "6c01e2e6f4bbc99305136d8bac3d569cdbe60db06772654499d3650f9974fe21"
+    },
+    "recursive_data": {
+      "at": "2026-10-31T13:31:33.303Z",
+      "sourceSha256": "51854d07084168e9c84f6f3db20289caf649b945a2b84eafdcdef693a929840f"
+    },
+    "recursive_factory": {
+      "at": "2026-10-31T13:31:33.303Z",
+      "sourceSha256": "f43d0d42e69e08f77dc759918e52a7e748b1adca67a71cce358c26d22b15928f"
+    },
+    "ordered_removal": {
+      "at": "2026-10-31T13:31:33.303Z",
+      "sourceSha256": "5f11be197f1dc70f403b8e91e176db8f2e469ad7cf733287f9574142ccbef955"
+    },
+    "owned_arguments": {
+      "at": "2026-10-31T13:31:33.303Z",
+      "sourceSha256": "3601f4f622e5b5796a7fe4b41f708bf3e908865352fa3e0d969d9909f533b169"
+    },
+    "capture_replacement": {
+      "at": "2026-10-31T13:31:33.303Z",
+      "sourceSha256": "9064f6afe6d17105da66b2526252a49dafc821fc2791a3b22c1b6848e59aa5e9"
+    },
+    "retained_numbers": {
+      "at": "2026-10-31T13:31:33.303Z",
+      "sourceSha256": "eb03fdc5d8dfab4a226c3a313bbba3264b56b0f65b6577e0db663be9cc18b805"
+    },
+    "retained_rows": {
+      "at": "2026-10-31T13:31:33.303Z",
+      "sourceSha256": "c413f32aa7a969abe819c9c56e56a649f8f55b286c2e2dd9332fa8709d53718d"
+    },
+    "recursive_growth": {
+      "at": "2026-10-31T13:31:33.303Z",
+      "sourceSha256": "d01f8fea446fa73fbc5801db3686919f0d3bd1925c834a81348fb6d471704aa0"
+    },
+    "recursive_clone": {
+      "at": "2026-10-31T13:31:33.303Z",
+      "sourceSha256": "f16f1d3da195499fddba634a8e532b933d0e5e2b7fd777f5b29b55d5a24a6859"
+    },
+    "generic_record_nested_int": {
+      "at": "2026-10-31T13:31:33.303Z",
+      "sourceSha256": "726db95b96dd0e8714d8a4f5f1ffdf7fe4e05110060f9da33f6af5aa47151e9c"
+    },
+    "generic_function_record_pipeline": {
+      "at": "2026-10-31T13:31:33.303Z",
+      "sourceSha256": "8c38df93a280b07dda997bd448f4bdccb258724d21e9c76552ddb1775179f6c0"
     }
   }
 }
