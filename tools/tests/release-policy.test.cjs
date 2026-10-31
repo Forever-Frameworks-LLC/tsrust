@@ -117,21 +117,35 @@ test('missing, extra, dirty or wrong-source release artifacts are rejected befor
 }));
 
 
-test('publication uploads validated bytes after merge and safely resumes a partial draft', async () => artifacts(async ({dist}) => {
+for (const existingDraft of [false, true]) test(existingDraft ? 'publication safely resumes a partial draft' : 'publication reads notes from the validated merge instead of its stale checkout', async () => artifacts(async ({dist}) => {
   const cwd = process.cwd();
   process.chdir(path.dirname(dist));
   try {
     fs.mkdirSync('target');
     fs.mkdirSync('.github');
     fs.writeFileSync('target/promotion.json', JSON.stringify(snapshot));
-    fs.writeFileSync('.github/release-notes.md', 'Release notes');
+    fs.writeFileSync('.github/release-notes.md', 'Stale checkout notes');
     const fixture = merger();
     const events = [];
     const github = fixture.github;
     github.rest.actions = {getWorkflowRun: async () => ({data: run()})};
     github.rest.git.createRef = async args => { events.push(['tag', args.sha]); };
     github.rest.repos = {
-      getReleaseByTag: async () => ({data: {id: 1, draft: true, assets: [{id: 9, name: 'partial.tar.gz'}]}}),
+      getReleaseByTag: async () => existingDraft ? ({data: {id: 1, draft: true, assets: [{id: 9, name: 'partial.tar.gz'}]}}) : notFound(),
+      getContent: async args => {
+        assert.deepEqual(args, {...repo, path: '.github/release-notes.md', ref: 'merged'});
+        assert.equal(fixture.calls.length, 1);
+        events.push(['notes', args.ref]);
+        return {data: {type: 'file', encoding: 'base64', content: Buffer.from('Validated release notes').toString('base64')}};
+      },
+      createRelease: async args => {
+        assert.equal(args.body, 'Validated release notes');
+        assert.equal(args.target_commitish, 'merged');
+        assert.equal(args.generate_release_notes, true);
+        assert.equal(args.draft, true);
+        events.push(['create-draft']);
+        return {data: {id: 1, draft: true, assets: []}};
+      },
       deleteReleaseAsset: async ({asset_id}) => { events.push(['delete-draft-asset', asset_id]); },
       uploadReleaseAsset: async ({name, data}) => {
         assert.deepEqual(data, fs.readFileSync(path.join(dist, name)));
@@ -147,7 +161,8 @@ test('publication uploads validated bytes after merge and safely resumes a parti
     };
     await publish({github, context: {repo, payload: {workflow_run: {id: 42}}}, core: {info() {}}});
     assert.deepEqual(events[0], ['tag', 'merged']);
-    assert.deepEqual(events[1], ['delete-draft-asset', 9]);
+    assert.deepEqual(events[1], existingDraft ? ['delete-draft-asset', 9] : ['notes', 'merged']);
+    if (!existingDraft) assert.deepEqual(events[2], ['create-draft']);
     assert.deepEqual(events.at(-1), ['publish']);
     // Reruns download the original artifacts, without the generated checksum file.
     fs.unlinkSync(path.join(dist, 'SHA256SUMS'));

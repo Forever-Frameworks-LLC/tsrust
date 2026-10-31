@@ -20,8 +20,9 @@ still open but is not the current loop's focus.
 
 **Git:** branch `codex/optimize-native-hot-paths`; accepted checkpoints through
 `d9df0009` are pushed; `e0fd0169` reconciles published main ancestry without
-changing the source tree. Latest accepted optimization: `28a3409c` (typed JSON pipeline
-restoration), following `1d3eb962` (single replacement sizing acceptance). Earlier
+changing the source tree. Latest accepted optimization: **2c538120** (normalization scratch reuse, 1.316×),
+following `28a3409c` (typed JSON pipeline restoration) and `1d3eb962` (single
+replacement sizing acceptance). Earlier
 accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration,
 `610c2bc0` scalar-union arrays, `a74da73f` Rust parser defaults, `a2f94dee`
 plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
@@ -89,16 +90,32 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
 - store:ingest added **four histories**. Exact medians, mean rates, counts, source
   hashes and SQLite integrity verified before deleting disposable results.
   Candidate selection added to the local performance page; published v0.1.1
-  retains its earlier snapshot. Whole-project formatting/build/checkpoint follow.
+  retains its earlier snapshot. Whole-project formatting changed zero files;
+  the 66-page website build passed. Accepted checkpoint **2c538120**.
 - Separate SQLite HTTP phase profile validated 4,096 responses per mode. Mean
   acquire/prepare/query microseconds: c1 **7.763 / 7.465 / 8.859**, c16
   **607.541 / 8.445 / 9.928**. Concurrent latency sums are not elapsed throughput.
   No SQL runtime change: metadata preparation enforces documented parameter
   count/type checks; skipping it would change behavior. Closed probes removed.
-- Next: repair release-note provenance in the trusted publisher (it read its
-  pre-merge checkout's older notes; this release's published notes were corrected
-  explicitly). Then profile the remaining normalization table lookup/ordering
-  costs or advanced schema restoration before selecting another candidate.
+- Release-note provenance repair below is complete locally. Next: profile the
+  remaining normalization table lookup/ordering costs or advanced schema
+  restoration before selecting another candidate.
+
+**Release-note provenance repair — validated locally, 2026-10-31:**
+- Observed v0.1.1's trusted publisher reading its pre-merge checkout's older
+  release notes. The current published notes were corrected without changing
+  tag/assets or generated changelog. Future fresh publications now fetch notes
+  from the exact validated merged commit through the GitHub contents API;
+  executable orchestration still comes from trusted main. File/encoding checks
+  fail closed. No extra checkout or execution of staged source is introduced.
+- Extended the actual publication fixture with a fresh-release branch whose
+  checkout deliberately contains stale notes. It verifies the pinned merge ref,
+  exact validated note text, generated changelog flag and draft publication;
+  existing partial-draft recovery/merge/artifact checks remain intact.
+  **Nine release-policy tests passed**, under the watchdog. This fix is local,
+  after the published release; no second release/tag or CI dispatch was created.
+- Removed the verified temporary download/extraction directory after successful
+  smoke. The release URL/checksums remain the source for consumers.
 
 **Validation:**
 - GitHub CI dispatched today ran only the default subset, because

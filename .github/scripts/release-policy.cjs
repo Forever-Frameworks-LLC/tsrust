@@ -109,7 +109,13 @@ async function publish({github, context, core}) {
   try { release = (await github.rest.repos.getReleaseByTag({...repo, tag: snapshot.tag})).data; }
   catch (error) {
     if (error.status !== 404) throw error;
-    release = (await github.rest.repos.createRelease({...repo, tag_name: snapshot.tag, target_commitish: sha, name: `Tsrust ${snapshot.tag}`, draft: true, prerelease: snapshot.tag.includes('-'), generate_release_notes: true, body: fs.readFileSync('.github/release-notes.md', 'utf8')})).data;
+    // Orchestration runs from pre-merge main; notes belong to the validated release tree.
+    const {data: notes} = await github.rest.repos.getContent({...repo, path: '.github/release-notes.md', ref: sha});
+    assert.equal(notes.type, 'file', 'Release notes must be a file');
+    assert.equal(notes.encoding, 'base64', 'Release notes content is unavailable');
+    assert.equal(typeof notes.content, 'string', 'Release notes content is missing');
+    const body = Buffer.from(notes.content, 'base64').toString('utf8');
+    release = (await github.rest.repos.createRelease({...repo, tag_name: snapshot.tag, target_commitish: sha, name: `Tsrust ${snapshot.tag}`, draft: true, prerelease: snapshot.tag.includes('-'), generate_release_notes: true, body})).data;
   }
   if (!release.draft) {
     assert.deepEqual(release.assets.map(asset => asset.name).sort(), files.sort(), 'Published asset set differs');
