@@ -687,7 +687,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   48952 terminal zero. Ingested and verified the one Rust history entry and SQLite
   integrity; removed raw result. No native/Node timing rerun.
 - Public baseline config pins timestamp/source hash. Rust coverage now 3/932;
-  remaining 655 workloads need parity references, correctness and one-time timing.
+  remaining 630 workloads need parity references, correctness and one-time timing.
   Start next with the remaining schema workloads. Current native source clean;
   no optimization candidate remains. Website build passed; whole-project formatter
   changed zero files/snippets/fingerprints. No active tool session remains.
@@ -720,7 +720,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   timestamp and parity-source SHA-256; sample counts checked. Website build passed.
   No new Node or Rust timing was run for this page update; no deployment.
 - **Remaining owner request: implement and validate hand-written Rust coverage
-  for the other 655 displayed workloads**, by coherent families with independent
+  for the other 630 displayed workloads**, by coherent families with independent
   result oracles. Start current schema workloads, then remaining families. Do not
   claim all comparisons exist. Added first new source
   `benchmarks/runtime/parity/native_schema_json_nested.rs`: ordinary typed Serde
@@ -1248,6 +1248,29 @@ counts, wrap a copy of the generated program with a counting global allocator.
   hashes/timestamps pinned. Coverage **277/932**, remaining **655**.
   Math.random remains open; next: array operations and remaining reference families.
   Compiler implementation unchanged; no optimization speedup claimed.
+
+**Rust foundational array family — verified, 2026-10-31:**
+- Twenty-five references: ten includes/indexOf workloads (int, boolean, static,
+  dynamic and scalar-unit strings), three reversals (fixed/growable ints and
+  owned strings), four slices, four temporary-array selections and four lazy
+  conditional-array workloads. Standard Rust fixed arrays, Vecs, relative index
+  normalization and checked integer bookkeeping preserve the matched contracts.
+- Owned nested slices deep-clone their inner Vecs. Temporary indexing moves the
+  chosen owned result and drops unselected values. UTF-8 unit strings use chars
+  and return an empty string past the scalar count. Conditional callbacks retain
+  predicate/branch counters and evaluate only the selected branch.
+- All twenty-five matched independent output oracles and completed 93 samples
+  each (three processes, eight warmups, 31 timed samples), Rust-only run
+  2026-10-31T11:54:18.469Z; medians 0.017208–1.941042 ms,
+  max load 2.061, watchdog peak 308,272 KiB.
+  Existing Tsrust and Node measurements reused; compiler implementation unchanged.
+- Five durable Rust edge tests passed under the sequential watchdog with three
+  threads: signed index extremes, independent inner Vec ownership, Unicode
+  scalar/combining indexing, lazy branches/empty rows and owned temporary survival.
+- store:ingest added twenty-five histories; all stored medians/sample counts,
+  source hashes and SQLite integrity verified before deleting raw result. Public
+  source hashes/timestamps pinned. Coverage **302/932**, remaining **630**.
+  Next: array sorting and mutation families; Math.random reference remains open.
 
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code

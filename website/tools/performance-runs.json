@@ -1145,6 +1145,106 @@
     "numeric_string_conversion": {
       "at": "2026-10-31T11:50:51.584Z",
       "sourceSha256": "7c08dfead0a4975bc7399189e37901f4db99f0406a44ee7e7ecba6b6c86f7d58"
+    },
+    "int_array_includes": {
+      "at": "2026-10-31T11:54:18.469Z",
+      "sourceSha256": "0056cc3026f35b5fe568f50b43626bc6853c691ce1a93976e92f222468af80e0"
+    },
+    "int_array_index_of": {
+      "at": "2026-10-31T11:54:18.469Z",
+      "sourceSha256": "78b4dd7fc1840e5044901fbeb0a09717b1ce343295767d15828ce033a65daa5c"
+    },
+    "boolean_array_includes": {
+      "at": "2026-10-31T11:54:18.469Z",
+      "sourceSha256": "bdf68a9ecb40e579a00bfb4738895cc8cc1d703835e62840d81fc5bfa1236647"
+    },
+    "boolean_array_index_of": {
+      "at": "2026-10-31T11:54:18.469Z",
+      "sourceSha256": "12d1edb53e98c60f53b623018daa38c2634240c43bafe841e65ef6a8f18271f7"
+    },
+    "string_array_includes": {
+      "at": "2026-10-31T11:54:18.469Z",
+      "sourceSha256": "2b1b309b2429692b5a7564956401abf7a5e7ea6ae664df3d684fb9f6952fc17a"
+    },
+    "string_array_index_of": {
+      "at": "2026-10-31T11:54:18.469Z",
+      "sourceSha256": "a8199fc9ae2e05b0b76b8bba29f481691706b5ccb9989e280e2c135f667ed5e9"
+    },
+    "dynamic_string_array_includes": {
+      "at": "2026-10-31T11:54:18.469Z",
+      "sourceSha256": "c9ef8bb5c82c4ae204d212b8056ff0b4e62865400ef8c00676f554f80188caf2"
+    },
+    "dynamic_string_array_index_of": {
+      "at": "2026-10-31T11:54:18.469Z",
+      "sourceSha256": "7de0d561dd253e594a0a50425890db199e1cb10c51e7576d16249232432ce7b3"
+    },
+    "unit_string_array_includes": {
+      "at": "2026-10-31T11:54:18.469Z",
+      "sourceSha256": "74d60d294c799c6a3a9891e1dcda04f7c71cc315a83c3c532efff920e7af6d76"
+    },
+    "unit_string_array_index_of": {
+      "at": "2026-10-31T11:54:18.469Z",
+      "sourceSha256": "938f9dae9743f3a77f0494e387b6f6790c7570adc4379c07b77d9bb2507a4e17"
+    },
+    "fixed_int_array_reverse": {
+      "at": "2026-10-31T11:54:18.469Z",
+      "sourceSha256": "cbe261ec840081477898f70ffe5ae0bb4e581fe7eb5d372a7721a6fed30893ce"
+    },
+    "growable_int_array_reverse": {
+      "at": "2026-10-31T11:54:18.469Z",
+      "sourceSha256": "a5640d0d6d803bd9b2396a689728afeebc611cb1d71b88bff81fe91068e6fd4d"
+    },
+    "owned_string_array_reverse": {
+      "at": "2026-10-31T11:54:18.469Z",
+      "sourceSha256": "343137203dd011fb5779c464ecadba4596f0f1f4436c56acc1d3f3491ea1c026"
+    },
+    "array_slice_int": {
+      "at": "2026-10-31T11:54:18.469Z",
+      "sourceSha256": "5520e0e787a06f760b01fe76eae4180b87a8d2765b5efd67e6f0029581176f80"
+    },
+    "array_slice_number": {
+      "at": "2026-10-31T11:54:18.469Z",
+      "sourceSha256": "842d85094a38d8dbde9741afd70bb8ed209f8e4bd3109b9bc9ed7f9a327f4bdf"
+    },
+    "array_slice_string": {
+      "at": "2026-10-31T11:54:18.469Z",
+      "sourceSha256": "f39f3006b1d46625621a16bbdd841d963c901389886a0db2766412625f6cf60c"
+    },
+    "array_slice_nested": {
+      "at": "2026-10-31T11:54:18.469Z",
+      "sourceSha256": "173f45098a41b4e4bd5b8c6adc76e693ed665951a8750e5990723497847d914b"
+    },
+    "array_temporary_index_int": {
+      "at": "2026-10-31T11:54:18.469Z",
+      "sourceSha256": "19b6b5d0a3b7ce9ae973b6d6db9ba5e75923cf0c6bc6a17efe0bdaffab54bc70"
+    },
+    "array_temporary_index_number": {
+      "at": "2026-10-31T11:54:18.469Z",
+      "sourceSha256": "2b2c30c9667767954889353343820a1d392abd83f7243991dbf498009474557c"
+    },
+    "array_temporary_index_string": {
+      "at": "2026-10-31T11:54:18.469Z",
+      "sourceSha256": "88ce9460e4e98bbbcdbf40cd7c4a5381a127813fc5e608cfc2f7fbef253e6408"
+    },
+    "array_temporary_index_nested": {
+      "at": "2026-10-31T11:54:18.469Z",
+      "sourceSha256": "16a674ce809ed58bbc942a5bef93e59a911c254cfd0679b60be0f8269ad8bc17"
+    },
+    "conditional_array_int": {
+      "at": "2026-10-31T11:54:18.469Z",
+      "sourceSha256": "ae40428f872411cc4f1f33b33c504b75e43060d7edcf20bd7b361829544b7d54"
+    },
+    "conditional_array_number": {
+      "at": "2026-10-31T11:54:18.469Z",
+      "sourceSha256": "1a99d5f211a180ba935a3e6d5a14107a3ccdaf9927133e1d3f4479484a0d9999"
+    },
+    "conditional_array_boolean": {
+      "at": "2026-10-31T11:54:18.469Z",
+      "sourceSha256": "62c1f72c4f9a4ec22a189858f4b4e7e38c5fbf0542d884e01b4cc76bb5d55e6c"
+    },
+    "conditional_array_string": {
+      "at": "2026-10-31T11:54:18.469Z",
+      "sourceSha256": "1c60d67ea6da2643813b71dbe24bb61d754c0b97bb6e9dce3c3618179d50e684"
     }
   }
 }
