@@ -122,7 +122,7 @@ impl Analyzer {
             Stage::Statement=>{
                 if frame.at==frame.body.len(){
                     if let Some(boundary)=frame.body.first().map(|statement|statement.span.start){
-                        let types=frame.results.iter().filter(|(_,ty)|self.contains_scoped_map_storage(**ty)).map(|(binding,ty)|(*binding,*ty)).collect();
+                        let types=self.scoped_map_storage_inputs(&frame.results);
                         context.storage_exits.record_map_native_exit(boundary,types);
                     }
                     frame.stage=Stage::Done;return Ok(None);
@@ -222,7 +222,7 @@ impl Analyzer {
             Stage::ExceptionEnd=>{
                 let StmtKind::Try(region)=&frame.body[frame.at].kind else{unreachable!()};
                 self.plan_map_exception_storage_exit(context,region,&mut frame.results,&frame.local);
-                let inputs=frame.results.iter().filter(|(_,ty)|self.contains_scoped_map_storage(**ty)).map(|(binding,ty)|(*binding,*ty)).collect();
+                let inputs=self.scoped_map_storage_inputs(&frame.results);
                 context.storage_exits.record_map_native_inputs(frame.end,inputs);
                 frame.stage=Stage::FallbackLoop;
             },

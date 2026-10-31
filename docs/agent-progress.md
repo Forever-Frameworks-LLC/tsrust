@@ -20,7 +20,9 @@ still open but is not the current loop's focus.
 
 **Git:** branch `codex/optimize-native-hot-paths`. Pushed through `5793c2b5`.
 Local, not pushed: `5805b423`, `db6ec027` (single handoff), `4bf84f84` (test fix),
-`3a625efe` (current handoff). Validation resumed from that clean checkpoint. The rejected small-string experiment lives on
+`3a625efe` (initial handoff), `6b8f62b1` (completed validation). The following
+Map optimization checkpoint is recorded in the current branch history.
+The rejected small-string experiment lives on
 `codex/small-string-experiment` (keep for reference; do not merge).
 
 **Validation:**
@@ -57,8 +59,8 @@ Local, not pushed: `5805b423`, `db6ec027` (single handoff), `4bf84f84` (test fix
   Total resumed validation: 2,110 passed, zero failures, 11 existing ignores,
   no watchdog stops. Overall peak RSS was 1,611,840 KiB. Compiler library build
   reported the existing unused `decode_plain` warning in `stdlib/json/typed.rs`.
-  Next: profile `scoped-map-catch` using the existing nesting-discovery generator;
-  depth-32/64/80 inputs are prepared in `/tmp/tsrust-scoped-map-catch-*.tsr`.
+  This requested validation stage is complete; the accepted optimization and
+  remaining work are recorded below.
   Remote validation is not needed for this local optimization stage.
 
 **How to run tests safely (8 GB Mac):** a test once grew to 30 GB when a compiler
@@ -86,6 +88,56 @@ control (a control far from 1.0 means the machine moved). Add
 counts, wrap a copy of the generated program with a counting global allocator.
 `sample <pid> 3` works (Developer Mode is enabled).
 
+**Accepted Map snapshot optimization — 2026-10-30:**
+- Baseline: validation checkpoint `6b8f62b1`. A three-second CPU sample of the
+  depth-80 nesting probe identified repeated `contains_scoped_map_storage`
+  walks beneath Map epoch snapshot collection. The six snapshot sites now use
+  one helper that classifies each distinct type once per snapshot. Its cache
+  cannot outlive record-layout changes; snapshot ordering remains `BTreeMap`.
+- The new native witness exposed stale optional-selection union/payload metadata
+  after Map entry narrowing. Retargeting now aligns the selected payload before
+  selecting callback dispatch, fixing a generated `TsrCallbackError` versus
+  `TsrStorageError` mismatch. Present/missing entries and capture release pass.
+  Initial development failures were a helper `HashMap`/`BTreeMap` return-type
+  mismatch and an invalid nullable assertion; both were corrected before acceptance.
+- Final affected validation: **347 passed, zero failures** across compiler
+  `scoped_record_composition` (204), `optional_chaining`,
+  `borrowed_optional_fallback`, `exception_return_moves`, `maps`,
+  `exception_handling`; LSP `maps`, `exception_handling`; compiler library
+  `map_` filter (59). One binary at a time, three test threads, one Cargo job,
+  incremental disabled, shared target, 5,000,000 KiB/1,800-second watchdog.
+  Peak process-group RSS: 2,088,960 KiB. The earlier 203 passing scoped-record
+  cases were retained, then that affected suite was rerun for the metadata fix.
+- A/B protocol: existing `nesting-discovery/run.py` scoped-map-catch generator;
+  fresh compiler library-probe processes on the ordinary test worker stack;
+  two warmups and 11 samples per depth, load average at most 4 before each.
+  Native check/emit medians (baseline → candidate): depth 32 **460.521 →
+  180.750 ms (2.55×)**; 64 **3,189.947 → 818.285 ms (3.90×)**;
+  80 **6,067.294 → 1,402.972 ms (4.32×)**. Node/TypeScript strict no-emit
+  controls: **155.646 → 157.441**, **161.296 → 160.239**,
+  **161.154 → 159.901 ms**, all within 1.2%. These are frontend costs with
+  different language contracts, not runtime throughput measurements.
+- `npm run store:ingest -- /tmp/tsrust-map-baseline-timings.json
+  /tmp/tsrust-map-candidate-timings.json` added all 12 history entries to
+  `benchmarks/measurements.sqlite`; integrity check returned `ok` and all six
+  workload/engine rows contain both 11-sample runs. Engine names are
+  `native-check-emit` and `node-tsc-check` to avoid conflating runtime data.
+- Whole-project formatting with the validated CLI changed zero files, catalog
+  snippets or benchmark fingerprints. The native witness uses the shared
+  formatting round-trip helper, including idempotence and formatted execution.
+- Next: profile the remaining cost of scoped Maps across catch regions before
+  another optimization. Repeated subtree traversal and binding scans still
+  exist; this checkpoint does **not** claim to eliminate cubic scaling.
+  Existing input generator and `/tmp/tsrust-time-map.py` can reproduce the
+  measurement. The temporary scripts/profile are disposable, not new handoffs.
+  Cleanup removed 577 older duplicate test executables (8,673,106,648 bytes),
+  4,490 completed-build intermediate objects (3,980,355,832 bytes), and 16 old
+  native program cache entries (79,347,359 bytes). The newest executable per
+  test source, current CLI/LSP binaries, latest native program, root locks and
+  shared runtime/Cargo dependencies remain. Target size is 20 GB; no rebuild
+  was started to refill caches. Ingested raw timing files were deleted.
+  No push, CI dispatch, merge, release or dependency change was made.
+
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code
 must not contain `unsafe` (tests assert it); one handoff note only (this file);
@@ -102,12 +154,15 @@ small-string type (chains up to 47% slower, re-validating UTF-8 without
 optimization log below.
 
 **Ranked next targets:**
-1. Compile time: scoped Maps across catch regions are cubic in nesting depth
-   (debug compiler: 32 levels 0.42 s, 64 → 2.9 s, 80 → 5.5 s).
+1. Compile time: scoped Maps across catch regions still repeat subtree work.
+   The original debug-compiler baseline looked cubic (32 levels 0.42 s,
+   64 → 2.9 s, 80 → 5.5 s).
    `record_sequence_carriers` (`analysis/record_branch_carriers.rs`, called from
    `finish_block` in `analysis/continuations/block.rs`) re-walks each block's
    whole subtree, and `scoped_map_entry_epochs` re-filters every binding per
-   statement. Make it incremental; profile first.
+   statement. Distinct-type snapshot classification now cuts depth 80 from
+   6.067 s to 1.403 s (4.32×); repeated traversal/scanning remains. Profile
+   the accepted source before making those passes incremental.
 2. Schema trials: every layer (sequence, pair, remap, inject in
    `stdlib/schema/runtime/trial.rs`) boxes a `dyn FnOnce` restoration capturing
    the previous one; generic restorations would remove most of the 9
