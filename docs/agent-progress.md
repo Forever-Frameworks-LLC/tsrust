@@ -677,9 +677,9 @@ counts, wrap a copy of the generated program with a counting global allocator.
 
 **Hand-written Rust reference expansion — current, 2026-10-31:**
 - Owner requested independent, ordinary Rust comparisons alongside **all 932**
-  public workloads. **841 are measured; 91 remain.** This is ongoing acceptance,
-  not universal hand-written-Rust parity. Next: files/JSON and remaining language fixtures; the Math.random reference
-  is also still open. No compiler candidate is active.
+  public workloads. **847 are measured; 85 remain.** This is ongoing acceptance,
+  not universal hand-written-Rust parity. Next: native JSON/schema and remaining language fixtures; the
+  Math.random reference is also still open. No compiler candidate is active.
 - Reuse Node and Rust baselines instead of timing them for every optimization.
   Refresh on workload/protocol/reference-source/toolchain/hardware changes or
   when a noisy close comparison needs a fresh control. Tsrust parent/candidate
@@ -758,8 +758,9 @@ counts, wrap a copy of the generated program with a counting global allocator.
 | Scoped/fallible records/generic value adapters | 3 | 8d67d28c |
 | Caller-borrowed callback record stores | 1 | bc1ca527 |
 | Full scoped-record/map composition | 1 | 5ce1bd51 |
-| Paths and OS identity | 12 | This checkpoint; details below |
-| **Total** | **841** | **91 still required** |
+| Paths and OS identity | 12 | dd8c100d |
+| Standard file I/O and buffered readback | 6 | This checkpoint; details below |
+| **Total** | **847** | **85 still required** |
 
 **Reference correctness and interpretation:**
 - Sources are independently authored Rust using standard-library operations and
@@ -794,40 +795,41 @@ counts, wrap a copy of the generated program with a counting global allocator.
   unmeasured Rust rows are not losses. Never label Tsrust simply "Native".
 - Current summary: Tsrust faster than Node.js in **613/932**, median throughput
   ratio **1.52×**, range **0.04×–189.48×**. Hand-written Rust faster than Node.js
-  in **571/932 (841 measured)**. The ratios use mean throughput, not median time.
+  in **577/932 (847 measured)**. The ratios use mean throughput, not median time.
 - Website generation/build passes locally; no deployment, push or CI is implied.
   Full-project formatting has consistently changed zero files/snippets/fingerprints.
 
-**Rust paths/OS identity — verified, 2026-10-31:**
-- Twelve independent references cover basename/suffix, dirname, extension,
-  absolute paths, lexical normalization, three join corpora (empty/root and
-  many Unicode components included), host-relative paths and OS/architecture/
-  endianness. Every operation runs inside its fixture loop; returned paths are
-  computed, never precomputed from the oracle. OS identity borrows target constants.
-- Standard Rust strings, Path/PathBuf and host components perform ordinary work.
-  A small POSIX segment stack preserves the measured platform's lexical parent,
-  root and trailing-separator behavior that PathBuf alone does not provide.
-  Relative-path inputs contain no dot/parent segments; each call obtains the host
-  working directory and compares components. No dependencies, RC or unsafe code.
-- Full independent output checks and **93 samples per workload** passed (three
-  processes, eight warmups, 31 timed samples), Rust-only batch
-  **2026-10-31T14:33:32.402Z**, max load **3.131**, watchdog sampled peak
-  **310,576 KiB**. Accepted medians span **0.030791–192.505916 ms**.
-  Existing Tsrust/Node baselines reused; no Node timing rerun or compiler changes.
-- Nine path_os_edges.rs tests passed under the watchdog with three threads:
-  suffix/trailing separators, interior and double-root dirname separators,
-  hidden/last extensions, parent/root normalization, empty/Unicode joins,
-  relative common prefixes and target OS/architecture/byte-order metadata.
-  The double-root dirname edge initially failed in the reference; fixed and
-  remeasured only that workload at **2026-10-31T14:34:19.807Z**, median
-  **0.358625 ms**, load **1.817**, sampled peak **238,096 KiB**. Other eleven
-  accepted samples were retained. Edge compilation sampled peak **100,976 KiB**.
-- store:ingest added **13 histories** (12 initial plus changed dirname). Stored
-  medians/counts, accepted source hashes, quiet load and SQLite integrity checked
-  before raw disposal. Public timestamps/hashes pinned; all 66 website pages build
-  locally. No deployment, push or CI. Coverage **841/932**, remaining **91**.
-  Next: native-files, native JSON/schema and remaining language fixtures;
-  Math.random still requires independent range/point evidence. All 932 required.
+**Rust standard file I/O — verified, 2026-10-31:**
+- Six independently authored references perform real cursor reads with explicit
+  drop/scope release, create/truncate single writes, write_all, bounded whole-file
+  write/readback and buffered write/readback. Source buffers are owned Vec<u8>
+  values; writes borrow prefixes and read chunks own storage. Buffer capacities
+  remain **16 bytes**, chunks **3 bytes**. All bytes, lengths and sums are observed.
+- Standard File/Read/Write, BufWriter/BufReader and fs::write replace compiler
+  wrappers. Rust File has deterministic Drop rather than a fallible explicit
+  close API; these workloads specify successful regular-file operations.
+  BufWriter::into_inner propagates flush errors before closing/reopening.
+  Bounded whole-file read checks an extra byte and rejects the explicit ceiling.
+  No unsafe code, added dependencies, precomputed rows or product/compiler changes.
+- All independent output oracles and **93 samples per workload** passed (three
+  processes, eight warmups, 31 timed samples), Rust-only run
+  **2026-10-31T14:36:47.539Z**, max load **3.028**, watchdog sampled peak
+  **346,624 KiB**. Medians: read/drop **19.795458 ms**, scope drop **19.912625**,
+  write **85.752000**, write_all **87.037167**, whole-file **87.521625**, buffered
+  **91.803792**. Existing Tsrust/Node baselines reused; no Node timing reruns.
+- Six file_io_edges.rs tests passed under the watchdog with three threads:
+  cursor limits, short reads/EOF, zero-byte reads, release/missing-file errors,
+  truncate-and-readback, empty/full write ranges, bounded extra-byte detection,
+  and buffered flush/readback across 3/16-byte boundaries. Private test files and
+  runner fixtures clean themselves up. Edge compilation sampled peak **135,664
+  KiB**; no failures or watchdog stops.
+- store:ingest added six histories. Stored medians/counts, source SHA256, quiet
+  load and SQLite integrity checked before raw disposal. Public selection pinned;
+  all 66 website pages build locally. No deployment, push or CI.
+  Coverage **847/932**, remaining **85**. Next: native JSON/schema and remaining
+  language fixtures; Math.random still requires independent range/point evidence.
+  All 932 remain required. Prior paths/OS checkpoint **dd8c100d** has twelve
+  references, nine edge checks and the fixed/re-measured double-root dirname.
 - Prior composition checkpoint **5ce1bd51** covers the complete 2,985-line fixture
   and 136 observed columns, seven edge tests and 93 samples (18.420917 ms).
   Its public **Tsrust/Rust ratio 0.15×** exposes generated overhead for later

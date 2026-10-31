@@ -3401,6 +3401,30 @@
     "std_path_dirname_ascii": {
       "at": "2026-10-31T14:34:19.807Z",
       "sourceSha256": "a95f371f090ac37ab4803c7eff2f6ba9256efe3a220e9e9ed649d3c287b4d59c"
+    },
+    "native_file_read_close": {
+      "at": "2026-10-31T14:36:47.539Z",
+      "sourceSha256": "ab1afc66512246d894a1294d1b530879ffbe03f0f337a10ceeb5da0d98ff40b6"
+    },
+    "native_file_scope_drop": {
+      "at": "2026-10-31T14:36:47.539Z",
+      "sourceSha256": "b9cdf97c14e414f76ee0b1f973d434b601beed13a9a7561acec47e4d750f55c3"
+    },
+    "native_file_write": {
+      "at": "2026-10-31T14:36:47.539Z",
+      "sourceSha256": "49eb715e8ad28165a9ab4eecfbcd2f8620b2279611967accdc51e823c655f06b"
+    },
+    "native_file_write_all": {
+      "at": "2026-10-31T14:36:47.539Z",
+      "sourceSha256": "c4949a0e597751af8f9158d0580652463dbb4c168deb048657ae17f5bda1098e"
+    },
+    "native_file_full_write_read": {
+      "at": "2026-10-31T14:36:47.539Z",
+      "sourceSha256": "87f9776353c98578a0367fb1d2cde29caaffe06b7200e9bc3519fb82d64b9f31"
+    },
+    "native_file_buffered_write_read": {
+      "at": "2026-10-31T14:36:47.539Z",
+      "sourceSha256": "794d9269ced49e7fc775b43badf90e82c3366a8df7afa81238d8f652667f039f"
     }
   }
 }
