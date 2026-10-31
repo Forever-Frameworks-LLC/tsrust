@@ -3229,6 +3229,46 @@
     "map_group_by": {
       "at": "2026-10-31T13:48:37.117Z",
       "sourceSha256": "7c48c37e3ea6c55bfd672454fc402a6c370a257d7e2fdbff109fa731f3db9539"
+    },
+    "native_bytes": {
+      "at": "2026-10-31T13:52:13.497Z",
+      "sourceSha256": "8510fbe8711406d75906c276abb9e61b1b858c176fec438f76e60c26a49cc2c4"
+    },
+    "native_byte_access": {
+      "at": "2026-10-31T13:52:13.497Z",
+      "sourceSha256": "cb048fd57390f0973fd64a090c779421b7cc598d41819e36cbb07a9b00cefd5e"
+    },
+    "native_byte_growth": {
+      "at": "2026-10-31T13:52:13.497Z",
+      "sourceSha256": "67be0817bf50dcdf55c8329ab2c2ec39001ce9fed163e68122249baf72dbe1f6"
+    },
+    "native_byte_copy_append": {
+      "at": "2026-10-31T13:52:13.497Z",
+      "sourceSha256": "2c44f72097fe3b2d1e72aaac2c2963ce316eeab2c0e6afabc2ff117e51f4894c"
+    },
+    "native_byte_clone": {
+      "at": "2026-10-31T13:52:13.497Z",
+      "sourceSha256": "8db0356241c3f317290c7650f72fbfc6cb53f48bdcca8bd52f52be42743cd544"
+    },
+    "native_byte_utf8": {
+      "at": "2026-10-31T13:52:13.497Z",
+      "sourceSha256": "0c3ce945ed4af51a365496e1cd0b9b822840c9f37caee7cb51269d8b131e9d78"
+    },
+    "native_deque_clone": {
+      "at": "2026-10-31T13:52:13.497Z",
+      "sourceSha256": "63665f826ab577479552284824d04915821e3b00cfef5a4bfd0d2cea7b88b7bb"
+    },
+    "native_heap": {
+      "at": "2026-10-31T13:52:13.497Z",
+      "sourceSha256": "754b48c2d89963e46e3babd2dee1c72060f93572e67c79cd43d7a3d97c89291b"
+    },
+    "native_ordered_set": {
+      "at": "2026-10-31T13:52:13.497Z",
+      "sourceSha256": "0a5769eb55474ed7a76ae4a59ccaf6bcb2414fa138d890c1ebaa2851675ce074"
+    },
+    "native_ordered_map": {
+      "at": "2026-10-31T13:52:13.497Z",
+      "sourceSha256": "3be62da148aaa1c3a8faa1ea7c626992df32196e2ca02b5ba11b88df6953f5b1"
     }
   }
 }
