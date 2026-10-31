@@ -677,8 +677,8 @@ counts, wrap a copy of the generated program with a counting global allocator.
 
 **Hand-written Rust reference expansion — current, 2026-10-31:**
 - Owner requested independent, ordinary Rust comparisons alongside **all 932**
-  public workloads. **869 are measured; 63 remain.** This is ongoing acceptance,
-  not universal hand-written-Rust parity. Next: 22 remaining native-schema references and 41 language/other fixtures;
+  public workloads. **883 are measured; 49 remain.** This is ongoing acceptance,
+  not universal hand-written-Rust parity. Next: eight remaining native-schema references and 41 language/other fixtures;
   Math.random is still open. All native-json workloads now have Rust baselines. No compiler candidate is active.
 - Reuse Node and Rust baselines instead of timing them for every optimization.
   Refresh on workload/protocol/reference-source/toolchain/hardware changes or
@@ -761,8 +761,9 @@ counts, wrap a copy of the generated program with a counting global allocator.
 | Paths and OS identity | 12 | dd8c100d |
 | Standard file I/O and buffered readback | 6 | 49d80b96 |
 | JSON values/views/typed records/raw encoding | 17 | d8c411ae |
-| JSONC and owned/borrowed JSONL streams | 5 | This checkpoint; details below |
-| **Total** | **869** | **63 still required** |
+| JSONC and owned/borrowed JSONL streams | 5 | dde5d289 |
+| Scalar schemas/refinement/owned arrays/parse | 14 | This checkpoint; details below; also refreshes integer bounds |
+| **Total** | **883** | **49 still required** |
 
 **Reference correctness and interpretation:**
 - Sources are independently authored Rust using standard-library operations and
@@ -797,46 +798,46 @@ counts, wrap a copy of the generated program with a counting global allocator.
   unmeasured Rust rows are not losses. Never label Tsrust simply "Native".
 - Current summary: Tsrust faster than Node.js in **613/932**, median throughput
   ratio **1.52×**, range **0.04×–189.48×**. Hand-written Rust faster than Node.js
-  in **597/932 (869 measured)**. The ratios use mean throughput, not median time.
+  in **608/932 (883 measured)**. The ratios use mean throughput, not median time.
 - Website generation/build passes locally; no deployment, push or CI is implied.
   Full-project formatting has consistently changed zero files/snippets/fingerprints.
 
-**Rust JSONC/JSONL references — verified, 2026-10-31:**
-- Five independent references complete the native-json family: typed JSONC,
-  owned JSONL reader/writer and JSONL operations borrowing caller buffers.
-  JSONC independently replaces comments with same-length whitespace, preserving
-  quoted markers, escapes, Unicode and line endings; serde validates typed fields
-  and rejects trailing commas by default. JSONL uses File, 8192-byte BufReader/
-  BufWriter and serde derives. Each iteration performs the actual file operations,
-  two typed input records plus EOF or one encoded record plus newline and flush.
-  Borrowed helpers leave the caller buffer available; consuming close propagates
-  buffered flush failures. No precomputed records/checksums, unsafe or new deps.
-- Full independent output oracles and **93 samples per workload** passed (three
-  processes, eight warmups, 31 samples), Rust-only run
-  **2026-10-31T14:50:23.642Z**. Medians: JSONC **0.375250 ms**, JSONL reader
-  **20.336292**, borrowed reader **20.106417**, writer **59.599959**, borrowed
-  writer **59.060416**. Watchdog sampled peak **1,086,080 KiB**, total preparation
-  and timing **189.605 seconds**. Quiet-machine gate waited for preparation load
-  to decay; maximum accepted timing load **3.691**, busy override off.
-  Existing Node/Tsrust measurements reused; no compiler or product changes.
-- Eight json_stream_edges.rs checks passed under the watchdog with three threads
-  and recorded serde artifacts: quoted/escaped/comment Unicode handling,
-  unterminated comments and default trailing-comma policy, CRLF/final unterminated
-  record/EOF, malformed lines/fields, parent reader reuse, exact buffered newline
-  output, write-error propagation and parent writer reuse after borrowed flush.
-  Edge compilation sampled peak **113,760 KiB**; no failures or watchdog stops.
-- store:ingest added five histories. Stored medians/counts, source SHA256, timing
-  load and SQLite integrity verified before raw disposal. Public source/date pins
-  refreshed; all 66 website pages build locally. No deployment, push or CI.
-  Coverage **869/932**, remaining **63**: **22 native-schema** plus **41 language/
-  other fixtures**. All native-json workloads have references. Next: scalar/schema
-  validators, schema object/export callbacks and remaining language fixtures;
-  Math.random needs independent range/point evidence. All 932 remain required.
-- Prior core JSON checkpoint **d8c411ae** adds seventeen references (including
-  literal unions, typed records, borrowed UTF-8 views and raw source preservation),
-  eleven edge checks and 93 samples per workload. File I/O **49d80b96** has six
-  real-I/O references/six edge checks; paths/OS **dd8c100d** has twelve references,
-  nine edge checks and corrected/re-measured double-root dirname.
+**Rust scalar schema references — verified, 2026-10-31:**
+- Fourteen independent references add string/boolean/null/integer/number schemas,
+  scalar bounds/messages, exact native integer-to-number conversion, ordered
+  superRefine issues, owned integer arrays, checked integer-to-number arrays and
+  parse/caught failure. Standard Rust Result, enums, Vec and owned strings retain
+  typed data and complete observed issue metadata (codes, expected/observed kinds,
+  paths, truncation flags and custom messages). JSON inputs use serde_json;
+  native-only fixtures use std alone. Success moves/reuses owned strings/arrays.
+- Corrected the older native_schema_int_bounds reference: it checked only issue
+  codes/paths and omitted other observed metadata. It now constructs/checks all
+  required fields and handles fractional/range errors. Refreshed all 93 samples
+  and the public source/date pin. This refresh adds no new coverage; fourteen
+  other references do. No compiler changes or Tsrust speedup claim.
+- Full independent output oracles and **93 samples per workload** passed across
+  fifteen references (three processes, eight warmups, 31 samples), Rust-only run
+  **2026-10-31T15:00:35.116Z**. Medians **0.032583–0.287000 ms**; refreshed
+  integer bounds **0.073000 ms**. Watchdog sampled peak **1,142,496 KiB**, accepted
+  run **250.261 seconds**, max timing load **3.997**, busy override off. Node and
+  Tsrust controls reused. First preparation failed on an unnecessary serde import
+  in a native-only reference; removed JSON helpers from all four native-only
+  sources before successful validation/timing. No timing preceded that repair.
+- Fourteen schema_scalar_edges.rs tests passed with recorded serde artifacts,
+  watchdog and three threads: owned-data reuse, Unicode scalar constraints versus
+  UTF-8 output lengths, custom messages, scalar kinds, exact i64 endpoints and
+  range/fraction errors, inclusive/exclusive bounds, signed zero, representable
+  large integer conversions and precision rejection, ordered refinements and
+  indexed errors, parse success/caught failure. Edge compile peak **165,632 KiB**.
+- store:ingest added **15 histories**. Stored medians/counts, source SHA256,
+  timing load and SQLite integrity verified before raw disposal. Source/date
+  selection pinned; all 66 website pages build locally. No push/deploy/CI.
+  Coverage **883/932**, remaining **49**: **eight native-schema** (export,
+  strip/retain, presence/defaults, literals/enums) and **41 language/other**.
+  All native-json workloads have references. Next: the eight remaining schemas,
+  then language fixtures; Math.random needs independent range/point evidence.
+  All 932 remain required. Prior JSON core **d8c411ae** and streams **dde5d289**
+  provide 22 references and 19 edge checks; files **49d80b96**, paths **dd8c100d**.
 - Prior composition checkpoint **5ce1bd51** covers the complete 2,985-line fixture
   and 136 observed columns, seven edge tests and 93 samples (18.420917 ms).
   Its public **Tsrust/Rust ratio 0.15×** exposes generated overhead for later
