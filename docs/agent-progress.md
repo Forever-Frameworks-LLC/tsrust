@@ -675,602 +675,119 @@ counts, wrap a copy of the generated program with a counting global allocator.
   finished zero. Rust-only baseline final runner 29812 completed zero in 46.451 s,
   peak 1,095,200 KiB. All compiler binaries now match accepted source again.
 
-**Nested hand-written Rust baseline — verified, 2026-10-31:**
-- New parity source uses ordinary owned Vecs, typed Serde decoding with unknown
-  field checks, integer bounds and checked addition. No generated Tsrust code.
-- Correctness cases matched independent arithmetic oracle. Rust-only measurement
-  2026-10-31T10:14:54.049Z: 93 samples, max load 3.615, median 1.806333 ms.
-  Stored Tsrust 2.103542 ms / Node 1.845167 ms are reused from accepted
-  2026-10-31T05:27:29.279Z. Small Rust/Node difference is not a broad speed claim.
-- Focused Rust test checks field, integer type and bounds rejection; passed using
-  exact prepared Serde artifacts, sequential watchdog, three threads. Session
-  48952 terminal zero. Ingested and verified the one Rust history entry and SQLite
-  integrity; removed raw result. No native/Node timing rerun.
-- Public baseline config pins timestamp/source hash. Rust coverage now 3/932;
-  remaining 630 workloads need parity references, correctness and one-time timing.
-  Start next with the remaining schema workloads. Current native source clean;
-  no optimization candidate remains. Website build passed; whole-project formatter
-  changed zero files/snippets/fingerprints. No active tool session remains.
+**Hand-written Rust reference expansion — current, 2026-10-31:**
+- Owner requested independent, ordinary Rust comparisons alongside **all 932**
+  public workloads. **330 are measured; 602 remain.** This is ongoing acceptance,
+  not universal hand-written-Rust parity. Next: array mutation families; the
+  Math.random reference is also still open. No compiler candidate is active.
+- Reuse Node and Rust baselines instead of timing them for every optimization.
+  Refresh on workload/protocol/reference-source/toolchain/hardware changes or
+  when a noisy close comparison needs a fresh control. Tsrust parent/candidate
+  A/B remains required for optimization changes. Reference-only additions do not
+  establish Tsrust speedups and do not require another full compiler/LSP matrix.
+- Every reference below passed independent result oracles and the original timing
+  protocol: three processes, eight warmups, 31 timed samples each (**93 samples**).
+  Rust-only batches used the sequential 5,000,000 KiB/1,800-second watchdog and
+  quiet load at most 4. Rust edge tests used three threads. No Node/Tsrust timing
+  reruns were needed for these reference-only additions.
+- After each batch, store:ingest imported minimal histories into SQLite. Stored
+  medians/sample counts, source hashes and database integrity were verified before
+  deleting disposable raw results. Public selection pins each Rust timestamp and
+  source SHA256 in website/tools/performance-runs.json. SQLite is the measurement
+  source of truth; commits retain full implementation and checkpoint evidence.
 
-**Performance page refresh — owner requested, 2026-10-31:**
-- Updated `website/tools/performance-runs.json` with accepted scalar-union,
-  plain-schema decoder, string-sizing and typed JSON pipeline runs. Excludes
-  rejected sequence-storage experiment and the current unmeasured candidate.
-- Generator now selects the latest curated run per workload instead of counting
-  duplicates; checks sample counts and displays each row's measurement date.
-  Removes unsupported causal claims from the summary. Snapshot: 932 distinct
-  workloads, native faster in 613, median mean-throughput ratio 1.52×.
-- `npm run build` in website passed; generated performance route exists and
-  all 932 workload IDs are unique. Local source/build updated; no deployment.
+| Completed reference family | Added | Checkpoint |
+| --- | ---: | --- |
+| Initial existing Rust references | 2 | d860cd34 |
+| Schema text decoding/validation | 9 | f3ed77d6 through 63a3d145 |
+| Integer operators | 16 | 0e5520b8 |
+| Compound arithmetic | 11 | 64abfd1d |
+| Boolean operations | 6 | 8b8e3405 |
+| Number 32-bit operations | 6 | 38f5ec06 |
+| Conversions/nullable values | 8 | b0a95868 |
+| Nullable transport | 7 | 94304bcc |
+| Scalar nullish/optional | 9 | 0e18ee2d |
+| Owned nullish | 6 | 008562fd |
+| Nullable fallback variants | 4 | a741f447 |
+| Owned optional access | 5 | e3bc12a9 |
+| String trim/concat | 12 | fef96456 |
+| String search/repeat | 9 | 9d81dfdc |
+| String slice/substring | 12 | eef97aea |
+| String find/reverse-find | 6 | bad5076c |
+| Scalar charAt | 5 | 646c6646 |
+| Remaining string construction/indexing | 6 | f24af7a2 |
+| String split/padding | 9 | cba5ad6b |
+| String replacement | 6 | 637056fc |
+| Updates/assignment values | 34 | b7f3df01 |
+| Primitive values/conditionals/integer formats | 8 | d0aae614 |
+| parseFloat | 6 | 8ecaf077 |
+| Scalar floating-point/radix parsing | 20 | f484969a |
+| Numeric formatting | 7 | 17e4a731 |
+| Exact/approximate math | 35 | c77580ac |
+| Conversions/literals/numeric arrays/binary16 | 13 | e06e0219 |
+| Foundational array search/copy/selection | 25 | c57c8be5 |
+| Stable array sorting | 28 | This checkpoint; details below |
+| **Total** | **330** | **602 still required** |
 
-**Owner benchmark direction — 2026-10-31 (supersedes routine Node reruns):**
-- Owner requested hand-written standard Rust comparisons alongside all public
-  workloads and reusable Node/Rust baselines instead of rerunning them for every
-  optimization. Preserve equivalent behavior, ownership, checks and outputs;
-  report actual winners, including Tsrust overhead. Refresh reference baselines
-  on workload/protocol/reference-source/toolchain/hardware changes, or when a
-  noisy close result requires a fresh control. Native parent/candidate A/B stays.
-- Existing `rust-hand` runner and two measured parity sources reused.
-  Uncommitted generator change selects Node independently from curated runs,
-  enabling native-only refreshes with separate native/Node dates. Website build
-  passed. Owner requested summary label: Rust faster than Node.js, initially
-  1 of 932 (2 measured); now 1 of 932 (3 measured), calculated from actual throughput. Public
-  performance generator now shows hand-written Rust throughput, native/Rust ratio,
-  independent dates and explicit missing coverage (now 3/932). Baselines pinned by
-  timestamp and parity-source SHA-256; sample counts checked. Website build passed.
-  No new Node or Rust timing was run for this page update; no deployment.
-- **Remaining owner request: implement and validate hand-written Rust coverage
-  for the other 630 displayed workloads**, by coherent families with independent
-  result oracles. Start current schema workloads, then remaining families. Do not
-  claim all comparisons exist. Added first new source
-  `benchmarks/runtime/parity/native_schema_json_nested.rs`: ordinary typed Serde
-  decoding with owned Vecs, bounded integers, unknown-field rejection and checked
-  accumulation. Decoder unit witness, independent oracle and one-time Rust timing
-  passed as recorded above. The mixed schema candidate was rejected and reverted.
-  Reuse stored Node controls; preserve source/protocol provenance for baselines.
+**Reference correctness and interpretation:**
+- Sources are independently authored Rust using standard-library operations and
+  established crates where needed, not generated Tsrust code with a new label.
+  They preserve each measured corpus's ownership, checks and observed outputs;
+  they are workload programs, not general JavaScript API reimplementations.
+- Approximate math required 920 genuine operation probes plus 115 accumulated
+  correctness cases across 23 references. c77580ac adds Rust engine point probes
+  from the actual parity sources; scalar timing requires accepted MPFR probes.
+  No numerical allowance or protocol was widened. Affected harness suites passed;
+  report regeneration revalidated the actual observations before raw disposal.
+- Durable edge tests in parity/*_edges.rs cover the custom boundary behavior:
+  integer overflow/radix signs, nullish/default ownership, UTF-8/scalar indexing,
+  split limits and replacement tokens, exact whitespace and numeric parsing,
+  binary16 ties/underflow/overflow, decimal grouping and lazy defaults, relative
+  array indices, deep copies, temporary ownership and stable sorting.
+- Standard Rust numeric formatting matches the measured corpus. Tie rounding
+  differs outside that corpus; do not claim a general JavaScript formatter.
+  Numeric radix parsing uses bounded u128 input where required, decimal grouping
+  uses shortest decimal text, and fractional radix text covers exact eighths in
+  even bases. Corresponding source comments and tests state the measured domain.
+- string_char_at_ascii_long is an **out-of-range control**: all 128 measured
+  positions are negative. 646c6646 corrected its description without changing
+  code, timing or protocol. Add a separate positive-index workload if needed.
 
+**Performance page — current, 2026-10-31:**
+- Generator selects the latest accepted Tsrust measurement per workload and
+  Node independently, excluding rejected experiments. There are **932 distinct**
+  comparisons. Each engine has its own date because reference baselines are reused.
+- Public labels say **Tsrust**, **Node.js** and **hand-written Rust**. The page
+  explains Tsrust source → Rust → executable, named ratio denominators and that
+  unmeasured Rust rows are not losses. Never label Tsrust simply "Native".
+- Current summary: Tsrust faster than Node.js in **613/932**, median throughput
+  ratio **1.52×**, range **0.04×–189.48×**. Hand-written Rust faster than Node.js
+  in **243/932 (330 measured)**. The ratios use mean throughput, not median time.
+- Website generation/build passes locally; no deployment, push or CI is implied.
+  Full-project formatting has consistently changed zero files/snippets/fingerprints.
 
-**Performance terminology correction — owner requested, 2026-10-31:**
-- Public labels now name Tsrust, Node.js and hand-written Rust explicitly.
-  Replaced Native in summaries, group tables, throughput/ratio columns, dates
-  and method descriptions. Introduction explains the Tsrust→Rust→executable
-  compilation path and the independent Rust reference. Ratios name both engines.
-- Rust win count explicitly covers measured comparisons; unmeasured rows are
-  not losses. No benchmark values changed and no timings rerun.
-
-**Array-schema hand-written Rust baseline — verified, 2026-10-31:**
-- Added parity/native_schema_json_array.rs using owned serde_json::Value input,
-  ordinary Vec integer output, ordered indexed issues and checked accumulation.
-  Includes success and two-error result observation equivalent to matched workload.
-- Rust-only runner 17550 passed independent checksum cases and 93 timing samples:
-  timestamp 2026-10-31T10:18:15.831Z, median .472625 ms, max load 3.516.
-  Focused integer-type/error-order/empty-array test passed in session 81555,
-  compiled with exact benchmark dependency artifacts. All under watchdog.
-- Ingested one Rust history entry; verified median/sample count and SQLite
-  integrity; removed disposable raw result. Reused Tsrust/Node baselines.
-  Public selection pins parity source SHA-256 and timestamp. Coverage now 4/932,
-  remaining 736. Next: remaining schema parity programs; no compiler candidate.
-
-**Object-schema Rust baselines — verified, 2026-10-31:**
-- Added parity/native_schema_json_object.rs (owned Value validation) and
-  native_schema_json_fused.rs (typed success decode, detailed error fallback).
-  Both construct and observe missing/unknown-field errors with owned paths,
-  validate count bounds, and use checked accumulation. Independent Rust code.
-- Rust-only runner 47577 passed correctness cases and 93 samples per workload,
-  max load 3.760, timestamp 2026-10-31T10:21:48.205Z. Medians object .509250 ms,
-  fused .701083 ms. No Tsrust/Node timings rerun. Focused boundary/type/two-error
-  witnesses passed sequentially under watchdog, session 29002 terminal zero.
-- Ingested two entries; verified medians/counts and SQLite integrity; removed raw
-  result. Public config pins source hashes/timestamps. Coverage now 6/932,
-  remaining 736. Next: remaining schema Rust references. No active tool session.
-
-**Recursive-schema Rust baseline — verified, 2026-10-31:**
-- Added parity/native_schema_recursive.rs: owned JSON input/tree output,
-  recursive integer checks, ordered field/index issue paths, checked checksum.
-- Rust-only runner 98049 passed independent correctness cases and 93 samples,
-  max load 3.552, timestamp 2026-10-31T10:24:27.138Z, median 1.548083 ms.
-  Nested-index/type test passed using exact dependency artifacts, session 65036;
-  all under sequential watchdog, three test threads. No Tsrust/Node timing rerun.
-- Ingested and verified one entry and SQLite integrity; raw result removed.
-  Public config pins source hash/timestamp. Coverage 7/932, remaining 736.
-  Next: remaining schema references; no active compiler candidate or tool job.
-
-**Union-schema Rust baseline — verified, 2026-10-31:**
-- Added parity/native_schema_json_union.rs: ordered branch checks, Unicode scalar
-  length, selected owned-string move, and two ordered diagnostics when all reject.
-  Focused Unicode-bound/branch test passed with exact dependencies (26939).
-- Rust-only runner 5228 passed independent correctness and 93 timing samples,
-  max load 3.997, timestamp 2026-10-31T10:26:44.659Z, median .203791 ms.
-  Sequential watchdog used; Tsrust/Node baselines reused. Ingested and verified
-  entry/sample count/SQLite integrity; disposable raw result removed.
-- Public source hash/timestamp pinned. Coverage 8/932, remaining 736. Next:
-  discriminated-union and remaining schema references; no active tool jobs.
-
-**Tagged-object Rust baseline — verified, 2026-10-31:**
-- Added parity/native_schema_json_discriminated_union.rs for matched corpus:
-  owned JSON, tag selection, ordinary Rust enum output and unknown-tag issue path.
-  Both enum branches, integer rejection and discriminator-path test passed with
-  exact dependencies, session 65694. Rust-only runner 51329 passed independent
-  correctness and 93 samples, max load 3.558, median .674833 ms, timestamp
-  2026-10-31T10:28:51.948Z. Sequential watchdog; no Tsrust/Node timing rerun.
-- Ingested/verified one entry and SQLite integrity; raw result removed. Public
-  config pins source hash/timestamp. Coverage 9/932, remaining 736. Next:
-  pipeline/collection schema Rust references. No active compiler candidate/job.
-
-**Pipeline Rust baseline — verified, 2026-10-31:**
-- Added parity/native_schema_pipeline.rs: owned coercion, integer bound/refinement,
-  transform, detailed error observation, and preserved input on readonly retry.
-  Focused bound/refinement/both-branch test passed (90700), exact dependencies.
-- Rust-only runner 56580 passed independent correctness and 93 timing samples,
-  max load 3.933, timestamp 2026-10-31T10:31:14.311Z, median .403459 ms.
-  Sequential watchdog, three test threads; Tsrust/Node timings reused.
-- Ingested and verified one entry and SQLite integrity; raw result removed.
-  Public source hash/timestamp pinned. Coverage 10/932, remaining 736. Next:
-  collection and remaining schema Rust references; no active compiler candidate.
-
-**Collection-schema Rust baseline — verified, 2026-10-31:**
-- Added parity/native_schema_collections.rs using std HashMap/HashSet default
-  hashers, owned strings, typed JSON record decoding, consuming lowercase
-  transforms and collision errors with indices. Standard Rust representations;
-  no generated Tsrust helpers. Focused collision/index/distinct-output test passed
-  with exact prepared dependencies (20567).
-- Rust-only runner 14309 passed independent correctness and 93 samples; max load
-  3.688, timestamp 2026-10-31T10:34:25.278Z, median 1.308709 ms. Sequential
-  watchdog, three test threads. No Tsrust/Node timing rerun. Ingested and verified
-  entry/sample count/SQLite integrity; raw result removed.
-- Public hash/timestamp pinned. Coverage 11/932, remaining 736. Core advanced
-  schema comparisons now present; next expand coherent families in batches
-  (start integer operators) rather than isolated documentation rebuilds per row.
-  No active compiler candidate/tool job; optimization goal remains active.
-
-**Integer-operator Rust family — verified, 2026-10-31:**
-- Added 16 independently authored parity programs for int_native unary, bitwise,
-  shifts, power and compounds. Common benchmark scaffold wraps an owned std Vec
-  only for observer ABI; Rust operator expressions/checks were authored separately
-  from Tsrust emission. Input tables match corpus; setup, dynamic indexing and
-  all result retention remain timed. Shift counts and powers use checked std
-  operations; integer index arithmetic stays checked. No generated compiler code.
-- Rust-only batch 81691 completed in 12.888 s, peak 281,440 KiB. All independent
-  full-result cases passed, 93 samples/workload, timestamp
-  2026-10-31T10:37:03.929Z. Initial prefix selection rejected before workloads;
-  repaired to explicit 16 IDs. No Tsrust/Node timing rerun.
-- Eight durable edge witnesses in parity/int_operator_edges.rs passed under
-  sequential watchdog/three threads (19218): negative and 64-bit shift counts,
-  checked power overflow, negative exponent, 0**0 and signed powers.
-- Ingested 16 histories; verified every median/sample count, quiet-machine
-  condition and SQLite integrity; raw result removed. Public hashes/timestamps
-  pinned. Coverage 27/932, remaining 736. Next: next coherent numeric/operator
-  family or schema gaps; preserve measured baselines and use native A/B only for
-  compiler changes. No active tool jobs or compiler candidate.
-
-**Compound arithmetic Rust family — verified, 2026-10-31:**
-- Added five checked integer compound references and six ordinary f64 arithmetic/
-  powf references. Dynamic input selection, setup and complete output retention
-  match corpus. Independently authored Rust, without emitted Tsrust runtime.
-- Rust-only batch 97980 passed full-result oracle checks and 93 samples/workload,
-  timestamp 2026-10-31T10:39:45.847Z, 24.869 s, peak 289,392 KiB. Quiet condition
-  verified; Tsrust/Node measurements reused. Eight durable tests in
-  parity/arithmetic_edges.rs passed (41354): integer overflow and IEEE signed
-  zero, infinity, NaN, remainder and power cases. Sequential watchdog/three threads.
-- Ingested eleven histories; verified medians/counts and SQLite integrity; raw
-  result removed. Public source hashes/timestamps pinned. Coverage 38/932,
-  remaining 736. Next: boolean/simple operator family and remaining references.
-  No active tool job or compiler candidate.
-
-**Boolean Rust family — verified, 2026-10-31:**
-- Six independent references: boolean_logical_and_assign, boolean_logical_or_assign,
-  boolean_assignment_value, conditional_boolean_value, boolean_value_of,
-  boolean_to_string. Owned Vec outputs, retained result/target values, observable
-  conditional branch counters and standard owned bool string conversion.
-  Cow::Owned adapts owned String to the existing observer ABI.
-- Initial 50687 failed before timing on String observer ABI; repaired wrapper.
-  Retry 64791 completed zero, 217.546 s, peak 259,136 KiB. All independent full
-  outputs passed, 93 samples each, max load 3.992; timestamp
-  2026-10-31T10:45:17.446Z. Tsrust/Node baselines reused.
-- Ingested six entries; verified all medians/sample counts and SQLite integrity;
-  removed raw result. Public source hashes/timestamp pinned. Coverage 44/932,
-  remaining 736. Documentation refresh/checkpoint follows.
-
-**32-bit number Rust family — verified, 2026-10-31:**
-- Six references: compound_number_and/or/xor/shift_left/shift_right/
-  shift_right_unsigned. Standard Rust conversions implement the matched number
-  API's modulo-32-bit contract. Native int references retain Rust 64-bit semantics
-  separately. Corpus includes values beyond signed/unsigned 32-bit and masked
-  shift counts; result outputs remain unchanged and fully retained.
-- Rust-only batch 92632 completed zero, 174.683 s, peak 270,640 KiB. All full-result
-  cases passed, 93 samples each, timestamp 2026-10-31T10:48:22.756Z. Quiet-machine
-  condition checked; no Tsrust/Node timing rerun. Six durable tests in
-  parity/number_word_edges.rs passed (15655): modulo wrapping, fractional values,
-  NaN/infinity and signed outputs. Sequential watchdog/three threads.
-- Ingested six histories; verified medians/counts and SQLite integrity; raw result
-  removed. Public source hashes/timestamp pinned. Coverage 50/932, remaining 736.
-  Next: explicit conversions, nullable/boolean transport and remaining families.
-  No active compiler candidate or tool jobs. Documentation refresh follows.
-
-**Conversion/nullable Rust family — verified, 2026-10-31:**
-- Eight references: boolean_string_truthiness, string_explicit_int,
-  string_array_conversion, nullable_boolean_undefined, narrowing_int/number/
-  boolean/string. Standard Rust empty checks, to_string/join, Option/nested Option
-  and owned Vec output; Cow adapts strings to observer ABI. Dynamic payloads and
-  outputs remain retained; literal labels borrow static text safely.
-- Rust-only batch 15288 completed zero in 8.820 s, peak 282,352 KiB. All full-output
-  oracle cases passed (including Unicode, null/undefined, false payload and signed
-  zero), 93 samples each, timestamp 2026-10-31T10:50:30.390Z. Quiet condition
-  verified; no Tsrust/Node timing rerun. Sequential watchdog.
-- Ingested eight histories; verified medians/counts and SQLite integrity; removed
-  raw result. Public hashes/timestamp pinned. Coverage 58/932, remaining 736.
-  Next: remaining nullable array/record/transport families. No active tool job or
-  compiler candidate. Documentation build/format checkpoint follows.
-
-**Nullable transport Rust family — verified, 2026-10-31:**
-- Seven references: nullable_int_null, nullable_number_null,
-  nullable_string_undefined, nullable_array_null, nullable_record_undefined,
-  narrowing_array and narrowing_record. Standard Option/nested Option, structs,
-  owned strings and fixed array payloads; retained typeof/text/truth/sentinel and
-  narrowed outputs match independent oracle. Number text handles corpus NaN,
-  infinities and negative zero explicitly. Cow adapts string observer ABI.
-- Rust-only batch 58434 completed zero, 9.334 s, peak 290,352 KiB; full-output
-  cases passed and 93 samples/workload, timestamp 2026-10-31T10:52:21.553Z.
-  Quiet condition verified. Tsrust/Node measurements reused; sequential watchdog.
-- Ingested seven histories; verified medians/counts/SQLite integrity; raw result
-  removed. Public source hashes/timestamp pinned. Coverage 65/932, remaining 736.
-  Next: nullish/optional-chaining or string/reference families. No active jobs or
-  compiler candidate. Documentation build/format checkpoint follows.
-
-**Scalar nullish/optional Rust family — verified, 2026-10-31:**
-- Nine references: nullish and nullish_assign int/number/boolean value workloads,
-  plus optional_chain int/number/boolean field workloads. Standard nested Option,
-  lazy unwrap_or_else/get_or_insert_with, Rust structs and owned row Vecs. Complete
-  outputs retain fallback deltas/total counts, assigned targets and optional base
-  counters; null/undefined do not consume false, zero, NaN or infinity payloads.
-- Rust-only batch 88469 completed zero in 9.341 s, peak 244,896 KiB. All independent
-  full-result cases passed; 93 samples each, timestamp 2026-10-31T10:54:05.885Z.
-  Quiet condition verified; Tsrust/Node timings reused. Sequential watchdog.
-- Ingested nine histories; verified medians/counts and SQLite integrity; raw result
-  removed. Public hashes/timestamp pinned. Coverage 74/932, remaining 736.
-  Next: owned nullish/optional array/record/string families. No active tool jobs or
-  compiler candidate. Documentation build/format checkpoint follows.
-
-**Owned nullish Rust family — verified, 2026-10-31:**
-- Six references: nullish and nullish_assign string/array/record value workloads.
-  Standard Option/nested Option, lazy fallbacks, owned String/Vec/struct payloads
-  and complete retained outputs/counters. Assignment output duplicates are
-  independent owned values; Rust moves the final target use instead of retaining
-  an unused local copy. Records format both observed rows independently.
-- Rust-only batch 38321 passed all full-output oracle cases and 93 samples each;
-  8.324 s, peak 276,112 KiB, timestamp 2026-10-31T10:55:47.311Z. Quiet condition
-  verified; sequential watchdog, no Tsrust/Node timing rerun.
-- Ingested six histories; verified medians/counts and SQLite integrity; raw result
-  removed. Public hashes/timestamp pinned. Coverage 80/932, remaining 736.
-  Next: optional owned access and nullable fallback variants. No active tool job
-  or compiler candidate. Documentation build/format checkpoint follows.
-
-**Nullable fallback Rust variants — verified, 2026-10-31:**
-- Four references: nullish_nullable_fallback_int, nullish_null_undefined_value,
-  nullish_assign_nullable_int_value, nullish_assign_nullable_string_value.
-  Nested Option or explicit Missing enum preserves sentinel identity. Outputs
-  retain selected/target text and typeof plus lazy-call deltas/totals. Owned
-  string observations remain independent values.
-- Rust-only batch 66045 passed all full-output oracle cases and 93 samples each,
-  6.733 s, peak 268,768 KiB, timestamp 2026-10-31T10:57:35.591Z. Quiet condition
-  verified; sequential watchdog. Tsrust/Node timings reused.
-- Ingested four histories; verified medians/counts/SQLite integrity; raw result
-  removed. Public hashes/timestamp pinned. Coverage 84/932, remaining 736.
-  Next: optional owned string/array/record access family. No active tool jobs or
-  compiler candidate. Documentation build/format checkpoint follows.
-
-**Owned optional-access Rust family — verified, 2026-10-31:**
-- Five references: optional_chain_string_length, array_index, array_join,
-  record_field and nullable_chain. Owned String/Vec/struct payloads, nested Option,
-  Rust map/and_then preserve lazy index/argument evaluation and base counters.
-  Last owned payload uses move into output where safe. Full checked corpus includes
-  absent/empty values, Unicode joins, record fields and nested missing children.
-- Rust-only batch 98879 passed all full-output oracle/counter cases and 93 samples
-  each, 7.249 s, peak 276,640 KiB, timestamp 2026-10-31T10:59:28.917Z. Quiet
-  condition verified; sequential watchdog, no Tsrust/Node timing rerun.
-- Ingested five histories; verified medians/counts/SQLite integrity; raw result
-  removed. Public hashes/timestamp pinned. Coverage 89/932, remaining 736.
-  Next: numeric/string methods and other missing reference families. No active
-  tool jobs or compiler candidate. Documentation build/format checkpoint follows.
-
-**Rust trimming/concat family — verified, 2026-10-31:**
-- Twelve ASCII/Unicode references: string_trim_start/end/left/right and
-  string_concat_zero/variadic variants. Standard Rust trim_start/trim_end aliases,
-  owned clone for zero-argument concat and checked-capacity String builder for
-  variadic concat. Exact input tables/setup and retained owned outputs preserved;
-  no emitted Tsrust helpers. ASCII controls, Unicode whitespace, NUL, combining
-  sequences and empty outputs covered by independent full-result checks.
-- Rust-only batch 36940 passed all cases and 93 samples/workload, 12.945 s,
-  peak 306,576 KiB; timestamp 2026-10-31T11:01:51.778Z. Quiet condition verified;
-  sequential watchdog. Tsrust/Node measurements reused.
-- Ingested twelve histories; verified medians/counts/SQLite integrity; raw result
-  removed. Public hashes/timestamp pinned. Coverage 101/932, remaining 736.
-  Next: string search/repetition and remaining families. No active tool job or
-  compiler candidate. Documentation build/format checkpoint follows.
-
-**Rust search/repeat family — verified, 2026-10-31:**
-- Nine references: string_starts_with/ends_with/includes ASCII/Unicode, plus
-  string_repeat_plain/unicode/empty_zero. Standard str search on checked UTF-8
-  slices uses matched clamped byte positions/defaults. Standard repeat preserves
-  receiver-before-count trace ordering, all outputs and marker bit rows.
-- Rust-only batch 98514 passed all full-output/trace cases and 93 samples each,
-  11.409 s, peak 308,000 KiB; timestamp 2026-10-31T11:03:57.817Z. Quiet condition
-  verified; sequential watchdog, no Tsrust/Node timing rerun. Three durable UTF-8
-  boundary/clamping tests passed (24037), three threads under watchdog.
-- Ingested nine histories; verified medians/counts/SQLite integrity; raw result
-  removed. Public hashes/timestamp pinned. Coverage 110/932, remaining 736.
-  Next: remaining string indexing/splitting/replacement families. No active tool
-  jobs or compiler candidate. Documentation build/format checkpoint follows.
-
-**Rust slicing/substring family — verified, 2026-10-31:**
-- Twelve ASCII/Unicode references: slice; substring default/bounded/swapped;
-  substr default/bounded. Standard checked UTF-8 slices, matched signed/clamped
-  coordinates, endpoint swapping and nonpositive/empty-range short circuits.
-  Payload tables and owned outputs preserved. Unicode slice coordinate setup uses
-  ordinary char_indices to construct the same boundary table in one pass.
-- Rust-only batch 68351 passed full-output oracle cases and 93 samples each,
-  12.973 s, peak 298,320 KiB, timestamp 2026-10-31T11:07:19.320Z. Quiet condition
-  verified; no Tsrust/Node timing rerun, sequential watchdog. Three durable tests
-  in parity/string_slicing_edges.rs passed (3014): swapped/negative/empty ranges
-  and invalid UTF-8 interiors, three threads under watchdog.
-- Ingested twelve histories; verified medians/counts/SQLite integrity; raw result
-  removed. Public hashes/timestamp pinned. Coverage 122/932, remaining 736.
-  Next: string indexing/find/split/replacement reference families. No active tool
-  jobs or compiler candidate. Documentation build/format checkpoint follows.
-
-**Rust find/reverse-find family — verified, 2026-10-31:**
-- Six ASCII/Unicode references: string_index_of and string_last_index_of
-  default/bounded. Standard str find/rfind with matched clamped byte positions;
-  reverse search includes complete matches whose start is within the bound,
-  retaining overlapping matches. Checked UTF-8 slices and signed int extremes.
-- Rust-only batch 26717 passed all full-output cases and 93 samples each;
-  8.804 s, peak 240,864 KiB, timestamp 2026-10-31T11:10:08.706Z. Quiet condition
-  verified; sequential watchdog, no Tsrust/Node timing rerun. Two durable tests
-  in parity/string_find_edges.rs passed (41452): overlap, start bounds, byte
-  offsets, extreme coordinates and invalid UTF-8 interiors.
-- Ingested six histories; verified medians/counts/SQLite integrity; raw result
-  removed. Public hashes/timestamp pinned. Coverage 128/932, remaining 736.
-  Next: scalar string indexing, split/replacement and other missing families.
-  No active jobs or compiler candidate. Documentation build/format follows.
-
-**Rust scalar charAt family — verified, 2026-10-31:**
-- Five references: string_char_at, ascii_long, unicode_tail, unicode_late,
-  unicode_middle. Standard str::chars().nth returns complete scalars; negative/
-  oversized positions return owned-compatible empty strings. Same dynamic query
-  formulas, coordinate setup and retained outputs; no generated Tsrust helpers.
-- Found interpretation problem in existing ascii_long corpus: at 128 iterations
-  all query positions are negative. Verified formula against manifest seed/input.
-  Added accurate description/notes identifying it as out-of-range control; changed
-  no workload code, timing values or operation protocol. A future positive ASCII
-  long-index benchmark should be separate, not relabel these results as positive.
-- Rust-only batch 89516 passed full-output cases and 93 samples each, 52.428 s,
-  peak 274,416 KiB; timestamp 2026-10-31T11:13:58.235Z. Quiet condition verified;
-  sequential watchdog, no Tsrust/Node timing rerun. Durable Unicode scalar/NUL/
-  combining/negative/oversized test passed (71519), three threads under watchdog.
-- Ingested five histories; verified medians/counts/SQLite integrity; raw result
-  removed. Public hashes/timestamp pinned. Coverage 133/932, remaining 736.
-  Next: remaining indexing/literal construction and split/replacement families.
-  No active jobs or compiler candidate. Documentation build/format follows.
-
-**Remaining Rust construction/indexing cases — verified, 2026-10-31:**
-- Six references: string_construct_slice ASCII/Unicode long, literal-middle
-  charAt, string_at_characters, string_code_at_positions and string_indexing.
-  Standard checked UTF-8 byte slices, scalar iterators (including reverse access),
-  owned repeated strings/retained rows and Result-based ASCII access errors.
-  Literal corpus remains compile-time data; BMP numeric-code reference explicitly
-  makes no astral UTF-16 claim beyond the measured BMP corpus.
-- Rust-only batch 31476 passed full-output/IEEE cases and 93 samples each, 9.876 s,
-  peak 304,896 KiB, timestamp 2026-10-31T11:17:16.005Z. Quiet condition verified;
-  sequential watchdog, Tsrust/Node baselines reused. Three durable tests in
-  parity/string_indexing_edges.rs passed (45844): relative scalar indexing,
-  combining/BMP numeric codes, empty/extreme positions and checked ASCII errors.
-- Ingested six histories; verified medians/counts/SQLite integrity; raw result
-  removed. Public hashes/timestamp pinned. Coverage 139/932, remaining 736.
-  Next: string split/replacement/padding families. No active jobs or compiler
-  candidate. Documentation build/format checkpoint follows.
-
-**Rust split/padding families — verified, 2026-10-31:**
-- Nine references: string_split normal/limits/empty_delimiter, plus pad_start/end
-  default/ASCII/Unicode. Standard split/take with explicit limit-word conversion,
-  scalar iterator for empty delimiter, owned pieces and receiver/separator/limit
-  trace ordering. Default split iterator remains uncapped. Padding uses checked
-  byte target capacity and valid UTF-8 filler prefixes with standard String APIs.
-- Rust-only batches 68551 (split: 6.281 s/302,496 KiB) and 89294 (pad:
-  6.755 s/278,784 KiB) passed all full-output/trace cases and 93 samples each;
-  timestamps 2026-10-31T11:20:00.568Z / 2026-10-31T11:21:04.326Z. Quiet
-  conditions verified; sequential watchdog, no Tsrust/Node timing rerun.
-- Two durable semantic tests in parity/string_split_pad_edges.rs passed (81607):
-  empty fields, truncating limits/wrapping, Unicode scalar split, negative/empty
-  padding and invalid UTF-8 prefix rejection. Three threads under watchdog.
-- Ingested nine histories; verified all medians/counts/SQLite integrity; raw
-  results removed. Public hashes/timestamps pinned. Coverage 148/932, remaining
-  784. Next: string replacement and remaining missing families. No active jobs
-  or compiler candidate. Documentation build/format checkpoint follows.
-
-**Rust replacement family — verified, 2026-10-31:**
-- Six references: string_replace first/all plain/tokens/empty. Standard Rust
-  replace/replacen for plain templates; independently authored scalar token parser
-  and single-pass String builder for substitutions, with original prefix/suffix
-  views and non-overlapping match_indices. Empty matches use Rust scalar boundaries.
-  Receiver/pattern/template trace ordering and owned retained results preserved.
-- Rust-only batch 9581 passed full-output/trace cases and 93 samples each;
-  10.383 s, peak 291,808 KiB, timestamp 2026-10-31T11:24:08.212Z. Quiet condition
-  verified; sequential watchdog, Tsrust/Node measurements reused. Two durable tests
-  in parity/string_replacement_edges.rs passed (97789): supported/literal tokens,
-  original prefixes/suffixes, non-overlap, empty input/pattern and Unicode scalars.
-- Ingested six histories; verified medians/counts/SQLite integrity; raw result
-  removed. Public hashes/timestamp pinned. Coverage 154/932, remaining 736.
-  Next: remaining string references and array-method families. No active jobs or
-  compiler candidate. Documentation build/format checkpoint follows.
-
-**Rust update/assignment-value family — verified, 2026-10-31:**
-- Thirty-four references: 24 int/number compound expression-value variants,
-  eight prefix/postfix updates and two plain assignments. Reuse independently
-  authored Rust operations from prior references (not compiler output), retaining
-  both expression result and target value. Dynamic corpus/setup and checked index
-  arithmetic preserved. Integer operations stay checked, number results retain
-  IEEE details and matched 32-bit number conversions where required.
-- Rust-only batch 11952 passed all full-result/IEEE cases and 93 samples each,
-  24.254 s, peak 304,800 KiB, timestamp 2026-10-31T11:28:02.044Z. Quiet condition
-  verified; sequential watchdog, no Tsrust/Node timing rerun. Six durable tests in
-  parity/assignment_value_edges.rs passed (5359): observed/target distinctions,
-  integer update overflow, negative zero and floating-point precision limit.
-- Ingested 34 histories; verified all medians/counts/SQLite integrity; raw result
-  removed. Public hashes/timestamp pinned. Coverage 188/932, remaining 736.
-  Next: numeric methods/conversions and remaining array/reference families.
-  No active jobs or compiler candidate. Documentation build/format follows.
-
-**Rust primitive/conditional/integer-format family — verified, 2026-10-31:**
-- Eight references: conditional int/number values, int/number valueOf, and signed
-  integer decimal/binary/hex/base36 text. Standard Rust primitive retention,
-  observed branch counters, signed-magnitude formatting with unsigned_abs and
-  a small standard-Rust base36 digit loop. Output/IEEE details remain retained;
-  signed radix text is not Rust's default signed binary two-complement display.
-- Rust-only batch 55694 passed full-output/IEEE/counter cases and 93 samples each,
-  8.823 s, peak 316,976 KiB, timestamp 2026-10-31T11:31:26.759Z. Quiet condition
-  verified; sequential watchdog, Tsrust/Node timings reused. Four durable radix
-  tests in parity/integer_format_edges.rs passed (60419), including independent
-  from_str_radix round-trips for MIN/MAX, negative signs and zero.
-- Ingested eight histories; verified medians/counts/SQLite integrity; raw result
-  removed. Public hashes/timestamp pinned. Coverage 196/932, remaining 736.
-  Next: remaining numeric formatting/parsing and array-method families. No active
-  tool jobs or compiler candidate. Documentation build/format checkpoint follows.
-
-**Rust parseFloat family — verified, 2026-10-31:**
-- Six independently written standard Rust references cover decimal, exponent,
-  whitespace, trailing text, nonfinite/invalid and mixed inputs. A decimal-prefix
-  scanner selects the valid prefix; Rust's standard float parser handles rounding,
-  overflow, underflow and signed zero. Input tables and retained output vectors
-  match the existing workload contract.
-- All six matched the independent exact IEEE output oracle. Two durable edge
-  checks passed under the 5,000,000 KiB/1,800-second watchdog with three threads:
-  incomplete exponents, excluded whitespace, signed underflow and subnormal values.
-- Timed only rust-hand: three processes, eight warmups, 31 samples each (93 per
-  workload), maximum load 2.274. Existing Tsrust and Node measurements reused.
-  Run 2026-10-31T11:34:54.348Z; all six stored medians/sample counts and SQLite
-  integrity verified after store:ingest. Disposable raw result removed.
-- Public source hashes/timestamp pinned. Coverage **202/932**, remaining **730**.
-  The performance page explicitly names Tsrust, hand-written Rust and Node.js,
-  explains compilation and reused reference dates, and distinguishes unmeasured
-  Rust cases from losses. No compiler implementation changed.
-  Next: remaining numeric formatting/parsing reference families.
-
-**Rust scalar floating-point/radix family — verified, 2026-10-31:**
-- Twenty independent Rust references cover five binary arithmetic operations,
-  negation, six comparisons, four number predicates, int/bool conversions,
-  decimal string conversion and radix integer prefix parsing. Standard f64
-  arithmetic/predicates/parsing and checked i64 bookkeeping match workload
-  inputs, accumulation order and output types. Decimal parsing's seven-value
-  corpus uses standard trim/parse; radix scanning covers the bounded digit corpus.
-- All twenty matched independent result oracles and completed 93 samples each
-  (three processes, eight warmups, 31 timed samples). Rust-only run
-  2026-10-31T11:40:26.434Z; medians 0.320125–4.178834 ms,
-  maximum load 2.771, watchdog peak 339,024 KiB.
-  Existing Tsrust and Node measurements reused; no compiler change or A/B claim.
-- Three durable radix edge tests passed: sign/prefix/trailing text, invalid
-  radix/no digits/whitespace exclusions, signed zero and exact integer boundaries.
-  Sequential watchdog, checked arithmetic, three threads; no watchdog stop.
-- store:ingest added twenty histories; all medians/sample counts and SQLite
-  integrity verified. Public timestamps/source hashes pinned; raw result removed.
-  Coverage **222/932**, remaining **710**. Numeric formatting still needs
-  independent references with exact rounding/notation; this batch does not claim
-  those methods are covered. Next: remaining numeric formatting/conversion cases.
-
-**Rust numeric formatting family — verified, 2026-10-31:**
-- Seven independent references: toFixed default/2, toExponential default/2,
-  toPrecision default/5, and numeric radix strings. Standard Rust formatting
-  handles the measured float corpus; explicit notation thresholds, exponent signs,
-  zero normalization and nonfinite text match its outputs. These are workload
-  references, not a general JavaScript formatting implementation: Rust's default
-  tie rounding differs outside this corpus. Radix formatting matches values below
-  98 in eighths; all measured even radices produce exact finite fractions.
-- All seven matched complete independent output oracles and completed 93 samples
-  each (three processes, eight warmups, 31 timed samples). Rust-only runs
-  2026-10-31T11:42:10.294Z and 2026-10-31T11:42:48.171Z. Existing Tsrust/Node
-  measurements reused. Watchdog peaks 274,240/211,120 KiB, no watchdog stops.
-- Three durable formatting edge tests passed under the sequential memory/time
-  watchdog with three threads: zero/nonfinite text, notation thresholds and
-  subnormals, exact positive/negative fractional radix text. No compiler change.
-- store:ingest added all seven histories; stored medians/sample counts, source
-  hashes and SQLite integrity verified before deleting raw results. Public source
-  hashes/timestamps pinned. Coverage **229/932**, remaining **703**.
-  Next: remaining numeric/global conversion, literals and array references.
-
-**Rust exact/approximate math family — verified, 2026-10-31:**
-- Thirty-five independent references: twelve exact Math workloads, twenty-two
-  approximate Math methods and number exponentiation. Standard f64 operations,
-  checked integer bookkeeping and the original ordered accumulations are used.
-  Explicit helpers preserve Math.round positive-tie behavior, signed zeros,
-  NaN propagation and modulo-2^32 conversion. Four durable Rust edge tests passed.
-- Fixed missing hand-written Rust approximate point-probe support in run.mjs.
-  The runner builds a separate probe from each actual parity source, checks its
-  function1 signature, validates every operation against the existing independent
-  directed-MPFR reference and requires that engine's accepted probe before scalar
-  timing. Probe source/binary hashes and compile commands remain in disposable
-  results until validation/import. No numerical allowance or protocol was widened.
-- Real Rust-only acceptance: **920 operation probes, 115 approximate scalar
-  correctness cases**, and exact workload oracles passed. All 35 completed 93
-  samples (three processes, eight warmups, 31 timed samples), run
-  2026-10-31T11:45:55.450Z; medians 0.271834–1.066375 ms,
-  load at most 3.102, peak 426,560 KiB.
-  Existing Tsrust/Node timings reused; no Node point probes or timings executed.
-- Affected Node harness suites passed sequentially under the watchdog:
-  approximate-harness (4), approximate-scalar (1 test file), measurement-plan (4).
-  Four Rust edge tests passed with three threads. The report regenerated and
-  revalidated all actual measured results, including the Rust MPFR observations.
-- store:ingest added all 35 histories; median/sample counts, source hashes,
-  point-probe provenance and SQLite integrity verified before deleting raw result.
-  Public source hashes/timestamps pinned. Coverage **264/932**, remaining **668**.
-  Math.f16round and random-range references remain open; next complete those and
-  remaining global/conversion/literal workloads. Compiler implementation unchanged.
-
-**Rust conversions/literals/numeric arrays — verified, 2026-10-31:**
-- Thirteen references: global number names, numeric literals, comma expressions
-  and contexts, scalar unary plus, numeric string conversion, locale decimal
-  strings, growable/fixed/literal numeric arrays, numeric default/rest arguments,
-  and Math.f16round values. Standard Rust Vec/array mutation, owned strings,
-  optional values, checked integers and f64 operations preserve output and
-  evaluation order. The comma receiver test reads the left operand before reset.
-- Numeric conversion uses standard parsing with explicit corpus whitespace,
-  radix and Infinity rules; bounded wide radix integers round once from u128.
-  Locale grouping rounds shortest decimal text to three decimal places before
-  grouping, preserving the corpus's decimal half-up behavior and negative zero.
-  Binary16 rounding derives spacing from exponent bits and uses Rust's standard
-  ties-to-even operation; no unsafe or generated runtime implementation reused.
-- All thirteen matched independent output oracles and completed 93 samples each:
-  three processes, eight warmups, 31 timed samples. Rust-only run
-  2026-10-31T11:50:51.584Z; medians 0.011375–1.763917 ms,
-  max load 2.100, peak 353,088 KiB.
-  Existing Tsrust/Node measurements reused. Six durable Rust edge tests passed
-  under the sequential watchdog with three threads (compile peak 80,640 KiB).
-- store:ingest added thirteen histories; stored median/sample counts, source
-  hashes and SQLite integrity verified before deleting raw results. Public source
-  hashes/timestamps pinned. Coverage **277/932**, remaining **655**.
-  Math.random remains open; next: array operations and remaining reference families.
-  Compiler implementation unchanged; no optimization speedup claimed.
-
-**Rust foundational array family — verified, 2026-10-31:**
-- Twenty-five references: ten includes/indexOf workloads (int, boolean, static,
-  dynamic and scalar-unit strings), three reversals (fixed/growable ints and
-  owned strings), four slices, four temporary-array selections and four lazy
-  conditional-array workloads. Standard Rust fixed arrays, Vecs, relative index
-  normalization and checked integer bookkeeping preserve the matched contracts.
-- Owned nested slices deep-clone their inner Vecs. Temporary indexing moves the
-  chosen owned result and drops unselected values. UTF-8 unit strings use chars
-  and return an empty string past the scalar count. Conditional callbacks retain
-  predicate/branch counters and evaluate only the selected branch.
-- All twenty-five matched independent output oracles and completed 93 samples
+**Rust stable array sorting family — verified, 2026-10-31:**
+- Twenty-eight references cover sort/toSorted with six default leaf types and
+  eight comparator leaf types. Standard stable slice sort/sort_by handles owned
+  Vecs; toSorted clones its owned input and retains both original and sorted
+  outputs. Nested vectors deep-clone, records retain independently owned labels.
+- Default int/number ordering follows Tsrust's numeric defaults, as the existing
+  matched TypeScript counterparts do. Float comparison keeps NaNs last and treats
+  both signed zeros as equal, preserving input order for ties. String ordering
+  follows Rust's valid UTF-8 lexical ordering for the measured corpus. Null and
+  undefined arrays use zero-sized unit values and retain described output lengths.
+- All twenty-eight matched independent output oracles and completed 93 samples
   each (three processes, eight warmups, 31 timed samples), Rust-only run
-  2026-10-31T11:54:18.469Z; medians 0.017208–1.941042 ms,
-  max load 2.061, watchdog peak 308,272 KiB.
-  Existing Tsrust and Node measurements reused; compiler implementation unchanged.
-- Five durable Rust edge tests passed under the sequential watchdog with three
-  threads: signed index extremes, independent inner Vec ownership, Unicode
-  scalar/combining indexing, lazy branches/empty rows and owned temporary survival.
-- store:ingest added twenty-five histories; all stored medians/sample counts,
+  2026-10-31T11:57:02.346Z; medians 0.019416–1.639583 ms,
+  max load 3.056, watchdog peak 390,240 KiB.
+  Existing Tsrust and Node timings reused; compiler implementation unchanged.
+- Four durable Rust edge tests passed under the sequential watchdog with three
+  threads: numeric defaults, signed-zero/NaN stability, equal-key record labels,
+  original receiver retention and independent copied nested vectors.
+- store:ingest added all twenty-eight histories; stored medians/sample counts,
   source hashes and SQLite integrity verified before deleting raw result. Public
-  source hashes/timestamps pinned. Coverage **302/932**, remaining **630**.
-  Next: array sorting and mutation families; Math.random reference remains open.
+  source hashes/timestamps pinned. Coverage **330/932**, remaining **602**.
+  Next: array mutation families; Math.random reference remains open.
 
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code
