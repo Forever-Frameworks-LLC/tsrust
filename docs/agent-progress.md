@@ -19,8 +19,8 @@ code at hand-written-Rust parity. The docs restructuring in the next section is
 still open but is not the current loop's focus.
 
 **Git:** branch `codex/optimize-native-hot-paths`; local checkpoints remain
-unpushed. Latest accepted source: `ab83377b` (single replacement sizing), with
-acceptance and stored repeated A/B results in the following commit. Earlier
+unpushed. Latest accepted optimization: `28a3409c` (typed JSON pipeline
+restoration), following `1d3eb962` (single replacement sizing acceptance). Earlier
 accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration,
 `610c2bc0` scalar-union arrays, `a74da73f` Rust parser defaults, `a2f94dee`
 plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
@@ -614,6 +614,39 @@ counts, wrap a copy of the generated program with a counting global allocator.
 - Next: reprofile remaining composite pipeline restoration boundaries before
   expanding opaque returns. Do not rerun the complete milestone for this routine
   accepted gate. Keep original rollback/consuming-callback/lifetime witnesses.
+
+**Lazy sequence rollback storage — rejected, 2026-10-31:**
+- CPU sampling accepted `28a3409c`: collections/recursive 20M iterations each,
+  checksums 160,000,007/80,000,007; 53.765 s, peak 32,608 KiB. Sequence buffer
+  allocation/free appeared in consuming collection paths.
+- Tried starting `Trial::sequence` restoration Vec empty, reserving the original
+  input length only on the first reversible element. This avoided unused rollback
+  storage after first-element commitment, preserving Rust ownership and capacity
+  on prepared paths. 70 affected integration tests + 95 schema library tests
+  passed under sequential 5 GB/30 min watchdog, three threads. Peak test RSS
+  1,630,176 KiB. Candidate and added witness have now been removed.
+- Allocation profile: collections 43→41/iteration, recursive 40→39; pipeline
+  10 unchanged; discriminator 30,001 and union 10,001/2,000 unchanged. No reallocs.
+- First quiet five-workload run (93 samples/engine, max load 3.390) against
+  accepted parent measurement 2026-10-31T09:00:23.547Z: collections
+  2.285125→2.190500 ms (-4.14%, Node -2.29%); recursive -.49% (Node -2.48%);
+  discriminator -.32%, union -1.07%; pipeline .636250→.653917 ms (+2.78%,
+  Node -6.72%). Candidate timestamp 2026-10-31T09:23:22.784Z.
+- Fresh rebuilt parent/candidate pair confirmed pipeline regression: pipeline
+  .633334→.651750 ms (+2.91%) while Node .345458→.342333 (-.90%). Collections
+  2.307125→2.265334 (-1.81%), Node .830458→.819250 (-1.35%). Same 93 samples,
+  max loads 3.684/3.984, timestamps 2026-10-31T09:29:12.559Z and
+  2026-10-31T09:34:40.161Z. Fewer allocations did not justify slower pipeline.
+- Rejected under the no-regression rule. Source restored exactly to `28a3409c`.
+  All runners terminal zero: 34359, 53107, 22746. `npm run store:ingest` added
+  all 18 run entries from these three timing runs; verified all 93-sample entries
+  and SQLite integrity. Removed three raw results and allocation profile. Whole
+  formatter changed zero files/snippets/fingerprints. Pruned 69 obsolete object
+  files (762,892,448 bytes).
+- Build executables currently reflect the rejected candidate; rebuild from current
+  source before any further compiler/native measurement. Do not mistake binaries
+  for accepted source. Next optimization requires a fresh profile; investigate
+  composite pipeline/collection costs without this lazy sequence allocation.
 
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code
