@@ -210,33 +210,33 @@ fn validate_floats(input:&[u8],limits:Limits)->Result<(usize,bool),Error>{
  if input.len()>limits.bytes{return Err(failure("byte-limit",limits.bytes));}
  if limits.depth>64{return Err(super::invalid_limits());}
  if let Err(error)=std::str::from_utf8(input){return Err(failure("invalid-utf8",error.valid_up_to()));}
- validate_document(input,limits)
+ validate_document::<true>(input,limits)
 }
 
 /// Schema text is already UTF-8. Use Serde's recursion guard without imposing
 /// byte, entry or node caps when the caller has not requested explicit limits.
 pub(super) fn validate_plain(input:&str)->Result<bool,Error>{
- validate_document(input.as_bytes(),Limits{bytes:usize::MAX,depth:usize::MAX,entries:usize::MAX,nodes:usize::MAX}).map(|(_,floats)|floats)
+ validate_document::<false>(input.as_bytes(),Limits{bytes:usize::MAX,depth:usize::MAX,entries:usize::MAX,nodes:usize::MAX}).map(|(_,floats)|floats)
 }
-fn validate_document(input:&[u8],limits:Limits)->Result<(usize,bool),Error>{
+fn validate_document<const BOUNDED:bool>(input:&[u8],limits:Limits)->Result<(usize,bool),Error>{
  let mut budget=Budget{limits,nodes:0,failed:None,saw_float:false};
  let mut decoder=serde_json::Deserializer::from_slice(input);
  let mut maximum=0;
- serde::de::DeserializeSeed::deserialize(ValidateSeed{budget:&mut budget,maximum:&mut maximum,depth:0,permitted:true},&mut decoder).map_err(|error|located(input,error,budget.failed))?;
+ serde::de::DeserializeSeed::deserialize(ValidateSeed::<BOUNDED>{budget:&mut budget,maximum:&mut maximum,depth:0,permitted:true},&mut decoder).map_err(|error|located(input,error,budget.failed))?;
  decoder.end().map_err(|error|located(input,error,Some("trailing-data")))?;
  Ok((maximum,budget.saw_float))
 }
-struct ValidateSeed<'a>{budget:&'a mut Budget,maximum:&'a mut usize,depth:usize,permitted:bool}
-impl<'de> serde::de::DeserializeSeed<'de> for ValidateSeed<'_>{
+struct ValidateSeed<'a,const BOUNDED:bool>{budget:&'a mut Budget,maximum:&'a mut usize,depth:usize,permitted:bool}
+impl<'de,const BOUNDED:bool> serde::de::DeserializeSeed<'de> for ValidateSeed<'_,BOUNDED>{
  type Value=();
  fn deserialize<D:serde::Deserializer<'de>>(self,decoder:D)->Result<(),D::Error>{
   use serde::de::Error;
-  if !self.permitted{return Err(D::Error::custom(self.budget.fail("entry-limit")));}
-  if self.budget.nodes>=self.budget.limits.nodes{return Err(D::Error::custom(self.budget.fail("node-limit")));}
-  self.budget.nodes+=1;decoder.deserialize_any(self)
+  if BOUNDED&&!self.permitted{return Err(D::Error::custom(self.budget.fail("entry-limit")));}
+  if BOUNDED&&self.budget.nodes>=self.budget.limits.nodes{return Err(D::Error::custom(self.budget.fail("node-limit")));}
+  if BOUNDED{self.budget.nodes+=1;}decoder.deserialize_any(self)
  }
 }
-impl<'de> serde::de::Visitor<'de> for ValidateSeed<'_>{
+impl<'de,const BOUNDED:bool> serde::de::Visitor<'de> for ValidateSeed<'_,BOUNDED>{
  type Value=();
  fn expecting(&self,f:&mut std::fmt::Formatter)->std::fmt::Result{f.write_str("a JSON value")}
  fn visit_unit<E:serde::de::Error>(self)->Result<(),E>{Ok(())}
@@ -247,29 +247,29 @@ impl<'de> serde::de::Visitor<'de> for ValidateSeed<'_>{
  fn visit_str<E:serde::de::Error>(self,_:&str)->Result<(),E>{Ok(())}
  fn visit_seq<A:serde::de::SeqAccess<'de>>(self,mut sequence:A)->Result<(),A::Error>{
   use serde::de::Error;
-  if self.depth>=self.budget.limits.depth{return Err(A::Error::custom(self.budget.fail("depth-limit")));}
-  *self.maximum=(*self.maximum).max(self.depth+1);
+  if BOUNDED&&self.depth>=self.budget.limits.depth{return Err(A::Error::custom(self.budget.fail("depth-limit")));}
+  if BOUNDED{*self.maximum=(*self.maximum).max(self.depth+1);}
   let mut entries=0;
-  loop{let permitted=entries<self.budget.limits.entries;match sequence.next_element_seed(ValidateSeed{budget:self.budget,maximum:self.maximum,depth:self.depth+1,permitted})?{Some(())=>entries+=1,None=>return Ok(())}}
+  loop{let permitted=!BOUNDED||entries<self.budget.limits.entries;match sequence.next_element_seed(ValidateSeed::<BOUNDED>{budget:self.budget,maximum:self.maximum,depth:if BOUNDED{self.depth+1}else{0},permitted})?{Some(())=>{if BOUNDED{entries+=1;}},None=>return Ok(())}}
  }
  fn visit_map<A:serde::de::MapAccess<'de>>(self,mut object:A)->Result<(),A::Error>{
   use serde::de::Error;
-  if self.depth>=self.budget.limits.depth{return Err(A::Error::custom(self.budget.fail("depth-limit")));}
-  *self.maximum=(*self.maximum).max(self.depth+1);
+  if BOUNDED&&self.depth>=self.budget.limits.depth{return Err(A::Error::custom(self.budget.fail("depth-limit")));}
+  if BOUNDED{*self.maximum=(*self.maximum).max(self.depth+1);}
   let mut entries=0;
   loop{
-   let permitted=entries<self.budget.limits.entries;
-   if object.next_key_seed(ValidateKey{budget:self.budget,permitted})?.is_none(){return Ok(());}
-   object.next_value_seed(ValidateSeed{budget:self.budget,maximum:self.maximum,depth:self.depth+1,permitted:true})?;entries+=1;
+   let permitted=!BOUNDED||entries<self.budget.limits.entries;
+   if object.next_key_seed(ValidateKey::<BOUNDED>{budget:self.budget,permitted})?.is_none(){return Ok(());}
+   object.next_value_seed(ValidateSeed::<BOUNDED>{budget:self.budget,maximum:self.maximum,depth:if BOUNDED{self.depth+1}else{0},permitted:true})?;if BOUNDED{entries+=1;}
   }
  }
 }
-struct ValidateKey<'a>{budget:&'a mut Budget,permitted:bool}
-impl<'de> serde::de::DeserializeSeed<'de> for ValidateKey<'_>{
+struct ValidateKey<'a,const BOUNDED:bool>{budget:&'a mut Budget,permitted:bool}
+impl<'de,const BOUNDED:bool> serde::de::DeserializeSeed<'de> for ValidateKey<'_,BOUNDED>{
  type Value=();
  fn deserialize<D:serde::Deserializer<'de>>(self,decoder:D)->Result<(),D::Error>{
   use serde::de::Error;
-  if !self.permitted{return Err(D::Error::custom(self.budget.fail("entry-limit")));}
+  if BOUNDED&&!self.permitted{return Err(D::Error::custom(self.budget.fail("entry-limit")));}
   struct Key;
   impl<'de> serde::de::Visitor<'de> for Key{
    type Value=();

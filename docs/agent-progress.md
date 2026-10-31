@@ -355,6 +355,25 @@ counts, wrap a copy of the generated program with a counting global allocator.
   parsing does not maintain count/depth budgets. Recheck explicit bounded
   behavior and plain decoding, then repeat affected timings before acceptance.
   Single-pass schema decoding remains outstanding after this repair.
+- Provisional source checkpoint is `11dc24cf`; its 1.8% collections slowdown
+  remains unaccepted. New uncommitted specialization uses one const-generic
+  visitor with BOUNDED=true for explicit-limit APIs and false for schema's
+  default path. False removes node/entry/depth counter maintenance and checks;
+  syntax, float detection, exact integers and Serde recursion remain intact.
+  Specialization validation passed via `/tmp/tsrust-schema-defaults-specialization.py`:
+  62 JSON library tests and seven schema_decode tests, zero failures/ignores.
+  Sequential watchdog peak 1,985,056 KiB; no stops. Other 42 already-passed
+  schema/editor tests remain valid; no emitter/API changes since that complete
+  111-test run. Specialized release build and whole-project formatting passed.
+- Specialized timings: fused **0.839375 ms**, ordinary object **0.791625 ms**,
+  collections **2.280334 ms**; Node controls 0.679834 / 0.719750 / 0.807166 ms.
+  Maximum load 3.376, watchdog peak 1,671,168 KiB, 93 samples per row.
+  Fused improves 2.2% over 11dc24cf (4.4% over 610c2bc0); collections remains
+  about 1.6% behind the original baseline, despite being marginally faster than
+  11dc24cf. All six specialized entries ingested, including this residual signal.
+- Next: fresh baseline/candidate rebuilds from commits on all three controls
+  before accepting the parser repair. No timing signal has been discarded.
+  Keep the current specialization checkpoint provisional until this resolves.
 
 
 **Owner rules learned this session:** match Rust's defaults for limits (no count
