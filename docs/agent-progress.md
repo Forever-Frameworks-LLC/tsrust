@@ -20,8 +20,8 @@ still open but is not the current loop's focus.
 
 **Git:** branch `codex/optimize-native-hot-paths`. Pushed through `5793c2b5`.
 Local, not pushed: `5805b423`, `db6ec027` (single handoff), `4bf84f84` (test fix),
-`3a625efe` (initial handoff), `6b8f62b1` (completed validation). The following
-Map optimization checkpoint is recorded in the current branch history.
+`3a625efe` (initial handoff), `6b8f62b1` (completed validation), and
+`260d1781` (Map snapshot classification, 4.32× at depth 80).
 The rejected small-string experiment lives on
 `codex/small-string-experiment` (keep for reference; do not merge).
 
@@ -138,6 +138,41 @@ counts, wrap a copy of the generated program with a counting global allocator.
   was started to refill caches. Ingested raw timing files were deleted.
   No push, CI dispatch, merge, release or dependency change was made.
 
+**Accepted callable-boundary Map epochs — 2026-10-30:**
+- Baseline commit `260d1781`, clean tree at start. A fresh depth-128 CPU sample
+  identified repeated Map epoch planning beneath `finish_block`, including
+  snapshot filtering/hashing and nested body replay. Native Map epoch planning
+  now runs at callable boundaries or the existing post-check parameter-carrier
+  replay. Child-block carrier joins and ownership checking remain unchanged.
+  The depth-16 native witness also executes inside a nested callable, checking
+  its separate lexical boundary and present/missing entries after catches.
+- Affected validation: **347 passed, zero failures**, using the same nine-target
+  selection and watchdog as the preceding checkpoint. Peak process-group RSS:
+  2,007,600 KiB; no watchdog stops. Compiler library `map_` contributed 59 tests.
+  Whole-project formatting with the validated CLI changed zero files, snippets
+  or fingerprints. The expanded witness verifies formatting round trips and
+  generated native execution through the existing helper.
+- A/B protocol unchanged: two warmups, 11 samples per depth/engine, fresh probe
+  processes, load at most 4 before each sample. Timing initially refused while
+  Spotlight indexed build outputs; measurements began only after load fell.
+  Native check/emit medians (baseline to candidate): depth 32 **170.383 to
+  65.181 ms (2.61×)**; 64 **784.422 to 170.969 ms (4.59×)**; 80 **1,375.769
+  to 250.132 ms (5.50×)**; 128 **4,631.181 to 563.738 ms (8.22×)**.
+  Node/TypeScript controls: **153.102 to 154.681**, **156.083 to 157.235**,
+  **160.085 to 159.522**, **168.284 to 170.127 ms**, all within 1.1%.
+  Fourfold depth now costs 8.65× instead of 27.18× in this probe; this measures
+  the removed repeated epoch walk, not a formal bound on all compiler passes.
+- `npm run store:ingest` added 16 run entries to `benchmarks/measurements.sqlite`.
+  Integrity returned `ok`; all eight workload/engine rows contain both new
+  11-sample runs. Engine names distinguish frontend costs from runtime data.
+  Ingested raw timing files were deleted after verification.
+- Cleanup removed 129 completed-build objects (1,118,442,264 bytes). No obsolete
+  test or native executables remained. No push, CI dispatch, merge, release,
+  dependency change, generated unsafe or limit change was made.
+- Next: profile schema trial restoration allocations, ranked target 2. Map
+  compile-time optimization is accepted; further compiler changes need a new
+  profile and measured benefit rather than more speculative pass restructuring.
+
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code
 must not contain `unsafe` (tests assert it); one handoff note only (this file);
@@ -154,15 +189,11 @@ small-string type (chains up to 47% slower, re-validating UTF-8 without
 optimization log below.
 
 **Ranked next targets:**
-1. Compile time: scoped Maps across catch regions still repeat subtree work.
-   The original debug-compiler baseline looked cubic (32 levels 0.42 s,
-   64 → 2.9 s, 80 → 5.5 s).
-   `record_sequence_carriers` (`analysis/record_branch_carriers.rs`, called from
-   `finish_block` in `analysis/continuations/block.rs`) re-walks each block's
-   whole subtree, and `scoped_map_entry_epochs` re-filters every binding per
-   statement. Distinct-type snapshot classification now cuts depth 80 from
-   6.067 s to 1.403 s (4.32×); repeated traversal/scanning remains. Profile
-   the accepted source before making those passes incremental.
+1. Scoped Maps across catch regions: completed the measured snapshot and
+   callable-boundary epoch optimizations above. Depth 80 fell from 6.067 s to
+   1.403 s in the first A/B, then from a fresh 1.376 s to 0.250 s in the second.
+   Depth 128 is now 0.564 s versus 4.631 s on the preceding commit. Keep these
+   regressions; proceed to schema trials before further compiler optimization.
 2. Schema trials: every layer (sequence, pair, remap, inject in
    `stdlib/schema/runtime/trial.rs`) boxes a `dyn FnOnce` restoration capturing
    the previous one; generic restorations would remove most of the 9

@@ -3324,5 +3324,9 @@ fn map_replacement_finally_return_disposes_each_callback_once() {
 fn repeated_catch_types_preserve_scoped_map_snapshots() {
     let depth=16;
     let body=format!("{}handlers.delete('first');throw 3;{}", "try{".repeat(depth), "}catch(error){handlers.delete('first');}".repeat(depth));
-    project(&format!("import {{strictEqual}} from 'std:testing';type Holder={{run:ReadOnly<Function<int>>;}};function main():void{{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{{run:():int=>first[0]}});handlers.set('second',{{run:():int=>second[0]}});{body}strictEqual(handlers.size,1);strictEqual(handlers.get('second')?.run()??-1,5);strictEqual(handlers.get('missing')?.run()??-1,-1);handlers.clear();first[0]=7;second[0]=11;strictEqual(first[0]+second[0],18);}}"));
+    let statements=format!("const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{{run:():int=>first[0]}});handlers.set('second',{{run:():int=>second[0]}});{body}strictEqual(handlers.size,1);strictEqual(handlers.get('second')?.run()??-1,5);strictEqual(handlers.get('missing')?.run()??-1,-1);handlers.clear();first[0]=7;second[0]=11;strictEqual(first[0]+second[0],18);");
+    let prelude="import {strictEqual} from 'std:testing';type Holder={run:ReadOnly<Function<int>>;};";
+    project(&format!("{prelude}function main():void{{{statements}}}"));
+    // A nested callable has its own planning boundary inside the parent's scope.
+    project(&format!("{prelude}function main():void{{const run=():void=>{{{statements}}};run();}}"));
 }
