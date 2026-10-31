@@ -333,6 +333,30 @@
     "optional_chain_boolean_field": {
       "at": "2026-10-31T10:54:05.885Z",
       "sourceSha256": "322db1861b3960058f9adf8acd9d07ba5c283151addaa30daacbc70193f15734"
+    },
+    "nullish_string_value": {
+      "at": "2026-10-31T10:55:47.311Z",
+      "sourceSha256": "b4902f81260fa3bed10e177a3b3439d7835515d03e3fb3d8528bd267ab365462"
+    },
+    "nullish_array_value": {
+      "at": "2026-10-31T10:55:47.311Z",
+      "sourceSha256": "f4225440a4811cff361374d481ed98203268311f8370e6e5286017dbfc116156"
+    },
+    "nullish_record_value": {
+      "at": "2026-10-31T10:55:47.311Z",
+      "sourceSha256": "bb86b341ad2525ba790ab264438f1a271b6e0056c287e5e46b7d7e45e49c2d31"
+    },
+    "nullish_assign_string_value": {
+      "at": "2026-10-31T10:55:47.311Z",
+      "sourceSha256": "c6aa777144c280aa6f6637a50283456fb79e3d55367d9132f44025a5c3be73bf"
+    },
+    "nullish_assign_array_value": {
+      "at": "2026-10-31T10:55:47.311Z",
+      "sourceSha256": "a142729a66d2230c41420f25c5dcf8880388756d6edf48008bcca4347a03d253"
+    },
+    "nullish_assign_record_value": {
+      "at": "2026-10-31T10:55:47.311Z",
+      "sourceSha256": "60b95e8f4d56c039a6a309415350e7a09b3475f842912139967f4ff98e104d66"
     }
   }
 }
