@@ -145,6 +145,50 @@
     "int_native_compound_power": {
       "at": "2026-10-31T10:37:03.929Z",
       "sourceSha256": "587f5720e555aaf30d2ee59ce31f6abc04b24bca77ddc25721e23f3ac356708f"
+    },
+    "compound_int_add": {
+      "at": "2026-10-31T10:39:45.847Z",
+      "sourceSha256": "55b5dbcfd3575a04da1e74bc6fad3efda9a9e805ccc25dd975f08f1a1dc431d2"
+    },
+    "compound_int_subtract": {
+      "at": "2026-10-31T10:39:45.847Z",
+      "sourceSha256": "9144c94327a7cfa38b0220b509ff8d505aa0a142f527aba842fd4d9420436f80"
+    },
+    "compound_int_multiply": {
+      "at": "2026-10-31T10:39:45.847Z",
+      "sourceSha256": "b2c854a08c9e29d5806b2c8fc0411517ebd06f6430972a4c87989f5cdbad0988"
+    },
+    "compound_int_divide": {
+      "at": "2026-10-31T10:39:45.847Z",
+      "sourceSha256": "2832cec8f72810c1a0d03c515d738118b8c2b91ea05a2c335974161706bc9adc"
+    },
+    "compound_int_remainder": {
+      "at": "2026-10-31T10:39:45.847Z",
+      "sourceSha256": "51841f8bd7069ea49640576ce3bf3642d074cc7fafaad70093da0fc966aa2887"
+    },
+    "compound_number_add": {
+      "at": "2026-10-31T10:39:45.847Z",
+      "sourceSha256": "acbd7cd977a51453b5b03d09d780f6001122e2fbb16d7138f4ae75dee8ae2c63"
+    },
+    "compound_number_subtract": {
+      "at": "2026-10-31T10:39:45.847Z",
+      "sourceSha256": "902a24dc1f40731bf167f4b98515b9ce898859cc58ba27d01c00dca8fbe83b21"
+    },
+    "compound_number_multiply": {
+      "at": "2026-10-31T10:39:45.847Z",
+      "sourceSha256": "5fe5cb22c780c9eed3ffca4ed14ff86848ef32332f910caec24a1558dd198dca"
+    },
+    "compound_number_divide": {
+      "at": "2026-10-31T10:39:45.847Z",
+      "sourceSha256": "70c77aa6932d1ca667fbbdf0c2ea106af4409f2899f21d6d391d01db97014a67"
+    },
+    "compound_number_remainder": {
+      "at": "2026-10-31T10:39:45.847Z",
+      "sourceSha256": "9f511103087c681adda7c7234df216db863f79baeb4e9d8d7d41eb9f94120023"
+    },
+    "compound_number_power": {
+      "at": "2026-10-31T10:39:45.847Z",
+      "sourceSha256": "7cf62c51394bae74adc74dd227cd079963bcd8a9455865296e72a38a6cd90a23"
     }
   }
 }
