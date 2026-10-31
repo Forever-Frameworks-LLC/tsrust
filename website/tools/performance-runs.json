@@ -3333,6 +3333,18 @@
     "result_match": {
       "at": "2026-10-31T14:01:27.523Z",
       "sourceSha256": "a5e20549a11a2ad61298da660fb157f05117dc8cb7f5fd304335b5d0f3848b4e"
+    },
+    "generic_value_adapters": {
+      "at": "2026-10-31T14:08:13.239Z",
+      "sourceSha256": "9ea126913a636e54ec941ca4145a0934d6de0adaf7c2d92396005ad95512b8d0"
+    },
+    "scoped_callable_records": {
+      "at": "2026-10-31T14:08:13.239Z",
+      "sourceSha256": "57aec6e4d870ab1218cc158e349dfcd183550088f14d1486becd0457d89cd179"
+    },
+    "fallible_record_callbacks": {
+      "at": "2026-10-31T14:08:13.239Z",
+      "sourceSha256": "98c64f79d4816f09adbade83486aa1c1e35d20c921a87658061fc881fafaad4c"
     }
   }
 }

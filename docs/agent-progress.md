@@ -677,7 +677,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
 
 **Hand-written Rust reference expansion — current, 2026-10-31:**
 - Owner requested independent, ordinary Rust comparisons alongside **all 932**
-  public workloads. **824 are measured; 108 remain.** This is ongoing acceptance,
+  public workloads. **827 are measured; 105 remain.** This is ongoing acceptance,
   not universal hand-written-Rust parity. Next: collection/native families and remaining scoped records; the
   Math.random reference is also still open. No compiler candidate is active.
 - Reuse Node and Rust baselines instead of timing them for every optimization.
@@ -754,8 +754,9 @@ counts, wrap a copy of the generated program with a counting global allocator.
 | Ordered Map/Set/grouping/Unicode iteration | 11 | cff3e51c |
 | Native bytes/deque/heap/ordered collections | 10 | fa6d9cea |
 | Borrowed byte-view records/callbacks/containers | 11 | b62879ca |
-| Owned Result/errors/cleanup completion | 5 | This checkpoint; details below |
-| **Total** | **824** | **108 still required** |
+| Owned Result/errors/cleanup completion | 5 | 754255de |
+| Scoped/fallible records/generic value adapters | 3 | This checkpoint; details below |
+| **Total** | **827** | **105 still required** |
 
 **Reference correctness and interpretation:**
 - Sources are independently authored Rust using standard-library operations and
@@ -790,34 +791,37 @@ counts, wrap a copy of the generated program with a counting global allocator.
   unmeasured Rust rows are not losses. Never label Tsrust simply "Native".
 - Current summary: Tsrust faster than Node.js in **613/932**, median throughput
   ratio **1.52×**, range **0.04×–189.48×**. Hand-written Rust faster than Node.js
-  in **557/932 (824 measured)**. The ratios use mean throughput, not median time.
+  in **559/932 (827 measured)**. The ratios use mean throughput, not median time.
 - Website generation/build passes locally; no deployment, push or CI is implied.
   Full-project formatting has consistently changed zero files/snippets/fingerprints.
 
-**Rust owned Result/errors/cleanup completion — verified, 2026-10-31:**
-- Five independent references cover conditional owned records, nullable string
-  logic, exception/cleanup completion, callback failures and Result matching.
-  Standard Option/Result, owned closures/records, partial-field moves and Vec
-  operations retain the observed branch counters, cleanup traces, pending return
-  values, return replacement and read/mutate/move behavior. Typed error variants
-  remove unreachable dynamic type branches. The sort witness has the measured
-  nonnegative three-integer domain; its explicit negative error check remains.
-- All five matched independent result oracles and completed 93 samples each
-  (three processes, eight warmups, 31 timed samples), Rust-only run
-  2026-10-31T14:01:27.523Z; medians 0.037292–1.025166 ms, max load 1.707,
-  watchdog peak 333,072 KiB. Compiler unchanged; existing Tsrust/Node measurements
+**Rust scoped/fallible records/generic value adapters — verified, 2026-10-31:**
+- Three independent references cover scoped callable records, fallible record
+  callbacks and the complete 529-line generic-value adapter workload. Rust
+  generic environment methods keep shared counters across type instantiations;
+  Option, owned values, function pointers and borrowed/boxed Fn/FnMut/FnOnce
+  selections retain defaults, rest packs, nested factory evaluation order,
+  short-circuit argument gating, stable comparator state and scoped owners.
+  Zero-sized polymorphic carriers expose generic Rust methods, rather than
+  counterfeit compiler Closure structs. Typed Result variants keep text/code
+  failures and UTF-8 byte-length behavior.
+- All three matched complete independent output oracles and completed 93 samples
+  each (three processes, eight warmups, 31 timed samples), Rust-only run
+  2026-10-31T14:08:13.239Z; medians 0.212500–0.647416 ms, max load 2.963,
+  watchdog peak 328,816 KiB. Compiler unchanged; existing Tsrust/Node measurements
   reused. No Node timing rerun or product API changes.
-- Nine durable completion_result_edges.rs tests passed under the sequential
-  watchdog with three threads: lazy conditional/nullable branches, success/error
-  cleanup, moved field plus sibling callback, return/break/continue/catch traces,
-  cleanup return override, callback error ownership, Result mutation and stored
-  callback state/failures. No unsafe or extra runtime limit was added.
-- store:ingest added five histories; stored medians/sample counts, source hashes
+- Nine durable scoped_generic_edges.rs tests passed under the sequential
+  watchdog with three threads: cross-type capture counts, owned pattern moves,
+  lazy defaults/rest lengths, reducers/predicates/stable comparator state,
+  retained function contracts, rejected misplaced bool payload call, polymorphic
+  carriers, scoped borrow release and text/code errors. Compilation peak
+  125,504 KiB; no watchdog stops.
+- store:ingest added three histories; stored medians/sample counts, source hashes
   and SQLite integrity verified before raw disposal. Public hashes/timestamps
-  pinned. Coverage **824/932**, remaining **108**. Next: the large scoped record/
-  generic-value adapter fixtures (read them in bounded sections), paths/OS, files
-  and JSON; Math.random remains open. The scoped fixtures range to thousands of
-  lines, so a single combined cat truncates; use function/line ranges when tracing.
+  pinned. Coverage **827/932**, remaining **105**. Next: scoped_record_composition
+  (2,985 lines, function ranges listed by rg) and caller_borrowed_record_stores
+  (738 lines), then paths/OS, files and JSON; Math.random remains open. Read those
+  fixtures in bounded ranges; do not replace their work with precomputed outputs.
 - Harness acceptance retained: f3744386 adds verifyDeclaredReferenceABI for
   independent owned results while the compiler path keeps all declared-target,
   wrapper, capture and no-Clone checks. All 12 declared references passed real
