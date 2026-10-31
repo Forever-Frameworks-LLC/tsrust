@@ -3041,6 +3041,70 @@
     "callable_array_reduction_pipeline": {
       "at": "2026-10-31T13:34:07.270Z",
       "sourceSha256": "785dac8587a3e0e4bf15e8a7ee47993ab6fcee0dc031671b246b2fdf047b9d0b"
+    },
+    "higher_declared_reusable_int": {
+      "at": "2026-10-31T13:38:05.653Z",
+      "sourceSha256": "3db2221966baffbd3aab2aea80f2b80dc29268c3e9c809833217139cf5e5a0cb"
+    },
+    "higher_inline_reusable_int": {
+      "at": "2026-10-31T13:38:05.653Z",
+      "sourceSha256": "3db2221966baffbd3aab2aea80f2b80dc29268c3e9c809833217139cf5e5a0cb"
+    },
+    "higher_declared_once_int": {
+      "at": "2026-10-31T13:38:05.653Z",
+      "sourceSha256": "8be15aed6679ec296ad2b108228d4bc745feae6124d6533bad4a5f0d6ed8ca48"
+    },
+    "higher_inline_once_int": {
+      "at": "2026-10-31T13:38:05.653Z",
+      "sourceSha256": "8be15aed6679ec296ad2b108228d4bc745feae6124d6533bad4a5f0d6ed8ca48"
+    },
+    "higher_declared_owned_int": {
+      "at": "2026-10-31T13:38:05.653Z",
+      "sourceSha256": "4d8216a0d2208f5db3dcaca8890c472b59470823406c7ee40f4fa5baf12de53b"
+    },
+    "higher_inline_owned_int": {
+      "at": "2026-10-31T13:38:05.653Z",
+      "sourceSha256": "4d8216a0d2208f5db3dcaca8890c472b59470823406c7ee40f4fa5baf12de53b"
+    },
+    "higher_declared_owned_once_int": {
+      "at": "2026-10-31T13:38:05.653Z",
+      "sourceSha256": "8be15aed6679ec296ad2b108228d4bc745feae6124d6533bad4a5f0d6ed8ca48"
+    },
+    "higher_inline_owned_once_int": {
+      "at": "2026-10-31T13:38:05.653Z",
+      "sourceSha256": "8be15aed6679ec296ad2b108228d4bc745feae6124d6533bad4a5f0d6ed8ca48"
+    },
+    "higher_distinct_origins_int": {
+      "at": "2026-10-31T13:38:05.653Z",
+      "sourceSha256": "bdae64db0f723e6d66cdf6405ff4b74971ce80162c81c203b0418aab07168b4a"
+    },
+    "higher_multiple_callbacks_int": {
+      "at": "2026-10-31T13:38:05.653Z",
+      "sourceSha256": "97424311828102a4e82c781b52a289dc908e42e5943e76cb5ed41b66c446a0d5"
+    },
+    "higher_borrowed_declared_factory_int": {
+      "at": "2026-10-31T13:38:05.653Z",
+      "sourceSha256": "94e7b159208a1dea76884f10fc2ea46a84885e8a47c2c45c9b4f92042a1498a5"
+    },
+    "higher_borrowed_inline_factory_int": {
+      "at": "2026-10-31T13:38:05.653Z",
+      "sourceSha256": "236ad0b51a874de1668028c7b2fec9b3cd12e5919388751076bada4161d23ad1"
+    },
+    "higher_nested_consumer_int": {
+      "at": "2026-10-31T13:38:05.653Z",
+      "sourceSha256": "0f7df1ed3a6954df79d883e61698726ddcaed15536505f272fe4084daae695b8"
+    },
+    "higher_owned_once_nested_int": {
+      "at": "2026-10-31T13:38:05.653Z",
+      "sourceSha256": "9f17675b62dfca6b9c1b6388b9d187388399374b4bf7c952f1fcc29fdb031e19"
+    },
+    "higher_number_reusable": {
+      "at": "2026-10-31T13:38:05.653Z",
+      "sourceSha256": "595c786d4cdcaa7e2f08137467e801af3b53fe6fac661c1496e0956107aab16c"
+    },
+    "higher_boolean_reusable": {
+      "at": "2026-10-31T13:38:05.653Z",
+      "sourceSha256": "8ee91860792dfdfda26091f4ba3d0c664c77329cf88380e9651743e384647f9a"
     }
   }
 }
