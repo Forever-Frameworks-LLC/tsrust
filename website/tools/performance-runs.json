@@ -77,6 +77,10 @@
     "native_schema_pipeline": {
       "at": "2026-10-31T10:31:14.311Z",
       "sourceSha256": "b15c856c6480cfe229d5b6343e377d1e752a24caa61c0fba8d286d92210ef77e"
+    },
+    "native_schema_collections": {
+      "at": "2026-10-31T10:34:25.278Z",
+      "sourceSha256": "98152dff991b4c9d1eb40568a67bd4cb5cb538699fa3057a92f6f86af68b15c2"
     }
   }
 }

@@ -687,7 +687,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   48952 terminal zero. Ingested and verified the one Rust history entry and SQLite
   integrity; removed raw result. No native/Node timing rerun.
 - Public baseline config pins timestamp/source hash. Rust coverage now 3/932;
-  remaining 922 workloads need parity references, correctness and one-time timing.
+  remaining 921 workloads need parity references, correctness and one-time timing.
   Start next with the remaining schema workloads. Current native source clean;
   no optimization candidate remains. Website build passed; whole-project formatter
   changed zero files/snippets/fingerprints. No active tool session remains.
@@ -720,7 +720,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   timestamp and parity-source SHA-256; sample counts checked. Website build passed.
   No new Node or Rust timing was run for this page update; no deployment.
 - **Remaining owner request: implement and validate hand-written Rust coverage
-  for the other 922 displayed workloads**, by coherent families with independent
+  for the other 921 displayed workloads**, by coherent families with independent
   result oracles. Start current schema workloads, then remaining families. Do not
   claim all comparisons exist. Added first new source
   `benchmarks/runtime/parity/native_schema_json_nested.rs`: ordinary typed Serde
@@ -749,7 +749,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
 - Ingested one Rust history entry; verified median/sample count and SQLite
   integrity; removed disposable raw result. Reused Tsrust/Node baselines.
   Public selection pins parity source SHA-256 and timestamp. Coverage now 4/932,
-  remaining 922. Next: remaining schema parity programs; no compiler candidate.
+  remaining 921. Next: remaining schema parity programs; no compiler candidate.
 
 **Object-schema Rust baselines — verified, 2026-10-31:**
 - Added parity/native_schema_json_object.rs (owned Value validation) and
@@ -762,7 +762,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   witnesses passed sequentially under watchdog, session 29002 terminal zero.
 - Ingested two entries; verified medians/counts and SQLite integrity; removed raw
   result. Public config pins source hashes/timestamps. Coverage now 6/932,
-  remaining 922. Next: remaining schema Rust references. No active tool session.
+  remaining 921. Next: remaining schema Rust references. No active tool session.
 
 **Recursive-schema Rust baseline — verified, 2026-10-31:**
 - Added parity/native_schema_recursive.rs: owned JSON input/tree output,
@@ -772,7 +772,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   Nested-index/type test passed using exact dependency artifacts, session 65036;
   all under sequential watchdog, three test threads. No Tsrust/Node timing rerun.
 - Ingested and verified one entry and SQLite integrity; raw result removed.
-  Public config pins source hash/timestamp. Coverage 7/932, remaining 922.
+  Public config pins source hash/timestamp. Coverage 7/932, remaining 921.
   Next: remaining schema references; no active compiler candidate or tool job.
 
 **Union-schema Rust baseline — verified, 2026-10-31:**
@@ -783,7 +783,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   max load 3.997, timestamp 2026-10-31T10:26:44.659Z, median .203791 ms.
   Sequential watchdog used; Tsrust/Node baselines reused. Ingested and verified
   entry/sample count/SQLite integrity; disposable raw result removed.
-- Public source hash/timestamp pinned. Coverage 8/932, remaining 922. Next:
+- Public source hash/timestamp pinned. Coverage 8/932, remaining 921. Next:
   discriminated-union and remaining schema references; no active tool jobs.
 
 **Tagged-object Rust baseline — verified, 2026-10-31:**
@@ -794,7 +794,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   correctness and 93 samples, max load 3.558, median .674833 ms, timestamp
   2026-10-31T10:28:51.948Z. Sequential watchdog; no Tsrust/Node timing rerun.
 - Ingested/verified one entry and SQLite integrity; raw result removed. Public
-  config pins source hash/timestamp. Coverage 9/932, remaining 922. Next:
+  config pins source hash/timestamp. Coverage 9/932, remaining 921. Next:
   pipeline/collection schema Rust references. No active compiler candidate/job.
 
 **Pipeline Rust baseline — verified, 2026-10-31:**
@@ -805,8 +805,23 @@ counts, wrap a copy of the generated program with a counting global allocator.
   max load 3.933, timestamp 2026-10-31T10:31:14.311Z, median .403459 ms.
   Sequential watchdog, three test threads; Tsrust/Node timings reused.
 - Ingested and verified one entry and SQLite integrity; raw result removed.
-  Public source hash/timestamp pinned. Coverage 10/932, remaining 922. Next:
+  Public source hash/timestamp pinned. Coverage 10/932, remaining 921. Next:
   collection and remaining schema Rust references; no active compiler candidate.
+
+**Collection-schema Rust baseline — verified, 2026-10-31:**
+- Added parity/native_schema_collections.rs using std HashMap/HashSet default
+  hashers, owned strings, typed JSON record decoding, consuming lowercase
+  transforms and collision errors with indices. Standard Rust representations;
+  no generated Tsrust helpers. Focused collision/index/distinct-output test passed
+  with exact prepared dependencies (20567).
+- Rust-only runner 14309 passed independent correctness and 93 samples; max load
+  3.688, timestamp 2026-10-31T10:34:25.278Z, median 1.308709 ms. Sequential
+  watchdog, three test threads. No Tsrust/Node timing rerun. Ingested and verified
+  entry/sample count/SQLite integrity; raw result removed.
+- Public hash/timestamp pinned. Coverage 11/932, remaining 921. Core advanced
+  schema comparisons now present; next expand coherent families in batches
+  (start integer operators) rather than isolated documentation rebuilds per row.
+  No active compiler candidate/tool job; optimization goal remains active.
 
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code
