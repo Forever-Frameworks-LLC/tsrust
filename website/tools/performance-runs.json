@@ -3757,6 +3757,14 @@
     "native_module_state": {
       "at": "2026-10-31T15:37:09.263Z",
       "sourceSha256": "a753caf13bc3d951523cc9d17304e98c9cef77d1c71cbe01b698039d826c8853"
+    },
+    "math_random_range": {
+      "at": "2026-10-31T18:02:59.219Z",
+      "sourceSha256": "b238b259ec9c667a7b28a3192ad8c955b5acdb51a2a0de43f5c9cb0f27afedfc"
+    },
+    "string_normalize_forms": {
+      "at": "2026-10-31T18:02:59.219Z",
+      "sourceSha256": "21fb3218fca98d66d5821ff27c940694914dccbe3fdca977740f1d3c72764c7b"
     }
   },
   "httpBaselines": {

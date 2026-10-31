@@ -1,10 +1,30 @@
 # Rust-native runtime comparisons
 
-[SQLite analytics](../storage/README.md#accepted-raw-analytics-and-restoration) · [Historical report](../../BENCHMARKS.md) · [Manifest](./manifest.json) · [Coverage and limits](../../docs/measurements/runtime-comparisons.md)
+[SQLite measurements](../storage/README.md) · [Historical report](../../BENCHMARKS.md) · [Manifest](./manifest.json) · [Coverage and limits](../../docs/measurements/runtime-comparisons.md)
 
-The current 670 historically measured workload pairs use semantic epoch `rust-native-utf8-v1`. Generated strings are standard `Cow<'static, str>`: valid Unicode, byte length, checked byte slicing, and scalar `charAt`. This contract differs from JavaScript UTF-16 indexing. Earlier raw results remain immutable; current report tables exclude earlier epochs. Retired UTF-16 tools and source snapshots are preserved under [the archive](../../archive/utf16-strings-2026-10-01/benchmark-tools/), and their raw records remain in `results` and `diagnostics`.
+The public language/library comparison covers 932 workloads on Tsrust and
+Node.js. Independently written Rust reference coverage is selected explicitly;
+see the generated performance page for measured coverage and per-engine dates.
+Generated strings use `Cow<'static, str>`: valid UTF-8, byte length, checked byte
+slicing and scalar `charAt`. Workload counterparts account for those semantics.
 
-[Benchmark storage](../storage/README.md) is canonical SQLite analytics with exact-byte raw restoration and derived source-keyed timing/resource tables. Active runs write temporary loose records; accepted closed records enter SQLite before verified loose cleanup. Markdown generation is optional and skipped by default. Historical bytes and original paths remain authoritative.
+[Benchmark storage](../storage/README.md) records one row per workload/engine in
+`benchmarks/measurements.sqlite`, with minimal dated histories of median time,
+mean throughput and sample count. Run `npm run store:ingest`, verify the imported
+measurements, then remove disposable result JSON. Archives, source snapshots and
+exact-byte raw restoration are not part of the current storage model. Public
+selection lives in `website/tools/performance-runs.json`. HTTP uses its separate
+[end-to-end comparison suite](../http/README.md).
+
+Most Rust references use the standard library. The RNG and Unicode normalization
+references use pinned `rand` 0.10.3 and `unicode-normalization` 0.1.25, prepared
+untimed from `parity-dependencies/Cargo.lock`, offline in the shared Cargo target.
+These dependencies apply only to `rust-hand`; compiler/Node preparation is
+unchanged. Normalization uses Unicode 17.0.0; the observed corpus consists of
+stable canonical/compatibility/Hangul/combining-order cases, checked against an
+independent result oracle. RNG algorithms differ across engines; each performs
+real draws and retains the workload's range, difference and dice-roll checks.
+Neither comparison claims general algorithm or allocation equivalence.
 
 ## Reproduce
 

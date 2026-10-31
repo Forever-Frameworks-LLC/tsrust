@@ -2,7 +2,7 @@ import {assertModuleStateSource} from './module-state-contract.mjs';
 import {assertSchemaSource} from './schema-contract.mjs';
 import {assertDataImportSource,prepareDataImport} from './typed-data-imports.mjs';
 import {assertNativeJsonSource} from './native-json-contract.mjs';
-import {prepareNativeDependencies} from './native-dependencies.mjs';
+import {prepareNativeDependencies,prepareReferenceDependencies} from './native-dependencies.mjs';
 import {assertMonotonicTimeSource} from './monotonic-time-contract.mjs';
 import {environmentFor,assertEnvironmentSource} from './environment-contract.mjs';
 import {assertCollectionSource} from './collections-contract.mjs';
@@ -408,11 +408,13 @@ function prepare(w) {
  const tsCommand = [...tsc, '--project', path.join(build, `${w.id}.json`)];
  // Prime normal filesystem/tool caches. Compiler bootstrap and downloads are excluded.
  run(nativeCommand); run(tsCommand);
+ let referenceDependencies={args:[],evidence:null};
  const handSourcePath = path.join(here, 'parity', `${w.id}.rs`);
  if (plan.engineIDs.includes('rust-hand') && fs.existsSync(handSourcePath)) {
+  referenceDependencies=prepareReferenceDependencies({workload:w,rustVersion:pins.rust,targetDirectory:path.dirname(path.dirname(compiler)),env});
   const hand = fs.readFileSync(handSourcePath, 'utf8');
   fs.writeFileSync(path.join(build, `${w.id}-hand.rs`), hand.replace('fn main()', 'fn source_main()') + '\n' + adaptRustDriver(driverRS, w, {emitted: hand, source, reference:true}) + '\n' + allocatorHeader);
-  run([...rustc, ...nativeDependencies.args, ...allocatorArgs, '--edition=2024', '-C', 'opt-level=3', '-C', 'overflow-checks=on', '-A', 'warnings', path.join(build, `${w.id}-hand.rs`), '-o', path.join(build, `${w.id}-hand`)]);
+  run([...rustc, ...nativeDependencies.args, ...referenceDependencies.args, ...allocatorArgs, '--edition=2024', '-C', 'opt-level=3', '-C', 'overflow-checks=on', '-A', 'warnings', path.join(build, `${w.id}-hand.rs`), '-o', path.join(build, `${w.id}-hand`)]);
   handSources.set(w.id, hash(hand));
  }
  if(isApproximate(w)){
@@ -448,7 +450,7 @@ function prepare(w) {
   const durations = []; for (let i = 0; i < manifest.compileSamples; i++) durations.push(run(phase.command).ms);
   compilation.push({workload: w.id, ...phase, durations});
  }
- sources.push({...(nativeDependencies.evidence?{nativeDependencies:nativeDependencies.evidence}:{}),...(isCopying(w)?{copyingABI:reductionABI}:isRange(w)?{rangeABI:reductionABI}:isHigher(w)?{higherABI:reductionABI}:isDeclared(w)?{declaredABI:reductionABI}:isConcat(w)?{concatABI:reductionABI}:isReduction(w)?{reductionABI}:reductionABI?{workloadABI:reductionABI}:{}),id: w.id, tsrSha256: hash(source), tsSha256: hash(ts), emittedSha256: hash(emitted), instrumentedSha256: hash(instrumented),...(isApproximate(w)?{approximateCompilation:{nativeCommand,tsCommand,instrumentedTSSha256:hash(fs.readFileSync(path.join(build,w.id+'.ts'))),nativeBinarySha256:hash(fs.readFileSync(path.join(build,w.id))),compiledTSSha256:hash(fs.readFileSync(path.join(build,w.id+'.js')))}}:{})});
+ sources.push({...(referenceDependencies.evidence?{referenceDependencies:referenceDependencies.evidence}:{}),...(nativeDependencies.evidence?{nativeDependencies:nativeDependencies.evidence}:{}),...(isCopying(w)?{copyingABI:reductionABI}:isRange(w)?{rangeABI:reductionABI}:isHigher(w)?{higherABI:reductionABI}:isDeclared(w)?{declaredABI:reductionABI}:isConcat(w)?{concatABI:reductionABI}:isReduction(w)?{reductionABI}:reductionABI?{workloadABI:reductionABI}:{}),id: w.id, tsrSha256: hash(source), tsSha256: hash(ts), emittedSha256: hash(emitted), instrumentedSha256: hash(instrumented),...(isApproximate(w)?{approximateCompilation:{nativeCommand,tsCommand,instrumentedTSSha256:hash(fs.readFileSync(path.join(build,w.id+'.ts'))),nativeBinarySha256:hash(fs.readFileSync(path.join(build,w.id))),compiledTSSha256:hash(fs.readFileSync(path.join(build,w.id+'.js')))}}:{})});
 }
 function execute(engine, iterations, seed, warmups, samples, inputText, workload) {
  if(workload?.family==='native-files'||['native_jsonl_typed','native_jsonl_borrowed','native_jsonl_writer','native_jsonl_borrowed_writer'].includes(workload?.id))inputText=nativeFileInput(workload);

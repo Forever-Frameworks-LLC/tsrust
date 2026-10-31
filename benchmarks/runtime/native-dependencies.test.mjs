@@ -48,3 +48,11 @@ test('JSON dependency discovery tolerates adjacent generated modules',()=>{
  for(const source of ['mod tsrust_native_json {', '}mod tsrust_native_json {', '}  mod tsrust_native_json{'])assert.equal(needsJsonDependencies(source),true);
  for(const source of ['fn main() {}', '// mod tsrust_native_json {', 'mod other {'])assert.equal(needsJsonDependencies(source),false);
 });
+
+test('reference dependency selection leaves ordinary/native preparation untouched',async()=>{
+ const {prepareReferenceDependencies}=await import('./native-dependencies.mjs');
+ assert.deepEqual(prepareReferenceDependencies({workload:{id:'native_json_parse'}}),{args:[],evidence:null});
+ const target='/target';const artifact=JSON.stringify({reason:'compiler-artifact',target:{name:'unicode_normalization',kind:['lib']},filenames:['/target/release/deps/libunicode_normalization-a.rlib']});
+ assert.deepEqual(dependencyArtifacts(artifact,target,['unicode_normalization']),{unicode_normalization:'/target/release/deps/libunicode_normalization-a.rlib'});
+ assert.throws(()=>dependencyArtifacts(artifact,target,['rand']),/Missing.*rand/);
+});

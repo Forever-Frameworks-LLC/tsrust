@@ -14,7 +14,7 @@ test('string normalization pair appends to the manifest and binds actual guarded
  
  assert.deepEqual(rows.map(row=>row.id),stringNormalizeIds);
  for(const row of rows){
-  assert.equal(row.measured,false);assert.equal(row.measurementStatus,'pending-string-methods-milestone');assert.equal(reportCategory(row.id),'strings');
+  assert.equal(row.measured,true);assert.equal(row.measurementStatus,'measured-string-normalization-family');assert.equal(reportCategory(row.id),'strings');
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertStringNormalizeSource(source,row,kind);
    assert.throws(()=>assertStringNormalizeSource(replaceCodeSnippet(source, 'text.normalize("NFC")','String(text)'),row,kind));

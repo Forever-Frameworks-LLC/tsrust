@@ -28,29 +28,35 @@ plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
 
-**Owner-requested promotion — in progress, 2026-10-31:**
-- Owner requested updating docs/compiler, promotion through main and deployment,
-  then resuming optimization after deployments start. Staging PR:
-  https://github.com/Forever-Frameworks-LLC/tsrust/pull/8.
-- Current pushed release proposal is **979b906a**. CI **41219037206** is running
-  (standard subset, not full); Documentation **41219037199** and VS Code
-  packaging passed on this head. Earlier CI 41218842078 was superseded/cancelled
-  automatically when the prepared version proposal was pushed. No duplicate
-  manual CI dispatched. Release notes are in 045efdb7; version proposal 979b906a.
-  Main/stag ancestry reconciled against 9981279e/27ca587e; retained the current
-  minimal measurement store, owner-directed deleted archives and newer docs.
-  Merge checkpoint has exactly the same tree as d9df0009.
+**Owner-requested promotion — building, 2026-10-31:**
+- Owner explicitly approved **publishing v0.1.1**, then optimization continuation
+  after deployments are underway. Compiler **0.1.1**, independent LSP/VSIX **0.2.1**;
+  version proposal 979b906a, release notes 045efdb7. Publication is authorized.
+- Staging PR https://github.com/Forever-Frameworks-LLC/tsrust/pull/8 merged as
+  **fa2bd1a9** after **CI 41219037206** and **Documentation 41219037199** passed
+  on 979b906a (CI standard subset, not full). Staging requires squash/linear
+  history, main requires merge commits; initial staging merge-method rejection
+  was resolved using squash, with no policy changes. Owner review bypass only;
+  all required checks passed. Earlier CI 41218842078 was superseded/cancelled.
+- Promotion https://github.com/Forever-Frameworks-LLC/tsrust/pull/9 starts
+  **Release 41226915583** from fa2bd1a9. Preflight and editor packaging passed;
+  Linux x64, Windows x64, macOS ARM and Intel optimized consumer builds are
+  running. On success the trusted pipeline merges the exact validated tree,
+  publishes its existing artifacts, then deploys Pages. Do not manually merge
+  main ahead of the release gate. No new tag/release or deployment verified yet.
+- Main/stag ancestry was reconciled against 9981279e/27ca587e in e0fd0169;
+  retained current minimal measurements, owner-directed archive removals and
+  newer docs. That checkpoint tree equals d9df0009. Later local evidence-only
+  commits were not pushed just to restart CI; current local source work below
+  is intentionally outside the frozen release proposal.
 - Local readiness: 14 distribution/release-policy tests, 21 storage tests,
-  website link-check tests and links/assets across all 116 generated pages pass.
-  Whole-project formatter changed zero files/snippets/fingerprints.
-- Main promotion automatically builds/publishes compiler/LSP/VSIX artifacts and
-  deploys Pages. Existing compiler v0.1.0 cannot be reused. Asked owner to approve
-  v0.1.1; the staging proposal prepares compiler 0.1.1 and independent LSP/VSIX 0.2.1,
-  matching lockfiles and installation examples. Publication remains pending the
-  reply per the project skill. Do not open the automatic-publishing stag-to-main PR until then.
-  Local proposal passes locked/offline Cargo metadata, npm version/lock agreement,
-  all 14 packaging/promotion checks and the 66-page docs build. No new tag/release
-  or deployment has occurred yet.
+  website link-check tests, links/assets across 116 generated pages, 66-page
+  build, locked/offline Cargo metadata, npm version/lock agreement and clean
+  v0.1.1 release preflight pass. Whole-project formatter changed zero files.
+- Platform builds remain live. Local reference expansion below is now complete:
+  all 932 Rust baselines measured, using existing Node/Tsrust controls. Source
+  code/checkpoint after this promotion remains local until a later delivery.
+
 
 **Validation:**
 - GitHub CI dispatched today ran only the default subset, because
@@ -702,8 +708,9 @@ counts, wrap a copy of the generated program with a counting global allocator.
 
 **Hand-written Rust reference expansion — current, 2026-10-31:**
 - Owner requested independent, ordinary Rust comparisons alongside **all 932**
-  public workloads. **930 are measured; two remain.** This is ongoing acceptance,
-  not universal hand-written-Rust parity. Next: math_random_range and string_normalize_forms.
+  public workloads. **All 932 now have measured Rust references.** This is
+  measured workload coverage, not universal hand-written-Rust parity. Next:
+  profile the HTTP SQLite gap and resume ranked compiler/runtime optimization.
   All native-json and native-schema workloads now have Rust baselines. No compiler candidate is active.
 - Reuse Node and Rust baselines instead of timing them for every optimization.
   Refresh on workload/protocol/reference-source/toolchain/hardware changes or
@@ -793,7 +800,8 @@ counts, wrap a copy of the generated program with a counting global allocator.
 | Object enumeration/membership and union arrays | 8 | c6e11476 |
 | Patterns/control/assignments/testing assertions | 13 | 28d30640 |
 | Recursion/environment/clock/import/module state | 5 | 6329bc83; details below |
-| **Total** | **930** | **two still required** |
+| RNG and Unicode normalization | 2 | Current checkpoint; details below |
+| **Total** | **932** | **all public language/library cases covered** |
 
 **Reference correctness and interpretation:**
 - Sources are independently authored Rust using standard-library operations and
@@ -828,9 +836,53 @@ counts, wrap a copy of the generated program with a counting global allocator.
   unmeasured Rust rows are not losses. Never label Tsrust simply "Native".
 - Current summary: Tsrust faster than Node.js in **613/932**, median throughput
   ratio **1.52×**, range **0.04×–189.48×**. Hand-written Rust faster than Node.js
-  in **625/932 (930 measured)**. The ratios use mean throughput, not median time.
+  in **626/932 (932 measured)**. The ratios use mean throughput, not median time.
 - Website generation/build passes locally; no deployment, push or CI is implied.
   Full-project formatting has consistently changed zero files/snippets/fingerprints.
+
+**Final RNG/Unicode Rust references — verified, 2026-10-31:**
+- Completes **932/932** independent Rust language/library baselines. The random
+  workload performs two actual rand::random::<f64>() calls per iteration, scales
+  the first to a dice roll, and retains all four property checks. The Unicode
+  workload computes all seven normalization results at runtime, including both
+  default paths and dynamic form selection; never substitutes corpus outputs.
+- Reference-only **rand 0.10.3** and **unicode-normalization 0.1.25** (Unicode
+  **17.0.0**) use an isolated locked parity-dependencies manifest, untimed offline
+  preparation and the one shared Cargo target. Compiler/Node dependency paths
+  remain unchanged. Actual Cargo artifacts are selected by exact library name,
+  with hashes of library/manifest/lock recorded before minimal-store ingestion.
+  One attempt to select non-workspace dependency packages through root Cargo
+  panicked before compilation; the isolated reference manifest avoids that path.
+- **Five Rust edge tests passed**, three threads under the watchdog: 65,536
+  genuine RNG draws check range/diversity/distribution, retained row/roll checks,
+  canonical/compatibility/Hangul/combining-order normalization (including inputs
+  outside the corpus), idempotence, defaults, owned results and invalid form.
+  Elapsed **4.643 seconds**, sampled peak **210,288 KiB**. No generated unsafe.
+- Affected harness **13 passed, one existing opt-in native integration skipped**,
+  peak **176,752 KiB**. Live dependency linking is exercised by the Rust edges
+  and final runner. Fixed stale pending metadata/tests for these two measured
+  families; their two registration suites reran successfully. No compiler suite
+  rerun was needed for reference-only changes. Local release compiler/LSP version
+  rebuild passed in **216.775 seconds**, peak **1,093,904 KiB**.
+- Rust-only baseline **2026-10-31T18:02:59.219Z** passed all five correctness cases
+  and **93 samples per workload** (three processes, eight warmups, 31 samples).
+  Medians: RNG **0.039084 ms**, normalization **1.636000 ms**. Max load **2.520**,
+  busy override off, elapsed **4.639 seconds**, peak **207,680 KiB**. Existing
+  Tsrust and Node baselines reused; no fresh Node timing. Different RNG algorithms
+  and normalization-library versions are disclosed without general parity claims.
+- store:ingest added two histories; exact median/mean-rate/count/source identities
+  and SQLite integrity verified before raw disposal. Public pins now select all
+  932 Rust baselines: Rust faster than Node in **626/932**, Tsrust **613/932**,
+  unchanged Tsrust/Node median ratio **1.52×**. All 66 website pages build locally.
+  This later reference coverage is local and outside the frozen v0.1.1 promotion.
+- Removed 6,682 obsolete benchmark outputs/cache directories (about 1.064 GB of
+  top-level files), retaining only the current two workload builds. No archived
+  sources, duplicate Cargo targets or extra handoff files were introduced.
+- Next: profile the HTTP SQLite gap before considering an optimization. Static
+  inspection shows SQL AnyPool preparation/metadata validation before each query;
+  establish CPU/allocation or round-trip evidence and retain exact parameter/type
+  diagnostics before changing it. Parent/candidate A/B and affected acceptance
+  remain required. Also keep monitoring release 41226915583 and Pages promotion.
 
 **HTTP request benchmarks — verified, 2026-10-31:**
 - Owner requested actual HTTP text, JSON, parsed/transformed JSON, and parsed
