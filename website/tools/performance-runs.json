@@ -2325,6 +2325,66 @@
     "array_locale_string_values": {
       "at": "2026-10-31T12:41:57.403Z",
       "sourceSha256": "ccdb17cdc66ff430f24e888851945dab211f205db06cebac30165790c1fd0756"
+    },
+    "scalar_arrays": {
+      "at": "2026-10-31T12:50:58.585Z",
+      "sourceSha256": "dbcacf0b67202d9611b51fb4f2630a2f2e7a5457dabfb889d12cd36193a03241"
+    },
+    "owned_arrays": {
+      "at": "2026-10-31T12:50:58.585Z",
+      "sourceSha256": "6528fc32ae5d26b6c99c1e97100e52548188ecb7f7f50028b516009073ba5d60"
+    },
+    "nested_arrays": {
+      "at": "2026-10-31T12:50:58.585Z",
+      "sourceSha256": "8f69a5bd0795958908d8b6f6d1708740480145eaaf619c5e16be2e242f453654"
+    },
+    "record_arrays": {
+      "at": "2026-10-31T12:50:58.585Z",
+      "sourceSha256": "40bc8f29e87c2ad4a26317fc2f789f1d3bcb1e78cf9028b52c8e0376b90ab2b3"
+    },
+    "array_churn": {
+      "at": "2026-10-31T12:50:58.585Z",
+      "sourceSha256": "a40f441dbe0c6b7911ab92e08aaf540726ad8f9e35423ec3b3f0793ac5fa0fc6"
+    },
+    "record_array_churn": {
+      "at": "2026-10-31T12:50:58.585Z",
+      "sourceSha256": "ab755503b3fb491beb147e891dabbb2df684db4e8516359d2c7aec0101851cae"
+    },
+    "array_from_copy_int": {
+      "at": "2026-10-31T12:50:58.585Z",
+      "sourceSha256": "31a85ef659bc161500ac88bc72ef0f93c411c2961b198de270676a6d59acc7c1"
+    },
+    "array_from_map_int": {
+      "at": "2026-10-31T12:50:58.585Z",
+      "sourceSha256": "8dfe0a492bd0014bcf74a9803db2562646bc9dda60611dd3e4eaf65ccad1f050"
+    },
+    "array_from_string_characters": {
+      "at": "2026-10-31T12:50:58.585Z",
+      "sourceSha256": "17993227d1adc34a89fc59e98a2e2910596a57d242dd88d8d20011b462f98029"
+    },
+    "array_from_map_string": {
+      "at": "2026-10-31T12:50:58.585Z",
+      "sourceSha256": "1ccd8a3387f6b8b1ceb827fdf90a36a6324a06cad0093749119d2a0f6e7bcd09"
+    },
+    "array_keys_int": {
+      "at": "2026-10-31T12:50:58.585Z",
+      "sourceSha256": "4d62f57dd3b4bf1c295b952749a692d713528ee79ce084e3de70c3965e57df8d"
+    },
+    "array_values_int": {
+      "at": "2026-10-31T12:50:58.585Z",
+      "sourceSha256": "7edb1500c78dc76bdb9a3ccff40d269df7423ce540e5d14d45235d49b4e5f937"
+    },
+    "array_entries_string": {
+      "at": "2026-10-31T12:50:58.585Z",
+      "sourceSha256": "3e160cb109215c5dd39b19d6675e2647d172813e0a85c6569964333a2e5b1c41"
+    },
+    "array_entries_records": {
+      "at": "2026-10-31T12:50:58.585Z",
+      "sourceSha256": "d386dbf457489bfcbd235c5f0ec091ac70ae8bddca887635baa39efe4bbb9dda"
+    },
+    "array_from_collections": {
+      "at": "2026-10-31T12:50:58.585Z",
+      "sourceSha256": "14edb1cf3170e934c8a25fba6d68b10ce2a59c93296aecd4b0a3a7ece3e07e96"
     }
   }
 }
