@@ -482,6 +482,49 @@ counts, wrap a copy of the generated program with a counting global allocator.
   owner design decision. No push, CI dispatch, merge or release.
 
 
+**Current milestone validation — 2026-10-31 (complete):**
+- Full local inventory reconciled: all 399 compiler integration files, all 91
+  LSP integration files, and both complete library targets: **492 targets,
+  5,321 passed, 19 ignored, zero unresolved failures, zero watchdog stops**.
+  Compiler library: 1,297 passed/eight ignored; LSP library: 20 passed.
+  Nine previously validated integration targets contributed 84 passes exactly
+  once. Rerun targets replaced earlier results; partial failures were not
+  double-counted. Peak process-group RSS was 1,888,848 KiB. Every target ran
+  sequentially with three test threads, one build job, shared `target`,
+  `CARGO_INCREMENTAL=0`, and a 5,000,000 KiB/1,800-second watchdog. No CI claim.
+- Portable-export test initially lacked `TSRUST_SOURCE_PACK_DIR`. Its explicit
+  local prepared source pack repaired the environment; the failed test passed
+  on filtered retry, preserving five original passes. No product change.
+- Retained UI ExampleCard diagnostics intermittently consumed an earlier empty
+  publication. Isolated retry passed. Fixed the shared test wait to match URI
+  and tracked document version, retaining unversioned closed-file publications.
+  Added a deterministic queued stale/current-publication regression. All six
+  worker tests and every suite using the affected wait passed; full UI: 31/31.
+  This is test-support correctness work, with no runtime speed claim or timing
+  store entry. Generated runtime implementation is unchanged since `a2f94dee`.
+- Long gates passed: checker/editor agreement 515.18 s; completion matrix
+  499.49 s; intelligence/native backend catalog 644.42 s; compiler library
+  including build 325.86 s; LSP library including build 5.19 s.
+- All runners are terminal. Disposable ledgers/logs remain under
+  `/tmp/tsrust-schema-milestone-*`; final runner session 61290 exited zero.
+  Whole-project formatting with current debug CLI passed: zero changed files,
+  zero documentation snippets, zero fingerprint updates. Diff whitespace clean.
+- Fresh three-second collections CPU sample before this milestone included
+  substantial transform/trial/allocator work; field-index visitor work was
+  smaller. Do not expand the advanced-schema decoder without an isolated
+  representative profile. No new performance claim from that diagnostic sample.
+- Owner resolved string storage: Rust defaults. Borrow slices where lifetimes
+  permit; copy independently owned strings. No reference-counted backing or
+  automatic copy/share size threshold. Known byte lengths may inform capacity;
+  any extra sizing pass must prove an end-to-end benefit in fresh paired runs.
+- Next: profile existing string workloads, starting with replacement first/all,
+  plain/token/empty-pattern cases and slice/concat controls. Runtime concat,
+  padding, addition and borrowed-to-owned append/reserve already allocate known
+  byte capacity; repeat delegates to Rust after checked sizing. Token replacement
+  starts at source byte capacity and may reallocate on expansion. Profile before
+  changing it. Existing replacement histories contain 93 samples per engine;
+  use fresh baseline/current comparisons, not historical times for acceptance.
+
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code
 must not contain `unsafe` (tests assert it); one handoff note only (this file);
@@ -514,8 +557,10 @@ optimization log below.
 4. Plain-schema `DeserializeSeed` decoding accepted above: nested 3.122×,
    fused 1.161× faster, fewer allocations. Advanced schemas retain the existing
    decoder; profile remaining costs before extending the fast path.
-5. Shared string slices (V8 shares; Tsrust copies) need reference-counted
-   strings: a design decision for the owner.
+5. Owner chose Rust-default string ownership: borrowed slices when lifetimes
+   allow, independent owned strings copy. Do not introduce reference-counted
+   sharing. Profile known-length allocation/sizing opportunities after milestone
+   validation; keep only measured improvements without regressions.
 
 ## Most recent owner correction — highest immediate priority
 

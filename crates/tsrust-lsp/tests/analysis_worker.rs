@@ -1,6 +1,23 @@
 mod support;
 use support::session::Session;
 #[test]
+fn diagnostic_wait_ignores_queued_publications_from_before_an_edit() {
+    use lsp_server::Notification;
+    use serde_json::json;
+    use support::session::diagnostic_publication_matches;
+    let uri = "file:///main.tsr";
+    let publications = [
+        json!({"uri":uri,"diagnostics":[]}),
+        json!({"uri":uri,"version":1,"diagnostics":[]}),
+        json!({"uri":"file:///other.tsr","version":2,"diagnostics":[]}),
+        json!({"uri":uri,"version":2,"diagnostics":[{"message":"expected string"}]}),
+    ].map(|params| Notification::new("textDocument/publishDiagnostics".into(), params));
+    let current = publications.iter().find(|notification| diagnostic_publication_matches(notification, uri, Some(2))).unwrap();
+    assert_eq!(current.params["diagnostics"][0]["message"], "expected string");
+    assert!(diagnostic_publication_matches(&publications[0], uri, None));
+    assert!(!diagnostic_publication_matches(&publications[1], uri, None));
+}
+#[test]
 fn complete_numeric_examples_keep_the_analysis_worker_alive(){
  let checked=include_str!("../../../examples/numeric-boundaries/checked.tsr");
  let workload=include_str!("../../../benchmarks/numeric/numeric-boundaries.tsr");
