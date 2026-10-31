@@ -213,6 +213,30 @@
     "boolean_value_of": {
       "at": "2026-10-31T10:45:17.446Z",
       "sourceSha256": "76ca6aef5d3bced147082f6d5f3583b07c4c0007e63eae5efeda7321ed870cec"
+    },
+    "compound_number_and": {
+      "at": "2026-10-31T10:48:22.756Z",
+      "sourceSha256": "d4384f4a95e9db0c5a29d8201733858f3c2b37b565728d860bf3a53c36f08436"
+    },
+    "compound_number_or": {
+      "at": "2026-10-31T10:48:22.756Z",
+      "sourceSha256": "13478d2b3abe9a3f685f0d1f991fe2c690f2e2ecc6c52c9b7d22f4a24f92e0c2"
+    },
+    "compound_number_xor": {
+      "at": "2026-10-31T10:48:22.756Z",
+      "sourceSha256": "c85a16558c08d962552f51a16466ae8fce000c9b0e156014bbd0a4d72243740b"
+    },
+    "compound_number_shift_left": {
+      "at": "2026-10-31T10:48:22.756Z",
+      "sourceSha256": "0e739c0bf19b661c840cc53f87b5d4cf41afdf0753f7572e9630d6960f426c46"
+    },
+    "compound_number_shift_right": {
+      "at": "2026-10-31T10:48:22.756Z",
+      "sourceSha256": "7302012de57230fb2fd764aa1edb02e28bba4b4e6da21e4b6c27e728a5dc7f03"
+    },
+    "compound_number_shift_right_unsigned": {
+      "at": "2026-10-31T10:48:22.756Z",
+      "sourceSha256": "57611923f6e2129e2306dbccfb6392b16fd17ca03547c91f1944e302c54a6ba7"
     }
   }
 }
