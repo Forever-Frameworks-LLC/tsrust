@@ -730,6 +730,14 @@ counts, wrap a copy of the generated program with a counting global allocator.
   Reuse stored Node controls; preserve source/protocol provenance for baselines.
 
 
+**Performance terminology correction — owner requested, 2026-10-31:**
+- Public labels now name Tsrust, Node.js and hand-written Rust explicitly.
+  Replaced Native in summaries, group tables, throughput/ratio columns, dates
+  and method descriptions. Introduction explains the Tsrust→Rust→executable
+  compilation path and the independent Rust reference. Ratios name both engines.
+- Rust win count explicitly covers measured comparisons; unmeasured rows are
+  not losses. No benchmark values changed and no timings rerun.
+
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code
 must not contain `unsafe` (tests assert it); one handoff note only (this file);

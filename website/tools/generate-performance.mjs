@@ -99,30 +99,35 @@ const samples = rows[0].native_samples;
 
 let page = `---
 title: "Performance"
-description: "Measured native execution speed compared with the same programs compiled by tsc and run on Node.js."
+description: "Measured Tsrust, Node.js and hand-written Rust execution speed."
 ---
 
-These measurements compare a Tsrust program compiled to native code with an
-equivalent TypeScript program compiled by \`tsc\` and run on Node.js. Both sides
-compute the same checked result for each workload. Higher operations per second
-is faster; the ratio is native throughput divided by Node.js throughput, so a ratio
-above 1 means the native program was faster.
+The tables compare three implementations of the same checked workloads:
+
+- **Tsrust**: Tsrust source compiled to Rust, then built as an executable by the Rust compiler.
+- **Node.js**: equivalent TypeScript compiled by \`tsc\` and run on Node.js.
+- **Hand-written Rust**: independently written Rust using ordinary Rust ownership,
+  standard-library operations and established crates where needed.
+
+Higher operations per second is faster. A **Tsrust / Node.js** ratio above 1
+means Tsrust was faster; a **Tsrust / Rust** ratio above 1 means Tsrust was
+faster than the hand-written Rust implementation.
 
 This snapshot uses the latest accepted measurement selected for each workload.
-Rows carry their measurement date; unchanged workloads retain earlier results.
-Rejected experiments and candidates still in validation are excluded. These
-results compare native execution with Node.js. Hand-written Rust baselines are
-shown where implemented and measured; a dash means coverage is still missing.
+Each engine has its own measurement date because reference baselines are reused.
+Rejected experiments and candidates still in validation are excluded. A dash in
+the Rust columns means that comparison has not been measured. The Rust win count
+covers only measured comparisons; unmeasured workloads are not losses.
 
 ## Summary
 
 | Measure | Value |
 | --- | --- |
 | Workloads compared | ${rows.length} |
-| Rust faster than Node.js | ${rows.filter(row => row.rust !== undefined && row.rust > row.node).length} of ${rows.length} (${rows.filter(row => row.rust !== undefined).length} measured) |
-| Native faster | ${faster} of ${rows.length} |
-| Median ratio (native ÷ Node.js) | ${median.toFixed(2)}× |
-| Range | ${ratios[0].toFixed(2)}× to ${ratios.at(-1).toFixed(2)}× |
+| Hand-written Rust faster than Node.js | ${rows.filter(row => row.rust !== undefined && row.rust > row.node).length} of ${rows.length} (${rows.filter(row => row.rust !== undefined).length} measured) |
+| Tsrust faster than Node.js | ${faster} of ${rows.length} |
+| Median ratio (Tsrust ÷ Node.js) | ${median.toFixed(2)}× |
+| Ratio range (Tsrust ÷ Node.js) | ${ratios[0].toFixed(2)}× to ${ratios.at(-1).toFixed(2)}× |
 | Machine | ${cell(machine.cpu ?? 'unrecorded')} (${cell(machine.platform ?? '')} ${cell(machine.architecture ?? '')}) |
 | Toolchains | Rust ${cell(config.rust)}; Node.js ${cell(config.node)}; TypeScript ${cell(config.typescript)} |
 | Samples | ${samples} timed samples per engine and workload |
@@ -133,18 +138,18 @@ shown where implemented and measured; a dash means coverage is still missing.
 `;
 const middle = (values) => { const sorted = [...values].sort((a, b) => a - b); const half = sorted.length >> 1; return sorted.length % 2 ? sorted[half] : (sorted[half - 1] + sorted[half]) / 2; };
 const ordered = [...groups].sort(([a], [b]) => a.localeCompare(b));
-page += '| Group | Workloads | Native faster | Median ratio |\n| --- | ---: | ---: | ---: |\n';
+page += '| Group | Workloads | Tsrust faster than Node.js | Median ratio |\n| --- | ---: | ---: | ---: |\n';
 for (const [group, entries] of ordered) {
   const values = entries.map(ratio);
   page += `| [${group}](#${group.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}) | ${entries.length} | ${values.filter((value) => value > 1).length} | ${middle(values).toFixed(2)}× |\n`;
 }
 const slower = ordered.filter(([, entries]) => middle(entries.map(ratio)) < 1).map(([group]) => `the ${group} group`);
 page += slower.length
-  ? `\nNative code is not uniformly faster. In ${slower.join(' and ')}, the median workload runs slower than on Node.js: these remain optimization targets. A throughput table alone does not identify the cause of a performance gap.\n\n`
+  ? `\nTsrust is not uniformly faster than Node.js. In ${slower.join(' and ')}, the median workload runs slower than on Node.js: these remain optimization targets. A throughput table alone does not identify the cause of a performance gap.\n\n`
   : '\n';
 page += 'Each group lists every workload, slowest ratio first. Speeds are operations per second, abbreviated: k is thousands, M is millions and G is billions, so `5.35 M` is about 5,350,000 operations per second. The ratio column is the one to compare.\n\n';
 for (const [group, entries] of ordered) {
-  page += `### ${group}\n\n<details>\n<summary>${entries.length} workloads</summary>\n\n| Workload | Native (ops/s) | Node.js (ops/s) | Native / Node | Hand-written Rust (ops/s) | Native / Rust | Native date | Node date | Rust date |\n| --- | ---: | ---: | ---: | ---: | ---: | --- | --- | --- |\n`;
+  page += `### ${group}\n\n<details>\n<summary>${entries.length} workloads</summary>\n\n| Workload | Tsrust (ops/s) | Node.js (ops/s) | Tsrust / Node.js | Hand-written Rust (ops/s) | Tsrust / Rust | Tsrust date | Node date | Rust date |\n| --- | ---: | ---: | ---: | ---: | ---: | --- | --- | --- |\n`;
   for (const row of entries.sort((a, b) => ratio(a) - ratio(b))) {
     const label = row.description ? `\`${row.workload}\`: ${cell(row.description)}` : `\`${row.workload}\``;
     page += `| ${label} | ${rate(row.native)} | ${rate(row.node)} | ${ratio(row).toFixed(2)}× | ${row.rust === undefined ? "—" : rate(row.rust)} | ${row.rust === undefined ? "—" : (row.native / row.rust).toFixed(2) + "×"} | ${row.at.slice(0,10)} | ${row.nodeAt.slice(0,10)} | ${row.rustAt?.slice(0,10) ?? "—"} |\n`;
@@ -157,7 +162,7 @@ are timed together, so a rate is not the cost of one isolated operation.
 
 ## Method
 
-- **Native**: the Tsrust compiler emits Rust, built with the pinned Rust
+- **Tsrust**: the Tsrust compiler emits Rust, built with the pinned Rust
   toolchain at optimization level 3. That is the Rust compiler's highest speed
   setting, the same one \`tsrust build --release\` uses. Integer overflow checks
   stay enabled, so the measured programs keep their safety checks.
@@ -168,7 +173,7 @@ are timed together, so a rate is not the cost of one isolated operation.
   compilation time are excluded.
 - Every correctness case is checked against an independent oracle before timing,
   and the timed result is verified afterwards.
-- Native strings use UTF-8 semantics. Where a workload depends on string encoding,
+- Tsrust strings use UTF-8 semantics. Where a workload depends on string encoding,
   the TypeScript counterpart performs the same UTF-8 work explicitly.
 
 ## Reusable reference baselines
@@ -188,7 +193,7 @@ different runs. Missing Rust results are not inferred from Node.js timings.
 ## Limits
 
 These are workload-level comparisons on one machine, not a general claim that
-every program runs faster natively. Short workloads are sensitive to ordinary
+every Tsrust program runs faster than its Node.js counterpart. Short workloads are sensitive to ordinary
 machine variation, and small ratio differences are not significant. Rows where
 Node.js is faster are kept and reviewed rather than removed.
 
