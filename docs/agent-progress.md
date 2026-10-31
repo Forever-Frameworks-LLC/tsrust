@@ -687,7 +687,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   48952 terminal zero. Ingested and verified the one Rust history entry and SQLite
   integrity; removed raw result. No native/Node timing rerun.
 - Public baseline config pins timestamp/source hash. Rust coverage now 3/932;
-  remaining 730 workloads need parity references, correctness and one-time timing.
+  remaining 710 workloads need parity references, correctness and one-time timing.
   Start next with the remaining schema workloads. Current native source clean;
   no optimization candidate remains. Website build passed; whole-project formatter
   changed zero files/snippets/fingerprints. No active tool session remains.
@@ -720,7 +720,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
   timestamp and parity-source SHA-256; sample counts checked. Website build passed.
   No new Node or Rust timing was run for this page update; no deployment.
 - **Remaining owner request: implement and validate hand-written Rust coverage
-  for the other 730 displayed workloads**, by coherent families with independent
+  for the other 710 displayed workloads**, by coherent families with independent
   result oracles. Start current schema workloads, then remaining families. Do not
   claim all comparisons exist. Added first new source
   `benchmarks/runtime/parity/native_schema_json_nested.rs`: ordinary typed Serde
@@ -1154,6 +1154,27 @@ counts, wrap a copy of the generated program with a counting global allocator.
   explains compilation and reused reference dates, and distinguishes unmeasured
   Rust cases from losses. No compiler implementation changed.
   Next: remaining numeric formatting/parsing reference families.
+
+**Rust scalar floating-point/radix family — verified, 2026-10-31:**
+- Twenty independent Rust references cover five binary arithmetic operations,
+  negation, six comparisons, four number predicates, int/bool conversions,
+  decimal string conversion and radix integer prefix parsing. Standard f64
+  arithmetic/predicates/parsing and checked i64 bookkeeping match workload
+  inputs, accumulation order and output types. Decimal parsing's seven-value
+  corpus uses standard trim/parse; radix scanning covers the bounded digit corpus.
+- All twenty matched independent result oracles and completed 93 samples each
+  (three processes, eight warmups, 31 timed samples). Rust-only run
+  2026-10-31T11:40:26.434Z; medians 0.320125–4.178834 ms,
+  maximum load 2.771, watchdog peak 339,024 KiB.
+  Existing Tsrust and Node measurements reused; no compiler change or A/B claim.
+- Three durable radix edge tests passed: sign/prefix/trailing text, invalid
+  radix/no digits/whitespace exclusions, signed zero and exact integer boundaries.
+  Sequential watchdog, checked arithmetic, three threads; no watchdog stop.
+- store:ingest added twenty histories; all medians/sample counts and SQLite
+  integrity verified. Public timestamps/source hashes pinned; raw result removed.
+  Coverage **222/932**, remaining **710**. Numeric formatting still needs
+  independent references with exact rounding/notation; this batch does not claim
+  those methods are covered. Next: remaining numeric formatting/conversion cases.
 
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code

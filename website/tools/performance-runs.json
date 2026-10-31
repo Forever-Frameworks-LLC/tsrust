@@ -845,6 +845,86 @@
     "number_parse_float_mixed": {
       "at": "2026-10-31T11:34:54.348Z",
       "sourceSha256": "c08d785b7ef5e4bcb911da86980d372d8e5e7ab31b455fe21180e865eb49915a"
+    },
+    "number_add": {
+      "at": "2026-10-31T11:40:26.434Z",
+      "sourceSha256": "f6a05586a6541edaee8c39fb71cc12ca246ba8810d21d3268dbf32b33ecf53d1"
+    },
+    "number_subtract": {
+      "at": "2026-10-31T11:40:26.434Z",
+      "sourceSha256": "7e5ef34ccb7ee39cf38b9875fd9ef9c354db9ca08cdad9e28751623bd0160cad"
+    },
+    "number_multiply": {
+      "at": "2026-10-31T11:40:26.434Z",
+      "sourceSha256": "9eef9a113a68493d1f60b201255857b11cf58434d374353016166db25330cd4c"
+    },
+    "number_divide": {
+      "at": "2026-10-31T11:40:26.434Z",
+      "sourceSha256": "d7a3215acb0d790b69e5bc0334c865fa5c4982a31fe12d4dd15537bb8ab843cb"
+    },
+    "number_remainder": {
+      "at": "2026-10-31T11:40:26.434Z",
+      "sourceSha256": "ae097d1aa73aa6bccd63f8f9ec14a6637800b91c1a66d56b655ee9320654ff75"
+    },
+    "number_negate": {
+      "at": "2026-10-31T11:40:26.434Z",
+      "sourceSha256": "c33320f65989829d1224339d0b696256eab149b689014af40d3d669b523e4f3f"
+    },
+    "number_equal": {
+      "at": "2026-10-31T11:40:26.434Z",
+      "sourceSha256": "28a2ae965305374e29c99763b1f0765e80795053840cec27458248acbb52b161"
+    },
+    "number_not_equal": {
+      "at": "2026-10-31T11:40:26.434Z",
+      "sourceSha256": "13482c122b391f846f83695f280b1b828908fd4a8183945c63000997cad387b3"
+    },
+    "number_less": {
+      "at": "2026-10-31T11:40:26.434Z",
+      "sourceSha256": "105ca0e1a86b317adcdb79baeab45761507b89e3569dde947358314cba942eab"
+    },
+    "number_less_equal": {
+      "at": "2026-10-31T11:40:26.434Z",
+      "sourceSha256": "fbb2989b00c308c945bafc77e40e475ca502d53246acff5790a840b2221cadcf"
+    },
+    "number_greater": {
+      "at": "2026-10-31T11:40:26.434Z",
+      "sourceSha256": "4f6123d7a7e7f87afbf75dc4fded87402778919630e6a50affcf09e8204e35d7"
+    },
+    "number_greater_equal": {
+      "at": "2026-10-31T11:40:26.434Z",
+      "sourceSha256": "8609b23bf63108ba0ba466e1c70fabd8e66af3ab53b81faa4e003d1aff5dfc4d"
+    },
+    "number_from_int": {
+      "at": "2026-10-31T11:40:26.434Z",
+      "sourceSha256": "b04e9422848be489fefcad26f0b6a420ba15a4bb43fd1fc5ef546a49c4e7462f"
+    },
+    "number_from_boolean": {
+      "at": "2026-10-31T11:40:26.434Z",
+      "sourceSha256": "ed479cd45cf5f41ae826e6075178437596033336b2da8ee256932ea7042b9fd2"
+    },
+    "number_parse_decimal": {
+      "at": "2026-10-31T11:40:26.434Z",
+      "sourceSha256": "69a31d7fd96646f09c62918d862a509e13042c2fe6c975baee447dbf08dceca3"
+    },
+    "number_is_finite": {
+      "at": "2026-10-31T11:40:26.434Z",
+      "sourceSha256": "ecc35e20dedad4b14270d02ce2b1c73ac8a5fb8f86c54727f56dc95c149cd7d7"
+    },
+    "number_is_nan": {
+      "at": "2026-10-31T11:40:26.434Z",
+      "sourceSha256": "dad09927feff1af1e0cc892ce1930f45e5302d5f605e9842513b2daae489b1ce"
+    },
+    "number_is_integer": {
+      "at": "2026-10-31T11:40:26.434Z",
+      "sourceSha256": "14df05bdca4231e74b4464f15b476376c314b14abec382e851fece5d1110a026"
+    },
+    "number_is_safe_integer": {
+      "at": "2026-10-31T11:40:26.434Z",
+      "sourceSha256": "911a97674056c1824de967d44bbb66b5be123986cd33997d0c5944765145416f"
+    },
+    "number_parse_int_radix": {
+      "at": "2026-10-31T11:40:26.434Z",
+      "sourceSha256": "91995b5132266d020826b1c6a4782f7e872bc7854ef7e637a7f47a5d79f13773"
     }
   }
 }
