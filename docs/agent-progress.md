@@ -677,7 +677,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
 
 **Hand-written Rust reference expansion — current, 2026-10-31:**
 - Owner requested independent, ordinary Rust comparisons alongside **all 932**
-  public workloads. **698 are measured; 234 remain.** This is ongoing acceptance,
+  public workloads. **723 are measured; 209 remain.** This is ongoing acceptance,
   not universal hand-written-Rust parity. Next: remaining callable/ownership/record families; the
   Math.random reference is also still open. No compiler candidate is active.
 - Reuse Node and Rust baselines instead of timing them for every optimization.
@@ -744,8 +744,9 @@ counts, wrap a copy of the generated program with a counting global allocator.
 | Nullable callable ownership/forwarding/factories | 10 | 5fcd9045 |
 | Optional callbacks/function expressions | 6 | 5505c5ba |
 | Remaining scalar control/operators | 20 | cc25c212 |
-| String construction/ownership/scalar split | 19 | This checkpoint; details below |
-| **Total** | **698** | **234 still required** |
+| String construction/ownership/scalar split | 19 | 8df76859 |
+| String identity/literals/templates/HTML wrappers | 25 | This checkpoint; details below |
+| **Total** | **723** | **209 still required** |
 
 **Reference correctness and interpretation:**
 - Sources are independently authored Rust using standard-library operations and
@@ -780,39 +781,35 @@ counts, wrap a copy of the generated program with a counting global allocator.
   unmeasured Rust rows are not losses. Never label Tsrust simply "Native".
 - Current summary: Tsrust faster than Node.js in **613/932**, median throughput
   ratio **1.52×**, range **0.04×–189.48×**. Hand-written Rust faster than Node.js
-  in **473/932 (698 measured)**. The ratios use mean throughput, not median time.
+  in **480/932 (723 measured)**. The ratios use mean throughput, not median time.
 - Website generation/build passes locally; no deployment, push or CI is implied.
   Full-project formatting has consistently changed zero files/snippets/fingerprints.
 
-**Rust string ownership/construction and byte-length repair — verified, 2026-10-31:**
-- Nineteen new independent references cover ASCII/dynamic normalization and case
-  conversion, deep string copies, byte length, equality/ordering, direct/chained/
-  compound concatenation, conditional branches and delimiter/scalar splitting.
-  Standard Rust String ownership, trim/case conversion, push_str and split/chars
-  keep independently owned retained outputs. No reference-counted storage.
-- The string_length oracle rejected the initial scalar-count helper: Tsrust
-  .length is UTF-8 byte length. Corrected to str::len, audited recent references
-  and repaired the same helper in 27 callable/nested/generic references. Their
-  previous measured length inputs were ASCII, so old measured corpus outputs
-  remain valid; Unicode edge expectations were wrong and are now corrected.
-  Sources and public baselines for all 27 were refreshed rather than reusing
-  their old source hashes. Unicode splitting still uses chars, as required.
-- All 46 references (19 new, 27 repaired) matched independent result oracles and
-  completed 93 samples each (three processes, eight warmups, 31 timed samples),
-  Rust-only run 2026-10-31T13:26:54.192Z; medians 0.019708–13.405417 ms,
-  max load 2.103, watchdog peak 341,824 KiB. No product/compiler changes.
-  Existing Tsrust/Node measurements reused; no Node timing rerun.
-- All 37 tests in five affected binaries passed sequentially under the watchdog,
-  three threads: nested_function_edges (6), generic_function_edges (7),
-  nullable_callable_edges (10), expression_edges (6), string_ownership_edges (8).
-  New tests distinguish byte length from scalar splitting and cover Unicode case
-  expansion, Rust whitespace/BOM, NUL, ownership isolation, branch counters and
-  delimiter limits/empty fields. Preparation failed before timing on the initial
-  byte-length mismatch; only the repaired final run produced measured histories.
-- store:ingest added 46 histories; stored medians/sample counts, source hashes
+**Rust string identity/literals/templates/HTML wrappers — verified, 2026-10-31:**
+- Twenty-five independent references cover eight ASCII/Unicode string identity
+  and well-formed conversions, two quoted literal corpora, two template forms
+  and thirteen HTML wrappers. Standard Rust String clones preserve independent
+  owners, UTF-8 type validity removes redundant validation, and format!/replace
+  preserve interpolation and wrapper text. HTML attribute escaping replaces only
+  double quotes; body text, ampersands, NUL and Unicode are retained unchanged.
+- All 25 matched independent result oracles and completed 93 samples each
+  (three processes, eight warmups, 31 timed samples), Rust-only run
+  2026-10-31T13:29:25.178Z; medians 0.001875–0.201750 ms, max load 2.194,
+  watchdog peak 334,336 KiB. Compiler implementation unchanged; existing Tsrust/
+  Node measurements reused. No Node timing rerun or product API changes.
+- Twenty durable string_form_edges.rs tests passed under the sequential watchdog
+  with three threads: independent retained owners, valid noncharacters/NUL,
+  decoded quote/unknown/continuation escapes, exact primitive template formats,
+  literal interpolation markers and all thirteen wrappers/attribute behavior.
+- store:ingest added 25 histories; stored medians/sample counts, source hashes
   and SQLite integrity verified before raw disposal. Public hashes/timestamps
-  pinned. Coverage **698/932**, remaining **234**. Next: remaining callables and
+  pinned. Coverage **723/932**, remaining **209**. Next: remaining callables and
   ownership/record families; Math.random remains open.
+- Prior correction retained: 8df76859 fixes UTF-8 byte .length in 27 callable/
+  nested/generic references and refreshes all their source hashes and Rust runs.
+  Those measured length inputs were ASCII, so historical corpus outputs remain
+  valid. Unicode edge expectations were corrected; scalar splitting still uses
+  chars. That checkpoint passed all 46 oracles/93 samples and 37 affected tests.
 
 **Owner rules learned this session:** match Rust's defaults for limits (no count
 caps; depth bound only where rustc has `recursion_limit = 128`); generated code
