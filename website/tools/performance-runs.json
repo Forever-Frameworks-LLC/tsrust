@@ -3349,6 +3349,10 @@
     "caller_borrowed_record_stores": {
       "at": "2026-10-31T14:14:56.312Z",
       "sourceSha256": "c36af2a6f909cd845a08eb74c752a25837bad6b0729d3f49475808c5ba04373c"
+    },
+    "scoped_record_composition": {
+      "at": "2026-10-31T14:31:10.861Z",
+      "sourceSha256": "3ac555537df5302345907dea482e0ba9d575476d04e728de819d79c7b475dca2"
     }
   }
 }

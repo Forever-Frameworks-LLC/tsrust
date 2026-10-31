@@ -677,7 +677,7 @@ counts, wrap a copy of the generated program with a counting global allocator.
 
 **Hand-written Rust reference expansion — current, 2026-10-31:**
 - Owner requested independent, ordinary Rust comparisons alongside **all 932**
-  public workloads. **828 are measured; 104 remain.** This is ongoing acceptance,
+  public workloads. **829 are measured; 103 remain.** This is ongoing acceptance,
   not universal hand-written-Rust parity. Next: collection/native families and remaining scoped records; the
   Math.random reference is also still open. No compiler candidate is active.
 - Reuse Node and Rust baselines instead of timing them for every optimization.
@@ -756,8 +756,9 @@ counts, wrap a copy of the generated program with a counting global allocator.
 | Borrowed byte-view records/callbacks/containers | 11 | b62879ca |
 | Owned Result/errors/cleanup completion | 5 | 754255de |
 | Scoped/fallible records/generic value adapters | 3 | 8d67d28c |
-| Caller-borrowed callback record stores | 1 | This checkpoint; details below |
-| **Total** | **828** | **104 still required** |
+| Caller-borrowed callback record stores | 1 | bc1ca527 |
+| Full scoped-record/map composition | 1 | This checkpoint; details below |
+| **Total** | **829** | **103 still required** |
 
 **Reference correctness and interpretation:**
 - Sources are independently authored Rust using standard-library operations and
@@ -792,36 +793,41 @@ counts, wrap a copy of the generated program with a counting global allocator.
   unmeasured Rust rows are not losses. Never label Tsrust simply "Native".
 - Current summary: Tsrust faster than Node.js in **613/932**, median throughput
   ratio **1.52×**, range **0.04×–189.48×**. Hand-written Rust faster than Node.js
-  in **560/932 (828 measured)**. The ratios use mean throughput, not median time.
+  in **561/932 (829 measured)**. The ratios use mean throughput, not median time.
 - Website generation/build passes locally; no deployment, push or CI is implied.
   Full-project formatting has consistently changed zero files/snippets/fingerprints.
 
-**Rust caller-borrowed callback record stores — verified, 2026-10-31:**
-- One independent reference implements the complete 738-line caller-owned store
-  fixture, retaining all 74 observed columns: borrowed callback installation,
-  paired/nested replacement, before/after-install failure, optional stores,
-  effectful conditional installers, closure forwarding, nested/local owners,
-  scoped mutation, owned once transfer and catch/finally selection.
-- Lifetime-bound Box<dyn Fn> callbacks borrow caller owners; Cell<i64> represents
-  the fixture's aliased one-element mutable state without RC backing storage.
-  Owned mutable storage captures a Vec by value with FnMut; once transfers use
-  FnOnce. Typed Result variants preserve observed failure paths. Reference code
-  performs the actual stores/calls/replacements and does not precompute outputs.
-- Complete independent output oracles and 93 samples passed (three processes,
-  eight warmups, 31 timed samples), Rust-only run 2026-10-31T14:14:56.312Z;
-  median 1.529708 ms, max load 2.164, watchdog peak 357,120 KiB.
-  Compiler unchanged; existing Tsrust/Node measurements reused. No Node timing
-  rerun or product API changes.
-- Seven durable caller_store_edges.rs tests passed sequentially under the
-  watchdog with three threads: installation failure order, paired short-circuit
-  errors, immediate captured-owner drops on replacement/clear, independent
-  replacement state, conditional/nested installer effects, owned transfer and
-  catch/finally selection. Compilation peak 100,784 KiB; no watchdog stops.
-- store:ingest added one history; stored median/sample count, source hash and
-  SQLite integrity verified before raw disposal. Public hash/timestamp pinned.
-  Coverage **828/932**, remaining **104**. Next: scoped_record_composition (2,985
-  lines; read function ranges with rg/sed), then paths/OS, files and JSON;
-  Math.random remains open. Do not substitute precomputed rows for fixture work.
+**Rust scoped-record/map composition — verified, 2026-10-31:**
+- One independent reference implements the complete 2,985-line fixture, retaining
+  all **136 observed columns**: map/array callback stores, field transfer,
+  replacement and failure ordering, nested catch/finally, labelled control,
+  pending returns/errors overridden by cleanup, retained indexed removals and
+  optional callbacks across independently borrowed owners.
+- Safe lifetime-bound Box<dyn Fn> callbacks borrow Cell<i64> source state. A small
+  insertion-ordered Vec map retains real callback installation, replacement,
+  deletion, iteration and drop operations (corpus ceiling three entries).
+  Result completion carriers preserve pending values before cleanup mutations.
+  Unconditional caught errors and cleanup-overridden control paths share ordinary
+  Rust helpers only where their observed state transitions are identical.
+  No precomputed output rows, RC storage or unsafe code.
+- Complete independent output oracles and **93 samples** passed (three processes,
+  eight warmups, 31 timed samples), Rust-only run **2026-10-31T14:31:10.861Z**;
+  median **18.420917 ms**, mean throughput **110,898.676 ops/s**, max load
+  **2.222**, watchdog sampled peak **877,648 KiB**. Public Tsrust/Rust throughput
+  ratio **0.15×**; existing Tsrust/Node measurements reused. This reference exposes
+  substantial remaining generated-code overhead; it is not a Tsrust speedup.
+- Seven scoped_composition_edges.rs tests passed under the watchdog with three
+  threads: ordered replacement/drop, pending return copying, cleanup overriding
+  return/error/control, inner continue overriding outer edges, zero/post-test
+  loops, retained removed callbacks and nullable independent parameter owners.
+  Preparation initially found two missing Rust Result error annotations; fixed
+  before any successful timing. No product/compiler changes or watchdog stops.
+- store:ingest added one history. Stored median/sample count, source hash, quiet
+  load and SQLite integrity verified before raw disposal; public hash/timestamp
+  pinned. Website builds all 66 pages locally, with no deployment or CI.
+  Coverage **829/932**, remaining **103**. Next: paths/OS, then files and JSON;
+  Math.random and other unmatched language fixtures remain open. All 932 are
+  still required. Do not substitute precomputed rows for fixture work.
 - Harness acceptance retained: f3744386 adds verifyDeclaredReferenceABI for
   independent owned results while the compiler path keeps all declared-target,
   wrapper, capture and no-Clone checks. All 12 declared references passed real
