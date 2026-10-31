@@ -81,6 +81,70 @@
     "native_schema_collections": {
       "at": "2026-10-31T10:34:25.278Z",
       "sourceSha256": "98152dff991b4c9d1eb40568a67bd4cb5cb538699fa3057a92f6f86af68b15c2"
+    },
+    "int_native_unary_plus": {
+      "at": "2026-10-31T10:37:03.929Z",
+      "sourceSha256": "5663190da6104281b695273b30cd4cb632ceb588d4dff434116ba1d5d6f49933"
+    },
+    "int_native_bit_not": {
+      "at": "2026-10-31T10:37:03.929Z",
+      "sourceSha256": "523011c282d5a768efc87f465b3daf671b2395fd10ce932524ae30c119350b6d"
+    },
+    "int_native_bit_and": {
+      "at": "2026-10-31T10:37:03.929Z",
+      "sourceSha256": "f8a48f13812be1951cc0e4dbc11260209e02b7e4ee76c5fa144a963c59151eb7"
+    },
+    "int_native_bit_or": {
+      "at": "2026-10-31T10:37:03.929Z",
+      "sourceSha256": "9407ecf0765e1897f038d97a83bbee7eda5aeaf5abcc2d0a232eda3ee4c1abb1"
+    },
+    "int_native_bit_xor": {
+      "at": "2026-10-31T10:37:03.929Z",
+      "sourceSha256": "41dc66a9867d86b79841aa1571b09b5ce3e8997874884d3ad4b347e5bd5933a6"
+    },
+    "int_native_shift_left": {
+      "at": "2026-10-31T10:37:03.929Z",
+      "sourceSha256": "a1e14276b0648c8b710b77d8587f1f595e99affa61d23f9667b626bc58a126fa"
+    },
+    "int_native_shift_right": {
+      "at": "2026-10-31T10:37:03.929Z",
+      "sourceSha256": "95796d70768d05c64f5bcd2ee40c0f1a0edb134bc6d6d91ad06c039c136daa72"
+    },
+    "int_native_shift_right_unsigned": {
+      "at": "2026-10-31T10:37:03.929Z",
+      "sourceSha256": "6ccd665279138a1aa7717f008b4dd6c7b91f3eab9e52fc790a9595e1e483d10b"
+    },
+    "int_native_power": {
+      "at": "2026-10-31T10:37:03.929Z",
+      "sourceSha256": "587f5720e555aaf30d2ee59ce31f6abc04b24bca77ddc25721e23f3ac356708f"
+    },
+    "int_native_compound_bit_and": {
+      "at": "2026-10-31T10:37:03.929Z",
+      "sourceSha256": "a064340ec316294998e56585ad3fbd59e7ef0d440b290e3aab75afda4cc84296"
+    },
+    "int_native_compound_bit_or": {
+      "at": "2026-10-31T10:37:03.929Z",
+      "sourceSha256": "cb7a8354e8b86bda9d327ced06d951d3e295fd8d02c02d402adb0fe1473fb03b"
+    },
+    "int_native_compound_bit_xor": {
+      "at": "2026-10-31T10:37:03.929Z",
+      "sourceSha256": "c03e3773d7649c93fc4da2f0653bb529ed565c7dcbe6a28e6a401abdd261bcf0"
+    },
+    "int_native_compound_shift_left": {
+      "at": "2026-10-31T10:37:03.929Z",
+      "sourceSha256": "a1e14276b0648c8b710b77d8587f1f595e99affa61d23f9667b626bc58a126fa"
+    },
+    "int_native_compound_shift_right": {
+      "at": "2026-10-31T10:37:03.929Z",
+      "sourceSha256": "95796d70768d05c64f5bcd2ee40c0f1a0edb134bc6d6d91ad06c039c136daa72"
+    },
+    "int_native_compound_shift_right_unsigned": {
+      "at": "2026-10-31T10:37:03.929Z",
+      "sourceSha256": "6ccd665279138a1aa7717f008b4dd6c7b91f3eab9e52fc790a9595e1e483d10b"
+    },
+    "int_native_compound_power": {
+      "at": "2026-10-31T10:37:03.929Z",
+      "sourceSha256": "587f5720e555aaf30d2ee59ce31f6abc04b24bca77ddc25721e23f3ac356708f"
     }
   }
 }
