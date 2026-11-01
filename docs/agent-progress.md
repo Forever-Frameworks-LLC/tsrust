@@ -34,6 +34,65 @@ plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
 
+**In progress — identity-preserving Map/Set schema validation, 2026-11-01:**
+- Parent **8da8e64d**, dirty candidate in collection_trials.rs. Plain matching
+  scalar Map/Set schemas borrow existing scalar preparation checks, then return
+  the owned container unchanged. Pipelines/wrappers/choices retain old trials.
+  New std:testing witness in schema_collections.rs covers bounds, path order,
+  deletion/reinsertion order, fallback, NaN, booleans and empty collections.
+- Fresh allocation profile **2026-11-01T19:35:23.933Z**: recursive **40**,
+  pipeline **10**, collections **43** allocations/iteration, zero reallocations.
+  Watchdog **44.615 s**, peak **1,151,280 KiB**. Fresh collections CPU sample:
+  5M iterations/checksum **40,000,007**, **6.703 s**, peak **32,432 KiB**, with
+  sequence/allocator/transform work. These are diagnostics, not speed claims.
+- Parent five-workload/native+Node run **2026-11-01T19:40:21.459Z** is complete,
+  **117.205 s**, peak **860,880 KiB**; original protocol retained, quiet wait
+  honored. Raw timing/allocation files remain pending candidate/import. Native/
+  Node correctness preflight also passed (18.124 s/859,248 KiB).
+- Initial collection binary: **four passed**, new test found a real compiler
+  defect: temporary `.parse(flags).size` was rejected for Set/Map when receiver
+  hints were unavailable. Fixed the shared late-typed temporary field boundary
+  in analysis/continuations/access.rs; added hover agreement in schema_editing.rs.
+  Initial build 465.929 s/1,598,080 KiB, failed test 9.309 s/1,070,896 KiB.
+- Compiler/runtime **152 unique tests passed**: collections 5 (four retained plus
+  repaired negative-test retry), pipelines 19, recursive 10, unions 13, diagnostic
+  options 11 and schema library 94. The added assignment checks correctly expect
+  the earlier unsupported-storage rejection; writing temporary size is forbidden.
+- New hover witness exposed a separate recovery gap. Checked project metadata was
+  already correct; standalone/header recovery only inferred s.array constructors.
+  Generalized that existing helper for s.set/s.map, preserving aliases/shadowing.
+  SourceIndex hover/completion and header/checked project hover now pass. All
+  **16 schema editor tests passed**. Current total **168**, no unresolved failures.
+- Debug build after compiler fix: **463.179 s**, peak **1,983,648 KiB**. Test-only
+  refresh **1.040 s/129,424 KiB**, editor rebuild **7.762 s/580,720 KiB**. One
+  existing test-only dead-code warning for unchanged json/typed.rs decode_plain.
+  No library-source warning suppression or unrelated change was introduced.
+- Release build completed **209.510 s/1,590,160 KiB**. Candidate allocation
+  profile **2026-11-01T20:14:23.592Z**, **43.087 s/900,288 KiB**: collections
+  **43→33** allocations/iteration; requested bytes over 2,000 iterations
+  **7,242,000→6,042,000**. Pipeline/recursive unchanged, all checksums/zero live
+  after drop verified. Peak requested collection bytes remain 649.
+- Initial A/B **2026-11-01T20:16:43.106Z**: collections **2.327250→1.847250 ms**,
+  Node **.854000→.869875 ms**; discriminator control **.948250→.984125 ms**.
+  Focused confirmation **2026-11-01T20:18:20.785Z**: discriminator **1.040041 ms**,
+  Node **.584292 ms**. All four controls have identical emitted/instrumented
+  source across runs, but dependency rlib hashes change every preparation.
+- Found measurement defect: random exported source paths change Serde artifact
+  identities. native-dependencies.mjs now uses an exclusive stable scratch path,
+  still removed in finally, and enforces one Cargo job after env sanitization.
+  Extended existing real offline integration witness: repeated preparations have
+  identical library paths/hashes; occupied directory data survives EEXIST.
+  **Five tests passed**, no skips, **34.244 s/722,512 KiB**. One-job assignment
+  added afterward; fresh paired benchmark execution will exercise that setting.
+- store:ingest added **22 diagnostic histories**; exact medians/mean rates/counts
+  and SQLite integrity verified. No public pin changed. Earlier raw results stay
+  until the controlled comparison is complete; all runners above are terminal.
+- Candidate is **not accepted yet**. Next: source-checkpoint this validated WIP,
+  rebuild the parent collection emitter from **8da8e64d** and verify baseline
+  emitted hashes against the initial run. Repeat parent/candidate A/B with the
+  stable dependency source path, requiring exact paired rlib hashes. Restore the
+  candidate emitter from the WIP commit before its build; no file snapshots.
+
 **Current owner request — microbenchmarks first, stronger CPU example:**
 - Follow-up: the Mandelbrot HTTP throughput gap was too modest for the headline.
   Selected the existing **local_closures** microbenchmark: **15.94× Node throughput

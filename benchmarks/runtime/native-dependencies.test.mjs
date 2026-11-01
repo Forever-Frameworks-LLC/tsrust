@@ -35,6 +35,13 @@ test('exported JSON dependencies link a separately instrumented native program o
   const dependencies=prepareNativeDependencies(options);
   assert.equal(dependencies.evidence.libraries.length,2);
   assert.ok(dependencies.evidence.lockSha256);
+  const repeated=prepareNativeDependencies(options);
+  assert.deepEqual(repeated.evidence.libraries,dependencies.evidence.libraries);
+  const occupied=path.join(root,'package-native-dependencies');fs.mkdirSync(occupied);
+  fs.writeFileSync(path.join(occupied,'owner'),'keep');
+  assert.throws(()=>prepareNativeDependencies(options),/EEXIST/);
+  assert.equal(fs.readFileSync(path.join(occupied,'owner'),'utf8'),'keep');
+  fs.rmSync(occupied,{recursive:true});
   const instrumented=path.join(root,'probe.rs'),binary=path.join(root,'probe');
   fs.writeFileSync(instrumented,emitted.replace('fn main()','fn source_main()')+'\nfn main(){source_main();println!("instrumented");}\n');
   run('rustup',['run','1.96.1','rustc','--edition=2024','-A','warnings','-C','overflow-checks=on',...dependencies.args,instrumented,'-o',binary]);

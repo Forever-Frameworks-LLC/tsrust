@@ -180,6 +180,13 @@ impl Analyzer {
             }
             FieldFrame::Temporary { borrowed } => {
                 let ty = result?;
+                if matches!(ty, Type::Map(_) | Type::Set(_)) && name == "size" {
+                    if mode == Mode::Mutate {
+                        let collection = if matches!(ty, Type::Map(_)) { "Map" } else { "Set" };
+                        return Err(Diagnostic::new("readonly", format!("{collection} size is read-only."), span));
+                    }
+                    return Ok(Type::Int);
+                }
                 if matches!(ty.scalar_base(), Type::String | Type::Array(_)) && name == "length" {
                     if mode == Mode::Mutate {
                         return Err(Diagnostic::new(

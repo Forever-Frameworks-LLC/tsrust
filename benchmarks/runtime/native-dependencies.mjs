@@ -25,7 +25,9 @@ export function dependencyArtifacts(stdout,target,requiredNames=names) {
 export function needsJsonDependencies(emitted) { return /(?:^|[;}]\s*)mod\s+tsrust_native_json\s*\{/m.test(emitted); }
 export function prepareNativeDependencies({emitted,compiler,source,build,rustVersion,targetDirectory,env=process.env}) {
  if(!needsJsonDependencies(emitted))return {args:[],evidence:null};
- const scratch=fs.mkdtempSync(path.join(build,'package-'));
+ // Stable source paths keep rebuilt dependency artifacts identical across A/B runs.
+ const scratch=path.join(build,'package-native-dependencies');
+ fs.mkdirSync(scratch); // Fail closed if another preparation owns this directory.
  const packageRoot=path.join(scratch,'source');
  const target=targetDirectory??(env.CARGO_TARGET_DIR?path.resolve(env.CARGO_TARGET_DIR):path.join(build,'native-dependencies'));
  // Export reads prepared portable sources from the caller's Cargo home; the
@@ -35,6 +37,7 @@ export function prepareNativeDependencies({emitted,compiler,source,build,rustVer
  const childEnv={...env,CARGO_HOME:path.join(scratch,'cargo-home'),CARGO_TARGET_DIR:target,CARGO_INCREMENTAL:'0',TSRUST_SOURCE_PACK_DIR:sourcePacks};
  // Do not inherit profile overrides, wrappers or flags that change measured code.
  for(const key of Object.keys(childEnv))if(key==='RUSTFLAGS'||key==='CARGO_ENCODED_RUSTFLAGS'||key==='RUSTC'||key.startsWith('RUSTC_')||key.startsWith('CARGO_PROFILE_')||key.startsWith('CARGO_BUILD_')||key.startsWith('CARGO_TARGET_')&&key!=='CARGO_TARGET_DIR')delete childEnv[key];
+ childEnv.CARGO_BUILD_JOBS='1';
  const run=(command,args,cwd)=>{
   const child=spawnSync(command,args,{cwd,env:childEnv,encoding:'utf8',timeout:120000,maxBuffer:16*1024*1024});
   if(child.error||child.status!==0)throw new Error(`Native dependency preparation failed: ${child.error??child.stderr+child.stdout}`);
