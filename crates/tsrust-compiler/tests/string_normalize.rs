@@ -43,6 +43,15 @@ fn string_normalize_passes_official_unicode_conformance_rows() {
  let data=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/unicode-normalization/data/NormalizationTest.txt").canonicalize().unwrap();
  let harness=r#"
 fn main() {
+ // Mixed strings bypass the whole-string ASCII shortcut and straddle both table bounds.
+ for code in (0..=0xA0).chain(std::iter::once(0x2FF)) {
+  let character=char::from_u32(code).unwrap();
+  let text=format!("{character}\u{315}\u{300}");
+  let canonical=format!("{character}\u{300}\u{315}");
+  let compatibility=if code==0xA0 { " \u{300}\u{315}".to_owned() } else { canonical.clone() };
+  assert_eq!(tsr_string_normalize(&text,Some("NFD"),"boundary").as_ref(),canonical);
+  assert_eq!(tsr_string_normalize(&text,Some("NFKD"),"boundary").as_ref(),compatibility);
+ }
  let data=include_str!(DATA_PATH);
  let mut rows=0;let mut part1=false;let mut listed=std::collections::HashSet::new();
  for (line_number,line) in data.lines().enumerate() {

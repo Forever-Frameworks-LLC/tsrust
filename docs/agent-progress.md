@@ -24,9 +24,9 @@ are **0a68a4f5** (932 Rust references), **2c538120** (normalization optimization
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization: normalization in-place composition (1.029×),
-following **2c538120** (normalization scratch reuse, 1.316×),
-following `28a3409c` (typed JSON pipeline restoration) and `1d3eb962` (single
+Latest accepted optimization: normalization table-bound fast paths (1.174×),
+following **23abf642** (in-place composition, 1.029×), **2c538120** (scratch
+reuse, 1.316×), `28a3409c` (typed JSON pipeline restoration) and `1d3eb962` (single
 replacement sizing acceptance). Earlier
 accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration,
 `610c2bc0` scalar-union arrays, `a74da73f` Rust parser defaults, `a2f94dee`
@@ -136,6 +136,54 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   Later local **0a68a4f5** completes **932/932** Rust baselines; the normalization
   candidate below is also later local work, outside the frozen v0.1.1 release.
   Do not claim those later local results were already deployed.
+
+**Normalization table-bound fast paths — accepted locally, 2026-11-01:**
+- Parent **23abf642**. Skip combining-class/decomposition binary searches for
+  scalars below the corresponding pinned table's first entry. Bounds come from
+  the tables, not hard-coded character ranges or heuristic limits. The default
+  class is zero; these scalars have no decomposition. Five runtime lines; no new
+  allocation, API, ownership, Unicode version, dependency or generated unsafe.
+  Scope: shared emitted helper, existing conformance harness, measurement store,
+  public result selection and this handoff. No caller/signature/catalog/export
+  changes; benchmark sources and independent oracles remain unchanged.
+- Profile first on the parent's actual emitted consumer, n=2048/seed=7:
+  **155,071** class searches, **46,697** below the first CCC entry (U+0300);
+  **108,840** decomposition searches, **28,956** below its first entry (U+00A0).
+  Complete output matched the uninstrumented parent, checksum **332162546**.
+  Watchdog **2.591 s**, peak sampled group RSS **175,664 KiB**. Candidate probe
+  confirms **108,374 / 79,884** actual class/decomposition searches, exactly
+  **75,653** searches removed. Complete candidate output also matched;
+  **1.029 s**, peak sampled group RSS **18,896 KiB** (short probe; sampling is
+  not a guaranteed high-water measurement). Diagnostic probes are disposable.
+- Added **324** mixed-string boundary assertions to the existing native Rust
+  conformance harness: U+0000..U+00A0 and U+02FF followed by out-of-order combining
+  marks. They bypass the whole-string ASCII shortcut, verify canonical ordering,
+  preserve identity below the decomposition boundary and check U+00A0's
+  compatibility mapping. Compiler **9 passed**, including **399,300** official
+  normalization checks and **1,101,784** identity checks. **198.227 s**, peak
+  **1,532,304 KiB**. LSP hover/help/completion and executable catalogue examples
+  **2 passed**, **188.325 s**, peak **1,475,680 KiB**. Tests one binary at a time,
+  --test-threads=3, shared Cargo target, incremental disabled, one build job.
+  Release compiler/LSP build **214.528 s**, peak **1,488,864 KiB**.
+- Original quiet A/B protocol retained: three fresh processes × 31 samples after
+  eight warmups, five correctness cases, n=2048/seed=7. Parent
+  **2026-11-01T19:07:11.225Z**, Tsrust/Node medians **4.572000 / 1.382459 ms**;
+  candidate **2026-11-01T19:18:15.430Z**, **3.892959 / 1.440792 ms**. Tsrust
+  **1.174× faster**, Node duration **+4.220%**, normalized speedup **1.224×**.
+  Parent process medians **4.256500 / 4.633875 / 4.636875 ms**; candidate
+  **3.877833 / 3.901292 / 3.931041 ms**. Every candidate median beats every
+  parent median. Max accepted loads **2.301 / 2.548**, no busy override;
+  watchdog **4.168 / 4.670 s**, peak **297,056 / 302,480 KiB**. Only this affected
+  Node control reran; all other controls and hand-written Rust baselines reused.
+- store:ingest added **four histories**. Exact median/mean throughput, 93-sample
+  counts, both workload source hashes and SQLite integrity verified before raw
+  cleanup. Whole-project formatting changed zero files/snippets/fingerprints;
+  three website tests, the 66-page build and links/assets in 116 HTML pages
+  passed. Generated benchmark consumer contains no unsafe. Public local pin
+  selects the candidate; live v0.1.1 is unchanged.
+- Next: profile repeated class computation between ordering/composition, including
+  the memory cost of retaining classes, or resume advanced schema restoration.
+  Do not assume a cached-class representation is faster before measuring it.
 
 **Normalization in-place composition — accepted locally, 2026-11-01:**
 - Parent **07d40f08**. Composition now writes into the already decomposed/ordered

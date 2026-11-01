@@ -1,12 +1,15 @@
 // Unicode canonical/compatibility decomposition, stable ordering and composition.
 fn tsr_normalization_class(code: u32) -> u8 {
+    if code < TSR_NORMALIZATION_CCC[0].0 { return 0; }
     TSR_NORMALIZATION_CCC.binary_search_by_key(&code, |row| row.0)
         .map_or(0, |index| TSR_NORMALIZATION_CCC[index].1)
 }
 fn tsr_normalization_decompose(code: u32, compatibility: bool, output: &mut Vec<u32>, pending: &mut Vec<u32>) {
     pending.push(code);
     while let Some(code) = pending.pop() {
-        if (0xAC00..0xAC00 + 11172).contains(&code) {
+        if code < TSR_NORMALIZATION_DECOMPOSE[0].0 {
+            output.push(code);
+        } else if (0xAC00..0xAC00 + 11172).contains(&code) {
             let syllable = code - 0xAC00;
             let tail = syllable % 28;
             if tail != 0 { pending.push(0x11A7 + tail); }
