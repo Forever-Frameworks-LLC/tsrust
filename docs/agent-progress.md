@@ -24,7 +24,8 @@ are **0a68a4f5** (932 Rust references), **2c538120** (normalization optimization
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization: **2c538120** (normalization scratch reuse, 1.316×),
+Latest accepted optimization: normalization in-place composition (1.029×),
+following **2c538120** (normalization scratch reuse, 1.316×),
 following `28a3409c` (typed JSON pipeline restoration) and `1d3eb962` (single
 replacement sizing acceptance). Earlier
 accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration,
@@ -135,6 +136,52 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   Later local **0a68a4f5** completes **932/932** Rust baselines; the normalization
   candidate below is also later local work, outside the frozen v0.1.1 release.
   Do not claim those later local results were already deployed.
+
+**Normalization in-place composition — accepted locally, 2026-11-01:**
+- Parent **07d40f08**. Composition now writes into the already decomposed/ordered
+  scalar vector and truncates it, removing the second composition vector. The
+  write position never exceeds the read position; starter indices refer only to
+  the written prefix. No API, ownership, Unicode table, limits, dependency or
+  generated-code unsafe changes. Affected scope: shared emitted helper, focused
+  compiler regression, measurement store, public result selection and this note;
+  editor signatures/catalog/exports and benchmark sources remain unchanged.
+- Profile first on the accepted parent's actual emitted consumer, n=2048/seed=7:
+  **155,071** combining-class lookups (**46,697** below the table's first code),
+  **74,172** decomposition entries, **44,993** composition attempts and **9,216**
+  composition-vector allocations for **56,036** scalar visits. Instrumented and
+  uninstrumented complete outputs agreed, checksum **332162546**. Watchdog
+  **1.034 s**, peak **184,960 KiB**. Initial diagnostic compilation put counters
+  before Rust inner attributes; corrected the probe before collecting evidence.
+- Existing three-sample allocation profiler **2026-11-01T19:03:41.674Z**:
+  allocations **56,321 → 47,105**, reallocations unchanged **15,349**, requested
+  bytes **2,101,262 → 1,877,118**. Retained/peak requested bytes unchanged
+  **780,086 / 780,104**, all checksums correct and zero live bytes after drop.
+  **2.594 s**, peak **306,528 KiB**. The removed 9,216 allocations match the probe.
+- Compiler **9 passed**, including the new leading-mark/blocked-composition/
+  repeated-contraction witness, **399,300** official normalization checks and
+  **1,101,784** identity checks. **198.115 s**, peak **1,167,856 KiB**. LSP
+  hover/help/completion and native catalogue examples **2 passed**, **185.353 s**,
+  peak **1,443,040 KiB**. One binary at a time, --test-threads=3, shared Cargo
+  target, incremental disabled. Release compiler build **182.114 s**, peak
+  **1,411,968 KiB**; runner's default LSP build **33.065 s**, **612,736 KiB**.
+- Original quiet A/B protocol: three fresh processes × 31 samples after eight
+  warmups, five correctness cases, same n=2048/seed=7 workload. Parent
+  **2026-11-01T18:52:36.852Z**, Tsrust/Node medians **4.413458 / 1.367916 ms**;
+  candidate **2026-11-01T19:03:55.850Z**, **4.290250 / 1.402209 ms**. Tsrust
+  **1.029× faster** (2.79% less time); Node **2.507% slower**, normalized speedup
+  **1.055×**. This is a modest gain, not parity with Rust. Parent process medians
+  **4.407917 / 4.434041 / 4.405792 ms**; candidate
+  **4.276584 / 4.308500 / 4.234917 ms**. All candidate medians beat all parent
+  medians. Accepted max loads **2.744 / 2.453**, no busy override. Watchdog
+  **5.164 / 4.141 s**, peak **339,776 / 309,344 KiB**. Only this affected Node
+  control reran; all other Node and Rust baselines reused.
+- store:ingest added **four minimal histories**. Verified exact median/mean rate/
+  93-sample counts and SQLite integrity before disposing results and probes.
+  Whole-project formatter changed zero files/snippets/fingerprints; three website
+  tests, the 66-page build and links/assets in 116 HTML pages passed.
+  Public local performance pin selects the candidate; published v0.1.1 remains
+  unchanged. Next: profile reducing repeated combining-class searches, including
+  the provably empty range below the first pinned CCC entry, before another edit.
 
 **Normalization scratch reuse — accepted locally, 2026-10-31:**
 - Parent **0a68a4f5**; change is after the frozen/published v0.1.1 source. Reuses

@@ -108,3 +108,14 @@ fn string_normalize_repeated_mixed_decomposition_sequences_keep_each_form_indepe
  console.log(original);
  }"#,&format!("{}Åﬁ①각à̕é😀\n","true true true true\n".repeat(8)),None);
 }
+
+#[test]
+fn string_normalize_compacts_compositions_without_overwriting_unread_scalars() {
+ execute(r#"function main(){
+ const text="́Ǻ|각|A͂̊".repeat(64);
+ const composed="́Ǻ|각|A͂̊".repeat(64);
+ console.log(text.normalize("NFC")===composed,text.normalize("NFKC")===composed);
+ console.log(composed.normalize("NFD")===text,composed.normalize("NFKD")===text);
+ console.log(text.normalize("NFC").normalize("NFC")===composed);
+ }"#,"true true\ntrue true\ntrue\n",None);
+}

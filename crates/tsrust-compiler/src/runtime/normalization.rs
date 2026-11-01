@@ -49,22 +49,23 @@ fn tsr_string_normalize(text: &str, form: Option<&str>, failure: &'static str) -
     }
     codes[start..].sort_by_key(|code|tsr_normalization_class(*code));
     if compose {
-        let mut composed: Vec<u32> = Vec::with_capacity(codes.len());
+        let mut written = 0;
         let mut starter: Option<usize> = None;
         let mut previous_class = 0;
-        for code in codes {
+        for read in 0..codes.len() {
+            let code=codes[read];
             let class=tsr_normalization_class(code);
             if let Some(index)=starter {
                 if previous_class == 0 || previous_class < class {
-                    if let Some(combination)=tsr_normalization_compose(composed[index],code) {
-                        composed[index]=combination;continue;
+                    if let Some(combination)=tsr_normalization_compose(codes[index],code) {
+                        codes[index]=combination;continue;
                     }
                 }
             }
-            if class == 0 { starter=Some(composed.len()); }
-            composed.push(code);previous_class=class;
+            if class == 0 { starter=Some(written); }
+            codes[written]=code;written+=1;previous_class=class;
         }
-        codes=composed;
+        codes.truncate(written);
     }
     String::Owned(codes.into_iter().map(|code|char::from_u32(code).expect("Unicode normalization scalar")).collect())
 }
