@@ -24,8 +24,9 @@ include **0a68a4f5** (932 Rust references), **2c538120** (normalization optimiza
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization: cached normalization classes (1.040×), following
-**ee108cdc** (table-bound fast paths, 1.174×), **23abf642** (in-place composition, 1.029×), **2c538120** (scratch
+Latest accepted optimization: identity-preserving Map/Set schema validation
+(1.275×; implementation **32cdfb23**).
+Following **8da8e64d** (cached normalization classes, 1.040×), **ee108cdc** (table-bound fast paths, 1.174×), **23abf642** (in-place composition, 1.029×), **2c538120** (scratch
 reuse, 1.316×), `28a3409c` (typed JSON pipeline restoration) and `1d3eb962` (single
 replacement sizing acceptance). Earlier
 accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration,
@@ -34,64 +35,91 @@ plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
 
-**In progress — identity-preserving Map/Set schema validation, 2026-11-01:**
-- Parent **8da8e64d**, dirty candidate in collection_trials.rs. Plain matching
-  scalar Map/Set schemas borrow existing scalar preparation checks, then return
-  the owned container unchanged. Pipelines/wrappers/choices retain old trials.
-  New std:testing witness in schema_collections.rs covers bounds, path order,
-  deletion/reinsertion order, fallback, NaN, booleans and empty collections.
-- Fresh allocation profile **2026-11-01T19:35:23.933Z**: recursive **40**,
-  pipeline **10**, collections **43** allocations/iteration, zero reallocations.
-  Watchdog **44.615 s**, peak **1,151,280 KiB**. Fresh collections CPU sample:
-  5M iterations/checksum **40,000,007**, **6.703 s**, peak **32,432 KiB**, with
-  sequence/allocator/transform work. These are diagnostics, not speed claims.
-- Parent five-workload/native+Node run **2026-11-01T19:40:21.459Z** is complete,
-  **117.205 s**, peak **860,880 KiB**; original protocol retained, quiet wait
-  honored. Raw timing/allocation files remain pending candidate/import. Native/
-  Node correctness preflight also passed (18.124 s/859,248 KiB).
-- Initial collection binary: **four passed**, new test found a real compiler
-  defect: temporary `.parse(flags).size` was rejected for Set/Map when receiver
-  hints were unavailable. Fixed the shared late-typed temporary field boundary
-  in analysis/continuations/access.rs; added hover agreement in schema_editing.rs.
-  Initial build 465.929 s/1,598,080 KiB, failed test 9.309 s/1,070,896 KiB.
-- Compiler/runtime **152 unique tests passed**: collections 5 (four retained plus
-  repaired negative-test retry), pipelines 19, recursive 10, unions 13, diagnostic
-  options 11 and schema library 94. The added assignment checks correctly expect
-  the earlier unsupported-storage rejection; writing temporary size is forbidden.
-- New hover witness exposed a separate recovery gap. Checked project metadata was
-  already correct; standalone/header recovery only inferred s.array constructors.
-  Generalized that existing helper for s.set/s.map, preserving aliases/shadowing.
-  SourceIndex hover/completion and header/checked project hover now pass. All
-  **16 schema editor tests passed**. Current total **168**, no unresolved failures.
-- Debug build after compiler fix: **463.179 s**, peak **1,983,648 KiB**. Test-only
-  refresh **1.040 s/129,424 KiB**, editor rebuild **7.762 s/580,720 KiB**. One
-  existing test-only dead-code warning for unchanged json/typed.rs decode_plain.
-  No library-source warning suppression or unrelated change was introduced.
-- Release build completed **209.510 s/1,590,160 KiB**. Candidate allocation
-  profile **2026-11-01T20:14:23.592Z**, **43.087 s/900,288 KiB**: collections
-  **43→33** allocations/iteration; requested bytes over 2,000 iterations
-  **7,242,000→6,042,000**. Pipeline/recursive unchanged, all checksums/zero live
-  after drop verified. Peak requested collection bytes remain 649.
-- Initial A/B **2026-11-01T20:16:43.106Z**: collections **2.327250→1.847250 ms**,
-  Node **.854000→.869875 ms**; discriminator control **.948250→.984125 ms**.
-  Focused confirmation **2026-11-01T20:18:20.785Z**: discriminator **1.040041 ms**,
-  Node **.584292 ms**. All four controls have identical emitted/instrumented
-  source across runs, but dependency rlib hashes change every preparation.
-- Found measurement defect: random exported source paths change Serde artifact
-  identities. native-dependencies.mjs now uses an exclusive stable scratch path,
-  still removed in finally, and enforces one Cargo job after env sanitization.
-  Extended existing real offline integration witness: repeated preparations have
-  identical library paths/hashes; occupied directory data survives EEXIST.
-  **Five tests passed**, no skips, **34.244 s/722,512 KiB**. One-job assignment
-  added afterward; fresh paired benchmark execution will exercise that setting.
-- store:ingest added **22 diagnostic histories**; exact medians/mean rates/counts
-  and SQLite integrity verified. No public pin changed. Earlier raw results stay
-  until the controlled comparison is complete; all runners above are terminal.
-- Candidate is **not accepted yet**. Next: source-checkpoint this validated WIP,
-  rebuild the parent collection emitter from **8da8e64d** and verify baseline
-  emitted hashes against the initial run. Repeat parent/candidate A/B with the
-  stable dependency source path, requiring exact paired rlib hashes. Restore the
-  candidate emitter from the WIP commit before its build; no file snapshots.
+**Identity-preserving Map/Set schemas — accepted locally, 2026-11-01:**
+- Parent **8da8e64d**, implementation checkpoint **32cdfb23**. Plain matching
+  string/int/number/boolean Map/Set schemas borrow existing scalar preparation
+  checks and return the owned input unchanged. No entry/output/rollback vectors
+  or collision scan are needed when validation cannot change any entry. Pipeline,
+  coercion, wrapper and scalar-choice schemas keep their existing trials. Bounds,
+  finite-number checks, first-error order, ownership and union fallback remain.
+  No new limits, unsafe, dependencies, public signatures or built-ins.
+- Scope: collection emitter, shared temporary-field checker, standalone editor
+  constructor recovery, compiler/editor witnesses, benchmark dependency setup,
+  minimal measurements, public performance selection and this handoff. Existing
+  docs/catalog signatures remain correct. New std:testing witness verifies bounds,
+  key/value/index paths, deletion/reinsertion order, readonly fallback, NaN,
+  boolean/empty collections and temporary size reads. Temporary size writes stay
+  rejected by the existing unsupported-storage rule.
+- Found/fixed a real defect during validation: `.parse(input).size` rejected
+  temporary Map/Set outputs when the pre-check receiver hint was unavailable.
+  The shared field checker now uses the resolved receiver type. Standalone and
+  header editor recovery lacked Map/Set schema constructor output inference;
+  extended the existing array helper. Checked project facts were already correct
+  and were not changed. Hover/completion now agree in standalone, header and
+  checked-project tests. Initial new-witness failure and later negative-diagnostic
+  expectation mismatch were repaired; passing tests were retained.
+- **168 unique affected checks passed**: collections 5, pipelines 19, recursive
+  10, unions 13, diagnostic options 11, schema-library 94, schema editor 16.
+  Binaries ran one at a time, --test-threads=3, shared Cargo target, incremental
+  disabled, one job. Highest executable-suite peak **1,159,312 KiB**. Debug build
+  after the field fix **463.179 s/1,983,648 KiB**; filtered negative retry
+  **1.039 s/2,784 KiB**. One unchanged test-only decode_plain dead-code warning;
+  no unrelated warning suppression. No full-regression/CI claim for this change.
+- Profile first: **2026-11-01T19:35:23.933Z**, recursive/pipeline/collections
+  **40 / 10 / 43 allocations per iteration**. Fresh collections CPU sample ran
+  5M iterations/checksum **40,000,007**, **6.703 s/32,432 KiB**, showing sequence,
+  allocator and transform work. Candidate profile **2026-11-01T20:14:23.592Z**:
+  collections **43→33**, requested bytes over 2,000 iterations
+  **7,242,000→6,042,000**. Peak requested bytes **649** unchanged; pipeline and
+  recursive samples exactly unchanged. All three samples/case checked oracle
+  checksums, zero reallocations and zero live bytes after drop. Profile watchdogs
+  **44.615 / 43.087 s**, peaks **1,151,280 / 900,288 KiB**.
+- Initial timing suggested 1.260× but a byte-identical discriminator control
+  drifted. Found measurement defect: random exported source directories changed
+  Serde rlib identities between runs. The dependency helper now uses an exclusive
+  stable scratch path, still removed in finally, and restores one Cargo job after
+  environment sanitization. Real offline dependency tests prove repeated exports
+  have identical library paths/hashes and preserve occupied directories on EEXIST.
+  Final five tests passed without skips, **43.037 s/383,408 KiB**, including the
+  final one-job setting; the initial run also passed (34.244 s/722,512 KiB).
+- Kept **22 diagnostic histories** from **2026-11-01T19:40:21.459Z**,
+  **20:16:43.106Z** and **20:18:20.785Z**, excluded from public selection. Rebuilt
+  the parent emitter from 8da8e64d after checkpointing, verified all five emitted
+  and instrumented hashes match that initial parent exactly, then restored the
+  candidate emitter from 32cdfb23. No source snapshots. Controlled parent/candidate
+  builds **210.820 / 211.869 s**, peaks **1,807,680 / 1,811,488 KiB**.
+- Controlled A/B: parent **2026-11-01T20:29:50.102Z**, candidate
+  **2026-11-01T20:35:23.593Z**. Original three processes × 31 samples after eight
+  warmups, five correctness cases, system allocator. All ten workload/engine
+  groups retain 93 samples each. Paired manifest/lock/config and both dependency
+  libraries are byte-identical for every workload: serde
+  **0658f7c40d32d58e412ece6be7ed32de61fed46da6df06fbebfbc0efaf3184bf**,
+  serde_json **ce7bb19427156bb765beee10ddc3f306e158864b9c74c2dfd3cddb52f3dfee2a**.
+- Collection medians: Tsrust **2.491750→1.953750 ms (1.275×)**; Node
+  **.869458→.884875 ms (+1.773%)**, normalized speedup **1.298×**. Parent process
+  medians **2.488167 / 2.475375 / 2.505583**, candidate
+  **1.987875 / 1.933666 / 1.951333 ms**; every candidate median beats every parent.
+  Max loads **3.108 / 2.797**, no busy override; watchdogs **101.182 / 100.641 s**,
+  peaks **379,024 / 375,200 KiB**. Only these focused Node controls reran; all
+  hand-written Rust and other Node references reused.
+- Four controls retain byte-identical emitted/instrumented sources and paired
+  dependencies. Native parent→candidate medians (ms): recursive
+  **2.967917→2.964750**, union **.349833→.357958**, discriminator
+  **1.060041→1.082208**, pipeline **.723667→.704708**. Their roughly ±3% timing
+  variation is present with identical compiled inputs; no control code changed.
+  Do not claim all control medians improved or universal hand-written parity.
+- store:ingest added **20 controlled histories**, alongside the 22 diagnostics.
+  Exact medians/mean rates/93-sample counts, both source hashes and SQLite
+  integrity verified before disposable raw/probe cleanup. Local public selection
+  uses only the controlled candidate; published v0.1.1 remains unchanged.
+  Whole-project formatting changed zero files/snippets/fingerprints. Three
+  website tests, the 66-page build and links/assets in 116 pages passed. Generated
+  collection benchmark has no unsafe blocks/FFI. Removed closed raw results,
+  allocation consumers, probes and obsolete schema test binaries; current tested
+  executables remain in the shared target. All active runners are terminal.
+- Next: fresh CPU/allocation profile of remaining advanced JSON composite/choice
+  restoration using stable dependency identities. Reassess old rejected trials
+  only from new evidence; record/recursive JSON costs are not solved here.
 
 **Current owner request — microbenchmarks first, stronger CPU example:**
 - Follow-up: the Mandelbrot HTTP throughput gap was too modest for the headline.
