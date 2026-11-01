@@ -35,6 +35,67 @@ plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
 
+**Typed object-field restoration — rejected locally, 2026-11-01:**
+- Parent **f307d518**. Fresh recursive CPU sample ran 4M iterations, checksum
+  **16,000,007**, watchdog **6.194 s/46,848 KiB**. Object trial, sequence,
+  BTreeMap removal and allocator work remain visible. Profile first
+  **2026-11-01T20:46:41.665Z**, **60.673 s/350,688 KiB**: recursive/pipeline/
+  collections **40 / 10 / 33 allocations per iteration**.
+- Tried typed Present/Absent field inverses plus prepared-only map_restoration,
+  retaining the enclosing object's existing erased inverse. Exact missing/default/
+  present identity, callback commitment and ownership were preserved; no API,
+  limits, dependencies or generated unsafe. Changes in trial.rs,
+  pipeline_object_trials.rs and the added schema_pipelines witness are now
+  restored exactly to f307d518. **The candidate is not retained or published.**
+- The new unit test initially named nonexistent Issues::default; corrected it to
+  the existing constructor. Stopped only the owned doomed build (160.843 s,
+  1,598,448 KiB), not a resource watchdog stop. Actual runtime modules compiled
+  **1.045 s/197,824 KiB**, **32 tests passed**. Full test build then passed
+  **462.706 s/1,947,728 KiB**. All **175 unique affected tests passed**: pipelines
+  20, recursive 10, collections 5, unions 13, diagnostic options 11, super-refine
+  5, schema library 95, editor 16. The isolated 32 are a subset, not extra passes.
+  Native std:testing witness verified dropping synthetic defaults and preserving
+  supplied values during readonly union fallback. No generated type/lifetime
+  errors. One binary at a time, three threads, one job, shared target, incremental
+  off; executable peaks at most **1,110,752 KiB**.
+- Candidate release build **211.525 s/1,756,512 KiB**. Allocation profile
+  **2026-11-01T21:13:58.110Z**, **61.099 s/405,360 KiB**: recursive **40→35**
+  allocations/iteration, requested bytes over 2,000 iterations
+  **8,408,000→8,248,000**, peak requested **1,898→1,866**. Pipeline and collection
+  samples exactly unchanged; all three samples/case match checksums, have zero
+  reallocations and zero live bytes after drop. Fewer allocations alone do not
+  establish an end-to-end speedup.
+- Quiet A/B, parent **2026-11-01T20:50:29.774Z**, candidate
+  **2026-11-01T21:16:22.617Z**. Paired dependency evidence is exactly equal,
+  including both rlib byte hashes. Original five correctness cases, three
+  processes × 31 samples after eight warmups, 93 samples/engine/workload, system
+  allocator. Recursive median **2.866334→2.869375 ms** (+.106%, effectively flat);
+  Node **1.399500→1.476584 ms** (+5.508%). Node-normalized movement suggests
+  1.054× but does not establish the required absolute runtime improvement.
+  Parent native process medians **2.824666 / 2.893916 / 2.866334 ms**; candidate
+  **2.874959 / 2.856875 / 2.951375 ms**, overlapping rather than consistently
+  faster. Rejected under the keep-only-faster/no-regression rule.
+- Native controls parent→candidate (ms): union **.343709→.354042**,
+  discriminator **.997958→1.071834**, scalar pipeline **.690583→.705084**,
+  collections **1.865459→1.951584**. Their Node movements were +1.559%, +4.426%,
+  +1.928%, +3.285%. Runtime helper additions change emitted source in all five
+  programs; do not label these as byte-identical-code controls. Max loads
+  **3.464 / 3.465**, no busy override. Watchdogs **114.607 / 98.942 s**, peaks
+  **441,440 / 417,232 KiB**. No hand-written Rust baselines reran.
+- store:ingest added **20 histories**. Exact medians/mean rates/counts, both
+  source hashes and SQLite integrity verified. Public pins remain unchanged;
+  rejected timing is not selected. Closed raw profiles/results and rejected native,
+  allocation and test executables were pruned after import verification.
+- Accepted source is restored. Release rebuild completed **210.171 s**,
+  peak **1,811,552 KiB**. Accepted debug CLI/LSP rebuild completed
+  **196.297 s/1,692,800 KiB**. All runners are terminal. Rejected executables
+  and temporary probes were removed; subsequent work uses the restored tools.
+  Whole-project formatting changed zero files/snippets/fingerprints. Regenerating
+  the public performance page after ingestion produced identical bytes; both
+  focused readability/highlight tests passed. No new broad regression or CI run.
+- Next: profile JSON materialization and BTreeMap extraction/restoration before
+  another inverse-representation change. Keep f307d518's measured Map/Set gain.
+
 **Identity-preserving Map/Set schemas — accepted locally, 2026-11-01:**
 - Parent **8da8e64d**, implementation checkpoint **32cdfb23**. Plain matching
   string/int/number/boolean Map/Set schemas borrow existing scalar preparation
