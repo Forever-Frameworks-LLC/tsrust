@@ -36,6 +36,70 @@ plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
 
+**Source JSON retention — active support/parent measurement, 2026-11-01:**
+- Parent **df3ca7f0**, initially clean. Confirmed caller defect remains:
+  source::Node::retain uses Serde Value directly, so a nested ordinary property
+  matching `$serde_json::private::RawValue` can replace its containing object.
+  Named-field native reproducer remains /tmp/tsrust-json-retained-private-key.tsr.
+  Source decoder callers are decode.rs/decode_pipelines.rs retained extras and
+  decode_input.rs dynamic JSON callback input; fix the shared Node::retain once.
+- Added **native_schema_json_source_retain**, preserving the old JSON.parse+
+  safeParse workload/baselines. New Tsrust path uses safeParseJson, owns/serializes
+  nested extra `{tag:"ready",values:[1,2,3]}`, and observes all missing-count issue
+  fields. Original protocol: n=2000, seed=7, two operations/iteration, checksum
+  **seed+5*n**. New handwritten TypeScript source and standard Serde/Rust reference
+  follow the same fixed exact-integer corpus and output/failure observations.
+- Scope: new Tsrust/TS/Rust workload files, manifest, shared schema source guards,
+  oracle, category/report registration and schema benchmark tests (including the
+  actual reference ABI). Compiler/runtime
+  source remains exactly df3ca7f0 until the parent is profiled/measured. The new
+  reference is corpus-specific, not a generic implementation of all schema APIs.
+  Mathematical oracle is independent; no new compiler dependency/limits/unsafe.
+- Whole-project formatter changed one new workload and its source fingerprint;
+  zero documentation snippets. Preserved all preexisting manifest values and
+  original formatting after narrowing the registration diff. Initial support
+  test caught missing report category; added it. All **38 schema tests passed**,
+  watchdog **.520 s/880 sampled KiB**, with updated-hash mutation witnesses for
+  source decode, retained payload and diagnostic-path observation.
+- Initial untimed preparation caught the reference ABI parameter names; renamed
+  them to value0/value1/value2 and added a direct ABI witness. Final **39 support
+  tests pass**, no skips, watchdog **.517 s/880 sampled KiB**. Untimed verify
+  **2026-11-01T23:12:10.189Z** passed **23.853 s/367,456 KiB**, all three engines
+  and original five correctness cases, checksum **10007**. Rust reference hash
+  **aa744dd4a3acd91b8c04e0313aad7fca343f30595e9852e26d938a608f92c306**.
+- Parent allocation profile **2026-11-01T23:13:22.240Z**, watchdog
+  **24.402 s/369,520 KiB**. Three identical samples: **36,000 allocations/2,000
+  iterations (18/iteration)**, requested **5,344,000 bytes**, peak **1,523**,
+  checksum **10007**, zero reallocations/retained/live bytes after drop.
+- CPU profile used actual system-allocator workload, 4M iterations, checksum
+  **20,000,007**, diagnostic **3,784.293 ms**, watchdog **4.122 s/46,880 KiB**.
+  Source field-index parsing and retained value/serialization costs are visible;
+  /tmp/tsrust-source-retention.sample is disposable, not comparative timing.
+- Parent quiet timing **2026-11-01T23:16:59.787Z** completed,
+  **86.257 s/349,120 KiB**, max timed load **3.503**, no busy override. Each
+  engine retains **93 samples**, original three processes/31 samples/eight warmups.
+  Medians: **Tsrust 1.735208 ms, Node 1.574083 ms, Rust 1.212250 ms**. Native
+  process medians **2.064250 / 1.694833 / 1.735208**; note first-process drift
+  rather than assuming perfect stability. Node **1.576709 / 1.561583 / 1.588042**,
+  Rust **1.217625 / 1.216792 / 1.196584**. This is the one-time standard Rust
+  baseline; do not rerun it for candidate A/B.
+- store:ingest added **three histories**. Exact medians/mean rates/93 counts,
+  Tsrust/TypeScript/reference hashes and SQLite integrity verified. New workload
+  is marked measured; old workload metadata/baselines are unchanged. Public
+  selection includes this baseline and pinned Rust source; page now has **933**
+  measured comparisons. Full-project formatting changed zero files on the final
+  pass. Final 39 support tests, three website tests, 66-page build and links/assets
+  in 116 pages passed, website **3.642 s/1,086,128 KiB**. No new compiler/LSP
+  source change or runtime-fix acceptance is claimed at this support checkpoint.
+- All runners are terminal. Keep parent raw timing and allocation profile until
+  paired candidate analysis; disposable verify/CPU probes can be pruned after
+  closure. Next: checkpoint complete benchmark support, then change Node::retain
+  to use the corrected shared parser. Add source/backend and public native
+  witnesses for literal private-token properties (including non-JSON contents),
+  plain/pipeline retained extras and dynamic JSON callback inputs. Batch affected
+  checks under the watchdog; measure native/Node against this parent and reuse
+  the Rust baseline. Empty-shape checker rejection remains separately tracked.
+
 **Plain JSON visitor — accepted locally, 2026-11-01:**
 - Parent **a50ff90a**, initially clean. Fresh actual recursive CPU sample used four
   million iterations, seed 7, checksum **16,000,007**, diagnostic consumer time

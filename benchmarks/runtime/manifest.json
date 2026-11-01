@@ -22320,6 +22320,30 @@
       "counterpartSha256": "3b255e97d19353558240f0731eea34c5ae3aa948a96a6f11ceaf4389541910a0"
     },
     {
+      "id": "native_schema_json_source_retain",
+      "category": "schema",
+      "description": "Source JSON object validation with owned nested extras",
+      "source": "workloads/native_schema_json_source_retain.tsr",
+      "counterpart": "workloads/native_schema_json_source_retain.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 2,
+      "operationUnit": "One source JSON parse, schema validation and result observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-schema",
+      "inputText": "{\"count\":3,\"extra\":{\"tag\":\"ready\",\"values\":[1,2,3]}}",
+      "measured": true,
+      "measurementStatus": "measured-source-retention-baseline",
+      "specification": "Decode count 3 and retain/serialize the nested extra object; reject missing count with one fully observed issue. Checksum is seed + 5*n.",
+      "notes": "Source-cursor retention with fixed exact integers and owned nested extras. Independent TypeScript and standard Serde references. Execution histories are stored in measurements.sqlite.",
+      "sourceSha256": "64262baf8ee52719f7f6f69a5353648a3096c454f881a06e05440ba5c828affd",
+      "counterpartSha256": "4404f3c2b2160d3cbf68cead6db14c527828d0b479073441ee0cab0a3f3766e5"
+    },
+    {
       "id": "native_schema_json_presence",
       "category": "schema",
       "description": "Optional and nullable typed JSON object fields with distinct missing and null failures",
