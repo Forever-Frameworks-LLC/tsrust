@@ -24,8 +24,8 @@ include **0a68a4f5** (932 Rust references), **2c538120** (normalization optimiza
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization: identity-preserving Map/Set schema validation
-(1.275×; implementation **32cdfb23**).
+Latest accepted optimization: preserved JSON object slots (1.039×); preceding
+identity-preserving Map/Set schema validation is 1.275× (implementation **32cdfb23**).
 Following **8da8e64d** (cached normalization classes, 1.040×), **ee108cdc** (table-bound fast paths, 1.174×), **23abf642** (in-place composition, 1.029×), **2c538120** (scratch
 reuse, 1.316×), `28a3409c` (typed JSON pipeline restoration) and `1d3eb962` (single
 replacement sizing acceptance). Earlier
@@ -34,6 +34,76 @@ accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration
 plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
+
+**JSON object slots — accepted locally, 2026-11-01:**
+- Parent **7e0b9a8c**, clean accepted source. Fresh system-allocator CPU sample
+  ran the actual recursive workload, four million iterations, seed 7, checksum
+  **16,000,007**. Consumer **6,397.237 ms** (diagnostic, not comparative timing);
+  build/sample watchdog **28.483 s/392,848 KiB**. BTreeMap remove_entry and its
+  remove_leaf_kv/memmove descendants are visible under recursive object trials.
+- Preserve keys/tree slots in stripping/rejecting JSON object trials,
+  move values out using Value::take, and replace them on rollback. Retaining
+  schemas keep removal so extras remain exact. No change to plain prepared JSON
+  projection yet. Scope: pipeline object emitter, focused rollback/default/null
+  witness, affected schema suites and existing five-workload timing support.
+  No public API/editor/catalog change, new limits/dependencies or generated unsafe.
+- Fresh parent execution-only baseline plus focused Node controls completed:
+  **2026-11-01T21:30:44.494Z**, **115.587 s/365,520 KiB**, max load **3.831**,
+  no busy override. Original three processes, 31 samples, eight warmups.
+- Candidate changes pipeline_object_trials.rs only: stripping/rejecting JSON
+  objects use get_mut/Value::take, retain existing key storage and replace each
+  present raw value on rollback. Retain keeps remove_entry/insert. Added a public
+  std:testing witness in schema_pipelines.rs for real null versus temporary null
+  slots, absent default removal, supplied value presence and unchanged extras,
+  through both JSON.parse+safeParse and safeParseJson. Existing partial-field
+  rollback/commit/error-path suites also passed.
+- Affected compiler test build passed **451.243 s/2,112,000 KiB**. All **158**
+  compiler checks passed: pipelines 20 (including new null/default witness),
+  recursive 10, collections 5, unions 13, diagnostic options 11, super-refine 5,
+  schema library 94. One binary at a time, three threads, one Cargo job, shared
+  target, incremental off; highest suite peak **1,083,824 KiB**. Exact suite
+  watchdogs in /tmp/tsrust-schema-slots-tests.log. Existing decode_plain dead-code
+  warning only; no generated lifetime/type errors or resource stops.
+- LSP build passed **180.124 s/1,831,568 KiB**; all **16 schema_editing tests
+  passed**, watchdog **.521 s**. Total **174 unique affected checks passed**.
+  Release build passed **212.065 s/1,738,592 KiB**.
+- Candidate allocation profile **2026-11-01T21:51:05.174Z** passed,
+  **61.667 s/345,728 KiB**. Recursive stays **40 allocations/iteration**,
+  requested bytes over 2,000 iterations **8,408,000→8,344,000**, peak requested
+  **1,898** unchanged. Pipeline **10** and collections **33** allocations/iteration;
+  requested/peak bytes unchanged. Three identical samples each, exact checksums,
+  zero reallocations, retained bytes and live bytes after output/input drop.
+- Quiet A/B candidate **2026-11-01T21:52:54.801Z**, **102.079 s/367,920 KiB**,
+  max load **3.911**, no busy override. Both runs retain original five correctness
+  cases and **93 samples per engine/workload**. All five dependency evidence
+  objects, including manifest/lock/config and rlib byte hashes, are exactly equal.
+- Recursive Tsrust median **2.937209→2.825958 ms (1.039×)**. Node
+  **1.423000→1.440625 ms (+1.239%)**, normalized speedup **1.052×**. Parent
+  process medians **2.894125 / 2.973917 / 2.932125**, candidate
+  **2.800708 / 2.833666 / 2.844125 ms**: every candidate beats every parent.
+  Accepted for measured end-to-end improvement with unchanged behavior/peak.
+- All four controls retain byte-identical emitted/instrumented source and paired
+  dependencies. Native medians (ms): union **.350709→.351084**, discriminator
+  **1.063542→1.058584**, scalar pipeline **.681917→.715250**, collections
+  **1.922041→1.948125**. Their Node changes are +.587%, +2.947%, +4.617%, +.129%.
+  Pipeline's roughly 4.9% native drift accompanies the 4.6% Node drift with the
+  exact same compiled inputs; normalized movement is effectively flat (.997×).
+  Do not claim all medians improved. Only focused Node controls reran; existing
+  hand-written Rust and unrelated Node baselines are reused.
+- store:ingest added **20 histories**. Exact median/mean-rate/93-sample counts,
+  both benchmark source hashes and SQLite integrity verified before deleting raw
+  records. Public selection uses the accepted candidate only. Whole-project
+  formatting changed zero files/snippets/fingerprints. Three website tests,
+  66-page build and links/assets in 116 pages passed. Website watchdog
+  **3.106 s/1,158,304 KiB**. Emitted recursive source has four slot extractions,
+  zero remove_entry calls and no unsafe blocks; allocation instrumentation is
+  confined to its diagnostic driver. No full-regression/CI/deployment claim.
+- Closed raw timing/allocation results, diagnostic consumers and temporary CPU
+  probes were pruned; current accepted timing/test consumers remain in the shared
+  target. All owned runners are terminal. Next: fresh profile remaining advanced
+  JSON materialization or prepared projection costs. Do not repeat rejected
+  inverse-storage rewrites without new evidence. This gain does not establish
+  general hand-written Rust parity or fuse advanced parsing and validation.
 
 **Typed object-field restoration — rejected locally, 2026-11-01:**
 - Parent **f307d518**. Fresh recursive CPU sample ran 4M iterations, checksum

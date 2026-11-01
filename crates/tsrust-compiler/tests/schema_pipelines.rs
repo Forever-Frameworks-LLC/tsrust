@@ -305,6 +305,33 @@ fn nested_object_pipeline_restores_prior_fields_and_unknown_data() {
 }
 
 #[test]
+fn json_object_rollback_preserves_null_slots_and_absent_defaults() {
+    let source=r#"
+    import {s} from 'std:schema';
+    import {strictEqual} from 'std:testing';
+    function main(){
+      const schema=s.union([
+        s.object({text:s.string(),nil:s.string().nullable(),missing:s.string().default(()=> 'synthetic')})
+          .strip().refine(value=>false).transform(value=>0),
+        s.object({text:s.string(),nil:s.string().nullable()}).retain().transform(value=>{
+          strictEqual(value.value.text,'original');strictEqual(value.value.nil,null);
+          strictEqual(value.extra.has('extra'),true);
+          if(value.extra.has('missing')){strictEqual(value.extra.size,2);return 2;}
+          strictEqual(value.extra.size,1);return 1;
+        })
+      ]);
+      {const outcome=schema.safeParse(JSON.parse('{"text":"original","nil":null,"extra":[1,2]}'));if(outcome.success){const value=outcome.data;strictEqual(value,1);}else{const error=outcome.error;throw 'Absent default rollback failed';}}
+      {const outcome=schema.safeParseJson('{"missing":"supplied","nil":null,"extra":[1,2],"text":"original"}');if(outcome.success){const value=outcome.data;strictEqual(value,2);}else{const error=outcome.error;throw 'Present slot rollback failed';}}
+    }
+    "#;
+    let directory=support::TempDirectory::new();
+    let path=directory.source(&support::format_round_trip(source));
+    let output=support::run(support::cli().arg("run").arg(path),60);
+    support::success(&output);
+    assert!(output.stdout.is_empty());
+}
+
+#[test]
 fn pipeline_defaults_validate_raw_input_preserve_omission_and_do_not_hide_failures() {
     let source=r#"
     import {s} from 'std:schema';
