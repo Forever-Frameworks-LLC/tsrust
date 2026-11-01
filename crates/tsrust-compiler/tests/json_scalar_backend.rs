@@ -55,3 +55,65 @@ fn integer_tokens_outside_json_storage_never_round_into_range() {
         assert!(parse(text.as_bytes(),limits).is_ok(), "{text}");
     }
 }
+
+#[test]
+fn plain_parser_checks_overwritten_integer_tokens_before_discarding_them() {
+    for (text, token) in [
+        (r#"{"x":18446744073709551616,"x":0}"#, "18446744073709551616"),
+        (r#"{"x":-9223372036854775809,"x":null}"#, "-9223372036854775809"),
+        (r#"{"x":[18446744073709551616],"x":true}"#, "18446744073709551616"),
+        (r#"{"x":{"y":18446744073709551616},"x":"replacement"}"#, "18446744073709551616"),
+        (r#"{"x":18446744073709551616,"\u0078":0}"#, "18446744073709551616"),
+    ] {
+        let error = parse_plain(text).unwrap_err();
+        assert_eq!(error.code, "integer-range", "{text}");
+        assert_eq!(error.offset, text.find(token).unwrap(), "{text}");
+    }
+    assert_eq!(parse_plain(r#"{"x":18446744073709551616,"x":0} trailing"#).unwrap_err().code, "trailing-data");
+    assert_eq!(parse_plain(r#"{"x":18446744073709551616,"x":}"#).unwrap_err().code, "invalid-json");
+}
+
+#[test]
+fn plain_parser_keeps_serde_values_and_default_recursion_boundaries() {
+    for text in [
+        r#""18446744073709551616""#,
+        " \t\r\n\"hello\" ",
+        r#""crab \uD83E\uDD80 \" \\""#,
+        r#"{"x":18446744073709551615,"x":0}"#,
+        r#"{"x":-9223372036854775808,"x":null}"#,
+        r#"{"x":"18446744073709551616","x":false}"#,
+        r#"{"x":1e30,"x":2.5}"#,
+        r#"[true,null,"crab 🦀\"\\",-0.0,1e-400,2.5]"#,
+        r#"{"\u0078":1,"x":2,"nested":[{"value":3}]}"#,
+    ] {
+        let expected: Value = serde_json::from_str(text).unwrap();
+        assert_eq!(parse_plain(text).unwrap().to_string(), expected.to_string(), "{text}");
+    }
+    for (text, code) in [
+        ("\"ok\" false", "trailing-data"),
+        (r#""\x""#, "invalid-json"),
+        ("\u{000b}\"ok\"", "invalid-json"),
+    ] { assert_eq!(parse_plain(text).unwrap_err().code, code, "{text}"); }
+    for depth in 0..=130 {
+        let text = format!("{}0{}", "[".repeat(depth), "]".repeat(depth));
+        let expected = serde_json::from_str::<Value>(&text);
+        let actual = parse_plain(&text);
+        assert_eq!(actual.is_ok(), expected.is_ok(), "depth {depth}");
+        if let (Ok(actual), Ok(expected)) = (actual, expected) { assert_eq!(actual, expected); }
+    }
+}
+
+#[test]
+fn plain_parser_preserves_property_names_that_match_serde_internal_tokens() {
+    for (text, expected) in [
+        (r#"{"$serde_json::private::RawValue":"0"}"#, "0"),
+        (r#"{"$serde_json::private::RawValue":"true"}"#, "true"),
+        (r#"{"$serde_json::private::RawValue":"not JSON"}"#, "not JSON"),
+        (r#"{"first":1,"$serde_json::private::RawValue":"0"}"#, "0"),
+    ] {
+        let value = parse_plain(text).unwrap();
+        let Value::Object(fields) = value else { panic!("ordinary property changed object kind: {text}") };
+        assert_eq!(fields.get("$serde_json::private::RawValue"), Some(&Value::from(expected)));
+        assert_eq!(fields.len(), if text.contains("first") { 2 } else { 1 });
+    }
+}

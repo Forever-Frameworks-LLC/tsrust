@@ -66,25 +66,23 @@ pub fn parse(input: &[u8], limits: Limits) -> Result<Value, Error> {
     }
     parse_valid_utf8(input, limits)
 }
-/// `JSON.parse(text)` without limits: plain serde_json. Integers keep Rust's
-/// exactness: a token too large for i64/u64 reaches serde as f64, so only when
-/// the value holds a float are integer tokens re-checked and rejected.
+/// `JSON.parse(text)` keeps Serde's default recursion guard. Track floats while
+/// decoding so integer overflow cannot disappear behind a duplicate object key.
 #[allow(dead_code)] // Called by generated programs, not by the compiler itself.
 pub fn parse_plain(text: &str) -> Result<Value, Error> {
+    let mut budget = Budget { limits: Limits { bytes: usize::MAX, depth: usize::MAX, entries: usize::MAX, nodes: usize::MAX }, nodes: 0, failed: None, saw_float: false };
     let mut decoder = serde_json::Deserializer::from_str(text);
-    let value = <Value as serde::Deserialize>::deserialize(&mut decoder).map_err(|error| located(text.as_bytes(), error, None))?;
+    // String roots contain neither numeric tokens nor object keys to track.
+    let value = if text.trim_ascii_start().starts_with('"') {
+        <String as serde::Deserialize>::deserialize(&mut decoder).map(Value::String)
+    } else {
+        serde::de::DeserializeSeed::deserialize(
+            Seed::<false> { budget: &mut budget, depth: 0, permitted: true }, &mut decoder
+        )
+    }.map_err(|error| located(text.as_bytes(), error, None))?;
     decoder.end().map_err(|error| located(text.as_bytes(), error, Some("trailing-data")))?;
-    if holds_float(&value) { validate_integer_tokens(text.as_bytes())?; }
+    if budget.saw_float { validate_integer_tokens(text.as_bytes())?; }
     Ok(value)
-}
-// Recursion is bounded by serde_json's 128-level nesting limit; no allocation.
-fn holds_float(value: &Value) -> bool {
-    match value {
-        Value::Number(number) => number.is_f64(),
-        Value::Array(items) => items.iter().any(holds_float),
-        Value::Object(entries) => entries.values().any(holds_float),
-        _ => false,
-    }
 }
 /// `parse` for input already known to be valid UTF-8, such as a string's bytes.
 pub fn parse_valid_utf8(input: &[u8], limits: Limits) -> Result<Value, Error> {
@@ -94,7 +92,7 @@ pub fn parse_valid_utf8(input: &[u8], limits: Limits) -> Result<Value, Error> {
     let mut budget = Budget { limits, nodes: 0, failed: None, saw_float: false };
     let mut decoder = serde_json::Deserializer::from_slice(input);
     let value = serde::de::DeserializeSeed::deserialize(
-        Seed { budget: &mut budget, depth: 0, permitted: true }, &mut decoder
+        Seed::<true> { budget: &mut budget, depth: 0, permitted: true }, &mut decoder
     ).map_err(|error| located(input, error, budget.failed))?;
     decoder.end().map_err(|error| located(input, error, Some("trailing-data")))?;
     if budget.saw_float { validate_integer_tokens(input)?; }
@@ -193,18 +191,18 @@ struct Budget { limits: Limits, nodes: usize, failed: Option<&'static str>, saw_
 impl Budget {
     fn fail(&mut self, code: &'static str) -> &'static str { self.failed = Some(code); message(code) }
 }
-struct Seed<'a> { budget: &'a mut Budget, depth: usize, permitted: bool }
-impl<'de> serde::de::DeserializeSeed<'de> for Seed<'_> {
+struct Seed<'a, const BOUNDED: bool> { budget: &'a mut Budget, depth: usize, permitted: bool }
+impl<'de, const BOUNDED: bool> serde::de::DeserializeSeed<'de> for Seed<'_, BOUNDED> {
     type Value = Value;
     fn deserialize<D: serde::Deserializer<'de>>(self, decoder: D) -> Result<Value, D::Error> {
         use serde::de::Error;
-        if !self.permitted { return Err(D::Error::custom(self.budget.fail("entry-limit"))); }
-        if self.budget.nodes >= self.budget.limits.nodes { return Err(D::Error::custom(self.budget.fail("node-limit"))); }
-        self.budget.nodes += 1;
+        if BOUNDED && !self.permitted { return Err(D::Error::custom(self.budget.fail("entry-limit"))); }
+        if BOUNDED && self.budget.nodes >= self.budget.limits.nodes { return Err(D::Error::custom(self.budget.fail("node-limit"))); }
+        if BOUNDED { self.budget.nodes += 1; }
         decoder.deserialize_any(self)
     }
 }
-impl<'de> serde::de::Visitor<'de> for Seed<'_> {
+impl<'de, const BOUNDED: bool> serde::de::Visitor<'de> for Seed<'_, BOUNDED> {
     type Value = Value;
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result { formatter.write_str("a strict JSON value") }
     fn visit_unit<E: serde::de::Error>(self) -> Result<Value, E> { Ok(Value::Null) }
@@ -219,35 +217,35 @@ impl<'de> serde::de::Visitor<'de> for Seed<'_> {
     fn visit_string<E: serde::de::Error>(self, value: String) -> Result<Value, E> { Ok(Value::String(value)) }
     fn visit_seq<A: serde::de::SeqAccess<'de>>(self, mut sequence: A) -> Result<Value, A::Error> {
         use serde::de::Error;
-        if self.depth >= self.budget.limits.depth { return Err(A::Error::custom(self.budget.fail("depth-limit"))); }
+        if BOUNDED && self.depth >= self.budget.limits.depth { return Err(A::Error::custom(self.budget.fail("depth-limit"))); }
         let mut values = Vec::new();
         loop {
-            let permitted = values.len() < self.budget.limits.entries;
-            let next = sequence.next_element_seed(Seed { budget: self.budget, depth: self.depth + 1, permitted })?;
+            let permitted = !BOUNDED || values.len() < self.budget.limits.entries;
+            let next = sequence.next_element_seed(Seed::<BOUNDED> { budget: self.budget, depth: if BOUNDED { self.depth + 1 } else { 0 }, permitted })?;
             match next { Some(value) => values.push(value), None => break }
         }
         Ok(Value::Array(values))
     }
     fn visit_map<A: serde::de::MapAccess<'de>>(self, mut object: A) -> Result<Value, A::Error> {
         use serde::de::Error;
-        if self.depth >= self.budget.limits.depth { return Err(A::Error::custom(self.budget.fail("depth-limit"))); }
+        if BOUNDED && self.depth >= self.budget.limits.depth { return Err(A::Error::custom(self.budget.fail("depth-limit"))); }
         let mut values = serde_json::Map::new();
         let mut entries = 0;
         // Count input entries, including duplicates, rather than the final map size.
-        while let Some(key) = object.next_key_seed(KeySeed { permitted: entries < self.budget.limits.entries, budget: self.budget })? {
-            let value = object.next_value_seed(Seed { budget: self.budget, depth: self.depth + 1, permitted: true })?;
+        while let Some(key) = object.next_key_seed(KeySeed::<BOUNDED> { permitted: !BOUNDED || entries < self.budget.limits.entries, budget: self.budget })? {
+            let value = object.next_value_seed(Seed::<BOUNDED> { budget: self.budget, depth: if BOUNDED { self.depth + 1 } else { 0 }, permitted: true })?;
             values.insert(key, value);
-            entries += 1;
+            if BOUNDED { entries += 1; }
         }
         Ok(Value::Object(values))
     }
 }
-struct KeySeed<'a> { permitted: bool, budget: &'a mut Budget }
-impl<'de> serde::de::DeserializeSeed<'de> for KeySeed<'_> {
+struct KeySeed<'a, const BOUNDED: bool> { permitted: bool, budget: &'a mut Budget }
+impl<'de, const BOUNDED: bool> serde::de::DeserializeSeed<'de> for KeySeed<'_, BOUNDED> {
     type Value = String;
     fn deserialize<D: serde::Deserializer<'de>>(self, decoder: D) -> Result<String, D::Error> {
         use serde::de::Error;
-        if !self.permitted { return Err(D::Error::custom(self.budget.fail("entry-limit"))); }
+        if BOUNDED && !self.permitted { return Err(D::Error::custom(self.budget.fail("entry-limit"))); }
         serde::Deserialize::deserialize(decoder)
     }
 }

@@ -24,8 +24,9 @@ include **0a68a4f5** (932 Rust references), **2c538120** (normalization optimiza
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization: preserved JSON object slots (1.039×); preceding
-identity-preserving Map/Set schema validation is 1.275× (implementation **32cdfb23**).
+Latest accepted optimization: plain JSON decoding with complete integer validation
+(recursive 1.059×, string reads 1.108×). Previous preserved object slots are
+1.039×; identity-preserving Map/Set validation is 1.275× (**32cdfb23**).
 Following **8da8e64d** (cached normalization classes, 1.040×), **ee108cdc** (table-bound fast paths, 1.174×), **23abf642** (in-place composition, 1.029×), **2c538120** (scratch
 reuse, 1.316×), `28a3409c` (typed JSON pipeline restoration) and `1d3eb962` (single
 replacement sizing acceptance). Earlier
@@ -34,6 +35,177 @@ accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration
 plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
+
+**Plain JSON visitor — accepted locally, 2026-11-01:**
+- Parent **a50ff90a**, initially clean. Fresh actual recursive CPU sample used four
+  million iterations, seed 7, checksum **16,000,007**, diagnostic consumer time
+  **5,874.634 ms**, watchdog **6.194 s/46,800 KiB**. parse_plain/holds_float are
+  still visible after slot removal work; no comparative claim from CPU sampling.
+- Found a real defect: parse_plain checks floats in the final DOM, so a later
+  duplicate field can erase evidence of an over-range integer. Accepted release
+  reproducer /tmp/tsrust-duplicate-range.tsr printed **ok / ok / ok** for positive
+  overflow overwritten by 0, negative overflow overwritten by null, and overflow
+  inside an overwritten array. Native watchdog **8.812 s/349,536 KiB**. Bounded,
+  typed/source validation already track the original tokens and do not have this
+  final-tree gap. Syntax/trailing-data precedence must stay intact.
+- Reuse the existing strict DOM visitor with
+  a const bounded/unbounded switch; the plain path tracks saw_float while decoding
+  and keeps Serde's default recursion guard. This removes holds_float, preserves
+  plain Rust limits, and validates overflow even in discarded duplicate content.
+  Scope: shared JSON parser, native backend/public JSON.parse regression witnesses,
+  affected JSON/schema suites and focused existing workload timing support.
+  Public API/editor signatures stay unchanged; no new limits/dependencies/unsafe.
+- Fresh eight-workload parent timing completed **2026-11-01T22:00:45.183Z**,
+  watchdog **150.694 s/390,096 KiB**. Original three processes × 31 samples after
+  eight warmups, no busy override, max load **3.752**. store:ingest added **16**
+  parent histories; exact medians/mean rates/93 counts, both source hashes and
+  SQLite integrity verified. Raw result remains for the candidate comparison.
+  Includes previous five schema controls plus native_json_roundtrip/scalars/
+  string_reads, with focused Node controls. No unrelated Node/Rust reruns.
+- Candidate parser.rs now reuses Seed/KeySeed with const BOUNDED. Plain decoding
+  disables explicit budget bookkeeping, tracks every f64 and rechecks integer
+  tokens after syntax/end validation. Bounded behavior retains its existing guards.
+  Removed holds_float; no second DOM walk. Added backend witnesses for five
+  overwritten-value/escaped-key cases with exact offsets, syntax/trailing error
+  precedence, scalar/string/duplicate equivalence and 0..130 nesting comparisons
+  against Serde. Extended the existing public JSON.parse native regression.
+  The backend also preserves ordinary keys matching Serde internal tokens.
+- Confirmed another plain-path defect: with Serde's raw_value feature, a first
+  property `$serde_json::private::RawValue` is interpreted as a private wrapper.
+  Accepted release maps the valid objects with string payloads "0" and "true"
+  to scalar outputs **0 / true**, losing the object/property. Corrected native
+  probe passed **25.303 s/273,424 KiB**. Initial probe's second nested-string
+  fixture had an escaping error (first valid case still printed 0); corrected
+  it before relying on the two-case result. No resource stop.
+  New visitor treats ordinary property names consistently with the bounded path.
+  Added four backend cases for numeric/boolean/non-JSON string contents and key
+  position. Source inspected locally in Serde Value visit_map/KeyClassifier.
+  Don't claim equivalence to this unintended private-key interpretation.
+- Compiler test build passed **921.177 s/2,076,944 KiB**. Long library phase
+  was confirmed in LLVM ThinLTO imports; no resource stop or duplicate restart.
+  Existing decode_plain dead-code warning only. All selected artifacts built;
+  --list confirms the late-added private-key backend test is registered (19
+  scalar-backend tests including shared runtime witnesses), so no rebuild needed.
+- All **152 test invocations passed across nine binaries**: json_parse_plain 3,
+  scalar backend 19, container backend 15, json_typed 8, json_namespace 9, json 4,
+  schema_recursive 10, schema_pipelines 20, JSON library 64. This includes shared
+  runtime witnesses compiled in multiple binaries; don't call them distinct
+  feature tests. New overflow/private-key/0..130 nesting checks passed. All
+  catalog examples executed through the native CLI and matched documented output.
+  Highest suite peak **1,156,448 KiB**; one binary at a time, three threads,
+  5 GB/30-minute watchdog each. Full suite log /tmp/tsrust-json-visitor-tests.log.
+  JSON/catalog **294.152 s/1,074,400 KiB**, recursive **23.378 s/1,077,632 KiB**,
+  pipelines **50.428 s/1,022,064 KiB**, library **1.057 s**. No resource stops.
+- Candidate public JSON.parse probe now preserves both private-key objects,
+  **10.452 s/313,968 KiB**. Initial schema-retention probe with s.object({}) hit
+  an independent empty-shape generic-record checker limitation (.526 s/3,680 KiB),
+  not a runtime result. Revised it to the existing supported named-field shape;
+  native probe confirmed scalar **0**, **9.924 s/311,712 KiB**. This remaining
+  caller defect is separate from the now-passing plain-parser regressions.
+- LSP build passed **189.482 s/1,367,120 KiB**; all **16 schema_editing tests
+  passed**, **.519 s**. Total **168 passing test invocations** across the selected
+  compiler/LSP binaries. No full-regression or CI claim for this helper change.
+- Release build passed **217.023 s/1,567,616 KiB**. Allocation profile
+  **2026-11-01T22:37:25.434Z** passed **81.302 s/359,520 KiB**. All three
+  samples/case identical, correct checksums, zero reallocations/retained/live
+  bytes after drop. Recursive remains **40 allocations/iteration**, requested
+  **8,344,000 bytes/2,000 iterations**, peak **1,898** (unchanged from a50ff90a).
+  Candidate roundtrip/scalars/string_reads: **6 / 1 / 1 allocations/iteration**,
+  requested bytes **1,790,000 / 10,000 / 20,000**, peaks **895 / 5 / 10**. No
+  fresh parent allocation profiles for those three; don't claim measured equality.
+- First quiet candidate completed **2026-11-01T22:42:34.270Z**,
+  **299.322 s/367,536 KiB**, max timed load **3.9995**, no busy override. The
+  guard waited for preparation load to fall; no timing accepted while busy.
+  All eight dependency evidence objects exactly match the parent. All emitted/
+  instrumented source hashes change due to the shared parser, so these are not
+  byte-identical-code controls. Original five correctness cases/93 samples each.
+- First candidate native medians parent→candidate (ms): recursive
+  **2.803542→2.611834 (1.073×)**, roundtrip **.630333→.579250**, scalars
+  **.097875→.088167**, string reads **.081500→.085542**, union
+  **.347708→.334667**, discriminator **1.086084→.991208**, pipeline
+  **.710792→.689166**, collections **1.911500→1.873791**. Their Node movements:
+  +1.710%, -3.995%, -.664%, -5.957%, -3.662%, -1.458%, -2.460%, -1.321%.
+  **Not accepted:** string reads regress **4.959%**, normalized speed .896×.
+  Parent string process medians **.080875/.081334/.083458**, candidate
+  **.085541/.084292/.086625**: every candidate slower than every parent.
+- store:ingest added **16 diagnostic histories**, **32** total with the parent.
+  Exact medians/mean rates/93 counts, both source hashes and SQLite integrity
+  verified. Public pins unchanged; first-candidate date is excluded. Raw results
+  remain for refined comparison; no acceptance claim for mixed results.
+- Profiled that regression before refining: current string workload ran 120M
+  iterations, checksum **1,800,000,007**, diagnostic **5,022.727 ms**, watchdog
+  **5.201 s/46,416 KiB**. Sample /tmp/tsrust-json-string.sample shows generic
+  Seed::deserialize under parse_plain; this is not comparative timing.
+- Refinement: string roots use Serde's direct String deserialize; they contain no
+  numeric tokens/object keys requiring the shared float flag. Composite/numeric
+  input keeps the strict visitor. Syntax/end checks and error offsets still use
+  the original decoder/input. Added root-string integer-text/whitespace/escaped
+  Unicode/backslash parity plus invalid escape, trailing-data and invalid leading
+  whitespace checks. No thresholds, limits, dependencies or unsafe added.
+- Focused refinement build passed **200.975 s/1,505,632 KiB**. Both affected
+  binaries passed sequentially: json_parse_plain **3**, scalar backend **19**,
+  watchdogs **8.816 / .522 s**, peaks **768,768 / 32 sampled KiB**. New root-string
+  whitespace/Unicode/escape/error cases passed alongside duplicate overflow,
+  literal private keys and default Serde nesting checks. These 22 are reruns,
+  not new distinct feature counts. Prior 168 passes remain for unchanged bounded,
+  catalog, composite/runtime and editor behavior; no heavy matrix restart.
+- Refined release build passed **215.657 s/1,467,840 KiB**. String allocation
+  profile **2026-11-01T22:54:47.588Z**, **22.296 s/340,032 KiB**, has three
+  identical samples: checksum 30007, 2,000 allocations/2,000 iterations,
+  requested 20,000 bytes, peak 10, zero reallocations/retained/live bytes after
+  drop. Exactly equal sample metrics to the first candidate; root routing adds
+  no allocation or retained source storage.
+- Refined quiet candidate **2026-11-01T23:00:34.692Z** completed,
+  **316.958 s/400,752 KiB**, max timed load **3.703**, no busy override. Original
+  five correctness cases/three processes × 31 samples after eight warmups; all
+  16 workload/engine groups retain **93 samples**. All eight dependency evidence
+  objects exactly match the parent, including manifest/lock/config/rlib byte hashes.
+  Shared parser changes emitted/instrumented source hashes in all eight; don't
+  label these byte-identical-code controls. All timing sources have no unsafe.
+- **Accepted:** all eight native medians and every per-process native median
+  beat their corresponding parent medians. Recursive **2.803542→2.647250 ms**,
+  **1.059×**, Node **1.430375→1.388416** (-2.933%), normalized **1.028×**.
+  Parent native process medians **2.873833 / 2.793667 / 2.790667**, refined
+  **2.711750 / 2.623292 / 2.659000**. String reads **.081500→.073542 ms**,
+  **1.108×**, Node **.155292→.143416** (-7.648%), normalized **1.023×**.
+  Refined string medians **.074792/.073500/.071417**, each below every parent.
+  This resolves the first candidate's measured regression while fixing both
+  plain-parser correctness defects. Allocation/ownership behavior is preserved.
+- Other native medians (ms): roundtrip **.630333→.581625**, scalars
+  **.097875→.088625**, union **.347708→.316833**, discriminator
+  **1.086084→.949958**, pipeline **.710792→.670625**, collections
+  **1.911500→1.888875**. Corresponding Node changes -5.699%, -1.878%, +2.080%,
+  -3.363%, -4.873%, -1.217%; normalized gains **1.022 / 1.084 / 1.120 / 1.105 /
+  1.008 / 1.000×**. Collection movement tracks Node; don't attribute every raw
+  gain to the parser or claim universal hand-written parity. Only focused Node
+  controls reran; all hand-written Rust/unrelated Node baselines are reused.
+- store:ingest added **16 refined histories**, **48 total** across this section's
+  parent/diagnostic/refined runs. Exact medians/mean rates/93 counts, both source
+  hashes and SQLite integrity verified. Public selection includes only the
+  refined candidate; diagnostic date excluded. Whole-project formatting changed
+  zero files/snippets/fingerprints. Three website tests, 66-page build and links/
+  assets in 116 pages passed, website watchdog **3.666 s/975,008 KiB**. No new
+  full-regression, CI or deployment claim.
+- Follow-up caller review: source::Node::retain still directly uses
+  serde_json::from_str. Callers are emit/schema/decode.rs, decode_pipelines.rs
+  (unknown retained subtrees) and decode_input.rs (JSON callback inputs). Its
+  private-key behavior is now confirmed by the named-field native probe above.
+  Repair this caller in the next coherent correctness
+  section using the fixed shared parser and add a source-retention witness.
+  **Benchmark correction:** existing native_schema_json_object_retain uses
+  JSON.parse+safeParse, not safeParseJson/Node::retain. It is a context/control
+  workload, not a measurement of that caller. Before timing the repair, add a
+  matched source-retention workload (Tsrust safeParseJson, TypeScript counterpart,
+  independent oracle, source guards/ABI support and one-time hand-written Rust
+  reference), preserving the old workload identity and baselines. Do not claim
+  the current plain-parser fix already covers source-retained schema values.
+- Closed raw timing/allocation records, CPU probes, first-candidate allocation
+  consumers and obsolete test binaries were pruned. Current focused tests and
+  refined timing consumers remain in the shared Cargo target. All owned runners
+  are terminal. The unresolved retention fixture remains at
+  /tmp/tsrust-json-retained-private-key.tsr for the next correctness section.
+  Also investigate the independent empty-object schema checker rejection noted
+  above; don't silently classify it as intended behavior.
 
 **JSON object slots — accepted locally, 2026-11-01:**
 - Parent **7e0b9a8c**, clean accepted source. Fresh system-allocator CPU sample
