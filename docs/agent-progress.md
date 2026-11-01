@@ -20,12 +20,12 @@ still open but is not the current loop's focus.
 
 **Git:** branch `codex/optimize-native-hot-paths`. Published main **9c294876**
 contains the v0.1.1 source from staging **fa2bd1a9**. Local post-release checkpoints
-are **0a68a4f5** (932 Rust references), **2c538120** (normalization optimization)
+include **0a68a4f5** (932 Rust references), **2c538120** (normalization optimization)
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization: normalization table-bound fast paths (1.174×),
-following **23abf642** (in-place composition, 1.029×), **2c538120** (scratch
+Latest accepted optimization: cached normalization classes (1.040×), following
+**ee108cdc** (table-bound fast paths, 1.174×), **23abf642** (in-place composition, 1.029×), **2c538120** (scratch
 reuse, 1.316×), `28a3409c` (typed JSON pipeline restoration) and `1d3eb962` (single
 replacement sizing acceptance). Earlier
 accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration,
@@ -136,6 +136,61 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   Later local **0a68a4f5** completes **932/932** Rust baselines; the normalization
   candidate below is also later local work, outside the frozen v0.1.1 release.
   Do not claim those later local results were already deployed.
+
+**Cached normalization classes — accepted locally, 2026-11-01:**
+- Parent **ee108cdc**. Cache the eight-bit combining class alongside the 21-bit
+  Unicode scalar in the existing u32 decomposition buffer. Ordering reads that
+  class; composition/output mask the scalar bits. Composed starters need only
+  their scalar for later composition. No wider tuple, extra vector, unsafe,
+  dependency, public API/ownership/table-version change or new limit. Scope is
+  the private emitted helper, existing native conformance harness, measurements,
+  public pin and this handoff; all callers route through that helper. Signatures,
+  catalogue, examples, exports and benchmark sources/oracles remain unchanged.
+- Profile first, n=2048/seed=7: **87,625** decomposed scalars, **87,625** class
+  computations during segment scanning, **11,410** in sort comparisons and
+  **56,036** during composition: **155,071** total. Candidate probe verifies
+  **87,625**, exactly one per scalar (**67,446** computations removed).
+  Both probes compare complete outputs with their uninstrumented consumer,
+  checksum **332162546**. Watchdogs **2.599 / 2.598 s**, peak sampled group RSS
+  **174,320 / 177,920 KiB**. A (u32,u8) tuple would widen the scalar buffer;
+  packing uses the existing unused high bits instead.
+- Three allocation samples before **2026-11-01T19:21:34.717Z** and after
+  **2026-11-01T19:30:39.963Z** are exactly equal: **47,105 allocations**,
+  **15,349 reallocations**, **1,877,118 requested bytes**, **780,086 retained**,
+  **780,104 peak requested**. Every checksum matches and live bytes after drop
+  are zero. Watchdogs **3.624 / 3.622 s**, peak **282,976 / 356,320 KiB**.
+  These are allocation-byte counts; process RSS is a separate sampled metric.
+- Added a **4,096-mark** leading sequence with differing and equal classes to
+  the existing native conformance harness; all four forms must preserve tied
+  order while sorting distinct classes. Full **399,300** official conformance
+  and **1,101,784** identity checks, previous **324** boundary assertions and
+  ownership/error tests pass. Compiler **9 passed**, **3.647 s**, peak
+  **503,600 KiB**; LSP hover/completion/signature/native catalogue **2 passed**,
+  **1.037 s**, peak **132,368 KiB**. Built the two selected test binaries together
+  (--no-run), then executed one at a time under watchdogs with --test-threads=3.
+  Shared target, one build job, incremental disabled. Test build **206.045 s**,
+  peak **1,507,472 KiB**; release build **214.706 s**, peak **1,519,360 KiB**.
+- Original quiet A/B protocol retained: three fresh processes × 31 samples after
+  eight warmups, all five correctness cases, n=2048/seed=7. Parent
+  **2026-11-01T19:22:20.264Z**, Tsrust/Node medians **3.713417 / 1.377917 ms**;
+  candidate **2026-11-01T19:31:04.850Z**, **3.571625 / 1.396208 ms**. Tsrust
+  **1.040× faster**, Node duration **+1.327%**, normalized speedup **1.054×**.
+  Parent process medians **3.712459 / 3.710042 / 3.715500 ms**; candidate
+  **3.556750 / 3.566708 / 3.610792 ms**. Every candidate median beats every
+  parent median. Max accepted loads **2.190 / 2.645**, no busy override;
+  watchdog **3.639 / 4.141 s**, peak **292,976 / 303,520 KiB**. This is a modest
+  improvement; no Rust parity claim. Only this affected Node control reran;
+  all other Node and Rust baselines reused.
+- store:ingest added **four histories**. Exact median/mean throughput, counts,
+  both source hashes and SQLite integrity verified before raw/probe cleanup.
+  Whole-project formatting changed zero files/snippets/fingerprints; three
+  website tests, the 66-page build and links/assets in 116 pages passed.
+  Generated benchmark consumer contains no unsafe. Removed closed allocation
+  consumers and superseded intelligence test binaries, retaining the tested one.
+  Local public performance pin selects this candidate; published v0.1.1 remains
+  unchanged. Next: profile advanced schema restoration/record copying against
+  the independent Rust reference; do not add more normalization complexity
+  without a fresh profile showing a worthwhile remaining cost.
 
 **Normalization table-bound fast paths — accepted locally, 2026-11-01:**
 - Parent **23abf642**. Skip combining-class/decomposition binary searches for

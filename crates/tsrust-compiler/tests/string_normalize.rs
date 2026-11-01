@@ -52,6 +52,12 @@ fn main() {
   assert_eq!(tsr_string_normalize(&text,Some("NFD"),"boundary").as_ref(),canonical);
   assert_eq!(tsr_string_normalize(&text,Some("NFKD"),"boundary").as_ref(),compatibility);
  }
+ // Equal combining classes must remain stable even across a long leading-mark run.
+ let marks="\u{315}\u{301}\u{300}\u{323}".repeat(1024);
+ let ordered=format!("{}{}{}","\u{323}".repeat(1024),"\u{301}\u{300}".repeat(1024),"\u{315}".repeat(1024));
+ for form in ["NFC","NFD","NFKC","NFKD"] {
+  assert_eq!(tsr_string_normalize(&marks,Some(form),"stable classes").as_ref(),ordered);
+ }
  let data=include_str!(DATA_PATH);
  let mut rows=0;let mut part1=false;let mut listed=std::collections::HashSet::new();
  for (line_number,line) in data.lines().enumerate() {

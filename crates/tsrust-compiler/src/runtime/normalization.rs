@@ -1,4 +1,6 @@
 // Unicode canonical/compatibility decomposition, stable ordering and composition.
+// Scalars occupy 21 bits; cache the eight-bit combining class in the same u32.
+const TSR_NORMALIZATION_SCALAR_MASK: u32 = (1 << 21) - 1;
 fn tsr_normalization_class(code: u32) -> u8 {
     if code < TSR_NORMALIZATION_CCC[0].0 { return 0; }
     TSR_NORMALIZATION_CCC.binary_search_by_key(&code, |row| row.0)
@@ -8,7 +10,7 @@ fn tsr_normalization_decompose(code: u32, compatibility: bool, output: &mut Vec<
     pending.push(code);
     while let Some(code) = pending.pop() {
         if code < TSR_NORMALIZATION_DECOMPOSE[0].0 {
-            output.push(code);
+            output.push(code | ((tsr_normalization_class(code) as u32) << 21));
         } else if (0xAC00..0xAC00 + 11172).contains(&code) {
             let syllable = code - 0xAC00;
             let tail = syllable % 28;
@@ -17,9 +19,9 @@ fn tsr_normalization_decompose(code: u32, compatibility: bool, output: &mut Vec<
             pending.push(0x1100 + syllable / 588);
         } else if let Ok(index) = TSR_NORMALIZATION_DECOMPOSE.binary_search_by_key(&code, |row| row.0) {
             let (_, compatible, start, length) = TSR_NORMALIZATION_DECOMPOSE[index];
-            if compatible && !compatibility { output.push(code); continue; }
+            if compatible && !compatibility { output.push(code | ((tsr_normalization_class(code) as u32) << 21)); continue; }
             pending.extend(TSR_NORMALIZATION_MAPPING[start as usize..start as usize + length as usize].iter().rev().copied());
-        } else { output.push(code); }
+        } else { output.push(code | ((tsr_normalization_class(code) as u32) << 21)); }
     }
 }
 fn tsr_normalization_compose(left: u32, right: u32) -> Option<u32> {
@@ -45,30 +47,31 @@ fn tsr_string_normalize(text: &str, form: Option<&str>, failure: &'static str) -
     for character in text.chars() { tsr_normalization_decompose(character as u32,compatibility,&mut codes,&mut pending); }
     let mut start = 0;
     for index in 0..codes.len() {
-        if tsr_normalization_class(codes[index]) == 0 {
-            codes[start..index].sort_by_key(|code|tsr_normalization_class(*code));
+        if (codes[index] >> 21) == 0 {
+            codes[start..index].sort_by_key(|code|code >> 21);
             start=index+1;
         }
     }
-    codes[start..].sort_by_key(|code|tsr_normalization_class(*code));
+    codes[start..].sort_by_key(|code|code >> 21);
     if compose {
         let mut written = 0;
         let mut starter: Option<usize> = None;
         let mut previous_class = 0;
         for read in 0..codes.len() {
-            let code=codes[read];
-            let class=tsr_normalization_class(code);
+            let packed=codes[read];
+            let code=packed & TSR_NORMALIZATION_SCALAR_MASK;
+            let class=packed >> 21;
             if let Some(index)=starter {
                 if previous_class == 0 || previous_class < class {
-                    if let Some(combination)=tsr_normalization_compose(codes[index],code) {
+                    if let Some(combination)=tsr_normalization_compose(codes[index] & TSR_NORMALIZATION_SCALAR_MASK,code) {
                         codes[index]=combination;continue;
                     }
                 }
             }
             if class == 0 { starter=Some(written); }
-            codes[written]=code;written+=1;previous_class=class;
+            codes[written]=packed;written+=1;previous_class=class;
         }
         codes.truncate(written);
     }
-    String::Owned(codes.into_iter().map(|code|char::from_u32(code).expect("Unicode normalization scalar")).collect())
+    String::Owned(codes.into_iter().map(|code|char::from_u32(code & TSR_NORMALIZATION_SCALAR_MASK).expect("Unicode normalization scalar")).collect())
 }
