@@ -29,7 +29,9 @@ include **0a68a4f5** (932 Rust references), **2c538120** (normalization optimiza
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization: fixed result rows and readonly small slices;interfaces1.184×
+Latest accepted optimization:readonly small parameter slices,nested rest1.066×
+(repeat1.046×),2,048 temporary allocations removed. Previous fixed result rows
+and readonly small local slices:interfaces1.184×
 (repeat1.143×),retained memory -28.7%,nested rest1.208×,numeric rows4.746×.
 Previous borrowed local record string copies:interfaces1.260×
 (repeat1.319×),2,048 allocations removed. Previous direct finite-number formatting (numeric literals1.014×,
@@ -51,6 +53,75 @@ accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration
 plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
+
+**Readonly small parameter slices — accepted locally, parent 23f578f3:**
+- Reprofiled nested_rest_patterns.describe, not interfaces.describe: the former
+  copies its destructured parameter tail through the heap-default slice helper.
+  A consumer-only substitution to the existing inline helper removes one
+  temporary container per iteration. Three identical allocation samples:
+  39,710→37,662 allocations,requested2,032,131→1,982,979 bytes;reallocations2,057
+  and retained837,743 bytes unchanged. Peak838,075→838,051;both cleanup counters0.
+  Checksum634209508 and five complete native/Node boundary outputs agree.
+  Diagnostic build/profile3.628s/172,480KiB.
+- Quiet diagnostic parent/trial/Node timing uses normalized native argv0 and
+  original3processes/8warmups/31samples:parent.862791ms,trial.840042ms
+  (**1.027×**),Node.351208ms,maxload3.009;watchdog2.659s/115,696KiB.
+  This is a consumer experiment,not an accepted compiler measurement.
+- Accepted fixed_storage.rs intersects all direct named-call inputs for readonly
+  array parameters. Only small literals or existing proved-small locals qualify;
+  mixed,unknown,mutable,omittable and callable/closure paths retain default
+  lowering. One call scan,no iterative whole-graph inference;forwarded parameters
+  remain unknown. The runtime still safely handles a heap receiver. No physical
+  ABI,public API,ownership policy,dependency or generated unsafe change.
+- **74 affected compiler checks pass**,five sequential binaries with
+  --test-threads=3:array_slice6/destructuring_rest24/fixed_storage29/
+  nested_rest3/primitive_storage12. New O0/O3 witness covers known local/literal
+  callers,mixed widths,mutation,callable fallback,Unicode,independent results and
+  an injected heap receiver. Initial new test used an unsupported From<Vec>
+  constructor;corrected the test to the existing From<[T;5]> heap path.
+  Build192.910s/1,263,328KiB;affected test build4.655s/417,104KiB;binary
+  watchdogs3.626/4.161/18.172/1.042/2.592s,max546,544KiB.
+- Parent933 emission/ABI checks pass10.353s/311,296KiB;candidate933 pass
+  11.363s/261,488KiB. Only nested_rest_patterns changes:three→four inline calls,
+  and normalization proves replacing that helper name is the sole difference.
+  Other932 emitted programs are byte-identical. First release build passes
+  211.136s/1,384,720KiB.
+- The first official runner attempt timed out during its built-in Cargo build
+  before preparation/timing (122.673s/1,321,408KiB). A comment edit during the
+  preceding release build required Cargo to refresh it. Its compiler child was
+  initially still alive,but the process group had exited before the cleanup
+  signal;no owned child was restarted on an observation timeout. Fixed the real
+  harness mismatch:run.mjs now gives only the release build the30-minute deadline;
+  ordinary child commands retain120seconds. The retry passes under the outer
+  watchdog216.155s/1,581,328KiB,including final release rebuild and official timing.
+- Official accepted native/Node run **2026-11-02T11:42:23.865Z** preserves all five
+  independent correctness cases and original3processes/8warmups/31samples:
+  native.877917ms,Node.379542ms,maxload3.198,no busy override. Paired actual
+  compiler-output comparison normalizes native argv0 and verifies full outputs:
+  parent.881958→candidate.827625ms **1.066×**,Node.360541ms,maxload3.019,
+  watchdog3.106s/170,560KiB. Repeat parent.864667→candidate.826917ms
+  **1.046×**,Node.355291ms,maxload2.752,watchdog2.589s/118,624KiB.
+  Only one emitted workload changed;do not infer a speedup for other workloads.
+- Fresh actual-compiler allocation profile **2026-11-02T11:43:26.538Z** confirms
+  all three samples exactly match the consumer trial above;3.631s/266,960KiB.
+  Ten affected harness checks pass10.855s/688,176KiB. Compiler/LSP all-target
+  check51.745s/1,515,312KiB passes with only the existing decode_plain dead-code
+  warning. Whole-project formatter4.134s/203,648KiB changes zero files/snippets/
+  fingerprints;no editor or public signature changes.
+- store:ingest adds2 minimal histories;verified both93sample entries,rounded
+  medians/mean rates and SQLite integrity. Public performance pins select this
+  accepted run;933 saved Rust references are reused. Two performance-data checks
+  and the66-page website build pass3.640s/945,168KiB;existing duplicate404 warning.
+  Link-check regression passes. Links/assets/anchors in116 built pages pass
+  1.561s/20,992KiB. Final whole-project formatter4.133s/201,920KiB changes zero
+  files/snippets/fingerprints. Pruned123 closed diagnostic/intermediate/old raw
+  files (487,944,774bytes),after verifying all132 old histories remain imported.
+  Current accepted consumers,formal run and allocation profile remain;all owned
+  runners are terminal. This is a local source checkpoint,no CI/push/deployment.
+  Next:profile residual escaping numeric strings and string construction with the
+  current compiler/reference before another change. Follow the object allocation
+  plan below;do not revisit rejected sizing/global-capacity trials or introduce
+  arenas/RC without new evidence and owner design.
 
 **Fixed result rows and readonly small slices — accepted locally, parent fa205130:**
 - Parent compiler source is unchanged from c21ea2ce;66353533 was the profiling
@@ -1259,7 +1330,8 @@ Status: numeric construction/access controls and matched allocation profiles are
 complete (see the accepted/rejected sections above). Borrowed local string fields
 are accepted in c21ea2ce; exact integer sizing and a global five-slot Array were
 rejected after measurement. Fixed-width owned result rows and readonly small slices are accepted in the
-latest compiler checkpoint; see the measured section above. Reprofile residual
+previous compiler checkpoint;closed readonly small parameter slices are accepted
+in the latest checkpoint (1.066×,repeat1.046×);see measured sections above. Reprofile residual
 string costs before extending storage hints or changing formatting. Destination reuse
 is limited to values whose ownership permits it; escaping strings remain distinct
 owned outputs. Arena allocation and new formatting dependencies remain conditional,

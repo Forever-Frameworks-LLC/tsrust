@@ -198,9 +198,9 @@ const tsnode = [process.execPath, path.join(here, 'node_modules/ts-node/dist/bin
 const deno = path.join(here, 'node_modules/.bin/deno');
 const compiler = compilerExecutable(root, here, env);
 const rustc = ['rustup', 'run', pins.rust, 'rustc'];
-function run(command, args = [], childEnv = env) {
+function run(command, args = [], childEnv = env, timeout = 120000) {
  const start = performance.now();
- const child = spawnSync(command[0], [...command.slice(1), ...args.map(String)], {cwd: here, env: childEnv, encoding: 'utf8', timeout: 120000, maxBuffer: 16 * 1024 * 1024});
+ const child = spawnSync(command[0], [...command.slice(1), ...args.map(String)], {cwd: here, env: childEnv, encoding: 'utf8', timeout, maxBuffer: 16 * 1024 * 1024});
  const ms = performance.now() - start;
  if (child.error || child.status !== 0) throw new Error(`${command.join(' ')} failed: ${child.error ?? (child.stderr + child.stdout)}`);
  return {ms, stdout: child.stdout.trim()};
@@ -218,7 +218,7 @@ for (const [tool, pinned] of Object.entries(pins)) {
  const actual = tool === 'rust' ? versions.rust.split(' ')[1] : tool === 'deno' ? versions.deno.split(' ')[1] : versions[tool];
  if (actual !== pinned) throw new Error(`${tool} version ${actual}; expected ${pinned}. Update pins deliberately and record a new baseline.`);
 }
-run(['cargo'], ['build', '--release', '--offline', '--locked', '--quiet', '--manifest-path', path.join(root, 'Cargo.toml')]);
+run(['cargo'], ['build', '--release', '--offline', '--locked', '--quiet', '--manifest-path', path.join(root, 'Cargo.toml')], env, 30 * 60 * 1000);
 const hash = content => crypto.createHash('sha256').update(content).digest('hex');
 const driverTS = fs.readFileSync(path.join(here, 'driver.ts'), 'utf8');
 const driverRS = fs.readFileSync(path.join(here, 'driver.rs'), 'utf8');

@@ -138,7 +138,8 @@ impl FixedStorage {
             }
         }
         let results = (0..program.functions.len()).filter_map(|function| row_facts.result(function).cloned().map(|shape| (function, shape))).collect::<BTreeMap<_,_>>();
-        let inline_slices = program.functions.iter().enumerate().map(|(function,fun)| inline_slice_bindings(fun,&locals[function])).collect::<Vec<_>>();
+        let local_slices = program.functions.iter().enumerate().map(|(function,fun)| inline_slice_bindings(fun,&locals[function],BTreeSet::new())).collect::<Vec<_>>();
+        let inline_slices = inline_slice_parameters(program,&locals,&local_slices);
         let mut storage = Self {
             plans: program
                 .functions
@@ -539,8 +540,46 @@ fn inline_slice_binding(value: &Expr) -> Option<usize> {
     }
 }
 
-fn inline_slice_bindings(fun: &CheckedFunction, fixed: &BTreeMap<usize,Shape>) -> BTreeSet<usize> {
-    let mut selected = BTreeSet::new();
+fn inline_slice_parameters(program: &CheckedProgram, fixed: &[BTreeMap<usize,Shape>], locals: &[BTreeSet<usize>]) -> Vec<BTreeSet<usize>> {
+    // shortcut: forwarded parameters stay unknown; add indexed propagation if profiling warrants it.
+    let mut incoming = vec![None::<BTreeSet<usize>>; program.functions.len()];
+    let mut forbidden = BTreeSet::new();
+    for closure in &program.closures {
+        if let Some(crate::analysis::ClosureForward::Function(function)) = closure.forward { forbidden.insert(function); }
+        for fun in std::iter::once(&closure.function).chain(closure.methods.iter().map(|method| &method.function)) {
+            visit_function_expressions(fun,&mut |value| {
+                if let Some(CallTarget::Function(function) | CallTarget::ForwardFunction(function)) = value.target { forbidden.insert(function); }
+            });
+        }
+    }
+    for (caller,fun) in program.functions.iter().enumerate() {
+        visit_function_expressions(fun,&mut |value| {
+            if let Some(CallTarget::ForwardFunction(function)) = value.target { forbidden.insert(function); }
+            let Some(CallTarget::Function(function)) = value.target else {return;};
+            let ExprKind::Call(_,args) = &value.kind else {return;};
+            let target = &program.functions[function];
+            let small = (0..target.parameter_count).filter(|&parameter| {
+                let binding = &target.bindings[parameter];
+                !binding.mutable && !binding.rebindable && !binding.omission.is_omittable()
+                    && matches!(binding.ty,Type::Array(_))
+                    && args.get(parameter).is_some_and(|arg| match &arg.kind {
+                        ExprKind::Array(values) => values.len() <= 4,
+                        _ => inline_slice_binding(arg).is_some_and(|id|locals[caller].contains(&id)),
+                    })
+            }).collect::<BTreeSet<_>>();
+            match &mut incoming[function] {
+                Some(previous) => previous.retain(|parameter|small.contains(parameter)),
+                entry @ None => *entry = Some(small),
+            }
+        });
+    }
+    program.functions.iter().enumerate().map(|(function,fun)| {
+        let parameters = if forbidden.contains(&function) {BTreeSet::new()} else {incoming[function].take().unwrap_or_default()};
+        inline_slice_bindings(fun,&fixed[function],parameters)
+    }).collect()
+}
+
+fn inline_slice_bindings(fun: &CheckedFunction, fixed: &BTreeMap<usize,Shape>, mut selected: BTreeSet<usize>) -> BTreeSet<usize> {
     visit_statements(&fun.body, &mut |statement| {
         let StmtKind::Let { binding:Some(binding),value,.. } = &statement.kind else {return;};
         let local = &fun.bindings[*binding];

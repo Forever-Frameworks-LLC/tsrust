@@ -67,6 +67,39 @@ fn readonly_small_slice_chains_keep_inline_storage_and_unknown_receivers_keep_he
 }
 
 #[test]
+fn closed_small_parameters_keep_inline_slices_and_mixed_callable_mutable_paths_fall_back() {
+    let analysis = native(
+        r#"
+        function closed(values:string[]):string[]{const copy=values.slice();return copy.slice(1);}
+        function mixed(values:string[]):string[]{return values.slice(1);}
+        function grow(values:string[]):string[]{values.push("end");return values.slice(1);}
+        function callback(values:string[]):string[]{return values.slice(1);}
+        function main(){
+            const local=["é🙂".repeat(2),"tail"];
+            const first=closed(local);first.push("changed");
+            console.log(first[0]);console.log(local.length);console.log(closed(["a","b"])[0]);
+            console.log(mixed(["a","b"])[0]);
+            console.log(mixed(["a","b","c","d","e"])[3]);
+            console.log(grow(["a","b"])[1]);
+            const action=callback;console.log(action(["a","b"])[0]);
+        }
+        "#,
+        "tail\n2\nb\nb\ne\nend\nb\n",
+        r#"
+        let small=Array::from([String::Owned("é🙂".repeat(2)),String::Borrowed("tail")]);
+        assert!(matches!(function0(&small),Array::Small{..}));
+        assert!(matches!(function1(&small),Array::Heap(_)));
+        assert!(matches!(function3(&small),Array::Heap(_)));
+        let heap=Array::from([String::Borrowed("x"),String::Borrowed("x"),String::Borrowed("x"),String::Borrowed("x"),String::Borrowed("x")]);
+        assert!(matches!(function0(&heap),Array::Heap(_)));
+        "#,
+    );
+    let rust=analysis.emit_rust();
+    assert!(rust.contains("slice_array.tsr_inline_slice(slice_start, slice_end)"));
+    assert!(rust.contains("slice_array.tsr_slice(slice_start, slice_end)"));
+}
+
+#[test]
 fn scalar_slices_normalize_all_arity_forms_and_extreme_bounds() {
     let analysis = native(
         r#"
