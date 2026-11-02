@@ -24,7 +24,8 @@ include **0a68a4f5** (932 Rust references), **2c538120** (normalization optimiza
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization: direct finite-number formatting (numeric literals1.014×,
+Latest accepted optimization: borrowed local record string copies,interfaces1.260×
+(repeat1.319×),2,048 allocations removed. Previous direct finite-number formatting (numeric literals1.014×,
 mixed conversion1.021×,nullable1.036×,pop1.045×),with identical allocations.
 Previous static nonfinite number text (nullable1.111×,
 numeric conversion1.087×;513/1,430 allocations removed). Previous direct numeric
@@ -43,6 +44,83 @@ accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration
 plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
+
+**Borrowed local record string copies — accepted locally, parent 14c2c616:**
+- Reused preceding current-parent allocation/CPU profiles and quiet official
+  **2026-11-02T06:05:27.292Z**;compiler source unchanged between2bcb344d and
+  14c2c616. Interfaces copies an owned19-byte input into plain Player.name every
+  iteration,then only borrows that local for describe. This is a measured
+  transient allocation,not an escaping output or a general arena opportunity.
+- Extended existing fixed-storage Record shapes with borrowed string-field facts.
+  Only String(input) from a nonrebindable shared string parameter is eligible.
+  Existing whole-record use/callee proofs reject moves,mutation,captures,escapes
+  and unproved uses;all such cases retain owning layouts. Existing bounded call
+  specialization carries the shape through named readers;no new planner/limit.
+  Conservative Copy-union layout accounting admits optional integer fields.
+- Private fixed records hold &'a String;field selection dereferences the physical
+  loan before ordinary logical string operations. Explicit clones/spread and
+  eager object snapshots materialize ordinary owning fields. Source ownership
+  checking remains unchanged;no RC,arena,dependency,public API or generated unsafe.
+  Shared parameter loans cannot outlive the call or retain backing storage in an
+  escaping result. Current row representation and retained output bytes unchanged.
+- Three formatted native witnesses cover forwarded/optional-field string reads,
+  owned Unicode input,explicit clone/mutation independence,String(field) output,
+  object keys/values/entries and spread snapshots in constructor order,plus
+  owning fallbacks for returned/mutated/captured records. Counting-allocator
+  witness proves0 allocations at O0/O3 for128 repeated record reads per input,
+  including empty/ASCII/Unicode,and0 retained bytes after dropping each owner.
+- Initial196.530s/1,527,408KiB build;21 fixed-storage checks passed and one test
+  assertion failed by matching an unrelated runtime iterator's &'a String.
+  Corrected to assert the actual FixedRecord declaration. Optional Copy-union
+  build194.700s/1,562,880KiB was superseded before execution by the reviewed
+  physical-field normalization fix. Final source build196.722s/1,592,080KiB.
+  Test-only builds3.120/2.076/3.108s,max317,936KiB. One new allocation oracle
+  initially counted Unicode scalars instead of documented UTF-8 bytes;corrected
+  the test,not runtime semantics. No native semantic failure left unresolved.
+- **70 affected checks pass**,one binary at a time,--test-threads=3:
+  fixed_storage24,primitive_storage11,interfaces7,string_addition10,
+  fixed_number_storage4,nested_records14. Watchdogs15.585/3.126/1.566/4.717/
+  7.302/4.672s,max540,944KiB. Ownership,escaping snapshots,formatting and existing
+  failure/unwind witnesses pass. Release compiler/LSP209.651s/1,530,384KiB.
+- Candidate profile **2026-11-02T06:33:56.197Z**,5.706s/289,872KiB:
+  interfaces **10,238→8,190 allocations (-2,048,20.0%)**,reallocations9 unchanged,
+  requested994,855→955,943 (-38,912 =2,048×19),during-work frees2,048→0.
+  Retained743,367 unchanged;peak743,386→743,367;all output/input drops0.
+  Three samples identical/checksum473727250. All three numeric control allocation
+  dictionaries remain byte-identical and zero;all nine timing controls' emitted
+  AND instrumented Rust source remains byte-identical to parent.
+- Official quiet candidate **2026-11-02T06:34:22.692Z**,
+  13.986s/311,568KiB,maxload2.686 versus parent2.120,no override,original93
+  samples/engine: interfaces **.201083→.159583ms,1.260×**,Node
+  .116708→.120833 (normalized1.305×). All3 native process medians
+  .160792/.157958/.159625 beat parent. Numeric record controls remain exact.
+  Byte-identical labeled/concat controls drift .283916→.302333/.456542→.475750;
+  neither contains changed code,so diagnose before attributing a regression.
+- Focused official follow-up **2026-11-02T06:35:22.108Z**,
+  8.799s/298,144KiB,maxload2.155: interfaces **.152417ms,1.319×** versus parent,
+  Node .118666 (normalized1.341×);native process medians .151750/.154541/.152417.
+  Labeled .285208,concat .458000 are within0.5% of parent,confirming phase drift.
+  Preserve both official runs unchanged;public selection uses the latest run.
+- Ingested26 candidate histories;verified46 parent/candidate entries for exact
+  rounded median/mean rates/93counts and SQLite integrity. Manifest,toolchain,
+  workload sources,oracle,adapters,harness,drivers and lock match;only interfaces
+  generated code changes. Saved standard Rust reference timings reused.
+- Compiler/LSP all-target check53.306s/1,341,968KiB passes;existing decode_plain
+  dead-code warning only. Whole-project formatter4.126s/201,856KiB,zero source/
+  snippet/fingerprint changes. Three website tests pass;66-page build
+  3.650s/932,144KiB and links/assets/anchors in116pages pass. Existing duplicate
+  404 warning only. Frontend/editor signatures unchanged;no full matrix rerun.
+- Pruned20 closed/obsolete raw,probe and pre-change test artifacts
+  (201,952,892bytes) after import verification. Current70-check binaries and latest
+  candidate allocation/timing remain;rebuild other consumers from commits when
+  needed. No CI,push/deployment;all owned runners terminal.
+- Next: profile the remaining escaping five-string row allocation. A fixed-width
+  Rust array could remove each inner Vec allocation,but requires proved result
+  shapes and compatible callers/observers;do not globally reduce four-element
+  inline storage or assume all returned rows have fixed width. Establish a
+  generated-consumer upper-bound diagnosis with the original full-output oracle
+  before deciding whether that larger specialization is justified. Preserve
+  generic array mutation,ownership,ABI/export behavior and small-array wins.
 
 **Object construction isolation and exact chain sizing — profiled/rejected, 2026-11-02:**
 - Parent **2bcb344d**, initially clean. Reused existing string-free

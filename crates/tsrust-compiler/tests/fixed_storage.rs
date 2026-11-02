@@ -3,6 +3,110 @@ use std::process::Command;
 use support::{TempDirectory, run, rustc, success};
 use tsrust_compiler::check;
 
+#[test]
+fn borrowed_record_fields_preserve_owned_snapshots_and_constructor_order() {
+    let source = support::format_round_trip(r#"
+        type Row = { label: string; score: int; };
+        function inspect(input: string): string {
+            const row: Row = { score: 7, label: String(input) };
+            const copy = { ...row };
+            const keys = Object.keys(row);
+            const values = Object.values(row);
+            const entries = Object.entries(row);
+            copy.label = "changed";
+            return keys.join(",") + ":" + String(values[0]) + ":" + String(values[1])
+                + ":" + entries[0][0] + ":" + String(entries[1][1]) + ":" + copy.label;
+        }
+        function main() { console.log(inspect("é🙂".repeat(2))); }
+    "#);
+    let rust = execute(&source, "score,label:7:é🙂é🙂:score:é🙂é🙂:changed\n");
+    assert!(rust.contains("struct FixedRecord0<'a> { field0: &'a String"));
+    assert!(!rust.contains("unsafe"));
+}
+
+#[test]
+fn borrowed_record_string_field_does_not_allocate_or_retain_its_input() {
+    let source = support::format_round_trip(r#"
+        type Row = { label: string; score: int; };
+        function probe(input: string): int {
+            const row: Row = { label: String(input), score: 7 };
+            return weight(row);
+        }
+        function weight(row: Row): int { return row.label.length + row.score; }
+        function main() {}
+    "#);
+    let rust = check(&source).unwrap().emit_rust();
+    assert!(rust.contains("struct FixedRecord0<'a> { field0: &'a String"));
+    assert!(!rust.contains("unsafe"));
+    let rust = rust.replace("fn main()", "fn source_main()") + r#"
+        use std::alloc::{GlobalAlloc, Layout, System};
+        use std::sync::atomic::{AtomicUsize, Ordering::Relaxed};
+        struct Counter;
+        static ALLOCS: AtomicUsize = AtomicUsize::new(0);
+        static LIVE: AtomicUsize = AtomicUsize::new(0);
+        unsafe impl GlobalAlloc for Counter {
+            unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+                let pointer = unsafe { System.alloc(layout) };
+                if !pointer.is_null() { ALLOCS.fetch_add(1, Relaxed); LIVE.fetch_add(layout.size(), Relaxed); }
+                pointer
+            }
+            unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
+                unsafe { System.dealloc(pointer, layout) }; LIVE.fetch_sub(layout.size(), Relaxed);
+            }
+        }
+        #[global_allocator] static ALLOCATOR: Counter = Counter;
+        fn main() {
+            let baseline = LIVE.load(Relaxed);
+            for text in ["", "ascii", "é🙂x"] {
+                let input = String::Owned(text.repeat(257));
+                let expected = input.len() as i64 + 7;
+                let allocations = ALLOCS.load(Relaxed);
+                for _ in 0..128 { assert_eq!(function0(std::hint::black_box(&input)), expected); }
+                assert_eq!(ALLOCS.load(Relaxed), allocations);
+                drop(input); assert_eq!(LIVE.load(Relaxed), baseline);
+            }
+        }
+    "#;
+    let directory = TempDirectory::new();
+    let path = directory.0.join("borrowed-record.rs");
+    std::fs::write(&path, rust).unwrap();
+    for level in ["0", "3"] {
+        let binary = directory.0.join(format!("borrowed-record-{level}"));
+        success(&run(rustc().arg("--edition=2024").arg("-A").arg("warnings")
+            .arg("-C").arg(format!("opt-level={level}")).arg("-C").arg("overflow-checks=on")
+            .arg(&path).arg("-o").arg(&binary), 60));
+        success(&run(&mut Command::new(binary), 30));
+    }
+}
+
+#[test]
+fn local_record_string_copies_borrow_only_until_owned_observation() {
+    let source = support::format_round_trip(r#"
+        type Player = { name: string; score: int; bonus?: int; };
+        function describe(player: Player): string { return String(player.name) + ":" + String(player.score + (player.bonus ?? 0)); }
+        function relay(player: Player): string { return describe(player); }
+        function build(input: string): string {
+            const player: Player = { name: String(input), score: 7 };
+            const saved = clone(player); saved.name = "changed";
+            return relay(player) + ":" + saved.name;
+        }
+        function main() { const input = "é🙂".repeat(2); console.log(build(input)); console.log(input); }
+    "#);
+    let rust = execute(&source, "é🙂é🙂:7:changed\né🙂é🙂\n");
+    assert!(rust.contains("struct FixedRecord0<'a> { field0: &'a String"), "local copy needs borrowed storage");
+    assert!(rust.contains("(*self.field0).clone()"), "owned clone must copy the string");
+    assert!(!rust.contains("unsafe"));
+    for body in [
+        "function build(input:string):Player{const player:Player={name:String(input),score:7};return player;}",
+        "function build(input:string):string{const player:Player={name:String(input),score:7};player.name=\"changed\";return player.name;}",
+        "function build(input:string):string{const player:Player={name:String(input),score:7};const run=():string=>player.name;return run();}",
+    ] {
+        let source = support::format_round_trip(&format!("type Player={{name:string;score:int;}};{body}function main(){{}}"));
+        let rust = check(&source).unwrap().emit_rust();
+        assert!(!rust.contains("struct FixedRecord"), "unproved record must keep its owner: {body}");
+    }
+}
+
 fn execute(source: &str, expected: &str) -> String {
     let rust = check(source)
         .unwrap_or_else(|error| panic!("{}", error.render("input.tsr", source)))

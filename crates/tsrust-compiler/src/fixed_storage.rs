@@ -41,6 +41,7 @@ pub(crate) enum Shape {
     Record {
         record: usize,
         widths: Vec<Option<usize>>,
+        borrowed_strings: Vec<bool>,
     },
     Array {
         record: usize,
@@ -87,7 +88,7 @@ impl FixedStorage {
                         ..
                     } = &stmt.kind
                         && let Some((shape, size)) =
-                            literal_shape(program, runtime, value).or_else(|| {
+                            literal_shape(program, runtime, fun, value).or_else(|| {
                                 if value.target != Some(CallTarget::Clone) {
                                     return None;
                                 }
@@ -263,7 +264,7 @@ fn selected_shape(program:&CheckedProgram,bindings:&BTreeMap<usize,Shape>,source
             let (root, fields) = source.place.as_ref()?;
             let mut shape = bindings.get(root)?.clone();
             for name in fields {
-                let Shape::Record { record, widths } = shape else {
+                let Shape::Record { record, widths, .. } = shape else {
                     return None;
                 };
                 let field = program.records[record]
@@ -297,7 +298,7 @@ pub(crate) fn shape_of(
         ExprKind::Selected { source, .. } => selected_shape(program, bindings, source),
         ExprKind::SpreadValue(selected) if selected.selection == SpreadSelection::Receiver => selected_shape(program, bindings, &selected.source),
         ExprKind::Field(base, name) => {
-            let Shape::Record { record, widths } = shape_of(program, bindings, base)? else {
+            let Shape::Record { record, widths, .. } = shape_of(program, bindings, base)? else {
                 return None;
             };
             let field = program.records[record]
@@ -498,6 +499,7 @@ fn plan_temporary_arrays(
 fn literal_shape(
     program: &CheckedProgram,
     runtime: &RecordRuntime,
+    fun: &CheckedFunction,
     expr: &Expr,
 ) -> Option<(Shape, usize)> {
     if let Some(shape) = scalar_literal_shape(expr) {
@@ -537,12 +539,24 @@ fn literal_shape(
         return None;
     };
     let mut widths = vec![None; program.records[record].fields.len()];
+    let mut borrowed_strings = vec![false; widths.len()];
     let mut bytes = 8_usize;
     for (name, value) in values {
         let field = program.records[record]
             .fields
             .iter()
             .position(|f| f.name.text == name.text)?;
+        if value.target == Some(CallTarget::StringConversion)
+            && let ExprKind::Call(_, args) = &value.kind
+            && let [argument] = args.as_slice()
+            && argument.ty == Some(Type::String)
+            && let Some(id) = argument.binding
+            && id < fun.parameter_count
+            && fun.bindings[id].mode == Mode::Read
+            && !fun.bindings[id].rebindable
+        {
+            borrowed_strings[field] = true;
+        }
         let size = if let Some(Type::Array(ArrayElement::Record(child, 0))) = value.ty
             && let ExprKind::Array(items) = &value.kind
         {
@@ -556,10 +570,8 @@ fn literal_shape(
             return None;
         }
     }
-    widths
-        .iter()
-        .any(Option::is_some)
-        .then_some((Shape::Record { record, widths }, bytes))
+    (widths.iter().any(Option::is_some) || borrowed_strings.iter().any(|borrowed| *borrowed))
+        .then_some((Shape::Record { record, widths, borrowed_strings }, bytes))
 }
 
 fn layout_bound(
@@ -575,6 +587,11 @@ fn layout_bound(
         Type::Null | Type::Undefined => Some(0),
         Type::Int | Type::Number | Type::Boolean => Some(8),
         Type::String => Some(crate::storage::string_storage_bound()),
+        Type::Union(id) if program.unions[id.index()].members.iter().all(|ty| ty.is_copy()) => {
+            program.unions[id.index()].members.iter()
+                .map(|ty| layout_bound(program, runtime, *ty, depth + 1))
+                .collect::<Option<Vec<_>>>()?.into_iter().max()?.checked_add(8)
+        }
         Type::Record(record) => {
             if program.records[record].native_type.is_some_and(|id| !crate::native_types::declaration(id).source_constructible()) { return None; }
             let mut bytes = 8_usize;

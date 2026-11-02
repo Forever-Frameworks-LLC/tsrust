@@ -3491,8 +3491,8 @@ impl Emitter<'_> {
                     }
                 )
             }
-            crate::fixed_storage::Shape::Record { .. } => {
-                format!("FixedRecord{}", self.fixed.record_id(shape))
+            crate::fixed_storage::Shape::Record { borrowed_strings, .. } => {
+                format!("FixedRecord{}{}", self.fixed.record_id(shape), if borrowed_strings.iter().any(|borrowed| *borrowed) { "<'_>" } else { "" })
             }
             crate::fixed_storage::Shape::Array { record, width } => {
                 format!("[Record{record}; {width}]")
@@ -3556,7 +3556,7 @@ impl Emitter<'_> {
                 items.len()
             );
         }
-        let crate::fixed_storage::Shape::Record { record, widths } = shape else {
+        let crate::fixed_storage::Shape::Record { record, widths, borrowed_strings } = shape else {
             unreachable!()
         };
         let ExprKind::Record(fields) = &expr.kind else {
@@ -3566,7 +3566,10 @@ impl Emitter<'_> {
             .iter()
             .map(|(key, value)| {
                 let field = self.fields[*record][key.text.as_str()];
-                let code = if widths[field].is_some() {
+                let code = if borrowed_strings[field] {
+                    let ExprKind::Call(_, args) = &value.kind else { unreachable!() };
+                    self.expr(fun, &args[0], Mode::Read)
+                } else if widths[field].is_some() {
                     let ExprKind::Array(items) = &value.kind else {
                         unreachable!()
                     };
@@ -3586,12 +3589,12 @@ impl Emitter<'_> {
             .collect::<Vec<_>>()
             .join(", ");
         let values = self.order_values(*record, fields, values);
-        format!("{} {{ {values} }}", self.shape_type(shape))
+        format!("FixedRecord{} {{ {values} }}", self.fixed.record_id(shape))
     }
 
     fn fixed_records(&self, output: &mut String) {
         for (id, shape) in self.fixed.records.iter().enumerate() {
-            let crate::fixed_storage::Shape::Record { record, widths } = shape else {
+            let crate::fixed_storage::Shape::Record { record, widths, borrowed_strings } = shape else {
                 unreachable!()
             };
             let fields = self.program.records[*record]
@@ -3599,7 +3602,9 @@ impl Emitter<'_> {
                 .iter()
                 .enumerate()
                 .map(|(index, field)| {
-                    let field_type = if let Some(width) = widths[index] {
+                    let field_type = if borrowed_strings[index] {
+                        "&'a String".to_owned()
+                    } else if let Some(width) = widths[index] {
                         let Type::Array(ArrayElement::Record(child, 0)) =
                             field.ty.expect("checked fixed field")
                         else {
@@ -3614,7 +3619,8 @@ impl Emitter<'_> {
                 .collect::<Vec<_>>()
                 .join(", ");
             let fields = self.order_fields(*record, fields);
-            let _ = writeln!(output, "struct FixedRecord{id} {{ {fields} }}");
+            let lifetime = if borrowed_strings.iter().any(|borrowed| *borrowed) { "<'a>" } else { "" };
+            let _ = writeln!(output, "struct FixedRecord{id}{lifetime} {{ {fields} }}");
             if !self.record_runtime.cloneable(*record) {
                 continue;
             }
@@ -3623,7 +3629,9 @@ impl Emitter<'_> {
                 .iter()
                 .enumerate()
                 .map(|(index, field)| {
-                    let value = if widths[index].is_some() {
+                    let value = if borrowed_strings[index] {
+                        format!("(*self.field{index}).clone()")
+                    } else if widths[index].is_some() {
                         let Type::Array(ArrayElement::Record(child, 0)) =
                             field.ty.expect("checked fixed field")
                         else {
@@ -3640,7 +3648,7 @@ impl Emitter<'_> {
             let values = if self.record_runtime.ordered.contains(record) { format!("{values}, key_order: self.key_order") } else { values };
             let _ = writeln!(
                 output,
-                "impl FixedRecord{id} {{ fn clone_owned(&self) -> Record{record} {{ Record{record} {{ {values} }} }} }}"
+                "impl{lifetime} FixedRecord{id}{lifetime} {{ fn clone_owned(&self) -> Record{record} {{ Record{record} {{ {values} }} }} }}"
             );
         }
     }
@@ -4357,6 +4365,13 @@ impl Emitter<'_> {
                     shared = format!("({shared}).field{field}");
                     exclusive = format!("({exclusive}).field{field}");
                     reselected = format!("({reselected}).field{field}");
+                    if steps[..position].iter().all(|step| matches!(step, StorageStep::Discard(_)))
+                        && matches!(self.binding_shape(id), Some(crate::fixed_storage::Shape::Record { borrowed_strings, .. }) if borrowed_strings[*field])
+                    {
+                        shared = format!("*({shared})");
+                        exclusive = format!("*({exclusive})");
+                        reselected = format!("*({reselected})");
+                    }
                 }
                 StorageStep::Union(union, variant, assertion) => {
                     let failure = assertion.map_or_else(|| "checked nullable guard".to_owned(), |span| format!("Non-null assertion failed: value is null or undefined at source bytes {}..{}", span.start, span.end));
