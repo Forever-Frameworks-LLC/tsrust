@@ -1076,8 +1076,8 @@ impl Emitter<'_> {
         }
     }
     fn number_string_conversion(value: &str) -> String {
-        // Preserve the existing label formatter for other finite values.
-        format!("{{ let number_text_value: f64 = {value}; if (0.0..=9.0).contains(&number_text_value) && number_text_value.fract() == 0.0 {{ tsr_int_text(number_text_value as i64) }} else if !number_text_value.is_finite() {{ number_format_special(number_text_value).expect(\"nonfinite number text\") }} else {{ String::Owned(TsrConsoleValue::Number(number_text_value).label()) }} }}")
+        // Call the number label formatter without constructing a console value.
+        format!("{{ let number_text_value: f64 = {value}; if (0.0..=9.0).contains(&number_text_value) && number_text_value.fract() == 0.0 {{ tsr_int_text(number_text_value as i64) }} else if !number_text_value.is_finite() {{ number_format_special(number_text_value).expect(\"nonfinite number text\") }} else {{ String::Owned(tsr_console_number(number_text_value, false)) }} }}")
     }
 
     fn union_observation(&self, union: UnionId, value: &str, target: CallTarget) -> String {
@@ -3276,6 +3276,7 @@ impl Emitter<'_> {
             || output.contains("tsr_console_write(")
             || output.contains("tsr_console_scalar(")
             || output.contains("tsr_console_text(")
+            || output.contains("tsr_console_number(")
         {
             output.push_str(include_str!("../runtime/console.rs"));
         }

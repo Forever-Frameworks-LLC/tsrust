@@ -24,7 +24,9 @@ include **0a68a4f5** (932 Rust references), **2c538120** (normalization optimiza
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization: static nonfinite number text (nullable1.111×,
+Latest accepted optimization: direct finite-number formatting (numeric literals1.014×,
+mixed conversion1.021×,nullable1.036×,pop1.045×),with identical allocations.
+Previous static nonfinite number text (nullable1.111×,
 numeric conversion1.087×;513/1,430 allocations removed). Previous direct numeric
 string appends removed1,024 temporary allocations (controlled concat1.034×)
 and proven-whole enum appends are official1.077×. Previous fractional template formatting is1.099×,
@@ -41,6 +43,74 @@ accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration
 plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
+
+**Finite number strings — accepted locally, parent ac1590eb:**
+- Fresh six-workload allocation profile **2026-11-02T05:36:37.662Z**,
+  6.216s/318,384KiB; original deterministic samples and cleanup validated.
+  Numeric-literal CPU probe uses original input/seed/2,048 iterations and
+  independently checked checksum251352074,10,000 create/drop repetitions.
+  Preparation1.559s/287,440KiB; sample5.683s/33,360KiB. Of2,122 main-thread
+  samples,15 top-of-stack samples remain in label,35 in the number formatter,
+  261 in grisu shortest conversion. Allocation/free/copy still dominate;
+  this dispatch removal is a small optimization, not a formatter rewrite.
+- Fresh quiet parent **2026-11-02T05:38:54.224Z**,11.912s/348,896KiB;
+  original3processes/8warmups/31samples each,focused Node controls only.
+  Preliminary original-driver generated-consumer comparisons rotate parent,
+  direct call and Node,verify full original source hashes and exact outputs.
+  First pass: numeric literals .397292→.393208ms,nullable .036792→.035375,
+  mixed conversion .191917→.193875 with a slow first process for both direct
+  and Node; maxload1.808. Follow-up maxload1.565,4.146s/275,968KiB:
+  literals .396708→.389459,nullable .036500→.035584,mixed .193417→.189208.
+  These are diagnostics; neither substitutes for the official candidate run.
+- Compiler now calls the existing tsr_console_number formatter directly for
+  finite String(number), avoiding a TsrConsoleValue and label dispatch.
+  Digits/nonfinite cache paths remain unchanged. Traced direct,union,view-union,
+  numeric-enum and indirect Object.hasOwn consumers. Added console support
+  selection for the direct helper and a formatted discarded finite conversion
+  witness. No new formatter,dependency,limit,unsafe,public signature or ownership
+  policy. The existing helper becomes public inside the generated runtime so
+  split runtime-module imports can reach it; this is not a Tsrust API addition.
+- Initial test build196.394s/1,373,280KiB; numeric conversion caught two failures
+  because the helper was private across runtime-module boundaries. Fixed at the
+  shared helper,rebuilt197.199s/1,439,280KiB and reran all9 affected binaries.
+  **54 checks pass:** numeric conversion6,number formatting5,ties2,console14,
+  Object.hasOwn4,root spread5,enums6,addition10,concatenation2. Individual
+  watchdogs3.138/6.721/1.034/12.081/1.036/2.606/1.043/4.741/1.031s,
+  max698,736KiB. Existing1,024 random-float/edge and ownership/allocation
+  witnesses pass at O0/O3. Frontend/signatures unchanged; editor agreement reused.
+- Release177.876s/1,463,104KiB. Candidate allocation profile
+  **2026-11-02T05:57:14.950Z**,36.235s/587,776KiB: all six complete sample
+  dictionaries exactly equal parent,including checksum,allocation/reallocation,
+  requested/retained/peak bytes and zero live bytes after drop. Interfaces
+  emitted/instrumented source is byte-identical; all five numeric consumers change.
+- Official quiet candidate **2026-11-02T05:57:51.202Z**,
+  26.419s/351,552KiB,maxload3.792 versus parent2.266,no override:
+  numeric literals **.398250→.392875ms,1.014×**,Node .173375→.173958;
+  mixed conversion **.192625→.188750,1.021×**,Node .203125→.203750;
+  nullable **.036959→.035666,1.036×**,Node .051500→.051833;
+  pop **.207500→.198542,1.045×**,Node .220666→.223125;
+  enums .036167→.035958,Node .035334→.035750. The byte-identical interfaces
+  control drifts .205584→.206625 (+0.5%),Node .117084→.117958 (+0.7%);
+  normalized control is1.002×. No altered workload regresses. Numeric-literal,
+  mixed,nullable and pop Node-normalized gains1.017/1.024/1.043/1.057×.
+- Ingested both official runs:24 exact history entries verified against rounded
+  medians/mean rates/93sample counts;SQLite integrity passes. Original manifest,
+  toolchain,oracle,harness,drivers,adapter and lock identities match. Saved
+  handwritten Rust measurements reused;public pin selects official candidate.
+- Compiler/LSP all-target check52.303s/1,492,112KiB passes;existing
+  decode_plain dead-code warning only. Whole-project formatter4.130s/202,064KiB,
+  zero source/snippet/fingerprint changes. Three website tests pass;66-page
+  build3.636s/898,240KiB and links/assets/anchors in116pages pass;existing
+  duplicate404 warning only. Pruned15 closed artifacts/39,521,196bytes;latest
+  official candidate timing/allocation retained. All owned runners terminal.
+  No CI,push or deployment. No full regression rerun for this emitter-only change.
+- Next: return to object/string memory profiling with the current compiler.
+  Investigate the measured104-byte Array<String> row-layout cost against the
+  accepted small-array wins before choosing a representation change. First
+  establish string-free record construction/access coverage,as planned below;
+  record_mutation alone covers mutation,not construction. Do not repeat rejected
+  integer writers/capacities or adopt an arena/RC policy without evidence and an
+  owner design decision.
 
 **Standalone nonfinite number strings — accepted locally, parent 76612b94:**
 - Generated String(int) fallback already uses the same std to_string operation

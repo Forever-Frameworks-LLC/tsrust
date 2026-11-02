@@ -52,7 +52,7 @@ fn tsr_console_quote(text: &str, json: bool) -> std::string::String {
     output.push(quote);
     output
 }
-fn tsr_console_number(value: f64, negative_zero: bool) -> std::string::String {
+pub fn tsr_console_number(value: f64, negative_zero: bool) -> std::string::String {
     if value.is_nan() {
         return "NaN".into();
     }

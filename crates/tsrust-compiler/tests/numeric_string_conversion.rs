@@ -106,7 +106,7 @@ function main(){
 
 #[test]
 fn discarded_number_string_conversion_selects_its_existing_support() {
-    for input in ["function main(){String(Number(7));}","function main(){String(Number.NaN);String(Number.POSITIVE_INFINITY);String(Number.NEGATIVE_INFINITY);}"] {
+    for input in ["function main(){String(Number(7));}","function main(){String(1.25);}","function main(){String(Number.NaN);String(Number.POSITIVE_INFINITY);String(Number.NEGATIVE_INFINITY);}"] {
         let source=support::format_round_trip(input);
         let emitted=tsrust_compiler::check(&source).unwrap().emit_rust();
         assert!(!emitted.contains("unsafe"));
