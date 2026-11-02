@@ -51,17 +51,53 @@ fn main(){{
  let mut numbers:TsrMap<f64,i64>=TsrMap::new();numbers.set(f64::NAN,1i64);numbers.set(f64::NAN,2);numbers.set(-0.0,3);numbers.set(0.0,4);
  assert_eq!(numbers.len(),2);assert_eq!(numbers.get(f64::NAN),Some(&2));assert_eq!(numbers.get(-0.0),Some(&4));
  assert!(!numbers.iter().find(|(k,_)|**k==0.0).unwrap().0.is_sign_negative());
+ let numbers:TsrMap<f64,u64>=TsrMap::from_mapped(numbers,|value|value as u64);
+ assert_eq!(numbers.len(),2);assert_eq!(numbers.get(f64::NAN),Some(&2));assert_eq!(numbers.get(-0.0),Some(&4));
+ assert!(!numbers.iter().find(|(k,_)|**k==0.0).unwrap().0.is_sign_negative());
  let dropped=std::rc::Rc::new(std::cell::Cell::new(0));
  let mut owners:TsrMap<i64,Owner>=TsrMap::new();owners.set(1i64,Owner(dropped.clone()));owners.set(1,Owner(dropped.clone()));
  assert_eq!(dropped.get(),1);let read=owners.get(1).unwrap();assert_eq!(read.0.get(),1);
  assert!(owners.delete(1));assert_eq!(dropped.get(),2);
  owners.set(2,Owner(dropped.clone()));owners.clear();assert_eq!(dropped.get(),3);
+ remap_witness();
 }}
 "#,runtime_sets::SET_RUNTIME,runtime_maps::MAP_RUNTIME);
+ let source=source+r#"
+struct WrappedOwner(Owner);
+fn remap_witness(){
+ for count in [0_i64,1,8,9,17,64]{
+  let mut values:TsrMap<i64,i64>=TsrMap::new();for key in 0..count{values.set(key,key*10);}
+  for key in 0..count{if key%3==1{assert!(values.delete(key));}}
+  let expected=values.iter().map(|(key,_)|*key).collect::<Vec<_>>();let pointer=values.slots.as_ptr() as usize;let mut calls=0;
+  let mut mapped:TsrMap<i64,u64>=TsrMap::from_mapped(values,|value|{calls+=1;(value+1) as u64});
+  assert_eq!(calls,expected.len());assert_eq!(mapped.len(),expected.len());assert_eq!(mapped.slots.len(),expected.len());
+  if count>0 && count<=TSR_SMALL_SLOTS as i64{assert_eq!(mapped.slots.as_ptr() as usize,pointer);}
+  assert_eq!(mapped.iter().map(|(key,_)|*key).collect::<Vec<_>>(),expected);
+  for key in expected{assert_eq!(mapped.get(key),Some(&((key*10+1) as u64)));}
+  mapped.set(count+3,999);assert_eq!(mapped.get(count+3),Some(&999));
+  mapped.set(0,999);assert!(mapped.delete(0));mapped.set(0,1000);assert_eq!(*mapped.iter().last().unwrap().0,0);
+  mapped.clear();assert_eq!(mapped.len(),0);mapped.set(99,12);assert_eq!(mapped.get(99),Some(&12));
+ }
+ let values:TsrMap<i64,i64>=TsrMap::from_values([(1,11),(2,22)]);
+ let wider:TsrMap<i64,[i64;8]>=TsrMap::from_mapped(values,|value|[value;8]);assert_eq!(wider.get(2),Some(&[22;8]));
+ let narrower:TsrMap<i64,i64>=TsrMap::from_mapped(wider,|value|value[7]);assert_eq!(narrower.get(1),Some(&11));
+ let hook=std::panic::take_hook();std::panic::set_hook(Box::new(|_|{}));
+ for count in [3,17]{
+  let dropped=std::rc::Rc::new(std::cell::Cell::new(0));let mut values:TsrMap<i64,Owner>=TsrMap::new();
+  for key in 0..count{values.set(key,Owner(dropped.clone()));}assert!(values.delete(0));let mut calls=0;
+  let result=std::panic::catch_unwind(std::panic::AssertUnwindSafe(||{
+   let mapped:TsrMap<i64,WrappedOwner>=TsrMap::from_mapped(values,|value|{calls+=1;if calls==2{panic!("conversion");}WrappedOwner(value)});drop(mapped);
+  }));assert!(result.is_err());assert_eq!(dropped.get(),count as usize);
+ }
+ std::panic::set_hook(hook);
+}
+"#;
  let path=directory.0.join("runtime.rs");std::fs::write(&path,source).unwrap();
  let binary=directory.0.join("runtime");
- support::success(&support::run(support::rustc().arg(path).arg("-o").arg(&binary),60));
- support::success(&support::run(std::process::Command::new(binary).args(std::iter::empty::<&str>()),60));
+ for level in ["0","3"]{
+  support::success(&support::run(support::rustc().arg(&path).args(["-C",&format!("opt-level={level}")]).arg("-o").arg(&binary),60));
+  support::success(&support::run(std::process::Command::new(&binary).args(std::iter::empty::<&str>()),60));
+ }
 }
 
 #[test]

@@ -1228,7 +1228,7 @@ fn narrowed_map_refill_in_loop_keeps_survivors_and_new_origins() {
 fn ordinary_loop_deletion_does_not_scan_unused_released_captures() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();let turn=0;while(turn<2){handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});console.log('before',first[0]);handlers.delete('first');turn+=1;}for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();}");
  let analysis=tsrust_compiler::check(&source).unwrap();
- assert!(!analysis.emit_rust().contains("tsr_owned_items().map(|entry|"),"loop-internal capture reads do not require conversion after the loop");
+ assert!(!analysis.emit_rust().contains(">::from_mapped("),"loop-internal capture reads do not require conversion after the loop");
  verify_disposal(&source,2,"before 3\ndrop 0\ndrop 1\nbefore 3\ndrop 0\nsecond 5\ndrop 1\n");
 }
 
@@ -1245,7 +1245,7 @@ fn zero_iteration_and_early_loop_exits_keep_map_capture_loans() {
 fn ordinary_map_deletion_does_not_scan_survivor_environments() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});handlers.delete('first');for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();}");
  let analysis=tsrust_compiler::check(&source).unwrap();
- assert!(!analysis.emit_rust().contains("tsr_owned_items().map(|entry|"),"ordinary deletion must not rebuild surviving entries");
+ assert!(!analysis.emit_rust().contains(">::from_mapped("),"ordinary deletion must not rebuild surviving entries");
  verify_disposal(&source,2,"drop 0\nsecond 5\ndrop 1\n");
 }
 

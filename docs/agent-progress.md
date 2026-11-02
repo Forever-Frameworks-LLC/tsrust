@@ -25,8 +25,8 @@ change. At the final milestone, finish broad regressions, refresh affected publi
 performance metrics, then promote/push to main. While CI/CD runs, reprioritize
 next steps with the owner, including possible UI-framework work. UI revival is a
 proposal for that discussion, not a change to current backend scope.
- The docs restructuring in the next section is
-still open but is not the current loop's focus.
+The docs restructuring in the next section remains open and is not the current
+optimization focus.
 
 Owner object-profiling feedback is retained in **Object and string allocation —
 next optimization plan** below: string-free controls, generated/reference code
@@ -39,8 +39,10 @@ include **0a68a4f5** (932 Rust references), **2c538120** (normalization optimiza
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization:fixed floating-point literal returns,temporary
-number indexing21.503× (repeat22.536×),32,768 heap calls removed. Previous
+Latest accepted optimization:small Map carrier buffer reuse,composition1.640×
+(repeat1.607×),718,447 allocations removed,retained/peak heap unchanged. Previous
+fixed floating-point literal returns,temporary number indexing21.503×
+(repeat22.536×),32,768 heap calls removed. Previous
 decimal int.toString helper reuse1.140×
 (repeat1.137×),384 allocations removed,retained/peak heap -8.2%. Previous
 readonly stack character views,string iteration
@@ -72,115 +74,122 @@ plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
 
-**Cumulative regression snapshot — deferred by owner, compiler source 250e1d24:**
-- This current-source local pass is distinct from the completed 2026-10-31
-  milestone. Inventory: 399 compiler integration targets, 91 LSP integrations,
-  two libraries and two binaries, 494 total. Six unchanged current-source suites
-  are reused exactly once: fixed_storage/temporary_array_index/temporary_array_length/
-  receiver_moves/exception_handling/match_values, 76 passes. The separately
-  validated update_expressions target below is also counted once and skipped when
-  the alphabetical runner reaches it.
-- Both libraries and binaries pass. Compiler library: 1,298 passed/eight ignored,
-  build 261.247s/1,659,792KiB, test 72.548s/1,445,808KiB. LSP library: 20 passed,
-  build 182.219s/1,928,656KiB, test 1.042s/24,112KiB. CLI binary: 40 passed,
-  build 12.940s/609,600KiB, test 7.233s/359,936KiB. LSP binary: six passed,
-  build 6.217s/625,904KiB, test .523s.
-- All 91 LSP integration targets pass: 836 passed/three existing ignores.
-  checker_agreement: three tests, 519.883s/100,048KiB; completion_matrix: three
-  tests, 498.963s/50,288KiB; editor_consistency: 27 tests, 14.065s/113,008KiB;
-  intelligence: 329 passed/two ignored, 646.628s/896,048KiB. The third LSP ignore
-  is project_scaling. Verified no matrix row filter or report-only mode.
-- Preserved subtotal: **419 completed targets, 4,991 passed, 18 ignored**.
-  Owner stopped the broad pass before the revised milestone. single_use_callbacks
-  was interrupted during build; it is pending, not a test failure. The separately validated
-  update_expressions target also counts once. Remaining integration targets and
-  doctests are pending. This snapshot is not a completed milestone.
-- Compiler HTTP suite: 13 passed/one existing ignore, 316.209s/1,448,800KiB.
-  Compiler JSON suite: four passed, 290.416s/1,071,248KiB.
-  All 24 compiler JSON/JSON Lines integration targets pass: 128 tests, no ignores.
-  Native declarations:64 passed,154.041s/1,111,008KiB;dependency bundle:two
-  passed,23.347s/340,640KiB with explicit prepared portable-source packs.
-  Native package export:seven passed,333.490s/1,107,168KiB,including cold
-  release/TLS dependency builds.
-- Stops and repairs, preserving passed suites and counting partial results once:
-  - array_of first had three passed/one failed, 14.499s/444,704KiB. Its witness
-    matcher assumed Vec<f64>; the accepted compiler returns [f64;5]. Identify
-    the Number argument without assuming return layout; retain all IEEE-bit
-    assertions. Four tests pass after repair at native O0/O3: build
-    3.628s/307,888KiB, test 14.542s/474,544KiB. Accepted checkpoint 92715b93;
-    whole-project formatter 4.143s/202,848KiB changed nothing.
-  - array_to_string had three passed/one failed, 3.129s/274,256KiB, because its
-    ../../benchmarks fixture resolved from repository root. Correct the scratch
-    runner to Cargo's per-crate test working directory; builds stay at root.
-    No source change: all four pass in 3.633s/332,512KiB.
-  - compound_assignment_values had three passed/one failed, 1.554s/370,288KiB.
-    Its appended Rust observer required function pointers returning Vec<f64>;
-    accepted emission returns [f64;2]. Read the result through std AsRef<[f64]>,
-    preserving length, committed-value and every IEEE assertion. Four tests pass
-    at native O0/O3: build 1.039s/302,464KiB, test 2.084s/391,376KiB.
-  - The same active function-pointer assumption existed in update_expressions;
-    infer its observer's return storage. Four tests pass at native O0/O3,
-    including zero allocations, exact bits and unwind cleanup: build
-    1.040s/268,480KiB, test 2.079s/506,288KiB. Other Vec<f64> uses were reviewed:
-    bridge boundaries, fallback checks and borrowed Vec inputs retain their
-    explicit types; copied inactive witness branches are unchanged.
-- native_cache stopped with eight passed/one failed/one ignored,
-  5.726s/236,080KiB. Rust 1.96.1 is installed at the resolved rustup home;
-  the PATH-discovery fixture substitutes HOME and the direct runner lacked
-  Cargo-injected RUSTUP_HOME. The scratch runner now preserves rustup's resolved
-  home explicitly. No compiler/test source change:the complete target passes
-  nine tests/one existing ignore in6.774s/364,640KiB. Its partial results are
-  not counted twice.
-- Only test observers and this handoff changed; compiler/runtime output and
-  measurements are unchanged. No new A/B or measurement-store rows are warranted.
-  Latest whole-project formatter: 4.209s/201,968KiB, zero changed files,
-  documentation snippets or fingerprints. Both observer repairs are accepted in
-  checkpoint eb91e84f. Preserve these checks while optimizing; at the final
-  milestone resume required unrun/affected targets without restarting unchanged
-  passed groups.
-- Each build/test runs alone under a 5,000,000KiB/1,800s process-group watchdog,
-  one Cargo job, CARGO_INCREMENTAL=0, shared target, --test-threads=3 and explicit
-  prepared portable-source packs. Passed test executables are pruned; shared
-  libraries and ordinary CLI/LSP remain. No watchdog stops occurred.
-- Runners 86367, 96947 and 9332 are terminal after the stops above. Operational
-  state: /tmp/tsrust-250e1d24-regressions.json; scratch runner:
-  /tmp/tsrust-milestone-run.py. State preserves previous failures, accepted test
-  results and exact hashes for all three repaired test files. Source audit allows
-  only those hashes and this handoff against 250e1d24. Next target: tsrust-compiler:test:concat_depth.
-  Runner37024 is terminal after the native_cache environment failure. Resumed
-  runner41774 is terminal (exit137) after the owner-directed stop. Only the
-  owned runner/test/build descendants were terminated; no owner processes were
-  stopped. State records the interruption and corrected environment.
-  The first scoped_record_composition profile (session30603) failed before
-  sampling:Node spawnSync's default stdout buffer rejected the large emitted
-  program with ENOBUFS,6.196s/233,120KiB. The profiler now uses maxBuffer:Infinity
-  under the external memory watchdog,removing that artificial output cap. Two
-  affected checks pass,2.579s/200,496KiB:actual2MiB stdout plus retained subprocess
-  failure handling,and allocation/output/external-input disposal. The selected
-  three-sample profile passed in59.896s/962,768KiB,diagnostic
-  2026-11-02T20:22:29.191Z. All three dictionaries agree:checksum108,435,446;
-  1,275,919 allocations,2,056 reallocations,requested182,814,336 bytes,
-  retained/peak2,326,528 bytes,input11 bytes,both cleanup counters zero.
-  Instrumented source is3,672,597 bytes. Release preparation passed1.037s/
-  118,256KiB without compiler changes. Matched unchanged Rust reference uses the
-  same ABI/observer/driver,n2048/seed7/input composition:compile3.639s/184,256KiB,
-  profile.515s/2,608KiB. Three identical samples:checksum108,435,446;886,791
-  allocations,2,057 reallocations,requested36,251,240 bytes,retained2,277,376,
-  peak2,277,968,input11,both cleanup counters zero. Generated code therefore has
-  389,128 extra allocations (1.439× total) and146,563,096 extra requested bytes
-  (5.043× total). Retained output differs by49,152 bytes. These are allocation
-  diagnostics,not new runtime timings or proof of a single cause. Next attribute
-  the extra temporary work by call/site/layout and CPU sample before compiler
-  edits;do not assume every gap is strings or adopt arenas/RC. Both profile
-  processes are terminal. Runtime timing baselines are reused;no CI,push or
-  deployment. Profiler cap repair validation is complete:whole-project formatter
-  4.115s/198,448KiB,zero changed files/snippets/fingerprints;local checkpoint only.
-  The deferred runner's source guard remains pinned to250e1d24;at the final
-  milestone reconcile coverage against then-current compiler changes instead of
-  blindly resuming that historical source audit.
-- At the final optimization milestone, after the 494 targets, run each crate's doctest driver
-  separately under the same watchdog, as required by the development workflow.
-  Doctests are outside the 494-target subtotal.
+**Small Map carrier buffer reuse — accepted locally, parent 3fa9cd8d:**
+- Profiled the remaining scoped_record_composition gap before edits. Three
+  identical generated samples: 1,275,919 allocations/2,056 reallocations,
+  182,814,336 requested bytes, 2,326,528 retained/peak bytes, checksum108,435,446,
+  both cleanup counters zero. Profile59.896s/962,768KiB. Matched unchanged Rust
+  reference:886,791 allocations/2,057 reallocations,36,251,240 requested bytes,
+  2,277,376 retained/2,277,968 peak,identical checksum and cleanup;compile
+  3.639s/184,256KiB,profile.515s/2,608KiB. This is allocation attribution,not a
+  fresh Rust timing baseline. The profiler stdout-cap fix is checkpoint3fa9cd8d.
+- Size/tag probes preserve every original counter in three samples per engine.
+  Map-slot growth accounts for generated1,202,190 requests/178,063,360 bytes
+  versus reference213,402/27,315,456. Generated blocks are160 bytes (755,720
+  requests) or128 bytes (446,470);reference slots128 bytes. Compile51.799s/
+  847,312KiB and2.079s/172,240KiB,profile1.035s/32,336KiB. Emission contains
+  1,222 value-carrier transports rebuilding Maps. CPU sampling confirms Map::set,
+  Vec growth,malloc/free activity;130 complete observations match the independent
+  831,486-byte oracle. CPU compile52.879s/849,664KiB,sample7.234s/38,656KiB.
+  Initial diagnostic preparation duplicated an observer and assumed output>1MiB;
+  both probe mistakes were corrected before using its evidence. Sampling flags
+  mean those durations are not benchmark measurements.
+- Add private from_mapped transport to existing TsrMap. For the existing small
+  storage form,standard Vec filter_map/collect compacts holes and can reuse the
+  allocation while converting value types. Indexed Maps retain the original
+  owned-iterator/rebuild path,including early drop of their old bucket table.
+  Change only entry-epoch and completion-storage emission;keys,order,ownership,
+  public APIs,limits and thresholds remain unchanged. No new dependency,RC or
+  generated unsafe. The indexed fallback is explicitly documented in code.
+- **253 affected tests pass**,three sequential binaries,--test-threads=3:
+  maps7 (3.111s/480,160KiB),scoped_callable_records42 (7.860s/562,320KiB),
+  scoped_record_composition204 (202 initial passes,173.885s/662,608KiB;two source
+  guards repaired to match actual from_mapped call sites rather than the generic
+  helper body,then pass2.588s/186,176KiB and1.550s/189,472KiB). Native disposal
+  witnesses remain intact;do not double-count reruns. New O0/O3 witnesses cover
+  buffer reuse,empty/sparse maps,threshold transitions,indexed fallback,changed
+  payload layouts,NaN/-0 keys,ordering,mutation and move-only panic cleanup.
+  Final source build201.431s/1,581,408KiB;release217.332s/1,446,928KiB. An earlier
+  build203.913s/1,243,728KiB preceded the final fallback drop-order correction.
+- Actual candidate profile **2026-11-02T21:18:26.196Z**,64.763s/1,190,736KiB:
+  557,472 allocations (**718,447 fewer,-56.3%**),2,056 reallocations unchanged,
+  requested79,711,904 bytes (**103,102,432 fewer**),retained/peak2,326,528
+  unchanged. All three samples and cleanup checks agree. Control emitted source
+  is byte-identical:2,049 allocations/eight reallocations/310,912 requested bytes/
+  212,992 retained. Composition emission hash89f2eabe9a1514c801267b8ee815c8cf9d6f239b4a2b8df4dc085df791c65068.
+- Fresh formal parent **2026-11-02T20:49:53.668Z**,101.059s/950,576KiB:
+  composition native45.633209ms/Node151.257375ms;control.034000/.068625ms.
+  This replaces the historical121.497209ms as the acceptance baseline. Candidate
+  **2026-11-02T21:21:22.367Z**,87.490s/1,119,552KiB:29.321042/151.226125ms,
+  **1.556× faster**;control.033959/.063959ms. Original93samples/engine,
+  quiet maxloads3.775390625/2.22900390625,no override. All twelve candidate
+  process observations match complete parent outputs and unchanged source hashes.
+- Same physical executable path/argv0,rotating parent/candidate/Node order,
+  three fresh processes/eight warmups/31samples (93 per engine):
+  **46.047042→28.077541ms,1.640×**,Node148.859791ms;repeat
+  **46.430125→28.889667ms,1.607×**,Node149.638833ms. Nine complete consumer
+  observations agree per round. Quiet maxloads2.54443359375/2.50048828125,
+  no override;58.946s/276,880KiB total. Control's complete244,816-byte Mach-O
+  __TEXT,__text section is bit-identical to parent,hash
+  582a918bba27e337010dcd36ccd991f0ed5d1c224bedc8f28d137fe9f347be06.
+- store:ingest adds **eight exact histories** (four parent,four candidate).
+  Verified unique timestamps,median durations,mean rates,93sample counts and
+  SQLite integrity. Saved hand Rust18.420917ms is reused;no new Rust timing.
+  Public performance-page pins/export/build remain deferred until the final
+  optimization milestone,as requested. Whole-project formatter changes zero
+  files/snippets/fingerprints (4.128s/201,936KiB). Pruned193 closed files (252,100,256 bytes):
+  obsolete probe/parent consumers,passed test binaries,verified imported formal
+  runs and disposable scratch diagnostics. Current release/debug CLI/LSP,current
+  candidate native/profile consumers and latest allocation diagnosis remain.
+  Deferred regression operational state remains available. No broad regressions,
+  CI,push or deployment;all owned jobs are terminal.
+- Next:profile remaining large gaps from the review queue below. Start with fresh
+  recursive-array copy controls and audit equivalent work in the Rust reference;
+  keep the residual Map gap on the queue. This accepted win does not finish the
+  optimization milestone. All test/build/profile/timing runners above are terminal.
+
+**Deferred broad regression snapshot — source 250e1d24 plus test-only repairs:**
+- Owner stopped this pass until the remaining large gaps are addressed and only
+  small refinements remain. Preserve **419 completed targets,4,991 passed,
+  18 ignored**,not a completed/current-source full milestone. single_use_callbacks
+  was interrupted during build,not a failed test. The old inventory is494 targets:
+  399 compiler integrations,91 LSP integrations,two libraries and two binaries.
+  Six unchanged source250e1d24 suites contribute76 reused passes exactly once.
+- Both libraries/binaries passed:compiler library1,298/eight ignored (build
+  261.247s/1,659,792KiB,test72.548s/1,445,808KiB),LSP library20 (build182.219s/
+  1,928,656KiB,test1.042s/24,112KiB),CLI40 (build12.940s/609,600KiB,test7.233s/
+  359,936KiB),LSP binary six (build6.217s/625,904KiB,test.523s). All91 LSP
+  integrations:836 passed/three ignored. checker_agreement3,519.883s/100,048KiB;
+  completion_matrix3,498.963s/50,288KiB;editor_consistency27,14.065s/113,008KiB;
+  intelligence329/two ignored,646.628s/896,048KiB. Third LSP ignore:project_scaling.
+  No matrix row filter/report-only mode was active.
+- Snapshot compiler acceptance includes all24 JSON/JSON Lines targets128 passes;
+  HTTP13/one ignored,316.209s/1,448,800KiB;native declarations64,154.041s/
+  1,111,008KiB;dependency bundle2,23.347s/340,640KiB;native package export7,
+  333.490s/1,107,168KiB;shared sources6,44.418s/543,040KiB. These results
+  belong to that source snapshot;assess affected coverage against later changes.
+- Earlier snapshot repairs:array_of assumed Vec<f64> instead of the accepted
+  fixed return;all4 pass after test-only repair92715b93 (build3.628s/307,888KiB,
+  test14.542s/474,544KiB). Compound/update observers had the same private-layout
+  assumption;all8 pass after eb91e84f (build1.039s/302,464KiB and1.040s/268,480KiB,
+  test2.084s/391,376KiB and2.079s/506,288KiB). Native O0/O3 bit/allocation/cleanup
+  checks remain intact. Partial failed-binary passes were never added twice.
+- Direct-run environment corrections:use Cargo's per-crate test working directory
+  (array_to_string4 pass3.633s/332,512KiB) and explicit resolved RUSTUP_HOME
+  (native_cache9/one ignored6.774s/364,640KiB). Pinned Rust was installed;the
+  isolated PATH fixture changes HOME. No compiler changes for either correction.
+- Each build/test ran alone under5,000,000KiB/1,800s process-group watchdog,
+  one Cargo job,CARGO_INCREMENTAL=0,shared target,--test-threads=3 and explicit
+  prepared portable-source packs. No watchdog stops. Completed executables were
+  pruned. Owner-stop terminated only owned descendants;all old runners are terminal.
+- Disposable operational state:/tmp/tsrust-250e1d24-regressions.json;
+  runner:/tmp/tsrust-milestone-run.py;metadata:/tmp/tsrust-milestone-metadata.json.
+  Source guard intentionally remains pinned to250e1d24 and three repaired test
+  hashes. Do not blindly resume it after optimization changes. At the final
+  milestone reconcile required unrun/affected checks against current source;
+  preserve applicable evidence and run both doctest drivers separately afterward.
+  Doctests are outside the494-target subtotal. No remote full-regression run was
+  dispatched;call CI full only with -f full_regressions=true.
 
 **Fixed floating-point literal returns — accepted locally, parent e09d0150:**
 - Rejected nondecimal one-character storage trials before production edits.
@@ -264,8 +273,9 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   scoped_record_composition needs fresh allocation/CPU attribution rather than
   assuming the small-map reference alone explains its gap.
 - Remaining large-gap review queue (latest stored matched workload IDs,not fresh
-  A/B measurements):scoped_record_composition121.497209ms vs hand Rust18.420917ms
-  (6.596×,103.076292ms excess);recursive toReversed.286958/.027500ms (10.435×)
+  A/B measurements except the accepted Map update above):composition now
+  29.321042ms vs saved hand Rust18.420917ms (1.592×,10.900125ms excess),replacing
+  the historical121.497209ms row;recursive toReversed.286958/.027500ms (10.435×)
   and with.280084/.034833ms (8.041×);declared Number/boolean reduce callbacks
   21.727×/14.325×;nullable boolean10.299×;nullish array/call spread7.413×/7.056×;
   nested/deep/recursive record forEach4.57–5.69×;byte views/maps4.82–4.85×;

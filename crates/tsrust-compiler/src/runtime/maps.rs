@@ -28,6 +28,16 @@ impl<K:TsrSetKey,V,P:TsrMapEntry<K,V>> TsrMap<K,V,P> {
     fn from_values(values:impl IntoIterator<Item=(K,V)>)->Self{
         let mut result=Self::new();for(key,value)in values{result.set(key,value);}result
     }
+    fn from_mapped<U,Q:TsrMapEntry<K,U>>(source:TsrMap<K,U,Q>,mut convert:impl FnMut(U)->V)->Self{
+        // shortcut: indexed maps retain their bucket rebuild; revisit if their remaps profile hot.
+        if source.slots.len()>TSR_SMALL_SLOTS{
+            return Self::from_values(source.tsr_owned_items().map(|entry|{let(key,value)=entry.into_pair();(key,convert(value))}));
+        }
+        let slots=source.slots.into_iter().filter_map(|entry|{
+            let(key,value)=entry?.into_pair();Some(Some(P::from_pair(key,convert(value))))
+        }).collect();
+        Self{slots,buckets:source.buckets,length:source.length,marker:std::marker::PhantomData}
+    }
     /// Small maps scan their slots: no hashing and no bucket table.
     fn find<Q:TsrSetQuery<K>>(&self,query:&Q)->Option<usize>{
         if self.slots.len()<=TSR_SMALL_SLOTS{return self.slots.iter().position(|entry|entry.as_ref().is_some_and(|entry|query.tsr_query_same(entry.key())));}

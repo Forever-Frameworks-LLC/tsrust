@@ -193,7 +193,7 @@ impl Emitter<'_> {
                 return Some(format!("{{drop({place});<{native}>::new()}}"));
             }
             let converted=self.map_entry_payload_projection(source,target_value,"entry_value");
-            Some(format!("<{native}>::from_values(({place}).tsr_owned_items().map(|entry|{{let (entry_key,entry_value)=TsrMapEntry::into_pair(entry);(entry_key,{converted})}}))"))
+            Some(format!("<{native}>::from_mapped({place},|entry_value|{{{converted}}})"))
         });
         super::native_storage_availability::Value{place:place.into(),empty,live,transferred,target:Some(target)}
     }
