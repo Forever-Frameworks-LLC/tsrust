@@ -54,6 +54,93 @@ plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
 
+**Single-digit integer appends — profiled and rejected, parent 71a947af:**
+- Fresh generated/reference interfaces CPU sampling,without allocation counters
+  or result observers in the repeated workload/drop loop:both checksum473727250,
+  watchdog31.023s/133,920KiB. Generated2,128 samples include288 direct
+  tsr_push_int samples (13.5%) and217 from_utf8 samples (10.2%);allocation/free
+  and copying remain visible. Reference format! formatting/allocation/drop work
+  is separate;this diagnostic is not a new hand-written Rust timing baseline.
+- Consumer-only trials compare the existing writer,a0..9 push(char) fast path,
+  and std write! formatting. All five complete native/Node boundary cases agree.
+  Three allocation samples per consumer are exactly equal:6,142 allocations,
+  reallocations9,requested775,655,retained/peak530,375,both cleanup counters0.
+  Trial builds/checks3.626s/146,416KiB.
+- Quiet matched argv0 parent/trials/Node run,original3processes/8warmups/
+  31samples:parent.133583ms,single digit.120167ms **1.112×**,std writer.149791ms
+  **.892×**,Node.117125ms,maxload2.473;watchdog1.560s/38,096KiB. Reject the
+  standard formatter replacement. The initial runtime candidate added only a
+  single-digit branch;all other integers retained the existing writer.
+- **36 compiler checks pass**,six sequential binaries,--test-threads=3:
+  string_addition11/enums6/interfaces7/numeric_string_conversion6/number_text2/
+  int_to_string4. New O0/O3 witness checks all digits,zero-allocation UTF-8
+  destination reuse,signed zero,integer extremes and1,024 random values against
+  standard Rust spelling. Build196.746s/1,542,864KiB;watchdogs5.209/1.572/
+  1.562/2.095/1.053/2.081s,max531,600KiB. Generated code remains safe Rust.
+- Parent933 emission/ABI checks pass10.340s/314,048KiB;18 actual callers.
+  Rebuilt all18 parent timing/allocation consumers with original ABI/drivers,
+  source paths and flags;90 complete boundary observations and three identical
+  allocation samples each pass18.634s/321,920KiB. The first preparation attempt
+  omitted the manifest's default source-path convention;corrected that diagnostic
+  script before any consumer compiled. No source snapshots are retained.
+- Candidate release207.875s/1,495,040KiB. Candidate933 emission/ABI checks pass;
+  571 support-code differences normalize exactly to the added four-line block.
+  Eighteen actual callers remain. Official native/Node run
+  **2026-11-02T12:05:26.222Z**,52.271s/499,936KiB including emission/preparation,
+  passes all five correctness cases per engine with original93samples and
+  maxload2.986,no busy override. Paired all18 run27.376s/262,400KiB,maxload2.639:
+  interfaces1.130×,labeled control1.295×,enums1.201×;four cases.978–.991×.
+  Focused8-case repeat10.869s/182,368KiB,maxload2.596 preserves winners,but
+  iterable call spread is.972×. Do not keep a global branch based on interfaces.
+- Tested three consumer refinements before changing more source:a small wrapper
+  around the unchanged digit kernel,an inline-never kernel,and digit-fast-path
+  plus standard formatting for larger values. Wrapper18 build9.335s/202,720KiB;
+  paired34.120s/259,968KiB,maxload2.657. Other two variants build16.570s/
+  236,080KiB;paired41.940s/221,152KiB,maxload2.319. All complete boundary
+  observations agree. None clears all regressions:string iteration remains
+  **.968×/.968×/.968×**,and standard formatting additionally makes
+  array_from_map_string.959×. Reject every variant,including the outlined
+  interfaces1.181×/labeled1.369× wins;do not cherry-pick those measurements.
+- Ruled out loader-path differences:parent and actual candidate run through the
+  same temporary hard-link pathname with identical native argv0. Same original
+  protocol/Node control,90 full boundary comparisons pass;28.467s/243,392KiB,
+  maxload2.435. Interfaces.136167→.118084ms (**1.153×**),labeled1.319×,
+  enums1.199×,but string iteration2.748875→2.810584ms (**.978×**) and iterable
+  call spread1.589792→1.639125ms (**.970×**). The slower larger-value paths
+  persist,so the generic optimization fails acceptance despite real local wins.
+- Reverted runtime/strings.rs exactly to71a947af;no compiler/runtime change is
+  retained. Keep the new O0/O3 spelling/destination-reuse witness,which is a
+  contract of the existing writer too. store:ingest adds36 minimal histories
+  from the formal rejected run;public performance pins remain unchanged.
+  All36 histories pass exact rounded median/mean rate/93sample checks and SQLite
+  integrity. No dependency,public API,ownership-policy,CI,push or deployment
+  change. Do not retry the global digit branch or these formatter/wrapper variants
+  without a new measured cause;larger-integer paths must remain fast.
+- Restored compiler/LSP release tools and the retained test build pass
+  404.173s/1,647,152KiB combined. All11 string-addition checks pass against the
+  original writer5.168s/443,184KiB,including the new O0/O3 witness. All933 restored
+  emissions are byte-identical to parent10.853s/315,968KiB. Native/Node correctness
+  for all18 cases passes19.197s/436,464KiB. Restored allocation profile
+  **2026-11-02T12:29:48.247Z**,10.868s/363,008KiB:all18 three-sample dictionaries
+  and emitted-source hashes exactly equal parent,including cleanup0. Current
+  compiler source hashes equal accepted71a947af and this restored profile.
+  Public performance export is byte-identical (933 comparisons/46 accepted runs),
+  two readability/data checks pass,and whole-project formatter4.128s/203,088KiB
+  changes zero files/snippets/fingerprints. Pruned222 closed probe/raw/obsolete
+  test/intermediate files (580,034,320bytes) after import verification. Current
+  accepted consumers/profiles,release/debug tools and the fresh11-check binary
+  remain;all owned runners are terminal. Local profiling/test checkpoint only.
+- **Next distinct hypothesis:**string_iteration makes133,121 allocations at
+  n2048 (65 per scenario plus the outer allocation),with9 outer reallocations.
+  Inspect/profile the nonescaping trace/filtered/nested updates written as
+  `text = text + ...`. Compare their generated code with the existing uncaptured
+  local `+=` lowering and direct destination writes before another integer writer
+  trial. Stage all RHS work before mutation;preserve errors,side effects,borrows,
+  captures,assignment-result ownership and independently escaping strings.
+  Establish a consumer allocation/timing diagnosis first;do not assume a syntax
+  rewrite is safe or faster. This uses the owner's destination-reuse profiling
+  suggestion where intermediate strings do not escape.
+
 **Readonly small parameter slices — accepted locally, parent 23f578f3:**
 - Reprofiled nested_rest_patterns.describe, not interfaces.describe: the former
   copies its destructured parameter tail through the heap-default slice helper.
@@ -1331,7 +1418,11 @@ complete (see the accepted/rejected sections above). Borrowed local string field
 are accepted in c21ea2ce; exact integer sizing and a global five-slot Array were
 rejected after measurement. Fixed-width owned result rows and readonly small slices are accepted in the
 previous compiler checkpoint;closed readonly small parameter slices are accepted
-in the latest checkpoint (1.066×,repeat1.046×);see measured sections above. Reprofile residual
+in the latest optimization checkpoint (1.066×,repeat1.046×);see measured sections above.
+The subsequent global single-digit append branch and three formatter/wrapper
+variants were rejected:interfaces1.153× did not offset string-iteration.978× and
+iterable-call-spread.970× regressions. The original writer remains. Profile
+nonescaping assignment-concatenation temporaries next,as described above. Reprofile residual
 string costs before extending storage hints or changing formatting. Destination reuse
 is limited to values whose ownership permits it; escaping strings remain distinct
 owned outputs. Arena allocation and new formatting dependencies remain conditional,

@@ -244,6 +244,38 @@ unsafe fn realloc(&self,p:*mut u8,layout:Layout,size:usize)->*mut u8{let q=unsaf
 "#;
 
 #[test]
+fn appended_single_digits_reuse_utf8_destinations_and_other_integers_keep_exact_spelling() {
+    native(
+        r#"function label(value:int):string{return "é"+String(value)+"🙂";}function main(){}"#,
+        "",
+        r#"
+        for value in 0..=9i64 {
+            let expected=format!("é{value}🙂");
+            let mut text=std::string::String::with_capacity(64);text.push_str("é");
+            let pointer=text.as_ptr();let capacity=text.capacity();
+            ALLOCATIONS.store(0,Ordering::SeqCst);
+            tsr_push_int(std::hint::black_box(&mut text),std::hint::black_box(value));
+            text.push_str("🙂");
+            assert_eq!(ALLOCATIONS.load(Ordering::SeqCst),0);
+            assert_eq!(text.as_ptr(),pointer);assert_eq!(text.capacity(),capacity);
+            assert_eq!(text,expected);assert_eq!(function0(value).as_ref(),expected);
+        }
+        let mut random=0x715f_32c9_9b8a_408du64;
+        for value in (-19..=19i64).chain([i64::MIN,i64::MAX,99,100,999,1000])
+            .chain((0..1024).map(|_|{random=random.wrapping_mul(6364136223846793005).wrapping_add(1);random as i64})) {
+            assert_eq!(function0(value).as_ref(),format!("é{value}🙂"));
+        }
+        for value in [0.0,-0.0,1.0,9.0,10.0,-1.0] {
+            let mut text=std::string::String::from("é");
+            assert!(tsr_push_whole_number(&mut text,std::hint::black_box(value)));
+            assert_eq!(text,format!("é{}",value as i64));
+        }
+        "#,
+        ALLOCATOR,
+    );
+}
+
+#[test]
 fn appended_numbers_write_digits_into_the_result_in_operand_order() {
     let source = r#"enum Phase { Ready, Busy = 4, Half = 2.5 }
 function next(log: string[], value: int): int { log.push(`n${value}`); return value; }
