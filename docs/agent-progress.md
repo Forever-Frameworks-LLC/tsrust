@@ -88,6 +88,64 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   corrected schema behavior. No new CI, push, release or deployment.
 
 
+**Object allocation profiling — parent baseline complete, 2026-11-02:**
+- Accepted parent **2f3d0fca**. Release compiler/LSP rebuilt successfully,
+  **210.971s/1,492,320KiB**. No object optimization/source change yet.
+- Native allocation profile **2026-11-02T01:18:34.930Z**,3.639s/221,888KiB;
+  pinned Rust reference profiles **2026-11-02T01:18:51.364Z**,1.041s/250,784KiB.
+  Same existing allocation driver/ABI adapters/independent oracle; three exact
+  repeated samples per engine/case. The reference source hashes match public
+  pinned baselines. No new profiling dependency or Rust timing baseline.
+- interfaces n2048,seed7,input19 UTF-8 bytes,checksum **473727250**:
+  generated **14,337 allocations/9 reallocations**, requested **1,072,736**,
+  retained **821,248**, peak821,267; reference **16,385/2,057**, requested
+  **634,784**, retained **505,856**, peak505,876. Generated has fewer calls but
+  uses more bytes. Every output/input drop returns to zero live bytes.
+- String-free record_mutation n200000,checksum **10,000,700,000**: both engines
+  **zero allocations/reallocations/requested/retained/peak bytes**.
+- Matched layout attribution reuses those probes and asserts retained bytes equal
+  outer slots+inner vectors+owned string capacities. Three identical samples;
+  all original counts/checksums preserved. Generated row slots **104 bytes**,
+  outer212,992 /inner245,760 /strings362,496. Reference slots **24 bytes**,
+  outer49,152 /inner245,760 /strings210,944. Extra retained315,392 bytes splits
+  exactly into **163,840 row-layout +151,552 string-capacity bytes**. Layout
+  diagnostic1.037s/165,936KiB; /tmp/tsrust-object-layout.json.
+- System-allocator CPU probes retain original workload bodies and black-box each
+  returned output before drop; observer validates checksum once before20,000
+  repeated batches. CPU samples show generated allocation/manual integer append,
+  reference std formatting/reallocation. Diagnostic wall7.306/10.539s are **not
+  matched benchmark timings** and must not update performance histories. Combined
+  watchdog18.066s/33,424KiB; /tmp/tsrust-interfaces-{native,hand}.sample.
+- Fresh quiet parent **2026-11-02T01:23:48.576Z** completed,
+  **8.315s/283,232KiB**, max timed load **2.067**, no override. Original
+  3processes/eight warmups/31samples each, **93 per engine/workload**. Native /
+  Node medians: interfaces **.243333/.117292ms**, record_mutation
+  **.098666/.431375**, type_aliases **.148458/.038875**, enum_values
+  **.066833/.036458**. Interface native process medians .241917/.246250/.245417.
+  Saved Rust medians remain **.413167/.098667/.178917/.179166** respectively;
+  no Rust wall-clock baseline rerun. The old public .755ms interfaces figure was
+  stale; this fresh current-compiler baseline is not an empty-schema speedup.
+- store:ingest added **eight histories**. Exact median6/mean rate3/93 counts,
+  every compiler/workload source hash, quiet policy and SQLite integrity verified.
+  Public pin now selects these four current pairs, reusing all other measurements
+  and pinned Rust references. Three website tests,66-page build,links/assets in
+  116pages pass; website **3.640s/933,584KiB**. Whole-project formatter zero
+  files/snippets/fingerprints changed. Source unchanged since **2f3d0fca**.
+- Keep the raw parent timing/allocation profiles for the coming A/B. The matched
+  hand/layout/CPU scripts in /tmp reuse existing observers/drivers, with exact
+  hashes, accounting assertions and zero-live-byte checks; they are disposable
+  diagnostics, not new production tools or dependencies.
+- Next: trace standalone String(int) emission and existing static ASCII-character
+  storage before choosing a change. Interfaces retains two per-row small numeric
+  output strings (score and optional y). Reusing the existing one-character table
+  for single decimal digits is a candidate to remove their allocations while
+  preserving independent mutation through current Cow ownership. This is an
+  **unimplemented hypothesis**, not a chosen new ownership policy or measured
+  gain. Verify minimum/maximum/negative integers, formatting, subsequent mutation
+  and native String conversion; profile first and preserve controls. Do not
+  assume replacing the already-buffered digit writer with format! is faster.
+
+
 **Object and string allocation — next optimization plan (owner follow-up):**
 
 1. **Separate construction/access from string work.** Reuse string-free
