@@ -1,5 +1,6 @@
 mod declaration_scope;
 mod receiver_moves;
+mod self_append;
 mod runtime_support_ids;
 #[cfg(test)]
 mod statement_work_tests;
@@ -174,6 +175,7 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
     let native_record_fields=native_view_record_parameters::Index::new(program,&native_views);
     let mut emitter = Emitter {
         receiver_moves: RefCell::default(),
+        self_appends: self_append::Index::new(program),
         work_functions:owned_work::Arena::default(),
         work_regions:owned_work::Arena::default(),
         borrowed_capture_alternatives,
@@ -264,6 +266,7 @@ pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str
 struct Emitter<'a> {
     /// Copying calls in the function being emitted whose dead receiver may be moved.
     receiver_moves: RefCell<HashSet<(usize, usize)>>,
+    self_appends: self_append::Index,
     work_functions:owned_work::Arena<CheckedFunction>,
     work_regions:owned_work::Arena<ExceptionRegion>,
     borrowed_lifetime_alternatives: borrowed_payload_emit::Alternatives,
@@ -4037,6 +4040,9 @@ impl Emitter<'_> {
                     "{};",
                     self.compound_assignment(fun, target, value, *op, *span)
                 ),
+                StmtKind::Assign {target,value,operator:None} if self.self_appends.assignment(fun,value) => {
+                    format!("{};",self.self_append_with(fun,target,value,&mut |operand,mode,_|self.expr(fun,operand,mode)))
+                }
                 StmtKind::Assign {target,value,operator:None} if target.binding.is_some_and(|id|self.restored_capture(fun,id)) => {
                     format!("{}value{} = Some({});",if fun.bindings[target.binding.unwrap()].capture_reference {"*"}else{""},target.binding.unwrap(),self.expr(fun,value,Mode::Consume))
                 }
@@ -4702,6 +4708,15 @@ impl Emitter<'_> {
         self.compound_assignment_with(fun, target, value, op, span, &mut |operand, mode, discard| {
             if discard { self.comma_discard_code(fun, operand) } else { self.expr(fun, operand, mode) }
         })
+    }
+
+    fn self_append_with(&self,fun:&CheckedFunction,target:&Expr,value:&Expr,render:&mut impl FnMut(&Expr,Mode,bool)->String)->String {
+        let selection=self.storage_selection_with(fun,target,false,render);
+        let operands=self_append::operands(target,value).expect("proved string self append");
+        let rendered=operands.iter().map(|operand|{let(child,mode)=Self::chain_operand(operand);render(child,mode,false)}).collect::<Vec<_>>();
+        let failure=format!("string addition capacity overflow at source bytes {}..{}",value.span.start,value.span.end);
+        let(parts,capacity,pushes)=self.string_parts(&operands,&rendered,&failure);
+        format!("{{ {}{parts}let sink=tsr_string_reserve(&mut ({}),{capacity},{failure:?}); {pushes} }}",selection.setup,selection.place)
     }
 
     fn compound_assignment_with(&self, fun: &CheckedFunction, target: &Expr, value: &Expr, op: BinaryOp, span: crate::diagnostic::Span, render: &mut impl FnMut(&Expr, Mode, bool) -> String) -> String {
@@ -7252,7 +7267,10 @@ impl Emitter<'_> {
         }
         if self.restored_capture(fun,index) {
             return match mode {
-                Mode::Consume=>format!("value{index}.take().expect(\"initialized capture\")"),
+                Mode::Consume=>{
+                    let value=format!("value{index}.take().expect(\"initialized capture\")");
+                    if self.self_appends.binding(fun,index){format!("tsr_string_finish({value})")}else{value}
+                },
                 Mode::Copy if b.ty.is_copy()=>format!("*value{index}.as_ref().expect(\"initialized capture\")"),
                 Mode::Read|Mode::Copy=>format!("value{index}.as_ref().expect(\"initialized capture\")"),
                 Mode::Mutate=>format!("value{index}.as_mut().expect(\"initialized capture\")"),
@@ -7288,7 +7306,8 @@ impl Emitter<'_> {
         } else {
             ""
         };
-        format!("{reference}{dereference}value{index}")
+        let value=format!("{reference}{dereference}value{index}");
+        if mode==Mode::Consume && self.self_appends.binding(fun,index){format!("tsr_string_finish({value})")}else{value}
     }
 
     /// The character at a position of a string, as a new string. Operands
@@ -8047,6 +8066,7 @@ impl Emitter<'_> {
                 branch,
                 ..
             } => self.coalesce_assignment(fun, expr, target, value, *branch),
+            ExprKind::Assign {target,value,..} if expr.ty==Some(Type::Void) && self.self_appends.assignment(fun,value) => self.self_append_with(fun,target,value,&mut |operand,mode,_|self.expr(fun,operand,mode)),
             ExprKind::Assign { target, value, .. } if expr.ty==Some(Type::Void) => {
                 if matches!(target.kind,ExprKind::Name(_)){
                     let id=target.binding.expect("checked assignment binding");

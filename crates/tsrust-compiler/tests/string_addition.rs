@@ -244,6 +244,106 @@ unsafe fn realloc(&self,p:*mut u8,layout:Layout,size:usize)->*mut u8{let q=unsaf
 "#;
 
 #[test]
+fn self_assignment_reuses_local_buffers_and_compacts_owned_results() {
+    let source=r#"
+        function build(input:string,n:int):string{
+            let text="";let i=0;
+            while(i<n){text=text+input+"|";i+=1;}
+            return text;
+        }
+        function main(){let text="";text=text+"a"+"é";console.log(text);}
+    "#;
+    let analysis=native(source,"aé\n",r#"
+        let input=String::Owned("é🙂".to_owned());let expected="é🙂|".repeat(63);
+        let baseline=LIVE.load(Ordering::SeqCst);
+        ALLOCATIONS.store(0,Ordering::SeqCst);
+        let output=function0(&input,std::hint::black_box(63));
+        let allocations=ALLOCATIONS.load(Ordering::SeqCst);
+        assert!(allocations<=12,"amortized appends, not63 new destinations: {allocations}");
+        assert_eq!(output.as_ref(),expected);
+        match &output{String::Owned(text)=>assert_eq!(text.capacity(),text.len()),_=>panic!("owned output")}
+        drop(output);assert_eq!(LIVE.load(Ordering::SeqCst),baseline);
+        let output=function0(&input,2);drop(input);assert_eq!(output.as_ref(),"é🙂|é🙂|");
+    "#,ALLOCATOR);
+    let rust=analysis.emit_rust();assert!(rust.contains("let sink=tsr_string_reserve("));
+    assert!(rust.contains("tsr_string_finish(value"));
+}
+
+#[test]
+fn self_assignment_preserves_operand_effects_snapshots_comma_and_capture_rules() {
+    let source=r#"
+        type Box={text:string;};
+        function tag(log:string[],text:string):string{log.push(clone(text));return text;}
+        function build(log:string[],input:string):string{
+            let text="start".repeat(1);const saved=clone(text);
+            text=text+tag(log,"a")+tag(log,"b")+input.slice(2);
+            console.log(saved);return text;
+        }
+        function comma():string{
+            let text="x";const number=(text=text+"y"+"z",9);
+            text=text+(number===9?"!":"bad");return text;
+        }
+        function captured(input:string):string{
+            let text=String(input);
+            const action:Once<Function<string>>=():string=>{text=text+"z";return text;};
+            return action();
+        }
+        function selfReference(input:string):string{let text=String(input);text=text+text+"!";return text;}
+        function parameter(text:string):string{let copy=String(text);copy=copy+"!";return copy;}
+        function checked():string{
+            let text="base";
+            try{text=text+"a"+fail();}catch(error){console.log(text);}
+            return text;
+        }
+        function fail():string{throw "boom";}
+        function cleanup():string{
+            let text="before";
+            try{return text;}finally{text="after";text=text+"!";console.log(text);}
+        }
+        function main(){
+            const log:string[]=[];console.log(build(log,"é🙂"),log.join(","));
+            console.log(comma());console.log(captured("é"));
+            console.log(selfReference("é"),parameter("é"));
+            const box:Box={text:"f"};box.text=box.text+"g";console.log(box.text);
+            console.log(checked());
+            console.log(cleanup());
+        }
+    "#;
+    native(source,"start\nstartab🙂 a,b\nxyz!\néz\néé! é!\nfg\nbase\nbase\nafter!\nbefore\n","","");
+    let error=check(r#"function main(){let text="a";const observe=():int=>text.length;text=text+"z";console.log(observe());}"#).err().expect("live capture must prevent replacement");
+    assert_eq!(error.code,"capture-conflict");
+    let error=check(r#"function parameter(text:string):string{text=text+"!";return text;}function main(){}"#).err().expect("parameters remain immutable");
+    assert_eq!(error.code,"unsupported");
+}
+
+#[test]
+fn self_assignment_keeps_fused_numeric_and_mixed_builders_on_the_original_path() {
+    native(r#"
+        function build(n:int):string{
+            let text="";text=text+"seed";let i=0;
+            while(i<n){text=text+String(i)+":";i+=1;}
+            return text;
+        }
+        function main(){}
+    "#,"",r#"
+        let baseline=LIVE.load(Ordering::SeqCst);ALLOCATIONS.store(0,Ordering::SeqCst);
+        let output=function0(std::hint::black_box(3));
+        assert_eq!(ALLOCATIONS.load(Ordering::SeqCst),4);
+        assert_eq!(output.as_ref(),"seed0:1:2:");
+        match &output{String::Owned(text)=>assert_eq!(text.capacity(),33),_=>panic!("owned numeric result")}
+        drop(output);assert_eq!(LIVE.load(Ordering::SeqCst),baseline);
+    "#,ALLOCATOR);
+}
+
+#[test]
+fn self_assignment_proof_budget_falls_back_without_rejecting_source() {
+    let source=format!("function main(){{let text=\"\";{}console.log(text.length);}}","text=text+\"x\";".repeat(11_000));
+    let analysis=check(&source).unwrap();let rust=analysis.emit_rust();
+    assert!(!rust.contains("let sink=tsr_string_reserve("));
+    assert!(!rust.contains("tsr_string_finish(value"));
+}
+
+#[test]
 fn appended_single_digits_reuse_utf8_destinations_and_other_integers_keep_exact_spelling() {
     native(
         r#"function label(value:int):string{return "é"+String(value)+"🙂";}function main(){}"#,

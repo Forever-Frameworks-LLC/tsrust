@@ -29,7 +29,9 @@ include **0a68a4f5** (932 Rust references), **2c538120** (normalization optimiza
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization:readonly small parameter slices,nested rest1.066×
+Latest accepted optimization:text-only self-assignment buffers,string iteration
+2.307× (repeat2.288×),allocations -86.2%,retained heap unchanged. Previous
+readonly small parameter slices:nested rest1.066×
 (repeat1.046×),2,048 temporary allocations removed. Previous fixed result rows
 and readonly small local slices:interfaces1.184×
 (repeat1.143×),retained memory -28.7%,nested rest1.208×,numeric rows4.746×.
@@ -53,6 +55,127 @@ accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration
 plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
+
+**Text-only string self-assignment reuse — accepted locally, parent 456783ad:**
+- Followed the recorded string_iteration allocation lead before implementation.
+  Consumer-only replacement of its three nonescaping self-prefix assignments
+  with the existing staged append helpers preserves five complete native/Node
+  boundary outputs. Three identical samples:allocations133,121→18,433,
+  reallocations9→24,585,requested3,473,024→1,455,744 bytes,but retained
+  530,432→684,032 and peak530,466→684,096. Both cleanup counters0.
+  Build/profile3.124s/137,408KiB. Do not hide the29% retained-memory increase.
+- Exact-growth trial preserves requested/retained/peak bytes but makes114,697
+  reallocations;build/profile2.579s/145,200KiB. Quiet original-protocol matched
+  physical path/argv0 timing:parent2.725541ms,amortized1.122708 **2.428×**,
+  exact2.906875 **.938×**,Node1.210375,maxload2.213;4.655s/247,504KiB.
+  Reject per-append exact growth.
+- Amortized construction plus compacting the two escaping output strings keeps
+  retained530,432 bytes;peak530,496 (+30 bytes from the nonescaping trace).
+  Allocations18,433,reallocations28,681,requested1,629,824 (-53.1%),cleanup0;
+  three identical samples,2.594s/147,200KiB. Repeat with all five consumers:
+  parent2.735291ms,amortized1.134667,exact2.820083,compact1.174542
+  (**2.329×**),Node1.212000,maxload2.986;5.192s/247,168KiB. All five complete
+  output cases agree. These are diagnostic consumers,not accepted compiler runs.
+- Accepted:emit/self_append.rs indexes owned local self-prefix assignments and
+  their binding transfers once per checked body,using the existing capture
+  analysis and pointer-index pattern. Self references in suffixes,parameters,
+  capture/view aliases and unknown bodies retain copies. A10,000-node proof
+  budget falls back without limiting source. Existing string-part staging and
+  storage selection preserve RHS effects before mutation,including cleanup-owned
+  slots. Ordinary/void-expression assignments share the lowering;owned transfers
+  compact only flagged local strings with the new safe tsr_string_finish helper.
+  Bindings with any fused numeric self-append retain the entire original path,
+  including mixed text/numeric builders:short builders regress with extra numeric
+  reservations and compaction. This is a type/operation cost guard,not benchmark
+  IDs or a new runtime size cutoff. Existing += lowering and integer writer stay
+  unchanged. No new public API,
+  ownership policy,dependency or generated unsafe.
+- Added O0/O3 witnesses for amortized allocation count,tight owned outputs,
+  Unicode/input disposal,snapshots,numeric/slice operands,comma assignments,
+  parameters/fields,self references,closure capture rules,checked failures and
+  finally cleanup. An11,000-assignment witness preserves proof-budget fallback.
+  Initial build194.758s/1,452,928KiB;13 string-addition checks passed,one fixture
+  correctly rejected replacement while a closure retained access. Keep that
+  rejection assertion and use a consumed Once closure for the valid fallback
+  witness. Its diagnostic assertion initially required Analysis:Debug;changed it
+  to err().expect after build177.119s/1,540,992KiB. Storage selection now handles
+  initialized cleanup slots rather than assuming every owner is a plain local.
+  Storage-aware rebuild195.142s/1,631,808KiB passes without new warnings. The
+  consumed Once capture correctly transfers its owner;the valid witness now
+  updates/returns that owner inside the closure. Parameter rebinding is also
+  rejected as before;test a mutable local copy and assert the original rejection.
+  Checked the repaired complete fixture with the current CLI before its3.637s/
+  338,672KiB test rebuild;its focused native witness passes2.073s/232,512KiB.
+- **138 checks pass across11 sequential binaries**,--test-threads=3:completed
+  string_addition14 (13 preserved plus repaired witness),comma4/assignment4/
+  interfaces7/string_iteration3;closures14/once11/owned_arguments14/
+  exceptions22/return_moves34/named_owned11. First group's watchdogs7.252s
+  (13 pass/fixture failure),then1.563/2.071/1.578/1.043s;additional suite build
+  7.269s/353,008KiB and runs4.161/1.551/2.596/5.215/13.559/2.600s,
+  max642,336KiB. Cleanup,mutable/owned capture,partial-return and source error
+  regressions all pass;do not restart completed checks.
+- Candidate debug/accepted release933-workload emission/ABI comparison and
+  parent preparation pass40.858s/330,256KiB. Removing only the new runtime helper
+  proves930 user programs unchanged. Actual changes:set_values,map_iteration,
+  string_iteration. Rebuilt these three parents with matched canonical source
+  paths,flags,drivers/ABI,15 complete boundary observations and deterministic
+  three-sample allocation baselines before replacing release tools.
+- Generic candidate release212.511s/1,370,816KiB and official3-case native/Node
+  run **2026-11-02T13:41:44.348Z** pass correctness;full emit/profile/timing block
+  23.715s/431,232KiB. Actual A/B6.744s/245,808KiB,maxload2.248:string iteration
+  2.293×,but set.901× and map.678×. Reject the generic numeric rewrite.
+  Consumer actual-growth trial4.677s/180,080KiB plus paired6.723s/264,176KiB,
+  maxload2.320 restores set1.004× but map remains.774×;reject that helper change
+  too. Preserve the original reserve helper and numeric paths instead.
+- Numeric/mixed exemption build196.988s/1,345,936KiB;string_addition15 and
+  string_iteration3 pass7.834/1.583s,max533,936KiB. New O0/O3 witness preserves
+  the original four allocations and33-byte capacity of a short mixed numeric
+  builder. Pure-text comma witness ensures expression lowering remains exercised
+  after the exemption;focused rebuild/run3.622s/258,480KiB and2.080s/179,648KiB.
+  Total139 affected checks remain accepted;completed ownership suites are reused.
+- Final933 debug/parent ABIs pass26.905s/315,888KiB:removing only the unused
+  finish helper proves932 bodies unchanged,including restored set/map. String
+  iteration code exactly equals the previously profiled candidate. Compiler/LSP
+  all-target check53.807s/1,378,864KiB and final release212.610s/1,613,472KiB
+  pass;only existing decode_plain dead-code warning. Final release933 hashes/ABIs
+  match tested debug10.866s/315,120KiB. Final test-source all-target recheck
+  2.595s/264,640KiB and8 focused harness checks1.038s/162,176KiB pass.
+- Actual final allocation profile **2026-11-02T14:29:58.445Z**,3.625s/294,704KiB:
+  three identical samples each. String iteration133,121→18,433 allocations
+  **(-86.2%)**,9→28,681 reallocations,total allocation/reallocation calls
+  133,130→47,114;requested3,473,024→1,629,824 **(-53.1%)**. Retained530,432
+  bytes unchanged;peak530,466→530,571 **(+105 bytes,0.020%)** from temporary
+  capacity while output cells are staged. Cleanup0. Set/map dictionaries exactly
+  equal parent;their complete Mach-O __TEXT,__text sections are bit-identical.
+- Official accepted3-case run **2026-11-02T14:30:07.070Z**,8.808s/425,168KiB,
+  maxload2.164,no busy override,original3processes/8warmups/31samples per engine.
+  String native1.238958ms/Node1.242292ms. Matched same-path/argv0 parent A/B
+  6.725s/259,680KiB,maxload2.689:parent2.729292→candidate1.183292ms
+  **2.307×**,Node1.230292;identical-code controls1.007×/1.006×,no attributable
+  regression. Focused repeat paired plus official block9.839s/336,080KiB:
+  parent2.725333→candidate1.191375ms **2.288×**,Node1.238167,maxload2.120.
+  Official repeat **2026-11-02T14:38:24.653Z**,native1.167208/Node1.224458ms,
+  maxload2.189. Both original formal runs retained;do not select individual samples.
+- store:ingest adds14 minimal histories (6 rejected generic,6 final,2 repeat).
+  Verified every rounded median/mean rate/93sample entry and SQLite integrity.
+  Public pins select only the final two runs;933 saved Rust timings are reused.
+  Both accepted formal runs and final allocation record match current compiler
+  source hashes exactly. Performance export933 comparisons/48 curated runs,
+  three website checks,66-page build3.688s/915,504KiB and links/assets/anchors
+  in116pages pass1.550s/21,808KiB;existing duplicate404 warning only.
+  Whole-project formatter4.132s/202,112KiB changes zero files/snippets/
+  fingerprints. Pruned1,187 closed files (8,823,347,016bytes),including527
+  obsolete project test executables/dependency files identified from Cargo source
+  paths and checked against live processes. Current tools,two fresh test binaries,
+  accepted native consumers/profiles,two accepted raw runs and imported histories
+  remain;all owned runners are terminal. Local measured checkpoint,no CI/push/
+  deployment.
+- Remaining:do not call numeric/mixed self-append optimized. They preserve the
+  fast existing fused formatter;future work must compare short and long numeric
+  builders and preserve short-case performance before changing growth policy.
+  Reprofile remaining Unicode character materialization and escaping allocations
+  with the accepted compiler before choosing another change. No arena/RC/cache
+  policy is implied by this result.
 
 **Single-digit integer appends — profiled and rejected, parent 71a947af:**
 - Fresh generated/reference interfaces CPU sampling,without allocation counters
@@ -1421,8 +1544,11 @@ previous compiler checkpoint;closed readonly small parameter slices are accepted
 in the latest optimization checkpoint (1.066×,repeat1.046×);see measured sections above.
 The subsequent global single-digit append branch and three formatter/wrapper
 variants were rejected:interfaces1.153× did not offset string-iteration.978× and
-iterable-call-spread.970× regressions. The original writer remains. Profile
-nonescaping assignment-concatenation temporaries next,as described above. Reprofile residual
+iterable-call-spread.970× regressions. The original writer remains. Text-only
+assignment-concatenation reuse is now accepted:2.307× (repeat2.288×),allocations
+-86.2%,retained heap unchanged;see current section above. Numeric/mixed bindings
+keep the original fused path after measured regressions;future short/long numeric
+builder work remains separate. Reprofile residual
 string costs before extending storage hints or changing formatting. Destination reuse
 is limited to values whose ownership permits it; escaping strings remain distinct
 owned outputs. Arena allocation and new formatting dependencies remain conditional,

@@ -504,6 +504,12 @@ pub fn tsr_string_reserve<'a>(text: &'a mut String, additional: usize, failure: 
     }
 }
 
+// Self-assignment used to copy into a tight buffer before transferring ownership.
+pub fn tsr_string_finish(mut text: String) -> String {
+    if let String::Owned(owned)=&mut text {owned.shrink_to_fit();}
+    text
+}
+
 pub fn tsr_string_add(left: &String, right: &String, failure: &'static str) -> String {
     let capacity = left.len().checked_add(right.len()).expect(failure);
     let mut output = std::string::String::with_capacity(capacity);
