@@ -77,6 +77,7 @@ function mixed(value:number|string|boolean|null):string{return String(value);}
 function phase(value:Phase):string{return String(value);}
 function maybePhase(value:Phase|null):string{return String(value);}
 function once(trace:int[]):number{trace.push(1);return 7.0;}
+function specialOnce(trace:int[]):number{trace.push(2);return Number.NaN;}
 function main(){
  for(const value of [-10.0,-1.0,-0.0,0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,0.5,-2.5,17.0,1e-7,1e21,Number.NaN,Number.POSITIVE_INFINITY,Number.NEGATIVE_INFINITY]){
   strictEqual(direct(value),value.toString());strictEqual(optional(value),value.toString());strictEqual(mixed(value),value.toString());
@@ -89,7 +90,12 @@ function main(){
  let first=direct(4.0);const second=direct(4.0);first+='x';strictEqual(first,'4x');strictEqual(second,'4');
  const box:Box={text:direct(6.0)};const saved=clone(box);box.text+='x';strictEqual(box.text,'6x');strictEqual(saved.text,'6');
  const values=[direct(8.0),direct(8.0)];values[0]+='x';strictEqual(values[0],'8x');strictEqual(values[1],'8');
+ for(const value of [Number.NaN,Number.POSITIVE_INFINITY,Number.NEGATIVE_INFINITY]){
+  let first=direct(value);const second=mixed(value);first+='x';strictEqual(first,value.toString()+'x');strictEqual(second,value.toString());
+  const box:Box={text:optional(value)};const saved=clone(box);box.text+='x';strictEqual(saved.text,value.toString());
+ }
  const trace:int[]=[];strictEqual(String(once(trace)),'7');strictEqual(trace.length,1);
+ strictEqual(String(specialOnce(trace)),'NaN');strictEqual(trace.length,2);
 }
 "#;
     let directory=support::TempDirectory::new();
@@ -100,10 +106,12 @@ function main(){
 
 #[test]
 fn discarded_number_string_conversion_selects_its_existing_support() {
-    let source=support::format_round_trip("function main(){String(Number(7));}");
-    let emitted=tsrust_compiler::check(&source).unwrap().emit_rust();
-    assert!(!emitted.contains("unsafe"));
-    let directory=support::TempDirectory::new();
-    let output=support::run(support::cli().arg("run").arg(directory.source(&source)),60);
-    support::success(&output);assert!(output.stdout.is_empty());
+    for input in ["function main(){String(Number(7));}","function main(){String(Number.NaN);String(Number.POSITIVE_INFINITY);String(Number.NEGATIVE_INFINITY);}"] {
+        let source=support::format_round_trip(input);
+        let emitted=tsrust_compiler::check(&source).unwrap().emit_rust();
+        assert!(!emitted.contains("unsafe"));
+        let directory=support::TempDirectory::new();
+        let output=support::run(support::cli().arg("run").arg(directory.source(&source)),60);
+        support::success(&output);assert!(output.stdout.is_empty());
+    }
 }

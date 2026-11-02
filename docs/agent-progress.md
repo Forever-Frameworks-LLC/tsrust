@@ -24,9 +24,10 @@ include **0a68a4f5** (932 Rust references), **2c538120** (normalization optimiza
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization: direct numeric string appends (1,024 temporary
-allocations removed; controlled concat1.034×) and proven-whole enum appends
-(official1.077×). Previous fractional template formatting is1.099×,
+Latest accepted optimization: static nonfinite number text (nullable1.111×,
+numeric conversion1.087×;513/1,430 allocations removed). Previous direct numeric
+string appends removed1,024 temporary allocations (controlled concat1.034×)
+and proven-whole enum appends are official1.077×. Previous fractional template formatting is1.099×,
 4,100→2,052 allocations. Previous single-digit String(number) storage reuse
 is enums1.750×, mixed-number arrays/unions1.07×. Previous String(int) reuse
 is interfaces1.198×/splice and nullable1.45×. Previous plain JSON decoding with
@@ -40,6 +41,91 @@ accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration
 plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
+
+**Standalone nonfinite number strings — accepted locally, parent 76612b94:**
+- Generated String(int) fallback already uses the same std to_string operation
+  as the handwritten interfaces reference. Do not reimplement its formatter
+  speculatively. Profile standalone String(number) special text instead.
+- Fresh profile **2026-11-02T05:09:28.408Z**,6.242s/302,960KiB:
+  nullable_number_null1,027 allocations/10 reallocations;
+  numeric_string_conversion3,893/9. Finite controls: pop4,609/12,
+  numeric_literals13,825/2,057,enums2,049/9,interfaces10,238/9.
+  All checksums/cleanup/count determinism validated. Initial profiler selection
+  named an unregistered undefined workload and was rejected before any probes;
+  corrected against manifest IDs.
+- Current nullable CPU probe uses original driver/independent checksum522694246,
+  exact iteration count/seed7,100,000 observed-output creation/drop repetitions.
+  Preparation1.033s/289,712KiB; full sample5.668s/32,464KiB. Initial10,000-loop
+  diagnostic ended before the3s sample window; reran only diagnostic repetitions.
+  Array push,Float label/format/tie and allocation/free work visible; diagnostic
+  rather than formal timing. Original benchmark samples remain unchanged.
+- Fresh quiet parent **2026-11-02T05:11:46.710Z**,11.941s/326,416KiB,
+  original93samples/engine across six selected workloads,focused Node controls;
+  standard Rust reference measurements reused.
+- Candidate keeps the digit cache first,then reuses existing number_format_special
+  only for nonfinite values; finite fallback keeps the original label formatter.
+  A single is_finite test separates the slow path. Immutable static literals
+  preserve independent mutation via the existing Cow behavior. No RC,dependency,
+  runtime helper,limit,signature or public documentation change.
+- Traced direct/union/numeric-enum conversion and indirect Object.hasOwn key
+  conversion consumers. Extended native allocation witness for quiet/signaling/
+  negative NaN payloads,±infinity,owned conversion and mutation; kept finite/
+  random fallback checks. Expanded checked-TSR union/record mutation and single
+  evaluation checks,plus discarded special conversion support selection.
+  Seven initial affected binaries selected: numeric_string_conversion,
+  number_formatting,number_text_ties,console_output,object_has_own,
+  root_builtin_spread,enums. Build194.738s/1,499,216KiB; all42 checks pass:
+  6/5/2/14/4/5/6; individual watchdogs3.105/6.732/1.030/11.954/1.039/2.626/
+  1.036s,max663,088KiB. Quiet/signaling/signed NaN and mutation checks pass at
+  O0/O3; finite/random label fallback remains exact. Release208.513s/1,470,976KiB. Candidate profile
+  **2026-11-02T05:22:47.950Z**,6.718s/310,256KiB: nullable allocations
+  1,027→514 (-513),realloc10 unchanged,requested402,429→399,009,
+  retained/peak206,013→202,593 (-3,420 bytes). Numeric conversion allocations
+  3,893→2,463 (-1,430),realloc9 unchanged,requested474,982→467,632,
+  retained261,342→253,992,peak261,586→254,236 (-7,350 bytes).
+  Every sample deterministic/checksum-correct,cleanup0; all four controls'
+  allocation/reallocation/byte/cleanup samples unchanged.
+- Quiet candidate **2026-11-02T05:23:12.059Z**,11.378s/399,280KiB,
+  max load3.832 versus parent2.449,no override,original93samples/engine:
+  nullable **.040834→.036750ms,1.111×**,Node .052083→.051958 (normalized1.108×);
+  numeric conversion **.207250→.190708,1.087×**,Node .203208→.204917
+  (normalized1.096×). All three native medians for each affected workload beat
+  parent global. Pop .209333→.206916,enums .036291→.036208,interfaces
+  .205333→.203167; no regression in these controls. Finite numeric_literals
+  .394375→.403875,Node .174000→.174375 required diagnosis.
+- Paired original-driver finite-literal diagnosis reconstructs full parent source
+  by removing only the special branch; exact instrumented parent hash verified.
+  Same source path/compiler/flags,rotate parent/candidate/Node,3processes after
+  8warmups/31samples each,exact output and quiet checks. Parent .400792ms
+  versus candidate .397792,Node .173916,max load1.699,watchdog2.073s/320,864KiB.
+  No repeatable finite-control regression; do not claim a finite optimization.
+  Preserve official measurements unchanged; do not claim a finite optimization.
+- All-target compiler/LSP check52.769s/1,445,120KiB passed; existing decode_plain
+  dead-code warning only. Twenty-four imported histories verified for exact
+  rounded medians/mean rates/93counts,paired source/protocol/compiler identities,
+  quiet policies and SQLite integrity. Integer interfaces control's emitted and
+  instrumented source remains exactly identical. Saved Rust baselines reused.
+  Public pin selects final official run; diagnostic timings are not substituted.
+- Refreshed the two coupled addition suites because their allocation reference
+  calls String(number): build4.158s/369,568KiB,addition10 and concatenation2 pass,
+  watchdogs6.238s/503,280KiB and1.567s/206,576KiB. **54 total affected checks
+  passed.** Frontend/signatures unchanged; existing editor agreement reused.
+- Whole-project formatter zero files/snippets/fingerprints changed. Three website
+  tests pass;66-page build3.620s/913,376KiB;links/assets/anchors in116pages pass.
+  Existing duplicate404 route warning only. Current release compiler/LSP contains
+  accepted source. No new runtime helper/table/dependency/unsafe/limit/ownership
+  policy or public signature. Static literal reuse follows existing Cow rules.
+  No CI,push/deployment; all owned runners terminal.
+- Pruned 32,458,037 bytes across7 closed raw/CPU/paired-probe artifacts.
+  Current candidate timing/allocation and54-check test binaries retained for
+  next parent. No separate handoff/source snapshots created.
+- Next: profile the remaining finite String(number) path. It still constructs
+  TsrConsoleValue::Number and dispatches label although the domain is already
+  known. Investigate calling the existing numeric formatter directly,including
+  isolated support selection,only if fresh CPU evidence justifies it. Avoid
+  reimplementing std integer formatting or repeating rejected append writers.
+  Preserve object/string allocation plan and104-byte row-layout lead.
+
 
 **Fractional string addition — accepted locally, parent e50398b5:**
 - Final form: keep ordinary whole-number handling,then reuse existing TsrJoinText

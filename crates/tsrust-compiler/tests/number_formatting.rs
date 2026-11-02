@@ -273,7 +273,14 @@ fn single_digit_number_strings_allocate_nothing_and_fallback_matches_existing_la
      let mut copy=text.clone();copy.to_mut().push('x');assert_eq!(text.len(),1);assert_eq!(copy.len(),2);
      let owned:std::string::String=text.into_owned();assert_eq!(owned.as_bytes(),&[b'0'+value as u8]);
     }
-    for value in [f64::NEG_INFINITY,-f64::MAX,-10.0,-1.0,-f64::MIN_POSITIVE,-f64::from_bits(1),f64::from_bits(1),f64::MIN_POSITIVE,0.5,0.9999999999999999,9.000000000000002,10.0,17.0,1e21,f64::MAX,f64::INFINITY,f64::NAN] {
+    for (value,expected) in [(f64::NAN,"NaN"),(f64::from_bits(0x7ff0000000000001),"NaN"),(f64::from_bits(0xfff8000000000001),"NaN"),(f64::INFINITY,"Infinity"),(f64::NEG_INFINITY,"-Infinity")] {
+     let before=ALLOCATIONS.load(Ordering::Relaxed);let text=function0(std::hint::black_box(value));
+     assert!(matches!(text,String::Borrowed(_)));assert_eq!(text.as_ref(),expected);
+     assert_eq!(ALLOCATIONS.load(Ordering::Relaxed),before);
+     let mut copy=text.clone();copy.to_mut().push('x');assert_eq!(text.as_ref(),expected);assert_eq!(copy.as_ref(),format!("{expected}x"));
+     let owned:std::string::String=text.into_owned();assert_eq!(owned,expected);
+    }
+    for value in [-f64::MAX,-10.0,-1.0,-f64::MIN_POSITIVE,-f64::from_bits(1),f64::from_bits(1),f64::MIN_POSITIVE,0.5,0.9999999999999999,9.000000000000002,10.0,17.0,1e21,f64::MAX] {
      let text=function0(value);assert!(matches!(text,String::Owned(_)));assert_eq!(text.as_ref(),tsr_console_number(value,false));
     }
     let mut bits=0x9e3779b97f4a7c15u64;

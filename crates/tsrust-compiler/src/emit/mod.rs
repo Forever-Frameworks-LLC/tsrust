@@ -1076,8 +1076,8 @@ impl Emitter<'_> {
         }
     }
     fn number_string_conversion(value: &str) -> String {
-        // Preserve the existing label formatter outside the single-digit domain.
-        format!("{{ let number_text_value: f64 = {value}; if (0.0..=9.0).contains(&number_text_value) && number_text_value.fract() == 0.0 {{ tsr_int_text(number_text_value as i64) }} else {{ String::Owned(TsrConsoleValue::Number(number_text_value).label()) }} }}")
+        // Preserve the existing label formatter for other finite values.
+        format!("{{ let number_text_value: f64 = {value}; if (0.0..=9.0).contains(&number_text_value) && number_text_value.fract() == 0.0 {{ tsr_int_text(number_text_value as i64) }} else if !number_text_value.is_finite() {{ number_format_special(number_text_value).expect(\"nonfinite number text\") }} else {{ String::Owned(TsrConsoleValue::Number(number_text_value).label()) }} }}")
     }
 
     fn union_observation(&self, union: UnionId, value: &str, target: CallTarget) -> String {
