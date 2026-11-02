@@ -229,3 +229,22 @@ fn temporary_parsed_collection_size_has_integer_hover() {
         }
     }
 }
+
+
+#[test]
+fn standalone_empty_object_schemas_keep_checked_completion_and_hover() {
+    use tsrust_lsp::{workspace::Workspace,project_diagnostics::source_id,project_intelligence::ProjectIndex};
+    for policy in ["", ".strip()", ".retain()"] {
+        let source=format!("import {{s}} from 'std:schema';const schema=s.object({{}}){policy};function main(){{const outcome=schema.safeParseJson('{{}}');if(outcome.success){{const value=outcome.data;console.log(Object.keys(value).length);}}}}");
+        let uri=fixture_uri("empty-object-schema-editing.tsr");let uri=uri.as_str();
+        let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());
+        let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+        let index=ProjectIndex::checked(&checked);
+        let offset=source.find("schema.safeParseJson").unwrap()+"schema.".len();
+        let items=index.request("textDocument/completion",&json!({"position":{"line":0,"character":offset}}),uri).unwrap().unwrap();
+        for method in ["parse","safeParse","safeParseJson"] {assert!(items.as_array().unwrap().iter().any(|item|item["label"]==method),"{policy}: {items}");}
+        let offset=source.find("const schema").unwrap()+"const sch".len();
+        let hover=index.request("textDocument/hover",&json!({"position":{"line":0,"character":offset}}),uri).unwrap().unwrap().to_string();
+        assert!(hover.contains("Schema")&&!hover.contains("__tsrust_private_"),"{policy}: {hover}");
+    }
+}

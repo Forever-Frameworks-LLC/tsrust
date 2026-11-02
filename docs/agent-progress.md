@@ -36,6 +36,112 @@ plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
 
+**Standalone empty object schemas — accepted locally, 2026-11-02:**
+- Parent **9b016b90**, clean tree. Fresh current-release witnesses show both
+  `s.object({}).retain()` and plain `s.object({})` fail before retention with
+  "Unknown generic record type"; watchdog .520/.523s,5,072/5,360KiB.
+  Prior diagnostic-options test created a leaf schema before its empty object,
+  hiding an initialization-order defect.
+- Root: schema namespace preparation registers Schema<T> through leaf binding
+  signatures. A standalone empty composite has no leaf signature. Collect one
+  composite-builder span and explicitly intern Schema before generic processing;
+  leave generic validation and runtime behavior unchanged. Scope: namespace.rs,
+  schema_decode native regression, schema_editing checked completion/hover.
+- New native witness compiles each plain/strip/retain policy independently,
+  checks owned/source success and retained private-key extras, non-object
+  validation errors and malformed-JSON errors. Uses existing format round trip.
+  New editor witness independently checks all three policies without prior leaves.
+- Focused compiler build passed **194.295s/1,639,584KiB**. First decoder
+  run: **9 passed/one new fixture failed**,24.377s/1,085,344KiB. The fixture
+  wrongly expected strict default unknown fields to succeed; runtime correctly
+  rejected them. Fixed the fixture to verify default unknown-field rejection
+  explicitly and test extra-field success only under strip/retain. No product
+  relaxation. Retry-only build1.561s/380,848KiB; new witness live session90912,
+  /tmp/tsrust-empty-schema-retry.log. Preserve nine earlier passes.
+- Corrected new witness passed **20.165s/363,168KiB**, nine original decoder
+  passes preserved. Remaining suites passed: diagnostic options11
+  **21.761s/998,736KiB**; recursive10 **22.790s/1,078,048KiB**; literals9
+  **22.789s/972,544KiB**; unions13 **55.936s/1,077,568KiB**. Total **53
+  affected compiler/native invocations passed**, no skips. Whole-project format
+  completed with zero files/snippets/fingerprints changed.
+- LSP build passed **181.252s/1,690,800KiB**. schema_editing:16pass,
+  one new fixture failed because console.log(retainedValue) inspects JsonValue,
+  which is explicitly unsupported. Changed only the fixture to print a key
+  count. Retry build1.565s/397,920KiB; corrected witness passed .520s/32 sampled
+  KiB,16 prior passes preserved. All17 schema-editing cases now pass.
+- Required editor agreement completed with no failures/skips: completion
+  matrix3 **498.984s/49,760KiB**, checker agreement3
+  **518.845s/100,064KiB**, editor consistency27 **14.125s/123,568KiB**.
+  Together with schema_editing17, **50 editor invocations passed**. Combined
+  compiler/native/editor total **103**; shared support checks are repeated across
+  binaries, not103 distinct features. Each binary used three threads and its own
+  5GB/30min watchdog; no resource stop.
+- Compiler/LSP all-target diagnostics passed **110.795s/1,508,576KiB**.
+  Only the preexisting decode_plain dead-code warning in the compiler lib-test
+  target remains. Final whole-project format changed zero files/snippets/
+  fingerprints. No generic validation, runtime defaults or public API changed.
+  No performance claim or runtime timing: the standalone case cannot compile on
+  the parent, so this is a correctness checkpoint. SQLite unchanged; test logs
+  are not benchmark measurements. See latest Git checkpoint for accepted source.
+- Next: refresh release compiler/LSP, then profile object/string allocation using
+  the owner-approved plan below. Current debug consumers already execute the
+  corrected schema behavior. No new CI, push, release or deployment.
+
+
+**Object and string allocation — next optimization plan (owner follow-up):**
+
+1. **Separate construction/access from string work.** Reuse string-free
+   `record_mutation` as the existing mutation control. Check existing coverage
+   before adding a numeric record construction/access workload. If needed, add
+   matched Tsrust/TypeScript/standard Rust sources, an independent oracle and
+   observable outputs; distinguish temporary records from records that escape.
+   A win on one numeric case does not prove all struct code optimal, or establish
+   that strings explain every other gap. Inspect optimized work when interpreting
+   a benchmark, rather than attributing its title to one operation.
+2. **Compare actual generated code with the reference.** Ordinary records already
+   use typed structs/direct fields, not dynamic hash maps. Regenerate interfaces
+   Rust from the accepted compiler; compare with
+   [the Rust reference](../benchmarks/runtime/parity/interfaces.rs). The reference
+   uses std `format!()` in describe; generated describe already reserves one
+   destination buffer and appends text/manual decimal digits. Both copy an owned
+   input name per iteration; generated code borrows literal "p" while the current
+   reference allocates it. Thus cloning alone is not a demonstrated explanation
+   of the previously reported .413/.755ms gap. Neither version is assumed optimal.
+3. **Profile matched memory and CPU work first.** Measure allocation/reallocation
+   counts, requested bytes, peak live bytes and cleanup for generated/handwritten
+   Rust with matching inputs, iterations and output observation. Use existing
+   allocation counters and CPU sampling first; consider dhat/coz only if a missing
+   attribution capability justifies another tool. Rust allocator calls and V8
+   managed allocations are different units; do not equate their raw counts.
+   Inspect repeated small-number string conversions, input copies, formatting,
+   output growth and drop costs. Another concrete layout lead: five-string rows
+   take Array<String>'s heap arm, but each wrapper reserves its four-element
+   inline payload. Measure its cost and preserve accepted small-array wins.
+4. **Remove proven unnecessary work while retaining Rust ownership.** Evaluate
+   borrowing/moving nonescaping fields, eliminating intermediate strings/arrays,
+   and direct writes into an existing destination where the output contract
+   permits. The interfaces workload retains every result string and row: one
+   reusable scratch buffer cannot replace those independently owned outputs.
+   Compare std formatting with the existing digit helper only after profiling;
+   no formatter dependency, arena or storage rewrite is preapproved by this plan.
+5. **Treat arenas as a conditional design question.** Structs already have inline
+   storage; placing a String/Vec header in an arena does not redirect its backing
+   buffer. Arena-aware containers, escaping values, reset boundaries, destructors
+   and async/thread lifetimes need explicit handling. Bumpalo's ordinary arena
+   allocations do not automatically run Drop. Preserve Rust-default ownership
+   and timely resource cleanup; raise an owner design decision only if measured
+   residual allocation cost justifies this architectural change. Do not treat
+   bump allocation as zero total cost or replace the default allocator speculatively.
+6. **Apply the existing acceptance loop.** Establish fresh quiet parent timings,
+   change one measured cause, validate affected native/editor suites under the
+   watchdog and A/B against the accepted checkpoint with focused Node controls.
+   Reuse the existing Rust reference measurement unless its source/protocol must
+   change. Keep only measured performance gains without regressions, ingest into
+   measurements.sqlite, format, checkpoint and record rejected trials honestly.
+
+No object optimization has been implemented from these hypotheses yet.
+
+
 **Source JSON retention — correctness repair accepted, 2026-11-02:**
 - Parent runtime **df3ca7f0**; benchmark support checkpoint **b611fecf**. Fixed
   source::Node::retain once, replacing direct Serde Value decoding with existing
@@ -1761,6 +1867,9 @@ small-string type (chains up to 47% slower, re-validating UTF-8 without
 optimization log below.
 
 **Ranked next targets:**
+The next object/string allocation pass follows the detailed **Object and string
+allocation — next optimization plan** in the current-state section above.
+
 1. Scoped Maps across catch regions: completed the measured snapshot and
    callable-boundary epoch optimizations above. Depth 80 fell from 6.067 s to
    1.403 s in the first A/B, then from a fresh 1.376 s to 0.250 s in the second.

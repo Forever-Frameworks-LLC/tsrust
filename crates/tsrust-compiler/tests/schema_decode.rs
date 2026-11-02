@@ -190,3 +190,29 @@ fn source_retention_preserves_literal_private_keys_in_extras_and_callback_inputs
     "#;
     assert!(execute(source).is_empty());
 }
+
+
+#[test]
+fn empty_object_schemas_initialize_their_own_dependencies() {
+    for policy in ["", ".strip()", ".retain()"] {
+        let empty = if policy == ".retain()" { "strictEqual(Object.keys(value.value).length,0);strictEqual(value.extra.size,0);" } else { "strictEqual(Object.keys(value).length,0);" };
+        let extra = if policy == ".retain()" { "strictEqual(Object.keys(value.value).length,0);strictEqual(value.extra.size,1);const extra=value.extra.get('extra');if(extra===undefined){throw 'Missing extra';}strictEqual(JSON.stringify(extra),'{\"$serde_json::private::RawValue\":\"not JSON\"}');" } else { "strictEqual(Object.keys(value).length,0);" };
+        let text=if policy.is_empty() {"{}"}else{r#"{"extra":{"$serde_json::private::RawValue":"not JSON"}}"#};
+        let unknown=if policy.is_empty() {r#"{const outcome=schema.safeParseJson('{"extra":1}');if(outcome.success){throw 'Unknown field accepted';}else{const error=outcome.error;if(error.kind==='validation'){strictEqual(error.error.issues[0].code,'unknown-field');}else{throw 'Wrong unknown-field failure';}}}"#}else{""};
+        let source=format!(r#"
+import {{s}} from 'std:schema';
+import {{strictEqual}} from 'std:testing';
+function main(){{
+ const schema=s.object({{}}){policy};
+ {{const outcome=schema.safeParse({{}});if(outcome.success){{const value=outcome.data;{empty}}}else{{throw 'Owned empty object rejected';}}}}
+ {{const outcome=schema.safeParseJson('{text}');if(outcome.success){{const value=outcome.data;{extra}}}else{{throw 'Source object rejected';}}}}
+ {unknown}
+ for(const text of ['null','[]','1']){{
+  const outcome=schema.safeParseJson(text);if(outcome.success){{throw 'Non-object accepted';}}else{{const error=outcome.error;if(error.kind==='validation'){{strictEqual(error.error.issues[0].code,'type-mismatch');}}else{{throw 'Wrong failure kind';}}}}
+ }}
+ {{const outcome=schema.safeParseJson('{{');if(outcome.success){{throw 'Malformed input accepted';}}else{{const error=outcome.error;strictEqual(error.kind,'json');}}}}
+}}
+"#);
+        assert!(execute(&source).is_empty(),"{policy}");
+    }
+}
