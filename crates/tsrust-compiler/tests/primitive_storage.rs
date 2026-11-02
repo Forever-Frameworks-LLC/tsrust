@@ -409,3 +409,54 @@ fn standard_normalization_covers_all_ascii_bytes_and_unicode_boundaries() {
         success(&support::run(&mut std::process::Command::new(binary), 30));
     }
 }
+
+#[test]
+fn inline_slices_avoid_container_allocations_and_clean_up_partial_clones() {
+    let dir = support::TempDirectory::new();
+    let path = dir.0.join("inline-slices.rs");
+    let source = format!("{}\n{}", runtime::ARRAYS, r#"
+use std::alloc::{GlobalAlloc,Layout,System};
+use std::sync::atomic::{AtomicUsize,Ordering};
+use std::cell::Cell;
+struct Count;
+static ALLOCATIONS:AtomicUsize=AtomicUsize::new(0);
+unsafe impl GlobalAlloc for Count {
+ unsafe fn alloc(&self,layout:Layout)->*mut u8 {ALLOCATIONS.fetch_add(1,Ordering::Relaxed);unsafe{System.alloc(layout)}}
+ unsafe fn dealloc(&self,p:*mut u8,layout:Layout){unsafe{System.dealloc(p,layout)}}
+}
+#[global_allocator]static ALLOCATOR:Count=Count;
+struct Probe<'a>{value:usize,live:&'a Cell<usize>,calls:&'a Cell<usize>}
+impl Clone for Probe<'_>{fn clone(&self)->Self{
+ self.calls.set(self.calls.get()+1);assert_ne!(self.value,2,"third clone fails");
+ self.live.set(self.live.get()+1);Self{value:self.value,live:self.live,calls:self.calls}
+}}
+impl Drop for Probe<'_>{fn drop(&mut self){self.live.set(self.live.get()-1);}}
+fn main(){
+ for width in 0..=4 {
+  let mut original=Array::from([]);for _ in 0..width {original.push(std::borrow::Cow::Borrowed("é🙂"));}
+  for start in 0..=width {for end in start..=width {
+   let before=ALLOCATIONS.load(Ordering::Relaxed);
+   let mut copy=std::hint::black_box(&original).tsr_inline_slice(std::hint::black_box(start),std::hint::black_box(end));
+   assert_eq!(ALLOCATIONS.load(Ordering::Relaxed),before);
+   assert_eq!(copy.len(),end-start);for item in copy.iter(){assert_eq!(item,"é🙂");}
+   if let Some(item)=copy.get_mut(0){*item=std::borrow::Cow::Borrowed("changed");}
+   for item in original.iter(){assert_eq!(item,"é🙂");}
+   while copy.len()<4 {copy.push(std::borrow::Cow::Borrowed("tail"));}
+   assert_eq!(ALLOCATIONS.load(Ordering::Relaxed),before);
+   copy.push(std::borrow::Cow::Borrowed("spill"));assert_eq!(copy.len(),5);
+   assert_eq!(ALLOCATIONS.load(Ordering::Relaxed),before+1);
+  }}
+ }
+ let live=Cell::new(4);let calls=Cell::new(0);
+ let original=Array::from(std::array::from_fn::<_,4,_>(|value|Probe{value,live:&live,calls:&calls}));
+ assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(||original.tsr_inline_slice(0,4))).is_err());
+ assert_eq!(calls.get(),3);assert_eq!(live.get(),4);drop(original);assert_eq!(live.get(),0);
+}
+"#);
+    std::fs::write(&path,source).unwrap();
+    for level in [0,3] {
+        let binary=dir.0.join(format!("inline-slices-{level}"));
+        success(&support::run(support::rustc().arg("--edition=2024").arg("-Awarnings").arg("-C").arg(format!("opt-level={level}")).arg(&path).arg("-o").arg(&binary),30));
+        success(&support::run(&mut std::process::Command::new(binary),10));
+    }
+}

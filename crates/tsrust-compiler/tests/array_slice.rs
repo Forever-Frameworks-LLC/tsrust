@@ -36,6 +36,37 @@ fn native(source: &str, expected: &str, assertions: &str) -> tsrust_compiler::An
 }
 
 #[test]
+fn readonly_small_slice_chains_keep_inline_storage_and_unknown_receivers_keep_heap_results() {
+    let analysis = native(
+        r#"
+        function snapshots(input:string):string[][] {
+            const small=[input.repeat(1),"tail"];
+            const saved=small.slice();const tail=saved.slice(1);
+            const large=[input.repeat(1),"b","c","d","e"];
+            const big=large.slice();let mutable=[input.repeat(1),"m"];
+            const ordinary=mutable.slice();
+            return [saved,tail,big,ordinary];
+        }
+        function unknown(values:string[]):string[]{return values.slice(1);}
+        function main(){let input="é🙂".repeat(2);const values=snapshots(input);input="changed";console.log(values[0][0]);console.log(values[1][0]);console.log(values[2].length);console.log(values[3][1]);console.log(input);}
+        "#,
+        "é🙂é🙂\ntail\n5\nm\nchanged\n",
+        r#"
+        let values=function0(&String::Owned("é🙂".repeat(2)));
+        assert!(matches!(&values[0],Array::Small{..}));
+        assert!(matches!(&values[1],Array::Small{..}));
+        assert!(matches!(&values[2],Array::Heap(_)));
+        assert!(matches!(&values[3],Array::Heap(_)));
+        let owner=Array::from([String::Borrowed("first"),String::Borrowed("last")]);
+        assert!(matches!(function1(&owner),Array::Heap(_)));
+        "#,
+    );
+    let rust=analysis.emit_rust();
+    assert!(rust.contains("slice_array.tsr_inline_slice(slice_start, slice_end)"));
+    assert!(rust.contains("slice_array.tsr_slice(slice_start, slice_end)"));
+}
+
+#[test]
 fn scalar_slices_normalize_all_arity_forms_and_extreme_bounds() {
     let analysis = native(
         r#"

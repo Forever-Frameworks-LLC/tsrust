@@ -3020,6 +3020,12 @@ impl Emitter<'_> {
             } else {
                 format!("function{index}")
             };
+            let view_result = plan.result.as_ref().map_or(view_result, |shape| self.shape_type(shape));
+            if let Some(crate::fixed_storage::Shape::Rows {element,width} | crate::fixed_storage::Shape::Row {element,width}) = &plan.result {
+                let rank = if matches!(plan.result,Some(crate::fixed_storage::Shape::Rows {..})) {2} else {1};
+                let element = element.native();
+                let _ = writeln!(output,"// tsrust-fixed-array-result {{\"function\":{name:?},\"result\":{view_result:?},\"element\":{element:?},\"width\":{width},\"rank\":{rank}}}");
+            }
             let native_result=match &result_target {Some((_,error))=>format!("Result<{},{}>",view_result,error),None=>view_result};
             let _ = writeln!(output,"fn {name}{generics}({params}) -> {native_result}{replacement_where} {{");
             let async_entry=fun.body.iter().any(|stmt|matches!(stmt.kind,StmtKind::Expr(Expr{kind:ExprKind::Unary{op:UnaryOp::Await,..},..})));
@@ -3475,11 +3481,13 @@ impl Emitter<'_> {
 
     fn expression_shape(&self, expr: &Expr) -> Option<crate::fixed_storage::Shape> {
         let plan = self.active_plan.get()?;
-        crate::fixed_storage::shape_of(self.program, &self.fixed.plans[plan].bindings, expr)
+        self.fixed.expression_shape(self.program, &self.fixed.plans[plan].bindings, expr)
     }
 
     fn shape_type(&self, shape: &crate::fixed_storage::Shape) -> String {
         match shape {
+            crate::fixed_storage::Shape::Rows { element, width } => format!("Vec<[{}; {width}]>",element.native()),
+            crate::fixed_storage::Shape::Row { element, width } => format!("[{}; {width}]",element.native()),
             crate::fixed_storage::Shape::LiteralStrings => "LiteralStringArray".into(),
             crate::fixed_storage::Shape::ScalarArray { scalar, width } => {
                 format!(
@@ -3506,6 +3514,20 @@ impl Emitter<'_> {
         expr: &Expr,
         shape: &crate::fixed_storage::Shape,
     ) -> String {
+        if let crate::fixed_storage::Shape::Rows { element, width } = shape {
+            if let ExprKind::Array(items) = &expr.kind {
+                let row = crate::fixed_storage::Shape::Row { element:*element, width:*width };
+                let values = items.iter().map(|item| self.fixed_literal(fun,item,&row)).collect::<Vec<_>>().join(", ");
+                return format!("vec![{values}]");
+            }
+            return self.expr(fun,expr,Mode::Consume);
+        }
+        if let crate::fixed_storage::Shape::Row { .. } = shape {
+            if let ExprKind::Array(items) = &expr.kind {
+                return format!("[{}]", items.iter().map(|item| self.expr(fun,item,Mode::Consume)).collect::<Vec<_>>().join(", "));
+            }
+            return self.expr(fun,expr,Mode::Consume);
+        }
         if let ExprKind::Unary {
             op: UnaryOp::OptionalSelected,
             value,
@@ -5427,7 +5449,9 @@ impl Emitter<'_> {
     }
 
     fn array_push(&self, fun: &CheckedFunction, base: &Expr, value: &Expr) -> String {
-        let value = self.expr(fun, value, Mode::Consume);
+        let value = if let Some(crate::fixed_storage::Shape::Rows {element,width}) = self.expression_shape(base) {
+            self.fixed_literal(fun,value,&crate::fixed_storage::Shape::Row {element,width})
+        } else { self.expr(fun, value, Mode::Consume) };
         if Self::temporary_storage(base) {
             let array = self.expr(fun, base, Mode::Mutate);
             return format!(
@@ -6857,6 +6881,8 @@ impl Emitter<'_> {
             && !numeric_array(array_type)
             && (inline_array(array_type)
                 || matches!(array_type, Type::Array(ArrayElement::Record(index, 0)) if self.small_record(index)));
+        let inline_slice = matches!(&base.kind,ExprKind::Array(values) if values.len() <= 4)
+            || self.active_plan.get().is_some_and(|plan|self.fixed.plans[plan].inline_slice(base));
         let values = match fixed {
             Some(crate::fixed_storage::Shape::LiteralStrings) =>
                 "slice_array.values[slice_start..slice_end].iter().map(|value| String::Borrowed(value)).collect::<Vec<_>>()".into(),
@@ -6865,7 +6891,7 @@ impl Emitter<'_> {
             _ if numeric_array(array_type) =>
                 "slice_array.as_slice()[slice_start..slice_end].to_vec()".into(),
             _ if compact =>
-                "slice_array.tsr_slice(slice_start, slice_end)".into(),
+                format!("slice_array.{}(slice_start, slice_end)",if inline_slice {"tsr_inline_slice"} else {"tsr_slice"}),
             _ => "slice_array.as_slice()[slice_start..slice_end].to_vec()".to_owned(),
         };
         let result = if compact {
@@ -7020,6 +7046,7 @@ impl Emitter<'_> {
     fn finish_clone_argument(&self,fun:&CheckedFunction,value:&Expr,argument:String)->String{
         if self.record_parameter_borrow_leaf(fun,value){return format!("Clone::clone({argument})");}
         match self.expression_shape(value) {
+            Some(crate::fixed_storage::Shape::Rows { .. } | crate::fixed_storage::Shape::Row { .. }) => format!("Clone::clone({argument})"),
             Some(crate::fixed_storage::Shape::LiteralStrings) => format!("({argument}).clone_owned()"),
             Some(crate::fixed_storage::Shape::Record { .. }) => format!("({argument}).clone_owned()"),
             Some(crate::fixed_storage::Shape::ScalarArray { scalar: crate::fixed_storage::Scalar::Number, .. }) => {

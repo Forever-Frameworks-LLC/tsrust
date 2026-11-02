@@ -170,6 +170,17 @@ impl<T: Clone> Array<T> {
             Self::Heap(values) => Self::Heap(values[start..end].to_vec()),
         }
     }
+    fn tsr_inline_slice(&self, start: usize, end: usize) -> Self {
+        match self {
+            Self::Small { values, .. } => {
+                let values = &values[start..end];
+                let mut slots = [const { None }; 4];
+                for (slot, value) in slots.iter_mut().zip(values) { *slot = Some(value.as_ref().expect("occupied inline array slot").clone()); }
+                Self::Small { len: values.len(), values: slots }
+            }
+            Self::Heap(values) => Self::Heap(values[start..end].to_vec()),
+        }
+    }
 }
 enum ArrayIter<'a, T> {
     Small(std::slice::Iter<'a, Option<T>>),
