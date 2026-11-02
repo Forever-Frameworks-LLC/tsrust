@@ -1,3 +1,4 @@
+import {compilerExecutable} from './compiler-executable.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -13,12 +14,12 @@ const require=createRequire(import.meta.url);
 const ts=require('./node_modules/typescript');
 const here=path.dirname(new URL(import.meta.url).pathname);
 const root=path.resolve(here,'../..');
-const compiler=process.env.TSRUST || path.join(root,'target/editor/debug/tsrust');
+const compiler=process.env.TSRUST || compilerExecutable(root,here);
 const manifest=JSON.parse(fs.readFileSync(path.join(here,'manifest.json')));
 for(const id of pathRelativeIds) test(id+' preserves source, ABI and independent results',()=>{
     const w=manifest.workloads.find(row=>row.id===id);
     assert.equal(reportCategory(id),'paths');
-    assert.equal(manifest.workloads.at(-1).id,id);assert.equal(manifest.workloads.at(-2).id,'generic_callable_replacement');
+    const index=manifest.workloads.findIndex(row=>row.id===id);assert.ok(index>0);assert.equal(manifest.workloads[index-1].id,'generic_callable_replacement');
     const source=fs.readFileSync(path.join(here,w.source),'utf8');
     const counterpart=fs.readFileSync(path.join(here,w.counterpart),'utf8');
     for(const [text,hash] of [[source,w.sourceSha256],[counterpart,w.counterpartSha256]]){
@@ -32,7 +33,7 @@ for(const id of pathRelativeIds) test(id+' preserves source, ABI and independent
     assert.equal(ts.getPreEmitDiagnostics(program).length,0,'matched counterpart must typecheck');
     const js=ts.transpileModule(counterpart,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
     const evaluate=new Function('require','n','seed',js+';return workload(n,seed);');
-    const dir=fs.mkdtempSync(path.join(root,'target/editor/path-relative-'));
+    const dir=fs.mkdtempSync(path.join(path.dirname(path.dirname(compiler)), 'path-relative-'));
     try{for(const [n,seed] of [[0,7],[2,7],[17,0]]){
 
         const expected=pathRelativeValues(id,n,seed);

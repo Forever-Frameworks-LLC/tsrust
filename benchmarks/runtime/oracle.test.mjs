@@ -1,4 +1,6 @@
 import {containsCodeSnippet} from './source-contract-tokens.mjs';
+import {nativeFileInput} from './native-files-input.mjs';
+import {environmentFor} from './environment-contract.mjs';
 import {isCopying,validateCopyingObservation} from './copying-array-observation.mjs';
 import {isRange,validateRangeObservation} from './range-mutation-observation.mjs';
 import {isHigher,validateHigherObservation} from './higher-order-observation.mjs';
@@ -174,15 +176,17 @@ test('dynamic clone and normalization independently validate general scalar and 
 
 test('all current authored counterparts agree with independent results under the current contract', () => {
  for(const row of manifest.workloads.filter(row=>!isApproximate(row))) {
-  const source=fs.readFileSync(new URL(`workloads/${row.id}.ts`,import.meta.url),'utf8');
+  const source=fs.readFileSync(new URL(row.counterpart??`workloads/${row.id}.ts`,import.meta.url),'utf8');
   const driver=adaptTSDriver(fs.readFileSync(new URL('driver.ts',import.meta.url),'utf8'),row);
   // Compile Node imports for the isolated VM harness; require resolves the
   // actual runtime module, including assertions that must execute.
   // Benchmark runs compile with strict, so block function declarations stay block scoped.
-  const code=ts.transpileModule(source+'\n'+driver,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,alwaysStrict:true}}).outputText;
+  const code=ts.transpileModule(source+'\n'+driver,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,esModuleInterop:true,alwaysStrict:true}}).outputText;
   for(const [n,seed] of [[0,0],[1,7],[2,19],[17,3]]) {
    const printed=[];
-   vm.runInNewContext(code,{containsCodeSnippet, TextEncoder,TextDecoder,exports:{},require:createRequire(import.meta.url),console:{log:value=>printed.push(JSON.parse(value))},process:{argv:['node','test',String(n),String(seed),'0','1',row.inputText??'']},performance:{now:()=>0}});
+   const actualRequire=createRequire(new URL(row.counterpart??`workloads/${row.id}.ts`,import.meta.url));
+   const require=name=>name==='node:process'?{env:environmentFor(row)}:actualRequire(name);
+   vm.runInNewContext(code,{containsCodeSnippet, TextEncoder,TextDecoder,exports:{},require,console:{log:value=>printed.push(JSON.parse(value))},process:{argv:['node','test',String(n),String(seed),'0','1',nativeFileInput(row)??'']},performance:{now:()=>0}});
    assert.equal(printed.length,1,row.id);
    const observed=printed[0];
    if(requiresExactResult(row)) {
@@ -197,7 +201,7 @@ test('all current authored counterparts agree with independent results under the
 test('approximate Math counterparts use immutable references rather than exact Number oracles', () => {
  const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
  for(const row of manifest.workloads.filter(isApproximate)) {
-  const tsSource=fs.readFileSync(new URL(`workloads/${row.id}.ts`,import.meta.url),'utf8');
+  const tsSource=fs.readFileSync(new URL(row.counterpart??`workloads/${row.id}.ts`,import.meta.url),'utf8');
   const nativeSource=fs.readFileSync(new URL(`workloads/${row.id}.tsr`,import.meta.url),'utf8');
   const loaded=loadApproximateReference(row,{tsSha256:hash(tsSource),tsrSha256:hash(nativeSource)});
   // Executes TS point probes; native ABI has its own real-emission suite.

@@ -18,6 +18,11 @@ TypeScript": JS/TS-familiar API, Rust semantics and accuracy underneath, generat
 code at hand-written-Rust parity. The docs restructuring in the next section is
 still open but is not the current loop's focus.
 
+Owner object-profiling feedback is retained in **Object and string allocation —
+next optimization plan** below: string-free controls, generated/reference code
+comparison, allocation attribution, destination reuse and conditional arena review.
+Follow its updated status before revisiting those hypotheses.
+
 **Git:** branch `codex/optimize-native-hot-paths`. Published main **9c294876**
 contains the v0.1.1 source from staging **fa2bd1a9**. Local post-release checkpoints
 include **0a68a4f5** (932 Rust references), **2c538120** (normalization optimization)
@@ -44,6 +49,125 @@ accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration
 plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
+
+**Fixed result rows — implementation in progress, parent 66353533:**
+- Working tree has an unaccepted implementation;do not describe it as accepted or
+  complete. Release compiler now contains the first fixed-row candidate;the latest
+  inline-slice runtime change is not built there yet. Matched c21ea2ce parent
+  consumers are preserved with the updated observer. Existing
+  row-layout diagnostic1.119×/28.7% retained-memory reduction justifies this work.
+- Added fixed_storage/rows.rs:owned primitive/string row facts with provenance,
+  named-call/result/local/loop-alias propagation,connected fallback and bounded
+  proofs. Call sites indexed by callee to avoid repeated all-function scans.
+  Extended FunctionPlan result facts,physical row/result emission,push literals,
+  cloning and native-result comments. Ordinary four-slot runtime unchanged.
+- Added strict fixed-array-result-abi.mjs and tests;adapters require a matching
+  compiler contract plus complete signature/type/rank/width. SliceTree supports
+  standard Rust arrays and prunes containers by actual physical result. Included
+  the new ABI helper in sliceAdapterSources fingerprints. No guard is bypassed.
+- Added three formatted O0/O3 compiler witnesses:forwarding/clones/readers/owned
+  Unicode strings,primitive row payloads,and fallback for mixed widths,resizing,
+  callable/capture/temporary boundaries. Product signatures/ownership checks
+  remain unchanged;optimization is not yet accepted.
+- First build failed in9.357s/1,144,448KiB:array depth is u8,not usize;the shared
+  AST visitor also needed explicit source lifetimes to retain call-site references
+  without cloning ASTs. Fixed both. Initial adapter test omitted resultEncoding;
+  selected the existing full-array protocol and reran all three files.
+  **8 adapter/ABI/interface registration checks pass**,watchdog1.033s/132,000KiB.
+  Build196.899s/1,383,696KiB passed. First fixed-storage run24passed/3failed,
+  watchdog18.188s/530,576KiB:row selection incorrectly excluded ordinary runtime
+  panics;unrelated clone shape inference also changed a NumericArray call ABI.
+  Restricted new expression facts to Row/Rows and separated checked-error
+  transports from ordinary panics. Added an eligibility guard for integer/bool
+  rows of<=4 elements to preserve existing zero-allocation storage. Updated the
+  primitive witness to widths that avoid row allocations. Rebuild198.338s/1,458,832KiB passed;27 fixed checks and56 remaining checks
+  pass (83 total),watchdogs18.170/3.112/1.556/4.658/3.625/4.141s,max509,184KiB.
+  Matched parent consumers prepared for10 cases in5.184s/300,992KiB with current
+  observer;every emitted hash matches accepted c21ea2ce. First prepare correctly
+  stopped on an output-trimming mismatch,then matched the standard runner's trim.
+  Parent binaries/metadata are /tmp/tsrust-fixed-rows-parent.json and
+  target/runtime-comparisons/<id>-fixed-rows-parent;keep until matched A/B closes.
+  Added cheap no-matrix/no-fact fast paths plus connected-fallback and owned-row
+  clone witnesses. Final build196.800s/1,606,304KiB passed. All85 checks pass:
+  fixed_storage29/primitive11/interfaces7/nested14/owned12/array_fields12;
+  watchdogs19.219/3.124/1.555/4.652/3.628/4.146s,max477,808KiB.
+  The complete933-workload emission/ABI sweep passed,37 changed/896 byte-identical,
+  no errors (batches2.072/4.652/4.647/26.365s,max318,688KiB). Results and exact
+  changed IDs are /tmp/tsrust-fixed-rows-emit-sweep.json;no source snapshots.
+  All37 affected parent consumers compiled13.948s/294,768KiB;all37 actual
+  candidate consumers compiled13.981s/287,408KiB. Both use identical updated
+  observer/flags/paths and match the corresponding sweep hashes. Metadata at
+  /tmp/tsrust-fixed-rows-{parent,candidate}.json;executables in the shared target.
+  Runtime-harness213-file test run finished with failures,watchdog132.034s/
+  1,057,952KiB. Output truncation lost the complete failure list;do not claim
+  a passing suite. Observed failures include stale registration fingerprints,
+  historical metadata anchors and deleted target/editor compiler paths.
+  Test-plumbing repair is unfinished;two manifest-metadata-contract files are
+  dirty alongside the implementation. Preserve strict source/operation/oracle
+  guards and inspect the repair before resuming validation.
+  Follow-up repairs reuse compilerExecutable/shared Cargo target;registration
+  fragments retain operation metadata while taking exact current source hashes
+  from the unchanged canonical manifest. Refreshed22 literal metadata anchors
+  plus three named prefix digests and one computed slice digest from committed
+  HEAD only;hash algorithms and source mutation/oracle guards remain strict.
+  Full213-file follow-up:576passed/10failed (586 total),283.333s/1,219,584KiB.
+  Eleven affected files then92passed/2failed,36.273s/1,031,920KiB;the eight
+  repaired failures covered historical statuses/digests,registration adjacency
+  and missing union_array_heap report categorization. No workload source changed.
+  Remaining oracle/observer checks exposed real harness omissions:use explicit
+  counterpart/source paths,file fixtures,environment fixtures,CommonJS exports,
+  relative JSON import resolution,and reduction resultType contracts. The last
+  run60passed/2failed,39.875s/1,061,104KiB;relative require resolution is now
+  repaired and the debug emitter timeout raised10→120s for a large scoped-record
+  fixture. Those two checks still need rerunning with the release compiler.
+  All37 changed parent/candidate binaries pass370 independent full-output checks
+  at original five correctness cases,8.868s/286,368KiB;binary hashes verified.
+  First candidate release210.285s/1,502,672KiB passed. Final two broad checks pass
+  13.982s/979,664KiB after matching standard module interop and file/environment
+  setup. All586 runtime-harness checks are covered by preserved passes plus
+  focused repaired-file reruns;no full-suite restart. Compiler/LSP all-target
+  check53.315s/1,442,272KiB passes,existing decode_plain warning only.
+- First candidate allocation profile **2026-11-02T08:38:09.177Z**,19.146s/
+  353,680KiB:37 workloads,three identical samples each,all cleanup0. Interfaces
+  8,190→6,142 allocations;requested955,943→775,655;retained743,367→530,375
+  (-28.7%). Official40-case native/Node run **2026-11-02T08:40:42.174Z**,
+  74.523s/966,368KiB,maxload2.489,no override,original93samples each. Three
+  unchanged numeric controls included;Rust reference timings reused. Not yet
+  ingested or publicly selected because acceptance remains open.
+- Matched37-case parent/candidate/Node diagnosis58.472s/726,720KiB,maxload2.641,
+  original3processes/8warmups/31samples:median speedup1.052×,range.997–4.548×.
+  Interfaces .164500→.141083ms (1.166×),repeat .153875→.132667 (1.160×).
+  Default numeric rows4.548×,Object.hasOwn1.500×,native bytes1.428×. All complete
+  independent outputs agree;parent/current emitted,instrumented and binary
+  identities checked. Metadata in /tmp/tsrust-fixed-rows-{paired,followup}.json.
+  Normalization's initial.997× repeated1.006×. Nested rest remains unresolved:
+  initial.997×,focused.979×,then.979/1.000/.993×. Do not accept or publish yet.
+- Nested CPU sampling of original binaries48.034s/37,712KiB,checksums634209508:
+  allocation and slice-copy work dominate;no isolated causal explanation for the
+  small fixed-row slowdown yet. Candidate workload stack1,248 versus1,200 bytes.
+  A direct-push trial removed13 machine instructions but increased stack48bytes;
+  repeats did not clear the regression (.988/.997×);do not implement it.
+- Concrete profile lead: Array::tsr_slice always heap-allocates even when the
+  receiver is inline. Diagnostic preserving inline storage **only for Small**
+  retains full output and measures parent1.040542/candidate-only1.060834/
+  fixed-rows-plus-slice .855750ms (1.216× versus parent),Node .366500,
+  maxload1.804,4.673s/676,544KiB. Original source restored after all probes.
+  This is a diagnostic upper bound,not accepted compiler performance.
+- Implemented that Small slice path in runtime/mod.rs,keeping Heap behavior and
+  range validation unchanged. New primitive_storage witness covers every inline
+  width/subrange,zero container allocations,mutation independence,first spill
+  and cleanup/order when the third generic clone panics,at O0/O3. No generated
+  unsafe or ownership policy change. Test build session24771 is active;poll it.
+  Artifact list on success:/tmp/tsrust-fixed-rows-runtime-tests.json.
+- Next:run the12 listed test binaries sequentially under the watchdog,starting
+  primitive_storage;repair real failures and preserve passes. Rebuild release,
+  verify changed result consumers still match their contracts,profile combined
+  allocation counts,and quiet A/B the combined section against preserved parent.
+  Add the affected slice/rest/array controls to the37 changed workloads;do not
+  replace original protocols or omit the unresolved nested case. Require no
+  regressions,then ingest,all-target/formatter/site validation,cleanup and a
+  measured compiler commit. Harness repairs may checkpoint separately;compiler
+  and both optimization changes remain unaccepted until this loop closes.
 
 **Escaping row storage — diagnosis complete; global capacity increase rejected:**
 - Parent **c21ea2ce**, initially clean;compiler unchanged throughout this section.
@@ -1099,6 +1223,11 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
 
 **Object and string allocation — next optimization plan (owner follow-up):**
 
+Owner reminder, 2026-11-02: retain the useful suggestions from the supplied
+feedback; they are profiling hypotheses, not evidence that arenas or a formatter
+replacement will help. Reuse the existing tools and measurements before adding
+dependencies. Rust-default ownership remains the default.
+
 1. **Separate construction/access from string work.** Reuse string-free
    `record_mutation` as the existing mutation control. Check existing coverage
    before adding a numeric record construction/access workload. If needed, add
@@ -1112,9 +1241,10 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
    Rust from the accepted compiler; compare with
    [the Rust reference](../benchmarks/runtime/parity/interfaces.rs). The reference
    uses std `format!()` in describe; generated describe already reserves one
-   destination buffer and appends text/manual decimal digits. Both copy an owned
-   input name per iteration; generated code borrows literal "p" while the current
-   reference allocates it. Thus cloning alone is not a demonstrated explanation
+   destination buffer and appends text/manual decimal digits. At the original
+   profiling baseline both copied an owned input name per iteration; accepted
+   c21ea2ce now borrows that nonescaping generated field. Generated code borrows
+   literal "p" while the reference allocates it. Thus cloning alone was not a demonstrated explanation
    of the previously reported .413/.755ms gap. Neither version is assumed optimal.
 3. **Profile matched memory and CPU work first.** Measure allocation/reallocation
    counts, requested bytes, peak live bytes and cleanup for generated/handwritten
@@ -1148,7 +1278,16 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
    change. Keep only measured performance gains without regressions, ingest into
    measurements.sqlite, format, checkpoint and record rejected trials honestly.
 
-No object optimization has been implemented from these hypotheses yet.
+Status: numeric construction/access controls and matched allocation profiles are
+complete (see the accepted/rejected sections above). Borrowed local string fields
+are accepted in c21ea2ce; exact integer sizing and a global five-slot Array were
+rejected after measurement. Fixed-width owned result rows are currently
+implemented but unaccepted: finish affected correctness and quiet parent/candidate
+A/B before claiming a gain. Reprofile residual costs afterward. Destination reuse
+is limited to values whose ownership permits it; escaping strings remain distinct
+owned outputs. Arena allocation and new formatting dependencies remain conditional,
+unapproved design options, not scheduled implementations. The old .413/.755ms
+comparison is historical, not a current optimization target.
 
 
 **Source JSON retention — correctness repair accepted, 2026-11-02:**

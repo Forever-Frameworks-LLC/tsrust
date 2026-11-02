@@ -1,3 +1,4 @@
+import {compilerExecutable} from './compiler-executable.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -12,7 +13,7 @@ const require=createRequire(import.meta.url);
 const ts=require('./node_modules/typescript');
 const here=path.dirname(new URL(import.meta.url).pathname);
 const root=path.resolve(here,'../..');
-const compiler=process.env.TSRUST || path.join(root,'target/editor/debug/tsrust');
+const compiler=process.env.TSRUST || compilerExecutable(root,here);
 const manifest=JSON.parse(fs.readFileSync(path.join(here,'manifest.json')));
 for(const id of pathJoinIds) test(id+' preserves source, ABI and independent results',()=>{
     const w=manifest.workloads.find(row=>row.id===id);
@@ -27,7 +28,7 @@ for(const id of pathJoinIds) test(id+' preserves source, ABI and independent res
     assertABI(execFileSync(compiler,['emit',path.join(here,w.source)],{encoding:'utf8'}),w,{source});
     const js=ts.transpileModule(counterpart,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
     const evaluate=new Function('require','n','seed',js+';return workload(n,seed);');
-    const dir=fs.mkdtempSync(path.join(root,'target/editor/path-join-'));
+    const dir=fs.mkdtempSync(path.join(path.dirname(path.dirname(compiler)), 'path-join-'));
     try{for(const [n,seed] of [[0,7],[2,7],[17,0]]){
 
         const expected=pathJoinValues(id,n,seed);

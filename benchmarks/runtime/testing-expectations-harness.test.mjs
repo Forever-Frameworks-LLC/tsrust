@@ -1,3 +1,4 @@
+import {withCurrentSourceFingerprints} from './manifest-metadata-contract.mjs';
 import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -5,7 +6,7 @@ import fs from 'node:fs';
 import {expectedTestingExpectationChecksum} from './testing-assertions-oracle.mjs';
 import {assertTestingAssertionSource} from './testing-assertions-source-contract.mjs';
 import {expectedChecksum} from './oracle.mjs';
-const row=JSON.parse(fs.readFileSync(new URL('./testing-assertions-manifest-entries.json',import.meta.url))).find(row=>row.id==='testing_expectation_predicates');
+const row=withCurrentSourceFingerprints(JSON.parse(fs.readFileSync(new URL('./testing-assertions-manifest-entries.json',import.meta.url)))).find(row=>row.id==='testing_expectation_predicates');
 test('expectation oracle has independent hand-checked category cells',()=>{
  assert.equal(expectedTestingExpectationChecksum(0,0),0);
  assert.equal(expectedTestingExpectationChecksum(1,0),1);

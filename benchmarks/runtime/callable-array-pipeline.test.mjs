@@ -1,3 +1,4 @@
+import {compilerExecutable} from './compiler-executable.mjs';
 import {replaceCodeSnippet} from './source-contract-tokens.mjs';
 import { expectedChecksum } from './oracle.mjs';
 import { test } from 'node:test';
@@ -16,14 +17,14 @@ test(`${id} matches independent retained observations`, () => {
   const source = fs.readFileSync(path.join(here, 'workloads', id + '.tsr'), 'utf8');
   const manifest = JSON.parse(fs.readFileSync(path.join(here, 'manifest.json'), 'utf8'));
   const workload = manifest.workloads.find(w => w.id === id);
-  const compiler = path.join(root, 'target/editor/debug/tsrust');
+  const compiler = (process.env.TSRUST || compilerExecutable(root,here));
   const emitted = execFileSync(compiler, ['emit', path.join(here, 'workloads', id + '.tsr')], {encoding: 'utf8'});
   assertABI(emitted, workload, {source});
-  const checked = path.join(root, 'target/editor/callable-array-pipeline-tsc');
+  const checked = path.join(path.dirname(path.dirname(compiler)), 'callable-array-pipeline-tsc');
   execFileSync(process.execPath, [path.join(here, 'node_modules/typescript/bin/tsc'), path.join(here, 'workloads', id + '.ts'), '--strict', '--target', 'ES2022', '--module', 'commonjs', '--outDir', checked]);
   const js = fs.readFileSync(path.join(checked, id + '.js'), 'utf8');
   const evaluate = new Function('require', 'n', 'seed', js + '\nreturn workload(n, seed);');
-  const temporary = fs.mkdtempSync(path.join(root, 'target/editor/callable-array-workload-'));
+  const temporary = fs.mkdtempSync(path.join(path.dirname(path.dirname(compiler)), 'callable-array-workload-'));
   try {
     for (const [n, seed] of [[0, 7], [2, 7], [17, 0], [20000, 7]]) {
       const expected = id === 'callable_array_reduction_pipeline'

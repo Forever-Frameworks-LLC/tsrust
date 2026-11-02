@@ -1,9 +1,10 @@
+import {withCurrentSourceFingerprints} from './manifest-metadata-contract.mjs';
 // PREPARED ONLY. Synthetic guard tests are not actual native ABI acceptance.
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
 import {verifyHigherResultABI,assertHigherTSSource,higherRecordObserver,pruneHigherContainers} from './higher-order-result-abi.mjs';
 import {assertHigherPolicy,validateHigherObservation} from './higher-order-observation.mjs';
 import {expectedHigherObservation} from './higher-order-oracle.mjs';
-const rows=JSON.parse(fs.readFileSync(new URL('higher-order-manifest-entries.json',import.meta.url))),source=row=>fs.readFileSync(new URL('workloads/'+row.id+'.tsr',import.meta.url),'utf8');
+const rows=withCurrentSourceFingerprints(JSON.parse(fs.readFileSync(new URL('higher-order-manifest-entries.json',import.meta.url)))),source=row=>fs.readFileSync(new URL('workloads/'+row.id+'.tsr',import.meta.url),'utf8');
 function synthetic(row){let definitions="type String = std::borrow::Cow<'static,str>;\n",result={int:'i64',number:'f64',boolean:'bool','string[]':'Vec<String>','int[][]':'Vec<Vec<i64>>','int[][][]':'Vec<Vec<Vec<i64>>>'}[row.result];
  if(row.result==='Row[]'){definitions+='struct Record81 {field0:i64,field1:String,field2:Vec<i64>}\n';result='Vec<Record81>';}
  if(row.result==='Node[]'){definitions+='struct Record42 {field0:i64,field1:String,field2:RecordArray31}\nstruct RecordArray31(Vec<Record42>);\n';result='RecordArray31';}

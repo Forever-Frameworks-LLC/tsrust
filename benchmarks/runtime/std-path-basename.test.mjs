@@ -1,3 +1,4 @@
+import {compilerExecutable} from './compiler-executable.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -16,12 +17,12 @@ test('std path benchmark retains matched filename results and native ABI', () =>
   const reference = fs.readFileSync(path.join(here, 'workloads', id + '.ts'), 'utf8');
   const manifest = JSON.parse(fs.readFileSync(path.join(here, 'manifest.json'), 'utf8'));
   const workload = manifest.workloads.find(w => w.id === id);
-  const compiler = path.join(root, 'target/editor/debug/tsrust');
+  const compiler = (process.env.TSRUST || compilerExecutable(root,here));
   const emitted = execFileSync(compiler, ['emit', path.join(here, 'workloads', id + '.tsr')], {encoding: 'utf8'});
   assertABI(emitted, workload, {source});
   const js = ts.transpileModule(reference, {compilerOptions: {target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS}}).outputText;
   const evaluate = new Function('require', 'n', 'seed', js + '\nreturn workload(n, seed);');
-  const temporary = fs.mkdtempSync(path.join(root, 'target/editor/std-path-workload-'));
+  const temporary = fs.mkdtempSync(path.join(path.dirname(path.dirname(compiler)), 'std-path-workload-'));
   try {
     for (const [n, seed] of [[0, 7], [2, 7], [17, 0]]) {
       const expected = Array.from({length: n}, (_, i) => (i + seed) % 2 === 0 ? 'archive' : 'report');
