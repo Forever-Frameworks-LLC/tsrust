@@ -1520,7 +1520,9 @@ dependencies. Rust-default ownership remains the default.
    permits. The interfaces workload retains every result string and row: one
    reusable scratch buffer cannot replace those independently owned outputs.
    Compare std formatting with the existing digit helper only after profiling;
-   no formatter dependency, arena or storage rewrite is preapproved by this plan.
+   include `itoa`/`ryu` only if number formatting is a measured residual cost,
+   checking existing dependencies first and preserving exact integer/float text.
+   No formatter dependency, arena or storage rewrite is preapproved by this plan.
 5. **Treat arenas as a conditional design question.** Structs already have inline
    storage; placing a String/Vec header in an arena does not redirect its backing
    buffer. Arena-aware containers, escaping values, reset boundaries, destructors
@@ -1554,6 +1556,18 @@ is limited to values whose ownership permits it; escaping strings remain distinc
 owned outputs. Arena allocation and new formatting dependencies remain conditional,
 unapproved design options, not scheduled implementations. The old .413/.755ms
 comparison is historical, not a current optimization target.
+
+Current residual-string diagnostic (parent 77868f7a): a consumer-only borrowed
+Unicode-character view removes 8,192 temporary allocations from string_iteration
+(18,433 to 10,241), with checksum 37,313,883 unchanged. Three identical samples
+per variant; requested bytes 1,629,824 to 1,605,248, retained 530,432 and peak
+530,571 unchanged, both cleanup counters zero. Generated source was restored
+after compiling the diagnostic. This is allocation attribution, not an accepted
+compiler optimization or a measured speedup. Next: verify complete boundary
+outputs and quiet timing, then investigate existing borrowed-view emission for
+proved nonescaping characters; preserve UTF-8 boundaries, ASCII performance,
+copies, captures and owned outputs. No cache, arena or public lifetime change is
+approved by this diagnostic.
 
 
 **Source JSON retention — correctness repair accepted, 2026-11-02:**
