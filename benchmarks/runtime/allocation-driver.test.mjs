@@ -4,6 +4,15 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
+import vm from 'node:vm';
+
+test('allocation profiler accepts large compiler output and preserves command failures', () => {
+ const source = fs.readFileSync(new URL('./profile-native.mjs', import.meta.url), 'utf8');
+ const helper = source.slice(source.indexOf('const run = '), source.indexOf("\nrun(['cargo'"));
+ const run = vm.runInNewContext(helper + '\nrun;', {spawnSync, process, root: process.cwd()});
+ assert.equal(run([process.execPath, '-e', 'process.stdout.write("x".repeat(2*1024*1024))']), 'x'.repeat(2*1024*1024));
+ assert.throws(() => run([process.execPath, '-e', 'process.stderr.write("profile command failed");process.exit(7)']), /profile command failed/);
+});
 
 test('allocation probes distinguish output disposal from final external-input disposal', () => {
  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'tsrust-allocation-owners-'));

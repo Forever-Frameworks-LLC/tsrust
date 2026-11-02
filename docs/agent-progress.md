@@ -15,7 +15,17 @@ this note. Inspect current source and `git status` before acting.
 
 Active owner direction: optimize toward "making Rust as easy to write as
 TypeScript": JS/TS-familiar API, Rust semantics and accuracy underneath, generated
-code at hand-written-Rust parity. The docs restructuring in the next section is
+code at hand-written-Rust parity.
+
+Owner milestone correction, 2026-11-02: treat the remaining large performance gaps
+as one optimization milestone. Continue profiling/optimizing until only small
+refinements remain; do not run broad/full regressions between optimization
+clusters. Run affected suites and quiet matched A/B checks for each coherent
+change. At the final milestone, finish broad regressions, refresh affected public
+performance metrics, then promote/push to main. While CI/CD runs, reprioritize
+next steps with the owner, including possible UI-framework work. UI revival is a
+proposal for that discussion, not a change to current backend scope.
+ The docs restructuring in the next section is
 still open but is not the current loop's focus.
 
 Owner object-profiling feedback is retained in **Object and string allocation —
@@ -62,7 +72,7 @@ plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
 
-**Current cumulative regression milestone — in progress, compiler source 250e1d24:**
+**Cumulative regression snapshot — deferred by owner, compiler source 250e1d24:**
 - This current-source local pass is distinct from the completed 2026-10-31
   milestone. Inventory: 399 compiler integration targets, 91 LSP integrations,
   two libraries and two binaries, 494 total. Six unchanged current-source suites
@@ -80,10 +90,18 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   tests, 498.963s/50,288KiB; editor_consistency: 27 tests, 14.065s/113,008KiB;
   intelligence: 329 passed/two ignored, 646.628s/896,048KiB. The third LSP ignore
   is project_scaling. Verified no matrix row filter or report-only mode.
-- Current subtotal: **184 completed targets, 2,932 passed, 13 ignored**. Compiler
-  suites through compound_assignment pass after the observer repairs below;
-  compound_assignment_values and update_expressions also pass. Remaining
-  integration targets and doctests are pending. This milestone is not complete.
+- Preserved subtotal: **419 completed targets, 4,991 passed, 18 ignored**.
+  Owner stopped the broad pass before the revised milestone. single_use_callbacks
+  was interrupted during build; it is pending, not a test failure. The separately validated
+  update_expressions target also counts once. Remaining integration targets and
+  doctests are pending. This snapshot is not a completed milestone.
+- Compiler HTTP suite: 13 passed/one existing ignore, 316.209s/1,448,800KiB.
+  Compiler JSON suite: four passed, 290.416s/1,071,248KiB.
+  All 24 compiler JSON/JSON Lines integration targets pass: 128 tests, no ignores.
+  Native declarations:64 passed,154.041s/1,111,008KiB;dependency bundle:two
+  passed,23.347s/340,640KiB with explicit prepared portable-source packs.
+  Native package export:seven passed,333.490s/1,107,168KiB,including cold
+  release/TLS dependency builds.
 - Stops and repairs, preserving passed suites and counting partial results once:
   - array_of first had three passed/one failed, 14.499s/444,704KiB. Its witness
     matcher assumed Vec<f64>; the accepted compiler returns [f64;5]. Identify
@@ -106,11 +124,20 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
     1.040s/268,480KiB, test 2.079s/506,288KiB. Other Vec<f64> uses were reviewed:
     bridge boundaries, fallback checks and borrowed Vec inputs retain their
     explicit types; copied inactive witness branches are unchanged.
+- native_cache stopped with eight passed/one failed/one ignored,
+  5.726s/236,080KiB. Rust 1.96.1 is installed at the resolved rustup home;
+  the PATH-discovery fixture substitutes HOME and the direct runner lacked
+  Cargo-injected RUSTUP_HOME. The scratch runner now preserves rustup's resolved
+  home explicitly. No compiler/test source change:the complete target passes
+  nine tests/one existing ignore in6.774s/364,640KiB. Its partial results are
+  not counted twice.
 - Only test observers and this handoff changed; compiler/runtime output and
   measurements are unchanged. No new A/B or measurement-store rows are warranted.
   Latest whole-project formatter: 4.209s/201,968KiB, zero changed files,
-  documentation snippets or fingerprints. Checkpoint these two observer repairs,
-  then resume unrun targets; do not restart passed groups.
+  documentation snippets or fingerprints. Both observer repairs are accepted in
+  checkpoint eb91e84f. Preserve these checks while optimizing; at the final
+  milestone resume required unrun/affected targets without restarting unchanged
+  passed groups.
 - Each build/test runs alone under a 5,000,000KiB/1,800s process-group watchdog,
   one Cargo job, CARGO_INCREMENTAL=0, shared target, --test-threads=3 and explicit
   prepared portable-source packs. Passed test executables are pruned; shared
@@ -120,9 +147,38 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   /tmp/tsrust-milestone-run.py. State preserves previous failures, accepted test
   results and exact hashes for all three repaired test files. Source audit allows
   only those hashes and this handoff against 250e1d24. Next target: tsrust-compiler:test:concat_depth.
-  After checkpointing, launch the runner once and record its live handle here.
-  No timing, CI, push or deployment.
-- After the 494 library/binary/integration targets, run each crate's doctest driver
+  Runner37024 is terminal after the native_cache environment failure. Resumed
+  runner41774 is terminal (exit137) after the owner-directed stop. Only the
+  owned runner/test/build descendants were terminated; no owner processes were
+  stopped. State records the interruption and corrected environment.
+  The first scoped_record_composition profile (session30603) failed before
+  sampling:Node spawnSync's default stdout buffer rejected the large emitted
+  program with ENOBUFS,6.196s/233,120KiB. The profiler now uses maxBuffer:Infinity
+  under the external memory watchdog,removing that artificial output cap. Two
+  affected checks pass,2.579s/200,496KiB:actual2MiB stdout plus retained subprocess
+  failure handling,and allocation/output/external-input disposal. The selected
+  three-sample profile passed in59.896s/962,768KiB,diagnostic
+  2026-11-02T20:22:29.191Z. All three dictionaries agree:checksum108,435,446;
+  1,275,919 allocations,2,056 reallocations,requested182,814,336 bytes,
+  retained/peak2,326,528 bytes,input11 bytes,both cleanup counters zero.
+  Instrumented source is3,672,597 bytes. Release preparation passed1.037s/
+  118,256KiB without compiler changes. Matched unchanged Rust reference uses the
+  same ABI/observer/driver,n2048/seed7/input composition:compile3.639s/184,256KiB,
+  profile.515s/2,608KiB. Three identical samples:checksum108,435,446;886,791
+  allocations,2,057 reallocations,requested36,251,240 bytes,retained2,277,376,
+  peak2,277,968,input11,both cleanup counters zero. Generated code therefore has
+  389,128 extra allocations (1.439× total) and146,563,096 extra requested bytes
+  (5.043× total). Retained output differs by49,152 bytes. These are allocation
+  diagnostics,not new runtime timings or proof of a single cause. Next attribute
+  the extra temporary work by call/site/layout and CPU sample before compiler
+  edits;do not assume every gap is strings or adopt arenas/RC. Both profile
+  processes are terminal. Runtime timing baselines are reused;no CI,push or
+  deployment. Profiler cap repair validation is complete:whole-project formatter
+  4.115s/198,448KiB,zero changed files/snippets/fingerprints;local checkpoint only.
+  The deferred runner's source guard remains pinned to250e1d24;at the final
+  milestone reconcile coverage against then-current compiler changes instead of
+  blindly resuming that historical source audit.
+- At the final optimization milestone, after the 494 targets, run each crate's doctest driver
   separately under the same watchdog, as required by the development workflow.
   Doctests are outside the 494-target subtotal.
 
@@ -198,16 +254,26 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   binaries,native consumers,the two accepted runs and current profile remain.
   Final whole-project formatter changes zero files/snippets/fingerprints;all
   owned runners are terminal. Local measured checkpoint,no CI,push or deployment.
-- Next:the accumulated fixed-storage/string work now warrants a broader local
-  compiler/LSP regression milestone before another optimization family. Reuse the
-  existing sequential watchdog protocol and resume unrun binaries rather than
-  restarting passed groups. Keep original full-milestone evidence distinct from
-  this new current-source pass. Then revisit the larger remaining generated/hand
-  Rust gaps (scoped_record_composition and recursive arrays),profiling first.
+- Next:owner correction above defers the broad regression milestone until the
+  remaining large generated/hand-written Rust gaps are addressed and only small
+  refinements remain. Preserve the interrupted current-source regression snapshot;
+  continue scoped_record_composition and recursive-array profiling now. Use only
+  affected suites and matched A/B checks during this optimization phase.
   Do not retry rejected nondecimal digit branches without a different cause.
   Static follow-up:small TsrMap already scans slots without hashing/buckets;
   scoped_record_composition needs fresh allocation/CPU attribution rather than
   assuming the small-map reference alone explains its gap.
+- Remaining large-gap review queue (latest stored matched workload IDs,not fresh
+  A/B measurements):scoped_record_composition121.497209ms vs hand Rust18.420917ms
+  (6.596×,103.076292ms excess);recursive toReversed.286958/.027500ms (10.435×)
+  and with.280084/.034833ms (8.041×);declared Number/boolean reduce callbacks
+  21.727×/14.325×;nullable boolean10.299×;nullish array/call spread7.413×/7.056×;
+  nested/deep/recursive record forEach4.57–5.69×;byte views/maps4.82–4.85×;
+  testing expectation predicates5.520×. Review absolute cost and equivalent work,
+  inputs,ownership and observation before accepting a ratio as removable overhead.
+  Existing Rust/Node references are reused unless source/protocol changes;rerun
+  focused Node controls for actual candidate A/B rounds. Address or explain these
+  substantial gaps before the owner-defined final broad-regression milestone.
 
 **Decimal int.toString helper reuse — accepted locally, parent 28fcf7f1:**
 - Clone-output inspection found independently owned escaping text,not a removable
