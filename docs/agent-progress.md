@@ -62,50 +62,69 @@ plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
 
-**Current cumulative regression milestone — in progress, source 250e1d24:**
-- This is a new current-source local pass,distinct from the completed2026-10-31
-  milestone below. Cargo inventory:399 compiler integration targets,91 LSP
-  integration targets,two library targets and two binary targets,494 total.
-  Reuse six unchanged current-source integration targets exactly once:76 passes
-  from fixed_storage/temporary_array_index/temporary_array_length/receiver_moves/
-  exception_handling/match_values. Compiler library passes1,298 tests/eight
-  ignored:build261.247s/1,659,792KiB,test72.548s/1,445,808KiB. LSP library20
-  passes (build182.219s/1,928,656KiB,test1.042s/24,112KiB);CLI binary40 passes
-  (build12.940s/609,600KiB,test7.233s/359,936KiB);LSP binary six passes
-  (build6.217s/625,904KiB,test.523s). All91 editor integration targets are complete:
-  836 passed/three ignored,including checker_agreement (three tests,519.883s,
-  peak100,048KiB),completion_matrix (three tests,498.963s,peak50,288KiB),
-  editor_consistency (27 tests,14.065s,peak113,008KiB) and intelligence
-  (329 passed/two ignored,646.628s,peak896,048KiB). The LSP's third ignore is
-  project_scaling;no filtered/report-only coverage is claimed as a pass.
-  Snapshot subtotal126 completed targets/2,416 passed/11 ignored;compiler
-  integrations through array_of pass. The first array_of run stopped with
-  three passed/one failed in14.499s,peak444,704KiB. Failure was a stale test-only
-  Vec<f64> signature matcher:accepted emission returns[f64;5]. The witness now
-  identifies its Number argument without assuming return layout;all IEEE-bit
-  assertions are unchanged. All four tests pass after repair,with native O0/O3
-  execution:build3.628s/307,888KiB,test14.542s/474,544KiB. The partial failure
-  remains recorded but its three passes are not double-counted. Compiler/runtime
-  source and measurements are unchanged;no A/B or new store rows are warranted.
-  Whole-project formatter4.143s/202,848KiB changes zero files/snippets/fingerprints.
-  Remaining integrations/doctests are pending,not a completed milestone.
-- Active sequential runner starts with libraries,binaries,then all editor suites
-  and remaining compiler suites. Each build/test has a5,000,000KiB/1,800s
-  process-group watchdog;one Cargo job,CARGO_INCREMENTAL=0,shared target and
-  --test-threads=3. Verified the live runner has no completion-matrix row filter
-  or report-only mode. Prepared local portable-source packs are explicit. Completed
-  test executables are pruned while shared libraries and ordinary CLI/LSP remain.
-- Runner session86367 is terminal (exit101) after the array_of assertion. Disposable operational
-  state is /tmp/tsrust-250e1d24-regressions.json and the active runner is
-  /tmp/tsrust-milestone-run.py. The accepted test-only repair is recorded in state;
-  source audit permits only this handoff and the exact repaired test hash against
-  250e1d24. Resume unrun targets after the local repair checkpoint;do not restart
-  passed groups. Failures
-  stop the runner and retain only the current debug log. No new timing,CI,push or
-  deployment. Keep counts and the next action current here as groups complete.
-  After the494 library/binary/integration targets,run each crate's doctest
-  driver separately under the same watchdog,as required by the development
-  workflow;doctests are not included in the494-target subtotal.
+**Current cumulative regression milestone — in progress, compiler source 250e1d24:**
+- This current-source local pass is distinct from the completed 2026-10-31
+  milestone. Inventory: 399 compiler integration targets, 91 LSP integrations,
+  two libraries and two binaries, 494 total. Six unchanged current-source suites
+  are reused exactly once: fixed_storage/temporary_array_index/temporary_array_length/
+  receiver_moves/exception_handling/match_values, 76 passes. The separately
+  validated update_expressions target below is also counted once and skipped when
+  the alphabetical runner reaches it.
+- Both libraries and binaries pass. Compiler library: 1,298 passed/eight ignored,
+  build 261.247s/1,659,792KiB, test 72.548s/1,445,808KiB. LSP library: 20 passed,
+  build 182.219s/1,928,656KiB, test 1.042s/24,112KiB. CLI binary: 40 passed,
+  build 12.940s/609,600KiB, test 7.233s/359,936KiB. LSP binary: six passed,
+  build 6.217s/625,904KiB, test .523s.
+- All 91 LSP integration targets pass: 836 passed/three existing ignores.
+  checker_agreement: three tests, 519.883s/100,048KiB; completion_matrix: three
+  tests, 498.963s/50,288KiB; editor_consistency: 27 tests, 14.065s/113,008KiB;
+  intelligence: 329 passed/two ignored, 646.628s/896,048KiB. The third LSP ignore
+  is project_scaling. Verified no matrix row filter or report-only mode.
+- Current subtotal: **184 completed targets, 2,932 passed, 13 ignored**. Compiler
+  suites through compound_assignment pass after the observer repairs below;
+  compound_assignment_values and update_expressions also pass. Remaining
+  integration targets and doctests are pending. This milestone is not complete.
+- Stops and repairs, preserving passed suites and counting partial results once:
+  - array_of first had three passed/one failed, 14.499s/444,704KiB. Its witness
+    matcher assumed Vec<f64>; the accepted compiler returns [f64;5]. Identify
+    the Number argument without assuming return layout; retain all IEEE-bit
+    assertions. Four tests pass after repair at native O0/O3: build
+    3.628s/307,888KiB, test 14.542s/474,544KiB. Accepted checkpoint 92715b93;
+    whole-project formatter 4.143s/202,848KiB changed nothing.
+  - array_to_string had three passed/one failed, 3.129s/274,256KiB, because its
+    ../../benchmarks fixture resolved from repository root. Correct the scratch
+    runner to Cargo's per-crate test working directory; builds stay at root.
+    No source change: all four pass in 3.633s/332,512KiB.
+  - compound_assignment_values had three passed/one failed, 1.554s/370,288KiB.
+    Its appended Rust observer required function pointers returning Vec<f64>;
+    accepted emission returns [f64;2]. Read the result through std AsRef<[f64]>,
+    preserving length, committed-value and every IEEE assertion. Four tests pass
+    at native O0/O3: build 1.039s/302,464KiB, test 2.084s/391,376KiB.
+  - The same active function-pointer assumption existed in update_expressions;
+    infer its observer's return storage. Four tests pass at native O0/O3,
+    including zero allocations, exact bits and unwind cleanup: build
+    1.040s/268,480KiB, test 2.079s/506,288KiB. Other Vec<f64> uses were reviewed:
+    bridge boundaries, fallback checks and borrowed Vec inputs retain their
+    explicit types; copied inactive witness branches are unchanged.
+- Only test observers and this handoff changed; compiler/runtime output and
+  measurements are unchanged. No new A/B or measurement-store rows are warranted.
+  Latest whole-project formatter: 4.209s/201,968KiB, zero changed files,
+  documentation snippets or fingerprints. Checkpoint these two observer repairs,
+  then resume unrun targets; do not restart passed groups.
+- Each build/test runs alone under a 5,000,000KiB/1,800s process-group watchdog,
+  one Cargo job, CARGO_INCREMENTAL=0, shared target, --test-threads=3 and explicit
+  prepared portable-source packs. Passed test executables are pruned; shared
+  libraries and ordinary CLI/LSP remain. No watchdog stops occurred.
+- Runners 86367, 96947 and 9332 are terminal after the stops above. Operational
+  state: /tmp/tsrust-250e1d24-regressions.json; scratch runner:
+  /tmp/tsrust-milestone-run.py. State preserves previous failures, accepted test
+  results and exact hashes for all three repaired test files. Source audit allows
+  only those hashes and this handoff against 250e1d24. Next target: tsrust-compiler:test:concat_depth.
+  After checkpointing, launch the runner once and record its live handle here.
+  No timing, CI, push or deployment.
+- After the 494 library/binary/integration targets, run each crate's doctest driver
+  separately under the same watchdog, as required by the development workflow.
+  Doctests are outside the 494-target subtotal.
 
 **Fixed floating-point literal returns — accepted locally, parent e09d0150:**
 - Rejected nondecimal one-character storage trials before production edits.
