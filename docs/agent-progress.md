@@ -62,6 +62,51 @@ plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
 
+**Current cumulative regression milestone — in progress, source 250e1d24:**
+- This is a new current-source local pass,distinct from the completed2026-10-31
+  milestone below. Cargo inventory:399 compiler integration targets,91 LSP
+  integration targets,two library targets and two binary targets,494 total.
+  Reuse six unchanged current-source integration targets exactly once:76 passes
+  from fixed_storage/temporary_array_index/temporary_array_length/receiver_moves/
+  exception_handling/match_values. Compiler library passes1,298 tests/eight
+  ignored:build261.247s/1,659,792KiB,test72.548s/1,445,808KiB. LSP library20
+  passes (build182.219s/1,928,656KiB,test1.042s/24,112KiB);CLI binary40 passes
+  (build12.940s/609,600KiB,test7.233s/359,936KiB);LSP binary six passes
+  (build6.217s/625,904KiB,test.523s). All91 editor integration targets are complete:
+  836 passed/three ignored,including checker_agreement (three tests,519.883s,
+  peak100,048KiB),completion_matrix (three tests,498.963s,peak50,288KiB),
+  editor_consistency (27 tests,14.065s,peak113,008KiB) and intelligence
+  (329 passed/two ignored,646.628s,peak896,048KiB). The LSP's third ignore is
+  project_scaling;no filtered/report-only coverage is claimed as a pass.
+  Snapshot subtotal126 completed targets/2,416 passed/11 ignored;compiler
+  integrations through array_of pass. The first array_of run stopped with
+  three passed/one failed in14.499s,peak444,704KiB. Failure was a stale test-only
+  Vec<f64> signature matcher:accepted emission returns[f64;5]. The witness now
+  identifies its Number argument without assuming return layout;all IEEE-bit
+  assertions are unchanged. All four tests pass after repair,with native O0/O3
+  execution:build3.628s/307,888KiB,test14.542s/474,544KiB. The partial failure
+  remains recorded but its three passes are not double-counted. Compiler/runtime
+  source and measurements are unchanged;no A/B or new store rows are warranted.
+  Whole-project formatter4.143s/202,848KiB changes zero files/snippets/fingerprints.
+  Remaining integrations/doctests are pending,not a completed milestone.
+- Active sequential runner starts with libraries,binaries,then all editor suites
+  and remaining compiler suites. Each build/test has a5,000,000KiB/1,800s
+  process-group watchdog;one Cargo job,CARGO_INCREMENTAL=0,shared target and
+  --test-threads=3. Verified the live runner has no completion-matrix row filter
+  or report-only mode. Prepared local portable-source packs are explicit. Completed
+  test executables are pruned while shared libraries and ordinary CLI/LSP remain.
+- Runner session86367 is terminal (exit101) after the array_of assertion. Disposable operational
+  state is /tmp/tsrust-250e1d24-regressions.json and the active runner is
+  /tmp/tsrust-milestone-run.py. The accepted test-only repair is recorded in state;
+  source audit permits only this handoff and the exact repaired test hash against
+  250e1d24. Resume unrun targets after the local repair checkpoint;do not restart
+  passed groups. Failures
+  stop the runner and retain only the current debug log. No new timing,CI,push or
+  deployment. Keep counts and the next action current here as groups complete.
+  After the494 library/binary/integration targets,run each crate's doctest
+  driver separately under the same watchdog,as required by the development
+  workflow;doctests are not included in the494-target subtotal.
+
 **Fixed floating-point literal returns — accepted locally, parent e09d0150:**
 - Rejected nondecimal one-character storage trials before production edits.
   Early range-check reuse removes256/384/512 binary/hex/base36 allocations;
@@ -141,6 +186,9 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   this new current-source pass. Then revisit the larger remaining generated/hand
   Rust gaps (scoped_record_composition and recursive arrays),profiling first.
   Do not retry rejected nondecimal digit branches without a different cause.
+  Static follow-up:small TsrMap already scans slots without hashing/buckets;
+  scoped_record_composition needs fresh allocation/CPU attribution rather than
+  assuming the small-map reference alone explains its gap.
 
 **Decimal int.toString helper reuse — accepted locally, parent 28fcf7f1:**
 - Clone-output inspection found independently owned escaping text,not a removable

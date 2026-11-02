@@ -14,7 +14,7 @@ fn native(
         let functions = emitted
             .lines()
             .filter(|line| {
-                line.starts_with("fn function") && line.contains("(value0: f64) -> Vec<f64>")
+                line.starts_with("fn function") && line.contains("(value0: f64) -> ")
             })
             .collect::<Vec<_>>();
         assert_eq!(functions.len(), 1, "unique Number constructor witness");
