@@ -157,3 +157,36 @@ fn direct_typed_decoding_preserves_duplicates_fallback_and_callback_order() {
     let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
     assert_eq!(String::from_utf8(output.stdout).unwrap(),"first\nsecond\nchoice\nok\n");
 }
+
+
+#[test]
+fn source_retention_preserves_literal_private_keys_in_extras_and_callback_inputs(){
+    let source=r#"
+    import {s} from 'std:schema';
+    import {JsonValue} from 'std:json';
+    import {strictEqual} from 'std:testing';
+    function main(){
+      const text='{"count":3,"extra":{"$serde_json::private::RawValue":"not JSON"}}';
+      const expected='{"$serde_json::private::RawValue":"not JSON"}';
+      const plain=s.object({count:s.int()}).retain();
+      {const outcome=plain.safeParseJson(text);if(outcome.success){const value=outcome.data;
+        strictEqual(value.value.count,3);strictEqual(value.extra.size,1);
+        const extra=value.extra.get('extra');if(extra===undefined){throw 'Plain extra missing';}
+        strictEqual(JSON.stringify(extra),expected);
+      }else{throw 'Plain source rejected';}}
+      const pipeline=s.object({count:s.int().refine(value=>value>0)}).retain();
+      {const outcome=pipeline.safeParseJson(text);if(outcome.success){const value=outcome.data;
+        strictEqual(value.value.count,3);strictEqual(value.extra.size,1);
+        const extra=value.extra.get('extra');if(extra===undefined){throw 'Pipeline extra missing';}
+        strictEqual(JSON.stringify(extra),expected);
+      }else{throw 'Pipeline source rejected';}}
+      const callback=s.int().coerce((input:JsonValue):int=>{
+        strictEqual(JSON.stringify(input),expected);return 7;
+      });
+      {const outcome=callback.safeParseJson('{"$serde_json::private::RawValue":"not JSON"}');if(outcome.success){const value=outcome.data;
+        strictEqual(value,7);
+      }else{throw 'JSON callback source rejected';}}
+    }
+    "#;
+    assert!(execute(source).is_empty());
+}

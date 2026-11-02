@@ -36,69 +36,85 @@ plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
 
-**Source JSON retention — active support/parent measurement, 2026-11-01:**
-- Parent **df3ca7f0**, initially clean. Confirmed caller defect remains:
-  source::Node::retain uses Serde Value directly, so a nested ordinary property
-  matching `$serde_json::private::RawValue` can replace its containing object.
-  Named-field native reproducer remains /tmp/tsrust-json-retained-private-key.tsr.
-  Source decoder callers are decode.rs/decode_pipelines.rs retained extras and
-  decode_input.rs dynamic JSON callback input; fix the shared Node::retain once.
-- Added **native_schema_json_source_retain**, preserving the old JSON.parse+
-  safeParse workload/baselines. New Tsrust path uses safeParseJson, owns/serializes
-  nested extra `{tag:"ready",values:[1,2,3]}`, and observes all missing-count issue
-  fields. Original protocol: n=2000, seed=7, two operations/iteration, checksum
-  **seed+5*n**. New handwritten TypeScript source and standard Serde/Rust reference
-  follow the same fixed exact-integer corpus and output/failure observations.
-- Scope: new Tsrust/TS/Rust workload files, manifest, shared schema source guards,
-  oracle, category/report registration and schema benchmark tests (including the
-  actual reference ABI). Compiler/runtime
-  source remains exactly df3ca7f0 until the parent is profiled/measured. The new
-  reference is corpus-specific, not a generic implementation of all schema APIs.
-  Mathematical oracle is independent; no new compiler dependency/limits/unsafe.
-- Whole-project formatter changed one new workload and its source fingerprint;
-  zero documentation snippets. Preserved all preexisting manifest values and
-  original formatting after narrowing the registration diff. Initial support
-  test caught missing report category; added it. All **38 schema tests passed**,
-  watchdog **.520 s/880 sampled KiB**, with updated-hash mutation witnesses for
-  source decode, retained payload and diagnostic-path observation.
-- Initial untimed preparation caught the reference ABI parameter names; renamed
-  them to value0/value1/value2 and added a direct ABI witness. Final **39 support
-  tests pass**, no skips, watchdog **.517 s/880 sampled KiB**. Untimed verify
-  **2026-11-01T23:12:10.189Z** passed **23.853 s/367,456 KiB**, all three engines
-  and original five correctness cases, checksum **10007**. Rust reference hash
+**Source JSON retention — correctness repair accepted, 2026-11-02:**
+- Parent runtime **df3ca7f0**; benchmark support checkpoint **b611fecf**. Fixed
+  source::Node::retain once, replacing direct Serde Value decoding with existing
+  parse_plain. Ordinary `$serde_json::private::RawValue` properties previously
+  replaced objects with scalars or panicked for non-JSON string contents. The
+  shared fix covers ordinary/pipeline retained extras and dynamic JSON callback
+  input. Public APIs, Rust defaults, dependencies and generated unsafe unchanged.
+- New owned source-node regression covers bounded/plain documents, private-key
+  payloads "0", "true", "not JSON", nested objects and input drop. Public native
+  regression checks all three callers, exact retained payload/count/Map size.
+  The first witness correctly failed ownership checking after capturing/reusing
+  expected; fixed the fixture with a fresh input literal, without weakening rules.
+- Added **native_schema_json_source_retain** without changing old DOM-retention
+  workload semantics. safeParseJson retains/serializes nested extra data and
+  observes all missing-count issue fields. Matched TS and independent standard
+  Serde/Rust corpus-specific references; n=2000, seed=7, two operations/iteration,
+  checksum **seed+5*n**. New oracle, guards, actual reference ABI and report
+  registration; **39 support tests pass**. Untimed verification passed all three
+  engines/five correctness cases, checksum10007, **23.853 s/367,456 KiB**.
+- One-time parent **2026-11-01T23:16:59.787Z**: Tsrust **1.735208 ms**, Node
+  **1.574083 ms**, hand-written Rust **1.212250 ms**. Original three processes,
+  eight warmups,31 samples/process, **93/engine**; max load3.503, no override,
+  **86.257 s/349,120 KiB**. Native process medians2.064250/1.694833/1.735208
+  show first-process drift. Rust source hash
   **aa744dd4a3acd91b8c04e0313aad7fca343f30595e9852e26d938a608f92c306**.
-- Parent allocation profile **2026-11-01T23:13:22.240Z**, watchdog
-  **24.402 s/369,520 KiB**. Three identical samples: **36,000 allocations/2,000
-  iterations (18/iteration)**, requested **5,344,000 bytes**, peak **1,523**,
-  checksum **10007**, zero reallocations/retained/live bytes after drop.
-- CPU profile used actual system-allocator workload, 4M iterations, checksum
-  **20,000,007**, diagnostic **3,784.293 ms**, watchdog **4.122 s/46,880 KiB**.
-  Source field-index parsing and retained value/serialization costs are visible;
-  /tmp/tsrust-source-retention.sample is disposable, not comparative timing.
-- Parent quiet timing **2026-11-01T23:16:59.787Z** completed,
-  **86.257 s/349,120 KiB**, max timed load **3.503**, no busy override. Each
-  engine retains **93 samples**, original three processes/31 samples/eight warmups.
-  Medians: **Tsrust 1.735208 ms, Node 1.574083 ms, Rust 1.212250 ms**. Native
-  process medians **2.064250 / 1.694833 / 1.735208**; note first-process drift
-  rather than assuming perfect stability. Node **1.576709 / 1.561583 / 1.588042**,
-  Rust **1.217625 / 1.216792 / 1.196584**. This is the one-time standard Rust
-  baseline; do not rerun it for candidate A/B.
-- store:ingest added **three histories**. Exact medians/mean rates/93 counts,
-  Tsrust/TypeScript/reference hashes and SQLite integrity verified. New workload
-  is marked measured; old workload metadata/baselines are unchanged. Public
-  selection includes this baseline and pinned Rust source; page now has **933**
-  measured comparisons. Full-project formatting changed zero files on the final
-  pass. Final 39 support tests, three website tests, 66-page build and links/assets
-  in 116 pages passed, website **3.642 s/1,086,128 KiB**. No new compiler/LSP
-  source change or runtime-fix acceptance is claimed at this support checkpoint.
-- All runners are terminal. Keep parent raw timing and allocation profile until
-  paired candidate analysis; disposable verify/CPU probes can be pruned after
-  closure. Next: checkpoint complete benchmark support, then change Node::retain
-  to use the corrected shared parser. Add source/backend and public native
-  witnesses for literal private-token properties (including non-JSON contents),
-  plain/pipeline retained extras and dynamic JSON callback inputs. Batch affected
-  checks under the watchdog; measure native/Node against this parent and reuse
-  the Rust baseline. Empty-shape checker rejection remains separately tracked.
+  Public page now has **933 comparisons**; reuse this Rust baseline.
+- Profiled actual retention before implementation: 4M iterations, checksum
+  **20,000,007**, diagnostic3784.293ms; source field indexing/materialization/
+  serialization visible. First repair diagnostic3903.210ms. These CPU samples
+  are profiling evidence, not comparative benchmark claims.
+- Final retained code is byte-identical to first correctness candidate's parser/
+  source hashes, verified against measured compilerInputs after rejecting two
+  refinements. Its **126 affected invocations passed**: decoder9 (eight first
+  pass+one repaired-fixture retry), pipeline20, recursive10, plain parser3,
+  scalar backend19, JSON library65. Shared backend cases appear in more than
+  one binary; not126 distinct features. Initial build455.359s/1,654,064KiB;
+  suite watchdogs17.094+7.753 retry/51.245/22.799/7.781/.524/1.052s,
+  max native-suite peak1,077,840KiB. Shared target, incremental off, one build
+  job, individual5GB/30min watchdogs, three test threads; no resource stop.
+- Correctness candidate **2026-11-01T23:43:03.346Z**, **82.871s/414,160KiB**,
+  max load3.845, original93samples and identical dependency objects:
+  **Tsrust1.735208→1.761291ms (+1.503%)**, Node1.574083→1.567875ms
+  (-.394%), normalized .981×. **This is a mandatory accuracy fix, not an
+  accepted speed optimization.** Public selection now uses this measured fix.
+- Parent and all three candidates' allocation dictionaries match exactly:
+  **18 allocations/iteration**,0reallocations,5,344,000 requested bytes/2000
+  iterations, peak1,523, checksum10007, zero live/retained bytes after drop.
+- Rejected specialization skipping already-validated final document checks:
+  **2026-11-02T00:11:25.347Z**, retention1.804708ms,Node1.579125ms,
+  normalized .965×. Scalar .089209ms vs .086833 control; string .073500
+  vs .073334. Max timed load3.944, no override,183.961s/374,608KiB.
+  All126 affected tests passed (build453.102s/1,929,568KiB).
+- Rejected further removal of unused float tracking from trusted retention:
+  **2026-11-02T00:29:57.191Z**, retention1.760125ms,Node1.568041ms,
+  normalized .982×. Scalar .091542ms/Node.141875; string .079042/Node.143000,
+  versus pre-refactor .086833/.134708 and .073334/.147208. Max timed load3.817,
+  no override,148.715s/436,240KiB. All126 affected invocations passed,
+  build473.136s/1,699,296KiB; suite watchdogs22.666/48.931/22.166/7.209/.518/
+  1.043s, max1,089,312KiB. Both compile-time options and trial-only numeric
+  assertions removed; existing public parser restored byte-for-byte.
+- Original parent/first repair, pre-refactor parser-control baseline
+  **2026-11-01T23:51:24.252Z**, and both rejected trial histories ingested with
+  store:ingest. Exact median6/mean rate3/93counts, source hashes, matching native
+  dependency objects and SQLite integrity verified. No full Node/Rust reruns.
+  Rejected trial timestamps remain excluded from public pins.
+- Whole-project formatting passed with **zero** file/snippet/fingerprint changes.
+  Three website tests,66-page build,links/assets in116pages pass;
+  website watchdog **3.657s/927,200KiB**. No LSP signature/checker changes;
+  previous complete editor acceptance remains valid. No CI/deployment/push.
+- Final compiler/LSP release rebuild passed **212.995s/1,634,000KiB**.
+  Original native reproducer now prints the complete private-key object rather
+  than scalar0; smoke passed **7.737s/356,176KiB**. Pruned **128,093,218 bytes**
+  across35 closed raw/profile/native/stale-test outputs after verified imports.
+  Selected test executables will rebuild next time; current release consumers
+  remain. Local correctness checkpoint is ready; no speed acceptance claimed.
+  Next independent confirmed defect:
+  `s.object({}).retain()` rejects "Unknown generic record type"; plain empty
+  object schemas already have a diagnostic-options witness. Investigate/fix
+  retained empty output without weakening generic-record validation.
 
 **Plain JSON visitor — accepted locally, 2026-11-01:**
 - Parent **a50ff90a**, initially clean. Fresh actual recursive CPU sample used four
