@@ -38,6 +38,59 @@ plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
 
+**Integer concatenation capacity — rejected, parent 4f1471fe:**
+- Traced string_parts callers (addition chains/compound sum appends) and binary
+  numeric appends. Trial reserves20 rather than24 bytes only for i64 operands
+  (signed minimum needs20); f64/enums keep24. No digit-count calculation,
+  ownership change, new limit or unsafe; exact concat/templates unchanged.
+- Fresh parent profile **2026-11-02T02:42:11.807Z**,watchdog5.712s/275,136KiB;
+  candidate **2026-11-02T02:50:48.978Z**,6.243s/268,032KiB. Each three samples
+  identical/checksum-correct; all live bytes reach zero after cleanup.
+  Interfaces10,238 allocations/9 reallocations unchanged; requested994,855→962,087,
+  retained743,367→710,599,peak743,386→710,618 bytes (32,768 saved).
+  Function_expressions17,703/9 unchanged, requested988,742→972,358,
+  retained601,950→585,566,peak602,039→585,655 (16,384 saved).
+  Labeled_control7,981/2,057 unchanged, requested1,187,492→1,130,148,
+  retained/peak876,612→835,652 (57,344 requested/40,960 retained saved).
+  Enum and numeric record controls exactly unchanged, including emitted/driver hashes.
+- Added trial-only formatted native witness for binary/chain/compound forms,
+  UTF-8 prefix, signed extremes/zero/single/multiple digits, one allocation/no
+  reallocation, requested capacity and cleanup at O0/O3. All27 checks passed:
+  string_addition10,numeric_string_conversion6,string_concat_integer_fusion5,
+  string_concatenation2,templates4. Watchdogs5.204/2.090/3.133/1.033/2.086s,
+  peak601,264KiB; test build192.774s/1,399,296KiB; release210.063s/1,558,544KiB.
+- Quiet parent **2026-11-02T02:42:27.425Z**,7.793s/291,904KiB,max load2.290;
+  candidate **2026-11-02T02:51:51.679Z**,56.376s/239,104KiB,max load3.985 after
+  waiting for load below4. No override; original3processes×31samples after8warmups.
+  Native milliseconds parent→candidate: interfaces .204750→.199125 (1.028×),
+  function_expressions .321125→.329625 (.974×),labeled_control .284916→.284875.
+  Corresponding Node .117875→.120458,.335334→.353250,.274208→.275875.
+  Unchanged record control had a slow first process; recheck justified.
+- Recheck **2026-11-02T02:52:28.669Z**,9.834s/354,080KiB,max load3.291,
+  no override,original93samples/engine: interfaces native .201666/Node .116667,
+  function_expressions .326167/.343000,labeled_control .285584/.272042.
+  Normalized versus parent1.005/1.007/.990×. Enum .039792/.036792 versus
+  parent .038583/.035542; numeric record .098667/.431167 versus .101000/.431458.
+  Smaller requested memory did not establish a reliable speed gain without
+  regressions. **Reject:** restored both emitter and trial test byte-exactly to
+  accepted HEAD. Candidate test pass is evidence about the rejected trial only.
+- store:ingest added30 histories; exact rounded median/mean rate/93sample counts,
+  matching workload/protocol/versions/oracle/driver/harness identities, unchanged
+  control source hashes and SQLite integrity verified. Saved standard Rust
+  measurements reused. Rejected timestamps excluded from public performance pins.
+- Accepted compiler/LSP release rebuilt211.189s/1,481,184KiB. Restored profile
+  **2026-11-02T02:56:44.223Z**,4.154s/302,768KiB matches every parent compiler
+  input, generated/instrumented source hash, allocation sample and cleanup result.
+  Whole-project formatter zero files/snippets/fingerprints changed. Pruned
+  119,510,514 bytes across15 closed raw/candidate artifacts; fresh parent timing
+  and restored allocation profile remain. Trial-only test binaries removed;
+  rebuild affected binaries if needed. No CI,push or deployment.
+  No broader regression rerun needed for reverted compiler source. Next: profile
+  residual integer append CPU work in interfaces before trying the existing
+  tsr_push_int digit loop/UTF-8 validation, including single-digit inputs. Do not
+  assume lower capacity or a replacement formatter makes it faster. The104-byte
+  row-layout lead remains tracked; preserve earlier small-array wins.
+
 **Standalone empty object schemas — accepted locally, 2026-11-02:**
 - Parent **9b016b90**, clean tree. Fresh current-release witnesses show both
   `s.object({}).retain()` and plain `s.object({})` fail before retention with
