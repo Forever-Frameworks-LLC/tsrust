@@ -29,9 +29,12 @@ fn live_captured_rebindable_or_loop_carried_receivers_keep_copying() {
         // A let binding may be reassigned.
         "function f(values:int[]):int{let copy=values.slice(0);return copy.concat().length;}function main(){console.log(f([1,2]));}",
     ] {
-        let rust = emitted(source);
-        assert!(rust.contains("concat_array"), "receiver must still be copied: {source}");
-        support::execute(&support::format_round_trip(source), if source.contains("let copy") { "2\n" } else { "4\n" }, None);
+        for method in ["concat()", "with(0,9)"] {
+            let source=source.replace("concat()",method);
+            let rust = emitted(&source);
+            assert!(rust.contains(if method=="concat()" {"concat_array"} else {"let copying_values:"}), "receiver must still be copied: {source}");
+            support::execute(&support::format_round_trip(&source), if source.contains("let copy") { "2\n" } else { "4\n" }, None);
+        }
     }
 }
 

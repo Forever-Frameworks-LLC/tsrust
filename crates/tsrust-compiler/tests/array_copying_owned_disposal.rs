@@ -13,10 +13,14 @@ fn owned_live_prefixes_release_bytes_on_normal_and_unwind_paths_without_cloning_
         function setRows(values:Small[],index:int,value:Small):Small[]{return values.with(index,value);}
         function reverseTrees(values:Node[]):Node[]{return values.toReversed();}
         function setTrees(values:Node[],index:int,value:Node):Node[]{return values.with(index,value);}
+        function moveWords(values:string[],index:int,value:string):string[]{const local=clone(values);return local.with(index,value);}
+        function moveRows(values:Small[],index:int,value:Small):Small[]{const local=clone(values);return local.with(index,value);}
+        function moveTrees(values:Node[],index:int,value:Node):Node[]{const local=clone(values);return local.with(index,value);}
         function main(){}
     "#;
+    let source=support::format_round_trip(source);
     let analysis =
-        check(source).unwrap_or_else(|error| panic!("{}", error.render("owned.tsr", source)));
+        check(&source).unwrap_or_else(|error| panic!("{}", error.render("owned.tsr", &source)));
     let emitted = analysis.emit_rust();
     assert!(!emitted.contains("unsafe"));
     let rust = emitted.replace("fn main()", "fn source_main()") + ALLOCATOR + WITNESS;
@@ -131,10 +135,21 @@ fn main(){
             assert_eq!(trees[len-1].field1[0].field0.len(),79);
             drop(copied);drop(copied_rows);drop(copied_trees);assert_eq!(live()-inputs_live,0);
         }
+        if len>0 {
+            let moved_words=function6(&words,-1,owned(131));
+            let moved_rows=function7(&rows,-1,small(131));
+            let moved_trees=function8(&trees,-1,node(131));
+            assert_eq!(moved_words.len(),len);assert_eq!(moved_rows.len(),len);assert_eq!(moved_trees.len(),len);
+            drop(moved_words);drop(moved_rows);drop(moved_trees);
+            assert_eq!(live()-inputs_live,0,"moved replacement result leaked");
+        }
         for index in [i64::MIN,i64::MAX,len as i64] {
             assert!(std::panic::catch_unwind(||function1(&words,index,owned(131))).is_err());
             assert!(std::panic::catch_unwind(||function3(&rows,index,small(131))).is_err());
             assert!(std::panic::catch_unwind(||function5(&trees,index,node(131))).is_err());
+            assert!(std::panic::catch_unwind(||function6(&words,index,owned(131))).is_err());
+            assert!(std::panic::catch_unwind(||function7(&rows,index,small(131))).is_err());
+            assert!(std::panic::catch_unwind(||function8(&trees,index,node(131))).is_err());
             assert_eq!(live()-inputs_live,0,"replacement leaked during bounds unwind");
         }
         assert!(std::panic::catch_unwind(||{

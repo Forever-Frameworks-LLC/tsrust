@@ -39,7 +39,9 @@ include **0a68a4f5** (932 Rust references), **2c538120** (normalization optimiza
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization:small Map carrier buffer reuse,composition1.640×
+Latest accepted optimization:dead owned-array copying receivers,recursive
+toReversed1.946× (repeat1.795×),with1.633× (repeat1.586×),3,840/3,200
+allocations removed,retained memory unchanged. Previous small Map carrier buffer reuse,composition1.640×
 (repeat1.607×),718,447 allocations removed,retained/peak heap unchanged. Previous
 fixed floating-point literal returns,temporary number indexing21.503×
 (repeat22.536×),32,768 heap calls removed. Previous
@@ -73,6 +75,99 @@ accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration
 plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
+
+**Dead owned-array copying receivers — accepted locally, parent 1a74cf8f:**
+- Owner milestone policy above remains active: no broad suite restart. The Map
+  gate is committed as1a74cf8f; working tree was clean before this section.
+- Fresh allocation profile2026-11-02T21:45:58.503Z,4.689s/250,592KiB:
+  recursive toReversed10,113 allocations/1,671 reallocations/1,481,056 requested
+  bytes;with9,857/1,543/1,412,448. Both retain195,584/peak198,560 bytes,input12,
+  checksums988007362/421497852,all three dictionaries equal,both cleanup counters
+  zero. Integer reversal control129 allocations/five reallocations,retained8,192,
+  peak8,240. Originaln128/seed7. Actual generated code copies fixed-array owners
+  into the method result,then separately clones each borrowed iteration element
+  into the output. The hand reference legally consumes each dead receiver and
+  extends its output;its saved baseline is reused,not retimed.
+- Fresh formal parent2026-11-02T21:46:45.333Z,6.222s/236,096KiB:
+  recursive toReversed native.273708ms/Node.033667ms;with.260042/.039375ms;
+  integer reversal.002958/.007875ms. Original93 samples/engine,three processes,
+  eight warmups,quiet maxload2.77392578125,no override. Not the historical row.
+- Narrow implementation reuses the existing dead-const/single-reference proof.
+  Admit fixed owned-record receivers in copying emission,and admit with() in
+  the proof. Reverse owned storage or replace its validated element before
+  converting a fixed array into its existing public result layout. Live,
+  captured,borrowed,rebindable,loop-carried and unsupported layouts keep copying.
+  No new API,limits,dependency,RC or unsafe. Ordinary for-of clones remain a
+  separate residual optimization;do not claim they were removed.
+- **44 affected tests pass**,four sequential binaries,--test-threads=3 under
+  5,000,000KiB/1,800s watchdog:array_copying4 (2.618s/483,088KiB),receiver_moves5
+  (2.091s/473,824KiB),array_copying_owned_disposal1 (1.551s/160,240KiB),
+  fixed_storage34 (20.760s/507,392KiB). New O0/O3 witnesses cover fixed
+  scalar/recursive/heap results,independent ownership,NaN/-0/infinite bits,
+  failure operand order and exact live-byte cleanup after owned bounds unwinds.
+  Added with() variants to existing live/captured/rebindable/loop-carried proof
+  witnesses;all5 receiver tests pass again3.628s/342,064KiB,not counted twice.
+  Builds200.016s/1,391,840KiB,3.121s/481,808KiB,then test-only1.561s/270,512KiB.
+  Caught a whitespace-sensitive new fixture replacement during review and used
+  a separate formatted failure fixture before execution;no test failure occurred.
+- Initial trial release214.237s/1,495,312KiB. Candidate allocations6273/6657
+  versus10113/9857;retained unchanged and peak197480,all cleanup checks pass.
+  Formal recursive timing.273708→.155625ms and.260042→.171625ms;paired
+  reversal1.792×/repeat1.798×,replacement1.628×/repeat1.584×. Scalar fixed
+  reversal gave no memory gain,formal.002958→.002875ms but both paired rounds
+  .002958→.003000ms (one timer tick). Reject that unnecessary scalar expansion:
+  restrict fixed transport to owned-record arrays and preserve scalar emission.
+  Affected semantic tests already passed;rerun the changed emission witness and
+  final release/profile/timing before acceptance. This earlier candidate is not
+  the final compiler source. Three parent executable consumers remain for A/B.
+  That trial is superseded by the final-source evidence below.
+- Narrowed final source:**all44 affected tests pass** again,array_copying4
+  (3.134s/429,136KiB),receiver_moves5 (3.644s/191,552KiB),owned_disposal1
+  (1.556s/164,400KiB),fixed_storage34 (20.770s/452,704KiB). Rebuild199.883s/
+  1,554,288KiB plus3.629s/305,328KiB for remaining links. Earlier passes are
+  historical validation,not additional tests. Final release219.022s/1,477,456KiB.
+- Final allocation profile**2026-11-02T22:07:51.817Z**,3.120s/290,368KiB:
+  reversal6,273 allocations/903 reallocations/931,168 requested bytes;
+  replacement6,657/903/954,208. Removes**3,840/3,200 allocations** and
+  549,888/458,240 requested bytes. Both retain195,584 bytes,peak197,480
+  (1,080 lower),all three samples identical,both cleanup counters zero.
+  Recursive emitted sources match the initial winning trial exactly:
+  reversal2c6ab6d508218d1916d514efb42ac46971519fb770ede27bc89ab77b56fa0d37;
+  replacementef0dd42bb91b746fa178e07adf711dcd1607bfd3b8b59193dd0cae276dcdd087.
+  Scalar emission matches parent7811df8fa6aa15e0e365f63c3b48407a7702d2a04e9a2fdc11202920840a977e,
+  including its complete allocation dictionary. Its242,048-byte Mach-O
+  __TEXT,__text section is bit-identical,hash
+  4aff5d81a3af08afdfe0781d2460536176fa4f0c1675801cbc37cf63a5a15229.
+- Final formal candidate**2026-11-02T22:08:04.914Z**,4.147s/290,384KiB:
+  recursive reversal**.273708→.159458ms,1.716×**,Node.033667→.034416ms;
+  replacement**.260042→.173333ms,1.500×**,Node.039375→.040334ms;
+  integer control.002958→.002917ms,Node.007875→.007875ms. Original93 samples
+  per engine,quiet maxload2.2626953125,no override. All18 candidate process
+  observations match complete parent outputs;original correctness cases pass.
+- Final same-physical-path/argv0,rotating parent/candidate/Node,93 samples/engine:
+  reversal**.293583→.150833ms,1.946×**,repeat**.273917→.152584ms,1.795×**;
+  replacement**.271833→.166416ms,1.633×**,repeat**.268250→.169083ms,1.586×**.
+  Node reversal.036917/.034291ms,replacement.042625/.040875ms. Quiet maxima
+  2.4990234375 both rounds;27 complete outputs agree per round,2.581s/
+  159,152KiB total. Bit-identical integer code times.002959→.003125 then
+  .002917→.002917ms;this illustrates noise in the tiny control,not code changes.
+- store:ingest adds**12 histories**,six parent/six final candidate. Independently
+  verified each exact rounded median/rate/93sample count,unique timestamp and
+  SQLite integrity. Rejected scalar-trial raw result is excluded. Saved Rust
+  references.027500/.034833ms are reused,not retimed. Public report refresh
+  remains deferred until the final optimization milestone. Final whole-project
+  formatter changes zero files/snippets/fingerprints,4.136s/202,768KiB.
+- Remaining gap is still material:formal reversal5.798×/replacement4.976× saved
+  Rust. Generated for-of borrows each element and explicitly clones it into the
+  output;the Rust reference moves those dead owners and pre-reserves output.
+  Next:profile that remaining loop transfer,trace caller/borrow/capture and
+  exception constraints before reusing or extending the existing move proof.
+  Do not weaken independent ownership or iterative deep cleanup. Other large-gap
+  review targets remain queued;do not restart full regressions yet.
+- Closed parent consumers,passed test binaries,imported raw runs and scratch
+  trial/profile diagnostics are pruned after verification. Latest allocation
+  diagnosis,current candidate consumers and shared CLI/LSP target remain. No
+  broad regressions,CI,push or deployment;all owned runners are terminal.
 
 **Small Map carrier buffer reuse — accepted locally, parent 3fa9cd8d:**
 - Profiled the remaining scoped_record_composition gap before edits. Three
@@ -275,8 +370,9 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
 - Remaining large-gap review queue (latest stored matched workload IDs,not fresh
   A/B measurements except the accepted Map update above):composition now
   29.321042ms vs saved hand Rust18.420917ms (1.592×,10.900125ms excess),replacing
-  the historical121.497209ms row;recursive toReversed.286958/.027500ms (10.435×)
-  and with.280084/.034833ms (8.041×);declared Number/boolean reduce callbacks
+  the historical121.497209ms row;recursive toReversed now.159458/.027500ms
+  (5.798×) and with.173333/.034833ms (4.976×) after the accepted dead-receiver
+  transport above;declared Number/boolean reduce callbacks
   21.727×/14.325×;nullable boolean10.299×;nullish array/call spread7.413×/7.056×;
   nested/deep/recursive record forEach4.57–5.69×;byte views/maps4.82–4.85×;
   testing expectation predicates5.520×. Review absolute cost and equivalent work,

@@ -38,7 +38,7 @@ pub(super) fn mentions(expr: &Expr, id: usize) -> bool {
     found
 }
 
-/// Spans of `concat()`, `toReversed()`, `toSorted()`, `slice()` and `String()` calls that may consume their receiver.
+/// Spans of `concat()`, `toReversed()`, `toSorted()`, `with()`, `slice()` and `String()` calls that may consume their receiver.
 pub(super) fn eligible(fun: &CheckedFunction, closures: &[CheckedClosure]) -> HashSet<(usize, usize)> {
     let mut result = HashSet::new();
     let mut nested = false;
@@ -114,7 +114,7 @@ fn single_use(stmt: &Stmt, id: usize) -> Option<Option<(usize, usize)>> {
             if let ExprKind::Call(callee, args) = &value.kind
                 && let ExprKind::Field(base, _) = &callee.kind
                 && matches!(base.kind, ExprKind::Name(_)) && base.binding == Some(id)
-                && (matches!(value.target, Some(CallTarget::ArrayConcat | CallTarget::ArrayToReversed)) && args.is_empty() || matches!(value.target, Some(CallTarget::ArrayToSorted | CallTarget::ArraySlice)))
+                && (matches!(value.target, Some(CallTarget::ArrayConcat | CallTarget::ArrayToReversed)) && args.is_empty() || matches!(value.target, Some(CallTarget::ArrayToSorted | CallTarget::ArraySlice | CallTarget::ArrayWith)))
             {
                 call = Some((value.span.start, value.span.end));
             }

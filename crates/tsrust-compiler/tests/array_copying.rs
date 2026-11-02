@@ -218,3 +218,39 @@ fn copying_diagnostics_protect_types_ownership_and_selected_parent_loans() {
         );
     }
 }
+
+#[test]
+fn dead_owned_fixed_and_heap_receivers_move_without_cloning_elements() {
+    let source = r#"
+        type Node={code:int;text:string;children:Node[];};
+        function reversed(n:int):int[]{const values=[n,n+1,n+2];return values.toReversed();}
+        function replaced(n:number):number[]{const values:number[]=[n,2.5];return values.with(-1,3.5);}
+        function flags(flag:boolean):boolean[]{const values=[flag,false];return values.toReversed();}
+        function trees(n:int,text:string):Node[]{
+            const values:Node[]=[{code:n,text:clone(text),children:[{code:1,text:"child",children:[]}]},{code:n+1,text:"other",children:[]}];
+            return values.toReversed();
+        }
+        function changed(n:int,text:string):Node[]{
+            const values:Node[]=[{code:n,text:clone(text),children:[{code:1,text:"child",children:[]}]},{code:n+1,text:"other",children:[]}];
+            return values.with(-1,{code:9,text:"new",children:[]});
+        }
+        function heap(rows:Node[],index:int):Node[]{const values=rows.slice(0);return values.with(index,{code:8,text:"heap",children:[]});}
+        function mark(n:int):int{console.log(n);return n;}
+        function failed(index:int):int[]{const values=[10];return values.with(mark(index),mark(9));}
+        function main(){
+            console.log(reversed(4).join(","),replaced(1.5).join(","),flags(true).join(","));
+            const rows=trees(4,"owned");console.log(rows[0].code,rows[1].text,rows[1].children[0].text);
+            const next=changed(4,"owned");console.log(next[0].text,next[1].code,heap(next,-1)[1].text,next[1].text);
+        }
+    "#;
+    let formatted=support::format_round_trip(source);
+    let rust=check(&formatted).unwrap().emit_rust();
+    assert_eq!(rust.matches("let copying_values:").count(),4,"only the four scalar fixed receivers keep the original copy path: {rust}");
+    assert!(rust.contains("<RecordArray0>::from(copying_array)"),"fixed owned elements must move: {rust}");
+    native(&formatted,"6,5,4 1.5,3.5 false,true\n5 owned child\nowned 9 heap new\n",r#"
+        let bits=[0x8000000000000000,0x7ff8000000001234,0x7ff0000000000000,0xfff0000000000000];
+        for bits in bits { assert_eq!(function1(f64::from_bits(bits))[0].to_bits(),bits); }
+    "#,false);
+    let failed=support::format_round_trip("function mark(n:int):int{console.log(n);return n;}function main(){const values=[10];values.with(mark(2),mark(9));}");
+    native(&failed,"2\n9\n","",true);
+}

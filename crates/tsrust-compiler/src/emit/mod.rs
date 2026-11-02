@@ -5034,10 +5034,18 @@ impl Emitter<'_> {
         if args.is_empty() && self.moves_receiver(base, span) {
             return format!("{{ let mut reversed_array = {}; reversed_array.reverse(); reversed_array }}", self.expr(fun, base, Mode::Consume));
         }
-        let receiver = self.expr(fun, base, Mode::Read);
-        let literal =
-            self.expression_shape(base) == Some(crate::fixed_storage::Shape::LiteralStrings);
-        let mut output = format!("{{ let copying_array = {receiver}; ");
+        let shape = self.expression_shape(base);
+        let moving = matches!(shape, None | Some(crate::fixed_storage::Shape::Array { .. }))
+            && self.receiver_moves.borrow().contains(&(span.start, span.end));
+        let receiver = self.expr(fun, base, if moving { Mode::Consume } else { Mode::Read });
+        let owned_result = if shape.is_some() {
+            format!("<{}>::from(copying_array)", self.native_type(array_type))
+        } else { "copying_array".to_owned() };
+        if moving && args.is_empty() {
+            return format!("{{ let mut copying_array = {receiver}; copying_array.reverse(); {owned_result} }}");
+        }
+        let literal = shape == Some(crate::fixed_storage::Shape::LiteralStrings);
+        let mut output = format!("{{ let {}copying_array = {receiver}; ", if moving { "mut " } else { "" });
         let values = if args.is_empty() {
             if literal {
                 "copying_array.values.iter().rev().map(|value| String::Borrowed(value)).collect()"
@@ -5054,6 +5062,10 @@ impl Emitter<'_> {
             // Bind both operands before validating the index. unsigned_abs and
             // checked_sub handle i64::MIN without clamping a failed index.
             write!(output, "let copying_from: i64 = {index}; let mut copying_replacement = Some({replacement}); let copying_index = match (if copying_from >= 0 {{ usize::try_from(copying_from).ok().filter(|index| *index < copying_array.len()) }} else {{ usize::try_from(copying_from.unsigned_abs()).ok().and_then(|distance| copying_array.len().checked_sub(distance)) }}) {{ Some(index) => index, None => {failed} }}; ").unwrap();
+            if moving {
+                write!(output, "*copying_array.get_mut(copying_index).expect(\"validated replacement index\") = copying_replacement.take().expect(\"replacement used once\"); {owned_result} }}").unwrap();
+                return output;
+            }
             let (iterator, clone) = if literal {
                 ("copying_array.values.iter()", "String::Borrowed(value)")
             } else {
