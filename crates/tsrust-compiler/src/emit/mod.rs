@@ -1073,6 +1073,11 @@ impl Emitter<'_> {
             _ => unreachable!("checked console value"),
         }
     }
+    fn number_string_conversion(value: &str) -> String {
+        // Preserve the existing label formatter outside the single-digit domain.
+        format!("{{ let number_text_value: f64 = {value}; if (0.0..=9.0).contains(&number_text_value) && number_text_value.fract() == 0.0 {{ tsr_int_text(number_text_value as i64) }} else {{ String::Owned(TsrConsoleValue::Number(number_text_value).label()) }} }}")
+    }
+
     fn union_observation(&self, union: UnionId, value: &str, target: CallTarget) -> String {
         let arms = self.program.unions[union.index()]
             .members
@@ -1119,6 +1124,8 @@ impl Emitter<'_> {
                         Type::Enum(_, crate::syntax::EnumKind::String) if target==CallTarget::StringConversion => "String::Borrowed(payload.tsr_value())".into(),
                         Type::Boolean if target==CallTarget::StringConversion => "String::Borrowed(if *payload { \"true\" } else { \"false\" })".into(),
                         Type::Int if target==CallTarget::StringConversion => "tsr_int_text(*payload)".into(),
+                        Type::Number if target==CallTarget::StringConversion => Self::number_string_conversion("*payload"),
+                        Type::Enum(_, crate::syntax::EnumKind::Number) if target==CallTarget::StringConversion => Self::number_string_conversion("payload.tsr_value()"),
                         other => format!(
                             "String::Owned(({}).label())",
                             self.console_value("payload", *other, "0", false)
@@ -1626,6 +1633,8 @@ impl Emitter<'_> {
                     Some(Type::Boolean) => "String::Borrowed(if builtin_argument_0 { \"true\" } else { \"false\" })".into(),
                     // An int is its plain decimal digits.
                     Some(Type::Int) if first.and_then(|a| a.ty) == Some(Type::Int) => "tsr_int_text(builtin_argument_0)".into(),
+                    Some(Type::Number) if first.and_then(|a| a.ty) == Some(Type::Number) => Self::number_string_conversion("builtin_argument_0"),
+                    Some(Type::Enum(_, crate::syntax::EnumKind::Number)) => Self::number_string_conversion("builtin_argument_0.tsr_value()"),
                     Some(kind) => {
                         let reference = if kind.is_copy() {
                             "&builtin_argument_0"

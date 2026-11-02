@@ -63,3 +63,47 @@ fn discarded_integer_string_conversion_selects_runtime_support() {
     let output=support::run(support::cli().arg("run").arg(directory.source(&source)),60);
     support::success(&output);assert!(output.stdout.is_empty());
 }
+
+
+#[test]
+fn number_string_conversion_preserves_specials_enums_and_independent_mutation() {
+    let source=r#"
+import {strictEqual} from 'std:testing';
+enum Phase{Ready=0,Busy=4,Last=9,Fraction=0.5,Far=17}
+type Box={text:string;};
+function direct(value:number):string{return String(value);}
+function optional(value:number|undefined):string{return String(value);}
+function mixed(value:number|string|boolean|null):string{return String(value);}
+function phase(value:Phase):string{return String(value);}
+function maybePhase(value:Phase|null):string{return String(value);}
+function once(trace:int[]):number{trace.push(1);return 7.0;}
+function main(){
+ for(const value of [-10.0,-1.0,-0.0,0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,0.5,-2.5,17.0,1e-7,1e21,Number.NaN,Number.POSITIVE_INFINITY,Number.NEGATIVE_INFINITY]){
+  strictEqual(direct(value),value.toString());strictEqual(optional(value),value.toString());strictEqual(mixed(value),value.toString());
+ }
+ const negativeZero=-0.0;strictEqual(direct(negativeZero),'0');strictEqual(Object.is(negativeZero,-0.0),true);
+ strictEqual(phase(Phase.Ready),'0');strictEqual(phase(Phase.Busy),'4');strictEqual(phase(Phase.Last),'9');
+ strictEqual(phase(Phase.Fraction),'0.5');strictEqual(phase(Phase.Far),'17');
+ strictEqual(maybePhase(Phase.Busy),'4');strictEqual(maybePhase(null),'null');
+ strictEqual(optional(undefined),'undefined');strictEqual(mixed(null),'null');strictEqual(mixed(true),'true');strictEqual(mixed('text'),'text');
+ let first=direct(4.0);const second=direct(4.0);first+='x';strictEqual(first,'4x');strictEqual(second,'4');
+ const box:Box={text:direct(6.0)};const saved=clone(box);box.text+='x';strictEqual(box.text,'6x');strictEqual(saved.text,'6');
+ const values=[direct(8.0),direct(8.0)];values[0]+='x';strictEqual(values[0],'8x');strictEqual(values[1],'8');
+ const trace:int[]=[];strictEqual(String(once(trace)),'7');strictEqual(trace.length,1);
+}
+"#;
+    let directory=support::TempDirectory::new();
+    let path=directory.source(&support::format_round_trip(source));
+    let output=support::run(support::cli().arg("run").arg(path),60);
+    support::success(&output);assert!(output.stdout.is_empty());
+}
+
+#[test]
+fn discarded_number_string_conversion_selects_its_existing_support() {
+    let source=support::format_round_trip("function main(){String(Number(7));}");
+    let emitted=tsrust_compiler::check(&source).unwrap().emit_rust();
+    assert!(!emitted.contains("unsafe"));
+    let directory=support::TempDirectory::new();
+    let output=support::run(support::cli().arg("run").arg(directory.source(&source)),60);
+    support::success(&output);assert!(output.stdout.is_empty());
+}

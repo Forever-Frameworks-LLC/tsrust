@@ -24,8 +24,9 @@ include **0a68a4f5** (932 Rust references), **2c538120** (normalization optimiza
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization: single-digit String(int) storage reuse
-(interfaces1.198×, splice/nullable1.45×). Previous plain JSON decoding with
+Latest accepted optimization: single-digit String(number) storage reuse
+(enums1.750×, mixed-number arrays/unions1.07×). Previous String(int) reuse
+is interfaces1.198×/splice and nullable1.45×. Previous plain JSON decoding with
 complete integer validation is recursive1.059×/string reads1.108×; preserved object slots are
 1.039×; identity-preserving Map/Set validation is 1.275× (**32cdfb23**).
 Following **8da8e64d** (cached normalization classes, 1.040×), **ee108cdc** (table-bound fast paths, 1.174×), **23abf642** (in-place composition, 1.029×), **2c538120** (scratch
@@ -87,6 +88,95 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
 - Next: refresh release compiler/LSP, then profile object/string allocation using
   the owner-approved plan below. Current debug consumers already execute the
   corrected schema behavior. No new CI, push, release or deployment.
+
+
+**Single-digit String(number) — accepted locally, 2026-11-02:**
+- Parent **e486ede7**, initially clean. Native parent allocation profile
+  **2026-11-02T01:57:42.671Z**,5.199s/281,952KiB: enum_values4097alloc/9realloc,
+  nullable_number_null1367/10,array_pop_number6145/12; three exact samples and
+  zero bytes after drop. System-allocator CPU probe of actual enum workload
+  (2048iterations,200,000batches) confirms label/spec_to_string/malloc costs,
+  checksum **183779782**, watchdog20.666s/32,912KiB. CPU probe is not timing
+  evidence; /tmp/tsrust-number-digit-parent.sample.
+- Quiet parent **2026-11-02T02:01:30.230Z**,15.053s/373,328KiB,max load2.103,
+  no override,93samples/engine for enum_values,nullable_number_null,array_pop_number,
+  array_shift_number,number_to_string_radix,number_to_fixed_default,interfaces,
+  record_mutation. Native/Node only; reuse pinned Rust. store:ingest added16
+  histories, verified exact medians/rates/counts,source/compiler hashes,integrity.
+- Traced direct and union StringConversion numeric/number-enum paths and
+  Object.hasOwn's transitive scalar fallback. A shared emitter source expression
+  snapshots f64 once, reuses tsr_int_text only for exact values0..9, otherwise
+  retains the exact old TsrConsoleValue::Number.label fallback. No runtime API,
+  table,dependency,unsafe,limits or editor signature changes. String(-0) remains
+  "0"; console inspection's "-0" and input sign bits remain unchanged. ObjectHasOwn
+  union-key path, numeric methods and concatenation's digit writer unchanged.
+  Both String and TsrConsoleValue fallback markers preserve runtime selection,
+  including discarded calls; no new runtime support hook is needed.
+- Added formatted native witnesses for direct/copy-union/view-union/enum paths,
+  all digits,fractions,nonfinite/zero spellings,cloned record/array mutation and
+  single evaluation; isolated discarded call witness. Allocation witness asserts
+  zero allocations/borrowed storage for digits and both zeros, native into_owned,
+  mutation isolation,owned fallback,edge floats and1024 deterministic random
+  f64-bit patterns against the unchanged label formatter at optimization0/3.
+- Affected build passed **198.267s/1,485,872KiB**. All **51 invocations
+  passed** sequentially: enums6,numeric conversion6,number formatting5,ties2,
+  number.toString3,console14,hasOwn4,root spread5,concatenation2,primitive identity4.
+  Watchdogs2.069/1.549/7.216/1.031/2.056/12.424/1.038/2.601/1.032/2.593s,
+  max native-suite peak664,160KiB. Formatting/no-generated-unsafe assertions,
+  zero-allocation digit checks and1024 random fallback patterns at O0/O3 pass.
+  No frontend/signature changes; preserve existing editor acceptance.
+- Release build passed **207.049s/1,583,040KiB**. Compiler/LSP all-target
+  diagnostics passed **53.273s/1,582,128KiB**, only preexisting decode_plain
+  dead-code warning. Private emitter-only change preserves frontend/editor facts;
+  prior50 editor agreement passes remain applicable.
+- Candidate allocations **2026-11-02T02:19:01.337Z**,3.626s/326,048KiB:
+  three exact samples and source hashes match, zero live bytes after both drops.
+  enum_values **4097→2049alloc**,requested540,268→513,632,retained/peak
+  327,692→301,056. Nullable numbers **1367→1027alloc**,requested
+  405,829→402,429,retained/peak209,413→206,013. Pop numbers **6145→4609alloc**,
+  requested1,647,936→1,646,400,retained812,544→811,008,peak812,576→811,040.
+  Reallocations remain9/10/12; no changes to during-work deallocation counts.
+- Quiet candidate **2026-11-02T02:19:53.811Z**,13.456s/389,008KiB,max timed
+  load2.347,no override. Original93samples/engine/case; four affected cases:
+
+  | Workload | Parent ms | Candidate ms | Raw speed | Node ms, parent→candidate |
+  | --- | ---: | ---: | ---: | --- |
+  | enum_values | .067875 | .038792 | 1.750× | .036500→.035667 |
+  | nullable_number_null | .044250 | .041292 | 1.072× | .051333→.051542 |
+  | array_pop_number | .223000 | .208083 | 1.072× | .220250→.219459 |
+  | array_shift_number | .221459 | .206750 | 1.071× | .256625→.252542 |
+
+  Enum native process medians .038792/.039250/.038792,normalized1.710×;
+  other affected normalized gains1.054–1.076×. Every affected native process
+  median beats its parent global median. Unchanged controls initially varied:
+  interfaces .202208→.208792, fixed .077833→.079458,radix .810291→.825708,
+  mutation .098667→.098667. Their emitted and driver-instrumented source hashes
+  are exactly identical across parent/candidate; no code change in these cases.
+- Bounded control follow-up **2026-11-02T02:22:44.353Z**,6.224s/272,240KiB,
+  max load2.091,no override,original93samples: interfaces native **.201125**,
+  Node.117375; fixed native **.077125**,Node.077709. Native timings return to
+  parent level; normalized1.019/.989×. This resolves the initial2–3% drift in
+  byte-identical controls without rerunning affected gains or claiming a control
+  optimization. Preserve both candidate runs; no whole-matrix timing claim.
+- All paired manifest,driver,oracle,adapter,harness,lock,version/workload hashes
+  match. No external native dependency change; only compiler input emit/mod.rs
+  differs. store:ingest added16parent+16candidate+4control histories; exact
+  median6/mean rate3/93counts,all source identities,quiet policies and SQLite
+  integrity verified. Rust reference timings reused, not rerun.
+- Public pins select accepted affected results and the latest control pairs.
+  Whole-project formatter zero files/snippets/fingerprints changed. Three website
+  tests,66-page build,links/assets in116pages pass; website3.636s/966,080KiB.
+  Current compiler/LSP release consumers contain accepted code. No CI,push or
+  deployment. Source change is nine emitter lines plus focused regression tests;
+  no new runtime function, table,dependency,unsafe,limits or public signature.
+- Pruned **74,835,547 bytes** across9 closed raw/probe/older test outputs after
+  verification. Current51-test artifacts and latest candidate timing/allocation/
+  control follow-up remain for the next parent; older int-only suites rebuild
+  when needed. Next object-memory lead:
+  inspect integer concatenation's conservative24-byte capacity allowance against
+  i64's exact20-byte maximum, using current interfaces profiles and full min/max
+  witnesses before changing sizing. Test timing rather than assuming fewer bytes
+  wins. The104-byte output-row layout remains tracked; preserve small-array gains.
 
 
 **Single-digit String(int) — accepted locally, 2026-11-02:**
