@@ -44,6 +44,81 @@ plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
 
+**Object construction isolation and exact chain sizing — profiled/rejected, 2026-11-02:**
+- Parent **2bcb344d**, initially clean. Reused existing string-free
+  generic_record_nested_int and generic_function_record_pipeline construction/
+  field-access workloads,plus record_mutation. No new workload,dependency or
+  speculative numeric-record harness. These aggregate results can be optimized
+  away; they establish this pipeline's behavior,not universal struct optimality.
+- Fresh native profile **2026-11-02T06:03:14.322Z**,4.666s/256,160KiB:
+  all three numeric controls have0 allocations/reallocations/requested/retained/
+  peak bytes. Checksums10,011,200 for both construction controls and
+  10,000,700,000 for mutation;three deterministic samples each,cleanup0.
+  Generated code is nested typed structs/direct fields,not a dynamic object map.
+- Matched standard Rust allocation profiles **2026-11-02T06:04:50.734Z**,
+  1.561s/256,960KiB: identical zero-allocation numeric controls;reference hashes
+  exactly match public pins. Interfaces generated10,238 allocations/9 reallocs,
+  requested994,855,retained743,367,peak743,386;reference16,385/2,057,
+  requested634,784,retained505,856,peak505,876. All drop counters return to0.
+- Refreshed layout attribution1.041s/155,856KiB,three exact samples:
+  generated104-byte row slots,outer212,992/inner245,760/strings284,615 bytes;
+  standard Rust24-byte slots,outer49,152/inner245,760/strings210,944.
+  Current extra237,511 retained bytes split163,840 row layout+73,671 strings.
+  This supersedes the older pre-digit-cache memory gap without erasing it.
+- Fresh matched system-allocator CPU probes2.648s/235,504KiB preparation,
+  16.510s/32,736KiB combined sampling;20,000 original observed create/drop
+  batches,checksum473727250,original2,048 iterations/seed7/input. Native
+  diagnostic wall5.982s/reference10.480s are not benchmark timings. Of2,134
+  main-thread samples,top-of-stack includes372 allocator free,282 tiny malloc,
+  184 tsr_push_int,170 memmove,136 UTF-8 validation and85 tsr_int_text. Retained
+  string/row allocation,formatting and cleanup remain concrete costs.
+- Official quiet current-parent timing **2026-11-02T06:05:27.292Z**,
+  14.522s/351,136KiB,maxload2.120,no override,original3processes/8warmups/
+  31samples each. Construction controls **.009666/.015958ms** and
+  **.009666/.019625ms** Tsrust/Node (1.65×/2.03×). Saved Rust references
+  .009667/.009917ms reused,not retimed. Mutation .098666/.432375ms,
+  saved Rust .098667. Interfaces .201083/.116708ms,saved Rust .413167;
+  generated is already faster than that reference despite using more bytes.
+  These are workload results;do not infer general object or JSON superiority.
+- Trial changes only generated-consumer integer chain capacities from24 to the
+  exact unsigned_abs().checked_ilog10() digit count plus sign,using the existing
+  String.concat sizing expression. It does not repeat the rejected constant20
+  capacity trial. Full original instrumented source hashes verified;original
+  Rust flags/path and driver retained;restored sources after each compilation.
+  Only interfaces and labeled_control contained affected chains in the selected
+  seven cases. Full observed checksum/exactBits agree with parent.
+- First paired3process×31sample trial,maxload2.181,3.092s/259,312KiB:
+  interfaces **.201541→.212208ms (5.3% slower)**,Node .116875;
+  labeled .282000→.279000,Node .274208. Follow-up maxload1.992,
+  3.111s/245,952KiB: interfaces .205625→.210458 (2.4% slower),
+  labeled .286833→.275541,Node .123125/.281667 respectively. A small ingestion
+  ran during the follow-up;first clean paired slowdown independently rejects it.
+- Trial layout profile0.520s/880KiB,three identical checksum-correct samples:
+  allocations10,238/reallocations9 unchanged,requested816,552,
+  retained565,064,peak565,083;string capacity106,312. Saves178,303 bytes
+  (24.0% retained),but duplicates integer digit work and loses throughput.
+  **Rejected before compiler edits.** No runtime behavior,ownership,limits or
+  generated unsafe change;no claim of accepted performance gain.
+- Ingested20 official current-parent histories;exact rounded median/mean rate/
+  93counts and SQLite integrity verified. Public pin uses only official current
+  compiler data,not rejected diagnostic timing. Reused all saved Rust timings.
+  Whole-project formatter4.126s/201,584KiB,zero changes;three website tests pass,
+  66-page build3.655s/891,776KiB and links/assets/anchors in116pages pass.
+  Existing duplicate404 warning only. Compiler source unchanged;reuse preceding
+  54 affected checks and all-target agreement rather than rebuild identical code.
+- Pruned19 closed trial/CPU/layout artifacts (3,782,615bytes),including an
+  obsolete temporary source snapshot. Current native/reference allocation profiles
+  and official parent timing remain for next comparison;all owned runners terminal.
+  No compiler tests rerun,no CI,push or deployment for this profiling checkpoint.
+- Next: trace existing borrowed record/view emission before removing any local
+  record string copy. Plain Player.name clones the owned input each iteration,
+  but only borrowed describe calls consume it before the local dies. Establish
+  whether current view/ownership machinery can represent this without changing
+  escaping values or retaining source allocations. Row-wrapper storage remains
+  a measured lead;104bytes are required by the current four-inline-string type,
+  so shrinking it requires a proved storage choice,not a smaller heap allocation.
+  No arena,RC backing or reduced inline threshold is approved by these profiles.
+
 **Finite number strings — accepted locally, parent ac1590eb:**
 - Fresh six-workload allocation profile **2026-11-02T05:36:37.662Z**,
   6.216s/318,384KiB; original deterministic samples and cleanup validated.
