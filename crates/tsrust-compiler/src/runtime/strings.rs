@@ -615,6 +615,16 @@ pub fn tsr_char_text(character: char) -> String {
     }
 }
 
+// A single decimal digit uses the same immutable storage as an ASCII character.
+#[inline]
+pub fn tsr_int_text(value: i64) -> String {
+    if (0..=9).contains(&value) {
+        tsr_char_text(char::from(b'0' + value as u8))
+    } else {
+        String::Owned(value.to_string())
+    }
+}
+
 /// `text.at(index)`: the character at `index`, counted from the end when
 /// negative; `None` outside the text.
 pub fn tsr_string_at(value: &String, index: i64) -> Option<String> {

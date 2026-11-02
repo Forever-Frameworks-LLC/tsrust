@@ -1118,7 +1118,7 @@ impl Emitter<'_> {
                         Type::Array(_) => "tsr_array_join(payload.iter(), \",\")".into(),
                         Type::Enum(_, crate::syntax::EnumKind::String) if target==CallTarget::StringConversion => "String::Borrowed(payload.tsr_value())".into(),
                         Type::Boolean if target==CallTarget::StringConversion => "String::Borrowed(if *payload { \"true\" } else { \"false\" })".into(),
-                        Type::Int if target==CallTarget::StringConversion => "String::Owned(payload.to_string())".into(),
+                        Type::Int if target==CallTarget::StringConversion => "tsr_int_text(*payload)".into(),
                         other => format!(
                             "String::Owned(({}).label())",
                             self.console_value("payload", *other, "0", false)
@@ -1625,7 +1625,7 @@ impl Emitter<'_> {
                     // "true" and "false" are static text.
                     Some(Type::Boolean) => "String::Borrowed(if builtin_argument_0 { \"true\" } else { \"false\" })".into(),
                     // An int is its plain decimal digits.
-                    Some(Type::Int) if first.and_then(|a| a.ty) == Some(Type::Int) => "String::Owned(builtin_argument_0.to_string())".into(),
+                    Some(Type::Int) if first.and_then(|a| a.ty) == Some(Type::Int) => "tsr_int_text(builtin_argument_0)".into(),
                     Some(kind) => {
                         let reference = if kind.is_copy() {
                             "&builtin_argument_0"
@@ -3117,6 +3117,7 @@ impl Emitter<'_> {
         }
         // Support is emitted once per program, only when its representation is used.
         if output.contains("String")
+            || output.contains("tsr_int_text(")
             || output.contains("tsr_boolean_string(")
             || output.contains("tsr_int_locale_string(")
             || output.contains("tsr_number_locale_string(")

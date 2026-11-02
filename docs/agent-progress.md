@@ -24,8 +24,9 @@ include **0a68a4f5** (932 Rust references), **2c538120** (normalization optimiza
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization: plain JSON decoding with complete integer validation
-(recursive 1.059×, string reads 1.108×). Previous preserved object slots are
+Latest accepted optimization: single-digit String(int) storage reuse
+(interfaces1.198×, splice/nullable1.45×). Previous plain JSON decoding with
+complete integer validation is recursive1.059×/string reads1.108×; preserved object slots are
 1.039×; identity-preserving Map/Set validation is 1.275× (**32cdfb23**).
 Following **8da8e64d** (cached normalization classes, 1.040×), **ee108cdc** (table-bound fast paths, 1.174×), **23abf642** (in-place composition, 1.029×), **2c538120** (scratch
 reuse, 1.316×), `28a3409c` (typed JSON pipeline restoration) and `1d3eb962` (single
@@ -86,6 +87,97 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
 - Next: refresh release compiler/LSP, then profile object/string allocation using
   the owner-approved plan below. Current debug consumers already execute the
   corrected schema behavior. No new CI, push, release or deployment.
+
+
+**Single-digit String(int) — accepted locally, 2026-11-02:**
+- Parent **a984ce1f**, initially clean. Reuses the completed interfaces allocation/
+  CPU profile and baseline below. Additional affected parent controls completed
+  **2026-11-02T01:30:31.359Z**, **9.377s/296,016KiB**, max load2.228,no
+  override: nullable_int_null,declaration_lists,array_splice_int,labeled_control,
+  native+Node,93samples each. Eight histories ingested; exact medians/rates/
+  counts/workload and compiler hashes/SQLite integrity verified before editing.
+- Traced all String(int) emission paths: direct value_builtin_call and int members
+  in union_observation. Both now call one private runtime tsr_int_text helper.
+  Decimal digits0..9 borrow the existing static ASCII table through tsr_char_text;
+  all other integers keep i64::to_string. No new table, dependency, generated
+  unsafe, reference counting, limits or public signature. Float conversion,
+  radix/default int.toString and concatenation's existing digit writer remain
+  untouched. Object.hasOwn union-key conversion keeps its existing path; its
+  direct scalar-key fallback reuses StringConversion and therefore the new helper.
+  The object_has_own suite covers this transitive caller. Runtime support is
+  selected by String types or the explicit helper marker. Generic validation/
+  checker/editor code unchanged.
+- New native/format-round-trip witness checks direct/copy-union/view-union
+  conversion, all digits,negative/large/min/max integers, null/undefined/boolean/
+  text branches, single evaluation, record/array cloning, captures and independent
+  subsequent mutation. Runtime witness uses existing counting-allocator pattern
+  to assert zero allocations for digits, borrowed storage, native into_owned,
+  mutation isolation and owned fallback at optimization levels0/3.
+- Initial affected build passed **195.226s/1,574,800KiB**. Before execution,
+  review found support selection for discarded `String(7)`: emitted a helper
+  call but no helper definition because no String type/text marker remained.
+  Added explicit tsr_int_text support-selection marker and a minimal formatted
+  native regression; no unrelated runtime selection changes. This follow-up
+  invalidated the first artifact set; execution waited for the final rebuild.
+- Final affected build passed **196.803s/1,606,736KiB**. Added the transitive
+  object_has_own suite with a2.067s/270,096KiB incremental target build.
+  All **35 invocations passed** across nine sequential suites: numeric conversion4,
+  borrowed runtime2,concatenation2,construction4,int.toString4,enums6,
+  primitive identity4,root spread5,hasOwn4. Watchdogs2.071/1.048/1.036/2.092/
+  2.076/1.043/2.635/2.603/1.045s; maximum sampled native-suite peak532,912KiB.
+  Formatting witnesses and emitted-no-unsafe assertions passed. Frontend/editor
+  signatures unchanged; reuse the preceding50 editor agreement passes.
+- Release build passed **209.635s/1,524,576KiB**. Compiler/LSP all-target
+  diagnostics passed **53.426s/1,372,432KiB**, only existing decode_plain
+  lib-test dead-code warning. Private emitter/runtime change preserves editor
+  facts; preceding50 editor passes remain applicable.
+- Candidate allocation profile **2026-11-02T01:47:44.234Z**,
+  **3.120s/321,184KiB**. Three identical samples/source hashes and zero live bytes
+  after both drops. Interfaces **14,337→10,238 allocations** (4,099 fewer,
+  28.6%), reallocations9 unchanged, requested **1,072,736→994,855 bytes**,
+  retained **821,248→743,367**, peak **821,267→743,386**. Exactly77,881 bytes
+  saved =4,099 eliminated19-byte integer buffers. Numeric record_mutation's
+  complete sample dictionary is unchanged, all allocation counters zero.
+- Quiet candidate **2026-11-02T01:48:14.054Z**, **11.923s/353,104KiB**,
+  max timed load **2.182**,no override. Original93samples/engine/workload.
+  All six affected native medians improved; numeric/enum controls remain flat:
+
+  | Workload | Parent ms | Candidate ms | Native speed | Node ms, parent→candidate |
+  | --- | ---: | ---: | ---: | --- |
+  | interfaces | .243333 | .203083 | 1.198× | .117292→.118000 |
+  | type_aliases | .148458 | .123333 | 1.204× | .038875→.039791 |
+  | nullable_int_null | .033000 | .022708 | 1.453× | .026833→.027375 |
+  | array_splice_int | .321041 | .221209 | 1.451× | .217583→.216667 |
+  | labeled_control | .366500 | .286084 | 1.281× | .272167→.273750 |
+  | declaration_lists | .314875 | .275458 | 1.143× | .076750→.081500 |
+  | record_mutation | .098666 | .098667 | flat | .431375→.431167 |
+  | enum_values | .066833 | .066375 | flat | .036458→.035917 |
+
+  Interfaces native process medians .202333/.207333/.199875; normalized
+  improvement1.205×. Other affected normalized improvements1.214–1.483×.
+  Declaration Node drifted+6.2%, so distinguish its raw1.143× from normalized
+  1.214×. All affected native process medians improve over parent global medians.
+  Controls normalized .9995/.992× are within noise. No measured regression in
+  selected cases and no semantic failure; do not claim whole-matrix timing.
+- Paired manifest,drivers,oracle,adapters,harness,lock,versions and workload hashes
+  match. No external native dependencies required by these cases; dependency
+  records match. Compiler input difference is exactly emit/mod.rs and runtime/
+  strings.rs. store:ingest added **16 candidate histories** (plus8 extra parent
+  controls earlier); exact median6/mean rate3/93counts, all current source hashes
+  and SQLite integrity verified. Reused Rust baselines; no Rust retiming.
+- Public selection uses accepted candidate pairs. Whole-project formatting zero
+  files/snippets/fingerprints changed. Three website tests,66-page build,
+  links/assets in116pages pass; website **3.645s/988,304KiB**. Current compiler/
+  LSP release consumers include accepted code. No CI,push or deployment.
+- Pruned **105,105,032 bytes** across25 closed raw/probe/obsolete test outputs
+  after import verification. Kept the latest candidate timing/allocation profile
+  as the next parent, with summaries above for closed profiles. Current accepted
+  digit test executables remain; older schema/editor test artifacts will rebuild.
+  See latest checkpoint for accepted source and measurements.
+  Next: profile the remaining whole-number String(number) conversion in enum_values
+  before considering the same character-storage idea. Preserve negative zero,
+  nonfinite/fractional spelling and exact native semantics. The104-byte output-row
+  layout remains a measured memory target, with prior inline-array wins protected.
 
 
 **Object allocation profiling — parent baseline complete, 2026-11-02:**
