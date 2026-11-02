@@ -45,6 +45,81 @@ plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
 
+**Escaping row storage — diagnosis complete; global capacity increase rejected:**
+- Parent **c21ea2ce**, initially clean;compiler unchanged throughout this section.
+  Current profiles show interfaces8,190 allocations,retained743,367 bytes. Each
+  five-string result row uses Array<String>'s heap arm while its outer slot still
+  carries four inline cells. This is a separate cost from the removed input copy.
+- Compared two generated-consumer hypotheses before compiler work: Vec<[String;5]>
+  with direct row literals,and a five-slot Array<T> runtime. Fixed-row conversion
+  changes only result/local container types and the unique row constructor;adds
+  a generic Rust-array SliceTree visitor with identical boundary/string tokens.
+  Original instrumented source hashes asserted,original path/Rust flags/driver
+  retained,sources restored after every compile. Neither is a compiler feature.
+- Quiet paired3processes/8warmups/31samples,**2026-11-02T06:42:33.109Z**,
+  maxload1.845,4.679s/289,024KiB: parent **.152583ms**,fixed-row **.136333**
+  (1.119×),inline-five **.139459** (1.094×),Node .118750. Full original
+  checksum473727250/exact output agree. Additional135 native/oracle checks
+  (0.519s/896KiB) cover all three engines at0/1/4/5/2,048 rows,seeds0/7/17,
+  empty/Unicode/quoted-newline text;these checks are not timing measurements.
+- Three allocation samples per trial are deterministic,checksum-correct and
+  cleanup0. Both remove2,048 allocations:8,190→6,142;reallocations9 and
+  during-work frees0 unchanged. Fixed-row requested775,655/retained530,375/
+  peak530,375;inline-five808,391/546,759/546,759. Parent requested955,943/
+  retained743,367/peak743,367. Fixed-row saves212,992 retained bytes (28.7%);
+  five-slot saves196,608. The simpler runtime change captures most of this gain,
+  so checked its other consumers before committing to result-shape machinery.
+- Seven existing string/record generated-consumer controls,maxload2.598,
+  11.385s/268,672KiB: interfaces .153334→.139250,type aliases .124708→.115500,
+  function expressions .321291→.317417,labeled .283209→.281541,concat
+  .453167→.448084,ASCII chain .038917→.038542,Unicode chain .040500→.041791.
+  Do not accept the runtime change from favorable interface timings alone.
+- Fresh official current-parent14-workload run **2026-11-02T06:45:40.393Z**,
+  21.222s/404,224KiB,maxload1.934,no override,original93samples/engine.
+  Covers owned/nested/record arrays,churn,string slice/map/filter/concat/fill/
+  with/join/splice/flat/of. Full independent outputs validated;record churn has
+  no Array<T> representation and is unchanged by this proposed runtime patch.
+- First broad paired diagnosis completed12 affected cases,then the unrun flat
+  probe failed compilation:its owned iterator still used four-slot scratch
+  storage. This is a diagnostic-patch omission,not an existing compiler defect.
+  Fixed only that probe's owned iterator width;never changed compiler source.
+  Initial medians already show record arrays .083875→.093833 (11.9% slower),
+  nested .116041→.162042 (39.6%),owned .052292→.058167 (11.2%). These large
+  regressions outweigh the interface win. Do not retry a global capacity5 change.
+- Focused confirmation plus unrun flat,maxload3.591,49.214s/258,736KiB,
+  waited for quiet load without override: record arrays **.091250→.103625**
+  (13.6% slower),nested **.115958→.144834** (24.9%),owned
+  **.052292→.056792** (8.6%),flat .767708→.782750 (2.0%). Node controls
+  .324709/.356250/.314417/.482291 respectively. All complete outputs match.
+  **Global five-slot Array rejected before implementation.** Existing four-slot
+  runtime,record/array storage bounds,ownership and small-array wins preserved.
+- Ingested28 official current-compiler histories;exact rounded medians/mean
+  rates/93counts and SQLite integrity verified. Public selection uses only this
+  official run,not diagnostic variants. Saved handwritten Rust timings reused.
+  Whole-project formatter4.127s/202,944KiB,zero changes;three website tests pass,
+  66-page build3.634s/987,312KiB and links/assets/anchors in116pages pass.
+  Existing duplicate404 warning only. Product/compiler source unchanged;reuse
+  preceding70 compiler checks and all-target agreement rather than rebuild it.
+- All21 diagnostic input sources restored byte-for-byte. Pruned30 closed
+  trial executables/scripts/results (12,675,920bytes);current compiler/profiles and
+  official parent timing remain. All owned runners terminal;no compiler tests
+  rerun,no CI,push/deployment for this profiling checkpoint.
+- Next executable section: implement proved fixed-width result rows using the
+  existing fixed-storage planner,not a wider global Array. FunctionPlan currently
+  tracks parameter/local shapes only;add result facts and propagate them through
+  named calls and local result bindings. Require one agreed width for every
+  inserted/replaced row and every reachable return. Mixed widths,resizing inner
+  rows,unknown calls/captures/exports or unsupported operations retain ordinary
+  storage. Keep output elements owned;do not borrow escaping string data.
+- Cover callers and native boundaries before enabling emission. Support normal
+  row iteration/indexing/cloning and preserve mutation/ownership/error behavior;
+  fall back coherently when result representation cannot cross a boundary.
+  Update benchmark ordinaryWorkloadBinding and sliceRustObserver with a proved
+  array-result contract plus [T;N] visitor;current ABI guard correctly rejects
+  Vec<[String;5]>. Never relax guards or special-case the interfaces workload.
+  Add independent fixture/oracle/boundary tests before official measurements;
+  diagnostic upper-bound gains are not accepted product performance.
+
 **Borrowed local record string copies — accepted locally, parent 14c2c616:**
 - Reused preceding current-parent allocation/CPU profiles and quiet official
   **2026-11-02T06:05:27.292Z**;compiler source unchanged between2bcb344d and
