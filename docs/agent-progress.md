@@ -39,7 +39,9 @@ include **0a68a4f5** (932 Rust references), **2c538120** (normalization optimiza
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization:dead clone/push loop transfer,recursive reversal
+Latest accepted optimization:read-only scalar reduction slices,Number16.705×
+(repeat18.030×),boolean17.421× (repeat18.861×),int4.994× (repeat5.000×),
+1,536 allocations removed each. Previous dead clone/push loop transfer,recursive reversal
 4.856× (repeat4.789×),replacement4.095× (repeat4.126×),3,840 allocations
 removed per workload,retained heap unchanged. Previous dead owned-array copying receivers,recursive
 toReversed1.946× (repeat1.795×),with1.633× (repeat1.586×),3,840/3,200
@@ -77,6 +79,99 @@ accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration
 plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
+
+**Read-only scalar reduction slices — accepted locally, parent 8cafb9f8:**
+- Profiled before edits:2026-11-02T22:28:00.324Z,4.154s/246,304KiB. Each
+  declared int/Number/boolean reduction makes1,536 allocations/no reallocations,
+  retained0;int/Number request40,960 bytes/peak40,boolean5,120/peak5.
+  Checksums401739032/820452567/0,three equal samples,both cleanup counters0.
+  Callback wrappers are simple forwarders;owned temporary slice ranges explain
+  the allocation cost. Matched unchanged Rust references borrow those ranges.
+- Generated-consumer borrowed-range probe2.611s/128,064KiB removes every heap
+  call and requested/retained/peak byte,with identical checksums and clean disposal
+  in three samples per workload. This is allocation diagnosis,not formal timing.
+- Private scalar_reduce_slices index proves immutable owned local scalar sources
+  and read-only local int/Number/boolean slice results. **Every source use must
+  be a checked slice receiver**,and every result use a direct reduce/reduceRight
+  with a concrete non-rest closure accepting fewer than four arguments. Native
+  view loans,other source calls/aliases/moves/writes,escape,captures,rebinding,
+  whole-array callback ABI,unknown contracts and exception regions keep ownership.
+  Bounds still run once at the original declaration,in order,using unchanged
+  normalization. Reuse existing visitors/capture checks and slice emission. No
+  public API,ABI,limits,small-storage thresholds,RC,unsafe or dependencies change.
+- **Caught/fixed a lifetime defect before acceptance.** Final binding metadata
+  can forget a source move on an exited branch. Parent accepts/executes the owned
+  snapshot (3 3),but the unguarded trial emittedE0505. Probe2.592s/153,136KiB.
+  The all-source-use proof above prevents it;permanent O0/O3 exiting-move witness
+  now passes. Initial unguarded runtime wins are discarded,not ingested. Capture
+  scans also run only after real slice candidates exist. Early build resources:
+  201.147s/1,391,584KiB and207.221s/1,413,456KiB;unguarded release219.098s/
+  1,426,624KiB. Earlier53-test passes lacked that witness and are not final proof.
+- **53 affected tests pass on guarded source**,four sequential watchdog binaries,
+  --test-threads=3:array_slice7 incl exited-move witness (9.362s/464,736KiB),
+  array_reduce7 (4.688s/476,560KiB),declared_function_values5 (10.398s/
+  546,160KiB),fixed_storage34 (20.826s/482,240KiB),no failures/ignores. Each
+  identity counted once. Guarded build201.409s/1,462,576KiB;release218.382s/
+  1,544,416KiB. Native O0/O3 checks cover zero-copy allocations,heap sources,
+  retention,extreme signed bounds,zero/one/two-argument defaults,empty/no-seed
+  failure/unwind,both directions,NaN/signaling-NaN/-0/infinity bits,bound operand
+  effects and ownership/receiver/capture/exception fallbacks. All runs alone under
+  5,000,000KiB/1,800s,one Cargo job,incremental off,shared target.
+- Corrected actual profile**2026-11-02T23:19:17.598Z**,4.154s/302,560KiB:
+  all three reductions have**zero allocations/reallocations/deallocations and
+  requested/retained/peak bytes**,cleanups0,three equal samples. Target emission
+  matches the winning trial exactly,while the exited-move case now falls back.
+  Source hashes:int23d5971615fc11c3e65a4e95955ac8f348e119eecc3ba73d7fd209b63222d4f0;
+  Number7cf9fce3cb035c3850fa030e0985d88663c550d48f5798192aae4b62efda53ee;
+  boolean952f5ddd17d149ca11791b7f5c9d7c29f675d25232157252b0cde25340ef7529.
+  Integer reversal control source/counters unchanged;complete242,048-byte Mach-O
+  __TEXT,__text is bit-identical,hash4aff5d81a3af08afdfe0781d2460536176fa4f0c1675801cbc37cf63a5a15229.
+- Formal parent**2026-11-02T22:30:49.554Z**,6.244s/270,272KiB:
+  Number native.031916ms/Node.025708;boolean.028917/.028542;
+  int.035667/.075750;integer reversal.002917/.008291. Corrected candidate
+  **2026-11-02T23:19:31.248Z**,4.145s/249,392KiB:
+  Number**.001791ms,17.820×**,Node.025125;
+  boolean**.001542ms,18.753×**,Node.031750;
+  int**.007083ms,5.036×**,Node.083334;control.002917/.007792.
+  Original93 samples/engine,three processes/eight warmups/31 samples;quiet maxloads
+  2.38818359375/2.38330078125,no override. All24 corrected process observations
+  and original correctness cases agree with parent;no coverage reduction.
+- Two same-physical-path/argv0 rotating parent/candidate/Node rounds,93 samples
+  per engine:Number**.032708→.001958ms,16.705×**,repeat**.032292→.001791ms,
+  18.030×**;boolean**.029041→.001667ms,17.421×**,repeat**.029083→.001542ms,
+  18.861×**;int**.035375→.007084ms,4.994×**,repeat**.035417→.007083ms,
+  5.000×**. Node Number.031000/.025458,boolean.031083/.028583,int.079083/
+  .074083ms. Control.002959→.002916 then.002958→.002916ms. Machine waited
+  once at load4.05;quiet maxima3.9033203125 both rounds,no override. All36
+  complete observations per round agree;16.068s/68,768KiB including quiet wait.
+- Additional **guarded compiler emission A/B**,11 samples/engine/input per round,
+  132 complete outputs,210.979s/162,032KiB;quiet maxima2.56494140625/
+  2.70947265625. Interfaces10.554917→9.621958ms,then9.374084→12.217541;
+  scoped composition4517.725083→4545.606666,then4668.083125→4624.719583;
+  Number reduction205.426750→175.186250,then175.151125→209.136125.
+  Unchanged controls are byte-identical (42,980/3,556,579 bytes). Short startup
+  timings vary in opposite directions. Independent child CPU comparison,21 runs
+  per engine/round,identical interface output,1.559s/20,128KiB,maxload1.7294921875:
+  wall5.840791→6.053375 then5.675375→5.556166ms;user3.044→3.237 then
+  2.991→2.927ms;system1.559→1.690 then1.493→1.438ms. No sustained compiler
+  regression is observed;do not claim a compile speedup. Parent CLI identity was
+  independently preserved,hash209917771034d65205229f644e6414e117a7daa58f9841962628d1ccfefe20d9.
+- store:ingest adds**16 histories**,eight parent/eight corrected candidate.
+  Verified exact median6/mean-rate3/93sample fields,unique timestamps,all complete
+  observations,quiet policy,rejected-trial exclusion and SQLite integrity. Saved
+  Rust references.001584/.002167/.007333ms are reused,not retimed;new results
+  are1.131×/.712×/.966× those references. Number/boolean large gaps are closed
+  for these measured cases. Whole-project formatter changes zero files/snippets/
+  fingerprints,4.129s/198,752KiB. Public metrics remain deferred until final
+  optimization milestone;no broad regressions,CI,push or deployment.
+- Next:refresh scoped composition under current source (its stored large-gap row
+  predates loop-transfer optimization),then profile remaining nullable-boolean,
+  nullish/call-spread and record/byte callback gaps. Keep the owner-defined
+  milestone open until substantial gaps are addressed/explained. Closed trial/
+  parent/probe consumers,passed test binaries,imported raw runs and scratch
+  diagnostics are pruned (38 files,127,184,623 bytes);current CLI/LSP,latest
+  profile/current native consumers,shared target and deferred regression state
+  remain. All owned jobs terminal.
 
 **Dead clone/push loop transfer — accepted locally, parent 7375144b:**
 - Previous turn made measured progress,committed7375144b;clean worktree at start.
@@ -147,12 +242,11 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   references,closing the prior5.798×/4.976× recursive-copy gaps for these cases.
   Public metrics refresh remains deferred. Whole-project formatter changes zero
   files/snippets/fingerprints,4.133s/202,688KiB.
-- Next:profile the fresh remaining large-gap queue. Start with declared callback
-  Number/boolean reductions (historical21.727×/14.325×):inspect actual generated
-  and reference work before assuming the old ratios still apply. Recursive-copy
-  residuals are now small for the measured cases;other recursive/record callback
-  gaps remain queued. Do not restart full regressions until all substantial gaps
-  are addressed/explained. No CI,push or deployment;all owned runners terminal.
+- Follow-up:the scalar reduction gaps are now closed by the read-only slice
+  optimization above. Recursive-copy residuals are small for these measured
+  cases;other recursive/record callback gaps remain queued. Follow the current
+  queue before profiling. No broad regressions,CI,push or deployment here;all
+  owned runners terminal.
 - Pruned27 closed files (118,788,974 bytes):parent/probe consumers,passed test
   binaries,verified imported raw runs and scratch diagnostics. Latest four-workload allocation diagnosis,
   current native consumers,shared target and deferred full-regression state stay.
@@ -451,9 +545,9 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   29.321042ms vs saved hand Rust18.420917ms (1.592×,10.900125ms excess),replacing
   the historical121.497209ms row;recursive copy gaps are now small after the
   accepted dead-loop transport above:toReversed.030458/.027500ms (1.108×),
-  with.039667/.034833ms (1.139×). Next remaining large signals:declared
-  Number/boolean reduce callbacks
-  21.727×/14.325×;nullable boolean10.299×;nullish array/call spread7.413×/7.056×;
+  with.039667/.034833ms (1.139×). Declared Number/boolean reductions are now
+  .001791/.001584ms (1.131×) and.001542/.002167ms (.712×),after the accepted
+  read-only slice proof above. Next remaining large signals:nullable boolean10.299×;nullish array/call spread7.413×/7.056×;
   nested/deep/recursive record forEach4.57–5.69×;byte views/maps4.82–4.85×;
   testing expectation predicates5.520×. Review absolute cost and equivalent work,
   inputs,ownership and observation before accepting a ratio as removable overhead.

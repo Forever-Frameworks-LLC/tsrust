@@ -2,6 +2,7 @@ mod declaration_scope;
 mod receiver_moves;
 mod self_append;
 mod string_character;
+mod scalar_reduce_slices;
 mod runtime_support_ids;
 #[cfg(test)]
 mod statement_work_tests;
@@ -180,6 +181,7 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
         receiver_moves: RefCell::default(),
         self_appends,
         string_characters,
+        scalar_reduce_slices: scalar_reduce_slices::Index::new(program),
         work_functions:owned_work::Arena::default(),
         work_regions:owned_work::Arena::default(),
         borrowed_capture_alternatives,
@@ -272,6 +274,7 @@ struct Emitter<'a> {
     receiver_moves: RefCell<HashSet<(usize, usize)>>,
     self_appends: self_append::Index,
     string_characters: string_character::Index,
+    scalar_reduce_slices: scalar_reduce_slices::Index,
     work_functions:owned_work::Arena<CheckedFunction>,
     work_regions:owned_work::Arena<ExceptionRegion>,
     borrowed_lifetime_alternatives: borrowed_payload_emit::Alternatives,
@@ -3980,6 +3983,14 @@ impl Emitter<'_> {
                         let _=writeln!(output,"let mut value{index}={initialized};");
                         continue;
                     }
+                    if !self.exception_regions.carries_storage() && self.scalar_reduce_slices.binding(fun,index) {
+                        let ExprKind::Call(callee,args)=&value.kind else {unreachable!("proved scalar slice")};
+                        let ExprKind::Field(base,_)=&callee.kind else {unreachable!("proved slice receiver")};
+                        let Type::Array(element)=b.ty else {unreachable!("proved scalar array")};
+                        let initializer=self.array_slice(fun,base,args,value.span,true);
+                        let _=writeln!(output,"let value{index}: &[{}] = {initializer};",self.native_type(element.ty()));
+                        continue;
+                    }
                     if value.is_deferred() {
                         if let Some(declarations)=self.owned_record_deferred(fun,index){let _=writeln!(output,"{declarations}");continue;}
                         // Assigned later; definite assignment was checked.
@@ -6892,11 +6903,11 @@ impl Emitter<'_> {
         format!("{{ let entries_source = {receiver}; let mut entries = <{result}>::from([]); for (entries_index,entries_value) in {iterator}.enumerate() {{ entries.push(Record{pair} {{ field0: i64::try_from(entries_index).expect(\"entries index exceeds int range\"), field1: {value} }}); }} entries }}")
     }
 
-    fn array_slice(&self, fun: &CheckedFunction, base: &Expr, args: &[Expr], call: crate::diagnostic::Span) -> String {
+    fn array_slice(&self, fun: &CheckedFunction, base: &Expr, args: &[Expr], call: crate::diagnostic::Span, read_view: bool) -> String {
         let plain_vec = |ty: Type| !numeric_array(ty) && !inline_array(ty)
             && !matches!(ty, Type::Array(ArrayElement::Record(index, 0)) if self.record_runtime.recursive(index) || self.small_record(index));
         // slice() of a dead plain Vec local keeps that storage, trimming both ends.
-        if plain_vec(base.ty.expect("checked array slice")) && self.moves_receiver(base, call) {
+        if !read_view && plain_vec(base.ty.expect("checked array slice")) && self.moves_receiver(base, call) {
             let start = args.first().map_or_else(|| "0i64".into(), |arg| self.expr(fun, arg, Mode::Copy));
             let end = args.get(1).map_or_else(|| "None".into(), |arg| format!("Some({})", self.expr(fun, arg, Mode::Copy)));
             let array = self.expr(fun, base, Mode::Consume);
@@ -6912,6 +6923,10 @@ impl Emitter<'_> {
         );
         let array_type = base.ty.expect("checked array slice");
         let fixed = self.expression_shape(base);
+        if read_view {
+            let receiver=if fixed.is_none() && numeric_array(array_type){"slice_array.as_slice()"}else{"slice_array"};
+            return format!("{{ let slice_array = {array}; let slice_from: i64 = {start}; let slice_to: Option<i64> = {end}; let slice_start = tsr_search_start(slice_array.len(), slice_from); let slice_end = slice_to.map_or(slice_array.len(), |end| tsr_search_start(slice_array.len(), end)).max(slice_start); &{receiver}[slice_start..slice_end] }}");
+        }
         let compact = fixed.is_none()
             && !numeric_array(array_type)
             && (inline_array(array_type)
@@ -9677,7 +9692,7 @@ impl Emitter<'_> {
                     let ExprKind::Field(base, _) = &callee.kind else {
                         unreachable!()
                     };
-                    self.array_slice(fun, base, args, expr.span)
+                    self.array_slice(fun, base, args, expr.span, false)
                 }
                 CallTarget::ArrayToSpliced => {
                     let ExprKind::Field(base, _) = &callee.kind else {

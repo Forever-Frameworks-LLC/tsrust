@@ -339,3 +339,25 @@ fn array_slice_diagnostics_loans_temporaries_and_string_overload_remain_sound() 
         );
     }
 }
+
+#[test]
+fn scalar_reduction_slice_views_preserve_snapshot_and_receiver_abi_fallbacks() {
+    for (body,expected) in [
+        ("const base=[1,2,3,4,5];const values=base.slice(0,2);base[0]=99;console.log(values.reduce(add,0));","3\n"),
+        ("const base=[1,2,3,4,5];const values=base.slice(0,2);values[0]=99;console.log(values.reduce(add,0),base[0]);","101 1\n"),
+        ("let base=[1,2,3,4,5];const values=base.slice(0,2);console.log(values.reduce(add,0));","3\n"),
+        ("const base=[1,2,3,4,5];const values=base.slice(0,2);const saved=clone(values);console.log(saved.reduce(add,0));","3\n"),
+        ("const base=[1,2,3,4,5];const values=base.slice(0,2);const count=():int=>values.length;console.log(values.reduce(add,0),count());","3 2\n"),
+        ("const base=[1,2,3,4,5];const values=base.slice(0,2);const count=():int=>base.length;console.log(values.reduce(add,0),count());","3 5\n"),
+        ("const base=[1,2,3,4,5];const values=base.slice(0,4);console.log(values.reduce((a:int,v:int,i:int,source:ReadOnly<int[]>):int=>a+source[i],0));","10\n"),
+        ("const base=[1,2,3,4,5];const values=base.slice(0,2);try{console.log(values.reduce(add,0));}catch(error){console.log(error.message);}","3\n"),
+    ] {
+        let source=support::format_round_trip(&format!("function add(a:int,v:int):int{{return a+v;}}function main(){{{body}}}"));
+        let analysis=native(&source,expected,"");let rust=analysis.emit_rust();
+        assert!(!rust.lines().any(|line|line.starts_with("let value") && line.contains(": &[i64]")),"{source}\n{rust}");
+    }
+    let moved=support::format_round_trip("function add(a:int,v:int):int{return a+v;}function consume(values:int[]):int{const owned=values;return owned.length;}function f(stop:boolean):int{const base=[1,2,3,4,5];const values=base.slice(0,2);if(stop){consume(base);return values.reduce(add,0);}return values.reduce(add,0);}function main(){console.log(f(true),f(false));}");
+    let rust=native(&moved,"3 3\n","").emit_rust();
+    assert!(!rust.lines().any(|line|line.starts_with("let value") && line.contains(": &[i64]")),"an exited source move must keep an owned snapshot: {rust}");
+
+}
