@@ -83,6 +83,7 @@ fn shared_inline_schemas_generate_compact_recursive_helpers() {
 #[test]
 fn deep_automatic_clone_and_cleanup_preserve_field_moves_in_debug_and_release() {
     let source = r#"type Tree = { value: int; children: Tree[]; };
+function transfer(tree:Tree):Tree[]{const roots=[tree];const output:Tree[]=[];for(const value of roots){output.push(clone(value));}return output;}
 function main() {
  let tree: Tree = { value: -1, children: [] }; let i = 0;
  while (i < 100000) { tree = { value: i, children: [tree] }; i = i + 1; }
@@ -94,8 +95,10 @@ function main() {
  const forest_copy = clone(forest); forest[0].value = 8;
  console.log(forest_copy[0].value); console.log(forest_copy[0].children[0].value);
  console.log(forest_copy[1].value);
+ const transferred=transfer(saved);console.log(transferred[0].value);console.log(transferred[0].children[0].value);
 }"#;
-    let rust = execute(source, "7\n99998\n99999\n99998\n99999\n99998\n-2\n", None);
+    let rust = execute(source, "7\n99998\n99999\n99998\n99999\n99998\n-2\n99999\n99998\n", None);
+    assert!(rust.contains("for transfer_value in transfer_source.tsr_owned_items()"));
     assert!(!rust.contains("impl Drop for Record0"));
     assert!(!rust.contains("unsafe"));
     let dir = support::TempDirectory::new();
@@ -114,7 +117,7 @@ function main() {
     ));
     let output = support::run(&mut std::process::Command::new(binary), 10);
     success(&output);
-    assert_eq!(output.stdout, b"7\n99998\n99999\n99998\n99999\n99998\n-2\n");
+    assert_eq!(output.stdout, b"7\n99998\n99999\n99998\n99999\n99998\n-2\n99999\n99998\n");
 }
 
 #[test]

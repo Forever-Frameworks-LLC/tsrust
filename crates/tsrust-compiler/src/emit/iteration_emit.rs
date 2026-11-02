@@ -12,6 +12,19 @@ impl Emitter<'_> {
             self.schedule_map_borrowed_iteration(fun,statement,visible,depth,resets,pending);
             return;
         }
+        if resets.is_empty()
+            && self.receiver_moves.borrow().contains(&(statement.span.start, statement.span.end))
+            && let Some(Type::Array(element)) = iterable.ty
+            && !element.ty().is_copy()
+            && matches!(self.expression_shape(iterable), None | Some(crate::fixed_storage::Shape::Array { .. }))
+            && let Some(destination) = receiver_moves::transfer_destination(statement)
+            && self.expression_shape(destination).is_none()
+        {
+            let source = self.expr(fun, iterable, Mode::Consume);
+            let destination = self.expr(fun, destination, Mode::Mutate);
+            let _ = writeln!(output, "{{ let transfer_source={source}; let transfer_destination={destination}; for transfer_value in transfer_source.tsr_owned_items() {{ transfer_destination.push(transfer_value); }} }}");
+            return;
+        }
         if let Some(frame) = self.prepare_for_of_loop(output, fun, statement, depth) {
             pending.push(Work::Scope(frame.scope));
             pending.push(Work::Text(frame.suffix));

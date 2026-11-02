@@ -64,3 +64,34 @@ fn string_conversion_of_a_dead_record_field_moves_the_field() {
     assert_eq!(rust.matches("(*builtin_argument_0).clone()").count(), 1, "{rust}");
     support::execute(&support::format_round_trip(source), "m0,k0,u,m1,k1,u,m2,k2,u\n", None);
 }
+
+#[test]
+fn dead_clone_push_loops_transfer_existing_owners() {
+    let source=r#"
+        type Node={name:string;children:Node[];};
+        function text(input:string):string[]{const copy=[clone(input),"b"];const output:string[]=[];for(const value of copy){output.push(clone(value));}return output;}
+        function nested(values:int[][]):int[][]{const copy=clone(values);const output:int[][]=[];for(const value of copy){output.push(clone(value));}return output;}
+        function trees(input:string):Node[]{const copy:Node[]=[{name:clone(input),children:[{name:"child",children:[]}]}];const output:Node[]=[];for(const value of copy){output.push(clone(value));}return output;}
+        function main(){const words=text("owned");const rows:int[][]=[[1,2],[]];const next=nested(rows);next[0][0]=9;const nodes=trees("root");console.log(words.join(","),next[0][0],rows[0][0],nodes[0].children[0].name);}
+    "#;
+    let rust=emitted(source);
+    assert_eq!(rust.matches("for transfer_value in transfer_source.tsr_owned_items()").count(),3,"{rust}");
+    support::execute(&support::format_round_trip(source),"owned,b 9 1 child\n",None);
+}
+
+#[test]
+fn live_captured_rebindable_repeated_or_effectful_clone_push_loops_keep_borrowing() {
+    for (body,expected) in [
+        ("const copy=clone(values);const output:string[]=[];for(const value of copy){output.push(clone(value));}console.log(copy.length);return output;","2\na,b\n"),
+        ("const copy=clone(values);const count=():int=>copy.length;const output:string[]=[];for(const value of copy){output.push(clone(value));}console.log(count());return output;","2\na,b\n"),
+        ("let copy=clone(values);const output:string[]=[];for(const value of copy){output.push(clone(value));}return output;","a,b\n"),
+        ("const copy=clone(values);const output:string[]=[];for(let i=0;i<2;i++){for(const value of copy){output.push(clone(value));}}return output;","a,b,a,b\n"),
+        ("const copy=clone(values);const output:string[]=[];for(const value of copy){output.push(clone(value));console.log(value);}return output;","a\nb\na,b\n"),
+        ("const output:string[]=[];for(const value of values){output.push(clone(value));}return output;","a,b\n"),
+        ("const copy=clone(values);const output:string[]=[];try{for(const value of copy){output.push(clone(value));}}catch(error){console.log(error.message);}return output;","a,b\n"),
+    ] {
+        let source=format!("function f(values:string[]):string[]{{{body}}}function main(){{console.log(f([\"a\",\"b\"]).join(\",\"));}}");
+        let rust=emitted(&source);assert!(!rust.contains("for transfer_value"),"{source}\n{rust}");
+        support::execute(&support::format_round_trip(&source),expected,None);
+    }
+}

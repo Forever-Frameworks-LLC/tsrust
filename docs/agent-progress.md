@@ -39,7 +39,9 @@ include **0a68a4f5** (932 Rust references), **2c538120** (normalization optimiza
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization:dead owned-array copying receivers,recursive
+Latest accepted optimization:dead clone/push loop transfer,recursive reversal
+4.856× (repeat4.789×),replacement4.095× (repeat4.126×),3,840 allocations
+removed per workload,retained heap unchanged. Previous dead owned-array copying receivers,recursive
 toReversed1.946× (repeat1.795×),with1.633× (repeat1.586×),3,840/3,200
 allocations removed,retained memory unchanged. Previous small Map carrier buffer reuse,composition1.640×
 (repeat1.607×),718,447 allocations removed,retained/peak heap unchanged. Previous
@@ -75,6 +77,85 @@ accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration
 plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
+
+**Dead clone/push loop transfer — accepted locally, parent 7375144b:**
+- Previous turn made measured progress,committed7375144b;clean worktree at start.
+  Owner milestone policy remains:affected checks only;no broad regression restart.
+- Fresh allocation profile2026-11-02T22:10:43.632Z,4.157s/243,296KiB confirms
+  current recursive reversal6,273/with6,657 allocations,903 reallocations each,
+  retained195,584/peak197,480,all cleanup counters zero. Generated for-of still
+  borrows a dead local's elements and clones each into its output.
+- Generated-consumer-only probe reuses existing TsrOwnedItems adapters,no runtime
+  invention:reversal2,433 allocations/seven reallocations/295,264 requested bytes;
+  with2,817/seven/318,304. Both retained195,584/peak195,920,input12,
+  checksums988007362/421497852,three identical samples,both cleanup counters0.
+  Probe1.041s/152,688KiB;this diagnoses allocation work,not formal timing.
+- Fresh formal parent2026-11-02T22:12:45.684Z,6.756s/268,128KiB:
+  reversal native.149916ms/Node.033917ms;with.160459/.039584;
+  nested reversal.006542/.010750;integer control.002958/.007792.
+  Original93 samples/engine,quiet maxload2.830078125,no override. Four parent
+  executable consumers retained as target/runtime-comparisons/<id>.transfer-parent.
+- Trial extends the existing dead-const/single-reference proof to a for-of whose
+  sole body expression is destination.push(clone(element)). Require named distinct
+  source/destination,same checked array type,no captures/borrowed source/rebinding,
+  same statement list and iteration. Emission additionally excludes Copy elements,
+  unsupported fixed layouts,fixed destinations and storage resets. Reuse existing
+  tsr_owned_items and existing push,without changing layouts,growth policy,API,
+  ownership,limits or deep iterative cleanup. Multi-statement/effectful loops,
+  live/captured/repeated sources and exception-region fallback keep borrowing.
+- **29 affected tests pass**,five sequential binaries,--test-threads=3:
+  receiver_moves7 (4.672s/295,776KiB),for_of10 (2.607s/391,648KiB),
+  array_copying4 (2.667s/527,184KiB),owned_disposal1 (1.553s/170,208KiB),
+  recursive_storage7 (2.087s/390,736KiB). Build205.127s/1,546,560KiB.
+  All under5,000,000KiB/1,800s watchdog,shared target,one Cargo job,incremental
+  off. O0/O3 witnesses prove only one source snapshot of selected strings,
+  preserved independent owners,normal/unwind byte cleanup and100,000-level
+  transfer/drop. Live/captured/rebindable/repeated/effectful/borrowed/exception
+  fallback witnesses pass. No test failures or ignores.
+- Release217.837s/1,530,912KiB. Actual allocation profile
+  **2026-11-02T22:23:30.622Z**,4.673s/284,720KiB matches the probe dictionaries
+  exactly:reversal2,433 allocations/with2,817,seven reallocations each. Removes
+  **3,840 allocations and896 reallocations each**,requested bytes drop635,904
+  each;retained195,584 unchanged,peak195,920 (1,560 lower). Cleanup counters0,
+  all three samples equal. Nested129 allocations/seven reallocations,requested
+  134,784/retained49,152/peak49,440,checksum856074192,cleanups0. No fresh
+  nested parent allocation delta is claimed. Integer source and every allocation
+  counter are byte-identical to parent. Actual recursive source hashes:
+  reversal1fb2067279dfb0824989180d6301e39fb3787484fea7d84e1b59d7ff40a53428;
+  with5dd7388016dc89ad74d4b219e63f6a25b5d2d48d86461c798a0fb06d852b1cb3.
+- Final formal candidate**2026-11-02T22:23:42.828Z**,4.662s/295,344KiB:
+  reversal**.149916→.030458ms,4.922×**,Node.033917→.034833;
+  with**.160459→.039667ms,4.045×**,Node.039584→.039417;
+  nested.006542→.006541,Node.010750→.011083;
+  integer.002958→.002958,Node.007792→.007958. Original93 samples/engine,
+  quiet maxload1.89453125,no override;all24 complete candidate process
+  observations match parent and original correctness cases pass.
+- Two rotating same-physical-path/argv0 rounds,93 samples per engine:
+  reversal**.150125→.030917ms,4.856×**,repeat**.149458→.031209ms,4.789×**;
+  with**.163625→.039958ms,4.095×**,repeat**.162958→.039500ms,4.126×**.
+  Node reversal.033583/.034000,with.039417/.039500ms. Nested.006917→.007208
+  then.006709→.006542;integer.003042→.003167 then.002958→.003041ms.
+  Tiny control variation is contextualized by its **bit-identical**242,048-byte
+  Mach-O __TEXT,__text,hash4aff5d81a3af08afdfe0781d2460536176fa4f0c1675801cbc37cf63a5a15229.
+  Quiet maxloads1.62744140625 both rounds,no override;36 complete outputs agree
+  per round,2.589s/164,320KiB total. No sustained nested regression is observed;
+  formal nested result is unchanged within timer resolution.
+- store:ingest adds**16 histories**,eight parent/eight candidate. Independently
+  verified unique timestamps,exact median6/mean-rate3/93sample fields,quiet policy,
+  full process observations and SQLite integrity. Saved Rust.027500/.034833ms
+  reused,not retimed. Current formal results are1.108×/1.139× those saved
+  references,closing the prior5.798×/4.976× recursive-copy gaps for these cases.
+  Public metrics refresh remains deferred. Whole-project formatter changes zero
+  files/snippets/fingerprints,4.133s/202,688KiB.
+- Next:profile the fresh remaining large-gap queue. Start with declared callback
+  Number/boolean reductions (historical21.727×/14.325×):inspect actual generated
+  and reference work before assuming the old ratios still apply. Recursive-copy
+  residuals are now small for the measured cases;other recursive/record callback
+  gaps remain queued. Do not restart full regressions until all substantial gaps
+  are addressed/explained. No CI,push or deployment;all owned runners terminal.
+- Pruned27 closed files (118,788,974 bytes):parent/probe consumers,passed test
+  binaries,verified imported raw runs and scratch diagnostics. Latest four-workload allocation diagnosis,
+  current native consumers,shared target and deferred full-regression state stay.
 
 **Dead owned-array copying receivers — accepted locally, parent 1a74cf8f:**
 - Owner milestone policy above remains active: no broad suite restart. The Map
@@ -117,10 +198,8 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   reversal gave no memory gain,formal.002958→.002875ms but both paired rounds
   .002958→.003000ms (one timer tick). Reject that unnecessary scalar expansion:
   restrict fixed transport to owned-record arrays and preserve scalar emission.
-  Affected semantic tests already passed;rerun the changed emission witness and
-  final release/profile/timing before acceptance. This earlier candidate is not
-  the final compiler source. Three parent executable consumers remain for A/B.
-  That trial is superseded by the final-source evidence below.
+  Revalidated the narrowed source before acceptance,as recorded below. That
+  initial scalar trial is superseded;its parent consumers have been pruned.
 - Narrowed final source:**all44 affected tests pass** again,array_copying4
   (3.134s/429,136KiB),receiver_moves5 (3.644s/191,552KiB),owned_disposal1
   (1.556s/164,400KiB),fixed_storage34 (20.770s/452,704KiB). Rebuild199.883s/
@@ -370,9 +449,10 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
 - Remaining large-gap review queue (latest stored matched workload IDs,not fresh
   A/B measurements except the accepted Map update above):composition now
   29.321042ms vs saved hand Rust18.420917ms (1.592×,10.900125ms excess),replacing
-  the historical121.497209ms row;recursive toReversed now.159458/.027500ms
-  (5.798×) and with.173333/.034833ms (4.976×) after the accepted dead-receiver
-  transport above;declared Number/boolean reduce callbacks
+  the historical121.497209ms row;recursive copy gaps are now small after the
+  accepted dead-loop transport above:toReversed.030458/.027500ms (1.108×),
+  with.039667/.034833ms (1.139×). Next remaining large signals:declared
+  Number/boolean reduce callbacks
   21.727×/14.325×;nullable boolean10.299×;nullish array/call spread7.413×/7.056×;
   nested/deep/recursive record forEach4.57–5.69×;byte views/maps4.82–4.85×;
   testing expectation predicates5.520×. Review absolute cost and equivalent work,
