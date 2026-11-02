@@ -1,6 +1,7 @@
 mod declaration_scope;
 mod receiver_moves;
 mod self_append;
+mod string_character;
 mod runtime_support_ids;
 #[cfg(test)]
 mod statement_work_tests;
@@ -173,9 +174,12 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
     let native_captures = native_capture_storage::Storage::new(program, &borrowed_lifetime_alternatives);
     let native_views=native_view_emit::Shapes::new(program);
     let native_record_fields=native_view_record_parameters::Index::new(program,&native_views);
+    let self_appends=self_append::Index::new(program);
+    let string_characters=string_character::Index::new(program,&self_appends);
     let mut emitter = Emitter {
         receiver_moves: RefCell::default(),
-        self_appends: self_append::Index::new(program),
+        self_appends,
+        string_characters,
         work_functions:owned_work::Arena::default(),
         work_regions:owned_work::Arena::default(),
         borrowed_capture_alternatives,
@@ -267,6 +271,7 @@ struct Emitter<'a> {
     /// Copying calls in the function being emitted whose dead receiver may be moved.
     receiver_moves: RefCell<HashSet<(usize, usize)>>,
     self_appends: self_append::Index,
+    string_characters: string_character::Index,
     work_functions:owned_work::Arena<CheckedFunction>,
     work_regions:owned_work::Arena<ExceptionRegion>,
     borrowed_lifetime_alternatives: borrowed_payload_emit::Alternatives,
@@ -4715,7 +4720,7 @@ impl Emitter<'_> {
         let operands=self_append::operands(target,value).expect("proved string self append");
         let rendered=operands.iter().map(|operand|{let(child,mode)=Self::chain_operand(operand);render(child,mode,false)}).collect::<Vec<_>>();
         let failure=format!("string addition capacity overflow at source bytes {}..{}",value.span.start,value.span.end);
-        let(parts,capacity,pushes)=self.string_parts(&operands,&rendered,&failure);
+        let(parts,capacity,pushes)=self.string_parts(fun,&operands,&rendered,&failure);
         format!("{{ {}{parts}let sink=tsr_string_reserve(&mut ({}),{capacity},{failure:?}); {pushes} }}",selection.setup,selection.place)
     }
 
@@ -4738,7 +4743,7 @@ impl Emitter<'_> {
         let failure = format!("string addition capacity overflow at source bytes {}..{}", span.start, span.end);
         if let Some(operands) = self.appended_operands(fun, target, value) {
             let rendered = operands.iter().map(|operand| { let (child, mode) = Self::chain_operand(operand); render(child, mode, false) }).collect::<Vec<_>>();
-            let (parts, capacity, pushes) = self.string_parts(&operands, &rendered, &failure);
+            let (parts, capacity, pushes) = self.string_parts(fun,&operands, &rendered, &failure);
             return format!(
                 "{{ {}{parts}let sink = tsr_string_reserve(&mut ({}), {capacity}, {failure:?}); {pushes}}}",
                 selection.setup, selection.place
@@ -6172,15 +6177,15 @@ impl Emitter<'_> {
         }
     }
 
-    fn string_chain_code(&self, operands: &[&Expr], rendered: &[String], operator: crate::Span) -> String {
+    fn string_chain_code(&self, fun:&CheckedFunction, operands: &[&Expr], rendered: &[String], operator: crate::Span) -> String {
         let failure = format!("string addition capacity overflow at source bytes {}..{}", operator.start, operator.end);
-        let (parts, capacity, pushes) = self.string_parts(operands, rendered, &failure);
+        let (parts, capacity, pushes) = self.string_parts(fun,operands, rendered, &failure);
         format!("{{ {parts}let mut output = std::string::String::with_capacity({capacity}); {{ let sink = &mut output; {pushes}}} String::Owned(output) }}")
     }
 
     /// Bindings for each operand, their total size and the code that appends
     /// them to `sink: &mut std::string::String`, in operand order.
-    fn string_parts(&self, operands: &[&Expr], rendered: &[String], failure: &str) -> (String, String, String) {
+    fn string_parts(&self, fun:&CheckedFunction, operands: &[&Expr], rendered: &[String], failure: &str) -> (String, String, String) {
         let mut parts = String::new();
         let mut sizes = Vec::new();
         let mut pushes = String::new();
@@ -6210,7 +6215,8 @@ impl Emitter<'_> {
                     pushes.push_str(&format!("sink.push_str(part{index}); "));
                 }
                 None => {
-                    parts.push_str(&format!("let part{index}: &String = {value}; "));
+                    let read_type=self.string_characters.read_type(fun,operand);
+                    parts.push_str(&format!("let part{index}: &{read_type} = {value}; "));
                     sizes.push(format!("part{index}.len()"));
                     pushes.push_str(&format!("sink.push_str(part{index}); "));
                 }
@@ -8695,10 +8701,10 @@ impl Emitter<'_> {
     // Equality operands are bound by a match scrutinee: its temporaries live
     // for the whole comparison, so a view of an owned call result stays valid.
     fn binary_expression_code(&self, fun: &CheckedFunction, expr: &Expr) -> Result<String, String> {
-        self.binary_expression_code_with(expr, &mut |value, mode| self.expr(fun, value, mode))
+        self.binary_expression_code_with(fun,expr, &mut |value, mode| self.expr(fun, value, mode))
     }
 
-    fn binary_expression_code_with(&self, expr: &Expr, render: &mut impl FnMut(&Expr, Mode) -> String) -> Result<String, String> {
+    fn binary_expression_code_with(&self, fun:&CheckedFunction, expr: &Expr, render: &mut impl FnMut(&Expr, Mode) -> String) -> Result<String, String> {
         let ExprKind::Binary { op, operator, left, right } = &expr.kind else {
             unreachable!("binary expression")
         };
@@ -8753,7 +8759,7 @@ impl Emitter<'_> {
         }
         if let Some(operands) = Self::string_addition_chain(expr) {
             let rendered = operands.iter().map(|operand| { let (child, mode) = Self::chain_operand(operand); render(child, mode) }).collect::<Vec<_>>();
-            return Ok(self.string_chain_code(&operands, &rendered, *operator));
+            return Ok(self.string_chain_code(fun,&operands, &rendered, *operator));
         }
         if let Some((first, levels)) = Self::scalar_chain(expr) {
             let mut rendered = vec![render(first, Mode::Copy)];
@@ -8766,6 +8772,8 @@ impl Emitter<'_> {
         let string = left.ty.map(Type::scalar_base) == Some(Type::String);
         let number = left.ty.map(Type::scalar_base) == Some(Type::Number);
         let appended = if string && *op == BinaryOp::Add { Self::appended_number(right) } else { None };
+        let string_left_type=self.string_characters.read_type(fun,left);
+        let string_right_type=self.string_characters.read_type(fun,right);
         let left = render(left, if string { Mode::Read } else { Mode::Copy });
         let right = match appended {
             Some(argument) => render(argument, Mode::Copy),
@@ -8825,7 +8833,7 @@ impl Emitter<'_> {
                 }
             };
             format!(
-                "{{ let string_left: &String = {left}; let string_right: &String = {right}; string_left {operator} string_right }}"
+                "{{ let string_left: &{string_left_type} = {left}; let string_right: &{string_right_type} = {right}; string_left {operator} string_right }}"
             )
         }
         })

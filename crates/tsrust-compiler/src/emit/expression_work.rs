@@ -960,7 +960,7 @@ impl<'p> Emitter<'p> {
                     return if left.ty == Some(Type::Int) { self.int_bitwise_or_power(*op, &first, &second, *operator) }
                         else { Self::number_operation(*op, &first, &second) };
                 }
-                return match self.binary_expression_code_with(expr, &mut |_, _| rendered.next().expect("completed binary operand")) {
+                return match self.binary_expression_code_with(fun,expr, &mut |_, _| rendered.next().expect("completed binary operand")) {
                     Ok(code) => Self::access_wrapped(expr, mode, code),
                     Err(complete) => complete,
                 };

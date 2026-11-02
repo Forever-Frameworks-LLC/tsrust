@@ -57,8 +57,13 @@ impl Emitter<'_> {
         if iterable.ty.map(Type::scalar_base) == Some(Type::String) {
             let label = statement.span.start;
             let _ = writeln!(output, "{{ let string_source_{label}={iterable_code};");
+            if self.string_characters.binding(fun,id) {
+                let _=writeln!(output,"'loop_{label}: for string_character_{label} in string_source_{label}.as_ref().chars() {{");
+                let _=writeln!(output,"let mut string_bytes_{label}=[0;4];let value{id}=&std::borrow::Cow::Borrowed(string_character_{label}.encode_utf8(&mut string_bytes_{label}));");
+            } else {
             let _ = writeln!(output, "'loop_{label}: for string_character_{label} in string_source_{label}.as_ref().chars() {{");
             let _ = writeln!(output, "    let value{id}=&tsr_char_text(string_character_{label});");
+            }
             let suffix = format!("}} }}\n{}", if temporary_scope { format!("}}\n") } else { String::new() });
             return Some(IterationFrame { scope, suffix });
         }

@@ -29,7 +29,9 @@ include **0a68a4f5** (932 Rust references), **2c538120** (normalization optimiza
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization:text-only self-assignment buffers,string iteration
+Latest accepted optimization:readonly stack character views,string iteration
+1.171× (repeat1.147×),allocations -44.4%,retained/peak heap unchanged. Previous
+text-only self-assignment buffers,string iteration
 2.307× (repeat2.288×),allocations -86.2%,retained heap unchanged. Previous
 readonly small parameter slices:nested rest1.066×
 (repeat1.046×),2,048 temporary allocations removed. Previous fixed result rows
@@ -55,6 +57,73 @@ accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration
 plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
+
+**Readonly Unicode character materialization — accepted locally, parent 856cd34e:**
+- Parent compiler source is unchanged from77868f7a. Profiling isolates8,192
+  temporary non-ASCII character strings. A consumer-only borrowed source-slice
+  trial removes them with unchanged full outputs and retained/peak heap;initial
+  timing1.114×Unicode/1.004×ASCII. Actual compiler slices then measure1.099×/
+  .972×,repeat1.132×/.963×. Reject source slicing because ASCII slows repeatedly.
+  Rejected formal run **2026-11-02T15:43:30.175Z** is ingested,not publicly pinned.
+- Profiled plain stack encoding and an ASCII-branch variant next:both preserve
+  the same allocation counts/bytes and five complete parent/Node boundary outputs.
+  Quiet original93samples,matched physical executable path/argv0,maxload2.003:
+  parent1.188583ms,source slice1.075625,plain stack1.014375 **1.172×**,
+  ASCII-branch stack1.049625 (1.132×),Node1.208000. ASCII parent.736625,
+  plain stack.710917 **1.036×**,branch.723792 (1.018×),slice.741625.
+  Choose plain stack without another helper or ASCII policy;profile3.112s/
+  150,800KiB and paired comparison7.242s/243,536KiB.
+- emit/string_character.rs indexes per-function string-loop bindings whose every
+  use is a direct comparison,length or accepted destination append. Copies,
+  calls,captures,unknown uses and exhausted10,000-node proofs keep the owning
+  path;source is never rejected for the proof budget. Eligible loops retain
+  chars() and encode each scalar into a four-byte stack buffer. Only proved
+  character reads use Cow<'_,str>;global String ownership,helpers and all public
+  APIs stay unchanged. No generated unsafe,dependency,cache,arena or RC change.
+- Added O0/O3 native witnesses for zero heap calls on readonly Unicode/ASCII/
+  NUL/max-scalar reads,byte lengths,ordering,nesting,owned escaping outputs,
+  input disposal,checked control flow/finally,copies,calls,captures and proof
+  fallback. Final build206.473s/1,502,640KiB;**76 checks pass across seven
+  sequential compiler/LSP binaries**,--test-threads=3,max660,720KiB. The initial
+  fallback assertion matched unrelated runtime char_indices;the repaired assertion
+  identifies the emitted loop. Nine focused runtime harness checks pass.
+- All933 result ABIs pass;932 emitted programs stay byte-identical to the accepted
+  parent through the slice/stack comparisons. Only string_iteration changes,
+  with three proved loops. Final stack comparison37.707s/323,056KiB,current
+  all-target diagnostics53.854s/1,590,640KiB,only existing decode_plain warning.
+  Release217.993s/1,753,536KiB;all933 release/debug emissions agree37.981s/
+  327,648KiB. Whole-project formatter changes zero files/snippets/fingerprints.
+- Actual profile **2026-11-02T16:00:13.815Z**,3.606s/277,664KiB:three identical
+  samples,checksum37,313,883. Allocations18,433→10,241 **(-44.4%)**,
+  reallocations28,681 unchanged;requested1,629,824→1,605,248 bytes (-1.5%).
+  Retained530,432/peak530,571 unchanged,both cleanup counters0. Four-byte
+  automatic storage replaces transient heap strings;escaping outputs remain owned.
+- Quiet same-path/argv0 A/B5.137s/250,624KiB,maxload2.368:Unicode parent
+  1.275667→1.089583ms **1.171×**,Node1.267083. ASCII.766417→.763209
+  (1.004×),Node.754625. Repeat5.658s/250,816KiB,maxload2.338:Unicode
+  1.266500→1.104375 **1.147×**,Node1.286375;ASCII.779958→.765417
+  (1.019×),Node.757083. No observed ASCII regression with the stack revision.
+- Original-protocol formal native/Node runs **2026-11-02T16:00:18.564Z** and
+  **2026-11-02T16:00:34.026Z** retain3processes/eight warmups/31samples
+  (93 per engine),no busy override. Native/Node1.087708/1.268000ms and
+  1.093917/1.273875ms;maxloads2.368/2.526. Watchdogs4.637s/427,600KiB
+  and4.632s/332,544KiB. Existing Rust references are reused.
+- store:ingest adds6 histories (2 rejected source-slice,4 accepted stack).
+  Exact median/mean-rate/93sample histories,compiler/workload hashes,public pins
+  and SQLite integrity verified. Only the final two runs are newly public.
+  Public export has933 comparisons/50 curated runs;66-page build passes3.691s/
+  900,816KiB with the existing duplicate404 warning only. Three website checks
+  pass;links/assets/anchors in116pages pass1.551s/21,712KiB. Pruned127 closed
+  files (486,448,635bytes),including completed codegen objects,verified imported
+  older raw runs and disposable trial consumers/scripts. Current tools,seven
+  test binaries,native consumers,the two accepted runs and current allocation
+  profile remain. Final whole-project formatter changes zero files/snippets/
+  fingerprints;all owned runners are terminal. This is a local measured
+  checkpoint;no CI,push or deployment.
+- Next: profile remaining owned output allocations and clone-heavy string-loop
+  paths with this compiler before extending the proof. Explicit copies must
+  remain independently owned;never let a stack borrow escape. Preserve the
+  rejected ASCII slicing result and original numeric append paths.
 
 **Text-only string self-assignment reuse — accepted locally, parent 456783ad:**
 - Followed the recorded string_iteration allocation lead before implementation.
@@ -1557,17 +1626,12 @@ owned outputs. Arena allocation and new formatting dependencies remain condition
 unapproved design options, not scheduled implementations. The old .413/.755ms
 comparison is historical, not a current optimization target.
 
-Current residual-string diagnostic (parent 77868f7a): a consumer-only borrowed
-Unicode-character view removes 8,192 temporary allocations from string_iteration
-(18,433 to 10,241), with checksum 37,313,883 unchanged. Three identical samples
-per variant; requested bytes 1,629,824 to 1,605,248, retained 530,432 and peak
-530,571 unchanged, both cleanup counters zero. Generated source was restored
-after compiling the diagnostic. This is allocation attribution, not an accepted
-compiler optimization or a measured speedup. Next: verify complete boundary
-outputs and quiet timing, then investigate existing borrowed-view emission for
-proved nonescaping characters; preserve UTF-8 boundaries, ASCII performance,
-copies, captures and owned outputs. No cache, arena or public lifetime change is
-approved by this diagnostic.
+Residual-string follow-up is now accepted above: safe stack character views remove
+8,192 transient allocations and improve Unicode iteration1.171× (repeat1.147×)
+without the repeated ASCII regression of the rejected source-slice prototype.
+Retained/peak heap stays unchanged;owned copies,calls,captures and unknown uses
+retain ordinary storage. Profile residual escaping output and clone costs before
+extending this proof;no arena,cache,RC or public lifetime change is approved.
 
 
 **Source JSON retention — correctness repair accepted, 2026-11-02:**
