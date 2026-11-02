@@ -7,7 +7,8 @@ fn native(
     observer: &str,
     assertions: &str,
 ) -> tsrust_compiler::Analysis {
-    let analysis = check(source).unwrap_or_else(|e| panic!("{}", e.render("input.tsr", source)));
+    let source = support::format_round_trip(source);
+    let analysis = check(&source).unwrap_or_else(|e| panic!("{}", e.render("input.tsr", &source)));
     let emitted = analysis.emit_rust();
     assert!(!emitted.contains("unsafe"));
     let rust = emitted.replace("fn main()", "fn source_main()")
@@ -214,6 +215,8 @@ fn template_results_and_selected_temporaries_dispose_normally_and_on_unwind() {
         function bounds():string{const values=["held".repeat(1)];return `${values[9]}`;}
         function aggregate():string[]{return [`first${1}`,`${"second".repeat(1)}`,`third${true}`];}
         function aggregateTrap():string{const values=aggregate();return `${values[0]}:${fail()}`;}
+        function fractional(value:number):string{return `é😀e123:${value}:end`;}
+        function reference(value:number):string{return value.toString();}
         function main(){}
         "#,
         "",
@@ -239,6 +242,32 @@ fn template_results_and_selected_temporaries_dispose_normally_and_on_unwind() {
         for value in [i64::MIN,-1,0,7,i64::MAX]{let output=std::hint::black_box(function2(std::hint::black_box(value)));assert_eq!(output.as_ref(),format!("v={value}"));drop(output);assert_eq!(LIVE.load(Ordering::SeqCst),baseline);}
         for flag in [true,false]{let output=function4(std::hint::black_box(flag));assert_eq!(output.as_ref(),if flag{"left:1"}else{"right:1"});drop(output);assert_eq!(LIVE.load(Ordering::SeqCst),baseline);}
         let values=function8();assert_eq!(values.len(),3);assert_eq!(values.get(0).unwrap().as_ref(),"first1");assert_eq!(values.get(1).unwrap().as_ref(),"second");assert_eq!(values.get(2).unwrap().as_ref(),"thirdtrue");drop(values);assert_eq!(LIVE.load(Ordering::SeqCst),baseline);
+        std::panic::set_hook(hook);
+        for value in [0.5,1.25,2.5,12.75]{
+            let expected=format!("é😀e123:{}:end",function11(value));
+            ALLOCS.store(0,Ordering::SeqCst);let output=function10(std::hint::black_box(value));
+            assert_eq!(ALLOCS.load(Ordering::SeqCst),2,"only output allocation and growth, no temporary number string");
+            assert_eq!(output.as_ref(),expected);drop(output);drop(expected);assert_eq!(LIVE.load(Ordering::SeqCst),baseline);
+        }
+        let verify=|value:f64|{
+            let expected=format!("é😀e123:{}:end",function11(value));
+            let output=function10(std::hint::black_box(value));assert_eq!(output.as_ref(),expected);
+            assert!(matches!(output,String::Owned(_)));drop(output);drop(expected);assert_eq!(LIVE.load(Ordering::SeqCst),baseline);
+        };
+        for value in [0.0,-0.0,f64::NAN,f64::INFINITY,f64::NEG_INFINITY,f64::MAX,f64::MIN_POSITIVE,f64::from_bits(1),1e-7,1e-6,1e20,1e21,-1e21,9007199254740991.0,9007199254740992.0,5.960464477539062e-7,123456789012345680000.0]{verify(value);}
+        for value in [f64::from_bits(1),f64::MAX,f64::MIN_POSITIVE,1e-7,-1e21,1.5e300]{
+            ALLOCS.store(0,Ordering::SeqCst);
+            let mut reference=std::string::String::with_capacity(15);reference.push_str("é😀e123:");
+            reference.push_str(tsr_number_to_string(value,10,"number text").as_ref());reference.push_str(":end");
+            let before=ALLOCS.load(Ordering::SeqCst);drop(reference);
+            ALLOCS.store(0,Ordering::SeqCst);let output=function10(value);
+            let after=ALLOCS.load(Ordering::SeqCst);
+            assert!(after<=before,"scientific templates must not add allocations: {value:e}, {before} -> {after}");
+            drop(output);assert_eq!(LIVE.load(Ordering::SeqCst),baseline);
+        }
+        let mut bits=0x123456789abcdef0u64;
+        for _ in 0..2048{bits=bits.wrapping_mul(6364136223846793005).wrapping_add(1);verify(f64::from_bits(bits));}
+        let hook=std::panic::take_hook();std::panic::set_hook(Box::new(|_|{}));
         for call in [function6 as fn()->String,function7,function9]{let error=std::panic::catch_unwind(call).unwrap_err();drop(error);assert_eq!(LIVE.load(Ordering::SeqCst),baseline);}std::panic::set_hook(hook);
         "#,
     );

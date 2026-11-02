@@ -8337,8 +8337,9 @@ impl Emitter<'_> {
             } else if part.ty == Some(Type::Number) {
                 // Number text has its own spelling for infinities, zero,
                 // exponent ranges and tied digits.
+                // Scientific text keeps its existing allocation path.
                 code.push_str(&format!(
-                    "let template_value: f64 = {value}; if !tsr_push_whole_number(&mut template_output, template_value) {{ template_output.push_str(tsr_number_to_string(template_value, 10, \"number text\").as_ref()); }} "
+                    "let template_value: f64 = {value}; if !tsr_push_whole_number(&mut template_output, template_value) {{ if (1e-6..1e21).contains(&template_value.abs()) {{ TsrJoinText::append_join_text(&template_value, &mut template_output); }} else {{ template_output.push_str(tsr_number_to_string(template_value, 10, \"number text\").as_ref()); }} }} "
                 ));
             } else if part.ty == Some(Type::Int) {
                 code.push_str(&format!("let template_value: i64 = {value}; tsr_push_int(&mut template_output, template_value); "));

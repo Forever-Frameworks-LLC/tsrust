@@ -24,8 +24,9 @@ include **0a68a4f5** (932 Rust references), **2c538120** (normalization optimiza
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization: single-digit String(number) storage reuse
-(enums1.750×, mixed-number arrays/unions1.07×). Previous String(int) reuse
+Latest accepted optimization: direct fractional template formatting (1.099×,
+4,100→2,052 allocations). Previous single-digit String(number) storage reuse
+is enums1.750×, mixed-number arrays/unions1.07×. Previous String(int) reuse
 is interfaces1.198×/splice and nullable1.45×. Previous plain JSON decoding with
 complete integer validation is recursive1.059×/string reads1.108×; preserved object slots are
 1.039×; identity-preserving Map/Set validation is 1.275× (**32cdfb23**).
@@ -37,6 +38,92 @@ accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration
 plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
+
+**Fractional template formatting — accepted locally, parent b8d863c2:**
+- Corrected the next-lead description: Number templates call tsr_number_to_string,
+  not number.label. The latter belongs to string addition. Templates allocate
+  temporary owned fractional text and copy it into their independent output.
+- Parent allocation profile **2026-11-02T03:45:58.864Z**,5.175s/258,544KiB:
+  template_primitive_ascii checksum769987644,4,100 allocations/3,327 reallocations,
+  requested313,683/retained138,006/peak138,269 bytes,input13,cleanup0. Exactly
+  2,048 fractional conversions accompany2,048 output strings. Unicode-only,
+  interfaces and string-concatenation controls captured too.
+- Native CPU diagnosis uses original workload/adapter/independent checksum,
+  n2048/seed7/input "dynamic ASCII",10,000 observed-output/drop repetitions:
+  preparation1.040s/273,520KiB; sample3.612s/33,072KiB,checksum769987644.
+  2,133 main-thread samples show float formatting/tie handling and allocator/
+  realloc/copy costs. Initial diagnostic used the wrong Unicode input; its
+  checksum rejected it, corrected before collecting successful evidence.
+- Fresh quiet parent **2026-11-02T03:47:33.358Z**,12.429s/332,176KiB,
+  original93samples/engine across template primitive/Unicode,interfaces,concat,
+  radix controls. Saved standard Rust reference timings reused.
+- Initial candidate was one emitter-line replacement: keep tsr_push_whole_number, reuse
+  existing TsrJoinText::append_join_text for remaining Number interpolation.
+  Existing support detection emits the trait. No new runtime helper/dependency,
+  unsafe,limit,ownership policy or public API. Parity witnesses cover ties,
+  scientific ranges,specials and Unicode prefix offsets.
+- Extended templates' native helper to format successful fixtures in memory;
+  existing allocation/unwind witness adds common fractions,2,048 random f64s,
+  extremes and scientific-allocation comparison against the old template path.
+  Focused builds selected templates,number_text_ties,array_join,number_to_string,
+  string_addition. The first check examined scientific formatting allocations
+  because existing join uses a different temporary buffer.
+- Initial build192.665s/1,517,152KiB; templates3pass/1fail. Existing panic hook
+  hid assertion details; restored diagnostics around new checks (test-only rebuild
+  1.560s/262,528KiB). Focused rerun proves scientific-allocation regression in
+  unbounded helper reuse, not text mismatch. Retain the witness. Candidate now
+  reuses the existing helper only in the existing plain decimal range1e-6..1e21;
+  scientific/special fallback stays byte-for-byte the original number_to_string
+  append. This is the existing format boundary, not a new limit/ownership rule.
+  Guarded build was interrupted after60.208s/1,498,880KiB due a mistaken
+  escaping diagnosis; direct byte inspection found source escaping already
+  correct. Restarted the same guarded source under watchdog. Build196.790s/
+  1,554,480KiB; all22 affected checks pass: templates4,number_text_ties2 (339
+  reference values),array_join4,number_to_string3,string_addition9. Individual
+  watchdogs2.615/1.042/2.088/1.555/4.712s,max598,560KiB. New2,048-bit-pattern
+  parity,plain allocation andscientific no-extra-allocation checks pass at O0/O3.
+  Release212.825s/1,466,480KiB. Candidate profile
+  **2026-11-02T04:03:55.203Z**,4.665s/299,840KiB: template allocations
+  4,100→2,052,reallocations3,327 unchanged,deallocations during work2,051→3,
+  requested313,683→248,147 (65,536 saved),retained138,006 unchanged,
+  peak138,269→138,237. All samples identical and live bytes reach0. All controls'
+  allocation samples,emitted and instrumented source hashes match parent exactly.
+- Quiet candidate **2026-11-02T04:04:17.799Z**,10.361s/357,808KiB,max load2.502
+  versus parent2.249,no override,original93samples/engine: template
+  **.283000→.257500ms,1.099×**; Node .168250→.171292,normalized1.119×.
+  All three native process medians (.239875/.257542/.263750) beat parent global.
+  Byte-identical controls drifted: Unicode .124500→.129167,interfaces
+  .203625→.207083,concat .476958→.497291; their Node shifts respectively
+  .026458→.026791,.116875→.118000,.136541→.142041. Radix .833958→.830959 flat.
+  All paired workload/protocol/versions/oracle/driver/harness/lock hashes match;
+  only compiler input emit/mod.rs differs.
+- All-target compiler/LSP check52.246s/1,285,520KiB passed; existing decode_plain
+  dead-code warning only. Frontend/signatures unchanged; reuse existing editor
+  agreement evidence rather than rerunning the LSP matrix for private emission.
+- Bounded control follow-up **2026-11-02T04:05:58.431Z**,7.763s/335,792KiB,
+  max load2.475,no override,original93samples: Unicode .128833/Node .027500,
+  interfaces .212292/.118750,concat .501375/.167083. Drift remains in exactly
+  byte-identical programs; do not describe these as optimized or attribute their
+  variation to the source change. Preserve both runs; no whole-matrix claim.
+- Accepted guarded reuse: existing decimal-range boundary only; scientific/special
+  fallback unchanged. No new runtime helper, dependency, unsafe, limit, API or
+  ownership policy. Twenty-six parent/candidate/follow-up histories ingested;
+  exact rounded medians/mean rates/93counts,source/workload/protocol/compiler
+  identities,quiet policies and SQLite integrity verified. Standard Rust reference
+  timings reused. Public performance pins include candidate and latest controls.
+- Whole-project formatter zero files/snippets/fingerprints changed. Three website
+  tests pass;66-page build3.645s/897,376KiB; links/assets/anchors in116pages pass.
+  Existing duplicate404 route warning remains; rendered routes/link checks pass.
+  Current release compiler/LSP contains the accepted source. No CI,push/deployment.
+- Pruned 37,156,416 bytes across6 closed parent raw/CPU-probe artifacts;
+  current candidate timing/allocation and control follow-up remain for next A/B.
+  Current22-test binaries retained; all owned runners are terminal.
+- Next: profile fractional string-addition temporaries in string_parts and binary
+  numeric append paths, which still copy number.label() into the destination.
+  Consider the same existing guarded writer only after matched allocation/CPU
+  profiles, and preserve scientific allocation behavior and integer paths. Reuse
+  this section's scientific witness and the existing tie corpus. Object plan and
+  104-byte row-layout lead remain tracked; no arena/ownership change approved.
 
 **Integer append final outcome — rejected after controlled comparison:**
 - Final decimal-pair/std candidate release211.098s/1,304,928KiB; all-target
