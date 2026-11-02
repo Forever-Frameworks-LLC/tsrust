@@ -185,6 +185,7 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
         recursive_links:crate::recursive_links::Index::new(&program.records,|id|program.unions[id.index()].members.clone()),
         callback_traits,
         counted_calls,
+        whole_number_enums: program.records.iter().map(|record| record.enum_definition.as_ref().is_some_and(|definition| definition.kind == crate::syntax::EnumKind::Number && definition.members.iter().all(|member| matches!(member.value, crate::syntax::EnumValue::Number(value) if value.fract() == 0.0 && value.abs() < 9007199254740992.0)))).collect(),
         program,
         restored_slots:restored_capture_slots::Index::new(program),
         finally_moves:finally_move_slots::Index::new(program),
@@ -274,6 +275,7 @@ struct Emitter<'a> {
     borrowed_capture_alternatives: borrowed_payload_emit::Alternatives,
     callback_traits: bool,
     counted_calls: bool,
+    whole_number_enums: Vec<bool>,
     program: &'a CheckedProgram,
     restored_slots:restored_capture_slots::Index,
     finally_moves:finally_move_slots::Index,
@@ -4683,7 +4685,7 @@ impl Emitter<'_> {
         let failure = format!("string addition capacity overflow at source bytes {}..{}", span.start, span.end);
         if let Some(operands) = self.appended_operands(fun, target, value) {
             let rendered = operands.iter().map(|operand| { let (child, mode) = Self::chain_operand(operand); render(child, mode, false) }).collect::<Vec<_>>();
-            let (parts, capacity, pushes) = Self::string_parts(&operands, &rendered, &failure);
+            let (parts, capacity, pushes) = self.string_parts(&operands, &rendered, &failure);
             return format!(
                 "{{ {}{parts}let sink = tsr_string_reserve(&mut ({}), {capacity}, {failure:?}); {pushes}}}",
                 selection.setup, selection.place
@@ -6115,15 +6117,15 @@ impl Emitter<'_> {
         }
     }
 
-    fn string_chain_code(operands: &[&Expr], rendered: &[String], operator: crate::Span) -> String {
+    fn string_chain_code(&self, operands: &[&Expr], rendered: &[String], operator: crate::Span) -> String {
         let failure = format!("string addition capacity overflow at source bytes {}..{}", operator.start, operator.end);
-        let (parts, capacity, pushes) = Self::string_parts(operands, rendered, &failure);
+        let (parts, capacity, pushes) = self.string_parts(operands, rendered, &failure);
         format!("{{ {parts}let mut output = std::string::String::with_capacity({capacity}); {{ let sink = &mut output; {pushes}}} String::Owned(output) }}")
     }
 
     /// Bindings for each operand, their total size and the code that appends
     /// them to `sink: &mut std::string::String`, in operand order.
-    fn string_parts(operands: &[&Expr], rendered: &[String], failure: &str) -> (String, String, String) {
+    fn string_parts(&self, operands: &[&Expr], rendered: &[String], failure: &str) -> (String, String, String) {
         let mut parts = String::new();
         let mut sizes = Vec::new();
         let mut pushes = String::new();
@@ -6138,7 +6140,11 @@ impl Emitter<'_> {
                     let number = if kind == Type::Number { value.clone() } else { format!("({value}).tsr_value()") };
                     parts.push_str(&format!("let part{index}: f64 = {number}; "));
                     sizes.push("24".to_owned());
-                    pushes.push_str(&format!("if !tsr_push_whole_number(sink, part{index}) {{ sink.push_str(&(TsrConsoleValue::Number(part{index})).label()); }} "));
+                    if self.whole_number_enum(Self::appended_number(operand).expect("checked number")) {
+                        pushes.push_str(&format!("tsr_push_int(sink, part{index} as i64); "));
+                    } else {
+                        pushes.push_str(&format!("if !tsr_push_whole_number(sink, part{index}) {{ TsrJoinText::append_join_text(&part{index}, sink); }} "));
+                    }
                 }
                 // `name.slice(...)` appends the borrowed range, not an owned copy.
                 None if Self::borrowed_slice(operand) && Self::slice_block(value).is_some() => {
@@ -6199,6 +6205,14 @@ impl Emitter<'_> {
                     && !receiver_moves::mentions(value, id)
                     && receiver_moves::captured(fun, &self.program.closures).is_some_and(|captured| !captured.contains(&id))
             })
+    }
+
+    // Enum members prove the existing exact-integer formatting precondition.
+    fn whole_number_enum(&self, value: &Expr) -> bool {
+        let value = if value.target == Some(CallTarget::Number) {
+            match &value.kind { ExprKind::Call(_, args) if args.len() == 1 => &args[0], _ => value }
+        } else { value };
+        matches!(value.ty, Some(Type::Enum(index, crate::syntax::EnumKind::Number)) if self.whole_number_enums[index])
     }
 
     /// `text + String(n)` for a numeric `n`: the digits are written into the
@@ -8676,7 +8690,7 @@ impl Emitter<'_> {
         }
         if let Some(operands) = Self::string_addition_chain(expr) {
             let rendered = operands.iter().map(|operand| { let (child, mode) = Self::chain_operand(operand); render(child, mode) }).collect::<Vec<_>>();
-            return Ok(Self::string_chain_code(&operands, &rendered, *operator));
+            return Ok(self.string_chain_code(&operands, &rendered, *operator));
         }
         if let Some((first, levels)) = Self::scalar_chain(expr) {
             let mut rendered = vec![render(first, Mode::Copy)];
@@ -8702,8 +8716,15 @@ impl Emitter<'_> {
             if let Some(argument) = appended {
                 let push = match argument.ty {
                     Some(Type::Int) => format!("let number: i64 = {right}; tsr_push_int(&mut output, number);"),
-                    Some(Type::Number) => format!("let number: f64 = {right}; if !tsr_push_whole_number(&mut output, number) {{ output.push_str(&(TsrConsoleValue::Number(number)).label()); }}"),
-                    _ => format!("let number: f64 = ({right}).tsr_value(); if !tsr_push_whole_number(&mut output, number) {{ output.push_str(&(TsrConsoleValue::Number(number)).label()); }}"),
+                    kind => {
+                        let number = if kind == Some(Type::Number) { right } else { format!("({right}).tsr_value()") };
+                        let append = if self.whole_number_enum(argument) {
+                            "tsr_push_int(&mut output, number as i64);"
+                        } else {
+                            "if !tsr_push_whole_number(&mut output, number) { TsrJoinText::append_join_text(&number, &mut output); }"
+                        };
+                        format!("let number: f64 = {number}; {append}")
+                    },
                 };
                 return Ok(format!(
                     "{{ let string_left: &String = {left}; let mut output = std::string::String::with_capacity(string_left.len().checked_add(24).expect({failure:?})); output.push_str(string_left); {push} String::Owned(output) }}"

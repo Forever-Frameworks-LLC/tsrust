@@ -344,3 +344,67 @@ fn appended_slices_of_locals_borrow_their_range() {
     assert_eq!(rust.matches("tsr_slice_str(string_receiver").count(), 5, "{rust}");
     assert!(!rust.contains("tsr_slice(string_receiver"), "no owned slice copies are made for appends");
 }
+
+#[test]
+fn fractional_appends_reuse_output_without_changing_text_or_scientific_allocations() {
+    let source = support::format_round_trip(r#"
+enum Phase { Whole = 4, Half = 2.5 }
+enum Small { Minus = -7, Zero = 0, Exact = 9007199254740991 }
+enum Wide { Above = 9007199254740992, Huge = 1e21 }
+function binary(value:number):string{return "é😀e123:"+String(value);}
+function chain(value:number):string{return "é😀e123:"+String(value)+":end";}
+function append(value:number):string{let output="é😀e123:";output+=String(value)+":end";return output;}
+function enumBinary():string{return "é😀e123:"+String(Phase.Half);}
+function enumChain():string{return "é😀e123:"+String(Phase.Half)+":end";}
+function reference(value:number):string{return String(value);}
+function wholeBinary():string{return "v"+String(Number(Small.Exact));}
+function wholeChain():string{return "v"+String(Small.Minus)+"|"+String(Small.Zero);}
+function wholeAppend():string{let output="v";output+=String(Number(Small.Exact))+"|"+String(Small.Minus);return output;}
+function wide():string{return "v"+String(Wide.Huge)+"|"+String(Wide.Above);}
+function main(){}
+"#);
+    native(&source, "", r#"
+        let baseline=LIVE.load(Ordering::SeqCst);
+        let functions=[(function0 as fn(f64)->String,""),(function1 as fn(f64)->String,":end"),(function2 as fn(f64)->String,":end")];
+        for value in [0.5,1.25,2.5,12.75]{
+            for &(function,suffix) in &functions{
+                let expected=format!("é😀e123:{value}{suffix}");
+                let count=ALLOCATIONS.load(Ordering::SeqCst);let output=function(std::hint::black_box(value));
+                assert_eq!(ALLOCATIONS.load(Ordering::SeqCst)-count,1,"one owned destination, no temporary number text");
+                assert_eq!(output.as_ref(),expected);drop(output);drop(expected);assert_eq!(LIVE.load(Ordering::SeqCst),baseline);
+            }
+        }
+        for (function,expected) in [(function3 as fn()->String,"é😀e123:2.5"),(function4 as fn()->String,"é😀e123:2.5:end")]{
+            let count=ALLOCATIONS.load(Ordering::SeqCst);let output=function();
+            assert_eq!(ALLOCATIONS.load(Ordering::SeqCst)-count,1);assert_eq!(output.as_ref(),expected);
+            drop(output);assert_eq!(LIVE.load(Ordering::SeqCst),baseline);
+        }
+        assert_eq!(function6().as_ref(),"v9007199254740991");
+        assert_eq!(function7().as_ref(),"v-7|0");
+        assert_eq!(function8().as_ref(),"v9007199254740991|-7");
+        assert_eq!(function9().as_ref(),"v1e+21|9007199254740992");
+        assert_eq!(LIVE.load(Ordering::SeqCst),baseline);
+        let verify=|value:f64|{
+            for &(function,suffix) in &functions{
+                let count=ALLOCATIONS.load(Ordering::SeqCst);
+                let mut old=std::string::String::with_capacity("é😀e123:".len()+24+suffix.len());old.push_str("é😀e123:");
+                if !tsr_push_whole_number(&mut old,value){old.push_str(function5(value).as_ref());}old.push_str(suffix);
+                let old_allocations=ALLOCATIONS.load(Ordering::SeqCst)-count;
+                let count=ALLOCATIONS.load(Ordering::SeqCst);let output=function(std::hint::black_box(value));
+                let new_allocations=ALLOCATIONS.load(Ordering::SeqCst)-count;
+                assert_eq!(output.as_ref(),old);assert!(matches!(output,String::Owned(_)));
+                assert!(new_allocations<=old_allocations,"allocations {value:e}: {old_allocations} -> {new_allocations}");
+                drop(output);drop(old);assert_eq!(LIVE.load(Ordering::SeqCst),baseline);
+            }
+        };
+        for value in [0.0,-0.0,f64::NAN,f64::INFINITY,f64::NEG_INFINITY,f64::MAX,f64::MIN_POSITIVE,f64::from_bits(1),1e-7,1e-6,1e20,1e21,-1e21,9007199254740991.0,9007199254740992.0,5.960464477539062e-7,123456789012345680000.0]{verify(value);}
+        let mut bits=0x123456789abcdef0u64;
+        for _ in 0..2048{bits=bits.wrapping_mul(6364136223846793005).wrapping_add(1);verify(f64::from_bits(bits));}
+    "#, ALLOCATOR);
+    let isolated = support::format_round_trip("function text(value:number):string{return \"v\"+String(value);}function main(){}");
+    native(&isolated, "", r#"
+        assert_eq!(function0(0.5).as_ref(),"v0.5");
+        assert_eq!(function0(f64::INFINITY).as_ref(),"vInfinity");
+        assert_eq!(function0(1e21).as_ref(),"v1e+21");
+    "#, "");
+}

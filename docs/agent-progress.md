@@ -24,8 +24,10 @@ include **0a68a4f5** (932 Rust references), **2c538120** (normalization optimiza
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization: direct fractional template formatting (1.099×,
-4,100→2,052 allocations). Previous single-digit String(number) storage reuse
+Latest accepted optimization: direct numeric string appends (1,024 temporary
+allocations removed; controlled concat1.034×) and proven-whole enum appends
+(official1.077×). Previous fractional template formatting is1.099×,
+4,100→2,052 allocations. Previous single-digit String(number) storage reuse
 is enums1.750×, mixed-number arrays/unions1.07×. Previous String(int) reuse
 is interfaces1.198×/splice and nullable1.45×. Previous plain JSON decoding with
 complete integer validation is recursive1.059×/string reads1.108×; preserved object slots are
@@ -38,6 +40,129 @@ accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration
 plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
+
+**Fractional string addition — accepted locally, parent e50398b5:**
+- Final form: keep ordinary whole-number handling,then reuse existing TsrJoinText
+  for all other numeric appends. Numeric enums whose declared members all meet
+  the existing exact-integer formatting precondition use the existing int writer
+  directly. Covers binary,chain and compound appends,including checked Number
+  conversion. Integer writers,capacity allowances and template guard unchanged.
+  Facts are precomputed once per declaration. No new runtime helper,dependency,
+  unsafe,limit,public API or ownership policy. Historical trial details follow.
+- Fresh allocation profile **2026-11-02T04:10:29.509Z**,5.179s/296,624KiB:
+  concat22,522 allocations/2,057 reallocations,checksum909615361. Enum,interfaces
+  and already-optimized template controls included; all samples/cleanup validated.
+- Native CPU diagnosis uses original workload/driver/independent checksum,
+  n2048/seed7/exact manifest input/10,000 observed creation/drop repetitions:
+  preparation2.062s/284,432KiB; sample6.702s/33,728KiB,checksum909615361.
+  Float formatting,allocator/free/copy costs visible; diagnostic,not formal timing.
+- Fresh quiet parent **2026-11-02T04:14:01.372Z**,10.891s/320,976KiB,
+  original93samples/engine across concat,enums,interfaces,template and Unicode
+  chain control. Standard Rust reference timings reused.
+- Added one formatted native witness covering binary/chain/compound and numeric
+  enum fractions,one destination allocation,2,048 random f64s/edge values versus
+  the original conversion path,UTF-8 prefix offsets,normal cleanup,and no added
+  allocations (including scientific/special values). Existing order/unwind/tie
+  witnesses remain. All six affected binaries building under watchdog:
+  string_addition,string_concatenation,number_text_ties,array_join,templates,enums.
+  Initial focused build194.661s/1,477,008KiB; all28 affected checks passed:
+  string_addition10,string_concatenation2,number_text_ties2,array_join4,templates4,
+  enums6; individual watchdogs5.765/1.575/1.048/2.069/2.611/1.042s,
+  maximum537,968KiB. New2,048-random-float/allocation witness passes at O0/O3.
+  Release210.600s/1,536,624KiB. Candidate profile
+  **2026-11-02T04:22:27.342Z**,4.666s/306,800KiB: concat allocations
+  22,522→21,498,reallocations2,057 unchanged,deallocations6,137→5,113,
+  requested1,278,843→1,270,651 (8,192 saved),retained/peak922,016 unchanged.
+  All samples identical,cleanup0; every control allocation sample unchanged.
+- First quiet candidate **2026-11-02T04:22:52.559Z**,10.352s/353,440KiB,
+  max load2.445 versus parent2.225,no override,93samples/engine. Concat native
+  .471250→.465458ms (1.012×),Node .139750→.165500; enums .039084→.041792,
+  Node .035292→.036041. Enum process medians .040625/.040042/.062417 vary
+  substantially. Three unchanged controls' full emitted/driver hashes match
+  parent; their timing drifts too. Bounded recheck of both changed workloads
+  active before acceptance; no accepted speed claim yet.
+- Recheck **2026-11-02T04:25:36.308Z**,7.750s/321,008KiB,max load1.732,
+  no override: concat .459625/Node .135708,enums .041166/.035708.
+  Resolve with paired original-driver diagnosis: reconstructed full parent
+  instrumented source by reverting numeric code and removing newly selected join
+  support; require exact official parent hash before compiling. First diagnostic
+  rejected an incomplete registration removal before timing; corrected its
+  generic-impl detection, then full parent hashes matched.
+- Paired diagnosis rotates parent/guarded/direct-writer/Node,original3processes/
+  8warmups/31samples,exact output and quiet guard. Parent→guarded→direct:
+  concat .467708→.451959→.444000ms; enums .039792→.039792→.040167;
+  Node .138166/.035500. Max load2.527,watchdog7.787s/360,496KiB.
+- Simplified candidate: reuse existing writer for every non-whole Number append.
+  Addition's old scientific label path uses two formatted strings, unlike the
+  template baseline, so its guard may be unnecessary. Retain the template guard.
+  Existing full-range allocation witness must prove the difference. Added an
+  isolated fractional/scientific/nonfinite append with no console use to check
+  support selection. Build195.820s/1,371,440KiB; all28 checks pass again:
+  10/2/2/4/4/6; individual watchdogs5.207/1.569/1.042/2.086/2.595/1.033s,
+  max492,160KiB. Full-range no-extra-allocation and isolated support witnesses
+  pass at O0/O3,justifying scientific/special helper reuse in addition while
+  retaining the independently justified template guard. Release build active;
+  Direct-writer release210.736s/1,352,784KiB; profile
+  **2026-11-02T04:38:34.787Z**,4.149s/345,680KiB,counts/bytes identical to
+  guarded candidate. Official run **2026-11-02T04:38:54.354Z**,9.835s/339,744KiB,
+  max load3.958,no override: concat .481792/Node .138333,enums .040583/.035875;
+  unchanged controls also slower. No acceptance from this shifted-machine run.
+- Final paired actual-binary diagnosis verifies retained parent binaries' hashes
+  and original full source identity,candidate instrumented-source and executable
+  identities; rotate parent/candidate/Node with original sample protocol and
+  exact-output checks. Concat .472958→.457458ms (1.034×),Node .136917;
+  enums .038750→.040417 (4.3% slower),Node .036208. Max load2.509,
+  watchdog3.610s/329,472KiB. Thus the whole-enum regression is real; fix before
+  retaining fractional savings.
+- Current repaired candidate precomputes exact-whole numeric-enum facts once per
+  declaration (no per-use member rescans). It recognizes direct enum values or
+  checked Number(enum) conversion,then uses the existing int writer where every
+  member satisfies the existing whole-format precondition (integral,abs<2^53).
+  Applies to binary,chain and compound appends; fractional/wide enums retain the
+  f64 path. No new limit or rounding. Added negative/zero/exact-boundary and
+  fractional/wide enum witnesses. Private string-chain helpers now receive the
+  emitter to read those facts. Affected rebuild active; final candidate unaccepted.
+  Enum-proof build194.686s/1,451,936KiB; all28 checks pass again:
+  10/2/2/4/4/6,watchdogs5.279/1.560/1.040/2.085/2.598/1.034s,
+  max547,488KiB. Exact-boundary/negative/zero enum and fractional/wide fallback
+  checks pass at O0/O3. Final release build active before official remeasurement.
+  Final release209.139s/1,686,032KiB. Final profile
+  **2026-11-02T04:54:06.706Z**,4.148s/284,960KiB: same1,024 allocation/8,192
+  requested-byte savings; all control samples and cleanup remain unchanged.
+- Final quiet official run **2026-11-02T04:54:23.307Z**,9.832s/341,792KiB,
+  max load2.308,no override,original93samples: enums .039084→.036291ms
+  (1.077×),Node .035292→.036375,normalized1.110×; all three candidate process
+  medians .036208/.036709/.036208 beat parent global. Enum regression fixed.
+  Concat .482584/Node .139875 in this phase,while all three unchanged controls
+  drift about5% versus the earlier parent. Keep this official timing honestly.
+- Final concat executable SHA and complete instrumented-source hash match the
+  actual-binary paired1.034× winner exactly. Reuse that controlled A/B rather
+  than rerunning identical artifacts until a favorable official phase appears.
+  All three paired concat candidate process medians .459917/.455000/.452833
+  beat every parent process median .464167/.489375/.470125. Fractional savings
+  have a verified faster matched consumer; whole enums improve independently.
+- All-target compiler/LSP check52.749s/1,284,080KiB passed with existing
+  decode_plain dead-code warning only. Frontend/signatures unchanged; reuse
+  existing editor agreement. Forty-four formal histories ingested and verified
+  for exact rounded medians/mean rates/93counts,all paired source/workload/
+  protocol/compiler identities,quiet policies,control hashes,allocation samples
+  and SQLite integrity. Saved hand-written Rust baselines reused. Public pin
+  selects final official run only; rejected variants and diagnostic timings are
+  not substituted into the published table.
+- Whole-project formatter zero files/snippets/fingerprints changed. Three website
+  tests pass;66-page build3.632s/945,776KiB;links/assets/anchors in116pages pass.
+  Existing duplicate404 route warning only. Release compiler/LSP contains the
+  accepted source. No CI,push/deployment. All owned runners terminal.
+- Pruned 88,992,496 bytes across16 closed raw/CPU/paired-probe artifacts.
+  Keep final official timing/allocation for next parent; current28-test binaries
+  retained. Controlled diagnostic summary/identities above remain reproducible
+  from commits; do not preserve separate source or handoff snapshots.
+- Next: reprofile standalone owned numeric string conversion now that append
+  paths no longer need their ordinary formatting temporaries. Compare actual
+  allocation/CPU work with existing reference before choosing another change;
+  do not repeat rejected integer-writer variants. Keep object construction and
+  104-byte row-layout leads tracked,with Rust ownership/small-array wins intact.
+
 
 **Fractional template formatting — accepted locally, parent b8d863c2:**
 - Corrected the next-lead description: Number templates call tsr_number_to_string,
