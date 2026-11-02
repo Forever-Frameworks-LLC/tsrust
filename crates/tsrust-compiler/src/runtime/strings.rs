@@ -25,7 +25,7 @@ pub fn tsr_boolean_string(value: bool) -> String {
 pub fn tsr_int_to_string(value: i64, radix: i64, failure: &'static str) -> String {
     assert!((2..=36).contains(&radix), "{failure}");
     if radix == 10 {
-        return String::Owned(value.to_string());
+        return tsr_int_text(value);
     }
     // The largest unsigned magnitude needs at most 64 radix-2 digits.
     // A fixed character buffer avoids an intermediate allocated string.

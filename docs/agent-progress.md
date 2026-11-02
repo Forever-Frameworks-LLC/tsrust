@@ -29,7 +29,9 @@ include **0a68a4f5** (932 Rust references), **2c538120** (normalization optimiza
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization:readonly stack character views,string iteration
+Latest accepted optimization:decimal int.toString helper reuse1.140×
+(repeat1.137×),384 allocations removed,retained/peak heap -8.2%. Previous
+readonly stack character views,string iteration
 1.171× (repeat1.147×),allocations -44.4%,retained/peak heap unchanged. Previous
 text-only self-assignment buffers,string iteration
 2.307× (repeat2.288×),allocations -86.2%,retained heap unchanged. Previous
@@ -57,6 +59,75 @@ accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration
 plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
+
+**Decimal int.toString helper reuse — accepted locally, parent 28fcf7f1:**
+- Clone-output inspection found independently owned escaping text,not a removable
+  copy. A distinct measured lead:decimal int.toString bypassed existing
+  tsr_int_text digit storage. No global integer writer change is retained.
+- Fresh four-radix allocation baseline **2026-11-02T16:12:22.686Z** passes
+  5.185s/251,008KiB;formal parent **2026-11-02T16:14:31.961Z** passes7.237s/
+  273,504KiB with original93samples and focused Node controls.
+- Consumer-only reuse preserves20 complete boundary outputs. Three identical
+  samples:decimal2,049→1,665 allocations,8 reallocations unchanged,
+  requested137,920→130,624,retained/peak88,960→81,664,both cleanup counters0.
+  Other radices' complete dictionaries and machine __TEXT,__text match parent.
+  Profile preparation4.149s/206,480KiB. Quiet same-path/argv0 trial3.114s/
+  92,032KiB,maxload1.902:decimal.029458→.026292ms **1.120×**,Node.035291;
+  identical-code binary/hex/base36 controls.997×/1.009×/1.000×.
+- Matched nondigit-only pool checks that small-digit wins do not hide larger-int
+  cost. Three-sample allocation dictionaries match exactly (2,049 allocations,
+  8reallocs,requested137,920,retained/peak88,960,cleanup0);checksum263,903,081.
+  Five complete native/Node outputs agree. Initial93sample comparison,maxload
+  1.621:parent.030167→trial.029375ms (1.027×),Node.034625. After final build,
+  a.029583→.031000ms **.954×** observation at load3.358 is retained as a warning.
+  Three quiet repeats are.030417→.029541 **1.030×**,Node.034917;
+  .029209→.029375 **.994×**,Node.035917;and.029583→.029125 **1.016×**,
+  Node.035291,maxloads1.979/2.060/2.060. The slowdown is not repeatable;claim no
+  wide-pool speed gain. This is a diagnostic,not a new public benchmark row.
+- Runtime change is one line:return tsr_int_text(value) only for radix10,after
+  the existing2..36 assertion. The existing static ASCII representation now also
+  serves decimal digits here;remaining values retain standard Rust formatting.
+  Tests preserve exact full-i64/all-radix text,errors and cleanup,with zero-or-one
+  allocation budgets plus independent mutation and source-level owned transfers.
+  Private Cow Owned-variant assertions now exempt reused decimal digits;the
+  source ownership contract is unchanged. No ownership-checker,public API,limit,
+  dependency,RC or generated-unsafe change.
+- Build198.842s/1,391,856KiB;all19 affected checks pass across four sequential
+  binaries,--test-threads=3,max557,840KiB. All933 ABIs/emissions agree after
+  normalizing only the helper body;exactly four actual callers,36.686s/321,344KiB.
+  Compiler/LSP all-target diagnostics pass56.064s/1,243,344KiB,existing decode_plain
+  warning only. Release215.753s/1,485,632KiB;all933 final release/debug emissions
+  agree38.271s/323,968KiB. Six affected runtime harness checks pass.
+- Actual profile **2026-11-02T16:33:12.621Z**,4.693s/305,456KiB:decimal removes
+  **384 allocations (-18.7%)**,requested bytes -5.3%,retained/peak bytes **-8.2%**;
+  exact three-sample dictionaries match the trial. All other radices' dictionaries
+  equal parent. Independently owned output behavior and both zero-live-byte
+  cleanup checks remain intact.
+- Quiet same-path/argv0 actual A/B2.578s/57,568KiB,maxload3.358:
+  decimal.031208→.027375ms **1.140×**,Node.036333. Repeat2.580s/26,800KiB:
+  .031125→.027375ms **1.137×**,Node.036375. Binary/hex/base36 code sections are
+  bit-identical to parent;observed1.006×/.969×/1.005× and1.004×/1.011×/1.001×
+  are control variation,not source gains or regressions. All20 complete outputs
+  agree in each round;original3processes/eight warmups/31samples (93 per engine).
+- Formal accepted four-case native/Node runs **2026-11-02T16:33:17.846Z** and
+  **2026-11-02T16:33:29.328Z** retain the original protocol and no busy override,
+  maxloads3.303/3.169. Decimal native/Node.027459/.036500ms and.027458/.037625ms.
+  Watchdogs5.171s/281,328KiB and4.650s/314,496KiB. Existing Rust references are
+  reused. store:ingest adds24 exact histories (8 parent,16 accepted);compiler,
+  workload,counterpart,emission/driver hashes,public pins and SQLite integrity
+  verified. Only the final two runs are newly public.
+- Public export has933 comparisons/52 curated runs;66-page build3.682s/
+  947,040KiB,existing duplicate404 warning only. Three website checks pass;
+  links/assets/anchors in116pages pass1.555s/21,920KiB. Pruned99 closed files
+  (522,053,069bytes),including obsolete test/codegen outputs,verified imported
+  older raw runs and disposable trial consumers/scripts. Current tools,four
+  fresh test binaries,native consumers,the two accepted runs and current profile
+  remain. Final whole-project formatter changes zero files/snippets/fingerprints;
+  all owned runners are terminal. Local measured checkpoint,no CI,push/deployment.
+- Next: profile remaining nondecimal one-character output allocations and their
+  nondigit controls before another change. Preserve independent owned output
+  semantics and the original numeric append writer;do not assume digit storage
+  helps every formatting path or replace required escaping string copies.
 
 **Readonly Unicode character materialization — accepted locally, parent 856cd34e:**
 - Parent compiler source is unchanged from77868f7a. Profiling isolates8,192

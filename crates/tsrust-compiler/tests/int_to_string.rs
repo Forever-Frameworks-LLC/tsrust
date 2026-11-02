@@ -54,10 +54,10 @@ fn all_radices_default_signed_width_and_inferred_contexts_are_exact() {
         "0\n123\n-123\n-9223372036854775808\n9223372036854775807\n-ff\n11111111\n377\nz\nf1f\n7\nf\nf\n0f!\ntrue\ntext\n1.5\n",
         "",
         r#"
-    let cells=[i64::MIN,i64::MIN+1,-123456789012345,-35,-1,0,1,35,12345,i64::MAX];
+    let cells=[i64::MIN,i64::MIN+1,-123456789012345,-35,-1,0,1,2,8,9,10,35,12345,i64::MAX];
     for radix in 2..=36 {
         for value in cells {
-            let result=function0(value,radix);assert!(matches!(result,String::Owned(_)));
+            let result=function0(value,radix);assert_eq!(matches!(result,String::Borrowed(_)),radix==10 && (0..=9).contains(&value));
             assert_eq!(i128::from_str_radix(result.as_ref(),radix as u32).unwrap(),value as i128);
             assert!(result.chars().all(|c|c=='-'||c.is_ascii_digit()||c.is_ascii_lowercase()));
             if value<0 {assert!(result.starts_with('-'));}else{assert!(!result.starts_with('-'));}
@@ -161,7 +161,7 @@ fn strict_types_arity_invalid_radices_and_normal_stack_diagnostics_are_bounded()
 }
 
 #[test]
-fn natural_owned_results_have_one_allocation_and_zero_normal_unwind_residue() {
+fn natural_results_reuse_decimal_digits_with_independent_ownership_and_zero_unwind_residue() {
     native(
         r#"
     function format(value:int,radix:int):string{return value.toString(radix);}
@@ -183,17 +183,43 @@ fn natural_owned_results_have_one_allocation_and_zero_normal_unwind_residue() {
 
         fn measured(value:i64,radix:i64){
             let before=LIVE.load(Ordering::SeqCst);ALLOCS.store(0,Ordering::SeqCst);let result=function0(value,radix);
-            assert!(matches!(result,String::Owned(_)));assert_eq!(i128::from_str_radix(result.as_ref(),radix as u32).unwrap(),value as i128);
-            assert_eq!(ALLOCS.load(Ordering::SeqCst),1);drop(result);assert_eq!(LIVE.load(Ordering::SeqCst),before);
+            let reused=radix==10 && (0..=9).contains(&value);assert_eq!(matches!(result,String::Borrowed(_)),reused);assert_eq!(i128::from_str_radix(result.as_ref(),radix as u32).unwrap(),value as i128);
+            assert_eq!(ALLOCS.load(Ordering::SeqCst),usize::from(!reused));drop(result);assert_eq!(LIVE.load(Ordering::SeqCst),before);
         }
         "#,
         r#"
         let hook=std::panic::take_hook();std::panic::set_hook(Box::new(|_|{}));let baseline=LIVE.load(Ordering::SeqCst);
-        for value in [i64::MIN,-1,0,1,i64::MAX]{for radix in 2..=36{measured(value,radix);}}
+        for value in [i64::MIN,-1,0,1,2,3,4,5,6,7,8,9,10,i64::MAX]{for radix in 2..=36{measured(value,radix);}}
         let first=function0(31,16);let second=function0(31,16);assert_ne!(first.as_ptr(),second.as_ptr());drop(first);assert_eq!(second.as_ref(),"1f");drop(second);
-        for value in [0,i64::MIN,i64::MAX]{ALLOCS.store(0,Ordering::SeqCst);let result=function1(value);assert_eq!(ALLOCS.load(Ordering::SeqCst),1);drop(result);assert_eq!(LIVE.load(Ordering::SeqCst),baseline);}
+        for value in [0,1,9,10,-1,i64::MIN,i64::MAX]{ALLOCS.store(0,Ordering::SeqCst);let result=function1(value);assert_eq!(ALLOCS.load(Ordering::SeqCst),usize::from(!(0..=9).contains(&value)));drop(result);assert_eq!(LIVE.load(Ordering::SeqCst),baseline);}
         for radix in [i64::MIN,1,37,i64::MAX]{let error=std::panic::catch_unwind(||function0(7,radix)).unwrap_err();drop(error);assert_eq!(LIVE.load(Ordering::SeqCst),baseline);}
         let error=std::panic::catch_unwind(function2).unwrap_err();drop(error);assert_eq!(LIVE.load(Ordering::SeqCst),baseline);std::panic::set_hook(hook);
+        "#,
+    );
+}
+
+#[test]
+fn reused_decimal_text_still_transfers_ownership_and_mutates_independently() {
+    native(
+        r#"
+        function decimal(value:int):string{return value.toString();}
+        function transfer(text:Owned<string>):string{return text;}
+        function main(){
+            let first=decimal(3);let second=decimal(3);
+            first+="é";second=second+"🙂";
+            console.log(first,second,decimal(3));
+            const escaped=transfer(decimal(0));console.log(escaped);
+        }
+        "#,
+        "3é 3🙂 3\n0\n",
+        "",
+        r#"
+        for value in 0..=9i64 {
+            let mut first=function0(std::hint::black_box(value));let second=function0(value);
+            first.to_mut().push_str("é");assert_eq!(second.as_ref(),value.to_string());
+            assert_eq!(first.as_ref(),format!("{value}é"));drop(first);
+            assert_eq!(second.as_ref(),value.to_string());
+        }
         "#,
     );
 }
