@@ -38,6 +38,126 @@ plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
 
+**Integer append final outcome — rejected after controlled comparison:**
+- Final decimal-pair/std candidate release211.098s/1,304,928KiB; all-target
+  compiler/LSP check52.268s/1,465,616KiB passes with existing decode_plain
+  dead-code warning. All27 affected native checks passed as detailed below.
+  Allocation profile **2026-11-02T03:34:54.726Z**,3.617s/286,912KiB: every
+  allocation/reallocation/requested/retained/peak/cleanup sample matches parent.
+- Official quiet candidate **2026-11-02T03:35:22.088Z**,16.043s/324,368KiB,
+  maximum load2.501,no override,original93samples/engine. Against reverse parent:
+  labeled .299625→.207833ms (1.442×),enum .041208→.035125 (1.173×),
+  interfaces .213500→.203292 (1.050×),template .300125→.292334 (1.027×),
+  function_expressions .344834→.327708 (1.052×). Node-normalized gains
+  1.484/1.188/1.031/1.011/1.086× respectively. Controls stable or faster.
+  But concat .503416→.519375 (3.17% slower),Node .144042→.144417; unresolved.
+- Final paired concat diagnosis uses the actual official candidate executable;
+  parent consumer reconstructed from committed runtime helper, full instrumented
+  hashes verified against official parent/candidate, same path/compiler/flags.
+  Alternate3processes,8warmups,31samples,exact output/checksum and quiet guard.
+  Parent .477292→candidate .481375ms (0.86% slower),Node .138417,
+  max load2.373,watchdog5.182s/403,664KiB. Preliminary five-workload diagnostic
+  improvement did not establish a regression-free final gain. Reject this
+  variant too; do not publish a selected subset of its wins.
+- Restored runtime and trial test byte-exactly to HEAD; new behavioral witness
+  was trial-only. Accepted compiler/LSP release rebuilt211.114s/1,470,448KiB.
+  Restored profile **2026-11-02T03:43:26.603Z**,4.654s/283,968KiB matches parent
+  compiler inputs,generated/instrumented hashes and every allocation sample.
+  All102 official timing histories ingested; exact rounded medians/mean rates/
+  93sample counts,paired workloads/protocols/versions/oracles/compiler identities,
+  quiet policies and SQLite integrity verified. Standard Rust baselines reused.
+  Whole-project formatter zero files/snippets/fingerprints changed. Pruned
+  230,227,684 bytes across46 closed raw/candidate/obsolete trial-test artifacts;
+  reverse-parent timing and restored allocation profile remain for next parent.
+  No optimization from this section is retained; no public pin changes.
+  No CI,push or deployment. No full regression rerun for byte-restored source.
+  Next: change hypothesis, reprofile non-integer temporary allocations in string/
+  object workloads (e.g. fractional template number.label creates owned text
+  before copying into the destination). Trace ownership and profile before
+  changing it. Do not repeat these integer-writer variants unchanged. Existing
+  104-byte row-layout lead remains conditional on preserving small-array gains.
+
+**Closed integer-writer trial details (historical):**
+
+**Integer append CPU — rejected trials, parent 537437e2:**
+- Fresh native interfaces CPU probe uses existing workload adapter/checksum,
+  opt-level3/overflow checks, n2048/seed7/input19bytes and30,000 observed-output
+  creation/drop batches. Checksum473727250; CPU preparation2.586s/310,496KiB,
+  sampled execution9.306s/33,264KiB (diagnostic, not a timing comparison).
+  /tmp/tsrust-integer-append-native.sample has2,107 main-thread samples:
+  189 top-of-stack tsr_push_int,133 from_utf8, plus allocator/copy/drop work.
+- Traced all tsr_push_int callers: binary String(int) appends, addition chains/
+  compound sums, templates and tsr_push_whole_number's f64/enum path. Trial adds
+  only an ASCII char push and early return for0..9; existing general integer
+  writer remains unchanged. No storage policy, sizing, dependencies, API or
+  limit changes; generated code stays safe Rust.
+- Fresh quiet parent **2026-11-02T02:59:20.410Z**,watchdog30.593s/326,512KiB,
+  original93samples per selected native/Node engine across9 workloads. Saved
+  handwritten Rust timings reused. Candidate tests build under watchdog:
+  string_addition,numeric_string_conversion,string_concat_integer_fusion,
+  string_concatenation,templates. New formatted witness exhausts digits, signed
+  extremes,1,024 deterministic integers against std, nonempty UTF-8 destination,
+  no temporary/reallocation with spare capacity, f64 whole/special fallback and
+  cleanup at O0/O3. All27 checks passed across the five sequential binaries:
+  10/6/5/2/4; watchdogs5.182/2.083/3.143/1.035/2.602s,max511,248KiB.
+  Focused test build194.122s/1,521,824KiB. Release build active under watchdog;
+  candidate release211.080s/1,440,352KiB; allocation profile
+  **2026-11-02T03:07:21.762Z**,4.133s/307,264KiB: all samples/bytes/counts
+  unchanged from accepted parent. First quiet candidate timing
+  **2026-11-02T03:07:50.581Z**,14.475s/350,752KiB,max load2.850; labeled_control
+  .283250→.218500ms (1.296×),enums .038833→.032208 (1.206×),interfaces nearly flat.
+  Recheck6 unresolved cases **2026-11-02T03:08:35.713Z**,12.967s/350,000KiB,
+  max load2.252. String_concatenation remained .505875 versus parent .474584ms,
+  while Node changed .133958→.172417ms; template .280459→.289916 (Node
+  .167750→.170416). Unchanged controls drift too. No acceptance yet.
+- Reverse-parent comparison in progress: removed only the four-line fast path
+  (runtime source matches HEAD), retained behavioral regression witness. Release
+  rebuilding under watchdog; remeasure parent to distinguish current-machine
+  variation from a source regression before reapplying or rejecting candidate.
+- Reverse parent release210.048s/1,502,704KiB; quiet run
+  **2026-11-02T03:14:32.779Z**,15.497s/353,232KiB,max load2.351,no override,
+  original93samples/engine. Runtime/compiler and emitted source hashes match
+  initial parent. Native parent now template .300125,concat .503416 (Node
+  .173042/.144042),versus candidate .284792/.505666. Initial apparent template
+  regression was machine drift; concat difference is0.45%,within observed drift.
+  Labeled parent .299625 vs candidate .218500; enum .041208 vs .032208;
+  interfaces .213500 vs .201791. Reapplied the identical tested four-line
+  candidate; final release build/check/timing pending, no public pin change yet.
+
+**Integer append trial follow-up — rejected, no runtime change retained:**
+- Final four-line candidate release212.264s/1,477,344KiB; all-target compiler/LSP
+  check52.803s/1,396,928KiB passes with existing decode_plain dead-code warning.
+  Final quiet **2026-11-02T03:20:04.416Z**,16.030s/350,208KiB,max load2.703,
+  original93samples: labeled .229375ms,enums .034500,interfaces .202458,
+  template .301834,concat .510333. Strong small-number gains but concat unresolved.
+- Paired original-driver concat diagnostic reconstructs parent consumer by removing
+  only the four-line branch and asserts instrumented hash equals reverse-parent
+  record; candidate hash matches final run. Same source path/compile flags,
+  alternate3processes/8warmups/31samples,checksum/exact-output checks,quiet guard.
+  Parent .472750ms versus candidate .484333 (2.45% slower),Node .136708;
+  max load1.504,watchdog5.183s/395,440KiB. Reject four-line-only variant.
+- Tried std fmt::Write/write! as the general fallback, retaining direct one-digit
+  push. Disposable verified-consumer paired diagnostic (not official timing)
+  uses five workloads,original drivers/samples,quiet guard,checksum/exact output:
+  parent→candidate interfaces .203000→.186959,labeled .286917→.211291,
+  enum .038917→.032417,template .285000→.296166,concat .474709→.464875.
+  Max load1.548,watchdog8.796s/330,704KiB. Template's int count is0..96;
+  std formatting helps larger ints but costs more for frequent two-digit values.
+- Current unaccepted runtime trial directly writes sign/tens/ones for magnitude<100,
+  then uses std's integer formatter for larger values. This is a decimal-digit
+  algorithm choice, not an ownership threshold or limit. Safe unsigned_abs covers
+  MIN; no digit buffer/UTF-8 validation or temporary allocation. New witness now
+  exhausts -101..101 plus extremes and deterministic random ints. Paired-consumer
+  diagnosis passed before rebuilding compiler/tests: parent→candidate interfaces
+  .202334→.195708ms,labeled .282750→.196750,enum .039583→.032792,
+  template .284250→.274917,concat .483833→.474417. Max load1.768,
+  watchdog8.823s/324,080KiB. All five faster, same checksum/exact observations.
+  Affected test build193.101s/1,467,616KiB. All27 final-candidate checks pass:
+  string_addition10,numeric_string_conversion6,string_concat_integer_fusion5,
+  string_concatenation2,templates4; watchdogs5.226/2.085/3.170/1.036/2.081s,
+  maximum524,272KiB. Final-candidate release build active under watchdog;
+  official profiling/quiet timing/all-target recheck remain. No acceptance yet.
+
 **Integer concatenation capacity — rejected, parent 4f1471fe:**
 - Traced string_parts callers (addition chains/compound sum appends) and binary
   numeric appends. Trial reserves20 rather than24 bytes only for i64 operands
