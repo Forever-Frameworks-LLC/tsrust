@@ -4088,7 +4088,9 @@ impl Emitter<'_> {
                     self.expr(fun, value, Mode::Consume)
                 ),
                 StmtKind::Return(value) => {
-                    let value=value.as_ref().map(|value|self.expr(fun,value,Mode::Consume));
+                    let value=value.as_ref().map(|value|self.active_plan.get()
+                        .and_then(|plan|self.fixed.plans[plan].result.as_ref())
+                        .map_or_else(||self.expr(fun,value,Mode::Consume),|shape|self.fixed_literal(fun,value,shape)));
                     if self.exception_regions.current_id().is_some() {
                         self.exception_regions.return_value(value.as_deref().unwrap_or("()"),stmt.span)
                     }else{

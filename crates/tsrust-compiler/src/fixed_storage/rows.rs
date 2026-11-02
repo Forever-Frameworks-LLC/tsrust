@@ -51,7 +51,7 @@ impl Facts {
         }
     }
     pub(super) fn validated(mut self, program: &CheckedProgram) -> Self {
-        if self.values.is_empty() { return self; }
+        if self.values.is_empty() && self.outputs.is_empty() { return self; }
         for (&(function,binding), fact) in &self.values {
             let mut proof = Proof::new(program, matches!(fact.shape, Shape::Row { element: Element::Int | Element::Number | Element::Boolean, .. }));
             proof.row_facts = Some(&self);
@@ -59,7 +59,7 @@ impl Facts {
         }
         for (function, fun) in program.functions.iter().enumerate() {
             let mut approved = BTreeSet::new();
-            visit_statements(&fun.body, &mut |statement| match &statement.kind {
+            statements(fun, &mut |statement| match &statement.kind {
                 StmtKind::Let { binding:Some(binding),value,.. } if self.initializer(function,*binding,value) => self.approve(function,value,&mut approved),
                 StmtKind::Return(Some(value)) if self.returned(function,value) => self.approve(function,value,&mut approved),
                 StmtKind::Expr(value) | StmtKind::ForOf { iterable:value,.. } => self.approve(function,value,&mut approved),
@@ -72,6 +72,10 @@ impl Facts {
                     }
                 }
                 if let ExprKind::Field(base,name) = &value.kind && name == "length" { self.approve(function,base,&mut approved); }
+                if let ExprKind::Index(base,_) = &value.kind
+                    && matches!(self.expression(function,base),Some(Fact { shape:Shape::Row { element:Element::Number,.. },.. })) {
+                    self.approve(function,base,&mut approved);
+                }
             });
             visit_function_expressions(fun, &mut |value| {
                 if let Some(CallTarget::Function(target)) = value.target
@@ -109,6 +113,10 @@ impl Facts {
     }
     fn expression(&self, function: usize, value: &Expr) -> Option<Fact> {
         match &value.kind {
+            ExprKind::Array(items) if value.ty == Some(Type::Array(ArrayElement::Number(0))) => {
+                let fact=self.outputs.get(&function)?;
+                matches!(fact.shape,Shape::Row { element:Element::Number,width } if width==items.len()).then(||fact.clone())
+            }
             ExprKind::Name(_) => self.values.get(&(function, value.binding?)).cloned(),
             ExprKind::Selected { source, .. } => {
                 let (binding, fields) = source.place.as_ref()?;
@@ -142,7 +150,7 @@ impl Facts {
         true
     }
     pub(super) fn infer(program: &CheckedProgram) -> Self {
-        if !program.functions.iter().any(|fun| fun.bindings.iter().any(|binding| Element::of(binding.ty,1).is_some())) { return Self::default(); }
+        if !program.functions.iter().any(|fun| fun.result==Type::Array(ArrayElement::Number(0)) || fun.bindings.iter().any(|binding| Element::of(binding.ty,1).is_some())) { return Self::default(); }
         if crate::emit::needs_exception_transport(program) { return Self::default(); }
         let mut facts = Self::default();
         let mut seeds = 0;
@@ -172,6 +180,18 @@ impl Facts {
             && !forbidden.contains(&id);
         for (function, fun) in program.functions.iter().enumerate() {
             if !eligible(function) { continue; }
+            if fun.result==Type::Array(ArrayElement::Number(0)) && seeds<MAX_VARIANTS {
+                let mut widths=Vec::new();let mut complete=true;
+                statements(fun,&mut |statement|if let StmtKind::Return(value)=&statement.kind {
+                    match value.as_ref().and_then(row_width) {Some(width)=>widths.push(width),None=>complete=false}
+                });
+                if complete && let Some(&width)=widths.first()
+                    && width!=0 && widths.iter().all(|other|*other==width)
+                    && width.checked_mul(8).is_some_and(|bytes|bytes<=MAX_STACK_BYTES) {
+                    facts.outputs.insert(function,Fact {shape:Shape::Row {element:Element::Number,width},origins:BTreeSet::from([seeds])});
+                    seeds+=1;
+                }
+            }
             let mut pushes = BTreeMap::<usize, Vec<Option<usize>>>::new();
             visit_function_expressions(fun, &mut |expression| {
                 if expression.target != Some(CallTarget::ArrayPush) { return; }
@@ -205,7 +225,7 @@ impl Facts {
             let mut changed = false;
             for (function, fun) in program.functions.iter().enumerate() {
                 if !eligible(function) { continue; }
-                visit_statements(&fun.body, &mut |statement| {
+                statements(fun, &mut |statement| {
                     remaining = remaining.saturating_sub(1);
                     match &statement.kind {
                         StmtKind::Let { binding: Some(binding), value, .. } => {
@@ -223,7 +243,7 @@ impl Facts {
                 });
                 let mut returns = Vec::new();
                 let mut complete = true;
-                visit_statements(&fun.body, &mut |statement| {
+                statements(fun, &mut |statement| {
                     if let StmtKind::Return(value) = &statement.kind {
                         match value.as_ref().and_then(|value| facts.expression(function, value)) {
                             Some(fact) => returns.push(fact), None => complete = false,
@@ -259,6 +279,12 @@ impl Facts {
         }
         facts
     }
+}
+
+// Match-arm return statements exit the enclosing function too.
+fn statements<'a>(fun:&'a CheckedFunction,visit:&mut impl FnMut(&'a Stmt)) {
+    visit_statements(&fun.body,visit);
+    visit_function_expressions(fun,&mut |value|if let ExprKind::Match {body,..}=&value.kind {visit_statements(body,visit);});
 }
 
 fn row_width(value: &Expr) -> Option<usize> {

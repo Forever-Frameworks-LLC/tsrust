@@ -936,3 +936,60 @@ fn fixed_scalar_index_writes_preserve_operand_order_and_checked_bounds() {
         );
     }
 }
+
+#[test]
+fn fixed_float_literal_returns_follow_closed_calls_and_preserve_writes_and_clones() {
+    let rust=execute(r#"
+        function make(seed:int):number[]{return [Number(seed)+0.25,-0.0,2.5,-3.0];}
+        function forward(seed:int):number[]{return make(seed);}
+        function update(values:number[]):number{values[0]+=1.0;const saved=clone(values);return saved[0]+values[1];}
+        function main(){const values=forward(2);console.log(values.length,values[0],1.0/values[1]);console.log(update(values));console.log(values[0]);const saved=clone(values);values[0]=9.0;console.log(saved[0],values[0]);}
+    "#,"4 2.25 -Infinity\n3.25\n3.25\n3.25 9\n");
+    assert!(rust.contains("fn function0(value0: i64) -> [f64; 4]"));
+    assert!(rust.contains("fn function1(value0: i64) -> [f64; 4]"));
+    assert!(!rust.contains("unsafe"));
+}
+
+#[test]
+fn fixed_float_literal_alternatives_keep_scalar_bits_and_effect_order() {
+    let rust=execute(r#"
+        function mark(trace:int[],tag:int,value:number):number{trace.push(tag);return value;}
+        function make(trace:int[]):number[]{return [mark(trace,1,1.5),mark(trace,2,-0.0)];}
+        function index(trace:int[]):int{trace.push(3);return 1;}
+        function choose(flag:boolean):number[]{if(flag){return [1.0,-0.0];}return [2.5,-3.0];}
+        function contextual():number[]{return [1,2];}
+        function main(){const trace:int[]=[];console.log(1.0/make(trace)[index(trace)]);console.log(trace.join(","));console.log(choose(false)[0],1.0/choose(true)[1],contextual()[1]);}
+    "#,"-Infinity\n1,2,3\n2.5 -Infinity 2\n");
+    assert!(rust.contains("-> [f64; 2]"));
+}
+
+#[test]
+fn float_literal_results_retain_heap_storage_for_growing_variable_width_and_callback_uses() {
+    let rust=execute(r#"
+        function grow():number[]{return [1.0,2.0];}
+        function varying(flag:boolean):number[]{if(flag){return [1.0];}return [2.0,3.0];}
+        function captured():number[]{return [4.0,5.0];}
+        function capturedValue():number[]{return [6.0,7.0];}
+        function main(){const values=grow();values.push(3.0);console.log(grow()[0],values.length,varying(false).length);const action=captured;const saved=action();console.log(saved[0]);const cells=capturedValue();const read=():number=>cells[0];console.log(read());}
+    "#,"1 3 2\n4\n6\n");
+    for id in 0..4 {assert!(rust.contains(&format!("fn function{id}{}",if id==1{"(value0: bool) -> Vec<f64>"}else{"() -> Vec<f64>"})));}
+}
+
+#[test]
+fn float_literal_result_budget_falls_back_without_limiting_source() {
+    let source=format!("function make():number[]{{return [{}];}}function main(){{console.log(make()[599]);}}",(0..600).map(|v|format!("{v}.0")).collect::<Vec<_>>().join(","));
+    let rust=execute(&source,"599\n");assert!(rust.contains("fn function0() -> Vec<f64>"));
+}
+
+#[test]
+fn float_result_proofs_include_enclosing_returns_in_match_expressions() {
+    let rust=execute(r#"
+        function varying(flag:boolean):number[]{const ignored=match(flag){true=>{return [1.0,2.0,3.0];},false=>0,};return [4.0,5.0];}
+        function equal(flag:boolean):number[]{const ignored=match(flag){true=>{return [1.0,-0.0];},false=>0,};return [4.0,5.0];}
+        function forwarded(flag:boolean):number[]{const ignored=match(flag){true=>{return varying(true);},false=>0,};return [6.0,7.0];}
+        function main(){console.log(varying(true).length,varying(false).length);console.log(1.0/equal(true)[1],equal(false)[0]);console.log(forwarded(true).length,forwarded(false).length);}
+    "#,"3 2\n-Infinity 4\n3 2\n");
+    assert!(rust.contains("fn function0(value0: bool) -> Vec<f64>"));
+    assert!(rust.contains("fn function1(value0: bool) -> [f64; 2]"));
+    assert!(rust.contains("fn function2(value0: bool) -> Vec<f64>"));
+}

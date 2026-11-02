@@ -284,3 +284,30 @@ fn temporary_index_failures_keep_receiver_index_bounds_order_and_named_storage_r
         }
     }
 }
+
+#[test]
+fn fixed_float_result_selection_allocates_nothing_and_preserves_bits_and_failure_cleanup() {
+    let analysis=native(
+        "function make(left:number,right:number):number[]{return [left,right,-0.0,2.5];}function select(left:number,right:number,index:int):number{return make(left,right)[index];}function main(){}",
+        "",
+        r#"
+        use std::alloc::{GlobalAlloc,Layout,System};use std::sync::atomic::{AtomicUsize,AtomicIsize,Ordering};
+        struct Observer;static CALLS:AtomicUsize=AtomicUsize::new(0);static LIVE:AtomicIsize=AtomicIsize::new(0);
+        unsafe impl GlobalAlloc for Observer {
+            unsafe fn alloc(&self,l:Layout)->*mut u8{let p=unsafe{System.alloc(l)};if !p.is_null(){CALLS.fetch_add(1,Ordering::SeqCst);LIVE.fetch_add(l.size() as isize,Ordering::SeqCst);}p}
+            unsafe fn dealloc(&self,p:*mut u8,l:Layout){LIVE.fetch_sub(l.size() as isize,Ordering::SeqCst);unsafe{System.dealloc(p,l)}}
+            unsafe fn realloc(&self,p:*mut u8,l:Layout,n:usize)->*mut u8{let q=unsafe{System.realloc(p,l,n)};if !q.is_null(){CALLS.fetch_add(1,Ordering::SeqCst);LIVE.fetch_add(n as isize-l.size() as isize,Ordering::SeqCst);}q}
+        }#[global_allocator]static ALLOCATOR:Observer=Observer;
+        "#,
+        r#"
+        for bits in [0u64,0x8000000000000000,0x7ff8123456789abc,0xfff8000000000001,0x7ff0000000000000,0xfff0000000000000,1,u64::MAX] {
+            let left=f64::from_bits(bits);let right=-0.0;let expected=[left,right,-0.0,2.5];
+            for i in 0..4 {CALLS.store(0,Ordering::SeqCst);let result=function1(std::hint::black_box(left),std::hint::black_box(right),i);assert_eq!(CALLS.load(Ordering::SeqCst),0);assert_eq!(result.to_bits(),expected[i as usize].to_bits());}
+        }
+        let hook=std::panic::take_hook();std::panic::set_hook(Box::new(|_|{}));let baseline=LIVE.load(Ordering::SeqCst);
+        for index in [i64::MIN,-1,4,i64::MAX]{let error=std::panic::catch_unwind(||function1(1.5,-0.0,index)).unwrap_err();drop(error);assert_eq!(LIVE.load(Ordering::SeqCst),baseline);}
+        std::panic::set_hook(hook);
+        "#,
+    );
+    assert!(analysis.emit_rust().contains("fn function0(value0: f64, value1: f64) -> [f64; 4]"));
+}

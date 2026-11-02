@@ -29,7 +29,9 @@ include **0a68a4f5** (932 Rust references), **2c538120** (normalization optimiza
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization:decimal int.toString helper reuse1.140×
+Latest accepted optimization:fixed floating-point literal returns,temporary
+number indexing21.503× (repeat22.536×),32,768 heap calls removed. Previous
+decimal int.toString helper reuse1.140×
 (repeat1.137×),384 allocations removed,retained/peak heap -8.2%. Previous
 readonly stack character views,string iteration
 1.171× (repeat1.147×),allocations -44.4%,retained/peak heap unchanged. Previous
@@ -59,6 +61,86 @@ accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration
 plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
+
+**Fixed floating-point literal returns — accepted locally, parent e09d0150:**
+- Rejected nondecimal one-character storage trials before production edits.
+  Early range-check reuse removes256/384/512 binary/hex/base36 allocations;
+  regular timings1.073×/1.132×/1.192×,but wide hex/base36.973×/.976×.
+  Post-format reuse has the same memory wins but wide binary/hex/base36 are
+  .975×/.926×/.957×,repeat.980×/.947×/.953×. Original93samples,quiet maxloads
+  2.492/1.957/1.709;40 full parent/trial/Node boundary outputs agree per round.
+  Decimal controls are machine-code identical. Reject both variants;these are
+  consumer-only diagnostics,not public compiler measurements or runtime changes.
+- Reference ranking exposed a larger gap:array_temporary_index_number had
+  recorded.554833ms versus hand Rust.022459ms and Node.165375ms. Fresh allocation
+  baseline **2026-11-02T16:55:06.634Z**,4.170s/225,792KiB:Number makes32,768
+  allocations/requested1,048,576 bytes,peak32,retained0;int control has zero heap
+  calls,both cleanups0. Fresh two-case formal parent **2026-11-02T16:56:45.525Z**
+  passes4.686s/236,768KiB,native Number.513458ms/Node.150000ms.
+- Safe get extraction leaves every allocation unchanged;do not confuse it with
+  fixing layout. A consumer-only four-element return removes all heap calls/
+  bytes,checksum376,843,207 unchanged,three identical samples,3.102s/201,696KiB.
+  Five complete IEEE observations agree across parent/get/fixed/Node. Quiet
+  original93sample matched-path timing,maxload2.188:parent.509000ms,get.470625
+  (1.082×),fixed.024250 **20.990×**,Node.150625;1.023s/17,120KiB. Generated
+  producer used Vec;the independent Rust reference already uses a fixed array.
+- Extend existing fixed_storage/rows facts to equal-width nonempty number[]
+  literal returns,using existing byte/variant/proof budgets,eligibility and
+  whole-use validation. Scalar indexing approves the closed result use;empty
+  binding fact maps with outputs still run validation. Planned returns reuse
+  fixed_literal emission. Unproved/growing/captured/variable-width uses retain
+  Vec storage. No source limit,public type/ownership change or generated unsafe.
+- Review caught a real proof defect before acceptance:statement-only scans missed
+  enclosing returns inside match expressions and could declare the wrong Rust
+  array width. Shared row statement traversal now includes match arms for seeding,
+  propagation,return merging and use approval. Equal-width match returns optimize;
+  varying/mixed forwarded returns fall back. O0/O3 regressions guard both cases.
+- Final repair build203.702s/1,480,864KiB;**76 affected checks pass across six
+  sequential binaries**,--test-threads=3,max652,960KiB:fixed storage34/temporary
+  index5/temporary length3/receiver moves5/exceptions22/match values7. Witnesses
+  cover zero heap calls,all f64 bits including NaN payloads/signed zero,coercions,
+  effect order,index writes,clones,forwarding,alternatives,owned/callback/capture
+  boundaries,bounds cleanup and budget fallback. Completed earlier checks reused
+  until the match repair justified rerunning the complete affected section.
+- All933 result ABIs and explicit layout contracts pass;932 emitted programs
+  unchanged from parent,onlyarray_temporary_index_number changes37.189s/
+  326,208KiB. Match repair preserves all933 benchmark emissions37.775s/
+  329,200KiB. Final all-target diagnostics55.010s/1,345,216KiB pass with existing
+  decode_plain warning only. Release215.835s/1,451,264KiB;all933 release/debug
+  emissions agree37.729s/331,456KiB. Five actual runtime harness checks pass;
+  corrected the registration filename after Node silently skipped a missing file.
+- Actual profile **2026-11-02T17:49:00.784Z**,3.642s/281,872KiB:three identical
+  samples per workload. Number32,768→0 allocations,requested1,048,576→0 bytes,
+  peak32→0,retained0 and both cleanup counters0. Integer profile unchanged at
+  zero;its complete Mach-O __TEXT,__text section is bit-identical to parent.
+- Quiet same-path/argv0 A/B1.045s/17,872KiB,maxload2.493:Number
+  .521458→.024250ms **21.503×**,Node.151542. Repeat1.042s/18,672KiB:
+  .546500→.024250ms **22.536×**,Node.150375. Integer control.028375→.028416
+  (.999×),repeat.028375→.029042 (.977×),Node.092875/.092792;identical source/
+  machine code means no attributable regression. Ten complete observations agree
+  per round;original3processes/eight warmups/31samples (93 per engine).
+- Formal accepted runs **2026-11-02T17:49:03.381Z** and
+  **2026-11-02T17:49:07.950Z**,2.596s/260,272KiB and2.607s/273,856KiB,retain
+  original protocol with no busy override,maxloads2.275/2.493. Number native/
+  Node.024292/.161334ms and.024833/.160750ms. Saved hand Rust.022459ms is reused,
+  not a fresh A/B. store:ingest adds12 exact histories (4 parent,8 accepted).
+  Compiler/workload/counterpart/emission/driver hashes,public pins and SQLite
+  integrity verified. Only the final two runs are newly public.
+- Public export933 comparisons/54 curated runs;66-page build3.654s/941,424KiB,
+  existing duplicate404 warning only. Three website checks pass;all links/assets/
+  anchors in116pages pass1.560s/21,200KiB. Pruned139 closed files
+  (471,221,913bytes),including obsolete tests/codegen,verified imported older raw
+  runs and disposable trial consumers/scripts. Current tools,six fresh test
+  binaries,native consumers,the two accepted runs and current profile remain.
+  Final whole-project formatter changes zero files/snippets/fingerprints;all
+  owned runners are terminal. Local measured checkpoint,no CI,push or deployment.
+- Next:the accumulated fixed-storage/string work now warrants a broader local
+  compiler/LSP regression milestone before another optimization family. Reuse the
+  existing sequential watchdog protocol and resume unrun binaries rather than
+  restarting passed groups. Keep original full-milestone evidence distinct from
+  this new current-source pass. Then revisit the larger remaining generated/hand
+  Rust gaps (scoped_record_composition and recursive arrays),profiling first.
+  Do not retry rejected nondecimal digit branches without a different cause.
 
 **Decimal int.toString helper reuse — accepted locally, parent 28fcf7f1:**
 - Clone-output inspection found independently owned escaping text,not a removable
