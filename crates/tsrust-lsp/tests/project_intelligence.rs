@@ -2202,7 +2202,7 @@ fn json_construction_has_hover_and_parameter_help() {
 #[test]
 fn json_container_construction_has_ownership_and_limits_help() {
  let source=tsrust_compiler::format("import {fromArray,JsonValue} from 'std:json';function main(){const values:JsonValue[]=[];fromArray(values);}").unwrap();let uri=fixture_uri!("/tsrust-intelligence/main.tsr");let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
- let hover=ask(&index,&source,"fromArray(values)","textDocument/hover");assert!(hover.to_string().contains("maxNodes"),"{hover}");let signature=ask(&index,&source,"values)","textDocument/signatureHelp");assert!(signature.to_string().contains("Owned<JsonValue[]>"),"{signature}");
+ let hover=ask(&index,&source,"fromArray(values)","textDocument/hover");assert!(hover.to_string().contains("maxNodes")&&hover.to_string().contains("no construction quota")&&hover.to_string().contains("no fixed upper quota"),"{hover}");let signature=ask(&index,&source,"values)","textDocument/signatureHelp");assert!(signature.to_string().contains("Owned<JsonValue[]>"),"{signature}");
 }
 
 #[test]

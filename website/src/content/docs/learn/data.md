@@ -231,6 +231,29 @@ string method or implicit conversion to an owned string.
 
 See [typed decoding and encoding](/tsrust/learn/data/#decode-and-encode-typed-json) or [JSONC and JSON Lines](/tsrust/learn/data/#jsonc-and-json-lines).
 
+### Construct owned JSON values
+
+When you already own `JsonValue` children, `fromArray` and `fromEntries` combine
+those values without parsing or copying them. Object keys are sorted and the last
+duplicate key wins. Both constructors consume their input arrays on success or
+failure.
+
+```tsrust
+import {fromArray, fromEntries, fromInt, JsonValue, JsonEntry} from 'std:json';
+function main() {
+  const values: JsonValue[] = [fromInt(42)];
+  const entries: JsonEntry[] = [{key: 'items', value: unwrap(fromArray(values))}];
+  console.log(JSON.stringify(unwrap(fromEntries(entries)))); // {"items":[42]}
+}
+```
+
+Omitted or `undefined` construction limits apply no tree quota; Rust allocation
+and stack limits apply. Supply `JsonBuildLimits` to request depth, per-collection
+entry and total-node budgets. The root counts as one node and one container level.
+Explicit budgets include entries replaced by duplicate keys. Zero depth or nodes
+rejects every container; negative limits report `invalid-limits`. Requested depth
+has no fixed 64-level ceiling.
+
 ## Decode and encode typed JSON
 
 Use typed decoding when you know the data shape. Invalid input returns a

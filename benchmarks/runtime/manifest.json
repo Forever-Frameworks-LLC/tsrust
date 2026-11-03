@@ -21654,7 +21654,7 @@
       "measurementStatus": "measured-native-node",
       "measurementRecord": "results/2026-10-12T06-04-29-404Z.json",
       "specification": "Construct items [42,null] and last-wins name hello; add 34 encoded ASCII bytes per iteration.",
-      "notes": "Native constructors validate default budgets and transfer values; Node uses ordinary arrays and Object.fromEntries. Native reused string input is explicitly copied. Includes encoding; no timing samples.",
+      "notes": "Tsrust constructors transfer values without default construction quotas; explicit budgets opt into validation. Node uses ordinary arrays and Object.fromEntries. Native reused string input is explicitly copied. Includes encoding.",
       "sourceSha256": "a72f75606905d8e424fdb70fd3d054e98af554766e787d8960fe76ba6ee420bf",
       "counterpartSha256": "6939ab9f0d0d3845eef81bafced7e86ce9925f61e780cf7f14ab0631e3a98fe8"
     },

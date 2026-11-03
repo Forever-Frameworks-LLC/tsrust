@@ -44,7 +44,7 @@ fn message(code: &str) -> &'static str {
         "depth-limit" => "JSON nesting limit exceeded",
         "entry-limit" => "JSON collection entry limit exceeded",
         "node-limit" => "JSON value count limit exceeded",
-        "invalid-limits" => "JSON limits must be nonnegative and depth must not exceed 64",
+        "invalid-limits" => "JSON limits must be nonnegative and supported by this operation",
         "invalid-utf8" => "JSON input is not valid UTF-8",
         "unexpected-end" => "JSON input ended before the value was complete",
         "trailing-data" => "JSON input contains trailing non-whitespace data",
