@@ -92,12 +92,19 @@ fn context_json_accepts_inferred_objects_and_preserves_shared_env() {
    const app=new Router<State>({greeting:"hello".repeat(2)});
    app.use(async(c,next)=>{c.header("x-before","entry");await next();c.header("x-after","exit");});
    app.get("/",c=>{return c.json({greeting:clone(c.env.greeting),nested:{ready:true}});});
+   app.use('/private/*',async(c,next)=>{const authorization=c.req.header('authorization');if(authorization!=='Bearer development-only'){return c.json({error:'Unauthorized'},401);}await next();});
+   app.use('/private/*',async(c,next)=>{const nested=():int=>{return 7;};c.header('x-nested',String(nested()));if(c.req.header('x-stop')==='yes'){return;}return await next();});
+   app.get('/private/profile',c=>c.json({name:'Ada'}));
    const server=await app.listen("127.0.0.1:0");
    const client=new Client();
    const response=await client.send(request("GET","http://"+server.address()+"/",""));
-   strictEqual(response.status(),200);
-   strictEqual(response.header("x-before"),"entry");strictEqual(response.header("x-after"),"exit");
+   strictEqual(response.status(),200,"root status");
+   strictEqual(response.header("x-before"),"entry","before header");strictEqual(response.header("x-after"),"exit","after header");
    strictEqual(await response.text(),'{"greeting":"hellohello","nested":{"ready":true}}');
+   const denied=await client.send(request('GET','http://'+server.address()+'/private/profile',''));strictEqual(denied.status(),401,'denied status');strictEqual(await denied.text(),'{"error":"Unauthorized"}');
+   const allowed=request('GET','http://'+server.address()+'/private/profile','');allowed.setHeader('authorization','Bearer development-only');
+   const profile=await client.send(allowed);strictEqual(profile.status(),200,'profile status');strictEqual(profile.header('x-nested'),'7','nested closure header');strictEqual(await profile.text(),'{"name":"Ada"}');
+   const stopped=request('GET','http://'+server.address()+'/private/profile','');stopped.setHeader('authorization','Bearer development-only');stopped.setHeader('x-stop','yes');const stopped_response=await client.send(stopped);strictEqual(stopped_response.status(),500,'unfinished middleware status');await stopped_response.text();
    await server.shutdown();console.log("inferred JSON passed");
  }
  "#);

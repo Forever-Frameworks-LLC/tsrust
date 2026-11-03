@@ -130,7 +130,7 @@ impl SourceIndex {
                 self.generic_display_names.insert(owner.clone(),display);
                 if !self.symbols.iter().any(|symbol|symbol.owner.as_ref()==Some(&owner)) {
                     for (name,optional,ty) in fields {
-                        self.symbols.push(Symbol { signature:format!("{name}{}: {ty}",if optional {"?"}else{""}),name,kind:8,span:Span::new(0,0),extent:Span::new(0,0),scope:0,ty,docs:"Inferred from checked object fields.".into(),parameters:vec![],owner:Some(owner.clone()) });
+                        self.symbols.push(Symbol { signature:format!("{name}{}: {ty}",if optional {"?"}else{""}),name,kind:8,span:Span::new(0,0),extent:Span::new(0,0),scope:0,ty,docs:String::new(),parameters:vec![],owner:Some(owner.clone()) });
                     }
                 }
                 Some(owner)
@@ -264,15 +264,17 @@ impl SourceIndex {
             let Some(ty)=self.project_type_spelling(graph,current,ty,dependencies) else{continue;};
             let signature=format!("{name}{}: {}",if *optional{"?"}else{""},self.display_type(&ty));
             let template=owner.split('<').next().unwrap_or(&owner);let docs=self.symbols.iter().find(|symbol|symbol.kind==8&&symbol.owner.as_deref()==Some(template)&&symbol.name==*name).map(|symbol|symbol.docs.clone()).unwrap_or_default();
-            if let Some(symbol)=self.symbols.iter_mut().find(|symbol|symbol.kind==8 && symbol.owner.as_deref()==Some(owner.as_str()) && symbol.name==*name){symbol.ty=ty;symbol.signature=signature;if symbol.docs.is_empty(){symbol.docs=docs;}}
-            else {
+            let id=if let Some(id)=self.symbols.iter().position(|symbol|symbol.kind==8 && symbol.owner.as_deref()==Some(owner.as_str()) && symbol.name==*name){
+                let symbol=&mut self.symbols[id];symbol.ty=ty;symbol.signature=signature;if symbol.docs.is_empty(){symbol.docs=docs;}
+                if symbol.span==Span::new(0,0)&&location.source==*current{symbol.span=location.span;symbol.extent=location.span;}
+                id
+            }else{
                 let span=if location.source==*current{location.span}else{Span::new(0,0)};
-                let id=self.symbols.len();
-                self.symbols.push(Symbol{name:name.clone(),kind:8,span,extent:span,scope:0,ty,signature,docs,parameters:Vec::new(),owner:Some(owner)});
-                if location.source!=*current && let Ok(uri)=crate::project_diagnostics::file_uri(&location.source){
-                    let source=graph.modules[&location.source].checked_source();
-                    if let Ok(range)=LineIndex::new(source).range(source,location.span){self.foreign_definitions.insert(id,json!({"uri":uri,"range":range}));}
-                }
+                let id=self.symbols.len();self.symbols.push(Symbol{name:name.clone(),kind:8,span,extent:span,scope:0,ty,signature,docs,parameters:Vec::new(),owner:Some(owner)});id
+            };
+            if location.source!=*current && let Ok(uri)=crate::project_diagnostics::file_uri(&location.source){
+                let source=graph.modules[&location.source].checked_source();
+                if let Ok(range)=LineIndex::new(source).range(source,location.span){self.foreign_definitions.insert(id,json!({"uri":uri,"range":range}));}
             }
         }
         for (ty,base) in &facts.enum_scalars {if let Some(name)=self.project_type_spelling(graph,current,ty,dependencies){self.enum_scalar_types.insert(name,base.clone());}}

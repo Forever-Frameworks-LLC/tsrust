@@ -16,6 +16,23 @@ impl Analyzer {
  }
  pub(super) fn http_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{
   let ExprKind::Call(callee,args)=&mut expression.kind else{return Ok(None);};
+  if matches!(&callee.kind,ExprKind::Name(name) if name=="@http:middlewareResult"){
+   Self::arity(args.len(),1,expression.span)?;
+   let mut value=args.remove(0);let actual=self.expression(context,&mut value,Mode::Consume,loans,None)?;
+   let response=Type::Record(self.schema_native_dependency(NativeTypeId::HttpResponse,expression.span)?);
+   let output=self.unions.intern([response,Type::Undefined],expression.span)?;
+   let Type::Union(union)=output else{unreachable!()};
+   if actual==Type::Void{
+    let mut absent=Expr::new(ExprKind::Undefined,expression.span);absent.ty=Some(Type::Undefined);absent.inject(union);
+    *expression=Expr::new(ExprKind::Sequence(vec![value,absent]),expression.span);expression.ty=Some(output);
+   }else{
+    self.require(actual,Some(output),value.span)?;
+    if actual!=output{value.inject(union);}
+    *expression=value;
+   }
+   self.require(output,expected,expression.span)?;return Ok(Some(output));
+  }
+
   if matches!(self.expression_type_hint(context,callee),Some(Type::Record(id)) if self.program.records[id].native_type==Some(NativeTypeId::HttpContextNext)) {
    Self::arity(args.len(),0,expression.span)?;
    let contexts=context.names.iter().filter(|(_,id)|matches!(context.bindings[**id].ty,Type::Record(id) if self.program.records[id].native_type==Some(NativeTypeId::HttpContext))).map(|(name,_)|name.clone()).collect::<Vec<_>>();
@@ -90,6 +107,7 @@ impl Analyzer {
      if hono && let Some(param)=params.first_mut(){param.access=Some(crate::syntax::Token{kind:crate::syntax::TokenKind::Name,text:"mutate".into(),span});}
      for (param,ty) in params.iter_mut().zip(&parameters){if matches!(param.ty,crate::syntax::ParameterAnnotation::Inferred(_)){param.ty=crate::syntax::ParameterAnnotation::Named(Box::new(self.checked_value_annotation(*ty,span)?));}}
     }
+    if hono && middleware {self.http_middleware_result(arg);}
     let actual=self.expression(context,arg,Mode::Consume,&active,None)?;
     let Type::Closure(origin)=actual else{return Err(Diagnostic::new("http-handler","HTTP handlers require a concrete callback returning Task<Response>.",span));};
     let closure=&self.closures[origin];
@@ -112,6 +130,36 @@ impl Analyzer {
    }
   }
   let result=native_type(binding.result,&self.program.records);self.require(result,expected,span)?;expression.ty=Some(result);expression.target=Some(CallTarget::NativeBinding(id));Ok(Some(result))
+ }
+ fn http_middleware_result(&mut self,arg:&mut Expr){
+  let ExprKind::Closure{body,..}=&mut arg.kind else{return;};
+  let [crate::syntax::Stmt{kind:crate::syntax::StmtKind::Return(Some(task)),..}]=body.as_mut_slice()else{return;};
+  let ExprKind::Unary{op:UnaryOp::TaskCreate,value,..}=&mut task.kind else{return;};
+  let ExprKind::Closure{result:ResultAnnotation::Inferred(_),body,..}=&mut value.kind else{return;};
+  let span=Span::new(task.span.end,task.span.end);
+  if body.last().is_some_and(|statement|statement.span==span)&&self.program.generated_continuations.contains(&span.start){return;}
+  let returns=crate::source_walk::returned_values(body);
+  if returns.is_empty() || returns.iter().all(|value|matches!(&value.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if name=="@http:middlewareResult"))){return;}
+  let wrap=|value:Expr|{let span=value.span;Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name("@http:middlewareResult".into()),span)),vec![value]),span)};
+  self.program.generated_continuations.insert(span.start);
+  body.push(crate::syntax::Stmt{kind:crate::syntax::StmtKind::Return(None),span,labels:Vec::new(),control_target:None});
+  Self::http_wrap_middleware_returns(body,&wrap);
+  crate::source_walk::body_pruned(body,&mut |expression|{
+   if matches!(expression.kind,ExprKind::Closure{..}){return Ok(false);}
+   if let ExprKind::Match{body,..}=&mut expression.kind{Self::http_wrap_middleware_returns(body,&wrap);}
+   Ok(true)
+  }).expect("infallible middleware return visitor");
+ }
+ fn http_wrap_middleware_returns(body:&mut [crate::syntax::Stmt],wrap:&impl Fn(Expr)->Expr){
+  let mut pending=body.iter_mut().collect::<Vec<_>>();
+  while let Some(statement)=pending.pop(){match &mut statement.kind{
+   crate::syntax::StmtKind::Return(value)=>{let source=value.take().unwrap_or_else(||Expr::new(ExprKind::Undefined,statement.span));*value=Some(wrap(source));},
+   crate::syntax::StmtKind::Block(body)|crate::syntax::StmtKind::While{body,..}|crate::syntax::StmtKind::ForOf{body,..}=>pending.extend(body),
+   crate::syntax::StmtKind::Loop{body,update,..}=>{pending.extend(body);pending.extend(update);},
+   crate::syntax::StmtKind::If{then_body,else_body,..}=>{pending.extend(then_body);pending.extend(else_body);},
+   crate::syntax::StmtKind::Try(region)=>pending.extend(region.statements_mut()),
+   _=>{}
+  }}
  }
  fn http_variable(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>,binding:usize)->Result<Type,Diagnostic>{
   let ExprKind::Call(_,args)=&mut expression.kind else{unreachable!()};let set=args.len()==3;let mode=if set{Mode::Mutate}else{Mode::Read};

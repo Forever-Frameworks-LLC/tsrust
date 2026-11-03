@@ -171,3 +171,15 @@ non-Unicode arguments with `EnvError` code `NotUnicode`; no lossy replacement or
 partial result is returned. The CLI's own command-line parser currently expects
 Unicode input. Flag interpretation belongs to application code.
 
+
+## Generate HTTP clients
+
+Use `tsrust api generate --out client` for the current project's Router entry, or
+`tsrust api generate service.tsr --out client` for a source file. Add
+`--language rust` for a Rust client. No API configuration is required. Routes and
+middleware stay in application source. `--description http-api.json` generates
+from a saved contract without backend source; `--url` reads an application-hosted
+contract. `--check` verifies generated files without replacing them.
+
+See [client generation](/tsrust/learn/first-service/#generate-api-clients) for calls,
+ownership and output details. Existing configured RPC generation remains supported.

@@ -10660,7 +10660,7 @@
       "name": "ContextNext",
       "signature": "ContextNext<State = null>: next(): Task<void>",
       "parameters": [],
-      "documentation": "A single-use downstream continuation supplied to Router middleware. Calling next() creates a lazy task that exclusively borrows the visible Context. Await it before accessing Context again. Downstream source failures become a 500 response so outer middleware can finish. Returning a Response without calling next() short-circuits downstream work.\n\n```tsrust\nawait next();\nc.header('x-finished', 'yes');\n```\n\nOwnership: consumes the continuation; cannot be cloned or called twice.",
+      "documentation": "Runs the remaining matching middleware and route handler for the current request. Takes no arguments and returns a lazy Task<void>; await it to run downstream callbacks, then resume the current middleware. It does not return a Response. Read response status and headers through c.res after awaiting it.\n\n```tsrust\napp.use(async (c, next) => {\n  c.header('x-before', 'entry');\n  await next();\n  c.header('x-after', 'exit');\n});\n```\n\nThe handler runs between the two header changes; its response includes both headers. Returning a Response without calling next() short-circuits downstream work. Finishing without a Response and without running next() leaves the request unfinalized and returns 500. Downstream source failures become a 500 response so outer middleware can finish.\n\nOwnership: calling next() consumes the continuation and exclusively borrows Context until its task is awaited or disposed. Await it before accessing Context again. The continuation cannot be cloned or called twice.",
       "examples": [
         {
           "source": "import {Router} from 'std:http';function main(){const app=new Router();console.log('ok');}",
@@ -13717,7 +13717,7 @@
   "HttpRouter": [
     {
       "name": "get",
-      "signature": "get(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response | void>): void",
+      "signature": "get(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response> | Task<Response | undefined> | Task<void>): void",
       "parameters": [
         {
           "label": "path: string",
@@ -13735,11 +13735,11 @@
           "output": "ok\n"
         }
       ],
-      "inferredSignature": "function get(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response | void>): void"
+      "inferredSignature": "function get(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response> | Task<Response | undefined> | Task<void>): void"
     },
     {
       "name": "post",
-      "signature": "post(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response | void>): void",
+      "signature": "post(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response> | Task<Response | undefined> | Task<void>): void",
       "parameters": [
         {
           "label": "path: string",
@@ -13757,11 +13757,11 @@
           "output": "ok\n"
         }
       ],
-      "inferredSignature": "function post(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response | void>): void"
+      "inferredSignature": "function post(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response> | Task<Response | undefined> | Task<void>): void"
     },
     {
       "name": "put",
-      "signature": "put(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response | void>): void",
+      "signature": "put(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response> | Task<Response | undefined> | Task<void>): void",
       "parameters": [
         {
           "label": "path: string",
@@ -13779,11 +13779,11 @@
           "output": "ok\n"
         }
       ],
-      "inferredSignature": "function put(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response | void>): void"
+      "inferredSignature": "function put(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response> | Task<Response | undefined> | Task<void>): void"
     },
     {
       "name": "patch",
-      "signature": "patch(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response | void>): void",
+      "signature": "patch(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response> | Task<Response | undefined> | Task<void>): void",
       "parameters": [
         {
           "label": "path: string",
@@ -13801,11 +13801,11 @@
           "output": "ok\n"
         }
       ],
-      "inferredSignature": "function patch(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response | void>): void"
+      "inferredSignature": "function patch(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response> | Task<Response | undefined> | Task<void>): void"
     },
     {
       "name": "delete",
-      "signature": "delete(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response | void>): void",
+      "signature": "delete(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response> | Task<Response | undefined> | Task<void>): void",
       "parameters": [
         {
           "label": "path: string",
@@ -13823,11 +13823,11 @@
           "output": "ok\n"
         }
       ],
-      "inferredSignature": "function delete(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response | void>): void"
+      "inferredSignature": "function delete(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response> | Task<Response | undefined> | Task<void>): void"
     },
     {
       "name": "head",
-      "signature": "head(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response | void>): void",
+      "signature": "head(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response> | Task<Response | undefined> | Task<void>): void",
       "parameters": [
         {
           "label": "path: string",
@@ -13845,11 +13845,11 @@
           "output": "ok\n"
         }
       ],
-      "inferredSignature": "function head(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response | void>): void"
+      "inferredSignature": "function head(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response> | Task<Response | undefined> | Task<void>): void"
     },
     {
       "name": "options",
-      "signature": "options(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response | void>): void",
+      "signature": "options(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response> | Task<Response | undefined> | Task<void>): void",
       "parameters": [
         {
           "label": "path: string",
@@ -13867,11 +13867,11 @@
           "output": "ok\n"
         }
       ],
-      "inferredSignature": "function options(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response | void>): void"
+      "inferredSignature": "function options(path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response> | Task<Response | undefined> | Task<void>): void"
     },
     {
       "name": "route",
-      "signature": "route(method: string, path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response | void>): void",
+      "signature": "route(method: string, path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response> | Task<Response | undefined> | Task<void>): void",
       "parameters": [
         {
           "label": "method: string",
@@ -13893,11 +13893,11 @@
           "output": "ok\n"
         }
       ],
-      "inferredSignature": "function route(method: string, path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response | void>): void"
+      "inferredSignature": "function route(method: string, path: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response> | Task<Response | undefined> | Task<void>): void"
     },
     {
       "name": "use",
-      "signature": "use(path?: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response | void>): void",
+      "signature": "use(path?: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response> | Task<Response | undefined> | Task<void>): void",
       "parameters": [
         {
           "label": "path?: string",
@@ -13915,7 +13915,7 @@
           "output": "ok\n"
         }
       ],
-      "inferredSignature": "function use(path?: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response | void>): void"
+      "inferredSignature": "function use(path?: string, ...handlers: (c: Mutable<Context<State, Variables>>, next: ContextNext<State>) => Response | Task<Response> | Task<Response | undefined> | Task<void>): void"
     },
     {
       "name": "listen",

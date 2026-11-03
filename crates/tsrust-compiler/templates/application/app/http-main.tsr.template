@@ -1,0 +1,20 @@
+import { Router } from 'std:http';
+import { greet } from './lib/greeting.tsr';
+
+type State = { name: string; };
+
+async function main(): Task<void> {
+  const app = new Router<State>({ name: 'Tsrust application' });
+  app.use(async (c, next) => {
+    c.header('x-content-type-options', 'nosniff');
+    await next();
+  });
+  app.get('/', c => c.json({ greeting: clone(c.env.name) }));
+  app.get('/api/greet/:name', c => {
+    const name = c.req.param('name') ?? 'world';
+    return c.json({ greeting: greet(name) });
+  });
+  const server = await app.listen('127.0.0.1:4318');
+  console.log('HTTP ready at http://' + server.address());
+  await server.wait();
+}

@@ -2,7 +2,7 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeMap, fs, path::{Path, PathBuf}};
-use tsrust_compiler::{api::{ApiHistory, CheckedApi, Manifest, NativeImport, NativeServer}, project::{SourceId, SourceProvider, load_project, check_graph}};
+use tsrust_compiler::{api::{ApiHistory, CheckedApi, Manifest, NativeImport, NativeServer, RouterContract}, project::{SourceId, SourceProvider, load_project, check_graph}};
 use super::package_validation::{Candidate, normalize};
 
 const CONFIG: &str = "tsrust.api.json";
@@ -12,11 +12,12 @@ use tsrust_compiler::api::configuration::{Configuration as Config,Import,relativ
 fn inline_config(value:&serde_json::Value)->Result<Config,String>{Config::inline(value)}
 pub(super) fn validate_inline(value:&serde_json::Value)->Result<(),String>{inline_config(value).map(|_|())}
 
-fn discover_config(cwd: &Path) -> Result<PathBuf, String> {
+fn discover_config(cwd: &Path) -> Result<Option<PathBuf>, String> {
     for root in cwd.ancestors() {
         let standalone = root.join(CONFIG);
         let project = root.join(super::project_config::FILE);
-        let inline = if project.is_file() {
+        let project_exists=project.try_exists().map_err(|error|error.to_string())?;
+        let inline = if project_exists {
             let text = fs::read_to_string(&project).map_err(|error| error.to_string())?;
             let value: serde_json::Value = serde_json::from_str(&text).map_err(|error| format!("{}: {error}",project.display()))?;
             value.get("api").is_some()
@@ -24,10 +25,11 @@ fn discover_config(cwd: &Path) -> Result<PathBuf, String> {
         if inline && standalone.is_file() {
             return Err("Both tsrust.config.json api settings and tsrust.api.json exist; select one explicitly with --config".into());
         }
-        if inline { return Ok(project); }
-        if standalone.is_file() { return Ok(standalone); }
+        if inline { return Ok(Some(project)); }
+        if standalone.is_file() { return Ok(Some(standalone)); }
+        if project_exists { return Ok(None); }
     }
-    Err("No API configuration found; add api settings to tsrust.config.json or pass --config for a standalone API configuration".into())
+    Ok(None)
 }
 
 #[derive(Deserialize, Serialize)]
@@ -180,8 +182,9 @@ impl OutputPlan {
 
 pub(super) fn run(args: impl Iterator<Item = String>) -> Result<u8, String> {
     let mut args = args;
-    if args.next().as_deref() != Some("generate") { return Err("Usage: tsrust api generate [--config file | --description file | --url HTTPS_URL] [--language typescript|rust] [--out directory] [--header-env Header=ENV] [--check]".into()); }
+    if args.next().as_deref() != Some("generate") { return Err("Usage: tsrust api generate [entry.tsr | --entry file | --config file | --description file | --url HTTPS_URL] [--language typescript|rust] [--out directory] [--header-env Header=ENV] [--check]".into()); }
     let mut config = None;
+    let mut entry = None;
     let mut description = None;
     let mut url = None;
     let mut headers = Vec::new();
@@ -190,6 +193,7 @@ pub(super) fn run(args: impl Iterator<Item = String>) -> Result<u8, String> {
     let mut check = false;
     while let Some(argument) = args.next() {
         match argument.as_str() {
+            "--entry" if entry.is_none() => entry = Some(PathBuf::from(args.next().ok_or("--entry requires a source file")?)),
             "--config" if config.is_none() => config = Some(PathBuf::from(args.next().ok_or("--config requires a file")?)),
             "--description" if description.is_none() => description = Some(PathBuf::from(args.next().ok_or("--description requires a saved HTTP API description")?)),
             "--url" if url.is_none() => url = Some(args.next().ok_or("--url requires an HTTP description URL")?),
@@ -201,12 +205,13 @@ pub(super) fn run(args: impl Iterator<Item = String>) -> Result<u8, String> {
             "--language" if language.is_none() => language = Some(args.next().ok_or("--language requires typescript or rust")?),
             "--out" if output.is_none() => output = Some(PathBuf::from(args.next().ok_or("--out requires a directory")?)),
             "--check" if !check => check = true,
+            _ if !argument.starts_with('-') && entry.is_none() => entry=Some(PathBuf::from(argument)),
             _ => return Err(format!("Unknown or repeated API generation option: {argument}")),
         }
     }
     let cwd = std::env::current_dir().map_err(|error| error.to_string())?;
     if language.as_deref().is_some_and(|value| !matches!(value, "typescript" | "rust")) { return Err("--language requires typescript or rust".into()); }
-    if url.is_some() && (description.is_some() || config.is_some()) { return Err("--url, --description and --config are mutually exclusive".into()); }
+    if [url.is_some(),description.is_some(),config.is_some(),entry.is_some()].into_iter().filter(|value|*value).count()>1 { return Err("Source entry, --url, --description and --config are mutually exclusive".into()); }
     if !headers.is_empty() && url.is_none() { return Err("--header-env requires --url".into()); }
     if description.is_some() || url.is_some() {
         if config.is_some() { return Err("--description and --config are mutually exclusive".into()); }
@@ -222,6 +227,9 @@ pub(super) fn run(args: impl Iterator<Item = String>) -> Result<u8, String> {
             let id = inputs.resolve(None, description.to_str().ok_or("Description path must be UTF-8")?)?;
             inputs.read(&id)?
         };
+        if serde_json::from_str::<serde_json::Value>(&text).is_ok_and(|value|value.get("routes").is_some()) {
+            return write_router(&RouterContract::parse(&text)?,&normalize(&cwd.join(output))?,&inputs,language.as_deref()==Some("rust"),check);
+        }
         let value = tsrust_compiler::api::HttpDescription::parse(&text)?;
         let output = normalize(&cwd.join(output))?;
         let mut retained = value.history.clone();
@@ -238,8 +246,20 @@ pub(super) fn run(args: impl Iterator<Item = String>) -> Result<u8, String> {
         println!("{} {} SDK from HTTP API description", if check { "Verified" } else { "Generated" }, if rust { "Rust" } else { "TypeScript" });
         return Ok(0);
     }
-    if language.as_deref() == Some("rust") { return Err("Rust SDK generation requires --description or --url; generate the checked service description first".into()); }
-    let path = if let Some(config) = config { cwd.join(config) } else { discover_config(&cwd)? };
+    let configured=if let Some(config)=config{Some(cwd.join(config))}else if entry.is_some(){None}else{discover_config(&cwd)?};
+    if configured.is_none(){
+        let output=normalize(&cwd.join(output.ok_or("Client generation requires --out directory")?))?;
+        let inputs=Candidate::new(BTreeMap::new())?;
+        let entry=if let Some(entry)=entry{cwd.join(entry)}else if let Some(project)=super::project_config::discover()?{
+            let id=inputs.resolve(None,project.root.join(super::project_config::FILE).to_str().ok_or("Project config path must be UTF-8")?)?;
+            super::project_config::parse(&project.root,&inputs.read(&id)?)?.entry
+        }else if cwd.join("src/main.tsr").is_file(){cwd.join("src/main.tsr")}else{cwd.join("main.tsr")};
+        let graph=load_project(&inputs,entry.to_str().ok_or("Service entry must be UTF-8")?).map_err(|error|error.message)?;
+        let project=check_graph(graph).map_err(|error|error.message)?;
+        return write_router(&RouterContract::from_project(&project)?,&output,&inputs,language.as_deref()==Some("rust"),check);
+    }
+    if language.as_deref() == Some("rust") { return Err("Configured RPC Rust SDK generation requires --description or --url; Router sources can use --entry".into()); }
+    let path=configured.unwrap();
     let path = fs::canonicalize(path).map_err(|error| error.to_string())?;
     let root = path.parent().ok_or("API config needs a parent directory")?;
     let inputs = Candidate::new(BTreeMap::new())?;
@@ -323,3 +343,12 @@ pub(super) fn run(args: impl Iterator<Item = String>) -> Result<u8, String> {
     Ok(0)
 }
 
+
+fn write_router(contract:&RouterContract,output:&Path,inputs:&Candidate,rust:bool,check:bool)->Result<u8,String>{
+    let files=if rust{contract.rust_package()?}else{contract.typescript_package()?};
+    let plan=prepare_package(output,files,check)?;
+    inputs.unchanged()?;plan.unchanged()?;
+    if !check{plan.apply()?;}
+    println!("{} {} client from {} checked Router routes",if check{"Verified"}else{"Generated"},if rust{"Rust"}else{"TypeScript"},contract.routes.len());
+    Ok(0)
+}

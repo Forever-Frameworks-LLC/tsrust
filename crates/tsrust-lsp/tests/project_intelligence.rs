@@ -3177,13 +3177,33 @@ fn ui_field_types_keep_public_native_names_and_generic_arguments() {
 
 #[test]
 fn inferred_local_objects_have_checked_completion_and_hover() {
-    let entry=tsrust_compiler::format("function main(){const data={greeting:'hello',nested:{value:3}};console.log(data.greeting,data.nested.value);}").unwrap();
+    let entry=tsrust_compiler::format("function echo<T>(value:T):T{return value;}function main(){const data=echo({greeting:'hello',nested:{value:3}});console.log(data.greeting,data.nested.value);}").unwrap();
     let uri=fixture_uri!("/tsrust-intelligence/main.tsr");let id=source_id(uri).unwrap();
     let mut workspace=Workspace::default();workspace.open(id.clone(),1,entry.clone());
     let checked=workspace.snapshot().check(&id).unwrap();let index=ProjectIndex::checked(&checked);
     let fields=ask(&index,&entry,"greeting,","textDocument/completion");
     let fields=fields.as_array().expect("object members");
     assert!(fields.iter().any(|item|item["label"]=="greeting"), "{entry}\n{fields:?}\n{:?}", checked.checked_type_facts());assert!(fields.iter().any(|item|item["label"]=="nested"));
+    let declaration=ask(&index,&entry,"greeting:","textDocument/hover");assert!(declaration.to_string().contains("greeting: string"),"{declaration}");
+    let nested_declaration=ask(&index,&entry,"value:","textDocument/hover");assert!(nested_declaration.to_string().contains("value: int"),"{nested_declaration}");
+    let definition=ask(&index,&entry,"greeting,","textDocument/definition");let key=entry.find("greeting:").unwrap();let prefix=&entry[..key];assert_eq!(definition["range"]["start"],json!({"line":prefix.bytes().filter(|byte|*byte==b'\n').count(),"character":prefix.rsplit('\n').next().unwrap().encode_utf16().count()}),"{definition}");
     let hover=ask(&index,&entry,"greeting,","textDocument/hover");assert!(hover.to_string().contains("string"),"{hover}");
     let nested=ask(&index,&entry,"value);","textDocument/completion");assert!(nested.as_array().unwrap().iter().any(|item|item["label"]=="value"));
+}
+
+#[test]
+fn context_json_keys_and_next_callable_have_checked_hover(){
+ for next in ["next","proceed"]{
+  let entry=tsrust_compiler::format(&format!("import {{Router}} from 'std:http';type State={{greeting:string;}};function main(){{const app=new Router<State>({{greeting:'hello'}});app.use(async(c,{next})=>{{await {next}();c.header('x-done','yes');}});app.get('/',c=>c.json({{greeting:clone(c.env.greeting)}}));}}" )).unwrap();
+  let uri=source_id(fixture_uri!("/tsrust-intelligence/main.tsr")).unwrap();let mut workspace=Workspace::default();workspace.open(uri.clone(),1,entry.clone());let checked=workspace.snapshot().check(&uri).unwrap();let index=ProjectIndex::checked(&checked);
+  let state_key=ask(&index,&entry,"greeting: 'hello'","textDocument/hover");assert!(state_key.to_string().contains("greeting: string"),"{state_key}\n{entry}\n{:?}",checked.checked_type_facts());
+  let key=ask(&index,&entry,"greeting:","textDocument/hover");assert!(key.to_string().contains("greeting: string"),"{key}");
+  let hover=ask(&index,&entry,&format!("{next}()"),"textDocument/hover");
+  for text in ["Task<void>","downstream","Await","Ownership:","cannot be cloned"]{assert!(hover.to_string().contains(text),"{next}: {hover}");}
+  let offset=entry.rfind(&format!("{next}()")).unwrap()+next.len()+1;let prefix=&entry[..offset];
+  let help=index.request("textDocument/signatureHelp",&json!({"position":{"line":prefix.bytes().filter(|byte|*byte==b'\n').count(),"character":prefix.rsplit('\n').next().unwrap().encode_utf16().count()}}),fixture_uri!("/tsrust-intelligence/main.tsr")).unwrap().unwrap();
+  assert!(help["signatures"][0]["label"].as_str().unwrap_or("").contains("Task<void>"),"{help}");assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),0,"{help}");
+
+
+ }
 }

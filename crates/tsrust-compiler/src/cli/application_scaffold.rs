@@ -15,19 +15,12 @@ pub(super) fn create(root: &Path, targets: &[String]) -> Result<u8, String> {
     // Raw assets use .template so editor services do not treat pre-generation
     // imports/configs as runnable projects. Generated files keep normal extensions.
     macro_rules! template { ($path:literal) => { files.insert($path, include_str!(concat!("../../templates/application/", $path, ".template")).into()); }; }
-    template!("app/main.tsr");
-    template!("app/api/context.tsr");
-    template!("app/api/access.tsr");
-    template!("app/api/operations.tsr");
+    files.insert("app/main.tsr", include_str!("../../templates/application/app/http-main.tsr.template").into());
     template!("app/lib/greeting.tsr");
     template!("app/tests/greet.test.tsr");
     template!("AGENTS.md");
     template!("README.md");
-    let api = serde_json::json!({"entry":"app/api/operations.tsr",
-        "package":{"name":"@app/api","version":"0.1.0"},
-        "server":{"context":{"module":"app/api/context.tsr","export":"AppContext"},"authorize":{"module":"app/api/access.tsr","export":"authorize"}},
-        "operations":[{"name":"greet","module":"app/api/operations.tsr","export":"greet","kind":"mutation"}]});
-    let config = serde_json::json!({"schemaVersion":1,"name":name,"build":{"entry":"app/main.tsr","output":format!("target/{name}{}",std::env::consts::EXE_SUFFIX)},"api":api});
+    let config = serde_json::json!({"schemaVersion":1,"name":name,"build":{"entry":"app/main.tsr","output":format!("target/{name}{}",std::env::consts::EXE_SUFFIX)}});
     files.insert(super::project_config::FILE, format!("{}\n", serde_json::to_string_pretty(&config).unwrap()));
     files.insert(".gitignore", "/target/\n.env.local\n".into());
     // Validate and format every Tsrust template before creating the destination.

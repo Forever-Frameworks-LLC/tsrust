@@ -1,0 +1,10 @@
+#[allow(dead_code)] // Only referenced by generated literal DTOs.
+fn literal_equal(left: &Value, right: &Value) -> bool {
+    left == right || left.is_number() && right.is_number() && left.as_f64() == right.as_f64()
+}
+// serde's ordinary Option maps present null to None. Preserve presence for
+// optional nullable fields; a missing field alone takes the default None.
+#[allow(dead_code)] // Only referenced by generated optional DTO fields.
+fn present<'de, D: serde::Deserializer<'de>, T: Deserialize<'de>>(deserializer: D) -> Result<Option<T>, D::Error> {
+    T::deserialize(deserializer).map(Some)
+}

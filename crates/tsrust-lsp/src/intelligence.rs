@@ -3285,6 +3285,7 @@ impl SourceIndex {
         if method == "textDocument/hover"
             && let Some(builtin) = self
                 .builtin_at(token)
+                .or_else(|| self.callable_builtin_at(token))
                 .or_else(|| self.global_builtin_at(token))
         {
             return Ok(
@@ -3336,6 +3337,17 @@ impl SourceIndex {
             }
             _ => Err("Method is not supported".into()),
         }
+    }
+    fn callable_builtin_at(&self,token:usize)->Option<Value>{
+        let id=self.resolve_token(token)?;let symbol=&self.symbols[id];
+        if symbol.kind!=13 && !self.parameter_symbols.contains(&id){return None;}
+        let ty=self.written_type(self.checked_view(token).unwrap_or(&symbol.ty));
+        let annotation=tsrust_compiler::type_syntax::parse(&ty).ok()?;
+        let name=match &annotation.kind{tsrust_compiler::type_syntax::ValueAnnotationKind::Named(name)|tsrust_compiler::type_syntax::ValueAnnotationKind::Applied{name,..}=>&name.text,_=>return None};
+        if self.native_type_aliases.get(name)!=Some(&tsrust_compiler::native_signatures::NativeTypeId::HttpContextNext){return None;}
+        let mut entry=builtins_for("std:http").into_iter().find(|entry|entry["name"]=="ContextNext")?;
+        entry["signature"]=json!(format!("{}(): Task<void>",symbol.name));
+        Some(entry)
     }
     fn global_builtin_at(&self, token: usize) -> Option<Value> {
         if (token > 0 && member_separator(self.text(token - 1)))
@@ -3903,7 +3915,7 @@ impl SourceIndex {
             if callee > 0 && self.text(callee - 1) == "function" {
                 return Value::Null;
             }
-            let (label, docs, parameters) = if let Some(b) = self.builtin_at(callee).or_else(|| {
+            let (label, docs, parameters) = if let Some(b) = self.builtin_at(callee).or_else(||self.callable_builtin_at(callee)).or_else(|| {
                 matches!(
                     self.text(callee),
                     "Number" | "clone" | "unwrap" | "String" | "Boolean" | "Set" | "Map" | "Ok" | "Err" | "parseInt" | "parseFloat" | "isNaN" | "isFinite"
