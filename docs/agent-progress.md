@@ -28,6 +28,11 @@ proposal for that discussion, not a change to current backend scope.
 The docs restructuring in the next section remains open and is not the current
 optimization focus.
 
+Latest completed section:Copy-only shared readonly callback environments.
+Expectation predicates improve1.318× (repeat1.255×),removing8,192 allocations;
+79 affected tests pass. Mixed/owned families retain Rc identity and destruction
+behavior. See the acceptance section below. Full regressions remain deferred.
+
 Owner object-profiling feedback is retained in **Object and string allocation —
 next optimization plan** below: string-free controls, generated/reference code
 comparison, allocation attribution, destination reuse and conditional arena review.
@@ -39,7 +44,9 @@ include **0a68a4f5** (932 Rust references), **2c538120** (normalization optimiza
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization:borrowed forEach ranges,nested records4.905×
+Latest accepted optimization:Copy-only shared callback environments,expectation
+predicates1.318× (repeat1.255×),8,192 allocations removed,peak heap133→77 bytes.
+Previous borrowed forEach ranges,nested records4.905×
 (repeat5.280×),deep int4.213× (repeat4.129×),recursive3.691× (repeat3.784×);
 all12 normal cases improve and now span0.962–1.278× saved Rust. Previous
 constant-string concat results,literal spread3.414×
@@ -84,6 +91,67 @@ accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration
 plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
+
+**Copy-only shared callback environments — accepted locally, parent e6ef644c:**
+- Profile first:expectation predicates19,798 allocations,zero reallocations,
+  534,528 requested bytes,zero retained,133 peak. Constructor inline hints
+  were rejected:two rounds only1.024×/1.003×;forced inline1.035×/.993×.
+  A direct-storage generated-consumer prototype measured1.316×/1.237× and
+  removed8,192 allocations before production changes.
+- Private callable-family emission stores an environment directly only when
+  every origin captures exclusively owned Copy scalars,without capture references.
+  Clone reconstructs those scalar fields;empty environments work too. A single
+  non-Copy capture keeps the whole family reference counted. Strings,records,
+  arrays,identity,destruction and counted-call forwarding retain their behavior.
+  No unsafe,new dependency,API,signature or editor change.
+- Two new unit witnesses cover multiple origins,empty captures,mixed Copy/owned
+  families,cloning after original drop,and singleton counted invocation. First
+  build exposed one direct Family test initializer missing its new private field;
+  repaired it. Failed build189.500s/1,710,304KiB;successful affected build
+  458.895s/1,831,392KiB. One existing unit-harness dead-code warning remains for
+  stdlib/json/typed.rs::decode_plain;generated JSON emission uses that runtime
+  function and its source is unchanged here. Only affected tests executed,one binary
+  at a time with3 threads:dispatch15 (3.626s/164,288KiB),testing_library60
+  (18.701s/724,416KiB),shared_read_callback4 (1.042s/118,384KiB);all pass,
+  none ignored. Generated witness execution includes O0/O3 and existing owned
+  identity/drop,nullable,NaN,signed-zero,negation and asynchronous-main checks.
+- Production profile212.618s/1,911,920KiB including release build:three identical
+  samples,checksum730275589,allocations11,606,reallocations0,requested305,152,
+  retained0,peak77,input0,both cleanup counters0. Allocation count falls41.4%,
+  requested heap42.9%,peak42.1%. No ownership defaults changed.
+- Formal parent/current native medians.632000/.494000ms,Node.347667/.371833ms.
+  Original3 processes×31 samples,8 warmups,4,096 iterations;quiet maxima
+  2.608398/1.977051,no busy override. Baseline two-workload refresh
+  5.682s/338,528KiB,current3.642s/273,072KiB. Saved Rust.123667ms is reused;
+  the remaining3.995× gap is still substantial,not closed by this change.
+- Two same-path rotated A/B rounds:parent/current.639000/.485000ms (1.318×)
+  and.638666/.508958ms (1.255×);focused Node.349792/.353625ms. Each engine
+  retains93 samples per round. Byte-view Map control fluctuates .477750/.491292
+  then .496833/.475000ms,but emitted source and complete253,860-byte Mach-O
+  __TEXT,__text section are bit-identical at address4294969480,SHA256
+  1cf58775c1b886d68c1343279bf4808b677dcd74cca561bfc72676ef98a68735.
+  All checksums/exact results match. A/B watchdog2.078s/64,384KiB,max load1.686035.
+- Consumer Rust compilation,original3 samples/engine/round,same source/output
+  paths:375.633→347.640ms then377.966→348.669ms (~7–8% faster). Compiler
+  emission uses stable executable paths and identical argv0,3 samples/input/
+  engine/round:expectation35.026→33.940ms then35.181→34.517ms;composition
+  4322.874→4303.953ms then4367.429→4358.950ms. User CPU also stable/faster.
+  Composition emitted bytes unchanged. Combined timing57.384s/173,008KiB,
+  max load2.266113;no compiler regression or forced inlining.
+- Whole-project formatter4.143s/203,584KiB:zero source/snippet/fingerprint changes.
+  npm run store:ingest added8 baseline/current history entries across2 files;
+  verified exact rounded medians,mean rates,93 samples,timestamp uniqueness and
+  SQLite integrity. Reused saved Rust references;only focused Node controls ran.
+- Pruned40 closed scratch/prototype/imported raw files,59,512,837 bytes.
+  Current verified compiler,consumers,profiles and passed-test binaries remain;
+  all owned workers are terminal.
+- Queue correction:the historical4.82–4.85× label incorrectly grouped byte-view
+  Maps with plain byte views. Fresh Maps.498625ms vs saved Rust.384583ms is
+  only1.297×;do not optimize that control as a large gap. Plain native_byte_views
+  still has stored.101166/.021000ms (4.817×),requiring a fresh profile/timing.
+  Continue remaining expectation work,plain byte views,and scoped composition's
+  material absolute gap. Deferred full-regression evidence remains untouched;
+  no public metric export,push,CI or release.
 
 **Borrowed forEach slice ranges — accepted locally, parent428a1769:**
 - Profile-first parent2026-11-03T01:16:02.663Z,216.852s/1,538,320KiB:
@@ -187,6 +255,28 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   (discard-string .042500/.023666ms saved Rust,1.796×). Preserve the deferred full
   regression snapshot;do not restart full suites until only small refinements remain.
   No public export,push,CI or release was performed.
+
+**Map dense-count prototype — rejected at e6ef644c:**
+- Tested count-preserving `map` collection for small dense `from_mapped` inputs;
+  deleted-entry inputs retained the existing compacting path. Production source
+  was not changed. Prototype compilation took58.146s/1,076,880KiB for timing and
+  57.539s/1,111,664KiB for allocation instrumentation, under the watchdog.
+- Two quiet same-path A/B rounds used the original3 processes×31 samples,
+  8 warmups,2,048 iterations and focused Node controls. Parent/candidate medians
+  were28.025750/33.483875ms and28.917250/34.181166ms:18–19% slower.
+  Node149.842958/150.189709ms;maximum one-minute load2.992188.
+  Timing watchdog56.961s/214,320KiB;all checksums and exact results matched.
+- Three identical allocation samples per version explain the regression:
+  allocations557,472 unchanged,reallocations2,056→122,892. Requested bytes
+  fell79,711,904→68,908,352 but retained/peak stayed2,326,528 bytes;both
+  cleanup counters stayed zero. Exact-size widening buffers immediately grow
+  on later insertions. Do not repeat this approach as a memory optimization.
+- Next profiles at unchanged e6ef644c:expectation predicates19,798 allocations,
+  zero reallocations,534,528 requested bytes,zero retained,133 peak;byte-view
+  Maps8,193 allocations,4,104 reallocations,1,461,888 requested bytes,
+  180,224 retained/180,570 peak. Three equal samples each;cleanup zero.
+  Profile watchdog4.647s/266,256KiB. Investigate expectation-constructor
+  inlining before changing shared ownership or introducing a new storage layout.
 
 **Constant-string concat results — accepted80ad63d3, parent36dbd769:**
 - Previous goal turn made concrete progress:profiler timeout repair,accepted-source
@@ -826,8 +916,10 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   array_literal_spread_nullish_packs1.978×/call_spread_nullish_packs1.974× after
   accepted constant-string concat above;
   normal forEach gaps now0.962–1.278× saved Rust after accepted range views;
-  non-void discard traversal remains1.796× for string results;byte views/maps4.82–4.85×;
-  testing expectation predicates5.520×. Review absolute cost and equivalent work,
+  non-void discard traversal remains1.796× for string results;plain byte views
+  retain a stored4.817× signal,while freshly measured byte-view Maps are1.297×;
+  expectation predicates are now3.995× after Copy-only shared environments.
+  Review absolute cost and equivalent work,
   inputs,ownership and observation before accepting a ratio as removable overhead.
   Existing Rust/Node references are reused unless source/protocol changes;rerun
   focused Node controls for actual candidate A/B rounds. Address or explain these

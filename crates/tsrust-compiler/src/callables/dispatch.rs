@@ -10,6 +10,7 @@ pub(crate) struct Family<'a> {
     contract: &'a CallbackContract,
     invocation: Mode,
     origins: Vec<usize>,
+    copy_captures: Option<Vec<Vec<usize>>>,
 }
 
 impl<'a> Family<'a> {
@@ -137,10 +138,19 @@ impl<'a> Family<'a> {
                 span,
             ));
         }
+        let copy_captures=(contract.kind==crate::syntax::CallbackKind::SharedRead && !origins.is_empty())
+            .then(||origins.iter().map(|&origin|{
+                let closure=&closures[origin];
+                closure.captures.iter().map(|capture|{
+                    let binding=&closure.function.bindings[capture.inner];
+                    (capture.storage==Mode::Copy && binding.ty.is_copy() && !binding.capture_reference).then_some(capture.inner)
+                }).collect::<Option<Vec<_>>>()
+            }).collect::<Option<Vec<_>>>()).flatten();
         Ok(Self {
             contract,
             invocation: storage.invocation(signatures),
             origins,
+            copy_captures,
         })
     }
 
@@ -188,21 +198,35 @@ impl<'a> Family<'a> {
     ) {
         let environment = format!("TsrSharedEnvironment{id}");
         self.emit_named(output, &environment, counted, &parameter_type, &result_type, adapt);
-        writeln!(output, "struct {name}(TsrSharedReadCallback<{environment}>);").unwrap();
+        let inline=self.copy_captures.is_some();
+        if let Some(captures)=&self.copy_captures {
+            // Copy-only environments have no allocation identity or destructor to share.
+            let arms=self.origins.iter().zip(captures).map(|(&origin,captures)|{
+                let fields=captures.iter().map(|slot|format!("capture{slot}:value.capture{slot}")).collect::<Vec<_>>().join(",");
+                let value=format!("Closure{origin}{{{fields}}}");
+                if self.origins.len()==1{format!("let value=&self.0;Self({value})")}else{format!("Self::V{origin}(value)=>Self::V{origin}({value})")}
+            }).collect::<Vec<_>>().join(",");
+            let body=if self.origins.len()==1{arms}else{format!("match self{{{arms}}}")};
+            writeln!(output,"impl Clone for {environment}{{fn clone(&self)->Self{{{body}}}}}").unwrap();
+        }
+        let storage=if inline{environment.clone()}else{format!("TsrSharedReadCallback<{environment}>")};
+        writeln!(output, "struct {name}({storage});").unwrap();
         writeln!(output, "impl Clone for {name} {{ fn clone(&self)->Self {{Self(self.0.clone())}} }}").unwrap();
         writeln!(output, "impl {name} {{").unwrap();
         for origin in &self.origins {
             let value = if self.origins.len() == 1 {format!("{environment}(value)")} else {format!("{environment}::V{origin}(value)")};
-            writeln!(output, "fn from_origin_{origin}(value:Closure{origin})->Self {{Self(TsrSharedReadCallback::new({value}))}}").unwrap();
+            let value=if inline{value}else{format!("TsrSharedReadCallback::new({value})")};
+            writeln!(output, "fn from_origin_{origin}(value:Closure{origin})->Self {{Self({value})}}").unwrap();
         }
         let parameters=self.contract.params.iter().enumerate().map(|(index,&parameter)|format!("argument{index}: {}",parameter_type(parameter))).collect::<Vec<_>>().join(", ");
         let arguments=(0..self.contract.params.len()).map(|index|format!("argument{index}")).collect::<Vec<_>>().join(", ");
         let separator=if parameters.is_empty(){""}else{", "};
         let result=result_type(self.contract.result);
-        writeln!(output,"fn call(&self{separator}{parameters})->{result} {{self.0.0.call({arguments})}}").unwrap();
+        let receiver=if inline{"self.0"}else{"self.0.0"};
+        writeln!(output,"fn call(&self{separator}{parameters})->{result} {{{receiver}.call({arguments})}}").unwrap();
         if counted {
             let forwarded=if arguments.is_empty(){"count".to_owned()}else{format!("count, {arguments}")};
-            writeln!(output,"fn call_with_count(&self,count:usize{separator}{parameters})->{result} {{self.0.0.call_with_count({forwarded})}}").unwrap();
+            writeln!(output,"fn call_with_count(&self,count:usize{separator}{parameters})->{result} {{{receiver}.call_with_count({forwarded})}}").unwrap();
         }
         output.push_str("}\n");
     }
@@ -396,7 +420,7 @@ pub(crate) mod tests {
     #[test]
     fn exception_family_converts_fallible_and_pure_origins_with_count() {
         let program=crate::check("function accept(f:Function<int,[n:int]>):void{}function main(){}").unwrap().program;
-        let family=Family{contract:&program.callback_contracts[0],invocation:Mode::Consume,origins:vec![0,1]};
+        let family=Family{contract:&program.callback_contracts[0],invocation:Mode::Consume,origins:vec![0,1],copy_captures:None};
         let mut rust=String::from("struct Owner;impl Drop for Owner{fn drop(&mut self){DROPS.fetch_add(1,std::sync::atomic::Ordering::SeqCst);}}static DROPS:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);struct Closure0(Box<Owner>);impl Closure0{fn call(self,n:i64)->Result<i64,Box<Owner>>{if n==0{Err(self.0)}else{Ok(64)}}fn call_with_count(self,count:usize,n:i64)->Result<i64,Box<Owner>>{assert_eq!(count,7);self.call(n)}}struct Closure1;impl Closure1{fn call(self,n:i64)->i64{n}fn call_with_count(self,count:usize,n:i64)->i64{assert_eq!(count,7);n}}enum FamilyError{Owned(Box<Owner>)}");
         family.emit_counted_mapped(&mut rust,91,true,|_|"i64".into(),|_|"Result<i64,FamilyError>".into(),|origin,call|if origin==0{format!("({call}).map_err(FamilyError::Owned)")}else{format!("Ok({call})")});
         rust.push_str("fn main(){assert!(matches!(StoredCallable91::V0(Closure0(Box::new(Owner))).call(1),Ok(64)));assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCst),1);let error=StoredCallable91::V0(Closure0(Box::new(Owner))).call_with_count(7,0);assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCst),1);match error{Err(FamilyError::Owned(owner))=>drop(owner),_=>panic!(\"owned family error lost\")};assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCst),2);assert!(matches!(StoredCallable91::V1(Closure1).call(64),Ok(64)));assert!(matches!(StoredCallable91::V1(Closure1).call_with_count(7,64),Ok(64)));}");
@@ -709,6 +733,38 @@ fn nested_result_requires_a_known_owned_environment() {
     assert!(Family::checked(&contract,&program.callable_shapes,origins.clone(),&program.closures,Span::default()).is_err());
     program.closures[result].lifetime_count=0;contract.result=Type::Closure(usize::MAX);
     assert!(Family::checked(&contract,&program.callable_shapes,[],&program.closures,Span::default()).is_err());
+}
+
+#[cfg(test)]
+#[test]
+fn shared_copy_families_clone_values_and_mixed_families_keep_shared_storage() {
+    let checked=crate::check("function first(actual:int):Function<int>{return():int=>actual;}function second(actual:boolean):Function<int>{return():int=>actual?9:3;}function third(actual:int[]):Function<int>{return():int=>actual.length;}function empty():Function<int>{return():int=>11;}function main(){}").unwrap();
+    let mut signatures=Contracts::default();
+    let contract=CallbackContract{structural:signatures.intern([],Type::Int,Some(crate::syntax::CallbackKind::SharedRead)),parameter_names:vec![],params:vec![],result:Type::Int,kind:crate::syntax::CallbackKind::SharedRead};
+    let copied=Family::checked_shared(&contract,&signatures,[0,1,3],&checked.program.closures,Span::default()).unwrap();
+    let shared=Family::checked_shared(&contract,&signatures,[0,2],&checked.program.closures,Span::default()).unwrap();
+    assert!(copied.copy_captures.is_some());assert!(shared.copy_captures.is_none());
+    let mut rust=checked.emit_rust().replace("fn main()","fn source_main()");
+    rust.push_str(include_str!("../stdlib/testing/runtime/shared_callback.rs"));
+    copied.emit(&mut rust,99,|_|unreachable!(), |_|"i64".into());
+    shared.emit(&mut rust,98,|_|unreachable!(), |_|"i64".into());
+    rust.push_str("fn main(){let first=StoredCallable99::from_origin_0(function0(4));let alias=first.clone();drop(first);assert_eq!(alias.call(),4);let second=StoredCallable99::from_origin_1(function1(true));assert_eq!(second.clone().call(),9);assert_eq!(StoredCallable99::from_origin_3(function3()).clone().call(),11);let third=StoredCallable98::from_origin_2(function2(NumericArray::from([1i64,2i64])));let alias=third.clone();drop(third);assert_eq!(alias.call(),2);assert_eq!(StoredCallable98::from_origin_0(function0(7)).clone().call(),7);println!(\"shared copy families preserved\");}");
+    tests::execute(&rust,"shared copy families preserved\n");
+}
+
+#[cfg(test)]
+#[test]
+fn counted_shared_copy_family_forwards_count_after_cloning() {
+    let checked=crate::check("function reader(actual:int):Function<int,[value:int]>{return(value:int):int=>actual+value;}function main(){}").unwrap();
+    let parameter=ArgumentContract{ty:Type::Int,mode:Mode::Copy,omission:crate::ParameterOmission::Required,rest:false};
+    let mut signatures=Contracts::default();
+    let contract=CallbackContract{structural:signatures.intern([(Type::Int,Mode::Copy)],Type::Int,Some(crate::syntax::CallbackKind::SharedRead)),parameter_names:vec!["value".into()],params:vec![parameter],result:Type::Int,kind:crate::syntax::CallbackKind::SharedRead};
+    let family=Family::checked_shared(&contract,&signatures,[0],&checked.program.closures,Span::default()).unwrap();
+    assert!(family.copy_captures.is_some());
+    let mut rust=String::from("struct Closure0{capture0:i64}impl Closure0{fn call(&self,value:i64)->i64{self.capture0+value}fn call_with_count(&self,count:usize,value:i64)->i64{self.capture0+value+count as i64}}\n");
+    family.emit_counted(&mut rust,99,true,|_|"i64".into(), |_|"i64".into());
+    rust.push_str("fn main(){let original=StoredCallable99::from_origin_0(Closure0{capture0:20});let alias=original.clone();drop(original);assert_eq!(alias.call(10),30);assert_eq!(alias.call_with_count(2,10),32);println!(\"shared copy counts preserved\");}");
+    tests::execute(&rust,"shared copy counts preserved\n");
 }
 
 #[cfg(test)]
