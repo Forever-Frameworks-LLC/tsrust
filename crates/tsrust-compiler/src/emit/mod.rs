@@ -3,6 +3,7 @@ mod receiver_moves;
 mod self_append;
 mod string_character;
 mod constant_string;
+mod counted_builders;
 mod scalar_reduce_slices;
 mod foreach_slices;
 mod runtime_support_ids;
@@ -3943,7 +3944,9 @@ impl Emitter<'_> {
                 self.schedule_for_of(output, fun, stmt, Rc::new(body.iter().collect()), depth, &[], &mut pending);
                 continue;
             }
+            let builder_parent = body;
             if let StmtKind::While { condition, body } = &stmt.kind {
+                if let Some(code)=self.counted_builder(fun,builder_parent,stmt) { let _=writeln!(output,"{code}"); continue; }
                 pending.push(Work::Scope(self.control_targets.enter(ControlTarget::Loop(stmt.span.start))));
                 let _ = writeln!(
                     output,

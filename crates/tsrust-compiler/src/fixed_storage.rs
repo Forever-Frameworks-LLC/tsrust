@@ -1533,7 +1533,7 @@ pub(crate) fn visit_expression<'a>(expr: &'a Expr, visit: &mut impl FnMut(&'a Ex
     }
 }
 
-fn visit_expressions<'a>(body: &'a [Stmt], visit: &mut impl FnMut(&'a Expr)) {
+pub(crate) fn visit_expressions<'a>(body: &'a [Stmt], visit: &mut impl FnMut(&'a Expr)) {
     visit_statements(body, &mut |stmt| match &stmt.kind {
         StmtKind::Let { value, .. } | StmtKind::Expr(value) => visit_expression(value, visit),
         StmtKind::Assign { target, value, .. } => {
