@@ -91,7 +91,7 @@ impl Analyzer {
         let hint = hint.ok_or_else(|| Diagnostic::new("unsupported", "Conditional invocation requires a resolved callable origin.", callee.span))?;
         let hint = if let Type::Closure(origin) = hint
             && let Some(ClosureForward::Native(id)) = self.closures[origin].forward {
-            self.native_function_shape(id, span, arguments, false)?
+            self.native_function_shape(id, span, arguments, false, None)?
         } else { hint };
         Ok(CallCompletion { capture_boundary: frame.capture_boundary, checked_callee: frame.checked_callee, hint, span })
     }

@@ -81,6 +81,7 @@ function main(){
  match(JSON.tryStringify(text,undefined)){Ok(encoded)=>{strictEqual(encoded.length,text.length+2);},Err(error)=>{throw error.message;}}
  match(parse(JSON.stringify(text))){Ok(dynamic)=>{
   match(stringify(dynamic)){Ok(encoded)=>{strictEqual(encoded.length,text.length+2);},Err(error)=>{throw error.message;}}
+  match(stringify(dynamic,undefined)){Ok(encoded)=>{strictEqual(encoded.length,text.length+2);},Err(error)=>{throw error.message;}}
  },Err(error)=>{throw error.message;}}
  match(JSON.tryStringify(text,16*1024*1024)){Ok(_)=>{throw 'explicit byte limit ignored';},Err(error)=>{strictEqual(error.code,'output-limit');}}
  for(const limit of [0,-1]){match(JSON.tryStringify('x',limit)){Ok(_)=>{throw 'invalid budget accepted';},Err(error)=>{strictEqual(error.code,limit===0?'output-limit':'invalid-limits');}}}

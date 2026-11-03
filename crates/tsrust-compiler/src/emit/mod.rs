@@ -39,6 +39,7 @@ mod closure_record_signature_emit;
 mod forwarded_owner_uses;
 mod forwarded_record_signature_emit;
 mod native_function_signature_emit;
+mod native_arguments;
 mod local_borrowed_family_emit;
 mod record_store_branches_emit;
 mod borrowed_owner_provenance;
@@ -2781,8 +2782,11 @@ impl Emitter<'_> {
                 let _ = writeln!(output, "        {call}");
             } else if let Some(ClosureForward::Native(id)) = closure.forward {
                 self.native_bindings.borrow_mut().insert(id);
-                let arguments = closure.parameters.iter().map(|id|format!("value{id}")).collect::<Vec<_>>();
                 let binding=&crate::native_bindings::BINDINGS[id];
+                let arguments = closure.parameters.iter().enumerate().map(|(position,id)| {
+                    let parameter=binding.parameters.get(position).or_else(||binding.parameters.last().filter(|p|p.rest)).expect("checked native arity");
+                    self.native_optional_argument(parameter,format!("value{id}"),closure.function.bindings[*id].ty)
+                }).collect::<Vec<_>>();
                 let call=if closure.parameters.last().is_some_and(|parameter|closure.function.bindings[*parameter].rest) && binding.parameters.last().is_some_and(|parameter|parameter.rest) {
                     let crate::native_bindings::NativeBackend::Bundled{symbol}=binding.backend;
                     format!("{symbol}(&value0.iter().map(|value|value.as_ref()).collect::<Vec<_>>())")
@@ -9250,7 +9254,7 @@ impl Emitter<'_> {
                     let arguments = args
                         .iter()
                         .enumerate()
-                        .map(|(position, argument)| { let parameter=binding.parameters.get(position).or_else(||binding.parameters.last().filter(|p|p.rest)).expect("checked native arity"); self.expr(fun, argument, parameter.access) })
+                        .map(|(position, argument)| { let parameter=binding.parameters.get(position).or_else(||binding.parameters.last().filter(|p|p.rest)).expect("checked native arity"); self.native_optional_argument(parameter,self.expr(fun, argument, parameter.access),argument.ty.expect("checked native argument")) })
                         .collect::<Vec<_>>();
                     if binding.module=="std:testing-runtime" && binding.name=="checkAssertion" {
                         if let Some(call)=self.typed_native_assertion(&arguments,expr.span,None){return call;}

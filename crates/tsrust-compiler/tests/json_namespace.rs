@@ -68,7 +68,7 @@ function throwingParse(text:string):JsonValue {
   match(parse(text)){Ok(value)=>{return value;},Err(error)=>{throw error;}}
 }
 function throwingStringify(value:JsonValue,maxBytes?:int):string {
-  const encoded=maxBytes===undefined?stringify(value):stringify(value,maxBytes);
+  const encoded=stringify(value,maxBytes);
   match(encoded){Ok(text)=>{return text;},Err(error)=>{throw error;}}
 }
 "#));

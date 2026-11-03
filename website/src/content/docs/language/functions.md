@@ -204,6 +204,18 @@ function main() {
 
 An optional marker does not permit `null` unless the declared type includes it. Optional parameters cannot precede required parameters. Extra arguments remain errors.
 
+Optional standard-library arguments also accept omission or `undefined`, preserving
+the documented default. This works when forwarding an optional value or passing a
+standard-library function through a callable contract; owned inputs retain their
+normal borrow or transfer rules.
+
+```tsrust
+import {basename} from 'std:path';
+function main() {
+  console.log(basename('/tmp/report.txt', undefined)); // report.txt
+}
+```
+
 ### Defaults and null
 
 `value: T = expression` evaluates the default only when the argument is omitted or explicitly `undefined`. A supplied `null`, zero, false, or empty string does not trigger a default. The initializer must satisfy the declared type.

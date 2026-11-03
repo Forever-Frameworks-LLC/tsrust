@@ -420,3 +420,15 @@ fn parameter_defaults_expose_only_earlier_initialized_parameters() {
     assert!(completion.as_array().unwrap().iter().any(|item| item["label"]=="first"),"{completion}");
     assert!(completion.as_array().unwrap().iter().any(|item| item["label"]=="later"),"{completion}");
 }
+
+#[test]
+fn optional_native_arguments_keep_checked_hover_and_signature_help() {
+    let source=tsrust_compiler::format("import {basename} from 'std:path';function main(){const native=basename;const source='/tmp/report.txt';native(source,undefined);basename(source,undefined);}").unwrap();
+    let uri="file:///optional-native.tsr";let id=source_id(uri).unwrap();let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.clone());
+    let checked=workspace.snapshot().check(&id).unwrap();let index=ProjectIndex::checked(&checked);
+    let hover=index.request("textDocument/hover",&json!({"position":position(&source,"basename(source")}),uri).unwrap().unwrap();
+    assert!(text(&hover).contains("suffix?")&&text(&hover).contains("string"),"{hover}");
+    let help=index.request("textDocument/signatureHelp",&json!({"position":position(&source,"undefined);")}),uri).unwrap().unwrap();
+    assert_eq!(help["activeParameter"],1,"{help}");assert!(help["signatures"][0]["label"].as_str().unwrap().contains("suffix?"),"{help}");
+    assert!(!hover.to_string().contains("ViewUnion"),"{hover}");
+}
