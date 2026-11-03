@@ -58,11 +58,15 @@ impl<K:TsrSetKey,V,P:TsrMapEntry<K,V>,F:TsrMapFirstSlot<P>> TsrMap<K,V,P,F> {
         let mut result=Self::new();for(key,value)in values{result.set(key,value);}result
     }
     fn from_mapped<U,Q:TsrMapEntry<K,U>,G:TsrMapFirstSlot<Q>>(source:TsrMap<K,U,Q,G>,mut convert:impl FnMut(U)->V)->Self{
-        if source.first.as_ref().is_some() || F::INLINE && source.length<=1 {
-            return Self::from_values(source.tsr_owned_items().map(|entry|{let(key,value)=entry.into_pair();(key,convert(value))}));
+        if F::INLINE && source.length<=1 {
+            let mut result=Self::new();
+            if let Some(entry)=source.tsr_owned_items().next(){
+                let(key,value)=entry.into_pair();result.first.replace(P::from_pair(key,convert(value)));result.length=1;
+            }
+            return result;
         }
         // shortcut: indexed maps retain their bucket rebuild; revisit if their remaps profile hot.
-        if source.slots.len()>TSR_SMALL_SLOTS{
+        if source.first.as_ref().is_some() || source.slots.len()>TSR_SMALL_SLOTS{
             return Self::from_values(source.tsr_owned_items().map(|entry|{let(key,value)=entry.into_pair();(key,convert(value))}));
         }
         let slots=source.slots.into_iter().filter_map(|entry|{

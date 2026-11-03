@@ -28,12 +28,77 @@ proposal for that discussion, not a change to current backend scope.
 The docs restructuring in the next section remains open and is not the current
 optimization focus.
 
-Latest completed optimization: scoped Map singleton entries. Composition improves
-1.145×, repeat 1.145×, with 312,117 allocations removed and 42.8% lower generated
-Rust compile time. All 240 affected tests pass. Programs outside the optimization
-retain byte-identical parent generated code. Full regressions remain deferred.
-Previous Map identity moves improve composition 1.068× (repeat 1.059×), remove
-440 remaps and reduce consumer compilation by 8.2%, with unchanged heap.
+Latest completed optimization: direct scoped Map singleton remaps. Composition
+improves1.089×, repeat1.089×, with unchanged allocation/retained/peak memory and
+unchanged consumer compile cost. All240 affected tests pass. Existing page tables
+are refreshed (77 accepted run timestamps); no before/after table is added.
+Full regressions and promotion remain deferred. Previous singleton inline storage
+improves1.145×, repeat1.145×, removes312,117 allocations and lowers consumer
+compilation42.8%. Previous identity moves improve1.068×, repeat1.059×.
+
+**Direct singleton remaps — accepted locally, parent `869651fd`.**
+`runtime/maps.rs` constructs a remapped inline singleton directly. Its source Map
+already guarantees unique normalized keys, so rebuilding through `set()` is
+unnecessary. Identical materialization/indexed fallback branches are merged to
+avoid duplicate generated iterator closures. No storage layout, public API,
+ownership policy, dependency, source limit or generated unsafe-code change.
+`tests/maps.rs` adds sparse singleton owner-move/drop witnesses for small/indexed
+sources and panic cleanup after singleton conversion. Ordinary-program runtime
+constant and all emission selection logic remain byte-identical to the parent.
+
+Affected build200.944s/1,440,224KiB. All240 tests pass, none ignored: Maps8
+(5.722s/453,280KiB), declared functions5 (10.374s/494,736KiB), exceptions22
+(4.690s/657,600KiB), scoped composition205 (175.234s/671,024KiB), one binary
+at a time, three threads, usual5GB/30min watchdog. Canonical release + native/
+Node run273.288s/1,550,224KiB. Production emission exactly matches the prepared
+candidate generated consumer. Quiet final A/B, identical canonical source/crate/
+output paths and executable argv[0], original3×31 samples:23.202250→21.312875ms
+(1.088649×), repeat23.318708→21.408000ms (1.089252×). Max load2.969,
+watchdog13.439s/33,344KiB. Fresh unchanged Node control comes from canonical run
+below; no extra Node/Rust reference timing for exploratory native-only rounds.
+Three rotated compile samples/version: median wall29,337.746→29,354.621ms
+(+0.058%, noise), user35,415.463→35,379.528ms (-0.101%); max load2.830,
+watchdog175.972s/1,094,880KiB. Final candidate source/binary restored after A/B.
+
+Production allocation profile37.740s/1,050,208KiB, three identical samples:
+checksum108435446,245,355 allocations,2,056 reallocations,243,306 deallocations
+during work,32,374,976 requested bytes,2,326,528 retained/peak requested bytes,
+input11, both cleanup counters0. These equal the parent. Canonical run
+`2026-11-03T09:09:28.439Z`: native21.408417ms/95,460.327mean ops/s,
+Node151.765375ms/13,478.104mean ops/s,93 samples each, full exact results equal,
+max load2.320, no busy override. Exactly two ingested histories match raw
+medians/rates/counts/timestamp; SQLite integrity OK. Saved Rust18.420917ms is
+reused; composition is now1.162× /2.987500ms above it. Existing performance page
+selection advances to77 runs, with unchanged635/933 wins and1.60× median across
+all workloads. Two page tests pass;66-page site builds3.623s/888,416KiB.
+
+Rejected probes, retained as findings rather than production changes:
+- Allocation attribution:171,626 singleton→Vec promotions all allocate; remaps
+  allocate nothing (32,766 empty,456,302 singleton,13,927 two-entry).157,290
+  singleton remaps have a four-slot Vec, no inline first, inline destination and
+  compatible40→32-byte entry layouts. Two buffer-reuse variants change no
+  allocation counters and are not implemented.
+- Two-entry inline storage cuts allocations245,355→75,777 and requested bytes
+  32,374,976→5,406,336, with unchanged retained/peak heap, but runs3–5% slower
+  (0.956719×/0.966656×) and compiles26.8% slower (29.734→37.692s). Rejected.
+  Allocation counts alone are insufficient evidence for an arena/storage change.
+- Direct construction with duplicated fallbacks runs1.104×/1.110× faster but
+  compiles9.1% slower (30.023→32.757s). Merging fallback closures removes this
+  compile regression; only the final merged form is implemented/ingested.
+
+Whole-project formatter passes token/idempotence checks with zero changes
+(4.136s/202,784KiB). Rendered existing composition row shows95.5k Tsrust ops/s
+and7.08× Node; no extra table. The ordinary Vec-only runtime constant equals the
+parent byte for byte. Pruned50 closed generated/experimental files
+(72,235,282bytes), including all current attribution/reuse/pair/direct scratch files
+and exactly verified raw results. Current production timing/allocation consumers
+remain, all owned workers terminal. No broad suites, remote CI or push occurred.
+
+Next: profile expectation predicates (remaining3.995× gap) before larger Map
+redesigns. The remaining Map gap is close to the saved reference; do not repeat
+these rejected layout/buffer probes without a new measured cause. Full suites,
+CI, push and deployment still await the large-gap milestone. Keep local page
+selections current and preserve the owner's existing-table preference.
 
 **Scoped Map singleton acceptance — 2026-11-03 (parent `17ce8e21`).**
 The first entry stays inline for scoped Maps when an iterative layout check proves
@@ -75,11 +140,11 @@ Canonical run `2026-11-03T07:36:04.534Z`: native 23.946333ms, Node 152.061042ms,
 93 samples each, full exact results equal, max load 3.377, no override
 (282.464s / 1,572,784KiB). Exactly two ingested history entries verified against
 raw medians/mean rates/counts/timestamp, SQLite integrity OK. Saved Rust reference
-18.420917ms remains unchanged; current composition gap is 1.300× / 5.525416ms.
+18.420917ms remains unchanged; the gap at this checkpoint is 1.300× / 5.525416ms.
 
 Owner performance-page correction, 2026-11-03: keep the existing results layout;
-no before/after table. Local page pins now include 22 additional accepted run
-timestamps (76 total), and the corrected plain-byte-view Rust reference. Local
+no before/after table. That refresh added 22 accepted run
+timestamps (76 total before subsequent accepted gates), and the corrected plain-byte-view Rust reference. Local
 summary is 635/933 faster than Node, median ratio 1.60× (previously 630/933,
 1.55×). These working-branch changes are not deployed. Keep the local generated
 page current after accepted gates; deployment/promotion still waits for the
@@ -117,8 +182,9 @@ include **0a68a4f5** (932 Rust references), **2c538120** (normalization optimiza
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization:scoped Map singleton entries,composition1.145×
-(repeat1.145×),312,117 allocations removed,unchanged retained/peak requested heap,
+Latest accepted optimization:direct Map singleton remaps,composition1.089×
+(repeat1.089×),unchanged allocation/heap and consumer compile costs. Previous
+singleton inline storage1.145× (repeat1.145×),312,117 allocations removed,
 consumer compile time42.8% lower. Previous Map identity moves remove440 remaps
 and improve composition1.068× (repeat1.059×),consumer compile time8.2% lower.
 Previous Copy-only shared callback environments,expectation
@@ -1126,7 +1192,7 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   assuming the small-map reference alone explains its gap.
 - Remaining large-gap review queue (latest stored matched workload IDs,not fresh
   A/B measurements except the accepted Map update above):composition now
-  23.946333ms vs saved hand Rust18.420917ms (1.300×,5.525416ms excess),replacing
+  21.408417ms vs saved hand Rust18.420917ms (1.162×,2.987500ms excess),replacing
   the historical121.497209ms row;recursive copy gaps are now small after the
   accepted dead-loop transport above:toReversed.030458/.027500ms (1.108×),
   with.039667/.034833ms (1.139×). Declared Number/boolean reductions are now

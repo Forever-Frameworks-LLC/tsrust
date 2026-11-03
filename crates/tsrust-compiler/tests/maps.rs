@@ -79,15 +79,26 @@ fn remap_witness(){
   mapped.set(0,999);assert!(mapped.delete(0));mapped.set(0,1000);assert_eq!(*mapped.iter().last().unwrap().0,0);
   mapped.clear();assert_eq!(mapped.len(),0);mapped.set(99,12);assert_eq!(mapped.get(99),Some(&12));
  }
+ for count in [2_i64,17]{
+  let dropped=std::rc::Rc::new(std::cell::Cell::new(0));
+  let mut values:TsrMap<i64,Owner>=TsrMap::new();
+  for key in 0..count{values.set(key,Owner(dropped.clone()));}
+  for key in 0..count-1{assert!(values.delete(key));}
+  assert_eq!(dropped.get(),count as usize-1);let mut calls=0;
+  let mapped:TsrMap<i64,WrappedOwner>=TsrMap::from_mapped(values,|value|{calls+=1;WrappedOwner(value)});
+  assert_eq!(calls,1);assert_eq!(mapped.len(),1);
+  assert_eq!(mapped.iter().map(|(key,_)|*key).collect::<Vec<_>>(),vec![count-1]);
+  assert!(mapped.get(count-1).is_some());drop(mapped);assert_eq!(dropped.get(),count as usize);
+ }
  let values:TsrMap<i64,i64>=TsrMap::from_values([(1,11),(2,22)]);
  let wider:TsrMap<i64,[i64;8]>=TsrMap::from_mapped(values,|value|[value;8]);assert_eq!(wider.get(2),Some(&[22;8]));
  let narrower:TsrMap<i64,i64>=TsrMap::from_mapped(wider,|value|value[7]);assert_eq!(narrower.get(1),Some(&11));
  let hook=std::panic::take_hook();std::panic::set_hook(Box::new(|_|{}));
- for count in [3,17]{
+ for count in [2,3,17]{
   let dropped=std::rc::Rc::new(std::cell::Cell::new(0));let mut values:TsrMap<i64,Owner>=TsrMap::new();
-  for key in 0..count{values.set(key,Owner(dropped.clone()));}assert!(values.delete(0));let mut calls=0;
+  for key in 0..count{values.set(key,Owner(dropped.clone()));}assert!(values.delete(0));let mut calls=0;let fail_at=if count==2{1}else{2};
   let result=std::panic::catch_unwind(std::panic::AssertUnwindSafe(||{
-   let mapped:TsrMap<i64,WrappedOwner>=TsrMap::from_mapped(values,|value|{calls+=1;if calls==2{panic!("conversion");}WrappedOwner(value)});drop(mapped);
+   let mapped:TsrMap<i64,WrappedOwner>=TsrMap::from_mapped(values,|value|{calls+=1;if calls==fail_at{panic!("conversion");}WrappedOwner(value)});drop(mapped);
   }));assert!(result.is_err());assert_eq!(dropped.get(),count as usize);
  }
  std::panic::set_hook(hook);
