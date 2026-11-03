@@ -193,6 +193,10 @@ impl<'a, T> Iterator for ArrayIter<'a, T> {
         match self { Self::Small(values) => values.next().map(|value| value.as_ref().expect("occupied inline array slot")), Self::Heap(values) => values.next() }
     }
     #[inline]
+    fn nth(&mut self, index: usize) -> Option<Self::Item> {
+        match self { Self::Small(values) => values.nth(index).map(|value| value.as_ref().expect("occupied inline array slot")), Self::Heap(values) => values.nth(index) }
+    }
+    #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
         match self { Self::Small(values) => values.size_hint(), Self::Heap(values) => values.size_hint() }
     }

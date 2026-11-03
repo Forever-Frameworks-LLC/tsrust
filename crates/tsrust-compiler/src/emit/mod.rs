@@ -4,6 +4,7 @@ mod self_append;
 mod string_character;
 mod constant_string;
 mod scalar_reduce_slices;
+mod foreach_slices;
 mod runtime_support_ids;
 #[cfg(test)]
 mod statement_work_tests;
@@ -184,6 +185,7 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
         string_characters,
         constant_strings: constant_string::Index::new(program),
         scalar_reduce_slices: scalar_reduce_slices::Index::new(program),
+        foreach_slices: foreach_slices::Index::default(),
         work_functions:owned_work::Arena::default(),
         work_regions:owned_work::Arena::default(),
         borrowed_capture_alternatives,
@@ -227,6 +229,14 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
         native_bindings: RefCell::new(std::collections::BTreeSet::new()),
     };
     emitter.borrowing_records=emitter.record_borrowing_family();
+    if !emitter.counted_calls {
+        emitter.foreach_slices=foreach_slices::Index::new(program,&emitter.fixed,|id| {
+            let closure=&program.closures[id];
+            emitter.closure_record_signature(id).is_none()
+                && emitter.native_view_closure_signature(closure,None,&closure.function,&closure.parameters).is_none()
+                && emitter.nullable_callback_bounds(closure.parameters.iter().map(|&id|closure.function.bindings[id].ty).chain(std::iter::once(closure.function.result))).is_empty()
+        });
+    }
     emitter
 }
 
@@ -271,7 +281,10 @@ pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str
     (rust, features)
 }
 
+enum SliceView { Owned, Slice, Range }
+
 struct Emitter<'a> {
+    foreach_slices: foreach_slices::Index,
     constant_strings: constant_string::Index<'a>,
     /// Copying calls in the function being emitted whose dead receiver may be moved.
     receiver_moves: RefCell<HashSet<(usize, usize)>>,
@@ -2703,9 +2716,16 @@ impl Emitter<'_> {
                 let receiver=if closure.captures.iter().any(|capture|capture.storage==Mode::Consume || capture.storage==Mode::Copy && capture.access==Mode::Mutate){receiver.replace('&',"&'task ")}else{receiver};
                 (receiver,parameters,call_generics,native_result.replace("'_","'task"))
             } else {(receiver,parameters,call_generics,native_result)};
+            let (call_name,range_parameters)=if let Some(source)=self.foreach_slices.callback(index) {
+                let arguments=closure.parameters.iter().map(|&id|if id==source{format!("&(0..value{id}.len())")}else{format!("value{id}")}).collect::<Vec<_>>().join(", ");
+                let _=writeln!(output,"    fn call{call_generics}({receiver}{parameters}) -> {native_result}{replacement_where} {{ self.call_range({arguments}) }}");
+                let native=self.native_argument_type(ArgumentContract::from(&closure.function.bindings[source]),"");
+                ("call_range",Some(parameters.replace(&format!("value{source}: {native}"),&format!("value{source}: &std::ops::Range<usize>"))))
+            } else {("call",None)};
+            let body_parameters=range_parameters.as_deref().unwrap_or(&parameters);
             let _ = writeln!(
                 output,
-                "    {asynchronous}fn call{call_generics}({receiver}{parameters}) -> {}{replacement_where} {{",
+                "    {asynchronous}fn {call_name}{call_generics}({receiver}{body_parameters}) -> {}{replacement_where} {{",
                 native_result.clone()
             );
             self.test_program_capture_bindings(&mut output, closure);
@@ -3986,11 +4006,18 @@ impl Emitter<'_> {
                         let _=writeln!(output,"let mut value{index}={initialized};");
                         continue;
                     }
+                    if !self.exception_regions.carries_storage() && self.foreach_slices.binding(fun,index) {
+                        let ExprKind::Call(callee,args)=&value.kind else {unreachable!("proved slice declaration")};
+                        let ExprKind::Field(base,_)=&callee.kind else {unreachable!("proved slice receiver")};
+                        let initializer=self.array_slice(fun,base,args,value.span,SliceView::Range);
+                        let _=writeln!(output,"let value{index} = {initializer};");
+                        continue;
+                    }
                     if !self.exception_regions.carries_storage() && self.scalar_reduce_slices.binding(fun,index) {
                         let ExprKind::Call(callee,args)=&value.kind else {unreachable!("proved scalar slice")};
                         let ExprKind::Field(base,_)=&callee.kind else {unreachable!("proved slice receiver")};
                         let Type::Array(element)=b.ty else {unreachable!("proved scalar array")};
-                        let initializer=self.array_slice(fun,base,args,value.span,true);
+                        let initializer=self.array_slice(fun,base,args,value.span,SliceView::Slice);
                         let _=writeln!(output,"let value{index}: &[{}] = {initializer};",self.native_type(element.ty()));
                         continue;
                     }
@@ -6509,6 +6536,7 @@ impl Emitter<'_> {
     }
 
     fn array_for_each(&self, fun: &CheckedFunction, base: &Expr, callback: &Expr) -> String {
+        let range=!self.exception_regions.carries_storage() && matches!(base.kind,ExprKind::Name(_)) && base.binding.is_some_and(|id|self.foreach_slices.binding(fun,id));
         let method = callback.traversal_method;
         let receiver = self.expr(
             fun,
@@ -6560,7 +6588,10 @@ impl Emitter<'_> {
             arguments.push("for_each_array".to_owned());
         }
         let arguments = self.array_callback_arguments(callback_type, method, arguments, &[value_type, key_type, receiver_type]);
-        let call = if self.array_callback_counted_method(callback_type, method) {
+        let call = if range {
+            let mut arguments=arguments;arguments[2]="&(0..for_each_len)".into();
+            format!("for_each_callback.call_range({})",arguments.join(", "))
+        } else if self.array_callback_counted_method(callback_type, method) {
                 format!("for_each_callback.call{}_with_count({}{})", method.expect("checked counted method").id, if method.is_some_and(|method| method.access == Mode::Mutate) { 2 } else { 3 }, if arguments.is_empty() { String::new() } else { format!(", {}", arguments.join(", ")) })
             } else if self.counted_calls && method.is_none() {
             if matches!(callback_type, Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)) {
@@ -6589,7 +6620,9 @@ impl Emitter<'_> {
         } else {
             ""
         };
-        let iterator = if literal {
+        let iterator = if range {
+            "for_each_array.iter().skip(for_each_start).take(for_each_len)"
+        } else if literal {
             "for_each_array.literal_iter()"
         } else if matches!(receiver_type,Type::Map(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedMap)) {
             "for_each_array.source_iter()"
@@ -6601,8 +6634,10 @@ impl Emitter<'_> {
         let pattern=if map_for_each{"(for_each_key,for_each_value)"}else{"for_each_value"};
         // A wildcard statement drops the returned value immediately, including
         // owned data/callable owners, before advancing to the next source item.
+        let receiver=if range {format!("let for_each_slice = {receiver}; let for_each_array = for_each_slice.0; let for_each_start = for_each_slice.1; let for_each_len = for_each_slice.2-for_each_start;")}
+            else{format!("let for_each_array = {receiver};")};
         format!(
-            "{{ let for_each_array = {receiver}; let for_each_callback = {environment}; for (for_each_position, {pattern}) in {iterator}.enumerate() {{ {index}{literal_value}let _ = {call}; }} }}"
+            "{{ {receiver} let for_each_callback = {environment}; for (for_each_position, {pattern}) in {iterator}.enumerate() {{ {index}{literal_value}let _ = {call}; }} }}"
         )
     }
 
@@ -6910,11 +6945,11 @@ impl Emitter<'_> {
         format!("{{ let entries_source = {receiver}; let mut entries = <{result}>::from([]); for (entries_index,entries_value) in {iterator}.enumerate() {{ entries.push(Record{pair} {{ field0: i64::try_from(entries_index).expect(\"entries index exceeds int range\"), field1: {value} }}); }} entries }}")
     }
 
-    fn array_slice(&self, fun: &CheckedFunction, base: &Expr, args: &[Expr], call: crate::diagnostic::Span, read_view: bool) -> String {
+    fn array_slice(&self, fun: &CheckedFunction, base: &Expr, args: &[Expr], call: crate::diagnostic::Span, view: SliceView) -> String {
         let plain_vec = |ty: Type| !numeric_array(ty) && !inline_array(ty)
             && !matches!(ty, Type::Array(ArrayElement::Record(index, 0)) if self.record_runtime.recursive(index) || self.small_record(index));
         // slice() of a dead plain Vec local keeps that storage, trimming both ends.
-        if !read_view && plain_vec(base.ty.expect("checked array slice")) && self.moves_receiver(base, call) {
+        if matches!(view,SliceView::Owned) && plain_vec(base.ty.expect("checked array slice")) && self.moves_receiver(base, call) {
             let start = args.first().map_or_else(|| "0i64".into(), |arg| self.expr(fun, arg, Mode::Copy));
             let end = args.get(1).map_or_else(|| "None".into(), |arg| format!("Some({})", self.expr(fun, arg, Mode::Copy)));
             let array = self.expr(fun, base, Mode::Consume);
@@ -6930,7 +6965,10 @@ impl Emitter<'_> {
         );
         let array_type = base.ty.expect("checked array slice");
         let fixed = self.expression_shape(base);
-        if read_view {
+        if matches!(view,SliceView::Range) {
+            return format!("{{ let slice_array = {array}; let slice_from: i64 = {start}; let slice_to: Option<i64> = {end}; let slice_start = tsr_search_start(slice_array.len(), slice_from); let slice_end = slice_to.map_or(slice_array.len(), |end| tsr_search_start(slice_array.len(), end)).max(slice_start); (slice_array,slice_start,slice_end) }}");
+        }
+        if matches!(view,SliceView::Slice) {
             let receiver=if fixed.is_none() && numeric_array(array_type){"slice_array.as_slice()"}else{"slice_array"};
             return format!("{{ let slice_array = {array}; let slice_from: i64 = {start}; let slice_to: Option<i64> = {end}; let slice_start = tsr_search_start(slice_array.len(), slice_from); let slice_end = slice_to.map_or(slice_array.len(), |end| tsr_search_start(slice_array.len(), end)).max(slice_start); &{receiver}[slice_start..slice_end] }}");
         }
@@ -9699,7 +9737,7 @@ impl Emitter<'_> {
                     let ExprKind::Field(base, _) = &callee.kind else {
                         unreachable!()
                     };
-                    self.array_slice(fun, base, args, expr.span, false)
+                    self.array_slice(fun, base, args, expr.span, SliceView::Owned)
                 }
                 CallTarget::ArrayToSpliced => {
                     let ExprKind::Field(base, _) = &callee.kind else {

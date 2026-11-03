@@ -42,6 +42,104 @@ fn native(
 }
 
 #[test]
+fn readonly_slice_traversal_preserves_ranges_and_normal_callback_entry_points() {
+    let analysis=native(
+        r#"
+        type Row={n:int;items:int[];};
+        function make():Row[]{return [{n:1,items:[1]},{n:2,items:[]},{n:3,items:[2,3]},{n:4,items:[]},{n:5,items:[4]},{n:6,items:[]}];}
+        function walk(from:int,to:int):int{
+            const base=make();const selected=base.slice(from,to);let total=0;
+            selected.forEach((row:Row,index:int,source:Row[]):void=>{let weight=row.n;for(const value of row.items){weight=weight+value;}total=total+weight+index+source.length;});
+            return total;
+        }
+        function tail(from:int):int{
+            const base=make();const selected=base.slice(from);let total=0;
+            selected.forEach((row:Row,index:int,source:Row[]):void=>{total=total+row.n+source.length;});return total;
+        }
+        function forward(values:Row[],action:Mutable<Function<void,[v:ReadOnly<Row>,i:int,s:ReadOnly<Row[]>]>>):void{values.forEach(action);}
+        function again():int{
+            const base=make();const selected=base.slice(1,2);let total=0;
+            {const read=(row:Row,index:int,source:Row[]):void=>{total=total+row.n+index+source.length;};
+            selected.forEach(read);read({n:9,items:[]},4,[{n:1,items:[]}]);forward([{n:7,items:[]}],read);}return total;
+        }
+        function texts(input:string):int{const base=[clone(input),"","x",input.repeat(2),"last"];const selected=base.slice(1,4);let out=0;selected.forEach((text:string,index:int,source:string[]):void=>{out=out+text.length+index+source.length;});return out;}
+        function main(){console.log(walk(0,6),walk(1,4),walk(-2,9223372036854775807),walk(-9223372036854775808,1),walk(4,1),walk(20,30),tail(-2),again(),texts("é"));}
+        "#,
+        "82 26 20 3 0 0 15 25 17\n", "", "",
+    );
+    assert!(analysis.emit_rust().contains("fn call_range"));
+    assert!(analysis.emit_rust().contains(".skip(for_each_start).take(for_each_len)"));
+}
+
+#[test]
+fn slice_views_fall_back_for_source_moves_mutation_and_whole_array_reads() {
+    let analysis=native(
+        r#"
+        type Row={n:int;items:int[];};
+        function make():Row[]{return [{n:1,items:[]},{n:2,items:[3]},{n:4,items:[]},{n:5,items:[6,7]},{n:8,items:[]}];}
+        function consume(values:Row[]):void{const owned=values;console.log(owned.length);}
+        function moved(flag:boolean):int{const base=make();const selected=base.slice(0,1);let out=0;if(flag){consume(base);selected.forEach((row:Row,index:int,source:Row[]):void=>{out=out+row.n+source.length;});return out;}selected.forEach((row:Row,index:int,source:Row[]):void=>{out=out+row.n+source.length;});return out;}
+        function edit(values:Row[]):void{values[0].n=99;}
+        function changed():int{const base=make();const selected=base.slice(0,1);edit(base);let out=0;selected.forEach((row:Row,index:int,source:Row[]):void=>{out=out+row.n+source.length;});return out;}
+        function indexed():int{const base=make();const selected=base.slice(1,3);let out=0;selected.forEach((row:Row,index:int,source:Row[]):void=>{out=out+source[0].n;});return out;}
+        function main(){console.log(moved(true));console.log(moved(false),changed(),indexed());}
+        "#,
+        "5\n2\n2 2 4\n", "", "",
+    );
+    assert!(!analysis.emit_rust().contains("fn call_range"));
+}
+
+#[test]
+fn borrowed_slice_traversal_coexists_with_typed_exception_transport() {
+    native(
+        r#"
+        type Row={n:int;items:int[];};
+        function walk():int{const base:Row[]=[{n:1,items:[]},{n:2,items:[3]},{n:4,items:[]},{n:5,items:[6,7]},{n:8,items:[]}];const selected=base.slice(1,3);let out=0;selected.forEach((row:Row,index:int,source:Row[]):void=>{out=out+row.n+source.length;});return out;}
+        function caught():int{try{const values=[1];return values[9];}catch{return 7;}}
+        function guarded():int{const base:Row[]=[{n:1,items:[]},{n:2,items:[3]},{n:4,items:[]},{n:5,items:[6,7]},{n:8,items:[]}];const selected=base.slice(0,1);let out=0;selected.forEach((row:Row,index:int,source:Row[]):void=>{try{const values=[0];out=out+values[9];}catch{out=out+row.n+source.length;}});return out;}
+        function main(){console.log(walk(),caught(),guarded());}
+        "#,
+        "10 7 2\n", "", "",
+    );
+}
+
+#[test]
+fn slice_range_arguments_run_before_traversal_and_unwind_in_order() {
+    let analysis=native(
+        r#"
+        type Row={n:int;items:int[];};
+        function make():Row[]{return [{n:1,items:[]},{n:2,items:[3]},{n:4,items:[]},{n:5,items:[6,7]},{n:8,items:[]}];}
+        function start():int{console.log("from");return 1;}
+        function end(divisor:int):int{console.log("to");return 3/divisor;}
+        function walk(divisor:int):void{const base=make();const selected=base.slice(start(),end(divisor));selected.forEach((row:Row,index:int,source:Row[]):void=>{console.log(row.n,index,source.length);});}
+        function main(){walk(1);}
+        "#,
+        "from\nto\n2 0 2\n4 1 2\nfrom\nto\n", "",
+        "std::panic::set_hook(Box::new(|_|{}));assert!(std::panic::catch_unwind(||function3(0)).is_err());",
+    );
+    assert!(analysis.emit_rust().contains("fn call_range"));
+}
+
+#[test]
+fn compact_array_iterator_skips_match_standard_slice_iterators() {
+    native(
+        "function main(){const values:string[]=[];values.push(\"x\");}","","",
+        r#"
+        for array in [Array::<i64>::from([]),Array::from([0]),Array::from([0,1,2,3]),Array::Heap((0..10).collect())]{
+            let model=array.iter().copied().collect::<Vec<_>>();
+            for first in [0,1,3,4,9,10,usize::MAX]{
+                let mut actual=array.iter();let mut expected=model.iter();
+                assert_eq!(actual.nth(first),expected.nth(first));assert_eq!(actual.len(),expected.len());
+                assert_eq!(actual.next_back(),expected.next_back());assert_eq!(actual.len(),expected.len());
+                assert_eq!(actual.nth(1),expected.nth(1));assert_eq!(actual.len(),expected.len());
+                assert_eq!(actual.nth(usize::MAX),expected.nth(usize::MAX));assert_eq!(actual.len(),expected.len());
+            }
+        }
+        "#,
+    );
+}
+
+#[test]
 fn for_each_visits_all_data_leaves_ranks_and_current_receivers_without_output_storage() {
     let cases = [
         ("int", "[1,2,3,4]", "v", vec!["1", "2", "3", "4"]),

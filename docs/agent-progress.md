@@ -39,7 +39,10 @@ include **0a68a4f5** (932 Rust references), **2c538120** (normalization optimiza
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization:constant-string concat results,literal spread3.414×
+Latest accepted optimization:borrowed forEach ranges,nested records4.905×
+(repeat5.280×),deep int4.213× (repeat4.129×),recursive3.691× (repeat3.784×);
+all12 normal cases improve and now span0.962–1.278× saved Rust. Previous
+constant-string concat results,literal spread3.414×
 (repeat3.433×),call spread3.448× (repeat3.321×),8,196 allocations removed per
 workload,retained/peak requested heap -15.2%. Previous read-only scalar reduction slices,Number16.705×
 (repeat18.030×),boolean17.421× (repeat18.861×),int4.994× (repeat5.000×),
@@ -81,6 +84,109 @@ accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration
 plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
+
+**Borrowed forEach slice ranges — accepted locally, parent428a1769:**
+- Profile-first parent2026-11-03T01:16:02.663Z,216.852s/1,538,320KiB:
+  nested/deep/recursive traversals make8,006/1,601/6,004 allocations,retained0.
+  Source clones base.slice before callbacks that only read values and source.length.
+  An isolated generated-consumer range probe removes8,000/1,600/6,000 allocations,
+  preserving checksums and cleanup in three equal samples (3.117s/158,016KiB).
+- Private foreach_slices index proves immutable owned local roots,all source-name
+  uses solely slice receivers,and all snapshot-name uses eligible forEach receivers.
+  Capture/move/mutation/escape/native loans/exception-region/fixed-layout roots keep
+  ownership. Native/unknown/callable fields propagate through recursive dependencies
+  in linear time;only plain data is borrowed. Record proof is computed lazily.
+  Concrete callbacks must have3 required read/copy parameters,a void result,and
+  only .length reads of the source parameter. Forwarded/polymorphic/async/task/
+  scoped/counting/rest or unproved callback interfaces retain the ordinary path.
+- One call_range body accepts &Range<usize>;the normal call wrapper retains the
+  original array parameter and public/trait ABI. Original bounds/evaluation/error
+  order and relative callback indices remain. SliceView enum reuses existing bounds
+  code and preserves scalar-reduction views. ArrayIter.nth delegates to its slice
+  iterator,keeping prefix skips O(1). No unsafe,RC,dependencies,public APIs,limits,
+  source restrictions or IntelliSense changes. Non-void callbacks stay unoptimized.
+- Initial9-test validation caught an invalid new witness that returned a mutable
+  capture before its closure scope ended. Corrected the witness scope;no compiler
+  ownership weakening. Final O0/O3 witnesses cover relative/default/negative/extreme
+  ranges,dynamic strings,normal and trait callback entry points,source moves on
+  exited branches,mutation/whole-array-read fallback,nested catches/typed errors,
+  argument order/unwind and nth/next_back/exhaustion parity against std iterators.
+- Final86 affected tests pass/no failures or ignored:forEach9 (6.242s/446,752KiB),
+  slice7 (8.839s/481,936),reduce7 (4.702s/462,736),fixed_storage34 (20.748s/
+  490,928),declared_function_values5 (10.913s/519,920),exceptions22 (5.750s/
+  644,720),callback_errors2 (1.562s/349,216). Final shared build200.474s/
+  1,547,952KiB. Earlier build198.827s/1,485,856;intermediate release profile
+  215.353s/1,572,048. Range iterators made the initial string exclusion unnecessary;
+  removed it,added a dynamic-string witness,and reran the complete affected section.
+- Exact saved parent compiler SHA256
+  98f63316c2786dd17509df3eb375b250eccfbee095f2de79463fb4337a54537e;
+  re-emission matched all three baseline profile hashes. Parent consumers rebuilt
+  from that compiler as needed. No source snapshots or archive records retained.
+- Actual completed release/profile213.331s/1,537,872KiB,2026-11-03T02:19:03.525Z;
+  remaining seven profiles03:03:14.313Z,5.848s/265,424KiB. Exact parent observers
+  4.678s/256,128 and4.656s/257,968. Every profile has3 equal samples,no reallocs,
+  no retained output bytes,both cleanup counters0. All12 normal workloads halve
+  peak requested heap and remove39,600 allocations in aggregate across the cases.
+
+| forEach workload | Allocations before → after | Peak requested bytes before → after | Same-path A/B, repeat | Final ms / saved Rust ms |
+| --- | --- | --- | --- | --- |
+| int | 1,601 → 1 | 80 → 40 | 1.730× / 1.712× | 0.023667 / 0.023708 |
+| number | 1,601 → 1 | 80 → 40 | 1.225× / 1.172× | 0.104042 / 0.104541 |
+| boolean | 1,601 → 1 | 10 → 5 | 1.451× / 1.477× | 0.022292 / 0.023167 |
+| string | 3,202 → 2 | 262 → 131 | 3.326× / 3.082× | 0.028875 / 0.026459 |
+| record | 3,202 → 2 | 822 → 411 | 3.065× / 2.919× | 0.037250 / 0.029209 |
+| nested_int | 1,601 → 1 | 480 → 240 | 2.042× / 2.173× | 0.025000 / 0.025084 |
+| nested_number | 6,405 → 5 | 336 → 168 | 2.125× / 2.173× | 0.102875 / 0.105125 |
+| nested_boolean | 1,601 → 1 | 240 → 120 | 2.011× / 2.096× | 0.024917 / 0.024459 |
+| nested_string | 3,202 → 2 | 1,062 → 531 | 2.937× / 2.998× | 0.045917 / 0.035917 |
+| nested_record | 8,006 → 6 | 902 → 451 | 4.905× / 5.280× | 0.038083 / 0.037750 |
+| deep_int | 1,601 → 1 | 2,000 → 1,000 | 4.213× / 4.129× | 0.025667 / 0.025292 |
+| recursive_record | 6,004 → 4 | 806 → 403 | 3.691× / 3.784× | 0.051334 / 0.042708 |
+
+- Formal parent baseline01:23:17.842Z:5 workloads,93 samples/engine,quiet max1.736,
+  5.693s/240,496KiB. Final full affected measurement02:45:27.474Z:12 normal
+  traversals+discard-string control,93/engine,quiet max3.44140625,no override,
+  12.428s/301,040KiB. Intermediate accepted-source6-case run02:19:09.723Z
+  also retained (5.704s/295,536KiB). Existing Rust references reused,not retimed;
+  final normal cases are0.962–1.278× saved Rust,median1.012×. Residual record,
+  nested-string and recursive costs are now8–10µs in these batches,not zero.
+- Two complete family parent/candidate/Node rounds rotate engines at identical
+  executable paths:117 process observations/round,93 samples/engine/workload/round,
+  max loads2.112/2.103,5.684s/88,352KiB. Earlier focused6-case repeats corroborate
+  nested5.145×/5.282×,deep4.329×/4.524×,recursive3.784×/3.721×.
+  Discard control drifts -2.9%/-4.4% in the family repeats,but its entire238,128-byte
+  Mach-O __TEXT,__text section is bit-identical at the same address:SHA256
+  2e44166b01e3c26cf10e1ad674e49f66a3092b6cfba8b5a21cbec72c01da4110.
+  Source differs only by unused nth support;allocation profile is exactly equal.
+- Consumer Rust compilation:original3 samples/input/engine/round,two rotated rounds
+  at the same physical source/output path,35.680s/206,880KiB,max load2.4814.
+  Recursive367.624→272.699ms and371.654→274.653ms (~26% faster);deep
+  212.018→186.792 and211.474→186.206 (~12%);others stable or faster,unchanged
+  control200.087→198.926 and199.436→200.163ms. No forced-inline code growth.
+- Host compiler comparison:exact saved parent/candidate,same-path rotated11 samples
+  per input/engine/round,2 rounds/132 outputs,216.895s/237,088KiB,quiet max2.561.
+  Map wall4487.801→4455.678ms then4599.413→4604.701ms;user CPU+1.1%/+0.8%.
+  Interfaces and Map emitted code match after removing unused nth support. Small
+  launch timings fluctuate6–216ms under executable renames;do not infer a compiler
+  regression or speedup from those wall values. Independent warmed fixed-path,
+  identical argv0 check with interfaces,nested and64 repeated traversal functions:
+  11 samples/engine/input/round,2 rounds,3.103s/42,656KiB,max load2.339. Scaled
+  user CPU29.077→29.029ms then28.585→28.841;small nested3.313→3.241 then
+  3.255→3.254ms. No material compiler regression;no compiler-emission speedup claim.
+- Whole-project formatter4.131s/201,664KiB:zero source/snippet/fingerprint changes.
+  npm run store:ingest added48 accepted parent/candidate entries from3 files;
+  verified93 samples,exact rounded medians/mean rates,timestamp uniqueness and
+  SQLite integrity. Only focused native/Node comparisons ran;no full matrix.
+- Pruned104 closed files/168,049,690 bytes:passed test executables,exact parent
+  compiler/native consumers,diagnostic probes,imported raw runs and scratch tools.
+  Current release/debug compiler/LSP and13 native consumers/profiles remain;all
+  owned workers are terminal. Deferred full-regression inventory is untouched.
+- Next:large-gap milestone remains open. Prioritize scoped composition's remaining
+  28.994625/18.420917ms and profiled widening carriers,then byte views/maps and
+  expectation predicates. Non-void/discard traversal remains a separate opportunity
+  (discard-string .042500/.023666ms saved Rust,1.796×). Preserve the deferred full
+  regression snapshot;do not restart full suites until only small refinements remain.
+  No public export,push,CI or release was performed.
 
 **Constant-string concat results — accepted80ad63d3, parent36dbd769:**
 - Previous goal turn made concrete progress:profiler timeout repair,accepted-source
@@ -719,7 +825,8 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   read-only slice proof above. Next remaining large signals:fresh nullable boolean4.092×;
   array_literal_spread_nullish_packs1.978×/call_spread_nullish_packs1.974× after
   accepted constant-string concat above;
-  nested/deep/recursive record forEach4.57–5.69×;byte views/maps4.82–4.85×;
+  normal forEach gaps now0.962–1.278× saved Rust after accepted range views;
+  non-void discard traversal remains1.796× for string results;byte views/maps4.82–4.85×;
   testing expectation predicates5.520×. Review absolute cost and equivalent work,
   inputs,ownership and observation before accepting a ratio as removable overhead.
   Existing Rust/Node references are reused unless source/protocol changes;rerun
