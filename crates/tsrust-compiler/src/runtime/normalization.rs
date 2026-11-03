@@ -1,14 +1,21 @@
 // Unicode canonical/compatibility decomposition, stable ordering and composition.
 // Scalars occupy 21 bits; cache the eight-bit combining class in the same u32.
 const TSR_NORMALIZATION_SCALAR_MASK: u32 = (1 << 21) - 1;
+fn tsr_normalization_page(code:u32,pages:&[u16])->std::ops::Range<usize>{
+    let page=(code>>8) as usize;
+    match (pages.get(page),pages.get(page+1)) {
+        (Some(&start),Some(&end))=>usize::from(start)..usize::from(end),
+        _=>0..0,
+    }
+}
 fn tsr_normalization_class(code: u32) -> u8 {
     if code < TSR_NORMALIZATION_CCC[0].0 { return 0; }
-    TSR_NORMALIZATION_CCC.binary_search_by_key(&code, |row| row.0)
-        .map_or(0, |index| TSR_NORMALIZATION_CCC[index].1)
+    let rows=&TSR_NORMALIZATION_CCC[tsr_normalization_page(code,TSR_NORMALIZATION_CCC_PAGES)];
+    rows.binary_search_by_key(&code, |row| row.0).map_or(0, |index| rows[index].1)
 }
 fn tsr_normalization_decompose(code: u32, compatibility: bool, output: &mut Vec<u32>, pending: &mut Vec<u32>) {
-    pending.push(code);
-    while let Some(code) = pending.pop() {
+    let mut current=Some(code);
+    while let Some(code) = current.take().or_else(||pending.pop()) {
         if code < TSR_NORMALIZATION_DECOMPOSE[0].0 {
             output.push(code | ((tsr_normalization_class(code) as u32) << 21));
         } else if (0xAC00..0xAC00 + 11172).contains(&code) {
@@ -17,8 +24,10 @@ fn tsr_normalization_decompose(code: u32, compatibility: bool, output: &mut Vec<
             if tail != 0 { pending.push(0x11A7 + tail); }
             pending.push(0x1161 + syllable % 588 / 28);
             pending.push(0x1100 + syllable / 588);
-        } else if let Ok(index) = TSR_NORMALIZATION_DECOMPOSE.binary_search_by_key(&code, |row| row.0) {
-            let (_, compatible, start, length) = TSR_NORMALIZATION_DECOMPOSE[index];
+        } else if let Some((_, compatible, start, length)) = {
+            let rows=&TSR_NORMALIZATION_DECOMPOSE[tsr_normalization_page(code,TSR_NORMALIZATION_DECOMPOSE_PAGES)];
+            rows.binary_search_by_key(&code,|row|row.0).ok().map(|index|rows[index])
+        } {
             if compatible && !compatibility { output.push(code | ((tsr_normalization_class(code) as u32) << 21)); continue; }
             pending.extend(TSR_NORMALIZATION_MAPPING[start as usize..start as usize + length as usize].iter().rev().copied());
         } else { output.push(code | ((tsr_normalization_class(code) as u32) << 21)); }

@@ -20,6 +20,12 @@ combining classes, 5,913 decomposition mappings, 961 composition pairs and 8,739
 mapping scalars. Hangul decomposition/composition is handled algorithmically.
 Full composition exclusions come from the derived property file.
 
+Combining-class and decomposition tables include derived offsets for each
+256-code-point page through the last stored key. Lookups search only that page;
+empty pages and scalars beyond the last page have no matching entries. These
+two read-only indexes use 2,510 bytes. Generation checks sorted unique keys,
+offset coverage and the pinned table sizes; normalization data is unchanged.
+
 The focused compiler test `string_normalize_passes_official_unicode_conformance_rows`
 checks all 19,965 official rows (399,300 relationships) and all 275,446 assigned
 scalars outside Part 1 in all four forms (1,101,784 identity checks). Node validation

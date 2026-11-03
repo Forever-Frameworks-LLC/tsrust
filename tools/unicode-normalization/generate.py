@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate normalization tables offline from pinned Unicode 16.0.0 data."""
 from pathlib import Path
-import hashlib, json
+import bisect, hashlib, json
 ROOT = Path(__file__).resolve().parent
 sources = {name: hashlib.sha256((ROOT/'data'/name).read_bytes()).hexdigest() for name in ['UnicodeData.txt','DerivedNormalizationProps.txt','NormalizationTest.txt','LICENSE.txt']}
 manifest_path = ROOT/'sources.json'
@@ -38,6 +38,15 @@ output.extend('// '+line for line in (ROOT/'data/LICENSE.txt').read_text().split
 for name,typ,rows in [('TSR_NORMALIZATION_CCC','(u32,u8)',ccc),('TSR_NORMALIZATION_DECOMPOSE','(u32,bool,u32,u8)',decomp),('TSR_NORMALIZATION_COMPOSE','(u64,u32)',compose)]:
     output.append(f'const {name}: &[{typ}] = &[')
     output.extend('('+','.join(str(value).lower() for value in row)+'),' for row in rows);output.append('];')
+    if name in ['TSR_NORMALIZATION_CCC','TSR_NORMALIZATION_DECOMPOSE']:
+        keys=[row[0] for row in rows]
+        assert keys==sorted(set(keys))
+        pages=[bisect.bisect_left(keys,page<<8) for page in range((keys[-1]>>8)+2)]
+        assert pages[0]==0 and pages[-1]==len(rows) and pages[-1]<65536
+        assert all(all(key>>8==page for key in keys[start:end]) for page,(start,end) in enumerate(zip(pages,pages[1:])))
+        output.append(f'const {name}_PAGES: &[u16] = &[')
+        for i in range(0,len(pages),24): output.append(','.join(map(str,pages[i:i+24]))+',')
+        output.append('];')
 output.append('const TSR_NORMALIZATION_MAPPING: &[u32] = &[')
 for i in range(0,len(flat),24): output.append(','.join(str(value) for value in flat[i:i+24])+',')
 output.append('];')

@@ -134,3 +134,39 @@ fn string_normalize_compacts_compositions_without_overwriting_unread_scalars() {
  console.log(text.normalize("NFC").normalize("NFC")===composed);
  }"#,"true true\ntrue true\ntrue\n",None);
 }
+
+#[test]
+fn normalization_pages_match_full_searches_and_identity_needs_no_pending_allocation() {
+ let source=support::format_round_trip("function normal(text:string):string{return text.normalize();}function main(){}");
+ let emitted=tsrust_compiler::check(&source).unwrap().emit_rust();
+ assert!(!emitted.contains("unsafe"));
+ let allocator=include_str!("../../../benchmarks/runtime/allocation-driver.rs").split("fn main()").next().unwrap();
+ let harness=r#"
+fn main(){
+ for code in (0..=0x10ffff).chain([u32::MAX]) {
+  let expected=TSR_NORMALIZATION_CCC.binary_search_by_key(&code,|row|row.0).map_or(0,|index|TSR_NORMALIZATION_CCC[index].1);
+  assert_eq!(tsr_normalization_class(code),expected,"class U+{code:X}");
+  let rows=&TSR_NORMALIZATION_DECOMPOSE[tsr_normalization_page(code,TSR_NORMALIZATION_DECOMPOSE_PAGES)];
+  let actual=rows.binary_search_by_key(&code,|row|row.0).ok().map(|index|rows[index]);
+  let expected=TSR_NORMALIZATION_DECOMPOSE.binary_search_by_key(&code,|row|row.0).ok().map(|index|TSR_NORMALIZATION_DECOMPOSE[index]);
+  assert_eq!(actual,expected,"decomposition U+{code:X}");
+ }
+ for text in ["😀","Ω","ᄀ","क"] {
+  for form in ["NFC","NFD","NFKC","NFKD"] {
+   let before=ALLOCS.load(Relaxed);let live=LIVE.load(Relaxed);
+   let result=tsr_string_normalize(text,Some(form),"identity");
+   assert_eq!(ALLOCS.load(Relaxed)-before,2,"only scalar storage and owned output: {text} {form}");
+   assert_eq!(result.as_ref(),text);assert!(matches!(result,String::Owned(_)));
+   drop(result);assert_eq!(LIVE.load(Relaxed),live);
+  }
+ }
+}
+"#;
+ let directory=support::TempDirectory::new();let path=directory.0.join("normalization-pages.rs");
+ std::fs::write(&path,emitted.replace("fn main()","fn source_main()")+allocator+harness).unwrap();
+ for level in ["0","3"] {
+  let executable=directory.0.join(format!("normalization-pages-{level}"));
+  support::success(&support::run(support::rustc().args(["--edition=2024","-A","warnings","-D","unused_assignments","-C",&format!("opt-level={level}"),"-C","overflow-checks=on"]).arg(&path).arg("-o").arg(&executable),60));
+  let output=support::run(&mut std::process::Command::new(executable),30);support::success(&output);assert!(output.stdout.is_empty());assert!(output.stderr.is_empty());
+ }
+}
