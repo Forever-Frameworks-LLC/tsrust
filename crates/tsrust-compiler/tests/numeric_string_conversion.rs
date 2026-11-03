@@ -115,3 +115,35 @@ fn discarded_number_string_conversion_selects_its_existing_support() {
         support::success(&output);assert!(output.stdout.is_empty());
     }
 }
+
+
+#[test]
+fn decimal_parser_preserves_complete_grammar_rounding_and_special_spellings() {
+    let source=support::format_round_trip("function parse(text:string):number{return Number(text);}function main(){}");
+    let emitted=tsrust_compiler::check(&source).unwrap().emit_rust();
+    assert!(!emitted.contains("unsafe"));
+    let assertions=r#"
+fn main(){
+    for text in ["+", "-", ".", "+.", "-.", "1e", "1e+", "1e-", "1.2.3", "1e2e3", "1_000", "1tail", "1\0", "1 2", "0x", "0b2", "-0x10", "+0x10", "--1", "+-1", "inf", "Inf", "INF", "infinity", "INFINITY", "+inf", "-inf", "+infinity", "-infinity", "Infinitytail", "NaN", "+NaN", "-NaN", "nan", "１", "١", "\u{0085}2", "2\u{200b}"] {
+        assert!(function0(&String::Borrowed(text)).is_nan(),"{text:?}");
+    }
+    for text in ["0","-0","+0",".5","-.5","+.5","1.","1.e2","1.E-2","01","008","2.5e1","1e309","-1e309","1e-999","-1e-999","9007199254740993","5e-324","1.7976931348623157e308"] {
+        let expected=text.parse::<f64>().unwrap();
+        for value in [String::Borrowed(text),String::Owned(text.to_owned())] {
+            assert_eq!(function0(&value).to_bits(),expected.to_bits(),"{text}");
+            assert_eq!(value.as_ref(),text);
+        }
+    }
+    for (text,expected) in [("",0.0),(" \t\r\n",0.0),("\u{feff}-.5\u{a0}",-0.5),("Infinity",f64::INFINITY),("+Infinity",f64::INFINITY),("-Infinity",f64::NEG_INFINITY),("0x10",16.0),("0b11",3.0),("0o17",15.0)] {
+        assert_eq!(function0(&String::Borrowed(text)).to_bits(),expected.to_bits(),"{text:?}");
+    }
+}
+"#;
+    let directory=support::TempDirectory::new();let path=directory.0.join("decimal.rs");
+    std::fs::write(&path,emitted.replace("fn main()","fn source_main()")+assertions).unwrap();
+    for level in ["0","3"] {
+        let binary=directory.0.join(format!("decimal-{level}"));
+        support::success(&support::run(support::rustc().args(["--edition=2024","-C",&format!("opt-level={level}"),"-C","overflow-checks=on"]).arg(&path).arg("-o").arg(&binary),60));
+        support::success(&support::run(&mut std::process::Command::new(binary),30));
+    }
+}

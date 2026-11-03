@@ -37,25 +37,9 @@ pub fn tsr_number_from_text(text: &str) -> f64 {
         let width = match bytes[1] { b'b' | b'B' => Some(1), b'o' | b'O' => Some(3), b'x' | b'X' => Some(4), _ => None };
         if let Some(width) = width { return tsr_numeric_radix(&bytes[2..], width); }
     }
-    let mut at = usize::from(matches!(bytes.first(), Some(b'+' | b'-')));
+    let at = usize::from(matches!(bytes.first(), Some(b'+' | b'-')));
     if &text[at..] == "Infinity" { return if bytes[0] == b'-' { f64::NEG_INFINITY } else { f64::INFINITY }; }
-    let start = at;
-    while bytes.get(at).is_some_and(u8::is_ascii_digit) { at += 1; }
-    let mut digits = at - start;
-    if bytes.get(at) == Some(&b'.') {
-        at += 1;
-        let start = at;
-        while bytes.get(at).is_some_and(u8::is_ascii_digit) { at += 1; }
-        digits += at - start;
-    }
-    if digits == 0 { return f64::NAN; }
-    if matches!(bytes.get(at), Some(b'e' | b'E')) {
-        at += 1;
-        if matches!(bytes.get(at), Some(b'+' | b'-')) { at += 1; }
-        let start = at;
-        while bytes.get(at).is_some_and(u8::is_ascii_digit) { at += 1; }
-        if at == start { return f64::NAN; }
-    }
-    if at != bytes.len() { return f64::NAN; }
+    // Rust validates decimal syntax; exclude its extra non-finite spellings.
+    if !matches!(bytes.get(at), Some(b'0'..=b'9' | b'.')) { return f64::NAN; }
     text.parse::<f64>().unwrap_or(f64::NAN)
 }
