@@ -72,6 +72,34 @@ fn readonly_slice_traversal_preserves_ranges_and_normal_callback_entry_points() 
 }
 
 #[test]
+fn borrowed_ranges_discard_owned_results_and_preserve_regular_callback_returns() {
+    let analysis=native(
+        r#"
+        type Row={text:string;items:string[][];};
+        function walk():int{
+            const base=[1,2,3,4,5];let seen=0;
+            {const visit=(v:int,index:int,source:int[]):string[][]=>{seen=seen+v+index+source.length;return [["x".repeat(v%3+1)],[]];};
+            const selected=base.slice(1,4);selected.forEach(visit);
+            const result=visit(9,4,[1]);console.log(result[0][0]);}
+            return seen;
+        }
+        function records():int{
+            const base=[1,2,3,4,5];const selected=base.slice(-3);let seen=0;
+            selected.forEach((v:int,index:int,source:int[]):Row=>{seen=seen+v+index+source.length;return {text:"owned".repeat(v),items:[["nested".repeat(v)]]};});return seen;
+        }
+        function callables():int{
+            const base=[1,2,3,4,5];const selected=base.slice(1,3);let seen=0;
+            selected.forEach((v:int,index:int,source:int[]):()=>string=>{seen=seen+v+index+source.length;const text="owned".repeat(v);return ():string=>{return text;};});return seen;
+        }
+        function main(){console.log(walk(),records(),callables());}
+        "#,
+        "x\n35 24 10\n", "", "",
+    );
+    assert!(analysis.emit_rust().contains("fn call_range"));
+    assert_eq!(analysis.emit_rust().matches(".skip(for_each_start).take(for_each_len)").count(),3);
+}
+
+#[test]
 fn slice_views_fall_back_for_source_moves_mutation_and_whole_array_reads() {
     let analysis=native(
         r#"

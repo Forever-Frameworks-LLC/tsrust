@@ -28,17 +28,93 @@ proposal for that discussion, not a change to current backend scope.
 The docs restructuring in the next section remains open and is not the current
 optimization focus.
 
-Latest completed optimization: stored-callable dispatch inlining. Expectation
-predicates improve1.317×, repeat1.314×, with unchanged allocations and no material
-consumer compile-cost change. All162 affected tests pass. Two control consumers
-produce byte-identical executables; another has unchanged emitted source.
-Existing page tables include79 accepted run timestamps; no before/after table.
-The byte-view Rust reference now preserves allocation-error fallbacks: native
-0.093083ms/Rust0.088292ms (1.054×). This is a reference-fidelity repair, not a
-compiler speedup; the earlier4.242× comparison mixed allocation policies.
-Full regressions and promotion remain deferred. Previous scoped Map remaps improve
-1.089×, singleton storage1.145× with312,117 fewer allocations/42.8% lower compile
-cost, and identity moves1.068×/1.059×.
+Latest completed optimization: borrowed forEach slices with discarded non-void
+results. String/record/callable cases improve1.71–1.95×; nested results1.15–1.18×
+in repeated matched A/B. Each removes1,600 allocations/48,000 requested bytes;
+consumer compilation improves or stays within noise. All87 affected tests pass.
+Existing page tables include80 accepted run timestamps; no before/after table.
+Nested discard results still have a1.870× saved-Rust gap and are next to profile.
+Full regressions/promotion remain deferred until remaining large gaps are covered.
+Previous dispatch inlining improves1.317×/1.314×. Byte views now compare matching
+allocation policies (native0.093083ms/Rust0.088292ms,1.054×); this reference repair
+is not a compiler speedup.
+
+**Borrowed forEach slices with owned results — accepted locally, parent `8ec408a9`.**
+`emit/foreach_slices.rs` removes the void-result-only restriction, keeping Task
+results excluded. All existing source-read, capture/move/mutation, native/scoped,
+counting/optional/rest, fixed-layout and exception-region guards remain. Existing
+call_range return signatures and immediate-drop statements already preserve
+owned results, ordinary callback entry points and drop-before-next-invocation.
+`tests/array_for_each.rs` adds O0/O3 range witnesses for nested arrays, records and
+owned callables, plus an ordinary call retaining a returned nested array. No
+public API, ownership rule, runtime template, dependency, limit or unsafe change.
+
+Build198.366s/1,711,712KiB. All87 affected compiler/native tests pass, none
+ignored, one binary at a time, three threads,5GB/30min watchdog: forEach10
+(5.182s/469,232KiB), slice7 (8.290s/442,432KiB), reduce7
+(4.128s/416,208KiB), fixed storage34 (21.302s/492,832KiB), declared functions5
+(10.396s/414,368KiB), exceptions22 (5.207s/670,576KiB), callback errors2
+(1.563s/236,256KiB). All8 forEach oracle checks pass (0.520s/880KiB).
+An initial build command used the wrong `exceptions` target name and stopped
+before compilation; corrected to `exception_handling`, no product failure.
+
+Parent consumers rebuilt from the still-verified previous release compiler match
+all four fresh profile emission hashes. Existing void int/recursive-record control
+emission stays byte-identical in both debug and final release compilers.
+Quiet matched A/B uses identical source/crate/output paths and executable argv[0],
+original3×31 samples,2000 items,seed7,8 warmups; full results equal:
+- String0.094583→0.053625ms (1.763786×), repeat0.078917→0.041708ms (1.892131×).
+- Record0.108125→0.063375ms (1.706114×), repeat0.065875→0.033833ms (1.947064×).
+- Nested0.420542→0.357834ms (1.175243×), repeat0.410417→0.356458ms (1.151375×).
+- Callable0.082000→0.046500ms (1.763441×), repeat0.073875→0.041667ms (1.772986×).
+Three compile samples/version (wall/user ms): string208.075/247.541→
+201.154/242.789; record204.645/244.951→205.843/244.832;
+nested234.813/279.374→226.717/271.858; callable201.490/244.818→
+202.146/243.176. No material consumer compile regression; final candidates restored.
+
+The initial callable A/B process was killed by macOS taskgated: crash report says
+SIGKILL (Code Signature Invalid), CODESIGNING/Taskgated Invalid Signature. It was
+not a watchdog/resource stop or product assertion. Preserve completed compile
+samples. Atomic replacement fixes the unfinished callable comparison; repeat the
+three earlier runtime comparisons with signature-verified binaries and atomic
+swaps to remove that uncertainty. Numbers above are these final atomic results.
+Max load3.567; watchdog phases7.781s/225,984KiB (interrupted),3.642s/220,192KiB
+(callable),2.092s/32,064KiB (three runtime-only repeats). **Always atomically rename
+A/B executable replacements on macOS; do not overwrite existing executable inodes,
+even after the prior process exits.** Fresh focused Node controls come from the
+canonical run below; unchanged Rust references are reused.
+
+Fresh production profiles: parent4.676s/268,064KiB, candidate3.112s/276,176KiB;
+three identical samples/workload, same checksums, no reallocations, retained bytes
+or cleanup residue. String/record/callable each7,601→6,001 allocations,
+174,040→126,040 requested bytes,107→67 peak bytes; nested13,601→12,001,
+1,422,040→1,374,040 requested bytes,315→275 peak. Combined6,400 fewer
+allocations/192,000 requested bytes per four-workload batch.
+
+Canonical run `2026-11-03T10:46:38.159Z`,310.537s/1,526,544KiB, all five
+independent correctness cases/full timed results pass,93 samples/engine:
+string native0.024958ms/67,692,616.662mean ops/s,Node0.221625ms;
+record0.024958ms/76,698,220.206ops/s,Node0.219834ms;
+nested0.229250ms/8,631,142.506ops/s,Node0.220125ms;
+callable0.024917ms/80,032,582.838ops/s,Node0.220500ms.
+Actual timing max load3.998 below4, no override. Exactly8 ingested histories match
+raw medians/mean rates/counts/timestamp; SQLite integrity OK. Existing performance
+tables select80 runs,635/933 Tsrust wins over Node,621/933 Rust wins,median1.60×.
+Two page tests pass;66-page site builds3.645s/1,002,480KiB.
+String/record/callable are now1.045–1.055× saved Rust;
+nested0.229250/0.122583ms remains1.870×,0.106667ms excess.
+
+Whole-project formatter passes token/idempotence checks with zero source, snippet
+or fingerprint changes (4.116s/202,336KiB). Pruned38 closed scratch/raw files
+(10,180,100bytes) after exact measurement verification. Current production timing/
+profile consumers remain; all owned workers terminal. No broad regressions, remote
+CI or push occurred.
+
+Next: profile why nested discarded arrays still retain container construction/
+drop work compared with standard Rust. Consider the concrete call_range body and
+owned aggregate return/drop boundary before any global array storage or inlining
+policy. Preserve the nullable-boolean/nullish-spread queue and earlier rejected
+compile-cost tradeoffs. Full suites, CI, push and deployment remain deferred.
 
 **Direct singleton remaps — accepted locally, parent `869651fd`.**
 `runtime/maps.rs` constructs a remapped inline singleton directly. Its source Map
@@ -222,13 +298,8 @@ or fingerprint changes (4.146s/201,696KiB). Pruned25 closed scratch/raw files
 (11,125,784bytes) after exact measurement verification. Current production consumers
 remain; all owned workers terminal.
 
-Next: profile current discard-forEach consumers, especially nested results
-(latest stored0.282917ms/Rust0.122583ms may predate recent emission improvements).
-Refresh source/CPU/allocation evidence before treating that history as current.
-Then revisit nullable_boolean_undefined0.014833/0.003625ms, nullish array/call
-spreads0.063709/0.032208ms and0.063166/0.032000ms. Preserve rejected inline/push
-compile-cost findings. Large-gap milestone remains open; full suites and promotion
-wait until remaining differences are addressed/explained and only nits remain.
+Current continuation is recorded in the latest non-void forEach acceptance above;
+its measurements supersede the earlier discard-result review numbers.
 
 **Scoped Map singleton acceptance — 2026-11-03 (parent `17ce8e21`).**
 The first entry stays inline for scoped Maps when an iterative layout check proves
@@ -1331,7 +1402,8 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   array_literal_spread_nullish_packs1.978×/call_spread_nullish_packs1.974× after
   accepted constant-string concat above;
   normal forEach gaps now0.962–1.278× saved Rust after accepted range views;
-  non-void discard traversal remains1.796× for string results;plain byte views
+  non-void discard string/record/callable traversal is now1.045–1.055×,
+  with nested results still1.870×;plain byte views
   are now1.054× after matching recoverable allocation policy,while byte-view Maps are1.297×;
   expectation predicates are now3.176× after dispatch inlining, with reusable-matcher
   versus direct-assertion work documented above.

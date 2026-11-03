@@ -38,7 +38,7 @@ fn plain_records(program:&CheckedProgram)->Vec<bool> {
 fn length_parameter(program:&CheckedProgram,id:usize)->Option<usize> {
     let closure=&program.closures[id];
     if closure.polymorphic || closure.forward.is_some() || closure.function.template || closure.program_scoped || closure.program_async || program.task_origins.contains(&id)
-        || closure.parameters.len()!=3 || closure.function.result!=Type::Void || !matches!(closure.invocation,Mode::Read|Mode::Mutate){return None;}
+        || closure.parameters.len()!=3 || program.task_type(closure.function.result) || !matches!(closure.invocation,Mode::Read|Mode::Mutate){return None;}
     for &id in &closure.parameters {
         let binding=&closure.function.bindings[id];
         if binding.rest || binding.omission.is_omittable() || binding.initializer.is_some() || !matches!(binding.mode,Mode::Read|Mode::Copy){return None;}
