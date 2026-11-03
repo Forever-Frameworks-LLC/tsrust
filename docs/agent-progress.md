@@ -28,13 +28,14 @@ proposal for that discussion, not a change to current backend scope.
 The docs restructuring in the next section remains open and is not the current
 optimization focus.
 
-Latest completed optimization: direct scoped Map singleton remaps. Composition
-improves1.089×, repeat1.089×, with unchanged allocation/retained/peak memory and
-unchanged consumer compile cost. All240 affected tests pass. Existing page tables
-are refreshed (77 accepted run timestamps); no before/after table is added.
-Full regressions and promotion remain deferred. Previous singleton inline storage
-improves1.145×, repeat1.145×, removes312,117 allocations and lowers consumer
-compilation42.8%. Previous identity moves improve1.068×, repeat1.059×.
+Latest completed optimization: stored-callable dispatch inlining. Expectation
+predicates improve1.317×, repeat1.314×, with unchanged allocations and no material
+consumer compile-cost change. All162 affected tests pass. Two control consumers
+produce byte-identical executables; another has unchanged emitted source.
+Existing page tables include78 accepted run timestamps; no before/after table.
+Full regressions and promotion remain deferred. Previous scoped Map remaps improve
+1.089×, singleton storage1.145× with312,117 fewer allocations/42.8% lower compile
+cost, and identity moves1.068×/1.059×.
 
 **Direct singleton remaps — accepted locally, parent `869651fd`.**
 `runtime/maps.rs` constructs a remapped inline singleton directly. Its source Map
@@ -94,11 +95,83 @@ parent byte for byte. Pruned50 closed generated/experimental files
 and exactly verified raw results. Current production timing/allocation consumers
 remain, all owned workers terminal. No broad suites, remote CI or push occurred.
 
-Next: profile expectation predicates (remaining3.995× gap) before larger Map
-redesigns. The remaining Map gap is close to the saved reference; do not repeat
-these rejected layout/buffer probes without a new measured cause. Full suites,
-CI, push and deployment still await the large-gap milestone. Keep local page
-selections current and preserve the owner's existing-table preference.
+**Stored-callable dispatch — accepted locally, parent `503f3bdf`.**
+`crates/tsrust-compiler/src/callables/dispatch.rs` marks concrete family `call` and
+`call_with_count` methods `#[inline(always)]`. This exposes known closure origins
+at their call sites without forcing factory or closure-body inlining. No public
+API, ownership/storage change, dependency, input limit or generated unsafe code.
+Existing O0/O3 dispatch witnesses cover owned drops, readonly/shared identity,
+fallible results and argument-count forwarding; no new logic or fixtures needed.
+
+Affected build484.143s/1,660,304KiB. All162 tests pass, none ignored, one binary
+at a time under5GB/30min watchdog, three threads: dispatch units6+9
+(2.604s/330,464KiB and1.558s/203,088KiB), shared callback4
+(1.038s/160,016KiB), callable fields35 (16.277s/451,088KiB), recursive owned
+callbacks15 (3.624s/362,896KiB), fallible record callbacks4
+(1.556s/493,536KiB), testing runtime18 (0.523s/32KiB), testing library60
+(18.200s/780,064KiB), async testing11 (8.318s/1,353,376KiB).
+The unit selection excludes unrelated suites; this is not a full regression run.
+
+Quiet final A/B against the exact parent, identical source/crate/output paths
+and executable argv[0], original3×31 samples,4096 items,seed7,8 warmups:
+0.490875→0.372834ms (1.316605×), repeat0.470500→0.358166ms (1.313637×).
+Removing only the new dispatch attributes exactly restores the saved parent
+consumer source hash. Candidate binary shrinks510,080→509,696bytes.
+Default-parameter stored-family and nullable-owned-record controls produce
+byte-identical parent/candidate executables (including disassembly); their
+~2% timing fluctuations are noise. Fallible-record callback source is unchanged.
+Max load2.151 across final controls; watchdog4.660s/186,112KiB followed by
+4.148s/179,984KiB. The first control attempt omitted required input text in the
+scratch harness; repaired only that harness and resumed unfinished controls.
+No product failure occurred and the completed expectation results were retained.
+
+Three compile samples/version: expectation median wall344.172→351.194ms,
+user390.634→393.974ms. A reverse-order three-sample repeat resolves the small
+wall difference:350.500→349.784ms, user391.657→393.280ms; no material compile
+regression. Repeat max load2.217, watchdog2.581s/169,296KiB. Default family
+wall258.804→257.333ms/user308.759→304.215ms; nullable record
+wall271.665→270.267ms/user327.416→326.257ms. Final candidate consumers restored.
+
+Production profile2.065s/326,528KiB: three identical original4096-item samples,
+checksum730275589,11,606 allocations,0 reallocations,11,606 work deallocations,
+305,152 requested bytes,77 peak bytes, zero retained/input bytes and both cleanup
+counters zero. Equal to the parent. Allocation attribution:4,096 shared string
+identity environments,4,096 shared record identity environments and3,414 string
+repetitions. String/record expectations only call length matchers here, but still
+construct identity callbacks. Preserve non-Copy shared environment identity;
+independent payload clones are not a valid optimization. Earlier factory-inlining
+probes leave allocations unchanged and improve only1.034×/1.050×; not implemented.
+Earlier generated-only dispatch probes suggested1.385×/1.369×; use the final
+production-path A/B numbers above for the accepted change.
+
+Canonical run `2026-11-03T10:09:28.218Z` (216.387s/1,910,528KiB), original93
+samples/engine across four workloads, all five independent correctness cases and
+exact timed results pass. Expectation native0.392791ms/230,729,918.938mean ops/s,
+Node0.373334ms/242,959,160.608mean ops/s. Fresh focused Node control only;
+unchanged Rust references reused. Max load2.487, no busy override. Exactly8
+history entries ingested with `npm run store:ingest`, independently matched to
+raw medians/mean rates/counts/timestamp; SQLite integrity OK. Public existing
+results refreshed to78 selected runs:635/933 faster than Node, median1.60×.
+Two performance-page tests pass;66-page site builds3.117s/972,128KiB.
+
+Saved Rust0.123667ms leaves a3.176×/~0.269ms canonical gap. This benchmark builds
+real reusable expectation objects; Rust uses direct standard assertions and Node
+uses direct Node assertions. The manifest already documents this API difference.
+Do not describe the residual as pure record construction/access overhead. Unused
+identity-callback construction remains a possible general record-field-demand
+optimization, requiring preserved owner drops and callable identity. Avoid a
+benchmark-specific matcher rewrite or arena dependency without new evidence.
+
+Whole-project formatter passes token/idempotence checks with zero changes
+(4.144s/202,864KiB). Pruned53 closed scratch/raw files (15,511,167bytes) after
+exact ingestion verification. Current production timing/profile consumers remain.
+All owned workers terminal. No broad regressions, remote CI or push occurred.
+
+Next: revisit plain byte-view Result/error DTO ABI/layout (saved4.242×/~0.072ms
+gap); prior force-inline, heap-only arrays, direct slices and allocation-policy
+probes were rejected. Keep remaining large gaps addressed or explicitly explained
+before broad regressions. Keep local existing performance tables current; no new
+before/after table. Full suites, CI, push and deployment still await this milestone.
 
 **Scoped Map singleton acceptance — 2026-11-03 (parent `17ce8e21`).**
 The first entry stays inline for scoped Maps when an iterative layout check proves

@@ -268,7 +268,7 @@ impl<'a> Family<'a> {
         let separator = if parameters.is_empty() { "" } else { ", " };
         writeln!(
             output,
-            "impl {name} {{ fn call({receiver}{separator}{parameters}) -> {} {{",
+            "impl {name} {{ #[inline(always)] fn call({receiver}{separator}{parameters}) -> {} {{",
             result_type(self.contract.result)
         )
         .unwrap();
@@ -295,7 +295,7 @@ impl<'a> Family<'a> {
         if !counted { output.push_str("} }\n"); return; }
         output.push_str("}\n");
         if counted {
-            writeln!(output, "fn call_with_count({receiver}, count: usize{separator}{parameters}) -> {} {{", result_type(self.contract.result)).unwrap();
+            writeln!(output, "#[inline(always)] fn call_with_count({receiver}, count: usize{separator}{parameters}) -> {} {{", result_type(self.contract.result)).unwrap();
             let count_arguments = if arguments.is_empty() { "count".to_owned() } else { format!("count, {arguments}") };
             if self.origins.is_empty() {
                 output.push_str(if self.invocation == Mode::Consume { "match self {}\n" } else { "match *self {}\n" });
