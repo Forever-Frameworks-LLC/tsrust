@@ -28,7 +28,12 @@ proposal for that discussion, not a change to current backend scope.
 The docs restructuring in the next section remains open and is not the current
 optimization focus.
 
-Latest completed section:Copy-only shared readonly callback environments.
+Latest completed optimization:Map identity moves. Scoped composition improves
+1.068× (repeat1.059×),with unchanged allocation/retained memory and8.2% lower
+consumer Rust compile time. All239 affected tests pass. See acceptance below.
+Full regressions remain deferred until the remaining large gaps are covered.
+
+Previous completed section:Copy-only shared readonly callback environments.
 Expectation predicates improve1.318× (repeat1.255×),removing8,192 allocations;
 79 affected tests pass. Mixed/owned families retain Rc identity and destruction
 behavior. See the acceptance section below. Full regressions remain deferred.
@@ -49,7 +54,9 @@ include **0a68a4f5** (932 Rust references), **2c538120** (normalization optimiza
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization:Copy-only shared callback environments,expectation
+Latest accepted optimization:Map identity moves,composition1.068× (repeat1.059×),
+440 remaps removed,unchanged heap,consumer compile time8.2% lower.
+Previous Copy-only shared callback environments,expectation
 predicates1.318× (repeat1.255×),8,192 allocations removed,peak heap133→77 bytes.
 Previous borrowed forEach ranges,nested records4.905×
 (repeat5.280×),deep int4.213× (repeat4.129×),recursive3.691× (repeat3.784×);
@@ -96,6 +103,80 @@ accepted work: `260d1781`/`cea19c4c` Map planning, `5083586a` schema restoration
 plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
+
+**Map identity moves — accepted locally, parent7fe0e254:**
+- Profile-first generated-consumer probe removes440 identity conversions between
+  Map aliases with the same Rust carrier. Compilation50.819s/946,192KiB;probe
+  allocation build49.711s/801,504KiB. Two same-path quiet rounds,original3
+  processes×31 samples,8 warmups,2,048 iterations:27.588417→26.074959ms
+  (1.058×),28.481834→26.494958ms (1.075×),Node146.910834/149.568417ms.
+  All checksums/exact bits match,max load1.917969,54.339s/213,680KiB.
+  Allocation counters remain exactly equal,so the gain removes traversal work.
+- same_map_carrier checks key/value types,ordered versus ordinary Map,and the
+  actual emitted entry carrier. Reused existing shared-entry fallback selection
+  in one lazy linear index consumed by alias declarations and this guard. This
+  avoids repeated scans and prevents the guard drifting from actual Rust types.
+  Scoped carriers use canonical declaration IDs;ordinary carriers keep their
+  original IDs. The two epoch emitters move identical owners directly. Empty,
+  absent-payload and transferred-owner fallbacks retain their prior behavior.
+  No runtime storage,API,editor,limits,dependency or unsafe change.
+- New O0/O3 witness covers standalone and record-field Maps,tombstones,reinsert
+  order,lookup,small/indexed threshold transitions,finally overriding pending
+  return/throw/continue/break,and capture release after clear. Parent emits83
+  identity remaps;final emits0. First conservative guard left16 because raw entry
+  metadata omitted the shared-entry fallback;the witness caught it before other
+  tests ran. A direct-move Rust diagnostic compiled,proving actual carriers equal.
+  The first scratch source also exposed unsupported returned local borrows and
+  a missing named-record annotation;replaced it with supported local callbacks.
+- Affected builds198.490s/1,560,592KiB and197.899s/1,502,336KiB;final build has
+  no diagnostics. Final239 tests pass,none ignored,one binary at a time with3
+  threads:O0/O3 witness1 (3.619s/240,704KiB),Maps7 (2.605s/497,632KiB),
+  declared callbacks5 (10.332s/534,304KiB),exceptions22 (4.661s/571,088KiB),
+  remaining scoped composition204 (170.061s/662,928KiB). The focused witness
+  was skipped in the later file run to preserve its completed evidence.
+- Exact-parent formal preparation84.449s/1,096,128KiB;current release/profile
+  268.111s/1,570,976KiB;current formal2-case run82.310s/954,704KiB. Three
+  allocation samples match exactly:checksum108435446,allocations557,472,
+  reallocations2,056,deallocations555,423,requested79,711,904,retained/peak
+  2,326,528,input11,both cleanup counters0. Map aliases and entry declarations
+  are byte-identical;from_mapped calls1,222→782,identity calls440→0.
+- Formal native28.440958→27.146584ms,Node149.923750/151.931917ms;93 samples
+  each,quiet max2.401855/1.984863,no override. Saved Rust18.420917ms reused;
+  current native/Rust1.474×,8.725667ms absolute excess remains material.
+- Production same-path A/B,2 rotated rounds,93 samples/engine/workload/round:
+  composition27.422541→25.668375ms (1.068×),27.761583→26.222167ms (1.059×),
+  Node144.370916/147.099209ms. Control byte-view Maps.477000/.481750ms then
+  .470000/.463541ms;source and complete253,860-byte Mach-O __TEXT,__text
+  section are bit-identical at address4294969480,SHA256
+  1cf58775c1b886d68c1343279bf4808b677dcd74cca561bfc72676ef98a68735.
+  Checksums/exact bits match,max load1.790527,54.340s/225,360KiB.
+- Consumer compilation,original3 samples/engine at identical source/output paths:
+  parent54,824.298ms,current50,347.051ms (-8.2%);user CPU63,147.845→56,466.383ms.
+  Compiler emission,3 rotated samples/input/engine,stable paths/identical argv0:
+  composition4402.378→4413.315ms wall,user4385.504→4384.321ms;small Map
+  control7.846→7.787ms wall,user4.801→4.956ms. Combined342.682s/1,030,640KiB,
+  quiet max2.437988. A warmed11-sample/engine×2-round check resolves that tiny
+  control CPU drift:user4.609/4.601ms then4.561/4.616ms,wall7.223/7.156 then
+  7.249/7.213ms;identical emitted hash,max load1.742188,.513s/1,600KiB observed.
+  No material compiler regression;do not claim frontend speedup.
+- Exact parent emission for caller_borrowed_record_stores,scoped_callable_records,
+  fallible_record_callbacks and native_byte_views_maps has zero identity remaps
+  (1.042s/51,776KiB). The last is the unchanged control;no broad benchmark run.
+  npm run store:ingest added6 baseline/current history entries across2 files;
+  verified exact rounded medians/mean rates,93 samples,timestamp uniqueness and
+  SQLite integrity. Other Rust references were not retimed.
+- Whole-project formatter4.135s/200,512KiB:zero source/snippet/fingerprint changes.
+- Pruned30 closed scratch/parent/prototype/imported raw files,76,486,042 bytes.
+  Current verified tools,consumers,profiles and passed-test binaries remain;all
+  owned workers are terminal.
+- Next:remaining composition cost includes genuine value-layout widening with
+  live1 slot32→40 transitions;the earlier dense-count/reallocation attempt is
+  already rejected. A safe inline-single-entry generated-consumer probe could
+  bound the opportunity before any compiler storage design;default inline
+  embedding must not create recursive Rust layouts. Plain byte views still have
+  a real4.242× gap;isolate transient native error/Result layout before more
+  attribute experiments. Expectation/nullable/discard opportunities stay open.
+  Preserve deferred full-regression evidence. No public export,push,CI or release.
 
 **Plain byte views — profiling and reference correctness, parent848b6ac7:**
 - Fresh accepted-source baseline.095750ms,Node.601292ms,93 samples each;
@@ -980,7 +1061,7 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   assuming the small-map reference alone explains its gap.
 - Remaining large-gap review queue (latest stored matched workload IDs,not fresh
   A/B measurements except the accepted Map update above):composition now
-  28.994625ms vs saved hand Rust18.420917ms (1.574×,10.573708ms excess),replacing
+  27.146584ms vs saved hand Rust18.420917ms (1.474×,8.725667ms excess),replacing
   the historical121.497209ms row;recursive copy gaps are now small after the
   accepted dead-loop transport above:toReversed.030458/.027500ms (1.108×),
   with.039667/.034833ms (1.139×). Declared Number/boolean reductions are now

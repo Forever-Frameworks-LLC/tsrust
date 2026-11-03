@@ -3330,3 +3330,84 @@ fn repeated_catch_types_preserve_scoped_map_snapshots() {
     // A nested callable has its own planning boundary inside the parent's scope.
     project(&format!("{prelude}function main():void{{const run=():void=>{{{statements}}};run();}}"));
 }
+
+#[test]
+fn native_equivalent_map_epochs_preserve_holes_and_finally_overrides() {
+    use std::fmt::Write as _;
+    let source=support::format_round_trip(r#"type Holder={run:ReadOnly<Function<int>>;};type Box={handlers:Map<string,Holder>};
+function scenario(count:int):void{
+ const live=[5];const box:Box={handlers:new Map<string,Holder>()};let round=0;
+ while(round<2){
+  for(let key=0;key<count+2;key++){box.handlers.set(String(key),{run:():int=>live[0]});}
+  let before="";for(const [key,item] of box.handlers){before=before+key+":";}
+  try{try{box.handlers.delete("0");throw 3;}catch(error){box.handlers.delete("0");}}catch(error){box.handlers.delete("0");}
+  let after="";let total=0;for(const [key,item] of box.handlers){after=after+key+":";total+=item.run();}
+  console.log(round,before,after,box.handlers.size,total,box.handlers.get("0")?.run()??-1);round++;
+ }
+ box.handlers.clear();live[0]=11;console.log(live[0]);
+}
+function handlerCleanupOverrideEntry(value: int, mode: int): int {
+  const handlerOverrideFirst = [value];
+  const handlerOverrideSecond = [value + 1];
+  const handlerOverrideEntries = new Map<string, Holder>();
+  handlerOverrideEntries.set("first", {
+    run: (): int => handlerOverrideFirst[0]
+  });
+  handlerOverrideEntries.set("second", {
+    run: (): int => handlerOverrideSecond[0]
+  });
+  let handlerOverrideTurn = 0;
+  let handlerOverrideObserved = 0;
+  handlerOverrideOuter: while (handlerOverrideTurn < 2) {
+    handlerOverrideInner: while (true) {
+      try {
+        throw 37;
+      } catch (error) {
+        if (mode === 0) return 100;
+        if (mode === 1) throw 31;
+        if (mode === 2) continue handlerOverrideOuter;
+        break handlerOverrideInner;
+      } finally {
+        handlerOverrideEntries.delete("first");
+        handlerOverrideFirst[0] += 1;
+        handlerOverrideTurn += 1;
+        handlerOverrideObserved += handlerOverrideTurn + handlerOverrideEntries.size;
+        for (const [key, entry] of handlerOverrideEntries) {
+          handlerOverrideObserved += entry.run();
+        }
+
+        if (handlerOverrideTurn < 2) continue handlerOverrideOuter;
+        break handlerOverrideOuter;
+      }
+    }
+  }
+
+  handlerOverrideEntries.clear();
+  return handlerOverrideFirst[0] + handlerOverrideSecond[0] + handlerOverrideObserved;
+}
+
+function main():void{console.log(handlerCleanupOverrideEntry(3,0),handlerCleanupOverrideEntry(3,1),handlerCleanupOverrideEntry(3,2),handlerCleanupOverrideEntry(3,3));scenario(0);scenario(6);scenario(9);}
+"#);
+    let analysis=tsrust_compiler::check(&source).unwrap();
+    let rust=analysis.emit_rust();
+    assert!(!rust.contains(",|entry_value|{entry_value})"),"identical native Map carriers must move without remapping entries");
+    let mut expected=String::from("22 22 22 22\n");
+    for count in [0,6,9] {
+        let after=(1..count+2).map(|key|format!("{key}:")).collect::<String>();
+        let initial=format!("0:{after}");
+        let reinserted=format!("{after}0:");
+        for (round,before) in [initial,reinserted].iter().enumerate(){
+            writeln!(expected,"{round} {before} {after} {} {} -1",count+1,5*(count+1)).unwrap();
+        }
+        expected.push_str("11\n");
+    }
+    let directory=support::TempDirectory::new();
+    let path=directory.0.join("identity-map-epochs.rs");
+    std::fs::write(&path,rust).unwrap();
+    for level in ["0","3"] {
+        let binary=directory.0.join(format!("identity-map-epochs-{level}"));
+        support::success(&support::run(support::rustc().args(["--edition=2024","-A","warnings","-C",&format!("opt-level={level}")]).arg(&path).arg("-o").arg(&binary),60));
+        let output=support::run(std::process::Command::new(&binary).args(std::iter::empty::<&str>()),60);
+        support::success(&output);assert_eq!(String::from_utf8(output.stdout).unwrap(),expected);
+    }
+}

@@ -39,6 +39,7 @@ impl Emitter<'_> {
         let target=self.program.records[output].map_definition.as_ref().unwrap().value;
         let native=self.native_type(Type::Map(output));
         if epoch.empty{return format!("drop({place});let mut {place}: {native}=<{native}>::new();");}
+        if self.same_map_carrier(input,output){return format!("let mut {place}: {native}={place};");}
         let converted=self.map_entry_payload_projection(source,target,"entry_value");
         format!("let mut {place}: {native}=<{native}>::from_mapped({place},|entry_value|{{{converted}}});")
     }
