@@ -142,10 +142,12 @@ impl<T: TsrSetKey> TsrSet<T> {
         if self.small() { return self.slots.iter().position(|stored| stored.as_ref().is_some_and(|stored| query.tsr_query_same(stored))); }
         self.candidates(query.tsr_query_hash()).find(|&index| self.slots[index].as_ref().is_some_and(|stored| query.tsr_query_same(stored)))
     }
-    fn matches_with<'a,U,F:Fn(&U,&T)->bool>(&'a self,value:&'a U,hash:u64,compare:&'a F)->impl Iterator<Item=&'a T>+'a{
+    fn matches_with<'a,U:TsrSetKey,F:Fn(&U,&T)->bool>(&'a self,value:&'a U,compare:&'a F)->impl Iterator<Item=&'a T>+'a{
+        let hash=if self.small(){0}else{value.tsr_hash()};
         self.candidates(hash).filter_map(move |index|self.slots[index].as_ref().filter(|stored|compare(value,stored)))
     }
-    fn has_with<U, F: Fn(&U, &T) -> bool>(&self, value: &U, hash: u64, compare: &F) -> bool {
+    fn has_with<U:TsrSetKey, F: Fn(&U, &T) -> bool>(&self, value: &U, compare: &F) -> bool {
+        let hash=if self.small(){0}else{value.tsr_hash()};
         self.candidates(hash).any(|index|self.slots[index].as_ref().is_some_and(|stored|compare(value,stored)))
     }
     fn has(&self, value: impl TsrSetQuery<T>) -> bool { self.query_location(&value).is_some() }
