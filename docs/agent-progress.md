@@ -28,6 +28,21 @@ proposal for that discussion, not a change to current backend scope.
 The docs restructuring in the next section remains open and is not the current
 optimization focus.
 
+Owner steering, 2026-11-03: prioritize the hello-project c.json anonymous-object
+failure and code-first Hono-style HTTP workflow over further optimization. Objects
+must infer fields without requiring a named record declaration. Routes, middleware,
+authorization and client generation must not require tsrust.config.json API wiring.
+Keep old config-driven RPC compatibility while replacing the tutorial/default flow
+with source-defined routes/middleware and config-free client generation. Inspect
+`website/src/content/docs/learn/first-service.md`, HTTP analysis and API CLI.
+Active object-inference work is uncommitted: records.rs permits source inference
+and interns exact shapes; project/facts.rs exposes them structurally; new inferred
+object and HTTP loopback witnesses plus updated module-state acceptance. Compiler acceptance: all 27 affected inferred-object/module-state/JSON/HTTP tests pass, including the exact shared-state response and before/after middleware. The first editor witness exposed missing checked projection facts; projections.rs now publishes inferred object receivers and fields. Completion/hover and the four-mode typing row pass. The typing row initially contradicted itself by both requiring and excluding greeting; fixed the fixture. All 32 affected editor tests pass: exact object completion/hover 1 (0.521s), typing row 1 across four modes (3.734s/18,176KiB), checker agreement 3 (514.649s/98,688KiB), editor consistency 27 (13.659s/131,152KiB). Rebuild after projection metadata repair: 191.182s/1,223,536KiB; typing-fixture rebuild only after removing the contradictory exclusion. Existing compiler evidence remains valid: inferred objects 2, module state 13, JSON encoding 3 and HTTP context 9, all passed. Actual hello/src/main.tsr checks without edits. Whole-project formatter: 0 changed files/snippets/fingerprints. Release build of both consumers passed (217.899s/1,428,576KiB). Atomically installed ~/.cargo/bin/tsrust (29,722,176 bytes) and tsrust-lsp (19,374,352 bytes), verified identical hashes. Installed compiler checks the unchanged hello project. VS Code still showed two stale diagnostics; CUA HTML controls/keyboard/native command-palette selection did not respond. Stopped stale LSP PID93494 with SIGTERM; installed extension0.2.0 did not restart it automatically. UI reports noWindowsAvailable for coordinate input despite an AX tree. Owner must run Tsrust: Restart Language Server or reload the window when responsive; do not claim live editor verification. The hello source was not edited. Do not resume nullable-boolean optimization until
+this owner-directed HTTP work is handled.
+
+Next section has untracked, unvalidated drafts only: api/router.rs, router-client.js, rust-router-runtime.rs.template and tests/router_contract.rs. They are not wired into api/mod.rs or the CLI and are excluded from the object-inference checkpoint. Finish source Router contract extraction, config-free CLI entry selection, TypeScript/Rust clients, scaffold and tutorial; then run the affected contract/scaffold suites. Preserve legacy configured RPC. Hello project source is read-only evidence;
+its exact failing expression is in /Users/seancotter/Desktop/dev/learning/hello/src/main.tsr.
+
 Latest completed optimization: fixed private return arrays for discarded nested
 forEach results. Final matched A/B improves10.602×, repeat7.551×, removes6,000
 allocations/1,248,000 requested bytes per2000-item batch, with slightly lower

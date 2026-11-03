@@ -3174,3 +3174,16 @@ fn ui_field_types_keep_public_native_names_and_generic_arguments() {
   for needle in ["alue;","hildren;"] {let completion=ask(&index,&source,needle,"textDocument/completion");let item=completion.as_array().unwrap().iter().find(|item|item["label"]==if needle=="alue;"{"value"}else{"children"}).unwrap();let detail=item["detail"].as_str().unwrap();assert!(detail.contains("Signal<int>")&&detail.contains("Signal<string>")&&!detail.contains("NativeSignal"),"{item}");let reply=ask(&index,&source,needle,"textDocument/hover");let text=reply["contents"]["value"].as_str().unwrap_or("");assert!(text.contains("Signal<int>")&&text.contains("Signal<string>")&&!text.contains("NativeSignal"),"{needle}: {source}\n{reply}");}
  }
 }
+
+#[test]
+fn inferred_local_objects_have_checked_completion_and_hover() {
+    let entry=tsrust_compiler::format("function main(){const data={greeting:'hello',nested:{value:3}};console.log(data.greeting,data.nested.value);}").unwrap();
+    let uri=fixture_uri!("/tsrust-intelligence/main.tsr");let id=source_id(uri).unwrap();
+    let mut workspace=Workspace::default();workspace.open(id.clone(),1,entry.clone());
+    let checked=workspace.snapshot().check(&id).unwrap();let index=ProjectIndex::checked(&checked);
+    let fields=ask(&index,&entry,"greeting,","textDocument/completion");
+    let fields=fields.as_array().expect("object members");
+    assert!(fields.iter().any(|item|item["label"]=="greeting"), "{entry}\n{fields:?}\n{:?}", checked.checked_type_facts());assert!(fields.iter().any(|item|item["label"]=="nested"));
+    let hover=ask(&index,&entry,"greeting,","textDocument/hover");assert!(hover.to_string().contains("string"),"{hover}");
+    let nested=ask(&index,&entry,"value);","textDocument/completion");assert!(nested.as_array().unwrap().iter().any(|item|item["label"]=="value"));
+}

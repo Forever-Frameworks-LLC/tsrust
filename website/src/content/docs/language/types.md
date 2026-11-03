@@ -7,6 +7,21 @@ Tsrust types are checked at compile time and have a fixed native layout. `type` 
 
 To run an example, save it as `main.tsr` after [native setup](../../tools/rust-setup/) and run `tsrust run main.tsr`. Examples that use `strictEqual` finish without output when their assertions pass; others show expected output in comments.
 
+## Inferred objects
+
+Object literals infer their fields without a named type:
+
+```tsrust
+function main() {
+  const user = { name: 'Ada', stats: { visits: 3 } };
+  console.log(user.name, user.stats.visits); // Ada 3
+}
+```
+
+Use an annotation when you want a reusable named contract. Inferred objects keep
+fixed field types and Rust ownership rules; inference does not turn values into
+dynamic dictionaries or implicitly clone an owned field.
+
 ## Type aliases
 
 `type Name = Type;` gives an existing type another name. A value accepted by the

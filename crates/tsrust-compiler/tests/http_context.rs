@@ -80,3 +80,27 @@ fn router_state_and_variable_ownership_reject(){
   assert!(!output.status.success(),"accepted {source}");let error=String::from_utf8_lossy(&output.stderr);assert!(!error.contains("panicked")&&!error.contains("error[import]")&&!error.contains("error[syntax]"),"{error}");
  }
 }
+
+#[test]
+fn context_json_accepts_inferred_objects_and_preserves_shared_env() {
+ let directory=support::TempDirectory::new();
+ let source=support::format_round_trip(r#"
+ import {Router,Client,request} from 'std:http';
+ import {strictEqual} from 'std:testing';
+ type State={greeting:string;};
+ async function main():Task<void>{
+   const app=new Router<State>({greeting:"hello".repeat(2)});
+   app.use(async(c,next)=>{c.header("x-before","entry");await next();c.header("x-after","exit");});
+   app.get("/",c=>{return c.json({greeting:clone(c.env.greeting),nested:{ready:true}});});
+   const server=await app.listen("127.0.0.1:0");
+   const client=new Client();
+   const response=await client.send(request("GET","http://"+server.address()+"/",""));
+   strictEqual(response.status(),200);
+   strictEqual(response.header("x-before"),"entry");strictEqual(response.header("x-after"),"exit");
+   strictEqual(await response.text(),'{"greeting":"hellohello","nested":{"ready":true}}');
+   await server.shutdown();console.log("inferred JSON passed");
+ }
+ "#);
+ let output=support::run(support::cli().arg("run").arg(directory.source(&source)),300);
+ support::success(&output);assert_eq!(output.stdout,b"inferred JSON passed\n");
+}

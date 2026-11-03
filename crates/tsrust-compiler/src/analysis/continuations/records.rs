@@ -42,9 +42,9 @@ impl Analyzer {
             .module_literal_scope
             .is_some_and(|scope| scope.start <= span.start && span.end <= scope.end)
             || (!fields.is_empty() && fields.iter().all(|(name,_)|name.text.starts_with("future#task")));
-        if expected.is_none() && (self.builtin_literals || module_literal) {
+        if expected.is_none() {
             return Ok(RecordFrame::Inferred {
-                module_literal,
+                module_literal: module_literal || !self.builtin_literals,
                 inferred: Vec::new(),
                 types: HashMap::new(),
             });
@@ -312,12 +312,15 @@ impl Analyzer {
                 let module_literal = *module_literal;
                 let inferred = std::mem::take(inferred);
                 let types = std::mem::take(types);
+                let shape=module_literal.then(||format!("@object:shape:{:?}",inferred.iter().map(|field|(&field.name.text,field.ty)).collect::<Vec<_>>()));
+                if let Some(id)=shape.as_ref().and_then(|shape|self.record_names.get(shape)){return Ok(Type::Record(*id));}
                 let id = self.program.records.len();
                 let name = if module_literal {
-                    format!("@module:object:{id}")
+                    format!("@object:{id}")
                 } else {
                     format!("BuiltinObject{id}")
                 };
+                if let Some(shape)=shape{self.record_names.insert(shape,id);}
                 self.record_names.insert(name.clone(), id);
                 self.program.records.push(Record {
                     native_type: None,

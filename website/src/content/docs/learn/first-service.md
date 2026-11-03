@@ -214,6 +214,17 @@ Return `c.text(value)`, `c.html(value)` or `c.json(value)` from a handler.
 reads request data. Use `c.header` to change response headers before or after
 `await next()`.
 
+Response objects can be written inline; their shape is inferred:
+
+```tsrust
+app.get('/', c => {
+  return c.json({ greeting: 'Hello', nested: { ready: true } });
+});
+```
+
+When copying an owned field from shared application state into a response object,
+use `clone`, for example `c.json({ greeting: clone(c.env.greeting) })`.
+
 After `await next()`, read-only `c.res` exposes the response status and headers.
 Before a response returns its status is 404. Unhandled handler errors become a
 500 before middleware unwinds. Custom `onError` callbacks and replacing the
