@@ -3393,7 +3393,9 @@ impl Emitter<'_> {
         }
         if output.contains("tsr_array_join(") || output.contains("tsr_array_locale(") || output.contains("TsrJoinText::append_join_text(") {
             if self.program.records.iter().any(|record|record.map_definition.is_some()) {
-                output.push_str("impl<K: TsrSetKey,V,P:TsrMapEntry<K,V>> TsrJoinText for TsrMap<K,V,P> { fn append_join_text(&self, output: &mut std::string::String) { output.push_str(\"[object Map]\"); } }\n");
+                let storage=if self.inline_map_first(){",F:TsrMapFirstSlot<P>"}else{""};
+                let map=if self.inline_map_first(){"TsrMap<K,V,P,F>"}else{"TsrMap<K,V,P>"};
+                let _=writeln!(output,"impl<K: TsrSetKey,V,P:TsrMapEntry<K,V>{storage}> TsrJoinText for {map} {{ fn append_join_text(&self, output: &mut std::string::String) {{ output.push_str(\"[object Map]\"); }} }}");
             }
             if self.program.records.iter().any(|record| record.set_definition.is_some()) {
                 output.push_str("impl<T: TsrSetKey> TsrJoinText for TsrSet<T> { fn append_join_text(&self, output: &mut std::string::String) { output.push_str(\"[object Set]\"); } }\n");

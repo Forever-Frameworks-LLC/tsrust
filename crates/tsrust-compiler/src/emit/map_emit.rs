@@ -39,9 +39,44 @@ impl Emitter<'_> {
         }else{value.into()};
         format!("TsrReadView{pair}{{field0:{key},field1:{payload}}}")
     }
+    pub(super) fn inline_map_first(&self)->bool {
+        let ordered=Some(crate::native_signatures::NativeTypeId::OrderedMap);
+        if !self.program.records.iter().any(|record|record.native_type!=ordered && record.map_definition.as_ref().is_some_and(|map|self.scoped_record_native_parameter(map.value))) {return false;}
+        // shortcut: owned environments and nested Maps keep Vec storage; refine if they profile hot.
+        if self.program.closures.iter().any(|closure| !closure.function.template && (
+            !closure.program_captures.is_empty() || closure.captures.iter().any(|capture| {
+                !matches!(capture.storage,Mode::Read|Mode::Mutate)
+                    && !self.native_captures.ty(&closure.function,capture.inner).is_copy()
+            })
+        )) {return false;}
+        let mut pending=Vec::new();
+        for record in &self.program.records {if let Some(map)=&record.map_definition {
+            pending.extend([map.key,map.value]);
+        }}
+        let mut seen=std::collections::HashSet::new();
+        while let Some(ty)=pending.pop() {
+            if !seen.insert(ty) {continue;}
+            match ty {
+                Type::Map(_)=>return false,
+                Type::Record(id)=>{
+                    let record=&self.program.records[id];
+                    if record.native_type.is_some() {return false;}
+                    for field in &record.fields {
+                        let Some(ty)=field.ty else{return false;};pending.push(ty);
+                    }
+                },
+                Type::Union(id)|Type::BorrowedUnion(id)=>pending.extend(self.program.unions[id.index()].members.iter().copied()),
+                // Arrays and Sets already put their elements behind heap indirection.
+                _=>{}
+            }
+        }
+        true
+    }
     pub(super) fn map_types(&self, output: &mut String) {
         if !self.program.records.iter().any(|record| record.map_definition.is_some()) { return; }
-        output.push_str(runtime::MAP_RUNTIME);
+        let inline=self.inline_map_first();
+        if inline {output.push_str(runtime::MAP_INLINE_FIRST);output.push_str(runtime::MAP_INLINE_RUNTIME);}
+        else {output.push_str(runtime::MAP_RUNTIME);}
         let mut scoped_entries=std::collections::HashSet::new();
         // Every concrete environment of one Map type shares its entry layout,
         // so a caller's Map matches a callee that iterates the entries.
@@ -63,9 +98,9 @@ impl Emitter<'_> {
                 continue;
             }
             if let Some(pair)=entries[id] {
-                let _=writeln!(output,"type Map{id}=TsrMap<{key},{value},Record{pair}>;");
+                if inline{let _=writeln!(output,"type Map{id}=TsrMap<{key},{value},Record{pair},TsrMapNoFirst<Record{pair}>>;");}else{let _=writeln!(output,"type Map{id}=TsrMap<{key},{value},Record{pair}>;");}
                 let _=writeln!(output,"impl TsrMapEntry<{key},{value}> for Record{pair} {{fn from_pair(key:{key},value:{value})->Self{{Self{{field0:key,field1:value}}}}fn key(&self)->&{key}{{&self.field0}}fn value(&self)->&{value}{{&self.field1}}fn value_mut(&mut self)->&mut {value}{{&mut self.field1}}fn into_pair(self)->({key},{value}){{(self.field0,self.field1)}}}}");
-            }else{let _=writeln!(output,"type Map{id}=TsrMap<{key},{value}>;");}
+            }else{if inline{let _=writeln!(output,"type Map{id}=TsrMap<{key},{value},({key},{value}),TsrMapNoFirst<({key},{value})>>;");}else{let _=writeln!(output,"type Map{id}=TsrMap<{key},{value}>;");}}
         }}
     }
     /// Assembles a Map from its already rendered read-mode source.
