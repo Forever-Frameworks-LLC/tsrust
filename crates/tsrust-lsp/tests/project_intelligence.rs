@@ -2363,7 +2363,7 @@ fn raw_json_encoding_hover_describes_exact_output() {
  let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
  for needle in ["stringify(raw)","tryStringify(raw)"] {
   let hover=ask(&index,&source,needle,"textDocument/hover");let docs=hover.to_string();
-  for text in ["original source text exactly","output byte limit","64-container","JSON Lines"] {assert!(docs.contains(text),"{hover}");}
+  for text in ["original source text exactly","output byte limit","no container-depth quota","JSON Lines"] {assert!(docs.contains(text),"{hover}");}
  }
 }
 

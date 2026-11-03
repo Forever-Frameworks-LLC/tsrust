@@ -48,7 +48,7 @@ pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding,ordered:&std
   };
   (if borrow.is_empty(){format!("value:Record{value}")}else{"value:&B".into()},if borrow.is_empty(){format!("tsrust_native_json::{reader}(value.value)")}else{format!("tsrust_native_json::{reader}(value.json_value())")},payload.to_string())
  }else{
-  ("value:&B,max_bytes:Option<i64>".to_string(),"usize::try_from(max_bytes.unwrap_or(16*1024*1024)).map_err(|_|tsrust_native_json::invalid_limits()).and_then(|limit|tsrust_native_json::stringify(value.json_value(),limit))".to_string(),"String::Owned(value)".to_string())
+  ("value:&B,max_bytes:Option<i64>".to_string(),"max_bytes.map(usize::try_from).transpose().map_err(|_|tsrust_native_json::invalid_limits()).map(|limit|limit.unwrap_or(usize::MAX)).and_then(|limit|tsrust_native_json::stringify(value.json_value(),limit))".to_string(),"String::Owned(value)".to_string())
  };
  let generic=if matches!(binding.name,"asBoolean"|"asInt"|"asNumber"|"stringify"){"<B:tsrust_native_json::Source>"}else{""};
  let order=|id|crate::records::runtime::declaration_order_suffix(program,ordered,id);

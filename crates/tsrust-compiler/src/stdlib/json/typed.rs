@@ -344,7 +344,7 @@ mod encoding_tests {
   assert_eq!(encode(&record,0).unwrap_err().code,"output-limit");
  }
  #[test]
- fn direct_typed_encoding_stops_at_the_generated_container_bound(){
+ fn direct_typed_encoding_uses_stack_limits_and_explicit_byte_budgets(){
   struct Nested{remaining:usize,depth:usize}
   impl serde::Serialize for Nested{
    fn serialize<S:serde::Serializer>(&self,serializer:S)->Result<S::Ok,S::Error>{
@@ -356,17 +356,19 @@ mod encoding_tests {
     sequence.end()
    }
   }
-  let expected=format!("{}7{}","[".repeat(64),"]".repeat(64));
-  assert_eq!(encode(&Nested{remaining:64,depth:0},expected.len()).unwrap(),expected);
-  let error=encode(&Nested{remaining:65,depth:0},1024).unwrap_err();
-  assert_eq!(error.code,"depth-limit");assert_eq!(error.offset,64);
+  for remaining in [64,65,256] {
+   let expected=format!("{}7{}","[".repeat(remaining),"]".repeat(remaining));
+   assert_eq!(encode(&Nested{remaining,depth:0},expected.len()).unwrap(),expected);
+   assert_eq!(encode(&Nested{remaining,depth:0},expected.len()-1).unwrap_err().code,"output-limit");
+  }
   assert_eq!(encoding_container::<serde_json::Error>(usize::MAX).unwrap_err().to_string(),"tsrust:depth-limit");
  }
  #[test]
- fn dynamic_values_share_the_typed_parent_depth_budget(){
+ fn dynamic_values_have_no_added_container_quota(){
   let value=serde_json::json!({"items":[1,2]});
   assert_eq!(encode(&Dynamic(&value,62),100).unwrap(),"{\"items\":[1,2]}");
-  assert_eq!(encode(&Dynamic(&value,63),100).unwrap_err().code,"depth-limit");
+  assert_eq!(encode(&Dynamic(&value,256),100).unwrap(),"{\"items\":[1,2]}");
+  assert_eq!(encode(&Dynamic(&value,usize::MAX),100).unwrap_err().code,"depth-limit");
   assert_eq!(encode(&Dynamic(&serde_json::json!(7),64),100).unwrap(),"7");
  }
  #[test]
@@ -401,8 +403,7 @@ impl serde::Serialize for FiniteNumber{
 /// Every generated record/array visitor enters before visiting its children.
 /// Scalars retain their parent's depth; the root starts at zero.
 pub fn encoding_container<E:serde::ser::Error>(depth:usize)->Result<usize,E>{
- if depth>=64{return Err(E::custom("tsrust:depth-limit"));}
- Ok(depth+1)
+ depth.checked_add(1).ok_or_else(||E::custom("tsrust:depth-limit"))
 }
 
 /// Object visitors omit undefined fields. All other positions reject them.

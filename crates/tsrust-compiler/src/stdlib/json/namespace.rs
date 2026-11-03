@@ -141,9 +141,9 @@ fn throwing_adapter(program: &mut Program, name: &str) -> Result<Function, Diagn
     }else if name == "parse" {
         "function adapter(text:string,limits?:JsonLimits):JsonValue {if(limits===undefined){match(backend(text)){Ok(value)=>{return value;},Err(error)=>{throw error;}}}match(backend(text,limits)){Ok(value)=>{return value;},Err(error)=>{throw error;}}}"
     } else if name == "tryStringify" {
-        "function adapter<T>(value:T,maxBytes:int=16777216):Result<string,JsonError> {return backend(value,maxBytes);}"
+        "function adapter<T>(value:T,maxBytes?:int):Result<string,JsonError> {return backend(value,maxBytes);}"
     } else {
-        "function adapter<T>(value:T,maxBytes:int=16777216):string {const encoded:Result<string,JsonError>=backend(value,maxBytes);match(encoded){Ok(text)=>{return text;},Err(error)=>{throw error;}}}"
+        "function adapter<T>(value:T,maxBytes?:int):string {const encoded:Result<string,JsonError>=backend(value,maxBytes);match(encoded){Ok(text)=>{return text;},Err(error)=>{throw error;}}}"
     };
     let mut function = crate::syntax::parse(source)?.functions.remove(0);
     let offset = program.functions.iter().map(|function| function.scope_span.end.max(crate::source_walk::body_end(&function.body))).max().unwrap_or(0) + 1;

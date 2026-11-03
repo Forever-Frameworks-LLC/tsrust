@@ -71,8 +71,9 @@ Lines readers apply the defaults below when you omit limits:
 | `maxEntries` | 1000000 | Maximum entries in one collection. |
 | `maxNodes` | 1000000 | Maximum total values. |
 
-All fields must be nonnegative integers. Serialization has a separate output
-limit of 16777216 bytes by default; a negative limit reports `invalid-limits`.
+All fields must be nonnegative integers. Ordinary JSON serialization has no
+output byte quota by default. Pass a nonnegative byte limit when needed; a
+negative explicit limit reports `invalid-limits`.
 
 ### Know the parsing rules
 
@@ -352,10 +353,10 @@ records retain their existing ownership and allocation rules.
 Undefined object fields are omitted. Undefined at the root or in an array reports
 `undefined-value`; it is never silently replaced with null. Nonfinite numbers
 report `number-nonfinite`. Integers retain their exact signed 64-bit values.
-The default output limit is 16777216 UTF-8 bytes; pass a nonnegative second
-argument to change it. Exceeding this limit reports `output-limit` without
-returning partial output. Container nesting above 64 reports `depth-limit`,
-including dynamic JSON nested inside typed data. Resource handles, callbacks,
+Omitting the output limit or passing `undefined` imposes no byte quota. Pass a
+nonnegative second argument to set a UTF-8 byte budget. Exceeding that explicit
+limit reports `output-limit` without returning partial output. Encoding imposes
+no nesting quota; Rust stack and allocation limits apply. Resource handles, callbacks,
 Maps and Sets are not JSON encodable.
 
 ## JSONC and JSON Lines

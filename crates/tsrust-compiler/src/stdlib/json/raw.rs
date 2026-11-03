@@ -57,7 +57,7 @@ pub struct Encoded<'a, 'source>(pub &'a Fragment<'source>, pub usize);
 impl serde::Serialize for Encoded<'_, '_> {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         use serde::ser::{Error, SerializeStruct};
-        if self.1>64 || self.0.depth>64-self.1 {
+        if self.1.checked_add(self.0.depth).is_none() {
             return Err(S::Error::custom("tsrust:depth-limit"));
         }
         const TOKEN:&str="$serde_json::private::RawValue";
@@ -75,8 +75,10 @@ mod tests {
     fn raw_encoding_rejects_invalid_parent_depth_without_overflow() {
         let scalar=borrow("null",limits()).unwrap();
         for depth in [65,usize::MAX] {
-            assert_eq!(super::super::typed::encode(&Encoded(&scalar,depth),128).unwrap_err().code,"depth-limit");
+            assert_eq!(super::super::typed::encode(&Encoded(&scalar,depth),128).unwrap(),"null");
         }
+        let container=borrow("[]",limits()).unwrap();
+        assert_eq!(super::super::typed::encode(&Encoded(&container,usize::MAX),128).unwrap_err().code,"depth-limit");
     }
     #[test]
     fn embedded_serialization_preserves_text_and_combined_limits() {
@@ -85,7 +87,7 @@ mod tests {
         assert_eq!(super::super::typed::encode(&Encoded(&raw,0),128).unwrap(),text);
         assert_eq!(super::super::typed::encode(&vec![Encoded(&raw,1)],128).unwrap(),format!("[{text}]"));
         assert_eq!(super::super::typed::encode(&Encoded(&raw,0),text.len()-1).unwrap_err().code,"output-limit");
-        assert_eq!(super::super::typed::encode(&Encoded(&raw,64),128).unwrap_err().code,"depth-limit");
+        assert_eq!(super::super::typed::encode(&Encoded(&raw,64),128).unwrap(),text);
         let scalar=borrow("null",limits()).unwrap();
         assert_eq!(super::super::typed::encode(&Encoded(&scalar,64),128).unwrap(),"null");
     }

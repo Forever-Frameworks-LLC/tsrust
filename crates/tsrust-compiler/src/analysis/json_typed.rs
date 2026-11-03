@@ -195,7 +195,10 @@ impl Analyzer {
             let identity=if args.first().and_then(|arg|self.expression_type_hint(context,arg)).is_some_and(|ty|matches!(ty,Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::JsonlWriterView))) {crate::native_signatures::NativeTypeId::JsonlWriterView}else{crate::native_signatures::NativeTypeId::JsonlWriter};
             let writer=self.program.records.iter().position(|record|record.native_type==Some(identity)).unwrap();
             self.expression(context,&mut args[0],Mode::Mutate,loans,Some(Type::Record(writer)))?;
-        }else{self.expression(context, &mut args[1], Mode::Copy, loans, Some(Type::Int))?;}
+        }else{
+            let limit=self.unions.intern([Type::Int,Type::Undefined],args[1].span)?;
+            self.expression(context,&mut args[1],Mode::Copy,loans,Some(limit))?;
+        }
 
         let mut pending = vec![ty];
         let mut seen = std::collections::HashSet::new();

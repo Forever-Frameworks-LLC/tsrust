@@ -10009,7 +10009,7 @@ fn json_encoding_editor_documents_typed_values_and_undefined_policy() {
         let needle=format!("{method}(");
         let hover=ask(source,"textDocument/hover",&needle,0);
         let docs=hover["contents"]["value"].as_str().unwrap();
-        for text in ["value: T", "undefined-value", "number-nonfinite", "64", "borrows"] {assert!(docs.contains(text),"{hover}");}
+        for text in ["value: T", "undefined-value", "number-nonfinite", "no output byte quota", "no container-depth quota", "borrows"] {assert!(docs.contains(text),"{hover}");}
         let mut position=at(source,&needle,0);position.character+=needle.len() as u32;
         let help=SourceIndex::new(source).request("textDocument/signatureHelp",&json!({"position":position}),"file:///test.tsr").unwrap();
         assert!(help["signatures"][0]["label"].as_str().unwrap().contains("value: T"),"{help}");

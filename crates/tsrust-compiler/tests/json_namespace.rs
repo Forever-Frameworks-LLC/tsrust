@@ -67,8 +67,9 @@ fn imported_json_supports_the_namespace_error_contract() {
 function throwingParse(text:string):JsonValue {
   match(parse(text)){Ok(value)=>{return value;},Err(error)=>{throw error;}}
 }
-function throwingStringify(value:JsonValue,maxBytes:int=16777216):string {
-  match(stringify(value,maxBytes)){Ok(text)=>{return text;},Err(error)=>{throw error;}}
+function throwingStringify(value:JsonValue,maxBytes?:int):string {
+  const encoded=maxBytes===undefined?stringify(value):stringify(value,maxBytes);
+  match(encoded){Ok(text)=>{return text;},Err(error)=>{throw error;}}
 }
 "#));
 }
