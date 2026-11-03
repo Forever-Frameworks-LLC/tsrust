@@ -32,6 +32,11 @@ Latest completed section:Copy-only shared readonly callback environments.
 Expectation predicates improve1.318× (repeat1.255×),removing8,192 allocations;
 79 affected tests pass. Mixed/owned families retain Rc identity and destruction
 behavior. See the acceptance section below. Full regressions remain deferred.
+Plain byte views also have a completed reference-fidelity correction below:
+the Rust reference now preserves the source's recoverable construction fallback.
+Fresh native/Rust timings are.094375/.022250ms (4.242×);the gap remains.
+The reference correction preserves its fallback and is not a compiler speedup.
+The old.021000ms Rust entry stays in history.
 
 Owner object-profiling feedback is retained in **Object and string allocation —
 next optimization plan** below: string-free controls, generated/reference code
@@ -92,6 +97,74 @@ plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
 
+**Plain byte views — profiling and reference correctness, parent848b6ac7:**
+- Fresh accepted-source baseline.095750ms,Node.601292ms,93 samples each;
+  quiet max2.224609,no override,2.589s/273,968KiB. Native profile
+  3.629s/325,344KiB:three equal samples,checksum554157932,8,193 allocations,
+  8 reallocations,489,088 requested bytes,294,912 retained/294,917 peak,
+  input5,both cleanup counters0. No production byte implementation changed.
+- Rejected generated-consumer probes,two quiet rounds each,3 processes×31
+  samples,8 warmups,2,048 iterations,focused Node controls and exact-result
+  equality. Direct borrowed literal slices remove2,048 allocations/81,920
+  requested bytes,but speedups1.004×/.960× do not repeat. Byte ABI adapter
+  forced inlining1.011×/.993×;native allocation/range helper forced inlining
+  1.016×/.991×;no allocation changes. Heap-only NumericArray storage reduces
+  retained49,152 bytes to245,760,but only1.008×/1.011×. Do not introduce
+  that global representation change for this CPU gap.
+- Diagnostic-only infallible reservation is slower,.096542/.140541ms then
+  .093750/.142584ms. It changes allocation-failure policy and was never a
+  production candidate. Preserve recoverable allocation errors;this experiment
+  does not justify an API/Rust-default design change.
+- Original unwrapping Rust reference instrumentation:three equal samples,
+  6,145 allocations,9 reallocations,309,152 requested bytes,245,760 retained/
+  245,765 peak,cleanup0. Sampling repeated consumers for3s each at1ms intervals
+  locates allocation/free work,not byte ABI wrappers,as the dominant cost.
+  The diagnostic loop includes constructors and result destruction;it is not
+  formal execution timing. CPU sampling/compilation7.204s/188,256KiB.
+- A one-pass Result-collection reference variant appeared to explain the gap:
+  .062792/.062791ms against native.094042/.092417ms. That attribution was
+  wrong. A two-pass reference preserving the same recoverable branch runs
+  .021417/.021458ms against native.096292/.093875ms (4.496×/4.375×).
+  Five protocol-valid exact-result cases match. Result collection inhibits an
+  optimization;do not conflate that algorithm change with error-path fidelity.
+  Its allocations remain6,145/reallocations9,but requested315,296/peak245,768;
+  the final two-pass variant restores309,152/245,765 in three equal samples.
+  The provisional .062542ms formal reference/control run was ingested too early;
+  removed only its3 unaccepted entries and raw file. Original accepted histories
+  remain. Do not quote that provisional1.487× ratio as current or as a speedup.
+- Corrected only parity/native_byte_views.rs:validate before allocation,collect
+  the known-size byte conversion,return Result,and preserve the source's
+  [-1000000] fallback with continue. This fixes reference behavior without
+  changing the original timing domain or making the reference do avoidable work.
+  New standalone witness covers first invalid offset,negative-seed fallback,
+  subsequent recovery and valid extremes. Negative-seed checking is outside the
+  timed nonnegative-seed domain;the bounded oracle/observer protocol is unchanged.
+  Final Rust witness passes O0/O3 (2.596s/109,968KiB);existing Node registration
+  suite11 passes,no skips (initial combined checks3.100s/169,792KiB).
+  Scratch preparation errors (wrong function index,an out-of-domain observer
+  case,and an incorrect borrow in the range check) were repaired before timing.
+- Final reference SHA256
+  ba6f6061a4588cb2441516cb0d224469f69a1e559fc22e6179a7b92a5e735090.
+  Remeasured only this changed Rust reference,with native/Node controls:
+  native.094375,Rust.022250,Node.596125ms,93 samples/engine. The runner waited
+  through initial load5.72/4.82;actual timing max3.973633,below4,no override.
+  Watchdog34.843s/277,552KiB. Native/Rust4.242× is still a real gap;the
+  reference behavior repair is not a Tsrust optimization. Other Rust references
+  were not retimed. Do not change reference algorithms to hide compiler gaps.
+- Whole-project formatter4.210s/203,776KiB:zero source/snippet/fingerprint changes.
+- npm run store:ingest added5 accepted baseline/final history entries;verified
+  exact rounded medians,mean rates,93 samples,timestamp uniqueness,reference
+  source hash,original-history retention and SQLite integrity. Pruned54 closed
+  diagnostic/prototype/imported raw files,19,689,090 bytes. Current verified tools,
+  consumers/profiles and passed tests remain;all owned workers are terminal.
+- Next:return to scoped composition's material absolute gap. Trace identity
+  from_mapped conversions and canonical Map aliases before revisiting widening
+  layouts. Dense-count collection is already rejected. For byte views,a future
+  bounded probe can isolate the large emitted error-record/Result layout from
+  hand Rust's compact Error before changing storage;this remains a hypothesis.
+  Preserve the expectation/nullable/discard queue and deferred full-regression
+  snapshot. No broad regressions,public export,push,CI or release.
+
 **Copy-only shared callback environments — accepted locally, parent e6ef644c:**
 - Profile first:expectation predicates19,798 allocations,zero reallocations,
   534,528 requested bytes,zero retained,133 peak. Constructor inline hints
@@ -148,7 +221,7 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
 - Queue correction:the historical4.82–4.85× label incorrectly grouped byte-view
   Maps with plain byte views. Fresh Maps.498625ms vs saved Rust.384583ms is
   only1.297×;do not optimize that control as a large gap. Plain native_byte_views
-  still has stored.101166/.021000ms (4.817×),requiring a fresh profile/timing.
+  was subsequently profiled and its reference corrected above:current4.242×.
   Continue remaining expectation work,plain byte views,and scoped composition's
   material absolute gap. Deferred full-regression evidence remains untouched;
   no public metric export,push,CI or release.
@@ -917,7 +990,7 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   accepted constant-string concat above;
   normal forEach gaps now0.962–1.278× saved Rust after accepted range views;
   non-void discard traversal remains1.796× for string results;plain byte views
-  retain a stored4.817× signal,while freshly measured byte-view Maps are1.297×;
+  remain4.242× after reference correction,while byte-view Maps are1.297×;
   expectation predicates are now3.995× after Copy-only shared environments.
   Review absolute cost and equivalent work,
   inputs,ownership and observation before accepting a ratio as removable overhead.

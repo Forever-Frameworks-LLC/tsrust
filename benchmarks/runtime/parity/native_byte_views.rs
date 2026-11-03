@@ -72,8 +72,11 @@ fn set(bytes: &mut [u8], index: i64, value: i64) -> Result<(), Error> {
     })?;
     Ok(())
 }
-fn from_array(values: &[i64]) -> Vec<u8> {
-    values.iter().map(|v| u8::try_from(*v).unwrap()).collect()
+fn from_array(values: &[i64]) -> Result<Vec<u8>, Error> {
+    if let Some((index,_))=values.iter().enumerate().find(|(_,value)|!(0..=255).contains(*value)) {
+        return Err(Error { code: "byte-range", offset: index as i64 });
+    }
+    Ok(values.iter().map(|value|*value as u8).collect())
 }
 fn window(owner: &[u8]) -> &[u8] {
     view(owner, 0, 2).unwrap()
@@ -88,7 +91,13 @@ fn function0(value0: i64, value1: i64, value2: &String) -> Array<NumericArray<i6
         let byte = add(i, value1) % 256;
         let next = add(byte, 1) % 256;
         let written = add(byte, 2) % 256;
-        let mut bytes = from_array(&[0, byte, next, 255, 7]);
+        let mut bytes = match from_array(&[0, byte, next, 255, 7]) {
+            Ok(bytes) => bytes,
+            Err(_) => {
+                output.push(NumericArray(vec![-1000000]));
+                continue;
+            }
+        };
         let (size, head, tail, inner, copied) = {
             let part = view(&bytes, 1, 4).unwrap();
             let nested = view(part, 1, 2).unwrap();
@@ -132,3 +141,18 @@ fn function0(value0: i64, value1: i64, value2: &String) -> Array<NumericArray<i6
     Array(output)
 }
 fn main() {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn construction_errors_keep_the_workload_fallback() {
+        assert_eq!(from_array(&[0,255]).unwrap(),vec![0,255]);
+        let error=from_array(&[0,256,-1]).unwrap_err();
+        assert_eq!((error.code,error.offset),("byte-range",1));
+        let rows=function0(3,-1,&String::Borrowed("bytes")).0;
+        assert_eq!(rows[0].0,vec![-1000000]);
+        assert_eq!(rows[1].0,vec![3,0,255,1,2,1,11,2,2,5,9,1]);
+        assert_eq!(rows[2].0,vec![3,1,255,2,2,1,11,2,3,5,9,1]);
+    }
+}
