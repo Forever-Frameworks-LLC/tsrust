@@ -169,12 +169,12 @@ const workloads = manifest.workloads.filter(workload => !selected || selected.in
 if (!workloads.length || selected?.some(id => !manifest.workloads.some(workload => workload.id === id))) throw new Error('Unknown profile workload');
 assertCLIInputs(workloads);for(const w of workloads)isApproximate(w);
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
-const run = (command,childEnv=process.env) => {
- const result = spawnSync(command[0], command.slice(1).map(String), {cwd: root, env:childEnv, encoding: 'utf8', timeout: 120000, maxBuffer: Infinity});
+const run = (command,childEnv=process.env,timeout=120000) => {
+ const result = spawnSync(command[0], command.slice(1).map(String), {cwd: root, env:childEnv, encoding: 'utf8', timeout, maxBuffer: Infinity});
  if (result.error || result.status !== 0) throw new Error(result.error ?? result.stderr);
  return result.stdout.trim();
 };
-run(['cargo', 'build', '--release', '--offline', '--locked', '--quiet']);
+run(['cargo', 'build', '--release', '--offline', '--locked', '--quiet'],process.env,30*60*1000);
 const driver = fs.readFileSync(path.join(here, 'allocation-driver.rs'), 'utf8');
 const rows = [];
 for (const workload of workloads) {

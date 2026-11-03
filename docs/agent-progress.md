@@ -80,6 +80,87 @@ plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
 
+**Fresh large-gap profiling and rejected array-push experiments — parent 600498f9:**
+- Full suites remain deferred under the owner milestone rule above. Refreshed
+  scoped composition is28.994625ms versus saved Rust18.420917ms;Node152.112833ms
+  (2026-11-02T23:45:39.402Z,93 samples,quiet maximum3.40234375).
+  Actual emitted hash89f2eabe9a1514c801267b8ee815c8cf9d6f239b4a2b8df4dc085df791c65068
+  is unchanged from the accepted Map gate. Profile63.740s/1,075,536KiB:
+  557,472 allocations/2,056 reallocations,79,711,904 requested bytes,
+  2,326,528 retained/peak,checksum108435446,three equal samples,cleanup0.
+- Allocation-neutral transition instrumentation (57.024s/1,076,640KiB) finds
+  Option slot32→40 widening178,180 times at live length1;40→32 length1 occurs
+  258,052 times. Other counts:32→32 length1=112,232;32→40 length0=18,841;
+  40→32 length0=3,276;40→40 length0/1/2=10,649/224,053/124,110.
+  Widening callback carriers remain an open buffer-reuse cause. Empty-buffer
+  array_chunks reshape was rejected:E0658 on pinned stable;no unsafe/unstable
+  workaround or production change. Uniform padding needs separate evidence.
+- Correct remaining spread IDs:array_literal_spread_nullish_packs and
+  call_spread_nullish_packs;nullish_array_value is a separate fast control.
+  Fresh baseline2026-11-03T00:16:15.566Z,93/engine,quiet maximum2.11865234375,
+  9.346s/303,504KiB:nullable_boolean_undefined .014833ms/Node .025125ms;
+  selector .010000/.014083ms;literal spread .209167/.232000ms;
+  call spread .202375/.229709ms. Saved Rust .003625/.039583/.032208/.032000ms.
+- Both exact spread workloads make9,563 allocations/10 reallocations
+  (profile2026-11-03T00:12:42.165Z,4.167s/251,056KiB). Repeated labels
+  object:null and undefined:undefined allocate;future concat folding must retain
+  receiver/argument evaluation,including original indexing failures and effects.
+  Nullable boolean has1 allocation/10 reallocations,196,608 retained/peak bytes;
+  selector1/10,393,216 bytes (00:08:05.795Z,4.177s/305,424KiB).
+- nm confirms an out-of-line owned Array<T>::push in nullable boolean. Isolated
+  generated-consumer #[inline(always)] trial:two quiet same-path rounds,
+  93 samples/engine/workload/round,rotating parent/candidate/Node,checksums and
+  exactBits unchanged. Nullable boolean1.915×/1.594×,selector1.678×/1.703×;
+  literal spread1.025×/1.011×,call spread1.019×/1.051×. Quiet maxima1.917/1.843,
+  watchdog8.801s/247,984KiB. First trial preparer stopped on an ambiguous helper
+  match before timing;repaired to identify owned Some slots,completed2.589s/
+  151,344KiB. No worker remains;canonical consumers currently contain trial code.
+- Actual-compiler forced-inline timing2026-11-03T00:36:56.586Z (10.309s/
+  318,000KiB) and two same-path repeats confirm nullable boolean2.011×/1.964×,
+  selector1.689×/1.689×. However,three compile samples per workload/engine/round,
+  two rotated rounds at identical source/output paths (22.637s/216,656KiB)
+  find repeatable compiler costs:nullable boolean250.761→279.339ms then
+  255.827→283.392ms;selector205.722→223.120 then207.168→224.049ms;
+  spreads5–7% slower to compile. Boolean executable grows511,208→527,592 bytes.
+  **Rejected;owned Array<T>::push source and all six canonical consumers restored.**
+- Two bounded alternatives outline inline-storage growth into a cold helper.
+  Ordinary inlining yields boolean1.122×/1.114×,selector1.054×/1.191×;
+  compile costs remain0–2.5% higher (22.124s/214,224KiB). Forced fast-path
+  inlining yields boolean1.530×/1.547×,selector1.342×/1.339×,with mixed or
+  slower object controls. Neither replaces the original implementation. Each
+  rotated runtime round used93 samples/engine/workload with Node controls,
+  checksum/exactBits assertions and quiet maxima below4. Trial allocations are
+  unchanged. These rejected runs are not imported as accepted compiler results.
+- Trial validation passed120 tests/no failures or ignored:fixed_storage34,
+  array_literal_spread11,call_spread13,arrays12,owned_arrays12,nested_arrays12,
+  nullable_unions4,exception_handling22. Each binary separately,three threads,
+  watchdog5GB/30min;test durations20.744/4.166/5.204/3.627/4.670/4.654/3.615/
+  5.717s,max test RSS619,392KiB. Initial shared build201.574s/1,356,464KiB.
+  A nonexistent nullable_primitives target was corrected before any test ran.
+  These validate the discarded attribute trial,not a new optimization milestone.
+- **Profiler runner defect fixed:**Cargo inherited the ordinary120-second child
+  timeout,orphaning owned rustc20892 at PGID20840. Verified identity and stopped
+  only that compiler. Cargo now gets30 minutes;ordinary consumers retain120s.
+  Successful actual six-workload rebuild/profile229.720s/1,507,040KiB proves the
+  longer path;all three allocation samples per workload agree and dispose cleanly.
+  Initial timeout120.545s/1,456,336KiB was a harness failure,not a compiler failure.
+- Next:profile/compiler work for known string concatenation in exact nullish spread
+  workloads. Retain original operand evaluation,alias/ownership constraints,bounds
+  failures and effects. Reuse immutable-local facts where sound;unknown values
+  fall back. Do not impose source acceptance limits or retry forced array inlining
+  without a different cause. Current release/debug tools still contain the rejected
+  attribute trial (functionally verified);rebuild from the new source before further
+  actual-compiler timing. Production compiler source is restored to600498f9.
+- Finalization:whole-project formatter4.150s/202,240KiB,zero source/snippet/
+  fingerprint changes. npm run store:ingest added16 accepted-source baseline
+  histories;verified24 histories including8 prior entries,with exact six-decimal
+  medians,three-decimal mean rates,93 samples,timestamp uniqueness and SQLite
+  integrity. Initial verification expected16 total instead of16 new+8 existing;
+  corrected the inventory without changing any stored value. Rejected timing was
+  excluded. Pruned74 closed files/192,165,279 bytes,including eight test binaries,
+  imported raw runs and generated trial consumers/tools;canonical six consumers
+  retained. No full suites,public metric export,push,CI or release performed.
+
 **Read-only scalar reduction slices — accepted locally, parent 8cafb9f8:**
 - Profiled before edits:2026-11-02T22:28:00.324Z,4.154s/246,304KiB. Each
   declared int/Number/boolean reduction makes1,536 allocations/no reallocations,
@@ -542,12 +623,13 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   assuming the small-map reference alone explains its gap.
 - Remaining large-gap review queue (latest stored matched workload IDs,not fresh
   A/B measurements except the accepted Map update above):composition now
-  29.321042ms vs saved hand Rust18.420917ms (1.592×,10.900125ms excess),replacing
+  28.994625ms vs saved hand Rust18.420917ms (1.574×,10.573708ms excess),replacing
   the historical121.497209ms row;recursive copy gaps are now small after the
   accepted dead-loop transport above:toReversed.030458/.027500ms (1.108×),
   with.039667/.034833ms (1.139×). Declared Number/boolean reductions are now
   .001791/.001584ms (1.131×) and.001542/.002167ms (.712×),after the accepted
-  read-only slice proof above. Next remaining large signals:nullable boolean10.299×;nullish array/call spread7.413×/7.056×;
+  read-only slice proof above. Next remaining large signals:fresh nullable boolean4.092×;
+  array_literal_spread_nullish_packs6.494×/call_spread_nullish_packs6.324×;
   nested/deep/recursive record forEach4.57–5.69×;byte views/maps4.82–4.85×;
   testing expectation predicates5.520×. Review absolute cost and equivalent work,
   inputs,ownership and observation before accepting a ratio as removable overhead.
