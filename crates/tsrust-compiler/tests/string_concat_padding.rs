@@ -35,6 +35,52 @@ fn native(
 }
 
 #[test]
+fn static_concat_keeps_nullish_operand_effects_and_immutable_aliases() {
+    let analysis=native(
+        r#"
+        function nil(tag:int):null{console.log(tag);return null;}
+        function absent(tag:int):undefined{console.log(tag);return undefined;}
+        function main(){
+            const kind=typeof nil(1);const alias=kind;
+            console.log(alias.concat(":",String(nil(2)),"\u0000","é"));
+            console.log((typeof absent(3)).concat(":",String(absent(4))));
+            let changing="old";changing="new";console.log(changing.concat("!"));
+            console.log((typeof console).concat("!"));
+            console.log((typeof String).concat("!"));
+            const captured="captured";const read=():string=>captured.concat("!");console.log(read());
+        }
+        "#,
+        "1\n2\nobject:null\0é\n3\n4\nundefined:undefined\nnew!\nobject!\nfunction!\ncaptured!\n",
+        "", "",
+    );
+    let rust=analysis.emit_rust();
+    assert!(rust.contains("String::Borrowed(\"object:null\\0é\")"));
+    assert!(rust.contains("String::Borrowed(\"undefined:undefined\")"));
+}
+
+#[test]
+fn static_concat_keeps_receiver_and_argument_bounds_failures() {
+    native(
+        r#"
+        function receiver(index:int):string{const rows:null[]=[null];return (typeof rows[index]).concat(":",String(rows[0]));}
+        function argument(index:int):string{const rows:null[]=[null];const kind=typeof rows[0];return kind.concat(":",String(rows[index]));}
+        function main(){console.log(receiver(0));console.log(argument(0));}
+        "#,
+        "object:null\nobject:null\n",
+        "",
+        "std::panic::set_hook(Box::new(|_|{}));assert!(std::panic::catch_unwind(||function0(1)).is_err());assert!(std::panic::catch_unwind(||function1(-1)).is_err());",
+    );
+}
+
+#[test]
+fn large_static_concat_uses_runtime_without_restricting_source() {
+    let text="é".repeat(2050);
+    let source=format!("function main(){{const text={text:?};console.log(text.concat(\"!\").length);}}");
+    let analysis=native(&source,"4101\n","","");
+    assert!(analysis.emit_rust().contains("tsr_string_concat(string_receiver"));
+}
+
+#[test]
 fn concat_and_padding_preserve_native_byte_semantics_and_existing_array_contexts() {
     native(
         r#"

@@ -1808,7 +1808,7 @@
       "parameters": [
         "...values: string[]"
       ],
-      "documentation": "Appends zero or more string arguments in order and returns the combined text. No coercion is performed; the receiver is unchanged.\n\n@param values - Strings appended in order, without coercion.\n\n```tsrust\nconsole.log(\"Hello\".concat(\" \", \"world\")); // prints \"Hello world\"\n```\n\nOperands are borrowed. Changed text owns an independent buffer; zero/all-empty arguments clone the receiver with static sharing or an owned copy.\n\nSpread arguments may come from strings, arrays or Sets whose elements are strings. String sources construct Unicode scalar character values and stay usable.\n\n```tsrust\nconsole.log(\"a\".concat(...\"bc\"));\n// prints abc\n```",
+      "documentation": "Appends zero or more string arguments in order and returns the combined text. No coercion is performed; the receiver is unchanged.\n\n@param values - Strings appended in order, without coercion.\n\n```tsrust\nconsole.log(\"Hello\".concat(\" \", \"world\")); // prints \"Hello world\"\n```\n\nOperands are borrowed. The result is independent of the receiver; static text may share immutable storage.\n\nSpread arguments may come from strings, arrays or Sets whose elements are strings. String sources construct Unicode scalar character values and stay usable.\n\n```tsrust\nconsole.log(\"a\".concat(...\"bc\"));\n// prints abc\n```",
       "examples": [
         {
           "source": "console.log(\"Hello\".concat(\" \", \"world\"));",

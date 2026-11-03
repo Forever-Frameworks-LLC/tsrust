@@ -2,6 +2,7 @@ mod declaration_scope;
 mod receiver_moves;
 mod self_append;
 mod string_character;
+mod constant_string;
 mod scalar_reduce_slices;
 mod runtime_support_ids;
 #[cfg(test)]
@@ -181,6 +182,7 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
         receiver_moves: RefCell::default(),
         self_appends,
         string_characters,
+        constant_strings: constant_string::Index::new(program),
         scalar_reduce_slices: scalar_reduce_slices::Index::new(program),
         work_functions:owned_work::Arena::default(),
         work_regions:owned_work::Arena::default(),
@@ -270,6 +272,7 @@ pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str
 }
 
 struct Emitter<'a> {
+    constant_strings: constant_string::Index<'a>,
     /// Copying calls in the function being emitted whose dead receiver may be moved.
     receiver_moves: RefCell<HashSet<(usize, usize)>>,
     self_appends: self_append::Index,
@@ -6437,6 +6440,10 @@ impl Emitter<'_> {
                 }
             }
             CallTarget::StringConcat => {
+                if let Some(text)=self.constant_strings.concat(fun,base,args) {
+                    let _=write!(output,"{} }}",self.string_literal(&text));
+                    return output;
+                }
                 let failure = format!(
                     "string concat capacity or allocation failure at source bytes {}..{}",
                     span.start, span.end

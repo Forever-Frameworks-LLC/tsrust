@@ -39,7 +39,9 @@ include **0a68a4f5** (932 Rust references), **2c538120** (normalization optimiza
 and **ff32ab18** (release-note provenance fix); they are not pushed/published.
 Published main ancestry is reconciled into this working branch without changing
 those accepted source/measurement trees; only this handoff records the merge.
-Latest accepted optimization:read-only scalar reduction slices,Number16.705×
+Latest accepted optimization:constant-string concat results,literal spread3.414×
+(repeat3.433×),call spread3.448× (repeat3.321×),8,196 allocations removed per
+workload,retained/peak requested heap -15.2%. Previous read-only scalar reduction slices,Number16.705×
 (repeat18.030×),boolean17.421× (repeat18.861×),int4.994× (repeat5.000×),
 1,536 allocations removed each. Previous dead clone/push loop transfer,recursive reversal
 4.856× (repeat4.789×),replacement4.095× (repeat4.126×),3,840 allocations
@@ -80,6 +82,87 @@ plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
 
+**Constant-string concat results — accepted locally, parent36dbd769:**
+- Previous goal turn made concrete progress:profiler timeout repair,accepted-source
+  baseline import and rejection of three measured array-push variants. Source is
+  clean at36dbd769 before this candidate;full suites remain deferred.
+- Profile-first isolated generated-consumer probe preserves every receiver/argument
+  setup and changes only the two fixed concat operations to static labels. Both
+  exact nullish spread workloads drop9,563→1,367 allocations (8,196 removed),
+  reallocations remain10;requested1,113,824 bytes,retained/peak688,256,input19,
+  checksum752386989 and both disposal counters0 in three equal samples each.
+  Watchdog3.127s/230,256KiB. Sources/executables are disposable
+  target/runtime-comparisons/{profiles/,}*.static-concat{.rs,};results temporarily
+  /tmp/tsrust-static-concat-probe.json. No trial timing has been accepted/imported.
+- Private emit/constant_string.rs index follows immutable local declaration facts
+  by checked binding ID,with borrowed string references (no recursive alias walk).
+  Recognizes literals,nullish typeof and nullish String conversions;unresolved
+  builtin names deliberately fall back. It changes only concat's final operation,
+  retaining original operand code and all initialization/evaluation/errors.
+  Rebindable/mutable/parameter/capture-reference/borrowed bindings fall back.
+  Folded output over4,096 bytes uses unchanged runtime concat;this bounds duplicated
+  emitted literals and never restricts source acceptance or Rust allocation limits.
+- New O0/O3 tests in string_concat_padding cover effect order,immutable aliases,
+  mutable fallback,typeof console/String,closure capture,bounds errors and large
+  Unicode literal fallback. No public API/IntelliSense/ABI/limits/unsafe/dependencies
+  change. Existing matched spread/concat benchmark support is reused.
+- Candidate tests passed70/no failures or ignored:string_concat_padding7,
+  array_literal_spread11,call_spread13,value_types8,string_construction4,
+  string_concat_integer_fusion5,exception_handling22. Test durations3.614/4.153/
+  5.215/5.161/2.072/3.117/5.708s,max RSS544,080KiB. Shared build204.499s/
+  1,392,480KiB. All new O0/O3 witnesses passed. No broad suite was run.
+- Parent preparation1.030s/259,040KiB verified exact generated source equality
+  against the four retained36dbd769 consumers;two dynamic concat controls are
+  emitted by the previous verified tool,with its known rejected push attribute
+  reset to the committed runtime spelling. Parent native executables and generated
+  consumers use .constant-parent{,.rs};source hashes in temporary
+  /tmp/tsrust-static-concat-parents.json. This does not alter compiler source.
+- Actual release rebuild/profile221.516s/1,415,760KiB,2026-11-03T00:57:32.779Z:
+  both workloads match the isolated probe exactly,including checksum752386989,
+  1,367 allocations/10 reallocations,three equal samples and both cleanup counters0.
+  Emitted hashes:literal aa44543fd9f04e61ee1913b57010d811d61860060a21a6686067964e2fd099e4;
+  call e0aa8047ad84a3af514a0034a2bb3c278c0479e5155916ec359c2e87bf0531a7.
+- Matched baseline allocation observer restores only prior concat calls from the
+  retained parent consumer (1.040s/67,936KiB). Both:9,563→1,367 allocations
+  (-85.7%),reallocations10 unchanged,requested1,236,764→1,113,824 bytes,
+  retained/peak811,196→688,256 bytes (-15.2%),input19,cleanup0. Three equal
+  samples per workload. No changes to small-array layout or thresholds.
+- Formal native/Node run2026-11-03T00:57:42.618Z,9.852s/334,304KiB,
+  93 samples/engine/workload,quiet max2.70947265625,no override:
+  literal .063709/.240375ms;call .063166/.256667ms. Saved Rust references
+  .032208/.032000ms are reused,not retimed (remaining1.978×/1.974× gaps).
+- Two rotated same-path parent/candidate/Node rounds,93 samples per engine per
+  workload per round,54 complete process observations each:literal3.414×
+  (repeat3.433×),call3.448× (repeat3.321×). Watchdog10.334s/203,360KiB;
+  quiet maxima2.580078125,both rounds,no override,checksums/exactBits unchanged.
+  All four controls have byte-identical generated source:interfaces,
+  nullish_array_value,string_concat_zero_ascii,string_concat_variadic_unicode.
+- Consumer Rust compilation uses identical physical source/output paths,rotated
+  order,original3 samples per engine/workload,2 rounds (21.250s/174,272KiB):
+  literal282.567→271.059ms then289.925→281.019ms;call284.254→275.722ms then
+  286.797→278.288ms (3–4% faster). Unchanged-source control timings vary0–3%;
+  no compiler-emission speedup is claimed. Binaries shrink1,696/1,680 bytes.
+- Concat hover's old independent-buffer guarantee was too strong for static text.
+  Reworded only the short ownership note;behavior/signatures/examples unchanged.
+  Focused intelligence hover/signature/completion test passed1,330 filtered,
+  watchdog .515s (test .05s). Its dependency/catalog build217.805s/1,483,056KiB;
+  the compiler documentation API also embeds builtins.json. The documented
+  Hello/world example emits the folded literal and prints Hello world under O3
+  (.519s/1,440KiB observed watchdog). All70 compiler tests remain applicable;
+  the subsequent catalog wording change does not change emitted workloads.
+- Whole-project formatter4.119s/201,488KiB:zero source/snippet/fingerprint changes.
+  npm run store:ingest added12 entries;verified93 samples,exact six-decimal medians,
+  three-decimal mean rates,timestamp uniqueness and SQLite integrity.
+- Pruned59 closed files/186,648,130 bytes:passed test executables,matched parent/
+  trial consumers,imported raw runs and scratch tools. Current compiler/LSP and six
+  generated consumers/profiles remain;all owned workers are terminal.
+- Next:remaining large gaps stay open. Inspect the residual spread container loops,
+  Array<String> layout/capacity and reference preallocation before further changes;
+  do not equate allocation reduction with parity. Scoped composition remains
+  28.994625/18.420917ms;return to profiled widening carriers or the ranked record/
+  byte-view/testing gaps. Continue affected suites and quiet A/B only;full regression
+  snapshot remains deferred and preserved. No public export,push,CI or release.
+
 **Fresh large-gap profiling and rejected array-push experiments — parent 600498f9:**
 - Full suites remain deferred under the owner milestone rule above. Refreshed
   scoped composition is28.994625ms versus saved Rust18.420917ms;Node152.112833ms
@@ -114,7 +197,7 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   literal spread1.025×/1.011×,call spread1.019×/1.051×. Quiet maxima1.917/1.843,
   watchdog8.801s/247,984KiB. First trial preparer stopped on an ambiguous helper
   match before timing;repaired to identify owned Some slots,completed2.589s/
-  151,344KiB. No worker remains;canonical consumers currently contain trial code.
+  151,344KiB. That trial was later rejected;canonical consumers were restored below.
 - Actual-compiler forced-inline timing2026-11-03T00:36:56.586Z (10.309s/
   318,000KiB) and two same-path repeats confirm nullable boolean2.011×/1.964×,
   selector1.689×/1.689×. However,three compile samples per workload/engine/round,
@@ -629,7 +712,8 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   with.039667/.034833ms (1.139×). Declared Number/boolean reductions are now
   .001791/.001584ms (1.131×) and.001542/.002167ms (.712×),after the accepted
   read-only slice proof above. Next remaining large signals:fresh nullable boolean4.092×;
-  array_literal_spread_nullish_packs6.494×/call_spread_nullish_packs6.324×;
+  array_literal_spread_nullish_packs1.978×/call_spread_nullish_packs1.974× after
+  accepted constant-string concat above;
   nested/deep/recursive record forEach4.57–5.69×;byte views/maps4.82–4.85×;
   testing expectation predicates5.520×. Review absolute cost and equivalent work,
   inputs,ownership and observation before accepting a ratio as removable overhead.

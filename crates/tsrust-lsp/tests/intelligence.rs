@@ -649,6 +649,11 @@ fn forward_function_completion_docs_and_literal_member_hover() {
                 .contains(signature)
         );
         let help = ask(&source, "textDocument/signatureHelp", ");", 0);
+        if method == "concat" {
+            let hover=ask(&source,"textDocument/hover",method,0);
+            let text=hover["contents"]["value"].as_str().unwrap();
+            assert!(text.contains("independent of the receiver") && text.contains("static text may share immutable storage"),"{hover}");
+        }
         assert_eq!(help["signatures"][0]["label"], signature);
         assert_eq!(help["activeParameter"], parameter);
         let incomplete = format!("function main() {{ const word: string = \"hi\"; word.{method}");
