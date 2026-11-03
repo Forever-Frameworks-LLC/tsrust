@@ -32,7 +32,10 @@ Latest completed optimization: stored-callable dispatch inlining. Expectation
 predicates improve1.317×, repeat1.314×, with unchanged allocations and no material
 consumer compile-cost change. All162 affected tests pass. Two control consumers
 produce byte-identical executables; another has unchanged emitted source.
-Existing page tables include78 accepted run timestamps; no before/after table.
+Existing page tables include79 accepted run timestamps; no before/after table.
+The byte-view Rust reference now preserves allocation-error fallbacks: native
+0.093083ms/Rust0.088292ms (1.054×). This is a reference-fidelity repair, not a
+compiler speedup; the earlier4.242× comparison mixed allocation policies.
 Full regressions and promotion remain deferred. Previous scoped Map remaps improve
 1.089×, singleton storage1.145× with312,117 fewer allocations/42.8% lower compile
 cost, and identity moves1.068×/1.059×.
@@ -167,11 +170,65 @@ Whole-project formatter passes token/idempotence checks with zero changes
 exact ingestion verification. Current production timing/profile consumers remain.
 All owned workers terminal. No broad regressions, remote CI or push occurred.
 
-Next: revisit plain byte-view Result/error DTO ABI/layout (saved4.242×/~0.072ms
-gap); prior force-inline, heap-only arrays, direct slices and allocation-policy
-probes were rejected. Keep remaining large gaps addressed or explicitly explained
-before broad regressions. Keep local existing performance tables current; no new
-before/after table. Full suites, CI, push and deployment still await this milestone.
+**Byte-view allocation policy — reference repair, parent `0b53dee2`.**
+No compiler/runtime/Node workload change. Fresh native profile3.653s/223,856KiB,
+three identical samples: checksum554157932,8,193 allocations,8 reallocations,
+6,144 work deallocations,489,088 requested bytes,294,912 retained/294,917 peak,
+input5,both cleanup counters0. Existing rejected heap-only arrays, direct slices,
+infallible native reservation and forced byte-helper inlining remain rejected.
+
+The compact-error hypothesis is also rejected. Generated-only static metadata
+reduces ByteFailure48→24bytes, with identical allocation counters, but quiet A/B
+0.094833→0.098459ms (0.963172×), repeat0.094541→0.093833ms (1.007545×),
+max load1.852,1.040s/20,656KiB. No repeated speedup; not implemented or ingested.
+Four boundary cases and exact timed results match. The first scratch allocation
+command omitted its required text argument; fixed before timing, no product bug.
+
+Disassembly shows native calls two fallible RawVec growth helpers per successful
+iteration, while infallible Rust collection/to_vec eliminates temporary buffers.
+A same-path paired Rust diagnostic keeps algorithms/results but uses fallible
+reservation: native0.095292ms, ordinary Rust0.021542ms, fallible Rust0.088042ms;
+repeat0.093083/0.021500/0.088709ms. Max load1.748,1.031s/20,992KiB; original
+3×31 samples,2048 items,seed7,8 warmups; all boundary/full exact results match.
+This explains most of the apparent4.2× gap. Error-record size does not explain it.
+
+The existing reference returned Result for invalid byte values but used infallible
+allocation and aborted instead of preserving construction/copy allocation-error
+fallbacks. Fixed only `parity/native_byte_views.rs`: validate before reserving,
+use standard Vec::try_reserve_exact for construction/copy, preserve construction
+[-1000000] and copy-length -2, then continue subsequent iterations. No input,
+protocol, sample-count or native allocation-policy change. Test-only thread-local
+reservation failure injection verifies both actual workload fallbacks, subsequent
+recovery, empty-copy no-reservation and invalid-byte-before-reservation ordering.
+Its code is excluded from the timed reference. Both Rust tests pass at O0/O3
+(2.588s/127,232KiB); all11 byte-view registrations pass (0.521s/672KiB).
+
+Canonical corrected reference/control run `2026-11-03T10:26:46.257Z`,4.684s/
+335,120KiB: native0.093083ms/21,758,664.071mean ops/s, Rust0.088292ms/
+23,017,561.811mean ops/s, Node0.603209ms/3,581,162.037mean ops/s;93 samples
+per engine, all five independent correctness cases and full exact results pass.
+Actual timing max load2.676, no override. Native/Rust1.054263×,0.004791ms excess.
+Reference SHA25699bb4cfabdbc388e6d785d21ea468734f9cf50fcccfafcc4bdb291d90279d631.
+Exactly3 histories ingested and matched to raw rounded medians/mean rates/counts/
+timestamp; SQLite integrity OK. Earlier histories retained; only the current Rust
+source/timestamp pin advances. Public Method text explains fallible byte buffers
+and matcher-object/direct-assertion API overhead. Existing tables now select79
+runs:635/933 Tsrust wins,621/933 Rust wins over Node,median1.60×. Two page tests
+pass;66-page site builds3.116s/1,022,544KiB. This is a benchmark error-path repair,
+not evidence that Tsrust byte code became faster. No broad suites, CI or push.
+
+Whole-project formatter passes token/idempotence checks with zero source, snippet
+or fingerprint changes (4.146s/201,696KiB). Pruned25 closed scratch/raw files
+(11,125,784bytes) after exact measurement verification. Current production consumers
+remain; all owned workers terminal.
+
+Next: profile current discard-forEach consumers, especially nested results
+(latest stored0.282917ms/Rust0.122583ms may predate recent emission improvements).
+Refresh source/CPU/allocation evidence before treating that history as current.
+Then revisit nullable_boolean_undefined0.014833/0.003625ms, nullish array/call
+spreads0.063709/0.032208ms and0.063166/0.032000ms. Preserve rejected inline/push
+compile-cost findings. Large-gap milestone remains open; full suites and promotion
+wait until remaining differences are addressed/explained and only nits remain.
 
 **Scoped Map singleton acceptance — 2026-11-03 (parent `17ce8e21`).**
 The first entry stays inline for scoped Maps when an iterative layout check proves
@@ -1275,8 +1332,9 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   accepted constant-string concat above;
   normal forEach gaps now0.962–1.278× saved Rust after accepted range views;
   non-void discard traversal remains1.796× for string results;plain byte views
-  remain4.242× after reference correction,while byte-view Maps are1.297×;
-  expectation predicates are now3.995× after Copy-only shared environments.
+  are now1.054× after matching recoverable allocation policy,while byte-view Maps are1.297×;
+  expectation predicates are now3.176× after dispatch inlining, with reusable-matcher
+  versus direct-assertion work documented above.
   Review absolute cost and equivalent work,
   inputs,ownership and observation before accepting a ratio as removable overhead.
   Existing Rust/Node references are reused unless source/protocol changes;rerun

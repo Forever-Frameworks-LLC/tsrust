@@ -72,11 +72,29 @@ fn set(bytes: &mut [u8], index: i64, value: i64) -> Result<(), Error> {
     })?;
     Ok(())
 }
+// Allocation offsets are absent; -3 is the workload's coalesced offset.
+fn reserve(bytes: &mut Vec<u8>, additional: usize) -> Result<(), Error> {
+    #[cfg(test)]
+    if additional > bytes.capacity() - bytes.len() && tests::fail_reservation() {
+        return Err(Error { code: "allocation", offset: -3 });
+    }
+    bytes.try_reserve_exact(additional).map_err(|_| Error { code: "allocation", offset: -3 })
+}
+fn copy(bytes: &[u8], start: i64, end: i64) -> Result<Vec<u8>, Error> {
+    let source = view(bytes, start, end)?;
+    let mut output = Vec::new();
+    if !source.is_empty() { reserve(&mut output, source.len())?; }
+    output.extend_from_slice(source);
+    Ok(output)
+}
 fn from_array(values: &[i64]) -> Result<Vec<u8>, Error> {
     if let Some((index,_))=values.iter().enumerate().find(|(_,value)|!(0..=255).contains(*value)) {
         return Err(Error { code: "byte-range", offset: index as i64 });
     }
-    Ok(values.iter().map(|value|*value as u8).collect())
+    let mut bytes = Vec::new();
+    reserve(&mut bytes, values.len())?;
+    bytes.extend(values.iter().map(|value| *value as u8));
+    Ok(bytes)
 }
 fn window(owner: &[u8]) -> &[u8] {
     view(owner, 0, 2).unwrap()
@@ -101,13 +119,16 @@ fn function0(value0: i64, value1: i64, value2: &String) -> Array<NumericArray<i6
         let (size, head, tail, inner, copied) = {
             let part = view(&bytes, 1, 4).unwrap();
             let nested = view(part, 1, 2).unwrap();
-            let owned = view(part, 0, 2).unwrap().to_vec();
+            let copied = match copy(part, 0, 2) {
+                Ok(owned) => length(&owned),
+                Err(_) => -2,
+            };
             (
                 length(part),
                 first(part),
                 at(part, 2).unwrap(),
                 first(nested),
-                length(&owned),
+                copied,
             )
         };
         let (success, write_code, write_offset) = {
@@ -145,6 +166,36 @@ fn main() {}
 #[cfg(test)]
 mod tests {
     use super::*;
+    std::thread_local! { static FAIL_AFTER: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) }; }
+    pub(super) fn fail_reservation() -> bool {
+        FAIL_AFTER.with(|remaining| match remaining.get() {
+            Some(0) => { remaining.set(None); true },
+            Some(n) => { remaining.set(Some(n - 1)); false },
+            None => false,
+        })
+    }
+    #[test]
+    fn allocation_errors_preserve_construction_and_copy_fallbacks_then_recover() {
+        let expected = function0(3, 7, &String::Borrowed("bytes")).0;
+        for (after, field) in [(0, None), (1, Some(4))] {
+            FAIL_AFTER.with(|remaining| remaining.set(Some(after)));
+            let actual = function0(3, 7, &String::Borrowed("bytes")).0;
+            match field {
+                None => assert_eq!(actual[0].0, vec![-1000000]),
+                Some(field) => {
+                    let mut row = expected[0].0.clone(); row[field] = -2;
+                    assert_eq!(actual[0].0, row);
+                },
+            }
+            assert_eq!(actual[1].0, expected[1].0);
+            assert_eq!(actual[2].0, expected[2].0);
+        }
+        FAIL_AFTER.with(|remaining| remaining.set(Some(0)));
+        assert_eq!(copy(&[], 0, 0).unwrap(), Vec::<u8>::new());
+        assert_eq!(from_array(&[256]).unwrap_err().code, "byte-range");
+        assert_eq!(from_array(&[0]).unwrap_err().code, "allocation");
+        assert_eq!(from_array(&[0]).unwrap(), vec![0]);
+    }
     #[test]
     fn construction_errors_keep_the_workload_fallback() {
         assert_eq!(from_array(&[0,255]).unwrap(),vec![0,255]);

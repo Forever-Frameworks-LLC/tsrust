@@ -270,6 +270,12 @@ with established crates where the workload requires them (for example,
 serde_json for JSON). It must preserve the same observable results, errors and
 safety checks. It is not generated Tsrust output with a different label.
 
+The byte-view reference uses fallible buffer reservation, matching Tsrust's
+allocation-error fallbacks. Infallible Rust collection and copying can eliminate
+temporary buffers, so they are not equivalent work for this row. Expectation
+predicates build reusable matcher objects in Tsrust; their references use direct
+assertions. These rows measure complete API workloads, including that overhead.
+
 Node.js and hand-written Rust measurements are reusable reference baselines;
 they need not run for every compiler optimization. Refresh them when workload
 semantics, benchmark protocol, reference source, toolchains or hardware change.

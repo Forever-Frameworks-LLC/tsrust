@@ -20701,7 +20701,7 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": true,
       "measured": true,
-      "notes": "Gate 189 public byte views. Native and Node-after-tsc correctness verified untimed. S07 matched execution and allocation evidence is accepted in SQLite; see measurementEvidence.",
+      "notes": "Gate 189 public byte views. Native and Node-after-tsc correctness verified untimed. S07 matched execution and allocation evidence is accepted in SQLite; see measurementEvidence. Rust reference construction and copying use try_reserve_exact and preserve the allocation-error fallbacks: construction returns [-1000000], copy records -2, then later iterations continue. Infallible collect/to_vec can eliminate temporary buffers and is not an equivalent allocation policy.",
       "specification": "Twelve retained scalar observations per iteration: readonly view length, first and last byte, first byte of a nested view, length of an independent copy of the view, write success through an exclusive view, index error code length and offset for a write outside the view, the owner byte changed through the view, range error code length and offset for a view beyond the owner, and the offset of a reversed range. Independent arithmetic oracle; Uint8Array.subarray with explicit range validation.",
       "sourceSha256": "491559d9f3d8be40d08be41e20793d852f7862f7a2df8881d98bf5cd9a6a3684",
       "counterpartSha256": "718247cc468d50e9e6f41c6ca5db27b2f97edd4859415e8bebf04071460dd5cc",
