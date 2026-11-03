@@ -6,6 +6,7 @@ use crate::fixed_storage::{visit_function_expressions,visit_statements};
 pub(super) struct Index {
     bindings:HashMap<usize,HashSet<usize>>,
     callbacks:HashMap<usize,usize>,
+    fixed_results:HashMap<usize,(usize,usize)>,
 }
 
 fn leaf(mut ty:Type)->Type {
@@ -53,12 +54,30 @@ fn length_parameter(program:&CheckedProgram,id:usize)->Option<usize> {
     names.is_subset(&lengths).then_some(source)
 }
 
+// Discarded traversals need no outer heap container; ordinary calls rebuild it.
+fn fixed_result_width(fun:&CheckedFunction)->Option<usize> {
+    if crate::analysis::has_exception_syntax(&fun.body){return None;}
+    let Type::Array(element)=fun.result else{return None;};
+    let Type::Array(inner)=element.ty() else{return None;};
+    let bytes=crate::storage::array_storage_bound(inner);
+    let mut width=None;let mut valid=true;
+    visit_statements(&fun.body,&mut |stmt| {
+        let StmtKind::Return(value)=&stmt.kind else{return;};
+        let Some(Expr{kind:ExprKind::Array(values),..})=value else{valid=false;return;};
+        if values.iter().any(|value|matches!(value.kind,ExprKind::Unary{op:UnaryOp::Spread,..}))
+            || values.len().checked_mul(bytes).is_none_or(|bytes|bytes>crate::fixed_storage::MAX_STACK_BYTES)
+            || width.is_some_and(|width|width!=values.len()){valid=false;}
+        width=Some(values.len());
+    });
+    valid.then_some(width).flatten()
+}
+
 impl Index {
     pub(super) fn new(program:&CheckedProgram,fixed:&crate::fixed_storage::FixedStorage,mut ordinary:impl FnMut(usize)->bool)->Self {
         let mut index=Self::default();let mut plain=None;
         let mut specialized=HashMap::<usize,HashSet<usize>>::new();
         for plan in &fixed.plans {if !plan.bindings.is_empty(){specialized.entry(&program.functions[plan.function] as *const CheckedFunction as usize).or_default().extend(plan.bindings.keys().copied());}}
-        let mut callbacks=HashMap::new();
+        let mut callbacks=HashMap::new();let mut widths=HashMap::new();
         for fun in program.functions.iter().chain(program.closures.iter().flat_map(|closure|std::iter::once(&closure.function).chain(closure.methods.iter().map(|method|&method.function)))) {
             if fun.template || crate::analysis::has_exception_syntax(&fun.body){continue;}
             let readonly=|id:usize| {let b=&fun.bindings[id];!b.parameter && !b.rebindable && !b.mutable && !b.capture_reference && !b.callback_reference && b.borrowed_place.is_none() && b.borrowed_element.is_none() && !b.mutable_place && b.view_roots.is_empty() && b.native_view_loans.is_none()};
@@ -91,11 +110,16 @@ impl Index {
             });
             // An exited branch can hide a move in final binding metadata.
             candidates.retain(|id,source|names.get(id).is_some_and(|uses|!uses.is_empty()&&uses.is_subset(&allowed)) && names.get(source).is_some_and(|uses|uses.is_subset(&source_reads)));
-            for &id in candidates.keys() {for &callback in &uses[&id]{index.callbacks.insert(callback,callbacks[&callback].unwrap());}}
+            for &id in candidates.keys() {for &callback in &uses[&id]{
+                index.callbacks.insert(callback,callbacks[&callback].unwrap());
+                let fun=&program.closures[callback].function;
+                if let Some(width)=*widths.entry(callback).or_insert_with(||fixed_result_width(fun)){index.fixed_results.insert(fun as *const CheckedFunction as usize,(callback,width));}
+            }}
             if !candidates.is_empty(){index.bindings.insert(fun as *const CheckedFunction as usize,candidates.into_keys().collect());}
         }
         index
     }
     pub(super) fn binding(&self,fun:&CheckedFunction,id:usize)->bool {self.bindings.get(&(fun as *const CheckedFunction as usize)).is_some_and(|ids|ids.contains(&id))}
     pub(super) fn callback(&self,id:usize)->Option<usize>{self.callbacks.get(&id).copied()}
+    pub(super) fn fixed_result(&self,fun:&CheckedFunction)->Option<(usize,usize)>{self.fixed_results.get(&(fun as *const CheckedFunction as usize)).copied()}
 }

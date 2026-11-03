@@ -2720,15 +2720,21 @@ impl Emitter<'_> {
             } else {(receiver,parameters,call_generics,native_result)};
             let (call_name,range_parameters)=if let Some(source)=self.foreach_slices.callback(index) {
                 let arguments=closure.parameters.iter().map(|&id|if id==source{format!("&(0..value{id}.len())")}else{format!("value{id}")}).collect::<Vec<_>>().join(", ");
-                let _=writeln!(output,"    fn call{call_generics}({receiver}{parameters}) -> {native_result}{replacement_where} {{ self.call_range({arguments}) }}");
+                let call=format!("self.call_range({arguments})");
+                let call=if self.fixed_foreach_result(&closure.function).is_some(){format!("<{native_result}>::from({call})")}else{call};
+                let _=writeln!(output,"    fn call{call_generics}({receiver}{parameters}) -> {native_result}{replacement_where} {{ {call} }}");
                 let native=self.native_argument_type(ArgumentContract::from(&closure.function.bindings[source]),"");
                 ("call_range",Some(parameters.replace(&format!("value{source}: {native}"),&format!("value{source}: &std::ops::Range<usize>"))))
             } else {("call",None)};
+            let body_result=if let Some(width)=self.fixed_foreach_result(&closure.function) {
+                let Type::Array(element)=closure.function.result else{unreachable!()};
+                format!("[{};{width}]",self.native_type(element.ty()))
+            }else{native_result.clone()};
             let body_parameters=range_parameters.as_deref().unwrap_or(&parameters);
             let _ = writeln!(
                 output,
                 "    {asynchronous}fn {call_name}{call_generics}({receiver}{body_parameters}) -> {}{replacement_where} {{",
-                native_result.clone()
+                body_result
             );
             self.test_program_capture_bindings(&mut output, closure);
             for capture in &closure.captures {
@@ -4133,9 +4139,14 @@ impl Emitter<'_> {
                     self.expr(fun, value, Mode::Consume)
                 ),
                 StmtKind::Return(value) => {
-                    let value=value.as_ref().map(|value|self.active_plan.get()
-                        .and_then(|plan|self.fixed.plans[plan].result.as_ref())
-                        .map_or_else(||self.expr(fun,value,Mode::Consume),|shape|self.fixed_literal(fun,value,shape)));
+                    let value=value.as_ref().map(|value| {
+                        if self.fixed_foreach_result(fun).is_some() {
+                            let ExprKind::Array(values)=&value.kind else{unreachable!("proved fixed return literal")};
+                            return format!("[{}]",values.iter().map(|value|self.expr(fun,value,Mode::Consume)).collect::<Vec<_>>().join(", "));
+                        }
+                        self.active_plan.get().and_then(|plan|self.fixed.plans[plan].result.as_ref())
+                            .map_or_else(||self.expr(fun,value,Mode::Consume),|shape|self.fixed_literal(fun,value,shape))
+                    });
                     if self.exception_regions.current_id().is_some() {
                         self.exception_regions.return_value(value.as_deref().unwrap_or("()"),stmt.span)
                     }else{
@@ -6537,6 +6548,11 @@ impl Emitter<'_> {
         };
         let _ = write!(output, "{operation} }}");
         output
+    }
+
+    fn fixed_foreach_result(&self,fun:&CheckedFunction)->Option<usize> {
+        let (closure,width)=self.foreach_slices.fixed_result(fun)?;
+        (!self.result_closures.borrow().contains_key(&closure)).then_some(width)
     }
 
     fn array_for_each(&self, fun: &CheckedFunction, base: &Expr, callback: &Expr) -> String {

@@ -28,16 +28,89 @@ proposal for that discussion, not a change to current backend scope.
 The docs restructuring in the next section remains open and is not the current
 optimization focus.
 
-Latest completed optimization: borrowed forEach slices with discarded non-void
-results. String/record/callable cases improve1.71–1.95×; nested results1.15–1.18×
-in repeated matched A/B. Each removes1,600 allocations/48,000 requested bytes;
-consumer compilation improves or stays within noise. All87 affected tests pass.
-Existing page tables include80 accepted run timestamps; no before/after table.
-Nested discard results still have a1.870× saved-Rust gap and are next to profile.
-Full regressions/promotion remain deferred until remaining large gaps are covered.
-Previous dispatch inlining improves1.317×/1.314×. Byte views now compare matching
-allocation policies (native0.093083ms/Rust0.088292ms,1.054×); this reference repair
-is not a compiler speedup.
+Latest completed optimization: fixed private return arrays for discarded nested
+forEach results. Final matched A/B improves10.602×, repeat7.551×, removes6,000
+allocations/1,248,000 requested bytes per2000-item batch, with slightly lower
+consumer compile cost. All88 affected tests pass. Local existing performance
+tables select81 accepted runs:636/933 Tsrust wins over Node,median1.60×.
+No before/after table. Full regressions/promotion remain deferred; next review
+nullable boolean and nullish spreads, not the now-closed nested-result gap.
+
+**Fixed private nested-array returns — accepted locally, parent `e5189463`.**
+The borrowed-range helper returns a fixed Rust array when every return is a
+same-width nested-array literal within the existing4KiB stack budget. Its ordinary
+call wrapper uses the existing From conversion to preserve the owned source-array
+ABI. Callback trait adapters also retain that ordinary ABI. The existing storage
+bound supplies conservative element sizes; width analysis is cached once per
+callback. Spread/nonliteral/mixed-width/oversized returns, local exception syntax
+and registered Result error layouts retain ordinary result storage. Existing
+range/source/ownership/task/counting/native/scoped guards remain. No new runtime
+storage class/template, source limit, dependency, public API or generated unsafe.
+Source: `emit/foreach_slices.rs`, `emit/mod.rs`, shared fixed-storage budget
+visibility, `tests/array_for_each.rs`.
+
+Profile-first finding: call_range already inlines; more inlining is not the cause.
+Its discarded outer Vec materializes two compact inner-array payloads (208bytes
+per visit), with memcpy/drop work. Generated-only fixed-outer return runs8.066×/
+7.806× faster and removes6,000 allocations; four boundary cases/full exact results
+match. Alternative one-slot storage runs8.029×/7.766× but changes general storage;
+not implemented. Heap-only strings increase12,001→18,001 allocations and run only
+1.023×/1.107×; not implemented. These probes are not public measurements.
+
+Final ABI-repair build210.971s/1,419,280KiB. All88 affected tests pass, none
+ignored, one binary at a time, three threads,5GB/30min watchdog: forEach11
+(7.329s/495,696KiB), slice7 (8.903s/479,360KiB), reduce7
+(4.231s/463,776KiB), fixed storage34 (20.869s/560,352KiB), declared functions5
+(10.399s/554,656KiB), exceptions22 (5.234s/644,192KiB), callback errors2
+(1.038s/233,328KiB). New O0/O3 witnesses cover retained ordinary/forwarded callback
+returns, empty/differing widths, spread fallback, typed exceptions, oversized
+fallback, allocation upper bounds and cleanup after partial element construction.
+Initial witnesses read a mutable capture before scope exit, used an ineligible
+base.length slice argument, and used unsupported catch annotations; repaired
+fixtures without weakening guards. Final review also found native_result shadowing
+could leak the private layout into callback traits; repaired to body_result and
+added forwarded-callback coverage before acceptance. Earlier passed groups were
+retained; six unrun groups resumed after the affected array suite passed.
+
+Quiet final A/B against exact parent, original3×31 samples,2000 items,seed7,
+8 warmups, identical source/crate/output paths and executable argv[0], atomic
+executable swaps:0.493458→0.046542ms (10.602424×), repeat0.404916→0.053625ms
+(7.550881×). Three compile samples/version: median wall229.830→226.482ms,
+user273.746→270.197ms; no compile regression. Max load2.338,
+watchdog4.154s/153,120KiB. Final candidate consumer restored.
+All five controls emit byte-identically in final debug/release compilers:
+discard-string/record/callable and void int/recursive-record. Final nested emission
+exactly matches the consumer from the canonical run collected before the final
+trait-adapter repair; therefore retain that run instead of rerunning Node/timing.
+
+Final release + production profile220.241s/1,593,648KiB. Three identical samples,
+checksum131080745: allocations12,001→6,001,requested bytes1,374,040→126,040,
+peak275→67, no reallocations, retained/input bytes or cleanup residue. Work
+allocation/deallocation counts both6,001. Ordinary entry points still materialize
+owned results when retained; only the private discarded-result path avoids the
+outer heap container.
+
+Canonical run `2026-11-03T11:49:22.841Z`,223.266s/1,193,056KiB; all five
+independent correctness cases and complete timed results pass,93 samples/engine.
+Native0.024917ms/78,504,925.441mean ops/s,Node0.220625ms/8,945,437.116ops/s.
+Actual timing max load2.016, no override. Exactly2 histories ingested and matched
+to raw medians/mean rates/counts/timestamp; SQLite integrity OK. Unchanged saved
+Rust0.122583ms is reused, not retimed. This case is now faster than that ordinary
+Rust reference; it does not establish a universal Rust lower bound. Existing
+performance tables select81 runs:636/933 Tsrust wins,621/933 Rust wins over Node,
+median1.60×. Two page tests pass;66-page site builds3.641s/988,064KiB.
+
+Whole-project formatter passes token/idempotence checks with zero source, snippet
+or fingerprint changes (4.128s/201,568KiB). Pruned45 closed scratch/raw files
+(10,531,028bytes) after exact verification. Current production timing/profile consumers
+remain, all owned workers terminal. No broad regressions, remote CI or push.
+
+Next: fresh profile nullable_boolean_undefined (stored0.014833ms/Rust0.003625ms).
+Respect rejected global push-inlining compile costs; inspect whether separating
+promotion from the hot push path is a better measured cause before changing
+storage. Then review nullish array/call spreads0.063709/0.032208ms and
+0.063166/0.032000ms. Full suites, CI, push and deployment remain deferred until
+remaining large gaps are addressed/explained and only nits remain.
 
 **Borrowed forEach slices with owned results — accepted locally, parent `8ec408a9`.**
 `emit/foreach_slices.rs` removes the void-result-only restriction, keeping Task
@@ -110,11 +183,8 @@ or fingerprint changes (4.116s/202,336KiB). Pruned38 closed scratch/raw files
 profile consumers remain; all owned workers terminal. No broad regressions, remote
 CI or push occurred.
 
-Next: profile why nested discarded arrays still retain container construction/
-drop work compared with standard Rust. Consider the concrete call_range body and
-owned aggregate return/drop boundary before any global array storage or inlining
-policy. Preserve the nullable-boolean/nullish-spread queue and earlier rejected
-compile-cost tradeoffs. Full suites, CI, push and deployment remain deferred.
+The fixed-return acceptance above supersedes this historical nested-result gap.
+Current continuation is nullable boolean, then nullish spreads.
 
 **Direct singleton remaps — accepted locally, parent `869651fd`.**
 `runtime/maps.rs` constructs a remapped inline singleton directly. Its source Map
@@ -1403,7 +1473,7 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   accepted constant-string concat above;
   normal forEach gaps now0.962–1.278× saved Rust after accepted range views;
   non-void discard string/record/callable traversal is now1.045–1.055×,
-  with nested results still1.870×;plain byte views
+  with nested results now0.203× after fixed private returns;plain byte views
   are now1.054× after matching recoverable allocation policy,while byte-view Maps are1.297×;
   expectation predicates are now3.176× after dispatch inlining, with reusable-matcher
   versus direct-assertion work documented above.

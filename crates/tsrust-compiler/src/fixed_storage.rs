@@ -7,7 +7,7 @@ use crate::syntax::*;
 use std::collections::{BTreeMap, BTreeSet};
 mod rows;
 
-const MAX_STACK_BYTES: usize = 4096;
+pub(crate) const MAX_STACK_BYTES: usize = 4096;
 const MAX_VARIANTS: usize = 64;
 const MAX_PROOF_STEPS: usize = 10_000;
 const MAX_PROOF_DEPTH: usize = 64;
