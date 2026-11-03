@@ -82,7 +82,7 @@ plain-schema decoding, and `1e4d2547` complete milestone/test-support repair.
 The rejected small-string experiment remains on `codex/small-string-experiment`;
 do not merge it. See `git log` for exact latest evidence checkpoint.
 
-**Constant-string concat results — accepted locally, parent36dbd769:**
+**Constant-string concat results — accepted80ad63d3, parent36dbd769:**
 - Previous goal turn made concrete progress:profiler timeout repair,accepted-source
   baseline import and rejection of three measured array-push variants. Source is
   clean at36dbd769 before this candidate;full suites remain deferred.
@@ -150,6 +150,11 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   Hello/world example emits the folded literal and prints Hello world under O3
   (.519s/1,440KiB observed watchdog). All70 compiler tests remain applicable;
   the subsequent catalog wording change does not change emitted workloads.
+- Final safety review probed string reassignment through a parameter and through
+  a captured const on an exited branch. Both reject before emission:only let
+  bindings can be rebound. Let bindings are never indexed;unknown/mutable/captured/
+  borrowed bindings fall back. Probe .520s/1,840KiB;two disposable source probes
+  were removed after the main cleanup. No implementation change was needed.
 - Whole-project formatter4.119s/201,488KiB:zero source/snippet/fingerprint changes.
   npm run store:ingest added12 entries;verified93 samples,exact six-decimal medians,
   three-decimal mean rates,timestamp uniqueness and SQLite integrity.
@@ -231,9 +236,9 @@ do not merge it. See `git log` for exact latest evidence checkpoint.
   workloads. Retain original operand evaluation,alias/ownership constraints,bounds
   failures and effects. Reuse immutable-local facts where sound;unknown values
   fall back. Do not impose source acceptance limits or retry forced array inlining
-  without a different cause. Current release/debug tools still contain the rejected
-  attribute trial (functionally verified);rebuild from the new source before further
-  actual-compiler timing. Production compiler source is restored to600498f9.
+  without a different cause. At that checkpoint,release/debug tools still contained
+  the rejected attribute trial;the subsequent accepted constant-concat gate rebuilt
+  from restored source. The rejected trial never entered production compiler source.
 - Finalization:whole-project formatter4.150s/202,240KiB,zero source/snippet/
   fingerprint changes. npm run store:ingest added16 accepted-source baseline
   histories;verified24 histories including8 prior entries,with exact six-decimal
