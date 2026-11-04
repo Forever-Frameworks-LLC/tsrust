@@ -7,6 +7,12 @@ pub struct Limits {
     pub entries: usize,
     pub nodes: usize,
 }
+impl Default for Limits {
+    fn default()->Self {Self{bytes:usize::MAX,depth:usize::MAX,entries:usize::MAX,nodes:usize::MAX}}
+}
+impl Limits {
+    pub fn is_unbounded(self)->bool {self.bytes==usize::MAX && self.depth==usize::MAX && self.entries==usize::MAX && self.nodes==usize::MAX}
+}
 
 /// Structured private backend failure. No input bytes are retained or formatted.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -61,8 +67,9 @@ fn located(input: &[u8], error: serde_json::Error, code: Option<&'static str>) -
     failure(code, start.saturating_add(error.column().saturating_sub(1)).min(input.len()))
 }
 pub fn parse(input: &[u8], limits: Limits) -> Result<Value, Error> {
+    if limits.is_unbounded(){return parse_plain(std::str::from_utf8(input).map_err(|error|failure("invalid-utf8",error.valid_up_to()))?);}
     if let Err(error) = std::str::from_utf8(input) {
-        if input.len() <= limits.bytes && limits.depth <= 64 { return Err(failure("invalid-utf8", error.valid_up_to())); }
+        if input.len() <= limits.bytes { return Err(failure("invalid-utf8", error.valid_up_to())); }
     }
     parse_valid_utf8(input, limits)
 }
@@ -88,7 +95,6 @@ pub fn parse_plain(text: &str) -> Result<Value, Error> {
 pub fn parse_valid_utf8(input: &[u8], limits: Limits) -> Result<Value, Error> {
     if input.len() > limits.bytes { return Err(failure("byte-limit", limits.bytes)); }
     // Keep Serde's own recursion guard enabled as a second independent bound.
-    if limits.depth > 64 { return Err(failure("invalid-limits", 0)); }
     let mut budget = Budget { limits, nodes: 0, failed: None, saw_float: false };
     let mut decoder = serde_json::Deserializer::from_slice(input);
     let value = serde::de::DeserializeSeed::deserialize(
@@ -137,7 +143,6 @@ pub fn parse_jsonc(input: &[u8], limits: Limits, trailing_comma: bool) -> Result
 
 fn normalize_jsonc(input: &[u8], limits: Limits, trailing_comma: bool) -> Result<Vec<u8>, Error> {
     if input.len()>limits.bytes {return Err(failure("byte-limit",limits.bytes));}
-    if limits.depth>64 {return Err(invalid_limits());}
     if let Err(error)=std::str::from_utf8(input) {return Err(failure("invalid-utf8",error.valid_up_to()));}
     let mut normalized=input.to_vec();let mut index=0;let mut quoted=false;
     while index<input.len() {
@@ -184,6 +189,7 @@ fn normalize_jsonc(input: &[u8], limits: Limits, trailing_comma: bool) -> Result
     Ok(normalized)
 }
 
+#[allow(dead_code)] // Called by generated programs, not by the compiler itself.
 pub fn invalid_limits() -> Error { failure("invalid-limits",0) }
 // `saw_float` records any number serde delivered as f64: an integer token too
 // large for i64/u64 arrives that way, so only then do tokens need re-checking.

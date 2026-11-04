@@ -15,6 +15,18 @@ mod tests {
   assert!(serde_json::from_str::<CheckedIgnored>(r#"{"ignored":"\ud800"}"#).is_err());
  }
  #[test]
+ fn default_validation_uses_serde_recursion_and_retains_strict_failures(){
+  for depth in [64,65,100,127,128,256]{
+   let input="[".repeat(depth)+"0"+&"]".repeat(depth);
+   assert_eq!(validate_depth(input.as_bytes(),Limits::default()).is_ok(),serde_json::from_str::<serde_json::Value>(&input).is_ok(),"depth {depth}");
+  }
+  for input in [br#"{"items":[1],"ignored":"\ud800"}"#.as_slice(),b"[1,]",b"1e400",b"null true",&[b'"',255,b'"']]{
+   let explicit=decode_jsonc::<Record>(input,limits(),false).unwrap_err();
+   let plain=decode_jsonc_plain::<Record>(input,false).unwrap_err();
+   assert_eq!(plain,explicit,"{input:?}");
+  }
+ }
+ #[test]
  fn speculative_schema_seeds_require_complete_exact_input(){
   let seed=||std::marker::PhantomData::<ExactNumber>;
   assert_eq!(try_decode_seed("1.5",seed()).unwrap().0,1.5);
@@ -171,6 +183,9 @@ pub fn decode_jsonc<T:serde::de::DeserializeOwned>(input:&[u8],limits:Limits,tra
  let normalized=super::normalize_jsonc(input,limits,trailing_comma)?;
  decode(&normalized,limits)
 }
+pub fn decode_jsonc_plain<T:serde::de::DeserializeOwned>(input:&[u8],trailing_comma:bool)->Result<T,Error>{
+ decode_jsonc(input,Limits::default(),trailing_comma)
+}
 
 /// Internal boundary for generated typed visitors. Primitive number fields must use ExactNumber.
 pub fn decode<T:serde::de::DeserializeOwned>(input:&[u8],limits:Limits)->Result<T,Error>{
@@ -247,7 +262,6 @@ pub(super) fn validate_depth(input:&[u8],limits:Limits)->Result<usize,Error>{
 /// Validate the document and report its maximum depth and whether any number was a float.
 fn validate_floats(input:&[u8],limits:Limits)->Result<(usize,bool),Error>{
  if input.len()>limits.bytes{return Err(failure("byte-limit",limits.bytes));}
- if limits.depth>64{return Err(super::invalid_limits());}
  if let Err(error)=std::str::from_utf8(input){return Err(failure("invalid-utf8",error.valid_up_to()));}
  validate_document::<true>(input,limits)
 }

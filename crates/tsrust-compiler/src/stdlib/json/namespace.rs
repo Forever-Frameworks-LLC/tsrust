@@ -196,7 +196,7 @@ fn typed_adapter(program: &mut Program, name: &str) -> Result<Function, Diagnost
     } else { "if(limits===undefined){return backend(text);}return backend(text,limits);" };
     let source = format!("function adapter<T>(text:ReadOnly<string>,limits?:ReadOnly<JsonLimits>):{result}{{{body}}}");
     let source=if name=="parseJsonc" {
-        "function adapter<T>(text:ReadOnly<string>,allowTrailingComma:boolean=false,limits:ReadOnly<JsonLimits>={maxBytes:16777216,maxDepth:64,maxEntries:1000000,maxNodes:1000000}):Result<T,JsonError>{return backend(text,allowTrailingComma,limits);}".to_owned()
+        "function adapter<T>(text:ReadOnly<string>,allowTrailingComma:boolean=false,limits?:ReadOnly<JsonLimits>):Result<T,JsonError>{if(limits===undefined){return backend(text,allowTrailingComma);}return backend(text,allowTrailingComma,limits);}".to_owned()
     }else if name=="readJsonlView" {
         "function adapter<T>(reader:Mutable<JsonlReaderView>):Result<T|undefined,JsonlError>{return backend(reader);}".to_owned()
     }else if name=="readJsonl" {

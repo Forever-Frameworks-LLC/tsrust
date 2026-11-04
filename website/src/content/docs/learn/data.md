@@ -58,18 +58,19 @@ to return Results.
 
 ### Set resource limits
 
-`JSON.parse(text)` and `JSON.parse<T>(text)` are unbounded apart from nesting (128
-levels) unless you pass limits, so they cost the same as a direct `serde_json` call.
-HTTP request bodies are already capped by the server's `bodyLimit`. For other
-untrusted text, pass a `JsonLimits` record with all four fields. JSONC and JSON
-Lines readers apply the defaults below when you omit limits:
+JSON, JSONC, raw-fragment validation and JSON Lines reading have no byte,
+entry or node quota when limits are omitted or undefined. The strict parser's
+standard recursion guard still applies. A larger depth budget does not disable
+that guard. HTTP request bodies have their own `bodyLimit`.
 
-| Field | Reader default | Meaning |
-| --- | --- | --- |
-| `maxBytes` | 16777216 | Maximum input size in UTF-8 bytes. |
-| `maxDepth` | 64 | Maximum nested container levels; cannot exceed 64. |
-| `maxEntries` | 1000000 | Maximum entries in one collection. |
-| `maxNodes` | 1000000 | Maximum total values. |
+For explicit budgets, pass a `JsonLimits` record with all four fields:
+
+| Field | Meaning |
+| --- | --- |
+| `maxBytes` | Maximum UTF-8 input bytes; excludes LF for a JSON Lines record. |
+| `maxDepth` | Maximum nested containers; scalars have depth zero. |
+| `maxEntries` | Maximum entries in one collection, including replaced keys. |
+| `maxNodes` | Maximum total values, including containers but excluding keys. |
 
 All fields must be nonnegative integers. Ordinary JSON serialization has no
 output byte quota by default. Pass a nonnegative byte limit when needed; a
@@ -461,12 +462,14 @@ line and absolute UTF-8 byte offsets. Omit the type argument for dynamic
 `JsonValue` reads. Use `closeJsonl(reader)` to consume an unfinished reader and
 report close errors; scope exit also releases it.
 
-### Write bounded JSON Lines
+### Write JSON Lines
 
 `createJsonl(path, maxBytes?, capacity?)` creates or truncates output after
-validating options. The default record limit is 16777216 bytes excluding LF;
-the default output buffer is 8192 bytes. Limits must be nonnegative and capacity
-must be between 1 and 1048576 bytes. Supply maxBytes when specifying capacity.
+validating options and reserving its buffer. Omitted or undefined maxBytes imposes
+no record byte quota; an explicit limit is nonnegative and excludes LF. The output
+buffer defaults to 8192 bytes; capacity must be positive and fit the platform.
+Allocation failure leaves existing output unchanged. Pass undefined for maxBytes
+when specifying capacity without a byte quota.
 
 Use `writeJsonl(writer, value)` for scalars, records, arrays or dynamic JSON.
 It borrows the value and mutably borrows the writer. Encoding uses the same

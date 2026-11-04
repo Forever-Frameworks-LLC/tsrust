@@ -1,5 +1,13 @@
 # S10 JSON
 
+Current default policy: omitted or undefined JSON/JSONC/raw/JSONL input budgets
+impose no byte, collection-entry or node quota. Strict validation retains the
+parser's standard recursion guard. Explicit budgets remain checked and do not
+disable that guard. JSONL output has no default record-byte quota; an explicit
+limit excludes LF. Original quota descriptions below are historical acceptance
+context, not the current API contract. See the current library reference and
+[JSON guide](../../website/src/content/docs/learn/data.md).
+
 Status: S10 is accepted. See the [final acceptance](../milestones/s10-json-acceptance.md) for reconciled correctness, measurements, limitations, installed consumers and cleanup. The implementation chronology below retains original pending statements as historical evidence; they do not override that acceptance. S11 is next.
 
 The roadmap requires both dynamic owned JSON values and direct typed decoding.

@@ -100,8 +100,8 @@ impl Analyzer {
                 }
             }
         }
-        // `JSON.parse<T>(text)` may omit limits; JSONC and JSONL arities are fixed.
-        let plain = !jsonl && !jsonc && args.len() == 1;
+        // Plain JSON and JSONC retain absence instead of injecting a budget.
+        let plain = !jsonl && args.len() == if jsonc {2}else{1};
         if !plain && args.len() != if jsonl {1}else if jsonc {3}else{2} {
             return Err(Diagnostic::new(
                 "arity",

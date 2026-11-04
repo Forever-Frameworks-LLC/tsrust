@@ -49,7 +49,7 @@ function main(){
  rejects('[0,1]',{maxBytes:100,maxDepth:64,maxEntries:1,maxNodes:100},'entry-limit');
  rejects('[0]',{maxBytes:100,maxDepth:64,maxEntries:100,maxNodes:1},'node-limit');
  rejects('null',{maxBytes:-1,maxDepth:64,maxEntries:100,maxNodes:100},'invalid-limits');
- rejects('null',{maxBytes:100,maxDepth:65,maxEntries:100,maxNodes:100},'invalid-limits');
+ rejects('null',{maxBytes:100,maxDepth:-1,maxEntries:100,maxNodes:100},'invalid-limits');
  rejects('null true',{maxBytes:100,maxDepth:64,maxEntries:100,maxNodes:100},'trailing-data');
  rejects('/*comment*/null',{maxBytes:100,maxDepth:64,maxEntries:100,maxNodes:100},'invalid-json');
  const source=' \n{"n":18446744073709551615,"text":"\\u0061"} ';

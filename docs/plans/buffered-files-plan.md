@@ -7,7 +7,9 @@ Continue the existing owned-resource contract.
 
 Expose BufferedReader and BufferedWriter in std:fs. Constructors consume a File;
 there is no second handle or shared cursor. Construction errors release the incoming
-handle. Capacity defaults to 8192 bytes and must be between 1 and 1048576 bytes.
+handle. Capacity defaults to 8192 bytes and must be positive and fit the platform.
+Allocation can fail; there is no additional 1 MiB ceiling. JSONL creation reserves
+its output buffer before creating or truncating a file.
 Document this transfer explicitly, including failure behavior.
 
 Use the existing read, write, writeAll and close names with native type alternatives:

@@ -25,7 +25,6 @@ pub struct Lines<R:BufRead> {
 }
 impl<R:BufRead> Lines<R> {
  pub fn new(reader:R,limits:Limits)->Result<Self,LineError> {
-  if limits.depth>64 {return Err(LineError{error:failure("invalid-limits",0),line:1,io_kind:None,os_code:None});}
   Ok(Self{reader:Some(reader),limits,record:Vec::new(),offset:0,line:1,terminal:None})
  }
  pub fn close_with<E>(mut self,close:impl FnOnce(R)->Result<(),E>)->Result<(),E> {

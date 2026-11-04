@@ -48,6 +48,7 @@ fn jsonl_writer_invalid_options_do_not_truncate_and_ownership_is_checked() {
         r#"import {{createJsonl}} from 'std:json';import {{strictEqual}} from 'std:testing';function main(){{
  match(createJsonl({path:?},-1)){{Ok(_)=>{{throw 'negative accepted';}},Err(error)=>{{strictEqual(error.code,'invalid-limits');}}}}
  match(createJsonl({path:?},32,0)){{Ok(_)=>{{throw 'zero capacity accepted';}},Err(error)=>{{strictEqual(error.code,'capacity-range');}}}}
+ match(createJsonl({path:?},undefined,9223372036854775807)){{Ok(_)=>{{throw 'impossible allocation accepted';}},Err(error)=>{{strictEqual(error.code==='allocation'||error.code==='capacity-range',true);}}}}
  }}"#,
         path = output.to_str().unwrap()
     );

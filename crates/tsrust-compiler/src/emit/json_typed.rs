@@ -197,11 +197,12 @@ impl Emitter<'_> {
         let text = self.expr(fun, &args[0], Mode::Read);
         let ok_tag = members.iter().position(|ty| *ty == Type::Record(ok)).unwrap();
         let err_tag = members.iter().position(|ty| *ty == Type::Record(err)).unwrap();
-        if args.len() == 1 {
-            // No limits: a single serde decode, as a Rust programmer would write it.
+        if args.len() == 1 || (args.len()==2 && args[1].ty==Some(Type::Boolean)) {
+            // Keep absence through the runtime boundary instead of injecting a budget.
             let union = result.index();
+            let decode=if args.len()==2{format!("tsrust_native_json::typed::decode_jsonc_plain::<Decode0>(text.as_ref().as_bytes(),{})",self.expr(fun,&args[1],Mode::Copy))}else{"tsrust_native_json::typed::decode_plain::<Decode0>(text.as_ref().as_bytes())".to_owned()};
             return format!(
-                "{{{generated}let text={text};match tsrust_native_json::typed::decode_plain::<Decode0>(text.as_ref().as_bytes()){{Ok(value)=>Union{union}::V{ok_tag}(Record{ok}{{field0:value.0}}),Err(error)=>Union{union}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(error.code),field1:String::Borrowed(error.message),field2:error.offset as i64}}}})}}}}"
+                "{{{generated}let text={text};match {decode}{{Ok(value)=>Union{union}::V{ok_tag}(Record{ok}{{field0:value.0}}),Err(error)=>Union{union}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(error.code),field1:String::Borrowed(error.message),field2:error.offset as i64}}}})}}}}"
             );
         }
         let limits = self.expr(fun, args.last().unwrap(), Mode::Read);

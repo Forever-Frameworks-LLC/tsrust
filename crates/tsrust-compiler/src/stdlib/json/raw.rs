@@ -122,6 +122,6 @@ mod tests {
         ] {
             assert_eq!(borrow(source, limits).err().unwrap().code, code, "{source}");
         }
-        assert_eq!(borrow("null", Limits { depth: 65, ..limits() }).err().unwrap().code, "invalid-limits");
+        assert_eq!(borrow("null", Limits { depth: 65, ..limits() }).unwrap().text(),"null");
     }
 }

@@ -156,7 +156,7 @@ mod tests {
         assert_eq!(parse(b"[]",Limits{depth:0,..limits()}).unwrap_err().code,"depth-limit");
         assert_eq!(parse(b"[0,1]",Limits{entries:1,..limits()}).unwrap_err().code,"entry-limit");
         assert_eq!(parse(b"[0]",Limits{nodes:1,..limits()}).unwrap_err().code,"node-limit");
-        assert_eq!(parse(b"null",Limits{depth:65,..limits()}).unwrap_err().code,"invalid-limits");
+        assert_eq!(parse(b"null",Limits{depth:65,..limits()}).unwrap(),Value::Null);
     }
     #[test]
     fn exhausted_budgets_stop_before_decoding_the_next_value_or_key() {
@@ -173,7 +173,7 @@ mod tests {
         let nested = format!("{}0{}", "[".repeat(64), "]".repeat(64));
         assert!(parse(nested.as_bytes(), Limits { depth: 64, nodes: 65, ..limits() }).is_ok());
         assert!(parse(nested.as_bytes(), Limits { depth: 63, nodes: 65, ..limits() }).is_err());
-        assert!(parse(b"null", Limits { depth: 65, ..limits() }).is_err());
+        assert!(parse(b"null", Limits { depth: 65, ..limits() }).is_ok());
         for input in ["null", "false", "0", "-0", "-0.0", "1e-300", "[]", "{}", " [true, null] ", r#"{"z":1,"a":2,"z":3}"#, r#""a\n\u0000é""#] {
             assert_eq!(parse(input.as_bytes(), limits()).unwrap(), serde_json::from_str::<Value>(input).unwrap());
         }

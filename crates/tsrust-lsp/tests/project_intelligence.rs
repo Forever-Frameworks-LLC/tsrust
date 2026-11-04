@@ -1897,7 +1897,7 @@ fn buffered_file_help_documents_transfer_capacity_and_retry() {
  let uri=fixture_uri!("/tsrust-intelligence/main.tsr");let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
  let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
  let help=ask(&index,&entry,"8);","textDocument/signatureHelp");
- for phrase in ["8192","1048576","Consumed"] {assert!(help.to_string().contains(phrase),"{help}");}
+ for phrase in ["8192","platform","Consumed"] {assert!(help.to_string().contains(phrase),"{help}");}
  let help=ask(&index,&entry,"writer, bytes","textDocument/signatureHelp");assert!(help.to_string().contains("BufferedWriter"),"{help}");
  let hover=ask(&index,&entry,"flush(writer","textDocument/hover");assert!(hover.to_string().contains("unwritten suffix"),"{hover}");
 }
@@ -1992,7 +1992,7 @@ fn jsonl_editor_contract_exposes_ownership_limits_and_error_locations() {
  let uri=fixture_uri!("/tsrust-intelligence/main.tsr");let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.into());
  let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
  let hover=ask(&index,entry,"open('records","textDocument/hover");let docs=hover["contents"]["value"].as_str().unwrap();
- for text in ["JsonlReader","JsonlError","1048576","Ownership:","```tsrust"]{assert!(docs.contains(text),"{hover}");}
+ for text in ["JsonlReader","JsonlError","no per-record byte","Ownership:","```tsrust"]{assert!(docs.contains(text),"{hover}");}
  let field=ask(&index,entry,"line);","textDocument/hover");assert!(field.to_string().contains("One-based JSON Lines record"),"{field}");
  let help=ask(&index,entry,"'records.jsonl'","textDocument/signatureHelp");assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),3);
 }
@@ -2327,7 +2327,7 @@ fn raw_json_validation_has_borrowing_and_limits_help() {
  let uri=fixture_uri!("/tsrust-intelligence/main.tsr");let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());
  let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
  let hover=ask(&index,&source,"borrowRaw(text)","textDocument/hover");let docs=hover.to_string();
- assert!(docs.contains("JsonRaw")&&docs.contains("source must remain alive")&&docs.contains("16777216"),"{hover}");
+ assert!(docs.contains("JsonRaw")&&docs.contains("source must remain alive")&&docs.contains("no byte, entry or node quota"),"{hover}");
  let signature=ask(&index,&source,"text);","textDocument/signatureHelp");assert!(signature.to_string().contains("text: string"),"{signature}");
 }
 
@@ -3205,5 +3205,15 @@ fn context_json_keys_and_next_callable_have_checked_hover(){
   assert!(help["signatures"][0]["label"].as_str().unwrap_or("").contains("Task<void>"),"{help}");assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),0,"{help}");
 
 
+ }
+}
+
+#[test]
+fn json_default_limit_help_agrees_for_native_and_typed_calls(){
+ let source=tsrust_compiler::format("import {parseJsonc,borrowRaw,openJsonl,createJsonl} from 'std:json';function main(){parseJsonc<int[]>('[1]',false,undefined);const text='null';borrowRaw(text,undefined);openJsonl('input',undefined,1048577);createJsonl('output',undefined,1048577);}").unwrap();
+ let uri=fixture_uri!("/tsrust-intelligence/main.tsr");let id=source_id(uri).unwrap();let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.clone());let checked=workspace.snapshot().check(&id).unwrap();let index=ProjectIndex::checked(&checked);
+ for (needle,expected) in [("parseJsonc<int[]>","no input byte"),("borrowRaw(text","no byte, entry or node quota"),("openJsonl(","no per-record byte"),("createJsonl(","no record byte quota")]{
+  let hover=ask(&index,&source,needle,"textDocument/hover");assert!(hover.to_string().contains(expected),"{needle}: {hover}");
+  assert!(!hover.to_string().contains("16777216")&&!hover.to_string().contains("1048576"),"{hover}");
  }
 }
