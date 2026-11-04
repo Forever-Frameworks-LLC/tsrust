@@ -170,3 +170,66 @@ fn main(){
   let output=support::run(&mut std::process::Command::new(executable),30);support::success(&output);assert!(output.stdout.is_empty());assert!(output.stderr.is_empty());
  }
 }
+
+#[test]
+fn normalization_expanded_decompositions_match_raw_unicode_mappings() {
+ let source=support::format_round_trip("function normal(text:string):string{return text.normalize();}function main(){}");
+ let emitted=tsrust_compiler::check(&source).unwrap().emit_rust();assert!(!emitted.contains("unsafe"));
+ let allocator=include_str!("../../../benchmarks/runtime/allocation-driver.rs").split("fn main()").next().unwrap();
+ let data=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/unicode-normalization/data/UnicodeData.txt");
+ let harness=r#"
+fn reference_decompose(code:u32,compatibility:bool,mappings:&std::collections::BTreeMap<u32,(bool,Vec<u32>)>,output:&mut Vec<u32>){
+ if (0xAC00..0xAC00+11172).contains(&code){
+  let syllable=code-0xAC00;output.push(0x1100+syllable/588);output.push(0x1161+syllable%588/28);
+  if syllable%28!=0{output.push(0x11A7+syllable%28);}return;
+ }
+ if let Some((compatible,values))=mappings.get(&code){
+  if !*compatible||compatibility{for &value in values{reference_decompose(value,compatibility,mappings,output);}return;}
+ }
+ output.push(code);
+}
+fn main(){
+ let mut mappings=std::collections::BTreeMap::new();
+ for line in include_str!(DATA_PATH).lines(){
+  let fields=line.split(';').collect::<Vec<_>>();let code=u32::from_str_radix(fields[0],16).unwrap();
+  let mut values=fields[5].split_whitespace().peekable();let compatible=values.peek().is_some_and(|value|value.starts_with('<'));
+  if compatible{values.next();}let values=values.map(|value|u32::from_str_radix(value,16).unwrap()).collect::<Vec<_>>();
+  if !values.is_empty(){mappings.insert(code,(compatible,values));}
+ }
+ assert_eq!(mappings.len(),5913);assert_eq!(TSR_NORMALIZATION_COMPATIBILITY.len(),16);
+ for &(code,kind,_,_) in TSR_NORMALIZATION_DECOMPOSE{
+  if kind>=2{assert_eq!(TSR_NORMALIZATION_COMPATIBILITY[usize::from(kind-2)].0,code);}
+ }
+ let mut count=0;
+ for code in 0..=0x10ffff{
+  if char::from_u32(code).is_none(){continue;}
+  for compatibility in [false,true]{
+   let mut expected=Vec::new();reference_decompose(code,compatibility,&mappings,&mut expected);
+   let mut actual=Vec::new();tsr_normalization_decompose(code,compatibility,&mut actual);
+   assert_eq!(actual.len(),expected.len(),"U+{code:X} compatibility={compatibility}");
+   for (packed,expected) in actual.into_iter().zip(expected){
+    assert_eq!(packed&TSR_NORMALIZATION_SCALAR_MASK,expected,"U+{code:X} compatibility={compatibility}");
+    assert_eq!(packed>>21,u32::from(tsr_normalization_class(expected)),"class U+{code:X} compatibility={compatibility}");
+   }
+   count+=1;
+  }
+ }
+ assert_eq!(count,2224128);
+ for text in ["Å","ﬁ","\u{385}","\u{1e9b}","\u{fdfa}","각"]{
+  for form in ["NFC","NFD","NFKC","NFKD"]{
+   let before=ALLOCS.load(Relaxed);let live=LIVE.load(Relaxed);
+   let result=tsr_string_normalize(text,Some(form),"expanded mappings");
+   assert_eq!(ALLOCS.load(Relaxed)-before,2,"only scalar storage and owned output: {text} {form}");
+   assert!(matches!(result,String::Owned(_)));drop(result);assert_eq!(LIVE.load(Relaxed),live);
+  }
+ }
+}
+"#.replace("DATA_PATH",&format!("{:?}",data));
+ let directory=support::TempDirectory::new();let path=directory.0.join("expanded-normalization.rs");
+ std::fs::write(&path,emitted.replace("fn main()","fn source_main()")+allocator+&harness).unwrap();
+ for level in ["0","3"]{
+  let executable=directory.0.join(format!("expanded-normalization-{level}"));
+  support::success(&support::run(support::rustc().args(["--edition=2024","-A","warnings","-D","unused_assignments","-C",&format!("opt-level={level}"),"-C","overflow-checks=on"]).arg(&path).arg("-o").arg(&executable),60));
+  let output=support::run(&mut std::process::Command::new(executable),30);support::success(&output);assert!(output.stdout.is_empty());assert!(output.stderr.is_empty());
+ }
+}

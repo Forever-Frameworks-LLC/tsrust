@@ -13,25 +13,23 @@ fn tsr_normalization_class(code: u32) -> u8 {
     let rows=&TSR_NORMALIZATION_CCC[tsr_normalization_page(code,TSR_NORMALIZATION_CCC_PAGES)];
     rows.binary_search_by_key(&code, |row| row.0).map_or(0, |index| rows[index].1)
 }
-fn tsr_normalization_decompose(code: u32, compatibility: bool, output: &mut Vec<u32>, pending: &mut Vec<u32>) {
-    let mut current=Some(code);
-    while let Some(code) = current.take().or_else(||pending.pop()) {
-        if code < TSR_NORMALIZATION_DECOMPOSE[0].0 {
-            output.push(code | ((tsr_normalization_class(code) as u32) << 21));
-        } else if (0xAC00..0xAC00 + 11172).contains(&code) {
-            let syllable = code - 0xAC00;
-            let tail = syllable % 28;
-            if tail != 0 { pending.push(0x11A7 + tail); }
-            pending.push(0x1161 + syllable % 588 / 28);
-            pending.push(0x1100 + syllable / 588);
-        } else if let Some((_, compatible, start, length)) = {
-            let rows=&TSR_NORMALIZATION_DECOMPOSE[tsr_normalization_page(code,TSR_NORMALIZATION_DECOMPOSE_PAGES)];
-            rows.binary_search_by_key(&code,|row|row.0).ok().map(|index|rows[index])
-        } {
-            if compatible && !compatibility { output.push(code | ((tsr_normalization_class(code) as u32) << 21)); continue; }
-            pending.extend(TSR_NORMALIZATION_MAPPING[start as usize..start as usize + length as usize].iter().rev().copied());
-        } else { output.push(code | ((tsr_normalization_class(code) as u32) << 21)); }
-    }
+fn tsr_normalization_decompose(code:u32,compatibility:bool,output:&mut Vec<u32>){
+ if code>=TSR_NORMALIZATION_DECOMPOSE[0].0 {
+  if (0xAC00..0xAC00+11172).contains(&code){
+   let syllable=code-0xAC00;let tail=syllable%28;
+   output.extend_from_slice(&[0x1100+syllable/588,0x1161+syllable%588/28]);
+   if tail!=0{output.push(0x11A7+tail);}return;
+  }
+  let rows=&TSR_NORMALIZATION_DECOMPOSE[tsr_normalization_page(code,TSR_NORMALIZATION_DECOMPOSE_PAGES)];
+  if let Ok(index)=rows.binary_search_by_key(&code,|row|row.0){
+   let (_,kind,start,length)=rows[index];
+   if kind!=1||compatibility {
+    let(start,length)=if compatibility&&kind>=2{let(_,start,length)=TSR_NORMALIZATION_COMPATIBILITY[usize::from(kind-2)];(start,length)}else{(start,length)};
+    output.extend_from_slice(&TSR_NORMALIZATION_MAPPING[start as usize..start as usize+length as usize]);return;
+   }
+  }
+ }
+ output.push(code|((tsr_normalization_class(code) as u32)<<21));
 }
 fn tsr_normalization_compose(left: u32, right: u32) -> Option<u32> {
     if (0x1100..0x1100 + 19).contains(&left) && (0x1161..0x1161 + 21).contains(&right) {
@@ -52,8 +50,7 @@ fn tsr_string_normalize(text: &str, form: Option<&str>, failure: &'static str) -
     };
     if text.is_ascii() { return String::Owned(text.to_owned()); }
     let mut codes = Vec::with_capacity(text.chars().count());
-    let mut pending = Vec::new();
-    for character in text.chars() { tsr_normalization_decompose(character as u32,compatibility,&mut codes,&mut pending); }
+    for character in text.chars() { tsr_normalization_decompose(character as u32,compatibility,&mut codes); }
     let mut start = 0;
     for index in 0..codes.len() {
         if (codes[index] >> 21) == 0 {
