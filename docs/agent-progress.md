@@ -31,6 +31,18 @@ optimization focus.
 Owner steering, 2026-11-03: HTTP/object ergonomics supersede optimization until this section is delivered. The hello expression `c.json({greeting:clone(c.env.greeting)})` must work; routes, middleware, authorization and client generation must stay in source, without API settings in tsrust.config.json. Later requests require hover on literal keys plus useful next() hover/signature help.
 
 **Final optimization milestone — regression phase authorized by owner stopping rule.**
+Release-state correction, verified through GitHub API in this continuation:
+v0.1.1 is already published (2026-10-31T18:21:49Z) and is the current latest
+release: https://github.com/Forever-Frameworks-LLC/tsrust/releases/tag/v0.1.1.
+Its owner approval was fulfilled by the October31 promotion; do not reuse it as
+approval for another version or attempt to republish the tag. Complete local
+validation/performance/docs first, prepare a concrete next-version candidate,
+then request fresh version/publication approval as the final release step under
+the project skill. The broad instruction to promote to main persists, but a push
+that automatically publishes must wait for that version approval. No release
+version bump or remote mutation has been made. GitHub connector fetch returned
+Unknown tool; read-only gh api confirmed the release/latest metadata.
+
 Final complete preparation passes:867.693s/3,711,571KiB, 502 test binaries,
 including both --lib, both binary harnesses and all 498 integration files. Command:
 cargo test --offline --locked -p tsrust-compiler -p tsrust-lsp --lib --bins --tests
@@ -40,7 +52,7 @@ incremental off, TSRUST_SOURCE_PACK_DIR=target/portable-source-packs. Build hand
 stdlib/json/typed.rs decode_plain at217; no errors/new warnings. No suppression.
 
 
-Latest ledger snapshot: 137/502 binaries completed, 2581 passing tests; failed groups tsrust-compiler::tsrust_compiler, tsrust-compiler::calendar_dates, tsrust-compiler::collections, tsrust-compiler::decimal_values. This snapshot is historical; poll live handle23979 and ledger for current state.
+Latest ledger snapshot: 170/502 binaries completed, 2780 passing tests; failed groups tsrust-compiler::tsrust_compiler, tsrust-compiler::calendar_dates, tsrust-compiler::collections, tsrust-compiler::decimal_values. This snapshot is historical; poll live handle23979 and ledger for current state.
 
 Complete serial execution is live, tool session23979, orchestrator
 /tmp/tsrust-final-regressions.py. It runs both library binaries first, then all
@@ -115,8 +127,12 @@ rust_dependencies.rs; collections.rs and ordered-backend.rs; this sole handoff.
 No draft fix is accepted or performance gain claimed yet.
 Whole-project formatter passes0 files/snippets/fingerprints changed. Do not commit
 the pending source repairs as accepted until affected rebuilt checks pass.
-Latest observed progress:137 completed binaries,133 passing binaries,2,581 passing
-tests,11 existing ignores. Poll the runner/ledger for newer totals.
+Latest observed progress:170 completed binaries,166 passing binaries,2,780 passing
+tests. JSON4/0/0 passes304.829s/1,087,312KiB; default-limit, encoding,
+inspection and literal-decoding suites also pass. HTTP13/0/1 passes318.758s/1,767,344KiB; HTTP context9/0/0
+passes130.001s/1,702,496KiB. Library ignores are five opt-in compiler
+diagnostics and three external SQL driver suites; other opt-in DB/TLS cases
+remain explicitly ignored by their existing tests. Poll the runner/ledger for newer totals.
 
 The ranked compiler/container/JSON/string/math changes have measured accepted
 checkpoints. Latest schema-array optimization is67479689. Final audits cover the
@@ -130,7 +146,8 @@ features. Next run final complete compiler/LSP regressions, both --lib binaries
 and doctests with one Cargo target/job, incremental disabled, serial binaries,
 3threads and watchdog. Preserve completed suites and repair only affected failures.
 Then refresh affected public native/HTTP metrics with cached Node/Rust controls,
-validate docs/consumers, and complete approved v0.1.1 promotion. While deployment
+validate docs/consumers, then prepare the next release for concrete publication
+approval (v0.1.1 already shipped; see correction above). While deployment
 runs, reprioritize feature work with the owner. Backend-only direction remains
 active until that discussion. This begins final verification, not goal completion.
 Rejected-candidate checkpoint7f2fd116; pruned 126 closed callable
