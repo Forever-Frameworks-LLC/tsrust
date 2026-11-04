@@ -92,6 +92,36 @@ pub(crate) fn run() {
         }
         drop(outcome);assert_eq!(data_drops.get(),4);assert_eq!(undo_drops.get(),1);assert_eq!(restored.get(),usize::from(mode==0));assert_eq!(calls.get(),if mode==1{3}else{2});assert_eq!(LIVE.load(Relaxed),baseline);
     }
+    use super::issues::{Code,Issues,Kind,OwnedSegment,Segment};
+    for label in ["", "count", "é😀secret", "\0é😀", "a long dynamic field name"] {
+        for budget in [0,1,2,3,4,5,6,7,usize::MAX] {
+            let baseline=LIVE.load(Relaxed);
+            let mut original=label.to_owned();
+            let mut remaining=budget;
+            let expected=label.chars().take_while(|ch|{if ch.len_utf8()<=remaining{remaining-=ch.len_utf8();true}else{false}}).collect::<String>();
+            let mut issues=Issues::new(1,8,budget);
+            issues.push(&[Segment::Field(&original),Segment::Index(7)],Code::Missing,Kind::Integer,Kind::Missing);
+            original.clear();drop(original);
+            let issue=issues.items.pop().unwrap();
+            assert_eq!(issue.path_truncated,expected.len()<label.len());
+            assert_eq!(issue.path.len(),if expected.len()<label.len(){1}else{2});
+            let mut path=issue.path.into_iter();
+            let OwnedSegment::Field(name)=path.next().unwrap() else{panic!("field path changed")};
+            let pointer=name.as_ptr();ALLOCS.store(0,Relaxed);REALLOCS.store(0,Relaxed);
+            let public:std::string::String=std::hint::black_box(name).into();
+            assert_eq!(ALLOCS.load(Relaxed),0,"public path conversion must reuse the label allocation");
+            assert_eq!(REALLOCS.load(Relaxed),0);assert_eq!(public.as_ptr(),pointer);assert_eq!(public,expected);
+            if expected.len()==label.len(){assert!(matches!(path.next(),Some(OwnedSegment::Index(7))));}
+            drop(path);drop(public);drop(expected);drop(issues);assert_eq!(LIVE.load(Relaxed),baseline);
+        }
+    }
+    let baseline=LIVE.load(Relaxed);
+    let mut original=String::from("dynamic child");let mut incoming=Issues::new(2,8,64);
+    incoming.push(&[Segment::Field(&original)],Code::Refinement,Kind::String,Kind::String);
+    original.clear();drop(original);
+    let mut parent=Issues::new(2,8,64);parent.append_relative(&[Segment::Field("parent"),Segment::Index(2)],incoming);
+    assert_eq!(parent.items[0].path,[OwnedSegment::Field("parent".into()),OwnedSegment::Index(2),OwnedSegment::Field("dynamic child".into())]);
+    drop(parent);assert_eq!(LIVE.load(Relaxed),baseline);
     std::panic::set_hook(hook);
 }
 "#;
