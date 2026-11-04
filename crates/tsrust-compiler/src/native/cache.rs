@@ -50,7 +50,10 @@ impl NativeCache {
     fn copy_with_lock(&self,destination:&Path,wait:bool)->bool {
         let Ok(_lock)=self.lock(wait) else{return false;};
         let Some(source)=self.lookup() else{return false;};
-        if std::fs::copy(source,destination).is_err(){return false;}
+        // Replace the inode: overwriting an executable can invalidate macOS code signatures and running readers.
+        let staged=destination.with_extension(format!("tsrust-copy-{}-{}",std::process::id(),PUBLICATION_SEQUENCE.fetch_add(1,Ordering::Relaxed)));
+        let Ok(file)=std::fs::OpenOptions::new().write(true).create_new(true).open(&staged) else{return false;};drop(file);
+        if std::fs::copy(source,&staged).and_then(|_|std::fs::rename(&staged,destination)).is_err(){let _=std::fs::remove_file(&staged);return false;}
         let _=std::fs::write(self.directory.join("used"),[]);true
     }
     fn lock(&self,wait:bool)->std::io::Result<std::fs::File> {

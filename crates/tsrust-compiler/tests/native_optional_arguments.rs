@@ -58,3 +58,14 @@ fn optional_native_arguments_keep_type_errors_and_ownership_checks() {
         assert!(!output.status.success(),"accepted {source}");assert!(String::from_utf8_lossy(&output.stderr).contains(&format!("error[{code}]")),"{}",String::from_utf8_lossy(&output.stderr));
     }
 }
+
+#[test]
+fn absent_readonly_record_unions_name_every_data_payload(){
+ let source=r#"
+import {strictEqual} from 'std:testing';
+type Left={name:string;};type Right={id:int;};
+function visit(value?:ReadOnly<Left|Right>):int{if(value===undefined){return 0;}return 1;}
+function main(){const left:Left={name:'left'};const right:Right={id:2};strictEqual(visit(),0);strictEqual(visit(undefined),0);strictEqual(visit(left),1);strictEqual(visit(right),1);strictEqual(left.name,'left');strictEqual(right.id,2);}
+"#;
+ let dir=support::TempDirectory::new();let path=dir.source(&support::format_round_trip(source));let output=support::run(support::cli().arg("run").arg(path),120);support::success(&output);assert!(output.stdout.is_empty());assert!(output.stderr.is_empty());
+}

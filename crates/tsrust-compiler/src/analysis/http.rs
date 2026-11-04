@@ -58,7 +58,7 @@ impl Analyzer {
     // Preserve the options context when lazy lowering evaluates arguments into locals.
     if matches!(name,"__listen"|"__routerListen") && let ExprKind::Match{body,..}=&mut expression.kind && let Some(crate::syntax::Stmt{kind:crate::syntax::StmtKind::Let{annotation,..},..})=body.get_mut(2){
      let options=self.schema_native_dependency(NativeTypeId::HttpTlsOptions,span)?;
-     *annotation=Some(self.checked_value_annotation(Type::Record(options),span)?);
+     let optional=self.unions.intern([Type::Record(options),Type::Undefined],span)?;*annotation=Some(self.checked_value_annotation(optional,span)?);
     }
    }else{
     *expression=crate::stdlib::http::call(name,args,span);
@@ -125,7 +125,7 @@ impl Analyzer {
     if !outputs.into_iter().all(|output|matches!(output,Type::Record(id) if self.program.records[id].native_type==Some(NativeTypeId::HttpResponse)) || hono && middleware && matches!(output,Type::Void|Type::Undefined)){return Err(Diagnostic::new("http-handler","HTTP handlers return Response or Task<Response>; Router middleware may also return no response after next().",span));}
     self.future_start_transfer(error,span)?;
    }else{
-    let ty=native_type(param.ty,&self.program.records);let actual=self.expression(context,arg,param.access,&active,Some(ty))?;self.require(actual,Some(ty),arg.span)?;
+    let contract=self.native_argument_contract(param,arg.span)?;let actual=self.parameter_argument(context,arg,contract,&active)?;self.require(actual,Some(contract.ty),arg.span)?;
     for root in Self::loan_roots(arg,param.access){active.entry(root).or_default().push((param.access,arg.span));}
    }
   }

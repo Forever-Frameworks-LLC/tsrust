@@ -30,6 +30,31 @@ optimization focus.
 
 Owner steering, 2026-11-03: HTTP/object ergonomics supersede optimization until this section is delivered. The hello expression `c.json({greeting:clone(c.env.greeting)})` must work; routes, middleware, authorization and client generation must stay in source, without API settings in tsrust.config.json. Later requests require hover on literal keys plus useful next() hover/signature help.
 
+Owner steering, 2026-11-04: immediately before any push, inspect current open
+pull requests, especially Dependabot updates. Review their dependency/security
+changes against the prepared release and account for relevant changes in local
+validation before promotion. Do not rely on an earlier PR snapshot. This does
+not authorize merging unrelated PRs without the owner's merge approval.
+
+Read-only early PR review: all three current open PRs target main and only change
+pinned workflow actions: #10 deploy-pages4.0.5→5.0.1 (head e52343e9d9750ded47c7f770960163d0bdded36e),
+#11 upload-pages-artifact4.0.0→5.0.0 (35d38f6a9e105d3826c1db67402b0f6954004868),
+#12 github-script8.0.0→9.0.0 (ef68809e0eae9d373911da498e4f7852f4f59239).
+Exact diffs reviewed; no compiler/runtime/benchmark dependency pin changes. All
+three hosted release preflights fail "Only stag can be promoted", verified from
+runs41272642009/41272648512/41272661484; release build/editor jobs were skipped.
+Dependabot currently defaults to main, whereas ordinary CI/docs PRs target stag.
+Consider routing future updates to stag and incorporating reviewed action bumps
+through the normal promotion; no config change, retarget, merge or remote write
+has been made. Recheck live PR heads/status immediately before any push.
+The github-script9 breaking changes concern require('@actions/github') and local
+getOctokit declarations; neither appears in current release-policy consumers.
+Upstream upload-pages-artifact action.yml v4/v5 diff confirms hidden files remain excluded
+by default; v5 adds an opt-in input and bumps upload-artifact to7. This
+static review does not replace hosted validation. Connector search returned
+Unknown tool, so review used read-only gh pr list/view/diff and gh run view.
+
+
 **Final optimization milestone — regression phase authorized by owner stopping rule.**
 Release-state correction, verified through GitHub API in this continuation:
 v0.1.1 is already published (2026-10-31T18:21:49Z) and is the current latest
@@ -43,96 +68,143 @@ that automatically publishes must wait for that version approval. No release
 version bump or remote mutation has been made. GitHub connector fetch returned
 Unknown tool; read-only gh api confirmed the release/latest metadata.
 
-Final complete preparation passes:867.693s/3,711,571KiB, 502 test binaries,
-including both --lib, both binary harnesses and all 498 integration files. Command:
-cargo test --offline --locked -p tsrust-compiler -p tsrust-lsp --lib --bins --tests
---no-run --message-format=json under /tmp/tsrust-watch.py, one Cargo target/job,
-incremental off, TSRUST_SOURCE_PACK_DIR=target/portable-source-packs. Build handle
-55975 is terminal0. One known generated-only dead_code warning remains:
-stdlib/json/typed.rs decode_plain at217; no errors/new warnings. No suppression.
+Accepted regression repairs — 2026-11-04 (source checkpoint follows these gates):
+- Complete preparation passes867.693s/3,711,571KiB. All502 binaries execute,
+  including both --lib, both bin harnesses and498 integration files. Original
+  baseline:488 green groups,5,463passes,23failures in14groups,19explicit ignores;
+  no watchdog stop. Serial3threads, one Cargo target/job, incremental off.
+- Original evidence remains in /tmp/tsrust-final-regressions.json and per-group
+  /tmp/tsrust-final-regression-<package>-<target>.log. Repair records preserve
+  original failures, exact filters, binary SHA and logs in the same ledger.
+  /tmp/tsrust-final-repair-build.jsonl contains current successful artifacts.
+  Do not restart the baseline; helpers reuse passing same-SHA/filter checks.
+- Latest coherent cache/native/editor preparation5496 passes541.310s/
+  3,638,563KiB. Root Cargo refresh after exports passes.527s without rebuilding.
+  Export repair46876 and native repair40996 are terminal0. All502 groups are now
+  reconciled:5,493passing tests,19explicit ignores, including7 added witnesses.
+- Compiler --lib runs1305pass/1fail/8ignored70.638s/1,159,888KiB. Both original
+  failures (ordered Map converter and reserved dependency inventory) now pass.
+  New immediate socket-rebind assertion fails in
+  stdlib::http::tests::disconnect_and_shutdown_release_inflight_request_children.
+  It passes unchanged in isolation5.325s and in the full20case HTTP unit family
+  at3threads5.358s/29,728KiB. Preserve that unconfirmed transient and both logs
+  (/tmp/tsrust-final-http-{shutdown-isolated,library-controls}.log). No runtime
+  workaround, retries, sleeps or weaker assertions. Ledger reconciles1306passes/
+  8ignored across those runs; do not claim one all-green full-library invocation.
+- LSP --lib20pass1.042s/24,432KiB. Full baseline checker_agreement3pass523.624s/
+  99,952KiB and completion_matrix3pass503.181s/50,576KiB remain accepted.
+  Final intelligence328pass/2explicit ignores/1filtered27.645s/827,552KiB,
+  skipping only the separately accepted backend catalog. Exact nested Result
+  expression/declaration hover also passes.521s. Backend catalog passes every
+  original example/output assertion775.512s/1,029,441KiB, with no resume skip.
+  Logs: /tmp/tsrust-final-intelligence-controls.log and
+  /tmp/tsrust-final-repair-tsrust-lsp-intelligence-backend_catalog_examples_match_native_output.log.
 
+Coherent repairs and retained contracts:
+- Ordered Map runtime now supplies from_mapped used by entry-epoch emission.
+  It consumes sorted BTreeMap entries, moves keys and FnMut-converts values.
+  O0/O3 witnesses retain non-Clone owners, String/Vec pointers, callback order,
+  exact drops and unwind cleanup. Collections fixtures now import runtime
+  constants instead of slicing a multi-constant raw-string module.
+- Reserve bundled nix in dependency declarations; inventory covers both bundled
+  manifests and explicit schema1/2 rejections. No dependency/pin change. Package
+  management7pass62.759s/1,082,096KiB.
+- Explicit offline portable setup creates the verified current native source
+  pack291032a97fc5afc77ca4df52538a5e56aad7769646c79847a67ae33aa8b3bc2f
+  from cached sources16.644s/148,288KiB; no download or hidden export setup.
+  Calendar/decimal exact exports pass28.506s/664,464KiB and27.439s/355,856KiB.
+  Fake-HOME fixture also links .rustup, respecting RUSTUP_HOME. Root Cargo refresh
+  resolves old cfg_if/Nix/Tokio direct-rustc failures; no FS runtime workaround.
+- SQL/SQLite custom adapters now use shared optional ABI conversion and per-union
+  parameter-array conversion, including multiple array alternatives/undefined.
+  Shared boundary checking retains contextual literals, readonly element checks,
+  boolean support only for SQL, and null/nested/unsupported-array rejections.
+  SQLite open forwarding no longer nests Some. SQL Tasks still own SQL text and
+  arrays; synchronous SQLite reads them. Witness explicitly clones reused Task
+  inputs, uses private file storage for the unchanged default5connection pool,
+  and keeps DDL outside DML-only transactions. No ownership/default policy change.
+  SQLite7pass26.948s/1,093,440KiB; async_sql5pass/2external-driver ignores48.143s/
+  558,960KiB; relocated offline SQLite export53.840s/632,496KiB; LSP SQLite4pass.
+- HTTP custom checking honors optional flags; TLS staging remains optional.
+  Client/TLS/static fallback/cookie options and contextual response status use
+  shared conversion. Temporary strings survive through native calls. New live
+  loopback witness covers effectful undefined, evaluation order, typed options,
+  text/JSON/HTML statuses, cookies/static fallback, and8invalid-present-value cases.
+  Borrowed data-union injection now names all noncopy payloads for absent record
+  alternatives; callable carriers retain existing handling. Two-record readonly
+  witness preserves caller ownership. Native optional3pass9.854s/417,456KiB;
+  HTTP context11pass135.855s/1,678,656KiB; HTTP13pass/1opt-in SQL/TLS ignore
+  329.355s/1,678,080KiB; LSP HTTP/context/state4+6+2pass.
+- Public Result injection is authoritative at its shared span with a lowered
+  private record; existing strict result identity recognizes it. Nested payload
+  and declaration hover witnesses retain public types. Existing object/schema
+  projection behavior and frozen UI authoring remain covered.
+- Native file catalog uses the normal CLI to select Nix dependencies at O0/O3.
+  This exposed repeatable close O0 SIGKILL when cached builds overwrote the same
+  executable inode. Central NativeCache::copy_with_lock now reserves a unique
+  sibling with create_new, copies, then renames under its existing namespace lock.
+  Failure removes only its owned staging file and preserves the destination.
+  Ordinary build/run, dev and runtime-artifact callers share this fix. Regression
+  checks blocking/opportunistic copies, unchanged old hard-link readers, exact
+  bytes, occupied-directory failure preserving owner data and staging cleanup.
+  Whole native_cache10pass/1explicit subprocess-worker ignore5.762s/382,464KiB;
+  previously failing file catalog now passes every O0/O3 output with the same
+  repeated path19.679s/316,112KiB, without retries. No FS/default/ABI/unsafe change.
+- Quoted-string fixture now tests dynamic owned concatenation after dropping its
+  input; original content/static-borrow checks and format round trip remain.
+  Affected SQL/SQLite/HTTP IntelliSense parameter/hover docs explain undefined
+  defaults without changing signatures, default values or ownership.
 
-Latest ledger snapshot: 170/502 binaries completed, 2780 passing tests; failed groups tsrust-compiler::tsrust_compiler, tsrust-compiler::calendar_dates, tsrust-compiler::collections, tsrust-compiler::decimal_values. This snapshot is historical; poll live handle23979 and ledger for current state.
+Other accepted affected suites, all serial under5GB/30min watchdog:
+collections54pass12.998s/463,152KiB; maps8pass5.217s/635,328KiB;
+scoped_record_composition205pass181.110s/717,104KiB;
+runtime_cache_cli3pass2.604s/307,152KiB; dev_aliases3pass2.625s/129,744KiB;
+dev_cancellation4pass2.096s/3,312KiB; quoted_strings4pass1.043s/13,744KiB;
+native_resource_lifecycle3pass2.069s/85,808KiB; native_runtime1pass8.855s/
+244,976KiB; exact async registration1pass7.288s/897,392KiB;
+compiler UI17pass110.838s/1,402,096KiB; LSP UI31pass27.544s/168,480KiB.
 
-Complete serial execution is live, tool session23979, orchestrator
-/tmp/tsrust-final-regressions.py. It runs both library binaries first, then all
-binary/integration targets, --test-threads=3, per-binary5GB/30min watchdog.
-Compiler library completed:1,304pass/2fail/8ignored (74.736s/1,156,850KiB).
-LSP library passes20/0/0 (.522s; too short for useful sampled memory). The
-runner continues through integrations; inspect its ledger for current totals. Results are
-incrementally saved to /tmp/tsrust-final-regressions.json, each full log named
-/tmp/tsrust-final-regression-<package>-<target>.log. Preserve completed groups;
-do not duplicate the live runner or restart the entire pass after a failure.
-Repair/rerun affected checks only. After executable suites run both package
-doctests separately under watchdog and backend all-target diagnostics. Preparation
-is not full-suite acceptance. Platform CI and publication remain pending.
+Final backend all-target diagnostics99266 passes92.347s/1,855,202KiB, only the
+existing generated-only dead_code warning for json/typed.rs:217 decode_plain;
+no errors/new warnings or suppressions. Log /tmp/tsrust-final-all-targets.log.
+Separate compiler/LSP doctest invocation35388 passes2.594s/574,592KiB; both
+packages register zero doctests (do not describe this as behavioral example
+execution). Catalog execution above provides actual runnable-example evidence.
+Native-only HTTP I/O verification55925 passes207.759s/726,434KiB:8workload
+identities,1,029verified requests, SQLite3.51.3; verifiedOnly=true,
+measuredEngines=[native], execution=[] independently checked. Log
+/tmp/tsrust-final-http-native-verify.log; no timing/ingestion claim.
+CPU-mode verification48618 also passes64.881s/579,712KiB:2workload identities,
+260oracle-checked requests, verifiedOnly=true, measuredEngines=[native],
+execution=[] and oracle hashes independently checked. Log
+/tmp/tsrust-final-http-cpu-native-verify.log. Both disposable verification JSONs
+are removed after inspection; no measurement history changed. Node v24.11.1 is
+confirmed. Whole-project formatter15242 passes5.172s/201,872KiB using verified
+debug compiler:0files,0documentation snippets,0fingerprints changed; token and
+idempotence checks pass. This checkpoint records the accepted repairs. Final native timing refresh,
+public metrics/docs, paired installed consumers and approved-version promotion
+remain pending. No new timing, ingestion, version bump, CI, push or publication.
 
-All933 microbenchmarks have existing native, Node-tsc and hand-written Rust
-histories. Final milestone refresh should retime native only in bounded batches,
-retaining all933 workloads, original5cases/8warmups/3×31samples and quiet guard.
-Do not rerun unchanged external timing references. HTTP has8 request and2 CPU
-workloads with separate manifests and pinned references.
-
-HTTP runner cache-control gap found during final refresh preparation: it always
-executes all three servers. Implemented --engines=native (same syntax as runtime
-runner) via existing requests-contract.mjs requestEngines selector, consumed by
-requests-run.mjs in both IO/CPU modes. Default order/three engines preserved;
-selected engines rotate modulo their count across all three processes, retain
-all original validation/latency/resource passes and 93 samples, and are recorded
-in result.measuredEngines. Build preparation still creates all three binaries;
-common Node HTTP client remains unchanged. README explains refresh use. No server
-source/protocol/manifest or measurement history changed. Eight HTTP/CPU contract
-tests pass (.521s; sampled432KiB too short for meaningful memory). Cover default,
-native-only, mixed/canonical order, empty/unknown/duplicate/repeated flags and
-original sampling controls. Live --verify --engines=native for both modes remains
-pending until the serial regressions finish; do not run competing heavy work.
-Additional final-pass failures and coherent draft fixes (not yet rebuilt):
-- emit::map_emit::ordered_tests::ordered_map_callback_entries_keep_captured_view_owners:
-  generated ordered Map entry-epoch code calls missing TsrOrderedMap::from_mapped.
-  All emitter callers inspected (map_entry_epoch_emit/map_storage_epochs), plus
-  ordinary Map implementations. Added the ordered runtime counterpart: consume
-  BTreeMap entries in sorted order, move keys, FnMut-convert values, collect the
-  final tree. Existing failing native witness is retained; expanded ordered-backend
-  O0/O3 fixture with non-Clone owners, unchanged String/Vec pointers, sorted
-  conversion order, exact final drops and complete unwind cleanup.
-- project::rust::dependencies::tests::every_bundled_dependency_pin_is_reserved:
-  runtime nix pin is missing from the reserved-name guard. Added nix, expanded
-  the pin inventory test to both native/backend manifests and explicit v1/v2
-  binding declarations of nix. No pin/version/API/default or dependency added.
-- collections::hash_buckets_avoid_single_key_allocations_and_preserve_collisions:
-  fixture extracts one raw string from maps.rs, now a multi-constant module, and
-  emits Rust containing string delimiters. Replaced fragile text slicing with
-  actual imported runtime constants, checking both ordinary and inline Map
-  variants at O0/O3 with every original allocation/collision/order assertion.
-
-Calendar and decimal portable-export cases failed because target's two cached
-packs predate current pins. Explicit current CLI setup --portable --offline --yes,
-with TSRUST_SOURCE_PACK_DIR=target/portable-source-packs and
-TSRUST_CACHE_DIR=target/tsrust-native, passes16.644s/148,288KiB. Created verified
-native pack291032a97fc5afc77ca4df52538a5e56aad7769646c79847a67ae33aa8b3bc2f
-from existing Cargo cache; no downloads, owner source/config/editor changes.
-The two environment failures still need focused reruns after the baseline pass.
-No source preparation or automatic network access was hidden inside export.
-
-The baseline runner still uses the previously built accepted code. Draft Rust
-fixes and new native fixtures are unbuilt; do not replace debug executables or
-start another Cargo build while the serial runner is live. Preserve its successful
-baseline evidence. After it finishes, jointly prepare both --lib consumers plus
-collections/maps/scoped_record_composition and affected dependency/export targets;
-run the two failed compiler unit filters, changed collection witnesses and other
-new failures serially under watchdog. Keep previously passed groups. Then
-complete doctests/all-target diagnostics, both native-only HTTP verification modes,
-and final timing refresh. Current changes: HTTP tools/docs; ordered_runtime.rs;
-rust_dependencies.rs; collections.rs and ordered-backend.rs; this sole handoff.
-No draft fix is accepted or performance gain claimed yet.
-Whole-project formatter passes0 files/snippets/fingerprints changed. Do not commit
-the pending source repairs as accepted until affected rebuilt checks pass.
-Latest observed progress:170 completed binaries,166 passing binaries,2,780 passing
-tests. JSON4/0/0 passes304.829s/1,087,312KiB; default-limit, encoding,
-inspection and literal-decoding suites also pass. HTTP13/0/1 passes318.758s/1,767,344KiB; HTTP context9/0/0
-passes130.001s/1,702,496KiB. Library ignores are five opt-in compiler
-diagnostics and three external SQL driver suites; other opt-in DB/TLS cases
-remain explicitly ignored by their existing tests. Poll the runner/ledger for newer totals.
+Final measurement support, accepted; timing remains pending:
+- All933 microbenchmarks already have native, Node-tsc and hand-written Rust
+  histories. Retime native only, original5cases/8warmups/3×31samples and quiet
+  guard. Preserve unchanged reference histories. HTTP8I/O+2CPU rows use separate
+  manifests and pinned references.
+- HTTP requests-contract/run now support --engines=native in both CPU/I/O modes.
+  Default three-engine behavior and common Node HTTP client remain unchanged;
+  preparation still builds all three untimed. Selection is unique/known/canonical,
+  rotations use selected count, and result.measuredEngines records selection.
+  README explains refresh. Eight contract tests pass.521s. No server source,
+  manifest/protocol/history change. Live --verify --engines=native in both modes
+  passes above.
+- /tmp/tsrust-final-performance.py --plan verifies933workloads in38 serial
+  native-only batches25(last8). Actual execution refuses before all502 groups
+  reconcile and final doctest/all-target logs end watchdog0. It freezes source
+  fingerprints, preserves accepted batches, enforces93samples/quiet checks,
+  verifies source/debug/release emission hashes, independently recomputes medians/
+  rates, runs store:ingest, checks unchanged old/reference histories and SQLite
+  integrity, updates public selections and disposes verified raw results. Only
+  planning has run; review before actual execution. No final performance claim.
 
 The ranked compiler/container/JSON/string/math changes have measured accepted
 checkpoints. Latest schema-array optimization is67479689. Final audits cover the
@@ -142,9 +214,8 @@ remaining candidates trade small runtime gains for compile/memory regressions.
 Hand-written Rust parity remains a stretch target; retain richer diagnostics,
 exact JSON/numeric behavior, Rust defaults and independent ownership. Do not
 reopen these rejected variants or indefinitely chase small residuals before
-features. Next run final complete compiler/LSP regressions, both --lib binaries
-and doctests with one Cargo target/job, incremental disabled, serial binaries,
-3threads and watchdog. Preserve completed suites and repair only affected failures.
+features. Final compiler/LSP regressions and both --lib executions are now
+reconciled above; retain completed executable and diagnostic evidence.
 Then refresh affected public native/HTTP metrics with cached Node/Rust controls,
 validate docs/consumers, then prepare the next release for concrete publication
 approval (v0.1.1 already shipped; see correction above). While deployment

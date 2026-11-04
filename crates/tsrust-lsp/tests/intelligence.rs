@@ -7,7 +7,7 @@ fn inferred_result_hover_uses_public_types_including_nested_payloads() {
     let source = tsrust_compiler::format("function main(){const result=Ok<Result<string,int>,boolean>(Err<string,int>(4));match(result){Ok(inner)=>{match(inner){Ok(text)=>{console.log(text);},Err(code)=>{console.log(code);}}},Err(flag)=>{console.log(flag);}}}").unwrap();
     assert_eq!(tsrust_compiler::format(&source).unwrap(), source);
     tsrust_compiler::check(&source).unwrap();
-    for (needle, expected) in [("result)", "Result<Result<string, int>, boolean>"), ("inner)", "Result<string, int>")] {
+    for (needle, expected) in [("result =", "Result<Result<string, int>, boolean>"), ("result)", "Result<Result<string, int>, boolean>"), ("inner)", "Result<string, int>")] {
         let hover = ask(&source, "textDocument/hover", needle, 0);
         let docs = hover["contents"]["value"].as_str().unwrap_or("");
         assert!(docs.contains(expected) && !docs.contains("Result#"), "{hover}");

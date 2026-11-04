@@ -1585,10 +1585,11 @@ impl Emitter<'_> {
                 );
             }
             if matches!(actual, Type::Null | Type::Undefined)
-                && let Some(payload) = self.program.unions[union.index()].members.iter().copied().find(|ty| matches!(ty, Type::Record(_)))
-                && (self.scoped_record_native_parameter(payload) || matches!(payload,Type::Record(id) if self.borrowing_records.contains(&self.program.scoped_records.declaration(id))))
+                && !target.iter().any(|ty|matches!(ty,Type::Callback(_)|Type::Closure(_)|Type::StoredCallable(_)|Type::BorrowedCallable(_)|Type::Callable(_)))
+                && target.iter().any(|ty|matches!(ty,Type::Record(_)))
             {
-                return format!("ViewUnion{}::<{}>::V{to}({source})", union.index(), self.native_type(payload));
+                let payloads=self.program.unions[union.index()].members.iter().copied().filter(|ty|!ty.is_copy()).map(|ty|self.native_type(ty)).collect::<Vec<_>>().join(",");
+                return format!("ViewUnion{}::<{payloads}>::V{to}({source})", union.index());
             }
             return format!("ViewUnion{}::V{to}({source})", union.index());
     }
@@ -2808,7 +2809,7 @@ impl Emitter<'_> {
                     let call=if binding.name=="beginSuite"{format!("tsrust_testing_begin_suite_result({})",arguments[0])}else if binding.name=="beginFile"{format!("tsrust_testing_begin_file_result({})",arguments[0])}else{"tsrust_testing_end_suite_result()".into()};
                     self.typed_runner_result(&call,closure.span,Some(index)).unwrap_or_else(||crate::native_emit::call(binding,arguments))
                 }else if binding.module=="std:sqlite" && binding.name=="open" {
-                    let timeout=arguments.get(1).map(|value|format!("Some({value})")).unwrap_or("None".into());
+                    let timeout=arguments.get(1).cloned().unwrap_or("None".into());
                     self.http_result(closure.function.result,&format!("tsrust_native_sqlite::Connection::open(({}).as_ref(),{timeout})",arguments[0]))
                 }else if binding.module=="std:path" && binding.name=="relative" {
                     let call=crate::native_emit::call(binding,arguments);

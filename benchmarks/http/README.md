@@ -75,7 +75,12 @@ TSRUST="$PWD/target/debug/tsrust" CARGO_TARGET_DIR="$PWD/target" CARGO_INCREMENT
 
 The first command builds release servers offline and verifies real requests.
 `--prepared` reuses servers only when source/compiler identities still match.
-Omit `--prepared` to rebuild. Timing keeps the original **three processes × 31
+Omit `--prepared` to rebuild. Add `--engines=native` to verification and timing
+commands, including `--cpu`, to refresh Tsrust while reusing cached Node.js and
+hand-written Rust measurements. The default selects all three engines. Selection
+controls server execution; preparation still builds all three servers, and every
+measurement uses the common Node HTTP client. Results record the selected engines.
+Timing keeps the original **three processes × 31
 samples after eight warmups** (93 samples per engine/workload), rotating server
 order and waiting for a quiet machine. All servers bind only to loopback port
 zero and are shut down after each process. The Rust counterpart links the same

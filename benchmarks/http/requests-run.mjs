@@ -11,8 +11,8 @@ import * as cpu from './cpu-contract.mjs';
 import {processSnapshot} from './telemetry.mjs';
 import {waitForQuietMachine,DEFAULT_LIMIT} from '../runtime/quiet-machine.mjs';
 const here=path.dirname(fileURLToPath(import.meta.url)),root=path.resolve(here,'../..');
-const flags=process.argv.slice(2);if(flags.some(flag=>!['--verify','--prepared','--cpu'].includes(flag)))throw Error('Unknown argument');
-const cpuMode=flags.includes('--cpu');
+const flags=process.argv.slice(2);if(flags.some(flag=>!['--verify','--prepared','--cpu'].includes(flag)&&!flag.startsWith('--engines=')))throw Error('Unknown argument');
+const cpuMode=flags.includes('--cpu'),engines=io.requestEngines(flags);
 if(cpuMode&&process.platform!=='darwin')throw Error('CPU/RSS protocol currently requires macOS ps time/RSS sampling');
 const {protocol,workloads,sourceFiles,sourceHashes,assertManifest,cases,rejectionCases,validateResponse,hash}=cpuMode?cpu:io;
 const manifest=JSON.parse(fs.readFileSync(path.join(here,cpuMode?'cpu-manifest.json':'requests-manifest.json'),'utf8'));assertManifest(manifest);
@@ -63,7 +63,7 @@ function request(agent,address,test,latencies){const started=latencies?performan
 async function batch(agent,address,tests,concurrency=1,latencies){let next=0;await Promise.all(Array.from({length:concurrency},async()=>{while(next<tests.length){const test=tests[next++];await request(agent,address,test,latencies);}}));}
 try{
  for(let processIndex=0;processIndex<(verify?1:protocol.processes);processIndex++){
-  const engines=['native','node-tsc','rust-hand'];const rotated=[...engines.slice(processIndex),...engines.slice(0,processIndex)];
+  const offset=processIndex%engines.length;const rotated=[...engines.slice(offset),...engines.slice(0,offset)];
   for(const engine of rotated){
    if(!verify)loads.push(waitForQuietMachine());
    console.log(`Validate ${engine}, process ${processIndex+1}`);active=await start(commands[engine]);
@@ -94,6 +94,6 @@ try{
   }
  }
  assertManifest(manifest);
- const result={schemaVersion:1,timestamp:new Date().toISOString(),verifiedOnly:verify,measurementScope:(cpuMode?'CPU rendering; one server worker; request latency; separate CPU/RSS pass. ':'')+'validated keep-alive loopback HTTP at 1/16 connections; common Node client; excludes build, startup, data seeding and payload preparation',semanticEpoch:manifest.semanticEpoch,manifest:{workloads:workloads.map(row=>({...row,iterations:128,operationsPerIteration:1}))},protocol,versions:{node:process.version,rust:run('rustup',['run','1.96.1','rustc','--version']).trim(),typescript:run(process.execPath,[path.join(root,'benchmarks/runtime/node_modules/typescript/bin/tsc'),'--version']).trim()},machine:{cpu:os.cpus()[0].model,platform:os.platform(),architecture:os.arch()},quietMachine:{allowBusy:false,loadLimit:DEFAULT_LIMIT,maxOneMinuteLoad:loads.length?Math.max(...loads):null},identities,observations,execution};
+ const result={schemaVersion:1,measuredEngines:engines,timestamp:new Date().toISOString(),verifiedOnly:verify,measurementScope:(cpuMode?'CPU rendering; one server worker; request latency; separate CPU/RSS pass. ':'')+'validated keep-alive loopback HTTP at 1/16 connections; common Node client; excludes build, startup, data seeding and payload preparation',semanticEpoch:manifest.semanticEpoch,manifest:{workloads:workloads.map(row=>({...row,iterations:128,operationsPerIteration:1}))},protocol,versions:{node:process.version,rust:run('rustup',['run','1.96.1','rustc','--version']).trim(),typescript:run(process.execPath,[path.join(root,'benchmarks/runtime/node_modules/typescript/bin/tsc'),'--version']).trim()},machine:{cpu:os.cpus()[0].model,platform:os.platform(),architecture:os.arch()},quietMachine:{allowBusy:false,loadLimit:DEFAULT_LIMIT,maxOneMinuteLoad:loads.length?Math.max(...loads):null},identities,observations,execution};
  const file=path.join(root,'benchmarks/runtime/results',`${result.timestamp.replace(/[:.]/g,'-')}${verify?'-verify':''}-http-${cpuMode?'cpu':'requests'}.json`);fs.writeFileSync(file,JSON.stringify(result,null,2)+'\n');console.log(`Saved ${file}`);
 }finally{if(active)await stop(active);}

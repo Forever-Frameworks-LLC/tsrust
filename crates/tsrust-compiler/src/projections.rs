@@ -347,7 +347,8 @@ impl Analysis {
                             types.push(payload);
                         }
                     }
-                    if (matches!(expression.ty,Some(Type::Record(id)) if program.schema_pipelines.types(id).is_some() || program.records[id].name.text.starts_with("@object:"))
+                    let result_constructor=matches!(&expression.kind,ExprKind::Inject{union,..} if crate::result_identity::variants(&program.records,&program.unions[union.index()].members).is_some());
+                    if (result_constructor || matches!(expression.ty,Some(Type::Record(id)) if program.schema_pipelines.types(id).is_some() || program.records[id].name.text.starts_with("@object:"))
                         || matches!(expression.kind,ExprKind::Record(_))
                         || matches!(&expression.kind, ExprKind::Field(base, _) if matches!(base.ty,Some(Type::Record(id)) if program.records[id].name.text.starts_with("@object:")))
                         || matches!(expression.kind, ExprKind::Match { .. } | ExprKind::SetConstructor(_, _) | ExprKind::MapConstructor(_, _) | ExprKind::Integer(_) | ExprKind::Number(_))
@@ -421,7 +422,7 @@ impl Analysis {
                     {
                         // A schema adapter (parse/safeParse outcome) shares its span with the
                         // raw validation it wraps; only the adapter's public type is the result.
-                        let adapter = matches!(expression.kind,ExprKind::Unary{op:UnaryOp::Await,..}) || matches!(&expression.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Name(name) if name.starts_with("@schema:safeParseOutcome") || name.starts_with("@schema:parseResult")));
+                        let adapter = result_constructor || matches!(expression.kind,ExprKind::Unary{op:UnaryOp::Await,..}) || matches!(&expression.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Name(name) if name.starts_with("@schema:safeParseOutcome") || name.starts_with("@schema:parseResult")));
                         let span = (expression.span.start, expression.span.end);
                         let ui_adapter=matches!(expression.target,Some(CallTarget::ResultUnwrap(_))) && matches!(&expression.kind,ExprKind::Call(_,arguments) if arguments.first().is_some_and(|value|matches!(value.target,Some(CallTarget::NativeBinding(id)) if crate::native_bindings::BINDINGS[id].module=="std:ui-runtime")));
                         // Hidden UI Result calls share a span with their source-level scalar read.

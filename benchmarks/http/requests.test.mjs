@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {protocol,workloads,sourceFiles,sourceHashes,assertManifest,cases,rejectionCases,validateResponse} from './requests-contract.mjs';
+import {protocol,workloads,sourceFiles,sourceHashes,assertManifest,cases,rejectionCases,validateResponse,requestEngines} from './requests-contract.mjs';
 const manifest=JSON.parse(fs.readFileSync(new URL('./requests-manifest.json',import.meta.url)));
 test('HTTP scenarios retain three source identities and the original sampling protocol',()=>{
  assertManifest(manifest);assert.deepEqual(protocol.concurrency,[1,16]);assert.equal(protocol.processes*protocol.samples,93);assert.equal(protocol.warmups,8);assert.equal(protocol.requestsPerBatch,128);assert.equal(workloads.length,8);assert.equal(new Set(workloads.map(row=>row.scenario)).size,4);
@@ -20,4 +20,14 @@ test('status, content type and every response byte are required, including error
 });
 test('prepared sources, build/timing boundaries, common client and owned server cleanup stay explicit',()=>{
  const runner=fs.readFileSync(new URL('./requests-run.mjs',import.meta.url),'utf8');assert(runner.indexOf('Build Tsrust')<runner.indexOf('const execution='));assert(runner.includes('waitForQuietMachine()'));assert(runner.includes('maxSockets:concurrency'));assert(runner.includes("child.kill('SIGINT')"));assert(runner.includes("child.kill('SIGKILL')"));assert(runner.includes('agent.destroy()'));assert(runner.includes('validateResponse(test,response.statusCode'));assert.deepEqual(Object.keys(sourceHashes()),['native','node-tsc','rust-hand']);
+});
+
+test('HTTP engine selection preserves cached comparisons and original per-engine sampling',()=>{
+ assert.deepEqual(requestEngines([]),['native','node-tsc','rust-hand']);
+ assert.deepEqual(requestEngines(['--cpu','--engines=native']),['native']);
+ assert.deepEqual(requestEngines(['--verify','--engines=rust-hand,native']),['native','rust-hand']);
+ for(const flags of [['--engines='],['--engines=bun'],['--engines=native,native'],['--engines=native,'],['--engines=native','--engines=rust-hand']])assert.throws(()=>requestEngines(flags));
+ const runner=fs.readFileSync(new URL('./requests-run.mjs',import.meta.url),'utf8');
+ assert(runner.includes('engines=io.requestEngines(flags)'));assert(runner.includes('processIndex%engines.length'));assert(runner.includes('measuredEngines:engines'));
+ assert.equal(protocol.processes,3);assert.equal(protocol.samples,31);assert.equal(protocol.warmups,8);
 });

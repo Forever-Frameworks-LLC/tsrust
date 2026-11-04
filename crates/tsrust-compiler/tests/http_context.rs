@@ -111,3 +111,52 @@ fn context_json_accepts_inferred_objects_and_preserves_shared_env() {
  let output=support::run(support::cli().arg("run").arg(directory.source(&source)),300);
  support::success(&output);assert_eq!(output.stdout,b"inferred JSON passed\n");
 }
+
+#[test]
+fn http_optional_arguments_keep_defaults_values_and_evaluation_order(){
+ let source=r#"
+import {Router,Client,ClientOptions,TlsOptions,CookieOptions,request,setCookie,deleteCookie} from 'std:http';
+import {strictEqual} from 'std:testing';
+function absent(trace:int[]):undefined{trace.push(1);return undefined;}
+function address(trace:int[]):string{trace.push(2);return '127.0.0.1:0';}
+function directory():string{return '.';}
+function cookieName():string{return 'theme';}
+async function main():Task<void>{
+ const trace:int[]=[];const ignored=new Client(absent(trace));strictEqual(trace.length,1);
+ for(const supplied of [false,true]){
+  const options:ClientOptions|undefined=undefined;const client=new Client(options);
+  const app=new Router();const missing:CookieOptions|undefined=supplied?{path:'/'}:undefined;
+  const status:int|undefined=supplied?201:undefined;
+  app.get('/text',c=>{c.status(202);setCookie(c,cookieName(),'light',missing);deleteCookie(c,'old',undefined);return c.text('text',status);});
+  app.get('/json',c=>c.json({ready:true},undefined));app.get('/html',c=>c.html('<b>ready</b>',undefined));
+  const fallback:string|undefined=supplied?'index.html':undefined;app.serveStatic('/static',directory(),fallback);
+  const tls:TlsOptions|undefined=undefined;const server=await app.listen('127.0.0.1:0',tls);
+  const base='http://'+server.address();
+  const text=await client.send(request('GET',base+'/text',''));strictEqual(text.status(),supplied?201:202);strictEqual(text.header('set-cookie'),'theme=light; Path=/');strictEqual(await text.text(),'text');
+  const json=await client.send(request('GET',base+'/json',''));strictEqual(json.status(),200);strictEqual(await json.text(),'{"ready":true}');
+  const html=await client.send(request('GET',base+'/html',''));strictEqual(html.status(),200);strictEqual(await html.text(),'<b>ready</b>');
+  const input=request('GET',base+'/static/missing','');input.setHeader('accept','text/html');const file=await client.send(input);strictEqual(file.status(),supplied?200:404);
+  await server.shutdown();
+ }
+ const app=new Router();app.get('/',c=>c.text('ok'));const server=await app.listen(address(trace),absent(trace));strictEqual(trace.join(','),'1,2,1');await server.shutdown();
+}
+"#;
+ let dir=support::TempDirectory::new();std::fs::write(dir.0.join("index.html"),"static").unwrap();let path=dir.source(&support::format_round_trip(source));let output=support::run(support::cli().arg("run").arg(path).current_dir(&dir.0),300);support::success(&output);assert!(output.stdout.is_empty());assert!(output.stderr.is_empty());
+}
+
+#[test]
+fn http_optional_arguments_reject_invalid_present_values(){
+ for body in [
+  "const client=new Client(null);",
+  "const client=new Client(1);",
+  "const app=new Router();app.get('/',c=>c.text('bad',null));",
+  "const app=new Router();app.get('/',c=>c.html('bad','201'));",
+  "const app=new Router();app.get('/',c=>c.json({ready:true},null));",
+  "const app=new Router();app.serveStatic('/files','.',null);",
+  "const app=new Router();await app.listen('127.0.0.1:0',null);",
+  "const app=new Router();app.get('/',c=>{setCookie(c,'theme','x',null);return c.text('bad');});",
+ ]{
+  let source=format!("import {{Router,Client,setCookie}} from 'std:http';async function main():Task<void>{{{body}}}");
+  let dir=support::TempDirectory::new();let path=dir.source(&support::format_round_trip(&source));let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success(),"accepted {source}");assert!(String::from_utf8_lossy(&output.stderr).contains("error[type]"),"{}",String::from_utf8_lossy(&output.stderr));
+ }
+}

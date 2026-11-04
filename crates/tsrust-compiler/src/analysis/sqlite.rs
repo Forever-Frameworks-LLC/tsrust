@@ -5,6 +5,7 @@ impl Analyzer {
  let ExprKind::Field(base,member)=&callee.kind else{return Ok(None)};
  let identity=self.expression_type_hint(context,base).and_then(|ty|if let Type::Record(id)=ty{self.program.records[id].native_type}else{None});
  let Some(name)=crate::stdlib::sqlite::method(identity,member)else{return Ok(None)};
+ if matches!(name,"__execute"|"__query") && let Some(parameters)=args.first_mut(){self.sql_literal_parameters(parameters,&crate::stdlib::sqlite::EXECUTE.parameters[1])?;}
  args.insert(0,(**base).clone());callee.kind=ExprKind::Name(format!("@native:std:sqlite#{name}"));
  self.expression(context,expression,Mode::Consume,loans,expected).map(Some)
  }
