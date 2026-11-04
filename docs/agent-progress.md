@@ -114,6 +114,24 @@ the rejected candidate until the next Cargo rebuild; installed/release consumers
 remain the accepted source. All current profile/build/test/A/B jobs are terminal.
 
 **Final optimization milestone — regression phase authorized by owner stopping rule.**
+Final complete test preparation is live, tool session55975. Logs:
+/tmp/tsrust-final-regression-build.{jsonl,log}. Command: cargo test --offline
+--locked -p tsrust-compiler -p tsrust-lsp --lib --bins --tests --no-run
+--message-format=json, wrapped in /tmp/tsrust-watch.py with CARGO_TARGET_DIR
+absolute target, CARGO_INCREMENTAL=0, CARGO_BUILD_JOBS=1 and
+TSRUST_SOURCE_PACK_DIR=target/portable-source-packs (two existing packs).
+Poll this exact handle. Current source is restored accepted compiler behavior;
+installed/release pair unchanged. No current timing jobs.
+
+After successful preparation run /tmp/tsrust-final-regressions.py under normal
+terminal orchestration with escalation for watchdog ps. It asserts both library
+binaries exist, runs each binary serially/3threads/5GB30min, retains successful
+results in /tmp/tsrust-final-regressions.json, and continues to collect failures.
+On resumption preserve successful groups; repair/rerun affected groups only.
+Do not claim the full suite passed from preparation alone. After executable
+suites, run both package doctests separately under watchdog (development workflow)
+and backend all-target diagnostics. Platform CI and publication remain pending.
+
 The ranked compiler/container/JSON/string/math changes have measured accepted
 checkpoints. Latest schema-array optimization is67479689. Final audits cover the
 remaining sizable source-retain/error, reversal and callable-transfer signals:
@@ -129,6 +147,8 @@ Then refresh affected public native/HTTP metrics with cached Node/Rust controls,
 validate docs/consumers, and complete approved v0.1.1 promotion. While deployment
 runs, reprioritize feature work with the owner. Backend-only direction remains
 active until that discussion. This begins final verification, not goal completion.
+Rejected-candidate checkpoint7f2fd116; pruned 126 closed callable
+scratch/profile/probe outputs (27934488 bytes), retaining shared Cargo outputs.
 
 **Final schema/ownership gap audit — profiled; no product change retained; parent `cbc2aaad`.**
 Previous goal turn made progress: accepted schema-array storage in 67479689,
