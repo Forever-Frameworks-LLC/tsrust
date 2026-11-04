@@ -300,6 +300,81 @@ package the candidate and record the remote-platform validation decision. Instal
 owner version/publication authorization is still required before any publishing
 promotion. No push, tag, remote workflow dispatch or release has occurred.
 
+Remote-validation decision, recorded before any push:
+Exact candidate d7f3d698ec561744f44883ddabf0846a266594e8. Clean-source
+check-release v0.1.2 passes. Offline vendor closure81270 passes7.296s/171,056KiB;
+local macOS package42371 passes1.565s/119,760KiB, manifest identifies that exact
+clean commit, CLI0.1.2/LSP0.2.2 and release distribution. Independently verified
+all1443file hashes/sizes. Packaged outside-tree smoke84607 passes12.475s/
+387,040KiB. Candidate product code retains the full502-group local regression
+and943native measurement evidence through935byte-identical emission checks;
+15distribution/promotion tests and whole formatter also pass. No duplicate full
+regression or timing is warranted for metadata-only version changes.
+
+Uncertainty local macOS arm64 cannot resolve: Linux/Windows/macOS x64 package,
+linker, executable and archived-artifact behavior; hosted updated action runtimes.
+Smallest existing non-publishing workflows: feature PR to stag runs ordinary
+Linux CI plus docs, while manual Release workflow_dispatch builds/smokes four
+platform archives without publication. Promote workflow explicitly requires an
+upstream pull_request run from stag, so manual package validation cannot publish.
+Do not label these CI runs full: full_regressions is not being enabled. Full local
+backend evidence is already complete. Last equivalent successful Release run is
+41226915583 (2026-10-31), stag fa2bd1a9bcffb0333d3077eae526f695217925ea;
+those older inputs do not validate this new source/version/action set.
+Live main is9c2948761c601710dd089df02b0ddbca2c307690; feature branch has no
+remote ref yet. Rechecked open PRs immediately before intended push: only#10/11/12,
+with the same reviewed heads and four pin changes now in this candidate. No new
+compiler/runtime dependency update. Plan: push exact candidate branch, open draft
+stag PR, dispatch only non-publishing package validation. No main PR, merge, tag,
+publication or public deployment until fresh version/publication authorization.
+Local installed tools remain accepted18e54ad9; target release and local package
+are proposed0.1.2/0.2.2. Candidate directory target/distribution-candidate is a
+single active review artifact, not an archived snapshot. Pending notes may remain
+local so recording CI status does not restart unchanged CI inputs.
+
+Remote validation is now on its way (no publication): exact d7f3d698 pushed to
+codex/optimize-native-hot-paths; draft PR#13 targets stag:
+https://github.com/Forever-Frameworks-LLC/tsrust/pull/13
+Ordinary CI41905530001 is in progress; Documentation41905529985 already passes.
+Manual non-publishing Release41905632267 passes all four platform build/archive
+smokes, editor, preflight and final Package validation, eventworkflow_dispatch,
+headSHA d7f3d698ec561744f44883ddabf0846a266594e8. Inspect these exact runs before
+retrying or dispatching anything. No full_regressions=true run was requested;
+do not call this full CI. Main and stag refs were unchanged at dispatch; there
+is no main promotion PR, merge, tag or public release. No owner version approval
+yet. Keep local progress-note edits unpushed while these inputs run, so status
+recording does not restart unchanged CI. If checks fail, diagnose and repair only
+affected scope; if they pass, obtain fresh v0.1.2 publication authorization before
+promoting. The shipped v0.1.1 approval remains fulfilled and cannot be reused.
+
+Local packaged candidate source d7f3d698 remains at target/distribution-candidate.
+Clean-source package+all1443hashes and packaged smoke passed. Closed temporary
+release-vendor sources were removed after notices were captured; reusable Cargo
+caches/source packs and current binaries remain. Source tree has only this local
+handoff-note modification relative to the pushed candidate.
+
+Hosted ordinary CI repair in progress: Compiler and CLI acceptance passed, but
+Native SDK authorization and replica integration failed immediately; LSP transport
+and compiler agreement is still running. Local unchanged reproduction with the
+candidate CLI fails `Cannot read properties of undefined (reading 'package')`
+in0.523s/1,584KiB. The cross-language replica witness incorrectly depended on
+the former `new --app` scaffold's config.api. It now creates its own supported
+legacy wire-protocol fixture and context/main templates explicitly, matching
+api_project/application_scaffold acceptance; the current source-owned HTTP
+starter and runtime are unchanged. Live authorization, error privacy, TypeScript/
+Rust clients, old/new compatibility and exact operation-effect assertions remain.
+Affected full witness passes under the existing5GB/30min watchdog131.967s/
+687,700KiB, log /tmp/tsrust-sdk-replicas-after.log; original failure remains in
+/tmp/tsrust-sdk-replicas-before.log. Both old/new native services, saved/live
+descriptions, generated JS/Rust clients, denied/throwing policies, API-major and
+missing-operation errors and exact effect counts pass. Temporary services and
+fixture files are cleaned by the witness. Whole-project formatter also passes
+4.140s/203,136KiB,0files/snippets/fingerprints changed. Checkpoint this test-only
+repair, let the existing LSP job finish to retain its evidence, then inspect fresh
+live PRs immediately before pushing. That PR update necessarily triggers ordinary
+CI/docs under existing workflows; do not also dispatch duplicate validation.
+Do not rerun successful four-platform packaging for this test-only source edit.
+
 The ranked compiler/container/JSON/string/math changes have measured accepted
 checkpoints. Latest schema-array optimization is67479689. Final audits cover the
 remaining sizable source-retain/error, reversal and callable-transfer signals:
