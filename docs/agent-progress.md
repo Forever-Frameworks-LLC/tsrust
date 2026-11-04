@@ -30,6 +30,106 @@ optimization focus.
 
 Owner steering, 2026-11-03: HTTP/object ergonomics supersede optimization until this section is delivered. The hello expression `c.json({greeting:clone(c.env.greeting)})` must work; routes, middleware, authorization and client generation must stay in source, without API settings in tsrust.config.json. Later requests require hover on literal keys plus useful next() hover/signature help.
 
+**Single-item Vec.unshift — rejected after full affected controls; parent `2f46bcda`.**
+Previous goal turn made progress: profiling/rejected reverse and retained-schema
+alternatives recorded in 247e11f7/2f46bcda, cleanup complete. Current section began
+clean, all prior jobs terminal. No full suites/CI/push/publication.
+
+Fresh original 20,000-iteration callable profiles: three identical allocation
+samples/engine/case, zero retained/cleanup, input0. Once-transfer native/Rust
+40,000 allocations +20,000 reallocations, requested1,920,000/2,880,000,
+peak80/128, checksum800720007. Transfer pipeline same counts/bytes, checksum
+800760007. Mutable pipeline both60,000 allocations, no reallocations,
+requested1,600,000/peak80, checksum1201160007. No allocation-count regression.
+Eight-second native loops complete4,834/5,042/6,181 batches; 3-second CPU
+samples per case. Once-transfer sample shows123 Splice::drop samples,
+55 TsrSplice,168 memmove,881 mach_absolute_time underneath allocator work.
+Profile29.496s/264,384KiB. The profiled operation is single-item unshift:
+generated Vec uses splice(0..0,[value]), while the Rust reference uses insert.
+
+Generated-only parent/single-insert/append-rotate probes preserve original five
+identities, 8warmups/3×31 samples/two reverse rounds, three warm rotated native
+compiles, identical source/executable paths/argv0, atomic swaps, unsafe forbidden.
+Once-transfer parent1.676917/1.682250, single1.611292/1.582917,
+rotate1.597417/1.582917ms; compile243.813/241.407/245.387ms. Watch8.262s/
+266,752KiB, maxload2.640137. Transfer parent1.571125/1.553167,
+single1.471541/1.470750, rotate1.491000/1.510834; compile240.694/
+247.818/251.775ms, maxload2.551270. Allocation counts/bytes unchanged in
+all variants. Transfer compile difference needs actual-emission confirmation.
+Select the simplest single-item standard Vec::insert path; keep old splice for
+multi-item fixed arrays and all staged iterators. No ownership/API/default/
+unsafe/dependency change. Node/Rust execution references remain cached.
+
+Implemented only runtime/mod.rs TsrUnshift for Vec fixed-size added arrays.
+Existing length/overflow checks and reserve run before insert. N==1 consumes the
+array through its ordinary iterator, preserving move/drop behavior. Added to the
+existing O0/O3 array_unshift ownership witness: non-Clone owner order,
+zero new allocations/reallocation with reserved space, same buffer pointer,
+no premature drops and exactly len+1 final drops for lengths0/1/4/5/17.
+Existing undefined/ZST overflow-before-mutation and multi-item/spread fixtures
+remain required. Compiler checking/emission/editor APIs remain unchanged.
+
+Selected joint no-run passes215.911s/2,615,122KiB, no --lib, one target/job,
+incremental disabled. All61 affected checks pass, none ignored, serial binaries/
+3threads/5GB30min watchdog: array_unshift4 (2.583s/471,744KiB), splice4
+(2.093s/437,312KiB), callable_fields35 (17.093s/472,496KiB), root_builtin_spread5
+(2.602s/444,704KiB), compiler iterable_call_spread3 (1.557s/329,120KiB),
+LSP iterable_call_spread3 (.519s), intelligence unshift1 (2.082s/190,064KiB),
+callable-array5 (.522s/5,344KiB), project imported-callable-array1 (.516s).
+Other fast LSP cases finish before meaningful sampled memory. Existing guarded
+ZST overflow, multi-item/spread and native examples remain valid.
+
+Receiver audit correction: NumericArray and Array heap branches delegate to Vec,
+so the shared helper affects all eight standalone unshift workloads, plus both
+callable transfer cases. Expanded the actual-emission controls to all ten; did
+not restrict acceptance to the primary wins. Mutable pipeline emission remains
+byte-identical, 46,245 bytes, so no external execution baselines were repeated.
+The first exact-oracle extension invoked the number oracle for callable IDs and
+failed before timing; corrected to invoke exactBits only for unshift array IDs.
+
+Actual original-protocol A/B (same five identities, exactBits/checksums, paths,
+argv0, atomic swaps and unsafe ban) parent→candidate milliseconds:
+once1.725584→1.593792/1.650333→1.598333; transfer1.559750→1.452125/
+1.526458→1.470125; number .132541→.126292/.130500→.126291;
+null .052667→.051500/.052833→.050792; undefined .054250→.052084/
+.054458→.051750; int .219084→.222167/.218917→.220208;
+boolean .089167→.092625/.087208→.092625; string .755584→.756791/
+.713125→.746084; nested1.050875→1.038541/1.046167→1.018958;
+record .971917→.975042/.973958→.972583. All resources/allocations remain
+unchanged. Primary compile medians240.146→242.294 and238.173→239.852ms;
+number168.932→167.529, null279.809→274.429, undefined280.258→275.587,
+int306.230→306.330, boolean297.670→300.820, string357.760→357.290,
+nested383.730→383.100, record374.830→376.590. Maximum initial accepted
+load2.993652<4; no override. Individual watches4.164–7.784s, peak≤391,184KiB.
+Boolean slowdown is reproducible at a few microseconds/batch. Generated-only
+Vec-inline and Vec+NumericArray-inline hints fail to remove it: reverse round
+parent .087500/current .091834/Vec-inline .093667/both .093083ms. No
+speculative size-of-type heuristic or extra specialization added to hide it.
+
+Rejected the complete candidate, restored runtime/mod.rs and array_unshift.rs
+exactly to the accepted source. No product change, ingestion, public metric
+update or install. The 61 focused checks validated the trial's semantics, not a
+new accepted optimization. Current target/debug consumers/test binaries contain
+the rejected candidate until the next Cargo rebuild; installed/release consumers
+remain the accepted source. All current profile/build/test/A/B jobs are terminal.
+
+**Final optimization milestone — regression phase authorized by owner stopping rule.**
+The ranked compiler/container/JSON/string/math changes have measured accepted
+checkpoints. Latest schema-array optimization is67479689. Final audits cover the
+remaining sizable source-retain/error, reversal and callable-transfer signals:
+no hidden per-iteration string clones or surplus callable allocation counts;
+remaining candidates trade small runtime gains for compile/memory regressions.
+Hand-written Rust parity remains a stretch target; retain richer diagnostics,
+exact JSON/numeric behavior, Rust defaults and independent ownership. Do not
+reopen these rejected variants or indefinitely chase small residuals before
+features. Next run final complete compiler/LSP regressions, both --lib binaries
+and doctests with one Cargo target/job, incremental disabled, serial binaries,
+3threads and watchdog. Preserve completed suites and repair only affected failures.
+Then refresh affected public native/HTTP metrics with cached Node/Rust controls,
+validate docs/consumers, and complete approved v0.1.1 promotion. While deployment
+runs, reprioritize feature work with the owner. Backend-only direction remains
+active until that discussion. This begins final verification, not goal completion.
+
 **Final schema/ownership gap audit — profiled; no product change retained; parent `cbc2aaad`.**
 Previous goal turn made progress: accepted schema-array storage in 67479689,
 110 checks, three native histories, public selection 108 runs, paired installation
