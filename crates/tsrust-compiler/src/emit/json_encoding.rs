@@ -161,8 +161,12 @@ impl Emitter<'_> {
             }
             _=>unreachable!("checked optional integer JSON byte limit"),
         };
+        let encode="tsrust_native_json::typed::encode(&Encode0(&value,0),limit)";
+        let encode=if matches!(root,Type::Record(id) if matches!(self.program.records[id].native_type,Some(crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView))){
+            format!("if limit==usize::MAX{{tsrust_native_json::typed::encode_value_unbounded(&value.value)}}else{{{encode}}}")
+        }else{encode.to_owned()};
         format!(
-            "{{{generated}let value={value};let limit={limit};let encoded=({convert}).and_then(|limit|tsrust_native_json::typed::encode(&Encode0(&value,0),limit));match encoded{{Ok(text)=>Union{union}::V{ok_tag}(Record{ok}{{field0:String::Owned(text)}}),Err(error)=>Union{union}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(error.code),field1:String::Borrowed(error.message),field2:error.offset as i64}}}})}}}}"
+            "{{{generated}let value={value};let limit={limit};let encoded=({convert}).and_then(|limit|{encode});match encoded{{Ok(text)=>Union{union}::V{ok_tag}(Record{ok}{{field0:String::Owned(text)}}),Err(error)=>Union{union}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(error.code),field1:String::Borrowed(error.message),field2:error.offset as i64}}}})}}}}"
         )
     }
 }
