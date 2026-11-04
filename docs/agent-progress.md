@@ -102,8 +102,14 @@ future retained-data decoder feature, but require exact error, callback, duplica
 Unicode/integer, recursion and ownership parity plus actual-emission controls.
 
 All current profile/probe jobs are terminal, including repaired profile97234 and
-DOM probe39914. Next: checkpoint these rejected outcomes, prune closed outputs,
-then audit the stale callable-array-transfer signal against current emission;
+DOM probe39914. Rejected-outcome checkpoint `247e11f7`; pruned 63 closed
+scratch/profile/probe artifacts (16957614 bytes). Shared Cargo/tests/consumers remain.
+Next: audit the stale callable-array-transfer signal against current emission;
+selected cached native/Rust once_transfer 1.828541/1.485042 ms,
+transfer_pipeline 1.654417/1.351500, mutable_pipeline 1.329167/1.046416.
+These are ranking leads, not new execution measurements. Start with
+benchmarks/runtime/workloads/callable_array_once_transfer.tsr and its parity
+reference, allocation counts and a bounded CPU sample; preserve original oracles.
 finish the remaining large-gap assessment before final broad regressions,
 affected performance/HTTP refresh and approved v0.1.1 promotion. No new estimate
 or acceptance milestone is implied by these diagnostic measurements. Goal active.
