@@ -31,6 +31,13 @@ optimization focus.
 Owner steering, 2026-11-03: HTTP/object ergonomics supersede optimization until this section is delivered. The hello expression `c.json({greeting:clone(c.env.greeting)})` must work; routes, middleware, authorization and client generation must stay in source, without API settings in tsrust.config.json. Later requests require hover on literal keys plus useful next() hover/signature help.
 
 **Math.hypot — accepted locally and installed; parent `d5caa070`.**
+Source checkpoint `bdc29b8c` contains the accepted runtime/test, SQLite history and
+performance selection. After independent ingestion verification and commit, pruned
+64 closed scratch/raw/profile artifacts (16950952 bytes). Shared Cargo libraries,
+current math/spread/editor tests, immutable MPFR references and paired consumers
+remain reusable. All jobs are terminal. Next: fresh schema/ownership gap audit
+from current code and the ranking below.
+
 Previous goal turn made progress: extrema accepted in 52a767af/d5caa070, 23
 checks, two native histories, public selection 106 runs, paired installation and
 cleanup. This section began with a clean tree and no live jobs.
