@@ -144,7 +144,7 @@ impl Emitter<'_> {
                             })
                             .collect::<String>();
                         format!(
-                            "struct Fields;impl<'de> serde::de::Visitor<'de> for Fields{{type Value={declaration};fn expecting(&self,f:&mut std::fmt::Formatter)->std::fmt::Result{{f.write_str(\"an object\")}}fn visit_map<A:serde::de::MapAccess<'de>>(self,mut map:A)->Result<Self::Value,A::Error>{{{fields}while let Some(key)=map.next_key::<std::string::String>()?{{match key.as_str(){{{arms}_=>{{let _:serde::de::IgnoredAny=map.next_value()?;}}}}}}{construct}}}}}decoder.deserialize_map(Fields)"
+                            "struct Fields;impl<'de> serde::de::Visitor<'de> for Fields{{type Value={declaration};fn expecting(&self,f:&mut std::fmt::Formatter)->std::fmt::Result{{f.write_str(\"an object\")}}fn visit_map<A:serde::de::MapAccess<'de>>(self,mut map:A)->Result<Self::Value,A::Error>{{{fields}while let Some(key)=map.next_key::<tsrust_native_json::source::Text<'de>>()?{{match key.0.as_ref(){{{arms}_=>{{let _:serde::de::IgnoredAny=map.next_value()?;}}}}}}{construct}}}}}decoder.deserialize_map(Fields)"
                         )
                     }
                 }
