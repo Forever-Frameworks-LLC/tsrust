@@ -23,6 +23,8 @@ mod schema_json_projection;
 mod schema_owned_projection;
 #[path = "pipeline_array_trials.rs"]
 mod schema_pipeline_array_trials;
+#[path = "pipeline_json.rs"]
+mod schema_pipeline_json;
 #[path = "pipeline_object_trials.rs"]
 mod schema_pipeline_object_trials;
 #[path = "pipeline_trials.rs"]

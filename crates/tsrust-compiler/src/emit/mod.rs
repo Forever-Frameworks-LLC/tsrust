@@ -1070,13 +1070,11 @@ impl Emitter<'_> {
             Type::Undefined => format!("{{ let _ = {value}; TsrConsoleValue::Undefined }}"),
             Type::Union(id) | Type::BorrowedUnion(id) => {
                 let observed = if nested && !id.copy && matches!(kind, Type::Union(_)) {
-                    format!("({value}).tsr_view()")
+                    format!("({value}).tsr_data_view()")
                 } else { value.to_owned() };
-                let arms = self.program.unions[id.index()].members.iter().enumerate().map(|(index, member)| {
-                    let result = self.console_value("console_payload", *member, depth, false);
-                    format!("{}{}::V{index}(console_payload) => {result}", if id.copy { "Union" } else { "ViewUnion" }, id.index())
-                }).collect::<Vec<_>>().join(", ");
-                format!("match {observed} {{ {arms} }}")
+                if self.program.unions[id.index()].recursive {
+                    format!("tsr_console_union_{}({observed}, {depth})",id.index())
+                }else{self.console_union_value(id,&observed,depth)}
             }
             Type::Map(id) => {
                 let map = self.program.records[id].map_definition.as_ref().unwrap();
@@ -1106,6 +1104,14 @@ impl Emitter<'_> {
             _ => unreachable!("checked console value"),
         }
     }
+    fn console_union_value(&self,id:UnionId,value:&str,depth:&str)->String {
+        let arms=self.program.unions[id.index()].members.iter().enumerate().map(|(index,member)|{
+            let result=self.console_value("console_payload",*member,depth,true);
+            format!("{}{}::V{index}(console_payload)=>{result}",if id.copy{"Union"}else{"ViewUnion"},id.index())
+        }).collect::<Vec<_>>().join(",");
+        format!("match {value}{{{arms}}}")
+    }
+
     fn number_string_conversion(value: &str) -> String {
         // Call the number label formatter without constructing a console value.
         format!("{{ let number_text_value: f64 = {value}; if (0.0..=9.0).contains(&number_text_value) && number_text_value.fract() == 0.0 {{ tsr_int_text(number_text_value as i64) }} else if !number_text_value.is_finite() {{ number_format_special(number_text_value).expect(\"nonfinite number text\") }} else {{ String::Owned(tsr_console_number(number_text_value, false)) }} }}")
@@ -3110,7 +3116,7 @@ impl Emitter<'_> {
         }
         self.fixed_records(&mut output);
         output.push_str(&self.record_runtime.emit_with_storage(&self.program.records, &self.program.stored_contracts));
-        if output.contains("tsr_console_record_") {
+        if output.contains("tsr_console_record_") || output.contains("tsr_console_union_") {
             for (id, record) in self.program.records.iter().enumerate() {
                 if record.literal_definition.is_some(){continue;}
                 if !self.record_inspectable(id) || record.native_type == Some(crate::native_signatures::NativeTypeId::StringView) {
@@ -3148,6 +3154,21 @@ impl Emitter<'_> {
                     output.push_str("_ => unreachable!(\"record field index\") } }");
                 }
                 output.push_str(if record.is_tuple() { "TsrConsoleValue::Array(fields) }\n" } else { "TsrConsoleValue::Object(fields) }\n" });
+            }
+        }
+        // Recursive union inspection must recurse at runtime, not while emitting.
+        let mut console_unions=HashSet::new();
+        loop {
+            let mut pending=runtime_support_ids::referenced(&output,"tsr_console_union_","(",self.program.unions.len()).into_iter().filter(|id|!console_unions.contains(id)).collect::<Vec<_>>();
+            if pending.is_empty(){break;}
+            pending.sort_unstable();
+            for index in pending {
+                console_unions.insert(index);
+                let union=&self.program.unions[index];
+                let id=UnionId{index:index.try_into().unwrap(),copy:union.members.iter().all(|ty|ty.is_copy()),scalar_members:!union.recursive&&union.members.iter().all(|ty|ty.is_scalar())};
+                let body=self.console_union_value(id,"value","depth");
+                let native=self.native_type(if id.copy{Type::Union(id)}else{Type::BorrowedUnion(id)});
+                let _=writeln!(output,"fn tsr_console_union_{index}(value:{native},depth:usize)->TsrConsoleValue{{{body}}}");
             }
         }
         // Record arrays inline only small records whose entire field tree has no
