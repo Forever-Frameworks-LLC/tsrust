@@ -43,6 +43,29 @@ passes. No product tests or benchmarks were rerun for this documentation-only
 section. Keep it local while PR#15's exact e3fea936 CI runs; do not push a plan
 checkpoint into that PR merely to synchronize notes.
 
+Owner then explicitly instructed: write a new goal and begin when ready; also
+monitor the PR until it is all the way to main. The new autonomous objective is
+now written in docs/agent-goal.md: finish verified v0.1.2 promotion first, then
+B00–B20 with parallel Sol6.1 agents and performance from the first gate. A genuine
+create_goal attempt failed because this chat still has the unfinished prior
+optimization/release goal. Do not fake completion or create a smaller substitute.
+Once main/release/docs are verified, complete the old objective and immediately
+register the written v0.2 objective; no token budget or further routine start
+approval is needed. The owner's current instruction explicitly authorizes the
+implementation, but not v0.2.0 publication. Keep source work isolated from the
+pending release until its pipeline is resolved.
+
+Intel macOS old Release41930626606 also failed with the exact same missing
+shutdown-response assertion in smoke-toolchain.mjs:30; completed job log
+/tmp/tsrust-v012-intel-package.log. It is not a second undiagnosed runtime defect.
+The existing lifecycle-client repair in PR#15 covers both macOS failures. Linux
+and Windows package jobs passed. PR#15 CI41934141484 is live in Compiler/CLI
+acceptance; no failed step reported. Continue monitoring that exact run, then
+use the authorized owner-review bypass if automatic squash remains review-blocked
+after CI passes, and observe PR#14's new release run plus publisher/docs to the
+actual final state. Do not dispatch/retime/rebuild merely because observation
+takes time or the old release run is now terminal.
+
 Active owner direction: optimize toward "making Rust as easy to write as
 TypeScript": JS/TS-familiar API, Rust semantics and accuracy underneath, generated
 code at hand-written-Rust parity.

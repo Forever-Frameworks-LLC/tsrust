@@ -1,4 +1,66 @@
-# Goal: Tsrust language, CLI, documentation and platform polish
+# Goal: v0.2.0 standard-library implementation
+
+## Current owner mandate — 2026-11-04
+
+The owner approved starting a new autonomous goal from the
+[v0.2.0 standard-library checklist](plans/stdlib-0.2.0.md), including popular
+well-tested Rust package backends and parallel Sol 6.1 implementation/testing.
+The owner also explicitly requires monitoring the pending release PRs all the
+way to main. This ordering supersedes the older scheduling retained below.
+
+1. Finish the already-approved compiler v0.1.2/LSP v0.2.2 release first. Monitor
+   repair PR#15 and its exact CI run, merge through stag only after required
+   checks pass, then monitor promotion PR#14's new release validation, automatic
+   publisher, actual main/tag/assets and production documentation deployment.
+   Diagnose real failures and preserve accepted evidence; do not bypass failed
+   gates or dispatch duplicate runs. The existing version-specific publication
+   approval remains valid for necessary repairs in that release scope.
+2. From the verified release/main baseline, complete B00–B20 and every concrete
+   v0.2.0 implementation/acceptance checkbox. Deliver JS/TS-familiar APIs with Rust
+   semantics, defaults and accuracy. Use safe generated Rust and thin adapters
+   over Rust std/existing backends/maintained packages rather than rewriting
+   established parsers, protocols or algorithms.
+3. Begin with B00 contracts, package admission and direct-Rust profiles. Then run
+   the first independent utility wave: B01 portable files/directories/cursors,
+   B02 bytes/codecs/binary records and B04 URL/query handling. Continue dependency-
+   ready coherent bundles through the plan; do not redefine success around that
+   first wave or claim unchecked APIs are implemented.
+4. Use up to three `gpt-6.1-sol` bundle agents plus the integrator, isolated managed
+   worktrees and one writer per tree. Preserve shared-file ownership, formatter/
+   checkpoint slots, source identities and exact merged acceptance. One Cargo
+   target per physical host, incremental off, jobs=1; serialize heavy local
+   builds/native tests, parallelize suitable lightweight work and separate-host
+   tests, and give quiet timing exclusive access. Follow the plan's memory/time
+   watchdog and test-thread limits.
+5. Profile before implementation choices, complete compiler/native/LSP/docs/
+   examples/oracles together, measure and optimize each completed coherent gate,
+   ingest actual runs with `npm run store:ingest`, and commit accepted measured
+   evidence. Keep unchanged handwritten-Rust/Node reference timings cached. Run
+   full regressions only at meaningful feature-family milestones; call CI full
+   only when dispatched with `full_regressions=true`.
+6. Keep [agent-progress.md](agent-progress.md) as the only handoff and update the
+   v0.2.0 checklist as items pass. No archives, source snapshots or per-worker
+   handoff files. Preserve owner files and the accepted optimization work; check
+   live PRs/Dependabot immediately before every push.
+7. After the first useful utility wave, revisit a bounded original-UI milestone
+   with the owner, who prefers hands-on UI work but wants useful library gaps
+   addressed. This is a priority checkpoint, not automatic UI-revival permission
+   or a reason to abandon the remaining v0.2.0 checklist.
+8. Complete the plan's real compiler/editor/native/platform/package/performance
+   acceptance before claiming the goal achieved. Implementation is authorized;
+   publishing v0.2.0 still needs explicit version/publication approval on a
+   concrete validated candidate.
+
+The app goal tool currently refuses a new goal while the prior optimization/
+release goal is unfinished. Do not falsely mark that goal complete to replace
+it. Finish and verify item1, complete the old goal, then register this objective
+with `create_goal` and continue into item2 without another routine permission
+question. No token budget was requested.
+
+## Retained earlier direction and evidence
+
+The product principles and applicable acceptance constraints below remain useful;
+their historical milestone ordering does not override the current mandate.
 
 ## Top-level directive (owner, 2026-10-29)
 
@@ -9,7 +71,7 @@ strings, no silent rounding, no JS quirks). Generated code should look like what
 careful Rust programmer writes; extras (limits, validation passes, copies) are
 opt-in or belong to another layer.
 
-## Active owner direction — 2026-10-29 (supersedes the ordering below)
+## Earlier owner direction — 2026-10-29
 
 The owner approved this plan and asked for continuous autonomous work on it:
 
