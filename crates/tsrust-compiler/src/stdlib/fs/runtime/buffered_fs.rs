@@ -2,14 +2,13 @@
 use super::{fs::{FileHandle,FsFailure,MAX_READ_BYTES,validate_write_length},resource::{Backend,Resource}};
 use std::io::{BufRead,Read,Write};
 pub const DEFAULT_CAPACITY:i64=8192;
-pub const MAX_CAPACITY:i64=1048576;
 pub struct BufferedReaderBackend {file:FileHandle,buffer:Vec<u8>,start:usize,end:usize}
 pub struct BufferedWriterBackend {file:FileHandle,buffer:Vec<u8>,capacity:usize}
 pub type BufferedReader=Resource<BufferedReaderBackend>;
 pub type BufferedWriter=Resource<BufferedWriterBackend>;
 fn buffer(capacity:i64,operation:&'static str)->Result<Vec<u8>,FsFailure> {
-    if !(1..=MAX_CAPACITY).contains(&capacity) {return Err(FsFailure{code:"capacity-range",operation,message:"Buffer capacity must be between 1 and 1048576 bytes.".into(),os_code:None});}
-    let mut bytes=Vec::new();bytes.try_reserve_exact(capacity as usize).map_err(|_|FsFailure{code:"allocation",operation,message:"Unable to allocate file buffer.".into(),os_code:None})?;Ok(bytes)
+    let capacity=usize::try_from(capacity).ok().filter(|value|*value>0).ok_or_else(||FsFailure{code:"capacity-range",operation,message:"Buffer capacity must be positive and fit this platform.".into(),os_code:None})?;
+    let mut bytes=Vec::new();bytes.try_reserve_exact(capacity).map_err(|_|FsFailure{code:"allocation",operation,message:"Unable to allocate file buffer.".into(),os_code:None})?;Ok(bytes)
 }
 pub fn buffer_reader(file:FileHandle,capacity:i64)->Result<BufferedReader,FsFailure> {
     let mut buffer=buffer(capacity,"bufferReader")?;buffer.resize(capacity as usize,0);
@@ -17,6 +16,12 @@ pub fn buffer_reader(file:FileHandle,capacity:i64)->Result<BufferedReader,FsFail
 }
 pub fn buffer_writer(file:FileHandle,capacity:i64)->Result<BufferedWriter,FsFailure> {
     let buffer=buffer(capacity,"bufferWriter")?;
+    Ok(Resource::new(BufferedWriterBackend {file,buffer,capacity:capacity as usize}))
+}
+pub fn create_buffered_writer(path:&str,capacity:i64)->Result<BufferedWriter,FsFailure> {
+    // Reserve before creating the file so allocation failure cannot truncate it.
+    let buffer=buffer(capacity,"create")?;
+    let file=super::fs::create(path)?;
     Ok(Resource::new(BufferedWriterBackend {file,buffer,capacity:capacity as usize}))
 }
 impl Backend for BufferedReaderBackend {
@@ -166,12 +171,23 @@ mod tests {
         assert_eq!(std::fs::read(&path).unwrap(),[9,8,7]);std::fs::remove_file(path).unwrap();
     }
     #[test]
+    fn capacities_have_no_extra_ceiling_and_reservation_precedes_truncation(){
+        let _guard=LOCK.lock().unwrap();let path=path("capacity");let name=path.to_str().unwrap();
+        std::fs::write(&path,b"preserve").unwrap();
+        assert!(create_buffered_writer(name,i64::MAX).is_err());
+        assert_eq!(std::fs::read(&path).unwrap(),b"preserve");
+        let reader=buffer_reader(super::super::fs::open(name).unwrap(),1048577).unwrap();
+        assert_eq!(reader.get().buffer.len(),1048577);reader.close().unwrap();
+        let writer=create_buffered_writer(name,1048577).unwrap();writer.close().unwrap();
+        assert!(std::fs::read(&path).unwrap().is_empty());std::fs::remove_file(path).unwrap();
+    }
+    #[test]
     fn invalid_capacity_and_failed_close_release_the_consumed_descriptor() {
         use std::os::fd::AsRawFd;
         unsafe extern "C" {fn fcntl(fd:i32,command:i32,...)->i32;}
         let _guard=LOCK.lock().unwrap();
         let path=path("failure");std::fs::write(&path,[1,2]).unwrap();let name=path.to_str().unwrap();
-        for capacity in [0,1048577] {
+        for capacity in [0,-1] {
             let file=super::super::fs::open(name).unwrap();let fd=file.get().0.as_raw_fd();
             assert!(buffer_reader(file,capacity).is_err());assert_eq!(unsafe{fcntl(fd,1)},-1);
         }

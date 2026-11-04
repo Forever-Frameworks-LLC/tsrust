@@ -10,9 +10,9 @@ impl Emitter<'_>{
   let binding=&crate::native_bindings::BINDINGS[id];if binding.module!="std:sqlite"{return None;}self.native_bindings.borrow_mut().insert(id);
   let values=args.iter().zip(binding.parameters).map(|(arg,param)|{let value=self.expr(fun,arg,param.access);if arg.ty==Some(Type::String){format!("({value}).as_ref()")}else{value}}).collect::<Vec<_>>();let receiver=&values[0];
   let call=match binding.name{
-   "open"=>format!("tsrust_native_sqlite::Connection::open({receiver},{})",values.get(1).map(|v|format!("Some({v})")).unwrap_or("None".into())),
+   "open"=>format!("tsrust_native_sqlite::Connection::open({receiver},{})",args.get(1).map(|arg|self.native_optional_argument(&binding.parameters[1],values[1].clone(),arg.ty.unwrap())).unwrap_or("None".into())),
    "__execute"|"__query"=>{
-    let parameters=if args.len()==2{let Type::Array(array)=args[1].ty.unwrap()else{unreachable!()};let element=array.ty();format!("({}).iter().map(|value: &{}|{}).collect::<Vec<_>>()",values[1],self.native_type(element),self.sqlite_parameter(element,"value"))}else{"Vec::new()".into()};
+    let parameters=args.get(1).map(|arg|self.native_sql_parameters(&binding.parameters[1],values[1].clone(),arg.ty.unwrap(),|ty,value|self.sqlite_parameter(ty,value))).unwrap_or("Vec::new()".into());
     format!("{{let statement={receiver};let parameters={parameters};statement.{}(&parameters){}}}",binding.name.trim_start_matches('_'),if binding.name=="__query"{".map(Array::Heap)"}else{""})
    },
    "__isNull"=>format!("({receiver}).is_null({})",values[1]),

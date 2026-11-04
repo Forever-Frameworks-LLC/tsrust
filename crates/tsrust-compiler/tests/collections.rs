@@ -1,4 +1,6 @@
 mod support;
+#[path = "../src/runtime/sets.rs"] mod runtime_sets;
+#[path = "../src/runtime/maps.rs"] mod runtime_maps;
 
 #[test]
 fn deque_clone_is_deep_and_requires_cloneable_payloads() {
@@ -715,14 +717,16 @@ fn borrowed_collection_queries_reject_owning_conditional_branches() {
 #[test]
 fn hash_buckets_avoid_single_key_allocations_and_preserve_collisions() {
     let directory = support::TempDirectory::new();
-    let sets = include_str!("../src/runtime/sets.rs").split_once("r#\"").unwrap().1.rsplit_once("\"#;").unwrap().0;
-    let maps = include_str!("../src/runtime/maps.rs").split_once("r#\"").unwrap().1.rsplit_once("\"#;").unwrap().0;
-    let source = format!("#![allow(dead_code)]\ntype String=std::borrow::Cow<'static,str>;\n#[derive(Clone)] struct TsrNull;\n#[derive(Clone)] struct TsrUndefined;\n{sets}\n{maps}\n{}", include_str!("fixtures/collections/hash-buckets-backend.rs"));
-    let path = directory.0.join("buckets.rs");
-    std::fs::write(&path, source).unwrap();
-    for level in ["0", "3"] {
-        let binary = directory.0.join(format!("buckets-{level}"));
-        support::success(&support::run(support::rustc().arg("--edition=2024").arg("-C").arg(format!("opt-level={level}")).arg(&path).arg("-o").arg(&binary),60));
-        support::success(&support::run(&mut std::process::Command::new(binary),30));
+    let sets = runtime_sets::SET_RUNTIME;
+    let inline_maps = format!("{}\n{}", runtime_maps::MAP_INLINE_FIRST, runtime_maps::MAP_INLINE_RUNTIME);
+    for (kind, maps) in [runtime_maps::MAP_RUNTIME, inline_maps.as_str()].into_iter().enumerate() {
+        let source = format!("#![allow(dead_code)]\ntype String=std::borrow::Cow<'static,str>;\n#[derive(Clone)] struct TsrNull;\n#[derive(Clone)] struct TsrUndefined;\n{sets}\n{maps}\n{}", include_str!("fixtures/collections/hash-buckets-backend.rs"));
+        let path = directory.0.join("buckets.rs");
+        std::fs::write(&path, source).unwrap();
+        for level in ["0", "3"] {
+            let binary = directory.0.join(format!("buckets-{kind}-{level}"));
+            support::success(&support::run(support::rustc().arg("--edition=2024").arg("-C").arg(format!("opt-level={level}")).arg(&path).arg("-o").arg(&binary),60));
+            support::success(&support::run(&mut std::process::Command::new(binary),30));
+        }
     }
 }

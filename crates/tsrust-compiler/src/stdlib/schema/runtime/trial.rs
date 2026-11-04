@@ -251,15 +251,20 @@ pub(super) fn pair<'a, K:'a, V:'a, A:'a, B:'a, RK:Restore<K,A>+'a, RV:Restore<V,
 pub(super) fn sequence<'a, I: 'a, O: 'a, R: Restore<I, O> + 'a, E>(
     input: Vec<I>, mut validate: impl FnMut(usize, I) -> Trial<I, O, R, E>,
 ) -> Trial<Vec<I>, Vec<O>, impl FnOnce(Vec<O>) -> Vec<I> + 'a, E> {
-    let mut values = Vec::with_capacity(input.len());
-    let mut restores = Vec::with_capacity(input.len());
+    let input_len = input.len();
+    let mut values = Vec::with_capacity(input_len);
+    // Consuming callbacks never need a rollback buffer.
+    let mut restores = Vec::new();
     let mut committed = false;
     let mut remaining = input.into_iter().enumerate();
     while let Some((index, input)) = remaining.next() {
         match validate(index, input) {
             Trial::Prepared { value, restoration } => {
                 values.push(value);
-                if committed { drop(restoration); } else { restores.push(restoration); }
+                if committed { drop(restoration); } else {
+                    if restores.is_empty() { restores.reserve_exact(input_len); }
+                    restores.push(restoration);
+                }
             }
             Trial::Committed(Some(value)) => {
                 committed = true;

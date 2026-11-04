@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 
 fn text(value: &str) -> String { serde_json::to_string(value).expect("JSON string") }
 
-fn ty(schema: &Schema) -> String {
+pub(super) fn ty(schema: &Schema) -> String {
     match schema {
         Schema::String => "string".into(),
         Schema::Integer | Schema::Number => "number".into(),

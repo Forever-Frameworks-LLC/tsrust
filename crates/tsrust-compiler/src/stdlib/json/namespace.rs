@@ -141,9 +141,9 @@ fn throwing_adapter(program: &mut Program, name: &str) -> Result<Function, Diagn
     }else if name == "parse" {
         "function adapter(text:string,limits?:JsonLimits):JsonValue {if(limits===undefined){match(backend(text)){Ok(value)=>{return value;},Err(error)=>{throw error;}}}match(backend(text,limits)){Ok(value)=>{return value;},Err(error)=>{throw error;}}}"
     } else if name == "tryStringify" {
-        "function adapter<T>(value:T,maxBytes:int=16777216):Result<string,JsonError> {return backend(value,maxBytes);}"
+        "function adapter<T>(value:T,maxBytes?:int):Result<string,JsonError> {return backend(value,maxBytes);}"
     } else {
-        "function adapter<T>(value:T,maxBytes:int=16777216):string {const encoded:Result<string,JsonError>=backend(value,maxBytes);match(encoded){Ok(text)=>{return text;},Err(error)=>{throw error;}}}"
+        "function adapter<T>(value:T,maxBytes?:int):string {const encoded:Result<string,JsonError>=backend(value,maxBytes);match(encoded){Ok(text)=>{return text;},Err(error)=>{throw error;}}}"
     };
     let mut function = crate::syntax::parse(source)?.functions.remove(0);
     let offset = program.functions.iter().map(|function| function.scope_span.end.max(crate::source_walk::body_end(&function.body))).max().unwrap_or(0) + 1;
@@ -196,7 +196,7 @@ fn typed_adapter(program: &mut Program, name: &str) -> Result<Function, Diagnost
     } else { "if(limits===undefined){return backend(text);}return backend(text,limits);" };
     let source = format!("function adapter<T>(text:ReadOnly<string>,limits?:ReadOnly<JsonLimits>):{result}{{{body}}}");
     let source=if name=="parseJsonc" {
-        "function adapter<T>(text:ReadOnly<string>,allowTrailingComma:boolean=false,limits:ReadOnly<JsonLimits>={maxBytes:16777216,maxDepth:64,maxEntries:1000000,maxNodes:1000000}):Result<T,JsonError>{return backend(text,allowTrailingComma,limits);}".to_owned()
+        "function adapter<T>(text:ReadOnly<string>,allowTrailingComma:boolean=false,limits?:ReadOnly<JsonLimits>):Result<T,JsonError>{if(limits===undefined){return backend(text,allowTrailingComma);}return backend(text,allowTrailingComma,limits);}".to_owned()
     }else if name=="readJsonlView" {
         "function adapter<T>(reader:Mutable<JsonlReaderView>):Result<T|undefined,JsonlError>{return backend(reader);}".to_owned()
     }else if name=="readJsonl" {

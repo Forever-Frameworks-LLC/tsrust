@@ -3,6 +3,8 @@ pub mod configuration;
 pub(crate) mod project;
 mod typescript;
 mod description;
+mod router;
+pub use router::{RouterContract,Route};
 mod rust_client;
 pub use description::HttpDescription;
 mod native_codecs;

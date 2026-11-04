@@ -80,4 +80,14 @@ fn main() {
     let drops=std::cell::Cell::new(0);
     {let mut values=TsrOrderedMap::new();values.insert(1,Probe(&drops));drop(values.insert(1,Probe(&drops)));assert_eq!(drops.get(),1);values.insert(2,Probe(&drops));let removed=values.remove(&2).unwrap();values.clear();assert_eq!(drops.get(),2);drop(removed);assert_eq!(drops.get(),3);values.insert(3,Probe(&drops));}
     assert_eq!(drops.get(),4);
+    struct Wrapped<T>(T);
+    let drops=std::cell::Cell::new(0);let mut source=TsrOrderedMap::new();
+    source.insert("z".to_string(),(vec![2u8],Probe(&drops)));source.insert("a".to_string(),(vec![1u8],Probe(&drops)));
+    let pointers=source.iter().map(|(key,value)|(key.as_ptr(),value.0.as_ptr())).collect::<Vec<_>>();let mut visited=Vec::new();
+    let mapped=TsrOrderedMap::from_mapped(source,|value|{visited.push(value.0[0]);Wrapped(value)});
+    assert_eq!(visited,[1,2]);assert_eq!(mapped.iter().map(|(key,value)|(key.as_ptr(),value.0.0.as_ptr())).collect::<Vec<_>>(),pointers);
+    assert_eq!(drops.get(),0);drop(mapped);assert_eq!(drops.get(),2);
+    let drops=std::cell::Cell::new(0);let mut source=TsrOrderedMap::new();for key in 0..3{source.insert(key,Probe(&drops));}let mut visited=0;
+    let failure=std::panic::catch_unwind(std::panic::AssertUnwindSafe(||{let _:TsrOrderedMap<_,Wrapped<_>>=TsrOrderedMap::from_mapped(source,|value|{visited+=1;if visited==2{panic!("conversion failed");}Wrapped(value)});}));
+    assert!(failure.is_err());assert_eq!(visited,2);assert_eq!(drops.get(),3);
 }

@@ -1,7 +1,7 @@
 //! Shared native ABI lowering for checked calls and forwarding callable bodies.
 use crate::native_bindings::{NativeBackend, NativeBinding};
 
-/// Arguments have already been emitted with each registry parameter's access mode.
+/// Arguments use each registry parameter's access mode; optional inputs are Rust Options.
 pub(crate) fn call(binding: &NativeBinding, arguments: Vec<String>) -> String {
     assert!(
         binding.accepts_arity(arguments.len()),
@@ -25,7 +25,7 @@ pub(crate) fn call(binding: &NativeBinding, arguments: Vec<String>) -> String {
         .iter()
         .map(|parameter| match (parameter.optional, arguments.next()) {
             (false, Some(value)) => value,
-            (true, Some(value)) => format!("Some({value})"),
+            (true, Some(value)) => value,
             (true, None) => "None".into(),
             (false, None) => unreachable!("checked required native argument"),
         })

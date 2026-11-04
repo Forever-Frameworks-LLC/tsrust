@@ -15,9 +15,10 @@ import {verifyReductionABI,pruneObserverContainers,recordObserver} from './reduc
 import {isSliceResult} from './result-observation.mjs';
 import fs from 'node:fs';
 import {isNumberResult} from './number-observation.mjs';
+import {fixedArrayResults,fixedArrayResult} from './fixed-array-result-abi.mjs';
 const numberSupport = Object.fromEntries(['number-driver.rs','number-driver.ts','number-observation.rs','number-observation.ts'].map(name=>[name,fs.readFileSync(new URL(name,import.meta.url),'utf8')]));
 export const numberAdapterSources = numberSupport;
-const sliceSupport = Object.fromEntries(['slice-driver.rs','slice-driver.ts','slice-observation.rs','slice-observation.ts'].map(name=>[name,fs.readFileSync(new URL(name,import.meta.url),'utf8')]));
+const sliceSupport = Object.fromEntries(['slice-driver.rs','slice-driver.ts','slice-observation.rs','slice-observation.ts','fixed-array-result-abi.mjs'].map(name=>[name,fs.readFileSync(new URL(name,import.meta.url),'utf8')]));
 export const sliceAdapterSources = sliceSupport;
 const reductionSupport = Object.fromEntries(['reduction-driver.rs','reduction-driver.ts','reduction-observation.rs','reduction-observation.ts','reduction-observation.mjs','reduction-abi.mjs'].map(name=>[name,fs.readFileSync(new URL(name,import.meta.url),'utf8')]));
 export const reductionAdapterSources = reductionSupport;
@@ -53,9 +54,10 @@ export function assertABI(emitted, workload, {source} = {}) {
 // Match its complete native signature; ambiguous candidates cannot be selected safely.
 function ordinaryWorkloadBinding(emitted, workload, source) {
  const result = rustResults[workload.result];
+ const fixed = fixedArrayResults(emitted);
  const parameters = `value0: i64, value1: i64${workload.inputText === undefined ? '' : ', value2: &String'}${workload.scalarCoordinates ? `, value${workload.inputText === undefined ? 2 : 3}: i64` : ''}`;
  const matches = [...emitted.matchAll(/\bfn ((?:tsr_result_)?function\d+)\(([^)\n]*)\) -> ([^\n{]+)\s*\{/g)]
-  .filter(match => match[2] === parameters && (match[3].trim() === result || (['native-schema','native-json','environment','native-files','native-byte-views','native-byte-clone','result-match','caller-borrowed-record-stores','scoped-record-composition','path-relative','generic-callable-replacement','generic-value-adapters','generic-function-contexts','nested-function-rest','nested-function-defaults','nested-function-results','nested-function-owned-escape','fallible-record-callbacks','exception-completion','array-callback-errors','string-indexing'].includes(workload.family) && match[3].trim().startsWith(`Result<${result},`) && /^Result<.*TsrFunctionError\d+.*>$/.test(match[3].trim()))));
+  .filter(match => match[2] === parameters && (match[3].trim() === result || match[3].trim() === fixedArrayResult(fixed.get(match[1]),workload.result) || (['native-schema','native-json','environment','native-files','native-byte-views','native-byte-clone','result-match','caller-borrowed-record-stores','scoped-record-composition','path-relative','generic-callable-replacement','generic-value-adapters','generic-function-contexts','nested-function-rest','nested-function-defaults','nested-function-results','nested-function-owned-escape','fallible-record-callbacks','exception-completion','array-callback-errors','string-indexing'].includes(workload.family) && match[3].trim().startsWith(`Result<${result},`) && /^Result<.*TsrFunctionError\d+.*>$/.test(match[3].trim()))));
  // Nongeneric workload-first sources have a stable declaration index. A
  // same-signature helper must not make their actual workload ambiguous.
  const firstDeclaration = typeof source === 'string' ? /\bfunction\s+(\w+)\s*([<(])/.exec(source) : null;
@@ -63,18 +65,20 @@ function ordinaryWorkloadBinding(emitted, workload, source) {
  const candidates = matches.length > 1 && declaredFirst ? matches.filter(match => match[1] === 'function0') : matches;
  if (!result || candidates.length !== 1 || !emitted.includes('fn main()')) throw new Error(`Emitter ABI changed for ${workload.id}: expected one complete workload signature`);
  const functionName = candidates[0][1];
- return {functionName, parameters, result, fallible:candidates[0][3].trim()!==result, signature: `fn ${functionName}(${parameters}) -> ${candidates[0][3].trim()}`};
+ const physical = fixedArrayResult(fixed.get(functionName),workload.result)??result;
+ return {functionName, parameters, result:physical, fallible:candidates[0][3].trim()!==physical, signature: `fn ${functionName}(${parameters}) -> ${candidates[0][3].trim()}`};
 }
 function sliceRustObserver(workload, {emitted,source} = {}) {
  if(isReduction(workload))return pruneObserverContainers(sliceSupport['slice-observation.rs'],verifyReductionABI(emitted,workload,source),'SliceTree');
  let observer = sliceSupport['slice-observation.rs'];
+ const physical = typeof emitted==='string'?ordinaryWorkloadBinding(emitted,workload,source).result:rustResults[workload.result];
  // Emission includes only containers actually used by the program.
  const containers = [
   [/\bArray</, 'impl<T:SliceTree> SliceTree for Array<T> {'],
   [/\bNumericArray</, 'impl<T:SliceTree+Copy+Default> SliceTree for NumericArray<T> {']
  ];
  for (const [needed, header] of containers) {
-  if (needed.test(rustResults[workload.result])) continue;
+  if (needed.test(physical)) continue;
   const start = observer.indexOf(header), end = observer.indexOf('\n}\n', start);
   if (start < 0 || end < start || observer.indexOf(header, start + 1) >= 0) throw new Error('Rank observer support changed');
   observer = observer.slice(0, start) + observer.slice(end + 3);

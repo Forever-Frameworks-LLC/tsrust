@@ -28,6 +28,9 @@ impl Ord for TsrOrderedNumber {
 #[derive(Clone)]
 struct TsrOrderedMap<K, V> { values: std::collections::BTreeMap<K, V> }
 impl<K: Ord, V> TsrOrderedMap<K, V> {
+    fn from_mapped<U>(source: TsrOrderedMap<K, U>, mut convert: impl FnMut(U) -> V) -> Self {
+        Self { values: source.values.into_iter().map(|(key, value)| (key, convert(value))).collect() }
+    }
     fn new() -> Self { Self { values: std::collections::BTreeMap::new() } }
     fn len(&self) -> usize { self.values.len() }
     fn insert(&mut self, key: K, value: V) -> Option<V> { self.values.insert(key, value) }

@@ -5,6 +5,7 @@ use crate::stdlib::schema::pipelines::CollectionKind;
 impl Emitter<'_>{
     pub(in crate::emit) fn schema_collection_trial_body(&self,id:usize,input:Type,generated:&mut String,seen:&mut HashSet<(usize,Type)>,errors:&crate::error_effects::FailureSet)->String{
         let plan=self.program.schema_pipelines.collection(id).unwrap();
+        if let Some(body)=self.schema_collection_identity_trial_body(id,input,generated,seen,errors){return body;}
         let output=self.native_type(plan.output);
         let reject=||format!("issues.push(path,tsrust_schema_issues::Code::Type,tsrust_schema_issues::Kind::Object,tsrust_schema_issues::Kind::{});Trial::Rejected(input)",self.schema_kind(input));
         let record=match input { Type::Record(id)|Type::Map(id)|Type::Set(id)=>id,_=>return reject() };
@@ -37,6 +38,33 @@ impl Emitter<'_>{
         let trial=format!("tsrust_schema_trial::sequence(entries,|index,(key,value)|{{{entry}}}).remap_input(|values|{{{inverse}}})");
         let checked=if plan.kind==CollectionKind::Map{self.schema_collection_collision_check(&trial,true,generated)}else{trial};
         format!("{setup}({checked}).inject(|values|<{output}>::from_values(values),|value|value.tsr_owned_items().map(TsrMapEntry::into_pair).collect()).boxed()")
+    }
+
+    fn schema_collection_identity_trial_body(&self,id:usize,input:Type,generated:&mut String,seen:&mut HashSet<(usize,Type)>,errors:&crate::error_effects::FailureSet)->Option<String>{
+        let plan=self.program.schema_pipelines.collection(id)?;
+        if input!=plan.output{return None;}
+        let record=match input{Type::Map(record)|Type::Set(record)=>record,_=>return None};
+        let definition=&self.program.records[record];
+        // Plain scalar checks cannot change entries or introduce collisions.
+        // Borrow to validate, then retain the exact owned container for fallback.
+        let identity=|child,ty|matches!(ty,Type::String|Type::Int|Type::Number|Type::Boolean)
+            && self.program.schema_pipelines.types(child).is_none()
+            && self.schema_pipeline_output(child)==ty
+            && self.program.schema_choices.for_output(ty).next().is_none();
+        let predicate=if plan.kind==CollectionKind::Set{
+            let set=definition.set_definition.as_ref()?;
+            if !identity(plan.element,set.key){return None;}
+            let child=self.schema_owned_prepared_validator(plan.element,set.key,generated,seen,errors);
+            format!("|(index,value)|{{path.push(tsrust_schema_issues::Segment::Index(index));let valid=prepare_{child}(&schema.field0,value,path,issues,failure,None).is_some();path.pop();valid}}")
+        }else if plan.kind==CollectionKind::Map{
+            let map=definition.map_definition.as_ref()?;
+            let key=plan.key?;
+            if !identity(key,map.key)||!identity(plan.element,map.value){return None;}
+            let key=self.schema_owned_prepared_validator(key,map.key,generated,seen,errors);
+            let value=self.schema_owned_prepared_validator(plan.element,map.value,generated,seen,errors);
+            format!("|(index,(key,value))|{{path.push(tsrust_schema_issues::Segment::Index(index));path.push(tsrust_schema_issues::Segment::Field(\"key\"));let valid=prepare_{key}(&schema.field0,key,path,issues,failure,None).is_some();path.pop();let valid=valid&&{{path.push(tsrust_schema_issues::Segment::Field(\"value\"));let valid=prepare_{value}(&schema.field1,value,path,issues,failure,None).is_some();path.pop();valid}};path.pop();valid}}")
+        }else{return None;};
+        Some(format!("let valid=input.iter().enumerate().all({predicate});if valid{{Trial::Prepared{{value:input,restoration:Box::new(|value|value)}}}}else{{Trial::Rejected(input)}}"))
     }
 
     fn schema_collection_collision_check(&self,trial:&str,map:bool,generated:&mut String)->String{

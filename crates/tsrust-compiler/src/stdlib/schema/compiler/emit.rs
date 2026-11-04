@@ -132,7 +132,7 @@ pub(crate) fn issue_bridge(program:&CheckedProgram, ordered:&std::collections::H
     output.push_str(&format!("fn tsrust_schema_error(errors:tsrust_schema_issues::Issues)->Record{error} {{
         let issues=errors.items.into_iter().map(|issue|{{
             let path=issue.path.into_iter().map(|segment|match segment {{
-                tsrust_schema_issues::OwnedSegment::Field(name)=>Record{path}{{field0:Union{field_union}::V{field_tag}(String::Owned(name)),field1:Union{index_union}::V{index_absent}(TsrUndefined){path_order}}},
+                tsrust_schema_issues::OwnedSegment::Field(name)=>Record{path}{{field0:Union{field_union}::V{field_tag}(String::Owned(name.into())),field1:Union{index_union}::V{index_absent}(TsrUndefined){path_order}}},
                 tsrust_schema_issues::OwnedSegment::Index(index)=>Record{path}{{field0:Union{field_union}::V{field_absent}(TsrUndefined),field1:Union{index_union}::V{index_tag}(i64::try_from(index).expect(\"schema index range\")){path_order}}}
             }}).collect();
             Record{issue}{{field0:String::Borrowed(issue.code.as_str()),field1:path,field2:issue.path_truncated,field3:String::Borrowed(issue.expected.as_str()),field4:String::Borrowed(issue.observed.as_str()),field5:issue.message.map(String::Owned).unwrap_or_else(||String::Borrowed(issue.code.as_str())){issue_order}}}

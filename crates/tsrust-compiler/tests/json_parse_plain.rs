@@ -25,6 +25,7 @@ function main() {
   console.log(code("18446744073709551616"), code("[1, -9223372036854775809]"), code("{\"n\": 1.5, \"m\": 18446744073709551616}"));
   console.log(code("[1,"), code("1 x"), code("{oops}"), code("18446744073709551615"));
   console.log(code("[[1]]"), limited("[[1]]"), limited("[1]"));
+  console.log(code('{"x":18446744073709551616,"x":0}'), code('{"x":-9223372036854775809,"x":null}'), code('{"x":[18446744073709551616],"x":true}'));
 }
 "#);
     let rust = tsrust_compiler::check(&source).unwrap().emit_rust();
@@ -35,7 +36,7 @@ function main() {
     std::fs::write(&path, &source).unwrap();
     let output = support::run(support::cli().arg("run").arg(&path), 90);
     support::success(&output);
-    assert_eq!(String::from_utf8_lossy(&output.stdout), "[1,9223372036854775807,2.5,{\"a\":[true,null]}]\ninteger-range integer-range integer-range\nunexpected-end trailing-data invalid-json ok\nok depth-limit ok\n");
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "[1,9223372036854775807,2.5,{\"a\":[true,null]}]\ninteger-range integer-range integer-range\nunexpected-end trailing-data invalid-json ok\nok depth-limit ok\ninteger-range integer-range integer-range\n");
 }
 
 #[test]

@@ -264,7 +264,11 @@ impl<'p> Emitter<'p> {
                 }
             }
             // `text += a + b` that appends in place renders the operands of its right side.
-            let appended = match &expr.kind { ExprKind::CompoundAssign { target, value, .. } => self.appended_operands(fun, target, value), _ => None };
+            let appended = match &expr.kind {
+                ExprKind::CompoundAssign {target,value,..}=>self.appended_operands(fun,target,value),
+                ExprKind::Assign {target,value,..} if self.self_appends.assignment(fun,value)=>super::self_append::operands(target,value),
+                _=>None,
+            };
             if let Some(operands) = appended {
                 for operand in operands { children.push(Self::chain_operand(operand)); discards.push(false); }
             } else if let Some((value, mode)) = value { children.push((value.as_ref(), mode)); discards.push(false); }
@@ -884,6 +888,7 @@ impl<'p> Emitter<'p> {
                 let mut values = rendered.into_iter();
                 let mut render = |_: &Expr, _: Mode, _: bool| values.next().expect("scheduled assignment operand");
                 let code = match &expr.kind {
+                    ExprKind::Assign {target,value,..} if expr.ty==Some(Type::Void) && self.self_appends.assignment(fun,value)=>self.self_append_with(fun,target,value,&mut render),
                     ExprKind::Assign { target, value, .. } if expr.ty == Some(Type::Void) => {
                         if matches!(target.kind, ExprKind::Name(_)) {
                             let id = target.binding.expect("checked assignment binding");
@@ -955,7 +960,7 @@ impl<'p> Emitter<'p> {
                     return if left.ty == Some(Type::Int) { self.int_bitwise_or_power(*op, &first, &second, *operator) }
                         else { Self::number_operation(*op, &first, &second) };
                 }
-                return match self.binary_expression_code_with(expr, &mut |_, _| rendered.next().expect("completed binary operand")) {
+                return match self.binary_expression_code_with(fun,expr, &mut |_, _| rendered.next().expect("completed binary operand")) {
                     Ok(code) => Self::access_wrapped(expr, mode, code),
                     Err(complete) => complete,
                 };

@@ -17,6 +17,11 @@ impl Emitter<'_> {
         if !json && self.program.records[input_record].native_type.is_some() {
             return "issues.push(path,tsrust_schema_issues::Code::Type,tsrust_schema_issues::Kind::Object,tsrust_schema_issues::Kind::Object);Trial::Rejected(input)".into();
         }
+        // Keep stripped fields in their tree slots so rollback never rebuilds the map.
+        let keep_slots = json && plan.policy != ObjectPolicy::Retain;
+        let restore_field = |key: &str, value: &str| if keep_slots {
+            format!("*values.get_mut({key}).expect(\"present input field\")={value}.value;")
+        } else { format!("values.insert({key},{value}.value);") };
         let raw_record = self.native_record_declaration(input_record);
         let provided = fields.iter().map(|field|self.program.records[input_record].fields.iter().enumerate()
             .find(|(_,candidate)|candidate.name.text==field.name.text).map(|(position,field)|(position,field.ty.unwrap()))).collect::<Vec<_>>();
@@ -47,7 +52,11 @@ impl Emitter<'_> {
         let absent_roots=self.schema_root_arguments(plan.fields[index]);
             let schema = format!("&schema.field0.field{index}");
             let read = if json {
-                body.push_str(&format!("let(key{index},raw{index})=match values.remove_entry({:?}){{Some((key,value))=>(Some(key),Some(Record{raw_record}{{value}})),None=>(None,None)}};",field.name.text));
+                if keep_slots {
+                    body.push_str(&format!("let(key{index},raw{index})=match values.get_mut({name:?}){{Some(value)=>(Some({name:?}),Some(Record{raw_record}{{value:value.take()}})),None=>(None,None)}};",name=field.name.text));
+                } else {
+                    body.push_str(&format!("let(key{index},raw{index})=match values.remove_entry({:?}){{Some((key,value))=>(Some(key),Some(Record{raw_record}{{value}})),None=>(None,None)}};",field.name.text));
+                }
                 format!("match raw{index}{{Some(value)=>{child}({child_roots}{schema},value,path,issues,failure).remap_input(Some).boxed(),None=>{absent}({absent_roots}{schema},TsrUndefined,path,issues,failure).remap_input(|_|None::<{}>).boxed()}}",self.native_type(raw))
             } else if let Some((position,_)) = provided[index] {
                 format!("{child}({child_roots}{schema},input.field{position},path,issues,failure).remap_input(Some).boxed()")
@@ -56,9 +65,9 @@ impl Emitter<'_> {
             };
             let mut reject = String::from("if committed{return Trial::Committed(None);}");
             if json {
-                reject.push_str(&format!("if let(Some(key),Some(value))=(key{index},restored){{values.insert(key,value.value);}}"));
+                reject.push_str(&format!("if let(Some(key),Some(value))=(key{index},restored){{{}}}",restore_field("key","value")));
                 for previous in 0..index {
-                    reject.push_str(&format!("if let(Some(key),Some(value))=(key{previous},restore{previous}.expect(\"uncommitted field\")(field{previous})){{values.insert(key,value.value);}}"));
+                    reject.push_str(&format!("if let(Some(key),Some(value))=(key{previous},restore{previous}.expect(\"uncommitted field\")(field{previous})){{{}}}",restore_field("key","value")));
                 }
                 reject.push_str(&format!("return Trial::Rejected(Record{raw_record}{{value:tsrust_native_json::Value::Object(values)}});"));
             } else {
@@ -85,7 +94,7 @@ impl Emitter<'_> {
         }
         if json {
             for index in 0..fields.len() {
-                inverse.push_str(&format!("if let(Some(key),Some(value))=(key{index},restore{index}.expect(\"uncommitted field\")(value.field{index})){{values.insert(key,value.value);}}"));
+                inverse.push_str(&format!("if let(Some(key),Some(value))=(key{index},restore{index}.expect(\"uncommitted field\")(value.field{index})){{{}}}",restore_field("key","value")));
             }
             inverse.push_str(&format!("Record{raw_record}{{value:tsrust_native_json::Value::Object(values)}}"));
         } else {

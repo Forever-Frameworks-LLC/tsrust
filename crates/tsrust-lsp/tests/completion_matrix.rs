@@ -223,6 +223,7 @@ fn rows() -> Vec<Row> {
         Row { kind: Kind::ArrayMember, name: "HTTP query request", before: "import {request} from 'std:http';function main(){const input=request('GET','http://localhost/','');".into(), typed: "input.", after: "query('tag');}", includes: &["query","queries"], excludes: &["function","const"], silent: None, needs_check: true },
         Row { kind: Kind::ArrayMember, name: "process arguments array", before: "import {args} from 'std:env';function main(){const values=unwrap(args());".into(), typed: "values.", after: "length;}", includes: &["length","map"], excludes: &["function","const"], silent: None, needs_check: true },
         row(Kind::RecordField, "record field", "item.", &["id", "name"], NOT_MEMBERS),
+        Row {kind:Kind::RecordField,name:"inferred local object",before:"function main(){const data={greeting:'hello',nested:{value:3}};".into(),typed:"data.",after:"greeting;}",includes:&["greeting","nested"],excludes:&["function","const","main","length"],silent:None,needs_check:true},
         row(Kind::ArrayMember, "array member", "values.", &["length", "map", "push"], NOT_MEMBERS),
         row(Kind::ArrayMember, "new array local", "const fresh = [1, 2];\n  fresh.", &["length", "map"], NOT_MEMBERS),
         row(Kind::StringMember, "string member", "text.", &["length", "trim", "toUpperCase"], NOT_MEMBERS),

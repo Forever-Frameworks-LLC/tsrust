@@ -16,7 +16,8 @@ pub(crate) fn bytes_module(views:bool,utf8:bool)->String {
     text.push_str("}\n");text
 }
 pub(crate) fn files_module()->String {
-    format!("mod tsrust_native_files {{ mod resource {{\n{}\n}} pub mod fs {{\n{}\n}} pub mod buffered_fs {{\n{}\n}} }}\n",include_str!("../stdlib/fs/runtime/resource.rs"),include_str!("../stdlib/fs/runtime/fs.rs"),include_str!("../stdlib/fs/runtime/buffered_fs.rs"))
+    let runtime=|source:&'static str|source.split_once("\n#[cfg(test)]").expect("file backend tests follow runtime").0;
+    format!("mod tsrust_native_files {{ mod resource {{\n{}\n}} pub mod fs {{\n{}\n}} pub mod buffered_fs {{\n{}\n}} }}\n",runtime(include_str!("../stdlib/fs/runtime/resource.rs")),runtime(include_str!("../stdlib/fs/runtime/fs.rs")),runtime(include_str!("../stdlib/fs/runtime/buffered_fs.rs")))
 }
 pub(crate) fn path_module()->String {
     format!("mod tsrust_native_path {{\n{}{}\n}}\n",include_str!("../stdlib/path/runtime.rs"),include_str!("../stdlib/path/relative.rs"))
@@ -47,7 +48,7 @@ pub fn separate(source:&str)->Units {
 
     if source.contains("use rayon as tsr_rayon;") {application=application.replace("use rayon as tsr_rayon;","use tsrust_runtime::rayon as tsr_rayon;");runtime.push_str("pub use rayon;\n");}
     let json=[true,false].into_iter().map(json_module_with_writer).find(|module|source.contains(module));
-    let dependencies=source.contains(&crate::stdlib::ui::runtime(true)) || source.contains(&crate::stdlib::ui::runtime(false))
+    let dependencies=source.contains(&files_module()) || source.contains(&crate::stdlib::ui::runtime(true)) || source.contains(&crate::stdlib::ui::runtime(false))
         || source.contains(crate::stdlib::signals::RUNTIME) || source.contains(crate::stdlib::crypto::RUNTIME) || source.contains(crate::stdlib::uuid::RUNTIME) || source.contains(crate::stdlib::date::RUNTIME) || source.contains(crate::stdlib::decimal::RUNTIME) || source.contains(crate::stdlib::sql::RUNTIME) || source.contains(crate::stdlib::sqlite::RUNTIME) || json.as_ref().is_some_and(|module|source.contains(module)) || source.contains(crate::stdlib::futures::RUNTIME) || source.contains(crate::stdlib::threads::RUNTIME) || source.contains("mod tsr_rust");
     let mut extract=|name:&str,module:String| {
         if application.contains(&module) {

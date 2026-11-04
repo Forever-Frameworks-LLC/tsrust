@@ -186,14 +186,16 @@ impl Emitter<'_> {
         let live=input.and_then(|source| {
             if source==target{return None;}
             let (Type::Map(source),Type::Map(target))=(source,target) else{return None;};
+            let same_carrier=self.same_map_carrier(source,target);
             let source=self.program.records[source].map_definition.as_ref()?.value;
             let target_value=self.program.records[target].map_definition.as_ref()?.value;
             let native=self.native_type(Type::Map(target));
             if self.map_payload_absent_environment(source) || self.map_payload_absent_environment(target_value) {
                 return Some(format!("{{drop({place});<{native}>::new()}}"));
             }
+            if same_carrier{return None;}
             let converted=self.map_entry_payload_projection(source,target_value,"entry_value");
-            Some(format!("<{native}>::from_values(({place}).tsr_owned_items().map(|entry|{{let (entry_key,entry_value)=TsrMapEntry::into_pair(entry);(entry_key,{converted})}}))"))
+            Some(format!("<{native}>::from_mapped({place},|entry_value|{{{converted}}})"))
         });
         super::native_storage_availability::Value{place:place.into(),empty,live,transferred,target:Some(target)}
     }

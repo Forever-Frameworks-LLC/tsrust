@@ -34,3 +34,32 @@ fn json_container_children_require_owned_json_values() {
  let source="import {get,fromArray,JsonValue} from 'std:json';function main(){const owner=JSON.parse('{\"x\":42}');match(get(owner,'x')){Ok(child)=>{if(child!==undefined){const values:JsonValue[]=[child];fromArray(values);}},Err(error)=>{throw error.message;}}}";
  let dir=support::TempDirectory::new();let path=dir.source(&support::format_round_trip(source));let output=support::run(support::cli().arg("check").arg(path),60);assert!(!output.status.success());let error=String::from_utf8_lossy(&output.stderr);assert!(error.contains("Expected JsonValue, found JsonView"),"{error}");
 }
+
+#[test]
+fn json_construction_defaults_have_no_tree_quota_and_explicit_limits_remain_exact() {
+ let source=r#"
+import {fromArray,fromEntries,fromInt,nullValue,JsonValue,JsonEntry,JsonBuildLimits} from 'std:json';
+import {strictEqual} from 'std:testing';
+function nested(depth:int):JsonValue {
+ if(depth===0){return fromInt(9007199254740993);}
+ const child:JsonValue[]=[nested(depth-1)];return unwrap(fromArray(child));
+}
+function main(){
+ const deep=nested(256);strictEqual(JSON.stringify(deep),'['.repeat(256)+'9007199254740993'+']'.repeat(256));
+ const entries:JsonEntry[]=[{key:'é',value:fromInt(1)},{key:'deep',value:nested(256)},{key:'é',value:fromInt(9007199254740993)}];
+ strictEqual(JSON.stringify(unwrap(fromEntries(entries,undefined))),'{"deep":'+'['.repeat(256)+'9007199254740993'+']'.repeat(256)+',"é":9007199254740993}');
+ const large:JsonValue[]=[];let count=0;while(count<1000001){large.push(nullValue());count++;}
+ strictEqual(JSON.stringify(unwrap(fromArray(large,undefined))).length,5000006);
+ const exact:JsonBuildLimits={maxDepth:65,maxEntries:1,maxNodes:66};
+ const array:JsonValue[]=[nested(64)];strictEqual(JSON.stringify(unwrap(fromArray(array,exact))),'['.repeat(65)+'9007199254740993'+']'.repeat(65));
+ const object:JsonEntry[]=[{key:'deep',value:nested(64)}];strictEqual(JSON.stringify(unwrap(fromEntries(object,exact))),'{"deep":'+'['.repeat(64)+'9007199254740993'+']'.repeat(64)+'}');
+ strictEqual(exact.maxDepth,65);
+ const short:JsonBuildLimits={maxDepth:64,maxEntries:1,maxNodes:66};const rejected:JsonValue[]=[nested(64)];
+ match(fromArray(rejected,short)){Ok(_)=>{throw 'depth limit ignored';},Err(error)=>{strictEqual(error.code,'depth-limit');strictEqual(error.offset,0);}}
+ const duplicates:JsonEntry[]=[{key:'same',value:nullValue()},{key:'same',value:nullValue()}];
+ match(fromEntries(duplicates,{maxDepth:1,maxEntries:2,maxNodes:2})){Ok(_)=>{throw 'replaced entry not counted';},Err(error)=>{strictEqual(error.code,'node-limit');}}
+ const invalid:JsonValue[]=[];match(fromArray(invalid,{maxDepth:-1,maxEntries:1,maxNodes:2})){Ok(_)=>{throw 'invalid limit accepted';},Err(error)=>{strictEqual(error.code,'invalid-limits');strictEqual(error.message.includes('64'),false);}}
+}
+"#;
+ let dir=support::TempDirectory::new();let path=dir.source(&support::format_round_trip(source));let output=support::run(support::cli().arg("run").arg(path),120);support::success(&output);assert!(output.stdout.is_empty());assert!(output.stderr.is_empty());
+}

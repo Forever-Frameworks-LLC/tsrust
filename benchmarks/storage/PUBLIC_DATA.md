@@ -28,6 +28,12 @@ Each `history` entry describes one run:
 - `ops`: mean operations per second over the samples.
 - `samples`: how many timed samples the run took (processes × samples per process).
 
+HTTP CPU runs additionally retain aggregate request p50/p99 (milliseconds),
+request sample count, server CPU milliseconds per request, resource-pass request
+count, peak sampled RSS (bytes) and RSS sample count. CPU/RSS use a separate
+warmed pass; request percentiles never come from batch durations. Individual
+request timings and resource samples are not retained.
+
 The October 30, 2026 store was built from the previous dataset's 101 indexed
 runs and the local result files of later runs. Individual sample durations,
 allocation profiles, proof hashes and the legacy `records.sqlite` archive were

@@ -37,3 +37,34 @@ fn json_literal_support_does_not_admit_ambiguous_shape_unions(){
   let dir=support::TempDirectory::new();let path=dir.source(&source);let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success(),"{ty}");assert!(String::from_utf8_lossy(&output.stderr).contains("json-type"),"{ty}: {}",String::from_utf8_lossy(&output.stderr));
  }
 }
+
+#[test]
+fn typed_json_keys_and_literal_values_survive_escapes_duplicates_and_source_drop() {
+ let source=r#"
+import {strictEqual} from 'std:testing';
+type Tag='ready'|'é😀\0';
+type Item={tag:Tag;single:'fixed';text:string;n:int;};
+function read(text:string):Item{return JSON.parse<Item>(text);}
+function main(){
+ let text='{"t\\u0061g":"r\\u0065ady","single":"fi\\u0078ed","text":"owned","n":2}';
+ const item=read(clone(text));text='replaced';
+ strictEqual(item.tag==='ready',true);strictEqual(item.single==='fixed',true);strictEqual(item.text,'owned');strictEqual(item.n,2);
+ const unicode=read('{"tag":"é\\ud83d\\ude00\\u0000","single":"fixed","text":"independent","n":3}');
+ strictEqual(unicode.tag==='é😀\0',true);strictEqual(unicode.text,'independent');
+ const duplicate=read('{"tag":"ready","tag":"é\\ud83d\\ude00\\u0000","single":"fixed","text":"old","te\\u0078t":"last","n":4,"unknown":{"ignored":[true,null]},"\\u0000key":0}');
+ strictEqual(duplicate.tag==='é😀\0',true);strictEqual(duplicate.text,'last');
+ const nested=JSON.parse<[Tag,Item]>('["r\\u0065ady",{"tag":"ready","single":"fixed","text":"tuple","n":5}]');
+ strictEqual(nested[0]==='ready',true);strictEqual(nested[1].text,'tuple');
+ const arrays=JSON.parse<Tag[]>('["ready","é\\ud83d\\ude00\\u0000"]');strictEqual(arrays[1]==='é😀\0',true);
+ for(const invalid of ['{"tag":"wrong","single":"fixed","text":"x","n":1}','{"tag":"wrong","tag":"ready","single":"fixed","text":"x","n":1}','{"tag":"ready","single":"wrong","text":"x","n":1}','{"tag":"ready","single":"fixed","text":"x","n":1,"\\ud800":0}']){
+  match(JSON.tryParse<Item>(invalid)){Ok(value)=>{throw 'invalid JSON literal or key accepted';},Err(error)=>{strictEqual(error.code,'shape-mismatch');}}
+ }
+ console.log('Owned literal JSON passed');
+}
+"#;
+ let dir=support::TempDirectory::new();let path=dir.source(&support::format_round_trip(source));
+ for release in [false,true] {
+  let mut cli=support::cli();cli.arg("run").arg(&path);if release {cli.arg("--release");}
+  let output=support::run(&mut cli,120);support::success(&output);assert_eq!(output.stdout,b"Owned literal JSON passed\n");
+ }
+}

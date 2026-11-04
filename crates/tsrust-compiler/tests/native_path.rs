@@ -1,3 +1,4 @@
+mod support;
 use tsrust_compiler::native_path::basename;
 #[test]
 fn basename_boundaries_are_lexical_and_borrow_inputs() {
@@ -44,7 +45,7 @@ fn basename_matches_reference_for_utf8_paths_and_both_separator_conventions() {
         "\\\\server\\share\\".into(),
     ];
     for prefix in ["", "/tmp/", "C:\\tmp\\", "C:", "//host/"] {
-        for component in ["a", "a.txt", "a.TXT", ".", "..", "é😊", ".hidden", "a:b"] {
+        for component in ["a", "a.txt", "a.TXT", ".", "..", "é😊", "ࠀ𐀀", "abc", "\0", ".hidden", "a:b"] {
             for trailing in ["", "/", "\\", "//"] {
                 paths.push(format!("{prefix}{component}{trailing}"));
             }
@@ -64,6 +65,11 @@ fn basename_matches_reference_for_utf8_paths_and_both_separator_conventions() {
         Some("é😊"),
         Some("/"),
         Some("longer-than-path"),
+        Some("/abc"),
+        Some("xyz/abc"),
+        Some("ࠀ𐀀"),
+        Some("𐀀"),
+        Some("\0"),
     ];
     let paths_json = paths
         .iter()
@@ -232,5 +238,34 @@ fn join_matches_independent_posix_and_windows_references() {
             let actual=tsrust_compiler::native_path::join(&borrowed,platform==1).bytes().map(|byte|format!("{byte:02x}")).collect::<String>();
             assert_eq!(actual,*expected,"platform={platform} paths={paths:?}");
         }
+    }
+}
+
+#[test]
+fn basename_byte_boundaries_cover_every_unicode_scalar_at_both_optimization_levels() {
+    let directory = support::TempDirectory::new();
+    let input = directory.0.join("basename-unicode.rs");
+    let runtime = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/stdlib/path/runtime.rs");
+    let harness = r#"
+fn main() {
+    for code in 0..=0x10ffff {
+        let Some(character) = char::from_u32(code) else { continue; };
+        let component = character.to_string();
+        let path = format!("/long/base/{character}.txt/");
+        for windows in [false, true] {
+            let expected = if character == '/' || (windows && character == '\\') { ".txt" } else { &component };
+            assert_eq!(native_path::basename(&path, Some(".txt"), windows), expected, "U+{code:X} windows={windows}");
+            let whole = format!("{character}.txt");
+            let expected = if character == '/' || (windows && character == '\\') { ".txt/" } else { &whole };
+            assert_eq!(native_path::basename(&path, Some(&whole), windows), expected, "whole U+{code:X} windows={windows}");
+        }
+    }
+}
+"#;
+    std::fs::write(&input, format!("#[path = {:?}] mod native_path;\n{harness}", runtime)).unwrap();
+    for level in ["0", "3"] {
+        let binary = directory.0.join(format!("basename-unicode-{level}"));
+        support::success(&support::run(support::rustc().args(["--edition=2024", "-A", "warnings", "-F", "unsafe_code", "-C", &format!("opt-level={level}"), "-C", "overflow-checks=on"]).arg(&input).arg("-o").arg(&binary), 60));
+        support::success(&support::run(&mut std::process::Command::new(binary), 60));
     }
 }

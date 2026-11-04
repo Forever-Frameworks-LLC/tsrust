@@ -2,6 +2,35 @@
 use super::*;
 
 impl Analyzer {
+    /// Supply unconstrained object shapes without evaluating values or changing loans.
+    pub(super) fn prepare_object_argument_hints(&mut self,context:&Context,args:&mut [Expr])->bool {
+        let mut hints=HashMap::<*const Expr,Type>::new();
+        let mut pending=args.iter().filter(|arg|arg.ty.is_none()&&matches!(arg.kind,ExprKind::Record(_))).map(|arg|(arg,false)).collect::<Vec<_>>();
+        while let Some((argument,finish))=pending.pop(){
+            let ExprKind::Record(fields)=&argument.kind else{continue;};
+            if !finish {
+                pending.push((argument,true));
+                pending.extend(fields.iter().filter(|(_,value)|matches!(value.kind,ExprKind::Record(_))).map(|(_,value)|(value,false)));
+                continue;
+            }
+            let Some(types)=fields.iter().map(|(key,value)|Some((key,hints.get(&(value as *const Expr)).copied().or_else(||self.expression_type_hint(context,value))?.owning()))).collect::<Option<Vec<_>>>()else{continue;};
+            let fields=types.iter().map(|(key,ty)|Self::inferred_object_field(key,*ty)).collect();
+            let types=types.into_iter().map(|(key,ty)|(key.text.clone(),ty)).collect();
+            let ty=self.intern_inferred_object(true,fields,types,argument.span);
+            hints.insert(argument as *const Expr,ty);
+        }
+        let mut changed=false;
+        for argument in args {
+            crate::source_walk::expression(argument,&mut |value|{
+                if value.ty.is_none() && matches!(value.kind,ExprKind::Record(_)) && let Some(ty)=hints.get(&(value as *const Expr)){
+                    value.ty=Some(*ty);changed=true;
+                }
+                Ok(())
+            }).expect("infallible object hint visitor");
+        }
+        changed
+    }
+
     pub(super) fn generic_callable_shapes(
         &self,
         context: &Context,

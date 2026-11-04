@@ -1,3 +1,4 @@
+import {compilerExecutable} from './compiler-executable.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -24,7 +25,7 @@ test('consuming borrowed alternatives retain matched native and compiled TypeScr
             assert.notEqual(source,modified);
             if(kind==='native') {
                 const file=path.join(temporary,'main.tsr');fs.writeFileSync(file,modified);
-                const compiler=process.env.TSRUST||path.join(root,'target/editor/debug/tsrust');
+                const compiler=process.env.TSRUST||compilerExecutable(root,here);
                 const formatted=execFileSync(compiler,['format',file],{encoding:'utf8'});
                 fs.writeFileSync(file,formatted);
                 assert.equal(execFileSync(compiler,['format',file],{encoding:'utf8'}),formatted);

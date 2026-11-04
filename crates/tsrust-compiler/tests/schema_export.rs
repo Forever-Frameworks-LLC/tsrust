@@ -157,3 +157,24 @@ fn schema_export_catalog_example_executes() {
     support::success(&output);
     assert_eq!(String::from_utf8_lossy(&output.stdout),example["output"].as_str().unwrap());
 }
+
+#[test]
+fn schema_export_literal_and_enum_fields_keep_values_across_repeated_exports() {
+    let value=exported(r#"
+import {s} from 'std:schema';
+import {strictEqual} from 'std:testing';
+enum Mode {Ready='ready',Done='done'}
+function main(){
+ const schema=s.object({text:s.literal('é"🙂'),exact:s.literal(9007199254740993),flag:s.literal(false),nothing:s.literal(null),mode:s.enum(Mode)});
+ const first=JSON.stringify(schema.toJsonSchema());
+ strictEqual(JSON.stringify(schema.toJsonSchema()),first);
+ console.log(first);
+}
+"#);
+    let fields=&value["properties"];
+    assert_eq!(fields["text"]["const"],"é\"🙂");
+    assert_eq!(fields["exact"]["const"].as_i64(),Some(9007199254740993));
+    assert_eq!(fields["flag"]["const"],false);
+    assert_eq!(fields["nothing"]["type"],"null");
+    assert_eq!(fields["mode"]["enum"],serde_json::json!(["ready","done"]));
+}

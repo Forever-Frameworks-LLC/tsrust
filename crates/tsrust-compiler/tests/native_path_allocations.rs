@@ -50,3 +50,14 @@ fn relative_reuses_borrowed_components_and_reserves_owned_output() {
     assert_eq!(result, "../archive.txt");
     assert!(allocations <= 4, "one cwd observation, two borrowed component buffers and one output: {allocations}");
 }
+
+#[test]
+fn basename_allocates_only_its_independent_owned_result() {
+    for (path, suffix, expected) in [("/tmp/report.txt/", Some(".txt"), "report"), ("/tmp/é😊.txt/", Some(".txt"), "é😊"), ("a", Some("a"), "")] {
+        let (mut result, allocations) = observe(|| tsrust_compiler::native_path::basename(path, suffix, false));
+        assert_eq!(result, expected);
+        assert_eq!(allocations, usize::from(!expected.is_empty()));
+        result.push('!');
+        assert_eq!(result, format!("{expected}!"));
+    }
+}

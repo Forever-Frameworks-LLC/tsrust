@@ -51,7 +51,7 @@ fn borrowed_jsonl_positions_limits_and_terminal_errors_preserve_owner() {
  let dir=support::TempDirectory::new();let data=dir.0.join("records.jsonl");std::fs::write(&data,b"1\nbad\n3\n").unwrap();
  let source=format!(r#"import {{open,bufferReader,read,close}} from 'std:fs';import {{borrowJsonl,readJsonl,closeJsonl,JsonLimits}} from 'std:json';import {{toUtf8}} from 'std:bytes';import {{strictEqual}} from 'std:testing';
  function main(){{match(open({path:?})){{Ok(file)=>{{match(bufferReader(file,8)){{Ok(input)=>{{
-  read(input,2);const invalid:JsonLimits={{maxBytes:64,maxDepth:65,maxEntries:8,maxNodes:8}};
+  read(input,2);const invalid:JsonLimits={{maxBytes:64,maxDepth:-1,maxEntries:8,maxNodes:8}};
   {{match(borrowJsonl(input,invalid)){{Ok(_)=>{{throw 'invalid limits accepted';}},Err(e)=>{{strictEqual(e.code,'invalid-limits');}}}}}}
   {{match(borrowJsonl(input)){{Ok(reader)=>{{
    match(readJsonl(reader)){{Ok(_)=>{{throw 'bad record accepted';}},Err(e)=>{{strictEqual(e.line,1);strictEqual(e.offset,0);strictEqual(e.code,'invalid-json');}}}}

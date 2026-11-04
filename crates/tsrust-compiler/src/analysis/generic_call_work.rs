@@ -162,9 +162,15 @@ impl Analyzer {
             .zip(&contexts)
             .map(|(argument, expected)| self.generic_argument_hint(context, argument, *expected))
             .collect::<Vec<_>>();
-        let arguments =
-            self.generic_functions
-                .infer(name, &hints, expected, &types, callee_span)?;
+        let arguments = match self.generic_functions.infer(name, &hints, expected, &types, callee_span) {
+            Ok(arguments)=>arguments,
+            Err(error)=>{
+                if error.code=="generic-inference" && self.prepare_object_argument_hints(context,args){
+                    return self.finish_generic_preparation(context,expr,expected,frame);
+                }
+                return Err(error);
+            }
+        };
         let captures = self.named_captures.source_context(name, context, &self.program)?
             .map(|(context, _)| context.bindings.iter().map(|binding| binding.ty).collect())
             .unwrap_or_default();

@@ -7,7 +7,7 @@ fn inferred_result_hover_uses_public_types_including_nested_payloads() {
     let source = tsrust_compiler::format("function main(){const result=Ok<Result<string,int>,boolean>(Err<string,int>(4));match(result){Ok(inner)=>{match(inner){Ok(text)=>{console.log(text);},Err(code)=>{console.log(code);}}},Err(flag)=>{console.log(flag);}}}").unwrap();
     assert_eq!(tsrust_compiler::format(&source).unwrap(), source);
     tsrust_compiler::check(&source).unwrap();
-    for (needle, expected) in [("result)", "Result<Result<string, int>, boolean>"), ("inner)", "Result<string, int>")] {
+    for (needle, expected) in [("result =", "Result<Result<string, int>, boolean>"), ("result)", "Result<Result<string, int>, boolean>"), ("inner)", "Result<string, int>")] {
         let hover = ask(&source, "textDocument/hover", needle, 0);
         let docs = hover["contents"]["value"].as_str().unwrap_or("");
         assert!(docs.contains(expected) && !docs.contains("Result#"), "{hover}");
@@ -649,6 +649,11 @@ fn forward_function_completion_docs_and_literal_member_hover() {
                 .contains(signature)
         );
         let help = ask(&source, "textDocument/signatureHelp", ");", 0);
+        if method == "concat" {
+            let hover=ask(&source,"textDocument/hover",method,0);
+            let text=hover["contents"]["value"].as_str().unwrap();
+            assert!(text.contains("independent of the receiver") && text.contains("static text may share immutable storage"),"{hover}");
+        }
         assert_eq!(help["signatures"][0]["label"], signature);
         assert_eq!(help["activeParameter"], parameter);
         let incomplete = format!("function main() {{ const word: string = \"hi\"; word.{method}");
@@ -10004,7 +10009,7 @@ fn json_encoding_editor_documents_typed_values_and_undefined_policy() {
         let needle=format!("{method}(");
         let hover=ask(source,"textDocument/hover",&needle,0);
         let docs=hover["contents"]["value"].as_str().unwrap();
-        for text in ["value: T", "undefined-value", "number-nonfinite", "64", "borrows"] {assert!(docs.contains(text),"{hover}");}
+        for text in ["value: T", "undefined-value", "number-nonfinite", "no output byte quota", "no container-depth quota", "borrows"] {assert!(docs.contains(text),"{hover}");}
         let mut position=at(source,&needle,0);position.character+=needle.len() as u32;
         let help=SourceIndex::new(source).request("textDocument/signatureHelp",&json!({"position":position}),"file:///test.tsr").unwrap();
         assert!(help["signatures"][0]["label"].as_str().unwrap().contains("value: T"),"{help}");

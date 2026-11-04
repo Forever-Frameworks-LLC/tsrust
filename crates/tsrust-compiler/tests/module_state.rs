@@ -147,12 +147,12 @@ fn initialization_runs_without_main_and_failure_prevents_entry() {
 }
 
 #[test]
-fn inferred_module_object_context_does_not_leak_into_called_function() {
+fn inferred_objects_work_in_module_initializers_and_called_functions() {
     let dir = support::TempDirectory::new();
-    let file = dir.source("const item=make();function make(){return {count:1};}function main(){}");
-    let output = support::run(support::cli().arg("check").arg(file), 30);
-    assert!(!output.status.success());
-    assert!(String::from_utf8_lossy(&output.stderr).contains("record literal needs"));
+    let file = dir.source("const item=make();function make(){return {count:1};}function main(){console.log(item.count,make().count);}");
+    let output = support::run(support::cli().arg("run").arg(file), 60);
+    support::success(&output);
+    assert_eq!(output.stdout,b"1 1\n");
 }
 
 #[test]

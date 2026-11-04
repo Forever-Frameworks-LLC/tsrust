@@ -3,6 +3,196 @@ use std::process::Command;
 use support::{TempDirectory, run, rustc, success};
 use tsrust_compiler::check;
 
+#[test]
+fn fixed_result_row_fallback_is_connected_and_small_numeric_rows_stay_inline() {
+    let source=support::format_round_trip(r#"
+        function a():string[][]{const rows:string[][]=[];rows.push(["a","b"]);return rows;}
+        function b():string[][]{const rows:string[][]=[];rows.push(["a","b","c"]);return rows;}
+        function c():string[][]{const rows:string[][]=[];rows.push(["a","b","c","d","e"]);return rows;}
+        function count(rows:string[][]):int{return rows[0].length;}
+        function small():int[][]{const rows:int[][]=[];rows.push([1,2]);return rows;}
+        function main(){const x=a();const y=b();const z=c();const n=small();console.log(count(x));console.log(count(y));console.log(z[0].length);console.log(n[0][0]);}
+    "#);
+    let rust=execute(&source,"2\n3\n5\n1\n");
+    assert!(rust.contains("fn function0() -> Vec<Array<String>>"));
+    assert!(rust.contains("fn function1() -> Vec<Array<String>>"));
+    assert!(rust.contains("fn function2() -> Vec<[String; 5]>"));
+    assert!(rust.contains("-> Array<NumericArray<i64>>"));
+}
+
+#[test]
+fn fixed_result_rows_can_return_owned_row_clones_without_retaining_inputs() {
+    let source=support::format_round_trip(r#"
+        function make(input:string):string[][]{const rows:string[][]=[];rows.push([String(input),"tail"]);return rows;}
+        function first(rows:string[][]):string[]{return clone(rows[0]);}
+        function main(){let input="é🙂".repeat(2);const rows=make(input);const saved=first(rows);input="changed";console.log(saved[0]);console.log(rows[0][0]);console.log(input);}
+    "#);
+    let rust=execute(&source,"é🙂é🙂\né🙂é🙂\nchanged\n");
+    assert!(rust.contains("-> [String; 2]"));
+}
+
+#[test]
+fn fixed_result_rows_follow_forwarding_clones_readers_and_owned_strings() {
+    let source = support::format_round_trip(r#"
+        function make(n:int,seed:int,input:string):string[][] {
+            const rows:string[][]=[]; let i=0;
+            while(i<n){rows.push([input+String(i),String(seed)]);i+=1;}
+            return rows;
+        }
+        function forward(n:int,seed:int,input:string):string[][]{return make(n,seed,input);}
+        function copy(rows:string[][]):string[][]{return clone(rows);}
+        function weight(rows:string[][]):int {
+            let total=0;for(const row of rows){for(const text of row){total+=text.length;}}
+            return total;
+        }
+        function main(){
+            const rows=forward(3,7,"é🙂".repeat(2));const saved=copy(rows);
+            console.log(weight(rows));console.log(weight(saved));
+            console.log(rows.length);console.log(rows[0][0]);console.log(saved[2][1]);
+            const empty=forward(0,7,"");console.log(empty.length);
+        }
+    "#);
+    let rust = execute(&source,"42\n42\n3\né🙂é🙂0\n7\n0\n");
+    assert!(rust.contains("-> Vec<[String; 2]>"));
+    assert!(rust.contains("// tsrust-fixed-array-result "));
+    assert!(!rust.contains("unsafe"));
+}
+
+#[test]
+fn fixed_result_rows_support_numeric_boolean_and_float_payloads() {
+    let source=support::format_round_trip(r#"
+        function ints(n:int):int[][]{const rows:int[][]=[];let i=0;while(i<n){rows.push([i,i+1,i+2,i+3,i+4]);i+=1;}return rows;}
+        function flags(n:int):boolean[][]{const rows:boolean[][]=[];let i=0;while(i<n){rows.push([i%2===0,false,true,false,true]);i+=1;}return rows;}
+        function floats(n:int):number[][]{const rows:number[][]=[];let i=0;while(i<n){rows.push([Number(i)+0.5,-0.0]);i+=1;}return rows;}
+        function main(){const a=ints(3);const b=flags(3);const c=floats(3);console.log(a[2][0]);console.log(b[2][0]);console.log(c[2][0]);console.log(c[2][1]);}
+    "#);
+    let rust=execute(&source,"2\ntrue\n2.5\n-0\n");
+    for element in ["i64","bool"] {assert!(rust.contains(&format!("-> Vec<[{element}; 5]>")));}
+    assert!(rust.contains("-> Vec<[f64; 2]>"));
+}
+
+#[test]
+fn fixed_result_row_proof_keeps_dynamic_and_callable_boundaries_owned() {
+    let make="function make():string[][]{const rows:string[][]=[];rows.push([\"a\",\"b\"]);return rows;}";
+    for (main,expected) in [
+        ("const rows=make();rows[0].push(\"c\");console.log(rows[0].length);","3\n"),
+        ("const rows=make();console.log(String(rows));","a,b\n"),
+        ("const run=make;const rows=run();console.log(rows[0][0]);","a\n"),
+        ("const rows=make();const run=():string=>String(rows[0][0]);console.log(run());","a\n"),
+        ("const cell=make()[0][0];console.log(cell);","a\n"),
+    ] {
+        let source=support::format_round_trip(&format!("{make}function main(){{{main}}}"));
+        let rust=execute(&source,expected);
+        assert!(!rust.contains("// tsrust-fixed-array-result "),"unproved boundary must retain ordinary storage: {main}");
+    }
+    let source=support::format_round_trip("function make():string[][]{const rows:string[][]=[];rows.push([\"a\"]);rows.push([\"b\",\"c\"]);return rows;}function main(){const rows=make();console.log(rows[0].length);console.log(rows[1].length);}");
+    let rust=execute(&source,"1\n2\n");assert!(!rust.contains("// tsrust-fixed-array-result "));
+}
+
+#[test]
+fn borrowed_record_fields_preserve_owned_snapshots_and_constructor_order() {
+    let source = support::format_round_trip(r#"
+        type Row = { label: string; score: int; };
+        function inspect(input: string): string {
+            const row: Row = { score: 7, label: String(input) };
+            const copy = { ...row };
+            const keys = Object.keys(row);
+            const values = Object.values(row);
+            const entries = Object.entries(row);
+            copy.label = "changed";
+            return keys.join(",") + ":" + String(values[0]) + ":" + String(values[1])
+                + ":" + entries[0][0] + ":" + String(entries[1][1]) + ":" + copy.label;
+        }
+        function main() { console.log(inspect("é🙂".repeat(2))); }
+    "#);
+    let rust = execute(&source, "score,label:7:é🙂é🙂:score:é🙂é🙂:changed\n");
+    assert!(rust.contains("struct FixedRecord0<'a> { field0: &'a String"));
+    assert!(!rust.contains("unsafe"));
+}
+
+#[test]
+fn borrowed_record_string_field_does_not_allocate_or_retain_its_input() {
+    let source = support::format_round_trip(r#"
+        type Row = { label: string; score: int; };
+        function probe(input: string): int {
+            const row: Row = { label: String(input), score: 7 };
+            return weight(row);
+        }
+        function weight(row: Row): int { return row.label.length + row.score; }
+        function main() {}
+    "#);
+    let rust = check(&source).unwrap().emit_rust();
+    assert!(rust.contains("struct FixedRecord0<'a> { field0: &'a String"));
+    assert!(!rust.contains("unsafe"));
+    let rust = rust.replace("fn main()", "fn source_main()") + r#"
+        use std::alloc::{GlobalAlloc, Layout, System};
+        use std::sync::atomic::{AtomicUsize, Ordering::Relaxed};
+        struct Counter;
+        static ALLOCS: AtomicUsize = AtomicUsize::new(0);
+        static LIVE: AtomicUsize = AtomicUsize::new(0);
+        unsafe impl GlobalAlloc for Counter {
+            unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+                let pointer = unsafe { System.alloc(layout) };
+                if !pointer.is_null() { ALLOCS.fetch_add(1, Relaxed); LIVE.fetch_add(layout.size(), Relaxed); }
+                pointer
+            }
+            unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
+                unsafe { System.dealloc(pointer, layout) }; LIVE.fetch_sub(layout.size(), Relaxed);
+            }
+        }
+        #[global_allocator] static ALLOCATOR: Counter = Counter;
+        fn main() {
+            let baseline = LIVE.load(Relaxed);
+            for text in ["", "ascii", "é🙂x"] {
+                let input = String::Owned(text.repeat(257));
+                let expected = input.len() as i64 + 7;
+                let allocations = ALLOCS.load(Relaxed);
+                for _ in 0..128 { assert_eq!(function0(std::hint::black_box(&input)), expected); }
+                assert_eq!(ALLOCS.load(Relaxed), allocations);
+                drop(input); assert_eq!(LIVE.load(Relaxed), baseline);
+            }
+        }
+    "#;
+    let directory = TempDirectory::new();
+    let path = directory.0.join("borrowed-record.rs");
+    std::fs::write(&path, rust).unwrap();
+    for level in ["0", "3"] {
+        let binary = directory.0.join(format!("borrowed-record-{level}"));
+        success(&run(rustc().arg("--edition=2024").arg("-A").arg("warnings")
+            .arg("-C").arg(format!("opt-level={level}")).arg("-C").arg("overflow-checks=on")
+            .arg(&path).arg("-o").arg(&binary), 60));
+        success(&run(&mut Command::new(binary), 30));
+    }
+}
+
+#[test]
+fn local_record_string_copies_borrow_only_until_owned_observation() {
+    let source = support::format_round_trip(r#"
+        type Player = { name: string; score: int; bonus?: int; };
+        function describe(player: Player): string { return String(player.name) + ":" + String(player.score + (player.bonus ?? 0)); }
+        function relay(player: Player): string { return describe(player); }
+        function build(input: string): string {
+            const player: Player = { name: String(input), score: 7 };
+            const saved = clone(player); saved.name = "changed";
+            return relay(player) + ":" + saved.name;
+        }
+        function main() { const input = "é🙂".repeat(2); console.log(build(input)); console.log(input); }
+    "#);
+    let rust = execute(&source, "é🙂é🙂:7:changed\né🙂é🙂\n");
+    assert!(rust.contains("struct FixedRecord0<'a> { field0: &'a String"), "local copy needs borrowed storage");
+    assert!(rust.contains("(*self.field0).clone()"), "owned clone must copy the string");
+    assert!(!rust.contains("unsafe"));
+    for body in [
+        "function build(input:string):Player{const player:Player={name:String(input),score:7};return player;}",
+        "function build(input:string):string{const player:Player={name:String(input),score:7};player.name=\"changed\";return player.name;}",
+        "function build(input:string):string{const player:Player={name:String(input),score:7};const run=():string=>player.name;return run();}",
+    ] {
+        let source = support::format_round_trip(&format!("type Player={{name:string;score:int;}};{body}function main(){{}}"));
+        let rust = check(&source).unwrap().emit_rust();
+        assert!(!rust.contains("struct FixedRecord"), "unproved record must keep its owner: {body}");
+    }
+}
+
 fn execute(source: &str, expected: &str) -> String {
     let rust = check(source)
         .unwrap_or_else(|error| panic!("{}", error.render("input.tsr", source)))
@@ -745,4 +935,61 @@ fn fixed_scalar_index_writes_preserve_operand_order_and_checked_bounds() {
                 .contains("array index out of bounds at source bytes")
         );
     }
+}
+
+#[test]
+fn fixed_float_literal_returns_follow_closed_calls_and_preserve_writes_and_clones() {
+    let rust=execute(r#"
+        function make(seed:int):number[]{return [Number(seed)+0.25,-0.0,2.5,-3.0];}
+        function forward(seed:int):number[]{return make(seed);}
+        function update(values:number[]):number{values[0]+=1.0;const saved=clone(values);return saved[0]+values[1];}
+        function main(){const values=forward(2);console.log(values.length,values[0],1.0/values[1]);console.log(update(values));console.log(values[0]);const saved=clone(values);values[0]=9.0;console.log(saved[0],values[0]);}
+    "#,"4 2.25 -Infinity\n3.25\n3.25\n3.25 9\n");
+    assert!(rust.contains("fn function0(value0: i64) -> [f64; 4]"));
+    assert!(rust.contains("fn function1(value0: i64) -> [f64; 4]"));
+    assert!(!rust.contains("unsafe"));
+}
+
+#[test]
+fn fixed_float_literal_alternatives_keep_scalar_bits_and_effect_order() {
+    let rust=execute(r#"
+        function mark(trace:int[],tag:int,value:number):number{trace.push(tag);return value;}
+        function make(trace:int[]):number[]{return [mark(trace,1,1.5),mark(trace,2,-0.0)];}
+        function index(trace:int[]):int{trace.push(3);return 1;}
+        function choose(flag:boolean):number[]{if(flag){return [1.0,-0.0];}return [2.5,-3.0];}
+        function contextual():number[]{return [1,2];}
+        function main(){const trace:int[]=[];console.log(1.0/make(trace)[index(trace)]);console.log(trace.join(","));console.log(choose(false)[0],1.0/choose(true)[1],contextual()[1]);}
+    "#,"-Infinity\n1,2,3\n2.5 -Infinity 2\n");
+    assert!(rust.contains("-> [f64; 2]"));
+}
+
+#[test]
+fn float_literal_results_retain_heap_storage_for_growing_variable_width_and_callback_uses() {
+    let rust=execute(r#"
+        function grow():number[]{return [1.0,2.0];}
+        function varying(flag:boolean):number[]{if(flag){return [1.0];}return [2.0,3.0];}
+        function captured():number[]{return [4.0,5.0];}
+        function capturedValue():number[]{return [6.0,7.0];}
+        function main(){const values=grow();values.push(3.0);console.log(grow()[0],values.length,varying(false).length);const action=captured;const saved=action();console.log(saved[0]);const cells=capturedValue();const read=():number=>cells[0];console.log(read());}
+    "#,"1 3 2\n4\n6\n");
+    for id in 0..4 {assert!(rust.contains(&format!("fn function{id}{}",if id==1{"(value0: bool) -> Vec<f64>"}else{"() -> Vec<f64>"})));}
+}
+
+#[test]
+fn float_literal_result_budget_falls_back_without_limiting_source() {
+    let source=format!("function make():number[]{{return [{}];}}function main(){{console.log(make()[599]);}}",(0..600).map(|v|format!("{v}.0")).collect::<Vec<_>>().join(","));
+    let rust=execute(&source,"599\n");assert!(rust.contains("fn function0() -> Vec<f64>"));
+}
+
+#[test]
+fn float_result_proofs_include_enclosing_returns_in_match_expressions() {
+    let rust=execute(r#"
+        function varying(flag:boolean):number[]{const ignored=match(flag){true=>{return [1.0,2.0,3.0];},false=>0,};return [4.0,5.0];}
+        function equal(flag:boolean):number[]{const ignored=match(flag){true=>{return [1.0,-0.0];},false=>0,};return [4.0,5.0];}
+        function forwarded(flag:boolean):number[]{const ignored=match(flag){true=>{return varying(true);},false=>0,};return [6.0,7.0];}
+        function main(){console.log(varying(true).length,varying(false).length);console.log(1.0/equal(true)[1],equal(false)[0]);console.log(forwarded(true).length,forwarded(false).length);}
+    "#,"3 2\n-Infinity 4\n3 2\n");
+    assert!(rust.contains("fn function0(value0: bool) -> Vec<f64>"));
+    assert!(rust.contains("fn function1(value0: bool) -> [f64; 2]"));
+    assert!(rust.contains("fn function2(value0: bool) -> Vec<f64>"));
 }

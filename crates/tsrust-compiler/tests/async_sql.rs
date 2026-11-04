@@ -17,6 +17,7 @@ fn sql_ownership_and_async_errors_are_checked_without_a_database() {
         "const tx=await db.begin();const finish=tx.commit();await db.close();await finish;",
         "const tx=await db.begin();const finish=tx.rollback();await db.close();await finish;",
         "const connectLater=connect;",
+        "const parameters:int[]|undefined=[1];const pending=db.query('SELECT ?',parameters);const again=parameters;await pending;",
         "await db.query('SELECT 1',[{id:1}]);",
     ] {
         let source=format!("import {{connect}} from 'std:sql';async function main():Task<void>{{const db=await connect('sqlite::memory:',1);{body}}}");
@@ -172,4 +173,33 @@ fn all_sqlx_drivers_preserve_explicit_domain_encodings(){
   let source=support::format_round_trip(&domain_example(driver,url));
   let result=support::run(support::cli().arg("run").arg(dir.source(&source)),600);support::success(&result);eprintln!("Passed {driver} exact domain encodings");
  }
+}
+
+#[test]
+fn sqlite_sql_optional_arguments_execute_without_external_drivers(){
+ let source=r#"
+import {connect} from 'std:sql';
+import {strictEqual} from 'std:testing';
+function absent(trace:int[]):undefined{trace.push(1);return undefined;}
+async function main():Task<void>{
+ const trace:int[]=[];
+ const first=await connect('sqlite::memory:',absent(trace),absent(trace));strictEqual(trace.length,2);
+ strictEqual(unwrap((await first.query('SELECT 9 AS value',absent(trace)))[0].int('value')),9);strictEqual(trace.length,3);await first.close();
+ for(const supplied of [false,true]){
+  const maximum:int|undefined=supplied?1:undefined;const timeout:int|undefined=supplied?1000:undefined;
+  const db=await connect('sqlite://pool.sqlite?mode=rwc',maximum,timeout);
+  await db.execute('CREATE TABLE IF NOT EXISTS items(value INTEGER)',undefined);
+  const parameters:int[]|undefined=supplied?[9]:undefined;
+  strictEqual(await db.execute(supplied?'INSERT INTO items VALUES (?)':'INSERT INTO items VALUES (9)',clone(parameters)),1);
+  const sql=supplied?'SELECT ? AS value':'SELECT 9 AS value';
+  strictEqual(unwrap((await db.query(clone(sql),clone(parameters)))[0].int('value')),9);
+  {const cursor=await db.cursor(clone(sql),clone(parameters));const row=await cursor.next();if(row===undefined){strictEqual(false,true);}else{strictEqual(unwrap(row.int('value')),9);}cursor.close();}
+  await db.execute('CREATE TABLE IF NOT EXISTS tx_items(value INTEGER)',undefined);
+  {const tx=await db.begin();await tx.execute('DELETE FROM tx_items',undefined);strictEqual(await tx.execute(supplied?'INSERT INTO tx_items VALUES (?)':'INSERT INTO tx_items VALUES (9)',clone(parameters)),1);strictEqual(unwrap((await tx.query(clone(sql),clone(parameters)))[0].int('value')),9);await tx.rollback();}
+  const integers:int[]=[9];const strings:string[]=['nine'];const values:int[]|string[]|undefined=supplied?integers:strings;const rows=await db.query('SELECT ? AS value',values);if(supplied){strictEqual(unwrap(rows[0].int('value')),9);}else{strictEqual(unwrap(rows[0].text('value')),'nine');}
+  await db.close();
+ }
+}
+"#;
+ let dir=support::TempDirectory::new();let path=dir.source(&support::format_round_trip(source));let output=support::run(support::cli().arg("run").arg(path).current_dir(&dir.0),300);support::success(&output);assert!(output.stdout.is_empty());assert!(output.stderr.is_empty());
 }

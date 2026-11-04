@@ -65,3 +65,69 @@ fn json_encoding_rejects_callbacks_and_collections_with_public_diagnostics() {
         );
     }
 }
+
+#[test]
+fn json_output_has_no_default_byte_or_container_quota() {
+    let source=r#"
+import {strictEqual} from 'std:testing';
+import {parse,stringify} from 'std:json';
+type Node={next?:Node;};
+function nested(depth:int):Node{return depth===0?{next:undefined}:{next:nested(depth-1)};}
+function value(log:int[]):string{log.push(1);return 'x';}
+function absent(log:int[]):undefined{log.push(2);return undefined;}
+function main(){
+ const text='x'.repeat(17*1024*1024);
+ strictEqual(JSON.stringify(text).length,text.length+2);
+ match(JSON.tryStringify(text,undefined)){Ok(encoded)=>{strictEqual(encoded.length,text.length+2);},Err(error)=>{throw error.message;}}
+ match(parse(JSON.stringify(text))){Ok(dynamic)=>{
+  strictEqual(JSON.stringify(dynamic).length,text.length+2);
+  match(JSON.tryStringify(dynamic,undefined)){Ok(encoded)=>{strictEqual(encoded.length,text.length+2);},Err(error)=>{throw error.message;}}
+  match(stringify(dynamic)){Ok(encoded)=>{strictEqual(encoded.length,text.length+2);},Err(error)=>{throw error.message;}}
+  match(stringify(dynamic,undefined)){Ok(encoded)=>{strictEqual(encoded.length,text.length+2);},Err(error)=>{throw error.message;}}
+ },Err(error)=>{throw error.message;}}
+ match(JSON.tryStringify(text,16*1024*1024)){Ok(_)=>{throw 'explicit byte limit ignored';},Err(error)=>{strictEqual(error.code,'output-limit');}}
+ for(const limit of [0,-1]){match(JSON.tryStringify('x',limit)){Ok(_)=>{throw 'invalid budget accepted';},Err(error)=>{strictEqual(error.code,limit===0?'output-limit':'invalid-limits');}}}
+ const tree=nested(256);strictEqual(JSON.stringify(tree),'{"next":'.repeat(256)+'{}'+'}'.repeat(256));
+ const log:int[]=[];strictEqual(JSON.stringify(value(log),absent(log)),'"x"');strictEqual(log.join(','),'1,2');
+ match(JSON.tryStringify('é\n',6)){Ok(encoded)=>{strictEqual(encoded,'"é\\n"');},Err(error)=>{throw error.message;}}
+ match(JSON.tryStringify('é\n',5)){Ok(_)=>{throw 'UTF-8 budget ignored';},Err(error)=>{strictEqual(error.code,'output-limit');}}
+}
+"#;
+    let dir=support::TempDirectory::new();let path=dir.source(&support::format_round_trip(source));
+    let output=support::run(support::cli().arg("run").arg(path),120);support::success(&output);
+    assert!(output.stdout.is_empty());assert!(output.stderr.is_empty());
+}
+
+#[test]
+fn trusted_json_roots_preserve_views_budgets_and_evaluation_order(){
+ let source=r#"
+import {strictEqual} from 'std:testing';
+import {get,stringify,JsonValue} from 'std:json';
+function value(log:int[]):JsonValue{log.push(1);return JSON.parse('{"x":42}');}
+function absent(log:int[]):undefined{log.push(2);return undefined;}
+function main(){
+ const owner=JSON.parse('{"child":{"a":[null,true,-0.0,9007199254740993,18446744073709551615,-9223372036854775808],"é":"\\n\\u0000\\\"\\\\"}}');
+ match(get(owner,'child')){Ok(view)=>{if(view!==undefined){
+  const expected=JSON.stringify(view);
+  strictEqual(expected,'{"a":[null,true,-0.0,9007199254740993,18446744073709551615,-9223372036854775808],"é":"\\n\\u0000\\\"\\\\"}');
+  const owned=JSON.parse(expected);
+  strictEqual(JSON.stringify(owned),expected);
+  match(JSON.tryStringify(view,undefined)){Ok(text)=>{strictEqual(text,expected);},Err(error)=>{throw error.message;}}
+  for(let limit=0;limit<=expected.length+2;limit+=1){
+   match(stringify(owned,limit)){Ok(text)=>{
+    match(JSON.tryStringify(view,limit)){Ok(actual)=>{strictEqual(actual,text);},Err(error)=>{throw error.message;}}
+    strictEqual(JSON.stringify(owned,limit),text);
+   },Err(reference)=>{
+    match(JSON.tryStringify(owned,limit)){Ok(_)=>{throw 'owned budget ignored';},Err(error)=>{strictEqual(error.code,reference.code);strictEqual(error.offset,reference.offset);strictEqual(error.message,reference.message);}}
+    match(JSON.tryStringify(view,limit)){Ok(_)=>{throw 'view budget ignored';},Err(error)=>{strictEqual(error.code,reference.code);strictEqual(error.offset,reference.offset);strictEqual(error.message,reference.message);}}
+   }}
+  }
+  match(JSON.tryStringify(view,-1)){Ok(_)=>{throw 'negative budget accepted';},Err(error)=>{strictEqual(error.code,'invalid-limits');}}
+ }else{throw 'missing child';}},Err(error)=>{throw error.message;}}
+ strictEqual(JSON.stringify(owner).startsWith('{"child":'),true);
+ const log:int[]=[];strictEqual(JSON.stringify(value(log),absent(log)),'{"x":42}');strictEqual(log.join(','),'1,2');
+}
+"#;
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+ support::success(&support::run(support::cli().arg("run").arg(path),120));
+}

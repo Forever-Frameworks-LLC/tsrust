@@ -23,12 +23,14 @@ pub fn child_path(parent: &str, segment: &str) -> std::string::String {
     path
 }
 
-pub fn object(fields: Vec<(&str, Value)>) -> Value {
-    Value::Object(fields.into_iter().map(|(key, value)| (key.to_owned(), value)).collect())
+pub fn object(name: &str, value: Value) -> Value {
+    let mut fields = Map::new();
+    fields.insert(name.to_owned(), value);
+    Value::Object(fields)
 }
 
 pub fn typed(kind: &str) -> Value {
-    object(vec![("type", Value::String(kind.to_owned()))])
+    object("type", Value::String(kind.to_owned()))
 }
 
 pub fn keyword(schema: &mut Value, name: &str, value: Value) {
@@ -63,7 +65,7 @@ pub fn number(min: Option<f64>, max: Option<f64>) -> Value {
 }
 
 pub fn reference(name: &str) -> Value {
-    object(vec![("$ref", Value::String(format!("#/$defs/{name}")))])
+    object("$ref", Value::String(format!("#/$defs/{name}")))
 }
 
 pub fn array(element: Value) -> Value {
@@ -75,7 +77,7 @@ pub fn array(element: Value) -> Value {
 pub fn alternatives(branches: Vec<Value>) -> Value {
     // Ordered native branches may overlap. oneOf would incorrectly reject an
     // input accepted by more than one branch.
-    object(vec![("anyOf", Value::Array(branches))])
+    object("anyOf", Value::Array(branches))
 }
 
 pub fn nullable(schema: Value) -> Value {
@@ -83,7 +85,7 @@ pub fn nullable(schema: Value) -> Value {
 }
 
 pub fn intersection(first: Value, second: Value) -> Value {
-    object(vec![("allOf", Value::Array(vec![first, second]))])
+    object("allOf", Value::Array(vec![first, second]))
 }
 
 pub fn record(element: Value) -> Value {

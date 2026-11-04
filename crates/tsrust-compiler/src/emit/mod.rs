@@ -1,5 +1,11 @@
 mod declaration_scope;
 mod receiver_moves;
+mod self_append;
+mod string_character;
+mod constant_string;
+mod counted_builders;
+mod scalar_reduce_slices;
+mod foreach_slices;
 mod runtime_support_ids;
 #[cfg(test)]
 mod statement_work_tests;
@@ -33,6 +39,7 @@ mod closure_record_signature_emit;
 mod forwarded_owner_uses;
 mod forwarded_record_signature_emit;
 mod native_function_signature_emit;
+mod native_arguments;
 mod local_borrowed_family_emit;
 mod record_store_branches_emit;
 mod borrowed_owner_provenance;
@@ -172,8 +179,15 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
     let native_captures = native_capture_storage::Storage::new(program, &borrowed_lifetime_alternatives);
     let native_views=native_view_emit::Shapes::new(program);
     let native_record_fields=native_view_record_parameters::Index::new(program,&native_views);
+    let self_appends=self_append::Index::new(program);
+    let string_characters=string_character::Index::new(program,&self_appends);
     let mut emitter = Emitter {
         receiver_moves: RefCell::default(),
+        self_appends,
+        string_characters,
+        constant_strings: constant_string::Index::new(program),
+        scalar_reduce_slices: scalar_reduce_slices::Index::new(program),
+        foreach_slices: foreach_slices::Index::default(),
         work_functions:owned_work::Arena::default(),
         work_regions:owned_work::Arena::default(),
         borrowed_capture_alternatives,
@@ -182,9 +196,11 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
         native_captures,
         native_views,
         native_record_fields,
+        map_entries: std::cell::OnceCell::new(),
         recursive_links:crate::recursive_links::Index::new(&program.records,|id|program.unions[id.index()].members.clone()),
         callback_traits,
         counted_calls,
+        whole_number_enums: program.records.iter().map(|record| record.enum_definition.as_ref().is_some_and(|definition| definition.kind == crate::syntax::EnumKind::Number && definition.members.iter().all(|member| matches!(member.value, crate::syntax::EnumValue::Number(value) if value.fract() == 0.0 && value.abs() < 9007199254740992.0)))).collect(),
         program,
         restored_slots:restored_capture_slots::Index::new(program),
         finally_moves:finally_move_slots::Index::new(program),
@@ -216,6 +232,14 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
         native_bindings: RefCell::new(std::collections::BTreeSet::new()),
     };
     emitter.borrowing_records=emitter.record_borrowing_family();
+    if !emitter.counted_calls {
+        emitter.foreach_slices=foreach_slices::Index::new(program,&emitter.fixed,|id| {
+            let closure=&program.closures[id];
+            emitter.closure_record_signature(id).is_none()
+                && emitter.native_view_closure_signature(closure,None,&closure.function,&closure.parameters).is_none()
+                && emitter.nullable_callback_bounds(closure.parameters.iter().map(|&id|closure.function.bindings[id].ty).chain(std::iter::once(closure.function.result))).is_empty()
+        });
+    }
     emitter
 }
 
@@ -260,9 +284,16 @@ pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str
     (rust, features)
 }
 
+enum SliceView { Owned, Slice, Range }
+
 struct Emitter<'a> {
+    foreach_slices: foreach_slices::Index,
+    constant_strings: constant_string::Index<'a>,
     /// Copying calls in the function being emitted whose dead receiver may be moved.
     receiver_moves: RefCell<HashSet<(usize, usize)>>,
+    self_appends: self_append::Index,
+    string_characters: string_character::Index,
+    scalar_reduce_slices: scalar_reduce_slices::Index,
     work_functions:owned_work::Arena<CheckedFunction>,
     work_regions:owned_work::Arena<ExceptionRegion>,
     borrowed_lifetime_alternatives: borrowed_payload_emit::Alternatives,
@@ -270,10 +301,12 @@ struct Emitter<'a> {
     native_captures: native_capture_storage::Storage,
     native_views: native_view_emit::Shapes,
     native_record_fields: native_view_record_parameters::Index,
+    map_entries: std::cell::OnceCell<Vec<Option<usize>>>,
     recursive_links:crate::recursive_links::Index,
     borrowed_capture_alternatives: borrowed_payload_emit::Alternatives,
     callback_traits: bool,
     counted_calls: bool,
+    whole_number_enums: Vec<bool>,
     program: &'a CheckedProgram,
     restored_slots:restored_capture_slots::Index,
     finally_moves:finally_move_slots::Index,
@@ -1037,13 +1070,11 @@ impl Emitter<'_> {
             Type::Undefined => format!("{{ let _ = {value}; TsrConsoleValue::Undefined }}"),
             Type::Union(id) | Type::BorrowedUnion(id) => {
                 let observed = if nested && !id.copy && matches!(kind, Type::Union(_)) {
-                    format!("({value}).tsr_view()")
+                    format!("({value}).tsr_data_view()")
                 } else { value.to_owned() };
-                let arms = self.program.unions[id.index()].members.iter().enumerate().map(|(index, member)| {
-                    let result = self.console_value("console_payload", *member, depth, false);
-                    format!("{}{}::V{index}(console_payload) => {result}", if id.copy { "Union" } else { "ViewUnion" }, id.index())
-                }).collect::<Vec<_>>().join(", ");
-                format!("match {observed} {{ {arms} }}")
+                if self.program.unions[id.index()].recursive {
+                    format!("tsr_console_union_{}({observed}, {depth})",id.index())
+                }else{self.console_union_value(id,&observed,depth)}
             }
             Type::Map(id) => {
                 let map = self.program.records[id].map_definition.as_ref().unwrap();
@@ -1073,6 +1104,19 @@ impl Emitter<'_> {
             _ => unreachable!("checked console value"),
         }
     }
+    fn console_union_value(&self,id:UnionId,value:&str,depth:&str)->String {
+        let arms=self.program.unions[id.index()].members.iter().enumerate().map(|(index,member)|{
+            let result=self.console_value("console_payload",*member,depth,true);
+            format!("{}{}::V{index}(console_payload)=>{result}",if id.copy{"Union"}else{"ViewUnion"},id.index())
+        }).collect::<Vec<_>>().join(",");
+        format!("match {value}{{{arms}}}")
+    }
+
+    fn number_string_conversion(value: &str) -> String {
+        // Call the number label formatter without constructing a console value.
+        format!("{{ let number_text_value: f64 = {value}; if (0.0..=9.0).contains(&number_text_value) && number_text_value.fract() == 0.0 {{ tsr_int_text(number_text_value as i64) }} else if !number_text_value.is_finite() {{ number_format_special(number_text_value).expect(\"nonfinite number text\") }} else {{ String::Owned(tsr_console_number(number_text_value, false)) }} }}")
+    }
+
     fn union_observation(&self, union: UnionId, value: &str, target: CallTarget) -> String {
         let arms = self.program.unions[union.index()]
             .members
@@ -1118,7 +1162,9 @@ impl Emitter<'_> {
                         Type::Array(_) => "tsr_array_join(payload.iter(), \",\")".into(),
                         Type::Enum(_, crate::syntax::EnumKind::String) if target==CallTarget::StringConversion => "String::Borrowed(payload.tsr_value())".into(),
                         Type::Boolean if target==CallTarget::StringConversion => "String::Borrowed(if *payload { \"true\" } else { \"false\" })".into(),
-                        Type::Int if target==CallTarget::StringConversion => "String::Owned(payload.to_string())".into(),
+                        Type::Int if target==CallTarget::StringConversion => "tsr_int_text(*payload)".into(),
+                        Type::Number if target==CallTarget::StringConversion => Self::number_string_conversion("*payload"),
+                        Type::Enum(_, crate::syntax::EnumKind::Number) if target==CallTarget::StringConversion => Self::number_string_conversion("payload.tsr_value()"),
                         other => format!(
                             "String::Owned(({}).label())",
                             self.console_value("payload", *other, "0", false)
@@ -1539,10 +1585,11 @@ impl Emitter<'_> {
                 );
             }
             if matches!(actual, Type::Null | Type::Undefined)
-                && let Some(payload) = self.program.unions[union.index()].members.iter().copied().find(|ty| matches!(ty, Type::Record(_)))
-                && (self.scoped_record_native_parameter(payload) || matches!(payload,Type::Record(id) if self.borrowing_records.contains(&self.program.scoped_records.declaration(id))))
+                && !target.iter().any(|ty|matches!(ty,Type::Callback(_)|Type::Closure(_)|Type::StoredCallable(_)|Type::BorrowedCallable(_)|Type::Callable(_)))
+                && target.iter().any(|ty|matches!(ty,Type::Record(_)))
             {
-                return format!("ViewUnion{}::<{}>::V{to}({source})", union.index(), self.native_type(payload));
+                let payloads=self.program.unions[union.index()].members.iter().copied().filter(|ty|!ty.is_copy()).map(|ty|self.native_type(ty)).collect::<Vec<_>>().join(",");
+                return format!("ViewUnion{}::<{payloads}>::V{to}({source})", union.index());
             }
             return format!("ViewUnion{}::V{to}({source})", union.index());
     }
@@ -1625,7 +1672,9 @@ impl Emitter<'_> {
                     // "true" and "false" are static text.
                     Some(Type::Boolean) => "String::Borrowed(if builtin_argument_0 { \"true\" } else { \"false\" })".into(),
                     // An int is its plain decimal digits.
-                    Some(Type::Int) if first.and_then(|a| a.ty) == Some(Type::Int) => "String::Owned(builtin_argument_0.to_string())".into(),
+                    Some(Type::Int) if first.and_then(|a| a.ty) == Some(Type::Int) => "tsr_int_text(builtin_argument_0)".into(),
+                    Some(Type::Number) if first.and_then(|a| a.ty) == Some(Type::Number) => Self::number_string_conversion("builtin_argument_0"),
+                    Some(Type::Enum(_, crate::syntax::EnumKind::Number)) => Self::number_string_conversion("builtin_argument_0.tsr_value()"),
                     Some(kind) => {
                         let reference = if kind.is_copy() {
                             "&builtin_argument_0"
@@ -2678,10 +2727,23 @@ impl Emitter<'_> {
                 let receiver=if closure.captures.iter().any(|capture|capture.storage==Mode::Consume || capture.storage==Mode::Copy && capture.access==Mode::Mutate){receiver.replace('&',"&'task ")}else{receiver};
                 (receiver,parameters,call_generics,native_result.replace("'_","'task"))
             } else {(receiver,parameters,call_generics,native_result)};
+            let (call_name,range_parameters)=if let Some(source)=self.foreach_slices.callback(index) {
+                let arguments=closure.parameters.iter().map(|&id|if id==source{format!("&(0..value{id}.len())")}else{format!("value{id}")}).collect::<Vec<_>>().join(", ");
+                let call=format!("self.call_range({arguments})");
+                let call=if self.fixed_foreach_result(&closure.function).is_some(){format!("<{native_result}>::from({call})")}else{call};
+                let _=writeln!(output,"    fn call{call_generics}({receiver}{parameters}) -> {native_result}{replacement_where} {{ {call} }}");
+                let native=self.native_argument_type(ArgumentContract::from(&closure.function.bindings[source]),"");
+                ("call_range",Some(parameters.replace(&format!("value{source}: {native}"),&format!("value{source}: &std::ops::Range<usize>"))))
+            } else {("call",None)};
+            let body_result=if let Some(width)=self.fixed_foreach_result(&closure.function) {
+                let Type::Array(element)=closure.function.result else{unreachable!()};
+                format!("[{};{width}]",self.native_type(element.ty()))
+            }else{native_result.clone()};
+            let body_parameters=range_parameters.as_deref().unwrap_or(&parameters);
             let _ = writeln!(
                 output,
-                "    {asynchronous}fn call{call_generics}({receiver}{parameters}) -> {}{replacement_where} {{",
-                native_result.clone()
+                "    {asynchronous}fn {call_name}{call_generics}({receiver}{body_parameters}) -> {}{replacement_where} {{",
+                body_result
             );
             self.test_program_capture_bindings(&mut output, closure);
             for capture in &closure.captures {
@@ -2727,8 +2789,11 @@ impl Emitter<'_> {
                 let _ = writeln!(output, "        {call}");
             } else if let Some(ClosureForward::Native(id)) = closure.forward {
                 self.native_bindings.borrow_mut().insert(id);
-                let arguments = closure.parameters.iter().map(|id|format!("value{id}")).collect::<Vec<_>>();
                 let binding=&crate::native_bindings::BINDINGS[id];
+                let arguments = closure.parameters.iter().enumerate().map(|(position,id)| {
+                    let parameter=binding.parameters.get(position).or_else(||binding.parameters.last().filter(|p|p.rest)).expect("checked native arity");
+                    self.native_optional_argument(parameter,format!("value{id}"),closure.function.bindings[*id].ty)
+                }).collect::<Vec<_>>();
                 let call=if closure.parameters.last().is_some_and(|parameter|closure.function.bindings[*parameter].rest) && binding.parameters.last().is_some_and(|parameter|parameter.rest) {
                     let crate::native_bindings::NativeBackend::Bundled{symbol}=binding.backend;
                     format!("{symbol}(&value0.iter().map(|value|value.as_ref()).collect::<Vec<_>>())")
@@ -2744,7 +2809,7 @@ impl Emitter<'_> {
                     let call=if binding.name=="beginSuite"{format!("tsrust_testing_begin_suite_result({})",arguments[0])}else if binding.name=="beginFile"{format!("tsrust_testing_begin_file_result({})",arguments[0])}else{"tsrust_testing_end_suite_result()".into()};
                     self.typed_runner_result(&call,closure.span,Some(index)).unwrap_or_else(||crate::native_emit::call(binding,arguments))
                 }else if binding.module=="std:sqlite" && binding.name=="open" {
-                    let timeout=arguments.get(1).map(|value|format!("Some({value})")).unwrap_or("None".into());
+                    let timeout=arguments.get(1).cloned().unwrap_or("None".into());
                     self.http_result(closure.function.result,&format!("tsrust_native_sqlite::Connection::open(({}).as_ref(),{timeout})",arguments[0]))
                 }else if binding.module=="std:path" && binding.name=="relative" {
                     let call=crate::native_emit::call(binding,arguments);
@@ -3009,6 +3074,12 @@ impl Emitter<'_> {
             } else {
                 format!("function{index}")
             };
+            let view_result = plan.result.as_ref().map_or(view_result, |shape| self.shape_type(shape));
+            if let Some(crate::fixed_storage::Shape::Rows {element,width} | crate::fixed_storage::Shape::Row {element,width}) = &plan.result {
+                let rank = if matches!(plan.result,Some(crate::fixed_storage::Shape::Rows {..})) {2} else {1};
+                let element = element.native();
+                let _ = writeln!(output,"// tsrust-fixed-array-result {{\"function\":{name:?},\"result\":{view_result:?},\"element\":{element:?},\"width\":{width},\"rank\":{rank}}}");
+            }
             let native_result=match &result_target {Some((_,error))=>format!("Result<{},{}>",view_result,error),None=>view_result};
             let _ = writeln!(output,"fn {name}{generics}({params}) -> {native_result}{replacement_where} {{");
             let async_entry=fun.body.iter().any(|stmt|matches!(stmt.kind,StmtKind::Expr(Expr{kind:ExprKind::Unary{op:UnaryOp::Await,..},..})));
@@ -3046,7 +3117,7 @@ impl Emitter<'_> {
         }
         self.fixed_records(&mut output);
         output.push_str(&self.record_runtime.emit_with_storage(&self.program.records, &self.program.stored_contracts));
-        if output.contains("tsr_console_record_") {
+        if output.contains("tsr_console_record_") || output.contains("tsr_console_union_") {
             for (id, record) in self.program.records.iter().enumerate() {
                 if record.literal_definition.is_some(){continue;}
                 if !self.record_inspectable(id) || record.native_type == Some(crate::native_signatures::NativeTypeId::StringView) {
@@ -3086,6 +3157,21 @@ impl Emitter<'_> {
                 output.push_str(if record.is_tuple() { "TsrConsoleValue::Array(fields) }\n" } else { "TsrConsoleValue::Object(fields) }\n" });
             }
         }
+        // Recursive union inspection must recurse at runtime, not while emitting.
+        let mut console_unions=HashSet::new();
+        loop {
+            let mut pending=runtime_support_ids::referenced(&output,"tsr_console_union_","(",self.program.unions.len()).into_iter().filter(|id|!console_unions.contains(id)).collect::<Vec<_>>();
+            if pending.is_empty(){break;}
+            pending.sort_unstable();
+            for index in pending {
+                console_unions.insert(index);
+                let union=&self.program.unions[index];
+                let id=UnionId{index:index.try_into().unwrap(),copy:union.members.iter().all(|ty|ty.is_copy()),scalar_members:!union.recursive&&union.members.iter().all(|ty|ty.is_scalar())};
+                let body=self.console_union_value(id,"value","depth");
+                let native=self.native_type(if id.copy{Type::Union(id)}else{Type::BorrowedUnion(id)});
+                let _=writeln!(output,"fn tsr_console_union_{index}(value:{native},depth:usize)->TsrConsoleValue{{{body}}}");
+            }
+        }
         // Record arrays inline only small records whose entire field tree has no
         // arrays. This preserves recursive indirection and bounds inline size.
         let record_arrays = runtime_support_ids::referenced(&output, "RecordArray", "", self.program.records.len());
@@ -3117,6 +3203,7 @@ impl Emitter<'_> {
         }
         // Support is emitted once per program, only when its representation is used.
         if output.contains("String")
+            || output.contains("tsr_int_text(")
             || output.contains("tsr_boolean_string(")
             || output.contains("tsr_int_locale_string(")
             || output.contains("tsr_number_locale_string(")
@@ -3264,6 +3351,7 @@ impl Emitter<'_> {
             || output.contains("tsr_console_write(")
             || output.contains("tsr_console_scalar(")
             || output.contains("tsr_console_text(")
+            || output.contains("tsr_console_number(")
         {
             output.push_str(include_str!("../runtime/console.rs"));
         }
@@ -3336,9 +3424,14 @@ impl Emitter<'_> {
         if output.contains("tsr_number_tie(") && !output.contains("fn tsr_number_tie(") {
             output.push_str(crate::runtime::NUMBER_TIE);
         }
+        if owned_support && output.contains("tsr_string_array_join(") {
+            output.push_str(crate::runtime::STRING_ARRAY_JOIN);
+        }
         if output.contains("tsr_array_join(") || output.contains("tsr_array_locale(") || output.contains("TsrJoinText::append_join_text(") {
             if self.program.records.iter().any(|record|record.map_definition.is_some()) {
-                output.push_str("impl<K: TsrSetKey,V,P:TsrMapEntry<K,V>> TsrJoinText for TsrMap<K,V,P> { fn append_join_text(&self, output: &mut std::string::String) { output.push_str(\"[object Map]\"); } }\n");
+                let storage=if self.inline_map_first(){",F:TsrMapFirstSlot<P>"}else{""};
+                let map=if self.inline_map_first(){"TsrMap<K,V,P,F>"}else{"TsrMap<K,V,P>"};
+                let _=writeln!(output,"impl<K: TsrSetKey,V,P:TsrMapEntry<K,V>{storage}> TsrJoinText for {map} {{ fn append_join_text(&self, output: &mut std::string::String) {{ output.push_str(\"[object Map]\"); }} }}");
             }
             if self.program.records.iter().any(|record| record.set_definition.is_some()) {
                 output.push_str("impl<T: TsrSetKey> TsrJoinText for TsrSet<T> { fn append_join_text(&self, output: &mut std::string::String) { output.push_str(\"[object Set]\"); } }\n");
@@ -3462,11 +3555,13 @@ impl Emitter<'_> {
 
     fn expression_shape(&self, expr: &Expr) -> Option<crate::fixed_storage::Shape> {
         let plan = self.active_plan.get()?;
-        crate::fixed_storage::shape_of(self.program, &self.fixed.plans[plan].bindings, expr)
+        self.fixed.expression_shape(self.program, &self.fixed.plans[plan].bindings, expr)
     }
 
     fn shape_type(&self, shape: &crate::fixed_storage::Shape) -> String {
         match shape {
+            crate::fixed_storage::Shape::Rows { element, width } => format!("Vec<[{}; {width}]>",element.native()),
+            crate::fixed_storage::Shape::Row { element, width } => format!("[{}; {width}]",element.native()),
             crate::fixed_storage::Shape::LiteralStrings => "LiteralStringArray".into(),
             crate::fixed_storage::Shape::ScalarArray { scalar, width } => {
                 format!(
@@ -3478,8 +3573,8 @@ impl Emitter<'_> {
                     }
                 )
             }
-            crate::fixed_storage::Shape::Record { .. } => {
-                format!("FixedRecord{}", self.fixed.record_id(shape))
+            crate::fixed_storage::Shape::Record { borrowed_strings, .. } => {
+                format!("FixedRecord{}{}", self.fixed.record_id(shape), if borrowed_strings.iter().any(|borrowed| *borrowed) { "<'_>" } else { "" })
             }
             crate::fixed_storage::Shape::Array { record, width } => {
                 format!("[Record{record}; {width}]")
@@ -3493,6 +3588,20 @@ impl Emitter<'_> {
         expr: &Expr,
         shape: &crate::fixed_storage::Shape,
     ) -> String {
+        if let crate::fixed_storage::Shape::Rows { element, width } = shape {
+            if let ExprKind::Array(items) = &expr.kind {
+                let row = crate::fixed_storage::Shape::Row { element:*element, width:*width };
+                let values = items.iter().map(|item| self.fixed_literal(fun,item,&row)).collect::<Vec<_>>().join(", ");
+                return format!("vec![{values}]");
+            }
+            return self.expr(fun,expr,Mode::Consume);
+        }
+        if let crate::fixed_storage::Shape::Row { .. } = shape {
+            if let ExprKind::Array(items) = &expr.kind {
+                return format!("[{}]", items.iter().map(|item| self.expr(fun,item,Mode::Consume)).collect::<Vec<_>>().join(", "));
+            }
+            return self.expr(fun,expr,Mode::Consume);
+        }
         if let ExprKind::Unary {
             op: UnaryOp::OptionalSelected,
             value,
@@ -3543,7 +3652,7 @@ impl Emitter<'_> {
                 items.len()
             );
         }
-        let crate::fixed_storage::Shape::Record { record, widths } = shape else {
+        let crate::fixed_storage::Shape::Record { record, widths, borrowed_strings } = shape else {
             unreachable!()
         };
         let ExprKind::Record(fields) = &expr.kind else {
@@ -3553,7 +3662,10 @@ impl Emitter<'_> {
             .iter()
             .map(|(key, value)| {
                 let field = self.fields[*record][key.text.as_str()];
-                let code = if widths[field].is_some() {
+                let code = if borrowed_strings[field] {
+                    let ExprKind::Call(_, args) = &value.kind else { unreachable!() };
+                    self.expr(fun, &args[0], Mode::Read)
+                } else if widths[field].is_some() {
                     let ExprKind::Array(items) = &value.kind else {
                         unreachable!()
                     };
@@ -3573,12 +3685,12 @@ impl Emitter<'_> {
             .collect::<Vec<_>>()
             .join(", ");
         let values = self.order_values(*record, fields, values);
-        format!("{} {{ {values} }}", self.shape_type(shape))
+        format!("FixedRecord{} {{ {values} }}", self.fixed.record_id(shape))
     }
 
     fn fixed_records(&self, output: &mut String) {
         for (id, shape) in self.fixed.records.iter().enumerate() {
-            let crate::fixed_storage::Shape::Record { record, widths } = shape else {
+            let crate::fixed_storage::Shape::Record { record, widths, borrowed_strings } = shape else {
                 unreachable!()
             };
             let fields = self.program.records[*record]
@@ -3586,7 +3698,9 @@ impl Emitter<'_> {
                 .iter()
                 .enumerate()
                 .map(|(index, field)| {
-                    let field_type = if let Some(width) = widths[index] {
+                    let field_type = if borrowed_strings[index] {
+                        "&'a String".to_owned()
+                    } else if let Some(width) = widths[index] {
                         let Type::Array(ArrayElement::Record(child, 0)) =
                             field.ty.expect("checked fixed field")
                         else {
@@ -3601,7 +3715,8 @@ impl Emitter<'_> {
                 .collect::<Vec<_>>()
                 .join(", ");
             let fields = self.order_fields(*record, fields);
-            let _ = writeln!(output, "struct FixedRecord{id} {{ {fields} }}");
+            let lifetime = if borrowed_strings.iter().any(|borrowed| *borrowed) { "<'a>" } else { "" };
+            let _ = writeln!(output, "struct FixedRecord{id}{lifetime} {{ {fields} }}");
             if !self.record_runtime.cloneable(*record) {
                 continue;
             }
@@ -3610,7 +3725,9 @@ impl Emitter<'_> {
                 .iter()
                 .enumerate()
                 .map(|(index, field)| {
-                    let value = if widths[index].is_some() {
+                    let value = if borrowed_strings[index] {
+                        format!("(*self.field{index}).clone()")
+                    } else if widths[index].is_some() {
                         let Type::Array(ArrayElement::Record(child, 0)) =
                             field.ty.expect("checked fixed field")
                         else {
@@ -3627,7 +3744,7 @@ impl Emitter<'_> {
             let values = if self.record_runtime.ordered.contains(record) { format!("{values}, key_order: self.key_order") } else { values };
             let _ = writeln!(
                 output,
-                "impl FixedRecord{id} {{ fn clone_owned(&self) -> Record{record} {{ Record{record} {{ {values} }} }} }}"
+                "impl{lifetime} FixedRecord{id}{lifetime} {{ fn clone_owned(&self) -> Record{record} {{ Record{record} {{ {values} }} }} }}"
             );
         }
     }
@@ -3856,7 +3973,9 @@ impl Emitter<'_> {
                 self.schedule_for_of(output, fun, stmt, Rc::new(body.iter().collect()), depth, &[], &mut pending);
                 continue;
             }
+            let builder_parent = body;
             if let StmtKind::While { condition, body } = &stmt.kind {
+                if let Some(code)=self.counted_builder(fun,builder_parent,stmt) { let _=writeln!(output,"{code}"); continue; }
                 pending.push(Work::Scope(self.control_targets.enter(ControlTarget::Loop(stmt.span.start))));
                 let _ = writeln!(
                     output,
@@ -3929,6 +4048,21 @@ impl Emitter<'_> {
                         let _=writeln!(output,"let mut value{index}={initialized};");
                         continue;
                     }
+                    if !self.exception_regions.carries_storage() && self.foreach_slices.binding(fun,index) {
+                        let ExprKind::Call(callee,args)=&value.kind else {unreachable!("proved slice declaration")};
+                        let ExprKind::Field(base,_)=&callee.kind else {unreachable!("proved slice receiver")};
+                        let initializer=self.array_slice(fun,base,args,value.span,SliceView::Range);
+                        let _=writeln!(output,"let value{index} = {initializer};");
+                        continue;
+                    }
+                    if !self.exception_regions.carries_storage() && self.scalar_reduce_slices.binding(fun,index) {
+                        let ExprKind::Call(callee,args)=&value.kind else {unreachable!("proved scalar slice")};
+                        let ExprKind::Field(base,_)=&callee.kind else {unreachable!("proved slice receiver")};
+                        let Type::Array(element)=b.ty else {unreachable!("proved scalar array")};
+                        let initializer=self.array_slice(fun,base,args,value.span,SliceView::Slice);
+                        let _=writeln!(output,"let value{index}: &[{}] = {initializer};",self.native_type(element.ty()));
+                        continue;
+                    }
                     if value.is_deferred() {
                         if let Some(declarations)=self.owned_record_deferred(fun,index){let _=writeln!(output,"{declarations}");continue;}
                         // Assigned later; definite assignment was checked.
@@ -3994,6 +4128,9 @@ impl Emitter<'_> {
                     "{};",
                     self.compound_assignment(fun, target, value, *op, *span)
                 ),
+                StmtKind::Assign {target,value,operator:None} if self.self_appends.assignment(fun,value) => {
+                    format!("{};",self.self_append_with(fun,target,value,&mut |operand,mode,_|self.expr(fun,operand,mode)))
+                }
                 StmtKind::Assign {target,value,operator:None} if target.binding.is_some_and(|id|self.restored_capture(fun,id)) => {
                     format!("{}value{} = Some({});",if fun.bindings[target.binding.unwrap()].capture_reference {"*"}else{""},target.binding.unwrap(),self.expr(fun,value,Mode::Consume))
                 }
@@ -4034,7 +4171,14 @@ impl Emitter<'_> {
                     self.expr(fun, value, Mode::Consume)
                 ),
                 StmtKind::Return(value) => {
-                    let value=value.as_ref().map(|value|self.expr(fun,value,Mode::Consume));
+                    let value=value.as_ref().map(|value| {
+                        if self.fixed_foreach_result(fun).is_some() {
+                            let ExprKind::Array(values)=&value.kind else{unreachable!("proved fixed return literal")};
+                            return format!("[{}]",values.iter().map(|value|self.expr(fun,value,Mode::Consume)).collect::<Vec<_>>().join(", "));
+                        }
+                        self.active_plan.get().and_then(|plan|self.fixed.plans[plan].result.as_ref())
+                            .map_or_else(||self.expr(fun,value,Mode::Consume),|shape|self.fixed_literal(fun,value,shape))
+                    });
                     if self.exception_regions.current_id().is_some() {
                         self.exception_regions.return_value(value.as_deref().unwrap_or("()"),stmt.span)
                     }else{
@@ -4344,6 +4488,13 @@ impl Emitter<'_> {
                     shared = format!("({shared}).field{field}");
                     exclusive = format!("({exclusive}).field{field}");
                     reselected = format!("({reselected}).field{field}");
+                    if steps[..position].iter().all(|step| matches!(step, StorageStep::Discard(_)))
+                        && matches!(self.binding_shape(id), Some(crate::fixed_storage::Shape::Record { borrowed_strings, .. }) if borrowed_strings[*field])
+                    {
+                        shared = format!("*({shared})");
+                        exclusive = format!("*({exclusive})");
+                        reselected = format!("*({reselected})");
+                    }
                 }
                 StorageStep::Union(union, variant, assertion) => {
                     let failure = assertion.map_or_else(|| "checked nullable guard".to_owned(), |span| format!("Non-null assertion failed: value is null or undefined at source bytes {}..{}", span.start, span.end));
@@ -4654,6 +4805,15 @@ impl Emitter<'_> {
         })
     }
 
+    fn self_append_with(&self,fun:&CheckedFunction,target:&Expr,value:&Expr,render:&mut impl FnMut(&Expr,Mode,bool)->String)->String {
+        let selection=self.storage_selection_with(fun,target,false,render);
+        let operands=self_append::operands(target,value).expect("proved string self append");
+        let rendered=operands.iter().map(|operand|{let(child,mode)=Self::chain_operand(operand);render(child,mode,false)}).collect::<Vec<_>>();
+        let failure=format!("string addition capacity overflow at source bytes {}..{}",value.span.start,value.span.end);
+        let(parts,capacity,pushes)=self.string_parts(fun,&operands,&rendered,&failure);
+        format!("{{ {}{parts}let sink=tsr_string_reserve(&mut ({}),{capacity},{failure:?}); {pushes} }}",selection.setup,selection.place)
+    }
+
     fn compound_assignment_with(&self, fun: &CheckedFunction, target: &Expr, value: &Expr, op: BinaryOp, span: crate::diagnostic::Span, render: &mut impl FnMut(&Expr, Mode, bool) -> String) -> String {
         // All bounds and the old target value precede the RHS. Saved indices
         // reconstruct the destination after shared reads have ended.
@@ -4673,7 +4833,7 @@ impl Emitter<'_> {
         let failure = format!("string addition capacity overflow at source bytes {}..{}", span.start, span.end);
         if let Some(operands) = self.appended_operands(fun, target, value) {
             let rendered = operands.iter().map(|operand| { let (child, mode) = Self::chain_operand(operand); render(child, mode, false) }).collect::<Vec<_>>();
-            let (parts, capacity, pushes) = Self::string_parts(&operands, &rendered, &failure);
+            let (parts, capacity, pushes) = self.string_parts(fun,&operands, &rendered, &failure);
             return format!(
                 "{{ {}{parts}let sink = tsr_string_reserve(&mut ({}), {capacity}, {failure:?}); {pushes}}}",
                 selection.setup, selection.place
@@ -4962,10 +5122,18 @@ impl Emitter<'_> {
         if args.is_empty() && self.moves_receiver(base, span) {
             return format!("{{ let mut reversed_array = {}; reversed_array.reverse(); reversed_array }}", self.expr(fun, base, Mode::Consume));
         }
-        let receiver = self.expr(fun, base, Mode::Read);
-        let literal =
-            self.expression_shape(base) == Some(crate::fixed_storage::Shape::LiteralStrings);
-        let mut output = format!("{{ let copying_array = {receiver}; ");
+        let shape = self.expression_shape(base);
+        let moving = matches!(shape, None | Some(crate::fixed_storage::Shape::Array { .. }))
+            && self.receiver_moves.borrow().contains(&(span.start, span.end));
+        let receiver = self.expr(fun, base, if moving { Mode::Consume } else { Mode::Read });
+        let owned_result = if shape.is_some() {
+            format!("<{}>::from(copying_array)", self.native_type(array_type))
+        } else { "copying_array".to_owned() };
+        if moving && args.is_empty() {
+            return format!("{{ let mut copying_array = {receiver}; copying_array.reverse(); {owned_result} }}");
+        }
+        let literal = shape == Some(crate::fixed_storage::Shape::LiteralStrings);
+        let mut output = format!("{{ let {}copying_array = {receiver}; ", if moving { "mut " } else { "" });
         let values = if args.is_empty() {
             if literal {
                 "copying_array.values.iter().rev().map(|value| String::Borrowed(value)).collect()"
@@ -4982,6 +5150,10 @@ impl Emitter<'_> {
             // Bind both operands before validating the index. unsigned_abs and
             // checked_sub handle i64::MIN without clamping a failed index.
             write!(output, "let copying_from: i64 = {index}; let mut copying_replacement = Some({replacement}); let copying_index = match (if copying_from >= 0 {{ usize::try_from(copying_from).ok().filter(|index| *index < copying_array.len()) }} else {{ usize::try_from(copying_from.unsigned_abs()).ok().and_then(|distance| copying_array.len().checked_sub(distance)) }}) {{ Some(index) => index, None => {failed} }}; ").unwrap();
+            if moving {
+                write!(output, "*copying_array.get_mut(copying_index).expect(\"validated replacement index\") = copying_replacement.take().expect(\"replacement used once\"); {owned_result} }}").unwrap();
+                return output;
+            }
             let (iterator, clone) = if literal {
                 ("copying_array.values.iter()", "String::Borrowed(value)")
             } else {
@@ -5399,7 +5571,9 @@ impl Emitter<'_> {
     }
 
     fn array_push(&self, fun: &CheckedFunction, base: &Expr, value: &Expr) -> String {
-        let value = self.expr(fun, value, Mode::Consume);
+        let value = if let Some(crate::fixed_storage::Shape::Rows {element,width}) = self.expression_shape(base) {
+            self.fixed_literal(fun,value,&crate::fixed_storage::Shape::Row {element,width})
+        } else { self.expr(fun, value, Mode::Consume) };
         if Self::temporary_storage(base) {
             let array = self.expr(fun, base, Mode::Mutate);
             return format!(
@@ -6071,7 +6245,15 @@ impl Emitter<'_> {
             } else {
                 "join_receiver.iter()"
             };
-        let _ = write!(code, "tsr_array_join({iterator}, {separator}) }}");
+        if matches!(base.ty, Some(Type::Array(element)) if element.ty() == Type::String) {
+            if self.expression_shape(base) == Some(crate::fixed_storage::Shape::LiteralStrings) {
+                let _ = write!(code, "String::Owned(join_receiver.values.join({separator})) }}");
+            } else {
+                let _ = write!(code, "tsr_string_array_join(join_receiver, {separator}) }}");
+            }
+        } else {
+            let _ = write!(code, "tsr_array_join({iterator}, {separator}) }}");
+        }
         code
     }
 
@@ -6105,15 +6287,15 @@ impl Emitter<'_> {
         }
     }
 
-    fn string_chain_code(operands: &[&Expr], rendered: &[String], operator: crate::Span) -> String {
+    fn string_chain_code(&self, fun:&CheckedFunction, operands: &[&Expr], rendered: &[String], operator: crate::Span) -> String {
         let failure = format!("string addition capacity overflow at source bytes {}..{}", operator.start, operator.end);
-        let (parts, capacity, pushes) = Self::string_parts(operands, rendered, &failure);
+        let (parts, capacity, pushes) = self.string_parts(fun,operands, rendered, &failure);
         format!("{{ {parts}let mut output = std::string::String::with_capacity({capacity}); {{ let sink = &mut output; {pushes}}} String::Owned(output) }}")
     }
 
     /// Bindings for each operand, their total size and the code that appends
     /// them to `sink: &mut std::string::String`, in operand order.
-    fn string_parts(operands: &[&Expr], rendered: &[String], failure: &str) -> (String, String, String) {
+    fn string_parts(&self, fun:&CheckedFunction, operands: &[&Expr], rendered: &[String], failure: &str) -> (String, String, String) {
         let mut parts = String::new();
         let mut sizes = Vec::new();
         let mut pushes = String::new();
@@ -6128,7 +6310,11 @@ impl Emitter<'_> {
                     let number = if kind == Type::Number { value.clone() } else { format!("({value}).tsr_value()") };
                     parts.push_str(&format!("let part{index}: f64 = {number}; "));
                     sizes.push("24".to_owned());
-                    pushes.push_str(&format!("if !tsr_push_whole_number(sink, part{index}) {{ sink.push_str(&(TsrConsoleValue::Number(part{index})).label()); }} "));
+                    if self.whole_number_enum(Self::appended_number(operand).expect("checked number")) {
+                        pushes.push_str(&format!("tsr_push_int(sink, part{index} as i64); "));
+                    } else {
+                        pushes.push_str(&format!("if !tsr_push_whole_number(sink, part{index}) {{ TsrJoinText::append_join_text(&part{index}, sink); }} "));
+                    }
                 }
                 // `name.slice(...)` appends the borrowed range, not an owned copy.
                 None if Self::borrowed_slice(operand) && Self::slice_block(value).is_some() => {
@@ -6139,7 +6325,8 @@ impl Emitter<'_> {
                     pushes.push_str(&format!("sink.push_str(part{index}); "));
                 }
                 None => {
-                    parts.push_str(&format!("let part{index}: &String = {value}; "));
+                    let read_type=self.string_characters.read_type(fun,operand);
+                    parts.push_str(&format!("let part{index}: &{read_type} = {value}; "));
                     sizes.push(format!("part{index}.len()"));
                     pushes.push_str(&format!("sink.push_str(part{index}); "));
                 }
@@ -6189,6 +6376,14 @@ impl Emitter<'_> {
                     && !receiver_moves::mentions(value, id)
                     && receiver_moves::captured(fun, &self.program.closures).is_some_and(|captured| !captured.contains(&id))
             })
+    }
+
+    // Enum members prove the existing exact-integer formatting precondition.
+    fn whole_number_enum(&self, value: &Expr) -> bool {
+        let value = if value.target == Some(CallTarget::Number) {
+            match &value.kind { ExprKind::Call(_, args) if args.len() == 1 => &args[0], _ => value }
+        } else { value };
+        matches!(value.ty, Some(Type::Enum(index, crate::syntax::EnumKind::Number)) if self.whole_number_enums[index])
     }
 
     /// `text + String(n)` for a numeric `n`: the digits are written into the
@@ -6327,6 +6522,10 @@ impl Emitter<'_> {
                 }
             }
             CallTarget::StringConcat => {
+                if let Some(text)=self.constant_strings.concat(fun,base,args) {
+                    let _=write!(output,"{} }}",self.string_literal(&text));
+                    return output;
+                }
                 let failure = format!(
                     "string concat capacity or allocation failure at source bytes {}..{}",
                     span.start, span.end
@@ -6391,7 +6590,13 @@ impl Emitter<'_> {
         output
     }
 
+    fn fixed_foreach_result(&self,fun:&CheckedFunction)->Option<usize> {
+        let (closure,width)=self.foreach_slices.fixed_result(fun)?;
+        (!self.result_closures.borrow().contains_key(&closure)).then_some(width)
+    }
+
     fn array_for_each(&self, fun: &CheckedFunction, base: &Expr, callback: &Expr) -> String {
+        let range=!self.exception_regions.carries_storage() && matches!(base.kind,ExprKind::Name(_)) && base.binding.is_some_and(|id|self.foreach_slices.binding(fun,id));
         let method = callback.traversal_method;
         let receiver = self.expr(
             fun,
@@ -6443,7 +6648,10 @@ impl Emitter<'_> {
             arguments.push("for_each_array".to_owned());
         }
         let arguments = self.array_callback_arguments(callback_type, method, arguments, &[value_type, key_type, receiver_type]);
-        let call = if self.array_callback_counted_method(callback_type, method) {
+        let call = if range {
+            let mut arguments=arguments;arguments[2]="&(0..for_each_len)".into();
+            format!("for_each_callback.call_range({})",arguments.join(", "))
+        } else if self.array_callback_counted_method(callback_type, method) {
                 format!("for_each_callback.call{}_with_count({}{})", method.expect("checked counted method").id, if method.is_some_and(|method| method.access == Mode::Mutate) { 2 } else { 3 }, if arguments.is_empty() { String::new() } else { format!(", {}", arguments.join(", ")) })
             } else if self.counted_calls && method.is_none() {
             if matches!(callback_type, Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)) {
@@ -6472,7 +6680,9 @@ impl Emitter<'_> {
         } else {
             ""
         };
-        let iterator = if literal {
+        let iterator = if range {
+            "for_each_array.iter().skip(for_each_start).take(for_each_len)"
+        } else if literal {
             "for_each_array.literal_iter()"
         } else if matches!(receiver_type,Type::Map(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedMap)) {
             "for_each_array.source_iter()"
@@ -6484,8 +6694,10 @@ impl Emitter<'_> {
         let pattern=if map_for_each{"(for_each_key,for_each_value)"}else{"for_each_value"};
         // A wildcard statement drops the returned value immediately, including
         // owned data/callable owners, before advancing to the next source item.
+        let receiver=if range {format!("let for_each_slice = {receiver}; let for_each_array = for_each_slice.0; let for_each_start = for_each_slice.1; let for_each_len = for_each_slice.2-for_each_start;")}
+            else{format!("let for_each_array = {receiver};")};
         format!(
-            "{{ let for_each_array = {receiver}; let for_each_callback = {environment}; for (for_each_position, {pattern}) in {iterator}.enumerate() {{ {index}{literal_value}let _ = {call}; }} }}"
+            "{{ {receiver} let for_each_callback = {environment}; for (for_each_position, {pattern}) in {iterator}.enumerate() {{ {index}{literal_value}let _ = {call}; }} }}"
         )
     }
 
@@ -6793,11 +7005,11 @@ impl Emitter<'_> {
         format!("{{ let entries_source = {receiver}; let mut entries = <{result}>::from([]); for (entries_index,entries_value) in {iterator}.enumerate() {{ entries.push(Record{pair} {{ field0: i64::try_from(entries_index).expect(\"entries index exceeds int range\"), field1: {value} }}); }} entries }}")
     }
 
-    fn array_slice(&self, fun: &CheckedFunction, base: &Expr, args: &[Expr], call: crate::diagnostic::Span) -> String {
+    fn array_slice(&self, fun: &CheckedFunction, base: &Expr, args: &[Expr], call: crate::diagnostic::Span, view: SliceView) -> String {
         let plain_vec = |ty: Type| !numeric_array(ty) && !inline_array(ty)
             && !matches!(ty, Type::Array(ArrayElement::Record(index, 0)) if self.record_runtime.recursive(index) || self.small_record(index));
         // slice() of a dead plain Vec local keeps that storage, trimming both ends.
-        if plain_vec(base.ty.expect("checked array slice")) && self.moves_receiver(base, call) {
+        if matches!(view,SliceView::Owned) && plain_vec(base.ty.expect("checked array slice")) && self.moves_receiver(base, call) {
             let start = args.first().map_or_else(|| "0i64".into(), |arg| self.expr(fun, arg, Mode::Copy));
             let end = args.get(1).map_or_else(|| "None".into(), |arg| format!("Some({})", self.expr(fun, arg, Mode::Copy)));
             let array = self.expr(fun, base, Mode::Consume);
@@ -6813,10 +7025,19 @@ impl Emitter<'_> {
         );
         let array_type = base.ty.expect("checked array slice");
         let fixed = self.expression_shape(base);
+        if matches!(view,SliceView::Range) {
+            return format!("{{ let slice_array = {array}; let slice_from: i64 = {start}; let slice_to: Option<i64> = {end}; let slice_start = tsr_search_start(slice_array.len(), slice_from); let slice_end = slice_to.map_or(slice_array.len(), |end| tsr_search_start(slice_array.len(), end)).max(slice_start); (slice_array,slice_start,slice_end) }}");
+        }
+        if matches!(view,SliceView::Slice) {
+            let receiver=if fixed.is_none() && numeric_array(array_type){"slice_array.as_slice()"}else{"slice_array"};
+            return format!("{{ let slice_array = {array}; let slice_from: i64 = {start}; let slice_to: Option<i64> = {end}; let slice_start = tsr_search_start(slice_array.len(), slice_from); let slice_end = slice_to.map_or(slice_array.len(), |end| tsr_search_start(slice_array.len(), end)).max(slice_start); &{receiver}[slice_start..slice_end] }}");
+        }
         let compact = fixed.is_none()
             && !numeric_array(array_type)
             && (inline_array(array_type)
                 || matches!(array_type, Type::Array(ArrayElement::Record(index, 0)) if self.small_record(index)));
+        let inline_slice = matches!(&base.kind,ExprKind::Array(values) if values.len() <= 4)
+            || self.active_plan.get().is_some_and(|plan|self.fixed.plans[plan].inline_slice(base));
         let values = match fixed {
             Some(crate::fixed_storage::Shape::LiteralStrings) =>
                 "slice_array.values[slice_start..slice_end].iter().map(|value| String::Borrowed(value)).collect::<Vec<_>>()".into(),
@@ -6825,7 +7046,7 @@ impl Emitter<'_> {
             _ if numeric_array(array_type) =>
                 "slice_array.as_slice()[slice_start..slice_end].to_vec()".into(),
             _ if compact =>
-                "slice_array.tsr_slice(slice_start, slice_end)".into(),
+                format!("slice_array.{}(slice_start, slice_end)",if inline_slice {"tsr_inline_slice"} else {"tsr_slice"}),
             _ => "slice_array.as_slice()[slice_start..slice_end].to_vec()".to_owned(),
         };
         let result = if compact {
@@ -6980,6 +7201,7 @@ impl Emitter<'_> {
     fn finish_clone_argument(&self,fun:&CheckedFunction,value:&Expr,argument:String)->String{
         if self.record_parameter_borrow_leaf(fun,value){return format!("Clone::clone({argument})");}
         match self.expression_shape(value) {
+            Some(crate::fixed_storage::Shape::Rows { .. } | crate::fixed_storage::Shape::Row { .. }) => format!("Clone::clone({argument})"),
             Some(crate::fixed_storage::Shape::LiteralStrings) => format!("({argument}).clone_owned()"),
             Some(crate::fixed_storage::Shape::Record { .. }) => format!("({argument}).clone_owned()"),
             Some(crate::fixed_storage::Shape::ScalarArray { scalar: crate::fixed_storage::Scalar::Number, .. }) => {
@@ -7185,7 +7407,10 @@ impl Emitter<'_> {
         }
         if self.restored_capture(fun,index) {
             return match mode {
-                Mode::Consume=>format!("value{index}.take().expect(\"initialized capture\")"),
+                Mode::Consume=>{
+                    let value=format!("value{index}.take().expect(\"initialized capture\")");
+                    if self.self_appends.binding(fun,index){format!("tsr_string_finish({value})")}else{value}
+                },
                 Mode::Copy if b.ty.is_copy()=>format!("*value{index}.as_ref().expect(\"initialized capture\")"),
                 Mode::Read|Mode::Copy=>format!("value{index}.as_ref().expect(\"initialized capture\")"),
                 Mode::Mutate=>format!("value{index}.as_mut().expect(\"initialized capture\")"),
@@ -7221,7 +7446,8 @@ impl Emitter<'_> {
         } else {
             ""
         };
-        format!("{reference}{dereference}value{index}")
+        let value=format!("{reference}{dereference}value{index}");
+        if mode==Mode::Consume && self.self_appends.binding(fun,index){format!("tsr_string_finish({value})")}else{value}
     }
 
     /// The character at a position of a string, as a new string. Operands
@@ -7980,6 +8206,7 @@ impl Emitter<'_> {
                 branch,
                 ..
             } => self.coalesce_assignment(fun, expr, target, value, *branch),
+            ExprKind::Assign {target,value,..} if expr.ty==Some(Type::Void) && self.self_appends.assignment(fun,value) => self.self_append_with(fun,target,value,&mut |operand,mode,_|self.expr(fun,operand,mode)),
             ExprKind::Assign { target, value, .. } if expr.ty==Some(Type::Void) => {
                 if matches!(target.kind,ExprKind::Name(_)){
                     let id=target.binding.expect("checked assignment binding");
@@ -8327,8 +8554,9 @@ impl Emitter<'_> {
             } else if part.ty == Some(Type::Number) {
                 // Number text has its own spelling for infinities, zero,
                 // exponent ranges and tied digits.
+                // Scientific text keeps its existing allocation path.
                 code.push_str(&format!(
-                    "let template_value: f64 = {value}; if !tsr_push_whole_number(&mut template_output, template_value) {{ template_output.push_str(tsr_number_to_string(template_value, 10, \"number text\").as_ref()); }} "
+                    "let template_value: f64 = {value}; if !tsr_push_whole_number(&mut template_output, template_value) {{ if (1e-6..1e21).contains(&template_value.abs()) {{ TsrJoinText::append_join_text(&template_value, &mut template_output); }} else {{ template_output.push_str(tsr_number_to_string(template_value, 10, \"number text\").as_ref()); }} }} "
                 ));
             } else if part.ty == Some(Type::Int) {
                 code.push_str(&format!("let template_value: i64 = {value}; tsr_push_int(&mut template_output, template_value); "));
@@ -8607,10 +8835,10 @@ impl Emitter<'_> {
     // Equality operands are bound by a match scrutinee: its temporaries live
     // for the whole comparison, so a view of an owned call result stays valid.
     fn binary_expression_code(&self, fun: &CheckedFunction, expr: &Expr) -> Result<String, String> {
-        self.binary_expression_code_with(expr, &mut |value, mode| self.expr(fun, value, mode))
+        self.binary_expression_code_with(fun,expr, &mut |value, mode| self.expr(fun, value, mode))
     }
 
-    fn binary_expression_code_with(&self, expr: &Expr, render: &mut impl FnMut(&Expr, Mode) -> String) -> Result<String, String> {
+    fn binary_expression_code_with(&self, fun:&CheckedFunction, expr: &Expr, render: &mut impl FnMut(&Expr, Mode) -> String) -> Result<String, String> {
         let ExprKind::Binary { op, operator, left, right } = &expr.kind else {
             unreachable!("binary expression")
         };
@@ -8665,7 +8893,7 @@ impl Emitter<'_> {
         }
         if let Some(operands) = Self::string_addition_chain(expr) {
             let rendered = operands.iter().map(|operand| { let (child, mode) = Self::chain_operand(operand); render(child, mode) }).collect::<Vec<_>>();
-            return Ok(Self::string_chain_code(&operands, &rendered, *operator));
+            return Ok(self.string_chain_code(fun,&operands, &rendered, *operator));
         }
         if let Some((first, levels)) = Self::scalar_chain(expr) {
             let mut rendered = vec![render(first, Mode::Copy)];
@@ -8678,6 +8906,8 @@ impl Emitter<'_> {
         let string = left.ty.map(Type::scalar_base) == Some(Type::String);
         let number = left.ty.map(Type::scalar_base) == Some(Type::Number);
         let appended = if string && *op == BinaryOp::Add { Self::appended_number(right) } else { None };
+        let string_left_type=self.string_characters.read_type(fun,left);
+        let string_right_type=self.string_characters.read_type(fun,right);
         let left = render(left, if string { Mode::Read } else { Mode::Copy });
         let right = match appended {
             Some(argument) => render(argument, Mode::Copy),
@@ -8691,8 +8921,15 @@ impl Emitter<'_> {
             if let Some(argument) = appended {
                 let push = match argument.ty {
                     Some(Type::Int) => format!("let number: i64 = {right}; tsr_push_int(&mut output, number);"),
-                    Some(Type::Number) => format!("let number: f64 = {right}; if !tsr_push_whole_number(&mut output, number) {{ output.push_str(&(TsrConsoleValue::Number(number)).label()); }}"),
-                    _ => format!("let number: f64 = ({right}).tsr_value(); if !tsr_push_whole_number(&mut output, number) {{ output.push_str(&(TsrConsoleValue::Number(number)).label()); }}"),
+                    kind => {
+                        let number = if kind == Some(Type::Number) { right } else { format!("({right}).tsr_value()") };
+                        let append = if self.whole_number_enum(argument) {
+                            "tsr_push_int(&mut output, number as i64);"
+                        } else {
+                            "if !tsr_push_whole_number(&mut output, number) { TsrJoinText::append_join_text(&number, &mut output); }"
+                        };
+                        format!("let number: f64 = {number}; {append}")
+                    },
                 };
                 return Ok(format!(
                     "{{ let string_left: &String = {left}; let mut output = std::string::String::with_capacity(string_left.len().checked_add(24).expect({failure:?})); output.push_str(string_left); {push} String::Owned(output) }}"
@@ -8730,7 +8967,7 @@ impl Emitter<'_> {
                 }
             };
             format!(
-                "{{ let string_left: &String = {left}; let string_right: &String = {right}; string_left {operator} string_right }}"
+                "{{ let string_left: &{string_left_type} = {left}; let string_right: &{string_right_type} = {right}; string_left {operator} string_right }}"
             )
         }
         })
@@ -9050,7 +9287,7 @@ impl Emitter<'_> {
                     let arguments = args
                         .iter()
                         .enumerate()
-                        .map(|(position, argument)| { let parameter=binding.parameters.get(position).or_else(||binding.parameters.last().filter(|p|p.rest)).expect("checked native arity"); self.expr(fun, argument, parameter.access) })
+                        .map(|(position, argument)| { let parameter=binding.parameters.get(position).or_else(||binding.parameters.last().filter(|p|p.rest)).expect("checked native arity"); self.native_optional_argument(parameter,self.expr(fun, argument, parameter.access),argument.ty.expect("checked native argument")) })
                         .collect::<Vec<_>>();
                     if binding.module=="std:testing-runtime" && binding.name=="checkAssertion" {
                         if let Some(call)=self.typed_native_assertion(&arguments,expr.span,None){return call;}
@@ -9148,17 +9385,19 @@ impl Emitter<'_> {
                 CallTarget::ObjectHasOwn => self.object_has_own(fun,args,matches!(&callee.kind,ExprKind::Field(_,name) if name=="hasOwn#in")),
                 CallTarget::ObjectKeys => {
                     let value = self.expr(fun, &args[0], Mode::Read);
+                    let result = self.native_type(expr.ty.expect("checked keys result"));
+                    let index_text = "if index<10 {tsr_int_text(index as i64)} else {String::Owned(index.to_string())}";
                     let keys = match args[0].ty.expect("checked Object.keys input") {
                         Type::Record(id) if !self.program.records[id].is_tuple() => {
                             let names = self.program.records[id].fields.iter().map(|field| format!("{:?}", field.name.text)).collect::<Vec<_>>().join(",");
-                            format!("{{ let key_names: [&str; {}] = [{names}]; object_keys_value.key_order.iter().map(|index| String::Borrowed(key_names[*index])).collect::<Vec<_>>() }}",self.program.records[id].fields.len())
+                            format!("{{ let key_names: [&str; {}] = [{names}]; object_keys_value.key_order.iter().map(|index| String::Borrowed(key_names[*index])).collect::<{result}>() }}",self.program.records[id].fields.len())
                         }
-                        Type::Record(id) => format!("(0..{}).map(|index| String::Owned(index.to_string())).collect::<Vec<_>>()", self.program.records[id].fields.len()),
-                        Type::Array(_) => "(0..object_keys_value.len()).map(|index| String::Owned(index.to_string())).collect::<Vec<_>>()".into(),
-                        Type::String => "(0..object_keys_value.as_ref().encode_utf16().count()).map(|index| String::Owned(index.to_string())).collect::<Vec<_>>()".into(),
-                        _ => "Vec::<String>::new()".into(),
+                        Type::Record(id) => format!("(0..{}).map(|index| {index_text}).collect::<{result}>()", self.program.records[id].fields.len()),
+                        Type::Array(_) => format!("(0..object_keys_value.len()).map(|index| {index_text}).collect::<{result}>()"),
+                        Type::String => format!("(0..object_keys_value.as_ref().encode_utf16().count()).map(|index| {index_text}).collect::<{result}>()"),
+                        _ => format!("<{result}>::from([])"),
                     };
-                    format!("{{ let object_keys_value = {value}; let mut object_keys_result = <{}>::from([]); for key in {keys} {{ object_keys_result.push(key); }} object_keys_result }}", self.native_type(expr.ty.expect("checked keys result")))
+                    format!("{{ let object_keys_value = {value}; {keys} }}")
                 }
                 CallTarget::OrderedSetMethod(method)=>self.ordered_set_method_expression(fun,callee,args,method),
                 CallTarget::HeapMethod(method) => self.heap_method_expression(fun,expr,callee,args,method),
@@ -9560,7 +9799,7 @@ impl Emitter<'_> {
                     let ExprKind::Field(base, _) = &callee.kind else {
                         unreachable!()
                     };
-                    self.array_slice(fun, base, args, expr.span)
+                    self.array_slice(fun, base, args, expr.span, SliceView::Owned)
                 }
                 CallTarget::ArrayToSpliced => {
                     let ExprKind::Field(base, _) = &callee.kind else {

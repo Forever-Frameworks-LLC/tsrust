@@ -51,6 +51,12 @@ impl Emitter<'_> {
         let marker = format!("/*{name}*/");
         if generated.contains(&marker) { return name; }
         generated.push_str(&marker);
+        if self.schema_pipeline_direct_json(id,input){
+            let validator=self.schema_pipeline_json_validator(id,generated,seen,errors);
+            let roots=self.schema_root_parameters(id);let arguments=self.schema_root_arguments(id);
+            generated.push_str(&format!("fn {name}({roots}schema:&Record{},input:{},path:&mut Vec<tsrust_schema_issues::Segment<'_>>,issues:&mut tsrust_schema_issues::Issues,failure:&mut Option<SchemaFactoryFailure>)->Option<{}>{{{validator}({arguments}schema,input.value,path,issues,failure)}}",self.native_record_declaration(id),self.native_type(input),self.native_type(self.schema_pipeline_output(id))));
+            return name;
+        }
         let trial = self.schema_pipeline_trial(id, input, generated, seen, errors);
         let roots=self.schema_root_parameters(id);
         let root_args=self.schema_root_arguments(id);

@@ -148,8 +148,25 @@ impl Emitter<'_> {
         }
         let value = self.expr(fun, &args[0], Mode::Read);
         let limit = self.expr(fun, &args[1], Mode::Copy);
+        let convert=match args[1].ty.expect("checked JSON byte limit") {
+            Type::Int=>"usize::try_from(limit).map_err(|_|tsrust_native_json::invalid_limits())".to_owned(),
+            Type::Undefined=>"{let _=limit;Ok::<usize,tsrust_native_json::Error>(usize::MAX)}".to_owned(),
+            Type::Union(id)=>{
+                let arms=self.program.unions[id.index()].members.iter().enumerate().map(|(tag,ty)|{
+                    let result=if *ty==Type::Int {"usize::try_from(value).map_err(|_|tsrust_native_json::invalid_limits())"}else{"Ok(usize::MAX)"};
+                    let binding=if *ty==Type::Int {"value"}else{"_"};
+                    format!("Union{}::V{tag}({binding})=>{result}",id.index())
+                }).collect::<Vec<_>>().join(",");
+                format!("match limit{{{arms}}}")
+            }
+            _=>unreachable!("checked optional integer JSON byte limit"),
+        };
+        let encode="tsrust_native_json::typed::encode(&Encode0(&value,0),limit)";
+        let encode=if matches!(root,Type::Record(id) if matches!(self.program.records[id].native_type,Some(crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView))){
+            format!("if limit==usize::MAX{{tsrust_native_json::typed::encode_value_unbounded(&value.value)}}else{{{encode}}}")
+        }else{encode.to_owned()};
         format!(
-            "{{{generated}let value={value};let limit={limit};let encoded=usize::try_from(limit).map_err(|_|tsrust_native_json::invalid_limits()).and_then(|limit|tsrust_native_json::typed::encode(&Encode0(&value,0),limit));match encoded{{Ok(text)=>Union{union}::V{ok_tag}(Record{ok}{{field0:String::Owned(text)}}),Err(error)=>Union{union}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(error.code),field1:String::Borrowed(error.message),field2:error.offset as i64}}}})}}}}"
+            "{{{generated}let value={value};let limit={limit};let encoded=({convert}).and_then(|limit|{encode});match encoded{{Ok(text)=>Union{union}::V{ok_tag}(Record{ok}{{field0:String::Owned(text)}}),Err(error)=>Union{union}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(error.code),field1:String::Borrowed(error.message),field2:error.offset as i64}}}})}}}}"
         )
     }
 }

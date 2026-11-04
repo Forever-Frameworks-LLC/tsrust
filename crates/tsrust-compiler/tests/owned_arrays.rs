@@ -78,9 +78,10 @@ fn owned_array_contexts_match_element_types_exactly() {
     ] {
         reject(source, "type");
     }
-    reject(
-        "type U = { n: int; }; function main() { const a = [{ n: 1 }]; }",
-        "type",
+    execute(
+        "type U = { n: int; }; function main() { const a = [{ n: 1 }]; console.log(a[0].n); }",
+        "1\n",
+        None,
     );
 }
 

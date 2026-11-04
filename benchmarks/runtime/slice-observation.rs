@@ -1,6 +1,9 @@
 // Proposed rank-aware observer; native compilation remains pending Gate42.
 enum SliceToken { ArrayStart, ArrayEnd, Int(i64), Float(f64), Bool(bool), StringStart, Scalar(u32), StringEnd }
 trait SliceTree { fn visit(&self, visitor: &mut dyn FnMut(SliceToken)); }
+impl<T:SliceTree,const N:usize> SliceTree for [T;N] {
+ fn visit(&self,v:&mut dyn FnMut(SliceToken)){v(SliceToken::ArrayStart);for item in self{item.visit(v);}v(SliceToken::ArrayEnd);}
+}
 impl SliceTree for i64 { fn visit(&self,v:&mut dyn FnMut(SliceToken)){v(SliceToken::Int(*self));} }
 impl SliceTree for bool { fn visit(&self,v:&mut dyn FnMut(SliceToken)){v(SliceToken::Bool(*self));} }
 impl SliceTree for f64 { fn visit(&self,v:&mut dyn FnMut(SliceToken)){v(SliceToken::Float(*self));} }

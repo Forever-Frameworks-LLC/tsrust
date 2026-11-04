@@ -21,18 +21,22 @@ fn every_file_catalog_example_checks_and_executes() {
             assert_eq!(tsrust_compiler::format(&source).unwrap(), source);
             let id = SourceId(directory.0.join("example.tsr").to_str().unwrap().into());
             let mut workspace = Workspace::default();
-            workspace.open(id.clone(), 1, source);
+            workspace.open(id.clone(), 1, source.clone());
+            std::fs::write(&id.0, source).unwrap();
             let checked = workspace.snapshot().check(&id).unwrap();
             let rust = directory.0.join("example.rs");
             std::fs::write(&rust, checked.emit_rust()).unwrap();
             for level in ["0", "3"] {
                 let binary = directory.0.join("example");
-                let compiled = std::process::Command::new("rustup")
-                    .args(["run", tsrust_compiler::RUST_BACKEND_VERSION, "rustc", "--edition=2024"])
-                    .arg(format!("-Copt-level={level}")).arg(&rust).arg("-o").arg(&binary).output().unwrap();
+                // The normal build path supplies native file dependencies at both levels.
+                let cli=std::env::var_os("TSRUST").map(std::path::PathBuf::from).unwrap_or_else(||std::env::current_exe().unwrap().parent().unwrap().parent().unwrap().join(format!("tsrust{}",std::env::consts::EXE_SUFFIX)));
+                let mut command=std::process::Command::new(cli);
+                command.arg("build").arg(&id.0).arg("-o").arg(&binary);
+                if level=="3" {command.arg("--release");}
+                let compiled=command.output().unwrap();
                 assert!(compiled.status.success(), "{}: {}", entry["name"], String::from_utf8_lossy(&compiled.stderr));
                 let output = std::process::Command::new(&binary).current_dir(&directory.0).output().unwrap();
-                assert!(output.status.success(), "{}: {}", entry["name"], String::from_utf8_lossy(&output.stderr));
+                assert!(output.status.success(), "{} O{level}: {}\nstdout: {}\nstderr: {}", entry["name"], output.status, String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
                 assert_eq!(String::from_utf8(output.stdout).unwrap(), example["output"].as_str().unwrap(), "{} O{level}", entry["name"]);
             }
         }

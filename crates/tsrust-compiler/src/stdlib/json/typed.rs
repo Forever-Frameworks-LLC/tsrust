@@ -15,6 +15,18 @@ mod tests {
   assert!(serde_json::from_str::<CheckedIgnored>(r#"{"ignored":"\ud800"}"#).is_err());
  }
  #[test]
+ fn default_validation_uses_serde_recursion_and_retains_strict_failures(){
+  for depth in [64,65,100,127,128,256]{
+   let input="[".repeat(depth)+"0"+&"]".repeat(depth);
+   assert_eq!(validate_depth(input.as_bytes(),Limits::default()).is_ok(),serde_json::from_str::<serde_json::Value>(&input).is_ok(),"depth {depth}");
+  }
+  for input in [br#"{"items":[1],"ignored":"\ud800"}"#.as_slice(),b"[1,]",b"1e400",b"null true",&[b'"',255,b'"']]{
+   let explicit=decode_jsonc::<Record>(input,limits(),false).unwrap_err();
+   let plain=decode_jsonc_plain::<Record>(input,false).unwrap_err();
+   assert_eq!(plain,explicit,"{input:?}");
+  }
+ }
+ #[test]
  fn speculative_schema_seeds_require_complete_exact_input(){
   let seed=||std::marker::PhantomData::<ExactNumber>;
   assert_eq!(try_decode_seed("1.5",seed()).unwrap().0,1.5);
@@ -171,6 +183,9 @@ pub fn decode_jsonc<T:serde::de::DeserializeOwned>(input:&[u8],limits:Limits,tra
  let normalized=super::normalize_jsonc(input,limits,trailing_comma)?;
  decode(&normalized,limits)
 }
+pub fn decode_jsonc_plain<T:serde::de::DeserializeOwned>(input:&[u8],trailing_comma:bool)->Result<T,Error>{
+ decode_jsonc(input,Limits::default(),trailing_comma)
+}
 
 /// Internal boundary for generated typed visitors. Primitive number fields must use ExactNumber.
 pub fn decode<T:serde::de::DeserializeOwned>(input:&[u8],limits:Limits)->Result<T,Error>{
@@ -247,7 +262,6 @@ pub(super) fn validate_depth(input:&[u8],limits:Limits)->Result<usize,Error>{
 /// Validate the document and report its maximum depth and whether any number was a float.
 fn validate_floats(input:&[u8],limits:Limits)->Result<(usize,bool),Error>{
  if input.len()>limits.bytes{return Err(failure("byte-limit",limits.bytes));}
- if limits.depth>64{return Err(super::invalid_limits());}
  if let Err(error)=std::str::from_utf8(input){return Err(failure("invalid-utf8",error.valid_up_to()));}
  validate_document::<true>(input,limits)
 }
@@ -344,7 +358,7 @@ mod encoding_tests {
   assert_eq!(encode(&record,0).unwrap_err().code,"output-limit");
  }
  #[test]
- fn direct_typed_encoding_stops_at_the_generated_container_bound(){
+ fn direct_typed_encoding_uses_stack_limits_and_explicit_byte_budgets(){
   struct Nested{remaining:usize,depth:usize}
   impl serde::Serialize for Nested{
    fn serialize<S:serde::Serializer>(&self,serializer:S)->Result<S::Ok,S::Error>{
@@ -356,17 +370,19 @@ mod encoding_tests {
     sequence.end()
    }
   }
-  let expected=format!("{}7{}","[".repeat(64),"]".repeat(64));
-  assert_eq!(encode(&Nested{remaining:64,depth:0},expected.len()).unwrap(),expected);
-  let error=encode(&Nested{remaining:65,depth:0},1024).unwrap_err();
-  assert_eq!(error.code,"depth-limit");assert_eq!(error.offset,64);
+  for remaining in [64,65,256] {
+   let expected=format!("{}7{}","[".repeat(remaining),"]".repeat(remaining));
+   assert_eq!(encode(&Nested{remaining,depth:0},expected.len()).unwrap(),expected);
+   assert_eq!(encode(&Nested{remaining,depth:0},expected.len()-1).unwrap_err().code,"output-limit");
+  }
   assert_eq!(encoding_container::<serde_json::Error>(usize::MAX).unwrap_err().to_string(),"tsrust:depth-limit");
  }
  #[test]
- fn dynamic_values_share_the_typed_parent_depth_budget(){
+ fn dynamic_values_have_no_added_container_quota(){
   let value=serde_json::json!({"items":[1,2]});
   assert_eq!(encode(&Dynamic(&value,62),100).unwrap(),"{\"items\":[1,2]}");
-  assert_eq!(encode(&Dynamic(&value,63),100).unwrap_err().code,"depth-limit");
+  assert_eq!(encode(&Dynamic(&value,256),100).unwrap(),"{\"items\":[1,2]}");
+  assert_eq!(encode(&Dynamic(&value,usize::MAX),100).unwrap_err().code,"depth-limit");
   assert_eq!(encode(&Dynamic(&serde_json::json!(7),64),100).unwrap(),"7");
  }
  #[test]
@@ -382,8 +398,30 @@ mod encoding_tests {
   impl serde::Serialize for Bad{fn serialize<S:serde::Serializer>(&self,_:S)->Result<S::Ok,S::Error>{Err(serde::ser::Error::custom("secret content"))}}
   let error=encode(&Bad,32).unwrap_err();assert_eq!(error.code,"invalid-json");assert!(!error.message.contains("secret"));
  }
+ #[test]
+ fn trusted_value_encoding_matches_dynamic_bytes_and_keeps_bounded_offsets(){
+  for text in [r#"{"é":"\n\u0000\"\\","a":[null,true,-0.0,9007199254740993,18446744073709551615,-9223372036854775808]}"#,"null","[]","{}"]{
+   let value:serde_json::Value=serde_json::from_str(text).unwrap();
+   let expected=encode(&Dynamic(&value,0),usize::MAX).unwrap();
+   assert_eq!(encode_value_unbounded(&value).unwrap(),expected);
+   for limit in 0..=expected.len()+1{
+    let direct=super::super::stringify(&value,limit);
+    let bounded=encode(&Dynamic(&value,0),limit);
+    match (direct,bounded){
+     (Ok(a),Ok(b))=>assert_eq!(a,b),
+     (Err(a),Err(b))=>assert_eq!((a.code,a.message,a.offset),(b.code,b.message,b.offset)),
+     other=>panic!("budget {limit}: {other:?}"),
+    }
+   }
+  }
+ }
 }
 
+
+/// Opaque JSON values already contain finite numbers and valid strings.
+pub fn encode_value_unbounded(value:&serde_json::Value)->Result<String,Error>{
+ serde_json::to_string(value).map_err(|_|failure("invalid-json",0))
+}
 
 /// Generated visitors borrow source fields and write directly into bounded output.
 pub fn encode<T:serde::Serialize + ?Sized>(value:&T,max_bytes:usize)->Result<String,Error>{
@@ -401,8 +439,7 @@ impl serde::Serialize for FiniteNumber{
 /// Every generated record/array visitor enters before visiting its children.
 /// Scalars retain their parent's depth; the root starts at zero.
 pub fn encoding_container<E:serde::ser::Error>(depth:usize)->Result<usize,E>{
- if depth>=64{return Err(E::custom("tsrust:depth-limit"));}
- Ok(depth+1)
+ depth.checked_add(1).ok_or_else(||E::custom("tsrust:depth-limit"))
 }
 
 /// Object visitors omit undefined fields. All other positions reject them.

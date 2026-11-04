@@ -80,7 +80,7 @@ impl HttpDescription {
     }
 }
 
-fn schema(value: &Schema) -> serde_json::Value {
+pub(super) fn schema(value: &Schema) -> serde_json::Value {
     use serde_json::json;
     match value {
         Schema::String => json!({"type":"string"}),

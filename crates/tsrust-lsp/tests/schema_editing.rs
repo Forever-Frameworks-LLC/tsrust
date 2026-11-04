@@ -208,3 +208,43 @@ fn async_generic_decode_keeps_inferred_factory_results_in_editor_facts() {
     let hover=index.request("textDocument/hover",&json!({"position":{"line":prefix.matches('\n').count(),"character":prefix.rsplit('\n').next().unwrap().encode_utf16().count()}}),uri).unwrap().unwrap().to_string();
     assert!(hover.contains("Schema")&&!hover.contains(": void"),"{hover}");
 }
+
+#[test]
+fn temporary_parsed_collection_size_has_integer_hover() {
+    for (constructor,input) in [("s.set(s.boolean())","new Set<boolean>()"),("s.map(s.string(),s.int())","new Map<string,int>()")] {
+        let source=format!("import {{s}} from 'std:schema';function main(){{const input={input};console.log({constructor}.parse(input).size);}}");
+        let result=request(&source,".parse(input).size","textDocument/hover");
+        assert!(result.to_string().contains("int"),"{result}");
+        let incomplete=source.replace(".size",".");
+        let items=request(&incomplete,".parse(input).","textDocument/completion");
+        assert!(items.as_array().unwrap().iter().any(|item|item["label"]=="size"),"{items}");
+        use tsrust_lsp::{workspace::Workspace,project_diagnostics::source_id,project_intelligence::ProjectIndex};
+        let uri=fixture_uri("temporary-schema-size.tsr");let uri=uri.as_str();
+        let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());
+        let analysis=workspace.snapshot().check_with_diagnostics(&source_id(uri).unwrap()).unwrap();
+        for index in [ProjectIndex::new(&analysis.graph),ProjectIndex::checked(&analysis)] {
+            let offset=source.find(".size").unwrap()+2;
+            let hover=index.request("textDocument/hover",&json!({"position":{"line":0,"character":offset}}),uri).unwrap().unwrap();
+            assert!(hover.to_string().contains("int"),"{hover}");
+        }
+    }
+}
+
+
+#[test]
+fn standalone_empty_object_schemas_keep_checked_completion_and_hover() {
+    use tsrust_lsp::{workspace::Workspace,project_diagnostics::source_id,project_intelligence::ProjectIndex};
+    for policy in ["", ".strip()", ".retain()"] {
+        let source=format!("import {{s}} from 'std:schema';const schema=s.object({{}}){policy};function main(){{const outcome=schema.safeParseJson('{{}}');if(outcome.success){{const value=outcome.data;console.log(Object.keys(value).length);}}}}");
+        let uri=fixture_uri("empty-object-schema-editing.tsr");let uri=uri.as_str();
+        let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());
+        let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+        let index=ProjectIndex::checked(&checked);
+        let offset=source.find("schema.safeParseJson").unwrap()+"schema.".len();
+        let items=index.request("textDocument/completion",&json!({"position":{"line":0,"character":offset}}),uri).unwrap().unwrap();
+        for method in ["parse","safeParse","safeParseJson"] {assert!(items.as_array().unwrap().iter().any(|item|item["label"]==method),"{policy}: {items}");}
+        let offset=source.find("const schema").unwrap()+"const sch".len();
+        let hover=index.request("textDocument/hover",&json!({"position":{"line":0,"character":offset}}),uri).unwrap().unwrap().to_string();
+        assert!(hover.contains("Schema")&&!hover.contains("__tsrust_private_"),"{policy}: {hover}");
+    }
+}

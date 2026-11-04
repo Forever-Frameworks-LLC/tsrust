@@ -14,7 +14,7 @@ test('Math.random pair appends to the manifest and binds actual guarded sources'
  
  assert.deepEqual(rows.map(row=>row.id),mathRandomIds);
  for(const row of rows){
-  assert.equal(row.measured,false);assert.equal(row.measurementStatus,'pending-math-functions-milestone');assert.equal(reportCategory(row.id),'numbers');
+  assert.equal(row.measured,true);assert.equal(row.measurementStatus,'measured-math-random-family');assert.equal(reportCategory(row.id),'numbers');
   for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
    const source=read('./'+name);assertMathRandomSource(source,row,kind);
    assert.throws(()=>assertMathRandomSource(replaceCodeSnippet(source, 'const second = Math.random();','const second = 0.5;'),row,kind));

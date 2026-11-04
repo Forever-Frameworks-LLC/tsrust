@@ -66,7 +66,7 @@ fn prefix_postfix_values_contexts_and_ieee_bits_are_exact() {
         let integers:[fn(i64)->NumericArray<i64>;4]=[function0,function2,function4,function6];
         for (operation,expected) in integers.into_iter().zip([[18,18],[17,18],[16,16],[17,16]]) {let output=operation(17);assert_eq!(output.get(0),Some(&expected[0]));assert_eq!(output.get(1),Some(&expected[1]));}
         assert_eq!(function0(i64::MAX-1).get(0),Some(&i64::MAX));assert_eq!(function4(i64::MIN+1).get(0),Some(&i64::MIN));
-        let numbers:[fn(f64)->Vec<f64>;4]=[function1,function3,function5,function7];
+        let numbers:[fn(f64)->_;4]=[function1,function3,function5,function7];
         let cells:[(f64,f64,f64);8]=[(-0.0,1.0,-1.0),(0.0,1.0,-1.0),(1.5,2.5,0.5),(f64::MAX,f64::MAX,f64::MAX),(f64::INFINITY,f64::INFINITY,f64::INFINITY),(f64::NEG_INFINITY,f64::NEG_INFINITY,f64::NEG_INFINITY),(f64::from_bits(1),1.0,-1.0),(9007199254740992.0,9007199254740992.0,9007199254740991.0)];
         for (input,incremented,decremented) in cells {for (id,operation) in numbers.into_iter().enumerate() {let output=operation(input);let new=if id<2{incremented}else{decremented};let result=if id%2==0{new}else{input};assert_eq!(output.get(0).unwrap().to_bits(),result.to_bits());assert_eq!(output.get(1).unwrap().to_bits(),new.to_bits());}}
         for operation in numbers {let output=operation(f64::NAN);assert!(output.get(0).unwrap().is_nan());assert!(output.get(1).unwrap().is_nan());}

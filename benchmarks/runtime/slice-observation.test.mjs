@@ -1,3 +1,5 @@
+import {nativeFileInput} from './native-files-input.mjs';
+import {environmentFor} from './environment-contract.mjs';
 import {createRequire} from 'node:module';
 import {isCopying,validateCopyingObservation} from './copying-array-observation.mjs';
 import {isRange,validateRangeObservation} from './range-mutation-observation.mjs';
@@ -6,6 +8,7 @@ import {isDeclared,validateDeclaredObservation} from './declared-value-observati
 import {isConcat,validateConcatObservation} from './concat-observation.mjs';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {compilerExecutable} from './compiler-executable.mjs';
 import test from 'node:test';import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
 import ts from './node_modules/typescript/lib/typescript.js';
 import {expectedSlices,expectedSliceObservation,expectedSliceQueries,normalizeBound} from './slice-oracle.mjs';
@@ -18,14 +21,14 @@ const manifest=JSON.parse(fs.readFileSync(new URL('./manifest.json',import.meta.
 test('four complete retained slice sources match96 independent fullshape/content references',()=>{
  let cases=0;
  for(const row of manifest.workloads.filter(row=>row.id.startsWith('array_slice_'))) {
-  const context=vm.createContext({console});vm.runInContext(ts.transpileModule(fs.readFileSync(new URL(`./workloads/${row.id}.ts`,import.meta.url),'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,context);
+  const context=vm.createContext({console});vm.runInContext(ts.transpileModule(fs.readFileSync(new URL(row.counterpart??`./workloads/${row.id}.ts`,import.meta.url),'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,context);
   for(const n of [0,1,2,16,17,65])for(const seed of [0,7,19,97]) {
    const actual=context.workload(n,seed,...(row.inputText===undefined?[]:[row.inputText])),expected=expectedSliceObservation(row.id,n,seed,row.inputText);
    validateExactObservation(observeSliceTree(actual,{numbers:row.id==='array_slice_number'}),expected);
    assert.deepEqual(expectedExactResult(row.id,n,seed,row.inputText),expected);assert.equal(expectedChecksum(row.id,n,seed,row.inputText),expected.checksum);cases++;
   }
   for(const [n,seed]of[[-1,0],[2001,0],[0,-1],[0,1000001],[.5,0]])assert.throws(()=>expectedSlices(row.id,n,seed),/Bounded/);
-  assert.equal(fs.readFileSync(new URL(`./workloads/${row.id}.tsr`,import.meta.url),'utf8').indexOf('function workload'),0);
+  assert.equal(fs.readFileSync(new URL(row.source??`./workloads/${row.id}.tsr`,import.meta.url),'utf8').indexOf('function workload'),0);
  }
  assert.equal(cases,96);
 });
@@ -49,18 +52,22 @@ test('exact tree validation fails closed on missingtokens,malformedshape,wrongem
 test('prepared rankdrivers observe actualfullvalues aftertiming with readonlyinput outside allocationcounters',()=>{
  assert.equal(rustResults['string[][]'],'Vec<Array<String>>');assert.equal(rustResults['int[][][]'],'Vec<Array<NumericArray<i64>>>');
  for(const row of manifest.workloads.filter(isSliceResult)) {
-  const printed=[],context=vm.createContext({TextEncoder,TextDecoder,require:createRequire(import.meta.url),console:{log:line=>printed.push(JSON.parse(line))},process:{argv:['node','test','17','7','0','1',row.inputText??'']},performance:{now:()=>1}});
-  const source=fs.readFileSync(new URL(`./workloads/${row.id}.ts`,import.meta.url),'utf8'),driver=adaptTSDriver(fs.readFileSync(new URL('./driver.ts',import.meta.url),'utf8'),row);
-  vm.runInContext(ts.transpileModule(source+'\n'+driver,{compilerOptions:{alwaysStrict:true,target:ts.ScriptTarget.ES2022}}).outputText,context);
+  const actualRequire=createRequire(new URL(row.counterpart??`./workloads/${row.id}.ts`,import.meta.url));
+  const require=name=>name==='node:process'?{env:environmentFor(row)}:actualRequire(name);
+  const printed=[],context=vm.createContext({TextEncoder,TextDecoder,exports:{},require,console:{log:line=>printed.push(JSON.parse(line))},process:{argv:['node','test','17','7','0','1',nativeFileInput(row)??'']},performance:{now:()=>1}});
+  const source=fs.readFileSync(new URL(row.counterpart??`./workloads/${row.id}.ts`,import.meta.url),'utf8'),driver=adaptTSDriver(fs.readFileSync(new URL('./driver.ts',import.meta.url),'utf8'),row);
+  vm.runInContext(ts.transpileModule(source+'\n'+driver,{compilerOptions:{alwaysStrict:true,target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,esModuleInterop:true}}).outputText,context);
   assert.equal(printed.length,1);
   const validate=isCopying(row)?validateCopyingObservation:isRange(row)?validateRangeObservation:isHigher(row)?validateHigherObservation:isDeclared(row)?validateDeclaredObservation:isConcat(row)?validateConcatObservation:validateExactObservation;
   try { validate(printed[0],expectedExactResult(row.id,17,7,row.inputText),row); } catch(error) { throw new Error(row.id+': '+error.message,{cause:error}); }
   assert.deepEqual(printed[0].durations,[0]);
-  const nativeSource=fs.readFileSync(new URL(`./workloads/${row.id}.tsr`,import.meta.url),'utf8');
-  const emitted=execFileSync(fileURLToPath(new URL('../../target/editor/debug/tsrust',import.meta.url)),['emit',fileURLToPath(new URL(`./workloads/${row.id}.tsr`,import.meta.url))],{encoding:'utf8',timeout:10000,maxBuffer:16*1024*1024});
+  const nativeSource=fs.readFileSync(new URL(row.source??`./workloads/${row.id}.tsr`,import.meta.url),'utf8');
+  const compiler=process.env.TSRUST || compilerExecutable(fileURLToPath(new URL('../../',import.meta.url)),fileURLToPath(new URL('./',import.meta.url)));
+  const emitted=execFileSync(compiler,['emit',fileURLToPath(new URL(row.source??`./workloads/${row.id}.tsr`,import.meta.url))],{encoding:'utf8',timeout:120000,maxBuffer:16*1024*1024});
+  const binding=assertABI(emitted,row,{source:nativeSource});
   const native=adaptRustDriver(fs.readFileSync(new URL('./driver.rs',import.meta.url),'utf8'),row,{emitted,source:nativeSource});
   if(!isCopying(row)&&!isRange(row)&&!isHigher(row)&&!isDeclared(row)&&!isConcat(row)&&row.result==='number[][]'){assert.equal(native.includes('SliceTree for Array<T>'),false);assert.equal(native.includes('SliceTree for NumericArray<T>'),false);}
-  if(!isCopying(row)&&!isRange(row)&&!isHigher(row)&&!isDeclared(row)&&!isConcat(row)&&row.result==='string[][]'){assert.equal(native.includes('SliceTree for Array<T>'),true);assert.equal(native.includes('SliceTree for NumericArray<T>'),false);}
+  if(!isCopying(row)&&!isRange(row)&&!isHigher(row)&&!isDeclared(row)&&!isConcat(row)&&row.result==='string[][]'){assert.equal(native.includes('SliceTree for Array<T>'),/\bArray</.test(binding.result??binding.resultType));assert.equal(native.includes('SliceTree for NumericArray<T>'),false);}
   assert.ok(native.indexOf('durations.push(start.elapsed()')<native.indexOf('validate(value)'));
   assertABI(emitted,row,{source:nativeSource});
   if(row.inputText!==undefined){assert.equal((native.match(/black_box\(seed\), &input/g)||[]).length,2);const probe=adaptRustDriver(fs.readFileSync(new URL('./allocation-driver.rs',import.meta.url),'utf8'),row,{probe:true,emitted,source:nativeSource});assert.ok(probe.indexOf('let input =')<probe.indexOf('let base_live'));}

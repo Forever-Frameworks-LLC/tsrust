@@ -69,6 +69,13 @@ pub fn rustc() -> Command {
         command.arg("-L").arg(format!("dependency={}", deps.display()));
         command.arg("--extern").arg(format!("tokio={}", tokio.display()));
     }
+    let nix = std::fs::read_dir(&deps).unwrap().filter_map(Result::ok).map(|entry|entry.path())
+        .filter(|path|path.file_name().unwrap().to_string_lossy().starts_with("libnix-") && path.extension().is_some_and(|extension|extension=="rlib"))
+        .max_by_key(|path|std::fs::metadata(path).and_then(|metadata|metadata.modified()).ok());
+    if let Some(nix)=nix {
+        command.arg("-L").arg(format!("dependency={}",deps.display()));
+        command.arg("--extern").arg(format!("nix={}",nix.display()));
+    }
     command
 }
 

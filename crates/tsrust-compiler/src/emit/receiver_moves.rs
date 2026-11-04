@@ -38,7 +38,7 @@ pub(super) fn mentions(expr: &Expr, id: usize) -> bool {
     found
 }
 
-/// Spans of `concat()`, `toReversed()`, `toSorted()`, `slice()` and `String()` calls that may consume their receiver.
+/// Copying-call and clone/push-loop spans whose dead local storage may be consumed.
 pub(super) fn eligible(fun: &CheckedFunction, closures: &[CheckedClosure]) -> HashSet<(usize, usize)> {
     let mut result = HashSet::new();
     let mut nested = false;
@@ -96,6 +96,12 @@ fn movable(fun: &CheckedFunction, id: usize) -> bool {
 /// eligible receiver; `Some(None)` when it holds it any other way; `None` when
 /// the reference is not in this statement.
 fn single_use(stmt: &Stmt, id: usize) -> Option<Option<(usize, usize)>> {
+    if let StmtKind::ForOf { iterable, .. } = &stmt.kind
+        && matches!(iterable.kind, ExprKind::Name(_)) && iterable.binding == Some(id)
+        && transfer_destination(stmt).is_some()
+    {
+        return Some(Some((stmt.span.start, stmt.span.end)));
+    }
     let expressions: Vec<&Expr> = match &stmt.kind {
         StmtKind::Let { value, .. } | StmtKind::Expr(value) | StmtKind::Throw(value) | StmtKind::Return(Some(value)) => vec![value],
         StmtKind::Assign { target, value, .. } => vec![target, value],
@@ -114,7 +120,7 @@ fn single_use(stmt: &Stmt, id: usize) -> Option<Option<(usize, usize)>> {
             if let ExprKind::Call(callee, args) = &value.kind
                 && let ExprKind::Field(base, _) = &callee.kind
                 && matches!(base.kind, ExprKind::Name(_)) && base.binding == Some(id)
-                && (matches!(value.target, Some(CallTarget::ArrayConcat | CallTarget::ArrayToReversed)) && args.is_empty() || matches!(value.target, Some(CallTarget::ArrayToSorted | CallTarget::ArraySlice)))
+                && (matches!(value.target, Some(CallTarget::ArrayConcat | CallTarget::ArrayToReversed)) && args.is_empty() || matches!(value.target, Some(CallTarget::ArrayToSorted | CallTarget::ArraySlice | CallTarget::ArrayWith)))
             {
                 call = Some((value.span.start, value.span.end));
             }
@@ -145,4 +151,22 @@ fn mentions_statement(stmt: &Stmt, id: usize) -> bool {
         _ => {}
     }
     found
+}
+
+/// A loop that only pushes independent clones into another array can transfer
+/// the elements when its source is independently proved dead.
+pub(super) fn transfer_destination(stmt: &Stmt) -> Option<&Expr> {
+    let StmtKind::ForOf { iterable, binding: Some(binding), body, .. } = &stmt.kind else { return None; };
+    let [statement] = body.as_slice() else { return None; };
+    let StmtKind::Expr(push) = &statement.kind else { return None; };
+    if push.target != Some(CallTarget::ArrayPush) { return None; }
+    let ExprKind::Call(callee, arguments) = &push.kind else { return None; };
+    let [clone] = arguments.as_slice() else { return None; };
+    if clone.target != Some(CallTarget::Clone) { return None; }
+    let ExprKind::Call(_, arguments) = &clone.kind else { return None; };
+    let [value] = arguments.as_slice() else { return None; };
+    if !matches!(value.kind, ExprKind::Name(_)) || value.binding != Some(*binding) { return None; }
+    let ExprKind::Field(destination, _) = &callee.kind else { return None; };
+    (matches!(destination.kind, ExprKind::Name(_)) && destination.binding.is_some()
+        && destination.binding != iterable.binding && destination.ty == iterable.ty).then_some(destination)
 }
