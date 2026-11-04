@@ -30,6 +30,84 @@ optimization focus.
 
 Owner steering, 2026-11-03: HTTP/object ergonomics supersede optimization until this section is delivered. The hello expression `c.json({greeting:clone(c.env.greeting)})` must work; routes, middleware, authorization and client generation must stay in source, without API settings in tsrust.config.json. Later requests require hover on literal keys plus useful next() hover/signature help.
 
+**Final schema/ownership gap audit — profiled; no product change retained; parent `cbc2aaad`.**
+Previous goal turn made progress: accepted schema-array storage in 67479689,
+110 checks, three native histories, public selection 108 runs, paired installation
+and cleanup (metadata cbc2aaad). Current tree began clean; no live jobs inherited.
+
+Fresh owned-string-array reversal allocation profile: original 100,000 iterations,
+checksum 571742071. Native/Rust 6/5 setup allocations, requested/peak 147/27
+bytes, input 11, three identical samples, zero reallocations/retained/cleanup.
+Native CPU sample (3 seconds of an 8-second direct-call loop) completes 4,788
+batches; 1,953 samples in inlined loop work, 278 memcmp and 45 memcmp stubs.
+Watchdog 11.882 s / 267,104 KiB. No per-reversal allocation problem.
+
+Generated-only four-way probe retains original five identities, 8 warmups /
+3×31 samples / two reverse-order rounds, three warm rotated compiles, same
+source/executable paths and argv0, atomic swaps and unsafe forbidden. Runtime
+parent 1.810291/1.768333, fixed [String;5] 1.639541/1.639208, Vec
+1.645209/1.636250, cached repeated indexed read 1.748750/1.744416 ms.
+Compile medians 277.289/295.474/270.037/273.871 ms; max load 2.324219,
+watchdog 9.316 s / 309,984 KiB. Fixed storage's ~6.6% compile increase
+rejects that prototype; caching gains little. Vec removes the carrier branch but
+would require new local-storage specialization and safe fallback proofs; defer
+that ~8% residual rather than changing ordinary small-array ownership/storage.
+Follow-up forced-inline reverse/read/all variants are inconsistent: parent
+1.976542/1.777458, reverse 1.779750/1.796875, reads 1.784000/1.793291,
+all 1.773875/1.805667. No product change, ingestion or timing claim from these
+probes. Cached Node/Rust execution references remain unchanged.
+
+Source-retaining schema split profile passes 22.242 s / 337,206 KiB.
+The first custom CPU driver assumed function0 and failed to compile; repaired it
+with the existing adapter for the fallible generated signature. Original case
+bodies/assertions remain intact, independent checksums 4*n+7=8007 / n+7=2007.
+Three identical allocation samples/engine/case, no reallocations/retention/cleanup:
+success native/Rust 22,000/22,000 blocks, requested 3,318,000/4,358,000,
+peak 1,523/2,051; missing-field 14,000/10,000, requested 1,962,000/2,010,000,
+peak 813/893; input 52. Eight-second native loops complete 6,577 success /
+19,581 failure batches, sampled 3 seconds each. Success samples show repeated
+RawValue/source cursor scans plus final retained-value parsing; failure allocation
+and Issues::push dominate. mach_absolute_time is under allocator free, not a new
+language clock check. This reproduces the earlier successful allocation parity;
+the remaining error mismatch includes richer public diagnostics.
+
+Two new generated/source-only alternatives were measured before implementation:
+
+- Callback-free retained visitor reuses the existing checked JSON Value Seed,
+  preserves source fallback, canonical extra-key ordering and exact token scan.
+  Original five identities, original timing/compile protocol and unsafe ban pass.
+  Parent 1.658042→1.513917 / 1.664375→1.540333 ms, compile
+  711.488→787.898 ms (+10.7%). Blocks 36,000 unchanged, requested
+  5,280,000→6,762,000, peak 1,523→1,635, checksum10007, cleanup0.
+  Watchdog 11.397 s / 362,896 KiB, max load1.846191. Rejected: compile
+  and temporary-memory regressions outweigh the modest runtime gain.
+- Reuse JSON.parse plus the existing owned schema validator: diagnostic source
+  preserves all valid-value/missing-field checks, while removing only the public
+  JSON-versus-validation wrapper check. This is a hypothesis probe, not exact
+  API-preserving A/B acceptance. Original five checksum identities and unsafe ban
+  pass; parent 1.670667→1.302542 / 1.665584→1.301125 ms, compile
+  714.608→661.773. Blocks 36,000→38,000, requested
+  5,280,000→5,988,000, peak1,523→1,699, checksum10007, cleanup0.
+  Watchdog9.883 s /349,450 KiB, maxload3.443359. No product change:
+  eagerly owning declared keys adds allocations and memory. Do not route
+  safeParseJson through a different public error API to obtain these numbers.
+
+These diagnostic probes are not ingested or published; Node/Rust execution
+references and all SQLite histories remain unchanged. No compiler source changed,
+so affected native/compiler suites are not rerun merely for profiling. Existing
+boxed labels remain accepted; static/Cow/tagged paths, forced inlining and capped
+reservations remain rejected. Avoid widening storage specializations or adding
+arenas/RC for these residuals. The measured source-decoder tradeoffs may inform a
+future retained-data decoder feature, but require exact error, callback, duplicate,
+Unicode/integer, recursion and ownership parity plus actual-emission controls.
+
+All current profile/probe jobs are terminal, including repaired profile97234 and
+DOM probe39914. Next: checkpoint these rejected outcomes, prune closed outputs,
+then audit the stale callable-array-transfer signal against current emission;
+finish the remaining large-gap assessment before final broad regressions,
+affected performance/HTTP refresh and approved v0.1.1 promotion. No new estimate
+or acceptance milestone is implied by these diagnostic measurements. Goal active.
+
 **Plain schema-array output storage — accepted locally, measured and installed; parent `8cc9278a`.**
 Previous goal turn made progress: hypot accepted in bdc29b8c/8cc9278a, 24
 checks, one native history, public selection 107 runs, paired installation and
