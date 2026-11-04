@@ -7,6 +7,7 @@ publish = false
 [workspace]
 
 [dependencies]
+nix = { version = "=0.31.2", default-features = false, optional = true }
 sha2 = { version = "=0.11.1", optional = true }
 subtle = { version = "=2.6.1", optional = true }
 uuid = { version = "=1.28.0", default-features = false, features = ["std"], optional = true }
@@ -34,6 +35,7 @@ serde_json = { version = "=1.0.151", features = ["raw_value"] }
 
 [features]
 default = []
+files = ["dep:nix"]
 async = ["dep:tokio"]
 http = ["async", "dep:axum", "dep:tower-http", "dep:matchit", "dep:reqwest", "dep:http-body-util", "dep:http-body", "dep:hyper-util", "dep:tokio-rustls"]
 threads = ["dep:rayon"]

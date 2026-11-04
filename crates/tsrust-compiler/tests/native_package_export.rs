@@ -102,3 +102,23 @@ fn sqlite_package_builds_offline_after_relocation(){
   let output=support::run(&mut std::process::Command::new(target.join(if release{"release/program"}else{"debug/program"})),30);support::success(&output);assert_eq!(output.stdout,b"1: Ada\n2: Grace\n");
  }
 }
+
+#[test]
+fn file_package_preserves_safe_close_and_builds_offline_after_relocation() {
+ let dir=support::TempDirectory::new();
+ let input=dir.source(&support::format_round_trip(include_str!("fixtures/native-files/read-close.tsr")));
+ let package=dir.0.join("package");
+ support::success(&support::run(support::cli().arg("emit").arg(&input).arg("--package").arg("-o").arg(&package),60));
+ std::fs::remove_file(input).unwrap();let relocated=dir.0.join("relocated");std::fs::rename(package,&relocated).unwrap();
+ let source=relocated.join("src/main.rs");let emitted=std::fs::read_to_string(&source).unwrap();assert!(!emitted.contains("unsafe"));
+ std::fs::write(source,format!("#![forbid(unsafe_code)]\n{emitted}")).unwrap();
+ assert!(std::fs::read_to_string(relocated.join("Cargo.toml")).unwrap().contains("\"files\""));
+ assert!(relocated.join("vendor/nix-0.31.2/LICENSE").exists());
+ std::fs::write(relocated.join("input.bin"),[0,65,255,66]).unwrap();
+ let target=std::env::var_os("CARGO_TARGET_DIR").map(std::path::PathBuf::from).unwrap_or_else(||std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target"));
+ for release in [false,true] {
+  let mut command=std::process::Command::new("rustup");command.args(["run",tsrust_compiler::RUST_BACKEND_VERSION,"cargo","build","--offline","--locked"]).current_dir(&relocated).env("CARGO_HOME",dir.0.join("empty-cargo-home")).env("CARGO_INCREMENTAL","0").env("CARGO_BUILD_JOBS","1").env("CARGO_TARGET_DIR",&target);
+  if release {command.arg("--release");}support::success(&support::run(&mut command,120));
+  let output=support::run(std::process::Command::new(target.join(if release{"release/program"}else{"debug/program"})).current_dir(&relocated),30);support::success(&output);assert!(output.stdout.is_empty());
+ }
+}

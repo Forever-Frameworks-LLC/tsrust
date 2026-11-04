@@ -24,7 +24,9 @@ export function dependencyArtifacts(stdout,target,requiredNames=names) {
 }
 export function needsJsonDependencies(emitted) { return /(?:^|[;}]\s*)mod\s+tsrust_native_json\s*\{/m.test(emitted); }
 export function prepareNativeDependencies({emitted,compiler,source,build,rustVersion,targetDirectory,env=process.env}) {
- if(!needsJsonDependencies(emitted))return {args:[],evidence:null};
+ const files=/(?:^|[;}]\s*)mod\s+tsrust_native_files\s*\{/m.test(emitted);
+ if(!needsJsonDependencies(emitted)&&!files)return {args:[],evidence:null};
+ const selectedNames=[...(needsJsonDependencies(emitted)?names:[]),...(files?['nix']:[])];
  // Stable source paths keep rebuilt dependency artifacts identical across A/B runs.
  const scratch=path.join(build,'package-native-dependencies');
  fs.mkdirSync(scratch); // Fail closed if another preparation owns this directory.
@@ -48,9 +50,9 @@ export function prepareNativeDependencies({emitted,compiler,source,build,rustVer
   const packaged=fs.readFileSync(path.join(packageRoot,'src/main.rs'),'utf8');
   if(packaged.trimEnd()!==emitted.trimEnd())throw new Error('Exported source differs from benchmark emission');
   const command=['rustup','run',rustVersion,'cargo','build','--offline','--locked','--release','--message-format=json'];
-  const artifacts=dependencyArtifacts(run(command[0],command.slice(1),packageRoot),target);
+  const artifacts=dependencyArtifacts(run(command[0],command.slice(1),packageRoot),target,selectedNames);
   const args=[],directories=new Set(),libraries=[];
-  for(const name of names){const file=artifacts[name];args.push('--extern',`${name}=${file}`);directories.add(path.dirname(file));libraries.push({name,path:file,sha256:hash(fs.readFileSync(file))});}
+  for(const name of selectedNames){const file=artifacts[name];args.push('--extern',`${name}=${file}`);directories.add(path.dirname(file));libraries.push({name,path:file,sha256:hash(fs.readFileSync(file))});}
   for(const directory of directories)args.push('-L',`dependency=${directory}`);
   return {args,evidence:{preparation:'untimed-offline-cargo',command,rustVersion,manifestSha256:hash(fs.readFileSync(path.join(packageRoot,'Cargo.toml'))),lockSha256:hash(fs.readFileSync(path.join(packageRoot,'Cargo.lock'))),configSha256:hash(fs.readFileSync(path.join(packageRoot,'.cargo/config.toml'))),libraries}};
  } finally {fs.rmSync(scratch,{recursive:true,force:true});}

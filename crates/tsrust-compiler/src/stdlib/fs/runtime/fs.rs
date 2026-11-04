@@ -151,11 +151,7 @@ fn close_file_with(file: std::fs::File, release: impl FnOnce(i32) -> std::io::Re
     release(file.into_raw_fd()).map_err(|error| FsFailure::io("close", error))
 }
 fn close_fd(descriptor: i32) -> std::io::Result<()> {
-    unsafe extern "C" { #[link_name = "close"] fn native_close(descriptor: i32) -> i32; }
-    // SAFETY: close accepts an integer descriptor. Production callers transfer a
-    // uniquely owned File and invoke this exactly once. On macOS/Linux the handle
-    // is released before a backend close error; retry could close a reused handle.
-    if unsafe { native_close(descriptor) } == 0 { Ok(()) } else { Err(std::io::Error::last_os_error()) }
+    nix::unistd::close(descriptor).map_err(std::io::Error::from)
 }
 
 #[cfg(test)]

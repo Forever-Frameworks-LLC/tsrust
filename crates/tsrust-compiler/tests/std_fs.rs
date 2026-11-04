@@ -5,6 +5,11 @@ fn file_reads_and_consuming_close_execute_through_public_imports() {
     let directory = support::TempDirectory::new();
     std::fs::write(directory.0.join("input.bin"), [0, 65, 255, 66]).unwrap();
     let source = support::format_round_trip(include_str!("fixtures/native-files/read-close.tsr"));
+    let entry=directory.source(&source);
+    let project=tsrust_compiler::project::load_project(&tsrust_compiler::project::FileSourceProvider,entry.to_str().unwrap()).unwrap();
+    let emitted=tsrust_compiler::project::check_graph(project).unwrap().emit_rust();
+    assert!(!emitted.contains("unsafe"),"generated file support must use safe Rust");
+    assert!(tsrust_compiler::native_runtime::separate(&emitted).dependencies);
     let references = source.replace("function main() {", "function main() {const begin=open; const finish=close;")
         .replace("open(\"input.bin\")", "begin(\"input.bin\")").replace("close(file)", "finish(file)")
         .replace("match (read(file, count))", "const receive=read; match (receive(file, count))");

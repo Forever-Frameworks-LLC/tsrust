@@ -47,6 +47,13 @@ test('exported JSON dependencies link a separately instrumented native program o
   run('rustup',['run','1.96.1','rustc','--edition=2024','-A','warnings','-C','overflow-checks=on',...dependencies.args,instrumented,'-o',binary]);
   assert.equal(run(binary,[]),'null\ninstrumented\n');
   assert.throws(()=>prepareNativeDependencies({...options,emitted:emitted+'\n// changed'}),/differs/);
+  fs.writeFileSync(source,`import {readFile} from 'std:fs';function main(){match(readFile('missing-dependency-test-file')){Ok(bytes)=>{throw 'unexpected file';},Err(error)=>{console.log(error.code);}}}`);
+  const fileEmitted=run(process.env.TSRUST,['emit',source]);assert.ok(!fileEmitted.includes('unsafe'));
+  const fileDependencies=prepareNativeDependencies({...options,emitted:fileEmitted});
+  assert.deepEqual(fileDependencies.evidence.libraries.map(library=>library.name),['nix']);
+  fs.writeFileSync(instrumented,fileEmitted);
+  run('rustup',['run','1.96.1','rustc','--edition=2024','-F','unsafe_code','-A','warnings',...fileDependencies.args,instrumented,'-o',binary]);
+  assert.equal(run(binary,[]),'not-found\n');
   assert.ok(!fs.readdirSync(root).some(name=>name.startsWith('package-')));
  } finally {fs.rmSync(root,{recursive:true,force:true});}
 });
