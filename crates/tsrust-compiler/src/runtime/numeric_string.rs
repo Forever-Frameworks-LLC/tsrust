@@ -30,7 +30,11 @@ pub fn tsr_numeric_radix(digits: &[u8], width: u32) -> f64 {
 }
 
 pub fn tsr_number_from_text(text: &str) -> f64 {
-    let text = text.trim_matches(tsr_numeric_whitespace);
+    let text = text.trim_ascii();
+    // Rust's ASCII trim excludes vertical tab; preserve conversion whitespace.
+    let text = if matches!(text.as_bytes(), [0x0b|0x80..=0xff,..] | [..,0x0b|0x80..=0xff]) {
+        text.trim_matches(tsr_numeric_whitespace)
+    } else { text };
     if text.is_empty() { return 0.0; }
     let bytes = text.as_bytes();
     if bytes.len() >= 2 && bytes[0] == b'0' {

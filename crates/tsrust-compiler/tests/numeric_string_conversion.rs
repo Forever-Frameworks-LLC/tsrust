@@ -137,6 +137,25 @@ fn main(){
     for (text,expected) in [("",0.0),(" \t\r\n",0.0),("\u{feff}-.5\u{a0}",-0.5),("Infinity",f64::INFINITY),("+Infinity",f64::INFINITY),("-Infinity",f64::NEG_INFINITY),("0x10",16.0),("0b11",3.0),("0o17",15.0)] {
         assert_eq!(function0(&String::Borrowed(text)).to_bits(),expected.to_bits(),"{text:?}");
     }
+    for scalar in 0..=0x10ffff {
+        let Some(character)=char::from_u32(scalar) else {continue;};
+        let whitespace=matches!(scalar,9..=13|32|0xa0|0x1680|0x2000..=0x200a|0x2028|0x2029|0x202f|0x205f|0x3000|0xfeff);
+        for text in [format!(" \t{character} -0 \r\n"),format!(" \t-0 {character}\r\n"),format!(" \t{character} -0 {character} \r\n")] {
+            let value=String::Owned(text.clone());
+            let number=function0(&value);
+            if whitespace {assert_eq!(number.to_bits(),(-0.0f64).to_bits(),"{scalar:x}");}
+            else {assert!(number.is_nan(),"{scalar:x}");}
+            assert_eq!(value.as_ref(),text);
+        }
+    }
+    for first in ['\t','\n','\u{b}','\u{c}','\r',' ','\u{a0}','\u{feff}','\u{3000}'] {
+        for last in ['\t','\n','\u{b}','\u{c}','\r',' ','\u{a0}','\u{feff}','\u{3000}'] {
+            for (text,expected) in [("",0.0),("-0",-0.0),(".5",0.5),("0x10",16.0),("Infinity",f64::INFINITY)] {
+                let text=format!(" {first} {text} {last} ");
+                assert_eq!(function0(&String::Owned(text.clone())).to_bits(),expected.to_bits(),"{text:?}");
+            }
+        }
+    }
 }
 "#;
     let directory=support::TempDirectory::new();let path=directory.0.join("decimal.rs");
