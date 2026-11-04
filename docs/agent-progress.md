@@ -30,6 +30,90 @@ optimization focus.
 
 Owner steering, 2026-11-03: HTTP/object ergonomics supersede optimization until this section is delivered. The hello expression `c.json({greeting:clone(c.env.greeting)})` must work; routes, middleware, authorization and client generation must stay in source, without API settings in tsrust.config.json. Later requests require hover on literal keys plus useful next() hover/signature help.
 
+**Math.min/Math.max — accepted locally and installed; parent `a22f7466`.**
+Fresh CPU profiling passes 19.541 s / 302,096 KiB: 3-second samples of 8-second,
+500,000-iteration batches, checked against independent exact-bit oracles.
+Max/min complete 7,914/7,894 batches; computation is fully inlined, with no
+allocation or I/O. Generated-only intrinsic reductions improve max
+1.038666→.840917 / 1.027916→.838459 ms and min
+1.014542→.839417 / 1.011375→.838833 ms. Seeding from the first element adds
+little benefit and more code; keep the smaller intrinsic-only change. Prototype
+warm compile medians: max 210.548→212.593 ms, min 211.253→210.733 ms.
+Both probes pass the original protocol and O0/O3 equivalence against the original
+reducer on 76,683 edge/random vectors with both extrema. Max/min watchdogs:
+8.246 s / 289,737 KiB and 6.694 s / 271,456 KiB; maximum loads 1.926270/2.065430.
+Prototype results were not ingested.
+
+The shared runtime/math.rs reducer now uses standard f64::max/min after the
+existing signed-zero branch. Infinity initialization, early NaN rejection, empty
+arity and eager operand staging remain unchanged. Ordinary and spread callers
+share this fix. No helper, dependency, API, limit, ownership or generated unsafe
+change. The existing math_exact O0/O3 witness now checks an independent
+NaN-filtered total_cmp reference through slice and segmented-iterator adapters:
+76,683 vectors, both extrema, both adapters and optimization levels total
+613,464 exact-bit comparisons. Includes subnormals, finite bounds, infinities,
+signaling/quiet NaNs, signed zero and lengths 0–8. Existing effect-order,
+empty/spread, disposal and type checks pass.
+
+Joint compiler/LSP no-run passes 479.815 s / 3,611,715 KiB. All 23 affected
+checks pass, none ignored, serial binaries / 3 threads / 5 GB–30 min watchdog:
+math_exact 5 (2.592 s / 190,592 KiB), math_approx 5 (2.087 s / 233,760 KiB),
+root_builtin_spread 5 (2.633 s / 490,144 KiB), compiler iterable_call_spread 3
+(2.093 s / 353,232 KiB), LSP iterable_call_spread 3 (.516 s), intelligence math
+cases 2 (.515 s). LSP cases finish too quickly for meaningful sampled memory.
+Library unit binaries were built but not run. Future routine no-run builds should
+omit --lib unless affected unit filters will run; preparing unused broad unit
+binaries adds substantial build time. Keep both package selections and one target.
+
+Actual-emission A/B against a22f7466 passes. Max: 1.017917→.839792 /
+1.020958→.838250 ms (1.212×/1.218×), compile median 210.294→211.188 ms.
+Min: 1.015208→.841875 / 1.013750→.838666 ms (1.206×/1.209×), compile
+212.438→212.118 ms. Original five independent checksum/bit identities, O0/O3
+edge comparisons, 8 warmups / 3×31 samples / two reverse rounds, three warm
+rotated compiles, same paths/argv, atomic swaps and unsafe ban pass. Max/min
+watchdogs: 4.673 s / 280,944 KiB and 6.748 s / 312,688 KiB; maximum loads
+2.722168/2.387695 < 4. Three allocation samples per version are identical:
+all allocation/reallocation/requested/retained/peak/input/cleanup counts zero.
+Max checksum 521614782, exact n:414d19aea0000000. No material compile regression.
+
+Math.round control varies in opposite directions: .510917→.499958 /
+.508916→.541833 ms; compile 209.842→209.069 ms, watch 4.662 s / 301,600 KiB,
+maximum load 1.876465. Complete O3 assembly at the same source/output path is
+byte-identical, SHA256 a8e1e49d2d9a7fb099898b66f40151a125280659c6079b187963fa42de6cfcae.
+Math.round/Math.hypot emissions differ only in the unused extrema body;
+interfaces/path normalization emit byte-identically. Assembly/emission proof:
+2.079 s / 173,104 KiB. Control variation is resolved; no unresolved regression.
+Cached Node/Rust execution references were not repeated.
+
+Canonical native-only run 2026-11-04T11:24:40.069Z passes 215.734 s /
+2,245,755 KiB including paired release build, independent correctness cases and
+93 samples per workload. Maximum load 2.441406 < 4; no override. Min median
+.896708 ms / 563,936,902.067 mean ops/s; max .896875 ms / 560,489,595.425.
+Each sample retains the original 500,000 operations. Final debug/release emissions
+match and canonical source/emitted hashes verify. npm run store:ingest adds exactly
+two native histories; independent medians, mean rates, operations, counts and dates
+match. Every earlier history and all Node/Rust references remain unchanged;
+SQLite integrity OK. Public selection: 106 accepted runs / 933 comparisons.
+Two page tests pass; 67-page website build 3.647 s / 1,210,846 KiB. Whole-project
+formatter changes 0 files/snippets/fingerprints; git diff --check passes.
+
+Paired release consumers atomically installed and SHA256-verified:
+CLI 957eafec3b00250e62f8a1359e0dc9c107e1cdedc5ba353fc144404cddb07077;
+LSP d93f8b1c5e3a37fba10cd8cb002e13b610afa8923053ba67303dcb8b25e2d97a.
+Installed CLI checks unchanged hello/src/main.tsr; source/config hashes unchanged,
+editor processes untouched. All current jobs are terminal. Local performance page
+updated; no full regressions, CI, push or publication. Goal remains active.
+
+Next profile Math.hypot (saved native 1.294958 / Rust .930416 ms, .364542 excess).
+Inspect the initial zero-to-first hypot operation versus a seeded reduction,
+preserving infinity-over-NaN precedence, empty/single inputs, signed zero,
+subnormals, overflow/underflow and rounding. Do not change it without fresh
+profile/edge proof and matched A/B. Source-retaining schema remains .441208 ms
+over saved Rust; rejected alternatives below remain rejected. Full regressions,
+affected HTTP metric refresh and approved v0.1.1 promotion stay deferred until
+large gaps reach small refinements. Do not infer milestone completion from this
+extrema checkpoint.
+
 **Normalization composition bound — accepted locally and installed; parent46c09058.**
 Source checkpoint `e823b0f4` contains the accepted runtime/test,SQLite history and performance selection. After independent ingestion verification and commit,pruned92closed scratch/raw/profile artifacts (35204606bytes). Shared Cargo libraries,current numeric/normalization test binaries,paired consumers and exact schema/Nix args retained. All section jobs terminal. Next executable action:profile Math.min/Math.max against this checkpoint before any implementation;preserve special values,empty arity,spread behavior and eager argument evaluation.
 

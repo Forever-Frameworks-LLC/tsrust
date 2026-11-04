@@ -95,6 +95,24 @@ fn exact_math_reductions_bind_all_arguments_once_and_preserve_zero_and_nan() {
         "#,
         "1\n2\n3\nNaN\n3\n4\n5\n6\nNaN\n6\n7\n8\n-2\n8\n1\n1\n1\n",
         r#"
+        fn check_extrema(values:&[f64]) {
+            for maximum in [false,true] {
+                let expected=if values.iter().any(|value|value.is_nan()) { f64::NAN }
+                    else if maximum { values.iter().copied().max_by(f64::total_cmp).unwrap_or(f64::NEG_INFINITY) }
+                    else { values.iter().copied().min_by(f64::total_cmp).unwrap_or(f64::INFINITY) };
+                assert_eq!(tsr_math_extreme(values,maximum).to_bits(),expected.to_bits());
+                let segmented=std::iter::empty().chain(values.iter().copied());
+                assert_eq!(tsr_math_extreme_iter(segmented,maximum).to_bits(),expected.to_bits());
+            }
+        }
+        let domain=[f64::NEG_INFINITY,-f64::MAX,-1.0,-f64::MIN_POSITIVE,-f64::from_bits(1),-0.0,0.0,f64::from_bits(1),f64::MIN_POSITIVE,1.0,f64::MAX,f64::INFINITY,f64::NAN,f64::from_bits(0xfff0000000000001)];
+        check_extrema(&[]);
+        for a in domain { check_extrema(&[a]);for b in domain { check_extrema(&[a,b]);for c in domain { check_extrema(&[a,b,c]); } } }
+        let mut state=7u64;
+        for length in 0..9 { for _ in 0..8192 {
+            let mut values=[0.0;8];for value in &mut values[..length] { state=state.wrapping_mul(6364136223846793005).wrapping_add(1);*value=f64::from_bits(state); }
+            check_extrema(&values[..length]);
+        } }
         assert_eq!(function3(),f64::INFINITY);assert_eq!(function4(),f64::NEG_INFINITY);
         for (left,right,min,max) in [(-0.0,0.0,-0.0,0.0),(0.0,-0.0,-0.0,0.0),(-0.0,-0.0,-0.0,-0.0),(0.0,0.0,0.0,0.0),(1.0,-2.0,-2.0,1.0),(f64::INFINITY,f64::NEG_INFINITY,f64::NEG_INFINITY,f64::INFINITY)]{assert_eq!(function1(left,right).to_bits(),min.to_bits());assert_eq!(function2(left,right).to_bits(),max.to_bits());}
         for value in [f64::NAN,-f64::NAN]{for other in [-0.0,0.0,1.0,f64::INFINITY,f64::NEG_INFINITY]{assert!(function1(value,other).is_nan());assert!(function1(other,value).is_nan());assert!(function2(value,other).is_nan());assert!(function2(other,value).is_nan());}}

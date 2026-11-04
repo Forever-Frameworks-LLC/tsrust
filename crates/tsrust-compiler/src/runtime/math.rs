@@ -90,15 +90,15 @@ fn tsr_math_extreme_iter(values: impl IntoIterator<Item = f64>, maximum: bool) -
         if value.is_nan() {
             return f64::NAN;
         }
-        if (maximum && value > result) || (!maximum && value < result) {
-            result = value;
-        } else if value == 0.0 && result == 0.0 {
+        if value == 0.0 && result == 0.0 {
             if maximum && !value.is_sign_negative() {
                 result = value;
             }
             if !maximum && value.is_sign_negative() {
                 result = value;
             }
+        } else {
+            result = if maximum { result.max(value) } else { result.min(value) };
         }
     }
     result
