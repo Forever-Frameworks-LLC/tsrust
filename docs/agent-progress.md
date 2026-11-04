@@ -31,6 +31,12 @@ optimization focus.
 Owner steering, 2026-11-03: HTTP/object ergonomics supersede optimization until this section is delivered. The hello expression `c.json({greeting:clone(c.env.greeting)})` must work; routes, middleware, authorization and client generation must stay in source, without API settings in tsrust.config.json. Later requests require hover on literal keys plus useful next() hover/signature help.
 
 **Math.min/Math.max — accepted locally and installed; parent `a22f7466`.**
+Source checkpoint `52a767af` contains the accepted runtime/test, SQLite histories
+and public selection. After independent ingestion verification and commit, pruned
+67 closed scratch/raw/profile artifacts (17270299 bytes). Shared Cargo libraries,
+current math/spread/editor tests and paired consumers remain reusable. All jobs
+are terminal. The next executable action is fresh Math.hypot profiling.
+
 Fresh CPU profiling passes 19.541 s / 302,096 KiB: 3-second samples of 8-second,
 500,000-iteration batches, checked against independent exact-bit oracles.
 Max/min complete 7,914/7,894 batches; computation is fully inlined, with no
