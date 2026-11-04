@@ -30,6 +30,113 @@ optimization focus.
 
 Owner steering, 2026-11-03: HTTP/object ergonomics supersede optimization until this section is delivered. The hello expression `c.json({greeting:clone(c.env.greeting)})` must work; routes, middleware, authorization and client generation must stay in source, without API settings in tsrust.config.json. Later requests require hover on literal keys plus useful next() hover/signature help.
 
+**Final optimization milestone — regression phase authorized by owner stopping rule.**
+Final complete preparation passes:867.693s/3,711,571KiB, 502 test binaries,
+including both --lib, both binary harnesses and all 498 integration files. Command:
+cargo test --offline --locked -p tsrust-compiler -p tsrust-lsp --lib --bins --tests
+--no-run --message-format=json under /tmp/tsrust-watch.py, one Cargo target/job,
+incremental off, TSRUST_SOURCE_PACK_DIR=target/portable-source-packs. Build handle
+55975 is terminal0. One known generated-only dead_code warning remains:
+stdlib/json/typed.rs decode_plain at217; no errors/new warnings. No suppression.
+
+
+Latest ledger snapshot: 137/502 binaries completed, 2581 passing tests; failed groups tsrust-compiler::tsrust_compiler, tsrust-compiler::calendar_dates, tsrust-compiler::collections, tsrust-compiler::decimal_values. This snapshot is historical; poll live handle23979 and ledger for current state.
+
+Complete serial execution is live, tool session23979, orchestrator
+/tmp/tsrust-final-regressions.py. It runs both library binaries first, then all
+binary/integration targets, --test-threads=3, per-binary5GB/30min watchdog.
+Compiler library completed:1,304pass/2fail/8ignored (74.736s/1,156,850KiB).
+LSP library passes20/0/0 (.522s; too short for useful sampled memory). The
+runner continues through integrations; inspect its ledger for current totals. Results are
+incrementally saved to /tmp/tsrust-final-regressions.json, each full log named
+/tmp/tsrust-final-regression-<package>-<target>.log. Preserve completed groups;
+do not duplicate the live runner or restart the entire pass after a failure.
+Repair/rerun affected checks only. After executable suites run both package
+doctests separately under watchdog and backend all-target diagnostics. Preparation
+is not full-suite acceptance. Platform CI and publication remain pending.
+
+All933 microbenchmarks have existing native, Node-tsc and hand-written Rust
+histories. Final milestone refresh should retime native only in bounded batches,
+retaining all933 workloads, original5cases/8warmups/3×31samples and quiet guard.
+Do not rerun unchanged external timing references. HTTP has8 request and2 CPU
+workloads with separate manifests and pinned references.
+
+HTTP runner cache-control gap found during final refresh preparation: it always
+executes all three servers. Implemented --engines=native (same syntax as runtime
+runner) via existing requests-contract.mjs requestEngines selector, consumed by
+requests-run.mjs in both IO/CPU modes. Default order/three engines preserved;
+selected engines rotate modulo their count across all three processes, retain
+all original validation/latency/resource passes and 93 samples, and are recorded
+in result.measuredEngines. Build preparation still creates all three binaries;
+common Node HTTP client remains unchanged. README explains refresh use. No server
+source/protocol/manifest or measurement history changed. Eight HTTP/CPU contract
+tests pass (.521s; sampled432KiB too short for meaningful memory). Cover default,
+native-only, mixed/canonical order, empty/unknown/duplicate/repeated flags and
+original sampling controls. Live --verify --engines=native for both modes remains
+pending until the serial regressions finish; do not run competing heavy work.
+Additional final-pass failures and coherent draft fixes (not yet rebuilt):
+- emit::map_emit::ordered_tests::ordered_map_callback_entries_keep_captured_view_owners:
+  generated ordered Map entry-epoch code calls missing TsrOrderedMap::from_mapped.
+  All emitter callers inspected (map_entry_epoch_emit/map_storage_epochs), plus
+  ordinary Map implementations. Added the ordered runtime counterpart: consume
+  BTreeMap entries in sorted order, move keys, FnMut-convert values, collect the
+  final tree. Existing failing native witness is retained; expanded ordered-backend
+  O0/O3 fixture with non-Clone owners, unchanged String/Vec pointers, sorted
+  conversion order, exact final drops and complete unwind cleanup.
+- project::rust::dependencies::tests::every_bundled_dependency_pin_is_reserved:
+  runtime nix pin is missing from the reserved-name guard. Added nix, expanded
+  the pin inventory test to both native/backend manifests and explicit v1/v2
+  binding declarations of nix. No pin/version/API/default or dependency added.
+- collections::hash_buckets_avoid_single_key_allocations_and_preserve_collisions:
+  fixture extracts one raw string from maps.rs, now a multi-constant module, and
+  emits Rust containing string delimiters. Replaced fragile text slicing with
+  actual imported runtime constants, checking both ordinary and inline Map
+  variants at O0/O3 with every original allocation/collision/order assertion.
+
+Calendar and decimal portable-export cases failed because target's two cached
+packs predate current pins. Explicit current CLI setup --portable --offline --yes,
+with TSRUST_SOURCE_PACK_DIR=target/portable-source-packs and
+TSRUST_CACHE_DIR=target/tsrust-native, passes16.644s/148,288KiB. Created verified
+native pack291032a97fc5afc77ca4df52538a5e56aad7769646c79847a67ae33aa8b3bc2f
+from existing Cargo cache; no downloads, owner source/config/editor changes.
+The two environment failures still need focused reruns after the baseline pass.
+No source preparation or automatic network access was hidden inside export.
+
+The baseline runner still uses the previously built accepted code. Draft Rust
+fixes and new native fixtures are unbuilt; do not replace debug executables or
+start another Cargo build while the serial runner is live. Preserve its successful
+baseline evidence. After it finishes, jointly prepare both --lib consumers plus
+collections/maps/scoped_record_composition and affected dependency/export targets;
+run the two failed compiler unit filters, changed collection witnesses and other
+new failures serially under watchdog. Keep previously passed groups. Then
+complete doctests/all-target diagnostics, both native-only HTTP verification modes,
+and final timing refresh. Current changes: HTTP tools/docs; ordered_runtime.rs;
+rust_dependencies.rs; collections.rs and ordered-backend.rs; this sole handoff.
+No draft fix is accepted or performance gain claimed yet.
+Whole-project formatter passes0 files/snippets/fingerprints changed. Do not commit
+the pending source repairs as accepted until affected rebuilt checks pass.
+Latest observed progress:137 completed binaries,133 passing binaries,2,581 passing
+tests,11 existing ignores. Poll the runner/ledger for newer totals.
+
+The ranked compiler/container/JSON/string/math changes have measured accepted
+checkpoints. Latest schema-array optimization is67479689. Final audits cover the
+remaining sizable source-retain/error, reversal and callable-transfer signals:
+no hidden per-iteration string clones or surplus callable allocation counts;
+remaining candidates trade small runtime gains for compile/memory regressions.
+Hand-written Rust parity remains a stretch target; retain richer diagnostics,
+exact JSON/numeric behavior, Rust defaults and independent ownership. Do not
+reopen these rejected variants or indefinitely chase small residuals before
+features. Next run final complete compiler/LSP regressions, both --lib binaries
+and doctests with one Cargo target/job, incremental disabled, serial binaries,
+3threads and watchdog. Preserve completed suites and repair only affected failures.
+Then refresh affected public native/HTTP metrics with cached Node/Rust controls,
+validate docs/consumers, and complete approved v0.1.1 promotion. While deployment
+runs, reprioritize feature work with the owner. Backend-only direction remains
+active until that discussion. This begins final verification, not goal completion.
+Rejected-candidate checkpoint7f2fd116; pruned 126 closed callable
+scratch/profile/probe outputs (27934488 bytes), retaining shared Cargo outputs.
+
+
 **Single-item Vec.unshift — rejected after full affected controls; parent `2f46bcda`.**
 Previous goal turn made progress: profiling/rejected reverse and retained-schema
 alternatives recorded in 247e11f7/2f46bcda, cleanup complete. Current section began
@@ -109,46 +216,10 @@ speculative size-of-type heuristic or extra specialization added to hide it.
 Rejected the complete candidate, restored runtime/mod.rs and array_unshift.rs
 exactly to the accepted source. No product change, ingestion, public metric
 update or install. The 61 focused checks validated the trial's semantics, not a
-new accepted optimization. Current target/debug consumers/test binaries contain
-the rejected candidate until the next Cargo rebuild; installed/release consumers
-remain the accepted source. All current profile/build/test/A/B jobs are terminal.
+new accepted optimization. At rejection time, target/debug consumers/test binaries contained
+the trial; final preparation below has since restored accepted source binaries.
+Installed/release consumers remained on accepted source throughout. All current profile/build/test/A/B jobs are terminal.
 
-**Final optimization milestone — regression phase authorized by owner stopping rule.**
-Final complete test preparation is live, tool session55975. Logs:
-/tmp/tsrust-final-regression-build.{jsonl,log}. Command: cargo test --offline
---locked -p tsrust-compiler -p tsrust-lsp --lib --bins --tests --no-run
---message-format=json, wrapped in /tmp/tsrust-watch.py with CARGO_TARGET_DIR
-absolute target, CARGO_INCREMENTAL=0, CARGO_BUILD_JOBS=1 and
-TSRUST_SOURCE_PACK_DIR=target/portable-source-packs (two existing packs).
-Poll this exact handle. Current source is restored accepted compiler behavior;
-installed/release pair unchanged. No current timing jobs.
-
-After successful preparation run /tmp/tsrust-final-regressions.py under normal
-terminal orchestration with escalation for watchdog ps. It asserts both library
-binaries exist, runs each binary serially/3threads/5GB30min, retains successful
-results in /tmp/tsrust-final-regressions.json, and continues to collect failures.
-On resumption preserve successful groups; repair/rerun affected groups only.
-Do not claim the full suite passed from preparation alone. After executable
-suites, run both package doctests separately under watchdog (development workflow)
-and backend all-target diagnostics. Platform CI and publication remain pending.
-
-The ranked compiler/container/JSON/string/math changes have measured accepted
-checkpoints. Latest schema-array optimization is67479689. Final audits cover the
-remaining sizable source-retain/error, reversal and callable-transfer signals:
-no hidden per-iteration string clones or surplus callable allocation counts;
-remaining candidates trade small runtime gains for compile/memory regressions.
-Hand-written Rust parity remains a stretch target; retain richer diagnostics,
-exact JSON/numeric behavior, Rust defaults and independent ownership. Do not
-reopen these rejected variants or indefinitely chase small residuals before
-features. Next run final complete compiler/LSP regressions, both --lib binaries
-and doctests with one Cargo target/job, incremental disabled, serial binaries,
-3threads and watchdog. Preserve completed suites and repair only affected failures.
-Then refresh affected public native/HTTP metrics with cached Node/Rust controls,
-validate docs/consumers, and complete approved v0.1.1 promotion. While deployment
-runs, reprioritize feature work with the owner. Backend-only direction remains
-active until that discussion. This begins final verification, not goal completion.
-Rejected-candidate checkpoint7f2fd116; pruned 126 closed callable
-scratch/profile/probe outputs (27934488 bytes), retaining shared Cargo outputs.
 
 **Final schema/ownership gap audit — profiled; no product change retained; parent `cbc2aaad`.**
 Previous goal turn made progress: accepted schema-array storage in 67479689,
