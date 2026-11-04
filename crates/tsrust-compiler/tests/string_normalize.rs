@@ -68,7 +68,11 @@ fn main() {
   assert_eq!(columns.len(),5);
   if part1 { assert_eq!(columns[0].chars().count(),1); if let Some(character)=columns[0].chars().next() { listed.insert(character as u32); } }
   for (form,expected) in [("NFC",[1,1,1,3,3]),("NFD",[2,2,2,4,4]),("NFKC",[3,3,3,3,3]),("NFKD",[4,4,4,4,4])] {
-   for index in 0..5 { assert_eq!(tsr_string_normalize(&columns[index],Some(form),"conformance").as_ref(),columns[expected[index]],"line {} form {} column {}",line_number+1,form,index+1); }
+   for index in 0..5 {
+    let result=tsr_string_normalize(&columns[index],Some(form),"conformance");
+    assert_eq!(result.as_ref(),columns[expected[index]],"line {} form {} column {}",line_number+1,form,index+1);
+    if let String::Owned(output)=result { assert_eq!(output.capacity(),output.len(),"exact output reservation"); }
+   }
   }
   rows+=1;
  }
@@ -230,6 +234,42 @@ fn main(){
  for level in ["0","3"]{
   let executable=directory.0.join(format!("expanded-normalization-{level}"));
   support::success(&support::run(support::rustc().args(["--edition=2024","-A","warnings","-D","unused_assignments","-C",&format!("opt-level={level}"),"-C","overflow-checks=on"]).arg(&path).arg("-o").arg(&executable),60));
+  let output=support::run(&mut std::process::Command::new(executable),30);support::success(&output);assert!(output.stdout.is_empty());assert!(output.stderr.is_empty());
+ }
+}
+
+#[test]
+fn normalization_reserves_exact_utf8_output_without_growth() {
+ let source=support::format_round_trip("function normal(text:string):string{return text.normalize();}function main(){}");
+ let emitted=tsrust_compiler::check(&source).unwrap().emit_rust();assert!(!emitted.contains("unsafe"));
+ let allocator=include_str!("../../../benchmarks/runtime/allocation-driver.rs").split("fn main()").next().unwrap();
+ let harness=r#"
+fn main(){
+ for code in [0,0x7f,0x80,0x7ff,0x800,0xd7ff,0xe000,0xffff,0x10000,0x10ffff]{
+  let text=char::from_u32(code).unwrap().to_string();
+  for form in ["NFC","NFD","NFKC","NFKD"]{
+   let before=REALLOCS.load(Relaxed);let live=LIVE.load(Relaxed);
+   let result=tsr_string_normalize(&text,Some(form),"UTF-8 boundary");
+   assert_eq!(REALLOCS.load(Relaxed),before,"no output or scalar growth for U+{code:X}");
+   assert_eq!(result.as_ref(),text);
+   if let String::Owned(ref output)=result{assert_eq!(output.capacity(),output.len());}else{panic!("normalization must own its output");}
+   drop(result);assert_eq!(LIVE.load(Relaxed),live);
+  }
+ }
+ for text in ["".to_owned(),"ascii".to_owned(),"e\u{301}Åﬁ①é😀".repeat(128),"\u{fdfa}".repeat(128),"각".repeat(128),"\u{315}\u{301}\u{300}\u{323}".repeat(1024)]{
+  for form in ["NFC","NFD","NFKC","NFKD"]{
+   let live=LIVE.load(Relaxed);let result=tsr_string_normalize(&text,Some(form),"output reservation");
+   if let String::Owned(ref output)=result{assert_eq!(output.capacity(),output.len());}else{panic!("normalization must own its output");}
+   drop(result);assert_eq!(LIVE.load(Relaxed),live);
+  }
+ }
+}
+"#;
+ let directory=support::TempDirectory::new();let path=directory.0.join("normalization-output.rs");
+ std::fs::write(&path,emitted.replace("fn main()","fn source_main()")+allocator+harness).unwrap();
+ for level in ["0","3"]{
+  let executable=directory.0.join(format!("normalization-output-{level}"));
+  support::success(&support::run(support::rustc().args(["--edition=2024","-A","warnings","-C",&format!("opt-level={level}"),"-C","overflow-checks=on"]).arg(&path).arg("-o").arg(&executable),60));
   let output=support::run(&mut std::process::Command::new(executable),30);support::success(&output);assert!(output.stdout.is_empty());assert!(output.stderr.is_empty());
  }
 }

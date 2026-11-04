@@ -79,5 +79,8 @@ fn tsr_string_normalize(text: &str, form: Option<&str>, failure: &'static str) -
         }
         codes.truncate(written);
     }
-    String::Owned(codes.into_iter().map(|code|char::from_u32(code & TSR_NORMALIZATION_SCALAR_MASK).expect("Unicode normalization scalar")).collect())
+    let characters = || codes.iter().map(|code|char::from_u32(code & TSR_NORMALIZATION_SCALAR_MASK).expect("Unicode normalization scalar"));
+    let mut output = std::string::String::with_capacity(characters().map(char::len_utf8).sum());
+    output.extend(characters());
+    String::Owned(output)
 }
