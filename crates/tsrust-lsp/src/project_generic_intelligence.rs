@@ -274,7 +274,8 @@ impl SourceIndex {
             };
             if location.source!=*current && let Ok(uri)=crate::project_diagnostics::file_uri(&location.source){
                 let source=graph.modules[&location.source].checked_source();
-                if let Ok(range)=LineIndex::new(source).range(source,location.span){self.foreign_definitions.insert(id,json!({"uri":uri,"range":range}));}
+                // Inherited checked spans identify the extends clause, not the field declaration.
+                if let Ok(range)=LineIndex::new(source).range(source,location.span){self.foreign_definitions.entry(id).or_insert_with(||json!({"uri":uri,"range":range}));}
             }
         }
         for (ty,base) in &facts.enum_scalars {if let Some(name)=self.project_type_spelling(graph,current,ty,dependencies){self.enum_scalar_types.insert(name,base.clone());}}
