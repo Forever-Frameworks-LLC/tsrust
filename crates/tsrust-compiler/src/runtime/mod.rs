@@ -66,6 +66,15 @@ enum Array<T> {
     Small { len: usize, values: [Option<T>; 4] },
     Heap(Vec<T>),
 }
+impl<T> std::iter::FromIterator<T> for Array<T> {
+    fn from_iter<I: std::iter::IntoIterator<Item = T>>(values: I) -> Self {
+        let values = values.into_iter();
+        if values.size_hint().0 > 4 { return Self::Heap(values.collect()); }
+        let mut output = Self::from([]);
+        for value in values { output.push(value); }
+        output
+    }
+}
 impl<T, const N: usize> From<[T; N]> for Array<T> {
     #[inline]
     fn from(values: [T; N]) -> Self {

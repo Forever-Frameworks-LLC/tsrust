@@ -9373,17 +9373,19 @@ impl Emitter<'_> {
                 CallTarget::ObjectHasOwn => self.object_has_own(fun,args,matches!(&callee.kind,ExprKind::Field(_,name) if name=="hasOwn#in")),
                 CallTarget::ObjectKeys => {
                     let value = self.expr(fun, &args[0], Mode::Read);
+                    let result = self.native_type(expr.ty.expect("checked keys result"));
+                    let index_text = "if index<10 {tsr_int_text(index as i64)} else {String::Owned(index.to_string())}";
                     let keys = match args[0].ty.expect("checked Object.keys input") {
                         Type::Record(id) if !self.program.records[id].is_tuple() => {
                             let names = self.program.records[id].fields.iter().map(|field| format!("{:?}", field.name.text)).collect::<Vec<_>>().join(",");
-                            format!("{{ let key_names: [&str; {}] = [{names}]; object_keys_value.key_order.iter().map(|index| String::Borrowed(key_names[*index])).collect::<Vec<_>>() }}",self.program.records[id].fields.len())
+                            format!("{{ let key_names: [&str; {}] = [{names}]; object_keys_value.key_order.iter().map(|index| String::Borrowed(key_names[*index])).collect::<{result}>() }}",self.program.records[id].fields.len())
                         }
-                        Type::Record(id) => format!("(0..{}).map(|index| String::Owned(index.to_string())).collect::<Vec<_>>()", self.program.records[id].fields.len()),
-                        Type::Array(_) => "(0..object_keys_value.len()).map(|index| String::Owned(index.to_string())).collect::<Vec<_>>()".into(),
-                        Type::String => "(0..object_keys_value.as_ref().encode_utf16().count()).map(|index| String::Owned(index.to_string())).collect::<Vec<_>>()".into(),
-                        _ => "Vec::<String>::new()".into(),
+                        Type::Record(id) => format!("(0..{}).map(|index| {index_text}).collect::<{result}>()", self.program.records[id].fields.len()),
+                        Type::Array(_) => format!("(0..object_keys_value.len()).map(|index| {index_text}).collect::<{result}>()"),
+                        Type::String => format!("(0..object_keys_value.as_ref().encode_utf16().count()).map(|index| {index_text}).collect::<{result}>()"),
+                        _ => format!("<{result}>::from([])"),
                     };
-                    format!("{{ let object_keys_value = {value}; let mut object_keys_result = <{}>::from([]); for key in {keys} {{ object_keys_result.push(key); }} object_keys_result }}", self.native_type(expr.ty.expect("checked keys result")))
+                    format!("{{ let object_keys_value = {value}; {keys} }}")
                 }
                 CallTarget::OrderedSetMethod(method)=>self.ordered_set_method_expression(fun,callee,args,method),
                 CallTarget::HeapMethod(method) => self.heap_method_expression(fun,expr,callee,args,method),
