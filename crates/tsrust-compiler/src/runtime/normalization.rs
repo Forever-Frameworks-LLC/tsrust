@@ -38,6 +38,8 @@ fn tsr_normalization_compose(left: u32, right: u32) -> Option<u32> {
     if (0xAC00..0xAC00 + 11172).contains(&left) && (left - 0xAC00) % 28 == 0 && (0x11A8..0x11A7 + 28).contains(&right) {
         return Some(left + right - 0x11A7);
     }
+    // Pinned composition pairs have no right scalar below U+0300.
+    if right < 0x300 { return None; }
     let key = ((left as u64) << 21) | right as u64;
     TSR_NORMALIZATION_COMPOSE.binary_search_by_key(&key, |row| row.0)
         .ok().map(|index| TSR_NORMALIZATION_COMPOSE[index].1)

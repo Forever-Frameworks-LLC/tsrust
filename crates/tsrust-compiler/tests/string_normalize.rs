@@ -147,6 +147,23 @@ fn normalization_pages_match_full_searches_and_identity_needs_no_pending_allocat
  let allocator=include_str!("../../../benchmarks/runtime/allocation-driver.rs").split("fn main()").next().unwrap();
  let harness=r#"
 fn main(){
+ for &(key,expected) in TSR_NORMALIZATION_COMPOSE {
+  let left=(key>>21) as u32;let right=(key&u64::from(TSR_NORMALIZATION_SCALAR_MASK)) as u32;
+  assert!(right>=0x300,"composition bound U+{right:X}");
+  assert_eq!(tsr_normalization_compose(left,right),Some(expected));
+ }
+ for left in [0,0x3c,0x41,0x1100,0xac00,0x10ffff,u32::MAX] {
+  for right in [0,0x7f,0x2ff,0x300] {
+   let key=(u64::from(left)<<21)|u64::from(right);
+   let expected=TSR_NORMALIZATION_COMPOSE.binary_search_by_key(&key,|row|row.0).ok().map(|index|TSR_NORMALIZATION_COMPOSE[index].1);
+   assert_eq!(tsr_normalization_compose(left,right),expected);
+  }
+ }
+ for leading in 0..19 {for vowel in 0..21 {
+  let syllable=0xac00+leading*588+vowel*28;
+  assert_eq!(tsr_normalization_compose(0x1100+leading,0x1161+vowel),Some(syllable));
+  for tail in 1..28 {assert_eq!(tsr_normalization_compose(syllable,0x11a7+tail),Some(syllable+tail));}
+ }}
  for code in (0..=0x10ffff).chain([u32::MAX]) {
   let expected=TSR_NORMALIZATION_CCC.binary_search_by_key(&code,|row|row.0).map_or(0,|index|TSR_NORMALIZATION_CCC[index].1);
   assert_eq!(tsr_normalization_class(code),expected,"class U+{code:X}");
