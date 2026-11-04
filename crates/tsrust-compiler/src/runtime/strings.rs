@@ -271,17 +271,25 @@ pub fn tsr_number_to_string(value: f64, radix: i64, failure: &'static str) -> St
     let mut integer = value.floor();
     let mut fraction = value - integer;
     let mut delta = (0.5 * (f64::from_bits(value.to_bits() + 1) - value)).max(f64::from_bits(1));
-    let mut fraction_digits = std::string::String::new();
+    // Each step at least doubles delta; the smallest f64 bounds the digit count.
+    let mut fraction_digits = [0u8; (f64::MANTISSA_DIGITS as i32 - f64::MIN_EXP) as usize];
+    let mut fraction_len = 0;
     if fraction >= delta {
         loop {
             fraction *= base;
             delta *= base;
             let digit = fraction as u32;
-            fraction_digits.push(char::from_digit(digit, digit_radix).expect("fraction digit"));
+            fraction_digits[fraction_len] = char::from_digit(digit, digit_radix).expect("fraction digit") as u8;
+            fraction_len += 1;
             fraction -= f64::from(digit);
             if (fraction > 0.5 || (fraction == 0.5 && digit % 2 == 1)) && fraction + delta > 1.0 {
                 loop {
-                    match fraction_digits.pop() {
+                    match if fraction_len == 0 {
+                        None
+                    } else {
+                        fraction_len -= 1;
+                        Some(char::from(fraction_digits[fraction_len]))
+                    } {
                         None => {
                             integer += 1.0;
                             break;
@@ -289,7 +297,8 @@ pub fn tsr_number_to_string(value: f64, radix: i64, failure: &'static str) -> St
                         Some(last) => {
                             let next = last.to_digit(digit_radix).expect("fraction digit") + 1;
                             if next < digit_radix {
-                                fraction_digits.push(char::from_digit(next, digit_radix).expect("fraction digit"));
+                                fraction_digits[fraction_len] = char::from_digit(next, digit_radix).expect("fraction digit") as u8;
+                                fraction_len += 1;
                                 break;
                             }
                         }
@@ -303,31 +312,48 @@ pub fn tsr_number_to_string(value: f64, radix: i64, failure: &'static str) -> St
         }
     }
     // Digits are produced least significant first.
-    let mut integer_digits = Vec::new();
+    // The binary exponent bounds whole-part digits for every finite f64.
+    let mut integer_digits = [0u8; f64::MAX_EXP as usize];
+    let mut cursor = integer_digits.len();
     // Low digits that the value cannot represent print as zeros: divide while
     // the quotient is still at least 2^53.
     while integer / base >= 9007199254740992.0 {
         integer /= base;
-        integer_digits.push('0');
+        cursor -= 1;
+        integer_digits[cursor] = b'0';
     }
-    loop {
-        let remainder = integer % base;
-        integer_digits.push(char::from_digit(remainder as u32, digit_radix).expect("integer digit"));
-        integer = (integer - remainder) / base;
-        if integer <= 0.0 {
-            break;
+    // Integer arithmetic preserves all digits through the exact f64 integer range.
+    if integer <= 9007199254740992.0 {
+        let mut magnitude = integer as u64;
+        loop {
+            cursor -= 1;
+            integer_digits[cursor] = char::from_digit((magnitude % radix as u64) as u32, digit_radix).expect("integer digit") as u8;
+            magnitude /= radix as u64;
+            if magnitude == 0 {
+                break;
+            }
+        }
+    } else {
+        loop {
+            let remainder = integer % base;
+            cursor -= 1;
+            integer_digits[cursor] = char::from_digit(remainder as u32, digit_radix).expect("integer digit") as u8;
+            integer = (integer - remainder) / base;
+            if integer <= 0.0 {
+                break;
+            }
         }
     }
     let mut output = std::string::String::with_capacity(
-        integer_digits.len() + fraction_digits.len() + 2,
+        integer_digits.len() - cursor + fraction_len + 2,
     );
     if negative {
         output.push('-');
     }
-    output.extend(integer_digits.iter().rev());
-    if !fraction_digits.is_empty() {
+    output.push_str(std::str::from_utf8(&integer_digits[cursor..]).expect("ASCII radix digits"));
+    if fraction_len != 0 {
         output.push('.');
-        output.push_str(&fraction_digits);
+        output.push_str(std::str::from_utf8(&fraction_digits[..fraction_len]).expect("ASCII radix digits"));
     }
     String::Owned(output)
 }
