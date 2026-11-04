@@ -13,6 +13,36 @@ this note. Inspect current source and `git status` before acting.
 
 ## Current state — 2026-10-30 (optimization loop; read first)
 
+Owner-requested v0.2.0 planning, 2026-11-04: concrete API/checklist work is now
+written in [stdlib-0.2.0](plans/stdlib-0.2.0.md). It has19implementation bundles,
+shared contract/package foundations and release integration (B00–B20), with140
+unchecked implementation/acceptance items. Three read-only gpt-6.1-sol agents
+audited actual host/core/runtime surfaces and reviewed the finished proposal;
+this primary agent is the only writer here. Named APIs, ordinary Rust/backend
+defaults, ownership/cleanup, useful explicit deferrals, package candidates,
+cross-platform witnesses and direct handwritten-Rust/Node benchmarks are attached
+to coherent bundles. User explicitly approves popular well-tested Rust package
+reuse and parallel Sol6.1 implementation/testing. The plan uses isolated managed
+worktrees, shared-file integration ownership, one Cargo target per physical host,
+serialized heavy local builds/tests and exclusive quiet timing; it does not try
+three simultaneous rustc builds on this8GB machine. Worker formatting/checkpoint
+leases, partial checks, original histories and the single handoff are preserved.
+
+Review fixes include URL dependency ordering, stdin/uncancellable file-operation
+settlement, async completion for bounded CPU work (current Thread.join blocks),
+full-duplex WebSocket halves, spawn/run stdio ownership, complete existing limit
+audit, consuming Hasher finalization and an explicit bounded PHC verifier. Core
+Array/Map/Set/date/task/SQL/cache support is credited rather than duplicated.
+Package versions/MSRV/features still need admission; no new package/API/version
+was implemented or accepted. The owner asked for a plan, not v0.2 publication.
+Historical stdlib/parallel plans link to the new checklist and mark obsolete
+targets/archive/handoff instructions superseded. Structure/link checks pass:
+21unique bundle IDs,140unchecked items,3new local links. Whole-project formatter
+passes4.156s/200,560KiB,0files/snippets/fingerprints changed; git diff --check
+passes. No product tests or benchmarks were rerun for this documentation-only
+section. Keep it local while PR#15's exact e3fea936 CI runs; do not push a plan
+checkpoint into that PR merely to synchronize notes.
+
 Active owner direction: optimize toward "making Rust as easy to write as
 TypeScript": JS/TS-familiar API, Rust semantics and accuracy underneath, generated
 code at hand-written-Rust parity.
@@ -65,11 +95,17 @@ PR#13 is squash-merged as7f26272026dbe81842a0389eb563f14ec05ba499. Its tree
 86efa1de80f26c740814fdcf8c349055c6c6ca9a exactly equals tested d0d3e8e2.
 Promotion PR#14 (stag→main) is open:
 https://github.com/Forever-Frameworks-LLC/tsrust/pull/14.
-Release41930626606 is live; preflight and editor pass, four platform builds are
-queued/running. Inspect this exact run; do not dispatch a duplicate or rebuild
-locally. The existing Promote workflow must merge/publish the validated artifacts
-after Release gate passes, then production docs must be checked. No v0.1.2 tag
-or publication existed at preflight. Local progress-note edits remain unpushed.
+Release41930626606 passed Linux/Windows packages but failed ARM64 smoke lifecycle;
+Intel macOS is still running. Repair16fad12f is checkpointed and pushed with
+staging ancestry retained as e3fea93666d9cc97e5d0e31190ffd6bd753dadd3 (identical
+tree38d6c307bc00539c1118a4f229ea75052ffc5dc5). Narrow staging PR#15 is open:
+https://github.com/Forever-Frameworks-LLC/tsrust/pull/15.
+CI41934141484 is confirmed live for exact e3fea936; extension already passes.
+No docs rerun is triggered because no generated public-site input changed.
+Inspect those exact handles; do not dispatch a duplicate or rebuild locally.
+The existing Promote workflow must merge/publish validated artifacts after a
+passing Release gate, then production docs must be checked. No v0.1.2 tag or
+publication existed at preflight. Latest status-note edits remain unpushed.
 The earlier approval block below is resolved by the owner's explicit answer;
 the goal is unfinished until the actual main/release/docs state is verified.
 **Promotion repair:** Release41930626606 now reports macOS ARM64 package smoke
@@ -104,6 +140,19 @@ existing feature branch without force-pushing, and create a narrow staging repai
 PR under existing strict CI. Fresh PR review remains required before any push.
 After that PR passes/merges, PR#14's existing release workflow will validate the
 changed helper on all platforms. Do not merge main or publish past a failed gate.
+Repair preparation is complete: formatter4.631s/179,904KiB and ancestry-merge
+formatter4.105s/201,040KiB both pass,0files/snippets/fingerprints changed. Merge
+conflicted only in the handoff; current committed note was retained after proving
+stag's note blob equals tested d0d3e8e2. No unrelated owner edit was discarded.
+The ancestry merge changes no tree bytes versus16fad12f and avoids re-presenting
+the whole optimization milestone in PR#15. Fresh pre-push PR review found only
+promotion#14 plus unchanged Dependabot#10/11/12. PR#15 auto-squash is enabled by
+Cotter45, strictly after requirements; it currently reports REVIEW_REQUIRED and
+CI running. Do not assume auto-merge will bypass that review rule. Once CI passes,
+inspect PR state and use the already-authorized owner-only review bypass if still
+necessary; never bypass the independent required CI rule. Then inspect PR#14's
+new release run, publisher and docs. Existing v0.1.2 release approval covers this
+necessary test-only repair; do not ask for the same approval again.
 Owner-requested next-feature reprioritization is now pending asynchronously while
 release builds run: revisit the original preserved Tsrust UI framework (recommended
 small counter/editable-list milestone after auditing current implementation),
@@ -114,6 +163,17 @@ authorized by merely asking. This optional decision does not block the approved
 release. Do not repeat the question or begin a new optimization sweep while it
 is pending. Inspect current source and acceptance before any proposed UI plan;
 UI_VISION.md and historical roadmaps include superseded implementation claims.
+Owner explicitly requested Dependabot PR cleanup. Fresh diffs of#10/#11/#12
+were rechecked against live stag workflow contents: exact deploy-pages5.0.1,
+upload-pages-artifact5.0.0 and both github-script9.0.0 pins are already included
+through merged#13 and pending promotion#14. All three superseded PRs are now
+closed, confirmed through their terminal close commands and a fresh open-PR list;
+only#14/#15 remain open. No dependency change or additional merge was needed.
+Automatic approval review rejected the initial close-plus-delete-branch action,
+stating remote branch deletion exceeded the general cleanup request. No such
+command ran. The safer close-only action succeeded; bot branches remain intact.
+Do not retry branch deletion indirectly or ask for approval merely to finish the
+already-complete PR cleanup. No comments/messages or force-push were performed.
 Owner replied to the next-feature question: wants to know how much Node/Rust
 standard-library capability is missing; significant useful gaps may merit API
 work first, but prefers UI for hands-on use. This is not unconditional UI-revival
