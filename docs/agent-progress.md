@@ -68,7 +68,7 @@ that automatically publishes must wait for that version approval. No release
 version bump or remote mutation has been made. GitHub connector fetch returned
 Unknown tool; read-only gh api confirmed the release/latest metadata.
 
-Accepted regression repairs — 2026-11-04 (source checkpoint follows these gates):
+Accepted regression repairs — 2026-11-04, source checkpoint18e54ad9:
 - Complete preparation passes867.693s/3,711,571KiB. All502 binaries execute,
   including both --lib, both bin harnesses and498 integration files. Original
   baseline:488 green groups,5,463passes,23failures in14groups,19explicit ignores;
@@ -197,14 +197,68 @@ Final measurement support, accepted; timing remains pending:
   README explains refresh. Eight contract tests pass.521s. No server source,
   manifest/protocol/history change. Live --verify --engines=native in both modes
   passes above.
-- /tmp/tsrust-final-performance.py --plan verifies933workloads in38 serial
-  native-only batches25(last8). Actual execution refuses before all502 groups
-  reconcile and final doctest/all-target logs end watchdog0. It freezes source
-  fingerprints, preserves accepted batches, enforces93samples/quiet checks,
-  verifies source/debug/release emission hashes, independently recomputes medians/
-  rates, runs store:ingest, checks unchanged old/reference histories and SQLite
-  integrity, updates public selections and disposes verified raw results. Only
-  planning has run; review before actual execution. No final performance claim.
+- Native refresh38321 is terminal0: all933 workloads/38 serial batches accepted,
+  independently recomputed and ingested with npm run store:ingest; original5cases,
+  8warmups/3×31samples retained. Summed watchdog time3093.284s, maximum sampled
+  peak2,190,012KiB (first batch includes paired release build). Every timing load
+  stayed below4, no busy override. Source/debug/release emission fingerprints,
+  exact93samples, all old/external history preservation and SQLite integrity pass.
+  Verified raw JSONs were disposed. State /tmp/tsrust-final-performance.json;
+  per-batch logs /tmp/tsrust-final-performance-00.log through37.log.
+- Historical native-record review: median new/prior duration1.0119;69rows>10%
+  slower,119>10% faster. Keep every new result; do not select only improvements.
+  Compare flagged emissions against the verified installed accepted compiler
+  (SHA a5ea32...9e8b, source67479689):65 are byte-identical;4 differ exclusively
+  by explicit ViewUnion record arguments equal to their existing default type
+  parameters (JSON literal union/typed/JSONC and string schema). Callee signatures
+  use those same defaults. This establishes no new runtime operations in these
+  cases versus that accepted compiler; it does not establish the cause of every
+  difference from older historical records. Bounded comparison31111 passes9.835s/
+  147,504KiB. Evidence /tmp/tsrust-final-regression-emissions.{json,log}. A slower
+  generic text-diff analysis77132 was stopped after linear checks proved the
+  annotation-only differences; it was not a benchmark or user process.
+- HTTP refresh76219 is terminal0. Native-only prepared I/O8rows pass6.171s/
+  169,632KiB, max timed load1.914063; CPU2rows pass58.665s/143,552KiB, maxload
+  2.333008. Original93samples retained; CPU rows each contain11,904request
+  latencies and11,904separate resource requests. Independent medians/rates/p50/
+  p99/CPU-per-request/peak-RSS and exact ingestion/history preservation pass;
+  SQLite integrity OK. Only native HTTP/CPU public pins updated. State
+  /tmp/tsrust-final-http-performance.json; logs
+  /tmp/tsrust-final-http-{requests,cpu}-timing.log. Verified raw JSONs disposed.
+- Public page generation/build22243 passes4.169s/1,077,791KiB:67canonical pages,
+  117rendered HTML targets. Both readability/highlight tests pass; every rendered
+  local link/anchor/asset passes117pages. Current933row summary:682Tsrust faster
+  than Node,621hand-written Rust faster (all933measured), median1.74×, range
+  .05×–212.63×. Selected nested-callback CPU function is shown with17.14×Node
+  throughput versus16.20×hand-written Rust. HTTP stays below microbenchmarks;
+  no dates or before/after tables. CPU table includes p99/CPU/RSS, clearly labeled.
+  Read-only IAB render at default1265px confirms readable five-column CPU table.
+  Temporary tabs closed; owned Astro preview PID32287 stopped. Initial sandbox
+  preview exited before binding; escalated loopback preview succeeded.
+- Paired consumers refreshed through Cargo, respecting existing ownership:
+  compiler8665 passes1.563s/104,400KiB; LSP98361 passes1.558s/102,320KiB.
+  Installed/release hashes match exactly:
+  CLI a30ba42175bbe6d7286a87d55632274121d5b73ee91bef22c55f0f00097d17ad;
+  LSP db889fc3ebf72e1873eb0d6108a13db54315b520c9c78750d47a64abf4c248bc.
+  Cargo now records compiler0.1.1 and LSP0.2.1 from this checkout. Its pinned
+  toolchain warning is expected; do not follow advice to remove --locked.
+  It also warns of yanked async-executor1.14.0/clipboard-win5.4.1 lock entries;
+  neither exists in the normal CLI/LSP graph across all targets (checked with
+  cargo tree). No dependency/lock change or unverified security claim.
+  Installed greeting-key and next() hover pass1.048s/17,056KiB over private
+  stdio. Installed CLI checks hello successfully; owner source/config hashes
+  remain unchanged(.521s/6,608KiB). Owner editor processes were untouched.
+- Independent final in-memory comparison against source checkpoint SQLite proves
+  exactly943native entries appended (933micro+10HTTP); all old/reference
+  histories and row keys unchanged, SQLite integrity OK. No DB snapshot file.
+  Pruned4671closed generated benchmark files (559,382,545bytes), preserving
+  tracked workloads/references, shared Cargo libraries, current test binaries,
+  prepared HTTP servers, caches and paired consumers. No archive directories.
+  Final metrics formatter22732 passes with0files/snippets/fingerprints changed;
+  token/idempotence checks and git diff --check pass. This checkpoint contains
+  the943new native histories and public selections. Next: fresh live PR review,
+  concrete next-version preparation and required publication approval. No CI/
+  push/version bump/release yet.
 
 The ranked compiler/container/JSON/string/math changes have measured accepted
 checkpoints. Latest schema-array optimization is67479689. Final audits cover the
