@@ -30,6 +30,109 @@ optimization focus.
 
 Owner steering, 2026-11-03: HTTP/object ergonomics supersede optimization until this section is delivered. The hello expression `c.json({greeting:clone(c.env.greeting)})` must work; routes, middleware, authorization and client generation must stay in source, without API settings in tsrust.config.json. Later requests require hover on literal keys plus useful next() hover/signature help.
 
+**Math.hypot — accepted locally and installed; parent `d5caa070`.**
+Previous goal turn made progress: extrema accepted in 52a767af/d5caa070, 23
+checks, two native histories, public selection 106 runs, paired installation and
+cleanup. This section began with a clean tree and no live jobs.
+
+Fresh CPU profiling passes 11.348 s / 258,512 KiB: 3-second sample of 8-second,
+131,072-iteration batches, each checked against the immutable MPFR accumulator
+interval; 6,302 batches. Samples: hypot 1,172, hypot stub 281, main 705. First
+prototype skips zero-to-first hypot for finite values, preserving NaN payloads:
+1.204708→1.131417 / 1.206667→1.149083 ms, compile 206.417→206.544 ms.
+Single-pass infinity handling gives little further gain but compile regressions:
+parent 1.260209/1.206625, single 1.191791/1.176083, seeded single
+1.185833/1.137958 ms; compile 211.655→239.439/241.810 ms. Rejected.
+
+Selected deferred correction plus seeded fold: parent 1.204167→1.002500 /
+1.204125→.995750 ms (1.201×/1.209×), compile 206.377→205.346 ms. Deferral
+alone is smaller, 1.151750/1.149667 ms, compile 206.471 ms. All variants pass
+76,683 raw-bit edge/random vectors at O0/O3 against the original reducer and all
+40 immutable MPFR points. Five original workload identities, 8 warmups / 3×31
+samples / two reverse rounds, three warm rotated compiles, same paths/argv,
+atomic swaps and unsafe ban pass. All three allocation samples/version have
+zero allocation/reallocation/requested/retained/peak/input/cleanup counts; actual
+bits 411782b65954281c. Original artifacts remain unchanged. Watchdogs: seeded
+7.763 s / 309,904 KiB; single-pass 10.367 s / 261,136 KiB; deferred 10.349 s /
+308,160 KiB. Maximum loads 2.282715/1.913086/2.213867 < 4. These diagnostic
+prototypes were not ingested; Node/Rust execution references remain cached.
+
+Do not simply delete infinity correction. Pinned Rust 1.96.1 std source calls
+libc hypot on Unix/Windows and documents unspecified platform precision.
+[Gnulib's primary portability manual](https://www.gnu.org/software/gnulib/manual/gnulib.pdf)
+records mixed NaN/infinity discrepancies on mingw/MSVC 14. Instead compute the
+ordered fold, then scan the original values only when its result is NaN; actual
+infinity inputs still produce positive infinity. A cloned work iterator preserves
+the original including its first value. Finite first values use abs; NaN first
+values keep 0.hypot(value) for the existing quieting/payload behavior. Empty,
+signed zero, overflow/underflow and remaining operation order stay unchanged.
+
+Implemented only runtime/math.rs hypot helper; ordinary and spread callers traced.
+No dependency, API, limit, ownership or generated unsafe change. Added one
+math_approx O0/O3 witness comparing the original ordered standard fold through
+slice and segmented-iterator adapters, for host math plus an emulated mixed
+NaN/infinity backend discrepancy: 613,464 exact-bit comparisons. Existing eager
+operand/disposal/classification/arity/spread and MPFR checks remain required.
+Joint compiler/LSP selected no-run passes 208.839 s / 2,642,066 KiB; no --lib
+or broad unit preparation. All 24 affected checks pass, none ignored, serial
+binaries / 3 threads / 5 GB–30 min watchdog: math_approx 6 (2.601 s / 175,680 KiB),
+math_exact 5 (2.600 s / 357,600 KiB), root_builtin_spread 5 (2.654 s /
+467,248 KiB), compiler iterable_call_spread 3 (2.133 s / 276,464 KiB), LSP
+iterable_call_spread 3 (.523 s), intelligence math 2 (.514 s). LSP runs finish
+too quickly for meaningful sampled memory. Host/emulated backend witness passes
+613,464 exact-bit comparisons across O0/O3 and both adapters.
+
+Actual-emission A/B against d5caa070 passes 1.206542→1.002250 /
+1.203333→1.006959 ms (1.204×/1.195×), compile median 210.796→206.903 ms.
+All original workload identities have identical raw bits and pass immutable MPFR
+case intervals; both helpers pass all 40 MPFR points and O0/O3 raw-bit edges.
+Original protocol retained: 131,072 iterations, 5 identities, 8 warmups / 3×31
+samples / two reverse rounds, 3 warm rotated compiles, same paths/argv, atomic
+swaps and unsafe ban. Watchdog 8.292 s / 323,344 KiB, maximum load 3.936035 < 4.
+Allocation samples are unchanged at zero; original reference artifacts verify
+unchanged. No accuracy/rounding/ownership change.
+
+Adjacent Math.max control: .839083→.841291 / .838708→.838708 ms, compile
+211.753→213.149 ms, maximum load 2.682129 < 4. Runtime watch 4.671 s /
+266,000 KiB. Corrected a control compile-order typo and repeated only the warm
+compiles (4.153 s / 338,784 KiB); preserved completed runtime evidence. Control
+emissions differ only in unused hypot body. Interfaces, path normalization and
+Unicode normalization emit byte-identically. No unresolved material regression.
+Cached Node/Rust execution references remain unchanged.
+
+Canonical native-only run 2026-11-04T11:54:33.518Z passes 219.237 s /
+2,188,524 KiB including paired release build, native MPFR/all-point probes and
+93 samples. Maximum load 2.681152 < 4; no override. Median .999459 ms /
+125,797,087.627 mean operations/s, original 131,072 operations/sample. All warmup
+and sample bits remain 411782b65954281c. Final debug/release emissions and
+canonical source/emitted hashes verify. npm run store:ingest adds exactly one
+native history; independently recomputed median/mean rate/operations/count/date
+match. All earlier histories and all Node/Rust references are unchanged; SQLite
+integrity OK. Performance selection: 107 accepted runs / 933 comparisons. Two
+page tests and 67-page build pass (3.697 s / 1,184,654 KiB). Whole-project
+formatter changes 0 files/snippets/fingerprints; git diff --check passes.
+
+Paired release consumers atomically installed and SHA256-verified:
+CLI f3d9703225f0b7192d6e0a5625bfd11cf5b890bd92b07ee0001301c1ac6fe62a;
+LSP 274106b34260e532cc2c91f43302c5670d5ef639870e53ad860e8c55df13c22c.
+Installed compiler checks unchanged hello/src/main.tsr; owner source/config hashes
+unchanged, editor processes untouched. All current jobs are terminal. The remaining
+hypot difference versus saved Rust .930416 ms is .069043 ms / 7.42%; this large
+gap is now a small residual. Do not reopen the rejected explicit-loop variants.
+No full regressions, CI, push or publication; local performance page updated.
+
+Next audit the remaining CPU/ownership/schema gaps against current output:
+source-retaining schema 1.653458 / Rust 1.212250 ms, schema collections
+1.691500 / 1.308709, schema JSON array .664542 / .472625, owned array
+.404959 / .250625. Profile split success/error work before implementation; retain
+rejected static/Cow/path-tag/arena hypotheses below unless fresh evidence changes
+the tradeoff. Check stale owned-string-array reverse and callable-array-transfer
+signals before treating their old gaps as current. Generated strings already use
+std::borrow::Cow<'static,str> and valid UTF-8 storage (runtime/strings.rs); do not
+infer an obsolete UTF-16 enum/layout defect from old history. Preserve the object
+allocation plan. Full regressions, affected HTTP metric refresh and approved
+v0.1.1 main promotion remain deferred until the large gaps reach small refinements.
+
 **Math.min/Math.max — accepted locally and installed; parent `a22f7466`.**
 Source checkpoint `52a767af` contains the accepted runtime/test, SQLite histories
 and public selection. After independent ingestion verification and commit, pruned

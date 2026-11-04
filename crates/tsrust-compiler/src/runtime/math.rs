@@ -122,9 +122,10 @@ fn tsr_math_pow(base: f64, exponent: f64) -> f64 {
 fn tsr_math_hypot(values: &[f64]) -> f64 {
     tsr_math_hypot_iter(values.iter().copied())
 }
-fn tsr_math_hypot_iter<I: Iterator<Item = f64> + Clone>(values: I) -> f64 {
-    if values.clone().any(|value| value.is_infinite()) {
-        return f64::INFINITY;
-    }
-    values.fold(0.0f64, f64::hypot)
+fn tsr_math_hypot_iter<I: Iterator<Item = f64> + Clone>(mut values: I) -> f64 {
+    let mut remaining = values.clone();
+    // Keep the platform's NaN quieting and payload behavior for a lone operand.
+    let first = remaining.next().map(|value| if value.is_nan() { 0.0f64.hypot(value) } else { value.abs() }).unwrap_or(0.0);
+    let result = remaining.fold(first, f64::hypot);
+    if result.is_nan() && values.any(|value| value.is_infinite()) { f64::INFINITY } else { result }
 }
