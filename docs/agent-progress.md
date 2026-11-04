@@ -260,6 +260,46 @@ Final measurement support, accepted; timing remains pending:
   concrete next-version preparation and required publication approval. No CI/
   push/version bump/release yet.
 
+Current unpublished release-candidate section — 2026-11-04:
+Metrics checkpoint e4a7b605 is complete and the tree was clean before this section.
+Fresh open-PR review confirms the same three Dependabot heads#10/#11/#12; exact
+current diffs match the reviewed action pins. No compiler/runtime pins changed.
+Connector search again returned Unknown tool; used read-only gh pr list/diff.
+Prepared their exact four action-line updates locally (deploy-pages5.0.1,
+upload-pages-artifact5.0.0, github-script9.0.0 in release/promote). No PR merge,
+retarget, closure, comment or remote write. Future version-update PRs now target
+stag through one dependabot.yml field, matching CI and promotion policy. GitHub's
+primary target-branch reference confirms this applies to version updates only;
+security updates still use the default branch. No security-update behavior claim.
+https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference#target-branch
+
+Prepare proposed compiler0.1.2/LSP0.2.2, updating only their workspace package
+versions in Cargo.lock. Editor extension remains0.2.1 (no extension code change).
+Live GitHub tag lookup v0.1.2 returns genuine HTTP404. This is not publication
+approval; v0.1.1 approval was already fulfilled. Release notes now describe current
+object/HTTP/editor ergonomics, safe native repairs,933micro+10HTTP evidence,
+correct682/621/1.74×/17.14× numbers, cached references and explicit bounded APIs.
+Old dates/932/930 comparison prose is removed. No dependency lock pin changes.
+
+All15 local distribution/promotion-policy tests pass1.030s/112,753KiB. Paired
+release build8893 passes224.559s/2,118,242KiB, log
+/tmp/tsrust-release-candidate-build.log, one Cargo target/job/incremental off.
+Exhaustive version-emission parity60809 passes22.778s/223,040KiB: all933measured
+workloads and both HTTP sources emit byte-identically versus the still-installed
+accepted18e54ad9 compiler(a30ba4...17ad). No remeasurement needed for version-only
+metadata. Log /tmp/tsrust-release-emission-parity.log; complete JSON result at
+/tmp/tsrust-release-emission-parity.json. Candidate smoke32183 passes11.940s/341,792KiB outside the checkout: LSP
+initialize/capabilities/shutdown; scaffold/check/format/native run/tests; shared
+JSON setup; exact quickstart/testing examples and shell reporter commands. Log
+/tmp/tsrust-release-candidate-smoke.log. Candidate whole formatter passes with0files/snippets/fingerprints changed,
+log /tmp/tsrust-release-candidate-format.log; token/idempotence and diff checks
+pass. This source checkpoint contains only version metadata, reviewed action
+pins/routing and current release notes/evidence. Next verify clean release source,
+package the candidate and record the remote-platform validation decision. Installed tools remain the verified
+0.1.1/0.2.1 source18e54ad9 pair until candidate acceptance. Fresh
+owner version/publication authorization is still required before any publishing
+promotion. No push, tag, remote workflow dispatch or release has occurred.
+
 The ranked compiler/container/JSON/string/math changes have measured accepted
 checkpoints. Latest schema-array optimization is67479689. Final audits cover the
 remaining sizable source-retain/error, reversal and callable-transfer signals:
