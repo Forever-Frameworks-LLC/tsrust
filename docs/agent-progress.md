@@ -136,9 +136,15 @@ Validated paired release consumers atomically installed and SHA256-verified:
 CLI a5ea32c8a8dfbfd50df036b8473957e8b55da01323c9df991c1ab0bda6769e8b;
 LSP f02b2ed5ad604d30f3ce7708ded1fae20d93e7d8f1726918ce521f40a613cd30.
 Installed CLI checks unchanged hello/src/main.tsr; owner source/config hashes
-unchanged, editor processes untouched. All current jobs are terminal. Next:
-measured local checkpoint and prune this closed section's loose outputs, then
-fresh audit of the remaining error-bridge/schema and stale ownership gaps below.
+unchanged, editor processes untouched. All current jobs are terminal. Source checkpoint `67479689` contains implementation, tests, three histories and
+public selection. Pruned 113 closed scratch/raw/native artifacts (24845568 bytes);
+shared Cargo libraries, current test binaries and paired consumers remain.
+Next: fresh audit of the remaining error-bridge/schema and stale ownership gaps.
+Fresh selected-history audit still shows source-retaining schema 1.653458 /
+Rust 1.212250 ms, collections 1.691500 / 1.308709, and owned-string reverse
+1.973667 / 1.634917. Treat these as profiling leads, not newly measured claims.
+The reverse workload measures repeated content classification and checksum modulo
+in addition to reversal; isolate those costs before changing array storage.
 Full regressions/CI/main remain deferred to the large-gap milestone; goal active.
 The previous timeline-only reply changed no authoritative state; this continuation
 repairs the harness and completes accepted implementation and measurements.
