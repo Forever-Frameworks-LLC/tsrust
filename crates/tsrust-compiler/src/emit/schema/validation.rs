@@ -188,7 +188,7 @@ impl Emitter<'_> {
                 let child=self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)&&record.application.as_ref().is_some_and(|a|a.resolved_arguments==[element.ty()])).unwrap();
                 let Type::Array(input_element)=input_type else{unreachable!()};
                 let validator=self.schema_owned_validator(child,input_element.ty(),generated,seen,errors);
-                format!("tsrust_schema_plan::validate_array(input.tsr_owned_items(),|index,value|{{path.push(tsrust_schema_issues::Segment::Index(index));let result={validator}(&schema.element,value,path,issues,failure);path.pop();result}}).map(|values|{{let mut output=<{native}>::from([]);for value in values{{output.push(value);}}output}})")
+                format!("tsrust_schema_plan::validate_array_into(input.tsr_owned_items(),|index,value|{{path.push(tsrust_schema_issues::Segment::Index(index));let result={validator}(&schema.element,value,path,issues,failure);path.pop();result}},<{native}>::from([]),<{native}>::push)")
             },
             Type::Record(object) if self.program.records[object].name.text.starts_with("@schema:retained:")=>{
                 let value=self.program.records[object].fields[0].ty.unwrap();let extra=self.native_type(self.program.records[object].fields[1].ty.unwrap());
@@ -267,7 +267,7 @@ impl Emitter<'_> {
             Type::Array(element)=>{
                 let child=self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)&&record.application.as_ref().is_some_and(|a|a.resolved_arguments==[element.ty()])).unwrap();
                 self.schema_json_validator(child,generated,seen,owned_seen,errors);
-                ("Array",format!("if let tsrust_native_json::Value::Array(values)=input {{return tsrust_schema_plan::validate_array(values,|index,value|{{path.push(tsrust_schema_issues::Segment::Index(index));let result=validate_json{child}(&schema.element,value,path,issues,failure);path.pop();result}}).map(|values|{{let mut output=<{native}>::from([]);for value in values{{output.push(value);}}output}});}}"))
+                ("Array",format!("if let tsrust_native_json::Value::Array(values)=input {{return tsrust_schema_plan::validate_array_into(values,|index,value|{{path.push(tsrust_schema_issues::Segment::Index(index));let result=validate_json{child}(&schema.element,value,path,issues,failure);path.pop();result}},<{native}>::from([]),<{native}>::push);}}"))
             },
             Type::Record(output_object)=>{
                 let retained=self.program.records[output_object].name.text.starts_with("@schema:retained:");

@@ -30,6 +30,119 @@ optimization focus.
 
 Owner steering, 2026-11-03: HTTP/object ergonomics supersede optimization until this section is delivered. The hello expression `c.json({greeting:clone(c.env.greeting)})` must work; routes, middleware, authorization and client generation must stay in source, without API settings in tsrust.config.json. Later requests require hover on literal keys plus useful next() hover/signature help.
 
+**Plain schema-array output storage — accepted locally, measured and installed; parent `8cc9278a`.**
+Previous goal turn made progress: hypot accepted in bdc29b8c/8cc9278a, 24
+checks, one native history, public selection 107 runs, paired installation and
+cleanup. Owner then asked for an estimate; estimate was 2–4 working days,
+not a changed deadline or reduced goal. Focus this pass on remaining genuine
+schema/ownership gaps; leave small math/Unicode refinements alone.
+
+Split owned/JSON array success and two-error workloads, preserving all original
+assertions and independent checksum 4007 for 2,000 iterations. Three allocation
+samples per engine/case agree, no reallocations or retained/cleanup bytes:
+owned success native/Rust 4,000/2,000 allocations, 192,000/32,000 requested,
+96/16 peak; owned failure 14,000/12,000, 1,504,000/640,000 requested, 712/304
+peak. JSON success 6,000/4,000, 448,000/288,000 requested, 224/144 peak; JSON
+failure 16,000/10,000, 1,760,000/576,000 requested, 712/288 peak. Input bytes
+11 owned / 5 JSON. Native owned CPU samples (3 seconds of 8-second batches)
+complete 80,781 success / 24,121 failure batches. Success spends time in
+validate_array plus malloc/free; failure is allocation-heavy, including the
+internal-to-public diagnostic bridge. mach_absolute_time is beneath allocator
+free, not a new language clock/deadline. Profile 23.171 s / 289,088 KiB.
+
+The concrete success defect: plain owned/JSON validation builds Vec output and
+then copies it into final NumericArray/Array storage. Inlined final-array loops
+remove one allocation per successful call and improve runtime, but native compile
+cost rises ~10–15 ms; do not select that form. Shared target-carrier prototype
+reuses the validation loop with an empty final carrier and its push function:
+owned parent .486958→.377833 / .463000→.373500 ms, compile 382.515→373.260 ms;
+JSON .669875→.597500 / .605917→.579125, compile 509.101→494.846 ms. Both
+retain original 5 identities, 8 warmups / 3×31 samples / two reverse rounds,
+three warm rotated compiles, same paths/argv, atomic swaps and unsafe ban.
+Owned/JSON target probes 9.369 s / 305,434 KiB and 11.399 s / 284,870 KiB;
+maximum loads 2.047852/1.937012 < 4. Full owned blocks 18,000→16,000,
+requested 1,696,000→1,632,000; JSON 22,000→20,000, 2,208,000→2,144,000.
+Peak 712, zero reallocations/retained/cleanup and checksum8007 unchanged.
+Diagnostic prototypes are not ingested; Node/Rust execution timings remain cached.
+
+Implemented runtime/plan.rs validate_array_into with generic carrier and standard
+FnMut push; existing Vec-returning validate_array is a compatibility wrapper.
+Both plain owned and JSON emitters pass their final carrier directly. All elements
+are still validated after rejection; partial output is dropped before the next
+callback, and later successful outputs are discarded. No new trait, dependency,
+API, limit, ownership rule or generated unsafe. Pipeline/trial rollback storage
+is separate and unchanged. Added a non-Clone/non-Default carrier unit test; existing
+partial-drop-order test remains required. New schema_array_storage O0/O3 witness
+asserts both lowered calls, zero allocation for small numeric output, pointer-
+preserving owned strings across inline/heap boundaries, complete cleanup and all
+plan module units under unsafe forbidden (allocator instrumentation is separate).
+
+Selected joint compiler/LSP no-run passed 209.336 s / 2,665,682 KiB.
+The initial storage witness had harness defects: standalone checking cannot resolve
+std:schema imports, and owned-only schema emission does not contain JSON lowering.
+Fixed both with separately formatted, project-checked owned/JSON sources. A raw
+unsafe substring assertion also matched a JSON runtime documentation comment;
+removed that assertion. Actual benchmark compiles still forbid unsafe code.
+The allocation witness compiles independently emitted pure numeric/string carrier
+support plus the actual plan module, avoiding unnecessary Serde linkage. All
+plan module units still run at O0/O3 with unsafe forbidden. No product failure
+was found in these harness repairs. Same selected joint no-run relink passes
+(3.708 s / 337,200 KiB on first repair; final relink 3.121 s / 261,824 KiB; log remains in
+/tmp/tsrust-schema-array-build.{jsonl,log}).
+
+All 110 affected checks pass, none ignored, serial binaries / 3 threads /
+5 GB–30 min watchdog. Storage 1 (2.064 s / 135,968 KiB), decode 10
+(30.162 s / 1,086,016 KiB), parse 5 (2.097 s / 661,648 KiB), pipelines
+20 (49.270 s / 1,047,600 KiB), collections 5 (8.874 s / 942,768 KiB),
+unions 13 (56.394 s / 1,143,312 KiB), LSP schema_editing 17 (.523 s),
+project intelligence schema_ 39 (.513 s, 142 unrelated filtered). LSP runs
+finish too quickly for meaningful sampled memory. Orchestrator 99587 is terminal.
+
+Actual-emission A/B against 8cc9278a passes original five identities,
+8 warmups / 3×31 samples / two reverse rounds, three warm rotated compiles,
+same source/executable paths and argv0, atomic swaps and unsafe forbidden.
+Owned .433125→.400125 / .432125→.407000 ms; compile 388.633→378.161 ms.
+JSON .670834→.602125 / .661125→.608000; compile 515.932→505.248 ms.
+Owned/JSON watches 6.755 s / 351,952 KiB and 6.746 s / 315,888 KiB;
+maximum loads 2.726074/2.847656 < 4. Three allocation samples/version agree
+with the prototype: owned 18,000→16,000 allocations, JSON 22,000→20,000;
+requested bytes both -64,000, peak 712 and zero reallocations/retention/cleanup.
+
+Exact int-to-number array first control is noisy: .374292→.340750 /
+.360417→.405792 ms. Preserved that result, then reran the same protocol:
+.411334→.326625 / .354917→.319875, compile 356.079→346.838 ms;
+6.205 s / 350,144 KiB, max load 2.680176. Adjacent collection control
+1.837459→1.822000 / 1.822167→1.817625, compile 1084.981→1077.613;
+12.761 s / 378,896 KiB, max load 2.640625. No material regression.
+Fresh emitted-call inventory confirms only owned_array, json_array and
+number_array_int use the changed lowering; export/recursive/json_nested/pipeline
+have zero calls. Cached Node/Rust execution timings remain unchanged.
+
+Canonical release refresh passes 303.516 s / 2,189,996 KiB, timestamp
+2026-11-04T12:53:16.135Z. Quiet guard waited through load 6.80/5.73/4.61/
+4.58; accepted maximum 3.997559 < 4, no override. Each workload retains 93
+original samples and all five independent correctness identities. Independently
+recomputed medians/mean rates: owned .366792 ms / 9,016,993.558 ops/s;
+JSON .582959 / 6,483,837.318; int-to-number .313042 / 12,514,810.688.
+Debug/release emissions and canonical source/emitted SHA256 match for all three.
+`npm run store:ingest` adds exactly three native histories; independent full-row
+comparison proves every previous entry and all external reference histories
+unchanged, SQLite integrity OK. Public selection now 108 accepted runs / 933
+comparisons. Both performance-page tests and 67-page site build pass
+(4.149 s / 1,102,060 KiB). No before/after or date columns added.
+Whole-project formatter passes: 0 files, 0 snippets, 0 fingerprints changed.
+
+Validated paired release consumers atomically installed and SHA256-verified:
+CLI a5ea32c8a8dfbfd50df036b8473957e8b55da01323c9df991c1ab0bda6769e8b;
+LSP f02b2ed5ad604d30f3ce7708ded1fae20d93e7d8f1726918ce521f40a613cd30.
+Installed CLI checks unchanged hello/src/main.tsr; owner source/config hashes
+unchanged, editor processes untouched. All current jobs are terminal. Next:
+measured local checkpoint and prune this closed section's loose outputs, then
+fresh audit of the remaining error-bridge/schema and stale ownership gaps below.
+Full regressions/CI/main remain deferred to the large-gap milestone; goal active.
+The previous timeline-only reply changed no authoritative state; this continuation
+repairs the harness and completes accepted implementation and measurements.
+
 **Math.hypot — accepted locally and installed; parent `d5caa070`.**
 Source checkpoint `bdc29b8c` contains the accepted runtime/test, SQLite history and
 performance selection. After independent ingestion verification and commit, pruned
