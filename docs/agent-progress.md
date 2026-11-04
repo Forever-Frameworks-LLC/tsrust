@@ -56,6 +56,105 @@ Unknown tool, so review used read-only gh pr list/view/diff and gh run view.
 
 
 **Final optimization milestone — regression phase authorized by owner stopping rule.**
+**Live promotion, 2026-11-04:** the owner explicitly approved promoting PR#13
+through stag to main, publishing compiler v0.1.2 with LSP v0.2.2 and deploying
+updated docs after repaired-head CI passes. That CI41913979556 and docs41913979617
+now both pass. The SDK replica repair passes on hosted Linux, along with all
+ordinary compiler/CLI and LSP/compiler-agreement checks; this is not full CI.
+PR#13 is squash-merged as7f26272026dbe81842a0389eb563f14ec05ba499. Its tree
+86efa1de80f26c740814fdcf8c349055c6c6ca9a exactly equals tested d0d3e8e2.
+Promotion PR#14 (stag→main) is open:
+https://github.com/Forever-Frameworks-LLC/tsrust/pull/14.
+Release41930626606 is live; preflight and editor pass, four platform builds are
+queued/running. Inspect this exact run; do not dispatch a duplicate or rebuild
+locally. The existing Promote workflow must merge/publish the validated artifacts
+after Release gate passes, then production docs must be checked. No v0.1.2 tag
+or publication existed at preflight. Local progress-note edits remain unpushed.
+The earlier approval block below is resolved by the owner's explicit answer;
+the goal is unfinished until the actual main/release/docs state is verified.
+**Promotion repair:** Release41930626606 now reports macOS ARM64 package smoke
+failure; Linux/Windows packages pass, Intel macOS remains running. Completed job
+126926453544 log /tmp/tsrust-v012-arm64-package.log shows the shutdown response
+missing from smoke-toolchain output. The smoke client pipelined initialize,
+initialized, shutdown and exit in one stdin buffer. LSP main enqueues responses
+and calls process::exit at exit, so the unawaited shutdown response races process
+exit. Existing real stdio tests correctly await replies before exit. This is a
+protocol-test lifecycle defect; no evidence justifies a runtime workaround or
+rerunning unchanged inputs hoping to pass.
+
+Shared tools/smoke-lsp.mjs now awaits actual spawn, initialize and shutdown
+acknowledgments, then sends exit and requires a zero exit status. It parses
+byte-length framed fragmented messages, skips notifications, rejects missing or
+error replies, bounds the child lifetime and cleans up only its own process.
+Both smoke-toolchain and the Linux check-service container witness use it; the
+container witness also names/removes its owned LSP container on failure.
+Three focused controls are registered in the already-hosted distribution suite,
+covering enforced ordering, fragmented UTF-8/messages, notifications, missing
+shutdown, bad exit, timeout and spawn failure. First run exposed EPIPE masking
+ENOENT before spawn; await-spawn repair makes all18distribution/promotion tests
+pass1.548s/153,680KiB. Current actual packaged CLI/LSP smoke passes11.377s/
+344,848KiB, preserving all native/scaffold/JSON/documentation assertions. Logs
+/tmp/tsrust-v012-lsp-smoke-{controls,controls-fixed,package-fixed}.log. Linux
+container caller passes syntax checking; its Docker execution has not been
+repeated for this test-helper repair. No Rust/API/dependency/version/performance
+change; keep prior local and hosted product evidence.
+
+Next: finish whole formatter, checkpoint, bring current stag ancestry into the
+existing feature branch without force-pushing, and create a narrow staging repair
+PR under existing strict CI. Fresh PR review remains required before any push.
+After that PR passes/merges, PR#14's existing release workflow will validate the
+changed helper on all platforms. Do not merge main or publish past a failed gate.
+Owner-requested next-feature reprioritization is now pending asynchronously while
+release builds run: revisit the original preserved Tsrust UI framework (recommended
+small counter/editable-list milestone after auditing current implementation),
+continue backend stdlib/Rust bindings, or discuss after deployment. This question
+explicitly notes that UI revival would reopen work frozen by the backend-only
+direction. No answer yet; no UI source, dependency or product-scope change is
+authorized by merely asking. This optional decision does not block the approved
+release. Do not repeat the question or begin a new optimization sweep while it
+is pending. Inspect current source and acceptance before any proposed UI plan;
+UI_VISION.md and historical roadmaps include superseded implementation claims.
+Owner replied to the next-feature question: wants to know how much Node/Rust
+standard-library capability is missing; significant useful gaps may merit API
+work first, but prefers UI for hands-on use. This is not unconditional UI-revival
+approval. Read-only source/catalog audit finds23 public backend std namespaces,
+excluding frozen std:ui and private std:testing-runtime. Existing HTTP, JSON/schema,
+SQL/SQLite, arrays/collections, dates, futures/threads/channels and local caches
+are substantial. Public fs covers basic files/buffering, but lacks directory,
+metadata, rename/delete/watch APIs and has the recorded Windows limitation;
+crypto exposes only randomBytes/sha256/timingSafeEqual; os only platform/arch/
+endianness; env only get/args. No public general URL/URLSearchParams, RegExp,
+child-process, raw TCP/UDP/DNS, compression or WebSocket API was found in current
+native bindings/stdlib/catalog. HTTP has query/form helpers and streaming, so do
+not claim those behaviors absent merely because general adapters are missing.
+Proposal, not implementation authorization: bound the next everyday-utility pass
+to filesystem basics/portability and URL handling, then return to a small UI
+milestone; rank regex/subprocess/security/observability for demonstrated needs.
+Do not launch all Node/Rust parity as a prerequisite for UI.
+
+Coverage limits: benchmarks/coverage/inventory.json has1,993 mixed ECMAScript/
+language rows (264implemented,280native-variant,1,435pending,12policy,2in-progress).
+This is not Node/Rust host-API coverage. Typed arrays alone account for605pending,
+Intl253 and regex53; known stale/overlapping entries include Array.[index] marked
+pending despite supported indexing. Never present544/1993 as a measured coverage
+percentage. docs/guides/language/standard-library-coverage.md is dated research,
+not a current per-export acceptance ledger. Official Node24.11.1 API index and
+Rust std index were consulted; their scopes differ (host APIs versus Rust's
+containers/I/O/threading foundation), and the latter's current web version is
+1.99.1, not the pinned1.96.1 toolchain. A real per-export reconciliation remains
+necessary before any comprehensive parity claim. No tests/builds or public-source
+changes were triggered by this read-only audit.
+Installed pair now matches the approved versions via Cargo, preserving ownership:
+compiler0.1.2 install passes1.567s/46,576KiB; LSP0.2.2 install passes1.042s/
+41,856KiB. Both installed files exactly match the already-verified release
+binaries: CLI2e3fda837236e906cddf27786d25c5d8356c53095fc1bebd40648a208f98d285;
+LSP26a73297f30b6fb3f6fbeae041dd013a8a861c04efad2f928369da0b1427f754.
+Installed private-stdio greeting-key/next() hover passes1.051s/17,152KiB; owner
+editor processes are untouched and live editor rendering is not claimed. Logs
+/tmp/tsrust-v012-cli-install.log, /tmp/tsrust-v022-lsp-install.log and
+/tmp/tsrust-v012-installed-hover.log. Known pinned-toolchain/yanked unused lock
+warnings remain as previously investigated; no dependency or --locked changes.
+
 Release-state correction, verified through GitHub API in this continuation:
 v0.1.1 is already published (2026-10-31T18:21:49Z) and is the current latest
 release: https://github.com/Forever-Frameworks-LLC/tsrust/releases/tag/v0.1.1.
@@ -369,10 +468,62 @@ Affected full witness passes under the existing5GB/30min watchdog131.967s/
 descriptions, generated JS/Rust clients, denied/throwing policies, API-major and
 missing-operation errors and exact effect counts pass. Temporary services and
 fixture files are cleaned by the witness. Whole-project formatter also passes
-4.140s/203,136KiB,0files/snippets/fingerprints changed. Checkpoint this test-only
-repair, let the existing LSP job finish to retain its evidence, then inspect fresh
-live PRs immediately before pushing. That PR update necessarily triggers ordinary
-CI/docs under existing workflows; do not also dispatch duplicate validation.
+4.140s/203,136KiB,0files/snippets/fingerprints changed. Repair checkpoint
+d0d3e8e2a9ef24c0fe71e0e36695fdc8dc4141d2 is now pushed. Immediately before the
+push, live PRs still contained only our#13 plus Dependabot#10/11/12 at their
+previously reviewed exact heads; no additional update appeared. The old LSP step
+remained unfinished after repeated verified waits. Push proceeds for the diagnosed
+SDK failure, rather than an observation timeout; existing CI concurrency will
+replace that unfinished run. Its successful Compiler/CLI acceptance and all
+four-platform packaging evidence remain recorded against d7f3d698. Do not claim
+the old LSP step passed. The PR update creates ordinary CI41913979556 and
+Documentation41913979617 for exact d0d3e8e2; inspect those exact runs, not another
+dispatch. Product source, package metadata, reference histories and measurements
+are unchanged by this fixture-only repair. Keep this status update local to avoid
+restarting CI. No full_regressions=true run, merge, tag or publication occurred.
+Old CI41905530001 is now authoritatively cancelled by PR concurrency. Its
+completed job log /tmp/tsrust-hosted-ci-d7.log confirms the exact same undefined
+config.api.package failure as the local reproducer. Before cancellation, LSP
+--lib20, binary6, api_project1 and checker_agreement3 all passed; the latter took
+846.23s. Preserve those results; completion_matrix and remaining LSP groups were
+unfinished, not failed or passed. New CI41913979556 is confirmed live at setup,
+with both Linux source and extension jobs active. No additional dispatch.
+Publication decision is now pending asynchronously: promote PR#13 through stag
+to main, publish compiler v0.1.2 with LSP v0.2.2 and deploy docs, only after the
+repaired-head CI passes. Candidate implementation, local regression/performance/
+docs and four-platform artifact work are complete and reviewable; outstanding
+hosted checks continue to gate any merge/publication. The question explains that
+v0.1.1 already shipped and cites the exact project-skill release-authorization
+requirement. No answer has arrived; do not infer approval from time or automatic
+goal continuation, and do not ask the same question again. Continue observing
+CI41913979556 and repair any actual failure while waiting.
+Approval-block audit: the version-specific publication decision remains
+unanswered across the requesting goal turn and two automatic continuations.
+There is no authorization to publish v0.1.2. All independent local implementation,
+acceptance, measurement, packaging and fixture repair work is complete; no new
+source work is justified merely to fill this wait. Latest live CI41913979556
+still runs Compiler and CLI acceptance with no failed step; docs41913979617 and
+extension checks pass. Mark the goal blocked on the required publication decision,
+not on CI slowness, and do not cancel or redispatch the hosted run. On an owner
+reply/resume, first inspect that exact run, repair any real failure, recheck live
+open PRs before any push, then follow the approved scope. No merge/tag/release,
+main ref change or production documentation deployment has occurred. This local
+handoff status edit remains unpushed so it does not restart unchanged checks.
+Resolved: the owner answered “Approve v0.1.2 promotion after CI passes.”
+Repaired-head CI41913979556 finished successfully, including native SDK replica
+authorization and the previously unfinished LSP groups. Current actor Cotter45
+is verified; live Dependabot#10/11/12 heads are unchanged and all relevant action
+pins are already included. First merge-method attempt used merge and was rejected:
+stag requires linear history and squash/rebase; no repository setting changed.
+Squash merge then succeeded using the existing owner-only review bypass, while
+the independent strict CI rule remained required. PR#13 merged2026-11-04T23:02:51Z
+as7f26272026dbe81842a0389eb563f14ec05ba499 with exact tested tree parity.
+PR#14 is the authorized stag→main promotion; Release41930626606 preflight/editor
+pass and four-platform builds continue. Main is still9c294876, and no publication
+has occurred yet. Its initial BEHIND status follows the same ancestry shape as
+the prior successful v0.1.1 promotion (old main9981279e was not an ancestor of
+old stagfa2bd1a9); do not change branch protections based on this interim status.
+If the publisher actually fails, inspect that failure before taking any action.
 Do not rerun successful four-platform packaging for this test-only source edit.
 
 The ranked compiler/container/JSON/string/math changes have measured accepted
