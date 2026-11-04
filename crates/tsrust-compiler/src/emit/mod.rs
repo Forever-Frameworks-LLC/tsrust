@@ -3423,6 +3423,9 @@ impl Emitter<'_> {
         if output.contains("tsr_number_tie(") && !output.contains("fn tsr_number_tie(") {
             output.push_str(crate::runtime::NUMBER_TIE);
         }
+        if owned_support && output.contains("tsr_string_array_join(") {
+            output.push_str(crate::runtime::STRING_ARRAY_JOIN);
+        }
         if output.contains("tsr_array_join(") || output.contains("tsr_array_locale(") || output.contains("TsrJoinText::append_join_text(") {
             if self.program.records.iter().any(|record|record.map_definition.is_some()) {
                 let storage=if self.inline_map_first(){",F:TsrMapFirstSlot<P>"}else{""};
@@ -6241,7 +6244,15 @@ impl Emitter<'_> {
             } else {
                 "join_receiver.iter()"
             };
-        let _ = write!(code, "tsr_array_join({iterator}, {separator}) }}");
+        if matches!(base.ty, Some(Type::Array(element)) if element.ty() == Type::String) {
+            if self.expression_shape(base) == Some(crate::fixed_storage::Shape::LiteralStrings) {
+                let _ = write!(code, "String::Owned(join_receiver.values.join({separator})) }}");
+            } else {
+                let _ = write!(code, "tsr_string_array_join(join_receiver, {separator}) }}");
+            }
+        } else {
+            let _ = write!(code, "tsr_array_join({iterator}, {separator}) }}");
+        }
         code
     }
 
