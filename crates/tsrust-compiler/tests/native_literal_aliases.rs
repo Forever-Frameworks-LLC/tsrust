@@ -6,6 +6,7 @@ impl SourceProvider for Provider {
     fn read(&self, id: &SourceId) -> Result<String, String> {
         match id.0.as_str() {
             "main.tsr" => Ok(self.0.clone()),
+            "shared.tsr" => Ok("import {StringView} from 'std:url';export type Text=StringView;".into()),
             "alias.tsr" => Ok("import {SeekOrigin as NativeOrigin} from 'std:fs'; export type Origin = NativeOrigin;".into()),
             _ => Err(format!("Missing {}", id.0)),
         }
@@ -30,4 +31,16 @@ fn native_literal_aliases_expand_without_selecting_runtime_dependencies() {
             assert!(checked(&format!("{import} function main(){{{body}}}")).is_err(), "{body}");
         }
     }
+}
+
+#[test]
+fn shared_native_type_imports_keep_the_written_module_for_every_binding_order() {
+    for names in ["StringView as Text,Url,UrlError,SearchParams,parseUrl,formatUrl", "Url,UrlError,SearchParams,parseUrl,formatUrl,StringView as Text"] {
+        let source=format!("import {{{names}}} from 'std:url';function length(value:ReadOnly<Text>):int{{return value.length;}}function main(){{const address=unwrap(parseUrl('https://example.com/'));console.log(length(formatUrl(address)));}}");
+        let checked=checked(&source).unwrap();
+        let rust=checked.emit_rust();
+        assert!(rust.contains("mod tsrust_native_url"));
+        assert!(!rust.contains("mod tsrust_native_json"),"a shared view type must not select the JSON runtime");
+    }
+    checked("import {Text} from 'shared.tsr';import {parseUrl,formatUrl} from 'std:url';function length(value:ReadOnly<Text>):int{return value.length;}function main(){const address=unwrap(parseUrl('https://example.com/'));console.log(length(formatUrl(address)));}").unwrap();
 }

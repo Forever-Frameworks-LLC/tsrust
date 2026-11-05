@@ -13,30 +13,50 @@ this note. Inspect current source and `git status` before acting.
 
 ## Current state — 2026-10-30 (optimization loop; read first)
 
-**Resume here — source a8d4c300, receiver repair validation LIVE:** root is the
-sole canonical writer; all worker heavy/formatter leases are released. Source
-4e87d08f records exact-mode receiver caching plus observation-aware storage
-dispatch; a8d4c300 extends its phase-isolated4096-chain control to BOTH owned-union
-and ordinary-string returns. No skipped cache invariant, duplicate evaluation,
-borrow-to-owner conversion or arbitrary recursion cap. New no-run session92195
-is confirmed LIVE, original sole target/jobs1/incremental0/lockedoffline under
-5GB/1800s watchdog. It includes both packages/bins/libs plus all failed/unrun
-integration targets; JSON /tmp/tsrust-combined-receiver-artifacts.jsonl. Poll that
-same handle; do not restart on observation timeout. Never execute nested-Cargo
-test bodies while outer Cargo still runs.
+**Resume here — independent repairs, temporary-view approval pending:** root is
+the sole canonical writer; no heavy process remains. Previous turn made source
+and acceptance progress; this turn completed more real gates, not a blocked turn.
+Source a8d4c300 no-run92195 PASSED504.419s/3,702,803KiB. Normal compiler SHA
+9fa0511fcb16b0d6ed4c4d46aeac8571aaa51deeae802cdb68c43dfbb7c518fb;
+normal LSP9bc649f0f9692624335d968526bd8b375adcf2bbb66f7d0cfadf67c18e9434f7.
+All old handles92195/48424/65503/27173/4165 are TERMINAL; never restart them.
 
-After terminal success: direct serial watchdog command
-`python3 /tmp/tsrust-combined-repair-gates.py --receiver-unit` runs11expression-work
-tests (including both4096-chain controls), then the same driver with
-`--start 11` resumes failed String positive and all unrun FS/URL/editor/export
-gates. Driver merges the three exact Cargo-JSON artifact streams by target and
-checks nonzero exact test counts; normal CLI/LSP identities print separately.
-Passed18-test prefix stays in /tmp/tsrust-combined-repair-gates.json, receiver
-controls write a separate temporary receiver report. Run `--dev` only under the
-descendant-aware /tmp/tsrust-artifacts-watch.py, then75untimed new-FS workload/
-engine/case semantic controls using host's prepared driver. No new throughput
-measurements/DB ingestion yet. Preserve all earlier compatible passes; repair
-affected failures and resume unrun groups. Full B00–B20 goal remains active.
+Accepted on this source: all11expression-work tests, including4096alternating
+owned-union and ordinary-string controls (3.652s/290,528KiB); all47String members
+atO0/O3 plus alias/negative witnesses; native literal alias control; both formerly
+failed FS generic utilities/cursor cases; formerly failed mixed files/byte-view
+writes. Existing18borrow/cache prefix remains accepted. Stopped main batch65503
+23.348s/662,960KiB has25complete passed tests before URLvalues failed2/5passes.
+Independent batch27173 completed227.712s/400,112KiB:12complete test passes and
+7failed binaries, with partial passes recorded separately. It proves the44FS
+catalog exports/examples atO0/O3, cache clean, package transaction, URL safe
+relocated offlineO0/O3 export and several generic/editor/matrix controls. Dev5
+also PASSES under descendant watchdog7.306s/244,288KiB. Temporary reports are
+/tmp/tsrust-combined-repair-{gates,receiver,independent,dev}.json; do not rerun
+passed scopes merely because other cases failed.
+
+Next integrate hosta4543ba0 (LSP readonly string/view identity, strict unwrap
+recovery, stable help cursors/optional expectations, explicit portable setup) and
+coreb0204dd6 (optional URL setter type annotation, canonical diagnostic paths,
+newO0/O3setter witness). Both source-only checkpoints passed full formatting;
+their changed gates remain unexecuted. Root additionally fixes native-import
+groups retaining the written module: a final shared StringView import previously
+changed the whole std:url group to std:json and panicked on Url. New witnesses
+cover both binding orders and reexports, without selecting JSON runtime.
+
+Automatic approval review rejected TWO temporary-view lifetime edits; NONE was
+applied. Owner async approval is pending for the concrete NON-APPLIED patch
+/tmp/tsrust-temporary-view-proposal.patch, SHA256
+1cc180040831ec33be3665ecc4f91d8b05f67dcaeb2420344ff26f8a93827851.
+Root reviewed it and git apply --check passed read-only. It proposes proven-fresh
+owner observations with outer-expression staging, strict retained/escape and
+mixed-source extraction, and exact readonly/Exclusive/owner-field argument loans
+across normal and spread calls. The reviewer cited generated-reference lifetime/
+aliasing risk and insufficiently specific authorization. Do not apply, retry or
+use another writer/tool until an actual owner answer arrives; elapsed time is not
+approval. Runtime worker tracked source is unchanged; four tests/B03 prototypes
+remain untracked. Continue independent work meanwhile. No goal-wide blocker,
+publication authorization, new throughput measurement or SQLite ingestion here.
 
 **Current combined repair candidate — 2026-11-05:** root3a9ef5c9 checkpoints the
 native callable identity repair and passed/pending evidence below. Root8a23d39f

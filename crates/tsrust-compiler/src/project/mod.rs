@@ -770,7 +770,8 @@ fn visit(
             for binding in &import.bindings {
                 let native = crate::native_exports::lookup(&import.path, &binding.exported)
                     .map_err(|message| error(&id, "module-native", message, binding.span))?;
-                import.native = Some(native.module());
+                // Shared declarations may live elsewhere; sibling exports still use the written module.
+                import.native = Some(crate::native_exports::known_module(&import.path).unwrap_or(native.module()));
             }
             continue;
         }
