@@ -57,7 +57,7 @@ impl Emitter<'_>{
         let fields=&self.program.records[id].fields;
         let tasks=fields.iter().enumerate().map(|(index,field)|{
             let poll=self.future_poll(field.ty.unwrap(),"task",error,span);
-            format!("{{let task=inputs.field{index};async move{{{poll}}}}")
+            format!("{{let task=inputs.field{index};async move{{{poll}}}}}")
         }).collect::<Vec<_>>().join(",");
         let names=(0..fields.len()).map(|index|format!("all_task{index},")).collect::<String>();
         // Reverse declarations retain index-order pending drops after result storage drops.
