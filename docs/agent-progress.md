@@ -30,6 +30,23 @@ candidate additionally integrates URL facade a5328d77, reproducible scaling
 URL runtime/alias/dependency/cache/sourcepack/export wiring and generic fixes.
 No new URL/codec native gate or platform completion is claimed.
 
+**Next dependency prerequisite:** exact `tempfile =3.27.0` is now optional in both
+runtime manifests behind `temporary-files = ["files", "dep:tempfile"]`; compiler
+unit tests have the direct dev dependency and runtime pins are reserved from
+binding overrides. Offline full Cargo metadata resolves all three lockfiles
+(0.517/0.518/0.520s; peaks20,976/21,872/23,824KiB). Independent lock comparison
+proves every pre-existing dependency unchanged; only backend adds tempfile,
+fastrand2.5.0, rustix1.1.5 and linux-raw-sys0.12.1. Default/files features stay
+unchanged. Runtime marker and portable-export feature selection are prepared;
+CLI selection is assigned with the shared-target repair. This is a dependency
+prerequisite, not acceptance of the worker's unmerged temporary-directory API.
+
+Root combined URL/generic checkpoint is1cc4a307. Codec acceptance WIP is preserved
+in worker c7898da (pending integration/native acceptance). Runtime worker owns the
+shared-target repair; filesystem worker awaits that repair plus these pins. Live
+GitHub recheck confirms PR15 and promotion PR14 merged; release41942318885,
+publisher41944583887 and docs41944660013 succeeded. No open PRs remain.
+
 **Shared target blocker discovered:** inherited cli/runtime_build.rs chooses a
 private build_root/native-target and removes CARGO_TARGET_DIR; outer test env did
 not prove inner CLI target reuse. Prior FS correctness remains valid, but sole-
