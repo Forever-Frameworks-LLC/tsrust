@@ -50,3 +50,21 @@ fn non_unicode_absolute_temp_path_fails_before_keep_and_attempts_cleanup() {
     let path=directory.source(&source);let binary=directory.0.join("temp-directory");support::success(&support::run(support::cli().arg("build").arg(path).arg("-o").arg(&binary),120));
     support::success(&support::run(std::process::Command::new(&binary).current_dir(&odd),30));assert_eq!(std::fs::read_dir(&odd).unwrap().count(),0);
 }
+
+#[test]
+fn temporary_directory_package_builds_safely_offline_after_relocation() {
+    let directory=support::TempDirectory::new();
+    let source=support::format_round_trip("import {createTempDir,stat,removeDirAll} from 'std:fs';import {strictEqual} from 'std:testing';function main(){const parent=unwrap(createTempDir());strictEqual(unwrap(stat(parent)).isDirectory,true);const child=unwrap(createTempDir(parent,'native-'));strictEqual(unwrap(stat(child)).isDirectory,true);unwrap(removeDirAll(parent));match(stat(child)){Ok(_)=>{throw 'cleanup failed';},Err(error)=>{strictEqual(error.code,'not-found');}}}");
+    let input=directory.source(&source);let package=directory.0.join("package");
+    support::success(&support::run(support::cli().arg("emit").arg(&input).arg("--package").arg("-o").arg(&package),60));
+    std::fs::remove_file(input).unwrap();let relocated=directory.0.join("relocated");std::fs::rename(package,&relocated).unwrap();
+    let main=relocated.join("src/main.rs");let emitted=std::fs::read_to_string(&main).unwrap();assert!(!emitted.contains("unsafe"));std::fs::write(main,format!("#![forbid(unsafe_code)]\n{emitted}")).unwrap();
+    let manifest=std::fs::read_to_string(relocated.join("Cargo.toml")).unwrap();assert!(manifest.contains("\"temporary-files\""));
+    let backend=relocated.join("vendor/tempfile-3.27.0");assert!(backend.join("LICENSE-MIT").is_file());assert!(backend.join("LICENSE-APACHE").is_file());
+    let target=std::env::var_os("CARGO_TARGET_DIR").map(std::path::PathBuf::from).unwrap_or_else(||std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target"));
+    for release in [false,true] {
+        let mut command=std::process::Command::new("rustup");command.args(["run",tsrust_compiler::RUST_BACKEND_VERSION,"cargo","build","--offline","--locked"]).current_dir(&relocated).env("CARGO_HOME",directory.0.join("empty-cargo-home")).env("CARGO_INCREMENTAL","0").env("CARGO_BUILD_JOBS","1").env("CARGO_TARGET_DIR",&target);
+        if release {command.arg("--release");}support::success(&support::run(&mut command,120));
+        let program=target.join(if release{"release"}else{"debug"}).join(format!("program{}",std::env::consts::EXE_SUFFIX));let output=support::run(std::process::Command::new(program).current_dir(&relocated),30);support::success(&output);assert!(output.stdout.is_empty());
+    }
+}
