@@ -1,6 +1,6 @@
 //! Bounded JSON Lines output with consuming ownership and explicit flush errors.
 use super::{Value,stringify};
-use crate::stdlib::fs::runtime::{buffered_fs::{self,BufferedWriter},fs::{FsFailure,MAX_WRITE_BYTES}};
+use crate::stdlib::fs::runtime::{buffered_fs::{self,BufferedWriter},fs::FsFailure};
 
 /// Output errors preserve stable codes, never backend messages or record contents.
 #[derive(Debug,Clone,PartialEq,Eq)]
@@ -17,8 +17,7 @@ pub trait Output {
 }
 impl Output for BufferedWriter {
  fn write_all(&mut self,bytes:&[u8])->Result<(),FsFailure> {
-  for chunk in bytes.chunks(MAX_WRITE_BYTES){buffered_fs::buffered_write_all(self,chunk)?;}
-  Ok(())
+  buffered_fs::buffered_write_all(self,bytes)
  }
  fn flush(&mut self)->Result<(),FsFailure> {buffered_fs::flush(self)}
  fn close(self)->Result<(),FsFailure> {self.close()}

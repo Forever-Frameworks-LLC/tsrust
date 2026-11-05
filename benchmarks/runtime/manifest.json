@@ -23576,6 +23576,34 @@
       "specification": "Repeated \u00e9\ud83d\ude00Ab corpus. One input construction/pre-encoding per invocation is included and amortized across calls; setup is measured separately by the direct profile. Each call retains exact output length and boundary observations. Full vector/malformed-input correctness belongs to byte_codecs controls. No hidden whole-result checksum pass.",
       "sourceSha256": "6def18bfcbc13fc8a747a276bdd273326ab9decbee744333d570845481eadfcc",
       "counterpartSha256": "57cebd71c888388bbc23bc6af41033b230a7bb5d7702c35773ff88d6ba03c639"
+    },
+    {
+      "id": "native_file_unbounded_full_write_read",
+      "family": "native-files",
+      "source": "workloads/native_file_unbounded_full_write_read.tsr",
+      "counterpart": "workloads/native_file_unbounded_full_write_read.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 3,
+      "operationsPerIteration": 1,
+      "operationUnit": "One unbounded full-file write/read and byte sum",
+      "inputText": "native-file-fixture-v1",
+      "fixtureSha256": "929b11f47a02202e710632002203f7ea8dd3c1bc51ef818e59b6a3cd1dc2d5dc",
+      "category": "resources",
+      "measurementStatus": "measured-pending-store-ingest",
+      "sourceAccepted": false,
+      "nativeSourceAccepted": false,
+      "implementationAccepted": false,
+      "measured": true,
+      "notes": "New v0.2 file-default workload. Reuses existing sample/process protocols. Cycles 64 KiB, 1 MiB and 64 MiB plus one byte; allocation, file write/read and complete byte observation are timed. Private output preparation is untimed. Local correctness and timing passed; integration acceptance and measurement-store ingestion remain pending.",
+      "specification": "For iteration i, use byte length [65536,1048576,67108865][i%3] and fill (i+seed)%256. Allocate filled bytes, write the complete file, read through EOF without an explicit bound, and return [length,length*fill] after observing every byte. Handwritten Rust uses std::fs::write/read; Node uses writeFileSync/readFileSync.",
+      "sourceSha256": "c4d7542d5292bc8ce8c8f7baa0447b6c9709c2e26ef178e666dd914818954c87",
+      "counterpartSha256": "678649a0a31f7e7718cf7534cd676f2cb625780a587e6fa9d284ad85fb63fe7e"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

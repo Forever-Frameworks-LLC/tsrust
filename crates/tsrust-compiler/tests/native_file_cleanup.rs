@@ -1,3 +1,4 @@
+#![cfg(any(unix, windows))]
 mod support;
 
 #[test]
@@ -13,23 +14,30 @@ fn generated_files_release_once_in_lexical_order_at_o0_o3() {
     let mut rust = String::from_utf8(emitted.stdout).unwrap();
     let original = "Resource::new(FileBackend(file))";
     assert_eq!(rust.matches(original).count(), 2); // open and create share resource ownership.
-    rust = rust.replace(original, "{ crate::opened(path, std::os::fd::AsRawFd::as_raw_fd(&file)); Resource::new(FileBackend(file)) }");
+    rust = rust.replace(original, "{ crate::opened(path, crate::file_id(&file)); Resource::new(FileBackend(file)) }");
     let original = "release(file.into_raw_fd()).map_err(|error| FsFailure::io(\"close\", error))";
     assert_eq!(rust.matches(original).count(), 1);
-    rust = rust.replace(original, "{ let fd=file.into_raw_fd(); let fail=crate::released(fd); let result=release(fd); if fail && result.is_ok() { Err(FsFailure::io(\"close\",std::io::Error::from(std::io::ErrorKind::Interrupted))) } else { result.map_err(|error|FsFailure::io(\"close\",error)) } }");
+    rust = rust.replace(original, "{ let fd=file.into_raw_fd(); let fail=crate::released(fd as usize); let result=release(fd); if fail && result.is_ok() { Err(FsFailure::io(\"close\",std::io::Error::from(std::io::ErrorKind::Interrupted))) } else { result.map_err(|error|FsFailure::io(\"close\",error)) } }");
+    let original = "drop(self.0); Ok(())";
+    assert_eq!(rust.matches(original).count(), 1);
+    rust = rust.replace(original, "{ let fail=crate::released(crate::file_id(&self.0)); drop(self.0); if fail { Err(FsFailure::io(\"close\",std::io::ErrorKind::Interrupted.into())) } else { Ok(()) } }");
     assert_eq!(rust.matches("fn main()").count(), 1);
     rust = rust.replace("fn main()", "fn source_main()");
     rust.push_str(r#"
-static ACTIVE: std::sync::Mutex<Vec<(i32,std::string::String)>>=std::sync::Mutex::new(Vec::new());
+static ACTIVE: std::sync::Mutex<Vec<(usize,std::string::String)>>=std::sync::Mutex::new(Vec::new());
 static EVENTS: std::sync::Mutex<Vec<std::string::String>>=std::sync::Mutex::new(Vec::new());
 static FAILED: std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
-fn opened(path:&str,fd:i32){
+#[cfg(unix)]
+fn file_id(file:&std::fs::File)->usize{std::os::fd::AsRawFd::as_raw_fd(file) as usize}
+#[cfg(windows)]
+fn file_id(file:&std::fs::File)->usize{std::os::windows::io::AsRawHandle::as_raw_handle(file) as usize}
+fn opened(path:&str,fd:usize){
     let mut active=ACTIVE.lock().unwrap();
     assert!(!active.iter().any(|entry|entry.0==fd),"live descriptor reused");
     active.push((fd,path.into()));
     EVENTS.lock().unwrap().push(format!("open {path}"));
 }
-fn released(fd:i32)->bool{
+fn released(fd:usize)->bool{
     let mut active=ACTIVE.lock().unwrap();
     let index=active.iter().position(|entry|entry.0==fd).expect("release must have one live owner");
     let (_,path)=active.remove(index);

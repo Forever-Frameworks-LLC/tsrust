@@ -1,5 +1,7 @@
 # Historical standard-library planning
 
+See [file ownership and explicit byte limits](files.md) for the current file API.
+
 This file preserves early proposals and scoped acceptance notes. Use the
 [current library overview](../../../website/src/content/docs/library/overview.md)
 for public guidance; historical “pending” statements below are not current status.
