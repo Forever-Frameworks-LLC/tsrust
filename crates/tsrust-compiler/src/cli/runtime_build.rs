@@ -96,6 +96,7 @@ impl Prepared {
   if cfg!(all(windows,target_env="msvc")){command.env("CARGO_ENCODED_RUSTFLAGS",MSVC_LINKER_FLAG);}
   if runtime.contains("pub mod tsrust_native_threads {") || runtime.contains("pub use rayon;") { command.args(["--features", "threads"]); }
   if tsrust_compiler::native_runtime::requires_byte_codecs(runtime){command.args(["--features","byte-codecs"]);}
+  if tsrust_compiler::native_runtime::requires_byte_search(runtime){command.args(["--features","byte-search"]);}
   if runtime.contains("pub mod tsrust_native_files {"){command.args(["--features","files"]);}
   if tsrust_compiler::native_runtime::requires_temporary_files(runtime){command.args(["--features","temporary-files"]);}
   if runtime.contains("pub mod tsrust_native_futures {") {command.args(["--features","async"]);}

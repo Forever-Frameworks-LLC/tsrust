@@ -75,9 +75,11 @@ Windows/Linux execution, full suites and shared-target timing remain unrun.
 Optional memchr=2.8.3 is committed in compiler dev/both runtimes (`byte-search`),
 reference graph and reserved pins. Four offline metadata runs pass0.523/0.522/
 0.523/0.525s, peak25,968KiB; all previous packages/checksums/defaults unchanged.
-Only reference graph adds a package. Core worker2bfa53bd has the complete14API/
-39-row source section ready to merge; then add CLI byte-search selection alongside
-requires_byte_codecs. FS44-export source/cursor/sync/5-workload section is ready
+Only reference graph adds a package. Core worker2bfa53bd complete14API/39-row source section is now merged additively;
+CLI byte-search selection is added alongside requires_byte_codecs. Source readiness
+includes compiler/runtime/loans/effects/exact96variants/catalog/docs/export and
+all39TSR/TS/independentRust ABI/oracle/resource rows. Native/compiler/LSP/export and
+generated packet/UTF16 allocation acceptance have not run on this combined family. FS44-export source/cursor/sync/5-workload section is ready
 for preservation and combined-base integration. Neither section is natively
 accepted yet. Next heavy leases: FS new std profiles, then full coherent B02
 compiler/native/LSP/export/allocation acceptance, followed by B01/B04; serialize
@@ -232,9 +234,9 @@ path-scoped reverse search turns long-authority sizes8192/16384/32768/65536 from
 that control. Empty-host mutation preguard addresses1174;1164 EmptyHost behavior
 is documented, not claimed WHATWG parity. Public API timing/DB ingestion pending.
 
-Next: checkpoint accepted shared-target integration, merge the complete byte source
-and CLI search selector, preserve/merge complete FS source, then resume affected
-native/editor/package validation serially. Root owns shared alias architecture, manifests/
+Next: preserve/merge complete FS source and generated allocation witnesses, profile
+FS new std seek/sync kernels under exclusive timing, then build the combined
+candidate and execute coherent affected B02/B01/B04 gates serially. Root owns shared alias architecture, manifests/
 locks, canonical checkpoints, measurements.sqlite and this sole handoff. Keep old
 accepted checks; fix/rerun only affected cases. No pushes or full suites on a timer.
 

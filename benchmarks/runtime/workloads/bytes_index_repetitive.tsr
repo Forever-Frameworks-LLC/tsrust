@@ -1,0 +1,30 @@
+import { alloc, length, at, indexOf, fromArray, set } from "std:bytes";
+
+function workload(n: int, seed: int, input: string): int[] {
+  let size = 256;
+  if (input === "adversarial-medium") {
+    size = 4096;
+  }
+
+  if (input === "adversarial-large") {
+    size = 65536;
+  }
+
+  const bytes = unwrap(alloc(size, 97));
+  const needle = unwrap(alloc(Math.min(size, 512) / 2, 97));
+  unwrap(set(needle, length(needle) - 1, 98));
+  const output: int[] = [];
+  let i = 0;
+  while (i < n) {
+    output.push(unwrap(indexOf(bytes, needle, 0)) + 1);
+    output.push(size);
+    output.push(length(needle));
+    i += 1;
+  }
+
+  return output;
+}
+
+function main() {
+  workload(1, 7, "token");
+}

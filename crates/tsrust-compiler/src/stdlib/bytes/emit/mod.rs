@@ -10,8 +10,11 @@ pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding]) -> 
             bindings.iter().any(|binding|matches!(binding.name,"fromUtf8"|"toUtf8")),
             bindings.iter().any(|binding|matches!(binding.name,"toHex"|"fromHex"|"toUtf8Lossy"|"fromUtf16"|"toUtf16"|"toBase64"|"fromBase64"|"toBase64Url"|"fromBase64Url")),
             bindings.iter().any(|binding|matches!(binding.name,"toBase64"|"fromBase64"|"toBase64Url"|"fromBase64Url")),
+            bindings.iter().any(|binding|matches!(binding.name,"concat"|"copyInto"|"copyWithin"|"equals"|"compare")),
+            bindings.iter().any(|binding|matches!(binding.name,"readInt"|"writeInt"|"readUint"|"writeUint"|"readFloat32"|"writeFloat32"|"readFloat64"|"writeFloat64")),
+            bindings.iter().any(|binding|binding.name=="indexOf"),
         ));
-        output.push_str(&error_bridge(program));
+        if bindings.iter().any(|binding| matches!(binding.result, NativeType::Structured(crate::native_signatures::Signature::Result(_, _)))) {output.push_str(&error_bridge(program));}
     }
     // Observers and mutators accept every readable or writable byte storage that the
     // program names: the owner and its views share these access traits.
@@ -65,6 +68,27 @@ pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding]) -> 
                 let call = match binding.name { "fromHex" => "tsrust_native_bytes::from_hex(text.as_ref())", "fromBase64" => "tsrust_native_bytes::from_base64(text.as_ref(), false)", _ => "tsrust_native_bytes::from_base64(text.as_ref(), true)" };
                 output.push_str(&result_bridge(program, binding, "text: &String", call, &format!("Record{bytes} {{ bytes: success }}")));
             }
+            "concat" => output.push_str(&result_bridge(program, binding, "left: &A, right: &B", "tsrust_native_bytes::concat(left.readable_bytes(), right.readable_bytes())", &format!("Record{bytes} {{ bytes: success }}"))),
+            "copyInto" => output.push_str(&result_bridge(program, binding, "target: &mut D, target_offset: i64, source: &S", "tsrust_native_bytes::copy_into(target.writable_bytes(), target_offset, source.readable_bytes())", "success")),
+            "copyWithin" => output.push_str(&result_bridge(program, binding, "bytes: &mut B, target_offset: i64, start: i64, end: i64", "tsrust_native_bytes::copy_within(bytes.writable_bytes(), target_offset, start, end)", "success")),
+            "equals" | "compare" => {
+                let NativeBackend::Bundled {symbol}=binding.backend;
+                let (operation,result)=if binding.name=="equals" {("equals","bool")} else {("compare","i64")};
+                output.push_str(&format!("fn {symbol}<A: TsrReadableBytes, B: TsrReadableBytes>(left: &A, right: &B) -> {result} {{ tsrust_native_bytes::{operation}(left.readable_bytes(), right.readable_bytes()) }}\n"));
+            }
+            "indexOf" => output.push_str(&result_bridge(program, binding, "bytes: &A, needle: &B, from_index: i64", "tsrust_native_bytes::index_of(bytes.readable_bytes(), needle.readable_bytes(), from_index)", "success")),
+            "readInt" | "writeInt" | "readUint" | "writeUint" | "readFloat32" | "writeFloat32" | "readFloat64" | "writeFloat64" => {
+                let (order_type, order) = byte_order_bridge(program);
+                let write = binding.name.starts_with("write"); let integer = matches!(binding.name,"readInt"|"writeInt"|"readUint"|"writeUint");
+                let operation = match binding.name {"readInt"=>"read_int","writeInt"=>"write_int","readUint"=>"read_uint","writeUint"=>"write_uint","readFloat32"=>"read_float32","writeFloat32"=>"write_float32","readFloat64"=>"read_float64",_=>"write_float64"};
+                let storage = if write {"bytes: &mut B"} else {"bytes: &B"};
+                let value = if write {if integer {", value: i64"} else {", value: f64"}} else {""};
+                let width = if integer {", width: i64"} else {""};
+                let parameters = format!("{storage}, offset: i64{value}{width}, byte_order: &{order_type}");
+                let storage = if write {"bytes.writable_bytes()"} else {"bytes.readable_bytes()"};
+                let value = if write {", value"} else {""}; let width = if integer {", width"} else {""};
+                output.push_str(&result_bridge(program,binding,&parameters,&format!("tsrust_native_bytes::{operation}({storage}, offset{value}{width}, {order})"),"success"));
+            }
             "fromUtf16" | "toUtf16" => {
                 let (order_type, order) = byte_order_bridge(program);
                 let (parameters, call, success) = if binding.name == "fromUtf16" {
@@ -99,7 +123,7 @@ fn result_bridge(program: &CheckedProgram, binding: &NativeBinding, parameters: 
     let tag = |id| members.iter().position(|ty| *ty == Type::Record(id)).unwrap();
     let fields = if program.records[ok].fields.is_empty() { String::new() } else { format!("field0: {success}") };
     let NativeBackend::Bundled { symbol } = binding.backend;
-    let lifetime=if binding.returned_borrow.is_some() {if parameters.contains("mut B") {"<'a, B: TsrWritableBytes>"} else {"<'a, B: TsrSharedViewSource<'a>>"}} else if parameters.contains("&mut B") {"<B: TsrWritableBytes>"} else if parameters.contains("&B") {"<B: TsrReadableBytes>"} else {""};
+    let lifetime=if binding.returned_borrow.is_some() {if parameters.contains("mut B") {"<'a, B: TsrWritableBytes>"} else {"<'a, B: TsrSharedViewSource<'a>>"}} else if matches!(binding.name,"concat"|"indexOf") {"<A: TsrReadableBytes, B: TsrReadableBytes>"} else if binding.name=="copyInto" {"<D: TsrWritableBytes, S: TsrReadableBytes>"} else if parameters.contains("&mut B") {"<B: TsrWritableBytes>"} else if parameters.contains("&B") {"<B: TsrReadableBytes>"} else {""};
     let result_type=if let Some(contract)=binding.returned_borrow {
         let view=program.records.iter().position(|record|record.native_type==Some(contract.payload)).expect("checked view payload");
         let arguments=members.iter().map(|member|if *member==Type::Record(ok) {format!("Record{ok}<Record{view}<'a>>")} else {format!("Record{err}")}).collect::<Vec<_>>();
