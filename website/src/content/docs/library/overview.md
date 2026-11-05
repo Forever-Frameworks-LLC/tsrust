@@ -30,6 +30,7 @@ Use named imports for the declarations you need. See
 | Work with paths, files and bytes | [`std:path`](/tsrust/reference/library/path/), [`std:fs`](/tsrust/reference/library/fs/), [`std:bytes`](/tsrust/reference/library/bytes/) |
 | Parse JSON and validate shapes | [`std:json`](/tsrust/reference/library/json/), [`std:schema`](/tsrust/reference/library/schema/) |
 | Serve or call HTTP APIs | [`std:http`](/tsrust/reference/library/http/) |
+| Parse URLs and ordered query parameters | [`std:url`](/tsrust/reference/library/url/), [URL guide](/tsrust/library/urls/) |
 | Work with SQLite or pooled databases | [`std:sqlite`](/tsrust/reference/library/sqlite/), [`std:sql`](/tsrust/reference/library/sql/) |
 | Schedule async work or use threads | [`std:futures`](/tsrust/reference/library/futures/), [`std:threads`](/tsrust/reference/library/threads/) |
 | Represent recoverable results | Global [`Result`, `Ok`, `Err` and `unwrap`](/tsrust/library/globals/#result-ok-and-err) — no import |

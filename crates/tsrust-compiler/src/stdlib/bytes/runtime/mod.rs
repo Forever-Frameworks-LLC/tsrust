@@ -237,3 +237,10 @@ mod views {
     use super::*;
     include!("views.rs");
 }
+
+#[cfg(test)]
+include!("codecs.rs");
+#[cfg(test)]
+include!("base64.rs");
+#[cfg(test)]
+mod codec_tests;

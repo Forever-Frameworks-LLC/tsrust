@@ -202,7 +202,8 @@ impl Analyzer {
                 &mut self.record_names,
                 &self.unions, &mut self.callables,
             )?;
-            self.callable_resolver().resolve_value_annotation(&argument, false)?;
+            // Type arguments may be unit payloads; parameter/value positions still reject void.
+            self.callable_resolver().resolve_value_annotation(&argument, true)?;
         }
         append_checked_record_fields(
             &mut self.program.records,

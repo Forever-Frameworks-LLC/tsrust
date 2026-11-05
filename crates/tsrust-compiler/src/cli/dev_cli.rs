@@ -131,7 +131,7 @@ mod platform {
         let cache_root=std::env::var_os("TSRUST_CACHE_DIR").map(PathBuf::from).unwrap_or_else(||root.join("target/tsrust-native"));
         let shared_inputs=crate::backend_sources::application_identity(&frontend.rust,&cache_root)?;
         let mut cache_parts:Vec<&[u8]>=vec![
-            b"native-cache-abi-4-ui-dev-profile",crate::native_dependency_bundle::IDENTITY.as_bytes(),backend_identity.as_bytes(),env!("CARGO_PKG_VERSION").as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),
+            b"native-cache-abi-4-ui-dev-profile",crate::native_dependency_bundle::dependency_identity().as_bytes(),backend_identity.as_bytes(),env!("CARGO_PKG_VERSION").as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),
             if release{b"release"}else{b"debug"},b"edition=2024;overflow-checks=on",frontend.rust.as_bytes(),&frontend.identity,features.as_bytes(),optimization.as_bytes(),
         ];
         if let Some(inputs)=&shared_inputs {cache_parts.push(inputs.as_bytes());}

@@ -4,6 +4,7 @@
 /// not publish source exports: module loading must resolve registered declarations.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum NativeTypeId {
+    Url, SearchParams, UrlError, QueryEntry,
     UiSignal,
     UiComputed,
     UiTextBinding,
@@ -113,6 +114,7 @@ pub enum Intrinsic {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Signature {
     String,
+    StringLiteral(&'static str),
     Boolean,
     Int,
     Number,
@@ -234,6 +236,7 @@ impl Signature {
                     if visited > 4096 { return Err(RenderError::Size); }
                     match signature {
                         Self::String => output.push_str("string"),
+                        Self::StringLiteral(value) => output.push_str(&serde_json::to_string(value).expect("native string literal")),
                         Self::Boolean => output.push_str("boolean"),
                         Self::Int => output.push_str("int"),
                         Self::Number => output.push_str("number"),
@@ -297,6 +300,16 @@ impl Signature {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn string_literal_signatures_render_exact_escaped_values() {
+        let order = Signature::Union(&[Signature::StringLiteral("little"), Signature::StringLiteral("big")]);
+        assert_eq!(order.render(|_| None).unwrap(), "(\"little\" | \"big\")");
+        assert!(!order.contains_borrowed_native().unwrap());
+        let value = "quote\"slash\\line\n雪";
+        let rendered = Signature::StringLiteral(value).render(|_| None).unwrap();
+        assert_eq!(serde_json::from_str::<String>(&rendered).unwrap(), value);
+    }
 
     #[test]
     fn generic_native_signatures_require_explicit_type_arguments() {

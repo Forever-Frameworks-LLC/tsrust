@@ -8,6 +8,8 @@ pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding]) -> 
         output.push_str(&crate::native_runtime::bytes_module(
             bindings.iter().any(|binding|binding.returned_borrow.is_some()),
             bindings.iter().any(|binding|matches!(binding.name,"fromUtf8"|"toUtf8")),
+            bindings.iter().any(|binding|matches!(binding.name,"toHex"|"fromHex"|"toUtf8Lossy"|"fromUtf16"|"toUtf16"|"toBase64"|"fromBase64"|"toBase64Url"|"fromBase64Url")),
+            bindings.iter().any(|binding|matches!(binding.name,"toBase64"|"fromBase64"|"toBase64Url"|"fromBase64Url")),
         ));
         output.push_str(&error_bridge(program));
     }
@@ -55,10 +57,38 @@ pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding]) -> 
             "copy" => output.push_str(&result_bridge(program, binding, "bytes: &B, start: i64, end: i64", "tsrust_native_bytes::copy(bytes.readable_bytes(), start, end)", &format!("Record{bytes} {{ bytes: success }}"))),
             "fromUtf8" => output.push_str(&result_bridge(program, binding, "text: &String", "tsrust_native_bytes::from_utf8(text.as_ref())", &format!("Record{bytes} {{ bytes: success }}"))),
             "toUtf8" => output.push_str(&result_bridge(program, binding, "bytes: &B", "tsrust_native_bytes::to_utf8(bytes.readable_bytes())", "String::Owned(success)")),
+            "toHex" | "toUtf8Lossy" | "toBase64" | "toBase64Url" => {
+                let call = match binding.name { "toHex" => "tsrust_native_bytes::to_hex(bytes.readable_bytes())", "toUtf8Lossy" => "tsrust_native_bytes::to_utf8_lossy(bytes.readable_bytes())", "toBase64" => "tsrust_native_bytes::to_base64(bytes.readable_bytes(), false)", _ => "tsrust_native_bytes::to_base64(bytes.readable_bytes(), true)" };
+                output.push_str(&result_bridge(program, binding, "bytes: &B", call, "String::Owned(success)"));
+            }
+            "fromHex" | "fromBase64" | "fromBase64Url" => {
+                let call = match binding.name { "fromHex" => "tsrust_native_bytes::from_hex(text.as_ref())", "fromBase64" => "tsrust_native_bytes::from_base64(text.as_ref(), false)", _ => "tsrust_native_bytes::from_base64(text.as_ref(), true)" };
+                output.push_str(&result_bridge(program, binding, "text: &String", call, &format!("Record{bytes} {{ bytes: success }}")));
+            }
+            "fromUtf16" | "toUtf16" => {
+                let (order_type, order) = byte_order_bridge(program);
+                let (parameters, call, success) = if binding.name == "fromUtf16" {
+                    (format!("text: &String, byte_order: &{order_type}"), format!("tsrust_native_bytes::from_utf16(text.as_ref(), {order})"), format!("Record{bytes} {{ bytes: success }}"))
+                } else {
+                    (format!("bytes: &B, byte_order: &{order_type}"), format!("tsrust_native_bytes::to_utf16(bytes.readable_bytes(), {order})"), "String::Owned(success)".into())
+                };
+                output.push_str(&result_bridge(program, binding, &parameters, &call, &success));
+            }
             _ => unreachable!("registered byte bridge"),
         }
     }
     output
+}
+
+fn byte_order_bridge(program: &CheckedProgram) -> (String, String) {
+    let Type::Union(id) = crate::native_binding_types::resolve(&program.records, &crate::stdlib::bytes::bindings::BYTE_ORDER).expect("checked byte order") else { unreachable!() };
+    let arms = program.unions[id.index()].members.iter().enumerate().map(|(tag, member)| {
+        let Type::Literal(record, crate::literal_types::LiteralKind::String) = member else { unreachable!("byte order literals") };
+        let Some(crate::literal_types::LiteralValue::String(value)) = &program.records[*record].literal_definition else { unreachable!() };
+        assert!(matches!(value.as_str(), "little" | "big"));
+        format!("Union{}::V{tag}(_) => {value:?}", id.index())
+    }).collect::<Vec<_>>().join(", ");
+    (format!("Union{}", id.index()), format!("match byte_order {{ {arms} }}"))
 }
 
 fn result_bridge(program: &CheckedProgram, binding: &NativeBinding, parameters: &str, call: &str, success: &str) -> String {

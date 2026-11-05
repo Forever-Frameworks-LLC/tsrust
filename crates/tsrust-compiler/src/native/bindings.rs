@@ -94,7 +94,8 @@ impl NativeBinding {
         }
         match self.name {
             // A view of a view borrows the parent view for as long as it lives.
-            "length" | "at" | "copy" | "toUtf8" | "view" => &[ByteView, ByteViewMut],
+            "length" | "at" | "copy" | "toUtf8" | "view"
+            | "toHex" | "toBase64" | "toBase64Url" | "toUtf8Lossy" | "toUtf16" => &[ByteView, ByteViewMut],
             "set" | "viewMut" => &[ByteViewMut],
             _ => &[],
         }
@@ -362,6 +363,44 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::ui::DOCUMENT,
     crate::stdlib::ui::RUN,
     crate::stdlib::signals::LISTEN,
+    crate::stdlib::url::PARSE,
+    crate::stdlib::url::RESOLVE,
+    crate::stdlib::url::FORMAT,
+    crate::stdlib::url::HREF,
+    crate::stdlib::url::SET_HREF,
+    crate::stdlib::url::PROTOCOL,
+    crate::stdlib::url::SET_PROTOCOL,
+    crate::stdlib::url::USERNAME,
+    crate::stdlib::url::SET_USERNAME,
+    crate::stdlib::url::PASSWORD,
+    crate::stdlib::url::SET_PASSWORD,
+    crate::stdlib::url::HOSTNAME,
+    crate::stdlib::url::SET_HOSTNAME,
+    crate::stdlib::url::PORT,
+    crate::stdlib::url::SET_PORT,
+    crate::stdlib::url::PATHNAME,
+    crate::stdlib::url::SET_PATHNAME,
+    crate::stdlib::url::SEARCH,
+    crate::stdlib::url::SET_SEARCH,
+    crate::stdlib::url::HASH,
+    crate::stdlib::url::SET_HASH,
+    crate::stdlib::url::ORIGIN,
+    crate::stdlib::url::PARSE_QUERY,
+    crate::stdlib::url::FORMAT_QUERY,
+    crate::stdlib::url::SEARCH_PARAMS,
+    crate::stdlib::url::SET_SEARCH_PARAMS,
+    crate::stdlib::url::GET,
+    crate::stdlib::url::GET_ALL,
+    crate::stdlib::url::HAS,
+    crate::stdlib::url::APPEND,
+    crate::stdlib::url::SET,
+    crate::stdlib::url::DELETE,
+    crate::stdlib::url::ENTRIES,
+    crate::stdlib::url::SORT,
+    crate::stdlib::url::PATH_TO_FILE_URL,
+    crate::stdlib::url::FILE_URL_TO_PATH,
+    crate::stdlib::url::ENCODE_COMPONENT,
+    crate::stdlib::url::DECODE_COMPONENT,
     crate::stdlib::signals::RECEIVE,
     crate::stdlib::signals::POLL,
     crate::stdlib::crypto::RANDOM_BYTES,
@@ -438,6 +477,15 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::bytes::bindings::COPY,
     crate::stdlib::bytes::bindings::FROM_UTF8,
     crate::stdlib::bytes::bindings::TO_UTF8,
+    crate::stdlib::bytes::bindings::TO_HEX,
+    crate::stdlib::bytes::bindings::FROM_HEX,
+    crate::stdlib::bytes::bindings::TO_UTF8_LOSSY,
+    crate::stdlib::bytes::bindings::TO_BASE64,
+    crate::stdlib::bytes::bindings::FROM_BASE64,
+    crate::stdlib::bytes::bindings::TO_BASE64_URL,
+    crate::stdlib::bytes::bindings::FROM_BASE64_URL,
+    crate::stdlib::bytes::bindings::FROM_UTF16,
+    crate::stdlib::bytes::bindings::TO_UTF16,
     crate::stdlib::testing::bindings::CONTAINS_VALUE,
     crate::stdlib::testing::bindings::LENGTH_VALUE,
     crate::stdlib::testing::bindings::HAS_LENGTH,
@@ -474,6 +522,15 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::bytes::bindings::VIEW,
     crate::stdlib::bytes::bindings::VIEW_MUT,
 ];
+/// Checked query method metadata, shared with editor inference.
+pub fn url_method(identity:crate::native_signatures::NativeTypeId,member:&str)->Option<&'static NativeBinding>{crate::stdlib::url::method(Some(identity),member)}
+/// Computed URL properties have separate read and write contracts, not record fields.
+pub fn url_property(identity:crate::native_signatures::NativeTypeId,member:&str)->Option<(&'static NativeBinding,Option<&'static NativeBinding>)>{
+    if identity!=crate::native_signatures::NativeTypeId::Url{return None;}
+    let property=crate::stdlib::url::property(member)?;Some((&property.getter,property.setter.as_ref()))
+}
+pub fn url_property_names()->impl Iterator<Item=&'static str>{crate::stdlib::url::PROPERTIES.iter().map(|property|property.name)}
+
 /// Checked SQLite member metadata, shared with editor inference.
 pub fn sqlite_method(identity: crate::native_signatures::NativeTypeId, member: &str) -> Option<&'static NativeBinding> {
     lookup("std:sqlite",crate::stdlib::sqlite::method(Some(identity),member)?).ok()

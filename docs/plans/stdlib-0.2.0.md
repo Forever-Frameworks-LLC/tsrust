@@ -167,6 +167,20 @@ locked handles and exact drop counts. Performance: enumeration/stat, binary copy
 buffered append and random-position reads; same files/cache/durability policy in
 Tsrust, handwritten Rust and Node. Report sync-to-storage costs separately.
 
+Read-only dependency review (2026-11-04): `tempfile =3.27.0` with default
+`getrandom` is the selected candidate for `createTempDir`; no nightly/wasm/sys_rng
+extras. Declared crate MSRV1.63; effective selected native closure requires1.85
+from getrandom0.4.3, compatible with pinned1.96.1. MIT OR Apache-2.0; retain
+additional LLVM-exception notices where selected rustix/linux-raw-sys offer them.
+The official RustSec snapshot965bf9ad083b58e6340d65829d85217b18be9290 has no
+matching advisory for the selected locked native versions; once_cell's old
+advisory is patched by1.21.4. This review is not runtime/platform admission.
+Use Builder's .tmp prefix/six random characters/default collision behavior and
+platform permissions/umask; do not promise0700. Validate UTF8 before keep().
+Sources: [crate manifest](https://docs.rs/crate/tempfile/3.27.0/source/Cargo.toml),
+[Builder](https://docs.rs/tempfile/3.27.0/tempfile/struct.Builder.html),
+[RustSec snapshot](https://github.com/RustSec/advisory-db/tree/965bf9ad083b58e6340d65829d85217b18be9290/crates).
+
 ### B02 — Byte codecs and binary records
 
 Backend: std for binary/hex/UTF-16; `base64` for base64. Depends on B00.

@@ -10,7 +10,7 @@ pub(crate) fn materialize_binding(root: &Path, package: &tsrust_compiler::projec
 
 // Lockfile package checksums bind the vendored source closure. The manifest binds
 // selected features; increment the protocol when build settings change.
-pub(crate) const IDENTITY:&str=concat!("native-dependencies-1\n",include_str!("../../native-dependencies/Cargo.toml"),include_str!("../../native-dependencies/Cargo.lock"));
+const BASE_IDENTITY:&str=concat!("native-dependencies-1\n",include_str!("../../native-dependencies/Cargo.toml"),include_str!("../../native-dependencies/Cargo.lock"));
 
 /// windows-targets records a native DLL import-library name in its rlib, but
 /// Cargo's native search path is not retained by the application rustc command.
@@ -148,8 +148,14 @@ mod artifact_tests {
         fs::write(&bundle,legacy).unwrap();let old_output=directory.join("legacy-output");
         unpack(&bundle,&old_output).unwrap();
         assert_eq!(fs::read(old_output.join("libtsrust_runtime.rlib")).unwrap(),b"runtime\0bytes");
-        assert!(IDENTITY.starts_with("native-dependencies-1\n"));
-        assert!(IDENTITY.contains(sources::MANIFEST));
-        assert!(IDENTITY.contains(sources::LOCK));
+        assert!(BASE_IDENTITY.starts_with("native-dependencies-1\n"));
+        assert!(BASE_IDENTITY.contains(sources::MANIFEST));
+        assert!(BASE_IDENTITY.contains(sources::LOCK));
+        assert_eq!(dependency_identity(),tsrust_compiler::native_url_patch::cache_identity(BASE_IDENTITY));
     }
+}
+
+pub(crate) fn dependency_identity()-> &'static str {
+ static VALUE:std::sync::OnceLock<String>=std::sync::OnceLock::new();
+ VALUE.get_or_init(||tsrust_compiler::native_url_patch::cache_identity(BASE_IDENTITY)).as_str()
 }

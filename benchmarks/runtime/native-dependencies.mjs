@@ -25,8 +25,10 @@ export function dependencyArtifacts(stdout,target,requiredNames=names) {
 export function needsJsonDependencies(emitted) { return /(?:^|[;}]\s*)mod\s+tsrust_native_json\s*\{/m.test(emitted); }
 export function prepareNativeDependencies({emitted,compiler,source,build,rustVersion,targetDirectory,env=process.env}) {
  const files=/(?:^|[;}]\s*)mod\s+tsrust_native_files\s*\{/m.test(emitted);
- if(!needsJsonDependencies(emitted)&&!files)return {args:[],evidence:null};
- const selectedNames=[...(needsJsonDependencies(emitted)?names:[]),...(files?['nix']:[])];
+ const codecs=/\bfn codec_base64_engine\(/.test(emitted);
+ const urls=/(?:^|[;}]\s*)mod\s+tsrust_native_url\s*\{/m.test(emitted);
+ if(!needsJsonDependencies(emitted)&&!files&&!codecs&&!urls)return {args:[],evidence:null};
+ const selectedNames=[...(needsJsonDependencies(emitted)?names:[]),...(files?['nix']:[]),...(codecs?['base64']:[]),...(urls?['url','percent_encoding']:[])];
  // Stable source paths keep rebuilt dependency artifacts identical across A/B runs.
  const scratch=path.join(build,'package-native-dependencies');
  fs.mkdirSync(scratch); // Fail closed if another preparation owns this directory.
@@ -60,7 +62,7 @@ export function prepareNativeDependencies({emitted,compiler,source,build,rustVer
 
 // Reference-only crates never change the emitted compiler or Node dependency path.
 export function prepareReferenceDependencies({workload,rustVersion,targetDirectory,env=process.env}) {
- const selected={math_random_range:'rand',string_normalize_forms:'unicode_normalization'}[workload?.id];
+ const selected=workload?.family==='native-url'?['url','percent_encoding']:workload?.family==='byte-codecs'&&workload.id.startsWith('bytes_base64')?'base64':{math_random_range:'rand',string_normalize_forms:'unicode_normalization'}[workload?.id];
  if(!selected)return {args:[],evidence:null};
  const root=fileURLToPath(new URL('./parity-dependencies/',import.meta.url));
  const target=path.resolve(targetDirectory),childEnv={...env,CARGO_TARGET_DIR:target,CARGO_INCREMENTAL:'0',CARGO_BUILD_JOBS:'1'};
@@ -68,6 +70,9 @@ export function prepareReferenceDependencies({workload,rustVersion,targetDirecto
  const command=['rustup','run',rustVersion,'cargo','build','--manifest-path',path.join(root,'Cargo.toml'),'--offline','--locked','--release','--message-format=json'];
  const child=spawnSync(command[0],command.slice(1),{cwd:root,env:childEnv,encoding:'utf8',timeout:120000,maxBuffer:16*1024*1024});
  if(child.error||child.status!==0)throw Error(`Reference dependency preparation failed: ${child.error??child.stderr+child.stdout}`);
- const file=dependencyArtifacts(child.stdout,target,[selected])[selected];
- return {args:['--extern',`${selected}=${file}`,'-L',`dependency=${path.dirname(file)}`],evidence:{preparation:'untimed-offline-reference-cargo',rustVersion,manifestSha256:hash(fs.readFileSync(path.join(root,'Cargo.toml'))),lockSha256:hash(fs.readFileSync(path.join(root,'Cargo.lock'))),libraries:[{name:selected,sha256:hash(fs.readFileSync(file))}]}};
+ const required=Array.isArray(selected)?selected:[selected];
+ const artifacts=dependencyArtifacts(child.stdout,target,required);
+ const args=required.flatMap(name=>['--extern',`${name}=${artifacts[name]}`]);
+ for(const directory of new Set(required.map(name=>path.dirname(artifacts[name]))))args.push('-L',`dependency=${directory}`);
+ return {args,evidence:{preparation:'untimed-offline-reference-cargo',rustVersion,manifestSha256:hash(fs.readFileSync(path.join(root,'Cargo.toml'))),lockSha256:hash(fs.readFileSync(path.join(root,'Cargo.lock'))),libraries:required.map(name=>({name,sha256:hash(fs.readFileSync(artifacts[name]))}))}};
 }

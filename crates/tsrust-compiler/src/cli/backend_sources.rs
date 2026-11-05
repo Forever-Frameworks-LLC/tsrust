@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 pub(crate) const MANIFEST: &str = include_str!("../../backend-dependencies/Cargo.toml");
 pub(crate) const LOCK: &str = include_str!("../../backend-dependencies/Cargo.lock");
-pub(crate) const IDENTITY: &str = concat!("shared-backend-sources-2\n", include_str!("../../backend-dependencies/Cargo.toml"), include_str!("../../backend-dependencies/Cargo.lock"));
+const BASE_IDENTITY: &str = concat!("shared-backend-sources-2\n", include_str!("../../backend-dependencies/Cargo.toml"), include_str!("../../backend-dependencies/Cargo.lock"));
 
 pub(crate) fn shared(source: &str) -> Result<bool, String> {
     Ok(!source.contains("pub mod tsrust_native_ui {") || !super::rust_binding_packages::packages(source)?.is_empty())
@@ -33,7 +33,8 @@ pub(crate) fn materialize_with(root: &Path, manifest: &str, lock: &str) -> Resul
     let result = (|| -> Result<(), String> {
         fs::create_dir(root.join("src")).map_err(|e|e.to_string())?;
         fs::create_dir(root.join(".cargo")).map_err(|e|e.to_string())?;
-        fs::write(root.join("Cargo.toml"), manifest).map_err(|e|e.to_string())?;
+        fs::write(root.join("Cargo.toml"), tsrust_compiler::native_url_patch::normalize_manifest(manifest).map_err(|e|e.to_string())?).map_err(|e|e.to_string())?;
+        tsrust_compiler::native_url_patch::install(root,manifest).map_err(|e|e.to_string())?;
         fs::write(root.join("Cargo.lock"), lock).map_err(|e|e.to_string())?;
         fs::write(root.join("src/lib.rs"), include_str!("../../backend-dependencies/src/lib.rs")).map_err(|e|e.to_string())?;
         fs::write(root.join(".cargo/config.toml"), "[net]\noffline = true\n").map_err(|e|e.to_string())?;
@@ -43,7 +44,7 @@ pub(crate) fn materialize_with(root: &Path, manifest: &str, lock: &str) -> Resul
     result
 }
 
-pub(crate) fn validate(root: &Path, lock: &str) -> Result<(), String> {
+pub(crate) fn validate(root: &Path, manifest:&str, lock: &str) -> Result<(), String> {
     for path in [root.to_owned(),root.join("src"),root.join(".cargo"),root.join("Cargo.toml"),root.join("Cargo.lock"),root.join("src/lib.rs"),root.join(".cargo/config.toml")] {
         if fs::symlink_metadata(&path).map_err(|e|e.to_string())?.file_type().is_symlink() {
             return Err(format!("Shared backend support cannot traverse a symlink: {}", path.display()));
@@ -53,6 +54,7 @@ pub(crate) fn validate(root: &Path, lock: &str) -> Result<(), String> {
         || fs::read_to_string(root.join(".cargo/config.toml")).map_err(|e|e.to_string())? != "[net]\noffline = true\n" {
         return Err("Shared backend support metadata was modified; preserved it. Remove the affected private runtime workspace before retrying.".into());
     }
+    tsrust_compiler::native_url_patch::visit(root,manifest,|_,_|Ok(())).map_err(|e|e.to_string())?;
     Ok(())
 }
 
@@ -62,7 +64,7 @@ fn part(hash: &mut Sha256, bytes: &[u8]) {hash.update((bytes.len() as u64).to_le
 /// never written into cache identity files. Include all environment inputs because
 /// upstream build scripts can declare arbitrary environment dependencies.
 pub(crate) fn identity(root: &Path) -> Result<String, String> {
-    let mut hash = Sha256::new();part(&mut hash, IDENTITY.as_bytes());
+    let mut hash = Sha256::new();part(&mut hash, dependency_identity().as_bytes());
     let environment = std::env::vars_os().collect::<std::collections::BTreeMap<_,_>>();
     for (name,value) in environment {part(&mut hash,name.as_encoded_bytes());part(&mut hash,value.as_encoded_bytes());}
     let root = super::absolute(root)?;
@@ -121,4 +123,9 @@ pub(crate) fn unchanged(expected: Option<&str>, root: &Path) -> bool {
 
 pub(crate) fn application_identity(source: &str, root: &Path) -> Result<Option<String>, String> {
     if tsrust_compiler::native_runtime::separate(source).dependencies && shared(source)? {Ok(Some(identity(root)?))} else {Ok(None)}
+}
+
+pub(crate) fn dependency_identity()-> &'static str {
+ static VALUE:std::sync::OnceLock<String>=std::sync::OnceLock::new();
+ VALUE.get_or_init(||tsrust_compiler::native_url_patch::cache_identity(BASE_IDENTITY)).as_str()
 }

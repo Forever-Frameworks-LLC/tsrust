@@ -17,6 +17,8 @@ pub enum BorrowAccess {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ReturnSlot {
     Direct,
+    /// Only a present payload carries the loan; this operation cannot fail.
+    DirectOptional,
     ResultOk,
     /// Only a present Ok payload carries the loan; undefined and Err do not.
     ResultOkOptional,
@@ -107,6 +109,8 @@ impl NativeBinding {
         let signature = self.result.signature();
         let payload = match (contract.slot, &signature) {
             (ReturnSlot::Direct, signature) => signature,
+            (ReturnSlot::DirectOptional, Signature::Optional(payload)) => payload,
+            (ReturnSlot::DirectOptional, _) => return Err(ContractError::PayloadMismatch),
             (ReturnSlot::ResultOk | ReturnSlot::ResultOkOptional, Signature::Result(value, error)) => {
                 if error
                     .contains_borrowed_native()
@@ -178,6 +182,20 @@ mod tests {
                 slot: ReturnSlot::ResultOk,
             }),
             ..crate::stdlib::bytes::bindings::COPY
+        }
+    }
+
+    #[test]
+    fn direct_optional_borrow_requires_exact_optional_shape_without_result() {
+        static OPTIONAL: Signature = Signature::Optional(&VIEW);
+        static OWNED_OPTIONAL: Signature = Signature::Optional(&OWNER);
+        let mut probe = binding(Mode::Read, false, false);
+        probe.returned_borrow.as_mut().unwrap().slot = ReturnSlot::DirectOptional;
+        probe.result = NativeType::Structured(&OPTIONAL);
+        assert_eq!(probe.validate_returned_borrow(), Ok(()));
+        for signature in [&VIEW, &RESULT, &OWNED_OPTIONAL] {
+            probe.result = NativeType::Structured(signature);
+            assert_eq!(probe.validate_returned_borrow(), Err(ContractError::PayloadMismatch));
         }
     }
 

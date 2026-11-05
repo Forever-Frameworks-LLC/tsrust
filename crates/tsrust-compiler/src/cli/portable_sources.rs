@@ -18,7 +18,8 @@ pub(super) fn cargo_home() -> io::Result<PathBuf> {
 pub(super) fn location(manifest: &str, lock: &str) -> io::Result<PathBuf> {
     let base=match std::env::var_os("TSRUST_SOURCE_PACK_DIR") {Some(path)=>PathBuf::from(path),None=>cargo_home()?.join("tsrust/source-packs")};
     let base=if base.is_absolute(){base}else{std::env::current_dir()?.join(base)};
-    Ok(base.join(digest(format!("portable-source-pack-1\nnative-dependencies-1\n{manifest}{lock}\n{LIB}\n{CONFIG}").as_bytes())))
+    let patch=tsrust_compiler::native_url_patch::source_identity(manifest)?;
+    Ok(base.join(digest(format!("portable-source-pack-1\nnative-dependencies-1\n{manifest}{lock}\n{LIB}\n{CONFIG}{patch}").as_bytes())))
 }
 fn regular(path: &Path, directory: bool) -> io::Result<()> {
     let metadata=fs::symlink_metadata(path)?;
@@ -50,7 +51,9 @@ fn packages(lock: &str) -> io::Result<BTreeMap<String,String>> {
 /// copying. Cargo remains the vendor producer; packs contain no executable hooks.
 fn visit(root: &Path, manifest: &str, lock: &str, mut copy: impl FnMut(&Path,&[u8])->io::Result<()>) -> io::Result<()> {
     regular(root,true)?;
-    for (relative,expected) in [("Cargo.toml",manifest),("Cargo.lock",lock),("src/lib.rs",LIB),(".cargo/config.toml",CONFIG)] {
+    let normalized=tsrust_compiler::native_url_patch::normalize_manifest(manifest)?;
+    tsrust_compiler::native_url_patch::visit(root,manifest,|relative,bytes|copy(relative,bytes))?;
+    for (relative,expected) in [("Cargo.toml",normalized.as_str()),("Cargo.lock",lock),("src/lib.rs",LIB),(".cargo/config.toml",CONFIG)] {
         let path=root.join(relative);regular(path.parent().unwrap(),true)?;regular(&path,false)?;
         let bytes=fs::read(path)?;if bytes!=expected.as_bytes(){return Err(error(format!("Prepared source metadata changed: {relative}")));}copy(Path::new(relative),&bytes)?;
     }
@@ -99,7 +102,8 @@ pub(super) fn prepare(mut cargo: Command, offline: bool, manifest: &str, lock: &
     let staging=parent.join(format!(".preparing-{}-{stamp}",std::process::id()));fs::create_dir(&staging)?;
     let result=(|| {
         fs::create_dir(staging.join("src"))?;fs::create_dir(staging.join(".cargo"))?;
-        fs::write(staging.join("Cargo.toml"),manifest)?;fs::write(staging.join("Cargo.lock"),lock)?;fs::write(staging.join("src/lib.rs"),LIB)?;
+        fs::write(staging.join("Cargo.toml"),tsrust_compiler::native_url_patch::normalize_manifest(manifest)?)?;
+        tsrust_compiler::native_url_patch::install(&staging,manifest)?;fs::write(staging.join("Cargo.lock"),lock)?;fs::write(staging.join("src/lib.rs"),LIB)?;
         // Config is written after Cargo finishes so setup may explicitly fetch.
         cargo.args(["vendor","--locked","--versioned-dirs","--manifest-path"]).arg(staging.join("Cargo.toml")).arg(staging.join("vendor"))
             .env("CARGO_HOME",cargo_home()?).stdout(std::process::Stdio::null());

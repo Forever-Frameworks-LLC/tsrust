@@ -1,4 +1,532 @@
 {
+  "std:url": [
+    {
+      "name": "Url",
+      "signature": "type Url",
+      "parameters": [],
+      "documentation": "A parsed, independently owned URL with checked computed properties. parseUrl and resolveUrl return Result; malformed input returns UrlError. Components normalize using the URL backend, including IDNA hosts and default ports. Read getters without reparsing. Write properties with plain assignment; invalid writes throw UrlError. origin is read-only. No constructor defaults or network/DNS lookup are involved. Some backend parsing differences from the URL Standard are documented in the reference.\n\n```tsrust\nconst value = unwrap(parseUrl('https://EXAMPLE.com:443/a/../b'));\nconsole.log(value.href); // https://example.com/b\n```\n\nOwnership: one owner; clone makes independent storage. Component StringView values borrow it until their last use.",
+      "examples": [
+        {
+          "source": "import { parseUrl } from 'std:url';\nfunction main() { const value=unwrap(parseUrl('https://EXAMPLE.com:443/a/../b'));console.log(value.href); }\n",
+          "output": "https://example.com/b\n"
+        }
+      ]
+    },
+    {
+      "name": "SearchParams",
+      "signature": "type SearchParams",
+      "parameters": [],
+      "documentation": "An owned ordered list of decoded query name/value pairs, including duplicates. Create with parseQuery or searchParams(url). Parsing uses form encoding: plus means space, malformed percent escapes remain literal, and invalid decoded UTF-8 is replaced. get borrows the first value; getAll and entries copy independent snapshots. Mutators preserve the documented duplicate order. No URL is modified until setSearchParams is called.\n\n```tsrust\nconst params = parseQuery('x=1&x=2');\nconsole.log(params.getAll('x').join(',')); // 1,2\n```\n\nOwnership: independent owner; clone copies the list. A borrowed get result prevents mutation until its last use.",
+      "examples": [
+        {
+          "source": "import { parseQuery } from 'std:url';\nfunction main() { const params=parseQuery('x=1&x=2');console.log(params.getAll('x').join(',')); }\n",
+          "output": "1,2\n"
+        }
+      ]
+    },
+    {
+      "name": "UrlError",
+      "signature": "type UrlError = { code: string; operation: string; message: string; }",
+      "parameters": [],
+      "documentation": "A URL failure with a stable category, failing operation and input-free explanation. Parsing, file conversion and strict component decoding return it in Result. Rejected property writes throw it. range identifies an invalid port; host rejects an invalid empty host retaining credentials or a port. No source URL or credential is interpolated into error messages.\n\n```tsrust\ntry {\n  const value = unwrap(parseUrl('https://example.com/'));\n  value.port = 65536;\n} catch (error) {\n  console.log(error.code);\n} // range\n```\n\nOwnership: owned error strings; reading fields borrows them.",
+      "examples": [
+        {
+          "source": "import { parseUrl } from 'std:url';\nfunction main() { try{const value=unwrap(parseUrl('https://example.com/'));value.port=65536;}catch(error){console.log(error.code);} }\n",
+          "output": "range\n"
+        }
+      ],
+      "fields": {
+        "code": {
+          "documentation": "Stable failure category: parse, scheme, credentials, host, range, port, path, percent or encoding."
+        },
+        "operation": {
+          "documentation": "The public operation or assigned property that failed, without argument text."
+        },
+        "message": {
+          "documentation": "A useful explanation that excludes URL input and credentials."
+        }
+      }
+    },
+    {
+      "name": "QueryEntry",
+      "signature": "type QueryEntry = { name: string; value: string; }",
+      "parameters": [],
+      "documentation": "An independently owned decoded query pair returned by entries(). Both fields are UTF-8 strings; duplicate names remain separate entries in list order.\n\n```tsrust\nconst params = parseQuery('x=1');\nfor (const item of params.entries()) {\n  console.log(item.name, item.value);\n} // x 1\n```\n\nOwnership: owns both strings and remains valid after the source list is changed or dropped.",
+      "examples": [
+        {
+          "source": "import { parseQuery } from 'std:url';\nfunction main() { const params=parseQuery('x=1');for(const item of params.entries()){console.log(item.name,item.value);} }\n",
+          "output": "x 1\n"
+        }
+      ],
+      "fields": {
+        "name": {
+          "documentation": "Decoded query parameter name, including an empty name when present."
+        },
+        "value": {
+          "documentation": "Decoded parameter value. A missing equals sign and an empty value both decode as an empty string."
+        }
+      }
+    },
+    {
+      "name": "StringView",
+      "signature": "type StringView",
+      "parameters": [],
+      "documentation": "A scoped read-only view of valid UTF-8 text. URL properties and SearchParams.get return views without copying substrings. Read length or use the supported string inspection methods; String(view) creates independent owned text. This export is the shared StringView identity.\n\n```tsrust\nconst value = unwrap(parseUrl('https://example.com/a'));\nconsole.log(value.pathname.length); // 2\n```\n\nOwnership: borrows the originating owner. It cannot escape that owner's lifetime or remain live across its mutation.",
+      "examples": [
+        {
+          "source": "import { parseUrl } from 'std:url';\nfunction main() { const value=unwrap(parseUrl('https://example.com/a'));console.log(value.pathname.length); }\n",
+          "output": "2\n"
+        }
+      ]
+    },
+    {
+      "name": "parseUrl",
+      "signature": "parseUrl(text: string, base?: ReadOnly<Url>): Result<Url, UrlError>",
+      "parameters": [
+        {
+          "label": "text: string",
+          "documentation": "URL text, borrowed without mutation."
+        },
+        {
+          "label": "base?: ReadOnly<Url>",
+          "documentation": "Optional parsed base; omitted/undefined means no base."
+        }
+      ],
+      "documentation": "Parses text as an absolute URL, or relative to an optional already-parsed base. Omit base or pass undefined for no base. Returns an owned normalized Url or UrlError; it does not throw before unwrap, mutate the base, access the filesystem or resolve DNS. Relative input without a usable base fails. Credentials are accepted as URL data but excluded from failures.\n\nOwnership: inputs are borrowed for the call; the result owns independent storage.\n\n```tsrust\nimport { parseUrl } from 'std:url';\n\nfunction main() {\n  const base = unwrap(parseUrl('https://example.com/a/'));\n  const value = unwrap(parseUrl('../b', base));\n  console.log(value.href);\n}\n```\n\nExpected output: https://example.com/b.",
+      "examples": [
+        {
+          "source": "import { parseUrl } from 'std:url';\nfunction main() { const base=unwrap(parseUrl('https://example.com/a/'));const value=unwrap(parseUrl('../b',base));console.log(value.href); }\n",
+          "output": "https://example.com/b\n"
+        }
+      ]
+    },
+    {
+      "name": "resolveUrl",
+      "signature": "resolveUrl(base: ReadOnly<Url>, reference: string): Result<Url, UrlError>",
+      "parameters": [
+        {
+          "label": "base: ReadOnly<Url>",
+          "documentation": "Parsed URL used as the base."
+        },
+        {
+          "label": "reference: string",
+          "documentation": "Relative, scheme-relative or absolute reference."
+        }
+      ],
+      "documentation": "Resolves reference against a parsed base and returns an independent normalized URL. A trailing slash on the base changes relative path resolution. An absolute reference replaces the base; opaque bases reject unsuitable relatives. Failures return UrlError. Neither input is changed.\n\nOwnership: inputs are borrowed for the call; the result owns independent storage.\n\n```tsrust\nimport { parseUrl, resolveUrl } from 'std:url';\n\nfunction main() {\n  const base = unwrap(parseUrl('https://example.com/a/b/'));\n  console.log(unwrap(resolveUrl(base, '../c')).href);\n}\n```\n\nExpected output: https://example.com/a/c.",
+      "examples": [
+        {
+          "source": "import { parseUrl, resolveUrl } from 'std:url';\nfunction main() { const base=unwrap(parseUrl('https://example.com/a/b/'));console.log(unwrap(resolveUrl(base,'../c')).href); }\n",
+          "output": "https://example.com/a/c\n"
+        }
+      ]
+    },
+    {
+      "name": "formatUrl",
+      "signature": "formatUrl(value: ReadOnly<Url>): StringView",
+      "parameters": [
+        {
+          "label": "value: ReadOnly<Url>",
+          "documentation": "Live URL owner to inspect."
+        }
+      ],
+      "documentation": "Returns the URL's already-stored canonical serialization without allocating or reparsing. Includes any credentials, query and fragment, so choose fields deliberately when logging. Takes one URL, with no defaults or errors.\n\nOwnership: returns a scoped view borrowing the URL. String(formatUrl(value)) explicitly copies owned text.\n\n```tsrust\nimport { parseUrl, formatUrl } from 'std:url';\n\nfunction main() {\n  const value = unwrap(parseUrl('https://EXAMPLE.com/'));\n  console.log(formatUrl(value));\n}\n```\n\nExpected output: https://example.com/.",
+      "examples": [
+        {
+          "source": "import { parseUrl, formatUrl } from 'std:url';\nfunction main() { const value=unwrap(parseUrl('https://EXAMPLE.com/'));console.log(formatUrl(value)); }\n",
+          "output": "https://example.com/\n"
+        }
+      ]
+    },
+    {
+      "name": "parseQuery",
+      "signature": "parseQuery(text: string): SearchParams",
+      "parameters": [
+        {
+          "label": "text: string",
+          "documentation": "Form query text, with or without one leading ?."
+        }
+      ],
+      "documentation": "Parses ordered form query pairs and strips one optional leading question mark. Duplicate keys remain in order. Plus decodes to space; percent decoding is permissive and invalid decoded UTF-8 is replaced. Empty input yields an empty list. This function has no parse errors; use decodeURIComponent for strict component decoding.\n\nOwnership: inputs are borrowed for the call; the result owns independent storage.\n\n```tsrust\nimport { parseQuery } from 'std:url';\n\nfunction main() {\n  const params = parseQuery('?x=a+b&x=%2B');\n  console.log(params.getAll('x').join('|'));\n}\n```\n\nExpected output: a b|+.",
+      "examples": [
+        {
+          "source": "import { parseQuery } from 'std:url';\nfunction main() { const params=parseQuery('?x=a+b&x=%2B');console.log(params.getAll('x').join('|')); }\n",
+          "output": "a b|+\n"
+        }
+      ]
+    },
+    {
+      "name": "formatQuery",
+      "signature": "formatQuery(value: ReadOnly<SearchParams>): string",
+      "parameters": [
+        {
+          "label": "value: ReadOnly<SearchParams>",
+          "documentation": "Query list whose current order is preserved."
+        }
+      ],
+      "documentation": "Serializes all ordered name/value pairs using form encoding. Output has no leading question mark, spaces become plus, and literal plus becomes %2B. Empty lists produce an empty string. Does not mutate or sort the source; no defaults or errors.\n\nOwnership: inputs are borrowed for the call; the result owns independent storage.\n\n```tsrust\nimport { parseQuery, formatQuery } from 'std:url';\n\nfunction main() {\n  const params = parseQuery('x=a%20b&x=%2B');\n  console.log(formatQuery(params));\n}\n```\n\nExpected output: x=a+b&x=%2B.",
+      "examples": [
+        {
+          "source": "import { parseQuery, formatQuery } from 'std:url';\nfunction main() { const params=parseQuery('x=a%20b&x=%2B');console.log(formatQuery(params)); }\n",
+          "output": "x=a+b&x=%2B\n"
+        }
+      ]
+    },
+    {
+      "name": "searchParams",
+      "signature": "searchParams(value: ReadOnly<Url>): SearchParams",
+      "parameters": [
+        {
+          "label": "value: ReadOnly<Url>",
+          "documentation": "URL whose query is copied and decoded."
+        }
+      ],
+      "documentation": "Decodes the URL query into an independent ordered snapshot. An absent or empty query yields an empty list. Modifying the snapshot never modifies the URL, and later URL writes never modify the snapshot. No defaults or parse errors.\n\nOwnership: inputs are borrowed for the call; the result owns independent storage.\n\n```tsrust\nimport { parseUrl, searchParams } from 'std:url';\n\nfunction main() {\n  const value = unwrap(parseUrl('https://example.com/?x=1'));\n  const params = searchParams(value);\n  params.set('x', '2');\n  console.log(value.search);\n}\n```\n\nExpected output: ?x=1.",
+      "examples": [
+        {
+          "source": "import { parseUrl, searchParams } from 'std:url';\nfunction main() { const value=unwrap(parseUrl('https://example.com/?x=1'));const params=searchParams(value);params.set('x','2');console.log(value.search); }\n",
+          "output": "?x=1\n"
+        }
+      ]
+    },
+    {
+      "name": "setSearchParams",
+      "signature": "setSearchParams(value: Mutable<Url>, params: ReadOnly<SearchParams>): void",
+      "parameters": [
+        {
+          "label": "value: Mutable<Url>",
+          "documentation": "URL to modify; live component views prevent mutation."
+        },
+        {
+          "label": "params: ReadOnly<SearchParams>",
+          "documentation": "Ordered list to serialize without consuming it."
+        }
+      ],
+      "documentation": "Replaces the URL query with the list's canonical form serialization. An empty list removes the query. Preserves the URL's other components and does not mutate the list. The replacement is a snapshot: later list changes do not affect the URL. No defaults or errors.\n\nOwnership: mutably borrows the whole URL and reads the list; neither owner is transferred.\n\n```tsrust\nimport { parseUrl, parseQuery, setSearchParams } from 'std:url';\n\nfunction main() {\n  const value = unwrap(parseUrl('https://example.com/'));\n  const params = parseQuery('x=a+b');\n  setSearchParams(value, params);\n  console.log(value.search);\n}\n```\n\nExpected output: ?x=a+b.",
+      "examples": [
+        {
+          "source": "import { parseUrl, parseQuery, setSearchParams } from 'std:url';\nfunction main() { const value=unwrap(parseUrl('https://example.com/'));const params=parseQuery('x=a+b');setSearchParams(value,params);console.log(value.search); }\n",
+          "output": "?x=a+b\n"
+        }
+      ]
+    },
+    {
+      "name": "pathToFileUrl",
+      "signature": "pathToFileUrl(path: string): Result<Url, UrlError>",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Absolute Unicode path in the current host's native format."
+        }
+      ],
+      "documentation": "Converts an absolute native host path to an owned file URL. Encodes reserved characters and spaces. Relative paths return UrlError; the function does not infer cwd, create a file, canonicalize links or test existence. Windows drive/UNC and Unix root rules follow the host.\n\nOwnership: inputs are borrowed for the call; the result owns independent storage.\n\n```tsrust\nimport { pathToFileUrl } from 'std:url';\n\nfunction main() {\n  try {\n    unwrap(pathToFileUrl('relative'));\n  } catch (error) {\n    console.log(error.code);\n  }\n}\n```\n\nExpected output: path.",
+      "examples": [
+        {
+          "source": "import { pathToFileUrl } from 'std:url';\nfunction main() { try{unwrap(pathToFileUrl('relative'));}catch(error){console.log(error.code);} }\n",
+          "output": "path\n"
+        }
+      ]
+    },
+    {
+      "name": "fileUrlToPath",
+      "signature": "fileUrlToPath(value: ReadOnly<Url>): Result<string, UrlError>",
+      "parameters": [
+        {
+          "label": "value: ReadOnly<Url>",
+          "documentation": "Parsed file URL to convert."
+        }
+      ],
+      "documentation": "Decodes a supported file URL to an owned native host path. Non-file URLs, unsuitable hosts and decoded non-Unicode paths return UrlError. It does not read the filesystem or normalize symlinks. Host-specific path rules apply.\n\nOwnership: inputs are borrowed for the call; the result owns independent storage.\n\n```tsrust\nimport { parseUrl, fileUrlToPath } from 'std:url';\n\nfunction main() {\n  try {\n    unwrap(fileUrlToPath(unwrap(parseUrl('https://example.com/'))));\n  } catch (error) {\n    console.log(error.code);\n  }\n}\n```\n\nExpected output: path.",
+      "examples": [
+        {
+          "source": "import { parseUrl, fileUrlToPath } from 'std:url';\nfunction main() { try{unwrap(fileUrlToPath(unwrap(parseUrl('https://example.com/'))));}catch(error){console.log(error.code);} }\n",
+          "output": "path\n"
+        }
+      ]
+    },
+    {
+      "name": "encodeURIComponent",
+      "signature": "encodeURIComponent(text: string): string",
+      "parameters": [
+        {
+          "label": "text: string",
+          "documentation": "Valid UTF-8 component text, not an entire URL."
+        }
+      ],
+      "documentation": "Percent-encodes UTF-8 bytes except ASCII letters, digits and -_.!~*'(). Hexadecimal output is uppercase. Spaces become %20 and plus becomes %2B; form-query encoding instead uses plus for spaces. Empty text stays empty; valid native strings contain no lone surrogates. No errors or defaults.\n\nOwnership: inputs are borrowed for the call; the result owns independent storage.\n\n```tsrust\nimport { encodeURIComponent } from 'std:url';\n\nfunction main() {\n  console.log(encodeURIComponent('é +'));\n}\n```\n\nExpected output: %C3%A9%20%2B.",
+      "examples": [
+        {
+          "source": "import { encodeURIComponent } from 'std:url';\nfunction main() { console.log(encodeURIComponent('é +')); }\n",
+          "output": "%C3%A9%20%2B\n"
+        }
+      ]
+    },
+    {
+      "name": "decodeURIComponent",
+      "signature": "decodeURIComponent(text: string): Result<string, UrlError>",
+      "parameters": [
+        {
+          "label": "text: string",
+          "documentation": "Component text with optional percent escapes."
+        }
+      ],
+      "documentation": "Strictly decodes percent escapes as UTF-8. Every percent must have two hexadecimal digits, and decoded bytes must form valid UTF-8. Invalid escapes return code percent; invalid UTF-8 returns encoding. Plus remains plus. Empty text returns an empty string. Does not parse a URL or apply form-query rules.\n\nOwnership: inputs are borrowed for the call; the result owns independent storage.\n\n```tsrust\nimport { decodeURIComponent } from 'std:url';\n\nfunction main() {\n  console.log(unwrap(decodeURIComponent('%C3%A9%20%2B')));\n}\n```\n\nExpected output: é +.",
+      "examples": [
+        {
+          "source": "import { decodeURIComponent } from 'std:url';\nfunction main() { console.log(unwrap(decodeURIComponent('%C3%A9%20%2B'))); }\n",
+          "output": "é +\n"
+        }
+      ]
+    }
+  ],
+  "Url": [
+    {
+      "name": "href",
+      "signature": "href: StringView",
+      "documentation": "Full canonical URL serialization, including any credentials.\n\nA plain property assignment accepts string and throws UrlError if rejected. The receiver and RHS evaluate once in ordinary assignment order. Invalid checks precede mutation. Compound/update assignment is unsupported.\n\n```tsrust\nconst value = unwrap(parseUrl('https://u:secret@example.com:8080/a?q=1#f'));\nconsole.log(value.href); // https://u:secret@example.com:8080/a?q=1#f\n```\n\nOwnership: the getter returns a scoped StringView borrowing the whole URL. Use String(view) for independent text. A live view prevents any URL mutation or transfer. Standalone property assignment moves an owned string RHS as ordinary assignment does; clone(text) retains an independent caller value.",
+      "examples": [
+        {
+          "source": "import { parseUrl } from 'std:url';\nfunction main() { const value=unwrap(parseUrl('https://u:secret@example.com:8080/a?q=1#f'));console.log(value.href); }\n",
+          "output": "https://u:secret@example.com:8080/a?q=1#f\n"
+        }
+      ]
+    },
+    {
+      "name": "protocol",
+      "signature": "protocol: StringView",
+      "documentation": "Lowercase scheme followed by a colon. Scheme changes that cannot apply to the URL reject.\n\nA plain property assignment accepts string and throws UrlError if rejected. The receiver and RHS evaluate once in ordinary assignment order. Invalid checks precede mutation. Compound/update assignment is unsupported.\n\n```tsrust\nconst value = unwrap(parseUrl('https://u:secret@example.com:8080/a?q=1#f'));\nconsole.log(value.protocol); // https:\n```\n\nOwnership: the getter returns a scoped StringView borrowing the whole URL. Use String(view) for independent text. A live view prevents any URL mutation or transfer. Standalone property assignment moves an owned string RHS as ordinary assignment does; clone(text) retains an independent caller value.",
+      "examples": [
+        {
+          "source": "import { parseUrl } from 'std:url';\nfunction main() { const value=unwrap(parseUrl('https://u:secret@example.com:8080/a?q=1#f'));console.log(value.protocol); }\n",
+          "output": "https:\n"
+        }
+      ]
+    },
+    {
+      "name": "username",
+      "signature": "username: StringView",
+      "documentation": "Percent-encoded username; an absent username is empty text. URLs that cannot contain credentials reject writes.\n\nA plain property assignment accepts string and throws UrlError if rejected. The receiver and RHS evaluate once in ordinary assignment order. Invalid checks precede mutation. Compound/update assignment is unsupported.\n\n```tsrust\nconst value = unwrap(parseUrl('https://u:secret@example.com:8080/a?q=1#f'));\nconsole.log(value.username); // u\n```\n\nOwnership: the getter returns a scoped StringView borrowing the whole URL. Use String(view) for independent text. A live view prevents any URL mutation or transfer. Standalone property assignment moves an owned string RHS as ordinary assignment does; clone(text) retains an independent caller value.",
+      "examples": [
+        {
+          "source": "import { parseUrl } from 'std:url';\nfunction main() { const value=unwrap(parseUrl('https://u:secret@example.com:8080/a?q=1#f'));console.log(value.username); }\n",
+          "output": "u\n"
+        }
+      ]
+    },
+    {
+      "name": "password",
+      "signature": "password: StringView | undefined",
+      "documentation": "Percent-encoded password, or undefined when absent. Empty or undefined writes remove it; unsupported credential writes reject.\n\nA plain property assignment accepts string | undefined and throws UrlError if rejected. The receiver and RHS evaluate once in ordinary assignment order. Invalid checks precede mutation. Compound/update assignment is unsupported.\n\n```tsrust\nconst value = unwrap(parseUrl('https://u:secret@example.com:8080/a?q=1#f'));\nconsole.log(value.password); // secret\n```\n\nOwnership: the getter returns a scoped StringView borrowing the whole URL. Use String(view) for independent text. A live view prevents any URL mutation or transfer. Standalone property assignment moves an owned string RHS as ordinary assignment does; clone(text) retains an independent caller value.",
+      "examples": [
+        {
+          "source": "import { parseUrl } from 'std:url';\nfunction main() { const value=unwrap(parseUrl('https://u:secret@example.com:8080/a?q=1#f'));console.log(value.password); }\n",
+          "output": "secret\n"
+        }
+      ]
+    },
+    {
+      "name": "hostname",
+      "signature": "hostname: StringView | undefined",
+      "documentation": "Normalized IDNA domain or IP host, retaining IPv6 brackets, or undefined when absent. Empty-host writes retaining credentials or a port reject before mutation.\n\nA plain property assignment accepts string | undefined and throws UrlError if rejected. The receiver and RHS evaluate once in ordinary assignment order. Invalid checks precede mutation. Compound/update assignment is unsupported.\n\n```tsrust\nconst value = unwrap(parseUrl('https://u:secret@example.com:8080/a?q=1#f'));\nconsole.log(value.hostname); // example.com\n```\n\nOwnership: the getter returns a scoped StringView borrowing the whole URL. Use String(view) for independent text. A live view prevents any URL mutation or transfer. Standalone property assignment moves an owned string RHS as ordinary assignment does; clone(text) retains an independent caller value.",
+      "examples": [
+        {
+          "source": "import { parseUrl } from 'std:url';\nfunction main() { const value=unwrap(parseUrl('https://u:secret@example.com:8080/a?q=1#f'));console.log(value.hostname); }\n",
+          "output": "example.com\n"
+        }
+      ]
+    },
+    {
+      "name": "port",
+      "signature": "port: int | undefined",
+      "documentation": "Explicit non-default port as an exact integer, or undefined. Writes accept 0..65535 or undefined to remove; default ports normalize to absence.\n\nA plain property assignment accepts int | undefined and throws UrlError if rejected. The receiver and RHS evaluate once in ordinary assignment order. Invalid checks precede mutation. Compound/update assignment is unsupported.\n\n```tsrust\nconst value = unwrap(parseUrl('https://u:secret@example.com:8080/a?q=1#f'));\nconsole.log(value.port); // 8080\n```\n\nOwnership: getter copies the optional integer. Writing exclusively borrows the whole URL.",
+      "examples": [
+        {
+          "source": "import { parseUrl } from 'std:url';\nfunction main() { const value=unwrap(parseUrl('https://u:secret@example.com:8080/a?q=1#f'));console.log(value.port); }\n",
+          "output": "8080\n"
+        }
+      ]
+    },
+    {
+      "name": "pathname",
+      "signature": "pathname: StringView",
+      "documentation": "Percent-encoded URL path. Writes follow the backend path normalization and encoding rules, without touching the filesystem.\n\nA plain property assignment accepts string and throws UrlError if rejected. The receiver and RHS evaluate once in ordinary assignment order. Invalid checks precede mutation. Compound/update assignment is unsupported.\n\n```tsrust\nconst value = unwrap(parseUrl('https://u:secret@example.com:8080/a?q=1#f'));\nconsole.log(value.pathname); // /a\n```\n\nOwnership: the getter returns a scoped StringView borrowing the whole URL. Use String(view) for independent text. A live view prevents any URL mutation or transfer. Standalone property assignment moves an owned string RHS as ordinary assignment does; clone(text) retains an independent caller value.",
+      "examples": [
+        {
+          "source": "import { parseUrl } from 'std:url';\nfunction main() { const value=unwrap(parseUrl('https://u:secret@example.com:8080/a?q=1#f'));console.log(value.pathname); }\n",
+          "output": "/a\n"
+        }
+      ]
+    },
+    {
+      "name": "search",
+      "signature": "search: StringView | undefined",
+      "documentation": "Query serialization including its question mark, or undefined when absent. A present empty query reads ?. Writes strip one optional leading ?; undefined removes the query.\n\nA plain property assignment accepts string | undefined and throws UrlError if rejected. The receiver and RHS evaluate once in ordinary assignment order. Invalid checks precede mutation. Compound/update assignment is unsupported.\n\n```tsrust\nconst value = unwrap(parseUrl('https://u:secret@example.com:8080/a?q=1#f'));\nconsole.log(value.search); // ?q=1\n```\n\nOwnership: the getter returns a scoped StringView borrowing the whole URL. Use String(view) for independent text. A live view prevents any URL mutation or transfer. Standalone property assignment moves an owned string RHS as ordinary assignment does; clone(text) retains an independent caller value.",
+      "examples": [
+        {
+          "source": "import { parseUrl } from 'std:url';\nfunction main() { const value=unwrap(parseUrl('https://u:secret@example.com:8080/a?q=1#f'));console.log(value.search); }\n",
+          "output": "?q=1\n"
+        }
+      ]
+    },
+    {
+      "name": "hash",
+      "signature": "hash: StringView | undefined",
+      "documentation": "Fragment serialization including its hash mark, or undefined when absent. A present empty fragment reads #. Writes strip one optional leading #; undefined removes it.\n\nA plain property assignment accepts string | undefined and throws UrlError if rejected. The receiver and RHS evaluate once in ordinary assignment order. Invalid checks precede mutation. Compound/update assignment is unsupported.\n\n```tsrust\nconst value = unwrap(parseUrl('https://u:secret@example.com:8080/a?q=1#f'));\nconsole.log(value.hash); // #f\n```\n\nOwnership: the getter returns a scoped StringView borrowing the whole URL. Use String(view) for independent text. A live view prevents any URL mutation or transfer. Standalone property assignment moves an owned string RHS as ordinary assignment does; clone(text) retains an independent caller value.",
+      "examples": [
+        {
+          "source": "import { parseUrl } from 'std:url';\nfunction main() { const value=unwrap(parseUrl('https://u:secret@example.com:8080/a?q=1#f'));console.log(value.hash); }\n",
+          "output": "#f\n"
+        }
+      ]
+    },
+    {
+      "name": "origin",
+      "signature": "origin: string",
+      "documentation": "ASCII origin serialization. Opaque and file origins serialize as null. This is an independently owned string and cannot be assigned.\n\n```tsrust\nconst value = unwrap(parseUrl('https://u:secret@example.com:8080/a?q=1#f'));\nconsole.log(value.origin); // https://example.com:8080\n```\n\nOwnership: reads the URL and returns independent owned text.",
+      "examples": [
+        {
+          "source": "import { parseUrl } from 'std:url';\nfunction main() { const value=unwrap(parseUrl('https://u:secret@example.com:8080/a?q=1#f'));console.log(value.origin); }\n",
+          "output": "https://example.com:8080\n"
+        }
+      ]
+    }
+  ],
+  "SearchParams": [
+    {
+      "name": "get",
+      "signature": "get(name: string): StringView | undefined",
+      "parameters": [
+        {
+          "label": "name: string",
+          "documentation": "Exact decoded key to search for."
+        }
+      ],
+      "documentation": "Returns a scoped view of the first value with this exact decoded name, or undefined. An empty present value is an empty view. Does not reorder or mutate the list. No defaults or errors.\n\nOwnership: borrows the whole list until the result's last use; String(view) retains independent text.\n\n```tsrust\nimport { parseQuery, formatQuery } from 'std:url';\n\nfunction main() {\n  const params = parseQuery('x=1&x=2');\n  console.log(params.get('x'));\n}\n```\n\nExpected output: 1.",
+      "examples": [
+        {
+          "source": "import { parseQuery, formatQuery } from 'std:url';\nfunction main() { const params=parseQuery('x=1&x=2');console.log(params.get('x')); }\n",
+          "output": "1\n"
+        }
+      ]
+    },
+    {
+      "name": "getAll",
+      "signature": "getAll(name: string): string[]",
+      "parameters": [
+        {
+          "label": "name: string",
+          "documentation": "Exact decoded key to search for."
+        }
+      ],
+      "documentation": "Copies every value with this exact name in list order. A missing name returns an empty array. Does not mutate the list. No defaults or errors.\n\nOwnership: inputs are borrowed for the call; the result owns independent storage.\n\n```tsrust\nimport { parseQuery, formatQuery } from 'std:url';\n\nfunction main() {\n  const params = parseQuery('x=1&x=2');\n  console.log(params.getAll('x').join(','));\n}\n```\n\nExpected output: 1,2.",
+      "examples": [
+        {
+          "source": "import { parseQuery, formatQuery } from 'std:url';\nfunction main() { const params=parseQuery('x=1&x=2');console.log(params.getAll('x').join(',')); }\n",
+          "output": "1,2\n"
+        }
+      ]
+    },
+    {
+      "name": "has",
+      "signature": "has(name: string): boolean",
+      "parameters": [
+        {
+          "label": "name: string",
+          "documentation": "Exact decoded key to find."
+        }
+      ],
+      "documentation": "Tests whether at least one pair has this exact decoded name, including pairs whose value is empty. Returns a copied boolean without mutation. No defaults or errors.\n\nOwnership: borrows the list and name only during the call.\n\n```tsrust\nimport { parseQuery, formatQuery } from 'std:url';\n\nfunction main() {\n  const params = parseQuery('bare');\n  console.log(params.has('bare'));\n}\n```\n\nExpected output: true.",
+      "examples": [
+        {
+          "source": "import { parseQuery, formatQuery } from 'std:url';\nfunction main() { const params=parseQuery('bare');console.log(params.has('bare')); }\n",
+          "output": "true\n"
+        }
+      ]
+    },
+    {
+      "name": "append",
+      "signature": "append(name: string, value: string): void",
+      "parameters": [
+        {
+          "label": "name: string",
+          "documentation": "Decoded key, including empty text."
+        },
+        {
+          "label": "value: string",
+          "documentation": "Decoded value, including empty text."
+        }
+      ],
+      "documentation": "Appends one decoded pair at the end. Existing equal names remain separate and keep their order. Does not interpret percent escapes or plus in either argument. Returns void; no defaults or errors.\n\nOwnership: exclusively borrows the list and copies the borrowed input text into its owned storage.\n\n```tsrust\nimport { parseQuery, formatQuery } from 'std:url';\n\nfunction main() {\n  const params = parseQuery('x=1');\n  params.append('x', '2');\n  console.log(formatQuery(params));\n}\n```\n\nExpected output: x=1&x=2.",
+      "examples": [
+        {
+          "source": "import { parseQuery, formatQuery } from 'std:url';\nfunction main() { const params=parseQuery('x=1');params.append('x','2');console.log(formatQuery(params)); }\n",
+          "output": "x=1&x=2\n"
+        }
+      ]
+    },
+    {
+      "name": "set",
+      "signature": "set(name: string, value: string): void",
+      "parameters": [
+        {
+          "label": "name: string",
+          "documentation": "Exact decoded key to replace."
+        },
+        {
+          "label": "value: string",
+          "documentation": "Decoded replacement value."
+        }
+      ],
+      "documentation": "Replaces the first matching pair's value and removes later pairs with that name. If none exists, appends at the end. Unrelated pairs retain order. Returns void; arguments are decoded text, with no defaults or errors.\n\nOwnership: exclusively borrows the list and copies the borrowed replacement text.\n\n```tsrust\nimport { parseQuery, formatQuery } from 'std:url';\n\nfunction main() {\n  const params = parseQuery('x=1&y=2&x=3');\n  params.set('x', '4');\n  console.log(formatQuery(params));\n}\n```\n\nExpected output: x=4&y=2.",
+      "examples": [
+        {
+          "source": "import { parseQuery, formatQuery } from 'std:url';\nfunction main() { const params=parseQuery('x=1&y=2&x=3');params.set('x','4');console.log(formatQuery(params)); }\n",
+          "output": "x=4&y=2\n"
+        }
+      ]
+    },
+    {
+      "name": "delete",
+      "signature": "delete(name: string): void",
+      "parameters": [
+        {
+          "label": "name: string",
+          "documentation": "Exact decoded key to remove."
+        }
+      ],
+      "documentation": "Removes every pair with this exact name. A missing key is a no-op; unrelated order is preserved. Returns void; no defaults or errors.\n\nOwnership: exclusively borrows the list, releasing removed owned strings.\n\n```tsrust\nimport { parseQuery, formatQuery } from 'std:url';\n\nfunction main() {\n  const params = parseQuery('x=1&y=2&x=3');\n  params.delete('x');\n  console.log(formatQuery(params));\n}\n```\n\nExpected output: y=2.",
+      "examples": [
+        {
+          "source": "import { parseQuery, formatQuery } from 'std:url';\nfunction main() { const params=parseQuery('x=1&y=2&x=3');params.delete('x');console.log(formatQuery(params)); }\n",
+          "output": "y=2\n"
+        }
+      ]
+    },
+    {
+      "name": "entries",
+      "signature": "entries(): QueryEntry[]",
+      "parameters": [],
+      "documentation": "Copies all decoded pairs into independently owned QueryEntry records in current list order. Duplicate and empty names/values remain distinct entries. Empty lists return an empty array. Does not mutate the list; no arguments, defaults or errors.\n\nOwnership: inputs are borrowed for the call; the result owns independent storage.\n\n```tsrust\nimport { parseQuery, formatQuery } from 'std:url';\n\nfunction main() {\n  const params = parseQuery('x=1');\n  for (const item of params.entries()) {\n    console.log(item.name, item.value);\n  }\n}\n```\n\nExpected output: x 1.",
+      "examples": [
+        {
+          "source": "import { parseQuery, formatQuery } from 'std:url';\nfunction main() { const params=parseQuery('x=1');for(const item of params.entries()){console.log(item.name,item.value);} }\n",
+          "output": "x 1\n"
+        }
+      ]
+    },
+    {
+      "name": "sort",
+      "signature": "sort(): void",
+      "parameters": [],
+      "documentation": "Stably sorts pairs by decoded name using Rust string ordering, preserving equal-key order. Values are not compared. Unicode scalar ordering differs from UTF-16 ordering for some supplementary characters. Returns void; no arguments, defaults or errors.\n\nOwnership: exclusively borrows the list and reorders existing owned pairs without cloning their strings.\n\n```tsrust\nimport { parseQuery, formatQuery } from 'std:url';\n\nfunction main() {\n  const params = parseQuery('z=3&a=1&a=2');\n  params.sort();\n  console.log(formatQuery(params));\n}\n```\n\nExpected output: a=1&a=2&z=3.",
+      "examples": [
+        {
+          "source": "import { parseQuery, formatQuery } from 'std:url';\nfunction main() { const params=parseQuery('z=3&a=1&a=2');params.sort();console.log(formatQuery(params)); }\n",
+          "output": "a=1&a=2&z=3\n"
+        }
+      ]
+    }
+  ],
   "std:sql": [
     {
       "name": "connect",
@@ -7028,6 +7556,18 @@
   ],
   "std:fs": [
     {
+      "name": "SeekOrigin",
+      "signature": "type SeekOrigin = \"start\" | \"current\" | \"end\"",
+      "parameters": [],
+      "documentation": "A file cursor reference point: \"start\" counts from byte zero, \"current\" from the current cursor, and \"end\" from the file length. This type takes no arguments and changes no file. Offsets use exact signed integers; seeking before byte zero fails. Values outside these three spellings are rejected during checking. Ownership: the literal value copies.\n\n```tsrust\nimport { SeekOrigin } from \"std:fs\";\n\nfunction main() {\n  const origin: SeekOrigin = \"start\";\n  console.log(origin);\n}\n```\n\nExpected output: start.",
+      "examples": [
+        {
+          "source": "import {SeekOrigin} from \"std:fs\"; function main(){const origin:SeekOrigin=\"start\";console.log(origin);}",
+          "output": "start\n"
+        }
+      ]
+    },
+    {
       "name": "File",
       "signature": "type File",
       "parameters": [],
@@ -8151,6 +8691,167 @@
         {
           "source": "import { fromUtf8, viewMut, set, toUtf8 } from \"std:bytes\";\nfunction main() { match (fromUtf8(\"hello\")) { Ok(bytes) => { match (viewMut(bytes, 0, 1)) { Ok(part) => { match (set(part, 0, 72)) { Ok(_) => {}, Err(error) => { console.log(error.message); }, } }, Err(error) => { console.log(error.message); }, } match (toUtf8(bytes)) { Ok(text) => { console.log(text); }, Err(error) => { console.log(error.message); }, } }, Err(error) => { console.log(error.message); }, } }",
           "output": "Hello\n"
+        }
+      ]
+    },
+    {
+      "name": "toHex",
+      "signature": "toHex(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>): Result<string, ByteError>",
+      "parameters": [
+        {
+          "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Readable owned bytes or a readonly/mutable byte view."
+        }
+      ],
+      "documentation": "Encodes each byte as two lowercase hexadecimal digits, including leading zeroes. Empty bytes produce empty text. No separator or prefix is added. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromArray, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromArray([0, 255])))));\n}\n```\n\nExpected output: 00ff.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromArray, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromArray([0, 255])))));\n}\n",
+          "output": "00ff\n"
+        }
+      ]
+    },
+    {
+      "name": "fromHex",
+      "signature": "fromHex(text: ReadOnly<string>): Result<Bytes, ByteError>",
+      "parameters": [
+        {
+          "label": "text: ReadOnly<string>",
+          "documentation": "Complete even-length ASCII hexadecimal text."
+        }
+      ],
+      "documentation": "Decodes pairs of hexadecimal ASCII digits, accepting either letter case. Empty text produces empty bytes. Odd byte length returns hex-length before examining digits; a non-hexadecimal byte returns hex-digit with its UTF-8 byte offset. Whitespace and 0x prefixes are not accepted. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromHex, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromHex(\"00FF\")))));\n}\n```\n\nExpected output: 00ff.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromHex, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromHex(\"00FF\")))));\n}\n",
+          "output": "00ff\n"
+        }
+      ]
+    },
+    {
+      "name": "toBase64",
+      "signature": "toBase64(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>): Result<string, ByteError>",
+      "parameters": [
+        {
+          "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Readable owned bytes or a readonly/mutable byte view."
+        }
+      ],
+      "documentation": "Encodes bytes using the standard base64 alphabet (+ and /), with canonical = padding. Empty bytes produce empty text. It does not insert whitespace or line breaks. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromUtf8, toBase64 } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toBase64(unwrap(fromUtf8(\"f\")))));\n}\n```\n\nExpected output: Zg==.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromUtf8, toBase64 } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toBase64(unwrap(fromUtf8(\"f\")))));\n}\n",
+          "output": "Zg==\n"
+        }
+      ]
+    },
+    {
+      "name": "fromBase64",
+      "signature": "fromBase64(text: ReadOnly<string>): Result<Bytes, ByteError>",
+      "parameters": [
+        {
+          "label": "text: ReadOnly<string>",
+          "documentation": "Complete canonical padded standard base64; no whitespace."
+        }
+      ],
+      "documentation": "Decodes standard base64 (+ and /), requiring canonical padding whenever the final group needs it. Rejects whitespace, URL alphabet symbols, malformed padding and nonzero unused trailing bits. Empty text produces empty bytes. Errors are base64-byte, base64-length, base64-padding or base64-trailing-bits. An offending symbol has a byte offset when available; padding and structural length errors have no offset. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromBase64, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromBase64(\"Zg==\")))));\n}\n```\n\nExpected output: 66.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromBase64, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromBase64(\"Zg==\")))));\n}\n",
+          "output": "66\n"
+        }
+      ]
+    },
+    {
+      "name": "toBase64Url",
+      "signature": "toBase64Url(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>): Result<string, ByteError>",
+      "parameters": [
+        {
+          "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Readable owned bytes or a readonly/mutable byte view."
+        }
+      ],
+      "documentation": "Encodes bytes using the URL-safe base64 alphabet (- and _), without = padding. Empty bytes produce empty text. It does not percent-encode or insert line breaks. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromArray, toBase64Url } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toBase64Url(unwrap(fromArray([251, 255])))));\n}\n```\n\nExpected output: -_8.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromArray, toBase64Url } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toBase64Url(unwrap(fromArray([251, 255])))));\n}\n",
+          "output": "-_8\n"
+        }
+      ]
+    },
+    {
+      "name": "fromBase64Url",
+      "signature": "fromBase64Url(text: ReadOnly<string>): Result<Bytes, ByteError>",
+      "parameters": [
+        {
+          "label": "text: ReadOnly<string>",
+          "documentation": "Complete canonical unpadded URL-safe base64; no whitespace."
+        }
+      ],
+      "documentation": "Decodes URL-safe base64 (- and _), requiring omitted padding. Rejects = padding, whitespace, standard + or / symbols and nonzero unused trailing bits. Empty text produces empty bytes. Errors are base64-byte, base64-length, base64-padding or base64-trailing-bits. Symbol errors report a byte offset when available; padding and structural length errors have no offset. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromBase64Url, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromBase64Url(\"-_8\")))));\n}\n```\n\nExpected output: fbff.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromBase64Url, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromBase64Url(\"-_8\")))));\n}\n",
+          "output": "fbff\n"
+        }
+      ]
+    },
+    {
+      "name": "toUtf8Lossy",
+      "signature": "toUtf8Lossy(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>): Result<string, ByteError>",
+      "parameters": [
+        {
+          "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Readable bytes, which may contain malformed UTF-8."
+        }
+      ],
+      "documentation": "Decodes bytes as UTF-8, replacing each malformed subsequence with U+FFFD (�). It preserves NUL and BOM characters and returns independently owned text, including for valid input. Empty bytes produce empty text. Use toUtf8 for strict rejection and an invalid-sequence offset. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromArray, toUtf8Lossy } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toUtf8Lossy(unwrap(fromArray([65, 195, 40])))));\n}\n```\n\nExpected output: A�(.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromArray, toUtf8Lossy } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toUtf8Lossy(unwrap(fromArray([65, 195, 40])))));\n}\n",
+          "output": "A�(\n"
+        }
+      ]
+    },
+    {
+      "name": "fromUtf16",
+      "signature": "fromUtf16(text: ReadOnly<string>, byteOrder: \"little\" | \"big\"): Result<Bytes, ByteError>",
+      "parameters": [
+        {
+          "label": "text: ReadOnly<string>",
+          "documentation": "Valid Unicode text to encode."
+        },
+        {
+          "label": "byteOrder: \"little\" | \"big\"",
+          "documentation": "Required byte order: \"little\" or \"big\". No BOM detection or implicit host byte order."
+        }
+      ],
+      "documentation": "Encodes valid native Unicode text as UTF-16 bytes in the explicitly selected byte order. Characters above U+FFFF become surrogate pairs. Empty text produces empty bytes. No BOM is added or removed; an existing U+FEFF is encoded as ordinary text. There is no platform-dependent byte-order default. Native strings cannot contain lone surrogates. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromUtf16, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromUtf16(\"A😀\", \"little\")))));\n}\n```\n\nExpected output: 41003dd800de.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromUtf16, toHex } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toHex(unwrap(fromUtf16(\"A😀\", \"little\")))));\n}\n",
+          "output": "41003dd800de\n"
+        }
+      ]
+    },
+    {
+      "name": "toUtf16",
+      "signature": "toUtf16(bytes: ReadOnly<Bytes | ByteView | ByteViewMut>, byteOrder: \"little\" | \"big\"): Result<string, ByteError>",
+      "parameters": [
+        {
+          "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+          "documentation": "Complete UTF-16 bytes in the selected order."
+        },
+        {
+          "label": "byteOrder: \"little\" | \"big\"",
+          "documentation": "Required byte order: \"little\" or \"big\". No BOM detection or implicit host byte order."
+        }
+      ],
+      "documentation": "Decodes UTF-16 bytes in the explicitly selected byte order into valid Unicode text. Odd byte length or an unpaired surrogate returns utf16 with the byte offset of the unmatched final byte or surrogate unit. Empty bytes produce empty text. A BOM is preserved as U+FEFF, with no automatic byte-order detection or replacement of malformed input. There is no byte-order default. Every argument is required. The input is unchanged. Lengths and offsets count bytes. Output lengths must fit exact int and native storage; reservation failures can return allocation, while process-wide memory exhaustion is not guaranteed to be recoverable.\n\n```tsrust\nimport { fromHex, toUtf16 } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toUtf16(unwrap(fromHex(\"41003dd800de\")), \"little\")));\n}\n```\n\nExpected output: A😀.\n\nOwnership: borrows the input for this call; the returned value owns independent storage and carries no source loan.",
+      "examples": [
+        {
+          "source": "import { fromHex, toUtf16 } from \"std:bytes\";\n\nfunction main() {\n  console.log(unwrap(toUtf16(unwrap(fromHex(\"41003dd800de\")), \"little\")));\n}\n",
+          "output": "A😀\n"
         }
       ]
     }

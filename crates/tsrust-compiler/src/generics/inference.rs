@@ -268,6 +268,15 @@ impl Types<'_> {
                     }
                     Ok(())
                 }
+                Kind::Applied { name, arguments } if name.text == "Result" && arguments.len() == 2 && matches!(actual,Type::Union(_)) => {
+                    let Type::Union(union)=actual else {unreachable!()};
+                    let variants=crate::result_identity::variants(self.records,&self.unions.members(union)).ok_or_else(mismatch)?;
+                    for (pattern,variant) in constraint_children(pattern).into_iter().zip(variants).rev() {
+                        let payload=crate::result_identity::payload(&self.records[variant]).ok_or_else(mismatch)?;
+                        work.push(ConstraintWork::Unify(pattern,payload));
+                    }
+                    Ok(())
+                }
                 Kind::Applied { name, arguments } => {
                     let (Type::Record(id) | Type::Set(id) | Type::Map(id)) = actual else {
                         return Err(mismatch());
@@ -527,7 +536,7 @@ impl Types<'_> {
                 .map(|argument| {
                     crate::analysis::resolve_value_type(
                         argument,
-                        false,
+                        true,
                         self.names,
                         self.unions,
                     )
@@ -549,7 +558,7 @@ impl Types<'_> {
                     .map(|argument| {
                         crate::analysis::resolve_value_type(
                             argument,
-                            false,
+                            true,
                             self.names,
                             self.unions,
                         )
@@ -610,6 +619,7 @@ impl Types<'_> {
                 text: "undefined".into(),
                 span,
             }),
+            Type::Void => Kind::Named(crate::type_syntax::TypeName {text:"void".into(),span}),
             Type::Record(id) | Type::Enum(id, _) | Type::Set(id) | Type::Map(id) => Kind::Named(crate::type_syntax::TypeName {
                 text: self.records[id].name.text.clone(),
                 span,
@@ -637,6 +647,21 @@ impl Types<'_> {
 mod tests {
     use super::*;
     use crate::type_syntax::parse;
+    #[test]
+    fn generic_result_arguments_infer_nominal_success_and_error_payloads() {
+        crate::check(r#"
+function tag<T>(value:Result<T,string>):string {match(value){Ok(_)=>{return "ok";},Err(error)=>{return error;},}}
+function identity<T,E>(value:Result<T,E>):Result<T,E>{return value;}
+function main(){
+ const first:Result<int,string>=Ok(7);console.log(tag(first));
+ const empty:Result<void,string>=Ok();console.log(tag(empty));
+ const failed:Result<int,string>=Err("bad");console.log(tag(identity(failed)));
+ const nested:Result<Result<int,string>,int>=Ok(Ok(1));identity(nested);
+}
+"#).unwrap();
+        assert!(crate::check(r#"function tag<T>(value:Result<T,string>):int{return 1;}function main(){const wrong:Result<int,int>=Err(2);tag(wrong);}"#).is_err());
+        assert!(crate::check("function empty():void{}function identity<T>(value:T):T{return value;}function main(){identity(empty());}").is_err());
+    }
     #[test]
     fn deep_callable_constraints_use_one_worklist_for_borrowed_and_owned_patterns() {
         let mut shapes = HashMap::new();
